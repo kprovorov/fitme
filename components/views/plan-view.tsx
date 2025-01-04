@@ -16,14 +16,14 @@ export default function PlanView({ plan }: PlanViewProps) {
         {plan.frequency} workouts per week at {plan.location}
       </ThemedText>
       {plan.workouts.map((workout) => (
-        <ThemedView style={styles.workoutContainer}>
+        <ThemedView style={styles.workoutContainer} key={workout.id}>
           <ThemedText style={styles.workoutTitle}>{workout.name}</ThemedText>
           <ThemedText style={styles.workoutDescription}>
             {workout.description}
           </ThemedText>
           <ThemedView>
             {workout.exercises.map((exercise) => (
-              <ThemedView style={styles.exerciseContainer}>
+              <ThemedView style={styles.exerciseContainer} key={exercise.id}>
                 <ThemedText>{exercise.exercise.name}</ThemedText>
                 <ThemedText style={styles.exerciseDescription}>
                   {exercise.exercise.description}
@@ -31,7 +31,8 @@ export default function PlanView({ plan }: PlanViewProps) {
                 <ThemedView>
                   {exercise.sets.map((set) => (
                     <ThemedText key={set.id}>
-                      {set.weight / 1000}kg x {set.repeats}
+                      {set.weight ? `${set.weight / 1000}kg x ` : ""}
+                      {set.repeats} repeats
                     </ThemedText>
                   ))}
                 </ThemedView>

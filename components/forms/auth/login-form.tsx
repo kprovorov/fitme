@@ -32,9 +32,6 @@ export default function LoginForm({ onSubmit }: LoginFormProps) {
     <ThemedView>
       <Controller
         control={form.control}
-        rules={{
-          required: true,
-        }}
         render={({ field: { onChange, onBlur, value } }) => (
           <TextInput
             placeholder="Email"
@@ -53,9 +50,6 @@ export default function LoginForm({ onSubmit }: LoginFormProps) {
 
       <Controller
         control={form.control}
-        rules={{
-          maxLength: 100,
-        }}
         render={({ field: { onChange, onBlur, value } }) => (
           <TextInput
             placeholder="Password"
