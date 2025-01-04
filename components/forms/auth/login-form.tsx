@@ -1,18 +1,32 @@
 import { Controller, useForm } from "react-hook-form";
 import { TextInput } from "react-native";
 import { Button } from "react-native";
-
+import { zodResolver } from "@hookform/resolvers/zod";
 import { ThemedText } from "@/components/ThemedText";
 import { ThemedView } from "@/components/ThemedView";
+import { z } from "zod";
 
-export default function LoginForm() {
-  const form = useForm({
+interface LoginFormProps {
+  onSubmit: (values: z.infer<typeof formSchema>) => void;
+}
+
+export type LoginFormValues = z.infer<typeof formSchema>;
+
+const formSchema = z.object({
+  email: z.string().email(),
+  password: z.string().min(6, {
+    message: "Password must be at least 6 characters.",
+  }),
+});
+
+export default function LoginForm({ onSubmit }: LoginFormProps) {
+  const form = useForm<LoginFormValues>({
+    resolver: zodResolver(formSchema),
     defaultValues: {
-      firstName: "",
-      lastName: "",
+      email: "",
+      password: "",
     },
   });
-  const onSubmit = (data: any) => console.log(data);
 
   return (
     <ThemedView>
@@ -23,15 +37,17 @@ export default function LoginForm() {
         }}
         render={({ field: { onChange, onBlur, value } }) => (
           <TextInput
-            placeholder="First name"
+            placeholder="Email"
             onBlur={onBlur}
             onChangeText={onChange}
             value={value}
+            keyboardType="email-address"
+            autoCapitalize="none"
           />
         )}
-        name="firstName"
+        name="email"
       />
-      {form.formState.errors.firstName && (
+      {form.formState.errors.email && (
         <ThemedText>This is required.</ThemedText>
       )}
 
@@ -42,13 +58,14 @@ export default function LoginForm() {
         }}
         render={({ field: { onChange, onBlur, value } }) => (
           <TextInput
-            placeholder="Last name"
+            placeholder="Password"
             onBlur={onBlur}
             onChangeText={onChange}
             value={value}
+            secureTextEntry
           />
         )}
-        name="lastName"
+        name="password"
       />
 
       <Button title="Submit" onPress={form.handleSubmit(onSubmit)} />
