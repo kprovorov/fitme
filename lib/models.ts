@@ -26,6 +26,7 @@ export type Workout = {
 };
 
 export type WorkoutExercise = {
+  id: number;
   workout_id: number;
   exercise_id: number;
   order: number;
