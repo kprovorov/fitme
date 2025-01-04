@@ -1,13 +1,6 @@
-import { ThemedText } from "@/components/ThemedText";
-import { ThemedView } from "@/components/ThemedView";
+import PlansListView from "@/components/views/plans-list-view";
 import React from "react";
 
-function PlansScreen() {
-  return (
-    <ThemedView>
-      <ThemedText>Plans</ThemedText>
-    </ThemedView>
-  );
+export default function PlansScreen() {
+  return <PlansListView />;
 }
-
-export default PlansScreen;
