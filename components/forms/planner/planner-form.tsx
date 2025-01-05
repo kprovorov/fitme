@@ -14,6 +14,8 @@ import {
 import { Text } from "~/components/ui/text";
 import { Input } from "~/components/ui/input";
 import { Button } from "~/components/ui/button";
+import { VStack } from "~/components/ui/vstack";
+import { HStack } from "~/components/ui/hstack";
 
 interface PlannerFormProps {
   onSubmit: (values: z.infer<typeof formSchema>) => void;
@@ -46,8 +48,8 @@ export default function PlannerForm({ onSubmit }: PlannerFormProps) {
   });
 
   const genderOptions = [
-    { label: "Male", value: "male" },
-    { label: "Female", value: "female" },
+    { label: "Men", value: "male" },
+    { label: "Women", value: "female" },
   ];
 
   const genderField = (
@@ -56,6 +58,7 @@ export default function PlannerForm({ onSubmit }: PlannerFormProps) {
       name="gender"
       render={({ field: { onChange, onBlur, value } }) => (
         <Select
+          className="min-w-[100px]"
           value={genderOptions.find((option) => option.value === value)}
           onValueChange={(value) => onChange(value?.value)}
         >
@@ -211,24 +214,27 @@ export default function PlannerForm({ onSubmit }: PlannerFormProps) {
   );
 
   return (
-    <View className="flex flex-col gap-4">
-      <Text>I'm a</Text>
-      {genderField}
+    <VStack className="items-stretch">
+      <HStack className="justify-stretch flex-wrap">
+        <Text className="text-xl font-semibold">I'm a</Text>
+        {genderField}
+        <Text className="text-xl font-semibold">,</Text>
+        {ageField}
+        <Text className="text-xl font-semibold">y.o, and I want to</Text>
+        {goalField}
+        <Text className="text-xl font-semibold">My current weight is</Text>
+        {weightField}
+        <Text className="text-xl font-semibold">kg, height is</Text>
+        {heightField}
+        <Text className="text-xl font-semibold">cm. I want to exercise at</Text>
+        {locationField}
+        {frequencyField}
+        <Text className="text-xl font-semibold">times a week</Text>
+      </HStack>
 
-      {ageField}
-      <Text>y.o, and I want to</Text>
-      {goalField}
-      <Text>My current weight is</Text>
-      {weightField}
-      <Text>kg, height is</Text>
-      {heightField}
-      <Text>cm. I want to exercise at</Text>
-      {locationField}
-      {frequencyField}
-      <Text>times a week</Text>
       <Button onPress={form.handleSubmit(onSubmit)}>
-        <Text>Submit</Text>
+        <Text>Get my plan! 💪</Text>
       </Button>
-    </View>
+    </VStack>
   );
 }

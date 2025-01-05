@@ -7,11 +7,9 @@ export default function Planner() {
   return (
     <SafeAreaProvider>
       <SafeAreaView>
-        <ScrollView>
-          <Padding>
-            <PlannerView />
-          </Padding>
-        </ScrollView>
+        <Padding className="h-full">
+          <PlannerView />
+        </Padding>
       </SafeAreaView>
     </SafeAreaProvider>
   );
