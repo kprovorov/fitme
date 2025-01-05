@@ -1,4 +1,4 @@
-import { Redirect, Slot } from "expo-router";
+import { Redirect } from "expo-router";
 import { View } from "react-native";
 import { useCurrentUserQuery } from "~/hooks/queries/auth";
 import { Text } from "~/components/ui/text";
@@ -8,11 +8,7 @@ interface AuthenticatedProps {
 }
 
 export default function Authenticated({ children }: AuthenticatedProps) {
-  const {
-    data: user,
-    isLoading,
-    isFetched,
-  } = useCurrentUserQuery();
+  const { data: user, isLoading, isFetched } = useCurrentUserQuery();
 
   if (isLoading) {
     return (
