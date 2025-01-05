@@ -1,10 +1,11 @@
 import { Controller, useForm } from "react-hook-form";
-import { TextInput } from "react-native";
-import { Button } from "react-native";
+import { View } from "react-native";
 import { zodResolver } from "@hookform/resolvers/zod";
 import { ThemedText } from "@/components/ThemedText";
-import { ThemedView } from "@/components/ThemedView";
 import { z } from "zod";
+import { Input } from "~/components/ui/input";
+import { Button } from "~/components/ui/button";
+import { Text } from "~/components/ui/text";
 
 interface LoginFormProps {
   onSubmit: (values: z.infer<typeof formSchema>) => void;
@@ -29,11 +30,11 @@ export default function LoginForm({ onSubmit }: LoginFormProps) {
   });
 
   return (
-    <ThemedView>
+    <View className="flex flex-col gap-4 p-4">
       <Controller
         control={form.control}
         render={({ field: { onChange, onBlur, value } }) => (
-          <TextInput
+          <Input
             placeholder="Email"
             onBlur={onBlur}
             onChangeText={onChange}
@@ -51,7 +52,7 @@ export default function LoginForm({ onSubmit }: LoginFormProps) {
       <Controller
         control={form.control}
         render={({ field: { onChange, onBlur, value } }) => (
-          <TextInput
+          <Input
             placeholder="Password"
             onBlur={onBlur}
             onChangeText={onChange}
@@ -62,7 +63,9 @@ export default function LoginForm({ onSubmit }: LoginFormProps) {
         name="password"
       />
 
-      <Button title="Submit" onPress={form.handleSubmit(onSubmit)} />
-    </ThemedView>
+      <Button onPress={form.handleSubmit(onSubmit)}>
+        <Text>Submit</Text>
+      </Button>
+    </View>
   );
 }

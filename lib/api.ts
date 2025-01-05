@@ -18,7 +18,7 @@ export const setToken = async (token: string) => {
   api.defaults.headers.common["Authorization"] = `Bearer ${token}`;
 };
 
-export const removeToken = async () => {
+export const deleteToken = async () => {
   await SecureStore.deleteItemAsync("token");
   delete api.defaults.headers.common["Authorization"];
 };

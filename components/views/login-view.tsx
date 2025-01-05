@@ -7,7 +7,6 @@ export default function LoginView() {
 
   const { mutate: login } = useLoginMutation({
     onSuccess: () => {
-      console.log("login success");
       queryClient.invalidateQueries({ queryKey: ["api/user"] });
     },
   });
