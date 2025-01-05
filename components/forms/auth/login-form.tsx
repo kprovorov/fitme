@@ -6,9 +6,10 @@ import { z } from "zod";
 import { Input } from "~/components/ui/input";
 import { Button } from "~/components/ui/button";
 import { Text } from "~/components/ui/text";
+import { LoaderCircle } from "~/lib/icons/LoaderCircle";
 
 interface LoginFormProps {
-  onSubmit: (values: z.infer<typeof formSchema>) => void;
+  onSubmit: (values: z.infer<typeof formSchema>) => Promise<void>;
 }
 
 export type LoginFormValues = z.infer<typeof formSchema>;
@@ -35,6 +36,7 @@ export default function LoginForm({ onSubmit }: LoginFormProps) {
         control={form.control}
         render={({ field: { onChange, onBlur, value } }) => (
           <Input
+            editable={!form.formState.isSubmitting}
             placeholder="Email"
             onBlur={onBlur}
             onChangeText={onChange}
@@ -53,6 +55,7 @@ export default function LoginForm({ onSubmit }: LoginFormProps) {
         control={form.control}
         render={({ field: { onChange, onBlur, value } }) => (
           <Input
+            editable={!form.formState.isSubmitting}
             placeholder="Password"
             onBlur={onBlur}
             onChangeText={onChange}
@@ -63,8 +66,17 @@ export default function LoginForm({ onSubmit }: LoginFormProps) {
         name="password"
       />
 
-      <Button onPress={form.handleSubmit(onSubmit)}>
-        <Text>Submit</Text>
+      <Button
+        disabled={form.formState.isSubmitting}
+        onPress={form.handleSubmit(onSubmit)}
+      >
+        {form.formState.isSubmitting ? (
+          <View className="animate-spin">
+            <LoaderCircle className="w-4 h-4 color-white" />
+          </View>
+        ) : (
+          <Text>Login</Text>
+        )}
       </Button>
     </View>
   );

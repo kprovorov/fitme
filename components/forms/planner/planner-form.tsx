@@ -2,7 +2,7 @@ import React from "react";
 import { z } from "zod";
 import { zodResolver } from "@hookform/resolvers/zod";
 import { Controller, useForm } from "react-hook-form";
-import { View } from "react-native";
+import { ActivityIndicator, View } from "react-native";
 import {
   Select,
   SelectContent,
@@ -16,9 +16,10 @@ import { Input } from "~/components/ui/input";
 import { Button } from "~/components/ui/button";
 import { VStack } from "~/components/ui/vstack";
 import { HStack } from "~/components/ui/hstack";
+import { LoaderCircle } from "~/lib/icons/LoaderCircle";
 
 interface PlannerFormProps {
-  onSubmit: (values: z.infer<typeof formSchema>) => void;
+  onSubmit: (values: z.infer<typeof formSchema>) => Promise<void>;
 }
 
 export type PlannerFormValues = z.infer<typeof formSchema>;
@@ -58,6 +59,7 @@ export default function PlannerForm({ onSubmit }: PlannerFormProps) {
       name="gender"
       render={({ field: { onChange, onBlur, value } }) => (
         <Select
+          disabled={form.formState.isSubmitting}
           className="min-w-[100px]"
           value={genderOptions.find((option) => option.value === value)}
           onValueChange={(value) => onChange(value?.value)}
@@ -92,6 +94,7 @@ export default function PlannerForm({ onSubmit }: PlannerFormProps) {
       name="age"
       render={({ field: { onChange, onBlur, value } }) => (
         <Input
+          editable={!form.formState.isSubmitting}
           placeholder="Age"
           onChangeText={onChange}
           onBlur={onBlur}
@@ -114,6 +117,7 @@ export default function PlannerForm({ onSubmit }: PlannerFormProps) {
       name="goal"
       render={({ field: { onChange, onBlur, value } }) => (
         <Select
+          disabled={form.formState.isSubmitting}
           value={goalOptions.find((option) => option.value === value)}
           onValueChange={(value) => onChange(value?.value)}
         >
@@ -145,6 +149,7 @@ export default function PlannerForm({ onSubmit }: PlannerFormProps) {
           onBlur={onBlur}
           value={value.toString()}
           keyboardType="numeric"
+          editable={!form.formState.isSubmitting}
         />
       )}
     />
@@ -161,6 +166,7 @@ export default function PlannerForm({ onSubmit }: PlannerFormProps) {
           onBlur={onBlur}
           value={value.toString()}
           keyboardType="numeric"
+          editable={!form.formState.isSubmitting}
         />
       )}
     />
@@ -179,6 +185,7 @@ export default function PlannerForm({ onSubmit }: PlannerFormProps) {
         <Select
           value={locationOptions.find((option) => option.value === value)}
           onValueChange={(value) => onChange(value?.value)}
+          disabled={form.formState.isSubmitting}
         >
           <SelectTrigger>
             <SelectValue placeholder="Location" />
@@ -208,6 +215,7 @@ export default function PlannerForm({ onSubmit }: PlannerFormProps) {
           onBlur={onBlur}
           value={value.toString()}
           keyboardType="numeric"
+          editable={!form.formState.isSubmitting}
         />
       )}
     />
@@ -232,8 +240,17 @@ export default function PlannerForm({ onSubmit }: PlannerFormProps) {
         <Text className="text-xl font-semibold">times a week</Text>
       </HStack>
 
-      <Button onPress={form.handleSubmit(onSubmit)}>
-        <Text>Get my plan! 💪</Text>
+      <Button
+        disabled={form.formState.isSubmitting}
+        onPress={form.handleSubmit(onSubmit)}
+      >
+        {form.formState.isSubmitting ? (
+          <View className="animate-spin">
+            <LoaderCircle className="w-4 h-4 color-white" />
+          </View>
+        ) : (
+          <Text>Get my plan! 💪</Text>
+        )}
       </Button>
     </VStack>
   );

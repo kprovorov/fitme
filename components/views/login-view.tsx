@@ -6,12 +6,18 @@ import { router } from "expo-router";
 export default function LoginView() {
   const queryClient = useQueryClient();
 
-  const { mutate: login } = useLoginMutation({
+  const { mutateAsync: login } = useLoginMutation({
     onSuccess: async () => {
       await queryClient.invalidateQueries({ queryKey: ["user"] });
       router.replace("/");
     },
   });
 
-  return <LoginForm onSubmit={login} />;
+  return (
+    <LoginForm
+      onSubmit={async (values) => {
+        await login(values);
+      }}
+    />
+  );
 }
