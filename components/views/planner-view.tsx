@@ -1,30 +1,19 @@
 import React from "react";
-import { ThemedView } from "../ThemedView";
-import { ThemedText } from "../ThemedText";
 import PlannerForm from "../forms/planner/planner-form";
-import { StyleSheet } from "react-native";
+import { ScrollView, View } from "react-native";
 import { useStoreProfileMutation } from "@/hooks/queries/profiles";
+import { H1, H3 } from "~/components/ui/typography";
 
 export default function PlannerView() {
   const { mutate: storeProfile } = useStoreProfileMutation();
 
   return (
-    <ThemedView style={styles.container}>
-      <ThemedText type="title">
-        Welcome to Fitme! Your AI fitness coach
-      </ThemedText>
-      <ThemedText type="subtitle">
-        Let's get started by answering a few questions about yourself.
-      </ThemedText>
-      <PlannerForm onSubmit={storeProfile} />
-    </ThemedView>
+    <ScrollView>
+      <View className="flex flex-col gap-4 p-4">
+        <H1>Welcome to Fitme! Your AI fitness coach</H1>
+        <H3>Let's get started by answering a few questions about yourself.</H3>
+        <PlannerForm onSubmit={storeProfile} />
+      </View>
+    </ScrollView>
   );
 }
-
-const styles = StyleSheet.create({
-  container: {
-    flex: 1,
-    padding: 20,
-    gap: 20,
-  },
-});

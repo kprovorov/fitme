@@ -1,10 +1,19 @@
 import React from "react";
-import { ThemedView } from "@/components/ThemedView";
-import { ThemedText } from "@/components/ThemedText";
 import { z } from "zod";
 import { zodResolver } from "@hookform/resolvers/zod";
 import { Controller, useForm } from "react-hook-form";
-import { Button, TextInput } from "react-native";
+import { View } from "react-native";
+import {
+  Select,
+  SelectContent,
+  SelectGroup,
+  SelectItem,
+  SelectTrigger,
+  SelectValue,
+} from "~/components/ui/select";
+import { Text } from "~/components/ui/text";
+import { Input } from "~/components/ui/input";
+import { Button } from "~/components/ui/button";
 
 interface PlannerFormProps {
   onSubmit: (values: z.infer<typeof formSchema>) => void;
@@ -36,17 +45,40 @@ export default function PlannerForm({ onSubmit }: PlannerFormProps) {
     },
   });
 
+  const genderOptions = [
+    { label: "Male", value: "male" },
+    { label: "Female", value: "female" },
+  ];
+
   const genderField = (
     <Controller
       control={form.control}
       name="gender"
       render={({ field: { onChange, onBlur, value } }) => (
-        <TextInput
-          placeholder="Gender"
-          onChangeText={onChange}
-          onBlur={onBlur}
-          value={value}
-        />
+        <Select
+          value={genderOptions.find((option) => option.value === value)}
+          onValueChange={(value) => onChange(value?.value)}
+        >
+          <SelectTrigger className="w-[250px]">
+            <SelectValue
+              className="text-foreground text-sm native:text-lg"
+              placeholder="Select a fruit"
+            />
+          </SelectTrigger>
+          <SelectContent className="w-[250px]">
+            <SelectGroup>
+              {genderOptions.map((option) => (
+                <SelectItem
+                  key={option.value}
+                  label={option.label}
+                  value={option.value}
+                >
+                  {option.label}
+                </SelectItem>
+              ))}
+            </SelectGroup>
+          </SelectContent>
+        </Select>
       )}
     />
   );
@@ -56,7 +88,7 @@ export default function PlannerForm({ onSubmit }: PlannerFormProps) {
       control={form.control}
       name="age"
       render={({ field: { onChange, onBlur, value } }) => (
-        <TextInput
+        <Input
           placeholder="Age"
           onChangeText={onChange}
           onBlur={onBlur}
@@ -67,17 +99,34 @@ export default function PlannerForm({ onSubmit }: PlannerFormProps) {
     />
   );
 
+  const goalOptions = [
+    { label: "Lose weight", value: "lose_weight" },
+    { label: "Gain muscle", value: "gain_muscle" },
+    { label: "Improve health", value: "improve_health" },
+  ];
+
   const goalField = (
     <Controller
       control={form.control}
       name="goal"
       render={({ field: { onChange, onBlur, value } }) => (
-        <TextInput
-          placeholder="Goal"
-          onChangeText={onChange}
-          onBlur={onBlur}
-          value={value}
-        />
+        <Select
+          value={goalOptions.find((option) => option.value === value)}
+          onValueChange={(value) => onChange(value?.value)}
+        >
+          <SelectTrigger className="w-[250px]">
+            <SelectValue placeholder="Goal" />
+          </SelectTrigger>
+          <SelectContent className="w-[250px]">
+            {goalOptions.map((option) => (
+              <SelectItem
+                key={option.value}
+                label={option.label}
+                value={option.value}
+              />
+            ))}
+          </SelectContent>
+        </Select>
       )}
     />
   );
@@ -87,7 +136,7 @@ export default function PlannerForm({ onSubmit }: PlannerFormProps) {
       control={form.control}
       name="weight"
       render={({ field: { onChange, onBlur, value } }) => (
-        <TextInput
+        <Input
           placeholder="Weight"
           onChangeText={onChange}
           onBlur={onBlur}
@@ -103,7 +152,7 @@ export default function PlannerForm({ onSubmit }: PlannerFormProps) {
       control={form.control}
       name="height"
       render={({ field: { onChange, onBlur, value } }) => (
-        <TextInput
+        <Input
           placeholder="Height"
           onChangeText={onChange}
           onBlur={onBlur}
@@ -114,17 +163,33 @@ export default function PlannerForm({ onSubmit }: PlannerFormProps) {
     />
   );
 
+  const locationOptions = [
+    { label: "Gym", value: "gym" },
+    { label: "Home", value: "home" },
+  ];
+
   const locationField = (
     <Controller
       control={form.control}
       name="location"
       render={({ field: { onChange, onBlur, value } }) => (
-        <TextInput
-          placeholder="Location"
-          onChangeText={onChange}
-          onBlur={onBlur}
-          value={value}
-        />
+        <Select
+          value={locationOptions.find((option) => option.value === value)}
+          onValueChange={(value) => onChange(value?.value)}
+        >
+          <SelectTrigger className="w-[250px]">
+            <SelectValue placeholder="Location" />
+          </SelectTrigger>
+          <SelectContent className="w-[250px]">
+            {locationOptions.map((option) => (
+              <SelectItem
+                key={option.value}
+                label={option.label}
+                value={option.value}
+              />
+            ))}
+          </SelectContent>
+        </Select>
       )}
     />
   );
@@ -134,7 +199,7 @@ export default function PlannerForm({ onSubmit }: PlannerFormProps) {
       control={form.control}
       name="frequency"
       render={({ field: { onChange, onBlur, value } }) => (
-        <TextInput
+        <Input
           placeholder="Frequency"
           onChangeText={onChange}
           onBlur={onBlur}
@@ -146,15 +211,24 @@ export default function PlannerForm({ onSubmit }: PlannerFormProps) {
   );
 
   return (
-    <ThemedView>
-      <ThemedText>
-        I'm a {genderField}, {ageField} y.o, and I want to {goalField}
-      </ThemedText>
-      <ThemedText>
-        My current weight is {weightField} kg, height is {heightField} cm. I
-        want to exercise at {locationField} {frequencyField} times a week
-      </ThemedText>
-      <Button title="Submit" onPress={form.handleSubmit(onSubmit)} />
-    </ThemedView>
+    <View className="flex flex-col gap-4">
+      <Text>I'm a</Text>
+      {genderField}
+      
+      {ageField}
+      <Text>y.o, and I want to</Text>
+      {goalField}
+      <Text>My current weight is</Text>
+      {weightField}
+      <Text>kg, height is</Text>
+      {heightField}
+      <Text>cm. I want to exercise at</Text>
+      {locationField}
+      {frequencyField}
+      <Text>times a week</Text>
+      <Button onPress={form.handleSubmit(onSubmit)}>
+        <Text>Submit</Text>
+      </Button>
+    </View>
   );
 }
