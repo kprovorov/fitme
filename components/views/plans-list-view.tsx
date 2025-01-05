@@ -1,38 +1,26 @@
 import React from "react";
-import { ThemedView } from "../ThemedView";
-import { ThemedText } from "../ThemedText";
 import { usePlansQuery } from "@/hooks/queries/plans";
-import { ScrollView, StyleSheet } from "react-native";
+import { ScrollView } from "react-native";
 import PlanCard from "../plans/plan-card";
 import { Link } from "expo-router";
+import { VStack } from "../ui/vstack";
+import { Text } from "../ui/text";
 
 export default function PlansListView() {
   const { data: plans, isLoading, error } = usePlansQuery();
 
-  if (isLoading) return <ThemedText>Loading...</ThemedText>;
-  if (error) return <ThemedText>Error: {error.message}</ThemedText>;
+  if (isLoading) return <Text>Loading...</Text>;
+  if (error) return <Text>Error: {error.message}</Text>;
 
   return (
-    <ScrollView style={styles.container}>
-      <ThemedText style={styles.title}>Plans</ThemedText>
-      {plans?.map((plan) => (
-        <Link href={`/plans/${plan.id}`} key={plan.id}>
-          <PlanCard plan={plan} />
-        </Link>
-      ))}
+    <ScrollView className="p-4">
+      <VStack className="items-stretch">
+        {plans?.map((plan) => (
+          <Link href={`/plans/${plan.id}`} key={plan.id}>
+            <PlanCard plan={plan} />
+          </Link>
+        ))}
+      </VStack>
     </ScrollView>
   );
 }
-
-const styles = StyleSheet.create({
-  container: {
-    backgroundColor: "white",
-    padding: 10,
-  },
-  title: {
-    fontSize: 20,
-    fontWeight: "bold",
-    marginBottom: 10,
-    marginTop: 10,
-  },
-});
