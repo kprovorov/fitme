@@ -1,14 +1,17 @@
 import React from "react";
 import { SafeAreaView, ScrollView } from "react-native";
 import { SafeAreaProvider } from "react-native-safe-area-context";
+import { Padding } from "~/components/ui/padding";
 import ProfileView from "~/components/views/profile-view";
 
 export default function LoginScreen() {
   return (
     <SafeAreaProvider>
       <SafeAreaView>
-        <ScrollView className="p-4">
-          <ProfileView />
+        <ScrollView>
+          <Padding>
+            <ProfileView />
+          </Padding>
         </ScrollView>
       </SafeAreaView>
     </SafeAreaProvider>
