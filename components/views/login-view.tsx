@@ -1,13 +1,15 @@
 import LoginForm from "@/components/forms/auth/login-form";
 import { useLoginMutation } from "@/hooks/mutations/auth";
 import { useQueryClient } from "@tanstack/react-query";
+import { router } from "expo-router";
 
 export default function LoginView() {
   const queryClient = useQueryClient();
 
   const { mutate: login } = useLoginMutation({
-    onSuccess: () => {
-      queryClient.invalidateQueries({ queryKey: ["api/user"] });
+    onSuccess: async () => {
+      await queryClient.invalidateQueries({ queryKey: ["user"] });
+      router.replace("/");
     },
   });
 

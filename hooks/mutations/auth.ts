@@ -1,6 +1,5 @@
 import { createMutation } from "react-query-kit";
-import { api } from "@/lib/api";
-import * as SecureStore from "expo-secure-store";
+import { api, setToken } from "@/lib/api";
 
 export type LoginData = {
   email: string;
@@ -14,9 +13,7 @@ export const useLoginMutation = createMutation<string, LoginData>({
       device_name: "mobile",
     });
 
-    await SecureStore.setItemAsync("token", res.data);
-
-    api.defaults.headers.common["Authorization"] = `Bearer ${res.data}`;
+    await setToken(res.data);
 
     return res.data;
   },

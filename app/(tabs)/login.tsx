@@ -14,7 +14,7 @@ export default function LoginScreen() {
 
   const logout = async () => {
     await deleteToken();
-    await queryClient.invalidateQueries({ queryKey: ["api/user"] });
+    await queryClient.invalidateQueries({ queryKey: ["user"] });
   };
 
   return (
