@@ -1,6 +1,5 @@
 import React from "react";
 import { usePlansQuery } from "@/hooks/queries/plans";
-import { ScrollView } from "react-native";
 import PlanCard from "../plans/plan-card";
 import { Link } from "expo-router";
 import { VStack } from "../ui/vstack";
@@ -13,14 +12,12 @@ export default function PlansListView() {
   if (error) return <Text>Error: {error.message}</Text>;
 
   return (
-    <ScrollView className="p-4">
-      <VStack className="items-stretch">
-        {plans?.map((plan) => (
-          <Link href={`/plans/${plan.id}`} key={plan.id}>
-            <PlanCard plan={plan} />
-          </Link>
-        ))}
-      </VStack>
-    </ScrollView>
+    <VStack className="items-stretch">
+      {plans?.map((plan) => (
+        <Link href={`/plans/${plan.id}`} key={plan.id}>
+          <PlanCard plan={plan} />
+        </Link>
+      ))}
+    </VStack>
   );
 }

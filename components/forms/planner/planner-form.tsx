@@ -59,13 +59,13 @@ export default function PlannerForm({ onSubmit }: PlannerFormProps) {
           value={genderOptions.find((option) => option.value === value)}
           onValueChange={(value) => onChange(value?.value)}
         >
-          <SelectTrigger className="w-[250px]">
+          <SelectTrigger>
             <SelectValue
               className="text-foreground text-sm native:text-lg"
               placeholder="Select a fruit"
             />
           </SelectTrigger>
-          <SelectContent className="w-[250px]">
+          <SelectContent>
             <SelectGroup>
               {genderOptions.map((option) => (
                 <SelectItem
@@ -114,10 +114,10 @@ export default function PlannerForm({ onSubmit }: PlannerFormProps) {
           value={goalOptions.find((option) => option.value === value)}
           onValueChange={(value) => onChange(value?.value)}
         >
-          <SelectTrigger className="w-[250px]">
+          <SelectTrigger>
             <SelectValue placeholder="Goal" />
           </SelectTrigger>
-          <SelectContent className="w-[250px]">
+          <SelectContent>
             {goalOptions.map((option) => (
               <SelectItem
                 key={option.value}
@@ -177,10 +177,10 @@ export default function PlannerForm({ onSubmit }: PlannerFormProps) {
           value={locationOptions.find((option) => option.value === value)}
           onValueChange={(value) => onChange(value?.value)}
         >
-          <SelectTrigger className="w-[250px]">
+          <SelectTrigger>
             <SelectValue placeholder="Location" />
           </SelectTrigger>
-          <SelectContent className="w-[250px]">
+          <SelectContent>
             {locationOptions.map((option) => (
               <SelectItem
                 key={option.value}
@@ -214,7 +214,7 @@ export default function PlannerForm({ onSubmit }: PlannerFormProps) {
     <View className="flex flex-col gap-4">
       <Text>I'm a</Text>
       {genderField}
-      
+
       {ageField}
       <Text>y.o, and I want to</Text>
       {goalField}

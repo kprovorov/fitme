@@ -6,6 +6,7 @@ import { Text } from "~/components/ui/text";
 import { useCurrentUserQuery } from "~/hooks/queries/auth";
 import { deleteToken } from "~/lib/api";
 import { VStack } from "../ui/vstack";
+import { H1, H3 } from "../ui/typography";
 
 export default function ProfileView() {
   const queryClient = useQueryClient();
@@ -21,7 +22,7 @@ export default function ProfileView() {
   return (
     !!user && (
       <VStack>
-        <Text>Welcome, {user.name}! 👋</Text>
+        <H3>Welcome, {user.name}! 👋</H3>
         <Button onPress={() => logout()}>
           <Text>Logout</Text>
         </Button>

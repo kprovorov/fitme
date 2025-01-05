@@ -1,13 +1,21 @@
-import { View } from "react-native";
+import { SafeAreaView, ScrollView } from "react-native";
+import { SafeAreaProvider } from "react-native-safe-area-context";
 import Authenticated from "~/components/authenticated";
-import { Text } from "~/components/ui/text";
+import { H1 } from "~/components/ui/typography";
+import { VStack } from "~/components/ui/vstack";
 
 export default function HomeScreen() {
   return (
     <Authenticated>
-      <View className="flex flex-row gap-4 p-4 items-center justify-center">
-        <Text>Home</Text>
-      </View>
+      <SafeAreaProvider>
+        <SafeAreaView>
+          <ScrollView className="p-4">
+            <VStack>
+              <H1>Home</H1>
+            </VStack>
+          </ScrollView>
+        </SafeAreaView>
+      </SafeAreaProvider>
     </Authenticated>
   );
 }
