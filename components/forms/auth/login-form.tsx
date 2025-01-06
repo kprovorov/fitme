@@ -1,7 +1,6 @@
 import { Controller, useForm } from "react-hook-form";
 import { View } from "react-native";
 import { zodResolver } from "@hookform/resolvers/zod";
-import { ThemedText } from "@/components/ThemedText";
 import { z } from "zod";
 import { Input } from "~/components/ui/input";
 import { Button } from "~/components/ui/button";
@@ -48,7 +47,7 @@ export default function LoginForm({ onSubmit }: LoginFormProps) {
         name="email"
       />
       {form.formState.errors.email && (
-        <ThemedText>This is required.</ThemedText>
+        <Text className="text-red-500">This is required.</Text>
       )}
 
       <Controller
@@ -65,6 +64,9 @@ export default function LoginForm({ onSubmit }: LoginFormProps) {
         )}
         name="password"
       />
+      {form.formState.errors.password && (
+        <Text className="text-red-500">This is required.</Text>
+      )}
 
       <Button
         disabled={form.formState.isSubmitting}

@@ -1,6 +1,6 @@
 import React from "react";
 import PlanView from "@/components/views/plan-view";
-import { useLocalSearchParams } from "expo-router";
+import { Stack, useLocalSearchParams } from "expo-router";
 import { usePlanQuery } from "@/hooks/queries/plans";
 import { Text } from "~/components/ui/text";
 import { SafeAreaProvider } from "react-native-safe-area-context";
@@ -23,14 +23,22 @@ export default function PlanScreen() {
   if (error) return <Text>Error: {error.message}</Text>;
 
   return (
-    <SafeAreaProvider>
-      <SafeAreaView>
-        <ScrollView>
-          <Padding>
-            {plan ? <PlanView plan={plan} /> : <Text>Plan not found</Text>}
-          </Padding>
-        </ScrollView>
-      </SafeAreaView>
-    </SafeAreaProvider>
+    <>
+      <Stack.Screen
+        options={{
+          title: `Plan #${plan?.id}`,
+          headerBackTitle: "plans",
+        }}
+      />
+      <SafeAreaProvider>
+        <SafeAreaView>
+          <ScrollView>
+            <Padding>
+              {plan ? <PlanView plan={plan} /> : <Text>Plan not found</Text>}
+            </Padding>
+          </ScrollView>
+        </SafeAreaView>
+      </SafeAreaProvider>
+    </>
   );
 }
