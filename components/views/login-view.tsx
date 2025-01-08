@@ -1,7 +1,11 @@
 import LoginForm from "@/components/forms/auth/login-form";
 import { useLoginMutation } from "@/hooks/mutations/auth";
 import { useQueryClient } from "@tanstack/react-query";
-import { router } from "expo-router";
+import { Link, router } from "expo-router";
+import { VStack } from "../ui/vstack";
+import { P } from "../ui/typography";
+import { Button } from "../ui/button";
+import { Text } from "../ui/text";
 
 export default function LoginView() {
   const queryClient = useQueryClient();
@@ -14,10 +18,18 @@ export default function LoginView() {
   });
 
   return (
-    <LoginForm
-      onSubmit={async (values) => {
-        await login(values);
-      }}
-    />
+    <VStack className="w-full">
+      <LoginForm
+        onSubmit={async (values) => {
+          await login(values);
+        }}
+      />
+      <P>
+        Don't have an account?{" "}
+        <Link href="/auth/register" className="text-primary font-semibold">
+          Register here
+        </Link>
+      </P>
+    </VStack>
   );
 }

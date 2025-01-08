@@ -6,6 +6,7 @@ import { Input } from "~/components/ui/input";
 import { Button } from "~/components/ui/button";
 import { Text } from "~/components/ui/text";
 import { LoaderCircle } from "~/lib/icons/LoaderCircle";
+import { VStack } from "~/components/ui/vstack";
 
 interface LoginFormProps {
   onSubmit: (values: z.infer<typeof formSchema>) => Promise<void>;
@@ -30,7 +31,7 @@ export default function LoginForm({ onSubmit }: LoginFormProps) {
   });
 
   return (
-    <View className="flex flex-col gap-4 p-4">
+    <VStack className="gap-4 items-stretch max-w-[300px] w-full">
       <Controller
         control={form.control}
         render={({ field: { onChange, onBlur, value } }) => (
@@ -47,7 +48,9 @@ export default function LoginForm({ onSubmit }: LoginFormProps) {
         name="email"
       />
       {form.formState.errors.email && (
-        <Text className="text-red-500">This is required.</Text>
+        <Text className="text-red-500">
+          {form.formState.errors.email.message}
+        </Text>
       )}
 
       <Controller
@@ -65,7 +68,9 @@ export default function LoginForm({ onSubmit }: LoginFormProps) {
         name="password"
       />
       {form.formState.errors.password && (
-        <Text className="text-red-500">This is required.</Text>
+        <Text className="text-red-500">
+          {form.formState.errors.password.message}
+        </Text>
       )}
 
       <Button
@@ -80,6 +85,6 @@ export default function LoginForm({ onSubmit }: LoginFormProps) {
           <Text>Login</Text>
         )}
       </Button>
-    </View>
+    </VStack>
   );
 }
