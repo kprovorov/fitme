@@ -1,6 +1,5 @@
 import { SafeAreaView, ScrollView } from "react-native";
 import { SafeAreaProvider } from "react-native-safe-area-context";
-import Authenticated from "~/components/authenticated";
 import { Padding } from "~/components/ui/padding";
 import { usePlansQuery } from "~/hooks/queries/plans";
 import PlannerView from "~/components/views/planner-view";
@@ -15,22 +14,20 @@ export default function HomeScreen() {
   if (error) return <Text>Error: {error.message}</Text>;
 
   return (
-    <Authenticated>
-      <SafeAreaProvider>
-        <SafeAreaView>
-          {plans && plans.length > 0 ? (
-            <ScrollView>
-              <Padding>
-                <PlansListView />
-              </Padding>
-            </ScrollView>
-          ) : (
-            <VStack className="h-full p-4">
-              <PlannerView />
-            </VStack>
-          )}
-        </SafeAreaView>
-      </SafeAreaProvider>
-    </Authenticated>
+    <SafeAreaProvider>
+      <SafeAreaView>
+        {plans && plans.length > 0 ? (
+          <ScrollView>
+            <Padding>
+              <PlansListView />
+            </Padding>
+          </ScrollView>
+        ) : (
+          <VStack className="h-full p-4">
+            <PlannerView />
+          </VStack>
+        )}
+      </SafeAreaView>
+    </SafeAreaProvider>
   );
 }

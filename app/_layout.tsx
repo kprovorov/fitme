@@ -14,8 +14,6 @@ import { useColorScheme } from "@/hooks/useColorScheme";
 import { QueryClient, QueryClientProvider } from "@tanstack/react-query";
 import { getToken } from "@/lib/api";
 import { PortalHost } from "@rn-primitives/portal";
-import { useCurrentUserQuery } from "~/hooks/queries/auth";
-import Authenticated from "~/components/authenticated";
 
 // Prevent the splash screen from auto-hiding before asset loading is complete.
 SplashScreen.preventAutoHideAsync();

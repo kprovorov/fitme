@@ -19,7 +19,7 @@ export default function Authenticated({ children }: AuthenticatedProps) {
   }
 
   if (!user && isFetched) {
-    return <Redirect href="/auth/login" />;
+    return <Redirect href="/auth/register" />;
   }
 
   return children;
