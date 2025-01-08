@@ -1,11 +1,7 @@
-import LoginForm from "@/components/forms/auth/login-form";
-import { useLoginMutation, useRegisterMutation } from "@/hooks/mutations/auth";
-import { useQueryClient } from "@tanstack/react-query";
+import { useRegisterMutation } from "@/hooks/mutations/auth";
 import { Link, router } from "expo-router";
 import { VStack } from "../ui/vstack";
 import { P } from "../ui/typography";
-import { Button } from "../ui/button";
-import { Text } from "../ui/text";
 import RegisterForm from "../forms/auth/register-form";
 
 export default function LoginView() {

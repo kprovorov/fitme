@@ -32,22 +32,8 @@ export default function TabLayout() {
       <Tabs.Screen
         name="index"
         options={{
-          title: "Home",
-          tabBarIcon: ({ color }) => <House size={28} color={color} />,
-        }}
-      />
-      <Tabs.Screen
-        name="planner"
-        options={{
-          title: "Planner",
+          title: "Workout",
           tabBarIcon: ({ color }) => <BicepsFlexed size={28} color={color} />,
-        }}
-      />
-      <Tabs.Screen
-        name="plans"
-        options={{
-          title: "Plans",
-          tabBarIcon: ({ color }) => <ClipboardList size={28} color={color} />,
         }}
       />
       <Tabs.Screen
