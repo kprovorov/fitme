@@ -62,5 +62,6 @@ export type Exercise = {
   id: number;
   name: string;
   description: string;
-  place: Place;
+  instructions: string;
+  media: string;
 };

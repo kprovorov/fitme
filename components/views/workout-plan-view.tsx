@@ -2,7 +2,7 @@ import React from "react";
 import { WorkoutPlan } from "@/lib/models";
 import { Text } from "~/components/ui/text";
 import { VStack } from "../ui/vstack";
-import { H1, H4, P } from "../ui/typography";
+import { H1, H4, Muted, P } from "../ui/typography";
 import {
   Card,
   CardContent,
@@ -19,10 +19,11 @@ interface WorkoutPlanViewProps {
 export default function WorkoutPlanView({ plan }: WorkoutPlanViewProps) {
   return (
     <VStack>
-      <H1>Plan #{plan.id}</H1>
-      <P>
+      <H1 className="text-center">{plan.name}</H1>
+      <P className="text-center font-semibold">
         {plan.frequency} workouts per week at {plan.place}
       </P>
+      <P className="text-center">{plan.description}</P>
       {plan.workouts.map((workout) => (
         <Card key={workout.id}>
           <CardHeader>
@@ -33,7 +34,8 @@ export default function WorkoutPlanView({ plan }: WorkoutPlanViewProps) {
             {workout.exercises.map((exercise) => (
               <VStack key={exercise.id} className="items-stretch">
                 <H4>{exercise.exercise.name}</H4>
-                <P>{exercise.exercise.description}</P>
+                <Muted>{exercise.exercise.description}</Muted>
+                <P>{exercise.exercise.instructions}</P>
                 <VStack className="items-stretch">
                   {exercise.sets.map((set) => (
                     <HStack key={set.id} className="bg-neutral-100 rounded p-2">

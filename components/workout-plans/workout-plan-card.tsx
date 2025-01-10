@@ -10,7 +10,7 @@ export default function WorkoutPlanCard({ plan }: WorkoutPlanCardProps) {
   return (
     <Card className="w-full">
       <CardHeader>
-        <CardTitle>Plan #{plan.id}</CardTitle>
+        <CardTitle>{plan.name}</CardTitle>
         <CardDescription>
           {plan.frequency} workouts per week at {plan.place}
         </CardDescription>
