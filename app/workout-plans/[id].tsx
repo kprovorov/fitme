@@ -1,21 +1,21 @@
 import React from "react";
-import PlanView from "@/components/views/plan-view";
+import WorkoutPlanView from "@/components/views/workout-plan-view";
 import { Stack, useLocalSearchParams } from "expo-router";
-import { usePlanQuery } from "@/hooks/queries/plans";
+import { useWorkoutPlanQuery } from "@/hooks/queries/workout-plans";
 import { Text } from "~/components/ui/text";
 import { SafeAreaProvider } from "react-native-safe-area-context";
 import { Padding } from "~/components/ui/padding";
 import { SafeAreaView } from "react-native-safe-area-context";
 import { ScrollView } from "react-native";
 
-export default function PlanScreen() {
+export default function WorkoutPlanScreen() {
   const { id } = useLocalSearchParams();
 
   const {
     data: plan,
     isLoading,
     error,
-  } = usePlanQuery({
+  } = useWorkoutPlanQuery({
     variables: { id: Number(id) },
   });
 
@@ -34,7 +34,11 @@ export default function PlanScreen() {
         <SafeAreaView>
           <ScrollView>
             <Padding>
-              {plan ? <PlanView plan={plan} /> : <Text>Plan not found</Text>}
+              {plan ? (
+                <WorkoutPlanView plan={plan} />
+              ) : (
+                <Text>Plan not found</Text>
+              )}
             </Padding>
           </ScrollView>
         </SafeAreaView>

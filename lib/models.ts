@@ -1,4 +1,6 @@
-type Location = "gym" | "home";
+export type Goal = "lose_weight" | "gain_muscle" | "improve_health";
+export type Place = "gym" | "home";
+export type Gender = "male" | "female";
 
 export type User = {
   id: number;
@@ -8,11 +10,24 @@ export type User = {
   email: string;
 };
 
-export type Plan = {
+export type Profile = {
   id: string;
   user_id: number;
-  location: Location;
+  gender: Gender;
+  age: number;
+  height: number;
+  weight: number;
+};
+
+export type WorkoutPlan = {
+  id: string;
+  user_id: number;
+  name: string;
+  description: string;
+  goal: Goal;
+  place: Place;
   frequency: number;
+  is_active: boolean;
   workouts: Workout[];
 };
 
@@ -47,5 +62,5 @@ export type Exercise = {
   id: number;
   name: string;
   description: string;
-  location: Location;
+  place: Place;
 };

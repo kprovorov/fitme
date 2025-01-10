@@ -1,10 +1,8 @@
 import React from "react";
-import { Plan } from "@/lib/models";
-import { ScrollView, StyleSheet } from "react-native";
+import { WorkoutPlan } from "@/lib/models";
 import { Text } from "~/components/ui/text";
-import { View } from "react-native";
 import { VStack } from "../ui/vstack";
-import { H1, H3, H4, P } from "../ui/typography";
+import { H1, H4, P } from "../ui/typography";
 import {
   Card,
   CardContent,
@@ -14,16 +12,16 @@ import {
 } from "../ui/card";
 import { HStack } from "../ui/hstack";
 
-interface PlanViewProps {
-  plan: Plan;
+interface WorkoutPlanViewProps {
+  plan: WorkoutPlan;
 }
 
-export default function PlanView({ plan }: PlanViewProps) {
+export default function WorkoutPlanView({ plan }: WorkoutPlanViewProps) {
   return (
     <VStack>
       <H1>Plan #{plan.id}</H1>
       <P>
-        {plan.frequency} workouts per week at {plan.location}
+        {plan.frequency} workouts per week at {plan.place}
       </P>
       {plan.workouts.map((workout) => (
         <Card key={workout.id}>

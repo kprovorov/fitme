@@ -1,18 +1,18 @@
 import React from "react";
-import { Plan } from "@/lib/models";
+import { WorkoutPlan } from "@/lib/models";
 import { Card, CardDescription, CardHeader, CardTitle } from "../ui/card";
 
-interface PlanCardProps {
-  plan: Plan;
+interface WorkoutPlanCardProps {
+  plan: WorkoutPlan;
 }
 
-export default function PlanCard({ plan }: PlanCardProps) {
+export default function WorkoutPlanCard({ plan }: WorkoutPlanCardProps) {
   return (
     <Card className="w-full">
       <CardHeader>
         <CardTitle>Plan #{plan.id}</CardTitle>
         <CardDescription>
-          {plan.frequency} workouts per week at {plan.location}
+          {plan.frequency} workouts per week at {plan.place}
         </CardDescription>
       </CardHeader>
     </Card>

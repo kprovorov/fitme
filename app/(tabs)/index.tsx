@@ -1,14 +1,14 @@
 import { SafeAreaView, ScrollView } from "react-native";
 import { SafeAreaProvider } from "react-native-safe-area-context";
 import { Padding } from "~/components/ui/padding";
-import { usePlansQuery } from "~/hooks/queries/plans";
+import { useWorkoutPlansQuery } from "~/hooks/queries/workout-plans";
 import PlannerView from "~/components/views/planner-view";
-import PlansListView from "~/components/views/plans-list-view";
 import { Text } from "~/components/ui/text";
 import { VStack } from "~/components/ui/vstack";
+import WorkoutPlansListView from "~/components/views/workout-plans-list-view";
 
 export default function HomeScreen() {
-  const { data: plans, isLoading, error } = usePlansQuery();
+  const { data: plans, isLoading, error } = useWorkoutPlansQuery();
 
   if (isLoading) return <Text>Loading...</Text>;
   if (error) return <Text>Error: {error.message}</Text>;
@@ -19,7 +19,7 @@ export default function HomeScreen() {
         {plans && plans.length > 0 ? (
           <ScrollView>
             <Padding>
-              <PlansListView />
+              <WorkoutPlansListView />
             </Padding>
           </ScrollView>
         ) : (
