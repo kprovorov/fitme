@@ -14,7 +14,7 @@ export default function WorkoutPlansListView() {
   return (
     <VStack className="items-stretch">
       {plans?.map((plan) => (
-        <Link href={`/plans/${plan.id}`} key={plan.id}>
+        <Link href={`/workout-plans/${plan.id}`} key={plan.id}>
           <WorkoutPlanCard plan={plan} />
         </Link>
       ))}
