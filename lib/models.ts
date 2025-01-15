@@ -20,7 +20,7 @@ export type Profile = {
 };
 
 export type WorkoutPlan = {
-  id: string;
+  id: number;
   user_id: number;
   name: string;
   description: string;
@@ -32,12 +32,14 @@ export type WorkoutPlan = {
 };
 
 export type Workout = {
-  id: string;
+  id: number;
   plan_id: number;
   name: string;
   description: string;
   exercises: WorkoutExercise[];
   order: number;
+  started_at: string;
+  finished_at: string;
 };
 
 export type WorkoutExercise = {
@@ -52,9 +54,9 @@ export type WorkoutExercise = {
 export type WorkoutExerciseSet = {
   id: number;
   workout_exercise_id: number;
-  weight: number;
-  repeats: number;
-  rest: number;
+  weight_recommended: number;
+  repeats_recommended: number;
+  rest_recommended: number;
   order: number;
 };
 

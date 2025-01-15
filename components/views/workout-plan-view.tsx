@@ -40,8 +40,10 @@ export default function WorkoutPlanView({ plan }: WorkoutPlanViewProps) {
                   {exercise.sets.map((set) => (
                     <HStack key={set.id} className="bg-neutral-100 rounded p-2">
                       <Text>
-                        {set.weight ? `${set.weight / 1000}kg x ` : ""}
-                        {set.repeats} repeats
+                        {set.weight_recommended
+                          ? `${set.weight_recommended / 1000}kg x `
+                          : ""}
+                        {set.repeats_recommended} repeats
                       </Text>
                     </HStack>
                   ))}

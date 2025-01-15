@@ -4,8 +4,15 @@ import WorkoutPlanCard from "../workout-plans/workout-plan-card";
 import { Link } from "expo-router";
 import { VStack } from "../ui/vstack";
 import { Text } from "../ui/text";
+import { WorkoutPlan } from "~/lib/models";
 
-export default function WorkoutPlansListView() {
+interface WorkoutPlansListViewProps {
+  filter?: (plan: WorkoutPlan) => boolean;
+}
+
+export default function WorkoutPlansListView({
+  filter = () => true,
+}: WorkoutPlansListViewProps) {
   const { data: plans, isLoading, error } = useWorkoutPlansQuery();
 
   if (isLoading) return <Text>Loading...</Text>;
@@ -13,7 +20,7 @@ export default function WorkoutPlansListView() {
 
   return (
     <VStack className="items-stretch">
-      {plans?.map((plan) => (
+      {plans?.filter(filter).map((plan) => (
         <Link href={`/workout-plans/${plan.id}`} key={plan.id}>
           <WorkoutPlanCard plan={plan} />
         </Link>

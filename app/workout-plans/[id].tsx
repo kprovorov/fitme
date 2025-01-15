@@ -7,6 +7,8 @@ import { SafeAreaProvider } from "react-native-safe-area-context";
 import { Padding } from "~/components/ui/padding";
 import { SafeAreaView } from "react-native-safe-area-context";
 import { ScrollView } from "react-native";
+import { VStack } from "~/components/ui/vstack";
+import { Button } from "~/components/ui/button";
 
 export default function WorkoutPlanScreen() {
   const { id } = useLocalSearchParams();
