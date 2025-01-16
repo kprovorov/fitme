@@ -13,6 +13,7 @@ import {
 } from "../ui/card";
 import { Muted } from "../ui/typography";
 import { H4 } from "../ui/typography";
+import { Link } from "expo-router";
 
 interface WorkoutViewProps {
   workout: Workout;
@@ -27,23 +28,12 @@ export default function WorkoutView({ workout }: WorkoutViewProps) {
       </CardHeader>
       <CardContent className="gap-8">
         {workout.exercises.map((exercise) => (
-          <VStack key={exercise.id} className="items-stretch">
-            <H4>{exercise.exercise.name}</H4>
-            <Muted>{exercise.exercise.description}</Muted>
-            <P>{exercise.exercise.instructions}</P>
-            <VStack className="items-stretch">
-              {exercise.sets.map((set) => (
-                <HStack key={set.id} className="bg-neutral-100 rounded p-2">
-                  <Text>
-                    {set.weight_recommended
-                      ? `${set.weight_recommended / 1000}kg x `
-                      : ""}
-                    {set.repeats_recommended} repeats
-                  </Text>
-                </HStack>
-              ))}
+          <Link key={exercise.id} href={`/workout-exercise/${exercise.id}`}>
+            <VStack className="items-stretch border rounded p-4 border-border">
+              <H4>{exercise.exercise.name}</H4>
+              <Muted>{exercise.exercise.description}</Muted>
             </VStack>
-          </VStack>
+          </Link>
         ))}
       </CardContent>
     </Card>
