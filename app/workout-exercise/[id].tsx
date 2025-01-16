@@ -8,6 +8,7 @@ import { Padding } from "~/components/ui/padding";
 import { Text } from "~/components/ui/text";
 import { H1, Muted, P } from "~/components/ui/typography";
 import { VStack } from "~/components/ui/vstack";
+import WorkoutExerciseSetRowView from "~/components/views/workout-exercise-set-row-view";
 import { useWorkoutExerciseQuery } from "~/hooks/queries/workout-exercises";
 
 export default function WorkoutExerciseScreen() {
@@ -43,15 +44,11 @@ export default function WorkoutExerciseScreen() {
                 <P>{workoutExercise?.exercise.description}</P>
                 <Muted>{workoutExercise?.exercise.instructions}</Muted>
                 <VStack className="items-stretch">
-                  {workoutExercise?.sets.map((set) => (
-                    <HStack key={set.id} className="bg-white rounded p-2">
-                      <Text>
-                        {set.weight_recommended
-                          ? `${set.weight_recommended / 1000}kg x `
-                          : ""}
-                        {set.repeats_recommended} repeats
-                      </Text>
-                    </HStack>
+                  {workoutExercise?.sets.sort((a, b) => a.order - b.order).map((workoutExerciseSet) => (
+                    <WorkoutExerciseSetRowView
+                      key={workoutExerciseSet.id}
+                      workoutExerciseSet={workoutExerciseSet}
+                    />
                   ))}
                 </VStack>
               </VStack>

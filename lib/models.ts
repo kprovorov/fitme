@@ -58,6 +58,8 @@ export type WorkoutExerciseSet = {
   repeats_recommended: number;
   rest_recommended: number;
   order: number;
+  weight_done: number | null;
+  repeats_done: number | null;
 };
 
 export type Exercise = {
