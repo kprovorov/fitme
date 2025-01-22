@@ -1,7 +1,7 @@
 {
   "expo": {
-    "name": "m.fitme",
-    "slug": "m.fitme",
+    "name": "Fitme",
+    "slug": "fitme",
     "version": "1.0.0",
     "orientation": "portrait",
     "icon": "./assets/images/icon.png",
@@ -37,6 +37,15 @@
     ],
     "experiments": {
       "typedRoutes": true
-    }
+    },
+    "extra": {
+      "router": {
+        "origin": false
+      },
+      "eas": {
+        "projectId": "55c2b889-0b6c-427a-96da-d0f8951c6d40"
+      }
+    },
+    "owner": "kprovorov"
   }
 }
