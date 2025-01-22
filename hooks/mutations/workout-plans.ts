@@ -18,3 +18,29 @@ export const useStoreWorkoutPlanMutation = createMutation<
     return res.data;
   },
 });
+
+export const useActivateWorkoutPlanMutation = createMutation<
+  WorkoutPlan,
+  { id: number }
+>({
+  mutationFn: async (data: { id: number }): Promise<WorkoutPlan> => {
+    const res = await api.patch<WorkoutPlan>(
+      `/api/workout-plans/${data.id}/activate`
+    );
+
+    return res.data;
+  },
+});
+
+export const useDeactivateWorkoutPlanMutation = createMutation<
+  WorkoutPlan,
+  { id: number }
+>({
+  mutationFn: async (data: { id: number }): Promise<WorkoutPlan> => {
+    const res = await api.patch<WorkoutPlan>(
+      `/api/workout-plans/${data.id}/deactivate`
+    );
+
+    return res.data;
+  },
+});

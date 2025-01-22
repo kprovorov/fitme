@@ -5,18 +5,26 @@ import { H1, H3, Muted, P } from "~/components/ui/typography";
 import { VStack } from "../ui/vstack";
 import { router } from "expo-router";
 import { useQueryClient } from "@tanstack/react-query";
-import { useStoreWorkoutPlanMutation } from "~/hooks/mutations/workout-plans";
+import {
+  useActivateWorkoutPlanMutation,
+  useStoreWorkoutPlanMutation,
+} from "~/hooks/mutations/workout-plans";
 
 export default function PlannerView() {
   const queryClient = useQueryClient();
 
   const { mutateAsync: storeProfile, isPending } = useStoreProfileMutation();
+  const { mutateAsync: activateWorkoutPlan } = useActivateWorkoutPlanMutation({
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: ["workout-plans"] });
+      router.push(`/`);
+    },
+  });
 
   const { mutateAsync: storeWorkoutPlan, isPending: isWorkoutPlanPending } =
     useStoreWorkoutPlanMutation({
       onSuccess: (res) => {
-        queryClient.invalidateQueries({ queryKey: ["workout-plans"] });
-        router.push(`/workout-plans/${res.id}`);
+        activateWorkoutPlan({ id: res.id });
       },
     });
 
