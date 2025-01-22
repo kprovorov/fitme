@@ -45,7 +45,7 @@ export default function PlannerView() {
 
           await storeWorkoutPlan({
             goal: values.goal,
-            place: values.location,
+            place: values.place,
             frequency: values.frequency,
           });
         }}

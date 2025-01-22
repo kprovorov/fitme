@@ -30,7 +30,7 @@ const formSchema = z.object({
   goal: z.enum(["lose_weight", "gain_muscle", "improve_health"]),
   weight: z.coerce.number().min(30).max(200),
   height: z.coerce.number().min(100).max(250),
-  location: z.enum(["gym", "home"]),
+  place: z.enum(["gym", "home"]),
   frequency: z.coerce.number().min(1).max(7),
 });
 
@@ -38,13 +38,13 @@ export default function PlannerForm({ onSubmit }: PlannerFormProps) {
   const form = useForm<PlannerFormValues>({
     resolver: zodResolver(formSchema),
     defaultValues: {
-      gender: "male",
-      age: 20,
-      goal: "lose_weight",
-      weight: 70,
-      height: 170,
-      location: "gym",
-      frequency: 3,
+      gender: undefined,
+      age: undefined,
+      goal: undefined,
+      weight: undefined,
+      height: undefined,
+      place: undefined,
+      frequency: undefined,
     },
   });
 
@@ -64,11 +64,8 @@ export default function PlannerForm({ onSubmit }: PlannerFormProps) {
           value={genderOptions.find((option) => option.value === value)}
           onValueChange={(value) => onChange(value?.value)}
         >
-          <SelectTrigger>
-            <SelectValue
-              className="text-foreground text-sm native:text-lg"
-              placeholder="Select a fruit"
-            />
+          <SelectTrigger className="w-32">
+            <SelectValue placeholder="Gender" />
           </SelectTrigger>
           <SelectContent>
             <SelectGroup>
@@ -94,11 +91,12 @@ export default function PlannerForm({ onSubmit }: PlannerFormProps) {
       name="age"
       render={({ field: { onChange, onBlur, value } }) => (
         <Input
+          className="w-24 text-center"
           editable={!form.formState.isSubmitting}
           placeholder="Age"
           onChangeText={onChange}
           onBlur={onBlur}
-          value={value.toString()}
+          value={value?.toString()}
           keyboardType="numeric"
         />
       )}
@@ -121,7 +119,7 @@ export default function PlannerForm({ onSubmit }: PlannerFormProps) {
           value={goalOptions.find((option) => option.value === value)}
           onValueChange={(value) => onChange(value?.value)}
         >
-          <SelectTrigger>
+          <SelectTrigger className="w-32">
             <SelectValue placeholder="Goal" />
           </SelectTrigger>
           <SelectContent>
@@ -144,10 +142,11 @@ export default function PlannerForm({ onSubmit }: PlannerFormProps) {
       name="weight"
       render={({ field: { onChange, onBlur, value } }) => (
         <Input
+          className="w-24 text-center"
           placeholder="Weight"
           onChangeText={onChange}
           onBlur={onBlur}
-          value={value.toString()}
+          value={value?.toString()}
           keyboardType="numeric"
           editable={!form.formState.isSubmitting}
         />
@@ -161,10 +160,11 @@ export default function PlannerForm({ onSubmit }: PlannerFormProps) {
       name="height"
       render={({ field: { onChange, onBlur, value } }) => (
         <Input
+          className="w-24 text-center"
           placeholder="Height"
           onChangeText={onChange}
           onBlur={onBlur}
-          value={value.toString()}
+          value={value?.toString()}
           keyboardType="numeric"
           editable={!form.formState.isSubmitting}
         />
@@ -172,26 +172,26 @@ export default function PlannerForm({ onSubmit }: PlannerFormProps) {
     />
   );
 
-  const locationOptions = [
+  const placeOptions = [
     { label: "Gym", value: "gym" },
     { label: "Home", value: "home" },
   ];
 
-  const locationField = (
+  const placeField = (
     <Controller
       control={form.control}
-      name="location"
+      name="place"
       render={({ field: { onChange, onBlur, value } }) => (
         <Select
-          value={locationOptions.find((option) => option.value === value)}
+          value={placeOptions.find((option) => option.value === value)}
           onValueChange={(value) => onChange(value?.value)}
           disabled={form.formState.isSubmitting}
         >
-          <SelectTrigger>
-            <SelectValue placeholder="Location" />
+          <SelectTrigger className="w-32">
+            <SelectValue placeholder="Place" />
           </SelectTrigger>
           <SelectContent>
-            {locationOptions.map((option) => (
+            {placeOptions.map((option) => (
               <SelectItem
                 key={option.value}
                 label={option.label}
@@ -210,10 +210,11 @@ export default function PlannerForm({ onSubmit }: PlannerFormProps) {
       name="frequency"
       render={({ field: { onChange, onBlur, value } }) => (
         <Input
+          className="w-24 text-center"
           placeholder="Frequency"
           onChangeText={onChange}
           onBlur={onBlur}
-          value={value.toString()}
+          value={value?.toString()}
           keyboardType="numeric"
           editable={!form.formState.isSubmitting}
         />
@@ -228,14 +229,17 @@ export default function PlannerForm({ onSubmit }: PlannerFormProps) {
         {genderField}
         <Text className="text-xl font-semibold">,</Text>
         {ageField}
-        <Text className="text-xl font-semibold">y.o, and I want to</Text>
+        <Text className="text-xl font-semibold">y.o,</Text>
+        <Text className="text-xl font-semibold">and I want to</Text>
         {goalField}
         <Text className="text-xl font-semibold">My current weight is</Text>
         {weightField}
-        <Text className="text-xl font-semibold">kg, height is</Text>
+        <Text className="text-xl font-semibold">kg,</Text>
+        <Text className="text-xl font-semibold">height is</Text>
         {heightField}
-        <Text className="text-xl font-semibold">cm. I want to exercise at</Text>
-        {locationField}
+        <Text className="text-xl font-semibold">cm.</Text>
+        <Text className="text-xl font-semibold">I want to exercise at</Text>
+        {placeField}
         {frequencyField}
         <Text className="text-xl font-semibold">times a week</Text>
       </HStack>
