@@ -9,6 +9,13 @@ import {
   useActivateWorkoutPlanMutation,
   useStoreWorkoutPlanMutation,
 } from "~/hooks/mutations/workout-plans";
+import { Platform } from "react-native";
+import { Keyboard } from "react-native";
+import {
+  KeyboardAvoidingView,
+  ScrollView,
+  TouchableWithoutFeedback,
+} from "react-native";
 
 export default function PlannerView() {
   const queryClient = useQueryClient();
@@ -29,36 +36,45 @@ export default function PlannerView() {
     });
 
   return (
-    <VStack className="items-stretch gap-8 h-full">
-      <VStack>
-        <H1>Welcome to Fitme!</H1>
-        <H3>Your AI fitness coach</H3>
-      </VStack>
-      <PlannerForm
-        onSubmit={async (values) => {
-          await storeProfile({
-            gender: values.gender,
-            age: values.age,
-            weight: values.weight,
-            height: values.height,
-          });
-
-          await storeWorkoutPlan({
-            goal: values.goal,
-            place: values.place,
-            frequency: values.frequency,
-          });
-        }}
-      />
-      {isPending ||
-        (isWorkoutPlanPending && (
-          <VStack className="gap-0">
-            <P className="font-bold">
-              Hold on... AI is working hard to create your plan!
-            </P>
-            <Muted>This may take a couple of minutes.</Muted>
+    <KeyboardAvoidingView
+      behavior={Platform.OS === "ios" ? "padding" : "height"}
+      keyboardVerticalOffset={50}
+      className="flex-1"
+    >
+      <TouchableWithoutFeedback onPress={Keyboard.dismiss}>
+        <ScrollView centerContent>
+          <VStack>
+            <H1>Welcome to Fitme!</H1>
+            <H3>Your AI fitness coach</H3>
           </VStack>
-        ))}
-    </VStack>
+          <PlannerForm
+            onSubmit={async (values) => {
+              await storeProfile({
+                gender: values.gender,
+                age: values.age,
+                weight: values.weight,
+                height: values.height,
+              });
+
+              await storeWorkoutPlan({
+                goal: values.goal,
+                place: values.place,
+                frequency: values.frequency,
+              });
+            }}
+          />
+
+          {isPending ||
+            (isWorkoutPlanPending && (
+              <VStack className="gap-0">
+                <P className="font-bold">
+                  Hold on... AI is working hard to create your plan!
+                </P>
+                <Muted>This may take a couple of minutes.</Muted>
+              </VStack>
+            ))}
+        </ScrollView>
+      </TouchableWithoutFeedback>
+    </KeyboardAvoidingView>
   );
 }
