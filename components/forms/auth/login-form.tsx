@@ -1,4 +1,4 @@
-import { Controller, useForm } from "react-hook-form";
+import { Controller, FieldErrors, useForm } from "react-hook-form";
 import { View } from "react-native";
 import { zodResolver } from "@hookform/resolvers/zod";
 import { z } from "zod";
@@ -10,6 +10,7 @@ import { VStack } from "~/components/ui/vstack";
 
 interface LoginFormProps {
   onSubmit: (values: z.infer<typeof formSchema>) => Promise<void>;
+  errors?: FieldErrors<LoginFormValues>;
 }
 
 export type LoginFormValues = z.infer<typeof formSchema>;
@@ -21,13 +22,14 @@ const formSchema = z.object({
   }),
 });
 
-export default function LoginForm({ onSubmit }: LoginFormProps) {
+export default function LoginForm({ onSubmit, errors }: LoginFormProps) {
   const form = useForm<LoginFormValues>({
     resolver: zodResolver(formSchema),
     defaultValues: {
       email: "",
       password: "",
     },
+    errors,
   });
 
   return (
