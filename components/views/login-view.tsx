@@ -1,12 +1,17 @@
 import LoginForm, { LoginFormValues } from "@/components/forms/auth/login-form";
-import { LoginError, useLoginMutation } from "@/hooks/mutations/auth";
+import {
+  LoginData,
+  ServerError,
+  useLoginMutation,
+} from "@/hooks/mutations/auth";
 import { useQueryClient } from "@tanstack/react-query";
 import { Link, router } from "expo-router";
 import { VStack } from "../ui/vstack";
 import { P } from "../ui/typography";
 import { useState } from "react";
-import { AxiosError } from "axios";
+import { AxiosError, HttpStatusCode } from "axios";
 import { FieldErrors } from "react-hook-form";
+import { mapErrors } from "~/lib/utils";
 
 export default function LoginView() {
   const queryClient = useQueryClient();
@@ -22,23 +27,11 @@ export default function LoginView() {
       await queryClient.invalidateQueries({ queryKey: ["user"] });
       router.replace("/");
     },
-    onError: (error: AxiosError<LoginError>) => {
-      if (error.status === 422) {
-        setErrors(
-          Object.fromEntries(
-            Object.entries(error.response?.data.errors ?? {}).map(
-              ([key, value]) => [
-                key,
-                {
-                  type: "validate",
-                  message: value[0],
-                },
-              ]
-            )
-          )
-        );
+    onError: (error) => {
+      if (error.status === HttpStatusCode.UnprocessableEntity) {
+        setErrors(mapErrors(error.response?.data.errors ?? {}));
       } else {
-        setErrorMessage(error.response?.data.message);
+        setErrorMessage(error.response?.data.message ?? "Something went wrong");
       }
     },
   });

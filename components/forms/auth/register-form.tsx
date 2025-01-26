@@ -1,4 +1,4 @@
-import { Controller, useForm } from "react-hook-form";
+import { Controller, FieldErrors, useForm } from "react-hook-form";
 import { View } from "react-native";
 import { zodResolver } from "@hookform/resolvers/zod";
 import { z } from "zod";
@@ -10,6 +10,7 @@ import { VStack } from "~/components/ui/vstack";
 
 interface RegisterFormProps {
   onSubmit: (values: z.infer<typeof formSchema>) => Promise<void>;
+  errors?: FieldErrors<RegisterFormValues>;
 }
 
 export type RegisterFormValues = z.infer<typeof formSchema>;
@@ -24,7 +25,7 @@ const formSchema = z.object({
   }),
 });
 
-export default function RegisterForm({ onSubmit }: RegisterFormProps) {
+export default function RegisterForm({ onSubmit, errors }: RegisterFormProps) {
   const form = useForm<RegisterFormValues>({
     resolver: zodResolver(formSchema),
     defaultValues: {
@@ -32,6 +33,7 @@ export default function RegisterForm({ onSubmit }: RegisterFormProps) {
       email: "",
       password: "",
     },
+    errors,
   });
 
   return (

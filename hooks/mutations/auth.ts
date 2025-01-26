@@ -8,15 +8,15 @@ export type LoginData = {
   password: string;
 };
 
-export type LoginError = {
+export type ServerError<T> = {
   message: string;
-  errors: Record<keyof LoginData, string[]>;
+  errors?: Record<keyof T, string[]>;
 };
 
 export const useLoginMutation = createMutation<
   string,
   LoginData,
-  AxiosError<LoginError>
+  AxiosError<ServerError<LoginData>>
 >({
   mutationFn: async (data: LoginData): Promise<string> => {
     const res = await api.post<string>("/api/sanctum/token", {
@@ -36,7 +36,11 @@ export type RegisterData = {
   password: string;
 };
 
-export const useRegisterMutation = createMutation<string, RegisterData>({
+export const useRegisterMutation = createMutation<
+  string,
+  RegisterData,
+  AxiosError<ServerError<RegisterData>>
+>({
   mutationFn: async (data: RegisterData): Promise<string> => {
     await api.post<User>("/api/auth/register", {
       ...data,
