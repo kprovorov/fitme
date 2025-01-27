@@ -1,17 +1,12 @@
 import LoginForm, { LoginFormValues } from "@/components/forms/auth/login-form";
-import {
-  LoginData,
-  ServerError,
-  useLoginMutation,
-} from "@/hooks/mutations/auth";
+import { useLoginMutation } from "@/hooks/mutations/auth";
 import { useQueryClient } from "@tanstack/react-query";
 import { Link, router } from "expo-router";
 import { VStack } from "../ui/vstack";
 import { P } from "../ui/typography";
 import { useState } from "react";
-import { AxiosError, HttpStatusCode } from "axios";
 import { FieldErrors } from "react-hook-form";
-import { mapErrors } from "~/lib/utils";
+import { handleAxiosError } from "~/lib/utils";
 
 export default function LoginView() {
   const queryClient = useQueryClient();
@@ -28,11 +23,7 @@ export default function LoginView() {
       router.replace("/");
     },
     onError: (error) => {
-      if (error.status === HttpStatusCode.UnprocessableEntity) {
-        setErrors(mapErrors(error.response?.data.errors ?? {}));
-      } else {
-        setErrorMessage(error.response?.data.message ?? "Something went wrong");
-      }
+      handleAxiosError(error, setErrorMessage, setErrors);
     },
   });
 

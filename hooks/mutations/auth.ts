@@ -1,16 +1,11 @@
 import { createMutation } from "react-query-kit";
-import { api, setToken } from "@/lib/api";
+import { api, ServerError, setToken } from "@/lib/api";
 import { User } from "~/lib/models";
 import { AxiosError } from "axios";
 
 export type LoginData = {
   email: string;
   password: string;
-};
-
-export type ServerError<T> = {
-  message: string;
-  errors?: Record<keyof T, string[]>;
 };
 
 export const useLoginMutation = createMutation<

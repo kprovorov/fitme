@@ -1,6 +1,8 @@
 import { api } from "@/lib/api";
 import { Gender, Profile } from "@/lib/models";
+import { AxiosError } from "axios";
 import { createMutation } from "react-query-kit";
+import { ServerError } from "~/lib/api";
 
 export type StoreProfileData = {
   gender: Gender;
@@ -11,7 +13,8 @@ export type StoreProfileData = {
 
 export const useStoreProfileMutation = createMutation<
   Profile,
-  StoreProfileData
+  StoreProfileData,
+  AxiosError<ServerError<StoreProfileData>>
 >({
   mutationFn: async (data: StoreProfileData): Promise<Profile> => {
     const res = await api.post<Profile>("/api/profiles", data);

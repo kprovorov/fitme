@@ -1,5 +1,6 @@
+import { AxiosError } from "axios";
 import { createMutation } from "react-query-kit";
-import { api } from "~/lib/api";
+import { api, ServerError } from "~/lib/api";
 import { Goal, Place, WorkoutPlan } from "~/lib/models";
 
 type StoreWorkoutPlanData = {
@@ -10,7 +11,8 @@ type StoreWorkoutPlanData = {
 
 export const useStoreWorkoutPlanMutation = createMutation<
   WorkoutPlan,
-  StoreWorkoutPlanData
+  StoreWorkoutPlanData,
+  AxiosError<ServerError<StoreWorkoutPlanData>>
 >({
   mutationFn: async (data: StoreWorkoutPlanData): Promise<WorkoutPlan> => {
     const res = await api.post<WorkoutPlan>("/api/workout-plans", data);
@@ -21,7 +23,8 @@ export const useStoreWorkoutPlanMutation = createMutation<
 
 export const useActivateWorkoutPlanMutation = createMutation<
   WorkoutPlan,
-  { id: number }
+  { id: number },
+  AxiosError<ServerError<{ id: number }>>
 >({
   mutationFn: async (data: { id: number }): Promise<WorkoutPlan> => {
     const res = await api.patch<WorkoutPlan>(

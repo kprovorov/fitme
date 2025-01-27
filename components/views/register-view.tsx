@@ -3,11 +3,10 @@ import { Link, router } from "expo-router";
 import { VStack } from "../ui/vstack";
 import { P } from "../ui/typography";
 import RegisterForm, { RegisterFormValues } from "../forms/auth/register-form";
-import { HttpStatusCode } from "axios";
 import { useQueryClient } from "@tanstack/react-query";
 import { useState } from "react";
 import { FieldErrors } from "react-hook-form";
-import { mapErrors } from "~/lib/utils";
+import { handleAxiosError } from "~/lib/utils";
 
 export default function RegisterView() {
   const queryClient = useQueryClient();
@@ -24,11 +23,7 @@ export default function RegisterView() {
       router.replace("/");
     },
     onError: (error) => {
-      if (error.status === HttpStatusCode.UnprocessableEntity) {
-        setErrors(mapErrors(error.response?.data.errors ?? {}));
-      } else {
-        setErrorMessage(error.response?.data.message ?? "Something went wrong");
-      }
+      handleAxiosError(error, setErrorMessage, setErrors);
     },
   });
 

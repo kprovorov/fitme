@@ -1,4 +1,4 @@
-import React from "react";
+import React, { useState } from "react";
 import PlannerForm from "../forms/planner/planner-form";
 import { useStoreProfileMutation } from "@/hooks/queries/profiles";
 import { H1, H3, Muted, P } from "~/components/ui/typography";
@@ -16,15 +16,16 @@ import {
   ScrollView,
   TouchableWithoutFeedback,
 } from "react-native";
+import { handleAxiosError } from "~/lib/utils";
 
 export default function PlannerView() {
   const queryClient = useQueryClient();
 
-  const { mutateAsync: storeProfile, isPending } = useStoreProfileMutation();
-  const { mutateAsync: activateWorkoutPlan } = useActivateWorkoutPlanMutation({
-    onSuccess: () => {
-      queryClient.invalidateQueries({ queryKey: ["workout-plans"] });
-      router.push(`/`);
+  const [errorMessage, setErrorMessage] = useState<string | undefined>();
+
+  const { mutateAsync: storeProfile, isPending } = useStoreProfileMutation({
+    onError: (error) => {
+      handleAxiosError(error, setErrorMessage);
     },
   });
 
@@ -33,7 +34,20 @@ export default function PlannerView() {
       onSuccess: (res) => {
         activateWorkoutPlan({ id: res.id });
       },
+      onError: (error) => {
+        handleAxiosError(error, setErrorMessage);
+      },
     });
+
+  const { mutateAsync: activateWorkoutPlan } = useActivateWorkoutPlanMutation({
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: ["workout-plans"] });
+      router.push(`/`);
+    },
+    onError: (error) => {
+      handleAxiosError(error, setErrorMessage);
+    },
+  });
 
   return (
     <KeyboardAvoidingView
@@ -47,6 +61,7 @@ export default function PlannerView() {
             <H1>Welcome to Fitme!</H1>
             <H3>Your AI fitness coach</H3>
           </VStack>
+          {errorMessage && <P className="text-red-500">{errorMessage}</P>}
           <PlannerForm
             onSubmit={async (values) => {
               await storeProfile({

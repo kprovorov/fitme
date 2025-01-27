@@ -1,7 +1,7 @@
 import React from "react";
 import { z } from "zod";
 import { zodResolver } from "@hookform/resolvers/zod";
-import { Controller, useForm } from "react-hook-form";
+import { Controller, FieldErrors, useForm } from "react-hook-form";
 import { ActivityIndicator, View } from "react-native";
 import {
   Select,
@@ -20,6 +20,7 @@ import { LoaderCircle } from "~/lib/icons/LoaderCircle";
 
 interface PlannerFormProps {
   onSubmit: (values: z.infer<typeof formSchema>) => Promise<void>;
+  errors?: FieldErrors<PlannerFormValues>;
 }
 
 export type PlannerFormValues = z.infer<typeof formSchema>;
@@ -34,7 +35,7 @@ const formSchema = z.object({
   frequency: z.coerce.number().min(1).max(7),
 });
 
-export default function PlannerForm({ onSubmit }: PlannerFormProps) {
+export default function PlannerForm({ onSubmit, errors }: PlannerFormProps) {
   const form = useForm<PlannerFormValues>({
     resolver: zodResolver(formSchema),
     defaultValues: {
@@ -46,6 +47,7 @@ export default function PlannerForm({ onSubmit }: PlannerFormProps) {
       place: undefined,
       frequency: undefined,
     },
+    errors,
   });
 
   const genderOptions = [

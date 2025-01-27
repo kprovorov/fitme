@@ -22,3 +22,8 @@ export const deleteToken = async () => {
   await SecureStore.deleteItemAsync("token");
   delete api.defaults.headers.common["Authorization"];
 };
+
+export type ServerError<T> = {
+  message: string;
+  errors?: Record<keyof T, string[]>;
+};
