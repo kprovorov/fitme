@@ -11,7 +11,9 @@
     "ios": {
       "supportsTablet": false,
       "bundleIdentifier": "ai.fitme.ios",
-      "usesNonExemptEncryption": false
+      "config": {
+        "usesNonExemptEncryption": false
+      }
     },
     "android": {
       "adaptiveIcon": {
