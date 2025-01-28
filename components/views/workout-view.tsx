@@ -29,7 +29,7 @@ export default function WorkoutView({ workout }: WorkoutViewProps) {
       <CardContent className="gap-8">
         {workout.exercises.map((exercise) => (
           <Link key={exercise.id} href={`/workout-exercise/${exercise.id}`}>
-            <VStack className="items-stretch border rounded p-4 border-border">
+            <VStack className="items-stretch border rounded p-4 border-border w-full">
               <H4>{exercise.exercise.name}</H4>
               <Muted>{exercise.exercise.description}</Muted>
             </VStack>

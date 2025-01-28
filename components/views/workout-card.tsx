@@ -15,7 +15,7 @@ interface WorkoutCardProps {
 
 export default function WorkoutCard({ workout }: WorkoutCardProps) {
   return (
-    <Card>
+    <Card className="w-full">
       <CardHeader>
         <CardTitle>{workout.name}</CardTitle>
         <CardDescription>{workout.description}</CardDescription>
