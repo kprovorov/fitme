@@ -34,40 +34,45 @@ export default function WorkoutExerciseSetForm({
     },
   });
   return (
-    <HStack className="items-center justify-between">
-      <Controller
-        control={form.control}
-        render={({ field: { onChange, onBlur, value } }) => (
-          <Input
-            editable={!form.formState.isSubmitting && !disabled}
-            placeholder="Weight"
-            onBlur={onBlur}
-            onChangeText={onChange}
-            value={value.toString()}
-            keyboardType="number-pad"
-            autoCapitalize="none"
-            className="min-w-20 text-center"
-          />
-        )}
-        name="weight"
-      />
-      <Text>kg</Text>
-      <Controller
-        control={form.control}
-        render={({ field: { onChange, onBlur, value } }) => (
-          <Input
-            editable={!form.formState.isSubmitting && !disabled}
-            placeholder="Repeats"
-            onBlur={onBlur}
-            onChangeText={onChange}
-            value={value.toString()}
-            keyboardType="number-pad"
-            autoCapitalize="none"
-            className="min-w-20 text-center"
-          />
-        )}
-        name="repeats"
-      />
+    <HStack className="items-center justify-between w-full">
+      <HStack>
+        <Controller
+          control={form.control}
+          render={({ field: { onChange, onBlur, value } }) => (
+            <Input
+              editable={!form.formState.isSubmitting && !disabled}
+              placeholder="Weight"
+              onBlur={onBlur}
+              onChangeText={onChange}
+              value={value.toString()}
+              keyboardType="number-pad"
+              autoCapitalize="none"
+              className="min-w-20 text-center"
+            />
+          )}
+          name="weight"
+        />
+        <Text>kg</Text>
+      </HStack>
+      <HStack>
+        <Controller
+          control={form.control}
+          render={({ field: { onChange, onBlur, value } }) => (
+            <Input
+              editable={!form.formState.isSubmitting && !disabled}
+              placeholder="Repeats"
+              onBlur={onBlur}
+              onChangeText={onChange}
+              value={value.toString()}
+              keyboardType="number-pad"
+              autoCapitalize="none"
+              className="min-w-20 text-center"
+            />
+          )}
+          name="repeats"
+        />
+        <Text>reps</Text>
+      </HStack>
       <Button
         onPress={form.handleSubmit(onSubmit)}
         className="bg-green-500 rounded-full text-white"

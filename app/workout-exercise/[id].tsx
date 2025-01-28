@@ -46,7 +46,7 @@ export default function WorkoutExerciseScreen() {
                 )}
                 <P>{workoutExercise?.exercise.description}</P>
                 <Muted>{workoutExercise?.exercise.instructions}</Muted>
-                <VStack className="items-stretch">
+                <VStack className="items-stretch w-full">
                   {workoutExercise?.sets
                     .sort((a, b) => a.order - b.order)
                     .map((workoutExerciseSet) => (

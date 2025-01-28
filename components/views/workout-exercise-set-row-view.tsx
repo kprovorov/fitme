@@ -25,7 +25,7 @@ export default function WorkoutExerciseSetRowView({
     });
 
   return (
-    <VStack className="bg-white rounded p-2">
+    <VStack className="bg-card w-full rounded p-2">
       <WorkoutExerciseSetForm
         disabled={workoutExerciseSet.weight_done !== null}
         defaultValues={{
