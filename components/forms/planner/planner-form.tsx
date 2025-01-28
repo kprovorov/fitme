@@ -67,7 +67,10 @@ export default function PlannerForm({ onSubmit, errors }: PlannerFormProps) {
           onValueChange={(value) => onChange(value?.value)}
         >
           <SelectTrigger className="w-32">
-            <SelectValue placeholder="Gender" />
+            <SelectValue
+              placeholder="Gender"
+              className="text-muted-foreground"
+            />
           </SelectTrigger>
           <SelectContent>
             <SelectGroup>
@@ -122,7 +125,7 @@ export default function PlannerForm({ onSubmit, errors }: PlannerFormProps) {
           onValueChange={(value) => onChange(value?.value)}
         >
           <SelectTrigger className="w-32">
-            <SelectValue placeholder="Goal" />
+            <SelectValue placeholder="Goal" className="text-muted-foreground" />
           </SelectTrigger>
           <SelectContent>
             {goalOptions.map((option) => (
@@ -190,7 +193,10 @@ export default function PlannerForm({ onSubmit, errors }: PlannerFormProps) {
           disabled={form.formState.isSubmitting}
         >
           <SelectTrigger className="w-32">
-            <SelectValue placeholder="Place" />
+            <SelectValue
+              placeholder="Place"
+              className="text-muted-foreground"
+            />
           </SelectTrigger>
           <SelectContent>
             {placeOptions.map((option) => (
