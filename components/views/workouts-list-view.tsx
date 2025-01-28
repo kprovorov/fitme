@@ -1,36 +1,41 @@
-import React from "react";
-import { Text } from "react-native";
-import { WorkoutPlan } from "~/lib/models";
+import React, { useEffect, useState } from "react";
+import { Text, View } from "react-native";
+import { Workout, WorkoutPlan } from "~/lib/models";
 import { VStack } from "../ui/vstack";
 import WorkoutCard from "./workout-card";
 import { useWorkoutPlanQuery } from "~/hooks/queries/workout-plans";
 import { Link } from "expo-router";
 
 interface WorkoutsListViewProps {
-  planId: number;
+  workouts: Workout[];
 }
 
-export default function WorkoutsListView({ planId }: WorkoutsListViewProps) {
-  const {
-    data: plan,
-    isLoading,
-    error,
-  } = useWorkoutPlanQuery({
-    variables: { id: planId },
-  });
+export default function WorkoutsListView({ workouts }: WorkoutsListViewProps) {
+  const [nextWorkoutId, setNextWorkoutId] = useState<number | null>(null);
 
-  if (isLoading) return <Text>Loading...</Text>;
-  if (error) return <Text>Error: {error.message}</Text>;
+  useEffect(() => {
+    const nextWorkout = workouts.find((workout) => !workout.finished_at);
+    if (nextWorkout) {
+      setNextWorkoutId(nextWorkout.id);
+    }
+  }, [workouts]);
 
   return (
     <VStack className="items-stretch">
-      {plan?.workouts
-        ?.sort((a, b) => a.order - b.order)
-        .map((workout) => (
-          <Link href={`/workouts/${workout.id}`} key={workout.id}>
-            <WorkoutCard workout={workout} />
-          </Link>
-        ))}
+      {workouts.map((workout) => (
+        <Link href={`/workouts/${workout.id}`} key={workout.id}>
+          <WorkoutCard
+            workout={workout}
+            state={
+              workout.finished_at
+                ? "finished"
+                : nextWorkoutId === workout.id
+                ? "upcoming"
+                : "default"
+            }
+          />
+        </Link>
+      ))}
     </VStack>
   );
 }

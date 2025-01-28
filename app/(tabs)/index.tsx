@@ -5,9 +5,7 @@ import { useWorkoutPlansQuery } from "~/hooks/queries/workout-plans";
 import PlannerView from "~/components/views/planner-view";
 import { Text } from "~/components/ui/text";
 import { VStack } from "~/components/ui/vstack";
-import WorkoutPlansListView from "~/components/views/workout-plans-list-view";
-import { H3 } from "~/components/ui/typography";
-import WorkoutsListView from "~/components/views/workouts-list-view";
+import WorkoutPlanView from "~/components/views/workout-plan-view";
 
 export default function HomeScreen() {
   const { data: plans, isLoading, error } = useWorkoutPlansQuery();
@@ -18,19 +16,10 @@ export default function HomeScreen() {
   return (
     <SafeAreaProvider>
       <SafeAreaView>
-        {plans && plans.length > 0 ? (
+        {plans && plans.length > 0 && plans.find((plan) => plan.is_active) ? (
           <ScrollView>
             <Padding>
-              <VStack className="items-stretch">
-                <H3>My Plan</H3>
-                <WorkoutPlansListView filter={(plan) => plan.is_active} />
-                <H3>Workouts</H3>
-                {plans.find((plan) => plan.is_active) && (
-                  <WorkoutsListView
-                    planId={plans.find((plan) => plan.is_active)!.id}
-                  />
-                )}
-              </VStack>
+              <WorkoutPlanView plan={plans.find((plan) => plan.is_active)!} />
             </Padding>
           </ScrollView>
         ) : (
