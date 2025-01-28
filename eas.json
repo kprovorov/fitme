@@ -16,6 +16,12 @@
     }
   },
   "submit": {
-    "production": {}
+    "production": {
+      "ios": {
+        "appleId": "kirillprovorov@icloud.com",
+        "ascAppId": "6740894034",
+        "appleTeamId": "X75M2KSBQL"
+      }
+    }
   }
 }
