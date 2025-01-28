@@ -176,7 +176,7 @@ export default function PlannerForm({ onSubmit, errors }: PlannerFormProps) {
 
   const placeOptions = [
     { label: "Gym", value: "gym" },
-    { label: "Home", value: "home" },
+    { label: "Home", value: "home", disabled: true },
   ];
 
   const placeField = (
@@ -196,8 +196,11 @@ export default function PlannerForm({ onSubmit, errors }: PlannerFormProps) {
             {placeOptions.map((option) => (
               <SelectItem
                 key={option.value}
-                label={option.label}
+                label={
+                  option.disabled ? `${option.label} (Soon)` : option.label
+                }
                 value={option.value}
+                disabled={option.disabled}
               />
             ))}
           </SelectContent>
