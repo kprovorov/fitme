@@ -7,6 +7,18 @@ import { useCurrentUserQuery } from "~/hooks/queries/auth";
 import { deleteToken } from "~/lib/api";
 import { VStack } from "../ui/vstack";
 import { H1, H3 } from "../ui/typography";
+import { useDeleteUserMutation } from "~/hooks/mutations/auth";
+import {
+  AlertDialog,
+  AlertDialogAction,
+  AlertDialogCancel,
+  AlertDialogContent,
+  AlertDialogDescription,
+  AlertDialogFooter,
+  AlertDialogHeader,
+  AlertDialogTitle,
+  AlertDialogTrigger,
+} from "../ui/alert-dialog";
 
 export default function ProfileView() {
   const queryClient = useQueryClient();
@@ -19,6 +31,12 @@ export default function ProfileView() {
     router.replace("/auth/login");
   };
 
+  const { mutate: deleteUser } = useDeleteUserMutation({
+    onSuccess: () => {
+      logout();
+    },
+  });
+
   return (
     !!user && (
       <VStack>
@@ -26,6 +44,32 @@ export default function ProfileView() {
         <Button onPress={() => logout()}>
           <Text>Logout</Text>
         </Button>
+        <AlertDialog>
+          <AlertDialogTrigger asChild>
+            <Button variant="outline">
+              <Text>Delete Account</Text>
+            </Button>
+          </AlertDialogTrigger>
+          <AlertDialogContent>
+            <AlertDialogHeader>
+              <AlertDialogTitle>
+                Are you sure you want to delete your account?
+              </AlertDialogTitle>
+              <AlertDialogDescription>
+                This action cannot be undone. This will permanently delete your
+                account and remove your data from our servers.
+              </AlertDialogDescription>
+            </AlertDialogHeader>
+            <AlertDialogFooter>
+              <AlertDialogCancel>
+                <Text>Cancel</Text>
+              </AlertDialogCancel>
+              <Button variant="destructive" onPress={() => deleteUser()}>
+                <Text>Yes, Delete My Account</Text>
+              </Button>
+            </AlertDialogFooter>
+          </AlertDialogContent>
+        </AlertDialog>
       </VStack>
     )
   );

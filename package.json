@@ -19,6 +19,7 @@
     "@hookform/resolvers": "^3.9.1",
     "@react-navigation/bottom-tabs": "^7.2.0",
     "@react-navigation/native": "^7.0.14",
+    "@rn-primitives/alert-dialog": "^1.1.0",
     "@rn-primitives/portal": "^1.1.0",
     "@rn-primitives/select": "^1.1.0",
     "@rn-primitives/slot": "^1.1.0",
@@ -42,6 +43,7 @@
     "expo-status-bar": "~2.0.1",
     "expo-symbols": "~0.2.1",
     "expo-system-ui": "~4.0.7",
+    "expo-video": "~2.0.5",
     "expo-web-browser": "~14.0.2",
     "lucide-react-native": "^0.469.0",
     "nativewind": "^4.1.23",
@@ -59,8 +61,7 @@
     "react-query-kit": "^3.3.1",
     "tailwind-merge": "^2.6.0",
     "tailwindcss-animate": "^1.0.7",
-    "zod": "^3.24.1",
-    "expo-video": "~2.0.5"
+    "zod": "^3.24.1"
   },
   "devDependencies": {
     "@babel/core": "^7.25.2",

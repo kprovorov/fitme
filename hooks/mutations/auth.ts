@@ -1,5 +1,5 @@
 import { createMutation } from "react-query-kit";
-import { api, ServerError, setToken } from "@/lib/api";
+import { api, deleteToken, ServerError, setToken } from "@/lib/api";
 import { User } from "~/lib/models";
 import { AxiosError } from "axios";
 
@@ -50,5 +50,17 @@ export const useRegisterMutation = createMutation<
     await setToken(res.data);
 
     return res.data;
+  },
+});
+
+export const useDeleteUserMutation = createMutation<
+  void,
+  void,
+  AxiosError<ServerError<void>>
+>({
+  mutationFn: async () => {
+    await api.delete("/api/user");
+
+    await deleteToken();
   },
 });
