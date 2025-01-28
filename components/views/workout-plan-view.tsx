@@ -38,7 +38,7 @@ export default function WorkoutPlanView({ plan }: WorkoutPlanViewProps) {
                 <P>{exercise.exercise.instructions}</P>
                 <VStack className="items-stretch">
                   {exercise.sets.map((set) => (
-                    <HStack key={set.id} className="bg-neutral-100 rounded p-2">
+                    <HStack key={set.id} className="border border-border rounded p-2">
                       <Text>
                         {set.weight_recommended
                           ? `${set.weight_recommended / 1000}kg x `
