@@ -1,11 +1,4 @@
-import {
-  Keyboard,
-  KeyboardAvoidingView,
-  Platform,
-  SafeAreaView,
-  ScrollView,
-  TouchableWithoutFeedback,
-} from "react-native";
+import { SafeAreaView, ScrollView } from "react-native";
 import { SafeAreaProvider } from "react-native-safe-area-context";
 import { Padding } from "~/components/ui/padding";
 import { useWorkoutPlansQuery } from "~/hooks/queries/workout-plans";
@@ -13,14 +6,11 @@ import PlannerView from "~/components/views/planner-view";
 import { Text } from "~/components/ui/text";
 import { VStack } from "~/components/ui/vstack";
 import WorkoutPlansListView from "~/components/views/workout-plans-list-view";
-import { H1, H3 } from "~/components/ui/typography";
+import { H3 } from "~/components/ui/typography";
 import WorkoutsListView from "~/components/views/workouts-list-view";
-import { Button } from "~/components/ui/button";
-import { useStartWorkoutMutation } from "~/hooks/mutations/workouts";
 
 export default function HomeScreen() {
   const { data: plans, isLoading, error } = useWorkoutPlansQuery();
-  const { mutate: startWorkout } = useStartWorkoutMutation();
 
   if (isLoading) return <Text>Loading...</Text>;
   if (error) return <Text>Error: {error.message}</Text>;
@@ -40,17 +30,6 @@ export default function HomeScreen() {
                     planId={plans.find((plan) => plan.is_active)!.id}
                   />
                 )}
-                <Button
-                  onPress={() =>
-                    startWorkout(
-                      plans
-                        .find((plan) => plan.is_active)!
-                        .workouts.filter((w) => w.started_at === null)?.[0]?.id
-                    )
-                  }
-                >
-                  <Text>Start Workout</Text>
-                </Button>
               </VStack>
             </Padding>
           </ScrollView>
