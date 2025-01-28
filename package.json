@@ -72,5 +72,24 @@
     "react-test-renderer": "18.3.1",
     "typescript": "^5.3.3"
   },
-  "private": true
+  "private": true,
+  "expo": {
+    "doctor": {
+      "reactNativeDirectoryCheck": {
+        "exclude": [
+          "@hookform/resolvers",
+          "@rn-primitives/portal",
+          "@rn-primitives/select",
+          "@rn-primitives/slot",
+          "@rn-primitives/types",
+          "class-variance-authority",
+          "date-fns",
+          "date-fns-tz",
+          "react-query-kit",
+          "tailwindcss-animate",
+          "lucide-react-native"
+        ]
+      }
+    }
+  }
 }
