@@ -46,6 +46,9 @@
     "extra": {
       "router": {
         "origin": false
+      },
+      "eas": {
+        "projectId": "7d15486d-888e-45a5-9843-ef80cceb5f18"
       }
     },
     "owner": "kprovorov"
