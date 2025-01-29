@@ -6,9 +6,20 @@ import PlannerView from "~/components/views/planner-view";
 import { Text } from "~/components/ui/text";
 import { VStack } from "~/components/ui/vstack";
 import WorkoutPlanView from "~/components/views/workout-plan-view";
+import { useEffect } from "react";
+import { useState } from "react";
+import { WorkoutPlan } from "~/lib/models";
 
 export default function HomeScreen() {
   const { data: plans, isLoading, error } = useWorkoutPlansQuery();
+
+  const [activePlan, setActivePlan] = useState<WorkoutPlan | null>(null);
+
+  useEffect(() => {
+    if (plans) {
+      setActivePlan(plans.find((plan) => plan.is_active) || null);
+    }
+  }, [plans]);
 
   if (isLoading) return <Text>Loading...</Text>;
   if (error) return <Text>Error: {error.message}</Text>;
@@ -16,10 +27,10 @@ export default function HomeScreen() {
   return (
     <SafeAreaProvider>
       <SafeAreaView>
-        {plans && plans.length > 0 && plans.find((plan) => plan.is_active) ? (
+        {activePlan ? (
           <ScrollView>
             <Padding>
-              <WorkoutPlanView plan={plans.find((plan) => plan.is_active)!} />
+              <WorkoutPlanView plan={activePlan} />
             </Padding>
           </ScrollView>
         ) : (
