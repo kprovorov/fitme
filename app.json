@@ -1,16 +1,16 @@
 {
   "expo": {
-    "name": "Fitme — Your Personal AI Coach",
-    "slug": "fitme",
+    "name": "Fitme Project",
+    "slug": "fitme-project",
     "version": "1.0.0",
     "orientation": "portrait",
     "icon": "./assets/images/icon.png",
-    "scheme": "myapp",
+    "scheme": "fitme-project",
     "userInterfaceStyle": "dark",
     "newArchEnabled": true,
     "ios": {
       "supportsTablet": false,
-      "bundleIdentifier": "ai.fitme.ios",
+      "bundleIdentifier": "com.fitmeproject.ios",
       "config": {
         "usesNonExemptEncryption": false
       }
@@ -46,9 +46,6 @@
     "extra": {
       "router": {
         "origin": false
-      },
-      "eas": {
-        "projectId": "55c2b889-0b6c-427a-96da-d0f8951c6d40"
       }
     },
     "owner": "kprovorov"
