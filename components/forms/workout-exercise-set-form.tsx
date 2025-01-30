@@ -7,11 +7,16 @@ import { Input } from "../ui/input";
 import { Button } from "../ui/button";
 import { Check } from "~/lib/icons/Check";
 import { Text } from "../ui/text";
+import { Pencil } from "~/lib/icons/Pencil";
 
 interface WorkoutExerciseSetFormProps {
   onSubmit: (values: z.infer<typeof formSchema>) => Promise<void>;
+  onEdit: () => void;
+  hasWeight: boolean;
   defaultValues?: z.infer<typeof formSchema>;
   disabled?: boolean;
+  isDone?: boolean;
+  isEditing?: boolean;
 }
 
 export type WorkoutExerciseSetFormValues = z.infer<typeof formSchema>;
@@ -23,8 +28,12 @@ const formSchema = z.object({
 
 export default function WorkoutExerciseSetForm({
   onSubmit,
+  onEdit,
+  hasWeight = true,
   defaultValues,
   disabled,
+  isDone,
+  isEditing,
 }: WorkoutExerciseSetFormProps) {
   const form = useForm<WorkoutExerciseSetFormValues>({
     resolver: zodResolver(formSchema),
@@ -34,26 +43,29 @@ export default function WorkoutExerciseSetForm({
     },
     disabled,
   });
+
   return (
     <HStack className="justify-between flex-1">
-      <HStack className="flex-1">
-        <Controller
-          control={form.control}
-          render={({ field: { onChange, onBlur, value } }) => (
-            <Input
-              editable={!form.formState.disabled}
-              placeholder="Weight"
-              onBlur={onBlur}
-              onChangeText={onChange}
-              value={value.toString()}
-              keyboardType="number-pad"
-              autoCapitalize="none"
-              className="w-full text-center font-bold"
-            />
-          )}
-          name="weight"
-        />
-      </HStack>
+      {hasWeight && (
+        <HStack className="flex-1">
+          <Controller
+            control={form.control}
+            render={({ field: { onChange, onBlur, value } }) => (
+              <Input
+                editable={!form.formState.disabled}
+                placeholder="Weight"
+                onBlur={onBlur}
+                onChangeText={onChange}
+                value={value.toString()}
+                keyboardType="number-pad"
+                autoCapitalize="none"
+                className="w-full text-center font-bold"
+              />
+            )}
+            name="weight"
+          />
+        </HStack>
+      )}
       <HStack className="flex-1">
         <Controller
           control={form.control}
@@ -74,14 +86,25 @@ export default function WorkoutExerciseSetForm({
       </HStack>
 
       <HStack className="flex-none w-10">
-        <Button
-          onPress={form.handleSubmit(onSubmit)}
-          className="rounded-full"
-          disabled={disabled}
-          size="icon"
-        >
-          <Check className="text-primary-foreground" />
-        </Button>
+        {isDone && !isEditing ? (
+          <Button
+            onPress={onEdit}
+            className="rounded-full"
+            size="icon"
+            variant="secondary"
+          >
+            <Pencil className="text-muted-foreground" size={16} />
+          </Button>
+        ) : (
+          <Button
+            onPress={form.handleSubmit(onSubmit)}
+            className="rounded-full"
+            disabled={disabled}
+            size="icon"
+          >
+            <Check className="text-primary-foreground" size={16} />
+          </Button>
+        )}
       </HStack>
     </HStack>
   );

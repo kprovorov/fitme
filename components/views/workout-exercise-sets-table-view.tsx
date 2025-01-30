@@ -12,15 +12,21 @@ interface WorkoutExerciseSetsTableViewProps {
 export default function WorkoutExerciseSetsTableView({
   workoutExerciseSets,
 }: WorkoutExerciseSetsTableViewProps) {
+  const hasWeight = workoutExerciseSets.some(
+    (set) => set.weight_recommended > 0
+  );
+
   return (
     <VStack className="items-stretch w-full gap-0 bg-black/10 rounded-md overflow-hidden">
       <HStack className="justify-start bg-black/20 py-2 pl-2 pr-14">
         <Text className="w-12 font-bold text-center text-primary uppercase text-sm">
           Set
         </Text>
-        <Text className="flex-1 font-bold text-primary uppercase text-sm text-center">
-          Kg
-        </Text>
+        {hasWeight && (
+          <Text className="flex-1 font-bold text-primary uppercase text-sm text-center">
+            Kg
+          </Text>
+        )}
         <Text className="flex-1 font-bold text-primary uppercase text-sm text-center">
           Reps
         </Text>
@@ -32,6 +38,7 @@ export default function WorkoutExerciseSetsTableView({
           <WorkoutExerciseSetRowView
             key={workoutExerciseSet.id}
             workoutExerciseSet={workoutExerciseSet}
+            hasWeight={hasWeight}
           />
         ))}
     </VStack>
