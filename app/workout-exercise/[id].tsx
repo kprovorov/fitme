@@ -37,9 +37,9 @@ export default function WorkoutExerciseScreen() {
       />
       <SafeAreaProvider>
         <SafeAreaView>
-          <ScrollView>
+          <ScrollView className="h-full">
             <Padding>
-              <VStack>
+              <VStack className="gap-4 items-stretch">
                 <H1>{workoutExercise.exercise.name}</H1>
                 {workoutExercise.exercise.media && (
                   <ExerciseVideo exercise={workoutExercise.exercise} />
