@@ -3,8 +3,8 @@ import { HStack } from "../ui/hstack";
 import WorkoutExerciseSetForm from "../forms/workout-exercise-set-form";
 import { WorkoutExerciseSet } from "~/lib/models";
 import { useUpdateWorkoutExerciseSetMutation } from "~/hooks/mutations/workout-exercise-sets";
-import { VStack } from "../ui/vstack";
 import { useQueryClient } from "@tanstack/react-query";
+import { Text } from "../ui/text";
 
 interface WorkoutExerciseSetRowViewProps {
   workoutExerciseSet: WorkoutExerciseSet;
@@ -25,7 +25,10 @@ export default function WorkoutExerciseSetRowView({
     });
 
   return (
-    <VStack className="bg-card w-full rounded p-2">
+    <HStack className="p-2 justify-start">
+      <Text className="w-12 font-bold text-center">
+        #{workoutExerciseSet.order}
+      </Text>
       <WorkoutExerciseSetForm
         disabled={workoutExerciseSet.weight_done !== null}
         defaultValues={{
@@ -40,6 +43,6 @@ export default function WorkoutExerciseSetRowView({
           });
         }}
       />
-    </VStack>
+    </HStack>
   );
 }

@@ -34,8 +34,8 @@ export default function WorkoutExerciseSetForm({
     },
   });
   return (
-    <HStack className="items-center justify-between w-full">
-      <HStack>
+    <HStack className="justify-between flex-1">
+      <HStack className="flex-1">
         <Controller
           control={form.control}
           render={({ field: { onChange, onBlur, value } }) => (
@@ -47,14 +47,13 @@ export default function WorkoutExerciseSetForm({
               value={value.toString()}
               keyboardType="number-pad"
               autoCapitalize="none"
-              className="min-w-20 text-center"
+              className="w-full text-center font-bold"
             />
           )}
           name="weight"
         />
-        <Text>kg</Text>
       </HStack>
-      <HStack>
+      <HStack className="flex-1">
         <Controller
           control={form.control}
           render={({ field: { onChange, onBlur, value } }) => (
@@ -66,20 +65,23 @@ export default function WorkoutExerciseSetForm({
               value={value.toString()}
               keyboardType="number-pad"
               autoCapitalize="none"
-              className="min-w-20 text-center"
+              className="w-full text-center font-bold"
             />
           )}
           name="repeats"
         />
-        <Text>reps</Text>
       </HStack>
-      <Button
-        onPress={form.handleSubmit(onSubmit)}
-        className="bg-green-500 rounded-full text-white"
-        disabled={disabled}
-      >
-        <Check className="text-white" />
-      </Button>
+
+      <HStack className="flex-none w-10">
+        <Button
+          onPress={form.handleSubmit(onSubmit)}
+          className="rounded-full"
+          disabled={disabled}
+          size="icon"
+        >
+          <Check className="text-primary-foreground" />
+        </Button>
+      </HStack>
     </HStack>
   );
 }
