@@ -32,6 +32,7 @@ export default function WorkoutExerciseSetForm({
       weight: 0,
       repeats: 0,
     },
+    disabled,
   });
   return (
     <HStack className="justify-between flex-1">
@@ -40,7 +41,7 @@ export default function WorkoutExerciseSetForm({
           control={form.control}
           render={({ field: { onChange, onBlur, value } }) => (
             <Input
-              editable={!form.formState.isSubmitting && !disabled}
+              editable={!form.formState.disabled}
               placeholder="Weight"
               onBlur={onBlur}
               onChangeText={onChange}
@@ -58,7 +59,7 @@ export default function WorkoutExerciseSetForm({
           control={form.control}
           render={({ field: { onChange, onBlur, value } }) => (
             <Input
-              editable={!form.formState.isSubmitting && !disabled}
+              editable={!form.formState.disabled}
               placeholder="Repeats"
               onBlur={onBlur}
               onChangeText={onChange}

@@ -32,8 +32,12 @@ export default function WorkoutExerciseSetRowView({
       <WorkoutExerciseSetForm
         disabled={workoutExerciseSet.weight_done !== null}
         defaultValues={{
-          weight: workoutExerciseSet.weight_recommended / 1000,
-          repeats: workoutExerciseSet.repeats_recommended,
+          weight:
+            (workoutExerciseSet.weight_done ??
+              workoutExerciseSet.weight_recommended) / 1000,
+          repeats:
+            workoutExerciseSet.repeats_done ??
+            workoutExerciseSet.repeats_recommended,
         }}
         onSubmit={async (values) => {
           updateWorkoutExerciseSet({
