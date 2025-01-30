@@ -1,8 +1,5 @@
 import React from "react";
-import { Text } from "../ui/text";
 import { Workout } from "~/lib/models";
-import { HStack } from "../ui/hstack";
-import { P } from "../ui/typography";
 import { VStack } from "../ui/vstack";
 import {
   Card,
@@ -11,9 +8,13 @@ import {
   CardTitle,
   CardContent,
 } from "../ui/card";
-import { Muted } from "../ui/typography";
+import { Muted, P } from "../ui/typography";
 import { H4 } from "../ui/typography";
 import { Link } from "expo-router";
+import WorkoutExerciseSetsTableView from "./workout-exercise-sets-table-view";
+import { HStack } from "../ui/hstack";
+import { Text } from "../ui/text";
+import WorkoutExerciseCard from "./workout-exercise-card";
 
 interface WorkoutViewProps {
   workout: Workout;
@@ -29,10 +30,7 @@ export default function WorkoutView({ workout }: WorkoutViewProps) {
       <CardContent className="gap-8">
         {workout.exercises.map((exercise) => (
           <Link key={exercise.id} href={`/workout-exercise/${exercise.id}`}>
-            <VStack className="items-stretch border rounded p-4 border-border w-full">
-              <H4>{exercise.exercise.name}</H4>
-              <Muted>{exercise.exercise.description}</Muted>
-            </VStack>
+            <WorkoutExerciseCard workoutExercise={exercise} />
           </Link>
         ))}
       </CardContent>
