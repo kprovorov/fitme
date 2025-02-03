@@ -41,7 +41,7 @@ export default function WorkoutExerciseScreen() {
             <Padding>
               <VStack className="gap-4 items-stretch">
                 <H1>{workoutExercise.exercise.name}</H1>
-                {workoutExercise.exercise.media && (
+                {workoutExercise.exercise.video_url && (
                   <ExerciseVideo exercise={workoutExercise.exercise} />
                 )}
                 <P>{workoutExercise.exercise.description}</P>

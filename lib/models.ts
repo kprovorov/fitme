@@ -67,5 +67,6 @@ export type Exercise = {
   name: string;
   description: string;
   instructions: string;
-  media: string;
+  video_url: string;
+  thumbnail_url: string;
 };
