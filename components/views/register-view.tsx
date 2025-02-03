@@ -1,4 +1,4 @@
-import { useRegisterMutation } from "@/hooks/mutations/auth";
+import { useLoginMutation, useRegisterMutation } from "@/hooks/mutations/auth";
 import { Link, router } from "expo-router";
 import { VStack } from "../ui/vstack";
 import { P } from "../ui/typography";
@@ -17,10 +17,22 @@ export default function RegisterView() {
 
   const [errorMessage, setErrorMessage] = useState<string | undefined>();
 
-  const { mutateAsync: register } = useRegisterMutation({
+  const { mutateAsync: login } = useLoginMutation({
     onSuccess: async () => {
       await queryClient.invalidateQueries({ queryKey: ["user"] });
       router.replace("/");
+    },
+    onError: (error) => {
+      handleAxiosError(error, setErrorMessage, setErrors);
+    },
+  });
+
+  const { mutateAsync: register } = useRegisterMutation({
+    onSuccess: async (data, variables, context) => {
+      await login({
+        email: variables.email,
+        password: variables.password,
+      });
     },
     onError: (error) => {
       handleAxiosError(error, setErrorMessage, setErrors);

@@ -1,6 +1,5 @@
 import { createMutation } from "react-query-kit";
 import { api, deleteToken, ServerError, setToken } from "@/lib/api";
-import { User } from "~/lib/models";
 import { AxiosError } from "axios";
 
 export type LoginData = {
@@ -32,24 +31,15 @@ export type RegisterData = {
 };
 
 export const useRegisterMutation = createMutation<
-  string,
+  void,
   RegisterData,
   AxiosError<ServerError<RegisterData>>
 >({
-  mutationFn: async (data: RegisterData): Promise<string> => {
-    await api.post<User>("/api/auth/register", {
+  mutationFn: async (data: RegisterData): Promise<void> => {
+    await api.post<void>("/api/auth/register", {
       ...data,
       password_confirmation: data.password,
     });
-
-    const res = await api.post<string>("/api/sanctum/token", {
-      ...data,
-      device_name: "mobile",
-    });
-
-    await setToken(res.data);
-
-    return res.data;
   },
 });
 

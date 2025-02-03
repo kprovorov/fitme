@@ -1,20 +1,18 @@
 import { Stack } from "expo-router";
+import React from "react";
 import {
   Keyboard,
   KeyboardAvoidingView,
   Platform,
-  ScrollView,
   TouchableWithoutFeedback,
 } from "react-native";
 import { SafeAreaView } from "react-native";
-import Animated from "react-native-reanimated";
 import { SafeAreaProvider } from "react-native-safe-area-context";
-import { Padding } from "~/components/ui/padding";
-import { H1, H3, H4, P } from "~/components/ui/typography";
+import { H1, H4 } from "~/components/ui/typography";
 import { VStack } from "~/components/ui/vstack";
 import RegisterView from "~/components/views/register-view";
 
-export default function LoginModal() {
+export default function RegisterScreen() {
   return (
     <>
       <Stack.Screen
