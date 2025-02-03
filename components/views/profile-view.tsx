@@ -7,7 +7,10 @@ import { useCurrentUserQuery } from "~/hooks/queries/auth";
 import { deleteToken } from "~/lib/api";
 import { VStack } from "../ui/vstack";
 import { H1, H3 } from "../ui/typography";
-import { useDeleteUserMutation } from "~/hooks/mutations/auth";
+import {
+  useDeleteUserMutation,
+  useLogoutMutation,
+} from "~/hooks/mutations/auth";
 import {
   AlertDialog,
   AlertDialogAction,
@@ -25,15 +28,18 @@ export default function ProfileView() {
 
   const { data: user } = useCurrentUserQuery();
 
-  const logout = async () => {
-    await deleteToken();
-    await queryClient.invalidateQueries({ queryKey: ["user"] });
-    router.replace("/auth/login");
-  };
+  const { mutateAsync: logout } = useLogoutMutation({
+    onSuccess: async () => {
+      await queryClient.invalidateQueries({ queryKey: ["user"] });
+      router.replace("/auth/login");
+    },
+  });
 
-  const { mutate: deleteUser } = useDeleteUserMutation({
-    onSuccess: () => {
-      logout();
+  const { mutateAsync: deleteUser } = useDeleteUserMutation({
+    onSuccess: async () => {
+      await deleteToken();
+      await queryClient.invalidateQueries({ queryKey: ["user"] });
+      router.replace("/auth/login");
     },
   });
 

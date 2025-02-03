@@ -24,6 +24,13 @@ export const useLoginMutation = createMutation<
   },
 });
 
+export const useLogoutMutation = createMutation<void, void, AxiosError<void>>({
+  mutationFn: async () => {
+    await api.post("/api/auth/logout");
+    await deleteToken();
+  },
+});
+
 export type RegisterData = {
   name: string;
   email: string;
