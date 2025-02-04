@@ -42,9 +42,9 @@ export default function RootLayout() {
   Purchases.setLogLevel(Purchases.LOG_LEVEL.DEBUG);
 
   if (Platform.OS === "ios") {
-    Purchases.configure({ apiKey: "appl_tyPiVjUPLKRkYyFsRwPEoqXUmHR" });
+    Purchases.configure({ apiKey: process.env.REVENUECAT_IOS_API_KEY! });
   } else if (Platform.OS === "android") {
-    Purchases.configure({ apiKey: "google_api_key" });
+    Purchases.configure({ apiKey: process.env.REVENUECAT_ANDROID_API_KEY! });
   }
 
   return (
