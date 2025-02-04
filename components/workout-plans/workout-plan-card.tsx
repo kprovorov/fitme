@@ -8,9 +8,11 @@ interface WorkoutPlanCardProps {
 
 export default function WorkoutPlanCard({ plan }: WorkoutPlanCardProps) {
   return (
-    <Card className="w-full">
+    <Card className={`w-full ${plan.is_active ? "border-primary" : ""}`}>
       <CardHeader>
-        <CardTitle>{plan.name}</CardTitle>
+        <CardTitle className={`${plan.is_active ? "text-primary" : ""}`}>
+          {plan.name}
+        </CardTitle>
         <CardDescription>
           {plan.frequency} workouts per week at {plan.place}
         </CardDescription>

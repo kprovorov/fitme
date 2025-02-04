@@ -8,13 +8,17 @@ import { useStoreWorkoutPlanMutation } from "~/hooks/mutations/workout-plans";
 import { handleAxiosError } from "~/lib/utils";
 import { FieldErrors } from "react-hook-form";
 import { router } from "expo-router";
+import { useQueryClient } from "@tanstack/react-query";
 
 export default function CreateWorkoutPlanView() {
+  const queryClient = useQueryClient();
+
   const [errorMessage, setErrorMessage] = useState<string | undefined>();
   const [errors, setErrors] = useState<FieldErrors<WorkoutPlanFormValues>>();
 
   const { mutateAsync: storeWorkoutPlan } = useStoreWorkoutPlanMutation({
     onSuccess: (res) => {
+      queryClient.invalidateQueries({ queryKey: ["workout-plans"] });
       router.push(`/workout-plans/${res.id}`);
     },
     onError: (error) => {
