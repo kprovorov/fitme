@@ -22,6 +22,7 @@ import {
   AlertDialogTitle,
   AlertDialogTrigger,
 } from "../ui/alert-dialog";
+import RevenueCatUI from "react-native-purchases-ui";
 
 export default function ProfileView() {
   const queryClient = useQueryClient();
@@ -49,6 +50,9 @@ export default function ProfileView() {
         <H3>Welcome, {user.name}! 👋</H3>
         <Button onPress={() => logout()}>
           <Text>Logout</Text>
+        </Button>
+        <Button onPress={async () => await RevenueCatUI.presentPaywall()}>
+          <Text>Show Paywall</Text>
         </Button>
         <AlertDialog>
           <AlertDialogTrigger asChild>

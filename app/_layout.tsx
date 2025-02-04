@@ -14,6 +14,8 @@ import { useColorScheme } from "@/hooks/useColorScheme";
 import { QueryClient, QueryClientProvider } from "@tanstack/react-query";
 import { getToken } from "@/lib/api";
 import { PortalHost } from "@rn-primitives/portal";
+import { Platform } from "react-native";
+import Purchases from "react-native-purchases";
 
 // Prevent the splash screen from auto-hiding before asset loading is complete.
 SplashScreen.preventAutoHideAsync();
@@ -37,12 +39,23 @@ export default function RootLayout() {
     return null;
   }
 
+  Purchases.setLogLevel(Purchases.LOG_LEVEL.DEBUG);
+
+  if (Platform.OS === "ios") {
+    Purchases.configure({ apiKey: "appl_tyPiVjUPLKRkYyFsRwPEoqXUmHR" });
+  } else if (Platform.OS === "android") {
+    Purchases.configure({ apiKey: "google_api_key" });
+  }
+
   return (
     <QueryClientProvider client={queryClient}>
       <ThemeProvider
         value={
           colorScheme === "dark"
-            ? { ...DarkTheme, colors: { ...DarkTheme.colors, background: "#434343" } }
+            ? {
+                ...DarkTheme,
+                colors: { ...DarkTheme.colors, background: "#434343" },
+              }
             : DefaultTheme
         }
       >
