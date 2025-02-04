@@ -16,6 +16,7 @@ import { getToken } from "@/lib/api";
 import { PortalHost } from "@rn-primitives/portal";
 import { Platform } from "react-native";
 import Purchases from "react-native-purchases";
+import "expo-dev-client";
 
 // Prevent the splash screen from auto-hiding before asset loading is complete.
 SplashScreen.preventAutoHideAsync();
@@ -42,9 +43,13 @@ export default function RootLayout() {
   Purchases.setLogLevel(Purchases.LOG_LEVEL.DEBUG);
 
   if (Platform.OS === "ios") {
-    Purchases.configure({ apiKey: process.env.REVENUECAT_IOS_API_KEY! });
+    Purchases.configure({
+      apiKey: process.env.EXPO_PUBLIC_REVENUECAT_IOS_API_KEY!,
+    });
   } else if (Platform.OS === "android") {
-    Purchases.configure({ apiKey: process.env.REVENUECAT_ANDROID_API_KEY! });
+    Purchases.configure({
+      apiKey: process.env.EXPO_PUBLIC_REVENUECAT_ANDROID_API_KEY!,
+    });
   }
 
   return (
