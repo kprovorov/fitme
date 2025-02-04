@@ -8,6 +8,7 @@ import { useColorScheme } from "@/hooks/useColorScheme";
 import { BicepsFlexed } from "~/lib/icons/BicepsFlexed";
 import { UserRound } from "~/lib/icons/UserRound";
 import Authenticated from "~/components/authenticated";
+import { ClipboardList } from "~/lib/icons/ClipboardList";
 
 export default function TabLayout() {
   const colorScheme = useColorScheme();
@@ -34,6 +35,15 @@ export default function TabLayout() {
           options={{
             title: "Workout",
             tabBarIcon: ({ color }) => <BicepsFlexed size={28} color={color} />,
+          }}
+        />
+        <Tabs.Screen
+          name="workout-plans"
+          options={{
+            title: "Workout Plans",
+            tabBarIcon: ({ color }) => (
+              <ClipboardList size={28} color={color} />
+            ),
           }}
         />
         <Tabs.Screen

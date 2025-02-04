@@ -5,6 +5,7 @@ import { Link } from "expo-router";
 import { VStack } from "../ui/vstack";
 import { Text } from "../ui/text";
 import { WorkoutPlan } from "~/lib/models";
+import { Button } from "../ui/button";
 
 interface WorkoutPlansListViewProps {
   filter?: (plan: WorkoutPlan) => boolean;
@@ -25,6 +26,11 @@ export default function WorkoutPlansListView({
           <WorkoutPlanCard plan={plan} />
         </Link>
       ))}
+      <Link href="/workout-plans/create" asChild>
+        <Button>
+          <Text>Generate New Workout Plan</Text>
+        </Button>
+      </Link>
     </VStack>
   );
 }
