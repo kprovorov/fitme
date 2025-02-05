@@ -5,10 +5,7 @@ import { H1, H3, Muted, P } from "~/components/ui/typography";
 import { VStack } from "../ui/vstack";
 import { router } from "expo-router";
 import { useQueryClient } from "@tanstack/react-query";
-import {
-  useActivateWorkoutPlanMutation,
-  useStoreWorkoutPlanMutation,
-} from "~/hooks/mutations/workout-plans";
+import { useStoreWorkoutPlanMutation } from "~/hooks/mutations/workout-plans";
 import { Platform } from "react-native";
 import { Keyboard } from "react-native";
 import {
@@ -31,23 +28,14 @@ export default function PlannerView() {
 
   const { mutateAsync: storeWorkoutPlan, isPending: isWorkoutPlanPending } =
     useStoreWorkoutPlanMutation({
-      onSuccess: (res) => {
-        activateWorkoutPlan({ id: res.id });
+      onSuccess: () => {
+        queryClient.invalidateQueries({ queryKey: ["workout-plans"] });
+        router.push(`/`);
       },
       onError: (error) => {
         handleAxiosError(error, setErrorMessage);
       },
     });
-
-  const { mutateAsync: activateWorkoutPlan } = useActivateWorkoutPlanMutation({
-    onSuccess: () => {
-      queryClient.invalidateQueries({ queryKey: ["workout-plans"] });
-      router.push(`/`);
-    },
-    onError: (error) => {
-      handleAxiosError(error, setErrorMessage);
-    },
-  });
 
   return (
     <KeyboardAvoidingView
