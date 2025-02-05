@@ -38,7 +38,15 @@
         }
       ],
       "expo-secure-store",
-      "expo-video"
+      "expo-video",
+      [
+        "@sentry/react-native/expo",
+        {
+          "url": "https://sentry.io/",
+          "project": "mobile",
+          "organization": "fitme"
+        }
+      ]
     ],
     "experiments": {
       "typedRoutes": true

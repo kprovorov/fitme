@@ -17,6 +17,14 @@ import { PortalHost } from "@rn-primitives/portal";
 import { Platform } from "react-native";
 import Purchases from "react-native-purchases";
 import "expo-dev-client";
+import * as Sentry from '@sentry/react-native';
+
+Sentry.init({
+  dsn: 'https://c16736ff2633c31a26121f6af3a48538@o4508686362083328.ingest.de.sentry.io/4508767028838480',
+
+  // uncomment the line below to enable Spotlight (https://spotlightjs.com)
+  // spotlight: __DEV__,
+});
 
 // Prevent the splash screen from auto-hiding before asset loading is complete.
 SplashScreen.preventAutoHideAsync();
