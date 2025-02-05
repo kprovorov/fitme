@@ -6,14 +6,13 @@ import { Text } from "~/components/ui/text";
 import { useCurrentUserQuery } from "~/hooks/queries/auth";
 import { deleteToken } from "~/lib/api";
 import { VStack } from "../ui/vstack";
-import { H1, H3 } from "../ui/typography";
+import { H3, P } from "../ui/typography";
 import {
   useDeleteUserMutation,
   useLogoutMutation,
 } from "~/hooks/mutations/auth";
 import {
   AlertDialog,
-  AlertDialogAction,
   AlertDialogCancel,
   AlertDialogContent,
   AlertDialogDescription,
@@ -23,6 +22,7 @@ import {
   AlertDialogTrigger,
 } from "../ui/alert-dialog";
 import RevenueCatUI from "react-native-purchases-ui";
+import { useIsProQuery } from "~/hooks/revenueCat";
 
 export default function ProfileView() {
   const queryClient = useQueryClient();
@@ -44,10 +44,18 @@ export default function ProfileView() {
     },
   });
 
+  const { data: isPro } = useIsProQuery();
+
   return (
     !!user && (
       <VStack>
         <H3>Welcome, {user.name}! 👋</H3>
+        <P>{user.email}</P>
+        {isPro ? (
+          <Text className="text-primary font-bold">Pro</Text>
+        ) : (
+          <Text>Free Plan</Text>
+        )}
         <Button onPress={() => logout()}>
           <Text>Logout</Text>
         </Button>
