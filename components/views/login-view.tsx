@@ -4,9 +4,11 @@ import { useQueryClient } from "@tanstack/react-query";
 import { Link, router } from "expo-router";
 import { VStack } from "../ui/vstack";
 import { P } from "../ui/typography";
-import { useState } from "react";
+import { useEffect, useState } from "react";
 import { FieldErrors } from "react-hook-form";
 import { handleAxiosError } from "~/lib/utils";
+import Purchases from "react-native-purchases";
+import { useCurrentUserQuery } from "~/hooks/queries/auth";
 
 export default function LoginView() {
   const queryClient = useQueryClient();
@@ -17,10 +19,19 @@ export default function LoginView() {
 
   const [errorMessage, setErrorMessage] = useState<string | undefined>();
 
+  const { data: user } = useCurrentUserQuery();
+
+  useEffect(() => {
+    if (user) {
+      Purchases.logIn(user.rc_user_id).then(() => {
+        router.replace("/");
+      });
+    }
+  }, [user]);
+
   const { mutateAsync: login } = useLoginMutation({
     onSuccess: async () => {
       await queryClient.invalidateQueries({ queryKey: ["user"] });
-      router.replace("/");
     },
     onError: (error) => {
       handleAxiosError(error, setErrorMessage, setErrors);

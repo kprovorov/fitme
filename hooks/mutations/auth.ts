@@ -26,7 +26,7 @@ export const useLoginMutation = createMutation<
 
 export const useLogoutMutation = createMutation<void, void, AxiosError<void>>({
   mutationFn: async () => {
-    await api.post("/api/auth/logout");
+    // await api.post("/api/auth/logout");
     await deleteToken();
   },
 });

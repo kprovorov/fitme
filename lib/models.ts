@@ -8,6 +8,7 @@ export type User = {
   updated_at: string;
   name: string;
   email: string;
+  rc_user_id: string;
 };
 
 export type Profile = {
