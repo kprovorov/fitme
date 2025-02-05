@@ -23,6 +23,7 @@ import {
 } from "../ui/alert-dialog";
 import RevenueCatUI from "react-native-purchases-ui";
 import { useIsProQuery } from "~/hooks/revenueCat";
+import * as Sentry from "@sentry/react-native";
 
 export default function ProfileView() {
   const queryClient = useQueryClient();
@@ -31,6 +32,7 @@ export default function ProfileView() {
 
   const { mutateAsync: logout } = useLogoutMutation({
     onSuccess: async () => {
+      Sentry.setUser(null);
       await queryClient.invalidateQueries({ queryKey: ["user"] });
       router.replace("/auth/login");
     },

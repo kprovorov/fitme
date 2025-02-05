@@ -9,6 +9,7 @@ import { FieldErrors } from "react-hook-form";
 import { handleAxiosError } from "~/lib/utils";
 import Purchases from "react-native-purchases";
 import { useCurrentUserQuery } from "~/hooks/queries/auth";
+import * as Sentry from "@sentry/react-native";
 
 export default function LoginView() {
   const queryClient = useQueryClient();
@@ -23,6 +24,11 @@ export default function LoginView() {
 
   useEffect(() => {
     if (user) {
+      Sentry.setUser({
+        id: user.id,
+        username: user.email,
+        email: user.email,
+      });
       Purchases.logIn(user.rc_user_id).then(() => {
         router.replace("/");
       });
