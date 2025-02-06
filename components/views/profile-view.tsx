@@ -70,14 +70,16 @@ export default function ProfileView() {
                 You have access to all of our features. You can cancel your
                 subscription at any time.
               </P>
-              <Button
-                onPress={() =>
-                  customerInfo?.managementURL &&
-                  Linking.openURL(customerInfo.managementURL)
-                }
-              >
-                <Text>Manage Subscription</Text>
-              </Button>
+              {!!customerInfo?.managementURL && (
+                <Button
+                  onPress={() =>
+                    customerInfo.managementURL &&
+                    Linking.openURL(customerInfo.managementURL)
+                  }
+                >
+                  <Text>Manage Subscription</Text>
+                </Button>
+              )}
             </>
           ) : (
             <>
