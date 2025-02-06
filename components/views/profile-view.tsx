@@ -50,46 +50,47 @@ export default function ProfileView() {
 
   return (
     !!user && (
-      <VStack>
-        <H3>Welcome, {user.name}! 👋</H3>
-        <P>{user.email}</P>
-        {isPro ? (
-          <Text className="text-primary font-bold">Pro</Text>
-        ) : (
-          <Text>Free Plan</Text>
-        )}
-        <Button onPress={() => logout()}>
-          <Text>Logout</Text>
-        </Button>
-        <Button onPress={async () => await RevenueCatUI.presentPaywall()}>
-          <Text>Show Paywall</Text>
-        </Button>
-        <AlertDialog>
-          <AlertDialogTrigger asChild>
-            <Button variant="outline">
-              <Text>Delete Account</Text>
-            </Button>
-          </AlertDialogTrigger>
-          <AlertDialogContent>
-            <AlertDialogHeader>
-              <AlertDialogTitle>
-                Are you sure you want to delete your account?
-              </AlertDialogTitle>
-              <AlertDialogDescription>
-                This action cannot be undone. This will permanently delete your
-                account and remove your data from our servers.
-              </AlertDialogDescription>
-            </AlertDialogHeader>
-            <AlertDialogFooter>
-              <AlertDialogCancel>
-                <Text>Cancel</Text>
-              </AlertDialogCancel>
-              <Button variant="destructive" onPress={() => deleteUser()}>
-                <Text>Yes, Delete My Account</Text>
+      <VStack className="items-stretch justify-between h-full">
+        <VStack className="items-stretch">
+          <H3>Welcome, {user.name}! 👋</H3>
+          <P>{user.email}</P>
+          {isPro ? (
+            <Text className="text-primary font-bold">Pro</Text>
+          ) : (
+            <Text>Free Plan</Text>
+          )}
+        </VStack>
+        <VStack className="items-stretch">
+          <Button onPress={() => logout()}>
+            <Text>Logout</Text>
+          </Button>
+          <AlertDialog>
+            <AlertDialogTrigger asChild>
+              <Button variant="link">
+                <Text className="text-muted-foreground">Delete Account</Text>
               </Button>
-            </AlertDialogFooter>
-          </AlertDialogContent>
-        </AlertDialog>
+            </AlertDialogTrigger>
+            <AlertDialogContent>
+              <AlertDialogHeader>
+                <AlertDialogTitle>
+                  Are you sure you want to delete your account?
+                </AlertDialogTitle>
+                <AlertDialogDescription>
+                  This action cannot be undone. This will permanently delete
+                  your account and remove your data from our servers.
+                </AlertDialogDescription>
+              </AlertDialogHeader>
+              <AlertDialogFooter>
+                <AlertDialogCancel>
+                  <Text>Cancel</Text>
+                </AlertDialogCancel>
+                <Button variant="destructive" onPress={() => deleteUser()}>
+                  <Text>Yes, Delete My Account</Text>
+                </Button>
+              </AlertDialogFooter>
+            </AlertDialogContent>
+          </AlertDialog>
+        </VStack>
       </VStack>
     )
   );

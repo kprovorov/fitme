@@ -14,6 +14,8 @@ import {
   TouchableWithoutFeedback,
 } from "react-native";
 import { handleAxiosError } from "~/lib/utils";
+import { useIsProQuery } from "~/hooks/revenueCat";
+import RevenueCatUI from "react-native-purchases-ui";
 
 export default function PlannerView() {
   const queryClient = useQueryClient();
@@ -37,6 +39,8 @@ export default function PlannerView() {
       },
     });
 
+  const { data: isPro } = useIsProQuery();
+
   return (
     <KeyboardAvoidingView
       behavior={Platform.OS === "ios" ? "padding" : "height"}
@@ -59,11 +63,15 @@ export default function PlannerView() {
                 height: values.height,
               });
 
-              await storeWorkoutPlan({
-                goal: values.goal,
-                place: values.place,
-                frequency: values.frequency,
-              });
+              if (isPro) {
+                await storeWorkoutPlan({
+                  goal: values.goal,
+                  place: values.place,
+                  frequency: values.frequency,
+                });
+              } else {
+                await RevenueCatUI.presentPaywall();
+              }
             }}
           />
 

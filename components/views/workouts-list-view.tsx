@@ -1,9 +1,7 @@
 import React, { useEffect, useState } from "react";
-import { Text, View } from "react-native";
-import { Workout, WorkoutPlan } from "~/lib/models";
+import { Workout } from "~/lib/models";
 import { VStack } from "../ui/vstack";
 import WorkoutCard from "./workout-card";
-import { useWorkoutPlanQuery } from "~/hooks/queries/workout-plans";
 import { Link } from "expo-router";
 
 interface WorkoutsListViewProps {

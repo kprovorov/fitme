@@ -8,11 +8,9 @@ export default function ProfileScreen() {
   return (
     <SafeAreaProvider>
       <SafeAreaView>
-        <ScrollView>
-          <Padding>
-            <ProfileView />
-          </Padding>
-        </ScrollView>
+        <Padding className="h-full">
+          <ProfileView />
+        </Padding>
       </SafeAreaView>
     </SafeAreaProvider>
   );
