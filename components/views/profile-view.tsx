@@ -6,7 +6,7 @@ import { Text } from "~/components/ui/text";
 import { useCurrentUserQuery } from "~/hooks/queries/auth";
 import { deleteToken } from "~/lib/api";
 import { VStack } from "../ui/vstack";
-import { H3, P } from "../ui/typography";
+import { H1, H2, H3, H4, Muted, P } from "../ui/typography";
 import {
   useDeleteUserMutation,
   useLogoutMutation,
@@ -22,8 +22,10 @@ import {
   AlertDialogTrigger,
 } from "../ui/alert-dialog";
 import RevenueCatUI from "react-native-purchases-ui";
-import { useIsProQuery } from "~/hooks/revenueCat";
+import { useCustomerInfoQuery, useIsProQuery } from "~/hooks/revenueCat";
 import * as Sentry from "@sentry/react-native";
+import Purchases from "react-native-purchases";
+import { Linking } from "react-native";
 
 export default function ProfileView() {
   const queryClient = useQueryClient();
@@ -48,16 +50,42 @@ export default function ProfileView() {
 
   const { data: isPro } = useIsProQuery();
 
+  const { data: customerInfo } = useCustomerInfoQuery();
+
   return (
     !!user && (
       <VStack className="items-stretch justify-between h-full">
         <VStack className="items-stretch">
-          <H3>Welcome, {user.name}! 👋</H3>
-          <P>{user.email}</P>
+          <VStack className="items-start gap-0 border-b-2 border-border pb-4">
+            <Muted className="text-muted-foreground font-bold text-xl">
+              Welcome,
+            </Muted>
+            <Text className="text-4xl font-bold">{user.name}</Text>
+          </VStack>
+          <H2>Your Plan</H2>
           {isPro ? (
-            <Text className="text-primary font-bold">Pro</Text>
+            <>
+              <Text className="text-primary font-bold">You're Pro!</Text>
+              <P>
+                You have access to all of our features. You can cancel your
+                subscription at any time.
+              </P>
+              <Button
+                onPress={() =>
+                  customerInfo?.managementURL &&
+                  Linking.openURL(customerInfo.managementURL)
+                }
+              >
+                <Text>Manage Subscription</Text>
+              </Button>
+            </>
           ) : (
-            <Text>Free Plan</Text>
+            <>
+              <Text>You're on a free plan</Text>
+              <Button onPress={() => RevenueCatUI.presentPaywall()}>
+                <Text>Upgrade to Pro</Text>
+              </Button>
+            </>
           )}
         </VStack>
         <VStack className="items-stretch">

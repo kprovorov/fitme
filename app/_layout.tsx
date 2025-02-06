@@ -46,6 +46,10 @@ export default function RootLayout() {
     if (loaded) {
       SplashScreen.hideAsync();
       getToken();
+
+      Purchases.addCustomerInfoUpdateListener(async (info) => {
+        await queryClient.invalidateQueries({ queryKey: ["rc-is-pro"] });
+      });
     }
   }, [loaded]);
 
