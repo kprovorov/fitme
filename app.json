@@ -5,7 +5,7 @@
     "version": "1.1.0",
     "orientation": "portrait",
     "icon": "./assets/images/icon.png",
-    "scheme": "fitme-project",
+    "scheme": "fitme",
     "userInterfaceStyle": "dark",
     "newArchEnabled": true,
     "ios": {
@@ -28,6 +28,16 @@
     },
     "plugins": [
       "expo-router",
+      [
+        "expo-font",
+        {
+          "fonts": [
+            "./node_modules/@expo-google-fonts/nunito-sans/NunitoSans_400Regular.ttf",
+            "./node_modules/@expo-google-fonts/nunito-sans/NunitoSans_600SemiBold.ttf",
+            "./node_modules/@expo-google-fonts/nunito-sans/NunitoSans_700Bold.ttf"
+          ]
+        }
+      ],
       [
         "expo-splash-screen",
         {
