@@ -38,9 +38,7 @@ const queryClient = new QueryClient();
 
 export default function RootLayout() {
   const colorScheme = useColorScheme();
-  const [loaded] = useFonts({
-    SpaceMono: require("../assets/fonts/SpaceMono-Regular.ttf"),
-  });
+  const [loaded] = useFonts({});
 
   useEffect(() => {
     if (loaded) {
@@ -56,8 +54,6 @@ export default function RootLayout() {
   if (!loaded) {
     return null;
   }
-
-  Purchases.setLogLevel(Purchases.LOG_LEVEL.DEBUG);
 
   if (Platform.OS === "ios") {
     Purchases.configure({
