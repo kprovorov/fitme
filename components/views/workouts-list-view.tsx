@@ -21,18 +21,17 @@ export default function WorkoutsListView({ workouts }: WorkoutsListViewProps) {
   return (
     <VStack className="items-stretch">
       {workouts.map((workout) => (
-        <Link href={`/workouts/${workout.id}`} key={workout.id}>
-          <WorkoutCard
-            workout={workout}
-            state={
-              workout.finished_at
-                ? "finished"
-                : nextWorkoutId === workout.id
-                ? "upcoming"
-                : "default"
-            }
-          />
-        </Link>
+        <WorkoutCard
+          key={workout.id}
+          workout={workout}
+          state={
+            workout.finished_at
+              ? "finished"
+              : nextWorkoutId === workout.id
+              ? "upcoming"
+              : "default"
+          }
+        />
       ))}
     </VStack>
   );

@@ -32,11 +32,13 @@ export default function WorkoutScreen() {
   const { mutate: startWorkout } = useStartWorkoutMutation({
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ["workout"] });
+      queryClient.invalidateQueries({ queryKey: ["workout-plans"] });
     },
   });
   const { mutate: finishWorkout } = useFinishWorkoutMutation({
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ["workout"] });
+      queryClient.invalidateQueries({ queryKey: ["workout-plans"] });
     },
   });
 

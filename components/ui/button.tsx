@@ -19,9 +19,9 @@ const buttonVariants = cva(
         link: "web:underline-offset-4 web:hover:underline web:focus:underline",
       },
       size: {
-        sm: "h-10 rounded-sm px-3 py-1.5",
-        default: "h-14 rounded-md px-4 py-2",
-        lg: "h-18 rounded-lg px-6 py-3",
+        sm: "h-9 rounded-sm px-3 py-1.5",
+        default: "h-12 rounded-md px-4 py-2",
+        lg: "h-14 rounded-lg px-6 py-3",
         icon: "h-10 w-10",
       },
     },
@@ -33,7 +33,7 @@ const buttonVariants = cva(
 );
 
 const buttonTextVariants = cva(
-  "web:whitespace-nowrap text-sm native:text-base font-medium text-foreground web:transition-colors",
+  "web:whitespace-nowrap text-sm native:text-base font-nunito-sans-bold text-foreground web:transition-colors",
   {
     variants: {
       variant: {
@@ -46,9 +46,9 @@ const buttonTextVariants = cva(
         link: "text-primary group-active:underline",
       },
       size: {
-        default: "native:text-lg",
-        sm: "native:text-base",
-        lg: "native:text-lg",
+        default: "native:text-sm",
+        sm: "native:text-xs",
+        lg: "native:text-base",
         icon: "",
       },
     },
@@ -71,7 +71,7 @@ const Button = React.forwardRef<
       value={buttonTextVariants({
         variant,
         size,
-        className: "web:pointer-events-none font-bold",
+        className: "web:pointer-events-none font-nunito-sans-bold",
       })}
     >
       <Pressable

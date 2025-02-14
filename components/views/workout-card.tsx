@@ -1,18 +1,21 @@
-import React from "react";
-import { Text, View } from "react-native";
+import React, { useEffect, useState } from "react";
 import { Workout } from "~/lib/models";
+import { Card } from "@/components/ui/card";
+import { H4, P } from "@/components/ui/typography";
+import { HStack } from "@/components/ui/hstack";
+import { VStack } from "@/components/ui/vstack";
+import { Text } from "@/components/ui/text";
+import { Zap } from "@/lib/icons/Zap";
+import { Clock } from "@/lib/icons/Clock";
+import { Flame } from "@/lib/icons/Flame";
 import {
-  Card,
-  CardContent,
-  CardDescription,
-  CardHeader,
-  CardTitle,
-} from "../ui/card";
-import { H3, P } from "../ui/typography";
-import { HStack } from "../ui/hstack";
-import { VStack } from "../ui/vstack";
-import { ChevronRight } from "~/lib/icons/ChevronRight";
-import { Padding } from "../ui/padding";
+  useFinishWorkoutMutation,
+  useStartWorkoutMutation,
+} from "~/hooks/mutations/workouts";
+import { useQueryClient } from "@tanstack/react-query";
+import { Button } from "../ui/button";
+import { ArrowRight } from "~/lib/icons/ArrowRight";
+import { Link } from "expo-router";
 
 interface WorkoutCardProps {
   workout: Workout;
@@ -23,33 +26,82 @@ export default function WorkoutCard({
   workout,
   state = "upcoming",
 }: WorkoutCardProps) {
+  const queryClient = useQueryClient();
+
+  const { mutate: startWorkout } = useStartWorkoutMutation({
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: ["workout"] });
+      queryClient.invalidateQueries({ queryKey: ["workout-plans"] });
+    },
+  });
+  const { mutate: finishWorkout } = useFinishWorkoutMutation({
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: ["workout"] });
+      queryClient.invalidateQueries({ queryKey: ["workout-plans"] });
+    },
+  });
+
+  const [elapsedTime, setElapsedTime] = useState<string>("");
+
+  useEffect(() => {
+    if (!workout?.started_at) return;
+
+    const startTime = new Date(workout.started_at).getTime();
+
+    const timer = setInterval(() => {
+      const now = Date.now();
+      const diff = now - startTime;
+
+      const hours = Math.floor(diff / (1000 * 60 * 60));
+      const minutes = Math.floor((diff % (1000 * 60 * 60)) / (1000 * 60));
+      const seconds = Math.floor((diff % (1000 * 60)) / 1000);
+
+      setElapsedTime(
+        `${hours.toString().padStart(2, "0")}:${minutes
+          .toString()
+          .padStart(2, "0")}:${seconds.toString().padStart(2, "0")}`
+      );
+    }, 1000);
+
+    return () => clearInterval(timer);
+  }, [workout?.started_at]);
+
   return (
-    <Card
-      className={`w-full ${state === "finished" ? "bg-muted" : ""} ${
-        state === "upcoming" ? "border-primary border-2" : ""
-      }`}
+    <Link
+      href={`/workouts/${workout.id}`}
+      className="rounded-2xl bg-card active:bg-primary-foreground"
     >
-      <Padding>
-        <HStack className="items-center justify-between w-full">
-          <VStack className="items-start flex-shrink">
-            <H3
-              className={`w-full ${
-                state === "finished" ? "text-muted-foreground" : ""
-              } ${state === "upcoming" ? "text-primary" : ""}`}
-            >
-              {workout.name}
-            </H3>
-            <P className="text-left">{workout.description}</P>
-          </VStack>
-          <VStack>
-            <ChevronRight
-              className={
-                state === "upcoming" ? "text-primary" : "text-muted-foreground"
-              }
-            />
-          </VStack>
+      <VStack className="items-stretch flex-shrink p-4 gap-4">
+        <H4 className="text-primary font-nunito-sans-bold">{workout.name}</H4>
+        <HStack className="justify-start">
+          <HStack className="gap-1">
+            <Zap size={16} color="#808080" />
+            <Text className="font-nunito-sans-bold text-sm">
+              {workout.exercises.length} Exercises
+            </Text>
+          </HStack>
         </HStack>
-      </Padding>
-    </Card>
+        <P className="text-left text-xs">{workout.description}</P>
+        {!workout.finished_at ? (
+          workout.started_at ? (
+            <VStack className="items-stretch">
+              <Text className="text-3xl text-center">{elapsedTime}</Text>
+              <Button onPress={() => finishWorkout(workout.id)}>
+                <Text>Finish Workout</Text>
+              </Button>
+            </VStack>
+          ) : (
+            <Button onPress={() => startWorkout(workout.id)}>
+              <HStack className="gap-2">
+                <Text>Start Workout</Text>
+                <ArrowRight size={16} className="text-black" />
+              </HStack>
+            </Button>
+          )
+        ) : (
+          <Text className="text-center text-xl">Workout finished</Text>
+        )}
+      </VStack>
+    </Link>
   );
 }
