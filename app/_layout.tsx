@@ -72,7 +72,11 @@ export default function RootLayout() {
           colorScheme === "dark"
             ? {
                 ...DarkTheme,
-                colors: { ...DarkTheme.colors, background: "#1E1E1E" },
+                colors: {
+                  ...DarkTheme.colors,
+                  primary: "#97DE71",
+                  background: "#1E1E1E",
+                },
               }
             : DefaultTheme
         }
