@@ -2,7 +2,7 @@ import React from "react";
 import { z } from "zod";
 import { zodResolver } from "@hookform/resolvers/zod";
 import { Controller, FieldErrors, useForm } from "react-hook-form";
-import { View } from "react-native";
+import { Pressable, View } from "react-native";
 import {
   Select,
   SelectContent,
@@ -15,6 +15,18 @@ import { Input } from "~/components/ui/input";
 import { Button } from "~/components/ui/button";
 import { VStack } from "~/components/ui/vstack";
 import { LoaderCircle } from "~/lib/icons/LoaderCircle";
+import { H3, H4 } from "~/components/ui/typography";
+import {
+  RadioGroup,
+  RadioGroupItem,
+  RadioGroupTileItem,
+} from "~/components/ui/radio-group";
+import { HStack } from "~/components/ui/hstack";
+import { Badge } from "~/components/ui/badge";
+import { Label } from "~/components/ui/label";
+import { BicepsFlexed } from "~/lib/icons/BicepsFlexed";
+import { HeartPulse } from "~/lib/icons/HeartPulse";
+import { Flame } from "~/lib/icons/Flame";
 
 interface WorkoutPlanFormProps {
   onSubmit: (values: z.infer<typeof formSchema>) => Promise<void>;
@@ -44,43 +56,46 @@ export default function WorkoutPlanForm({
   });
 
   const goalOptions = [
-    { label: "Lose weight", value: "lose_weight" },
-    { label: "Gain muscle", value: "gain_muscle" },
-    { label: "Improve health", value: "improve_health" },
+    { label: "Lose weight", value: "lose_weight", icon: Flame },
+    { label: "Gain muscle", value: "gain_muscle", icon: BicepsFlexed },
+    { label: "Improve health", value: "improve_health", icon: HeartPulse },
   ];
 
   const placeOptions = [
     { label: "Gym", value: "gym" },
-    { label: "Home", value: "home", disabled: true },
+    { label: "Home", value: "home", disabled: true, badge: "Soon" },
   ];
 
   return (
     <VStack className="items-stretch w-full">
+      <VStack className="gap-0 justify-start items-start">
+        <H4>Goal</H4>
+        <Text className="text-sm text-muted-foreground">
+          What is your goal?
+        </Text>
+      </VStack>
+
       <Controller
         control={form.control}
         name="goal"
         render={({ field: { onChange, onBlur, value } }) => (
-          <Select
-            disabled={form.formState.isSubmitting}
-            value={goalOptions.find((option) => option.value === value)}
-            onValueChange={(value) => onChange(value?.value)}
+          <RadioGroup
+            value={value}
+            onValueChange={onChange}
+            className="flex flex-row gap-4 justify-stretch items-stretch"
           >
-            <SelectTrigger className="w-32">
-              <SelectValue
-                placeholder="Goal"
-                className="text-muted-foreground"
+            {goalOptions.map((option) => (
+              <RadioGroupItemTileWithIcon
+                key={option.value}
+                value={option.value}
+                label={option.label}
+                disabled={false}
+                isSelected={option.value === value}
+                onLabelPress={() => onChange(option.value)}
+                icon={option.icon}
               />
-            </SelectTrigger>
-            <SelectContent>
-              {goalOptions.map((option) => (
-                <SelectItem
-                  key={option.value}
-                  label={option.label}
-                  value={option.value}
-                />
-              ))}
-            </SelectContent>
-          </Select>
+            ))}
+          </RadioGroup>
         )}
       />
       {form.formState.errors.goal && (
@@ -89,34 +104,34 @@ export default function WorkoutPlanForm({
         </Text>
       )}
 
+      <VStack className="gap-0 justify-start items-start">
+        <H4>Place</H4>
+        <Text className="text-sm text-muted-foreground">
+          Choose where you want to do your workouts
+        </Text>
+      </VStack>
+
       <Controller
         control={form.control}
         name="place"
         render={({ field: { onChange, onBlur, value } }) => (
-          <Select
-            value={placeOptions.find((option) => option.value === value)}
-            onValueChange={(value) => onChange(value?.value)}
-            disabled={form.formState.isSubmitting}
+          <RadioGroup
+            value={value}
+            onValueChange={onChange}
+            className="flex flex-row gap-4 justify-stretch items-stretch"
           >
-            <SelectTrigger className="w-32">
-              <SelectValue
-                placeholder="Place"
-                className="text-muted-foreground"
+            {placeOptions.map((option) => (
+              <RadioGroupItemWithLabel
+                key={option.value}
+                value={option.value}
+                label={option.label}
+                disabled={option.disabled ?? false}
+                badge={option.badge}
+                isSelected={option.value === value}
+                onLabelPress={() => onChange(option.value)}
               />
-            </SelectTrigger>
-            <SelectContent>
-              {placeOptions.map((option) => (
-                <SelectItem
-                  key={option.value}
-                  label={
-                    option.disabled ? `${option.label} (Soon)` : option.label
-                  }
-                  value={option.value}
-                  disabled={option.disabled}
-                />
-              ))}
-            </SelectContent>
-          </Select>
+            ))}
+          </RadioGroup>
         )}
       />
       {form.formState.errors.place && (
@@ -125,19 +140,33 @@ export default function WorkoutPlanForm({
         </Text>
       )}
 
+      <VStack className="gap-0 justify-start items-start">
+        <H4>Frequency</H4>
+        <Text className="text-sm text-muted-foreground">
+          How many times per week do you want to workout?
+        </Text>
+      </VStack>
+
       <Controller
         control={form.control}
         name="frequency"
         render={({ field: { onChange, onBlur, value } }) => (
-          <Input
-            className="w-24 text-center"
-            placeholder="Frequency"
-            onChangeText={onChange}
-            onBlur={onBlur}
+          <RadioGroup
             value={value?.toString()}
-            keyboardType="numeric"
-            editable={!form.formState.isSubmitting}
-          />
+            onValueChange={onChange}
+            className="flex flex-row gap-4 justify-stretch items-stretch"
+          >
+            {[1, 2, 3, 4, 5, 6, 7].map((option) => (
+              <RadioGroupItemTile
+                key={option}
+                value={option?.toString()}
+                label={option?.toString()}
+                disabled={false}
+                isSelected={option?.toString() === value?.toString()}
+                onLabelPress={() => onChange(option?.toString())}
+              />
+            ))}
+          </RadioGroup>
         )}
       />
       {form.formState.errors.frequency && (
@@ -155,9 +184,136 @@ export default function WorkoutPlanForm({
             <LoaderCircle className="w-4 h-4 color-white" />
           </View>
         ) : (
-          <Text>Get my plan! 💪</Text>
+          <Text>Get my plan!</Text>
         )}
       </Button>
     </VStack>
+  );
+}
+
+function RadioGroupItemWithLabel({
+  value,
+  label,
+  disabled,
+  badge,
+  isSelected,
+  onLabelPress,
+}: {
+  value: string;
+  label: string;
+  disabled: boolean;
+  badge?: string;
+  isSelected: boolean;
+  onLabelPress: () => void;
+}) {
+  return (
+    <Pressable
+      className={`flex flex-row gap-2 bg-card rounded-lg p-4 flex-1 justify-start items-center border-2 ${
+        isSelected ? "border-primary" : "border-transparent"
+      } ${disabled ? "opacity-50" : ""}`}
+      onPress={() => !disabled && onLabelPress()}
+    >
+      <RadioGroupItem
+        aria-labelledby={`label-for-${value}`}
+        value={value}
+        disabled={disabled}
+      />
+      <Label
+        nativeID={`label-for-${value}`}
+        className={`text-base text-white font-nunito-sans-bold ${
+          disabled ? "opacity-50" : ""
+        }`}
+        onPress={() => !disabled && onLabelPress()}
+      >
+        {label}
+      </Label>
+      {badge && (
+        <Badge variant="secondary">
+          <Text>{badge}</Text>
+        </Badge>
+      )}
+    </Pressable>
+  );
+}
+
+function RadioGroupItemTileWithIcon({
+  value,
+  label,
+  icon,
+  disabled,
+  badge,
+  isSelected,
+  onLabelPress,
+}: {
+  value: string;
+  label: string;
+  icon?: React.ElementType;
+  disabled: boolean;
+  badge?: string;
+  isSelected: boolean;
+  onLabelPress: () => void;
+}) {
+  return (
+    <Pressable
+      className={`flex flex-col gap-2 bg-card rounded-lg p-4 flex-1 justify-start items-center border-2 ${
+        isSelected ? "border-primary" : "border-transparent"
+      } ${disabled ? "opacity-50" : ""}`}
+      onPress={() => !disabled && onLabelPress()}
+    >
+      {icon &&
+        React.createElement(icon, {
+          "aria-labelledby": `label-for-${value}`,
+          className: `w-10 h-10 ${
+            isSelected ? "text-primary" : "text-muted-foreground"
+          }`,
+        })}
+      <Label
+        nativeID={`label-for-${value}`}
+        className={`text-base text-white font-nunito-sans-bold text-center ${
+          disabled ? "opacity-50" : ""
+        }`}
+        onPress={() => !disabled && onLabelPress()}
+      >
+        {label}
+      </Label>
+      {badge && (
+        <Badge variant="secondary">
+          <Text>{badge}</Text>
+        </Badge>
+      )}
+    </Pressable>
+  );
+}
+
+function RadioGroupItemTile({
+  value,
+  label,
+  disabled,
+  isSelected,
+  onLabelPress,
+}: {
+  value: string;
+  label: string;
+  disabled: boolean;
+  isSelected: boolean;
+  onLabelPress: () => void;
+}) {
+  return (
+    <Pressable
+      className={`flex flex-col gap-2 bg-card py-1 rounded-lg flex-1 justify-start items-center border-2 ${
+        isSelected ? "border-primary" : "border-transparent"
+      } ${disabled ? "opacity-50" : ""}`}
+      onPress={() => !disabled && onLabelPress()}
+    >
+      <Label
+        nativeID={`label-for-${value}`}
+        className={`text-base text-white font-nunito-sans-bold text-center ${
+          disabled ? "opacity-50" : ""
+        }`}
+        onPress={() => !disabled && onLabelPress()}
+      >
+        {label}
+      </Label>
+    </Pressable>
   );
 }
