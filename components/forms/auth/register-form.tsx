@@ -7,6 +7,8 @@ import { Button } from "~/components/ui/button";
 import { Text } from "~/components/ui/text";
 import { LoaderCircle } from "~/lib/icons/LoaderCircle";
 import { VStack } from "~/components/ui/vstack";
+import { HStack } from "~/components/ui/hstack";
+import { ArrowRight } from "~/lib/icons/ArrowRight";
 
 interface RegisterFormProps {
   onSubmit: (values: z.infer<typeof formSchema>) => Promise<void>;
@@ -37,7 +39,7 @@ export default function RegisterForm({ onSubmit, errors }: RegisterFormProps) {
   });
 
   return (
-    <VStack className="gap-4 items-stretch max-w-[300px] w-full">
+    <VStack className="gap-4 items-stretch w-full">
       <Controller
         control={form.control}
         render={({ field: { onChange, onBlur, value } }) => (
@@ -108,7 +110,10 @@ export default function RegisterForm({ onSubmit, errors }: RegisterFormProps) {
             <LoaderCircle className="w-4 h-4 color-white" />
           </View>
         ) : (
-          <Text>Register</Text>
+          <HStack className="gap-2">
+            <Text>Sign Up</Text>
+            <ArrowRight size={16} className="text-black" />
+          </HStack>
         )}
       </Button>
     </VStack>

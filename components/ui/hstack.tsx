@@ -8,7 +8,7 @@ const HStack = React.forwardRef<ViewRef, ViewProps>(
     <View
       ref={ref}
       className={cn(
-        "flex flex-row items-center justify-center gap-3",
+        "flex flex-row items-center justify-center gap-4",
         className
       )}
       {...props}

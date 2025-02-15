@@ -1,5 +1,5 @@
 import { Stack } from "expo-router";
-import React from "react";
+import React, { useEffect, useState } from "react";
 import {
   Keyboard,
   KeyboardAvoidingView,
@@ -8,17 +8,42 @@ import {
 } from "react-native";
 import { SafeAreaView } from "react-native";
 import { SafeAreaProvider } from "react-native-safe-area-context";
-import { H1, H4 } from "~/components/ui/typography";
 import { VStack } from "~/components/ui/vstack";
 import RegisterView from "~/components/views/register-view";
+import Sign from "~/components/brand/sign";
 
 export default function RegisterScreen() {
+  const [isKeyboardVisible, setIsKeyboardVisible] = useState(false);
+
+  useEffect(() => {
+    const showSubscription = Keyboard.addListener(
+      "keyboardWillShow",
+      handleKeyboardShow
+    );
+    const hideSubscription = Keyboard.addListener(
+      "keyboardWillHide",
+      handleKeyboardHide
+    );
+
+    return () => {
+      showSubscription.remove();
+    };
+  }, []);
+
+  const handleKeyboardShow = () => {
+    setIsKeyboardVisible(true);
+  };
+
+  const handleKeyboardHide = () => {
+    setIsKeyboardVisible(false);
+  };
+
   return (
     <>
       <Stack.Screen
         options={{
-          title: "Register",
-          headerBackTitle: "Register",
+          title: "Sign Up",
+          headerBackTitle: "Sign Up",
           headerShown: false,
         }}
       />
@@ -29,11 +54,11 @@ export default function RegisterScreen() {
             className="flex-1"
           >
             <TouchableWithoutFeedback onPress={Keyboard.dismiss}>
-              <VStack className="h-full p-4 gap-8">
-                <VStack className="gap-0">
-                  <H1>Welcome to Fitme!</H1>
-                  <H4>Create an account to get started</H4>
-                </VStack>
+              <VStack className="h-full p-6 gap-8">
+                <Sign
+                  width={isKeyboardVisible ? 35 : 70}
+                  height={isKeyboardVisible ? 35 : 70}
+                />
                 <RegisterView />
               </VStack>
             </TouchableWithoutFeedback>

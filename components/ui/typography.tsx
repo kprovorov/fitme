@@ -32,7 +32,7 @@ const H2 = React.forwardRef<TextRef, SlottableTextProps>(
         role="heading"
         aria-level="2"
         className={cn(
-          "web:scroll-m-20 text-3xl text-foreground font-nunito-sans-semibold tracking-tight first:mt-0 web:select-text",
+          "web:scroll-m-20 text-3xl text-foreground font-nunito-sans-bold tracking-tight first:mt-0 web:select-text",
           className
         )}
         ref={ref}
@@ -52,7 +52,7 @@ const H3 = React.forwardRef<TextRef, SlottableTextProps>(
         role="heading"
         aria-level="3"
         className={cn(
-          "web:scroll-m-20 text-2xl text-foreground font-nunito-sans-semibold tracking-tight web:select-text",
+          "web:scroll-m-20 text-2xl text-foreground font-nunito-sans-bold tracking-tight web:select-text",
           className
         )}
         ref={ref}
