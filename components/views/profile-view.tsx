@@ -35,15 +35,17 @@ export default function ProfileView() {
   const { mutateAsync: logout } = useLogoutMutation({
     onSuccess: async () => {
       Sentry.setUser(null);
-      await queryClient.invalidateQueries({ queryKey: ["user"] });
+      await deleteToken();
+      queryClient.clear();
       router.replace("/auth/login");
     },
   });
 
   const { mutateAsync: deleteUser } = useDeleteUserMutation({
     onSuccess: async () => {
+      Sentry.setUser(null);
       await deleteToken();
-      await queryClient.invalidateQueries({ queryKey: ["user"] });
+      queryClient.clear();
       router.replace("/auth/login");
     },
   });
