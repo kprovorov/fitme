@@ -8,6 +8,8 @@ import { useState, useEffect } from "react";
 import { WorkoutPlan } from "~/lib/models";
 import { Button } from "~/components/ui/button";
 import { Link } from "expo-router";
+import { VStack } from "~/components/ui/vstack";
+import { H1 } from "~/components/ui/typography";
 
 export default function HomeScreen() {
   const { data: plans, isLoading, error } = useWorkoutPlansQuery();
@@ -25,7 +27,7 @@ export default function HomeScreen() {
 
   return (
     <SafeAreaProvider>
-      <SafeAreaView>
+      <SafeAreaView className="flex-1">
         {activePlan ? (
           <ScrollView>
             <Padding>
@@ -33,15 +35,18 @@ export default function HomeScreen() {
             </Padding>
           </ScrollView>
         ) : (
-          <ScrollView>
-            <Padding>
-              <Link href="/onboarding" asChild>
-                <Button className="w-full">
-                  <Text>Start your workout plan</Text>
-                </Button>
-              </Link>
-            </Padding>
-          </ScrollView>
+          <VStack className="h-full p-6">
+            <H1 className="text-center">Create your first workout plan</H1>
+            <Text className="text-center">
+              You don't have an active workout plan. Please create one to start
+              your journey.
+            </Text>
+            <Link href="/onboarding" asChild>
+              <Button className="w-full">
+                <Text>Start your workout plan</Text>
+              </Button>
+            </Link>
+          </VStack>
         )}
       </SafeAreaView>
     </SafeAreaProvider>
