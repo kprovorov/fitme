@@ -9,9 +9,14 @@ import { Keyboard } from "react-native";
 import { KeyboardAvoidingView } from "react-native";
 import { TouchableWithoutFeedback } from "react-native";
 import { ScrollView } from "react-native";
-import { router } from "expo-router";
+import { Link, router } from "expo-router";
 import WorkoutPlanForm from "~/components/forms/workout-plans/workout-plan-form";
 import { useStoreWorkoutPlanMutation } from "~/hooks/mutations/workout-plans";
+import { useIsProQuery } from "~/hooks/revenueCat";
+import RevenueCatUI, { PAYWALL_RESULT } from "react-native-purchases-ui";
+import { Button } from "~/components/ui/button";
+import { HStack } from "~/components/ui/hstack";
+import { ChevronLeft } from "~/lib/icons/ChevronLeft";
 
 export default function PlanScreen() {
   const { mutateAsync: storeWorkoutPlan } = useStoreWorkoutPlanMutation({
@@ -19,6 +24,8 @@ export default function PlanScreen() {
       router.push("/");
     },
   });
+
+  const { data: isPro } = useIsProQuery();
 
   return (
     <SafeAreaProvider>
@@ -30,20 +37,40 @@ export default function PlanScreen() {
         >
           <TouchableWithoutFeedback onPress={Keyboard.dismiss}>
             <ScrollView centerContent>
-              <VStack className="h-full p-6 items-center justify-center gap-8">
+              <VStack className="h-full p-6 items-center justify-center gap-4">
                 <VStack className="gap-2">
                   <H2 className="text-center">
                     Now, let's create your workout plan!
                   </H2>
-                  <Text className="text-center">
-                    We'll use this information to create a workout plan for you.
-                  </Text>
                 </VStack>
                 <WorkoutPlanForm
                   onSubmit={async (values) => {
-                    await storeWorkoutPlan(values);
+                    if (isPro) {
+                      await storeWorkoutPlan(values);
+                    } else {
+                      const result = await RevenueCatUI.presentPaywall();
+                      if (
+                        [
+                          PAYWALL_RESULT.PURCHASED,
+                          PAYWALL_RESULT.RESTORED,
+                        ].includes(result)
+                      ) {
+                        await storeWorkoutPlan(values);
+                      }
+                    }
                   }}
                 />
+
+                <Button
+                  variant="secondary"
+                  className="w-full"
+                  onPress={() => router.back()}
+                >
+                  <HStack className="gap-1">
+                    <ChevronLeft size={16} className="text-white" />
+                    <Text>Back</Text>
+                  </HStack>
+                </Button>
               </VStack>
             </ScrollView>
           </TouchableWithoutFeedback>

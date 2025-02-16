@@ -12,6 +12,9 @@ import { TouchableWithoutFeedback } from "react-native";
 import { ScrollView } from "react-native";
 import { router } from "expo-router";
 import { useStoreProfileMutation } from "~/hooks/queries/profiles";
+import { Button } from "~/components/ui/button";
+import { HStack } from "~/components/ui/hstack";
+import { ChevronLeft } from "~/lib/icons/ChevronLeft";
 
 export default function ProfileScreen() {
   const { mutateAsync: storeProfile } = useStoreProfileMutation({
@@ -30,7 +33,7 @@ export default function ProfileScreen() {
         >
           <TouchableWithoutFeedback onPress={Keyboard.dismiss}>
             <ScrollView centerContent>
-              <VStack className="h-full p-6 items-center justify-center gap-8">
+              <VStack className="h-full p-6 items-center justify-center gap-4">
                 <VStack className="gap-2">
                   <H2>Let's get to know you!</H2>
                   <Text className="text-center">
@@ -42,6 +45,16 @@ export default function ProfileScreen() {
                     await storeProfile(values);
                   }}
                 />
+                <Button
+                  variant="secondary"
+                  className="w-full"
+                  onPress={() => router.back()}
+                >
+                  <HStack className="gap-1">
+                    <ChevronLeft size={16} className="text-white" />
+                    <Text>Back</Text>
+                  </HStack>
+                </Button>
               </VStack>
             </ScrollView>
           </TouchableWithoutFeedback>

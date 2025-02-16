@@ -17,6 +17,7 @@ import { ArrowRight } from "~/lib/icons/ArrowRight";
 
 interface ProfileFormProps {
   onSubmit: (values: ProfileFormValues) => Promise<void>;
+  defaultValues?: ProfileFormValues;
 }
 
 export type ProfileFormValues = z.infer<typeof formSchema>;
@@ -28,9 +29,13 @@ const formSchema = z.object({
   height: z.coerce.number().min(100).max(250),
 });
 
-export default function ProfileForm({ onSubmit }: ProfileFormProps) {
+export default function ProfileForm({
+  onSubmit,
+  defaultValues,
+}: ProfileFormProps) {
   const form = useForm<ProfileFormValues>({
     resolver: zodResolver(formSchema),
+    defaultValues,
   });
 
   const genderOptions = [
