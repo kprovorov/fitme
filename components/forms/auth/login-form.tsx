@@ -83,7 +83,7 @@ export default function LoginForm({ onSubmit, errors }: LoginFormProps) {
       >
         {form.formState.isSubmitting ? (
           <View className="animate-spin">
-            <LoaderCircle className="w-4 h-4 color-white" />
+            <LoaderCircle size={16} className="text-black" />
           </View>
         ) : (
           <HStack className="gap-2">

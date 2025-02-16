@@ -162,7 +162,7 @@ export default function ProfileForm({
       >
         {form.formState.isSubmitting ? (
           <View className="animate-spin">
-            <LoaderCircle className="w-4 h-4 color-black" />
+            <LoaderCircle size={16} className="text-black" />
           </View>
         ) : (
           <HStack className="gap-2">
