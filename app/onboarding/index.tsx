@@ -8,7 +8,8 @@ import Sign from "~/components/brand/sign";
 import { Button } from "~/components/ui/button";
 import { HStack } from "~/components/ui/hstack";
 import { ArrowRight } from "~/lib/icons/ArrowRight";
-import { Link } from "expo-router";
+import { Link, router } from "expo-router";
+import AsyncStorage from "@react-native-async-storage/async-storage";
 
 export default function WelcomeScreen() {
   return (
@@ -22,14 +23,28 @@ export default function WelcomeScreen() {
               Your personal AI trainer is waiting for you. Let's get started!
             </Text>
           </VStack>
-          <Link href="/onboarding/profile" asChild>
-            <Button className="w-full">
+          <VStack className="items-stretch w-full">
+            <Link href="/onboarding/profile" asChild>
+              <Button className="w-full">
+                <HStack className="gap-2">
+                  <Text>Get Started</Text>
+                  <ArrowRight size={16} className="text-black" />
+                </HStack>
+              </Button>
+            </Link>
+            <Button
+              variant="link"
+              className="w-full"
+              onPress={async () => {
+                await AsyncStorage.setItem("show-onboarding", "false");
+                router.push("/");
+              }}
+            >
               <HStack className="gap-2">
-                <Text>Get Started</Text>
-                <ArrowRight size={16} className="text-black" />
+                <Text>Skip</Text>
               </HStack>
             </Button>
-          </Link>
+          </VStack>
         </VStack>
       </SafeAreaView>
     </SafeAreaProvider>
