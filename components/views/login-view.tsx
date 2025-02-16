@@ -39,6 +39,7 @@ export default function LoginView() {
   const { mutateAsync: login } = useLoginMutation({
     onSuccess: async () => {
       await queryClient.invalidateQueries({ queryKey: ["user"] });
+      router.replace("/");
     },
     onError: (error) => {
       handleAxiosError(error, setErrorMessage, setErrors);
