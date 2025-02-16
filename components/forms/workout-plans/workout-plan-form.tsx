@@ -7,7 +7,7 @@ import { Text } from "~/components/ui/text";
 import { Button } from "~/components/ui/button";
 import { VStack } from "~/components/ui/vstack";
 import { LoaderCircle } from "~/lib/icons/LoaderCircle";
-import { H4 } from "~/components/ui/typography";
+import { H4, Muted, P } from "~/components/ui/typography";
 import { RadioGroup, RadioGroupItem } from "~/components/ui/radio-group";
 import { Badge } from "~/components/ui/badge";
 import { Label } from "~/components/ui/label";
@@ -174,6 +174,14 @@ export default function WorkoutPlanForm({
           <Text>Get my plan!</Text>
         )}
       </Button>
+      {form.formState.isSubmitting && (
+        <VStack className="gap-0">
+          <P className="font-bold">
+            Hold on... AI is working hard to create your plan!
+          </P>
+          <Muted>This may take a couple of minutes.</Muted>
+        </VStack>
+      )}
     </VStack>
   );
 }
