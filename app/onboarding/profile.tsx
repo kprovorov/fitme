@@ -11,10 +11,11 @@ import { KeyboardAvoidingView } from "react-native";
 import { TouchableWithoutFeedback } from "react-native";
 import { ScrollView } from "react-native";
 import { router } from "expo-router";
-import { useStoreProfileMutation } from "~/hooks/queries/profiles";
+import { useStoreProfileMutation } from "~/hooks/mutations/profiles";
 import { Button } from "~/components/ui/button";
 import { HStack } from "~/components/ui/hstack";
 import { ChevronLeft } from "~/lib/icons/ChevronLeft";
+import { useCurrentUserQuery } from "~/hooks/queries/auth";
 
 export default function ProfileScreen() {
   const { mutateAsync: storeProfile } = useStoreProfileMutation({
@@ -22,6 +23,8 @@ export default function ProfileScreen() {
       router.push("/onboarding/plan");
     },
   });
+
+  const { data: user } = useCurrentUserQuery();
 
   return (
     <SafeAreaProvider>
@@ -44,6 +47,7 @@ export default function ProfileScreen() {
                   onSubmit={async (values) => {
                     await storeProfile(values);
                   }}
+                  defaultValues={user?.profile}
                 />
                 <Button
                   variant="secondary"

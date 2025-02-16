@@ -9,6 +9,7 @@ export type User = {
   name: string;
   email: string;
   rc_user_id: string;
+  profile?: Profile;
 };
 
 export type Profile = {

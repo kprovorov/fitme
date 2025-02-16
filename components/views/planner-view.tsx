@@ -1,6 +1,6 @@
 import React, { useState } from "react";
 import PlannerForm from "../forms/planner/planner-form";
-import { useStoreProfileMutation } from "@/hooks/queries/profiles";
+import { useStoreProfileMutation } from "~/hooks/mutations/profiles";
 import { H1, H3, Muted, P } from "~/components/ui/typography";
 import { VStack } from "../ui/vstack";
 import { router } from "expo-router";

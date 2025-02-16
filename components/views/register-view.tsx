@@ -25,7 +25,7 @@ export default function RegisterView() {
   useEffect(() => {
     if (user) {
       Purchases.logIn(user.rc_user_id).then(() => {
-        router.replace("/");
+        router.replace("/onboarding");
       });
     }
   }, [user]);

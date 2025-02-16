@@ -1,5 +1,5 @@
 import React from "react";
-import { H1, H2 } from "~/components/ui/typography";
+import { H2 } from "~/components/ui/typography";
 import { VStack } from "~/components/ui/vstack";
 import { Text } from "~/components/ui/text";
 import { SafeAreaProvider } from "react-native-safe-area-context";
@@ -9,7 +9,6 @@ import { Button } from "~/components/ui/button";
 import { HStack } from "~/components/ui/hstack";
 import { ArrowRight } from "~/lib/icons/ArrowRight";
 import { Link, router } from "expo-router";
-import AsyncStorage from "@react-native-async-storage/async-storage";
 
 export default function WelcomeScreen() {
   return (
@@ -36,8 +35,8 @@ export default function WelcomeScreen() {
               variant="link"
               className="w-full"
               onPress={async () => {
-                await AsyncStorage.setItem("show-onboarding", "false");
-                router.push("/");
+                // dismiss sheet
+                router.dismissTo("/");
               }}
             >
               <HStack className="gap-2">
