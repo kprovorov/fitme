@@ -84,10 +84,9 @@ export default function RootLayout() {
         <Stack>
           <Stack.Screen name="(tabs)" options={{ headerShown: false }} />
           <Stack.Screen
-            name="auth/login"
+            name="auth"
             options={{
               presentation: "fullScreenModal",
-              title: "Login",
               headerShown: false,
             }}
           />
@@ -95,7 +94,6 @@ export default function RootLayout() {
             name="onboarding"
             options={{
               presentation: "fullScreenModal",
-              title: "Welcome",
               headerShown: false,
             }}
           />
