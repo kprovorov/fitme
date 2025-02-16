@@ -91,6 +91,14 @@ export default function RootLayout() {
               headerShown: false,
             }}
           />
+          <Stack.Screen
+            name="onboarding"
+            options={{
+              presentation: "fullScreenModal",
+              title: "Welcome",
+              headerShown: false,
+            }}
+          />
           <Stack.Screen name="+not-found" />
         </Stack>
         <PortalHost />

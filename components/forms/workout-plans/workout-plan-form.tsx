@@ -3,25 +3,12 @@ import { z } from "zod";
 import { zodResolver } from "@hookform/resolvers/zod";
 import { Controller, FieldErrors, useForm } from "react-hook-form";
 import { Pressable, View } from "react-native";
-import {
-  Select,
-  SelectContent,
-  SelectItem,
-  SelectTrigger,
-  SelectValue,
-} from "~/components/ui/select";
 import { Text } from "~/components/ui/text";
-import { Input } from "~/components/ui/input";
 import { Button } from "~/components/ui/button";
 import { VStack } from "~/components/ui/vstack";
 import { LoaderCircle } from "~/lib/icons/LoaderCircle";
-import { H3, H4 } from "~/components/ui/typography";
-import {
-  RadioGroup,
-  RadioGroupItem,
-  RadioGroupTileItem,
-} from "~/components/ui/radio-group";
-import { HStack } from "~/components/ui/hstack";
+import { H4 } from "~/components/ui/typography";
+import { RadioGroup, RadioGroupItem } from "~/components/ui/radio-group";
 import { Badge } from "~/components/ui/badge";
 import { Label } from "~/components/ui/label";
 import { BicepsFlexed } from "~/lib/icons/BicepsFlexed";
@@ -181,7 +168,7 @@ export default function WorkoutPlanForm({
       >
         {form.formState.isSubmitting ? (
           <View className="animate-spin">
-            <LoaderCircle className="w-4 h-4 color-white" />
+            <LoaderCircle className="w-4 h-4 color-black" />
           </View>
         ) : (
           <Text>Get my plan!</Text>
