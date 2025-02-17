@@ -84,7 +84,7 @@ export default function WorkoutCard({
         <P className="text-left text-sm text-muted-foreground">
           {workout.description}
         </P>
-        {state === "upcoming" && (
+        {state === "upcoming" && !workout.started_at && (
           <Button onPress={() => startWorkout(workout.id)}>
             <HStack className="gap-2">
               <Text>Start Workout</Text>

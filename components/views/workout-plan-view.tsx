@@ -14,13 +14,13 @@ interface WorkoutPlanViewProps {
 }
 
 export default function WorkoutPlanView({ plan }: WorkoutPlanViewProps) {
-  const [nextWorkout, setNextWorkout] = useState<Workout | null>(null);
+  const [nextWorkout, setNextWorkout] = useState<Workout | undefined>();
 
   useEffect(() => {
-    const nextWorkout = plan.workouts.find((workout) => !workout.finished_at);
-    if (nextWorkout) {
-      setNextWorkout(nextWorkout);
-    }
+    const nextWorkout = plan.workouts
+      .sort((a, b) => a.order - b.order)
+      .find((workout) => !workout.finished_at);
+    setNextWorkout(nextWorkout);
   }, [plan.workouts]);
 
   return (
@@ -28,7 +28,11 @@ export default function WorkoutPlanView({ plan }: WorkoutPlanViewProps) {
       <H2 className="text-primary">{plan.name}</H2>
       <Text className="text-muted-foreground text-sm">{plan.description}</Text>
       <H3>Next Workout</H3>
-      {!!nextWorkout && <WorkoutCard workout={nextWorkout} state="upcoming" />}
+      {nextWorkout ? (
+        <WorkoutCard workout={nextWorkout} state="upcoming" />
+      ) : (
+        <Text>You're all set! We're generating your next workout.</Text>
+      )}
 
       <HStack className="justify-between">
         <H4>Upcoming</H4>
@@ -46,6 +50,7 @@ export default function WorkoutPlanView({ plan }: WorkoutPlanViewProps) {
         .filter(
           (workout) => !workout.finished_at && workout.id !== nextWorkout?.id
         )
+        .sort((a, b) => a.order - b.order)
         .map((workout) => (
           <WorkoutCard key={workout.id} workout={workout} state="default" />
         ))}
