@@ -1,13 +1,12 @@
 import React, { useEffect, useState } from "react";
 import { Workout, WorkoutPlan } from "@/lib/models";
 import { VStack } from "../ui/vstack";
-import { H2, H3, H4, P } from "../ui/typography";
+import { H2, H3, H4 } from "../ui/typography";
 import WorkoutCard from "./workout-card";
 import { Button } from "../ui/button";
 import { HStack } from "../ui/hstack";
 import { Text } from "../ui/text";
 import { Link } from "expo-router";
-import { ArrowRight } from "~/lib/icons/ArrowRight";
 import { ChevronRight } from "~/lib/icons/ChevronRight";
 
 interface WorkoutPlanViewProps {
@@ -26,8 +25,8 @@ export default function WorkoutPlanView({ plan }: WorkoutPlanViewProps) {
 
   return (
     <VStack className="items-stretch">
-      <H2 className="text-center text-primary border-0">{plan.name}</H2>
-      <P>{plan.description}</P>
+      <H2 className="text-primary">{plan.name}</H2>
+      <Text className="text-muted-foreground text-sm">{plan.description}</Text>
       <H3>Next Workout</H3>
       {!!nextWorkout && <WorkoutCard workout={nextWorkout} state="upcoming" />}
 

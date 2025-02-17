@@ -81,7 +81,9 @@ export default function WorkoutCard({
             </Text>
           </HStack>
         </HStack>
-        <P className="text-left text-xs">{workout.description}</P>
+        <P className="text-left text-sm text-muted-foreground">
+          {workout.description}
+        </P>
         {state === "upcoming" && (
           <Button onPress={() => startWorkout(workout.id)}>
             <HStack className="gap-2">

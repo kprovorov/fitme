@@ -21,7 +21,7 @@ import { ChevronLeft } from "~/lib/icons/ChevronLeft";
 export default function PlanScreen() {
   const { mutateAsync: storeWorkoutPlan } = useStoreWorkoutPlanMutation({
     onSuccess: () => {
-      router.push("/");
+      router.replace("/");
     },
   });
 

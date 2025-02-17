@@ -41,7 +41,7 @@ export default function HomeScreen() {
               You don't have an active workout plan. Please create one to start
               your journey.
             </Text>
-            <Link href="/onboarding" asChild>
+            <Link href="/onboarding/profile" asChild>
               <Button className="w-full">
                 <Text>Start your workout plan</Text>
               </Button>
