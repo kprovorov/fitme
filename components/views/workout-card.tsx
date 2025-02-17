@@ -24,7 +24,7 @@ interface WorkoutCardProps {
 
 export default function WorkoutCard({
   workout,
-  state = "upcoming",
+  state = "default",
 }: WorkoutCardProps) {
   const queryClient = useQueryClient();
 
@@ -71,8 +71,8 @@ export default function WorkoutCard({
       href={`/workouts/${workout.id}`}
       className="rounded-2xl bg-card active:bg-primary-foreground"
     >
-      <VStack className="items-stretch flex-shrink p-4 gap-4">
-        <H4 className="text-primary font-nunito-sans-bold">{workout.name}</H4>
+      <VStack className="items-stretch flex-shrink p-4 gap-4 w-full">
+        <H4 className={`font-nunito-sans-bold text-primary`}>{workout.name}</H4>
         <HStack className="justify-start">
           <HStack className="gap-1">
             <Zap size={16} color="#808080" />
@@ -82,24 +82,21 @@ export default function WorkoutCard({
           </HStack>
         </HStack>
         <P className="text-left text-xs">{workout.description}</P>
-        {!workout.finished_at ? (
-          workout.started_at ? (
-            <VStack className="items-stretch">
-              <Text className="text-3xl text-center">{elapsedTime}</Text>
-              <Button onPress={() => finishWorkout(workout.id)}>
-                <Text>Finish Workout</Text>
-              </Button>
-            </VStack>
-          ) : (
-            <Button onPress={() => startWorkout(workout.id)}>
-              <HStack className="gap-2">
-                <Text>Start Workout</Text>
-                <ArrowRight size={16} className="text-black" />
-              </HStack>
+        {state === "upcoming" && (
+          <Button onPress={() => startWorkout(workout.id)}>
+            <HStack className="gap-2">
+              <Text>Start Workout</Text>
+              <ArrowRight size={16} className="text-black" />
+            </HStack>
+          </Button>
+        )}
+        {!!workout.started_at && !workout.finished_at && (
+          <VStack className="items-stretch">
+            <Text className="text-3xl text-center">{elapsedTime}</Text>
+            <Button onPress={() => finishWorkout(workout.id)}>
+              <Text>Finish Workout</Text>
             </Button>
-          )
-        ) : (
-          <Text className="text-center text-xl">Workout finished</Text>
+          </VStack>
         )}
       </VStack>
     </Link>
