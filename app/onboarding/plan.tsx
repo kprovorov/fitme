@@ -17,11 +17,15 @@ import RevenueCatUI, { PAYWALL_RESULT } from "react-native-purchases-ui";
 import { Button } from "~/components/ui/button";
 import { HStack } from "~/components/ui/hstack";
 import { ChevronLeft } from "~/lib/icons/ChevronLeft";
+import { useQueryClient } from "@tanstack/react-query";
 
 export default function PlanScreen() {
+  const queryClient = useQueryClient();
+
   const { mutateAsync: storeWorkoutPlan } = useStoreWorkoutPlanMutation({
     onSuccess: () => {
-      router.replace("/");
+      queryClient.invalidateQueries({ queryKey: ["workout-plans"] });
+      router.dismissTo("/");
     },
   });
 
