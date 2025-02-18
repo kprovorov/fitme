@@ -10,6 +10,8 @@ import { Link } from "expo-router";
 import { ChevronRight } from "~/lib/icons/ChevronRight";
 import { View } from "react-native";
 import { LoaderCircle } from "~/lib/icons/LoaderCircle";
+import { useIsProQuery } from "~/hooks/revenueCat";
+import RevenueCatUI, { PAYWALL_RESULT } from "react-native-purchases-ui";
 
 interface WorkoutPlanViewProps {
   plan: WorkoutPlan;
@@ -18,6 +20,8 @@ interface WorkoutPlanViewProps {
 export default function WorkoutPlanView({ plan }: WorkoutPlanViewProps) {
   const [nextWorkout, setNextWorkout] = useState<Workout | undefined>();
   const [upcomingWorkouts, setUpcomingWorkouts] = useState<Workout[]>([]);
+
+  const { data: isPro, refetch: refetchIsPro } = useIsProQuery();
 
   useEffect(() => {
     const nextWorkout = plan.workouts
@@ -39,7 +43,7 @@ export default function WorkoutPlanView({ plan }: WorkoutPlanViewProps) {
       <H3>Next Workout</H3>
       {nextWorkout ? (
         <WorkoutCard workout={nextWorkout} state="upcoming" />
-      ) : (
+      ) : isPro ? (
         <VStack>
           <View className="animate-spin">
             <LoaderCircle size={24} className="text-primary" />
@@ -51,6 +55,21 @@ export default function WorkoutPlanView({ plan }: WorkoutPlanViewProps) {
             AI is generating your next workout. It will be ready in a few
             minutes.
           </Text>
+        </VStack>
+      ) : (
+        <VStack className="items-stretch">
+          <Text>
+            You're not subscribed to the Pro plan. Subscribe to get your next
+            workout generated automatically.
+          </Text>
+          <Button
+            onPress={async () => {
+              await RevenueCatUI.presentPaywall();
+              await refetchIsPro();
+            }}
+          >
+            <Text>Upgrade to Pro</Text>
+          </Button>
         </VStack>
       )}
 
