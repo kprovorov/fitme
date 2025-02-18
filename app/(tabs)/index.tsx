@@ -12,9 +12,15 @@ import { VStack } from "~/components/ui/vstack";
 import { H1 } from "~/components/ui/typography";
 
 export default function HomeScreen() {
-  const { data: plans, isLoading, error } = useWorkoutPlansQuery();
-
   const [activePlan, setActivePlan] = useState<WorkoutPlan | null>(null);
+
+  const {
+    data: plans,
+    isLoading,
+    error,
+  } = useWorkoutPlansQuery({
+    refetchInterval: 1000 * 60, // 1 minute
+  });
 
   useEffect(() => {
     if (plans) {

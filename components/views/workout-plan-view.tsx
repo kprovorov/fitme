@@ -8,6 +8,8 @@ import { HStack } from "../ui/hstack";
 import { Text } from "../ui/text";
 import { Link } from "expo-router";
 import { ChevronRight } from "~/lib/icons/ChevronRight";
+import { View } from "react-native";
+import { LoaderCircle } from "~/lib/icons/LoaderCircle";
 
 interface WorkoutPlanViewProps {
   plan: WorkoutPlan;
@@ -15,12 +17,19 @@ interface WorkoutPlanViewProps {
 
 export default function WorkoutPlanView({ plan }: WorkoutPlanViewProps) {
   const [nextWorkout, setNextWorkout] = useState<Workout | undefined>();
+  const [upcomingWorkouts, setUpcomingWorkouts] = useState<Workout[]>([]);
 
   useEffect(() => {
     const nextWorkout = plan.workouts
       .sort((a, b) => a.order - b.order)
       .find((workout) => !workout.finished_at);
     setNextWorkout(nextWorkout);
+    const upcomingWorkouts = plan.workouts
+      .filter(
+        (workout) => !workout.finished_at && workout.id !== nextWorkout?.id
+      )
+      .sort((a, b) => a.order - b.order);
+    setUpcomingWorkouts(upcomingWorkouts);
   }, [plan.workouts]);
 
   return (
@@ -31,7 +40,18 @@ export default function WorkoutPlanView({ plan }: WorkoutPlanViewProps) {
       {nextWorkout ? (
         <WorkoutCard workout={nextWorkout} state="upcoming" />
       ) : (
-        <Text>You're all set! We're generating your next workout.</Text>
+        <VStack>
+          <View className="animate-spin">
+            <LoaderCircle size={24} className="text-primary" />
+          </View>
+          <H3 className="text-center text-primary">
+            Nice job! You're all set!
+          </H3>
+          <Text className="text-center text-muted-foreground">
+            AI is generating your next workout. It will be ready in a few
+            minutes.
+          </Text>
+        </VStack>
       )}
 
       <HStack className="justify-between">
@@ -46,14 +66,18 @@ export default function WorkoutPlanView({ plan }: WorkoutPlanViewProps) {
         </Link>
       </HStack>
 
-      {plan.workouts
-        .filter(
-          (workout) => !workout.finished_at && workout.id !== nextWorkout?.id
-        )
-        .sort((a, b) => a.order - b.order)
-        .map((workout) => (
+      {upcomingWorkouts.length > 0 ? (
+        upcomingWorkouts.map((workout) => (
           <WorkoutCard key={workout.id} workout={workout} state="default" />
-        ))}
+        ))
+      ) : (
+        <Text className="text-muted-foreground">
+          No upcoming workouts.{" "}
+          {nextWorkout
+            ? "Once you complete your next workout, your upcoming workouts will be generated."
+            : ""}
+        </Text>
+      )}
     </VStack>
   );
 }
