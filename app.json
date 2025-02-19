@@ -5,7 +5,7 @@
     "version": "1.2.0",
     "orientation": "portrait",
     "icon": "./assets/images/icon.png",
-    "scheme": "fitme",
+    "scheme": ["fitme", "rc-d91405cd5f"],
     "userInterfaceStyle": "dark",
     "newArchEnabled": true,
     "ios": {
