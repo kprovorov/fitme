@@ -11,6 +11,16 @@
     "ios": {
       "supportsTablet": false,
       "bundleIdentifier": "com.fitmeproject.ios",
+      "associatedDomains": [
+        "webcredentials:app.fitmeproject.com",
+        "webcredentials:fitmeproject.com",
+        "applinks:app.fitmeproject.com",
+        "applinks:fitmeproject.com",
+        "activitycontinuation:app.fitmeproject.com",
+        "activitycontinuation:fitmeproject.com",
+        "appclips:app.fitmeproject.com",
+        "appclips:fitmeproject.com"
+      ],
       "config": {
         "usesNonExemptEncryption": false
       }
