@@ -10,6 +10,7 @@ import { VStack } from "~/components/ui/vstack";
 import { useWorkoutExerciseQuery } from "~/hooks/queries/workout-exercises";
 import ExerciseVideo from "~/components/exercises/exercise-video";
 import WorkoutExerciseSetsTableView from "~/components/views/workout-exercise-sets-table-view";
+import { HStack } from "~/components/ui/hstack";
 
 export default function WorkoutExerciseScreen() {
   const { id } = useLocalSearchParams();
@@ -37,20 +38,23 @@ export default function WorkoutExerciseScreen() {
       />
       <SafeAreaProvider>
         <SafeAreaView>
-          <ScrollView className="h-full">
-            <Padding>
-              <VStack className="gap-4 items-stretch">
+          <ScrollView className="h-full" showsVerticalScrollIndicator={false}>
+            <VStack className="gap-4 items-stretch py-6">
+              <VStack className="items-start px-6">
                 <H1>{workoutExercise.exercise.name}</H1>
-                {workoutExercise.exercise.video_url && (
-                  <ExerciseVideo exercise={workoutExercise.exercise} />
-                )}
                 <P>{workoutExercise.exercise.description}</P>
+              </VStack>
+              {workoutExercise.exercise.video_url && (
+                <ExerciseVideo exercise={workoutExercise.exercise} />
+              )}
+
+              <VStack className="gap-4 px-6">
                 <Muted>{workoutExercise.exercise.instructions}</Muted>
                 <WorkoutExerciseSetsTableView
                   workoutExerciseSets={workoutExercise.sets}
                 />
               </VStack>
-            </Padding>
+            </VStack>
           </ScrollView>
         </SafeAreaView>
       </SafeAreaProvider>

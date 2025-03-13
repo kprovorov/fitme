@@ -1,7 +1,6 @@
 import { useVideoPlayer } from "expo-video";
 import { VideoView } from "expo-video";
-import { useEvent } from "expo";
-import { StyleSheet, View, Button } from "react-native";
+import { StyleSheet } from "react-native";
 import React from "react";
 import { Exercise } from "~/lib/models";
 
@@ -21,6 +20,6 @@ export default function ExerciseVideo({ exercise }: ExerciseVideoProps) {
 const styles = StyleSheet.create({
   video: {
     width: "100%",
-    height: 275,
+    aspectRatio: 16 / 9,
   },
 });
