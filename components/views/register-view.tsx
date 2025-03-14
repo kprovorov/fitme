@@ -10,6 +10,7 @@ import { handleAxiosError } from "~/lib/utils";
 import { useCurrentUserQuery } from "~/hooks/queries/auth";
 import Purchases from "react-native-purchases";
 import { Text } from "../ui/text";
+import * as Sentry from "@sentry/react-native";
 
 export default function RegisterView() {
   const queryClient = useQueryClient();
@@ -24,6 +25,11 @@ export default function RegisterView() {
 
   useEffect(() => {
     if (user) {
+      Sentry.setUser({
+        id: user.id,
+        username: user.email,
+        email: user.email,
+      });
       Purchases.logIn(user.rc_user_id).then(() => {
         router.replace("/onboarding");
       });
