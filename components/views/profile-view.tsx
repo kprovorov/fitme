@@ -56,7 +56,7 @@ export default function ProfileView() {
 
   return (
     !!user && (
-      <VStack className="items-stretch justify-between h-full">
+      <VStack className="items-stretch justify-between grow">
         <VStack className="items-stretch">
           <VStack className="items-start gap-0 border-b-2 border-border pb-4">
             <Muted className="text-muted-foreground font-bold text-xl">
@@ -93,7 +93,7 @@ export default function ProfileView() {
           )}
         </VStack>
         <VStack className="items-stretch">
-          <Button onPress={() => logout()}>
+          <Button onPress={() => logout()} variant="secondary">
             <Text>Logout</Text>
           </Button>
           <AlertDialog>
