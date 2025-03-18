@@ -18,6 +18,7 @@
     "@expo-google-fonts/nunito-sans": "^0.2.3",
     "@expo/vector-icons": "^14.0.2",
     "@hookform/resolvers": "^3.9.1",
+    "@react-native-async-storage/async-storage": "1.23.1",
     "@react-navigation/bottom-tabs": "^7.2.0",
     "@react-navigation/native": "^7.0.14",
     "@rn-primitives/alert-dialog": "^1.1.0",
@@ -59,6 +60,7 @@
     "react-native": "0.76.6",
     "react-native-gesture-handler": "~2.20.2",
     "react-native-gifted-charts": "^1.4.56",
+    "react-native-keyboard-controller": "^1.16.7",
     "react-native-purchases": "^8.5.2",
     "react-native-purchases-ui": "^8.5.2",
     "react-native-reanimated": "~3.16.1",
@@ -70,8 +72,7 @@
     "react-query-kit": "^3.3.1",
     "tailwind-merge": "^2.6.0",
     "tailwindcss-animate": "^1.0.7",
-    "zod": "^3.24.1",
-    "@react-native-async-storage/async-storage": "1.23.1"
+    "zod": "^3.24.1"
   },
   "devDependencies": {
     "@babel/core": "^7.25.2",
