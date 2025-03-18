@@ -33,6 +33,9 @@ export default function WorkoutExerciseSetRowView({
         queryClient.invalidateQueries({
           queryKey: ["workout-exercise"],
         });
+        queryClient.invalidateQueries({
+          queryKey: ["workout"],
+        });
       },
     });
 
