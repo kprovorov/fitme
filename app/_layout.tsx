@@ -18,6 +18,7 @@ import { Platform } from "react-native";
 import Purchases from "react-native-purchases";
 import "expo-dev-client";
 import * as Sentry from "@sentry/react-native";
+import { KeyboardProvider } from "react-native-keyboard-controller";
 
 Sentry.init({
   dsn: process.env.EXPO_PUBLIC_SENTRY_DSN,
@@ -81,26 +82,29 @@ export default function RootLayout() {
             : DefaultTheme
         }
       >
-        <Stack>
-          <Stack.Screen name="(tabs)" options={{ headerShown: false }} />
-          <Stack.Screen
-            name="auth"
-            options={{
-              presentation: "fullScreenModal",
-              headerShown: false,
-            }}
-          />
-          <Stack.Screen
-            name="onboarding"
-            options={{
-              presentation: "fullScreenModal",
-              headerShown: false,
-            }}
-          />
-          <Stack.Screen name="+not-found" />
-        </Stack>
-        <PortalHost />
-        <StatusBar style="auto" />
+        <KeyboardProvider>
+          <Stack>
+            <Stack.Screen name="(tabs)" options={{ headerShown: false }} />
+            <Stack.Screen
+              name="auth"
+              options={{
+                presentation: "fullScreenModal",
+                headerShown: false,
+              }}
+            />
+            <Stack.Screen
+              name="onboarding"
+              options={{
+                presentation: "fullScreenModal",
+                headerShown: false,
+              }}
+            />
+            <Stack.Screen name="+not-found" />
+          </Stack>
+
+          <PortalHost />
+          <StatusBar style="auto" />
+        </KeyboardProvider>
       </ThemeProvider>
     </QueryClientProvider>
   );

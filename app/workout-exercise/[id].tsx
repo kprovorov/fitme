@@ -11,6 +11,10 @@ import { useWorkoutExerciseQuery } from "~/hooks/queries/workout-exercises";
 import ExerciseVideo from "~/components/exercises/exercise-video";
 import WorkoutExerciseSetsTableView from "~/components/views/workout-exercise-sets-table-view";
 import { HStack } from "~/components/ui/hstack";
+import {
+  KeyboardAwareScrollView,
+  KeyboardToolbar,
+} from "react-native-keyboard-controller";
 
 export default function WorkoutExerciseScreen() {
   const { id } = useLocalSearchParams();
@@ -38,7 +42,10 @@ export default function WorkoutExerciseScreen() {
       />
       <SafeAreaProvider>
         <SafeAreaView>
-          <ScrollView className="h-full" showsVerticalScrollIndicator={false}>
+          <KeyboardAwareScrollView
+            bottomOffset={62}
+            showsVerticalScrollIndicator={false}
+          >
             <VStack className="gap-4 items-stretch py-6">
               <VStack className="items-start px-6">
                 <H1>{workoutExercise.exercise.name}</H1>
@@ -55,7 +62,7 @@ export default function WorkoutExerciseScreen() {
                 />
               </VStack>
             </VStack>
-          </ScrollView>
+          </KeyboardAwareScrollView>
         </SafeAreaView>
       </SafeAreaProvider>
     </>

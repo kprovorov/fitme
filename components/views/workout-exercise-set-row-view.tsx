@@ -33,6 +33,9 @@ export default function WorkoutExerciseSetRowView({
         queryClient.invalidateQueries({
           queryKey: ["workout-exercise"],
         });
+        queryClient.invalidateQueries({
+          queryKey: ["workout"],
+        });
       },
     });
 
@@ -55,9 +58,10 @@ export default function WorkoutExerciseSetRowView({
         onEdit={() => setIsEditable(true)}
         isEditing={isEditable}
         defaultValues={{
-          weight:
+          weight: (
             (workoutExerciseSet.weight_done ??
-              workoutExerciseSet.weight_recommended) / 1000,
+              workoutExerciseSet.weight_recommended) / 1000
+          ).toString(),
           repeats:
             workoutExerciseSet.repeats_done ??
             workoutExerciseSet.repeats_recommended,
@@ -65,7 +69,7 @@ export default function WorkoutExerciseSetRowView({
         onSubmit={async (values) => {
           updateWorkoutExerciseSet({
             id: workoutExerciseSet.id,
-            weight_done: values.weight * 1000,
+            weight_done: parseInt(values.weight) * 1000,
             repeats_done: values.repeats,
           });
         }}

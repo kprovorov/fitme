@@ -22,7 +22,7 @@ interface WorkoutExerciseSetFormProps {
 export type WorkoutExerciseSetFormValues = z.infer<typeof formSchema>;
 
 const formSchema = z.object({
-  weight: z.coerce.number().min(0),
+  weight: z.string(),
   repeats: z.coerce.number().min(0),
 });
 
@@ -38,7 +38,7 @@ export default function WorkoutExerciseSetForm({
   const form = useForm<WorkoutExerciseSetFormValues>({
     resolver: zodResolver(formSchema),
     defaultValues: defaultValues ?? {
-      weight: 0,
+      weight: "0",
       repeats: 0,
     },
     disabled,
@@ -57,7 +57,7 @@ export default function WorkoutExerciseSetForm({
                 onBlur={onBlur}
                 onChangeText={onChange}
                 value={value.toString()}
-                keyboardType="number-pad"
+                keyboardType="numeric"
                 autoCapitalize="none"
                 className="w-full text-center font-bold"
               />
