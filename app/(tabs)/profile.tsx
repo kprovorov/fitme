@@ -16,20 +16,6 @@ export default function ProfileScreen() {
       <SafeAreaView>
         <VStack className="items-stretch p-6 h-full justify-between gap-0">
           <ProfileView />
-          <Button
-            variant="link"
-            onPress={() =>
-              Linking.openURL("https://fitmeproject.com/privacy-policy")
-            }
-          >
-            <Text className="text-muted-foreground">Privacy Policy</Text>
-          </Button>
-          <Button
-            variant="link"
-            onPress={() => Linking.openURL("https://fitmeproject.com/terms")}
-          >
-            <Text className="text-muted-foreground">Terms of Service</Text>
-          </Button>
         </VStack>
       </SafeAreaView>
     </SafeAreaProvider>
