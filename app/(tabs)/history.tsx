@@ -7,6 +7,8 @@ import WorkoutsListView from "~/components/views/workouts-list-view";
 import { useWorkoutPlansQuery } from "~/hooks/queries/workout-plans";
 import { WorkoutPlan } from "~/lib/models";
 import { Text } from "~/components/ui/text";
+import { Link } from "expo-router";
+import { Button } from "~/components/ui/button";
 
 export default function HistoryScreen() {
   const [activePlan, setActivePlan] = useState<WorkoutPlan | null>(null);
@@ -35,10 +37,16 @@ export default function HistoryScreen() {
               />
             ) : (
               <VStack className="h-full p-6">
-                <H1 className="text-center">You don't have any history yet</H1>
+                <H1 className="text-center">Create your first workout plan</H1>
                 <Text className="text-center">
-                  Once you complete a workout, it will appear here.
+                  You don't have an active workout plan. Please create one to
+                  start your journey.
                 </Text>
+                <Link href="/onboarding/profile" asChild>
+                  <Button className="w-full">
+                    <Text>Start your workout plan</Text>
+                  </Button>
+                </Link>
               </VStack>
             )}
           </VStack>

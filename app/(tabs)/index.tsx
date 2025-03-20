@@ -32,7 +32,7 @@ export default function HomeScreen() {
     <SafeAreaProvider>
       <SafeAreaView className="flex-1">
         {activePlan ? (
-          <ScrollView>
+          <ScrollView showsVerticalScrollIndicator={false}>
             <Padding>
               <WorkoutPlanView plan={activePlan} />
             </Padding>

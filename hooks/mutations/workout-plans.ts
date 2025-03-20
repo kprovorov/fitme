@@ -47,3 +47,17 @@ export const useDeactivateWorkoutPlanMutation = createMutation<
     return res.data;
   },
 });
+
+export const useGenerateWorkoutPlanMutation = createMutation<
+  WorkoutPlan,
+  { id: number },
+  AxiosError<ServerError<{ id: number }>>
+>({
+  mutationFn: async (data: { id: number }): Promise<WorkoutPlan> => {
+    const res = await api.patch<WorkoutPlan>(
+      `/api/workout-plans/${data.id}/generate`
+    );
+
+    return res.data;
+  },
+});
