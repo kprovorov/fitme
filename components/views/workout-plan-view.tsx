@@ -73,17 +73,7 @@ export default function WorkoutPlanView({ plan }: WorkoutPlanViewProps) {
         </VStack>
       )}
 
-      <HStack className="justify-between">
-        <H4>Upcoming</H4>
-        <Link href={`/workout-plans/${plan.id}/workouts/finished`} asChild>
-          <Button variant="link">
-            <HStack className="gap-2">
-              <Text className="text-muted-foreground">History</Text>
-              <ChevronRight size={16} className="text-muted-foreground" />
-            </HStack>
-          </Button>
-        </Link>
-      </HStack>
+      <H4>Upcoming</H4>
 
       {upcomingWorkouts.length > 0 ? (
         upcomingWorkouts.map((workout) => (
