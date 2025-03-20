@@ -7,17 +7,11 @@ import WorkoutsListView from "~/components/views/workouts-list-view";
 import { useWorkoutPlansQuery } from "~/hooks/queries/workout-plans";
 import { WorkoutPlan } from "~/lib/models";
 import { Text } from "~/components/ui/text";
-import { Link } from "expo-router";
-import { Button } from "~/components/ui/button";
 
 export default function HistoryScreen() {
   const [activePlan, setActivePlan] = useState<WorkoutPlan | null>(null);
 
-  const {
-    data: plans,
-    isLoading,
-    error,
-  } = useWorkoutPlansQuery({
+  const { data: plans } = useWorkoutPlansQuery({
     refetchInterval: 1000 * 60, // 1 minute
   });
 
