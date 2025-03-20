@@ -6,7 +6,7 @@ import { Text } from "~/components/ui/text";
 import { useCurrentUserQuery } from "~/hooks/queries/auth";
 import { deleteToken } from "~/lib/api";
 import { VStack } from "../ui/vstack";
-import { H1, H2, H3, H4, Muted, P } from "../ui/typography";
+import { H2, Muted, P } from "../ui/typography";
 import {
   useDeleteUserMutation,
   useLogoutMutation,
@@ -24,8 +24,11 @@ import {
 import RevenueCatUI from "react-native-purchases-ui";
 import { useCustomerInfoQuery, useIsProQuery } from "~/hooks/revenueCat";
 import * as Sentry from "@sentry/react-native";
-import Purchases from "react-native-purchases";
 import { Linking } from "react-native";
+import { HStack } from "../ui/hstack";
+import X from "../icons/social/x";
+import Instagram from "../icons/social/instagram";
+import Threads from "../icons/social/threads";
 
 export default function ProfileView() {
   const queryClient = useQueryClient();
@@ -58,11 +61,14 @@ export default function ProfileView() {
     !!user && (
       <VStack className="items-stretch justify-between grow">
         <VStack className="items-stretch">
-          <VStack className="items-start gap-0 border-b-2 border-border pb-4">
+          <VStack className="items-stretch gap-0 border-b-2 border-border pb-4">
             <Muted className="text-muted-foreground font-bold text-xl">
               Welcome,
             </Muted>
             <Text className="text-4xl font-bold">{user.name}</Text>
+            <Button onPress={() => logout()} variant="secondary">
+              <Text>Logout</Text>
+            </Button>
           </VStack>
           <H2>Your Plan</H2>
           {isPro ? (
@@ -92,36 +98,111 @@ export default function ProfileView() {
             </>
           )}
         </VStack>
-        <VStack className="items-stretch">
-          <Button onPress={() => logout()} variant="secondary">
-            <Text>Logout</Text>
-          </Button>
-          <AlertDialog>
-            <AlertDialogTrigger asChild>
-              <Button variant="link">
-                <Text className="text-muted-foreground">Delete Account</Text>
+        <VStack className="items-start">
+          <VStack className="items-start gap-0">
+            <P className="font-bold">Like the app?</P>
+            <Button
+              variant="link"
+              className="p-0 h-8"
+              onPress={() =>
+                Linking.openURL(
+                  `itms-apps://itunes.apple.com/app/viewContentsUserReviews/id6741153628?action=write-review`
+                )
+              }
+            >
+              <Text>Leave a review</Text>
+            </Button>
+          </VStack>
+
+          <VStack className="items-start gap-0">
+            <P className="font-bold">Feedback and Support</P>
+            <Button
+              variant="link"
+              className="p-0 h-8"
+              onPress={() => Linking.openURL("mailto:support@fitmeproject.com")}
+            >
+              <Text>support@fitmeproject.com</Text>
+            </Button>
+            <HStack>
+              <Button
+                variant="link"
+                className="p-0 h-8"
+                onPress={() => Linking.openURL("https://x.com/fitmeproject")}
+              >
+                <X fill="#97DE71" height={16} width={16} />
               </Button>
-            </AlertDialogTrigger>
-            <AlertDialogContent>
-              <AlertDialogHeader>
-                <AlertDialogTitle>
-                  Are you sure you want to delete your account?
-                </AlertDialogTitle>
-                <AlertDialogDescription>
-                  This action cannot be undone. This will permanently delete
-                  your account and remove your data from our servers.
-                </AlertDialogDescription>
-              </AlertDialogHeader>
-              <AlertDialogFooter>
-                <AlertDialogCancel>
-                  <Text>Cancel</Text>
-                </AlertDialogCancel>
-                <Button variant="destructive" onPress={() => deleteUser()}>
-                  <Text>Yes, Delete My Account</Text>
-                </Button>
-              </AlertDialogFooter>
-            </AlertDialogContent>
-          </AlertDialog>
+              <Button
+                variant="link"
+                className="p-0 h-8"
+                onPress={() =>
+                  Linking.openURL("https://www.instagram.com/fitmeprojectcom")
+                }
+              >
+                <Instagram fill="#97DE71" height={16} width={16} />
+              </Button>
+              <Button
+                variant="link"
+                className="p-0 h-8"
+                onPress={() =>
+                  Linking.openURL("https://www.threads.net/@fitmeprojectcom")
+                }
+              >
+                <Threads fill="#97DE71" height={16} width={16} />
+              </Button>
+            </HStack>
+          </VStack>
+          <VStack className="items-start gap-0">
+            <HStack className="items-start pt-4">
+              <Button
+                variant="link"
+                size="sm"
+                className="p-0"
+                onPress={() =>
+                  Linking.openURL("https://fitmeproject.com/privacy-policy")
+                }
+              >
+                <Text className="text-muted-foreground">Privacy Policy</Text>
+              </Button>
+              <Button
+                variant="link"
+                size="sm"
+                className="p-0"
+                onPress={() =>
+                  Linking.openURL("https://fitmeproject.com/terms")
+                }
+              >
+                <Text className="text-muted-foreground">Terms of Service</Text>
+              </Button>
+              <AlertDialog>
+                <AlertDialogTrigger asChild>
+                  <Button variant="link" size="sm" className="p-0">
+                    <Text className="text-muted-foreground">
+                      Delete Account
+                    </Text>
+                  </Button>
+                </AlertDialogTrigger>
+                <AlertDialogContent>
+                  <AlertDialogHeader>
+                    <AlertDialogTitle>
+                      Are you sure you want to delete your account?
+                    </AlertDialogTitle>
+                    <AlertDialogDescription>
+                      This action cannot be undone. This will permanently delete
+                      your account and remove your data from our servers.
+                    </AlertDialogDescription>
+                  </AlertDialogHeader>
+                  <AlertDialogFooter>
+                    <AlertDialogCancel>
+                      <Text>Cancel</Text>
+                    </AlertDialogCancel>
+                    <Button variant="destructive" onPress={() => deleteUser()}>
+                      <Text>Yes, Delete My Account</Text>
+                    </Button>
+                  </AlertDialogFooter>
+                </AlertDialogContent>
+              </AlertDialog>
+            </HStack>
+          </VStack>
         </VStack>
       </VStack>
     )

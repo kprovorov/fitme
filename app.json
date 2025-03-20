@@ -23,7 +23,8 @@
       ],
       "config": {
         "usesNonExemptEncryption": false
-      }
+      },
+      "appStoreUrl": "https://apps.apple.com/app/id6741153628"
     },
     "android": {
       "adaptiveIcon": {
