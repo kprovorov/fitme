@@ -38,15 +38,6 @@ export default function TabLayout() {
           }}
         />
         <Tabs.Screen
-          name="workout-plans"
-          options={{
-            title: "Workout Plans",
-            tabBarIcon: ({ color }) => (
-              <ClipboardList size={28} color={color} />
-            ),
-          }}
-        />
-        <Tabs.Screen
           name="profile"
           options={{
             title: "Profile",
