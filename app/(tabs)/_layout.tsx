@@ -5,7 +5,6 @@ import { UserRound } from "~/lib/icons/UserRound";
 import Authenticated from "~/components/authenticated";
 import { ClipboardList } from "~/lib/icons/ClipboardList";
 import { SafeAreaProvider } from "react-native-safe-area-context";
-import { HStack } from "~/components/ui/hstack";
 import { TabBarButton } from "~/components/ui/tab-bar-button";
 import { Href } from "expo-router";
 
@@ -17,9 +16,7 @@ export default function TabLayout() {
       href: "/",
       renderIcon: (isFocused: boolean) => (
         <BicepsFlexed
-          className={`w-6 h-6 stroke-white ${
-            isFocused ? "stroke-primary" : "stroke-white"
-          }`}
+          className={`w-6 h-6 ${isFocused ? "stroke-primary" : "stroke-white"}`}
         />
       ),
     },
@@ -29,9 +26,7 @@ export default function TabLayout() {
       href: "/history",
       renderIcon: (isFocused: boolean) => (
         <ClipboardList
-          className={`w-6 h-6 stroke-white ${
-            isFocused ? "stroke-primary" : "stroke-white"
-          }`}
+          className={`w-6 h-6 ${isFocused ? "stroke-primary" : "stroke-white"}`}
         />
       ),
     },
@@ -41,9 +36,7 @@ export default function TabLayout() {
       href: "/profile",
       renderIcon: (isFocused: boolean) => (
         <UserRound
-          className={`w-6 h-6 stroke-white ${
-            isFocused ? "stroke-primary" : "stroke-white"
-          }`}
+          className={`w-6 h-6 ${isFocused ? "stroke-primary" : "stroke-white"}`}
         />
       ),
     },
