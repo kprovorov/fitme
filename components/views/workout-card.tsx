@@ -69,7 +69,7 @@ export default function WorkoutCard({
   return (
     <Link
       href={`/workouts/${workout.id}`}
-      className="rounded-2xl bg-card active:bg-primary-foreground"
+      className="rounded-2xl bg-card/50 active:bg-primary-foreground"
     >
       <VStack className="items-stretch flex-shrink p-4 gap-4 w-full">
         <H4 className={`font-nunito-sans-bold text-primary`}>{workout.name}</H4>

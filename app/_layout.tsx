@@ -19,6 +19,7 @@ import Purchases from "react-native-purchases";
 import "expo-dev-client";
 import * as Sentry from "@sentry/react-native";
 import { KeyboardProvider } from "react-native-keyboard-controller";
+import { SafeAreaProvider } from "react-native-safe-area-context";
 
 Sentry.init({
   dsn: process.env.EXPO_PUBLIC_SENTRY_DSN,
