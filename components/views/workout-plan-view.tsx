@@ -56,18 +56,30 @@ export default function WorkoutPlanView({ plan }: WorkoutPlanViewProps) {
           <H3 className="text-center text-primary">
             Nice job! You're all set!
           </H3>
-          <Button
-            disabled={isWorkoutPlanGenerating}
-            onPress={() => generateWorkoutPlan({ id: plan.id })}
-          >
-            {isWorkoutPlanGenerating ? (
+          {plan.is_generating ? (
+            <VStack>
+              <Text className="text-center text-muted-foreground">
+                AI is generating your next workout. It will be ready in a few
+                minutes.
+              </Text>
               <View className="animate-spin">
-                <LoaderCircle size={16} className="text-black" />
+                <LoaderCircle size={24} className="text-primary" />
               </View>
-            ) : (
-              <Text>Generate your next workout</Text>
-            )}
-          </Button>
+            </VStack>
+          ) : (
+            <Button
+              disabled={isWorkoutPlanGenerating}
+              onPress={() => generateWorkoutPlan({ id: plan.id })}
+            >
+              {isWorkoutPlanGenerating ? (
+                <View className="animate-spin">
+                  <LoaderCircle size={16} className="text-black" />
+                </View>
+              ) : (
+                <Text>Generate your next workout</Text>
+              )}
+            </Button>
+          )}
         </VStack>
       ) : (
         <VStack className="items-stretch">

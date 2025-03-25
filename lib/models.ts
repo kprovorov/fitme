@@ -31,6 +31,7 @@ export type WorkoutPlan = {
   frequency: number;
   is_active: boolean;
   workouts: Workout[];
+  is_generating: boolean;
 };
 
 export type Workout = {
