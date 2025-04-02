@@ -14,6 +14,7 @@ import { Input } from "../ui/input";
 import { LoaderCircle } from "~/lib/icons/LoaderCircle";
 import { Button } from "../ui/button";
 import { ArrowRight } from "~/lib/icons/ArrowRight";
+import { useCurrentUserQuery } from "~/hooks/queries/auth";
 
 interface ProfileFormProps {
   onSubmit: (values: ProfileFormValues) => Promise<void>;
@@ -24,15 +25,17 @@ export type ProfileFormValues = z.infer<typeof formSchema>;
 
 const formSchema = z.object({
   gender: z.enum(["male", "female"]),
-  age: z.coerce.number().min(18).max(100),
-  weight: z.coerce.number().min(30).max(200),
-  height: z.coerce.number().min(100).max(250),
+  age: z.coerce.number().min(4).max(150),
+  weight: z.coerce.number().min(0).max(500),
+  height: z.coerce.number().min(0).max(500),
 });
 
 export default function ProfileForm({
   onSubmit,
   defaultValues,
 }: ProfileFormProps) {
+  const { data: user } = useCurrentUserQuery();
+
   const form = useForm<ProfileFormValues>({
     resolver: zodResolver(formSchema),
     defaultValues,
@@ -107,7 +110,8 @@ export default function ProfileForm({
       <VStack className="gap-0 justify-start items-start">
         <H4>Weight</H4>
         <Text className="text-sm text-muted-foreground">
-          What is your weight in kg?
+          What is your weight in{" "}
+          {user?.measurement_system === "metric" ? "kg" : "lbs"}?
         </Text>
       </VStack>
 
@@ -133,7 +137,8 @@ export default function ProfileForm({
       <VStack className="gap-0 justify-start items-start">
         <H4>Height</H4>
         <Text className="text-sm text-muted-foreground">
-          What is your height in cm?
+          What is your height in{" "}
+          {user?.measurement_system === "metric" ? "cm" : "inches"}?
         </Text>
       </VStack>
 
