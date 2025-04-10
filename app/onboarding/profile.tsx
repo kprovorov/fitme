@@ -41,6 +41,7 @@ import Animated, {
   runOnJS,
 } from "react-native-reanimated";
 import { Separator } from "~/components/ui/separator";
+import { MeasurementSystem } from "~/lib/models";
 
 export type ProfileFormValues = z.infer<typeof formSchema>;
 
@@ -123,6 +124,46 @@ export default function ProfileScreen() {
         router.push("/onboarding/plan");
       },
     });
+
+  const getWeightUnit = () => {
+    switch (user?.measurement_system) {
+      case "metric":
+        return "kg";
+      case "us":
+      case "uk":
+        return "lbs";
+      default:
+        return "kg";
+    }
+  };
+
+  const getHeightUnit = () => {
+    switch (user?.measurement_system) {
+      case "metric":
+        return "cm";
+      case "us":
+      case "uk":
+        return "ft";
+      default:
+        return "cm";
+    }
+  };
+
+  const formatWeight = (weight: number) => {
+    if (!weight) return "Not Set";
+    return `${weight} ${getWeightUnit()}`;
+  };
+
+  const formatHeight = (height: number) => {
+    if (!height) return "Not Set";
+    if (user?.measurement_system === "metric") {
+      return `${height} cm`;
+    } else {
+      const feet = Math.floor(height / 12);
+      const inches = Math.round(height % 12);
+      return `${feet}'${inches}"`;
+    }
+  };
 
   return (
     <SafeAreaProvider>
@@ -269,9 +310,7 @@ export default function ProfileScreen() {
                               : "text-muted-foreground"
                           )}
                         >
-                          {form.getValues("weight")
-                            ? `${form.getValues("weight")} kg`
-                            : "Not Set"}
+                          {formatWeight(form.getValues("weight"))}
                         </Text>
                       </HStack>
                     </Pressable>
@@ -301,9 +340,7 @@ export default function ProfileScreen() {
                               : "text-muted-foreground"
                           )}
                         >
-                          {form.getValues("height")
-                            ? `${form.getValues("height")} cm`
-                            : "Not Set"}
+                          {formatHeight(form.getValues("height"))}
                         </Text>
                       </HStack>
                     </Pressable>
@@ -332,66 +369,105 @@ export default function ProfileScreen() {
           </Button>
         </VStack>
         <Animated.View style={[animatedStyle]} className="overflow-hidden">
-          {activeWheel === "age" && (
-            <Controller
-              control={form.control}
-              name="age"
-              render={({ field, fieldState, formState }) => (
-                <Picker
-                  selectedValue={field.value}
-                  onValueChange={(v) => {
-                    field.onChange(v);
-                    form.trigger("age");
-                  }}
-                  className="flex-1 border-2 h-12"
-                >
-                  {Array.from({ length: 150 }, (_, i) => (
-                    <Picker.Item label={`${i}`} value={i} key={i} />
-                  ))}
-                </Picker>
-              )}
-            />
-          )}
-          {activeWheel === "weight" && (
-            <Controller
-              control={form.control}
-              name="weight"
-              render={({ field, fieldState, formState }) => (
-                <Picker
-                  selectedValue={field.value}
-                  onValueChange={(v) => {
-                    field.onChange(v);
-                    form.trigger("weight");
-                  }}
-                  className="flex-1 border-2 h-12"
-                >
-                  {Array.from({ length: 500 }, (_, i) => (
-                    <Picker.Item label={`${i} kg`} value={i} key={i} />
-                  ))}
-                </Picker>
-              )}
-            />
-          )}
-          {activeWheel === "height" && (
-            <Controller
-              control={form.control}
-              name="height"
-              render={({ field, fieldState, formState }) => (
-                <Picker
-                  selectedValue={field.value}
-                  onValueChange={(v) => {
-                    field.onChange(v);
-                    form.trigger("height");
-                  }}
-                  className="flex-1 border-2 h-12"
-                >
-                  {Array.from({ length: 500 }, (_, i) => (
-                    <Picker.Item label={`${i} cm`} value={i} key={i} />
-                  ))}
-                </Picker>
-              )}
-            />
-          )}
+          <HStack className="flex-1 justify-stretch items-stretch px-4 gap-0">
+            {activeWheel === "age" && (
+              <Controller
+                control={form.control}
+                name="age"
+                render={({ field, fieldState, formState }) => (
+                  <Picker
+                    selectedValue={field.value}
+                    onValueChange={(v) => {
+                      field.onChange(v);
+                      form.trigger("age");
+                    }}
+                    style={{ flex: 1 }}
+                  >
+                    {Array.from({ length: 150 }, (_, i) => (
+                      <Picker.Item label={`${i}`} value={i} key={i} />
+                    ))}
+                  </Picker>
+                )}
+              />
+            )}
+            {activeWheel === "weight" && (
+              <Controller
+                control={form.control}
+                name="weight"
+                render={({ field, fieldState, formState }) => (
+                  <Picker
+                    selectedValue={field.value}
+                    onValueChange={(v) => {
+                      field.onChange(v);
+                      form.trigger("weight");
+                    }}
+                    style={{ flex: 1 }}
+                  >
+                    {Array.from({ length: 500 }, (_, i) => (
+                      <Picker.Item
+                        label={`${i} ${getWeightUnit()}`}
+                        value={i}
+                        key={i}
+                      />
+                    ))}
+                  </Picker>
+                )}
+              />
+            )}
+            {activeWheel === "height" && (
+              <Controller
+                control={form.control}
+                name="height"
+                render={({ field, fieldState, formState }) => (
+                  <>
+                    {user?.measurement_system === "metric" ? (
+                      <Picker
+                        selectedValue={field.value}
+                        onValueChange={(v) => {
+                          field.onChange(v);
+                          form.trigger("height");
+                        }}
+                        style={{ flex: 1 }}
+                      >
+                        {Array.from({ length: 500 }, (_, i) => (
+                          <Picker.Item label={`${i} cm`} value={i} key={i} />
+                        ))}
+                      </Picker>
+                    ) : (
+                      <>
+                        <Picker
+                          selectedValue={heightFeet}
+                          onValueChange={(v) => {
+                            setHeightFeet(v);
+                            field.onChange(v * 12 + heightInches);
+                            form.trigger("height");
+                          }}
+                          style={{ flex: 1 }}
+                        >
+                          {Array.from({ length: 8 }, (_, i) => (
+                            <Picker.Item label={`${i} ft`} value={i} key={i} />
+                          ))}
+                        </Picker>
+                        <Picker
+                          selectedValue={heightInches}
+                          onValueChange={(v) => {
+                            setHeightInches(v);
+                            field.onChange(heightFeet * 12 + v);
+                            form.trigger("height");
+                          }}
+                          style={{ flex: 1 }}
+                        >
+                          {Array.from({ length: 12 }, (_, i) => (
+                            <Picker.Item label={`${i} in`} value={i} key={i} />
+                          ))}
+                        </Picker>
+                      </>
+                    )}
+                  </>
+                )}
+              />
+            )}
+          </HStack>
         </Animated.View>
       </SafeAreaView>
     </SafeAreaProvider>
