@@ -3,6 +3,7 @@ import { FieldErrors, FieldValues } from "react-hook-form";
 import { clsx, type ClassValue } from "clsx";
 import { twMerge } from "tailwind-merge";
 import { ServerError } from "./api";
+import { User } from "./models";
 
 export function cn(...inputs: ClassValue[]) {
   return twMerge(clsx(inputs));
@@ -38,4 +39,8 @@ export function mapErrors<T extends FieldValues>(
       },
     ])
   ) as FieldErrors<T>;
+}
+
+export function range(from: number, to: number): number[] {
+  return Array.from({ length: to - from + 1 }, (_, i) => from + i);
 }

@@ -33,7 +33,7 @@ import {
 } from "~/components/ui/accordion";
 import { Picker } from "@react-native-picker/picker";
 import { Input } from "~/components/ui/input";
-import { cn } from "~/lib/utils";
+import { cn, range } from "~/lib/utils";
 import Animated, {
   useAnimatedStyle,
   useSharedValue,
@@ -161,7 +161,7 @@ export default function ProfileScreen() {
     } else {
       const feet = Math.floor(height / 12);
       const inches = Math.round(height % 12);
-      return `${feet}'${inches}"`;
+      return `${feet}′ ${inches}″`;
     }
   };
 
@@ -383,7 +383,7 @@ export default function ProfileScreen() {
                     }}
                     style={{ flex: 1 }}
                   >
-                    {Array.from({ length: 150 }, (_, i) => (
+                    {range(4, 150).map((i) => (
                       <Picker.Item label={`${i}`} value={i} key={i} />
                     ))}
                   </Picker>
@@ -403,7 +403,7 @@ export default function ProfileScreen() {
                     }}
                     style={{ flex: 1 }}
                   >
-                    {Array.from({ length: 500 }, (_, i) => (
+                    {range(1, user?.measurement_system === "metric" ? 454 : 1000).map((i) => (
                       <Picker.Item
                         label={`${i} ${getWeightUnit()}`}
                         value={i}
@@ -429,7 +429,7 @@ export default function ProfileScreen() {
                         }}
                         style={{ flex: 1 }}
                       >
-                        {Array.from({ length: 500 }, (_, i) => (
+                        {range(30, 275).map((i) => (
                           <Picker.Item label={`${i} cm`} value={i} key={i} />
                         ))}
                       </Picker>
@@ -439,12 +439,15 @@ export default function ProfileScreen() {
                           selectedValue={heightFeet}
                           onValueChange={(v) => {
                             setHeightFeet(v);
-                            field.onChange(v * 12 + heightInches);
+                            field.onChange(
+                              parseInt(v.toString()) * 12 +
+                                parseInt(heightInches.toString())
+                            );
                             form.trigger("height");
                           }}
                           style={{ flex: 1 }}
                         >
-                          {Array.from({ length: 8 }, (_, i) => (
+                          {range(1, 9).map((i) => (
                             <Picker.Item label={`${i} ft`} value={i} key={i} />
                           ))}
                         </Picker>
@@ -452,12 +455,15 @@ export default function ProfileScreen() {
                           selectedValue={heightInches}
                           onValueChange={(v) => {
                             setHeightInches(v);
-                            field.onChange(heightFeet * 12 + v);
+                            field.onChange(
+                              parseInt(heightFeet.toString()) * 12 +
+                                parseInt(v.toString())
+                            );
                             form.trigger("height");
                           }}
                           style={{ flex: 1 }}
                         >
-                          {Array.from({ length: 12 }, (_, i) => (
+                          {range(0, 11).map((i) => (
                             <Picker.Item label={`${i} in`} value={i} key={i} />
                           ))}
                         </Picker>
