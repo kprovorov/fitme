@@ -1,4 +1,4 @@
-import React, { useState, useRef, useCallback } from "react";
+import React, { useState, useRef } from "react";
 import { H2, H4 } from "~/components/ui/typography";
 import { VStack } from "~/components/ui/vstack";
 import { Text } from "~/components/ui/text";
@@ -9,7 +9,6 @@ import { useStoreProfileMutation } from "~/hooks/mutations/profiles";
 import { Button } from "~/components/ui/button";
 import { HStack } from "~/components/ui/hstack";
 import { useCurrentUserQuery } from "~/hooks/queries/auth";
-import { KeyboardAwareScrollView } from "react-native-keyboard-controller";
 import { ArrowRight } from "~/lib/icons/ArrowRight";
 import { zodResolver } from "@hookform/resolvers/zod";
 import { Controller, useForm } from "react-hook-form";
@@ -20,28 +19,18 @@ import {
   TouchableWithoutFeedback,
   View,
 } from "react-native";
-import { WheelSelect } from "~/components/ui/wheel-select";
 import { LoaderCircle } from "~/lib/icons/LoaderCircle";
 import { ArrowLeft } from "~/lib/icons/ArrowLeft";
 import { GenderSwitch } from "~/components/ui/gender-switch";
 import { ErrorMessage } from "~/components/ui/error-message";
-import {
-  Accordion,
-  AccordionContent,
-  AccordionItem,
-  AccordionTrigger,
-} from "~/components/ui/accordion";
 import { Picker } from "@react-native-picker/picker";
-import { Input } from "~/components/ui/input";
 import { cn, range } from "~/lib/utils";
 import Animated, {
   useAnimatedStyle,
   useSharedValue,
   withTiming,
-  runOnJS,
 } from "react-native-reanimated";
 import { Separator } from "~/components/ui/separator";
-import { MeasurementSystem } from "~/lib/models";
 
 export type ProfileFormValues = z.infer<typeof formSchema>;
 
@@ -403,7 +392,10 @@ export default function ProfileScreen() {
                     }}
                     style={{ flex: 1 }}
                   >
-                    {range(1, user?.measurement_system === "metric" ? 454 : 1000).map((i) => (
+                    {range(
+                      1,
+                      user?.measurement_system === "metric" ? 454 : 1000
+                    ).map((i) => (
                       <Picker.Item
                         label={`${i} ${getWeightUnit()}`}
                         value={i}

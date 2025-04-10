@@ -3,7 +3,6 @@ import { FieldErrors, FieldValues } from "react-hook-form";
 import { clsx, type ClassValue } from "clsx";
 import { twMerge } from "tailwind-merge";
 import { ServerError } from "./api";
-import { User } from "./models";
 
 export function cn(...inputs: ClassValue[]) {
   return twMerge(clsx(inputs));
