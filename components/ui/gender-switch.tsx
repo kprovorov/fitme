@@ -27,6 +27,7 @@ const GenderSwitch = React.forwardRef<
           key={option.value}
           value={option.value}
           label={option.label}
+          className={cn(props.value === option.value && "border-primary")}
         />
       ))}
     </RadioGroup>
