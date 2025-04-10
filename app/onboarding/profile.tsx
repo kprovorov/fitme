@@ -40,6 +40,7 @@ import Animated, {
   withTiming,
   runOnJS,
 } from "react-native-reanimated";
+import { Separator } from "~/components/ui/separator";
 
 export type ProfileFormValues = z.infer<typeof formSchema>;
 
@@ -112,7 +113,7 @@ export default function ProfileScreen() {
   return (
     <SafeAreaProvider>
       <SafeAreaView className="flex-1">
-        <HStack className="px-6 py-3 justify-between items-start">
+        <HStack className="px-6 py-0 justify-between items-center">
           <Button
             variant="secondary"
             size="icon-sm"
@@ -125,15 +126,15 @@ export default function ProfileScreen() {
           </Button>
           {showWheel && (
             <Button
-              variant="secondary"
-              size="sm"
+              variant="link"
               onPress={() => {
                 toggleWheel();
                 setFieldFocused(null);
               }}
-              className="rounded-full"
             >
-              <Text className="text-primary">Done</Text>
+              <Text className="text-primary font-nunito-sans-bold no-underline">
+                Done
+              </Text>
             </Button>
           )}
         </HStack>
@@ -186,7 +187,7 @@ export default function ProfileScreen() {
                     </Text>
                   </VStack>
 
-                  <VStack className="bg-card rounded-lg items-stretch py-3">
+                  <VStack className="bg-card rounded-lg items-stretch gap-0">
                     <Pressable
                       onPress={() => {
                         if (fieldFocused === "age") {
@@ -199,7 +200,7 @@ export default function ProfileScreen() {
                         }
                       }}
                     >
-                      <HStack className="flex-1 justify-between px-3">
+                      <HStack className="flex-1 justify-between p-3">
                         <Text>Age</Text>
                         <Text
                           className={cn(
@@ -215,6 +216,8 @@ export default function ProfileScreen() {
                       </HStack>
                     </Pressable>
 
+                    <Separator />
+
                     <Pressable
                       onPress={() => {
                         if (fieldFocused === "weight") {
@@ -227,7 +230,7 @@ export default function ProfileScreen() {
                         }
                       }}
                     >
-                      <HStack className="flex-1 justify-between px-3">
+                      <HStack className="flex-1 justify-between p-3">
                         <Text>Weight</Text>
                         <Text
                           className={cn(
@@ -243,6 +246,8 @@ export default function ProfileScreen() {
                       </HStack>
                     </Pressable>
 
+                    <Separator />
+
                     <Pressable
                       onPress={() => {
                         if (fieldFocused === "height") {
@@ -255,7 +260,7 @@ export default function ProfileScreen() {
                         }
                       }}
                     >
-                      <HStack className="flex-1 justify-between px-3">
+                      <HStack className="flex-1 justify-between p-3">
                         <Text>Height</Text>
                         <Text
                           className={cn(

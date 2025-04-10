@@ -29,6 +29,7 @@
     "@rn-primitives/portal": "^1.1.0",
     "@rn-primitives/radio-group": "^1.1.0",
     "@rn-primitives/select": "^1.1.0",
+    "@rn-primitives/separator": "^1.1.0",
     "@rn-primitives/slot": "^1.1.0",
     "@rn-primitives/types": "^1.1.0",
     "@sentry/react-native": "^6.10.0",
