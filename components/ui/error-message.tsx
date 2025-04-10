@@ -13,7 +13,7 @@ const ErrorMessage = React.forwardRef<TextRef, SlottableTextProps>(
     return (
       <Component
         className={cn(
-          "text-xs text-red-500 font-nunito-sans-regular web:select-text",
+          "text-sm text-destructive font-nunito-sans-regular web:select-text",
           textClass,
           className
         )}

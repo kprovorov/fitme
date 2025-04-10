@@ -45,10 +45,27 @@ import { Separator } from "~/components/ui/separator";
 export type ProfileFormValues = z.infer<typeof formSchema>;
 
 const formSchema = z.object({
-  gender: z.enum(["male", "female"]),
-  age: z.coerce.number().min(4).max(150),
-  weight: z.coerce.number().min(1).max(500),
-  height: z.coerce.number().min(1).max(500),
+  gender: z.enum(["male", "female"], {
+    message: "Gender is required",
+  }),
+  age: z.coerce
+    .number({
+      message: "Age is required",
+    })
+    .min(4)
+    .max(150),
+  weight: z.coerce
+    .number({
+      message: "Weight is required",
+    })
+    .min(1)
+    .max(500),
+  height: z.coerce
+    .number({
+      message: "Height is required",
+    })
+    .min(1)
+    .max(500),
 });
 
 export default function ProfileScreen() {
@@ -58,12 +75,9 @@ export default function ProfileScreen() {
     resolver: zodResolver(formSchema),
     defaultValues: {
       gender: user?.profile?.gender,
-      // age: user?.profile?.age ?? 0,
-      // weight: user?.profile?.weight ?? 0,
-      // height: user?.profile?.height ?? 0,
-      age: undefined,
-      weight: undefined,
-      height: undefined,
+      age: user?.profile?.age ?? undefined,
+      weight: user?.profile?.weight ?? undefined,
+      height: user?.profile?.height ?? undefined,
     },
   });
 
@@ -139,28 +153,31 @@ export default function ProfileScreen() {
           )}
         </HStack>
         <ScrollView ref={scrollViewRef} showsVerticalScrollIndicator={false}>
-          <VStack className="p-6 items-center justify-center gap-4">
-            <VStack className="gap-2">
-              <H2>Let's get to know you!</H2>
-              <Text className="text-center">
-                We'll use this information to personalize your experience.
-              </Text>
-            </VStack>
-            {!!user && (
-              <TouchableWithoutFeedback
-                onPress={() => {
-                  if (fieldFocused) {
-                    toggleWheel(false);
-                    setFieldFocused(null);
-                  }
-                }}
-              >
-                <VStack className="items-stretch w-full">
+          {!!user && (
+            <TouchableWithoutFeedback
+              className="flex-1 w-full"
+              onPress={() => {
+                if (fieldFocused) {
+                  toggleWheel(false);
+                  setFieldFocused(null);
+                }
+              }}
+            >
+              <VStack className="p-6 items-stretch justify-center gap-8">
+                <VStack className="gap-2">
+                  <H2>Let's get to know you!</H2>
+                  <Text className="text-center">
+                    We'll use this information to personalize your experience.
+                  </Text>
+                </VStack>
+                <VStack className="items-stretch gap-2">
                   <VStack className="gap-0 justify-start items-start">
                     <H4>Gender</H4>
-                    <Text className="text-sm text-muted-foreground">
-                      What is your gender?
-                    </Text>
+                    {form.formState.errors.gender && (
+                      <ErrorMessage>
+                        {form.formState.errors.gender.message}
+                      </ErrorMessage>
+                    )}
                   </VStack>
 
                   <Controller
@@ -174,17 +191,26 @@ export default function ProfileScreen() {
                       />
                     )}
                   />
-                  {form.formState.errors.gender && (
-                    <ErrorMessage>
-                      {form.formState.errors.gender.message}
-                    </ErrorMessage>
-                  )}
+                </VStack>
 
+                <VStack className="items-stretch gap-2">
                   <VStack className="gap-0 justify-start items-start">
                     <H4>Body Measurements</H4>
-                    <Text className="text-sm text-muted-foreground">
-                      What is your body measurements?
-                    </Text>
+                    {["age", "weight", "height"].map((field) => (
+                      <VStack key={field}>
+                        {form.formState.errors[
+                          field as keyof ProfileFormValues
+                        ] && (
+                          <ErrorMessage>
+                            {
+                              form.formState.errors[
+                                field as keyof ProfileFormValues
+                              ]?.message
+                            }
+                          </ErrorMessage>
+                        )}
+                      </VStack>
+                    ))}
                   </VStack>
 
                   <VStack className="bg-card rounded-lg items-stretch gap-0">
@@ -206,6 +232,8 @@ export default function ProfileScreen() {
                           className={cn(
                             fieldFocused === "age"
                               ? "text-primary"
+                              : form.formState.errors.age
+                              ? "text-destructive"
                               : "text-muted-foreground"
                           )}
                         >
@@ -236,6 +264,8 @@ export default function ProfileScreen() {
                           className={cn(
                             fieldFocused === "weight"
                               ? "text-primary"
+                              : form.formState.errors.weight
+                              ? "text-destructive"
                               : "text-muted-foreground"
                           )}
                         >
@@ -266,6 +296,8 @@ export default function ProfileScreen() {
                           className={cn(
                             fieldFocused === "height"
                               ? "text-primary"
+                              : form.formState.errors.height
+                              ? "text-destructive"
                               : "text-muted-foreground"
                           )}
                         >
@@ -277,9 +309,9 @@ export default function ProfileScreen() {
                     </Pressable>
                   </VStack>
                 </VStack>
-              </TouchableWithoutFeedback>
-            )}
-          </VStack>
+              </VStack>
+            </TouchableWithoutFeedback>
+          )}
         </ScrollView>
 
         <VStack className="p-6 items-stretch gap-1">
@@ -365,41 +397,3 @@ export default function ProfileScreen() {
     </SafeAreaProvider>
   );
 }
-
-// function RadioGroupItemWithLabel({
-//   value,
-//   label,
-//   disabled,
-//   isSelected,
-//   onLabelPress,
-// }: {
-//   value: string;
-//   label: string;
-//   disabled: boolean;
-//   isSelected: boolean;
-//   onLabelPress: () => void;
-// }) {
-//   return (
-//     <Pressable
-//       className={`flex flex-row gap-2 bg-card rounded-lg p-4 flex-1 justify-start items-center border-2 ${
-//         isSelected ? "border-primary" : "border-transparent"
-//       } ${disabled ? "opacity-50" : ""}`}
-//       onPress={() => !disabled && onLabelPress()}
-//     >
-//       <RadioGroupItem
-//         aria-labelledby={`label-for-${value}`}
-//         value={value}
-//         disabled={disabled}
-//       />
-//       <Label
-//         nativeID={`label-for-${value}`}
-//         className={`text-base text-white font-nunito-sans-bold ${
-//           disabled ? "opacity-50" : ""
-//         }`}
-//         onPress={() => !disabled && onLabelPress()}
-//       >
-//         {label}
-//       </Label>
-//     </Pressable>
-//   );
-// }
