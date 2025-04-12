@@ -9,6 +9,7 @@ import { FieldErrors } from "react-hook-form";
 import { handleAxiosError } from "~/lib/utils";
 import { useCurrentUserQuery } from "~/hooks/queries/auth";
 import { Text } from "../ui/text";
+import { useLocales } from "expo-localization";
 
 export default function RegisterView() {
   const queryClient = useQueryClient();
@@ -48,6 +49,8 @@ export default function RegisterView() {
     },
   });
 
+  const locales = useLocales();
+
   return (
     <VStack className="w-full gap-4">
       <VStack className="gap-0">
@@ -59,7 +62,10 @@ export default function RegisterView() {
       {errorMessage && <P className="text-red-500">{errorMessage}</P>}
       <RegisterForm
         onSubmit={async (values) => {
-          await register(values);
+          await register({
+            ...values,
+            measurement_system: locales[0].measurementSystem ?? "metric",
+          });
         }}
         errors={errors}
       />
