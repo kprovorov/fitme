@@ -1,10 +1,10 @@
-import React, { useState, useRef } from "react";
+import React, { useState, useRef, useEffect } from "react";
 import { H2, H4 } from "~/components/ui/typography";
 import { VStack } from "~/components/ui/vstack";
 import { Text } from "~/components/ui/text";
 import { SafeAreaProvider } from "react-native-safe-area-context";
 import { SafeAreaView } from "react-native-safe-area-context";
-import { router } from "expo-router";
+import { router, Stack, useNavigation } from "expo-router";
 import { useStoreProfileMutation } from "~/hooks/mutations/profiles";
 import { Button } from "~/components/ui/button";
 import { HStack } from "~/components/ui/hstack";
@@ -155,319 +155,322 @@ export default function ProfileScreen() {
   };
 
   return (
-    <SafeAreaProvider>
-      <SafeAreaView className="flex-1">
-        <HStack className="px-6 py-0 justify-between items-center">
-          <Button
-            variant="secondary"
-            size="icon-sm"
-            onPress={() => router.back()}
-            className="rounded-full"
-          >
-            <HStack className="gap-1">
-              <ArrowLeft size={16} className="text-white" />
-            </HStack>
-          </Button>
-          {showWheel && (
-            <Button
-              variant="link"
-              onPress={() => {
-                toggleWheel();
-                setFieldFocused(null);
-              }}
-            >
-              <Text className="text-primary font-nunito-sans-bold no-underline">
-                Done
-              </Text>
-            </Button>
-          )}
-        </HStack>
-        <ScrollView ref={scrollViewRef} showsVerticalScrollIndicator={false}>
-          {!!user && (
-            <TouchableWithoutFeedback
-              className="flex-1 w-full"
-              onPress={() => {
-                if (fieldFocused) {
-                  toggleWheel(false);
+    <>
+      <Stack.Screen
+        options={{
+          headerRight: () =>
+            showWheel && (
+              <Button
+                variant="link"
+                onPress={() => {
+                  toggleWheel();
                   setFieldFocused(null);
-                }
-              }}
-            >
-              <VStack className="p-6 items-stretch justify-center gap-8">
-                <VStack className="gap-2">
-                  <H2>Let's get to know you!</H2>
-                  <Text className="text-center">
-                    We'll use this information to personalize your experience.
-                  </Text>
-                </VStack>
-                <VStack className="items-stretch gap-2">
-                  <VStack className="gap-0 justify-start items-start">
-                    <H4>Gender</H4>
-                    {form.formState.errors.gender && (
-                      <ErrorMessage>
-                        {form.formState.errors.gender.message}
-                      </ErrorMessage>
-                    )}
+                }}
+              >
+                <Text className="text-primary font-nunito-sans-bold no-underline">
+                  Done
+                </Text>
+              </Button>
+            ),
+        }}
+      />
+      <SafeAreaProvider>
+        <SafeAreaView className="flex-1">
+          <ScrollView ref={scrollViewRef} showsVerticalScrollIndicator={false}>
+            {!!user && (
+              <TouchableWithoutFeedback
+                className="flex-1 w-full"
+                onPress={() => {
+                  if (fieldFocused) {
+                    toggleWheel(false);
+                    setFieldFocused(null);
+                  }
+                }}
+              >
+                <VStack className="p-6 items-stretch justify-center gap-8">
+                  <VStack className="gap-2">
+                    <H2>Let's get to know you!</H2>
+                    <Text className="text-center">
+                      We'll use this information to personalize your experience.
+                    </Text>
+                  </VStack>
+                  <VStack className="items-stretch gap-2">
+                    <VStack className="gap-0 justify-start items-start">
+                      <H4>Gender</H4>
+                      {form.formState.errors.gender && (
+                        <ErrorMessage>
+                          {form.formState.errors.gender.message}
+                        </ErrorMessage>
+                      )}
+                    </VStack>
+
+                    <Controller
+                      control={form.control}
+                      name="gender"
+                      render={({ field: { onChange, value } }) => (
+                        <GenderSwitch
+                          value={value}
+                          onValueChange={onChange}
+                          className="flex flex-row gap-4 justify-stretch items-stretch"
+                        />
+                      )}
+                    />
                   </VStack>
 
-                  <Controller
-                    control={form.control}
-                    name="gender"
-                    render={({ field: { onChange, value } }) => (
-                      <GenderSwitch
-                        value={value}
-                        onValueChange={onChange}
-                        className="flex flex-row gap-4 justify-stretch items-stretch"
-                      />
-                    )}
-                  />
-                </VStack>
-
-                <VStack className="items-stretch gap-2">
-                  <VStack className="gap-0 justify-start items-start">
-                    <H4>Body Measurements</H4>
-                    {["age", "weight", "height"].map((field) => (
-                      <VStack key={field}>
-                        {form.formState.errors[
-                          field as keyof ProfileFormValues
-                        ] && (
-                          <ErrorMessage>
-                            {
-                              form.formState.errors[
-                                field as keyof ProfileFormValues
-                              ]?.message
-                            }
-                          </ErrorMessage>
-                        )}
-                      </VStack>
-                    ))}
-                  </VStack>
-
-                  <VStack className="bg-card rounded-lg items-stretch gap-0">
-                    <Pressable
-                      onPress={() => {
-                        if (fieldFocused === "age") {
-                          toggleWheel(false);
-                          setFieldFocused(null);
-                        } else {
-                          toggleWheel(true);
-                          setFieldFocused("age");
-                          setActiveWheel("age");
-                        }
-                      }}
-                    >
-                      <HStack className="flex-1 justify-between p-3">
-                        <Text>Age</Text>
-                        <Text
-                          className={cn(
-                            fieldFocused === "age"
-                              ? "text-primary"
-                              : form.formState.errors.age
-                              ? "text-destructive"
-                              : "text-muted-foreground"
+                  <VStack className="items-stretch gap-2">
+                    <VStack className="gap-0 justify-start items-start">
+                      <H4>Body Measurements</H4>
+                      {["age", "weight", "height"].map((field) => (
+                        <VStack key={field}>
+                          {form.formState.errors[
+                            field as keyof ProfileFormValues
+                          ] && (
+                            <ErrorMessage>
+                              {
+                                form.formState.errors[
+                                  field as keyof ProfileFormValues
+                                ]?.message
+                              }
+                            </ErrorMessage>
                           )}
-                        >
-                          {form.getValues("age")
-                            ? `${form.getValues("age")} y.o.`
-                            : "Not Set"}
-                        </Text>
-                      </HStack>
-                    </Pressable>
+                        </VStack>
+                      ))}
+                    </VStack>
 
-                    <Separator />
-
-                    <Pressable
-                      onPress={() => {
-                        if (fieldFocused === "weight") {
-                          toggleWheel(false);
-                          setFieldFocused(null);
-                        } else {
-                          toggleWheel(true);
-                          setFieldFocused("weight");
-                          setActiveWheel("weight");
-                        }
-                      }}
-                    >
-                      <HStack className="flex-1 justify-between p-3">
-                        <Text>Weight</Text>
-                        <Text
-                          className={cn(
-                            fieldFocused === "weight"
-                              ? "text-primary"
-                              : form.formState.errors.weight
-                              ? "text-destructive"
-                              : "text-muted-foreground"
-                          )}
-                        >
-                          {formatWeight(form.getValues("weight"))}
-                        </Text>
-                      </HStack>
-                    </Pressable>
-
-                    <Separator />
-
-                    <Pressable
-                      onPress={() => {
-                        if (fieldFocused === "height") {
-                          toggleWheel(false);
-                          setFieldFocused(null);
-                        } else {
-                          toggleWheel(true);
-                          setFieldFocused("height");
-                          setActiveWheel("height");
-                        }
-                      }}
-                    >
-                      <HStack className="flex-1 justify-between p-3">
-                        <Text>Height</Text>
-                        <Text
-                          className={cn(
-                            fieldFocused === "height"
-                              ? "text-primary"
-                              : form.formState.errors.height
-                              ? "text-destructive"
-                              : "text-muted-foreground"
-                          )}
-                        >
-                          {formatHeight(form.getValues("height"))}
-                        </Text>
-                      </HStack>
-                    </Pressable>
-                  </VStack>
-                </VStack>
-              </VStack>
-            </TouchableWithoutFeedback>
-          )}
-        </ScrollView>
-
-        <VStack className="p-6 items-stretch gap-1">
-          <Button
-            disabled={form.formState.isSubmitting}
-            onPress={form.handleSubmit((v) => storeProfile(v))}
-          >
-            {form.formState.isSubmitting ? (
-              <View className="animate-spin">
-                <LoaderCircle size={16} className="text-black" />
-              </View>
-            ) : (
-              <HStack className="gap-2">
-                <Text>Next</Text>
-                <ArrowRight size={16} className="text-black" />
-              </HStack>
-            )}
-          </Button>
-        </VStack>
-        <Animated.View style={[animatedStyle]} className="overflow-hidden">
-          <HStack className="flex-1 justify-stretch items-stretch px-4 gap-0">
-            {activeWheel === "age" && (
-              <Controller
-                control={form.control}
-                name="age"
-                render={({ field, fieldState, formState }) => (
-                  <Picker
-                    selectedValue={field.value}
-                    onValueChange={(v) => {
-                      field.onChange(v);
-                      form.trigger("age");
-                    }}
-                    style={{ flex: 1 }}
-                  >
-                    {range(4, 150).map((i) => (
-                      <Picker.Item label={`${i}`} value={i} key={i} />
-                    ))}
-                  </Picker>
-                )}
-              />
-            )}
-            {activeWheel === "weight" && (
-              <Controller
-                control={form.control}
-                name="weight"
-                render={({ field, fieldState, formState }) => (
-                  <Picker
-                    selectedValue={field.value}
-                    onValueChange={(v) => {
-                      field.onChange(v);
-                      form.trigger("weight");
-                    }}
-                    style={{ flex: 1 }}
-                  >
-                    {range(
-                      1,
-                      user?.measurement_system === "metric" ? 454 : 1000
-                    ).map((i) => (
-                      <Picker.Item
-                        label={`${i} ${getWeightUnit()}`}
-                        value={i}
-                        key={i}
-                      />
-                    ))}
-                  </Picker>
-                )}
-              />
-            )}
-            {activeWheel === "height" && (
-              <Controller
-                control={form.control}
-                name="height"
-                render={({ field, fieldState, formState }) => (
-                  <>
-                    {user?.measurement_system === "metric" ? (
-                      <Picker
-                        selectedValue={field.value}
-                        onValueChange={(v) => {
-                          field.onChange(v);
-                          form.trigger("height");
+                    <VStack className="bg-card rounded-lg items-stretch gap-0">
+                      <Pressable
+                        onPress={() => {
+                          if (fieldFocused === "age") {
+                            toggleWheel(false);
+                            setFieldFocused(null);
+                          } else {
+                            toggleWheel(true);
+                            setFieldFocused("age");
+                            setActiveWheel("age");
+                          }
                         }}
-                        style={{ flex: 1 }}
                       >
-                        {range(30, 275).map((i) => (
-                          <Picker.Item label={`${i} cm`} value={i} key={i} />
-                        ))}
-                      </Picker>
-                    ) : (
-                      <>
-                        <Picker
-                          selectedValue={heightFeet}
-                          onValueChange={(v) => {
-                            setHeightFeet(v);
-                            field.onChange(
-                              parseInt(v.toString()) * 12 +
-                                parseInt(heightInches.toString())
-                            );
-                            form.trigger("height");
-                          }}
-                          style={{ flex: 1 }}
-                        >
-                          {range(1, 9).map((i) => (
-                            <Picker.Item label={`${i} ft`} value={i} key={i} />
-                          ))}
-                        </Picker>
-                        <Picker
-                          selectedValue={heightInches}
-                          onValueChange={(v) => {
-                            setHeightInches(v);
-                            field.onChange(
-                              parseInt(heightFeet.toString()) * 12 +
-                                parseInt(v.toString())
-                            );
-                            form.trigger("height");
-                          }}
-                          style={{ flex: 1 }}
-                        >
-                          {range(0, 11).map((i) => (
-                            <Picker.Item label={`${i} in`} value={i} key={i} />
-                          ))}
-                        </Picker>
-                      </>
-                    )}
-                  </>
-                )}
-              />
+                        <HStack className="flex-1 justify-between p-3">
+                          <Text>Age</Text>
+                          <Text
+                            className={cn(
+                              fieldFocused === "age"
+                                ? "text-primary"
+                                : form.formState.errors.age
+                                ? "text-destructive"
+                                : "text-muted-foreground"
+                            )}
+                          >
+                            {form.getValues("age")
+                              ? `${form.getValues("age")} y.o.`
+                              : "Not Set"}
+                          </Text>
+                        </HStack>
+                      </Pressable>
+
+                      <Separator />
+
+                      <Pressable
+                        onPress={() => {
+                          if (fieldFocused === "weight") {
+                            toggleWheel(false);
+                            setFieldFocused(null);
+                          } else {
+                            toggleWheel(true);
+                            setFieldFocused("weight");
+                            setActiveWheel("weight");
+                          }
+                        }}
+                      >
+                        <HStack className="flex-1 justify-between p-3">
+                          <Text>Weight</Text>
+                          <Text
+                            className={cn(
+                              fieldFocused === "weight"
+                                ? "text-primary"
+                                : form.formState.errors.weight
+                                ? "text-destructive"
+                                : "text-muted-foreground"
+                            )}
+                          >
+                            {formatWeight(form.getValues("weight"))}
+                          </Text>
+                        </HStack>
+                      </Pressable>
+
+                      <Separator />
+
+                      <Pressable
+                        onPress={() => {
+                          if (fieldFocused === "height") {
+                            toggleWheel(false);
+                            setFieldFocused(null);
+                          } else {
+                            toggleWheel(true);
+                            setFieldFocused("height");
+                            setActiveWheel("height");
+                          }
+                        }}
+                      >
+                        <HStack className="flex-1 justify-between p-3">
+                          <Text>Height</Text>
+                          <Text
+                            className={cn(
+                              fieldFocused === "height"
+                                ? "text-primary"
+                                : form.formState.errors.height
+                                ? "text-destructive"
+                                : "text-muted-foreground"
+                            )}
+                          >
+                            {formatHeight(form.getValues("height"))}
+                          </Text>
+                        </HStack>
+                      </Pressable>
+                    </VStack>
+                  </VStack>
+                </VStack>
+              </TouchableWithoutFeedback>
             )}
-          </HStack>
-        </Animated.View>
-      </SafeAreaView>
-    </SafeAreaProvider>
+          </ScrollView>
+
+          <VStack className="p-6 items-stretch gap-1">
+            <Button
+              disabled={form.formState.isSubmitting}
+              onPress={form.handleSubmit((v) => storeProfile(v))}
+            >
+              {form.formState.isSubmitting ? (
+                <View className="animate-spin">
+                  <LoaderCircle size={16} className="text-black" />
+                </View>
+              ) : (
+                <HStack className="gap-2">
+                  <Text>Next</Text>
+                  <ArrowRight size={16} className="text-black" />
+                </HStack>
+              )}
+            </Button>
+          </VStack>
+          <Animated.View style={[animatedStyle]} className="overflow-hidden">
+            <HStack className="flex-1 justify-stretch items-stretch px-4 gap-0">
+              {activeWheel === "age" && (
+                <Controller
+                  control={form.control}
+                  name="age"
+                  render={({ field, fieldState, formState }) => (
+                    <Picker
+                      selectedValue={field.value}
+                      onValueChange={(v) => {
+                        field.onChange(v);
+                        form.trigger("age");
+                      }}
+                      style={{ flex: 1 }}
+                    >
+                      {range(4, 150).map((i) => (
+                        <Picker.Item label={`${i}`} value={i} key={i} />
+                      ))}
+                    </Picker>
+                  )}
+                />
+              )}
+              {activeWheel === "weight" && (
+                <Controller
+                  control={form.control}
+                  name="weight"
+                  render={({ field, fieldState, formState }) => (
+                    <Picker
+                      selectedValue={field.value}
+                      onValueChange={(v) => {
+                        field.onChange(v);
+                        form.trigger("weight");
+                      }}
+                      style={{ flex: 1 }}
+                    >
+                      {range(
+                        1,
+                        user?.measurement_system === "metric" ? 454 : 1000
+                      ).map((i) => (
+                        <Picker.Item
+                          label={`${i} ${getWeightUnit()}`}
+                          value={i}
+                          key={i}
+                        />
+                      ))}
+                    </Picker>
+                  )}
+                />
+              )}
+              {activeWheel === "height" && (
+                <Controller
+                  control={form.control}
+                  name="height"
+                  render={({ field, fieldState, formState }) => (
+                    <>
+                      {user?.measurement_system === "metric" ? (
+                        <Picker
+                          selectedValue={field.value}
+                          onValueChange={(v) => {
+                            field.onChange(v);
+                            form.trigger("height");
+                          }}
+                          style={{ flex: 1 }}
+                        >
+                          {range(30, 275).map((i) => (
+                            <Picker.Item label={`${i} cm`} value={i} key={i} />
+                          ))}
+                        </Picker>
+                      ) : (
+                        <>
+                          <Picker
+                            selectedValue={heightFeet}
+                            onValueChange={(v) => {
+                              setHeightFeet(v);
+                              field.onChange(
+                                parseInt(v.toString()) * 12 +
+                                  parseInt(heightInches.toString())
+                              );
+                              form.trigger("height");
+                            }}
+                            style={{ flex: 1 }}
+                          >
+                            {range(1, 9).map((i) => (
+                              <Picker.Item
+                                label={`${i} ft`}
+                                value={i}
+                                key={i}
+                              />
+                            ))}
+                          </Picker>
+                          <Picker
+                            selectedValue={heightInches}
+                            onValueChange={(v) => {
+                              setHeightInches(v);
+                              field.onChange(
+                                parseInt(heightFeet.toString()) * 12 +
+                                  parseInt(v.toString())
+                              );
+                              form.trigger("height");
+                            }}
+                            style={{ flex: 1 }}
+                          >
+                            {range(0, 11).map((i) => (
+                              <Picker.Item
+                                label={`${i} in`}
+                                value={i}
+                                key={i}
+                              />
+                            ))}
+                          </Picker>
+                        </>
+                      )}
+                    </>
+                  )}
+                />
+              )}
+            </HStack>
+          </Animated.View>
+        </SafeAreaView>
+      </SafeAreaProvider>
+    </>
   );
 }

@@ -6,13 +6,11 @@ import { SafeAreaProvider } from "react-native-safe-area-context";
 import { SafeAreaView } from "react-native-safe-area-context";
 import { Pressable, ScrollView, View } from "react-native";
 import { router } from "expo-router";
-import WorkoutPlanForm from "~/components/forms/workout-plans/workout-plan-form";
 import { useStoreWorkoutPlanMutation } from "~/hooks/mutations/workout-plans";
 import { useIsProQuery } from "~/hooks/revenueCat";
 import RevenueCatUI, { PAYWALL_RESULT } from "react-native-purchases-ui";
 import { Button } from "~/components/ui/button";
 import { HStack } from "~/components/ui/hstack";
-import { ChevronLeft } from "~/lib/icons/ChevronLeft";
 import { useQueryClient } from "@tanstack/react-query";
 import { ArrowLeft } from "~/lib/icons/ArrowLeft";
 import { HeartPulse } from "~/lib/icons/HeartPulse";
@@ -69,18 +67,6 @@ export default function PlanScreen() {
   return (
     <SafeAreaProvider>
       <SafeAreaView className="flex-1">
-        <HStack className="px-6 py-3 justify-start items-start">
-          <Button
-            variant="secondary"
-            size="icon-sm"
-            onPress={() => router.back()}
-            className="rounded-full"
-          >
-            <HStack className="gap-1">
-              <ArrowLeft size={16} className="text-white" />
-            </HStack>
-          </Button>
-        </HStack>
         <ScrollView className="flex-1" showsVerticalScrollIndicator={false}>
           <VStack className="h-full p-6 items-center justify-center gap-4">
             <VStack className="gap-2">
