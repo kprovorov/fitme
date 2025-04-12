@@ -219,7 +219,7 @@ export default function ProfileScreen() {
 
                   <VStack className="items-stretch gap-2">
                     <VStack className="gap-0 justify-start items-start">
-                      <H4>Body Measurements</H4>
+                      <H4>Personal Parameters</H4>
                       {["age", "weight", "height"].map((field) => (
                         <VStack key={field}>
                           {form.formState.errors[
@@ -359,7 +359,7 @@ export default function ProfileScreen() {
                   name="age"
                   render={({ field, fieldState, formState }) => (
                     <Picker
-                      selectedValue={field.value}
+                      selectedValue={field.value ?? 25}
                       onValueChange={(v) => {
                         field.onChange(v);
                         form.trigger("age");
@@ -379,7 +379,10 @@ export default function ProfileScreen() {
                   name="weight"
                   render={({ field, fieldState, formState }) => (
                     <Picker
-                      selectedValue={field.value}
+                      selectedValue={
+                        field.value ??
+                        (user?.measurement_system === "metric" ? 80 : 176)
+                      }
                       onValueChange={(v) => {
                         field.onChange(v);
                         form.trigger("weight");
@@ -408,7 +411,7 @@ export default function ProfileScreen() {
                     <>
                       {user?.measurement_system === "metric" ? (
                         <Picker
-                          selectedValue={field.value}
+                          selectedValue={field.value ?? 176}
                           onValueChange={(v) => {
                             field.onChange(v);
                             form.trigger("height");
@@ -422,7 +425,7 @@ export default function ProfileScreen() {
                       ) : (
                         <>
                           <Picker
-                            selectedValue={heightFeet}
+                            selectedValue={field.value ?? 5}
                             onValueChange={(v) => {
                               setHeightFeet(v);
                               field.onChange(
