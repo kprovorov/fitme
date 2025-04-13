@@ -8,6 +8,8 @@ import { Button } from "../ui/button";
 import { Check } from "~/lib/icons/Check";
 import { Text } from "../ui/text";
 import { Pencil } from "~/lib/icons/Pencil";
+import { VStack } from "../ui/vstack";
+import { ErrorMessage } from "../ui/error-message";
 
 interface WorkoutExerciseSetFormProps {
   onSubmit: (values: z.infer<typeof formSchema>) => Promise<void>;
@@ -23,7 +25,7 @@ export type WorkoutExerciseSetFormValues = z.infer<typeof formSchema>;
 
 const formSchema = z.object({
   weight: z.string(),
-  repeats: z.coerce.number().min(0),
+  repeats: z.string(),
 });
 
 export default function WorkoutExerciseSetForm({
@@ -39,73 +41,80 @@ export default function WorkoutExerciseSetForm({
     resolver: zodResolver(formSchema),
     defaultValues: defaultValues ?? {
       weight: "0",
-      repeats: 0,
+      repeats: "0",
     },
     disabled,
   });
 
   return (
-    <HStack className="justify-between flex-1">
-      {hasWeight && (
+    <VStack className="flex-1">
+      <HStack className="justify-between flex-1">
+        {hasWeight && (
+          <HStack className="flex-1">
+            <Controller
+              control={form.control}
+              render={({ field: { onChange, onBlur, value } }) => (
+                <Input
+                  editable={!form.formState.disabled}
+                  placeholder="Weight"
+                  onBlur={onBlur}
+                  onChangeText={onChange}
+                  value={value}
+                  keyboardType="decimal-pad"
+                  className="w-full text-center font-bold"
+                />
+              )}
+              name="weight"
+            />
+          </HStack>
+        )}
         <HStack className="flex-1">
           <Controller
             control={form.control}
             render={({ field: { onChange, onBlur, value } }) => (
               <Input
                 editable={!form.formState.disabled}
-                placeholder="Weight"
+                placeholder="Repeats"
                 onBlur={onBlur}
                 onChangeText={onChange}
-                value={value.toString()}
-                keyboardType="numeric"
+                value={value}
+                keyboardType="number-pad"
                 autoCapitalize="none"
                 className="w-full text-center font-bold"
               />
             )}
-            name="weight"
+            name="repeats"
           />
         </HStack>
-      )}
-      <HStack className="flex-1">
-        <Controller
-          control={form.control}
-          render={({ field: { onChange, onBlur, value } }) => (
-            <Input
-              editable={!form.formState.disabled}
-              placeholder="Repeats"
-              onBlur={onBlur}
-              onChangeText={onChange}
-              value={value.toString()}
-              keyboardType="number-pad"
-              autoCapitalize="none"
-              className="w-full text-center font-bold"
-            />
-          )}
-          name="repeats"
-        />
-      </HStack>
 
-      <HStack className="flex-none w-10">
-        {isDone && !isEditing ? (
-          <Button
-            onPress={onEdit}
-            className="rounded-full"
-            size="icon"
-            variant="secondary"
-          >
-            <Pencil className="text-muted-foreground" size={16} />
-          </Button>
-        ) : (
-          <Button
-            onPress={form.handleSubmit(onSubmit)}
-            className="rounded-full"
-            disabled={disabled}
-            size="icon"
-          >
-            <Check className="text-primary-foreground" size={16} />
-          </Button>
-        )}
+        <HStack className="flex-none w-10">
+          {isDone && !isEditing ? (
+            <Button
+              onPress={onEdit}
+              className="rounded-full"
+              size="icon"
+              variant="secondary"
+            >
+              <Pencil className="text-muted-foreground" size={16} />
+            </Button>
+          ) : (
+            <Button
+              onPress={form.handleSubmit(onSubmit)}
+              className="rounded-full"
+              disabled={disabled}
+              size="icon"
+            >
+              <Check className="text-primary-foreground" size={16} />
+            </Button>
+          )}
+        </HStack>
       </HStack>
-    </HStack>
+      {form.formState.errors.weight && (
+        <ErrorMessage>{form.formState.errors.weight.message}</ErrorMessage>
+      )}
+      {form.formState.errors.repeats && (
+        <ErrorMessage>{form.formState.errors.repeats.message}</ErrorMessage>
+      )}
+    </VStack>
   );
 }

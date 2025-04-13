@@ -59,18 +59,22 @@ export default function WorkoutExerciseSetRowView({
         isEditing={isEditable}
         defaultValues={{
           weight: (
-            (workoutExerciseSet.weight_done ??
-              workoutExerciseSet.weight_recommended) / 1000
-          ).toString(),
-          repeats:
+            workoutExerciseSet.weight_done ??
+            workoutExerciseSet.weight_recommended
+          )
+            .toFixed(2)
+            .replace(".00", "")
+            .replace(".", ","),
+          repeats: (
             workoutExerciseSet.repeats_done ??
-            workoutExerciseSet.repeats_recommended,
+            workoutExerciseSet.repeats_recommended
+          ).toString(),
         }}
         onSubmit={async (values) => {
           updateWorkoutExerciseSet({
             id: workoutExerciseSet.id,
-            weight_done: parseInt(values.weight) * 1000,
-            repeats_done: values.repeats,
+            weight_done: Number(values.weight.replace(",", ".")),
+            repeats_done: Number(values.repeats),
           });
         }}
       />
