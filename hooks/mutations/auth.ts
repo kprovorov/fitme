@@ -1,6 +1,7 @@
 import { createMutation } from "react-query-kit";
 import { api, deleteToken, ServerError, setToken } from "@/lib/api";
 import { AxiosError } from "axios";
+import { MeasurementSystem } from "~/lib/models";
 
 export type LoginData = {
   email: string;
@@ -35,6 +36,7 @@ export type RegisterData = {
   name: string;
   email: string;
   password: string;
+  measurement_system: MeasurementSystem;
 };
 
 export const useRegisterMutation = createMutation<

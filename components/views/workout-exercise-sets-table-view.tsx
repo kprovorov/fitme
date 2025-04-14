@@ -4,7 +4,7 @@ import WorkoutExerciseSetRowView from "./workout-exercise-set-row-view";
 import { VStack } from "../ui/vstack";
 import { HStack } from "../ui/hstack";
 import { Text } from "../ui/text";
-
+import { useCurrentUserQuery } from "~/hooks/queries/auth";
 interface WorkoutExerciseSetsTableViewProps {
   workoutExerciseSets: WorkoutExerciseSet[];
 }
@@ -12,6 +12,8 @@ interface WorkoutExerciseSetsTableViewProps {
 export default function WorkoutExerciseSetsTableView({
   workoutExerciseSets,
 }: WorkoutExerciseSetsTableViewProps) {
+  const { data: user } = useCurrentUserQuery();
+
   const hasWeight = workoutExerciseSets.some(
     (set) => set.weight_recommended > 0
   );
@@ -24,7 +26,7 @@ export default function WorkoutExerciseSetsTableView({
         </Text>
         {hasWeight && (
           <Text className="flex-1 font-bold text-primary uppercase text-sm text-center">
-            Kg
+            {user?.measurement_system === "metric" ? "Kg" : "Lbs"}
           </Text>
         )}
         <Text className="flex-1 font-bold text-primary uppercase text-sm text-center">
