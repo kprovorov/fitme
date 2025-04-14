@@ -73,8 +73,20 @@ export default function ProfileScreen() {
 
   const scrollViewRef = useRef<ScrollView>(null);
 
-  const [heightFeet, setHeightFeet] = useState(0);
-  const [heightInches, setHeightInches] = useState(0);
+  const [heightFeet, setHeightFeet] = useState(
+    user?.measurement_system !== "metric"
+      ? user?.profile?.height
+        ? Math.floor(user?.profile?.height / 12)
+        : 5
+      : 176
+  );
+  const [heightInches, setHeightInches] = useState(
+    user?.measurement_system !== "metric"
+      ? user?.profile?.height
+        ? user?.profile?.height % 12
+        : 0
+      : 0
+  );
 
   const [fieldFocused, setFieldFocused] = useState<
     "age" | "weight" | "height" | null
@@ -425,7 +437,7 @@ export default function ProfileScreen() {
                       ) : (
                         <>
                           <Picker
-                            selectedValue={field.value ?? 5}
+                            selectedValue={heightFeet}
                             onValueChange={(v) => {
                               setHeightFeet(v);
                               field.onChange(
