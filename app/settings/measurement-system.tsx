@@ -80,9 +80,8 @@ export default function MeasurementSystemScreen() {
               <MenuList>
                 <AlertDialog>
                   {measurementSystems.map((system, i) => (
-                    <AlertDialogTrigger asChild>
+                    <AlertDialogTrigger key={system} asChild>
                       <RadioGroupMenuListItem
-                        key={system}
                         value={system}
                         label={getMeasurementSystemLabel(system)}
                         disclaimer={getMeasurementSystemDisclaimer(system)}

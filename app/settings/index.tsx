@@ -29,13 +29,13 @@ export default function SettingsScreen() {
       <SafeAreaProvider>
         <SafeAreaView className="flex-1">
           <ScrollView
-            className="flex-1 p-4"
+            className="flex-1 p-6"
             showsVerticalScrollIndicator={false}
           >
             {!!user && (
               <MenuList>
                 <Link href="/settings/measurement-system" asChild>
-                  <MenuListItem>
+                  <MenuListItem icon="chevron-right">
                     <HStack className="flex-1 justify-between">
                       <Text>Measurement System</Text>
                       <Text className="text-muted-foreground text-xs">
