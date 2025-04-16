@@ -1,9 +1,7 @@
 import { PortalHost } from "@rn-primitives/portal";
 import { Stack, useRouter } from "expo-router";
 import React from "react";
-import { Button } from "~/components/ui/button";
-import { HStack } from "~/components/ui/hstack";
-import { ArrowLeft } from "~/lib/icons/ArrowLeft";
+import { HeaderBackButton } from "~/components/ui/header-back-button";
 
 export default function Layout() {
   const router = useRouter();
@@ -14,18 +12,7 @@ export default function Layout() {
         screenOptions={{
           headerTransparent: true,
           headerTitle: "",
-          headerLeft: () => (
-            <Button
-              variant="secondary"
-              size="icon-sm"
-              onPress={() => router.dismiss()}
-              className="rounded-full"
-            >
-              <HStack className="gap-1">
-                <ArrowLeft size={16} className="text-white" />
-              </HStack>
-            </Button>
-          ),
+          headerLeft: () => <HeaderBackButton />,
         }}
       >
         <Stack.Screen name="index" />
