@@ -23,6 +23,7 @@ import { Card, CardContent, CardHeader, CardTitle } from "../ui/card";
 import { Trophy } from "~/lib/icons/Trophy";
 import { Avatar, AvatarFallback, AvatarImage } from "../ui/avatar";
 import { Heart } from "~/lib/icons/Heart";
+import { Volleyball } from "~/lib/icons/Volleyball";
 
 export default function ProfileView() {
   const queryClient = useQueryClient();
@@ -60,7 +61,7 @@ export default function ProfileView() {
           <Card>
             <VStack className="items-stretch gap-4 py-4">
               <CardContent>
-                {!isPro ? (
+                {isPro ? (
                   <VStack className="items-stretch gap-2">
                     <HStack className="flex-1 justify-start gap-2">
                       <Trophy className="text-primary" size={20} />
@@ -86,7 +87,16 @@ export default function ProfileView() {
                   </VStack>
                 ) : (
                   <VStack className="items-stretch gap-2">
-                    <Text>You're on a free plan</Text>
+                    <HStack className="flex-1 justify-start gap-2">
+                      <Volleyball className="text-foreground" size={20} />
+                      <Text className="text-foreground font-bold">
+                        You're on a free plan
+                      </Text>
+                    </HStack>
+                    <Muted>
+                      Subscribe to Fitme Pro to get unlimited access to all of
+                      our features
+                    </Muted>
                     <Button onPress={() => RevenueCatUI.presentPaywall()}>
                       <Text>Upgrade to Pro</Text>
                     </Button>
