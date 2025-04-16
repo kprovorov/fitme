@@ -11,7 +11,7 @@ import { getMeasurementSystemLabel } from "~/lib/labels";
 import X from "~/components/icons/social/x";
 import Instagram from "~/components/icons/social/instagram";
 import Threads from "~/components/icons/social/threads";
-import { P } from "~/components/ui/typography";
+import { Muted, P } from "~/components/ui/typography";
 import { VStack } from "~/components/ui/vstack";
 import { Button } from "~/components/ui/button";
 
@@ -39,7 +39,10 @@ export default function SupportScreen() {
             showsVerticalScrollIndicator={false}
           >
             <VStack className="items-start gap-0">
-              <P className="font-bold">Feedback and Support</P>
+              <P>
+                Feel free to contact us at any time if you have any questions or
+                feedback
+              </P>
               <Button
                 variant="link"
                 className="p-0 h-8"
