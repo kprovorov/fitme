@@ -3,6 +3,8 @@ import * as React from "react";
 import { View } from "react-native";
 import { cn } from "~/lib/utils";
 import { Text } from "~/components/ui/text";
+import { VStack } from "./vstack";
+import { Check } from "~/lib/icons/Check";
 
 const RadioGroup = React.forwardRef<
   RadioGroupPrimitive.RootRef,
@@ -70,4 +72,46 @@ const RadioGroupItemWithLabel = React.forwardRef<
 });
 RadioGroupItemWithLabel.displayName = "RadioGroupItemWithLabel";
 
-export { RadioGroup, RadioGroupItem, RadioGroupItemWithLabel };
+const RadioGroupMenuListItem = React.forwardRef<
+  RadioGroupPrimitive.ItemRef,
+  RadioGroupPrimitive.ItemProps & { label: string; disclaimer?: string }
+>(({ className, ...props }, ref) => {
+  return (
+    <RadioGroupPrimitive.Item
+      ref={ref}
+      className={cn(
+        "flex-1 flex-row items-center justify-between p-4 active:bg-card/50",
+        props.disabled && "web:cursor-not-allowed border-muted",
+        className
+      )}
+      {...props}
+    >
+      <VStack className="flex-1 items-start gap-0">
+        <Text>{props.label}</Text>
+        {props.disclaimer && (
+          <Text className="text-xs text-muted-foreground">
+            {props.disclaimer}
+          </Text>
+        )}
+      </VStack>
+      <View
+        className={cn(
+          "aspect-square h-4 w-4 native:h-5 native:w-5 justify-center items-center text-primary",
+          props.disabled && "web:cursor-not-allowed border-muted"
+        )}
+      >
+        <RadioGroupPrimitive.Indicator className="flex items-center justify-center">
+          <Check className="text-primary" size={18} />
+        </RadioGroupPrimitive.Indicator>
+      </View>
+    </RadioGroupPrimitive.Item>
+  );
+});
+RadioGroupMenuListItem.displayName = "RadioGroupMenuListItem";
+
+export {
+  RadioGroup,
+  RadioGroupItem,
+  RadioGroupItemWithLabel,
+  RadioGroupMenuListItem,
+};
