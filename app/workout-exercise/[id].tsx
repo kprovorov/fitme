@@ -45,6 +45,7 @@ export default function WorkoutExerciseScreen() {
           <KeyboardAwareScrollView
             bottomOffset={62}
             showsVerticalScrollIndicator={false}
+            keyboardShouldPersistTaps="always"
           >
             <VStack className="gap-4 items-stretch py-6">
               <VStack className="items-start px-6">

@@ -24,6 +24,7 @@
     "@react-navigation/native": "^7.0.14",
     "@rn-primitives/accordion": "^1.1.0",
     "@rn-primitives/alert-dialog": "^1.1.0",
+    "@rn-primitives/avatar": "^1.1.0",
     "@rn-primitives/dialog": "^1.1.0",
     "@rn-primitives/label": "^1.1.0",
     "@rn-primitives/portal": "^1.1.0",
@@ -47,6 +48,7 @@
     "expo-haptics": "~14.0.1",
     "expo-linear-gradient": "~14.0.2",
     "expo-linking": "~7.0.5",
+    "expo-localization": "~16.0.1",
     "expo-navigation-bar": "~4.0.9",
     "expo-router": "~4.0.19",
     "expo-secure-store": "~14.0.1",
@@ -77,8 +79,7 @@
     "react-query-kit": "^3.3.1",
     "tailwind-merge": "^2.6.0",
     "tailwindcss-animate": "^1.0.7",
-    "zod": "^3.24.1",
-    "expo-localization": "~16.0.1"
+    "zod": "^3.24.1"
   },
   "devDependencies": {
     "@babel/core": "^7.25.2",

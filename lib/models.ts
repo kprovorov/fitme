@@ -1,7 +1,9 @@
 export type Goal = "lose_weight" | "gain_muscle" | "improve_health";
 export type Place = "gym" | "home";
 export type Gender = "male" | "female";
-export type MeasurementSystem = "metric" | "us" | "uk";
+
+export const measurementSystems = ["metric", "us", "uk"] as const;
+export type MeasurementSystem = (typeof measurementSystems)[number];
 
 export type User = {
   id: number;
