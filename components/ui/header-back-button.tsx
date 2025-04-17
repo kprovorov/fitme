@@ -16,7 +16,7 @@ const HeaderBackButton = React.forwardRef<
       variant="secondary"
       size="icon-sm"
       onPress={() => router.back()}
-      className={cn("rounded-full", props.className)}
+      className={cn("rounded-full active:opacity-80", props.className)}
       {...props}
     >
       <ArrowLeft size={16} className="text-white" />

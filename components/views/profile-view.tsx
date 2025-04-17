@@ -14,7 +14,7 @@ import {
 import RevenueCatUI from "react-native-purchases-ui";
 import { useCustomerInfoQuery, useIsProQuery } from "~/hooks/revenueCat";
 import * as Sentry from "@sentry/react-native";
-import { Linking } from "react-native";
+import { Linking, Pressable } from "react-native";
 import { HStack } from "../ui/hstack";
 import { Separator } from "../ui/separator";
 import { MenuList } from "../ui/menu-list";
@@ -46,66 +46,64 @@ export default function ProfileView() {
   return (
     !!user && (
       <VStack className="items-stretch justify-between grow gap-4">
-        <VStack className="items-stretch">
-          <HStack className="items-center justify-start">
-            <Avatar alt={user.name}>
-              <AvatarFallback>
-                <Text>{user.name.charAt(0)}</Text>
-              </AvatarFallback>
-            </Avatar>
-            <VStack className="items-stretch gap-0">
-              <Text className="text-xl font-bold">{user.name}</Text>
-              <Muted>{user.email}</Muted>
-            </VStack>
-          </HStack>
-          <Card>
-            <VStack className="items-stretch gap-4 py-4">
-              <CardContent>
-                {isPro ? (
-                  <VStack className="items-stretch gap-2">
-                    <HStack className="flex-1 justify-start gap-2">
-                      <Trophy className="text-primary" size={20} />
-                      <Text className="text-primary font-bold">
-                        You're Pro!
-                      </Text>
-                    </HStack>
-                    <Muted>
-                      You have access to all of our features. You can cancel
-                      your subscription at any time.
-                    </Muted>
-                    {!!customerInfo?.managementURL && (
-                      <Button
-                        variant="secondary"
-                        onPress={() =>
-                          customerInfo.managementURL &&
-                          Linking.openURL(customerInfo.managementURL)
-                        }
-                      >
-                        <Text>Manage Subscription</Text>
-                      </Button>
-                    )}
-                  </VStack>
-                ) : (
-                  <VStack className="items-stretch gap-2">
-                    <HStack className="flex-1 justify-start gap-2">
-                      <Volleyball className="text-foreground" size={20} />
-                      <Text className="text-foreground font-bold">
-                        You're on a free plan
-                      </Text>
-                    </HStack>
-                    <Muted>
-                      Subscribe to Fitme Pro to get unlimited access to all of
-                      our features
-                    </Muted>
-                    <Button onPress={() => RevenueCatUI.presentPaywall()}>
-                      <Text>Upgrade to Pro</Text>
+        <HStack className="items-center justify-start">
+          <Avatar alt={user.name}>
+            <AvatarFallback>
+              <Text>{user.name.charAt(0)}</Text>
+            </AvatarFallback>
+          </Avatar>
+          <VStack className="items-stretch gap-0">
+            <Text className="text-xl font-bold">{user.name}</Text>
+            <Muted>{user.email}</Muted>
+          </VStack>
+        </HStack>
+
+        <Card>
+          <VStack className="items-stretch gap-4 py-4">
+            <CardContent>
+              {isPro ? (
+                <VStack className="items-stretch gap-2">
+                  <HStack className="flex-1 justify-start gap-2">
+                    <Trophy className="text-primary" size={20} />
+                    <Text className="text-primary font-bold">You're Pro!</Text>
+                  </HStack>
+                  <Muted>
+                    You have access to all of our features. You can cancel your
+                    subscription at any time.
+                  </Muted>
+                  {!!customerInfo?.managementURL && (
+                    <Button
+                      variant="secondary"
+                      onPress={() =>
+                        customerInfo.managementURL &&
+                        Linking.openURL(customerInfo.managementURL)
+                      }
+                    >
+                      <Text>Manage Subscription</Text>
                     </Button>
-                  </VStack>
-                )}
-              </CardContent>
-            </VStack>
-          </Card>
-        </VStack>
+                  )}
+                </VStack>
+              ) : (
+                <VStack className="items-stretch gap-2">
+                  <HStack className="flex-1 justify-start gap-2">
+                    <Volleyball className="text-foreground" size={20} />
+                    <Text className="text-foreground font-bold">
+                      You're on a free plan
+                    </Text>
+                  </HStack>
+                  <Muted>
+                    Subscribe to Fitme Pro to get unlimited access to all of our
+                    features
+                  </Muted>
+                  <Button onPress={() => RevenueCatUI.presentPaywall()}>
+                    <Text>Upgrade to Pro</Text>
+                  </Button>
+                </VStack>
+              )}
+            </CardContent>
+          </VStack>
+        </Card>
+
         <MenuList>
           <Link href="/settings" asChild>
             <MenuListItem icon="chevron-right">
@@ -130,25 +128,19 @@ export default function ProfileView() {
           </MenuListItem>
         </MenuList>
 
-        <Card className="">
-          <HStack className="items-center justify-start gap-4 p-4">
-            <Heart className="text-foreground" size={24} />
-            <VStack className="items-start gap-0">
-              <P className="font-bold">Like the app?</P>
-              <Button
-                variant="link"
-                className="p-0 h-6"
-                onPress={() =>
-                  Linking.openURL(
-                    `itms-apps://itunes.apple.com/app/viewContentsUserReviews/id6741153628?action=write-review`
-                  )
-                }
-              >
-                <Text>Rate it in the App Store!</Text>
-              </Button>
-            </VStack>
-          </HStack>
-        </Card>
+        <MenuList>
+          <Link href="itms-apps://itunes.apple.com/app/viewContentsUserReviews/id6741153628?action=write-review">
+            <MenuListItem>
+              <HStack className="flex-1 justify-start gap-4">
+                <Heart className="text-foreground" size={24} />
+                <VStack className="items-start gap-0">
+                  <Text className="font-bold text-primary">Like the app?</Text>
+                  <Text>Rate it in the App Store!</Text>
+                </VStack>
+              </HStack>
+            </MenuListItem>
+          </Link>
+        </MenuList>
       </VStack>
     )
   );
