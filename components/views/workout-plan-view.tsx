@@ -1,5 +1,5 @@
 import React, { useEffect, useState } from "react";
-import { Workout, WorkoutPlan } from "@/lib/models";
+import { Workout, Plan } from "@/lib/models";
 import { VStack } from "../ui/vstack";
 import { H2, H3, H4 } from "../ui/typography";
 import WorkoutCard from "./workout-card";
@@ -13,7 +13,7 @@ import { View } from "react-native";
 import { LoaderCircle } from "~/lib/icons/LoaderCircle";
 
 interface WorkoutPlanViewProps {
-  plan: WorkoutPlan;
+  plan: Plan;
 }
 
 export default function WorkoutPlanView({ plan }: WorkoutPlanViewProps) {

@@ -25,7 +25,7 @@ export type Profile = {
   weight: number;
 };
 
-export type WorkoutPlan = {
+export type Plan = {
   id: number;
   user_id: number;
   name: string;

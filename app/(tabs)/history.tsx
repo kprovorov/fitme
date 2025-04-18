@@ -4,18 +4,18 @@ import { SafeAreaView } from "react-native-safe-area-context";
 import { H1, H3 } from "~/components/ui/typography";
 import { VStack } from "~/components/ui/vstack";
 import WorkoutsListView from "~/components/views/workouts-list-view";
-import { useWorkoutPlansQuery } from "~/hooks/queries/workout-plans";
-import { WorkoutPlan } from "~/lib/models";
+import { usePlansQuery } from "~/hooks/queries/plans";
+import { Plan } from "~/lib/models";
 import { Text } from "~/components/ui/text";
 import { Link } from "expo-router";
 import { Button } from "~/components/ui/button";
 import Purchases from "react-native-purchases";
 
 export default function HistoryScreen() {
-  const [activePlan, setActivePlan] = useState<WorkoutPlan | null>(null);
+  const [activePlan, setActivePlan] = useState<Plan | null>(null);
   const [refreshing, setRefreshing] = useState(false);
 
-  const { data: plans, refetch: refetchWorkoutPlans } = useWorkoutPlansQuery();
+  const { data: plans, refetch: refetchWorkoutPlans } = usePlansQuery();
 
   useEffect(() => {
     if (plans) {

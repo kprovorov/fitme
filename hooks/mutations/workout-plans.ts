@@ -1,7 +1,7 @@
 import { AxiosError } from "axios";
 import { createMutation } from "react-query-kit";
 import { api, ServerError } from "~/lib/api";
-import { Goal, Place, WorkoutPlan } from "~/lib/models";
+import { Goal, Place, Plan } from "~/lib/models";
 
 type StoreWorkoutPlanData = {
   goal: Goal;
@@ -10,37 +10,35 @@ type StoreWorkoutPlanData = {
 };
 
 export const useStoreWorkoutPlanMutation = createMutation<
-  WorkoutPlan,
+  Plan,
   StoreWorkoutPlanData,
   AxiosError<ServerError<StoreWorkoutPlanData>>
 >({
-  mutationFn: async (data: StoreWorkoutPlanData): Promise<WorkoutPlan> => {
-    const res = await api.post<WorkoutPlan>("/api/workout-plans", data);
+  mutationFn: async (data: StoreWorkoutPlanData): Promise<Plan> => {
+    const res = await api.post<Plan>("/api/workout-plans", data);
 
     return res.data;
   },
 });
 
 export const useActivateWorkoutPlanMutation = createMutation<
-  WorkoutPlan,
+  Plan,
   { id: number },
   AxiosError<ServerError<{ id: number }>>
 >({
-  mutationFn: async (data: { id: number }): Promise<WorkoutPlan> => {
-    const res = await api.patch<WorkoutPlan>(
-      `/api/workout-plans/${data.id}/activate`
-    );
+  mutationFn: async (data: { id: number }): Promise<Plan> => {
+    const res = await api.patch<Plan>(`/api/workout-plans/${data.id}/activate`);
 
     return res.data;
   },
 });
 
 export const useDeactivateWorkoutPlanMutation = createMutation<
-  WorkoutPlan,
+  Plan,
   { id: number }
 >({
-  mutationFn: async (data: { id: number }): Promise<WorkoutPlan> => {
-    const res = await api.patch<WorkoutPlan>(
+  mutationFn: async (data: { id: number }): Promise<Plan> => {
+    const res = await api.patch<Plan>(
       `/api/workout-plans/${data.id}/deactivate`
     );
 
@@ -49,14 +47,12 @@ export const useDeactivateWorkoutPlanMutation = createMutation<
 });
 
 export const useGenerateWorkoutPlanMutation = createMutation<
-  WorkoutPlan,
+  Plan,
   { id: number },
   AxiosError<ServerError<{ id: number }>>
 >({
-  mutationFn: async (data: { id: number }): Promise<WorkoutPlan> => {
-    const res = await api.patch<WorkoutPlan>(
-      `/api/workout-plans/${data.id}/generate`
-    );
+  mutationFn: async (data: { id: number }): Promise<Plan> => {
+    const res = await api.patch<Plan>(`/api/workout-plans/${data.id}/generate`);
 
     return res.data;
   },
