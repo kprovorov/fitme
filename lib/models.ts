@@ -34,19 +34,17 @@ export type Plan = {
   place: Place;
   frequency: number;
   is_active: boolean;
-  workouts: Workout[];
+  workouts: PlanWorkout[];
   is_generating: boolean;
 };
 
-export type Workout = {
+export type PlanWorkout = {
   id: number;
   plan_id: number;
   name: string;
   description: string;
   exercises: WorkoutExercise[];
   order: number;
-  started_at: string;
-  finished_at: string;
 };
 
 export type WorkoutExercise = {

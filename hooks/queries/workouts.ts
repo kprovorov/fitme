@@ -1,15 +1,15 @@
 import { createQuery } from "react-query-kit";
 import { api } from "~/lib/api";
-import { Workout } from "~/lib/models";
+import { PlanWorkout } from "~/lib/models";
 
 export type WorkoutQueryVariables = {
   id: number;
 };
 
-export const useWorkoutQuery = createQuery<Workout, WorkoutQueryVariables>({
+export const useWorkoutQuery = createQuery<PlanWorkout, WorkoutQueryVariables>({
   queryKey: ["workout"],
-  fetcher: async ({ id }: WorkoutQueryVariables): Promise<Workout> => {
-    const res = await api.get<Workout>(`/api/workouts/${id}`);
+  fetcher: async ({ id }: WorkoutQueryVariables): Promise<PlanWorkout> => {
+    const res = await api.get<PlanWorkout>(`/api/workouts/${id}`);
 
     return res.data;
   },

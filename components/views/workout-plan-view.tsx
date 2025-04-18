@@ -1,5 +1,5 @@
 import React, { useEffect, useState } from "react";
-import { Workout, Plan } from "@/lib/models";
+import { PlanWorkout, Plan } from "@/lib/models";
 import { VStack } from "../ui/vstack";
 import { H2, H3, H4 } from "../ui/typography";
 import WorkoutCard from "./workout-card";
@@ -19,8 +19,8 @@ interface WorkoutPlanViewProps {
 export default function WorkoutPlanView({ plan }: WorkoutPlanViewProps) {
   const queryClient = useQueryClient();
 
-  const [nextWorkout, setNextWorkout] = useState<Workout | undefined>();
-  const [upcomingWorkouts, setUpcomingWorkouts] = useState<Workout[]>([]);
+  const [nextWorkout, setNextWorkout] = useState<PlanWorkout | undefined>();
+  const [upcomingWorkouts, setUpcomingWorkouts] = useState<PlanWorkout[]>([]);
 
   const { mutate: generateWorkoutPlan, isPending: isWorkoutPlanGenerating } =
     useGenerateWorkoutPlanMutation({

@@ -1,5 +1,5 @@
 import React, { useEffect, useState } from "react";
-import { Workout } from "~/lib/models";
+import { PlanWorkout } from "~/lib/models";
 import { Card } from "@/components/ui/card";
 import { H4, P } from "@/components/ui/typography";
 import { HStack } from "@/components/ui/hstack";
@@ -18,7 +18,7 @@ import { ArrowRight } from "~/lib/icons/ArrowRight";
 import { Link } from "expo-router";
 
 interface WorkoutCardProps {
-  workout: Workout;
+  workout: PlanWorkout;
   state?: "upcoming" | "finished" | "default";
 }
 

@@ -1,5 +1,5 @@
 import React from "react";
-import { Workout } from "~/lib/models";
+import { PlanWorkout } from "~/lib/models";
 import { VStack } from "../ui/vstack";
 import {
   Card,
@@ -19,7 +19,7 @@ import { Button } from "../ui/button";
 import { PencilIcon } from "lucide-react-native";
 
 interface WorkoutViewProps {
-  workout: Workout;
+  workout: PlanWorkout;
 }
 
 export default function WorkoutView({ workout }: WorkoutViewProps) {
