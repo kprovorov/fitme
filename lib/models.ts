@@ -53,6 +53,7 @@ export type WorkoutSession = {
   started_at: string;
   finished_at: string;
   exercises: WorkoutSessionExercise[];
+  workout: Workout;
 };
 
 export type WorkoutSessionExercise = {

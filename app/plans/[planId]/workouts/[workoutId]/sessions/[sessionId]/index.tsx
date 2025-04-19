@@ -1,53 +1,48 @@
 import React, { useEffect, useState } from "react";
 import { Text } from "~/components/ui/text";
 import { Stack, useLocalSearchParams } from "expo-router";
-import { useWorkoutQuery } from "~/hooks/queries/workouts";
 import { Padding } from "~/components/ui/padding";
 import { ScrollView } from "react-native";
 import { SafeAreaView } from "react-native-safe-area-context";
 import { SafeAreaProvider } from "react-native-safe-area-context";
-import WorkoutView from "~/components/views/workout-view";
+import WorkoutSessionView from "~/components/views/workout-session-view";
 import { VStack } from "~/components/ui/vstack";
 import { Button } from "~/components/ui/button";
-import {
-  useFinishWorkoutMutation,
-  useStartWorkoutMutation,
-} from "~/hooks/mutations/workouts";
 import { useQueryClient } from "@tanstack/react-query";
+import {
+  useFinishWorkoutSessionMutation,
+  useWorkoutSessionQuery,
+} from "~/hooks/queries/workout-sessions";
 
-export default function WorkoutScreen() {
-  const { id } = useLocalSearchParams();
+export default function WorkoutSessionScreen() {
+  const { planId, workoutId, sessionId } = useLocalSearchParams();
+
   const {
-    data: workout,
+    data: workoutSession,
     isLoading,
     error,
-  } = useWorkoutQuery({
+  } = useWorkoutSessionQuery({
     variables: {
-      id: Number(id),
+      planId: Number(planId),
+      workoutId: Number(workoutId),
+      sessionId: Number(sessionId),
     },
   });
 
   const queryClient = useQueryClient();
 
-  const { mutate: startWorkout } = useStartWorkoutMutation({
+  const { mutate: finishWorkoutSession } = useFinishWorkoutSessionMutation({
     onSuccess: async () => {
-      await queryClient.invalidateQueries({ queryKey: ["workout"] });
-      await queryClient.invalidateQueries({ queryKey: ["workout-plans"] });
-    },
-  });
-  const { mutate: finishWorkout } = useFinishWorkoutMutation({
-    onSuccess: async () => {
-      await queryClient.invalidateQueries({ queryKey: ["workout"] });
-      await queryClient.invalidateQueries({ queryKey: ["workout-plans"] });
+      await queryClient.invalidateQueries({ queryKey: ["workout-session"] });
     },
   });
 
   const [elapsedTime, setElapsedTime] = useState<string>("");
 
   useEffect(() => {
-    if (!workout?.started_at) return;
+    if (!workoutSession?.started_at) return;
 
-    const startTime = new Date(workout.started_at).getTime();
+    const startTime = new Date(workoutSession.started_at).getTime();
 
     const timer = setInterval(() => {
       const now = Date.now();
@@ -65,7 +60,7 @@ export default function WorkoutScreen() {
     }, 1000);
 
     return () => clearInterval(timer);
-  }, [workout?.started_at]);
+  }, [workoutSession?.started_at]);
 
   if (isLoading) return <Text>Loading...</Text>;
   if (error) return <Text>Error: {error.message}</Text>;
@@ -74,7 +69,7 @@ export default function WorkoutScreen() {
     <>
       <Stack.Screen
         options={{
-          title: workout?.name,
+          title: workoutSession?.workout.name,
           headerBackTitle: "back",
         }}
       />
@@ -82,30 +77,32 @@ export default function WorkoutScreen() {
         <SafeAreaView>
           <ScrollView>
             <Padding>
-              {workout ? (
+              {workoutSession ? (
                 <VStack className="items-stretch">
-                  {!workout.finished_at ? (
-                    workout.started_at ? (
-                      <VStack className="items-stretch">
-                        <Text className="text-3xl text-center">
-                          {elapsedTime}
-                        </Text>
-                        <Button onPress={() => finishWorkout(workout.id)}>
-                          <Text>Finish Workout</Text>
-                        </Button>
-                      </VStack>
-                    ) : (
-                      <Button onPress={() => startWorkout(workout.id)}>
-                        <Text>Start Workout</Text>
+                  {!workoutSession.finished_at ? (
+                    <VStack className="items-stretch">
+                      <Text className="text-3xl text-center">
+                        {elapsedTime}
+                      </Text>
+                      <Button
+                        onPress={() =>
+                          finishWorkoutSession({
+                            planId: Number(planId),
+                            workoutId: Number(workoutId),
+                            sessionId: Number(sessionId),
+                          })
+                        }
+                      >
+                        <Text>Finish Workout</Text>
                       </Button>
-                    )
+                    </VStack>
                   ) : (
                     <Text className="text-center text-xl">
                       Workout finished{" "}
                       {(() => {
                         const diff =
-                          new Date(workout.finished_at).getTime() -
-                          new Date(workout.started_at).getTime();
+                          new Date(workoutSession.finished_at).getTime() -
+                          new Date(workoutSession.started_at).getTime();
                         const hours = Math.floor(diff / (1000 * 60 * 60));
                         const minutes = Math.floor(
                           (diff % (1000 * 60 * 60)) / (1000 * 60)
@@ -120,7 +117,7 @@ export default function WorkoutScreen() {
                     </Text>
                   )}
 
-                  <WorkoutView workout={workout} />
+                  <WorkoutSessionView workoutSession={workoutSession} />
                 </VStack>
               ) : (
                 <Text>Workout not found</Text>

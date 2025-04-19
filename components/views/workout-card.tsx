@@ -1,21 +1,14 @@
-import React, { useEffect, useState } from "react";
+import React from "react";
 import { Workout } from "~/lib/models";
-import { Card } from "@/components/ui/card";
 import { H4, P } from "@/components/ui/typography";
 import { HStack } from "@/components/ui/hstack";
 import { VStack } from "@/components/ui/vstack";
 import { Text } from "@/components/ui/text";
 import { Zap } from "@/lib/icons/Zap";
-import { Clock } from "@/lib/icons/Clock";
-import { Flame } from "@/lib/icons/Flame";
-import {
-  useFinishWorkoutMutation,
-  useStartWorkoutMutation,
-} from "~/hooks/mutations/workouts";
 import { useQueryClient } from "@tanstack/react-query";
 import { Button } from "../ui/button";
 import { ArrowRight } from "~/lib/icons/ArrowRight";
-import { Link, useRouter } from "expo-router";
+import { useRouter } from "expo-router";
 import { useCreateWorkoutSessionMutation } from "~/hooks/queries/workout-sessions";
 import { LoaderCircle } from "~/lib/icons/LoaderCircle";
 import { View } from "react-native";
@@ -40,7 +33,7 @@ export default function WorkoutCard({
       queryClient.invalidateQueries({ queryKey: ["workout"] });
       queryClient.invalidateQueries({ queryKey: ["plans"] });
       router.push(
-        `/plan/${workout.plan_id}/workout/${workout.id}/sessions/${workoutSession.id}`
+        `/plans/${workout.plan_id}/workouts/${workout.id}/sessions/${workoutSession.id}`
       );
     },
   });
