@@ -6,13 +6,10 @@ import { SafeAreaProvider } from "react-native-safe-area-context";
 import { SafeAreaView } from "react-native-safe-area-context";
 import { Pressable, ScrollView, View } from "react-native";
 import { router } from "expo-router";
-import { useStoreWorkoutPlanMutation } from "~/hooks/mutations/workout-plans";
 import { useIsProQuery } from "~/hooks/revenueCat";
 import RevenueCatUI, { PAYWALL_RESULT } from "react-native-purchases-ui";
 import { Button } from "~/components/ui/button";
-import { HStack } from "~/components/ui/hstack";
 import { useQueryClient } from "@tanstack/react-query";
-import { ArrowLeft } from "~/lib/icons/ArrowLeft";
 import { HeartPulse } from "~/lib/icons/HeartPulse";
 import { Flame } from "~/lib/icons/Flame";
 import { BicepsFlexed } from "~/lib/icons/BicepsFlexed";
@@ -23,8 +20,9 @@ import { LoaderCircle } from "~/lib/icons/LoaderCircle";
 import { RadioGroup, RadioGroupItem } from "~/components/ui/radio-group";
 import { Label } from "~/components/ui/label";
 import { Badge } from "~/components/ui/badge";
+import { useStorePlanMutation } from "~/hooks/queries/plans";
 
-export type WorkoutPlanFormValues = z.infer<typeof formSchema>;
+export type PlanFormValues = z.infer<typeof formSchema>;
 
 const formSchema = z.object({
   goal: z.enum(["lose_weight", "gain_muscle", "improve_health"]),
@@ -35,16 +33,16 @@ const formSchema = z.object({
 export default function PlanScreen() {
   const queryClient = useQueryClient();
 
-  const { mutateAsync: storeWorkoutPlan } = useStoreWorkoutPlanMutation({
+  const { mutateAsync: storePlan } = useStorePlanMutation({
     onSuccess: () => {
-      queryClient.invalidateQueries({ queryKey: ["workout-plans"] });
+      queryClient.invalidateQueries({ queryKey: ["plans"] });
       router.dismissTo("/");
     },
   });
 
   const { data: isPro } = useIsProQuery();
 
-  const form = useForm<WorkoutPlanFormValues>({
+  const form = useForm<PlanFormValues>({
     resolver: zodResolver(formSchema),
     defaultValues: {
       goal: undefined,
@@ -189,7 +187,7 @@ export default function PlanScreen() {
             disabled={form.formState.isSubmitting}
             onPress={form.handleSubmit(async (values) => {
               if (isPro) {
-                await storeWorkoutPlan(values);
+                await storePlan(values);
               } else {
                 const result = await RevenueCatUI.presentPaywall();
                 if (
@@ -197,7 +195,7 @@ export default function PlanScreen() {
                     result
                   )
                 ) {
-                  await storeWorkoutPlan(values);
+                  await storePlan(values);
                 }
               }
             })}

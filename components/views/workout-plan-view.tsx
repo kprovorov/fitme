@@ -1,5 +1,5 @@
 import React, { useEffect, useState } from "react";
-import { PlanWorkout, Plan } from "@/lib/models";
+import { Workout, Plan } from "@/lib/models";
 import { VStack } from "../ui/vstack";
 import { H2, H3, H4 } from "../ui/typography";
 import WorkoutCard from "./workout-card";
@@ -19,8 +19,8 @@ interface WorkoutPlanViewProps {
 export default function WorkoutPlanView({ plan }: WorkoutPlanViewProps) {
   const queryClient = useQueryClient();
 
-  const [nextWorkout, setNextWorkout] = useState<PlanWorkout | undefined>();
-  const [upcomingWorkouts, setUpcomingWorkouts] = useState<PlanWorkout[]>([]);
+  const [nextWorkout, setNextWorkout] = useState<Workout | undefined>();
+  const [upcomingWorkouts, setUpcomingWorkouts] = useState<Workout[]>([]);
 
   const { mutate: generateWorkoutPlan, isPending: isWorkoutPlanGenerating } =
     useGenerateWorkoutPlanMutation({
@@ -32,8 +32,7 @@ export default function WorkoutPlanView({ plan }: WorkoutPlanViewProps) {
   const { data: isPro, refetch: refetchIsPro } = useIsProQuery();
 
   useEffect(() => {
-    const nextWorkout = plan.workouts
-      .sort((a, b) => a.order - b.order)[0]
+    const nextWorkout = plan.workouts.sort((a, b) => a.order - b.order)[0];
     setNextWorkout(nextWorkout);
     const upcomingWorkouts = plan.workouts
       .filter((workout) => workout.id !== nextWorkout?.id)

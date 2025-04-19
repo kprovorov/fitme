@@ -1,11 +1,11 @@
 import React from "react";
-import { PlanWorkout } from "~/lib/models";
+import { Workout } from "~/lib/models";
 import { VStack } from "../ui/vstack";
 import WorkoutCard from "./workout-card";
 import { H3 } from "../ui/typography";
 
 interface WorkoutsListViewProps {
-  workouts: PlanWorkout[];
+  workouts: Workout[];
 }
 
 export default function WorkoutsListView({ workouts }: WorkoutsListViewProps) {
