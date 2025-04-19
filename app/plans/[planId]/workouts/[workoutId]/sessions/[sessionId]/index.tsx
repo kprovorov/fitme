@@ -34,6 +34,7 @@ export default function WorkoutSessionScreen() {
   const { mutate: finishWorkoutSession } = useFinishWorkoutSessionMutation({
     onSuccess: async () => {
       await queryClient.invalidateQueries({ queryKey: ["workout-session"] });
+      await queryClient.invalidateQueries({ queryKey: ["plans"] });
     },
   });
 
