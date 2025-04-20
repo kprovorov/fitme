@@ -35,6 +35,7 @@ export type Plan = {
   frequency: number;
   is_active: boolean;
   workouts: Workout[];
+  sessions: WorkoutSession[];
   is_generating: boolean;
 };
 
@@ -43,8 +44,10 @@ export type Workout = {
   plan_id: number;
   name: string;
   description: string;
-  exercises: WorkoutExercise[];
   order: number;
+  plan: Plan;
+  exercises: WorkoutExercise[];
+  sessions: WorkoutSession[];
 };
 
 export type WorkoutSession = {

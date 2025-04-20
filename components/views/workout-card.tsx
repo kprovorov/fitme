@@ -12,6 +12,7 @@ import { useRouter } from "expo-router";
 import { useCreateWorkoutSessionMutation } from "~/hooks/queries/workout-sessions";
 import { LoaderCircle } from "~/lib/icons/LoaderCircle";
 import { View } from "react-native";
+import { Card } from "../ui/card";
 
 interface WorkoutCardProps {
   workout: Workout;
@@ -46,33 +47,35 @@ export default function WorkoutCard({
   };
 
   return (
-    <VStack className="items-stretch flex-shrink p-4 gap-4 w-full">
-      <H4 className={`font-nunito-sans-bold text-primary`}>{workout.name}</H4>
-      <HStack className="justify-start">
-        <HStack className="gap-1">
-          <Zap size={16} color="#808080" />
-          <Text className="font-nunito-sans-bold text-sm">
-            {workout.exercises.length} Exercises
-          </Text>
+    <Card>
+      <VStack className="items-stretch flex-shrink p-4 gap-4 w-full">
+        <H4 className={`font-nunito-sans-bold text-primary`}>{workout.name}</H4>
+        <HStack className="justify-start">
+          <HStack className="gap-1">
+            <Zap size={16} color="#808080" />
+            <Text className="font-nunito-sans-bold text-sm">
+              {workout.exercises.length} Exercises
+            </Text>
+          </HStack>
         </HStack>
-      </HStack>
-      <P className="text-left text-sm text-muted-foreground">
-        {workout.description}
-      </P>
-      {state === "upcoming" && (
-        <Button onPress={startWorkout} disabled={isCreatingWorkoutSession}>
-          {isCreatingWorkoutSession ? (
-            <View className="animate-spin">
-              <LoaderCircle size={16} className="text-black" />
-            </View>
-          ) : (
-            <HStack className="gap-2">
-              <Text>Start Workout</Text>
-              <ArrowRight size={16} className="text-black" />
-            </HStack>
-          )}
-        </Button>
-      )}
-    </VStack>
+        <P className="text-left text-sm text-muted-foreground">
+          {workout.description}
+        </P>
+        {state === "upcoming" && (
+          <Button onPress={startWorkout} disabled={isCreatingWorkoutSession}>
+            {isCreatingWorkoutSession ? (
+              <View className="animate-spin">
+                <LoaderCircle size={16} className="text-black" />
+              </View>
+            ) : (
+              <HStack className="gap-2">
+                <Text>Start Workout</Text>
+                <ArrowRight size={16} className="text-black" />
+              </HStack>
+            )}
+          </Button>
+        )}
+      </VStack>
+    </Card>
   );
 }
