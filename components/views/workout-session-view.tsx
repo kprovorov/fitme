@@ -3,7 +3,7 @@ import { WorkoutSession } from "~/lib/models";
 import { VStack } from "../ui/vstack";
 import { H3, P } from "../ui/typography";
 import { Link } from "expo-router";
-import WorkoutExerciseCard from "./workout-exercise-card";
+import WorkoutSessionExerciseCard from "./workout-session-exercise-card";
 
 interface WorkoutSessionViewProps {
   workoutSession: WorkoutSession;
@@ -21,7 +21,7 @@ export default function WorkoutSessionView({
           key={exercise.id}
           href={`/plans/${workoutSession.workout.plan_id}/workouts/${workoutSession.workout.id}/sessions/${workoutSession.id}/exercises/${exercise.id}`}
         >
-          <WorkoutExerciseCard workoutExercise={exercise} />
+          <WorkoutSessionExerciseCard workoutSessionExercise={exercise} />
         </Link>
       ))}
     </VStack>

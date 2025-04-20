@@ -9,7 +9,7 @@ import { H1, Muted, P } from "~/components/ui/typography";
 import { VStack } from "~/components/ui/vstack";
 import { useWorkoutExerciseQuery } from "~/hooks/queries/workout-exercises";
 import ExerciseVideo from "~/components/exercises/exercise-video";
-import WorkoutExerciseSetsTableView from "~/components/views/workout-exercise-sets-table-view";
+import WorkoutSessionExerciseSetsTableView from "~/components/views/workout-session-exercise-sets-table-view";
 import { HStack } from "~/components/ui/hstack";
 import {
   KeyboardAwareScrollView,
@@ -58,7 +58,7 @@ export default function WorkoutExerciseScreen() {
 
               <VStack className="gap-4 px-6">
                 <Muted>{workoutExercise.exercise.instructions}</Muted>
-                <WorkoutExerciseSetsTableView
+                <WorkoutSessionExerciseSetsTableView
                   workoutExerciseSets={workoutExercise.sets}
                 />
               </VStack>
