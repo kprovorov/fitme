@@ -1,4 +1,4 @@
-import React from "react";
+import React, { useState } from "react";
 import { Workout } from "~/lib/models";
 import { H4, P } from "@/components/ui/typography";
 import { HStack } from "@/components/ui/hstack";
@@ -8,11 +8,12 @@ import { Zap } from "@/lib/icons/Zap";
 import { useQueryClient } from "@tanstack/react-query";
 import { Button } from "../ui/button";
 import { ArrowRight } from "~/lib/icons/ArrowRight";
-import { useRouter } from "expo-router";
+import { Link, useRouter } from "expo-router";
 import { useCreateWorkoutSessionMutation } from "~/hooks/queries/workout-sessions";
 import { LoaderCircle } from "~/lib/icons/LoaderCircle";
-import { View } from "react-native";
+import { Pressable, View } from "react-native";
 import { Card } from "../ui/card";
+import { ChevronRight } from "~/lib/icons/ChevronRight";
 
 interface WorkoutCardProps {
   workout: Workout;
@@ -46,36 +47,63 @@ export default function WorkoutCard({
     });
   };
 
+  const [isOpen, setIsOpen] = useState(false);
+
   return (
     <Card>
-      <VStack className="items-stretch flex-shrink p-4 gap-4 w-full">
-        <H4 className={`font-nunito-sans-bold text-primary`}>{workout.name}</H4>
-        <HStack className="justify-start">
-          <HStack className="gap-1">
-            <Zap size={16} color="#808080" />
-            <Text className="font-nunito-sans-bold text-sm">
-              {workout.exercises.length} Exercises
-            </Text>
+      <Pressable onPress={() => setIsOpen(!isOpen)}>
+        <VStack className="items-stretch flex-shrink p-4 gap-4 w-full">
+          <H4 className={`font-nunito-sans-bold text-primary`}>
+            {workout.name}
+          </H4>
+          <HStack className="justify-start">
+            <HStack className="gap-1">
+              <Zap size={16} color="#808080" />
+              <Text className="font-nunito-sans-bold text-sm">
+                {workout.exercises.length} Exercises
+              </Text>
+            </HStack>
           </HStack>
-        </HStack>
-        <P className="text-left text-sm text-muted-foreground">
-          {workout.description}
-        </P>
-        {state === "upcoming" && (
-          <Button onPress={startWorkout} disabled={isCreatingWorkoutSession}>
-            {isCreatingWorkoutSession ? (
-              <View className="animate-spin">
-                <LoaderCircle size={16} className="text-black" />
-              </View>
-            ) : (
-              <HStack className="gap-2">
-                <Text>Start Workout</Text>
-                <ArrowRight size={16} className="text-black" />
-              </HStack>
-            )}
-          </Button>
-        )}
-      </VStack>
+          <P className="text-left text-sm text-muted-foreground">
+            {workout.description}
+          </P>
+          {isOpen && (
+            <VStack className="items-stretch gap-2">
+              {workout.exercises.map((exercise) => (
+                <Link
+                  href={`/exercises/${exercise.id}`}
+                  key={exercise.id}
+                  className="active:opacity-70"
+                >
+                  <HStack className="w-full justify-between">
+                    <Text className="font-bold text-xs">
+                      <Text className="font-bold text-xs text-primary">
+                        {exercise.sets.length} x{" "}
+                      </Text>
+                      {exercise.exercise.name}
+                    </Text>
+                    <ChevronRight size={16} className="text-foreground" />
+                  </HStack>
+                </Link>
+              ))}
+            </VStack>
+          )}
+          {state === "upcoming" && (
+            <Button onPress={startWorkout} disabled={isCreatingWorkoutSession}>
+              {isCreatingWorkoutSession ? (
+                <View className="animate-spin">
+                  <LoaderCircle size={16} className="text-black" />
+                </View>
+              ) : (
+                <HStack className="gap-2">
+                  <Text>Start Workout</Text>
+                  <ArrowRight size={16} className="text-black" />
+                </HStack>
+              )}
+            </Button>
+          )}
+        </VStack>
+      </Pressable>
     </Card>
   );
 }
