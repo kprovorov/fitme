@@ -1,21 +1,23 @@
 import React, { useEffect, useState } from "react";
 import { Workout } from "~/lib/models";
-import { Card } from "@/components/ui/card";
 import { H4, P } from "@/components/ui/typography";
 import { HStack } from "@/components/ui/hstack";
 import { VStack } from "@/components/ui/vstack";
 import { Text } from "@/components/ui/text";
 import { Zap } from "@/lib/icons/Zap";
-import { Clock } from "@/lib/icons/Clock";
-import { Flame } from "@/lib/icons/Flame";
-import {
-  useFinishWorkoutMutation,
-  useStartWorkoutMutation,
-} from "~/hooks/mutations/workouts";
 import { useQueryClient } from "@tanstack/react-query";
 import { Button } from "../ui/button";
 import { ArrowRight } from "~/lib/icons/ArrowRight";
-import { Link } from "expo-router";
+import { Link, useRouter } from "expo-router";
+import {
+  useCreateWorkoutSessionMutation,
+  useFinishWorkoutSessionMutation,
+} from "~/hooks/queries/workout-sessions";
+import { LoaderCircle } from "~/lib/icons/LoaderCircle";
+import { Pressable, View } from "react-native";
+import { Card } from "../ui/card";
+import { ChevronRight } from "~/lib/icons/ChevronRight";
+import { Timer } from "~/lib/icons/Timer";
 
 interface WorkoutCardProps {
   workout: Workout;
@@ -27,26 +29,60 @@ export default function WorkoutCard({
   state = "default",
 }: WorkoutCardProps) {
   const queryClient = useQueryClient();
+  const router = useRouter();
 
-  const { mutate: startWorkout } = useStartWorkoutMutation({
-    onSuccess: () => {
+  const {
+    mutateAsync: createWorkoutSession,
+    isPending: isCreatingWorkoutSession,
+  } = useCreateWorkoutSessionMutation({
+    onSuccess: (workoutSession) => {
       queryClient.invalidateQueries({ queryKey: ["workout"] });
-      queryClient.invalidateQueries({ queryKey: ["workout-plans"] });
+      queryClient.invalidateQueries({ queryKey: ["plans"] });
+      router.push(
+        `/plans/${workout.plan_id}/workouts/${workout.id}/sessions/${workoutSession.id}`
+      );
     },
   });
-  const { mutate: finishWorkout } = useFinishWorkoutMutation({
-    onSuccess: () => {
-      queryClient.invalidateQueries({ queryKey: ["workout"] });
-      queryClient.invalidateQueries({ queryKey: ["workout-plans"] });
+
+  const {
+    mutateAsync: finishWorkoutSession,
+    isPending: isFinishingWorkoutSession,
+  } = useFinishWorkoutSessionMutation({
+    onSuccess: async () => {
+      await queryClient.invalidateQueries({ queryKey: ["workout-session"] });
+      await queryClient.invalidateQueries({ queryKey: ["plans"] });
     },
   });
+
+  const startWorkout = () => {
+    createWorkoutSession({
+      planId: workout.plan_id,
+      planWorkoutId: workout.id,
+    });
+  };
+
+  const finishWorkout = () => {
+    if (activeSession) {
+      finishWorkoutSession({
+        planId: workout.plan_id,
+        workoutId: workout.id,
+        sessionId: activeSession.id,
+      });
+    }
+  };
+
+  const [isOpen, setIsOpen] = useState(false);
+
+  const activeSession = workout.sessions.find(
+    (session) => session.started_at && !session.finished_at
+  );
 
   const [elapsedTime, setElapsedTime] = useState<string>("");
 
   useEffect(() => {
-    if (!workout?.started_at) return;
+    if (!activeSession?.started_at) return;
 
-    const startTime = new Date(workout.started_at).getTime();
+    const startTime = new Date(activeSession.started_at).getTime();
 
     const timer = setInterval(() => {
       const now = Date.now();
@@ -64,43 +100,107 @@ export default function WorkoutCard({
     }, 1000);
 
     return () => clearInterval(timer);
-  }, [workout?.started_at]);
+  }, [activeSession?.started_at]);
 
   return (
-    <Link
-      href={`/workouts/${workout.id}`}
-      className="rounded-2xl bg-card/50 active:bg-primary-foreground"
-    >
-      <VStack className="items-stretch flex-shrink p-4 gap-4 w-full">
-        <H4 className={`font-nunito-sans-bold text-primary`}>{workout.name}</H4>
-        <HStack className="justify-start">
-          <HStack className="gap-1">
-            <Zap size={16} color="#808080" />
-            <Text className="font-nunito-sans-bold text-sm">
-              {workout.exercises.length} Exercises
-            </Text>
-          </HStack>
-        </HStack>
-        <P className="text-left text-sm text-muted-foreground">
-          {workout.description}
-        </P>
-        {state === "upcoming" && !workout.started_at && (
-          <Button onPress={() => startWorkout(workout.id)}>
-            <HStack className="gap-2">
-              <Text>Start Workout</Text>
-              <ArrowRight size={16} className="text-black" />
+    <Card className="overflow-hidden">
+      <VStack className="flex-1 items-stretch gap-0">
+        {activeSession && (
+          <Link
+            href={`/plans/${workout.plan_id}/workouts/${workout.id}/sessions/${activeSession.id}`}
+            asChild
+          >
+            <Pressable className="flex flex-row items-center justify-between flex-1 bg-primary px-4 py-2 active:opacity-80">
+              <HStack className="gap-1 flex-1 justify-start">
+                <Timer size={16} className="text-primary-foreground" />
+                <Text className="font-nunito-sans-bold text-sm text-primary-foreground">
+                  {elapsedTime}
+                </Text>
+              </HStack>
+
+              <HStack className="gap-1">
+                <Text className="font-nunito-sans-bold text-sm text-primary-foreground">
+                  To Workout
+                </Text>
+                <ArrowRight size={16} className="text-primary-foreground" />
+              </HStack>
+            </Pressable>
+          </Link>
+        )}
+        <Pressable onPress={() => setIsOpen(!isOpen)}>
+          <VStack className="items-stretch flex-shrink gap-4 w-full p-4">
+            <H4 className="font-nunito-sans-bold text-primary">
+              {workout.name}
+            </H4>
+            <HStack className="justify-start">
+              <HStack className="gap-1">
+                <Zap size={16} color="#808080" />
+                <Text className="font-nunito-sans-bold text-sm">
+                  {workout.exercises.length} Exercises
+                </Text>
+              </HStack>
             </HStack>
-          </Button>
-        )}
-        {!!workout.started_at && !workout.finished_at && (
-          <VStack className="items-stretch">
-            <Text className="text-3xl text-center">{elapsedTime}</Text>
-            <Button onPress={() => finishWorkout(workout.id)}>
-              <Text>Finish Workout</Text>
-            </Button>
+            <P className="text-left text-sm text-muted-foreground">
+              {workout.description}
+            </P>
+            {isOpen && (
+              <VStack className="items-stretch gap-2">
+                {workout.exercises.map((exercise) => (
+                  <Link
+                    href={`/exercises/${exercise.id}`}
+                    key={exercise.id}
+                    className="active:opacity-70"
+                  >
+                    <HStack className="w-full justify-between">
+                      <Text className="font-bold text-xs">
+                        <Text className="font-bold text-xs text-primary">
+                          {exercise.sets.length} x{" "}
+                        </Text>
+                        {exercise.exercise.name}
+                      </Text>
+                      <ChevronRight size={16} className="text-foreground" />
+                    </HStack>
+                  </Link>
+                ))}
+              </VStack>
+            )}
+            {state === "upcoming" &&
+              (activeSession ? (
+                <Button
+                  variant="secondary"
+                  onPress={finishWorkout}
+                  disabled={isFinishingWorkoutSession}
+                >
+                  {isFinishingWorkoutSession ? (
+                    <View className="animate-spin">
+                      <LoaderCircle size={16} className="text-foreground" />
+                    </View>
+                  ) : (
+                    <HStack className="gap-2">
+                      <Text>Finish Workout</Text>
+                    </HStack>
+                  )}
+                </Button>
+              ) : (
+                <Button
+                  onPress={startWorkout}
+                  disabled={isCreatingWorkoutSession}
+                >
+                  {isCreatingWorkoutSession ? (
+                    <View className="animate-spin">
+                      <LoaderCircle size={16} className="text-black" />
+                    </View>
+                  ) : (
+                    <HStack className="gap-2">
+                      <Text>Start Workout</Text>
+                      <ArrowRight size={16} className="text-black" />
+                    </HStack>
+                  )}
+                </Button>
+              ))}
           </VStack>
-        )}
+        </Pressable>
       </VStack>
-    </Link>
+    </Card>
   );
 }

@@ -25,7 +25,7 @@ export type Profile = {
   weight: number;
 };
 
-export type WorkoutPlan = {
+export type Plan = {
   id: number;
   user_id: number;
   name: string;
@@ -35,6 +35,7 @@ export type WorkoutPlan = {
   frequency: number;
   is_active: boolean;
   workouts: Workout[];
+  sessions: WorkoutSession[];
   is_generating: boolean;
 };
 
@@ -43,10 +44,44 @@ export type Workout = {
   plan_id: number;
   name: string;
   description: string;
-  exercises: WorkoutExercise[];
   order: number;
+  plan: Plan;
+  exercises: WorkoutExercise[];
+  sessions: WorkoutSession[];
+};
+
+export type WorkoutSession = {
+  id: number;
+  workout_id: number;
   started_at: string;
   finished_at: string;
+  exercises: WorkoutSessionExercise[];
+  workout: Workout;
+};
+
+export type WorkoutSessionExercise = {
+  id: number;
+  created_at: string;
+  updated_at: string;
+  workout_session_id: number;
+  exercise_id: number;
+  order: number;
+  exercise: Exercise;
+  sets: WorkoutSessionExerciseSet[];
+};
+
+export type WorkoutSessionExerciseSet = {
+  id: number;
+  created_at: string;
+  updated_at: string;
+  workout_session_exercise_id: number;
+  order: number;
+  reps_recommended: number;
+  weight_recommended: number;
+  rest_recommended: number;
+  reps_completed: number | null;
+  weight_completed: number | null;
+  logged_at: string | null;
 };
 
 export type WorkoutExercise = {
@@ -60,13 +95,13 @@ export type WorkoutExercise = {
 
 export type WorkoutExerciseSet = {
   id: number;
+  created_at: string;
+  updated_at: string;
   workout_exercise_id: number;
-  weight_recommended: number;
-  repeats_recommended: number;
-  rest_recommended: number;
   order: number;
-  weight_done: number | null;
-  repeats_done: number | null;
+  reps_recommended: number;
+  weight_recommended: number;
+  rest_recommended: number;
 };
 
 export type Exercise = {

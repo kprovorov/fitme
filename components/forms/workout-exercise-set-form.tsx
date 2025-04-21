@@ -11,7 +11,7 @@ import { Pencil } from "~/lib/icons/Pencil";
 import { VStack } from "../ui/vstack";
 import { ErrorMessage } from "../ui/error-message";
 
-interface WorkoutExerciseSetFormProps {
+interface WorkoutSessionExerciseSetFormProps {
   onSubmit: (values: z.infer<typeof formSchema>) => Promise<void>;
   onEdit: () => void;
   hasWeight: boolean;
@@ -21,14 +21,14 @@ interface WorkoutExerciseSetFormProps {
   isEditing?: boolean;
 }
 
-export type WorkoutExerciseSetFormValues = z.infer<typeof formSchema>;
+export type WorkoutSessionExerciseSetFormValues = z.infer<typeof formSchema>;
 
 const formSchema = z.object({
   weight: z.string(),
-  repeats: z.string(),
+  reps: z.string(),
 });
 
-export default function WorkoutExerciseSetForm({
+export default function WorkoutSessionExerciseSetForm({
   onSubmit,
   onEdit,
   hasWeight = true,
@@ -36,12 +36,12 @@ export default function WorkoutExerciseSetForm({
   disabled,
   isDone,
   isEditing,
-}: WorkoutExerciseSetFormProps) {
-  const form = useForm<WorkoutExerciseSetFormValues>({
+}: WorkoutSessionExerciseSetFormProps) {
+  const form = useForm<WorkoutSessionExerciseSetFormValues>({
     resolver: zodResolver(formSchema),
     defaultValues: defaultValues ?? {
       weight: "0",
-      repeats: "0",
+      reps: "0",
     },
     disabled,
   });
@@ -83,7 +83,7 @@ export default function WorkoutExerciseSetForm({
                 className="w-full text-center font-bold"
               />
             )}
-            name="repeats"
+            name="reps"
           />
         </HStack>
 
@@ -112,8 +112,8 @@ export default function WorkoutExerciseSetForm({
       {form.formState.errors.weight && (
         <ErrorMessage>{form.formState.errors.weight.message}</ErrorMessage>
       )}
-      {form.formState.errors.repeats && (
-        <ErrorMessage>{form.formState.errors.repeats.message}</ErrorMessage>
+      {form.formState.errors.reps && (
+        <ErrorMessage>{form.formState.errors.reps.message}</ErrorMessage>
       )}
     </VStack>
   );

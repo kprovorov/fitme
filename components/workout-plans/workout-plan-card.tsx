@@ -1,9 +1,9 @@
 import React from "react";
-import { WorkoutPlan } from "@/lib/models";
+import { Plan } from "@/lib/models";
 import { Card, CardDescription, CardHeader, CardTitle } from "../ui/card";
 
 interface WorkoutPlanCardProps {
-  plan: WorkoutPlan;
+  plan: Plan;
 }
 
 export default function WorkoutPlanCard({ plan }: WorkoutPlanCardProps) {

@@ -1,5 +1,5 @@
 import React, { useEffect, useState } from "react";
-import { Workout, WorkoutPlan } from "@/lib/models";
+import { Workout, Plan } from "@/lib/models";
 import { VStack } from "../ui/vstack";
 import { H2, H3, H4 } from "../ui/typography";
 import WorkoutCard from "./workout-card";
@@ -13,7 +13,7 @@ import { View } from "react-native";
 import { LoaderCircle } from "~/lib/icons/LoaderCircle";
 
 interface WorkoutPlanViewProps {
-  plan: WorkoutPlan;
+  plan: Plan;
 }
 
 export default function WorkoutPlanView({ plan }: WorkoutPlanViewProps) {
@@ -32,14 +32,10 @@ export default function WorkoutPlanView({ plan }: WorkoutPlanViewProps) {
   const { data: isPro, refetch: refetchIsPro } = useIsProQuery();
 
   useEffect(() => {
-    const nextWorkout = plan.workouts
-      .sort((a, b) => a.order - b.order)
-      .find((workout) => !workout.finished_at);
+    const nextWorkout = plan.workouts.sort((a, b) => a.order - b.order)[0];
     setNextWorkout(nextWorkout);
     const upcomingWorkouts = plan.workouts
-      .filter(
-        (workout) => !workout.finished_at && workout.id !== nextWorkout?.id
-      )
+      .filter((workout) => workout.id !== nextWorkout?.id)
       .sort((a, b) => a.order - b.order);
     setUpcomingWorkouts(upcomingWorkouts);
   }, [plan.workouts]);

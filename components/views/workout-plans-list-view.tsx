@@ -1,5 +1,5 @@
 import React from "react";
-import { useWorkoutPlansQuery } from "@/hooks/queries/workout-plans";
+import { usePlansQuery } from "~/hooks/queries/plans";
 import WorkoutPlanCard from "../workout-plans/workout-plan-card";
 import { Link } from "expo-router";
 import { VStack } from "../ui/vstack";
@@ -9,7 +9,7 @@ import { useIsProQuery } from "~/hooks/revenueCat";
 import RevenueCatUI from "react-native-purchases-ui";
 
 export default function WorkoutPlansListView() {
-  const { data: plans, isLoading, error } = useWorkoutPlansQuery();
+  const { data: plans, isLoading, error } = usePlansQuery();
 
   const { data: isPro } = useIsProQuery();
 

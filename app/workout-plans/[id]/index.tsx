@@ -1,7 +1,7 @@
 import React from "react";
 import WorkoutPlanView from "@/components/views/workout-plan-view";
 import { Stack, useLocalSearchParams } from "expo-router";
-import { useWorkoutPlanQuery } from "@/hooks/queries/workout-plans";
+import { usePlanQuery } from "~/hooks/queries/plans";
 import { Text } from "~/components/ui/text";
 import { SafeAreaProvider } from "react-native-safe-area-context";
 import { Padding } from "~/components/ui/padding";
@@ -15,7 +15,7 @@ export default function WorkoutPlanScreen() {
     data: plan,
     isLoading,
     error,
-  } = useWorkoutPlanQuery({
+  } = usePlanQuery({
     variables: { id: Number(id) },
   });
 

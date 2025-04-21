@@ -4,11 +4,11 @@ import {
   useSafeAreaInsets,
 } from "react-native-safe-area-context";
 import { Padding } from "~/components/ui/padding";
-import { useWorkoutPlansQuery } from "~/hooks/queries/workout-plans";
+import { usePlansQuery } from "~/hooks/queries/plans";
 import { Text } from "~/components/ui/text";
 import WorkoutPlanView from "~/components/views/workout-plan-view";
 import { useState, useEffect, useCallback } from "react";
-import { WorkoutPlan } from "~/lib/models";
+import { Plan } from "~/lib/models";
 import { Button } from "~/components/ui/button";
 import { Link } from "expo-router";
 import { VStack } from "~/components/ui/vstack";
@@ -16,10 +16,10 @@ import { H1 } from "~/components/ui/typography";
 import Purchases from "react-native-purchases";
 
 export default function HomeScreen() {
-  const [activePlan, setActivePlan] = useState<WorkoutPlan | null>(null);
+  const [activePlan, setActivePlan] = useState<Plan | null>(null);
   const [refreshing, setRefreshing] = useState(false);
 
-  const { data: plans, refetch: refetchWorkoutPlans } = useWorkoutPlansQuery({
+  const { data: plans, refetch: refetchWorkoutPlans } = usePlansQuery({
     refetchInterval: 1000 * 60, // 1 minute
   });
 

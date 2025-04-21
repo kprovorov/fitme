@@ -1,27 +1,19 @@
-import React, { useCallback, useEffect, useState } from "react";
+import React, { useCallback, useState } from "react";
 import { RefreshControl, ScrollView, View } from "react-native";
 import { SafeAreaView } from "react-native-safe-area-context";
 import { H1, H3 } from "~/components/ui/typography";
 import { VStack } from "~/components/ui/vstack";
-import WorkoutsListView from "~/components/views/workouts-list-view";
-import { useWorkoutPlansQuery } from "~/hooks/queries/workout-plans";
-import { WorkoutPlan } from "~/lib/models";
+import WorkoutsSessionsListView from "~/components/views/workout-session-list-view";
+import { usePlansQuery } from "~/hooks/queries/plans";
 import { Text } from "~/components/ui/text";
 import { Link } from "expo-router";
 import { Button } from "~/components/ui/button";
 import Purchases from "react-native-purchases";
 
 export default function HistoryScreen() {
-  const [activePlan, setActivePlan] = useState<WorkoutPlan | null>(null);
   const [refreshing, setRefreshing] = useState(false);
 
-  const { data: plans, refetch: refetchWorkoutPlans } = useWorkoutPlansQuery();
-
-  useEffect(() => {
-    if (plans) {
-      setActivePlan(plans.find((plan) => plan.is_active) || null);
-    }
-  }, [plans]);
+  const { data: plans, refetch: refetchWorkoutPlans } = usePlansQuery();
 
   const onRefresh = useCallback(async () => {
     setRefreshing(true);
@@ -48,11 +40,22 @@ export default function HistoryScreen() {
         <View style={{ paddingBottom: 64 }}>
           <VStack className="items-stretch flex-1">
             <H3>Finished workouts</H3>
-            {activePlan ? (
-              <WorkoutsListView
-                workouts={activePlan.workouts.filter(
-                  (workout) => workout.finished_at
-                )}
+            {plans?.length ? (
+              <WorkoutsSessionsListView
+                workoutsSessions={plans
+                  .flatMap((plan) =>
+                    plan.workouts.map((workout) => ({
+                      ...workout,
+                      plan,
+                    }))
+                  )
+                  .flatMap((workout) =>
+                    workout.sessions.map((session) => ({
+                      ...session,
+                      workout,
+                    }))
+                  )
+                  .filter((session) => session.finished_at)}
               />
             ) : (
               <VStack className="h-full p-6">

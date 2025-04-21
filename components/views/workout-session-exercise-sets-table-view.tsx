@@ -1,20 +1,29 @@
 import React from "react";
-import { WorkoutExerciseSet } from "~/lib/models";
-import WorkoutExerciseSetRowView from "./workout-exercise-set-row-view";
+import { WorkoutSessionExerciseSet } from "~/lib/models";
 import { VStack } from "../ui/vstack";
 import { HStack } from "../ui/hstack";
 import { Text } from "../ui/text";
 import { useCurrentUserQuery } from "~/hooks/queries/auth";
-interface WorkoutExerciseSetsTableViewProps {
-  workoutExerciseSets: WorkoutExerciseSet[];
+import WorkoutSessionExerciseSetRowView from "./workout-session-exercise-set-row-view";
+
+interface WorkoutSessionExerciseSetsTableViewProps {
+  planId: number;
+  workoutId: number;
+  sessionId: number;
+  exerciseId: number;
+  workoutSessionExerciseSets: WorkoutSessionExerciseSet[];
 }
 
-export default function WorkoutExerciseSetsTableView({
-  workoutExerciseSets,
-}: WorkoutExerciseSetsTableViewProps) {
+export default function WorkoutSessionExerciseSetsTableView({
+  planId,
+  workoutId,
+  sessionId,
+  exerciseId,
+  workoutSessionExerciseSets,
+}: WorkoutSessionExerciseSetsTableViewProps) {
   const { data: user } = useCurrentUserQuery();
 
-  const hasWeight = workoutExerciseSets.some(
+  const hasWeight = workoutSessionExerciseSets.some(
     (set) => set.weight_recommended > 0
   );
 
@@ -34,12 +43,16 @@ export default function WorkoutExerciseSetsTableView({
         </Text>
       </HStack>
 
-      {workoutExerciseSets
+      {workoutSessionExerciseSets
         .sort((a, b) => a.order - b.order)
-        .map((workoutExerciseSet) => (
-          <WorkoutExerciseSetRowView
-            key={workoutExerciseSet.id}
-            workoutExerciseSet={workoutExerciseSet}
+        .map((workoutSessionExerciseSet) => (
+          <WorkoutSessionExerciseSetRowView
+            key={workoutSessionExerciseSet.id}
+            planId={planId}
+            workoutId={workoutId}
+            sessionId={sessionId}
+            exerciseId={exerciseId}
+            workoutSessionExerciseSet={workoutSessionExerciseSet}
             hasWeight={hasWeight}
           />
         ))}

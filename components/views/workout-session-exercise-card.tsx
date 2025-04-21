@@ -1,19 +1,19 @@
-import { WorkoutExercise } from "~/lib/models";
+import { WorkoutExercise, WorkoutSessionExercise } from "~/lib/models";
 import { H4, P } from "../ui/typography";
 import { HStack } from "../ui/hstack";
 import { VStack } from "../ui/vstack";
 import { Text } from "~/components/ui/text";
 import { PieChart } from "react-native-gifted-charts";
 
-interface WorkoutExerciseCardProps {
-  workoutExercise: WorkoutExercise;
+interface WorkoutSessionExerciseCardProps {
+  workoutSessionExercise: WorkoutSessionExercise;
 }
 
-export default function WorkoutExerciseCard({
-  workoutExercise,
-}: WorkoutExerciseCardProps) {
-  const setsDoneCount = workoutExercise.sets.filter(
-    (set) => set.weight_done !== null
+export default function WorkoutSessionExerciseCard({
+  workoutSessionExercise,
+}: WorkoutSessionExerciseCardProps) {
+  const setsDoneCount = workoutSessionExercise.sets.filter(
+    (set) => set.weight_completed !== null
   ).length;
 
   const data = [
@@ -22,7 +22,7 @@ export default function WorkoutExerciseCard({
       color: "#97DE71",
     },
     {
-      value: workoutExercise.sets.length - setsDoneCount,
+      value: workoutSessionExercise.sets.length - setsDoneCount,
       color: "#4B5348",
     },
   ];
@@ -40,14 +40,14 @@ export default function WorkoutExerciseCard({
             <Text className="font-bold text-2xl">{setsDoneCount}</Text>
             <Text className="text-muted-foreground text-2xl">/</Text>
             <Text className="font-bold text-primary text-2xl">
-              {workoutExercise.sets.length}
+              {workoutSessionExercise.sets.length}
             </Text>
           </HStack>
         )}
       />
       <VStack className="flex-1 gap-0 items-start">
-        <H4 className="text-primary">{workoutExercise.exercise.name}</H4>
-        <P>{workoutExercise.exercise.description}</P>
+        <H4 className="text-primary">{workoutSessionExercise.exercise.name}</H4>
+        <P>{workoutSessionExercise.exercise.description}</P>
       </VStack>
     </HStack>
   );
