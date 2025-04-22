@@ -147,8 +147,8 @@ export default function WorkoutCard({
               <VStack className="items-stretch gap-2">
                 {workout.exercises.map((exercise) => (
                   <Link
-                    href={`/exercises/${exercise.id}`}
-                    key={exercise.id}
+                    href={`/exercises/${exercise.exercise.id}`}
+                    key={exercise.exercise.id}
                     className="active:opacity-70"
                   >
                     <HStack className="w-full justify-between">
