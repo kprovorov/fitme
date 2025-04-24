@@ -10,6 +10,8 @@ import { SafeAreaProvider } from "react-native-safe-area-context";
 import { ScrollView } from "react-native";
 import React from "react";
 import WorkoutList from "~/components/views/workout-list";
+import { Button } from "~/components/ui/button";
+import { Plus } from "~/lib/icons/Plus";
 
 export default function PlanScreen() {
   const { planId } = useLocalSearchParams();

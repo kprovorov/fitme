@@ -22,12 +22,12 @@ export default function PlansListView() {
       {isPro ? (
         <Link href="/onboarding/plan" asChild>
           <Button>
-            <Text>Generate New Workout Plan</Text>
+            <Text>Create New Workout Plan</Text>
           </Button>
         </Link>
       ) : (
         <Button onPress={async () => await RevenueCatUI.presentPaywall()}>
-          <Text>Generate New Workout Plan</Text>
+          <Text>Create New Workout Plan</Text>
         </Button>
       )}
     </VStack>
