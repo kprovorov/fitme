@@ -5,7 +5,7 @@ import { cn } from "~/lib/utils";
 import { TextClassContext } from "~/components/ui/text";
 
 const buttonVariants = cva(
-  "group flex items-center justify-center rounded-md web:ring-offset-background web:transition-colors web:focus-visible:outline-none web:focus-visible:ring-2 web:focus-visible:ring-ring web:focus-visible:ring-offset-2",
+  "group flex items-center justify-center web:ring-offset-background web:transition-colors web:focus-visible:outline-none web:focus-visible:ring-2 web:focus-visible:ring-ring web:focus-visible:ring-offset-2",
   {
     variants: {
       variant: {
@@ -19,16 +19,38 @@ const buttonVariants = cva(
         link: "",
       },
       size: {
-        sm: "h-9 rounded-sm px-3 py-1.5",
-        default: "h-12 rounded-md px-4 py-2",
-        lg: "h-14 rounded-lg px-6 py-3",
+        sm: "h-9 px-3 py-1.5",
+        default: "h-12 px-4 py-2",
+        lg: "h-14 px-6 py-3",
         icon: "h-10 w-10",
         "icon-sm": "h-9 w-9",
       },
+      shape: {
+        pill: "rounded-full",
+        default: "",
+      },
     },
+    compoundVariants: [
+      {
+        size: "sm",
+        shape: "default",
+        class: "rounded-sm",
+      },
+      {
+        size: "default",
+        shape: "default",
+        class: "rounded-md",
+      },
+      {
+        size: "lg",
+        shape: "default",
+        class: "rounded-lg",
+      },
+    ],
     defaultVariants: {
       variant: "default",
       size: "default",
+      shape: "default",
     },
   }
 );
@@ -67,7 +89,7 @@ type ButtonProps = React.ComponentPropsWithoutRef<typeof Pressable> &
 const Button = React.forwardRef<
   React.ElementRef<typeof Pressable>,
   ButtonProps
->(({ className, variant, size, ...props }, ref) => {
+>(({ className, variant, size, shape, ...props }, ref) => {
   return (
     <TextClassContext.Provider
       value={buttonTextVariants({
@@ -79,7 +101,7 @@ const Button = React.forwardRef<
       <Pressable
         className={cn(
           props.disabled && "opacity-50 web:pointer-events-none",
-          buttonVariants({ variant, size, className })
+          buttonVariants({ variant, size, shape, className })
         )}
         ref={ref}
         role="button"
