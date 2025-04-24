@@ -80,7 +80,13 @@ export default function RootLayout() {
                   background: "#1E1E1E",
                 },
               }
-            : DefaultTheme
+            : {
+                ...DefaultTheme,
+                colors: {
+                  ...DefaultTheme.colors,
+                  primary: "#97DE71",
+                },
+              }
         }
       >
         <KeyboardProvider>

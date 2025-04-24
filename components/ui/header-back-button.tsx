@@ -3,6 +3,7 @@ import { ArrowLeft } from "~/lib/icons/ArrowLeft";
 import { Button } from "~/components/ui/button";
 import { useRouter } from "expo-router";
 import { cn } from "~/lib/utils";
+import { Text } from "~/components/ui/text";
 
 const HeaderBackButton = React.forwardRef<
   React.ElementRef<typeof Button>,
@@ -16,10 +17,12 @@ const HeaderBackButton = React.forwardRef<
       variant="secondary"
       size="icon-sm"
       onPress={() => router.back()}
-      className={cn("rounded-full active:opacity-80", props.className)}
+      shape="pill"
       {...props}
     >
-      <ArrowLeft size={16} className="text-white" />
+      <Text>
+        <ArrowLeft size={16} className="text-foreground" />
+      </Text>
     </Button>
   );
 });
