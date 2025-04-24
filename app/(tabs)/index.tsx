@@ -6,7 +6,6 @@ import {
 import { Padding } from "~/components/ui/padding";
 import { usePlansQuery } from "~/hooks/queries/plans";
 import { Text } from "~/components/ui/text";
-import WorkoutPlanView from "~/components/views/workout-plan-view";
 import { useState, useEffect, useCallback } from "react";
 import { Plan } from "~/lib/models";
 import { Button } from "~/components/ui/button";
@@ -14,6 +13,7 @@ import { Link } from "expo-router";
 import { VStack } from "~/components/ui/vstack";
 import { H1 } from "~/components/ui/typography";
 import Purchases from "react-native-purchases";
+import HomeView from "~/components/views/home-view";
 
 export default function HomeScreen() {
   const [activePlan, setActivePlan] = useState<Plan | null>(null);
@@ -46,13 +46,12 @@ export default function HomeScreen() {
     >
       <ScrollView
         showsVerticalScrollIndicator={false}
-        className="p-6"
         refreshControl={
           <RefreshControl refreshing={refreshing} onRefresh={onRefresh} />
         }
       >
         <View style={{ paddingBottom: 64 }}>
-          <WorkoutPlanView plan={activePlan} />
+          <HomeView plan={activePlan} />
         </View>
       </ScrollView>
     </SafeAreaView>
