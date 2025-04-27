@@ -54,7 +54,6 @@ export default function WorkoutSessionExerciseScreen() {
               )}
 
               <VStack className="gap-4 px-6">
-                <Muted>{workoutSessionExercise.exercise.instructions}</Muted>
                 <WorkoutSessionExerciseSetsTableView
                   planId={Number(planId)}
                   workoutId={Number(workoutId)}
@@ -62,6 +61,7 @@ export default function WorkoutSessionExerciseScreen() {
                   exerciseId={Number(exerciseId)}
                   workoutSessionExerciseSets={workoutSessionExercise.sets}
                 />
+                <Muted>{workoutSessionExercise.exercise.instructions}</Muted>
               </VStack>
             </VStack>
           </KeyboardAwareScrollView>
