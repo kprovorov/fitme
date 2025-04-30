@@ -16,8 +16,6 @@ import { House } from "~/lib/icons/House";
 import { BicepsFlexed } from "~/lib/icons/BicepsFlexed";
 import { Flame } from "~/lib/icons/Flame";
 import { HeartPulse } from "~/lib/icons/HeartPulse";
-import { CalendarClock } from "~/lib/icons/CalendarClock";
-import { ListChecks } from "~/lib/icons/ListChecks";
 import { getGoalLabel, getPlaceLabel } from "~/lib/labels";
 
 interface PlanCardProps {
@@ -38,9 +36,9 @@ export default function PlanCard({ plan }: PlanCardProps) {
             {[
               {
                 icon:
-                  plan.goal === "MUSCLE_GAIN" ? (
+                  plan.goal === "muscle-gain" ? (
                     <BicepsFlexed size={16} className="text-muted-foreground" />
-                  ) : plan.goal === "FAT_LOSS" ? (
+                  ) : plan.goal === "fat-loss" ? (
                     <Flame size={16} className="text-muted-foreground" />
                   ) : (
                     <HeartPulse size={16} className="text-muted-foreground" />
@@ -53,7 +51,7 @@ export default function PlanCard({ plan }: PlanCardProps) {
               },
               {
                 icon:
-                  plan.place === "GYM" ? (
+                  plan.place === "gym" ? (
                     <Dumbbell size={16} className="text-muted-foreground" />
                   ) : (
                     <House size={16} className="text-muted-foreground" />

@@ -75,14 +75,14 @@ export default function ProfileScreen() {
   const scrollViewRef = useRef<ScrollView>(null);
 
   const [heightFeet, setHeightFeet] = useState(
-    user?.measurement_system !== "METRIC"
+    user?.measurement_system !== "metric"
       ? user?.profile?.height
         ? Math.floor(user?.profile?.height / 12)
         : 5
       : 176
   );
   const [heightInches, setHeightInches] = useState(
-    user?.measurement_system !== "METRIC"
+    user?.measurement_system !== "metric"
       ? user?.profile?.height
         ? user?.profile?.height % 12
         : 0
@@ -367,7 +367,7 @@ export default function ProfileScreen() {
                         <Picker
                           selectedValue={
                             field.value ??
-                            (user.measurement_system === "METRIC" ? 80 : 176)
+                            (user.measurement_system === "metric" ? 80 : 176)
                           }
                           onValueChange={(v) => {
                             field.onChange(v);
@@ -377,7 +377,7 @@ export default function ProfileScreen() {
                         >
                           {range(
                             1,
-                            user.measurement_system === "METRIC" ? 454 : 1000
+                            user.measurement_system === "metric" ? 454 : 1000
                           ).map((i) => (
                             <Picker.Item
                               label={formatWeight(i, user.measurement_system)}
@@ -395,7 +395,7 @@ export default function ProfileScreen() {
                       name="height"
                       render={({ field, fieldState, formState }) => (
                         <>
-                          {user.measurement_system === "METRIC" ? (
+                          {user.measurement_system === "metric" ? (
                             <Picker
                               selectedValue={field.value ?? 176}
                               onValueChange={(v) => {

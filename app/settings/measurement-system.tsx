@@ -32,7 +32,7 @@ export default function MeasurementSystemScreen() {
   const { data: user } = useCurrentUserQuery();
 
   const [measurementSystemValue, setMeasurementSystemValue] =
-    useState<MeasurementSystem>(user?.measurement_system || "METRIC");
+    useState<MeasurementSystem>(user?.measurement_system || "metric");
 
   const { mutate: updateMeasurementSystem } =
     useUpdateMeasurementSystemMutation({
@@ -102,7 +102,7 @@ export default function MeasurementSystemScreen() {
                       <AlertDialogCancel
                         onPress={() =>
                           setMeasurementSystemValue(
-                            user?.measurement_system || "METRIC"
+                            user?.measurement_system || "metric"
                           )
                         }
                       >

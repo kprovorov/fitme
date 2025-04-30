@@ -12,7 +12,7 @@ export const formatHeight = (
   height: number,
   measurementSystem: MeasurementSystem
 ) => {
-  if (measurementSystem === "METRIC") {
+  if (measurementSystem === "metric") {
     return `${height} cm`;
   } else {
     const feet = Math.floor(height / 12);

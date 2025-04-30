@@ -1,19 +1,19 @@
 export const goals = [
-  "MUSCLE_GAIN",
-  "FAT_LOSS",
-  "RECOMPOSITION",
-  "STRENGTH_PERFORMANCE",
-  "GENERAL_HEALTH_FITNESS",
+  "muscle-gain",
+  "fat-loss",
+  "recomposition",
+  "strength-performance",
+  "general-health-fitness",
 ] as const;
 export type Goal = (typeof goals)[number];
 
-export const places = ["GYM", "HOME"] as const;
+export const places = ["gym", "home"] as const;
 export type Place = (typeof places)[number];
 
-export const genders = ["MALE", "FEMALE"] as const;
+export const genders = ["male", "female"] as const;
 export type Gender = (typeof genders)[number];
 
-export const measurementSystems = ["METRIC", "US", "UK"] as const;
+export const measurementSystems = ["metric", "us", "uk"] as const;
 export type MeasurementSystem = (typeof measurementSystems)[number];
 
 export type Identifiable = {

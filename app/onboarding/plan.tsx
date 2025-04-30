@@ -53,14 +53,14 @@ export default function PlanScreen() {
   });
 
   const goalOptions = [
-    { label: "Lose weight", value: "FAT_LOSS", icon: Flame },
-    { label: "Gain muscle", value: "MUSCLE_GAIN", icon: BicepsFlexed },
-    { label: "Improve health", value: "GENERAL_HEALTH_FITNESS", icon: HeartPulse },
+    { label: "Lose weight", value: "fat-loss", icon: Flame },
+    { label: "Gain muscle", value: "muscle-gain", icon: BicepsFlexed },
+    { label: "Improve health", value: "general-health-fitness", icon: HeartPulse },
   ];
 
   const placeOptions = [
-    { label: "Gym", value: "GYM" },
-    { label: "Home", value: "HOME", disabled: true, badge: "Soon" },
+    { label: "Gym", value: "gym" },
+    { label: "Home", value: "home", disabled: true, badge: "Soon" },
   ];
 
   return (

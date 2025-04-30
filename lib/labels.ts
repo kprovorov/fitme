@@ -4,11 +4,11 @@ export const getMeasurementSystemLabel = (
   measurementSystem: MeasurementSystem
 ) => {
   switch (measurementSystem) {
-    case "METRIC":
+    case "metric":
       return "Metric";
-    case "US":
+    case "us":
       return "US";
-    case "UK":
+    case "uk":
       return "UK";
   }
 };
@@ -17,66 +17,66 @@ export const getMeasurementSystemDisclaimer = (
   measurementSystem: MeasurementSystem
 ) => {
   switch (measurementSystem) {
-    case "METRIC":
+    case "metric":
       return "Centimeters and Kilograms";
-    case "US":
+    case "us":
       return "Feet, Inches and Pounds";
-    case "UK":
+    case "uk":
       return "Feet, Inches and Pounds";
   }
 };
 
 export const getWeightLabel = (measurementSystem: MeasurementSystem) => {
   switch (measurementSystem) {
-    case "METRIC":
+    case "metric":
       return "kg";
-    case "US":
+    case "us":
       return "lbs";
-    case "UK":
+    case "uk":
       return "lbs";
   }
 };
 
 export const getHeightLabel = (measurementSystem: MeasurementSystem) => {
   switch (measurementSystem) {
-    case "METRIC":
+    case "metric":
       return "cm";
-    case "US":
+    case "us":
       return "ft";
-    case "UK":
+    case "uk":
       return "ft";
   }
 };
 
 export const getGenderLabel = (gender: Gender) => {
   switch (gender) {
-    case "MALE":
+    case "male":
       return "Male";
-    case "FEMALE":
+    case "female":
       return "Female";
   }
 };
 
 export const getGoalLabel = (goal: Goal) => {
   switch (goal) {
-    case "FAT_LOSS":
+    case "fat-loss":
       return "Lose Weight";
-    case "MUSCLE_GAIN":
+    case "muscle-gain":
       return "Gain Muscle";
-    case "RECOMPOSITION":
+    case "recomposition":
       return "Recomposition";
-    case "STRENGTH_PERFORMANCE":
+    case "strength-performance":
       return "Strength & Performance";
-    case "GENERAL_HEALTH_FITNESS":
+    case "general-health-fitness":
       return "General Health & Fitness";
   }
 };
 
 export const getPlaceLabel = (place: Place) => {
   switch (place) {
-    case "GYM":
+    case "gym":
       return "Gym";
-    case "HOME":
+    case "home":
       return "Home";
   }
 };
