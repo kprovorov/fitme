@@ -21,12 +21,13 @@ import { RadioGroup, RadioGroupItem } from "~/components/ui/radio-group";
 import { Label } from "~/components/ui/label";
 import { Badge } from "~/components/ui/badge";
 import { useStorePlanMutation } from "~/hooks/queries/plans";
+import { goals, places } from "~/lib/models";
 
 export type PlanFormValues = z.infer<typeof formSchema>;
 
 const formSchema = z.object({
-  goal: z.enum(["lose_weight", "gain_muscle", "improve_health"]),
-  place: z.enum(["gym", "home"]),
+  goal: z.enum(goals),
+  place: z.enum(places),
   frequency: z.coerce.number().min(1).max(7),
 });
 
@@ -52,14 +53,14 @@ export default function PlanScreen() {
   });
 
   const goalOptions = [
-    { label: "Lose weight", value: "lose_weight", icon: Flame },
-    { label: "Gain muscle", value: "gain_muscle", icon: BicepsFlexed },
-    { label: "Improve health", value: "improve_health", icon: HeartPulse },
+    { label: "Lose weight", value: "FAT_LOSS", icon: Flame },
+    { label: "Gain muscle", value: "MUSCLE_GAIN", icon: BicepsFlexed },
+    { label: "Improve health", value: "GENERAL_HEALTH_FITNESS", icon: HeartPulse },
   ];
 
   const placeOptions = [
-    { label: "Gym", value: "gym" },
-    { label: "Home", value: "home", disabled: true, badge: "Soon" },
+    { label: "Gym", value: "GYM" },
+    { label: "Home", value: "HOME", disabled: true, badge: "Soon" },
   ];
 
   return (
