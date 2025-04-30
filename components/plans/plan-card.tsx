@@ -10,17 +10,15 @@ import {
 import { HStack } from "../ui/hstack";
 import { Zap } from "~/lib/icons/Zap";
 import { Text } from "../ui/text";
-import { View } from "react-native";
 import { Muted } from "../ui/typography";
 import { Dumbbell } from "~/lib/icons/Dumbbell";
 import { House } from "~/lib/icons/House";
-import { Calendar } from "~/lib/icons/Calendar";
-import { VStack } from "../ui/vstack";
 import { BicepsFlexed } from "~/lib/icons/BicepsFlexed";
 import { Flame } from "~/lib/icons/Flame";
 import { HeartPulse } from "~/lib/icons/HeartPulse";
 import { CalendarClock } from "~/lib/icons/CalendarClock";
 import { ListChecks } from "~/lib/icons/ListChecks";
+import { getGoalLabel, getPlaceLabel } from "~/lib/labels";
 
 interface PlanCardProps {
   plan: Plan;
@@ -40,19 +38,14 @@ export default function PlanCard({ plan }: PlanCardProps) {
             {[
               {
                 icon:
-                  plan.goal === "gain_muscle" ? (
+                  plan.goal === "MUSCLE_GAIN" ? (
                     <BicepsFlexed size={16} className="text-muted-foreground" />
-                  ) : plan.goal === "lose_weight" ? (
+                  ) : plan.goal === "FAT_LOSS" ? (
                     <Flame size={16} className="text-muted-foreground" />
                   ) : (
                     <HeartPulse size={16} className="text-muted-foreground" />
                   ),
-                label:
-                  plan.goal === "gain_muscle"
-                    ? "Gain Muscle"
-                    : plan.goal === "lose_weight"
-                    ? "Lose Weight"
-                    : "Improve Health",
+                label: getGoalLabel(plan.goal),
               },
               {
                 icon: <Zap size={16} className="text-muted-foreground" />,
@@ -60,12 +53,12 @@ export default function PlanCard({ plan }: PlanCardProps) {
               },
               {
                 icon:
-                  plan.place === "gym" ? (
+                  plan.place === "GYM" ? (
                     <Dumbbell size={16} className="text-muted-foreground" />
                   ) : (
                     <House size={16} className="text-muted-foreground" />
                   ),
-                label: plan.place === "gym" ? "Gym" : "Home",
+                label: getPlaceLabel(plan.place),
               },
               {
                 icon: (

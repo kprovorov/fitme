@@ -64,7 +64,8 @@ export default function RegisterView() {
         onSubmit={async (values) => {
           await register({
             ...values,
-            measurement_system: locales[0].measurementSystem ?? "metric",
+            measurement_system:
+              locales[0].measurementSystem === "metric" ? "METRIC" : "US",
           });
         }}
         errors={errors}
