@@ -1,26 +1,11 @@
 import React, { useEffect, useState } from "react";
 import { Plan } from "~/lib/models";
 import { usePlansQuery } from "~/hooks/queries/plans";
-import { H3, H4 } from "../ui/typography";
+import { H4 } from "../ui/typography";
 import { VStack } from "../ui/vstack";
 import PlanCard from "../plans/plan-card";
 import { HStack } from "../ui/hstack";
 import { Button } from "../ui/button";
-import { Ellipsis } from "~/lib/icons/Ellipsis";
-import Animated, { FadeIn } from "react-native-reanimated";
-import {
-  DropdownMenu,
-  DropdownMenuTrigger,
-  DropdownMenuContent,
-  DropdownMenuLabel,
-  DropdownMenuSeparator,
-  DropdownMenuGroup,
-  DropdownMenuItem,
-  DropdownMenuSub,
-  DropdownMenuSubTrigger,
-  DropdownMenuSubContent,
-  DropdownMenuShortcut,
-} from "../ui/dropdown-menu";
 import { Text } from "../ui/text";
 import { ArrowRight } from "~/lib/icons/ArrowRight";
 import { Link } from "expo-router";

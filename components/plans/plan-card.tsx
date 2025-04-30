@@ -49,7 +49,7 @@ export default function PlanCard({ plan }: PlanCardProps) {
               },
               {
                 icon: <Zap size={16} className="text-muted-foreground" />,
-                label: `${plan.workouts.length} workouts`,
+                label: `${plan.frequency}x per week`,
               },
               {
                 icon:
@@ -59,18 +59,6 @@ export default function PlanCard({ plan }: PlanCardProps) {
                     <House size={16} className="text-muted-foreground" />
                   ),
                 label: getPlaceLabel(plan.place),
-              },
-              {
-                icon: (
-                  <ListChecks size={16} className="text-muted-foreground" />
-                ),
-                label: `${plan.frequency}x per week`,
-              },
-              {
-                icon: (
-                  <CalendarClock size={16} className="text-muted-foreground" />
-                ),
-                label: "4 weeks",
               },
             ].map((item, index) => (
               <HStack className="gap-1" key={index}>
