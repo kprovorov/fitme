@@ -155,7 +155,6 @@ export default function ProfileScreen() {
                 ref={scrollViewRef}
                 showsVerticalScrollIndicator={false}
               >
-                (
                 <TouchableWithoutFeedback
                   className="flex-1 w-full"
                   onPress={() => {
