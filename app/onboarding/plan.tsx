@@ -29,6 +29,10 @@ import {
 import { HStack } from "~/components/ui/hstack";
 import Slider from "@react-native-community/slider";
 import { Textarea } from "~/components/ui/textarea";
+import {
+  KeyboardAvoidingView,
+  KeyboardAwareScrollView,
+} from "react-native-keyboard-controller";
 
 export type PlanFormValues = z.infer<typeof formSchema>;
 
@@ -79,8 +83,13 @@ export default function PlanScreen() {
   return (
     <SafeAreaProvider>
       <SafeAreaView className="flex-1">
-        <ScrollView className="flex-1" showsVerticalScrollIndicator={false}>
-          <VStack className="h-full p-6 items-center justify-center gap-4">
+        <KeyboardAwareScrollView
+          className="flex-1"
+          showsVerticalScrollIndicator={false}
+          bottomOffset={24}
+          keyboardShouldPersistTaps="handled"
+        >
+          <VStack className="p-md items-center justify-center gap-4">
             <VStack className="gap-2">
               <H2 className="text-center">Create workout plan</H2>
             </VStack>
@@ -276,6 +285,7 @@ export default function PlanScreen() {
                     placeholder="e.g. I want to pay more attention to my abs"
                     value={value}
                     onChangeText={onChange}
+                    className="h-48"
                   />
                 )}
               />
@@ -286,7 +296,7 @@ export default function PlanScreen() {
               )}
             </VStack>
           </VStack>
-        </ScrollView>
+        </KeyboardAwareScrollView>
         <VStack className="p-6 items-stretch gap-2">
           <Button
             disabled={form.formState.isSubmitting}
