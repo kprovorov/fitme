@@ -17,9 +17,14 @@ import PlanDataView from "~/components/views/plan-data-view";
 import { Button } from "~/components/ui/button";
 import { Text } from "~/components/ui/text";
 import { useQueryClient } from "@tanstack/react-query";
+import { useIsProQuery } from "~/hooks/revenueCat";
+import RevenueCatUI, { PAYWALL_RESULT } from "react-native-purchases-ui";
+
 export default function Preview() {
   const router = useRouter();
   const queryClient = useQueryClient();
+
+  const { data: isPro } = useIsProQuery();
 
   const { goal, place, frequency, experience_level, workout_duration, note } =
     useLocalSearchParams<{
@@ -77,7 +82,21 @@ export default function Preview() {
             </ScrollView>
             <VStack className="px-md pb-md items-stretch gap-2">
               <Button
-                onPress={() => storePlan(planData)}
+                onPress={async () => {
+                  if (isPro) {
+                    storePlan(planData);
+                  } else {
+                    const result = await RevenueCatUI.presentPaywall();
+                    if (
+                      [
+                        PAYWALL_RESULT.PURCHASED,
+                        PAYWALL_RESULT.RESTORED,
+                      ].includes(result)
+                    ) {
+                      storePlan(planData);
+                    }
+                  }
+                }}
                 disabled={isStoringPlan || isGeneratingPlan}
               >
                 {isStoringPlan ? (
