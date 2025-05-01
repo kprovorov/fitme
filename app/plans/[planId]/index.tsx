@@ -2,7 +2,11 @@ import { HStack } from "~/components/ui/hstack";
 import { VStack } from "~/components/ui/vstack";
 import { Text } from "~/components/ui/text";
 import { Stack, useLocalSearchParams, useRouter } from "expo-router";
-import { useActivatePlanMutation, usePlanQuery } from "~/hooks/queries/plans";
+import {
+  useActivatePlanMutation,
+  useDeletePlanMutation,
+  usePlanQuery,
+} from "~/hooks/queries/plans";
 import { Alert, RefreshControl } from "react-native";
 import { SafeAreaView } from "react-native-safe-area-context";
 import { HeaderBackButton } from "~/components/ui/header-back-button";
@@ -23,6 +27,14 @@ export default function PlanScreen() {
 
   const { mutate: activatePlan, isPending: isActivatingPlan } =
     useActivatePlanMutation({
+      onSuccess: () => {
+        queryClient.invalidateQueries({ queryKey: ["plans"] });
+        router.dismissTo("/");
+      },
+    });
+
+  const { mutate: deletePlan, isPending: isDeletingPlan } =
+    useDeletePlanMutation({
       onSuccess: () => {
         queryClient.invalidateQueries({ queryKey: ["plans"] });
         router.dismissTo("/");
@@ -58,6 +70,7 @@ export default function PlanScreen() {
                 {
                   title: "Activate Plan",
                   systemIcon: "bolt",
+                  disabled: plan?.is_active,
                 },
                 {
                   title: "Archive",
@@ -85,7 +98,28 @@ export default function PlanScreen() {
                 }
 
                 if (e.nativeEvent.name === "Archive") {
-                  console.log("Archive");
+                  if (plan?.is_active) {
+                    Alert.alert(
+                      "Archive Plan",
+                      "You cannot archive an active plan. You should have at least one active plan at all times."
+                    );
+                  } else {
+                    Alert.alert(
+                      "Archive Plan",
+                      "Are you sure you want to archive this plan?",
+                      [
+                        {
+                          text: "Cancel",
+                          onPress: () => console.log("Cancel Pressed"),
+                          style: "cancel",
+                        },
+                        {
+                          text: "Archive",
+                          onPress: () => deletePlan({ id: Number(planId) }),
+                        },
+                      ]
+                    );
+                  }
                 }
               }}
             >

@@ -54,3 +54,15 @@ export const useActivatePlanMutation = createMutation<
     return res.data;
   },
 });
+
+export const useDeletePlanMutation = createMutation<
+  void,
+  { id: number },
+  AxiosError<ServerError<{ id: number }>>
+>({
+  mutationFn: async (data: { id: number }): Promise<void> => {
+    const res = await api.delete<void>(`/api/plans/${data.id}`);
+
+    return res.data;
+  },
+});
