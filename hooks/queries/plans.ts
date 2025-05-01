@@ -1,5 +1,5 @@
 import { api, ServerError } from "@/lib/api";
-import { Goal, Place, Plan } from "@/lib/models";
+import { ExperienceLevel, Goal, Place, Plan } from "@/lib/models";
 import { AxiosError } from "axios";
 import { createMutation, createQuery } from "react-query-kit";
 
@@ -29,6 +29,8 @@ type StorePlanData = {
   goal: Goal;
   place: Place;
   frequency: number;
+  experience_level: ExperienceLevel;
+  workout_duration: number;
 };
 
 export const useStorePlanMutation = createMutation<

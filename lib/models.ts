@@ -10,6 +10,13 @@ export type Goal = (typeof goals)[number];
 export const places = ["gym", "home"] as const;
 export type Place = (typeof places)[number];
 
+export const experienceLevels = [
+  "beginner",
+  "intermediate",
+  "advanced",
+] as const;
+export type ExperienceLevel = (typeof experienceLevels)[number];
+
 export const genders = ["male", "female"] as const;
 export type Gender = (typeof genders)[number];
 
@@ -58,6 +65,8 @@ export type Plan = Model & {
   goal: Goal;
   place: Place;
   frequency: number;
+  experience_level: ExperienceLevel;
+  session_duration: number;
   is_generating: boolean;
   is_active: boolean;
   workouts: Workout[];

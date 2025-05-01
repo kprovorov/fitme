@@ -21,7 +21,13 @@ import { RadioGroup, RadioGroupItem } from "~/components/ui/radio-group";
 import { Label } from "~/components/ui/label";
 import { Badge } from "~/components/ui/badge";
 import { useStorePlanMutation } from "~/hooks/queries/plans";
-import { goals, places } from "~/lib/models";
+import { experienceLevels, goals, places } from "~/lib/models";
+import {
+  getExperienceLevelDisclaimer,
+  getExperienceLevelLabel,
+} from "~/lib/labels";
+import { HStack } from "~/components/ui/hstack";
+import Slider from "@react-native-community/slider";
 
 export type PlanFormValues = z.infer<typeof formSchema>;
 
@@ -29,6 +35,8 @@ const formSchema = z.object({
   goal: z.enum(goals),
   place: z.enum(places),
   frequency: z.coerce.number().min(1).max(7),
+  experience_level: z.enum(experienceLevels),
+  workout_duration: z.coerce.number().min(1).max(120),
 });
 
 export default function PlanScreen() {
@@ -46,16 +54,19 @@ export default function PlanScreen() {
   const form = useForm<PlanFormValues>({
     resolver: zodResolver(formSchema),
     defaultValues: {
-      goal: undefined,
-      place: undefined,
-      frequency: undefined,
+      place: "gym",
+      workout_duration: 60,
     },
   });
 
   const goalOptions = [
     { label: "Lose weight", value: "fat-loss", icon: Flame },
     { label: "Gain muscle", value: "muscle-gain", icon: BicepsFlexed },
-    { label: "Improve health", value: "general-health-fitness", icon: HeartPulse },
+    {
+      label: "Improve health",
+      value: "general-health-fitness",
+      icon: HeartPulse,
+    },
   ];
 
   const placeOptions = [
@@ -69,9 +80,7 @@ export default function PlanScreen() {
         <ScrollView className="flex-1" showsVerticalScrollIndicator={false}>
           <VStack className="h-full p-6 items-center justify-center gap-4">
             <VStack className="gap-2">
-              <H2 className="text-center">
-                Now, let's create your workout plan!
-              </H2>
+              <H2 className="text-center">Create workout plan</H2>
             </VStack>
             <VStack className="items-stretch w-full">
               <VStack className="gap-0 justify-start items-start">
@@ -107,6 +116,76 @@ export default function PlanScreen() {
               {form.formState.errors.goal && (
                 <Text className="text-red-500">
                   {form.formState.errors.goal.message}
+                </Text>
+              )}
+
+              <VStack className="gap-0 justify-start items-start">
+                <H4>Experience</H4>
+                <Text className="text-sm text-muted-foreground">
+                  How much experience do you have?
+                </Text>
+              </VStack>
+
+              <Controller
+                control={form.control}
+                name="experience_level"
+                render={({ field: { onChange, onBlur, value } }) => (
+                  <RadioGroup
+                    value={value}
+                    onValueChange={onChange}
+                    className="flex flex-col gap-4 justify-stretch items-stretch"
+                  >
+                    {experienceLevels.map((option) => (
+                      <RadioGroupItemWithLabel
+                        key={option}
+                        value={option}
+                        label={getExperienceLevelLabel(option)}
+                        disabled={false}
+                        isSelected={option === value}
+                        onLabelPress={() => onChange(option)}
+                        disclaimer={getExperienceLevelDisclaimer(option)}
+                      />
+                    ))}
+                  </RadioGroup>
+                )}
+              />
+              {form.formState.errors.experience_level && (
+                <Text className="text-red-500">
+                  {form.formState.errors.experience_level.message}
+                </Text>
+              )}
+
+              <VStack className="gap-0 justify-start items-stretch">
+                <HStack className="justify-between items-center">
+                  <H4>Workout duration</H4>
+                  <Text className="text-sm text-primary">
+                    {form.watch("workout_duration")} minutes
+                  </Text>
+                </HStack>
+                <Text className="text-sm text-muted-foreground">
+                  How long do you want to workout?
+                </Text>
+              </VStack>
+
+              <Controller
+                control={form.control}
+                name="workout_duration"
+                render={({ field: { onChange, onBlur, value } }) => (
+                  <Slider
+                    style={{ width: "100%", height: 40 }}
+                    minimumValue={30}
+                    maximumValue={120}
+                    minimumTrackTintColor="#FFFFFF"
+                    maximumTrackTintColor="#000000"
+                    step={10}
+                    value={value}
+                    onValueChange={onChange}
+                  />
+                )}
+              />
+              {form.formState.errors.workout_duration && (
+                <Text className="text-red-500">
+                  {form.formState.errors.workout_duration.message}
                 </Text>
               )}
 
@@ -228,6 +307,7 @@ export default function PlanScreen() {
 function RadioGroupItemWithLabel({
   value,
   label,
+  disclaimer,
   disabled,
   badge,
   isSelected,
@@ -235,6 +315,7 @@ function RadioGroupItemWithLabel({
 }: {
   value: string;
   label: string;
+  disclaimer?: string;
   disabled: boolean;
   badge?: string;
   isSelected: boolean;
@@ -252,20 +333,25 @@ function RadioGroupItemWithLabel({
         value={value}
         disabled={disabled}
       />
-      <Label
-        nativeID={`label-for-${value}`}
-        className={`text-base text-white font-nunito-sans-bold ${
-          disabled ? "opacity-50" : ""
-        }`}
-        onPress={() => !disabled && onLabelPress()}
-      >
-        {label}
-      </Label>
-      {badge && (
-        <Badge variant="secondary">
-          <Text>{badge}</Text>
-        </Badge>
-      )}
+      <HStack className="flex-1 justify-between items-center p-0 gap-0">
+        <VStack className="flex-1 items-start gap-0 p-0">
+          <Label
+            nativeID={`label-for-${value}`}
+            className={`text-base text-white font-nunito-sans-bold ${
+              disabled ? "opacity-50" : ""
+            }`}
+            onPress={() => !disabled && onLabelPress()}
+          >
+            {label}
+          </Label>
+          {!!disclaimer && <Muted className="text-sm">{disclaimer}</Muted>}
+        </VStack>
+        {badge && (
+          <Badge variant="secondary">
+            <Text>{badge}</Text>
+          </Badge>
+        )}
+      </HStack>
     </Pressable>
   );
 }

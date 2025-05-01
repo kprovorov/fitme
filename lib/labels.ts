@@ -1,4 +1,10 @@
-import { Gender, Goal, MeasurementSystem, Place } from "./models";
+import {
+  ExperienceLevel,
+  Gender,
+  Goal,
+  MeasurementSystem,
+  Place,
+} from "./models";
 
 export const getMeasurementSystemLabel = (
   measurementSystem: MeasurementSystem
@@ -78,5 +84,29 @@ export const getPlaceLabel = (place: Place) => {
       return "Gym";
     case "home":
       return "Home";
+  }
+};
+
+export const getExperienceLevelLabel = (experienceLevel: ExperienceLevel) => {
+  switch (experienceLevel) {
+    case "beginner":
+      return "Beginner";
+    case "intermediate":
+      return "Intermediate";
+    case "advanced":
+      return "Advanced";
+  }
+};
+
+export const getExperienceLevelDisclaimer = (
+  experienceLevel: ExperienceLevel
+) => {
+  switch (experienceLevel) {
+    case "beginner":
+      return "0-6 mo experience";
+    case "intermediate":
+      return "6 mo - 3 yrs experience";
+    case "advanced":
+      return "3+ yrs experience";
   }
 };
