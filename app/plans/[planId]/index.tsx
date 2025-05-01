@@ -1,9 +1,9 @@
 import { HStack } from "~/components/ui/hstack";
 import { VStack } from "~/components/ui/vstack";
 import { Text } from "~/components/ui/text";
-import { Stack, useLocalSearchParams } from "expo-router";
-import { usePlanQuery } from "~/hooks/queries/plans";
-import { RefreshControl } from "react-native";
+import { Stack, useLocalSearchParams, useRouter } from "expo-router";
+import { useActivatePlanMutation, usePlanQuery } from "~/hooks/queries/plans";
+import { Alert, RefreshControl } from "react-native";
 import { SafeAreaView } from "react-native-safe-area-context";
 import { HeaderBackButton } from "~/components/ui/header-back-button";
 import { SafeAreaProvider } from "react-native-safe-area-context";
@@ -12,9 +12,22 @@ import React from "react";
 import WorkoutList from "~/components/views/workout-list";
 import { Button } from "~/components/ui/button";
 import { Plus } from "~/lib/icons/Plus";
+import { Ellipsis } from "~/lib/icons/Ellipsis";
+import ContextMenu from "react-native-context-menu-view";
+import { useQueryClient } from "@tanstack/react-query";
 
 export default function PlanScreen() {
   const { planId } = useLocalSearchParams();
+  const queryClient = useQueryClient();
+  const router = useRouter();
+
+  const { mutate: activatePlan, isPending: isActivatingPlan } =
+    useActivatePlanMutation({
+      onSuccess: () => {
+        queryClient.invalidateQueries({ queryKey: ["plans"] });
+        router.dismissTo("/");
+      },
+    });
 
   const {
     data: plan,
@@ -38,6 +51,51 @@ export default function PlanScreen() {
           title: plan?.name ?? "",
           headerBackButtonDisplayMode: "minimal",
           headerLeft: () => <HeaderBackButton />,
+          headerRight: () => (
+            <ContextMenu
+              dropdownMenuMode
+              actions={[
+                {
+                  title: "Activate Plan",
+                  systemIcon: "bolt",
+                },
+                {
+                  title: "Archive",
+                  systemIcon: "trash",
+                  destructive: true,
+                },
+              ]}
+              onPress={(e) => {
+                if (e.nativeEvent.name === "Activate Plan") {
+                  Alert.alert(
+                    "Activate Plan",
+                    "This will deactivate your current plan",
+                    [
+                      {
+                        text: "Cancel",
+                        onPress: () => console.log("Cancel Pressed"),
+                        style: "cancel",
+                      },
+                      {
+                        text: "Activate",
+                        onPress: () => activatePlan({ id: Number(planId) }),
+                      },
+                    ]
+                  );
+                }
+
+                if (e.nativeEvent.name === "Archive") {
+                  console.log("Archive");
+                }
+              }}
+            >
+              <Button variant="secondary" size="icon-sm" shape="pill">
+                <Text>
+                  <Ellipsis size={16} className="text-foreground" />
+                </Text>
+              </Button>
+            </ContextMenu>
+          ),
         }}
       />
       <SafeAreaProvider>

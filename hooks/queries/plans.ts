@@ -42,3 +42,15 @@ export const useStorePlanMutation = createMutation<
     return res.data;
   },
 });
+
+export const useActivatePlanMutation = createMutation<
+  Plan,
+  { id: number },
+  AxiosError<ServerError<{ id: number }>>
+>({
+  mutationFn: async (data: { id: number }): Promise<Plan> => {
+    const res = await api.patch<Plan>(`/api/plans/${data.id}/activate`);
+
+    return res.data;
+  },
+});
