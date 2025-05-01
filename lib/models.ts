@@ -52,6 +52,7 @@ export type Profile = Model & {
 
 export type Exercise = Model & {
   name: string;
+  slug: string;
   description: string;
   instructions: string;
   video_url: string;
@@ -66,7 +67,8 @@ export type Plan = Model & {
   place: Place;
   frequency: number;
   experience_level: ExperienceLevel;
-  session_duration: number;
+  workout_duration: number;
+  note?: string;
   is_generating: boolean;
   is_active: boolean;
   workouts: Workout[];
@@ -124,4 +126,37 @@ export type WorkoutSessionExerciseSet = Model & {
   reps_completed: number | null;
   weight_completed: number | null;
   logged_at: string | null;
+};
+
+export type PlanData = {
+  name: string;
+  description: string;
+  goal: Goal;
+  place: Place;
+  frequency: number;
+  experience_level: ExperienceLevel;
+  workout_duration: number;
+  note?: string;
+  workouts: WorkoutData[];
+};
+
+export type WorkoutData = {
+  name: string;
+  description: string;
+  order: number;
+  exercises: WorkoutExerciseData[];
+};
+
+export type WorkoutExerciseData = {
+  exercise_id: number;
+  exercise: Exercise;
+  order: number;
+  sets: WorkoutExerciseSetData[];
+};
+
+export type WorkoutExerciseSetData = {
+  order: number;
+  reps_recommended: number;
+  weight_recommended: number;
+  rest_recommended: number;
 };
