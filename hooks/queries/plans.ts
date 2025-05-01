@@ -1,5 +1,5 @@
 import { api, ServerError } from "@/lib/api";
-import { ExperienceLevel, Goal, Place, Plan } from "@/lib/models";
+import { ExperienceLevel, Goal, Place, Plan, PlanData } from "@/lib/models";
 import { AxiosError } from "axios";
 import { createMutation, createQuery } from "react-query-kit";
 
@@ -65,6 +65,24 @@ export const useDeletePlanMutation = createMutation<
 >({
   mutationFn: async (data: { id: number }): Promise<void> => {
     const res = await api.delete<void>(`/api/plans/${data.id}`);
+
+    return res.data;
+  },
+});
+
+type PreviewPlanData = {
+  goal: Goal;
+  place: Place;
+  frequency: number;
+  experience_level: ExperienceLevel;
+  workout_duration: number;
+  note?: string;
+};
+
+export const usePreviewPlanQuery = createQuery<PlanData, PreviewPlanData>({
+  queryKey: ["previewPlan"],
+  fetcher: async (data: PreviewPlanData): Promise<PlanData> => {
+    const res = await api.post<PlanData>("/api/plans/preview", data);
 
     return res.data;
   },
