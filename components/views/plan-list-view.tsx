@@ -20,7 +20,7 @@ export default function PlansListView() {
         </Link>
       ))}
       {isPro ? (
-        <Link href="/onboarding/plan" asChild>
+        <Link href="/planner" asChild>
           <Button>
             <Text>Create New Workout Plan</Text>
           </Button>

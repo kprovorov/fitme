@@ -123,7 +123,7 @@ export default function ProfileScreen() {
   const { mutateAsync: storeProfile, isPending: isStoringProfilePending } =
     useStoreProfileMutation({
       onSuccess: () => {
-        router.push("/onboarding/plan");
+        router.push("/planner");
       },
     });
 
