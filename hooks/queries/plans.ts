@@ -1,6 +1,8 @@
 import { api, ServerError } from "@/lib/api";
 import { ExperienceLevel, Goal, Place, Plan, PlanData } from "@/lib/models";
 import { AxiosError } from "axios";
+import { PAYWALL_RESULT } from "react-native-purchases-ui";
+import RevenueCatUI from "react-native-purchases-ui";
 import { createMutation, createQuery } from "react-query-kit";
 
 export const usePlansQuery = createQuery<Plan[]>({
@@ -79,7 +81,11 @@ type PreviewPlanData = {
   note?: string;
 };
 
-export const usePreviewPlanQuery = createQuery<PlanData, PreviewPlanData>({
+export const usePreviewPlanQuery = createQuery<
+  PlanData,
+  PreviewPlanData,
+  AxiosError<ServerError<PreviewPlanData>>
+>({
   queryKey: ["previewPlan"],
   fetcher: async (data: PreviewPlanData): Promise<PlanData> => {
     const res = await api.post<PlanData>("/api/plans/preview", data);

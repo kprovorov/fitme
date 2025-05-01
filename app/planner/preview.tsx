@@ -1,10 +1,11 @@
 import { router, useLocalSearchParams, useRouter } from "expo-router";
-import React from "react";
+import React, { useEffect } from "react";
 import { SafeAreaProvider } from "react-native-safe-area-context";
 import { ScrollView, View } from "react-native";
 import { SafeAreaView } from "react-native-safe-area-context";
 import { VStack } from "~/components/ui/vstack";
 import {
+  usePlansQuery,
   usePreviewPlanQuery,
   useStorePlanMutation,
 } from "~/hooks/queries/plans";
@@ -24,6 +25,8 @@ export default function Preview() {
   const router = useRouter();
   const queryClient = useQueryClient();
 
+  const { data: plans } = usePlansQuery();
+
   const { data: isPro } = useIsProQuery();
 
   const { goal, place, frequency, experience_level, workout_duration, note } =
@@ -38,6 +41,7 @@ export default function Preview() {
 
   const {
     data: planData,
+    error,
     isFetching: isGeneratingPlan,
     refetch: refetchPlan,
   } = usePreviewPlanQuery({
@@ -49,7 +53,28 @@ export default function Preview() {
       workout_duration: parseInt(workout_duration),
       note,
     },
+    retry: false,
   });
+
+  useEffect(() => {
+    const presentPaywall = async () => {
+      const result = await RevenueCatUI.presentPaywall();
+
+      if (
+        [PAYWALL_RESULT.PURCHASED, PAYWALL_RESULT.RESTORED].includes(result)
+      ) {
+        refetchPlan();
+      }
+
+      if (result === PAYWALL_RESULT.CANCELLED) {
+        router.dismiss();
+      }
+    };
+
+    if (error?.response?.status === 403) {
+      presentPaywall();
+    }
+  }, [error]);
 
   const { mutate: storePlan, isPending: isStoringPlan } = useStorePlanMutation({
     onSuccess: () => {
@@ -61,19 +86,7 @@ export default function Preview() {
   return (
     <SafeAreaProvider>
       <SafeAreaView className="flex-1">
-        {isGeneratingPlan ? (
-          <VStack className="flex-1 h-full justify-center items-center gap-2">
-            <View className="animate-spin">
-              <LoaderCircle size={32} className="text-primary" />
-            </View>
-            <P className="font-bold text-center text-sm">
-              Hold on... AI is working hard to create your plan!
-            </P>
-            <Muted className="text-center text-sm">
-              This may take a couple of minutes.
-            </Muted>
-          </VStack>
-        ) : planData ? (
+        {planData ? (
           <VStack className="flex-1 items-stretch">
             <ScrollView className="flex-1" showsVerticalScrollIndicator={false}>
               <VStack className="flex-1 p-md">
@@ -87,6 +100,7 @@ export default function Preview() {
                     storePlan(planData);
                   } else {
                     const result = await RevenueCatUI.presentPaywall();
+
                     if (
                       [
                         PAYWALL_RESULT.PURCHASED,
@@ -124,9 +138,15 @@ export default function Preview() {
           </VStack>
         ) : (
           <VStack className="flex-1 h-full justify-center items-center gap-2">
+            <View className="animate-spin">
+              <LoaderCircle size={32} className="text-primary" />
+            </View>
             <P className="font-bold text-center text-sm">
-              No plan found. Please try again.
+              Hold on... AI is working hard to create your plan!
             </P>
+            <Muted className="text-center text-sm">
+              This may take a couple of minutes.
+            </Muted>
           </VStack>
         )}
       </SafeAreaView>
