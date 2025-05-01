@@ -28,6 +28,7 @@ import {
 } from "~/lib/labels";
 import { HStack } from "~/components/ui/hstack";
 import Slider from "@react-native-community/slider";
+import { Textarea } from "~/components/ui/textarea";
 
 export type PlanFormValues = z.infer<typeof formSchema>;
 
@@ -37,6 +38,7 @@ const formSchema = z.object({
   frequency: z.coerce.number().min(1).max(7),
   experience_level: z.enum(experienceLevels),
   workout_duration: z.coerce.number().min(1).max(120),
+  note: z.string().optional(),
 });
 
 export default function PlanScreen() {
@@ -175,8 +177,7 @@ export default function PlanScreen() {
                     style={{ width: "100%", height: 40 }}
                     minimumValue={30}
                     maximumValue={120}
-                    minimumTrackTintColor="#FFFFFF"
-                    maximumTrackTintColor="#000000"
+                    minimumTrackTintColor="#97DE71"
                     step={10}
                     value={value}
                     onValueChange={onChange}
@@ -257,6 +258,30 @@ export default function PlanScreen() {
               {form.formState.errors.frequency && (
                 <Text className="text-red-500">
                   {form.formState.errors.frequency.message}
+                </Text>
+              )}
+
+              <VStack className="gap-0 justify-start items-start">
+                <H4>Custom note</H4>
+                <Text className="text-sm text-muted-foreground">
+                  Add a custom note to your plan
+                </Text>
+              </VStack>
+
+              <Controller
+                control={form.control}
+                name="note"
+                render={({ field: { onChange, onBlur, value } }) => (
+                  <Textarea
+                    placeholder="e.g. I want to pay more attention to my abs"
+                    value={value}
+                    onChangeText={onChange}
+                  />
+                )}
+              />
+              {form.formState.errors.note && (
+                <Text className="text-red-500">
+                  {form.formState.errors.note.message}
                 </Text>
               )}
             </VStack>

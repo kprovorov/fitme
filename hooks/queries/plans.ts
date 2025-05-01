@@ -31,6 +31,7 @@ type StorePlanData = {
   frequency: number;
   experience_level: ExperienceLevel;
   workout_duration: number;
+  note?: string;
 };
 
 export const useStorePlanMutation = createMutation<
