@@ -70,7 +70,7 @@ export default function Preview() {
       }
     };
 
-    if (error?.response?.status === 403) {
+    if (error?.response?.status && [403, 429].includes(error.response.status)) {
       presentPaywall();
     }
   }, [error]);
