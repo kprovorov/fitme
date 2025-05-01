@@ -271,10 +271,12 @@ export default function ProfileScreen() {
                                   : "text-muted-foreground"
                               )}
                             >
-                              {formatWeight(
-                                form.getValues("weight"),
-                                user.measurement_system
-                              )}
+                              {form.getValues("weight")
+                                ? formatWeight(
+                                    form.getValues("weight"),
+                                    user.measurement_system
+                                  )
+                                : "Not Set"}
                             </Text>
                           </HStack>
                         </Pressable>
@@ -304,10 +306,12 @@ export default function ProfileScreen() {
                                   : "text-muted-foreground"
                               )}
                             >
-                              {formatHeight(
-                                form.getValues("height"),
-                                user.measurement_system
-                              )}
+                              {form.getValues("height")
+                                ? formatHeight(
+                                    form.getValues("height"),
+                                    user.measurement_system
+                                  )
+                                : "Not Set"}
                             </Text>
                           </HStack>
                         </Pressable>
