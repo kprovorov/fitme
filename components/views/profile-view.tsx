@@ -129,7 +129,13 @@ export default function ProfileView() {
         </MenuList>
 
         <MenuList>
-          <Link href="itms-apps://itunes.apple.com/app/viewContentsUserReviews/id6741153628?action=write-review">
+          <Pressable
+            onPress={() =>
+              Linking.openURL(
+                "itms-apps://itunes.apple.com/app/viewContentsUserReviews/id6741153628?action=write-review"
+              )
+            }
+          >
             <MenuListItem>
               <HStack className="flex-1 justify-start gap-4">
                 <Heart className="text-foreground" size={24} />
@@ -139,7 +145,7 @@ export default function ProfileView() {
                 </VStack>
               </HStack>
             </MenuListItem>
-          </Link>
+          </Pressable>
         </MenuList>
       </VStack>
     )
