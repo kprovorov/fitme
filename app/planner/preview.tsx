@@ -25,8 +25,6 @@ export default function Preview() {
   const router = useRouter();
   const queryClient = useQueryClient();
 
-  const { data: plans } = usePlansQuery();
-
   const { data: isPro } = useIsProQuery();
 
   const { goal, place, frequency, experience_level, workout_duration, note } =
@@ -54,6 +52,7 @@ export default function Preview() {
       note,
     },
     retry: false,
+    refetchInterval: false,
   });
 
   useEffect(() => {
@@ -86,7 +85,7 @@ export default function Preview() {
   return (
     <SafeAreaProvider>
       <SafeAreaView className="flex-1">
-        {planData ? (
+        {planData && !isGeneratingPlan ? (
           <VStack className="flex-1 items-stretch">
             <ScrollView className="flex-1" showsVerticalScrollIndicator={false}>
               <VStack className="flex-1 p-md">

@@ -86,7 +86,7 @@ export const usePreviewPlanQuery = createQuery<
   PreviewPlanData,
   AxiosError<ServerError<PreviewPlanData>>
 >({
-  queryKey: ["previewPlan"],
+  queryKey: ["plan-preview"],
   fetcher: async (data: PreviewPlanData): Promise<PlanData> => {
     const res = await api.post<PlanData>("/api/plans/preview", data);
 
