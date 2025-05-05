@@ -129,23 +129,21 @@ export default function ProfileView() {
         </MenuList>
 
         <MenuList>
-          <Pressable
+          <MenuListItem
             onPress={() =>
               Linking.openURL(
                 "itms-apps://itunes.apple.com/app/viewContentsUserReviews/id6741153628?action=write-review"
               )
             }
           >
-            <MenuListItem>
-              <HStack className="flex-1 justify-start gap-4">
-                <Heart className="text-foreground" size={24} />
-                <VStack className="items-start gap-0">
-                  <Text className="font-bold text-primary">Like the app?</Text>
-                  <Text>Rate it in the App Store!</Text>
-                </VStack>
-              </HStack>
-            </MenuListItem>
-          </Pressable>
+            <HStack className="flex-1 justify-start gap-4">
+              <Heart className="text-foreground" size={24} />
+              <VStack className="items-start gap-0">
+                <Text className="font-bold text-primary">Like the app?</Text>
+                <Text>Rate it in the App Store!</Text>
+              </VStack>
+            </HStack>
+          </MenuListItem>
         </MenuList>
       </VStack>
     )
