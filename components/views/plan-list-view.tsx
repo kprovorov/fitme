@@ -5,7 +5,6 @@ import { VStack } from "../ui/vstack";
 import { Text } from "../ui/text";
 import { Button } from "../ui/button";
 import { useIsProQuery } from "~/hooks/revenueCat";
-import RevenueCatUI from "react-native-purchases-ui";
 import PlanCard from "../plans/plan-card";
 
 export default function PlansListView() {
@@ -19,17 +18,11 @@ export default function PlansListView() {
           <PlanCard plan={plan} />
         </Link>
       ))}
-      {isPro ? (
-        <Link href="/onboarding/plan" asChild>
-          <Button>
-            <Text>Create New Workout Plan</Text>
-          </Button>
-        </Link>
-      ) : (
-        <Button onPress={async () => await RevenueCatUI.presentPaywall()}>
+      <Link href="/planner" asChild>
+        <Button>
           <Text>Create New Workout Plan</Text>
         </Button>
-      )}
+      </Link>
     </VStack>
   );
 }

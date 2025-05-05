@@ -18,6 +18,9 @@ import { Pressable, View } from "react-native";
 import { Card } from "../ui/card";
 import { ChevronRight } from "~/lib/icons/ChevronRight";
 import { Timer } from "~/lib/icons/Timer";
+import { Image } from "expo-image";
+import ExerciseImage from "../exercises/exercise-image";
+import { cn } from "~/lib/utils";
 
 interface WorkoutCardProps {
   workout: Workout;
@@ -71,8 +74,6 @@ export default function WorkoutCard({
     }
   };
 
-  const [isOpen, setIsOpen] = useState(false);
-
   const activeSession = workout.sessions.find(
     (session) => session.started_at && !session.finished_at
   );
@@ -101,6 +102,8 @@ export default function WorkoutCard({
 
     return () => clearInterval(timer);
   }, [activeSession?.started_at]);
+
+  const [isOpen, setIsOpen] = useState(false);
 
   return (
     <Card className="overflow-hidden">
@@ -143,27 +146,37 @@ export default function WorkoutCard({
             <P className="text-left text-sm text-muted-foreground">
               {workout.description}
             </P>
-            {isOpen && (
-              <VStack className="items-stretch gap-2">
-                {workout.exercises.map((exercise) => (
-                  <Link
-                    href={`/exercises/${exercise.exercise.id}`}
-                    key={exercise.exercise.id}
-                    className="active:opacity-70"
-                  >
-                    <HStack className="w-full justify-between">
-                      <Text className="font-bold text-xs">
-                        <Text className="font-bold text-xs text-primary">
-                          {exercise.sets.length} x{" "}
+            <View
+              className={cn(
+                "gap-2 flex items-stretch",
+                isOpen ? "flex-col" : "flex-row"
+              )}
+            >
+              {workout.exercises.map((exercise) => (
+                <Link
+                  href={`/exercises/${exercise.exercise.id}`}
+                  key={exercise.exercise.id}
+                  asChild
+                >
+                  <Pressable className="active:opacity-70 flex flex-row justify-between items-center">
+                    <HStack className="gap-2">
+                      <ExerciseImage exercise={exercise.exercise} />
+                      {isOpen && (
+                        <Text className="font-bold text-xs">
+                          <Text className="font-bold text-xs text-primary">
+                            {exercise.sets.length} x{" "}
+                          </Text>
+                          {exercise.exercise.name}
                         </Text>
-                        {exercise.exercise.name}
-                      </Text>
-                      <ChevronRight size={16} className="text-foreground" />
+                      )}
                     </HStack>
-                  </Link>
-                ))}
-              </VStack>
-            )}
+                    {isOpen && (
+                      <ChevronRight size={16} className="text-foreground" />
+                    )}
+                  </Pressable>
+                </Link>
+              ))}
+            </View>
             {state === "upcoming" &&
               (activeSession ? (
                 <Button

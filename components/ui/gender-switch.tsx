@@ -2,12 +2,9 @@ import * as RadioGroupPrimitive from "@rn-primitives/radio-group";
 import * as React from "react";
 import { RadioGroupItemWithLabel } from "~/components/ui/radio-group";
 import { RadioGroup } from "~/components/ui/radio-group";
+import { getGenderLabel } from "~/lib/labels";
+import { genders } from "~/lib/models";
 import { cn } from "~/lib/utils";
-
-const options = [
-  { label: "Male", value: "male" },
-  { label: "Female", value: "female" },
-];
 
 const GenderSwitch = React.forwardRef<
   RadioGroupPrimitive.RootRef,
@@ -22,12 +19,12 @@ const GenderSwitch = React.forwardRef<
       {...props}
       ref={ref}
     >
-      {options.map((option) => (
+      {genders.map((gender) => (
         <RadioGroupItemWithLabel
-          key={option.value}
-          value={option.value}
-          label={option.label}
-          className={cn(props.value === option.value && "border-primary")}
+          key={gender}
+          value={gender}
+          label={getGenderLabel(gender)}
+          className={cn(props.value === gender && "border-primary")}
         />
       ))}
     </RadioGroup>

@@ -21,31 +21,6 @@ export const useStoreWorkoutPlanMutation = createMutation<
   },
 });
 
-export const useActivateWorkoutPlanMutation = createMutation<
-  Plan,
-  { id: number },
-  AxiosError<ServerError<{ id: number }>>
->({
-  mutationFn: async (data: { id: number }): Promise<Plan> => {
-    const res = await api.patch<Plan>(`/api/workout-plans/${data.id}/activate`);
-
-    return res.data;
-  },
-});
-
-export const useDeactivateWorkoutPlanMutation = createMutation<
-  Plan,
-  { id: number }
->({
-  mutationFn: async (data: { id: number }): Promise<Plan> => {
-    const res = await api.patch<Plan>(
-      `/api/workout-plans/${data.id}/deactivate`
-    );
-
-    return res.data;
-  },
-});
-
 export const useGenerateWorkoutPlanMutation = createMutation<
   Plan,
   { id: number },

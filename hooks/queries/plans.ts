@@ -1,6 +1,8 @@
 import { api, ServerError } from "@/lib/api";
-import { Goal, Place, Plan } from "@/lib/models";
+import { ExperienceLevel, Goal, Place, Plan, PlanData } from "@/lib/models";
 import { AxiosError } from "axios";
+import { PAYWALL_RESULT } from "react-native-purchases-ui";
+import RevenueCatUI from "react-native-purchases-ui";
 import { createMutation, createQuery } from "react-query-kit";
 
 export const usePlansQuery = createQuery<Plan[]>({
@@ -29,6 +31,9 @@ type StorePlanData = {
   goal: Goal;
   place: Place;
   frequency: number;
+  experience_level: ExperienceLevel;
+  workout_duration: number;
+  note?: string;
 };
 
 export const useStorePlanMutation = createMutation<
@@ -38,6 +43,52 @@ export const useStorePlanMutation = createMutation<
 >({
   mutationFn: async (data: StorePlanData): Promise<Plan> => {
     const res = await api.post<Plan>("/api/plans", data);
+
+    return res.data;
+  },
+});
+
+export const useActivatePlanMutation = createMutation<
+  Plan,
+  { id: number },
+  AxiosError<ServerError<{ id: number }>>
+>({
+  mutationFn: async (data: { id: number }): Promise<Plan> => {
+    const res = await api.patch<Plan>(`/api/plans/${data.id}/activate`);
+
+    return res.data;
+  },
+});
+
+export const useDeletePlanMutation = createMutation<
+  void,
+  { id: number },
+  AxiosError<ServerError<{ id: number }>>
+>({
+  mutationFn: async (data: { id: number }): Promise<void> => {
+    const res = await api.delete<void>(`/api/plans/${data.id}`);
+
+    return res.data;
+  },
+});
+
+type PreviewPlanData = {
+  goal: Goal;
+  place: Place;
+  frequency: number;
+  experience_level: ExperienceLevel;
+  workout_duration: number;
+  note?: string;
+};
+
+export const usePreviewPlanQuery = createQuery<
+  PlanData,
+  PreviewPlanData,
+  AxiosError<ServerError<PreviewPlanData>>
+>({
+  queryKey: ["plan-preview"],
+  fetcher: async (data: PreviewPlanData): Promise<PlanData> => {
+    const res = await api.post<PlanData>("/api/plans/preview", data);
 
     return res.data;
   },

@@ -25,7 +25,7 @@ export default function PlansScreen() {
           headerBackButtonDisplayMode: "minimal",
           headerLeft: () => <HeaderBackButton />,
           headerRight: () => (
-            <Link href="/onboarding/plan" asChild>
+            <Link href="/planner" asChild>
               <Button variant="secondary" size="icon-sm" shape="pill">
                 <Text>
                   <Plus size={16} className="text-foreground" />
