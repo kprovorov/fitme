@@ -19,7 +19,7 @@ export default function WorkoutSessionExerciseCard({
   const data = [
     {
       value: setsDoneCount,
-      color: "#97DE71",
+      color: "#B8FF1F",
     },
     {
       value: workoutSessionExercise.sets.length - setsDoneCount,

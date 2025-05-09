@@ -76,15 +76,15 @@ export default function RootLayout() {
                 ...DarkTheme,
                 colors: {
                   ...DarkTheme.colors,
-                  primary: "#97DE71",
-                  background: "#1E1E1E",
+                  primary: "#B8FF1F",
+                  background: "#1F1D20",
                 },
               }
             : {
                 ...DefaultTheme,
                 colors: {
                   ...DefaultTheme.colors,
-                  primary: "#97DE71",
+                  primary: "#B8FF1F",
                 },
               }
         }
