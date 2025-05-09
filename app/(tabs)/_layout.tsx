@@ -47,7 +47,7 @@ export default function TabLayout() {
       <SafeAreaProvider>
         <Tabs>
           <TabSlot />
-          <TabList className="h-20 px-9 absolute bottom-6 left-6 right-6 bg-black rounded-3xl items-center justify-center border border-white/10 shadow-lg shadow-black/50">
+          <TabList className="h-20 px-10 absolute bottom-md left-md right-md bg-black rounded-3xl items-center justify-center border border-white/10 shadow-lg shadow-black/50">
             {tabs.map((tab) => (
               <TabTrigger
                 name={tab.name}

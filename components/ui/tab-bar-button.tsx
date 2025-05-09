@@ -20,9 +20,9 @@ export const TabBarButton = React.forwardRef<View, TabBarButtonProps>(
           Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Rigid);
         }}
       >
-        <VStack className="gap-1">
+        <VStack className="gap-1 w-12 items-center justify-center">
           {props.renderIcon({ isFocused: props.isFocused ?? false })}
-          <Text className="text-white text-sm font-nunito-sans-bold">
+          <Text className="text-white text-xs font-nunito-sans-bold">
             {props.children}
           </Text>
         </VStack>
