@@ -15,6 +15,8 @@ module.exports = {
         "nunito-sans-bold": ["NunitoSans-Bold", "sans-serif"],
         "nunito-sans-extrabold": ["NunitoSans-ExtraBold", "sans-serif"],
         "nunito-sans-black": ["NunitoSans-Black", "sans-serif"],
+                "ibm-plex-mono": ["IBM Plex Mono", "monospace"],
+                "ibm-plex-mono-bold": ["IBM Plex Mono Bold", "monospace"],
       },
       colors: {
         border: "hsl(var(--border))",
