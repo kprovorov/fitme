@@ -24,6 +24,7 @@ const buttonVariants = cva(
         lg: "h-14 px-6 py-3",
         icon: "h-10 w-10",
         "icon-sm": "h-9 w-9",
+        "icon-xs": "h-8 w-8",
       },
       shape: {
         pill: "rounded-full",
