@@ -15,10 +15,12 @@
     "preset": "jest-expo"
   },
   "dependencies": {
+    "@expo-google-fonts/ibm-plex-mono": "^0.3.0",
     "@expo-google-fonts/nunito-sans": "^0.2.3",
     "@expo/vector-icons": "^14.0.2",
     "@hookform/resolvers": "^3.9.1",
     "@react-native-async-storage/async-storage": "1.23.1",
+    "@react-native-community/slider": "4.5.5",
     "@react-native-picker/picker": "2.9.0",
     "@react-navigation/bottom-tabs": "^7.2.0",
     "@react-navigation/native": "^7.0.14",
@@ -45,7 +47,7 @@
     "expo-blur": "~14.0.3",
     "expo-constants": "~17.0.3",
     "expo-dev-client": "~5.0.17",
-    "expo-font": "~13.0.3",
+    "expo-font": "~13.0.4",
     "expo-haptics": "~14.0.1",
     "expo-image": "~2.0.7",
     "expo-linear-gradient": "~14.0.2",
@@ -61,7 +63,7 @@
     "expo-system-ui": "~4.0.9",
     "expo-video": "~2.0.6",
     "expo-web-browser": "~14.0.2",
-    "lucide-react-native": "^0.469.0",
+    "lucide-react-native": "^0.510.0",
     "nativewind": "^4.1.23",
     "react": "18.3.1",
     "react-dom": "18.3.1",
@@ -82,8 +84,7 @@
     "react-query-kit": "^3.3.1",
     "tailwind-merge": "^2.6.0",
     "tailwindcss-animate": "^1.0.7",
-    "zod": "^3.24.1",
-    "@react-native-community/slider": "4.5.5"
+    "zod": "^3.24.1"
   },
   "devDependencies": {
     "@babel/core": "^7.25.2",
