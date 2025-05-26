@@ -9,7 +9,6 @@ import {
 } from "react-native";
 import { SafeAreaProvider } from "react-native-safe-area-context";
 import Sign from "~/components/brand/sign";
-import { H1 } from "~/components/ui/typography";
 import { VStack } from "~/components/ui/vstack";
 import LoginView from "~/components/views/login-view";
 

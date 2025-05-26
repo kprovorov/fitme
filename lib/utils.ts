@@ -11,7 +11,7 @@ export function cn(...inputs: ClassValue[]) {
 export function handleAxiosError<T extends FieldValues>(
   error: AxiosError<ServerError<T>>,
   setMessage: (message: string) => void = () => {},
-  setErrors: (errors: FieldErrors<T>) => void = () => {}
+  setErrors: (errors: FieldErrors<T>) => void = () => {},
 ) {
   if (
     error.response?.status === HttpStatusCode.UnprocessableEntity &&
@@ -21,13 +21,13 @@ export function handleAxiosError<T extends FieldValues>(
   } else {
     setMessage(
       error.response?.data.message ??
-        "Something went wrong. Please try again later."
+        "Something went wrong. Please try again later.",
     );
   }
 }
 
 export function mapErrors<T extends FieldValues>(
-  errors: Record<keyof T, string[]>
+  errors: Record<keyof T, string[]>,
 ): FieldErrors<T> {
   return Object.fromEntries(
     Object.entries(errors).map(([key, value]) => [
@@ -36,7 +36,7 @@ export function mapErrors<T extends FieldValues>(
         type: "validate",
         message: value[0],
       },
-    ])
+    ]),
   ) as FieldErrors<T>;
 }
 

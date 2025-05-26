@@ -53,7 +53,7 @@ export default function LoginView() {
         errors={errors}
       />
       <Text className="text-sm font-nunito-sans-bold">
-        Don't have an account?{" "}
+        Don&apos;t have an account?{" "}
         <Link
           href="/auth/register"
           className="text-primary font-nunito-sans-bold"

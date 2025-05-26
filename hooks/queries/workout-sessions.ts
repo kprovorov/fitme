@@ -17,7 +17,7 @@ export const useCreateWorkoutSessionMutation = createMutation<
     planWorkoutId,
   }: CreateWorkoutSessionVariables): Promise<WorkoutSession> => {
     const res = await api.post<WorkoutSession>(
-      `/api/plans/${planId}/workouts/${planWorkoutId}/sessions`
+      `/api/plans/${planId}/workouts/${planWorkoutId}/sessions`,
     );
     return res.data;
   },
@@ -40,7 +40,7 @@ export const useWorkoutSessionQuery = createQuery<
     sessionId,
   }: GetWorkoutSessionVariables) => {
     const res = await api.get<WorkoutSession>(
-      `/api/plans/${planId}/workouts/${workoutId}/sessions/${sessionId}`
+      `/api/plans/${planId}/workouts/${workoutId}/sessions/${sessionId}`,
     );
     return res.data;
   },
@@ -63,7 +63,7 @@ export const useFinishWorkoutSessionMutation = createMutation<
     sessionId,
   }: FinishWorkoutSessionVariables) => {
     const res = await api.patch<WorkoutSession>(
-      `/api/plans/${planId}/workouts/${workoutId}/sessions/${sessionId}/finish`
+      `/api/plans/${planId}/workouts/${workoutId}/sessions/${sessionId}/finish`,
     );
     return res.data;
   },

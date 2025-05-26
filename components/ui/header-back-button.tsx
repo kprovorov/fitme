@@ -2,7 +2,6 @@ import React from "react";
 import { ArrowLeft } from "~/lib/icons/ArrowLeft";
 import { Button } from "~/components/ui/button";
 import { useRouter } from "expo-router";
-import { cn } from "~/lib/utils";
 import { Text } from "~/components/ui/text";
 
 const HeaderBackButton = React.forwardRef<

@@ -6,21 +6,18 @@ import { Text } from "~/components/ui/text";
 import { useCurrentUserQuery } from "~/hooks/queries/auth";
 import { deleteToken } from "~/lib/api";
 import { VStack } from "../ui/vstack";
-import { H3, H4, Muted, P } from "../ui/typography";
-import {
-  useDeleteUserMutation,
-  useLogoutMutation,
-} from "~/hooks/mutations/auth";
+import { Muted } from "../ui/typography";
+import { useLogoutMutation } from "~/hooks/mutations/auth";
 import RevenueCatUI from "react-native-purchases-ui";
 import { useCustomerInfoQuery, useIsProQuery } from "~/hooks/revenueCat";
 import * as Sentry from "@sentry/react-native";
-import { Linking, Pressable } from "react-native";
+import { Linking } from "react-native";
 import { HStack } from "../ui/hstack";
 import { Separator } from "../ui/separator";
 import { MenuList, MenuListItem } from "../ui/menu-list";
-import { Card, CardContent, CardHeader, CardTitle } from "../ui/card";
+import { Card, CardContent } from "../ui/card";
 import { Trophy } from "~/lib/icons/Trophy";
-import { Avatar, AvatarFallback, AvatarImage } from "../ui/avatar";
+import { Avatar, AvatarFallback } from "../ui/avatar";
 import { Heart } from "~/lib/icons/Heart";
 import { Volleyball } from "~/lib/icons/Volleyball";
 
@@ -64,7 +61,9 @@ export default function ProfileView() {
                 <VStack className="items-stretch gap-2">
                   <HStack className="flex-1 justify-start gap-2">
                     <Trophy className="text-primary" size={20} />
-                    <Text className="text-primary font-bold">You're Pro!</Text>
+                    <Text className="text-primary font-bold">
+                      You&apos;re Pro!
+                    </Text>
                   </HStack>
                   <Muted>
                     You have access to all of our features. You can cancel your
@@ -87,7 +86,7 @@ export default function ProfileView() {
                   <HStack className="flex-1 justify-start gap-2">
                     <Volleyball className="text-foreground" size={20} />
                     <Text className="text-foreground font-bold">
-                      You're on a free plan
+                      You&apos;re on a free plan
                     </Text>
                   </HStack>
                   <Muted>

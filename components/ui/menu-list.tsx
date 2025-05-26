@@ -1,12 +1,10 @@
 import React from "react";
 import { Card } from "./card";
-import { Pressable, View } from "react-native";
+import { Pressable } from "react-native";
 import { cn } from "~/lib/utils";
 import { ChevronRight } from "~/lib/icons/ChevronRight";
-import { HStack } from "~/components/ui/hstack";
-import { TextClassContext, Text } from "~/components/ui/text";
+import { TextClassContext } from "~/components/ui/text";
 import { SquareArrowOutUpRight } from "~/lib/icons/SquareArrowOutUpRight";
-import { Heart } from "~/lib/icons/Heart";
 
 const MenuList = React.forwardRef<
   React.ElementRef<typeof Card>,

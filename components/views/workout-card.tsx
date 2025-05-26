@@ -18,7 +18,6 @@ import { Pressable, View } from "react-native";
 import { Card } from "../ui/card";
 import { ChevronRight } from "~/lib/icons/ChevronRight";
 import { Timer } from "~/lib/icons/Timer";
-import { Image } from "expo-image";
 import ExerciseImage from "../exercises/exercise-image";
 import { cn } from "~/lib/utils";
 

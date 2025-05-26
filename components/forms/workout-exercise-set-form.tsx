@@ -6,7 +6,6 @@ import { HStack } from "../ui/hstack";
 import { Input } from "../ui/input";
 import { Button } from "../ui/button";
 import { Check } from "~/lib/icons/Check";
-import { Text } from "../ui/text";
 import { Pencil } from "~/lib/icons/Pencil";
 import { VStack } from "../ui/vstack";
 import { ErrorMessage } from "../ui/error-message";

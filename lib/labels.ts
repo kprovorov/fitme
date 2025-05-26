@@ -7,7 +7,7 @@ import {
 } from "./models";
 
 export const getMeasurementSystemLabel = (
-  measurementSystem: MeasurementSystem
+  measurementSystem: MeasurementSystem,
 ) => {
   switch (measurementSystem) {
     case "metric":
@@ -20,7 +20,7 @@ export const getMeasurementSystemLabel = (
 };
 
 export const getMeasurementSystemDisclaimer = (
-  measurementSystem: MeasurementSystem
+  measurementSystem: MeasurementSystem,
 ) => {
   switch (measurementSystem) {
     case "metric":
@@ -99,7 +99,7 @@ export const getExperienceLevelLabel = (experienceLevel: ExperienceLevel) => {
 };
 
 export const getExperienceLevelDisclaimer = (
-  experienceLevel: ExperienceLevel
+  experienceLevel: ExperienceLevel,
 ) => {
   switch (experienceLevel) {
     case "beginner":

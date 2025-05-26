@@ -5,7 +5,6 @@ import { Text } from "~/components/ui/text";
 import { Link, router, Stack } from "expo-router";
 import { HeaderBackButton } from "~/components/ui/header-back-button";
 import { MenuList, MenuListItem } from "~/components/ui/menu-list";
-import { HStack } from "~/components/ui/hstack";
 import { useCurrentUserQuery } from "~/hooks/queries/auth";
 import {
   AlertDialogCancel,
@@ -22,7 +21,6 @@ import { useDeleteUserMutation } from "~/hooks/mutations/auth";
 import { useQueryClient } from "@tanstack/react-query";
 import { deleteToken } from "~/lib/api";
 import * as Sentry from "@sentry/react-native";
-import { Trash } from "lucide-react-native";
 import { Separator } from "~/components/ui/separator";
 
 export default function LegalScreen() {

@@ -33,7 +33,7 @@ export const useUpdateWorkoutSessionExerciseSetMutation = createMutation<
   }): Promise<WorkoutSessionExerciseSet> => {
     const response = await api.put<WorkoutSessionExerciseSet>(
       `/api/plans/${params.planId}/workouts/${params.workoutId}/sessions/${params.sessionId}/exercises/${params.exerciseId}/sets/${params.setId}`,
-      data
+      data,
     );
 
     return response.data;

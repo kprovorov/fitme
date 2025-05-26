@@ -1,4 +1,4 @@
-import { WorkoutExercise, WorkoutSessionExercise } from "~/lib/models";
+import { WorkoutSessionExercise } from "~/lib/models";
 import { H4, P } from "../ui/typography";
 import { HStack } from "../ui/hstack";
 import { VStack } from "../ui/vstack";

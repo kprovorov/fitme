@@ -2,16 +2,14 @@ import React from "react";
 import { SafeAreaProvider, SafeAreaView } from "react-native-safe-area-context";
 import { Linking, ScrollView } from "react-native";
 import { Text } from "~/components/ui/text";
-import { Link, Stack } from "expo-router";
+import { Stack } from "expo-router";
 import { HeaderBackButton } from "~/components/ui/header-back-button";
-import { MenuList, MenuListItem } from "~/components/ui/menu-list";
 import { HStack } from "~/components/ui/hstack";
 import { useCurrentUserQuery } from "~/hooks/queries/auth";
-import { getMeasurementSystemLabel } from "~/lib/labels";
 import X from "~/components/icons/social/x";
 import Instagram from "~/components/icons/social/instagram";
 import Threads from "~/components/icons/social/threads";
-import { Muted, P } from "~/components/ui/typography";
+import { P } from "~/components/ui/typography";
 import { VStack } from "~/components/ui/vstack";
 import { Button } from "~/components/ui/button";
 

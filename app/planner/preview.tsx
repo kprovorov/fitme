@@ -1,10 +1,9 @@
-import { router, useLocalSearchParams, useRouter } from "expo-router";
+import { useLocalSearchParams, useRouter } from "expo-router";
 import React, { useEffect } from "react";
 import { SafeAreaProvider, SafeAreaView } from "react-native-safe-area-context";
 import { ScrollView, View } from "react-native";
 import { VStack } from "~/components/ui/vstack";
 import {
-  usePlansQuery,
   usePreviewPlanQuery,
   useStorePlanMutation,
 } from "~/hooks/queries/plans";

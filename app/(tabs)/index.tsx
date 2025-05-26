@@ -1,9 +1,5 @@
 import { RefreshControl, ScrollView, View } from "react-native";
-import {
-  SafeAreaView,
-  useSafeAreaInsets,
-} from "react-native-safe-area-context";
-import { Padding } from "~/components/ui/padding";
+import { SafeAreaView } from "react-native-safe-area-context";
 import { usePlansQuery } from "~/hooks/queries/plans";
 import { Text } from "~/components/ui/text";
 import { useState, useEffect, useCallback } from "react";

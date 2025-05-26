@@ -38,7 +38,7 @@ export default function RegisterView() {
   });
 
   const { mutateAsync: register } = useRegisterMutation({
-    onSuccess: async (data, variables, context) => {
+    onSuccess: async (_, variables) => {
       await login({
         email: variables.email,
         password: variables.password,

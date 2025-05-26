@@ -26,67 +26,62 @@ interface WheelSelectProps extends TextInputProps {
 const WheelSelect = React.forwardRef<
   React.ElementRef<typeof TextInput>,
   WheelSelectProps
->(
-  (
-    { className, placeholderClassName, label, wheels, value, ...props },
-    ref,
-  ) => {
-    const [isFocused, setIsFocused] = useState(false);
+>(({ label, wheels, value }, _) => {
+  const [isFocused, setIsFocused] = useState(false);
 
-    const wheelHeight = useSharedValue(0);
+  const wheelHeight = useSharedValue(0);
 
-    const animatedStyle = useAnimatedStyle(() => ({
-      height: wheelHeight.value,
-    }));
+  const animatedStyle = useAnimatedStyle(() => ({
+    height: wheelHeight.value,
+  }));
 
-    const toggleWheel = () => {
-      const next = !isFocused;
-      setIsFocused(next);
-      wheelHeight.value = withTiming(next ? 200 : 0, { duration: 300 });
-    };
+  const toggleWheel = () => {
+    const next = !isFocused;
+    setIsFocused(next);
+    wheelHeight.value = withTiming(next ? 200 : 0, { duration: 300 });
+  };
 
-    return (
-      <VStack className="items-stretch flex-1 bg-black/30 p-0 gap-0">
-        <TouchableWithoutFeedback
-          onPress={(e) => {
-            e.stopPropagation();
-            toggleWheel();
-          }}
-        >
-          <HStack className="flex-1 justify-between h-12 px-3">
-            <Text>{label}</Text>
-            <Text className="text-right text-primary">{value}</Text>
-          </HStack>
-        </TouchableWithoutFeedback>
+  return (
+    <VStack className="items-stretch flex-1 bg-black/30 p-0 gap-0">
+      <TouchableWithoutFeedback
+        onPress={(e) => {
+          e.stopPropagation();
+          toggleWheel();
+        }}
+      >
+        <HStack className="flex-1 justify-between h-12 px-3">
+          <Text>{label}</Text>
+          <Text className="text-right text-primary">{value}</Text>
+        </HStack>
+      </TouchableWithoutFeedback>
 
-        <Animated.View style={[animatedStyle]} className="overflow-hidden">
-          <HStack className="gap-0 border-t border-foreground/10">
-            {wheels.map((wheel, index) => (
-              <Picker
-                key={index}
-                style={{ flex: 1 }}
-                selectedValue={wheel.selectedValue}
-                onValueChange={(itemValue, itemIndex) => {
-                  wheel.onValueChange?.(itemValue, itemIndex);
-                }}
-                className="flex-1 border-2"
-                {...wheel}
-              >
-                {wheel.options.map((option) => (
-                  <Picker.Item
-                    label={option.label}
-                    value={option.value}
-                    key={option.value}
-                  />
-                ))}
-              </Picker>
-            ))}
-          </HStack>
-        </Animated.View>
-      </VStack>
-    );
-  },
-);
+      <Animated.View style={[animatedStyle]} className="overflow-hidden">
+        <HStack className="gap-0 border-t border-foreground/10">
+          {wheels.map((wheel, index) => (
+            <Picker
+              key={index}
+              style={{ flex: 1 }}
+              selectedValue={wheel.selectedValue}
+              onValueChange={(itemValue, itemIndex) => {
+                wheel.onValueChange?.(itemValue, itemIndex);
+              }}
+              className="flex-1 border-2"
+              {...wheel}
+            >
+              {wheel.options.map((option) => (
+                <Picker.Item
+                  label={option.label}
+                  value={option.value}
+                  key={option.value}
+                />
+              ))}
+            </Picker>
+          ))}
+        </HStack>
+      </Animated.View>
+    </VStack>
+  );
+});
 
 WheelSelect.displayName = "WheelSelect";
 

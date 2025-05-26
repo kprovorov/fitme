@@ -1,5 +1,5 @@
 import React from "react";
-import { Pressable, StyleSheet, Text, View } from "react-native";
+import { Pressable, Text, View } from "react-native";
 import { TabTriggerSlotProps } from "expo-router/ui";
 import { VStack } from "./vstack";
 import * as Haptics from "expo-haptics";

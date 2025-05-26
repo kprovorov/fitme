@@ -21,7 +21,7 @@ export const useWorkoutSessionExerciseQuery = createQuery<
     exerciseId,
   }: WorkoutSessionExercisesVariables) => {
     const response = await api.get(
-      `/api/plans/${planId}/workouts/${workoutId}/sessions/${sessionId}/exercises/${exerciseId}`
+      `/api/plans/${planId}/workouts/${workoutId}/sessions/${sessionId}/exercises/${exerciseId}`,
     );
     return response.data;
   },

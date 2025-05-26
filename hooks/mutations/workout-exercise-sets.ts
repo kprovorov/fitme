@@ -13,11 +13,11 @@ export const useUpdateWorkoutExerciseSetMutation = createMutation<
   UpdateWorkoutExerciseSetData
 >({
   mutationFn: async (
-    data: UpdateWorkoutExerciseSetData
+    data: UpdateWorkoutExerciseSetData,
   ): Promise<WorkoutExerciseSet> => {
     const response = await api.put<WorkoutExerciseSet>(
       `/api/workout-exercise-sets/${data.id}`,
-      data
+      data,
     );
 
     return response.data;

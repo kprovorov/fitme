@@ -19,7 +19,6 @@ import Purchases from "react-native-purchases";
 import "expo-dev-client";
 import * as Sentry from "@sentry/react-native";
 import { KeyboardProvider } from "react-native-keyboard-controller";
-import { SafeAreaProvider } from "react-native-safe-area-context";
 import {
   NunitoSans_400Regular,
   NunitoSans_600SemiBold,

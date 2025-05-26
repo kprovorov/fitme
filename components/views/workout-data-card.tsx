@@ -1,4 +1,4 @@
-import React, { useState } from "react";
+import React from "react";
 import { WorkoutData } from "~/lib/models";
 import { H4, P } from "@/components/ui/typography";
 import { HStack } from "@/components/ui/hstack";
@@ -6,11 +6,10 @@ import { VStack } from "@/components/ui/vstack";
 import { Text } from "@/components/ui/text";
 import { Zap } from "@/lib/icons/Zap";
 import { Link } from "expo-router";
-import { Pressable, View } from "react-native";
+import { Pressable } from "react-native";
 import { Card } from "../ui/card";
 import { ChevronRight } from "~/lib/icons/ChevronRight";
 import ExerciseImage from "../exercises/exercise-image";
-import { cn } from "~/lib/utils";
 
 interface WorkoutDataCardProps {
   workoutData: WorkoutData;

@@ -3,14 +3,14 @@ import { MeasurementSystem } from "./models";
 
 export const formatWeight = (
   weight: number,
-  measurementSystem: MeasurementSystem
+  measurementSystem: MeasurementSystem,
 ) => {
   return `${weight} ${getWeightLabel(measurementSystem)}`;
 };
 
 export const formatHeight = (
   height: number,
-  measurementSystem: MeasurementSystem
+  measurementSystem: MeasurementSystem,
 ) => {
   if (measurementSystem === "metric") {
     return `${height} cm`;

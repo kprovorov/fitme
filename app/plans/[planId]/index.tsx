@@ -1,4 +1,3 @@
-import { HStack } from "~/components/ui/hstack";
 import { VStack } from "~/components/ui/vstack";
 import { Text } from "~/components/ui/text";
 import { Stack, useLocalSearchParams, useRouter } from "expo-router";
@@ -13,7 +12,6 @@ import { HeaderBackButton } from "~/components/ui/header-back-button";
 import React from "react";
 import WorkoutList from "~/components/views/workout-list";
 import { Button } from "~/components/ui/button";
-import { Plus } from "~/lib/icons/Plus";
 import { Ellipsis } from "~/lib/icons/Ellipsis";
 import ContextMenu from "react-native-context-menu-view";
 import { useQueryClient } from "@tanstack/react-query";

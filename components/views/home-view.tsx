@@ -1,7 +1,7 @@
 import React, { useEffect, useState } from "react";
 import { Workout, Plan } from "@/lib/models";
 import { VStack } from "../ui/vstack";
-import { H2, H3, H4 } from "../ui/typography";
+import { H3, H4 } from "../ui/typography";
 import WorkoutCard from "./workout-card";
 import { Button } from "../ui/button";
 import { Text } from "../ui/text";
@@ -51,7 +51,7 @@ export default function HomeView({ plan }: HomeViewProps) {
         ) : isPro ? (
           <VStack className="items-stretch">
             <H3 className="text-center text-primary">
-              Nice job! You're all set!
+              Nice job! You&apos;re all set!
             </H3>
             {plan.is_generating ? (
               <VStack>
@@ -81,8 +81,8 @@ export default function HomeView({ plan }: HomeViewProps) {
         ) : (
           <VStack className="items-stretch">
             <Text>
-              You're not subscribed to the Pro plan. Subscribe to generate your
-              next workout.
+              You&apos;re not subscribed to the Pro plan. Subscribe to generate
+              your next workout.
             </Text>
             <Button
               onPress={async () => {
