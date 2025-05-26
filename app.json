@@ -46,8 +46,8 @@
             "./node_modules/@expo-google-fonts/nunito-sans/400Regular/NunitoSans_400Regular.ttf",
             "./node_modules/@expo-google-fonts/nunito-sans/600SemiBold/NunitoSans_600SemiBold.ttf",
             "./node_modules/@expo-google-fonts/nunito-sans/700Bold/NunitoSans_700Bold.ttf",
-            "./node_modules/@expo-google-fonts/ibm-plex-mono/400Regular.ttf",
-            "./node_modules/@expo-google-fonts/ibm-plex-mono/600SemiBold.ttf"
+            "./node_modules/@expo-google-fonts/ibm-plex-mono/400Regular/IBMPlexMono_400Regular.ttf",
+            "./node_modules/@expo-google-fonts/ibm-plex-mono/600SemiBold/IBMPlexMono_600SemiBold.ttf"
           ]
         }
       ],
