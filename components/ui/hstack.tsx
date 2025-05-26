@@ -9,11 +9,11 @@ const HStack = React.forwardRef<ViewRef, ViewProps>(
       ref={ref}
       className={cn(
         "flex flex-row items-center justify-center gap-4",
-        className
+        className,
       )}
       {...props}
     />
-  )
+  ),
 );
 HStack.displayName = "HStack";
 

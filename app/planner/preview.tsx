@@ -1,18 +1,15 @@
 import { router, useLocalSearchParams, useRouter } from "expo-router";
 import React, { useEffect } from "react";
-import { SafeAreaProvider } from "react-native-safe-area-context";
+import { SafeAreaProvider, SafeAreaView } from "react-native-safe-area-context";
 import { ScrollView, View } from "react-native";
-import { SafeAreaView } from "react-native-safe-area-context";
 import { VStack } from "~/components/ui/vstack";
 import {
   usePlansQuery,
   usePreviewPlanQuery,
   useStorePlanMutation,
 } from "~/hooks/queries/plans";
-import { ExperienceLevel, Place } from "~/lib/models";
-import { Goal } from "~/lib/models";
-import { Muted } from "~/components/ui/typography";
-import { P } from "~/components/ui/typography";
+import { ExperienceLevel, Place, Goal } from "~/lib/models";
+import { Muted, P } from "~/components/ui/typography";
 import { LoaderCircle } from "~/lib/icons/LoaderCircle";
 import PlanDataView from "~/components/views/plan-data-view";
 import { Button } from "~/components/ui/button";

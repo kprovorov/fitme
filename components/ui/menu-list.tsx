@@ -4,8 +4,7 @@ import { Pressable, View } from "react-native";
 import { cn } from "~/lib/utils";
 import { ChevronRight } from "~/lib/icons/ChevronRight";
 import { HStack } from "~/components/ui/hstack";
-import { TextClassContext } from "~/components/ui/text";
-import { Text } from "~/components/ui/text";
+import { TextClassContext, Text } from "~/components/ui/text";
 import { SquareArrowOutUpRight } from "~/lib/icons/SquareArrowOutUpRight";
 import { Heart } from "~/lib/icons/Heart";
 
@@ -38,8 +37,8 @@ const MenuListItem = React.forwardRef<
     icon === "chevron-right"
       ? ChevronRight
       : icon === "square-arrow-out-up-right"
-      ? SquareArrowOutUpRight
-      : null;
+        ? SquareArrowOutUpRight
+        : null;
 
   return (
     <TextClassContext.Provider value="web:pointer-events-none font-nunito-sans-regular">
@@ -47,7 +46,7 @@ const MenuListItem = React.forwardRef<
         className={cn(
           "flex-1 flex-row items-center justify-between p-4 active:bg-card/50 gap-2",
           props.disabled && "opacity-50 web:pointer-events-none",
-          className
+          className,
         )}
         ref={ref}
         role="button"

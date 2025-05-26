@@ -1,7 +1,6 @@
 import { Stack, useLocalSearchParams } from "expo-router";
 import React from "react";
-import { SafeAreaView } from "react-native-safe-area-context";
-import { SafeAreaProvider } from "react-native-safe-area-context";
+import { SafeAreaView, SafeAreaProvider } from "react-native-safe-area-context";
 import { Text } from "~/components/ui/text";
 import { H1, Muted, P } from "~/components/ui/typography";
 import { VStack } from "~/components/ui/vstack";

@@ -42,7 +42,7 @@ export default function WorkoutCard({
       queryClient.invalidateQueries({ queryKey: ["workout"] });
       queryClient.invalidateQueries({ queryKey: ["plans"] });
       router.push(
-        `/plans/${workout.plan_id}/workouts/${workout.id}/sessions/${workoutSession.id}`
+        `/plans/${workout.plan_id}/workouts/${workout.id}/sessions/${workoutSession.id}`,
       );
     },
   });
@@ -75,7 +75,7 @@ export default function WorkoutCard({
   };
 
   const activeSession = workout.sessions.find(
-    (session) => session.started_at && !session.finished_at
+    (session) => session.started_at && !session.finished_at,
   );
 
   const [elapsedTime, setElapsedTime] = useState<string>("");
@@ -96,7 +96,7 @@ export default function WorkoutCard({
       setElapsedTime(
         `${hours.toString().padStart(2, "0")}:${minutes
           .toString()
-          .padStart(2, "0")}:${seconds.toString().padStart(2, "0")}`
+          .padStart(2, "0")}:${seconds.toString().padStart(2, "0")}`,
       );
     }, 1000);
 
@@ -149,7 +149,7 @@ export default function WorkoutCard({
             <View
               className={cn(
                 "gap-2 flex items-stretch",
-                isOpen ? "flex-col" : "flex-row"
+                isOpen ? "flex-col" : "flex-row",
               )}
             >
               {workout.exercises.map((exercise) => (

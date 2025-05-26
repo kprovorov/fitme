@@ -15,13 +15,13 @@ const Text = React.forwardRef<TextRef, SlottableTextProps>(
         className={cn(
           "text-base text-foreground font-nunito-sans-regular web:select-text",
           textClass,
-          className
+          className,
         )}
         ref={ref}
         {...props}
       />
     );
-  }
+  },
 );
 Text.displayName = "Text";
 

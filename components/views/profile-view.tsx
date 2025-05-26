@@ -17,8 +17,7 @@ import * as Sentry from "@sentry/react-native";
 import { Linking, Pressable } from "react-native";
 import { HStack } from "../ui/hstack";
 import { Separator } from "../ui/separator";
-import { MenuList } from "../ui/menu-list";
-import { MenuListItem } from "../ui/menu-list";
+import { MenuList, MenuListItem } from "../ui/menu-list";
 import { Card, CardContent, CardHeader, CardTitle } from "../ui/card";
 import { Trophy } from "~/lib/icons/Trophy";
 import { Avatar, AvatarFallback, AvatarImage } from "../ui/avatar";
@@ -132,7 +131,7 @@ export default function ProfileView() {
           <MenuListItem
             onPress={() =>
               Linking.openURL(
-                "itms-apps://itunes.apple.com/app/viewContentsUserReviews/id6741153628?action=write-review"
+                "itms-apps://itunes.apple.com/app/viewContentsUserReviews/id6741153628?action=write-review",
               )
             }
           >

@@ -19,11 +19,11 @@ export default function LoginScreen() {
   useEffect(() => {
     const showSubscription = Keyboard.addListener(
       "keyboardWillShow",
-      handleKeyboardShow
+      handleKeyboardShow,
     );
     const hideSubscription = Keyboard.addListener(
       "keyboardWillHide",
-      handleKeyboardHide
+      handleKeyboardHide,
     );
 
     return () => {

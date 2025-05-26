@@ -47,13 +47,13 @@ export default function HistoryScreen() {
                     plan.workouts.map((workout) => ({
                       ...workout,
                       plan,
-                    }))
+                    })),
                   )
                   .flatMap((workout) =>
                     workout.sessions.map((session) => ({
                       ...session,
                       workout,
-                    }))
+                    })),
                   )
                   .filter((session) => session.finished_at)}
               />

@@ -5,8 +5,8 @@ import {
   KeyboardAvoidingView,
   Platform,
   TouchableWithoutFeedback,
+  SafeAreaView,
 } from "react-native";
-import { SafeAreaView } from "react-native";
 import { SafeAreaProvider } from "react-native-safe-area-context";
 import { VStack } from "~/components/ui/vstack";
 import RegisterView from "~/components/views/register-view";
@@ -18,11 +18,11 @@ export default function RegisterScreen() {
   useEffect(() => {
     const showSubscription = Keyboard.addListener(
       "keyboardWillShow",
-      handleKeyboardShow
+      handleKeyboardShow,
     );
     const hideSubscription = Keyboard.addListener(
       "keyboardWillHide",
-      handleKeyboardHide
+      handleKeyboardHide,
     );
 
     return () => {

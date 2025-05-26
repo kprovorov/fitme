@@ -1,5 +1,4 @@
-import { useVideoPlayer } from "expo-video";
-import { VideoView } from "expo-video";
+import { useVideoPlayer, VideoView } from "expo-video";
 import { StyleSheet } from "react-native";
 import React from "react";
 import { Exercise } from "~/lib/models";

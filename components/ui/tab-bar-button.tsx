@@ -28,7 +28,7 @@ export const TabBarButton = React.forwardRef<View, TabBarButtonProps>(
         </VStack>
       </Pressable>
     );
-  }
+  },
 );
 
 TabBarButton.displayName = "TabBarButton";

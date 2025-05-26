@@ -1,8 +1,7 @@
 import React from "react";
 import { Stack, useLocalSearchParams } from "expo-router";
-import { SafeAreaProvider } from "react-native-safe-area-context";
+import { SafeAreaProvider, SafeAreaView } from "react-native-safe-area-context";
 import { ScrollView, View } from "react-native";
-import { SafeAreaView } from "react-native-safe-area-context";
 import { HeaderBackButton } from "~/components/ui/header-back-button";
 import { useExerciseQuery } from "~/hooks/queries/exercises";
 import { VStack } from "~/components/ui/vstack";

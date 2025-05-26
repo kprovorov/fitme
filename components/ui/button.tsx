@@ -53,7 +53,7 @@ const buttonVariants = cva(
       size: "default",
       shape: "default",
     },
-  }
+  },
 );
 
 const buttonTextVariants = cva(
@@ -81,7 +81,7 @@ const buttonTextVariants = cva(
       variant: "default",
       size: "default",
     },
-  }
+  },
 );
 
 type ButtonProps = React.ComponentPropsWithoutRef<typeof Pressable> &
@@ -102,7 +102,7 @@ const Button = React.forwardRef<
       <Pressable
         className={cn(
           props.disabled && "opacity-50 web:pointer-events-none",
-          buttonVariants({ variant, size, shape, className })
+          buttonVariants({ variant, size, shape, className }),
         )}
         ref={ref}
         role="button"

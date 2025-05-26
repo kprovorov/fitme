@@ -15,8 +15,8 @@ import {
   AlertDialogHeader,
   AlertDialogTitle,
   AlertDialogTrigger,
+  AlertDialog,
 } from "~/components/ui/alert-dialog";
-import { AlertDialog } from "~/components/ui/alert-dialog";
 import { Button } from "~/components/ui/button";
 import { useDeleteUserMutation } from "~/hooks/mutations/auth";
 import { useQueryClient } from "@tanstack/react-query";

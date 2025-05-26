@@ -7,11 +7,9 @@ import {
   useDeletePlanMutation,
   usePlanQuery,
 } from "~/hooks/queries/plans";
-import { Alert, RefreshControl } from "react-native";
-import { SafeAreaView } from "react-native-safe-area-context";
+import { Alert, RefreshControl, ScrollView } from "react-native";
+import { SafeAreaView, SafeAreaProvider } from "react-native-safe-area-context";
 import { HeaderBackButton } from "~/components/ui/header-back-button";
-import { SafeAreaProvider } from "react-native-safe-area-context";
-import { ScrollView } from "react-native";
 import React from "react";
 import WorkoutList from "~/components/views/workout-list";
 import { Button } from "~/components/ui/button";
@@ -93,7 +91,7 @@ export default function PlanScreen() {
                         text: "Activate",
                         onPress: () => activatePlan({ id: Number(planId) }),
                       },
-                    ]
+                    ],
                   );
                 }
 
@@ -101,7 +99,7 @@ export default function PlanScreen() {
                   if (plan?.is_active) {
                     Alert.alert(
                       "Archive Plan",
-                      "You cannot archive an active plan. You should have at least one active plan at all times."
+                      "You cannot archive an active plan. You should have at least one active plan at all times.",
                     );
                   } else {
                     Alert.alert(
@@ -117,7 +115,7 @@ export default function PlanScreen() {
                           text: "Archive",
                           onPress: () => deletePlan({ id: Number(planId) }),
                         },
-                      ]
+                      ],
                     );
                   }
                 }

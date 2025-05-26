@@ -9,8 +9,10 @@ import {
   RadioGroupMenuListItem,
 } from "~/components/ui/radio-group";
 import { useCurrentUserQuery } from "~/hooks/queries/auth";
-import { getMeasurementSystemDisclaimer } from "~/lib/labels";
-import { getMeasurementSystemLabel } from "~/lib/labels";
+import {
+  getMeasurementSystemDisclaimer,
+  getMeasurementSystemLabel,
+} from "~/lib/labels";
 import { MeasurementSystem, measurementSystems } from "~/lib/models";
 import { useUpdateMeasurementSystemMutation } from "~/hooks/queries/settings";
 import { useQueryClient } from "@tanstack/react-query";
@@ -23,8 +25,8 @@ import {
   AlertDialogHeader,
   AlertDialogTitle,
   AlertDialogTrigger,
+  AlertDialog,
 } from "~/components/ui/alert-dialog";
-import { AlertDialog } from "~/components/ui/alert-dialog";
 import { Text } from "~/components/ui/text";
 export default function MeasurementSystemScreen() {
   const queryClient = useQueryClient();
@@ -42,7 +44,7 @@ export default function MeasurementSystemScreen() {
     });
 
   const handleUpdateMeasurementSystem = (
-    measurementSystem: MeasurementSystem
+    measurementSystem: MeasurementSystem,
   ) => {
     setMeasurementSystemValue(measurementSystem);
   };
@@ -102,7 +104,7 @@ export default function MeasurementSystemScreen() {
                       <AlertDialogCancel
                         onPress={() =>
                           setMeasurementSystemValue(
-                            user?.measurement_system || "metric"
+                            user?.measurement_system || "metric",
                           )
                         }
                       >

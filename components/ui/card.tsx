@@ -11,7 +11,7 @@ const Card = React.forwardRef<ViewRef, ViewProps>(
       className={cn("rounded-2xl bg-card/70", className)}
       {...props}
     />
-  )
+  ),
 );
 Card.displayName = "Card";
 
@@ -22,7 +22,7 @@ const CardHeader = React.forwardRef<ViewRef, ViewProps>(
       className={cn("flex flex-col gap-sm px-sm", className)}
       {...props}
     />
-  )
+  ),
 );
 CardHeader.displayName = "CardHeader";
 
@@ -34,11 +34,11 @@ const CardTitle = React.forwardRef<TextRef, TextProps>(
       ref={ref}
       className={cn(
         "text-xl text-primary font-nunito-sans-bold tracking-tight",
-        className
+        className,
       )}
       {...props}
     />
-  )
+  ),
 );
 CardTitle.displayName = "CardTitle";
 
@@ -49,7 +49,7 @@ const CardDescription = React.forwardRef<TextRef, TextProps>(
       className={cn("text-sm text-muted-foreground", className)}
       {...props}
     />
-  )
+  ),
 );
 CardDescription.displayName = "CardDescription";
 
@@ -58,7 +58,7 @@ const CardContent = React.forwardRef<ViewRef, ViewProps>(
     <TextClassContext.Provider value="text-card-foreground">
       <View ref={ref} className={cn("px-sm", className)} {...props} />
     </TextClassContext.Provider>
-  )
+  ),
 );
 CardContent.displayName = "CardContent";
 
@@ -69,7 +69,7 @@ const CardFooter = React.forwardRef<ViewRef, ViewProps>(
       className={cn("flex flex-row items-center px-4", className)}
       {...props}
     />
-  )
+  ),
 );
 CardFooter.displayName = "CardFooter";
 

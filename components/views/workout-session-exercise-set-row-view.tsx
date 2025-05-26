@@ -27,10 +27,10 @@ export default function WorkoutSessionExerciseSetRowView({
   const queryClient = useQueryClient();
 
   const [isEditable, setIsEditable] = useState(
-    workoutSessionExerciseSet.weight_completed === null
+    workoutSessionExerciseSet.weight_completed === null,
   );
   const [isDone, setIsDone] = useState(
-    workoutSessionExerciseSet.weight_completed !== null
+    workoutSessionExerciseSet.weight_completed !== null,
   );
 
   const { mutate: updateWorkoutSessionExerciseSet } =

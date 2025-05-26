@@ -2,8 +2,7 @@ import React, { useState, useRef } from "react";
 import { H2, H4 } from "~/components/ui/typography";
 import { VStack } from "~/components/ui/vstack";
 import { Text } from "~/components/ui/text";
-import { SafeAreaProvider } from "react-native-safe-area-context";
-import { SafeAreaView } from "react-native-safe-area-context";
+import { SafeAreaProvider, SafeAreaView } from "react-native-safe-area-context";
 import { router, Stack } from "expo-router";
 import { useStoreProfileMutation } from "~/hooks/mutations/profiles";
 import { Button } from "~/components/ui/button";
@@ -79,14 +78,14 @@ export default function ProfileScreen() {
       ? user?.profile?.height
         ? Math.floor(user?.profile?.height / 12)
         : 5
-      : 176
+      : 176,
   );
   const [heightInches, setHeightInches] = useState(
     user?.measurement_system !== "metric"
       ? user?.profile?.height
         ? user?.profile?.height % 12
         : 0
-      : 0
+      : 0,
   );
 
   const [fieldFocused, setFieldFocused] = useState<
@@ -235,8 +234,8 @@ export default function ProfileScreen() {
                                 fieldFocused === "age"
                                   ? "text-primary"
                                   : form.formState.errors.age
-                                  ? "text-destructive"
-                                  : "text-muted-foreground"
+                                    ? "text-destructive"
+                                    : "text-muted-foreground",
                               )}
                             >
                               {form.getValues("age")
@@ -267,14 +266,14 @@ export default function ProfileScreen() {
                                 fieldFocused === "weight"
                                   ? "text-primary"
                                   : form.formState.errors.weight
-                                  ? "text-destructive"
-                                  : "text-muted-foreground"
+                                    ? "text-destructive"
+                                    : "text-muted-foreground",
                               )}
                             >
                               {form.getValues("weight")
                                 ? formatWeight(
                                     form.getValues("weight"),
-                                    user.measurement_system
+                                    user.measurement_system,
                                   )
                                 : "Not Set"}
                             </Text>
@@ -302,14 +301,14 @@ export default function ProfileScreen() {
                                 fieldFocused === "height"
                                   ? "text-primary"
                                   : form.formState.errors.height
-                                  ? "text-destructive"
-                                  : "text-muted-foreground"
+                                    ? "text-destructive"
+                                    : "text-muted-foreground",
                               )}
                             >
                               {form.getValues("height")
                                 ? formatHeight(
                                     form.getValues("height"),
-                                    user.measurement_system
+                                    user.measurement_system,
                                   )
                                 : "Not Set"}
                             </Text>
@@ -381,7 +380,7 @@ export default function ProfileScreen() {
                         >
                           {range(
                             1,
-                            user.measurement_system === "metric" ? 454 : 1000
+                            user.measurement_system === "metric" ? 454 : 1000,
                           ).map((i) => (
                             <Picker.Item
                               label={formatWeight(i, user.measurement_system)}
@@ -424,7 +423,7 @@ export default function ProfileScreen() {
                                   setHeightFeet(v);
                                   field.onChange(
                                     parseInt(v.toString()) * 12 +
-                                      parseInt(heightInches.toString())
+                                      parseInt(heightInches.toString()),
                                   );
                                   form.trigger("height");
                                 }}
@@ -444,7 +443,7 @@ export default function ProfileScreen() {
                                   setHeightInches(v);
                                   field.onChange(
                                     parseInt(heightFeet.toString()) * 12 +
-                                      parseInt(v.toString())
+                                      parseInt(v.toString()),
                                   );
                                   form.trigger("height");
                                 }}

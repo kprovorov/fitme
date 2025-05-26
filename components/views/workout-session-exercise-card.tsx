@@ -13,7 +13,7 @@ export default function WorkoutSessionExerciseCard({
   workoutSessionExercise,
 }: WorkoutSessionExerciseCardProps) {
   const setsDoneCount = workoutSessionExercise.sets.filter(
-    (set) => set.weight_completed !== null
+    (set) => set.weight_completed !== null,
   ).length;
 
   const data = [

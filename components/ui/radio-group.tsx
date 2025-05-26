@@ -30,7 +30,7 @@ const RadioGroupItem = React.forwardRef<
       className={cn(
         "aspect-square h-4 w-4 native:h-5 native:w-5 rounded-full justify-center items-center border-2 border-primary text-primary web:ring-offset-background web:focus:outline-none web:focus-visible:ring-2 web:focus-visible:ring-ring web:focus-visible:ring-offset-2",
         props.disabled && "web:cursor-not-allowed border-muted",
-        className
+        className,
       )}
       {...props}
     >
@@ -52,14 +52,14 @@ const RadioGroupItemWithLabel = React.forwardRef<
       className={cn(
         "flex-row gap-2 bg-card rounded-lg p-4 flex-1 justify-start items-center border-2",
         props.disabled && "web:cursor-not-allowed border-muted",
-        className
+        className,
       )}
       {...props}
     >
       <View
         className={cn(
           "aspect-square h-4 w-4 native:h-5 native:w-5 rounded-full justify-center items-center border-2 border-primary text-primary web:ring-offset-background web:focus:outline-none web:focus-visible:ring-2 web:focus-visible:ring-ring web:focus-visible:ring-offset-2",
-          props.disabled && "web:cursor-not-allowed border-muted"
+          props.disabled && "web:cursor-not-allowed border-muted",
         )}
       >
         <RadioGroupPrimitive.Indicator className="flex items-center justify-center">
@@ -82,7 +82,7 @@ const RadioGroupMenuListItem = React.forwardRef<
       className={cn(
         "flex-1 flex-row items-center justify-between p-4 active:bg-card/50",
         props.disabled && "web:cursor-not-allowed border-muted",
-        className
+        className,
       )}
       {...props}
     >
@@ -97,7 +97,7 @@ const RadioGroupMenuListItem = React.forwardRef<
       <View
         className={cn(
           "aspect-square h-4 w-4 native:h-5 native:w-5 justify-center items-center text-primary",
-          props.disabled && "web:cursor-not-allowed border-muted"
+          props.disabled && "web:cursor-not-allowed border-muted",
         )}
       >
         <RadioGroupPrimitive.Indicator className="flex items-center justify-center">

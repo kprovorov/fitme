@@ -29,7 +29,7 @@ const WheelSelect = React.forwardRef<
 >(
   (
     { className, placeholderClassName, label, wheels, value, ...props },
-    ref
+    ref,
   ) => {
     const [isFocused, setIsFocused] = useState(false);
 
@@ -85,7 +85,7 @@ const WheelSelect = React.forwardRef<
         </Animated.View>
       </VStack>
     );
-  }
+  },
 );
 
 WheelSelect.displayName = "WheelSelect";

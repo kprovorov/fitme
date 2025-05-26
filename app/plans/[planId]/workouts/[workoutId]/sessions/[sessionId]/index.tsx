@@ -3,8 +3,7 @@ import { Text } from "~/components/ui/text";
 import { Stack, useLocalSearchParams } from "expo-router";
 import { Padding } from "~/components/ui/padding";
 import { ScrollView } from "react-native";
-import { SafeAreaView } from "react-native-safe-area-context";
-import { SafeAreaProvider } from "react-native-safe-area-context";
+import { SafeAreaView, SafeAreaProvider } from "react-native-safe-area-context";
 import WorkoutSessionView from "~/components/views/workout-session-view";
 import { VStack } from "~/components/ui/vstack";
 import { Button } from "~/components/ui/button";
@@ -56,7 +55,7 @@ export default function WorkoutSessionScreen() {
       setElapsedTime(
         `${hours.toString().padStart(2, "0")}:${minutes
           .toString()
-          .padStart(2, "0")}:${seconds.toString().padStart(2, "0")}`
+          .padStart(2, "0")}:${seconds.toString().padStart(2, "0")}`,
       );
     }, 1000);
 
@@ -106,7 +105,7 @@ export default function WorkoutSessionScreen() {
                           new Date(workoutSession.started_at).getTime();
                         const hours = Math.floor(diff / (1000 * 60 * 60));
                         const minutes = Math.floor(
-                          (diff % (1000 * 60 * 60)) / (1000 * 60)
+                          (diff % (1000 * 60 * 60)) / (1000 * 60),
                         );
                         const seconds = Math.floor((diff % (1000 * 60)) / 1000);
                         return `${hours.toString().padStart(2, "0")}:${minutes
