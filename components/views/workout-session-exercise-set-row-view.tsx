@@ -88,8 +88,12 @@ export default function WorkoutSessionExerciseSetRowView({
         onSubmit={async (values) => {
           updateWorkoutSessionExerciseSet({
             data: {
-              weight_completed: Number(values.weight.replace(",", ".")),
-              reps_completed: Number(values.reps),
+              weight_completed: values.weight
+                ? Number(values.weight.replace(",", "."))
+                : workoutSessionExerciseSet.weight_recommended,
+              reps_completed: values.reps
+                ? Number(values.reps)
+                : workoutSessionExerciseSet.reps_recommended,
             },
             params: {
               planId,
@@ -110,13 +114,13 @@ export default function WorkoutSessionExerciseSetRowView({
           <ClockFading
             size={12}
             className={cn(
-              timer ? "text-primary-foreground" : "text-muted-foreground"
+              timer ? "text-primary-foreground" : "text-muted-foreground",
             )}
           />
           <Text
             className={cn(
               "text-xs",
-              timer ? "text-primary-foreground" : "text-muted-foreground"
+              timer ? "text-primary-foreground" : "text-muted-foreground",
             )}
           >
             {workoutSessionExerciseSet.rest_recommended}s
