@@ -21,7 +21,7 @@ export default function ExerciseImage({ exercise }: ExerciseImageProps) {
 const styles = StyleSheet.create({
   image: {
     height: 48,
-    borderRadius: 6,
+    borderRadius: 666,
     aspectRatio: 1 / 1,
   },
 });
