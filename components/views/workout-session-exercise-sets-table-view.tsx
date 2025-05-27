@@ -6,6 +6,8 @@ import { Text } from "../ui/text";
 import { useCurrentUserQuery } from "~/hooks/queries/auth";
 import WorkoutSessionExerciseSetRowView from "./workout-session-exercise-set-row-view";
 import { getWeightLabel } from "~/lib/labels";
+import { Separator } from "../ui/separator";
+import { Muted } from "../ui/typography";
 
 interface WorkoutSessionExerciseSetsTableViewProps {
   planId: number;
@@ -29,9 +31,9 @@ export default function WorkoutSessionExerciseSetsTableView({
   );
 
   return (
-    !!user && (
-      <VStack className="items-stretch w-full gap-0 bg-black/10 rounded-md overflow-hidden">
-        <HStack className="justify-start bg-black/20 py-2 pl-2 pr-14">
+    user && (
+      <VStack className="items-stretch gap-0">
+        <HStack className="justify-start py-2 pr-12">
           <Text className="w-12 font-bold text-center text-primary uppercase text-sm">
             Set
           </Text>
@@ -45,9 +47,11 @@ export default function WorkoutSessionExerciseSetsTableView({
           </Text>
         </HStack>
 
+        <Separator />
+
         {workoutSessionExerciseSets
           .sort((a, b) => a.order - b.order)
-          .map((workoutSessionExerciseSet) => (
+          .map((workoutSessionExerciseSet, i) => (
             <WorkoutSessionExerciseSetRowView
               key={workoutSessionExerciseSet.id}
               planId={planId}
@@ -56,6 +60,7 @@ export default function WorkoutSessionExerciseSetsTableView({
               exerciseId={exerciseId}
               workoutSessionExerciseSet={workoutSessionExerciseSet}
               hasWeight={hasWeight}
+              timer={false}
             />
           ))}
       </VStack>

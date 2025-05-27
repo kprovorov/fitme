@@ -2,12 +2,14 @@ import { Stack, useLocalSearchParams } from "expo-router";
 import React from "react";
 import { SafeAreaView, SafeAreaProvider } from "react-native-safe-area-context";
 import { Text } from "~/components/ui/text";
-import { H1, Muted, P } from "~/components/ui/typography";
+import { H4, Muted, P } from "~/components/ui/typography";
 import { VStack } from "~/components/ui/vstack";
 import ExerciseVideo from "~/components/exercises/exercise-video";
 import WorkoutSessionExerciseSetsTableView from "~/components/views/workout-session-exercise-sets-table-view";
 import { KeyboardAwareScrollView } from "react-native-keyboard-controller";
 import { useWorkoutSessionExerciseQuery } from "~/hooks/queries/workout-session-exercises";
+import { HeaderBackButton } from "~/components/ui/header-back-button";
+import { View } from "react-native";
 
 export default function WorkoutSessionExerciseScreen() {
   const { planId, workoutId, sessionId, exerciseId } = useLocalSearchParams();
@@ -32,8 +34,14 @@ export default function WorkoutSessionExerciseScreen() {
     <>
       <Stack.Screen
         options={{
-          title: workoutSessionExercise?.exercise.name,
-          headerBackTitle: "back",
+          headerTransparent: true,
+          headerTitleStyle: {
+            fontFamily: "NunitoSans-Bold",
+            fontWeight: "bold",
+          },
+          title: workoutSessionExercise.exercise.name,
+          headerBackButtonDisplayMode: "minimal",
+          headerLeft: () => <HeaderBackButton />,
         }}
       />
       <SafeAreaProvider>
@@ -43,16 +51,22 @@ export default function WorkoutSessionExerciseScreen() {
             showsVerticalScrollIndicator={false}
             keyboardShouldPersistTaps="handled"
           >
-            <VStack className="gap-4 items-stretch py-6">
+            <VStack className="items-stretch py-sm flex-1">
               <VStack className="items-start px-6">
-                <H1>{workoutSessionExercise.exercise.name}</H1>
+                <H4 className="text-primary">
+                  {workoutSessionExercise.exercise.name}
+                </H4>
                 <P>{workoutSessionExercise.exercise.description}</P>
               </VStack>
               {workoutSessionExercise.exercise.video_url && (
-                <ExerciseVideo exercise={workoutSessionExercise.exercise} />
+                <View className="px-6">
+                  <View className="flex-1 rounded-lg w-full overflow-hidden">
+                    <ExerciseVideo exercise={workoutSessionExercise.exercise} />
+                  </View>
+                </View>
               )}
 
-              <VStack className="gap-4 px-6">
+              <VStack className="gap-4 px-6 items-stretch">
                 <WorkoutSessionExerciseSetsTableView
                   planId={Number(planId)}
                   workoutId={Number(workoutId)}
@@ -60,7 +74,6 @@ export default function WorkoutSessionExerciseScreen() {
                   exerciseId={Number(exerciseId)}
                   workoutSessionExerciseSets={workoutSessionExercise.sets}
                 />
-                <Muted>{workoutSessionExercise.exercise.instructions}</Muted>
               </VStack>
             </VStack>
           </KeyboardAwareScrollView>

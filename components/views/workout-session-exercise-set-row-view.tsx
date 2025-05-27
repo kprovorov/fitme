@@ -6,6 +6,11 @@ import { useQueryClient } from "@tanstack/react-query";
 import { Text } from "../ui/text";
 import { Check } from "lucide-react-native";
 import { useUpdateWorkoutSessionExerciseSetMutation } from "~/hooks/queries/workout-session-exercise-sets";
+import { Separator } from "../ui/separator";
+import { Muted } from "../ui/typography";
+import { ClockFading } from "~/lib/icons/ClockFading";
+import { View } from "react-native";
+import { cn } from "~/lib/utils";
 
 interface WorkoutSessionExerciseSetRowViewProps {
   planId: number;
@@ -14,6 +19,7 @@ interface WorkoutSessionExerciseSetRowViewProps {
   exerciseId: number;
   workoutSessionExerciseSet: WorkoutSessionExerciseSet;
   hasWeight?: boolean;
+  timer?: boolean;
 }
 
 export default function WorkoutSessionExerciseSetRowView({
@@ -23,6 +29,7 @@ export default function WorkoutSessionExerciseSetRowView({
   exerciseId,
   workoutSessionExerciseSet,
   hasWeight = true,
+  timer = true,
 }: WorkoutSessionExerciseSetRowViewProps) {
   const queryClient = useQueryClient();
 
@@ -48,7 +55,7 @@ export default function WorkoutSessionExerciseSetRowView({
     });
 
   return (
-    <HStack className="p-2 justify-start">
+    <HStack className="py-sm justify-start">
       {isDone ? (
         <HStack className="w-12">
           <Check strokeWidth={3} size={16} className="text-primary" />
@@ -65,7 +72,7 @@ export default function WorkoutSessionExerciseSetRowView({
         isDone={isDone}
         onEdit={() => setIsEditable(true)}
         isEditing={isEditable}
-        defaultValues={{
+        recommendedValues={{
           weight: (
             workoutSessionExerciseSet.weight_completed ??
             workoutSessionExerciseSet.weight_recommended
@@ -94,6 +101,29 @@ export default function WorkoutSessionExerciseSetRowView({
           });
         }}
       />
+
+      <HStack className={cn("absolute inset-x-0 -bottom-3 gap-1")}>
+        <Separator className={cn("flex-1", timer && "bg-primary")} />
+        <HStack
+          className={cn("gap-1 px-1.5 h-6 rounded-full", timer && "bg-primary")}
+        >
+          <ClockFading
+            size={12}
+            className={cn(
+              timer ? "text-primary-foreground" : "text-muted-foreground"
+            )}
+          />
+          <Text
+            className={cn(
+              "text-xs",
+              timer ? "text-primary-foreground" : "text-muted-foreground"
+            )}
+          >
+            {workoutSessionExerciseSet.rest_recommended}s
+          </Text>
+        </HStack>
+        <Separator className={cn("flex-1", timer && "bg-primary")} />
+      </HStack>
     </HStack>
   );
 }

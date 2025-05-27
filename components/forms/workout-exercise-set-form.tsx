@@ -14,7 +14,7 @@ interface WorkoutSessionExerciseSetFormProps {
   onSubmit: (values: z.infer<typeof formSchema>) => Promise<void>;
   onEdit: () => void;
   hasWeight: boolean;
-  defaultValues?: z.infer<typeof formSchema>;
+  recommendedValues?: z.infer<typeof formSchema>;
   disabled?: boolean;
   isDone?: boolean;
   isEditing?: boolean;
@@ -31,23 +31,23 @@ export default function WorkoutSessionExerciseSetForm({
   onSubmit,
   onEdit,
   hasWeight = true,
-  defaultValues,
+  recommendedValues,
   disabled,
   isDone,
   isEditing,
 }: WorkoutSessionExerciseSetFormProps) {
   const form = useForm<WorkoutSessionExerciseSetFormValues>({
     resolver: zodResolver(formSchema),
-    defaultValues: defaultValues ?? {
-      weight: "0",
-      reps: "0",
+    defaultValues: {
+      weight: "",
+      reps: "",
     },
     disabled,
   });
 
   return (
-    <VStack className="flex-1">
-      <HStack className="justify-between flex-1">
+    <VStack className="flex-1 gap-xs">
+      <HStack className="justify-between gap-xs flex-1">
         {hasWeight && (
           <HStack className="flex-1">
             <Controller
@@ -55,12 +55,12 @@ export default function WorkoutSessionExerciseSetForm({
               render={({ field: { onChange, onBlur, value } }) => (
                 <Input
                   editable={!form.formState.disabled}
-                  placeholder="Weight"
+                  placeholder={recommendedValues?.weight}
                   onBlur={onBlur}
                   onChangeText={onChange}
                   value={value}
                   keyboardType="decimal-pad"
-                  className="w-full text-center font-bold"
+                  className="w-full text-center font-bold h-10 native:h-10"
                 />
               )}
               name="weight"
@@ -73,13 +73,13 @@ export default function WorkoutSessionExerciseSetForm({
             render={({ field: { onChange, onBlur, value } }) => (
               <Input
                 editable={!form.formState.disabled}
-                placeholder="Repeats"
+                placeholder={recommendedValues?.reps}
                 onBlur={onBlur}
                 onChangeText={onChange}
                 value={value}
                 keyboardType="number-pad"
                 autoCapitalize="none"
-                className="w-full text-center font-bold"
+                className="w-full text-center font-bold h-10 native:h-10"
               />
             )}
             name="reps"
@@ -90,18 +90,18 @@ export default function WorkoutSessionExerciseSetForm({
           {isDone && !isEditing ? (
             <Button
               onPress={onEdit}
-              className="rounded-full"
-              size="icon"
-              variant="secondary"
+              size="icon-xs"
+              variant="ghost"
+              shape="pill"
             >
               <Pencil className="text-muted-foreground" size={16} />
             </Button>
           ) : (
             <Button
               onPress={form.handleSubmit(onSubmit)}
-              className="rounded-full"
               disabled={disabled}
-              size="icon"
+              size="icon-xs"
+              shape="pill"
             >
               <Check className="text-primary-foreground" size={16} />
             </Button>
