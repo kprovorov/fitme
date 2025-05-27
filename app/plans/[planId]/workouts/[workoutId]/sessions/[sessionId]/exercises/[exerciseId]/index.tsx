@@ -9,6 +9,18 @@ import { KeyboardAwareScrollView } from "react-native-keyboard-controller";
 import { useWorkoutSessionExerciseQuery } from "~/hooks/queries/workout-session-exercises";
 import { HeaderBackButton } from "~/components/ui/header-back-button";
 import { View } from "react-native";
+import { useExerciseHistoryQuery } from "~/hooks/queries/exercises";
+import { Text } from "~/components/ui/text";
+import { HStack } from "~/components/ui/hstack";
+import {
+  Table,
+  TableCell,
+  TableBody,
+  TableHead,
+  TableHeader,
+  TableRow,
+} from "~/components/ui/table";
+import { format } from "date-fns";
 
 export default function WorkoutSessionExerciseScreen() {
   const { planId, workoutId, sessionId, exerciseId } = useLocalSearchParams();
@@ -19,6 +31,12 @@ export default function WorkoutSessionExerciseScreen() {
       workoutId: Number(workoutId),
       sessionId: Number(sessionId),
       exerciseId: Number(exerciseId),
+    },
+  });
+
+  const { data: exerciseHistory } = useExerciseHistoryQuery({
+    variables: {
+      exerciseId: workoutSessionExercise?.exercise_id,
     },
   });
 
@@ -53,7 +71,7 @@ export default function WorkoutSessionExerciseScreen() {
 
               {workoutSessionExercise.exercise.video_url && (
                 <View className="px-6">
-                  <View className="flex-1 rounded-lg w-full overflow-hidden">
+                  <View className="rounded-lg w-full overflow-hidden">
                     <ExerciseVideo exercise={workoutSessionExercise.exercise} />
                   </View>
                 </View>
@@ -71,6 +89,57 @@ export default function WorkoutSessionExerciseScreen() {
 
               <VStack className="px-6 items-stretch">
                 <H4>History</H4>
+                {!!exerciseHistory &&
+                  Object.entries(
+                    exerciseHistory?.reduce(
+                      (acc, set) => {
+                        const date = set.logged_at
+                          ? new Date(set.logged_at).toDateString()
+                          : "";
+
+                        if (!acc[date]) {
+                          acc[date] = [];
+                        }
+                        acc[date].push(set);
+                        return acc;
+                      },
+                      {} as Record<string, typeof exerciseHistory>,
+                    ),
+                  ).map(([date, sets]) => (
+                    <VStack key={date} className="items-stretch gap-0">
+                      <HStack className="justify-start px-sm">
+                        <Text>{format(new Date(date), "PPP")}</Text>
+                      </HStack>
+                      <Table>
+                        <TableHeader>
+                          <TableRow>
+                            <TableHead className="w-1/2">
+                              <Text className="text-center">kg</Text>
+                            </TableHead>
+                            <TableHead className="w-1/2">
+                              <Text className="text-center">Reps</Text>
+                            </TableHead>
+                          </TableRow>
+                        </TableHeader>
+                        <TableBody>
+                          {sets.map((set) => (
+                            <TableRow key={set.id}>
+                              <TableCell className="w-1/2">
+                                <Text className="text-center">
+                                  {set.weight_completed}
+                                </Text>
+                              </TableCell>
+                              <TableCell className="w-1/2">
+                                <Text className="text-center">
+                                  {set.reps_completed}
+                                </Text>
+                              </TableCell>
+                            </TableRow>
+                          ))}
+                        </TableBody>
+                      </Table>
+                    </VStack>
+                  ))}
               </VStack>
             </VStack>
           </KeyboardAwareScrollView>
