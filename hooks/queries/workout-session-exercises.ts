@@ -13,7 +13,7 @@ export const useWorkoutSessionExerciseQuery = createQuery<
   WorkoutSessionExercise,
   WorkoutSessionExercisesVariables
 >({
-  queryKey: ["workoutSessionExercise"],
+  queryKey: ["workout-session-exercise"],
   fetcher: async ({
     planId,
     workoutId,
