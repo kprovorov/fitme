@@ -36,8 +36,9 @@ export default function WorkoutSessionExerciseScreen() {
 
   const { data: exerciseHistory } = useExerciseHistoryQuery({
     variables: {
-      exerciseId: workoutSessionExercise?.exercise_id,
+      exerciseId: workoutSessionExercise!.exercise_id!,
     },
+    enabled: !!workoutSessionExercise?.exercise_id,
   });
 
   return workoutSessionExercise ? (
