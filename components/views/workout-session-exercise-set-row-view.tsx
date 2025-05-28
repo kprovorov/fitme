@@ -51,6 +51,9 @@ export default function WorkoutSessionExerciseSetRowView({
         queryClient.invalidateQueries({
           queryKey: ["workout-session"],
         });
+        queryClient.invalidateQueries({
+          queryKey: ["exercise-history"],
+        });
       },
     });
 

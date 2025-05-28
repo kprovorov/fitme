@@ -88,10 +88,10 @@ export default function WorkoutSessionExerciseScreen() {
                 />
               </VStack>
 
-              <VStack className="px-6 items-stretch">
-                <H4>History</H4>
-                {!!exerciseHistory &&
-                  Object.entries(
+              {!!exerciseHistory && exerciseHistory.length > 0 && (
+                <VStack className="px-6 items-stretch">
+                  <H4>History</H4>
+                  {Object.entries(
                     exerciseHistory?.reduce(
                       (acc, set) => {
                         const date = set.logged_at
@@ -114,34 +114,49 @@ export default function WorkoutSessionExerciseScreen() {
                       <Table>
                         <TableHeader>
                           <TableRow>
-                            <TableHead className="w-1/2">
-                              <Text className="text-center">kg</Text>
+                            <TableHead className="w-1/5">
+                              <Text className="text-center">Set</Text>
                             </TableHead>
-                            <TableHead className="w-1/2">
+                            {!!sets[0].weight_recommended && (
+                              <TableHead className="w-2/5">
+                                <Text className="text-center">kg</Text>
+                              </TableHead>
+                            )}
+                            <TableHead className="w-2/5">
                               <Text className="text-center">Reps</Text>
                             </TableHead>
                           </TableRow>
                         </TableHeader>
                         <TableBody>
-                          {sets.map((set) => (
-                            <TableRow key={set.id}>
-                              <TableCell className="w-1/2">
-                                <Text className="text-center">
-                                  {set.weight_completed}
-                                </Text>
-                              </TableCell>
-                              <TableCell className="w-1/2">
-                                <Text className="text-center">
-                                  {set.reps_completed}
-                                </Text>
-                              </TableCell>
-                            </TableRow>
-                          ))}
+                          {sets
+                            .sort((a, b) => a.order - b.order)
+                            .map((set) => (
+                              <TableRow key={set.id}>
+                                <TableCell className="w-1/5">
+                                  <Text className="text-center">
+                                    #{set.order}
+                                  </Text>
+                                </TableCell>
+                                {!!set.weight_recommended && (
+                                  <TableCell className="w-2/5">
+                                    <Text className="text-center">
+                                      {set.weight_completed}
+                                    </Text>
+                                  </TableCell>
+                                )}
+                                <TableCell className="w-2/5">
+                                  <Text className="text-center">
+                                    {set.reps_completed}
+                                  </Text>
+                                </TableCell>
+                              </TableRow>
+                            ))}
                         </TableBody>
                       </Table>
                     </VStack>
                   ))}
-              </VStack>
+                </VStack>
+              )}
             </VStack>
           </KeyboardAwareScrollView>
         </SafeAreaView>
