@@ -1,17 +1,19 @@
 import { PortalHost } from "@rn-primitives/portal";
-import { Stack, useRouter } from "expo-router";
+import { Stack } from "expo-router";
 import React from "react";
 import { HeaderBackButton } from "~/components/ui/header-back-button";
 
 export default function Layout() {
-  const router = useRouter();
-
   return (
     <>
       <Stack
         screenOptions={{
           headerTransparent: true,
           headerTitle: "",
+          headerTitleStyle: {
+            fontFamily: "NunitoSans-Bold",
+            fontWeight: "bold",
+          },
           headerLeft: () => <HeaderBackButton />,
         }}
       >
