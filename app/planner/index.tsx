@@ -179,7 +179,7 @@ export default function PlannerScreen() {
                       style={{ width: "100%", height: 40 }}
                       minimumValue={30}
                       maximumValue={120}
-                      minimumTrackTintColor="#B8FF1F"
+                      minimumTrackTintColor="#C0FF38"
                       step={10}
                       value={value}
                       onValueChange={onChange}

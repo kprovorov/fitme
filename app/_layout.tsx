@@ -86,7 +86,7 @@ export default function RootLayout() {
                 ...DarkTheme,
                 colors: {
                   ...DarkTheme.colors,
-                  primary: "#B8FF1F",
+                  primary: "#C0FF38",
                   background: "#1F1D20",
                 },
               }
@@ -94,7 +94,7 @@ export default function RootLayout() {
                 ...DefaultTheme,
                 colors: {
                   ...DefaultTheme.colors,
-                  primary: "#B8FF1F",
+                  primary: "#C0FF38",
                 },
               }
         }

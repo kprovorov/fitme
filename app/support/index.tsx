@@ -56,7 +56,7 @@ export default function SupportScreen() {
                   className="p-0 h-8"
                   onPress={() => Linking.openURL("https://x.com/fitmeproject")}
                 >
-                  <X fill="#B8FF1F" height={16} width={16} />
+                  <X fill="#C0FF38" height={16} width={16} />
                 </Button>
                 <Button
                   variant="link"
@@ -65,7 +65,7 @@ export default function SupportScreen() {
                     Linking.openURL("https://www.instagram.com/fitmeprojectcom")
                   }
                 >
-                  <Instagram fill="#B8FF1F" height={16} width={16} />
+                  <Instagram fill="#C0FF38" height={16} width={16} />
                 </Button>
                 <Button
                   variant="link"
@@ -74,7 +74,7 @@ export default function SupportScreen() {
                     Linking.openURL("https://www.threads.net/@fitmeprojectcom")
                   }
                 >
-                  <Threads fill="#B8FF1F" height={16} width={16} />
+                  <Threads fill="#C0FF38" height={16} width={16} />
                 </Button>
               </HStack>
             </VStack>
