@@ -74,6 +74,7 @@
     "react-native-gesture-handler": "~2.24.0",
     "react-native-gifted-charts": "^1.4.56",
     "react-native-keyboard-controller": "^1.16.7",
+    "react-native-mmkv": "^3.2.0",
     "react-native-purchases": "^8.9.1",
     "react-native-purchases-ui": "^8.9.1",
     "react-native-reanimated": "~3.17.4",
@@ -100,6 +101,8 @@
     "jest": "^29.2.1",
     "jest-expo": "~53.0.5",
     "prettier": "^3.5.3",
+    "react-query-external-sync": "^2.2.0",
+    "socket.io-client": "^4.8.1",
     "typescript": "~5.8.3"
   },
   "private": true,

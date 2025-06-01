@@ -1,29 +1,23 @@
-import "../global.css";
-import {
-  DarkTheme,
-  DefaultTheme,
-  ThemeProvider,
-} from "@react-navigation/native";
-import { useFonts } from "expo-font";
-import { Stack } from "expo-router";
-import * as SplashScreen from "expo-splash-screen";
-import { StatusBar } from "expo-status-bar";
-import { useEffect } from "react";
-import "react-native-reanimated";
-import { useColorScheme } from "@/hooks/useColorScheme";
-import { QueryClient, QueryClientProvider } from "@tanstack/react-query";
 import { getToken } from "@/lib/api";
-import { PortalHost } from "@rn-primitives/portal";
-import { Platform } from "react-native";
-import Purchases from "react-native-purchases";
-import "expo-dev-client";
-import * as Sentry from "@sentry/react-native";
-import { KeyboardProvider } from "react-native-keyboard-controller";
 import {
   NunitoSans_400Regular,
   NunitoSans_600SemiBold,
   NunitoSans_700Bold,
 } from "@expo-google-fonts/nunito-sans";
+import { PortalHost } from "@rn-primitives/portal";
+import * as Sentry from "@sentry/react-native";
+import { QueryClient } from "@tanstack/react-query";
+import "expo-dev-client";
+import { useFonts } from "expo-font";
+import * as SplashScreen from "expo-splash-screen";
+import { StatusBar } from "expo-status-bar";
+import { useEffect } from "react";
+import { Platform } from "react-native";
+import Purchases from "react-native-purchases";
+import "react-native-reanimated";
+import App from "~/components/app";
+import Providers from "~/components/providers";
+import "../global.css";
 
 Sentry.init({
   dsn: process.env.EXPO_PUBLIC_SENTRY_DSN,
@@ -43,7 +37,6 @@ SplashScreen.preventAutoHideAsync();
 const queryClient = new QueryClient();
 
 export default function RootLayout() {
-  const colorScheme = useColorScheme();
   const [loaded] = useFonts({
     NunitoSans_400Regular,
     NunitoSans_600SemiBold,
@@ -78,58 +71,10 @@ export default function RootLayout() {
   }
 
   return (
-    <QueryClientProvider client={queryClient}>
-      <ThemeProvider
-        value={
-          colorScheme === "dark"
-            ? {
-                ...DarkTheme,
-                colors: {
-                  ...DarkTheme.colors,
-                  primary: "#C0FF38",
-                  background: "#1F1D20",
-                },
-              }
-            : {
-                ...DefaultTheme,
-                colors: {
-                  ...DefaultTheme.colors,
-                  primary: "#C0FF38",
-                },
-              }
-        }
-      >
-        <KeyboardProvider>
-          <Stack>
-            <Stack.Screen name="(tabs)" options={{ headerShown: false }} />
-            <Stack.Screen
-              name="auth"
-              options={{
-                presentation: "fullScreenModal",
-                headerShown: false,
-              }}
-            />
-            <Stack.Screen
-              name="onboarding"
-              options={{
-                presentation: "fullScreenModal",
-                headerShown: false,
-              }}
-            />
-            <Stack.Screen
-              name="planner"
-              options={{
-                presentation: "modal",
-                headerShown: false,
-              }}
-            />
-            <Stack.Screen name="+not-found" />
-          </Stack>
-
-          <PortalHost />
-          <StatusBar style="auto" />
-        </KeyboardProvider>
-      </ThemeProvider>
-    </QueryClientProvider>
+    <Providers>
+      <App />
+      <PortalHost />
+      <StatusBar style="auto" />
+    </Providers>
   );
 }
