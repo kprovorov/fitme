@@ -13,7 +13,7 @@ const HeaderBackButton = React.forwardRef<
   return (
     <Button
       ref={ref}
-      variant="secondary"
+      variant="ghost"
       size="icon-sm"
       onPress={() => router.back()}
       shape="pill"
