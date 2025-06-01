@@ -12,9 +12,10 @@ import { KeyboardProvider } from "react-native-keyboard-controller";
 import { useSyncQueriesExternal } from "react-query-external-sync";
 import { storage } from "~/lib/mmkv";
 
+const queryClient = new QueryClient();
+
 function Providers({ children }: { children: React.ReactNode }) {
   const colorScheme = useColorScheme();
-  const queryClient = new QueryClient();
 
   // Set up the sync hook - automatically disabled in production!
   useSyncQueriesExternal({
