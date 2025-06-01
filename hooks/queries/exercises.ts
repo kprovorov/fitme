@@ -1,6 +1,6 @@
 import { createQuery } from "react-query-kit";
 import { api } from "~/lib/api";
-import { Exercise, WorkoutSessionExerciseSet } from "~/lib/models";
+import { Exercise, WorkoutSessionExercise } from "~/lib/models";
 
 interface ExerciseQueryVariables {
   exerciseId: number;
@@ -18,14 +18,14 @@ export const useExerciseQuery = createQuery<Exercise, ExerciseQueryVariables>({
 });
 
 export const useExerciseHistoryQuery = createQuery<
-  WorkoutSessionExerciseSet[],
+  WorkoutSessionExercise[],
   ExerciseQueryVariables
 >({
   queryKey: ["exercise-history"],
   fetcher: async ({
     exerciseId,
-  }: ExerciseQueryVariables): Promise<WorkoutSessionExerciseSet[]> => {
-    const res = await api.get<WorkoutSessionExerciseSet[]>(
+  }: ExerciseQueryVariables): Promise<WorkoutSessionExercise[]> => {
+    const res = await api.get<WorkoutSessionExercise[]>(
       `/api/exercises/${exerciseId}/history`,
     );
     return res.data;
