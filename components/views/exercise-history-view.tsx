@@ -2,17 +2,11 @@ import { format } from "date-fns";
 import React from "react";
 import { useExerciseHistoryQuery } from "~/hooks/queries/exercises";
 import { HStack } from "../ui/hstack";
-import {
-  Table,
-  TableBody,
-  TableCell,
-  TableHead,
-  TableHeader,
-  TableRow,
-} from "../ui/table";
 import { Text } from "../ui/text";
 import { H4 } from "../ui/typography";
 import { VStack } from "../ui/vstack";
+import { useCurrentUserQuery } from "~/hooks/queries/auth";
+import { getWeightLabel } from "~/lib/labels";
 
 interface ExerciseHistoryViewProps {
   exerciseId: number;
@@ -27,53 +21,36 @@ export default function ExerciseHistoryView({
     },
   });
 
+  const { data: user } = useCurrentUserQuery();
+
   return (
     <VStack className="items-stretch">
       <H4>History</H4>
 
       {items?.map((item) => (
         <VStack key={item.id} className="items-stretch gap-0">
-          <HStack className="justify-start px-sm">
-            <Text>{format(new Date(item.created_at!), "PPP")}</Text>
+          <HStack className="justify-start py-xs">
+            <Text className="font-bold">
+              {format(new Date(item.created_at!), "PPP")}
+            </Text>
           </HStack>
-          <Table>
-            <TableHeader>
-              <TableRow>
-                <TableHead className="w-1/5">
-                  <Text className="text-center">Set</Text>
-                </TableHead>
-                {!!item.sets[0].weight_completed && (
-                  <TableHead className="w-2/5">
-                    <Text className="text-center">kg</Text>
-                  </TableHead>
-                )}
-                <TableHead className="w-2/5">
-                  <Text className="text-center">Reps</Text>
-                </TableHead>
-              </TableRow>
-            </TableHeader>
-            <TableBody>
-              {item.sets
-                .sort((a, b) => a.order - b.order)
-                .map((set, i) => (
-                  <TableRow key={i}>
-                    <TableCell className="w-1/5">
-                      <Text className="text-center">#{set.order}</Text>
-                    </TableCell>
-                    {!!set.weight_completed && (
-                      <TableCell className="w-2/5">
-                        <Text className="text-center">
-                          {set.weight_completed}
-                        </Text>
-                      </TableCell>
-                    )}
-                    <TableCell className="w-2/5">
-                      <Text className="text-center">{set.reps_completed}</Text>
-                    </TableCell>
-                  </TableRow>
-                ))}
-            </TableBody>
-          </Table>
+          {item.sets.map((set) => (
+            <HStack
+              key={set.id}
+              className="border-t border-border py-xs justify-start px-sm"
+            >
+              <HStack className="w-8 justify-center">
+                <Text className="text-primary">#{set.order}</Text>
+              </HStack>
+              <Text className="w-16">
+                {set.weight_completed}{" "}
+                {getWeightLabel(user!.measurement_system)}
+              </Text>
+              <Text className="text-muted-foreground">
+                x {set.reps_completed} reps
+              </Text>
+            </HStack>
+          ))}
         </VStack>
       ))}
     </VStack>

@@ -44,8 +44,8 @@ export default function WorkoutSessionExerciseScreen() {
             showsVerticalScrollIndicator={false}
             keyboardShouldPersistTaps="handled"
           >
-            <VStack className="items-stretch py-sm flex-1">
-              <VStack className="items-start px-6">
+            <VStack className="items-stretch py-sm flex-1 gap-md px-md">
+              <VStack className="gap-0 items-start">
                 <H4 className="text-primary">
                   {workoutSessionExercise.exercise.name}
                 </H4>
@@ -53,26 +53,22 @@ export default function WorkoutSessionExerciseScreen() {
               </VStack>
 
               {workoutSessionExercise.exercise.video_url && (
-                <View className="px-6">
-                  <View className="rounded-lg w-full overflow-hidden">
-                    <ExerciseVideo exercise={workoutSessionExercise.exercise} />
-                  </View>
+                <View className="rounded-lg w-full overflow-hidden">
+                  <ExerciseVideo exercise={workoutSessionExercise.exercise} />
                 </View>
               )}
 
-              <VStack className="flex-1 px-6 gap-md items-stretch">
-                <WorkoutSessionExerciseSetsTableView
-                  planId={Number(planId)}
-                  workoutId={Number(workoutId)}
-                  sessionId={Number(sessionId)}
-                  exerciseId={Number(exerciseId)}
-                  workoutSessionExerciseSets={workoutSessionExercise.sets}
-                />
+              <WorkoutSessionExerciseSetsTableView
+                planId={Number(planId)}
+                workoutId={Number(workoutId)}
+                sessionId={Number(sessionId)}
+                exerciseId={Number(exerciseId)}
+                workoutSessionExerciseSets={workoutSessionExercise.sets}
+              />
 
-                <ExerciseHistoryView
-                  exerciseId={workoutSessionExercise.exercise_id}
-                />
-              </VStack>
+              <ExerciseHistoryView
+                exerciseId={workoutSessionExercise.exercise_id}
+              />
             </VStack>
           </KeyboardAwareScrollView>
         </SafeAreaView>
