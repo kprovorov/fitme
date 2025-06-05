@@ -10,7 +10,7 @@ import {
 import { HStack } from "../ui/hstack";
 import { Zap } from "~/lib/icons/Zap";
 import { Text } from "../ui/text";
-import { Muted } from "../ui/typography";
+import { Muted, P } from "../ui/typography";
 import { Dumbbell } from "~/lib/icons/Dumbbell";
 import { House } from "~/lib/icons/House";
 import { BicepsFlexed } from "~/lib/icons/BicepsFlexed";
@@ -70,7 +70,7 @@ export default function PlanCard({ plan }: PlanCardProps) {
         </CardDescription>
       </CardHeader>
       <CardContent>
-        <Muted>{plan.description}</Muted>
+        <P className="text-muted-foreground">{plan.description}</P>
       </CardContent>
     </Card>
   );

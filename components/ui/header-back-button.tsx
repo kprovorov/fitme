@@ -20,7 +20,7 @@ const HeaderBackButton = React.forwardRef<
       {...props}
     >
       <Text>
-        <ArrowLeft size={16} className="text-foreground" />
+        <ArrowLeft size={21} className="text-foreground" />
       </Text>
     </Button>
   );

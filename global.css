@@ -4,6 +4,15 @@
 
 @layer base {
   :root {
+    --text-xs: 13px;
+    --text-sm: 15px;
+    --text-base: 17px;
+    --text-lg: 19px;
+    --text-xl: 21px;
+    --text-2xl: 25px;
+    --text-3xl: 33px;
+    --text-4xl: 41px;
+
     --background: 0 0% 100%;
     --foreground: 240 10% 3.9%;
     --card: 0 0% 100%;

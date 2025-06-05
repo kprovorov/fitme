@@ -70,11 +70,11 @@ const buttonTextVariants = cva(
         link: "text-primary group-active:text-primary/80",
       },
       size: {
-        default: "native:text-sm",
-        sm: "native:text-xs",
-        lg: "native:text-base",
+        default: "native:text-base",
+        sm: "native:text-sm",
+        lg: "native:text-lg",
         icon: "",
-        "icon-sm": "native:text-xs",
+        "icon-sm": "native:text-sm",
       },
     },
     defaultVariants: {

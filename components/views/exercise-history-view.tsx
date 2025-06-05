@@ -3,7 +3,7 @@ import React from "react";
 import { useExerciseHistoryQuery } from "~/hooks/queries/exercises";
 import { HStack } from "../ui/hstack";
 import { Text } from "../ui/text";
-import { H4 } from "../ui/typography";
+import { H2, H3, H4 } from "../ui/typography";
 import { VStack } from "../ui/vstack";
 import { useCurrentUserQuery } from "~/hooks/queries/auth";
 import { getWeightLabel } from "~/lib/labels";
@@ -25,7 +25,7 @@ export default function ExerciseHistoryView({
 
   return (
     <VStack className="items-stretch">
-      <H4>History</H4>
+      <H2>History</H2>
 
       {items?.map((item) => (
         <VStack key={item.id} className="items-stretch gap-0">

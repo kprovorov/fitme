@@ -14,6 +14,19 @@ module.exports = {
         "ibm-plex-mono": ["IBM Plex Mono", "monospace"],
         "ibm-plex-mono-bold": ["IBM Plex Mono Bold", "monospace"],
       },
+      fontSize: {
+        xs: "13px",
+        sm: "15px",
+        base: "17px",
+        lg: "19px",
+        xl: "21px",
+        "2xl": "25px",
+        "3xl": "33px",
+        "4xl": "41px",
+        "5xl": "49px",
+        "6xl": "57px",
+        "7xl": "65px",
+      },
       colors: {
         border: "hsl(var(--border))",
         input: "hsl(var(--input))",
@@ -74,5 +87,6 @@ module.exports = {
       },
     },
   },
+
   plugins: [require("tailwindcss-animate")],
 };

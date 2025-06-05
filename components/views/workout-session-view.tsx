@@ -23,8 +23,8 @@ export default function WorkoutSessionView({
 }: WorkoutSessionViewProps) {
   return (
     <VStack className="items-stretch justify-stretch">
-      <H3 className="text-primary">{workoutSession.workout.name}</H3>
-      <P>{workoutSession.workout.description}</P>
+      {/* <H3 className="text-primary">{workoutSession.workout.name}</H3> */}
+      {/* <P>{workoutSession.workout.description}</P> */}
       <Card className="overflow-hidden">
         <VStack className="gap-0">
           {workoutSession.exercises.map((exercise, i) => (

@@ -1,30 +1,26 @@
-import React, { useEffect, useState } from "react";
-import { Text } from "~/components/ui/text";
+import { useQueryClient } from "@tanstack/react-query";
 import { Stack, useLocalSearchParams } from "expo-router";
+import React, { useEffect, useState } from "react";
 import { ScrollView } from "react-native";
 import {
-  SafeAreaView,
   SafeAreaProvider,
+  SafeAreaView,
   useSafeAreaInsets,
 } from "react-native-safe-area-context";
-import WorkoutSessionView from "~/components/views/workout-session-view";
-import { VStack } from "~/components/ui/vstack";
 import { Button } from "~/components/ui/button";
-import { useQueryClient } from "@tanstack/react-query";
+import { HeaderBackButton } from "~/components/ui/header-back-button";
+import { Text } from "~/components/ui/text";
+import { VStack } from "~/components/ui/vstack";
+import WorkoutSessionView from "~/components/views/workout-session-view";
 import {
   useFinishWorkoutSessionMutation,
   useWorkoutSessionQuery,
 } from "~/hooks/queries/workout-sessions";
-import { HeaderBackButton } from "~/components/ui/header-back-button";
 
 export default function WorkoutSessionScreen() {
   const { planId, workoutId, sessionId } = useLocalSearchParams();
 
-  const {
-    data: workoutSession,
-    isLoading,
-    error,
-  } = useWorkoutSessionQuery({
+  const { data: workoutSession } = useWorkoutSessionQuery({
     variables: {
       planId: Number(planId),
       workoutId: Number(workoutId),
@@ -74,12 +70,15 @@ export default function WorkoutSessionScreen() {
         options={{
           headerTransparent: true,
           headerTitleStyle: {
-            fontFamily: "NunitoSans-Bold",
+            fontFamily: "NunitoSans12pt-Bold",
             fontWeight: "bold",
+            fontSize: 17,
+            color: "#C0FF38",
           },
           title: workoutSession?.workout.name,
           headerBackButtonDisplayMode: "minimal",
           headerLeft: () => <HeaderBackButton />,
+          // headerRight: () => <Text className="w-32">{elapsedTime}</Text>,
         }}
       />
       <SafeAreaProvider>

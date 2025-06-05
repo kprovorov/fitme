@@ -55,8 +55,8 @@ export default function HomeScreen() {
     <VStack className="h-full p-6">
       <H1 className="text-center">Create your first workout plan</H1>
       <Text className="text-center">
-        You don't have an active workout plan. Please create one to start your
-        journey.
+        You don&apos;t have an active workout plan. Please create one to start
+        your journey.
       </Text>
       <Link href="/onboarding/profile" asChild>
         <Button className="w-full">

@@ -1,7 +1,7 @@
 import React, { useEffect, useState } from "react";
 import { Plan } from "~/lib/models";
 import { usePlansQuery } from "~/hooks/queries/plans";
-import { H4 } from "../ui/typography";
+import { H2, H3, H4 } from "../ui/typography";
 import { VStack } from "../ui/vstack";
 import PlanCard from "../plans/plan-card";
 import { HStack } from "../ui/hstack";
@@ -23,7 +23,7 @@ export default function ActivePlanView() {
   return activePlan ? (
     <VStack className="flex-1 items-stretch">
       <HStack className="justify-between">
-        <H4>My Plan</H4>
+        <H3>My Plan</H3>
         <Link href="/plans" asChild>
           <Button variant="secondary" size="sm" shape="pill">
             <HStack className="gap-xs">
