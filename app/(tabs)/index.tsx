@@ -1,4 +1,9 @@
-import { RefreshControl, ScrollView, View } from "react-native";
+import {
+  ActivityIndicator,
+  RefreshControl,
+  ScrollView,
+  View,
+} from "react-native";
 import { SafeAreaView } from "react-native-safe-area-context";
 import { usePlansQuery } from "~/hooks/queries/plans";
 import { Text } from "~/components/ui/text";
@@ -15,7 +20,11 @@ export default function HomeScreen() {
   const [activePlan, setActivePlan] = useState<Plan | null>(null);
   const [refreshing, setRefreshing] = useState(false);
 
-  const { data: plans, refetch: refetchWorkoutPlans } = usePlansQuery({
+  const {
+    data: plans,
+    refetch: refetchWorkoutPlans,
+    isLoading: isLoadingPlans,
+  } = usePlansQuery({
     refetchInterval: 1000 * 60, // 1 minute
   });
 
@@ -51,6 +60,10 @@ export default function HomeScreen() {
         </View>
       </ScrollView>
     </SafeAreaView>
+  ) : isLoadingPlans ? (
+    <View className="flex-1 items-center justify-center">
+      <ActivityIndicator size="large" color="#ffffff" />
+    </View>
   ) : (
     <VStack className="h-full p-6">
       <H1 className="text-center">Create your first workout plan</H1>
