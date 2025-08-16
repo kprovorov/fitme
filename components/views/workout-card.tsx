@@ -105,7 +105,7 @@ export default function WorkoutCard({
   const [isOpen, setIsOpen] = useState(false);
 
   return (
-    <Card className="overflow-hidden">
+    <Card className="overflow-hidden flex-1">
       <VStack className="flex-1 items-stretch gap-0">
         {activeSession && (
           <Link

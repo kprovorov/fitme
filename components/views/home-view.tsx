@@ -42,7 +42,7 @@ export default function HomeView({ plan }: HomeViewProps) {
   }, [plan.workouts]);
 
   return (
-    <VStack className="items-stretch gap-lg px-md">
+    <VStack className="items-stretch gap-lg px-md flex-1">
       <ActivePlanView />
       <VStack className="flex-1 items-stretch">
         <H4>Next Workout</H4>
@@ -96,20 +96,11 @@ export default function HomeView({ plan }: HomeViewProps) {
         )}
       </VStack>
       {!!nextWorkout && (
-        <VStack className="flex-1 items-stretch">
+        <VStack className="items-stretch">
           <H4>Upcoming</H4>
-          {upcomingWorkouts.length > 0 ? (
-            upcomingWorkouts.map((workout) => (
-              <WorkoutCard key={workout.id} workout={workout} state="default" />
-            ))
-          ) : (
-            <Text className="text-muted-foreground">
-              No upcoming workouts.{" "}
-              {nextWorkout
-                ? "Once you complete your next workout, your upcoming workouts will be generated."
-                : ""}
-            </Text>
-          )}
+          {upcomingWorkouts.map((workout) => (
+            <WorkoutCard key={workout.id} workout={workout} state="default" />
+          ))}
         </VStack>
       )}
     </VStack>
