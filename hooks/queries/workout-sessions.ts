@@ -68,3 +68,16 @@ export const useFinishWorkoutSessionMutation = createMutation<
     return res.data;
   },
 });
+
+export const useWorkoutSessionHistoryQuery = createQuery<
+  WorkoutSession[],
+  void
+>({
+  queryKey: ["workout-sessions-history"],
+  fetcher: async () => {
+    const res = await api.get<WorkoutSession[]>(
+      `/api/workout-sessions/history`,
+    );
+    return res.data;
+  },
+});

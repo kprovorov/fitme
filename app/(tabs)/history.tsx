@@ -4,7 +4,7 @@ import { SafeAreaView } from "react-native-safe-area-context";
 import { H1, H3 } from "~/components/ui/typography";
 import { VStack } from "~/components/ui/vstack";
 import WorkoutsSessionsListView from "~/components/views/workout-session-list-view";
-import { usePlansQuery } from "~/hooks/queries/plans";
+import { useWorkoutSessionHistoryQuery } from "~/hooks/queries/workout-sessions";
 import { Text } from "~/components/ui/text";
 import { Link } from "expo-router";
 import { Button } from "~/components/ui/button";
@@ -13,14 +13,15 @@ import Purchases from "react-native-purchases";
 export default function HistoryScreen() {
   const [refreshing, setRefreshing] = useState(false);
 
-  const { data: plans, refetch: refetchWorkoutPlans } = usePlansQuery();
+  const { data: workoutSessions, refetch: refetchWorkoutSessions } =
+    useWorkoutSessionHistoryQuery();
 
   const onRefresh = useCallback(async () => {
     setRefreshing(true);
     await Purchases.invalidateCustomerInfoCache();
-    await refetchWorkoutPlans();
+    await refetchWorkoutSessions();
     setRefreshing(false);
-  }, []);
+  }, [refetchWorkoutSessions]);
 
   return (
     <SafeAreaView
@@ -40,23 +41,8 @@ export default function HistoryScreen() {
         <View style={{ paddingBottom: 64 }}>
           <VStack className="items-stretch flex-1">
             <H3>Finished workouts</H3>
-            {plans?.length ? (
-              <WorkoutsSessionsListView
-                workoutsSessions={plans
-                  .flatMap((plan) =>
-                    plan.workouts.map((workout) => ({
-                      ...workout,
-                      plan,
-                    })),
-                  )
-                  .flatMap((workout) =>
-                    workout.sessions.map((session) => ({
-                      ...session,
-                      workout,
-                    })),
-                  )
-                  .filter((session) => session.finished_at)}
-              />
+            {workoutSessions?.length ? (
+              <WorkoutsSessionsListView workoutsSessions={workoutSessions} />
             ) : (
               <VStack className="h-full p-6">
                 <H1 className="text-center">Create your first workout plan</H1>
