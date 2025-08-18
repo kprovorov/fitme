@@ -2,10 +2,13 @@
   "expo": {
     "name": "Fitme Project",
     "slug": "fitme-project",
-    "version": "1.9.0",
+    "version": "1.9.1",
     "orientation": "portrait",
     "icon": "./assets/images/icon.png",
-    "scheme": ["fitme", "rc-d91405cd5f"],
+    "scheme": [
+      "fitme",
+      "rc-d91405cd5f"
+    ],
     "userInterfaceStyle": "dark",
     "newArchEnabled": true,
     "ios": {
