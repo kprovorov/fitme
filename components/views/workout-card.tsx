@@ -14,7 +14,7 @@ import {
   useFinishWorkoutSessionMutation,
 } from "~/hooks/queries/workout-sessions";
 import { LoaderCircle } from "~/lib/icons/LoaderCircle";
-import { Pressable, View } from "react-native";
+import { Pressable, ScrollView, View } from "react-native";
 import { Card } from "../ui/card";
 import { ChevronRight } from "~/lib/icons/ChevronRight";
 import { Timer } from "~/lib/icons/Timer";
@@ -145,37 +145,44 @@ export default function WorkoutCard({
             <P className="text-left text-muted-foreground">
               {workout.description}
             </P>
-            <View
-              className={cn(
-                "gap-2 flex items-stretch",
-                isOpen ? "flex-col" : "flex-row",
-              )}
+            <ScrollView
+              horizontal={!isOpen}
+              showsHorizontalScrollIndicator={false}
+              contentContainerClassName="gap-2"
+              scrollEnabled={!isOpen}
             >
-              {workout.exercises.map((exercise) => (
-                <Link
-                  href={`/exercises/${exercise.exercise.id}`}
-                  key={exercise.exercise.id}
-                  asChild
-                >
-                  <Pressable className="active:opacity-70 flex flex-row justify-between items-center">
-                    <HStack className="gap-2">
-                      <ExerciseImage exercise={exercise.exercise} />
-                      {isOpen && (
-                        <Text className="font-bold text-xs">
-                          <Text className="font-bold text-xs text-primary">
-                            {exercise.sets.length} x{" "}
+              <View
+                className={cn(
+                  "gap-2 flex items-stretch",
+                  isOpen ? "flex-col" : "flex-row",
+                )}
+              >
+                {workout.exercises.map((exercise) => (
+                  <Link
+                    href={`/exercises/${exercise.exercise.id}`}
+                    key={exercise.exercise.id}
+                    asChild
+                  >
+                    <Pressable className="active:opacity-70 flex flex-row justify-between items-center">
+                      <HStack className="gap-2">
+                        <ExerciseImage exercise={exercise.exercise} />
+                        {isOpen && (
+                          <Text className="font-bold text-xs">
+                            <Text className="font-bold text-xs text-primary">
+                              {exercise.sets.length} x{" "}
+                            </Text>
+                            {exercise.exercise.name}
                           </Text>
-                          {exercise.exercise.name}
-                        </Text>
+                        )}
+                      </HStack>
+                      {isOpen && (
+                        <ChevronRight size={16} className="text-foreground" />
                       )}
-                    </HStack>
-                    {isOpen && (
-                      <ChevronRight size={16} className="text-foreground" />
-                    )}
-                  </Pressable>
-                </Link>
-              ))}
-            </View>
+                    </Pressable>
+                  </Link>
+                ))}
+              </View>
+            </ScrollView>
             {state === "upcoming" &&
               (activeSession ? (
                 <Button
