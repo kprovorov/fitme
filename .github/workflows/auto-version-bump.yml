@@ -1,0 +1,90 @@
+name: Auto Version Bump
+
+on:
+  push:
+    branches:
+      - main
+    paths-ignore:
+      - "package.json"
+      - "app.json"
+      - "**/*.md"
+      - ".github/**"
+
+jobs:
+  auto-bump-version:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v4
+        with:
+          fetch-depth: 0
+          token: ${{ secrets.GITHUB_TOKEN }}
+
+      - name: Setup Node.js
+        uses: actions/setup-node@v4
+        with:
+          node-version: "20"
+
+      - name: Configure Git
+        run: |
+          git config --local user.email "github-actions[bot]@users.noreply.github.com"
+          git config --local user.name "github-actions[bot]"
+
+      - name: Detect bump type (major/minor/patch)
+        id: bump
+        run: |
+          # Check for breaking changes first, then features, then defaults to patch
+          if git log --oneline -10 | grep -q "BREAKING CHANGE\|major:"; then
+            BUMP="major"
+          elif git log --oneline -10 | grep -q "feat:"; then
+            BUMP="minor"
+          else
+            BUMP="patch"
+          fi
+          echo "type=${BUMP}" >> $GITHUB_OUTPUT
+          echo "Detected bump type: ${BUMP}"
+
+      - name: Get current version
+        id: current-version
+        run: |
+          CURRENT_VERSION=$(node -p "require('./package.json').version")
+          echo "current_version=$CURRENT_VERSION" >> $GITHUB_OUTPUT
+          echo "Current version: $CURRENT_VERSION"
+
+      - name: Bump version in package.json
+        id: bump-version
+        run: |
+          BUMP_TYPE="${{ steps.bump.outputs.type }}"
+          echo "Bumping version with type: $BUMP_TYPE"
+
+          # npm version will automatically calculate the new version
+          npm version $BUMP_TYPE --no-git-tag-version
+
+          # Get the new version that npm version created
+          NEW_VERSION=$(node -p "require('./package.json').version")
+          echo "new_version=$NEW_VERSION" >> $GITHUB_OUTPUT
+          echo "New version: $NEW_VERSION"
+
+      - name: Bump version in app.json
+        run: |
+          NEW_VERSION="${{ steps.bump-version.outputs.new_version }}"
+          jq --arg version "$NEW_VERSION" '.expo.version = $version' app.json > app.json.tmp
+          mv app.json.tmp app.json
+
+      - name: Verify version changes
+        run: |
+          echo "package.json version: $(node -p "require('./package.json').version)"
+          echo "app.json version: $(jq -r '.expo.version' app.json)"
+
+      - name: Commit and push version bump
+        run: |
+          git add package.json app.json
+          git commit -m "chore: auto-bump version to ${{ steps.bump-version.outputs.new_version }} [skip ci]"
+          git push origin main
+
+      - name: Create and push tag
+        run: |
+          NEW_VERSION="${{ steps.bump-version.outputs.new_version }}"
+          git tag "v$NEW_VERSION"
+          git push origin "v$NEW_VERSION"
+          echo "Created and pushed tag v$NEW_VERSION"
