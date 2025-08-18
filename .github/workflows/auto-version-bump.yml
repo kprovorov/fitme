@@ -81,7 +81,7 @@ jobs:
         run: |
           git add package.json app.json
           git commit -m "chore: auto-bump version to ${{ steps.bump-version.outputs.new_version }} [skip ci]"
-          git push origin main
+          git push origin master
 
       - name: Create and push tag
         run: |
