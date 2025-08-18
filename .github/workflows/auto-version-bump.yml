@@ -74,7 +74,7 @@ jobs:
 
       - name: Verify version changes
         run: |
-          echo "package.json version: $(node -p "require('./package.json').version)"
+          echo "package.json version: $(node -p "require('./package.json').version")"
           echo "app.json version: $(jq -r '.expo.version' app.json)"
 
       - name: Commit and push version bump
