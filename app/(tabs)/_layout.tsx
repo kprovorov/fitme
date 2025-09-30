@@ -7,6 +7,7 @@ import { ClipboardList } from "~/lib/icons/ClipboardList";
 import { SafeAreaProvider } from "react-native-safe-area-context";
 import { TabBarButton } from "~/components/ui/tab-bar-button";
 import { Href } from "expo-router";
+import { BookOpenText } from "~/lib/icons/BookOpenText";
 
 export default function TabLayout() {
   const tabs = [
@@ -26,6 +27,16 @@ export default function TabLayout() {
       href: "/history",
       renderIcon: (isFocused: boolean) => (
         <ClipboardList
+          className={`w-6 h-6 ${isFocused ? "stroke-primary" : "stroke-white"}`}
+        />
+      ),
+    },
+    {
+      name: "library",
+      label: "Library",
+      href: "/library",
+      renderIcon: (isFocused: boolean) => (
+        <BookOpenText
           className={`w-6 h-6 ${isFocused ? "stroke-primary" : "stroke-white"}`}
         />
       ),
