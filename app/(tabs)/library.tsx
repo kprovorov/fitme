@@ -1,9 +1,11 @@
+import { router } from "expo-router";
 import React, { useCallback, useRef, useState } from "react";
 import { RefreshControl, ScrollView, View } from "react-native";
 import { SafeAreaView } from "react-native-safe-area-context";
 import ExercisesView, {
   ExercisesViewHandle,
 } from "~/components/views/exercises-view";
+import { Exercise } from "~/lib/models";
 
 export default function LibraryScreen() {
   const [refreshing, setRefreshing] = useState(false);
@@ -15,6 +17,10 @@ export default function LibraryScreen() {
 
     setRefreshing(false);
   }, [exercisesViewRef]);
+
+  const onExercisePress = useCallback((exercise: Exercise) => {
+    router.push(`/exercises/${exercise.id}`);
+  }, []);
 
   return (
     <SafeAreaView
@@ -32,7 +38,10 @@ export default function LibraryScreen() {
         }
       >
         <View style={{ paddingBottom: 64 }}>
-          <ExercisesView ref={exercisesViewRef} />
+          <ExercisesView
+            ref={exercisesViewRef}
+            onExercisePress={onExercisePress}
+          />
         </View>
       </ScrollView>
     </SafeAreaView>

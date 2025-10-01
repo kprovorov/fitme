@@ -7,7 +7,7 @@ import { Text } from "~/components/ui/text";
 import { H3 } from "~/components/ui/typography";
 import { VStack } from "~/components/ui/vstack";
 import { useExercisesQuery } from "~/hooks/queries/exercises";
-import { muscleGroups } from "~/lib/models";
+import { Exercise, muscleGroups } from "~/lib/models";
 import { muscleGroupToName } from "~/lib/utils";
 
 export type ExercisesViewHandle = {
@@ -16,8 +16,10 @@ export type ExercisesViewHandle = {
 
 const ExercisesView = React.forwardRef<
   ExercisesViewHandle,
-  React.HTMLProps<HTMLDivElement>
->((_, ref) => {
+  React.HTMLProps<HTMLDivElement> & {
+    onExercisePress?: (exercise: Exercise) => void;
+  }
+>(({ onExercisePress = () => {} }, ref) => {
   const [muscleGroup, setMuscleGroup] = useState<string>("all");
 
   const {
@@ -39,7 +41,6 @@ const ExercisesView = React.forwardRef<
 
   return (
     <VStack className="items-stretch flex-1">
-      <H3>Library</H3>
       <Tabs value={muscleGroup} onValueChange={setMuscleGroup}>
         <TabsList>
           <ScrollView
@@ -66,6 +67,7 @@ const ExercisesView = React.forwardRef<
 
       <ExercisesList
         exercises={exercises?.pages?.flatMap((page) => page.data) || []}
+        onExercisePress={onExercisePress}
       />
 
       {hasNextPage && (
