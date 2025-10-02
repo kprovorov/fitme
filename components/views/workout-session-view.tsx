@@ -1,12 +1,16 @@
-import React from "react";
-import { WorkoutSession } from "~/lib/models";
-import { VStack } from "../ui/vstack";
-import { H3, P } from "../ui/typography";
 import { Link } from "expo-router";
-import WorkoutSessionExerciseCard from "./workout-session-exercise-card";
-import { Card } from "../ui/card";
+import React, { useCallback, useState } from "react";
+import { Modal, Pressable, ScrollView } from "react-native";
+import { Plus } from "~/lib/icons/Plus";
+import { Exercise, WorkoutSession } from "~/lib/models";
 import { cn } from "~/lib/utils";
-import { Pressable } from "react-native";
+import { Button } from "../ui/button";
+import { Card } from "../ui/card";
+import { HStack } from "../ui/hstack";
+import { Text } from "../ui/text";
+import { VStack } from "../ui/vstack";
+import ExercisesView from "./exercises-view";
+import WorkoutSessionExerciseCard from "./workout-session-exercise-card";
 
 interface WorkoutSessionViewProps {
   workoutSession: WorkoutSession;
@@ -21,10 +25,34 @@ export default function WorkoutSessionView({
   workoutId,
   sessionId,
 }: WorkoutSessionViewProps) {
+  const [showModal, setShowModal] = useState(false);
+
+  const onExercisePress = (exercise: Exercise) => {
+    setShowModal(false);
+    // TODO: Add exercise to workout session
+    console.log("addExercise", exercise.name);
+  };
+
   return (
     <VStack className="items-stretch justify-stretch">
-      {/* <H3 className="text-primary">{workoutSession.workout.name}</H3> */}
-      {/* <P>{workoutSession.workout.description}</P> */}
+      <Modal
+        animationType="slide"
+        visible={showModal}
+        backdropColor="black"
+        presentationStyle="pageSheet"
+        onRequestClose={() => {
+          setShowModal(!showModal);
+        }}
+      >
+        <ScrollView>
+          <VStack className="p-md flex-1 items-stretch">
+            {/* <Button onPress={() => setShowModal(!showModal)}>
+              <Text>Hide Modal</Text>
+            </Button> */}
+            <ExercisesView onExercisePress={onExercisePress} />
+          </VStack>
+        </ScrollView>
+      </Modal>
       <Card className="overflow-hidden">
         <VStack className="gap-0">
           {workoutSession.exercises.map((exercise, i) => (
@@ -39,6 +67,16 @@ export default function WorkoutSessionView({
               </Pressable>
             </Link>
           ))}
+          <Button
+            variant="secondary"
+            className="w-full bg-transparent border-2 border-dashed border-border"
+            onPress={() => setShowModal(true)}
+          >
+            <HStack className="gap-2 w-full">
+              <Plus size={16} className="text-white" />
+              <Text>Add Exercise</Text>
+            </HStack>
+          </Button>
         </VStack>
       </Card>
     </VStack>
