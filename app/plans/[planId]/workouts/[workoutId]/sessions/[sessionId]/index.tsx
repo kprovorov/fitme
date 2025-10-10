@@ -83,7 +83,7 @@ export default function WorkoutSessionScreen() {
       />
       <SafeAreaProvider>
         <SafeAreaView edges={["top"]} className="flex-1">
-          <ScrollView className="flex-1">
+          <ScrollView className="flex-1" showsVerticalScrollIndicator={false}>
             {workoutSession && (
               <VStack
                 className="flex-1 items-stretch px-md pt-md"

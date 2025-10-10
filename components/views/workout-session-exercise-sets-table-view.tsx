@@ -27,7 +27,7 @@ export default function WorkoutSessionExerciseSetsTableView({
   const { data: user } = useCurrentUserQuery();
 
   const hasWeight = workoutSessionExerciseSets.some(
-    (set) => set.weight_recommended > 0,
+    (set) => set.weight_recommended !== null,
   );
 
   return (

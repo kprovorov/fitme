@@ -1,5 +1,5 @@
 import { Stack, useLocalSearchParams } from "expo-router";
-import React from "react";
+import React, { useState } from "react";
 import { View } from "react-native";
 import { KeyboardAwareScrollView } from "react-native-keyboard-controller";
 import { SafeAreaProvider, SafeAreaView } from "react-native-safe-area-context";
@@ -13,8 +13,21 @@ import { useWorkoutSessionExerciseQuery } from "~/hooks/queries/workout-session-
 import { Info } from "~/lib/icons/Info";
 import { Button } from "~/components/ui/button";
 import { Text } from "~/components/ui/text";
+import {
+  AlertDialog,
+  AlertDialogTrigger,
+  AlertDialogContent,
+  AlertDialogHeader,
+  AlertDialogTitle,
+  AlertDialogDescription,
+  AlertDialogFooter,
+  AlertDialogCancel,
+  AlertDialogAction,
+} from "~/components/ui/alert-dialog";
 
 export default function WorkoutSessionExerciseScreen() {
+  const [isOpen, setIsOpen] = useState(false);
+
   const { planId, workoutId, sessionId, exerciseId } = useLocalSearchParams();
 
   const { data: workoutSessionExercise } = useWorkoutSessionExerciseQuery({
@@ -39,13 +52,18 @@ export default function WorkoutSessionExerciseScreen() {
           title: workoutSessionExercise.exercise.name,
           headerBackButtonDisplayMode: "minimal",
           headerLeft: () => <HeaderBackButton />,
-          // headerRight: () => (
-          //   <Button variant="ghost" size="icon-sm" shape="pill">
-          //     <Text>
-          //       <Info size={21} className="text-foreground" />
-          //     </Text>
-          //   </Button>
-          // ),
+          headerRight: () => (
+            <Button
+              variant="ghost"
+              size="icon-sm"
+              shape="pill"
+              onPress={() => setIsOpen(true)}
+            >
+              <Text>
+                <Info size={21} className="text-foreground" />
+              </Text>
+            </Button>
+          ),
         }}
       />
       <SafeAreaProvider>
@@ -56,12 +74,23 @@ export default function WorkoutSessionExerciseScreen() {
             keyboardShouldPersistTaps="handled"
           >
             <VStack className="items-stretch py-sm flex-1 gap-md px-md">
-              {/* <VStack className="gap-0 items-start">
-                <H4 className="text-primary">
-                  {workoutSessionExercise.exercise.name}
-                </H4>
-                <P>{workoutSessionExercise.exercise.description}</P>
-              </VStack> */}
+              <AlertDialog open={isOpen} onOpenChange={setIsOpen}>
+                <AlertDialogContent>
+                  <AlertDialogHeader>
+                    <AlertDialogTitle className="text-primary">
+                      How to?
+                    </AlertDialogTitle>
+                    <AlertDialogDescription>
+                      {workoutSessionExercise.exercise.instructions}
+                    </AlertDialogDescription>
+                  </AlertDialogHeader>
+                  <AlertDialogFooter>
+                    <AlertDialogCancel>
+                      <Text>OK</Text>
+                    </AlertDialogCancel>
+                  </AlertDialogFooter>
+                </AlertDialogContent>
+              </AlertDialog>
 
               {workoutSessionExercise.exercise.video_url && (
                 <View className="rounded-lg w-full overflow-hidden">

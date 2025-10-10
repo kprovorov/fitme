@@ -23,6 +23,27 @@ export type Gender = (typeof genders)[number];
 export const measurementSystems = ["metric", "us", "uk"] as const;
 export type MeasurementSystem = (typeof measurementSystems)[number];
 
+export const muscleGroups = [
+  "chest",
+  "back",
+  "shoulders",
+  "biceps",
+  "triceps",
+  "forearms",
+  "abs",
+  "obliques",
+  "quadriceps",
+  "hamstrings",
+  "glutes",
+  "calves",
+  "traps",
+  "lats",
+  "lower-back",
+  "cardio",
+  "full-body",
+] as const;
+export type MuscleGroup = (typeof muscleGroups)[number];
+
 export type Identifiable = {
   id: number;
 };
@@ -57,6 +78,7 @@ export type Exercise = Model & {
   instructions: string;
   video_url: string;
   thumbnail_url: string;
+  muscle_groups: MuscleGroup[];
 };
 
 export type Plan = Model & {
@@ -120,9 +142,9 @@ export type WorkoutSessionExercise = Model & {
 export type WorkoutSessionExerciseSet = Model & {
   workout_session_exercise_id: number;
   order: number;
-  reps_recommended: number;
-  weight_recommended: number;
-  rest_recommended: number;
+  reps_recommended: number | null;
+  weight_recommended: number | null;
+  rest_recommended: number | null;
   reps_completed: number | null;
   weight_completed: number | null;
   logged_at: string | null;
