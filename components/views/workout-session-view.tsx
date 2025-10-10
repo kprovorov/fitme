@@ -79,7 +79,11 @@ export default function WorkoutSessionView({
             <ExercisesView
               onExercisePress={onExercisePress}
               itemCta={(exercise) => (
-                <Button size="sm" onPress={() => onExercisePress(exercise)}>
+                <Button
+                  size="sm"
+                  shape="pill"
+                  onPress={() => onExercisePress(exercise)}
+                >
                   <Text>Add</Text>
                 </Button>
               )}
