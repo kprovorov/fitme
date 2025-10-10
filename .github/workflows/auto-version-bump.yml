@@ -42,10 +42,25 @@ jobs:
       - name: Detect bump type (major/minor/patch)
         id: bump
         run: |
+          # Get the latest tag
+          LATEST_TAG=$(git describe --tags --abbrev=0 2>/dev/null || echo "")
+
+          if [ -z "$LATEST_TAG" ]; then
+            COMMIT_RANGE="all commits"
+            COMMITS=$(git log --oneline)
+          else
+            COMMIT_RANGE="commits since $LATEST_TAG"
+            COMMITS=$(git log --oneline ${LATEST_TAG}..HEAD)
+          fi
+
+          COMMIT_COUNT=$(echo "$COMMITS" | grep -v '^$' | wc -l)
+          echo "Analyzing $COMMIT_COUNT $COMMIT_RANGE:"
+          echo "$COMMITS"
+
           # Check for breaking changes first, then features, then defaults to patch
-          if git log --oneline -10 | grep -q "BREAKING CHANGE\|major:"; then
+          if echo "$COMMITS" | grep -q "BREAKING CHANGE\|major:"; then
             BUMP="major"
-          elif git log --oneline -10 | grep -q "feat:"; then
+          elif echo "$COMMITS" | grep -q "feat:"; then
             BUMP="minor"
           else
             BUMP="patch"
