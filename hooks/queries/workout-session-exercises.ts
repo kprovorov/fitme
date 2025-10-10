@@ -1,5 +1,5 @@
 import { api } from "~/lib/api";
-import { createQuery } from "react-query-kit";
+import { createMutation, createQuery } from "react-query-kit";
 import { WorkoutSessionExercise } from "~/lib/models";
 
 export type WorkoutSessionExercisesVariables = {
@@ -7,6 +7,10 @@ export type WorkoutSessionExercisesVariables = {
   workoutId: number;
   sessionId: number;
   exerciseId: number;
+};
+
+export type StoreWorkoutSessionExerciseData = {
+  exercise_id: number;
 };
 
 export const useWorkoutSessionExerciseQuery = createQuery<
@@ -23,6 +27,32 @@ export const useWorkoutSessionExerciseQuery = createQuery<
     const response = await api.get(
       `/api/plans/${planId}/workouts/${workoutId}/sessions/${sessionId}/exercises/${exerciseId}`,
     );
+    return response.data;
+  },
+});
+
+export type CreateWorkoutSessionExercisesVariables = {
+  planId: number;
+  workoutId: number;
+  sessionId: number;
+  data: StoreWorkoutSessionExerciseData;
+};
+
+export const useCreateWorkoutSessionExerciseMutation = createMutation<
+  WorkoutSessionExercise,
+  CreateWorkoutSessionExercisesVariables
+>({
+  mutationFn: async ({
+    planId,
+    workoutId,
+    sessionId,
+    data,
+  }: CreateWorkoutSessionExercisesVariables) => {
+    const response = await api.post(
+      `/api/plans/${planId}/workouts/${workoutId}/sessions/${sessionId}/exercises`,
+      data,
+    );
+
     return response.data;
   },
 });

@@ -78,14 +78,16 @@ export default function WorkoutSessionExerciseSetRowView({
         recommendedValues={{
           weight: (
             workoutSessionExerciseSet.weight_completed ??
-            workoutSessionExerciseSet.weight_recommended
+            workoutSessionExerciseSet.weight_recommended ??
+            0
           )
             .toFixed(2)
             .replace(".00", "")
             .replace(".", ","),
           reps: (
             workoutSessionExerciseSet.reps_completed ??
-            workoutSessionExerciseSet.reps_recommended
+            workoutSessionExerciseSet.reps_recommended ??
+            0
           ).toString(),
         }}
         onSubmit={async (values) => {
@@ -93,10 +95,10 @@ export default function WorkoutSessionExerciseSetRowView({
             data: {
               weight_completed: values.weight
                 ? Number(values.weight.replace(",", "."))
-                : workoutSessionExerciseSet.weight_recommended,
+                : (workoutSessionExerciseSet.weight_recommended ?? 0),
               reps_completed: values.reps
                 ? Number(values.reps)
-                : workoutSessionExerciseSet.reps_recommended,
+                : (workoutSessionExerciseSet.reps_recommended ?? 0),
             },
             params: {
               planId,
@@ -109,27 +111,34 @@ export default function WorkoutSessionExerciseSetRowView({
         }}
       />
 
-      <HStack className={cn("absolute inset-x-0 -bottom-3 gap-1")}>
+      <HStack className={cn("absolute h-6 inset-x-0 -bottom-3 gap-1")}>
         <Separator className={cn("flex-1", timer && "bg-primary")} />
-        <HStack
-          className={cn("gap-1 px-1.5 h-6 rounded-full", timer && "bg-primary")}
-        >
-          <ClockFading
-            size={12}
-            className={cn(
-              timer ? "text-primary-foreground" : "text-muted-foreground",
-            )}
-          />
-          <Text
-            className={cn(
-              "text-xs",
-              timer ? "text-primary-foreground" : "text-muted-foreground",
-            )}
-          >
-            {workoutSessionExerciseSet.rest_recommended}s
-          </Text>
-        </HStack>
-        <Separator className={cn("flex-1", timer && "bg-primary")} />
+        {!!workoutSessionExerciseSet.rest_recommended && (
+          <>
+            <HStack
+              className={cn(
+                "gap-1 px-1.5 h-6 rounded-full",
+                timer && "bg-primary",
+              )}
+            >
+              <ClockFading
+                size={12}
+                className={cn(
+                  timer ? "text-primary-foreground" : "text-muted-foreground",
+                )}
+              />
+              <Text
+                className={cn(
+                  "text-xs",
+                  timer ? "text-primary-foreground" : "text-muted-foreground",
+                )}
+              >
+                {workoutSessionExerciseSet.rest_recommended}s
+              </Text>
+            </HStack>
+            <Separator className={cn("flex-1", timer && "bg-primary")} />
+          </>
+        )}
       </HStack>
     </HStack>
   );

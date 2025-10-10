@@ -18,8 +18,10 @@ const ExercisesView = React.forwardRef<
   ExercisesViewHandle,
   React.HTMLProps<HTMLDivElement> & {
     onExercisePress?: (exercise: Exercise) => void;
+    onAddExercisePress?: () => void;
+    itemCta?: React.ReactNode | ((exercise: Exercise) => React.ReactNode);
   }
->(({ onExercisePress = () => {} }, ref) => {
+>(({ onExercisePress = () => {}, itemCta }, ref) => {
   const [muscleGroup, setMuscleGroup] = useState<string>("all");
 
   const {
@@ -68,6 +70,7 @@ const ExercisesView = React.forwardRef<
       <ExercisesList
         exercises={exercises?.pages?.flatMap((page) => page.data) || []}
         onExercisePress={onExercisePress}
+        itemCta={itemCta}
       />
 
       {hasNextPage && (

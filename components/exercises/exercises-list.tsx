@@ -8,11 +8,15 @@ import { cn } from "~/lib/utils";
 
 interface ExercisesListProps {
   exercises: Exercise[];
+  itemIcon?: "chevron-right" | "square-arrow-out-up-right";
+  itemCta?: React.ReactNode | ((exercise: Exercise) => React.ReactNode);
   onExercisePress?: (exercise: Exercise) => void;
 }
 
 export default function ExercisesList({
   exercises,
+  itemIcon,
+  itemCta,
   onExercisePress = () => {},
 }: ExercisesListProps) {
   return (
@@ -20,16 +24,15 @@ export default function ExercisesList({
       {exercises.map((exercise: Exercise, index: number) => (
         <MenuListItem
           key={exercise.id}
-          icon="chevron-right"
+          icon={itemIcon}
           className={cn("flex-1", {
             "border-t border-border": index > 0,
           })}
           onPress={() => onExercisePress(exercise)}
         >
-          <HStack className="flex-1">
-            <ExerciseImage exercise={exercise} />
-            <Text className="flex-1">{exercise.name}</Text>
-          </HStack>
+          <ExerciseImage exercise={exercise} />
+          <Text className="flex-1">{exercise.name}</Text>
+          {typeof itemCta === "function" ? itemCta(exercise) : itemCta}
         </MenuListItem>
       ))}
     </MenuList>

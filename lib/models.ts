@@ -142,9 +142,9 @@ export type WorkoutSessionExercise = Model & {
 export type WorkoutSessionExerciseSet = Model & {
   workout_session_exercise_id: number;
   order: number;
-  reps_recommended: number;
-  weight_recommended: number;
-  rest_recommended: number;
+  reps_recommended: number | null;
+  weight_recommended: number | null;
+  rest_recommended: number | null;
   reps_completed: number | null;
   weight_completed: number | null;
   logged_at: string | null;
