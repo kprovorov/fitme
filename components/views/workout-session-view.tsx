@@ -106,18 +106,20 @@ export default function WorkoutSessionView({
               </Pressable>
             </Link>
           ))}
-          <VStack className="px-3 w-full">
-            <Button
-              variant="secondary"
-              className="w-full bg-transparent border-2 border-dashed border-border h-16"
-              onPress={() => setShowModal(true)}
-            >
-              <HStack className="gap-2 w-full">
-                <Plus size={16} className="text-white" />
-                <Text>Add Exercise</Text>
-              </HStack>
-            </Button>
-          </VStack>
+          {!workoutSession.finished_at && (
+            <VStack className="px-3 w-full">
+              <Button
+                variant="secondary"
+                className="w-full bg-transparent border-2 border-dashed border-border h-16"
+                onPress={() => setShowModal(true)}
+              >
+                <HStack className="gap-2 w-full">
+                  <Plus size={16} className="text-white" />
+                  <Text>Add Exercise</Text>
+                </HStack>
+              </Button>
+            </VStack>
+          )}
         </VStack>
       </Card>
     </VStack>
