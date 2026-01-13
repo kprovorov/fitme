@@ -1,6 +1,5 @@
-import { Link } from "expo-router";
 import React, { useState } from "react";
-import { Modal, Pressable, ScrollView } from "react-native";
+import { Modal, ScrollView, View } from "react-native";
 import { Plus } from "~/lib/icons/Plus";
 import { Exercise, WorkoutSession } from "~/lib/models";
 import { cn } from "~/lib/utils";
@@ -12,7 +11,10 @@ import { VStack } from "../ui/vstack";
 import ExercisesView from "./exercises-view";
 import WorkoutSessionExerciseCard from "./workout-session-exercise-card";
 import { X } from "~/lib/icons/X";
-import { useCreateWorkoutSessionExerciseMutation } from "~/hooks/queries/workout-session-exercises";
+import {
+  useCreateWorkoutSessionExerciseMutation,
+  useDeleteWorkoutSessionExerciseMutation,
+} from "~/hooks/queries/workout-session-exercises";
 import { QueryClient, useQueryClient } from "@tanstack/react-query";
 
 interface WorkoutSessionViewProps {
@@ -39,6 +41,15 @@ export default function WorkoutSessionView({
     },
   });
 
+  const { mutateAsync: deleteExercise } =
+    useDeleteWorkoutSessionExerciseMutation({
+      onSuccess: () => {
+        queryClient.invalidateQueries({
+          queryKey: ["workout-session", { planId, workoutId, sessionId }],
+        });
+      },
+    });
+
   const onExercisePress = async (exercise: Exercise) => {
     await mutateAsync({
       planId,
@@ -49,6 +60,15 @@ export default function WorkoutSessionView({
       },
     });
     setShowModal(false);
+  };
+
+  const handleDeleteExercise = async (exerciseId: number) => {
+    await deleteExercise({
+      planId,
+      workoutId,
+      sessionId,
+      exerciseId,
+    });
   };
 
   return (
@@ -95,16 +115,18 @@ export default function WorkoutSessionView({
       <Card className="overflow-hidden py-3">
         <VStack className="gap-0">
           {workoutSession.exercises.map((exercise, i) => (
-            <Link
+            <View
               key={exercise.id}
-              href={`/plans/${planId}/workouts/${workoutId}/sessions/${sessionId}/exercises/${exercise.id}`}
               className={cn("py-sm", i !== 0 && "border-t border-border")}
-              asChild
             >
-              <Pressable className="flex-1 active:opacity-80">
-                <WorkoutSessionExerciseCard workoutSessionExercise={exercise} />
-              </Pressable>
-            </Link>
+              <WorkoutSessionExerciseCard
+                workoutSessionExercise={exercise}
+                onDelete={() => handleDeleteExercise(exercise.id)}
+                planId={planId}
+                workoutId={workoutId}
+                sessionId={sessionId}
+              />
+            </View>
           ))}
           {!workoutSession.finished_at && (
             <VStack className="px-3 w-full">

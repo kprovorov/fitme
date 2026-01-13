@@ -56,3 +56,26 @@ export const useCreateWorkoutSessionExerciseMutation = createMutation<
     return response.data;
   },
 });
+
+export type DeleteWorkoutSessionExerciseVariables = {
+  planId: number;
+  workoutId: number;
+  sessionId: number;
+  exerciseId: number;
+};
+
+export const useDeleteWorkoutSessionExerciseMutation = createMutation<
+  void,
+  DeleteWorkoutSessionExerciseVariables
+>({
+  mutationFn: async ({
+    planId,
+    workoutId,
+    sessionId,
+    exerciseId,
+  }: DeleteWorkoutSessionExerciseVariables) => {
+    await api.delete(
+      `/api/plans/${planId}/workouts/${workoutId}/sessions/${sessionId}/exercises/${exerciseId}`,
+    );
+  },
+});
