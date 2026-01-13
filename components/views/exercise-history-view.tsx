@@ -34,23 +34,25 @@ export default function ExerciseHistoryView({
               {format(new Date(item.created_at!), "PPP")}
             </Text>
           </HStack>
-          {item.sets.map((set) => (
-            <HStack
-              key={set.id}
-              className="border-t border-border py-xs justify-start px-sm"
-            >
-              <HStack className="w-8 justify-center">
-                <Text className="text-primary">#{set.order}</Text>
+          {item.sets
+            .sort((a, b) => a.order - b.order)
+            .map((set) => (
+              <HStack
+                key={set.id}
+                className="border-t border-border py-xs justify-start px-sm"
+              >
+                <HStack className="w-8 justify-center">
+                  <Text className="text-primary">#{set.order}</Text>
+                </HStack>
+                <Text className="w-16">
+                  {set.weight_completed}{" "}
+                  {getWeightLabel(user!.measurement_system)}
+                </Text>
+                <Text className="text-muted-foreground">
+                  x {set.reps_completed} reps
+                </Text>
               </HStack>
-              <Text className="w-16">
-                {set.weight_completed}{" "}
-                {getWeightLabel(user!.measurement_system)}
-              </Text>
-              <Text className="text-muted-foreground">
-                x {set.reps_completed} reps
-              </Text>
-            </HStack>
-          ))}
+            ))}
         </VStack>
       ))}
     </VStack>
