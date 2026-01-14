@@ -112,12 +112,12 @@ export default function WorkoutSessionView({
         </ScrollView>
       </Modal>
 
-      <Card className="overflow-hidden py-3">
-        <VStack className="gap-0">
+      <Card className="overflow-hidden">
+        <VStack className="gap-0 items-stretch">
           {workoutSession.exercises.map((exercise, i) => (
             <View
               key={exercise.id}
-              className={cn("py-sm", i !== 0 && "border-t border-border")}
+              className={cn("py-sm", "border-b border-border")}
             >
               <WorkoutSessionExerciseCard
                 workoutSessionExercise={exercise}
@@ -129,11 +129,12 @@ export default function WorkoutSessionView({
             </View>
           ))}
           {!workoutSession.finished_at && (
-            <VStack className="px-3 w-full">
+            <VStack className="p-3 items-stretch flex-1">
               <Button
-                variant="secondary"
-                className="w-full bg-transparent border-2 border-dashed border-border h-16"
+                variant="ghost"
+                // className="w-full bg-transparent border-2 border-dashed border-border h-16"
                 onPress={() => setShowModal(true)}
+                shape="pill"
               >
                 <HStack className="gap-2 w-full">
                   <Plus size={16} className="text-white" />
