@@ -39,3 +39,40 @@ export const useUpdateWorkoutSessionExerciseSetMutation = createMutation<
     return response.data;
   },
 });
+
+export type CreateWorkoutSessionExerciseSetParams = {
+  planId: number;
+  workoutId: number;
+  sessionId: number;
+  exerciseId: number;
+};
+
+export type CreateWorkoutSessionExerciseSetData = {
+  weight_completed: number;
+  reps_completed: number;
+};
+
+export type CreateWorkoutSessionExerciseSetVariables = {
+  data: CreateWorkoutSessionExerciseSetData;
+  params: CreateWorkoutSessionExerciseSetParams;
+};
+
+export const useCreateWorkoutSessionExerciseSetMutation = createMutation<
+  WorkoutSessionExerciseSet,
+  CreateWorkoutSessionExerciseSetVariables
+>({
+  mutationFn: async ({
+    data,
+    params,
+  }: {
+    data: CreateWorkoutSessionExerciseSetData;
+    params: CreateWorkoutSessionExerciseSetParams;
+  }): Promise<WorkoutSessionExerciseSet> => {
+    const response = await api.post<WorkoutSessionExerciseSet>(
+      `/api/plans/${params.planId}/workouts/${params.workoutId}/sessions/${params.sessionId}/exercises/${params.exerciseId}/sets`,
+      data,
+    );
+
+    return response.data;
+  },
+});

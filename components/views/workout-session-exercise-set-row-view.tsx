@@ -5,7 +5,10 @@ import { WorkoutSessionExerciseSet } from "~/lib/models";
 import { useQueryClient } from "@tanstack/react-query";
 import { Text } from "../ui/text";
 import { Check } from "lucide-react-native";
-import { useUpdateWorkoutSessionExerciseSetMutation } from "~/hooks/queries/workout-session-exercise-sets";
+import {
+  useUpdateWorkoutSessionExerciseSetMutation,
+  useCreateWorkoutSessionExerciseSetMutation,
+} from "~/hooks/queries/workout-session-exercise-sets";
 import { Separator } from "../ui/separator";
 import { Muted } from "../ui/typography";
 import { ClockFading } from "~/lib/icons/ClockFading";
@@ -17,9 +20,12 @@ interface WorkoutSessionExerciseSetRowViewProps {
   workoutId: number;
   sessionId: number;
   exerciseId: number;
-  workoutSessionExerciseSet: WorkoutSessionExerciseSet;
+  workoutSessionExerciseSet: WorkoutSessionExerciseSet | null;
+  localSetId?: string;
+  order?: number;
   hasWeight?: boolean;
   timer?: boolean;
+  onSetCreated?: () => void;
 }
 
 export default function WorkoutSessionExerciseSetRowView({
@@ -28,16 +34,20 @@ export default function WorkoutSessionExerciseSetRowView({
   sessionId,
   exerciseId,
   workoutSessionExerciseSet,
+  localSetId,
+  order,
   hasWeight = true,
   timer = true,
+  onSetCreated,
 }: WorkoutSessionExerciseSetRowViewProps) {
   const queryClient = useQueryClient();
+  const isNewSet = workoutSessionExerciseSet === null;
 
   const [isEditable, setIsEditable] = useState(
-    workoutSessionExerciseSet.weight_completed === null,
+    isNewSet || workoutSessionExerciseSet.weight_completed === null,
   );
   const [isDone, setIsDone] = useState(
-    workoutSessionExerciseSet.weight_completed !== null,
+    !isNewSet && workoutSessionExerciseSet.weight_completed !== null,
   );
 
   const { mutate: updateWorkoutSessionExerciseSet } =
@@ -57,6 +67,41 @@ export default function WorkoutSessionExerciseSetRowView({
       },
     });
 
+  const { mutate: createWorkoutSessionExerciseSet } =
+    useCreateWorkoutSessionExerciseSetMutation({
+      onSuccess: () => {
+        setIsEditable(false);
+        setIsDone(true);
+        queryClient.invalidateQueries({
+          queryKey: ["workout-session-exercise"],
+        });
+        queryClient.invalidateQueries({
+          queryKey: ["workout-session"],
+        });
+        queryClient.invalidateQueries({
+          queryKey: ["exercise-history"],
+        });
+        onSetCreated?.();
+      },
+    });
+
+  const setOrder = isNewSet ? order! : workoutSessionExerciseSet.order;
+  const weightRecommended = isNewSet
+    ? 0
+    : (workoutSessionExerciseSet.weight_recommended ?? 0);
+  const repsRecommended = isNewSet
+    ? 0
+    : (workoutSessionExerciseSet.reps_recommended ?? 0);
+  const weightCompleted = isNewSet
+    ? null
+    : workoutSessionExerciseSet.weight_completed;
+  const repsCompleted = isNewSet
+    ? null
+    : workoutSessionExerciseSet.reps_completed;
+  const restRecommended = isNewSet
+    ? null
+    : workoutSessionExerciseSet.rest_recommended;
+
   return (
     <HStack className="py-sm justify-start">
       {isDone ? (
@@ -64,9 +109,7 @@ export default function WorkoutSessionExerciseSetRowView({
           <Check strokeWidth={3} size={16} className="text-primary" />
         </HStack>
       ) : (
-        <Text className="w-12 font-bold text-center">
-          #{workoutSessionExerciseSet.order}
-        </Text>
+        <Text className="w-12 font-bold text-center">#{setOrder}</Text>
       )}
 
       <WorkoutSessionExerciseSetForm
@@ -76,44 +119,54 @@ export default function WorkoutSessionExerciseSetRowView({
         onEdit={() => setIsEditable(true)}
         isEditing={isEditable}
         recommendedValues={{
-          weight: (
-            workoutSessionExerciseSet.weight_completed ??
-            workoutSessionExerciseSet.weight_recommended ??
-            0
-          )
+          weight: (weightCompleted ?? weightRecommended)
             .toFixed(2)
             .replace(".00", "")
             .replace(".", ","),
-          reps: (
-            workoutSessionExerciseSet.reps_completed ??
-            workoutSessionExerciseSet.reps_recommended ??
-            0
-          ).toString(),
+          reps: (repsCompleted ?? repsRecommended).toString(),
         }}
         onSubmit={async (values) => {
-          updateWorkoutSessionExerciseSet({
-            data: {
-              weight_completed: values.weight
-                ? Number(values.weight.replace(",", "."))
-                : (workoutSessionExerciseSet.weight_recommended ?? 0),
-              reps_completed: values.reps
-                ? Number(values.reps)
-                : (workoutSessionExerciseSet.reps_recommended ?? 0),
-            },
-            params: {
-              planId,
-              workoutId,
-              sessionId,
-              exerciseId,
-              setId: workoutSessionExerciseSet.id,
-            },
-          });
+          const weight_completed = values.weight
+            ? Number(values.weight.replace(",", "."))
+            : weightRecommended;
+          const reps_completed = values.reps
+            ? Number(values.reps)
+            : repsRecommended;
+
+          if (isNewSet) {
+            createWorkoutSessionExerciseSet({
+              data: {
+                weight_completed,
+                reps_completed,
+              },
+              params: {
+                planId,
+                workoutId,
+                sessionId,
+                exerciseId,
+              },
+            });
+          } else {
+            updateWorkoutSessionExerciseSet({
+              data: {
+                weight_completed,
+                reps_completed,
+              },
+              params: {
+                planId,
+                workoutId,
+                sessionId,
+                exerciseId,
+                setId: workoutSessionExerciseSet.id,
+              },
+            });
+          }
         }}
       />
 
       <HStack className={cn("absolute h-6 inset-x-0 -bottom-3 gap-1")}>
         <Separator className={cn("flex-1", timer && "bg-primary")} />
-        {!!workoutSessionExerciseSet.rest_recommended && (
+        {!!restRecommended && (
           <>
             <HStack
               className={cn(
@@ -133,7 +186,7 @@ export default function WorkoutSessionExerciseSetRowView({
                   timer ? "text-primary-foreground" : "text-muted-foreground",
                 )}
               >
-                {workoutSessionExerciseSet.rest_recommended}s
+                {restRecommended}s
               </Text>
             </HStack>
             <Separator className={cn("flex-1", timer && "bg-primary")} />

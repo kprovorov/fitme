@@ -1,4 +1,4 @@
-import React from "react";
+import React, { useState } from "react";
 import { WorkoutSessionExerciseSet } from "~/lib/models";
 import { VStack } from "../ui/vstack";
 import { HStack } from "../ui/hstack";
@@ -8,6 +8,8 @@ import WorkoutSessionExerciseSetRowView from "./workout-session-exercise-set-row
 import { getWeightLabel } from "~/lib/labels";
 import { Separator } from "../ui/separator";
 import { Muted } from "../ui/typography";
+import { Button } from "../ui/button";
+import { Plus } from "lucide-react-native";
 
 interface WorkoutSessionExerciseSetsTableViewProps {
   planId: number;
@@ -17,6 +19,12 @@ interface WorkoutSessionExerciseSetsTableViewProps {
   workoutSessionExerciseSets: WorkoutSessionExerciseSet[];
 }
 
+type LocalSet = {
+  id: string;
+  isNew: true;
+  order: number;
+};
+
 export default function WorkoutSessionExerciseSetsTableView({
   planId,
   workoutId,
@@ -25,10 +33,30 @@ export default function WorkoutSessionExerciseSetsTableView({
   workoutSessionExerciseSets,
 }: WorkoutSessionExerciseSetsTableViewProps) {
   const { data: user } = useCurrentUserQuery();
+  const [localSets, setLocalSets] = useState<LocalSet[]>([]);
 
   const hasWeight = workoutSessionExerciseSets.some(
     (set) => set.weight_recommended !== null,
   );
+
+  const maxOrder = Math.max(
+    ...workoutSessionExerciseSets.map((set) => set.order),
+    0,
+  );
+
+  const handleAddSet = () => {
+    const newOrder = maxOrder + localSets.length + 1;
+    const newLocalSet: LocalSet = {
+      id: `local-${Date.now()}-${newOrder}`,
+      isNew: true,
+      order: newOrder,
+    };
+    setLocalSets([...localSets, newLocalSet]);
+  };
+
+  const handleSetCreated = (localId: string) => {
+    setLocalSets(localSets.filter((set) => set.id !== localId));
+  };
 
   return (
     user && (
@@ -51,7 +79,7 @@ export default function WorkoutSessionExerciseSetsTableView({
 
         {workoutSessionExerciseSets
           .sort((a, b) => a.order - b.order)
-          .map((workoutSessionExerciseSet, i) => (
+          .map((workoutSessionExerciseSet) => (
             <WorkoutSessionExerciseSetRowView
               key={workoutSessionExerciseSet.id}
               planId={planId}
@@ -63,6 +91,31 @@ export default function WorkoutSessionExerciseSetsTableView({
               timer={false}
             />
           ))}
+
+        {localSets.map((localSet) => (
+          <WorkoutSessionExerciseSetRowView
+            key={localSet.id}
+            planId={planId}
+            workoutId={workoutId}
+            sessionId={sessionId}
+            exerciseId={exerciseId}
+            workoutSessionExerciseSet={null}
+            localSetId={localSet.id}
+            order={localSet.order}
+            hasWeight={hasWeight}
+            timer={false}
+            onSetCreated={() => handleSetCreated(localSet.id)}
+          />
+        ))}
+
+        <VStack className="py-3 items-stretch">
+          <Button onPress={handleAddSet} variant="ghost" size="sm" shape="pill">
+            <HStack>
+              <Plus size={16} className="text-primary" />
+              <Text className="text-primary">Add Set</Text>
+            </HStack>
+          </Button>
+        </VStack>
       </VStack>
     )
   );
