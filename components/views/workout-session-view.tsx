@@ -33,9 +33,9 @@ export default function WorkoutSessionView({
 }: WorkoutSessionViewProps) {
   const queryClient = useQueryClient();
   const [showModal, setShowModal] = useState(false);
-  const [replacingExerciseId, setReplacingExerciseId] = useState<
-    number | null
-  >(null);
+  const [replacingExerciseId, setReplacingExerciseId] = useState<number | null>(
+    null,
+  );
 
   const { mutateAsync } = useCreateWorkoutSessionExerciseMutation({
     onSuccess: () => {
@@ -139,7 +139,9 @@ export default function WorkoutSessionView({
                   shape="pill"
                   onPress={() => onExercisePress(exercise)}
                 >
-                  <Text>{replacingExerciseId !== null ? "Replace" : "Add"}</Text>
+                  <Text>
+                    {replacingExerciseId !== null ? "Replace" : "Add"}
+                  </Text>
                 </Button>
               )}
             />
@@ -149,21 +151,23 @@ export default function WorkoutSessionView({
 
       <Card className="overflow-hidden">
         <VStack className="gap-0 items-stretch">
-          {workoutSession.exercises.map((exercise, i) => (
-            <View
-              key={exercise.id}
-              className={cn("py-sm", "border-b border-border")}
-            >
-              <WorkoutSessionExerciseCard
-                workoutSessionExercise={exercise}
-                onDelete={() => handleDeleteExercise(exercise.id)}
-                onReplace={() => handleReplaceExercise(exercise.id)}
-                planId={planId}
-                workoutId={workoutId}
-                sessionId={sessionId}
-              />
-            </View>
-          ))}
+          {workoutSession.exercises
+            .sort((a, b) => a.order - b.order)
+            .map((exercise, i) => (
+              <View
+                key={exercise.id}
+                className={cn("py-sm", "border-b border-border")}
+              >
+                <WorkoutSessionExerciseCard
+                  workoutSessionExercise={exercise}
+                  onDelete={() => handleDeleteExercise(exercise.id)}
+                  onReplace={() => handleReplaceExercise(exercise.id)}
+                  planId={planId}
+                  workoutId={workoutId}
+                  sessionId={sessionId}
+                />
+              </View>
+            ))}
           {!workoutSession.finished_at && (
             <VStack className="p-3 items-stretch flex-1">
               <Button
