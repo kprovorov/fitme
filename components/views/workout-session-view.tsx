@@ -36,6 +36,9 @@ export default function WorkoutSessionView({
   const [replacingExerciseId, setReplacingExerciseId] = useState<number | null>(
     null,
   );
+  const [initialMuscleGroup, setInitialMuscleGroup] = useState<
+    string | undefined
+  >(undefined);
 
   const { mutateAsync } = useCreateWorkoutSessionExerciseMutation({
     onSuccess: () => {
@@ -75,6 +78,7 @@ export default function WorkoutSessionView({
         },
       });
       setReplacingExerciseId(null);
+      setInitialMuscleGroup(undefined);
     } else {
       await mutateAsync({
         planId,
@@ -98,7 +102,11 @@ export default function WorkoutSessionView({
   };
 
   const handleReplaceExercise = (exerciseId: number) => {
+    const exercise = workoutSession.exercises.find((e) => e.id === exerciseId);
+    const muscleGroup =
+      exercise?.exercise.muscle_groups[0] || undefined;
     setReplacingExerciseId(exerciseId);
+    setInitialMuscleGroup(muscleGroup);
     setShowModal(true);
   };
 
@@ -112,6 +120,7 @@ export default function WorkoutSessionView({
         onRequestClose={() => {
           setShowModal(!showModal);
           setReplacingExerciseId(null);
+          setInitialMuscleGroup(undefined);
         }}
       >
         <ScrollView showsVerticalScrollIndicator={false}>
@@ -123,6 +132,7 @@ export default function WorkoutSessionView({
                 onPress={() => {
                   setShowModal(false);
                   setReplacingExerciseId(null);
+                  setInitialMuscleGroup(undefined);
                 }}
                 shape="pill"
               >
@@ -133,6 +143,7 @@ export default function WorkoutSessionView({
             </HStack>
             <ExercisesView
               onExercisePress={onExercisePress}
+              initialMuscleGroup={initialMuscleGroup}
               itemCta={(exercise) => (
                 <Button
                   size="sm"

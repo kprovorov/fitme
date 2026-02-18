@@ -20,9 +20,10 @@ const ExercisesView = React.forwardRef<
     onExercisePress?: (exercise: Exercise) => void;
     onAddExercisePress?: () => void;
     itemCta?: React.ReactNode | ((exercise: Exercise) => React.ReactNode);
+    initialMuscleGroup?: string;
   }
->(({ onExercisePress = () => {}, itemCta }, ref) => {
-  const [muscleGroup, setMuscleGroup] = useState<string>("all");
+>(({ onExercisePress = () => {}, itemCta, initialMuscleGroup = "all" }, ref) => {
+  const [muscleGroup, setMuscleGroup] = useState<string>(initialMuscleGroup);
 
   const {
     data: exercises,
