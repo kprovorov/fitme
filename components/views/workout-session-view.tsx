@@ -14,6 +14,7 @@ import { X } from "~/lib/icons/X";
 import {
   useCreateWorkoutSessionExerciseMutation,
   useDeleteWorkoutSessionExerciseMutation,
+  useReplaceWorkoutSessionExerciseMutation,
 } from "~/hooks/queries/workout-session-exercises";
 import { QueryClient, useQueryClient } from "@tanstack/react-query";
 
@@ -32,6 +33,9 @@ export default function WorkoutSessionView({
 }: WorkoutSessionViewProps) {
   const queryClient = useQueryClient();
   const [showModal, setShowModal] = useState(false);
+  const [replacingExerciseId, setReplacingExerciseId] = useState<
+    number | null
+  >(null);
 
   const { mutateAsync } = useCreateWorkoutSessionExerciseMutation({
     onSuccess: () => {
@@ -50,15 +54,37 @@ export default function WorkoutSessionView({
       },
     });
 
-  const onExercisePress = async (exercise: Exercise) => {
-    await mutateAsync({
-      planId,
-      workoutId,
-      sessionId,
-      data: {
-        exercise_id: exercise.id,
+  const { mutateAsync: replaceExercise } =
+    useReplaceWorkoutSessionExerciseMutation({
+      onSuccess: () => {
+        queryClient.invalidateQueries({
+          queryKey: ["workout-session", { planId, workoutId, sessionId }],
+        });
       },
     });
+
+  const onExercisePress = async (exercise: Exercise) => {
+    if (replacingExerciseId !== null) {
+      await replaceExercise({
+        planId,
+        workoutId,
+        sessionId,
+        exerciseId: replacingExerciseId,
+        data: {
+          exercise_id: exercise.id,
+        },
+      });
+      setReplacingExerciseId(null);
+    } else {
+      await mutateAsync({
+        planId,
+        workoutId,
+        sessionId,
+        data: {
+          exercise_id: exercise.id,
+        },
+      });
+    }
     setShowModal(false);
   };
 
@@ -71,6 +97,11 @@ export default function WorkoutSessionView({
     });
   };
 
+  const handleReplaceExercise = (exerciseId: number) => {
+    setReplacingExerciseId(exerciseId);
+    setShowModal(true);
+  };
+
   return (
     <VStack className="items-stretch justify-stretch">
       <Modal
@@ -80,6 +111,7 @@ export default function WorkoutSessionView({
         presentationStyle="pageSheet"
         onRequestClose={() => {
           setShowModal(!showModal);
+          setReplacingExerciseId(null);
         }}
       >
         <ScrollView showsVerticalScrollIndicator={false}>
@@ -88,7 +120,10 @@ export default function WorkoutSessionView({
               <Button
                 variant="ghost"
                 size="icon-sm"
-                onPress={() => setShowModal(false)}
+                onPress={() => {
+                  setShowModal(false);
+                  setReplacingExerciseId(null);
+                }}
                 shape="pill"
               >
                 <Text>
@@ -104,7 +139,7 @@ export default function WorkoutSessionView({
                   shape="pill"
                   onPress={() => onExercisePress(exercise)}
                 >
-                  <Text>Add</Text>
+                  <Text>{replacingExerciseId !== null ? "Replace" : "Add"}</Text>
                 </Button>
               )}
             />
@@ -122,6 +157,7 @@ export default function WorkoutSessionView({
               <WorkoutSessionExerciseCard
                 workoutSessionExercise={exercise}
                 onDelete={() => handleDeleteExercise(exercise.id)}
+                onReplace={() => handleReplaceExercise(exercise.id)}
                 planId={planId}
                 workoutId={workoutId}
                 sessionId={sessionId}

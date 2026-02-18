@@ -13,6 +13,7 @@ import ContextMenu from "react-native-context-menu-view";
 interface WorkoutSessionExerciseCardProps {
   workoutSessionExercise: WorkoutSessionExercise;
   onDelete?: () => void;
+  onReplace?: () => void;
   planId: number;
   workoutId: number;
   sessionId: number;
@@ -21,6 +22,7 @@ interface WorkoutSessionExerciseCardProps {
 export default function WorkoutSessionExerciseCard({
   workoutSessionExercise,
   onDelete,
+  onReplace,
   planId,
   workoutId,
   sessionId,
@@ -67,13 +69,19 @@ export default function WorkoutSessionExerciseCard({
           dropdownMenuMode
           actions={[
             {
+              title: "Replace",
+              systemIcon: "arrow.triangle.2.circlepath",
+            },
+            {
               title: "Delete",
               systemIcon: "trash",
               destructive: true,
             },
           ]}
           onPress={(e) => {
-            if (e.nativeEvent.name === "Delete") {
+            if (e.nativeEvent.name === "Replace") {
+              onReplace?.();
+            } else if (e.nativeEvent.name === "Delete") {
               onDelete?.();
             }
           }}
