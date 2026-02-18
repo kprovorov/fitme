@@ -79,3 +79,32 @@ export const useDeleteWorkoutSessionExerciseMutation = createMutation<
     );
   },
 });
+
+export type ReplaceWorkoutSessionExerciseVariables = {
+  planId: number;
+  workoutId: number;
+  sessionId: number;
+  exerciseId: number;
+  data: {
+    exercise_id?: number;
+  };
+};
+
+export const useReplaceWorkoutSessionExerciseMutation = createMutation<
+  WorkoutSessionExercise,
+  ReplaceWorkoutSessionExerciseVariables
+>({
+  mutationFn: async ({
+    planId,
+    workoutId,
+    sessionId,
+    exerciseId,
+    data,
+  }: ReplaceWorkoutSessionExerciseVariables) => {
+    const response = await api.patch(
+      `/api/plans/${planId}/workouts/${workoutId}/sessions/${sessionId}/exercises/${exerciseId}`,
+      data,
+    );
+    return response.data;
+  },
+});
