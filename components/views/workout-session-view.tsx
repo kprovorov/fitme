@@ -171,8 +171,16 @@ export default function WorkoutSessionView({
               >
                 <WorkoutSessionExerciseCard
                   workoutSessionExercise={exercise}
-                  onDelete={() => handleDeleteExercise(exercise.id)}
-                  onReplace={() => handleReplaceExercise(exercise.id)}
+                  onDelete={
+                    !workoutSession.finished_at
+                      ? () => handleDeleteExercise(exercise.id)
+                      : undefined
+                  }
+                  onReplace={
+                    !workoutSession.finished_at
+                      ? () => handleReplaceExercise(exercise.id)
+                      : undefined
+                  }
                   planId={planId}
                   workoutId={workoutId}
                   sessionId={sessionId}
