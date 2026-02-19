@@ -9,7 +9,7 @@ import {
 } from "~/hooks/queries/plans";
 import { ExperienceLevel, Place, Goal } from "~/lib/models";
 import { Muted, P } from "~/components/ui/typography";
-import { LoaderCircle } from "~/lib/icons/LoaderCircle";
+import { Spinner } from "~/components/ui/spinner";
 import PlanDataView from "~/components/views/plan-data-view";
 import { Button } from "~/components/ui/button";
 import { Text } from "~/components/ui/text";
@@ -109,7 +109,7 @@ export default function Preview() {
                 disabled={isStoringPlan || isGeneratingPlan}
               >
                 {isStoringPlan ? (
-                  <LoaderCircle size={16} className="text-black animate-spin" />
+                  <Spinner size={16} className="text-black" />
                 ) : (
                   <Text>Save</Text>
                 )}
@@ -120,7 +120,7 @@ export default function Preview() {
                 disabled={isStoringPlan || isGeneratingPlan}
               >
                 {isGeneratingPlan ? (
-                  <LoaderCircle size={16} className="text-white animate-spin" />
+                  <Spinner size={16} className="text-white" />
                 ) : (
                   <Text>Re-generate</Text>
                 )}
@@ -129,7 +129,7 @@ export default function Preview() {
           </VStack>
         ) : (
           <VStack className="flex-1 h-full justify-center items-center gap-2">
-            <LoaderCircle size={32} className="text-primary animate-spin" />
+            <Spinner size={32} className="text-primary" />
             <P className="font-bold text-center text-sm">
               Hold on... AI is working hard to create your plan!
             </P>

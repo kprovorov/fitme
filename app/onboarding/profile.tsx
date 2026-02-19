@@ -18,7 +18,7 @@ import {
   TouchableWithoutFeedback,
   View,
 } from "react-native";
-import { LoaderCircle } from "~/lib/icons/LoaderCircle";
+import { Spinner } from "~/components/ui/spinner";
 import { GenderSwitch } from "~/components/ui/gender-switch";
 import { ErrorMessage } from "~/components/ui/error-message";
 import { Picker } from "@react-native-picker/picker";
@@ -326,7 +326,7 @@ export default function ProfileScreen() {
                   onPress={form.handleSubmit((v) => storeProfile(v))}
                 >
                   {form.formState.isSubmitting ? (
-                    <LoaderCircle size={16} className="text-black animate-spin" />
+                    <Spinner size={16} className="text-black" />
                   ) : (
                     <HStack className="gap-2">
                       <Text>Next</Text>

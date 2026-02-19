@@ -13,7 +13,7 @@ import {
   useCreateWorkoutSessionMutation,
   useFinishWorkoutSessionMutation,
 } from "~/hooks/queries/workout-sessions";
-import { LoaderCircle } from "~/lib/icons/LoaderCircle";
+import { Spinner } from "~/components/ui/spinner";
 import { Pressable, ScrollView, View } from "react-native";
 import { Card } from "../ui/card";
 import { ChevronRight } from "~/lib/icons/ChevronRight";
@@ -188,7 +188,7 @@ export default function WorkoutCard({
                   disabled={isFinishingWorkoutSession}
                 >
                   {isFinishingWorkoutSession ? (
-                    <LoaderCircle size={16} className="text-foreground animate-spin" />
+                    <Spinner size={16} className="text-foreground" />
                   ) : (
                     <HStack className="gap-2">
                       <Text>Finish Workout</Text>
@@ -201,7 +201,7 @@ export default function WorkoutCard({
                   disabled={isCreatingWorkoutSession}
                 >
                   {isCreatingWorkoutSession ? (
-                    <LoaderCircle size={16} className="text-black animate-spin" />
+                    <Spinner size={16} className="text-black" />
                   ) : (
                     <HStack className="gap-2">
                       <Text>Start Workout</Text>

@@ -9,8 +9,7 @@ import { useIsProQuery } from "~/hooks/revenueCat";
 import RevenueCatUI from "react-native-purchases-ui";
 import { useGenerateWorkoutPlanMutation } from "~/hooks/mutations/workout-plans";
 import { useQueryClient } from "@tanstack/react-query";
-import { View } from "react-native";
-import { LoaderCircle } from "~/lib/icons/LoaderCircle";
+import { Spinner } from "~/components/ui/spinner";
 import ActivePlanView from "./active-plan-view";
 
 interface HomeViewProps {
@@ -59,7 +58,7 @@ export default function HomeView({ plan }: HomeViewProps) {
                   AI is generating your next workout. It will be ready in a few
                   minutes.
                 </Text>
-                <LoaderCircle size={24} className="text-primary animate-spin" />
+                <Spinner size={24} className="text-primary" />
               </VStack>
             ) : (
               <Button
@@ -67,7 +66,7 @@ export default function HomeView({ plan }: HomeViewProps) {
                 onPress={() => generateWorkoutPlan({ id: plan.id })}
               >
                 {isWorkoutPlanGenerating ? (
-                  <LoaderCircle size={16} className="text-black animate-spin" />
+                  <Spinner size={16} className="text-black" />
                 ) : (
                   <Text>Generate your next workout</Text>
                 )}

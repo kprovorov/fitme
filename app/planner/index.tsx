@@ -16,7 +16,7 @@ import { BicepsFlexed } from "~/lib/icons/BicepsFlexed";
 import { zodResolver } from "@hookform/resolvers/zod";
 import { Controller, useForm } from "react-hook-form";
 import { z } from "zod";
-import { LoaderCircle } from "~/lib/icons/LoaderCircle";
+import { Spinner } from "~/components/ui/spinner";
 import { RadioGroup, RadioGroupItem } from "~/components/ui/radio-group";
 import { Label } from "~/components/ui/label";
 import { Badge } from "~/components/ui/badge";
@@ -299,7 +299,7 @@ export default function PlannerScreen() {
                     })}
                   >
                     {form.formState.isSubmitting ? (
-                      <LoaderCircle size={16} className="text-black animate-spin" />
+                      <Spinner size={16} className="text-black" />
                     ) : (
                       <Text>Get my plan!</Text>
                     )}
