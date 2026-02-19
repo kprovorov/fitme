@@ -1,0 +1,8 @@
+{
+  "context_servers": {
+    "supabase": {
+      "enabled": true,
+      "url": "http://localhost:54321/mcp",
+    },
+  },
+}
