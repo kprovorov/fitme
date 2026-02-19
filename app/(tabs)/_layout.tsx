@@ -17,7 +17,7 @@ export default function TabLayout() {
       href: "/",
       renderIcon: (isFocused: boolean) => (
         <BicepsFlexed
-          className={`w-6 h-6 ${isFocused ? "stroke-primary" : "stroke-white"}`}
+          className={`w-6 h-6 ${isFocused ? "text-primary" : "text-white"}`}
         />
       ),
     },
@@ -27,7 +27,7 @@ export default function TabLayout() {
       href: "/history",
       renderIcon: (isFocused: boolean) => (
         <ClipboardList
-          className={`w-6 h-6 ${isFocused ? "stroke-primary" : "stroke-white"}`}
+          className={`w-6 h-6 ${isFocused ? "text-primary" : "text-white"}`}
         />
       ),
     },
@@ -37,7 +37,7 @@ export default function TabLayout() {
       href: "/library",
       renderIcon: (isFocused: boolean) => (
         <BookOpenText
-          className={`w-6 h-6 ${isFocused ? "stroke-primary" : "stroke-white"}`}
+          className={`w-6 h-6 ${isFocused ? "text-primary" : "text-white"}`}
         />
       ),
     },
@@ -47,7 +47,7 @@ export default function TabLayout() {
       href: "/profile",
       renderIcon: (isFocused: boolean) => (
         <UserRound
-          className={`w-6 h-6 ${isFocused ? "stroke-primary" : "stroke-white"}`}
+          className={`w-6 h-6 ${isFocused ? "text-primary" : "text-white"}`}
         />
       ),
     },
