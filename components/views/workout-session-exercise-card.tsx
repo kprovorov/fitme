@@ -38,6 +38,26 @@ export default function WorkoutSessionExerciseCard({
     );
   };
 
+  const contextMenuActions = [
+    ...(onReplace
+      ? [
+          {
+            title: "Replace",
+            systemIcon: "arrow.triangle.2.circlepath",
+          },
+        ]
+      : []),
+    ...(onDelete
+      ? [
+          {
+            title: "Delete",
+            systemIcon: "trash",
+            destructive: true,
+          },
+        ]
+      : []),
+  ];
+
   return (
     <Pressable onPress={handlePress} className="active:opacity-80">
       <HStack className="w-full items-center justify-between gap-sm px-sm">
@@ -65,33 +85,25 @@ export default function WorkoutSessionExerciseCard({
             / {workoutSessionExercise.sets.length}
           </Text>
         </VStack>
-        <ContextMenu
-          dropdownMenuMode
-          actions={[
-            {
-              title: "Replace",
-              systemIcon: "arrow.triangle.2.circlepath",
-            },
-            {
-              title: "Delete",
-              systemIcon: "trash",
-              destructive: true,
-            },
-          ]}
-          onPress={(e) => {
-            if (e.nativeEvent.name === "Replace") {
-              onReplace?.();
-            } else if (e.nativeEvent.name === "Delete") {
-              onDelete?.();
-            }
-          }}
-        >
-          <Button variant="ghost" size="icon-sm" shape="pill">
-            <Text>
-              <Ellipsis size={24} className="text-foreground" />
-            </Text>
-          </Button>
-        </ContextMenu>
+        {contextMenuActions.length > 0 && (
+          <ContextMenu
+            dropdownMenuMode
+            actions={contextMenuActions}
+            onPress={(e) => {
+              if (e.nativeEvent.name === "Replace") {
+                onReplace?.();
+              } else if (e.nativeEvent.name === "Delete") {
+                onDelete?.();
+              }
+            }}
+          >
+            <Button variant="ghost" size="icon-sm" shape="pill">
+              <Text>
+                <Ellipsis size={24} className="text-foreground" />
+              </Text>
+            </Button>
+          </ContextMenu>
+        )}
       </HStack>
     </Pressable>
   );
