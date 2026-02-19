@@ -7,3 +7,10 @@ export type PaginatedResponse<T> = {
   last_page: number;
   total: number;
 };
+
+export type SupabasePaginatedResponse<T> = {
+  data: T[];
+  total: number;
+  page: number;
+  hasMore: boolean;
+};

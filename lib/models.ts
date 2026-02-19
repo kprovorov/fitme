@@ -55,20 +55,21 @@ export type Timestamped = {
 
 export type Model = Identifiable & Timestamped;
 
-export type User = Model & {
-  name: string;
+export type User = {
+  id: string; // UUID from auth.users
   email: string;
-  rc_user_id: string;
-  measurement_system: MeasurementSystem;
+  name: string;
   profile?: Profile;
 };
 
 export type Profile = Model & {
+  user_id: string; // UUID from auth.users
   gender: Gender;
   age: number;
   height: number;
   weight: number;
-  user_id: number;
+  measurement_system: MeasurementSystem;
+  rc_user_id: string | null;
 };
 
 export type Exercise = Model & {
@@ -82,7 +83,7 @@ export type Exercise = Model & {
 };
 
 export type Plan = Model & {
-  user_id: number;
+  user_id: string; // UUID from auth.users
   name: string;
   description: string;
   goal: Goal;

@@ -1,4 +1,4 @@
-import { getToken } from "@/lib/api";
+import { supabase } from "@/lib/supabase";
 import {
   NunitoSans_400Regular,
   NunitoSans_600SemiBold,
@@ -46,13 +46,25 @@ export default function RootLayout() {
   useEffect(() => {
     if (loaded) {
       SplashScreen.hideAsync();
-      getToken();
 
-      Purchases.addCustomerInfoUpdateListener(async (info) => {
+      const {
+        data: { subscription },
+      } = supabase.auth.onAuthStateChange((event) => {
+        if (event === "SIGNED_IN" || event === "TOKEN_REFRESHED") {
+          queryClient.invalidateQueries({ queryKey: ["user"] });
+        }
+        if (event === "SIGNED_OUT") {
+          queryClient.clear();
+        }
+      });
+
+      Purchases.addCustomerInfoUpdateListener(async () => {
         await queryClient.invalidateQueries({
           queryKey: ["rc-is-pro"],
         });
       });
+
+      return () => subscription.unsubscribe();
     }
   }, [loaded]);
 

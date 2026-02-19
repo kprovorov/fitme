@@ -20,15 +20,11 @@ import { QueryClient, useQueryClient } from "@tanstack/react-query";
 
 interface WorkoutSessionViewProps {
   workoutSession: WorkoutSession;
-  planId: number;
-  workoutId: number;
   sessionId: number;
 }
 
 export default function WorkoutSessionView({
   workoutSession,
-  planId,
-  workoutId,
   sessionId,
 }: WorkoutSessionViewProps) {
   const queryClient = useQueryClient();
@@ -43,7 +39,7 @@ export default function WorkoutSessionView({
   const { mutateAsync } = useCreateWorkoutSessionExerciseMutation({
     onSuccess: () => {
       queryClient.invalidateQueries({
-        queryKey: ["workout-session", { planId, workoutId, sessionId }],
+        queryKey: ["workout-session"],
       });
     },
   });
@@ -52,7 +48,7 @@ export default function WorkoutSessionView({
     useDeleteWorkoutSessionExerciseMutation({
       onSuccess: () => {
         queryClient.invalidateQueries({
-          queryKey: ["workout-session", { planId, workoutId, sessionId }],
+          queryKey: ["workout-session"],
         });
       },
     });
@@ -61,7 +57,7 @@ export default function WorkoutSessionView({
     useReplaceWorkoutSessionExerciseMutation({
       onSuccess: () => {
         queryClient.invalidateQueries({
-          queryKey: ["workout-session", { planId, workoutId, sessionId }],
+          queryKey: ["workout-session"],
         });
       },
     });
@@ -69,9 +65,6 @@ export default function WorkoutSessionView({
   const onExercisePress = async (exercise: Exercise) => {
     if (replacingExerciseId !== null) {
       await replaceExercise({
-        planId,
-        workoutId,
-        sessionId,
         exerciseId: replacingExerciseId,
         data: {
           exercise_id: exercise.id,
@@ -81,8 +74,6 @@ export default function WorkoutSessionView({
       setInitialMuscleGroup(undefined);
     } else {
       await mutateAsync({
-        planId,
-        workoutId,
         sessionId,
         data: {
           exercise_id: exercise.id,
@@ -94,9 +85,6 @@ export default function WorkoutSessionView({
 
   const handleDeleteExercise = async (exerciseId: number) => {
     await deleteExercise({
-      planId,
-      workoutId,
-      sessionId,
       exerciseId,
     });
   };
@@ -181,9 +169,9 @@ export default function WorkoutSessionView({
                       ? () => handleReplaceExercise(exercise.id)
                       : undefined
                   }
-                  planId={planId}
-                  workoutId={workoutId}
-                  sessionId={sessionId}
+                  planId={workoutSession.workout.plan_id}
+                  workoutId={workoutSession.workout_id}
+                  sessionId={workoutSession.id}
                 />
               </View>
             ))}

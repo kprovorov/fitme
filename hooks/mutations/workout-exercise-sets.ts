@@ -1,5 +1,5 @@
+import { supabase } from "@/lib/supabase";
 import { createMutation } from "react-query-kit";
-import { api } from "~/lib/api";
 import { WorkoutExerciseSet } from "~/lib/models";
 
 type UpdateWorkoutExerciseSetData = {
@@ -15,11 +15,16 @@ export const useUpdateWorkoutExerciseSetMutation = createMutation<
   mutationFn: async (
     data: UpdateWorkoutExerciseSetData,
   ): Promise<WorkoutExerciseSet> => {
-    const response = await api.put<WorkoutExerciseSet>(
-      `/api/workout-exercise-sets/${data.id}`,
-      data,
-    );
-
-    return response.data;
+    const { data: result, error } = await supabase
+      .from("workout_exercise_sets")
+      .update({
+        weight_recommended: data.weight_done,
+        reps_recommended: data.repeats_done,
+      })
+      .eq("id", data.id)
+      .select()
+      .single();
+    if (error) throw error;
+    return result as unknown as WorkoutExerciseSet;
   },
 });

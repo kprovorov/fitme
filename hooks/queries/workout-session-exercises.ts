@@ -1,10 +1,14 @@
-import { api } from "~/lib/api";
+import { supabase } from "@/lib/supabase";
 import { createMutation, createQuery } from "react-query-kit";
 import { WorkoutSessionExercise } from "~/lib/models";
 
+const SESSION_EXERCISE_SELECT = `
+  *,
+  exercise:exercises (*),
+  sets:workout_session_exercise_sets (*)
+`;
+
 export type WorkoutSessionExercisesVariables = {
-  planId: number;
-  workoutId: number;
   sessionId: number;
   exerciseId: number;
 };
@@ -19,21 +23,19 @@ export const useWorkoutSessionExerciseQuery = createQuery<
 >({
   queryKey: ["workout-session-exercise"],
   fetcher: async ({
-    planId,
-    workoutId,
-    sessionId,
     exerciseId,
   }: WorkoutSessionExercisesVariables) => {
-    const response = await api.get(
-      `/api/plans/${planId}/workouts/${workoutId}/sessions/${sessionId}/exercises/${exerciseId}`,
-    );
-    return response.data;
+    const { data, error } = await supabase
+      .from("workout_session_exercises")
+      .select(SESSION_EXERCISE_SELECT)
+      .eq("id", exerciseId)
+      .single();
+    if (error) throw error;
+    return data as unknown as WorkoutSessionExercise;
   },
 });
 
 export type CreateWorkoutSessionExercisesVariables = {
-  planId: number;
-  workoutId: number;
   sessionId: number;
   data: StoreWorkoutSessionExerciseData;
 };
@@ -43,24 +45,30 @@ export const useCreateWorkoutSessionExerciseMutation = createMutation<
   CreateWorkoutSessionExercisesVariables
 >({
   mutationFn: async ({
-    planId,
-    workoutId,
     sessionId,
-    data,
+    data: { exercise_id },
   }: CreateWorkoutSessionExercisesVariables) => {
-    const response = await api.post(
-      `/api/plans/${planId}/workouts/${workoutId}/sessions/${sessionId}/exercises`,
-      data,
-    );
+    // Get the next order value
+    const { data: existing } = await supabase
+      .from("workout_session_exercises")
+      .select("order")
+      .eq("workout_session_id", sessionId)
+      .order("order", { ascending: false })
+      .limit(1);
 
-    return response.data;
+    const nextOrder = ((existing?.[0] as any)?.order ?? 0) + 1;
+
+    const { data, error } = await supabase
+      .from("workout_session_exercises")
+      .insert({ workout_session_id: sessionId, exercise_id, order: nextOrder })
+      .select(SESSION_EXERCISE_SELECT)
+      .single();
+    if (error) throw error;
+    return data as unknown as WorkoutSessionExercise;
   },
 });
 
 export type DeleteWorkoutSessionExerciseVariables = {
-  planId: number;
-  workoutId: number;
-  sessionId: number;
   exerciseId: number;
 };
 
@@ -68,22 +76,16 @@ export const useDeleteWorkoutSessionExerciseMutation = createMutation<
   void,
   DeleteWorkoutSessionExerciseVariables
 >({
-  mutationFn: async ({
-    planId,
-    workoutId,
-    sessionId,
-    exerciseId,
-  }: DeleteWorkoutSessionExerciseVariables) => {
-    await api.delete(
-      `/api/plans/${planId}/workouts/${workoutId}/sessions/${sessionId}/exercises/${exerciseId}`,
-    );
+  mutationFn: async ({ exerciseId }: DeleteWorkoutSessionExerciseVariables) => {
+    const { error } = await supabase
+      .from("workout_session_exercises")
+      .delete()
+      .eq("id", exerciseId);
+    if (error) throw error;
   },
 });
 
 export type ReplaceWorkoutSessionExerciseVariables = {
-  planId: number;
-  workoutId: number;
-  sessionId: number;
   exerciseId: number;
   data: {
     exercise_id?: number;
@@ -95,16 +97,16 @@ export const useReplaceWorkoutSessionExerciseMutation = createMutation<
   ReplaceWorkoutSessionExerciseVariables
 >({
   mutationFn: async ({
-    planId,
-    workoutId,
-    sessionId,
     exerciseId,
     data,
   }: ReplaceWorkoutSessionExerciseVariables) => {
-    const response = await api.patch(
-      `/api/plans/${planId}/workouts/${workoutId}/sessions/${sessionId}/exercises/${exerciseId}`,
-      data,
-    );
-    return response.data;
+    const { data: result, error } = await supabase
+      .from("workout_session_exercises")
+      .update(data)
+      .eq("id", exerciseId)
+      .select(SESSION_EXERCISE_SELECT)
+      .single();
+    if (error) throw error;
+    return result as unknown as WorkoutSessionExercise;
   },
 });

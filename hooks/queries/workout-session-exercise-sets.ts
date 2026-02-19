@@ -1,12 +1,8 @@
+import { supabase } from "@/lib/supabase";
 import { createMutation } from "react-query-kit";
-import { api } from "~/lib/api";
 import { WorkoutSessionExerciseSet } from "~/lib/models";
 
 export type UpdateWorkoutSessionExerciseSetParams = {
-  planId: number;
-  workoutId: number;
-  sessionId: number;
-  exerciseId: number;
   setId: number;
 };
 
@@ -26,24 +22,24 @@ export const useUpdateWorkoutSessionExerciseSetMutation = createMutation<
 >({
   mutationFn: async ({
     data,
-    params,
-  }: {
-    data: UpdateWorkoutSessionExerciseSetData;
-    params: UpdateWorkoutSessionExerciseSetParams;
-  }): Promise<WorkoutSessionExerciseSet> => {
-    const response = await api.put<WorkoutSessionExerciseSet>(
-      `/api/plans/${params.planId}/workouts/${params.workoutId}/sessions/${params.sessionId}/exercises/${params.exerciseId}/sets/${params.setId}`,
-      data,
-    );
-
-    return response.data;
+    params: { setId },
+  }: UpdateWorkoutSessionExerciseSetVariables): Promise<WorkoutSessionExerciseSet> => {
+    const { data: result, error } = await supabase
+      .from("workout_session_exercise_sets")
+      .update({
+        weight_completed: data.weight_completed,
+        reps_completed: data.reps_completed,
+        logged_at: new Date().toISOString(),
+      })
+      .eq("id", setId)
+      .select()
+      .single();
+    if (error) throw error;
+    return result as unknown as WorkoutSessionExerciseSet;
   },
 });
 
 export type CreateWorkoutSessionExerciseSetParams = {
-  planId: number;
-  workoutId: number;
-  sessionId: number;
   exerciseId: number;
 };
 
@@ -63,16 +59,30 @@ export const useCreateWorkoutSessionExerciseSetMutation = createMutation<
 >({
   mutationFn: async ({
     data,
-    params,
-  }: {
-    data: CreateWorkoutSessionExerciseSetData;
-    params: CreateWorkoutSessionExerciseSetParams;
-  }): Promise<WorkoutSessionExerciseSet> => {
-    const response = await api.post<WorkoutSessionExerciseSet>(
-      `/api/plans/${params.planId}/workouts/${params.workoutId}/sessions/${params.sessionId}/exercises/${params.exerciseId}/sets`,
-      data,
-    );
+    params: { exerciseId },
+  }: CreateWorkoutSessionExerciseSetVariables): Promise<WorkoutSessionExerciseSet> => {
+    // Get the next order value
+    const { data: existing } = await supabase
+      .from("workout_session_exercise_sets")
+      .select("order")
+      .eq("workout_session_exercise_id", exerciseId)
+      .order("order", { ascending: false })
+      .limit(1);
 
-    return response.data;
+    const nextOrder = ((existing?.[0] as any)?.order ?? 0) + 1;
+
+    const { data: result, error } = await supabase
+      .from("workout_session_exercise_sets")
+      .insert({
+        workout_session_exercise_id: exerciseId,
+        order: nextOrder,
+        weight_completed: data.weight_completed,
+        reps_completed: data.reps_completed,
+        logged_at: new Date().toISOString(),
+      })
+      .select()
+      .single();
+    if (error) throw error;
+    return result as unknown as WorkoutSessionExerciseSet;
   },
 });

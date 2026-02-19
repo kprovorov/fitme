@@ -1,7 +1,7 @@
 import { useLocalSearchParams, useRouter } from "expo-router";
 import React, { useEffect } from "react";
 import { SafeAreaProvider, SafeAreaView } from "react-native-safe-area-context";
-import { ScrollView, View } from "react-native";
+import { ScrollView } from "react-native";
 import { VStack } from "~/components/ui/vstack";
 import {
   usePreviewPlanQuery,
@@ -109,9 +109,7 @@ export default function Preview() {
                 disabled={isStoringPlan || isGeneratingPlan}
               >
                 {isStoringPlan ? (
-                  <View className="animate-spin">
-                    <LoaderCircle size={16} className="text-black" />
-                  </View>
+                  <LoaderCircle size={16} className="text-black animate-spin" />
                 ) : (
                   <Text>Save</Text>
                 )}
@@ -122,9 +120,7 @@ export default function Preview() {
                 disabled={isStoringPlan || isGeneratingPlan}
               >
                 {isGeneratingPlan ? (
-                  <View className="animate-spin">
-                    <LoaderCircle size={16} className="text-white" />
-                  </View>
+                  <LoaderCircle size={16} className="text-white animate-spin" />
                 ) : (
                   <Text>Re-generate</Text>
                 )}
@@ -133,9 +129,7 @@ export default function Preview() {
           </VStack>
         ) : (
           <VStack className="flex-1 h-full justify-center items-center gap-2">
-            <View className="animate-spin">
-              <LoaderCircle size={32} className="text-primary" />
-            </View>
+            <LoaderCircle size={32} className="text-primary animate-spin" />
             <P className="font-bold text-center text-sm">
               Hold on... AI is working hard to create your plan!
             </P>

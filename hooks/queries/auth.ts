@@ -1,24 +1,44 @@
-import { createQuery } from "react-query-kit";
-import { api, getToken } from "@/lib/api";
+import { supabase } from "@/lib/supabase";
 import { User } from "@/lib/models";
 import Purchases from "react-native-purchases";
 import * as Sentry from "@sentry/react-native";
+import { createQuery } from "react-query-kit";
 
 export const useCurrentUserQuery = createQuery<User>({
   queryKey: ["user"],
   fetcher: async (): Promise<User> => {
-    await getToken();
+    const {
+      data: { session },
+      error: sessionError,
+    } = await supabase.auth.getSession();
 
-    const res = await api.get<User>("/api/user");
+    if (sessionError) throw sessionError;
+    if (!session) throw new Error("Not authenticated");
 
-    const user = res.data;
+    const { data: profile, error: profileError } = await supabase
+      .from("profiles")
+      .select("*")
+      .eq("user_id", session.user.id)
+      .single();
+
+    if (profileError && profileError.code !== "PGRST116") throw profileError;
+
+    const user: User = {
+      id: session.user.id,
+      email: session.user.email!,
+      name: (session.user.user_metadata?.name as string) ?? "",
+      profile: profile ?? undefined,
+    };
 
     Sentry.setUser({
       id: user.id,
       username: user.email,
       email: user.email,
     });
-    await Purchases.logIn(user.rc_user_id);
+
+    if (profile?.rc_user_id) {
+      await Purchases.logIn(profile.rc_user_id);
+    }
 
     return user;
   },

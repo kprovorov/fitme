@@ -299,9 +299,7 @@ export default function PlannerScreen() {
                     })}
                   >
                     {form.formState.isSubmitting ? (
-                      <View className="animate-spin">
-                        <LoaderCircle size={16} className="text-black" />
-                      </View>
+                      <LoaderCircle size={16} className="text-black animate-spin" />
                     ) : (
                       <Text>Get my plan!</Text>
                     )}

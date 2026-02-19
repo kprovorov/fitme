@@ -1,11 +1,22 @@
-import { AxiosError } from "axios";
+import { supabase } from "@/lib/supabase";
 import { createMutation, createQuery } from "react-query-kit";
-import { api, ServerError } from "~/lib/api";
 import { WorkoutSession } from "~/lib/models";
 
+const SESSION_SELECT = `
+  *,
+  workout:workouts (
+    *,
+    plan:plans (*)
+  ),
+  exercises:workout_session_exercises (
+    *,
+    exercise:exercises (*),
+    sets:workout_session_exercise_sets (*)
+  )
+`;
+
 export type CreateWorkoutSessionVariables = {
-  planId: number;
-  planWorkoutId: number;
+  workoutId: number;
 };
 
 export const useCreateWorkoutSessionMutation = createMutation<
@@ -13,19 +24,22 @@ export const useCreateWorkoutSessionMutation = createMutation<
   CreateWorkoutSessionVariables
 >({
   mutationFn: async ({
-    planId,
-    planWorkoutId,
+    workoutId,
   }: CreateWorkoutSessionVariables): Promise<WorkoutSession> => {
-    const res = await api.post<WorkoutSession>(
-      `/api/plans/${planId}/workouts/${planWorkoutId}/sessions`,
-    );
-    return res.data;
+    const { data, error } = await supabase
+      .from("workout_sessions")
+      .insert({
+        workout_id: workoutId,
+        started_at: new Date().toISOString(),
+      })
+      .select(SESSION_SELECT)
+      .single();
+    if (error) throw error;
+    return data as unknown as WorkoutSession;
   },
 });
 
 export type GetWorkoutSessionVariables = {
-  planId: number;
-  workoutId: number;
   sessionId: number;
 };
 
@@ -34,38 +48,34 @@ export const useWorkoutSessionQuery = createQuery<
   GetWorkoutSessionVariables
 >({
   queryKey: ["workout-session"],
-  fetcher: async ({
-    planId,
-    workoutId,
-    sessionId,
-  }: GetWorkoutSessionVariables) => {
-    const res = await api.get<WorkoutSession>(
-      `/api/plans/${planId}/workouts/${workoutId}/sessions/${sessionId}`,
-    );
-    return res.data;
+  fetcher: async ({ sessionId }: GetWorkoutSessionVariables) => {
+    const { data, error } = await supabase
+      .from("workout_sessions")
+      .select(SESSION_SELECT)
+      .eq("id", sessionId)
+      .single();
+    if (error) throw error;
+    return data as unknown as WorkoutSession;
   },
 });
 
 export type FinishWorkoutSessionVariables = {
-  planId: number;
-  workoutId: number;
   sessionId: number;
 };
 
 export const useFinishWorkoutSessionMutation = createMutation<
   WorkoutSession,
-  FinishWorkoutSessionVariables,
-  AxiosError<ServerError<FinishWorkoutSessionVariables>>
+  FinishWorkoutSessionVariables
 >({
-  mutationFn: async ({
-    planId,
-    workoutId,
-    sessionId,
-  }: FinishWorkoutSessionVariables) => {
-    const res = await api.patch<WorkoutSession>(
-      `/api/plans/${planId}/workouts/${workoutId}/sessions/${sessionId}/finish`,
-    );
-    return res.data;
+  mutationFn: async ({ sessionId }: FinishWorkoutSessionVariables) => {
+    const { data, error } = await supabase
+      .from("workout_sessions")
+      .update({ finished_at: new Date().toISOString() })
+      .eq("id", sessionId)
+      .select(SESSION_SELECT)
+      .single();
+    if (error) throw error;
+    return data as unknown as WorkoutSession;
   },
 });
 
@@ -75,9 +85,12 @@ export const useWorkoutSessionHistoryQuery = createQuery<
 >({
   queryKey: ["workout-sessions-history"],
   fetcher: async () => {
-    const res = await api.get<WorkoutSession[]>(
-      `/api/workout-sessions/history`,
-    );
-    return res.data;
+    const { data, error } = await supabase
+      .from("workout_sessions")
+      .select(SESSION_SELECT)
+      .not("finished_at", "is", null)
+      .order("finished_at", { ascending: false });
+    if (error) throw error;
+    return (data ?? []) as unknown as WorkoutSession[];
   },
 });

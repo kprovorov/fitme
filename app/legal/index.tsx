@@ -19,7 +19,6 @@ import {
 import { Button } from "~/components/ui/button";
 import { useDeleteUserMutation } from "~/hooks/mutations/auth";
 import { useQueryClient } from "@tanstack/react-query";
-import { deleteToken } from "~/lib/api";
 import * as Sentry from "@sentry/react-native";
 import { Separator } from "~/components/ui/separator";
 
@@ -31,7 +30,6 @@ export default function LegalScreen() {
   const { mutateAsync: deleteUser } = useDeleteUserMutation({
     onSuccess: async () => {
       Sentry.setUser(null);
-      await deleteToken();
       queryClient.clear();
       router.replace("/auth/login");
     },

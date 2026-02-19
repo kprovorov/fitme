@@ -1,5 +1,4 @@
 import { Controller, FieldErrors, useForm } from "react-hook-form";
-import { View } from "react-native";
 import { zodResolver } from "@hookform/resolvers/zod";
 import { z } from "zod";
 import { Input } from "~/components/ui/input";
@@ -82,9 +81,7 @@ export default function LoginForm({ onSubmit, errors }: LoginFormProps) {
         onPress={form.handleSubmit(onSubmit)}
       >
         {form.formState.isSubmitting ? (
-          <View className="animate-spin">
-            <LoaderCircle size={16} className="text-black" />
-          </View>
+          <LoaderCircle size={16} className="text-black animate-spin" />
         ) : (
           <HStack className="gap-2">
             <Text>Continue</Text>

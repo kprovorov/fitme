@@ -40,8 +40,6 @@ function Providers({ children }: { children: React.ReactNode }) {
     asyncStorage: AsyncStorage, // AsyncStorage for ['#storage', 'async', 'key'] queries + monitoring
     secureStorage: SecureStore, // SecureStore for ['#storage', 'secure', 'key'] queries + monitoring
     secureStorageKeys: [
-      "userToken",
-      "refreshToken",
       "biometricKey",
       "deviceId",
     ], // SecureStore keys to monitor

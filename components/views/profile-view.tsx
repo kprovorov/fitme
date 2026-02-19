@@ -4,7 +4,6 @@ import React from "react";
 import { Button } from "~/components/ui/button";
 import { Text } from "~/components/ui/text";
 import { useCurrentUserQuery } from "~/hooks/queries/auth";
-import { deleteToken } from "~/lib/api";
 import { VStack } from "../ui/vstack";
 import { Muted } from "../ui/typography";
 import { useLogoutMutation } from "~/hooks/mutations/auth";
@@ -29,7 +28,6 @@ export default function ProfileView() {
   const { mutateAsync: logout } = useLogoutMutation({
     onSuccess: async () => {
       Sentry.setUser(null);
-      await deleteToken();
       queryClient.clear();
       router.replace("/auth/login");
     },

@@ -59,9 +59,7 @@ export default function HomeView({ plan }: HomeViewProps) {
                   AI is generating your next workout. It will be ready in a few
                   minutes.
                 </Text>
-                <View className="animate-spin">
-                  <LoaderCircle size={24} className="text-primary" />
-                </View>
+                <LoaderCircle size={24} className="text-primary animate-spin" />
               </VStack>
             ) : (
               <Button
@@ -69,9 +67,7 @@ export default function HomeView({ plan }: HomeViewProps) {
                 onPress={() => generateWorkoutPlan({ id: plan.id })}
               >
                 {isWorkoutPlanGenerating ? (
-                  <View className="animate-spin">
-                    <LoaderCircle size={16} className="text-black" />
-                  </View>
+                  <LoaderCircle size={16} className="text-black animate-spin" />
                 ) : (
                   <Text>Generate your next workout</Text>
                 )}
