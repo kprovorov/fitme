@@ -9,7 +9,6 @@
       "rc-d91405cd5f"
     ],
     "userInterfaceStyle": "dark",
-    "newArchEnabled": true,
     "ios": {
       "supportsTablet": false,
       "bundleIdentifier": "com.fitmeproject.ios",
@@ -75,7 +74,8 @@
       "expo-localization"
     ],
     "experiments": {
-      "typedRoutes": true
+      "typedRoutes": true,
+      "reactCompiler": true
     },
     "extra": {
       "router": {
