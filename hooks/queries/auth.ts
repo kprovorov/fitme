@@ -19,9 +19,11 @@ export const useCurrentUserQuery = createQuery<User>({
       .from("profiles")
       .select("*")
       .eq("user_id", session.user.id)
-      .single();
+      .order("created_at", { ascending: false })
+      .limit(1)
+      .maybeSingle();
 
-    if (profileError && profileError.code !== "PGRST116") throw profileError;
+    if (profileError) throw profileError;
 
     const user: User = {
       id: session.user.id,

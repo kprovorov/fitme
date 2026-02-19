@@ -17,12 +17,14 @@ export const useStoreProfileMutation = createMutation<
     const {
       data: { user },
     } = await supabase.auth.getUser();
+
     const { data: profile, error } = await supabase
       .from("profiles")
       .insert({ ...data, user_id: user!.id })
       .select()
       .single();
     if (error) throw error;
+
     return profile as unknown as Profile;
   },
 });

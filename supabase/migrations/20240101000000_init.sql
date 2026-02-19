@@ -34,7 +34,7 @@ CREATE TABLE public.profiles (
   id bigint GENERATED ALWAYS AS IDENTITY PRIMARY KEY,
   created_at timestamptz DEFAULT now(),
   updated_at timestamptz DEFAULT now(),
-  user_id uuid NOT NULL UNIQUE REFERENCES auth.users(id) ON DELETE CASCADE,
+  user_id uuid NOT NULL REFERENCES auth.users(id) ON DELETE CASCADE,
   gender text NOT NULL,
   age integer NOT NULL,
   weight numeric(8,2) NOT NULL,

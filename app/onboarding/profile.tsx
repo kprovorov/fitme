@@ -1,36 +1,31 @@
-import React, { useState, useRef } from "react";
-import { H2, H4 } from "~/components/ui/typography";
-import { VStack } from "~/components/ui/vstack";
-import { Text } from "~/components/ui/text";
-import { SafeAreaProvider, SafeAreaView } from "react-native-safe-area-context";
-import { router, Stack } from "expo-router";
-import { useStoreProfileMutation } from "~/hooks/mutations/profiles";
-import { Button } from "~/components/ui/button";
-import { HStack } from "~/components/ui/hstack";
-import { useCurrentUserQuery } from "~/hooks/queries/auth";
-import { ArrowRight } from "~/lib/icons/ArrowRight";
 import { zodResolver } from "@hookform/resolvers/zod";
-import { Controller, useForm } from "react-hook-form";
-import { z } from "zod";
-import {
-  Pressable,
-  ScrollView,
-  TouchableWithoutFeedback,
-  View,
-} from "react-native";
-import { Spinner } from "~/components/ui/spinner";
-import { GenderSwitch } from "~/components/ui/gender-switch";
-import { ErrorMessage } from "~/components/ui/error-message";
 import { Picker } from "@react-native-picker/picker";
-import { cn, range } from "~/lib/utils";
+import { router, Stack } from "expo-router";
+import { useRef, useState } from "react";
+import { Controller, useForm } from "react-hook-form";
+import { Pressable, ScrollView, TouchableWithoutFeedback } from "react-native";
 import Animated, {
   useAnimatedStyle,
   useSharedValue,
   withTiming,
 } from "react-native-reanimated";
+import { SafeAreaProvider, SafeAreaView } from "react-native-safe-area-context";
+import { z } from "zod";
+import { Button } from "~/components/ui/button";
+import { ErrorMessage } from "~/components/ui/error-message";
+import { GenderSwitch } from "~/components/ui/gender-switch";
+import { HStack } from "~/components/ui/hstack";
 import { Separator } from "~/components/ui/separator";
-import { genders } from "~/lib/models";
+import { Spinner } from "~/components/ui/spinner";
+import { Text } from "~/components/ui/text";
+import { H2, H4 } from "~/components/ui/typography";
+import { VStack } from "~/components/ui/vstack";
+import { useStoreProfileMutation } from "~/hooks/mutations/profiles";
+import { useCurrentUserQuery } from "~/hooks/queries/auth";
 import { formatHeight, formatWeight } from "~/lib/formatters";
+import { ArrowRight } from "~/lib/icons/ArrowRight";
+import { genders } from "~/lib/models";
+import { cn, range } from "~/lib/utils";
 
 export type ProfileFormValues = z.infer<typeof formSchema>;
 
@@ -74,14 +69,14 @@ export default function ProfileScreen() {
   const scrollViewRef = useRef<ScrollView>(null);
 
   const [heightFeet, setHeightFeet] = useState(
-    user?.measurement_system !== "metric"
+    user?.profile?.measurement_system !== "metric"
       ? user?.profile?.height
         ? Math.floor(user?.profile?.height / 12)
         : 5
       : 176,
   );
   const [heightInches, setHeightInches] = useState(
-    user?.measurement_system !== "metric"
+    user?.profile?.measurement_system !== "metric"
       ? user?.profile?.height
         ? user?.profile?.height % 12
         : 0
@@ -119,12 +114,11 @@ export default function ProfileScreen() {
     }
   };
 
-  const { mutateAsync: storeProfile, isPending: isStoringProfilePending } =
-    useStoreProfileMutation({
-      onSuccess: () => {
-        router.push("/planner");
-      },
-    });
+  const { mutateAsync: storeProfile } = useStoreProfileMutation({
+    onSuccess: () => {
+      router.push("/planner");
+    },
+  });
 
   return (
     <>
@@ -273,7 +267,8 @@ export default function ProfileScreen() {
                               {form.getValues("weight")
                                 ? formatWeight(
                                     form.getValues("weight"),
-                                    user.profile?.measurement_system ?? "metric",
+                                    user.profile?.measurement_system ??
+                                      "metric",
                                   )
                                 : "Not Set"}
                             </Text>
@@ -308,7 +303,8 @@ export default function ProfileScreen() {
                               {form.getValues("height")
                                 ? formatHeight(
                                     form.getValues("height"),
-                                    user.profile?.measurement_system ?? "metric",
+                                    user.profile?.measurement_system ??
+                                      "metric",
                                   )
                                 : "Not Set"}
                             </Text>
@@ -368,7 +364,9 @@ export default function ProfileScreen() {
                         <Picker
                           selectedValue={
                             field.value ??
-                            (user.profile?.measurement_system ?? "metric" === "metric" ? 80 : 176)
+                            (user.profile?.measurement_system === "metric"
+                              ? 80
+                              : 176)
                           }
                           onValueChange={(v) => {
                             field.onChange(v);
@@ -378,10 +376,15 @@ export default function ProfileScreen() {
                         >
                           {range(
                             1,
-                            user.profile?.measurement_system ?? "metric" === "metric" ? 454 : 1000,
+                            user.profile?.measurement_system === "metric"
+                              ? 454
+                              : 1000,
                           ).map((i) => (
                             <Picker.Item
-                              label={formatWeight(i, user.profile?.measurement_system ?? "metric")}
+                              label={formatWeight(
+                                i,
+                                user.profile?.measurement_system ?? "metric",
+                              )}
                               value={i}
                               key={i}
                             />
@@ -394,9 +397,9 @@ export default function ProfileScreen() {
                     <Controller
                       control={form.control}
                       name="height"
-                      render={({ field, fieldState, formState }) => (
+                      render={({ field }) => (
                         <>
-                          {user.profile?.measurement_system ?? "metric" === "metric" ? (
+                          {user.profile?.measurement_system === "metric" ? (
                             <Picker
                               selectedValue={field.value ?? 176}
                               onValueChange={(v) => {
@@ -420,8 +423,8 @@ export default function ProfileScreen() {
                                 onValueChange={(v) => {
                                   setHeightFeet(v);
                                   field.onChange(
-                                    parseInt(v.toString()) * 12 +
-                                      parseInt(heightInches.toString()),
+                                    parseInt(v.toString(), 10) * 12 +
+                                      parseInt(heightInches.toString(), 10),
                                   );
                                   form.trigger("height");
                                 }}
@@ -440,8 +443,8 @@ export default function ProfileScreen() {
                                 onValueChange={(v) => {
                                   setHeightInches(v);
                                   field.onChange(
-                                    parseInt(heightFeet.toString()) * 12 +
-                                      parseInt(v.toString()),
+                                    parseInt(heightFeet.toString(), 10) * 12 +
+                                      parseInt(v.toString(), 10),
                                   );
                                   form.trigger("height");
                                 }}
