@@ -1,102 +1,204 @@
 import { createClient } from "jsr:@supabase/supabase-js@2";
 
-const ANTHROPIC_API_URL = "https://api.anthropic.com/v1/messages";
-const MODEL = "claude-sonnet-4-6";
 const MAX_ATTEMPTS = 3;
 
-const WORKOUT_PLAN_TOOL = {
-  name: "generate_workout_plan",
-  description: "Generate a structured workout plan",
-  input_schema: {
-    type: "object",
-    properties: {
-      name: { type: "string", description: "The name of the workout plan." },
-      description: {
-        type: "string",
-        description:
-          "A brief description of the workout plan. Max 255 characters.",
-      },
-      workouts: {
-        type: "array",
-        description: "A list of workouts in the workout plan.",
-        items: {
-          type: "object",
-          properties: {
-            name: {
-              type: "string",
-              description:
-                "The name of the workout. Do not use any numeration here (e.g. 'Workout X', 'Day X', etc.).",
-            },
-            description: {
-              type: "string",
-              description:
-                "A description of what the workout includes. Max 255 characters.",
-            },
-            order: {
-              type: "number",
-              description: "The position of this workout in the list.",
-            },
-            exercises: {
-              type: "array",
-              description: "A list of exercises included in the workout.",
-              items: {
-                type: "object",
-                properties: {
-                  exercise_id: {
-                    type: "number",
-                    description:
-                      "The id of the exercise. Use the id from the list of exercises provided.",
-                  },
-                  order: {
-                    type: "number",
-                    description:
-                      "The position of this exercise in the workout.",
-                  },
-                  sets: {
-                    type: "array",
-                    description: "A list of sets for this exercise.",
-                    items: {
-                      type: "object",
-                      properties: {
-                        order: {
-                          type: "number",
-                          description: "The position of this set.",
-                        },
-                        weight_recommended: {
-                          type: "number",
-                          description:
-                            "The weight to be used for the set. Use same unit as the user's measurement system.",
-                        },
-                        reps_recommended: {
-                          type: "number",
-                          description: "The number of repetitions for the set.",
-                        },
-                        rest_recommended: {
-                          type: "number",
-                          description:
-                            "The time to rest after the set (in seconds).",
-                        },
+// Shared JSON Schema for the workout plan structured output.
+// `additionalProperties: false` is required at every object level for OpenAI strict mode.
+const WORKOUT_PLAN_SCHEMA = {
+  type: "object",
+  additionalProperties: false,
+  properties: {
+    name: { type: "string", description: "The name of the workout plan." },
+    description: {
+      type: "string",
+      description: "A brief description of the workout plan. Max 255 characters.",
+    },
+    workouts: {
+      type: "array",
+      description: "A list of workouts in the workout plan.",
+      items: {
+        type: "object",
+        additionalProperties: false,
+        properties: {
+          name: {
+            type: "string",
+            description:
+              "The name of the workout. Do not use any numeration here (e.g. 'Workout X', 'Day X', etc.).",
+          },
+          description: {
+            type: "string",
+            description: "A description of what the workout includes. Max 255 characters.",
+          },
+          order: {
+            type: "number",
+            description: "The position of this workout in the list.",
+          },
+          exercises: {
+            type: "array",
+            description: "A list of exercises included in the workout.",
+            items: {
+              type: "object",
+              additionalProperties: false,
+              properties: {
+                exercise_id: {
+                  type: "number",
+                  description:
+                    "The id of the exercise. Use the id from the list of exercises provided.",
+                },
+                order: {
+                  type: "number",
+                  description: "The position of this exercise in the workout.",
+                },
+                sets: {
+                  type: "array",
+                  description: "A list of sets for this exercise.",
+                  items: {
+                    type: "object",
+                    additionalProperties: false,
+                    properties: {
+                      order: { type: "number", description: "The position of this set." },
+                      weight_recommended: {
+                        type: "number",
+                        description:
+                          "The weight to be used for the set. Use same unit as the user's measurement system.",
                       },
-                      required: [
-                        "order",
-                        "weight_recommended",
-                        "reps_recommended",
-                        "rest_recommended",
-                      ],
+                      reps_recommended: {
+                        type: "number",
+                        description: "The number of repetitions for the set.",
+                      },
+                      rest_recommended: {
+                        type: "number",
+                        description: "The time to rest after the set (in seconds).",
+                      },
                     },
+                    required: [
+                      "order",
+                      "weight_recommended",
+                      "reps_recommended",
+                      "rest_recommended",
+                    ],
                   },
                 },
-                required: ["exercise_id", "order", "sets"],
               },
+              required: ["exercise_id", "order", "sets"],
             },
           },
-          required: ["name", "description", "order", "exercises"],
         },
+        required: ["name", "description", "order", "exercises"],
       },
     },
-    required: ["name", "description", "workouts"],
   },
+  required: ["name", "description", "workouts"],
 };
+
+type Provider = "anthropic" | "openai";
+
+interface ProviderConfig {
+  provider: Provider;
+  model: string;
+}
+
+function getAvailableProviders(): ProviderConfig[] {
+  const providers: ProviderConfig[] = [];
+  if (Deno.env.get("ANTHROPIC_API_KEY")) {
+    providers.push({ provider: "anthropic", model: "claude-sonnet-4-6" });
+  }
+  if (Deno.env.get("OPENAI_API_KEY")) {
+    providers.push({ provider: "openai", model: "gpt-4o" });
+  }
+  return providers;
+}
+
+function pickRandomProvider(providers: ProviderConfig[]): ProviderConfig {
+  return providers[Math.floor(Math.random() * providers.length)];
+}
+
+async function callAnthropic(
+  systemPrompt: string,
+  userPrompt: string,
+  model: string,
+): Promise<Record<string, unknown>> {
+  const apiKey = Deno.env.get("ANTHROPIC_API_KEY")!;
+  const response = await fetch("https://api.anthropic.com/v1/messages", {
+    method: "POST",
+    headers: {
+      "x-api-key": apiKey,
+      "anthropic-version": "2023-06-01",
+      "content-type": "application/json",
+    },
+    body: JSON.stringify({
+      model,
+      max_tokens: 10000,
+      system: systemPrompt,
+      messages: [{ role: "user", content: userPrompt }],
+      tools: [
+        {
+          name: "generate_workout_plan",
+          description: "Generate a structured workout plan",
+          input_schema: WORKOUT_PLAN_SCHEMA,
+        },
+      ],
+      tool_choice: { type: "tool", name: "generate_workout_plan" },
+    }),
+  });
+
+  if (!response.ok) {
+    throw new Error(`Anthropic API error ${response.status}: ${await response.text()}`);
+  }
+
+  const data = await response.json();
+  const toolUse = data.content?.find(
+    (block: { type: string }) => block.type === "tool_use",
+  );
+  if (!toolUse?.input) throw new Error("No structured output returned from Anthropic");
+  return toolUse.input as Record<string, unknown>;
+}
+
+async function callOpenAI(
+  systemPrompt: string,
+  userPrompt: string,
+  model: string,
+): Promise<Record<string, unknown>> {
+  const apiKey = Deno.env.get("OPENAI_API_KEY")!;
+  const response = await fetch("https://api.openai.com/v1/chat/completions", {
+    method: "POST",
+    headers: {
+      Authorization: `Bearer ${apiKey}`,
+      "content-type": "application/json",
+    },
+    body: JSON.stringify({
+      model,
+      max_tokens: 10000,
+      messages: [
+        { role: "system", content: systemPrompt },
+        { role: "user", content: userPrompt },
+      ],
+      tools: [
+        {
+          type: "function",
+          function: {
+            name: "generate_workout_plan",
+            description: "Generate a structured workout plan",
+            strict: true,
+            parameters: WORKOUT_PLAN_SCHEMA,
+          },
+        },
+      ],
+      tool_choice: { type: "function", function: { name: "generate_workout_plan" } },
+    }),
+  });
+
+  if (!response.ok) {
+    throw new Error(`OpenAI API error ${response.status}: ${await response.text()}`);
+  }
+
+  const data = await response.json();
+  const toolCall = data.choices?.[0]?.message?.tool_calls?.[0];
+  if (!toolCall?.function?.arguments) {
+    throw new Error("No structured output returned from OpenAI");
+  }
+  return JSON.parse(toolCall.function.arguments) as Record<string, unknown>;
+}
 
 interface GeneratePlanParams {
   goal: string;
@@ -154,52 +256,29 @@ function buildPrompts(
   return { systemPrompt, userPrompt: userPromptParts.join("\n") };
 }
 
-async function callAnthropicWithRetry(
+async function callAIWithRetry(
   systemPrompt: string,
   userPrompt: string,
 ): Promise<Record<string, unknown>> {
-  const apiKey = Deno.env.get("ANTHROPIC_API_KEY");
-  if (!apiKey) throw new Error("ANTHROPIC_API_KEY is not set");
+  const providers = getAvailableProviders();
+  if (providers.length === 0) {
+    throw new Error("No AI provider configured. Set ANTHROPIC_API_KEY or OPENAI_API_KEY.");
+  }
 
   let lastError: Error | null = null;
 
   for (let attempt = 1; attempt <= MAX_ATTEMPTS; attempt++) {
+    const { provider, model } = pickRandomProvider(providers);
     try {
-      const response = await fetch(ANTHROPIC_API_URL, {
-        method: "POST",
-        headers: {
-          "x-api-key": apiKey,
-          "anthropic-version": "2023-06-01",
-          "content-type": "application/json",
-        },
-        body: JSON.stringify({
-          model: MODEL,
-          max_tokens: 10000,
-          system: systemPrompt,
-          messages: [{ role: "user", content: userPrompt }],
-          tools: [WORKOUT_PLAN_TOOL],
-          tool_choice: { type: "tool", name: WORKOUT_PLAN_TOOL.name },
-        }),
-      });
-
-      if (!response.ok) {
-        const errorBody = await response.text();
-        throw new Error(`Anthropic API error ${response.status}: ${errorBody}`);
+      console.log(`Attempt ${attempt}: using provider=${provider} model=${model}`);
+      if (provider === "anthropic") {
+        return await callAnthropic(systemPrompt, userPrompt, model);
+      } else {
+        return await callOpenAI(systemPrompt, userPrompt, model);
       }
-
-      const data = await response.json();
-      const toolUse = data.content?.find(
-        (block: { type: string }) => block.type === "tool_use",
-      );
-
-      if (!toolUse?.input) {
-        throw new Error("No structured output returned from AI");
-      }
-
-      return toolUse.input as Record<string, unknown>;
     } catch (err) {
       lastError = err instanceof Error ? err : new Error(String(err));
-      console.warn(`Attempt ${attempt} failed:`, lastError.message);
+      console.warn(`Attempt ${attempt} failed (${provider}/${model}):`, lastError.message);
     }
   }
 
@@ -256,7 +335,7 @@ Deno.serve(async (req: Request) => {
   const { systemPrompt, userPrompt } = buildPrompts(body, exercises, profile);
 
   try {
-    const aiOutput = await callAnthropicWithRetry(systemPrompt, userPrompt);
+    const aiOutput = await callAIWithRetry(systemPrompt, userPrompt);
 
     const planData = {
       ...aiOutput,
