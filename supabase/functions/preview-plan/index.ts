@@ -1,8 +1,210 @@
 import { createClient } from "jsr:@supabase/supabase-js@2";
 
-// Preview plan: generates a plan structure using AI without persisting it.
-// The actual AI integration should be ported from the Laravel backend.
-// This stub returns a structured error until the AI integration is configured.
+const ANTHROPIC_API_URL = "https://api.anthropic.com/v1/messages";
+const MODEL = "claude-sonnet-4-6";
+const MAX_ATTEMPTS = 3;
+
+const WORKOUT_PLAN_TOOL = {
+  name: "generate_workout_plan",
+  description: "Generate a structured workout plan",
+  input_schema: {
+    type: "object",
+    properties: {
+      name: { type: "string", description: "The name of the workout plan." },
+      description: {
+        type: "string",
+        description:
+          "A brief description of the workout plan. Max 255 characters.",
+      },
+      workouts: {
+        type: "array",
+        description: "A list of workouts in the workout plan.",
+        items: {
+          type: "object",
+          properties: {
+            name: {
+              type: "string",
+              description:
+                "The name of the workout. Do not use any numeration here (e.g. 'Workout X', 'Day X', etc.).",
+            },
+            description: {
+              type: "string",
+              description:
+                "A description of what the workout includes. Max 255 characters.",
+            },
+            order: {
+              type: "number",
+              description: "The position of this workout in the list.",
+            },
+            exercises: {
+              type: "array",
+              description: "A list of exercises included in the workout.",
+              items: {
+                type: "object",
+                properties: {
+                  exercise_id: {
+                    type: "number",
+                    description:
+                      "The id of the exercise. Use the id from the list of exercises provided.",
+                  },
+                  order: {
+                    type: "number",
+                    description:
+                      "The position of this exercise in the workout.",
+                  },
+                  sets: {
+                    type: "array",
+                    description: "A list of sets for this exercise.",
+                    items: {
+                      type: "object",
+                      properties: {
+                        order: {
+                          type: "number",
+                          description: "The position of this set.",
+                        },
+                        weight_recommended: {
+                          type: "number",
+                          description:
+                            "The weight to be used for the set. Use same unit as the user's measurement system.",
+                        },
+                        reps_recommended: {
+                          type: "number",
+                          description: "The number of repetitions for the set.",
+                        },
+                        rest_recommended: {
+                          type: "number",
+                          description:
+                            "The time to rest after the set (in seconds).",
+                        },
+                      },
+                      required: [
+                        "order",
+                        "weight_recommended",
+                        "reps_recommended",
+                        "rest_recommended",
+                      ],
+                    },
+                  },
+                },
+                required: ["exercise_id", "order", "sets"],
+              },
+            },
+          },
+          required: ["name", "description", "order", "exercises"],
+        },
+      },
+    },
+    required: ["name", "description", "workouts"],
+  },
+};
+
+interface GeneratePlanParams {
+  goal: string;
+  place: string;
+  frequency: number;
+  experience_level: string;
+  workout_duration: number;
+  note?: string;
+}
+
+interface Profile {
+  gender?: string;
+  age?: number;
+  height?: number;
+  weight?: number;
+  measurement_system?: string;
+}
+
+interface Exercise {
+  id: number;
+  name: string;
+}
+
+function buildPrompts(
+  params: GeneratePlanParams,
+  exercises: Exercise[],
+  profile: Profile | null,
+): { systemPrompt: string; userPrompt: string } {
+  const exercisesJson = JSON.stringify(exercises);
+  const measurementSystem = profile?.measurement_system ?? "metric";
+  const weightUnit = measurementSystem === "metric" ? "kg" : "lbs";
+
+  const systemPrompt = [
+    "You are a workout assistant. You will be given a user profile and you will need to generate a workout plan.",
+    `Here are the exercises you can choose from: ${exercisesJson}. Choose only from the exercises that are in the list.`,
+  ].join("\n");
+
+  const userPromptParts = [
+    "Create a workout plan using the following user profile and preferences:",
+    `Goal: ${params.goal}`,
+    `Place: ${params.place}`,
+    `Frequency: ${params.frequency} days per week`,
+    `Experience level: ${params.experience_level}`,
+    `Workout duration: ${params.workout_duration} minutes`,
+    `Measurement system: ${measurementSystem} (use ${weightUnit} for weight)`,
+  ];
+
+  if (profile?.gender) userPromptParts.push(`Gender: ${profile.gender}`);
+  if (profile?.age) userPromptParts.push(`Age: ${profile.age}`);
+  if (profile?.weight)
+    userPromptParts.push(`Weight: ${profile.weight} ${weightUnit}`);
+  if (profile?.height) userPromptParts.push(`Height: ${profile.height}`);
+  if (params.note) userPromptParts.push(`Note: ${params.note}`);
+
+  return { systemPrompt, userPrompt: userPromptParts.join("\n") };
+}
+
+async function callAnthropicWithRetry(
+  systemPrompt: string,
+  userPrompt: string,
+): Promise<Record<string, unknown>> {
+  const apiKey = Deno.env.get("ANTHROPIC_API_KEY");
+  if (!apiKey) throw new Error("ANTHROPIC_API_KEY is not set");
+
+  let lastError: Error | null = null;
+
+  for (let attempt = 1; attempt <= MAX_ATTEMPTS; attempt++) {
+    try {
+      const response = await fetch(ANTHROPIC_API_URL, {
+        method: "POST",
+        headers: {
+          "x-api-key": apiKey,
+          "anthropic-version": "2023-06-01",
+          "content-type": "application/json",
+        },
+        body: JSON.stringify({
+          model: MODEL,
+          max_tokens: 10000,
+          system: systemPrompt,
+          messages: [{ role: "user", content: userPrompt }],
+          tools: [WORKOUT_PLAN_TOOL],
+          tool_choice: { type: "tool", name: WORKOUT_PLAN_TOOL.name },
+        }),
+      });
+
+      if (!response.ok) {
+        const errorBody = await response.text();
+        throw new Error(`Anthropic API error ${response.status}: ${errorBody}`);
+      }
+
+      const data = await response.json();
+      const toolUse = data.content?.find(
+        (block: { type: string }) => block.type === "tool_use",
+      );
+
+      if (!toolUse?.input) {
+        throw new Error("No structured output returned from AI");
+      }
+
+      return toolUse.input as Record<string, unknown>;
+    } catch (err) {
+      lastError = err instanceof Error ? err : new Error(String(err));
+      console.warn(`Attempt ${attempt} failed:`, lastError.message);
+    }
+  }
+
+  throw lastError ?? new Error("All attempts to generate workout plan failed");
+}
 
 Deno.serve(async (req: Request) => {
   const authHeader = req.headers.get("Authorization");
@@ -31,24 +233,54 @@ Deno.serve(async (req: Request) => {
     });
   }
 
-  const body = await req.json();
+  const body: GeneratePlanParams = await req.json();
 
-  // TODO: Port AI plan generation logic from the Laravel backend.
-  // The body contains: { goal, place, frequency, experience_level, workout_duration, note? }
-  // Expected return shape: PlanData (see lib/models.ts)
-  //
-  // Example integration with OpenAI:
-  // const openaiApiKey = Deno.env.get("OPENAI_API_KEY");
-  // const response = await fetch("https://api.openai.com/v1/chat/completions", {
-  //   method: "POST",
-  //   headers: { Authorization: `Bearer ${openaiApiKey}`, "Content-Type": "application/json" },
-  //   body: JSON.stringify({ model: "gpt-4o", messages: [...] }),
-  // });
-  // const data = await response.json();
-  // return new Response(JSON.stringify(parsedPlanData), { status: 200, headers: { "Content-Type": "application/json" } });
+  const [exercisesResult, profileResult] = await Promise.all([
+    supabaseClient.from("exercises").select("id, name"),
+    supabaseClient.from("profiles").select("*").eq("user_id", user.id).single(),
+  ]);
 
-  return new Response(
-    JSON.stringify({ error: "AI integration not yet configured" }),
-    { status: 501, headers: { "Content-Type": "application/json" } },
-  );
+  if (exercisesResult.error) {
+    return new Response(
+      JSON.stringify({ error: "Failed to fetch exercises" }),
+      {
+        status: 500,
+        headers: { "Content-Type": "application/json" },
+      },
+    );
+  }
+
+  const exercises: Exercise[] = exercisesResult.data ?? [];
+  const profile: Profile | null = profileResult.data ?? null;
+
+  const { systemPrompt, userPrompt } = buildPrompts(body, exercises, profile);
+
+  try {
+    const aiOutput = await callAnthropicWithRetry(systemPrompt, userPrompt);
+
+    const planData = {
+      ...aiOutput,
+      goal: body.goal,
+      place: body.place,
+      frequency: body.frequency,
+      experience_level: body.experience_level,
+      workout_duration: body.workout_duration,
+      note: body.note,
+    };
+
+    return new Response(JSON.stringify(planData), {
+      status: 200,
+      headers: { "Content-Type": "application/json" },
+    });
+  } catch (err) {
+    const message = err instanceof Error ? err.message : "Unknown error";
+    console.error("Failed to generate workout plan:", message);
+    return new Response(
+      JSON.stringify({ error: "Failed to generate workout plan" }),
+      {
+        status: 500,
+        headers: { "Content-Type": "application/json" },
+      },
+    );
+  }
 });
