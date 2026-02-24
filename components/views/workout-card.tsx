@@ -59,6 +59,7 @@ export default function WorkoutCard({
   const startWorkout = () => {
     createWorkoutSession({
       workoutId: workout.id,
+      exercises: workout.exercises,
     });
   };
 
