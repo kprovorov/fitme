@@ -6,7 +6,8 @@ const PLAN_SELECT = `
   *,
   workouts (
     *,
-    workout_exercises (
+    sessions:workout_sessions (*),
+    exercises:workout_exercises (
       *,
       exercise:exercises (*),
       sets:workout_exercise_sets (*)
@@ -108,6 +109,11 @@ export const useStorePlanMutation = createMutation<Plan, PlanData>({
         }
       }
     }
+
+    const { error: activateError } = await supabase.rpc("activate_plan", {
+      plan_id: plan.id,
+    });
+    if (activateError) throw activateError;
 
     return plan as unknown as Plan;
   },
