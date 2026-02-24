@@ -49,7 +49,7 @@ This is a **React Native / Expo** fitness app using **file-based routing** via `
   - `formatters.tsx` — Display formatting helpers
   - `labels.ts` — Human-readable labels for enum values
 - `supabase/` — Supabase project config
-  - `functions/` — Edge Functions: `generate-plan`, `preview-plan`, `delete-user`
+  - `functions/` — Edge Functions: `preview-plan`, `delete-user`
   - `migrations/` — SQL migrations
 
 ## Key Patterns
