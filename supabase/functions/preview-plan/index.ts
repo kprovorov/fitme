@@ -220,6 +220,7 @@ interface Profile {
 interface Exercise {
   id: number;
   name: string;
+  thumbnail_url: string;
 }
 
 function buildPrompts(
@@ -315,7 +316,7 @@ Deno.serve(async (req: Request) => {
   const body: GeneratePlanParams = await req.json();
 
   const [exercisesResult, profileResult] = await Promise.all([
-    supabaseClient.from("exercises").select("id, name"),
+    supabaseClient.from("exercises").select("id, name, thumbnail_url"),
     supabaseClient.from("profiles").select("*").eq("user_id", user.id).single(),
   ]);
 
@@ -337,8 +338,23 @@ Deno.serve(async (req: Request) => {
   try {
     const aiOutput = await callAIWithRetry(systemPrompt, userPrompt);
 
+    const exerciseMap = new Map(exercises.map((e) => [e.id, e]));
+
+    // Enrich AI output: replace exercise_id with a nested exercise object,
+    // matching what WorkoutExerciseData expects on the client.
+    type RawExercise = { exercise_id: number; [key: string]: unknown };
+    type RawWorkout = { exercises: RawExercise[]; [key: string]: unknown };
+    const enrichedWorkouts = (aiOutput.workouts as RawWorkout[]).map((workout) => ({
+      ...workout,
+      exercises: workout.exercises.map((ex) => ({
+        ...ex,
+        exercise: exerciseMap.get(ex.exercise_id) ?? null,
+      })),
+    }));
+
     const planData = {
       ...aiOutput,
+      workouts: enrichedWorkouts,
       goal: body.goal,
       place: body.place,
       frequency: body.frequency,
