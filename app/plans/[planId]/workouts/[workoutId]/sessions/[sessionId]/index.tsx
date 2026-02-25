@@ -32,6 +32,7 @@ export default function WorkoutSessionScreen() {
     onSuccess: async () => {
       await queryClient.invalidateQueries({ queryKey: ["workout-session"] });
       await queryClient.invalidateQueries({ queryKey: ["plans"] });
+      await queryClient.invalidateQueries({ queryKey: ["exercise-history"] });
     },
   });
 

@@ -46,7 +46,9 @@ export default function ExerciseHistoryView({
                 </HStack>
                 <Text className="w-16">
                   {set.weight_completed}{" "}
-                  {getWeightLabel(user!.measurement_system)}
+                  {getWeightLabel(
+                    user?.profile?.measurement_system ?? "metric",
+                  )}
                 </Text>
                 <Text className="text-muted-foreground">
                   x {set.reps_completed} reps

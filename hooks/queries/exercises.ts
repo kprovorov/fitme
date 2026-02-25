@@ -95,10 +95,12 @@ export const useExerciseHistoryQuery = createQuery<
       .eq("exercise_id", exerciseId)
       .order("created_at", { ascending: false });
     if (error) throw error;
-    // Filter to only completed sessions client-side for reliability
-    const completed = (data ?? []).filter(
-      (wse: any) => wse.session?.finished_at != null,
-    );
-    return completed as unknown as WorkoutSessionExercise[];
+    const withCompletedSets = (data ?? [])
+      .map((wse: any) => ({
+        ...wse,
+        sets: wse.sets.filter((set: any) => set.weight_completed != null),
+      }))
+      .filter((wse: any) => wse.sets.length > 0);
+    return withCompletedSets as unknown as WorkoutSessionExercise[];
   },
 });
