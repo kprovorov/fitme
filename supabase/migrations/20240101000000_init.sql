@@ -58,7 +58,6 @@ CREATE TABLE public.plans (
   place text NOT NULL,
   frequency integer NOT NULL,
   is_active boolean NOT NULL DEFAULT false,
-  is_generating boolean NOT NULL DEFAULT false,
   experience_level text NOT NULL DEFAULT 'intermediate',
   workout_duration integer NOT NULL DEFAULT 60,
   note text

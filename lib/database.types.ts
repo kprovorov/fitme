@@ -83,7 +83,6 @@ export type Database = {
           goal: string;
           id: number;
           is_active: boolean;
-          is_generating: boolean;
           name: string | null;
           note: string | null;
           place: string;
@@ -100,7 +99,6 @@ export type Database = {
           goal: string;
           id?: never;
           is_active?: boolean;
-          is_generating?: boolean;
           name?: string | null;
           note?: string | null;
           place: string;
@@ -117,7 +115,6 @@ export type Database = {
           goal?: string;
           id?: never;
           is_active?: boolean;
-          is_generating?: boolean;
           name?: string | null;
           note?: string | null;
           place?: string;
@@ -430,7 +427,6 @@ export type Database = {
           goal: string;
           id: number;
           is_active: boolean;
-          is_generating: boolean;
           name: string | null;
           note: string | null;
           place: string;

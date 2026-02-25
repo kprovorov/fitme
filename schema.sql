@@ -346,7 +346,6 @@ CREATE TABLE public.plans (
     place character varying(255) NOT NULL,
     frequency integer NOT NULL,
     is_active boolean DEFAULT false NOT NULL,
-    is_generating boolean DEFAULT false NOT NULL,
     deleted_at timestamp(0) without time zone,
     experience_level character varying(255) DEFAULT 'intermediate'::character varying NOT NULL,
     workout_duration integer DEFAULT 60 NOT NULL,

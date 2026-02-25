@@ -92,7 +92,6 @@ export type Plan = Model & {
   experience_level: ExperienceLevel;
   workout_duration: number;
   note?: string;
-  is_generating: boolean;
   is_active: boolean;
   workouts: Workout[];
 };
