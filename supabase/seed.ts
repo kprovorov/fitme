@@ -3,6 +3,14 @@ import { parse } from "csv-parse/sync";
 import fs from "fs";
 import path from "path";
 
+function readMarkdownFile(dir: string, slug: string): string | null {
+  const filePath = path.join(process.cwd(), dir, `${slug}.md`);
+  if (fs.existsSync(filePath)) {
+    return fs.readFileSync(filePath, "utf-8").trim();
+  }
+  return null;
+}
+
 async function main() {
   const csvContent = fs.readFileSync(
     path.join(process.cwd(), "data/exercises.csv"),
@@ -31,6 +39,8 @@ async function main() {
       video_url: row.video_url,
       thumbnail_url: row.thumbnail_url,
       muscle_groups: row.muscle_groups.split(",").map((g) => g.trim()),
+      description: readMarkdownFile("data/descriptions", row.slug),
+      instructions: readMarkdownFile("data/instructions", row.slug),
     })),
   );
 
