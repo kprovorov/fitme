@@ -11,7 +11,8 @@
     "test": "jest --watchAll",
     "lint": "expo lint",
     "db:seed:sync": "npx @snaplet/seed sync",
-    "db:seed": "npx tsx supabase/seed.ts"
+    "db:seed": "npx tsx supabase/seed.ts",
+    "exercises:sync": "npx tsx supabase/sync.ts"
   },
   "jest": {
     "preset": "jest-expo"
