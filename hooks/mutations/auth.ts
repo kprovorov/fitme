@@ -51,5 +51,6 @@ export const useDeleteUserMutation = createMutation<void, void>({
   mutationFn: async (): Promise<void> => {
     const { error } = await supabase.functions.invoke("delete-user");
     if (error) throw error;
+    await supabase.auth.signOut();
   },
 });

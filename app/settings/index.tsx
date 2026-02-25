@@ -8,9 +8,24 @@ import { MenuList, MenuListItem } from "~/components/ui/menu-list";
 import { HStack } from "~/components/ui/hstack";
 import { useCurrentUserQuery } from "~/hooks/queries/auth";
 import { getMeasurementSystemLabel } from "~/lib/labels";
+import {
+  AlertDialog,
+  AlertDialogAction,
+  AlertDialogCancel,
+  AlertDialogContent,
+  AlertDialogDescription,
+  AlertDialogFooter,
+  AlertDialogHeader,
+  AlertDialogTitle,
+  AlertDialogTrigger,
+} from "~/components/ui/alert-dialog";
+import { useDeleteUserMutation } from "~/hooks/mutations/auth";
+import { buttonTextVariants, buttonVariants } from "~/components/ui/button";
 
 export default function SettingsScreen() {
   const { data: user } = useCurrentUserQuery();
+
+  const { mutateAsync: deleteUser, isPending } = useDeleteUserMutation();
 
   return (
     <>
@@ -33,20 +48,58 @@ export default function SettingsScreen() {
             showsVerticalScrollIndicator={false}
           >
             {!!user && (
-              <MenuList>
-                <Link href="/settings/measurement-system" asChild>
-                  <MenuListItem icon="chevron-right">
-                    <HStack className="flex-1 justify-between">
-                      <Text>Measurement System</Text>
-                      <Text className="text-muted-foreground text-xs">
-                        {getMeasurementSystemLabel(
-                          user.profile?.measurement_system ?? "metric",
-                        )}
-                      </Text>
-                    </HStack>
-                  </MenuListItem>
-                </Link>
-              </MenuList>
+              <>
+                <MenuList>
+                  <Link href="/settings/measurement-system" asChild>
+                    <MenuListItem icon="chevron-right">
+                      <HStack className="flex-1 justify-between">
+                        <Text>Measurement System</Text>
+                        <Text className="text-muted-foreground text-xs">
+                          {getMeasurementSystemLabel(
+                            user.profile?.measurement_system ?? "metric",
+                          )}
+                        </Text>
+                      </HStack>
+                    </MenuListItem>
+                  </Link>
+                </MenuList>
+
+                <MenuList className="mt-4">
+                  <AlertDialog>
+                    <AlertDialogTrigger asChild>
+                      <MenuListItem disabled={isPending}>
+                        <Text className="text-destructive">Delete Account</Text>
+                      </MenuListItem>
+                    </AlertDialogTrigger>
+                    <AlertDialogContent>
+                      <AlertDialogHeader>
+                        <AlertDialogTitle>Delete Account</AlertDialogTitle>
+                        <AlertDialogDescription>
+                          This will permanently delete your account and all
+                          associated data. This action cannot be undone.
+                        </AlertDialogDescription>
+                      </AlertDialogHeader>
+                      <AlertDialogFooter>
+                        <AlertDialogCancel>
+                          <Text>Cancel</Text>
+                        </AlertDialogCancel>
+                        <AlertDialogAction
+                          className={buttonVariants({ variant: "destructive" })}
+                          onPress={() => deleteUser()}
+                        >
+                          <Text
+                            className={buttonTextVariants({
+                              variant: "destructive",
+                            })}
+                          >
+                            Delete
+                          </Text>
+                        </AlertDialogAction>
+                      </AlertDialogFooter>
+                    </AlertDialogContent>
+                  </AlertDialog>
+                </MenuList>
+              </>
             )}
           </ScrollView>
         </SafeAreaView>
