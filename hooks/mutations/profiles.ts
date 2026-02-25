@@ -18,13 +18,14 @@ export const useStoreProfileMutation = createMutation<
       data: { user },
     } = await supabase.auth.getUser();
 
+    if (!user) throw new Error("Not authenticated");
+
     const measurement_system =
-      (user!.user_metadata?.measurement_system as MeasurementSystem) ??
-      "metric";
+      (user.user_metadata?.measurement_system as MeasurementSystem) ?? "metric";
 
     const { data: profile, error } = await supabase
       .from("profiles")
-      .insert({ ...data, user_id: user!.id, measurement_system })
+      .insert({ ...data, user_id: user.id, measurement_system })
       .select()
       .single();
     if (error) throw error;
