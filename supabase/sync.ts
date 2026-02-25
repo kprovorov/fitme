@@ -35,14 +35,14 @@ async function main() {
     columns: true,
     skip_empty_lines: true,
     trim: true,
-  }) as Array<{
+  }) as {
     ref: string;
     name: string;
     slug: string;
     video_url: string;
     thumbnail_url: string;
     muscle_groups: string;
-  }>;
+  }[];
 
   const exercises = rows.map((row) => ({
     name: row.name,
