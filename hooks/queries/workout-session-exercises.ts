@@ -22,9 +22,7 @@ export const useWorkoutSessionExerciseQuery = createQuery<
   WorkoutSessionExercisesVariables
 >({
   queryKey: ["workout-session-exercise"],
-  fetcher: async ({
-    exerciseId,
-  }: WorkoutSessionExercisesVariables) => {
+  fetcher: async ({ exerciseId }: WorkoutSessionExercisesVariables) => {
     const { data, error } = await supabase
       .from("workout_session_exercises")
       .select(SESSION_EXERCISE_SELECT)

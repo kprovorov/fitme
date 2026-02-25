@@ -22,66 +22,72 @@ const ExercisesView = React.forwardRef<
     itemCta?: React.ReactNode | ((exercise: Exercise) => React.ReactNode);
     initialMuscleGroup?: string;
   }
->(({ onExercisePress = () => {}, itemCta, initialMuscleGroup = "all" }, ref) => {
-  const [muscleGroup, setMuscleGroup] = useState<string>(initialMuscleGroup);
+>(
+  (
+    { onExercisePress = () => {}, itemCta, initialMuscleGroup = "all" },
+    ref,
+  ) => {
+    const [muscleGroup, setMuscleGroup] = useState<string>(initialMuscleGroup);
 
-  const {
-    data: exercises,
-    refetch: refetchExercises,
-    hasNextPage,
-    fetchNextPage,
-  } = useExercisesQuery({
-    variables: {
-      muscleGroup: muscleGroup === "all" ? undefined : muscleGroup,
-    },
-  });
+    const {
+      data: exercises,
+      refetch: refetchExercises,
+      hasNextPage,
+      fetchNextPage,
+    } = useExercisesQuery({
+      variables: {
+        muscleGroup: muscleGroup === "all" ? undefined : muscleGroup,
+      },
+    });
 
-  const refresh = useCallback(async () => {
-    await refetchExercises();
-  }, [refetchExercises]);
+    const refresh = useCallback(async () => {
+      await refetchExercises();
+    }, [refetchExercises]);
 
-  useImperativeHandle(ref, () => ({ refresh }), [refresh]);
+    useImperativeHandle(ref, () => ({ refresh }), [refresh]);
 
-  return (
-    <VStack className="items-stretch flex-1">
-      <Tabs value={muscleGroup} onValueChange={setMuscleGroup}>
-        <TabsList>
-          <ScrollView
-            horizontal
-            showsHorizontalScrollIndicator={false}
-            scrollToOverflowEnabled={true}
-          >
-            <TabsTrigger value="all">
-              <Text>All</Text>
-            </TabsTrigger>
-            {muscleGroups
-              // Temporary we don't have full-body and cardio exercises
-              .filter(
-                (muscleGroup) => !["full-body", "cardio"].includes(muscleGroup),
-              )
-              .map((muscleGroup) => (
-                <TabsTrigger key={muscleGroup} value={muscleGroup}>
-                  <Text>{muscleGroupToName(muscleGroup)}</Text>
-                </TabsTrigger>
-              ))}
-          </ScrollView>
-        </TabsList>
-      </Tabs>
+    return (
+      <VStack className="items-stretch flex-1">
+        <Tabs value={muscleGroup} onValueChange={setMuscleGroup}>
+          <TabsList>
+            <ScrollView
+              horizontal
+              showsHorizontalScrollIndicator={false}
+              scrollToOverflowEnabled={true}
+            >
+              <TabsTrigger value="all">
+                <Text>All</Text>
+              </TabsTrigger>
+              {muscleGroups
+                // Temporary we don't have full-body and cardio exercises
+                .filter(
+                  (muscleGroup) =>
+                    !["full-body", "cardio"].includes(muscleGroup),
+                )
+                .map((muscleGroup) => (
+                  <TabsTrigger key={muscleGroup} value={muscleGroup}>
+                    <Text>{muscleGroupToName(muscleGroup)}</Text>
+                  </TabsTrigger>
+                ))}
+            </ScrollView>
+          </TabsList>
+        </Tabs>
 
-      <ExercisesList
-        exercises={exercises?.pages?.flatMap((page) => page.data) || []}
-        onExercisePress={onExercisePress}
-        itemCta={itemCta}
-      />
+        <ExercisesList
+          exercises={exercises?.pages?.flatMap((page) => page.data) || []}
+          onExercisePress={onExercisePress}
+          itemCta={itemCta}
+        />
 
-      {hasNextPage && (
-        <Button variant="secondary" onPress={() => fetchNextPage()}>
-          <Text>Load more...</Text>
-        </Button>
-      )}
-    </VStack>
-  );
-});
+        {hasNextPage && (
+          <Button variant="secondary" onPress={() => fetchNextPage()}>
+            <Text>Load more...</Text>
+          </Button>
+        )}
+      </VStack>
+    );
+  },
+);
 ExercisesView.displayName = "ExercisesView";
 
 export default ExercisesView;

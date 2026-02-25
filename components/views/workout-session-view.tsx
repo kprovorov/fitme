@@ -91,8 +91,7 @@ export default function WorkoutSessionView({
 
   const handleReplaceExercise = (exerciseId: number) => {
     const exercise = workoutSession.exercises.find((e) => e.id === exerciseId);
-    const muscleGroup =
-      exercise?.exercise.muscle_groups[0] || undefined;
+    const muscleGroup = exercise?.exercise.muscle_groups[0] || undefined;
     setReplacingExerciseId(exerciseId);
     setInitialMuscleGroup(muscleGroup);
     setShowModal(true);

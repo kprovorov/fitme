@@ -5,5 +5,5 @@
 - Unlock the bar from its resting position.
 - Lower the bar slowly to chest level, keeping elbows at a 45-degree angle.
 - Press the bar back up to the starting position in a controlled motion.
-- Repeat for the desired number of repetitions. 
+- Repeat for the desired number of repetitions.
 - Re-rack the bar carefully upon completion.

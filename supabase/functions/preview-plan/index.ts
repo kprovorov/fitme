@@ -11,7 +11,8 @@ const WORKOUT_PLAN_SCHEMA = {
     name: { type: "string", description: "The name of the workout plan." },
     description: {
       type: "string",
-      description: "A brief description of the workout plan. Max 255 characters.",
+      description:
+        "A brief description of the workout plan. Max 255 characters.",
     },
     workouts: {
       type: "array",
@@ -27,7 +28,8 @@ const WORKOUT_PLAN_SCHEMA = {
           },
           description: {
             type: "string",
-            description: "A description of what the workout includes. Max 255 characters.",
+            description:
+              "A description of what the workout includes. Max 255 characters.",
           },
           order: {
             type: "number",
@@ -56,7 +58,10 @@ const WORKOUT_PLAN_SCHEMA = {
                     type: "object",
                     additionalProperties: false,
                     properties: {
-                      order: { type: "number", description: "The position of this set." },
+                      order: {
+                        type: "number",
+                        description: "The position of this set.",
+                      },
                       weight_recommended: {
                         type: "number",
                         description:
@@ -68,7 +73,8 @@ const WORKOUT_PLAN_SCHEMA = {
                       },
                       rest_recommended: {
                         type: "number",
-                        description: "The time to rest after the set (in seconds).",
+                        description:
+                          "The time to rest after the set (in seconds).",
                       },
                     },
                     required: [
@@ -143,14 +149,17 @@ async function callAnthropic(
   });
 
   if (!response.ok) {
-    throw new Error(`Anthropic API error ${response.status}: ${await response.text()}`);
+    throw new Error(
+      `Anthropic API error ${response.status}: ${await response.text()}`,
+    );
   }
 
   const data = await response.json();
   const toolUse = data.content?.find(
     (block: { type: string }) => block.type === "tool_use",
   );
-  if (!toolUse?.input) throw new Error("No structured output returned from Anthropic");
+  if (!toolUse?.input)
+    throw new Error("No structured output returned from Anthropic");
   return toolUse.input as Record<string, unknown>;
 }
 
@@ -184,12 +193,17 @@ async function callOpenAI(
           },
         },
       ],
-      tool_choice: { type: "function", function: { name: "generate_workout_plan" } },
+      tool_choice: {
+        type: "function",
+        function: { name: "generate_workout_plan" },
+      },
     }),
   });
 
   if (!response.ok) {
-    throw new Error(`OpenAI API error ${response.status}: ${await response.text()}`);
+    throw new Error(
+      `OpenAI API error ${response.status}: ${await response.text()}`,
+    );
   }
 
   const data = await response.json();
@@ -263,7 +277,9 @@ async function callAIWithRetry(
 ): Promise<Record<string, unknown>> {
   const providers = getAvailableProviders();
   if (providers.length === 0) {
-    throw new Error("No AI provider configured. Set ANTHROPIC_API_KEY or OPENAI_API_KEY.");
+    throw new Error(
+      "No AI provider configured. Set ANTHROPIC_API_KEY or OPENAI_API_KEY.",
+    );
   }
 
   let lastError: Error | null = null;
@@ -271,7 +287,9 @@ async function callAIWithRetry(
   for (let attempt = 1; attempt <= MAX_ATTEMPTS; attempt++) {
     const { provider, model } = pickRandomProvider(providers);
     try {
-      console.log(`Attempt ${attempt}: using provider=${provider} model=${model}`);
+      console.log(
+        `Attempt ${attempt}: using provider=${provider} model=${model}`,
+      );
       if (provider === "anthropic") {
         return await callAnthropic(systemPrompt, userPrompt, model);
       } else {
@@ -279,7 +297,10 @@ async function callAIWithRetry(
       }
     } catch (err) {
       lastError = err instanceof Error ? err : new Error(String(err));
-      console.warn(`Attempt ${attempt} failed (${provider}/${model}):`, lastError.message);
+      console.warn(
+        `Attempt ${attempt} failed (${provider}/${model}):`,
+        lastError.message,
+      );
     }
   }
 
@@ -344,13 +365,15 @@ Deno.serve(async (req: Request) => {
     // matching what WorkoutExerciseData expects on the client.
     type RawExercise = { exercise_id: number; [key: string]: unknown };
     type RawWorkout = { exercises: RawExercise[]; [key: string]: unknown };
-    const enrichedWorkouts = (aiOutput.workouts as RawWorkout[]).map((workout) => ({
-      ...workout,
-      exercises: workout.exercises.map((ex) => ({
-        ...ex,
-        exercise: exerciseMap.get(ex.exercise_id) ?? null,
-      })),
-    }));
+    const enrichedWorkouts = (aiOutput.workouts as RawWorkout[]).map(
+      (workout) => ({
+        ...workout,
+        exercises: workout.exercises.map((ex) => ({
+          ...ex,
+          exercise: exerciseMap.get(ex.exercise_id) ?? null,
+        })),
+      }),
+    );
 
     const planData = {
       ...aiOutput,

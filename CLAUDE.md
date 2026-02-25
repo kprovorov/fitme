@@ -69,6 +69,7 @@ This is a **React Native / Expo** fitness app using **file-based routing** via `
 ## Environment Variables
 
 Required env vars (prefix `EXPO_PUBLIC_` for client exposure):
+
 - `EXPO_PUBLIC_SUPABASE_URL`
 - `EXPO_PUBLIC_SUPABASE_ANON_KEY`
 - `EXPO_PUBLIC_SENTRY_DSN`
