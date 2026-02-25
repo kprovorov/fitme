@@ -1,6 +1,7 @@
 import { zodResolver } from "@hookform/resolvers/zod";
 import { Picker } from "@react-native-picker/picker";
 import { router, Stack } from "expo-router";
+import { useLocales } from "expo-localization";
 import { useRef, useState } from "react";
 import { Controller, useForm } from "react-hook-form";
 import { Pressable, ScrollView, TouchableWithoutFeedback } from "react-native";
@@ -24,7 +25,7 @@ import { useStoreProfileMutation } from "~/hooks/mutations/profiles";
 import { useCurrentUserQuery } from "~/hooks/queries/auth";
 import { formatHeight, formatWeight } from "~/lib/formatters";
 import { ArrowRight } from "~/lib/icons/ArrowRight";
-import { genders } from "~/lib/models";
+import { genders, MeasurementSystem } from "~/lib/models";
 import { cn, range } from "~/lib/utils";
 
 export type ProfileFormValues = z.infer<typeof formSchema>;
@@ -56,6 +57,12 @@ const formSchema = z.object({
 export default function ProfileScreen() {
   const { data: user } = useCurrentUserQuery();
 
+  const locales = useLocales();
+  const deviceMeasurementSystem = (locales[0]?.measurementSystem ??
+    "metric") as MeasurementSystem;
+  const measurementSystem: MeasurementSystem =
+    user?.profile?.measurement_system ?? deviceMeasurementSystem;
+
   const form = useForm<ProfileFormValues>({
     resolver: zodResolver(formSchema),
     defaultValues: {
@@ -69,14 +76,14 @@ export default function ProfileScreen() {
   const scrollViewRef = useRef<ScrollView>(null);
 
   const [heightFeet, setHeightFeet] = useState(
-    user?.profile?.measurement_system !== "metric"
+    measurementSystem !== "metric"
       ? user?.profile?.height
         ? Math.floor(user?.profile?.height / 12)
         : 5
-      : 176,
+      : 5,
   );
   const [heightInches, setHeightInches] = useState(
-    user?.profile?.measurement_system !== "metric"
+    measurementSystem !== "metric"
       ? user?.profile?.height
         ? user?.profile?.height % 12
         : 0
@@ -267,8 +274,7 @@ export default function ProfileScreen() {
                               {form.getValues("weight")
                                 ? formatWeight(
                                     form.getValues("weight"),
-                                    user.profile?.measurement_system ??
-                                      "metric",
+                                    measurementSystem,
                                   )
                                 : "Not Set"}
                             </Text>
@@ -303,8 +309,7 @@ export default function ProfileScreen() {
                               {form.getValues("height")
                                 ? formatHeight(
                                     form.getValues("height"),
-                                    user.profile?.measurement_system ??
-                                      "metric",
+                                    measurementSystem,
                                   )
                                 : "Not Set"}
                             </Text>
@@ -364,9 +369,7 @@ export default function ProfileScreen() {
                         <Picker
                           selectedValue={
                             field.value ??
-                            (user.profile?.measurement_system === "metric"
-                              ? 80
-                              : 176)
+                            (measurementSystem === "metric" ? 80 : 176)
                           }
                           onValueChange={(v) => {
                             field.onChange(v);
@@ -376,15 +379,10 @@ export default function ProfileScreen() {
                         >
                           {range(
                             1,
-                            user.profile?.measurement_system === "metric"
-                              ? 454
-                              : 1000,
+                            measurementSystem === "metric" ? 454 : 1000,
                           ).map((i) => (
                             <Picker.Item
-                              label={formatWeight(
-                                i,
-                                user.profile?.measurement_system ?? "metric",
-                              )}
+                              label={formatWeight(i, measurementSystem)}
                               value={i}
                               key={i}
                             />
@@ -399,7 +397,7 @@ export default function ProfileScreen() {
                       name="height"
                       render={({ field }) => (
                         <>
-                          {user.profile?.measurement_system === "metric" ? (
+                          {measurementSystem === "metric" ? (
                             <Picker
                               selectedValue={field.value ?? 176}
                               onValueChange={(v) => {
