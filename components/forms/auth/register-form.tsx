@@ -1,11 +1,10 @@
 import { Controller, FieldErrors, useForm } from "react-hook-form";
-import { View } from "react-native";
 import { zodResolver } from "@hookform/resolvers/zod";
 import { z } from "zod";
 import { Input } from "~/components/ui/input";
 import { Button } from "~/components/ui/button";
 import { Text } from "~/components/ui/text";
-import { LoaderCircle } from "~/lib/icons/LoaderCircle";
+import { Spinner } from "~/components/ui/spinner";
 import { VStack } from "~/components/ui/vstack";
 import { HStack } from "~/components/ui/hstack";
 import { ArrowRight } from "~/lib/icons/ArrowRight";
@@ -106,9 +105,7 @@ export default function RegisterForm({ onSubmit, errors }: RegisterFormProps) {
         onPress={form.handleSubmit(onSubmit)}
       >
         {form.formState.isSubmitting ? (
-          <View className="animate-spin">
-            <LoaderCircle size={16} className="text-black" />
-          </View>
+          <Spinner size={16} className="text-black" />
         ) : (
           <HStack className="gap-2">
             <Text>Sign Up</Text>

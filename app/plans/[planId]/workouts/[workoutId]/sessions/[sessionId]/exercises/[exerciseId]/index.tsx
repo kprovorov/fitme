@@ -32,8 +32,6 @@ export default function WorkoutSessionExerciseScreen() {
 
   const { data: workoutSessionExercise } = useWorkoutSessionExerciseQuery({
     variables: {
-      planId: Number(planId),
-      workoutId: Number(workoutId),
       sessionId: Number(sessionId),
       exerciseId: Number(exerciseId),
     },
@@ -101,9 +99,6 @@ export default function WorkoutSessionExerciseScreen() {
               <P>{workoutSessionExercise.exercise.description}</P>
 
               <WorkoutSessionExerciseSetsTableView
-                planId={Number(planId)}
-                workoutId={Number(workoutId)}
-                sessionId={Number(sessionId)}
                 exerciseId={Number(exerciseId)}
                 workoutSessionExerciseSets={workoutSessionExercise.sets}
               />

@@ -39,12 +39,7 @@ function Providers({ children }: { children: React.ReactNode }) {
     mmkvStorage: storage, // MMKV storage for ['#storage', 'mmkv', 'key'] queries + monitoring
     asyncStorage: AsyncStorage, // AsyncStorage for ['#storage', 'async', 'key'] queries + monitoring
     secureStorage: SecureStore, // SecureStore for ['#storage', 'secure', 'key'] queries + monitoring
-    secureStorageKeys: [
-      "userToken",
-      "refreshToken",
-      "biometricKey",
-      "deviceId",
-    ], // SecureStore keys to monitor
+    secureStorageKeys: ["biometricKey", "deviceId"], // SecureStore keys to monitor
   });
 
   return (

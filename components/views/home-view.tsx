@@ -7,10 +7,6 @@ import { Button } from "../ui/button";
 import { Text } from "../ui/text";
 import { useIsProQuery } from "~/hooks/revenueCat";
 import RevenueCatUI from "react-native-purchases-ui";
-import { useGenerateWorkoutPlanMutation } from "~/hooks/mutations/workout-plans";
-import { useQueryClient } from "@tanstack/react-query";
-import { View } from "react-native";
-import { LoaderCircle } from "~/lib/icons/LoaderCircle";
 import ActivePlanView from "./active-plan-view";
 
 interface HomeViewProps {
@@ -18,17 +14,8 @@ interface HomeViewProps {
 }
 
 export default function HomeView({ plan }: HomeViewProps) {
-  const queryClient = useQueryClient();
-
   const [nextWorkout, setNextWorkout] = useState<Workout | undefined>();
   const [upcomingWorkouts, setUpcomingWorkouts] = useState<Workout[]>([]);
-
-  const { mutate: generateWorkoutPlan, isPending: isWorkoutPlanGenerating } =
-    useGenerateWorkoutPlanMutation({
-      onSuccess: () => {
-        queryClient.invalidateQueries({ queryKey: ["workout-plans"] });
-      },
-    });
 
   const { data: isPro, refetch: refetchIsPro } = useIsProQuery();
 
@@ -49,35 +36,9 @@ export default function HomeView({ plan }: HomeViewProps) {
         {nextWorkout ? (
           <WorkoutCard workout={nextWorkout} state="upcoming" />
         ) : isPro ? (
-          <VStack className="items-stretch">
-            <H3 className="text-center text-primary">
-              Nice job! You&apos;re all set!
-            </H3>
-            {plan.is_generating ? (
-              <VStack>
-                <Text className="text-center text-muted-foreground">
-                  AI is generating your next workout. It will be ready in a few
-                  minutes.
-                </Text>
-                <View className="animate-spin">
-                  <LoaderCircle size={24} className="text-primary" />
-                </View>
-              </VStack>
-            ) : (
-              <Button
-                disabled={isWorkoutPlanGenerating}
-                onPress={() => generateWorkoutPlan({ id: plan.id })}
-              >
-                {isWorkoutPlanGenerating ? (
-                  <View className="animate-spin">
-                    <LoaderCircle size={16} className="text-black" />
-                  </View>
-                ) : (
-                  <Text>Generate your next workout</Text>
-                )}
-              </Button>
-            )}
-          </VStack>
+          <H3 className="text-center text-primary">
+            Nice job! You&apos;re all set!
+          </H3>
         ) : (
           <VStack className="items-stretch">
             <Text>

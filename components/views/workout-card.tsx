@@ -13,7 +13,7 @@ import {
   useCreateWorkoutSessionMutation,
   useFinishWorkoutSessionMutation,
 } from "~/hooks/queries/workout-sessions";
-import { LoaderCircle } from "~/lib/icons/LoaderCircle";
+import { Spinner } from "~/components/ui/spinner";
 import { Pressable, ScrollView, View } from "react-native";
 import { Card } from "../ui/card";
 import { ChevronRight } from "~/lib/icons/ChevronRight";
@@ -58,16 +58,14 @@ export default function WorkoutCard({
 
   const startWorkout = () => {
     createWorkoutSession({
-      planId: workout.plan_id,
-      planWorkoutId: workout.id,
+      workoutId: workout.id,
+      exercises: workout.exercises,
     });
   };
 
   const finishWorkout = () => {
     if (activeSession) {
       finishWorkoutSession({
-        planId: workout.plan_id,
-        workoutId: workout.id,
         sessionId: activeSession.id,
       });
     }
@@ -191,9 +189,7 @@ export default function WorkoutCard({
                   disabled={isFinishingWorkoutSession}
                 >
                   {isFinishingWorkoutSession ? (
-                    <View className="animate-spin">
-                      <LoaderCircle size={16} className="text-foreground" />
-                    </View>
+                    <Spinner size={16} className="text-foreground" />
                   ) : (
                     <HStack className="gap-2">
                       <Text>Finish Workout</Text>
@@ -206,9 +202,7 @@ export default function WorkoutCard({
                   disabled={isCreatingWorkoutSession}
                 >
                   {isCreatingWorkoutSession ? (
-                    <View className="animate-spin">
-                      <LoaderCircle size={16} className="text-black" />
-                    </View>
+                    <Spinner size={16} className="text-black" />
                   ) : (
                     <HStack className="gap-2">
                       <Text>Start Workout</Text>

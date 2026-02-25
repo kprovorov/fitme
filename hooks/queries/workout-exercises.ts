@@ -1,6 +1,6 @@
-import { createQuery } from "react-query-kit";
-import { api } from "~/lib/api";
+import { supabase } from "@/lib/supabase";
 import { WorkoutExercise } from "~/lib/models";
+import { createQuery } from "react-query-kit";
 
 type WorkoutExerciseQueryVariables = {
   id: number;
@@ -14,8 +14,19 @@ export const useWorkoutExerciseQuery = createQuery<
   fetcher: async ({
     id,
   }: WorkoutExerciseQueryVariables): Promise<WorkoutExercise> => {
-    const res = await api.get<WorkoutExercise>(`/api/workout-exercises/${id}`);
-
-    return res.data;
+    const { data, error } = await supabase
+      .from("workout_exercises")
+      .select(
+        `
+        *,
+        workout:workouts (*),
+        exercise:exercises (*),
+        sets:workout_exercise_sets (*)
+      `,
+      )
+      .eq("id", id)
+      .single();
+    if (error) throw error;
+    return data as unknown as WorkoutExercise;
   },
 });

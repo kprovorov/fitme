@@ -1,16 +1,30 @@
-import { AxiosError } from "axios";
+import { supabase } from "@/lib/supabase";
 import { createMutation } from "react-query-kit";
-import { api, ServerError } from "~/lib/api";
 import { MeasurementSystem } from "~/lib/models";
 
 export const useUpdateMeasurementSystemMutation = createMutation<
   void,
-  MeasurementSystem,
-  AxiosError<ServerError<MeasurementSystem>>
+  MeasurementSystem
 >({
   mutationFn: async (measurementSystem: MeasurementSystem): Promise<void> => {
-    await api.patch<void>("/api/settings/measurement-system", {
-      measurement_system: measurementSystem,
-    });
+    const {
+      data: { user },
+    } = await supabase.auth.getUser();
+
+    // Fetch the latest profile id for this user
+    const { data: latest, error: fetchError } = await supabase
+      .from("profiles")
+      .select("id")
+      .eq("user_id", user!.id)
+      .order("created_at", { ascending: false })
+      .limit(1)
+      .single();
+    if (fetchError) throw fetchError;
+
+    const { error } = await supabase
+      .from("profiles")
+      .update({ measurement_system: measurementSystem })
+      .eq("id", latest.id);
+    if (error) throw error;
   },
 });

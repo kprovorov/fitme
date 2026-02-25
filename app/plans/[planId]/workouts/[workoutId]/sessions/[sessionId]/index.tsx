@@ -22,8 +22,6 @@ export default function WorkoutSessionScreen() {
 
   const { data: workoutSession } = useWorkoutSessionQuery({
     variables: {
-      planId: Number(planId),
-      workoutId: Number(workoutId),
       sessionId: Number(sessionId),
     },
   });
@@ -91,8 +89,6 @@ export default function WorkoutSessionScreen() {
               >
                 <WorkoutSessionView
                   workoutSession={workoutSession}
-                  planId={Number(planId)}
-                  workoutId={Number(workoutId)}
                   sessionId={Number(sessionId)}
                 />
                 {!workoutSession.finished_at ? (
@@ -101,8 +97,6 @@ export default function WorkoutSessionScreen() {
                     <Button
                       onPress={() =>
                         finishWorkoutSession({
-                          planId: Number(planId),
-                          workoutId: Number(workoutId),
                           sessionId: Number(sessionId),
                         })
                       }

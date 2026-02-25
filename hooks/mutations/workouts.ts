@@ -1,19 +1,49 @@
+import { supabase } from "@/lib/supabase";
 import { createMutation } from "react-query-kit";
-import { api } from "~/lib/api";
 import { Workout } from "~/lib/models";
 
 export const useStartWorkoutMutation = createMutation<Workout, number>({
   mutationFn: async (workoutId: number): Promise<Workout> => {
-    const res = await api.patch<Workout>(`/api/workouts/${workoutId}/start`);
-
-    return res.data;
+    const { data, error } = await supabase
+      .from("workouts")
+      .select(
+        `
+        *,
+        plan:plans (*),
+        exercises:workout_exercises (
+          *,
+          exercise:exercises (*),
+          sets:workout_exercise_sets (*)
+        ),
+        sessions:workout_sessions (*)
+      `,
+      )
+      .eq("id", workoutId)
+      .single();
+    if (error) throw error;
+    return data as unknown as Workout;
   },
 });
 
 export const useFinishWorkoutMutation = createMutation<Workout, number>({
   mutationFn: async (workoutId: number): Promise<Workout> => {
-    const res = await api.patch<Workout>(`/api/workouts/${workoutId}/finish`);
-
-    return res.data;
+    const { data, error } = await supabase
+      .from("workouts")
+      .select(
+        `
+        *,
+        plan:plans (*),
+        exercises:workout_exercises (
+          *,
+          exercise:exercises (*),
+          sets:workout_exercise_sets (*)
+        ),
+        sessions:workout_sessions (*)
+      `,
+      )
+      .eq("id", workoutId)
+      .single();
+    if (error) throw error;
+    return data as unknown as Workout;
   },
 });

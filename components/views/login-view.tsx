@@ -5,17 +5,12 @@ import { Link, router } from "expo-router";
 import { VStack } from "../ui/vstack";
 import { H3, P } from "../ui/typography";
 import { useEffect, useState } from "react";
-import { FieldErrors } from "react-hook-form";
-import { handleAxiosError } from "~/lib/utils";
+import { handleSupabaseError } from "~/lib/utils";
 import { useCurrentUserQuery } from "~/hooks/queries/auth";
 import { Text } from "../ui/text";
 
 export default function LoginView() {
   const queryClient = useQueryClient();
-
-  const [errors, setErrors] = useState<
-    FieldErrors<LoginFormValues> | undefined
-  >();
 
   const [errorMessage, setErrorMessage] = useState<string | undefined>();
 
@@ -33,7 +28,7 @@ export default function LoginView() {
       router.replace("/");
     },
     onError: (error) => {
-      handleAxiosError(error, setErrorMessage, setErrors);
+      handleSupabaseError(error, setErrorMessage);
     },
   });
 
@@ -50,7 +45,6 @@ export default function LoginView() {
         onSubmit={async (values) => {
           await login(values);
         }}
-        errors={errors}
       />
       <Text className="text-sm font-nunito-sans-bold">
         Don&apos;t have an account?{" "}

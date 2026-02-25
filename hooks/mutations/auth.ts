@@ -1,34 +1,26 @@
-import { createMutation } from "react-query-kit";
-import { api, deleteToken, ServerError, setToken } from "@/lib/api";
-import { AxiosError } from "axios";
+import { supabase } from "@/lib/supabase";
 import { MeasurementSystem } from "~/lib/models";
+import { createMutation } from "react-query-kit";
 
 export type LoginData = {
   email: string;
   password: string;
 };
 
-export const useLoginMutation = createMutation<
-  string,
-  LoginData,
-  AxiosError<ServerError<LoginData>>
->({
-  mutationFn: async (data: LoginData): Promise<string> => {
-    const res = await api.post<string>("/api/sanctum/token", {
-      ...data,
-      device_name: "mobile",
+export const useLoginMutation = createMutation<void, LoginData>({
+  mutationFn: async (data: LoginData): Promise<void> => {
+    const { error } = await supabase.auth.signInWithPassword({
+      email: data.email,
+      password: data.password,
     });
-
-    await setToken(res.data);
-
-    return res.data;
+    if (error) throw error;
   },
 });
 
-export const useLogoutMutation = createMutation<void, void, AxiosError<void>>({
-  mutationFn: async () => {
-    // await api.post("/api/auth/logout");
-    await deleteToken();
+export const useLogoutMutation = createMutation<void, void>({
+  mutationFn: async (): Promise<void> => {
+    const { error } = await supabase.auth.signOut();
+    if (error) throw error;
   },
 });
 
@@ -39,27 +31,25 @@ export type RegisterData = {
   measurement_system: MeasurementSystem;
 };
 
-export const useRegisterMutation = createMutation<
-  void,
-  RegisterData,
-  AxiosError<ServerError<RegisterData>>
->({
+export const useRegisterMutation = createMutation<void, RegisterData>({
   mutationFn: async (data: RegisterData): Promise<void> => {
-    await api.post<void>("/api/auth/register", {
-      ...data,
-      password_confirmation: data.password,
+    const { error } = await supabase.auth.signUp({
+      email: data.email,
+      password: data.password,
+      options: {
+        data: {
+          name: data.name,
+          measurement_system: data.measurement_system,
+        },
+      },
     });
+    if (error) throw error;
   },
 });
 
-export const useDeleteUserMutation = createMutation<
-  void,
-  void,
-  AxiosError<ServerError<void>>
->({
-  mutationFn: async () => {
-    await api.delete("/api/user");
-
-    await deleteToken();
+export const useDeleteUserMutation = createMutation<void, void>({
+  mutationFn: async (): Promise<void> => {
+    const { error } = await supabase.functions.invoke("delete-user");
+    if (error) throw error;
   },
 });

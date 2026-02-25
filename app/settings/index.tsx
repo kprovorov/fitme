@@ -39,7 +39,9 @@ export default function SettingsScreen() {
                     <HStack className="flex-1 justify-between">
                       <Text>Measurement System</Text>
                       <Text className="text-muted-foreground text-xs">
-                        {getMeasurementSystemLabel(user.measurement_system)}
+                        {getMeasurementSystemLabel(
+                          user.profile?.measurement_system ?? "metric",
+                        )}
                       </Text>
                     </HStack>
                   </MenuListItem>

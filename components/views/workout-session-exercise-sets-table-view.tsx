@@ -12,9 +12,6 @@ import { Button } from "../ui/button";
 import { Plus } from "lucide-react-native";
 
 interface WorkoutSessionExerciseSetsTableViewProps {
-  planId: number;
-  workoutId: number;
-  sessionId: number;
   exerciseId: number;
   workoutSessionExerciseSets: WorkoutSessionExerciseSet[];
 }
@@ -26,9 +23,6 @@ type LocalSet = {
 };
 
 export default function WorkoutSessionExerciseSetsTableView({
-  planId,
-  workoutId,
-  sessionId,
   exerciseId,
   workoutSessionExerciseSets,
 }: WorkoutSessionExerciseSetsTableViewProps) {
@@ -67,7 +61,7 @@ export default function WorkoutSessionExerciseSetsTableView({
           </Text>
           {hasWeight && (
             <Text className="flex-1 font-bold text-primary uppercase text-sm text-center">
-              {getWeightLabel(user.measurement_system)}
+              {getWeightLabel(user.profile?.measurement_system ?? "metric")}
             </Text>
           )}
           <Text className="flex-1 font-bold text-primary uppercase text-sm text-center">
@@ -82,9 +76,6 @@ export default function WorkoutSessionExerciseSetsTableView({
           .map((workoutSessionExerciseSet) => (
             <WorkoutSessionExerciseSetRowView
               key={workoutSessionExerciseSet.id}
-              planId={planId}
-              workoutId={workoutId}
-              sessionId={sessionId}
               exerciseId={exerciseId}
               workoutSessionExerciseSet={workoutSessionExerciseSet}
               hasWeight={hasWeight}
@@ -95,9 +86,6 @@ export default function WorkoutSessionExerciseSetsTableView({
         {localSets.map((localSet) => (
           <WorkoutSessionExerciseSetRowView
             key={localSet.id}
-            planId={planId}
-            workoutId={workoutId}
-            sessionId={sessionId}
             exerciseId={exerciseId}
             workoutSessionExerciseSet={null}
             localSetId={localSet.id}

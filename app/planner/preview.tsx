@@ -1,7 +1,7 @@
 import { useLocalSearchParams, useRouter } from "expo-router";
 import React, { useEffect } from "react";
 import { SafeAreaProvider, SafeAreaView } from "react-native-safe-area-context";
-import { ScrollView, View } from "react-native";
+import { ScrollView } from "react-native";
 import { VStack } from "~/components/ui/vstack";
 import {
   usePreviewPlanQuery,
@@ -9,7 +9,7 @@ import {
 } from "~/hooks/queries/plans";
 import { ExperienceLevel, Place, Goal } from "~/lib/models";
 import { Muted, P } from "~/components/ui/typography";
-import { LoaderCircle } from "~/lib/icons/LoaderCircle";
+import { Spinner } from "~/components/ui/spinner";
 import PlanDataView from "~/components/views/plan-data-view";
 import { Button } from "~/components/ui/button";
 import { Text } from "~/components/ui/text";
@@ -109,9 +109,7 @@ export default function Preview() {
                 disabled={isStoringPlan || isGeneratingPlan}
               >
                 {isStoringPlan ? (
-                  <View className="animate-spin">
-                    <LoaderCircle size={16} className="text-black" />
-                  </View>
+                  <Spinner size={16} className="text-black" />
                 ) : (
                   <Text>Save</Text>
                 )}
@@ -122,9 +120,7 @@ export default function Preview() {
                 disabled={isStoringPlan || isGeneratingPlan}
               >
                 {isGeneratingPlan ? (
-                  <View className="animate-spin">
-                    <LoaderCircle size={16} className="text-white" />
-                  </View>
+                  <Spinner size={16} className="text-white" />
                 ) : (
                   <Text>Re-generate</Text>
                 )}
@@ -133,9 +129,7 @@ export default function Preview() {
           </VStack>
         ) : (
           <VStack className="flex-1 h-full justify-center items-center gap-2">
-            <View className="animate-spin">
-              <LoaderCircle size={32} className="text-primary" />
-            </View>
+            <Spinner size={32} className="text-primary" />
             <P className="font-bold text-center text-sm">
               Hold on... AI is working hard to create your plan!
             </P>

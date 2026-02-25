@@ -1,34 +1,34 @@
+import { zodResolver } from "@hookform/resolvers/zod";
+import Slider from "@react-native-community/slider";
+import { router, Stack } from "expo-router";
 import React from "react";
-import { H2, H4, Muted, P } from "~/components/ui/typography";
-import { VStack } from "~/components/ui/vstack";
-import { Text } from "~/components/ui/text";
+import { Controller, useForm } from "react-hook-form";
+import { Pressable } from "react-native";
+import { KeyboardAwareScrollView } from "react-native-keyboard-controller";
 import {
   SafeAreaProvider,
   SafeAreaView,
   useSafeAreaInsets,
 } from "react-native-safe-area-context";
-import { Pressable, View } from "react-native";
-import { router, Stack } from "expo-router";
-import { Button } from "~/components/ui/button";
-import { HeartPulse } from "~/lib/icons/HeartPulse";
-import { Flame } from "~/lib/icons/Flame";
-import { BicepsFlexed } from "~/lib/icons/BicepsFlexed";
-import { zodResolver } from "@hookform/resolvers/zod";
-import { Controller, useForm } from "react-hook-form";
 import { z } from "zod";
-import { LoaderCircle } from "~/lib/icons/LoaderCircle";
-import { RadioGroup, RadioGroupItem } from "~/components/ui/radio-group";
-import { Label } from "~/components/ui/label";
 import { Badge } from "~/components/ui/badge";
-import { experienceLevels, goals, places } from "~/lib/models";
+import { Button } from "~/components/ui/button";
+import { HStack } from "~/components/ui/hstack";
+import { Label } from "~/components/ui/label";
+import { RadioGroup, RadioGroupItem } from "~/components/ui/radio-group";
+import { Spinner } from "~/components/ui/spinner";
+import { Text } from "~/components/ui/text";
+import { Textarea } from "~/components/ui/textarea";
+import { H4, Muted, P } from "~/components/ui/typography";
+import { VStack } from "~/components/ui/vstack";
+import { BicepsFlexed } from "~/lib/icons/BicepsFlexed";
+import { Flame } from "~/lib/icons/Flame";
+import { HeartPulse } from "~/lib/icons/HeartPulse";
 import {
   getExperienceLevelDisclaimer,
   getExperienceLevelLabel,
 } from "~/lib/labels";
-import { HStack } from "~/components/ui/hstack";
-import Slider from "@react-native-community/slider";
-import { Textarea } from "~/components/ui/textarea";
-import { KeyboardAwareScrollView } from "react-native-keyboard-controller";
+import { experienceLevels, goals, places } from "~/lib/models";
 
 export type PlanFormValues = z.infer<typeof formSchema>;
 
@@ -299,9 +299,7 @@ export default function PlannerScreen() {
                     })}
                   >
                     {form.formState.isSubmitting ? (
-                      <View className="animate-spin">
-                        <LoaderCircle size={16} className="text-black" />
-                      </View>
+                      <Spinner size={16} className="text-black" />
                     ) : (
                       <Text>Get my plan!</Text>
                     )}

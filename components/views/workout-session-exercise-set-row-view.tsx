@@ -16,9 +16,6 @@ import { View } from "react-native";
 import { cn } from "~/lib/utils";
 
 interface WorkoutSessionExerciseSetRowViewProps {
-  planId: number;
-  workoutId: number;
-  sessionId: number;
   exerciseId: number;
   workoutSessionExerciseSet: WorkoutSessionExerciseSet | null;
   localSetId?: string;
@@ -29,9 +26,6 @@ interface WorkoutSessionExerciseSetRowViewProps {
 }
 
 export default function WorkoutSessionExerciseSetRowView({
-  planId,
-  workoutId,
-  sessionId,
   exerciseId,
   workoutSessionExerciseSet,
   localSetId,
@@ -140,9 +134,6 @@ export default function WorkoutSessionExerciseSetRowView({
                 reps_completed,
               },
               params: {
-                planId,
-                workoutId,
-                sessionId,
                 exerciseId,
               },
             });
@@ -153,10 +144,6 @@ export default function WorkoutSessionExerciseSetRowView({
                 reps_completed,
               },
               params: {
-                planId,
-                workoutId,
-                sessionId,
-                exerciseId,
                 setId: workoutSessionExerciseSet.id,
               },
             });
