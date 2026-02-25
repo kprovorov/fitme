@@ -1,13 +1,9 @@
 -- ============================================================
 -- FitMe initial schema for Supabase
--- Adapted from schema.sql (Laravel/PostgreSQL dump)
--- Key changes:
+-- Key changes from original Laravel schema:
 --   - users table omitted (replaced by auth.users with UUID PKs)
---   - profiles.user_id, plans.user_id: bigint -> uuid refs auth.users
---   - measurement_system + rc_user_id moved from users -> profiles
---   - Laravel-only tables omitted (cache, jobs, sessions, etc.)
+--   - all PKs use uuid with gen_random_uuid()
 --   - timestamps: timestamp(0) -> timestamptz
---   - PKs: serial bigint -> bigint generated always as identity
 --   - muscle_groups: json -> jsonb
 -- ============================================================
 
@@ -15,7 +11,7 @@
 -- exercises
 -- ------------------------------------------------------------
 CREATE TABLE public.exercises (
-  id bigint GENERATED ALWAYS AS IDENTITY PRIMARY KEY,
+  id uuid PRIMARY KEY DEFAULT gen_random_uuid(),
   created_at timestamptz DEFAULT now(),
   updated_at timestamptz DEFAULT now(),
   name text NOT NULL,
@@ -31,7 +27,7 @@ CREATE TABLE public.exercises (
 -- profiles
 -- ------------------------------------------------------------
 CREATE TABLE public.profiles (
-  id bigint GENERATED ALWAYS AS IDENTITY PRIMARY KEY,
+  id uuid PRIMARY KEY DEFAULT gen_random_uuid(),
   created_at timestamptz DEFAULT now(),
   updated_at timestamptz DEFAULT now(),
   user_id uuid NOT NULL REFERENCES auth.users(id) ON DELETE CASCADE,
@@ -47,7 +43,7 @@ CREATE TABLE public.profiles (
 -- plans
 -- ------------------------------------------------------------
 CREATE TABLE public.plans (
-  id bigint GENERATED ALWAYS AS IDENTITY PRIMARY KEY,
+  id uuid PRIMARY KEY DEFAULT gen_random_uuid(),
   created_at timestamptz DEFAULT now(),
   updated_at timestamptz DEFAULT now(),
   deleted_at timestamptz,
@@ -67,10 +63,10 @@ CREATE TABLE public.plans (
 -- workouts
 -- ------------------------------------------------------------
 CREATE TABLE public.workouts (
-  id bigint GENERATED ALWAYS AS IDENTITY PRIMARY KEY,
+  id uuid PRIMARY KEY DEFAULT gen_random_uuid(),
   created_at timestamptz DEFAULT now(),
   updated_at timestamptz DEFAULT now(),
-  plan_id bigint NOT NULL REFERENCES public.plans(id) ON DELETE CASCADE,
+  plan_id uuid NOT NULL REFERENCES public.plans(id) ON DELETE CASCADE,
   "order" integer NOT NULL,
   name text NOT NULL,
   description text NOT NULL
@@ -80,11 +76,11 @@ CREATE TABLE public.workouts (
 -- workout_exercises
 -- ------------------------------------------------------------
 CREATE TABLE public.workout_exercises (
-  id bigint GENERATED ALWAYS AS IDENTITY PRIMARY KEY,
+  id uuid PRIMARY KEY DEFAULT gen_random_uuid(),
   created_at timestamptz DEFAULT now(),
   updated_at timestamptz DEFAULT now(),
-  workout_id bigint NOT NULL REFERENCES public.workouts(id) ON DELETE CASCADE,
-  exercise_id bigint NOT NULL REFERENCES public.exercises(id) ON DELETE CASCADE,
+  workout_id uuid NOT NULL REFERENCES public.workouts(id) ON DELETE CASCADE,
+  exercise_id uuid NOT NULL REFERENCES public.exercises(id) ON DELETE CASCADE,
   "order" integer NOT NULL
 );
 
@@ -92,10 +88,10 @@ CREATE TABLE public.workout_exercises (
 -- workout_exercise_sets
 -- ------------------------------------------------------------
 CREATE TABLE public.workout_exercise_sets (
-  id bigint GENERATED ALWAYS AS IDENTITY PRIMARY KEY,
+  id uuid PRIMARY KEY DEFAULT gen_random_uuid(),
   created_at timestamptz DEFAULT now(),
   updated_at timestamptz DEFAULT now(),
-  workout_exercise_id bigint NOT NULL REFERENCES public.workout_exercises(id) ON DELETE CASCADE,
+  workout_exercise_id uuid NOT NULL REFERENCES public.workout_exercises(id) ON DELETE CASCADE,
   "order" integer NOT NULL,
   reps_recommended integer NOT NULL,
   weight_recommended numeric(8,2) NOT NULL,
@@ -106,10 +102,10 @@ CREATE TABLE public.workout_exercise_sets (
 -- workout_sessions
 -- ------------------------------------------------------------
 CREATE TABLE public.workout_sessions (
-  id bigint GENERATED ALWAYS AS IDENTITY PRIMARY KEY,
+  id uuid PRIMARY KEY DEFAULT gen_random_uuid(),
   created_at timestamptz DEFAULT now(),
   updated_at timestamptz DEFAULT now(),
-  workout_id bigint NOT NULL REFERENCES public.workouts(id) ON DELETE CASCADE,
+  workout_id uuid NOT NULL REFERENCES public.workouts(id) ON DELETE CASCADE,
   started_at timestamptz NOT NULL,
   finished_at timestamptz
 );
@@ -118,11 +114,11 @@ CREATE TABLE public.workout_sessions (
 -- workout_session_exercises
 -- ------------------------------------------------------------
 CREATE TABLE public.workout_session_exercises (
-  id bigint GENERATED ALWAYS AS IDENTITY PRIMARY KEY,
+  id uuid PRIMARY KEY DEFAULT gen_random_uuid(),
   created_at timestamptz DEFAULT now(),
   updated_at timestamptz DEFAULT now(),
-  workout_session_id bigint NOT NULL REFERENCES public.workout_sessions(id) ON DELETE CASCADE,
-  exercise_id bigint NOT NULL REFERENCES public.exercises(id) ON DELETE CASCADE,
+  workout_session_id uuid NOT NULL REFERENCES public.workout_sessions(id) ON DELETE CASCADE,
+  exercise_id uuid NOT NULL REFERENCES public.exercises(id) ON DELETE CASCADE,
   "order" integer NOT NULL
 );
 
@@ -130,10 +126,10 @@ CREATE TABLE public.workout_session_exercises (
 -- workout_session_exercise_sets
 -- ------------------------------------------------------------
 CREATE TABLE public.workout_session_exercise_sets (
-  id bigint GENERATED ALWAYS AS IDENTITY PRIMARY KEY,
+  id uuid PRIMARY KEY DEFAULT gen_random_uuid(),
   created_at timestamptz DEFAULT now(),
   updated_at timestamptz DEFAULT now(),
-  workout_session_exercise_id bigint NOT NULL REFERENCES public.workout_session_exercises(id) ON DELETE CASCADE,
+  workout_session_exercise_id uuid NOT NULL REFERENCES public.workout_session_exercises(id) ON DELETE CASCADE,
   "order" integer NOT NULL,
   reps_recommended integer,
   weight_recommended numeric(10,2),
@@ -251,7 +247,7 @@ CREATE POLICY "workout_session_exercise_sets_all" ON public.workout_session_exer
 -- activate_plan: atomic plan activation (SECURITY DEFINER
 -- so it can UPDATE across all user plans in one transaction)
 -- ------------------------------------------------------------
-CREATE OR REPLACE FUNCTION public.activate_plan(plan_id bigint)
+CREATE OR REPLACE FUNCTION public.activate_plan(plan_id uuid)
 RETURNS public.plans
 LANGUAGE plpgsql
 SECURITY DEFINER
