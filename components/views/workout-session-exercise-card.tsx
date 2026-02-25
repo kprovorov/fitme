@@ -14,9 +14,9 @@ interface WorkoutSessionExerciseCardProps {
   workoutSessionExercise: WorkoutSessionExercise;
   onDelete?: () => void;
   onReplace?: () => void;
-  planId: number;
-  workoutId: number;
-  sessionId: number;
+  planId: string;
+  workoutId: string;
+  sessionId: string;
 }
 
 export default function WorkoutSessionExerciseCard({

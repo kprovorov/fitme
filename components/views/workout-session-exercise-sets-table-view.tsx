@@ -12,7 +12,7 @@ import { Button } from "../ui/button";
 import { Plus } from "lucide-react-native";
 
 interface WorkoutSessionExerciseSetsTableViewProps {
-  exerciseId: number;
+  exerciseId: string;
   workoutSessionExerciseSets: WorkoutSessionExerciseSet[];
 }
 

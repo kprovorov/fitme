@@ -16,7 +16,7 @@ import { View } from "react-native";
 import { cn } from "~/lib/utils";
 
 interface WorkoutSessionExerciseSetRowViewProps {
-  exerciseId: number;
+  exerciseId: string;
   workoutSessionExerciseSet: WorkoutSessionExerciseSet | null;
   localSetId?: string;
   order?: number;

@@ -9,7 +9,7 @@ import { useCurrentUserQuery } from "~/hooks/queries/auth";
 import { getWeightLabel } from "~/lib/labels";
 
 interface ExerciseHistoryViewProps {
-  exerciseId: number;
+  exerciseId: string;
 }
 
 export default function ExerciseHistoryView({

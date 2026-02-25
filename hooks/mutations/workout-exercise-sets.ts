@@ -3,7 +3,7 @@ import { createMutation } from "react-query-kit";
 import { WorkoutExerciseSet } from "~/lib/models";
 
 type UpdateWorkoutExerciseSetData = {
-  id: number;
+  id: string;
   weight_done: number;
   repeats_done: number;
 };

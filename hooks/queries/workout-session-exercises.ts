@@ -9,12 +9,12 @@ const SESSION_EXERCISE_SELECT = `
 `;
 
 export type WorkoutSessionExercisesVariables = {
-  sessionId: number;
-  exerciseId: number;
+  sessionId: string;
+  exerciseId: string;
 };
 
 export type StoreWorkoutSessionExerciseData = {
-  exercise_id: number;
+  exercise_id: string;
 };
 
 export const useWorkoutSessionExerciseQuery = createQuery<
@@ -34,7 +34,7 @@ export const useWorkoutSessionExerciseQuery = createQuery<
 });
 
 export type CreateWorkoutSessionExercisesVariables = {
-  sessionId: number;
+  sessionId: string;
   data: StoreWorkoutSessionExerciseData;
 };
 
@@ -67,7 +67,7 @@ export const useCreateWorkoutSessionExerciseMutation = createMutation<
 });
 
 export type DeleteWorkoutSessionExerciseVariables = {
-  exerciseId: number;
+  exerciseId: string;
 };
 
 export const useDeleteWorkoutSessionExerciseMutation = createMutation<
@@ -84,9 +84,9 @@ export const useDeleteWorkoutSessionExerciseMutation = createMutation<
 });
 
 export type ReplaceWorkoutSessionExerciseVariables = {
-  exerciseId: number;
+  exerciseId: string;
   data: {
-    exercise_id?: number;
+    exercise_id?: string;
   };
 };
 

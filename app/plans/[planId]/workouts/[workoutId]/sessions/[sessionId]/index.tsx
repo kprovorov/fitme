@@ -22,7 +22,7 @@ export default function WorkoutSessionScreen() {
 
   const { data: workoutSession } = useWorkoutSessionQuery({
     variables: {
-      sessionId: Number(sessionId),
+      sessionId: sessionId as string,
     },
   });
 
@@ -89,7 +89,7 @@ export default function WorkoutSessionScreen() {
               >
                 <WorkoutSessionView
                   workoutSession={workoutSession}
-                  sessionId={Number(sessionId)}
+                  sessionId={sessionId as string}
                 />
                 {!workoutSession.finished_at ? (
                   <VStack className="items-stretch">
@@ -97,7 +97,7 @@ export default function WorkoutSessionScreen() {
                     <Button
                       onPress={() =>
                         finishWorkoutSession({
-                          sessionId: Number(sessionId),
+                          sessionId: sessionId as string,
                         })
                       }
                     >

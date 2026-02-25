@@ -2,8 +2,8 @@ import { supabase } from "@/lib/supabase";
 import { createMutation } from "react-query-kit";
 import { Workout } from "~/lib/models";
 
-export const useStartWorkoutMutation = createMutation<Workout, number>({
-  mutationFn: async (workoutId: number): Promise<Workout> => {
+export const useStartWorkoutMutation = createMutation<Workout, string>({
+  mutationFn: async (workoutId: string): Promise<Workout> => {
     const { data, error } = await supabase
       .from("workouts")
       .select(
@@ -25,8 +25,8 @@ export const useStartWorkoutMutation = createMutation<Workout, number>({
   },
 });
 
-export const useFinishWorkoutMutation = createMutation<Workout, number>({
-  mutationFn: async (workoutId: number): Promise<Workout> => {
+export const useFinishWorkoutMutation = createMutation<Workout, string>({
+  mutationFn: async (workoutId: string): Promise<Workout> => {
     const { data, error } = await supabase
       .from("workouts")
       .select(

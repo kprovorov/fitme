@@ -29,7 +29,7 @@ export const usePlansQuery = createQuery<Plan[]>({
 });
 
 export type PlanQueryVariables = {
-  id: number;
+  id: string;
 };
 
 export const usePlanQuery = createQuery<Plan, PlanQueryVariables>({
@@ -119,8 +119,8 @@ export const useStorePlanMutation = createMutation<Plan, PlanData>({
   },
 });
 
-export const useActivatePlanMutation = createMutation<Plan, { id: number }>({
-  mutationFn: async (data: { id: number }): Promise<Plan> => {
+export const useActivatePlanMutation = createMutation<Plan, { id: string }>({
+  mutationFn: async (data: { id: string }): Promise<Plan> => {
     const { data: plan, error } = await supabase.rpc("activate_plan", {
       plan_id: data.id,
     });
@@ -129,8 +129,8 @@ export const useActivatePlanMutation = createMutation<Plan, { id: number }>({
   },
 });
 
-export const useDeletePlanMutation = createMutation<void, { id: number }>({
-  mutationFn: async (data: { id: number }): Promise<void> => {
+export const useDeletePlanMutation = createMutation<void, { id: string }>({
+  mutationFn: async (data: { id: string }): Promise<void> => {
     const { error } = await supabase
       .from("plans")
       .update({ deleted_at: new Date().toISOString() })

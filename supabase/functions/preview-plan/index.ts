@@ -43,7 +43,7 @@ const WORKOUT_PLAN_SCHEMA = {
               additionalProperties: false,
               properties: {
                 exercise_id: {
-                  type: "number",
+                  type: "string",
                   description:
                     "The id of the exercise. Use the id from the list of exercises provided.",
                 },
@@ -232,7 +232,7 @@ interface Profile {
 }
 
 interface Exercise {
-  id: number;
+  id: string;
   name: string;
   thumbnail_url: string;
 }
@@ -363,7 +363,7 @@ Deno.serve(async (req: Request) => {
 
     // Enrich AI output: replace exercise_id with a nested exercise object,
     // matching what WorkoutExerciseData expects on the client.
-    type RawExercise = { exercise_id: number; [key: string]: unknown };
+    type RawExercise = { exercise_id: string; [key: string]: unknown };
     type RawWorkout = { exercises: RawExercise[]; [key: string]: unknown };
     const enrichedWorkouts = (aiOutput.workouts as RawWorkout[]).map(
       (workout) => ({

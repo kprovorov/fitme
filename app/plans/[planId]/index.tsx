@@ -43,7 +43,7 @@ export default function PlanScreen() {
     refetch,
   } = usePlanQuery({
     variables: {
-      id: Number(planId),
+      id: planId as string,
     },
   });
 
@@ -87,7 +87,7 @@ export default function PlanScreen() {
                       },
                       {
                         text: "Activate",
-                        onPress: () => activatePlan({ id: Number(planId) }),
+                        onPress: () => activatePlan({ id: planId as string }),
                       },
                     ],
                   );
@@ -111,7 +111,7 @@ export default function PlanScreen() {
                         },
                         {
                           text: "Archive",
-                          onPress: () => deletePlan({ id: Number(planId) }),
+                          onPress: () => deletePlan({ id: planId as string }),
                         },
                       ],
                     );

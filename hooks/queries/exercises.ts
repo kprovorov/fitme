@@ -6,7 +6,7 @@ import { SupabasePaginatedResponse } from "~/lib/types";
 const PAGE_SIZE = 20;
 
 interface ExerciseQueryVariables {
-  exerciseId: number;
+  exerciseId: string;
 }
 
 export const useExerciseQuery = createQuery<Exercise, ExerciseQueryVariables>({

@@ -16,7 +16,7 @@ const SESSION_SELECT = `
 `;
 
 export type CreateWorkoutSessionVariables = {
-  workoutId: number;
+  workoutId: string;
   exercises: WorkoutExercise[];
 };
 
@@ -79,7 +79,7 @@ export const useCreateWorkoutSessionMutation = createMutation<
 });
 
 export type GetWorkoutSessionVariables = {
-  sessionId: number;
+  sessionId: string;
 };
 
 export const useWorkoutSessionQuery = createQuery<
@@ -99,7 +99,7 @@ export const useWorkoutSessionQuery = createQuery<
 });
 
 export type FinishWorkoutSessionVariables = {
-  sessionId: number;
+  sessionId: string;
 };
 
 export const useFinishWorkoutSessionMutation = createMutation<

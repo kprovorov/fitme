@@ -20,7 +20,7 @@ import { QueryClient, useQueryClient } from "@tanstack/react-query";
 
 interface WorkoutSessionViewProps {
   workoutSession: WorkoutSession;
-  sessionId: number;
+  sessionId: string;
 }
 
 export default function WorkoutSessionView({
@@ -29,7 +29,7 @@ export default function WorkoutSessionView({
 }: WorkoutSessionViewProps) {
   const queryClient = useQueryClient();
   const [showModal, setShowModal] = useState(false);
-  const [replacingExerciseId, setReplacingExerciseId] = useState<number | null>(
+  const [replacingExerciseId, setReplacingExerciseId] = useState<string | null>(
     null,
   );
   const [initialMuscleGroup, setInitialMuscleGroup] = useState<
@@ -83,13 +83,13 @@ export default function WorkoutSessionView({
     setShowModal(false);
   };
 
-  const handleDeleteExercise = async (exerciseId: number) => {
+  const handleDeleteExercise = async (exerciseId: string) => {
     await deleteExercise({
       exerciseId,
     });
   };
 
-  const handleReplaceExercise = (exerciseId: number) => {
+  const handleReplaceExercise = (exerciseId: string) => {
     const exercise = workoutSession.exercises.find((e) => e.id === exerciseId);
     const muscleGroup = exercise?.exercise.muscle_groups[0] || undefined;
     setReplacingExerciseId(exerciseId);

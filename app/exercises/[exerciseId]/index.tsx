@@ -13,7 +13,7 @@ export default function ExerciseScreen() {
 
   const { data: exercise } = useExerciseQuery({
     variables: {
-      exerciseId: Number(exerciseId),
+      exerciseId: exerciseId as string,
     },
   });
 

@@ -3,7 +3,7 @@ import { Workout } from "~/lib/models";
 import { createQuery } from "react-query-kit";
 
 export type WorkoutQueryVariables = {
-  id: number;
+  id: string;
 };
 
 export const useWorkoutQuery = createQuery<Workout, WorkoutQueryVariables>({

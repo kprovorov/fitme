@@ -3,7 +3,7 @@ import { createMutation } from "react-query-kit";
 import { WorkoutSessionExerciseSet } from "~/lib/models";
 
 export type UpdateWorkoutSessionExerciseSetParams = {
-  setId: number;
+  setId: string;
 };
 
 export type UpdateWorkoutSessionExerciseSetData = {
@@ -40,7 +40,7 @@ export const useUpdateWorkoutSessionExerciseSetMutation = createMutation<
 });
 
 export type CreateWorkoutSessionExerciseSetParams = {
-  exerciseId: number;
+  exerciseId: string;
 };
 
 export type CreateWorkoutSessionExerciseSetData = {

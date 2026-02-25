@@ -45,7 +45,7 @@ export const muscleGroups = [
 export type MuscleGroup = (typeof muscleGroups)[number];
 
 export type Identifiable = {
-  id: number;
+  id: string;
 };
 
 export type Timestamped = {
@@ -97,7 +97,7 @@ export type Plan = Model & {
 };
 
 export type Workout = Model & {
-  plan_id: number;
+  plan_id: string;
   plan: Plan;
   name: string;
   description: string;
@@ -107,16 +107,16 @@ export type Workout = Model & {
 };
 
 export type WorkoutExercise = Model & {
-  workout_id: number;
+  workout_id: string;
   workout: Workout;
-  exercise_id: number;
+  exercise_id: string;
   exercise: Exercise;
   order: number;
   sets: WorkoutExerciseSet[];
 };
 
 export type WorkoutExerciseSet = Model & {
-  workout_exercise_id: number;
+  workout_exercise_id: string;
   order: number;
   reps_recommended: number;
   weight_recommended: number;
@@ -124,7 +124,7 @@ export type WorkoutExerciseSet = Model & {
 };
 
 export type WorkoutSession = Model & {
-  workout_id: number;
+  workout_id: string;
   started_at: string;
   finished_at: string;
   exercises: WorkoutSessionExercise[];
@@ -132,15 +132,15 @@ export type WorkoutSession = Model & {
 };
 
 export type WorkoutSessionExercise = Model & {
-  workout_session_id: number;
-  exercise_id: number;
+  workout_session_id: string;
+  exercise_id: string;
   order: number;
   exercise: Exercise;
   sets: WorkoutSessionExerciseSet[];
 };
 
 export type WorkoutSessionExerciseSet = Model & {
-  workout_session_exercise_id: number;
+  workout_session_exercise_id: string;
   order: number;
   reps_recommended: number | null;
   weight_recommended: number | null;
@@ -170,7 +170,7 @@ export type WorkoutData = {
 };
 
 export type WorkoutExerciseData = {
-  exercise_id: number;
+  exercise_id: string;
   exercise: Exercise;
   order: number;
   sets: WorkoutExerciseSetData[];
