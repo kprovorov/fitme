@@ -1,0 +1,33 @@
+name: Sync Exercises
+
+on:
+  push:
+    branches:
+      - master
+    paths:
+      - "data/exercises.csv"
+      - "data/descriptions/**"
+      - "data/instructions/**"
+      - "supabase/sync.ts"
+
+jobs:
+  sync-exercises:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v4
+
+      - name: Setup Node.js
+        uses: actions/setup-node@v4
+        with:
+          node-version: "20"
+          cache: "npm"
+
+      - name: Install dependencies
+        run: npm ci
+
+      - name: Sync exercises to production
+        run: npm run exercises:sync
+        env:
+          SUPABASE_URL: ${{ secrets.SUPABASE_URL }}
+          SUPABASE_SERVICE_ROLE_KEY: ${{ secrets.SUPABASE_SERVICE_ROLE_KEY }}
