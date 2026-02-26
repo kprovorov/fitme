@@ -6,15 +6,14 @@ on:
       - "v*"
 
 jobs:
-  # build_android:
-  #   type: build # This job type creates a production build for Android
-  #   params:
-  #     platform: android
   build_ios:
-    type: build # This job type creates a production build for iOS
+    name: Build iOS
+    type: build
     params:
       platform: ios
   submit_ios:
-    type: submit # This job type submits the production build for iOS to App Store Connect
+    name: Submit iOS Build
+    needs: [build_ios]
+    type: submit
     params:
       build_id: ${{ needs.build_ios.outputs.build_id }}
