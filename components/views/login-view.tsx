@@ -47,6 +47,14 @@ export default function LoginView() {
         }}
       />
       <Text className="text-sm font-nunito-sans-bold">
+        <Link
+          href="/auth/forgot-password"
+          className="text-primary font-nunito-sans-bold"
+        >
+          Forgot password?
+        </Link>
+      </Text>
+      <Text className="text-sm font-nunito-sans-bold">
         Don&apos;t have an account?{" "}
         <Link
           href="/auth/register"

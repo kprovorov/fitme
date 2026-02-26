@@ -47,6 +47,37 @@ export const useRegisterMutation = createMutation<void, RegisterData>({
   },
 });
 
+export type ForgotPasswordData = {
+  email: string;
+};
+
+export const useForgotPasswordMutation = createMutation<
+  void,
+  ForgotPasswordData
+>({
+  mutationFn: async (data: ForgotPasswordData): Promise<void> => {
+    const { error } = await supabase.auth.resetPasswordForEmail(data.email, {
+      redirectTo: `${process.env.EXPO_PUBLIC_APP_URL}/auth/reset-password`,
+    });
+    if (error) throw error;
+  },
+});
+
+export type ResetPasswordData = {
+  password: string;
+};
+
+export const useResetPasswordMutation = createMutation<void, ResetPasswordData>(
+  {
+    mutationFn: async (data: ResetPasswordData): Promise<void> => {
+      const { error } = await supabase.auth.updateUser({
+        password: data.password,
+      });
+      if (error) throw error;
+    },
+  },
+);
+
 export const useDeleteUserMutation = createMutation<void, void>({
   mutationFn: async (): Promise<void> => {
     const { error } = await supabase.functions.invoke("delete-user");
