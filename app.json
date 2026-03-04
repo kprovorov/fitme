@@ -5,23 +5,16 @@
     "version": "1.16.5",
     "orientation": "portrait",
     "icon": "./assets/images/icon.png",
-    "scheme": [
-      "fitme",
-      "rc-d91405cd5f"
-    ],
+    "scheme": ["fitme", "rc-d91405cd5f"],
     "userInterfaceStyle": "dark",
     "ios": {
       "supportsTablet": false,
       "bundleIdentifier": "com.fitmeproject.ios",
       "associatedDomains": [
         "webcredentials:app.fitmeproject.com",
-        "webcredentials:fitmeproject.com",
         "applinks:app.fitmeproject.com",
-        "applinks:fitmeproject.com",
         "activitycontinuation:app.fitmeproject.com",
-        "activitycontinuation:fitmeproject.com",
-        "appclips:app.fitmeproject.com",
-        "appclips:fitmeproject.com"
+        "appclips:app.fitmeproject.com"
       ],
       "config": {
         "usesNonExemptEncryption": false
