@@ -31,6 +31,19 @@ Sentry.init({
   profilesSampleRate: 0.5,
 });
 
+// Configure RevenueCat immediately at module load, before any component mounts
+// or queries run. Purchases.logIn() in useCurrentUserQuery would throw a native
+// NSException if called before configure(), crashing the app.
+if (Platform.OS === "ios") {
+  Purchases.configure({
+    apiKey: process.env.EXPO_PUBLIC_REVENUECAT_IOS_API_KEY!,
+  });
+} else if (Platform.OS === "android") {
+  Purchases.configure({
+    apiKey: process.env.EXPO_PUBLIC_REVENUECAT_ANDROID_API_KEY!,
+  });
+}
+
 // Prevent the splash screen from auto-hiding before asset loading is complete.
 SplashScreen.preventAutoHideAsync();
 
@@ -46,16 +59,6 @@ export default function RootLayout() {
   useEffect(() => {
     if (loaded) {
       SplashScreen.hideAsync();
-
-      if (Platform.OS === "ios") {
-        Purchases.configure({
-          apiKey: process.env.EXPO_PUBLIC_REVENUECAT_IOS_API_KEY!,
-        });
-      } else if (Platform.OS === "android") {
-        Purchases.configure({
-          apiKey: process.env.EXPO_PUBLIC_REVENUECAT_ANDROID_API_KEY!,
-        });
-      }
 
       const {
         data: { subscription },
