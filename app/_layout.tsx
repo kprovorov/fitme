@@ -47,6 +47,16 @@ export default function RootLayout() {
     if (loaded) {
       SplashScreen.hideAsync();
 
+      if (Platform.OS === "ios") {
+        Purchases.configure({
+          apiKey: process.env.EXPO_PUBLIC_REVENUECAT_IOS_API_KEY!,
+        });
+      } else if (Platform.OS === "android") {
+        Purchases.configure({
+          apiKey: process.env.EXPO_PUBLIC_REVENUECAT_ANDROID_API_KEY!,
+        });
+      }
+
       const {
         data: { subscription },
       } = supabase.auth.onAuthStateChange((event) => {
@@ -70,16 +80,6 @@ export default function RootLayout() {
 
   if (!loaded) {
     return null;
-  }
-
-  if (Platform.OS === "ios") {
-    Purchases.configure({
-      apiKey: process.env.EXPO_PUBLIC_REVENUECAT_IOS_API_KEY!,
-    });
-  } else if (Platform.OS === "android") {
-    Purchases.configure({
-      apiKey: process.env.EXPO_PUBLIC_REVENUECAT_ANDROID_API_KEY!,
-    });
   }
 
   return (
