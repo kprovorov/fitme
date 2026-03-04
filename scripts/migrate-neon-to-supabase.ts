@@ -11,6 +11,8 @@
  *   --dry-run              Read from Neon and validate all mappings; write nothing to Supabase
  *   --user-email=<email>   Migrate a single user only (recommended for initial testing)
  *   --rollback             Delete all migrated data for --user-email from Supabase
+ *   --reset                Delete all migrated data then re-migrate; use with --user-email for one user,
+ *                         or omit to reset and re-migrate all users. Auth accounts are never deleted.
  *
  * Required environment variables:
  *   NEON_DATABASE_URL         Connection string for the old Neon PostgreSQL database
@@ -56,6 +58,7 @@ loadDotenv();
 const argv = process.argv.slice(2);
 const DRY_RUN = argv.includes("--dry-run");
 const ROLLBACK = argv.includes("--rollback");
+const RESET = argv.includes("--reset");
 const USER_EMAIL = argv
   .find((a) => a.startsWith("--user-email="))
   ?.split("=")
@@ -229,11 +232,6 @@ async function main() {
 
   try {
     // ─── Pre-load exercise slug → Supabase UUID map ────────────────────────
-    // Exercises are global in Supabase and matched by slug.
-    // We build two maps:
-    //   slugToSupabaseId: slug → supabase exercise UUID  (for validation / dry-run)
-    //   exerciseMap:      neon exercise ID → supabase exercise UUID
-
     const slugToSupabaseId = new Map<string, string>();
 
     const { data: sbExercises, error: sbExErr } = await supabaseAdmin
@@ -278,9 +276,7 @@ async function main() {
       "INFO",
       "setup",
       `Mapped ${exerciseMap.size}/${neonExercises.length} Neon exercises to Supabase`,
-      {
-        missing: missingExerciseSlugs.length,
-      },
+      { missing: missingExerciseSlugs.length },
     );
 
     // ─── Rollback mode ─────────────────────────────────────────────────────
@@ -291,6 +287,26 @@ async function main() {
         isDryRun: DRY_RUN,
       });
       return;
+    }
+
+    if (RESET) {
+      // Determine which emails to reset
+      const emailsToReset = USER_EMAIL
+        ? [USER_EMAIL]
+        : (
+            await neon.query<{ email: string }>(
+              "SELECT email FROM users ORDER BY id",
+            )
+          ).rows.map((r) => r.email);
+
+      log("INFO", "reset", `Resetting ${emailsToReset.length} user(s)`);
+
+      for (const email of emailsToReset) {
+        await rollbackUser({ supabaseAdmin, email, isDryRun: DRY_RUN });
+      }
+
+      log("INFO", "reset", "Reset complete — proceeding with migration");
+      // fall through to normal migration below
     }
 
     // ─── Resolve users to migrate ──────────────────────────────────────────
@@ -342,7 +358,6 @@ async function main() {
           `Failed to migrate ${neonUser.email}: ${(err as Error).message}`,
         );
         totalErrors++;
-        // Continue with remaining users
       }
     }
 
@@ -385,7 +400,6 @@ async function rollbackUser(params: {
   log("INFO", "rollback", `Resolved Supabase user ID: ${supabaseUserId}`);
 
   if (isDryRun) {
-    // Report what would be deleted
     const { count: planCount } = await supabaseAdmin
       .from("plans")
       .select("*", { count: "exact", head: true })
@@ -403,7 +417,6 @@ async function rollbackUser(params: {
     return;
   }
 
-  // Delete plans (ON DELETE CASCADE handles all child tables)
   const { error: plansErr, count: plansDeleted } = await supabaseAdmin
     .from("plans")
     .delete({ count: "exact" })
@@ -417,7 +430,6 @@ async function rollbackUser(params: {
     });
   }
 
-  // Delete profile
   const { error: profileErr, count: profileDeleted } = await supabaseAdmin
     .from("profiles")
     .delete({ count: "exact" })
@@ -463,11 +475,6 @@ async function migrateUser(
         `[DRY RUN] No Supabase auth user for ${neonUser.email} — would create one`,
       );
     } else {
-      // Create the Supabase auth user from the Neon user's email.
-      // Passwords cannot be migrated (different hash algorithm), so the user
-      // will need to go through "Forgot password" to set a new one.
-      // email_confirm: true skips the confirmation email so the account is
-      // immediately usable once they reset their password.
       const { data: created, error: createErr } =
         await supabaseAdmin.auth.admin.createUser({
           email: neonUser.email,
@@ -494,7 +501,6 @@ async function migrateUser(
     }
   }
 
-  // After dry-run user creation branch we have nothing more to do for this user
   if (!supabaseUserId) {
     return "skipped";
   }
@@ -518,8 +524,6 @@ async function migrateUser(
   }
 
   // ─── Clean up any orphaned data from a previous failed run ─────────────
-  // Without a transaction, a crash between steps leaves partial data. Deleting
-  // plans (cascades to all child tables) before retrying gives us a clean slate.
   const { count: orphanCount } = await supabaseAdmin
     .from("plans")
     .select("*", { count: "exact", head: true })
@@ -530,9 +534,7 @@ async function migrateUser(
       "WARN",
       "user",
       `Cleaning up ${orphanCount} orphaned plan(s) from previous failed run`,
-      {
-        email: neonUser.email,
-      },
+      { email: neonUser.email },
     );
     await supabaseAdmin.from("plans").delete().eq("user_id", supabaseUserId);
   }
@@ -642,9 +644,7 @@ async function migrateUser(
       "WARN",
       "exercises",
       `${unmappedExerciseIds.size} unmapped exercise ID(s) for ${neonUser.email} — affected rows will be skipped`,
-      {
-        ids: [...unmappedExerciseIds],
-      },
+      { ids: [...unmappedExerciseIds] },
     );
   }
 
@@ -660,6 +660,8 @@ async function migrateUser(
   // ─── Write to Supabase via JS client (service role bypasses RLS) ──────────
   // Profile is inserted LAST — it acts as the completion marker for idempotency.
   // If the script crashes mid-way, the orphan cleanup above handles the retry.
+  // All entities use batchInsertWithIds so we never do more than 100 rows per
+  // HTTP request and we get the inserted UUIDs back for ID mapping.
   const idMaps: IdMaps = {
     plans: new Map(),
     workouts: new Map(),
@@ -680,223 +682,207 @@ async function migrateUser(
   };
 
   // 1. Plans
-  for (const plan of neonPlans) {
-    const { data, error } = await supabaseAdmin
-      .from("plans")
-      .insert({
-        user_id: supabaseUserId,
-        name: plan.name,
-        description: plan.description,
-        goal: plan.goal,
-        place: plan.place,
-        frequency: plan.frequency,
-        is_active: plan.is_active,
-        experience_level: plan.experience_level,
-        workout_duration: plan.workout_duration,
-        note: plan.note,
-        deleted_at: plan.deleted_at?.toISOString() ?? null,
-        created_at: plan.created_at.toISOString(),
-        updated_at: plan.updated_at.toISOString(),
-      })
-      .select("id")
-      .single();
-    if (error)
-      throw new Error(`Failed to insert plan ${plan.id}: ${error.message}`);
-    idMaps.plans.set(plan.id, data.id);
-    counts.plans.inserted++;
+  log("INFO", "user", `Inserting ${neonPlans.length} plans`);
+  {
+    const rows = neonPlans.map((plan) => ({
+      user_id: supabaseUserId,
+      name: plan.name,
+      description: plan.description,
+      goal: plan.goal,
+      place: plan.place,
+      frequency: plan.frequency,
+      is_active: plan.is_active,
+      experience_level: plan.experience_level,
+      workout_duration: plan.workout_duration,
+      note: plan.note,
+      deleted_at: plan.deleted_at?.toISOString() ?? null,
+      created_at: plan.created_at.toISOString(),
+      updated_at: plan.updated_at.toISOString(),
+    }));
+    const ids = await batchInsertWithIds(supabaseAdmin, "plans", rows);
+    neonPlans.forEach((plan, i) => idMaps.plans.set(plan.id, ids[i]));
+    counts.plans.inserted = ids.length;
   }
 
   // 2. Workouts
-  for (const workout of neonWorkouts) {
-    const supabasePlanId = idMaps.plans.get(workout.plan_id);
-    if (!supabasePlanId)
-      throw new Error(`BUG: no plan mapping for workout ${workout.id}`);
-
-    const { data, error } = await supabaseAdmin
-      .from("workouts")
-      .insert({
-        plan_id: supabasePlanId,
-        name: workout.name,
-        description: workout.description ?? "", // Supabase column is NOT NULL
-        order: workout.order,
-        created_at: workout.created_at.toISOString(),
-        updated_at: workout.updated_at.toISOString(),
-      })
-      .select("id")
-      .single();
-    if (error)
-      throw new Error(
-        `Failed to insert workout ${workout.id}: ${error.message}`,
-      );
-    idMaps.workouts.set(workout.id, data.id);
-    counts.workouts.inserted++;
+  log("INFO", "user", `Inserting ${neonWorkouts.length} workouts`);
+  {
+    const rows = neonWorkouts.map((workout) => ({
+      plan_id: idMaps.plans.get(workout.plan_id)!,
+      name: workout.name,
+      description: workout.description ?? "", // Supabase column is NOT NULL
+      order: workout.order,
+      created_at: workout.created_at.toISOString(),
+      updated_at: workout.updated_at.toISOString(),
+    }));
+    const ids = await batchInsertWithIds(supabaseAdmin, "workouts", rows);
+    neonWorkouts.forEach((workout, i) =>
+      idMaps.workouts.set(workout.id, ids[i]),
+    );
+    counts.workouts.inserted = ids.length;
   }
 
-  // 3. Workout exercises
-  for (const we of neonWorkoutExercises) {
-    const supabaseWorkoutId = idMaps.workouts.get(we.workout_id);
-    if (!supabaseWorkoutId)
-      throw new Error(`BUG: no workout mapping for workout_exercise ${we.id}`);
-
-    const supabaseExerciseId = exerciseMap.get(we.exercise_id);
-    if (!supabaseExerciseId) {
-      log(
-        "WARN",
-        "workout_exercises",
-        `Skipping workout_exercise ${we.id}: exercise ${we.exercise_id} has no slug match`,
-      );
-      counts.workoutExercises.skipped++;
-      continue;
-    }
-
-    const { data, error } = await supabaseAdmin
-      .from("workout_exercises")
-      .insert({
-        workout_id: supabaseWorkoutId,
-        exercise_id: supabaseExerciseId,
-        order: we.order,
-        created_at: we.created_at.toISOString(),
-        updated_at: we.updated_at.toISOString(),
-      })
-      .select("id")
-      .single();
-    if (error)
-      throw new Error(
-        `Failed to insert workout_exercise ${we.id}: ${error.message}`,
-      );
-    idMaps.workoutExercises.set(we.id, data.id);
-    counts.workoutExercises.inserted++;
+  // 3. Workout exercises (skip rows with unmapped exercise slugs)
+  log(
+    "INFO",
+    "user",
+    `Inserting ${neonWorkoutExercises.length} workout exercises`,
+  );
+  {
+    const mapped = neonWorkoutExercises.filter((we) => {
+      if (!exerciseMap.has(we.exercise_id)) {
+        log(
+          "WARN",
+          "workout_exercises",
+          `Skipping workout_exercise ${we.id}: exercise ${we.exercise_id} has no slug match`,
+        );
+        counts.workoutExercises.skipped++;
+        return false;
+      }
+      return true;
+    });
+    const rows = mapped.map((we) => ({
+      workout_id: idMaps.workouts.get(we.workout_id)!,
+      exercise_id: exerciseMap.get(we.exercise_id)!,
+      order: we.order,
+      created_at: we.created_at.toISOString(),
+      updated_at: we.updated_at.toISOString(),
+    }));
+    const ids = await batchInsertWithIds(
+      supabaseAdmin,
+      "workout_exercises",
+      rows,
+    );
+    mapped.forEach((we, i) => idMaps.workoutExercises.set(we.id, ids[i]));
+    counts.workoutExercises.inserted = ids.length;
   }
 
   // 4. Workout exercise sets (batch — no ID mapping needed)
-  const wesToInsert = neonWorkoutExerciseSets
-    .filter((wes) => idMaps.workoutExercises.has(wes.workout_exercise_id))
-    .map((wes) => ({
-      workout_exercise_id: idMaps.workoutExercises.get(
-        wes.workout_exercise_id,
-      )!,
-      order: wes.order,
-      reps_recommended: wes.reps_recommended,
-      weight_recommended: parseFloat(wes.weight_recommended),
-      rest_recommended: wes.rest_recommended,
-      created_at: wes.created_at.toISOString(),
-      updated_at: wes.updated_at.toISOString(),
-    }));
-
-  if (wesToInsert.length) {
-    const { error } = await supabaseAdmin
-      .from("workout_exercise_sets")
-      .insert(wesToInsert);
-    if (error)
-      throw new Error(
-        `Failed to insert workout_exercise_sets: ${error.message}`,
-      );
+  log(
+    "INFO",
+    "user",
+    `Inserting ${neonWorkoutExerciseSets.length} workout exercise sets`,
+  );
+  {
+    const rows = neonWorkoutExerciseSets
+      .filter((wes) => idMaps.workoutExercises.has(wes.workout_exercise_id))
+      .map((wes) => ({
+        workout_exercise_id: idMaps.workoutExercises.get(
+          wes.workout_exercise_id,
+        )!,
+        order: wes.order,
+        reps_recommended: wes.reps_recommended,
+        weight_recommended: parseFloat(wes.weight_recommended),
+        rest_recommended: wes.rest_recommended,
+        created_at: wes.created_at.toISOString(),
+        updated_at: wes.updated_at.toISOString(),
+      }));
+    if (rows.length)
+      await batchInsert(supabaseAdmin, "workout_exercise_sets", rows);
+    counts.workoutExerciseSets.inserted = rows.length;
+    counts.workoutExerciseSets.skipped =
+      neonWorkoutExerciseSets.length - rows.length;
   }
-  counts.workoutExerciseSets.inserted = wesToInsert.length;
-  counts.workoutExerciseSets.skipped =
-    neonWorkoutExerciseSets.length - wesToInsert.length;
 
   // 5. Workout sessions
-  for (const session of neonWorkoutSessions) {
-    const supabaseWorkoutId = idMaps.workouts.get(session.workout_id);
-    if (!supabaseWorkoutId)
-      throw new Error(
-        `BUG: no workout mapping for workout_session ${session.id}`,
-      );
-
-    const { data, error } = await supabaseAdmin
-      .from("workout_sessions")
-      .insert({
-        workout_id: supabaseWorkoutId,
-        started_at: session.started_at.toISOString(),
-        finished_at: session.finished_at?.toISOString() ?? null,
-        created_at: session.created_at.toISOString(),
-        updated_at: session.updated_at.toISOString(),
-      })
-      .select("id")
-      .single();
-    if (error)
-      throw new Error(
-        `Failed to insert workout_session ${session.id}: ${error.message}`,
-      );
-    idMaps.workoutSessions.set(session.id, data.id);
-    counts.workoutSessions.inserted++;
+  log(
+    "INFO",
+    "user",
+    `Inserting ${neonWorkoutSessions.length} workout sessions`,
+  );
+  {
+    const rows = neonWorkoutSessions.map((session) => ({
+      workout_id: idMaps.workouts.get(session.workout_id)!,
+      started_at: session.started_at.toISOString(),
+      finished_at: session.finished_at?.toISOString() ?? null,
+      created_at: session.created_at.toISOString(),
+      updated_at: session.updated_at.toISOString(),
+    }));
+    const ids = await batchInsertWithIds(
+      supabaseAdmin,
+      "workout_sessions",
+      rows,
+    );
+    neonWorkoutSessions.forEach((session, i) =>
+      idMaps.workoutSessions.set(session.id, ids[i]),
+    );
+    counts.workoutSessions.inserted = ids.length;
   }
 
-  // 6. Workout session exercises
-  for (const se of neonSessionExercises) {
-    const supabaseSessionId = idMaps.workoutSessions.get(se.workout_session_id);
-    if (!supabaseSessionId)
-      throw new Error(
-        `BUG: no session mapping for workout_session_exercise ${se.id}`,
-      );
-
-    const supabaseExerciseId = exerciseMap.get(se.exercise_id);
-    if (!supabaseExerciseId) {
-      log(
-        "WARN",
-        "workout_session_exercises",
-        `Skipping session_exercise ${se.id}: exercise ${se.exercise_id} has no slug match`,
-      );
-      counts.sessionExercises.skipped++;
-      continue;
-    }
-
-    const { data, error } = await supabaseAdmin
-      .from("workout_session_exercises")
-      .insert({
-        workout_session_id: supabaseSessionId,
-        exercise_id: supabaseExerciseId,
-        order: se.order,
-        created_at: se.created_at.toISOString(),
-        updated_at: se.updated_at.toISOString(),
-      })
-      .select("id")
-      .single();
-    if (error)
-      throw new Error(
-        `Failed to insert workout_session_exercise ${se.id}: ${error.message}`,
-      );
-    idMaps.workoutSessionExercises.set(se.id, data.id);
-    counts.sessionExercises.inserted++;
+  // 6. Workout session exercises (skip rows with unmapped exercise slugs)
+  log(
+    "INFO",
+    "user",
+    `Inserting ${neonSessionExercises.length} session exercises`,
+  );
+  {
+    const mapped = neonSessionExercises.filter((se) => {
+      if (!exerciseMap.has(se.exercise_id)) {
+        log(
+          "WARN",
+          "workout_session_exercises",
+          `Skipping session_exercise ${se.id}: exercise ${se.exercise_id} has no slug match`,
+        );
+        counts.sessionExercises.skipped++;
+        return false;
+      }
+      return true;
+    });
+    const rows = mapped.map((se) => ({
+      workout_session_id: idMaps.workoutSessions.get(se.workout_session_id)!,
+      exercise_id: exerciseMap.get(se.exercise_id)!,
+      order: se.order,
+      created_at: se.created_at.toISOString(),
+      updated_at: se.updated_at.toISOString(),
+    }));
+    const ids = await batchInsertWithIds(
+      supabaseAdmin,
+      "workout_session_exercises",
+      rows,
+    );
+    mapped.forEach((se, i) =>
+      idMaps.workoutSessionExercises.set(se.id, ids[i]),
+    );
+    counts.sessionExercises.inserted = ids.length;
   }
 
   // 7. Workout session exercise sets (batch — no ID mapping needed)
-  const sesToInsert = neonSessionExerciseSets
-    .filter((ses) =>
-      idMaps.workoutSessionExercises.has(ses.workout_session_exercise_id),
-    )
-    .map((ses) => ({
-      workout_session_exercise_id: idMaps.workoutSessionExercises.get(
-        ses.workout_session_exercise_id,
-      )!,
-      order: ses.order,
-      reps_recommended: ses.reps_recommended,
-      weight_recommended:
-        ses.weight_recommended != null
-          ? parseFloat(ses.weight_recommended)
-          : null,
-      rest_recommended: ses.rest_recommended,
-      reps_completed: ses.reps_completed,
-      weight_completed:
-        ses.weight_completed != null ? parseFloat(ses.weight_completed) : null,
-      logged_at: ses.logged_at?.toISOString() ?? null,
-      created_at: ses.created_at.toISOString(),
-      updated_at: ses.updated_at.toISOString(),
-    }));
-
-  if (sesToInsert.length) {
-    const { error } = await supabaseAdmin
-      .from("workout_session_exercise_sets")
-      .insert(sesToInsert);
-    if (error)
-      throw new Error(
-        `Failed to insert workout_session_exercise_sets: ${error.message}`,
-      );
+  log(
+    "INFO",
+    "user",
+    `Inserting ${neonSessionExerciseSets.length} session exercise sets`,
+  );
+  {
+    const rows = neonSessionExerciseSets
+      .filter((ses) =>
+        idMaps.workoutSessionExercises.has(ses.workout_session_exercise_id),
+      )
+      .map((ses) => ({
+        workout_session_exercise_id: idMaps.workoutSessionExercises.get(
+          ses.workout_session_exercise_id,
+        )!,
+        order: ses.order,
+        reps_recommended: ses.reps_recommended,
+        weight_recommended:
+          ses.weight_recommended != null
+            ? parseFloat(ses.weight_recommended)
+            : null,
+        rest_recommended: ses.rest_recommended,
+        reps_completed: ses.reps_completed,
+        weight_completed:
+          ses.weight_completed != null
+            ? parseFloat(ses.weight_completed)
+            : null,
+        logged_at: ses.logged_at?.toISOString() ?? null,
+        created_at: ses.created_at.toISOString(),
+        updated_at: ses.updated_at.toISOString(),
+      }));
+    if (rows.length)
+      await batchInsert(supabaseAdmin, "workout_session_exercise_sets", rows);
+    counts.sessionExerciseSets.inserted = rows.length;
+    counts.sessionExerciseSets.skipped =
+      neonSessionExerciseSets.length - rows.length;
   }
-  counts.sessionExerciseSets.inserted = sesToInsert.length;
-  counts.sessionExerciseSets.skipped =
-    neonSessionExerciseSets.length - sesToInsert.length;
 
   // 8. Profile — inserted LAST as the completion marker
   if (neonProfile) {
@@ -946,6 +932,59 @@ async function resolveSupabaseUserId(
     page++;
   }
   return null;
+}
+
+// Insert rows in chunks; does not return IDs (use for leaf tables like *_sets)
+async function batchInsert<T extends object>(
+  supabaseAdmin: SupabaseClient,
+  table: string,
+  rows: T[],
+  chunkSize = 100,
+): Promise<void> {
+  const total = rows.length;
+  for (let i = 0; i < total; i += chunkSize) {
+    const chunk = rows.slice(i, i + chunkSize);
+    log(
+      "INFO",
+      table,
+      `Inserting rows ${i + 1}–${Math.min(i + chunkSize, total)} of ${total}`,
+    );
+    const { error } = await supabaseAdmin.from(table).insert(chunk);
+    if (error)
+      throw new Error(
+        `Failed to insert into ${table} at offset ${i}: ${error.message}`,
+      );
+  }
+}
+
+// Insert rows in chunks and return all inserted UUIDs in input order.
+// The returned array is positionally aligned with the input array.
+async function batchInsertWithIds<T extends object>(
+  supabaseAdmin: SupabaseClient,
+  table: string,
+  rows: T[],
+  chunkSize = 100,
+): Promise<string[]> {
+  const ids: string[] = [];
+  const total = rows.length;
+  for (let i = 0; i < total; i += chunkSize) {
+    const chunk = rows.slice(i, i + chunkSize);
+    log(
+      "INFO",
+      table,
+      `Inserting rows ${i + 1}–${Math.min(i + chunkSize, total)} of ${total}`,
+    );
+    const { data, error } = await supabaseAdmin
+      .from(table)
+      .insert(chunk)
+      .select("id");
+    if (error)
+      throw new Error(
+        `Failed to insert into ${table} at offset ${i}: ${error.message}`,
+      );
+    ids.push(...(data ?? []).map((r: { id: string }) => r.id));
+  }
+  return ids;
 }
 
 function isValidUuid(value: string | null | undefined): boolean {
