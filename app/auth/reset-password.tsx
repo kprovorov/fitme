@@ -1,4 +1,4 @@
-import { Stack } from "expo-router";
+import { Stack, useLocalSearchParams } from "expo-router";
 import React, { useEffect, useState } from "react";
 import {
   Keyboard,
@@ -6,14 +6,35 @@ import {
   Platform,
   SafeAreaView,
   TouchableWithoutFeedback,
+  View,
 } from "react-native";
 import { SafeAreaProvider } from "react-native-safe-area-context";
 import Sign from "~/components/brand/sign";
+import { Spinner } from "~/components/ui/spinner";
+import { P } from "~/components/ui/typography";
 import { VStack } from "~/components/ui/vstack";
 import ResetPasswordView from "~/components/views/reset-password-view";
+import { supabase } from "~/lib/supabase";
 
 export default function ResetPasswordScreen() {
+  const { token_hash, type } = useLocalSearchParams<{
+    token_hash?: string;
+    type?: string;
+  }>();
+  const [verified, setVerified] = useState(!token_hash);
+  const [verifyError, setVerifyError] = useState<string>();
   const [isKeyboardVisible, setIsKeyboardVisible] = useState(false);
+
+  useEffect(() => {
+    if (token_hash && type === "recovery") {
+      supabase.auth
+        .verifyOtp({ token_hash, type: "recovery" })
+        .then(({ error }) => {
+          if (error) setVerifyError(error.message);
+          else setVerified(true);
+        });
+    }
+  }, [token_hash, type]);
 
   useEffect(() => {
     const showSubscription = Keyboard.addListener("keyboardWillShow", () =>
@@ -44,7 +65,15 @@ export default function ResetPasswordScreen() {
                   width={isKeyboardVisible ? 35 : 70}
                   height={isKeyboardVisible ? 35 : 70}
                 />
-                <ResetPasswordView />
+                {verifyError ? (
+                  <P className="text-red-500">{verifyError}</P>
+                ) : !verified ? (
+                  <View className="flex-1 items-center justify-center">
+                    <Spinner size={32} className="text-foreground" />
+                  </View>
+                ) : (
+                  <ResetPasswordView />
+                )}
               </VStack>
             </TouchableWithoutFeedback>
           </KeyboardAvoidingView>
