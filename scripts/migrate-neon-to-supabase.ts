@@ -33,7 +33,7 @@
  * Table       | Neon field          | Supabase field        | Notes
  * ------------|---------------------|-----------------------|-------------------------
  * users       | id (bigint)         | auth.users.id (uuid)  | Matched by email
- * profiles    | rc_user_id (string) | rc_user_id (uuid)     | Cast: text → uuid, null if invalid
+ * users       | rc_user_id (string) | profiles.rc_user_id   | Cast: text → uuid, null if invalid
  * plans       | (all fields)        | (all fields)          | created_at/updated_at preserved
  * exercises   | id (bigint)         | id (uuid)             | Matched by slug (global table)
  *             | (per-user copies)   | (global shared table) | Slug must exist in Supabase
@@ -97,6 +97,7 @@ interface NeonUser {
   id: number;
   email: string;
   name: string | null;
+  rc_user_id: string | null;
 }
 
 interface NeonProfile {
@@ -107,7 +108,6 @@ interface NeonProfile {
   weight: string; // pg returns numeric as string
   height: string;
   measurement_system: string;
-  rc_user_id: string | null;
 }
 
 interface NeonPlan {
@@ -314,7 +314,7 @@ async function main() {
 
     if (USER_EMAIL) {
       const { rows } = await neon.query<NeonUser>(
-        "SELECT id, email, name FROM users WHERE email = $1",
+        "SELECT id, email, name, rc_user_id FROM users WHERE email = $1",
         [USER_EMAIL],
       );
       if (rows.length === 0) {
@@ -324,7 +324,7 @@ async function main() {
       neonUsers = rows;
     } else {
       const { rows } = await neon.query<NeonUser>(
-        "SELECT id, email, name FROM users ORDER BY id",
+        "SELECT id, email, name, rc_user_id FROM users ORDER BY id",
       );
       neonUsers = rows;
     }
@@ -886,8 +886,8 @@ async function migrateUser(
 
   // 8. Profile — inserted LAST as the completion marker
   if (neonProfile) {
-    const rcUserId = isValidUuid(neonProfile.rc_user_id)
-      ? neonProfile.rc_user_id
+    const rcUserId = isValidUuid(neonUser.rc_user_id)
+      ? neonUser.rc_user_id
       : null;
     const { error } = await supabaseAdmin.from("profiles").insert({
       user_id: supabaseUserId,
