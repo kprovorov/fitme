@@ -15,6 +15,12 @@ export const useCurrentUserQuery = createQuery<User>({
     if (sessionError) throw sessionError;
     if (!session) throw new Error("Not authenticated");
 
+    const {
+      data: { user: authUser },
+      error: userError,
+    } = await supabase.auth.getUser();
+    if (userError) throw userError;
+
     const { data: profile, error: profileError } = await supabase
       .from("profiles")
       .select("*")
@@ -28,7 +34,7 @@ export const useCurrentUserQuery = createQuery<User>({
     const user: User = {
       id: session.user.id,
       email: session.user.email!,
-      name: (session.user.user_metadata?.name as string) ?? "",
+      name: (authUser?.user_metadata?.name as string) ?? "",
       profile: profile ?? undefined,
     };
 
