@@ -34,7 +34,9 @@ export const useCurrentUserQuery = createQuery<User>({
     const user: User = {
       id: session.user.id,
       email: session.user.email!,
-      name: (authUser?.user_metadata?.full_name as string) ?? "",
+      name:
+        ((authUser?.user_metadata?.name ??
+          authUser?.user_metadata?.full_name) as string) ?? "",
       profile: profile ?? undefined,
     };
 
