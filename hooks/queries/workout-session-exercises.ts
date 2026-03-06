@@ -105,6 +105,13 @@ export const useReplaceWorkoutSessionExerciseMutation = createMutation<
       .select(SESSION_EXERCISE_SELECT)
       .single();
     if (error) throw error;
+
+    const { error: setsError } = await supabase
+      .from("workout_session_exercise_sets")
+      .update({ weight_recommended: null, reps_recommended: null })
+      .eq("workout_session_exercise_id", exerciseId);
+    if (setsError) throw setsError;
+
     return result as unknown as WorkoutSessionExercise;
   },
 });

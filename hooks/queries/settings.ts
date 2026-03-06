@@ -7,24 +7,9 @@ export const useUpdateMeasurementSystemMutation = createMutation<
   MeasurementSystem
 >({
   mutationFn: async (measurementSystem: MeasurementSystem): Promise<void> => {
-    const {
-      data: { user },
-    } = await supabase.auth.getUser();
-
-    // Fetch the latest profile id for this user
-    const { data: latest, error: fetchError } = await supabase
-      .from("profiles")
-      .select("id")
-      .eq("user_id", user!.id)
-      .order("created_at", { ascending: false })
-      .limit(1)
-      .single();
-    if (fetchError) throw fetchError;
-
-    const { error } = await supabase
-      .from("profiles")
-      .update({ measurement_system: measurementSystem })
-      .eq("id", latest.id);
+    const { error } = await supabase.rpc("convert_measurement_system", {
+      p_new_system: measurementSystem,
+    });
     if (error) throw error;
   },
 });

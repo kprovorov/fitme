@@ -59,11 +59,16 @@ export default function RootLayout() {
 
       const {
         data: { subscription },
-      } = supabase.auth.onAuthStateChange((event) => {
+      } = supabase.auth.onAuthStateChange(async (event, session) => {
         if (event === "SIGNED_IN" || event === "TOKEN_REFRESHED") {
           queryClient.invalidateQueries({ queryKey: ["user"] });
+          if (session?.user?.id) {
+            await Purchases.logIn(session.user.id);
+            queryClient.invalidateQueries({ queryKey: ["rc-is-pro"] });
+          }
         }
         if (event === "SIGNED_OUT") {
+          await Purchases.logOut();
           queryClient.clear();
         }
       });

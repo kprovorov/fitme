@@ -25,7 +25,10 @@ export const useStoreProfileMutation = createMutation<
 
     const { data: profile, error } = await supabase
       .from("profiles")
-      .insert({ ...data, user_id: user.id, measurement_system })
+      .upsert(
+        { ...data, user_id: user.id, measurement_system },
+        { onConflict: "user_id" },
+      )
       .select()
       .single();
     if (error) throw error;

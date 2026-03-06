@@ -2,6 +2,38 @@ import { createClient } from "jsr:@supabase/supabase-js@2";
 
 const MAX_ATTEMPTS = 3;
 
+async function checkRevenueCatEntitlement(rcUserId: string): Promise<boolean> {
+  const apiKey = Deno.env.get("REVENUECAT_API_KEY");
+  if (!apiKey) {
+    console.warn("REVENUECAT_API_KEY not set, skipping subscription check");
+    return true;
+  }
+
+  const response = await fetch(
+    `https://api.revenuecat.com/v1/subscribers/${encodeURIComponent(rcUserId)}`,
+    {
+      headers: {
+        Authorization: `Bearer ${apiKey}`,
+        "Content-Type": "application/json",
+      },
+    },
+  );
+
+  if (!response.ok) {
+    console.error(`RevenueCat API error: ${response.status}`);
+    return false;
+  }
+
+  const data = await response.json();
+  const entitlement = data?.subscriber?.entitlements?.["Fitme Pro"];
+  if (!entitlement) return false;
+
+  // null expires_date means lifetime purchase
+  if (entitlement.expires_date === null) return true;
+
+  return new Date(entitlement.expires_date) > new Date();
+}
+
 // Shared JSON Schema for the workout plan structured output.
 // `additionalProperties: false` is required at every object level for OpenAI strict mode.
 const WORKOUT_PLAN_SCHEMA = {
@@ -336,9 +368,13 @@ Deno.serve(async (req: Request) => {
 
   const body: GeneratePlanParams = await req.json();
 
-  const [exercisesResult, profileResult] = await Promise.all([
+  const [exercisesResult, profileResult, plansCountResult] = await Promise.all([
     supabaseClient.from("exercises").select("id, name, thumbnail_url"),
     supabaseClient.from("profiles").select("*").eq("user_id", user.id).single(),
+    supabaseClient
+      .from("plans")
+      .select("id", { count: "exact", head: true })
+      .is("deleted_at", null),
   ]);
 
   if (exercisesResult.error) {
@@ -349,6 +385,25 @@ Deno.serve(async (req: Request) => {
         headers: { "Content-Type": "application/json" },
       },
     );
+  }
+
+  // Subscription gate: first plan is free; subsequent plans require PRO
+  const planCount = plansCountResult.count ?? 0;
+  if (planCount > 0) {
+    const rcUserId = profileResult.data?.rc_user_id as string | null;
+    if (!rcUserId) {
+      return new Response(JSON.stringify({ error: "Subscription required" }), {
+        status: 403,
+        headers: { "Content-Type": "application/json" },
+      });
+    }
+    const isPro = await checkRevenueCatEntitlement(rcUserId);
+    if (!isPro) {
+      return new Response(JSON.stringify({ error: "Subscription required" }), {
+        status: 403,
+        headers: { "Content-Type": "application/json" },
+      });
+    }
   }
 
   const exercises: Exercise[] = exercisesResult.data ?? [];
@@ -368,10 +423,12 @@ Deno.serve(async (req: Request) => {
     const enrichedWorkouts = (aiOutput.workouts as RawWorkout[]).map(
       (workout) => ({
         ...workout,
-        exercises: workout.exercises.map((ex) => ({
-          ...ex,
-          exercise: exerciseMap.get(ex.exercise_id) ?? null,
-        })),
+        exercises: workout.exercises
+          .map((ex) => ({
+            ...ex,
+            exercise: exerciseMap.get(ex.exercise_id) ?? null,
+          }))
+          .filter((ex) => ex.exercise !== null),
       }),
     );
 

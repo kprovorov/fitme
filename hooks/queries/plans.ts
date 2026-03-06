@@ -47,73 +47,29 @@ export const usePlanQuery = createQuery<Plan, PlanQueryVariables>({
 
 export const useStorePlanMutation = createMutation<Plan, PlanData>({
   mutationFn: async (planData: PlanData): Promise<Plan> => {
-    const {
-      data: { user },
-    } = await supabase.auth.getUser();
+    // Strip nested exercise objects — only exercise_id is needed by the RPC
+    const payload = {
+      ...planData,
+      workouts: planData.workouts.map((w) => ({
+        ...w,
+        exercises: w.exercises.map(({ exercise: _exercise, ...ex }) => ex),
+      })),
+    };
 
-    const { data: plan, error: planError } = await supabase
+    const { data: planId, error: rpcError } = await supabase.rpc(
+      "create_plan",
+      {
+        p_plan_data: payload,
+      },
+    );
+    if (rpcError) throw rpcError;
+
+    const { data: plan, error } = await supabase
       .from("plans")
-      .insert({
-        user_id: user!.id,
-        name: planData.name,
-        description: planData.description,
-        goal: planData.goal,
-        place: planData.place,
-        frequency: planData.frequency,
-        experience_level: planData.experience_level,
-        workout_duration: planData.workout_duration,
-        note: planData.note,
-      })
       .select()
+      .eq("id", planId)
       .single();
-    if (planError) throw planError;
-
-    for (const workoutData of planData.workouts) {
-      const { data: workout, error: workoutError } = await supabase
-        .from("workouts")
-        .insert({
-          plan_id: plan.id,
-          name: workoutData.name,
-          description: workoutData.description,
-          order: workoutData.order,
-        })
-        .select("id")
-        .single();
-      if (workoutError) throw workoutError;
-
-      for (const exerciseData of workoutData.exercises) {
-        const { data: workoutExercise, error: exerciseError } = await supabase
-          .from("workout_exercises")
-          .insert({
-            workout_id: workout.id,
-            exercise_id: exerciseData.exercise_id,
-            order: exerciseData.order,
-          })
-          .select("id")
-          .single();
-        if (exerciseError) throw exerciseError;
-
-        if (exerciseData.sets.length > 0) {
-          const { error: setsError } = await supabase
-            .from("workout_exercise_sets")
-            .insert(
-              exerciseData.sets.map((set) => ({
-                workout_exercise_id: workoutExercise.id,
-                order: set.order,
-                reps_recommended: set.reps_recommended,
-                weight_recommended: set.weight_recommended,
-                rest_recommended: set.rest_recommended,
-              })),
-            );
-          if (setsError) throw setsError;
-        }
-      }
-    }
-
-    const { error: activateError } = await supabase.rpc("activate_plan", {
-      plan_id: plan.id,
-    });
-    if (activateError) throw activateError;
+    if (error) throw error;
 
     return plan as unknown as Plan;
   },

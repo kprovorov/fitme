@@ -441,6 +441,22 @@ export type Database = {
           isSetofReturn: false;
         };
       };
+      start_workout_session: {
+        Args: { p_workout_id: string };
+        Returns: string;
+      };
+      finish_workout_session: {
+        Args: { p_session_id: string };
+        Returns: undefined;
+      };
+      create_plan: {
+        Args: { p_plan_data: Json };
+        Returns: string;
+      };
+      convert_measurement_system: {
+        Args: { p_new_system: string };
+        Returns: undefined;
+      };
     };
     Enums: {
       [_ in never]: never;
