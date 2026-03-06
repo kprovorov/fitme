@@ -135,6 +135,7 @@ export default function ProfileScreen() {
             showWheel && (
               <Button
                 variant="link"
+                size="sm"
                 onPress={() => {
                   toggleWheel();
                   setFieldFocused(null);
