@@ -108,7 +108,7 @@ export const useReplaceWorkoutSessionExerciseMutation = createMutation<
 
     const { error: setsError } = await supabase
       .from("workout_session_exercise_sets")
-      .update({ weight_recommended: null, reps_recommended: null })
+      .update({ weight_recommended: 0, reps_recommended: 0 })
       .eq("workout_session_exercise_id", exerciseId);
     if (setsError) throw setsError;
 
