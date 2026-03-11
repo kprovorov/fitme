@@ -1,5 +1,5 @@
 {
-  "name": "m.fitme",
+  "name": "fitme",
   "main": "expo-router/entry",
   "version": "1.19.1",
   "scripts": {
