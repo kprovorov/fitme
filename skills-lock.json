@@ -1,0 +1,10 @@
+{
+  "version": 1,
+  "skills": {
+    "revenuecat": {
+      "source": "revenuecat/revenuecat-skill",
+      "sourceType": "github",
+      "computedHash": "90a025d8344f61891348e4dd20e73b228b5b87db3cc0270f2b83388373f98ba7"
+    }
+  }
+}
