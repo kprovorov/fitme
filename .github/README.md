@@ -1,20 +1,20 @@
 # GitHub Actions - Version Management
 
-This directory contains a GitHub Actions workflow for automatically managing version numbers in your project.
+This directory contains a GitHub Actions workflow for automatically managing version numbers and creating releases.
 
 ## Workflow
 
-### Auto Version Bump (`auto-version-bump.yml`)
+### Release (`release.yml`)
 
-**Trigger**: Automatically on push to `main` branch
+**Trigger**: Manually via `workflow_dispatch`
 
 **Features**:
 
 - **Intelligent Version Detection**: Automatically detects bump type from conventional commit messages
 - **Semantic Versioning**: Follows standard patch.minor.major format based on commit types
-- **Smart Filtering**: Skips version bump if only version files, docs, or workflows changed
 - **Dual File Updates**: Updates both `package.json` and `app.json` versions
 - **Automatic Tagging**: Creates git tags automatically
+- **GitHub Release**: Creates a GitHub release with an auto-generated changelog
 - **Loop Prevention**: Uses `[skip ci]` in commit message to prevent infinite loops
 
 **How Auto-Detection Works**:
@@ -23,13 +23,6 @@ This directory contains a GitHub Actions workflow for automatically managing ver
 - **fix:** commits → **patch** bump (bug fixes)
 - **BREAKING CHANGE:** or **major:** → **major** bump (breaking changes)
 - Falls back to **patch** if no conventional commits detected
-
-**When it runs**:
-
-- ✅ Code changes pushed to main
-- ❌ Only version files changed
-- ❌ Documentation changes only
-- ❌ GitHub workflow changes only
 
 ## Version Bumping Logic
 
@@ -58,10 +51,20 @@ The workflow updates these files:
 - `package.json` - Node.js package version
 - `app.json` - Expo app version
 
+## GitHub Release
+
+After bumping the version and pushing the tag, the workflow generates a changelog from commits since the last tag and creates a GitHub release. The changelog is organized into sections:
+
+- **Breaking Changes** — commits with `BREAKING CHANGE` or `major:`
+- **New Features** — commits starting with `feat:`
+- **Bug Fixes** — commits starting with `fix:`
+- **Other Changes** — all remaining commits
+
 ## Requirements
 
-- Node.js 18+ (automatically set up by workflow)
+- Node.js 20+ (automatically set up by workflow)
 - `jq` command-line tool (available on Ubuntu runners)
+- `gh` CLI (available on GitHub-hosted runners)
 - Proper GitHub permissions for the `GITHUB_TOKEN`
 
 ## Security Notes
@@ -88,13 +91,3 @@ The workflow updates these files:
 - The workflow uses `[skip ci]` in commit messages to prevent loops
 - Version bumping is fully automatic based on conventional commits
 - No manual intervention required for version management
-
-## Customization
-
-You can modify these workflows to:
-
-- Add additional version files
-- Change the commit message format
-- Modify the release notes template
-- Add additional validation steps
-- Integrate with other CI/CD tools

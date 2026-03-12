@@ -1,10 +1,10 @@
-name: Auto Version Bump
+name: Release
 
 on:
   workflow_dispatch:
 
 jobs:
-  auto-bump-version:
+  release:
     runs-on: ubuntu-latest
     permissions:
       contents: write
@@ -104,3 +104,71 @@ jobs:
           git tag "v$NEW_VERSION"
           git push origin "v$NEW_VERSION"
           echo "Created and pushed tag v$NEW_VERSION"
+
+      - name: Generate changelog
+        id: changelog
+        run: |
+          LATEST_TAG=$(git describe --tags --abbrev=0 2>/dev/null || echo "")
+          NEW_VERSION="${{ steps.bump-version.outputs.new_version }}"
+
+          if [ -z "$LATEST_TAG" ]; then
+            COMMITS=$(git log --pretty=format:"%s" HEAD)
+          else
+            COMMITS=$(git log --pretty=format:"%s" ${LATEST_TAG}~1..HEAD)
+          fi
+
+          # Build changelog sections
+          BREAKING=""
+          FEATURES=""
+          FIXES=""
+          OTHER=""
+
+          while IFS= read -r msg; do
+            # Skip version bump commits and empty lines
+            if echo "$msg" | grep -q "^\[skip ci\]\|auto-bump version\|^$"; then
+              continue
+            fi
+
+            if echo "$msg" | grep -q "BREAKING CHANGE\|major:"; then
+              BREAKING="$BREAKING"$'\n'"- $msg"
+            elif echo "$msg" | grep -qE "^feat(\(.+\))?:"; then
+              FEATURES="$FEATURES"$'\n'"- $msg"
+            elif echo "$msg" | grep -qE "^fix(\(.+\))?:"; then
+              FIXES="$FIXES"$'\n'"- $msg"
+            else
+              OTHER="$OTHER"$'\n'"- $msg"
+            fi
+          done <<< "$COMMITS"
+
+          # Assemble changelog
+          CHANGELOG="## What's Changed"
+
+          if [ -n "$BREAKING" ]; then
+            CHANGELOG="$CHANGELOG"$'\n\n'"### Breaking Changes"$'\n'"$BREAKING"
+          fi
+          if [ -n "$FEATURES" ]; then
+            CHANGELOG="$CHANGELOG"$'\n\n'"### New Features"$'\n'"$FEATURES"
+          fi
+          if [ -n "$FIXES" ]; then
+            CHANGELOG="$CHANGELOG"$'\n\n'"### Bug Fixes"$'\n'"$FIXES"
+          fi
+          if [ -n "$OTHER" ]; then
+            CHANGELOG="$CHANGELOG"$'\n\n'"### Other Changes"$'\n'"$OTHER"
+          fi
+
+          if [ "$CHANGELOG" = "## What's Changed" ]; then
+            CHANGELOG="$CHANGELOG"$'\n\n'"No notable changes."
+          fi
+
+          # Write to file to safely pass multiline content
+          echo "$CHANGELOG" > /tmp/changelog.md
+          cat /tmp/changelog.md
+
+      - name: Create GitHub release
+        env:
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+        run: |
+          NEW_VERSION="${{ steps.bump-version.outputs.new_version }}"
+          gh release create "v$NEW_VERSION" \
+            --title "v$NEW_VERSION" \
+            --notes-file /tmp/changelog.md
