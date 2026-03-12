@@ -101,6 +101,7 @@ export default function WorkoutSessionScreen() {
                           sessionId: sessionId as string,
                         })
                       }
+                      testID="finish-workout-button"
                     >
                       <Text>Finish Workout</Text>
                     </Button>

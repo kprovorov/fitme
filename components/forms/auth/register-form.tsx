@@ -49,6 +49,7 @@ export default function RegisterForm({ onSubmit, errors }: RegisterFormProps) {
             onChangeText={onChange}
             value={value}
             autoCapitalize="words"
+            testID="name-input"
           />
         )}
         name="name"
@@ -70,6 +71,7 @@ export default function RegisterForm({ onSubmit, errors }: RegisterFormProps) {
             value={value}
             keyboardType="email-address"
             autoCapitalize="none"
+            testID="email-input"
           />
         )}
         name="email"
@@ -90,6 +92,7 @@ export default function RegisterForm({ onSubmit, errors }: RegisterFormProps) {
             onChangeText={onChange}
             value={value}
             secureTextEntry
+            testID="password-input"
           />
         )}
         name="password"
@@ -103,6 +106,7 @@ export default function RegisterForm({ onSubmit, errors }: RegisterFormProps) {
       <Button
         disabled={form.formState.isSubmitting}
         onPress={form.handleSubmit(onSubmit)}
+        testID="register-button"
       >
         {form.formState.isSubmitting ? (
           <Spinner size={16} className="text-black" />

@@ -1,0 +1,102 @@
+name: E2E Tests
+
+on:
+  pull_request:
+    branches:
+      - master
+  workflow_dispatch:
+
+jobs:
+  e2e:
+    runs-on: macos-15
+    timeout-minutes: 60
+
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: actions/setup-node@v4
+        with:
+          node-version: "20"
+          cache: "npm"
+
+      - name: Install dependencies
+        run: npm ci
+
+      - uses: supabase/setup-cli@v1
+        with:
+          version: latest
+
+      - name: Start local Supabase
+        run: supabase start
+
+      - name: Serve edge functions in background
+        run: supabase functions serve &
+
+      - name: Wait for edge functions to be ready
+        run: |
+          for i in $(seq 1 30); do
+            if curl -sf http://127.0.0.1:54321/functions/v1/ > /dev/null 2>&1; then
+              echo "Edge functions ready"
+              break
+            fi
+            echo "Waiting for edge functions... ($i/30)"
+            sleep 2
+          done
+
+      - name: Seed database and create test user
+        run: bash e2e/setup/seed.sh
+
+      - name: Install Maestro CLI
+        run: |
+          curl -Ls "https://get.maestro.mobile.dev" | bash
+          echo "$HOME/.maestro/bin" >> $GITHUB_PATH
+
+      - name: Generate native iOS project
+        run: npx expo prebuild --platform ios --clean
+        env:
+          EXPO_PUBLIC_E2E_ENABLED: "true"
+          EXPO_PUBLIC_SUPABASE_URL: "http://127.0.0.1:54321"
+          EXPO_PUBLIC_SUPABASE_ANON_KEY: ${{ secrets.E2E_SUPABASE_ANON_KEY }}
+          EXPO_PUBLIC_REVENUECAT_IOS_API_KEY: "placeholder"
+          EXPO_PUBLIC_SENTRY_DSN: ""
+
+      - name: Install CocoaPods
+        run: pod install
+        working-directory: ios
+
+      - name: Build iOS simulator app
+        run: |
+          WORKSPACE=$(find ios -name "*.xcworkspace" -maxdepth 1 | head -1)
+          SCHEME=$(basename "$WORKSPACE" .xcworkspace)
+          xcodebuild \
+            -workspace "$WORKSPACE" \
+            -scheme "$SCHEME" \
+            -configuration Release \
+            -sdk iphonesimulator \
+            -derivedDataPath ios/build \
+            CODE_SIGNING_ALLOWED=NO | xcpretty
+        env:
+          EXPO_PUBLIC_E2E_ENABLED: "true"
+          EXPO_PUBLIC_SUPABASE_URL: "http://127.0.0.1:54321"
+          EXPO_PUBLIC_SUPABASE_ANON_KEY: ${{ secrets.E2E_SUPABASE_ANON_KEY }}
+          EXPO_PUBLIC_REVENUECAT_IOS_API_KEY: "placeholder"
+          EXPO_PUBLIC_SENTRY_DSN: ""
+
+      - name: Boot simulator and install app
+        run: |
+          UDID=$(xcrun simctl list devices available -j | \
+            jq -r '.devices | to_entries[] | .value[] | select(.name == "iPhone 16") | .udid' | head -1)
+          xcrun simctl boot "$UDID"
+          APP=$(find ios/build -name "*.app" -maxdepth 6 | head -1)
+          xcrun simctl install "$UDID" "$APP"
+          echo "SIM_UDID=$UDID" >> $GITHUB_ENV
+
+      - name: Run E2E tests
+        run: maestro test e2e/flows --format junit --output e2e-results.xml
+
+      - name: Upload test results
+        uses: actions/upload-artifact@v4
+        if: always()
+        with:
+          name: e2e-results
+          path: e2e-results.xml

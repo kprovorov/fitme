@@ -1,0 +1,20 @@
+appId: com.fitmeproject.ios
+---
+# Navigate to login screen (from register screen)
+- tapOn:
+    text: "Login here"
+- waitForAnimationToEnd
+
+# Fill in credentials
+- tapOn:
+    id: "email-input"
+- clearText
+- inputText: "e2e@fitme.test"
+
+- tapOn:
+    id: "password-input"
+- clearText
+- inputText: "E2eTestP@ss1"
+
+- tapOn:
+    id: "login-button"

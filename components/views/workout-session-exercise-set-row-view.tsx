@@ -112,6 +112,7 @@ export default function WorkoutSessionExerciseSetRowView({
         isDone={isDone}
         onEdit={() => setIsEditable(true)}
         isEditing={isEditable}
+        setIndex={setOrder}
         recommendedValues={{
           weight: (weightCompleted ?? weightRecommended)
             .toFixed(2)

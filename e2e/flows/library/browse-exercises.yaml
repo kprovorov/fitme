@@ -1,0 +1,38 @@
+appId: com.fitmeproject.ios
+---
+- launchApp:
+    clearState: true
+
+- waitForAnimationToEnd
+
+- runFlow: "../../subflows/login-as-test-user.yaml"
+- runFlow: "../../subflows/wait-for-home.yaml"
+
+# Navigate to Library tab
+- tapOn:
+    text: "Library"
+
+- waitForAnimationToEnd
+
+# Verify library content loaded
+- assertVisible:
+    text: "All"
+
+# Scroll through exercise list
+- scroll:
+    direction: DOWN
+    speed: 40
+
+- waitForAnimationToEnd
+
+- scroll:
+    direction: UP
+    speed: 40
+
+- waitForAnimationToEnd
+
+# Filter by a muscle group
+- tapOn:
+    text: "Chest"
+
+- waitForAnimationToEnd

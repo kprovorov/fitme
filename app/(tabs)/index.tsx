@@ -14,6 +14,8 @@ import { Link } from "expo-router";
 import { VStack } from "~/components/ui/vstack";
 import { H1 } from "~/components/ui/typography";
 import Purchases from "react-native-purchases";
+
+const IS_E2E = process.env.EXPO_PUBLIC_E2E_ENABLED === "true";
 import HomeView from "~/components/views/home-view";
 
 export default function HomeScreen() {
@@ -36,7 +38,7 @@ export default function HomeScreen() {
 
   const onRefresh = useCallback(async () => {
     setRefreshing(true);
-    await Purchases.invalidateCustomerInfoCache();
+    if (!IS_E2E) await Purchases.invalidateCustomerInfoCache();
     await refetchWorkoutPlans();
     setRefreshing(false);
   }, []);

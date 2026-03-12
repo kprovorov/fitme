@@ -1,0 +1,6 @@
+appId: com.fitmeproject.ios
+---
+- waitForAnimationToEnd
+- assertVisible:
+    text: "Home"
+    enabled: true

@@ -4,6 +4,8 @@ import Purchases from "react-native-purchases";
 import * as Sentry from "@sentry/react-native";
 import { createQuery } from "react-query-kit";
 
+const IS_E2E = process.env.EXPO_PUBLIC_E2E_ENABLED === "true";
+
 export const useCurrentUserQuery = createQuery<User>({
   queryKey: ["user"],
   fetcher: async (): Promise<User> => {
@@ -46,7 +48,7 @@ export const useCurrentUserQuery = createQuery<User>({
       email: user.email,
     });
 
-    if (profile?.rc_user_id) {
+    if (!IS_E2E && profile?.rc_user_id) {
       await Purchases.logIn(profile.rc_user_id);
     }
 

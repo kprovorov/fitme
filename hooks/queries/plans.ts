@@ -2,6 +2,8 @@ import { supabase } from "@/lib/supabase";
 import { ExperienceLevel, Goal, Place, Plan, PlanData } from "@/lib/models";
 import { createMutation, createQuery } from "react-query-kit";
 
+const IS_E2E = process.env.EXPO_PUBLIC_E2E_ENABLED === "true";
+
 const PLAN_SELECT = `
   *,
   workouts (
@@ -109,7 +111,10 @@ export const usePreviewPlanQuery = createQuery<PlanData, PreviewPlanData>({
   fetcher: async (data: PreviewPlanData): Promise<PlanData> => {
     const { data: result, error } = await supabase.functions.invoke(
       "preview-plan",
-      { body: data },
+      {
+        body: data,
+        headers: IS_E2E ? { "x-e2e": "true" } : undefined,
+      },
     );
     if (error) throw error;
     return result as PlanData;

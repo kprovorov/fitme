@@ -119,7 +119,7 @@ export default function ProfileView() {
             </MenuListItem>
           </Link>
           <Separator />
-          <MenuListItem onPress={() => logout()}>
+          <MenuListItem onPress={() => logout()} testID="logout-button">
             <Text>Logout</Text>
           </MenuListItem>
         </MenuList>

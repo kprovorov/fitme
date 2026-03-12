@@ -366,6 +366,86 @@ Deno.serve(async (req: Request) => {
     });
   }
 
+  // Early return for E2E tests: skips AI call, returns a fixture plan
+  if (req.headers.get("x-e2e") === "true") {
+    const { data: exercises } = await supabaseClient
+      .from("exercises")
+      .select("id, name, thumbnail_url")
+      .limit(6);
+    const fixtureExercises = exercises ?? [];
+
+    function buildE2EFixturePlan(exs: Exercise[]) {
+      const workout1Exercises = exs.slice(0, 3);
+      const workout2Exercises = exs.slice(3, 6);
+
+      const makeWorkout = (
+        name: string,
+        desc: string,
+        order: number,
+        wExercises: Exercise[],
+      ) => ({
+        name,
+        description: desc,
+        order,
+        exercises: wExercises.map((ex, i) => ({
+          exercise_id: ex.id,
+          exercise: ex,
+          order: i + 1,
+          sets: [
+            {
+              order: 1,
+              weight_recommended: 0,
+              reps_recommended: 10,
+              rest_recommended: 60,
+            },
+            {
+              order: 2,
+              weight_recommended: 0,
+              reps_recommended: 10,
+              rest_recommended: 60,
+            },
+            {
+              order: 3,
+              weight_recommended: 0,
+              reps_recommended: 10,
+              rest_recommended: 60,
+            },
+          ],
+        })),
+      });
+
+      return {
+        name: "E2E Test Plan",
+        description: "Auto-generated fixture plan for E2E tests.",
+        goal: "general_fitness",
+        place: "gym",
+        frequency: 2,
+        experience_level: "beginner",
+        workout_duration: 45,
+        workouts: [
+          makeWorkout(
+            "E2E Workout A",
+            "First workout of the fixture plan.",
+            1,
+            workout1Exercises,
+          ),
+          makeWorkout(
+            "E2E Workout B",
+            "Second workout of the fixture plan.",
+            2,
+            workout2Exercises,
+          ),
+        ],
+      };
+    }
+
+    const fixturePlan = buildE2EFixturePlan(fixtureExercises);
+    return new Response(JSON.stringify(fixturePlan), {
+      status: 200,
+      headers: { "Content-Type": "application/json" },
+    });
+  }
+
   const body: GeneratePlanParams = await req.json();
 
   const [exercisesResult, profileResult, plansCountResult] = await Promise.all([

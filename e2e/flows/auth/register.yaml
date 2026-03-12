@@ -1,0 +1,31 @@
+appId: com.fitmeproject.ios
+---
+- launchApp:
+    clearState: true
+
+- waitForAnimationToEnd
+
+# Should land on register screen
+- assertVisible:
+    text: "Welcome to Fitme!"
+
+- tapOn:
+    id: "name-input"
+- inputText: "E2E NewUser"
+
+- tapOn:
+    id: "email-input"
+- inputText: "e2e-new-${random}@fitme.test"
+
+- tapOn:
+    id: "password-input"
+- inputText: "E2eTestP@ss1"
+
+- tapOn:
+    id: "register-button"
+
+- waitForAnimationToEnd
+
+# Should land on onboarding after registration
+- assertVisible:
+    text: "Welcome"

@@ -46,6 +46,7 @@ export default function LoginForm({ onSubmit, errors }: LoginFormProps) {
             value={value}
             keyboardType="email-address"
             autoCapitalize="none"
+            testID="email-input"
           />
         )}
         name="email"
@@ -66,6 +67,7 @@ export default function LoginForm({ onSubmit, errors }: LoginFormProps) {
             onChangeText={onChange}
             value={value}
             secureTextEntry
+            testID="password-input"
           />
         )}
         name="password"
@@ -79,6 +81,7 @@ export default function LoginForm({ onSubmit, errors }: LoginFormProps) {
       <Button
         disabled={form.formState.isSubmitting}
         onPress={form.handleSubmit(onSubmit)}
+        testID="login-button"
       >
         {form.formState.isSubmitting ? (
           <Spinner size={16} className="text-black" />

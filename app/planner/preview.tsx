@@ -1,5 +1,7 @@
 import { useLocalSearchParams, useRouter } from "expo-router";
 import React, { useEffect } from "react";
+
+const IS_E2E = process.env.EXPO_PUBLIC_E2E_ENABLED === "true";
 import { SafeAreaProvider, SafeAreaView } from "react-native-safe-area-context";
 import { ScrollView } from "react-native";
 import { VStack } from "~/components/ui/vstack";
@@ -91,7 +93,7 @@ export default function Preview() {
             <VStack className="px-md pb-md items-stretch gap-2">
               <Button
                 onPress={async () => {
-                  if (isPro) {
+                  if (isPro || IS_E2E) {
                     storePlan(planData);
                   } else {
                     const result = await RevenueCatUI.presentPaywall();
@@ -107,6 +109,7 @@ export default function Preview() {
                   }
                 }}
                 disabled={isStoringPlan || isGeneratingPlan}
+                testID="save-plan-button"
               >
                 {isStoringPlan ? (
                   <Spinner size={16} className="text-black" />
