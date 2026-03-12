@@ -27,7 +27,7 @@ jobs:
           version: latest
 
       - name: Set up Docker on macOS
-        uses: douglasmakey/setup-docker-on-macos@v1
+        uses: douglascamata/setup-docker-macos-action@v1
 
       - name: Start local Supabase
         run: supabase start
