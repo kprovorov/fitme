@@ -26,6 +26,11 @@ jobs:
         with:
           version: latest
 
+      - name: Install and start Colima (Docker runtime for macOS)
+        run: |
+          brew install colima docker
+          colima start --cpu 2 --memory 4
+
       - name: Start local Supabase
         run: supabase start
 
