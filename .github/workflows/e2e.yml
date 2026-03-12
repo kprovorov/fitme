@@ -26,28 +26,26 @@ jobs:
         with:
           version: latest
 
-      - name: Set up Docker on macOS
-        uses: douglascamata/setup-docker-macos-action@v1
+      - name: Link Supabase project
+        run: supabase link --project-ref ${{ secrets.E2E_SUPABASE_PROJECT_REF }}
+        env:
+          SUPABASE_ACCESS_TOKEN: ${{ secrets.SUPABASE_ACCESS_TOKEN }}
 
-      - name: Start local Supabase
-        run: supabase start
+      - name: Apply database migrations
+        run: supabase db push
+        env:
+          SUPABASE_ACCESS_TOKEN: ${{ secrets.SUPABASE_ACCESS_TOKEN }}
 
-      - name: Serve edge functions in background
-        run: supabase functions serve &
-
-      - name: Wait for edge functions to be ready
-        run: |
-          for i in $(seq 1 30); do
-            if curl -sf http://127.0.0.1:54321/functions/v1/ > /dev/null 2>&1; then
-              echo "Edge functions ready"
-              break
-            fi
-            echo "Waiting for edge functions... ($i/30)"
-            sleep 2
-          done
+      - name: Deploy edge functions
+        run: supabase functions deploy preview-plan --project-ref ${{ secrets.E2E_SUPABASE_PROJECT_REF }}
+        env:
+          SUPABASE_ACCESS_TOKEN: ${{ secrets.SUPABASE_ACCESS_TOKEN }}
 
       - name: Seed database and create test user
         run: bash e2e/setup/seed.sh
+        env:
+          SUPABASE_URL: ${{ secrets.E2E_SUPABASE_URL }}
+          SERVICE_ROLE_KEY: ${{ secrets.E2E_SUPABASE_SERVICE_ROLE_KEY }}
 
       - name: Install Maestro CLI
         run: |
@@ -58,7 +56,7 @@ jobs:
         run: npx expo prebuild --platform ios --clean
         env:
           EXPO_PUBLIC_E2E_ENABLED: "true"
-          EXPO_PUBLIC_SUPABASE_URL: "http://127.0.0.1:54321"
+          EXPO_PUBLIC_SUPABASE_URL: ${{ secrets.E2E_SUPABASE_URL }}
           EXPO_PUBLIC_SUPABASE_ANON_KEY: ${{ secrets.E2E_SUPABASE_ANON_KEY }}
           EXPO_PUBLIC_REVENUECAT_IOS_API_KEY: "placeholder"
           EXPO_PUBLIC_SENTRY_DSN: ""
@@ -80,7 +78,7 @@ jobs:
             CODE_SIGNING_ALLOWED=NO | xcpretty
         env:
           EXPO_PUBLIC_E2E_ENABLED: "true"
-          EXPO_PUBLIC_SUPABASE_URL: "http://127.0.0.1:54321"
+          EXPO_PUBLIC_SUPABASE_URL: ${{ secrets.E2E_SUPABASE_URL }}
           EXPO_PUBLIC_SUPABASE_ANON_KEY: ${{ secrets.E2E_SUPABASE_ANON_KEY }}
           EXPO_PUBLIC_REVENUECAT_IOS_API_KEY: "placeholder"
           EXPO_PUBLIC_SENTRY_DSN: ""

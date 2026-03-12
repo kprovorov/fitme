@@ -1,8 +1,10 @@
 #!/bin/bash
 set -e
 
-SUPABASE_URL="http://127.0.0.1:54321"
-SERVICE_ROLE_KEY="eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZS1kZW1vIiwicm9sZSI6InNlcnZpY2Vfcm9sZSIsImV4cCI6MTk4MzgxMjk5Nn0.EGIM96RAZx35lJzdJsyH-qQwv8Hj04zWl196z2-SBc0"
+# In CI, SUPABASE_URL and SERVICE_ROLE_KEY are injected as env vars.
+# For local dev, fall back to the default local Supabase values.
+SUPABASE_URL="${SUPABASE_URL:-http://127.0.0.1:54321}"
+SERVICE_ROLE_KEY="${SERVICE_ROLE_KEY:-eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZS1kZW1vIiwicm9sZSI6InNlcnZpY2Vfcm9sZSIsImV4cCI6MTk4MzgxMjk5Nn0.EGIM96RAZx35lJzdJsyH-qQwv8Hj04zWl196z2-SBc0}"
 
 # Seed exercises (reuses existing seed script)
 npm run db:seed
