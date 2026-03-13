@@ -2,6 +2,7 @@ import { createSeedClient } from "@snaplet/seed";
 import { parse } from "csv-parse/sync";
 import fs from "fs";
 import path from "path";
+import { Client } from "pg";
 
 function readMarkdownFile(dir: string, slug: string): string | null {
   const filePath = path.join(process.cwd(), dir, `${slug}.md`);
@@ -45,6 +46,40 @@ async function main() {
   );
 
   console.log(`Seeded ${rows.length} exercises.`);
+
+  if (process.env.E2E_SEED) {
+    const client = new Client({
+      connectionString:
+        process.env.DATABASE_URL ??
+        "postgresql://postgres:postgres@localhost:54322/postgres",
+    });
+    await client.connect();
+    await client.query(`
+      DO $$
+      DECLARE user_id uuid := gen_random_uuid();
+      BEGIN
+        IF NOT EXISTS (SELECT 1 FROM auth.users WHERE email = 'tony@stark.com') THEN
+          INSERT INTO auth.users
+            (id, instance_id, email, encrypted_password, email_confirmed_at,
+             created_at, updated_at, raw_app_meta_data, raw_user_meta_data,
+             aud, role, confirmation_token, email_change, email_change_token_new, recovery_token)
+          VALUES
+            (user_id, '00000000-0000-0000-0000-000000000000', 'tony@stark.com',
+             crypt('secret', gen_salt('bf')), now(), now(), now(),
+             '{"provider":"email","providers":["email"]}', '{}',
+             'authenticated', 'authenticated', '', '', '', '');
+          INSERT INTO auth.identities
+            (id, user_id, identity_data, provider, provider_id, created_at, updated_at, last_sign_in_at)
+          VALUES
+            (gen_random_uuid(), user_id,
+             jsonb_build_object('sub', user_id::text, 'email', 'tony@stark.com', 'email_verified', true),
+             'email', user_id::text, now(), now(), now());
+        END IF;
+      END $$;
+    `);
+    await client.end();
+    console.log("E2E test user created (tony@stark.com).");
+  }
 }
 
 main()

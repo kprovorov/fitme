@@ -4,8 +4,8 @@ import {
   Keyboard,
   KeyboardAvoidingView,
   Platform,
-  TouchableWithoutFeedback,
   SafeAreaView,
+  View,
 } from "react-native";
 import { SafeAreaProvider } from "react-native-safe-area-context";
 import { VStack } from "~/components/ui/vstack";
@@ -53,7 +53,7 @@ export default function RegisterScreen() {
             behavior={Platform.OS === "ios" ? "padding" : "height"}
             className="flex-1"
           >
-            <TouchableWithoutFeedback onPress={Keyboard.dismiss}>
+            <View style={{ flex: 1 }}>
               <VStack className="h-full p-6 gap-8">
                 <Sign
                   width={isKeyboardVisible ? 35 : 70}
@@ -61,7 +61,7 @@ export default function RegisterScreen() {
                 />
                 <RegisterView />
               </VStack>
-            </TouchableWithoutFeedback>
+            </View>
           </KeyboardAvoidingView>
         </SafeAreaView>
       </SafeAreaProvider>

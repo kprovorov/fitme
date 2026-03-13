@@ -109,7 +109,8 @@ jobs:
             -configuration Release \
             -sdk iphonesimulator \
             -derivedDataPath ios/build \
-            CODE_SIGNING_ALLOWED=NO | xcpretty
+            CODE_SIGNING_ALLOWED=NO \
+            SENTRY_DISABLE_AUTO_UPLOAD=true | xcpretty
         env:
           EXPO_PUBLIC_E2E_ENABLED: "true"
           EXPO_PUBLIC_SUPABASE_URL: ${{ steps.branch-details.outputs.api_url }}
@@ -127,7 +128,7 @@ jobs:
           echo "SIM_UDID=$UDID" >> $GITHUB_ENV
 
       - name: Run E2E tests
-        run: maestro test e2e/flows --format junit --output e2e-results.xml
+        run: maestro test e2e/flows/auth e2e/flows/onboarding e2e/flows/home e2e/flows/planner e2e/flows/workout e2e/flows/library --format junit --output e2e-results.xml
 
       - name: Upload test results
         uses: actions/upload-artifact@v4

@@ -1,5 +1,6 @@
 import { useRegisterMutation } from "@/hooks/mutations/auth";
-import { Link, router } from "expo-router";
+import { router } from "expo-router";
+import { Pressable, View } from "react-native";
 import { VStack } from "../ui/vstack";
 import { H3, P } from "../ui/typography";
 import RegisterForm, { RegisterFormValues } from "../forms/auth/register-form";
@@ -52,12 +53,19 @@ export default function RegisterView() {
           });
         }}
       />
-      <Text className="text-sm font-nunito-sans-bold">
-        Already have an account?{" "}
-        <Link href="/auth/login" className="text-primary font-nunito-sans-bold">
-          Login here
-        </Link>
-      </Text>
+      <View className="flex-row items-center">
+        <Text className="text-sm font-nunito-sans-bold">
+          Already have an account?{" "}
+        </Text>
+        <Pressable
+          testID="login-here-link"
+          onPress={() => router.push("/auth/login")}
+        >
+          <Text className="text-sm text-primary font-nunito-sans-bold">
+            Login here
+          </Text>
+        </Pressable>
+      </View>
     </VStack>
   );
 }

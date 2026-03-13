@@ -23,7 +23,7 @@ appId: com.fitmeproject.ios
 # Log first set (set index 1)
 - tapOn:
     id: "set-reps-input-1"
-- clearText
+- eraseText: 50
 - inputText: "10"
 
 - tapOn:

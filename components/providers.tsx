@@ -69,7 +69,7 @@ function Providers({ children }: { children: React.ReactNode }) {
               }
         }
       >
-        <KeyboardProvider>{children}</KeyboardProvider>
+        {IS_E2E ? children : <KeyboardProvider>{children}</KeyboardProvider>}
       </ThemeProvider>
     </QueryClientProvider>
   );
