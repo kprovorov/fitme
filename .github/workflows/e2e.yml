@@ -41,14 +41,15 @@ jobs:
           BRANCH="${{ steps.branch.outputs.branch_name }}"
           for i in $(seq 1 36); do
             DETAILS=$(supabase branches list --project-ref ${{ vars.SUPABASE_PROJECT_REF }} --output json 2>/dev/null | jq '.[] | select(.name == "'"$BRANCH"'")' || echo '{}')
-            STATUS=$(echo "$DETAILS" | jq -r '.preview_project_status // empty')
-            if [ "$STATUS" = "ACTIVE_HEALTHY" ]; then
+            PREVIEW_STATUS=$(echo "$DETAILS" | jq -r '.preview_project_status // empty')
+            DEPLOY_STATUS=$(echo "$DETAILS" | jq -r '.status // empty')
+            if [ "$PREVIEW_STATUS" = "ACTIVE_HEALTHY" ] && [ "$DEPLOY_STATUS" = "FUNCTIONS_DEPLOYED" ]; then
               echo "Branch is ready"
               echo "branch_id=$(echo $DETAILS | jq -r '.id')" >> $GITHUB_OUTPUT
               echo "branch_project_ref=$(echo $DETAILS | jq -r '.project_ref')" >> $GITHUB_OUTPUT
               exit 0
             fi
-            echo "Branch status: ${STATUS:-pending} (attempt $i/36)"
+            echo "Branch status: ${PREVIEW_STATUS:-pending}/${DEPLOY_STATUS:-pending} (attempt $i/36)"
             sleep 10
           done
           echo "Branch never became ready after 6 minutes" && exit 1
@@ -63,12 +64,6 @@ jobs:
           echo "anon_key=$(echo $CREDS | jq -r '.SUPABASE_ANON_KEY')" >> $GITHUB_OUTPUT
           echo "service_key=$(echo $CREDS | jq -r '.SUPABASE_SERVICE_ROLE_KEY')" >> $GITHUB_OUTPUT
           echo "postgres_url=$(echo $CREDS | jq -r '.POSTGRES_URL')" >> $GITHUB_OUTPUT
-        env:
-          SUPABASE_ACCESS_TOKEN: ${{ secrets.SUPABASE_ACCESS_TOKEN }}
-
-      - name: Push migrations to branch
-        run: |
-          supabase db push --project-ref ${{ steps.branch-status.outputs.branch_project_ref }}
         env:
           SUPABASE_ACCESS_TOKEN: ${{ secrets.SUPABASE_ACCESS_TOKEN }}
 
