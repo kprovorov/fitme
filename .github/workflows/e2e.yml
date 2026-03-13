@@ -62,7 +62,7 @@ jobs:
           echo "api_url=$(echo $CREDS | jq -r '.SUPABASE_URL')" >> $GITHUB_OUTPUT
           echo "anon_key=$(echo $CREDS | jq -r '.SUPABASE_ANON_KEY')" >> $GITHUB_OUTPUT
           echo "service_key=$(echo $CREDS | jq -r '.SUPABASE_SERVICE_ROLE_KEY')" >> $GITHUB_OUTPUT
-          echo "postgres_url=$(echo $CREDS | jq -r '.POSTGRES_URL_NON_POOLING')" >> $GITHUB_OUTPUT
+          echo "postgres_url=$(echo $CREDS | jq -r '.POSTGRES_URL')" >> $GITHUB_OUTPUT
         env:
           SUPABASE_ACCESS_TOKEN: ${{ secrets.SUPABASE_ACCESS_TOKEN }}
 
