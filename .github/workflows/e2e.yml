@@ -40,7 +40,7 @@ jobs:
         run: |
           BRANCH="${{ steps.branch.outputs.branch_name }}"
           for i in $(seq 1 36); do
-            DETAILS=$(supabase branches get "$BRANCH" --project-ref ${{ vars.SUPABASE_PROJECT_REF }} --output json 2>/dev/null || echo '{}')
+            DETAILS=$(supabase branches list --project-ref ${{ vars.SUPABASE_PROJECT_REF }} --output json 2>/dev/null | jq '.[] | select(.name == "'"$BRANCH"'")' || echo '{}')
             STATUS=$(echo "$DETAILS" | jq -r '.status // empty')
             if [ "$STATUS" = "ACTIVE_HEALTHY" ]; then
               echo "Branch is ready"
