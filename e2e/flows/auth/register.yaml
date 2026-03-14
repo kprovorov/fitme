@@ -11,11 +11,11 @@ appId: com.fitmeproject.ios
 
 - tapOn:
     id: "name-input"
-- inputText: "E2E NewUser"
+- inputText: "E2E Register User"
 
 - tapOn:
     id: "email-input"
-- inputText: "e2e-new-${random}@fitme.test"
+- inputText: "e2e-register@fitme.test"
 
 - tapOn:
     id: "password-input"
@@ -26,6 +26,8 @@ appId: com.fitmeproject.ios
 
 - waitForAnimationToEnd
 
-# Should land on onboarding after registration
-- assertVisible:
-    text: "Welcome"
+# Should land on onboarding welcome screen after registration
+- extendedWaitUntil:
+    visible:
+      text: "Get Started"
+    timeout: 10000

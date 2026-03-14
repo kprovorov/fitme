@@ -19,15 +19,15 @@ appId: com.fitmeproject.ios
     text: "All"
 
 # Scroll through exercise list
-- scroll:
-    direction: DOWN
-    speed: 40
+- swipe:
+    direction: UP
+    duration: 500
 
 - waitForAnimationToEnd
 
-- scroll:
-    direction: UP
-    speed: 40
+- swipe:
+    direction: DOWN
+    duration: 500
 
 - waitForAnimationToEnd
 

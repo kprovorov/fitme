@@ -15,7 +15,7 @@
     "exercises:sync": "npx tsx supabase/sync.ts",
     "prepare": "husky",
     "e2e:seed": "bash e2e/setup/seed.sh",
-    "e2e:test": "maestro test e2e/flows/auth e2e/flows/onboarding e2e/flows/home e2e/flows/planner e2e/flows/workout e2e/flows/library"
+    "e2e:test": "maestro test e2e/flows/**/*.yaml"
   },
   "jest": {
     "preset": "jest-expo"

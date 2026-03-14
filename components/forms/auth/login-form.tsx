@@ -46,7 +46,7 @@ export default function LoginForm({ onSubmit, errors }: LoginFormProps) {
             value={value}
             keyboardType="email-address"
             autoCapitalize="none"
-            testID="email-input"
+            testID="login-email-input"
           />
         )}
         name="email"
@@ -67,7 +67,7 @@ export default function LoginForm({ onSubmit, errors }: LoginFormProps) {
             onChangeText={onChange}
             value={value}
             secureTextEntry
-            testID="password-input"
+            testID="login-password-input"
           />
         )}
         name="password"

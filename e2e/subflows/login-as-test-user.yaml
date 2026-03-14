@@ -7,14 +7,15 @@ appId: com.fitmeproject.ios
 
 # Fill in credentials
 - tapOn:
-    id: "email-input"
+    id: "login-email-input"
 - waitForAnimationToEnd
 - inputText: "tony@stark.com"
 
 - tapOn:
-    id: "password-input"
+    id: "login-password-input"
 - waitForAnimationToEnd
 - inputText: "secret"
 
+- waitForAnimationToEnd
 - tapOn:
     id: "login-button"
