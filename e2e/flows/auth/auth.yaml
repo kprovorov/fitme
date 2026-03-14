@@ -53,14 +53,6 @@ appId: com.fitmeproject.ios
 
 # ===== LOGIN =====
 - tapOn:
-    text: "Login here"
-
-- extendedWaitUntil:
-    visible:
-      id: "login-email-input"
-    timeout: 10000
-
-- tapOn:
     id: "login-email-input"
 - waitForAnimationToEnd
 - inputText: "tony@stark.com"
