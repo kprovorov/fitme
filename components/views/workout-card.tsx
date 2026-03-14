@@ -178,38 +178,42 @@ export default function WorkoutCard({
                 ))}
               </View>
             </ScrollView>
-            {state === "upcoming" &&
-              (activeSession ? (
-                <Button
-                  variant="secondary"
-                  onPress={finishWorkout}
-                  disabled={isFinishingWorkoutSession}
-                >
-                  {isFinishingWorkoutSession ? (
-                    <Spinner size={16} className="text-foreground" />
-                  ) : (
-                    <HStack className="gap-2">
-                      <Text>Finish Workout</Text>
-                    </HStack>
-                  )}
-                </Button>
-              ) : (
-                <Button
-                  onPress={startWorkout}
-                  disabled={isCreatingWorkoutSession}
-                >
-                  {isCreatingWorkoutSession ? (
-                    <Spinner size={16} className="text-black" />
-                  ) : (
-                    <HStack className="gap-2">
-                      <Text>Start Workout</Text>
-                      <ArrowRight size={16} className="text-black" />
-                    </HStack>
-                  )}
-                </Button>
-              ))}
           </VStack>
         </Pressable>
+        {state === "upcoming" && (
+          <VStack className="px-4 pb-4">
+            {activeSession ? (
+              <Button
+                variant="secondary"
+                onPress={finishWorkout}
+                disabled={isFinishingWorkoutSession}
+              >
+                {isFinishingWorkoutSession ? (
+                  <Spinner size={16} className="text-foreground" />
+                ) : (
+                  <HStack className="gap-2">
+                    <Text>Finish Workout</Text>
+                  </HStack>
+                )}
+              </Button>
+            ) : (
+              <Button
+                onPress={startWorkout}
+                disabled={isCreatingWorkoutSession}
+                testID="start-workout-button"
+              >
+                {isCreatingWorkoutSession ? (
+                  <Spinner size={16} className="text-black" />
+                ) : (
+                  <HStack className="gap-2">
+                    <Text>Start Workout</Text>
+                    <ArrowRight size={16} className="text-black" />
+                  </HStack>
+                )}
+              </Button>
+            )}
+          </VStack>
+        )}
       </VStack>
     </Card>
   );

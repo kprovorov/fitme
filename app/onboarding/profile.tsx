@@ -4,7 +4,7 @@ import { router, Stack } from "expo-router";
 import { useLocales } from "expo-localization";
 import { useRef, useState } from "react";
 import { Controller, useForm } from "react-hook-form";
-import { Pressable, ScrollView, TouchableWithoutFeedback } from "react-native";
+import { Pressable, ScrollView } from "react-native";
 import Animated, {
   useAnimatedStyle,
   useSharedValue,
@@ -156,8 +156,8 @@ export default function ProfileScreen() {
                 ref={scrollViewRef}
                 showsVerticalScrollIndicator={false}
               >
-                <TouchableWithoutFeedback
-                  className="flex-1 w-full"
+                <Pressable
+                  style={{ flex: 1, width: "100%" }}
                   onPress={() => {
                     if (fieldFocused) {
                       toggleWheel(false);
@@ -319,7 +319,7 @@ export default function ProfileScreen() {
                       </VStack>
                     </VStack>
                   </VStack>
-                </TouchableWithoutFeedback>
+                </Pressable>
               </ScrollView>
 
               <VStack className="p-6 items-stretch gap-1">
