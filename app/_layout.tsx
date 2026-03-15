@@ -19,6 +19,8 @@ import App from "~/components/app";
 import Providers from "~/components/providers";
 import "../global.css";
 
+const IS_E2E = process.env.EXPO_PUBLIC_E2E_ENABLED === "true";
+
 Sentry.init({
   dsn: process.env.EXPO_PUBLIC_SENTRY_DSN,
   // Set tracesSampleRate to 1.0 to capture 100% of transactions for tracing.
@@ -47,14 +49,16 @@ export default function RootLayout() {
     if (loaded) {
       SplashScreen.hideAsync();
 
-      if (Platform.OS === "ios") {
-        Purchases.configure({
-          apiKey: process.env.EXPO_PUBLIC_REVENUECAT_IOS_API_KEY!,
-        });
-      } else if (Platform.OS === "android") {
-        Purchases.configure({
-          apiKey: process.env.EXPO_PUBLIC_REVENUECAT_ANDROID_API_KEY!,
-        });
+      if (!IS_E2E) {
+        if (Platform.OS === "ios") {
+          Purchases.configure({
+            apiKey: process.env.EXPO_PUBLIC_REVENUECAT_IOS_API_KEY!,
+          });
+        } else if (Platform.OS === "android") {
+          Purchases.configure({
+            apiKey: process.env.EXPO_PUBLIC_REVENUECAT_ANDROID_API_KEY!,
+          });
+        }
       }
 
       const {
@@ -62,22 +66,24 @@ export default function RootLayout() {
       } = supabase.auth.onAuthStateChange(async (event, session) => {
         if (event === "SIGNED_IN" || event === "TOKEN_REFRESHED") {
           queryClient.invalidateQueries({ queryKey: ["user"] });
-          if (session?.user?.id) {
+          if (!IS_E2E && session?.user?.id) {
             await Purchases.logIn(session.user.id);
             queryClient.invalidateQueries({ queryKey: ["rc-is-pro"] });
           }
         }
         if (event === "SIGNED_OUT") {
-          await Purchases.logOut();
+          if (!IS_E2E) await Purchases.logOut();
           queryClient.clear();
         }
       });
 
-      Purchases.addCustomerInfoUpdateListener(async () => {
-        await queryClient.invalidateQueries({
-          queryKey: ["rc-is-pro"],
+      if (!IS_E2E) {
+        Purchases.addCustomerInfoUpdateListener(async () => {
+          await queryClient.invalidateQueries({
+            queryKey: ["rc-is-pro"],
+          });
         });
-      });
+      }
 
       return () => subscription.unsubscribe();
     }

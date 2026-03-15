@@ -13,7 +13,8 @@
     "db:seed:sync": "npx @snaplet/seed sync",
     "db:seed": "npx tsx supabase/seed.ts",
     "exercises:sync": "npx tsx supabase/sync.ts",
-    "prepare": "husky"
+    "prepare": "husky",
+    "test:e2e": "maestro test e2e/flows/**/*.yaml"
   },
   "jest": {
     "preset": "jest-expo"

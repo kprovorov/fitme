@@ -4,6 +4,8 @@ import { SafeAreaView } from "react-native-safe-area-context";
 import { VStack } from "~/components/ui/vstack";
 import ProfileView from "~/components/views/profile-view";
 import Purchases from "react-native-purchases";
+
+const IS_E2E = process.env.EXPO_PUBLIC_E2E_ENABLED === "true";
 import { useQueryClient } from "@tanstack/react-query";
 
 export default function ProfileScreen() {
@@ -12,7 +14,7 @@ export default function ProfileScreen() {
 
   const onRefresh = useCallback(async () => {
     setRefreshing(true);
-    await Purchases.invalidateCustomerInfoCache();
+    if (!IS_E2E) await Purchases.invalidateCustomerInfoCache();
     await Promise.all([
       queryClient.refetchQueries({
         queryKey: ["user"],

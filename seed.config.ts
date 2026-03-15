@@ -6,6 +6,7 @@ export default defineConfig({
   adapter: async () => {
     const client = new Client({
       connectionString:
+        process.env.DATABASE_URL ??
         "postgresql://postgres:postgres@localhost:54322/postgres",
     });
     await client.connect();

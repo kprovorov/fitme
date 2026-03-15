@@ -148,6 +148,7 @@ export default function PlannerScreen() {
                           isSelected={option === value}
                           onLabelPress={() => onChange(option)}
                           disclaimer={getExperienceLevelDisclaimer(option)}
+                          testID={`experience-${option}`}
                         />
                       ))}
                     </RadioGroup>
@@ -252,6 +253,7 @@ export default function PlannerScreen() {
                           disabled={false}
                           isSelected={option?.toString() === value?.toString()}
                           onLabelPress={() => onChange(option?.toString())}
+                          testID={`frequency-${option}`}
                         />
                       ))}
                     </RadioGroup>
@@ -332,6 +334,7 @@ function RadioGroupItemWithLabel({
   badge,
   isSelected,
   onLabelPress,
+  testID,
 }: {
   value: string;
   label: string;
@@ -340,6 +343,7 @@ function RadioGroupItemWithLabel({
   badge?: string;
   isSelected: boolean;
   onLabelPress: () => void;
+  testID?: string;
 }) {
   return (
     <Pressable
@@ -347,6 +351,7 @@ function RadioGroupItemWithLabel({
         isSelected ? "border-primary" : "border-transparent"
       } ${disabled ? "opacity-50" : ""}`}
       onPress={() => !disabled && onLabelPress()}
+      testID={testID}
     >
       <RadioGroupItem
         aria-labelledby={`label-for-${value}`}
@@ -431,12 +436,14 @@ function RadioGroupItemTile({
   disabled,
   isSelected,
   onLabelPress,
+  testID,
 }: {
   value: string;
   label: string;
   disabled: boolean;
   isSelected: boolean;
   onLabelPress: () => void;
+  testID?: string;
 }) {
   return (
     <Pressable
@@ -444,6 +451,7 @@ function RadioGroupItemTile({
         isSelected ? "border-primary" : "border-transparent"
       } ${disabled ? "opacity-50" : ""}`}
       onPress={() => !disabled && onLabelPress()}
+      testID={testID}
     >
       <Label
         nativeID={`label-for-${value}`}

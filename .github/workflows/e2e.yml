@@ -1,0 +1,139 @@
+name: E2E Tests
+
+on:
+  workflow_call:
+
+jobs:
+  e2e:
+    runs-on: macos-15
+    timeout-minutes: 60
+
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: actions/setup-node@v4
+        with:
+          node-version: "20"
+          cache: "npm"
+
+      - name: Install dependencies
+        run: npm ci
+
+      - uses: supabase/setup-cli@v1
+        with:
+          version: latest
+
+      - name: Create Supabase preview branch
+        id: branch
+        run: |
+          BRANCH="e2e-${{ github.run_id }}"
+          supabase branches create "$BRANCH" --project-ref ${{ vars.SUPABASE_PROJECT_REF }}
+          echo "branch_name=$BRANCH" >> $GITHUB_OUTPUT
+        env:
+          SUPABASE_ACCESS_TOKEN: ${{ secrets.SUPABASE_ACCESS_TOKEN }}
+
+      - name: Wait for branch to be ready
+        id: branch-status
+        run: |
+          BRANCH="${{ steps.branch.outputs.branch_name }}"
+          for i in $(seq 1 36); do
+            DETAILS=$(supabase branches list --project-ref ${{ vars.SUPABASE_PROJECT_REF }} --output json 2>/dev/null | jq '.[] | select(.name == "'"$BRANCH"'")' || echo '{}')
+            PREVIEW_STATUS=$(echo "$DETAILS" | jq -r '.preview_project_status // empty')
+            DEPLOY_STATUS=$(echo "$DETAILS" | jq -r '.status // empty')
+            if [ "$PREVIEW_STATUS" = "ACTIVE_HEALTHY" ] && [ "$DEPLOY_STATUS" = "FUNCTIONS_DEPLOYED" ]; then
+              echo "Branch is ready"
+              echo "branch_id=$(echo $DETAILS | jq -r '.id')" >> $GITHUB_OUTPUT
+              echo "branch_project_ref=$(echo $DETAILS | jq -r '.project_ref')" >> $GITHUB_OUTPUT
+              exit 0
+            fi
+            echo "Branch status: ${PREVIEW_STATUS:-pending}/${DEPLOY_STATUS:-pending} (attempt $i/36)"
+            sleep 10
+          done
+          echo "Branch never became ready after 6 minutes" && exit 1
+        env:
+          SUPABASE_ACCESS_TOKEN: ${{ secrets.SUPABASE_ACCESS_TOKEN }}
+
+      - name: Get branch credentials
+        id: branch-details
+        run: |
+          CREDS=$(supabase branches get "${{ steps.branch-status.outputs.branch_id }}" --project-ref ${{ vars.SUPABASE_PROJECT_REF }} --output json)
+          echo "api_url=$(echo $CREDS | jq -r '.SUPABASE_URL')" >> $GITHUB_OUTPUT
+          echo "anon_key=$(echo $CREDS | jq -r '.SUPABASE_ANON_KEY')" >> $GITHUB_OUTPUT
+          echo "service_key=$(echo $CREDS | jq -r '.SUPABASE_SERVICE_ROLE_KEY')" >> $GITHUB_OUTPUT
+          echo "postgres_url=$(echo $CREDS | jq -r '.POSTGRES_URL')" >> $GITHUB_OUTPUT
+        env:
+          SUPABASE_ACCESS_TOKEN: ${{ secrets.SUPABASE_ACCESS_TOKEN }}
+
+      - name: Deploy edge functions to branch
+        run: |
+          supabase functions deploy preview-plan \
+            --project-ref ${{ steps.branch-status.outputs.branch_project_ref }}
+        env:
+          SUPABASE_ACCESS_TOKEN: ${{ secrets.SUPABASE_ACCESS_TOKEN }}
+
+      - name: Seed database
+        run: npm run db:seed
+        env:
+          DATABASE_URL: ${{ steps.branch-details.outputs.postgres_url }}
+
+      - name: Install Maestro CLI
+        run: |
+          curl -Ls "https://get.maestro.mobile.dev" | bash
+          echo "$HOME/.maestro/bin" >> $GITHUB_PATH
+
+      - name: Generate native iOS project
+        run: npx expo prebuild --platform ios --clean
+        env:
+          EXPO_PUBLIC_E2E_ENABLED: "true"
+          EXPO_PUBLIC_SUPABASE_URL: ${{ steps.branch-details.outputs.api_url }}
+          EXPO_PUBLIC_SUPABASE_ANON_KEY: ${{ steps.branch-details.outputs.anon_key }}
+          EXPO_PUBLIC_REVENUECAT_IOS_API_KEY: "placeholder"
+          EXPO_PUBLIC_SENTRY_DSN: ""
+
+      - name: Install CocoaPods
+        run: pod install
+        working-directory: ios
+
+      - name: Build iOS simulator app
+        run: |
+          WORKSPACE=$(find ios -name "*.xcworkspace" -maxdepth 1 | head -1)
+          SCHEME=$(basename "$WORKSPACE" .xcworkspace)
+          xcodebuild \
+            -workspace "$WORKSPACE" \
+            -scheme "$SCHEME" \
+            -configuration Release \
+            -sdk iphonesimulator \
+            -derivedDataPath ios/build \
+            CODE_SIGNING_ALLOWED=NO \
+            SENTRY_DISABLE_AUTO_UPLOAD=true | xcpretty
+        env:
+          EXPO_PUBLIC_E2E_ENABLED: "true"
+          EXPO_PUBLIC_SUPABASE_URL: ${{ steps.branch-details.outputs.api_url }}
+          EXPO_PUBLIC_SUPABASE_ANON_KEY: ${{ steps.branch-details.outputs.anon_key }}
+          EXPO_PUBLIC_REVENUECAT_IOS_API_KEY: "placeholder"
+          EXPO_PUBLIC_SENTRY_DSN: ""
+
+      - name: Boot simulator and install app
+        run: |
+          UDID=$(xcrun simctl list devices available -j | \
+            jq -r '.devices | to_entries[] | .value[] | select(.name == "iPhone 16") | .udid' | head -1)
+          xcrun simctl boot "$UDID"
+          APP=$(find ios/build -name "*.app" -maxdepth 6 | head -1)
+          xcrun simctl install "$UDID" "$APP"
+          echo "SIM_UDID=$UDID" >> $GITHUB_ENV
+
+      - name: Run E2E tests
+        run: npm run test:e2e -- --format junit --output e2e-results.xml
+
+      - name: Upload test results
+        uses: actions/upload-artifact@v4
+        if: always()
+        with:
+          name: e2e-results
+          path: e2e-results.xml
+
+      - name: Delete Supabase preview branch
+        if: always()
+        run: supabase branches delete ${{ steps.branch-status.outputs.branch_id }} --project-ref ${{ vars.SUPABASE_PROJECT_REF }}
+        env:
+          SUPABASE_ACCESS_TOKEN: ${{ secrets.SUPABASE_ACCESS_TOKEN }}

@@ -5,7 +5,7 @@ import {
   KeyboardAvoidingView,
   Platform,
   SafeAreaView,
-  TouchableWithoutFeedback,
+  View,
 } from "react-native";
 import { SafeAreaProvider } from "react-native-safe-area-context";
 import Sign from "~/components/brand/sign";
@@ -52,7 +52,7 @@ export default function LoginScreen() {
             behavior={Platform.OS === "ios" ? "padding" : "height"}
             className="flex-1"
           >
-            <TouchableWithoutFeedback onPress={Keyboard.dismiss}>
+            <View style={{ flex: 1 }}>
               <VStack className="h-full p-6">
                 <Sign
                   width={isKeyboardVisible ? 35 : 70}
@@ -60,7 +60,7 @@ export default function LoginScreen() {
                 />
                 <LoginView />
               </VStack>
-            </TouchableWithoutFeedback>
+            </View>
           </KeyboardAvoidingView>
         </SafeAreaView>
       </SafeAreaProvider>

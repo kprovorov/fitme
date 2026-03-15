@@ -18,6 +18,7 @@ interface WorkoutSessionExerciseSetFormProps {
   disabled?: boolean;
   isDone?: boolean;
   isEditing?: boolean;
+  setIndex?: number;
 }
 
 export type WorkoutSessionExerciseSetFormValues = z.infer<typeof formSchema>;
@@ -35,6 +36,7 @@ export default function WorkoutSessionExerciseSetForm({
   disabled,
   isDone,
   isEditing,
+  setIndex = 0,
 }: WorkoutSessionExerciseSetFormProps) {
   const form = useForm<WorkoutSessionExerciseSetFormValues>({
     resolver: zodResolver(formSchema),
@@ -61,6 +63,7 @@ export default function WorkoutSessionExerciseSetForm({
                   value={value}
                   keyboardType="decimal-pad"
                   className="w-full text-center font-bold h-10 native:h-10"
+                  testID={`set-weight-input-${setIndex}`}
                 />
               )}
               name="weight"
@@ -80,6 +83,7 @@ export default function WorkoutSessionExerciseSetForm({
                 keyboardType="number-pad"
                 autoCapitalize="none"
                 className="w-full text-center font-bold h-10 native:h-10"
+                testID={`set-reps-input-${setIndex}`}
               />
             )}
             name="reps"
@@ -102,6 +106,7 @@ export default function WorkoutSessionExerciseSetForm({
               disabled={disabled}
               size="icon-xs"
               shape="pill"
+              testID={`log-set-button-${setIndex}`}
             >
               <Check className="text-primary-foreground" size={16} />
             </Button>

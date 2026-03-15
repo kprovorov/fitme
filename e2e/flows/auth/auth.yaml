@@ -1,0 +1,73 @@
+appId: com.fitmeproject.ios
+---
+- launchApp:
+    clearState: true
+
+- waitForAnimationToEnd
+
+# ===== REGISTER =====
+- assertVisible:
+    text: "Welcome to Fitme!"
+
+- tapOn:
+    id: "name-input"
+- inputText: "Tony Stark"
+
+- tapOn:
+    id: "email-input"
+- inputText: "tony@stark.com"
+
+- tapOn:
+    id: "password-input"
+- inputText: "secret"
+
+- tapOn:
+    id: "register-button"
+
+- waitForAnimationToEnd
+
+# Lands on onboarding welcome — skip to home
+- extendedWaitUntil:
+    visible:
+      text: "Get Started"
+    timeout: 10000
+
+- tapOn:
+    text: "Skip"
+
+- waitForAnimationToEnd
+
+# ===== LOGOUT =====
+- tapOn:
+    text: "Profile"
+
+- waitForAnimationToEnd
+
+- tapOn:
+    id: "logout-button"
+
+- waitForAnimationToEnd
+
+- assertVisible:
+    text: "Welcome to Fitme!"
+
+# ===== LOGIN =====
+- tapOn:
+    id: "login-email-input"
+- waitForAnimationToEnd
+- inputText: "tony@stark.com"
+
+- tapOn:
+    id: "login-password-input"
+- waitForAnimationToEnd
+- inputText: "secret"
+
+- waitForAnimationToEnd
+
+- tapOn:
+    id: "login-button"
+
+- waitForAnimationToEnd
+- assertVisible:
+    text: "Home"
+    enabled: true

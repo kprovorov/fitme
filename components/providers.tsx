@@ -12,12 +12,11 @@ import { KeyboardProvider } from "react-native-keyboard-controller";
 import { useSyncQueriesExternal } from "react-query-external-sync";
 import { storage } from "~/lib/mmkv";
 
+const IS_E2E = process.env.EXPO_PUBLIC_E2E_ENABLED === "true";
+
 const queryClient = new QueryClient();
 
-function Providers({ children }: { children: React.ReactNode }) {
-  const colorScheme = useColorScheme();
-
-  // Set up the sync hook - automatically disabled in production!
+function DevToolsSync() {
   useSyncQueriesExternal({
     queryClient,
     socketURL: "http://localhost:42831", // Default port for React Native DevTools
@@ -41,9 +40,15 @@ function Providers({ children }: { children: React.ReactNode }) {
     secureStorage: SecureStore, // SecureStore for ['#storage', 'secure', 'key'] queries + monitoring
     secureStorageKeys: ["biometricKey", "deviceId"], // SecureStore keys to monitor
   });
+  return null;
+}
+
+function Providers({ children }: { children: React.ReactNode }) {
+  const colorScheme = useColorScheme();
 
   return (
     <QueryClientProvider client={queryClient}>
+      {!IS_E2E && <DevToolsSync />}
       <ThemeProvider
         value={
           colorScheme === "dark"
@@ -64,7 +69,7 @@ function Providers({ children }: { children: React.ReactNode }) {
               }
         }
       >
-        <KeyboardProvider>{children}</KeyboardProvider>
+        {IS_E2E ? children : <KeyboardProvider>{children}</KeyboardProvider>}
       </ThemeProvider>
     </QueryClientProvider>
   );

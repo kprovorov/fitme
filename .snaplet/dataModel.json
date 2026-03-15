@@ -4414,6 +4414,11 @@
           "name": "profiles_pkey",
           "fields": ["id"],
           "nullNotDistinct": false
+        },
+        {
+          "name": "profiles_user_id_unique",
+          "fields": ["user_id"],
+          "nullNotDistinct": false
         }
       ]
     },
