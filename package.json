@@ -14,7 +14,6 @@
     "db:seed": "npx tsx supabase/seed.ts",
     "exercises:sync": "npx tsx supabase/sync.ts",
     "prepare": "husky",
-    "e2e:seed": "bash e2e/setup/seed.sh",
     "e2e:test": "maestro test e2e/flows/**/*.yaml"
   },
   "jest": {

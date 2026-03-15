@@ -11,15 +11,15 @@ appId: com.fitmeproject.ios
 
 - tapOn:
     id: "name-input"
-- inputText: "E2E Register User"
+- inputText: "Tony Stark"
 
 - tapOn:
     id: "email-input"
-- inputText: "e2e-register@fitme.test"
+- inputText: "tony@stark.com"
 
 - tapOn:
     id: "password-input"
-- inputText: "E2eTestP@ss1"
+- inputText: "secret"
 
 - tapOn:
     id: "register-button"

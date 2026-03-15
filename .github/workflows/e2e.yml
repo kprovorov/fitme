@@ -74,11 +74,9 @@ jobs:
         env:
           SUPABASE_ACCESS_TOKEN: ${{ secrets.SUPABASE_ACCESS_TOKEN }}
 
-      - name: Seed database and create test user
-        run: bash e2e/setup/seed.sh
+      - name: Seed database
+        run: npm run db:seed
         env:
-          SUPABASE_URL: ${{ steps.branch-details.outputs.api_url }}
-          SERVICE_ROLE_KEY: ${{ steps.branch-details.outputs.service_key }}
           DATABASE_URL: ${{ steps.branch-details.outputs.postgres_url }}
 
       - name: Install Maestro CLI
