@@ -67,4 +67,7 @@ appId: com.fitmeproject.ios
 - tapOn:
     id: "login-button"
 
-- runFlow: "../../subflows/wait-for-home.yaml"
+- waitForAnimationToEnd
+- assertVisible:
+    text: "Home"
+    enabled: true
