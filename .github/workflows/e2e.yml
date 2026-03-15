@@ -126,7 +126,7 @@ jobs:
           echo "SIM_UDID=$UDID" >> $GITHUB_ENV
 
       - name: Run E2E tests
-        run: npm run e2e:test -- --format junit --output e2e-results.xml
+        run: npm run test:e2e -- --format junit --output e2e-results.xml
 
       - name: Upload test results
         uses: actions/upload-artifact@v4
