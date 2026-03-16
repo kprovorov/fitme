@@ -1,0 +1,63 @@
+// Jest Snapshot v1, https://goo.gl/fbAQLP
+
+exports[`PlanCard matches snapshot 1`] = `
+<View
+  className="rounded-2xl bg-card/70 flex-1 flex-col items-stretch justify-start gap-sm py-sm"
+>
+  <View
+    className="flex flex-col gap-sm px-sm"
+  >
+    <Text
+      aria-level={3}
+      className="text-xl font-nunito-sans-bold tracking-tight text-primary"
+      role="heading"
+    >
+      My Fitness Plan
+    </Text>
+    <Text
+      className="text-sm text-muted-foreground"
+    >
+      <View
+        className="flex flex-row items-center gap-4 justify-start flex-wrap"
+      >
+        <View
+          className="flex flex-row items-center justify-center gap-1"
+        >
+          <Text
+            className="text-foreground web:select-text font-nunito-sans-bold text-sm"
+          >
+            Gain Muscle
+          </Text>
+        </View>
+        <View
+          className="flex flex-row items-center justify-center gap-1"
+        >
+          <Text
+            className="text-foreground web:select-text font-nunito-sans-bold text-sm"
+          >
+            4x per week
+          </Text>
+        </View>
+        <View
+          className="flex flex-row items-center justify-center gap-1"
+        >
+          <Text
+            className="text-foreground web:select-text font-nunito-sans-bold text-sm"
+          >
+            Gym
+          </Text>
+        </View>
+      </View>
+    </Text>
+  </View>
+  <View
+    className="px-sm"
+  >
+    <Text
+      className="text-base font-nunito-sans-regular web:select-text text-muted-foreground"
+    >
+      A comprehensive fitness plan
+    </Text>
+  </View>
+</View>
+`;

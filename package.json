@@ -17,7 +17,14 @@
     "test:e2e": "maestro test e2e/flows/**/*.yaml"
   },
   "jest": {
-    "preset": "jest-expo"
+    "preset": "jest-expo",
+    "setupFilesAfterEnv": [
+      "@testing-library/jest-native/extend-expect"
+    ],
+    "transformIgnorePatterns": [
+      "/node_modules/(?!(.pnpm|react-native|@react-native|@react-native-community|expo|@expo|@expo-google-fonts|react-navigation|@react-navigation|@sentry/react-native|native-base|@rn-primitives|react-native-purchases|react-native-purchases-ui|react-native-mmkv|nativewind|react-native-css-interop))",
+      "/node_modules/react-native-reanimated/plugin/"
+    ]
   },
   "dependencies": {
     "@expo-google-fonts/ibm-plex-mono": "^0.3.0",
@@ -99,6 +106,8 @@
   "devDependencies": {
     "@snaplet/copycat": "^6.0.0",
     "@snaplet/seed": "^0.98.0",
+    "@testing-library/jest-native": "^5.4.3",
+    "@testing-library/react-native": "^13.3.3",
     "@types/jest": "^29.5.12",
     "@types/pg": "^8.16.0",
     "@types/react": "~19.1.10",
