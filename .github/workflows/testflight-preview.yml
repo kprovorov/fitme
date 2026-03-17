@@ -51,12 +51,11 @@ jobs:
         env:
           SUPABASE_ACCESS_TOKEN: ${{ secrets.SUPABASE_ACCESS_TOKEN }}
 
-      - name: Build and submit to TestFlight
+      - name: Build preview
         run: |
           eas build --platform ios \
-            --profile testflight-preview \
+            --profile preview \
             --non-interactive \
-            --auto-submit-with-profile production \
             --env "EXPO_PUBLIC_SUPABASE_URL=${{ steps.branch-details.outputs.api_url }}" \
             --env "EXPO_PUBLIC_SUPABASE_ANON_KEY=${{ steps.branch-details.outputs.anon_key }}"
         env:
