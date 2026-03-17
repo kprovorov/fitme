@@ -10,7 +10,6 @@ jobs:
     runs-on: ubuntu-latest
     permissions:
       contents: read
-      pull-requests: write
 
     steps:
       - uses: actions/checkout@v4
@@ -32,49 +31,23 @@ jobs:
         with:
           version: latest
 
-      - name: Create or get Supabase preview branch
-        id: branch
-        run: |
-          BRANCH="pr-${{ github.event.pull_request.number }}"
-          supabase branches create "$BRANCH" --project-ref ${{ vars.SUPABASE_PROJECT_REF }} 2>/dev/null || true
-          echo "branch_name=$BRANCH" >> $GITHUB_OUTPUT
-        env:
-          SUPABASE_ACCESS_TOKEN: ${{ secrets.SUPABASE_ACCESS_TOKEN }}
-
-      - name: Wait for branch to be ready
-        id: branch-status
-        run: |
-          BRANCH="${{ steps.branch.outputs.branch_name }}"
-          for i in $(seq 1 36); do
-            DETAILS=$(supabase branches list --project-ref ${{ vars.SUPABASE_PROJECT_REF }} --output json 2>/dev/null | jq '.[] | select(.name == "'"$BRANCH"'")' || echo '{}')
-            PREVIEW_STATUS=$(echo "$DETAILS" | jq -r '.preview_project_status // empty')
-            DEPLOY_STATUS=$(echo "$DETAILS" | jq -r '.status // empty')
-            if [ "$PREVIEW_STATUS" = "ACTIVE_HEALTHY" ] && [ "$DEPLOY_STATUS" = "FUNCTIONS_DEPLOYED" ]; then
-              echo "Branch is ready"
-              echo "branch_id=$(echo $DETAILS | jq -r '.id')" >> $GITHUB_OUTPUT
-              echo "branch_project_ref=$(echo $DETAILS | jq -r '.project_ref')" >> $GITHUB_OUTPUT
-              exit 0
-            fi
-            echo "Branch status: ${PREVIEW_STATUS:-pending}/${DEPLOY_STATUS:-pending} (attempt $i/36)"
-            sleep 10
-          done
-          echo "Branch never became ready after 6 minutes" && exit 1
-        env:
-          SUPABASE_ACCESS_TOKEN: ${{ secrets.SUPABASE_ACCESS_TOKEN }}
-
-      - name: Get branch credentials
+      - name: Get Supabase preview branch credentials
         id: branch-details
         run: |
-          CREDS=$(supabase branches get "${{ steps.branch-status.outputs.branch_id }}" --project-ref ${{ vars.SUPABASE_PROJECT_REF }} --output json)
+          BRANCH="${{ github.head_ref }}"
+          DETAILS=$(supabase branches list --project-ref ${{ vars.SUPABASE_PROJECT_REF }} --output json | jq '.[] | select(.name == "'"$BRANCH"'")')
+          BRANCH_ID=$(echo "$DETAILS" | jq -r '.id')
+          CREDS=$(supabase branches get "$BRANCH_ID" --project-ref ${{ vars.SUPABASE_PROJECT_REF }} --output json)
           echo "api_url=$(echo $CREDS | jq -r '.SUPABASE_URL')" >> $GITHUB_OUTPUT
           echo "anon_key=$(echo $CREDS | jq -r '.SUPABASE_ANON_KEY')" >> $GITHUB_OUTPUT
+          echo "branch_project_ref=$(echo $DETAILS | jq -r '.project_ref')" >> $GITHUB_OUTPUT
         env:
           SUPABASE_ACCESS_TOKEN: ${{ secrets.SUPABASE_ACCESS_TOKEN }}
 
       - name: Deploy edge functions to branch
         run: |
           supabase functions deploy preview-plan \
-            --project-ref ${{ steps.branch-status.outputs.branch_project_ref }}
+            --project-ref ${{ steps.branch-details.outputs.branch_project_ref }}
         env:
           SUPABASE_ACCESS_TOKEN: ${{ secrets.SUPABASE_ACCESS_TOKEN }}
 
