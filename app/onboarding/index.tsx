@@ -24,7 +24,8 @@ export default function WelcomeScreen() {
             <VStack className="gap-2">
               <H2>Welcome to Fitme!</H2>
               <Text className="text-center">
-                Your personal AI trainer is waiting for you. Let's get started!
+                Your personal AI trainer is waiting for you. Let&apos;s get
+                started!
               </Text>
             </VStack>
             <VStack className="items-stretch w-full">

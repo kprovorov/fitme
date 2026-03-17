@@ -16,7 +16,7 @@ import {
   useDeleteWorkoutSessionExerciseMutation,
   useReplaceWorkoutSessionExerciseMutation,
 } from "~/hooks/queries/workout-session-exercises";
-import { QueryClient, useQueryClient } from "@tanstack/react-query";
+import { useQueryClient } from "@tanstack/react-query";
 
 interface WorkoutSessionViewProps {
   workoutSession: WorkoutSession;

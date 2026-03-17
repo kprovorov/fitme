@@ -34,19 +34,19 @@ const formSchema = z.object({
   gender: z.enum(genders, {
     message: "Gender is required",
   }),
-  age: z.coerce
+  age: z
     .number({
       message: "Age is required",
     })
     .min(4)
     .max(150),
-  weight: z.coerce
+  weight: z
     .number({
       message: "Weight is required",
     })
     .min(1)
     .max(500),
-  height: z.coerce
+  height: z
     .number({
       message: "Height is required",
     })
@@ -167,9 +167,9 @@ export default function ProfileScreen() {
                 >
                   <VStack className="p-6 items-stretch justify-center gap-8">
                     <VStack className="gap-2">
-                      <H2>Let's get to know you!</H2>
+                      <H2>Let&apos;s get to know you!</H2>
                       <Text className="text-center">
-                        We'll use this information to personalize your
+                        We&apos;ll use this information to personalize your
                         experience.
                       </Text>
                     </VStack>

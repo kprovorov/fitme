@@ -10,7 +10,7 @@ import {
 import { HStack } from "../ui/hstack";
 import { Zap } from "~/lib/icons/Zap";
 import { Text } from "../ui/text";
-import { Muted, P } from "../ui/typography";
+import { P } from "../ui/typography";
 import { Dumbbell } from "~/lib/icons/Dumbbell";
 import { House } from "~/lib/icons/House";
 import { BicepsFlexed } from "~/lib/icons/BicepsFlexed";

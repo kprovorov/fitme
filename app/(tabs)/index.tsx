@@ -14,9 +14,9 @@ import { Link } from "expo-router";
 import { VStack } from "~/components/ui/vstack";
 import { H1 } from "~/components/ui/typography";
 import Purchases from "react-native-purchases";
+import HomeView from "~/components/views/home-view";
 
 const IS_E2E = process.env.EXPO_PUBLIC_E2E_ENABLED === "true";
-import HomeView from "~/components/views/home-view";
 
 export default function HomeScreen() {
   const [activePlan, setActivePlan] = useState<Plan | null>(null);

@@ -1,6 +1,5 @@
 import React from "react";
 import ExerciseImage from "~/components/exercises/exercise-image";
-import { HStack } from "~/components/ui/hstack";
 import { MenuList, MenuListItem } from "~/components/ui/menu-list";
 import { Text } from "~/components/ui/text";
 import { Exercise } from "~/lib/models";

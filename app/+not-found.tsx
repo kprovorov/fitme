@@ -8,7 +8,7 @@ export default function NotFoundScreen() {
     <>
       <Stack.Screen options={{ title: "Oops!" }} />
       <VStack>
-        <H1>This screen doesn't exist.</H1>
+        <H1>This screen doesn&apos;t exist.</H1>
         <Link href="/" asChild>
           <Button>Go to home screen!</Button>
         </Link>

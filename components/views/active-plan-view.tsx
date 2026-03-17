@@ -1,7 +1,7 @@
 import React, { useEffect, useState } from "react";
 import { Plan } from "~/lib/models";
 import { usePlansQuery } from "~/hooks/queries/plans";
-import { H2, H3, H4 } from "../ui/typography";
+import { H3 } from "../ui/typography";
 import { VStack } from "../ui/vstack";
 import PlanCard from "../plans/plan-card";
 import { HStack } from "../ui/hstack";

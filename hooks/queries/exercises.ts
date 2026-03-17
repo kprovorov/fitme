@@ -61,9 +61,9 @@ export const useExercisesQuery = createInfiniteQuery<
       hasMore: from + PAGE_SIZE < total,
     };
   },
-  getNextPageParam: (lastPage) =>
+  getNextPageParam: (lastPage: SupabasePaginatedResponse<Exercise>) =>
     lastPage.hasMore ? lastPage.page + 1 : undefined,
-  getPreviousPageParam: (firstPage) =>
+  getPreviousPageParam: (firstPage: SupabasePaginatedResponse<Exercise>) =>
     firstPage.page > 0 ? firstPage.page - 1 : undefined,
   initialPageParam: 0,
 });

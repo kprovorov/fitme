@@ -5,7 +5,7 @@ import { KeyboardAwareScrollView } from "react-native-keyboard-controller";
 import { SafeAreaProvider, SafeAreaView } from "react-native-safe-area-context";
 import ExerciseVideo from "~/components/exercises/exercise-video";
 import { HeaderBackButton } from "~/components/ui/header-back-button";
-import { H4, P } from "~/components/ui/typography";
+import { P } from "~/components/ui/typography";
 import { VStack } from "~/components/ui/vstack";
 import ExerciseHistoryView from "~/components/views/exercise-history-view";
 import WorkoutSessionExerciseSetsTableView from "~/components/views/workout-session-exercise-sets-table-view";
@@ -15,14 +15,12 @@ import { Button } from "~/components/ui/button";
 import { Text } from "~/components/ui/text";
 import {
   AlertDialog,
-  AlertDialogTrigger,
   AlertDialogContent,
   AlertDialogHeader,
   AlertDialogTitle,
   AlertDialogDescription,
   AlertDialogFooter,
   AlertDialogCancel,
-  AlertDialogAction,
 } from "~/components/ui/alert-dialog";
 
 export default function WorkoutSessionExerciseScreen() {

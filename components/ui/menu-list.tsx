@@ -50,7 +50,7 @@ const MenuListItem = React.forwardRef<
         role="button"
         {...props}
       >
-        {children}
+        {children as React.ReactNode}
         {Icon && <Icon className="text-muted-foreground shrink-0" size={20} />}
       </Pressable>
     </TextClassContext.Provider>

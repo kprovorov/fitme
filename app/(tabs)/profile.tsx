@@ -4,9 +4,9 @@ import { SafeAreaView } from "react-native-safe-area-context";
 import { VStack } from "~/components/ui/vstack";
 import ProfileView from "~/components/views/profile-view";
 import Purchases from "react-native-purchases";
+import { useQueryClient } from "@tanstack/react-query";
 
 const IS_E2E = process.env.EXPO_PUBLIC_E2E_ENABLED === "true";
-import { useQueryClient } from "@tanstack/react-query";
 
 export default function ProfileScreen() {
   const [refreshing, setRefreshing] = useState(false);

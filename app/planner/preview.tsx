@@ -1,7 +1,5 @@
 import { useLocalSearchParams, useRouter } from "expo-router";
 import React, { useEffect } from "react";
-
-const IS_E2E = process.env.EXPO_PUBLIC_E2E_ENABLED === "true";
 import { SafeAreaProvider, SafeAreaView } from "react-native-safe-area-context";
 import { ScrollView } from "react-native";
 import { VStack } from "~/components/ui/vstack";
@@ -18,6 +16,8 @@ import { Text } from "~/components/ui/text";
 import { useQueryClient } from "@tanstack/react-query";
 import { useIsProQuery } from "~/hooks/revenueCat";
 import RevenueCatUI, { PAYWALL_RESULT } from "react-native-purchases-ui";
+
+const IS_E2E = process.env.EXPO_PUBLIC_E2E_ENABLED === "true";
 
 export default function Preview() {
   const router = useRouter();
@@ -68,7 +68,10 @@ export default function Preview() {
       }
     };
 
-    if (error?.response?.status && [403, 429].includes(error.response.status)) {
+    if (
+      (error as any)?.response?.status &&
+      [403, 429].includes((error as any).response.status)
+    ) {
       presentPaywall();
     }
   }, [error]);

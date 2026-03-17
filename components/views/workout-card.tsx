@@ -1,6 +1,6 @@
 import React, { useEffect, useState } from "react";
 import { Workout } from "~/lib/models";
-import { H3, H4, P } from "@/components/ui/typography";
+import { H4, P } from "@/components/ui/typography";
 import { HStack } from "@/components/ui/hstack";
 import { VStack } from "@/components/ui/vstack";
 import { Text } from "@/components/ui/text";

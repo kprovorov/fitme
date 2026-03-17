@@ -10,9 +10,7 @@ import {
   useCreateWorkoutSessionExerciseSetMutation,
 } from "~/hooks/queries/workout-session-exercise-sets";
 import { Separator } from "../ui/separator";
-import { Muted } from "../ui/typography";
 import { ClockFading } from "~/lib/icons/ClockFading";
-import { View } from "react-native";
 import { cn } from "~/lib/utils";
 
 interface WorkoutSessionExerciseSetRowViewProps {

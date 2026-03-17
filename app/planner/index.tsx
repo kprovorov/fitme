@@ -35,9 +35,9 @@ export type PlanFormValues = z.infer<typeof formSchema>;
 const formSchema = z.object({
   goal: z.enum(goals),
   place: z.enum(places),
-  frequency: z.coerce.number().min(1).max(7),
+  frequency: z.number().min(1).max(7),
   experience_level: z.enum(experienceLevels),
-  workout_duration: z.coerce.number().min(1).max(120),
+  workout_duration: z.number().min(1).max(120),
   note: z.string().optional(),
 });
 

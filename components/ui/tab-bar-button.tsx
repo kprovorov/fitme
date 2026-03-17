@@ -5,8 +5,7 @@ import { VStack } from "./vstack";
 import * as Haptics from "expo-haptics";
 
 interface TabBarButtonProps
-  extends React.PropsWithChildren,
-    TabTriggerSlotProps {
+  extends React.PropsWithChildren, TabTriggerSlotProps {
   renderIcon: (props: { isFocused: boolean }) => React.ReactNode;
 }
 

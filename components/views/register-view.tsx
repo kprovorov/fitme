@@ -3,7 +3,7 @@ import { router } from "expo-router";
 import { Pressable, View } from "react-native";
 import { VStack } from "../ui/vstack";
 import { H3, P } from "../ui/typography";
-import RegisterForm, { RegisterFormValues } from "../forms/auth/register-form";
+import RegisterForm from "../forms/auth/register-form";
 import { useQueryClient } from "@tanstack/react-query";
 import { useEffect, useState } from "react";
 import { handleSupabaseError } from "~/lib/utils";

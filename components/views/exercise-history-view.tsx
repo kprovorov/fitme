@@ -3,7 +3,7 @@ import React from "react";
 import { useExerciseHistoryQuery } from "~/hooks/queries/exercises";
 import { HStack } from "../ui/hstack";
 import { Text } from "../ui/text";
-import { H2, H3, H4 } from "../ui/typography";
+import { H2 } from "../ui/typography";
 import { VStack } from "../ui/vstack";
 import { useCurrentUserQuery } from "~/hooks/queries/auth";
 import { getWeightLabel } from "~/lib/labels";

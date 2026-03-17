@@ -1,4 +1,4 @@
-import LoginForm, { LoginFormValues } from "@/components/forms/auth/login-form";
+import LoginForm from "@/components/forms/auth/login-form";
 import { useLoginMutation } from "@/hooks/mutations/auth";
 import { useQueryClient } from "@tanstack/react-query";
 import { Link, router } from "expo-router";

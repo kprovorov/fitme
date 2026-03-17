@@ -7,7 +7,6 @@ import { useCurrentUserQuery } from "~/hooks/queries/auth";
 import WorkoutSessionExerciseSetRowView from "./workout-session-exercise-set-row-view";
 import { getWeightLabel } from "~/lib/labels";
 import { Separator } from "../ui/separator";
-import { Muted } from "../ui/typography";
 import { Button } from "../ui/button";
 import { Plus } from "lucide-react-native";
 
