@@ -21,9 +21,6 @@
     "production": {
       "autoIncrement": true
     },
-    "testflight-preview": {
-      "autoIncrement": true
-    },
     "e2e-simulator": {
       "developmentClient": true,
       "distribution": "internal",

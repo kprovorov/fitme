@@ -1,12 +1,12 @@
-name: TestFlight Preview
+name: PR Preview
 
 on:
   pull_request:
     types: [labeled]
 
 jobs:
-  testflight-preview:
-    if: github.event.label.name == 'testflight'
+  pr-preview:
+    if: github.event.label.name == 'preview'
     runs-on: ubuntu-latest
     permissions:
       contents: read
