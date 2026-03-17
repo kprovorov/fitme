@@ -1,12 +1,11 @@
-import React from "react";
-import { render, fireEvent } from "@testing-library/react-native";
 import { QueryClient, QueryClientProvider } from "@tanstack/react-query";
-import WorkoutCard from "../workout-card";
-import { mockWorkout } from "~/lib/test-fixtures";
+import { fireEvent, render } from "@testing-library/react-native";
 import {
   useCreateWorkoutSessionMutation,
   useFinishWorkoutSessionMutation,
 } from "~/hooks/queries/workout-sessions";
+import { mockWorkout } from "~/lib/test-fixtures";
+import WorkoutCard from "../workout-card";
 
 jest.mock("~/hooks/queries/workout-sessions", () => ({
   useCreateWorkoutSessionMutation: jest.fn(),
