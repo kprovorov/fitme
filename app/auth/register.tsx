@@ -7,7 +7,6 @@ import {
   SafeAreaView,
   View,
 } from "react-native";
-import { SafeAreaProvider } from "react-native-safe-area-context";
 import { VStack } from "~/components/ui/vstack";
 import RegisterView from "~/components/views/register-view";
 import Sign from "~/components/brand/sign";
@@ -47,24 +46,22 @@ export default function RegisterScreen() {
           headerShown: false,
         }}
       />
-      <SafeAreaProvider>
-        <SafeAreaView className="flex-1">
-          <KeyboardAvoidingView
-            behavior={Platform.OS === "ios" ? "padding" : "height"}
-            className="flex-1"
-          >
-            <View style={{ flex: 1 }}>
-              <VStack className="h-full p-6 gap-8">
-                <Sign
-                  width={isKeyboardVisible ? 35 : 70}
-                  height={isKeyboardVisible ? 35 : 70}
-                />
-                <RegisterView />
-              </VStack>
-            </View>
-          </KeyboardAvoidingView>
-        </SafeAreaView>
-      </SafeAreaProvider>
+      <SafeAreaView className="flex-1">
+        <KeyboardAvoidingView
+          behavior={Platform.OS === "ios" ? "padding" : "height"}
+          className="flex-1"
+        >
+          <View style={{ flex: 1 }}>
+            <VStack className="h-full p-6 gap-8">
+              <Sign
+                width={isKeyboardVisible ? 35 : 70}
+                height={isKeyboardVisible ? 35 : 70}
+              />
+              <RegisterView />
+            </VStack>
+          </View>
+        </KeyboardAvoidingView>
+      </SafeAreaView>
     </>
   );
 }
