@@ -27,7 +27,7 @@
       "ios": { "simulator": true },
       "env": {
         "EXPO_PUBLIC_E2E_ENABLED": "true",
-        "EXPO_PUBLIC_SUPABASE_URL": "http://127.0.0.1:54321",
+        "EXPO_PUBLIC_SUPABASE_URL": "http://127.0.0.1:51321",
         "EXPO_PUBLIC_SUPABASE_ANON_KEY": "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZS1kZW1vIiwicm9sZSI6ImFub24iLCJleHAiOjE5ODM4MTI5OTZ9.CRFA0NiK7ACciz0he1wvtG4OdpbkCeLCo3WnTlgAHE0",
         "EXPO_PUBLIC_REVENUECAT_IOS_API_KEY": "placeholder",
         "EXPO_PUBLIC_SENTRY_DSN": "placeholder"
