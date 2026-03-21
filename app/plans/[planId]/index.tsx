@@ -1,5 +1,4 @@
 import { VStack } from "~/components/ui/vstack";
-import { Text } from "~/components/ui/text";
 import { Stack, useLocalSearchParams, useRouter } from "expo-router";
 import {
   useActivatePlanMutation,
@@ -120,9 +119,7 @@ export default function PlanScreen() {
               }}
             >
               <Button variant="secondary" size="icon-sm" shape="pill">
-                <Text>
-                  <Ellipsis size={16} className="text-foreground" />
-                </Text>
+                <Ellipsis size={16} className="text-foreground" />
               </Button>
             </ContextMenu>
           ),

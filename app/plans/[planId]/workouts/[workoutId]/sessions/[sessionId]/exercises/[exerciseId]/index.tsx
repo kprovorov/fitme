@@ -57,9 +57,7 @@ export default function WorkoutSessionExerciseScreen() {
               shape="pill"
               onPress={() => setIsOpen(true)}
             >
-              <Text>
-                <Info size={21} className="text-foreground" />
-              </Text>
+              <Info size={21} className="text-foreground" />
             </Button>
           ),
         }}

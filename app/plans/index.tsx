@@ -7,7 +7,6 @@ import PlansListView from "~/components/views/plan-list-view";
 import { usePlansQuery } from "~/hooks/queries/plans";
 import { Button } from "~/components/ui/button";
 import { Plus } from "~/lib/icons/Plus";
-import { Text } from "~/components/ui/text";
 
 export default function PlansScreen() {
   const { refetch, isLoading } = usePlansQuery();
@@ -27,9 +26,7 @@ export default function PlansScreen() {
           headerRight: () => (
             <Link href="/planner" asChild>
               <Button variant="secondary" size="icon-sm" shape="pill">
-                <Text>
-                  <Plus size={16} className="text-foreground" />
-                </Text>
+                <Plus size={16} className="text-foreground" />
               </Button>
             </Link>
           ),

@@ -19,9 +19,7 @@ const HeaderBackButton = React.forwardRef<
       shape="pill"
       {...props}
     >
-      <Text>
-        <ArrowLeft size={21} className="text-foreground" />
-      </Text>
+      <ArrowLeft size={21} className="text-foreground" />
     </Button>
   );
 });
