@@ -7,7 +7,7 @@ export default defineConfig({
     const client = new Client({
       connectionString:
         process.env.DATABASE_URL ??
-        "postgresql://postgres:postgres@localhost:54322/postgres",
+        "postgresql://postgres:postgres@localhost:51322/postgres",
     });
     await client.connect();
     return new SeedPg(client);

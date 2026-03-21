@@ -1,0 +1,27 @@
+[
+  {
+    "label": "Run Supabase",
+    "command": "supabase",
+    "args": ["start"],
+    "reveal": "no_focus",
+    "hide": "on_success"
+  },
+  {
+    "label": "Run iOS",
+    "command": "npm",
+    "args": ["run", "ios"],
+    "reveal": "no_focus"
+  },
+  {
+    "label": "Serve Supabase Functions",
+    "command": "supabase",
+    "args": [
+      "functions",
+      "serve",
+      "--env-file",
+      ".env.local",
+      "--no-verify-jwt"
+    ],
+    "reveal": "no_focus"
+  }
+]
