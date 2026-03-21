@@ -5,10 +5,7 @@
     "version": "1.20.0",
     "orientation": "portrait",
     "icon": "./assets/images/icon.png",
-    "scheme": [
-      "fitme",
-      "rc-d91405cd5f"
-    ],
+    "scheme": ["fitme", "rc-d91405cd5f"],
     "userInterfaceStyle": "dark",
     "ios": {
       "supportsTablet": false,
@@ -69,7 +66,10 @@
           "organization": "fitme"
         }
       ],
-      "expo-localization"
+      "expo-localization",
+      "@sentry/react-native",
+      "expo-image",
+      "expo-web-browser"
     ],
     "experiments": {
       "typedRoutes": true,

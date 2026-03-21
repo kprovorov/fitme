@@ -181,7 +181,7 @@ export default function WorkoutCard({
           </VStack>
         </Pressable>
         {state === "upcoming" && (
-          <VStack className="px-4 pb-4">
+          <VStack className="px-4 pb-4 items-stretch">
             {activeSession ? (
               <Button
                 variant="secondary"
