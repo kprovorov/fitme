@@ -470,14 +470,7 @@ Deno.serve(async (req: Request) => {
   // Subscription gate: first plan is free; subsequent plans require PRO
   const planCount = plansCountResult.count ?? 0;
   if (planCount > 0) {
-    const rcUserId = profileResult.data?.rc_user_id as string | null;
-    if (!rcUserId) {
-      return new Response(JSON.stringify({ error: "Subscription required" }), {
-        status: 403,
-        headers: { "Content-Type": "application/json" },
-      });
-    }
-    const isPro = await checkRevenueCatEntitlement(rcUserId);
+    const isPro = await checkRevenueCatEntitlement(user.id);
     if (!isPro) {
       return new Response(JSON.stringify({ error: "Subscription required" }), {
         status: 403,

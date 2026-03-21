@@ -55,12 +55,12 @@ Deno.serve(async (req: Request) => {
   const { data: profile, error } = await serviceClient
     .from("profiles")
     .select("user_id")
-    .eq("rc_user_id", appUserId)
+    .eq("user_id", appUserId)
     .single();
 
   if (error || !profile) {
     console.error(
-      `RevenueCat webhook: no profile found for rc_user_id=${appUserId}`,
+      `RevenueCat webhook: no profile found for user_id=${appUserId}`,
       { eventType, error: error?.message },
     );
     // Still return 200 so RevenueCat does not retry

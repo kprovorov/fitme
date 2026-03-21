@@ -48,8 +48,8 @@ export const useCurrentUserQuery = createQuery<User>({
       email: user.email,
     });
 
-    if (!IS_E2E && profile?.rc_user_id) {
-      await Purchases.logIn(profile.rc_user_id);
+    if (!IS_E2E) {
+      await Purchases.logIn(user.id);
     }
 
     return user;
