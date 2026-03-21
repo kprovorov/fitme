@@ -50,6 +50,8 @@ export const useCurrentUserQuery = createQuery<User>({
 
     if (!IS_E2E) {
       await Purchases.logIn(user.id);
+      Purchases.setEmail(user.email);
+      if (user.name) Purchases.setDisplayName(user.name);
     }
 
     return user;
