@@ -132,7 +132,6 @@ export type Database = {
           height: number;
           id: string;
           measurement_system: string;
-          rc_user_id: string | null;
           updated_at: string | null;
           user_id: string;
           weight: number;
@@ -144,7 +143,6 @@ export type Database = {
           height: number;
           id?: string;
           measurement_system?: string;
-          rc_user_id?: string | null;
           updated_at?: string | null;
           user_id: string;
           weight: number;
@@ -156,7 +154,6 @@ export type Database = {
           height?: number;
           id?: string;
           measurement_system?: string;
-          rc_user_id?: string | null;
           updated_at?: string | null;
           user_id?: string;
           weight?: number;

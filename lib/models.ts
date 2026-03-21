@@ -69,7 +69,6 @@ export type Profile = Model & {
   height: number;
   weight: number;
   measurement_system: MeasurementSystem;
-  rc_user_id: string | null;
 };
 
 export type Exercise = Model & {

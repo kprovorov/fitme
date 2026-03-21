@@ -417,7 +417,6 @@ CREATE TABLE public.users (
     updated_at timestamp(0) without time zone,
     two_factor_secret text,
     two_factor_recovery_codes text,
-    rc_user_id uuid NOT NULL,
     measurement_system character varying(255) DEFAULT 'metric'::character varying NOT NULL
 );
 

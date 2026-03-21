@@ -36,7 +36,6 @@ CREATE TABLE public.profiles (
   weight numeric(8,2) NOT NULL,
   height numeric(8,2) NOT NULL,
   measurement_system text NOT NULL DEFAULT 'metric',
-  rc_user_id uuid
 );
 
 -- ------------------------------------------------------------

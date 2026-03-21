@@ -4381,20 +4381,6 @@
           "maxLength": null
         },
         {
-          "id": "public.profiles.rc_user_id",
-          "name": "rc_user_id",
-          "columnName": "rc_user_id",
-          "type": "uuid",
-          "isRequired": false,
-          "kind": "scalar",
-          "isList": false,
-          "isGenerated": false,
-          "sequence": false,
-          "hasDefaultValue": false,
-          "isId": false,
-          "maxLength": null
-        },
-        {
           "name": "users",
           "type": "users",
           "isRequired": true,
