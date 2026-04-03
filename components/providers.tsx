@@ -1,3 +1,4 @@
+import { AnalyticsProvider } from "@segment/analytics-react-native";
 import { useColorScheme } from "@/hooks/useColorScheme";
 import AsyncStorage from "@react-native-async-storage/async-storage";
 import {
@@ -10,6 +11,7 @@ import * as SecureStore from "expo-secure-store";
 import { Platform } from "react-native";
 import { KeyboardProvider } from "react-native-keyboard-controller";
 import { useSyncQueriesExternal } from "react-query-external-sync";
+import { segmentClient } from "~/lib/segment";
 import { storage } from "~/lib/mmkv";
 
 const IS_E2E = process.env.EXPO_PUBLIC_E2E_ENABLED === "true";
@@ -47,6 +49,7 @@ function Providers({ children }: { children: React.ReactNode }) {
   const colorScheme = useColorScheme();
 
   return (
+    <AnalyticsProvider client={segmentClient}>
     <QueryClientProvider client={queryClient}>
       {!IS_E2E && <DevToolsSync />}
       <ThemeProvider
@@ -72,6 +75,7 @@ function Providers({ children }: { children: React.ReactNode }) {
         {IS_E2E ? children : <KeyboardProvider>{children}</KeyboardProvider>}
       </ThemeProvider>
     </QueryClientProvider>
+    </AnalyticsProvider>
   );
 }
 
