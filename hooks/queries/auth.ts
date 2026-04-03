@@ -1,5 +1,6 @@
 import { supabase } from "@/lib/supabase";
 import { User } from "@/lib/models";
+import { segmentClient } from "@/lib/segment";
 import Purchases from "react-native-purchases";
 import * as Sentry from "@sentry/react-native";
 import { createQuery } from "react-query-kit";
@@ -52,6 +53,11 @@ export const useCurrentUserQuery = createQuery<User>({
       await Purchases.logIn(user.id);
       Purchases.setEmail(user.email);
       if (user.name) Purchases.setDisplayName(user.name);
+
+      await segmentClient.identify(user.id, {
+        email: user.email,
+        name: user.name,
+      });
     }
 
     return user;

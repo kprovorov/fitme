@@ -43,6 +43,7 @@
     "@rn-primitives/table": "^1.2.0",
     "@rn-primitives/tabs": "^1.2.0",
     "@rn-primitives/types": "^1.1.0",
+    "@segment/analytics-react-native": "^2.20.0",
     "@sentry/react-native": "~7.11.0",
     "@supabase/supabase-js": "^2.97.0",
     "@tanstack/react-query": "^5.62.15",
