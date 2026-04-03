@@ -40,10 +40,10 @@ export default function WorkoutSessionExerciseSetRowView({
   const isNewSet = workoutSessionExerciseSet === null;
 
   const [isEditable, setIsEditable] = useState(
-    isNewSet || workoutSessionExerciseSet.weight_completed === null,
+    isNewSet || workoutSessionExerciseSet.reps_completed === null,
   );
   const [isDone, setIsDone] = useState(
-    !isNewSet && workoutSessionExerciseSet.weight_completed !== null,
+    !isNewSet && workoutSessionExerciseSet.reps_completed !== null,
   );
 
   const { mutate: updateWorkoutSessionExerciseSet } =

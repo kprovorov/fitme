@@ -29,7 +29,7 @@ export default function WorkoutSessionExerciseCard({
 }: WorkoutSessionExerciseCardProps) {
   const router = useRouter();
   const setsDoneCount = workoutSessionExercise.sets.filter(
-    (set) => set.weight_completed !== null,
+    (set) => set.reps_completed !== null,
   ).length;
 
   const handlePress = () => {

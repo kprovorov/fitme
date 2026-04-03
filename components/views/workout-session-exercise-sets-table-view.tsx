@@ -78,7 +78,7 @@ export default function WorkoutSessionExerciseSetsTableView({
           .map((workoutSessionExerciseSet, index, sorted) => {
             const locked = sorted
               .slice(0, index)
-              .some((s) => s.weight_completed === null);
+              .some((s) => s.reps_completed === null);
             return (
               <WorkoutSessionExerciseSetRowView
                 key={workoutSessionExerciseSet.id}
@@ -94,7 +94,7 @@ export default function WorkoutSessionExerciseSetsTableView({
         {!readOnly &&
           localSets.map((localSet, index) => {
             const allExistingDone = workoutSessionExerciseSets.every(
-              (s) => s.weight_completed !== null,
+              (s) => s.reps_completed !== null,
             );
             const locked = !allExistingDone || index > 0;
             return (
