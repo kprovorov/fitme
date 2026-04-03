@@ -1,6 +1,8 @@
 import { supabase } from "@/lib/supabase";
 import { MeasurementSystem } from "~/lib/models";
 import { createMutation } from "react-query-kit";
+import { segmentClient } from "~/lib/segment";
+import { IS_E2E } from "~/lib/constants";
 
 export type LoginData = {
   email: string;
@@ -14,6 +16,7 @@ export const useLoginMutation = createMutation<void, LoginData>({
       password: data.password,
     });
     if (error) throw error;
+    if (!IS_E2E) segmentClient.track("User Logged In");
   },
 });
 
@@ -21,6 +24,10 @@ export const useLogoutMutation = createMutation<void, void>({
   mutationFn: async (): Promise<void> => {
     const { error } = await supabase.auth.signOut();
     if (error) throw error;
+    if (!IS_E2E) {
+      segmentClient.track("User Logged Out");
+      segmentClient.reset();
+    }
   },
 });
 
@@ -44,6 +51,7 @@ export const useRegisterMutation = createMutation<void, RegisterData>({
       },
     });
     if (error) throw error;
+    if (!IS_E2E) segmentClient.track("User Registered");
   },
 });
 
@@ -60,6 +68,7 @@ export const useForgotPasswordMutation = createMutation<
       redirectTo: `${process.env.EXPO_PUBLIC_APP_URL}/auth/reset-password`,
     });
     if (error) throw error;
+    if (!IS_E2E) segmentClient.track("Password Reset Requested");
   },
 });
 
@@ -74,6 +83,7 @@ export const useResetPasswordMutation = createMutation<void, ResetPasswordData>(
         password: data.password,
       });
       if (error) throw error;
+      if (!IS_E2E) segmentClient.track("Password Reset Completed");
     },
   },
 );

@@ -1,5 +1,7 @@
 import React, { useState } from "react";
 import { HStack } from "../ui/hstack";
+import { segmentClient } from "~/lib/segment";
+import { IS_E2E } from "~/lib/constants";
 import WorkoutSessionExerciseSetForm from "../forms/workout-exercise-set-form";
 import { WorkoutSessionExerciseSet } from "~/lib/models";
 import { useQueryClient } from "@tanstack/react-query";
@@ -151,6 +153,13 @@ export default function WorkoutSessionExerciseSetRowView({
               },
             });
           }
+
+          if (!IS_E2E)
+            segmentClient.track("Set Tracked", {
+              exercise_id: exerciseId,
+              reps: reps_completed,
+              weight: weight_completed,
+            });
         }}
       />
 
