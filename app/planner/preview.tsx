@@ -1,5 +1,5 @@
 import { useLocalSearchParams, useRouter } from "expo-router";
-import React, { useEffect, useRef } from "react";
+import React, { useEffect } from "react";
 import { segmentClient } from "~/lib/segment";
 import { IS_E2E } from "~/lib/constants";
 
@@ -74,21 +74,26 @@ export default function Preview() {
     }
   }, [error]);
 
-  const planParams = {
-    goal,
-    place,
-    frequency,
-    experience_level,
-    workout_duration,
-  };
-
   useEffect(() => {
     if (isGeneratingPlan && !IS_E2E)
-      segmentClient.track("Plan Generating", planParams);
+      segmentClient.track("Plan Generating", {
+        goal,
+        place,
+        frequency,
+        experience_level,
+        workout_duration,
+      });
   }, [isGeneratingPlan]);
 
   useEffect(() => {
-    if (planData && !IS_E2E) segmentClient.track("Plan Generated", planParams);
+    if (planData && !IS_E2E)
+      segmentClient.track("Plan Generated", {
+        goal,
+        place,
+        frequency,
+        experience_level,
+        workout_duration,
+      });
   }, [planData]);
 
   const { mutate: storePlan, isPending: isStoringPlan } = useStorePlanMutation({
