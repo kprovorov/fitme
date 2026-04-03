@@ -1,8 +1,8 @@
 import { supabase } from "@/lib/supabase";
 import { ExperienceLevel, Goal, Place, Plan, PlanData } from "@/lib/models";
 import { createMutation, createQuery } from "react-query-kit";
-
-const IS_E2E = process.env.EXPO_PUBLIC_E2E_ENABLED === "true";
+import { segmentClient } from "~/lib/segment";
+import { IS_E2E } from "~/lib/constants";
 
 const PLAN_SELECT = `
   *,
@@ -73,6 +73,7 @@ export const useStorePlanMutation = createMutation<Plan, PlanData>({
       .single();
     if (error) throw error;
 
+    if (!IS_E2E) segmentClient.track("Plan Saved", { plan_id: plan.id });
     return plan as unknown as Plan;
   },
 });
@@ -83,6 +84,7 @@ export const useActivatePlanMutation = createMutation<Plan, { id: string }>({
       plan_id: data.id,
     });
     if (error) throw error;
+    if (!IS_E2E) segmentClient.track("Plan Activated", { plan_id: data.id });
     return plan as unknown as Plan;
   },
 });
@@ -94,6 +96,7 @@ export const useDeletePlanMutation = createMutation<void, { id: string }>({
       .update({ deleted_at: new Date().toISOString() })
       .eq("id", data.id);
     if (error) throw error;
+    if (!IS_E2E) segmentClient.track("Plan Deleted", { plan_id: data.id });
   },
 });
 

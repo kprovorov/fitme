@@ -1,7 +1,8 @@
 import { useLocalSearchParams, useRouter } from "expo-router";
 import React, { useEffect } from "react";
+import { segmentClient } from "~/lib/segment";
+import { IS_E2E } from "~/lib/constants";
 
-const IS_E2E = process.env.EXPO_PUBLIC_E2E_ENABLED === "true";
 import { SafeAreaProvider, SafeAreaView } from "react-native-safe-area-context";
 import { ScrollView } from "react-native";
 import { VStack } from "~/components/ui/vstack";
@@ -72,6 +73,28 @@ export default function Preview() {
       presentPaywall();
     }
   }, [error]);
+
+  useEffect(() => {
+    if (isGeneratingPlan && !IS_E2E)
+      segmentClient.track("Plan Generating", {
+        goal,
+        place,
+        frequency,
+        experience_level,
+        workout_duration,
+      });
+  }, [isGeneratingPlan]);
+
+  useEffect(() => {
+    if (planData && !IS_E2E)
+      segmentClient.track("Plan Generated", {
+        goal,
+        place,
+        frequency,
+        experience_level,
+        workout_duration,
+      });
+  }, [planData]);
 
   const { mutate: storePlan, isPending: isStoringPlan } = useStorePlanMutation({
     onSuccess: () => {

@@ -1,5 +1,7 @@
-import React, { useState } from "react";
+import React, { useRef, useState } from "react";
 import { HStack } from "../ui/hstack";
+import { segmentClient } from "~/lib/segment";
+import { IS_E2E } from "~/lib/constants";
 import WorkoutSessionExerciseSetForm from "../forms/workout-exercise-set-form";
 import { WorkoutSessionExerciseSet } from "~/lib/models";
 import { useQueryClient } from "@tanstack/react-query";
@@ -38,6 +40,7 @@ export default function WorkoutSessionExerciseSetRowView({
 }: WorkoutSessionExerciseSetRowViewProps) {
   const queryClient = useQueryClient();
   const isNewSet = workoutSessionExerciseSet === null;
+  const pendingSetData = useRef<{ weight: number; reps: number } | null>(null);
 
   const [isEditable, setIsEditable] = useState(
     isNewSet || workoutSessionExerciseSet.reps_completed === null,
@@ -46,11 +49,23 @@ export default function WorkoutSessionExerciseSetRowView({
     !isNewSet && workoutSessionExerciseSet.reps_completed !== null,
   );
 
+  const trackSetCompleted = () => {
+    if (!IS_E2E && pendingSetData.current) {
+      segmentClient.track("Set Tracked", {
+        exercise_id: exerciseId,
+        reps: pendingSetData.current.reps,
+        weight: pendingSetData.current.weight,
+      });
+      pendingSetData.current = null;
+    }
+  };
+
   const { mutate: updateWorkoutSessionExerciseSet } =
     useUpdateWorkoutSessionExerciseSetMutation({
       onSuccess: () => {
         setIsEditable(false);
         setIsDone(true);
+        trackSetCompleted();
         queryClient.invalidateQueries({
           queryKey: ["workout-session-exercise"],
         });
@@ -68,6 +83,7 @@ export default function WorkoutSessionExerciseSetRowView({
       onSuccess: () => {
         setIsEditable(false);
         setIsDone(true);
+        trackSetCompleted();
         queryClient.invalidateQueries({
           queryKey: ["workout-session-exercise"],
         });
@@ -129,6 +145,11 @@ export default function WorkoutSessionExerciseSetRowView({
           const reps_completed = values.reps
             ? Number(values.reps)
             : repsRecommended;
+
+          pendingSetData.current = {
+            weight: weight_completed,
+            reps: reps_completed,
+          };
 
           if (isNewSet) {
             createWorkoutSessionExerciseSet({

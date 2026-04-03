@@ -1,3 +1,5 @@
+export const IS_E2E = process.env.EXPO_PUBLIC_E2E_ENABLED === "true";
+
 export const NAV_THEME = {
   light: {
     background: "hsl(0 0% 100%)", // background

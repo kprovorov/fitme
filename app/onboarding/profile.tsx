@@ -23,6 +23,8 @@ import { H2, H4 } from "~/components/ui/typography";
 import { VStack } from "~/components/ui/vstack";
 import { useStoreProfileMutation } from "~/hooks/mutations/profiles";
 import { useCurrentUserQuery } from "~/hooks/queries/auth";
+import { segmentClient } from "~/lib/segment";
+import { IS_E2E } from "~/lib/constants";
 import { formatHeight, formatWeight } from "~/lib/formatters";
 import { ArrowRight } from "~/lib/icons/ArrowRight";
 import { genders, MeasurementSystem } from "~/lib/models";
@@ -122,7 +124,14 @@ export default function ProfileScreen() {
   };
 
   const { mutateAsync: storeProfile } = useStoreProfileMutation({
-    onSuccess: () => {
+    onSuccess: (_, variables) => {
+      if (!IS_E2E) {
+        segmentClient.track("Profile Filled", {
+          gender: variables.gender,
+          age: variables.age,
+          weight_unit: measurementSystem,
+        });
+      }
       router.push("/planner");
     },
   });

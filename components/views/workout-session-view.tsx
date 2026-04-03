@@ -1,5 +1,7 @@
 import React, { useState } from "react";
 import { Modal, ScrollView, View } from "react-native";
+import { segmentClient } from "~/lib/segment";
+import { IS_E2E } from "~/lib/constants";
 import { Plus } from "~/lib/icons/Plus";
 import { Exercise, WorkoutSession } from "~/lib/models";
 import { cn } from "~/lib/utils";
@@ -70,6 +72,11 @@ export default function WorkoutSessionView({
           exercise_id: exercise.id,
         },
       });
+      if (!IS_E2E)
+        segmentClient.track("Exercise Replaced", {
+          session_id: sessionId,
+          exercise_id: exercise.id,
+        });
       setReplacingExerciseId(null);
       setInitialMuscleGroup(undefined);
     } else {
@@ -79,6 +86,11 @@ export default function WorkoutSessionView({
           exercise_id: exercise.id,
         },
       });
+      if (!IS_E2E)
+        segmentClient.track("Exercise Added", {
+          session_id: sessionId,
+          exercise_id: exercise.id,
+        });
     }
     setShowModal(false);
   };
@@ -87,6 +99,11 @@ export default function WorkoutSessionView({
     await deleteExercise({
       exerciseId,
     });
+    if (!IS_E2E)
+      segmentClient.track("Exercise Deleted", {
+        session_id: sessionId,
+        exercise_id: exerciseId,
+      });
   };
 
   const handleReplaceExercise = (exerciseId: string) => {
