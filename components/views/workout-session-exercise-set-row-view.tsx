@@ -22,6 +22,7 @@ interface WorkoutSessionExerciseSetRowViewProps {
   order?: number;
   hasWeight?: boolean;
   timer?: boolean;
+  locked?: boolean;
   onSetCreated?: () => void;
 }
 
@@ -32,16 +33,17 @@ export default function WorkoutSessionExerciseSetRowView({
   order,
   hasWeight = true,
   timer = true,
+  locked = false,
   onSetCreated,
 }: WorkoutSessionExerciseSetRowViewProps) {
   const queryClient = useQueryClient();
   const isNewSet = workoutSessionExerciseSet === null;
 
   const [isEditable, setIsEditable] = useState(
-    isNewSet || workoutSessionExerciseSet.weight_completed === null,
+    isNewSet || workoutSessionExerciseSet.reps_completed === null,
   );
   const [isDone, setIsDone] = useState(
-    !isNewSet && workoutSessionExerciseSet.weight_completed !== null,
+    !isNewSet && workoutSessionExerciseSet.reps_completed !== null,
   );
 
   const { mutate: updateWorkoutSessionExerciseSet } =
@@ -107,7 +109,7 @@ export default function WorkoutSessionExerciseSetRowView({
       )}
 
       <WorkoutSessionExerciseSetForm
-        disabled={!isEditable}
+        disabled={!isEditable || locked}
         hasWeight={hasWeight}
         isDone={isDone}
         onEdit={() => setIsEditable(true)}
