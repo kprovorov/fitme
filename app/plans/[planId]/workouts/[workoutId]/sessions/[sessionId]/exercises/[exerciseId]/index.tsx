@@ -10,6 +10,7 @@ import { VStack } from "~/components/ui/vstack";
 import ExerciseHistoryView from "~/components/views/exercise-history-view";
 import WorkoutSessionExerciseSetsTableView from "~/components/views/workout-session-exercise-sets-table-view";
 import { useWorkoutSessionExerciseQuery } from "~/hooks/queries/workout-session-exercises";
+import { useWorkoutSessionQuery } from "~/hooks/queries/workout-sessions";
 import { Info } from "~/lib/icons/Info";
 import { Button } from "~/components/ui/button";
 import { Text } from "~/components/ui/text";
@@ -36,6 +37,12 @@ export default function WorkoutSessionExerciseScreen() {
       exerciseId: exerciseId as string,
     },
   });
+
+  const { data: workoutSession } = useWorkoutSessionQuery({
+    variables: { sessionId: sessionId as string },
+  });
+
+  const isFinished = !!workoutSession?.finished_at;
 
   return workoutSessionExercise ? (
     <>
@@ -99,6 +106,7 @@ export default function WorkoutSessionExerciseScreen() {
               <WorkoutSessionExerciseSetsTableView
                 exerciseId={exerciseId as string}
                 workoutSessionExerciseSets={workoutSessionExercise.sets}
+                readOnly={isFinished}
               />
 
               <ExerciseHistoryView
