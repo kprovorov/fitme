@@ -1,10 +1,20 @@
 {
   "version": 1,
   "skills": {
+    "building-native-ui": {
+      "source": "expo/skills",
+      "sourceType": "github",
+      "computedHash": "342df93f481a0dba919f372d6c7b40d2b4bf5b51dd24363aea2e5d0bae27a6fa"
+    },
     "revenuecat": {
       "source": "revenuecat/revenuecat-skill",
       "sourceType": "github",
       "computedHash": "90a025d8344f61891348e4dd20e73b228b5b87db3cc0270f2b83388373f98ba7"
+    },
+    "vercel-react-native-skills": {
+      "source": "vercel-labs/agent-skills",
+      "sourceType": "github",
+      "computedHash": "41d24eafa7c3d82e270439808f7cfbc4d51aeb2d14f2809a2267c16275784d06"
     }
   }
 }
