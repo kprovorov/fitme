@@ -75,29 +75,42 @@ export default function WorkoutSessionExerciseSetsTableView({
 
         {workoutSessionExerciseSets
           .sort((a, b) => a.order - b.order)
-          .map((workoutSessionExerciseSet) => (
-            <WorkoutSessionExerciseSetRowView
-              key={workoutSessionExerciseSet.id}
-              exerciseId={exerciseId}
-              workoutSessionExerciseSet={workoutSessionExerciseSet}
-              hasWeight={hasWeight}
-              timer={false}
-            />
-          ))}
+          .map((workoutSessionExerciseSet, index, sorted) => {
+            const locked = sorted
+              .slice(0, index)
+              .some((s) => s.weight_completed === null);
+            return (
+              <WorkoutSessionExerciseSetRowView
+                key={workoutSessionExerciseSet.id}
+                exerciseId={exerciseId}
+                workoutSessionExerciseSet={workoutSessionExerciseSet}
+                hasWeight={hasWeight}
+                timer={false}
+                locked={locked}
+              />
+            );
+          })}
 
         {!readOnly &&
-          localSets.map((localSet) => (
-            <WorkoutSessionExerciseSetRowView
-              key={localSet.id}
-              exerciseId={exerciseId}
-              workoutSessionExerciseSet={null}
-              localSetId={localSet.id}
-              order={localSet.order}
-              hasWeight={hasWeight}
-              timer={false}
-              onSetCreated={() => handleSetCreated(localSet.id)}
-            />
-          ))}
+          localSets.map((localSet, index) => {
+            const allExistingDone = workoutSessionExerciseSets.every(
+              (s) => s.weight_completed !== null,
+            );
+            const locked = !allExistingDone || index > 0;
+            return (
+              <WorkoutSessionExerciseSetRowView
+                key={localSet.id}
+                exerciseId={exerciseId}
+                workoutSessionExerciseSet={null}
+                localSetId={localSet.id}
+                order={localSet.order}
+                hasWeight={hasWeight}
+                timer={false}
+                locked={locked}
+                onSetCreated={() => handleSetCreated(localSet.id)}
+              />
+            );
+          })}
 
         {!readOnly && (
           <VStack className="py-3 items-stretch">
