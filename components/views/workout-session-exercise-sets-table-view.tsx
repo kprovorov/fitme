@@ -14,6 +14,7 @@ import { Plus } from "lucide-react-native";
 interface WorkoutSessionExerciseSetsTableViewProps {
   exerciseId: string;
   workoutSessionExerciseSets: WorkoutSessionExerciseSet[];
+  readOnly?: boolean;
 }
 
 type LocalSet = {
@@ -25,6 +26,7 @@ type LocalSet = {
 export default function WorkoutSessionExerciseSetsTableView({
   exerciseId,
   workoutSessionExerciseSets,
+  readOnly = false,
 }: WorkoutSessionExerciseSetsTableViewProps) {
   const { data: user } = useCurrentUserQuery();
   const [localSets, setLocalSets] = useState<LocalSet[]>([]);
@@ -83,27 +85,30 @@ export default function WorkoutSessionExerciseSetsTableView({
             />
           ))}
 
-        {localSets.map((localSet) => (
-          <WorkoutSessionExerciseSetRowView
-            key={localSet.id}
-            exerciseId={exerciseId}
-            workoutSessionExerciseSet={null}
-            localSetId={localSet.id}
-            order={localSet.order}
-            hasWeight={hasWeight}
-            timer={false}
-            onSetCreated={() => handleSetCreated(localSet.id)}
-          />
-        ))}
+        {!readOnly &&
+          localSets.map((localSet) => (
+            <WorkoutSessionExerciseSetRowView
+              key={localSet.id}
+              exerciseId={exerciseId}
+              workoutSessionExerciseSet={null}
+              localSetId={localSet.id}
+              order={localSet.order}
+              hasWeight={hasWeight}
+              timer={false}
+              onSetCreated={() => handleSetCreated(localSet.id)}
+            />
+          ))}
 
-        <VStack className="py-3 items-stretch">
-          <Button onPress={handleAddSet} variant="ghost" size="sm" shape="pill">
-            <HStack>
-              <Plus size={16} className="text-primary" />
-              <Text className="text-primary">Add Set</Text>
-            </HStack>
-          </Button>
-        </VStack>
+        {!readOnly && (
+          <VStack className="py-3 items-stretch">
+            <Button onPress={handleAddSet} variant="ghost" size="sm" shape="pill">
+              <HStack>
+                <Plus size={16} className="text-primary" />
+                <Text className="text-primary">Add Set</Text>
+              </HStack>
+            </Button>
+          </VStack>
+        )}
       </VStack>
     )
   );
