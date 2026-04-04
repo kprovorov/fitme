@@ -35,10 +35,10 @@ export default function AgentScreen() {
   const flatListRef = useRef<FlatList>(null);
 
   const { data: conversation } = useConversationQuery();
-  const { data: serverMessages } = useMessagesQuery(
-    { conversationId: conversationId! },
-    { enabled: !!conversationId },
-  );
+  const { data: serverMessages } = useMessagesQuery({
+    variables: { conversationId: conversationId! },
+    enabled: !!conversationId,
+  });
   const { mutate: sendMessage, isPending } = useSendMessageMutation();
 
   // Sync conversation from server on mount
@@ -95,7 +95,9 @@ export default function AgentScreen() {
             role: "assistant",
             content: response.message,
             created_at: new Date().toISOString(),
-            metadata: response.attachment ? { attachment: response.attachment } : undefined,
+            metadata: response.attachment
+              ? { attachment: response.attachment }
+              : undefined,
           };
           setLocalMessages((prev) => [...prev, assistantMsg]);
           setTimeout(scrollToBottom, 50);
@@ -103,7 +105,10 @@ export default function AgentScreen() {
           // Invalidate messages so the server state syncs
           if (response.conversation_id) {
             queryClient.invalidateQueries({
-              queryKey: ["messages", { conversationId: response.conversation_id }],
+              queryKey: [
+                "messages",
+                { conversationId: response.conversation_id },
+              ],
             });
           }
         },
@@ -119,7 +124,14 @@ export default function AgentScreen() {
         },
       },
     );
-  }, [input, isPending, conversationId, sendMessage, scrollToBottom, queryClient]);
+  }, [
+    input,
+    isPending,
+    conversationId,
+    sendMessage,
+    scrollToBottom,
+    queryClient,
+  ]);
 
   const renderMessage = useCallback(
     ({ item }: { item: LocalMessage }) => (
@@ -156,7 +168,8 @@ export default function AgentScreen() {
           <VStack className="flex-1 items-center justify-center px-8 gap-4">
             <Sparkles className="w-12 h-12 text-primary" />
             <Text className="text-center text-muted-foreground">
-              Ask me anything about fitness, or let me create a workout plan for you.
+              Ask me anything about fitness, or let me create a workout plan for
+              you.
             </Text>
           </VStack>
         ) : (
