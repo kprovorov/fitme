@@ -188,21 +188,22 @@ export type Conversation = {
   created_at: string;
 };
 
+export type MessageAttachment = {
+  type: "plan_preview";
+  data: PlanData;
+};
+
 export type Message = {
   id: string;
   conversation_id: string;
   role: "user" | "assistant";
   content: string;
   created_at: string;
-};
-
-export type AgentAction = {
-  type: "plan_created" | "plan_activated";
-  plan_id: string;
+  metadata?: { attachment?: MessageAttachment };
 };
 
 export type AgentResponse = {
   message: string;
   conversation_id: string;
-  action?: AgentAction;
+  attachment?: MessageAttachment;
 };

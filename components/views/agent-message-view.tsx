@@ -1,18 +1,16 @@
 import React from "react";
 import { View } from "react-native";
 import { Text } from "~/components/ui/text";
-import { Button } from "~/components/ui/button";
-import { Message, AgentAction } from "~/lib/models";
-import { Link } from "expo-router";
-import { SquareArrowOutUpRight } from "~/lib/icons/SquareArrowOutUpRight";
+import { Message } from "~/lib/models";
+import PlanAttachmentView from "./plan-attachment-view";
 
 type Props = {
   message: Message;
-  action?: AgentAction;
 };
 
-export default function AgentMessageView({ message, action }: Props) {
+export default function AgentMessageView({ message }: Props) {
   const isUser = message.role === "user";
+  const attachment = message.metadata?.attachment;
 
   return (
     <View className={`mb-3 ${isUser ? "items-end" : "items-start"}`}>
@@ -32,17 +30,8 @@ export default function AgentMessageView({ message, action }: Props) {
         </Text>
       </View>
 
-      {!isUser && action?.type === "plan_created" && (
-        <Link href={`/plans/${action.plan_id}` as `/plans/${string}`} asChild>
-          <Button
-            variant="outline"
-            size="sm"
-            className="mt-2 flex-row items-center gap-1.5"
-          >
-            <Text className="text-sm">View Plan</Text>
-            <SquareArrowOutUpRight className="w-4 h-4 text-foreground" />
-          </Button>
-        </Link>
+      {!isUser && attachment?.type === "plan_preview" && (
+        <PlanAttachmentView attachment={attachment} />
       )}
     </View>
   );

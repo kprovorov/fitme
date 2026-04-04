@@ -266,8 +266,8 @@ Deno.serve(async (req: Request) => {
     { role: "user" as const, content: message },
   ];
 
-  // Track plan actions for the response
-  let actionResult: { type: "plan_created" | "plan_activated"; plan_id: string } | undefined;
+  // Track plan attachment for the response
+  let attachmentResult: { type: "plan_preview"; data: Record<string, unknown> } | undefined;
 
   // ── Define tools ───────────────────────────────────────────────────────────
   const tools = {
@@ -342,7 +342,7 @@ Deno.serve(async (req: Request) => {
 
     create_plan: tool({
       description:
-        "Generate and immediately save a new workout plan to the database. Always confirm the user's goal, gym/home preference, days per week, experience level, and workout duration before calling this tool.",
+        "Generate a new workout plan and return it as a preview for the user to review and save. Always confirm the user's goal, gym/home preference, days per week, experience level, and workout duration before calling this tool.",
       parameters: z.object({
         goal: z.enum([
           "muscle-gain",
@@ -408,29 +408,8 @@ Deno.serve(async (req: Request) => {
             note: params.note,
           };
 
-          // Strip nested exercise objects for the RPC (same as useStorePlanMutation)
-          const payload = {
-            ...planData,
-            workouts: enrichedWorkouts.map((w) => ({
-              ...w,
-              exercises: w.exercises.map(
-                ({ exercise: _exercise, ...ex }: { exercise: unknown; [key: string]: unknown }) => ex,
-              ),
-            })),
-          };
-
-          const { data: planId, error: rpcError } = await supabaseService.rpc(
-            "create_plan",
-            { p_plan_data: payload },
-          );
-          if (rpcError) throw rpcError;
-
-          actionResult = { type: "plan_created", plan_id: planId as string };
-          return {
-            success: true,
-            plan_id: planId,
-            plan_name: aiOutput.name,
-          };
+          attachmentResult = { type: "plan_preview", data: planData };
+          return { success: true, plan_name: aiOutput.name };
         } catch (err) {
           const message = err instanceof Error ? err.message : String(err);
           console.error("create_plan tool error:", message);
@@ -449,7 +428,6 @@ Deno.serve(async (req: Request) => {
           plan_id,
         });
         if (error) return { error: "Failed to activate plan" };
-        actionResult = { type: "plan_activated", plan_id };
         return { success: true, plan_id };
       },
     }),
@@ -481,6 +459,7 @@ Keep responses concise, friendly, and encouraging. Use markdown sparingly since 
         conversation_id: conversationId,
         role: "assistant",
         content: text,
+        metadata: attachmentResult ? { attachment: attachmentResult } : null,
       },
     ]);
 
@@ -488,7 +467,7 @@ Keep responses concise, friendly, and encouraging. Use markdown sparingly since 
       JSON.stringify({
         message: text,
         conversation_id: conversationId,
-        action: actionResult,
+        attachment: attachmentResult,
       }),
       {
         status: 200,

@@ -14,7 +14,7 @@ import { VStack } from "~/components/ui/vstack";
 import AgentMessageView from "~/components/views/agent-message-view";
 import { useConversationQuery, useMessagesQuery } from "~/hooks/queries/agent";
 import { useSendMessageMutation } from "~/hooks/mutations/agent";
-import { AgentAction, Message } from "~/lib/models";
+import { MessageAttachment, Message } from "~/lib/models";
 import { useQueryClient } from "@tanstack/react-query";
 import { ArrowRight } from "~/lib/icons/ArrowRight";
 import { Sparkles } from "~/lib/icons/Sparkles";
@@ -24,7 +24,7 @@ type LocalMessage = {
   role: "user" | "assistant";
   content: string;
   created_at: string;
-  action?: AgentAction;
+  metadata?: { attachment?: MessageAttachment };
 };
 
 export default function AgentScreen() {
@@ -56,6 +56,7 @@ export default function AgentScreen() {
         role: m.role,
         content: m.content,
         created_at: m.created_at,
+        metadata: m.metadata,
       }));
       setLocalMessages(mapped);
     }
@@ -94,18 +95,10 @@ export default function AgentScreen() {
             role: "assistant",
             content: response.message,
             created_at: new Date().toISOString(),
-            action: response.action,
+            metadata: response.attachment ? { attachment: response.attachment } : undefined,
           };
           setLocalMessages((prev) => [...prev, assistantMsg]);
           setTimeout(scrollToBottom, 50);
-
-          // Invalidate relevant queries if the agent created/activated a plan
-          if (response.action?.type === "plan_created") {
-            queryClient.invalidateQueries({ queryKey: ["plans"] });
-          }
-          if (response.action?.type === "plan_activated") {
-            queryClient.invalidateQueries({ queryKey: ["plans"] });
-          }
 
           // Invalidate messages so the server state syncs
           if (response.conversation_id) {
@@ -137,8 +130,8 @@ export default function AgentScreen() {
           role: item.role,
           content: item.content,
           created_at: item.created_at,
+          metadata: item.metadata,
         }}
-        action={item.action}
       />
     ),
     [conversationId],
