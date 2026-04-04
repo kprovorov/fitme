@@ -6,7 +6,10 @@ import {
   Pressable,
   View,
 } from "react-native";
-import { SafeAreaView } from "react-native-safe-area-context";
+import {
+  SafeAreaView,
+  useSafeAreaInsets,
+} from "react-native-safe-area-context";
 import { Text } from "~/components/ui/text";
 import { Input } from "~/components/ui/input";
 import { H3 } from "~/components/ui/typography";
@@ -29,6 +32,7 @@ type LocalMessage = {
 
 export default function AgentScreen() {
   const queryClient = useQueryClient();
+  const insets = useSafeAreaInsets();
   const [input, setInput] = useState("");
   const [localMessages, setLocalMessages] = useState<LocalMessage[]>([]);
   const [conversationId, setConversationId] = useState<string | undefined>();
@@ -196,7 +200,7 @@ export default function AgentScreen() {
         {/* Input row */}
         <View
           className="flex-row items-center gap-3 px-4 py-3 border-t border-white/10"
-          style={{ paddingBottom: 80 }}
+          style={{ paddingBottom: insets.bottom + 104 }}
         >
           <Input
             className="flex-1 bg-card"
