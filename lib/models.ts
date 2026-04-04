@@ -181,3 +181,28 @@ export type WorkoutExerciseSetData = {
   weight_recommended: number;
   rest_recommended: number;
 };
+
+export type Conversation = {
+  id: string;
+  user_id: string;
+  created_at: string;
+};
+
+export type Message = {
+  id: string;
+  conversation_id: string;
+  role: "user" | "assistant";
+  content: string;
+  created_at: string;
+};
+
+export type AgentAction = {
+  type: "plan_created" | "plan_activated";
+  plan_id: string;
+};
+
+export type AgentResponse = {
+  message: string;
+  conversation_id: string;
+  action?: AgentAction;
+};
