@@ -13,6 +13,8 @@ import {
   useCreateWorkoutSessionMutation,
   useFinishWorkoutSessionMutation,
 } from "~/hooks/queries/workout-sessions";
+import { segmentClient } from "~/lib/segment";
+import { IS_E2E } from "~/lib/constants";
 import { Spinner } from "~/components/ui/spinner";
 import { Pressable, ScrollView, View } from "react-native";
 import { Card } from "../ui/card";
@@ -50,7 +52,13 @@ export default function WorkoutCard({
     mutateAsync: finishWorkoutSession,
     isPending: isFinishingWorkoutSession,
   } = useFinishWorkoutSessionMutation({
-    onSuccess: async () => {
+    onSuccess: async (workoutSession) => {
+      if (!IS_E2E)
+        segmentClient.track("Abandoned Workout Finished", {
+          workout_id: workoutSession.workout_id,
+          session_id: workoutSession.id,
+          plan_id: workoutSession.workout.plan_id,
+        });
       await queryClient.invalidateQueries({ queryKey: ["workout-session"] });
       await queryClient.invalidateQueries({ queryKey: ["plans"] });
     },
