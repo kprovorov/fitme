@@ -1,175 +1,48 @@
 import { createClient } from "jsr:@supabase/supabase-js@2";
-import { generateText, tool } from "npm:ai";
+import { generateText, jsonSchema, tool } from "npm:ai";
 import { createAnthropic } from "npm:@ai-sdk/anthropic";
 import { createOpenAI } from "npm:@ai-sdk/openai";
 import { z } from "npm:zod";
 
 // ─── Types ────────────────────────────────────────────────────────────────────
 
-interface Profile {
-  gender?: string;
-  age?: number;
-  height?: number;
-  weight?: number;
-  measurement_system?: string;
-}
+const WorkoutExerciseSetInputSchema = z.object({
+  order: z.number(),
+  weight_recommended: z.number(),
+  reps_recommended: z.number(),
+  rest_recommended: z.number(),
+});
 
-interface Exercise {
-  id: string;
-  name: string;
-  thumbnail_url: string;
-}
+const WorkoutExerciseInputSchema = z.object({
+  exercise_id: z.string().uuid(),
+  order: z.number(),
+  sets: z.array(WorkoutExerciseSetInputSchema).min(1),
+});
 
-// ─── Plan generation (reused from preview-plan logic) ─────────────────────────
+const WorkoutInputSchema = z.object({
+  name: z.string(),
+  description: z.string(),
+  order: z.number(),
+  exercises: z.array(WorkoutExerciseInputSchema).min(1),
+});
 
-const WORKOUT_PLAN_SCHEMA = {
-  type: "object",
-  additionalProperties: false,
-  properties: {
-    name: { type: "string" },
-    description: { type: "string" },
-    workouts: {
-      type: "array",
-      items: {
-        type: "object",
-        additionalProperties: false,
-        properties: {
-          name: { type: "string" },
-          description: { type: "string" },
-          order: { type: "number" },
-          exercises: {
-            type: "array",
-            items: {
-              type: "object",
-              additionalProperties: false,
-              properties: {
-                exercise_id: { type: "string" },
-                order: { type: "number" },
-                sets: {
-                  type: "array",
-                  items: {
-                    type: "object",
-                    additionalProperties: false,
-                    properties: {
-                      order: { type: "number" },
-                      weight_recommended: { type: "number" },
-                      reps_recommended: { type: "number" },
-                      rest_recommended: { type: "number" },
-                    },
-                    required: [
-                      "order",
-                      "weight_recommended",
-                      "reps_recommended",
-                      "rest_recommended",
-                    ],
-                  },
-                },
-              },
-              required: ["exercise_id", "order", "sets"],
-            },
-          },
-        },
-        required: ["name", "description", "order", "exercises"],
-      },
-    },
-  },
-  required: ["name", "description", "workouts"],
-};
-
-interface GeneratePlanParams {
-  goal: string;
-  place: string;
-  frequency: number;
-  experience_level: string;
-  workout_duration: number;
-  note?: string;
-}
-
-function buildPlanPrompts(
-  params: GeneratePlanParams,
-  exercises: Exercise[],
-  profile: Profile | null,
-): { systemPrompt: string; userPrompt: string } {
-  const exercisesJson = JSON.stringify(exercises);
-  const measurementSystem = profile?.measurement_system ?? "metric";
-  const weightUnit = measurementSystem === "metric" ? "kg" : "lbs";
-
-  const systemPrompt = [
-    "You are a workout assistant. You will be given a user profile and you will need to generate a workout plan.",
-    `Here are the exercises you can choose from: ${exercisesJson}. Choose only from the exercises that are in the list.`,
-  ].join("\n");
-
-  const userPromptParts = [
-    "Create a workout plan using the following user profile and preferences:",
-    `Goal: ${params.goal}`,
-    `Place: ${params.place}`,
-    `Frequency: ${params.frequency} days per week`,
-    `Experience level: ${params.experience_level}`,
-    `Workout duration: ${params.workout_duration} minutes`,
-    `Measurement system: ${measurementSystem} (use ${weightUnit} for weight)`,
-  ];
-
-  if (profile?.gender) userPromptParts.push(`Gender: ${profile.gender}`);
-  if (profile?.age) userPromptParts.push(`Age: ${profile.age}`);
-  if (profile?.weight)
-    userPromptParts.push(`Weight: ${profile.weight} ${weightUnit}`);
-  if (profile?.height) userPromptParts.push(`Height: ${profile.height}`);
-  if (params.note) userPromptParts.push(`Note: ${params.note}`);
-
-  return { systemPrompt, userPrompt: userPromptParts.join("\n") };
-}
-
-async function generatePlanStructure(
-  params: GeneratePlanParams,
-  exercises: Exercise[],
-  profile: Profile | null,
-): Promise<Record<string, unknown>> {
-  const apiKey = Deno.env.get("ANTHROPIC_API_KEY");
-  if (!apiKey) throw new Error("ANTHROPIC_API_KEY not set");
-
-  const { systemPrompt, userPrompt } = buildPlanPrompts(
-    params,
-    exercises,
-    profile,
-  );
-
-  const response = await fetch("https://api.anthropic.com/v1/messages", {
-    method: "POST",
-    headers: {
-      "x-api-key": apiKey,
-      "anthropic-version": "2023-06-01",
-      "content-type": "application/json",
-    },
-    body: JSON.stringify({
-      model: "claude-sonnet-4-6",
-      max_tokens: 10000,
-      system: systemPrompt,
-      messages: [{ role: "user", content: userPrompt }],
-      tools: [
-        {
-          name: "generate_workout_plan",
-          description: "Generate a structured workout plan",
-          input_schema: WORKOUT_PLAN_SCHEMA,
-        },
-      ],
-      tool_choice: { type: "tool", name: "generate_workout_plan" },
-    }),
-  });
-
-  if (!response.ok) {
-    throw new Error(
-      `Anthropic API error ${response.status}: ${await response.text()}`,
-    );
-  }
-
-  const data = await response.json();
-  const toolUse = data.content?.find(
-    (block: { type: string }) => block.type === "tool_use",
-  );
-  if (!toolUse?.input)
-    throw new Error("No structured output returned from plan generation");
-  return toolUse.input as Record<string, unknown>;
-}
+const PlanInputSchema = z.object({
+  name: z.string(),
+  description: z.string(),
+  goal: z.enum([
+    "muscle-gain",
+    "fat-loss",
+    "recomposition",
+    "strength-performance",
+    "general-health-fitness",
+  ]),
+  place: z.enum(["gym", "home"]),
+  frequency: z.number().min(1).max(7),
+  experience_level: z.enum(["beginner", "intermediate", "advanced"]),
+  workout_duration: z.number().min(30).max(120),
+  note: z.string().optional(),
+  workouts: z.array(WorkoutInputSchema).min(1),
+});
 
 // ─── Model selection ──────────────────────────────────────────────────────────
 
@@ -185,7 +58,9 @@ function getModel() {
     const openai = createOpenAI({ apiKey: openaiKey });
     return openai("gpt-4o");
   }
-  throw new Error("No AI provider configured. Set ANTHROPIC_API_KEY or OPENAI_API_KEY.");
+  throw new Error(
+    "No AI provider configured. Set ANTHROPIC_API_KEY or OPENAI_API_KEY.",
+  );
 }
 
 // ─── Main handler ─────────────────────────────────────────────────────────────
@@ -266,15 +141,17 @@ Deno.serve(async (req: Request) => {
     { role: "user" as const, content: message },
   ];
 
-  // Track plan attachment for the response
-  let attachmentResult: { type: "plan_preview"; data: Record<string, unknown> } | undefined;
+  // Track optional attachments for the response
+  let attachmentResult:
+    | { type: "plan_preview"; data: Record<string, unknown> }
+    | undefined;
 
   // ── Define tools ───────────────────────────────────────────────────────────
   const tools = {
     get_active_plan: tool({
       description:
         "Get the user's currently active workout plan with all workouts and exercises",
-      parameters: z.object({}),
+      parameters: jsonSchema({ type: "object", properties: {} }),
       execute: async () => {
         const { data, error } = await supabaseClient
           .from("plans")
@@ -299,11 +176,13 @@ Deno.serve(async (req: Request) => {
     get_plans: tool({
       description:
         "List all workout plans for the user with their names, goals, and active status",
-      parameters: z.object({}),
+      parameters: jsonSchema({ type: "object", properties: {} }),
       execute: async () => {
         const { data, error } = await supabaseClient
           .from("plans")
-          .select("id, name, description, goal, place, frequency, is_active, created_at")
+          .select(
+            "id, name, description, goal, place, frequency, is_active, created_at",
+          )
           .is("deleted_at", null)
           .order("created_at", { ascending: false });
         if (error) return { error: "Failed to fetch plans" };
@@ -332,8 +211,7 @@ Deno.serve(async (req: Request) => {
           .select("id, name, muscle_groups, description")
           .limit(15);
         if (query) q = q.ilike("name", `%${query}%`);
-        if (muscle_group)
-          q = q.contains("muscle_groups", [muscle_group]);
+        if (muscle_group) q = q.contains("muscle_groups", [muscle_group]);
         const { data, error } = await q;
         if (error) return { error: "Failed to search exercises" };
         return data ?? [];
@@ -342,74 +220,25 @@ Deno.serve(async (req: Request) => {
 
     create_plan: tool({
       description:
-        "Generate a new workout plan and return it as a preview for the user to review and save. Always confirm the user's goal, gym/home preference, days per week, experience level, and workout duration before calling this tool.",
+        "Create and persist a workout plan in the database. The input must include the full nested plan data with workouts, exercises, and sets.",
       parameters: z.object({
-        goal: z.enum([
-          "muscle-gain",
-          "fat-loss",
-          "recomposition",
-          "strength-performance",
-          "general-health-fitness",
-        ]),
-        place: z.enum(["gym", "home"]),
-        frequency: z.number().min(1).max(7).describe("Days per week"),
-        experience_level: z.enum(["beginner", "intermediate", "advanced"]),
-        workout_duration: z
-          .number()
-          .min(30)
-          .max(120)
-          .describe("Minutes per session"),
-        note: z.string().optional().describe("Extra instructions or preferences"),
+        data: PlanInputSchema,
       }),
-      execute: async (params) => {
+      execute: async ({ data }) => {
         try {
-          // Fetch exercises and user profile in parallel
-          const [exercisesResult, profileResult] = await Promise.all([
-            supabaseClient
-              .from("exercises")
-              .select("id, name, thumbnail_url"),
-            supabaseClient
-              .from("profiles")
-              .select("*")
-              .eq("user_id", user.id)
-              .single(),
-          ]);
-
-          const exercises: Exercise[] = exercisesResult.data ?? [];
-          const profile: Profile | null = profileResult.data ?? null;
-
-          // Generate plan structure using Claude structured output
-          const aiOutput = await generatePlanStructure(params, exercises, profile);
-
-          // Enrich with exercise objects
-          const exerciseMap = new Map(exercises.map((e) => [e.id, e]));
-          type RawExercise = { exercise_id: string; [key: string]: unknown };
-          type RawWorkout = { exercises: RawExercise[]; [key: string]: unknown };
-          const enrichedWorkouts = (aiOutput.workouts as RawWorkout[]).map(
-            (workout) => ({
-              ...workout,
-              exercises: workout.exercises
-                .map((ex) => ({
-                  ...ex,
-                  exercise: exerciseMap.get(ex.exercise_id) ?? null,
-                }))
-                .filter((ex) => ex.exercise !== null),
-            }),
+          const { data: planId, error } = await supabaseService.rpc(
+            "create_plan",
+            {
+              p_plan_data: data,
+            },
           );
+          if (error) throw error;
 
-          const planData = {
-            ...aiOutput,
-            workouts: enrichedWorkouts,
-            goal: params.goal,
-            place: params.place,
-            frequency: params.frequency,
-            experience_level: params.experience_level,
-            workout_duration: params.workout_duration,
-            note: params.note,
+          return {
+            success: true,
+            plan_id: planId,
+            plan_name: data.name,
           };
-
-          attachmentResult = { type: "plan_preview", data: planData };
-          return { success: true, plan_name: aiOutput.name };
         } catch (err) {
           const message = err instanceof Error ? err.message : String(err);
           console.error("create_plan tool error:", message);
@@ -442,6 +271,7 @@ Deno.serve(async (req: Request) => {
       system: `You are a personal fitness assistant for the Fitme app. You help users with workout planning, exercise advice, and fitness questions.
 You have access to tools to read and manage the user's workout plans.
 When creating a plan, always ask the user for their goal, whether they train at a gym or home, days per week, experience level, and preferred workout duration — unless they've already told you.
+Use search_exercises to find valid exercise IDs when needed. The create_plan tool only stores the plan data you provide; it does not generate a preview or fill in missing structure for you.
 Keep responses concise, friendly, and encouraging. Use markdown sparingly since the app renders plain text.`,
       messages,
       tools,
