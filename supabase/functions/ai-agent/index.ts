@@ -1,5 +1,5 @@
 import { createClient } from "jsr:@supabase/supabase-js@2";
-import { generateText, jsonSchema, tool } from "npm:ai";
+import { generateText, tool } from "npm:ai";
 import { createAnthropic } from "npm:@ai-sdk/anthropic";
 import { createOpenAI } from "npm:@ai-sdk/openai";
 import { z } from "npm:zod";
@@ -151,7 +151,7 @@ Deno.serve(async (req: Request) => {
     get_active_plan: tool({
       description:
         "Get the user's currently active workout plan with all workouts and exercises",
-      parameters: jsonSchema({ type: "object", properties: {} }),
+      inputSchema: z.object({}),
       execute: async () => {
         const { data, error } = await supabaseClient
           .from("plans")
@@ -176,7 +176,7 @@ Deno.serve(async (req: Request) => {
     get_plans: tool({
       description:
         "List all workout plans for the user with their names, goals, and active status",
-      parameters: jsonSchema({ type: "object", properties: {} }),
+      inputSchema: z.object({}),
       execute: async () => {
         const { data, error } = await supabaseClient
           .from("plans")
@@ -193,7 +193,7 @@ Deno.serve(async (req: Request) => {
     search_exercises: tool({
       description:
         "Search for exercises in the exercise library by name or muscle group",
-      parameters: z.object({
+      inputSchema: z.object({
         query: z
           .string()
           .optional()
@@ -221,7 +221,7 @@ Deno.serve(async (req: Request) => {
     create_plan: tool({
       description:
         "Create and persist a workout plan in the database. The input must include the full nested plan data with workouts, exercises, and sets.",
-      parameters: z.object({
+      inputSchema: z.object({
         data: PlanInputSchema,
       }),
       execute: async ({ data }) => {
@@ -249,7 +249,7 @@ Deno.serve(async (req: Request) => {
 
     activate_plan: tool({
       description: "Set a specific plan as the user's active plan",
-      parameters: z.object({
+      inputSchema: z.object({
         plan_id: z.string().describe("The ID of the plan to activate"),
       }),
       execute: async ({ plan_id }) => {
