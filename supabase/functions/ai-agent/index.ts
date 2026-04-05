@@ -1,73 +1,25 @@
 import { createClient } from "jsr:@supabase/supabase-js@2";
-import { generateText, tool } from "npm:ai";
+import { generateText } from "npm:ai";
 import { createAnthropic } from "npm:@ai-sdk/anthropic";
-import { createOpenAI } from "npm:@ai-sdk/openai";
-import { z } from "npm:zod";
 
-// ─── Types ────────────────────────────────────────────────────────────────────
-
-const WorkoutExerciseSetInputSchema = z.object({
-  order: z.number(),
-  weight_recommended: z.number(),
-  reps_recommended: z.number(),
-  rest_recommended: z.number(),
-});
-
-const WorkoutExerciseInputSchema = z.object({
-  exercise_id: z.string().uuid(),
-  order: z.number(),
-  sets: z.array(WorkoutExerciseSetInputSchema).min(1),
-});
-
-const WorkoutInputSchema = z.object({
-  name: z.string(),
-  description: z.string(),
-  order: z.number(),
-  exercises: z.array(WorkoutExerciseInputSchema).min(1),
-});
-
-const PlanInputSchema = z.object({
-  name: z.string(),
-  description: z.string(),
-  goal: z.enum([
-    "muscle-gain",
-    "fat-loss",
-    "recomposition",
-    "strength-performance",
-    "general-health-fitness",
-  ]),
-  place: z.enum(["gym", "home"]),
-  frequency: z.number().min(1).max(7),
-  experience_level: z.enum(["beginner", "intermediate", "advanced"]),
-  workout_duration: z.number().min(30).max(120),
-  note: z.string().optional(),
-  workouts: z.array(WorkoutInputSchema).min(1),
-});
-
-// ─── Model selection ──────────────────────────────────────────────────────────
-
-function getModel() {
-  const anthropicKey = Deno.env.get("ANTHROPIC_API_KEY");
-  const openaiKey = Deno.env.get("OPENAI_API_KEY");
-
-  if (anthropicKey) {
-    const anthropic = createAnthropic({ apiKey: anthropicKey });
-    return anthropic("claude-sonnet-4-6");
-  }
-  if (openaiKey) {
-    const openai = createOpenAI({ apiKey: openaiKey });
-    return openai("gpt-4o");
-  }
-  throw new Error(
-    "No AI provider configured. Set ANTHROPIC_API_KEY or OPENAI_API_KEY.",
-  );
-}
+import { createGetActivePlanTool } from "./tools/get_active_plan.ts";
+import { createGetPlansTool } from "./tools/get_plans.ts";
+import { createSearchExercisesTool } from "./tools/search_exercises.ts";
+import { createCreatePlanTool } from "./tools/create_plan.ts";
+import { createActivatePlanTool } from "./tools/activate_plan.ts";
 
 // ─── Main handler ─────────────────────────────────────────────────────────────
 
 Deno.serve(async (req: Request) => {
+  const requestId = crypto.randomUUID().slice(0, 8);
+  const log = (event: string, data?: Record<string, unknown>) =>
+    console.log(JSON.stringify({ requestId, event, ...data }));
+
+  log("request_received", { method: req.method });
+
   const authHeader = req.headers.get("Authorization");
   if (!authHeader) {
+    log("auth_missing");
     return new Response(JSON.stringify({ error: "Unauthorized" }), {
       status: 401,
       headers: { "Content-Type": "application/json" },
@@ -92,11 +44,14 @@ Deno.serve(async (req: Request) => {
   } = await supabaseClient.auth.getUser();
 
   if (userError || !user) {
+    log("auth_failed", { error: userError?.message });
     return new Response(JSON.stringify({ error: "Unauthorized" }), {
       status: 401,
       headers: { "Content-Type": "application/json" },
     });
   }
+
+  log("auth_ok", { userId: user.id });
 
   const body: { message: string; conversation_id?: string } = await req.json();
   const { message, conversation_id } = body;
@@ -118,6 +73,9 @@ Deno.serve(async (req: Request) => {
       .single();
     if (convError) throw convError;
     conversationId = newConv.id;
+    log("conversation_created", { conversationId });
+  } else {
+    log("conversation_resumed", { conversationId });
   }
 
   // ── Load message history (last 20) ─────────────────────────────────────────
@@ -134,6 +92,7 @@ Deno.serve(async (req: Request) => {
       content: m.content,
     }),
   );
+  log("history_loaded", { messageCount: historyMessages.length });
 
   // ── Build full messages array ───────────────────────────────────────────────
   const messages = [
@@ -141,132 +100,25 @@ Deno.serve(async (req: Request) => {
     { role: "user" as const, content: message },
   ];
 
-  // Track optional attachments for the response
-  let attachmentResult:
-    | { type: "plan_preview"; data: Record<string, unknown> }
-    | undefined;
-
-  // ── Define tools ───────────────────────────────────────────────────────────
+  // ── Build tools ────────────────────────────────────────────────────────────
+  const ctx = { supabaseClient, supabaseService, log };
   const tools = {
-    get_active_plan: tool({
-      description:
-        "Get the user's currently active workout plan with all workouts and exercises",
-      inputSchema: z.object({}),
-      execute: async () => {
-        const { data, error } = await supabaseClient
-          .from("plans")
-          .select(
-            `*, workouts (
-              *,
-              exercises:workout_exercises (
-                *,
-                exercise:exercises (*),
-                sets:workout_exercise_sets (*)
-              )
-            )`,
-          )
-          .eq("is_active", true)
-          .is("deleted_at", null)
-          .single();
-        if (error) return { error: "No active plan found" };
-        return data;
-      },
-    }),
-
-    get_plans: tool({
-      description:
-        "List all workout plans for the user with their names, goals, and active status",
-      inputSchema: z.object({}),
-      execute: async () => {
-        const { data, error } = await supabaseClient
-          .from("plans")
-          .select(
-            "id, name, description, goal, place, frequency, is_active, created_at",
-          )
-          .is("deleted_at", null)
-          .order("created_at", { ascending: false });
-        if (error) return { error: "Failed to fetch plans" };
-        return data ?? [];
-      },
-    }),
-
-    search_exercises: tool({
-      description:
-        "Search for exercises in the exercise library by name or muscle group",
-      inputSchema: z.object({
-        query: z
-          .string()
-          .optional()
-          .describe("Part of the exercise name to search for"),
-        muscle_group: z
-          .string()
-          .optional()
-          .describe(
-            "Filter by muscle group: chest, back, shoulders, biceps, triceps, forearms, abs, obliques, quadriceps, hamstrings, glutes, calves, traps, lats, lower-back, cardio, full-body",
-          ),
-      }),
-      execute: async ({ query, muscle_group }) => {
-        let q = supabaseClient
-          .from("exercises")
-          .select("id, name, muscle_groups, description")
-          .limit(15);
-        if (query) q = q.ilike("name", `%${query}%`);
-        if (muscle_group) q = q.contains("muscle_groups", [muscle_group]);
-        const { data, error } = await q;
-        if (error) return { error: "Failed to search exercises" };
-        return data ?? [];
-      },
-    }),
-
-    create_plan: tool({
-      description:
-        "Create and persist a workout plan in the database. The input must include the full nested plan data with workouts, exercises, and sets.",
-      inputSchema: z.object({
-        data: PlanInputSchema,
-      }),
-      execute: async ({ data }) => {
-        try {
-          const { data: planId, error } = await supabaseService.rpc(
-            "create_plan",
-            {
-              p_plan_data: data,
-            },
-          );
-          if (error) throw error;
-
-          return {
-            success: true,
-            plan_id: planId,
-            plan_name: data.name,
-          };
-        } catch (err) {
-          const message = err instanceof Error ? err.message : String(err);
-          console.error("create_plan tool error:", message);
-          return { error: `Failed to create plan: ${message}` };
-        }
-      },
-    }),
-
-    activate_plan: tool({
-      description: "Set a specific plan as the user's active plan",
-      inputSchema: z.object({
-        plan_id: z.string().describe("The ID of the plan to activate"),
-      }),
-      execute: async ({ plan_id }) => {
-        const { error } = await supabaseService.rpc("activate_plan", {
-          plan_id,
-        });
-        if (error) return { error: "Failed to activate plan" };
-        return { success: true, plan_id };
-      },
-    }),
+    get_active_plan: createGetActivePlanTool(ctx),
+    get_plans: createGetPlansTool(ctx),
+    search_exercises: createSearchExercisesTool(ctx),
+    create_plan: createCreatePlanTool(ctx),
+    activate_plan: createActivatePlanTool(ctx),
   };
 
   // ── Call the AI with the agentic loop ─────────────────────────────────────
   try {
-    const model = getModel();
+    const anthropic = createAnthropic({
+      apiKey: Deno.env.get("ANTHROPIC_API_KEY") ?? "",
+    });
+    const model = anthropic("claude-sonnet-4-6");
+    log("ai_request_start", { messageCount: messages.length });
 
-    const { text } = await generateText({
+    const { text, steps } = await generateText({
       model,
       system: `You are a personal fitness assistant for the Fitme app. You help users with workout planning, exercise advice, and fitness questions.
 You have access to tools to read and manage the user's workout plans.
@@ -276,6 +128,11 @@ Keep responses concise, friendly, and encouraging. Use markdown sparingly since 
       messages,
       tools,
       maxSteps: 5,
+    });
+
+    log("ai_request_done", {
+      steps: steps.length,
+      responseLength: text.length,
     });
 
     // ── Save messages to DB ─────────────────────────────────────────────────
@@ -289,7 +146,7 @@ Keep responses concise, friendly, and encouraging. Use markdown sparingly since 
         conversation_id: conversationId,
         role: "assistant",
         content: text,
-        metadata: attachmentResult ? { attachment: attachmentResult } : null,
+        metadata: null,
       },
     ]);
 
@@ -297,7 +154,6 @@ Keep responses concise, friendly, and encouraging. Use markdown sparingly since 
       JSON.stringify({
         message: text,
         conversation_id: conversationId,
-        attachment: attachmentResult,
       }),
       {
         status: 200,
@@ -306,7 +162,7 @@ Keep responses concise, friendly, and encouraging. Use markdown sparingly since 
     );
   } catch (err) {
     const errMessage = err instanceof Error ? err.message : "Unknown error";
-    console.error("ai-agent error:", errMessage);
+    log("ai_request_error", { error: errMessage });
     return new Response(
       JSON.stringify({ error: "Failed to process message" }),
       {
