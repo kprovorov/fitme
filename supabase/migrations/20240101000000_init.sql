@@ -35,7 +35,7 @@ CREATE TABLE public.profiles (
   age integer NOT NULL,
   weight numeric(8,2) NOT NULL,
   height numeric(8,2) NOT NULL,
-  measurement_system text NOT NULL DEFAULT 'metric',
+  measurement_system text NOT NULL DEFAULT 'metric'
 );
 
 -- ------------------------------------------------------------
