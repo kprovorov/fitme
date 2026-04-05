@@ -1,5 +1,5 @@
 import { createClient } from "jsr:@supabase/supabase-js@2";
-import { generateText } from "npm:ai";
+import { ToolLoopAgent, stepCountIs } from "npm:ai";
 import { createAnthropic } from "npm:@ai-sdk/anthropic";
 
 import { createGetActivePlanTool } from "./tools/get_active_plan.ts";
@@ -115,24 +115,35 @@ Deno.serve(async (req: Request) => {
     const anthropic = createAnthropic({
       apiKey: Deno.env.get("ANTHROPIC_API_KEY") ?? "",
     });
-    const model = anthropic("claude-sonnet-4-6");
     log("ai_request_start", { messageCount: messages.length });
 
-    const { text, steps } = await generateText({
-      model,
-      system: `You are a personal fitness assistant for the Fitme app. You help users with workout planning, exercise advice, and fitness questions.
+    const agent = new ToolLoopAgent({
+      model: anthropic("claude-sonnet-4-6"),
+      instructions: `You are a personal fitness assistant for the Fitme app. You help users with workout planning, exercise advice, and fitness questions.
 You have access to tools to read and manage the user's workout plans.
-When creating a plan, always ask the user for their goal, whether they train at a gym or home, days per week, experience level, and preferred workout duration — unless they've already told you.
-Use search_exercises to find valid exercise IDs when needed. The create_plan tool only stores the plan data you provide; it does not generate a preview or fill in missing structure for you.
+
+When creating a plan:
+1. Collect from the user: goal, gym or home, days per week, experience level, preferred workout duration — unless already provided.
+2. Use search_exercises to find valid exercise IDs for all needed muscle groups.
+3. Once you have the exercise IDs, immediately call create_plan without asking for confirmation. Do not stop to summarize or ask "shall I proceed?" — just create the plan.
+
 Keep responses concise, friendly, and encouraging. Use markdown sparingly since the app renders plain text.`,
-      messages,
       tools,
-      maxSteps: 5,
+      stopWhen: stepCountIs(20),
+      onStepFinish: async ({ stepNumber, finishReason, toolCalls }) => {
+        log("step_finish", {
+          stepNumber,
+          finishReason,
+          toolsUsed: toolCalls?.map((tc) => tc.toolName),
+        });
+      },
     });
 
+    const { text } = await agent.generate({ messages });
+
     log("ai_request_done", {
-      steps: steps.length,
       responseLength: text.length,
+      response: text,
     });
 
     // ── Save messages to DB ─────────────────────────────────────────────────

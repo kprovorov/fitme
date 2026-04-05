@@ -25,8 +25,8 @@ export function createSearchExercisesTool({
       log("tool_call", { tool: "search_exercises", query, muscle_group });
       let q = supabaseClient
         .from("exercises")
-        .select("id, name, muscle_groups, description")
-        .limit(15);
+        .select("id, name, muscle_groups")
+        .limit(8);
       if (query) q = q.ilike("name", `%${query}%`);
       if (muscle_group)
         q = q.contains("muscle_groups", JSON.stringify([muscle_group]));

@@ -2,7 +2,7 @@ import { tool } from "npm:ai";
 import { z } from "npm:zod";
 import { ToolContext } from "./types.ts";
 
-export function createActivatePlanTool({ supabaseService, log }: ToolContext) {
+export function createActivatePlanTool({ supabaseClient, log }: ToolContext) {
   return tool({
     description: "Set a specific plan as the user's active plan",
     inputSchema: z.object({
@@ -10,7 +10,7 @@ export function createActivatePlanTool({ supabaseService, log }: ToolContext) {
     }),
     execute: async ({ plan_id }) => {
       log("tool_call", { tool: "activate_plan", plan_id });
-      const { error } = await supabaseService.rpc("activate_plan", {
+      const { error } = await supabaseClient.rpc("activate_plan", {
         plan_id,
       });
       if (error) {

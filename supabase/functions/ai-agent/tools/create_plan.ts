@@ -40,7 +40,7 @@ const PlanInputSchema = z.object({
   workouts: z.array(WorkoutInputSchema).min(1),
 });
 
-export function createCreatePlanTool({ supabaseService, log }: ToolContext) {
+export function createCreatePlanTool({ supabaseClient, log }: ToolContext) {
   return tool({
     description:
       "Store workout plan in the database. The input must include the full nested plan data with workouts, exercises, and sets.",
@@ -50,11 +50,10 @@ export function createCreatePlanTool({ supabaseService, log }: ToolContext) {
     execute: async ({ data }) => {
       log("tool_call", {
         tool: "create_plan",
-        planName: data.name,
-        workoutCount: data.workouts.length,
+        data,
       });
       try {
-        const { data: planId, error } = await supabaseService.rpc(
+        const { data: planId, error } = await supabaseClient.rpc(
           "create_plan",
           { p_plan_data: data },
         );
@@ -62,7 +61,12 @@ export function createCreatePlanTool({ supabaseService, log }: ToolContext) {
         log("tool_ok", { tool: "create_plan", planId });
         return { success: true, plan_id: planId, plan_name: data.name };
       } catch (err) {
-        const message = err instanceof Error ? err.message : String(err);
+        const message =
+          err instanceof Error
+            ? err.message
+            : typeof err === "object"
+              ? JSON.stringify(err)
+              : String(err);
         log("tool_error", { tool: "create_plan", error: message });
         return { error: `Failed to create plan: ${message}` };
       }
