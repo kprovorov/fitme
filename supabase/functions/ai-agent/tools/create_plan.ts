@@ -43,7 +43,7 @@ const PlanInputSchema = z.object({
 export function createCreatePlanTool({ supabaseService, log }: ToolContext) {
   return tool({
     description:
-      "Create and persist a workout plan in the database. The input must include the full nested plan data with workouts, exercises, and sets.",
+      "Store workout plan in the database. The input must include the full nested plan data with workouts, exercises, and sets.",
     inputSchema: z.object({
       data: PlanInputSchema,
     }),

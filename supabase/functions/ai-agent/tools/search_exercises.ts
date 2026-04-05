@@ -28,7 +28,8 @@ export function createSearchExercisesTool({
         .select("id, name, muscle_groups, description")
         .limit(15);
       if (query) q = q.ilike("name", `%${query}%`);
-      if (muscle_group) q = q.contains("muscle_groups", [muscle_group]);
+      if (muscle_group)
+        q = q.contains("muscle_groups", JSON.stringify([muscle_group]));
       const { data, error } = await q;
       if (error) {
         log("tool_error", { tool: "search_exercises", error: error.message });
