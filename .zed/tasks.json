@@ -6,6 +6,12 @@
     "reveal": "no_focus"
   },
   {
+    "label": "Supabase: Start",
+    "command": "supabase start",
+    "reveal": "no_focus",
+    "hide": "on_success"
+  },
+  {
     "label": "Supabase: Restart",
     "command": "supabase stop && supabase start",
     "reveal": "no_focus",
