@@ -6,11 +6,16 @@ import PlanAttachmentView from "./plan-attachment-view";
 
 type Props = {
   message: Message;
+  isStreaming?: boolean;
 };
 
-export default function AgentMessageView({ message }: Props) {
+export default function AgentMessageView({ message, isStreaming }: Props) {
   const isUser = message.role === "user";
   const attachment = message.metadata?.attachment;
+  const content =
+    !isUser && isStreaming && !message.content.trim()
+      ? "Thinking..."
+      : message.content;
 
   return (
     <View className={`mb-3 ${isUser ? "items-end" : "items-start"}`}>
@@ -26,7 +31,7 @@ export default function AgentMessageView({ message }: Props) {
             isUser ? "text-primary-foreground" : "text-foreground"
           }`}
         >
-          {message.content}
+          {content}
         </Text>
       </View>
 

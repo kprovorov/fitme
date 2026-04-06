@@ -157,70 +157,104 @@ Keep responses concise, friendly, and encouraging. Use markdown sparingly since 
       },
     });
 
-    const { text } = await agent.generate({ messages });
+    const encoder = new TextEncoder();
 
-    log("ai_request_done", {
-      responseLength: text.length,
-      response: text,
+    const stream = new ReadableStream<Uint8Array>({
+      start(controller) {
+        void (async () => {
+          let fullText = "";
+
+          try {
+            const result = await agent.stream({
+              messages,
+              abortSignal: req.signal,
+            });
+
+            for await (const chunk of result.textStream) {
+              if (!chunk) {
+                continue;
+              }
+
+              fullText += chunk;
+              controller.enqueue(encoder.encode(chunk));
+            }
+
+            log("ai_request_done", {
+              responseLength: fullText.length,
+              response: fullText,
+            });
+
+            // ── Fetch created plan as attachment (if any) ──────────────────
+            let attachment: {
+              type: "plan_preview";
+              planId: string;
+              data: unknown;
+            } | null = null;
+            if (affectedPlanId) {
+              const { data: plan } = await supabaseClient
+                .from("plans")
+                .select(
+                  `*, workouts (
+                    *,
+                    exercises:workout_exercises (
+                      *,
+                      exercise:exercises (*),
+                      sets:workout_exercise_sets (*)
+                    )
+                  )`,
+                )
+                .eq("id", affectedPlanId)
+                .single();
+              if (plan) {
+                attachment = {
+                  type: "plan_preview",
+                  planId: affectedPlanId,
+                  data: plan,
+                };
+                log("plan_attachment_ready", { planId: affectedPlanId });
+              }
+            }
+
+            // ── Save messages to DB ───────────────────────────────────────
+            await supabaseService.from("messages").insert([
+              {
+                conversation_id: conversationId,
+                role: "user",
+                content: message,
+              },
+              {
+                conversation_id: conversationId,
+                role: "assistant",
+                content: fullText,
+                metadata: attachment ? { attachment } : null,
+              },
+            ]);
+
+            controller.close();
+          } catch (err) {
+            const errMessage =
+              err instanceof Error ? err.message : "Unknown error";
+            log("ai_request_error", { error: errMessage });
+            controller.error(err);
+          }
+        })();
+      },
+      cancel(reason) {
+        log("stream_cancelled", {
+          reason: reason instanceof Error ? reason.message : String(reason),
+        });
+      },
     });
 
-    // ── Fetch created plan as attachment (if any) ──────────────────────────
-    let attachment: {
-      type: "plan_preview";
-      planId: string;
-      data: unknown;
-    } | null = null;
-    if (affectedPlanId) {
-      const { data: plan } = await supabaseClient
-        .from("plans")
-        .select(
-          `*, workouts (
-            *,
-            exercises:workout_exercises (
-              *,
-              exercise:exercises (*),
-              sets:workout_exercise_sets (*)
-            )
-          )`,
-        )
-        .eq("id", affectedPlanId)
-        .single();
-      if (plan) {
-        attachment = {
-          type: "plan_preview",
-          planId: affectedPlanId,
-          data: plan,
-        };
-        log("plan_attachment_ready", { planId: affectedPlanId });
-      }
-    }
-
-    // ── Save messages to DB ─────────────────────────────────────────────────
-    await supabaseService.from("messages").insert([
-      {
-        conversation_id: conversationId,
-        role: "user",
-        content: message,
+    return new Response(stream, {
+      status: 200,
+      headers: {
+        "Content-Type": "text/plain; charset=utf-8",
+        "Cache-Control": "no-cache",
+        "Content-Encoding": "none",
+        "x-conversation-id": conversationId ?? "",
       },
-      {
-        conversation_id: conversationId,
-        role: "assistant",
-        content: text,
-        metadata: attachment ? { attachment } : null,
-      },
-    ]);
-
-    return new Response(
-      JSON.stringify({
-        message: text,
-        conversation_id: conversationId,
-        attachment,
-      }),
-      {
-        status: 200,
-        headers: { "Content-Type": "application/json" },
-      },
-    );
+    });
   } catch (err) {
     const errMessage = err instanceof Error ? err.message : "Unknown error";
     log("ai_request_error", { error: errMessage });

@@ -28,6 +28,7 @@ type LocalMessage = {
   content: string;
   created_at: string;
   metadata?: { attachment?: MessageAttachment };
+  isStreaming?: boolean;
 };
 
 export default function AgentScreen() {
@@ -36,6 +37,7 @@ export default function AgentScreen() {
   const [input, setInput] = useState("");
   const [localMessages, setLocalMessages] = useState<LocalMessage[]>([]);
   const [conversationId, setConversationId] = useState<string | undefined>();
+  const [isStreaming, setIsStreaming] = useState(false);
   const flatListRef = useRef<FlatList>(null);
 
   const { data: conversation } = useConversationQuery();
@@ -54,17 +56,18 @@ export default function AgentScreen() {
 
   // Sync messages from server into local state
   useEffect(() => {
-    if (serverMessages && serverMessages.length > 0) {
+    if (!isStreaming && serverMessages && serverMessages.length > 0) {
       const mapped: LocalMessage[] = serverMessages.map((m: Message) => ({
         id: m.id,
         role: m.role,
         content: m.content,
         created_at: m.created_at,
         metadata: m.metadata,
+        isStreaming: false,
       }));
       setLocalMessages(mapped);
     }
-  }, [serverMessages]);
+  }, [isStreaming, serverMessages]);
 
   const scrollToBottom = useCallback(() => {
     flatListRef.current?.scrollToEnd({ animated: true });
@@ -72,9 +75,10 @@ export default function AgentScreen() {
 
   const handleSend = useCallback(() => {
     const text = input.trim();
-    if (!text || isPending) return;
+    if (!text || isPending || isStreaming) return;
 
     setInput("");
+    setIsStreaming(true);
 
     // Optimistically append user message
     const userMsg: LocalMessage = {
@@ -83,30 +87,63 @@ export default function AgentScreen() {
       content: text,
       created_at: new Date().toISOString(),
     };
-    setLocalMessages((prev) => [...prev, userMsg]);
+    const assistantMessageId = `local-assistant-${Date.now()}`;
+    const assistantMsg: LocalMessage = {
+      id: assistantMessageId,
+      role: "assistant",
+      content: "",
+      created_at: new Date().toISOString(),
+      isStreaming: true,
+    };
+    setLocalMessages((prev) => [...prev, userMsg, assistantMsg]);
     setTimeout(scrollToBottom, 50);
 
     sendMessage(
-      { message: text, conversationId },
+      {
+        message: text,
+        conversationId,
+        onChunk: (chunk, nextConversationId) => {
+          if (nextConversationId !== conversationId) {
+            setConversationId(nextConversationId);
+          }
+
+          setLocalMessages((prev) =>
+            prev.map((message) =>
+              message.id === assistantMessageId
+                ? {
+                    ...message,
+                    content: message.content + chunk,
+                    isStreaming: true,
+                  }
+                : message,
+            ),
+          );
+          setTimeout(scrollToBottom, 0);
+        },
+      },
       {
         onSuccess: (response) => {
           if (!conversationId && response.conversation_id) {
             setConversationId(response.conversation_id);
           }
 
-          const assistantMsg: LocalMessage = {
-            id: `local-assistant-${Date.now()}`,
-            role: "assistant",
-            content: response.message,
-            created_at: new Date().toISOString(),
-            metadata: response.attachment
-              ? { attachment: response.attachment }
-              : undefined,
-          };
-          setLocalMessages((prev) => [...prev, assistantMsg]);
-          setTimeout(scrollToBottom, 50);
+          setLocalMessages((prev) =>
+            prev.map((message) =>
+              message.id === assistantMessageId
+                ? {
+                    ...message,
+                    content: response.message,
+                    isStreaming: false,
+                  }
+                : message,
+            ),
+          );
+          setIsStreaming(false);
 
-          // Invalidate messages so the server state syncs
+          queryClient.invalidateQueries({
+            queryKey: ["conversation"],
+          });
+
           if (response.conversation_id) {
             queryClient.invalidateQueries({
               queryKey: [
@@ -117,21 +154,27 @@ export default function AgentScreen() {
           }
         },
         onError: () => {
-          const errorMsg: LocalMessage = {
-            id: `local-error-${Date.now()}`,
-            role: "assistant",
-            content: "Sorry, something went wrong. Please try again.",
-            created_at: new Date().toISOString(),
-          };
-          setLocalMessages((prev) => [...prev, errorMsg]);
+          setLocalMessages((prev) =>
+            prev.map((message) =>
+              message.id === assistantMessageId
+                ? {
+                    ...message,
+                    content: "Sorry, something went wrong. Please try again.",
+                    isStreaming: false,
+                  }
+                : message,
+            ),
+          );
+          setIsStreaming(false);
           setTimeout(scrollToBottom, 50);
         },
       },
     );
   }, [
+    conversationId,
     input,
     isPending,
-    conversationId,
+    isStreaming,
     sendMessage,
     scrollToBottom,
     queryClient,
@@ -148,6 +191,7 @@ export default function AgentScreen() {
           created_at: item.created_at,
           metadata: item.metadata,
         }}
+        isStreaming={item.isStreaming}
       />
     ),
     [conversationId],
@@ -188,15 +232,6 @@ export default function AgentScreen() {
           />
         )}
 
-        {/* Typing indicator */}
-        {isPending && (
-          <View className="px-4 pb-2">
-            <View className="self-start bg-card border border-white/10 rounded-2xl rounded-tl-sm px-4 py-3">
-              <Text className="text-muted-foreground text-sm">Thinking...</Text>
-            </View>
-          </View>
-        )}
-
         {/* Input row */}
         <View
           className="flex-row items-center gap-3 px-4 py-3 border-t border-white/10"
@@ -209,19 +244,21 @@ export default function AgentScreen() {
             onChangeText={setInput}
             onSubmitEditing={handleSend}
             returnKeyType="send"
-            editable={!isPending}
+            editable={!isPending && !isStreaming}
             multiline={false}
           />
           <Pressable
             onPress={handleSend}
-            disabled={!input.trim() || isPending}
+            disabled={!input.trim() || isPending || isStreaming}
             className={`w-10 h-10 rounded-full items-center justify-center ${
-              input.trim() && !isPending ? "bg-primary" : "bg-muted"
+              input.trim() && !isPending && !isStreaming
+                ? "bg-primary"
+                : "bg-muted"
             }`}
           >
             <ArrowRight
               className={`w-5 h-5 ${
-                input.trim() && !isPending
+                input.trim() && !isPending && !isStreaming
                   ? "text-primary-foreground"
                   : "text-muted-foreground"
               }`}
