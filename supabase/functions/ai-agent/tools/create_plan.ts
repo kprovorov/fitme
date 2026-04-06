@@ -40,7 +40,11 @@ const PlanInputSchema = z.object({
   workouts: z.array(WorkoutInputSchema).min(1),
 });
 
-export function createCreatePlanTool({ supabaseClient, log }: ToolContext) {
+export function createCreatePlanTool({
+  supabaseClient,
+  log,
+  onPlanCreated,
+}: ToolContext) {
   return tool({
     description:
       "Store workout plan in the database. The input must include the full nested plan data with workouts, exercises, and sets.",
@@ -59,6 +63,7 @@ export function createCreatePlanTool({ supabaseClient, log }: ToolContext) {
         );
         if (error) throw error;
         log("tool_ok", { tool: "create_plan", planId });
+        onPlanCreated?.(planId);
         return { success: true, plan_id: planId, plan_name: data.name };
       } catch (err) {
         const message =

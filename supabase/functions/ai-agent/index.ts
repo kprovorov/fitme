@@ -101,7 +101,15 @@ Deno.serve(async (req: Request) => {
   ];
 
   // ── Build tools ────────────────────────────────────────────────────────────
-  const ctx = { supabaseClient, supabaseService, log };
+  let createdPlanId: string | undefined;
+  const ctx = {
+    supabaseClient,
+    supabaseService,
+    log,
+    onPlanCreated: (planId: string) => {
+      createdPlanId = planId;
+    },
+  };
   const tools = {
     get_active_plan: createGetActivePlanTool(ctx),
     get_plans: createGetPlansTool(ctx),
@@ -146,6 +154,29 @@ Keep responses concise, friendly, and encouraging. Use markdown sparingly since 
       response: text,
     });
 
+    // ── Fetch created plan as attachment (if any) ──────────────────────────
+    let attachment: { type: "plan_preview"; data: unknown } | null = null;
+    if (createdPlanId) {
+      const { data: plan } = await supabaseClient
+        .from("plans")
+        .select(
+          `*, workouts (
+            *,
+            exercises:workout_exercises (
+              *,
+              exercise:exercises (*),
+              sets:workout_exercise_sets (*)
+            )
+          )`,
+        )
+        .eq("id", createdPlanId)
+        .single();
+      if (plan) {
+        attachment = { type: "plan_preview", data: plan };
+        log("plan_attachment_ready", { planId: createdPlanId });
+      }
+    }
+
     // ── Save messages to DB ─────────────────────────────────────────────────
     await supabaseService.from("messages").insert([
       {
@@ -157,7 +188,7 @@ Keep responses concise, friendly, and encouraging. Use markdown sparingly since 
         conversation_id: conversationId,
         role: "assistant",
         content: text,
-        metadata: null,
+        metadata: attachment ? { attachment } : null,
       },
     ]);
 
@@ -165,6 +196,7 @@ Keep responses concise, friendly, and encouraging. Use markdown sparingly since 
       JSON.stringify({
         message: text,
         conversation_id: conversationId,
+        attachment,
       }),
       {
         status: 200,

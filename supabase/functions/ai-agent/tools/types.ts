@@ -6,4 +6,5 @@ export interface ToolContext {
   supabaseClient: SupabaseClient;
   supabaseService: SupabaseClient;
   log: Log;
+  onPlanCreated?: (planId: string) => void;
 }
