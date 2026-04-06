@@ -190,6 +190,7 @@ export type Conversation = {
 
 export type MessageAttachment = {
   type: "plan_preview";
+  planId: string;
   data: PlanData;
 };
 

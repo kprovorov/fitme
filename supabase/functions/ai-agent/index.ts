@@ -172,7 +172,11 @@ Keep responses concise, friendly, and encouraging. Use markdown sparingly since 
         .eq("id", createdPlanId)
         .single();
       if (plan) {
-        attachment = { type: "plan_preview", data: plan };
+        attachment = {
+          type: "plan_preview",
+          planId: createdPlanId,
+          data: plan,
+        };
         log("plan_attachment_ready", { planId: createdPlanId });
       }
     }
