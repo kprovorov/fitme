@@ -7,6 +7,7 @@ import { createGetPlansTool } from "./tools/get_plans.ts";
 import { createSearchExercisesTool } from "./tools/search_exercises.ts";
 import { createCreatePlanTool } from "./tools/create_plan.ts";
 import { createActivatePlanTool } from "./tools/activate_plan.ts";
+import { createUpdatePlanTool } from "./tools/update_plan.ts";
 
 // ─── Main handler ─────────────────────────────────────────────────────────────
 
@@ -101,13 +102,16 @@ Deno.serve(async (req: Request) => {
   ];
 
   // ── Build tools ────────────────────────────────────────────────────────────
-  let createdPlanId: string | undefined;
+  let affectedPlanId: string | undefined;
   const ctx = {
     supabaseClient,
     supabaseService,
     log,
     onPlanCreated: (planId: string) => {
-      createdPlanId = planId;
+      affectedPlanId = planId;
+    },
+    onPlanUpdated: (planId: string) => {
+      affectedPlanId = planId;
     },
   };
   const tools = {
@@ -115,6 +119,7 @@ Deno.serve(async (req: Request) => {
     get_plans: createGetPlansTool(ctx),
     search_exercises: createSearchExercisesTool(ctx),
     create_plan: createCreatePlanTool(ctx),
+    update_plan: createUpdatePlanTool(ctx),
     activate_plan: createActivatePlanTool(ctx),
   };
 
@@ -134,6 +139,11 @@ When creating a plan:
 1. Collect from the user: goal, gym or home, days per week, experience level, preferred workout duration — unless already provided.
 2. Use search_exercises to find valid exercise IDs for all needed muscle groups.
 3. Once you have the exercise IDs, immediately call create_plan without asking for confirmation. Do not stop to summarize or ask "shall I proceed?" — just create the plan.
+
+When updating an existing plan:
+1. Use get_plans or get_active_plan to identify the target plan if needed.
+2. Build the full revised nested plan data, not a partial patch.
+3. Once you have the final revised plan data, immediately call update_plan without asking for confirmation.
 
 Keep responses concise, friendly, and encouraging. Use markdown sparingly since the app renders plain text.`,
       tools,
@@ -155,8 +165,12 @@ Keep responses concise, friendly, and encouraging. Use markdown sparingly since 
     });
 
     // ── Fetch created plan as attachment (if any) ──────────────────────────
-    let attachment: { type: "plan_preview"; data: unknown } | null = null;
-    if (createdPlanId) {
+    let attachment: {
+      type: "plan_preview";
+      planId: string;
+      data: unknown;
+    } | null = null;
+    if (affectedPlanId) {
       const { data: plan } = await supabaseClient
         .from("plans")
         .select(
@@ -169,15 +183,15 @@ Keep responses concise, friendly, and encouraging. Use markdown sparingly since 
             )
           )`,
         )
-        .eq("id", createdPlanId)
+        .eq("id", affectedPlanId)
         .single();
       if (plan) {
         attachment = {
           type: "plan_preview",
-          planId: createdPlanId,
+          planId: affectedPlanId,
           data: plan,
         };
-        log("plan_attachment_ready", { planId: createdPlanId });
+        log("plan_attachment_ready", { planId: affectedPlanId });
       }
     }
 

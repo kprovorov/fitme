@@ -7,4 +7,5 @@ export interface ToolContext {
   supabaseService: SupabaseClient;
   log: Log;
   onPlanCreated?: (planId: string) => void;
+  onPlanUpdated?: (planId: string) => void;
 }
