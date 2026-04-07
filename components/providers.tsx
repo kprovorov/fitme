@@ -1,20 +1,18 @@
-import { AnalyticsProvider } from "@segment/analytics-react-native";
-import { useColorScheme } from "@/hooks/useColorScheme";
 import AsyncStorage from "@react-native-async-storage/async-storage";
 import {
   DarkTheme,
   DefaultTheme,
   ThemeProvider,
 } from "@react-navigation/native";
+import { AnalyticsProvider } from "@segment/analytics-react-native";
 import { QueryClient, QueryClientProvider } from "@tanstack/react-query";
 import * as SecureStore from "expo-secure-store";
 import { Platform } from "react-native";
 import { KeyboardProvider } from "react-native-keyboard-controller";
 import { useSyncQueriesExternal } from "react-query-external-sync";
-import { segmentClient } from "~/lib/segment";
+import { useColorScheme } from "@/hooks/useColorScheme";
 import { storage } from "~/lib/mmkv";
-
-const IS_E2E = process.env.EXPO_PUBLIC_E2E_ENABLED === "true";
+import { segmentClient } from "~/lib/segment";
 
 const queryClient = new QueryClient();
 
@@ -25,11 +23,6 @@ function DevToolsSync() {
     deviceName: Platform?.OS || "web", // Platform detection
     platform: Platform?.OS || "web", // Use appropriate platform identifier
     deviceId: Platform?.OS || "web", // Use a PERSISTENT identifier (see note below)
-    extraDeviceInfo: {
-      // Optional additional info about your device
-      appVersion: "1.0.0",
-      // Add any relevant platform info
-    },
     enableLogs: false,
     envVariables: {
       NODE_ENV: process.env.NODE_ENV,
@@ -42,6 +35,7 @@ function DevToolsSync() {
     secureStorage: SecureStore, // SecureStore for ['#storage', 'secure', 'key'] queries + monitoring
     secureStorageKeys: ["biometricKey", "deviceId"], // SecureStore keys to monitor
   });
+
   return null;
 }
 
@@ -50,31 +44,31 @@ function Providers({ children }: { children: React.ReactNode }) {
 
   return (
     <AnalyticsProvider client={segmentClient}>
-    <QueryClientProvider client={queryClient}>
-      {!IS_E2E && <DevToolsSync />}
-      <ThemeProvider
-        value={
-          colorScheme === "dark"
-            ? {
-                ...DarkTheme,
-                colors: {
-                  ...DarkTheme.colors,
-                  primary: "#C0FF38",
-                  background: "#1F1D20",
-                },
-              }
-            : {
-                ...DefaultTheme,
-                colors: {
-                  ...DefaultTheme.colors,
-                  primary: "#C0FF38",
-                },
-              }
-        }
-      >
-        {IS_E2E ? children : <KeyboardProvider>{children}</KeyboardProvider>}
-      </ThemeProvider>
-    </QueryClientProvider>
+      <QueryClientProvider client={queryClient}>
+        <DevToolsSync />
+        <ThemeProvider
+          value={
+            colorScheme === "dark"
+              ? {
+                  ...DarkTheme,
+                  colors: {
+                    ...DarkTheme.colors,
+                    primary: "#C0FF38",
+                    background: "#1F1D20",
+                  },
+                }
+              : {
+                  ...DefaultTheme,
+                  colors: {
+                    ...DefaultTheme.colors,
+                    primary: "#C0FF38",
+                  },
+                }
+          }
+        >
+          <KeyboardProvider>{children}</KeyboardProvider>
+        </ThemeProvider>
+      </QueryClientProvider>
     </AnalyticsProvider>
   );
 }
