@@ -1,12 +1,6 @@
-import { clsx, type ClassValue } from "clsx";
+import { type ClassValue, clsx } from "clsx";
 import { twMerge } from "tailwind-merge";
-import { MuscleGroup } from "./models";
-import { useSharedValue } from "react-native-reanimated";
-import {
-  NativeEvent,
-  useKeyboardHandler,
-} from "react-native-keyboard-controller";
-import { NativeComponentRegistry } from "react-native";
+import type { MuscleGroup } from "./models";
 
 export function cn(...inputs: ClassValue[]) {
   return twMerge(clsx(inputs));
@@ -67,18 +61,3 @@ export function muscleGroupToName(muscleGroup: MuscleGroup): string {
       return "Full Body";
   }
 }
-
-export const useGradualAnimation = () => {
-  const height = useSharedValue(0);
-
-  useKeyboardHandler(
-    {
-      onMove: (event: NativeEvent) => {
-        "worklet";
-        height.value = Math.max(event.height, 0);
-      },
-    },
-    [],
-  );
-  return { height };
-};
