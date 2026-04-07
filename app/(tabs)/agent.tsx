@@ -8,15 +8,9 @@ import {
   StyleSheet,
   View,
 } from "react-native";
-import { useKeyboardHandler } from "react-native-keyboard-controller";
-import Animated, {
-  useAnimatedStyle,
-  useSharedValue,
-} from "react-native-reanimated";
-import {
-  SafeAreaView,
-  useSafeAreaInsets,
-} from "react-native-safe-area-context";
+import Animated, { useAnimatedStyle } from "react-native-reanimated";
+import { SafeAreaView } from "react-native-safe-area-context";
+import { useGradualAnimation } from "@/lib/utils";
 import { HeaderBackButton } from "~/components/ui/header-back-button";
 import { Input } from "~/components/ui/input";
 import { Text } from "~/components/ui/text";
@@ -38,21 +32,6 @@ type LocalMessage = {
   isStreaming?: boolean;
 };
 
-const useGradualAnimation = () => {
-  const height = useSharedValue(0);
-
-  useKeyboardHandler(
-    {
-      onMove: (event) => {
-        "worklet";
-        height.value = Math.max(event.height, 0);
-      },
-    },
-    [],
-  );
-  return { height };
-};
-
 export default function AgentScreen() {
   const { height } = useGradualAnimation();
 
@@ -63,7 +42,6 @@ export default function AgentScreen() {
   }, []);
 
   const queryClient = useQueryClient();
-  const insets = useSafeAreaInsets();
   const [input, setInput] = useState("");
   const [localMessages, setLocalMessages] = useState<LocalMessage[]>([]);
   const [conversationId, setConversationId] = useState<string | undefined>();
