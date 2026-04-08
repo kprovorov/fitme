@@ -1,7 +1,7 @@
 import { Stack } from "expo-router";
 import React, { useState } from "react";
-import { SafeAreaView, ScrollView } from "react-native";
-import { SafeAreaProvider } from "react-native-safe-area-context";
+import { ScrollView } from "react-native";
+import { SafeAreaProvider, SafeAreaView } from "react-native-safe-area-context";
 import { HeaderBackButton } from "~/components/ui/header-back-button";
 import { MenuList } from "~/components/ui/menu-list";
 import {

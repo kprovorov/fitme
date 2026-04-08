@@ -1,5 +1,6 @@
 import { type Href, usePathname } from "expo-router";
 import { TabList, TabSlot, Tabs, TabTrigger } from "expo-router/ui";
+import { KeyboardProvider } from "react-native-keyboard-controller";
 import { SafeAreaProvider } from "react-native-safe-area-context";
 import Authenticated from "~/components/authenticated";
 import { TabBarButton } from "~/components/ui/tab-bar-button";
@@ -67,32 +68,30 @@ export default function TabLayout() {
 
   return (
     <Authenticated>
-      <SafeAreaProvider>
-        <Tabs>
-          <TabSlot />
-          <TabList
-            className="h-20 px-10 absolute bottom-md left-md right-md bg-black rounded-3xl items-center justify-center border border-white/10 shadow-lg shadow-black/50"
-            style={{
-              display: shouldHideTabs ? "none" : "flex",
-            }}
-          >
-            {tabs.map((tab) => (
-              <TabTrigger
-                name={tab.name}
-                href={tab.href as Href}
-                asChild
-                key={tab.name}
+      <Tabs>
+        <TabSlot />
+        <TabList
+          className="h-20 px-10 absolute bottom-md left-md right-md bg-black rounded-3xl items-center justify-center border border-white/10 shadow-lg shadow-black/50"
+          style={{
+            display: shouldHideTabs ? "none" : "flex",
+          }}
+        >
+          {tabs.map((tab) => (
+            <TabTrigger
+              name={tab.name}
+              href={tab.href as Href}
+              asChild
+              key={tab.name}
+            >
+              <TabBarButton
+                renderIcon={({ isFocused }) => tab.renderIcon(isFocused)}
               >
-                <TabBarButton
-                  renderIcon={({ isFocused }) => tab.renderIcon(isFocused)}
-                >
-                  {tab.label}
-                </TabBarButton>
-              </TabTrigger>
-            ))}
-          </TabList>
-        </Tabs>
-      </SafeAreaProvider>
+                {tab.label}
+              </TabBarButton>
+            </TabTrigger>
+          ))}
+        </TabList>
+      </Tabs>
     </Authenticated>
   );
 }

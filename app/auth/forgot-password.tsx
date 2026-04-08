@@ -4,10 +4,9 @@ import {
   Keyboard,
   KeyboardAvoidingView,
   Platform,
-  SafeAreaView,
   TouchableWithoutFeedback,
 } from "react-native";
-import { SafeAreaProvider } from "react-native-safe-area-context";
+import { SafeAreaProvider, SafeAreaView } from "react-native-safe-area-context";
 import Sign from "~/components/brand/sign";
 import { VStack } from "~/components/ui/vstack";
 import ForgotPasswordView from "~/components/views/forgot-password-view";

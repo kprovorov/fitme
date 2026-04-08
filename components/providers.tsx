@@ -8,11 +8,12 @@ import { AnalyticsProvider } from "@segment/analytics-react-native";
 import { QueryClient, QueryClientProvider } from "@tanstack/react-query";
 import * as SecureStore from "expo-secure-store";
 import { Platform } from "react-native";
-import { KeyboardProvider } from "react-native-keyboard-controller";
 import { useSyncQueriesExternal } from "react-query-external-sync";
 import { useColorScheme } from "@/hooks/useColorScheme";
 import { storage } from "~/lib/mmkv";
 import { segmentClient } from "~/lib/segment";
+import { SafeAreaProvider } from "react-native-safe-area-context";
+import { KeyboardProvider } from "react-native-keyboard-controller";
 
 const queryClient = new QueryClient();
 
@@ -66,7 +67,9 @@ function Providers({ children }: { children: React.ReactNode }) {
                 }
           }
         >
-          <KeyboardProvider>{children}</KeyboardProvider>
+          <SafeAreaProvider>
+            <KeyboardProvider>{children}</KeyboardProvider>
+          </SafeAreaProvider>
         </ThemeProvider>
       </QueryClientProvider>
     </AnalyticsProvider>

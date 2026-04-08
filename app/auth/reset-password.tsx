@@ -4,11 +4,10 @@ import {
   Keyboard,
   KeyboardAvoidingView,
   Platform,
-  SafeAreaView,
   TouchableWithoutFeedback,
   View,
 } from "react-native";
-import { SafeAreaProvider } from "react-native-safe-area-context";
+import { SafeAreaProvider, SafeAreaView } from "react-native-safe-area-context";
 import Sign from "~/components/brand/sign";
 import { Spinner } from "~/components/ui/spinner";
 import { P } from "~/components/ui/typography";

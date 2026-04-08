@@ -213,7 +213,7 @@ export default function AgentScreen() {
   );
 
   return (
-    <SafeAreaView edges={["top", "bottom"]} style={styles.container}>
+    <SafeAreaView edges={["top", "bottom"]} style={{ flex: 1 }}>
       {/* Header */}
       <View className="flex-row items-center gap-3 px-4 pt-2 pb-4 border-b border-white/10">
         <HeaderBackButton />
@@ -223,13 +223,15 @@ export default function AgentScreen() {
       <KeyboardGestureArea
         interpolator="ios"
         offset={INPUT_HEIGHT}
-        style={styles.container}
+        style={{ flex: 1 }}
         textInputNativeID="chat-input"
       >
         <FlatList
+          style={{ flex: 1 }}
           data={[...localMessages].reverse()}
           inverted
           contentContainerStyle={{ paddingTop: INPUT_HEIGHT + MARGIN }}
+          keyExtractor={(item) => item.id}
           renderItem={({ item }: { item: LocalMessage }) => (
             <AgentMessageView
               message={{
@@ -243,10 +245,9 @@ export default function AgentScreen() {
               isStreaming={item.isStreaming}
             />
           )}
-          keyExtractor={(item) => item.id}
           renderScrollComponent={renderScrollComponent}
-          keyboardShouldPersistTaps="handled"
-          keyboardDismissMode="interactive"
+          // keyboardShouldPersistTaps="handled"
+          // keyboardDismissMode="interactive"
         />
 
         <KeyboardStickyView
@@ -289,10 +290,6 @@ export default function AgentScreen() {
 }
 
 const styles = StyleSheet.create({
-  container: {
-    justifyContent: "flex-end",
-    flex: 1,
-  },
   inputRow: {
     flexDirection: "row",
     alignItems: "center",

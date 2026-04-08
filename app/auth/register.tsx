@@ -1,13 +1,7 @@
 import { Stack } from "expo-router";
 import React, { useEffect, useState } from "react";
-import {
-  Keyboard,
-  KeyboardAvoidingView,
-  Platform,
-  SafeAreaView,
-  View,
-} from "react-native";
-import { SafeAreaProvider } from "react-native-safe-area-context";
+import { Keyboard, KeyboardAvoidingView, Platform, View } from "react-native";
+import { SafeAreaProvider, SafeAreaView } from "react-native-safe-area-context";
 import { VStack } from "~/components/ui/vstack";
 import RegisterView from "~/components/views/register-view";
 import Sign from "~/components/brand/sign";
