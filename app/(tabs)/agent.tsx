@@ -6,6 +6,7 @@ import {
   type LayoutChangeEvent,
   Pressable,
   type ScrollViewProps,
+  TextInput,
   View,
 } from "react-native";
 import {
@@ -21,7 +22,6 @@ import {
 } from "react-native-safe-area-context";
 import { HeaderBackButton } from "~/components/ui/header-back-button";
 import { HStack } from "~/components/ui/hstack";
-import { Input } from "~/components/ui/input";
 import { Spinner } from "~/components/ui/spinner";
 import { Text } from "~/components/ui/text";
 import { H3, Muted } from "~/components/ui/typography";
@@ -305,8 +305,8 @@ export default function AgentScreen() {
         <KeyboardStickyView offset={{ opened: bottom - MARGIN }}>
           <View className="border-t border-white/10 bg-background px-4 py-3">
             <HStack className="justify-stretch gap-2 items-end">
-              <Input
-                className="flex-1"
+              <TextInput
+                className="flex-1 text-foreground text-sm font-nunito-sans-bold"
                 placeholder="Message..."
                 value={input}
                 onChangeText={setInput}
@@ -317,19 +317,6 @@ export default function AgentScreen() {
                 multiline
                 scrollEnabled={inputHeight >= MAX_INPUT_HEIGHT}
                 onLayout={onInputLayout}
-                onContentSizeChange={(e) => {
-                  setInputHeight(
-                    Math.min(
-                      Math.max(e.nativeEvent.contentSize.height, INPUT_HEIGHT),
-                      MAX_INPUT_HEIGHT,
-                    ),
-                  );
-                }}
-                style={{
-                  height: inputHeight,
-                  paddingVertical: 12,
-                  textAlignVertical: "center",
-                }}
               />
               <Pressable
                 onPress={handleSend}
