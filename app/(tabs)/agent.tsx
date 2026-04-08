@@ -1,26 +1,32 @@
 import { useQueryClient } from "@tanstack/react-query";
-import { useCallback, useEffect, useState } from "react";
+import type React from "react";
+import { forwardRef, useCallback, useEffect, useState } from "react";
 import {
   FlatList,
-  Platform,
+  type LayoutChangeEvent,
   Pressable,
-  StatusBar,
+  type ScrollViewProps,
   StyleSheet,
   View,
 } from "react-native";
-import Animated, { useAnimatedStyle } from "react-native-reanimated";
-import { SafeAreaView } from "react-native-safe-area-context";
-import { useGradualAnimation } from "@/lib/utils";
+import {
+  KeyboardChatScrollView,
+  type KeyboardChatScrollViewProps,
+  KeyboardGestureArea,
+  KeyboardStickyView,
+} from "react-native-keyboard-controller";
+import { useSharedValue, withTiming } from "react-native-reanimated";
+import {
+  SafeAreaView,
+  useSafeAreaInsets,
+} from "react-native-safe-area-context";
 import { HeaderBackButton } from "~/components/ui/header-back-button";
 import { Input } from "~/components/ui/input";
-import { Text } from "~/components/ui/text";
 import { H3 } from "~/components/ui/typography";
-import { VStack } from "~/components/ui/vstack";
 import AgentMessageView from "~/components/views/agent-message-view";
 import { useSendMessageMutation } from "~/hooks/mutations/agent";
 import { useConversationQuery, useMessagesQuery } from "~/hooks/queries/agent";
 import { ArrowRight } from "~/lib/icons/ArrowRight";
-import { Sparkles } from "~/lib/icons/Sparkles";
 import type { Message, MessageAttachment } from "~/lib/models";
 
 type LocalMessage = {
@@ -32,24 +38,44 @@ type LocalMessage = {
   isStreaming?: boolean;
 };
 
+type Ref = React.ElementRef<typeof KeyboardChatScrollView>;
+
+const MARGIN = 8;
+const INPUT_HEIGHT = 42;
+
+// Wrapper for virtualized lists
+const ChatScrollView = forwardRef<
+  Ref,
+  ScrollViewProps & KeyboardChatScrollViewProps
+>((props, ref) => {
+  const { bottom } = useSafeAreaInsets();
+
+  return (
+    <KeyboardChatScrollView
+      ref={ref}
+      automaticallyAdjustContentInsets={false}
+      contentInsetAdjustmentBehavior="never"
+      keyboardDismissMode="interactive"
+      offset={bottom - MARGIN}
+      {...props}
+    />
+  );
+});
+
+ChatScrollView.displayName = "ChatScrollView";
+
 export default function AgentScreen() {
-  const { height } = useGradualAnimation();
-
-  const fakeView = useAnimatedStyle(() => {
-    return {
-      height: Math.abs(height.value),
-    };
-  }, []);
-
+  const { bottom } = useSafeAreaInsets();
   const queryClient = useQueryClient();
   const [input, setInput] = useState("");
   const [localMessages, setLocalMessages] = useState<LocalMessage[]>([]);
   const [conversationId, setConversationId] = useState<string | undefined>();
   const [isStreaming, setIsStreaming] = useState(false);
+  const extraContentPadding = useSharedValue(0);
 
   const { data: conversation } = useConversationQuery();
   const { data: serverMessages } = useMessagesQuery({
-    variables: { conversationId: conversationId! },
+    variables: { conversationId: conversationId ?? "" },
     enabled: !!conversationId,
   });
   const { mutate: sendMessage, isPending } = useSendMessageMutation();
@@ -169,47 +195,64 @@ export default function AgentScreen() {
     );
   }, [conversationId, input, isPending, isStreaming, sendMessage, queryClient]);
 
+  const renderScrollComponent = useCallback(
+    (props: ScrollViewProps) => (
+      <ChatScrollView {...props} extraContentPadding={extraContentPadding} />
+    ),
+    [extraContentPadding],
+  );
+
+  const onInputLayout = useCallback(
+    (e: LayoutChangeEvent) => {
+      extraContentPadding.value = withTiming(
+        Math.max(e.nativeEvent.layout.height - INPUT_HEIGHT, 0),
+        { duration: 250 },
+      );
+    },
+    [extraContentPadding],
+  );
+
   return (
-    <SafeAreaView edges={["top"]} className="flex-1">
+    <SafeAreaView edges={["top", "bottom"]} style={styles.container}>
       {/* Header */}
       <View className="flex-row items-center gap-3 px-4 pt-2 pb-4 border-b border-white/10">
         <HeaderBackButton />
         <H3>AI Agent</H3>
       </View>
 
-      <View style={styles.container}>
-        {/* Message list */}
-        {localMessages.length === 0 ? (
-          <VStack className="flex-1 items-center justify-center px-8 gap-4">
-            <Sparkles className="w-12 h-12 text-primary" />
-            <Text className="text-center text-muted-foreground">
-              Ask me anything about fitness, or let me create a workout plan for
-              you.
-            </Text>
-          </VStack>
-        ) : (
-          <FlatList
-            data={localMessages}
-            renderItem={({ item }: { item: LocalMessage }) => (
-              <AgentMessageView
-                message={{
-                  id: item.id,
-                  conversation_id: conversationId ?? "",
-                  role: item.role,
-                  content: item.content,
-                  created_at: item.created_at,
-                  metadata: item.metadata,
-                }}
-                isStreaming={item.isStreaming}
-              />
-            )}
-            keyExtractor={(item) => item.id}
-            contentContainerStyle={styles.listStyle}
-          />
-        )}
+      <KeyboardGestureArea
+        interpolator="ios"
+        offset={INPUT_HEIGHT}
+        style={styles.container}
+        textInputNativeID="chat-input"
+      >
+        <FlatList
+          data={[...localMessages].reverse()}
+          inverted
+          contentContainerStyle={{ paddingTop: INPUT_HEIGHT + MARGIN }}
+          renderItem={({ item }: { item: LocalMessage }) => (
+            <AgentMessageView
+              message={{
+                id: item.id,
+                conversation_id: conversationId ?? "",
+                role: item.role,
+                content: item.content,
+                created_at: item.created_at,
+                metadata: item.metadata,
+              }}
+              isStreaming={item.isStreaming}
+            />
+          )}
+          keyExtractor={(item) => item.id}
+          renderScrollComponent={renderScrollComponent}
+          keyboardShouldPersistTaps="handled"
+          keyboardDismissMode="interactive"
+        />
 
-        {/* Input row */}
-        <View className="flex-row items-center gap-3 px-4 py-3 border-t border-white/10">
+        <KeyboardStickyView
+          offset={{ opened: bottom - MARGIN }}
+          style={styles.inputRow}
+        >
           <Input
             className="flex-1 bg-card"
             placeholder="Message..."
@@ -218,7 +261,9 @@ export default function AgentScreen() {
             onSubmitEditing={handleSend}
             returnKeyType="send"
             editable={!isPending && !isStreaming}
-            multiline={false}
+            nativeID="chat-input"
+            multiline
+            onLayout={onInputLayout}
           />
           <Pressable
             onPress={handleSend}
@@ -237,20 +282,24 @@ export default function AgentScreen() {
               }`}
             />
           </Pressable>
-        </View>
-        <Animated.View style={fakeView} />
-      </View>
+        </KeyboardStickyView>
+      </KeyboardGestureArea>
     </SafeAreaView>
   );
 }
 
 const styles = StyleSheet.create({
   container: {
+    justifyContent: "flex-end",
     flex: 1,
-    paddingTop: Platform.OS === "android" ? StatusBar.currentHeight : 0,
   },
-  listStyle: {
-    padding: 16,
-    gap: 16,
+  inputRow: {
+    flexDirection: "row",
+    alignItems: "center",
+    gap: 12,
+    paddingHorizontal: 16,
+    paddingVertical: 12,
+    borderTopWidth: StyleSheet.hairlineWidth,
+    borderTopColor: "rgba(255,255,255,0.1)",
   },
 });
