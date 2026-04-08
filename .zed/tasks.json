@@ -6,6 +6,13 @@
     "reveal": "no_focus"
   },
   {
+    "label": "Expo: Prebuild",
+    "command": "npx",
+    "args": ["expo", "prebuild", "--clean"],
+    "reveal": "no_focus",
+    "hide": "on_success"
+  },
+  {
     "label": "Supabase: Start",
     "command": "supabase start",
     "reveal": "no_focus",
