@@ -22,12 +22,54 @@ import {
 import { HeaderBackButton } from "~/components/ui/header-back-button";
 import { HStack } from "~/components/ui/hstack";
 import { Input } from "~/components/ui/input";
-import { H3 } from "~/components/ui/typography";
+import { Spinner } from "~/components/ui/spinner";
+import { Text } from "~/components/ui/text";
+import { H3, Muted } from "~/components/ui/typography";
 import AgentMessageView from "~/components/views/agent-message-view";
 import { useSendMessageMutation } from "~/hooks/mutations/agent";
 import { useConversationQuery, useMessagesQuery } from "~/hooks/queries/agent";
 import { ArrowRight } from "~/lib/icons/ArrowRight";
+import { Sparkles } from "~/lib/icons/Sparkles";
 import type { Message, MessageAttachment } from "~/lib/models";
+
+const SUGGESTIONS = [
+  "Create a workout plan for me",
+  "How am I progressing this week?",
+  "What exercises target my core?",
+];
+
+function EmptyState({
+  onSuggestion,
+}: {
+  onSuggestion: (text: string) => void;
+}) {
+  return (
+    <View style={{ transform: [{ scaleY: -1 }] }}>
+      <View className="items-center px-6 py-12 gap-6">
+        <View className="w-16 h-16 rounded-full bg-primary/20 items-center justify-center">
+          <Sparkles className="w-8 h-8 text-primary" />
+        </View>
+        <View className="items-center gap-2">
+          <H3 className="text-center">How can I help?</H3>
+          <Muted className="text-center">
+            Ask me about workouts, nutrition, or your fitness goals.
+          </Muted>
+        </View>
+        <View className="w-full gap-3">
+          {SUGGESTIONS.map((s) => (
+            <Pressable
+              key={s}
+              onPress={() => onSuggestion(s)}
+              className="border border-white/10 rounded-2xl px-4 py-3 bg-card"
+            >
+              <Text className="text-sm text-foreground">{s}</Text>
+            </Pressable>
+          ))}
+        </View>
+      </View>
+    </View>
+  );
+}
 
 type LocalMessage = {
   id: string;
@@ -42,6 +84,7 @@ type Ref = React.ComponentRef<typeof KeyboardChatScrollView>;
 
 const MARGIN = 8;
 const INPUT_HEIGHT = 42;
+const MAX_INPUT_HEIGHT = 120;
 
 // Wrapper for virtualized lists
 const ChatScrollView = forwardRef<
@@ -70,6 +113,7 @@ export default function AgentScreen() {
   const [localMessages, setLocalMessages] = useState<LocalMessage[]>([]);
   const [conversationId, setConversationId] = useState<string | undefined>();
   const [isStreaming, setIsStreaming] = useState(false);
+  const [inputHeight, setInputHeight] = useState(INPUT_HEIGHT);
   const extraContentPadding = useSharedValue(0);
 
   const { data: conversation } = useConversationQuery();
@@ -101,11 +145,14 @@ export default function AgentScreen() {
     }
   }, [isStreaming, serverMessages]);
 
+  const { bottom } = useSafeAreaInsets();
+
   const handleSend = useCallback(() => {
     const text = input.trim();
     if (!text || isPending || isStreaming) return;
 
     setInput("");
+    setInputHeight(INPUT_HEIGHT);
     setIsStreaming(true);
 
     const userMsg: LocalMessage = {
@@ -212,11 +259,17 @@ export default function AgentScreen() {
   );
 
   return (
-    <SafeAreaView edges={["top", "bottom"]} style={{ flex: 1 }}>
+    <SafeAreaView edges={["top", "bottom"]} className="flex-1">
       {/* Header */}
-      <View className="flex-row items-center gap-3 px-4 pt-2 pb-4 border-b border-white/10">
+      <View className="flex-row items-center gap-3 px-4 pt-2 pb-3 border-b border-white/10">
         <HeaderBackButton />
-        <H3>AI Agent</H3>
+        <View className="w-8 h-8 rounded-full bg-primary/20 items-center justify-center">
+          <Sparkles className="w-4 h-4 text-primary" />
+        </View>
+        <View className="flex-1">
+          <H3>AI Agent</H3>
+          <Muted className="text-xs leading-tight">Powered by Claude</Muted>
+        </View>
       </View>
 
       <KeyboardGestureArea
@@ -226,7 +279,6 @@ export default function AgentScreen() {
         textInputNativeID="chat-input"
       >
         <FlatList
-          style={{ flex: 1 }}
           data={[...localMessages].reverse()}
           inverted
           contentContainerStyle={{ paddingTop: INPUT_HEIGHT + MARGIN }}
@@ -245,44 +297,63 @@ export default function AgentScreen() {
             />
           )}
           renderScrollComponent={renderScrollComponent}
-          // keyboardShouldPersistTaps="handled"
-          // keyboardDismissMode="interactive"
+          keyboardShouldPersistTaps="handled"
+          keyboardDismissMode="interactive"
+          ListEmptyComponent={<EmptyState onSuggestion={setInput} />}
         />
 
-        <KeyboardStickyView
-          offset={{ opened: 20, closed: 20 }}
-          style={{ backgroundColor: "red" }}
-        >
-          <HStack>
-            <Input
-              placeholder="Message..."
-              value={input}
-              onChangeText={setInput}
-              onSubmitEditing={handleSend}
-              returnKeyType="send"
-              editable={!isPending && !isStreaming}
-              nativeID="chat-input"
-              // multiline
-              onLayout={onInputLayout}
-            />
-            <Pressable
-              onPress={handleSend}
-              disabled={!input.trim() || isPending || isStreaming}
-              className={`w-10 h-10 rounded-full items-center justify-center ${
-                input.trim() && !isPending && !isStreaming
-                  ? "bg-primary"
-                  : "bg-muted"
-              }`}
-            >
-              <ArrowRight
-                className={`w-5 h-5 ${
-                  input.trim() && !isPending && !isStreaming
-                    ? "text-primary-foreground"
-                    : "text-muted-foreground"
-                }`}
+        <KeyboardStickyView offset={{ opened: bottom - MARGIN }}>
+          <View className="border-t border-white/10 bg-background px-4 py-3">
+            <HStack className="justify-stretch gap-2 items-end">
+              <Input
+                className="flex-1"
+                placeholder="Message..."
+                value={input}
+                onChangeText={setInput}
+                onSubmitEditing={handleSend}
+                returnKeyType="send"
+                editable={!isPending && !isStreaming}
+                nativeID="chat-input"
+                multiline
+                scrollEnabled={inputHeight >= MAX_INPUT_HEIGHT}
+                onLayout={onInputLayout}
+                onContentSizeChange={(e) => {
+                  setInputHeight(
+                    Math.min(
+                      Math.max(e.nativeEvent.contentSize.height, INPUT_HEIGHT),
+                      MAX_INPUT_HEIGHT,
+                    ),
+                  );
+                }}
+                style={{
+                  height: inputHeight,
+                  paddingVertical: 12,
+                  textAlignVertical: "center",
+                }}
               />
-            </Pressable>
-          </HStack>
+              <Pressable
+                onPress={handleSend}
+                disabled={!input.trim() || isPending || isStreaming}
+                className={`w-10 h-10 rounded-full items-center justify-center ${
+                  input.trim() && !isPending && !isStreaming
+                    ? "bg-primary"
+                    : "bg-muted"
+                }`}
+              >
+                {isPending || isStreaming ? (
+                  <Spinner size={18} className="text-muted-foreground" />
+                ) : (
+                  <ArrowRight
+                    className={`w-5 h-5 ${
+                      input.trim()
+                        ? "text-primary-foreground"
+                        : "text-muted-foreground"
+                    }`}
+                  />
+                )}
+              </Pressable>
+            </HStack>
+          </View>
         </KeyboardStickyView>
       </KeyboardGestureArea>
     </SafeAreaView>
