@@ -1,14 +1,9 @@
 import React from "react";
+import { View } from "react-native";
 import { Text } from "../ui/text";
 import { PlanData } from "~/lib/models";
 import { VStack } from "../ui/vstack";
-import {
-  Card,
-  CardContent,
-  CardDescription,
-  CardHeader,
-  CardTitle,
-} from "../ui/card";
+import { Card, CardContent, CardHeader, CardTitle } from "../ui/card";
 import { getGoalLabel, getPlaceLabel } from "~/lib/labels";
 import { BicepsFlexed } from "~/lib/icons/BicepsFlexed";
 import { Flame } from "~/lib/icons/Flame";
@@ -26,11 +21,11 @@ interface PlanDataViewProps {
 
 export default function PlanDataView({ planData }: PlanDataViewProps) {
   return (
-    <VStack className="flex-1 items-stretch">
-      <Card className="flex-1 flex-col items-stretch justify-start gap-sm py-sm bg-transparent">
+    <VStack className="items-stretch">
+      <Card className="flex-col items-stretch justify-start gap-sm py-sm bg-transparent">
         <CardHeader>
           <CardTitle>{planData.name}</CardTitle>
-          <CardDescription>
+          <View className="gap-3">
             <HStack className="justify-start flex-wrap">
               {[
                 {
@@ -69,13 +64,13 @@ export default function PlanDataView({ planData }: PlanDataViewProps) {
                 </HStack>
               ))}
             </HStack>
-          </CardDescription>
+          </View>
         </CardHeader>
         <CardContent>
           <Muted>{planData.description}</Muted>
         </CardContent>
       </Card>
-      <VStack className="flex-1 items-stretch gap-sm">
+      <VStack className="items-stretch gap-sm">
         {planData.workouts.map((workout) => (
           <WorkoutDataCard key={workout.order} workoutData={workout} />
         ))}

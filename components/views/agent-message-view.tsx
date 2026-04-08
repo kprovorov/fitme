@@ -73,7 +73,9 @@ export default function AgentMessageView({ message, isStreaming }: Props) {
   const isThinking = !isUser && isStreaming && !message.content.trim();
 
   return (
-    <View className={`mb-4 px-4 ${isUser ? "items-end" : "items-start"}`}>
+    <View
+      className={`w-full mb-4 px-4 ${isUser ? "items-end" : "items-start"}`}
+    >
       {!isUser && (
         <View className="w-7 h-7 rounded-full bg-primary/20 items-center justify-center mb-1.5">
           <Sparkles className="w-3.5 h-3.5 text-primary" />

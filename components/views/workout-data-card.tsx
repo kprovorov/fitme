@@ -17,9 +17,9 @@ interface WorkoutDataCardProps {
 
 export default function WorkoutDataCard({ workoutData }: WorkoutDataCardProps) {
   return (
-    <Card className="overflow-hidden flex-1">
-      <VStack className="flex-1 items-stretch gap-0">
-        <VStack className="items-stretch flex-shrink flex-1 gap-4 w-full p-4">
+    <Card className="overflow-hidden">
+      <VStack className="items-stretch gap-0">
+        <VStack className="items-stretch gap-4 w-full p-4">
           <H4 className="font-nunito-sans-bold text-primary">
             {workoutData.name}
           </H4>

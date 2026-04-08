@@ -25,7 +25,7 @@ export default function PlanAttachmentView({ attachment }: Props) {
   });
 
   return (
-    <View className="mt-2 w-full border border-white/15 rounded-xl overflow-hidden">
+    <View className="mt-2 w-full self-stretch border border-white/15 rounded-xl overflow-hidden">
       <PlanDataView planData={attachment.data} />
       <View className="px-4 py-3 border-t border-white/10 flex-row gap-2">
         {activated ? (
