@@ -38,7 +38,7 @@ type LocalMessage = {
   isStreaming?: boolean;
 };
 
-type Ref = React.ElementRef<typeof KeyboardChatScrollView>;
+type Ref = React.ComponentRef<typeof KeyboardChatScrollView>;
 
 const MARGIN = 8;
 const INPUT_HEIGHT = 42;
@@ -65,7 +65,6 @@ const ChatScrollView = forwardRef<
 ChatScrollView.displayName = "ChatScrollView";
 
 export default function AgentScreen() {
-  const { bottom } = useSafeAreaInsets();
   const queryClient = useQueryClient();
   const [input, setInput] = useState("");
   const [localMessages, setLocalMessages] = useState<LocalMessage[]>([]);
