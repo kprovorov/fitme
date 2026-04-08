@@ -1,6 +1,6 @@
 import React from "react";
 import { Stack, useLocalSearchParams } from "expo-router";
-import { SafeAreaProvider, SafeAreaView } from "react-native-safe-area-context";
+import { SafeAreaView } from "react-native-safe-area-context";
 import { ScrollView, View } from "react-native";
 import { HeaderBackButton } from "~/components/ui/header-back-button";
 import { useExerciseQuery } from "~/hooks/queries/exercises";
@@ -31,26 +31,22 @@ export default function ExerciseScreen() {
           headerLeft: () => <HeaderBackButton />,
         }}
       />
-      <SafeAreaProvider>
-        <SafeAreaView className="flex-1">
-          <ScrollView
-            className="flex-1 p-6"
-            showsVerticalScrollIndicator={false}
-          >
-            {!!exercise && (
-              <VStack className="items-stretch">
-                {exercise?.video_url && (
-                  <View className="w-full rounded-lg overflow-hidden">
-                    <ExerciseVideo exercise={exercise} />
-                  </View>
-                )}
-                <P className="text-primary">{exercise?.description}</P>
-                <Muted>{exercise?.instructions}</Muted>
-              </VStack>
-            )}
-          </ScrollView>
-        </SafeAreaView>
-      </SafeAreaProvider>
+
+      <SafeAreaView className="flex-1">
+        <ScrollView className="flex-1 p-6" showsVerticalScrollIndicator={false}>
+          {!!exercise && (
+            <VStack className="items-stretch">
+              {exercise?.video_url && (
+                <View className="w-full rounded-lg overflow-hidden">
+                  <ExerciseVideo exercise={exercise} />
+                </View>
+              )}
+              <P className="text-primary">{exercise?.description}</P>
+              <Muted>{exercise?.instructions}</Muted>
+            </VStack>
+          )}
+        </ScrollView>
+      </SafeAreaView>
     </>
   );
 }

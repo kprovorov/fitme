@@ -2,7 +2,7 @@ import { Stack, useLocalSearchParams } from "expo-router";
 import React, { useState } from "react";
 import { View } from "react-native";
 import { KeyboardAwareScrollView } from "react-native-keyboard-controller";
-import { SafeAreaProvider, SafeAreaView } from "react-native-safe-area-context";
+import { SafeAreaView } from "react-native-safe-area-context";
 import ExerciseVideo from "~/components/exercises/exercise-video";
 import { HeaderBackButton } from "~/components/ui/header-back-button";
 import { H4, P } from "~/components/ui/typography";
@@ -69,53 +69,51 @@ export default function WorkoutSessionExerciseScreen() {
           ),
         }}
       />
-      <SafeAreaProvider>
-        <SafeAreaView>
-          <KeyboardAwareScrollView
-            bottomOffset={62}
-            showsVerticalScrollIndicator={false}
-            keyboardShouldPersistTaps="handled"
-          >
-            <VStack className="items-stretch py-sm flex-1 gap-md px-md">
-              <AlertDialog open={isOpen} onOpenChange={setIsOpen}>
-                <AlertDialogContent>
-                  <AlertDialogHeader>
-                    <AlertDialogTitle className="text-primary">
-                      How to?
-                    </AlertDialogTitle>
-                    <AlertDialogDescription>
-                      {workoutSessionExercise.exercise.instructions}
-                    </AlertDialogDescription>
-                  </AlertDialogHeader>
-                  <AlertDialogFooter>
-                    <AlertDialogCancel>
-                      <Text>OK</Text>
-                    </AlertDialogCancel>
-                  </AlertDialogFooter>
-                </AlertDialogContent>
-              </AlertDialog>
+      <SafeAreaView>
+        <KeyboardAwareScrollView
+          bottomOffset={62}
+          showsVerticalScrollIndicator={false}
+          keyboardShouldPersistTaps="handled"
+        >
+          <VStack className="items-stretch py-sm flex-1 gap-md px-md">
+            <AlertDialog open={isOpen} onOpenChange={setIsOpen}>
+              <AlertDialogContent>
+                <AlertDialogHeader>
+                  <AlertDialogTitle className="text-primary">
+                    How to?
+                  </AlertDialogTitle>
+                  <AlertDialogDescription>
+                    {workoutSessionExercise.exercise.instructions}
+                  </AlertDialogDescription>
+                </AlertDialogHeader>
+                <AlertDialogFooter>
+                  <AlertDialogCancel>
+                    <Text>OK</Text>
+                  </AlertDialogCancel>
+                </AlertDialogFooter>
+              </AlertDialogContent>
+            </AlertDialog>
 
-              {workoutSessionExercise.exercise.video_url && (
-                <View className="rounded-lg w-full overflow-hidden">
-                  <ExerciseVideo exercise={workoutSessionExercise.exercise} />
-                </View>
-              )}
+            {workoutSessionExercise.exercise.video_url && (
+              <View className="rounded-lg w-full overflow-hidden">
+                <ExerciseVideo exercise={workoutSessionExercise.exercise} />
+              </View>
+            )}
 
-              <P>{workoutSessionExercise.exercise.description}</P>
+            <P>{workoutSessionExercise.exercise.description}</P>
 
-              <WorkoutSessionExerciseSetsTableView
-                exerciseId={exerciseId as string}
-                workoutSessionExerciseSets={workoutSessionExercise.sets}
-                readOnly={isFinished}
-              />
+            <WorkoutSessionExerciseSetsTableView
+              exerciseId={exerciseId as string}
+              workoutSessionExerciseSets={workoutSessionExercise.sets}
+              readOnly={isFinished}
+            />
 
-              <ExerciseHistoryView
-                exerciseId={workoutSessionExercise.exercise_id}
-              />
-            </VStack>
-          </KeyboardAwareScrollView>
-        </SafeAreaView>
-      </SafeAreaProvider>
+            <ExerciseHistoryView
+              exerciseId={workoutSessionExercise.exercise_id}
+            />
+          </VStack>
+        </KeyboardAwareScrollView>
+      </SafeAreaView>
     </>
   ) : null;
 }

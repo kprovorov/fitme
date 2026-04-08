@@ -3,7 +3,7 @@ import React, { useEffect, useState } from "react";
 import { segmentClient } from "~/lib/segment";
 import { IS_E2E } from "~/lib/constants";
 
-import { SafeAreaProvider, SafeAreaView } from "react-native-safe-area-context";
+import { SafeAreaView } from "react-native-safe-area-context";
 import { ScrollView } from "react-native";
 import { VStack } from "~/components/ui/vstack";
 import { useStorePlanMutation } from "~/hooks/queries/plans";
@@ -102,67 +102,65 @@ export default function Preview() {
   });
 
   return (
-    <SafeAreaProvider>
-      <SafeAreaView className="flex-1">
-        {planData && !isGeneratingPlan ? (
-          <VStack className="flex-1 items-stretch">
-            <ScrollView className="flex-1" showsVerticalScrollIndicator={false}>
-              <VStack className="flex-1 p-md">
-                <PlanDataView planData={planData} />
-              </VStack>
-            </ScrollView>
-            <VStack className="px-md pb-md items-stretch gap-2">
-              <Button
-                onPress={async () => {
-                  if (isPro || IS_E2E) {
-                    storePlan(planData);
-                  } else {
-                    const result = await RevenueCatUI.presentPaywall();
-
-                    if (
-                      [
-                        PAYWALL_RESULT.PURCHASED,
-                        PAYWALL_RESULT.RESTORED,
-                      ].includes(result)
-                    ) {
-                      storePlan(planData);
-                    }
-                  }
-                }}
-                disabled={isStoringPlan || isGeneratingPlan}
-                testID="save-plan-button"
-              >
-                {isStoringPlan ? (
-                  <Spinner size={16} className="text-black" />
-                ) : (
-                  <Text>Save</Text>
-                )}
-              </Button>
-              <Button
-                variant="secondary"
-                onPress={generate}
-                disabled={isStoringPlan || isGeneratingPlan}
-              >
-                {isGeneratingPlan ? (
-                  <Spinner size={16} className="text-white" />
-                ) : (
-                  <Text>Re-generate</Text>
-                )}
-              </Button>
+    <SafeAreaView className="flex-1">
+      {planData && !isGeneratingPlan ? (
+        <VStack className="flex-1 items-stretch">
+          <ScrollView className="flex-1" showsVerticalScrollIndicator={false}>
+            <VStack className="flex-1 p-md">
+              <PlanDataView planData={planData} />
             </VStack>
+          </ScrollView>
+          <VStack className="px-md pb-md items-stretch gap-2">
+            <Button
+              onPress={async () => {
+                if (isPro || IS_E2E) {
+                  storePlan(planData);
+                } else {
+                  const result = await RevenueCatUI.presentPaywall();
+
+                  if (
+                    [
+                      PAYWALL_RESULT.PURCHASED,
+                      PAYWALL_RESULT.RESTORED,
+                    ].includes(result)
+                  ) {
+                    storePlan(planData);
+                  }
+                }
+              }}
+              disabled={isStoringPlan || isGeneratingPlan}
+              testID="save-plan-button"
+            >
+              {isStoringPlan ? (
+                <Spinner size={16} className="text-black" />
+              ) : (
+                <Text>Save</Text>
+              )}
+            </Button>
+            <Button
+              variant="secondary"
+              onPress={generate}
+              disabled={isStoringPlan || isGeneratingPlan}
+            >
+              {isGeneratingPlan ? (
+                <Spinner size={16} className="text-white" />
+              ) : (
+                <Text>Re-generate</Text>
+              )}
+            </Button>
           </VStack>
-        ) : (
-          <VStack className="flex-1 h-full justify-center items-center gap-2">
-            <Spinner size={32} className="text-primary" />
-            <P className="font-bold text-center text-sm">
-              Hold on... AI is working hard to create your plan!
-            </P>
-            <Muted className="text-center text-sm">
-              This may take a couple of minutes.
-            </Muted>
-          </VStack>
-        )}
-      </SafeAreaView>
-    </SafeAreaProvider>
+        </VStack>
+      ) : (
+        <VStack className="flex-1 h-full justify-center items-center gap-2">
+          <Spinner size={32} className="text-primary" />
+          <P className="font-bold text-center text-sm">
+            Hold on... AI is working hard to create your plan!
+          </P>
+          <Muted className="text-center text-sm">
+            This may take a couple of minutes.
+          </Muted>
+        </VStack>
+      )}
+    </SafeAreaView>
   );
 }

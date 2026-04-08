@@ -6,7 +6,6 @@ import {
   type LayoutChangeEvent,
   Pressable,
   type ScrollViewProps,
-  StyleSheet,
   View,
 } from "react-native";
 import {
@@ -21,6 +20,7 @@ import {
   useSafeAreaInsets,
 } from "react-native-safe-area-context";
 import { HeaderBackButton } from "~/components/ui/header-back-button";
+import { HStack } from "~/components/ui/hstack";
 import { Input } from "~/components/ui/input";
 import { H3 } from "~/components/ui/typography";
 import AgentMessageView from "~/components/views/agent-message-view";
@@ -251,52 +251,41 @@ export default function AgentScreen() {
         />
 
         <KeyboardStickyView
-          offset={{ opened: bottom - MARGIN }}
-          style={styles.inputRow}
+          offset={{ opened: 20, closed: 20 }}
+          style={{ backgroundColor: "red" }}
         >
-          <Input
-            className="flex-1 bg-card"
-            placeholder="Message..."
-            value={input}
-            onChangeText={setInput}
-            onSubmitEditing={handleSend}
-            returnKeyType="send"
-            editable={!isPending && !isStreaming}
-            nativeID="chat-input"
-            multiline
-            onLayout={onInputLayout}
-          />
-          <Pressable
-            onPress={handleSend}
-            disabled={!input.trim() || isPending || isStreaming}
-            className={`w-10 h-10 rounded-full items-center justify-center ${
-              input.trim() && !isPending && !isStreaming
-                ? "bg-primary"
-                : "bg-muted"
-            }`}
-          >
-            <ArrowRight
-              className={`w-5 h-5 ${
-                input.trim() && !isPending && !isStreaming
-                  ? "text-primary-foreground"
-                  : "text-muted-foreground"
-              }`}
+          <HStack>
+            <Input
+              placeholder="Message..."
+              value={input}
+              onChangeText={setInput}
+              onSubmitEditing={handleSend}
+              returnKeyType="send"
+              editable={!isPending && !isStreaming}
+              nativeID="chat-input"
+              // multiline
+              onLayout={onInputLayout}
             />
-          </Pressable>
+            <Pressable
+              onPress={handleSend}
+              disabled={!input.trim() || isPending || isStreaming}
+              className={`w-10 h-10 rounded-full items-center justify-center ${
+                input.trim() && !isPending && !isStreaming
+                  ? "bg-primary"
+                  : "bg-muted"
+              }`}
+            >
+              <ArrowRight
+                className={`w-5 h-5 ${
+                  input.trim() && !isPending && !isStreaming
+                    ? "text-primary-foreground"
+                    : "text-muted-foreground"
+                }`}
+              />
+            </Pressable>
+          </HStack>
         </KeyboardStickyView>
       </KeyboardGestureArea>
     </SafeAreaView>
   );
 }
-
-const styles = StyleSheet.create({
-  inputRow: {
-    flexDirection: "row",
-    alignItems: "center",
-    gap: 12,
-    paddingHorizontal: 16,
-    paddingVertical: 12,
-    borderTopWidth: StyleSheet.hairlineWidth,
-    borderTopColor: "rgba(255,255,255,0.1)",
-  },
-});

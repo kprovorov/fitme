@@ -7,13 +7,17 @@ import {
 import { AnalyticsProvider } from "@segment/analytics-react-native";
 import { QueryClient, QueryClientProvider } from "@tanstack/react-query";
 import * as SecureStore from "expo-secure-store";
-import { Platform } from "react-native";
+import { Platform, StyleSheet } from "react-native";
+import { GestureHandlerRootView } from "react-native-gesture-handler";
+import { KeyboardProvider } from "react-native-keyboard-controller";
+import {
+  initialWindowMetrics,
+  SafeAreaProvider,
+} from "react-native-safe-area-context";
 import { useSyncQueriesExternal } from "react-query-external-sync";
 import { useColorScheme } from "@/hooks/useColorScheme";
 import { storage } from "~/lib/mmkv";
 import { segmentClient } from "~/lib/segment";
-import { SafeAreaProvider } from "react-native-safe-area-context";
-import { KeyboardProvider } from "react-native-keyboard-controller";
 
 const queryClient = new QueryClient();
 
@@ -44,36 +48,46 @@ function Providers({ children }: { children: React.ReactNode }) {
   const colorScheme = useColorScheme();
 
   return (
-    <AnalyticsProvider client={segmentClient}>
-      <QueryClientProvider client={queryClient}>
-        <DevToolsSync />
-        <ThemeProvider
-          value={
-            colorScheme === "dark"
-              ? {
-                  ...DarkTheme,
-                  colors: {
-                    ...DarkTheme.colors,
-                    primary: "#C0FF38",
-                    background: "#1F1D20",
-                  },
+    <SafeAreaProvider initialMetrics={initialWindowMetrics}>
+      <GestureHandlerRootView style={styles.root}>
+        <KeyboardProvider statusBarTranslucent>
+          <AnalyticsProvider client={segmentClient}>
+            <QueryClientProvider client={queryClient}>
+              <DevToolsSync />
+              <ThemeProvider
+                value={
+                  colorScheme === "dark"
+                    ? {
+                        ...DarkTheme,
+                        colors: {
+                          ...DarkTheme.colors,
+                          primary: "#C0FF38",
+                          background: "#1F1D20",
+                        },
+                      }
+                    : {
+                        ...DefaultTheme,
+                        colors: {
+                          ...DefaultTheme.colors,
+                          primary: "#C0FF38",
+                        },
+                      }
                 }
-              : {
-                  ...DefaultTheme,
-                  colors: {
-                    ...DefaultTheme.colors,
-                    primary: "#C0FF38",
-                  },
-                }
-          }
-        >
-          <SafeAreaProvider>
-            <KeyboardProvider>{children}</KeyboardProvider>
-          </SafeAreaProvider>
-        </ThemeProvider>
-      </QueryClientProvider>
-    </AnalyticsProvider>
+              >
+                {children}
+              </ThemeProvider>
+            </QueryClientProvider>
+          </AnalyticsProvider>
+        </KeyboardProvider>
+      </GestureHandlerRootView>
+    </SafeAreaProvider>
   );
 }
 
 export default Providers;
+
+const styles = StyleSheet.create({
+  root: {
+    flex: 1,
+  },
+});

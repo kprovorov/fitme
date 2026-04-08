@@ -6,7 +6,7 @@ import {
   Platform,
   TouchableWithoutFeedback,
 } from "react-native";
-import { SafeAreaProvider, SafeAreaView } from "react-native-safe-area-context";
+import { SafeAreaView } from "react-native-safe-area-context";
 import Sign from "~/components/brand/sign";
 import { VStack } from "~/components/ui/vstack";
 import ForgotPasswordView from "~/components/views/forgot-password-view";
@@ -33,24 +33,22 @@ export default function ForgotPasswordScreen() {
       <Stack.Screen
         options={{ title: "Forgot Password", headerShown: false }}
       />
-      <SafeAreaProvider>
-        <SafeAreaView className="flex-1">
-          <KeyboardAvoidingView
-            behavior={Platform.OS === "ios" ? "padding" : "height"}
-            className="flex-1"
-          >
-            <TouchableWithoutFeedback onPress={Keyboard.dismiss}>
-              <VStack className="h-full p-6">
-                <Sign
-                  width={isKeyboardVisible ? 35 : 70}
-                  height={isKeyboardVisible ? 35 : 70}
-                />
-                <ForgotPasswordView />
-              </VStack>
-            </TouchableWithoutFeedback>
-          </KeyboardAvoidingView>
-        </SafeAreaView>
-      </SafeAreaProvider>
+      <SafeAreaView className="flex-1">
+        <KeyboardAvoidingView
+          behavior={Platform.OS === "ios" ? "padding" : "height"}
+          className="flex-1"
+        >
+          <TouchableWithoutFeedback onPress={Keyboard.dismiss}>
+            <VStack className="h-full p-6">
+              <Sign
+                width={isKeyboardVisible ? 35 : 70}
+                height={isKeyboardVisible ? 35 : 70}
+              />
+              <ForgotPasswordView />
+            </VStack>
+          </TouchableWithoutFeedback>
+        </KeyboardAvoidingView>
+      </SafeAreaView>
     </>
   );
 }

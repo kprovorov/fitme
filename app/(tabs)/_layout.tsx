@@ -1,7 +1,5 @@
 import { type Href, usePathname } from "expo-router";
 import { TabList, TabSlot, Tabs, TabTrigger } from "expo-router/ui";
-import { KeyboardProvider } from "react-native-keyboard-controller";
-import { SafeAreaProvider } from "react-native-safe-area-context";
 import Authenticated from "~/components/authenticated";
 import { TabBarButton } from "~/components/ui/tab-bar-button";
 import { BicepsFlexed } from "~/lib/icons/BicepsFlexed";
