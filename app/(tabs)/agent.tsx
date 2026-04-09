@@ -307,6 +307,7 @@ export default function AgentScreen() {
             <HStack className="justify-stretch gap-2 items-end">
               <TextInput
                 className="flex-1 text-foreground text-sm font-nunito-sans-bold"
+                style={{ paddingVertical: 11 }}
                 placeholder="Message..."
                 value={input}
                 onChangeText={setInput}
