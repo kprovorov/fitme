@@ -58,7 +58,7 @@ export function createCreatePlanTool({
       });
       try {
         const { data: planId, error } = await supabaseClient.rpc(
-          "create_plan",
+          "create_plan_v2",
           { p_plan_data: data },
         );
         if (error) throw error;

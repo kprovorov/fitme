@@ -1,8 +1,6 @@
--- Update create_plan to remove auto-activation so plans are inactive by default.
--- Also drops the legacy single-param overload left over from the original migration.
-DROP FUNCTION IF EXISTS public.create_plan(jsonb);
-
-CREATE OR REPLACE FUNCTION public.create_plan(
+-- create_plan_v2: same as create_plan but without auto-activation (plans are inactive by default)
+-- and accepts an explicit p_user_id parameter (defaults to auth.uid()).
+CREATE OR REPLACE FUNCTION public.create_plan_v2(
   p_plan_data jsonb,
   p_user_id uuid DEFAULT auth.uid()
 )
