@@ -8,6 +8,7 @@ import PlanDataView from "./plan-data-view";
 import { Button } from "~/components/ui/button";
 import { Text } from "~/components/ui/text";
 import { Spinner } from "~/components/ui/spinner";
+import { Card } from "~/components/ui/card";
 
 type Props = {
   attachment: MessageAttachment;
@@ -25,8 +26,8 @@ export default function PlanAttachmentView({ attachment }: Props) {
   });
 
   return (
-    <View className="mt-2 w-full self-stretch border border-white/15 rounded-xl overflow-hidden">
-      <PlanDataView planData={attachment.data} />
+    <Card className="mt-2 w-full self-stretch overflow-hidden">
+      <PlanDataView planData={attachment.data} compact />
       <View className="px-4 py-3 border-t border-white/10 flex-row gap-2">
         {activated ? (
           <Link
@@ -52,6 +53,6 @@ export default function PlanAttachmentView({ attachment }: Props) {
           </Button>
         )}
       </View>
-    </View>
+    </Card>
   );
 }
