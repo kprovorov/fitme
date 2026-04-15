@@ -6,7 +6,7 @@ import {
   usePlanQuery,
 } from "~/hooks/queries/plans";
 import { Alert, RefreshControl, ScrollView } from "react-native";
-import { SafeAreaView, SafeAreaProvider } from "react-native-safe-area-context";
+import { SafeAreaView } from "react-native-safe-area-context";
 import { HeaderBackButton } from "~/components/ui/header-back-button";
 import React from "react";
 import WorkoutList from "~/components/views/workout-list";
@@ -125,23 +125,21 @@ export default function PlanScreen() {
           ),
         }}
       />
-      <SafeAreaProvider>
-        <SafeAreaView className="flex-1">
-          <ScrollView
-            className="flex-1 p-6"
-            showsVerticalScrollIndicator={false}
-            refreshControl={
-              <RefreshControl refreshing={isLoading} onRefresh={refetch} />
-            }
-          >
-            {plan && (
-              <VStack className="flex-1 items-stretch">
-                <WorkoutList workouts={plan.workouts} />
-              </VStack>
-            )}
-          </ScrollView>
-        </SafeAreaView>
-      </SafeAreaProvider>
+      <SafeAreaView className="flex-1">
+        <ScrollView
+          className="flex-1 p-6"
+          showsVerticalScrollIndicator={false}
+          refreshControl={
+            <RefreshControl refreshing={isLoading} onRefresh={refetch} />
+          }
+        >
+          {plan && (
+            <VStack className="flex-1 items-stretch">
+              <WorkoutList workouts={plan.workouts} />
+            </VStack>
+          )}
+        </ScrollView>
+      </SafeAreaView>
     </>
   );
 }

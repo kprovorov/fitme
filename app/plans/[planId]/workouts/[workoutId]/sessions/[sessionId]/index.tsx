@@ -3,7 +3,6 @@ import { Stack, useLocalSearchParams } from "expo-router";
 import React, { useEffect, useState } from "react";
 import { ScrollView } from "react-native";
 import {
-  SafeAreaProvider,
   SafeAreaView,
   useSafeAreaInsets,
 } from "react-native-safe-area-context";
@@ -80,57 +79,55 @@ export default function WorkoutSessionScreen() {
           // headerRight: () => <Text className="w-32">{elapsedTime}</Text>,
         }}
       />
-      <SafeAreaProvider>
-        <SafeAreaView edges={["top"]} className="flex-1">
-          <ScrollView className="flex-1" showsVerticalScrollIndicator={false}>
-            {workoutSession && (
-              <VStack
-                className="flex-1 items-stretch px-md pt-md"
-                style={{ paddingBottom: insets.bottom }}
-              >
-                <WorkoutSessionView
-                  workoutSession={workoutSession}
-                  sessionId={sessionId as string}
-                />
-                {!workoutSession.finished_at ? (
-                  <VStack className="items-stretch">
-                    <Text className="text-3xl text-center">{elapsedTime}</Text>
-                    <Button
-                      onPress={() =>
-                        finishWorkoutSession({
-                          sessionId: sessionId as string,
-                        })
-                      }
-                      testID="finish-workout-button"
-                    >
-                      <Text>Finish Workout</Text>
-                    </Button>
-                  </VStack>
-                ) : (
-                  <Text className="text-center text-xl">
-                    Workout finished{" "}
-                    {(() => {
-                      const diff =
-                        new Date(workoutSession.finished_at).getTime() -
-                        new Date(workoutSession.started_at).getTime();
-                      const hours = Math.floor(diff / (1000 * 60 * 60));
-                      const minutes = Math.floor(
-                        (diff % (1000 * 60 * 60)) / (1000 * 60),
-                      );
-                      const seconds = Math.floor((diff % (1000 * 60)) / 1000);
-                      return `${hours.toString().padStart(2, "0")}:${minutes
-                        .toString()
-                        .padStart(2, "0")}:${seconds
-                        .toString()
-                        .padStart(2, "0")}`;
-                    })()}
-                  </Text>
-                )}
-              </VStack>
-            )}
-          </ScrollView>
-        </SafeAreaView>
-      </SafeAreaProvider>
+      <SafeAreaView edges={["top"]} className="flex-1">
+        <ScrollView className="flex-1" showsVerticalScrollIndicator={false}>
+          {workoutSession && (
+            <VStack
+              className="flex-1 items-stretch px-md pt-md"
+              style={{ paddingBottom: insets.bottom }}
+            >
+              <WorkoutSessionView
+                workoutSession={workoutSession}
+                sessionId={sessionId as string}
+              />
+              {!workoutSession.finished_at ? (
+                <VStack className="items-stretch">
+                  <Text className="text-3xl text-center">{elapsedTime}</Text>
+                  <Button
+                    onPress={() =>
+                      finishWorkoutSession({
+                        sessionId: sessionId as string,
+                      })
+                    }
+                    testID="finish-workout-button"
+                  >
+                    <Text>Finish Workout</Text>
+                  </Button>
+                </VStack>
+              ) : (
+                <Text className="text-center text-xl">
+                  Workout finished{" "}
+                  {(() => {
+                    const diff =
+                      new Date(workoutSession.finished_at).getTime() -
+                      new Date(workoutSession.started_at).getTime();
+                    const hours = Math.floor(diff / (1000 * 60 * 60));
+                    const minutes = Math.floor(
+                      (diff % (1000 * 60 * 60)) / (1000 * 60),
+                    );
+                    const seconds = Math.floor((diff % (1000 * 60)) / 1000);
+                    return `${hours.toString().padStart(2, "0")}:${minutes
+                      .toString()
+                      .padStart(2, "0")}:${seconds
+                      .toString()
+                      .padStart(2, "0")}`;
+                  })()}
+                </Text>
+              )}
+            </VStack>
+          )}
+        </ScrollView>
+      </SafeAreaView>
     </>
   );
 }

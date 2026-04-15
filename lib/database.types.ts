@@ -450,6 +450,10 @@ export type Database = {
         Args: { p_plan_data: Json };
         Returns: string;
       };
+      update_plan: {
+        Args: { p_plan_data: Json; p_plan_id: string };
+        Returns: string;
+      };
       convert_measurement_system: {
         Args: { p_new_system: string };
         Returns: undefined;

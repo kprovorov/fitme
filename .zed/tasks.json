@@ -1,19 +1,38 @@
 [
   {
-    "label": "Run Supabase",
-    "command": "supabase",
-    "args": ["start"],
-    "reveal": "no_focus",
-    "hide": "on_success"
-  },
-  {
-    "label": "Run iOS",
+    "label": "Expo: Run iOS",
     "command": "npm",
     "args": ["run", "ios"],
     "reveal": "no_focus"
   },
   {
-    "label": "Serve Supabase Functions",
+    "label": "Expo: Prebuild",
+    "command": "npx",
+    "args": ["expo", "prebuild", "--clean"],
+    "reveal": "no_focus",
+    "hide": "on_success"
+  },
+  {
+    "label": "Supabase: Start",
+    "command": "supabase start",
+    "reveal": "no_focus",
+    "hide": "on_success"
+  },
+  {
+    "label": "Supabase: Restart",
+    "command": "supabase stop && supabase start",
+    "reveal": "no_focus",
+    "hide": "on_success"
+  },
+  {
+    "label": "Supabase: Migrate",
+    "command": "supabase",
+    "args": ["db", "push", "--local", "--yes"],
+    "reveal": "no_focus",
+    "hide": "on_success"
+  },
+  {
+    "label": "Supabase: Serve Functions",
     "command": "supabase",
     "args": [
       "functions",

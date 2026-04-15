@@ -1,0 +1,7 @@
+{
+  "setup": ["npm install", "cp \"$SUPERSET_ROOT_PATH/.env.local\" .env.local"],
+  "run": [
+    "concurrently 'supabase functions serve --env-file .env.local --no-verify-jwt' 'npm run start'"
+  ],
+  "teardown": []
+}

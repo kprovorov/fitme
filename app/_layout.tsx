@@ -15,6 +15,7 @@ import { useEffect } from "react";
 import { Platform } from "react-native";
 import Purchases from "react-native-purchases";
 import "react-native-reanimated";
+import { KeyboardProvider } from "react-native-keyboard-controller";
 import App from "~/components/app";
 import Providers from "~/components/providers";
 import "../global.css";

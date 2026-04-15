@@ -4,11 +4,10 @@ import {
   Keyboard,
   KeyboardAvoidingView,
   Platform,
-  SafeAreaView,
   TouchableWithoutFeedback,
   View,
 } from "react-native";
-import { SafeAreaProvider } from "react-native-safe-area-context";
+import { SafeAreaView } from "react-native-safe-area-context";
 import Sign from "~/components/brand/sign";
 import { Spinner } from "~/components/ui/spinner";
 import { P } from "~/components/ui/typography";
@@ -53,32 +52,31 @@ export default function ResetPasswordScreen() {
   return (
     <>
       <Stack.Screen options={{ title: "Reset Password", headerShown: false }} />
-      <SafeAreaProvider>
-        <SafeAreaView className="flex-1">
-          <KeyboardAvoidingView
-            behavior={Platform.OS === "ios" ? "padding" : "height"}
-            className="flex-1"
-          >
-            <TouchableWithoutFeedback onPress={Keyboard.dismiss}>
-              <VStack className="h-full p-6">
-                <Sign
-                  width={isKeyboardVisible ? 35 : 70}
-                  height={isKeyboardVisible ? 35 : 70}
-                />
-                {verifyError ? (
-                  <P className="text-red-500">{verifyError}</P>
-                ) : !verified ? (
-                  <View className="flex-1 items-center justify-center">
-                    <Spinner size={32} className="text-foreground" />
-                  </View>
-                ) : (
-                  <ResetPasswordView />
-                )}
-              </VStack>
-            </TouchableWithoutFeedback>
-          </KeyboardAvoidingView>
-        </SafeAreaView>
-      </SafeAreaProvider>
+
+      <SafeAreaView className="flex-1">
+        <KeyboardAvoidingView
+          behavior={Platform.OS === "ios" ? "padding" : "height"}
+          className="flex-1"
+        >
+          <TouchableWithoutFeedback onPress={Keyboard.dismiss}>
+            <VStack className="h-full p-6">
+              <Sign
+                width={isKeyboardVisible ? 35 : 70}
+                height={isKeyboardVisible ? 35 : 70}
+              />
+              {verifyError ? (
+                <P className="text-red-500">{verifyError}</P>
+              ) : !verified ? (
+                <View className="flex-1 items-center justify-center">
+                  <Spinner size={32} className="text-foreground" />
+                </View>
+              ) : (
+                <ResetPasswordView />
+              )}
+            </VStack>
+          </TouchableWithoutFeedback>
+        </KeyboardAvoidingView>
+      </SafeAreaView>
     </>
   );
 }

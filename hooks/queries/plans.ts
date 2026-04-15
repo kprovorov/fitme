@@ -1,5 +1,5 @@
 import { supabase } from "@/lib/supabase";
-import { ExperienceLevel, Goal, Place, Plan, PlanData } from "@/lib/models";
+import { Plan, PlanData } from "@/lib/models";
 import { createMutation, createQuery } from "react-query-kit";
 import { segmentClient } from "~/lib/segment";
 import { IS_E2E } from "~/lib/constants";
@@ -100,26 +100,3 @@ export const useDeletePlanMutation = createMutation<void, { id: string }>({
   },
 });
 
-type PreviewPlanData = {
-  goal: Goal;
-  place: Place;
-  frequency: number;
-  experience_level: ExperienceLevel;
-  workout_duration: number;
-  note?: string;
-};
-
-export const usePreviewPlanQuery = createQuery<PlanData, PreviewPlanData>({
-  queryKey: ["plan-preview"],
-  fetcher: async (data: PreviewPlanData): Promise<PlanData> => {
-    const { data: result, error } = await supabase.functions.invoke(
-      "preview-plan",
-      {
-        body: data,
-        headers: IS_E2E ? { "x-e2e": "true" } : undefined,
-      },
-    );
-    if (error) throw error;
-    return result as PlanData;
-  },
-});

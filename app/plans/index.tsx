@@ -1,5 +1,5 @@
 import React from "react";
-import { SafeAreaProvider, SafeAreaView } from "react-native-safe-area-context";
+import { SafeAreaView } from "react-native-safe-area-context";
 import { Link, Stack } from "expo-router";
 import { HeaderBackButton } from "~/components/ui/header-back-button";
 import { RefreshControl, ScrollView } from "react-native";
@@ -32,19 +32,17 @@ export default function PlansScreen() {
           ),
         }}
       />
-      <SafeAreaProvider>
-        <SafeAreaView className="flex-1">
-          <ScrollView
-            className="flex-1 p-6"
-            showsVerticalScrollIndicator={false}
-            refreshControl={
-              <RefreshControl refreshing={isLoading} onRefresh={refetch} />
-            }
-          >
-            <PlansListView />
-          </ScrollView>
-        </SafeAreaView>
-      </SafeAreaProvider>
+      <SafeAreaView className="flex-1">
+        <ScrollView
+          className="flex-1 p-6"
+          showsVerticalScrollIndicator={false}
+          refreshControl={
+            <RefreshControl refreshing={isLoading} onRefresh={refetch} />
+          }
+        >
+          <PlansListView />
+        </ScrollView>
+      </SafeAreaView>
     </>
   );
 }
