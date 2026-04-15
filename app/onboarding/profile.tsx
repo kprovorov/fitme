@@ -1,3 +1,4 @@
+import { useHeaderHeight } from "@react-navigation/elements";
 import { zodResolver } from "@hookform/resolvers/zod";
 import { Picker } from "@react-native-picker/picker";
 import { router, Stack } from "expo-router";
@@ -57,6 +58,7 @@ const formSchema = z.object({
 });
 
 export default function ProfileScreen() {
+  const headerHeight = useHeaderHeight();
   const { data: user } = useCurrentUserQuery();
 
   const locales = useLocales();
@@ -163,6 +165,7 @@ export default function ProfileScreen() {
             <ScrollView
               ref={scrollViewRef}
               showsVerticalScrollIndicator={false}
+              contentContainerStyle={{ paddingTop: headerHeight }}
             >
               <Pressable
                 style={{ flex: 1, width: "100%" }}
