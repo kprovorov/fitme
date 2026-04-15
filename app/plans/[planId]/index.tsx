@@ -1,26 +1,25 @@
-import { VStack } from "~/components/ui/vstack";
+import { useQueryClient } from "@tanstack/react-query";
 import { Stack, useLocalSearchParams, useRouter } from "expo-router";
+import { Alert, RefreshControl, ScrollView } from "react-native";
+import ContextMenu from "react-native-context-menu-view";
+import { SafeAreaView } from "react-native-safe-area-context";
+import { Button } from "~/components/ui/button";
+import { HeaderBackButton } from "~/components/ui/header-back-button";
+import { VStack } from "~/components/ui/vstack";
+import WorkoutList from "~/components/views/workout-list";
 import {
   useActivatePlanMutation,
   useDeletePlanMutation,
   usePlanQuery,
 } from "~/hooks/queries/plans";
-import { Alert, RefreshControl, ScrollView } from "react-native";
-import { SafeAreaView } from "react-native-safe-area-context";
-import { HeaderBackButton } from "~/components/ui/header-back-button";
-import React from "react";
-import WorkoutList from "~/components/views/workout-list";
-import { Button } from "~/components/ui/button";
 import { Ellipsis } from "~/lib/icons/Ellipsis";
-import ContextMenu from "react-native-context-menu-view";
-import { useQueryClient } from "@tanstack/react-query";
 
 export default function PlanScreen() {
   const { planId } = useLocalSearchParams();
   const queryClient = useQueryClient();
   const router = useRouter();
 
-  const { mutate: activatePlan, isPending: isActivatingPlan } =
+  const { mutate: activatePlan, isPending: _isActivatingPlan } =
     useActivatePlanMutation({
       onSuccess: () => {
         queryClient.invalidateQueries({ queryKey: ["plans"] });
@@ -28,7 +27,7 @@ export default function PlanScreen() {
       },
     });
 
-  const { mutate: deletePlan, isPending: isDeletingPlan } =
+  const { mutate: deletePlan, isPending: _isDeletingPlan } =
     useDeletePlanMutation({
       onSuccess: () => {
         queryClient.invalidateQueries({ queryKey: ["plans"] });
@@ -60,7 +59,6 @@ export default function PlanScreen() {
           headerLeft: () => <HeaderBackButton />,
           headerRight: () => (
             <ContextMenu
-              dropdownMenuMode
               actions={[
                 {
                   title: "Activate Plan",
@@ -73,6 +71,7 @@ export default function PlanScreen() {
                   destructive: true,
                 },
               ]}
+              dropdownMenuMode
               onPress={(e) => {
                 if (e.nativeEvent.name === "Activate Plan") {
                   Alert.alert(
@@ -88,7 +87,7 @@ export default function PlanScreen() {
                         text: "Activate",
                         onPress: () => activatePlan({ id: planId as string }),
                       },
-                    ],
+                    ]
                   );
                 }
 
@@ -96,7 +95,7 @@ export default function PlanScreen() {
                   if (plan?.is_active) {
                     Alert.alert(
                       "Archive Plan",
-                      "You cannot archive an active plan. You should have at least one active plan at all times.",
+                      "You cannot archive an active plan. You should have at least one active plan at all times."
                     );
                   } else {
                     Alert.alert(
@@ -112,14 +111,14 @@ export default function PlanScreen() {
                           text: "Archive",
                           onPress: () => deletePlan({ id: planId as string }),
                         },
-                      ],
+                      ]
                     );
                   }
                 }
               }}
             >
-              <Button variant="secondary" size="icon-sm" shape="pill">
-                <Ellipsis size={16} className="text-foreground" />
+              <Button shape="pill" size="icon-sm" variant="secondary">
+                <Ellipsis className="text-foreground" size={16} />
               </Button>
             </ContextMenu>
           ),
@@ -128,9 +127,8 @@ export default function PlanScreen() {
       <SafeAreaView className="flex-1">
         <ScrollView
           className="flex-1 p-6"
-          showsVerticalScrollIndicator={false}
           refreshControl={
-            <RefreshControl refreshing={isLoading} onRefresh={refetch} />
+            <RefreshControl onRefresh={refetch} refreshing={isLoading} />
           }
         >
           {plan && (

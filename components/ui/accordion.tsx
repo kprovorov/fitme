@@ -5,16 +5,16 @@ import Animated, {
   Extrapolation,
   FadeIn,
   FadeOutUp,
+  interpolate,
   LayoutAnimationConfig,
   LinearTransition,
-  interpolate,
   useAnimatedStyle,
   useDerivedValue,
   withTiming,
 } from "react-native-reanimated";
+import { TextClassContext } from "~/components/ui/text";
 import { ChevronDown } from "~/lib/icons/ChevronDown";
 import { cn } from "~/lib/utils";
-import { TextClassContext } from "~/components/ui/text";
 
 const Accordion = React.forwardRef<
   AccordionPrimitive.RootRef,
@@ -47,8 +47,8 @@ const AccordionItem = React.forwardRef<
       layout={LinearTransition.duration(200)}
     >
       <AccordionPrimitive.Item
+        className={cn("border-border border-b", className)}
         ref={ref}
-        className={cn("border-b border-border", className)}
         value={value}
         {...props}
       />
@@ -68,7 +68,7 @@ const AccordionTrigger = React.forwardRef<
   const progress = useDerivedValue(() =>
     isExpanded
       ? withTiming(1, { duration: 250 })
-      : withTiming(0, { duration: 200 }),
+      : withTiming(0, { duration: 200 })
   );
   const chevronStyle = useAnimatedStyle(() => ({
     transform: [{ rotate: `${progress.value * 180}deg` }],
@@ -81,13 +81,13 @@ const AccordionTrigger = React.forwardRef<
         <AccordionPrimitive.Trigger ref={ref} {...props} asChild>
           <Trigger
             className={cn(
-              "flex flex-row web:flex-1 items-center justify-between py-4 web:transition-all group web:focus-visible:outline-none web:focus-visible:ring-1 web:focus-visible:ring-muted-foreground",
-              className,
+              "group flex web:flex-1 flex-row items-center justify-between py-4 web:transition-all web:focus-visible:outline-none web:focus-visible:ring-1 web:focus-visible:ring-muted-foreground",
+              className
             )}
           >
-            <>{children}</>
+            {children}
             <Animated.View style={chevronStyle}>
-              <ChevronDown size={18} className={"text-foreground shrink-0"} />
+              <ChevronDown className={"shrink-0 text-foreground"} size={18} />
             </Animated.View>
           </Trigger>
         </AccordionPrimitive.Trigger>
@@ -107,9 +107,7 @@ const AccordionContent = React.forwardRef<
       <AccordionPrimitive.Content
         className={cn(
           "overflow-hidden text-sm web:transition-all",
-          isExpanded
-            ? "web:animate-accordion-down"
-            : "web:animate-accordion-up",
+          isExpanded ? "web:animate-accordion-down" : "web:animate-accordion-up"
         )}
         ref={ref}
         {...props}
@@ -134,9 +132,9 @@ function InnerContent({
   }
   return (
     <Animated.View
+      className={cn("pb-4", className)}
       entering={FadeIn}
       exiting={FadeOutUp.duration(200)}
-      className={cn("pb-4", className)}
     >
       {children}
     </Animated.View>

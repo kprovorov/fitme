@@ -1,7 +1,7 @@
 import * as TablePrimitive from "@rn-primitives/table";
-import * as React from "react";
-import { cn } from "~/lib/utils";
+import type * as React from "react";
 import { TextClassContext } from "~/components/ui/text";
+import { cn } from "~/lib/utils";
 
 function Table({
   className,
@@ -42,7 +42,7 @@ function TableBody({
     <TablePrimitive.Body
       className={cn(
         "flex-1 border-border [&_tr:last-child]:border-0",
-        className,
+        className
       )}
       style={[{ minHeight: 2 }, style]}
       {...props}
@@ -60,7 +60,7 @@ function TableFooter({
     <TablePrimitive.Footer
       className={cn(
         "bg-muted/50 font-medium [&>tr]:last:border-b-0",
-        className,
+        className
       )}
       {...props}
     />
@@ -77,7 +77,7 @@ function TableRow({
     <TablePrimitive.Row
       className={cn(
         "flex-row border-border border-b web:transition-colors web:hover:bg-muted/50 web:data-[state=selected]:bg-muted",
-        className,
+        className
       )}
       {...props}
     />
@@ -94,8 +94,8 @@ function TableHead({
     <TextClassContext.Provider value="text-primary font-nunito-sans-bold uppercase">
       <TablePrimitive.Head
         className={cn(
-          "h-12 px-4 text-left justify-center [&:has([role=checkbox])]:pr-0",
-          className,
+          "h-12 justify-center px-4 text-left [&:has([role=checkbox])]:pr-0",
+          className
         )}
         {...props}
       />
@@ -113,7 +113,7 @@ function TableCell({
     <TablePrimitive.Cell
       className={cn(
         "p-4 align-middle [&:has([role=checkbox])]:pr-0",
-        className,
+        className
       )}
       {...props}
     />

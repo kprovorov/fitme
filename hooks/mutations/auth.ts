@@ -1,13 +1,13 @@
-import { supabase } from "@/lib/supabase";
-import { MeasurementSystem } from "~/lib/models";
 import { createMutation } from "react-query-kit";
-import { segmentClient } from "~/lib/segment";
+import { supabase } from "@/lib/supabase";
 import { IS_E2E } from "~/lib/constants";
+import type { MeasurementSystem } from "~/lib/models";
+import { segmentClient } from "~/lib/segment";
 
-export type LoginData = {
+export interface LoginData {
   email: string;
   password: string;
-};
+}
 
 export const useLoginMutation = createMutation<void, LoginData>({
   mutationFn: async (data: LoginData): Promise<void> => {
@@ -15,15 +15,21 @@ export const useLoginMutation = createMutation<void, LoginData>({
       email: data.email,
       password: data.password,
     });
-    if (error) throw error;
-    if (!IS_E2E) segmentClient.track("User Logged In");
+    if (error) {
+      throw error;
+    }
+    if (!IS_E2E) {
+      segmentClient.track("User Logged In");
+    }
   },
 });
 
 export const useLogoutMutation = createMutation<void, void>({
   mutationFn: async (): Promise<void> => {
     const { error } = await supabase.auth.signOut();
-    if (error) throw error;
+    if (error) {
+      throw error;
+    }
     if (!IS_E2E) {
       segmentClient.track("User Logged Out");
       segmentClient.reset();
@@ -31,12 +37,12 @@ export const useLogoutMutation = createMutation<void, void>({
   },
 });
 
-export type RegisterData = {
-  name: string;
+export interface RegisterData {
   email: string;
-  password: string;
   measurement_system: MeasurementSystem;
-};
+  name: string;
+  password: string;
+}
 
 export const useRegisterMutation = createMutation<void, RegisterData>({
   mutationFn: async (data: RegisterData): Promise<void> => {
@@ -50,14 +56,18 @@ export const useRegisterMutation = createMutation<void, RegisterData>({
         },
       },
     });
-    if (error) throw error;
-    if (!IS_E2E) segmentClient.track("User Registered");
+    if (error) {
+      throw error;
+    }
+    if (!IS_E2E) {
+      segmentClient.track("User Registered");
+    }
   },
 });
 
-export type ForgotPasswordData = {
+export interface ForgotPasswordData {
   email: string;
-};
+}
 
 export const useForgotPasswordMutation = createMutation<
   void,
@@ -67,14 +77,18 @@ export const useForgotPasswordMutation = createMutation<
     const { error } = await supabase.auth.resetPasswordForEmail(data.email, {
       redirectTo: `${process.env.EXPO_PUBLIC_APP_URL}/auth/reset-password`,
     });
-    if (error) throw error;
-    if (!IS_E2E) segmentClient.track("Password Reset Requested");
+    if (error) {
+      throw error;
+    }
+    if (!IS_E2E) {
+      segmentClient.track("Password Reset Requested");
+    }
   },
 });
 
-export type ResetPasswordData = {
+export interface ResetPasswordData {
   password: string;
-};
+}
 
 export const useResetPasswordMutation = createMutation<void, ResetPasswordData>(
   {
@@ -82,16 +96,22 @@ export const useResetPasswordMutation = createMutation<void, ResetPasswordData>(
       const { error } = await supabase.auth.updateUser({
         password: data.password,
       });
-      if (error) throw error;
-      if (!IS_E2E) segmentClient.track("Password Reset Completed");
+      if (error) {
+        throw error;
+      }
+      if (!IS_E2E) {
+        segmentClient.track("Password Reset Completed");
+      }
     },
-  },
+  }
 );
 
 export const useDeleteUserMutation = createMutation<void, void>({
   mutationFn: async (): Promise<void> => {
     const { error } = await supabase.functions.invoke("delete-user");
-    if (error) throw error;
+    if (error) {
+      throw error;
+    }
     await supabase.auth.signOut();
   },
 });

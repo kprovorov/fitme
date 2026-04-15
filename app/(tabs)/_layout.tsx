@@ -18,7 +18,7 @@ export default function TabLayout() {
       href: "/",
       renderIcon: (isFocused: boolean) => (
         <BicepsFlexed
-          className={`w-6 h-6 ${isFocused ? "text-primary" : "text-white"}`}
+          className={`h-6 w-6 ${isFocused ? "text-primary" : "text-white"}`}
         />
       ),
     },
@@ -28,7 +28,7 @@ export default function TabLayout() {
       href: "/history",
       renderIcon: (isFocused: boolean) => (
         <ClipboardList
-          className={`w-6 h-6 ${isFocused ? "text-primary" : "text-white"}`}
+          className={`h-6 w-6 ${isFocused ? "text-primary" : "text-white"}`}
         />
       ),
     },
@@ -38,7 +38,7 @@ export default function TabLayout() {
       href: "/agent",
       renderIcon: (isFocused: boolean) => (
         <Sparkles
-          className={`w-6 h-6 ${isFocused ? "text-primary" : "text-white"}`}
+          className={`h-6 w-6 ${isFocused ? "text-primary" : "text-white"}`}
         />
       ),
     },
@@ -48,7 +48,7 @@ export default function TabLayout() {
       href: "/library",
       renderIcon: (isFocused: boolean) => (
         <BookOpenText
-          className={`w-6 h-6 ${isFocused ? "text-primary" : "text-white"}`}
+          className={`h-6 w-6 ${isFocused ? "text-primary" : "text-white"}`}
         />
       ),
     },
@@ -58,7 +58,7 @@ export default function TabLayout() {
       href: "/profile",
       renderIcon: (isFocused: boolean) => (
         <UserRound
-          className={`w-6 h-6 ${isFocused ? "text-primary" : "text-white"}`}
+          className={`h-6 w-6 ${isFocused ? "text-primary" : "text-white"}`}
         />
       ),
     },
@@ -69,17 +69,17 @@ export default function TabLayout() {
       <Tabs>
         <TabSlot />
         <TabList
-          className="h-20 px-10 absolute bottom-md left-md right-md bg-black rounded-3xl items-center justify-center border border-white/10 shadow-lg shadow-black/50"
+          className="absolute right-md bottom-md left-md h-20 items-center justify-center rounded-3xl border border-white/10 bg-black px-10 shadow-black/50 shadow-lg"
           style={{
             display: shouldHideTabs ? "none" : "flex",
           }}
         >
           {tabs.map((tab) => (
             <TabTrigger
-              name={tab.name}
-              href={tab.href as Href}
               asChild
+              href={tab.href as Href}
               key={tab.name}
+              name={tab.name}
             >
               <TabBarButton
                 renderIcon={({ isFocused }) => tab.renderIcon(isFocused)}

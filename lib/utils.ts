@@ -8,7 +8,9 @@ export function cn(...inputs: ClassValue[]) {
 
 export function handleSupabaseError(
   error: Error | { message?: string } | unknown,
-  setMessage: (message: string) => void = () => {},
+  setMessage: (message: string) => void = () => {
+    /* noop */
+  }
 ) {
   const message =
     error instanceof Error
@@ -59,5 +61,7 @@ export function muscleGroupToName(muscleGroup: MuscleGroup): string {
       return "Cardio";
     case "full-body":
       return "Full Body";
+    default:
+      return undefined;
   }
 }

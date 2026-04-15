@@ -1,7 +1,7 @@
+import fs from "node:fs";
+import path from "node:path";
 import { createSeedClient } from "@snaplet/seed";
 import { parse } from "csv-parse/sync";
-import fs from "fs";
-import path from "path";
 
 function readMarkdownFile(dir: string, slug: string): string | null {
   const filePath = path.join(process.cwd(), dir, `${slug}.md`);
@@ -14,7 +14,7 @@ function readMarkdownFile(dir: string, slug: string): string | null {
 async function main() {
   const csvContent = fs.readFileSync(
     path.join(process.cwd(), "data/exercises.csv"),
-    "utf-8",
+    "utf-8"
   );
 
   const rows = parse(csvContent, {
@@ -41,7 +41,7 @@ async function main() {
       muscle_groups: row.muscle_groups.split(",").map((g) => g.trim()),
       description: readMarkdownFile("data/descriptions", row.slug),
       instructions: readMarkdownFile("data/instructions", row.slug),
-    })),
+    }))
   );
 
   console.log(`Seeded ${rows.length} exercises.`);

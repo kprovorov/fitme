@@ -1,7 +1,7 @@
+import fs from "node:fs";
+import path from "node:path";
 import { createClient } from "@supabase/supabase-js";
 import { parse } from "csv-parse/sync";
-import fs from "fs";
-import path from "path";
 
 function readMarkdownFile(dir: string, slug: string): string | null {
   const filePath = path.join(process.cwd(), dir, `${slug}.md`);
@@ -18,9 +18,9 @@ async function main() {
     process.env.SUPABASE_SERVICE_ROLE_KEY ??
     process.env.EXPO_PUBLIC_SUPABASE_ANON_KEY;
 
-  if (!supabaseUrl || !supabaseKey) {
+  if (!(supabaseUrl && supabaseKey)) {
     throw new Error(
-      "Missing SUPABASE_URL and SUPABASE_SERVICE_ROLE_KEY environment variables",
+      "Missing SUPABASE_URL and SUPABASE_SERVICE_ROLE_KEY environment variables"
     );
   }
 
@@ -28,7 +28,7 @@ async function main() {
 
   const csvContent = fs.readFileSync(
     path.join(process.cwd(), "data/exercises.csv"),
-    "utf-8",
+    "utf-8"
   );
 
   const rows = parse(csvContent, {
@@ -58,7 +58,9 @@ async function main() {
     .from("exercises")
     .upsert(exercises, { onConflict: "slug" });
 
-  if (error) throw error;
+  if (error) {
+    throw error;
+  }
 
   console.log(`Synced ${exercises.length} exercises.`);
 }

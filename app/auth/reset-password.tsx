@@ -1,5 +1,5 @@
 import { Stack, useLocalSearchParams } from "expo-router";
-import React, { useEffect, useState } from "react";
+import { useEffect, useState } from "react";
 import {
   Keyboard,
   KeyboardAvoidingView,
@@ -29,18 +29,21 @@ export default function ResetPasswordScreen() {
       supabase.auth
         .verifyOtp({ token_hash, type: "recovery" })
         .then(({ error }) => {
-          if (error) setVerifyError(error.message);
-          else setVerified(true);
+          if (error) {
+            setVerifyError(error.message);
+          } else {
+            setVerified(true);
+          }
         });
     }
   }, [token_hash, type]);
 
   useEffect(() => {
     const showSubscription = Keyboard.addListener("keyboardWillShow", () =>
-      setIsKeyboardVisible(true),
+      setIsKeyboardVisible(true)
     );
     const hideSubscription = Keyboard.addListener("keyboardWillHide", () =>
-      setIsKeyboardVisible(false),
+      setIsKeyboardVisible(false)
     );
 
     return () => {
@@ -61,17 +64,17 @@ export default function ResetPasswordScreen() {
           <TouchableWithoutFeedback onPress={Keyboard.dismiss}>
             <VStack className="h-full p-6">
               <Sign
-                width={isKeyboardVisible ? 35 : 70}
                 height={isKeyboardVisible ? 35 : 70}
+                width={isKeyboardVisible ? 35 : 70}
               />
               {verifyError ? (
                 <P className="text-red-500">{verifyError}</P>
-              ) : !verified ? (
-                <View className="flex-1 items-center justify-center">
-                  <Spinner size={32} className="text-foreground" />
-                </View>
-              ) : (
+              ) : verified ? (
                 <ResetPasswordView />
+              ) : (
+                <View className="flex-1 items-center justify-center">
+                  <Spinner className="text-foreground" size={32} />
+                </View>
               )}
             </VStack>
           </TouchableWithoutFeedback>

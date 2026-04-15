@@ -14,11 +14,11 @@ import { X } from "~/lib/icons/X";
 import type { ConversationWithPreview } from "~/lib/models";
 
 interface ConversationListViewProps {
-  visible: boolean;
-  onClose: () => void;
   activeConversationId: string | undefined;
-  onSelectConversation: (id: string) => void;
+  onClose: () => void;
   onNewConversation: () => void;
+  onSelectConversation: (id: string) => void;
+  visible: boolean;
 }
 
 function ConversationListItem({
@@ -31,20 +31,20 @@ function ConversationListItem({
   onPress: () => void;
 }) {
   return (
-    <Pressable onPress={onPress} className="active:bg-card/50 px-4 py-3">
+    <Pressable className="px-4 py-3 active:bg-card/50" onPress={onPress}>
       <HStack className="items-center gap-3">
-        <View className="w-8 h-8 rounded-full bg-primary/10 items-center justify-center shrink-0">
-          <Sparkles className="w-4 h-4 text-primary" />
+        <View className="h-8 w-8 shrink-0 items-center justify-center rounded-full bg-primary/10">
+          <Sparkles className="h-4 w-4 text-primary" />
         </View>
-        <VStack className="flex-1 gap-0.5 items-start justify-start">
-          <Text className="text-sm font-nunito-sans-semibold">
+        <VStack className="flex-1 items-start justify-start gap-0.5">
+          <Text className="font-nunito-sans-semibold text-sm">
             {format(new Date(conversation.created_at), "MMM d, yyyy")}
           </Text>
           <Muted className="text-xs" numberOfLines={1}>
             {conversation.preview ?? "New conversation"}
           </Muted>
         </VStack>
-        {isActive && <Check className="w-4 h-4 text-primary shrink-0" />}
+        {isActive && <Check className="h-4 w-4 shrink-0 text-primary" />}
       </HStack>
     </Pressable>
   );
@@ -54,7 +54,7 @@ function SkeletonRow() {
   return (
     <View className="px-4 py-3">
       <HStack className="items-center gap-3">
-        <View className="w-8 h-8 rounded-full bg-muted opacity-30" />
+        <View className="h-8 w-8 rounded-full bg-muted opacity-30" />
         <VStack className="flex-1 gap-1.5">
           <View className="h-3.5 w-24 rounded bg-muted opacity-30" />
           <View className="h-3 w-40 rounded bg-muted opacity-20" />
@@ -77,17 +77,17 @@ export default function ConversationListView({
 
   return (
     <Modal
-      visible={visible}
       animationType="slide"
-      presentationStyle="pageSheet"
       onRequestClose={onClose}
+      presentationStyle="pageSheet"
+      visible={visible}
     >
       <View className="flex-1 bg-background">
         {/* Header */}
-        <HStack className="items-center justify-between px-4 pt-4 pb-3 border-b border-white/10">
+        <HStack className="items-center justify-between border-white/10 border-b px-4 pt-4 pb-3">
           <H3>Conversations</H3>
-          <Button variant="ghost" size="icon-sm" shape="pill" onPress={onClose}>
-            <X size={18} className="text-foreground" />
+          <Button onPress={onClose} shape="pill" size="icon-sm" variant="ghost">
+            <X className="text-foreground" size={18} />
           </Button>
         </HStack>
 
@@ -101,7 +101,13 @@ export default function ConversationListView({
         ) : (
           <FlatList
             data={conversations ?? []}
+            ItemSeparatorComponent={() => <Separator className="opacity-50" />}
             keyExtractor={(item) => item.id}
+            ListEmptyComponent={
+              <View className="items-center px-6 py-12">
+                <Muted className="text-center">No conversations yet</Muted>
+              </View>
+            }
             renderItem={({ item }) => (
               <ConversationListItem
                 conversation={item}
@@ -109,20 +115,14 @@ export default function ConversationListView({
                 onPress={() => onSelectConversation(item.id)}
               />
             )}
-            ItemSeparatorComponent={() => <Separator className="opacity-50" />}
-            ListEmptyComponent={
-              <View className="items-center py-12 px-6">
-                <Muted className="text-center">No conversations yet</Muted>
-              </View>
-            }
           />
         )}
 
         {/* Footer */}
-        <View className="px-4 py-4 border-t border-white/10">
-          <Button variant="outline" onPress={onNewConversation}>
+        <View className="border-white/10 border-t px-4 py-4">
+          <Button onPress={onNewConversation} variant="outline">
             <HStack className="items-center gap-2">
-              <Plus size={16} className="text-foreground" />
+              <Plus className="text-foreground" size={16} />
               <Text>New conversation</Text>
             </HStack>
           </Button>

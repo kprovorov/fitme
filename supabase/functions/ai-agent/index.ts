@@ -1,16 +1,15 @@
 import { createClient } from "jsr:@supabase/supabase-js@2";
-import { ToolLoopAgent, stepCountIs } from "npm:ai";
 import { createAnthropic } from "npm:@ai-sdk/anthropic";
-
+import { stepCountIs, ToolLoopAgent } from "npm:ai";
+import { createActivatePlanTool } from "./tools/activate_plan.ts";
+import { createCreatePlanTool } from "./tools/create_plan.ts";
 import { createGetActivePlanTool } from "./tools/get_active_plan.ts";
 import { createGetPlansTool } from "./tools/get_plans.ts";
 import { createGetUserProfileTool } from "./tools/get_user_profile.ts";
-import { createUpdateUserProfileTool } from "./tools/update_user_profile.ts";
 import { createGetUserWorkoutHistoryTool } from "./tools/get_user_workout_history.ts";
 import { createSearchExercisesTool } from "./tools/search_exercises.ts";
-import { createCreatePlanTool } from "./tools/create_plan.ts";
-import { createActivatePlanTool } from "./tools/activate_plan.ts";
 import { createUpdatePlanTool } from "./tools/update_plan.ts";
+import { createUpdateUserProfileTool } from "./tools/update_user_profile.ts";
 
 // ─── Main handler ─────────────────────────────────────────────────────────────
 
@@ -33,13 +32,13 @@ Deno.serve(async (req: Request) => {
   const supabaseClient = createClient(
     Deno.env.get("SUPABASE_URL") ?? "",
     Deno.env.get("SUPABASE_ANON_KEY") ?? "",
-    { global: { headers: { Authorization: authHeader } } },
+    { global: { headers: { Authorization: authHeader } } }
   );
 
   // Use service role client for writes that need to bypass RLS within tool execution
   const supabaseService = createClient(
     Deno.env.get("SUPABASE_URL") ?? "",
-    Deno.env.get("SUPABASE_SERVICE_ROLE_KEY") ?? "",
+    Deno.env.get("SUPABASE_SERVICE_ROLE_KEY") ?? ""
   );
 
   const {
@@ -69,17 +68,19 @@ Deno.serve(async (req: Request) => {
 
   // ── Get or create conversation ─────────────────────────────────────────────
   let conversationId = conversation_id;
-  if (!conversationId) {
+  if (conversationId) {
+    log("conversation_resumed", { conversationId });
+  } else {
     const { data: newConv, error: convError } = await supabaseService
       .from("conversations")
       .insert({ user_id: user.id })
       .select("id")
       .single();
-    if (convError) throw convError;
+    if (convError) {
+      throw convError;
+    }
     conversationId = newConv.id;
     log("conversation_created", { conversationId });
-  } else {
-    log("conversation_resumed", { conversationId });
   }
 
   // ── Load message history (last 20) ─────────────────────────────────────────
@@ -94,7 +95,7 @@ Deno.serve(async (req: Request) => {
     (m: { role: string; content: string }) => ({
       role: m.role as "user" | "assistant",
       content: m.content,
-    }),
+    })
   );
   log("history_loaded", { messageCount: historyMessages.length });
 
@@ -156,7 +157,7 @@ When updating an existing plan:
 Keep responses concise, friendly, and encouraging. Use markdown sparingly since the app renders plain text.`,
       tools,
       stopWhen: stepCountIs(20),
-      onStepFinish: async ({ stepNumber, finishReason, toolCalls }) => {
+      onStepFinish: ({ stepNumber, finishReason, toolCalls }) => {
         log("step_finish", {
           stepNumber,
           finishReason,
@@ -168,84 +169,82 @@ Keep responses concise, friendly, and encouraging. Use markdown sparingly since 
     const encoder = new TextEncoder();
 
     const stream = new ReadableStream<Uint8Array>({
-      start(controller) {
-        void (async () => {
-          let fullText = "";
+      async start(controller) {
+        let fullText = "";
 
-          try {
-            const result = await agent.stream({
-              messages,
-              abortSignal: req.signal,
-            });
+        try {
+          const result = await agent.stream({
+            messages,
+            abortSignal: req.signal,
+          });
 
-            for await (const chunk of result.textStream) {
-              if (!chunk) {
-                continue;
-              }
-
-              fullText += chunk;
-              controller.enqueue(encoder.encode(chunk));
+          for await (const chunk of result.textStream) {
+            if (!chunk) {
+              continue;
             }
 
-            log("ai_request_done", {
-              responseLength: fullText.length,
-              response: fullText,
-            });
+            fullText += chunk;
+            controller.enqueue(encoder.encode(chunk));
+          }
 
-            // ── Fetch created plan as attachment (if any) ──────────────────
-            let attachment: {
-              type: "plan_preview";
-              planId: string;
-              data: unknown;
-            } | null = null;
-            if (affectedPlanId) {
-              const { data: plan } = await supabaseClient
-                .from("plans")
-                .select(
-                  `*, workouts (
+          log("ai_request_done", {
+            responseLength: fullText.length,
+            response: fullText,
+          });
+
+          // ── Fetch created plan as attachment (if any) ──────────────────
+          let attachment: {
+            type: "plan_preview";
+            planId: string;
+            data: unknown;
+          } | null = null;
+          if (affectedPlanId) {
+            const { data: plan } = await supabaseClient
+              .from("plans")
+              .select(
+                `*, workouts (
                     *,
                     exercises:workout_exercises (
                       *,
                       exercise:exercises (*),
                       sets:workout_exercise_sets (*)
                     )
-                  )`,
-                )
-                .eq("id", affectedPlanId)
-                .single();
-              if (plan) {
-                attachment = {
-                  type: "plan_preview",
-                  planId: affectedPlanId,
-                  data: plan,
-                };
-                log("plan_attachment_ready", { planId: affectedPlanId });
-              }
+                  )`
+              )
+              .eq("id", affectedPlanId)
+              .single();
+            if (plan) {
+              attachment = {
+                type: "plan_preview",
+                planId: affectedPlanId,
+                data: plan,
+              };
+              log("plan_attachment_ready", { planId: affectedPlanId });
             }
-
-            // ── Save messages to DB ───────────────────────────────────────
-            await supabaseService.from("messages").insert([
-              {
-                conversation_id: conversationId,
-                role: "user",
-                content: message,
-              },
-              {
-                conversation_id: conversationId,
-                role: "assistant",
-                content: fullText,
-                metadata: attachment ? { attachment } : null,
-              },
-            ]);
-
-            controller.close();
-          } catch (err) {
-            const errMessage =
-              err instanceof Error ? err.message : "Unknown error";
-            log("ai_request_error", { error: errMessage });
-            controller.error(err);
           }
-        })();
+
+          // ── Save messages to DB ───────────────────────────────────────
+          await supabaseService.from("messages").insert([
+            {
+              conversation_id: conversationId,
+              role: "user",
+              content: message,
+            },
+            {
+              conversation_id: conversationId,
+              role: "assistant",
+              content: fullText,
+              metadata: attachment ? { attachment } : null,
+            },
+          ]);
+
+          controller.close();
+        } catch (err) {
+          const errMessage =
+            err instanceof Error ? err.message : "Unknown error";
+          log("ai_request_error", { error: errMessage });
+          controller.error(err);
+        }
       },
       cancel(reason) {
         log("stream_cancelled", {
@@ -271,7 +270,7 @@ Keep responses concise, friendly, and encouraging. Use markdown sparingly since 
       {
         status: 500,
         headers: { "Content-Type": "application/json" },
-      },
+      }
     );
   }
 });

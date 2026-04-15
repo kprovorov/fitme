@@ -1,6 +1,6 @@
 import { tool } from "npm:ai";
 import { z } from "npm:zod";
-import { ToolContext } from "./types.ts";
+import type { ToolContext } from "./types.ts";
 
 export function createGetPlansTool({ supabaseClient, log }: ToolContext) {
   return tool({
@@ -12,7 +12,7 @@ export function createGetPlansTool({ supabaseClient, log }: ToolContext) {
       const { data, error } = await supabaseClient
         .from("plans")
         .select(
-          "id, name, description, goal, place, frequency, is_active, created_at",
+          "id, name, description, goal, place, frequency, is_active, created_at"
         )
         .is("deleted_at", null)
         .order("created_at", { ascending: false });

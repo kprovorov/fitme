@@ -1,22 +1,22 @@
-import { WorkoutSessionExercise } from "~/lib/models";
+import { useRouter } from "expo-router";
+import { Pressable } from "react-native";
+import ContextMenu from "react-native-context-menu-view";
+import { Text } from "~/components/ui/text";
+import { Ellipsis } from "~/lib/icons/Ellipsis";
+import type { WorkoutSessionExercise } from "~/lib/models";
+import { cn } from "~/lib/utils";
+import ExerciseImage from "../exercises/exercise-image";
+import { Button } from "../ui/button";
 import { HStack } from "../ui/hstack";
 import { VStack } from "../ui/vstack";
-import { Text } from "~/components/ui/text";
-import ExerciseImage from "../exercises/exercise-image";
-import { cn } from "~/lib/utils";
-import { Ellipsis } from "~/lib/icons/Ellipsis";
-import { Button } from "../ui/button";
-import { Pressable } from "react-native";
-import { useRouter } from "expo-router";
-import ContextMenu from "react-native-context-menu-view";
 
 interface WorkoutSessionExerciseCardProps {
-  workoutSessionExercise: WorkoutSessionExercise;
   onDelete?: () => void;
   onReplace?: () => void;
   planId: string;
-  workoutId: string;
   sessionId: string;
+  workoutId: string;
+  workoutSessionExercise: WorkoutSessionExercise;
 }
 
 export default function WorkoutSessionExerciseCard({
@@ -29,12 +29,12 @@ export default function WorkoutSessionExerciseCard({
 }: WorkoutSessionExerciseCardProps) {
   const router = useRouter();
   const setsDoneCount = workoutSessionExercise.sets.filter(
-    (set) => set.reps_completed !== null,
+    (set) => set.reps_completed !== null
   ).length;
 
   const handlePress = () => {
     router.push(
-      `/plans/${planId}/workouts/${workoutId}/sessions/${sessionId}/exercises/${workoutSessionExercise.id}`,
+      `/plans/${planId}/workouts/${workoutId}/sessions/${sessionId}/exercises/${workoutSessionExercise.id}`
     );
   };
 
@@ -59,7 +59,7 @@ export default function WorkoutSessionExerciseCard({
   ];
 
   return (
-    <Pressable onPress={handlePress} className="active:opacity-80">
+    <Pressable className="active:opacity-80" onPress={handlePress}>
       <HStack className="w-full items-center justify-between gap-sm px-sm">
         <ExerciseImage exercise={workoutSessionExercise.exercise} />
         <VStack className="flex-1 items-start gap-0">
@@ -68,16 +68,16 @@ export default function WorkoutSessionExerciseCard({
           </Text>
           <Text
             className={cn(
-              "text-sm font-bold",
+              "font-bold text-sm",
               setsDoneCount >= workoutSessionExercise.sets.length
                 ? "text-primary"
-                : "text-muted-foreground",
+                : "text-muted-foreground"
             )}
           >
             <Text
               className={cn(
-                "text-sm font-bold",
-                setsDoneCount === 0 ? "text-muted-foreground" : "text-primary",
+                "font-bold text-sm",
+                setsDoneCount === 0 ? "text-muted-foreground" : "text-primary"
               )}
             >
               {setsDoneCount}
@@ -87,8 +87,8 @@ export default function WorkoutSessionExerciseCard({
         </VStack>
         {contextMenuActions.length > 0 && (
           <ContextMenu
-            dropdownMenuMode
             actions={contextMenuActions}
+            dropdownMenuMode
             onPress={(e) => {
               if (e.nativeEvent.name === "Replace") {
                 onReplace?.();
@@ -97,9 +97,9 @@ export default function WorkoutSessionExerciseCard({
               }
             }}
           >
-            <Button variant="ghost" size="icon-sm" shape="pill">
+            <Button shape="pill" size="icon-sm" variant="ghost">
               <Text>
-                <Ellipsis size={24} className="text-foreground" />
+                <Ellipsis className="text-foreground" size={24} />
               </Text>
             </Button>
           </ContextMenu>

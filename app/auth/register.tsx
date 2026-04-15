@@ -1,36 +1,36 @@
 import { Stack } from "expo-router";
-import React, { useEffect, useState } from "react";
+import { useCallback, useEffect, useState } from "react";
 import { Keyboard, KeyboardAvoidingView, Platform, View } from "react-native";
 import { SafeAreaView } from "react-native-safe-area-context";
+import Sign from "~/components/brand/sign";
 import { VStack } from "~/components/ui/vstack";
 import RegisterView from "~/components/views/register-view";
-import Sign from "~/components/brand/sign";
 
 export default function RegisterScreen() {
   const [isKeyboardVisible, setIsKeyboardVisible] = useState(false);
 
+  const handleKeyboardShow = useCallback(() => {
+    setIsKeyboardVisible(true);
+  }, []);
+
+  const handleKeyboardHide = useCallback(() => {
+    setIsKeyboardVisible(false);
+  }, []);
+
   useEffect(() => {
     const showSubscription = Keyboard.addListener(
       "keyboardWillShow",
-      handleKeyboardShow,
+      handleKeyboardShow
     );
-    const hideSubscription = Keyboard.addListener(
+    const _hideSubscription = Keyboard.addListener(
       "keyboardWillHide",
-      handleKeyboardHide,
+      handleKeyboardHide
     );
 
     return () => {
       showSubscription.remove();
     };
-  }, []);
-
-  const handleKeyboardShow = () => {
-    setIsKeyboardVisible(true);
-  };
-
-  const handleKeyboardHide = () => {
-    setIsKeyboardVisible(false);
-  };
+  }, [handleKeyboardShow, handleKeyboardHide]);
 
   return (
     <>
@@ -47,10 +47,10 @@ export default function RegisterScreen() {
           className="flex-1"
         >
           <View style={{ flex: 1 }}>
-            <VStack className="h-full p-6 gap-8">
+            <VStack className="h-full gap-8 p-6">
               <Sign
-                width={isKeyboardVisible ? 35 : 70}
                 height={isKeyboardVisible ? 35 : 70}
+                width={isKeyboardVisible ? 35 : 70}
               />
               <RegisterView />
             </VStack>

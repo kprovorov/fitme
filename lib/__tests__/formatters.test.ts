@@ -1,4 +1,4 @@
-import { formatWeight, formatHeight } from "../formatters";
+import { formatHeight, formatWeight } from "../formatters";
 
 describe("formatWeight", () => {
   it("metric: appends kg", () => {

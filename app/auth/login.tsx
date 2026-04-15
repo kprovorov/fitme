@@ -1,5 +1,5 @@
 import { Stack } from "expo-router";
-import React, { useEffect, useState } from "react";
+import { useCallback, useEffect, useState } from "react";
 import { Keyboard, KeyboardAvoidingView, Platform, View } from "react-native";
 import { SafeAreaView } from "react-native-safe-area-context";
 import Sign from "~/components/brand/sign";
@@ -9,28 +9,28 @@ import LoginView from "~/components/views/login-view";
 export default function LoginScreen() {
   const [isKeyboardVisible, setIsKeyboardVisible] = useState(false);
 
+  const handleKeyboardShow = useCallback(() => {
+    setIsKeyboardVisible(true);
+  }, []);
+
+  const handleKeyboardHide = useCallback(() => {
+    setIsKeyboardVisible(false);
+  }, []);
+
   useEffect(() => {
     const showSubscription = Keyboard.addListener(
       "keyboardWillShow",
-      handleKeyboardShow,
+      handleKeyboardShow
     );
-    const hideSubscription = Keyboard.addListener(
+    const _hideSubscription = Keyboard.addListener(
       "keyboardWillHide",
-      handleKeyboardHide,
+      handleKeyboardHide
     );
 
     return () => {
       showSubscription.remove();
     };
-  }, []);
-
-  const handleKeyboardShow = () => {
-    setIsKeyboardVisible(true);
-  };
-
-  const handleKeyboardHide = () => {
-    setIsKeyboardVisible(false);
-  };
+  }, [handleKeyboardHide, handleKeyboardShow]);
 
   return (
     <>
@@ -48,8 +48,8 @@ export default function LoginScreen() {
           <View style={{ flex: 1 }}>
             <VStack className="h-full p-6">
               <Sign
-                width={isKeyboardVisible ? 35 : 70}
                 height={isKeyboardVisible ? 35 : 70}
+                width={isKeyboardVisible ? 35 : 70}
               />
               <LoginView />
             </VStack>

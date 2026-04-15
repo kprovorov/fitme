@@ -1,8 +1,8 @@
-import * as RadioGroupPrimitive from "@rn-primitives/radio-group";
+import type * as RadioGroupPrimitive from "@rn-primitives/radio-group";
 import * as React from "react";
 import {
-  RadioGroupItemWithLabel,
   RadioGroup,
+  RadioGroupItemWithLabel,
 } from "~/components/ui/radio-group";
 import { getGenderLabel } from "~/lib/labels";
 import { genders } from "~/lib/models";
@@ -15,18 +15,18 @@ const GenderSwitch = React.forwardRef<
   return (
     <RadioGroup
       className={cn(
-        "flex flex-row gap-4 justify-stretch items-stretch",
-        className,
+        "flex flex-row items-stretch justify-stretch gap-4",
+        className
       )}
       {...props}
       ref={ref}
     >
       {genders.map((gender) => (
         <RadioGroupItemWithLabel
-          key={gender}
-          value={gender}
-          label={getGenderLabel(gender)}
           className={cn(props.value === gender && "border-primary")}
+          key={gender}
+          label={getGenderLabel(gender)}
+          value={gender}
         />
       ))}
     </RadioGroup>

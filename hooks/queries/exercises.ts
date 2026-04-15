@@ -1,7 +1,7 @@
-import { supabase } from "@/lib/supabase";
 import { createInfiniteQuery, createQuery } from "react-query-kit";
-import { Exercise, WorkoutSessionExercise } from "~/lib/models";
-import { SupabasePaginatedResponse } from "~/lib/types";
+import { supabase } from "@/lib/supabase";
+import type { Exercise, WorkoutSessionExercise } from "~/lib/models";
+import type { SupabasePaginatedResponse } from "~/lib/types";
 
 const PAGE_SIZE = 20;
 
@@ -19,7 +19,9 @@ export const useExerciseQuery = createQuery<Exercise, ExerciseQueryVariables>({
       .select("*")
       .eq("id", exerciseId)
       .single();
-    if (error) throw error;
+    if (error) {
+      throw error;
+    }
     return data as unknown as Exercise;
   },
 });
@@ -35,7 +37,7 @@ export const useExercisesQuery = createInfiniteQuery<
   queryKey: ["exercises"],
   fetcher: async (
     { muscleGroup },
-    { pageParam },
+    { pageParam }
   ): Promise<SupabasePaginatedResponse<Exercise>> => {
     const page = (pageParam as number) ?? 0;
     const from = page * PAGE_SIZE;
@@ -51,7 +53,9 @@ export const useExercisesQuery = createInfiniteQuery<
     }
 
     const { data, error, count } = await query.range(from, to);
-    if (error) throw error;
+    if (error) {
+      throw error;
+    }
 
     const total = count ?? 0;
     return {
@@ -90,17 +94,22 @@ export const useExerciseHistoryQuery = createQuery<
             plan:plans (*)
           )
         )
-      `,
+      `
       )
       .eq("exercise_id", exerciseId)
       .order("created_at", { ascending: false });
-    if (error) throw error;
+    if (error) {
+      throw error;
+    }
+    interface WseRaw {
+      sets: Array<{ weight_completed: unknown }>;
+    }
     const withCompletedSets = (data ?? [])
-      .map((wse: any) => ({
+      .map((wse: WseRaw) => ({
         ...wse,
-        sets: wse.sets.filter((set: any) => set.weight_completed != null),
+        sets: wse.sets.filter((set) => set.weight_completed != null),
       }))
-      .filter((wse: any) => wse.sets.length > 0);
+      .filter((wse: WseRaw) => wse.sets.length > 0);
     return withCompletedSets as unknown as WorkoutSessionExercise[];
   },
 });

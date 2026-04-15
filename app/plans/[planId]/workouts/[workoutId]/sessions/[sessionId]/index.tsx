@@ -1,6 +1,6 @@
 import { useQueryClient } from "@tanstack/react-query";
 import { Stack, useLocalSearchParams } from "expo-router";
-import React, { useEffect, useState } from "react";
+import { useEffect, useState } from "react";
 import { ScrollView } from "react-native";
 import {
   SafeAreaView,
@@ -17,7 +17,11 @@ import {
 } from "~/hooks/queries/workout-sessions";
 
 export default function WorkoutSessionScreen() {
-  const { planId, workoutId, sessionId } = useLocalSearchParams();
+  const {
+    planId: _planId,
+    workoutId: _workoutId,
+    sessionId,
+  } = useLocalSearchParams();
 
   const { data: workoutSession } = useWorkoutSessionQuery({
     variables: {
@@ -38,7 +42,9 @@ export default function WorkoutSessionScreen() {
   const [elapsedTime, setElapsedTime] = useState<string>("");
 
   useEffect(() => {
-    if (!workoutSession?.started_at) return;
+    if (!workoutSession?.started_at) {
+      return;
+    }
 
     const startTime = new Date(workoutSession.started_at).getTime();
 
@@ -53,7 +59,7 @@ export default function WorkoutSessionScreen() {
       setElapsedTime(
         `${hours.toString().padStart(2, "0")}:${minutes
           .toString()
-          .padStart(2, "0")}:${seconds.toString().padStart(2, "0")}`,
+          .padStart(2, "0")}:${seconds.toString().padStart(2, "0")}`
       );
     }, 1000);
 
@@ -79,7 +85,7 @@ export default function WorkoutSessionScreen() {
           // headerRight: () => <Text className="w-32">{elapsedTime}</Text>,
         }}
       />
-      <SafeAreaView edges={["top"]} className="flex-1">
+      <SafeAreaView className="flex-1" edges={["top"]}>
         <ScrollView className="flex-1" showsVerticalScrollIndicator={false}>
           {workoutSession && (
             <VStack
@@ -87,12 +93,26 @@ export default function WorkoutSessionScreen() {
               style={{ paddingBottom: insets.bottom }}
             >
               <WorkoutSessionView
-                workoutSession={workoutSession}
                 sessionId={sessionId as string}
+                workoutSession={workoutSession}
               />
-              {!workoutSession.finished_at ? (
+              {workoutSession.finished_at ? (
+                <Text className="text-center text-xl">
+                  Workout finished {(() => {
+                    const diff =
+                      new Date(workoutSession.finished_at).getTime() -
+                      new Date(workoutSession.started_at).getTime();
+                    const hours = Math.floor(diff / (1000 * 60 * 60));
+                    const minutes = Math.floor(
+                      (diff % (1000 * 60 * 60)) / (1000 * 60)
+                    );
+                    const seconds = Math.floor((diff % (1000 * 60)) / 1000);
+                    return `${hours.toString().padStart(2, "0")}:${minutes.toString().padStart(2, "0")}:${seconds.toString().padStart(2, "0")}`;
+                  })()}
+                </Text>
+              ) : (
                 <VStack className="items-stretch">
-                  <Text className="text-3xl text-center">{elapsedTime}</Text>
+                  <Text className="text-center text-3xl">{elapsedTime}</Text>
                   <Button
                     onPress={() =>
                       finishWorkoutSession({
@@ -104,25 +124,6 @@ export default function WorkoutSessionScreen() {
                     <Text>Finish Workout</Text>
                   </Button>
                 </VStack>
-              ) : (
-                <Text className="text-center text-xl">
-                  Workout finished{" "}
-                  {(() => {
-                    const diff =
-                      new Date(workoutSession.finished_at).getTime() -
-                      new Date(workoutSession.started_at).getTime();
-                    const hours = Math.floor(diff / (1000 * 60 * 60));
-                    const minutes = Math.floor(
-                      (diff % (1000 * 60 * 60)) / (1000 * 60),
-                    );
-                    const seconds = Math.floor((diff % (1000 * 60)) / 1000);
-                    return `${hours.toString().padStart(2, "0")}:${minutes
-                      .toString()
-                      .padStart(2, "0")}:${seconds
-                      .toString()
-                      .padStart(2, "0")}`;
-                  })()}
-                </Text>
               )}
             </VStack>
           )}

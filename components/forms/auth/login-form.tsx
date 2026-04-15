@@ -1,17 +1,17 @@
-import { Controller, FieldErrors, useForm } from "react-hook-form";
 import { zodResolver } from "@hookform/resolvers/zod";
+import { Controller, type FieldErrors, useForm } from "react-hook-form";
 import { z } from "zod";
-import { Input } from "~/components/ui/input";
 import { Button } from "~/components/ui/button";
-import { Text } from "~/components/ui/text";
-import { Spinner } from "~/components/ui/spinner";
-import { VStack } from "~/components/ui/vstack";
 import { HStack } from "~/components/ui/hstack";
+import { Input } from "~/components/ui/input";
+import { Spinner } from "~/components/ui/spinner";
+import { Text } from "~/components/ui/text";
+import { VStack } from "~/components/ui/vstack";
 import { ArrowRight } from "~/lib/icons/ArrowRight";
 
 interface LoginFormProps {
-  onSubmit: (values: z.infer<typeof formSchema>) => Promise<void>;
   errors?: FieldErrors<LoginFormValues>;
+  onSubmit: (values: z.infer<typeof formSchema>) => Promise<void>;
 }
 
 export type LoginFormValues = z.infer<typeof formSchema>;
@@ -34,22 +34,22 @@ export default function LoginForm({ onSubmit, errors }: LoginFormProps) {
   });
 
   return (
-    <VStack className="gap-4 items-stretch w-full">
+    <VStack className="w-full items-stretch gap-4">
       <Controller
         control={form.control}
+        name="email"
         render={({ field: { onChange, onBlur, value } }) => (
           <Input
+            autoCapitalize="none"
             editable={!form.formState.isSubmitting}
-            placeholder="Email"
+            keyboardType="email-address"
             onBlur={onBlur}
             onChangeText={onChange}
-            value={value}
-            keyboardType="email-address"
-            autoCapitalize="none"
+            placeholder="Email"
             testID="login-email-input"
+            value={value}
           />
         )}
-        name="email"
       />
       {form.formState.errors.email && (
         <Text className="text-red-500">
@@ -62,15 +62,14 @@ export default function LoginForm({ onSubmit, errors }: LoginFormProps) {
         render={({ field: { onChange, onBlur, value } }) => (
           <Input
             editable={!form.formState.isSubmitting}
-            placeholder="Password"
             onBlur={onBlur}
             onChangeText={onChange}
-            value={value}
+            placeholder="Password"
             secureTextEntry
             testID="login-password-input"
+            value={value}
           />
         )}
-        name="password"
       />
       {form.formState.errors.password && (
         <Text className="text-red-500">
@@ -84,11 +83,11 @@ export default function LoginForm({ onSubmit, errors }: LoginFormProps) {
         testID="login-button"
       >
         {form.formState.isSubmitting ? (
-          <Spinner size={16} className="text-black" />
+          <Spinner className="text-black" size={16} />
         ) : (
           <HStack className="gap-2">
             <Text>Continue</Text>
-            <ArrowRight size={16} className="text-black" />
+            <ArrowRight className="text-black" size={16} />
           </HStack>
         )}
       </Button>

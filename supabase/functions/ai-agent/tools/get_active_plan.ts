@@ -1,6 +1,6 @@
 import { tool } from "npm:ai";
 import { z } from "npm:zod";
-import { ToolContext } from "./types.ts";
+import type { ToolContext } from "./types.ts";
 
 export function createGetActivePlanTool({ supabaseClient, log }: ToolContext) {
   return tool({
@@ -19,7 +19,7 @@ export function createGetActivePlanTool({ supabaseClient, log }: ToolContext) {
               exercise:exercises (*),
               sets:workout_exercise_sets (*)
             )
-          )`,
+          )`
         )
         .eq("is_active", true)
         .is("deleted_at", null)

@@ -1,24 +1,23 @@
+import * as Sentry from "@sentry/react-native";
 import { useQueryClient } from "@tanstack/react-query";
 import { Link, router } from "expo-router";
-import React from "react";
+import { Linking } from "react-native";
+import RevenueCatUI from "react-native-purchases-ui";
 import { Button } from "~/components/ui/button";
 import { Text } from "~/components/ui/text";
-import { useCurrentUserQuery } from "~/hooks/queries/auth";
-import { VStack } from "../ui/vstack";
-import { Muted } from "../ui/typography";
 import { useLogoutMutation } from "~/hooks/mutations/auth";
-import RevenueCatUI from "react-native-purchases-ui";
+import { useCurrentUserQuery } from "~/hooks/queries/auth";
 import { useCustomerInfoQuery, useIsProQuery } from "~/hooks/revenueCat";
-import * as Sentry from "@sentry/react-native";
-import { Linking } from "react-native";
-import { HStack } from "../ui/hstack";
-import { Separator } from "../ui/separator";
-import { MenuList, MenuListItem } from "../ui/menu-list";
-import { Card, CardContent } from "../ui/card";
-import { Trophy } from "~/lib/icons/Trophy";
-import { Avatar, AvatarFallback } from "../ui/avatar";
 import { Heart } from "~/lib/icons/Heart";
+import { Trophy } from "~/lib/icons/Trophy";
 import { Volleyball } from "~/lib/icons/Volleyball";
+import { Avatar, AvatarFallback } from "../ui/avatar";
+import { Card, CardContent } from "../ui/card";
+import { HStack } from "../ui/hstack";
+import { MenuList, MenuListItem } from "../ui/menu-list";
+import { Separator } from "../ui/separator";
+import { Muted } from "../ui/typography";
+import { VStack } from "../ui/vstack";
 
 export default function ProfileView() {
   const queryClient = useQueryClient();
@@ -26,7 +25,7 @@ export default function ProfileView() {
   const { data: user } = useCurrentUserQuery();
 
   const { mutateAsync: logout } = useLogoutMutation({
-    onSuccess: async () => {
+    onSuccess: () => {
       Sentry.setUser(null);
       queryClient.clear();
       router.replace("/auth/login");
@@ -39,7 +38,7 @@ export default function ProfileView() {
 
   return (
     !!user && (
-      <VStack className="items-stretch justify-between grow gap-4">
+      <VStack className="grow items-stretch justify-between gap-4">
         <HStack className="items-center justify-start">
           <Avatar alt={user.name}>
             <AvatarFallback>
@@ -47,7 +46,7 @@ export default function ProfileView() {
             </AvatarFallback>
           </Avatar>
           <VStack className="items-stretch gap-0">
-            <Text className="text-xl font-bold">{user.name}</Text>
+            <Text className="font-bold text-xl">{user.name}</Text>
             <Muted>{user.email}</Muted>
           </VStack>
         </HStack>
@@ -59,7 +58,7 @@ export default function ProfileView() {
                 <VStack className="items-stretch gap-2">
                   <HStack className="flex-1 justify-start gap-2">
                     <Trophy className="text-primary" size={20} />
-                    <Text className="text-primary font-bold">
+                    <Text className="font-bold text-primary">
                       You&apos;re Pro!
                     </Text>
                   </HStack>
@@ -69,11 +68,11 @@ export default function ProfileView() {
                   </Muted>
                   {!!customerInfo?.managementURL && (
                     <Button
-                      variant="secondary"
                       onPress={() =>
                         customerInfo.managementURL &&
                         Linking.openURL(customerInfo.managementURL)
                       }
+                      variant="secondary"
                     >
                       <Text>Manage Subscription</Text>
                     </Button>
@@ -83,7 +82,7 @@ export default function ProfileView() {
                 <VStack className="items-stretch gap-2">
                   <HStack className="flex-1 justify-start gap-2">
                     <Volleyball className="text-foreground" size={20} />
-                    <Text className="text-foreground font-bold">
+                    <Text className="font-bold text-foreground">
                       You&apos;re on a free plan
                     </Text>
                   </HStack>
@@ -101,19 +100,19 @@ export default function ProfileView() {
         </Card>
 
         <MenuList>
-          <Link href="/settings" asChild>
+          <Link asChild href="/settings">
             <MenuListItem icon="chevron-right">
               <Text>Settings</Text>
             </MenuListItem>
           </Link>
           <Separator />
-          <Link href="/support" asChild>
+          <Link asChild href="/support">
             <MenuListItem icon="chevron-right">
               <Text>Support</Text>
             </MenuListItem>
           </Link>
           <Separator />
-          <Link href="/legal" asChild>
+          <Link asChild href="/legal">
             <MenuListItem icon="chevron-right">
               <Text>Legal</Text>
             </MenuListItem>
@@ -128,7 +127,7 @@ export default function ProfileView() {
           <MenuListItem
             onPress={() =>
               Linking.openURL(
-                "itms-apps://itunes.apple.com/app/viewContentsUserReviews/id6741153628?action=write-review",
+                "itms-apps://itunes.apple.com/app/viewContentsUserReviews/id6741153628?action=write-review"
               )
             }
           >

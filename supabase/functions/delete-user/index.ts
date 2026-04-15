@@ -13,7 +13,7 @@ Deno.serve(async (req: Request) => {
   const supabaseClient = createClient(
     Deno.env.get("SUPABASE_URL") ?? "",
     Deno.env.get("SUPABASE_ANON_KEY") ?? "",
-    { global: { headers: { Authorization: authHeader } } },
+    { global: { headers: { Authorization: authHeader } } }
   );
 
   const {
@@ -31,11 +31,11 @@ Deno.serve(async (req: Request) => {
   // Use the service role client to delete the user
   const adminClient = createClient(
     Deno.env.get("SUPABASE_URL") ?? "",
-    Deno.env.get("SUPABASE_SERVICE_ROLE_KEY") ?? "",
+    Deno.env.get("SUPABASE_SERVICE_ROLE_KEY") ?? ""
   );
 
   const { error: deleteError } = await adminClient.auth.admin.deleteUser(
-    user.id,
+    user.id
   );
 
   if (deleteError) {

@@ -1,11 +1,12 @@
-import React, { useCallback, useState } from "react";
+import { useCallback, useState } from "react";
 import { RefreshControl, ScrollView } from "react-native";
+import Purchases from "react-native-purchases";
 import { SafeAreaView } from "react-native-safe-area-context";
 import { VStack } from "~/components/ui/vstack";
 import ProfileView from "~/components/views/profile-view";
-import Purchases from "react-native-purchases";
 
 const IS_E2E = process.env.EXPO_PUBLIC_E2E_ENABLED === "true";
+
 import { useQueryClient } from "@tanstack/react-query";
 
 export default function ProfileScreen() {
@@ -14,7 +15,9 @@ export default function ProfileScreen() {
 
   const onRefresh = useCallback(async () => {
     setRefreshing(true);
-    if (!IS_E2E) await Purchases.invalidateCustomerInfoCache();
+    if (!IS_E2E) {
+      await Purchases.invalidateCustomerInfoCache();
+    }
     await Promise.all([
       queryClient.refetchQueries({
         queryKey: ["user"],
@@ -27,25 +30,24 @@ export default function ProfileScreen() {
       }),
     ]);
     setRefreshing(false);
-  }, []);
+  }, [queryClient.refetchQueries]);
 
   return (
     <SafeAreaView
+      className="flex-1"
       edges={["top"]}
       style={{
         paddingBottom: 64,
       }}
-      className="flex-1"
     >
       <ScrollView
-        showsVerticalScrollIndicator={false}
-        className="p-6 flex-1"
+        className="flex-1 p-6"
         refreshControl={
-          <RefreshControl refreshing={refreshing} onRefresh={onRefresh} />
+          <RefreshControl onRefresh={onRefresh} refreshing={refreshing} />
         }
       >
         <VStack
-          className="items-stretch flex-1 min-h-full justify-between gap-0"
+          className="min-h-full flex-1 items-stretch justify-between gap-0"
           style={{ paddingBottom: 64 }}
         >
           <ProfileView />

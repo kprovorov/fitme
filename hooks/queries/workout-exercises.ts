@@ -1,10 +1,10 @@
-import { supabase } from "@/lib/supabase";
-import { WorkoutExercise } from "~/lib/models";
 import { createQuery } from "react-query-kit";
+import { supabase } from "@/lib/supabase";
+import type { WorkoutExercise } from "~/lib/models";
 
-type WorkoutExerciseQueryVariables = {
+interface WorkoutExerciseQueryVariables {
   id: string;
-};
+}
 
 export const useWorkoutExerciseQuery = createQuery<
   WorkoutExercise,
@@ -22,11 +22,13 @@ export const useWorkoutExerciseQuery = createQuery<
         workout:workouts (*),
         exercise:exercises (*),
         sets:workout_exercise_sets (*)
-      `,
+      `
       )
       .eq("id", id)
       .single();
-    if (error) throw error;
+    if (error) {
+      throw error;
+    }
     return data as unknown as WorkoutExercise;
   },
 });

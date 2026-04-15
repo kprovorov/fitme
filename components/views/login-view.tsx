@@ -1,13 +1,13 @@
-import LoginForm, { LoginFormValues } from "@/components/forms/auth/login-form";
-import { useLoginMutation } from "@/hooks/mutations/auth";
 import { useQueryClient } from "@tanstack/react-query";
 import { Link, router } from "expo-router";
-import { VStack } from "../ui/vstack";
-import { H3, P } from "../ui/typography";
 import { useEffect, useState } from "react";
-import { handleSupabaseError } from "~/lib/utils";
+import LoginForm from "@/components/forms/auth/login-form";
+import { useLoginMutation } from "@/hooks/mutations/auth";
 import { useCurrentUserQuery } from "~/hooks/queries/auth";
+import { handleSupabaseError } from "~/lib/utils";
 import { Text } from "../ui/text";
+import { H3, P } from "../ui/typography";
+import { VStack } from "../ui/vstack";
 
 export default function LoginView() {
   const queryClient = useQueryClient();
@@ -36,7 +36,7 @@ export default function LoginView() {
     <VStack className="w-full">
       <VStack className="gap-0">
         <H3>Welcome to Fitme!</H3>
-        <Text className="text-md font-nunito-sans-bold text-muted-foreground">
+        <Text className="font-nunito-sans-bold text-md text-muted-foreground">
           Log in to your account to access your workouts
         </Text>
       </VStack>
@@ -46,19 +46,19 @@ export default function LoginView() {
           await login(values);
         }}
       />
-      <Text className="text-sm font-nunito-sans-bold">
+      <Text className="font-nunito-sans-bold text-sm">
         <Link
+          className="font-nunito-sans-bold text-primary"
           href="/auth/forgot-password"
-          className="text-primary font-nunito-sans-bold"
         >
           Forgot password?
         </Link>
       </Text>
-      <Text className="text-sm font-nunito-sans-bold">
+      <Text className="font-nunito-sans-bold text-sm">
         Don&apos;t have an account?{" "}
         <Link
+          className="font-nunito-sans-bold text-primary"
           href="/auth/register"
-          className="text-primary font-nunito-sans-bold"
         >
           Register here
         </Link>

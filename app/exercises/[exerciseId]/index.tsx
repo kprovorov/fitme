@@ -1,12 +1,11 @@
-import React from "react";
 import { Stack, useLocalSearchParams } from "expo-router";
-import { SafeAreaView } from "react-native-safe-area-context";
 import { ScrollView, View } from "react-native";
-import { HeaderBackButton } from "~/components/ui/header-back-button";
-import { useExerciseQuery } from "~/hooks/queries/exercises";
-import { VStack } from "~/components/ui/vstack";
-import { Muted, P } from "~/components/ui/typography";
+import { SafeAreaView } from "react-native-safe-area-context";
 import ExerciseVideo from "~/components/exercises/exercise-video";
+import { HeaderBackButton } from "~/components/ui/header-back-button";
+import { Muted, P } from "~/components/ui/typography";
+import { VStack } from "~/components/ui/vstack";
+import { useExerciseQuery } from "~/hooks/queries/exercises";
 
 export default function ExerciseScreen() {
   const { exerciseId } = useLocalSearchParams();
@@ -37,7 +36,7 @@ export default function ExerciseScreen() {
           {!!exercise && (
             <VStack className="items-stretch">
               {exercise?.video_url && (
-                <View className="w-full rounded-lg overflow-hidden">
+                <View className="w-full overflow-hidden rounded-lg">
                   <ExerciseVideo exercise={exercise} />
                 </View>
               )}

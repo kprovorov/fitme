@@ -1,8 +1,7 @@
-import React from "react";
-import { ArrowLeft } from "~/lib/icons/ArrowLeft";
-import { Button } from "~/components/ui/button";
 import { useRouter } from "expo-router";
-import { Text } from "~/components/ui/text";
+import React from "react";
+import { Button } from "~/components/ui/button";
+import { ArrowLeft } from "~/lib/icons/ArrowLeft";
 
 const HeaderBackButton = React.forwardRef<
   React.ElementRef<typeof Button>,
@@ -12,14 +11,14 @@ const HeaderBackButton = React.forwardRef<
 
   return (
     <Button
-      ref={ref}
-      variant="ghost"
-      size="icon-sm"
       onPress={() => router.back()}
+      ref={ref}
       shape="pill"
+      size="icon-sm"
+      variant="ghost"
       {...props}
     >
-      <ArrowLeft size={21} className="text-foreground" />
+      <ArrowLeft className="text-foreground" size={21} />
     </Button>
   );
 });

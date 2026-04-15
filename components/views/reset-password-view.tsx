@@ -20,7 +20,7 @@ export default function ResetPasswordView() {
     <VStack className="w-full gap-4">
       <VStack className="gap-0">
         <H3>Set new password</H3>
-        <Text className="text-md font-nunito-sans-bold text-muted-foreground">
+        <Text className="font-nunito-sans-bold text-md text-muted-foreground">
           Choose a new password for your account.
         </Text>
       </VStack>

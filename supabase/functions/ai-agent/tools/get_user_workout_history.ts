@@ -1,6 +1,6 @@
 import { tool } from "npm:ai";
 import { z } from "npm:zod";
-import { ToolContext } from "./types.ts";
+import type { ToolContext } from "./types.ts";
 
 export function createGetUserWorkoutHistoryTool({
   supabaseClient,
@@ -17,12 +17,12 @@ export function createGetUserWorkoutHistoryTool({
         .max(365)
         .default(30)
         .describe(
-          "How many days back to fetch workout history (default 30, max 365)",
+          "How many days back to fetch workout history (default 30, max 365)"
         ),
     }),
     execute: async ({ days }) => {
       const since = new Date(
-        Date.now() - days * 24 * 60 * 60 * 1000,
+        Date.now() - days * 24 * 60 * 60 * 1000
       ).toISOString();
       log("tool_call", { tool: "get_user_workout_history", days, since });
       const { data, error } = await supabaseClient
@@ -50,7 +50,7 @@ export function createGetUserWorkoutHistoryTool({
               logged_at
             )
           )
-        `,
+        `
         )
         .not("finished_at", "is", null)
         .gte("finished_at", since)

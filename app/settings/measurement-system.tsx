@@ -1,22 +1,10 @@
+import { useQueryClient } from "@tanstack/react-query";
 import { Stack } from "expo-router";
-import React, { useState } from "react";
+import { useState } from "react";
 import { ScrollView } from "react-native";
 import { SafeAreaView } from "react-native-safe-area-context";
-import { HeaderBackButton } from "~/components/ui/header-back-button";
-import { MenuList } from "~/components/ui/menu-list";
 import {
-  RadioGroup,
-  RadioGroupMenuListItem,
-} from "~/components/ui/radio-group";
-import { useCurrentUserQuery } from "~/hooks/queries/auth";
-import {
-  getMeasurementSystemDisclaimer,
-  getMeasurementSystemLabel,
-} from "~/lib/labels";
-import { MeasurementSystem, measurementSystems } from "~/lib/models";
-import { useUpdateMeasurementSystemMutation } from "~/hooks/queries/settings";
-import { useQueryClient } from "@tanstack/react-query";
-import {
+  AlertDialog,
   AlertDialogAction,
   AlertDialogCancel,
   AlertDialogContent,
@@ -25,9 +13,21 @@ import {
   AlertDialogHeader,
   AlertDialogTitle,
   AlertDialogTrigger,
-  AlertDialog,
 } from "~/components/ui/alert-dialog";
+import { HeaderBackButton } from "~/components/ui/header-back-button";
+import { MenuList } from "~/components/ui/menu-list";
+import {
+  RadioGroup,
+  RadioGroupMenuListItem,
+} from "~/components/ui/radio-group";
 import { Text } from "~/components/ui/text";
+import { useCurrentUserQuery } from "~/hooks/queries/auth";
+import { useUpdateMeasurementSystemMutation } from "~/hooks/queries/settings";
+import {
+  getMeasurementSystemDisclaimer,
+  getMeasurementSystemLabel,
+} from "~/lib/labels";
+import { type MeasurementSystem, measurementSystems } from "~/lib/models";
 export default function MeasurementSystemScreen() {
   const queryClient = useQueryClient();
 
@@ -44,7 +44,7 @@ export default function MeasurementSystemScreen() {
     });
 
   const handleUpdateMeasurementSystem = (
-    measurementSystem: MeasurementSystem,
+    measurementSystem: MeasurementSystem
   ) => {
     setMeasurementSystemValue(measurementSystem);
   };
@@ -70,20 +70,20 @@ export default function MeasurementSystemScreen() {
       <SafeAreaView className="flex-1">
         <ScrollView className="flex-1 p-4" showsVerticalScrollIndicator={false}>
           <RadioGroup
-            value={measurementSystemValue}
             onValueChange={(newValue) =>
               handleUpdateMeasurementSystem(newValue as MeasurementSystem)
             }
+            value={measurementSystemValue}
           >
             <MenuList>
               <AlertDialog>
                 {measurementSystems.map((system, i) => (
-                  <AlertDialogTrigger key={system} asChild>
+                  <AlertDialogTrigger asChild key={system}>
                     <RadioGroupMenuListItem
-                      value={system}
-                      label={getMeasurementSystemLabel(system)}
+                      className={i === 0 ? "" : "border-border border-t"}
                       disclaimer={getMeasurementSystemDisclaimer(system)}
-                      className={i !== 0 ? "border-t border-border" : ""}
+                      label={getMeasurementSystemLabel(system)}
+                      value={system}
                     />
                   </AlertDialogTrigger>
                 ))}
@@ -100,7 +100,7 @@ export default function MeasurementSystemScreen() {
                     <AlertDialogCancel
                       onPress={() =>
                         setMeasurementSystemValue(
-                          user?.profile?.measurement_system || "metric",
+                          user?.profile?.measurement_system || "metric"
                         )
                       }
                     >

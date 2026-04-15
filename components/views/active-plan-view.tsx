@@ -1,14 +1,14 @@
-import React, { useEffect, useState } from "react";
-import { Plan } from "~/lib/models";
-import { usePlansQuery } from "~/hooks/queries/plans";
-import { H2, H3, H4 } from "../ui/typography";
-import { VStack } from "../ui/vstack";
-import PlanCard from "../plans/plan-card";
-import { HStack } from "../ui/hstack";
-import { Button } from "../ui/button";
-import { Text } from "../ui/text";
-import { ArrowRight } from "~/lib/icons/ArrowRight";
 import { Link } from "expo-router";
+import { useEffect, useState } from "react";
+import { usePlansQuery } from "~/hooks/queries/plans";
+import { ArrowRight } from "~/lib/icons/ArrowRight";
+import type { Plan } from "~/lib/models";
+import PlanCard from "../plans/plan-card";
+import { Button } from "../ui/button";
+import { HStack } from "../ui/hstack";
+import { Text } from "../ui/text";
+import { H3 } from "../ui/typography";
+import { VStack } from "../ui/vstack";
 
 export default function ActivePlanView() {
   const { data: plans } = usePlansQuery();
@@ -24,8 +24,8 @@ export default function ActivePlanView() {
     <VStack className="flex-1 items-stretch">
       <HStack className="justify-between">
         <H3>My Plan</H3>
-        <Link href="/plans" asChild>
-          <Button variant="secondary" size="sm" shape="pill">
+        <Link asChild href="/plans">
+          <Button shape="pill" size="sm" variant="secondary">
             <HStack className="gap-xs">
               <Text>Manage Plans</Text>
               <Text asChild>

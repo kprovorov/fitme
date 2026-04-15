@@ -1,10 +1,10 @@
 import React from "react";
-import { Card } from "./card";
 import { Pressable } from "react-native";
-import { cn } from "~/lib/utils";
-import { ChevronRight } from "~/lib/icons/ChevronRight";
 import { TextClassContext } from "~/components/ui/text";
+import { ChevronRight } from "~/lib/icons/ChevronRight";
 import { SquareArrowOutUpRight } from "~/lib/icons/SquareArrowOutUpRight";
+import { cn } from "~/lib/utils";
+import { Card } from "./card";
 
 const MenuList = React.forwardRef<
   React.ElementRef<typeof Card>,
@@ -12,8 +12,8 @@ const MenuList = React.forwardRef<
 >(({ children, ...props }, ref) => {
   return (
     <Card
+      className={cn("flex-col overflow-hidden bg-card/30", props.className)}
       ref={ref}
-      className={cn("flex-col bg-card/30 overflow-hidden", props.className)}
       {...props}
     >
       {children}
@@ -42,16 +42,16 @@ const MenuListItem = React.forwardRef<
     <TextClassContext.Provider value="web:pointer-events-none font-nunito-sans-regular">
       <Pressable
         className={cn(
-          "flex-1 flex-row items-center justify-between p-4 active:bg-card/50 gap-2",
-          props.disabled && "opacity-50 web:pointer-events-none",
-          className,
+          "flex-1 flex-row items-center justify-between gap-2 p-4 active:bg-card/50",
+          props.disabled && "web:pointer-events-none opacity-50",
+          className
         )}
         ref={ref}
         role="button"
         {...props}
       >
         {children}
-        {Icon && <Icon className="text-muted-foreground shrink-0" size={20} />}
+        {Icon && <Icon className="shrink-0 text-muted-foreground" size={20} />}
       </Pressable>
     </TextClassContext.Provider>
   );

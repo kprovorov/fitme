@@ -1,20 +1,20 @@
-import { supabase } from "@/lib/supabase";
 import { createMutation } from "react-query-kit";
-import { WorkoutSessionExerciseSet } from "~/lib/models";
+import { supabase } from "@/lib/supabase";
+import type { WorkoutSessionExerciseSet } from "~/lib/models";
 
-export type UpdateWorkoutSessionExerciseSetParams = {
+export interface UpdateWorkoutSessionExerciseSetParams {
   setId: string;
-};
+}
 
-export type UpdateWorkoutSessionExerciseSetData = {
-  weight_completed: number;
+export interface UpdateWorkoutSessionExerciseSetData {
   reps_completed: number;
-};
+  weight_completed: number;
+}
 
-export type UpdateWorkoutSessionExerciseSetVariables = {
+export interface UpdateWorkoutSessionExerciseSetVariables {
   data: UpdateWorkoutSessionExerciseSetData;
   params: UpdateWorkoutSessionExerciseSetParams;
-};
+}
 
 export const useUpdateWorkoutSessionExerciseSetMutation = createMutation<
   WorkoutSessionExerciseSet,
@@ -34,24 +34,26 @@ export const useUpdateWorkoutSessionExerciseSetMutation = createMutation<
       .eq("id", setId)
       .select()
       .single();
-    if (error) throw error;
+    if (error) {
+      throw error;
+    }
     return result as unknown as WorkoutSessionExerciseSet;
   },
 });
 
-export type CreateWorkoutSessionExerciseSetParams = {
+export interface CreateWorkoutSessionExerciseSetParams {
   exerciseId: string;
-};
+}
 
-export type CreateWorkoutSessionExerciseSetData = {
-  weight_completed: number;
+export interface CreateWorkoutSessionExerciseSetData {
   reps_completed: number;
-};
+  weight_completed: number;
+}
 
-export type CreateWorkoutSessionExerciseSetVariables = {
+export interface CreateWorkoutSessionExerciseSetVariables {
   data: CreateWorkoutSessionExerciseSetData;
   params: CreateWorkoutSessionExerciseSetParams;
-};
+}
 
 export const useCreateWorkoutSessionExerciseSetMutation = createMutation<
   WorkoutSessionExerciseSet,
@@ -69,7 +71,7 @@ export const useCreateWorkoutSessionExerciseSetMutation = createMutation<
       .order("order", { ascending: false })
       .limit(1);
 
-    const nextOrder = ((existing?.[0] as any)?.order ?? 0) + 1;
+    const nextOrder = ((existing?.[0] as { order?: number })?.order ?? 0) + 1;
 
     const { data: result, error } = await supabase
       .from("workout_session_exercise_sets")
@@ -82,7 +84,9 @@ export const useCreateWorkoutSessionExerciseSetMutation = createMutation<
       })
       .select()
       .single();
-    if (error) throw error;
+    if (error) {
+      throw error;
+    }
     return result as unknown as WorkoutSessionExerciseSet;
   },
 });

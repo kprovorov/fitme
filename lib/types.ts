@@ -1,16 +1,16 @@
-export type PaginatedResponse<T> = {
-  data: T[];
-  per_page: number;
+export interface PaginatedResponse<T> {
   current_page: number;
-  from: number;
-  to: number;
-  last_page: number;
-  total: number;
-};
-
-export type SupabasePaginatedResponse<T> = {
   data: T[];
+  from: number;
+  last_page: number;
+  per_page: number;
+  to: number;
   total: number;
-  page: number;
+}
+
+export interface SupabasePaginatedResponse<T> {
+  data: T[];
   hasMore: boolean;
-};
+  page: number;
+  total: number;
+}

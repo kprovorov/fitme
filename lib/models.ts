@@ -44,23 +44,23 @@ export const muscleGroups = [
 ] as const;
 export type MuscleGroup = (typeof muscleGroups)[number];
 
-export type Identifiable = {
+export interface Identifiable {
   id: string;
-};
+}
 
-export type Timestamped = {
+export interface Timestamped {
   created_at: string;
   updated_at: string;
-};
+}
 
 export type Model = Identifiable & Timestamped;
 
-export type User = {
-  id: string; // UUID from auth.users
+export interface User {
   email: string;
+  id: string; // UUID from auth.users
   name: string;
   profile?: Profile;
-};
+}
 
 export type Profile = Model & {
   user_id: string; // UUID from auth.users
@@ -149,69 +149,69 @@ export type WorkoutSessionExerciseSet = Model & {
   logged_at: string | null;
 };
 
-export type PlanData = {
-  name: string;
+export interface PlanData {
   description: string;
-  goal: Goal;
-  place: Place;
-  frequency: number;
   experience_level: ExperienceLevel;
-  workout_duration: number;
-  note?: string;
-  workouts: WorkoutData[];
-};
-
-export type WorkoutData = {
+  frequency: number;
+  goal: Goal;
   name: string;
-  description: string;
-  order: number;
-  exercises: WorkoutExerciseData[];
-};
+  note?: string;
+  place: Place;
+  workout_duration: number;
+  workouts: WorkoutData[];
+}
 
-export type WorkoutExerciseData = {
-  exercise_id: string;
+export interface WorkoutData {
+  description: string;
+  exercises: WorkoutExerciseData[];
+  name: string;
+  order: number;
+}
+
+export interface WorkoutExerciseData {
   exercise: Exercise;
+  exercise_id: string;
   order: number;
   sets: WorkoutExerciseSetData[];
-};
+}
 
-export type WorkoutExerciseSetData = {
+export interface WorkoutExerciseSetData {
   order: number;
   reps_recommended: number;
-  weight_recommended: number;
   rest_recommended: number;
-};
+  weight_recommended: number;
+}
 
-export type Conversation = {
+export interface Conversation {
+  created_at: string;
   id: string;
   user_id: string;
-  created_at: string;
-};
+}
 
-export type ConversationWithPreview = {
-  id: string;
-  user_id: string;
+export interface ConversationWithPreview {
   created_at: string;
+  id: string;
   preview: string | null;
-};
+  user_id: string;
+}
 
-export type MessageAttachment = {
-  type: "plan_preview";
-  planId: string;
+export interface MessageAttachment {
   data: PlanData;
-};
+  planId: string;
+  type: "plan_preview";
+}
 
-export type Message = {
-  id: string;
-  conversation_id: string;
-  role: "user" | "assistant";
+export interface Message {
   content: string;
-  created_at: string;
-  metadata?: { attachment?: MessageAttachment };
-};
-
-export type AgentResponse = {
-  message: string;
   conversation_id: string;
+  created_at: string;
+  id: string;
+  metadata?: { attachment?: MessageAttachment };
+  role: "user" | "assistant";
+}
+
+export interface AgentResponse {
   attachment?: MessageAttachment;
-};
+  conversation_id: string;
+  message: string;
+}

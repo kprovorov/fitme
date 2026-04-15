@@ -1,8 +1,8 @@
-import React from "react";
-import { Pressable, Text, View } from "react-native";
-import { TabTriggerSlotProps } from "expo-router/ui";
-import { VStack } from "./vstack";
 import * as Haptics from "expo-haptics";
+import type { TabTriggerSlotProps } from "expo-router/ui";
+import React from "react";
+import { Pressable, Text, type View } from "react-native";
+import { VStack } from "./vstack";
 
 interface TabBarButtonProps
   extends React.PropsWithChildren,
@@ -20,15 +20,15 @@ export const TabBarButton = React.forwardRef<View, TabBarButtonProps>(
           Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Rigid);
         }}
       >
-        <VStack className="gap-1 w-12 items-center justify-center">
+        <VStack className="w-12 items-center justify-center gap-1">
           {props.renderIcon({ isFocused: props.isFocused ?? false })}
-          <Text className="text-white text-xs font-nunito-sans-bold">
+          <Text className="font-nunito-sans-bold text-white text-xs">
             {props.children}
           </Text>
         </VStack>
       </Pressable>
     );
-  },
+  }
 );
 
 TabBarButton.displayName = "TabBarButton";

@@ -73,21 +73,21 @@ export default function PlannerScreen() {
         }}
       />
 
-      <SafeAreaView edges={["top"]} className="flex-1">
+      <SafeAreaView className="flex-1" edges={["top"]}>
         <KeyboardAwareScrollView
-          className="flex-1"
-          showsVerticalScrollIndicator={false}
           bottomOffset={24}
+          className="flex-1"
           keyboardShouldPersistTaps="handled"
+          showsVerticalScrollIndicator={false}
         >
           <VStack
+            className="items-center justify-center gap-4 p-md"
             style={{ paddingBottom: insets.bottom }}
-            className="p-md items-center justify-center gap-4"
           >
-            <VStack className="items-stretch w-full">
-              <VStack className="gap-0 justify-start items-start">
+            <VStack className="w-full items-stretch">
+              <VStack className="items-start justify-start gap-0">
                 <H4>Goal</H4>
-                <Text className="text-sm text-muted-foreground">
+                <Text className="text-muted-foreground text-sm">
                   What is your goal?
                 </Text>
               </VStack>
@@ -95,21 +95,21 @@ export default function PlannerScreen() {
               <Controller
                 control={form.control}
                 name="goal"
-                render={({ field: { onChange, onBlur, value } }) => (
+                render={({ field: { onChange, onBlur: _onBlur, value } }) => (
                   <RadioGroup
-                    value={value}
+                    className="flex flex-row items-stretch justify-stretch gap-4"
                     onValueChange={onChange}
-                    className="flex flex-row gap-4 justify-stretch items-stretch"
+                    value={value}
                   >
                     {goalOptions.map((option) => (
                       <RadioGroupItemTileWithIcon
-                        key={option.value}
-                        value={option.value}
-                        label={option.label}
                         disabled={false}
-                        isSelected={option.value === value}
-                        onLabelPress={() => onChange(option.value)}
                         icon={option.icon}
+                        isSelected={option.value === value}
+                        key={option.value}
+                        label={option.label}
+                        onLabelPress={() => onChange(option.value)}
+                        value={option.value}
                       />
                     ))}
                   </RadioGroup>
@@ -121,9 +121,9 @@ export default function PlannerScreen() {
                 </Text>
               )}
 
-              <VStack className="gap-0 justify-start items-start">
+              <VStack className="items-start justify-start gap-0">
                 <H4>Experience</H4>
-                <Text className="text-sm text-muted-foreground">
+                <Text className="text-muted-foreground text-sm">
                   How much experience do you have?
                 </Text>
               </VStack>
@@ -131,22 +131,22 @@ export default function PlannerScreen() {
               <Controller
                 control={form.control}
                 name="experience_level"
-                render={({ field: { onChange, onBlur, value } }) => (
+                render={({ field: { onChange, onBlur: _onBlur, value } }) => (
                   <RadioGroup
-                    value={value}
+                    className="flex flex-col items-stretch justify-stretch gap-4"
                     onValueChange={onChange}
-                    className="flex flex-col gap-4 justify-stretch items-stretch"
+                    value={value}
                   >
                     {experienceLevels.map((option) => (
                       <RadioGroupItemWithLabel
-                        key={option}
-                        value={option}
-                        label={getExperienceLevelLabel(option)}
                         disabled={false}
-                        isSelected={option === value}
-                        onLabelPress={() => onChange(option)}
                         disclaimer={getExperienceLevelDisclaimer(option)}
+                        isSelected={option === value}
+                        key={option}
+                        label={getExperienceLevelLabel(option)}
+                        onLabelPress={() => onChange(option)}
                         testID={`experience-${option}`}
+                        value={option}
                       />
                     ))}
                   </RadioGroup>
@@ -158,14 +158,14 @@ export default function PlannerScreen() {
                 </Text>
               )}
 
-              <VStack className="gap-0 justify-start items-stretch">
-                <HStack className="justify-between items-center">
+              <VStack className="items-stretch justify-start gap-0">
+                <HStack className="items-center justify-between">
                   <H4>Workout duration</H4>
-                  <Text className="text-sm text-primary">
+                  <Text className="text-primary text-sm">
                     {form.watch("workout_duration")} minutes
                   </Text>
                 </HStack>
-                <Text className="text-sm text-muted-foreground">
+                <Text className="text-muted-foreground text-sm">
                   How long do you want to workout?
                 </Text>
               </VStack>
@@ -173,15 +173,15 @@ export default function PlannerScreen() {
               <Controller
                 control={form.control}
                 name="workout_duration"
-                render={({ field: { onChange, onBlur, value } }) => (
+                render={({ field: { onChange, onBlur: _onBlur, value } }) => (
                   <Slider
-                    style={{ width: "100%", height: 40 }}
-                    minimumValue={30}
                     maximumValue={120}
                     minimumTrackTintColor="#C0FF38"
-                    step={10}
-                    value={value}
+                    minimumValue={30}
                     onValueChange={onChange}
+                    step={10}
+                    style={{ width: "100%", height: 40 }}
+                    value={value}
                   />
                 )}
               />
@@ -191,9 +191,9 @@ export default function PlannerScreen() {
                 </Text>
               )}
 
-              <VStack className="gap-0 justify-start items-start">
+              <VStack className="items-start justify-start gap-0">
                 <H4>Place</H4>
-                <Text className="text-sm text-muted-foreground">
+                <Text className="text-muted-foreground text-sm">
                   Choose where you want to do your workouts
                 </Text>
               </VStack>
@@ -201,21 +201,21 @@ export default function PlannerScreen() {
               <Controller
                 control={form.control}
                 name="place"
-                render={({ field: { onChange, onBlur, value } }) => (
+                render={({ field: { onChange, onBlur: _onBlur, value } }) => (
                   <RadioGroup
-                    value={value}
+                    className="flex flex-row items-stretch justify-stretch gap-4"
                     onValueChange={onChange}
-                    className="flex flex-row gap-4 justify-stretch items-stretch"
+                    value={value}
                   >
                     {placeOptions.map((option) => (
                       <RadioGroupItemWithLabel
-                        key={option.value}
-                        value={option.value}
-                        label={option.label}
-                        disabled={option.disabled ?? false}
                         badge={option.badge}
+                        disabled={option.disabled ?? false}
                         isSelected={option.value === value}
+                        key={option.value}
+                        label={option.label}
                         onLabelPress={() => onChange(option.value)}
+                        value={option.value}
                       />
                     ))}
                   </RadioGroup>
@@ -227,9 +227,9 @@ export default function PlannerScreen() {
                 </Text>
               )}
 
-              <VStack className="gap-0 justify-start items-start">
+              <VStack className="items-start justify-start gap-0">
                 <H4>Frequency</H4>
-                <Text className="text-sm text-muted-foreground">
+                <Text className="text-muted-foreground text-sm">
                   How many times per week do you want to workout?
                 </Text>
               </VStack>
@@ -237,21 +237,21 @@ export default function PlannerScreen() {
               <Controller
                 control={form.control}
                 name="frequency"
-                render={({ field: { onChange, onBlur, value } }) => (
+                render={({ field: { onChange, onBlur: _onBlur, value } }) => (
                   <RadioGroup
-                    value={value?.toString()}
+                    className="flex flex-row items-stretch justify-stretch gap-4"
                     onValueChange={onChange}
-                    className="flex flex-row gap-4 justify-stretch items-stretch"
+                    value={value?.toString()}
                   >
                     {[1, 2, 3, 4, 5, 6, 7].map((option) => (
                       <RadioGroupItemTile
-                        key={option}
-                        value={option?.toString()}
-                        label={option?.toString()}
                         disabled={false}
                         isSelected={option?.toString() === value?.toString()}
+                        key={option}
+                        label={option?.toString()}
                         onLabelPress={() => onChange(option?.toString())}
                         testID={`frequency-${option}`}
+                        value={option?.toString()}
                       />
                     ))}
                   </RadioGroup>
@@ -263,9 +263,9 @@ export default function PlannerScreen() {
                 </Text>
               )}
 
-              <VStack className="gap-0 justify-start items-start">
+              <VStack className="items-start justify-start gap-0">
                 <H4>Custom note</H4>
-                <Text className="text-sm text-muted-foreground">
+                <Text className="text-muted-foreground text-sm">
                   Add a custom note to your plan
                 </Text>
               </VStack>
@@ -273,12 +273,12 @@ export default function PlannerScreen() {
               <Controller
                 control={form.control}
                 name="note"
-                render={({ field: { onChange, onBlur, value } }) => (
+                render={({ field: { onChange, onBlur: _onBlur, value } }) => (
                   <Textarea
+                    className="h-48"
+                    onChangeText={onChange}
                     placeholder="e.g. I want to pay more attention to my abs"
                     value={value}
-                    onChangeText={onChange}
-                    className="h-48"
                   />
                 )}
               />
@@ -330,7 +330,7 @@ function RadioGroupItemWithLabel({
 }) {
   return (
     <Pressable
-      className={`flex flex-row gap-2 bg-card rounded-lg p-4 flex-1 justify-start items-center border-2 ${
+      className={`flex flex-1 flex-row items-center justify-start gap-2 rounded-lg border-2 bg-card p-4 ${
         isSelected ? "border-primary" : "border-transparent"
       } ${disabled ? "opacity-50" : ""}`}
       onPress={() => !disabled && onLabelPress()}
@@ -338,16 +338,16 @@ function RadioGroupItemWithLabel({
     >
       <RadioGroupItem
         aria-labelledby={`label-for-${value}`}
-        value={value}
         disabled={disabled}
+        value={value}
       />
-      <HStack className="flex-1 justify-between items-center p-0 gap-0">
+      <HStack className="flex-1 items-center justify-between gap-0 p-0">
         <VStack className="flex-1 items-start gap-0 p-0">
           <Label
-            nativeID={`label-for-${value}`}
-            className={`text-base text-white font-nunito-sans-bold ${
+            className={`font-nunito-sans-bold text-base text-white ${
               disabled ? "opacity-50" : ""
             }`}
+            nativeID={`label-for-${value}`}
             onPress={() => !disabled && onLabelPress()}
           >
             {label}
@@ -383,7 +383,7 @@ function RadioGroupItemTileWithIcon({
 }) {
   return (
     <Pressable
-      className={`flex flex-col gap-2 bg-card rounded-lg p-4 flex-1 justify-start items-center border-2 ${
+      className={`flex flex-1 flex-col items-center justify-start gap-2 rounded-lg border-2 bg-card p-4 ${
         isSelected ? "border-primary" : "border-transparent"
       } ${disabled ? "opacity-50" : ""}`}
       onPress={() => !disabled && onLabelPress()}
@@ -396,10 +396,10 @@ function RadioGroupItemTileWithIcon({
           }`,
         })}
       <Label
-        nativeID={`label-for-${value}`}
-        className={`text-base text-white font-nunito-sans-bold text-center ${
+        className={`text-center font-nunito-sans-bold text-base text-white ${
           disabled ? "opacity-50" : ""
         }`}
+        nativeID={`label-for-${value}`}
         onPress={() => !disabled && onLabelPress()}
       >
         {label}
@@ -430,17 +430,17 @@ function RadioGroupItemTile({
 }) {
   return (
     <Pressable
-      className={`flex flex-col gap-2 bg-card py-1 rounded-lg flex-1 justify-start items-center border-2 ${
+      className={`flex flex-1 flex-col items-center justify-start gap-2 rounded-lg border-2 bg-card py-1 ${
         isSelected ? "border-primary" : "border-transparent"
       } ${disabled ? "opacity-50" : ""}`}
       onPress={() => !disabled && onLabelPress()}
       testID={testID}
     >
       <Label
-        nativeID={`label-for-${value}`}
-        className={`text-base text-white font-nunito-sans-bold text-center ${
+        className={`text-center font-nunito-sans-bold text-base text-white ${
           disabled ? "opacity-50" : ""
         }`}
+        nativeID={`label-for-${value}`}
         onPress={() => !disabled && onLabelPress()}
       >
         {label}

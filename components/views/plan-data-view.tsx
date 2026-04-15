@@ -1,25 +1,25 @@
-import React, { Fragment } from "react";
+import { Fragment } from "react";
 import { View } from "react-native";
-import { Text } from "../ui/text";
-import { PlanData } from "~/lib/models";
-import { VStack } from "../ui/vstack";
-import { Card, CardContent, CardHeader, CardTitle } from "../ui/card";
-import { getGoalLabel, getPlaceLabel } from "~/lib/labels";
 import { BicepsFlexed } from "~/lib/icons/BicepsFlexed";
-import { Flame } from "~/lib/icons/Flame";
-import { Zap } from "~/lib/icons/Zap";
-import { HStack } from "../ui/hstack";
-import { House } from "~/lib/icons/House";
 import { Dumbbell } from "~/lib/icons/Dumbbell";
-import { Muted } from "../ui/typography";
+import { Flame } from "~/lib/icons/Flame";
 import { HeartPulse } from "~/lib/icons/HeartPulse";
-import WorkoutDataCard from "./workout-data-card";
+import { House } from "~/lib/icons/House";
+import { Zap } from "~/lib/icons/Zap";
+import { getGoalLabel, getPlaceLabel } from "~/lib/labels";
+import type { PlanData } from "~/lib/models";
 import { cn } from "~/lib/utils";
 import { Badge } from "../ui/badge";
+import { Card, CardContent, CardHeader, CardTitle } from "../ui/card";
+import { HStack } from "../ui/hstack";
+import { Text } from "../ui/text";
+import { Muted } from "../ui/typography";
+import { VStack } from "../ui/vstack";
+import WorkoutDataCard from "./workout-data-card";
 
 interface PlanDataViewProps {
-  planData: PlanData;
   compact?: boolean;
+  planData: PlanData;
 }
 
 export default function PlanDataView({
@@ -31,51 +31,51 @@ export default function PlanDataView({
       <Card
         className={cn(
           "flex-col items-stretch justify-start bg-transparent",
-          compact ? "gap-3 py-3" : "gap-sm py-sm",
+          compact ? "gap-3 py-3" : "gap-sm py-sm"
         )}
       >
         <CardHeader className={compact ? "gap-3 px-3" : undefined}>
           <CardTitle>{planData.name}</CardTitle>
-          <HStack className="justify-start flex-wrap gap-2">
+          <HStack className="flex-wrap justify-start gap-2">
             {[
               {
                 icon:
                   planData.goal === "muscle-gain" ? (
                     <BicepsFlexed
-                      size={13}
                       className="text-secondary-foreground"
+                      size={13}
                     />
                   ) : planData.goal === "fat-loss" ? (
-                    <Flame size={13} className="text-secondary-foreground" />
+                    <Flame className="text-secondary-foreground" size={13} />
                   ) : (
                     <HeartPulse
-                      size={13}
                       className="text-secondary-foreground"
+                      size={13}
                     />
                   ),
                 label: getGoalLabel(planData.goal),
               },
               {
-                icon: <Zap size={13} className="text-secondary-foreground" />,
+                icon: <Zap className="text-secondary-foreground" size={13} />,
                 label: `${planData.frequency}x / week`,
               },
               {
                 icon:
                   planData.place === "gym" ? (
-                    <Dumbbell size={13} className="text-secondary-foreground" />
+                    <Dumbbell className="text-secondary-foreground" size={13} />
                   ) : (
-                    <House size={13} className="text-secondary-foreground" />
+                    <House className="text-secondary-foreground" size={13} />
                   ),
                 label: getPlaceLabel(planData.place),
               },
-            ].map((item, index) => (
+            ].map((item) => (
               <Badge
-                key={index}
-                variant="secondary"
                 className="flex-row gap-1.5 rounded-full px-2.5 py-1"
+                key={item.label}
+                variant="secondary"
               >
                 {item.icon}
-                <Text className="text-xs font-nunito-sans-semibold text-secondary-foreground">
+                <Text className="font-nunito-sans-semibold text-secondary-foreground text-xs">
                   {item.label}
                 </Text>
               </Badge>
@@ -92,9 +92,9 @@ export default function PlanDataView({
         {planData.workouts.map((workout, index) => (
           <Fragment key={workout.order}>
             {compact && index > 0 && (
-              <View className="border-t border-white/10" />
+              <View className="border-white/10 border-t" />
             )}
-            <WorkoutDataCard workoutData={workout} compact={compact} />
+            <WorkoutDataCard compact={compact} workoutData={workout} />
           </Fragment>
         ))}
       </VStack>

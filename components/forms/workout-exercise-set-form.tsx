@@ -1,23 +1,22 @@
 import { zodResolver } from "@hookform/resolvers/zod";
-import React from "react";
 import { Controller, useForm } from "react-hook-form";
 import { z } from "zod";
-import { HStack } from "../ui/hstack";
-import { Input } from "../ui/input";
-import { Button } from "../ui/button";
 import { Check } from "~/lib/icons/Check";
 import { Pencil } from "~/lib/icons/Pencil";
-import { VStack } from "../ui/vstack";
+import { Button } from "../ui/button";
 import { ErrorMessage } from "../ui/error-message";
+import { HStack } from "../ui/hstack";
+import { Input } from "../ui/input";
+import { VStack } from "../ui/vstack";
 
 interface WorkoutSessionExerciseSetFormProps {
-  onSubmit: (values: z.infer<typeof formSchema>) => Promise<void>;
-  onEdit: () => void;
-  hasWeight: boolean;
-  recommendedValues?: z.infer<typeof formSchema>;
   disabled?: boolean;
+  hasWeight: boolean;
   isDone?: boolean;
   isEditing?: boolean;
+  onEdit: () => void;
+  onSubmit: (values: z.infer<typeof formSchema>) => Promise<void>;
+  recommendedValues?: z.infer<typeof formSchema>;
   setIndex?: number;
 }
 
@@ -49,63 +48,63 @@ export default function WorkoutSessionExerciseSetForm({
 
   return (
     <VStack className="flex-1 gap-xs">
-      <HStack className="justify-between gap-xs flex-1">
+      <HStack className="flex-1 justify-between gap-xs">
         {hasWeight && (
           <HStack className="flex-1">
             <Controller
               control={form.control}
+              name="weight"
               render={({ field: { onChange, onBlur, value } }) => (
                 <Input
+                  className="h-10 native:h-10 w-full text-center font-bold"
                   editable={!form.formState.disabled}
-                  placeholder={recommendedValues?.weight}
+                  keyboardType="decimal-pad"
                   onBlur={onBlur}
                   onChangeText={onChange}
-                  value={value}
-                  keyboardType="decimal-pad"
-                  className="w-full text-center font-bold h-10 native:h-10"
+                  placeholder={recommendedValues?.weight}
                   testID={`set-weight-input-${setIndex}`}
+                  value={value}
                 />
               )}
-              name="weight"
             />
           </HStack>
         )}
         <HStack className="flex-1">
           <Controller
             control={form.control}
+            name="reps"
             render={({ field: { onChange, onBlur, value } }) => (
               <Input
+                autoCapitalize="none"
+                className="h-10 native:h-10 w-full text-center font-bold"
                 editable={!form.formState.disabled}
-                placeholder={recommendedValues?.reps}
+                keyboardType="number-pad"
                 onBlur={onBlur}
                 onChangeText={onChange}
-                value={value}
-                keyboardType="number-pad"
-                autoCapitalize="none"
-                className="w-full text-center font-bold h-10 native:h-10"
+                placeholder={recommendedValues?.reps}
                 testID={`set-reps-input-${setIndex}`}
+                value={value}
               />
             )}
-            name="reps"
           />
         </HStack>
 
-        <HStack className="flex-none w-10">
+        <HStack className="w-10 flex-none">
           {isDone && !isEditing ? (
             <Button
               onPress={onEdit}
+              shape="pill"
               size="icon-xs"
               variant="ghost"
-              shape="pill"
             >
               <Pencil className="text-muted-foreground" size={16} />
             </Button>
           ) : (
             <Button
-              onPress={form.handleSubmit(onSubmit)}
               disabled={disabled}
-              size="icon-xs"
+              onPress={form.handleSubmit(onSubmit)}
               shape="pill"
+              size="icon-xs"
               testID={`log-set-button-${setIndex}`}
             >
               <Check className="text-primary-foreground" size={16} />

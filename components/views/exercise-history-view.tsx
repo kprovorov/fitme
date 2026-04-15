@@ -1,12 +1,11 @@
 import { format } from "date-fns";
-import React from "react";
+import { useCurrentUserQuery } from "~/hooks/queries/auth";
 import { useExerciseHistoryQuery } from "~/hooks/queries/exercises";
+import { getWeightLabel } from "~/lib/labels";
 import { HStack } from "../ui/hstack";
 import { Text } from "../ui/text";
-import { H2, H3, H4 } from "../ui/typography";
+import { H2 } from "../ui/typography";
 import { VStack } from "../ui/vstack";
-import { useCurrentUserQuery } from "~/hooks/queries/auth";
-import { getWeightLabel } from "~/lib/labels";
 
 interface ExerciseHistoryViewProps {
   exerciseId: string;
@@ -28,18 +27,18 @@ export default function ExerciseHistoryView({
       <H2>History</H2>
 
       {items?.map((item) => (
-        <VStack key={item.id} className="items-stretch gap-0">
+        <VStack className="items-stretch gap-0" key={item.id}>
           <HStack className="justify-start py-xs">
             <Text className="font-bold">
-              {format(new Date(item.created_at!), "PPP")}
+              {format(new Date(item.created_at ?? ""), "PPP")}
             </Text>
           </HStack>
           {item.sets
             .sort((a, b) => a.order - b.order)
             .map((set) => (
               <HStack
+                className="justify-start border-border border-t px-sm py-xs"
                 key={set.id}
-                className="border-t border-border py-xs justify-start px-sm"
               >
                 <HStack className="w-8 justify-center">
                   <Text className="text-primary">#{set.order}</Text>
@@ -47,7 +46,7 @@ export default function ExerciseHistoryView({
                 <Text className="w-16">
                   {set.weight_completed}{" "}
                   {getWeightLabel(
-                    user?.profile?.measurement_system ?? "metric",
+                    user?.profile?.measurement_system ?? "metric"
                   )}
                 </Text>
                 <Text className="text-muted-foreground">

@@ -1,6 +1,6 @@
 import { tool } from "npm:ai";
 import { z } from "npm:zod";
-import { ToolContext } from "./types.ts";
+import type { ToolContext } from "./types.ts";
 
 export function createActivatePlanTool({ supabaseClient, log }: ToolContext) {
   return tool({

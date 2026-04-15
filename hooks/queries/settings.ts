@@ -1,6 +1,6 @@
-import { supabase } from "@/lib/supabase";
 import { createMutation } from "react-query-kit";
-import { MeasurementSystem } from "~/lib/models";
+import { supabase } from "@/lib/supabase";
+import type { MeasurementSystem } from "~/lib/models";
 
 export const useUpdateMeasurementSystemMutation = createMutation<
   void,
@@ -10,6 +10,8 @@ export const useUpdateMeasurementSystemMutation = createMutation<
     const { error } = await supabase.rpc("convert_measurement_system", {
       p_new_system: measurementSystem,
     });
-    if (error) throw error;
+    if (error) {
+      throw error;
+    }
   },
 });

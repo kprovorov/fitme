@@ -1,11 +1,10 @@
-import React from "react";
-import { SafeAreaView } from "react-native-safe-area-context";
 import { Link, Stack } from "expo-router";
-import { HeaderBackButton } from "~/components/ui/header-back-button";
 import { RefreshControl, ScrollView } from "react-native";
+import { SafeAreaView } from "react-native-safe-area-context";
+import { Button } from "~/components/ui/button";
+import { HeaderBackButton } from "~/components/ui/header-back-button";
 import PlansListView from "~/components/views/plan-list-view";
 import { usePlansQuery } from "~/hooks/queries/plans";
-import { Button } from "~/components/ui/button";
 import { Plus } from "~/lib/icons/Plus";
 
 export default function PlansScreen() {
@@ -24,9 +23,9 @@ export default function PlansScreen() {
           headerBackButtonDisplayMode: "minimal",
           headerLeft: () => <HeaderBackButton />,
           headerRight: () => (
-            <Link href="/planner" asChild>
-              <Button variant="secondary" size="icon-sm" shape="pill">
-                <Plus size={16} className="text-foreground" />
+            <Link asChild href="/planner">
+              <Button shape="pill" size="icon-sm" variant="secondary">
+                <Plus className="text-foreground" size={16} />
               </Button>
             </Link>
           ),
@@ -35,9 +34,8 @@ export default function PlansScreen() {
       <SafeAreaView className="flex-1">
         <ScrollView
           className="flex-1 p-6"
-          showsVerticalScrollIndicator={false}
           refreshControl={
-            <RefreshControl refreshing={isLoading} onRefresh={refetch} />
+            <RefreshControl onRefresh={refetch} refreshing={isLoading} />
           }
         >
           <PlansListView />

@@ -4,15 +4,14 @@ import ExercisesList from "~/components/exercises/exercises-list";
 import { Button } from "~/components/ui/button";
 import { Tabs, TabsList, TabsTrigger } from "~/components/ui/tabs";
 import { Text } from "~/components/ui/text";
-import { H3 } from "~/components/ui/typography";
 import { VStack } from "~/components/ui/vstack";
 import { useExercisesQuery } from "~/hooks/queries/exercises";
-import { Exercise, muscleGroups } from "~/lib/models";
+import { type Exercise, muscleGroups } from "~/lib/models";
 import { muscleGroupToName } from "~/lib/utils";
 
-export type ExercisesViewHandle = {
+export interface ExercisesViewHandle {
   refresh: () => Promise<void>;
-};
+}
 
 const ExercisesView = React.forwardRef<
   ExercisesViewHandle,
@@ -24,8 +23,14 @@ const ExercisesView = React.forwardRef<
   }
 >(
   (
-    { onExercisePress = () => {}, itemCta, initialMuscleGroup = "all" },
-    ref,
+    {
+      onExercisePress = () => {
+        /* noop */
+      },
+      itemCta,
+      initialMuscleGroup = "all",
+    },
+    ref
   ) => {
     const [muscleGroup, setMuscleGroup] = useState<string>(initialMuscleGroup);
 
@@ -47,13 +52,13 @@ const ExercisesView = React.forwardRef<
     useImperativeHandle(ref, () => ({ refresh }), [refresh]);
 
     return (
-      <VStack className="items-stretch flex-1">
-        <Tabs value={muscleGroup} onValueChange={setMuscleGroup}>
+      <VStack className="flex-1 items-stretch">
+        <Tabs onValueChange={setMuscleGroup} value={muscleGroup}>
           <TabsList>
             <ScrollView
               horizontal
-              showsHorizontalScrollIndicator={false}
               scrollToOverflowEnabled={true}
+              showsHorizontalScrollIndicator={false}
             >
               <TabsTrigger value="all">
                 <Text>All</Text>
@@ -62,7 +67,7 @@ const ExercisesView = React.forwardRef<
                 // Temporary we don't have full-body and cardio exercises
                 .filter(
                   (muscleGroup) =>
-                    !["full-body", "cardio"].includes(muscleGroup),
+                    !["full-body", "cardio"].includes(muscleGroup)
                 )
                 .map((muscleGroup) => (
                   <TabsTrigger key={muscleGroup} value={muscleGroup}>
@@ -75,18 +80,18 @@ const ExercisesView = React.forwardRef<
 
         <ExercisesList
           exercises={exercises?.pages?.flatMap((page) => page.data) || []}
-          onExercisePress={onExercisePress}
           itemCta={itemCta}
+          onExercisePress={onExercisePress}
         />
 
         {hasNextPage && (
-          <Button variant="secondary" onPress={() => fetchNextPage()}>
+          <Button onPress={() => fetchNextPage()} variant="secondary">
             <Text>Load more...</Text>
           </Button>
         )}
       </VStack>
     );
-  },
+  }
 );
 ExercisesView.displayName = "ExercisesView";
 

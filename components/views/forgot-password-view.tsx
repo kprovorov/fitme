@@ -22,15 +22,15 @@ export default function ForgotPasswordView() {
       <VStack className="w-full gap-4">
         <VStack className="gap-0">
           <H3>Check your email</H3>
-          <Text className="text-md font-nunito-sans-bold text-muted-foreground">
+          <Text className="font-nunito-sans-bold text-md text-muted-foreground">
             We sent a password reset link to your email address.
           </Text>
         </VStack>
-        <Text className="text-sm font-nunito-sans-bold">
+        <Text className="font-nunito-sans-bold text-sm">
           Remember your password?{" "}
           <Link
+            className="font-nunito-sans-bold text-primary"
             href="/auth/login"
-            className="text-primary font-nunito-sans-bold"
           >
             Login here
           </Link>
@@ -43,7 +43,7 @@ export default function ForgotPasswordView() {
     <VStack className="w-full gap-4">
       <VStack className="gap-0">
         <H3>Forgot password?</H3>
-        <Text className="text-md font-nunito-sans-bold text-muted-foreground">
+        <Text className="font-nunito-sans-bold text-md text-muted-foreground">
           Enter your email and we&apos;ll send you a reset link.
         </Text>
       </VStack>
@@ -54,9 +54,9 @@ export default function ForgotPasswordView() {
           setSent(true);
         }}
       />
-      <Text className="text-sm font-nunito-sans-bold">
+      <Text className="font-nunito-sans-bold text-sm">
         Remember your password?{" "}
-        <Link href="/auth/login" className="text-primary font-nunito-sans-bold">
+        <Link className="font-nunito-sans-bold text-primary" href="/auth/login">
           Login here
         </Link>
       </Text>

@@ -1,6 +1,6 @@
 import { Link, Stack } from "expo-router";
-import { H1 } from "~/components/ui/typography";
 import { Button } from "~/components/ui/button";
+import { H1 } from "~/components/ui/typography";
 import { VStack } from "~/components/ui/vstack";
 
 export default function NotFoundScreen() {
@@ -9,7 +9,7 @@ export default function NotFoundScreen() {
       <Stack.Screen options={{ title: "Oops!" }} />
       <VStack>
         <H1>This screen doesn't exist.</H1>
-        <Link href="/" asChild>
+        <Link asChild href="/">
           <Button>Go to home screen!</Button>
         </Link>
       </VStack>

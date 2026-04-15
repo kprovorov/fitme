@@ -1,6 +1,5 @@
-import { VideoView, useVideoPlayer } from "expo-video";
-import React from "react";
-import { Exercise } from "~/lib/models";
+import { useVideoPlayer, VideoView } from "expo-video";
+import type { Exercise } from "~/lib/models";
 
 interface ExerciseVideoProps {
   exercise: Exercise;
@@ -16,13 +15,13 @@ export default function ExerciseVideo({ exercise }: ExerciseVideoProps) {
 
   return (
     <VideoView
+      contentFit="cover"
+      player={player}
       style={{
         width: "100%",
         aspectRatio: 4 / 3,
         backgroundColor: "#d5d5d5",
       }}
-      contentFit="cover"
-      player={player}
     />
   );
 }

@@ -1,9 +1,16 @@
-import React, { useState } from "react";
+import { useQueryClient } from "@tanstack/react-query";
+import { useState } from "react";
 import { Modal, ScrollView, View } from "react-native";
-import { segmentClient } from "~/lib/segment";
+import {
+  useCreateWorkoutSessionExerciseMutation,
+  useDeleteWorkoutSessionExerciseMutation,
+  useReplaceWorkoutSessionExerciseMutation,
+} from "~/hooks/queries/workout-session-exercises";
 import { IS_E2E } from "~/lib/constants";
 import { Plus } from "~/lib/icons/Plus";
-import { Exercise, WorkoutSession } from "~/lib/models";
+import { X } from "~/lib/icons/X";
+import type { Exercise, WorkoutSession } from "~/lib/models";
+import { segmentClient } from "~/lib/segment";
 import { cn } from "~/lib/utils";
 import { Button } from "../ui/button";
 import { Card } from "../ui/card";
@@ -12,17 +19,10 @@ import { Text } from "../ui/text";
 import { VStack } from "../ui/vstack";
 import ExercisesView from "./exercises-view";
 import WorkoutSessionExerciseCard from "./workout-session-exercise-card";
-import { X } from "~/lib/icons/X";
-import {
-  useCreateWorkoutSessionExerciseMutation,
-  useDeleteWorkoutSessionExerciseMutation,
-  useReplaceWorkoutSessionExerciseMutation,
-} from "~/hooks/queries/workout-session-exercises";
-import { QueryClient, useQueryClient } from "@tanstack/react-query";
 
 interface WorkoutSessionViewProps {
-  workoutSession: WorkoutSession;
   sessionId: string;
+  workoutSession: WorkoutSession;
 }
 
 export default function WorkoutSessionView({
@@ -32,7 +32,7 @@ export default function WorkoutSessionView({
   const queryClient = useQueryClient();
   const [showModal, setShowModal] = useState(false);
   const [replacingExerciseId, setReplacingExerciseId] = useState<string | null>(
-    null,
+    null
   );
   const [initialMuscleGroup, setInitialMuscleGroup] = useState<
     string | undefined
@@ -65,32 +65,34 @@ export default function WorkoutSessionView({
     });
 
   const onExercisePress = async (exercise: Exercise) => {
-    if (replacingExerciseId !== null) {
-      await replaceExercise({
-        exerciseId: replacingExerciseId,
-        data: {
-          exercise_id: exercise.id,
-        },
-      });
-      if (!IS_E2E)
-        segmentClient.track("Exercise Replaced", {
-          session_id: sessionId,
-          exercise_id: exercise.id,
-        });
-      setReplacingExerciseId(null);
-      setInitialMuscleGroup(undefined);
-    } else {
+    if (replacingExerciseId === null) {
       await mutateAsync({
         sessionId,
         data: {
           exercise_id: exercise.id,
         },
       });
-      if (!IS_E2E)
+      if (!IS_E2E) {
         segmentClient.track("Exercise Added", {
           session_id: sessionId,
           exercise_id: exercise.id,
         });
+      }
+    } else {
+      await replaceExercise({
+        exerciseId: replacingExerciseId,
+        data: {
+          exercise_id: exercise.id,
+        },
+      });
+      if (!IS_E2E) {
+        segmentClient.track("Exercise Replaced", {
+          session_id: sessionId,
+          exercise_id: exercise.id,
+        });
+      }
+      setReplacingExerciseId(null);
+      setInitialMuscleGroup(undefined);
     }
     setShowModal(false);
   };
@@ -99,11 +101,12 @@ export default function WorkoutSessionView({
     await deleteExercise({
       exerciseId,
     });
-    if (!IS_E2E)
+    if (!IS_E2E) {
       segmentClient.track("Exercise Deleted", {
         session_id: sessionId,
         exercise_id: exerciseId,
       });
+    }
   };
 
   const handleReplaceExercise = (exerciseId: string) => {
@@ -119,43 +122,42 @@ export default function WorkoutSessionView({
       <Modal
         animationType="slide"
         backdropColor="#1F1D20"
-        visible={showModal}
-        presentationStyle="pageSheet"
         onRequestClose={() => {
           setShowModal(!showModal);
           setReplacingExerciseId(null);
           setInitialMuscleGroup(undefined);
         }}
+        presentationStyle="pageSheet"
+        visible={showModal}
       >
         <ScrollView showsVerticalScrollIndicator={false}>
-          <VStack className="p-md flex-1 items-stretch bg-background">
+          <VStack className="flex-1 items-stretch bg-background p-md">
             <HStack className="justify-end">
               <Button
-                variant="ghost"
-                size="icon-sm"
                 onPress={() => {
                   setShowModal(false);
                   setReplacingExerciseId(null);
                   setInitialMuscleGroup(undefined);
                 }}
                 shape="pill"
+                size="icon-sm"
+                variant="ghost"
               >
                 <Text>
-                  <X size={21} className="text-foreground" />
+                  <X className="text-foreground" size={21} />
                 </Text>
               </Button>
             </HStack>
             <ExercisesView
-              onExercisePress={onExercisePress}
               initialMuscleGroup={initialMuscleGroup}
               itemCta={(exercise) => (
                 <Button
-                  size="sm"
-                  shape="pill"
                   onPress={() => onExercisePress(exercise)}
+                  shape="pill"
+                  size="sm"
                 >
                   <Text>
-                    {replacingExerciseId !== null ? "Replace" : "Add"}
+                    {replacingExerciseId === null ? "Add" : "Replace"}
                   </Text>
                 </Button>
               )}
@@ -165,42 +167,42 @@ export default function WorkoutSessionView({
       </Modal>
 
       <Card className="overflow-hidden">
-        <VStack className="gap-0 items-stretch">
+        <VStack className="items-stretch gap-0">
           {workoutSession.exercises
             .sort((a, b) => a.order - b.order)
-            .map((exercise, i) => (
+            .map((exercise, _i) => (
               <View
+                className={cn("py-sm", "border-border border-b")}
                 key={exercise.id}
-                className={cn("py-sm", "border-b border-border")}
               >
                 <WorkoutSessionExerciseCard
-                  workoutSessionExercise={exercise}
                   onDelete={
-                    !workoutSession.finished_at
-                      ? () => handleDeleteExercise(exercise.id)
-                      : undefined
+                    workoutSession.finished_at
+                      ? undefined
+                      : () => handleDeleteExercise(exercise.id)
                   }
                   onReplace={
-                    !workoutSession.finished_at
-                      ? () => handleReplaceExercise(exercise.id)
-                      : undefined
+                    workoutSession.finished_at
+                      ? undefined
+                      : () => handleReplaceExercise(exercise.id)
                   }
                   planId={workoutSession.workout.plan_id}
-                  workoutId={workoutSession.workout_id}
                   sessionId={workoutSession.id}
+                  workoutId={workoutSession.workout_id}
+                  workoutSessionExercise={exercise}
                 />
               </View>
             ))}
           {!workoutSession.finished_at && (
-            <VStack className="p-3 items-stretch flex-1">
+            <VStack className="flex-1 items-stretch p-3">
               <Button
-                variant="ghost"
                 // className="w-full bg-transparent border-2 border-dashed border-border h-16"
                 onPress={() => setShowModal(true)}
                 shape="pill"
+                variant="ghost"
               >
-                <HStack className="gap-2 w-full">
-                  <Plus size={16} className="text-white" />
+                <HStack className="w-full gap-2">
+                  <Plus className="text-white" size={16} />
                   <Text>Add Exercise</Text>
                 </HStack>
               </Button>

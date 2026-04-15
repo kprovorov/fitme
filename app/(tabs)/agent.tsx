@@ -21,6 +21,7 @@ import {
   SafeAreaView,
   useSafeAreaInsets,
 } from "react-native-safe-area-context";
+import { Button } from "~/components/ui/button";
 import { HeaderBackButton } from "~/components/ui/header-back-button";
 import { HStack } from "~/components/ui/hstack";
 import { Spinner } from "~/components/ui/spinner";
@@ -45,16 +46,15 @@ import type {
   MessageAttachment,
   Place,
 } from "~/lib/models";
-import { Button } from "~/components/ui/button";
 
-type PlanRequestParams = {
-  goal: Goal;
-  place: Place;
-  frequency: number;
+interface PlanRequestParams {
   experience_level: ExperienceLevel;
-  workout_duration: number;
+  frequency: number;
+  goal: Goal;
   note?: string;
-};
+  place: Place;
+  workout_duration: number;
+}
 
 function buildPlanRequestMessage(params: PlanRequestParams): string {
   const lines = [
@@ -84,9 +84,9 @@ function EmptyState({
 }) {
   return (
     <View style={{ transform: [{ scaleY: -1 }] }}>
-      <View className="items-center px-6 py-12 gap-6">
-        <View className="w-16 h-16 rounded-full bg-primary/20 items-center justify-center">
-          <Sparkles className="w-8 h-8 text-primary" />
+      <View className="items-center gap-6 px-6 py-12">
+        <View className="h-16 w-16 items-center justify-center rounded-full bg-primary/20">
+          <Sparkles className="h-8 w-8 text-primary" />
         </View>
         <View className="items-center gap-2">
           <H3 className="text-center">How can I help?</H3>
@@ -97,11 +97,11 @@ function EmptyState({
         <View className="w-full gap-3">
           {SUGGESTIONS.map((s) => (
             <Pressable
+              className="rounded-2xl border border-white/10 bg-card px-4 py-3"
               key={s}
               onPress={() => onSuggestion(s)}
-              className="border border-white/10 rounded-2xl px-4 py-3 bg-card"
             >
-              <Text className="text-sm text-foreground">{s}</Text>
+              <Text className="text-foreground text-sm">{s}</Text>
             </Pressable>
           ))}
         </View>
@@ -110,14 +110,14 @@ function EmptyState({
   );
 }
 
-type LocalMessage = {
-  id: string;
-  role: "user" | "assistant";
+interface LocalMessage {
   content: string;
   created_at: string;
-  metadata?: { attachment?: MessageAttachment };
+  id: string;
   isStreaming?: boolean;
-};
+  metadata?: { attachment?: MessageAttachment };
+  role: "user" | "assistant";
+}
 
 type Ref = React.ComponentRef<typeof KeyboardChatScrollView>;
 
@@ -134,11 +134,11 @@ const ChatScrollView = forwardRef<
 
   return (
     <KeyboardChatScrollView
-      ref={ref}
       automaticallyAdjustContentInsets={false}
       contentInsetAdjustmentBehavior="never"
       keyboardDismissMode="interactive"
       offset={bottom - MARGIN}
+      ref={ref}
       {...props}
     />
   );
@@ -226,13 +226,15 @@ export default function AgentScreen() {
       setIsStreaming(false);
       setIsConversationListVisible(false);
     },
-    [conversationId],
+    [conversationId]
   );
 
   const handleSend = useCallback(
     (messageOverride?: string) => {
       const text = (messageOverride ?? input).trim();
-      if (!text || isPending || isStreaming) return;
+      if (!text || isPending || isStreaming) {
+        return;
+      }
 
       if (!messageOverride) {
         setInput("");
@@ -273,8 +275,8 @@ export default function AgentScreen() {
                       content: message.content + chunk,
                       isStreaming: true,
                     }
-                  : message,
-              ),
+                  : message
+              )
             );
           },
         },
@@ -292,8 +294,8 @@ export default function AgentScreen() {
                       content: response.message,
                       isStreaming: false,
                     }
-                  : message,
-              ),
+                  : message
+              )
             );
             setIsStreaming(false);
 
@@ -318,15 +320,15 @@ export default function AgentScreen() {
                       content: "Sorry, something went wrong. Please try again.",
                       isStreaming: false,
                     }
-                  : message,
-              ),
+                  : message
+              )
             );
             setIsStreaming(false);
           },
-        },
+        }
       );
     },
-    [conversationId, input, isPending, isStreaming, sendMessage, queryClient],
+    [conversationId, input, isPending, isStreaming, sendMessage, queryClient]
   );
 
   // Fire the queued auto-send once state has settled
@@ -342,39 +344,39 @@ export default function AgentScreen() {
     (props: ScrollViewProps) => (
       <ChatScrollView {...props} extraContentPadding={extraContentPadding} />
     ),
-    [extraContentPadding],
+    [extraContentPadding]
   );
 
   const onInputLayout = useCallback(
     (e: LayoutChangeEvent) => {
       extraContentPadding.value = withTiming(
         Math.max(e.nativeEvent.layout.height - INPUT_HEIGHT, 0),
-        { duration: 250 },
+        { duration: 250 }
       );
     },
-    [extraContentPadding],
+    [extraContentPadding]
   );
 
   return (
-    <SafeAreaView edges={["top", "bottom"]} className="flex-1">
+    <SafeAreaView className="flex-1" edges={["top", "bottom"]}>
       {/* Header */}
-      <View className="flex-row items-center gap-3 px-4 pt-2 pb-3 border-b border-white/10">
+      <View className="flex-row items-center gap-3 border-white/10 border-b px-4 pt-2 pb-3">
         <HeaderBackButton />
-        <View className="w-8 h-8 rounded-full bg-primary/20 items-center justify-center">
-          <Sparkles className="w-4 h-4 text-primary" />
+        <View className="h-8 w-8 items-center justify-center rounded-full bg-primary/20">
+          <Sparkles className="h-4 w-4 text-primary" />
         </View>
         <View className="flex-1">
           <H3>AI Agent</H3>
           <Muted className="text-xs leading-tight">Powered by Claude</Muted>
         </View>
         <Button
-          variant="ghost"
-          size="icon-sm"
-          shape="pill"
-          onPress={() => setIsConversationListVisible(true)}
           disabled={isStreaming}
+          onPress={() => setIsConversationListVisible(true)}
+          shape="pill"
+          size="icon-sm"
+          variant="ghost"
         >
-          <Ellipsis size={21} className="text-foreground" />
+          <Ellipsis className="text-foreground" size={21} />
         </Button>
       </View>
 
@@ -385,12 +387,15 @@ export default function AgentScreen() {
         textInputNativeID="chat-input"
       >
         <FlatList
+          contentContainerStyle={{ paddingTop: INPUT_HEIGHT + MARGIN }}
           data={[...localMessages].reverse()}
           inverted
-          contentContainerStyle={{ paddingTop: INPUT_HEIGHT + MARGIN }}
+          keyboardDismissMode="interactive"
           keyExtractor={(item) => item.id}
+          ListEmptyComponent={<EmptyState onSuggestion={setInput} />}
           renderItem={({ item }: { item: LocalMessage }) => (
             <AgentMessageView
+              isStreaming={item.isStreaming}
               message={{
                 id: item.id,
                 conversation_id: conversationId ?? "",
@@ -399,46 +404,42 @@ export default function AgentScreen() {
                 created_at: item.created_at,
                 metadata: item.metadata,
               }}
-              isStreaming={item.isStreaming}
             />
           )}
           renderScrollComponent={renderScrollComponent}
-          keyboardShouldPersistTaps="handled"
-          keyboardDismissMode="interactive"
-          ListEmptyComponent={<EmptyState onSuggestion={setInput} />}
         />
 
         <KeyboardStickyView offset={{ opened: bottom - MARGIN }}>
-          <View className="border-t border-white/10 bg-background px-4 py-3">
-            <HStack className="justify-stretch gap-2 items-end">
+          <View className="border-white/10 border-t bg-background px-4 py-3">
+            <HStack className="items-end justify-stretch gap-2">
               <TextInput
-                className="flex-1 text-foreground text-sm font-nunito-sans-bold"
-                style={{ paddingVertical: 11 }}
-                placeholder="Message..."
-                value={input}
-                onChangeText={setInput}
-                onSubmitEditing={() => handleSend()}
-                returnKeyType="send"
-                editable={!isPending && !isStreaming}
-                nativeID="chat-input"
+                className="flex-1 font-nunito-sans-bold text-foreground text-sm"
+                editable={!(isPending || isStreaming)}
                 multiline
-                scrollEnabled={inputHeight >= MAX_INPUT_HEIGHT}
+                nativeID="chat-input"
+                onChangeText={setInput}
                 onLayout={onInputLayout}
+                onSubmitEditing={() => handleSend()}
+                placeholder="Message..."
+                returnKeyType="send"
+                scrollEnabled={inputHeight >= MAX_INPUT_HEIGHT}
+                style={{ paddingVertical: 11 }}
+                value={input}
               />
               <Pressable
-                onPress={() => handleSend()}
-                disabled={!input.trim() || isPending || isStreaming}
-                className={`w-10 h-10 rounded-full items-center justify-center ${
+                className={`h-10 w-10 items-center justify-center rounded-full ${
                   input.trim() && !isPending && !isStreaming
                     ? "bg-primary"
                     : "bg-muted"
                 }`}
+                disabled={!input.trim() || isPending || isStreaming}
+                onPress={() => handleSend()}
               >
                 {isPending || isStreaming ? (
-                  <Spinner size={18} className="text-muted-foreground" />
+                  <Spinner className="text-muted-foreground" size={18} />
                 ) : (
                   <ArrowRight
-                    className={`w-5 h-5 ${
+                    className={`h-5 w-5 ${
                       input.trim()
                         ? "text-primary-foreground"
                         : "text-muted-foreground"
@@ -451,11 +452,11 @@ export default function AgentScreen() {
         </KeyboardStickyView>
       </KeyboardGestureArea>
       <ConversationListView
-        visible={isConversationListVisible}
-        onClose={() => setIsConversationListVisible(false)}
         activeConversationId={conversationId}
-        onSelectConversation={handleSelectConversation}
+        onClose={() => setIsConversationListVisible(false)}
         onNewConversation={handleNewConversation}
+        onSelectConversation={handleSelectConversation}
+        visible={isConversationListVisible}
       />
     </SafeAreaView>
   );

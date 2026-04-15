@@ -9,8 +9,8 @@ interface ExerciseImageProps {
 export default function ExerciseImage({ exercise }: ExerciseImageProps) {
   return (
     <Image
-      source={{ uri: exercise.thumbnail_url }}
       contentFit="cover"
+      source={{ uri: exercise.thumbnail_url }}
       style={styles.image}
     />
   );

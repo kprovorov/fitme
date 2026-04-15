@@ -1,4 +1,4 @@
-import React, { useEffect } from "react";
+import { useEffect } from "react";
 import { View } from "react-native";
 import Markdown from "react-native-markdown-display";
 import Animated, {
@@ -13,10 +13,10 @@ import { Sparkles } from "~/lib/icons/Sparkles";
 import type { Message } from "~/lib/models";
 import PlanAttachmentView from "./plan-attachment-view";
 
-type Props = {
-  message: Message;
+interface Props {
   isStreaming?: boolean;
-};
+  message: Message;
+}
 
 const DOT_SIZE = 7;
 const DOT_DURATION = 450;
@@ -38,9 +38,9 @@ function ThinkingDots() {
       withRepeat(
         withSequence(
           withTiming(1, { duration: DOT_DURATION }),
-          withTiming(0.3, { duration: DOT_DURATION }),
+          withTiming(0.3, { duration: DOT_DURATION })
         ),
-        -1,
+        -1
       );
     op1.value = seq();
     op2.value = withDelay(DOT_DURATION / 3, seq());
@@ -164,18 +164,18 @@ export default function AgentMessageView({ message, isStreaming }: Props) {
 
   return (
     <View
-      className={`w-full mb-4 px-4 ${isUser ? "items-end" : "items-start"}`}
+      className={`mb-4 w-full px-4 ${isUser ? "items-end" : "items-start"}`}
     >
       {!isUser && (
-        <View className="w-7 h-7 rounded-full bg-primary/20 items-center justify-center mb-1.5">
-          <Sparkles className="w-3.5 h-3.5 text-primary" />
+        <View className="mb-1.5 h-7 w-7 items-center justify-center rounded-full bg-primary/20">
+          <Sparkles className="h-3.5 w-3.5 text-primary" />
         </View>
       )}
       <View
         className={`max-w-[85%] rounded-2xl px-4 py-3 ${
           isUser
-            ? "bg-primary rounded-tr-sm"
-            : "bg-card border border-white/10 rounded-tl-sm"
+            ? "rounded-tr-sm bg-primary"
+            : "rounded-tl-sm border border-white/10 bg-card"
         }`}
       >
         {isThinking ? (

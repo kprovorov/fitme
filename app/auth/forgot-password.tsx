@@ -1,5 +1,5 @@
 import { Stack } from "expo-router";
-import React, { useEffect, useState } from "react";
+import { useEffect, useState } from "react";
 import {
   Keyboard,
   KeyboardAvoidingView,
@@ -16,10 +16,10 @@ export default function ForgotPasswordScreen() {
 
   useEffect(() => {
     const showSubscription = Keyboard.addListener("keyboardWillShow", () =>
-      setIsKeyboardVisible(true),
+      setIsKeyboardVisible(true)
     );
     const hideSubscription = Keyboard.addListener("keyboardWillHide", () =>
-      setIsKeyboardVisible(false),
+      setIsKeyboardVisible(false)
     );
 
     return () => {
@@ -41,8 +41,8 @@ export default function ForgotPasswordScreen() {
           <TouchableWithoutFeedback onPress={Keyboard.dismiss}>
             <VStack className="h-full p-6">
               <Sign
-                width={isKeyboardVisible ? 35 : 70}
                 height={isKeyboardVisible ? 35 : 70}
+                width={isKeyboardVisible ? 35 : 70}
               />
               <ForgotPasswordView />
             </VStack>

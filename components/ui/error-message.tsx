@@ -13,15 +13,15 @@ const ErrorMessage = React.forwardRef<TextRef, SlottableTextProps>(
     return (
       <Component
         className={cn(
-          "text-sm text-destructive font-nunito-sans-regular web:select-text",
+          "web:select-text font-nunito-sans-regular text-destructive text-sm",
           textClass,
-          className,
+          className
         )}
         ref={ref}
         {...props}
       />
     );
-  },
+  }
 );
 ErrorMessage.displayName = "ErrorMessage";
 

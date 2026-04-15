@@ -10,8 +10,8 @@ import Animated, {
 import { LoaderCircle } from "~/lib/icons/LoaderCircle";
 
 interface SpinnerProps {
-  size?: number;
   className?: string;
+  size?: number;
 }
 
 export function Spinner({ size = 16, className = "text-black" }: SpinnerProps) {
@@ -20,10 +20,10 @@ export function Spinner({ size = 16, className = "text-black" }: SpinnerProps) {
   useEffect(() => {
     rotation.value = withRepeat(
       withTiming(360, { duration: 1000, easing: Easing.linear }),
-      -1,
+      -1
     );
     return () => cancelAnimation(rotation);
-  }, []);
+  }, [rotation]);
 
   const animatedStyle = useAnimatedStyle(() => ({
     transform: [{ rotate: `${rotation.value}deg` }],
@@ -31,7 +31,7 @@ export function Spinner({ size = 16, className = "text-black" }: SpinnerProps) {
 
   return (
     <Animated.View style={animatedStyle}>
-      <LoaderCircle size={size} className={className} />
+      <LoaderCircle className={className} size={size} />
     </Animated.View>
   );
 }

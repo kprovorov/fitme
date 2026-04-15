@@ -1,4 +1,3 @@
-import { supabase } from "@/lib/supabase";
 import {
   NunitoSans_400Regular,
   NunitoSans_600SemiBold,
@@ -7,6 +6,7 @@ import {
 import { PortalHost } from "@rn-primitives/portal";
 import * as Sentry from "@sentry/react-native";
 import { QueryClient } from "@tanstack/react-query";
+import { supabase } from "@/lib/supabase";
 import "expo-dev-client";
 import { useFonts } from "expo-font";
 import * as SplashScreen from "expo-splash-screen";
@@ -15,7 +15,6 @@ import { useEffect } from "react";
 import { Platform } from "react-native";
 import Purchases from "react-native-purchases";
 import "react-native-reanimated";
-import { KeyboardProvider } from "react-native-keyboard-controller";
 import App from "~/components/app";
 import Providers from "~/components/providers";
 import "../global.css";
@@ -53,11 +52,11 @@ export default function RootLayout() {
       if (!IS_E2E) {
         if (Platform.OS === "ios") {
           Purchases.configure({
-            apiKey: process.env.EXPO_PUBLIC_REVENUECAT_IOS_API_KEY!,
+            apiKey: process.env.EXPO_PUBLIC_REVENUECAT_IOS_API_KEY ?? "",
           });
         } else if (Platform.OS === "android") {
           Purchases.configure({
-            apiKey: process.env.EXPO_PUBLIC_REVENUECAT_ANDROID_API_KEY!,
+            apiKey: process.env.EXPO_PUBLIC_REVENUECAT_ANDROID_API_KEY ?? "",
           });
         }
       }
@@ -73,7 +72,9 @@ export default function RootLayout() {
           }
         }
         if (event === "SIGNED_OUT") {
-          if (!IS_E2E) await Purchases.logOut();
+          if (!IS_E2E) {
+            await Purchases.logOut();
+          }
           queryClient.clear();
         }
       });

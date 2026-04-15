@@ -1,13 +1,6 @@
-import React from "react";
-import { SafeAreaView } from "react-native-safe-area-context";
-import { ScrollView } from "react-native";
-import { Text } from "~/components/ui/text";
 import { Link, Stack } from "expo-router";
-import { HeaderBackButton } from "~/components/ui/header-back-button";
-import { MenuList, MenuListItem } from "~/components/ui/menu-list";
-import { HStack } from "~/components/ui/hstack";
-import { useCurrentUserQuery } from "~/hooks/queries/auth";
-import { getMeasurementSystemLabel } from "~/lib/labels";
+import { ScrollView } from "react-native";
+import { SafeAreaView } from "react-native-safe-area-context";
 import {
   AlertDialog,
   AlertDialogAction,
@@ -19,8 +12,14 @@ import {
   AlertDialogTitle,
   AlertDialogTrigger,
 } from "~/components/ui/alert-dialog";
-import { useDeleteUserMutation } from "~/hooks/mutations/auth";
 import { buttonTextVariants, buttonVariants } from "~/components/ui/button";
+import { HeaderBackButton } from "~/components/ui/header-back-button";
+import { HStack } from "~/components/ui/hstack";
+import { MenuList, MenuListItem } from "~/components/ui/menu-list";
+import { Text } from "~/components/ui/text";
+import { useDeleteUserMutation } from "~/hooks/mutations/auth";
+import { useCurrentUserQuery } from "~/hooks/queries/auth";
+import { getMeasurementSystemLabel } from "~/lib/labels";
 
 export default function SettingsScreen() {
   const { data: user } = useCurrentUserQuery();
@@ -46,13 +45,13 @@ export default function SettingsScreen() {
           {!!user && (
             <>
               <MenuList>
-                <Link href="/settings/measurement-system" asChild>
+                <Link asChild href="/settings/measurement-system">
                   <MenuListItem icon="chevron-right">
                     <HStack className="flex-1 justify-between">
                       <Text>Measurement System</Text>
                       <Text className="text-muted-foreground text-xs">
                         {getMeasurementSystemLabel(
-                          user.profile?.measurement_system ?? "metric",
+                          user.profile?.measurement_system ?? "metric"
                         )}
                       </Text>
                     </HStack>

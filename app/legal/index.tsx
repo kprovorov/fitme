@@ -1,12 +1,10 @@
-import React from "react";
-import { SafeAreaView } from "react-native-safe-area-context";
-import { ScrollView } from "react-native";
-import { Text } from "~/components/ui/text";
+import * as Sentry from "@sentry/react-native";
+import { useQueryClient } from "@tanstack/react-query";
 import { Link, router, Stack } from "expo-router";
-import { HeaderBackButton } from "~/components/ui/header-back-button";
-import { MenuList, MenuListItem } from "~/components/ui/menu-list";
-import { useCurrentUserQuery } from "~/hooks/queries/auth";
+import { ScrollView } from "react-native";
+import { SafeAreaView } from "react-native-safe-area-context";
 import {
+  AlertDialog,
   AlertDialogCancel,
   AlertDialogContent,
   AlertDialogDescription,
@@ -14,21 +12,22 @@ import {
   AlertDialogHeader,
   AlertDialogTitle,
   AlertDialogTrigger,
-  AlertDialog,
 } from "~/components/ui/alert-dialog";
 import { Button } from "~/components/ui/button";
-import { useDeleteUserMutation } from "~/hooks/mutations/auth";
-import { useQueryClient } from "@tanstack/react-query";
-import * as Sentry from "@sentry/react-native";
+import { HeaderBackButton } from "~/components/ui/header-back-button";
+import { MenuList, MenuListItem } from "~/components/ui/menu-list";
 import { Separator } from "~/components/ui/separator";
+import { Text } from "~/components/ui/text";
+import { useDeleteUserMutation } from "~/hooks/mutations/auth";
+import { useCurrentUserQuery } from "~/hooks/queries/auth";
 
 export default function LegalScreen() {
   const queryClient = useQueryClient();
 
-  const { data: user } = useCurrentUserQuery();
+  const { data: _user } = useCurrentUserQuery();
 
   const { mutateAsync: deleteUser } = useDeleteUserMutation({
-    onSuccess: async () => {
+    onSuccess: () => {
       Sentry.setUser(null);
       queryClient.clear();
       router.replace("/auth/login");
@@ -52,13 +51,13 @@ export default function LegalScreen() {
       <SafeAreaView className="flex-1">
         <ScrollView className="flex-1 p-6" showsVerticalScrollIndicator={false}>
           <MenuList>
-            <Link href="https://fitmeproject.com/privacy-policy" asChild>
+            <Link asChild href="https://fitmeproject.com/privacy-policy">
               <MenuListItem icon="square-arrow-out-up-right">
                 <Text>Privacy Policy</Text>
               </MenuListItem>
             </Link>
             <Separator />
-            <Link href="https://fitmeproject.com/terms" asChild>
+            <Link asChild href="https://fitmeproject.com/terms">
               <MenuListItem icon="square-arrow-out-up-right">
                 <Text>Terms of Service</Text>
               </MenuListItem>
@@ -84,7 +83,7 @@ export default function LegalScreen() {
                   <AlertDialogCancel>
                     <Text>Cancel</Text>
                   </AlertDialogCancel>
-                  <Button variant="destructive" onPress={() => deleteUser()}>
+                  <Button onPress={() => deleteUser()} variant="destructive">
                     <Text>Yes, Delete My Account</Text>
                   </Button>
                 </AlertDialogFooter>

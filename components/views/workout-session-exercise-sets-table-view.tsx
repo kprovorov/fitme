@@ -1,27 +1,26 @@
-import React, { useState } from "react";
-import { WorkoutSessionExerciseSet } from "~/lib/models";
-import { VStack } from "../ui/vstack";
-import { HStack } from "../ui/hstack";
-import { Text } from "../ui/text";
-import { useCurrentUserQuery } from "~/hooks/queries/auth";
-import WorkoutSessionExerciseSetRowView from "./workout-session-exercise-set-row-view";
-import { getWeightLabel } from "~/lib/labels";
-import { Separator } from "../ui/separator";
-import { Muted } from "../ui/typography";
-import { Button } from "../ui/button";
 import { Plus } from "lucide-react-native";
+import { useState } from "react";
+import { useCurrentUserQuery } from "~/hooks/queries/auth";
+import { getWeightLabel } from "~/lib/labels";
+import type { WorkoutSessionExerciseSet } from "~/lib/models";
+import { Button } from "../ui/button";
+import { HStack } from "../ui/hstack";
+import { Separator } from "../ui/separator";
+import { Text } from "../ui/text";
+import { VStack } from "../ui/vstack";
+import WorkoutSessionExerciseSetRowView from "./workout-session-exercise-set-row-view";
 
 interface WorkoutSessionExerciseSetsTableViewProps {
   exerciseId: string;
-  workoutSessionExerciseSets: WorkoutSessionExerciseSet[];
   readOnly?: boolean;
+  workoutSessionExerciseSets: WorkoutSessionExerciseSet[];
 }
 
-type LocalSet = {
+interface LocalSet {
   id: string;
   isNew: true;
   order: number;
-};
+}
 
 export default function WorkoutSessionExerciseSetsTableView({
   exerciseId,
@@ -32,12 +31,12 @@ export default function WorkoutSessionExerciseSetsTableView({
   const [localSets, setLocalSets] = useState<LocalSet[]>([]);
 
   const hasWeight = workoutSessionExerciseSets.some(
-    (set) => set.weight_recommended !== null,
+    (set) => set.weight_recommended !== null
   );
 
   const maxOrder = Math.max(
     ...workoutSessionExerciseSets.map((set) => set.order),
-    0,
+    0
   );
 
   const handleAddSet = () => {
@@ -58,15 +57,15 @@ export default function WorkoutSessionExerciseSetsTableView({
     user && (
       <VStack className="items-stretch gap-0">
         <HStack className="justify-start py-2 pr-12">
-          <Text className="w-12 font-bold text-center text-primary uppercase text-sm">
+          <Text className="w-12 text-center font-bold text-primary text-sm uppercase">
             Set
           </Text>
           {hasWeight && (
-            <Text className="flex-1 font-bold text-primary uppercase text-sm text-center">
+            <Text className="flex-1 text-center font-bold text-primary text-sm uppercase">
               {getWeightLabel(user.profile?.measurement_system ?? "metric")}
             </Text>
           )}
-          <Text className="flex-1 font-bold text-primary uppercase text-sm text-center">
+          <Text className="flex-1 text-center font-bold text-primary text-sm uppercase">
             Reps
           </Text>
         </HStack>
@@ -81,12 +80,12 @@ export default function WorkoutSessionExerciseSetsTableView({
               .some((s) => s.reps_completed === null);
             return (
               <WorkoutSessionExerciseSetRowView
-                key={workoutSessionExerciseSet.id}
                 exerciseId={exerciseId}
-                workoutSessionExerciseSet={workoutSessionExerciseSet}
                 hasWeight={hasWeight}
-                timer={false}
+                key={workoutSessionExerciseSet.id}
                 locked={locked}
+                timer={false}
+                workoutSessionExerciseSet={workoutSessionExerciseSet}
               />
             );
           })}
@@ -94,29 +93,34 @@ export default function WorkoutSessionExerciseSetsTableView({
         {!readOnly &&
           localSets.map((localSet, index) => {
             const allExistingDone = workoutSessionExerciseSets.every(
-              (s) => s.reps_completed !== null,
+              (s) => s.reps_completed !== null
             );
             const locked = !allExistingDone || index > 0;
             return (
               <WorkoutSessionExerciseSetRowView
-                key={localSet.id}
                 exerciseId={exerciseId}
-                workoutSessionExerciseSet={null}
-                localSetId={localSet.id}
-                order={localSet.order}
                 hasWeight={hasWeight}
-                timer={false}
+                key={localSet.id}
+                localSetId={localSet.id}
                 locked={locked}
                 onSetCreated={() => handleSetCreated(localSet.id)}
+                order={localSet.order}
+                timer={false}
+                workoutSessionExerciseSet={null}
               />
             );
           })}
 
         {!readOnly && (
-          <VStack className="py-3 items-stretch">
-            <Button onPress={handleAddSet} variant="ghost" size="sm" shape="pill">
+          <VStack className="items-stretch py-3">
+            <Button
+              onPress={handleAddSet}
+              shape="pill"
+              size="sm"
+              variant="ghost"
+            >
               <HStack>
-                <Plus size={16} className="text-primary" />
+                <Plus className="text-primary" size={16} />
                 <Text className="text-primary">Add Set</Text>
               </HStack>
             </Button>

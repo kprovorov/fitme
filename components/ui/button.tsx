@@ -1,8 +1,8 @@
 import { cva, type VariantProps } from "class-variance-authority";
 import * as React from "react";
 import { Pressable } from "react-native";
-import { cn } from "~/lib/utils";
 import { TextClassContext } from "~/components/ui/text";
+import { cn } from "~/lib/utils";
 
 const buttonVariants = cva(
   "group flex items-center justify-center web:ring-offset-background web:transition-colors web:focus-visible:outline-none web:focus-visible:ring-2 web:focus-visible:ring-ring web:focus-visible:ring-offset-2",
@@ -53,11 +53,11 @@ const buttonVariants = cva(
       size: "default",
       shape: "default",
     },
-  },
+  }
 );
 
 const buttonTextVariants = cva(
-  "web:whitespace-nowrap text-sm native:text-base font-nunito-sans-bold text-foreground web:transition-colors",
+  "web:whitespace-nowrap font-nunito-sans-bold native:text-base text-foreground text-sm web:transition-colors",
   {
     variants: {
       variant: {
@@ -81,7 +81,7 @@ const buttonTextVariants = cva(
       variant: "default",
       size: "default",
     },
-  },
+  }
 );
 
 type ButtonProps = React.ComponentPropsWithoutRef<typeof Pressable> &
@@ -101,8 +101,8 @@ const Button = React.forwardRef<
     >
       <Pressable
         className={cn(
-          props.disabled && "opacity-50 web:pointer-events-none",
-          buttonVariants({ variant, size, shape, className }),
+          props.disabled && "web:pointer-events-none opacity-50",
+          buttonVariants({ variant, size, shape, className })
         )}
         ref={ref}
         role="button"
@@ -113,5 +113,5 @@ const Button = React.forwardRef<
 });
 Button.displayName = "Button";
 
-export { Button, buttonTextVariants, buttonVariants };
 export type { ButtonProps };
+export { Button, buttonTextVariants, buttonVariants };

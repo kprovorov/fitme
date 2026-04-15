@@ -1,13 +1,13 @@
-import React, { useEffect, useState } from "react";
-import { Workout, Plan } from "@/lib/models";
-import { VStack } from "../ui/vstack";
-import { H3, H4 } from "../ui/typography";
-import WorkoutCard from "./workout-card";
+import { useEffect, useState } from "react";
+import RevenueCatUI from "react-native-purchases-ui";
+import type { Plan, Workout } from "@/lib/models";
+import { useIsProQuery } from "~/hooks/revenueCat";
 import { Button } from "../ui/button";
 import { Text } from "../ui/text";
-import { useIsProQuery } from "~/hooks/revenueCat";
-import RevenueCatUI from "react-native-purchases-ui";
+import { H3, H4 } from "../ui/typography";
+import { VStack } from "../ui/vstack";
 import ActivePlanView from "./active-plan-view";
+import WorkoutCard from "./workout-card";
 
 interface HomeViewProps {
   plan: Plan;
@@ -29,12 +29,12 @@ export default function HomeView({ plan }: HomeViewProps) {
   }, [plan.workouts]);
 
   return (
-    <VStack className="items-stretch gap-lg px-md flex-1">
+    <VStack className="flex-1 items-stretch gap-lg px-md">
       <ActivePlanView />
       <VStack className="flex-1 items-stretch">
         <H4>Next Workout</H4>
         {nextWorkout ? (
-          <WorkoutCard workout={nextWorkout} state="upcoming" />
+          <WorkoutCard state="upcoming" workout={nextWorkout} />
         ) : isPro ? (
           <H3 className="text-center text-primary">
             Nice job! You&apos;re all set!
@@ -60,7 +60,7 @@ export default function HomeView({ plan }: HomeViewProps) {
         <VStack className="items-stretch">
           <H4>Upcoming</H4>
           {upcomingWorkouts.map((workout) => (
-            <WorkoutCard key={workout.id} workout={workout} state="default" />
+            <WorkoutCard key={workout.id} state="default" workout={workout} />
           ))}
         </VStack>
       )}

@@ -1,15 +1,15 @@
-import { useRegisterMutation } from "@/hooks/mutations/auth";
-import { router } from "expo-router";
-import { Pressable, View } from "react-native";
-import { VStack } from "../ui/vstack";
-import { H3, P } from "../ui/typography";
-import RegisterForm, { RegisterFormValues } from "../forms/auth/register-form";
 import { useQueryClient } from "@tanstack/react-query";
-import { useEffect, useState } from "react";
-import { handleSupabaseError } from "~/lib/utils";
-import { useCurrentUserQuery } from "~/hooks/queries/auth";
-import { Text } from "../ui/text";
 import { useLocales } from "expo-localization";
+import { router } from "expo-router";
+import { useEffect, useState } from "react";
+import { Pressable, View } from "react-native";
+import { useRegisterMutation } from "@/hooks/mutations/auth";
+import { useCurrentUserQuery } from "~/hooks/queries/auth";
+import { handleSupabaseError } from "~/lib/utils";
+import RegisterForm from "../forms/auth/register-form";
+import { Text } from "../ui/text";
+import { H3, P } from "../ui/typography";
+import { VStack } from "../ui/vstack";
 
 export default function RegisterView() {
   const queryClient = useQueryClient();
@@ -40,7 +40,7 @@ export default function RegisterView() {
     <VStack className="w-full gap-4">
       <VStack className="gap-0">
         <H3>Welcome to Fitme!</H3>
-        <Text className="text-md font-nunito-sans-bold text-muted-foreground">
+        <Text className="font-nunito-sans-bold text-md text-muted-foreground">
           Create an account to get started
         </Text>
       </VStack>
@@ -54,14 +54,14 @@ export default function RegisterView() {
         }}
       />
       <View className="flex-row items-center">
-        <Text className="text-sm font-nunito-sans-bold">
+        <Text className="font-nunito-sans-bold text-sm">
           Already have an account?{" "}
         </Text>
         <Pressable
-          testID="login-here-link"
           onPress={() => router.push("/auth/login")}
+          testID="login-here-link"
         >
-          <Text className="text-sm text-primary font-nunito-sans-bold">
+          <Text className="font-nunito-sans-bold text-primary text-sm">
             Login here
           </Text>
         </Pressable>

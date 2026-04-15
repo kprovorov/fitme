@@ -1,6 +1,10 @@
-import { supabase } from "@/lib/supabase";
-import { Conversation, ConversationWithPreview, Message } from "@/lib/models";
 import { createQuery } from "react-query-kit";
+import type {
+  Conversation,
+  ConversationWithPreview,
+  Message,
+} from "@/lib/models";
+import { supabase } from "@/lib/supabase";
 
 export const useConversationQuery = createQuery<Conversation | null>({
   queryKey: ["conversation"],
@@ -22,7 +26,9 @@ export const useConversationsQuery = createQuery<ConversationWithPreview[]>({
       .from("conversations")
       .select("id, user_id, created_at, messages(content, role, created_at)")
       .order("created_at", { ascending: false });
-    if (error) throw error;
+    if (error) {
+      throw error;
+    }
     return (data ?? []).map((conv) => {
       const firstUserMsg = (
         conv.messages as Array<{
@@ -34,7 +40,7 @@ export const useConversationsQuery = createQuery<ConversationWithPreview[]>({
         ?.filter((m) => m.role === "user")
         .sort(
           (a, b) =>
-            new Date(a.created_at).getTime() - new Date(b.created_at).getTime(),
+            new Date(a.created_at).getTime() - new Date(b.created_at).getTime()
         )[0];
       return {
         id: conv.id,
@@ -46,9 +52,9 @@ export const useConversationsQuery = createQuery<ConversationWithPreview[]>({
   },
 });
 
-export type MessagesQueryVariables = {
+export interface MessagesQueryVariables {
   conversationId: string;
-};
+}
 
 export const useMessagesQuery = createQuery<Message[], MessagesQueryVariables>({
   queryKey: ["messages"],
@@ -58,7 +64,9 @@ export const useMessagesQuery = createQuery<Message[], MessagesQueryVariables>({
       .select("*")
       .eq("conversation_id", conversationId)
       .order("created_at", { ascending: true });
-    if (error) throw error;
+    if (error) {
+      throw error;
+    }
     return (data as Message[]) ?? [];
   },
 });

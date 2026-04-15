@@ -1,6 +1,6 @@
 import { tool } from "npm:ai";
 import { z } from "npm:zod";
-import { ToolContext } from "./types.ts";
+import type { ToolContext } from "./types.ts";
 
 const WorkoutExerciseSetInputSchema = z.object({
   order: z.number(),
@@ -60,7 +60,9 @@ export function createCreatePlanTool({
         const { data: planId, error } = await supabaseClient.rpc("store_plan", {
           p_plan_data: data,
         });
-        if (error) throw error;
+        if (error) {
+          throw error;
+        }
         log("tool_ok", { tool: "create_plan", planId });
         onPlanCreated?.(planId);
         return { success: true, plan_id: planId, plan_name: data.name };

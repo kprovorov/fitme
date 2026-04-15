@@ -1,19 +1,19 @@
-import { supabase } from "@/lib/supabase";
 import { createMutation } from "react-query-kit";
-import { WorkoutExerciseSet } from "~/lib/models";
+import { supabase } from "@/lib/supabase";
+import type { WorkoutExerciseSet } from "~/lib/models";
 
-type UpdateWorkoutExerciseSetData = {
+interface UpdateWorkoutExerciseSetData {
   id: string;
-  weight_done: number;
   repeats_done: number;
-};
+  weight_done: number;
+}
 
 export const useUpdateWorkoutExerciseSetMutation = createMutation<
   WorkoutExerciseSet,
   UpdateWorkoutExerciseSetData
 >({
   mutationFn: async (
-    data: UpdateWorkoutExerciseSetData,
+    data: UpdateWorkoutExerciseSetData
   ): Promise<WorkoutExerciseSet> => {
     const { data: result, error } = await supabase
       .from("workout_exercise_sets")
@@ -24,7 +24,9 @@ export const useUpdateWorkoutExerciseSetMutation = createMutation<
       .eq("id", data.id)
       .select()
       .single();
-    if (error) throw error;
+    if (error) {
+      throw error;
+    }
     return result as unknown as WorkoutExerciseSet;
   },
 });

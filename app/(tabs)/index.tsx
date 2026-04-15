@@ -1,21 +1,22 @@
+import { Link } from "expo-router";
+import { useCallback, useEffect, useState } from "react";
 import {
   ActivityIndicator,
   RefreshControl,
   ScrollView,
   View,
 } from "react-native";
-import { SafeAreaView } from "react-native-safe-area-context";
-import { usePlansQuery } from "~/hooks/queries/plans";
-import { Text } from "~/components/ui/text";
-import { useState, useEffect, useCallback } from "react";
-import { Plan } from "~/lib/models";
-import { Button } from "~/components/ui/button";
-import { Link } from "expo-router";
-import { VStack } from "~/components/ui/vstack";
-import { H1 } from "~/components/ui/typography";
 import Purchases from "react-native-purchases";
+import { SafeAreaView } from "react-native-safe-area-context";
+import { Button } from "~/components/ui/button";
+import { Text } from "~/components/ui/text";
+import { H1 } from "~/components/ui/typography";
+import { VStack } from "~/components/ui/vstack";
+import { usePlansQuery } from "~/hooks/queries/plans";
+import type { Plan } from "~/lib/models";
 
 const IS_E2E = process.env.EXPO_PUBLIC_E2E_ENABLED === "true";
+
 import HomeView from "~/components/views/home-view";
 
 export default function HomeScreen() {
@@ -38,23 +39,24 @@ export default function HomeScreen() {
 
   const onRefresh = useCallback(async () => {
     setRefreshing(true);
-    if (!IS_E2E) await Purchases.invalidateCustomerInfoCache();
+    if (!IS_E2E) {
+      await Purchases.invalidateCustomerInfoCache();
+    }
     await refetchWorkoutPlans();
     setRefreshing(false);
-  }, []);
+  }, [refetchWorkoutPlans]);
 
   return activePlan ? (
     <SafeAreaView
+      className="flex-1"
       edges={["top"]}
       style={{
         paddingBottom: 64,
       }}
-      className="flex-1"
     >
       <ScrollView
-        showsVerticalScrollIndicator={false}
         refreshControl={
-          <RefreshControl refreshing={refreshing} onRefresh={onRefresh} />
+          <RefreshControl onRefresh={onRefresh} refreshing={refreshing} />
         }
       >
         <View style={{ paddingBottom: 64 }}>
@@ -64,7 +66,7 @@ export default function HomeScreen() {
     </SafeAreaView>
   ) : isLoadingPlans ? (
     <View className="flex-1 items-center justify-center">
-      <ActivityIndicator size="large" color="#ffffff" />
+      <ActivityIndicator color="#ffffff" size="large" />
     </View>
   ) : (
     <VStack className="h-full p-6">
@@ -73,7 +75,7 @@ export default function HomeScreen() {
         You don&apos;t have an active workout plan. Please create one to start
         your journey.
       </Text>
-      <Link href="/onboarding/profile" asChild>
+      <Link asChild href="/onboarding/profile">
         <Button className="w-full">
           <Text>Start your workout plan</Text>
         </Button>

@@ -1,35 +1,38 @@
 import { Stack, useLocalSearchParams } from "expo-router";
-import React, { useState } from "react";
+import { useState } from "react";
 import { View } from "react-native";
 import { KeyboardAwareScrollView } from "react-native-keyboard-controller";
 import { SafeAreaView } from "react-native-safe-area-context";
 import ExerciseVideo from "~/components/exercises/exercise-video";
+import {
+  AlertDialog,
+  AlertDialogCancel,
+  AlertDialogContent,
+  AlertDialogDescription,
+  AlertDialogFooter,
+  AlertDialogHeader,
+  AlertDialogTitle,
+} from "~/components/ui/alert-dialog";
+import { Button } from "~/components/ui/button";
 import { HeaderBackButton } from "~/components/ui/header-back-button";
-import { H4, P } from "~/components/ui/typography";
+import { Text } from "~/components/ui/text";
+import { P } from "~/components/ui/typography";
 import { VStack } from "~/components/ui/vstack";
 import ExerciseHistoryView from "~/components/views/exercise-history-view";
 import WorkoutSessionExerciseSetsTableView from "~/components/views/workout-session-exercise-sets-table-view";
 import { useWorkoutSessionExerciseQuery } from "~/hooks/queries/workout-session-exercises";
 import { useWorkoutSessionQuery } from "~/hooks/queries/workout-sessions";
 import { Info } from "~/lib/icons/Info";
-import { Button } from "~/components/ui/button";
-import { Text } from "~/components/ui/text";
-import {
-  AlertDialog,
-  AlertDialogTrigger,
-  AlertDialogContent,
-  AlertDialogHeader,
-  AlertDialogTitle,
-  AlertDialogDescription,
-  AlertDialogFooter,
-  AlertDialogCancel,
-  AlertDialogAction,
-} from "~/components/ui/alert-dialog";
 
 export default function WorkoutSessionExerciseScreen() {
   const [isOpen, setIsOpen] = useState(false);
 
-  const { planId, workoutId, sessionId, exerciseId } = useLocalSearchParams();
+  const {
+    planId: _planId,
+    workoutId: _workoutId,
+    sessionId,
+    exerciseId,
+  } = useLocalSearchParams();
 
   const { data: workoutSessionExercise } = useWorkoutSessionExerciseQuery({
     variables: {
@@ -59,12 +62,12 @@ export default function WorkoutSessionExerciseScreen() {
           headerLeft: () => <HeaderBackButton />,
           headerRight: () => (
             <Button
-              variant="ghost"
-              size="icon-sm"
-              shape="pill"
               onPress={() => setIsOpen(true)}
+              shape="pill"
+              size="icon-sm"
+              variant="ghost"
             >
-              <Info size={21} className="text-foreground" />
+              <Info className="text-foreground" size={21} />
             </Button>
           ),
         }}
@@ -72,11 +75,11 @@ export default function WorkoutSessionExerciseScreen() {
       <SafeAreaView>
         <KeyboardAwareScrollView
           bottomOffset={62}
-          showsVerticalScrollIndicator={false}
           keyboardShouldPersistTaps="handled"
+          showsVerticalScrollIndicator={false}
         >
-          <VStack className="items-stretch py-sm flex-1 gap-md px-md">
-            <AlertDialog open={isOpen} onOpenChange={setIsOpen}>
+          <VStack className="flex-1 items-stretch gap-md px-md py-sm">
+            <AlertDialog onOpenChange={setIsOpen} open={isOpen}>
               <AlertDialogContent>
                 <AlertDialogHeader>
                   <AlertDialogTitle className="text-primary">
@@ -95,7 +98,7 @@ export default function WorkoutSessionExerciseScreen() {
             </AlertDialog>
 
             {workoutSessionExercise.exercise.video_url && (
-              <View className="rounded-lg w-full overflow-hidden">
+              <View className="w-full overflow-hidden rounded-lg">
                 <ExerciseVideo exercise={workoutSessionExercise.exercise} />
               </View>
             )}
@@ -104,8 +107,8 @@ export default function WorkoutSessionExerciseScreen() {
 
             <WorkoutSessionExerciseSetsTableView
               exerciseId={exerciseId as string}
-              workoutSessionExerciseSets={workoutSessionExercise.sets}
               readOnly={isFinished}
+              workoutSessionExerciseSets={workoutSessionExercise.sets}
             />
 
             <ExerciseHistoryView

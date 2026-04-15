@@ -1,6 +1,6 @@
 import { tool } from "npm:ai";
 import { z } from "npm:zod";
-import { ToolContext } from "./types.ts";
+import type { ToolContext } from "./types.ts";
 
 export function createUpdateUserProfileTool({
   supabaseClient,
@@ -35,17 +35,21 @@ export function createUpdateUserProfileTool({
           .select("gender, age, height, weight, measurement_system")
           .eq("user_id", user.id)
           .single();
-        if (fetchError) throw fetchError;
+        if (fetchError) {
+          throw fetchError;
+        }
 
         const { data, error } = await supabaseClient
           .from("profiles")
           .upsert(
             { ...existing, ...input, user_id: user.id },
-            { onConflict: "user_id" },
+            { onConflict: "user_id" }
           )
           .select("gender, age, height, weight, measurement_system")
           .single();
-        if (error) throw error;
+        if (error) {
+          throw error;
+        }
         log("tool_ok", { tool: "update_user_profile" });
         return { success: true, profile: data };
       } catch (err) {

@@ -30,7 +30,7 @@ Deno.serve(async (req: Request) => {
   const event = body?.event as Record<string, unknown> | undefined;
   const eventType = event?.type as string | undefined;
 
-  if (!eventType || !HANDLED_EVENTS.has(eventType)) {
+  if (!(eventType && HANDLED_EVENTS.has(eventType))) {
     // Acknowledge unhandled event types without processing
     return new Response(JSON.stringify({ received: true }), {
       status: 200,
@@ -49,7 +49,7 @@ Deno.serve(async (req: Request) => {
 
   const serviceClient = createClient(
     Deno.env.get("SUPABASE_URL") ?? "",
-    Deno.env.get("SUPABASE_SERVICE_ROLE_KEY") ?? "",
+    Deno.env.get("SUPABASE_SERVICE_ROLE_KEY") ?? ""
   );
 
   const { data: profile, error } = await serviceClient
@@ -61,7 +61,7 @@ Deno.serve(async (req: Request) => {
   if (error || !profile) {
     console.error(
       `RevenueCat webhook: no profile found for user_id=${appUserId}`,
-      { eventType, error: error?.message },
+      { eventType, error: error?.message }
     );
     // Still return 200 so RevenueCat does not retry
     return new Response(JSON.stringify({ received: true }), {
@@ -71,7 +71,7 @@ Deno.serve(async (req: Request) => {
   }
 
   console.log(
-    `RevenueCat webhook: processed event=${eventType} for user=${profile.user_id}`,
+    `RevenueCat webhook: processed event=${eventType} for user=${profile.user_id}`
   );
 
   return new Response(JSON.stringify({ received: true }), {

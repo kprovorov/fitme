@@ -1,6 +1,5 @@
-import React from "react";
+import type { Workout } from "~/lib/models";
 import { VStack } from "../ui/vstack";
-import { Workout } from "~/lib/models";
 import WorkoutCard from "./workout-card";
 
 interface WorkoutListProps {
@@ -9,7 +8,7 @@ interface WorkoutListProps {
 
 export default function WorkoutList({ workouts }: WorkoutListProps) {
   return (
-    <VStack className="gap-sm items-stretch flex-1">
+    <VStack className="flex-1 items-stretch gap-sm">
       {workouts.map((workout) => (
         <WorkoutCard key={workout.id} workout={workout} />
       ))}

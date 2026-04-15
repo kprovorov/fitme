@@ -1,12 +1,12 @@
-import { Controller, useForm } from "react-hook-form";
 import { zodResolver } from "@hookform/resolvers/zod";
+import { Controller, useForm } from "react-hook-form";
 import { z } from "zod";
-import { Input } from "~/components/ui/input";
 import { Button } from "~/components/ui/button";
-import { Text } from "~/components/ui/text";
-import { Spinner } from "~/components/ui/spinner";
-import { VStack } from "~/components/ui/vstack";
 import { HStack } from "~/components/ui/hstack";
+import { Input } from "~/components/ui/input";
+import { Spinner } from "~/components/ui/spinner";
+import { Text } from "~/components/ui/text";
+import { VStack } from "~/components/ui/vstack";
 import { ArrowRight } from "~/lib/icons/ArrowRight";
 
 interface ForgotPasswordFormProps {
@@ -30,21 +30,20 @@ export default function ForgotPasswordForm({
   });
 
   return (
-    <VStack className="gap-4 items-stretch w-full">
+    <VStack className="w-full items-stretch gap-4">
       <Controller
         control={form.control}
         render={({ field: { onChange, onBlur, value } }) => (
           <Input
+            autoCapitalize="none"
             editable={!form.formState.isSubmitting}
-            placeholder="Email"
+            keyboardType="email-address"
             onBlur={onBlur}
             onChangeText={onChange}
+            placeholder="Email"
             value={value}
-            keyboardType="email-address"
-            autoCapitalize="none"
           />
         )}
-        name="email"
       />
       {form.formState.errors.email && (
         <Text className="text-red-500">
@@ -57,11 +56,11 @@ export default function ForgotPasswordForm({
         onPress={form.handleSubmit(onSubmit)}
       >
         {form.formState.isSubmitting ? (
-          <Spinner size={16} className="text-black" />
+          <Spinner className="text-black" size={16} />
         ) : (
           <HStack className="gap-2">
             <Text>Send Reset Link</Text>
-            <ArrowRight size={16} className="text-black" />
+            <ArrowRight className="text-black" size={16} />
           </HStack>
         )}
       </Button>

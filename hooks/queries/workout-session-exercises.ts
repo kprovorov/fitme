@@ -1,6 +1,6 @@
-import { supabase } from "@/lib/supabase";
 import { createMutation, createQuery } from "react-query-kit";
-import { WorkoutSessionExercise } from "~/lib/models";
+import { supabase } from "@/lib/supabase";
+import type { WorkoutSessionExercise } from "~/lib/models";
 
 const SESSION_EXERCISE_SELECT = `
   *,
@@ -8,14 +8,14 @@ const SESSION_EXERCISE_SELECT = `
   sets:workout_session_exercise_sets (*)
 `;
 
-export type WorkoutSessionExercisesVariables = {
-  sessionId: string;
+export interface WorkoutSessionExercisesVariables {
   exerciseId: string;
-};
+  sessionId: string;
+}
 
-export type StoreWorkoutSessionExerciseData = {
+export interface StoreWorkoutSessionExerciseData {
   exercise_id: string;
-};
+}
 
 export const useWorkoutSessionExerciseQuery = createQuery<
   WorkoutSessionExercise,
@@ -28,15 +28,17 @@ export const useWorkoutSessionExerciseQuery = createQuery<
       .select(SESSION_EXERCISE_SELECT)
       .eq("id", exerciseId)
       .single();
-    if (error) throw error;
+    if (error) {
+      throw error;
+    }
     return data as unknown as WorkoutSessionExercise;
   },
 });
 
-export type CreateWorkoutSessionExercisesVariables = {
-  sessionId: string;
+export interface CreateWorkoutSessionExercisesVariables {
   data: StoreWorkoutSessionExerciseData;
-};
+  sessionId: string;
+}
 
 export const useCreateWorkoutSessionExerciseMutation = createMutation<
   WorkoutSessionExercise,
@@ -54,21 +56,23 @@ export const useCreateWorkoutSessionExerciseMutation = createMutation<
       .order("order", { ascending: false })
       .limit(1);
 
-    const nextOrder = ((existing?.[0] as any)?.order ?? 0) + 1;
+    const nextOrder = ((existing?.[0] as { order?: number })?.order ?? 0) + 1;
 
     const { data, error } = await supabase
       .from("workout_session_exercises")
       .insert({ workout_session_id: sessionId, exercise_id, order: nextOrder })
       .select(SESSION_EXERCISE_SELECT)
       .single();
-    if (error) throw error;
+    if (error) {
+      throw error;
+    }
     return data as unknown as WorkoutSessionExercise;
   },
 });
 
-export type DeleteWorkoutSessionExerciseVariables = {
+export interface DeleteWorkoutSessionExerciseVariables {
   exerciseId: string;
-};
+}
 
 export const useDeleteWorkoutSessionExerciseMutation = createMutation<
   void,
@@ -79,16 +83,18 @@ export const useDeleteWorkoutSessionExerciseMutation = createMutation<
       .from("workout_session_exercises")
       .delete()
       .eq("id", exerciseId);
-    if (error) throw error;
+    if (error) {
+      throw error;
+    }
   },
 });
 
-export type ReplaceWorkoutSessionExerciseVariables = {
-  exerciseId: string;
+export interface ReplaceWorkoutSessionExerciseVariables {
   data: {
     exercise_id?: string;
   };
-};
+  exerciseId: string;
+}
 
 export const useReplaceWorkoutSessionExerciseMutation = createMutation<
   WorkoutSessionExercise,
@@ -104,13 +110,17 @@ export const useReplaceWorkoutSessionExerciseMutation = createMutation<
       .eq("id", exerciseId)
       .select(SESSION_EXERCISE_SELECT)
       .single();
-    if (error) throw error;
+    if (error) {
+      throw error;
+    }
 
     const { error: setsError } = await supabase
       .from("workout_session_exercise_sets")
       .update({ weight_recommended: 0, reps_recommended: 0 })
       .eq("workout_session_exercise_id", exerciseId);
-    if (setsError) throw setsError;
+    if (setsError) {
+      throw setsError;
+    }
 
     return result as unknown as WorkoutSessionExercise;
   },

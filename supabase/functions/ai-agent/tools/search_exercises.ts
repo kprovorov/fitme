@@ -1,6 +1,6 @@
 import { tool } from "npm:ai";
 import { z } from "npm:zod";
-import { ToolContext } from "./types.ts";
+import type { ToolContext } from "./types.ts";
 
 export function createSearchExercisesTool({
   supabaseClient,
@@ -18,7 +18,7 @@ export function createSearchExercisesTool({
         .string()
         .optional()
         .describe(
-          "Filter by muscle group: chest, back, shoulders, biceps, triceps, forearms, abs, obliques, quadriceps, hamstrings, glutes, calves, traps, lats, lower-back, cardio, full-body",
+          "Filter by muscle group: chest, back, shoulders, biceps, triceps, forearms, abs, obliques, quadriceps, hamstrings, glutes, calves, traps, lats, lower-back, cardio, full-body"
         ),
     }),
     execute: async ({ query, muscle_group }) => {
@@ -27,9 +27,12 @@ export function createSearchExercisesTool({
         .from("exercises")
         .select("id, name, muscle_groups")
         .limit(8);
-      if (query) q = q.ilike("name", `%${query}%`);
-      if (muscle_group)
+      if (query) {
+        q = q.ilike("name", `%${query}%`);
+      }
+      if (muscle_group) {
         q = q.contains("muscle_groups", JSON.stringify([muscle_group]));
+      }
       const { data, error } = await q;
       if (error) {
         log("tool_error", { tool: "search_exercises", error: error.message });

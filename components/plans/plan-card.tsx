@@ -1,5 +1,11 @@
-import React from "react";
-import { Plan } from "@/lib/models";
+import type { Plan } from "@/lib/models";
+import { BicepsFlexed } from "~/lib/icons/BicepsFlexed";
+import { Dumbbell } from "~/lib/icons/Dumbbell";
+import { Flame } from "~/lib/icons/Flame";
+import { HeartPulse } from "~/lib/icons/HeartPulse";
+import { House } from "~/lib/icons/House";
+import { Zap } from "~/lib/icons/Zap";
+import { getGoalLabel, getPlaceLabel } from "~/lib/labels";
 import {
   Card,
   CardContent,
@@ -8,15 +14,8 @@ import {
   CardTitle,
 } from "../ui/card";
 import { HStack } from "../ui/hstack";
-import { Zap } from "~/lib/icons/Zap";
 import { Text } from "../ui/text";
-import { Muted, P } from "../ui/typography";
-import { Dumbbell } from "~/lib/icons/Dumbbell";
-import { House } from "~/lib/icons/House";
-import { BicepsFlexed } from "~/lib/icons/BicepsFlexed";
-import { Flame } from "~/lib/icons/Flame";
-import { HeartPulse } from "~/lib/icons/HeartPulse";
-import { getGoalLabel, getPlaceLabel } from "~/lib/labels";
+import { P } from "../ui/typography";
 
 interface PlanCardProps {
   plan: Plan;
@@ -32,34 +31,34 @@ export default function PlanCard({ plan }: PlanCardProps) {
           {plan.name}
         </CardTitle>
         <CardDescription>
-          <HStack className="justify-start flex-wrap">
+          <HStack className="flex-wrap justify-start">
             {[
               {
                 icon:
                   plan.goal === "muscle-gain" ? (
-                    <BicepsFlexed size={16} className="text-muted-foreground" />
+                    <BicepsFlexed className="text-muted-foreground" size={16} />
                   ) : plan.goal === "fat-loss" ? (
-                    <Flame size={16} className="text-muted-foreground" />
+                    <Flame className="text-muted-foreground" size={16} />
                   ) : (
-                    <HeartPulse size={16} className="text-muted-foreground" />
+                    <HeartPulse className="text-muted-foreground" size={16} />
                   ),
                 label: getGoalLabel(plan.goal),
               },
               {
-                icon: <Zap size={16} className="text-muted-foreground" />,
+                icon: <Zap className="text-muted-foreground" size={16} />,
                 label: `${plan.frequency}x per week`,
               },
               {
                 icon:
                   plan.place === "gym" ? (
-                    <Dumbbell size={16} className="text-muted-foreground" />
+                    <Dumbbell className="text-muted-foreground" size={16} />
                   ) : (
-                    <House size={16} className="text-muted-foreground" />
+                    <House className="text-muted-foreground" size={16} />
                   ),
                 label: getPlaceLabel(plan.place),
               },
-            ].map((item, index) => (
-              <HStack className="gap-1" key={index}>
+            ].map((item) => (
+              <HStack className="gap-1" key={item.label}>
                 {item.icon}
                 <Text className="font-nunito-sans-bold text-sm">
                   {item.label}

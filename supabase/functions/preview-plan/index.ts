@@ -16,7 +16,7 @@ async function checkRevenueCatEntitlement(rcUserId: string): Promise<boolean> {
         Authorization: `Bearer ${apiKey}`,
         "Content-Type": "application/json",
       },
-    },
+    }
   );
 
   if (!response.ok) {
@@ -26,10 +26,14 @@ async function checkRevenueCatEntitlement(rcUserId: string): Promise<boolean> {
 
   const data = await response.json();
   const entitlement = data?.subscriber?.entitlements?.["Fitme Pro"];
-  if (!entitlement) return false;
+  if (!entitlement) {
+    return false;
+  }
 
   // null expires_date means lifetime purchase
-  if (entitlement.expires_date === null) return true;
+  if (entitlement.expires_date === null) {
+    return true;
+  }
 
   return new Date(entitlement.expires_date) > new Date();
 }
@@ -132,8 +136,8 @@ const WORKOUT_PLAN_SCHEMA = {
 type Provider = "anthropic" | "openai";
 
 interface ProviderConfig {
-  provider: Provider;
   model: string;
+  provider: Provider;
 }
 
 function getAvailableProviders(): ProviderConfig[] {
@@ -154,9 +158,9 @@ function pickRandomProvider(providers: ProviderConfig[]): ProviderConfig {
 async function callAnthropic(
   systemPrompt: string,
   userPrompt: string,
-  model: string,
+  model: string
 ): Promise<Record<string, unknown>> {
-  const apiKey = Deno.env.get("ANTHROPIC_API_KEY")!;
+  const apiKey = Deno.env.get("ANTHROPIC_API_KEY") ?? "";
   const response = await fetch("https://api.anthropic.com/v1/messages", {
     method: "POST",
     headers: {
@@ -166,7 +170,7 @@ async function callAnthropic(
     },
     body: JSON.stringify({
       model,
-      max_tokens: 10000,
+      max_tokens: 10_000,
       system: systemPrompt,
       messages: [{ role: "user", content: userPrompt }],
       tools: [
@@ -182,25 +186,26 @@ async function callAnthropic(
 
   if (!response.ok) {
     throw new Error(
-      `Anthropic API error ${response.status}: ${await response.text()}`,
+      `Anthropic API error ${response.status}: ${await response.text()}`
     );
   }
 
   const data = await response.json();
   const toolUse = data.content?.find(
-    (block: { type: string }) => block.type === "tool_use",
+    (block: { type: string }) => block.type === "tool_use"
   );
-  if (!toolUse?.input)
+  if (!toolUse?.input) {
     throw new Error("No structured output returned from Anthropic");
+  }
   return toolUse.input as Record<string, unknown>;
 }
 
 async function callOpenAI(
   systemPrompt: string,
   userPrompt: string,
-  model: string,
+  model: string
 ): Promise<Record<string, unknown>> {
-  const apiKey = Deno.env.get("OPENAI_API_KEY")!;
+  const apiKey = Deno.env.get("OPENAI_API_KEY") ?? "";
   const response = await fetch("https://api.openai.com/v1/chat/completions", {
     method: "POST",
     headers: {
@@ -209,7 +214,7 @@ async function callOpenAI(
     },
     body: JSON.stringify({
       model,
-      max_tokens: 10000,
+      max_tokens: 10_000,
       messages: [
         { role: "system", content: systemPrompt },
         { role: "user", content: userPrompt },
@@ -234,7 +239,7 @@ async function callOpenAI(
 
   if (!response.ok) {
     throw new Error(
-      `OpenAI API error ${response.status}: ${await response.text()}`,
+      `OpenAI API error ${response.status}: ${await response.text()}`
     );
   }
 
@@ -247,20 +252,20 @@ async function callOpenAI(
 }
 
 interface GeneratePlanParams {
-  goal: string;
-  place: string;
-  frequency: number;
   experience_level: string;
-  workout_duration: number;
+  frequency: number;
+  goal: string;
   note?: string;
+  place: string;
+  workout_duration: number;
 }
 
 interface Profile {
-  gender?: string;
   age?: number;
+  gender?: string;
   height?: number;
-  weight?: number;
   measurement_system?: string;
+  weight?: number;
 }
 
 interface Exercise {
@@ -272,7 +277,7 @@ interface Exercise {
 function buildPrompts(
   params: GeneratePlanParams,
   exercises: Exercise[],
-  profile: Profile | null,
+  profile: Profile | null
 ): { systemPrompt: string; userPrompt: string } {
   const exercisesJson = JSON.stringify(exercises);
   const measurementSystem = profile?.measurement_system ?? "metric";
@@ -293,24 +298,33 @@ function buildPrompts(
     `Measurement system: ${measurementSystem} (use ${weightUnit} for weight)`,
   ];
 
-  if (profile?.gender) userPromptParts.push(`Gender: ${profile.gender}`);
-  if (profile?.age) userPromptParts.push(`Age: ${profile.age}`);
-  if (profile?.weight)
+  if (profile?.gender) {
+    userPromptParts.push(`Gender: ${profile.gender}`);
+  }
+  if (profile?.age) {
+    userPromptParts.push(`Age: ${profile.age}`);
+  }
+  if (profile?.weight) {
     userPromptParts.push(`Weight: ${profile.weight} ${weightUnit}`);
-  if (profile?.height) userPromptParts.push(`Height: ${profile.height}`);
-  if (params.note) userPromptParts.push(`Note: ${params.note}`);
+  }
+  if (profile?.height) {
+    userPromptParts.push(`Height: ${profile.height}`);
+  }
+  if (params.note) {
+    userPromptParts.push(`Note: ${params.note}`);
+  }
 
   return { systemPrompt, userPrompt: userPromptParts.join("\n") };
 }
 
 async function callAIWithRetry(
   systemPrompt: string,
-  userPrompt: string,
+  userPrompt: string
 ): Promise<Record<string, unknown>> {
   const providers = getAvailableProviders();
   if (providers.length === 0) {
     throw new Error(
-      "No AI provider configured. Set ANTHROPIC_API_KEY or OPENAI_API_KEY.",
+      "No AI provider configured. Set ANTHROPIC_API_KEY or OPENAI_API_KEY."
     );
   }
 
@@ -320,18 +334,17 @@ async function callAIWithRetry(
     const { provider, model } = pickRandomProvider(providers);
     try {
       console.log(
-        `Attempt ${attempt}: using provider=${provider} model=${model}`,
+        `Attempt ${attempt}: using provider=${provider} model=${model}`
       );
       if (provider === "anthropic") {
         return await callAnthropic(systemPrompt, userPrompt, model);
-      } else {
-        return await callOpenAI(systemPrompt, userPrompt, model);
       }
+      return await callOpenAI(systemPrompt, userPrompt, model);
     } catch (err) {
       lastError = err instanceof Error ? err : new Error(String(err));
       console.warn(
         `Attempt ${attempt} failed (${provider}/${model}):`,
-        lastError.message,
+        lastError.message
       );
     }
   }
@@ -351,7 +364,7 @@ Deno.serve(async (req: Request) => {
   const supabaseClient = createClient(
     Deno.env.get("SUPABASE_URL") ?? "",
     Deno.env.get("SUPABASE_ANON_KEY") ?? "",
-    { global: { headers: { Authorization: authHeader } } },
+    { global: { headers: { Authorization: authHeader } } }
   );
 
   const {
@@ -382,7 +395,7 @@ Deno.serve(async (req: Request) => {
         name: string,
         desc: string,
         order: number,
-        wExercises: Exercise[],
+        wExercises: Exercise[]
       ) => ({
         name,
         description: desc,
@@ -427,13 +440,13 @@ Deno.serve(async (req: Request) => {
             "E2E Workout A",
             "First workout of the fixture plan.",
             1,
-            workout1Exercises,
+            workout1Exercises
           ),
           makeWorkout(
             "E2E Workout B",
             "Second workout of the fixture plan.",
             2,
-            workout2Exercises,
+            workout2Exercises
           ),
         ],
       };
@@ -463,7 +476,7 @@ Deno.serve(async (req: Request) => {
       {
         status: 500,
         headers: { "Content-Type": "application/json" },
-      },
+      }
     );
   }
 
@@ -491,8 +504,14 @@ Deno.serve(async (req: Request) => {
 
     // Enrich AI output: replace exercise_id with a nested exercise object,
     // matching what WorkoutExerciseData expects on the client.
-    type RawExercise = { exercise_id: string; [key: string]: unknown };
-    type RawWorkout = { exercises: RawExercise[]; [key: string]: unknown };
+    interface RawExercise {
+      exercise_id: string;
+      [key: string]: unknown;
+    }
+    interface RawWorkout {
+      exercises: RawExercise[];
+      [key: string]: unknown;
+    }
     const enrichedWorkouts = (aiOutput.workouts as RawWorkout[]).map(
       (workout) => ({
         ...workout,
@@ -502,7 +521,7 @@ Deno.serve(async (req: Request) => {
             exercise: exerciseMap.get(ex.exercise_id) ?? null,
           }))
           .filter((ex) => ex.exercise !== null),
-      }),
+      })
     );
 
     const planData = {
@@ -528,7 +547,7 @@ Deno.serve(async (req: Request) => {
       {
         status: 500,
         headers: { "Content-Type": "application/json" },
-      },
+      }
     );
   }
 });

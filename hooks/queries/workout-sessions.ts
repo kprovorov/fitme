@@ -1,6 +1,6 @@
-import { supabase } from "@/lib/supabase";
 import { createMutation, createQuery } from "react-query-kit";
-import { WorkoutSession } from "~/lib/models";
+import { supabase } from "@/lib/supabase";
+import type { WorkoutSession } from "~/lib/models";
 
 const SESSION_SELECT = `
   *,
@@ -15,9 +15,9 @@ const SESSION_SELECT = `
   )
 `;
 
-export type CreateWorkoutSessionVariables = {
+export interface CreateWorkoutSessionVariables {
   workoutId: string;
-};
+}
 
 export const useCreateWorkoutSessionMutation = createMutation<
   WorkoutSession,
@@ -28,23 +28,27 @@ export const useCreateWorkoutSessionMutation = createMutation<
   }: CreateWorkoutSessionVariables): Promise<WorkoutSession> => {
     const { data: sessionId, error: rpcError } = await supabase.rpc(
       "start_workout_session",
-      { p_workout_id: workoutId },
+      { p_workout_id: workoutId }
     );
-    if (rpcError) throw rpcError;
+    if (rpcError) {
+      throw rpcError;
+    }
 
     const { data, error } = await supabase
       .from("workout_sessions")
       .select(SESSION_SELECT)
       .eq("id", sessionId)
       .single();
-    if (error) throw error;
+    if (error) {
+      throw error;
+    }
     return data as unknown as WorkoutSession;
   },
 });
 
-export type GetWorkoutSessionVariables = {
+export interface GetWorkoutSessionVariables {
   sessionId: string;
-};
+}
 
 export const useWorkoutSessionQuery = createQuery<
   WorkoutSession,
@@ -57,14 +61,16 @@ export const useWorkoutSessionQuery = createQuery<
       .select(SESSION_SELECT)
       .eq("id", sessionId)
       .single();
-    if (error) throw error;
+    if (error) {
+      throw error;
+    }
     return data as unknown as WorkoutSession;
   },
 });
 
-export type FinishWorkoutSessionVariables = {
+export interface FinishWorkoutSessionVariables {
   sessionId: string;
-};
+}
 
 export const useFinishWorkoutSessionMutation = createMutation<
   WorkoutSession,
@@ -74,14 +80,18 @@ export const useFinishWorkoutSessionMutation = createMutation<
     const { error: rpcError } = await supabase.rpc("finish_workout_session", {
       p_session_id: sessionId,
     });
-    if (rpcError) throw rpcError;
+    if (rpcError) {
+      throw rpcError;
+    }
 
     const { data, error } = await supabase
       .from("workout_sessions")
       .select(SESSION_SELECT)
       .eq("id", sessionId)
       .single();
-    if (error) throw error;
+    if (error) {
+      throw error;
+    }
     return data as unknown as WorkoutSession;
   },
 });
@@ -97,7 +107,9 @@ export const useWorkoutSessionHistoryQuery = createQuery<
       .select(SESSION_SELECT)
       .not("finished_at", "is", null)
       .order("finished_at", { ascending: false });
-    if (error) throw error;
+    if (error) {
+      throw error;
+    }
     return (data ?? []) as unknown as WorkoutSession[];
   },
 });

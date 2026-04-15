@@ -1,6 +1,5 @@
 import { PortalHost } from "@rn-primitives/portal";
 import { Stack } from "expo-router";
-import React from "react";
 import { HeaderBackButton } from "~/components/ui/header-back-button";
 
 export default function Layout() {

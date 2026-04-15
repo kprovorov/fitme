@@ -1,8 +1,8 @@
-import { supabase } from "@/lib/supabase";
-import { Plan, PlanData } from "@/lib/models";
 import { createMutation, createQuery } from "react-query-kit";
-import { segmentClient } from "~/lib/segment";
+import type { Plan, PlanData } from "@/lib/models";
+import { supabase } from "@/lib/supabase";
 import { IS_E2E } from "~/lib/constants";
+import { segmentClient } from "~/lib/segment";
 
 const PLAN_SELECT = `
   *,
@@ -25,14 +25,16 @@ export const usePlansQuery = createQuery<Plan[]>({
       .select(PLAN_SELECT)
       .is("deleted_at", null)
       .order("created_at", { ascending: false });
-    if (error) throw error;
+    if (error) {
+      throw error;
+    }
     return data as unknown as Plan[];
   },
 });
 
-export type PlanQueryVariables = {
+export interface PlanQueryVariables {
   id: string;
-};
+}
 
 export const usePlanQuery = createQuery<Plan, PlanQueryVariables>({
   queryKey: ["plan"],
@@ -42,7 +44,9 @@ export const usePlanQuery = createQuery<Plan, PlanQueryVariables>({
       .select(PLAN_SELECT)
       .eq("id", id)
       .single();
-    if (error) throw error;
+    if (error) {
+      throw error;
+    }
     return data as unknown as Plan;
   },
 });
@@ -62,18 +66,24 @@ export const useStorePlanMutation = createMutation<Plan, PlanData>({
       "create_plan",
       {
         p_plan_data: payload,
-      },
+      }
     );
-    if (rpcError) throw rpcError;
+    if (rpcError) {
+      throw rpcError;
+    }
 
     const { data: plan, error } = await supabase
       .from("plans")
       .select()
       .eq("id", planId)
       .single();
-    if (error) throw error;
+    if (error) {
+      throw error;
+    }
 
-    if (!IS_E2E) segmentClient.track("Plan Saved", { plan_id: plan.id });
+    if (!IS_E2E) {
+      segmentClient.track("Plan Saved", { plan_id: plan.id });
+    }
     return plan as unknown as Plan;
   },
 });
@@ -83,8 +93,12 @@ export const useActivatePlanMutation = createMutation<Plan, { id: string }>({
     const { data: plan, error } = await supabase.rpc("activate_plan", {
       plan_id: data.id,
     });
-    if (error) throw error;
-    if (!IS_E2E) segmentClient.track("Plan Activated", { plan_id: data.id });
+    if (error) {
+      throw error;
+    }
+    if (!IS_E2E) {
+      segmentClient.track("Plan Activated", { plan_id: data.id });
+    }
     return plan as unknown as Plan;
   },
 });
@@ -95,8 +109,11 @@ export const useDeletePlanMutation = createMutation<void, { id: string }>({
       .from("plans")
       .update({ deleted_at: new Date().toISOString() })
       .eq("id", data.id);
-    if (error) throw error;
-    if (!IS_E2E) segmentClient.track("Plan Deleted", { plan_id: data.id });
+    if (error) {
+      throw error;
+    }
+    if (!IS_E2E) {
+      segmentClient.track("Plan Deleted", { plan_id: data.id });
+    }
   },
 });
-

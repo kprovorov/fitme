@@ -1,13 +1,12 @@
-import React from "react";
-import { H2 } from "~/components/ui/typography";
-import { VStack } from "~/components/ui/vstack";
-import { Text } from "~/components/ui/text";
+import { Link, router, Stack } from "expo-router";
 import { SafeAreaView } from "react-native-safe-area-context";
 import Sign from "~/components/brand/sign";
 import { Button } from "~/components/ui/button";
 import { HStack } from "~/components/ui/hstack";
+import { Text } from "~/components/ui/text";
+import { H2 } from "~/components/ui/typography";
+import { VStack } from "~/components/ui/vstack";
 import { ArrowRight } from "~/lib/icons/ArrowRight";
-import { Link, router, Stack } from "expo-router";
 
 export default function WelcomeScreen() {
   return (
@@ -18,30 +17,30 @@ export default function WelcomeScreen() {
         }}
       />
       <SafeAreaView className="flex-1">
-        <VStack className="h-full p-6 items-center justify-center gap-8">
-          <Sign width={100} height={100} />
+        <VStack className="h-full items-center justify-center gap-8 p-6">
+          <Sign height={100} width={100} />
           <VStack className="gap-2">
             <H2>Welcome to Fitme!</H2>
             <Text className="text-center">
               Your personal AI trainer is waiting for you. Let's get started!
             </Text>
           </VStack>
-          <VStack className="items-stretch w-full">
-            <Link href="/onboarding/profile" asChild>
+          <VStack className="w-full items-stretch">
+            <Link asChild href="/onboarding/profile">
               <Button className="w-full">
                 <HStack className="gap-2">
                   <Text>Get Started</Text>
-                  <ArrowRight size={16} className="text-black" />
+                  <ArrowRight className="text-black" size={16} />
                 </HStack>
               </Button>
             </Link>
             <Button
-              variant="link"
               className="w-full"
-              onPress={async () => {
+              onPress={() => {
                 // dismiss sheet
                 router.dismissTo("/");
               }}
+              variant="link"
             >
               <HStack className="gap-2">
                 <Text>Skip</Text>

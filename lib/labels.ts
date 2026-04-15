@@ -1,4 +1,4 @@
-import {
+import type {
   ExperienceLevel,
   Gender,
   Goal,
@@ -7,7 +7,7 @@ import {
 } from "./models";
 
 export const getMeasurementSystemLabel = (
-  measurementSystem: MeasurementSystem,
+  measurementSystem: MeasurementSystem
 ) => {
   switch (measurementSystem) {
     case "metric":
@@ -16,11 +16,13 @@ export const getMeasurementSystemLabel = (
       return "US";
     case "uk":
       return "UK";
+    default:
+      return undefined;
   }
 };
 
 export const getMeasurementSystemDisclaimer = (
-  measurementSystem: MeasurementSystem,
+  measurementSystem: MeasurementSystem
 ) => {
   switch (measurementSystem) {
     case "metric":
@@ -29,6 +31,8 @@ export const getMeasurementSystemDisclaimer = (
       return "Feet, Inches and Pounds";
     case "uk":
       return "Feet, Inches and Pounds";
+    default:
+      return undefined;
   }
 };
 
@@ -40,6 +44,8 @@ export const getWeightLabel = (measurementSystem: MeasurementSystem) => {
       return "lbs";
     case "uk":
       return "lbs";
+    default:
+      return undefined;
   }
 };
 
@@ -51,6 +57,8 @@ export const getHeightLabel = (measurementSystem: MeasurementSystem) => {
       return "ft";
     case "uk":
       return "ft";
+    default:
+      return undefined;
   }
 };
 
@@ -60,6 +68,8 @@ export const getGenderLabel = (gender: Gender) => {
       return "Male";
     case "female":
       return "Female";
+    default:
+      return undefined;
   }
 };
 
@@ -75,6 +85,8 @@ export const getGoalLabel = (goal: Goal) => {
       return "Strength & Performance";
     case "general-health-fitness":
       return "General Health & Fitness";
+    default:
+      return undefined;
   }
 };
 
@@ -84,6 +96,8 @@ export const getPlaceLabel = (place: Place) => {
       return "Gym";
     case "home":
       return "Home";
+    default:
+      return undefined;
   }
 };
 
@@ -95,11 +109,13 @@ export const getExperienceLevelLabel = (experienceLevel: ExperienceLevel) => {
       return "Intermediate";
     case "advanced":
       return "Advanced";
+    default:
+      return undefined;
   }
 };
 
 export const getExperienceLevelDisclaimer = (
-  experienceLevel: ExperienceLevel,
+  experienceLevel: ExperienceLevel
 ) => {
   switch (experienceLevel) {
     case "beginner":
@@ -108,5 +124,7 @@ export const getExperienceLevelDisclaimer = (
       return "6 mo - 3 yrs experience";
     case "advanced":
       return "3+ yrs experience";
+    default:
+      return undefined;
   }
 };

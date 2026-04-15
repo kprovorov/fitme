@@ -1,13 +1,13 @@
-import { supabase, supabaseAnonKey, supabaseUrl } from "@/lib/supabase";
-import { AgentResponse } from "@/lib/models";
-import { createMutation } from "react-query-kit";
 import { fetch as expoFetch } from "expo/fetch";
+import { createMutation } from "react-query-kit";
+import type { AgentResponse } from "@/lib/models";
+import { supabase, supabaseAnonKey, supabaseUrl } from "@/lib/supabase";
 
-export type SendMessageData = {
-  message: string;
+export interface SendMessageData {
   conversationId?: string;
+  message: string;
   onChunk?: (chunk: string, conversationId: string) => void;
-};
+}
 
 export const useSendMessageMutation = createMutation<
   AgentResponse,
