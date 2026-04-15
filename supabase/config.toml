@@ -352,6 +352,22 @@ authorization_url_path = "/oauth/consent"
 # Allow dynamic client registration
 allow_dynamic_registration = false
 
+[functions.ai-agent]
+enabled = true
+verify_jwt = true
+
+[functions.preview-plan]
+enabled = true
+verify_jwt = true
+
+[functions.delete-user]
+enabled = true
+verify_jwt = true
+
+[functions.revenuecat-webhook]
+enabled = true
+verify_jwt = false
+
 [edge_runtime]
 enabled = true
 # Supported request policies: `oneshot`, `per_worker`.
