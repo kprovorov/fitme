@@ -36,7 +36,7 @@ function ConversationListItem({
         <View className="w-8 h-8 rounded-full bg-primary/10 items-center justify-center shrink-0">
           <Sparkles className="w-4 h-4 text-primary" />
         </View>
-        <VStack className="flex-1 gap-0.5">
+        <VStack className="flex-1 gap-0.5 items-start justify-start">
           <Text className="text-sm font-nunito-sans-semibold">
             {format(new Date(conversation.created_at), "MMM d, yyyy")}
           </Text>
