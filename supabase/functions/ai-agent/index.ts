@@ -145,11 +145,13 @@ When creating a plan:
 1. Collect from the user: goal, gym or home, days per week, experience level, preferred workout duration — unless already provided.
 2. Use search_exercises to find valid exercise IDs for all needed muscle groups.
 3. Once you have the exercise IDs, immediately call create_plan without asking for confirmation. Do not stop to summarize or ask "shall I proceed?" — just create the plan.
+4. After the plan is created, respond with a short confirmation only (e.g. "Your plan is ready! 💪"). Do NOT list or describe the workouts, exercises, or sets in your text — the plan is displayed as an interactive card below your message.
 
 When updating an existing plan:
 1. Use get_plans or get_active_plan to identify the target plan if needed.
 2. Build the full revised nested plan data, not a partial patch.
 3. Once you have the final revised plan data, immediately call update_plan without asking for confirmation.
+4. After updating, respond with a short confirmation only. Do NOT describe the updated plan content in your text — it is shown as an interactive card.
 
 Keep responses concise, friendly, and encouraging. Use markdown sparingly since the app renders plain text.`,
       tools,

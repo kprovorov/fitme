@@ -417,7 +417,7 @@ export default function AgentScreen() {
                 placeholder="Message..."
                 value={input}
                 onChangeText={setInput}
-                onSubmitEditing={handleSend}
+                onSubmitEditing={() => handleSend()}
                 returnKeyType="send"
                 editable={!isPending && !isStreaming}
                 nativeID="chat-input"
@@ -426,7 +426,7 @@ export default function AgentScreen() {
                 onLayout={onInputLayout}
               />
               <Pressable
-                onPress={handleSend}
+                onPress={() => handleSend()}
                 disabled={!input.trim() || isPending || isStreaming}
                 className={`w-10 h-10 rounded-full items-center justify-center ${
                   input.trim() && !isPending && !isStreaming
