@@ -15,10 +15,9 @@ import { Button } from "~/components/ui/button";
 import { HStack } from "~/components/ui/hstack";
 import { Label } from "~/components/ui/label";
 import { RadioGroup, RadioGroupItem } from "~/components/ui/radio-group";
-import { Spinner } from "~/components/ui/spinner";
 import { Text } from "~/components/ui/text";
 import { Textarea } from "~/components/ui/textarea";
-import { H4, Muted, P } from "~/components/ui/typography";
+import { H4, Muted } from "~/components/ui/typography";
 import { VStack } from "~/components/ui/vstack";
 import { BicepsFlexed } from "~/lib/icons/BicepsFlexed";
 import { Flame } from "~/lib/icons/Flame";
@@ -291,30 +290,15 @@ export default function PlannerScreen() {
 
               <VStack className="items-stretch gap-2">
                 <Button
-                  disabled={form.formState.isSubmitting}
-                  onPress={form.handleSubmit(async (values) => {
-                    router.push({
-                      pathname: "/planner/preview",
-                      params: values,
+                  onPress={form.handleSubmit((values) => {
+                    router.navigate({
+                      pathname: "/(tabs)/agent",
+                      params: { planRequest: JSON.stringify(values) },
                     });
                   })}
                 >
-                  {form.formState.isSubmitting ? (
-                    <Spinner size={16} className="text-black" />
-                  ) : (
-                    <Text>Get my plan!</Text>
-                  )}
+                  <Text>Get my plan!</Text>
                 </Button>
-                {form.formState.isSubmitting && (
-                  <VStack className="justify-center items-center gap-0">
-                    <P className="font-bold text-center text-sm">
-                      Hold on... AI is working hard to create your plan!
-                    </P>
-                    <Muted className="text-center text-sm">
-                      This may take a couple of minutes.
-                    </Muted>
-                  </VStack>
-                )}
               </VStack>
             </VStack>
           </VStack>
