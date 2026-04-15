@@ -1,5 +1,5 @@
 import { supabase } from "@/lib/supabase";
-import { Conversation, Message } from "@/lib/models";
+import { Conversation, ConversationWithPreview, Message } from "@/lib/models";
 import { createQuery } from "react-query-kit";
 
 export const useConversationQuery = createQuery<Conversation | null>({
@@ -12,6 +12,37 @@ export const useConversationQuery = createQuery<Conversation | null>({
       .limit(1)
       .single();
     return (data as Conversation) ?? null;
+  },
+});
+
+export const useConversationsQuery = createQuery<ConversationWithPreview[]>({
+  queryKey: ["conversations"],
+  fetcher: async (): Promise<ConversationWithPreview[]> => {
+    const { data, error } = await supabase
+      .from("conversations")
+      .select("id, user_id, created_at, messages(content, role, created_at)")
+      .order("created_at", { ascending: false });
+    if (error) throw error;
+    return (data ?? []).map((conv) => {
+      const firstUserMsg = (
+        conv.messages as Array<{
+          content: string;
+          role: string;
+          created_at: string;
+        }>
+      )
+        ?.filter((m) => m.role === "user")
+        .sort(
+          (a, b) =>
+            new Date(a.created_at).getTime() - new Date(b.created_at).getTime(),
+        )[0];
+      return {
+        id: conv.id,
+        user_id: conv.user_id,
+        created_at: conv.created_at,
+        preview: firstUserMsg?.content ?? null,
+      };
+    });
   },
 });
 

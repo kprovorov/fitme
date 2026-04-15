@@ -1,6 +1,6 @@
 import { useQueryClient } from "@tanstack/react-query";
 import type React from "react";
-import { forwardRef, useCallback, useEffect, useState } from "react";
+import { forwardRef, useCallback, useEffect, useRef, useState } from "react";
 import {
   FlatList,
   type LayoutChangeEvent,
@@ -26,11 +26,14 @@ import { Spinner } from "~/components/ui/spinner";
 import { Text } from "~/components/ui/text";
 import { H3, Muted } from "~/components/ui/typography";
 import AgentMessageView from "~/components/views/agent-message-view";
+import ConversationListView from "~/components/views/conversation-list-view";
 import { useSendMessageMutation } from "~/hooks/mutations/agent";
 import { useConversationQuery, useMessagesQuery } from "~/hooks/queries/agent";
 import { ArrowRight } from "~/lib/icons/ArrowRight";
+import { Ellipsis } from "~/lib/icons/Ellipsis";
 import { Sparkles } from "~/lib/icons/Sparkles";
 import type { Message, MessageAttachment } from "~/lib/models";
+import { Button } from "~/components/ui/button";
 
 const SUGGESTIONS = [
   "Create a workout plan for me",
@@ -112,7 +115,10 @@ export default function AgentScreen() {
   const [input, setInput] = useState("");
   const [localMessages, setLocalMessages] = useState<LocalMessage[]>([]);
   const [conversationId, setConversationId] = useState<string | undefined>();
+  const userChoseConversation = useRef(false);
   const [isStreaming, setIsStreaming] = useState(false);
+  const [isConversationListVisible, setIsConversationListVisible] =
+    useState(false);
   const [inputHeight, setInputHeight] = useState(INPUT_HEIGHT);
   const extraContentPadding = useSharedValue(0);
 
@@ -123,9 +129,11 @@ export default function AgentScreen() {
   });
   const { mutate: sendMessage, isPending } = useSendMessageMutation();
 
-  // Sync conversation from server on mount
+  // Seed active conversation from server on first load only.
+  // Skip if the user has explicitly chosen (new or switched) — otherwise
+  // setting conversationId to undefined would immediately get overwritten.
   useEffect(() => {
-    if (conversation?.id && !conversationId) {
+    if (conversation?.id && !conversationId && !userChoseConversation.current) {
       setConversationId(conversation.id);
     }
   }, [conversation, conversationId]);
@@ -146,6 +154,28 @@ export default function AgentScreen() {
   }, [isStreaming, serverMessages]);
 
   const { bottom } = useSafeAreaInsets();
+
+  const handleNewConversation = useCallback(() => {
+    userChoseConversation.current = true;
+    setConversationId(undefined);
+    setLocalMessages([]);
+    setIsConversationListVisible(false);
+  }, []);
+
+  const handleSelectConversation = useCallback(
+    (id: string) => {
+      if (id === conversationId) {
+        setIsConversationListVisible(false);
+        return;
+      }
+      userChoseConversation.current = true;
+      setConversationId(id);
+      setLocalMessages([]);
+      setIsStreaming(false);
+      setIsConversationListVisible(false);
+    },
+    [conversationId],
+  );
 
   const handleSend = useCallback(() => {
     const text = input.trim();
@@ -213,6 +243,7 @@ export default function AgentScreen() {
           setIsStreaming(false);
 
           queryClient.invalidateQueries({ queryKey: ["conversation"] });
+          queryClient.invalidateQueries({ queryKey: ["conversations"] });
 
           if (response.conversation_id) {
             queryClient.invalidateQueries({
@@ -270,6 +301,15 @@ export default function AgentScreen() {
           <H3>AI Agent</H3>
           <Muted className="text-xs leading-tight">Powered by Claude</Muted>
         </View>
+        <Button
+          variant="ghost"
+          size="icon-sm"
+          shape="pill"
+          onPress={() => setIsConversationListVisible(true)}
+          disabled={isStreaming}
+        >
+          <Ellipsis size={21} className="text-foreground" />
+        </Button>
       </View>
 
       <KeyboardGestureArea
@@ -344,6 +384,13 @@ export default function AgentScreen() {
           </View>
         </KeyboardStickyView>
       </KeyboardGestureArea>
+      <ConversationListView
+        visible={isConversationListVisible}
+        onClose={() => setIsConversationListVisible(false)}
+        activeConversationId={conversationId}
+        onSelectConversation={handleSelectConversation}
+        onNewConversation={handleNewConversation}
+      />
     </SafeAreaView>
   );
 }

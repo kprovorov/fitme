@@ -188,6 +188,13 @@ export type Conversation = {
   created_at: string;
 };
 
+export type ConversationWithPreview = {
+  id: string;
+  user_id: string;
+  created_at: string;
+  preview: string | null;
+};
+
 export type MessageAttachment = {
   type: "plan_preview";
   planId: string;
