@@ -1,6 +1,6 @@
--- create_plan_v2: same as create_plan but without auto-activation (plans are inactive by default)
+-- store_plan: creates a plan without auto-activation (plans are inactive by default)
 -- and accepts an explicit p_user_id parameter (defaults to auth.uid()).
-CREATE OR REPLACE FUNCTION public.create_plan_v2(
+CREATE OR REPLACE FUNCTION public.store_plan(
   p_plan_data jsonb,
   p_user_id uuid DEFAULT auth.uid()
 )

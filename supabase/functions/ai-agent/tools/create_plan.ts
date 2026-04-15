@@ -57,10 +57,9 @@ export function createCreatePlanTool({
         data,
       });
       try {
-        const { data: planId, error } = await supabaseClient.rpc(
-          "create_plan_v2",
-          { p_plan_data: data },
-        );
+        const { data: planId, error } = await supabaseClient.rpc("store_plan", {
+          p_plan_data: data,
+        });
         if (error) throw error;
         log("tool_ok", { tool: "create_plan", planId });
         onPlanCreated?.(planId);
