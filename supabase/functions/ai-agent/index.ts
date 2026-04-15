@@ -4,6 +4,7 @@ import { createAnthropic } from "npm:@ai-sdk/anthropic";
 
 import { createGetActivePlanTool } from "./tools/get_active_plan.ts";
 import { createGetPlansTool } from "./tools/get_plans.ts";
+import { createGetUserProfileTool } from "./tools/get_user_profile.ts";
 import { createSearchExercisesTool } from "./tools/search_exercises.ts";
 import { createCreatePlanTool } from "./tools/create_plan.ts";
 import { createActivatePlanTool } from "./tools/activate_plan.ts";
@@ -117,6 +118,7 @@ Deno.serve(async (req: Request) => {
   const tools = {
     get_active_plan: createGetActivePlanTool(ctx),
     get_plans: createGetPlansTool(ctx),
+    get_user_profile: createGetUserProfileTool(ctx),
     search_exercises: createSearchExercisesTool(ctx),
     create_plan: createCreatePlanTool(ctx),
     update_plan: createUpdatePlanTool(ctx),
