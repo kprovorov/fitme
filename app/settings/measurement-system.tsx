@@ -59,7 +59,7 @@ export default function MeasurementSystemScreen() {
         options={{
           headerTransparent: true,
           headerTitleStyle: {
-            fontFamily: "NunitoSans-Bold",
+            fontFamily: "NunitoSans12pt-Bold",
             fontWeight: "bold",
           },
           title: "Measurement System",
@@ -68,7 +68,11 @@ export default function MeasurementSystemScreen() {
         }}
       />
       <SafeAreaView className="flex-1">
-        <ScrollView className="flex-1 p-4" showsVerticalScrollIndicator={false}>
+        <ScrollView
+          className="flex-1 p-4"
+          contentInsetAdjustmentBehavior="automatic"
+          showsVerticalScrollIndicator={false}
+        >
           <RadioGroup
             onValueChange={(newValue) =>
               handleUpdateMeasurementSystem(newValue as MeasurementSystem)

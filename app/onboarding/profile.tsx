@@ -165,6 +165,7 @@ export default function ProfileScreen() {
           <>
             <ScrollView
               contentContainerStyle={{ paddingTop: headerHeight }}
+              contentInsetAdjustmentBehavior="automatic"
               ref={scrollViewRef}
               showsVerticalScrollIndicator={false}
             >

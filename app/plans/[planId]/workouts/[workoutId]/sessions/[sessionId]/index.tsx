@@ -2,10 +2,7 @@ import { useQueryClient } from "@tanstack/react-query";
 import { Stack, useLocalSearchParams } from "expo-router";
 import { useEffect, useState } from "react";
 import { ScrollView } from "react-native";
-import {
-  SafeAreaView,
-  useSafeAreaInsets,
-} from "react-native-safe-area-context";
+import { useSafeAreaInsets } from "react-native-safe-area-context";
 import { Button } from "~/components/ui/button";
 import { HeaderBackButton } from "~/components/ui/header-back-button";
 import { Text } from "~/components/ui/text";
@@ -85,50 +82,52 @@ export default function WorkoutSessionScreen() {
           // headerRight: () => <Text className="w-32">{elapsedTime}</Text>,
         }}
       />
-      <SafeAreaView className="flex-1" edges={["top"]}>
-        <ScrollView className="flex-1" showsVerticalScrollIndicator={false}>
-          {workoutSession && (
-            <VStack
-              className="flex-1 items-stretch px-md pt-md"
-              style={{ paddingBottom: insets.bottom }}
-            >
-              <WorkoutSessionView
-                sessionId={sessionId as string}
-                workoutSession={workoutSession}
-              />
-              {workoutSession.finished_at ? (
-                <Text className="text-center text-xl">
-                  Workout finished {(() => {
-                    const diff =
-                      new Date(workoutSession.finished_at).getTime() -
-                      new Date(workoutSession.started_at).getTime();
-                    const hours = Math.floor(diff / (1000 * 60 * 60));
-                    const minutes = Math.floor(
-                      (diff % (1000 * 60 * 60)) / (1000 * 60)
-                    );
-                    const seconds = Math.floor((diff % (1000 * 60)) / 1000);
-                    return `${hours.toString().padStart(2, "0")}:${minutes.toString().padStart(2, "0")}:${seconds.toString().padStart(2, "0")}`;
-                  })()}
-                </Text>
-              ) : (
-                <VStack className="items-stretch">
-                  <Text className="text-center text-3xl">{elapsedTime}</Text>
-                  <Button
-                    onPress={() =>
-                      finishWorkoutSession({
-                        sessionId: sessionId as string,
-                      })
-                    }
-                    testID="finish-workout-button"
-                  >
-                    <Text>Finish Workout</Text>
-                  </Button>
-                </VStack>
-              )}
-            </VStack>
-          )}
-        </ScrollView>
-      </SafeAreaView>
+      <ScrollView
+        className="flex-1"
+        contentInsetAdjustmentBehavior="automatic"
+        showsVerticalScrollIndicator={false}
+      >
+        {workoutSession && (
+          <VStack
+            className="flex-1 items-stretch px-md pt-md"
+            style={{ paddingBottom: insets.bottom }}
+          >
+            <WorkoutSessionView
+              sessionId={sessionId as string}
+              workoutSession={workoutSession}
+            />
+            {workoutSession.finished_at ? (
+              <Text className="text-center text-xl">
+                Workout finished {(() => {
+                  const diff =
+                    new Date(workoutSession.finished_at).getTime() -
+                    new Date(workoutSession.started_at).getTime();
+                  const hours = Math.floor(diff / (1000 * 60 * 60));
+                  const minutes = Math.floor(
+                    (diff % (1000 * 60 * 60)) / (1000 * 60)
+                  );
+                  const seconds = Math.floor((diff % (1000 * 60)) / 1000);
+                  return `${hours.toString().padStart(2, "0")}:${minutes.toString().padStart(2, "0")}:${seconds.toString().padStart(2, "0")}`;
+                })()}
+              </Text>
+            ) : (
+              <VStack className="items-stretch">
+                <Text className="text-center text-3xl">{elapsedTime}</Text>
+                <Button
+                  onPress={() =>
+                    finishWorkoutSession({
+                      sessionId: sessionId as string,
+                    })
+                  }
+                  testID="finish-workout-button"
+                >
+                  <Text>Finish Workout</Text>
+                </Button>
+              </VStack>
+            )}
+          </VStack>
+        )}
+      </ScrollView>
     </>
   );
 }

@@ -40,7 +40,7 @@ export default function LegalScreen() {
         options={{
           headerTransparent: true,
           headerTitleStyle: {
-            fontFamily: "NunitoSans-Bold",
+            fontFamily: "NunitoSans12pt-Bold",
             fontWeight: "bold",
           },
           title: "Legal",
@@ -49,7 +49,11 @@ export default function LegalScreen() {
       />
 
       <SafeAreaView className="flex-1">
-        <ScrollView className="flex-1 p-6" showsVerticalScrollIndicator={false}>
+        <ScrollView
+          className="flex-1 p-6"
+          contentInsetAdjustmentBehavior="automatic"
+          showsVerticalScrollIndicator={false}
+        >
           <MenuList>
             <Link asChild href="https://fitmeproject.com/privacy-policy">
               <MenuListItem icon="square-arrow-out-up-right">

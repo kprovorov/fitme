@@ -21,7 +21,7 @@ export default function SupportScreen() {
         options={{
           headerTransparent: true,
           headerTitleStyle: {
-            fontFamily: "NunitoSans-Bold",
+            fontFamily: "NunitoSans12pt-Bold",
             fontWeight: "bold",
           },
           title: "Support",
@@ -30,7 +30,11 @@ export default function SupportScreen() {
         }}
       />
       <SafeAreaView className="flex-1">
-        <ScrollView className="flex-1 p-6" showsVerticalScrollIndicator={false}>
+        <ScrollView
+          className="flex-1 p-6"
+          contentInsetAdjustmentBehavior="automatic"
+          showsVerticalScrollIndicator={false}
+        >
           <VStack className="items-start gap-0">
             <P>
               Feel free to contact us at any time if you have any questions or

@@ -32,7 +32,7 @@ export default function SettingsScreen() {
         options={{
           headerTransparent: true,
           headerTitleStyle: {
-            fontFamily: "NunitoSans-Bold",
+            fontFamily: "NunitoSans12pt-Bold",
             fontWeight: "bold",
           },
           title: "Settings",
@@ -41,7 +41,11 @@ export default function SettingsScreen() {
         }}
       />
       <SafeAreaView className="flex-1">
-        <ScrollView className="flex-1 p-6" showsVerticalScrollIndicator={false}>
+        <ScrollView
+          className="flex-1 p-6"
+          contentInsetAdjustmentBehavior="automatic"
+          showsVerticalScrollIndicator={false}
+        >
           {!!user && (
             <>
               <MenuList>

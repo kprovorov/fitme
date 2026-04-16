@@ -10,7 +10,7 @@ export default function Layout() {
           headerTransparent: true,
           headerTitle: "",
           headerTitleStyle: {
-            fontFamily: "NunitoSans-Bold",
+            fontFamily: "NunitoSans12pt-Bold",
             fontWeight: "bold",
           },
           headerLeft: () => <HeaderBackButton />,

@@ -22,7 +22,7 @@ export default function ExerciseScreen() {
         options={{
           headerTransparent: true,
           headerTitleStyle: {
-            fontFamily: "NunitoSans-Bold",
+            fontFamily: "NunitoSans12pt-Bold",
             fontWeight: "bold",
           },
           title: exercise?.name ?? "",
@@ -32,7 +32,11 @@ export default function ExerciseScreen() {
       />
 
       <SafeAreaView className="flex-1">
-        <ScrollView className="flex-1 p-6" showsVerticalScrollIndicator={false}>
+        <ScrollView
+          className="flex-1 p-6"
+          contentInsetAdjustmentBehavior="automatic"
+          showsVerticalScrollIndicator={false}
+        >
           {!!exercise && (
             <VStack className="items-stretch">
               {exercise?.video_url && (

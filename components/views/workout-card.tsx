@@ -144,6 +144,7 @@ export default function WorkoutCard({
             </P>
             <ScrollView
               contentContainerClassName="gap-2"
+              contentInsetAdjustmentBehavior="automatic"
               horizontal={!isOpen}
               scrollEnabled={!isOpen}
               showsHorizontalScrollIndicator={false}

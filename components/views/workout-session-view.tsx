@@ -130,7 +130,10 @@ export default function WorkoutSessionView({
         presentationStyle="pageSheet"
         visible={showModal}
       >
-        <ScrollView showsVerticalScrollIndicator={false}>
+        <ScrollView
+          contentInsetAdjustmentBehavior="automatic"
+          showsVerticalScrollIndicator={false}
+        >
           <VStack className="flex-1 items-stretch bg-background p-md">
             <HStack className="justify-end">
               <Button

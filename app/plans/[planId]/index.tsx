@@ -51,7 +51,7 @@ export default function PlanScreen() {
         options={{
           headerTransparent: true,
           headerTitleStyle: {
-            fontFamily: "NunitoSans-Bold",
+            fontFamily: "NunitoSans12pt-Bold",
             fontWeight: "bold",
           },
           title: plan?.name ?? "",
@@ -127,6 +127,7 @@ export default function PlanScreen() {
       <SafeAreaView className="flex-1">
         <ScrollView
           className="flex-1 p-6"
+          contentInsetAdjustmentBehavior="automatic"
           refreshControl={
             <RefreshControl onRefresh={refetch} refreshing={isLoading} />
           }
