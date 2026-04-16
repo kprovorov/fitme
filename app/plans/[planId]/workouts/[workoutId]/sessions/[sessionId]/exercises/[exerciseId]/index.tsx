@@ -53,7 +53,7 @@ export default function WorkoutSessionExerciseScreen() {
             fontWeight: "bold",
             color: "#C0FF38",
           },
-          title: workoutSessionExercise.exercise.name,
+          title: workoutSessionExercise.exercise.name ?? "",
           headerBackButtonDisplayMode: "minimal",
           unstable_headerRightItems: () => [
             {

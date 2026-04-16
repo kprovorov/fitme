@@ -72,12 +72,10 @@ export default function WorkoutSessionScreen() {
           headerTitleStyle: {
             fontFamily: "NunitoSans12pt-Bold",
             fontWeight: "bold",
-            fontSize: 17,
             color: "#C0FF38",
           },
-          title: workoutSession?.workout.name,
+          title: workoutSession?.workout.name ?? "",
           headerBackButtonDisplayMode: "minimal",
-          // headerRight: () => <Text className="w-32">{elapsedTime}</Text>,
         }}
       />
       <ScrollView
