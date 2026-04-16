@@ -1,6 +1,5 @@
 import { PortalHost } from "@rn-primitives/portal";
 import { Stack } from "expo-router";
-import { HeaderBackButton } from "~/components/ui/header-back-button";
 
 export default function Layout() {
   return (
@@ -13,7 +12,7 @@ export default function Layout() {
             fontFamily: "NunitoSans12pt-Bold",
             fontWeight: "bold",
           },
-          headerLeft: () => <HeaderBackButton />,
+          headerBackButtonDisplayMode: "minimal",
         }}
       >
         <Stack.Screen name="index" />

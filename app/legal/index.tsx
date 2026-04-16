@@ -14,7 +14,6 @@ import {
   AlertDialogTrigger,
 } from "~/components/ui/alert-dialog";
 import { Button } from "~/components/ui/button";
-import { HeaderBackButton } from "~/components/ui/header-back-button";
 import { MenuList, MenuListItem } from "~/components/ui/menu-list";
 import { Separator } from "~/components/ui/separator";
 import { Text } from "~/components/ui/text";
@@ -44,7 +43,7 @@ export default function LegalScreen() {
             fontWeight: "bold",
           },
           title: "Legal",
-          headerLeft: () => <HeaderBackButton />,
+          headerBackButtonDisplayMode: "minimal",
         }}
       />
 

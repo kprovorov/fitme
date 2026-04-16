@@ -4,7 +4,6 @@ import { useEffect, useState } from "react";
 import { ScrollView } from "react-native";
 import { useSafeAreaInsets } from "react-native-safe-area-context";
 import { Button } from "~/components/ui/button";
-import { HeaderBackButton } from "~/components/ui/header-back-button";
 import { Text } from "~/components/ui/text";
 import { VStack } from "~/components/ui/vstack";
 import WorkoutSessionView from "~/components/views/workout-session-view";
@@ -78,7 +77,6 @@ export default function WorkoutSessionScreen() {
           },
           title: workoutSession?.workout.name,
           headerBackButtonDisplayMode: "minimal",
-          headerLeft: () => <HeaderBackButton />,
           // headerRight: () => <Text className="w-32">{elapsedTime}</Text>,
         }}
       />

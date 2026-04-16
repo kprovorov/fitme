@@ -143,21 +143,19 @@ export default function ProfileScreen() {
     <>
       <Stack.Screen
         options={{
-          headerRight: () =>
-            showWheel && (
-              <Button
-                onPress={() => {
-                  toggleWheel();
-                  setFieldFocused(null);
-                }}
-                size="sm"
-                variant="link"
-              >
-                <Text className="font-nunito-sans-bold text-primary no-underline">
-                  Done
-                </Text>
-              </Button>
-            ),
+          unstable_headerRightItems: () =>
+            showWheel
+              ? [
+                  {
+                    label: "Done",
+                    type: "button",
+                    onPress: () => {
+                      toggleWheel();
+                      setFieldFocused(null);
+                    },
+                  },
+                ]
+              : [],
         }}
       />
       <SafeAreaView className="flex-1">

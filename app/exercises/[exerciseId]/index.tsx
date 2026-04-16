@@ -2,7 +2,6 @@ import { Stack, useLocalSearchParams } from "expo-router";
 import { ScrollView, View } from "react-native";
 import { SafeAreaView } from "react-native-safe-area-context";
 import ExerciseVideo from "~/components/exercises/exercise-video";
-import { HeaderBackButton } from "~/components/ui/header-back-button";
 import { Muted, P } from "~/components/ui/typography";
 import { VStack } from "~/components/ui/vstack";
 import { useExerciseQuery } from "~/hooks/queries/exercises";
@@ -27,7 +26,6 @@ export default function ExerciseScreen() {
           },
           title: exercise?.name ?? "",
           headerBackButtonDisplayMode: "minimal",
-          headerLeft: () => <HeaderBackButton />,
         }}
       />
 

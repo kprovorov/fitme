@@ -13,7 +13,6 @@ import {
   AlertDialogTrigger,
 } from "~/components/ui/alert-dialog";
 import { buttonTextVariants, buttonVariants } from "~/components/ui/button";
-import { HeaderBackButton } from "~/components/ui/header-back-button";
 import { HStack } from "~/components/ui/hstack";
 import { MenuList, MenuListItem } from "~/components/ui/menu-list";
 import { Text } from "~/components/ui/text";
@@ -37,7 +36,6 @@ export default function SettingsScreen() {
           },
           title: "Settings",
           headerBackButtonDisplayMode: "minimal",
-          headerLeft: () => <HeaderBackButton />,
         }}
       />
       <SafeAreaView className="flex-1">

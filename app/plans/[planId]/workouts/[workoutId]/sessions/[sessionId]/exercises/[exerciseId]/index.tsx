@@ -12,7 +12,6 @@ import {
   AlertDialogHeader,
   AlertDialogTitle,
 } from "~/components/ui/alert-dialog";
-import { Button } from "~/components/ui/button";
 import { Text } from "~/components/ui/text";
 import { P } from "~/components/ui/typography";
 import { VStack } from "~/components/ui/vstack";
@@ -20,7 +19,6 @@ import ExerciseHistoryView from "~/components/views/exercise-history-view";
 import WorkoutSessionExerciseSetsTableView from "~/components/views/workout-session-exercise-sets-table-view";
 import { useWorkoutSessionExerciseQuery } from "~/hooks/queries/workout-session-exercises";
 import { useWorkoutSessionQuery } from "~/hooks/queries/workout-sessions";
-import { Info } from "~/lib/icons/Info";
 
 export default function WorkoutSessionExerciseScreen() {
   const [isOpen, setIsOpen] = useState(false);
@@ -57,16 +55,14 @@ export default function WorkoutSessionExerciseScreen() {
           },
           title: workoutSessionExercise.exercise.name,
           headerBackButtonDisplayMode: "minimal",
-          headerRight: () => (
-            <Button
-              onPress={() => setIsOpen(true)}
-              shape="pill"
-              size="icon-sm"
-              variant="ghost"
-            >
-              <Info className="text-foreground" size={21} />
-            </Button>
-          ),
+          unstable_headerRightItems: () => [
+            {
+              label: "Exercise Info",
+              type: "button",
+              icon: { type: "sfSymbol", name: "info.circle" },
+              onPress: () => setIsOpen(true),
+            },
+          ],
         }}
       />
 

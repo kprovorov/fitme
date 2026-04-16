@@ -4,7 +4,6 @@ import { Alert, RefreshControl, ScrollView } from "react-native";
 import ContextMenu from "react-native-context-menu-view";
 import { SafeAreaView } from "react-native-safe-area-context";
 import { Button } from "~/components/ui/button";
-import { HeaderBackButton } from "~/components/ui/header-back-button";
 import { VStack } from "~/components/ui/vstack";
 import WorkoutList from "~/components/views/workout-list";
 import {
@@ -56,7 +55,6 @@ export default function PlanScreen() {
           },
           title: plan?.name ?? "",
           headerBackButtonDisplayMode: "minimal",
-          headerLeft: () => <HeaderBackButton />,
           headerRight: () => (
             <ContextMenu
               actions={[

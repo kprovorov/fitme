@@ -14,7 +14,6 @@ import {
   AlertDialogTitle,
   AlertDialogTrigger,
 } from "~/components/ui/alert-dialog";
-import { HeaderBackButton } from "~/components/ui/header-back-button";
 import { MenuList } from "~/components/ui/menu-list";
 import {
   RadioGroup,
@@ -64,7 +63,6 @@ export default function MeasurementSystemScreen() {
           },
           title: "Measurement System",
           headerBackButtonDisplayMode: "minimal",
-          headerLeft: () => <HeaderBackButton />,
         }}
       />
       <SafeAreaView className="flex-1">

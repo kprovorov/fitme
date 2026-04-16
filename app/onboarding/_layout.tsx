@@ -1,17 +1,14 @@
 import { PortalHost } from "@rn-primitives/portal";
-import { Stack, useRouter } from "expo-router";
-import { HeaderBackButton } from "~/components/ui/header-back-button";
+import { Stack } from "expo-router";
 
 export default function Layout() {
-  const _router = useRouter();
-
   return (
     <>
       <Stack
         screenOptions={{
           headerTransparent: true,
           headerTitle: "",
-          headerLeft: () => <HeaderBackButton />,
+          headerBackButtonDisplayMode: "minimal",
         }}
       >
         <Stack.Screen name="index" />

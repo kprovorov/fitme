@@ -69,7 +69,8 @@ export default function PlannerScreen() {
     <>
       <Stack.Screen
         options={{
-          headerTitle: "Create workout plan",
+          title: "Create workout plan",
+          headerBackButtonDisplayMode: "minimal",
         }}
       />
 

@@ -5,7 +5,6 @@ import Instagram from "~/components/icons/social/instagram";
 import Threads from "~/components/icons/social/threads";
 import X from "~/components/icons/social/x";
 import { Button } from "~/components/ui/button";
-import { HeaderBackButton } from "~/components/ui/header-back-button";
 import { HStack } from "~/components/ui/hstack";
 import { Text } from "~/components/ui/text";
 import { P } from "~/components/ui/typography";
@@ -26,7 +25,6 @@ export default function SupportScreen() {
           },
           title: "Support",
           headerBackButtonDisplayMode: "minimal",
-          headerLeft: () => <HeaderBackButton />,
         }}
       />
       <SafeAreaView className="flex-1">
