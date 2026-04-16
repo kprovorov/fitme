@@ -1,10 +1,8 @@
-import { Link } from "expo-router";
+import { Stack } from "expo-router";
 import { useCallback, useState } from "react";
 import { RefreshControl, ScrollView } from "react-native";
 import Purchases from "react-native-purchases";
-import { Button } from "~/components/ui/button";
 import { Text } from "~/components/ui/text";
-import { H1, H3 } from "~/components/ui/typography";
 import { VStack } from "~/components/ui/vstack";
 import WorkoutsSessionsListView from "~/components/views/workout-session-list-view";
 import { useWorkoutSessionHistoryQuery } from "~/hooks/queries/workout-sessions";
@@ -23,32 +21,36 @@ export default function HistoryScreen() {
   }, [refetchWorkoutSessions]);
 
   return (
-    <ScrollView
-      className="px-6"
-      contentInsetAdjustmentBehavior="automatic"
-      refreshControl={
-        <RefreshControl onRefresh={onRefresh} refreshing={refreshing} />
-      }
-    >
-      <VStack className="flex-1 items-stretch">
-        <H3>Finished workouts</H3>
+    <>
+      <Stack.Screen
+        options={{
+          headerTransparent: true,
+          headerTitleStyle: {
+            fontFamily: "NunitoSans12pt-Bold",
+            fontWeight: "bold",
+          },
+          title: "Finished workouts",
+          headerBackButtonDisplayMode: "minimal",
+        }}
+      />
+      <ScrollView
+        className="px-6"
+        contentInsetAdjustmentBehavior="automatic"
+        refreshControl={
+          <RefreshControl onRefresh={onRefresh} refreshing={refreshing} />
+        }
+        showsVerticalScrollIndicator={false}
+      >
         {workoutSessions?.length ? (
           <WorkoutsSessionsListView workoutsSessions={workoutSessions} />
         ) : (
           <VStack className="h-full p-6">
-            <H1 className="text-center">Create your first workout plan</H1>
             <Text className="text-center">
-              You don&apos;t have an active workout plan. Please create one to
-              start your journey.
+              You don't have any finished workouts yet.
             </Text>
-            <Link asChild href="/onboarding/profile">
-              <Button className="w-full">
-                <Text>Start your workout plan</Text>
-              </Button>
-            </Link>
           </VStack>
         )}
-      </VStack>
-    </ScrollView>
+      </ScrollView>
+    </>
   );
 }

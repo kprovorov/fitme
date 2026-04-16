@@ -1,4 +1,4 @@
-import { router } from "expo-router";
+import { router, Stack } from "expo-router";
 import { useCallback, useRef, useState } from "react";
 import { RefreshControl, ScrollView } from "react-native";
 import ExercisesView, {
@@ -22,14 +22,30 @@ export default function LibraryScreen() {
   }, []);
 
   return (
-    <ScrollView
-      className="px-6"
-      contentInsetAdjustmentBehavior="automatic"
-      refreshControl={
-        <RefreshControl onRefresh={onRefresh} refreshing={refreshing} />
-      }
-    >
-      <ExercisesView onExercisePress={onExercisePress} ref={exercisesViewRef} />
-    </ScrollView>
+    <>
+      <Stack.Screen
+        options={{
+          headerTransparent: true,
+          headerTitleStyle: {
+            fontFamily: "NunitoSans12pt-Bold",
+            fontWeight: "bold",
+          },
+          title: "Library",
+          headerBackButtonDisplayMode: "minimal",
+        }}
+      />
+      <ScrollView
+        className="px-6"
+        contentInsetAdjustmentBehavior="automatic"
+        refreshControl={
+          <RefreshControl onRefresh={onRefresh} refreshing={refreshing} />
+        }
+      >
+        <ExercisesView
+          onExercisePress={onExercisePress}
+          ref={exercisesViewRef}
+        />
+      </ScrollView>
+    </>
   );
 }
