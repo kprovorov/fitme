@@ -102,6 +102,7 @@ export default function HomeScreen() {
         refreshControl={
           <RefreshControl onRefresh={onRefresh} refreshing={refreshing} />
         }
+        showsVerticalScrollIndicator={false}
       >
         {activePlan ? (
           <HomeView plan={activePlan} />

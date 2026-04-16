@@ -40,6 +40,7 @@ export default function LibraryScreen() {
         refreshControl={
           <RefreshControl onRefresh={onRefresh} refreshing={refreshing} />
         }
+        showsVerticalScrollIndicator={false}
       >
         <ExercisesView
           onExercisePress={onExercisePress}
