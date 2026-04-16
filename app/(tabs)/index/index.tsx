@@ -61,12 +61,10 @@ export default function HomeScreen() {
           unstable_headerRightItems: () => [
             {
               type: "menu",
+              label: "Manage Plans",
               icon: {
                 type: "sfSymbol",
                 name: "ellipsis",
-              },
-              labelStyle: {
-                fontFamily: "NunitoSans12pt-Regular",
               },
               menu: {
                 items: [
