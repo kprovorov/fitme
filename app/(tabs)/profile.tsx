@@ -2,7 +2,6 @@ import { useCallback, useState } from "react";
 import { RefreshControl, ScrollView } from "react-native";
 import Purchases from "react-native-purchases";
 import { SafeAreaView } from "react-native-safe-area-context";
-import { VStack } from "~/components/ui/vstack";
 import ProfileView from "~/components/views/profile-view";
 
 const IS_E2E = process.env.EXPO_PUBLIC_E2E_ENABLED === "true";
@@ -33,25 +32,14 @@ export default function ProfileScreen() {
   }, [queryClient.refetchQueries]);
 
   return (
-    <SafeAreaView
-      className="flex-1"
-      edges={["top"]}
-      style={{
-        paddingBottom: 64,
-      }}
-    >
+    <SafeAreaView className="flex-1" edges={["top"]}>
       <ScrollView
-        className="flex-1 p-6"
+        className="p-6"
         refreshControl={
           <RefreshControl onRefresh={onRefresh} refreshing={refreshing} />
         }
       >
-        <VStack
-          className="min-h-full flex-1 items-stretch justify-between gap-0"
-          style={{ paddingBottom: 64 }}
-        >
-          <ProfileView />
-        </VStack>
+        <ProfileView />
       </ScrollView>
     </SafeAreaView>
   );

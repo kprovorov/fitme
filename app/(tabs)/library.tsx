@@ -1,6 +1,6 @@
 import { router } from "expo-router";
 import { useCallback, useRef, useState } from "react";
-import { RefreshControl, ScrollView, View } from "react-native";
+import { RefreshControl, ScrollView } from "react-native";
 import { SafeAreaView } from "react-native-safe-area-context";
 import ExercisesView, {
   type ExercisesViewHandle,
@@ -23,25 +23,17 @@ export default function LibraryScreen() {
   }, []);
 
   return (
-    <SafeAreaView
-      className="flex-1"
-      edges={["top"]}
-      style={{
-        paddingBottom: 64,
-      }}
-    >
+    <SafeAreaView className="flex-1" edges={["top"]}>
       <ScrollView
         className="p-6"
         refreshControl={
           <RefreshControl onRefresh={onRefresh} refreshing={refreshing} />
         }
       >
-        <View style={{ paddingBottom: 64 }}>
-          <ExercisesView
-            onExercisePress={onExercisePress}
-            ref={exercisesViewRef}
-          />
-        </View>
+        <ExercisesView
+          onExercisePress={onExercisePress}
+          ref={exercisesViewRef}
+        />
       </ScrollView>
     </SafeAreaView>
   );

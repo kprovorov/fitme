@@ -47,21 +47,13 @@ export default function HomeScreen() {
   }, [refetchWorkoutPlans]);
 
   return activePlan ? (
-    <SafeAreaView
-      className="flex-1"
-      edges={["top"]}
-      style={{
-        paddingBottom: 64,
-      }}
-    >
+    <SafeAreaView className="flex-1" edges={["top"]}>
       <ScrollView
         refreshControl={
           <RefreshControl onRefresh={onRefresh} refreshing={refreshing} />
         }
       >
-        <View style={{ paddingBottom: 64 }}>
-          <HomeView plan={activePlan} />
-        </View>
+        <HomeView plan={activePlan} />
       </ScrollView>
     </SafeAreaView>
   ) : isLoadingPlans ? (
