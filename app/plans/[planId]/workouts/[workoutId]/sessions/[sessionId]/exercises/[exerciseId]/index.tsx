@@ -43,7 +43,7 @@ export default function WorkoutSessionExerciseScreen() {
 
   const isFinished = !!workoutSession?.finished_at;
 
-  return workoutSessionExercise ? (
+  return (
     <>
       <Stack.Screen
         options={{
@@ -53,7 +53,7 @@ export default function WorkoutSessionExerciseScreen() {
             fontWeight: "bold",
             color: "#C0FF38",
           },
-          title: workoutSessionExercise.exercise.name ?? "",
+          title: workoutSessionExercise?.exercise?.name ?? "",
           headerBackButtonDisplayMode: "minimal",
           unstable_headerRightItems: () => [
             {
@@ -65,51 +65,52 @@ export default function WorkoutSessionExerciseScreen() {
           ],
         }}
       />
+      {workoutSessionExercise ? (
+        <KeyboardAwareScrollView
+          bottomOffset={62}
+          contentInsetAdjustmentBehavior="automatic"
+          keyboardShouldPersistTaps="handled"
+          showsVerticalScrollIndicator={false}
+        >
+          <VStack className="flex-1 items-stretch gap-md px-md py-sm">
+            <AlertDialog onOpenChange={setIsOpen} open={isOpen}>
+              <AlertDialogContent>
+                <AlertDialogHeader>
+                  <AlertDialogTitle className="text-primary">
+                    How to?
+                  </AlertDialogTitle>
+                  <AlertDialogDescription>
+                    {workoutSessionExercise.exercise.instructions}
+                  </AlertDialogDescription>
+                </AlertDialogHeader>
+                <AlertDialogFooter>
+                  <AlertDialogCancel>
+                    <Text>OK</Text>
+                  </AlertDialogCancel>
+                </AlertDialogFooter>
+              </AlertDialogContent>
+            </AlertDialog>
 
-      <KeyboardAwareScrollView
-        bottomOffset={62}
-        contentInsetAdjustmentBehavior="automatic"
-        keyboardShouldPersistTaps="handled"
-        showsVerticalScrollIndicator={false}
-      >
-        <VStack className="flex-1 items-stretch gap-md px-md py-sm">
-          <AlertDialog onOpenChange={setIsOpen} open={isOpen}>
-            <AlertDialogContent>
-              <AlertDialogHeader>
-                <AlertDialogTitle className="text-primary">
-                  How to?
-                </AlertDialogTitle>
-                <AlertDialogDescription>
-                  {workoutSessionExercise.exercise.instructions}
-                </AlertDialogDescription>
-              </AlertDialogHeader>
-              <AlertDialogFooter>
-                <AlertDialogCancel>
-                  <Text>OK</Text>
-                </AlertDialogCancel>
-              </AlertDialogFooter>
-            </AlertDialogContent>
-          </AlertDialog>
+            {workoutSessionExercise.exercise.video_url && (
+              <View className="w-full overflow-hidden rounded-lg">
+                <ExerciseVideo exercise={workoutSessionExercise.exercise} />
+              </View>
+            )}
 
-          {workoutSessionExercise.exercise.video_url && (
-            <View className="w-full overflow-hidden rounded-lg">
-              <ExerciseVideo exercise={workoutSessionExercise.exercise} />
-            </View>
-          )}
+            <P>{workoutSessionExercise.exercise.description}</P>
 
-          <P>{workoutSessionExercise.exercise.description}</P>
+            <WorkoutSessionExerciseSetsTableView
+              exerciseId={exerciseId as string}
+              readOnly={isFinished}
+              workoutSessionExerciseSets={workoutSessionExercise.sets}
+            />
 
-          <WorkoutSessionExerciseSetsTableView
-            exerciseId={exerciseId as string}
-            readOnly={isFinished}
-            workoutSessionExerciseSets={workoutSessionExercise.sets}
-          />
-
-          <ExerciseHistoryView
-            exerciseId={workoutSessionExercise.exercise_id}
-          />
-        </VStack>
-      </KeyboardAwareScrollView>
+            <ExerciseHistoryView
+              exerciseId={workoutSessionExercise.exercise_id}
+            />
+          </VStack>
+        </KeyboardAwareScrollView>
+      ) : null}
     </>
-  ) : null;
+  );
 }
