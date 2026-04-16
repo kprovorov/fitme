@@ -1,7 +1,6 @@
 import { useQueryClient } from "@tanstack/react-query";
 import { Stack, useLocalSearchParams, useRouter } from "expo-router";
 import { Alert, RefreshControl, ScrollView } from "react-native";
-import { SafeAreaView } from "react-native-safe-area-context";
 import { VStack } from "~/components/ui/vstack";
 import WorkoutList from "~/components/views/workout-list";
 import {
@@ -128,21 +127,19 @@ export default function PlanScreen() {
           ],
         }}
       />
-      <SafeAreaView className="flex-1">
-        <ScrollView
-          className="flex-1 p-6"
-          contentInsetAdjustmentBehavior="automatic"
-          refreshControl={
-            <RefreshControl onRefresh={refetch} refreshing={isLoading} />
-          }
-        >
-          {plan && (
-            <VStack className="flex-1 items-stretch">
-              <WorkoutList workouts={plan.workouts} />
-            </VStack>
-          )}
-        </ScrollView>
-      </SafeAreaView>
+      <ScrollView
+        className="flex-1 p-6"
+        contentInsetAdjustmentBehavior="automatic"
+        refreshControl={
+          <RefreshControl onRefresh={refetch} refreshing={isLoading} />
+        }
+      >
+        {plan && (
+          <VStack className="flex-1 items-stretch">
+            <WorkoutList workouts={plan.workouts} />
+          </VStack>
+        )}
+      </ScrollView>
     </>
   );
 }

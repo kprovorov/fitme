@@ -1,6 +1,5 @@
 import { Stack, useLocalSearchParams } from "expo-router";
 import { ScrollView, View } from "react-native";
-import { SafeAreaView } from "react-native-safe-area-context";
 import ExerciseVideo from "~/components/exercises/exercise-video";
 import { Muted, P } from "~/components/ui/typography";
 import { VStack } from "~/components/ui/vstack";
@@ -28,26 +27,23 @@ export default function ExerciseScreen() {
           headerBackButtonDisplayMode: "minimal",
         }}
       />
-
-      <SafeAreaView className="flex-1">
-        <ScrollView
-          className="flex-1 p-6"
-          contentInsetAdjustmentBehavior="automatic"
-          showsVerticalScrollIndicator={false}
-        >
-          {!!exercise && (
-            <VStack className="items-stretch">
-              {exercise?.video_url && (
-                <View className="w-full overflow-hidden rounded-lg">
-                  <ExerciseVideo exercise={exercise} />
-                </View>
-              )}
-              <P className="text-primary">{exercise?.description}</P>
-              <Muted>{exercise?.instructions}</Muted>
-            </VStack>
-          )}
-        </ScrollView>
-      </SafeAreaView>
+      <ScrollView
+        className="flex-1 p-6"
+        contentInsetAdjustmentBehavior="automatic"
+        showsVerticalScrollIndicator={false}
+      >
+        {!!exercise && (
+          <VStack className="items-stretch">
+            {exercise?.video_url && (
+              <View className="w-full overflow-hidden rounded-lg">
+                <ExerciseVideo exercise={exercise} />
+              </View>
+            )}
+            <P className="text-primary">{exercise?.description}</P>
+            <Muted>{exercise?.instructions}</Muted>
+          </VStack>
+        )}
+      </ScrollView>
     </>
   );
 }
