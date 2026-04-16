@@ -1,9 +1,7 @@
 import { useQueryClient } from "@tanstack/react-query";
 import { Stack, useLocalSearchParams, useRouter } from "expo-router";
 import { Alert, RefreshControl, ScrollView } from "react-native";
-import ContextMenu from "react-native-context-menu-view";
 import { SafeAreaView } from "react-native-safe-area-context";
-import { Button } from "~/components/ui/button";
 import { VStack } from "~/components/ui/vstack";
 import WorkoutList from "~/components/views/workout-list";
 import {
@@ -11,7 +9,6 @@ import {
   useDeletePlanMutation,
   usePlanQuery,
 } from "~/hooks/queries/plans";
-import { Ellipsis } from "~/lib/icons/Ellipsis";
 
 export default function PlanScreen() {
   const { planId } = useLocalSearchParams();
@@ -55,71 +52,80 @@ export default function PlanScreen() {
           },
           title: plan?.name ?? "",
           headerBackButtonDisplayMode: "minimal",
-          headerRight: () => (
-            <ContextMenu
-              actions={[
-                {
-                  title: "Activate Plan",
-                  systemIcon: "bolt",
-                  disabled: plan?.is_active,
-                },
-                {
-                  title: "Archive",
-                  systemIcon: "trash",
-                  destructive: true,
-                },
-              ]}
-              dropdownMenuMode
-              onPress={(e) => {
-                if (e.nativeEvent.name === "Activate Plan") {
-                  Alert.alert(
-                    "Activate Plan",
-                    "This will deactivate your current plan",
-                    [
-                      {
-                        text: "Cancel",
-                        onPress: () => console.log("Cancel Pressed"),
-                        style: "cancel",
-                      },
-                      {
-                        text: "Activate",
-                        onPress: () => activatePlan({ id: planId as string }),
-                      },
-                    ]
-                  );
-                }
-
-                if (e.nativeEvent.name === "Archive") {
-                  if (plan?.is_active) {
-                    Alert.alert(
-                      "Archive Plan",
-                      "You cannot archive an active plan. You should have at least one active plan at all times."
-                    );
-                  } else {
-                    Alert.alert(
-                      "Archive Plan",
-                      "Are you sure you want to archive this plan?",
-                      [
-                        {
-                          text: "Cancel",
-                          onPress: () => console.log("Cancel Pressed"),
-                          style: "cancel",
-                        },
-                        {
-                          text: "Archive",
-                          onPress: () => deletePlan({ id: planId as string }),
-                        },
-                      ]
-                    );
-                  }
-                }
-              }}
-            >
-              <Button shape="pill" size="icon-sm" variant="secondary">
-                <Ellipsis className="text-foreground" size={16} />
-              </Button>
-            </ContextMenu>
-          ),
+          unstable_headerRightItems: () => [
+            {
+              type: "menu",
+              label: "Manage",
+              icon: {
+                type: "sfSymbol",
+                name: "ellipsis",
+              },
+              menu: {
+                items: [
+                  {
+                    type: "action",
+                    label: "Activate Plan",
+                    icon: {
+                      type: "sfSymbol",
+                      name: "bolt",
+                    },
+                    onPress: () => {
+                      Alert.alert(
+                        "Activate Plan",
+                        "This will deactivate your current plan",
+                        [
+                          {
+                            text: "Cancel",
+                            onPress: () => console.log("Cancel Pressed"),
+                            style: "cancel",
+                          },
+                          {
+                            text: "Activate",
+                            onPress: () =>
+                              activatePlan({ id: planId as string }),
+                          },
+                        ]
+                      );
+                    },
+                  },
+                  {
+                    type: "action",
+                    label: "Archive",
+                    destructive: true,
+                    icon: {
+                      type: "sfSymbol",
+                      name: "trash",
+                    },
+                    onPress: () => {
+                      if (plan?.is_active) {
+                        Alert.alert(
+                          "Archive Plan",
+                          "You cannot archive an active plan. You should have at least one active plan at all times."
+                        );
+                      } else {
+                        Alert.alert(
+                          "Archive Plan",
+                          "Are you sure you want to archive this plan?",
+                          [
+                            {
+                              text: "Cancel",
+                              onPress: () => console.log("Cancel Pressed"),
+                              style: "cancel",
+                            },
+                            {
+                              text: "Archive",
+                              onPress: () =>
+                                deletePlan({ id: planId as string }),
+                            },
+                          ]
+                        );
+                      }
+                    },
+                  },
+                ],
+              },
+            },
+          ],
         }}
       />
       <SafeAreaView className="flex-1">
