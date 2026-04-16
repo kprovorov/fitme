@@ -22,7 +22,6 @@ import {
   useSafeAreaInsets,
 } from "react-native-safe-area-context";
 import { Button } from "~/components/ui/button";
-import { HeaderBackButton } from "~/components/ui/header-back-button";
 import { HStack } from "~/components/ui/hstack";
 import { Spinner } from "~/components/ui/spinner";
 import { Text } from "~/components/ui/text";
@@ -361,7 +360,6 @@ export default function AgentScreen() {
     <SafeAreaView className="flex-1" edges={["top", "bottom"]}>
       {/* Header */}
       <View className="flex-row items-center gap-3 border-white/10 border-b px-4 pt-2 pb-3">
-        <HeaderBackButton />
         <View className="h-8 w-8 items-center justify-center rounded-full bg-primary/20">
           <Sparkles className="h-4 w-4 text-primary" />
         </View>
