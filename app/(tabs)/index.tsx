@@ -7,7 +7,6 @@ import {
   View,
 } from "react-native";
 import Purchases from "react-native-purchases";
-import { SafeAreaView } from "react-native-safe-area-context";
 import { Button } from "~/components/ui/button";
 import { Text } from "~/components/ui/text";
 import { H1 } from "~/components/ui/typography";
@@ -47,15 +46,14 @@ export default function HomeScreen() {
   }, [refetchWorkoutPlans]);
 
   return activePlan ? (
-    <SafeAreaView className="flex-1" edges={["top"]}>
-      <ScrollView
-        refreshControl={
-          <RefreshControl onRefresh={onRefresh} refreshing={refreshing} />
-        }
-      >
-        <HomeView plan={activePlan} />
-      </ScrollView>
-    </SafeAreaView>
+    <ScrollView
+      contentInsetAdjustmentBehavior="automatic"
+      refreshControl={
+        <RefreshControl onRefresh={onRefresh} refreshing={refreshing} />
+      }
+    >
+      <HomeView plan={activePlan} />
+    </ScrollView>
   ) : isLoadingPlans ? (
     <View className="flex-1 items-center justify-center">
       <ActivityIndicator color="#ffffff" size="large" />
