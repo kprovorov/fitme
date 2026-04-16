@@ -1,95 +1,71 @@
-import { type Href, usePathname } from "expo-router";
-import { TabList, TabSlot, Tabs, TabTrigger } from "expo-router/ui";
+import {
+  DarkTheme,
+  DefaultTheme,
+  ThemeProvider,
+} from "@react-navigation/native";
+import { NativeTabs } from "expo-router/unstable-native-tabs";
 import Authenticated from "~/components/authenticated";
-import { TabBarButton } from "~/components/ui/tab-bar-button";
-import { BicepsFlexed } from "~/lib/icons/BicepsFlexed";
-import { BookOpenText } from "~/lib/icons/BookOpenText";
-import { ClipboardList } from "~/lib/icons/ClipboardList";
-import { Sparkles } from "~/lib/icons/Sparkles";
-import { UserRound } from "~/lib/icons/UserRound";
+import { useColorScheme } from "~/lib/useColorScheme";
+
+const darkTheme = {
+  ...DarkTheme,
+  colors: { ...DarkTheme.colors, primary: "#C0FF38", background: "#1F1D20" },
+};
+
+const lightTheme = {
+  ...DefaultTheme,
+  colors: { ...DefaultTheme.colors, primary: "#C0FF38" },
+};
 
 export default function TabLayout() {
-  const pathname = usePathname();
-  const shouldHideTabs = pathname === "/agent";
-  const tabs = [
-    {
-      name: "home",
-      label: "Home",
-      href: "/",
-      renderIcon: (isFocused: boolean) => (
-        <BicepsFlexed
-          className={`h-6 w-6 ${isFocused ? "text-primary" : "text-white"}`}
-        />
-      ),
-    },
-    {
-      name: "history",
-      label: "History",
-      href: "/history",
-      renderIcon: (isFocused: boolean) => (
-        <ClipboardList
-          className={`h-6 w-6 ${isFocused ? "text-primary" : "text-white"}`}
-        />
-      ),
-    },
-    {
-      name: "agent",
-      label: "Agent",
-      href: "/agent",
-      renderIcon: (isFocused: boolean) => (
-        <Sparkles
-          className={`h-6 w-6 ${isFocused ? "text-primary" : "text-white"}`}
-        />
-      ),
-    },
-    {
-      name: "library",
-      label: "Library",
-      href: "/library",
-      renderIcon: (isFocused: boolean) => (
-        <BookOpenText
-          className={`h-6 w-6 ${isFocused ? "text-primary" : "text-white"}`}
-        />
-      ),
-    },
-    {
-      name: "profile",
-      label: "Profile",
-      href: "/profile",
-      renderIcon: (isFocused: boolean) => (
-        <UserRound
-          className={`h-6 w-6 ${isFocused ? "text-primary" : "text-white"}`}
-        />
-      ),
-    },
-  ];
+  const { colorScheme } = useColorScheme();
 
   return (
     <Authenticated>
-      <Tabs>
-        <TabSlot />
-        <TabList
-          className="absolute right-md bottom-md left-md h-20 items-center justify-center rounded-3xl border border-white/10 bg-black px-10 shadow-black/50 shadow-lg"
-          style={{
-            display: shouldHideTabs ? "none" : "flex",
-          }}
-        >
-          {tabs.map((tab) => (
-            <TabTrigger
-              asChild
-              href={tab.href as Href}
-              key={tab.name}
-              name={tab.name}
-            >
-              <TabBarButton
-                renderIcon={({ isFocused }) => tab.renderIcon(isFocused)}
-              >
-                {tab.label}
-              </TabBarButton>
-            </TabTrigger>
-          ))}
-        </TabList>
-      </Tabs>
+      <ThemeProvider value={colorScheme === "dark" ? darkTheme : lightTheme}>
+        <NativeTabs minimizeBehavior="onScrollDown" tintColor="#C0FF38">
+          <NativeTabs.Trigger name="index">
+            <NativeTabs.Trigger.Icon
+              sf={{ default: "dumbbell", selected: "dumbbell.fill" }}
+            />
+            <NativeTabs.Trigger.Label>Home</NativeTabs.Trigger.Label>
+          </NativeTabs.Trigger>
+
+          <NativeTabs.Trigger name="history">
+            <NativeTabs.Trigger.Icon
+              sf={{
+                default: "list.clipboard",
+                selected: "list.clipboard.fill",
+              }}
+            />
+            <NativeTabs.Trigger.Label>History</NativeTabs.Trigger.Label>
+          </NativeTabs.Trigger>
+
+          <NativeTabs.Trigger name="agent">
+            <NativeTabs.Trigger.Icon
+              sf={{ default: "sparkles", selected: "sparkles" }}
+            />
+            <NativeTabs.Trigger.Label>Agent</NativeTabs.Trigger.Label>
+          </NativeTabs.Trigger>
+
+          <NativeTabs.Trigger name="library">
+            <NativeTabs.Trigger.Icon
+              sf={{
+                default: "books.vertical",
+                selected: "books.vertical.fill",
+              }}
+            />
+            <NativeTabs.Trigger.Label>Library</NativeTabs.Trigger.Label>
+          </NativeTabs.Trigger>
+
+          <NativeTabs.Trigger name="profile">
+            <NativeTabs.Trigger.Icon
+              sf={{ default: "person", selected: "person.fill" }}
+            />
+            <NativeTabs.Trigger.Label>Profile</NativeTabs.Trigger.Label>
+          </NativeTabs.Trigger>
+        </NativeTabs>
+      </ThemeProvider>
     </Authenticated>
   );
 }
