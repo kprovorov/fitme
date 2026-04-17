@@ -123,11 +123,13 @@ export type WorkoutExerciseSet = Model & {
 };
 
 export type WorkoutSession = Model & {
-  workout_id: string;
+  workout_id: string | null;
+  plan_id: string | null;
+  user_id: string;
   started_at: string;
   finished_at: string;
   exercises: WorkoutSessionExercise[];
-  workout: Workout;
+  workout: Workout | null;
 };
 
 export type WorkoutSessionExercise = Model & {
