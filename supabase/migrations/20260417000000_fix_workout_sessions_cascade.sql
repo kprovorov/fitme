@@ -46,11 +46,39 @@ ALTER TABLE public.workout_sessions
     REFERENCES public.workouts(id)
     ON DELETE SET NULL;
 
--- 5. Update RLS policy to own via user_id directly instead of workout -> plan chain
+-- 5. Update RLS policies to own via user_id directly instead of the workout -> plan chain.
+-- workout_session_exercises_all and workout_session_exercise_sets_all previously joined
+-- through workout_sessions.workout_id, which is now nullable — those joins return no rows
+-- when workout_id is NULL, silently blocking users from their own progress data.
+
 DROP POLICY "workout_sessions_all" ON public.workout_sessions;
+DROP POLICY "workout_session_exercises_all" ON public.workout_session_exercises;
+DROP POLICY "workout_session_exercise_sets_all" ON public.workout_session_exercise_sets;
 
 CREATE POLICY "workout_sessions_all" ON public.workout_sessions
   FOR ALL USING (user_id = auth.uid());
+
+CREATE POLICY "workout_session_exercises_all" ON public.workout_session_exercises
+  FOR ALL USING (
+    EXISTS (
+      SELECT 1 FROM public.workout_sessions ws
+      WHERE ws.id = workout_session_exercises.workout_session_id
+        AND ws.user_id = auth.uid()
+    )
+  );
+
+CREATE POLICY "workout_session_exercise_sets_all" ON public.workout_session_exercise_sets
+  FOR ALL USING (
+    EXISTS (
+      SELECT 1 FROM public.workout_session_exercises wse
+      JOIN public.workout_sessions ws ON ws.id = wse.workout_session_id
+      WHERE wse.id = workout_session_exercise_sets.workout_session_exercise_id
+        AND ws.user_id = auth.uid()
+    )
+  );
+
+-- Index to make the new user_id-based RLS checks fast
+CREATE INDEX workout_sessions_user_id_idx ON public.workout_sessions(user_id);
 
 -- 6. Update start_workout_session to populate user_id and plan_id
 CREATE OR REPLACE FUNCTION public.start_workout_session(p_workout_id uuid)

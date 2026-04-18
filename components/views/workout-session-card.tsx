@@ -17,7 +17,7 @@ export default function WorkoutSessionCard({
     <Card>
       <VStack className="w-full flex-shrink items-stretch gap-4 p-4">
         <H4 className={"font-nunito-sans-bold text-primary"}>
-          {workoutSession.workout.name}
+          {workoutSession.workout?.name ?? "Workout"}
         </H4>
         <HStack className="justify-start">
           <HStack className="gap-1">
@@ -28,7 +28,7 @@ export default function WorkoutSessionCard({
           </HStack>
         </HStack>
         <P className="text-left text-muted-foreground text-sm">
-          {workoutSession.workout.description}
+          {workoutSession.workout?.description}
         </P>
       </VStack>
     </Card>

@@ -189,7 +189,7 @@ export default function WorkoutSessionView({
                       ? undefined
                       : () => handleReplaceExercise(exercise.id)
                   }
-                  planId={workoutSession.workout.plan_id}
+                  planId={workoutSession.plan_id}
                   sessionId={workoutSession.id}
                   workoutId={workoutSession.workout_id}
                   workoutSessionExercise={exercise}
