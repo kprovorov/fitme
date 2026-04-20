@@ -27,7 +27,7 @@
   {
     "label": "Supabase: Migrate",
     "command": "supabase",
-    "args": ["mugration", "up"],
+    "args": ["migration", "up"],
     "reveal": "no_focus",
     "hide": "on_success"
   },
