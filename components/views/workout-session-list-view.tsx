@@ -14,14 +14,21 @@ export default function WorkoutsSessionsListView({
   return (
     <VStack className="items-stretch">
       {workoutsSessions.length ? (
-        workoutsSessions.map((workoutSession) => (
-          <Link
-            href={`/plans/${workoutSession.workout.plan.id}/workouts/${workoutSession.workout.id}/sessions/${workoutSession.id}`}
-            key={workoutSession.id}
-          >
-            <WorkoutSessionCard workoutSession={workoutSession} />
-          </Link>
-        ))
+        workoutsSessions.map((workoutSession) =>
+          workoutSession.plan_id && workoutSession.workout_id ? (
+            <Link
+              href={`/plans/${workoutSession.plan_id}/workouts/${workoutSession.workout_id}/sessions/${workoutSession.id}`}
+              key={workoutSession.id}
+            >
+              <WorkoutSessionCard workoutSession={workoutSession} />
+            </Link>
+          ) : (
+            <WorkoutSessionCard
+              key={workoutSession.id}
+              workoutSession={workoutSession}
+            />
+          )
+        )
       ) : (
         <H3 className="text-center">Nothing here yet</H3>
       )}

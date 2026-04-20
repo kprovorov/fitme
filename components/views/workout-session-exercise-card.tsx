@@ -13,9 +13,9 @@ import { VStack } from "../ui/vstack";
 interface WorkoutSessionExerciseCardProps {
   onDelete?: () => void;
   onReplace?: () => void;
-  planId: string;
+  planId: string | null;
   sessionId: string;
-  workoutId: string;
+  workoutId: string | null;
   workoutSessionExercise: WorkoutSessionExercise;
 }
 
@@ -33,6 +33,9 @@ export default function WorkoutSessionExerciseCard({
   ).length;
 
   const handlePress = () => {
+    if (!(planId && workoutId)) {
+      return;
+    }
     router.push(
       `/plans/${planId}/workouts/${workoutId}/sessions/${sessionId}/exercises/${workoutSessionExercise.id}`
     );

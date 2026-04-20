@@ -74,7 +74,7 @@ export default function WorkoutSessionScreen() {
             fontWeight: "bold",
             color: "#C0FF38",
           },
-          title: workoutSession?.workout.name ?? "",
+          title: workoutSession?.workout?.name ?? "",
           headerBackButtonDisplayMode: "minimal",
         }}
       />
