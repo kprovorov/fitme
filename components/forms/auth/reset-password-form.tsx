@@ -42,6 +42,7 @@ export default function ResetPasswordForm({
     <VStack className="w-full items-stretch gap-4">
       <Controller
         control={form.control}
+        name="password"
         render={({ field: { onChange, onBlur, value } }) => (
           <Input
             editable={!form.formState.isSubmitting}
@@ -61,6 +62,7 @@ export default function ResetPasswordForm({
 
       <Controller
         control={form.control}
+        name="confirmPassword"
         render={({ field: { onChange, onBlur, value } }) => (
           <Input
             editable={!form.formState.isSubmitting}

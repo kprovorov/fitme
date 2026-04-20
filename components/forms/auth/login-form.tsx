@@ -59,6 +59,7 @@ export default function LoginForm({ onSubmit, errors }: LoginFormProps) {
 
       <Controller
         control={form.control}
+        name="password"
         render={({ field: { onChange, onBlur, value } }) => (
           <Input
             editable={!form.formState.isSubmitting}

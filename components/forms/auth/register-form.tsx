@@ -41,6 +41,7 @@ export default function RegisterForm({ onSubmit, errors }: RegisterFormProps) {
     <VStack className="w-full items-stretch gap-4">
       <Controller
         control={form.control}
+        name="name"
         render={({ field: { onChange, onBlur, value } }) => (
           <Input
             autoCapitalize="words"
@@ -83,6 +84,7 @@ export default function RegisterForm({ onSubmit, errors }: RegisterFormProps) {
 
       <Controller
         control={form.control}
+        name="password"
         render={({ field: { onChange, onBlur, value } }) => (
           <Input
             editable={!form.formState.isSubmitting}

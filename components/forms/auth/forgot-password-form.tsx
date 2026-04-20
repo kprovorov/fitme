@@ -33,6 +33,7 @@ export default function ForgotPasswordForm({
     <VStack className="w-full items-stretch gap-4">
       <Controller
         control={form.control}
+        name="email"
         render={({ field: { onChange, onBlur, value } }) => (
           <Input
             autoCapitalize="none"
