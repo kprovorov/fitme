@@ -1,3 +1,28 @@
 {
-  "userWords": ["Supabase"]
+  "ignorePaths": ["node_modules/**", "ios/**", "android/**"],
+  "words": [
+    "fitme",
+    "Supabase",
+    "REVENUECAT",
+    "ultracite",
+    "fitmeproject",
+    "nunito",
+    "Pressable",
+    "vstack",
+    "hstack",
+    "nativewind",
+    "Filenaming",
+    "mmkv",
+    "pushdown",
+    "Deadlift",
+    "glutes",
+    "Unrack",
+    "apikey",
+    "conv",
+    "fkey",
+    "nextval",
+    "tokenable",
+    "pkey",
+    "snaplet"
+  ]
 }
