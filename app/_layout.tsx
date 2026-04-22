@@ -15,9 +15,9 @@ import { useEffect } from "react";
 import { Platform } from "react-native";
 import Purchases from "react-native-purchases";
 import "react-native-reanimated";
-import App from "~/components/app";
 import Providers from "~/components/providers";
 import "../global.css";
+import { Stack } from "expo-router";
 
 const IS_E2E = process.env.EXPO_PUBLIC_E2E_ENABLED === "true";
 
@@ -97,7 +97,31 @@ export default function RootLayout() {
 
   return (
     <Providers>
-      <App />
+      <Stack>
+        <Stack.Screen name="(tabs)" options={{ headerShown: false }} />
+        <Stack.Screen
+          name="auth"
+          options={{
+            presentation: "fullScreenModal",
+            headerShown: false,
+          }}
+        />
+        <Stack.Screen
+          name="onboarding"
+          options={{
+            presentation: "modal",
+            headerShown: false,
+          }}
+        />
+        <Stack.Screen
+          name="planner"
+          options={{
+            presentation: "modal",
+            headerShown: false,
+          }}
+        />
+        <Stack.Screen name="+not-found" />
+      </Stack>
       <PortalHost />
       <StatusBar style="auto" />
     </Providers>
