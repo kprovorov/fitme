@@ -1,11 +1,12 @@
-import { Stack } from "expo-router";
+import { Link, Stack } from "expo-router";
 import { useCallback, useState } from "react";
-import { RefreshControl, ScrollView } from "react-native";
+import { FlatList, RefreshControl, View } from "react-native";
 import Purchases from "react-native-purchases";
 import { Text } from "~/components/ui/text";
 import { VStack } from "~/components/ui/vstack";
-import WorkoutsSessionsListView from "~/components/views/workout-session-list-view";
+import WorkoutSessionCard from "~/components/views/workout-session-card";
 import { useWorkoutSessionHistoryQuery } from "~/hooks/queries/workout-sessions";
+import type { WorkoutSession } from "~/lib/models";
 
 export default function HistoryScreen() {
   const [refreshing, setRefreshing] = useState(false);
@@ -33,24 +34,30 @@ export default function HistoryScreen() {
           headerBackButtonDisplayMode: "minimal",
         }}
       />
-      <ScrollView
+
+      <FlatList
         className="px-6"
         contentInsetAdjustmentBehavior="automatic"
-        refreshControl={
-          <RefreshControl onRefresh={onRefresh} refreshing={refreshing} />
-        }
-        showsVerticalScrollIndicator={false}
-      >
-        {workoutSessions?.length ? (
-          <WorkoutsSessionsListView workoutsSessions={workoutSessions} />
-        ) : (
-          <VStack className="h-full p-6">
+        data={workoutSessions ?? []}
+        ItemSeparatorComponent={() => <View className="h-4" />}
+        keyExtractor={(item) => item.id}
+        ListEmptyComponent={
+          <VStack className="flex-1 items-center justify-center p-6">
             <Text className="text-center">
               You don't have any finished workouts yet.
             </Text>
           </VStack>
+        }
+        refreshControl={
+          <RefreshControl onRefresh={onRefresh} refreshing={refreshing} />
+        }
+        renderItem={({ item }: { item: WorkoutSession }) => (
+          <Link href={`/workout-sessions/${item.id}`}>
+            <WorkoutSessionCard className="w-full" workoutSession={item} />
+          </Link>
         )}
-      </ScrollView>
+        showsVerticalScrollIndicator={false}
+      />
     </>
   );
 }
