@@ -1,5 +1,5 @@
 import { useQueryClient } from "@tanstack/react-query";
-import { router, useLocalSearchParams } from "expo-router";
+import { router, Stack, useLocalSearchParams } from "expo-router";
 import type React from "react";
 import { forwardRef, useCallback, useEffect, useRef, useState } from "react";
 import {
@@ -357,105 +357,119 @@ export default function AgentScreen() {
   );
 
   return (
-    <SafeAreaView className="flex-1" edges={["top", "bottom"]}>
-      {/* Header */}
-      <View className="flex-row items-center gap-3 border-white/10 border-b px-4 pt-2 pb-3">
-        <View className="h-8 w-8 items-center justify-center rounded-full bg-primary/20">
-          <Sparkles className="h-4 w-4 text-primary" />
-        </View>
-        <View className="flex-1">
-          <H3>AI Agent</H3>
-          <Muted className="text-xs leading-tight">Powered by Claude</Muted>
-        </View>
-        <Button
-          disabled={isStreaming}
-          onPress={() => setIsConversationListVisible(true)}
-          shape="pill"
-          size="icon-sm"
-          variant="ghost"
-        >
-          <Ellipsis className="text-foreground" size={21} />
-        </Button>
-      </View>
-
-      <KeyboardGestureArea
-        interpolator="ios"
-        offset={INPUT_HEIGHT}
-        style={{ flex: 1 }}
-        textInputNativeID="chat-input"
-      >
-        <FlatList
-          contentContainerStyle={{ paddingTop: INPUT_HEIGHT + MARGIN }}
-          data={[...localMessages].reverse()}
-          inverted
-          keyboardDismissMode="interactive"
-          keyExtractor={(item) => item.id}
-          ListEmptyComponent={<EmptyState onSuggestion={setInput} />}
-          renderItem={({ item }: { item: LocalMessage }) => (
-            <AgentMessageView
-              isStreaming={item.isStreaming}
-              message={{
-                id: item.id,
-                conversation_id: conversationId ?? "",
-                role: item.role,
-                content: item.content,
-                created_at: item.created_at,
-                metadata: item.metadata,
-              }}
-            />
-          )}
-          renderScrollComponent={renderScrollComponent}
-        />
-
-        <KeyboardStickyView offset={{ opened: bottom - MARGIN }}>
-          <View className="border-white/10 border-t bg-background px-4 py-3">
-            <HStack className="items-end justify-stretch gap-2">
-              <TextInput
-                className="flex-1 font-nunito-sans-bold text-foreground text-sm"
-                editable={!(isPending || isStreaming)}
-                multiline
-                nativeID="chat-input"
-                onChangeText={setInput}
-                onLayout={onInputLayout}
-                onSubmitEditing={() => handleSend()}
-                placeholder="Message..."
-                returnKeyType="send"
-                scrollEnabled={inputHeight >= MAX_INPUT_HEIGHT}
-                style={{ paddingVertical: 11 }}
-                value={input}
-              />
-              <Pressable
-                className={`h-10 w-10 items-center justify-center rounded-full ${
-                  input.trim() && !isPending && !isStreaming
-                    ? "bg-primary"
-                    : "bg-muted"
-                }`}
-                disabled={!input.trim() || isPending || isStreaming}
-                onPress={() => handleSend()}
-              >
-                {isPending || isStreaming ? (
-                  <Spinner className="text-muted-foreground" size={18} />
-                ) : (
-                  <ArrowRight
-                    className={`h-5 w-5 ${
-                      input.trim()
-                        ? "text-primary-foreground"
-                        : "text-muted-foreground"
-                    }`}
-                  />
-                )}
-              </Pressable>
-            </HStack>
-          </View>
-        </KeyboardStickyView>
-      </KeyboardGestureArea>
-      <ConversationListView
-        activeConversationId={conversationId}
-        onClose={() => setIsConversationListVisible(false)}
-        onNewConversation={handleNewConversation}
-        onSelectConversation={handleSelectConversation}
-        visible={isConversationListVisible}
+    <>
+      <Stack.Screen
+        options={{
+          headerShown: false,
+          headerTransparent: true,
+          headerTitleStyle: {
+            fontFamily: "NunitoSans12pt-Bold",
+            fontWeight: "bold",
+          },
+          title: "Agent",
+          headerBackButtonDisplayMode: "minimal",
+        }}
       />
-    </SafeAreaView>
+      <SafeAreaView className="flex-1" edges={["top", "bottom"]}>
+        {/* Header */}
+        <View className="flex-row items-center gap-3 border-white/10 border-b px-4 pt-2 pb-3">
+          <View className="h-8 w-8 items-center justify-center rounded-full bg-primary/20">
+            <Sparkles className="h-4 w-4 text-primary" />
+          </View>
+          <View className="flex-1">
+            <H3>AI Agent</H3>
+            <Muted className="text-xs leading-tight">Powered by Claude</Muted>
+          </View>
+          <Button
+            disabled={isStreaming}
+            onPress={() => setIsConversationListVisible(true)}
+            shape="pill"
+            size="icon-sm"
+            variant="ghost"
+          >
+            <Ellipsis className="text-foreground" size={21} />
+          </Button>
+        </View>
+
+        <KeyboardGestureArea
+          interpolator="ios"
+          offset={INPUT_HEIGHT}
+          style={{ flex: 1 }}
+          textInputNativeID="chat-input"
+        >
+          <FlatList
+            contentContainerStyle={{ paddingTop: INPUT_HEIGHT + MARGIN }}
+            data={[...localMessages].reverse()}
+            inverted
+            keyboardDismissMode="interactive"
+            keyExtractor={(item) => item.id}
+            ListEmptyComponent={<EmptyState onSuggestion={setInput} />}
+            renderItem={({ item }: { item: LocalMessage }) => (
+              <AgentMessageView
+                isStreaming={item.isStreaming}
+                message={{
+                  id: item.id,
+                  conversation_id: conversationId ?? "",
+                  role: item.role,
+                  content: item.content,
+                  created_at: item.created_at,
+                  metadata: item.metadata,
+                }}
+              />
+            )}
+            renderScrollComponent={renderScrollComponent}
+          />
+
+          <KeyboardStickyView offset={{ opened: bottom - MARGIN }}>
+            <View className="border-white/10 border-t bg-background px-4 py-3">
+              <HStack className="items-end justify-stretch gap-2">
+                <TextInput
+                  className="flex-1 font-nunito-sans-bold text-foreground text-sm"
+                  editable={!(isPending || isStreaming)}
+                  multiline
+                  nativeID="chat-input"
+                  onChangeText={setInput}
+                  onLayout={onInputLayout}
+                  onSubmitEditing={() => handleSend()}
+                  placeholder="Message..."
+                  returnKeyType="send"
+                  scrollEnabled={inputHeight >= MAX_INPUT_HEIGHT}
+                  style={{ paddingVertical: 11 }}
+                  value={input}
+                />
+                <Pressable
+                  className={`h-10 w-10 items-center justify-center rounded-full ${
+                    input.trim() && !isPending && !isStreaming
+                      ? "bg-primary"
+                      : "bg-muted"
+                  }`}
+                  disabled={!input.trim() || isPending || isStreaming}
+                  onPress={() => handleSend()}
+                >
+                  {isPending || isStreaming ? (
+                    <Spinner className="text-muted-foreground" size={18} />
+                  ) : (
+                    <ArrowRight
+                      className={`h-5 w-5 ${
+                        input.trim()
+                          ? "text-primary-foreground"
+                          : "text-muted-foreground"
+                      }`}
+                    />
+                  )}
+                </Pressable>
+              </HStack>
+            </View>
+          </KeyboardStickyView>
+        </KeyboardGestureArea>
+        <ConversationListView
+          activeConversationId={conversationId}
+          onClose={() => setIsConversationListVisible(false)}
+          onNewConversation={handleNewConversation}
+          onSelectConversation={handleSelectConversation}
+          visible={isConversationListVisible}
+        />
+      </SafeAreaView>
+    </>
   );
 }
