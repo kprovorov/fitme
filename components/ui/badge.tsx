@@ -1,22 +1,34 @@
 import * as Slot from "@rn-primitives/slot";
-import type { SlottableViewProps } from "@rn-primitives/types";
 import { cva, type VariantProps } from "class-variance-authority";
-import { View } from "react-native";
+import { Platform, View } from "react-native";
 import { TextClassContext } from "~/components/ui/text";
 import { cn } from "~/lib/utils";
 
 const badgeVariants = cva(
-  "web:inline-flex items-center rounded border border-border px-2.5 py-0.5 web:transition-colors web:focus:outline-none web:focus:ring-2 web:focus:ring-ring web:focus:ring-offset-2",
+  cn(
+    "group shrink-0 flex-row items-center justify-center gap-1 overflow-hidden rounded-full border border-border px-2 py-0.5",
+    Platform.select({
+      web: "w-fit whitespace-nowrap transition-[color,box-shadow] focus-visible:border-ring focus-visible:ring-[3px] focus-visible:ring-ring/50 aria-invalid:border-destructive aria-invalid:ring-destructive/20 dark:aria-invalid:ring-destructive/40 [&>svg]:pointer-events-none [&>svg]:size-3",
+    })
+  ),
   {
     variants: {
       variant: {
-        default:
-          "border-transparent bg-primary web:hover:opacity-80 active:opacity-80",
-        secondary:
-          "border-transparent bg-secondary web:hover:opacity-80 active:opacity-80",
-        destructive:
-          "border-transparent bg-destructive web:hover:opacity-80 active:opacity-80",
-        outline: "text-foreground",
+        default: cn(
+          "border-transparent bg-primary",
+          Platform.select({ web: "[a&]:hover:bg-primary/90" })
+        ),
+        secondary: cn(
+          "border-transparent bg-secondary",
+          Platform.select({ web: "[a&]:hover:bg-secondary/90" })
+        ),
+        destructive: cn(
+          "border-transparent bg-destructive",
+          Platform.select({ web: "[a&]:hover:bg-destructive/90" })
+        ),
+        outline: Platform.select({
+          web: "[a&]:hover:bg-accent [a&]:hover:text-accent-foreground",
+        }),
       },
     },
     defaultVariants: {
@@ -25,12 +37,12 @@ const badgeVariants = cva(
   }
 );
 
-const badgeTextVariants = cva("font-nunito-sans-bold text-xs", {
+const badgeTextVariants = cva("font-medium text-xs", {
   variants: {
     variant: {
       default: "text-primary-foreground",
       secondary: "text-secondary-foreground",
-      destructive: "text-destructive-foreground",
+      destructive: "text-white",
       outline: "text-foreground",
     },
   },
@@ -39,7 +51,9 @@ const badgeTextVariants = cva("font-nunito-sans-bold text-xs", {
   },
 });
 
-type BadgeProps = SlottableViewProps & VariantProps<typeof badgeVariants>;
+type BadgeProps = React.ComponentProps<typeof View> & {
+  asChild?: boolean;
+} & VariantProps<typeof badgeVariants>;
 
 function Badge({ className, variant, asChild, ...props }: BadgeProps) {
   const Component = asChild ? Slot.View : View;
