@@ -104,12 +104,6 @@ export default function RootLayout() {
       >
         <Stack.Screen name="(tabs)" options={{ title: "Home" }} />
         <Stack.Screen
-          name="auth"
-          options={{
-            presentation: "fullScreenModal",
-          }}
-        />
-        <Stack.Screen
           name="onboarding"
           options={{
             presentation: "modal",
@@ -121,7 +115,6 @@ export default function RootLayout() {
             presentation: "modal",
           }}
         />
-        <Stack.Screen name="+not-found" />
       </Stack>
       <PortalHost />
       <StatusBar style="auto" />
