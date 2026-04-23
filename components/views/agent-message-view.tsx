@@ -2,6 +2,7 @@ import { useEffect } from "react";
 import { View } from "react-native";
 import Markdown from "react-native-markdown-display";
 import Animated, {
+  Easing,
   useAnimatedStyle,
   useSharedValue,
   withDelay,
@@ -14,6 +15,7 @@ import type { Message } from "~/lib/models";
 import PlanAttachmentView from "./plan-attachment-view";
 
 interface Props {
+  isNew?: boolean;
   isStreaming?: boolean;
   message: Message;
 }
@@ -157,14 +159,37 @@ const userMarkdownStyles = {
   hr: { ...baseMarkdownStyles.hr, backgroundColor: "rgba(0,0,0,0.2)" },
 };
 
-export default function AgentMessageView({ message, isStreaming }: Props) {
+export default function AgentMessageView({
+  message,
+  isNew,
+  isStreaming,
+}: Props) {
   const isUser = message.role === "user";
   const attachment = message.metadata?.attachment;
   const isThinking = !isUser && isStreaming && !message.content.trim();
 
+  const opacity = useSharedValue(isNew ? 0 : 1);
+  const translateY = useSharedValue(isNew ? 10 : 0);
+
+  useEffect(() => {
+    if (isNew) {
+      opacity.value = withTiming(1, { duration: 250 });
+      translateY.value = withTiming(0, {
+        duration: 300,
+        easing: Easing.out(Easing.quad),
+      });
+    }
+  }, [isNew, opacity, translateY]);
+
+  const animatedStyle = useAnimatedStyle(() => ({
+    opacity: opacity.value,
+    transform: [{ translateY: translateY.value }],
+  }));
+
   return (
-    <View
+    <Animated.View
       className={`mb-4 w-full px-4 ${isUser ? "items-end" : "items-start"}`}
+      style={animatedStyle}
     >
       {!isUser && (
         <View className="mb-1.5 h-7 w-7 items-center justify-center rounded-full bg-primary/20">
@@ -190,6 +215,6 @@ export default function AgentMessageView({ message, isStreaming }: Props) {
       {!isUser && attachment?.type === "plan_preview" && (
         <PlanAttachmentView attachment={attachment} />
       )}
-    </View>
+    </Animated.View>
   );
 }

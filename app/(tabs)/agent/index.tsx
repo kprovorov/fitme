@@ -1,19 +1,14 @@
+import { LiquidGlassView } from "@callstack/liquid-glass";
 import { KeyboardAvoidingLegendList } from "@legendapp/list/keyboard-test";
 import { useQueryClient } from "@tanstack/react-query";
 import { router, Stack, useLocalSearchParams } from "expo-router";
 import { useCallback, useEffect, useRef, useState } from "react";
-import {
-  type LayoutChangeEvent,
-  Pressable,
-  TextInput,
-  View,
-} from "react-native";
-
+import { Pressable, TextInput, View } from "react-native";
 import {
   KeyboardGestureArea,
   KeyboardStickyView,
 } from "react-native-keyboard-controller";
-import { useSharedValue, withTiming } from "react-native-reanimated";
+import { useSafeAreaInsets } from "react-native-safe-area-context";
 import { HStack } from "~/components/ui/hstack";
 import { Spinner } from "~/components/ui/spinner";
 import { Text } from "~/components/ui/text";
@@ -103,12 +98,12 @@ interface LocalMessage {
   content: string;
   created_at: string;
   id: string;
+  isNew?: boolean;
   isStreaming?: boolean;
   metadata?: { attachment?: MessageAttachment };
   role: "user" | "assistant";
 }
 
-const INPUT_HEIGHT = 42;
 const MAX_INPUT_HEIGHT = 120;
 
 export default function AgentScreen() {
@@ -121,8 +116,6 @@ export default function AgentScreen() {
   const planRequestSentRef = useRef(false);
   const [pendingAutoSend, setPendingAutoSend] = useState<string | null>(null);
   const [isStreaming, setIsStreaming] = useState(false);
-  const [inputHeight, setInputHeight] = useState(INPUT_HEIGHT);
-  const extraContentPadding = useSharedValue(0);
 
   const { data: conversation } = useConversationQuery();
   const { data: serverMessages } = useMessagesQuery({
@@ -150,6 +143,7 @@ export default function AgentScreen() {
         created_at: m.created_at,
         metadata: m.metadata,
         isStreaming: false,
+        isNew: false,
       }));
       setLocalMessages(mapped);
     }
@@ -177,7 +171,6 @@ export default function AgentScreen() {
 
       if (!messageOverride) {
         setInput("");
-        setInputHeight(INPUT_HEIGHT);
       }
       setIsStreaming(true);
 
@@ -186,6 +179,7 @@ export default function AgentScreen() {
         role: "user",
         content: text,
         created_at: new Date().toISOString(),
+        isNew: true,
       };
       const assistantMessageId = `local-assistant-${Date.now()}`;
       const assistantMsg: LocalMessage = {
@@ -194,6 +188,7 @@ export default function AgentScreen() {
         content: "",
         created_at: new Date().toISOString(),
         isStreaming: true,
+        isNew: true,
       };
       setLocalMessages((prev) => [...prev, userMsg, assistantMsg]);
 
@@ -279,15 +274,8 @@ export default function AgentScreen() {
     }
   }, [pendingAutoSend, isStreaming, isPending, handleSend]);
 
-  const onInputLayout = useCallback(
-    (e: LayoutChangeEvent) => {
-      extraContentPadding.value = withTiming(
-        Math.max(e.nativeEvent.layout.height - INPUT_HEIGHT, 0),
-        { duration: 250 }
-      );
-    },
-    [extraContentPadding]
-  );
+  const { bottom: bottomInset } = useSafeAreaInsets();
+  const canSend = !!input.trim() && !isPending && !isStreaming;
 
   return (
     <>
@@ -304,12 +292,12 @@ export default function AgentScreen() {
       />
       <KeyboardGestureArea
         interpolator="ios"
-        // offset={INPUT_HEIGHT}
         style={{ flex: 1 }}
         textInputNativeID="chat-input"
       >
         <KeyboardAvoidingLegendList
           alignItemsAtEnd
+          // contentInset={{ bottom: 80 + bottomInset }}
           contentInsetAdjustmentBehavior="automatic"
           data={localMessages}
           initialScrollAtEnd
@@ -317,9 +305,9 @@ export default function AgentScreen() {
           keyExtractor={(item) => item.id}
           ListEmptyComponent={<EmptyState onSuggestion={setInput} />}
           maintainScrollAtEnd
-          // maintainScrollAtEndThreshold={0.1}
           renderItem={({ item }: { item: LocalMessage }) => (
             <AgentMessageView
+              isNew={item.isNew}
               isStreaming={item.isStreaming}
               message={{
                 id: item.id,
@@ -331,48 +319,55 @@ export default function AgentScreen() {
               }}
             />
           )}
+          // scrollIndicatorInsets={{ bottom: 80 + bottomInset }}
         />
       </KeyboardGestureArea>
 
-      <KeyboardStickyView>
-        <View className="px-4 py-3">
-          <HStack className="items-end justify-stretch gap-2">
-            <TextInput
-              className="flex-1 font-nunito-sans-bold text-foreground text-sm"
-              editable={!(isPending || isStreaming)}
-              multiline
-              nativeID="chat-input"
-              onChangeText={setInput}
-              onLayout={onInputLayout}
-              onSubmitEditing={() => handleSend()}
-              placeholder="Message..."
-              returnKeyType="send"
-              scrollEnabled={inputHeight >= MAX_INPUT_HEIGHT}
-              style={{ paddingVertical: 11 }}
-              value={input}
-            />
-            <Pressable
-              className={`h-10 w-10 items-center justify-center rounded-full ${
-                input.trim() && !isPending && !isStreaming
-                  ? "bg-primary"
-                  : "bg-muted"
-              }`}
-              disabled={!input.trim() || isPending || isStreaming}
-              onPress={() => handleSend()}
-            >
-              {isPending || isStreaming ? (
-                <Spinner className="text-muted-foreground" size={18} />
-              ) : (
-                <ArrowRight
-                  className={`h-5 w-5 ${
-                    input.trim()
-                      ? "text-primary-foreground"
-                      : "text-muted-foreground"
-                  }`}
-                />
-              )}
-            </Pressable>
-          </HStack>
+      <KeyboardStickyView offset={{ opened: 70 }}>
+        <View
+          style={{
+            paddingHorizontal: 12,
+            paddingTop: 4,
+            paddingBottom: Math.max(bottomInset, 16),
+          }}
+        >
+          <LiquidGlassView
+            colorScheme="dark"
+            style={{ borderRadius: 26, overflow: "hidden" }}
+          >
+            <HStack className="items-end gap-2 px-4 py-2">
+              <TextInput
+                className="flex-1 font-nunito-sans-bold text-foreground text-sm"
+                editable={!(isPending || isStreaming)}
+                multiline
+                nativeID="chat-input"
+                onChangeText={setInput}
+                onSubmitEditing={() => handleSend()}
+                placeholder="Message..."
+                returnKeyType="send"
+                scrollEnabled
+                style={{ maxHeight: MAX_INPUT_HEIGHT, paddingVertical: 11 }}
+                value={input}
+              />
+              <Pressable
+                className={`mb-1 h-9 w-9 items-center justify-center rounded-full ${
+                  canSend ? "bg-primary" : "bg-white/10"
+                }`}
+                disabled={!canSend}
+                onPress={() => handleSend()}
+              >
+                {isPending || isStreaming ? (
+                  <Spinner className="text-muted-foreground" size={16} />
+                ) : (
+                  <ArrowRight
+                    className={`h-4 w-4 ${
+                      canSend ? "text-primary-foreground" : "text-white/40"
+                    }`}
+                  />
+                )}
+              </Pressable>
+            </HStack>
+          </LiquidGlassView>
         </View>
       </KeyboardStickyView>
     </>
