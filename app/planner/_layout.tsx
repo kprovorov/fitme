@@ -6,18 +6,15 @@ export default function Layout() {
     <>
       <Stack
         screenOptions={{
+          // headerShown: false,
           headerTransparent: true,
-          headerTitle: "",
           headerTitleStyle: {
             fontFamily: "NunitoSans12pt-Bold",
             fontWeight: "bold",
           },
           headerBackButtonDisplayMode: "minimal",
         }}
-      >
-        <Stack.Screen name="index" />
-        <Stack.Screen name="preview" />
-      </Stack>
+      />
       <PortalHost />
     </>
   );

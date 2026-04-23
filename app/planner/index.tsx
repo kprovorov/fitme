@@ -69,8 +69,7 @@ export default function PlannerScreen() {
     <>
       <Stack.Screen
         options={{
-          title: "Create workout plan",
-          headerBackButtonDisplayMode: "minimal",
+          title: "Create Workout Plan",
         }}
       />
 
@@ -78,6 +77,7 @@ export default function PlannerScreen() {
         <KeyboardAwareScrollView
           bottomOffset={24}
           className="flex-1"
+          contentInsetAdjustmentBehavior="automatic"
           keyboardShouldPersistTaps="handled"
           showsVerticalScrollIndicator={false}
         >
