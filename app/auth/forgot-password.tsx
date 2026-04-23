@@ -30,9 +30,7 @@ export default function ForgotPasswordScreen() {
 
   return (
     <>
-      <Stack.Screen
-        options={{ title: "Forgot Password", headerShown: false }}
-      />
+      <Stack.Screen options={{ title: "Forgot Password" }} />
       <SafeAreaView className="flex-1">
         <KeyboardAvoidingView
           behavior={Platform.OS === "ios" ? "padding" : "height"}

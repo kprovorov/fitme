@@ -54,7 +54,7 @@ export default function ResetPasswordScreen() {
 
   return (
     <>
-      <Stack.Screen options={{ title: "Reset Password", headerShown: false }} />
+      <Stack.Screen options={{ title: "Reset Password" }} />
 
       <SafeAreaView className="flex-1">
         <KeyboardAvoidingView

@@ -37,8 +37,6 @@ export default function RegisterScreen() {
       <Stack.Screen
         options={{
           title: "Sign Up",
-          headerBackTitle: "Sign Up",
-          headerShown: false,
         }}
       />
       <SafeAreaView className="flex-1">

@@ -97,27 +97,28 @@ export default function RootLayout() {
 
   return (
     <Providers>
-      <Stack>
-        <Stack.Screen name="(tabs)" options={{ headerShown: false }} />
+      <Stack
+        screenOptions={{
+          headerShown: false,
+        }}
+      >
+        <Stack.Screen name="(tabs)" options={{ title: "Home" }} />
         <Stack.Screen
           name="auth"
           options={{
             presentation: "fullScreenModal",
-            headerShown: false,
           }}
         />
         <Stack.Screen
           name="onboarding"
           options={{
             presentation: "modal",
-            headerShown: false,
           }}
         />
         <Stack.Screen
           name="planner"
           options={{
             presentation: "modal",
-            headerShown: false,
           }}
         />
         <Stack.Screen name="+not-found" />

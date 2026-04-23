@@ -37,7 +37,6 @@ export default function LoginScreen() {
       <Stack.Screen
         options={{
           title: "Login",
-          headerBackTitle: "Login",
         }}
       />
       <SafeAreaView className="flex-1">
