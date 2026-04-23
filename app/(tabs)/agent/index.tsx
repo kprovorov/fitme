@@ -14,10 +14,6 @@ import {
   KeyboardStickyView,
 } from "react-native-keyboard-controller";
 import { useSharedValue, withTiming } from "react-native-reanimated";
-import {
-  SafeAreaView,
-  useSafeAreaInsets,
-} from "react-native-safe-area-context";
 import { HStack } from "~/components/ui/hstack";
 import { Spinner } from "~/components/ui/spinner";
 import { Text } from "~/components/ui/text";
@@ -112,7 +108,6 @@ interface LocalMessage {
   role: "user" | "assistant";
 }
 
-const MARGIN = 8;
 const INPUT_HEIGHT = 42;
 const MAX_INPUT_HEIGHT = 120;
 
@@ -172,8 +167,6 @@ export default function AgentScreen() {
       router.setParams({ planRequest: undefined });
     }
   }, [planRequest]);
-
-  const { bottom } = useSafeAreaInsets();
 
   const handleSend = useCallback(
     (messageOverride?: string) => {
@@ -309,81 +302,79 @@ export default function AgentScreen() {
           headerBackButtonDisplayMode: "minimal",
         }}
       />
-      <SafeAreaView className="flex-1" edges={["bottom"]}>
-        <KeyboardGestureArea
-          interpolator="ios"
-          offset={INPUT_HEIGHT}
-          style={{ flex: 1 }}
-          textInputNativeID="chat-input"
-        >
-          <KeyboardAvoidingLegendList
-            alignItemsAtEnd
-            contentContainerStyle={{ paddingTop: INPUT_HEIGHT + MARGIN }}
-            contentInsetAdjustmentBehavior="automatic"
-            data={localMessages}
-            initialScrollAtEnd
-            keyExtractor={(item) => item.id}
-            ListEmptyComponent={<EmptyState onSuggestion={setInput} />}
-            maintainScrollAtEnd
-            maintainScrollAtEndThreshold={0.1}
-            renderItem={({ item }: { item: LocalMessage }) => (
-              <AgentMessageView
-                isStreaming={item.isStreaming}
-                message={{
-                  id: item.id,
-                  conversation_id: conversationId ?? "",
-                  role: item.role,
-                  content: item.content,
-                  created_at: item.created_at,
-                  metadata: item.metadata,
-                }}
-              />
-            )}
-          />
-        </KeyboardGestureArea>
+      <KeyboardGestureArea
+        interpolator="ios"
+        // offset={INPUT_HEIGHT}
+        style={{ flex: 1 }}
+        textInputNativeID="chat-input"
+      >
+        <KeyboardAvoidingLegendList
+          alignItemsAtEnd
+          contentInsetAdjustmentBehavior="automatic"
+          data={localMessages}
+          initialScrollAtEnd
+          keyboardDismissMode="interactive"
+          keyExtractor={(item) => item.id}
+          ListEmptyComponent={<EmptyState onSuggestion={setInput} />}
+          maintainScrollAtEnd
+          // maintainScrollAtEndThreshold={0.1}
+          renderItem={({ item }: { item: LocalMessage }) => (
+            <AgentMessageView
+              isStreaming={item.isStreaming}
+              message={{
+                id: item.id,
+                conversation_id: conversationId ?? "",
+                role: item.role,
+                content: item.content,
+                created_at: item.created_at,
+                metadata: item.metadata,
+              }}
+            />
+          )}
+        />
+      </KeyboardGestureArea>
 
-        <KeyboardStickyView offset={{ opened: bottom - MARGIN }}>
-          <View className="border-white/10 border-t bg-background px-4 py-3">
-            <HStack className="items-end justify-stretch gap-2">
-              <TextInput
-                className="flex-1 font-nunito-sans-bold text-foreground text-sm"
-                editable={!(isPending || isStreaming)}
-                multiline
-                nativeID="chat-input"
-                onChangeText={setInput}
-                onLayout={onInputLayout}
-                onSubmitEditing={() => handleSend()}
-                placeholder="Message..."
-                returnKeyType="send"
-                scrollEnabled={inputHeight >= MAX_INPUT_HEIGHT}
-                style={{ paddingVertical: 11 }}
-                value={input}
-              />
-              <Pressable
-                className={`h-10 w-10 items-center justify-center rounded-full ${
-                  input.trim() && !isPending && !isStreaming
-                    ? "bg-primary"
-                    : "bg-muted"
-                }`}
-                disabled={!input.trim() || isPending || isStreaming}
-                onPress={() => handleSend()}
-              >
-                {isPending || isStreaming ? (
-                  <Spinner className="text-muted-foreground" size={18} />
-                ) : (
-                  <ArrowRight
-                    className={`h-5 w-5 ${
-                      input.trim()
-                        ? "text-primary-foreground"
-                        : "text-muted-foreground"
-                    }`}
-                  />
-                )}
-              </Pressable>
-            </HStack>
-          </View>
-        </KeyboardStickyView>
-      </SafeAreaView>
+      <KeyboardStickyView>
+        <View className="px-4 py-3">
+          <HStack className="items-end justify-stretch gap-2">
+            <TextInput
+              className="flex-1 font-nunito-sans-bold text-foreground text-sm"
+              editable={!(isPending || isStreaming)}
+              multiline
+              nativeID="chat-input"
+              onChangeText={setInput}
+              onLayout={onInputLayout}
+              onSubmitEditing={() => handleSend()}
+              placeholder="Message..."
+              returnKeyType="send"
+              scrollEnabled={inputHeight >= MAX_INPUT_HEIGHT}
+              style={{ paddingVertical: 11 }}
+              value={input}
+            />
+            <Pressable
+              className={`h-10 w-10 items-center justify-center rounded-full ${
+                input.trim() && !isPending && !isStreaming
+                  ? "bg-primary"
+                  : "bg-muted"
+              }`}
+              disabled={!input.trim() || isPending || isStreaming}
+              onPress={() => handleSend()}
+            >
+              {isPending || isStreaming ? (
+                <Spinner className="text-muted-foreground" size={18} />
+              ) : (
+                <ArrowRight
+                  className={`h-5 w-5 ${
+                    input.trim()
+                      ? "text-primary-foreground"
+                      : "text-muted-foreground"
+                  }`}
+                />
+              )}
+            </Pressable>
+          </HStack>
+        </View>
+      </KeyboardStickyView>
     </>
   );
 }
