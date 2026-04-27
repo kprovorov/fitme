@@ -297,7 +297,7 @@ export default function AgentScreen() {
       >
         <KeyboardAvoidingLegendList
           alignItemsAtEnd
-          // contentInset={{ bottom: 80 + bottomInset }}
+          contentInset={{ bottom: 80 }}
           contentInsetAdjustmentBehavior="automatic"
           data={localMessages}
           initialScrollAtEnd
@@ -319,23 +319,20 @@ export default function AgentScreen() {
               }}
             />
           )}
-          // scrollIndicatorInsets={{ bottom: 80 + bottomInset }}
+          scrollIndicatorInsets={{ bottom: 80 }}
         />
       </KeyboardGestureArea>
 
-      <KeyboardStickyView offset={{ opened: 70 }}>
-        <View
-          style={{
-            paddingHorizontal: 12,
-            paddingTop: 4,
-            paddingBottom: Math.max(bottomInset, 16),
-          }}
-        >
+      <KeyboardStickyView
+        offset={{ closed: -bottomInset, opened: -8 }}
+        style={{ position: "absolute", bottom: 0, left: 0, right: 0 }}
+      >
+        <View className="p-4">
           <LiquidGlassView
             colorScheme="dark"
-            style={{ borderRadius: 26, overflow: "hidden" }}
+            style={{ borderRadius: 30, overflow: "hidden" }}
           >
-            <HStack className="items-end gap-2 px-4 py-2">
+            <HStack className="items-end gap-2 px-3 py-2">
               <TextInput
                 className="flex-1 font-nunito-sans-bold text-foreground text-sm"
                 editable={!(isPending || isStreaming)}
