@@ -1,35 +1,22 @@
-import { LiquidGlassView } from "@callstack/liquid-glass";
-import { KeyboardAvoidingLegendList } from "@legendapp/list/keyboard-test";
 import { useQueryClient } from "@tanstack/react-query";
 import { router, Stack, useLocalSearchParams } from "expo-router";
 import { useCallback, useEffect, useRef, useState } from "react";
-import { Pressable, TextInput, View } from "react-native";
 import {
-  KeyboardGestureArea,
-  KeyboardStickyView,
-} from "react-native-keyboard-controller";
-import { useSafeAreaInsets } from "react-native-safe-area-context";
-import { HStack } from "~/components/ui/hstack";
-import { Spinner } from "~/components/ui/spinner";
-import { Text } from "~/components/ui/text";
-import { H3, Muted } from "~/components/ui/typography";
-import AgentMessageView from "~/components/views/agent-message-view";
+  Composer,
+  ComposerInput,
+  ComposerSendButton,
+} from "~/components/views/composer";
+import { ComposerProvider } from "~/components/views/composer-context";
+import type { LocalMessage } from "~/components/views/message-list";
+import { MessageList } from "~/components/views/message-list";
 import { useSendMessageMutation } from "~/hooks/mutations/agent";
 import { useConversationQuery, useMessagesQuery } from "~/hooks/queries/agent";
-import { ArrowRight } from "~/lib/icons/ArrowRight";
-import { Sparkles } from "~/lib/icons/Sparkles";
 import {
   getExperienceLevelLabel,
   getGoalLabel,
   getPlaceLabel,
 } from "~/lib/labels";
-import type {
-  ExperienceLevel,
-  Goal,
-  Message,
-  MessageAttachment,
-  Place,
-} from "~/lib/models";
+import type { ExperienceLevel, Goal, Message, Place } from "~/lib/models";
 
 interface PlanRequestParams {
   experience_level: ExperienceLevel;
@@ -54,57 +41,6 @@ function buildPlanRequestMessage(params: PlanRequestParams): string {
   }
   return lines.join("\n");
 }
-
-const SUGGESTIONS = [
-  "Create a workout plan for me",
-  "How am I progressing this week?",
-  "What exercises target my core?",
-];
-
-function EmptyState({
-  onSuggestion,
-}: {
-  onSuggestion: (text: string) => void;
-}) {
-  return (
-    <View style={{ transform: [{ scaleY: -1 }] }}>
-      <View className="items-center gap-6 px-6 py-12">
-        <View className="h-16 w-16 items-center justify-center rounded-full bg-primary/20">
-          <Sparkles className="h-8 w-8 text-primary" />
-        </View>
-        <View className="items-center gap-2">
-          <H3 className="text-center">How can I help?</H3>
-          <Muted className="text-center">
-            Ask me about workouts, nutrition, or your fitness goals.
-          </Muted>
-        </View>
-        <View className="w-full gap-3">
-          {SUGGESTIONS.map((s) => (
-            <Pressable
-              className="rounded-2xl border border-white/10 bg-card px-4 py-3"
-              key={s}
-              onPress={() => onSuggestion(s)}
-            >
-              <Text className="text-foreground text-sm">{s}</Text>
-            </Pressable>
-          ))}
-        </View>
-      </View>
-    </View>
-  );
-}
-
-interface LocalMessage {
-  content: string;
-  created_at: string;
-  id: string;
-  isNew?: boolean;
-  isStreaming?: boolean;
-  metadata?: { attachment?: MessageAttachment };
-  role: "user" | "assistant";
-}
-
-const MAX_INPUT_HEIGHT = 120;
 
 export default function AgentScreen() {
   const queryClient = useQueryClient();
@@ -274,11 +210,14 @@ export default function AgentScreen() {
     }
   }, [pendingAutoSend, isStreaming, isPending, handleSend]);
 
-  const { bottom: bottomInset } = useSafeAreaInsets();
-  const canSend = !!input.trim() && !isPending && !isStreaming;
-
   return (
-    <>
+    <ComposerProvider
+      isPending={isPending}
+      isStreaming={isStreaming}
+      onChangeText={setInput}
+      onSend={handleSend}
+      value={input}
+    >
       <Stack.Screen
         options={{
           headerTransparent: true,
@@ -290,83 +229,15 @@ export default function AgentScreen() {
           headerBackButtonDisplayMode: "minimal",
         }}
       />
-      <KeyboardGestureArea
-        interpolator="ios"
-        style={{ flex: 1 }}
-        textInputNativeID="chat-input"
-      >
-        <KeyboardAvoidingLegendList
-          alignItemsAtEnd
-          contentInset={{ bottom: 80 }}
-          contentInsetAdjustmentBehavior="automatic"
-          data={localMessages}
-          initialScrollAtEnd
-          keyboardDismissMode="interactive"
-          keyExtractor={(item) => item.id}
-          ListEmptyComponent={<EmptyState onSuggestion={setInput} />}
-          maintainScrollAtEnd
-          renderItem={({ item }: { item: LocalMessage }) => (
-            <AgentMessageView
-              isNew={item.isNew}
-              isStreaming={item.isStreaming}
-              message={{
-                id: item.id,
-                conversation_id: conversationId ?? "",
-                role: item.role,
-                content: item.content,
-                created_at: item.created_at,
-                metadata: item.metadata,
-              }}
-            />
-          )}
-          scrollIndicatorInsets={{ bottom: 80 }}
-        />
-      </KeyboardGestureArea>
-
-      <KeyboardStickyView
-        offset={{ closed: -bottomInset, opened: -8 }}
-        style={{ position: "absolute", bottom: 0, left: 0, right: 0 }}
-      >
-        <View className="p-4">
-          <LiquidGlassView
-            colorScheme="dark"
-            style={{ borderRadius: 30, overflow: "hidden" }}
-          >
-            <HStack className="items-end gap-2 px-3 py-2">
-              <TextInput
-                className="flex-1 font-nunito-sans-bold text-foreground text-sm"
-                editable={!(isPending || isStreaming)}
-                multiline
-                nativeID="chat-input"
-                onChangeText={setInput}
-                onSubmitEditing={() => handleSend()}
-                placeholder="Message..."
-                returnKeyType="send"
-                scrollEnabled
-                style={{ maxHeight: MAX_INPUT_HEIGHT, paddingVertical: 11 }}
-                value={input}
-              />
-              <Pressable
-                className={`mb-1 h-9 w-9 items-center justify-center rounded-full ${
-                  canSend ? "bg-primary" : "bg-white/10"
-                }`}
-                disabled={!canSend}
-                onPress={() => handleSend()}
-              >
-                {isPending || isStreaming ? (
-                  <Spinner className="text-muted-foreground" size={16} />
-                ) : (
-                  <ArrowRight
-                    className={`h-4 w-4 ${
-                      canSend ? "text-primary-foreground" : "text-white/40"
-                    }`}
-                  />
-                )}
-              </Pressable>
-            </HStack>
-          </LiquidGlassView>
-        </View>
-      </KeyboardStickyView>
-    </>
+      <MessageList
+        conversationId={conversationId}
+        messages={localMessages}
+        onSuggestion={setInput}
+      />
+      <Composer>
+        <ComposerInput />
+        <ComposerSendButton />
+      </Composer>
+    </ComposerProvider>
   );
 }
