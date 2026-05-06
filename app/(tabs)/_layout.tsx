@@ -41,13 +41,6 @@ export default function TabLayout() {
             <NativeTabs.Trigger.Label>History</NativeTabs.Trigger.Label>
           </NativeTabs.Trigger>
 
-          <NativeTabs.Trigger name="agent">
-            <NativeTabs.Trigger.Icon
-              sf={{ default: "sparkles", selected: "sparkles" }}
-            />
-            <NativeTabs.Trigger.Label>Agent</NativeTabs.Trigger.Label>
-          </NativeTabs.Trigger>
-
           <NativeTabs.Trigger name="library">
             <NativeTabs.Trigger.Icon
               sf={{

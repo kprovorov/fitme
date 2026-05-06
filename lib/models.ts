@@ -183,37 +183,3 @@ export interface WorkoutExerciseSetData {
   rest_recommended: number;
   weight_recommended: number;
 }
-
-export interface Conversation {
-  created_at: string;
-  id: string;
-  user_id: string;
-}
-
-export interface ConversationWithPreview {
-  created_at: string;
-  id: string;
-  preview: string | null;
-  user_id: string;
-}
-
-export interface MessageAttachment {
-  data: PlanData;
-  planId: string;
-  type: "plan_preview";
-}
-
-export interface Message {
-  content: string;
-  conversation_id: string;
-  created_at: string;
-  id: string;
-  metadata?: { attachment?: MessageAttachment };
-  role: "user" | "assistant";
-}
-
-export interface AgentResponse {
-  attachment?: MessageAttachment;
-  conversation_id: string;
-  message: string;
-}
