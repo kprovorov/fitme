@@ -57,6 +57,16 @@ export default function TabLayout() {
             />
             <NativeTabs.Trigger.Label>Profile</NativeTabs.Trigger.Label>
           </NativeTabs.Trigger>
+
+          <NativeTabs.Trigger name="agent">
+            <NativeTabs.Trigger.Icon
+              sf={{
+                default: "bubble.left.and.bubble.right",
+                selected: "bubble.left.and.bubble.right.fill",
+              }}
+            />
+            <NativeTabs.Trigger.Label>Coach</NativeTabs.Trigger.Label>
+          </NativeTabs.Trigger>
         </NativeTabs>
       </ThemeProvider>
     </Authenticated>
