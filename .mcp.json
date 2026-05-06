@@ -3,6 +3,10 @@
     "supabase": {
       "type": "http",
       "url": "http://localhost:51321/mcp"
+    },
+    "mcp-docs-server": {
+      "command": "npx",
+      "args": ["-y", "@assistant-ui/mcp-docs-server"]
     }
   }
 }
