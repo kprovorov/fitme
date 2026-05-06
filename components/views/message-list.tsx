@@ -1,4 +1,7 @@
+import type { LegendListRef } from "@legendapp/list/keyboard-test";
 import { KeyboardAvoidingLegendList } from "@legendapp/list/keyboard-test";
+import { useFocusEffect } from "expo-router";
+import { useCallback, useEffect, useRef } from "react";
 import { Pressable, View } from "react-native";
 import { KeyboardGestureArea } from "react-native-keyboard-controller";
 import { Text } from "~/components/ui/text";
@@ -69,6 +72,19 @@ export function MessageList({
   onSuggestion,
 }: MessageListProps) {
   const { height: composerHeight } = useComposer();
+  const listRef = useRef<LegendListRef>(null);
+
+  useFocusEffect(
+    useCallback(() => {
+      listRef.current?.scrollToEnd({ animated: false });
+    }, [])
+  );
+
+  useEffect(() => {
+    if (messages.length > 0) {
+      listRef.current?.scrollToEnd({ animated: true });
+    }
+  }, [messages.length]);
 
   return (
     <KeyboardGestureArea
@@ -86,6 +102,7 @@ export function MessageList({
         keyExtractor={(item) => item.id}
         ListEmptyComponent={<EmptyState onSuggestion={onSuggestion} />}
         maintainScrollAtEnd
+        ref={listRef}
         renderItem={({ item }: { item: LocalMessage }) => (
           <AgentMessageView
             isNew={item.isNew}
