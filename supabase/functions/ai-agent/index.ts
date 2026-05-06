@@ -1,6 +1,6 @@
 import { createClient } from "jsr:@supabase/supabase-js@2";
-import { createOpenAI } from "npm:@ai-sdk/openai";
-import { convertToModelMessages, streamText } from "npm:ai";
+import { createOpenAI } from "npm:@ai-sdk/openai@3";
+import { convertToModelMessages, streamText } from "npm:ai@6";
 
 const openai = createOpenAI({ apiKey: Deno.env.get("OPENAI_API_KEY") });
 
@@ -33,15 +33,11 @@ Deno.serve(async (req: Request) => {
 
   const { messages } = await req.json();
 
-  console.log(messages);
-
-  const convertedMessages = await convertToModelMessages(messages);
-
   const result = streamText({
-    model: openai("gpt-4o-mini"),
+    model: openai("gpt-5.4-mini"),
     system:
       "You are a personal fitness coach assistant. Help the user with their workouts, nutrition, and fitness goals.",
-    messages: convertedMessages,
+    messages: await convertToModelMessages(messages),
   });
 
   return result.toUIMessageStreamResponse();
