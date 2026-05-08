@@ -1,4 +1,4 @@
-import { createClient } from "jsr:@supabase/supabase-js@2";
+import { withSupabase } from "npm:@supabase/server";
 
 const MAX_ATTEMPTS = 3;
 
@@ -352,202 +352,176 @@ async function callAIWithRetry(
   throw lastError ?? new Error("All attempts to generate workout plan failed");
 }
 
-Deno.serve(async (req: Request) => {
-  const authHeader = req.headers.get("Authorization");
-  if (!authHeader) {
-    return new Response(JSON.stringify({ error: "Unauthorized" }), {
-      status: 401,
-      headers: { "Content-Type": "application/json" },
-    });
-  }
+export default {
+  fetch: withSupabase({ auth: "user" }, async (req, ctx) => {
+    const userId = ctx.userClaims?.id;
+    if (!userId) {
+      return Response.json({ error: "Unauthorized" }, { status: 401 });
+    }
 
-  const supabaseClient = createClient(
-    Deno.env.get("SUPABASE_URL") ?? "",
-    Deno.env.get("SUPABASE_ANON_KEY") ?? "",
-    { global: { headers: { Authorization: authHeader } } }
-  );
+    // Early return for E2E tests: skips AI call, returns a fixture plan
+    if (req.headers.get("x-e2e") === "true") {
+      const { data: exercises } = await ctx.supabase
+        .from("exercises")
+        .select("id, name, thumbnail_url")
+        .limit(6);
+      const fixtureExercises = exercises ?? [];
 
-  const {
-    data: { user },
-    error: userError,
-  } = await supabaseClient.auth.getUser();
+      function buildE2EFixturePlan(exs: Exercise[]) {
+        const workout1Exercises = exs.slice(0, 3);
+        const workout2Exercises = exs.slice(3, 6);
 
-  if (userError || !user) {
-    return new Response(JSON.stringify({ error: "Unauthorized" }), {
-      status: 401,
-      headers: { "Content-Type": "application/json" },
-    });
-  }
+        const makeWorkout = (
+          name: string,
+          desc: string,
+          order: number,
+          wExercises: Exercise[]
+        ) => ({
+          name,
+          description: desc,
+          order,
+          exercises: wExercises.map((ex, i) => ({
+            exercise_id: ex.id,
+            exercise: ex,
+            order: i + 1,
+            sets: [
+              {
+                order: 1,
+                weight_recommended: 0,
+                reps_recommended: 10,
+                rest_recommended: 60,
+              },
+              {
+                order: 2,
+                weight_recommended: 0,
+                reps_recommended: 10,
+                rest_recommended: 60,
+              },
+              {
+                order: 3,
+                weight_recommended: 0,
+                reps_recommended: 10,
+                rest_recommended: 60,
+              },
+            ],
+          })),
+        });
 
-  // Early return for E2E tests: skips AI call, returns a fixture plan
-  if (req.headers.get("x-e2e") === "true") {
-    const { data: exercises } = await supabaseClient
-      .from("exercises")
-      .select("id, name, thumbnail_url")
-      .limit(6);
-    const fixtureExercises = exercises ?? [];
-
-    function buildE2EFixturePlan(exs: Exercise[]) {
-      const workout1Exercises = exs.slice(0, 3);
-      const workout2Exercises = exs.slice(3, 6);
-
-      const makeWorkout = (
-        name: string,
-        desc: string,
-        order: number,
-        wExercises: Exercise[]
-      ) => ({
-        name,
-        description: desc,
-        order,
-        exercises: wExercises.map((ex, i) => ({
-          exercise_id: ex.id,
-          exercise: ex,
-          order: i + 1,
-          sets: [
-            {
-              order: 1,
-              weight_recommended: 0,
-              reps_recommended: 10,
-              rest_recommended: 60,
-            },
-            {
-              order: 2,
-              weight_recommended: 0,
-              reps_recommended: 10,
-              rest_recommended: 60,
-            },
-            {
-              order: 3,
-              weight_recommended: 0,
-              reps_recommended: 10,
-              rest_recommended: 60,
-            },
+        return {
+          name: "E2E Test Plan",
+          description: "Auto-generated fixture plan for E2E tests.",
+          goal: "general_fitness",
+          place: "gym",
+          frequency: 2,
+          experience_level: "beginner",
+          workout_duration: 45,
+          workouts: [
+            makeWorkout(
+              "E2E Workout A",
+              "First workout of the fixture plan.",
+              1,
+              workout1Exercises
+            ),
+            makeWorkout(
+              "E2E Workout B",
+              "Second workout of the fixture plan.",
+              2,
+              workout2Exercises
+            ),
           ],
-        })),
-      });
+        };
+      }
 
-      return {
-        name: "E2E Test Plan",
-        description: "Auto-generated fixture plan for E2E tests.",
-        goal: "general_fitness",
-        place: "gym",
-        frequency: 2,
-        experience_level: "beginner",
-        workout_duration: 45,
-        workouts: [
-          makeWorkout(
-            "E2E Workout A",
-            "First workout of the fixture plan.",
-            1,
-            workout1Exercises
-          ),
-          makeWorkout(
-            "E2E Workout B",
-            "Second workout of the fixture plan.",
-            2,
-            workout2Exercises
-          ),
-        ],
+      const fixturePlan = buildE2EFixturePlan(fixtureExercises);
+      return Response.json(fixturePlan);
+    }
+
+    const body: GeneratePlanParams = await req.json();
+
+    const [exercisesResult, profileResult, plansCountResult] =
+      await Promise.all([
+        ctx.supabase.from("exercises").select("id, name, thumbnail_url"),
+        ctx.supabase
+          .from("profiles")
+          .select("*")
+          .eq("user_id", userId)
+          .single(),
+        ctx.supabase
+          .from("plans")
+          .select("id", { count: "exact", head: true })
+          .is("deleted_at", null),
+      ]);
+
+    if (exercisesResult.error) {
+      return Response.json(
+        { error: "Failed to fetch exercises" },
+        { status: 500 }
+      );
+    }
+
+    // Subscription gate: first plan is free; subsequent plans require PRO
+    const planCount = plansCountResult.count ?? 0;
+    if (planCount > 0) {
+      const isPro = await checkRevenueCatEntitlement(userId);
+      if (!isPro) {
+        return Response.json(
+          { error: "Subscription required" },
+          { status: 403 }
+        );
+      }
+    }
+
+    const exercises: Exercise[] = exercisesResult.data ?? [];
+    const profile: Profile | null = profileResult.data ?? null;
+
+    const { systemPrompt, userPrompt } = buildPrompts(body, exercises, profile);
+
+    try {
+      const aiOutput = await callAIWithRetry(systemPrompt, userPrompt);
+
+      const exerciseMap = new Map(exercises.map((e) => [e.id, e]));
+
+      // Enrich AI output: replace exercise_id with a nested exercise object,
+      // matching what WorkoutExerciseData expects on the client.
+      interface RawExercise {
+        exercise_id: string;
+        [key: string]: unknown;
+      }
+      interface RawWorkout {
+        exercises: RawExercise[];
+        [key: string]: unknown;
+      }
+      const enrichedWorkouts = (aiOutput.workouts as RawWorkout[]).map(
+        (workout) => ({
+          ...workout,
+          exercises: workout.exercises
+            .map((ex) => ({
+              ...ex,
+              exercise: exerciseMap.get(ex.exercise_id) ?? null,
+            }))
+            .filter((ex) => ex.exercise !== null),
+        })
+      );
+
+      const planData = {
+        ...aiOutput,
+        workouts: enrichedWorkouts,
+        goal: body.goal,
+        place: body.place,
+        frequency: body.frequency,
+        experience_level: body.experience_level,
+        workout_duration: body.workout_duration,
+        note: body.note,
       };
+
+      return Response.json(planData);
+    } catch (err) {
+      const message = err instanceof Error ? err.message : "Unknown error";
+      console.error("Failed to generate workout plan:", message);
+      return Response.json(
+        { error: "Failed to generate workout plan" },
+        { status: 500 }
+      );
     }
-
-    const fixturePlan = buildE2EFixturePlan(fixtureExercises);
-    return new Response(JSON.stringify(fixturePlan), {
-      status: 200,
-      headers: { "Content-Type": "application/json" },
-    });
-  }
-
-  const body: GeneratePlanParams = await req.json();
-
-  const [exercisesResult, profileResult, plansCountResult] = await Promise.all([
-    supabaseClient.from("exercises").select("id, name, thumbnail_url"),
-    supabaseClient.from("profiles").select("*").eq("user_id", user.id).single(),
-    supabaseClient
-      .from("plans")
-      .select("id", { count: "exact", head: true })
-      .is("deleted_at", null),
-  ]);
-
-  if (exercisesResult.error) {
-    return new Response(
-      JSON.stringify({ error: "Failed to fetch exercises" }),
-      {
-        status: 500,
-        headers: { "Content-Type": "application/json" },
-      }
-    );
-  }
-
-  // Subscription gate: first plan is free; subsequent plans require PRO
-  const planCount = plansCountResult.count ?? 0;
-  if (planCount > 0) {
-    const isPro = await checkRevenueCatEntitlement(user.id);
-    if (!isPro) {
-      return new Response(JSON.stringify({ error: "Subscription required" }), {
-        status: 403,
-        headers: { "Content-Type": "application/json" },
-      });
-    }
-  }
-
-  const exercises: Exercise[] = exercisesResult.data ?? [];
-  const profile: Profile | null = profileResult.data ?? null;
-
-  const { systemPrompt, userPrompt } = buildPrompts(body, exercises, profile);
-
-  try {
-    const aiOutput = await callAIWithRetry(systemPrompt, userPrompt);
-
-    const exerciseMap = new Map(exercises.map((e) => [e.id, e]));
-
-    // Enrich AI output: replace exercise_id with a nested exercise object,
-    // matching what WorkoutExerciseData expects on the client.
-    interface RawExercise {
-      exercise_id: string;
-      [key: string]: unknown;
-    }
-    interface RawWorkout {
-      exercises: RawExercise[];
-      [key: string]: unknown;
-    }
-    const enrichedWorkouts = (aiOutput.workouts as RawWorkout[]).map(
-      (workout) => ({
-        ...workout,
-        exercises: workout.exercises
-          .map((ex) => ({
-            ...ex,
-            exercise: exerciseMap.get(ex.exercise_id) ?? null,
-          }))
-          .filter((ex) => ex.exercise !== null),
-      })
-    );
-
-    const planData = {
-      ...aiOutput,
-      workouts: enrichedWorkouts,
-      goal: body.goal,
-      place: body.place,
-      frequency: body.frequency,
-      experience_level: body.experience_level,
-      workout_duration: body.workout_duration,
-      note: body.note,
-    };
-
-    return new Response(JSON.stringify(planData), {
-      status: 200,
-      headers: { "Content-Type": "application/json" },
-    });
-  } catch (err) {
-    const message = err instanceof Error ? err.message : "Unknown error";
-    console.error("Failed to generate workout plan:", message);
-    return new Response(
-      JSON.stringify({ error: "Failed to generate workout plan" }),
-      {
-        status: 500,
-        headers: { "Content-Type": "application/json" },
-      }
-    );
-  }
-});
+  }),
+};
