@@ -34,13 +34,7 @@
   {
     "label": "Supabase: Serve Functions",
     "command": "supabase",
-    "args": [
-      "functions",
-      "serve",
-      "--env-file",
-      ".env.local",
-      "--no-verify-jwt"
-    ],
+    "args": ["functions", "serve"],
     "reveal": "no_focus"
   }
 ]
