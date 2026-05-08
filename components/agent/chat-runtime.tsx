@@ -4,6 +4,9 @@ import {
 } from "@assistant-ui/react-ai-sdk";
 import type { ThreadMessage } from "@assistant-ui/react-native";
 import { useAui, useAuiState } from "@assistant-ui/react-native";
+import { lastAssistantMessageIsCompleteWithToolCalls } from "ai";
+import { fetch as expoFetch } from "expo/fetch";
+import { useEffect } from "react";
 import {
   FlatList,
   KeyboardAvoidingView,
@@ -21,11 +24,13 @@ export function useAppRuntime() {
   return useChatRuntime({
     transport: new AssistantChatTransport({
       api: `${SUPABASE_URL}/functions/v1/ai-agent`,
+      fetch: expoFetch as unknown as typeof globalThis.fetch,
       headers: async () => {
         const { data } = await supabase.auth.getSession();
         return { Authorization: `Bearer ${data.session?.access_token ?? ""}` };
       },
     }),
+    sendAutomaticallyWhen: lastAssistantMessageIsCompleteWithToolCalls,
   });
 }
 
@@ -103,6 +108,14 @@ export function Composer() {
 
 export function ChatScreen() {
   const messages = useAuiState((s) => s.thread.messages);
+
+  useEffect(() => {
+    console.log("[chat] messages updated, count:", messages.length);
+    const last = messages.at(-1);
+    if (last) {
+      console.log("[chat] last message:", JSON.stringify(last));
+    }
+  }, [messages]);
 
   return (
     <KeyboardAvoidingView

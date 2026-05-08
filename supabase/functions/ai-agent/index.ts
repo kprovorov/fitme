@@ -40,5 +40,10 @@ Deno.serve(async (req: Request) => {
     messages: await convertToModelMessages(messages),
   });
 
-  return result.toUIMessageStreamResponse();
+  return result.toUIMessageStreamResponse({
+    headers: {
+      "Content-Type": "application/octet-stream",
+      "Content-Encoding": "none",
+    },
+  });
 });
