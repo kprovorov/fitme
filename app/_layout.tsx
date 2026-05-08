@@ -45,12 +45,17 @@ export default function RootLayout() {
     NunitoSans_700Bold,
   });
 
+  // biome-ignore lint/complexity/noExcessiveCognitiveComplexity: Refactor later
   useEffect(() => {
     if (loaded) {
       SplashScreen.hideAsync();
 
       if (!IS_E2E) {
-        if (Platform.OS === "ios") {
+        if (Platform.OS === "web") {
+          Purchases.configure({
+            apiKey: process.env.EXPO_PUBLIC_REVENUECAT_WEB_API_KEY ?? "",
+          });
+        } else if (Platform.OS === "ios") {
           Purchases.configure({
             apiKey: process.env.EXPO_PUBLIC_REVENUECAT_IOS_API_KEY ?? "",
           });
