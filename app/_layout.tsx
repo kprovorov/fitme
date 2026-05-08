@@ -1,3 +1,4 @@
+import "@/polyfills";
 import {
   NunitoSans_400Regular,
   NunitoSans_600SemiBold,
