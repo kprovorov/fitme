@@ -52,6 +52,12 @@
       "skillPath": "assistant-ui/skills/streaming/SKILL.md",
       "computedHash": "31a090f9360343967f1189559c2b24da7eeacbf5b1b1c503c57c98c71106e326"
     },
+    "supabase-server": {
+      "source": "supabase/server",
+      "sourceType": "github",
+      "skillPath": "skills/supabase-server/SKILL.md",
+      "computedHash": "1231dabcae0cb0b517fb4ff243f50891dab9dd8c6a7a995bb264e8ad258b0ed2"
+    },
     "thread-list": {
       "source": "assistant-ui/skills",
       "sourceType": "github",
