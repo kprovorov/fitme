@@ -5,6 +5,7 @@ import {
 import { AssistantRuntimeProvider } from "@assistant-ui/react-native";
 import { lastAssistantMessageIsCompleteWithToolCalls } from "ai";
 import { fetch as expoFetch } from "expo/fetch";
+import { Stack } from "expo-router";
 import { ChatScreen } from "@/components/agent/chat-screen";
 import { supabase } from "~/lib/supabase";
 
@@ -28,8 +29,21 @@ export default function AgentScreen() {
   const runtime = useAppRuntime();
 
   return (
-    <AssistantRuntimeProvider runtime={runtime}>
-      <ChatScreen />
-    </AssistantRuntimeProvider>
+    <>
+      <Stack.Screen
+        options={{
+          headerTransparent: true,
+          headerTitleStyle: {
+            fontFamily: "NunitoSans12pt-Bold",
+            fontWeight: "bold",
+          },
+          title: "Agent",
+          headerBackButtonDisplayMode: "minimal",
+        }}
+      />
+      <AssistantRuntimeProvider runtime={runtime}>
+        <ChatScreen />
+      </AssistantRuntimeProvider>
+    </>
   );
 }

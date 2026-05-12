@@ -1,42 +1,35 @@
 import { ComposerPrimitive } from "@assistant-ui/react-native";
+import { LiquidGlassView } from "@callstack/liquid-glass";
 import { Text } from "react-native";
+import { KeyboardStickyView } from "react-native-keyboard-controller";
+import { useSafeAreaInsets } from "react-native-safe-area-context";
+import { HStack } from "@/components/ui/hstack";
 
 export function Composer() {
+  const { bottom: bottomInset } = useSafeAreaInsets();
+
   return (
-    <ComposerPrimitive.Root
-      style={{
-        flexDirection: "row",
-        padding: 12,
-        alignItems: "flex-end",
-        paddingBottom: 100,
-      }}
-    >
-      <ComposerPrimitive.Input
-        multiline
-        placeholder="Ask anything..."
-        style={{
-          flex: 1,
-          borderWidth: 1,
-          borderColor: "#ddd",
-          borderRadius: 20,
-          paddingHorizontal: 16,
-          paddingVertical: 10,
-          maxHeight: 120,
-        }}
-      />
-      <ComposerPrimitive.Send
-        style={{
-          marginLeft: 8,
-          backgroundColor: "#C0FF38",
-          borderRadius: 20,
-          width: 36,
-          height: 36,
-          justifyContent: "center",
-          alignItems: "center",
-        }}
-      >
-        <Text style={{ color: "#000", fontWeight: "bold" }}>↑</Text>
-      </ComposerPrimitive.Send>
-    </ComposerPrimitive.Root>
+    <KeyboardStickyView className="p-4" offset={{ closed: -bottomInset }}>
+      <ComposerPrimitive.Root>
+        <LiquidGlassView
+          colorScheme="dark"
+          style={{ borderRadius: 30, overflow: "hidden" }}
+        >
+          <HStack className="items-center justify-center gap-2 p-2 pl-4">
+            <ComposerPrimitive.Input
+              multiline
+              nativeID="chat-input"
+              placeholder="Ask anything..."
+              returnKeyType="send"
+              scrollEnabled
+              style={{ flex: 1, color: "white" }}
+            />
+            <ComposerPrimitive.Send className="h-8 w-8 items-center justify-center rounded-full bg-primary">
+              <Text>↑</Text>
+            </ComposerPrimitive.Send>
+          </HStack>
+        </LiquidGlassView>
+      </ComposerPrimitive.Root>
+    </KeyboardStickyView>
   );
 }
