@@ -1,12 +1,14 @@
 import { ComposerPrimitive } from "@assistant-ui/react-native";
 import { LiquidGlassView } from "@callstack/liquid-glass";
-import { Text } from "react-native";
+import { type LayoutChangeEvent, Text } from "react-native";
 import { KeyboardStickyView } from "react-native-keyboard-controller";
 import { useSafeAreaInsets } from "react-native-safe-area-context";
 import { HStack } from "@/components/ui/hstack";
+import { useMessageListContext } from "./messages-list";
 
 export function Composer() {
   const { bottom: bottomInset } = useSafeAreaInsets();
+  const { composerHeight } = useMessageListContext();
 
   return (
     <KeyboardStickyView
@@ -14,7 +16,11 @@ export function Composer() {
       offset={{ closed: -bottomInset }}
       style={{ position: "absolute", bottom: 0, left: 0, right: 0 }}
     >
-      <ComposerPrimitive.Root>
+      <ComposerPrimitive.Root
+        onLayout={(e: LayoutChangeEvent) => {
+          composerHeight.set(e.nativeEvent.layout.height);
+        }}
+      >
         <LiquidGlassView
           colorScheme="dark"
           style={{ borderRadius: 30, overflow: "hidden" }}
