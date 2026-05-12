@@ -9,7 +9,11 @@ export function Composer() {
   const { bottom: bottomInset } = useSafeAreaInsets();
 
   return (
-    <KeyboardStickyView className="p-4" offset={{ closed: -bottomInset }}>
+    <KeyboardStickyView
+      className="p-4"
+      offset={{ closed: -bottomInset }}
+      style={{ position: "absolute", bottom: 0, left: 0, right: 0 }}
+    >
       <ComposerPrimitive.Root>
         <LiquidGlassView
           colorScheme="dark"

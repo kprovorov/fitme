@@ -23,6 +23,7 @@
     "nextval",
     "tokenable",
     "pkey",
-    "snaplet"
+    "snaplet",
+    "legendapp"
   ]
 }
