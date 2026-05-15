@@ -1,6 +1,6 @@
-import { SquareArrowOutUpRight } from "lucide-react-native";
+import { SquareArrowOutUpRight as SquareArrowOutUpRightIcon } from "lucide-react-native";
 import { iconWithClassName } from "./iconWithClassName";
 
-iconWithClassName(SquareArrowOutUpRight);
-
-export { SquareArrowOutUpRight };
+export const SquareArrowOutUpRight = iconWithClassName(
+  SquareArrowOutUpRightIcon
+);

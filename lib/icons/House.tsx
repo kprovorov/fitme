@@ -1,6 +1,4 @@
-import { House } from "lucide-react-native";
+import { House as HouseIcon } from "lucide-react-native";
 import { iconWithClassName } from "./iconWithClassName";
 
-iconWithClassName(House);
-
-export { House };
+export const House = iconWithClassName(HouseIcon);

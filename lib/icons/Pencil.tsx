@@ -1,6 +1,4 @@
-import { Pencil } from "lucide-react-native";
+import { Pencil as PencilIcon } from "lucide-react-native";
 import { iconWithClassName } from "./iconWithClassName";
 
-iconWithClassName(Pencil);
-
-export { Pencil };
+export const Pencil = iconWithClassName(PencilIcon);

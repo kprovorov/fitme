@@ -1,6 +1,4 @@
-import { Volleyball } from "lucide-react-native";
+import { Volleyball as VolleyballIcon } from "lucide-react-native";
 import { iconWithClassName } from "./iconWithClassName";
 
-iconWithClassName(Volleyball);
-
-export { Volleyball };
+export const Volleyball = iconWithClassName(VolleyballIcon);

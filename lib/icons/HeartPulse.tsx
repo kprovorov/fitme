@@ -1,6 +1,4 @@
-import { HeartPulse } from "lucide-react-native";
+import { HeartPulse as HeartPulseIcon } from "lucide-react-native";
 import { iconWithClassName } from "./iconWithClassName";
 
-iconWithClassName(HeartPulse);
-
-export { HeartPulse };
+export const HeartPulse = iconWithClassName(HeartPulseIcon);

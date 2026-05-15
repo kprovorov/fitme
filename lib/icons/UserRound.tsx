@@ -1,6 +1,4 @@
-import { UserRound } from "lucide-react-native";
+import { UserRound as UserRoundIcon } from "lucide-react-native";
 import { iconWithClassName } from "./iconWithClassName";
 
-iconWithClassName(UserRound);
-
-export { UserRound };
+export const UserRound = iconWithClassName(UserRoundIcon);
