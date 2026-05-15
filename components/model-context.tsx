@@ -1,17 +1,18 @@
-import React, { createContext, use, useState } from "react";
+import type React from "react";
+import { createContext, use, useState } from "react";
 
-export type Model = {
+export interface Model {
   id: string;
   label: string;
   subtitle?: string;
-};
+}
 
-type ModelContextValue = {
+interface ModelContextValue {
+  extendedThinking: boolean;
   models: readonly Model[];
   selectedModel: string;
-  extendedThinking: boolean;
   setExtendedThinking: (value: boolean) => void;
-};
+}
 
 const ModelContext = createContext<ModelContextValue | null>(null);
 

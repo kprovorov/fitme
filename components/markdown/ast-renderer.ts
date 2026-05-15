@@ -13,12 +13,12 @@ import type {
 import { getMergedStyles } from "./utils";
 
 export default class ASTRenderer {
-  private _renderRules: RenderRules;
-  private _styles: StyleMap;
-  private _debug: boolean;
-  private _listBulletStyle: ListBulletStyle;
-  private _customBulletElement: ReactElement | null;
-  private _onLinkPress?: (url: string) => void;
+  private readonly _renderRules: RenderRules;
+  private readonly _styles: StyleMap;
+  private readonly _debug: boolean;
+  private readonly _listBulletStyle: ListBulletStyle;
+  private readonly _customBulletElement: ReactElement | null;
+  private readonly _onLinkPress?: (url: string) => void;
 
   constructor({
     renderRules,
@@ -40,12 +40,14 @@ export default class ASTRenderer {
     this._customBulletElement = customBulletElement;
   }
 
-  private get getListBulletCharacter() {
+  private get getListBulletCharacter(): string {
     switch (this._listBulletStyle) {
       case "disc":
         return "\u2022";
       case "dash":
         return "-";
+      default:
+        return "\u2022";
     }
   }
 
@@ -64,17 +66,19 @@ export default class ASTRenderer {
     return fn as RenderFunction;
   }
 
-  private renderNode = (
+  // biome-ignore lint/complexity/noExcessiveCognitiveComplexity: AST traversal naturally requires handling many node types
+  private renderNode(
     node: Node,
     parentStack: Node[] = [],
-    extras?: Record<string, any>
-  ): any => {
-    const children: any[] = [];
+    extras?: Record<string, unknown>
+  ): unknown {
+    const children: unknown[] = [];
     const type = node.type as ValidNodeKey;
 
+    let currentExtras = extras;
     if (type === "link" && this._onLinkPress) {
-      extras = {
-        ...extras,
+      currentExtras = {
+        ...currentExtras,
         onPress: this._onLinkPress,
       };
     }
@@ -128,7 +132,7 @@ export default class ASTRenderer {
           if (cellNode) {
             children.push(
               this.renderNode(cellNode, [node, ...parentStack], {
-                ...extras,
+                ...currentExtras,
                 cellIndex: i,
               })
             );
@@ -149,9 +153,9 @@ export default class ASTRenderer {
       styles: this._styles,
       children,
       parentStack,
-      extras,
+      extras: currentExtras,
     });
-  };
+  }
 
-  public render = (tree: Root): any => this.renderNode(tree);
+  readonly render = (tree: Root): unknown => this.renderNode(tree);
 }

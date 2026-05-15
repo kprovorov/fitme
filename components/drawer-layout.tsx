@@ -41,7 +41,9 @@ const SWIPE_MIN_VELOCITY = 500;
 const PROGRESS_EPSILON = 0.05;
 
 function getDrawerWidth(layoutWidth: number, drawerWidth?: number): number {
-  if (drawerWidth != null) return drawerWidth;
+  if (drawerWidth != null) {
+    return drawerWidth;
+  }
   return layoutWidth - APPROX_APP_BAR_HEIGHT <= DEFAULT_DRAWER_WIDTH
     ? layoutWidth - APPROX_APP_BAR_HEIGHT
     : DEFAULT_DRAWER_WIDTH;
@@ -52,15 +54,15 @@ const minmax = (value: number, start: number, end: number) => {
   return Math.min(Math.max(value, start), end);
 };
 
-type DrawerLayoutProps = {
-  open: boolean;
-  onOpen: () => void;
-  onClose: () => void;
+interface DrawerLayoutProps {
+  children: React.ReactNode;
   drawerContent: React.ReactNode;
   drawerWidth?: number;
+  onClose: () => void;
+  onOpen: () => void;
+  open: boolean;
   swipeEnabled?: boolean;
-  children: React.ReactNode;
-};
+}
 
 export function DrawerLayout({
   open,
@@ -129,7 +131,7 @@ export function DrawerLayout({
         runOnJS(callOnClose)();
       }
     },
-    [drawerWidth, callOnOpen, callOnClose, touchStartX, touchX, translationX],
+    [drawerWidth, callOnOpen, callOnClose, touchStartX, touchX, translationX]
   );
 
   // Animate to match `open` prop
@@ -154,7 +156,7 @@ export function DrawerLayout({
         Keyboard.dismiss();
       }
     },
-    [endInteraction],
+    [endInteraction]
   );
 
   const pan = React.useMemo(() => {
@@ -176,7 +178,7 @@ export function DrawerLayout({
         translationX.value = minmax(
           startX.value + event.translationX,
           -drawerWidth,
-          0,
+          0
         );
         gestureState.value = event.state;
       })
@@ -223,7 +225,7 @@ export function DrawerLayout({
 
   // Clamped translation for styles
   const translateX = useDerivedValue(() =>
-    minmax(translationX.value, -drawerWidth, 0),
+    minmax(translationX.value, -drawerWidth, 0)
   );
 
   const CORNERS = process.env.EXPO_OS === "ios" ? 53 : undefined;
@@ -236,7 +238,7 @@ export function DrawerLayout({
         },
       ],
     }),
-    [drawerWidth, translateX],
+    [drawerWidth, translateX]
   );
 
   const drawerAnimatedStyle = useAnimatedStyle(
@@ -250,18 +252,18 @@ export function DrawerLayout({
               ? 0
               : (translateX.value + drawerWidth) / drawerWidth,
             [0, 1],
-            [0.95, 1],
+            [0.95, 1]
           ),
         },
       ],
     }),
-    [drawerWidth, translateX],
+    [drawerWidth, translateX]
   );
 
   const progress = useDerivedValue(() =>
     drawerWidth === 0
       ? 0
-      : interpolate(translateX.value, [-drawerWidth, 0], [0, 1]),
+      : interpolate(translateX.value, [-drawerWidth, 0], [0, 1])
   );
 
   return (
@@ -282,7 +284,7 @@ export function DrawerLayout({
             <View aria-hidden={open} className="flex-1 overflow-hidden">
               {children}
             </View>
-            <Overlay progress={progress} onPress={() => toggleDrawer(false)} />
+            <Overlay onPress={() => toggleDrawer(false)} progress={progress} />
           </Animated.View>
           <Animated.View
             aria-hidden={!open}
@@ -312,7 +314,7 @@ function Overlay({
     () => ({
       opacity: progress.value,
     }),
-    [progress],
+    [progress]
   );
 
   const animatedProps = useAnimatedProps(() => {
@@ -325,16 +327,16 @@ function Overlay({
 
   return (
     <Animated.View
-      style={animatedStyle}
-      className={"absolute inset-0 bg-card/80 dark:bg-card/80"}
       animatedProps={animatedProps}
+      className={"absolute inset-0 bg-card/80 dark:bg-card/80"}
+      style={animatedStyle}
     >
       <Pressable
-        onPress={onPress}
-        className="flex flex-1 pointer-events-auto"
-        role="button"
-        aria-label="Close drawer"
         accessible
+        aria-label="Close drawer"
+        className="pointer-events-auto flex flex-1"
+        onPress={onPress}
+        role="button"
       />
     </Animated.View>
   );
@@ -357,7 +359,7 @@ function DrawerDim({
 
   return (
     <Animated.View
-      className={"pointer-events-none bg-black absolute inset-0"}
+      className={"pointer-events-none absolute inset-0 bg-black"}
       style={[{ transformOrigin: "left top" }, animatedStyle]}
     />
   );

@@ -24,12 +24,9 @@ export function PromptInput({ children }: { children: ReactNode }) {
   let body: ReactNode = null;
 
   Children.forEach(children, (child) => {
-    if (isValidElement(child) && (child.type as any) === PromptInputAction) {
+    if (isValidElement(child) && child.type === PromptInputAction) {
       actions.push(child);
-    } else if (
-      isValidElement(child) &&
-      (child.type as any) === PromptInputBody
-    ) {
+    } else if (isValidElement(child) && child.type === PromptInputBody) {
       body = child;
     }
   });
@@ -76,7 +73,7 @@ export function PromptInputBody({ children }: { children: ReactNode }) {
   let submit: ReactNode = null;
 
   Children.forEach(children, (child) => {
-    if (isValidElement(child) && (child.type as any) === PromptInputSubmit) {
+    if (isValidElement(child) && child.type === PromptInputSubmit) {
       submit = child;
     } else {
       textarea.push(child);
@@ -126,9 +123,11 @@ export function PromptInputTextarea({
       nativeID="composer"
       onChangeText={setInput}
       onKeyPress={(e) => {
+        // biome-ignore lint/suspicious/noExplicitAny: web keyboard event exposes nativeEvent.key/shiftKey not in RN types
+        const webEvent = e as any;
         if (
-          (e as any).nativeEvent.key === "Enter" &&
-          !(e as any).nativeEvent.shiftKey
+          webEvent.nativeEvent.key === "Enter" &&
+          !webEvent.nativeEvent.shiftKey
         ) {
           e.preventDefault();
           onSend();
@@ -136,6 +135,7 @@ export function PromptInputTextarea({
       }}
       placeholder={placeholder}
       placeholderTextColorClassName="tint-muted-foreground"
+      // biome-ignore lint/suspicious/noExplicitAny: resize is a web-only CSS property not in RN TextInput style types
       style={{ maxHeight: 200, resize: "none" } as any}
       value={input}
     />

@@ -1,3 +1,4 @@
+import { useChat } from "@ai-sdk/react";
 import {
   AssistantChatTransport,
   useChatRuntime,
@@ -5,14 +6,17 @@ import {
 import { AssistantRuntimeProvider } from "@assistant-ui/react-native";
 import { lastAssistantMessageIsCompleteWithToolCalls } from "ai";
 import { fetch as expoFetch } from "expo/fetch";
-import { Stack } from "expo-router";
-import { ChatScreen } from "@/components/agent/chat-screen";
-import { supabase } from "~/lib/supabase";
+import * as Haptics from "expo-haptics";
+import { Link, Stack } from "expo-router";
+import { Plus } from "lucide-react-native";
+import { useCallback, useEffect, useMemo, useRef, useState } from "react";
 import {
+  type ChatMessage,
   ChatProvider,
   Conversation,
   ConversationEmptyState,
   ConversationScrollButton,
+  createStreamingStore,
   Message,
   MessageResponse,
   PromptInput,
@@ -21,18 +25,13 @@ import {
   PromptInputSubmit,
   PromptInputTextarea,
   StreamingMessage,
-  createStreamingStore,
-  type ChatMessage,
 } from "@/components/chat";
 import { Icon } from "@/components/icon";
-import { MainHeader } from "@/components/main-header";
-import { useChat } from "@ai-sdk/react";
-import * as Haptics from "expo-haptics";
-import { Link } from "expo-router";
-import { Plus } from "lucide-react-native";
-import { useCallback, useEffect, useMemo, useRef, useState } from "react";
+import { supabase } from "~/lib/supabase";
 
 const USE_MOCK = process.env.EXPO_PUBLIC_MOCK_AI === "1";
+
+const SPLIT_ON_SPACE_REGEX = /(?<=\s)/;
 
 // Throttle interval for streaming UI updates (~30fps)
 const STREAMING_THROTTLE_MS = 32;
@@ -47,11 +46,13 @@ const MOCK_RESPONSES = [
 async function mockStreamResponse(
   text: string,
   onToken: (token: string) => void,
-  signal?: AbortSignal,
+  signal?: AbortSignal
 ) {
-  const words = text.split(/(?<=\s)/);
+  const words = text.split(SPLIT_ON_SPACE_REGEX);
   for (const word of words) {
-    if (signal?.aborted) return;
+    if (signal?.aborted) {
+      return;
+    }
     await new Promise((r) => setTimeout(r, 30 + Math.random() * 40));
     onToken(word);
   }
@@ -59,7 +60,7 @@ async function mockStreamResponse(
 
 /** Extract text content from a UIMessage's parts array. */
 function getTextFromParts(
-  parts: Array<{ type: string; text?: string }>,
+  parts: Array<{ type: string; text?: string }>
 ): string {
   return parts
     .filter((p) => p.type === "text" && p.text)
@@ -72,12 +73,7 @@ function useAIChat() {
   const streamingStore = useMemo(() => createStreamingStore(), []);
   const prevStreamingTextRef = useRef("");
 
-  const {
-    messages: uiMessages,
-    sendMessage,
-    status,
-    error,
-  } = useChat();
+  const { messages: uiMessages, sendMessage, status, error } = useChat();
 
   const isStreaming = status === "streaming";
 
@@ -87,9 +83,7 @@ function useAIChat() {
       id: m.id,
       role: m.role as "user" | "assistant",
       content:
-        isStreaming &&
-        m.role === "assistant" &&
-        m === uiMessages[uiMessages.length - 1]
+        isStreaming && m.role === "assistant" && m === uiMessages.at(-1)
           ? "" // Signal streaming — content comes from store
           : getTextFromParts(m.parts as Array<{ type: string; text?: string }>),
     }));
@@ -104,10 +98,10 @@ function useAIChat() {
       }
       return;
     }
-    const lastMessage = uiMessages[uiMessages.length - 1];
+    const lastMessage = uiMessages.at(-1);
     if (lastMessage?.role === "assistant") {
       const text = getTextFromParts(
-        lastMessage.parts as Array<{ type: string; text?: string }>,
+        lastMessage.parts as Array<{ type: string; text?: string }>
       );
       if (text !== prevStreamingTextRef.current) {
         prevStreamingTextRef.current = text;
@@ -117,7 +111,9 @@ function useAIChat() {
   }, [uiMessages, isStreaming, streamingStore]);
 
   const onSend = useCallback(() => {
-    if (!input.trim() || isStreaming) return;
+    if (!input.trim() || isStreaming) {
+      return;
+    }
     Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Light);
     sendMessage({ text: input });
     setInput("");
@@ -144,7 +140,9 @@ function useMockChat() {
   const mockIndexRef = useRef(0);
 
   const handleSend = useCallback(async () => {
-    if (!input.trim() || isGenerating) return;
+    if (!input.trim() || isGenerating) {
+      return;
+    }
 
     Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Light);
 
@@ -237,9 +235,10 @@ export function useAppRuntime() {
 export default function AgentScreen() {
   const runtime = useAppRuntime();
 
-
-  const chat = USE_MOCK ? useMockChat() : useAIChat();
-  const { messages, isGenerating, streamingStore } = chat;
+  const mockChat = useMockChat();
+  const aiChat = useAIChat();
+  const chat = USE_MOCK ? mockChat : aiChat;
+  const { isGenerating, streamingStore } = chat;
 
   const renderMessage = useCallback(
     ({ item }: { item: ChatMessage }) => {
@@ -258,7 +257,7 @@ export default function AgentScreen() {
         </Message>
       );
     },
-    [isGenerating, streamingStore],
+    [isGenerating, streamingStore]
   );
 
   return (
@@ -277,19 +276,19 @@ export default function AgentScreen() {
       <AssistantRuntimeProvider runtime={runtime}>
         <ChatProvider value={chat}>
           <Conversation
-            renderMessage={renderMessage}
             emptyState={
               <ConversationEmptyState
-                title="Chat"
                 description="Send a message to get started"
+                title="Chat"
               />
             }
+            renderMessage={renderMessage}
           >
             <ConversationScrollButton />
             <PromptInput>
-              <Link href="/agent/attachments" asChild>
+              <Link asChild href="/agent/attachments">
                 <PromptInputAction>
-                  <Icon icon={Plus} className="w-5 h-5 text-muted-foreground" />
+                  <Icon className="h-5 w-5 text-muted-foreground" icon={Plus} />
                 </PromptInputAction>
               </Link>
               <PromptInputBody>

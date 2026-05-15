@@ -30,8 +30,7 @@ const IS_GLASS = isLiquidGlassAvailable();
 
 const AnimatedLegendList = Animated.createAnimatedComponent(LegendList);
 
-// eslint-disable-next-line @typescript-eslint/no-explicit-any -- Reanimated animated styles are opaque worklet objects
-// biome-ignore lint/suspicious/noExplicitAny: <explanation>
+// biome-ignore lint/suspicious/noExplicitAny: Reanimated animated styles are opaque worklet objects with no exported type
 type AnimatedStyle = any;
 
 interface ConversationContextValue {
@@ -74,7 +73,7 @@ export function Conversation({
 
   // -- Keyboard tracking --------------------------------------------------
 
-  // biome-ignore lint/suspicious/noEmptyBlockStatements: <explanation>
+  // biome-ignore lint/suspicious/noEmptyBlockStatements: initial no-op replaced via ref assignment on mount
   const scrollToBottomRef = useRef<() => void>(() => {});
   const keyboardHeight = useSharedValue(0);
   // Separate value for contentInset that freezes during interactive dismiss
@@ -313,6 +312,7 @@ export function Conversation({
             onLayout={onScrollViewLayout}
             onScroll={onScroll}
             ref={listRef}
+            // biome-ignore lint/suspicious/noExplicitAny: LegendList renderItem type doesn't match our narrower ChatMessage callback
             renderItem={renderMessage as any}
             scrollEventThrottle={16}
           />

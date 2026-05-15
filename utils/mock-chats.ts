@@ -1,9 +1,9 @@
-export type MockChat = {
-  id: string;
-  title: string;
+export interface MockChat {
   daysAgo: number;
+  id: string;
   starred: boolean;
-};
+  title: string;
+}
 
 export const MOCK_CHATS: MockChat[] = [
   { id: "1", title: "Expo Job offer", daysAgo: 5, starred: false },

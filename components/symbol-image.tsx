@@ -60,5 +60,6 @@ export function SymbolImage({
   }
 
   const Icon = LUCIDE_FALLBACKS[name] ?? HelpCircle;
+  // biome-ignore lint/suspicious/noExplicitAny: Lucide icon style prop type is wider than what RN provides
   return <Icon color={tintColor} size={size} style={style as any} />;
 }

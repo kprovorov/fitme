@@ -114,21 +114,24 @@ export function ChatMarkdown({ children }: { children: string }) {
       }}
       renderRules={{
         listItem: ({ node, styles, children, extras }) => (
+          // biome-ignore lint/suspicious/noExplicitAny: StyleMap values are NamedStyle which requires cast for View/Text style props
           <View key={node.key} style={styles.listItem as any}>
             {extras?.customListStyleType ? (
               extras.customListStyleType
             ) : (
               <Text
                 style={[
+                  // biome-ignore lint/suspicious/noExplicitAny: StyleMap values are NamedStyle which requires cast for Text style prop
                   styles.listBullet as any,
                   extras?.ordered
                     ? fullStyles.orderedBullet
                     : fullStyles.unorderedBullet,
                 ]}
               >
-                {extras?.listStyleType}
+                {extras?.listStyleType as string}
               </Text>
             )}
+            {/* biome-ignore lint/suspicious/noExplicitAny: StyleMap values are NamedStyle which requires cast for View style prop */}
             <View style={styles.listItemContent as any}>{children}</View>
           </View>
         ),

@@ -1,18 +1,20 @@
-import { useDrawer } from "@/components/drawer-content";
-import { Icon } from "@/components/icon";
-import { Image } from "@/components/tw";
-import { MOCK_CHATS, type MockChat } from "@/utils/mock-chats";
 import { isLiquidGlassAvailable } from "expo-glass-effect";
 import { Color, Link, Stack, useRouter } from "expo-router";
 import { ChevronRight, Menu, Search } from "lucide-react-native";
 import { useCallback, useMemo, useState } from "react";
 import { Alert, FlatList, Pressable, Text, View } from "react-native";
 import { useSafeAreaInsets } from "react-native-safe-area-context";
+import { useDrawer } from "@/components/drawer-content";
+import { Icon } from "@/components/icon";
+import { Image } from "@/components/tw";
+import { MOCK_CHATS, type MockChat } from "@/utils/mock-chats";
 
 type Filter = "all" | "starred";
 
 function formatTimeAgo(daysAgo: number): string {
-  if (daysAgo < 7) return `${daysAgo} day${daysAgo === 1 ? "" : "s"} ago`;
+  if (daysAgo < 7) {
+    return `${daysAgo} day${daysAgo === 1 ? "" : "s"} ago`;
+  }
   const weeks = Math.round(daysAgo / 7);
   return `${weeks} week${weeks === 1 ? "" : "s"} ago`;
 }
@@ -31,13 +33,13 @@ function ChatRow({
   onStar: () => void;
 }) {
   return (
-    <Link href="/" asChild>
+    <Link asChild href="/">
       <Link.Trigger>
         <Pressable className="flex-row items-center px-5 py-4 active:bg-card">
-          <View className="flex-1 gap-0.5 mr-3">
+          <View className="mr-3 flex-1 gap-0.5">
             <Text
-              numberOfLines={1}
               className="text-[17px] text-foreground dark:text-foreground"
+              numberOfLines={1}
               selectable
             >
               {item.title}
@@ -48,13 +50,13 @@ function ChatRow({
           </View>
           {process.env.EXPO_OS === "ios" ? (
             <Image
+              className="h-4 w-2.5 font-medium text-muted-foreground dark:text-muted-foreground"
               source="sf:chevron.right"
-              className="w-2.5 h-4 font-medium text-muted-foreground dark:text-muted-foreground"
             />
           ) : (
             <Icon
+              className="h-4 w-2.5 text-muted-foreground dark:text-muted-foreground"
               icon={ChevronRight}
-              className="w-2.5 h-4 text-muted-foreground dark:text-muted-foreground"
             />
           )}
         </Pressable>
@@ -62,16 +64,16 @@ function ChatRow({
 
       <Link.Menu>
         <Link.MenuAction
-          title={item.starred ? "Unstar" : "Star"}
           icon={item.starred ? "star.fill" : "star"}
           onPress={onStar}
+          title={item.starred ? "Unstar" : "Star"}
         />
-        <Link.MenuAction title="Rename" icon="pencil" onPress={onRename} />
+        <Link.MenuAction icon="pencil" onPress={onRename} title="Rename" />
         <Link.MenuAction
-          title="Delete"
-          icon="trash"
           destructive
+          icon="trash"
           onPress={onDelete}
+          title="Delete"
         />
       </Link.Menu>
     </Link>
@@ -80,9 +82,9 @@ function ChatRow({
 
 function EmptySearch({ query }: { query: string }) {
   return (
-    <View className="flex-1 items-center justify-center pt-32 gap-2">
-      <Icon icon={Search} className="w-10 h-10 text-muted-foreground" />
-      <Text className="text-[17px] text-muted-foreground text-center px-10">
+    <View className="flex-1 items-center justify-center gap-2 pt-32">
+      <Icon className="h-10 w-10 text-muted-foreground" icon={Search} />
+      <Text className="px-10 text-center text-[17px] text-muted-foreground">
         No results found for &ldquo;{query}&rdquo;
       </Text>
     </View>
@@ -119,15 +121,15 @@ export default function ChatsScreen() {
             if (newTitle?.trim()) {
               setChats((prev) =>
                 prev.map((c) =>
-                  c.id === chat.id ? { ...c, title: newTitle.trim() } : c,
-                ),
+                  c.id === chat.id ? { ...c, title: newTitle.trim() } : c
+                )
               );
             }
           },
         },
       ],
       "plain-text",
-      chat.title,
+      chat.title
     );
   }, []);
 
@@ -146,38 +148,38 @@ export default function ChatsScreen() {
 
   const handleStar = useCallback((chat: Chat) => {
     setChats((prev) =>
-      prev.map((c) => (c.id === chat.id ? { ...c, starred: !c.starred } : c)),
+      prev.map((c) => (c.id === chat.id ? { ...c, starred: !c.starred } : c))
     );
   }, []);
 
   return (
     <>
       <FlatList
-        data={filtered}
-        keyExtractor={(item) => item.id}
-        contentInsetAdjustmentBehavior="automatic"
         automaticallyAdjustContentInsets
-        automaticallyAdjustsScrollIndicatorInsets
         automaticallyAdjustKeyboardInsets
+        automaticallyAdjustsScrollIndicatorInsets
         contentContainerStyle={{
           paddingBottom: process.env.EXPO_OS === "android" ? insets.bottom : 0,
         }}
+        contentInsetAdjustmentBehavior="automatic"
+        data={filtered}
+        keyExtractor={(item) => item.id}
+        ListEmptyComponent={search ? <EmptySearch query={search} /> : null}
         renderItem={({ item }) => (
           <ChatRow
             item={item}
-            onRename={() => handleRename(item)}
             onDelete={() => handleDelete(item)}
+            onRename={() => handleRename(item)}
             onStar={() => handleStar(item)}
           />
         )}
-        ListEmptyComponent={search ? <EmptySearch query={search} /> : null}
       />
 
       <Stack.SearchBar
-        placeholder="Search"
         hideWhenScrolling={false}
-        onChangeText={(e) => setSearch(e.nativeEvent.text)}
         onCancelButtonPress={() => setSearch("")}
+        onChangeText={(e) => setSearch(e.nativeEvent.text)}
+        placeholder="Search"
       />
 
       <LeftToolbar />
@@ -192,14 +194,14 @@ function LeftToolbar() {
 
   if (process.env.EXPO_OS === "android") {
     return (
-      <Stack.Toolbar placement="left" asChild>
+      <Stack.Toolbar asChild placement="left">
         <Pressable
-          onPress={openDrawer}
           accessibilityLabel="Open drawer"
           accessibilityRole="button"
-          className="p-2 -ml-1 active:opacity-60"
+          className="-ml-1 p-2 active:opacity-60"
+          onPress={openDrawer}
         >
-          <Icon icon={Menu} className="w-6 h-6 text-foreground" />
+          <Icon className="h-6 w-6 text-foreground" icon={Menu} />
         </Pressable>
       </Stack.Toolbar>
     );
@@ -251,10 +253,10 @@ function BottomToolbar() {
         <Stack.Toolbar.SearchBarSlot separateBackground />
       )}
       <Stack.Toolbar.Button
-        tintColor={Color.ios.label}
         icon="square.and.pencil"
         onPress={() => router.navigate("/")}
         separateBackground
+        tintColor={Color.ios.label}
       />
     </Stack.Toolbar>
   );

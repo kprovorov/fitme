@@ -144,6 +144,7 @@ export const CodeBlock = memo(function CodeBlock({
   );
 
   const renderer = useCallback(
+    // biome-ignore lint/suspicious/noExplicitAny: react-syntax-highlighter renderer props have no exported type
     (props: any) => {
       const { rows } = props;
       return (
@@ -154,6 +155,7 @@ export const CodeBlock = memo(function CodeBlock({
         >
           <View style={styles.codeContent}>
             {rows.map((row: RendererNode, index: number) => (
+              // biome-ignore lint/suspicious/noArrayIndexKey: syntax rows have no stable identity
               <Text key={`row_${index}`} style={baseStyle}>
                 {renderNodeChildren(row.children || [], `row_${index}`)}
               </Text>
@@ -168,9 +170,11 @@ export const CodeBlock = memo(function CodeBlock({
   return (
     <View style={containerStyle}>
       <SyntaxHighlighter
+        // biome-ignore lint/suspicious/noExplicitAny: react-syntax-highlighter CodeTag/PreTag props expect ComponentType<any>
         CodeTag={View as any}
         customStyle={{ backgroundColor: "transparent" }}
         language={language || "typescript"}
+        // biome-ignore lint/suspicious/noExplicitAny: react-syntax-highlighter CodeTag/PreTag props expect ComponentType<any>
         PreTag={View as any}
         renderer={renderer}
         style={undefined}

@@ -186,9 +186,9 @@ function removeTextStyleProps<T extends ViewStyle | TextStyle>(
     "writingDirection",
   ];
   const result = { ...style };
-  textOnlyKeys.forEach((key) => {
-    delete (result as any)[key];
-  });
+  for (const key of textOnlyKeys) {
+    delete (result as Record<string, unknown>)[key];
+  }
   return result as ViewStyle;
 }
 
@@ -196,6 +196,7 @@ export function getMergedStyles(
   styles: StyleMap | null = null,
   merge = false
 ): StyleMap {
+  // biome-ignore lint/suspicious/noExplicitAny: StyleSheet.flatten returns any; style values are mixed RN style types
   const output: Record<string, any> = {};
 
   const allKeys = new Set([
@@ -204,7 +205,9 @@ export function getMergedStyles(
   ]);
 
   for (const key of allKeys) {
+    // biome-ignore lint/suspicious/noExplicitAny: StyleSheet.flatten input must be cast since defaultStyles values are opaque NamedStyle
     const base = StyleSheet.flatten(defaultStyles[key] as any) ?? {};
+    // biome-ignore lint/suspicious/noExplicitAny: StyleSheet.flatten input must be cast since styles values are opaque NamedStyle
     const custom = StyleSheet.flatten(styles?.[key] as any) ?? {};
 
     const final = merge
@@ -214,6 +217,7 @@ export function getMergedStyles(
         : base;
 
     output[key] = final;
+    // biome-ignore lint/suspicious/noExplicitAny: removeTextStyleProps accepts merged style record which is dynamically typed
     output[`_VIEW_SAFE_${key}`] = removeTextStyleProps(final as any);
   }
 
@@ -268,6 +272,7 @@ const transform = (
     }
 
     if (node.type === "linkReference") {
+      // biome-ignore lint/suspicious/noExplicitAny: mutating node type in-place to convert reference to resolved link
       const linkNode: any = node;
       linkNode.type = "link";
       linkNode.url = def.url;
@@ -275,6 +280,7 @@ const transform = (
     }
 
     if (node.type === "imageReference") {
+      // biome-ignore lint/suspicious/noExplicitAny: mutating node type in-place to convert reference to resolved image
       const imageNode: any = node;
       imageNode.type = "image";
       imageNode.url = def.url;

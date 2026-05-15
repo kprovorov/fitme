@@ -1,5 +1,3 @@
-import { AndroidGrabber } from "@/components/grabber";
-import { Icon } from "@/components/icon";
 import type { LucideIcon } from "lucide-react-native";
 import {
   Archive,
@@ -14,6 +12,8 @@ import {
 } from "lucide-react-native";
 import { useState } from "react";
 import { Pressable, ScrollView, Switch, Text, View } from "react-native";
+import { AndroidGrabber } from "@/components/grabber";
+import { Icon } from "@/components/icon";
 
 function AttachmentButton({
   icon,
@@ -24,12 +24,12 @@ function AttachmentButton({
 }) {
   return (
     <Pressable
-      className="flex-1 items-center gap-2 py-3 rounded-xl bg-secondary dark:bg-secondary active:bg-muted"
+      className="flex-1 items-center gap-2 rounded-xl bg-secondary py-3 active:bg-muted dark:bg-secondary"
       style={{ borderCurve: "continuous" }}
     >
       <Icon
+        className="h-6 w-6 text-foreground dark:text-foreground"
         icon={icon}
-        className="w-6 h-6 text-foreground dark:text-foreground"
       />
       <Text className="text-[13px] text-foreground dark:text-foreground">
         {label}
@@ -52,22 +52,22 @@ function ToggleRow({
   onValueChange: (v: boolean) => void;
 }) {
   return (
-    <View className="flex-row items-center px-5 py-3 gap-3.5">
+    <View className="flex-row items-center gap-3.5 px-5 py-3">
       <Icon
+        className="h-5 w-5 text-foreground dark:text-foreground"
         icon={icon}
-        className="w-5 h-5 text-foreground dark:text-foreground"
       />
       <Text className="flex-1 text-[17px] text-foreground dark:text-foreground">
         {label}
       </Text>
       {badge && (
-        <View className="px-1.5 py-0.5 rounded bg-muted dark:bg-muted">
-          <Text className="text-[11px] font-medium text-muted-foreground dark:text-muted-foreground">
+        <View className="rounded bg-muted px-1.5 py-0.5 dark:bg-muted">
+          <Text className="font-medium text-[11px] text-muted-foreground dark:text-muted-foreground">
             {badge}
           </Text>
         </View>
       )}
-      <Switch value={value} onValueChange={onValueChange} />
+      <Switch onValueChange={onValueChange} value={value} />
     </View>
   );
 }
@@ -85,12 +85,12 @@ function DisclosureRow({
 }) {
   return (
     <Pressable
+      className="flex-row items-center gap-3.5 px-5 py-3.5 active:bg-muted"
       onPress={onPress}
-      className="flex-row items-center px-5 py-3.5 gap-3.5 active:bg-muted"
     >
       <Icon
+        className="h-5 w-5 text-foreground dark:text-foreground"
         icon={icon}
-        className="w-5 h-5 text-foreground dark:text-foreground"
       />
       <Text className="flex-1 text-[17px] text-foreground dark:text-foreground">
         {label}
@@ -99,8 +99,8 @@ function DisclosureRow({
         {detail}
       </Text>
       <Icon
+        className="h-3 w-3 text-muted-foreground dark:text-muted-foreground"
         icon={ChevronRight}
-        className="w-3 h-3 text-muted-foreground dark:text-muted-foreground"
       />
     </Pressable>
   );
@@ -111,7 +111,7 @@ export default function AddToChatSheet() {
   const [webSearch, setWebSearch] = useState(true);
 
   return (
-    <ScrollView className="flex-1 " contentInsetAdjustmentBehavior="automatic">
+    <ScrollView className="flex-1" contentInsetAdjustmentBehavior="automatic">
       <AndroidGrabber />
       {/* Attachment buttons */}
       <View className="flex-row gap-3 px-5 pt-2 pb-4">
@@ -124,24 +124,24 @@ export default function AddToChatSheet() {
       <ToggleRow
         icon={Sparkles}
         label="Research"
-        value={research}
         onValueChange={setResearch}
+        value={research}
       />
       <ToggleRow
+        badge="Beta"
         icon={Globe}
         label="Web search"
-        badge="Beta"
-        value={webSearch}
         onValueChange={setWebSearch}
+        value={webSearch}
       />
 
       {/* Divider */}
-      <View className="h-px bg-border dark:bg-border mx-5 my-1" />
+      <View className="mx-5 my-1 h-px bg-border dark:bg-border" />
 
       {/* Disclosure rows */}
-      <DisclosureRow icon={Archive} label="Add to project" detail="None" />
-      <DisclosureRow icon={Paintbrush} label="Choose style" detail="Normal" />
-      <DisclosureRow icon={Wrench} label="Tool access" detail="Auto" />
+      <DisclosureRow detail="None" icon={Archive} label="Add to project" />
+      <DisclosureRow detail="Normal" icon={Paintbrush} label="Choose style" />
+      <DisclosureRow detail="Auto" icon={Wrench} label="Tool access" />
     </ScrollView>
   );
 }

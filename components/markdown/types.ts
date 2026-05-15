@@ -31,9 +31,11 @@ export type NodeTypeMap = Prettify<
 export type RenderFunction<K extends ValidNodeKey = ValidNodeKey> = (params: {
   node: NodeTypeMap[K];
   styles: StyleMap;
+  // biome-ignore lint/suspicious/noExplicitAny: rendered children are opaque React elements
   children: any[];
   parentStack: Node[];
-  extras?: any;
+  extras?: Record<string, unknown>;
+  // biome-ignore lint/suspicious/noExplicitAny: render functions return React elements with no common supertype
 }) => any;
 
 export type RenderRules = {

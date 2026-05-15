@@ -1,6 +1,6 @@
 // Context
-
 export type { ChatContextValue } from "./chat-context";
+// biome-ignore lint/performance/noBarrelFile: intentional public API barrel
 export { ChatProvider, useChatContext } from "./chat-context";
 
 // Conversation

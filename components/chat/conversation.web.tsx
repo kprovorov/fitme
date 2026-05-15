@@ -13,6 +13,7 @@ import { type LayoutChangeEvent, Pressable, Text, View } from "react-native";
 import { useChatContext } from "./chat-context";
 import type { ChatMessage } from "./types";
 
+// biome-ignore lint/suspicious/noExplicitAny: matches AnimatedStyle opaque type on native
 type AnimatedStyle = any;
 
 interface ConversationContextValue {
@@ -148,6 +149,7 @@ export function Conversation({
           onLayout={onScrollViewLayout}
           onScroll={onScroll}
           ref={listRef}
+          // biome-ignore lint/suspicious/noExplicitAny: LegendList renderItem type doesn't match our narrower ChatMessage callback
           renderItem={renderMessage as any}
           scrollEventThrottle={16}
         />
