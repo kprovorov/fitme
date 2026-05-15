@@ -1,5 +1,5 @@
 import * as SelectPrimitive from "@rn-primitives/select";
-import * as React from "react";
+import type * as React from "react";
 import { Platform, StyleSheet, View } from "react-native";
 import Animated, { FadeIn, FadeOut } from "react-native-reanimated";
 import { Check } from "~/lib/icons/Check";
@@ -15,10 +15,14 @@ const SelectGroup = SelectPrimitive.Group;
 
 const SelectValue = SelectPrimitive.Value;
 
-const SelectTrigger = React.forwardRef<
-  SelectPrimitive.TriggerRef,
-  SelectPrimitive.TriggerProps
->(({ className, children, ...props }, ref) => (
+const SelectTrigger = ({
+  className,
+  children,
+  ref,
+  ...props
+}: SelectPrimitive.TriggerProps & {
+  ref?: React.RefObject<SelectPrimitive.TriggerRef | null>;
+}) => (
   <SelectPrimitive.Trigger
     className={cn(
       "flex h-10 native:h-12 flex-row items-center justify-between rounded-md border border-input bg-background px-3 py-2 text-muted-foreground text-sm web:ring-offset-background web:focus:outline-none web:focus:ring-2 web:focus:ring-ring web:focus:ring-offset-2 [&>span]:line-clamp-1",
@@ -35,7 +39,7 @@ const SelectTrigger = React.forwardRef<
       size={16}
     />
   </SelectPrimitive.Trigger>
-));
+);
 SelectTrigger.displayName = SelectPrimitive.Trigger.displayName;
 
 /**
@@ -84,10 +88,16 @@ const SelectScrollDownButton = ({
   );
 };
 
-const SelectContent = React.forwardRef<
-  SelectPrimitive.ContentRef,
-  SelectPrimitive.ContentProps & { portalHost?: string }
->(({ className, children, position = "popper", portalHost, ...props }, ref) => {
+const SelectContent = ({
+  className,
+  children,
+  position = "popper",
+  portalHost,
+  ref,
+  ...props
+}: (SelectPrimitive.ContentProps & { portalHost?: string }) & {
+  ref?: React.RefObject<SelectPrimitive.ContentRef | null>;
+}) => {
   const { open } = SelectPrimitive.useRootContext();
 
   return (
@@ -126,13 +136,16 @@ const SelectContent = React.forwardRef<
       </SelectPrimitive.Overlay>
     </SelectPrimitive.Portal>
   );
-});
+};
 SelectContent.displayName = SelectPrimitive.Content.displayName;
 
-const SelectLabel = React.forwardRef<
-  SelectPrimitive.LabelRef,
-  SelectPrimitive.LabelProps
->(({ className, ...props }, ref) => (
+const SelectLabel = ({
+  className,
+  ref,
+  ...props
+}: SelectPrimitive.LabelProps & {
+  ref?: React.RefObject<SelectPrimitive.LabelRef | null>;
+}) => (
   <SelectPrimitive.Label
     className={cn(
       "py-1.5 pr-2 native:pb-2 native:pl-10 pl-8 font-semibold native:text-base text-popover-foreground text-sm",
@@ -141,13 +154,17 @@ const SelectLabel = React.forwardRef<
     ref={ref}
     {...props}
   />
-));
+);
 SelectLabel.displayName = SelectPrimitive.Label.displayName;
 
-const SelectItem = React.forwardRef<
-  SelectPrimitive.ItemRef,
-  SelectPrimitive.ItemProps
->(({ className, children, ...props }, ref) => (
+const SelectItem = ({
+  className,
+  children,
+  ref,
+  ...props
+}: SelectPrimitive.ItemProps & {
+  ref?: React.RefObject<SelectPrimitive.ItemRef | null>;
+}) => (
   <SelectPrimitive.Item
     className={cn(
       "web:group relative flex w-full web:cursor-default web:select-none flex-row items-center rounded-sm native:py-2 py-1.5 pr-2 native:pl-10 pl-8 web:outline-none web:hover:bg-accent/50 web:focus:bg-accent active:bg-accent",
@@ -164,19 +181,22 @@ const SelectItem = React.forwardRef<
     </View>
     <SelectPrimitive.ItemText className="native:text-base native:text-lg text-popover-foreground text-sm web:group-focus:text-accent-foreground" />
   </SelectPrimitive.Item>
-));
+);
 SelectItem.displayName = SelectPrimitive.Item.displayName;
 
-const SelectSeparator = React.forwardRef<
-  SelectPrimitive.SeparatorRef,
-  SelectPrimitive.SeparatorProps
->(({ className, ...props }, ref) => (
+const SelectSeparator = ({
+  className,
+  ref,
+  ...props
+}: SelectPrimitive.SeparatorProps & {
+  ref?: React.RefObject<SelectPrimitive.SeparatorRef | null>;
+}) => (
   <SelectPrimitive.Separator
     className={cn("-mx-1 my-1 h-px bg-muted", className)}
     ref={ref}
     {...props}
   />
-));
+);
 SelectSeparator.displayName = SelectPrimitive.Separator.displayName;
 
 export {

@@ -9,7 +9,6 @@ import {
   type ComponentType,
   createContext,
   type FC,
-  forwardRef,
   memo,
   type ReactNode,
   useCallback,
@@ -154,27 +153,28 @@ const ThreadMessageComponent: FC<{ components: MessageComponents }> = ({
 };
 
 const ThreadMessageByIndex = memo(
-  ({ index, components }: { index: number; components: MessageComponents }) => {
-    return (
-      <MessageByIndexProvider index={index}>
-        <ThreadMessageComponent components={components} />
-      </MessageByIndexProvider>
-    );
-  },
+  ({ index, components }: { index: number; components: MessageComponents }) => (
+    <MessageByIndexProvider index={index}>
+      <ThreadMessageComponent components={components} />
+    </MessageByIndexProvider>
+  ),
   (prev, next) =>
     prev.index === next.index && prev.components === next.components
 );
 
-export const ThreadMessages = forwardRef<
-  typeof AnimatedLegendList,
-  ThreadMessagesProps
->(({ components, ...flatListProps }, ref) => {
+export const ThreadMessages = ({
+  components,
+  ref,
+  ...flatListProps
+}: ThreadMessagesProps & {
+  ref?: RefObject<typeof AnimatedLegendList | null>;
+}) => {
   const messages = useAuiState((s) => s.thread.messages);
 
   const renderItem = useCallback(
-    ({ index }: { item: ThreadMessage; index: number }) => {
-      return <ThreadMessageByIndex components={components} index={index} />;
-    },
+    ({ index }: { item: ThreadMessage; index: number }) => (
+      <ThreadMessageByIndex components={components} index={index} />
+    ),
 
     [components]
   );
@@ -194,7 +194,7 @@ export const ThreadMessages = forwardRef<
       {...flatListProps}
     />
   );
-});
+};
 
 export default function MessagesList() {
   const listRef = useRef<FlatList>(null);
@@ -205,13 +205,11 @@ export default function MessagesList() {
 
   const { blankSize, composerHeight, keyboardHeight } = useMessageListContext();
 
-  const animatedProps = useAnimatedProps(() => {
-    return {
-      contentInset: {
-        bottom: blankSize.get() + composerHeight.get() + keyboardHeight.get(),
-      },
-    };
-  });
+  const animatedProps = useAnimatedProps(() => ({
+    contentInset: {
+      bottom: blankSize.get() + composerHeight.get() + keyboardHeight.get(),
+    },
+  }));
 
   return (
     <KeyboardGestureArea

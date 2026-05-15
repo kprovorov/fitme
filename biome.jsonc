@@ -1,25 +1,24 @@
 {
-  "extends": ["ultracite/biome/core", "ultracite/biome/react"],
+  "extends": [
+    "ultracite/biome/core",
+    "ultracite/biome/react",
+    "ultracite/biome/jest"
+  ],
   "$schema": "./node_modules/@biomejs/biome/configuration_schema.json",
   "linter": {
     "rules": {
       "style": {
-        // PascalCase is standard for React component files; snake_case used for Deno tools
         "useFilenamingConvention": "off",
-        // Icon files import-mutate-re-export pattern requires this
         "noExportedImports": "off",
-        // @rn-primitives requires namespace imports (import * as XPrimitive)
         "noNestedTernary": "off"
       },
       "performance": {
-        // @rn-primitives and many RN libraries require namespace imports
         "noNamespaceImport": "off"
       }
     }
   },
   "overrides": [
     {
-      // Supabase Edge Functions run in Deno — Deno globals are not declared in TS
       "includes": ["supabase/functions/**"],
       "javascript": {
         "globals": ["Deno", "EdgeRuntime"]
@@ -33,7 +32,6 @@
       }
     },
     {
-      // CSS files may use unknown at-rules (e.g. Tailwind directives)
       "includes": ["**/*.css"],
       "linter": {
         "rules": {

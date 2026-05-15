@@ -4,9 +4,7 @@ import type { MeasurementSystem } from "./models";
 export const formatWeight = (
   weight: number,
   measurementSystem: MeasurementSystem
-) => {
-  return `${weight} ${getWeightLabel(measurementSystem)}`;
-};
+) => `${weight} ${getWeightLabel(measurementSystem)}`;
 
 export const formatHeight = (
   height: number,

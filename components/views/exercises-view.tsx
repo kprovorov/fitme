@@ -1,4 +1,5 @@
-import React, { useCallback, useImperativeHandle, useState } from "react";
+import type React from "react";
+import { useCallback, useImperativeHandle, useState } from "react";
 import { ScrollView } from "react-native";
 import ExercisesList from "~/components/exercises/exercises-list";
 import { Button } from "~/components/ui/button";
@@ -13,86 +14,78 @@ export interface ExercisesViewHandle {
   refresh: () => Promise<void>;
 }
 
-const ExercisesView = React.forwardRef<
-  ExercisesViewHandle,
-  React.HTMLProps<HTMLDivElement> & {
-    onExercisePress?: (exercise: Exercise) => void;
-    onAddExercisePress?: () => void;
-    itemCta?: React.ReactNode | ((exercise: Exercise) => React.ReactNode);
-    initialMuscleGroup?: string;
-  }
->(
-  (
-    {
-      onExercisePress = () => {
-        /* noop */
-      },
-      itemCta,
-      initialMuscleGroup = "all",
+const ExercisesView = ({
+  onExercisePress = () => {
+    /* noop */
+  },
+  itemCta,
+  initialMuscleGroup = "all",
+  ref,
+}: (React.HTMLProps<HTMLDivElement> & {
+  onExercisePress?: (exercise: Exercise) => void;
+  onAddExercisePress?: () => void;
+  itemCta?: React.ReactNode | ((exercise: Exercise) => React.ReactNode);
+  initialMuscleGroup?: string;
+}) & { ref?: React.RefObject<ExercisesViewHandle | null> }) => {
+  const [muscleGroup, setMuscleGroup] = useState<string>(initialMuscleGroup);
+
+  const {
+    data: exercises,
+    refetch: refetchExercises,
+    hasNextPage,
+    fetchNextPage,
+  } = useExercisesQuery({
+    variables: {
+      muscleGroup: muscleGroup === "all" ? undefined : muscleGroup,
     },
-    ref
-  ) => {
-    const [muscleGroup, setMuscleGroup] = useState<string>(initialMuscleGroup);
+  });
 
-    const {
-      data: exercises,
-      refetch: refetchExercises,
-      hasNextPage,
-      fetchNextPage,
-    } = useExercisesQuery({
-      variables: {
-        muscleGroup: muscleGroup === "all" ? undefined : muscleGroup,
-      },
-    });
+  const refresh = useCallback(async () => {
+    await refetchExercises();
+  }, [refetchExercises]);
 
-    const refresh = useCallback(async () => {
-      await refetchExercises();
-    }, [refetchExercises]);
+  useImperativeHandle(ref, () => ({ refresh }), [refresh]);
 
-    useImperativeHandle(ref, () => ({ refresh }), [refresh]);
+  return (
+    <VStack className="flex-1 items-stretch">
+      <Tabs onValueChange={setMuscleGroup} value={muscleGroup}>
+        <TabsList>
+          <ScrollView
+            horizontal
+            scrollToOverflowEnabled={true}
+            showsHorizontalScrollIndicator={false}
+          >
+            <TabsTrigger value="all">
+              <Text>All</Text>
+            </TabsTrigger>
+            {muscleGroups
+              // Temporary we don't have full-body and cardio exercises
+              .filter(
+                (muscleGroup) => !["full-body", "cardio"].includes(muscleGroup)
+              )
+              .map((muscleGroup) => (
+                <TabsTrigger key={muscleGroup} value={muscleGroup}>
+                  <Text>{muscleGroupToName(muscleGroup)}</Text>
+                </TabsTrigger>
+              ))}
+          </ScrollView>
+        </TabsList>
+      </Tabs>
 
-    return (
-      <VStack className="flex-1 items-stretch">
-        <Tabs onValueChange={setMuscleGroup} value={muscleGroup}>
-          <TabsList>
-            <ScrollView
-              horizontal
-              scrollToOverflowEnabled={true}
-              showsHorizontalScrollIndicator={false}
-            >
-              <TabsTrigger value="all">
-                <Text>All</Text>
-              </TabsTrigger>
-              {muscleGroups
-                // Temporary we don't have full-body and cardio exercises
-                .filter(
-                  (muscleGroup) =>
-                    !["full-body", "cardio"].includes(muscleGroup)
-                )
-                .map((muscleGroup) => (
-                  <TabsTrigger key={muscleGroup} value={muscleGroup}>
-                    <Text>{muscleGroupToName(muscleGroup)}</Text>
-                  </TabsTrigger>
-                ))}
-            </ScrollView>
-          </TabsList>
-        </Tabs>
+      <ExercisesList
+        exercises={exercises?.pages?.flatMap((page) => page.data) || []}
+        itemCta={itemCta}
+        onExercisePress={onExercisePress}
+      />
 
-        <ExercisesList
-          exercises={exercises?.pages?.flatMap((page) => page.data) || []}
-          itemCta={itemCta}
-          onExercisePress={onExercisePress}
-        />
-
-        {hasNextPage && (
-          <Button onPress={() => fetchNextPage()} variant="secondary">
-            <Text>Load more...</Text>
-          </Button>
-        )}
-      </VStack>
-    );
-  }
-);
+      {hasNextPage && (
+        <Button onPress={() => fetchNextPage()} variant="secondary">
+          <Text>Load more...</Text>
+        </Button>
+      )}
+    </VStack>
+  );
+};
 ExercisesView.displayName = "ExercisesView";
 
 export default ExercisesView;

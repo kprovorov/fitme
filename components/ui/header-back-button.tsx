@@ -1,12 +1,14 @@
 import { useRouter } from "expo-router";
-import React from "react";
+import type React from "react";
 import { Button } from "~/components/ui/button";
 import { ArrowLeft } from "~/lib/icons/ArrowLeft";
 
-const HeaderBackButton = React.forwardRef<
-  React.ElementRef<typeof Button>,
-  React.ComponentPropsWithoutRef<typeof Button>
->(({ ...props }, ref) => {
+const HeaderBackButton = ({
+  ref,
+  ...props
+}: React.ComponentPropsWithoutRef<typeof Button> & {
+  ref?: React.RefObject<React.ElementRef<typeof Button> | null>;
+}) => {
   const router = useRouter();
 
   return (
@@ -21,7 +23,7 @@ const HeaderBackButton = React.forwardRef<
       <ArrowLeft className="text-foreground" size={21} />
     </Button>
   );
-});
+};
 
 HeaderBackButton.displayName = "HeaderBackButton";
 

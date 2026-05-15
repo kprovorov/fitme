@@ -1,5 +1,5 @@
 import { cva, type VariantProps } from "class-variance-authority";
-import * as React from "react";
+import type * as React from "react";
 import { Pressable } from "react-native";
 import { TextClassContext } from "~/components/ui/text";
 import { cn } from "~/lib/utils";
@@ -87,30 +87,34 @@ const buttonTextVariants = cva(
 type ButtonProps = React.ComponentPropsWithoutRef<typeof Pressable> &
   VariantProps<typeof buttonVariants>;
 
-const Button = React.forwardRef<
-  React.ElementRef<typeof Pressable>,
-  ButtonProps
->(({ className, variant, size, shape, ...props }, ref) => {
-  return (
-    <TextClassContext.Provider
-      value={buttonTextVariants({
-        variant,
-        size,
-        className: "web:pointer-events-none font-nunito-sans-bold",
-      })}
-    >
-      <Pressable
-        className={cn(
-          props.disabled && "web:pointer-events-none opacity-50",
-          buttonVariants({ variant, size, shape, className })
-        )}
-        ref={ref}
-        role="button"
-        {...props}
-      />
-    </TextClassContext.Provider>
-  );
-});
+const Button = ({
+  className,
+  variant,
+  size,
+  shape,
+  ref,
+  ...props
+}: ButtonProps & {
+  ref?: React.RefObject<React.ElementRef<typeof Pressable> | null>;
+}) => (
+  <TextClassContext.Provider
+    value={buttonTextVariants({
+      variant,
+      size,
+      className: "web:pointer-events-none font-nunito-sans-bold",
+    })}
+  >
+    <Pressable
+      className={cn(
+        props.disabled && "web:pointer-events-none opacity-50",
+        buttonVariants({ variant, size, shape, className })
+      )}
+      ref={ref}
+      role="button"
+      {...props}
+    />
+  </TextClassContext.Provider>
+);
 Button.displayName = "Button";
 
 export type { ButtonProps };
