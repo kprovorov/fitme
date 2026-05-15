@@ -23,6 +23,12 @@
       "skillPath": "assistant-ui/skills/cloud/SKILL.md",
       "computedHash": "cf6312de5be25e06c83c5a7012499686f6f2bb542594087c681cc67f9902b30c"
     },
+    "migrate-nativewind-to-uniwind": {
+      "source": "uni-stack/uniwind",
+      "sourceType": "github",
+      "skillPath": "skills/migrate-nativewind-to-uniwind/SKILL.md",
+      "computedHash": "095066623a369bccadd62065ac44e7b4addce4cd1f9317b08fc2f8ea2d9ad4bd"
+    },
     "primitives": {
       "source": "assistant-ui/skills",
       "sourceType": "github",
@@ -69,6 +75,12 @@
       "sourceType": "github",
       "skillPath": "assistant-ui/skills/tools/SKILL.md",
       "computedHash": "55a64b569cf4eac3bc8877e216e401af6b40d296e5180eb71174ac80b68d670d"
+    },
+    "uniwind": {
+      "source": "uni-stack/uniwind",
+      "sourceType": "github",
+      "skillPath": "skills/uniwind/SKILL.md",
+      "computedHash": "057a5fce8f0c468566633e4d178331d76da26fa9abbc456b0fe60018c9a00360"
     },
     "update": {
       "source": "assistant-ui/skills",
