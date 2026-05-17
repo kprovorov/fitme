@@ -73,7 +73,21 @@ function useAIChat() {
   const streamingStore = useMemo(() => createStreamingStore(), []);
   const prevStreamingTextRef = useRef("");
 
-  const { messages: uiMessages, sendMessage, status, error } = useChat();
+  const {
+    messages: uiMessages,
+    sendMessage,
+    status,
+    error,
+  } = useChat({
+    transport: new AssistantChatTransport({
+      api: `${SUPABASE_URL}/functions/v1/ai-agent`,
+      fetch: expoFetch as unknown as typeof globalThis.fetch,
+      headers: async () => {
+        const { data } = await supabase.auth.getSession();
+        return { Authorization: `Bearer ${data.session?.access_token ?? ""}` };
+      },
+    }),
+  });
 
   const isStreaming = status === "streaming";
 
