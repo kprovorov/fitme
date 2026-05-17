@@ -1,14 +1,12 @@
 import { createOpenAI } from "npm:@ai-sdk/openai";
 import { withSupabase } from "npm:@supabase/server";
 import { convertToModelMessages, streamText } from "npm:ai";
-import { createActivatePlanTool } from "./tools/activate_plan";
-import { createCreatePlanTool } from "./tools/create_plan";
-import { createGetActivePlanTool } from "./tools/get_active_plan";
-import { createGetPlansTool } from "./tools/get_plans";
-import { createGetUserProfileTool } from "./tools/get_user_profile";
-import { createGetUserWorkoutHistoryTool } from "./tools/get_user_workout_history";
-import { createSearchExercisesTool } from "./tools/search_exercises";
-import { createUpdateUserProfileTool } from "./tools/update_user_profile";
+import { createActivatePlanTool } from "./tools/activate_plan.ts";
+import { createGetActivePlanTool } from "./tools/get_active_plan.ts";
+import { createGetPlansTool } from "./tools/get_plans.ts";
+import { createGetUserProfileTool } from "./tools/get_user_profile.ts";
+import { createSearchExercisesTool } from "./tools/search_exercises.ts";
+import { createUpdateUserProfileTool } from "./tools/update_user_profile.ts";
 
 const openai = createOpenAI({ apiKey: Deno.env.get("OPENAI_API_KEY") });
 
@@ -21,9 +19,7 @@ export default {
       get_plans: createGetPlansTool(ctx),
       get_user_profile: createGetUserProfileTool(ctx),
       update_user_profile: createUpdateUserProfileTool(ctx),
-      get_user_workout_history: createGetUserWorkoutHistoryTool(ctx),
       search_exercises: createSearchExercisesTool(ctx),
-      create_plan: createCreatePlanTool(ctx),
       activate_plan: createActivatePlanTool(ctx),
     };
 
