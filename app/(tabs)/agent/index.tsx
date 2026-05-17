@@ -1,10 +1,5 @@
 import { useChat } from "@ai-sdk/react";
-import {
-  AssistantChatTransport,
-  useChatRuntime,
-} from "@assistant-ui/react-ai-sdk";
-import { AssistantRuntimeProvider } from "@assistant-ui/react-native";
-import { lastAssistantMessageIsCompleteWithToolCalls } from "ai";
+import { AssistantChatTransport } from "@assistant-ui/react-ai-sdk";
 import { fetch as expoFetch } from "expo/fetch";
 import * as Haptics from "expo-haptics";
 import { Link, Stack } from "expo-router";
@@ -29,7 +24,11 @@ import {
 import { Icon } from "@/components/icon";
 import { supabase } from "~/lib/supabase";
 
+const SUPABASE_URL = process.env.EXPO_PUBLIC_SUPABASE_URL ?? "";
+
 const USE_MOCK = process.env.EXPO_PUBLIC_MOCK_AI === "1";
+
+const ATTACHMENTS_ENABLED = false;
 
 const SPLIT_ON_SPACE_REGEX = /(?<=\s)/;
 
@@ -230,25 +229,7 @@ function useMockChat() {
   };
 }
 
-const SUPABASE_URL = process.env.EXPO_PUBLIC_SUPABASE_URL ?? "";
-
-export function useAppRuntime() {
-  return useChatRuntime({
-    transport: new AssistantChatTransport({
-      api: `${SUPABASE_URL}/functions/v1/ai-agent`,
-      fetch: expoFetch as unknown as typeof globalThis.fetch,
-      headers: async () => {
-        const { data } = await supabase.auth.getSession();
-        return { Authorization: `Bearer ${data.session?.access_token ?? ""}` };
-      },
-    }),
-    sendAutomaticallyWhen: lastAssistantMessageIsCompleteWithToolCalls,
-  });
-}
-
 export default function AgentScreen() {
-  const runtime = useAppRuntime();
-
   const mockChat = useMockChat();
   const aiChat = useAIChat();
   const chat = USE_MOCK ? mockChat : aiChat;
@@ -287,32 +268,32 @@ export default function AgentScreen() {
           headerBackButtonDisplayMode: "minimal",
         }}
       />
-      <AssistantRuntimeProvider runtime={runtime}>
-        <ChatProvider value={chat}>
-          <Conversation
-            emptyState={
-              <ConversationEmptyState
-                description="Send a message to get started"
-                title="Chat"
-              />
-            }
-            renderMessage={renderMessage}
-          >
-            <ConversationScrollButton />
-            <PromptInput>
+      <ChatProvider value={chat}>
+        <Conversation
+          emptyState={
+            <ConversationEmptyState
+              description="Send a message to get started"
+              title="Chat"
+            />
+          }
+          renderMessage={renderMessage}
+        >
+          <ConversationScrollButton />
+          <PromptInput>
+            {ATTACHMENTS_ENABLED && (
               <Link asChild href="/agent/attachments">
                 <PromptInputAction>
                   <Icon className="h-5 w-5 text-muted-foreground" icon={Plus} />
                 </PromptInputAction>
               </Link>
-              <PromptInputBody>
-                <PromptInputTextarea />
-                <PromptInputSubmit />
-              </PromptInputBody>
-            </PromptInput>
-          </Conversation>
-        </ChatProvider>
-      </AssistantRuntimeProvider>
+            )}
+            <PromptInputBody>
+              <PromptInputTextarea />
+              <PromptInputSubmit />
+            </PromptInputBody>
+          </PromptInput>
+        </Conversation>
+      </ChatProvider>
     </>
   );
 }

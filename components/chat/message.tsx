@@ -18,14 +18,14 @@ export function Message({
   if (from === "user") {
     return (
       <Animated.View
-        className="mb-2 max-w-[80%] self-end rounded-2xl bg-user-bubble p-3 dark:bg-user-bubble"
+        className="mb-2 max-w-[80%] self-end rounded-2xl bg-primary p-3 dark:bg-user-bubble"
         entering={FadeIn.duration(200)}
         exiting={FadeOut.duration(150)}
         style={{ borderCurve: "continuous" }}
       >
         {typeof children === "string" ? (
           <Text
-            className="text-base text-foreground leading-5.5 dark:text-foreground"
+            className="text-base text-black leading-5.5 dark:text-black"
             selectable
           >
             {children}
