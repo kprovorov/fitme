@@ -24,7 +24,7 @@ export default function TabLayout() {
     <Authenticated>
       <ThemeProvider value={colorScheme === "dark" ? darkTheme : lightTheme}>
         <NativeTabs minimizeBehavior="onScrollDown" tintColor="#C0FF38">
-          <NativeTabs.Trigger name="index">
+          <NativeTabs.Trigger name="home">
             <NativeTabs.Trigger.Icon
               sf={{ default: "dumbbell", selected: "dumbbell.fill" }}
             />
