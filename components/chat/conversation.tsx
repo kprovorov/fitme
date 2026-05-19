@@ -363,6 +363,7 @@ export function Conversation({ children }: { children?: ReactNode }) {
             onContentSizeChange={onContentSizeChange}
             onLayout={onScrollViewLayout}
             onScroll={onScroll}
+            recycleItems={false}
             ref={listRef}
             // biome-ignore lint/suspicious/noExplicitAny: LegendList renderItem type doesn't match UIMessage callback
             renderItem={renderItem as any}
