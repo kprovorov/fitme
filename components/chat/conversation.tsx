@@ -64,8 +64,6 @@ export function Conversation({ children }: { children?: ReactNode }) {
 
   // -- Keyboard tracking --------------------------------------------------
 
-  // biome-ignore lint/suspicious/noEmptyBlockStatements: initial no-op replaced via ref assignment on mount
-  const scrollToBottomRef = useRef<() => void>(() => {});
   const keyboardHeight = useSharedValue(0);
   // Separate value for contentInset that freezes during interactive dismiss
   // to prevent the scroll view from snapping when the user is overscrolled.
@@ -73,41 +71,6 @@ export function Conversation({ children }: { children?: ReactNode }) {
   // Tracks whether the current keyboard transition originated from an
   // interactive dismiss gesture (vs a programmatic tap-to-open).
   const wasInteractive = useSharedValue(false);
-  useKeyboardHandler(
-    {
-      onStart: (e) => {
-        "worklet";
-        // Track if keyboard is opening from a tap (not from interactive dismiss)
-        if (e.height > 0 && !wasInteractive.value) {
-          wasInteractive.value = false;
-        }
-      },
-      onMove: (e) => {
-        "worklet";
-        keyboardHeight.value = e.height;
-        keyboardHeightForInset.value = e.height;
-      },
-      onInteractive: (e) => {
-        "worklet";
-        // Only update prompt input position, not contentInset.
-        // Changing contentInset during an active gesture causes a jump
-        // when the user has overscrolled past the bottom.
-        keyboardHeight.value = e.height;
-        wasInteractive.value = true;
-      },
-      onEnd: (e) => {
-        "worklet";
-        const shouldScroll = e.height > 0 && !wasInteractive.value;
-        keyboardHeight.value = e.height;
-        keyboardHeightForInset.value = withTiming(e.height, { duration: 250 });
-        wasInteractive.value = false;
-        if (shouldScroll) {
-          runOnJS(scrollToBottomRef.current)();
-        }
-      },
-    },
-    []
-  );
 
   // -- Layout bookkeeping --------------------------------------------------
 
@@ -202,7 +165,42 @@ export function Conversation({ children }: { children?: ReactNode }) {
       viewOffset: -bottomInset.value,
     });
   }, [bottomInset]);
-  scrollToBottomRef.current = scrollToBottom;
+
+  useKeyboardHandler(
+    {
+      onStart: (e) => {
+        "worklet";
+        // Track if keyboard is opening from a tap (not from interactive dismiss)
+        if (e.height > 0 && !wasInteractive.value) {
+          wasInteractive.value = false;
+        }
+      },
+      onMove: (e) => {
+        "worklet";
+        keyboardHeight.value = e.height;
+        keyboardHeightForInset.value = e.height;
+      },
+      onInteractive: (e) => {
+        "worklet";
+        // Only update prompt input position, not contentInset.
+        // Changing contentInset during an active gesture causes a jump
+        // when the user has overscrolled past the bottom.
+        keyboardHeight.value = e.height;
+        wasInteractive.value = true;
+      },
+      onEnd: (e) => {
+        "worklet";
+        const shouldScroll = e.height > 0 && !wasInteractive.value;
+        keyboardHeight.value = e.height;
+        keyboardHeightForInset.value = withTiming(e.height, { duration: 250 });
+        wasInteractive.value = false;
+        if (shouldScroll) {
+          runOnJS(scrollToBottom)();
+        }
+      },
+    },
+    [scrollToBottom]
+  );
 
   // -- Animated styles -----------------------------------------------------
   const topPadding = IS_GLASS ? 128 : 16;
