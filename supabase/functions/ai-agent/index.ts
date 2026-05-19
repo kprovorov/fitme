@@ -2,6 +2,7 @@ import { createOpenAI } from "npm:@ai-sdk/openai";
 import { withSupabase } from "npm:@supabase/server";
 import { createAgentUIStreamResponse, ToolLoopAgent } from "npm:ai";
 import { createActivatePlanTool } from "./tools/activate_plan.ts";
+import { displayWorkoutPlanTool } from "./tools/display_workout_plan.ts";
 import { createGetActivePlanTool } from "./tools/get_active_plan.ts";
 import { createGetPlansTool } from "./tools/get_plans.ts";
 import { createGetUserProfileTool } from "./tools/get_user_profile.ts";
@@ -21,6 +22,7 @@ export default {
       update_user_profile: createUpdateUserProfileTool(ctx),
       search_exercises: createSearchExercisesTool(ctx),
       activate_plan: createActivatePlanTool(ctx),
+      display_workout_plan: displayWorkoutPlanTool,
     };
 
     const agent = new ToolLoopAgent({
@@ -30,6 +32,9 @@ export default {
 When creating a plan:
 1. Collect from the user: goal, days per week, experience level, preferred workout duration — unless already provided.
 2. Use search_exercises to find valid exercise IDs for all needed muscle groups.
+3. Call display_workout_plan with the full structured plan — do not describe the plan in text.
+
+For general fitness questions, reply with text only. Never call display_workout_plan unless the user explicitly wants a workout plan generated.
 
 Keep responses concise, friendly, and encouraging`,
       tools,
