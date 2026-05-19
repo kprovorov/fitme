@@ -29,6 +29,7 @@ export const displayWorkoutPlanTool = tool({
       "general_fitness",
     ]),
     frequencyPerWeek: z.number(),
+    place: z.enum(["gym", "home"]).optional(),
     workouts: z.array(workoutSchema),
   }),
   execute: async (args) => args,

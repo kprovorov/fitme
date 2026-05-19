@@ -1,5 +1,8 @@
-import { Text, View } from "react-native";
+import { router } from "expo-router";
+import { Pressable, Text, View } from "react-native";
 import Animated, { FadeIn } from "react-native-reanimated";
+import { SymbolImage } from "@/components/symbol-image";
+import { supabase } from "@/lib/supabase";
 
 export interface WorkoutExercise {
   name: string;
@@ -25,28 +28,69 @@ export interface WorkoutPlan {
     | "endurance"
     | "general_fitness";
   name: string;
+  place?: "gym" | "home";
   workouts: WorkoutDay[];
 }
 
 const GOAL_LABELS: Record<WorkoutPlan["goal"], string> = {
-  weight_loss: "Weight Loss",
-  muscle_gain: "Muscle Gain",
-  strength: "Strength",
   endurance: "Endurance",
   general_fitness: "General Fitness",
+  muscle_gain: "Gain Muscle",
+  strength: "Strength",
+  weight_loss: "Weight Loss",
 };
+
+const GOAL_ICONS: Record<WorkoutPlan["goal"], string> = {
+  endurance: "heart",
+  general_fitness: "figure.walk",
+  muscle_gain: "dumbbell",
+  strength: "figure.strengthtraining.traditional",
+  weight_loss: "figure.run",
+};
+
+function PlanTag({ icon, label }: { icon: string; label: string }) {
+  return (
+    <View className="flex-row items-center gap-1.5 rounded-full bg-muted/40 px-3 py-1.5">
+      <SymbolImage
+        className="text-muted-foreground dark:text-muted-foreground"
+        name={icon}
+        size={12}
+      />
+      <Text className="text-muted-foreground text-xs">{label}</Text>
+    </View>
+  );
+}
+
+async function navigateToExercise(name: string) {
+  const { data } = await supabase
+    .from("exercises")
+    .select("id")
+    .ilike("name", name)
+    .limit(1);
+  const id = data?.[0]?.id;
+  if (id) {
+    router.push(`/exercises/${id}`);
+  }
+}
 
 function ExerciseRow({ exercise }: { exercise: WorkoutExercise }) {
   return (
-    <View className="flex-row items-baseline justify-between border-border/15 border-b py-2">
-      <Text className="flex-1 pr-3 text-foreground text-sm" numberOfLines={1}>
+    <Pressable
+      className="flex-row items-center border-border/15 border-b py-3 active:opacity-60"
+      onPress={() => navigateToExercise(exercise.name)}
+    >
+      <Text className="w-8 font-semibold text-primary text-sm">
+        {exercise.sets}×
+      </Text>
+      <Text className="flex-1 text-foreground text-sm" numberOfLines={1}>
         {exercise.name}
       </Text>
-      <Text className="font-ibm-plex-mono text-muted-foreground text-xs">
-        {exercise.sets} × {exercise.reps}
-        {exercise.restSeconds ? ` / ${exercise.restSeconds}s` : ""}
-      </Text>
-    </View>
+      <SymbolImage
+        className="text-muted-foreground dark:text-muted-foreground"
+        name="chevron.right"
+        size={14}
+      />
+    </Pressable>
   );
 }
 
@@ -58,13 +102,23 @@ function WorkoutDaySection({
   last: boolean;
 }) {
   return (
-    <View className={last ? "" : "mb-4"}>
-      <Text className="mb-1.5 font-semibold text-foreground text-xs uppercase tracking-wider opacity-50">
-        {workout.dayLabel}
-      </Text>
-      <Text className="mb-2 font-semibold text-foreground text-sm">
-        {workout.name}
-      </Text>
+    <View className={last ? "" : "mb-6"}>
+      <View className="mb-2 flex-row items-center justify-between">
+        <Text className="flex-1 pr-2 font-bold text-primary text-sm leading-tight">
+          {workout.name}
+        </Text>
+        <View className="flex-row items-center gap-1 rounded-full bg-muted/40 px-2.5 py-1">
+          <SymbolImage
+            className="text-foreground dark:text-foreground"
+            name="bolt.fill"
+            size={10}
+          />
+          <Text className="font-semibold text-foreground text-xs">
+            {workout.exercises.length}
+          </Text>
+        </View>
+      </View>
+      <View className="mb-1 border-border/20 border-b" />
       {workout.exercises.map((ex) => (
         <ExerciseRow exercise={ex} key={ex.name} />
       ))}
@@ -73,38 +127,33 @@ function WorkoutDaySection({
 }
 
 export function WorkoutPlanCard({ plan }: { plan: WorkoutPlan }) {
+  const placeIcon = plan.place === "home" ? "house" : "building.2";
+  const placeLabel = plan.place === "home" ? "Home" : "Gym";
+
   return (
     <Animated.View
       className="mt-1 overflow-hidden rounded-2xl border border-border/20 bg-secondary/60"
       entering={FadeIn.duration(300)}
       style={{ borderCurve: "continuous" }}
     >
-      {/* Header */}
       <View className="border-border/20 border-b px-4 pt-4 pb-3">
-        <Text className="mb-2 font-bold text-base text-foreground">
+        <Text className="mb-3 font-bold text-foreground text-lg leading-tight">
           {plan.name}
         </Text>
-        <View className="mb-2 flex-row gap-2">
-          <View className="self-start rounded-full bg-primary/20 px-2.5 py-0.5">
-            <Text className="font-semibold text-primary text-xs">
-              {GOAL_LABELS[plan.goal]}
-            </Text>
-          </View>
-          <View className="self-start rounded-full bg-muted/60 px-2.5 py-0.5">
-            <Text className="text-muted-foreground text-xs">
-              {plan.frequencyPerWeek}× per week
-            </Text>
-          </View>
+        <View className="flex-row flex-wrap gap-2">
+          <PlanTag
+            icon={GOAL_ICONS[plan.goal]}
+            label={GOAL_LABELS[plan.goal]}
+          />
+          <PlanTag
+            icon="bolt.fill"
+            label={`${plan.frequencyPerWeek}x / week`}
+          />
+          {plan.place && <PlanTag icon={placeIcon} label={placeLabel} />}
         </View>
-        {plan.description ? (
-          <Text className="text-muted-foreground text-sm leading-5">
-            {plan.description}
-          </Text>
-        ) : null}
       </View>
 
-      {/* Workouts */}
-      <View className="px-4 pt-3 pb-4">
+      <View className="px-4 pt-4 pb-4">
         {plan.workouts.map((workout, i) => (
           <WorkoutDaySection
             key={workout.dayLabel}

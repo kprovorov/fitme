@@ -4,12 +4,19 @@ import {
   type ImageStyle,
 } from "expo-image";
 import {
+  Activity,
   ArrowUp,
+  Building2,
   ChevronDown,
+  ChevronRight,
+  Dumbbell,
+  Heart,
   HelpCircle,
+  Home,
   type LucideIcon,
   MessageSquare,
   Plus,
+  Zap,
 } from "lucide-react-native";
 
 import { withUniwind } from "uniwind";
@@ -21,8 +28,17 @@ const Image = withUniwind(ExpoImage);
  */
 const LUCIDE_FALLBACKS: Record<string, LucideIcon> = {
   "arrow.up": ArrowUp,
-  "chevron.down": ChevronDown,
+  "bolt.fill": Zap,
   "bubble.left.and.bubble.right": MessageSquare,
+  "building.2": Building2,
+  "chevron.down": ChevronDown,
+  "chevron.right": ChevronRight,
+  dumbbell: Dumbbell,
+  "figure.run": Activity,
+  "figure.strengthtraining.traditional": Dumbbell,
+  "figure.walk": Activity,
+  heart: Heart,
+  house: Home,
   plus: Plus,
 };
 
