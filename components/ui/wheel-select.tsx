@@ -1,5 +1,5 @@
 import { Picker, type PickerProps } from "@react-native-picker/picker";
-import * as React from "react";
+import type * as React from "react";
 import { useState } from "react";
 import {
   type TextInput,
@@ -23,10 +23,14 @@ interface WheelSelectProps extends TextInputProps {
   wheels: Wheel[];
 }
 
-const WheelSelect = React.forwardRef<
-  React.ElementRef<typeof TextInput>,
-  WheelSelectProps
->(({ label, wheels, value }, _) => {
+const WheelSelect = ({
+  label,
+  wheels,
+  value,
+  ref: _,
+}: WheelSelectProps & {
+  ref?: React.RefObject<React.ElementRef<typeof TextInput> | null>;
+}) => {
   const [isFocused, setIsFocused] = useState(false);
 
   const wheelHeight = useSharedValue(0);
@@ -81,7 +85,7 @@ const WheelSelect = React.forwardRef<
       </Animated.View>
     </VStack>
   );
-});
+};
 
 WheelSelect.displayName = "WheelSelect";
 

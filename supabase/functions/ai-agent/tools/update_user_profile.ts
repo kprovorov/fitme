@@ -1,11 +1,8 @@
+import type { SupabaseContext } from "npm:@supabase/server";
 import { tool } from "npm:ai";
 import { z } from "npm:zod";
-import type { ToolContext } from "./types.ts";
 
-export function createUpdateUserProfileTool({
-  supabaseClient,
-  log,
-}: ToolContext) {
+export function createUpdateUserProfileTool({ supabase }: SupabaseContext) {
   return tool({
     description:
       "Update the user's profile. All fields are optional — only provide the fields that need to change.",
@@ -17,20 +14,15 @@ export function createUpdateUserProfileTool({
       measurement_system: z.enum(["metric", "us", "uk"]).optional(),
     }),
     execute: async (input) => {
-      log("tool_call", { tool: "update_user_profile", input });
       const {
         data: { user },
         error: authError,
-      } = await supabaseClient.auth.getUser();
+      } = await supabase.auth.getUser();
       if (authError || !user) {
-        log("tool_error", {
-          tool: "update_user_profile",
-          error: "auth failed",
-        });
         return { error: "Could not identify user" };
       }
       try {
-        const { data: existing, error: fetchError } = await supabaseClient
+        const { data: existing, error: fetchError } = await supabase
           .from("profiles")
           .select("gender, age, height, weight, measurement_system")
           .eq("user_id", user.id)
@@ -39,7 +31,7 @@ export function createUpdateUserProfileTool({
           throw fetchError;
         }
 
-        const { data, error } = await supabaseClient
+        const { data, error } = await supabase
           .from("profiles")
           .upsert(
             { ...existing, ...input, user_id: user.id },
@@ -50,7 +42,6 @@ export function createUpdateUserProfileTool({
         if (error) {
           throw error;
         }
-        log("tool_ok", { tool: "update_user_profile" });
         return { success: true, profile: data };
       } catch (err) {
         const message =
@@ -59,7 +50,6 @@ export function createUpdateUserProfileTool({
             : typeof err === "object"
               ? JSON.stringify(err)
               : String(err);
-        log("tool_error", { tool: "update_user_profile", error: message });
         return { error: `Failed to update profile: ${message}` };
       }
     },

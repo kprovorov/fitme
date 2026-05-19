@@ -24,7 +24,7 @@ export default function TabLayout() {
     <Authenticated>
       <ThemeProvider value={colorScheme === "dark" ? darkTheme : lightTheme}>
         <NativeTabs minimizeBehavior="onScrollDown" tintColor="#C0FF38">
-          <NativeTabs.Trigger name="index">
+          <NativeTabs.Trigger name="home">
             <NativeTabs.Trigger.Icon
               sf={{ default: "dumbbell", selected: "dumbbell.fill" }}
             />
@@ -39,13 +39,6 @@ export default function TabLayout() {
               }}
             />
             <NativeTabs.Trigger.Label>History</NativeTabs.Trigger.Label>
-          </NativeTabs.Trigger>
-
-          <NativeTabs.Trigger name="agent">
-            <NativeTabs.Trigger.Icon
-              sf={{ default: "sparkles", selected: "sparkles" }}
-            />
-            <NativeTabs.Trigger.Label>Agent</NativeTabs.Trigger.Label>
           </NativeTabs.Trigger>
 
           <NativeTabs.Trigger name="library">
@@ -63,6 +56,16 @@ export default function TabLayout() {
               sf={{ default: "person", selected: "person.fill" }}
             />
             <NativeTabs.Trigger.Label>Profile</NativeTabs.Trigger.Label>
+          </NativeTabs.Trigger>
+
+          <NativeTabs.Trigger name="agent">
+            <NativeTabs.Trigger.Icon
+              sf={{
+                default: "bubble.left.and.bubble.right",
+                selected: "bubble.left.and.bubble.right.fill",
+              }}
+            />
+            <NativeTabs.Trigger.Label>Coach</NativeTabs.Trigger.Label>
           </NativeTabs.Trigger>
         </NativeTabs>
       </ThemeProvider>

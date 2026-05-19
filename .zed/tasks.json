@@ -6,6 +6,12 @@
     "reveal": "no_focus"
   },
   {
+    "label": "Expo: Dev",
+    "command": "npm",
+    "args": ["run", "dev"],
+    "reveal": "no_focus"
+  },
+  {
     "label": "Expo: Prebuild",
     "command": "npx",
     "args": ["expo", "prebuild", "--clean"],
@@ -34,13 +40,7 @@
   {
     "label": "Supabase: Serve Functions",
     "command": "supabase",
-    "args": [
-      "functions",
-      "serve",
-      "--env-file",
-      ".env.local",
-      "--no-verify-jwt"
-    ],
+    "args": ["functions", "serve"],
     "reveal": "no_focus"
   }
 ]

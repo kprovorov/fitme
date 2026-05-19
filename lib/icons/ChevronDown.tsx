@@ -1,6 +1,4 @@
-import { ChevronDown } from "lucide-react-native";
+import { ChevronDown as ChevronDownIcon } from "lucide-react-native";
 import { iconWithClassName } from "./iconWithClassName";
 
-iconWithClassName(ChevronDown);
-
-export { ChevronDown };
+export const ChevronDown = iconWithClassName(ChevronDownIcon);

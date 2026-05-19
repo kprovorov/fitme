@@ -1,6 +1,4 @@
-import { ClipboardList } from "lucide-react-native";
+import { ClipboardList as ClipboardListIcon } from "lucide-react-native";
 import { iconWithClassName } from "./iconWithClassName";
 
-iconWithClassName(ClipboardList);
-
-export { ClipboardList };
+export const ClipboardList = iconWithClassName(ClipboardListIcon);

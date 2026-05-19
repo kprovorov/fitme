@@ -1,15 +1,14 @@
+import type { SupabaseContext } from "npm:@supabase/server";
 import { tool } from "npm:ai";
 import { z } from "npm:zod";
-import type { ToolContext } from "./types.ts";
 
-export function createGetActivePlanTool({ supabaseClient, log }: ToolContext) {
+export function createGetActivePlanTool({ supabase }: SupabaseContext) {
   return tool({
     description:
       "Get the user's currently active workout plan with all workouts and exercises",
     inputSchema: z.object({}),
     execute: async () => {
-      log("tool_call", { tool: "get_active_plan" });
-      const { data, error } = await supabaseClient
+      const { data, error } = await supabase
         .from("plans")
         .select(
           `*, workouts (
@@ -25,10 +24,8 @@ export function createGetActivePlanTool({ supabaseClient, log }: ToolContext) {
         .is("deleted_at", null)
         .single();
       if (error) {
-        log("tool_error", { tool: "get_active_plan", error: error.message });
         return { error: "No active plan found" };
       }
-      log("tool_ok", { tool: "get_active_plan", planId: data?.id });
       return data;
     },
   });

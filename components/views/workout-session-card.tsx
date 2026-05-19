@@ -1,5 +1,5 @@
 import type { ViewRef } from "@rn-primitives/types";
-import * as React from "react";
+import type * as React from "react";
 import { ScrollView, type ViewProps } from "react-native";
 import ExerciseImage from "@/components/exercises/exercise-image";
 import { Badge } from "@/components/ui/badge";
@@ -27,10 +27,14 @@ interface WorkoutSessionCardProps {
   workoutSession: WorkoutSession;
 }
 
-const WorkoutSessionCard = React.forwardRef<
-  ViewRef,
-  ViewProps & WorkoutSessionCardProps
->(({ className, workoutSession, ...props }, ref) => (
+const WorkoutSessionCard = ({
+  className,
+  workoutSession,
+  ref,
+  ...props
+}: (ViewProps & WorkoutSessionCardProps) & {
+  ref?: React.RefObject<ViewRef | null>;
+}) => (
   <Card className={cn("flex gap-4 py-4", className)} ref={ref} {...props}>
     <CardHeader>
       <CardTitle className="text-muted-foreground text-sm">
@@ -73,7 +77,7 @@ const WorkoutSessionCard = React.forwardRef<
       ))}
     </ScrollView>
   </Card>
-));
+);
 WorkoutSessionCard.displayName = "WorkoutSessionCard";
 
 export default WorkoutSessionCard;

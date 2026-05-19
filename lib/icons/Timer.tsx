@@ -1,6 +1,4 @@
-import { Timer } from "lucide-react-native";
+import { Timer as TimerIcon } from "lucide-react-native";
 import { iconWithClassName } from "./iconWithClassName";
 
-iconWithClassName(Timer);
-
-export { Timer };
+export const Timer = iconWithClassName(TimerIcon);

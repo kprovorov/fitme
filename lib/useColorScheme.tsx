@@ -1,12 +1,13 @@
-import { useColorScheme as useNativewindColorScheme } from "nativewind";
+import { useColorScheme as useRNColorScheme } from "react-native";
+import { Uniwind } from "uniwind";
 
 export function useColorScheme() {
-  const { colorScheme, setColorScheme, toggleColorScheme } =
-    useNativewindColorScheme();
+  const colorScheme = useRNColorScheme() ?? "dark";
   return {
-    colorScheme: colorScheme ?? "dark",
+    colorScheme,
     isDarkColorScheme: colorScheme === "dark",
-    setColorScheme,
-    toggleColorScheme,
+    setColorScheme: (scheme: "light" | "dark") => Uniwind.setTheme(scheme),
+    toggleColorScheme: () =>
+      Uniwind.setTheme(colorScheme === "dark" ? "light" : "dark"),
   };
 }

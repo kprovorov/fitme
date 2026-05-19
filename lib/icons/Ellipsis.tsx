@@ -1,6 +1,4 @@
-import { Ellipsis } from "lucide-react-native";
+import { Ellipsis as EllipsisIcon } from "lucide-react-native";
 import { iconWithClassName } from "./iconWithClassName";
 
-iconWithClassName(Ellipsis);
-
-export { Ellipsis };
+export const Ellipsis = iconWithClassName(EllipsisIcon);

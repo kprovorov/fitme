@@ -1,11 +1,8 @@
+import type { SupabaseContext } from "npm:@supabase/server";
 import { tool } from "npm:ai";
 import { z } from "npm:zod";
-import type { ToolContext } from "./types.ts";
 
-export function createSearchExercisesTool({
-  supabaseClient,
-  log,
-}: ToolContext) {
+export function createSearchExercisesTool({ supabase }: SupabaseContext) {
   return tool({
     description:
       "Search for exercises in the exercise library by name or muscle group",
@@ -22,8 +19,7 @@ export function createSearchExercisesTool({
         ),
     }),
     execute: async ({ query, muscle_group }) => {
-      log("tool_call", { tool: "search_exercises", query, muscle_group });
-      let q = supabaseClient
+      let q = supabase
         .from("exercises")
         .select("id, name, muscle_groups")
         .limit(8);
@@ -35,10 +31,8 @@ export function createSearchExercisesTool({
       }
       const { data, error } = await q;
       if (error) {
-        log("tool_error", { tool: "search_exercises", error: error.message });
         return { error: "Failed to search exercises" };
       }
-      log("tool_ok", { tool: "search_exercises", count: data?.length ?? 0 });
       return data ?? [];
     },
   });

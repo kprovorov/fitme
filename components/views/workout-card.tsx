@@ -4,7 +4,7 @@ import { useEffect, useState } from "react";
 import { Pressable, ScrollView, View } from "react-native";
 import { HStack } from "@/components/ui/hstack";
 import { Text } from "@/components/ui/text";
-import { H4, P } from "@/components/ui/typography";
+import { H4 } from "@/components/ui/typography";
 import { VStack } from "@/components/ui/vstack";
 import { Zap } from "@/lib/icons/Zap";
 import { Spinner } from "~/components/ui/spinner";
@@ -139,9 +139,6 @@ export default function WorkoutCard({
                 </Text>
               </HStack>
             </HStack>
-            <P className="text-left text-muted-foreground">
-              {workout.description}
-            </P>
             <ScrollView
               contentContainerClassName="gap-2"
               contentInsetAdjustmentBehavior="automatic"

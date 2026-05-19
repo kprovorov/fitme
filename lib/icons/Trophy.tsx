@@ -1,6 +1,4 @@
-import { Trophy } from "lucide-react-native";
+import { Trophy as TrophyIcon } from "lucide-react-native";
 import { iconWithClassName } from "./iconWithClassName";
 
-iconWithClassName(Trophy);
-
-export { Trophy };
+export const Trophy = iconWithClassName(TrophyIcon);

@@ -1,6 +1,4 @@
-import { Dumbbell } from "lucide-react-native";
+import { Dumbbell as DumbbellIcon } from "lucide-react-native";
 import { iconWithClassName } from "./iconWithClassName";
 
-iconWithClassName(Dumbbell);
-
-export { Dumbbell };
+export const Dumbbell = iconWithClassName(DumbbellIcon);

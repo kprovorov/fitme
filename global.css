@@ -1,58 +1,118 @@
-@tailwind base;
-@tailwind components;
-@tailwind utilities;
+@import "tailwindcss";
+@import "uniwind";
 
-@layer base {
+@theme {
+  --font-nunito-sans-regular: "NunitoSans12pt-Regular";
+  --font-nunito-sans-semibold: "NunitoSans12pt-SemiBold";
+  --font-nunito-sans-bold: "NunitoSans12pt-Bold";
+  --font-ibm-plex-mono: "IBM Plex Mono";
+  --font-ibm-plex-mono-bold: "IBM Plex Mono Bold";
+
+  --text-xs: 13px;
+  --text-sm: 15px;
+  --text-base: 17px;
+  --text-lg: 19px;
+  --text-xl: 21px;
+  --text-2xl: 25px;
+  --text-3xl: 33px;
+  --text-4xl: 41px;
+  --text-5xl: 49px;
+  --text-6xl: 57px;
+  --text-7xl: 65px;
+
+  --spacing-xs: 0.5rem;
+  --spacing-sm: 1rem;
+  --spacing-md: 1.5rem;
+  --spacing-lg: 2rem;
+
+  --color-border: var(--border);
+  --color-input: var(--input);
+  --color-ring: var(--ring);
+  --color-background: var(--background);
+  --color-foreground: var(--foreground);
+  --color-primary: var(--primary);
+  --color-primary-foreground: var(--primary-foreground);
+  --color-secondary: var(--secondary);
+  --color-secondary-foreground: var(--secondary-foreground);
+  --color-destructive: var(--destructive);
+  --color-destructive-foreground: var(--destructive-foreground);
+  --color-muted: var(--muted);
+  --color-muted-foreground: var(--muted-foreground);
+  --color-accent: var(--accent);
+  --color-accent-foreground: var(--accent-foreground);
+  --color-popover: var(--popover);
+  --color-popover-foreground: var(--popover-foreground);
+  --color-card: var(--card);
+  --color-card-foreground: var(--card-foreground);
+}
+
+@utility border-hairline {
+  /* biome-ignore lint/correctness/noUnknownFunction: Uniwind CSS function */
+  border-width: hairlineWidth();
+}
+
+@layer theme {
   :root {
-    --text-xs: 13px;
-    --text-sm: 15px;
-    --text-base: 17px;
-    --text-lg: 19px;
-    --text-xl: 21px;
-    --text-2xl: 25px;
-    --text-3xl: 33px;
-    --text-4xl: 41px;
-
-    --background: 0 0% 100%;
-    --foreground: 240 10% 3.9%;
-    --card: 0 0% 100%;
-    --card-foreground: 240 10% 3.9%;
-    --popover: 0 0% 100%;
-    --popover-foreground: 240 10% 3.9%;
-    --primary: 79, 100%, 61%;
-    --primary-foreground: 0 0% 98%;
-    --secondary: 240 4.8% 95.9%;
-    --secondary-foreground: 240 5.9% 10%;
-    --muted: 240 4.8% 95.9%;
-    --muted-foreground: 240 3.8% 46.1%;
-    --accent: 240 4.8% 95.9%;
-    --accent-foreground: 240 5.9% 10%;
-    --destructive: 0 84.2% 60.2%;
-    --destructive-foreground: 0 0% 98%;
-    --border: 240 5.9% 90%;
-    --input: 240 5.9% 90%;
-    --ring: 240 5.9% 10%;
-  }
-
-  .dark:root {
-    --background: 280 5% 12%;
-    --foreground: 0 0% 98%;
-    --card: 240 10% 3.9%;
-    --card-foreground: 0 0% 98%;
-    --popover: 240 10% 3.9%;
-    --popover-foreground: 0 0% 98%;
-    --primary: 79, 100%, 61%;
-    --primary-foreground: 240 5.9% 10%;
-    --secondary: 240 3.7% 15.9%;
-    --secondary-foreground: 0 0% 98%;
-    --muted: 240 3.7% 15.9%;
-    --muted-foreground: 240 5% 64.9%;
-    --accent: 240 3.7% 15.9%;
-    --accent-foreground: 0 0% 98%;
-    --destructive: 0 72% 51%;
-    --destructive-foreground: 0 0% 98%;
-    --border: 240 3.7% 15.9%;
-    --input: 240 3.7% 15.9%;
-    --ring: 240 4.9% 83.9%;
+    @variant light {
+      --background: hsl(0 0% 100%);
+      --foreground: hsl(240 10% 3.9%);
+      --card: hsl(0 0% 100%);
+      --card-foreground: hsl(240 10% 3.9%);
+      --popover: hsl(0 0% 100%);
+      --popover-foreground: hsl(240 10% 3.9%);
+      --primary: hsl(79 100% 61%);
+      --primary-foreground: hsl(0 0% 98%);
+      --secondary: hsl(240 4.8% 95.9%);
+      --secondary-foreground: hsl(240 5.9% 10%);
+      --muted: hsl(240 4.8% 95.9%);
+      --muted-foreground: hsl(240 3.8% 46.1%);
+      --accent: hsl(240 4.8% 95.9%);
+      --accent-foreground: hsl(240 5.9% 10%);
+      --destructive: hsl(0 84.2% 60.2%);
+      --destructive-foreground: hsl(0 0% 98%);
+      --border: hsl(240 5.9% 90%);
+      --input: hsl(240 5.9% 90%);
+      --ring: hsl(240 5.9% 10%);
+    }
+    @variant dark {
+      /* biome-ignore lint/suspicious/noDuplicateCustomProperties: @variant creates distinct CSS scopes */
+      --background: hsl(280 5% 12%);
+      /* biome-ignore lint/suspicious/noDuplicateCustomProperties: @variant creates distinct CSS scopes */
+      --foreground: hsl(0 0% 98%);
+      /* biome-ignore lint/suspicious/noDuplicateCustomProperties: @variant creates distinct CSS scopes */
+      --card: hsl(240 10% 3.9%);
+      /* biome-ignore lint/suspicious/noDuplicateCustomProperties: @variant creates distinct CSS scopes */
+      --card-foreground: hsl(0 0% 98%);
+      /* biome-ignore lint/suspicious/noDuplicateCustomProperties: @variant creates distinct CSS scopes */
+      --popover: hsl(240 10% 3.9%);
+      /* biome-ignore lint/suspicious/noDuplicateCustomProperties: @variant creates distinct CSS scopes */
+      --popover-foreground: hsl(0 0% 98%);
+      /* biome-ignore lint/suspicious/noDuplicateCustomProperties: @variant creates distinct CSS scopes */
+      --primary: hsl(79 100% 61%);
+      /* biome-ignore lint/suspicious/noDuplicateCustomProperties: @variant creates distinct CSS scopes */
+      --primary-foreground: hsl(240 5.9% 10%);
+      /* biome-ignore lint/suspicious/noDuplicateCustomProperties: @variant creates distinct CSS scopes */
+      --secondary: hsl(240 3.7% 15.9%);
+      /* biome-ignore lint/suspicious/noDuplicateCustomProperties: @variant creates distinct CSS scopes */
+      --secondary-foreground: hsl(0 0% 98%);
+      /* biome-ignore lint/suspicious/noDuplicateCustomProperties: @variant creates distinct CSS scopes */
+      --muted: hsl(240 3.7% 15.9%);
+      /* biome-ignore lint/suspicious/noDuplicateCustomProperties: @variant creates distinct CSS scopes */
+      --muted-foreground: hsl(240 5% 64.9%);
+      /* biome-ignore lint/suspicious/noDuplicateCustomProperties: @variant creates distinct CSS scopes */
+      --accent: hsl(240 3.7% 15.9%);
+      /* biome-ignore lint/suspicious/noDuplicateCustomProperties: @variant creates distinct CSS scopes */
+      --accent-foreground: hsl(0 0% 98%);
+      /* biome-ignore lint/suspicious/noDuplicateCustomProperties: @variant creates distinct CSS scopes */
+      --destructive: hsl(0 72% 51%);
+      /* biome-ignore lint/suspicious/noDuplicateCustomProperties: @variant creates distinct CSS scopes */
+      --destructive-foreground: hsl(0 0% 98%);
+      /* biome-ignore lint/suspicious/noDuplicateCustomProperties: @variant creates distinct CSS scopes */
+      --border: hsl(240 3.7% 15.9%);
+      /* biome-ignore lint/suspicious/noDuplicateCustomProperties: @variant creates distinct CSS scopes */
+      --input: hsl(240 3.7% 15.9%);
+      /* biome-ignore lint/suspicious/noDuplicateCustomProperties: @variant creates distinct CSS scopes */
+      --ring: hsl(240 4.9% 83.9%);
+    }
   }
 }

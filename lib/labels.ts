@@ -17,7 +17,7 @@ export const getMeasurementSystemLabel = (
     case "uk":
       return "UK";
     default:
-      return undefined;
+      return;
   }
 };
 
@@ -32,7 +32,7 @@ export const getMeasurementSystemDisclaimer = (
     case "uk":
       return "Feet, Inches and Pounds";
     default:
-      return undefined;
+      return;
   }
 };
 
@@ -45,7 +45,7 @@ export const getWeightLabel = (measurementSystem: MeasurementSystem) => {
     case "uk":
       return "lbs";
     default:
-      return undefined;
+      return;
   }
 };
 
@@ -58,7 +58,7 @@ export const getHeightLabel = (measurementSystem: MeasurementSystem) => {
     case "uk":
       return "ft";
     default:
-      return undefined;
+      return;
   }
 };
 
@@ -69,7 +69,7 @@ export const getGenderLabel = (gender: Gender) => {
     case "female":
       return "Female";
     default:
-      return undefined;
+      return;
   }
 };
 
@@ -86,7 +86,7 @@ export const getGoalLabel = (goal: Goal) => {
     case "general-health-fitness":
       return "General Health & Fitness";
     default:
-      return undefined;
+      return;
   }
 };
 
@@ -97,7 +97,7 @@ export const getPlaceLabel = (place: Place) => {
     case "home":
       return "Home";
     default:
-      return undefined;
+      return;
   }
 };
 
@@ -110,7 +110,7 @@ export const getExperienceLevelLabel = (experienceLevel: ExperienceLevel) => {
     case "advanced":
       return "Advanced";
     default:
-      return undefined;
+      return;
   }
 };
 
@@ -125,6 +125,6 @@ export const getExperienceLevelDisclaimer = (
     case "advanced":
       return "3+ yrs experience";
     default:
-      return undefined;
+      return;
   }
 };

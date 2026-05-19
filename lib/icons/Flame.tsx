@@ -1,6 +1,4 @@
-import { Flame } from "lucide-react-native";
+import { Flame as FlameIcon } from "lucide-react-native";
 import { iconWithClassName } from "./iconWithClassName";
 
-iconWithClassName(Flame);
-
-export { Flame };
+export const Flame = iconWithClassName(FlameIcon);

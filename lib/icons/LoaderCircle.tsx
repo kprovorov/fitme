@@ -1,6 +1,4 @@
-import { LoaderCircle } from "lucide-react-native";
+import { LoaderCircle as LoaderCircleIcon } from "lucide-react-native";
 import { iconWithClassName } from "./iconWithClassName";
 
-iconWithClassName(LoaderCircle);
-
-export { LoaderCircle };
+export const LoaderCircle = iconWithClassName(LoaderCircleIcon);

@@ -62,6 +62,6 @@ export function muscleGroupToName(muscleGroup: MuscleGroup): string {
     case "full-body":
       return "Full Body";
     default:
-      return undefined;
+      return;
   }
 }

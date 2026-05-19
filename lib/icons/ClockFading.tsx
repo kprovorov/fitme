@@ -1,6 +1,4 @@
-import { ClockFading } from "lucide-react-native";
+import { ClockFading as ClockFadingIcon } from "lucide-react-native";
 import { iconWithClassName } from "./iconWithClassName";
 
-iconWithClassName(ClockFading);
-
-export { ClockFading };
+export const ClockFading = iconWithClassName(ClockFadingIcon);

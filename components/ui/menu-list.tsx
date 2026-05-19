@@ -1,4 +1,4 @@
-import React from "react";
+import type React from "react";
 import { Pressable } from "react-native";
 import { TextClassContext } from "~/components/ui/text";
 import { ChevronRight } from "~/lib/icons/ChevronRight";
@@ -6,31 +6,35 @@ import { SquareArrowOutUpRight } from "~/lib/icons/SquareArrowOutUpRight";
 import { cn } from "~/lib/utils";
 import { Card } from "./card";
 
-const MenuList = React.forwardRef<
-  React.ElementRef<typeof Card>,
-  React.ComponentPropsWithoutRef<typeof Card>
->(({ children, ...props }, ref) => {
-  return (
-    <Card
-      className={cn("flex-col overflow-hidden bg-card/30", props.className)}
-      ref={ref}
-      {...props}
-    >
-      {children}
-    </Card>
-  );
-});
+const MenuList = ({
+  children,
+  ref,
+  ...props
+}: React.ComponentPropsWithoutRef<typeof Card> & {
+  ref?: React.RefObject<React.ElementRef<typeof Card> | null>;
+}) => (
+  <Card
+    className={cn("flex-col overflow-hidden bg-card/30", props.className)}
+    ref={ref}
+    {...props}
+  >
+    {children}
+  </Card>
+);
 
 MenuList.displayName = "MenuList";
 
 type MenuListItemProps = React.ComponentPropsWithoutRef<typeof Pressable>;
 
-const MenuListItem = React.forwardRef<
-  React.ElementRef<typeof Pressable>,
-  MenuListItemProps & {
-    icon?: "chevron-right" | "square-arrow-out-up-right";
-  }
->(({ className, children, icon, ...props }, ref) => {
+const MenuListItem = ({
+  className,
+  children,
+  icon,
+  ref,
+  ...props
+}: (MenuListItemProps & {
+  icon?: "chevron-right" | "square-arrow-out-up-right";
+}) & { ref?: React.RefObject<React.ElementRef<typeof Pressable> | null> }) => {
   const Icon =
     icon === "chevron-right"
       ? ChevronRight
@@ -55,7 +59,7 @@ const MenuListItem = React.forwardRef<
       </Pressable>
     </TextClassContext.Provider>
   );
-});
+};
 MenuListItem.displayName = "MenuListItem";
 
 export { MenuList, MenuListItem };
