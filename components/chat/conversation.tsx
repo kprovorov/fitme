@@ -3,7 +3,6 @@ import { LegendList, type LegendListRef } from "@legendapp/list";
 import { isLiquidGlassAvailable } from "expo-glass-effect";
 import {
   createContext,
-  type ReactElement,
   type ReactNode,
   use,
   useCallback,
@@ -25,8 +24,19 @@ import { SymbolImage } from "@/components/symbol-image";
 import { TouchableGlass } from "../touchable-glass";
 import { KeyboardGestureArea } from "../tw";
 import { useChatContext } from "./chat-context";
+import { Message, MessageResponse } from "./message";
+import { StreamingMessage } from "./streaming-message";
 
 const IS_GLASS = isLiquidGlassAvailable();
+
+function getTextFromParts(
+  parts: Array<{ type: string; text?: string }>
+): string {
+  return parts
+    .filter((p) => p.type === "text" && p.text)
+    .map((p) => p.text)
+    .join("");
+}
 
 const AnimatedLegendList = Animated.createAnimatedComponent(LegendList);
 
@@ -55,19 +65,8 @@ export function useConversationContext() {
   return ctx;
 }
 
-export function Conversation({
-  renderMessage,
-  emptyState,
-  children,
-}: {
-  /** Render callback for each message – passed to the underlying list. */
-  renderMessage: (info: { item: UIMessage }) => ReactElement;
-  /** Element shown when the message list is empty. */
-  emptyState?: ReactElement;
-  /** Compound children: <ConversationScrollButton />, <PromptInput />, etc. */
-  children?: ReactNode;
-}) {
-  const { messages, isGenerating } = useChatContext();
+export function Conversation({ children }: { children?: ReactNode }) {
+  const { messages, isGenerating, streamingStore } = useChatContext();
   const listRef = useRef<LegendListRef>(null);
   const insets = useSafeAreaInsets();
 
@@ -270,6 +269,30 @@ export function Conversation({
     [composerHeight]
   );
 
+  // -- Message rendering ---------------------------------------------------
+
+  const renderItem = useCallback(
+    ({ item }: { item: UIMessage }) => {
+      const text = getTextFromParts(
+        item.parts as Array<{ type: string; text?: string }>
+      );
+      if (item.role === "user") {
+        return <Message from="user">{text}</Message>;
+      }
+      const isStreamingItem = isGenerating && item === messages.at(-1);
+      return (
+        <Message from="assistant">
+          {isStreamingItem ? (
+            <StreamingMessage store={streamingStore} />
+          ) : (
+            <MessageResponse>{text}</MessageResponse>
+          )}
+        </Message>
+      );
+    },
+    [isGenerating, messages, streamingStore]
+  );
+
   // -- Context value -------------------------------------------------------
 
   const contextValue: ConversationContextValue = {
@@ -305,7 +328,12 @@ export function Conversation({
             keyExtractor={(item) => (item as UIMessage).id}
             ListFooterComponent={
               <Animated.View style={footerSpacerStyle}>
-                {!messages.length && emptyState}
+                {!messages.length && (
+                  <ConversationEmptyState
+                    description="Send a message to get started"
+                    title="Chat"
+                  />
+                )}
               </Animated.View>
             }
             maintainVisibleContentPosition
@@ -314,7 +342,7 @@ export function Conversation({
             onScroll={onScroll}
             ref={listRef}
             // biome-ignore lint/suspicious/noExplicitAny: LegendList renderItem type doesn't match UIMessage callback
-            renderItem={renderMessage as any}
+            renderItem={renderItem as any}
             scrollEventThrottle={16}
           />
         </KeyboardGestureArea>

@@ -1,4 +1,3 @@
-import type { UIMessage } from "@ai-sdk/react";
 import { useChat } from "@ai-sdk/react";
 import { AssistantChatTransport } from "@assistant-ui/react-ai-sdk";
 import { fetch as expoFetch } from "expo/fetch";
@@ -9,17 +8,13 @@ import { useCallback, useEffect, useMemo, useRef, useState } from "react";
 import {
   ChatProvider,
   Conversation,
-  ConversationEmptyState,
   ConversationScrollButton,
   createStreamingStore,
-  Message,
-  MessageResponse,
   PromptInput,
   PromptInputAction,
   PromptInputBody,
   PromptInputSubmit,
   PromptInputTextarea,
-  StreamingMessage,
 } from "@/components/chat";
 import { Icon } from "@/components/icon";
 import { supabase } from "~/lib/supabase";
@@ -27,15 +22,6 @@ import { supabase } from "~/lib/supabase";
 const SUPABASE_URL = process.env.EXPO_PUBLIC_SUPABASE_URL ?? "";
 
 const ATTACHMENTS_ENABLED = false;
-
-function getTextFromParts(
-  parts: Array<{ type: string; text?: string }>
-): string {
-  return parts
-    .filter((p) => p.type === "text" && p.text)
-    .map((p) => p.text)
-    .join("");
-}
 
 function useAIChat() {
   const [input, setInput] = useState("");
@@ -66,9 +52,13 @@ function useAIChat() {
     }
     const lastMessage = messages.at(-1);
     if (lastMessage?.role === "assistant") {
-      const text = getTextFromParts(
-        lastMessage.parts as Array<{ type: string; text?: string }>
-      );
+      const text = lastMessage.parts
+        .filter(
+          (p): p is { type: "text"; text: string } =>
+            p.type === "text" && "text" in p
+        )
+        .map((p) => p.text)
+        .join("");
       if (text !== prevStreamingTextRef.current) {
         prevStreamingTextRef.current = text;
         streamingStore.set(text);
@@ -98,31 +88,6 @@ function useAIChat() {
 
 export default function AgentScreen() {
   const chat = useAIChat();
-  const { isGenerating, streamingStore, messages } = chat;
-
-  const renderMessage = useCallback(
-    ({ item }: { item: UIMessage }) => {
-      const text = getTextFromParts(
-        item.parts as Array<{ type: string; text?: string }>
-      );
-
-      if (item.role === "user") {
-        return <Message from="user">{text}</Message>;
-      }
-
-      const isStreaming = isGenerating && item === messages.at(-1);
-      return (
-        <Message from="assistant">
-          {isStreaming ? (
-            <StreamingMessage store={streamingStore} />
-          ) : (
-            <MessageResponse>{text}</MessageResponse>
-          )}
-        </Message>
-      );
-    },
-    [isGenerating, messages, streamingStore]
-  );
 
   return (
     <>
@@ -138,15 +103,7 @@ export default function AgentScreen() {
         }}
       />
       <ChatProvider value={chat}>
-        <Conversation
-          emptyState={
-            <ConversationEmptyState
-              description="Send a message to get started"
-              title="Chat"
-            />
-          }
-          renderMessage={renderMessage}
-        >
+        <Conversation>
           <ConversationScrollButton />
           <PromptInput>
             {ATTACHMENTS_ENABLED && (
