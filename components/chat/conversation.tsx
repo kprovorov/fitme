@@ -1,5 +1,5 @@
-import type { UIMessage } from "@ai-sdk/react";
 import { LegendList, type LegendListRef } from "@legendapp/list";
+import type { UIMessage } from "ai";
 import { isLiquidGlassAvailable } from "expo-glass-effect";
 import {
   createContext,
@@ -26,17 +26,9 @@ import { KeyboardGestureArea } from "../tw";
 import { useChatContext } from "./chat-context";
 import { Message, MessageResponse } from "./message";
 import { StreamingMessage } from "./streaming-message";
+import { type WorkoutPlan, WorkoutPlanCard } from "./workout-plan-card";
 
 const IS_GLASS = isLiquidGlassAvailable();
-
-function getTextFromParts(
-  parts: Array<{ type: string; text?: string }>
-): string {
-  return parts
-    .filter((p) => p.type === "text" && p.text)
-    .map((p) => p.text)
-    .join("");
-}
 
 const AnimatedLegendList = Animated.createAnimatedComponent(LegendList);
 
@@ -193,9 +185,9 @@ export function Conversation({ children }: { children?: ReactNode }) {
       }
     },
     [
-      bottomInset.value,
-      currentFooterHeight.value,
-      isAtBottom.value,
+      bottomInset,
+      currentFooterHeight,
+      isAtBottom,
       lastContentHeight, // Derive message-only height by subtracting the last known footer height.
       // This is stable: when the footer resizes, totalContent changes but
       // messagesOnly stays the same, breaking the feedback loop.
@@ -209,7 +201,7 @@ export function Conversation({ children }: { children?: ReactNode }) {
       animated: true,
       viewOffset: -bottomInset.value,
     });
-  }, [bottomInset.value]);
+  }, [bottomInset]);
   scrollToBottomRef.current = scrollToBottom;
 
   // -- Animated styles -----------------------------------------------------
@@ -273,20 +265,53 @@ export function Conversation({ children }: { children?: ReactNode }) {
 
   const renderItem = useCallback(
     ({ item }: { item: UIMessage }) => {
-      const text = getTextFromParts(
-        item.parts as Array<{ type: string; text?: string }>
-      );
       if (item.role === "user") {
+        const text = item.parts
+          .filter(
+            (p): p is { type: "text"; text: string } =>
+              p.type === "text" && "text" in p
+          )
+          .map((p) => p.text)
+          .join("");
         return <Message from="user">{text}</Message>;
       }
-      const isStreamingItem = isGenerating && item === messages.at(-1);
+
+      if (isGenerating && item === messages.at(-1)) {
+        return (
+          <Message from="assistant">
+            <StreamingMessage store={streamingStore} />
+          </Message>
+        );
+      }
+
       return (
         <Message from="assistant">
-          {isStreamingItem ? (
-            <StreamingMessage store={streamingStore} />
-          ) : (
-            <MessageResponse>{text}</MessageResponse>
-          )}
+          {item.parts.map((part, i) => {
+            if (part.type === "text") {
+              const text = (part as { type: "text"; text: string }).text;
+              if (!text) {
+                return null;
+              }
+              // biome-ignore lint/suspicious/noArrayIndexKey: text parts have no stable ID
+              return <MessageResponse key={i}>{text}</MessageResponse>;
+            }
+            if (part.type === "tool-display_workout_plan") {
+              const tool = part as {
+                toolCallId: string;
+                state: string;
+                output: unknown;
+              };
+              if (tool.state === "output-available") {
+                return (
+                  <WorkoutPlanCard
+                    key={tool.toolCallId}
+                    plan={tool.output as WorkoutPlan}
+                  />
+                );
+              }
+            }
+            return null;
+          })}
         </Message>
       );
     },
