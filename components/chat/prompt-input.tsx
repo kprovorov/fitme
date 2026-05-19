@@ -118,7 +118,6 @@ export function PromptInputBody({ children }: { children: ReactNode }) {
     );
   }
 
-  // TODO: Android version...
   return (
     <BlurView
       style={{
