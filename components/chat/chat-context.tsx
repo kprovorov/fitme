@@ -1,12 +1,12 @@
+import type { UIMessage } from "@ai-sdk/react";
 import { createContext, use } from "react";
 import type { StreamingStore } from "./streaming-store";
-import type { ChatMessage } from "./types";
 
 export interface ChatContextValue {
   error?: Error | null;
   input: string;
   isGenerating: boolean;
-  messages: ChatMessage[];
+  messages: UIMessage[];
   onSend: () => void;
   setInput: (value: string) => void;
   streamingStore: StreamingStore;

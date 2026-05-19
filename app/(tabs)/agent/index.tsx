@@ -1,3 +1,4 @@
+import type { UIMessage } from "@ai-sdk/react";
 import { useChat } from "@ai-sdk/react";
 import { AssistantChatTransport } from "@assistant-ui/react-ai-sdk";
 import { fetch as expoFetch } from "expo/fetch";
@@ -6,7 +7,6 @@ import { Link, Stack } from "expo-router";
 import { Plus } from "lucide-react-native";
 import { useCallback, useEffect, useMemo, useRef, useState } from "react";
 import {
-  type ChatMessage,
   ChatProvider,
   Conversation,
   ConversationEmptyState,
@@ -72,12 +72,7 @@ function useAIChat() {
   const streamingStore = useMemo(() => createStreamingStore(), []);
   const prevStreamingTextRef = useRef("");
 
-  const {
-    messages: uiMessages,
-    sendMessage,
-    status,
-    error,
-  } = useChat({
+  const { messages, sendMessage, status, error } = useChat({
     transport: new AssistantChatTransport({
       api: `${SUPABASE_URL}/functions/v1/ai-agent`,
       fetch: expoFetch as unknown as typeof globalThis.fetch,
@@ -90,18 +85,6 @@ function useAIChat() {
 
   const isStreaming = status === "streaming";
 
-  // Map UIMessages to ChatMessages
-  const messages: ChatMessage[] = useMemo(() => {
-    return uiMessages.map((m) => ({
-      id: m.id,
-      role: m.role as "user" | "assistant",
-      content:
-        isStreaming && m.role === "assistant" && m === uiMessages.at(-1)
-          ? "" // Signal streaming — content comes from store
-          : getTextFromParts(m.parts as Array<{ type: string; text?: string }>),
-    }));
-  }, [uiMessages, isStreaming]);
-
   // Sync streaming text to the store
   useEffect(() => {
     if (!isStreaming) {
@@ -111,7 +94,7 @@ function useAIChat() {
       }
       return;
     }
-    const lastMessage = uiMessages.at(-1);
+    const lastMessage = messages.at(-1);
     if (lastMessage?.role === "assistant") {
       const text = getTextFromParts(
         lastMessage.parts as Array<{ type: string; text?: string }>
@@ -121,7 +104,7 @@ function useAIChat() {
         streamingStore.set(text);
       }
     }
-  }, [uiMessages, isStreaming, streamingStore]);
+  }, [messages, isStreaming, streamingStore]);
 
   const onSend = useCallback(() => {
     if (!input.trim() || isStreaming) {
@@ -145,7 +128,7 @@ function useAIChat() {
 
 function useMockChat() {
   const [input, setInput] = useState("");
-  const [messages, setMessages] = useState<ChatMessage[]>([]);
+  const [messages, setMessages] = useState<UIMessage[]>([]);
   const [isGenerating, setIsGenerating] = useState(false);
   const streamingStore = useMemo(() => createStreamingStore(), []);
   const streamingRef = useRef("");
@@ -159,16 +142,16 @@ function useMockChat() {
 
     Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Light);
 
-    const userMessage: ChatMessage = {
+    const userMessage: UIMessage = {
       id: Date.now().toString(),
       role: "user",
-      content: input.trim(),
+      parts: [{ type: "text", text: input.trim() }],
     };
 
-    const assistantMessage: ChatMessage = {
+    const assistantMessage: UIMessage = {
       id: (Date.now() + 1).toString(),
       role: "assistant",
-      content: "",
+      parts: [{ type: "text", text: "" }],
     };
 
     const newMessages = [...messages, userMessage, assistantMessage];
@@ -207,7 +190,7 @@ function useMockChat() {
         const lastIdx = updated.length - 1;
         updated[lastIdx] = {
           ...updated[lastIdx],
-          content: finalContent,
+          parts: [{ type: "text", text: finalContent }],
         };
         return updated;
       });
@@ -233,26 +216,30 @@ export default function AgentScreen() {
   const mockChat = useMockChat();
   const aiChat = useAIChat();
   const chat = USE_MOCK ? mockChat : aiChat;
-  const { isGenerating, streamingStore } = chat;
+  const { isGenerating, streamingStore, messages } = chat;
 
   const renderMessage = useCallback(
-    ({ item }: { item: ChatMessage }) => {
+    ({ item }: { item: UIMessage }) => {
+      const text = getTextFromParts(
+        item.parts as Array<{ type: string; text?: string }>
+      );
+
       if (item.role === "user") {
-        return <Message from="user">{item.content}</Message>;
+        return <Message from="user">{text}</Message>;
       }
 
-      const isStreaming = isGenerating && item.content === "";
+      const isStreaming = isGenerating && item === messages.at(-1);
       return (
         <Message from="assistant">
           {isStreaming ? (
             <StreamingMessage store={streamingStore} />
           ) : (
-            <MessageResponse>{item.content}</MessageResponse>
+            <MessageResponse>{text}</MessageResponse>
           )}
         </Message>
       );
     },
-    [isGenerating, streamingStore]
+    [isGenerating, messages, streamingStore]
   );
 
   return (

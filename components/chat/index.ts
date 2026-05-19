@@ -27,6 +27,3 @@ export {
 export { StreamingMessage } from "./streaming-message";
 export type { StreamingStore } from "./streaming-store";
 export { createStreamingStore } from "./streaming-store";
-
-// Utilities
-export type { ChatMessage } from "./types";

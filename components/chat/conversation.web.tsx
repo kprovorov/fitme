@@ -1,3 +1,4 @@
+import type { UIMessage } from "@ai-sdk/react";
 import { LegendList, type LegendListRef } from "@legendapp/list";
 import {
   createContext,
@@ -9,9 +10,7 @@ import {
   useState,
 } from "react";
 import { type LayoutChangeEvent, Pressable, Text, View } from "react-native";
-
 import { useChatContext } from "./chat-context";
-import type { ChatMessage } from "./types";
 
 // biome-ignore lint/suspicious/noExplicitAny: matches AnimatedStyle opaque type on native
 type AnimatedStyle = any;
@@ -40,7 +39,7 @@ export function Conversation({
   emptyState,
   children,
 }: {
-  renderMessage: (info: { item: ChatMessage }) => ReactElement;
+  renderMessage: (info: { item: UIMessage }) => ReactElement;
   emptyState?: ReactElement;
   children?: ReactNode;
 }) {
@@ -144,12 +143,12 @@ export function Conversation({
           }}
           data={messages}
           estimatedItemSize={80}
-          keyExtractor={(item) => (item as ChatMessage).id}
+          keyExtractor={(item) => (item as UIMessage).id}
           onContentSizeChange={onContentSizeChange}
           onLayout={onScrollViewLayout}
           onScroll={onScroll}
           ref={listRef}
-          // biome-ignore lint/suspicious/noExplicitAny: LegendList renderItem type doesn't match our narrower ChatMessage callback
+          // biome-ignore lint/suspicious/noExplicitAny: LegendList renderItem type doesn't match UIMessage callback
           renderItem={renderMessage as any}
           scrollEventThrottle={16}
         />

@@ -1,3 +1,4 @@
+import type { UIMessage } from "@ai-sdk/react";
 import { LegendList, type LegendListRef } from "@legendapp/list";
 import { isLiquidGlassAvailable } from "expo-glass-effect";
 import {
@@ -24,7 +25,6 @@ import { SymbolImage } from "@/components/symbol-image";
 import { TouchableGlass } from "../touchable-glass";
 import { KeyboardGestureArea } from "../tw";
 import { useChatContext } from "./chat-context";
-import type { ChatMessage } from "./types";
 
 const IS_GLASS = isLiquidGlassAvailable();
 
@@ -61,7 +61,7 @@ export function Conversation({
   children,
 }: {
   /** Render callback for each message – passed to the underlying list. */
-  renderMessage: (info: { item: ChatMessage }) => ReactElement;
+  renderMessage: (info: { item: UIMessage }) => ReactElement;
   /** Element shown when the message list is empty. */
   emptyState?: ReactElement;
   /** Compound children: <ConversationScrollButton />, <PromptInput />, etc. */
@@ -301,7 +301,7 @@ export function Conversation({
             data={messages}
             estimatedItemSize={80}
             keyboardDismissMode="interactive"
-            keyExtractor={(item) => (item as ChatMessage).id}
+            keyExtractor={(item) => (item as UIMessage).id}
             ListFooterComponent={
               <Animated.View style={footerSpacerStyle}>
                 {!messages.length && emptyState}
@@ -312,7 +312,7 @@ export function Conversation({
             onLayout={onScrollViewLayout}
             onScroll={onScroll}
             ref={listRef}
-            // biome-ignore lint/suspicious/noExplicitAny: LegendList renderItem type doesn't match our narrower ChatMessage callback
+            // biome-ignore lint/suspicious/noExplicitAny: LegendList renderItem type doesn't match UIMessage callback
             renderItem={renderMessage as any}
             scrollEventThrottle={16}
           />
