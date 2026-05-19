@@ -25,7 +25,7 @@ function preserveNewlines(md: string): string {
 }
 
 export function ChatMarkdown({ children }: { children: string }) {
-  const [text2, border, bg2, bg3, fill3, link] = useCSSVariable(
+  const [, border, bg2, bg3, fill3, link] = useCSSVariable(
     VAR_NAMES as unknown as string[]
   ) as string[];
 
@@ -89,7 +89,7 @@ export function ChatMarkdown({ children }: { children: string }) {
       borderRadius: 8,
     },
     listBullet: {
-      color: text2,
+      color: text,
       fontVariant: ["tabular-nums" as const],
       marginRight: 8,
     },
