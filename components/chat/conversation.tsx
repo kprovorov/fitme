@@ -67,7 +67,7 @@ export function Conversation({
   /** Compound children: <ConversationScrollButton />, <PromptInput />, etc. */
   children?: ReactNode;
 }) {
-  const { messages } = useChatContext();
+  const { messages, isGenerating } = useChatContext();
   const listRef = useRef<LegendListRef>(null);
   const insets = useSafeAreaInsets();
 
@@ -300,6 +300,7 @@ export function Conversation({
             }}
             data={messages}
             estimatedItemSize={80}
+            extraData={isGenerating}
             keyboardDismissMode="interactive"
             keyExtractor={(item) => (item as UIMessage).id}
             ListFooterComponent={

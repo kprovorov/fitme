@@ -43,7 +43,7 @@ export function Conversation({
   emptyState?: ReactElement;
   children?: ReactNode;
 }) {
-  const { messages } = useChatContext();
+  const { messages, isGenerating } = useChatContext();
   const listRef = useRef<LegendListRef>(null);
 
   const [composerHeight, setComposerHeight] = useState(68);
@@ -143,6 +143,7 @@ export function Conversation({
           }}
           data={messages}
           estimatedItemSize={80}
+          extraData={isGenerating}
           keyExtractor={(item) => (item as UIMessage).id}
           onContentSizeChange={onContentSizeChange}
           onLayout={onScrollViewLayout}
