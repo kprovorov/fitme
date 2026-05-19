@@ -4,12 +4,12 @@ import { useCSSVariable } from "uniwind";
 import Markdown from "./markdown";
 
 const VAR_NAMES = [
-  "--app-foreground",
-  "--app-muted-foreground",
-  "--app-border",
-  "--app-secondary",
-  "--app-muted",
-  "--app-accent",
+  "--color-foreground",
+  "--color-muted-foreground",
+  "--color-border",
+  "--color-secondary",
+  "--color-muted",
+  "--color-accent",
   // Tailwind blue
   "--color-blue-400",
 ] as const;
