@@ -1,4 +1,4 @@
-import { LegendList, type LegendListRef } from "@legendapp/list";
+import { LegendList, type LegendListRef } from "@legendapp/list/react-native";
 import type { UIMessage } from "ai";
 import { isLiquidGlassAvailable } from "expo-glass-effect";
 import {

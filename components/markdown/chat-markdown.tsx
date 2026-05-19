@@ -1,7 +1,7 @@
 import * as WebBrowser from "expo-web-browser";
 import { Linking, Platform, StyleSheet, Text, View } from "react-native";
 import { useCSSVariable } from "uniwind";
-import { Markdown } from "./index";
+import Markdown from "./markdown";
 
 const VAR_NAMES = [
   "--app-foreground",

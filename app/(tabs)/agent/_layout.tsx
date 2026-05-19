@@ -6,8 +6,8 @@ const GLASS = isLiquidGlassAvailable();
 const IS_ANDROID = process.env.EXPO_OS === "android";
 
 export default function StackLayout() {
-  const appForeground = useCSSVariable("--app-foreground") as string;
-  const appBackground = useCSSVariable("--app-background") as string;
+  const appForeground = useCSSVariable("--foreground") as string;
+  const appBackground = useCSSVariable("--background") as string;
 
   return (
     <Stack

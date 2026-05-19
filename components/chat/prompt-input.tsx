@@ -13,6 +13,7 @@ import {
   View,
 } from "react-native";
 import Animated, { FadeIn, FadeOut } from "react-native-reanimated";
+import { useCSSVariable } from "uniwind";
 import { SymbolImage } from "@/components/symbol-image";
 import { TouchableGlass } from "@/components/touchable-glass";
 import { cn } from "@/utils/tailwind";
@@ -148,6 +149,7 @@ export function PromptInputTextarea({
 }) {
   const { input, setInput } = useChatContext();
   const inputRef = useRef<TextInput>(null);
+  const foreground = useCSSVariable("--foreground") as string;
 
   useEffect(() => {
     if (input === "") {
@@ -158,14 +160,14 @@ export function PromptInputTextarea({
   return (
     <TextInput
       className="max-h-25 flex-1 py-3 pr-2 pl-4 text-foreground dark:text-foreground"
-      cursorColorClassName="tint-foreground"
+      cursorColor={foreground}
       maxLength={maxLength}
       multiline
       nativeID="composer"
       onChangeText={setInput}
       placeholder={placeholder}
       ref={inputRef}
-      selectionColorClassName="tint-foreground"
+      selectionColor={foreground}
       style={{ fontSize: 16 }}
       value={input}
     />
@@ -178,6 +180,7 @@ export function PromptInputTextarea({
  */
 export function PromptInputSubmit() {
   const { input, isGenerating, onSend } = useChatContext();
+  const foreground = useCSSVariable("--foreground") as string;
   const disabled = !input.trim() || isGenerating;
 
   return (
@@ -198,11 +201,7 @@ export function PromptInputSubmit() {
     >
       {isGenerating ? (
         <Animated.View entering={FadeIn} exiting={FadeOut}>
-          <ActivityIndicator
-            className="text-foreground"
-            colorClassName="tint-foreground"
-            size="small"
-          />
+          <ActivityIndicator color={foreground} size="small" />
         </Animated.View>
       ) : (
         <SymbolImage
