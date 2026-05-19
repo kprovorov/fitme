@@ -1,8 +1,23 @@
+import { useQueryClient } from "@tanstack/react-query";
 import { router } from "expo-router";
-import { Pressable, Text, View } from "react-native";
+import { useState } from "react";
+import { ActivityIndicator, Pressable, Text, View } from "react-native";
 import Animated, { FadeIn } from "react-native-reanimated";
 import { SymbolImage } from "@/components/symbol-image";
+import { Button } from "@/components/ui/button";
+import { Text as UIText } from "@/components/ui/text";
+import {
+  useActivatePlanMutation,
+  useStorePlanMutation,
+} from "@/hooks/queries/plans";
 import { supabase } from "@/lib/supabase";
+import type {
+  Exercise,
+  ExperienceLevel,
+  Goal,
+  Place,
+  PlanData,
+} from "~/lib/models";
 
 export interface WorkoutExercise {
   name: string;
@@ -20,6 +35,7 @@ export interface WorkoutDay {
 
 export interface WorkoutPlan {
   description: string;
+  experienceLevel?: "beginner" | "intermediate" | "advanced";
   frequencyPerWeek: number;
   goal:
     | "weight_loss"
@@ -29,6 +45,7 @@ export interface WorkoutPlan {
     | "general_fitness";
   name: string;
   place?: "gym" | "home";
+  workoutDuration?: number;
   workouts: WorkoutDay[];
 }
 
@@ -47,6 +64,21 @@ const GOAL_ICONS: Record<WorkoutPlan["goal"], string> = {
   strength: "figure.strengthtraining.traditional",
   weight_loss: "figure.run",
 };
+
+const GOAL_MAP: Record<WorkoutPlan["goal"], Goal> = {
+  endurance: "general-health-fitness",
+  general_fitness: "general-health-fitness",
+  muscle_gain: "muscle-gain",
+  strength: "strength-performance",
+  weight_loss: "fat-loss",
+};
+
+const REPS_RE = /^\d+/;
+
+function parseReps(reps: string): number {
+  const match = reps.match(REPS_RE);
+  return match ? Number.parseInt(match[0], 10) : 10;
+}
 
 function PlanTag({ icon, label }: { icon: string; label: string }) {
   return (
@@ -127,6 +159,67 @@ function WorkoutDaySection({
 }
 
 export function WorkoutPlanCard({ plan }: { plan: WorkoutPlan }) {
+  const [saved, setSaved] = useState(false);
+  const queryClient = useQueryClient();
+  const storePlan = useStorePlanMutation();
+  const activatePlan = useActivatePlanMutation();
+
+  const isSaving = storePlan.isPending || activatePlan.isPending;
+
+  const handleSave = async () => {
+    const allNames = plan.workouts.flatMap((w) =>
+      w.exercises.map((e) => e.name)
+    );
+    const { data: exercises } = await supabase
+      .from("exercises")
+      .select("id, name")
+      .in("name", allNames);
+
+    const nameToId = new Map(
+      (exercises ?? []).map((e) => [e.name.toLowerCase(), e.id])
+    );
+
+    const planData: PlanData = {
+      description: plan.description,
+      experience_level: (plan.experienceLevel ??
+        "intermediate") as ExperienceLevel,
+      frequency: plan.frequencyPerWeek,
+      goal: GOAL_MAP[plan.goal],
+      name: plan.name,
+      place: (plan.place ?? "gym") as Place,
+      workout_duration: plan.workoutDuration ?? 60,
+      workouts: plan.workouts.map((day, dayIndex) => ({
+        description: "",
+        exercises: day.exercises
+          .map((ex, exIndex) => {
+            const exerciseId = nameToId.get(ex.name.toLowerCase());
+            if (!exerciseId) {
+              return null;
+            }
+            return {
+              exercise: { id: exerciseId } as Exercise,
+              exercise_id: exerciseId,
+              order: exIndex,
+              sets: Array.from({ length: ex.sets }, (_, i) => ({
+                order: i,
+                reps_recommended: parseReps(ex.reps),
+                rest_recommended: ex.restSeconds ?? 90,
+                weight_recommended: 0,
+              })),
+            };
+          })
+          .filter((ex) => ex !== null),
+        name: day.name,
+        order: dayIndex,
+      })),
+    };
+
+    const savedPlan = await storePlan.mutateAsync(planData);
+    await activatePlan.mutateAsync({ id: savedPlan.id });
+    queryClient.invalidateQueries({ queryKey: ["plans"] });
+    setSaved(true);
+  };
+
   const placeIcon = plan.place === "home" ? "house" : "building.2";
   const placeLabel = plan.place === "home" ? "Home" : "Gym";
 
@@ -161,6 +254,16 @@ export function WorkoutPlanCard({ plan }: { plan: WorkoutPlan }) {
             workout={workout}
           />
         ))}
+      </View>
+
+      <View className="border-border/20 border-t px-4 pt-3 pb-4">
+        <Button disabled={isSaving || saved} onPress={handleSave} shape="pill">
+          {isSaving ? (
+            <ActivityIndicator color="black" size="small" />
+          ) : (
+            <UIText>{saved ? "Plan Saved" : "Save Plan"}</UIText>
+          )}
+        </Button>
       </View>
     </Animated.View>
   );
