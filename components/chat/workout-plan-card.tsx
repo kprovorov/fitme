@@ -10,7 +10,6 @@ import {
   useActivatePlanMutation,
   useStorePlanMutation,
 } from "@/hooks/queries/plans";
-import { supabase } from "@/lib/supabase";
 import type {
   Exercise,
   ExperienceLevel,
@@ -20,6 +19,7 @@ import type {
 } from "~/lib/models";
 
 export interface WorkoutExercise {
+  exercise_id: string;
   name: string;
   notes?: string;
   reps: string;
@@ -93,23 +93,11 @@ function PlanTag({ icon, label }: { icon: string; label: string }) {
   );
 }
 
-async function navigateToExercise(name: string) {
-  const { data } = await supabase
-    .from("exercises")
-    .select("id")
-    .ilike("name", name)
-    .limit(1);
-  const id = data?.[0]?.id;
-  if (id) {
-    router.push(`/exercises/${id}`);
-  }
-}
-
 function ExerciseRow({ exercise }: { exercise: WorkoutExercise }) {
   return (
     <Pressable
       className="flex-row items-center border-border/15 border-b py-3 active:opacity-60"
-      onPress={() => navigateToExercise(exercise.name)}
+      onPress={() => router.push(`/exercises/${exercise.exercise_id}`)}
     >
       <Text className="w-8 font-semibold text-primary text-sm">
         {exercise.sets}×
@@ -152,7 +140,7 @@ function WorkoutDaySection({
       </View>
       <View className="mb-1 border-border/20 border-b" />
       {workout.exercises.map((ex) => (
-        <ExerciseRow exercise={ex} key={ex.name} />
+        <ExerciseRow exercise={ex} key={ex.exercise_id} />
       ))}
     </View>
   );
@@ -166,19 +154,11 @@ export function WorkoutPlanCard({ plan }: { plan: WorkoutPlan }) {
 
   const isSaving = storePlan.isPending || activatePlan.isPending;
 
+  const hasInvalidExercises = plan.workouts
+    .flatMap((w) => w.exercises)
+    .some((e) => !e.exercise_id);
+
   const handleSave = async () => {
-    const allNames = plan.workouts.flatMap((w) =>
-      w.exercises.map((e) => e.name)
-    );
-    const { data: exercises } = await supabase
-      .from("exercises")
-      .select("id, name")
-      .in("name", allNames);
-
-    const nameToId = new Map(
-      (exercises ?? []).map((e) => [e.name.toLowerCase(), e.id])
-    );
-
     const planData: PlanData = {
       description: plan.description,
       experience_level: (plan.experienceLevel ??
@@ -190,25 +170,17 @@ export function WorkoutPlanCard({ plan }: { plan: WorkoutPlan }) {
       workout_duration: plan.workoutDuration ?? 60,
       workouts: plan.workouts.map((day, dayIndex) => ({
         description: "",
-        exercises: day.exercises
-          .map((ex, exIndex) => {
-            const exerciseId = nameToId.get(ex.name.toLowerCase());
-            if (!exerciseId) {
-              return null;
-            }
-            return {
-              exercise: { id: exerciseId } as Exercise,
-              exercise_id: exerciseId,
-              order: exIndex,
-              sets: Array.from({ length: ex.sets }, (_, i) => ({
-                order: i,
-                reps_recommended: parseReps(ex.reps),
-                rest_recommended: ex.restSeconds ?? 90,
-                weight_recommended: 0,
-              })),
-            };
-          })
-          .filter((ex) => ex !== null),
+        exercises: day.exercises.map((ex, exIndex) => ({
+          exercise: { id: ex.exercise_id } as Exercise,
+          exercise_id: ex.exercise_id,
+          order: exIndex,
+          sets: Array.from({ length: ex.sets }, (_, i) => ({
+            order: i,
+            reps_recommended: parseReps(ex.reps),
+            rest_recommended: ex.restSeconds ?? 90,
+            weight_recommended: 0,
+          })),
+        })),
         name: day.name,
         order: dayIndex,
       })),
@@ -257,7 +229,19 @@ export function WorkoutPlanCard({ plan }: { plan: WorkoutPlan }) {
       </View>
 
       <View className="border-border/20 border-t px-4 pt-3 pb-4">
-        <Button disabled={isSaving || saved} onPress={handleSave} shape="pill">
+        {hasInvalidExercises && (
+          <View className="mb-3 rounded-xl bg-destructive/10 px-3 py-2.5">
+            <UIText className="text-destructive text-xs">
+              Some exercises could not be matched to the library and cannot be
+              saved. Try regenerating the plan.
+            </UIText>
+          </View>
+        )}
+        <Button
+          disabled={isSaving || saved || hasInvalidExercises}
+          onPress={handleSave}
+          shape="pill"
+        >
           {isSaving ? (
             <ActivityIndicator color="black" size="small" />
           ) : (

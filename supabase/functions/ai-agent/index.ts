@@ -31,8 +31,8 @@ export default {
 
 When creating a plan:
 1. Collect from the user: goal, days per week, experience level, preferred workout duration — unless already provided.
-2. Use search_exercises to find valid exercise IDs for all needed muscle groups.
-3. Call display_workout_plan with the full structured plan — do not describe the plan in text.
+2. Call search_exercises for each muscle group needed in the plan. You MUST use the IDs returned — never invent exercise names or IDs.
+3. Call display_workout_plan with the full structured plan. Every exercise MUST include the exercise_id field set to the UUID returned by search_exercises. Do not describe the plan in text.
 
 For general fitness questions, reply with text only. Never call display_workout_plan unless the user explicitly wants a workout plan generated.
 
