@@ -1,6 +1,6 @@
 import { useQueryClient } from "@tanstack/react-query";
 import { router } from "expo-router";
-import { useEffect, useState } from "react";
+import { useState } from "react";
 import { ActivityIndicator, Pressable, Text, View } from "react-native";
 import Animated, { FadeIn } from "react-native-reanimated";
 import { SymbolImage } from "@/components/symbol-image";
@@ -10,7 +10,6 @@ import {
   useActivatePlanMutation,
   useStorePlanMutation,
 } from "@/hooks/queries/plans";
-import { supabase } from "@/lib/supabase";
 import type {
   Exercise,
   ExperienceLevel,
@@ -21,6 +20,7 @@ import type {
 
 export interface WorkoutExercise {
   exercise_id: string;
+  name: string;
   notes?: string;
   reps: string;
   restSeconds?: number;
@@ -93,13 +93,7 @@ function PlanTag({ icon, label }: { icon: string; label: string }) {
   );
 }
 
-function ExerciseRow({
-  exercise,
-  name,
-}: {
-  exercise: WorkoutExercise;
-  name: string | undefined;
-}) {
+function ExerciseRow({ exercise }: { exercise: WorkoutExercise }) {
   return (
     <Pressable
       className="flex-row items-center border-border/15 border-b py-3 active:opacity-60"
@@ -109,7 +103,7 @@ function ExerciseRow({
         {exercise.sets}×
       </Text>
       <Text className="flex-1 text-foreground text-sm" numberOfLines={1}>
-        {name ?? exercise.exercise_id}
+        {exercise.name}
       </Text>
       <SymbolImage
         className="text-muted-foreground dark:text-muted-foreground"
@@ -123,11 +117,9 @@ function ExerciseRow({
 function WorkoutDaySection({
   workout,
   last,
-  exerciseNames,
 }: {
   workout: WorkoutDay;
   last: boolean;
-  exerciseNames: Map<string, string>;
 }) {
   return (
     <View className={last ? "" : "mb-6"}>
@@ -148,11 +140,7 @@ function WorkoutDaySection({
       </View>
       <View className="mb-1 border-border/20 border-b" />
       {workout.exercises.map((ex) => (
-        <ExerciseRow
-          exercise={ex}
-          key={ex.exercise_id}
-          name={exerciseNames.get(ex.exercise_id)}
-        />
+        <ExerciseRow exercise={ex} key={ex.exercise_id} />
       ))}
     </View>
   );
@@ -160,35 +148,15 @@ function WorkoutDaySection({
 
 export function WorkoutPlanCard({ plan }: { plan: WorkoutPlan }) {
   const [saved, setSaved] = useState(false);
-  const [exerciseNames, setExerciseNames] = useState<Map<string, string>>(
-    new Map()
-  );
   const queryClient = useQueryClient();
   const storePlan = useStorePlanMutation();
   const activatePlan = useActivatePlanMutation();
 
   const isSaving = storePlan.isPending || activatePlan.isPending;
 
-  const allExercises = plan.workouts.flatMap((w) => w.exercises);
-  const invalidExercises = allExercises.filter((e) => !e.exercise_id);
-  const hasInvalidExercises = invalidExercises.length > 0;
-
-  useEffect(() => {
-    const ids = plan.workouts
-      .flatMap((w) => w.exercises)
-      .map((e) => e.exercise_id)
-      .filter(Boolean);
-    if (ids.length === 0) return;
-    supabase
-      .from("exercises")
-      .select("id, name")
-      .in("id", ids)
-      .then(({ data }) => {
-        if (data) {
-          setExerciseNames(new Map(data.map((e) => [e.id, e.name])));
-        }
-      });
-  }, [plan]);
+  const hasInvalidExercises = plan.workouts
+    .flatMap((w) => w.exercises)
+    .some((e) => !e.exercise_id);
 
   const handleSave = async () => {
     const planData: PlanData = {
@@ -253,7 +221,6 @@ export function WorkoutPlanCard({ plan }: { plan: WorkoutPlan }) {
       <View className="px-4 pt-4 pb-4">
         {plan.workouts.map((workout, i) => (
           <WorkoutDaySection
-            exerciseNames={exerciseNames}
             key={workout.dayLabel}
             last={i === plan.workouts.length - 1}
             workout={workout}

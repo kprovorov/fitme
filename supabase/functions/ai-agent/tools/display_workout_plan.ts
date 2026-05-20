@@ -7,6 +7,7 @@ const exerciseSchema = z.object({
     .describe(
       "The UUID of the exercise from search_exercises results. Must match an ID returned by search_exercises — do not invent IDs."
     ),
+  name: z.string().describe("The display name of the exercise."),
   sets: z.number(),
   reps: z.string(),
   restSeconds: z.number().optional(),
