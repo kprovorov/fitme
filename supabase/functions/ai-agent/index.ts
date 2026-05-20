@@ -56,7 +56,7 @@ When modifying an existing plan:
 Available plan modification tools:
 - add_exercise_to_workout: add a new exercise with initial sets to a workout day
 - remove_exercise_from_workout: remove an exercise and all its sets from a workout day
-- replace_exercise_in_workout: swap one exercise for another, keeping the same sets
+- replace_exercise_in_workout: swap one exercise for another and replace its sets with new recommendations
 - update_set_recommendations: change reps, weight, or rest on a specific set
 - add_set_to_exercise: append a new set to an existing exercise
 - remove_set_from_exercise: delete a specific set from an exercise
