@@ -14,6 +14,7 @@ import { createReplaceExerciseInWorkoutTool } from "./tools/replace_exercise_in_
 import { createUpdateSetRecommendationsTool } from "./tools/update_set_recommendations.ts";
 import { createAddSetToExerciseTool } from "./tools/add_set_to_exercise.ts";
 import { createRemoveSetFromExerciseTool } from "./tools/remove_set_from_exercise.ts";
+import { createGetWorkoutsHistoryTool } from "./tools/get_workouts_history.ts";
 
 const openai = createOpenAI({ apiKey: Deno.env.get("OPENAI_API_KEY") });
 
@@ -35,6 +36,7 @@ export default {
       update_set_recommendations: createUpdateSetRecommendationsTool(ctx),
       add_set_to_exercise: createAddSetToExerciseTool(ctx),
       remove_set_from_exercise: createRemoveSetFromExerciseTool(ctx),
+      get_workouts_history: createGetWorkoutsHistoryTool(ctx),
     };
 
     const agent = new ToolLoopAgent({
@@ -60,6 +62,10 @@ Available plan modification tools:
 - update_set_recommendations: change reps, weight, or rest on a specific set
 - add_set_to_exercise: append a new set to an existing exercise
 - remove_set_from_exercise: delete a specific set from an exercise
+
+When analyzing workout history or progress:
+- Use get_workouts_history to fetch the user's recent completed workouts before making recommendations or analyzing progress.
+- Each session includes the workout name, exercises performed, and actual reps/weight completed per set.
 
 For general fitness questions, reply with text only. Never call display_workout_plan unless the user explicitly wants a workout plan generated.
 
