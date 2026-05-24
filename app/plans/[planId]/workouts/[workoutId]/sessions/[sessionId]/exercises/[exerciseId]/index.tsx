@@ -47,6 +47,7 @@ export default function WorkoutSessionExerciseScreen() {
     <>
       <Stack.Screen
         options={{
+          headerShown: true,
           headerTransparent: true,
           headerTitleStyle: {
             fontFamily: "NunitoSans12pt-Bold",
@@ -55,14 +56,19 @@ export default function WorkoutSessionExerciseScreen() {
           },
           title: workoutSessionExercise?.exercise?.name ?? "",
           headerBackButtonDisplayMode: "minimal",
-          unstable_headerRightItems: () => [
-            {
-              label: "Exercise Info",
-              type: "button",
-              icon: { type: "sfSymbol", name: "info.circle" },
-              onPress: () => setIsOpen(true),
-            },
-          ],
+          unstable_headerRightItems: () => {
+            if (!workoutSessionExercise?.exercise?.instructions) {
+              return [];
+            }
+            return [
+              {
+                label: "Exercise Info",
+                type: "button",
+                icon: { type: "sfSymbol", name: "info.circle" },
+                onPress: () => setIsOpen(true),
+              },
+            ];
+          },
         }}
       />
       {workoutSessionExercise ? (

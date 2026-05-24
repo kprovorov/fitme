@@ -11,6 +11,7 @@ export default function PlansScreen() {
     <>
       <Stack.Screen
         options={{
+          headerShown: true,
           headerTransparent: true,
           headerTitleStyle: {
             fontFamily: "NunitoSans12pt-Bold",
