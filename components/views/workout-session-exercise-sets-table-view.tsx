@@ -1,6 +1,6 @@
-import { Plus } from "lucide-react-native";
 import { useState } from "react";
 import { useCurrentUserQuery } from "~/hooks/queries/auth";
+import { Plus } from "~/lib/icons/Plus";
 import { getWeightLabel } from "~/lib/labels";
 import type { WorkoutSessionExerciseSet } from "~/lib/models";
 import { Button } from "../ui/button";

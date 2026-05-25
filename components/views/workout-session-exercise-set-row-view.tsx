@@ -1,11 +1,11 @@
 import { useQueryClient } from "@tanstack/react-query";
-import { Check } from "lucide-react-native";
 import { useRef, useState } from "react";
 import {
   useCreateWorkoutSessionExerciseSetMutation,
   useUpdateWorkoutSessionExerciseSetMutation,
 } from "~/hooks/queries/workout-session-exercise-sets";
 import { IS_E2E } from "~/lib/constants";
+import { Check } from "~/lib/icons/Check";
 import { ClockFading } from "~/lib/icons/ClockFading";
 import type { WorkoutSessionExerciseSet } from "~/lib/models";
 import { segmentClient } from "~/lib/segment";
