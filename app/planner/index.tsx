@@ -305,11 +305,9 @@ export default function PlannerScreen() {
             <VStack className="items-stretch gap-2">
               <Button
                 onPress={form.handleSubmit((data) => {
-                  const message = buildPlanMessage(data);
-                  router.dismissAll();
-                  router.navigate({
+                  router.dismissTo({
                     pathname: "/(tabs)/agent",
-                    params: { initialMessage: message },
+                    params: { initialMessage: buildPlanMessage(data) },
                   });
                 })}
               >
