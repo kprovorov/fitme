@@ -6,9 +6,13 @@ import { HStack } from "~/components/ui/hstack";
 import { Text } from "~/components/ui/text";
 import { H2 } from "~/components/ui/typography";
 import { VStack } from "~/components/ui/vstack";
+import { useCurrentUserQuery } from "~/hooks/queries/auth";
 import { ArrowRight } from "~/lib/icons/ArrowRight";
+import { storage } from "~/lib/mmkv";
 
 export default function WelcomeScreen() {
+  const { data: user } = useCurrentUserQuery();
+
   return (
     <>
       <Stack.Screen
@@ -37,7 +41,9 @@ export default function WelcomeScreen() {
             <Button
               className="w-full"
               onPress={() => {
-                // dismiss sheet
+                if (user) {
+                  storage.set(`onboarding.seen.${user.id}`, true);
+                }
                 router.dismissTo("/");
               }}
               variant="link"

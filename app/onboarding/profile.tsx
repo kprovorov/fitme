@@ -27,6 +27,7 @@ import { useCurrentUserQuery } from "~/hooks/queries/auth";
 import { IS_E2E } from "~/lib/constants";
 import { formatHeight, formatWeight } from "~/lib/formatters";
 import { ArrowRight } from "~/lib/icons/ArrowRight";
+import { storage } from "~/lib/mmkv";
 import { genders, type MeasurementSystem } from "~/lib/models";
 import { segmentClient } from "~/lib/segment";
 import { cn, range } from "~/lib/utils";
@@ -128,6 +129,9 @@ export default function ProfileScreen() {
 
   const { mutateAsync: storeProfile } = useStoreProfileMutation({
     onSuccess: (_, variables) => {
+      if (user) {
+        storage.set(`onboarding.seen.${user.id}`, true);
+      }
       if (!IS_E2E) {
         segmentClient.track("Profile Filled", {
           gender: variables.gender,
