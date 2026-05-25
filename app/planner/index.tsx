@@ -22,8 +22,25 @@ import { HeartPulse } from "~/lib/icons/HeartPulse";
 import {
   getExperienceLevelDisclaimer,
   getExperienceLevelLabel,
+  getGoalLabel,
+  getPlaceLabel,
 } from "~/lib/labels";
 import { experienceLevels, goals, places } from "~/lib/models";
+
+function buildPlanMessage(data: PlanFormValues): string {
+  const lines = [
+    "Please create a workout plan for me with the following details:",
+    `- Goal: ${getGoalLabel(data.goal)}`,
+    `- Experience: ${getExperienceLevelLabel(data.experience_level)}`,
+    `- Workout duration: ${data.workout_duration} minutes`,
+    `- Place: ${getPlaceLabel(data.place)}`,
+    `- Frequency: ${data.frequency} ${data.frequency === 1 ? "day" : "days"} per week`,
+  ];
+  if (data.note) {
+    lines.push(`- Additional notes: ${data.note}`);
+  }
+  return lines.join("\n");
+}
 
 export type PlanFormValues = z.infer<typeof formSchema>;
 
@@ -287,8 +304,13 @@ export default function PlannerScreen() {
 
             <VStack className="items-stretch gap-2">
               <Button
-                onPress={form.handleSubmit(() => {
+                onPress={form.handleSubmit((data) => {
+                  const message = buildPlanMessage(data);
                   router.dismissAll();
+                  router.navigate({
+                    pathname: "/(tabs)/agent",
+                    params: { initialMessage: message },
+                  });
                 })}
               >
                 <Text>Get my plan!</Text>

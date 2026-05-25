@@ -18,7 +18,9 @@ export function createAddSetToExerciseTool({ supabase }: SupabaseContext) {
       weight_recommended: z
         .number()
         .min(0)
-        .describe("Recommended weight for the new set in the user's unit system"),
+        .describe(
+          "Recommended weight for the new set in the user's unit system"
+        ),
       rest_recommended: z
         .number()
         .int()

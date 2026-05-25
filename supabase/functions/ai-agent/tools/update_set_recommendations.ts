@@ -48,12 +48,15 @@ export function createUpdateSetRecommendationsTool({
       rest_recommended,
     }) => {
       const updates: Record<string, number> = {};
-      if (reps_recommended !== undefined)
+      if (reps_recommended !== undefined) {
         updates.reps_recommended = reps_recommended;
-      if (weight_recommended !== undefined)
+      }
+      if (weight_recommended !== undefined) {
         updates.weight_recommended = weight_recommended;
-      if (rest_recommended !== undefined)
+      }
+      if (rest_recommended !== undefined) {
         updates.rest_recommended = rest_recommended;
+      }
 
       const { error } = await supabase
         .from("workout_exercise_sets")

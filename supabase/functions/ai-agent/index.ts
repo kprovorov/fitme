@@ -2,19 +2,19 @@ import { createOpenAI } from "npm:@ai-sdk/openai";
 import { withSupabase } from "npm:@supabase/server";
 import { createAgentUIStreamResponse, ToolLoopAgent } from "npm:ai";
 import { createActivatePlanTool } from "./tools/activate_plan.ts";
+import { createAddExerciseToWorkoutTool } from "./tools/add_exercise_to_workout.ts";
+import { createAddSetToExerciseTool } from "./tools/add_set_to_exercise.ts";
 import { displayWorkoutPlanTool } from "./tools/display_workout_plan.ts";
 import { createGetActivePlanTool } from "./tools/get_active_plan.ts";
 import { createGetPlansTool } from "./tools/get_plans.ts";
 import { createGetUserProfileTool } from "./tools/get_user_profile.ts";
-import { createSearchExercisesTool } from "./tools/search_exercises.ts";
-import { createUpdateUserProfileTool } from "./tools/update_user_profile.ts";
-import { createAddExerciseToWorkoutTool } from "./tools/add_exercise_to_workout.ts";
-import { createRemoveExerciseFromWorkoutTool } from "./tools/remove_exercise_from_workout.ts";
-import { createReplaceExerciseInWorkoutTool } from "./tools/replace_exercise_in_workout.ts";
-import { createUpdateSetRecommendationsTool } from "./tools/update_set_recommendations.ts";
-import { createAddSetToExerciseTool } from "./tools/add_set_to_exercise.ts";
-import { createRemoveSetFromExerciseTool } from "./tools/remove_set_from_exercise.ts";
 import { createGetWorkoutsHistoryTool } from "./tools/get_workouts_history.ts";
+import { createRemoveExerciseFromWorkoutTool } from "./tools/remove_exercise_from_workout.ts";
+import { createRemoveSetFromExerciseTool } from "./tools/remove_set_from_exercise.ts";
+import { createReplaceExerciseInWorkoutTool } from "./tools/replace_exercise_in_workout.ts";
+import { createSearchExercisesTool } from "./tools/search_exercises.ts";
+import { createUpdateSetRecommendationsTool } from "./tools/update_set_recommendations.ts";
+import { createUpdateUserProfileTool } from "./tools/update_user_profile.ts";
 
 const openai = createOpenAI({ apiKey: Deno.env.get("OPENAI_API_KEY") });
 

@@ -2,7 +2,7 @@ import { useChat } from "@ai-sdk/react";
 import { AssistantChatTransport } from "@assistant-ui/react-ai-sdk";
 import { fetch as expoFetch } from "expo/fetch";
 import * as Haptics from "expo-haptics";
-import { Link, Stack } from "expo-router";
+import { Link, Stack, useLocalSearchParams, useRouter } from "expo-router";
 import { Plus } from "lucide-react-native";
 import { useCallback, useEffect, useMemo, useRef, useState } from "react";
 import {
@@ -81,6 +81,7 @@ function useAIChat() {
     setInput,
     isGenerating: isStreaming,
     onSend,
+    sendMessage,
     streamingStore,
     error: error ?? null,
   };
@@ -88,6 +89,19 @@ function useAIChat() {
 
 export default function AgentScreen() {
   const chat = useAIChat();
+  const { initialMessage } = useLocalSearchParams<{
+    initialMessage?: string;
+  }>();
+  const router = useRouter();
+  const sentInitialMessageRef = useRef<string | null>(null);
+
+  useEffect(() => {
+    if (initialMessage && initialMessage !== sentInitialMessageRef.current) {
+      sentInitialMessageRef.current = initialMessage;
+      chat.sendMessage({ text: initialMessage });
+      router.setParams({ initialMessage: undefined });
+    }
+  }, [initialMessage, chat, router]);
 
   return (
     <>

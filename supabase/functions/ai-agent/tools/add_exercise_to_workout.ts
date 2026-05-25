@@ -29,9 +29,7 @@ export function createAddExerciseToWorkoutTool({ supabase }: SupabaseContext) {
         .describe("The ID of the workout to add the exercise to"),
       exercise_id: z
         .string()
-        .describe(
-          "The ID of the exercise to add (from search_exercises)"
-        ),
+        .describe("The ID of the exercise to add (from search_exercises)"),
       sets: z
         .array(setSchema)
         .min(1)
