@@ -20,7 +20,7 @@ export default function RegisterView() {
 
   useEffect(() => {
     if (user) {
-      router.replace("/onboarding");
+      router.replace("/");
     }
   }, [user]);
 

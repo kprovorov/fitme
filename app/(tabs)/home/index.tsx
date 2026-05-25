@@ -11,6 +11,7 @@ import { Button } from "~/components/ui/button";
 import { Text } from "~/components/ui/text";
 import { H1 } from "~/components/ui/typography";
 import { VStack } from "~/components/ui/vstack";
+import { useCurrentUserQuery } from "~/hooks/queries/auth";
 import { usePlansQuery } from "~/hooks/queries/plans";
 import type { Plan } from "~/lib/models";
 
@@ -19,6 +20,7 @@ const IS_E2E = process.env.EXPO_PUBLIC_E2E_ENABLED === "true";
 import HomeView from "~/components/views/home-view";
 
 export default function HomeScreen() {
+  const { data: user, isFetched: isUserFetched } = useCurrentUserQuery();
   const [activePlan, setActivePlan] = useState<Plan | null>(null);
   const [refreshing, setRefreshing] = useState(false);
 
@@ -46,6 +48,12 @@ export default function HomeScreen() {
   }, [refetchWorkoutPlans]);
 
   const router = useRouter();
+
+  useEffect(() => {
+    if (isUserFetched && user && !user.profile) {
+      router.push("/onboarding");
+    }
+  }, [isUserFetched, user, router]);
 
   return (
     <>

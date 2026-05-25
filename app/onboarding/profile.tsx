@@ -135,7 +135,7 @@ export default function ProfileScreen() {
           weight_unit: measurementSystem,
         });
       }
-      router.push("/planner");
+      router.dismissTo("/planner");
     },
   });
 
