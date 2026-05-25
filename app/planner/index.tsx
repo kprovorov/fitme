@@ -5,10 +5,7 @@ import React from "react";
 import { Controller, useForm } from "react-hook-form";
 import { Pressable } from "react-native";
 import { KeyboardAwareScrollView } from "react-native-keyboard-controller";
-import {
-  SafeAreaView,
-  useSafeAreaInsets,
-} from "react-native-safe-area-context";
+import { useSafeAreaInsets } from "react-native-safe-area-context";
 import { z } from "zod";
 import { Badge } from "~/components/ui/badge";
 import { Button } from "~/components/ui/button";
@@ -73,235 +70,233 @@ export default function PlannerScreen() {
         }}
       />
 
-      <SafeAreaView className="flex-1" edges={["top"]}>
-        <KeyboardAwareScrollView
-          bottomOffset={24}
-          className="flex-1"
-          contentInsetAdjustmentBehavior="automatic"
-          keyboardShouldPersistTaps="handled"
-          showsVerticalScrollIndicator={false}
+      <KeyboardAwareScrollView
+        bottomOffset={24}
+        className="flex-1"
+        contentInsetAdjustmentBehavior="automatic"
+        keyboardShouldPersistTaps="handled"
+        showsVerticalScrollIndicator={false}
+      >
+        <VStack
+          className="items-center justify-center gap-4 p-md"
+          style={{ paddingBottom: insets.bottom }}
         >
-          <VStack
-            className="items-center justify-center gap-4 p-md"
-            style={{ paddingBottom: insets.bottom }}
-          >
-            <VStack className="w-full items-stretch">
-              <VStack className="items-start justify-start gap-0">
-                <H4>Goal</H4>
-                <Text className="text-muted-foreground text-sm">
-                  What is your goal?
-                </Text>
-              </VStack>
+          <VStack className="w-full items-stretch">
+            <VStack className="items-start justify-start gap-0">
+              <H4>Goal</H4>
+              <Text className="text-muted-foreground text-sm">
+                What is your goal?
+              </Text>
+            </VStack>
 
-              <Controller
-                control={form.control}
-                name="goal"
-                render={({ field: { onChange, onBlur: _onBlur, value } }) => (
-                  <RadioGroup
-                    className="flex flex-row items-stretch justify-stretch gap-4"
-                    onValueChange={onChange}
-                    value={value}
-                  >
-                    {goalOptions.map((option) => (
-                      <RadioGroupItemTileWithIcon
-                        disabled={false}
-                        icon={option.icon}
-                        isSelected={option.value === value}
-                        key={option.value}
-                        label={option.label}
-                        onLabelPress={() => onChange(option.value)}
-                        value={option.value}
-                      />
-                    ))}
-                  </RadioGroup>
-                )}
-              />
-              {form.formState.errors.goal && (
-                <Text className="text-red-500">
-                  {form.formState.errors.goal.message}
-                </Text>
-              )}
-
-              <VStack className="items-start justify-start gap-0">
-                <H4>Experience</H4>
-                <Text className="text-muted-foreground text-sm">
-                  How much experience do you have?
-                </Text>
-              </VStack>
-
-              <Controller
-                control={form.control}
-                name="experience_level"
-                render={({ field: { onChange, onBlur: _onBlur, value } }) => (
-                  <RadioGroup
-                    className="flex flex-col items-stretch justify-stretch gap-4"
-                    onValueChange={onChange}
-                    value={value}
-                  >
-                    {experienceLevels.map((option) => (
-                      <RadioGroupItemWithLabel
-                        disabled={false}
-                        disclaimer={getExperienceLevelDisclaimer(option)}
-                        isSelected={option === value}
-                        key={option}
-                        label={getExperienceLevelLabel(option)}
-                        onLabelPress={() => onChange(option)}
-                        testID={`experience-${option}`}
-                        value={option}
-                      />
-                    ))}
-                  </RadioGroup>
-                )}
-              />
-              {form.formState.errors.experience_level && (
-                <Text className="text-red-500">
-                  {form.formState.errors.experience_level.message}
-                </Text>
-              )}
-
-              <VStack className="items-stretch justify-start gap-0">
-                <HStack className="items-center justify-between">
-                  <H4>Workout duration</H4>
-                  <Text className="text-primary text-sm">
-                    {form.watch("workout_duration")} minutes
-                  </Text>
-                </HStack>
-                <Text className="text-muted-foreground text-sm">
-                  How long do you want to workout?
-                </Text>
-              </VStack>
-
-              <Controller
-                control={form.control}
-                name="workout_duration"
-                render={({ field: { onChange, onBlur: _onBlur, value } }) => (
-                  <Slider
-                    maximumValue={120}
-                    minimumTrackTintColor="#C0FF38"
-                    minimumValue={30}
-                    onValueChange={onChange}
-                    step={10}
-                    style={{ width: "100%", height: 40 }}
-                    value={value}
-                  />
-                )}
-              />
-              {form.formState.errors.workout_duration && (
-                <Text className="text-red-500">
-                  {form.formState.errors.workout_duration.message}
-                </Text>
-              )}
-
-              <VStack className="items-start justify-start gap-0">
-                <H4>Place</H4>
-                <Text className="text-muted-foreground text-sm">
-                  Choose where you want to do your workouts
-                </Text>
-              </VStack>
-
-              <Controller
-                control={form.control}
-                name="place"
-                render={({ field: { onChange, onBlur: _onBlur, value } }) => (
-                  <RadioGroup
-                    className="flex flex-row items-stretch justify-stretch gap-4"
-                    onValueChange={onChange}
-                    value={value}
-                  >
-                    {placeOptions.map((option) => (
-                      <RadioGroupItemWithLabel
-                        badge={option.badge}
-                        disabled={option.disabled ?? false}
-                        isSelected={option.value === value}
-                        key={option.value}
-                        label={option.label}
-                        onLabelPress={() => onChange(option.value)}
-                        value={option.value}
-                      />
-                    ))}
-                  </RadioGroup>
-                )}
-              />
-              {form.formState.errors.place && (
-                <Text className="text-red-500">
-                  {form.formState.errors.place.message}
-                </Text>
-              )}
-
-              <VStack className="items-start justify-start gap-0">
-                <H4>Frequency</H4>
-                <Text className="text-muted-foreground text-sm">
-                  How many times per week do you want to workout?
-                </Text>
-              </VStack>
-
-              <Controller
-                control={form.control}
-                name="frequency"
-                render={({ field: { onChange, onBlur: _onBlur, value } }) => (
-                  <RadioGroup
-                    className="flex flex-row items-stretch justify-stretch gap-4"
-                    onValueChange={onChange}
-                    value={value?.toString()}
-                  >
-                    {[1, 2, 3, 4, 5, 6, 7].map((option) => (
-                      <RadioGroupItemTile
-                        disabled={false}
-                        isSelected={option?.toString() === value?.toString()}
-                        key={option}
-                        label={option?.toString()}
-                        onLabelPress={() => onChange(option?.toString())}
-                        testID={`frequency-${option}`}
-                        value={option?.toString()}
-                      />
-                    ))}
-                  </RadioGroup>
-                )}
-              />
-              {form.formState.errors.frequency && (
-                <Text className="text-red-500">
-                  {form.formState.errors.frequency.message}
-                </Text>
-              )}
-
-              <VStack className="items-start justify-start gap-0">
-                <H4>Custom note</H4>
-                <Text className="text-muted-foreground text-sm">
-                  Add a custom note to your plan
-                </Text>
-              </VStack>
-
-              <Controller
-                control={form.control}
-                name="note"
-                render={({ field: { onChange, onBlur: _onBlur, value } }) => (
-                  <Textarea
-                    className="h-48"
-                    onChangeText={onChange}
-                    placeholder="e.g. I want to pay more attention to my abs"
-                    value={value}
-                  />
-                )}
-              />
-              {form.formState.errors.note && (
-                <Text className="text-red-500">
-                  {form.formState.errors.note.message}
-                </Text>
-              )}
-
-              <VStack className="items-stretch gap-2">
-                <Button
-                  onPress={form.handleSubmit(() => {
-                    router.dismissAll();
-                  })}
+            <Controller
+              control={form.control}
+              name="goal"
+              render={({ field: { onChange, onBlur: _onBlur, value } }) => (
+                <RadioGroup
+                  className="flex flex-row items-stretch justify-stretch gap-4"
+                  onValueChange={onChange}
+                  value={value}
                 >
-                  <Text>Get my plan!</Text>
-                </Button>
-              </VStack>
+                  {goalOptions.map((option) => (
+                    <RadioGroupItemTileWithIcon
+                      disabled={false}
+                      icon={option.icon}
+                      isSelected={option.value === value}
+                      key={option.value}
+                      label={option.label}
+                      onLabelPress={() => onChange(option.value)}
+                      value={option.value}
+                    />
+                  ))}
+                </RadioGroup>
+              )}
+            />
+            {form.formState.errors.goal && (
+              <Text className="text-red-500">
+                {form.formState.errors.goal.message}
+              </Text>
+            )}
+
+            <VStack className="items-start justify-start gap-0">
+              <H4>Experience</H4>
+              <Text className="text-muted-foreground text-sm">
+                How much experience do you have?
+              </Text>
+            </VStack>
+
+            <Controller
+              control={form.control}
+              name="experience_level"
+              render={({ field: { onChange, onBlur: _onBlur, value } }) => (
+                <RadioGroup
+                  className="flex flex-col items-stretch justify-stretch gap-4"
+                  onValueChange={onChange}
+                  value={value}
+                >
+                  {experienceLevels.map((option) => (
+                    <RadioGroupItemWithLabel
+                      disabled={false}
+                      disclaimer={getExperienceLevelDisclaimer(option)}
+                      isSelected={option === value}
+                      key={option}
+                      label={getExperienceLevelLabel(option)}
+                      onLabelPress={() => onChange(option)}
+                      testID={`experience-${option}`}
+                      value={option}
+                    />
+                  ))}
+                </RadioGroup>
+              )}
+            />
+            {form.formState.errors.experience_level && (
+              <Text className="text-red-500">
+                {form.formState.errors.experience_level.message}
+              </Text>
+            )}
+
+            <VStack className="items-stretch justify-start gap-0">
+              <HStack className="items-center justify-between">
+                <H4>Workout duration</H4>
+                <Text className="text-primary text-sm">
+                  {form.watch("workout_duration")} minutes
+                </Text>
+              </HStack>
+              <Text className="text-muted-foreground text-sm">
+                How long do you want to workout?
+              </Text>
+            </VStack>
+
+            <Controller
+              control={form.control}
+              name="workout_duration"
+              render={({ field: { onChange, onBlur: _onBlur, value } }) => (
+                <Slider
+                  maximumValue={120}
+                  minimumTrackTintColor="#C0FF38"
+                  minimumValue={30}
+                  onValueChange={onChange}
+                  step={10}
+                  style={{ width: "100%", height: 40 }}
+                  value={value}
+                />
+              )}
+            />
+            {form.formState.errors.workout_duration && (
+              <Text className="text-red-500">
+                {form.formState.errors.workout_duration.message}
+              </Text>
+            )}
+
+            <VStack className="items-start justify-start gap-0">
+              <H4>Place</H4>
+              <Text className="text-muted-foreground text-sm">
+                Choose where you want to do your workouts
+              </Text>
+            </VStack>
+
+            <Controller
+              control={form.control}
+              name="place"
+              render={({ field: { onChange, onBlur: _onBlur, value } }) => (
+                <RadioGroup
+                  className="flex flex-row items-stretch justify-stretch gap-4"
+                  onValueChange={onChange}
+                  value={value}
+                >
+                  {placeOptions.map((option) => (
+                    <RadioGroupItemWithLabel
+                      badge={option.badge}
+                      disabled={option.disabled ?? false}
+                      isSelected={option.value === value}
+                      key={option.value}
+                      label={option.label}
+                      onLabelPress={() => onChange(option.value)}
+                      value={option.value}
+                    />
+                  ))}
+                </RadioGroup>
+              )}
+            />
+            {form.formState.errors.place && (
+              <Text className="text-red-500">
+                {form.formState.errors.place.message}
+              </Text>
+            )}
+
+            <VStack className="items-start justify-start gap-0">
+              <H4>Frequency</H4>
+              <Text className="text-muted-foreground text-sm">
+                How many times per week do you want to workout?
+              </Text>
+            </VStack>
+
+            <Controller
+              control={form.control}
+              name="frequency"
+              render={({ field: { onChange, onBlur: _onBlur, value } }) => (
+                <RadioGroup
+                  className="flex flex-row items-stretch justify-stretch gap-4"
+                  onValueChange={onChange}
+                  value={value?.toString()}
+                >
+                  {[1, 2, 3, 4, 5, 6, 7].map((option) => (
+                    <RadioGroupItemTile
+                      disabled={false}
+                      isSelected={option?.toString() === value?.toString()}
+                      key={option}
+                      label={option?.toString()}
+                      onLabelPress={() => onChange(option?.toString())}
+                      testID={`frequency-${option}`}
+                      value={option?.toString()}
+                    />
+                  ))}
+                </RadioGroup>
+              )}
+            />
+            {form.formState.errors.frequency && (
+              <Text className="text-red-500">
+                {form.formState.errors.frequency.message}
+              </Text>
+            )}
+
+            <VStack className="items-start justify-start gap-0">
+              <H4>Custom note</H4>
+              <Text className="text-muted-foreground text-sm">
+                Add a custom note to your plan
+              </Text>
+            </VStack>
+
+            <Controller
+              control={form.control}
+              name="note"
+              render={({ field: { onChange, onBlur: _onBlur, value } }) => (
+                <Textarea
+                  className="h-48"
+                  onChangeText={onChange}
+                  placeholder="e.g. I want to pay more attention to my abs"
+                  value={value}
+                />
+              )}
+            />
+            {form.formState.errors.note && (
+              <Text className="text-red-500">
+                {form.formState.errors.note.message}
+              </Text>
+            )}
+
+            <VStack className="items-stretch gap-2">
+              <Button
+                onPress={form.handleSubmit(() => {
+                  router.dismissAll();
+                })}
+              >
+                <Text>Get my plan!</Text>
+              </Button>
             </VStack>
           </VStack>
-        </KeyboardAwareScrollView>
-      </SafeAreaView>
+        </VStack>
+      </KeyboardAwareScrollView>
     </>
   );
 }
