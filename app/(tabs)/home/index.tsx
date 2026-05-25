@@ -1,4 +1,4 @@
-import { Link, Stack, useRouter } from "expo-router";
+import { Stack, useRouter } from "expo-router";
 import { useCallback, useEffect, useState } from "react";
 import {
   ActivityIndicator,
@@ -112,16 +112,14 @@ export default function HomeScreen() {
           </View>
         ) : (
           <VStack className="h-full p-6">
-            <H1 className="text-center">Create your first workout plan</H1>
+            <H1 className="text-center">No active plan</H1>
             <Text className="text-center">
-              You don&apos;t have an active workout plan. Please create one to
-              start your journey.
+              You don&apos;t have an active workout plan. Create one to get
+              started.
             </Text>
-            <Link asChild href="/onboarding/profile">
-              <Button className="w-full">
-                <Text>Start your workout plan</Text>
-              </Button>
-            </Link>
+            <Button className="w-full" onPress={() => router.push("/planner")}>
+              <Text>Create Workout Plan</Text>
+            </Button>
           </VStack>
         )}
       </ScrollView>

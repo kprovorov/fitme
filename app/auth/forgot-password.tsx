@@ -5,13 +5,15 @@ import {
   KeyboardAvoidingView,
   Platform,
   TouchableWithoutFeedback,
+  View,
 } from "react-native";
-import { SafeAreaView } from "react-native-safe-area-context";
+import { useSafeAreaInsets } from "react-native-safe-area-context";
 import Sign from "~/components/brand/sign";
 import { VStack } from "~/components/ui/vstack";
 import ForgotPasswordView from "~/components/views/forgot-password-view";
 
 export default function ForgotPasswordScreen() {
+  const insets = useSafeAreaInsets();
   const [isKeyboardVisible, setIsKeyboardVisible] = useState(false);
 
   useEffect(() => {
@@ -31,10 +33,10 @@ export default function ForgotPasswordScreen() {
   return (
     <>
       <Stack.Screen options={{ title: "Forgot Password" }} />
-      <SafeAreaView className="flex-1">
+      <View style={{ flex: 1, paddingTop: insets.top }}>
         <KeyboardAvoidingView
           behavior={Platform.OS === "ios" ? "padding" : "height"}
-          className="flex-1"
+          style={{ flex: 1 }}
         >
           <TouchableWithoutFeedback onPress={Keyboard.dismiss}>
             <VStack className="h-full p-6">
@@ -46,7 +48,7 @@ export default function ForgotPasswordScreen() {
             </VStack>
           </TouchableWithoutFeedback>
         </KeyboardAvoidingView>
-      </SafeAreaView>
+      </View>
     </>
   );
 }
