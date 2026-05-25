@@ -121,6 +121,15 @@ export default function RootLayout() {
             presentation: "modal",
           }}
         />
+        <Stack.Screen
+          name="exercises/[exerciseId]/guide"
+          options={{
+            presentation: "formSheet",
+            sheetAllowedDetents: [0.5, 1],
+            sheetInitialDetentIndex: 0,
+            sheetGrabberVisible: true,
+          }}
+        />
       </Stack>
       <PortalHost />
       <StatusBar style="auto" />

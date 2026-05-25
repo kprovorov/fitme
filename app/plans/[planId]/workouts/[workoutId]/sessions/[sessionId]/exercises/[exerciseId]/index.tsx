@@ -1,18 +1,7 @@
-import { Stack, useLocalSearchParams } from "expo-router";
-import { useState } from "react";
+import { Stack, useLocalSearchParams, useRouter } from "expo-router";
 import { View } from "react-native";
 import { KeyboardAwareScrollView } from "react-native-keyboard-controller";
 import ExerciseVideo from "~/components/exercises/exercise-video";
-import {
-  AlertDialog,
-  AlertDialogCancel,
-  AlertDialogContent,
-  AlertDialogDescription,
-  AlertDialogFooter,
-  AlertDialogHeader,
-  AlertDialogTitle,
-} from "~/components/ui/alert-dialog";
-import { Text } from "~/components/ui/text";
 import { P } from "~/components/ui/typography";
 import { VStack } from "~/components/ui/vstack";
 import ExerciseHistoryView from "~/components/views/exercise-history-view";
@@ -21,7 +10,7 @@ import { useWorkoutSessionExerciseQuery } from "~/hooks/queries/workout-session-
 import { useWorkoutSessionQuery } from "~/hooks/queries/workout-sessions";
 
 export default function WorkoutSessionExerciseScreen() {
-  const [isOpen, setIsOpen] = useState(false);
+  const router = useRouter();
 
   const {
     planId: _planId,
@@ -65,7 +54,10 @@ export default function WorkoutSessionExerciseScreen() {
                 label: "Exercise Info",
                 type: "button",
                 icon: { type: "sfSymbol", name: "info.circle" },
-                onPress: () => setIsOpen(true),
+                onPress: () =>
+                  router.push(
+                    `/exercises/${workoutSessionExercise.exercise_id}/guide`
+                  ),
               },
             ];
           },
@@ -79,24 +71,6 @@ export default function WorkoutSessionExerciseScreen() {
           showsVerticalScrollIndicator={false}
         >
           <VStack className="flex-1 items-stretch gap-md px-md py-sm">
-            <AlertDialog onOpenChange={setIsOpen} open={isOpen}>
-              <AlertDialogContent>
-                <AlertDialogHeader>
-                  <AlertDialogTitle className="text-primary">
-                    How to?
-                  </AlertDialogTitle>
-                  <AlertDialogDescription>
-                    {workoutSessionExercise.exercise.instructions}
-                  </AlertDialogDescription>
-                </AlertDialogHeader>
-                <AlertDialogFooter>
-                  <AlertDialogCancel>
-                    <Text>OK</Text>
-                  </AlertDialogCancel>
-                </AlertDialogFooter>
-              </AlertDialogContent>
-            </AlertDialog>
-
             {workoutSessionExercise.exercise.video_url && (
               <View className="w-full overflow-hidden rounded-lg">
                 <ExerciseVideo exercise={workoutSessionExercise.exercise} />
