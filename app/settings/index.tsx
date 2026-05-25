@@ -1,6 +1,5 @@
 import { Link, Stack } from "expo-router";
 import { ScrollView } from "react-native";
-import { SafeAreaView } from "react-native-safe-area-context";
 import {
   AlertDialog,
   AlertDialogAction,
@@ -29,6 +28,7 @@ export default function SettingsScreen() {
     <>
       <Stack.Screen
         options={{
+          headerShown: true,
           headerTransparent: true,
           headerTitleStyle: {
             fontFamily: "NunitoSans12pt-Bold",
@@ -38,68 +38,66 @@ export default function SettingsScreen() {
           headerBackButtonDisplayMode: "minimal",
         }}
       />
-      <SafeAreaView className="flex-1">
-        <ScrollView
-          className="flex-1 p-6"
-          contentInsetAdjustmentBehavior="automatic"
-          showsVerticalScrollIndicator={false}
-        >
-          {!!user && (
-            <>
-              <MenuList>
-                <Link asChild href="/settings/measurement-system">
-                  <MenuListItem icon="chevron-right">
-                    <HStack className="flex-1 justify-between">
-                      <Text>Measurement System</Text>
-                      <Text className="text-muted-foreground text-xs">
-                        {getMeasurementSystemLabel(
-                          user.profile?.measurement_system ?? "metric"
-                        )}
-                      </Text>
-                    </HStack>
-                  </MenuListItem>
-                </Link>
-              </MenuList>
+      <ScrollView
+        className="flex-1 p-6"
+        contentInsetAdjustmentBehavior="automatic"
+        showsVerticalScrollIndicator={false}
+      >
+        {!!user && (
+          <>
+            <MenuList>
+              <Link asChild href="/settings/measurement-system">
+                <MenuListItem icon="chevron-right">
+                  <HStack className="flex-1 justify-between">
+                    <Text>Measurement System</Text>
+                    <Text className="text-muted-foreground text-xs">
+                      {getMeasurementSystemLabel(
+                        user.profile?.measurement_system ?? "metric"
+                      )}
+                    </Text>
+                  </HStack>
+                </MenuListItem>
+              </Link>
+            </MenuList>
 
-              <MenuList className="mt-4">
-                <AlertDialog>
-                  <AlertDialogTrigger asChild>
-                    <MenuListItem disabled={isPending}>
-                      <Text className="text-destructive">Delete Account</Text>
-                    </MenuListItem>
-                  </AlertDialogTrigger>
-                  <AlertDialogContent>
-                    <AlertDialogHeader>
-                      <AlertDialogTitle>Delete Account</AlertDialogTitle>
-                      <AlertDialogDescription>
-                        This will permanently delete your account and all
-                        associated data. This action cannot be undone.
-                      </AlertDialogDescription>
-                    </AlertDialogHeader>
-                    <AlertDialogFooter>
-                      <AlertDialogCancel>
-                        <Text>Cancel</Text>
-                      </AlertDialogCancel>
-                      <AlertDialogAction
-                        className={buttonVariants({ variant: "destructive" })}
-                        onPress={() => deleteUser()}
+            <MenuList className="mt-4">
+              <AlertDialog>
+                <AlertDialogTrigger asChild>
+                  <MenuListItem disabled={isPending}>
+                    <Text className="text-destructive">Delete Account</Text>
+                  </MenuListItem>
+                </AlertDialogTrigger>
+                <AlertDialogContent>
+                  <AlertDialogHeader>
+                    <AlertDialogTitle>Delete Account</AlertDialogTitle>
+                    <AlertDialogDescription>
+                      This will permanently delete your account and all
+                      associated data. This action cannot be undone.
+                    </AlertDialogDescription>
+                  </AlertDialogHeader>
+                  <AlertDialogFooter>
+                    <AlertDialogCancel>
+                      <Text>Cancel</Text>
+                    </AlertDialogCancel>
+                    <AlertDialogAction
+                      className={buttonVariants({ variant: "destructive" })}
+                      onPress={() => deleteUser()}
+                    >
+                      <Text
+                        className={buttonTextVariants({
+                          variant: "destructive",
+                        })}
                       >
-                        <Text
-                          className={buttonTextVariants({
-                            variant: "destructive",
-                          })}
-                        >
-                          Delete
-                        </Text>
-                      </AlertDialogAction>
-                    </AlertDialogFooter>
-                  </AlertDialogContent>
-                </AlertDialog>
-              </MenuList>
-            </>
-          )}
-        </ScrollView>
-      </SafeAreaView>
+                        Delete
+                      </Text>
+                    </AlertDialogAction>
+                  </AlertDialogFooter>
+                </AlertDialogContent>
+              </AlertDialog>
+            </MenuList>
+          </>
+        )}
+      </ScrollView>
     </>
   );
 }

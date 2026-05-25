@@ -2,7 +2,6 @@ import { useQueryClient } from "@tanstack/react-query";
 import { Stack } from "expo-router";
 import { useState } from "react";
 import { ScrollView } from "react-native";
-import { SafeAreaView } from "react-native-safe-area-context";
 import {
   AlertDialog,
   AlertDialogAction,
@@ -56,6 +55,7 @@ export default function MeasurementSystemScreen() {
     <>
       <Stack.Screen
         options={{
+          headerShown: true,
           headerTransparent: true,
           headerTitleStyle: {
             fontFamily: "NunitoSans12pt-Bold",
@@ -65,59 +65,57 @@ export default function MeasurementSystemScreen() {
           headerBackButtonDisplayMode: "minimal",
         }}
       />
-      <SafeAreaView className="flex-1">
-        <ScrollView
-          className="flex-1 p-4"
-          contentInsetAdjustmentBehavior="automatic"
-          showsVerticalScrollIndicator={false}
+      <ScrollView
+        className="flex-1 p-4"
+        contentInsetAdjustmentBehavior="automatic"
+        showsVerticalScrollIndicator={false}
+      >
+        <RadioGroup
+          onValueChange={(newValue) =>
+            handleUpdateMeasurementSystem(newValue as MeasurementSystem)
+          }
+          value={measurementSystemValue}
         >
-          <RadioGroup
-            onValueChange={(newValue) =>
-              handleUpdateMeasurementSystem(newValue as MeasurementSystem)
-            }
-            value={measurementSystemValue}
-          >
-            <MenuList>
-              <AlertDialog>
-                {measurementSystems.map((system, i) => (
-                  <AlertDialogTrigger asChild key={system}>
-                    <RadioGroupMenuListItem
-                      className={i === 0 ? "" : "border-border border-t"}
-                      disclaimer={getMeasurementSystemDisclaimer(system)}
-                      label={getMeasurementSystemLabel(system)}
-                      value={system}
-                    />
-                  </AlertDialogTrigger>
-                ))}
-                <AlertDialogContent>
-                  <AlertDialogHeader>
-                    <AlertDialogTitle>Are you sure?</AlertDialogTitle>
-                    <AlertDialogDescription>
-                      Updating your measurement system will affect all of your
-                      measurements. Your profile data and workout history will
-                      be converted to the new system.
-                    </AlertDialogDescription>
-                  </AlertDialogHeader>
-                  <AlertDialogFooter>
-                    <AlertDialogCancel
-                      onPress={() =>
-                        setMeasurementSystemValue(
-                          user?.profile?.measurement_system || "metric"
-                        )
-                      }
-                    >
-                      <Text>Cancel</Text>
-                    </AlertDialogCancel>
-                    <AlertDialogAction onPress={confirmMeasurementSystemChange}>
-                      <Text>Confirm</Text>
-                    </AlertDialogAction>
-                  </AlertDialogFooter>
-                </AlertDialogContent>
-              </AlertDialog>
-            </MenuList>
-          </RadioGroup>
-        </ScrollView>
-      </SafeAreaView>
+          <MenuList>
+            <AlertDialog>
+              {measurementSystems.map((system, i) => (
+                <AlertDialogTrigger asChild key={system}>
+                  <RadioGroupMenuListItem
+                    className={i === 0 ? "" : "border-border border-t"}
+                    disclaimer={getMeasurementSystemDisclaimer(system)}
+                    label={getMeasurementSystemLabel(system)}
+                    value={system}
+                  />
+                </AlertDialogTrigger>
+              ))}
+              <AlertDialogContent>
+                <AlertDialogHeader>
+                  <AlertDialogTitle>Are you sure?</AlertDialogTitle>
+                  <AlertDialogDescription>
+                    Updating your measurement system will affect all of your
+                    measurements. Your profile data and workout history will be
+                    converted to the new system.
+                  </AlertDialogDescription>
+                </AlertDialogHeader>
+                <AlertDialogFooter>
+                  <AlertDialogCancel
+                    onPress={() =>
+                      setMeasurementSystemValue(
+                        user?.profile?.measurement_system || "metric"
+                      )
+                    }
+                  >
+                    <Text>Cancel</Text>
+                  </AlertDialogCancel>
+                  <AlertDialogAction onPress={confirmMeasurementSystemChange}>
+                    <Text>Confirm</Text>
+                  </AlertDialogAction>
+                </AlertDialogFooter>
+              </AlertDialogContent>
+            </AlertDialog>
+          </MenuList>
+        </RadioGroup>
+      </ScrollView>
     </>
   );
 }

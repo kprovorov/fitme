@@ -1,6 +1,5 @@
 import { Stack } from "expo-router";
 import { Linking, ScrollView } from "react-native";
-import { SafeAreaView } from "react-native-safe-area-context";
 import Instagram from "~/components/icons/social/instagram";
 import Threads from "~/components/icons/social/threads";
 import X from "~/components/icons/social/x";
@@ -18,6 +17,7 @@ export default function SupportScreen() {
     <>
       <Stack.Screen
         options={{
+          headerShown: true,
           headerTransparent: true,
           headerTitleStyle: {
             fontFamily: "NunitoSans12pt-Bold",
@@ -27,54 +27,52 @@ export default function SupportScreen() {
           headerBackButtonDisplayMode: "minimal",
         }}
       />
-      <SafeAreaView className="flex-1">
-        <ScrollView
-          className="flex-1 p-6"
-          contentInsetAdjustmentBehavior="automatic"
-          showsVerticalScrollIndicator={false}
-        >
-          <VStack className="items-start gap-0">
-            <P>
-              Feel free to contact us at any time if you have any questions or
-              feedback
-            </P>
+      <ScrollView
+        className="flex-1 p-6"
+        contentInsetAdjustmentBehavior="automatic"
+        showsVerticalScrollIndicator={false}
+      >
+        <VStack className="items-start gap-0">
+          <P>
+            Feel free to contact us at any time if you have any questions or
+            feedback
+          </P>
+          <Button
+            className="h-8 p-0"
+            onPress={() => Linking.openURL("mailto:support@fitmeproject.com")}
+            variant="link"
+          >
+            <Text>support@fitmeproject.com</Text>
+          </Button>
+          <HStack>
             <Button
               className="h-8 p-0"
-              onPress={() => Linking.openURL("mailto:support@fitmeproject.com")}
+              onPress={() => Linking.openURL("https://x.com/fitmeproject")}
               variant="link"
             >
-              <Text>support@fitmeproject.com</Text>
+              <X fill="#C0FF38" height={16} width={16} />
             </Button>
-            <HStack>
-              <Button
-                className="h-8 p-0"
-                onPress={() => Linking.openURL("https://x.com/fitmeproject")}
-                variant="link"
-              >
-                <X fill="#C0FF38" height={16} width={16} />
-              </Button>
-              <Button
-                className="h-8 p-0"
-                onPress={() =>
-                  Linking.openURL("https://www.instagram.com/fitmeprojectcom")
-                }
-                variant="link"
-              >
-                <Instagram fill="#C0FF38" height={16} width={16} />
-              </Button>
-              <Button
-                className="h-8 p-0"
-                onPress={() =>
-                  Linking.openURL("https://www.threads.net/@fitmeprojectcom")
-                }
-                variant="link"
-              >
-                <Threads fill="#C0FF38" height={16} width={16} />
-              </Button>
-            </HStack>
-          </VStack>
-        </ScrollView>
-      </SafeAreaView>
+            <Button
+              className="h-8 p-0"
+              onPress={() =>
+                Linking.openURL("https://www.instagram.com/fitmeprojectcom")
+              }
+              variant="link"
+            >
+              <Instagram fill="#C0FF38" height={16} width={16} />
+            </Button>
+            <Button
+              className="h-8 p-0"
+              onPress={() =>
+                Linking.openURL("https://www.threads.net/@fitmeprojectcom")
+              }
+              variant="link"
+            >
+              <Threads fill="#C0FF38" height={16} width={16} />
+            </Button>
+          </HStack>
+        </VStack>
+      </ScrollView>
     </>
   );
 }
