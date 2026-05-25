@@ -87,7 +87,7 @@ function useAIChat() {
   };
 }
 
-export default function AgentScreen() {
+export default function CoachScreen() {
   const chat = useAIChat();
   const { initialMessage } = useLocalSearchParams<{
     initialMessage?: string;
@@ -112,7 +112,7 @@ export default function AgentScreen() {
             fontFamily: "NunitoSans12pt-Bold",
             fontWeight: "bold",
           },
-          title: "Agent",
+          title: "Coach",
           headerBackButtonDisplayMode: "minimal",
         }}
       />
@@ -121,7 +121,7 @@ export default function AgentScreen() {
           <ConversationScrollButton />
           <PromptInput>
             {ATTACHMENTS_ENABLED && (
-              <Link asChild href="/agent/attachments">
+              <Link asChild href="/coach/attachments">
                 <PromptInputAction>
                   <Icon className="h-5 w-5 text-muted-foreground" icon={Plus} />
                 </PromptInputAction>

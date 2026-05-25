@@ -41,6 +41,16 @@ export default function TabLayout() {
             <NativeTabs.Trigger.Label>History</NativeTabs.Trigger.Label>
           </NativeTabs.Trigger>
 
+          <NativeTabs.Trigger name="coach">
+            <NativeTabs.Trigger.Icon
+              sf={{
+                default: "bubble.left.and.bubble.right",
+                selected: "bubble.left.and.bubble.right.fill",
+              }}
+            />
+            <NativeTabs.Trigger.Label>Coach</NativeTabs.Trigger.Label>
+          </NativeTabs.Trigger>
+
           <NativeTabs.Trigger name="library">
             <NativeTabs.Trigger.Icon
               sf={{
@@ -56,16 +66,6 @@ export default function TabLayout() {
               sf={{ default: "person", selected: "person.fill" }}
             />
             <NativeTabs.Trigger.Label>Profile</NativeTabs.Trigger.Label>
-          </NativeTabs.Trigger>
-
-          <NativeTabs.Trigger name="agent">
-            <NativeTabs.Trigger.Icon
-              sf={{
-                default: "bubble.left.and.bubble.right",
-                selected: "bubble.left.and.bubble.right.fill",
-              }}
-            />
-            <NativeTabs.Trigger.Label>Coach</NativeTabs.Trigger.Label>
           </NativeTabs.Trigger>
         </NativeTabs>
       </ThemeProvider>

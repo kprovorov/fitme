@@ -307,7 +307,7 @@ export default function PlannerScreen() {
               <Button
                 onPress={form.handleSubmit((data) => {
                   router.dismissTo({
-                    pathname: "/(tabs)/agent",
+                    pathname: "/(tabs)/coach",
                     params: { initialMessage: buildPlanMessage(data) },
                   });
                 })}
