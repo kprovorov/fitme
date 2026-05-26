@@ -5,6 +5,7 @@ import * as Haptics from "expo-haptics";
 import { Link, Stack, useLocalSearchParams, useRouter } from "expo-router";
 import { Plus } from "lucide-react-native";
 import { useCallback, useEffect, useMemo, useRef, useState } from "react";
+import RevenueCatUI from "react-native-purchases-ui";
 import {
   ChatProvider,
   Conversation,
@@ -17,6 +18,7 @@ import {
   PromptInputTextarea,
 } from "@/components/chat";
 import { Icon } from "@/components/icon";
+import { useIsProQuery } from "~/hooks/revenueCat";
 import { supabase } from "~/lib/supabase";
 
 const SUPABASE_URL = process.env.EXPO_PUBLIC_SUPABASE_URL ?? "";
@@ -89,6 +91,7 @@ function useAIChat() {
 
 export default function CoachScreen() {
   const chat = useAIChat();
+  const { data: isPro } = useIsProQuery();
   const { initialMessage } = useLocalSearchParams<{
     initialMessage?: string;
   }>();
@@ -103,6 +106,14 @@ export default function CoachScreen() {
     }
   }, [initialMessage, chat, router]);
 
+  const handleSend = useCallback(() => {
+    if (isPro === false) {
+      RevenueCatUI.presentPaywall();
+      return;
+    }
+    chat.onSend();
+  }, [isPro, chat]);
+
   return (
     <>
       <Stack.Screen
@@ -116,7 +127,7 @@ export default function CoachScreen() {
           headerBackButtonDisplayMode: "minimal",
         }}
       />
-      <ChatProvider value={chat}>
+      <ChatProvider value={{ ...chat, onSend: handleSend }}>
         <Conversation>
           <ConversationScrollButton />
           <PromptInput>
