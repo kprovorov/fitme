@@ -284,32 +284,35 @@ export function Conversation({ children }: { children?: ReactNode }) {
 
       return (
         <Message from="assistant">
-          {item.parts.map((part, i) => {
-            if (part.type === "text") {
-              const text = (part as { type: "text"; text: string }).text;
-              if (!text) {
-                return null;
-              }
+          {item.parts
+            .filter(
+              (p): p is { type: "text"; text: string } =>
+                p.type === "text" &&
+                "text" in p &&
+                !!(p as { type: "text"; text: string }).text
+            )
+            .map((part, i) => {
               // biome-ignore lint/suspicious/noArrayIndexKey: text parts have no stable ID
-              return <MessageResponse key={i}>{text}</MessageResponse>;
-            }
-            if (part.type === "tool-display_workout_plan") {
+              return <MessageResponse key={i}>{part.text}</MessageResponse>;
+            })}
+          {item.parts
+            .filter((p) => p.type === "tool-display_workout_plan")
+            .map((part) => {
               const tool = part as {
                 toolCallId: string;
                 state: string;
                 output: unknown;
               };
-              if (tool.state === "output-available") {
-                return (
-                  <WorkoutPlanCard
-                    key={tool.toolCallId}
-                    plan={tool.output as WorkoutPlan}
-                  />
-                );
+              if (tool.state !== "output-available") {
+                return null;
               }
-            }
-            return null;
-          })}
+              return (
+                <WorkoutPlanCard
+                  key={tool.toolCallId}
+                  plan={tool.output as WorkoutPlan}
+                />
+              );
+            })}
         </Message>
       );
     },
