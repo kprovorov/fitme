@@ -40,7 +40,7 @@ export default {
     };
 
     const agent = new ToolLoopAgent({
-      model: openai("gpt-5.4-mini"),
+      model: openai("gpt-5.5"),
       instructions: `You are a personal fitness assistant for the Fitme app. You help users with workout planning, exercise advice, and fitness questions.
 
 When creating a plan:
