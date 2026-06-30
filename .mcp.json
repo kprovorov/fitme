@@ -4,7 +4,7 @@
       "type": "http",
       "url": "http://localhost:51321/mcp"
     },
-    "mcp-docs-server": {
+    "assistant-ui": {
       "command": "npx",
       "args": ["-y", "@assistant-ui/mcp-docs-server"]
     }
