@@ -1,5 +1,5 @@
 {
   "setup": ["npm install", "cp \"$SUPERSET_ROOT_PATH/.env\" .env"],
-  "run": ["concurrently 'supabase functions serve' 'npm run start'"],
+  "run": ["concurrently 'supabase functions serve' 'npm run dev'"],
   "teardown": []
 }
