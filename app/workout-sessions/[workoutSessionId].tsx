@@ -1,5 +1,5 @@
 import { useQueryClient } from "@tanstack/react-query";
-import { Stack, useLocalSearchParams } from "expo-router";
+import { Stack, useLocalSearchParams, useRouter } from "expo-router";
 import { useEffect, useState } from "react";
 import { ScrollView } from "react-native";
 import { useSafeAreaInsets } from "react-native-safe-area-context";
@@ -14,6 +14,7 @@ import {
 
 export default function WorkoutSessionScreen() {
   const { workoutSessionId } = useLocalSearchParams();
+  const router = useRouter();
 
   const { data: workoutSession } = useWorkoutSessionQuery({
     variables: {
@@ -28,6 +29,7 @@ export default function WorkoutSessionScreen() {
       await queryClient.invalidateQueries({ queryKey: ["workout-session"] });
       await queryClient.invalidateQueries({ queryKey: ["plans"] });
       await queryClient.invalidateQueries({ queryKey: ["exercise-history"] });
+      router.replace(`/workout-sessions/${workoutSessionId}/summary`);
     },
   });
 

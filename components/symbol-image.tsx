@@ -5,10 +5,12 @@ import {
 } from "expo-image";
 import {
   Activity,
+  ArrowRight,
   ArrowUp,
   Building2,
   ChevronDown,
   ChevronRight,
+  Clock,
   Dumbbell,
   Heart,
   HelpCircle,
@@ -16,6 +18,9 @@ import {
   type LucideIcon,
   MessageSquare,
   Plus,
+  Trophy,
+  Weight,
+  X,
   Zap,
 } from "lucide-react-native";
 
@@ -27,19 +32,25 @@ const Image = withUniwind(ExpoImage);
  * Map of SF Symbol names to Lucide icons for Android/web fallback.
  */
 const LUCIDE_FALLBACKS: Record<string, LucideIcon> = {
+  "arrow.right": ArrowRight,
   "arrow.up": ArrowUp,
   "bolt.fill": Zap,
   "bubble.left.and.bubble.right": MessageSquare,
   "building.2": Building2,
   "chevron.down": ChevronDown,
   "chevron.right": ChevronRight,
+  clock: Clock,
   dumbbell: Dumbbell,
+  "dumbbell.fill": Dumbbell,
   "figure.run": Activity,
   "figure.strengthtraining.traditional": Dumbbell,
   "figure.walk": Activity,
   heart: Heart,
   house: Home,
   plus: Plus,
+  "scalemass.fill": Weight,
+  "trophy.fill": Trophy,
+  xmark: X,
 };
 
 interface SymbolImageProps {
