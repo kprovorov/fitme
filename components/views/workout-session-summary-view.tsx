@@ -115,12 +115,14 @@ export default function WorkoutSessionSummaryView({
 
       <Separator />
 
-      <Button className="w-full" onPress={onContinue} shape="pill">
-        <HStack className="gap-1">
-          <Text>Continue</Text>
-          <SymbolImage name="arrow.right" size={17} tintColor="#0A0A0A" />
-        </HStack>
-      </Button>
+      <VStack className="w-full px-md">
+        <Button className="w-full" onPress={onContinue} shape="pill">
+          <HStack className="gap-1">
+            <Text>Continue</Text>
+            <SymbolImage name="arrow.right" size={17} tintColor="#0A0A0A" />
+          </HStack>
+        </Button>
+      </VStack>
     </VStack>
   );
 }
