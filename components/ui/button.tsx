@@ -57,7 +57,7 @@ const buttonVariants = cva(
 );
 
 const buttonTextVariants = cva(
-  "web:whitespace-nowrap font-nunito-sans-bold native:text-base text-foreground text-sm web:transition-colors",
+  "web:whitespace-nowrap font-nunito-sans-bold native:text-body text-foreground text-subhead web:transition-colors",
   {
     variants: {
       variant: {
@@ -70,11 +70,11 @@ const buttonTextVariants = cva(
         link: "text-primary group-active:text-primary/80",
       },
       size: {
-        default: "native:text-base",
-        sm: "native:text-sm",
-        lg: "native:text-lg",
+        default: "native:text-body",
+        sm: "native:text-subhead",
+        lg: "native:text-title-3",
         icon: "",
-        "icon-sm": "native:text-sm",
+        "icon-sm": "native:text-subhead",
       },
     },
     defaultVariants: {

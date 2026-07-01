@@ -96,7 +96,7 @@ export default function WorkoutSessionScreen() {
               workoutSession={workoutSession}
             />
             {workoutSession.finished_at ? (
-              <Text className="text-center text-xl">
+              <Text className="text-center text-title-2">
                 Workout finished {(() => {
                   const diff =
                     new Date(workoutSession.finished_at).getTime() -
@@ -111,7 +111,9 @@ export default function WorkoutSessionScreen() {
               </Text>
             ) : (
               <VStack className="items-stretch">
-                <Text className="text-center text-3xl">{elapsedTime}</Text>
+                <Text className="text-center text-large-title">
+                  {elapsedTime}
+                </Text>
                 <Button
                   onPress={() =>
                     finishWorkoutSession({

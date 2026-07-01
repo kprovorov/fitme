@@ -94,7 +94,7 @@ const RadioGroupMenuListItem = ({
     <VStack className="flex-1 items-start gap-0">
       <Text>{props.label}</Text>
       {props.disclaimer && (
-        <Text className="text-muted-foreground text-xs">
+        <Text className="text-footnote text-muted-foreground">
           {props.disclaimer}
         </Text>
       )}

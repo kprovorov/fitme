@@ -17,7 +17,7 @@ const ErrorMessage = ({
   return (
     <Component
       className={cn(
-        "web:select-text font-nunito-sans-regular text-destructive text-sm",
+        "web:select-text font-nunito-sans-regular text-destructive text-subhead",
         textClass,
         className
       )}

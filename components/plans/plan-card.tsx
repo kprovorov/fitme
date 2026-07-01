@@ -60,7 +60,7 @@ export default function PlanCard({ plan }: PlanCardProps) {
             ].map((item) => (
               <HStack className="gap-1" key={item.label}>
                 {item.icon}
-                <Text className="font-nunito-sans-bold text-sm">
+                <Text className="font-nunito-sans-bold text-subhead">
                   {item.label}
                 </Text>
               </HStack>

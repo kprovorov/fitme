@@ -57,15 +57,15 @@ export default function WorkoutSessionExerciseSetsTableView({
     user && (
       <VStack className="items-stretch gap-0">
         <HStack className="justify-start py-2 pr-12">
-          <Text className="w-12 text-center font-bold text-primary text-sm uppercase">
+          <Text className="w-12 text-center font-bold text-primary text-subhead uppercase">
             Set
           </Text>
           {hasWeight && (
-            <Text className="flex-1 text-center font-bold text-primary text-sm uppercase">
+            <Text className="flex-1 text-center font-bold text-primary text-subhead uppercase">
               {getWeightLabel(user.profile?.measurement_system ?? "metric")}
             </Text>
           )}
-          <Text className="flex-1 text-center font-bold text-primary text-sm uppercase">
+          <Text className="flex-1 text-center font-bold text-primary text-subhead uppercase">
             Reps
           </Text>
         </HStack>

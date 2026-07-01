@@ -11,7 +11,7 @@ function Table({
 }) {
   return (
     <TablePrimitive.Root
-      className={cn("w-full caption-bottom text-sm", className)}
+      className={cn("w-full caption-bottom text-subhead", className)}
       {...props}
     />
   );

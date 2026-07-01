@@ -192,7 +192,7 @@ export default function WorkoutSessionExerciseSetRowView({
               />
               <Text
                 className={cn(
-                  "text-xs",
+                  "text-footnote",
                   timer ? "text-primary-foreground" : "text-muted-foreground"
                 )}
               >

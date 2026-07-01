@@ -37,12 +37,12 @@ export default function WorkoutSessionSummaryExerciseRow({
   return (
     <HStack className="w-full gap-2 px-md">
       <ExerciseImage exercise={workoutSessionExercise.exercise} size={32} />
-      <Text className="font-nunito-sans-bold text-base text-primary">
+      <Text className="font-nunito-sans-bold text-body text-primary">
         {setsLogged}
       </Text>
       <SymbolImage name="xmark" size={10} tintColor="#C0FF38" />
       <Text
-        className="flex-1 font-nunito-sans-bold text-base text-foreground"
+        className="flex-1 font-nunito-sans-bold text-body text-foreground"
         numberOfLines={1}
       >
         {workoutSessionExercise.exercise.name}

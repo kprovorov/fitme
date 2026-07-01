@@ -126,7 +126,7 @@ const AlertDialogTitle = ({
 }) => (
   <AlertDialogPrimitive.Title
     className={cn(
-      "font-semibold native:text-xl text-foreground text-lg",
+      "font-semibold native:text-title-2 text-foreground text-title-3",
       className
     )}
     ref={ref}
@@ -143,7 +143,10 @@ const AlertDialogDescription = ({
   ref?: React.RefObject<AlertDialogPrimitive.DescriptionRef | null>;
 }) => (
   <AlertDialogPrimitive.Description
-    className={cn("native:text-base text-muted-foreground text-sm", className)}
+    className={cn(
+      "native:text-body text-muted-foreground text-subhead",
+      className
+    )}
     ref={ref}
     {...props}
   />

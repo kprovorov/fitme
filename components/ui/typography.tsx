@@ -15,7 +15,7 @@ const H1 = ({
     <Component
       aria-level="1"
       className={cn(
-        "web:select-text web:scroll-m-20 font-nunito-sans-bold text-3xl text-primary tracking-tight lg:text-4xl",
+        "web:select-text web:scroll-m-20 font-nunito-sans-bold text-large-title text-primary tracking-tight",
         className
       )}
       ref={ref}
@@ -38,7 +38,7 @@ const H2 = ({
     <Component
       aria-level="2"
       className={cn(
-        "web:select-text web:scroll-m-20 font-nunito-sans-bold text-2xl text-primary tracking-tight first:mt-0",
+        "web:select-text web:scroll-m-20 font-nunito-sans-bold text-primary text-title-1 tracking-tight first:mt-0",
         className
       )}
       ref={ref}
@@ -61,7 +61,7 @@ const H3 = ({
     <Component
       aria-level="3"
       className={cn(
-        "web:select-text web:scroll-m-20 font-nunito-sans-bold text-foreground text-xl tracking-tight",
+        "web:select-text web:scroll-m-20 font-nunito-sans-bold text-foreground text-title-2 tracking-tight",
         className
       )}
       ref={ref}
@@ -84,7 +84,7 @@ const H4 = ({
     <Component
       aria-level="4"
       className={cn(
-        "web:select-text web:scroll-m-20 font-nunito-sans-semibold text-foreground text-lg tracking-tight",
+        "web:select-text web:scroll-m-20 font-nunito-sans-semibold text-foreground text-title-3 tracking-tight",
         className
       )}
       ref={ref}
@@ -106,7 +106,7 @@ const P = ({
   return (
     <Component
       className={cn(
-        "web:select-text font-nunito-sans-regular text-base text-foreground",
+        "web:select-text font-nunito-sans-regular text-body text-foreground",
         className
       )}
       ref={ref}
@@ -127,7 +127,7 @@ const BlockQuote = ({
   return (
     <Component
       className={cn(
-        "mt-6 native:mt-4 web:select-text border-border border-l-2 native:pl-3 pl-6 text-base text-foreground italic",
+        "mt-6 native:mt-4 web:select-text border-border border-l-2 native:pl-3 pl-6 text-body text-foreground italic",
         className
       )}
       ref={ref}
@@ -150,7 +150,7 @@ const Code = ({
   return (
     <Component
       className={cn(
-        "relative web:select-text rounded-md bg-muted px-[0.3rem] py-[0.2rem] font-semibold text-foreground text-sm",
+        "relative web:select-text rounded-md bg-muted px-[0.3rem] py-[0.2rem] font-semibold text-foreground text-subhead",
         className
       )}
       ref={ref}
@@ -172,7 +172,10 @@ const Lead = ({
   const Component = asChild ? Slot.Text : RNText;
   return (
     <Component
-      className={cn("web:select-text text-muted-foreground text-xl", className)}
+      className={cn(
+        "web:select-text text-muted-foreground text-title-2",
+        className
+      )}
       ref={ref}
       {...props}
     />
@@ -191,7 +194,7 @@ const Large = ({
   return (
     <Component
       className={cn(
-        "web:select-text font-nunito-sans-semibold text-foreground text-xl",
+        "web:select-text font-nunito-sans-semibold text-foreground text-title-2",
         className
       )}
       ref={ref}
@@ -212,7 +215,7 @@ const Small = ({
   return (
     <Component
       className={cn(
-        "web:select-text font-nunito-sans-semibold text-foreground text-sm leading-none",
+        "web:select-text font-nunito-sans-semibold text-foreground text-subhead leading-none",
         className
       )}
       ref={ref}
@@ -233,7 +236,7 @@ const Muted = ({
   return (
     <Component
       className={cn(
-        "web:select-text font-nunito-sans-regular text-muted-foreground text-sm",
+        "web:select-text font-nunito-sans-regular text-muted-foreground text-subhead",
         className
       )}
       ref={ref}

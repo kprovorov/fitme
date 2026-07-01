@@ -71,7 +71,7 @@ export default function WorkoutSessionExerciseCard({
           </Text>
           <Text
             className={cn(
-              "font-bold text-sm",
+              "font-bold text-subhead",
               setsDoneCount >= workoutSessionExercise.sets.length
                 ? "text-primary"
                 : "text-muted-foreground"
@@ -79,7 +79,7 @@ export default function WorkoutSessionExerciseCard({
           >
             <Text
               className={cn(
-                "font-bold text-sm",
+                "font-bold text-subhead",
                 setsDoneCount === 0 ? "text-muted-foreground" : "text-primary"
               )}
             >

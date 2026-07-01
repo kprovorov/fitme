@@ -38,7 +38,7 @@ const CardTitle = ({
   <Text
     aria-level={3}
     className={cn(
-      "font-nunito-sans-bold text-primary text-xl tracking-tight",
+      "font-nunito-sans-bold text-primary text-title-2 tracking-tight",
       className
     )}
     ref={ref}
@@ -54,7 +54,7 @@ const CardDescription = ({
   ...props
 }: TextProps & { ref?: React.RefObject<TextRef | null> }) => (
   <Text
-    className={cn("text-muted-foreground text-sm", className)}
+    className={cn("text-muted-foreground text-subhead", className)}
     ref={ref}
     {...props}
   />

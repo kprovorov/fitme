@@ -102,7 +102,7 @@ export default function PlannerScreen() {
           <VStack className="w-full items-stretch">
             <VStack className="items-start justify-start gap-0">
               <H4>Goal</H4>
-              <Text className="text-muted-foreground text-sm">
+              <Text className="text-muted-foreground text-subhead">
                 What is your goal?
               </Text>
             </VStack>
@@ -138,7 +138,7 @@ export default function PlannerScreen() {
 
             <VStack className="items-start justify-start gap-0">
               <H4>Experience</H4>
-              <Text className="text-muted-foreground text-sm">
+              <Text className="text-muted-foreground text-subhead">
                 How much experience do you have?
               </Text>
             </VStack>
@@ -176,11 +176,11 @@ export default function PlannerScreen() {
             <VStack className="items-stretch justify-start gap-0">
               <HStack className="items-center justify-between">
                 <H4>Workout duration</H4>
-                <Text className="text-primary text-sm">
+                <Text className="text-primary text-subhead">
                   {form.watch("workout_duration")} minutes
                 </Text>
               </HStack>
-              <Text className="text-muted-foreground text-sm">
+              <Text className="text-muted-foreground text-subhead">
                 How long do you want to workout?
               </Text>
             </VStack>
@@ -208,7 +208,7 @@ export default function PlannerScreen() {
 
             <VStack className="items-start justify-start gap-0">
               <H4>Place</H4>
-              <Text className="text-muted-foreground text-sm">
+              <Text className="text-muted-foreground text-subhead">
                 Choose where you want to do your workouts
               </Text>
             </VStack>
@@ -244,7 +244,7 @@ export default function PlannerScreen() {
 
             <VStack className="items-start justify-start gap-0">
               <H4>Frequency</H4>
-              <Text className="text-muted-foreground text-sm">
+              <Text className="text-muted-foreground text-subhead">
                 How many times per week do you want to workout?
               </Text>
             </VStack>
@@ -280,7 +280,7 @@ export default function PlannerScreen() {
 
             <VStack className="items-start justify-start gap-0">
               <H4>Custom note</H4>
-              <Text className="text-muted-foreground text-sm">
+              <Text className="text-muted-foreground text-subhead">
                 Add a custom note to your plan
               </Text>
             </VStack>
@@ -357,7 +357,7 @@ function RadioGroupItemWithLabel({
       <HStack className="flex-1 items-center justify-between gap-0 p-0">
         <VStack className="flex-1 items-start gap-0 p-0">
           <Label
-            className={`font-nunito-sans-bold text-base text-white ${
+            className={`font-nunito-sans-bold text-body text-white ${
               disabled ? "opacity-50" : ""
             }`}
             nativeID={`label-for-${value}`}
@@ -365,7 +365,7 @@ function RadioGroupItemWithLabel({
           >
             {label}
           </Label>
-          {!!disclaimer && <Muted className="text-sm">{disclaimer}</Muted>}
+          {!!disclaimer && <Muted className="text-subhead">{disclaimer}</Muted>}
         </VStack>
         {badge && (
           <Badge variant="secondary">
@@ -409,7 +409,7 @@ function RadioGroupItemTileWithIcon({
           }`,
         })}
       <Label
-        className={`text-center font-nunito-sans-bold text-base text-white ${
+        className={`text-center font-nunito-sans-bold text-body text-white ${
           disabled ? "opacity-50" : ""
         }`}
         nativeID={`label-for-${value}`}
@@ -450,7 +450,7 @@ function RadioGroupItemTile({
       testID={testID}
     >
       <Label
-        className={`text-center font-nunito-sans-bold text-base text-white ${
+        className={`text-center font-nunito-sans-bold text-body text-white ${
           disabled ? "opacity-50" : ""
         }`}
         nativeID={`label-for-${value}`}

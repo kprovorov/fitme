@@ -25,7 +25,7 @@ export function Message({
       >
         {typeof children === "string" ? (
           <Text
-            className="text-base text-black leading-5.5 dark:text-black"
+            className="text-black text-body leading-5.5 dark:text-black"
             selectable
           >
             {children}

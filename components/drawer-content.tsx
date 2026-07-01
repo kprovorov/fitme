@@ -52,7 +52,7 @@ function DrawerNavItem({
       className="mx-2 rounded-[10px] px-4 py-3 active:bg-muted"
       onPress={onPress}
     >
-      <Text className="text-base text-foreground dark:text-foreground">
+      <Text className="text-body text-foreground dark:text-foreground">
         {label}
       </Text>
     </Pressable>
@@ -155,7 +155,7 @@ export function DrawerContent({
               EB
             </Text>
           </View>
-          <Text className="text-foreground text-sm dark:text-foreground">
+          <Text className="text-foreground text-subhead dark:text-foreground">
             Evan Bacon
           </Text>
         </TouchableGlass>
