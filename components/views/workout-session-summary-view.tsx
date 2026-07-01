@@ -106,7 +106,9 @@ export default function WorkoutSessionSummaryView({
             <Fragment key={exercise.id}>
               {index > 0 && <Separator />}
               <WorkoutSessionSummaryExerciseRow
+                planId={workoutSession.plan_id}
                 sessionId={workoutSession.id}
+                workoutId={workoutSession.workout_id}
                 workoutSessionExercise={exercise}
               />
             </Fragment>
