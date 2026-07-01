@@ -18,13 +18,34 @@ export default function WorkoutSessionSummaryScreen() {
 
   return (
     <>
-      <Stack.Screen options={{ headerShown: false }} />
+      <Stack.Screen
+        options={{
+          headerShown: true,
+          headerTransparent: true,
+          headerTitleStyle: {
+            fontFamily: "NunitoSans12pt-Bold",
+            fontWeight: "bold",
+          },
+          title: workoutSession
+            ? new Date(workoutSession.started_at).toLocaleDateString(
+                undefined,
+                {
+                  weekday: "short",
+                  month: "short",
+                  day: "numeric",
+                  year: "numeric",
+                }
+              )
+            : "",
+          headerBackButtonDisplayMode: "minimal",
+        }}
+      />
       <ScrollView
         className="flex-1 bg-background"
         contentContainerStyle={{
-          paddingTop: insets.top + 36,
           paddingBottom: insets.bottom + 24,
         }}
+        contentInsetAdjustmentBehavior="automatic"
         showsVerticalScrollIndicator={false}
       >
         {workoutSession && (
