@@ -83,7 +83,7 @@ const AccordionTrigger = ({
   }));
 
   return (
-    <TextClassContext.Provider value="native:text-lg font-medium web:group-hover:underline">
+    <TextClassContext.Provider value="native:text-title-3 font-medium web:group-hover:underline">
       <AccordionPrimitive.Header className="flex">
         <AccordionPrimitive.Trigger ref={ref} {...props} asChild>
           <Trigger
@@ -114,10 +114,10 @@ const AccordionContent = ({
 }) => {
   const { isExpanded } = AccordionPrimitive.useItemContext();
   return (
-    <TextClassContext.Provider value="native:text-lg">
+    <TextClassContext.Provider value="native:text-title-3">
       <AccordionPrimitive.Content
         className={cn(
-          "overflow-hidden text-sm web:transition-all",
+          "overflow-hidden text-subhead web:transition-all",
           isExpanded ? "web:animate-accordion-down" : "web:animate-accordion-up"
         )}
         ref={ref}

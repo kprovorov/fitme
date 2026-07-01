@@ -37,13 +37,13 @@ export default function WorkoutDataCard({
             variant="secondary"
           >
             <Zap className="text-secondary-foreground" size={11} />
-            <Text className="font-nunito-sans-semibold text-secondary-foreground text-xs">
+            <Text className="font-nunito-sans-semibold text-footnote text-secondary-foreground">
               {workoutData.exercises.length}
             </Text>
           </Badge>
         </HStack>
         {!compact && (
-          <P className="text-left text-muted-foreground text-sm">
+          <P className="text-left text-muted-foreground text-subhead">
             {workoutData.description}
           </P>
         )}
@@ -62,13 +62,13 @@ export default function WorkoutDataCard({
           >
             <Pressable className="flex-row items-center justify-between py-0.5 active:opacity-70">
               <HStack className="flex-1 items-center gap-2.5">
-                <Text className="w-6 text-right font-ibm-plex-mono text-primary text-xs">
+                <Text className="w-6 text-right font-ibm-plex-mono text-footnote text-primary">
                   {exercise.sets.length}×
                 </Text>
                 <Text
                   className={cn(
                     "flex-1 font-nunito-sans-semibold",
-                    compact ? "text-sm" : "text-xs"
+                    compact ? "text-subhead" : "text-footnote"
                   )}
                 >
                   {exercise.exercise.name}

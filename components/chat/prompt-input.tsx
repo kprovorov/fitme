@@ -65,7 +65,7 @@ function PromptInputError({ message }: { message?: string }) {
           style={{ backgroundColor: "#EF4444" }}
         />
         <Text
-          className="flex-1 text-muted-foreground text-xs"
+          className="flex-1 text-footnote text-muted-foreground"
           numberOfLines={2}
         >
           {message || "Something went wrong"}

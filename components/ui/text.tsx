@@ -6,7 +6,7 @@ import { cn } from "~/lib/utils";
 
 const textVariants = cva(
   cn(
-    "text-base text-foreground",
+    "text-body text-foreground",
     Platform.select({
       web: "select-text",
     })
@@ -16,30 +16,30 @@ const textVariants = cva(
       variant: {
         default: "",
         h1: cn(
-          "text-center font-extrabold text-4xl tracking-tight",
+          "text-center font-extrabold text-large-title tracking-tight",
           Platform.select({ web: "scroll-m-20 text-balance" })
         ),
         h2: cn(
-          "border-border border-b pb-2 font-semibold text-3xl tracking-tight",
+          "border-border border-b pb-2 font-semibold text-title-1 tracking-tight",
           Platform.select({ web: "scroll-m-20 first:mt-0" })
         ),
         h3: cn(
-          "font-semibold text-2xl tracking-tight",
+          "font-semibold text-title-2 tracking-tight",
           Platform.select({ web: "scroll-m-20" })
         ),
         h4: cn(
-          "font-semibold text-xl tracking-tight",
+          "font-semibold text-title-3 tracking-tight",
           Platform.select({ web: "scroll-m-20" })
         ),
         p: "mt-3 leading-7 sm:mt-6",
         blockquote: "mt-4 border-l-2 pl-3 italic sm:mt-6 sm:pl-6",
         code: cn(
-          "relative rounded bg-muted px-[0.3rem] py-[0.2rem] font-mono font-semibold text-sm"
+          "relative rounded bg-muted px-[0.3rem] py-[0.2rem] font-mono font-semibold text-subhead"
         ),
-        lead: "text-muted-foreground text-xl",
-        large: "font-semibold text-lg",
-        small: "font-medium text-sm leading-none",
-        muted: "text-muted-foreground text-sm",
+        lead: "text-muted-foreground text-title-2",
+        large: "font-semibold text-title-3",
+        small: "font-medium text-subhead leading-none",
+        muted: "text-muted-foreground text-subhead",
       },
     },
     defaultVariants: {

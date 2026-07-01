@@ -43,7 +43,7 @@ const DropdownMenuSubTrigger = ({
   return (
     <TextClassContext.Provider
       value={cn(
-        "select-none native:text-lg text-primary text-sm",
+        "select-none native:text-title-3 text-primary text-subhead",
         open && "native:text-accent-foreground"
       )}
     >
@@ -144,7 +144,7 @@ const DropdownMenuItem = ({
 }: (DropdownMenuPrimitive.ItemProps & {
   inset?: boolean;
 }) & { ref?: React.RefObject<DropdownMenuPrimitive.ItemRef | null> }) => (
-  <TextClassContext.Provider value="select-none text-sm native:text-lg text-popover-foreground web:group-focus:text-accent-foreground">
+  <TextClassContext.Provider value="select-none text-subhead native:text-title-3 text-popover-foreground web:group-focus:text-accent-foreground">
     <DropdownMenuPrimitive.Item
       className={cn(
         "group relative flex web:cursor-default flex-row items-center gap-2 rounded-sm px-2 native:py-2 py-1.5 web:outline-none web:hover:bg-accent web:focus:bg-accent active:bg-accent",
@@ -226,7 +226,7 @@ const DropdownMenuLabel = ({
 }) & { ref?: React.RefObject<DropdownMenuPrimitive.LabelRef | null> }) => (
   <DropdownMenuPrimitive.Label
     className={cn(
-      "web:cursor-default px-2 py-1.5 font-semibold native:text-base text-foreground text-sm",
+      "web:cursor-default px-2 py-1.5 font-semibold native:text-body text-foreground text-subhead",
       inset && "pl-8",
       className
     )}
@@ -254,7 +254,7 @@ DropdownMenuSeparator.displayName = DropdownMenuPrimitive.Separator.displayName;
 const DropdownMenuShortcut = ({ className, ...props }: TextProps) => (
   <Text
     className={cn(
-      "ml-auto native:text-sm text-muted-foreground text-xs tracking-widest",
+      "ml-auto native:text-subhead text-footnote text-muted-foreground tracking-widest",
       className
     )}
     {...props}

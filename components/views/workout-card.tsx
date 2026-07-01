@@ -112,13 +112,13 @@ export default function WorkoutCard({
             <Pressable className="flex flex-1 flex-row items-center justify-between bg-primary px-4 py-2 active:opacity-80">
               <HStack className="flex-1 justify-start gap-1">
                 <Timer className="text-primary-foreground" size={16} />
-                <Text className="font-nunito-sans-bold text-primary-foreground text-sm">
+                <Text className="font-nunito-sans-bold text-primary-foreground text-subhead">
                   {elapsedTime}
                 </Text>
               </HStack>
 
               <HStack className="gap-1">
-                <Text className="font-nunito-sans-bold text-primary-foreground text-sm">
+                <Text className="font-nunito-sans-bold text-primary-foreground text-subhead">
                   To Workout
                 </Text>
                 <ArrowRight className="text-primary-foreground" size={16} />
@@ -134,7 +134,7 @@ export default function WorkoutCard({
             <HStack className="justify-start">
               <HStack className="gap-1">
                 <Zap color="#808080" size={16} />
-                <Text className="font-nunito-sans-bold text-sm">
+                <Text className="font-nunito-sans-bold text-subhead">
                   {workout.exercises.length} Exercises
                 </Text>
               </HStack>
@@ -162,8 +162,8 @@ export default function WorkoutCard({
                       <HStack className="gap-2">
                         <ExerciseImage exercise={exercise.exercise} />
                         {isOpen && (
-                          <Text className="font-bold text-xs">
-                            <Text className="font-bold text-primary text-xs">
+                          <Text className="font-bold text-footnote">
+                            <Text className="font-bold text-footnote text-primary">
                               {exercise.sets.length} x{" "}
                             </Text>
                             {exercise.exercise.name}

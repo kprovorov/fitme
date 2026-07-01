@@ -18,9 +18,9 @@ export default function WorkoutSessionSummaryStat({
     <VStack className="items-start gap-1">
       <HStack className="gap-1">
         <SymbolImage name={icon} size={12} tintColor="#a1a1a1" />
-        <Text className="text-muted-foreground text-xs">{title}</Text>
+        <Text className="text-footnote text-muted-foreground">{title}</Text>
       </HStack>
-      <Text className="font-nunito-sans-bold text-2xl text-foreground">
+      <Text className="font-nunito-sans-bold text-foreground text-title-1">
         {value}
       </Text>
     </VStack>

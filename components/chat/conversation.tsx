@@ -394,7 +394,7 @@ export function ConversationScrollButton() {
         onPress={scrollToBottom}
       >
         <SymbolImage
-          className="mt-1 text-muted-foreground text-xs dark:text-muted-foreground"
+          className="mt-1 text-footnote text-muted-foreground dark:text-muted-foreground"
           name="chevron.down"
           sfEffect={{ effect: "wiggle", repeat: -1 }}
         />
@@ -419,11 +419,11 @@ export function ConversationEmptyState({
         name={icon}
         size={48}
       />
-      <Text className="font-semibold text-foreground text-xl dark:text-foreground">
+      <Text className="font-semibold text-foreground text-title-2 dark:text-foreground">
         {title}
       </Text>
       {description && (
-        <Text className="text-muted-foreground text-sm dark:text-muted-foreground">
+        <Text className="text-muted-foreground text-subhead dark:text-muted-foreground">
           {description}
         </Text>
       )}

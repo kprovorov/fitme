@@ -37,7 +37,7 @@ const WorkoutSessionCard = ({
 }) => (
   <Card className={cn("flex gap-4 py-4", className)} ref={ref} {...props}>
     <CardHeader>
-      <CardTitle className="text-muted-foreground text-sm">
+      <CardTitle className="text-muted-foreground text-subhead">
         {new Date(workoutSession.started_at).toLocaleDateString(undefined, {
           weekday: "short",
           month: "short",
@@ -50,7 +50,7 @@ const WorkoutSessionCard = ({
       <Badge>
         <HStack className="gap-1">
           <Zap color="black" size={16} />
-          <Text className="text-sm">
+          <Text className="text-subhead">
             {workoutSession.exercises.length} Exercises
           </Text>
         </HStack>
@@ -58,7 +58,7 @@ const WorkoutSessionCard = ({
       <Badge>
         <HStack className="gap-1">
           <Timer color="black" size={16} />
-          <Text className="text-sm">
+          <Text className="text-subhead">
             {formatDuration(
               workoutSession.started_at,
               workoutSession.finished_at

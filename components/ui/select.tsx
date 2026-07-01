@@ -25,7 +25,7 @@ const SelectTrigger = ({
 }) => (
   <SelectPrimitive.Trigger
     className={cn(
-      "flex h-10 native:h-12 flex-row items-center justify-between rounded-md border border-input bg-background px-3 py-2 text-muted-foreground text-sm web:ring-offset-background web:focus:outline-none web:focus:ring-2 web:focus:ring-ring web:focus:ring-offset-2 [&>span]:line-clamp-1",
+      "flex h-10 native:h-12 flex-row items-center justify-between rounded-md border border-input bg-background px-3 py-2 text-muted-foreground text-subhead web:ring-offset-background web:focus:outline-none web:focus:ring-2 web:focus:ring-ring web:focus:ring-offset-2 [&>span]:line-clamp-1",
       props.disabled && "web:cursor-not-allowed opacity-50",
       className
     )}
@@ -148,7 +148,7 @@ const SelectLabel = ({
 }) => (
   <SelectPrimitive.Label
     className={cn(
-      "py-1.5 pr-2 native:pb-2 native:pl-10 pl-8 font-semibold native:text-base text-popover-foreground text-sm",
+      "py-1.5 pr-2 native:pb-2 native:pl-10 pl-8 font-semibold native:text-body text-popover-foreground text-subhead",
       className
     )}
     ref={ref}
@@ -179,7 +179,7 @@ const SelectItem = ({
         <Check className="text-popover-foreground" size={16} strokeWidth={3} />
       </SelectPrimitive.ItemIndicator>
     </View>
-    <SelectPrimitive.ItemText className="native:text-base native:text-lg text-popover-foreground text-sm web:group-focus:text-accent-foreground" />
+    <SelectPrimitive.ItemText className="native:text-body native:text-title-3 text-popover-foreground text-subhead web:group-focus:text-accent-foreground" />
   </SelectPrimitive.Item>
 );
 SelectItem.displayName = SelectPrimitive.Item.displayName;

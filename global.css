@@ -8,17 +8,29 @@
   --font-ibm-plex-mono: "IBM Plex Mono";
   --font-ibm-plex-mono-bold: "IBM Plex Mono Bold";
 
-  --text-xs: 13px;
-  --text-sm: 15px;
-  --text-base: 17px;
-  --text-lg: 19px;
-  --text-xl: 21px;
-  --text-2xl: 25px;
-  --text-3xl: 33px;
-  --text-4xl: 41px;
-  --text-5xl: 49px;
-  --text-6xl: 57px;
-  --text-7xl: 65px;
+  /* Apple Human Interface Guidelines type scale (size/leading in points) */
+  --text-caption-2: 11px;
+  --text-caption-2--line-height: 13px;
+  --text-caption-1: 12px;
+  --text-caption-1--line-height: 16px;
+  --text-footnote: 13px;
+  --text-footnote--line-height: 18px;
+  --text-subhead: 15px;
+  --text-subhead--line-height: 20px;
+  --text-callout: 16px;
+  --text-callout--line-height: 21px;
+  --text-body: 17px;
+  --text-body--line-height: 22px;
+  --text-headline: 17px;
+  --text-headline--line-height: 22px;
+  --text-title-3: 20px;
+  --text-title-3--line-height: 25px;
+  --text-title-2: 22px;
+  --text-title-2--line-height: 28px;
+  --text-title-1: 28px;
+  --text-title-1--line-height: 34px;
+  --text-large-title: 34px;
+  --text-large-title--line-height: 41px;
 
   --spacing-xs: 0.5rem;
   --spacing-sm: 1rem;

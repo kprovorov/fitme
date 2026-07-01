@@ -54,14 +54,14 @@ export default function RegisterView() {
         }}
       />
       <View className="flex-row items-center">
-        <Text className="font-nunito-sans-bold text-sm">
+        <Text className="font-nunito-sans-bold text-subhead">
           Already have an account?{" "}
         </Text>
         <Pressable
           onPress={() => router.push("/auth/login")}
           testID="login-here-link"
         >
-          <Text className="font-nunito-sans-bold text-primary text-sm">
+          <Text className="font-nunito-sans-bold text-primary text-subhead">
             Login here
           </Text>
         </Pressable>

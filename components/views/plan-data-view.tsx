@@ -75,7 +75,7 @@ export default function PlanDataView({
                 variant="secondary"
               >
                 {item.icon}
-                <Text className="font-nunito-sans-semibold text-secondary-foreground text-xs">
+                <Text className="font-nunito-sans-semibold text-footnote text-secondary-foreground">
                   {item.label}
                 </Text>
               </Badge>

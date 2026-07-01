@@ -23,7 +23,7 @@ export const TabBarButton = ({
   >
     <VStack className="w-12 items-center justify-center gap-1">
       {props.renderIcon({ isFocused: props.isFocused ?? false })}
-      <Text className="font-nunito-sans-bold text-white text-xs">
+      <Text className="font-nunito-sans-bold text-footnote text-white">
         {props.children}
       </Text>
     </VStack>

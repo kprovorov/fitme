@@ -46,7 +46,7 @@ export default function LoginView() {
           await login(values);
         }}
       />
-      <Text className="font-nunito-sans-bold text-sm">
+      <Text className="font-nunito-sans-bold text-subhead">
         <Link
           className="font-nunito-sans-bold text-primary"
           href="/auth/forgot-password"
@@ -54,7 +54,7 @@ export default function LoginView() {
           Forgot password?
         </Link>
       </Text>
-      <Text className="font-nunito-sans-bold text-sm">
+      <Text className="font-nunito-sans-bold text-subhead">
         Don&apos;t have an account?{" "}
         <Link
           className="font-nunito-sans-bold text-primary"

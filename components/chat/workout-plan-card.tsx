@@ -88,7 +88,7 @@ function PlanTag({ icon, label }: { icon: string; label: string }) {
         name={icon}
         size={12}
       />
-      <Text className="text-muted-foreground text-xs">{label}</Text>
+      <Text className="text-footnote text-muted-foreground">{label}</Text>
     </View>
   );
 }
@@ -99,10 +99,10 @@ function ExerciseRow({ exercise }: { exercise: WorkoutExercise }) {
       className="flex-row items-center border-border/15 border-b py-3 active:opacity-60"
       onPress={() => router.push(`/exercises/${exercise.exercise_id}`)}
     >
-      <Text className="w-8 font-semibold text-primary text-sm">
+      <Text className="w-8 font-semibold text-primary text-subhead">
         {exercise.sets}×
       </Text>
-      <Text className="flex-1 text-foreground text-sm" numberOfLines={1}>
+      <Text className="flex-1 text-foreground text-subhead" numberOfLines={1}>
         {exercise.name}
       </Text>
       <SymbolImage
@@ -124,7 +124,7 @@ function WorkoutDaySection({
   return (
     <View className={last ? "" : "mb-6"}>
       <View className="mb-2 flex-row items-center justify-between">
-        <Text className="flex-1 pr-2 font-bold text-primary text-sm leading-tight">
+        <Text className="flex-1 pr-2 font-bold text-primary text-subhead leading-tight">
           {workout.name}
         </Text>
         <View className="flex-row items-center gap-1 rounded-full bg-muted/40 px-2.5 py-1">
@@ -133,7 +133,7 @@ function WorkoutDaySection({
             name="bolt.fill"
             size={10}
           />
-          <Text className="font-semibold text-foreground text-xs">
+          <Text className="font-semibold text-footnote text-foreground">
             {workout.exercises.length}
           </Text>
         </View>
@@ -202,7 +202,7 @@ export function WorkoutPlanCard({ plan }: { plan: WorkoutPlan }) {
       style={{ borderCurve: "continuous" }}
     >
       <View className="border-border/20 border-b px-4 pt-4 pb-3">
-        <Text className="mb-3 font-bold text-foreground text-lg leading-tight">
+        <Text className="mb-3 font-bold text-foreground text-title-3 leading-tight">
           {plan.name}
         </Text>
         <View className="flex-row flex-wrap gap-2">
@@ -231,7 +231,7 @@ export function WorkoutPlanCard({ plan }: { plan: WorkoutPlan }) {
       <View className="border-border/20 border-t px-4 pt-3 pb-4">
         {hasInvalidExercises && (
           <View className="mb-3 rounded-xl bg-destructive/10 px-3 py-2.5">
-            <UIText className="text-destructive text-xs">
+            <UIText className="text-destructive text-footnote">
               Some exercises could not be matched to the library and cannot be
               saved. Try regenerating the plan.
             </UIText>

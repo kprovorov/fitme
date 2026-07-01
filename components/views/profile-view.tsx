@@ -46,7 +46,7 @@ export default function ProfileView() {
             </AvatarFallback>
           </Avatar>
           <VStack className="items-stretch gap-0">
-            <Text className="font-bold text-xl">{user.name}</Text>
+            <Text className="font-bold text-title-2">{user.name}</Text>
             <Muted>{user.email}</Muted>
           </VStack>
         </HStack>

@@ -144,7 +144,7 @@ const DialogTitle = ({
 }) => (
   <DialogPrimitive.Title
     className={cn(
-      "font-semibold native:text-xl text-foreground text-lg leading-none tracking-tight",
+      "font-semibold native:text-title-2 text-foreground text-title-3 leading-none tracking-tight",
       className
     )}
     ref={ref}
@@ -161,7 +161,10 @@ const DialogDescription = ({
   ref?: React.RefObject<DialogPrimitive.DescriptionRef | null>;
 }) => (
   <DialogPrimitive.Description
-    className={cn("native:text-base text-muted-foreground text-sm", className)}
+    className={cn(
+      "native:text-body text-muted-foreground text-subhead",
+      className
+    )}
     ref={ref}
     {...props}
   />

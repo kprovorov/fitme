@@ -26,7 +26,7 @@ export default function ForgotPasswordView() {
             We sent a password reset link to your email address.
           </Text>
         </VStack>
-        <Text className="font-nunito-sans-bold text-sm">
+        <Text className="font-nunito-sans-bold text-subhead">
           Remember your password?{" "}
           <Link
             className="font-nunito-sans-bold text-primary"
@@ -54,7 +54,7 @@ export default function ForgotPasswordView() {
           setSent(true);
         }}
       />
-      <Text className="font-nunito-sans-bold text-sm">
+      <Text className="font-nunito-sans-bold text-subhead">
         Remember your password?{" "}
         <Link className="font-nunito-sans-bold text-primary" href="/auth/login">
           Login here
