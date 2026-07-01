@@ -52,7 +52,7 @@ export default function HistoryScreen() {
           <RefreshControl onRefresh={onRefresh} refreshing={refreshing} />
         }
         renderItem={({ item }: { item: WorkoutSession }) => (
-          <Link href={`/workout-sessions/${item.id}`}>
+          <Link href={`/workout-sessions/${item.id}/summary`}>
             <WorkoutSessionCard className="w-full" workoutSession={item} />
           </Link>
         )}

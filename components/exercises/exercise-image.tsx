@@ -1,25 +1,20 @@
 import { Image } from "expo-image";
-import { StyleSheet } from "react-native";
 import type { Exercise } from "~/lib/models";
 
 interface ExerciseImageProps {
   exercise: Exercise;
+  size?: number;
 }
 
-export default function ExerciseImage({ exercise }: ExerciseImageProps) {
+export default function ExerciseImage({
+  exercise,
+  size = 48,
+}: ExerciseImageProps) {
   return (
     <Image
       contentFit="cover"
       source={{ uri: exercise.thumbnail_url }}
-      style={styles.image}
+      style={{ height: size, borderRadius: 666, aspectRatio: 1 / 1 }}
     />
   );
 }
-
-const styles = StyleSheet.create({
-  image: {
-    height: 48,
-    borderRadius: 666,
-    aspectRatio: 1 / 1,
-  },
-});
