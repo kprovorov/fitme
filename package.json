@@ -139,7 +139,7 @@
     "fix": "ultracite fix",
     "prepare": "husky"
   },
-  "version": "1.21.0",
+  "version": "1.22.0",
   "main": "expo-router/entry",
   "jest": {
     "preset": "jest-expo"
