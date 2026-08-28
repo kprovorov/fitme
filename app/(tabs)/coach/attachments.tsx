@@ -11,9 +11,10 @@ import {
   Wrench,
 } from "lucide-react-native";
 import { useState } from "react";
-import { Pressable, ScrollView, Switch, Text, View } from "react-native";
+import { Pressable, ScrollView, Text, View } from "react-native";
 import { AndroidGrabber } from "@/components/grabber";
 import { Icon } from "@/components/icon";
+import { Switch } from "~/components/ui/switch";
 
 function AttachmentButton({
   icon,

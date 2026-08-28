@@ -1,6 +1,5 @@
 import { useState } from "react";
 import { useCurrentUserQuery } from "~/hooks/queries/auth";
-import { Plus } from "~/lib/icons/Plus";
 import { getWeightLabel } from "~/lib/labels";
 import type { WorkoutSessionExerciseSet } from "~/lib/models";
 import { Button } from "../ui/button";
@@ -114,16 +113,13 @@ export default function WorkoutSessionExerciseSetsTableView({
         {!readOnly && (
           <VStack className="items-stretch py-3">
             <Button
+              label="Add Set"
               onPress={handleAddSet}
               shape="pill"
               size="sm"
+              systemImage="plus"
               variant="ghost"
-            >
-              <HStack>
-                <Plus className="text-primary" size={16} />
-                <Text className="text-primary">Add Set</Text>
-              </HStack>
-            </Button>
+            />
           </VStack>
         )}
       </VStack>

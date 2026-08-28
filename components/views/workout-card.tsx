@@ -7,7 +7,6 @@ import { Text } from "@/components/ui/text";
 import { H4 } from "@/components/ui/typography";
 import { VStack } from "@/components/ui/vstack";
 import { Zap } from "@/lib/icons/Zap";
-import { Spinner } from "~/components/ui/spinner";
 import {
   useCreateWorkoutSessionMutation,
   useFinishWorkoutSessionMutation,
@@ -184,33 +183,19 @@ export default function WorkoutCard({
           <VStack className="items-stretch px-4 pb-4">
             {activeSession ? (
               <Button
-                disabled={isFinishingWorkoutSession}
+                isLoading={isFinishingWorkoutSession}
+                label="Finish Workout"
                 onPress={finishWorkout}
                 variant="secondary"
-              >
-                {isFinishingWorkoutSession ? (
-                  <Spinner className="text-foreground" size={16} />
-                ) : (
-                  <HStack className="gap-2">
-                    <Text>Finish Workout</Text>
-                  </HStack>
-                )}
-              </Button>
+              />
             ) : (
               <Button
-                disabled={isCreatingWorkoutSession}
+                isLoading={isCreatingWorkoutSession}
+                label="Start Workout"
                 onPress={startWorkout}
+                systemImage="arrow.right"
                 testID="start-workout-button"
-              >
-                {isCreatingWorkoutSession ? (
-                  <Spinner className="text-black" size={16} />
-                ) : (
-                  <HStack className="gap-2">
-                    <Text>Start Workout</Text>
-                    <ArrowRight className="text-black" size={16} />
-                  </HStack>
-                )}
-              </Button>
+              />
             )}
           </VStack>
         )}

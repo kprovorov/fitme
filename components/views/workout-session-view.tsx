@@ -7,15 +7,12 @@ import {
   useReplaceWorkoutSessionExerciseMutation,
 } from "~/hooks/queries/workout-session-exercises";
 import { IS_E2E } from "~/lib/constants";
-import { Plus } from "~/lib/icons/Plus";
-import { X } from "~/lib/icons/X";
 import type { Exercise, WorkoutSession } from "~/lib/models";
 import { segmentClient } from "~/lib/segment";
 import { cn } from "~/lib/utils";
 import { Button } from "../ui/button";
 import { Card } from "../ui/card";
 import { HStack } from "../ui/hstack";
-import { Text } from "../ui/text";
 import { VStack } from "../ui/vstack";
 import ExercisesView from "./exercises-view";
 import WorkoutSessionExerciseCard from "./workout-session-exercise-card";
@@ -144,25 +141,20 @@ export default function WorkoutSessionView({
                 }}
                 shape="pill"
                 size="icon-sm"
+                systemImage="xmark"
                 variant="ghost"
-              >
-                <Text>
-                  <X className="text-foreground" size={21} />
-                </Text>
-              </Button>
+              />
             </HStack>
             <ExercisesView
               initialMuscleGroup={initialMuscleGroup}
               itemCta={(exercise) => (
                 <Button
+                  fill={false}
+                  label={replacingExerciseId === null ? "Add" : "Replace"}
                   onPress={() => onExercisePress(exercise)}
                   shape="pill"
                   size="sm"
-                >
-                  <Text>
-                    {replacingExerciseId === null ? "Add" : "Replace"}
-                  </Text>
-                </Button>
+                />
               )}
             />
           </VStack>
@@ -199,16 +191,12 @@ export default function WorkoutSessionView({
           {!workoutSession.finished_at && (
             <VStack className="flex-1 items-stretch p-3">
               <Button
-                // className="w-full bg-transparent border-2 border-dashed border-border h-16"
+                label="Add Exercise"
                 onPress={() => setShowModal(true)}
                 shape="pill"
+                systemImage="plus"
                 variant="ghost"
-              >
-                <HStack className="w-full gap-2">
-                  <Plus className="text-white" size={16} />
-                  <Text>Add Exercise</Text>
-                </HStack>
-              </Button>
+              />
             </VStack>
           )}
         </VStack>

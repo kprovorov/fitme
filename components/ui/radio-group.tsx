@@ -1,121 +1,78 @@
-import * as RadioGroupPrimitive from "@rn-primitives/radio-group";
-import type * as React from "react";
-import { View } from "react-native";
-import { Text } from "~/components/ui/text";
-import { Check } from "~/lib/icons/Check";
+import {
+  Form,
+  Section,
+  Picker as SwiftUIPicker,
+  Text as SwiftUIText,
+} from "@expo/ui/swift-ui";
+import {
+  pickerStyle,
+  scrollContentBackground,
+  tag,
+  tint,
+} from "@expo/ui/swift-ui/modifiers";
+import { SwiftUIHost, useSwiftUITheme } from "~/components/ui/swift-ui";
 import { cn } from "~/lib/utils";
-import { VStack } from "./vstack";
+import type { PickerOption, PickerValue } from "./picker";
 
-const RadioGroup = ({
+interface RadioGroupProps<TValue extends PickerValue> {
+  className?: string;
+  /** Explanatory text below the options. */
+  footer?: string;
+  /** Section header above the options. */
+  label?: string;
+  onValueChange?: (value: TValue) => void;
+  options: PickerOption<TValue>[];
+  testID?: string;
+  value?: TValue;
+}
+
+/**
+ * A single-choice list — SwiftUI's inline `Picker`, which renders the familiar
+ * iOS checkmark rows.
+ *
+ * The inline style only draws itself inside a `List` or `Form`, and a `Form`
+ * expands to fill its container, so this owns a full-height host. Give it a
+ * parent with real height (a `flex-1` view, not a scroll view's content).
+ */
+const RadioGroup = <TValue extends PickerValue>({
+  options,
+  value,
+  onValueChange,
+  label,
+  footer,
   className,
-  ref,
-  ...props
-}: RadioGroupPrimitive.RootProps & {
-  ref?: React.RefObject<RadioGroupPrimitive.RootRef | null>;
-}) => (
-  <RadioGroupPrimitive.Root
-    className={cn("web:grid gap-2", className)}
-    {...props}
-    ref={ref}
-  />
-);
-RadioGroup.displayName = RadioGroupPrimitive.Root.displayName;
+  testID,
+}: RadioGroupProps<TValue>) => {
+  const theme = useSwiftUITheme();
 
-const RadioGroupItem = ({
-  className,
-  ref,
-  ...props
-}: RadioGroupPrimitive.ItemProps & {
-  ref?: React.RefObject<RadioGroupPrimitive.ItemRef | null>;
-}) => (
-  <RadioGroupPrimitive.Item
-    className={cn(
-      "aspect-square h-4 native:h-5 native:w-5 w-4 items-center justify-center rounded-full border-2 border-primary text-primary web:ring-offset-background web:focus:outline-none web:focus-visible:ring-2 web:focus-visible:ring-ring web:focus-visible:ring-offset-2",
-      props.disabled && "web:cursor-not-allowed border-muted",
-      className
-    )}
-    ref={ref}
-    {...props}
-  >
-    <RadioGroupPrimitive.Indicator className="flex items-center justify-center">
-      <View className="aspect-square h-[9px] native:h-[10] native:w-[10] w-[9px] rounded-full bg-primary" />
-    </RadioGroupPrimitive.Indicator>
-  </RadioGroupPrimitive.Item>
-);
-RadioGroupItem.displayName = RadioGroupPrimitive.Item.displayName;
-
-const RadioGroupItemWithLabel = ({
-  className,
-  ref,
-  ...props
-}: (RadioGroupPrimitive.ItemProps & { label: string }) & {
-  ref?: React.RefObject<RadioGroupPrimitive.ItemRef | null>;
-}) => (
-  <RadioGroupPrimitive.Item
-    className={cn(
-      "flex-1 flex-row items-center justify-start gap-2 rounded-lg border-2 bg-card p-4",
-      props.disabled && "web:cursor-not-allowed border-muted",
-      className
-    )}
-    ref={ref}
-    {...props}
-  >
-    <View
-      className={cn(
-        "aspect-square h-4 native:h-5 native:w-5 w-4 items-center justify-center rounded-full border-2 border-primary text-primary web:ring-offset-background web:focus:outline-none web:focus-visible:ring-2 web:focus-visible:ring-ring web:focus-visible:ring-offset-2",
-        props.disabled && "web:cursor-not-allowed border-muted"
-      )}
-    >
-      <RadioGroupPrimitive.Indicator className="flex items-center justify-center">
-        <View className="aspect-square h-[9px] native:h-[10] native:w-[10] w-[9px] rounded-full bg-primary" />
-      </RadioGroupPrimitive.Indicator>
-    </View>
-    <Text>{props.label}</Text>
-  </RadioGroupPrimitive.Item>
-);
-RadioGroupItemWithLabel.displayName = "RadioGroupItemWithLabel";
-
-const RadioGroupMenuListItem = ({
-  className,
-  ref,
-  ...props
-}: (RadioGroupPrimitive.ItemProps & { label: string; disclaimer?: string }) & {
-  ref?: React.RefObject<RadioGroupPrimitive.ItemRef | null>;
-}) => (
-  <RadioGroupPrimitive.Item
-    className={cn(
-      "flex-1 flex-row items-center justify-between p-4 active:bg-card/50",
-      props.disabled && "web:cursor-not-allowed border-muted",
-      className
-    )}
-    ref={ref}
-    {...props}
-  >
-    <VStack className="flex-1 items-start gap-0">
-      <Text>{props.label}</Text>
-      {props.disclaimer && (
-        <Text className="text-footnote text-muted-foreground">
-          {props.disclaimer}
-        </Text>
-      )}
-    </VStack>
-    <View
-      className={cn(
-        "aspect-square h-4 native:h-5 native:w-5 w-4 items-center justify-center text-primary",
-        props.disabled && "web:cursor-not-allowed border-muted"
-      )}
-    >
-      <RadioGroupPrimitive.Indicator className="flex items-center justify-center">
-        <Check className="text-primary" size={18} />
-      </RadioGroupPrimitive.Indicator>
-    </View>
-  </RadioGroupPrimitive.Item>
-);
-RadioGroupMenuListItem.displayName = "RadioGroupMenuListItem";
-
-export {
-  RadioGroup,
-  RadioGroupItem,
-  RadioGroupItemWithLabel,
-  RadioGroupMenuListItem,
+  return (
+    <SwiftUIHost className={cn("flex-1", className)} useViewportSizeMeasurement>
+      <Form modifiers={[scrollContentBackground("hidden")]}>
+        <Section
+          footer={footer ? <SwiftUIText>{footer}</SwiftUIText> : undefined}
+          title={label}
+        >
+          <SwiftUIPicker
+            modifiers={[pickerStyle("inline"), tint(theme.primary)]}
+            onSelectionChange={(selection) =>
+              onValueChange?.(selection as TValue)
+            }
+            selection={value ?? null}
+            testID={testID}
+          >
+            {options.map((option) => (
+              <SwiftUIText key={option.value} modifiers={[tag(option.value)]}>
+                {option.label}
+              </SwiftUIText>
+            ))}
+          </SwiftUIPicker>
+        </Section>
+      </Form>
+    </SwiftUIHost>
+  );
 };
+
+RadioGroup.displayName = "RadioGroup";
+
+export type { RadioGroupProps };
+export { RadioGroup };

@@ -74,11 +74,7 @@ export default function PlanScreen() {
                         "Activate Plan",
                         "This will deactivate your current plan",
                         [
-                          {
-                            text: "Cancel",
-                            onPress: () => console.log("Cancel Pressed"),
-                            style: "cancel",
-                          },
+                          { text: "Cancel", style: "cancel" },
                           {
                             text: "Activate",
                             onPress: () =>
@@ -107,13 +103,10 @@ export default function PlanScreen() {
                           "Archive Plan",
                           "Are you sure you want to archive this plan?",
                           [
-                            {
-                              text: "Cancel",
-                              onPress: () => console.log("Cancel Pressed"),
-                              style: "cancel",
-                            },
+                            { text: "Cancel", style: "cancel" },
                             {
                               text: "Archive",
+                              style: "destructive",
                               onPress: () =>
                                 deletePlan({ id: planId as string }),
                             },

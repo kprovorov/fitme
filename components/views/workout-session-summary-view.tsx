@@ -1,5 +1,4 @@
 import { Fragment, useMemo } from "react";
-import { SymbolImage } from "~/components/symbol-image";
 import { Button } from "~/components/ui/button";
 import { HStack } from "~/components/ui/hstack";
 import { Separator } from "~/components/ui/separator";
@@ -118,12 +117,13 @@ export default function WorkoutSessionSummaryView({
       <Separator />
 
       <VStack className="w-full px-md">
-        <Button className="w-full" onPress={onContinue} shape="pill">
-          <HStack className="gap-1">
-            <Text>Continue</Text>
-            <SymbolImage name="arrow.right" size={17} tintColor="#0A0A0A" />
-          </HStack>
-        </Button>
+        <Button
+          className="w-full"
+          label="Continue"
+          onPress={onContinue}
+          shape="pill"
+          systemImage="arrow.right"
+        />
       </VStack>
     </VStack>
   );

@@ -1,24 +1,9 @@
 import { useQueryClient } from "@tanstack/react-query";
 import { Stack } from "expo-router";
 import { useState } from "react";
-import { ScrollView } from "react-native";
-import {
-  AlertDialog,
-  AlertDialogAction,
-  AlertDialogCancel,
-  AlertDialogContent,
-  AlertDialogDescription,
-  AlertDialogFooter,
-  AlertDialogHeader,
-  AlertDialogTitle,
-  AlertDialogTrigger,
-} from "~/components/ui/alert-dialog";
-import { MenuList } from "~/components/ui/menu-list";
-import {
-  RadioGroup,
-  RadioGroupMenuListItem,
-} from "~/components/ui/radio-group";
-import { Text } from "~/components/ui/text";
+import { View } from "react-native";
+import { AlertDialog } from "~/components/ui/alert-dialog";
+import { RadioGroup } from "~/components/ui/radio-group";
 import { useCurrentUserQuery } from "~/hooks/queries/auth";
 import { useUpdateMeasurementSystemMutation } from "~/hooks/queries/settings";
 import {
@@ -26,13 +11,24 @@ import {
   getMeasurementSystemLabel,
 } from "~/lib/labels";
 import { type MeasurementSystem, measurementSystems } from "~/lib/models";
+
+const MEASUREMENT_SYSTEM_OPTIONS = measurementSystems.map((system) => ({
+  value: system,
+  label: getMeasurementSystemLabel(system),
+}));
+
 export default function MeasurementSystemScreen() {
   const queryClient = useQueryClient();
 
   const { data: user } = useCurrentUserQuery();
 
-  const [measurementSystemValue, setMeasurementSystemValue] =
-    useState<MeasurementSystem>(user?.profile?.measurement_system || "metric");
+  const currentSystem: MeasurementSystem =
+    user?.profile?.measurement_system || "metric";
+
+  /** The option awaiting confirmation, or `null` when nothing is pending. */
+  const [pendingSystem, setPendingSystem] = useState<MeasurementSystem | null>(
+    null
+  );
 
   const { mutate: updateMeasurementSystem } =
     useUpdateMeasurementSystemMutation({
@@ -40,16 +36,6 @@ export default function MeasurementSystemScreen() {
         queryClient.invalidateQueries({ queryKey: ["user"] });
       },
     });
-
-  const handleUpdateMeasurementSystem = (
-    measurementSystem: MeasurementSystem
-  ) => {
-    setMeasurementSystemValue(measurementSystem);
-  };
-
-  const confirmMeasurementSystemChange = () => {
-    updateMeasurementSystem(measurementSystemValue);
-  };
 
   return (
     <>
@@ -65,57 +51,37 @@ export default function MeasurementSystemScreen() {
           headerBackButtonDisplayMode: "minimal",
         }}
       />
-      <ScrollView
-        className="flex-1 p-4"
-        contentInsetAdjustmentBehavior="automatic"
-        showsVerticalScrollIndicator={false}
-      >
+      <View className="flex-1">
         <RadioGroup
-          onValueChange={(newValue) =>
-            handleUpdateMeasurementSystem(newValue as MeasurementSystem)
-          }
-          value={measurementSystemValue}
-        >
-          <MenuList>
-            <AlertDialog>
-              {measurementSystems.map((system, i) => (
-                <AlertDialogTrigger asChild key={system}>
-                  <RadioGroupMenuListItem
-                    className={i === 0 ? "" : "border-border border-t"}
-                    disclaimer={getMeasurementSystemDisclaimer(system)}
-                    label={getMeasurementSystemLabel(system)}
-                    value={system}
-                  />
-                </AlertDialogTrigger>
-              ))}
-              <AlertDialogContent>
-                <AlertDialogHeader>
-                  <AlertDialogTitle>Are you sure?</AlertDialogTitle>
-                  <AlertDialogDescription>
-                    Updating your measurement system will affect all of your
-                    measurements. Your profile data and workout history will be
-                    converted to the new system.
-                  </AlertDialogDescription>
-                </AlertDialogHeader>
-                <AlertDialogFooter>
-                  <AlertDialogCancel
-                    onPress={() =>
-                      setMeasurementSystemValue(
-                        user?.profile?.measurement_system || "metric"
-                      )
-                    }
-                  >
-                    <Text>Cancel</Text>
-                  </AlertDialogCancel>
-                  <AlertDialogAction onPress={confirmMeasurementSystemChange}>
-                    <Text>Confirm</Text>
-                  </AlertDialogAction>
-                </AlertDialogFooter>
-              </AlertDialogContent>
-            </AlertDialog>
-          </MenuList>
-        </RadioGroup>
-      </ScrollView>
+          footer={getMeasurementSystemDisclaimer(currentSystem)}
+          onValueChange={setPendingSystem}
+          options={MEASUREMENT_SYSTEM_OPTIONS}
+          value={currentSystem}
+        />
+
+        <AlertDialog
+          actions={[
+            { label: "Cancel", role: "cancel" },
+            {
+              label: "Confirm",
+              onPress: () => {
+                if (pendingSystem) {
+                  updateMeasurementSystem(pendingSystem);
+                }
+                setPendingSystem(null);
+              },
+            },
+          ]}
+          isPresented={pendingSystem !== null}
+          message="Updating your measurement system will affect all of your measurements. Your profile data and workout history will be converted to the new system."
+          onIsPresentedChange={(isPresented) => {
+            if (!isPresented) {
+              setPendingSystem(null);
+            }
+          }}
+          title="Are you sure?"
+        />
+      </View>
     </>
   );
 }

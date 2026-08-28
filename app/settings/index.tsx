@@ -1,17 +1,6 @@
 import { Link, Stack } from "expo-router";
 import { ScrollView } from "react-native";
-import {
-  AlertDialog,
-  AlertDialogAction,
-  AlertDialogCancel,
-  AlertDialogContent,
-  AlertDialogDescription,
-  AlertDialogFooter,
-  AlertDialogHeader,
-  AlertDialogTitle,
-  AlertDialogTrigger,
-} from "~/components/ui/alert-dialog";
-import { buttonTextVariants, buttonVariants } from "~/components/ui/button";
+import { AlertDialog } from "~/components/ui/alert-dialog";
 import { HStack } from "~/components/ui/hstack";
 import { MenuList, MenuListItem } from "~/components/ui/menu-list";
 import { Text } from "~/components/ui/text";
@@ -61,38 +50,22 @@ export default function SettingsScreen() {
             </MenuList>
 
             <MenuList className="mt-4">
-              <AlertDialog>
-                <AlertDialogTrigger asChild>
-                  <MenuListItem disabled={isPending}>
-                    <Text className="text-destructive">Delete Account</Text>
-                  </MenuListItem>
-                </AlertDialogTrigger>
-                <AlertDialogContent>
-                  <AlertDialogHeader>
-                    <AlertDialogTitle>Delete Account</AlertDialogTitle>
-                    <AlertDialogDescription>
-                      This will permanently delete your account and all
-                      associated data. This action cannot be undone.
-                    </AlertDialogDescription>
-                  </AlertDialogHeader>
-                  <AlertDialogFooter>
-                    <AlertDialogCancel>
-                      <Text>Cancel</Text>
-                    </AlertDialogCancel>
-                    <AlertDialogAction
-                      className={buttonVariants({ variant: "destructive" })}
-                      onPress={() => deleteUser()}
-                    >
-                      <Text
-                        className={buttonTextVariants({
-                          variant: "destructive",
-                        })}
-                      >
-                        Delete
-                      </Text>
-                    </AlertDialogAction>
-                  </AlertDialogFooter>
-                </AlertDialogContent>
+              <AlertDialog
+                actions={[
+                  { label: "Cancel", role: "cancel" },
+                  {
+                    label: "Delete",
+                    role: "destructive",
+                    onPress: () => deleteUser(),
+                  },
+                ]}
+                className="w-full"
+                message="This will permanently delete your account and all associated data. This action cannot be undone."
+                title="Delete Account"
+              >
+                <MenuListItem disabled={isPending}>
+                  <Text className="text-destructive">Delete Account</Text>
+                </MenuListItem>
               </AlertDialog>
             </MenuList>
           </>

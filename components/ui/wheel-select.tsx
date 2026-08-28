@@ -1,36 +1,30 @@
-import { Picker, type PickerProps } from "@react-native-picker/picker";
-import type * as React from "react";
 import { useState } from "react";
-import {
-  type TextInput,
-  type TextInputProps,
-  TouchableWithoutFeedback,
-} from "react-native";
+import { TouchableWithoutFeedback } from "react-native";
 import Animated, {
   useAnimatedStyle,
   useSharedValue,
   withTiming,
 } from "react-native-reanimated";
 import { HStack } from "~/components/ui/hstack";
+import { Picker, type PickerOption } from "~/components/ui/picker";
 import { Text } from "~/components/ui/text";
 import { VStack } from "~/components/ui/vstack";
 
-type Wheel = PickerProps & { options: { label: string; value: string }[] };
+const WHEEL_HEIGHT = 200;
 
-interface WheelSelectProps extends TextInputProps {
+interface Wheel {
+  onValueChange?: (value: string) => void;
+  options: PickerOption<string>[];
+  selectedValue?: string;
+}
+
+interface WheelSelectProps {
   label: string;
   value: string;
   wheels: Wheel[];
 }
 
-const WheelSelect = ({
-  label,
-  wheels,
-  value,
-  ref: _,
-}: WheelSelectProps & {
-  ref?: React.RefObject<React.ElementRef<typeof TextInput> | null>;
-}) => {
+const WheelSelect = ({ label, wheels, value }: WheelSelectProps) => {
   const [isFocused, setIsFocused] = useState(false);
 
   const wheelHeight = useSharedValue(0);
@@ -42,7 +36,7 @@ const WheelSelect = ({
   const toggleWheel = () => {
     const next = !isFocused;
     setIsFocused(next);
-    wheelHeight.value = withTiming(next ? 200 : 0, { duration: 300 });
+    wheelHeight.value = withTiming(next ? WHEEL_HEIGHT : 0, { duration: 300 });
   };
 
   return (
@@ -61,25 +55,15 @@ const WheelSelect = ({
 
       <Animated.View className="overflow-hidden" style={[animatedStyle]}>
         <HStack className="gap-0 border-foreground/10 border-t">
-          {wheels.map((wheel, index) => (
+          {wheels.map((wheel) => (
             <Picker
-              className="flex-1 border-2"
-              key={wheel.selectedValue?.toString() ?? index}
-              onValueChange={(itemValue, itemIndex) => {
-                wheel.onValueChange?.(itemValue, itemIndex);
-              }}
-              selectedValue={wheel.selectedValue}
-              style={{ flex: 1 }}
-              {...wheel}
-            >
-              {wheel.options.map((option) => (
-                <Picker.Item
-                  key={option.value}
-                  label={option.label}
-                  value={option.value}
-                />
-              ))}
-            </Picker>
+              className="h-full flex-1"
+              key={wheel.options.map((option) => option.value).join(",")}
+              onValueChange={wheel.onValueChange}
+              options={wheel.options}
+              value={wheel.selectedValue}
+              variant="wheel"
+            />
           ))}
         </HStack>
       </Animated.View>
@@ -89,4 +73,5 @@ const WheelSelect = ({
 
 WheelSelect.displayName = "WheelSelect";
 
+export type { Wheel, WheelSelectProps };
 export { WheelSelect };

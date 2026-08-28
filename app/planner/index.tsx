@@ -1,9 +1,8 @@
 import { zodResolver } from "@hookform/resolvers/zod";
-import Slider from "@react-native-community/slider";
 import { router, Stack } from "expo-router";
 import React from "react";
 import { Controller, useForm } from "react-hook-form";
-import { Pressable } from "react-native";
+import { Pressable, View } from "react-native";
 import { KeyboardAwareScrollView } from "react-native-keyboard-controller";
 import { useSafeAreaInsets } from "react-native-safe-area-context";
 import { z } from "zod";
@@ -12,7 +11,7 @@ import { Badge } from "~/components/ui/badge";
 import { Button } from "~/components/ui/button";
 import { HStack } from "~/components/ui/hstack";
 import { Label } from "~/components/ui/label";
-import { RadioGroup, RadioGroupItem } from "~/components/ui/radio-group";
+import { Slider } from "~/components/ui/slider";
 import { Text } from "~/components/ui/text";
 import { Textarea } from "~/components/ui/textarea";
 import { H4, Muted } from "~/components/ui/typography";
@@ -27,6 +26,7 @@ import {
   getPlaceLabel,
 } from "~/lib/labels";
 import { experienceLevels, goals, places } from "~/lib/models";
+import { cn } from "~/lib/utils";
 
 function buildPlanMessage(data: PlanFormValues): string {
   const lines = [
@@ -111,11 +111,7 @@ export default function PlannerScreen() {
               control={form.control}
               name="goal"
               render={({ field: { onChange, onBlur: _onBlur, value } }) => (
-                <RadioGroup
-                  className="flex flex-row items-stretch justify-stretch gap-4"
-                  onValueChange={onChange}
-                  value={value}
-                >
+                <View className="flex flex-row items-stretch justify-stretch gap-4">
                   {goalOptions.map((option) => (
                     <RadioGroupItemTileWithIcon
                       disabled={false}
@@ -127,7 +123,7 @@ export default function PlannerScreen() {
                       value={option.value}
                     />
                   ))}
-                </RadioGroup>
+                </View>
               )}
             />
             {form.formState.errors.goal && (
@@ -147,11 +143,7 @@ export default function PlannerScreen() {
               control={form.control}
               name="experience_level"
               render={({ field: { onChange, onBlur: _onBlur, value } }) => (
-                <RadioGroup
-                  className="flex flex-col items-stretch justify-stretch gap-4"
-                  onValueChange={onChange}
-                  value={value}
-                >
+                <View className="flex flex-col items-stretch justify-stretch gap-4">
                   {experienceLevels.map((option) => (
                     <RadioGroupItemWithLabel
                       disabled={false}
@@ -164,7 +156,7 @@ export default function PlannerScreen() {
                       value={option}
                     />
                   ))}
-                </RadioGroup>
+                </View>
               )}
             />
             {form.formState.errors.experience_level && (
@@ -190,12 +182,10 @@ export default function PlannerScreen() {
               name="workout_duration"
               render={({ field: { onChange, onBlur: _onBlur, value } }) => (
                 <Slider
-                  maximumValue={120}
-                  minimumTrackTintColor="#C0FF38"
-                  minimumValue={30}
+                  max={120}
+                  min={30}
                   onValueChange={onChange}
                   step={10}
-                  style={{ width: "100%", height: 40 }}
                   value={value}
                 />
               )}
@@ -217,11 +207,7 @@ export default function PlannerScreen() {
               control={form.control}
               name="place"
               render={({ field: { onChange, onBlur: _onBlur, value } }) => (
-                <RadioGroup
-                  className="flex flex-row items-stretch justify-stretch gap-4"
-                  onValueChange={onChange}
-                  value={value}
-                >
+                <View className="flex flex-row items-stretch justify-stretch gap-4">
                   {placeOptions.map((option) => (
                     <RadioGroupItemWithLabel
                       badge={option.badge}
@@ -233,7 +219,7 @@ export default function PlannerScreen() {
                       value={option.value}
                     />
                   ))}
-                </RadioGroup>
+                </View>
               )}
             />
             {form.formState.errors.place && (
@@ -253,11 +239,7 @@ export default function PlannerScreen() {
               control={form.control}
               name="frequency"
               render={({ field: { onChange, onBlur: _onBlur, value } }) => (
-                <RadioGroup
-                  className="flex flex-row items-stretch justify-stretch gap-4"
-                  onValueChange={onChange}
-                  value={value?.toString()}
-                >
+                <View className="flex flex-row items-stretch justify-stretch gap-4">
                   {[1, 2, 3, 4, 5, 6, 7].map((option) => (
                     <RadioGroupItemTile
                       disabled={false}
@@ -269,7 +251,7 @@ export default function PlannerScreen() {
                       value={option?.toString()}
                     />
                   ))}
-                </RadioGroup>
+                </View>
               )}
             />
             {form.formState.errors.frequency && (
@@ -322,6 +304,32 @@ export default function PlannerScreen() {
   );
 }
 
+/**
+ * The planner's option tiles are a bespoke layout (icons, badges, disclaimers)
+ * that SwiftUI's `Picker` can't express, so they keep a hand-drawn indicator
+ * instead of using the shared SwiftUI `RadioGroup`.
+ */
+function RadioDot({
+  selected,
+  disabled,
+}: {
+  selected: boolean;
+  disabled: boolean;
+}) {
+  return (
+    <View
+      className={cn(
+        "aspect-square h-5 w-5 items-center justify-center rounded-full border-2 border-primary",
+        disabled && "border-muted"
+      )}
+    >
+      {selected && (
+        <View className="aspect-square h-[10px] w-[10px] rounded-full bg-primary" />
+      )}
+    </View>
+  );
+}
+
 function RadioGroupItemWithLabel({
   value,
   label,
@@ -349,11 +357,7 @@ function RadioGroupItemWithLabel({
       onPress={() => !disabled && onLabelPress()}
       testID={testID}
     >
-      <RadioGroupItem
-        aria-labelledby={`label-for-${value}`}
-        disabled={disabled}
-        value={value}
-      />
+      <RadioDot disabled={disabled} selected={isSelected} />
       <HStack className="flex-1 items-center justify-between gap-0 p-0">
         <VStack className="flex-1 items-start gap-0 p-0">
           <Label

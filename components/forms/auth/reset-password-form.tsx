@@ -2,12 +2,9 @@ import { zodResolver } from "@hookform/resolvers/zod";
 import { Controller, useForm } from "react-hook-form";
 import { z } from "zod";
 import { Button } from "~/components/ui/button";
-import { HStack } from "~/components/ui/hstack";
 import { Input } from "~/components/ui/input";
-import { Spinner } from "~/components/ui/spinner";
 import { Text } from "~/components/ui/text";
 import { VStack } from "~/components/ui/vstack";
-import { ArrowRight } from "~/lib/icons/ArrowRight";
 
 interface ResetPasswordFormProps {
   onSubmit: (values: ResetPasswordFormValues) => Promise<void>;
@@ -81,18 +78,11 @@ export default function ResetPasswordForm({
       )}
 
       <Button
-        disabled={form.formState.isSubmitting}
+        isLoading={form.formState.isSubmitting}
+        label="Update Password"
         onPress={form.handleSubmit(onSubmit)}
-      >
-        {form.formState.isSubmitting ? (
-          <Spinner className="text-black" size={16} />
-        ) : (
-          <HStack className="gap-2">
-            <Text>Update Password</Text>
-            <ArrowRight className="text-black" size={16} />
-          </HStack>
-        )}
-      </Button>
+        systemImage="arrow.right"
+      />
     </VStack>
   );
 }

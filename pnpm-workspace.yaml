@@ -1,0 +1,4 @@
+allowBuilds:
+  '@prisma/engines': set this to true or false
+  '@sentry/cli': set this to true or false
+  '@snaplet/seed': set this to true or false
