@@ -15,6 +15,7 @@ import {
   clipShape,
   controlSize,
   disabled as disabledModifier,
+  fixedSize,
   font,
   foregroundStyle,
   frame,
@@ -230,10 +231,13 @@ const Button = ({
   const label = labelProp ?? childrenToLabel(children);
 
   // A button style draws its background around the label, so the label — not
-  // the button — is what has to span the full width.
+  // the button — is what has to span the full width. An inline button, by
+  // contrast, sits in a host that starts at zero width, and SwiftUI would
+  // truncate the label to fit that proposal; `fixedSize` keeps the label at
+  // its natural width so the host can grow around it.
   const contentFrame: ViewModifier[] = stretch
     ? [frame({ maxWidth: FILL })]
-    : [];
+    : [fixedSize({ horizontal: true })];
 
   // Circular buttons opt out of the button style, so they draw their own fill:
   // a glass circle where the OS supports it, a solid one otherwise.
@@ -319,7 +323,9 @@ const Button = ({
       return renderLabel();
     }
 
-    const spinner = <ProgressView modifiers={[tint(contentColor)]} />;
+    // A loading button is also disabled, which greys out its fill, so the
+    // spinner uses the brand green rather than the label color.
+    const spinner = <ProgressView modifiers={[tint(theme.primary)]} />;
 
     if (label === null) {
       return spinner;
