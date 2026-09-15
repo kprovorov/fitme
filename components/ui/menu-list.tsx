@@ -14,7 +14,7 @@ const MenuList = ({
   ref?: React.RefObject<React.ElementRef<typeof Card> | null>;
 }) => (
   <Card
-    className={cn("flex-col overflow-hidden bg-card/30", props.className)}
+    className={cn("flex-col overflow-hidden", props.className)}
     ref={ref}
     {...props}
   >
