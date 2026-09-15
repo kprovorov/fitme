@@ -30,7 +30,7 @@ export default function PlanDataView({
     <VStack className="items-stretch">
       <Card
         className={cn(
-          "flex-col items-stretch justify-start bg-transparent",
+          "flex-col items-stretch justify-start",
           compact ? "gap-3 py-3" : "gap-sm py-sm"
         )}
       >

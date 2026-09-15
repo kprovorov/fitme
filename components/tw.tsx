@@ -4,7 +4,7 @@ import {
   GlassView as XGlassView,
 } from "expo-glass-effect";
 import { Image as XImage } from "expo-image";
-import { StyleSheet, type ViewStyle } from "react-native";
+import { StyleSheet, type ViewProps, type ViewStyle } from "react-native";
 import { KeyboardGestureArea as XKeyboardGestureArea } from "react-native-keyboard-controller";
 import Animated from "react-native-reanimated";
 import { SafeAreaView as XSafeAreaView } from "react-native-safe-area-context";
@@ -36,12 +36,22 @@ const FallbackAppleGlassView = ({
   children,
   style,
   className,
+  ref,
+  // Glass-only props have no BlurView equivalent; keep them off the native view.
+  glassEffectStyle: _glassEffectStyle,
+  tintColor: _tintColor,
+  isInteractive: _isInteractive,
+  colorScheme: _colorScheme,
+  animatedProps: _animatedProps,
+  ...viewProps
 }: FallbackAppleGlassViewProps) => (
   <BlurView
     className={className}
     intensity={fallbackIntensity}
+    ref={ref}
     style={[{ overflow: "hidden" }, StyleSheet.flatten(style) as ViewStyle]}
     tint={fallbackTint}
+    {...(viewProps as ViewProps)}
   >
     {children as React.ReactNode}
   </BlurView>
