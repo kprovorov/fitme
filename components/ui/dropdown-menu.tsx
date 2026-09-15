@@ -5,6 +5,7 @@ import {
   Button as SwiftUIButton,
   Image as SwiftUIImage,
 } from "@expo/ui/swift-ui";
+import { contentShape, frame, shapes } from "@expo/ui/swift-ui/modifiers";
 import type * as React from "react";
 import type { SFSymbol } from "sf-symbols-typescript";
 import { SwiftUIHost, useSwiftUITheme } from "~/components/ui/swift-ui";
@@ -34,6 +35,9 @@ interface DropdownMenuProps {
   testID?: string;
 }
 
+/** Apple HIG minimum tappable size, in points. */
+const MIN_HIT_TARGET_SIZE = 44;
+
 const DropdownMenu = ({
   items,
   label,
@@ -56,7 +60,16 @@ const DropdownMenu = ({
     if (label) {
       return label;
     }
-    return <SwiftUIImage color={theme.foreground} systemName={systemImage} />;
+    return (
+      <SwiftUIImage
+        color={theme.foreground}
+        modifiers={[
+          frame({ width: MIN_HIT_TARGET_SIZE, height: MIN_HIT_TARGET_SIZE }),
+          contentShape(shapes.rectangle()),
+        ]}
+        systemName={systemImage}
+      />
+    );
   };
 
   return (

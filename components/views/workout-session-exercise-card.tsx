@@ -62,8 +62,11 @@ export default function WorkoutSessionExerciseCard({
   ];
 
   return (
-    <Pressable className="active:opacity-80" onPress={handlePress}>
-      <HStack className="w-full items-center justify-between gap-sm px-sm">
+    <HStack className="w-full items-center justify-between gap-sm px-sm">
+      <Pressable
+        className="flex-1 flex-row items-center gap-sm active:opacity-80"
+        onPress={handlePress}
+      >
         <ExerciseImage exercise={workoutSessionExercise.exercise} />
         <VStack className="flex-1 items-start gap-0">
           <Text className="font-bold">
@@ -88,10 +91,10 @@ export default function WorkoutSessionExerciseCard({
             / {workoutSessionExercise.sets.length}
           </Text>
         </VStack>
-        {menuItems.length > 0 && (
-          <DropdownMenu items={menuItems} systemImage="ellipsis" />
-        )}
-      </HStack>
-    </Pressable>
+      </Pressable>
+      {menuItems.length > 0 && (
+        <DropdownMenu items={menuItems} systemImage="ellipsis" />
+      )}
+    </HStack>
   );
 }
