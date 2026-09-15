@@ -17,7 +17,7 @@ export const getMeasurementSystemLabel = (
     case "uk":
       return "UK";
     default:
-      return;
+      return measurementSystem;
   }
 };
 
@@ -69,7 +69,7 @@ export const getGenderLabel = (gender: Gender) => {
     case "female":
       return "Female";
     default:
-      return;
+      return gender;
   }
 };
 

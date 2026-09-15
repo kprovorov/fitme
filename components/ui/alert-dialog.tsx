@@ -1,205 +1,99 @@
-import * as AlertDialogPrimitive from "@rn-primitives/alert-dialog";
+import {
+  Alert,
+  RNHostView,
+  Spacer,
+  Button as SwiftUIButton,
+  Text as SwiftUIText,
+} from "@expo/ui/swift-ui";
+import { frame } from "@expo/ui/swift-ui/modifiers";
 import type * as React from "react";
-import { Platform, StyleSheet, View, type ViewProps } from "react-native";
-import Animated, { FadeIn, FadeOut } from "react-native-reanimated";
-import { buttonTextVariants, buttonVariants } from "~/components/ui/button";
-import { TextClassContext } from "~/components/ui/text";
-import { cn } from "~/lib/utils";
+import { useState } from "react";
+import { Pressable } from "react-native";
+import { isStretchClassName, SwiftUIHost } from "~/components/ui/swift-ui";
 
-const AlertDialog = AlertDialogPrimitive.Root;
+type AlertDialogActionRole = "default" | "cancel" | "destructive";
 
-const AlertDialogTrigger = AlertDialogPrimitive.Trigger;
+interface AlertDialogAction {
+  label: string;
+  onPress?: () => void;
+  role?: AlertDialogActionRole;
+}
 
-const AlertDialogPortal = AlertDialogPrimitive.Portal;
+interface AlertDialogProps {
+  actions: AlertDialogAction[];
+  /**
+   * React Native content that opens the dialog when pressed. Leave empty for a
+   * dialog driven entirely by `isPresented`.
+   */
+  children?: React.ReactNode;
+  className?: string;
+  /** Omit to let the dialog manage its own open state. */
+  isPresented?: boolean;
+  message?: string;
+  onIsPresentedChange?: (isPresented: boolean) => void;
+  title: string;
+}
 
-const AlertDialogOverlayWeb = ({
-  className,
-  ref,
-  ...props
-}: AlertDialogPrimitive.OverlayProps & {
-  ref?: React.RefObject<AlertDialogPrimitive.OverlayRef | null>;
-}) => {
-  const { open } = AlertDialogPrimitive.useRootContext();
-  return (
-    <AlertDialogPrimitive.Overlay
-      className={cn(
-        "absolute top-0 right-0 bottom-0 left-0 z-50 flex items-center justify-center bg-black/80 p-2",
-        open
-          ? "web:fade-in-0 web:animate-in"
-          : "web:fade-out-0 web:animate-out",
-        className
-      )}
-      {...props}
-      ref={ref}
-    />
-  );
-};
-
-AlertDialogOverlayWeb.displayName = "AlertDialogOverlayWeb";
-
-const AlertDialogOverlayNative = ({
-  className,
+const AlertDialog = ({
+  title,
+  message,
+  actions,
+  isPresented,
+  onIsPresentedChange,
   children,
-  ref,
-  ...props
-}: AlertDialogPrimitive.OverlayProps & {
-  ref?: React.RefObject<AlertDialogPrimitive.OverlayRef | null>;
-}) => (
-  <AlertDialogPrimitive.Overlay
-    className={cn(
-      "z-50 flex items-center justify-center bg-black/80 p-2",
-      className
-    )}
-    style={StyleSheet.absoluteFill}
-    {...props}
-    asChild
-    ref={ref}
-  >
-    <Animated.View
-      entering={FadeIn.duration(150)}
-      exiting={FadeOut.duration(150)}
-    >
-      {children}
-    </Animated.View>
-  </AlertDialogPrimitive.Overlay>
-);
-
-AlertDialogOverlayNative.displayName = "AlertDialogOverlayNative";
-
-const AlertDialogOverlay = Platform.select({
-  web: AlertDialogOverlayWeb,
-  default: AlertDialogOverlayNative,
-});
-
-const AlertDialogContent = ({
   className,
-  portalHost,
-  ref,
-  ...props
-}: (AlertDialogPrimitive.ContentProps & { portalHost?: string }) & {
-  ref?: React.RefObject<AlertDialogPrimitive.ContentRef | null>;
-}) => {
-  const { open } = AlertDialogPrimitive.useRootContext();
+}: AlertDialogProps) => {
+  const [uncontrolledPresented, setUncontrolledPresented] = useState(false);
+
+  const presented = isPresented ?? uncontrolledPresented;
+
+  const setPresented = (next: boolean) => {
+    setUncontrolledPresented(next);
+    onIsPresentedChange?.(next);
+  };
 
   return (
-    <AlertDialogPortal hostName={portalHost}>
-      <AlertDialogOverlay>
-        <AlertDialogPrimitive.Content
-          className={cn(
-            "z-50 max-w-lg gap-4 rounded-lg border border-border bg-background p-6 shadow-foreground/10 shadow-lg web:duration-200",
-            open
-              ? "web:fade-in-0 web:zoom-in-95 web:animate-in"
-              : "web:fade-out-0 web:zoom-out-95 web:animate-out",
-            className
+    <SwiftUIHost
+      className={className}
+      matchContents={isStretchClassName(className) ? { vertical: true } : true}
+    >
+      <Alert
+        isPresented={presented}
+        onIsPresentedChange={setPresented}
+        title={title}
+      >
+        <Alert.Trigger>
+          {children ? (
+            <RNHostView matchContents>
+              <Pressable onPress={() => setPresented(true)}>
+                {children}
+              </Pressable>
+            </RNHostView>
+          ) : (
+            <Spacer modifiers={[frame({ width: 0, height: 0 })]} />
           )}
-          ref={ref}
-          {...props}
-        />
-      </AlertDialogOverlay>
-    </AlertDialogPortal>
+        </Alert.Trigger>
+        <Alert.Actions>
+          {actions.map((action) => (
+            <SwiftUIButton
+              key={action.label}
+              label={action.label}
+              onPress={action.onPress}
+              role={action.role ?? "default"}
+            />
+          ))}
+        </Alert.Actions>
+        {message ? (
+          <Alert.Message>
+            <SwiftUIText>{message}</SwiftUIText>
+          </Alert.Message>
+        ) : undefined}
+      </Alert>
+    </SwiftUIHost>
   );
 };
-AlertDialogContent.displayName = AlertDialogPrimitive.Content.displayName;
 
-const AlertDialogHeader = ({ className, ...props }: ViewProps) => (
-  <View className={cn("flex flex-col gap-2", className)} {...props} />
-);
-AlertDialogHeader.displayName = "AlertDialogHeader";
+AlertDialog.displayName = "AlertDialog";
 
-const AlertDialogFooter = ({ className, ...props }: ViewProps) => (
-  <View
-    className={cn(
-      "flex flex-col-reverse gap-2 sm:flex-row sm:justify-end",
-      className
-    )}
-    {...props}
-  />
-);
-AlertDialogFooter.displayName = "AlertDialogFooter";
-
-const AlertDialogTitle = ({
-  className,
-  ref,
-  ...props
-}: AlertDialogPrimitive.TitleProps & {
-  ref?: React.RefObject<AlertDialogPrimitive.TitleRef | null>;
-}) => (
-  <AlertDialogPrimitive.Title
-    className={cn(
-      "font-semibold native:text-title-2 text-foreground text-title-3",
-      className
-    )}
-    ref={ref}
-    {...props}
-  />
-);
-AlertDialogTitle.displayName = AlertDialogPrimitive.Title.displayName;
-
-const AlertDialogDescription = ({
-  className,
-  ref,
-  ...props
-}: AlertDialogPrimitive.DescriptionProps & {
-  ref?: React.RefObject<AlertDialogPrimitive.DescriptionRef | null>;
-}) => (
-  <AlertDialogPrimitive.Description
-    className={cn(
-      "native:text-body text-muted-foreground text-subhead",
-      className
-    )}
-    ref={ref}
-    {...props}
-  />
-);
-AlertDialogDescription.displayName =
-  AlertDialogPrimitive.Description.displayName;
-
-const AlertDialogAction = ({
-  className,
-  ref,
-  ...props
-}: AlertDialogPrimitive.ActionProps & {
-  ref?: React.RefObject<AlertDialogPrimitive.ActionRef | null>;
-}) => (
-  <TextClassContext.Provider value={buttonTextVariants({ className })}>
-    <AlertDialogPrimitive.Action
-      className={cn(buttonVariants(), className)}
-      ref={ref}
-      {...props}
-    />
-  </TextClassContext.Provider>
-);
-AlertDialogAction.displayName = AlertDialogPrimitive.Action.displayName;
-
-const AlertDialogCancel = ({
-  className,
-  ref,
-  ...props
-}: AlertDialogPrimitive.CancelProps & {
-  ref?: React.RefObject<AlertDialogPrimitive.CancelRef | null>;
-}) => (
-  <TextClassContext.Provider
-    value={buttonTextVariants({ className, variant: "outline" })}
-  >
-    <AlertDialogPrimitive.Cancel
-      className={cn(buttonVariants({ variant: "outline", className }))}
-      ref={ref}
-      {...props}
-    />
-  </TextClassContext.Provider>
-);
-AlertDialogCancel.displayName = AlertDialogPrimitive.Cancel.displayName;
-
-export {
-  AlertDialog,
-  AlertDialogAction,
-  AlertDialogCancel,
-  AlertDialogContent,
-  AlertDialogDescription,
-  AlertDialogFooter,
-  AlertDialogHeader,
-  AlertDialogOverlay,
-  AlertDialogPortal,
-  AlertDialogTitle,
-  AlertDialogTrigger,
-};
+export type { AlertDialogAction, AlertDialogActionRole, AlertDialogProps };
+export { AlertDialog };

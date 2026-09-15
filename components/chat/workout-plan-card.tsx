@@ -1,7 +1,7 @@
 import { useQueryClient } from "@tanstack/react-query";
 import { router } from "expo-router";
 import { useState } from "react";
-import { ActivityIndicator, Pressable, Text, View } from "react-native";
+import { Pressable, Text, View } from "react-native";
 import Animated, { FadeIn } from "react-native-reanimated";
 import { SymbolImage } from "@/components/symbol-image";
 import { Button } from "@/components/ui/button";
@@ -238,16 +238,12 @@ export function WorkoutPlanCard({ plan }: { plan: WorkoutPlan }) {
           </View>
         )}
         <Button
-          disabled={isSaving || saved || hasInvalidExercises}
+          disabled={saved || hasInvalidExercises}
+          isLoading={isSaving}
+          label={saved ? "Plan Saved" : "Save Plan"}
           onPress={handleSave}
           shape="pill"
-        >
-          {isSaving ? (
-            <ActivityIndicator color="black" size="small" />
-          ) : (
-            <UIText>{saved ? "Plan Saved" : "Save Plan"}</UIText>
-          )}
-        </Button>
+        />
       </View>
     </Animated.View>
   );

@@ -1,5 +1,4 @@
 import { zodResolver } from "@hookform/resolvers/zod";
-import { Picker } from "@react-native-picker/picker";
 
 import { useLocales } from "expo-localization";
 import { router, Stack } from "expo-router";
@@ -17,8 +16,8 @@ import { Button } from "~/components/ui/button";
 import { ErrorMessage } from "~/components/ui/error-message";
 import { GenderSwitch } from "~/components/ui/gender-switch";
 import { HStack } from "~/components/ui/hstack";
+import { Picker } from "~/components/ui/picker";
 import { Separator } from "~/components/ui/separator";
-import { Spinner } from "~/components/ui/spinner";
 import { Text } from "~/components/ui/text";
 import { H2, H4 } from "~/components/ui/typography";
 import { VStack } from "~/components/ui/vstack";
@@ -26,7 +25,6 @@ import { useStoreProfileMutation } from "~/hooks/mutations/profiles";
 import { useCurrentUserQuery } from "~/hooks/queries/auth";
 import { IS_E2E } from "~/lib/constants";
 import { formatHeight, formatWeight } from "~/lib/formatters";
-import { ArrowRight } from "~/lib/icons/ArrowRight";
 import { storage } from "~/lib/mmkv";
 import { genders, type MeasurementSystem } from "~/lib/models";
 import { segmentClient } from "~/lib/segment";
@@ -199,11 +197,7 @@ export default function ProfileScreen() {
                     control={form.control}
                     name="gender"
                     render={({ field: { onChange, value } }) => (
-                      <GenderSwitch
-                        className="flex flex-row items-stretch justify-stretch gap-4"
-                        onValueChange={onChange}
-                        value={value}
-                      />
+                      <GenderSwitch onValueChange={onChange} value={value} />
                     )}
                   />
                 </VStack>
@@ -241,7 +235,7 @@ export default function ProfileScreen() {
                         }
                       }}
                     >
-                      <HStack className="flex-1 justify-between p-3">
+                      <HStack className="w-full justify-between p-3">
                         <Text>Age</Text>
                         <Text
                           className={cn(
@@ -273,7 +267,7 @@ export default function ProfileScreen() {
                         }
                       }}
                     >
-                      <HStack className="flex-1 justify-between p-3">
+                      <HStack className="w-full justify-between p-3">
                         <Text>Weight</Text>
                         <Text
                           className={cn(
@@ -308,7 +302,7 @@ export default function ProfileScreen() {
                         }
                       }}
                     >
-                      <HStack className="flex-1 justify-between p-3">
+                      <HStack className="w-full justify-between p-3">
                         <Text>Height</Text>
                         <Text
                           className={cn(
@@ -339,18 +333,11 @@ export default function ProfileScreen() {
             style={{ paddingBottom: Math.max(24, insets.bottom) }}
           >
             <Button
-              disabled={form.formState.isSubmitting}
+              isLoading={form.formState.isSubmitting}
+              label="Next"
               onPress={form.handleSubmit((v) => storeProfile(v))}
-            >
-              {form.formState.isSubmitting ? (
-                <Spinner className="text-black" size={16} />
-              ) : (
-                <HStack className="gap-2">
-                  <Text>Next</Text>
-                  <ArrowRight className="text-black" size={16} />
-                </HStack>
-              )}
-            </Button>
+              systemImage="arrow.right"
+            />
           </VStack>
           <Animated.View className="overflow-hidden" style={[animatedStyle]}>
             <HStack className="flex-1 items-stretch justify-stretch gap-0 px-4">
@@ -364,13 +351,13 @@ export default function ProfileScreen() {
                         field.onChange(v);
                         form.trigger("age");
                       }}
-                      selectedValue={field.value ?? 25}
-                      style={{ flex: 1 }}
-                    >
-                      {range(4, 150).map((i) => (
-                        <Picker.Item key={i} label={`${i}`} value={i} />
-                      ))}
-                    </Picker>
+                      options={range(4, 150).map((i) => ({
+                        value: i,
+                        label: `${i}`,
+                      }))}
+                      value={field.value ?? 25}
+                      variant="wheel"
+                    />
                   )}
                 />
               )}
@@ -384,23 +371,19 @@ export default function ProfileScreen() {
                         field.onChange(v);
                         form.trigger("weight");
                       }}
-                      selectedValue={
+                      options={range(
+                        1,
+                        measurementSystem === "metric" ? 454 : 1000
+                      ).map((i) => ({
+                        value: i,
+                        label: formatWeight(i, measurementSystem),
+                      }))}
+                      value={
                         field.value ??
                         (measurementSystem === "metric" ? 80 : 176)
                       }
-                      style={{ flex: 1 }}
-                    >
-                      {range(
-                        1,
-                        measurementSystem === "metric" ? 454 : 1000
-                      ).map((i) => (
-                        <Picker.Item
-                          key={i}
-                          label={formatWeight(i, measurementSystem)}
-                          value={i}
-                        />
-                      ))}
-                    </Picker>
+                      variant="wheel"
+                    />
                   )}
                 />
               )}
@@ -416,13 +399,13 @@ export default function ProfileScreen() {
                             field.onChange(v);
                             form.trigger("height");
                           }}
-                          selectedValue={field.value ?? 176}
-                          style={{ flex: 1 }}
-                        >
-                          {range(30, 275).map((i) => (
-                            <Picker.Item key={i} label={`${i} cm`} value={i} />
-                          ))}
-                        </Picker>
+                          options={range(30, 275).map((i) => ({
+                            value: i,
+                            label: `${i} cm`,
+                          }))}
+                          value={field.value ?? 176}
+                          variant="wheel"
+                        />
                       ) : (
                         <>
                           <Picker
@@ -434,17 +417,13 @@ export default function ProfileScreen() {
                               );
                               form.trigger("height");
                             }}
-                            selectedValue={heightFeet}
-                            style={{ flex: 1 }}
-                          >
-                            {range(1, 9).map((i) => (
-                              <Picker.Item
-                                key={i}
-                                label={`${i} ft`}
-                                value={i}
-                              />
-                            ))}
-                          </Picker>
+                            options={range(1, 9).map((i) => ({
+                              value: i,
+                              label: `${i} ft`,
+                            }))}
+                            value={heightFeet}
+                            variant="wheel"
+                          />
                           <Picker
                             onValueChange={(v) => {
                               setHeightInches(v);
@@ -455,17 +434,13 @@ export default function ProfileScreen() {
                               );
                               form.trigger("height");
                             }}
-                            selectedValue={heightInches}
-                            style={{ flex: 1 }}
-                          >
-                            {range(0, 11).map((i) => (
-                              <Picker.Item
-                                key={i}
-                                label={`${i} in`}
-                                value={i}
-                              />
-                            ))}
-                          </Picker>
+                            options={range(0, 11).map((i) => ({
+                              value: i,
+                              label: `${i} in`,
+                            }))}
+                            value={heightInches}
+                            variant="wheel"
+                          />
                         </>
                       )}
                     </>

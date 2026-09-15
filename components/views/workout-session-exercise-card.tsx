@@ -1,12 +1,10 @@
 import { useRouter } from "expo-router";
 import { Pressable } from "react-native";
-import ContextMenu from "react-native-context-menu-view";
+import { DropdownMenu } from "~/components/ui/dropdown-menu";
 import { Text } from "~/components/ui/text";
-import { Ellipsis } from "~/lib/icons/Ellipsis";
 import type { WorkoutSessionExercise } from "~/lib/models";
 import { cn } from "~/lib/utils";
 import ExerciseImage from "../exercises/exercise-image";
-import { Button } from "../ui/button";
 import { HStack } from "../ui/hstack";
 import { VStack } from "../ui/vstack";
 
@@ -41,21 +39,23 @@ export default function WorkoutSessionExerciseCard({
     );
   };
 
-  const contextMenuActions = [
+  const menuItems = [
     ...(onReplace
       ? [
           {
-            title: "Replace",
-            systemIcon: "arrow.triangle.2.circlepath",
+            label: "Replace",
+            systemImage: "arrow.triangle.2.circlepath" as const,
+            onPress: onReplace,
           },
         ]
       : []),
     ...(onDelete
       ? [
           {
-            title: "Delete",
-            systemIcon: "trash",
+            label: "Delete",
+            systemImage: "trash" as const,
             destructive: true,
+            onPress: onDelete,
           },
         ]
       : []),
@@ -88,24 +88,8 @@ export default function WorkoutSessionExerciseCard({
             / {workoutSessionExercise.sets.length}
           </Text>
         </VStack>
-        {contextMenuActions.length > 0 && (
-          <ContextMenu
-            actions={contextMenuActions}
-            dropdownMenuMode
-            onPress={(e) => {
-              if (e.nativeEvent.name === "Replace") {
-                onReplace?.();
-              } else if (e.nativeEvent.name === "Delete") {
-                onDelete?.();
-              }
-            }}
-          >
-            <Button shape="pill" size="icon-sm" variant="ghost">
-              <Text>
-                <Ellipsis className="text-foreground" size={24} />
-              </Text>
-            </Button>
-          </ContextMenu>
+        {menuItems.length > 0 && (
+          <DropdownMenu items={menuItems} systemImage="ellipsis" />
         )}
       </HStack>
     </Pressable>

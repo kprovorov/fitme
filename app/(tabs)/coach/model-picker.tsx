@@ -1,11 +1,12 @@
 import type { LucideIcon } from "lucide-react-native";
 import { Archive, Pencil, Sparkles, Star, Trash2 } from "lucide-react-native";
-import { Pressable, ScrollView, Switch, Text, View } from "react-native";
+import { Pressable, ScrollView, Text, View } from "react-native";
 import { useSafeAreaInsets } from "react-native-safe-area-context";
 import { AndroidGrabber } from "@/components/grabber";
 import { Icon } from "@/components/icon";
 import { useModel } from "@/components/model-context";
 import { cn } from "@/utils/tailwind";
+import { Switch } from "~/components/ui/switch";
 
 function ActionRow({
   icon,

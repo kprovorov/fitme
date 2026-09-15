@@ -1,8 +1,6 @@
 import { zodResolver } from "@hookform/resolvers/zod";
 import { Controller, useForm } from "react-hook-form";
 import { z } from "zod";
-import { Check } from "~/lib/icons/Check";
-import { Pencil } from "~/lib/icons/Pencil";
 import { Button } from "../ui/button";
 import { ErrorMessage } from "../ui/error-message";
 import { HStack } from "../ui/hstack";
@@ -95,20 +93,18 @@ export default function WorkoutSessionExerciseSetForm({
               onPress={onEdit}
               shape="pill"
               size="icon-xs"
+              systemImage="pencil"
               variant="ghost"
-            >
-              <Pencil className="text-muted-foreground" size={16} />
-            </Button>
+            />
           ) : (
             <Button
               disabled={disabled}
               onPress={form.handleSubmit(onSubmit)}
               shape="pill"
               size="icon-xs"
+              systemImage="checkmark"
               testID={`log-set-button-${setIndex}`}
-            >
-              <Check className="text-primary-foreground" size={16} />
-            </Button>
+            />
           )}
         </HStack>
       </HStack>

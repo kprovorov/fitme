@@ -2,12 +2,9 @@ import { zodResolver } from "@hookform/resolvers/zod";
 import { Controller, type FieldErrors, useForm } from "react-hook-form";
 import { z } from "zod";
 import { Button } from "~/components/ui/button";
-import { HStack } from "~/components/ui/hstack";
 import { Input } from "~/components/ui/input";
-import { Spinner } from "~/components/ui/spinner";
 import { Text } from "~/components/ui/text";
 import { VStack } from "~/components/ui/vstack";
-import { ArrowRight } from "~/lib/icons/ArrowRight";
 
 interface LoginFormProps {
   errors?: FieldErrors<LoginFormValues>;
@@ -79,19 +76,12 @@ export default function LoginForm({ onSubmit, errors }: LoginFormProps) {
       )}
 
       <Button
-        disabled={form.formState.isSubmitting}
+        isLoading={form.formState.isSubmitting}
+        label="Continue"
         onPress={form.handleSubmit(onSubmit)}
+        systemImage="arrow.right"
         testID="login-button"
-      >
-        {form.formState.isSubmitting ? (
-          <Spinner className="text-black" size={16} />
-        ) : (
-          <HStack className="gap-2">
-            <Text>Continue</Text>
-            <ArrowRight className="text-black" size={16} />
-          </HStack>
-        )}
-      </Button>
+      />
     </VStack>
   );
 }

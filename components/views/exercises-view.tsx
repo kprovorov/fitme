@@ -1,9 +1,8 @@
 import type React from "react";
 import { useCallback, useImperativeHandle, useState } from "react";
-import { ScrollView } from "react-native";
 import ExercisesList from "~/components/exercises/exercises-list";
 import { Button } from "~/components/ui/button";
-import { Tabs, TabsList, TabsTrigger } from "~/components/ui/tabs";
+import { Picker } from "~/components/ui/picker";
 import { Text } from "~/components/ui/text";
 import { VStack } from "~/components/ui/vstack";
 import { useExercisesQuery } from "~/hooks/queries/exercises";
@@ -29,6 +28,14 @@ const ExercisesView = ({
 }) & { ref?: React.RefObject<ExercisesViewHandle | null> }) => {
   const [muscleGroup, setMuscleGroup] = useState<string>(initialMuscleGroup);
 
+  const muscleGroupOptions = [
+    { value: "all", label: "All" },
+    ...muscleGroups
+      // Temporary we don't have full-body and cardio exercises
+      .filter((group) => !["full-body", "cardio"].includes(group))
+      .map((group) => ({ value: group, label: muscleGroupToName(group) })),
+  ];
+
   const {
     data: exercises,
     refetch: refetchExercises,
@@ -48,29 +55,13 @@ const ExercisesView = ({
 
   return (
     <VStack className="flex-1 items-stretch">
-      <Tabs onValueChange={setMuscleGroup} value={muscleGroup}>
-        <TabsList>
-          <ScrollView
-            horizontal
-            scrollToOverflowEnabled={true}
-            showsHorizontalScrollIndicator={false}
-          >
-            <TabsTrigger value="all">
-              <Text>All</Text>
-            </TabsTrigger>
-            {muscleGroups
-              // Temporary we don't have full-body and cardio exercises
-              .filter(
-                (muscleGroup) => !["full-body", "cardio"].includes(muscleGroup)
-              )
-              .map((muscleGroup) => (
-                <TabsTrigger key={muscleGroup} value={muscleGroup}>
-                  <Text>{muscleGroupToName(muscleGroup)}</Text>
-                </TabsTrigger>
-              ))}
-          </ScrollView>
-        </TabsList>
-      </Tabs>
+      <Picker
+        label="Muscle group"
+        onValueChange={setMuscleGroup}
+        options={muscleGroupOptions}
+        value={muscleGroup}
+        variant="menu"
+      />
 
       <ExercisesList
         exercises={exercises?.pages?.flatMap((page) => page.data) || []}
