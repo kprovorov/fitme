@@ -1,10 +1,13 @@
 import {
   type ButtonRole,
+  Group,
+  HStack,
   ProgressView,
   RNHostView,
   Button as SwiftUIButton,
   Image as SwiftUIImage,
-  Label as SwiftUILabel,
+  Text as SwiftUIText,
+  ZStack,
 } from "@expo/ui/swift-ui";
 import {
   background,
@@ -16,6 +19,7 @@ import {
   foregroundStyle,
   frame,
   glassEffect,
+  opacity,
   shapes,
   tint,
   type ViewModifier,
@@ -109,6 +113,9 @@ const ICON_GLYPH_SIZE: Record<ButtonSize, number> = {
   "icon-sm": 21,
   "icon-xs": 16,
 };
+
+/** Gap between a button's label and its trailing icon. */
+const ICON_LABEL_SPACING = 8;
 
 /** Tap-target diameter for circular icon buttons, matching the old h-10/9/8. */
 const ICON_DIAMETER: Record<ButtonSize, number> = {
@@ -220,7 +227,7 @@ const Button = ({
   const role: ButtonRole =
     resolvedVariant === "destructive" ? "destructive" : "default";
 
-  const label = isLoading ? null : (labelProp ?? childrenToLabel(children));
+  const label = labelProp ?? childrenToLabel(children);
 
   // A button style draws its background around the label, so the label — not
   // the button — is what has to span the full width.
@@ -253,21 +260,38 @@ const Button = ({
       : [shapeFrame];
   };
 
-  const renderContent = () => {
-    if (isLoading) {
-      return <ProgressView />;
-    }
+  const renderLabel = () => {
     if (label !== null) {
-      return (
-        <SwiftUILabel
+      const labelText = (
+        <SwiftUIText
           modifiers={[
             font({ family: labelFont.family, size: labelFont.size }),
             foregroundStyle(contentColor),
-            ...contentFrame,
           ]}
-          systemImage={systemImage}
-          title={label}
-        />
+        >
+          {label}
+        </SwiftUIText>
+      );
+
+      if (!systemImage) {
+        return contentFrame.length > 0 ? (
+          <HStack modifiers={contentFrame}>{labelText}</HStack>
+        ) : (
+          labelText
+        );
+      }
+
+      // SwiftUI's `Label` is always icon-first, so a trailing icon has to be
+      // laid out by hand.
+      return (
+        <HStack modifiers={contentFrame} spacing={ICON_LABEL_SPACING}>
+          {labelText}
+          <SwiftUIImage
+            color={contentColor}
+            size={labelFont.size ?? ICON_GLYPH_SIZE[resolvedSize]}
+            systemName={systemImage}
+          />
+        </HStack>
       );
     }
     if (systemImage) {
@@ -288,6 +312,28 @@ const Button = ({
       );
     }
     return;
+  };
+
+  const renderContent = () => {
+    if (!isLoading) {
+      return renderLabel();
+    }
+
+    const spinner = <ProgressView modifiers={[tint(contentColor)]} />;
+
+    if (label === null) {
+      return spinner;
+    }
+
+    // A spinner is smaller than the label it replaces, so the button would
+    // shrink around it. Keeping the label in the layout — just invisible —
+    // holds the button at exactly the size it has when idle.
+    return (
+      <ZStack modifiers={contentFrame}>
+        <Group modifiers={[opacity(0)]}>{renderLabel()}</Group>
+        {spinner}
+      </ZStack>
+    );
   };
 
   return (

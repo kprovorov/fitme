@@ -235,7 +235,7 @@ export default function ProfileScreen() {
                         }
                       }}
                     >
-                      <HStack className="flex-1 justify-between p-3">
+                      <HStack className="w-full justify-between p-3">
                         <Text>Age</Text>
                         <Text
                           className={cn(
@@ -267,7 +267,7 @@ export default function ProfileScreen() {
                         }
                       }}
                     >
-                      <HStack className="flex-1 justify-between p-3">
+                      <HStack className="w-full justify-between p-3">
                         <Text>Weight</Text>
                         <Text
                           className={cn(
@@ -302,7 +302,7 @@ export default function ProfileScreen() {
                         }
                       }}
                     >
-                      <HStack className="flex-1 justify-between p-3">
+                      <HStack className="w-full justify-between p-3">
                         <Text>Height</Text>
                         <Text
                           className={cn(
