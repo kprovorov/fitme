@@ -1,5 +1,11 @@
 {
-  "ignorePaths": ["node_modules/**", "ios/**", "android/**"],
+  "ignorePaths": [
+    "node_modules/**",
+    "**/ios/**",
+    "**/android/**",
+    ".turbo/**",
+    "**/.next/**"
+  ],
   "words": [
     "fitme",
     "Supabase",
@@ -25,6 +31,10 @@
     "pkey",
     "snaplet",
     "legendapp",
-    "uniwind"
+    "uniwind",
+    "turborepo",
+    "pnpm",
+    "typecheck",
+    "monorepo"
   ]
 }

@@ -1,4 +1,23 @@
+packages:
+  - "apps/*"
+  - "packages/*"
+
+# React Native / Expo autolinking and Metro expect a flat node_modules.
+nodeLinker: hoisted
+autoInstallPeers: true
+strictPeerDependencies: false
+
 allowBuilds:
-  '@prisma/engines': set this to true or false
-  '@sentry/cli': set this to true or false
-  '@snaplet/seed': set this to true or false
+  "@prisma/engines": true
+  "@sentry/cli": true
+  "@snaplet/seed": true
+  esbuild: true
+  sharp: true
+  supabase: true
+
+minimumReleaseAgeExclude:
+  - lucide-react@1.47.0
+
+patchedDependencies:
+  '@expo/cli@55.0.36': patches/@expo__cli@55.0.36.patch
+  expo-router@55.0.18: patches/expo-router@55.0.18.patch

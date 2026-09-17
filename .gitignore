@@ -37,3 +37,10 @@ yarn-error.*
 
 # typescript
 *.tsbuildinfo
+
+# monorepo tooling
+.turbo/
+.next/
+out/
+.vercel
+next-env.d.ts

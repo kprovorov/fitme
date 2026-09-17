@@ -1,0 +1,14 @@
+{
+  "extends": "@fitme/typescript-config/library.json",
+  "compilerOptions": {
+    "types": ["node"]
+  },
+  "include": [
+    "src",
+    "supabase/seed.ts",
+    "supabase/sync.ts",
+    "seed.ts",
+    "seed.config.ts"
+  ],
+  "exclude": ["supabase/functions"]
+}

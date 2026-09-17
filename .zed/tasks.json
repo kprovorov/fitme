@@ -1,46 +1,53 @@
 [
   {
-    "label": "Expo: Run iOS",
-    "command": "npm",
-    "args": ["run", "ios"],
+    "label": "Mobile: Run iOS",
+    "command": "pnpm",
+    "args": ["mobile", "ios"],
     "reveal": "no_focus"
   },
   {
-    "label": "Expo: Dev",
-    "command": "npm",
-    "args": ["run", "dev"],
+    "label": "Mobile: Dev",
+    "command": "pnpm",
+    "args": ["dev:mobile"],
     "reveal": "no_focus"
   },
   {
-    "label": "Expo: Prebuild",
-    "command": "npx",
-    "args": ["expo", "prebuild", "--clean"],
+    "label": "Web: Dev",
+    "command": "pnpm",
+    "args": ["dev:web"],
+    "reveal": "no_focus"
+  },
+  {
+    "label": "Mobile: Prebuild",
+    "command": "pnpm",
+    "args": ["mobile", "prebuild", "--clean"],
     "reveal": "no_focus",
     "hide": "on_success"
   },
   {
     "label": "Supabase: Start",
-    "command": "supabase start",
+    "command": "pnpm",
+    "args": ["db", "start"],
     "reveal": "no_focus",
     "hide": "on_success"
   },
   {
     "label": "Supabase: Restart",
-    "command": "supabase stop && supabase start",
+    "command": "pnpm db stop && pnpm db start",
     "reveal": "no_focus",
     "hide": "on_success"
   },
   {
     "label": "Supabase: Migrate",
-    "command": "supabase",
-    "args": ["migration", "up"],
+    "command": "pnpm",
+    "args": ["db", "migrate"],
     "reveal": "no_focus",
     "hide": "on_success"
   },
   {
     "label": "Supabase: Serve Functions",
-    "command": "supabase",
-    "args": ["functions", "serve"],
+    "command": "pnpm",
+    "args": ["db", "functions:serve"],
     "reveal": "no_focus"
   }
 ]

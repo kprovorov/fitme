@@ -72,38 +72,40 @@ jobs:
       - name: Get current version
         id: current-version
         run: |
-          CURRENT_VERSION=$(node -p "require('./package.json').version")
+          CURRENT_VERSION=$(node -p "require('./apps/mobile/package.json').version")
           echo "current_version=$CURRENT_VERSION" >> $GITHUB_OUTPUT
           echo "Current version: $CURRENT_VERSION"
 
       - name: Bump version in package.json
         id: bump-version
+        working-directory: apps/mobile
         run: |
           BUMP_TYPE="${{ steps.bump.outputs.type }}"
           echo "Bumping version with type: $BUMP_TYPE"
 
           # npm version will automatically calculate the new version
-          npm version $BUMP_TYPE --no-git-tag-version
-
+          npm version $BUMP_TYPE --no-git-tag-version --workspaces=false
           # Get the new version that npm version created
           NEW_VERSION=$(node -p "require('./package.json').version")
           echo "new_version=$NEW_VERSION" >> $GITHUB_OUTPUT
           echo "New version: $NEW_VERSION"
 
       - name: Bump version in app.json
+        working-directory: apps/mobile
         run: |
           NEW_VERSION="${{ steps.bump-version.outputs.new_version }}"
           jq --arg version "$NEW_VERSION" '.expo.version = $version' app.json > app.json.tmp
           mv app.json.tmp app.json
 
       - name: Verify version changes
+        working-directory: apps/mobile
         run: |
           echo "package.json version: $(node -p "require('./package.json').version")"
           echo "app.json version: $(jq -r '.expo.version' app.json)"
 
       - name: Commit and push version bump
         run: |
-          git add package.json app.json
+          git add apps/mobile/package.json apps/mobile/app.json
           git commit -m "chore: auto-bump version to ${{ steps.bump-version.outputs.new_version }} [skip ci]"
           git push origin ${{ github.event.repository.default_branch }}
 

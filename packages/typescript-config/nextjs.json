@@ -1,0 +1,11 @@
+{
+  "$schema": "https://json.schemastore.org/tsconfig",
+  "extends": "./base.json",
+  "compilerOptions": {
+    "allowJs": true,
+    "jsx": "preserve",
+    "incremental": true,
+    "module": "esnext",
+    "plugins": [{ "name": "next" }]
+  }
+}
