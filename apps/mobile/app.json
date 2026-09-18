@@ -74,7 +74,8 @@
       "expo-image",
       "expo-web-browser",
       "./plugins/with-ios-min-deployment-target.js",
-      "./plugins/with-revenuecat-xcode27-patch.js"
+      "./plugins/with-revenuecat-xcode27-patch.js",
+      "./plugins/with-ios-scene-lifecycle.js"
     ],
     "experiments": {
       "typedRoutes": true,

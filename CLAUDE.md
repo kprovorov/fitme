@@ -69,6 +69,7 @@ React Native / Expo app using **file-based routing** via `expo-router`:
   - `mmkv.ts` — MMKV storage instance
   - `utils.ts` — `cn()` class merger (tailwind-merge with the HIG font scale)
   - `constants.ts`, `segment.ts`, `useColorScheme.tsx`
+- `plugins/` — local Expo config plugins for Xcode 27 / iOS 27 compatibility on SDK 55: `with-ios-scene-lifecycle.js` (UIScene adoption, required by the iOS 27 SDK), `with-ios-min-deployment-target.js`, `with-revenuecat-xcode27-patch.js`. Drop them when upgrading to Expo SDK 57+ (`expo-build-properties` `ios.enableSceneSupport`) / SDK 58.
 
 ### apps/web — Next.js app
 
