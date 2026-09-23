@@ -2,7 +2,7 @@ import {
   DarkTheme,
   DefaultTheme,
   ThemeProvider,
-} from "@react-navigation/native";
+} from "expo-router/react-navigation";
 import { NativeTabs } from "expo-router/unstable-native-tabs";
 import Authenticated from "~/components/authenticated";
 import { useColorScheme } from "~/lib/useColorScheme";

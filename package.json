@@ -3,15 +3,15 @@
   "version": "0.0.0",
   "private": true,
   "scripts": {
+    "android": "pnpm --filter @fitme/mobile android",
     "build": "turbo run build",
     "check": "ultracite check",
     "db": "pnpm --filter @fitme/supabase",
     "dev": "turbo run dev",
     "dev:mobile": "turbo run dev --filter=@fitme/mobile",
     "dev:web": "turbo run dev --filter=@fitme/web",
-    "ios": "pnpm --filter @fitme/mobile ios",
-    "android": "pnpm --filter @fitme/mobile android",
     "fix": "ultracite fix",
+    "ios": "pnpm --filter @fitme/mobile ios",
     "lint": "turbo run lint",
     "mobile": "pnpm --filter @fitme/mobile",
     "prepare": "husky",
@@ -34,6 +34,6 @@
   },
   "packageManager": "pnpm@11.21.0",
   "engines": {
-    "node": ">=20"
+    "node": "^22.13.0 || ^24.3.0 || >=25.0.0"
   }
 }

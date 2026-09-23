@@ -1,11 +1,11 @@
 import AsyncStorage from "@react-native-async-storage/async-storage";
+import { AnalyticsProvider } from "@segment/analytics-react-native";
+import { QueryClient, QueryClientProvider } from "@tanstack/react-query";
 import {
   DarkTheme,
   DefaultTheme,
   ThemeProvider,
-} from "@react-navigation/native";
-import { AnalyticsProvider } from "@segment/analytics-react-native";
-import { QueryClient, QueryClientProvider } from "@tanstack/react-query";
+} from "expo-router/react-navigation";
 import * as SecureStore from "expo-secure-store";
 import { Platform, StyleSheet } from "react-native";
 import { GestureHandlerRootView } from "react-native-gesture-handler";

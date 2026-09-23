@@ -22,7 +22,10 @@ const buildHook = (minVersion) => `
  * Raises IPHONEOS_DEPLOYMENT_TARGET for every CocoaPods target to the given
  * minimum. Idempotent: runs only once per generated Podfile.
  */
-const withIosMinDeploymentTarget = (config, { minVersion = MIN_IOS_VERSION } = {}) =>
+const withIosMinDeploymentTarget = (
+  config,
+  { minVersion = MIN_IOS_VERSION } = {}
+) =>
   withPodfile(config, (podfileConfig) => {
     const { contents } = podfileConfig.modResults;
     if (contents.includes("Xcode 27 rejects deployment targets")) {
@@ -37,7 +40,9 @@ const withIosMinDeploymentTarget = (config, { minVersion = MIN_IOS_VERSION } = {
     // Insert the hook before react_native_post_install so it runs inside post_install.
     const lineStart = contents.lastIndexOf("\n", index) + 1;
     podfileConfig.modResults.contents =
-      contents.slice(0, lineStart) + buildHook(minVersion) + contents.slice(lineStart);
+      contents.slice(0, lineStart) +
+      buildHook(minVersion) +
+      contents.slice(lineStart);
     return podfileConfig;
   });
 
