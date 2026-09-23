@@ -19,7 +19,7 @@ export function BlurViewRawBackdrop({
       experimentalBlurMethod={experimentalBlurMethod}
       intensity={intensity}
       style={{
-        ...StyleSheet.absoluteFillObject,
+        ...StyleSheet.absoluteFill,
         overflow: "hidden",
       }}
       tint={tint}

@@ -5,10 +5,7 @@
     "version": "1.22.0",
     "orientation": "portrait",
     "icon": "./assets/images/icon.png",
-    "scheme": [
-      "fitme",
-      "rc-d91405cd5f"
-    ],
+    "scheme": ["fitme", "rc-d91405cd5f"],
     "userInterfaceStyle": "dark",
     "ios": {
       "supportsTablet": false,
@@ -73,9 +70,17 @@
       "@sentry/react-native",
       "expo-image",
       "expo-web-browser",
+      "expo-status-bar",
+      [
+        "expo-build-properties",
+        {
+          "ios": {
+            "enableSceneSupport": true
+          }
+        }
+      ],
       "./plugins/with-ios-min-deployment-target.js",
-      "./plugins/with-revenuecat-xcode27-patch.js",
-      "./plugins/with-ios-scene-lifecycle.js"
+      "./plugins/with-revenuecat-xcode27-patch.js"
     ],
     "experiments": {
       "typedRoutes": true,
