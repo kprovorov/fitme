@@ -1,0 +1,11 @@
+{
+  "name": "@fitme/typescript-config",
+  "version": "0.0.0",
+  "private": true,
+  "description": "Shared tsconfig presets for Fitme apps and packages.",
+  "files": [
+    "base.json",
+    "library.json",
+    "nextjs.json"
+  ]
+}

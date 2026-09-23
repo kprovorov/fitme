@@ -19,7 +19,7 @@
   },
   "overrides": [
     {
-      "includes": ["supabase/functions/**"],
+      "includes": ["**/supabase/functions/**"],
       "javascript": {
         "globals": ["Deno", "EdgeRuntime"]
       },
@@ -37,6 +37,16 @@
         "rules": {
           "suspicious": {
             "noUnknownAtRules": "off"
+          }
+        }
+      }
+    },
+    {
+      "includes": ["packages/*/src/index.ts"],
+      "linter": {
+        "rules": {
+          "performance": {
+            "noBarrelFile": "off"
           }
         }
       }

@@ -1,5 +1,8 @@
 {
-  "setup": ["npm install", "cp \"$SUPERSET_ROOT_PATH/.env\" .env"],
-  "run": ["concurrently 'supabase functions serve' 'npm run dev'"],
+  "setup": [
+    "pnpm install",
+    "cp \"$SUPERSET_ROOT_PATH/apps/mobile/.env\" apps/mobile/.env"
+  ],
+  "run": ["concurrently 'pnpm db functions:serve' 'pnpm dev:mobile'"],
   "teardown": []
 }

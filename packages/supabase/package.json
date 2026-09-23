@@ -1,0 +1,42 @@
+{
+  "name": "@fitme/supabase",
+  "version": "0.0.0",
+  "private": true,
+  "description": "Supabase project (config, migrations, edge functions, seeds) plus generated database types.",
+  "type": "module",
+  "exports": {
+    ".": "./src/index.ts",
+    "./database.types": "./src/database.types.ts"
+  },
+  "main": "./src/index.ts",
+  "types": "./src/index.ts",
+  "scripts": {
+    "exercises:sync": "tsx supabase/sync.ts",
+    "functions:serve": "supabase functions serve",
+    "migrate": "supabase migration up",
+    "reset": "supabase db reset",
+    "seed": "tsx supabase/seed.ts",
+    "seed:sync": "snaplet-seed sync",
+    "start": "supabase start",
+    "status": "supabase status",
+    "stop": "supabase stop",
+    "typecheck": "tsc --noEmit",
+    "types:generate": "supabase gen types typescript --local --schema public > src/database.types.ts"
+  },
+  "dependencies": {
+    "@supabase/supabase-js": "^2.97.0",
+    "csv-parse": "^6.1.0"
+  },
+  "devDependencies": {
+    "@fitme/typescript-config": "workspace:*",
+    "@snaplet/copycat": "^6.0.0",
+    "@snaplet/seed": "^0.98.0",
+    "@supabase/server": "^1.0.0",
+    "@types/node": "^22.15.0",
+    "@types/pg": "^8.16.0",
+    "pg": "^8.18.0",
+    "supabase": "^2.40.0",
+    "tsx": "^4.20.0",
+    "typescript": "~5.9.2"
+  }
+}

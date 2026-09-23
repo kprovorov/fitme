@@ -1,50 +1,58 @@
-# Welcome to your Expo app 👋
+# Fitme
 
-This is an [Expo](https://expo.dev) project created with [`create-expo-app`](https://www.npmjs.com/package/create-expo-app).
+Turborepo monorepo for the Fitme fitness app: an Expo mobile app, a Next.js web app, and the shared packages behind them.
 
-## Get started
+## Layout
 
-1. Install dependencies
-
-   ```bash
-   npm install
-   ```
-
-2. Start the app
-
-   ```bash
-    npx expo start
-   ```
-
-In the output, you'll find options to open the app in a
-
-- [development build](https://docs.expo.dev/develop/development-builds/introduction/)
-- [Android emulator](https://docs.expo.dev/workflow/android-studio-emulator/)
-- [iOS simulator](https://docs.expo.dev/workflow/ios-simulator/)
-- [Expo Go](https://expo.dev/go), a limited sandbox for trying out app development with Expo
-
-You can start developing by editing the files inside the **app** directory. This project uses [file-based routing](https://docs.expo.dev/router/introduction).
-
-## Get a fresh project
-
-When you're ready, run:
-
-```bash
-npm run reset-project
+```
+apps/
+  mobile/     Expo / React Native app (expo-router, uniwind, RevenueCat, Sentry)
+  web/        Next.js app (App Router, Tailwind v4, Supabase SSR auth)
+packages/
+  core/       @fitme/core — domain models, labels, formatters, pure helpers
+  supabase/   @fitme/supabase — Supabase project (config, migrations, edge
+              functions, seeds) plus generated database types
+  typescript-config/  @fitme/typescript-config — shared tsconfig presets
 ```
 
-This command will move the starter code to the **app-example** directory and create a blank **app** directory where you can start developing.
+## Getting started
 
-## Learn more
+```bash
+pnpm install
 
-To learn more about developing your project with Expo, look at the following resources:
+# Local Supabase (Docker required)
+pnpm db start            # supabase start
+pnpm db seed             # seed exercises + demo data
 
-- [Expo documentation](https://docs.expo.dev/): Learn fundamentals, or go into advanced topics with our [guides](https://docs.expo.dev/guides).
-- [Learn Expo tutorial](https://docs.expo.dev/tutorial/introduction/): Follow a step-by-step tutorial where you'll create a project that runs on Android, iOS, and the web.
+# Apps
+pnpm dev:mobile          # expo start        (apps/mobile)
+pnpm dev:web             # next dev :3000    (apps/web)
+pnpm ios                 # expo run:ios       (also: pnpm android)
+```
 
-## Join the community
+Environment files live next to each app. Copy `apps/mobile/.env.example` to
+`apps/mobile/.env` and `apps/web/.env.example` to `apps/web/.env.local`.
 
-Join our community of developers creating universal apps.
+## Repo-wide scripts
 
-- [Expo on GitHub](https://github.com/expo/expo): View our open source platform and contribute.
-- [Discord community](https://chat.expo.dev): Chat with Expo users and ask questions.
+| Command           | What it does                                   |
+| ----------------- | ---------------------------------------------- |
+| `pnpm dev`        | `turbo run dev` for every app                  |
+| `pnpm build`      | `turbo run build` (web build, package outputs) |
+| `pnpm test`       | `turbo run test` across all workspaces         |
+| `pnpm typecheck`  | `turbo run typecheck`                          |
+| `pnpm check`      | `ultracite check` (Biome) for the whole repo   |
+| `pnpm fix`        | `ultracite fix`                                |
+| `pnpm db <cmd>`   | run a script in `@fitme/supabase`              |
+| `pnpm mobile <cmd>` | run a script in `@fitme/mobile`              |
+| `pnpm web <cmd>`  | run a script in `@fitme/web`                   |
+
+## Shared packages
+
+Workspace packages are consumed as TypeScript source (no build step). Metro
+picks them up through the hoisted `node_modules`; Next.js compiles them via
+`transpilePackages` in `apps/web/next.config.ts`.
+
+- Import domain types and helpers from `@fitme/core`.
+- Import generated `Database` / `Tables<"...">` types from `@fitme/supabase`.
+  Regenerate them with `pnpm db types:generate` after a migration.

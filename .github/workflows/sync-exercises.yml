@@ -6,10 +6,10 @@ on:
     branches:
       - master
     paths:
-      - "data/exercises.csv"
-      - "data/descriptions/**"
-      - "data/instructions/**"
-      - "supabase/sync.ts"
+      - "packages/supabase/data/exercises.csv"
+      - "packages/supabase/data/descriptions/**"
+      - "packages/supabase/data/instructions/**"
+      - "packages/supabase/supabase/sync.ts"
 
 jobs:
   sync-exercises:
@@ -19,17 +19,20 @@ jobs:
       - name: Checkout code
         uses: actions/checkout@v4
 
+      - name: Setup pnpm
+        uses: pnpm/action-setup@v4
+
       - name: Setup Node.js
         uses: actions/setup-node@v4
         with:
-          node-version: "20"
-          cache: "npm"
+          node-version: "22"
+          cache: "pnpm"
 
       - name: Install dependencies
-        run: npm ci
+        run: pnpm install --frozen-lockfile
 
       - name: Sync exercises to production
-        run: npm run exercises:sync
+        run: pnpm --filter @fitme/supabase exercises:sync
         env:
           SUPABASE_URL: https://${{ vars.SUPABASE_PROJECT_REF }}.supabase.co
           SUPABASE_SERVICE_ROLE_KEY: ${{ secrets.SUPABASE_SERVICE_ROLE_KEY }}

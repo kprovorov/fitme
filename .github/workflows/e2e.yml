@@ -11,13 +11,15 @@ jobs:
     steps:
       - uses: actions/checkout@v4
 
+      - uses: pnpm/action-setup@v4
+
       - uses: actions/setup-node@v4
         with:
-          node-version: "20"
-          cache: "npm"
+          node-version: "22"
+          cache: "pnpm"
 
       - name: Install dependencies
-        run: npm ci
+        run: pnpm install --frozen-lockfile
 
       - uses: supabase/setup-cli@v1
         with:
@@ -65,6 +67,7 @@ jobs:
           SUPABASE_ACCESS_TOKEN: ${{ secrets.SUPABASE_ACCESS_TOKEN }}
 
       - name: Deploy edge functions to branch
+        working-directory: packages/supabase
         run: |
           supabase functions deploy preview-plan \
             --project-ref ${{ steps.branch-status.outputs.branch_project_ref }}
@@ -72,7 +75,7 @@ jobs:
           SUPABASE_ACCESS_TOKEN: ${{ secrets.SUPABASE_ACCESS_TOKEN }}
 
       - name: Seed database
-        run: npm run db:seed
+        run: pnpm --filter @fitme/supabase seed
         env:
           DATABASE_URL: ${{ steps.branch-details.outputs.postgres_url }}
 
@@ -82,7 +85,7 @@ jobs:
           echo "$HOME/.maestro/bin" >> $GITHUB_PATH
 
       - name: Generate native iOS project
-        run: npx expo prebuild --platform ios --clean
+        run: pnpm --filter @fitme/mobile exec expo prebuild --platform ios --clean
         env:
           EXPO_PUBLIC_E2E_ENABLED: "true"
           EXPO_PUBLIC_SUPABASE_URL: ${{ steps.branch-details.outputs.api_url }}
@@ -92,9 +95,10 @@ jobs:
 
       - name: Install CocoaPods
         run: pod install
-        working-directory: ios
+        working-directory: apps/mobile/ios
 
       - name: Build iOS simulator app
+        working-directory: apps/mobile
         run: |
           WORKSPACE=$(find ios -name "*.xcworkspace" -maxdepth 1 | head -1)
           SCHEME=$(basename "$WORKSPACE" .xcworkspace)
@@ -114,6 +118,7 @@ jobs:
           EXPO_PUBLIC_SENTRY_DSN: ""
 
       - name: Boot simulator and install app
+        working-directory: apps/mobile
         run: |
           UDID=$(xcrun simctl list devices available -j | \
             jq -r '.devices | to_entries[] | .value[] | select(.name == "iPhone 16") | .udid' | head -1)
@@ -123,14 +128,15 @@ jobs:
           echo "SIM_UDID=$UDID" >> $GITHUB_ENV
 
       - name: Run E2E tests
-        run: npm run test:e2e -- --format junit --output e2e-results.xml
+        working-directory: apps/mobile
+        run: pnpm test:e2e -- --format junit --output e2e-results.xml
 
       - name: Upload test results
         uses: actions/upload-artifact@v4
         if: always()
         with:
           name: e2e-results
-          path: e2e-results.xml
+          path: apps/mobile/e2e-results.xml
 
       - name: Delete Supabase preview branch
         if: always()
