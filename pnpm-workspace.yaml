@@ -7,14 +7,16 @@ nodeLinker: hoisted
 autoInstallPeers: true
 strictPeerDependencies: false
 
-allowBuilds:
-  "@prisma/engines": true
-  "@sentry/cli": true
-  "@snaplet/seed": true
-  core-js: false
-  esbuild: true
-  sharp: true
-  supabase: true
+onlyBuiltDependencies:
+  - "@prisma/engines"
+  - "@sentry/cli"
+  - "@snaplet/seed"
+  - esbuild
+  - sharp
+  - supabase
+
+ignoredBuiltDependencies:
+  - core-js
 
 minimumReleaseAgeExclude:
   - lucide-react@1.47.0
