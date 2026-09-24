@@ -27,11 +27,13 @@ pnpm db seed             # seed exercises + demo data
 # Apps
 pnpm dev:mobile          # expo start        (apps/mobile)
 pnpm dev:web             # next dev :3000    (apps/web)
+pnpm dev:site            # next dev :3001    (apps/site, marketing site)
 pnpm ios                 # expo run:ios       (also: pnpm android)
 ```
 
 Environment files live next to each app. Copy `apps/mobile/.env.example` to
-`apps/mobile/.env` and `apps/web/.env.example` to `apps/web/.env.local`.
+`apps/mobile/.env`, `apps/web/.env.example` to `apps/web/.env.local`, and
+`apps/site/.env.example` to `apps/site/.env.local`.
 
 ## Repo-wide scripts
 
@@ -46,6 +48,7 @@ Environment files live next to each app. Copy `apps/mobile/.env.example` to
 | `pnpm db <cmd>`   | run a script in `@fitme/supabase`              |
 | `pnpm mobile <cmd>` | run a script in `@fitme/mobile`              |
 | `pnpm web <cmd>`  | run a script in `@fitme/web`                   |
+| `pnpm site <cmd>` | run a script in `@fitme/site`                  |
 
 ## Shared packages
 

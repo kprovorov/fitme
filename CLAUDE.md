@@ -9,6 +9,7 @@ This is a **pnpm + Turborepo** monorepo. Run repo-wide tasks from the root; run 
 ```
 apps/mobile             @fitme/mobile  — Expo / React Native app
 apps/web                @fitme/web     — Next.js (App Router) web app
+apps/site               @fitme/site    — Next.js marketing site (fitmeproject.com)
 packages/core           @fitme/core    — domain models, labels, formatters, pure helpers
 packages/supabase       @fitme/supabase — Supabase project + generated DB types
 packages/typescript-config              — shared tsconfig presets
@@ -23,6 +24,7 @@ pnpm install
 pnpm dev                 # turbo run dev (all apps)
 pnpm dev:mobile          # expo start
 pnpm dev:web             # next dev on :3000
+pnpm dev:site            # next dev on :3001
 pnpm build               # turbo run build
 pnpm test                # turbo run test (jest in mobile, vitest in core)
 pnpm typecheck           # turbo run typecheck
@@ -33,6 +35,7 @@ pnpm ios                 # expo run:ios       (alias for pnpm --filter @fitme/mo
 pnpm mobile android      # expo run:android
 pnpm mobile lint         # expo lint
 pnpm web build           # next build
+pnpm site build          # next build (marketing site)
 pnpm db start            # supabase start     (alias for pnpm --filter @fitme/supabase start)
 pnpm db seed             # seed local database
 pnpm db types:generate   # regenerate packages/supabase/src/database.types.ts
@@ -78,6 +81,15 @@ React Native / Expo app using **file-based routing** via `expo-router`:
 - `lib/supabase/{client,server,proxy}.ts` — `@supabase/ssr` clients typed with `Database` from `@fitme/supabase`.
 - `components/ui/` — shadcn-style primitives (Tailwind v4 + cva). `components.json` is set up for the shadcn CLI.
 - Styling: Tailwind v4 via `@tailwindcss/postcss`; theme tokens in `app/globals.css` mirror the mobile palette.
+
+### apps/site — Next.js marketing site
+
+Public site at fitmeproject.com. No auth, no Supabase. Tailwind v3 (`tailwind.config.ts`) with shadcn-style `components/ui/` primitives.
+
+- `app/` — landing page, `blog/`, `support/`, `privacy-policy/`, `terms/`, plus `sitemap.ts`, `robots.txt` and OG/Twitter images.
+- `blog/*.mdx` — posts with `title`, `summary`, `publishedAt` frontmatter, parsed by `app/blog/utils.ts` and rendered with `next-mdx-remote-client`. Cover image: `public/blog/<publishedAt>.png`.
+- `public/.well-known/apple-app-site-association` — universal links for the iOS app (served as JSON via `next.config.ts` headers).
+- Analytics: PostHog (proxied through `/ingest` rewrites), Google Tag Manager, Vercel Analytics and Speed Insights. Client init lives in `instrumentation-client.ts`.
 
 ### packages/core — `@fitme/core`
 
@@ -127,6 +139,8 @@ Env files live next to each app.
 - `NEXT_PUBLIC_SUPABASE_URL`
 - `NEXT_PUBLIC_SUPABASE_ANON_KEY`
 - `NEXT_PUBLIC_SITE_URL`
+
+`apps/site/.env.local` (see `apps/site/.env.example`): App Store id/url, support email, social links, GTM id, PostHog key.
 
 ## CI/CD
 

@@ -11,6 +11,7 @@ allowBuilds:
   "@prisma/engines": true
   "@sentry/cli": true
   "@snaplet/seed": true
+  core-js: false
   esbuild: true
   sharp: true
   supabase: true
