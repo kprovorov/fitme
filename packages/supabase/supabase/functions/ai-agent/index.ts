@@ -1,3 +1,4 @@
+import { createAnthropic } from "npm:@ai-sdk/anthropic";
 import { createOpenAI } from "npm:@ai-sdk/openai";
 import { withSupabase } from "npm:@supabase/server";
 import { createAgentUIStreamResponse, ToolLoopAgent } from "npm:ai";
@@ -17,10 +18,41 @@ import { createUpdateSetRecommendationsTool } from "./tools/update_set_recommend
 import { createUpdateUserProfileTool } from "./tools/update_user_profile.ts";
 
 const openai = createOpenAI({ apiKey: Deno.env.get("OPENAI_API_KEY") });
+const anthropic = createAnthropic({
+  apiKey: Deno.env.get("ANTHROPIC_API_KEY"),
+});
+
+// Keep in sync with `coachModels` in packages/core/src/models.ts.
+const COACH_MODELS = {
+  "claude-haiku-4-5-20251001": () => anthropic("claude-haiku-4-5-20251001"),
+  "claude-opus-5": () => anthropic("claude-opus-5"),
+  "claude-sonnet-5": () => anthropic("claude-sonnet-5"),
+  "gpt-5.5": () => openai("gpt-5.5"),
+  "gpt-5.6": () => openai("gpt-5.6"),
+  "gpt-5.6-luna": () => openai("gpt-5.6-luna"),
+  "gpt-5.6-sol": () => openai("gpt-5.6-sol"),
+  "gpt-5.6-terra": () => openai("gpt-5.6-terra"),
+} as const;
+type CoachModelId = keyof typeof COACH_MODELS;
+const DEFAULT_COACH_MODEL: CoachModelId = "gpt-5.5";
+
+function isCoachModelId(value: unknown): value is CoachModelId {
+  return typeof value === "string" && Object.hasOwn(COACH_MODELS, value);
+}
 
 export default {
   fetch: withSupabase({ auth: "user" }, async (req, ctx) => {
-    const { messages } = await req.json();
+    const { messages, model: requestedModel } = await req.json();
+
+    const modelId = requestedModel ?? DEFAULT_COACH_MODEL;
+    if (!isCoachModelId(modelId)) {
+      return Response.json(
+        {
+          error: `Unsupported model "${String(modelId)}". Supported: ${Object.keys(COACH_MODELS).join(", ")}.`,
+        },
+        { status: 400 }
+      );
+    }
 
     const tools = {
       activate_plan: createActivatePlanTool(ctx),
@@ -69,7 +101,7 @@ When analyzing workout history or progress:
 For general fitness questions, reply with text only. Never call display_workout_plan unless the user explicitly wants a workout plan generated.
 
 Keep responses concise, friendly, and encouraging.`,
-      model: openai("gpt-5.5"),
+      model: COACH_MODELS[modelId](),
       tools,
     });
 

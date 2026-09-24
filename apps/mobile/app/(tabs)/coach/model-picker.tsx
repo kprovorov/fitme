@@ -1,51 +1,55 @@
-import type { LucideIcon } from "lucide-react-native";
-import { Archive, Pencil, Sparkles, Star, Trash2 } from "lucide-react-native";
+import { coachModels } from "@fitme/core";
+import { useRouter } from "expo-router";
+import { Check } from "lucide-react-native";
 import { Pressable, ScrollView, Text, View } from "react-native";
 import { useSafeAreaInsets } from "react-native-safe-area-context";
 import { AndroidGrabber } from "@/components/grabber";
 import { Icon } from "@/components/icon";
-import { useModel } from "@/components/model-context";
-import { cn } from "@/utils/tailwind";
-import { Switch } from "~/components/ui/switch";
+import { useSelectedCoachModel } from "~/lib/coach-model";
 
-function ActionRow({
-  icon,
+const PROVIDER_LABELS = {
+  anthropic: "Anthropic",
+  openai: "OpenAI",
+} as const;
+
+function ModelRow({
+  description,
   label,
-  destructive,
+  provider,
+  selected,
   onPress,
 }: {
-  icon: LucideIcon;
+  description: string;
   label: string;
-  destructive?: boolean;
-  onPress?: () => void;
+  provider: keyof typeof PROVIDER_LABELS;
+  selected: boolean;
+  onPress: () => void;
 }) {
   return (
     <Pressable
+      accessibilityRole="radio"
+      accessibilityState={{ selected }}
       className="flex-row items-center gap-3.5 px-5 py-3.5 active:bg-muted"
       onPress={onPress}
     >
-      <Icon
-        className={cn(
-          "h-5 w-5",
-          destructive ? "text-red-500" : "text-foreground"
-        )}
-        icon={icon}
-      />
-      <Text
-        className={cn(
-          "flex-1 text-[17px]",
-          destructive ? "text-red-500" : "text-foreground"
-        )}
-      >
-        {label}
-      </Text>
+      <View className="flex-1">
+        <View className="flex-row items-center gap-2">
+          <Text className="text-[17px] text-foreground">{label}</Text>
+          <Text className="text-[12px] text-muted-foreground">
+            {PROVIDER_LABELS[provider]}
+          </Text>
+        </View>
+        <Text className="text-[13px] text-muted-foreground">{description}</Text>
+      </View>
+      {selected && <Icon className="h-5 w-5 text-foreground" icon={Check} />}
     </Pressable>
   );
 }
 
 export default function ModelPickerSheet() {
-  const { extendedThinking, setExtendedThinking } = useModel();
+  const { selectedId, setSelectedId } = useSelectedCoachModel();
   const insets = useSafeAreaInsets();
+  const router = useRouter();
 
   return (
     <ScrollView
@@ -57,24 +61,23 @@ export default function ModelPickerSheet() {
       contentInsetAdjustmentBehavior="automatic"
     >
       <AndroidGrabber />
-      <View className="pt-2">
-        <ActionRow icon={Archive} label="Add to project" />
-        <ActionRow icon={Star} label="Star" />
-        <ActionRow icon={Pencil} label="Rename" />
-        <ActionRow destructive icon={Trash2} label="Delete" />
-      </View>
-
-      <View className="mx-5 my-1 h-px bg-border" />
-
-      <View className="flex-row items-center gap-3.5 px-5 py-3">
-        <Icon className="h-5 w-5 text-foreground" icon={Sparkles} />
-        <View className="flex-1">
-          <Text className="text-[17px] text-foreground">Extended thinking</Text>
-          <Text className="text-[13px] text-muted-foreground">
-            Think longer for complex tasks
-          </Text>
-        </View>
-        <Switch onValueChange={setExtendedThinking} value={extendedThinking} />
+      <View className="pt-2 pb-4">
+        <Text className="px-5 pb-2 text-[13px] text-muted-foreground">
+          Applies to your next message
+        </Text>
+        {coachModels.map((model) => (
+          <ModelRow
+            description={model.description}
+            key={model.id}
+            label={model.label}
+            onPress={() => {
+              setSelectedId(model.id);
+              router.back();
+            }}
+            provider={model.provider}
+            selected={model.id === selectedId}
+          />
+        ))}
       </View>
     </ScrollView>
   );

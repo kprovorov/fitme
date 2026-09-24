@@ -19,6 +19,10 @@ import {
 } from "@/components/chat";
 import { Icon } from "@/components/icon";
 import { useIsProQuery } from "~/hooks/revenueCat";
+import {
+  getSelectedCoachModelId,
+  useSelectedCoachModel,
+} from "~/lib/coach-model";
 import { supabase } from "~/lib/supabase";
 
 const SUPABASE_URL = process.env.EXPO_PUBLIC_SUPABASE_URL ?? "";
@@ -33,6 +37,8 @@ function useAIChat() {
   const { messages, sendMessage, status, error } = useChat({
     transport: new AssistantChatTransport({
       api: `${SUPABASE_URL}/functions/v1/ai-agent`,
+      // Resolved per request so a model change applies to the next message.
+      body: () => ({ model: getSelectedCoachModelId() }),
       fetch: expoFetch as unknown as typeof globalThis.fetch,
       headers: async () => {
         const { data } = await supabase.auth.getSession();
@@ -92,6 +98,7 @@ function useAIChat() {
 export default function CoachScreen() {
   const chat = useAIChat();
   const { data: isPro } = useIsProQuery();
+  const { model } = useSelectedCoachModel();
   const { initialMessage } = useLocalSearchParams<{
     initialMessage?: string;
   }>();
@@ -125,6 +132,19 @@ export default function CoachScreen() {
           },
           headerTransparent: true,
           title: "Coach",
+          unstable_headerRightItems: () => [
+            {
+              icon: {
+                name: "cpu",
+                type: "sfSymbol",
+              },
+              label: model.label,
+              onPress: () => {
+                router.push("/coach/model-picker");
+              },
+              type: "button",
+            },
+          ],
         }}
       />
       <ChatProvider value={{ ...chat, onSend: handleSend }}>
