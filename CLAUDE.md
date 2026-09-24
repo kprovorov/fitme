@@ -84,7 +84,7 @@ React Native / Expo app using **file-based routing** via `expo-router`:
 
 ### apps/site — Next.js marketing site
 
-Public site at fitmeproject.com. No auth, no Supabase. Tailwind v3 (`tailwind.config.ts`) with shadcn-style `components/ui/` primitives.
+Public site at fitmeproject.com. No auth, no Supabase. Tailwind v4 via `@tailwindcss/postcss` (CSS-first config in `app/globals.css`, typography plugin loaded with `@plugin`) with shadcn-style `components/ui/` primitives.
 
 - `app/` — landing page, `blog/`, `support/`, `privacy-policy/`, `terms/`, plus `sitemap.ts`, `robots.txt` and OG/Twitter images.
 - `blog/*.mdx` — posts with `title`, `summary`, `publishedAt` frontmatter, parsed by `app/blog/utils.ts` and rendered with `next-mdx-remote-client`. Cover image: `public/blog/<publishedAt>.png`.
