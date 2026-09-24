@@ -6,6 +6,7 @@ import {
   type ReactNode,
   use,
   useCallback,
+  useImperativeHandle,
   useRef,
   useState,
 } from "react";
@@ -30,7 +31,33 @@ import { type WorkoutPlan, WorkoutPlanCard } from "./workout-plan-card";
 
 const IS_GLASS = isLiquidGlassAvailable();
 
-const AnimatedLegendList = Animated.createAnimatedComponent(LegendList);
+type AnimatableLegendListProps = React.ComponentProps<typeof LegendList> & {
+  ref?: React.Ref<LegendListRef>;
+};
+
+/**
+ * LegendList exposes a plain methods object through its ref, which Reanimated
+ * (4.5+) cannot resolve to a host view. Expose `getAnimatableRef` so the
+ * animated wrapper targets the underlying ScrollView instead.
+ */
+function AnimatableLegendList({ ref, ...props }: AnimatableLegendListProps) {
+  const listRef = useRef<LegendListRef>(null);
+
+  useImperativeHandle(ref, () => {
+    const list = listRef.current as LegendListRef;
+    return {
+      ...list,
+      getAnimatableRef: () => list.getNativeScrollRef(),
+    };
+  }, []);
+
+  return <LegendList {...props} ref={listRef} />;
+}
+
+const AnimatedLegendList =
+  Animated.createAnimatedComponent(AnimatableLegendList);
+
+const messageKeyExtractor = (item: unknown) => (item as UIMessage).id;
 
 // biome-ignore lint/suspicious/noExplicitAny: Reanimated animated styles are opaque worklet objects with no exported type
 type AnimatedStyle = any;
@@ -351,7 +378,7 @@ export function Conversation({ children }: { children?: ReactNode }) {
             estimatedItemSize={80}
             extraData={isGenerating}
             keyboardDismissMode="interactive"
-            keyExtractor={(item) => (item as UIMessage).id}
+            keyExtractor={messageKeyExtractor}
             ListFooterComponent={
               <Animated.View style={footerSpacerStyle}>
                 {!messages.length && (
@@ -422,11 +449,11 @@ export function ConversationEmptyState({
       <Text className="font-semibold text-foreground text-title-2 dark:text-foreground">
         {title}
       </Text>
-      {description && (
+      {description ? (
         <Text className="text-muted-foreground text-subhead dark:text-muted-foreground">
           {description}
         </Text>
-      )}
+      ) : null}
     </View>
   );
 }
