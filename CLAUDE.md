@@ -25,6 +25,7 @@ pnpm dev                 # turbo run dev (all apps)
 pnpm dev:mobile          # expo start
 pnpm dev:web             # next dev on :3000
 pnpm dev:site            # next dev on :3001
+pnpm dev:mcp             # tsx watch MCP server on :3002 (MCP endpoint at /)
 pnpm build               # turbo run build
 pnpm test                # turbo run test (jest in mobile, vitest in core)
 pnpm typecheck           # turbo run typecheck
@@ -36,6 +37,7 @@ pnpm mobile android      # expo run:android
 pnpm mobile lint         # expo lint
 pnpm web build           # next build
 pnpm site build          # next build (marketing site)
+pnpm mcp build           # tsdown bundle → apps/mcp/dist
 pnpm db start            # supabase start     (alias for pnpm --filter @fitme/supabase start)
 pnpm db seed             # seed local database
 pnpm db types:generate   # regenerate packages/supabase/src/database.types.ts
@@ -90,6 +92,14 @@ Public site at fitmeproject.com. No auth, no Supabase. Tailwind v4 via `@tailwin
 - `blog/*.mdx` — posts with `title`, `summary`, `publishedAt` frontmatter, parsed by `app/blog/utils.ts` and rendered with `next-mdx-remote-client`. Cover image: `public/blog/<publishedAt>.png`.
 - `public/.well-known/apple-app-site-association` — universal links for the iOS app (served as JSON via `next.config.ts` headers).
 - Analytics: PostHog (proxied through `/ingest` rewrites), Google Tag Manager, Vercel Analytics and Speed Insights. Client init lives in `instrumentation-client.ts`.
+
+### apps/mcp — MCP server
+
+Stateless [Streamable HTTP](https://modelcontextprotocol.io) MCP server built on Hono + `@modelcontextprotocol/sdk`, served with `@hono/node-server`.
+
+- `src/server.ts` — `createMcpServer()` registers tools (`registerTool` with zod input schemas). Tools read domain data from `@fitme/core`.
+- `src/app.ts` — Hono app: the MCP endpoint is the root `/` (all methods), creating a fresh server + `WebStandardStreamableHTTPServerTransport` per request; `/health` for liveness. Deployed at https://mcp.fitmeproject.com.
+- `src/index.ts` — Node entrypoint, `PORT` env (default 3002).
 
 ### packages/core — `@fitme/core`
 
