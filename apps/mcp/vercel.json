@@ -1,5 +1,6 @@
 {
   "$schema": "https://openapi.vercel.sh/vercel.json",
   "framework": "hono",
+  "installCommand": "cd ../.. && pnpm install --frozen-lockfile",
   "outputDirectory": "dist"
 }

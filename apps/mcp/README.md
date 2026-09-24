@@ -18,6 +18,6 @@ claude mcp add --transport http fitme https://mcp.fitmeproject.com
 
 ## Deployment (Vercel)
 
-The `fitme-mcp` Vercel project uses the Hono preset with root directory `apps/mcp`. `vercel.json` sets `outputDirectory` to `dist`, so Vercel takes the tsdown bundle (`dist/index.js`) as the function entrypoint instead of compiling `src/` itself. That matters because `@fitme/core` is a source-only workspace package: it must be inlined by tsdown (`deps.alwaysBundle`) rather than resolved from `node_modules` at runtime.
+The `fitme-mcp` Vercel project uses the Hono preset with root directory `apps/mcp`. `vercel.json` pins the install command to `pnpm install --frozen-lockfile` from the repo root (Vercel otherwise falls back to `npm install` for the pnpm 11 lockfile and wipes the workspace) and sets `outputDirectory` to `dist`, so Vercel takes the tsdown bundle (`dist/index.js`) as the function entrypoint instead of compiling `src/` itself. That matters because `@fitme/core` is a source-only workspace package: it must be inlined by tsdown (`deps.alwaysBundle`) rather than resolved from `node_modules` at runtime.
 
 `src/index.ts` exports the Hono app as default (what the Vercel preset consumes) and only starts a Node HTTP listener when `VERCEL` is unset.
