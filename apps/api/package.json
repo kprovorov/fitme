@@ -1,0 +1,26 @@
+{
+  "name": "@fitme/api",
+  "version": "0.1.0",
+  "private": true,
+  "type": "module",
+  "scripts": {
+    "build": "tsdown",
+    "dev": "tsx watch src/index.ts",
+    "start": "node dist/index.js",
+    "typecheck": "tsc --noEmit"
+  },
+  "dependencies": {
+    "@fitme/core": "workspace:*",
+    "@hono/node-server": "^2.1.1",
+    "@hono/zod-validator": "^0.7.6",
+    "hono": "^4.13.9",
+    "zod": "3.25.76"
+  },
+  "devDependencies": {
+    "@fitme/typescript-config": "workspace:*",
+    "@types/node": "22.15.21",
+    "tsdown": "^0.23.0",
+    "tsx": "^4.23.15",
+    "typescript": "~5.9.2"
+  }
+}
