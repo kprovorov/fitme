@@ -7,6 +7,7 @@ This file provides guidance to Claude Code (claude.ai/code) when working with co
 This is a **pnpm + Turborepo** monorepo. Run repo-wide tasks from the root; run app-specific commands through the workspace filters.
 
 ```
+apps/api                @fitme/api     — Hono REST API (Node)
 apps/mobile             @fitme/mobile  — Expo / React Native app
 apps/web                @fitme/web     — Next.js (App Router) web app
 apps/site               @fitme/site    — Next.js marketing site (fitmeproject.com)
@@ -26,6 +27,7 @@ pnpm dev:mobile          # expo start
 pnpm dev:web             # next dev on :3000
 pnpm dev:site            # next dev on :3001
 pnpm dev:mcp             # tsx watch MCP server on :3002 (MCP endpoint at /)
+pnpm dev:api             # tsx watch REST API on :3003
 pnpm build               # turbo run build
 pnpm test                # turbo run test (jest in mobile, vitest in core)
 pnpm typecheck           # turbo run typecheck
@@ -38,6 +40,7 @@ pnpm mobile lint         # expo lint
 pnpm web build           # next build
 pnpm site build          # next build (marketing site)
 pnpm mcp build           # tsdown bundle → apps/mcp/dist
+pnpm api build           # tsdown bundle → apps/api/dist
 pnpm db start            # supabase start     (alias for pnpm --filter @fitme/supabase start)
 pnpm db seed             # seed local database
 pnpm db types:generate   # regenerate packages/supabase/src/database.types.ts
@@ -92,6 +95,14 @@ Public site at fitmeproject.com. No auth, no Supabase. Tailwind v4 via `@tailwin
 - `blog/*.mdx` — posts with `title`, `summary`, `publishedAt` frontmatter, parsed by `app/blog/utils.ts` and rendered with `next-mdx-remote-client`. Cover image: `public/blog/<publishedAt>.png`.
 - `public/.well-known/apple-app-site-association` — universal links for the iOS app (served as JSON via `next.config.ts` headers).
 - Analytics: PostHog (proxied through `/ingest` rewrites), Google Tag Manager, Vercel Analytics and Speed Insights. Client init lives in `instrumentation-client.ts`.
+
+### apps/api — REST API
+
+Hono app served with `@hono/node-server`, bundled with tsdown. Reads domain data from `@fitme/core`.
+
+- `src/index.ts` — Node entrypoint, `PORT` env (default 3003).
+- `src/app.ts` — Hono app: global middleware (logger, CORS), `/health`, JSON `notFound`/`onError` handlers returning `{ error: { code, message } }`.
+- `src/routes/v1.ts` — versioned router; each resource lives in its own file under `src/routes/` and is mounted here. Input validation uses `@hono/zod-validator`.
 
 ### apps/mcp — MCP server
 
