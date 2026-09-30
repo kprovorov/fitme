@@ -70,8 +70,10 @@ const WORKOUT_PLAN_SCHEMA = {
                   type: "string",
                 },
                 order: {
-                  description: "The position of this exercise in the workout.",
-                  type: "number",
+                  description:
+                    "The 1-based position of this exercise in the workout. The first exercise is 1.",
+                  minimum: 1,
+                  type: "integer",
                 },
                 sets: {
                   description: "A list of sets for this exercise.",
@@ -79,8 +81,10 @@ const WORKOUT_PLAN_SCHEMA = {
                     additionalProperties: false,
                     properties: {
                       order: {
-                        description: "The position of this set.",
-                        type: "number",
+                        description:
+                          "The 1-based position of this set. The first set is 1, never 0.",
+                        minimum: 1,
+                        type: "integer",
                       },
                       reps_recommended: {
                         description: "The number of repetitions for the set.",
@@ -119,8 +123,10 @@ const WORKOUT_PLAN_SCHEMA = {
             type: "string",
           },
           order: {
-            description: "The position of this workout in the list.",
-            type: "number",
+            description:
+              "The 1-based position of this workout in the list. The first workout is 1.",
+            minimum: 1,
+            type: "integer",
           },
         },
         required: ["name", "description", "order", "exercises"],
@@ -330,16 +336,15 @@ async function callAIWithRetry(
 
   let lastError: Error | null = null;
 
-  for (let attempt = 1; attempt <= MAX_ATTEMPTS; attempt++) {
+  for (let attempt = 1; attempt <= MAX_ATTEMPTS; attempt += 1) {
     const { provider, model } = pickRandomProvider(providers);
+    const callProvider = provider === "anthropic" ? callAnthropic : callOpenAI;
     try {
       console.log(
         `Attempt ${attempt}: using provider=${provider} model=${model}`
       );
-      if (provider === "anthropic") {
-        return await callAnthropic(systemPrompt, userPrompt, model);
-      }
-      return await callOpenAI(systemPrompt, userPrompt, model);
+      // biome-ignore lint/performance/noAwaitInLoops: retries must run sequentially, one provider per attempt
+      return await callProvider(systemPrompt, userPrompt, model);
     } catch (err) {
       lastError = err instanceof Error ? err : new Error(String(err));
       console.warn(

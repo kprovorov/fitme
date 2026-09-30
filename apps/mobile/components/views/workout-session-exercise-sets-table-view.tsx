@@ -17,8 +17,6 @@ interface WorkoutSessionExerciseSetsTableViewProps {
 
 interface LocalSet {
   id: string;
-  isNew: true;
-  order: number;
 }
 
 export default function WorkoutSessionExerciseSetsTableView({
@@ -33,22 +31,17 @@ export default function WorkoutSessionExerciseSetsTableView({
     (set) => set.weight_recommended !== null
   );
 
-  const maxOrder = Math.max(
-    ...workoutSessionExerciseSets.map((set) => set.order),
-    0
-  );
-
   const handleAddSet = () => {
-    const newOrder = maxOrder + localSets.length + 1;
     const newLocalSet: LocalSet = {
-      id: `local-${Date.now()}-${newOrder}`,
-      isNew: true,
-      order: newOrder,
+      id: `local-${Date.now()}-${localSets.length}`,
     };
     setLocalSets([...localSets, newLocalSet]);
   };
 
-  const handleSetCreated = (localId: string) => {
+  const handleSetCreated = (localId?: string) => {
+    if (!localId) {
+      return;
+    }
     setLocalSets(localSets.filter((set) => set.id !== localId));
   };
 
@@ -83,6 +76,7 @@ export default function WorkoutSessionExerciseSetsTableView({
                 hasWeight={hasWeight}
                 key={workoutSessionExerciseSet.id}
                 locked={locked}
+                setNumber={index + 1}
                 timer={false}
                 workoutSessionExerciseSet={workoutSessionExerciseSet}
               />
@@ -102,8 +96,8 @@ export default function WorkoutSessionExerciseSetsTableView({
                 key={localSet.id}
                 localSetId={localSet.id}
                 locked={locked}
-                onSetCreated={() => handleSetCreated(localSet.id)}
-                order={localSet.order}
+                onSetCreated={handleSetCreated}
+                setNumber={workoutSessionExerciseSets.length + index + 1}
                 timer={false}
                 workoutSessionExerciseSet={null}
               />

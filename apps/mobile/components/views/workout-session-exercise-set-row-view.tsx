@@ -10,7 +10,9 @@ import { Check } from "~/lib/icons/Check";
 import { ClockFading } from "~/lib/icons/ClockFading";
 import { segmentClient } from "~/lib/segment";
 import { cn } from "~/lib/utils";
-import WorkoutSessionExerciseSetForm from "../forms/workout-exercise-set-form";
+import WorkoutSessionExerciseSetForm, {
+  type WorkoutSessionExerciseSetFormValues,
+} from "../forms/workout-exercise-set-form";
 import { HStack } from "../ui/hstack";
 import { Separator } from "../ui/separator";
 import { Text } from "../ui/text";
@@ -20,18 +22,18 @@ interface WorkoutSessionExerciseSetRowViewProps {
   hasWeight?: boolean;
   localSetId?: string;
   locked?: boolean;
-  onSetCreated?: () => void;
-  order?: number;
+  onSetCreated?: (localSetId?: string) => void;
+  /** 1-based position of the set as displayed to the user. */
+  setNumber: number;
   timer?: boolean;
   workoutSessionExerciseSet: WorkoutSessionExerciseSet | null;
 }
 
-// biome-ignore lint/complexity/noExcessiveCognitiveComplexity: workout set row with inline editing logic
 export default function WorkoutSessionExerciseSetRowView({
   exerciseId,
   workoutSessionExerciseSet,
-  localSetId: _localSetId,
-  order,
+  localSetId,
+  setNumber,
   hasWeight = true,
   timer = true,
   locked = false,
@@ -92,11 +94,10 @@ export default function WorkoutSessionExerciseSetRowView({
         queryClient.invalidateQueries({
           queryKey: ["exercise-history"],
         });
-        onSetCreated?.();
+        onSetCreated?.(localSetId);
       },
     });
 
-  const setOrder = isNewSet ? (order ?? 0) : workoutSessionExerciseSet.order;
   const weightRecommended = isNewSet
     ? 0
     : (workoutSessionExerciseSet.weight_recommended ?? 0);
@@ -113,6 +114,42 @@ export default function WorkoutSessionExerciseSetRowView({
     ? null
     : workoutSessionExerciseSet.rest_recommended;
 
+  const handleEdit = () => setIsEditable(true);
+
+  const handleSubmit = (values: WorkoutSessionExerciseSetFormValues) => {
+    const weight_completed = values.weight
+      ? Number(values.weight.replace(",", "."))
+      : weightRecommended;
+    const reps_completed = values.reps ? Number(values.reps) : repsRecommended;
+
+    pendingSetData.current = {
+      reps: reps_completed,
+      weight: weight_completed,
+    };
+
+    if (isNewSet) {
+      createWorkoutSessionExerciseSet({
+        data: {
+          reps_completed,
+          weight_completed,
+        },
+        params: {
+          exerciseId,
+        },
+      });
+    } else {
+      updateWorkoutSessionExerciseSet({
+        data: {
+          reps_completed,
+          weight_completed,
+        },
+        params: {
+          setId: workoutSessionExerciseSet.id,
+        },
+      });
+    }
+  };
+
   return (
     <HStack className="justify-start py-sm">
       {isDone ? (
@@ -120,7 +157,7 @@ export default function WorkoutSessionExerciseSetRowView({
           <Check className="text-primary" size={16} strokeWidth={3} />
         </HStack>
       ) : (
-        <Text className="w-12 text-center font-bold">#{setOrder}</Text>
+        <Text className="w-12 text-center font-bold">#{setNumber}</Text>
       )}
 
       <WorkoutSessionExerciseSetForm
@@ -128,42 +165,8 @@ export default function WorkoutSessionExerciseSetRowView({
         hasWeight={hasWeight}
         isDone={isDone}
         isEditing={isEditable}
-        onEdit={() => setIsEditable(true)}
-        onSubmit={(values) => {
-          const weight_completed = values.weight
-            ? Number(values.weight.replace(",", "."))
-            : weightRecommended;
-          const reps_completed = values.reps
-            ? Number(values.reps)
-            : repsRecommended;
-
-          pendingSetData.current = {
-            reps: reps_completed,
-            weight: weight_completed,
-          };
-
-          if (isNewSet) {
-            createWorkoutSessionExerciseSet({
-              data: {
-                reps_completed,
-                weight_completed,
-              },
-              params: {
-                exerciseId,
-              },
-            });
-          } else {
-            updateWorkoutSessionExerciseSet({
-              data: {
-                reps_completed,
-                weight_completed,
-              },
-              params: {
-                setId: workoutSessionExerciseSet.id,
-              },
-            });
-          }
-        }}
+        onEdit={handleEdit}
+        onSubmit={handleSubmit}
         recommendedValues={{
           reps: (repsCompleted ?? repsRecommended).toString(),
           weight: (weightCompleted ?? weightRecommended)
@@ -171,7 +174,7 @@ export default function WorkoutSessionExerciseSetRowView({
             .replace(".00", "")
             .replace(".", ","),
         }}
-        setIndex={setOrder}
+        setIndex={setNumber}
       />
 
       <HStack className={cn("absolute inset-x-0 -bottom-3 h-6 gap-1")}>
