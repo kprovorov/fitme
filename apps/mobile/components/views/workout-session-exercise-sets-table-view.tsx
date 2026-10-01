@@ -17,7 +17,6 @@ interface WorkoutSessionExerciseSetsTableViewProps {
 
 interface LocalSet {
   id: string;
-  isNew: true;
   order: number;
 }
 
@@ -42,13 +41,15 @@ export default function WorkoutSessionExerciseSetsTableView({
     const newOrder = maxOrder + localSets.length + 1;
     const newLocalSet: LocalSet = {
       id: `local-${Date.now()}-${newOrder}`,
-      isNew: true,
       order: newOrder,
     };
     setLocalSets([...localSets, newLocalSet]);
   };
 
-  const handleSetCreated = (localId: string) => {
+  const handleSetCreated = (localId?: string) => {
+    if (!localId) {
+      return;
+    }
     setLocalSets(localSets.filter((set) => set.id !== localId));
   };
 
@@ -102,7 +103,7 @@ export default function WorkoutSessionExerciseSetsTableView({
                 key={localSet.id}
                 localSetId={localSet.id}
                 locked={locked}
-                onSetCreated={() => handleSetCreated(localSet.id)}
+                onSetCreated={handleSetCreated}
                 order={localSet.order}
                 timer={false}
                 workoutSessionExerciseSet={null}
