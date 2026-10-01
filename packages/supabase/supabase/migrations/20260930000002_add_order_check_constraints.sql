@@ -1,5 +1,6 @@
 -- Enforce 1-based "order" at the database level. Existing rows were
--- renumbered from 1 by the previous migration, so validation passes.
+-- renumbered from 1 by 20260930000000_normalize_order.sql, so validation
+-- passes.
 
 ALTER TABLE public.workouts
   ADD CONSTRAINT workouts_order_positive CHECK ("order" >= 1);

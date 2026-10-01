@@ -50,7 +50,8 @@ const WORKOUT_PLAN_SCHEMA = {
     },
     name: { description: "The name of the workout plan.", type: "string" },
     workouts: {
-      description: "A list of workouts in the workout plan.",
+      description:
+        "A list of workouts in the workout plan, in the order they should be done.",
       items: {
         additionalProperties: false,
         properties: {
@@ -60,7 +61,8 @@ const WORKOUT_PLAN_SCHEMA = {
             type: "string",
           },
           exercises: {
-            description: "A list of exercises included in the workout.",
+            description:
+              "A list of exercises included in the workout, in the order they should be performed.",
             items: {
               additionalProperties: false,
               properties: {
@@ -69,23 +71,12 @@ const WORKOUT_PLAN_SCHEMA = {
                     "The id of the exercise. Use the id from the list of exercises provided.",
                   type: "string",
                 },
-                order: {
-                  description:
-                    "The 1-based position of this exercise in the workout. The first exercise is 1.",
-                  minimum: 1,
-                  type: "integer",
-                },
                 sets: {
-                  description: "A list of sets for this exercise.",
+                  description:
+                    "A list of sets for this exercise, in the order they should be performed.",
                   items: {
                     additionalProperties: false,
                     properties: {
-                      order: {
-                        description:
-                          "The 1-based position of this set. The first set is 1, never 0.",
-                        minimum: 1,
-                        type: "integer",
-                      },
                       reps_recommended: {
                         description: "The number of repetitions for the set.",
                         type: "number",
@@ -102,7 +93,6 @@ const WORKOUT_PLAN_SCHEMA = {
                       },
                     },
                     required: [
-                      "order",
                       "weight_recommended",
                       "reps_recommended",
                       "rest_recommended",
@@ -112,7 +102,7 @@ const WORKOUT_PLAN_SCHEMA = {
                   type: "array",
                 },
               },
-              required: ["exercise_id", "order", "sets"],
+              required: ["exercise_id", "sets"],
               type: "object",
             },
             type: "array",
@@ -122,14 +112,8 @@ const WORKOUT_PLAN_SCHEMA = {
               "The name of the workout. Do not use any numeration here (e.g. 'Workout X', 'Day X', etc.).",
             type: "string",
           },
-          order: {
-            description:
-              "The 1-based position of this workout in the list. The first workout is 1.",
-            minimum: 1,
-            type: "integer",
-          },
         },
-        required: ["name", "description", "order", "exercises"],
+        required: ["name", "description", "exercises"],
         type: "object",
       },
       type: "array",
@@ -486,10 +470,12 @@ export default {
 
       const exerciseMap = new Map(exercises.map((e) => [e.id, e]));
 
-      // Enrich AI output: replace exercise_id with a nested exercise object,
-      // matching what WorkoutExerciseData expects on the client.
+      // Enrich AI output: replace exercise_id with a nested exercise object and
+      // derive `order` from array position, matching what PlanData expects on
+      // the client.
       interface RawExercise {
         exercise_id: string;
+        sets: Record<string, unknown>[];
         [key: string]: unknown;
       }
       interface RawWorkout {
@@ -497,14 +483,20 @@ export default {
         [key: string]: unknown;
       }
       const enrichedWorkouts = (aiOutput.workouts as RawWorkout[]).map(
-        (workout) => ({
+        (workout, workoutIndex) => ({
           ...workout,
           exercises: workout.exercises
             .map((ex) => ({
               ...ex,
               exercise: exerciseMap.get(ex.exercise_id) ?? null,
+              sets: ex.sets.map((set, setIndex) => ({
+                ...set,
+                order: setIndex + 1,
+              })),
             }))
-            .filter((ex) => ex.exercise !== null),
+            .filter((ex) => ex.exercise !== null)
+            .map((ex, exerciseIndex) => ({ ...ex, order: exerciseIndex + 1 })),
+          order: workoutIndex + 1,
         })
       );
 

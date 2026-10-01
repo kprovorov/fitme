@@ -2,7 +2,7 @@
 -- "order" values, which were then cloned into workout sessions and shown to
 -- users as "#0". Renumber every row contiguously from 1 within its parent,
 -- preserving the existing relative order. This runs before the CHECK
--- constraints added in the next migration.
+-- constraints added in 20260930000002_add_order_check_constraints.sql.
 
 WITH ranked AS (
   SELECT
