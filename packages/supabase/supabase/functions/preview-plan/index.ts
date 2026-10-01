@@ -157,17 +157,6 @@ function getAvailableProviders(): ProviderConfig[] {
   return providers;
 }
 
-/**
- * Reassigns `order` as 1-based contiguous positions, keeping the model's
- * relative ordering. The schema asks for `minimum: 1`, but providers don't
- * always enforce it, and they can also skip or repeat numbers.
- */
-function renumber<T extends { order: number }>(items: T[]): T[] {
-  return [...items]
-    .sort((a, b) => a.order - b.order)
-    .map((item, index) => ({ ...item, order: index + 1 }));
-}
-
 function pickRandomProvider(providers: ProviderConfig[]): ProviderConfig {
   return providers[Math.floor(Math.random() * providers.length)];
 }
@@ -499,36 +488,24 @@ export default {
 
       // Enrich AI output: replace exercise_id with a nested exercise object,
       // matching what WorkoutExerciseData expects on the client.
-      interface RawSet {
-        order: number;
-        [key: string]: unknown;
-      }
       interface RawExercise {
         exercise_id: string;
-        order: number;
-        sets: RawSet[];
         [key: string]: unknown;
       }
       interface RawWorkout {
         exercises: RawExercise[];
-        order: number;
         [key: string]: unknown;
       }
-      // The order values are persisted as-is by store_plan/create_plan, so
-      // renumber every level to 1..n after dropping unknown exercises.
-      const enrichedWorkouts = renumber(
-        (aiOutput.workouts as RawWorkout[]).map((workout) => ({
+      const enrichedWorkouts = (aiOutput.workouts as RawWorkout[]).map(
+        (workout) => ({
           ...workout,
-          exercises: renumber(
-            workout.exercises
-              .map((ex) => ({
-                ...ex,
-                exercise: exerciseMap.get(ex.exercise_id) ?? null,
-                sets: renumber(ex.sets),
-              }))
-              .filter((ex) => ex.exercise !== null)
-          ),
-        }))
+          exercises: workout.exercises
+            .map((ex) => ({
+              ...ex,
+              exercise: exerciseMap.get(ex.exercise_id) ?? null,
+            }))
+            .filter((ex) => ex.exercise !== null),
+        })
       );
 
       const planData = {
