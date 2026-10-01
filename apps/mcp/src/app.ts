@@ -34,3 +34,6 @@ app.all("/", async (c) => {
   await server.connect(transport);
   return transport.handleRequest(c.req.raw);
 });
+
+// Vercel's Hono preset serves the default export of dist/app.js.
+export default app;
