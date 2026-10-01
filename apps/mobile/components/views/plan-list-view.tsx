@@ -1,4 +1,5 @@
 import { Link } from "expo-router";
+import { Pressable } from "react-native";
 import { usePlansQuery } from "~/hooks/queries/plans";
 import { useIsProQuery } from "~/hooks/revenueCat";
 import PlanCard from "../plans/plan-card";
@@ -13,8 +14,12 @@ export default function PlansListView() {
   return (
     <VStack className="items-stretch">
       {plans?.map((plan) => (
-        <Link href={`/plans/${plan.id}`} key={plan.id}>
-          <PlanCard plan={plan} />
+        // `asChild` keeps the card out of the Text wrapper Link renders by
+        // default, which clips the top edge of an inlined View.
+        <Link asChild href={`/plans/${plan.id}`} key={plan.id}>
+          <Pressable className="active:opacity-80">
+            <PlanCard plan={plan} />
+          </Pressable>
         </Link>
       ))}
       <Link asChild href="/planner">

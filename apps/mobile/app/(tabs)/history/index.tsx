@@ -1,12 +1,26 @@
 import type { WorkoutSession } from "@fitme/core";
 import { Link, Stack } from "expo-router";
 import { useCallback, useState } from "react";
-import { FlatList, RefreshControl, View } from "react-native";
+import { FlatList, Pressable, RefreshControl, View } from "react-native";
 import Purchases from "react-native-purchases";
 import { Text } from "~/components/ui/text";
 import { VStack } from "~/components/ui/vstack";
 import WorkoutSessionCard from "~/components/views/workout-session-card";
 import { useWorkoutSessionHistoryQuery } from "~/hooks/queries/workout-sessions";
+
+const ItemSeparator = () => <View className="h-4" />;
+
+const keyExtractor = (item: WorkoutSession) => item.id;
+
+// `asChild` keeps the card out of the Text wrapper Link renders by default,
+// which clips the top edge of an inlined View.
+const renderItem = ({ item }: { item: WorkoutSession }) => (
+  <Link asChild href={`/workout-sessions/${item.id}/summary`}>
+    <Pressable className="active:opacity-80">
+      <WorkoutSessionCard className="w-full" workoutSession={item} />
+    </Pressable>
+  </Link>
+);
 
 export default function HistoryScreen() {
   const [refreshing, setRefreshing] = useState(false);
@@ -39,8 +53,8 @@ export default function HistoryScreen() {
         className="px-6"
         contentInsetAdjustmentBehavior="automatic"
         data={workoutSessions ?? []}
-        ItemSeparatorComponent={() => <View className="h-4" />}
-        keyExtractor={(item) => item.id}
+        ItemSeparatorComponent={ItemSeparator}
+        keyExtractor={keyExtractor}
         ListEmptyComponent={
           <VStack className="flex-1 items-center justify-center p-6">
             <Text className="text-center">
@@ -51,11 +65,7 @@ export default function HistoryScreen() {
         refreshControl={
           <RefreshControl onRefresh={onRefresh} refreshing={refreshing} />
         }
-        renderItem={({ item }: { item: WorkoutSession }) => (
-          <Link href={`/workout-sessions/${item.id}/summary`}>
-            <WorkoutSessionCard className="w-full" workoutSession={item} />
-          </Link>
-        )}
+        renderItem={renderItem}
         showsVerticalScrollIndicator={false}
       />
     </>
