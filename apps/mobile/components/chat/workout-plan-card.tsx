@@ -1,13 +1,7 @@
-import type {
-  Exercise,
-  ExperienceLevel,
-  Goal,
-  Place,
-  PlanData,
-} from "@fitme/core";
+import type { ExperienceLevel, Goal, Place, PlanInput } from "@fitme/core";
 import { useQueryClient } from "@tanstack/react-query";
 import { router } from "expo-router";
-import { useState } from "react";
+import { useCallback, useState } from "react";
 import { Pressable, Text, View } from "react-native";
 import Animated, { FadeIn } from "react-native-reanimated";
 import { SymbolImage } from "@/components/symbol-image";
@@ -94,10 +88,15 @@ function PlanTag({ icon, label }: { icon: string; label: string }) {
 }
 
 function ExerciseRow({ exercise }: { exercise: WorkoutExercise }) {
+  const handlePress = useCallback(
+    () => router.push(`/exercises/${exercise.exercise_id}`),
+    [exercise.exercise_id]
+  );
+
   return (
     <Pressable
       className="flex-row items-center border-border/15 border-b py-3 active:opacity-60"
-      onPress={() => router.push(`/exercises/${exercise.exercise_id}`)}
+      onPress={handlePress}
     >
       <Text className="w-8 font-semibold text-primary text-subhead">
         {exercise.sets}×
@@ -149,17 +148,19 @@ function WorkoutDaySection({
 export function WorkoutPlanCard({ plan }: { plan: WorkoutPlan }) {
   const [saved, setSaved] = useState(false);
   const queryClient = useQueryClient();
-  const storePlan = useStorePlanMutation();
-  const activatePlan = useActivatePlanMutation();
+  const { mutateAsync: storePlan, isPending: isStoring } =
+    useStorePlanMutation();
+  const { mutateAsync: activatePlan, isPending: isActivating } =
+    useActivatePlanMutation();
 
-  const isSaving = storePlan.isPending || activatePlan.isPending;
+  const isSaving = isStoring || isActivating;
 
   const hasInvalidExercises = plan.workouts
     .flatMap((w) => w.exercises)
     .some((e) => !e.exercise_id);
 
-  const handleSave = async () => {
-    const planData: PlanData = {
+  const handleSave = useCallback(async () => {
+    const planData: PlanInput = {
       description: plan.description,
       experience_level: (plan.experienceLevel ??
         "intermediate") as ExperienceLevel,
@@ -168,29 +169,25 @@ export function WorkoutPlanCard({ plan }: { plan: WorkoutPlan }) {
       name: plan.name,
       place: (plan.place ?? "gym") as Place,
       workout_duration: plan.workoutDuration ?? 60,
-      workouts: plan.workouts.map((day, dayIndex) => ({
+      workouts: plan.workouts.map((day) => ({
         description: "",
-        exercises: day.exercises.map((ex, exIndex) => ({
-          exercise: { id: ex.exercise_id } as Exercise,
+        exercises: day.exercises.map((ex) => ({
           exercise_id: ex.exercise_id,
-          order: exIndex,
-          sets: Array.from({ length: ex.sets }, (_, i) => ({
-            order: i,
+          sets: Array.from({ length: ex.sets }, () => ({
             reps_recommended: parseReps(ex.reps),
             rest_recommended: ex.restSeconds ?? 90,
             weight_recommended: 0,
           })),
         })),
         name: day.name,
-        order: dayIndex,
       })),
     };
 
-    const savedPlan = await storePlan.mutateAsync(planData);
-    await activatePlan.mutateAsync({ id: savedPlan.id });
+    const savedPlan = await storePlan(planData);
+    await activatePlan({ id: savedPlan.id });
     queryClient.invalidateQueries({ queryKey: ["plans"] });
     setSaved(true);
-  };
+  }, [activatePlan, plan, queryClient, storePlan]);
 
   const placeIcon = plan.place === "home" ? "house" : "building.2";
   const placeLabel = plan.place === "home" ? "Home" : "Gym";
@@ -214,7 +211,7 @@ export function WorkoutPlanCard({ plan }: { plan: WorkoutPlan }) {
             icon="bolt.fill"
             label={`${plan.frequencyPerWeek}x / week`}
           />
-          {plan.place && <PlanTag icon={placeIcon} label={placeLabel} />}
+          {plan.place ? <PlanTag icon={placeIcon} label={placeLabel} /> : null}
         </View>
       </View>
 

@@ -184,6 +184,27 @@ export interface WorkoutExerciseSetData {
   weight_recommended: number;
 }
 
+/**
+ * Payload for the plan RPCs. They derive `order` from each item's position
+ * in the arrays, so the payload carries no `order` fields.
+ */
+export interface PlanInput extends Omit<PlanData, "workouts"> {
+  workouts: WorkoutInput[];
+}
+
+export interface WorkoutInput {
+  description: string;
+  exercises: WorkoutExerciseInput[];
+  name: string;
+}
+
+export interface WorkoutExerciseInput {
+  exercise_id: string;
+  sets: WorkoutExerciseSetInput[];
+}
+
+export type WorkoutExerciseSetInput = Omit<WorkoutExerciseSetData, "order">;
+
 export const coachModelProviders = ["openai", "anthropic"] as const;
 export type CoachModelProvider = (typeof coachModelProviders)[number];
 

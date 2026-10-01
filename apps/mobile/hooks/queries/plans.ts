@@ -1,4 +1,4 @@
-import type { Plan, PlanData } from "@fitme/core";
+import type { Plan, PlanInput } from "@fitme/core";
 import { createMutation, createQuery } from "react-query-kit";
 import { supabase } from "@/lib/supabase";
 import { IS_E2E } from "~/lib/constants";
@@ -51,21 +51,12 @@ export const usePlanQuery = createQuery<Plan, PlanQueryVariables>({
   queryKey: ["plan"],
 });
 
-export const useStorePlanMutation = createMutation<Plan, PlanData>({
-  mutationFn: async (planData: PlanData): Promise<Plan> => {
-    // Strip nested exercise objects — only exercise_id is needed by the RPC
-    const payload = {
-      ...planData,
-      workouts: planData.workouts.map((w) => ({
-        ...w,
-        exercises: w.exercises.map(({ exercise: _exercise, ...ex }) => ex),
-      })),
-    };
-
+export const useStorePlanMutation = createMutation<Plan, PlanInput>({
+  mutationFn: async (planData: PlanInput): Promise<Plan> => {
     const { data: planId, error: rpcError } = await supabase.rpc(
       "create_plan",
       {
-        p_plan_data: payload,
+        p_plan_data: planData,
       }
     );
     if (rpcError) {
