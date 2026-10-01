@@ -23,8 +23,7 @@ interface WorkoutSessionExerciseSetRowViewProps {
   localSetId?: string;
   locked?: boolean;
   onSetCreated?: (localSetId?: string) => void;
-  /** 1-based position of the set as displayed to the user. */
-  setNumber: number;
+  order?: number;
   timer?: boolean;
   workoutSessionExerciseSet: WorkoutSessionExerciseSet | null;
 }
@@ -33,7 +32,7 @@ export default function WorkoutSessionExerciseSetRowView({
   exerciseId,
   workoutSessionExerciseSet,
   localSetId,
-  setNumber,
+  order = 0,
   hasWeight = true,
   timer = true,
   locked = false,
@@ -98,6 +97,7 @@ export default function WorkoutSessionExerciseSetRowView({
       },
     });
 
+  const setOrder = isNewSet ? order : workoutSessionExerciseSet.order;
   const weightRecommended = isNewSet
     ? 0
     : (workoutSessionExerciseSet.weight_recommended ?? 0);
@@ -157,7 +157,7 @@ export default function WorkoutSessionExerciseSetRowView({
           <Check className="text-primary" size={16} strokeWidth={3} />
         </HStack>
       ) : (
-        <Text className="w-12 text-center font-bold">#{setNumber}</Text>
+        <Text className="w-12 text-center font-bold">#{setOrder}</Text>
       )}
 
       <WorkoutSessionExerciseSetForm
@@ -174,7 +174,7 @@ export default function WorkoutSessionExerciseSetRowView({
             .replace(".00", "")
             .replace(".", ","),
         }}
-        setIndex={setNumber}
+        setIndex={setOrder}
       />
 
       <HStack className={cn("absolute inset-x-0 -bottom-3 h-6 gap-1")}>

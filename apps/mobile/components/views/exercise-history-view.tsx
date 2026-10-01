@@ -35,13 +35,13 @@ export default function ExerciseHistoryView({
           </HStack>
           {item.sets
             .sort((a, b) => a.order - b.order)
-            .map((set, index) => (
+            .map((set) => (
               <HStack
                 className="justify-start border-border border-t px-sm py-xs"
                 key={set.id}
               >
                 <HStack className="w-8 justify-center">
-                  <Text className="text-primary">#{index + 1}</Text>
+                  <Text className="text-primary">#{set.order}</Text>
                 </HStack>
                 <Text className="w-16">
                   {set.weight_completed}{" "}

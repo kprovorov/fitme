@@ -17,6 +17,7 @@ interface WorkoutSessionExerciseSetsTableViewProps {
 
 interface LocalSet {
   id: string;
+  order: number;
 }
 
 export default function WorkoutSessionExerciseSetsTableView({
@@ -31,9 +32,16 @@ export default function WorkoutSessionExerciseSetsTableView({
     (set) => set.weight_recommended !== null
   );
 
+  const maxOrder = Math.max(
+    ...workoutSessionExerciseSets.map((set) => set.order),
+    0
+  );
+
   const handleAddSet = () => {
+    const newOrder = maxOrder + localSets.length + 1;
     const newLocalSet: LocalSet = {
-      id: `local-${Date.now()}-${localSets.length}`,
+      id: `local-${Date.now()}-${newOrder}`,
+      order: newOrder,
     };
     setLocalSets([...localSets, newLocalSet]);
   };
@@ -76,7 +84,6 @@ export default function WorkoutSessionExerciseSetsTableView({
                 hasWeight={hasWeight}
                 key={workoutSessionExerciseSet.id}
                 locked={locked}
-                setNumber={index + 1}
                 timer={false}
                 workoutSessionExerciseSet={workoutSessionExerciseSet}
               />
@@ -97,7 +104,7 @@ export default function WorkoutSessionExerciseSetsTableView({
                 localSetId={localSet.id}
                 locked={locked}
                 onSetCreated={handleSetCreated}
-                setNumber={workoutSessionExerciseSets.length + index + 1}
+                order={localSet.order}
                 timer={false}
                 workoutSessionExerciseSet={null}
               />
