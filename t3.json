@@ -1,0 +1,33 @@
+{
+  "$schema": "https://t3.codes/schema/t3.json",
+  "scripts": [
+    {
+      "name": "Setup",
+      "command": "./.t3/setup.sh",
+      "icon": "configure",
+      "runOnWorktreeCreate": true,
+      "async": false
+    },
+    {
+      "name": "Run mobile",
+      "command": "./.t3/run.sh",
+      "icon": "play"
+    },
+    {
+      "name": "Run web",
+      "command": "pnpm dev:web",
+      "icon": "play",
+      "previewUrl": "http://localhost:3000"
+    },
+    {
+      "name": "Test",
+      "command": "pnpm test",
+      "icon": "test"
+    },
+    {
+      "name": "Check",
+      "command": "pnpm check && pnpm typecheck",
+      "icon": "lint"
+    }
+  ]
+}
