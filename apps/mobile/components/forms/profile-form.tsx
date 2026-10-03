@@ -183,7 +183,9 @@ export default function ProfileForm({
         ref={scrollViewRef}
         showsVerticalScrollIndicator={false}
       >
+        {/* Tap-outside-to-dismiss only; keep the fields individually accessible */}
         <Pressable
+          accessible={false}
           onPress={() => {
             Keyboard.dismiss();
             if (fieldFocused) {
@@ -318,9 +320,11 @@ export default function ProfileForm({
       <Animated.View className="overflow-hidden" style={[animatedStyle]}>
         <HStack className="flex-1 items-stretch justify-stretch gap-0 px-4">
           {activeWheel && (
+            // Remount per field: a reused native wheel keeps the previous selection
             <ParameterWheel
               control={form.control}
               field={activeWheel}
+              key={activeWheel}
               measurementSystem={measurementSystem}
               onChange={() => form.trigger(activeWheel)}
             />

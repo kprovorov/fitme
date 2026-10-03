@@ -89,9 +89,7 @@ export default function EditProfileScreen() {
             weight: user.profile?.weight ?? undefined,
           }}
           footer={
-            !!error && (
-              <ErrorMessage>{PROFILE_SAVE_ERROR_MESSAGE}</ErrorMessage>
-            )
+            !!error && <ErrorMessage>{PROFILE_SAVE_ERROR_MESSAGE}</ErrorMessage>
           }
           isSubmitting={isPending}
           measurementSystem={measurementSystem}
