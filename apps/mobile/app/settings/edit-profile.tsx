@@ -105,7 +105,6 @@ export default function EditProfileScreen() {
           }
           showName
           submitLabel="Save"
-          submitSystemImage="checkmark"
           submitTestID="edit-profile-save-button"
         />
       )}
