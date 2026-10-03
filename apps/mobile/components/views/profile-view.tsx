@@ -100,6 +100,12 @@ export default function ProfileView() {
         </Card>
 
         <MenuList>
+          <Link asChild href="/settings/edit-profile">
+            <MenuListItem icon="chevron-right" testID="edit-profile-link">
+              <Text>Edit Profile</Text>
+            </MenuListItem>
+          </Link>
+          <Separator />
           <Link asChild href="/settings">
             <MenuListItem icon="chevron-right">
               <Text>Settings</Text>
