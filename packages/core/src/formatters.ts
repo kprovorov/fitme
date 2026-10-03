@@ -1,5 +1,6 @@
 import { getWeightLabel } from "./labels";
 import type { MeasurementSystem } from "./models";
+import { inchesToFeetAndInches } from "./utils";
 
 export const formatWeight = (
   weight: number,
@@ -13,8 +14,7 @@ export const formatHeight = (
   if (measurementSystem === "metric") {
     return `${height} cm`;
   }
-  const feet = Math.floor(height / 12);
-  const inches = Math.round(height % 12);
+  const { feet, inches } = inchesToFeetAndInches(height);
   return `${feet}′ ${inches}″`;
 };
 

@@ -19,6 +19,24 @@ export function range(from: number, to: number): number[] {
   return Array.from({ length: to - from + 1 }, (_, i) => from + i);
 }
 
+const INCHES_PER_FOOT = 12;
+
+/** Splits a total height in inches into whole feet and inches, rounding to the nearest inch. */
+export function inchesToFeetAndInches(totalInches: number): {
+  feet: number;
+  inches: number;
+} {
+  const rounded = Math.round(totalInches);
+  return {
+    feet: Math.floor(rounded / INCHES_PER_FOOT),
+    inches: rounded % INCHES_PER_FOOT,
+  };
+}
+
+export function feetAndInchesToInches(feet: number, inches: number): number {
+  return feet * INCHES_PER_FOOT + inches;
+}
+
 export function muscleGroupToName(muscleGroup: MuscleGroup): string {
   switch (muscleGroup) {
     case "chest":
