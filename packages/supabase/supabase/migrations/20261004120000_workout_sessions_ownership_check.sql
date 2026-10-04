@@ -8,8 +8,12 @@
 -- workout_id, finish_workout_session rotating the referenced workout's plan).
 --
 -- Changes:
---   1. Keep USING (user_id = auth.uid()) for reads, updates and deletes
---   2. Add an explicit WITH CHECK for inserts and updates that requires:
+--   1. Detach sessions that already reference another user's workout or plan
+--      (set the foreign reference to NULL, the same state as a deleted
+--      workout), so they no longer block that user's workout from starting
+--      and stay updatable by their owner under the new check
+--   2. Keep USING (user_id = auth.uid()) for reads, updates and deletes
+--   3. Add an explicit WITH CHECK for inserts and updates that requires:
 --      - user_id = auth.uid() (restated: once WITH CHECK is given, Postgres
 --        no longer falls back to USING for the new row)
 --      - workout_id is NULL or belongs to a plan the caller owns
@@ -18,6 +22,28 @@
 -- NULL references stay allowed: workout_id becomes NULL when the workout
 -- template is deleted (ON DELETE SET NULL). Soft-deleted plans (deleted_at set)
 -- still count as owned, so sessions of a deleted plan remain updatable.
+
+-- 1. Detach foreign references created before this fix
+UPDATE public.workout_sessions ws
+SET workout_id = NULL
+WHERE ws.workout_id IS NOT NULL
+  AND NOT EXISTS (
+    SELECT 1 FROM public.workouts w
+    JOIN public.plans p ON p.id = w.plan_id
+    WHERE w.id = ws.workout_id
+      AND p.user_id = ws.user_id
+  );
+
+UPDATE public.workout_sessions ws
+SET plan_id = NULL
+WHERE ws.plan_id IS NOT NULL
+  AND NOT EXISTS (
+    SELECT 1 FROM public.plans p
+    WHERE p.id = ws.plan_id
+      AND p.user_id = ws.user_id
+  );
+
+-- 2 & 3. Recreate the policy with an ownership check on writes
 DROP POLICY "workout_sessions_all" ON public.workout_sessions;
 
 CREATE POLICY "workout_sessions_all" ON public.workout_sessions
