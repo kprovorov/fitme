@@ -98,17 +98,20 @@ export function DrawerContent({
   onNavigate: (path: Href) => void;
   onOpenModal: (path: Href) => void;
 }) {
-  const navigateToChats = useCallback(() => onNavigate("/chats"), [onNavigate]);
+  const navigateToChats = useCallback(
+    () => onNavigate("/coach/chats"),
+    [onNavigate]
+  );
   const navigateHome = useCallback(() => onNavigate("/"), [onNavigate]);
   const openSettingsModal = useCallback(
-    () => onOpenModal("/(settings)/settings"),
+    () => onOpenModal("/settings"),
     [onOpenModal]
   );
   const openSettings = useCallback(() => {
     if (process.env.EXPO_OS === "android") {
-      onNavigate("/(settings)/settings");
+      onNavigate("/settings");
     }
-    onOpenModal("/(settings)/settings");
+    onOpenModal("/settings");
   }, [onNavigate, onOpenModal]);
 
   return (
