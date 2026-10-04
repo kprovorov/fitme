@@ -56,7 +56,8 @@ export const useCreateWorkoutSessionExerciseMutation = createMutation<
       .order("order", { ascending: false })
       .limit(1);
 
-    const nextOrder = ((existing?.[0] as { order?: number })?.order ?? 0) + 1;
+    const nextOrder =
+      ((existing?.[0] as { order?: number } | undefined)?.order ?? 0) + 1;
 
     const { data, error } = await supabase
       .from("workout_session_exercises")

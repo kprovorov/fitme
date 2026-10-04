@@ -30,9 +30,9 @@ type WrappableFetch = ((...args: any[]) => Promise<unknown>) & {
   [polyfillSymbol]?: boolean;
 };
 
-export function wrapFetchWithWindowLocation(fetch: WrappableFetch) {
-  if (fetch[polyfillSymbol]) {
-    return fetch;
+export function wrapFetchWithWindowLocation(fetchImpl: WrappableFetch) {
+  if (fetchImpl[polyfillSymbol]) {
+    return fetchImpl;
   }
 
   // biome-ignore lint/suspicious/noExplicitAny: forwards arbitrary fetch args to the native implementation
@@ -49,7 +49,7 @@ export function wrapFetchWithWindowLocation(fetch: WrappableFetch) {
       props[0].url = new URL(props[0].url, getOrigin()).toString();
     }
 
-    return fetch(...props);
+    return fetchImpl(...props);
   };
 
   _fetch[polyfillSymbol] = true;

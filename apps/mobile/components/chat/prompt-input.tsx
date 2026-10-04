@@ -16,7 +16,7 @@ import Animated, { FadeIn, FadeOut } from "react-native-reanimated";
 import { useCSSVariable } from "uniwind";
 import { SymbolImage } from "@/components/symbol-image";
 import { TouchableGlass } from "@/components/touchable-glass";
-import { cn } from "@/utils/tailwind";
+import { cn } from "~/lib/utils";
 import { useChatContext } from "./chat-context";
 import { useConversationContext } from "./conversation";
 
@@ -36,7 +36,7 @@ export function PromptInput({ children }: { children: ReactNode }) {
       onLayout={onPromptInputLayout}
       style={[{ left: 0, position: "absolute", right: 0 }, promptInputStyle]}
     >
-      {error && <PromptInputError message={error.message} />}
+      {error ? <PromptInputError message={error.message} /> : null}
       <AnimatedGlassContainer
         spacing={8}
         style={{

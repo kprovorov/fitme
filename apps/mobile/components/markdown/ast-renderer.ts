@@ -90,7 +90,7 @@ export default class ASTRenderer {
         const start = listNode.start ?? 1;
         const ordered = listNode.ordered ?? false;
 
-        for (let i = 0; i < listNode.children.length; i++) {
+        for (let i = 0; i < listNode.children.length; i += 1) {
           const listItemNode = listNode.children[i];
           const listStyleType = ordered
             ? `${start + i}.`
@@ -114,7 +114,7 @@ export default class ASTRenderer {
       } else if (type === "table") {
         // Handle table with header row detection
         const tableNode = node as import("mdast").Table;
-        for (let i = 0; i < tableNode.children.length; i++) {
+        for (let i = 0; i < tableNode.children.length; i += 1) {
           const rowNode = tableNode.children[i];
           if (rowNode) {
             children.push(
@@ -128,7 +128,7 @@ export default class ASTRenderer {
       } else if (type === "tableRow") {
         // Handle table row with cell rendering
         const tableRowNode = node as import("mdast").TableRow;
-        for (let i = 0; i < tableRowNode.children.length; i++) {
+        for (let i = 0; i < tableRowNode.children.length; i += 1) {
           const cellNode = tableRowNode.children[i];
           if (cellNode) {
             children.push(

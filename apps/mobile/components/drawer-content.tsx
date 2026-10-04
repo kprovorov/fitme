@@ -9,7 +9,7 @@ import { Icon } from "@/components/icon";
 import { TouchableGlass } from "@/components/touchable-glass";
 import { SafeAreaView } from "@/components/tw";
 import { MOCK_CHATS } from "@/utils/mock-chats";
-import { cn } from "@/utils/tailwind";
+import { cn } from "~/lib/utils";
 
 interface DrawerContextValue {
   closeDrawer: () => void;

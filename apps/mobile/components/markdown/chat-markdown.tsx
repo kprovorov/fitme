@@ -115,7 +115,7 @@ export function ChatMarkdown({ children }: { children: string }) {
         }
       }}
       renderRules={{
-        listItem: ({ node, styles, children, extras }) => (
+        listItem: ({ node, styles, children: itemChildren, extras }) => (
           // biome-ignore lint/suspicious/noExplicitAny: StyleMap values are NamedStyle which requires cast for View/Text style props
           <View key={node.key} style={styles.listItem as any}>
             {extras?.customListStyleType ? (
@@ -134,7 +134,7 @@ export function ChatMarkdown({ children }: { children: string }) {
               </Text>
             )}
             {/* biome-ignore lint/suspicious/noExplicitAny: StyleMap values are NamedStyle which requires cast for View style prop */}
-            <View style={styles.listItemContent as any}>{children}</View>
+            <View style={styles.listItemContent as any}>{itemChildren}</View>
           </View>
         ),
       }}

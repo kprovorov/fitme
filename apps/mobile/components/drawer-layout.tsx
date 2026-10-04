@@ -41,7 +41,7 @@ const SWIPE_MIN_VELOCITY = 500;
 const PROGRESS_EPSILON = 0.05;
 
 function getDrawerWidth(layoutWidth: number, drawerWidth?: number): number {
-  if (drawerWidth != null) {
+  if (drawerWidth !== undefined) {
     return drawerWidth;
   }
   return layoutWidth - APPROX_APP_BAR_HEIGHT <= DEFAULT_DRAWER_WIDTH
@@ -94,7 +94,7 @@ export function DrawerLayout({
   }, []);
 
   const endInteraction = React.useCallback(() => {
-    if (interactionHandleRef.current != null) {
+    if (interactionHandleRef.current !== null) {
       InteractionManager.clearInteractionHandle(interactionHandleRef.current);
       interactionHandleRef.current = null;
     }

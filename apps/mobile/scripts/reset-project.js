@@ -48,9 +48,10 @@ const moveDirectories = async () => {
     // Move old directories to new app-example directory
     for (const dir of oldDirs) {
       const oldDirPath = path.join(root, dir);
-      const newDirPath = path.join(root, newDir, dir);
+      const targetDirPath = path.join(root, newDir, dir);
       if (fs.existsSync(oldDirPath)) {
-        await fs.promises.rename(oldDirPath, newDirPath);
+        // biome-ignore lint/performance/noAwaitInLoops: moves run one at a time so each log line follows its own move and a failure stops the rest
+        await fs.promises.rename(oldDirPath, targetDirPath);
         console.log(`➡️ /${dir} moved to /${newDir}/${dir}.`);
       } else {
         console.log(`➡️ /${dir} does not exist, skipping.`);
