@@ -1,7 +1,9 @@
 import { handleSupabaseError } from "@fitme/core";
 import { Link } from "expo-router";
-import { useState } from "react";
-import ForgotPasswordForm from "~/components/forms/auth/forgot-password-form";
+import { useCallback, useState } from "react";
+import ForgotPasswordForm, {
+  type ForgotPasswordFormValues,
+} from "~/components/forms/auth/forgot-password-form";
 import { Text } from "~/components/ui/text";
 import { H3, P } from "~/components/ui/typography";
 import { VStack } from "~/components/ui/vstack";
@@ -16,6 +18,14 @@ export default function ForgotPasswordView() {
       handleSupabaseError(error, setErrorMessage);
     },
   });
+
+  const handleSubmit = useCallback(
+    async (values: ForgotPasswordFormValues) => {
+      await forgotPassword(values);
+      setSent(true);
+    },
+    [forgotPassword]
+  );
 
   if (sent) {
     return (
@@ -48,12 +58,7 @@ export default function ForgotPasswordView() {
         </Text>
       </VStack>
       {errorMessage ? <P className="text-red-500">{errorMessage}</P> : null}
-      <ForgotPasswordForm
-        onSubmit={async (values) => {
-          await forgotPassword(values);
-          setSent(true);
-        }}
-      />
+      <ForgotPasswordForm onSubmit={handleSubmit} />
       <Text className="font-nunito-sans-bold text-subhead">
         Remember your password?{" "}
         <Link className="font-nunito-sans-bold text-primary" href="/auth/login">

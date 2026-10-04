@@ -9,8 +9,14 @@ import {
 } from "@fitme/core";
 import { zodResolver } from "@hookform/resolvers/zod";
 import { Stack } from "expo-router";
-import { type ReactNode, useRef, useState } from "react";
-import { type Control, Controller, useForm } from "react-hook-form";
+import { type ReactNode, useCallback, useRef, useState } from "react";
+import {
+  type Control,
+  Controller,
+  type ControllerRenderProps,
+  useController,
+  useForm,
+} from "react-hook-form";
 import { Keyboard, Pressable, ScrollView } from "react-native";
 import Animated, {
   useAnimatedStyle,
@@ -127,32 +133,81 @@ export default function ProfileForm({
     height: wheelHeight.value,
   }));
 
-  const toggleWheel = (show?: boolean) => {
-    const next = show ?? !showWheel;
-    setShowWheel(next);
-    wheelHeight.value = withTiming(next ? WHEEL_HEIGHT : 0, {
-      duration: 150,
-    });
+  const toggleWheel = useCallback(
+    (show?: boolean) => {
+      const next = show ?? !showWheel;
+      setShowWheel(next);
+      wheelHeight.value = withTiming(next ? WHEEL_HEIGHT : 0, {
+        duration: 150,
+      });
 
-    if (next) {
-      // Small delay to ensure animation is complete
-      setTimeout(() => {
-        scrollViewRef.current?.scrollToEnd({ animated: true });
-      }, 160);
-    }
-  };
+      if (next) {
+        // Small delay to ensure animation is complete
+        setTimeout(() => {
+          scrollViewRef.current?.scrollToEnd({ animated: true });
+        }, 160);
+      }
+    },
+    [showWheel, wheelHeight]
+  );
 
-  const toggleField = (field: ProfileField) => {
+  const toggleField = useCallback(
+    (field: ProfileField) => {
+      Keyboard.dismiss();
+      if (fieldFocused === field) {
+        toggleWheel(false);
+        setFieldFocused(null);
+      } else {
+        toggleWheel(true);
+        setFieldFocused(field);
+        setActiveWheel(field);
+      }
+    },
+    [fieldFocused, toggleWheel]
+  );
+
+  const handleBackgroundPress = useCallback(() => {
     Keyboard.dismiss();
-    if (fieldFocused === field) {
+    if (fieldFocused) {
       toggleWheel(false);
       setFieldFocused(null);
-    } else {
-      toggleWheel(true);
-      setFieldFocused(field);
-      setActiveWheel(field);
     }
-  };
+  }, [fieldFocused, toggleWheel]);
+
+  const handleNameFocus = useCallback(() => {
+    toggleWheel(false);
+    setFieldFocused(null);
+  }, [toggleWheel]);
+
+  const isFormSubmitting = isSubmitting ?? form.formState.isSubmitting;
+
+  const renderNameField = useCallback(
+    ({
+      field: { onChange, onBlur, value },
+    }: {
+      field: ControllerRenderProps<ProfileFormValues, "name">;
+    }) => (
+      <Input
+        autoCapitalize="words"
+        autoComplete="name"
+        editable={!isFormSubmitting}
+        maxLength={50}
+        onBlur={onBlur}
+        onChangeText={onChange}
+        onFocus={handleNameFocus}
+        placeholder="Name"
+        testID="edit-profile-name-input"
+        value={value}
+      />
+    ),
+    [handleNameFocus, isFormSubmitting]
+  );
+
+  const handleWheelChange = useCallback(() => {
+    if (activeWheel) {
+      form.trigger(activeWheel);
+    }
+  }, [activeWheel, form]);
 
   const age = form.getValues("age");
   const weight = form.getValues("weight");
@@ -186,13 +241,7 @@ export default function ProfileForm({
         {/* Tap-outside-to-dismiss only; keep the fields individually accessible */}
         <Pressable
           accessible={false}
-          onPress={() => {
-            Keyboard.dismiss();
-            if (fieldFocused) {
-              toggleWheel(false);
-              setFieldFocused(null);
-            }
-          }}
+          onPress={handleBackgroundPress}
           style={{ flex: 1, width: "100%" }}
         >
           <VStack className="items-stretch justify-center gap-8 p-6">
@@ -211,23 +260,7 @@ export default function ProfileForm({
                 <Controller
                   control={form.control}
                   name="name"
-                  render={({ field: { onChange, onBlur, value } }) => (
-                    <Input
-                      autoCapitalize="words"
-                      autoComplete="name"
-                      editable={!(isSubmitting ?? form.formState.isSubmitting)}
-                      maxLength={50}
-                      onBlur={onBlur}
-                      onChangeText={onChange}
-                      onFocus={() => {
-                        toggleWheel(false);
-                        setFieldFocused(null);
-                      }}
-                      placeholder="Name"
-                      testID="edit-profile-name-input"
-                      value={value}
-                    />
-                  )}
+                  render={renderNameField}
                 />
               </VStack>
             ) : null}
@@ -245,9 +278,7 @@ export default function ProfileForm({
               <Controller
                 control={form.control}
                 name="gender"
-                render={({ field: { onChange, value } }) => (
-                  <GenderSwitch onValueChange={onChange} value={value} />
-                )}
+                render={renderGenderField}
               />
             </VStack>
 
@@ -267,20 +298,22 @@ export default function ProfileForm({
 
               <VStack className="items-stretch gap-0 rounded-lg bg-card">
                 <ParameterRow
+                  field="age"
                   hasError={!!form.formState.errors.age}
                   isFocused={fieldFocused === "age"}
                   label="Age"
-                  onPress={() => toggleField("age")}
+                  onPress={toggleField}
                   value={age ? `${age} y.o.` : undefined}
                 />
 
                 <Separator />
 
                 <ParameterRow
+                  field="weight"
                   hasError={!!form.formState.errors.weight}
                   isFocused={fieldFocused === "weight"}
                   label="Weight"
-                  onPress={() => toggleField("weight")}
+                  onPress={toggleField}
                   value={
                     weight ? formatWeight(weight, measurementSystem) : undefined
                   }
@@ -289,10 +322,11 @@ export default function ProfileForm({
                 <Separator />
 
                 <ParameterRow
+                  field="height"
                   hasError={!!form.formState.errors.height}
                   isFocused={fieldFocused === "height"}
                   label="Height"
-                  onPress={() => toggleField("height")}
+                  onPress={toggleField}
                   value={
                     height ? formatHeight(height, measurementSystem) : undefined
                   }
@@ -310,7 +344,7 @@ export default function ProfileForm({
         style={{ paddingBottom: Math.max(24, insets.bottom) }}
       >
         <Button
-          isLoading={isSubmitting ?? form.formState.isSubmitting}
+          isLoading={isFormSubmitting}
           label={submitLabel}
           onPress={form.handleSubmit(onSubmit)}
           systemImage={submitSystemImage}
@@ -326,7 +360,7 @@ export default function ProfileForm({
               field={activeWheel}
               key={activeWheel}
               measurementSystem={measurementSystem}
-              onChange={() => form.trigger(activeWheel)}
+              onChange={handleWheelChange}
             />
           ) : null}
         </HStack>
@@ -335,22 +369,34 @@ export default function ProfileForm({
   );
 }
 
+function renderGenderField({
+  field: { onChange, value },
+}: {
+  field: ControllerRenderProps<ProfileFormValues, "gender">;
+}) {
+  return <GenderSwitch onValueChange={onChange} value={value} />;
+}
+
 interface ParameterRowProps {
+  field: ProfileField;
   hasError: boolean;
   isFocused: boolean;
   label: string;
-  onPress: () => void;
+  onPress: (field: ProfileField) => void;
   /** Formatted value, or `undefined` when not set yet. */
   value?: string;
 }
 
 function ParameterRow({
+  field,
   hasError,
   isFocused,
   label,
   onPress,
   value,
 }: ParameterRowProps) {
+  const handlePress = useCallback(() => onPress(field), [field, onPress]);
+
   let valueClassName = "text-muted-foreground";
   if (isFocused) {
     valueClassName = "text-primary";
@@ -359,7 +405,7 @@ function ParameterRow({
   }
 
   return (
-    <Pressable onPress={onPress}>
+    <Pressable onPress={handlePress}>
       <HStack className="w-full justify-between p-3">
         <Text>{label}</Text>
         <Text className={valueClassName}>{value ?? "Not Set"}</Text>
@@ -387,109 +433,155 @@ function ParameterWheel({
   measurementSystem,
   onChange,
 }: ParameterWheelProps) {
-  const isMetric = measurementSystem === "metric";
-
   if (field === "age") {
-    return (
-      <Controller
-        control={control}
-        name="age"
-        render={({ field: { onChange: setAge, value } }) => (
-          <Picker
-            onValueChange={(v) => {
-              setAge(v);
-              onChange();
-            }}
-            options={range(4, 150).map((i) => ({
-              label: `${i}`,
-              value: i,
-            }))}
-            value={Math.round(value ?? 25)}
-            variant="wheel"
-          />
-        )}
-      />
-    );
+    return <AgeWheel control={control} onChange={onChange} />;
   }
 
   if (field === "weight") {
     return (
-      <Controller
+      <WeightWheel
         control={control}
-        name="weight"
-        render={({ field: { onChange: setWeight, value } }) => (
-          <Picker
-            onValueChange={(v) => {
-              setWeight(v);
-              onChange();
-            }}
-            options={range(1, isMetric ? 454 : 1000).map((i) => ({
-              label: formatWeight(i, measurementSystem),
-              value: i,
-            }))}
-            value={Math.round(value ?? (isMetric ? 80 : 176))}
-            variant="wheel"
-          />
-        )}
+        measurementSystem={measurementSystem}
+        onChange={onChange}
       />
     );
   }
 
   return (
-    <Controller
+    <HeightWheel
       control={control}
-      name="height"
-      render={({ field: { onChange: setHeight, value } }) => {
-        if (isMetric) {
-          return (
-            <Picker
-              onValueChange={(v) => {
-                setHeight(v);
-                onChange();
-              }}
-              options={range(30, 275).map((i) => ({
-                label: `${i} cm`,
-                value: i,
-              }))}
-              value={Math.round(value ?? 176)}
-              variant="wheel"
-            />
-          );
-        }
-
-        const { feet, inches } = inchesToFeetAndInches(
-          value ?? DEFAULT_HEIGHT_INCHES
-        );
-
-        return (
-          <>
-            <Picker
-              onValueChange={(v) => {
-                setHeight(feetAndInchesToInches(v, inches));
-                onChange();
-              }}
-              options={range(1, 9).map((i) => ({
-                label: `${i} ft`,
-                value: i,
-              }))}
-              value={feet}
-              variant="wheel"
-            />
-            <Picker
-              onValueChange={(v) => {
-                setHeight(feetAndInchesToInches(feet, v));
-                onChange();
-              }}
-              options={range(0, 11).map((i) => ({
-                label: `${i} in`,
-                value: i,
-              }))}
-              value={inches}
-              variant="wheel"
-            />
-          </>
-        );
-      }}
+      measurementSystem={measurementSystem}
+      onChange={onChange}
     />
+  );
+}
+
+type WheelProps = Omit<ParameterWheelProps, "field">;
+
+function AgeWheel({
+  control,
+  onChange,
+}: Omit<WheelProps, "measurementSystem">) {
+  const {
+    field: { onChange: setAge, value },
+  } = useController({ control, name: "age" });
+
+  const handleValueChange = useCallback(
+    (v: number) => {
+      setAge(v);
+      onChange();
+    },
+    [onChange, setAge]
+  );
+
+  return (
+    <Picker
+      onValueChange={handleValueChange}
+      options={range(4, 150).map((i) => ({
+        label: `${i}`,
+        value: i,
+      }))}
+      value={Math.round(value ?? 25)}
+      variant="wheel"
+    />
+  );
+}
+
+function WeightWheel({ control, measurementSystem, onChange }: WheelProps) {
+  const isMetric = measurementSystem === "metric";
+  const {
+    field: { onChange: setWeight, value },
+  } = useController({ control, name: "weight" });
+
+  const handleValueChange = useCallback(
+    (v: number) => {
+      setWeight(v);
+      onChange();
+    },
+    [onChange, setWeight]
+  );
+
+  return (
+    <Picker
+      onValueChange={handleValueChange}
+      options={range(1, isMetric ? 454 : 1000).map((i) => ({
+        label: formatWeight(i, measurementSystem),
+        value: i,
+      }))}
+      value={Math.round(value ?? (isMetric ? 80 : 176))}
+      variant="wheel"
+    />
+  );
+}
+
+function HeightWheel({ control, measurementSystem, onChange }: WheelProps) {
+  const isMetric = measurementSystem === "metric";
+  const {
+    field: { onChange: setHeight, value },
+  } = useController({ control, name: "height" });
+
+  const { feet, inches } = inchesToFeetAndInches(
+    value ?? DEFAULT_HEIGHT_INCHES
+  );
+
+  const handleCentimetersChange = useCallback(
+    (v: number) => {
+      setHeight(v);
+      onChange();
+    },
+    [onChange, setHeight]
+  );
+
+  const handleFeetChange = useCallback(
+    (v: number) => {
+      setHeight(feetAndInchesToInches(v, inches));
+      onChange();
+    },
+    [inches, onChange, setHeight]
+  );
+
+  const handleInchesChange = useCallback(
+    (v: number) => {
+      setHeight(feetAndInchesToInches(feet, v));
+      onChange();
+    },
+    [feet, onChange, setHeight]
+  );
+
+  if (isMetric) {
+    return (
+      <Picker
+        onValueChange={handleCentimetersChange}
+        options={range(30, 275).map((i) => ({
+          label: `${i} cm`,
+          value: i,
+        }))}
+        value={Math.round(value ?? 176)}
+        variant="wheel"
+      />
+    );
+  }
+
+  return (
+    <>
+      <Picker
+        onValueChange={handleFeetChange}
+        options={range(1, 9).map((i) => ({
+          label: `${i} ft`,
+          value: i,
+        }))}
+        value={feet}
+        variant="wheel"
+      />
+      <Picker
+        onValueChange={handleInchesChange}
+        options={range(0, 11).map((i) => ({
+          label: `${i} in`,
+          value: i,
+        }))}
+        value={inches}
+        variant="wheel"
+      />
+    </>
   );
 }

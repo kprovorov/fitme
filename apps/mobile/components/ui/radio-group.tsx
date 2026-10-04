@@ -10,6 +10,7 @@ import {
   tag,
   tint,
 } from "@expo/ui/swift-ui/modifiers";
+import { useCallback } from "react";
 import { SwiftUIHost, useSwiftUITheme } from "~/components/ui/swift-ui";
 import { cn } from "~/lib/utils";
 import type { PickerOption, PickerValue } from "./picker";
@@ -45,6 +46,11 @@ const RadioGroup = <TValue extends PickerValue>({
 }: RadioGroupProps<TValue>) => {
   const theme = useSwiftUITheme();
 
+  const handleSelectionChange = useCallback(
+    (selection: TValue | null) => onValueChange?.(selection as TValue),
+    [onValueChange]
+  );
+
   return (
     <SwiftUIHost className={cn("flex-1", className)} useViewportSizeMeasurement>
       <Form modifiers={[scrollContentBackground("hidden")]}>
@@ -54,9 +60,7 @@ const RadioGroup = <TValue extends PickerValue>({
         >
           <SwiftUIPicker
             modifiers={[pickerStyle("inline"), tint(theme.primary)]}
-            onSelectionChange={(selection) =>
-              onValueChange?.(selection as TValue)
-            }
+            onSelectionChange={handleSelectionChange}
             selection={value ?? null}
             testID={testID}
           >

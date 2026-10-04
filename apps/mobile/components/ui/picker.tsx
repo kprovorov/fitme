@@ -8,6 +8,7 @@ import {
   tag,
   tint,
 } from "@expo/ui/swift-ui/modifiers";
+import { useCallback } from "react";
 import { SwiftUIHost, useSwiftUITheme } from "~/components/ui/swift-ui";
 import { cn } from "~/lib/utils";
 
@@ -47,6 +48,11 @@ const Picker = <TValue extends PickerValue>({
 
   const isWheel = variant === "wheel";
 
+  const handleSelectionChange = useCallback(
+    (selection: TValue | null) => onValueChange?.(selection as TValue),
+    [onValueChange]
+  );
+
   return (
     <SwiftUIHost
       className={cn(isWheel ? "h-52 flex-1" : "w-full", className)}
@@ -55,7 +61,7 @@ const Picker = <TValue extends PickerValue>({
       <SwiftUIPicker
         label={label}
         modifiers={[pickerStyle(variant), tint(theme.primary)]}
-        onSelectionChange={(selection) => onValueChange?.(selection as TValue)}
+        onSelectionChange={handleSelectionChange}
         selection={value ?? null}
         testID={testID}
       >

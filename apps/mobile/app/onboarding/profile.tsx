@@ -2,8 +2,10 @@ import type { MeasurementSystem } from "@fitme/core";
 import * as Sentry from "@sentry/react-native";
 import { useLocales } from "expo-localization";
 import { router } from "expo-router";
+import { useCallback } from "react";
 import ProfileForm, {
   PROFILE_SAVE_ERROR_MESSAGE,
+  type ProfileFormValues,
 } from "~/components/forms/profile-form";
 import { ErrorMessage } from "~/components/ui/error-message";
 import { Text } from "~/components/ui/text";
@@ -47,6 +49,12 @@ export default function ProfileScreen() {
     },
   });
 
+  const handleSubmit = useCallback(
+    ({ age, gender, height, weight }: ProfileFormValues) =>
+      storeProfile({ age, gender, height, measurementSystem, weight }),
+    [measurementSystem, storeProfile]
+  );
+
   return (
     !!user && (
       <ProfileForm
@@ -69,9 +77,7 @@ export default function ProfileScreen() {
         }
         isSubmitting={isPending}
         measurementSystem={measurementSystem}
-        onSubmit={({ age, gender, height, weight }) =>
-          storeProfile({ age, gender, height, measurementSystem, weight })
-        }
+        onSubmit={handleSubmit}
         submitLabel="Next"
         submitSystemImage="arrow.right"
       />

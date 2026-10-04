@@ -1,7 +1,7 @@
 import type { Workout } from "@fitme/core";
 import { useQueryClient } from "@tanstack/react-query";
 import { Link, useRouter } from "expo-router";
-import { useEffect, useState } from "react";
+import { useCallback, useEffect, useState } from "react";
 import { Pressable, ScrollView, View } from "react-native";
 import { HStack } from "@/components/ui/hstack";
 import { Text } from "@/components/ui/text";
@@ -99,6 +99,7 @@ export default function WorkoutCard({
   }, [activeSession?.started_at]);
 
   const [isOpen, setIsOpen] = useState(false);
+  const toggleOpen = useCallback(() => setIsOpen(!isOpen), [isOpen]);
 
   return (
     <Card className="flex-1 overflow-hidden">
@@ -125,7 +126,7 @@ export default function WorkoutCard({
             </Pressable>
           </Link>
         )}
-        <Pressable onPress={() => setIsOpen(!isOpen)}>
+        <Pressable onPress={toggleOpen}>
           <VStack className="w-full flex-shrink items-stretch gap-4 p-4">
             <H4 className="font-nunito-sans-bold text-primary">
               {workout.name}

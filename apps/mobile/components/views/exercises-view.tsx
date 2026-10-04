@@ -53,6 +53,10 @@ const ExercisesView = ({
 
   useImperativeHandle(ref, () => ({ refresh }), [refresh]);
 
+  const loadMore = useCallback(() => {
+    fetchNextPage();
+  }, [fetchNextPage]);
+
   return (
     <VStack className="flex-1 items-stretch">
       <Picker
@@ -70,7 +74,7 @@ const ExercisesView = ({
       />
 
       {hasNextPage ? (
-        <Button onPress={() => fetchNextPage()} variant="secondary">
+        <Button onPress={loadMore} variant="secondary">
           <Text>Load more...</Text>
         </Button>
       ) : null}

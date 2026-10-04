@@ -3,9 +3,11 @@ import * as Sentry from "@sentry/react-native";
 import { useQueryClient } from "@tanstack/react-query";
 import { useLocales } from "expo-localization";
 import { router, Stack } from "expo-router";
+import { useCallback } from "react";
 import { View } from "react-native";
 import ProfileForm, {
   PROFILE_SAVE_ERROR_MESSAGE,
+  type ProfileFormValues,
 } from "~/components/forms/profile-form";
 import { Button } from "~/components/ui/button";
 import { ErrorMessage } from "~/components/ui/error-message";
@@ -47,6 +49,28 @@ export default function EditProfileScreen() {
     },
   });
 
+  const handleRetry = useCallback(() => {
+    refetchUser();
+  }, [refetchUser]);
+
+  const handleSubmit = useCallback(
+    ({ age, gender, height, name, weight }: ProfileFormValues) => {
+      // The form is only rendered once the user has loaded.
+      if (!user) {
+        return;
+      }
+      updateProfile({
+        age,
+        gender,
+        height,
+        measurementSystem,
+        name: name ?? user.name,
+        weight,
+      });
+    },
+    [measurementSystem, updateProfile, user]
+  );
+
   return (
     <>
       <Stack.Screen
@@ -72,11 +96,7 @@ export default function EditProfileScreen() {
             Couldn't load your profile. Please check your connection and try
             again.
           </ErrorMessage>
-          <Button
-            label="Try Again"
-            onPress={() => refetchUser()}
-            variant="secondary"
-          />
+          <Button label="Try Again" onPress={handleRetry} variant="secondary" />
         </VStack>
       ) : null}
       {!!user && (
@@ -93,16 +113,7 @@ export default function EditProfileScreen() {
           }
           isSubmitting={isPending}
           measurementSystem={measurementSystem}
-          onSubmit={({ age, gender, height, name, weight }) =>
-            updateProfile({
-              age,
-              gender,
-              height,
-              measurementSystem,
-              name: name ?? user.name,
-              weight,
-            })
-          }
+          onSubmit={handleSubmit}
           showName
           submitLabel="Save"
           submitTestID="edit-profile-save-button"

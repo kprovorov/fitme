@@ -1,6 +1,6 @@
 import { useQueryClient } from "@tanstack/react-query";
 import { Stack, useLocalSearchParams, useRouter } from "expo-router";
-import { useEffect, useState } from "react";
+import { useCallback, useEffect, useState } from "react";
 import { ScrollView } from "react-native";
 import { useSafeAreaInsets } from "react-native-safe-area-context";
 import { Button } from "~/components/ui/button";
@@ -62,6 +62,14 @@ export default function WorkoutSessionScreen() {
 
   const insets = useSafeAreaInsets();
 
+  const handleFinishWorkout = useCallback(
+    () =>
+      finishWorkoutSession({
+        sessionId: workoutSessionId as string,
+      }),
+    [finishWorkoutSession, workoutSessionId]
+  );
+
   return (
     <>
       <Stack.Screen
@@ -111,11 +119,7 @@ export default function WorkoutSessionScreen() {
                   {elapsedTime}
                 </Text>
                 <Button
-                  onPress={() =>
-                    finishWorkoutSession({
-                      sessionId: workoutSessionId as string,
-                    })
-                  }
+                  onPress={handleFinishWorkout}
                   testID="finish-workout-button"
                 >
                   <Text>Finish Workout</Text>

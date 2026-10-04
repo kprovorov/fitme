@@ -1,7 +1,9 @@
 import { handleSupabaseError } from "@fitme/core";
 import { router } from "expo-router";
-import { useState } from "react";
-import ResetPasswordForm from "~/components/forms/auth/reset-password-form";
+import { useCallback, useState } from "react";
+import ResetPasswordForm, {
+  type ResetPasswordFormValues,
+} from "~/components/forms/auth/reset-password-form";
 import { Text } from "~/components/ui/text";
 import { H3, P } from "~/components/ui/typography";
 import { VStack } from "~/components/ui/vstack";
@@ -16,6 +18,14 @@ export default function ResetPasswordView() {
     },
   });
 
+  const handleSubmit = useCallback(
+    async (values: ResetPasswordFormValues) => {
+      await resetPassword({ password: values.password });
+      router.replace("/");
+    },
+    [resetPassword]
+  );
+
   return (
     <VStack className="w-full gap-4">
       <VStack className="gap-0">
@@ -25,12 +35,7 @@ export default function ResetPasswordView() {
         </Text>
       </VStack>
       {errorMessage ? <P className="text-red-500">{errorMessage}</P> : null}
-      <ResetPasswordForm
-        onSubmit={async (values) => {
-          await resetPassword({ password: values.password });
-          router.replace("/");
-        }}
-      />
+      <ResetPasswordForm onSubmit={handleSubmit} />
     </VStack>
   );
 }

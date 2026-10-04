@@ -1,5 +1,8 @@
-import { useState } from "react";
-import { TouchableWithoutFeedback } from "react-native";
+import { useCallback, useState } from "react";
+import {
+  type GestureResponderEvent,
+  TouchableWithoutFeedback,
+} from "react-native";
 import Animated, {
   useAnimatedStyle,
   useSharedValue,
@@ -33,20 +36,23 @@ const WheelSelect = ({ label, wheels, value }: WheelSelectProps) => {
     height: wheelHeight.value,
   }));
 
-  const toggleWheel = () => {
+  const toggleWheel = useCallback(() => {
     const next = !isFocused;
     setIsFocused(next);
     wheelHeight.value = withTiming(next ? WHEEL_HEIGHT : 0, { duration: 300 });
-  };
+  }, [isFocused, wheelHeight]);
+
+  const handlePress = useCallback(
+    (e: GestureResponderEvent) => {
+      e.stopPropagation();
+      toggleWheel();
+    },
+    [toggleWheel]
+  );
 
   return (
     <VStack className="flex-1 items-stretch gap-0 bg-black/30 p-0">
-      <TouchableWithoutFeedback
-        onPress={(e) => {
-          e.stopPropagation();
-          toggleWheel();
-        }}
-      >
+      <TouchableWithoutFeedback onPress={handlePress}>
         <HStack className="h-12 flex-1 justify-between px-3">
           <Text>{label}</Text>
           <Text className="text-right text-primary">{value}</Text>

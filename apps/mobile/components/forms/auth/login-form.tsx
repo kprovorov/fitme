@@ -1,5 +1,11 @@
 import { zodResolver } from "@hookform/resolvers/zod";
-import { Controller, type FieldErrors, useForm } from "react-hook-form";
+import { useCallback } from "react";
+import {
+  Controller,
+  type ControllerRenderProps,
+  type FieldErrors,
+  useForm,
+} from "react-hook-form";
 import { z } from "zod";
 import { Button } from "~/components/ui/button";
 import { Input } from "~/components/ui/input";
@@ -30,23 +36,53 @@ export default function LoginForm({ onSubmit, errors }: LoginFormProps) {
     resolver: zodResolver(formSchema),
   });
 
+  const { isSubmitting } = form.formState;
+
+  const renderEmailField = useCallback(
+    ({
+      field: { onChange, onBlur, value },
+    }: {
+      field: ControllerRenderProps<LoginFormValues, "email">;
+    }) => (
+      <Input
+        autoCapitalize="none"
+        editable={!isSubmitting}
+        keyboardType="email-address"
+        onBlur={onBlur}
+        onChangeText={onChange}
+        placeholder="Email"
+        testID="login-email-input"
+        value={value}
+      />
+    ),
+    [isSubmitting]
+  );
+
+  const renderPasswordField = useCallback(
+    ({
+      field: { onChange, onBlur, value },
+    }: {
+      field: ControllerRenderProps<LoginFormValues, "password">;
+    }) => (
+      <Input
+        editable={!isSubmitting}
+        onBlur={onBlur}
+        onChangeText={onChange}
+        placeholder="Password"
+        secureTextEntry
+        testID="login-password-input"
+        value={value}
+      />
+    ),
+    [isSubmitting]
+  );
+
   return (
     <VStack className="w-full items-stretch gap-4">
       <Controller
         control={form.control}
         name="email"
-        render={({ field: { onChange, onBlur, value } }) => (
-          <Input
-            autoCapitalize="none"
-            editable={!form.formState.isSubmitting}
-            keyboardType="email-address"
-            onBlur={onBlur}
-            onChangeText={onChange}
-            placeholder="Email"
-            testID="login-email-input"
-            value={value}
-          />
-        )}
+        render={renderEmailField}
       />
       {form.formState.errors.email ? (
         <Text className="text-red-500">
@@ -57,17 +93,7 @@ export default function LoginForm({ onSubmit, errors }: LoginFormProps) {
       <Controller
         control={form.control}
         name="password"
-        render={({ field: { onChange, onBlur, value } }) => (
-          <Input
-            editable={!form.formState.isSubmitting}
-            onBlur={onBlur}
-            onChangeText={onChange}
-            placeholder="Password"
-            secureTextEntry
-            testID="login-password-input"
-            value={value}
-          />
-        )}
+        render={renderPasswordField}
       />
       {form.formState.errors.password ? (
         <Text className="text-red-500">
@@ -76,7 +102,7 @@ export default function LoginForm({ onSubmit, errors }: LoginFormProps) {
       ) : null}
 
       <Button
-        isLoading={form.formState.isSubmitting}
+        isLoading={isSubmitting}
         label="Continue"
         onPress={form.handleSubmit(onSubmit)}
         systemImage="arrow.right"

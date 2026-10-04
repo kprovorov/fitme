@@ -24,6 +24,16 @@ function preserveNewlines(md: string): string {
   );
 }
 
+function openLink(url: string) {
+  if (process.env.EXPO_OS === "web") {
+    Linking.openURL(url);
+  } else {
+    WebBrowser.openBrowserAsync(url, {
+      presentationStyle: WebBrowser.WebBrowserPresentationStyle.AUTOMATIC,
+    });
+  }
+}
+
 export function ChatMarkdown({ children }: { children: string }) {
   const [, border, bg2, bg3, fill3, link] = useCSSVariable(
     VAR_NAMES as unknown as string[]
@@ -105,15 +115,7 @@ export function ChatMarkdown({ children }: { children: string }) {
   return (
     <Markdown
       markdown={preserveNewlines(children)}
-      onLinkPress={(url) => {
-        if (process.env.EXPO_OS === "web") {
-          Linking.openURL(url);
-        } else {
-          WebBrowser.openBrowserAsync(url, {
-            presentationStyle: WebBrowser.WebBrowserPresentationStyle.AUTOMATIC,
-          });
-        }
-      }}
+      onLinkPress={openLink}
       renderRules={{
         listItem: ({ node, styles, children: itemChildren, extras }) => (
           // biome-ignore lint/suspicious/noExplicitAny: StyleMap values are NamedStyle which requires cast for View/Text style props

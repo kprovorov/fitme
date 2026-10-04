@@ -2,14 +2,18 @@ import { handleSupabaseError } from "@fitme/core";
 import { useQueryClient } from "@tanstack/react-query";
 import { useLocales } from "expo-localization";
 import { router } from "expo-router";
-import { useEffect, useState } from "react";
+import { useCallback, useEffect, useState } from "react";
 import { Pressable, View } from "react-native";
 import { useRegisterMutation } from "@/hooks/mutations/auth";
 import { useCurrentUserQuery } from "~/hooks/queries/auth";
-import RegisterForm from "../forms/auth/register-form";
+import RegisterForm, {
+  type RegisterFormValues,
+} from "../forms/auth/register-form";
 import { Text } from "../ui/text";
 import { H3, P } from "../ui/typography";
 import { VStack } from "../ui/vstack";
+
+const goToLogin = () => router.push("/auth/login");
 
 export default function RegisterView() {
   const queryClient = useQueryClient();
@@ -36,6 +40,16 @@ export default function RegisterView() {
 
   const locales = useLocales();
 
+  const handleSubmit = useCallback(
+    async (values: RegisterFormValues) => {
+      await register({
+        ...values,
+        measurement_system: locales[0].measurementSystem ?? "metric",
+      });
+    },
+    [locales, register]
+  );
+
   return (
     <VStack className="w-full gap-4">
       <VStack className="gap-0">
@@ -45,22 +59,12 @@ export default function RegisterView() {
         </Text>
       </VStack>
       {errorMessage ? <P className="text-red-500">{errorMessage}</P> : null}
-      <RegisterForm
-        onSubmit={async (values) => {
-          await register({
-            ...values,
-            measurement_system: locales[0].measurementSystem ?? "metric",
-          });
-        }}
-      />
+      <RegisterForm onSubmit={handleSubmit} />
       <View className="flex-row items-center">
         <Text className="font-nunito-sans-bold text-subhead">
           Already have an account?{" "}
         </Text>
-        <Pressable
-          onPress={() => router.push("/auth/login")}
-          testID="login-here-link"
-        >
+        <Pressable onPress={goToLogin} testID="login-here-link">
           <Text className="font-nunito-sans-bold text-primary text-subhead">
             Login here
           </Text>

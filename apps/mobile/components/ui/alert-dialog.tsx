@@ -7,7 +7,7 @@ import {
 } from "@expo/ui/swift-ui";
 import { frame } from "@expo/ui/swift-ui/modifiers";
 import type * as React from "react";
-import { useState } from "react";
+import { useCallback, useState } from "react";
 import { Pressable } from "react-native";
 import { isStretchClassName, SwiftUIHost } from "~/components/ui/swift-ui";
 
@@ -47,10 +47,15 @@ const AlertDialog = ({
 
   const presented = isPresented ?? uncontrolledPresented;
 
-  const setPresented = (next: boolean) => {
-    setUncontrolledPresented(next);
-    onIsPresentedChange?.(next);
-  };
+  const setPresented = useCallback(
+    (next: boolean) => {
+      setUncontrolledPresented(next);
+      onIsPresentedChange?.(next);
+    },
+    [onIsPresentedChange]
+  );
+
+  const present = useCallback(() => setPresented(true), [setPresented]);
 
   return (
     <SwiftUIHost
@@ -65,9 +70,7 @@ const AlertDialog = ({
         <Alert.Trigger>
           {children ? (
             <RNHostView matchContents>
-              <Pressable onPress={() => setPresented(true)}>
-                {children}
-              </Pressable>
+              <Pressable onPress={present}>{children}</Pressable>
             </RNHostView>
           ) : (
             <Spacer modifiers={[frame({ height: 0, width: 0 })]} />

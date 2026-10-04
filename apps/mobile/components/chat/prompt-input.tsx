@@ -8,9 +8,12 @@ import { type ReactNode, useEffect, useRef } from "react";
 import {
   ActivityIndicator,
   Pressable,
+  type PressableStateCallbackType,
+  type StyleProp,
   Text,
   TextInput,
   View,
+  type ViewStyle,
 } from "react-native";
 import Animated, { FadeIn, FadeOut } from "react-native-reanimated";
 import { useCSSVariable } from "uniwind";
@@ -174,6 +177,19 @@ export function PromptInputTextarea({
   );
 }
 
+const submitButtonStyle = ({
+  pressed,
+}: PressableStateCallbackType): StyleProp<ViewStyle> => ({
+  alignItems: "center",
+  borderCurve: "continuous",
+  borderRadius: 17,
+  height: 34,
+  justifyContent: "center",
+  margin: 5,
+  opacity: pressed ? 0.7 : 1,
+  width: 34,
+});
+
 /**
  * Submit button that sends the current input. Shows a spinner while the model
  * is generating. Reads state from `ChatContext`.
@@ -188,16 +204,7 @@ export function PromptInputSubmit() {
       className={disabled ? "bg-secondary" : "bg-foreground"}
       disabled={disabled}
       onPress={onSend}
-      style={({ pressed }) => ({
-        alignItems: "center",
-        borderCurve: "continuous",
-        borderRadius: 17,
-        height: 34,
-        justifyContent: "center",
-        margin: 5,
-        opacity: pressed ? 0.7 : 1,
-        width: 34,
-      })}
+      style={submitButtonStyle}
     >
       {isGenerating ? (
         <Animated.View entering={FadeIn} exiting={FadeOut}>

@@ -1,4 +1,5 @@
 import { Stack, useLocalSearchParams, useRouter } from "expo-router";
+import { useCallback } from "react";
 import { ScrollView } from "react-native";
 import { useSafeAreaInsets } from "react-native-safe-area-context";
 import WorkoutSessionSummaryView from "~/components/views/workout-session-summary-view";
@@ -15,6 +16,8 @@ export default function WorkoutSessionSummaryScreen() {
   });
 
   const insets = useSafeAreaInsets();
+
+  const handleContinue = useCallback(() => router.replace("/"), [router]);
 
   return (
     <>
@@ -50,7 +53,7 @@ export default function WorkoutSessionSummaryScreen() {
       >
         {workoutSession ? (
           <WorkoutSessionSummaryView
-            onContinue={() => router.replace("/")}
+            onContinue={handleContinue}
             workoutSession={workoutSession}
           />
         ) : null}

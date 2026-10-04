@@ -10,6 +10,14 @@ import { P } from "~/components/ui/typography";
 import { VStack } from "~/components/ui/vstack";
 import { useCurrentUserQuery } from "~/hooks/queries/auth";
 
+const openSupportEmail = () =>
+  Linking.openURL("mailto:support@fitmeproject.com");
+const openX = () => Linking.openURL("https://x.com/fitmeproject");
+const openInstagram = () =>
+  Linking.openURL("https://www.instagram.com/fitmeprojectcom");
+const openThreads = () =>
+  Linking.openURL("https://www.threads.net/@fitmeprojectcom");
+
 export default function SupportScreen() {
   const { data: _user } = useCurrentUserQuery();
 
@@ -37,37 +45,17 @@ export default function SupportScreen() {
             Feel free to contact us at any time if you have any questions or
             feedback
           </P>
-          <Button
-            className="h-8 p-0"
-            onPress={() => Linking.openURL("mailto:support@fitmeproject.com")}
-            variant="link"
-          >
+          <Button className="h-8 p-0" onPress={openSupportEmail} variant="link">
             <Text>support@fitmeproject.com</Text>
           </Button>
           <HStack>
-            <Button
-              className="h-8 p-0"
-              onPress={() => Linking.openURL("https://x.com/fitmeproject")}
-              variant="link"
-            >
+            <Button className="h-8 p-0" onPress={openX} variant="link">
               <X fill="#C0FF38" height={16} width={16} />
             </Button>
-            <Button
-              className="h-8 p-0"
-              onPress={() =>
-                Linking.openURL("https://www.instagram.com/fitmeprojectcom")
-              }
-              variant="link"
-            >
+            <Button className="h-8 p-0" onPress={openInstagram} variant="link">
               <Instagram fill="#C0FF38" height={16} width={16} />
             </Button>
-            <Button
-              className="h-8 p-0"
-              onPress={() =>
-                Linking.openURL("https://www.threads.net/@fitmeprojectcom")
-              }
-              variant="link"
-            >
+            <Button className="h-8 p-0" onPress={openThreads} variant="link">
               <Threads fill="#C0FF38" height={16} width={16} />
             </Button>
           </HStack>

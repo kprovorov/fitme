@@ -266,6 +266,11 @@ export function DrawerLayout({
       : interpolate(translateX.value, [-drawerWidth, 0], [0, 1])
   );
 
+  const closeDrawer = React.useCallback(
+    () => toggleDrawer(false),
+    [toggleDrawer]
+  );
+
   return (
     <GestureHandlerRootView className="flex-1">
       <GestureDetector gesture={pan}>
@@ -284,7 +289,7 @@ export function DrawerLayout({
             <View aria-hidden={open} className="flex-1 overflow-hidden">
               {children}
             </View>
-            <Overlay onPress={() => toggleDrawer(false)} progress={progress} />
+            <Overlay onPress={closeDrawer} progress={progress} />
           </Animated.View>
           <Animated.View
             aria-hidden={!open}
