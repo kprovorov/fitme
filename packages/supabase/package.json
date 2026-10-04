@@ -20,6 +20,7 @@
     "start": "supabase start",
     "status": "supabase status",
     "stop": "supabase stop",
+    "test:db": "supabase test db",
     "typecheck": "tsc --noEmit",
     "types:generate": "supabase gen types typescript --local --schema public > src/database.types.ts"
   },
