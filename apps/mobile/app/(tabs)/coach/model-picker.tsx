@@ -41,7 +41,9 @@ function ModelRow({
         </View>
         <Text className="text-[13px] text-muted-foreground">{description}</Text>
       </View>
-      {selected && <Icon className="h-5 w-5 text-foreground" icon={Check} />}
+      {selected ? (
+        <Icon className="h-5 w-5 text-foreground" icon={Check} />
+      ) : null}
     </Pressable>
   );
 }

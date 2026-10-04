@@ -24,7 +24,7 @@ export default function ResetPasswordView() {
           Choose a new password for your account.
         </Text>
       </VStack>
-      {errorMessage && <P className="text-red-500">{errorMessage}</P>}
+      {errorMessage ? <P className="text-red-500">{errorMessage}</P> : null}
       <ResetPasswordForm
         onSubmit={async (values) => {
           await resetPassword({ password: values.password });

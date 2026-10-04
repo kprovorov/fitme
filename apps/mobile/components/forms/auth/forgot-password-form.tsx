@@ -43,11 +43,11 @@ export default function ForgotPasswordForm({
           />
         )}
       />
-      {form.formState.errors.email && (
+      {form.formState.errors.email ? (
         <Text className="text-red-500">
           {form.formState.errors.email.message}
         </Text>
-      )}
+      ) : null}
 
       <Button
         isLoading={form.formState.isSubmitting}

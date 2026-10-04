@@ -127,11 +127,11 @@ export default function PlannerScreen() {
                 </View>
               )}
             />
-            {form.formState.errors.goal && (
+            {form.formState.errors.goal ? (
               <Text className="text-red-500">
                 {form.formState.errors.goal.message}
               </Text>
-            )}
+            ) : null}
 
             <VStack className="items-start justify-start gap-0">
               <H4>Experience</H4>
@@ -160,11 +160,11 @@ export default function PlannerScreen() {
                 </View>
               )}
             />
-            {form.formState.errors.experience_level && (
+            {form.formState.errors.experience_level ? (
               <Text className="text-red-500">
                 {form.formState.errors.experience_level.message}
               </Text>
-            )}
+            ) : null}
 
             <VStack className="items-stretch justify-start gap-0">
               <HStack className="items-center justify-between">
@@ -191,11 +191,11 @@ export default function PlannerScreen() {
                 />
               )}
             />
-            {form.formState.errors.workout_duration && (
+            {form.formState.errors.workout_duration ? (
               <Text className="text-red-500">
                 {form.formState.errors.workout_duration.message}
               </Text>
-            )}
+            ) : null}
 
             <VStack className="items-start justify-start gap-0">
               <H4>Place</H4>
@@ -223,11 +223,11 @@ export default function PlannerScreen() {
                 </View>
               )}
             />
-            {form.formState.errors.place && (
+            {form.formState.errors.place ? (
               <Text className="text-red-500">
                 {form.formState.errors.place.message}
               </Text>
-            )}
+            ) : null}
 
             <VStack className="items-start justify-start gap-0">
               <H4>Frequency</H4>
@@ -255,11 +255,11 @@ export default function PlannerScreen() {
                 </View>
               )}
             />
-            {form.formState.errors.frequency && (
+            {form.formState.errors.frequency ? (
               <Text className="text-red-500">
                 {form.formState.errors.frequency.message}
               </Text>
-            )}
+            ) : null}
 
             <VStack className="items-start justify-start gap-0">
               <H4>Custom note</H4>
@@ -280,11 +280,11 @@ export default function PlannerScreen() {
                 />
               )}
             />
-            {form.formState.errors.note && (
+            {form.formState.errors.note ? (
               <Text className="text-red-500">
                 {form.formState.errors.note.message}
               </Text>
-            )}
+            ) : null}
 
             <VStack className="items-stretch gap-2">
               <Button
@@ -324,9 +324,9 @@ function RadioDot({
         disabled && "border-muted"
       )}
     >
-      {selected && (
+      {selected ? (
         <View className="aspect-square h-[10px] w-[10px] rounded-full bg-primary" />
-      )}
+      ) : null}
     </View>
   );
 }
@@ -372,11 +372,11 @@ function RadioGroupItemWithLabel({
           </Label>
           {!!disclaimer && <Muted className="text-subhead">{disclaimer}</Muted>}
         </VStack>
-        {badge && (
+        {badge ? (
           <Badge variant="secondary">
             <Text>{badge}</Text>
           </Badge>
-        )}
+        ) : null}
       </HStack>
     </Pressable>
   );
@@ -406,13 +406,14 @@ function RadioGroupItemTileWithIcon({
       } ${disabled ? "opacity-50" : ""}`}
       onPress={() => !disabled && onLabelPress()}
     >
-      {icon &&
-        React.createElement(icon, {
-          "aria-labelledby": `label-for-${value}`,
-          className: `w-10 h-10 ${
-            isSelected ? "text-primary" : "text-muted-foreground"
-          }`,
-        })}
+      {icon
+        ? React.createElement(icon, {
+            "aria-labelledby": `label-for-${value}`,
+            className: `w-10 h-10 ${
+              isSelected ? "text-primary" : "text-muted-foreground"
+            }`,
+          })
+        : null}
       <Label
         className={`text-center font-nunito-sans-bold text-body text-white ${
           disabled ? "opacity-50" : ""
@@ -422,11 +423,11 @@ function RadioGroupItemTileWithIcon({
       >
         {label}
       </Label>
-      {badge && (
+      {badge ? (
         <Badge variant="secondary">
           <Text>{badge}</Text>
         </Badge>
-      )}
+      ) : null}
     </Pressable>
   );
 }

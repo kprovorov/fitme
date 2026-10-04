@@ -160,18 +160,18 @@ export default function WorkoutCard({
                     <Pressable className="flex flex-row items-center justify-between active:opacity-70">
                       <HStack className="gap-2">
                         <ExerciseImage exercise={exercise.exercise} />
-                        {isOpen && (
+                        {isOpen ? (
                           <Text className="font-bold text-footnote">
                             <Text className="font-bold text-footnote text-primary">
                               {exercise.sets.length} x{" "}
                             </Text>
                             {exercise.exercise.name}
                           </Text>
-                        )}
+                        ) : null}
                       </HStack>
-                      {isOpen && (
+                      {isOpen ? (
                         <ChevronRight className="text-foreground" size={16} />
-                      )}
+                      ) : null}
                     </Pressable>
                   </Link>
                 ))}

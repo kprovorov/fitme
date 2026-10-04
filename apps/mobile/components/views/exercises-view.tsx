@@ -69,11 +69,11 @@ const ExercisesView = ({
         onExercisePress={onExercisePress}
       />
 
-      {hasNextPage && (
+      {hasNextPage ? (
         <Button onPress={() => fetchNextPage()} variant="secondary">
           <Text>Load more...</Text>
         </Button>
-      )}
+      ) : null}
     </VStack>
   );
 };

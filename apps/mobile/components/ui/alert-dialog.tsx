@@ -87,7 +87,7 @@ const AlertDialog = ({
           <Alert.Message>
             <SwiftUIText>{message}</SwiftUIText>
           </Alert.Message>
-        ) : undefined}
+        ) : null}
       </Alert>
     </SwiftUIHost>
   );

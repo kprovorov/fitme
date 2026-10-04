@@ -35,11 +35,11 @@ export default function ExerciseScreen() {
       >
         {!!exercise && (
           <VStack className="items-stretch">
-            {exercise?.video_url && (
+            {exercise?.video_url ? (
               <View className="w-full overflow-hidden rounded-lg">
                 <ExerciseVideo exercise={exercise} />
               </View>
-            )}
+            ) : null}
             <P className="text-primary">{exercise?.description}</P>
             <Muted>{exercise?.instructions}</Muted>
           </VStack>

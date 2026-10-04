@@ -57,7 +57,9 @@ const MenuListItem = ({
         {...props}
       >
         {children}
-        {Icon && <Icon className="shrink-0 text-muted-foreground" size={20} />}
+        {Icon ? (
+          <Icon className="shrink-0 text-muted-foreground" size={20} />
+        ) : null}
       </Pressable>
     </TextClassContext.Provider>
   );

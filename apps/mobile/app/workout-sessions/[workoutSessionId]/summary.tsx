@@ -48,12 +48,12 @@ export default function WorkoutSessionSummaryScreen() {
         contentInsetAdjustmentBehavior="automatic"
         showsVerticalScrollIndicator={false}
       >
-        {workoutSession && (
+        {workoutSession ? (
           <WorkoutSessionSummaryView
             onContinue={() => router.replace("/")}
             workoutSession={workoutSession}
           />
-        )}
+        ) : null}
       </ScrollView>
     </>
   );

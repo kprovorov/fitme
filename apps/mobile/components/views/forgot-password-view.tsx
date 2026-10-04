@@ -47,7 +47,7 @@ export default function ForgotPasswordView() {
           Enter your email and we&apos;ll send you a reset link.
         </Text>
       </VStack>
-      {errorMessage && <P className="text-red-500">{errorMessage}</P>}
+      {errorMessage ? <P className="text-red-500">{errorMessage}</P> : null}
       <ForgotPasswordForm
         onSubmit={async (values) => {
           await forgotPassword(values);

@@ -61,12 +61,12 @@ export default function EditProfileScreen() {
           title: "Edit Profile",
         }}
       />
-      {isUserPending && (
+      {isUserPending ? (
         <View className="flex-1 items-center justify-center">
           <Spinner className="text-foreground" size={32} />
         </View>
-      )}
-      {isUserError && (
+      ) : null}
+      {isUserError ? (
         <VStack className="flex-1 items-stretch justify-center gap-4 p-6">
           <ErrorMessage className="text-center">
             Couldn't load your profile. Please check your connection and try
@@ -78,7 +78,7 @@ export default function EditProfileScreen() {
             variant="secondary"
           />
         </VStack>
-      )}
+      ) : null}
       {!!user && (
         <ProfileForm
           defaultValues={{

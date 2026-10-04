@@ -49,7 +49,7 @@ export default function WorkoutSessionExerciseSetForm({
   return (
     <VStack className="flex-1 gap-xs">
       <HStack className="flex-1 justify-between gap-xs">
-        {hasWeight && (
+        {hasWeight ? (
           <HStack className="flex-1">
             <Controller
               control={form.control}
@@ -68,7 +68,7 @@ export default function WorkoutSessionExerciseSetForm({
               )}
             />
           </HStack>
-        )}
+        ) : null}
         <HStack className="flex-1">
           <Controller
             control={form.control}
@@ -110,12 +110,12 @@ export default function WorkoutSessionExerciseSetForm({
           )}
         </HStack>
       </HStack>
-      {form.formState.errors.weight && (
+      {form.formState.errors.weight ? (
         <ErrorMessage>{form.formState.errors.weight.message}</ErrorMessage>
-      )}
-      {form.formState.errors.reps && (
+      ) : null}
+      {form.formState.errors.reps ? (
         <ErrorMessage>{form.formState.errors.reps.message}</ErrorMessage>
-      )}
+      ) : null}
     </VStack>
   );
 }

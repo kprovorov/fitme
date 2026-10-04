@@ -51,11 +51,11 @@ export default function ResetPasswordForm({
           />
         )}
       />
-      {form.formState.errors.password && (
+      {form.formState.errors.password ? (
         <Text className="text-red-500">
           {form.formState.errors.password.message}
         </Text>
-      )}
+      ) : null}
 
       <Controller
         control={form.control}
@@ -71,11 +71,11 @@ export default function ResetPasswordForm({
           />
         )}
       />
-      {form.formState.errors.confirmPassword && (
+      {form.formState.errors.confirmPassword ? (
         <Text className="text-red-500">
           {form.formState.errors.confirmPassword.message}
         </Text>
-      )}
+      ) : null}
 
       <Button
         isLoading={form.formState.isSubmitting}

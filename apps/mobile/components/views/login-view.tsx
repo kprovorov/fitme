@@ -40,7 +40,7 @@ export default function LoginView() {
           Log in to your account to access your workouts
         </Text>
       </VStack>
-      {errorMessage && <P className="text-red-500">{errorMessage}</P>}
+      {errorMessage ? <P className="text-red-500">{errorMessage}</P> : null}
       <LoginForm
         onSubmit={async (values) => {
           await login(values);

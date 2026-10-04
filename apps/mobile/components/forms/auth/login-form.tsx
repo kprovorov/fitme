@@ -48,11 +48,11 @@ export default function LoginForm({ onSubmit, errors }: LoginFormProps) {
           />
         )}
       />
-      {form.formState.errors.email && (
+      {form.formState.errors.email ? (
         <Text className="text-red-500">
           {form.formState.errors.email.message}
         </Text>
-      )}
+      ) : null}
 
       <Controller
         control={form.control}
@@ -69,11 +69,11 @@ export default function LoginForm({ onSubmit, errors }: LoginFormProps) {
           />
         )}
       />
-      {form.formState.errors.password && (
+      {form.formState.errors.password ? (
         <Text className="text-red-500">
           {form.formState.errors.password.message}
         </Text>
-      )}
+      ) : null}
 
       <Button
         isLoading={form.formState.isSubmitting}

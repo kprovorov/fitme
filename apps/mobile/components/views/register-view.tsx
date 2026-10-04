@@ -44,7 +44,7 @@ export default function RegisterView() {
           Create an account to get started
         </Text>
       </VStack>
-      {errorMessage && <P className="text-red-500">{errorMessage}</P>}
+      {errorMessage ? <P className="text-red-500">{errorMessage}</P> : null}
       <RegisterForm
         onSubmit={async (values) => {
           await register({

@@ -198,15 +198,15 @@ export default function ProfileForm({
           <VStack className="items-stretch justify-center gap-8 p-6">
             {heading}
 
-            {showName && (
+            {showName ? (
               <VStack className="items-stretch gap-2">
                 <VStack className="items-start justify-start gap-0">
                   <H4>Name</H4>
-                  {form.formState.errors.name && (
+                  {form.formState.errors.name ? (
                     <ErrorMessage>
                       {form.formState.errors.name.message}
                     </ErrorMessage>
-                  )}
+                  ) : null}
                 </VStack>
                 <Controller
                   control={form.control}
@@ -230,16 +230,16 @@ export default function ProfileForm({
                   )}
                 />
               </VStack>
-            )}
+            ) : null}
 
             <VStack className="items-stretch gap-2">
               <VStack className="items-start justify-start gap-0">
                 <H4>Gender</H4>
-                {form.formState.errors.gender && (
+                {form.formState.errors.gender ? (
                   <ErrorMessage>
                     {form.formState.errors.gender.message}
                   </ErrorMessage>
-                )}
+                ) : null}
               </VStack>
 
               <Controller
@@ -256,11 +256,11 @@ export default function ProfileForm({
                 <H4>Personal Parameters</H4>
                 {PROFILE_FIELDS.map((field) => (
                   <VStack key={field}>
-                    {form.formState.errors[field] && (
+                    {form.formState.errors[field] ? (
                       <ErrorMessage>
                         {form.formState.errors[field]?.message}
                       </ErrorMessage>
-                    )}
+                    ) : null}
                   </VStack>
                 ))}
               </VStack>
@@ -319,7 +319,7 @@ export default function ProfileForm({
       </VStack>
       <Animated.View className="overflow-hidden" style={[animatedStyle]}>
         <HStack className="flex-1 items-stretch justify-stretch gap-0 px-4">
-          {activeWheel && (
+          {activeWheel ? (
             // Remount per field: a reused native wheel keeps the previous selection
             <ParameterWheel
               control={form.control}
@@ -328,7 +328,7 @@ export default function ProfileForm({
               measurementSystem={measurementSystem}
               onChange={() => form.trigger(activeWheel)}
             />
-          )}
+          ) : null}
         </HStack>
       </Animated.View>
     </>

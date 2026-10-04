@@ -82,7 +82,7 @@ export default function WorkoutSessionScreen() {
         contentInsetAdjustmentBehavior="automatic"
         showsVerticalScrollIndicator={false}
       >
-        {workoutSession && (
+        {workoutSession ? (
           <VStack
             className="flex-1 items-stretch px-md pt-md"
             style={{ paddingBottom: insets.bottom }}
@@ -123,7 +123,7 @@ export default function WorkoutSessionScreen() {
               </VStack>
             )}
           </VStack>
-        )}
+        ) : null}
       </ScrollView>
     </>
   );
