@@ -9,8 +9,8 @@ export default function ExerciseVideo({ exercise }: ExerciseVideoProps) {
   const player = useVideoPlayer(exercise.video_url, (videoPlayer) => {
     videoPlayer.loop = true;
     videoPlayer.play();
-    player.muted = true;
-    player.audioMixingMode = "mixWithOthers";
+    videoPlayer.muted = true;
+    videoPlayer.audioMixingMode = "mixWithOthers";
   });
 
   return (
