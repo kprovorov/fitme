@@ -56,7 +56,7 @@ const LiquidGlassCard = ({ className, ref, style, ...props }: CardProps) => {
   );
 };
 
-const Card = GLASS_ENABLED
+const Card: React.FC<CardProps> = GLASS_ENABLED
   ? LiquidGlassCard
   : ({ className, children, ref, style, ...props }: CardProps) => (
       <AppleGlassView

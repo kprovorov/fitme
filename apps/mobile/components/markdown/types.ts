@@ -27,6 +27,19 @@ export type NodeTypeMap = Prettify<
   }
 >;
 
+// Context the renderer passes to link, listItem and table node render rules
+export interface RenderExtras {
+  cellIndex?: number;
+  customListStyleType?: ReactElement | false | null;
+  index?: number;
+  isHeader?: boolean;
+  listStyleType?: string;
+  onPress?: (url: string) => void;
+  ordered?: boolean;
+  rowIndex?: number;
+  start?: number;
+}
+
 // Render function types
 export type RenderFunction<K extends ValidNodeKey = ValidNodeKey> = (params: {
   node: NodeTypeMap[K];
@@ -34,7 +47,7 @@ export type RenderFunction<K extends ValidNodeKey = ValidNodeKey> = (params: {
   // biome-ignore lint/suspicious/noExplicitAny: rendered children are opaque React elements
   children: any[];
   parentStack: Node[];
-  extras?: Record<string, unknown>;
+  extras?: RenderExtras;
   // biome-ignore lint/suspicious/noExplicitAny: render functions return React elements with no common supertype
 }) => any;
 

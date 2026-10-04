@@ -19,12 +19,13 @@ const ExercisesView = ({
   itemCta,
   initialMuscleGroup = "all",
   ref,
-}: (React.HTMLProps<HTMLDivElement> & {
+}: {
   onExercisePress?: (exercise: Exercise) => void;
   onAddExercisePress?: () => void;
   itemCta?: React.ReactNode | ((exercise: Exercise) => React.ReactNode);
   initialMuscleGroup?: string;
-}) & { ref?: React.RefObject<ExercisesViewHandle | null> }) => {
+  ref?: React.Ref<ExercisesViewHandle>;
+}) => {
   const [muscleGroup, setMuscleGroup] = useState<string>(initialMuscleGroup);
 
   const muscleGroupOptions = [

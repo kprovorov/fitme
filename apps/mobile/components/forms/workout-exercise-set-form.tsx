@@ -13,7 +13,9 @@ interface WorkoutSessionExerciseSetFormProps {
   isDone?: boolean;
   isEditing?: boolean;
   onEdit: () => void;
-  onSubmit: (values: z.infer<typeof formSchema>) => Promise<void>;
+  onSubmit: (
+    values: WorkoutSessionExerciseSetFormValues
+  ) => void | Promise<void>;
   recommendedValues?: z.infer<typeof formSchema>;
   setIndex?: number;
 }

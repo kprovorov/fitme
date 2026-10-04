@@ -48,7 +48,9 @@ const FallbackAppleGlassView = ({
   <BlurView
     className={className}
     intensity={fallbackIntensity}
-    ref={ref}
+    // AppleGlassView is picked per platform but exposes the glass view's ref
+    // type; on this fallback path the ref resolves to the BlurView instance.
+    ref={ref as React.Ref<EXBlurView>}
     style={[{ overflow: "hidden" }, StyleSheet.flatten(style) as ViewStyle]}
     tint={fallbackTint}
     {...(viewProps as ViewProps)}

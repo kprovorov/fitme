@@ -151,7 +151,7 @@ export default function PlannerScreen() {
                       disclaimer={getExperienceLevelDisclaimer(option)}
                       isSelected={option === value}
                       key={option}
-                      label={getExperienceLevelLabel(option)}
+                      label={getExperienceLevelLabel(option) ?? option}
                       onLabelPress={() => onChange(option)}
                       testID={`experience-${option}`}
                       value={option}
