@@ -98,7 +98,7 @@ export const useDeletePlanMutation = createMutation<void, { id: string }>({
   mutationFn: async (data: { id: string }): Promise<void> => {
     const { error } = await supabase
       .from("plans")
-      .update({ deleted_at: new Date().toISOString() })
+      .update({ deleted_at: new Date().toISOString(), is_active: false })
       .eq("id", data.id);
     if (error) {
       throw error;
