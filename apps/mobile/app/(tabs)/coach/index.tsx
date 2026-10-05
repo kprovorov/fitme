@@ -27,12 +27,12 @@ import { supabase } from "~/lib/supabase";
 
 const SUPABASE_URL = process.env.EXPO_PUBLIC_SUPABASE_URL ?? "";
 
-const ATTACHMENTS_ENABLED = false;
+const ATTACHMENTS_ENABLED: boolean = false;
 
 function useAIChat() {
   const [input, setInput] = useState("");
   const streamingStore = useMemo(() => createStreamingStore(), []);
-  const prevStreamingTextRef = useRef("");
+  const prevStreamingTextRef = useRef<string>("");
 
   const { messages, sendMessage, status, error } = useChat({
     transport: new AssistantChatTransport({

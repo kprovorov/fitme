@@ -23,13 +23,16 @@ const manifest = Constants.expoConfig;
 
 const polyfillSymbol = Symbol.for("expo.polyfillFetchWithWindowLocation");
 
-type WrappableFetch = ((...args: unknown[]) => Promise<Response>) & {
+// Accepts any fetch-like implementation (e.g. `expo/fetch`, whose parameter and
+// response types differ from the DOM `fetch`); arguments are forwarded untouched.
+// biome-ignore lint/suspicious/noExplicitAny: parameters must be `any` so fetch implementations with narrower signatures are assignable
+type WrappableFetch = ((...args: any[]) => Promise<unknown>) & {
   [polyfillSymbol]?: boolean;
 };
 
-export function wrapFetchWithWindowLocation(fetch: WrappableFetch) {
-  if (fetch[polyfillSymbol]) {
-    return fetch;
+export function wrapFetchWithWindowLocation(fetchImpl: WrappableFetch) {
+  if (fetchImpl[polyfillSymbol]) {
+    return fetchImpl;
   }
 
   // biome-ignore lint/suspicious/noExplicitAny: forwards arbitrary fetch args to the native implementation
@@ -46,7 +49,7 @@ export function wrapFetchWithWindowLocation(fetch: WrappableFetch) {
       props[0].url = new URL(props[0].url, getOrigin()).toString();
     }
 
-    return fetch(...props);
+    return fetchImpl(...props);
   };
 
   _fetch[polyfillSymbol] = true;

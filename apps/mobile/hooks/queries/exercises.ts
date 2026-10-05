@@ -41,7 +41,7 @@ export const useExercisesQuery = createInfiniteQuery<
     { muscleGroup },
     { pageParam }
   ): Promise<SupabasePaginatedResponse<Exercise>> => {
-    const page = (pageParam as number) ?? 0;
+    const page = (pageParam as number | undefined) ?? 0;
     const from = page * PAGE_SIZE;
     const to = from + PAGE_SIZE - 1;
 
@@ -61,7 +61,7 @@ export const useExercisesQuery = createInfiniteQuery<
 
     const total = count ?? 0;
     return {
-      data: (data as unknown as Exercise[]) ?? [],
+      data: (data as unknown as Exercise[] | null) ?? [],
       hasMore: from + PAGE_SIZE < total,
       page,
       total,
@@ -109,7 +109,7 @@ export const useExerciseHistoryQuery = createQuery<
     const withCompletedSets = (data ?? [])
       .map((wse: WseRaw) => ({
         ...wse,
-        sets: wse.sets.filter((set) => set.weight_completed != null),
+        sets: wse.sets.filter((set) => set.weight_completed !== null),
       }))
       .filter((wse: WseRaw) => wse.sets.length > 0);
     return withCompletedSets as unknown as WorkoutSessionExercise[];

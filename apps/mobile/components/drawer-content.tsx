@@ -9,7 +9,7 @@ import { Icon } from "@/components/icon";
 import { TouchableGlass } from "@/components/touchable-glass";
 import { SafeAreaView } from "@/components/tw";
 import { MOCK_CHATS } from "@/utils/mock-chats";
-import { cn } from "@/utils/tailwind";
+import { cn } from "~/lib/utils";
 
 interface DrawerContextValue {
   closeDrawer: () => void;
@@ -98,6 +98,22 @@ export function DrawerContent({
   onNavigate: (path: Href) => void;
   onOpenModal: (path: Href) => void;
 }) {
+  const navigateToChats = useCallback(
+    () => onNavigate("/coach/chats"),
+    [onNavigate]
+  );
+  const navigateHome = useCallback(() => onNavigate("/"), [onNavigate]);
+  const openSettingsModal = useCallback(
+    () => onOpenModal("/settings"),
+    [onOpenModal]
+  );
+  const openSettings = useCallback(() => {
+    if (process.env.EXPO_OS === "android") {
+      onNavigate("/settings");
+    }
+    onOpenModal("/settings");
+  }, [onNavigate, onOpenModal]);
+
   return (
     <SafeAreaView
       // NOTE: Some issue with uniwind that prevents updates for this component.
@@ -116,16 +132,8 @@ export function DrawerContent({
         className="flex-1"
         contentContainerStyle={{ paddingBottom: 8 }}
       >
-        <DrawerNavItem label="Chats" onPress={() => onNavigate("/chats")} />
-        <DrawerNavItem
-          label="Settings"
-          onPress={() => {
-            if (process.env.EXPO_OS === "android") {
-              onNavigate("/(settings)/settings");
-            }
-            onOpenModal("/(settings)/settings");
-          }}
-        />
+        <DrawerNavItem label="Chats" onPress={navigateToChats} />
+        <DrawerNavItem label="Settings" onPress={openSettings} />
 
         {/* Recents */}
         <Text className="px-6 pt-5 pb-1.5 font-semibold text-[13px] text-muted-foreground dark:text-muted-foreground">
@@ -135,7 +143,7 @@ export function DrawerContent({
           <DrawerChatItem
             active={chat.id === "1"}
             key={chat.id}
-            onPress={() => onNavigate("/")}
+            onPress={navigateHome}
             title={chat.title}
           />
         ))}
@@ -148,7 +156,7 @@ export function DrawerContent({
       >
         <TouchableGlass
           className="flex-row items-center gap-2.5 rounded-full p-2 active:opacity-60"
-          onPress={() => onOpenModal("/(settings)/settings")}
+          onPress={openSettingsModal}
         >
           <View className="h-8 w-8 items-center justify-center rounded-full bg-muted dark:bg-muted">
             <Text className="font-semibold text-[13px] text-foreground dark:text-foreground">
@@ -162,7 +170,7 @@ export function DrawerContent({
         <View className="flex-1" />
         <TouchableGlass
           className="h-10 w-10 items-center justify-center rounded-full bg-foreground active:bg-muted dark:bg-foreground"
-          onPress={() => onNavigate("/")}
+          onPress={navigateHome}
         >
           <Icon
             className="h-6 w-6 text-background dark:text-background"

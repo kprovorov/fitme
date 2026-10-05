@@ -1,5 +1,10 @@
 import { zodResolver } from "@hookform/resolvers/zod";
-import { Controller, useForm } from "react-hook-form";
+import { useCallback } from "react";
+import {
+  Controller,
+  type ControllerRenderProps,
+  useForm,
+} from "react-hook-form";
 import { z } from "zod";
 import { Button } from "~/components/ui/button";
 import { Input } from "~/components/ui/input";
@@ -35,50 +40,70 @@ export default function ResetPasswordForm({
     resolver: zodResolver(formSchema),
   });
 
+  const { isSubmitting } = form.formState;
+
+  const renderPasswordField = useCallback(
+    ({
+      field: { onChange, onBlur, value },
+    }: {
+      field: ControllerRenderProps<ResetPasswordFormValues, "password">;
+    }) => (
+      <Input
+        editable={!isSubmitting}
+        onBlur={onBlur}
+        onChangeText={onChange}
+        placeholder="New Password"
+        secureTextEntry
+        value={value}
+      />
+    ),
+    [isSubmitting]
+  );
+
+  const renderConfirmPasswordField = useCallback(
+    ({
+      field: { onChange, onBlur, value },
+    }: {
+      field: ControllerRenderProps<ResetPasswordFormValues, "confirmPassword">;
+    }) => (
+      <Input
+        editable={!isSubmitting}
+        onBlur={onBlur}
+        onChangeText={onChange}
+        placeholder="Confirm Password"
+        secureTextEntry
+        value={value}
+      />
+    ),
+    [isSubmitting]
+  );
+
   return (
     <VStack className="w-full items-stretch gap-4">
       <Controller
         control={form.control}
         name="password"
-        render={({ field: { onChange, onBlur, value } }) => (
-          <Input
-            editable={!form.formState.isSubmitting}
-            onBlur={onBlur}
-            onChangeText={onChange}
-            placeholder="New Password"
-            secureTextEntry
-            value={value}
-          />
-        )}
+        render={renderPasswordField}
       />
-      {form.formState.errors.password && (
+      {form.formState.errors.password ? (
         <Text className="text-red-500">
           {form.formState.errors.password.message}
         </Text>
-      )}
+      ) : null}
 
       <Controller
         control={form.control}
         name="confirmPassword"
-        render={({ field: { onChange, onBlur, value } }) => (
-          <Input
-            editable={!form.formState.isSubmitting}
-            onBlur={onBlur}
-            onChangeText={onChange}
-            placeholder="Confirm Password"
-            secureTextEntry
-            value={value}
-          />
-        )}
+        render={renderConfirmPasswordField}
       />
-      {form.formState.errors.confirmPassword && (
+      {form.formState.errors.confirmPassword ? (
         <Text className="text-red-500">
           {form.formState.errors.confirmPassword.message}
         </Text>
-      )}
+      ) : null}
 
       <Button
-        isLoading={form.formState.isSubmitting}
+        isLoading={isSubmitting}
         label="Update Password"
         onPress={form.handleSubmit(onSubmit)}
         systemImage="arrow.right"

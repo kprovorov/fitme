@@ -19,12 +19,13 @@ const ExercisesView = ({
   itemCta,
   initialMuscleGroup = "all",
   ref,
-}: (React.HTMLProps<HTMLDivElement> & {
+}: {
   onExercisePress?: (exercise: Exercise) => void;
   onAddExercisePress?: () => void;
   itemCta?: React.ReactNode | ((exercise: Exercise) => React.ReactNode);
   initialMuscleGroup?: string;
-}) & { ref?: React.RefObject<ExercisesViewHandle | null> }) => {
+  ref?: React.Ref<ExercisesViewHandle>;
+}) => {
   const [muscleGroup, setMuscleGroup] = useState<string>(initialMuscleGroup);
 
   const muscleGroupOptions = [
@@ -52,6 +53,10 @@ const ExercisesView = ({
 
   useImperativeHandle(ref, () => ({ refresh }), [refresh]);
 
+  const loadMore = useCallback(() => {
+    fetchNextPage();
+  }, [fetchNextPage]);
+
   return (
     <VStack className="flex-1 items-stretch">
       <Picker
@@ -68,11 +73,11 @@ const ExercisesView = ({
         onExercisePress={onExercisePress}
       />
 
-      {hasNextPage && (
-        <Button onPress={() => fetchNextPage()} variant="secondary">
+      {hasNextPage ? (
+        <Button onPress={loadMore} variant="secondary">
           <Text>Load more...</Text>
         </Button>
-      )}
+      ) : null}
     </VStack>
   );
 };

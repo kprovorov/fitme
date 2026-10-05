@@ -67,7 +67,9 @@ const AccordionTrigger = ({
   children,
   ref,
   ...props
-}: AccordionPrimitive.TriggerProps & {
+}: Omit<AccordionPrimitive.TriggerProps, "children"> & {
+  // Rendered next to the chevron, so render-function children are not supported.
+  children?: React.ReactNode;
   ref?: React.RefObject<AccordionPrimitive.TriggerRef | null>;
 }) => {
   const { isExpanded } = AccordionPrimitive.useItemContext();

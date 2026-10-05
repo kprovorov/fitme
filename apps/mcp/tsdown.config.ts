@@ -1,10 +1,10 @@
 import { defineConfig, type UserConfig } from "tsdown";
 
 const shared: UserConfig = {
+  // Workspace packages are source-only, so inline them into the bundle.
+  deps: { alwaysBundle: [/^@fitme\//] },
   fixedExtension: false,
   format: "esm",
-  // Workspace packages are source-only, so inline them into the bundle.
-  noExternal: [/^@fitme\//],
   outDir: "dist",
   platform: "node",
 };

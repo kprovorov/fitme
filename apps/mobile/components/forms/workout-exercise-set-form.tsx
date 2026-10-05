@@ -1,5 +1,10 @@
 import { zodResolver } from "@hookform/resolvers/zod";
-import { Controller, useForm } from "react-hook-form";
+import { useCallback } from "react";
+import {
+  Controller,
+  type ControllerRenderProps,
+  useForm,
+} from "react-hook-form";
 import { z } from "zod";
 import { Button } from "../ui/button";
 import { ErrorMessage } from "../ui/error-message";
@@ -13,7 +18,9 @@ interface WorkoutSessionExerciseSetFormProps {
   isDone?: boolean;
   isEditing?: boolean;
   onEdit: () => void;
-  onSubmit: (values: z.infer<typeof formSchema>) => Promise<void>;
+  onSubmit: (
+    values: WorkoutSessionExerciseSetFormValues
+  ) => void | Promise<void>;
   recommendedValues?: z.infer<typeof formSchema>;
   setIndex?: number;
 }
@@ -44,46 +51,69 @@ export default function WorkoutSessionExerciseSetForm({
     resolver: zodResolver(formSchema),
   });
 
+  const { disabled: isFormDisabled } = form.formState;
+
+  const renderWeightField = useCallback(
+    ({
+      field: { onChange, onBlur, value },
+    }: {
+      field: ControllerRenderProps<
+        WorkoutSessionExerciseSetFormValues,
+        "weight"
+      >;
+    }) => (
+      <Input
+        className="h-10 native:h-10 w-full text-center font-bold"
+        editable={!isFormDisabled}
+        keyboardType="decimal-pad"
+        onBlur={onBlur}
+        onChangeText={onChange}
+        placeholder={recommendedValues?.weight}
+        testID={`set-weight-input-${setIndex}`}
+        value={value}
+      />
+    ),
+    [isFormDisabled, recommendedValues?.weight, setIndex]
+  );
+
+  const renderRepsField = useCallback(
+    ({
+      field: { onChange, onBlur, value },
+    }: {
+      field: ControllerRenderProps<WorkoutSessionExerciseSetFormValues, "reps">;
+    }) => (
+      <Input
+        autoCapitalize="none"
+        className="h-10 native:h-10 w-full text-center font-bold"
+        editable={!isFormDisabled}
+        keyboardType="number-pad"
+        onBlur={onBlur}
+        onChangeText={onChange}
+        placeholder={recommendedValues?.reps}
+        testID={`set-reps-input-${setIndex}`}
+        value={value}
+      />
+    ),
+    [isFormDisabled, recommendedValues?.reps, setIndex]
+  );
+
   return (
     <VStack className="flex-1 gap-xs">
       <HStack className="flex-1 justify-between gap-xs">
-        {hasWeight && (
+        {hasWeight ? (
           <HStack className="flex-1">
             <Controller
               control={form.control}
               name="weight"
-              render={({ field: { onChange, onBlur, value } }) => (
-                <Input
-                  className="h-10 native:h-10 w-full text-center font-bold"
-                  editable={!form.formState.disabled}
-                  keyboardType="decimal-pad"
-                  onBlur={onBlur}
-                  onChangeText={onChange}
-                  placeholder={recommendedValues?.weight}
-                  testID={`set-weight-input-${setIndex}`}
-                  value={value}
-                />
-              )}
+              render={renderWeightField}
             />
           </HStack>
-        )}
+        ) : null}
         <HStack className="flex-1">
           <Controller
             control={form.control}
             name="reps"
-            render={({ field: { onChange, onBlur, value } }) => (
-              <Input
-                autoCapitalize="none"
-                className="h-10 native:h-10 w-full text-center font-bold"
-                editable={!form.formState.disabled}
-                keyboardType="number-pad"
-                onBlur={onBlur}
-                onChangeText={onChange}
-                placeholder={recommendedValues?.reps}
-                testID={`set-reps-input-${setIndex}`}
-                value={value}
-              />
-            )}
+            render={renderRepsField}
           />
         </HStack>
 
@@ -108,12 +138,12 @@ export default function WorkoutSessionExerciseSetForm({
           )}
         </HStack>
       </HStack>
-      {form.formState.errors.weight && (
+      {form.formState.errors.weight ? (
         <ErrorMessage>{form.formState.errors.weight.message}</ErrorMessage>
-      )}
-      {form.formState.errors.reps && (
+      ) : null}
+      {form.formState.errors.reps ? (
         <ErrorMessage>{form.formState.errors.reps.message}</ErrorMessage>
-      )}
+      ) : null}
     </VStack>
   );
 }

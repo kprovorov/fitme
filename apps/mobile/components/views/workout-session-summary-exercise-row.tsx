@@ -64,9 +64,9 @@ export default function WorkoutSessionSummaryExerciseRow({
         >
           {workoutSessionExercise.exercise.name}
         </Text>
-        {isNewRecord && (
+        {isNewRecord ? (
           <SymbolImage name="trophy.fill" size={17} tintColor="#C0FF38" />
-        )}
+        ) : null}
         <SymbolImage name="chevron.right" size={17} tintColor="#FAFAFA" />
       </HStack>
     </Pressable>

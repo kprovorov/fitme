@@ -61,13 +61,13 @@ function ToggleRow({
       <Text className="flex-1 text-[17px] text-foreground dark:text-foreground">
         {label}
       </Text>
-      {badge && (
+      {badge ? (
         <View className="rounded bg-muted px-1.5 py-0.5 dark:bg-muted">
           <Text className="font-medium text-[11px] text-muted-foreground dark:text-muted-foreground">
             {badge}
           </Text>
         </View>
-      )}
+      ) : null}
       <Switch onValueChange={onValueChange} value={value} />
     </View>
   );

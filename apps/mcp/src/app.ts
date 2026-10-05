@@ -4,7 +4,7 @@ import { cors } from "hono/cors";
 import { logger } from "hono/logger";
 import { createMcpServer } from "./server.js";
 
-export const app = new Hono();
+const app = new Hono();
 
 app.use(logger());
 app.use(

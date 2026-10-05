@@ -1,5 +1,5 @@
 import { serve } from "@hono/node-server";
-import { app } from "./app.js";
+import app from "./app.js";
 
 const DEFAULT_PORT = 3002;
 const port = Number(process.env.PORT ?? DEFAULT_PORT);
