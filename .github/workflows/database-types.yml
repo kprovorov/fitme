@@ -30,8 +30,9 @@ jobs:
         run: pnpm install --frozen-lockfile
 
       # Use the lockfile-pinned CLI for both steps so output only changes on a bump.
-      - name: Start local database
-        run: pnpm db exec supabase db start
+      # PostgREST must run too: without it the generator omits __InternalSupabase.
+      - name: Start local Supabase
+        run: pnpm db exec supabase start -x studio,imgproxy,realtime,storage-api,edge-runtime,logflare,vector,postgres-meta
 
       - name: Regenerate types
         run: pnpm db types:generate
