@@ -1,8 +1,10 @@
 import { handleSupabaseError } from "@fitme/core";
 import { useQueryClient } from "@tanstack/react-query";
 import { Link, router } from "expo-router";
-import { useEffect, useState } from "react";
-import LoginForm from "@/components/forms/auth/login-form";
+import { useCallback, useEffect, useState } from "react";
+import LoginForm, {
+  type LoginFormValues,
+} from "@/components/forms/auth/login-form";
 import { useLoginMutation } from "@/hooks/mutations/auth";
 import { useCurrentUserQuery } from "~/hooks/queries/auth";
 import { Text } from "../ui/text";
@@ -32,6 +34,13 @@ export default function LoginView() {
     },
   });
 
+  const handleSubmit = useCallback(
+    async (values: LoginFormValues) => {
+      await login(values);
+    },
+    [login]
+  );
+
   return (
     <VStack className="w-full">
       <VStack className="gap-0">
@@ -40,12 +49,8 @@ export default function LoginView() {
           Log in to your account to access your workouts
         </Text>
       </VStack>
-      {errorMessage && <P className="text-red-500">{errorMessage}</P>}
-      <LoginForm
-        onSubmit={async (values) => {
-          await login(values);
-        }}
-      />
+      {errorMessage ? <P className="text-red-500">{errorMessage}</P> : null}
+      <LoginForm onSubmit={handleSubmit} />
       <Text className="font-nunito-sans-bold text-subhead">
         <Link
           className="font-nunito-sans-bold text-primary"

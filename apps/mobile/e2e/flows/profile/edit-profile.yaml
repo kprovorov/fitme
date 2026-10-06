@@ -1,0 +1,110 @@
+appId: com.fitmeproject.ios
+---
+- launchApp:
+    clearState: true
+
+- waitForAnimationToEnd
+
+# ===== REGISTER =====
+- assertVisible:
+    text: "Welcome to Fitme!"
+
+- tapOn:
+    id: "name-input"
+- inputText: "Pepper Potts"
+
+- tapOn:
+    id: "email-input"
+- inputRandomEmail
+
+- tapOn:
+    id: "password-input"
+- inputText: "secret"
+
+- tapOn:
+    id: "register-button"
+
+- waitForAnimationToEnd
+
+# Lands on onboarding welcome — iOS may offer to save the password first
+- extendedWaitUntil:
+    visible:
+      text: "Get Started|Not Now"
+    timeout: 10000
+
+- tapOn:
+    text: "Not Now"
+    optional: true
+
+# Skip onboarding, so the user has no profile yet
+- assertVisible:
+    text: "Get Started"
+
+- tapOn:
+    text: "Skip"
+
+- waitForAnimationToEnd
+
+# ===== EDIT PROFILE =====
+- tapOn:
+    text: "Profile"
+
+- waitForAnimationToEnd
+
+- tapOn:
+    id: "edit-profile-link"
+
+- waitForAnimationToEnd
+
+- assertVisible:
+    text: "Edit Profile"
+
+- tapOn:
+    id: "edit-profile-name-input"
+- eraseText: 20
+- inputText: "Virginia Potts"
+
+- tapOn:
+    text: "Female"
+
+# Each row opens a wheel at the bottom; scroll it to set a value
+- tapOn:
+    text: "Age.*"
+- waitForAnimationToEnd
+- swipe:
+    start: "50%,87%"
+    end: "50%,80%"
+    duration: 600
+- waitForAnimationToEnd
+
+- tapOn:
+    text: "Weight.*"
+- waitForAnimationToEnd
+- swipe:
+    start: "50%,80%"
+    end: "50%,87%"
+    duration: 600
+- waitForAnimationToEnd
+
+- tapOn:
+    text: "Height.*"
+- waitForAnimationToEnd
+- swipe:
+    start: "50%,80%"
+    end: "50%,87%"
+    duration: 600
+- waitForAnimationToEnd
+
+- assertNotVisible:
+    text: ".*Not Set"
+
+- tapOn:
+    id: "edit-profile-save-button"
+
+- waitForAnimationToEnd
+
+# Back on the Profile tab with the new name
+- assertVisible:
+    id: "edit-profile-link"
+- assertVisible:
+    text: "Virginia Potts"

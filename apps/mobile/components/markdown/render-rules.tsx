@@ -2,7 +2,6 @@ import {
   Image,
   type ImageProps,
   type ImageStyle,
-  Linking,
   Text,
   type TextStyle,
   View,
@@ -68,8 +67,7 @@ const renderRules: RenderRules = {
     </Text>
   ),
   link: ({ node, styles, children, extras }) => {
-    const onPress = () =>
-      extras?.onPress(node.url) || (() => Linking.openURL(node.url));
+    const onPress = () => extras?.onPress?.(node.url);
     return (
       <Text
         key={node.key}

@@ -340,27 +340,40 @@ export interface Database {
           created_at: string | null;
           finished_at: string | null;
           id: string;
+          plan_id: string | null;
           started_at: string;
           updated_at: string | null;
-          workout_id: string;
+          user_id: string;
+          workout_id: string | null;
         };
         Insert: {
           created_at?: string | null;
           finished_at?: string | null;
           id?: string;
+          plan_id?: string | null;
           started_at: string;
           updated_at?: string | null;
-          workout_id: string;
+          user_id: string;
+          workout_id?: string | null;
         };
         Update: {
           created_at?: string | null;
           finished_at?: string | null;
           id?: string;
+          plan_id?: string | null;
           started_at?: string;
           updated_at?: string | null;
-          workout_id?: string;
+          user_id?: string;
+          workout_id?: string | null;
         };
         Relationships: [
+          {
+            foreignKeyName: "workout_sessions_plan_id_fkey";
+            columns: ["plan_id"];
+            isOneToOne: false;
+            referencedRelation: "plans";
+            referencedColumns: ["id"];
+          },
           {
             foreignKeyName: "workout_sessions_workout_id_fkey";
             columns: ["workout_id"];
@@ -451,7 +464,7 @@ export interface Database {
         Returns: string;
       };
       update_plan: {
-        Args: { p_plan_data: Json; p_plan_id: string };
+        Args: { p_plan_data: Json; p_plan_id: string; p_user_id?: string };
         Returns: string;
       };
       convert_measurement_system: {

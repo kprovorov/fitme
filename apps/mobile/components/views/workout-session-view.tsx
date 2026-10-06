@@ -1,6 +1,6 @@
 import type { Exercise, WorkoutSession } from "@fitme/core";
 import { useQueryClient } from "@tanstack/react-query";
-import { useState } from "react";
+import { useCallback, useState } from "react";
 import { Modal, ScrollView, View } from "react-native";
 import {
   useCreateWorkoutSessionExerciseMutation,
@@ -20,6 +20,30 @@ import WorkoutSessionExerciseCard from "./workout-session-exercise-card";
 interface WorkoutSessionViewProps {
   sessionId: string;
   workoutSession: WorkoutSession;
+}
+
+interface ExerciseCtaButtonProps {
+  exercise: Exercise;
+  label: string;
+  onPress: (exercise: Exercise) => void;
+}
+
+function ExerciseCtaButton({
+  exercise,
+  label,
+  onPress,
+}: ExerciseCtaButtonProps) {
+  const handlePress = useCallback(() => onPress(exercise), [exercise, onPress]);
+
+  return (
+    <Button
+      fill={false}
+      label={label}
+      onPress={handlePress}
+      shape="pill"
+      size="sm"
+    />
+  );
 }
 
 export default function WorkoutSessionView({
@@ -61,38 +85,66 @@ export default function WorkoutSessionView({
       },
     });
 
-  const onExercisePress = async (exercise: Exercise) => {
-    if (replacingExerciseId === null) {
-      await mutateAsync({
-        data: {
-          exercise_id: exercise.id,
-        },
-        sessionId,
-      });
-      if (!IS_E2E) {
-        segmentClient.track("Exercise Added", {
-          exercise_id: exercise.id,
-          session_id: sessionId,
+  const onExercisePress = useCallback(
+    async (exercise: Exercise) => {
+      if (replacingExerciseId === null) {
+        await mutateAsync({
+          data: {
+            exercise_id: exercise.id,
+          },
+          sessionId,
         });
-      }
-    } else {
-      await replaceExercise({
-        data: {
-          exercise_id: exercise.id,
-        },
-        exerciseId: replacingExerciseId,
-      });
-      if (!IS_E2E) {
-        segmentClient.track("Exercise Replaced", {
-          exercise_id: exercise.id,
-          session_id: sessionId,
+        if (!IS_E2E) {
+          segmentClient.track("Exercise Added", {
+            exercise_id: exercise.id,
+            session_id: sessionId,
+          });
+        }
+      } else {
+        await replaceExercise({
+          data: {
+            exercise_id: exercise.id,
+          },
+          exerciseId: replacingExerciseId,
         });
+        if (!IS_E2E) {
+          segmentClient.track("Exercise Replaced", {
+            exercise_id: exercise.id,
+            session_id: sessionId,
+          });
+        }
+        setReplacingExerciseId(null);
+        setInitialMuscleGroup(undefined);
       }
-      setReplacingExerciseId(null);
-      setInitialMuscleGroup(undefined);
-    }
+      setShowModal(false);
+    },
+    [mutateAsync, replaceExercise, replacingExerciseId, sessionId]
+  );
+
+  const handleRequestClose = useCallback(() => {
+    setShowModal(!showModal);
+    setReplacingExerciseId(null);
+    setInitialMuscleGroup(undefined);
+  }, [showModal]);
+
+  const handleCloseModal = useCallback(() => {
     setShowModal(false);
-  };
+    setReplacingExerciseId(null);
+    setInitialMuscleGroup(undefined);
+  }, []);
+
+  const openModal = useCallback(() => setShowModal(true), []);
+
+  const renderExerciseCta = useCallback(
+    (exercise: Exercise) => (
+      <ExerciseCtaButton
+        exercise={exercise}
+        label={replacingExerciseId === null ? "Add" : "Replace"}
+        onPress={onExercisePress}
+      />
+    ),
+    [onExercisePress, replacingExerciseId]
+  );
 
   const handleDeleteExercise = async (exerciseId: string) => {
     await deleteExercise({
@@ -119,11 +171,7 @@ export default function WorkoutSessionView({
       <Modal
         animationType="slide"
         backdropColor="#1F1D20"
-        onRequestClose={() => {
-          setShowModal(!showModal);
-          setReplacingExerciseId(null);
-          setInitialMuscleGroup(undefined);
-        }}
+        onRequestClose={handleRequestClose}
         presentationStyle="pageSheet"
         visible={showModal}
       >
@@ -134,11 +182,7 @@ export default function WorkoutSessionView({
           <VStack className="flex-1 items-stretch bg-background p-md">
             <HStack className="justify-end">
               <Button
-                onPress={() => {
-                  setShowModal(false);
-                  setReplacingExerciseId(null);
-                  setInitialMuscleGroup(undefined);
-                }}
+                onPress={handleCloseModal}
                 shape="pill"
                 size="icon-sm"
                 systemImage="xmark"
@@ -147,15 +191,7 @@ export default function WorkoutSessionView({
             </HStack>
             <ExercisesView
               initialMuscleGroup={initialMuscleGroup}
-              itemCta={(exercise) => (
-                <Button
-                  fill={false}
-                  label={replacingExerciseId === null ? "Add" : "Replace"}
-                  onPress={() => onExercisePress(exercise)}
-                  shape="pill"
-                  size="sm"
-                />
-              )}
+              itemCta={renderExerciseCta}
             />
           </VStack>
         </ScrollView>
@@ -192,7 +228,7 @@ export default function WorkoutSessionView({
             <VStack className="flex-1 items-stretch p-3">
               <Button
                 label="Add Exercise"
-                onPress={() => setShowModal(true)}
+                onPress={openModal}
                 shape="pill"
                 systemImage="plus"
                 variant="ghost"

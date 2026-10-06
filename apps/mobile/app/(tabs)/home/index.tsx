@@ -59,6 +59,8 @@ export default function HomeScreen() {
     }
   }, [isUserFetched, user, router]);
 
+  const handleCreatePlan = useCallback(() => router.push("/planner"), [router]);
+
   return (
     <>
       <Stack.Screen
@@ -128,7 +130,7 @@ export default function HomeScreen() {
               You don&apos;t have an active workout plan. Create one to get
               started.
             </Text>
-            <Button className="w-full" onPress={() => router.push("/planner")}>
+            <Button className="w-full" onPress={handleCreatePlan}>
               <Text>Create Workout Plan</Text>
             </Button>
           </VStack>

@@ -6,7 +6,7 @@ const Textarea = ({
   className,
   multiline = true,
   numberOfLines = 4,
-  placeholderClassName,
+  placeholderTextColorClassName,
   ref,
   ...props
 }: TextInputProps & {
@@ -20,7 +20,10 @@ const Textarea = ({
     )}
     multiline={multiline}
     numberOfLines={numberOfLines}
-    placeholderClassName={cn("text-muted-foreground", placeholderClassName)}
+    placeholderTextColorClassName={cn(
+      "accent-muted-foreground",
+      placeholderTextColorClassName
+    )}
     ref={ref}
     textAlignVertical="top"
     {...props}

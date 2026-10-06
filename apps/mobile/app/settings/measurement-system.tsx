@@ -6,7 +6,7 @@ import {
 } from "@fitme/core";
 import { useQueryClient } from "@tanstack/react-query";
 import { Stack } from "expo-router";
-import { useState } from "react";
+import { useCallback, useState } from "react";
 import { View } from "react-native";
 import { AlertDialog } from "~/components/ui/alert-dialog";
 import { RadioGroup } from "~/components/ui/radio-group";
@@ -37,6 +37,12 @@ export default function MeasurementSystemScreen() {
         queryClient.invalidateQueries({ queryKey: ["user"] });
       },
     });
+
+  const handleIsPresentedChange = useCallback((isPresented: boolean) => {
+    if (!isPresented) {
+      setPendingSystem(null);
+    }
+  }, []);
 
   return (
     <>
@@ -75,11 +81,7 @@ export default function MeasurementSystemScreen() {
           ]}
           isPresented={pendingSystem !== null}
           message="Updating your measurement system will affect all of your measurements. Your profile data and workout history will be converted to the new system."
-          onIsPresentedChange={(isPresented) => {
-            if (!isPresented) {
-              setPendingSystem(null);
-            }
-          }}
+          onIsPresentedChange={handleIsPresentedChange}
           title="Are you sure?"
         />
       </View>

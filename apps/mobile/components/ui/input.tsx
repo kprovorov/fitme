@@ -4,7 +4,7 @@ import { cn } from "~/lib/utils";
 
 const Input = ({
   className,
-  placeholderClassName,
+  placeholderTextColorClassName,
   ref,
   ...props
 }: TextInputProps & {
@@ -16,7 +16,10 @@ const Input = ({
       props.editable === false && "web:cursor-not-allowed opacity-50",
       className
     )}
-    placeholderClassName={cn("text-muted-foreground", placeholderClassName)}
+    placeholderTextColorClassName={cn(
+      "accent-muted-foreground",
+      placeholderTextColorClassName
+    )}
     ref={ref}
     {...props}
   />

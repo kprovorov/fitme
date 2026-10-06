@@ -128,11 +128,11 @@ export default function PlanScreen() {
           <RefreshControl onRefresh={refetch} refreshing={isLoading} />
         }
       >
-        {plan && (
+        {plan ? (
           <VStack className="flex-1 items-stretch">
             <WorkoutList workouts={plan.workouts} />
           </VStack>
-        )}
+        ) : null}
       </ScrollView>
     </>
   );

@@ -29,7 +29,7 @@ pnpm dev:site            # next dev on :3001
 pnpm dev:mcp             # tsx watch MCP server on :3002 (MCP endpoint at /)
 pnpm dev:api             # tsx watch REST API on :3003
 pnpm build               # turbo run build
-pnpm test                # turbo run test (jest in mobile, vitest in core)
+pnpm test                # turbo run test (jest in mobile, vitest in core and mcp)
 pnpm typecheck           # turbo run typecheck
 pnpm check / pnpm fix    # ultracite (Biome) over the whole repo
 
@@ -40,6 +40,7 @@ pnpm mobile lint         # expo lint
 pnpm web build           # next build
 pnpm site build          # next build (marketing site)
 pnpm mcp build           # tsdown bundle → apps/mcp/dist
+pnpm mcp test            # vitest (in-memory MCP client)
 pnpm api build           # tsdown bundle → apps/api/dist
 pnpm db start            # supabase start     (alias for pnpm --filter @fitme/supabase start)
 pnpm db seed             # seed local database
@@ -108,9 +109,14 @@ Hono app served with `@hono/node-server`, bundled with tsdown. Reads domain data
 
 Stateless [Streamable HTTP](https://modelcontextprotocol.io) MCP server built on Hono + `@modelcontextprotocol/sdk`, served with `@hono/node-server`.
 
-- `src/server.ts` — `createMcpServer()` registers tools (`registerTool` with zod input schemas). Tools read domain data from `@fitme/core`.
-- `src/app.ts` — Hono app: the MCP endpoint is the root `/` (all methods), creating a fresh server + `WebStandardStreamableHTTPServerTransport` per request; `/health` for liveness. Deployed at https://mcp.fitmeproject.com.
+- `src/server.ts` — composition root: `createMcpServer({ accessToken, createSupabaseClient? })` registers the tool groups from `src/tools/` (`registerTool` with zod input schemas, `title`, and read-only/destructive/idempotent `annotations`).
+- `src/tools/` — `catalog.ts` (public tools from `@fitme/core`: ping, muscle groups, plan options), and user tools in `exercises.ts`, `plans.ts` (+ `plan-schemas.ts`), `sessions.ts`, `profile.ts`; shared bounds in `limits.ts`. `helpers.ts` holds `asJson`, `unwrap` (Supabase response → data or `ToolError`), `withUser` (resolves the caller and turns every failure into an `isError` tool result), `fetchPage` (offset past the end → empty page, not PGRST103) and `readBack` (a committed write whose read-back fails returns success + `warning`, never `isError`).
+- `src/context.ts` — per-request `ToolContext`; lazily verifies the bearer token once (`auth.getUser`) and caches the `{ supabase, userId }` result.
+- `src/supabase.ts` — per-request `SupabaseClient<Database>` built from `SUPABASE_URL` + `SUPABASE_ANON_KEY` with the caller's token in `global.headers.Authorization`, so RLS and the `auth.uid()` RPCs enforce ownership. Never use a service-role key, and never take a user id as tool input.
+- `src/app.ts` — `createApp({ createSupabaseClient? })` builds the Hono app (default export = `createApp()` for Vercel): the MCP endpoint is the root `/` (all methods), extracting `Authorization: Bearer <Supabase access token>` and creating a fresh server + `WebStandardStreamableHTTPServerTransport` per request; `/health` for liveness. Deployed at https://mcp.fitmeproject.com.
 - `src/index.ts` — Node entrypoint, `PORT` env (default 3002).
+- Tests (`src/__tests__/`, vitest) drive `createMcpServer` through the SDK's `InMemoryTransport` + `Client` (`harness.ts`), and the Hono app via `app.request`, injecting a fake Supabase client (`fake-supabase.ts`) whose routes match on table/RPC, operation, select text and required filters; an unmatched query fails the test in `afterEach`.
+- Plan writes go through the `create_plan` / `update_plan` RPCs (never `store_plan`). `update_plan` with `workouts` recreates every workout (new ids), so metadata-only updates use a direct `plans` update instead. `start_workout_session` resumes an open session for the workout (the app assumes one per workout) and refuses workouts of soft-deleted plans; `finish_workout_session` falls back to a direct `finished_at` update when the session's workout is gone (`rotated: false`).
 
 ### packages/core — `@fitme/core`
 
@@ -162,6 +168,12 @@ Env files live next to each app.
 - `NEXT_PUBLIC_SITE_URL`
 
 `apps/site/.env.local` (see `apps/site/.env.example`): App Store id/url, support email, social links, GTM id, PostHog key.
+
+`apps/mcp` (see `apps/mcp/.env.example`; read from the process environment, not auto-loaded from a file):
+
+- `PORT` (default 3002)
+- `SUPABASE_URL`
+- `SUPABASE_ANON_KEY` — anon key only, never the service-role key. Without these the public tools still work and user tools return an error.
 
 ## CI/CD
 

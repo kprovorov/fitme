@@ -1,6 +1,7 @@
 import * as Sentry from "@sentry/react-native";
 import { useQueryClient } from "@tanstack/react-query";
 import { Link, router } from "expo-router";
+import { useCallback } from "react";
 import { Linking } from "react-native";
 import RevenueCatUI from "react-native-purchases-ui";
 import { Button } from "~/components/ui/button";
@@ -19,6 +20,13 @@ import { Separator } from "../ui/separator";
 import { Muted } from "../ui/typography";
 import { VStack } from "../ui/vstack";
 
+const APP_STORE_REVIEW_URL =
+  "itms-apps://itunes.apple.com/app/viewContentsUserReviews/id6741153628?action=write-review";
+
+const presentPaywall = () => RevenueCatUI.presentPaywall();
+
+const openAppStoreReview = () => Linking.openURL(APP_STORE_REVIEW_URL);
+
 export default function ProfileView() {
   const queryClient = useQueryClient();
 
@@ -35,6 +43,18 @@ export default function ProfileView() {
   const { data: isPro } = useIsProQuery();
 
   const { data: customerInfo } = useCustomerInfoQuery();
+
+  const managementURL = customerInfo?.managementURL;
+
+  const openManagementURL = useCallback(() => {
+    if (managementURL) {
+      Linking.openURL(managementURL);
+    }
+  }, [managementURL]);
+
+  const handleLogout = useCallback(() => {
+    logout();
+  }, [logout]);
 
   return (
     !!user && (
@@ -66,14 +86,8 @@ export default function ProfileView() {
                     You have access to all of our features. You can cancel your
                     subscription at any time.
                   </Muted>
-                  {!!customerInfo?.managementURL && (
-                    <Button
-                      onPress={() =>
-                        customerInfo.managementURL &&
-                        Linking.openURL(customerInfo.managementURL)
-                      }
-                      variant="secondary"
-                    >
+                  {!!managementURL && (
+                    <Button onPress={openManagementURL} variant="secondary">
                       <Text>Manage Subscription</Text>
                     </Button>
                   )}
@@ -90,7 +104,7 @@ export default function ProfileView() {
                     Subscribe to Fitme Pro to get unlimited access to all of our
                     features
                   </Muted>
-                  <Button onPress={() => RevenueCatUI.presentPaywall()}>
+                  <Button onPress={presentPaywall}>
                     <Text>Upgrade to Pro</Text>
                   </Button>
                 </VStack>
@@ -100,6 +114,12 @@ export default function ProfileView() {
         </Card>
 
         <MenuList>
+          <Link asChild href="/settings/edit-profile">
+            <MenuListItem icon="chevron-right" testID="edit-profile-link">
+              <Text>Edit Profile</Text>
+            </MenuListItem>
+          </Link>
+          <Separator />
           <Link asChild href="/settings">
             <MenuListItem icon="chevron-right">
               <Text>Settings</Text>
@@ -118,19 +138,13 @@ export default function ProfileView() {
             </MenuListItem>
           </Link>
           <Separator />
-          <MenuListItem onPress={() => logout()} testID="logout-button">
+          <MenuListItem onPress={handleLogout} testID="logout-button">
             <Text>Logout</Text>
           </MenuListItem>
         </MenuList>
 
         <MenuList>
-          <MenuListItem
-            onPress={() =>
-              Linking.openURL(
-                "itms-apps://itunes.apple.com/app/viewContentsUserReviews/id6741153628?action=write-review"
-              )
-            }
-          >
+          <MenuListItem onPress={openAppStoreReview}>
             <HStack className="flex-1 justify-start gap-4">
               <Heart className="text-foreground" size={24} />
               <VStack className="items-start gap-0">
