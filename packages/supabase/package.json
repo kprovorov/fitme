@@ -22,7 +22,7 @@
     "stop": "supabase stop",
     "test:db": "supabase test db",
     "typecheck": "tsc --noEmit",
-    "types:generate": "supabase gen types typescript --local --schema public > src/database.types.ts"
+    "types:generate": "supabase gen types typescript --local --schema public > src/database.types.ts && biome check --write --unsafe src/database.types.ts"
   },
   "dependencies": {
     "@supabase/supabase-js": "^2.97.0",
