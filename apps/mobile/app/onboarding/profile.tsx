@@ -1,5 +1,6 @@
-import type { MeasurementSystem } from "@fitme/core";
+import type { MeasurementSystem, User } from "@fitme/core";
 import * as Sentry from "@sentry/react-native";
+import { useQueryClient } from "@tanstack/react-query";
 import { useLocales } from "expo-localization";
 import { router } from "expo-router";
 import { useCallback } from "react";
@@ -18,6 +19,8 @@ import { storage } from "~/lib/mmkv";
 import { segmentClient } from "~/lib/segment";
 
 export default function ProfileScreen() {
+  const queryClient = useQueryClient();
+
   const { data: user } = useCurrentUserQuery();
 
   const locales = useLocales();
@@ -34,7 +37,13 @@ export default function ProfileScreen() {
     onError: (e) => {
       Sentry.captureException(e);
     },
-    onSuccess: (_, variables) => {
+    onSuccess: (profile, variables) => {
+      // Edit Profile seeds its form from the cached user, so put the saved
+      // profile there right away and refetch to be safe.
+      queryClient.setQueryData<User>(["user"], (current) =>
+        current ? { ...current, profile } : current
+      );
+      queryClient.invalidateQueries({ queryKey: ["user"] });
       if (user) {
         storage.set(`onboarding.seen.${user.id}`, true);
       }
