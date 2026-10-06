@@ -12,6 +12,14 @@ import type { McpServer } from "@modelcontextprotocol/sdk/server/mcp.js";
 import { z } from "zod";
 import { asJson, READ_ONLY } from "./helpers.js";
 
+/** Tools anyone can call without signing in; every other tool needs a user. */
+export const PUBLIC_TOOL_NAMES: readonly string[] = [
+  "ping",
+  "list_muscle_groups",
+  "list_plan_options",
+  "describe_muscle_group",
+];
+
 interface ServerInfo {
   name: string;
   version: string;

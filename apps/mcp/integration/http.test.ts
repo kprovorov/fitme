@@ -13,8 +13,8 @@ describe("HTTP endpoint against Supabase", () => {
     user = await createTestUser("http");
   });
 
-  const callTool = async (name: string, token: string) => {
-    const response = await app.request("/", {
+  const callTool = (name: string, token?: string) =>
+    app.request("/", {
       body: JSON.stringify({
         id: 1,
         jsonrpc: "2.0",
@@ -23,28 +23,46 @@ describe("HTTP endpoint against Supabase", () => {
       }),
       headers: {
         Accept: "application/json, text/event-stream",
-        Authorization: `Bearer ${token}`,
         "Content-Type": "application/json",
+        ...(token ? { Authorization: `Bearer ${token}` } : {}),
       },
       method: "POST",
     });
+
+  const readResult = async (response: Response) => {
     const [, data] = (await response.text()).match(SSE_DATA_LINE) ?? [];
     const { result } = JSON.parse(data ?? "{}");
     return {
       isError: result.isError === true,
-      status: response.status,
       text: String(result.content[0].text),
     };
   };
 
   it("verifies the bearer token and runs tools as that user", async () => {
-    const result = await callTool("list_plans", user.accessToken);
-    expect(result).toEqual({ isError: false, status: 200, text: "[]" });
+    const response = await callTool("list_plans", user.accessToken);
+    expect(response.status).toBe(200);
+    expect(await readResult(response)).toEqual({ isError: false, text: "[]" });
   });
 
-  it("rejects a token Supabase did not issue", async () => {
-    const result = await callTool("list_plans", "not-a-real-token");
-    expect(result).toMatchObject({ isError: true, status: 200 });
-    expect(result.text).toContain("Authentication failed");
+  it("answers a token Supabase did not issue with 401 invalid_token", async () => {
+    const response = await callTool("list_plans", "not-a-real-token");
+    expect(response.status).toBe(401);
+    expect(response.headers.get("WWW-Authenticate")).toContain(
+      'error="invalid_token"'
+    );
+  });
+
+  it("answers a user tool call without a token with an OAuth challenge", async () => {
+    const response = await callTool("list_plans");
+    expect(response.status).toBe(401);
+    expect(response.headers.get("WWW-Authenticate")).toBe(
+      'Bearer resource_metadata="http://localhost/.well-known/oauth-protected-resource"'
+    );
+  });
+
+  it("serves public tools without a token", async () => {
+    const response = await callTool("ping");
+    expect(response.status).toBe(200);
+    expect((await readResult(response)).isError).toBe(false);
   });
 });

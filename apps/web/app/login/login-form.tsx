@@ -22,6 +22,21 @@ const schema = z.object({
 
 type FormValues = z.infer<typeof schema>;
 
+/** Only same-origin targets, so `?next=` can't send users to another site. */
+function safeNextPath(next: string | null) {
+  if (!next) {
+    return "/dashboard";
+  }
+  try {
+    const url = new URL(next, window.location.origin);
+    return url.origin === window.location.origin
+      ? `${url.pathname}${url.search}${url.hash}`
+      : "/dashboard";
+  } catch {
+    return "/dashboard";
+  }
+}
+
 export function LoginForm() {
   const router = useRouter();
   const searchParams = useSearchParams();
@@ -46,7 +61,7 @@ export function LoginForm() {
       return;
     }
 
-    router.replace(searchParams.get("next") ?? "/dashboard");
+    router.replace(safeNextPath(searchParams.get("next")));
     router.refresh();
   };
 
