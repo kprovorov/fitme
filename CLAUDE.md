@@ -41,6 +41,7 @@ pnpm web build           # next build
 pnpm site build          # next build (marketing site)
 pnpm mcp build           # tsdown bundle → apps/mcp/dist
 pnpm mcp test            # vitest (in-memory MCP client)
+pnpm mcp test:integration # vitest against the local Supabase stack (needs SUPABASE_URL / SUPABASE_ANON_KEY, seeded exercises)
 pnpm api build           # tsdown bundle → apps/api/dist
 pnpm db start            # supabase start     (alias for pnpm --filter @fitme/supabase start)
 pnpm db seed             # seed local database
@@ -115,7 +116,7 @@ Stateless [Streamable HTTP](https://modelcontextprotocol.io) MCP server built on
 - `src/supabase.ts` — per-request `SupabaseClient<Database>` built from `SUPABASE_URL` + `SUPABASE_ANON_KEY` with the caller's token in `global.headers.Authorization`, so RLS and the `auth.uid()` RPCs enforce ownership. Never use a service-role key, and never take a user id as tool input.
 - `src/app.ts` — `createApp({ createSupabaseClient? })` builds the Hono app (default export = `createApp()` for Vercel): the MCP endpoint is the root `/` (all methods), extracting `Authorization: Bearer <Supabase access token>` and creating a fresh server + `WebStandardStreamableHTTPServerTransport` per request; `/health` for liveness. Deployed at https://mcp.fitmeproject.com.
 - `src/index.ts` — Node entrypoint, `PORT` env (default 3002).
-- Tests (`src/__tests__/`, vitest) drive `createMcpServer` through the SDK's `InMemoryTransport` + `Client` (`harness.ts`), and the Hono app via `app.request`, injecting a fake Supabase client (`fake-supabase.ts`) whose routes match on table/RPC, operation, select text and required filters; an unmatched query fails the test in `afterEach`.
+- Tests (`src/__tests__/`, vitest) drive `createMcpServer` through the SDK's `InMemoryTransport` + `Client` (`harness.ts`), and the Hono app via `app.request`, injecting a fake Supabase client (`fake-supabase.ts`) whose routes match on table/RPC, operation, select text and required filters; an unmatched query fails the test in `afterEach`. `integration/` (separate vitest config, `test:integration`) runs the same tools against a real local stack with freshly signed-up users, including a cross-user isolation suite; CI runs it in `.github/workflows/integration-tests.yml`.
 - Plan writes go through the `create_plan` / `update_plan` RPCs (never `store_plan`). `update_plan` with `workouts` recreates every workout (new ids), so metadata-only updates use a direct `plans` update instead. `start_workout_session` resumes an open session for the workout (the app assumes one per workout) and refuses workouts of soft-deleted plans; `finish_workout_session` falls back to a direct `finished_at` update when the session's workout is gone (`rotated: false`).
 
 ### packages/core — `@fitme/core`
@@ -177,4 +178,4 @@ Env files live next to each app.
 
 ## CI/CD
 
-GitHub Actions use pnpm (`pnpm/action-setup`) and `pnpm install --frozen-lockfile`. Unit tests run through `pnpm turbo run test`. The release workflow (`.github/workflows/release.yml`) bumps the version in `apps/mobile/package.json` and `apps/mobile/app.json` following conventional commits: `feat:` → minor, `fix:` → patch, `BREAKING CHANGE:` → major. The exercise sync workflow runs `pnpm --filter @fitme/supabase exercises:sync`.
+GitHub Actions use pnpm (`pnpm/action-setup`) and `pnpm install --frozen-lockfile`. Unit tests run through `pnpm turbo run test`; the MCP integration tests run separately against a local Supabase stack (Supabase CLI) in `.github/workflows/integration-tests.yml`. The release workflow (`.github/workflows/release.yml`) bumps the version in `apps/mobile/package.json` and `apps/mobile/app.json` following conventional commits: `feat:` → minor, `fix:` → patch, `BREAKING CHANGE:` → major. The exercise sync workflow runs `pnpm --filter @fitme/supabase exercises:sync`.

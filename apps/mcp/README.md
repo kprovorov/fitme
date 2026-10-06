@@ -7,9 +7,23 @@ pnpm dev:mcp            # tsx watch, http://localhost:3002
 pnpm mcp build          # tsdown bundle → dist/
 pnpm mcp start          # runs dist/index.js
 pnpm mcp test           # vitest (in-memory MCP client + Hono app, fake Supabase client)
+pnpm mcp test:integration  # vitest against a running Supabase stack (see below)
 ```
 
 The MCP endpoint is the root path: `POST|GET|DELETE /` (stateless, no session ids). `GET /health` for liveness.
+
+## Integration tests
+
+`integration/` runs the tools against a real Supabase stack instead of the fake client, so RLS, the RPCs and PostgREST behaviour (embeds, `!inner` filters, ranges past the end) are exercised for real. Each run signs up fresh users through the auth API (email confirmations are off in `config.toml`), then covers the main flow (create → get → update → activate → start session → log set → finish → list → delete) and checks that a second user can neither read nor change the first user's plans and sessions.
+
+```bash
+pnpm db start                     # local stack
+pnpm db exec snaplet-seed generate && pnpm db seed   # exercise library
+eval "$(pnpm --silent db exec supabase status -o env | sed -n 's/^API_URL=/export SUPABASE_URL=/p; s/^ANON_KEY=/export SUPABASE_ANON_KEY=/p')"
+pnpm mcp test:integration
+```
+
+CI runs the suite on every pull request (`.github/workflows/integration-tests.yml`), separately from the unit tests.
 
 ## Environment
 
