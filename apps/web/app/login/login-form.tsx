@@ -22,11 +22,16 @@ const schema = z.object({
 
 type FormValues = z.infer<typeof schema>;
 
-/** Only same-origin paths, so `?next=` can't send users to another site. */
-const safeNextPath = (next: string | null) =>
-  next?.startsWith("/") && !next.startsWith("//") && !next.startsWith("/\\")
-    ? next
+/** Only same-origin targets, so `?next=` can't send users to another site. */
+function safeNextPath(next: string | null) {
+  if (!next) {
+    return "/dashboard";
+  }
+  const url = new URL(next, window.location.origin);
+  return url.origin === window.location.origin
+    ? `${url.pathname}${url.search}${url.hash}`
     : "/dashboard";
+}
 
 export function LoginForm() {
   const router = useRouter();

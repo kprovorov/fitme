@@ -43,10 +43,13 @@ Without the Supabase variables the server still starts and the public tools work
 The server implements the [MCP authorization spec](https://modelcontextprotocol.io/specification/2025-06-18/basic/authorization) (OAuth 2.1). It is the protected resource; the authorization server is [Supabase Auth's OAuth server](https://supabase.com/docs/guides/auth/oauth-server/mcp-authentication) at `$SUPABASE_URL/auth/v1`, so MCP clients register themselves (dynamic client registration), sign the user in and refresh tokens there. The consent screen is the web app's `/oauth/consent` page (`apps/web`).
 
 1. `GET /.well-known/oauth-protected-resource` returns the resource URL and `authorization_servers: ["$SUPABASE_URL/auth/v1"]` (RFC 9728).
-2. A `tools/call` of a user tool without a token, or with one Supabase rejects (expired, revoked signing key, not a user token), gets **HTTP 401** with `WWW-Authenticate: Bearer resource_metadata="…"` (plus `error="invalid_token"` for a bad token). Clients use it to start OAuth, or to refresh an expired token.
-3. `initialize`, `tools/list` and the public tools never need a token.
+2. Any request carrying a token Supabase rejects (expired, revoked signing key, not a user token) gets **HTTP 401** with `WWW-Authenticate: Bearer error="invalid_token", …, resource_metadata="…"`, so the client refreshes it.
+3. A `tools/call` of a user tool without a token gets **HTTP 401** with `WWW-Authenticate: Bearer resource_metadata="…"`, so the client starts OAuth.
+4. Without a token, `initialize`, `tools/list` and the public tools work anonymously.
 
 Access tokens are ordinary Supabase user JWTs. For each request the server builds a Supabase client with the anon key plus that token, so all reads and writes go through RLS and the `auth.uid()`-based RPCs. The token is verified once per request with `auth.getClaims`, locally against the project's cached JWKS when it uses asymmetric signing keys (an `auth.getUser` round-trip otherwise). Local verification does not see sign-outs, so a token stays usable until it expires (1 hour by default). Tools never accept a user id.
+
+Tokens are not audience-bound to this server: Supabase Auth has no per-resource audience (every user JWT has `aud: authenticated`), so any Fitme user token is accepted, including app sessions and static tokens. This grants nothing beyond what the token already allows against Supabase directly (RLS still applies); a token without a user (`sub`), like the anon key, is rejected.
 
 Inside a request that passed the check:
 

@@ -2,6 +2,8 @@ import { AuthRetryableFetchError } from "@supabase/supabase-js";
 import { afterEach, describe, expect, it, vi } from "vitest";
 import { createApp, extractBearerToken } from "../app.js";
 import { callsUserTool } from "../auth.js";
+import { USER_TOOL_NAMES } from "../server.js";
+import { PUBLIC_TOOL_NAMES } from "../tools/catalog.js";
 import { createFakeSupabase, type FakeAuth, ok } from "./fake-supabase.js";
 import {
   call,
@@ -9,32 +11,6 @@ import {
   connectWithFake,
   expectAllCallsRouted,
 } from "./harness.js";
-
-const PUBLIC_TOOLS = [
-  "ping",
-  "list_muscle_groups",
-  "list_plan_options",
-  "describe_muscle_group",
-];
-
-const USER_TOOLS = [
-  "list_exercises",
-  "get_exercise",
-  "get_exercise_history",
-  "list_plans",
-  "get_plan",
-  "create_plan",
-  "update_plan",
-  "delete_plan",
-  "activate_plan",
-  "start_workout_session",
-  "get_workout_session",
-  "list_workout_sessions",
-  "log_set",
-  "finish_workout_session",
-  "delete_workout_session",
-  "get_profile",
-];
 
 const SSE_DATA_LINE = /^data: (.*)$/m;
 
@@ -48,7 +24,7 @@ describe("tool registry", () => {
     const client = await connect();
     const { tools } = await client.listTools();
     expect(tools.map((tool) => tool.name).sort()).toEqual(
-      [...PUBLIC_TOOLS, ...USER_TOOLS].sort()
+      [...PUBLIC_TOOL_NAMES, ...USER_TOOL_NAMES].sort()
     );
   });
 
@@ -166,6 +142,7 @@ describe("authentication", () => {
     expect(callsUserTool(toolCall("list_plans"))).toBe(true);
     expect(callsUserTool(toolCall("ping"))).toBe(false);
     expect(callsUserTool(toolCall(42))).toBe(false);
+    expect(callsUserTool(toolCall("no_such_tool"))).toBe(false);
     expect(callsUserTool({ id: 1, jsonrpc: "2.0", method: "tools/list" })).toBe(
       false
     );
@@ -293,7 +270,10 @@ describe("HTTP endpoint", () => {
     expect(response.headers.get("WWW-Authenticate")).toBe(
       `Bearer resource_metadata="${METADATA_URL}"`
     );
-    expect(await response.json()).toMatchObject({ error: "invalid_token" });
+    // RFC 6750: no error code when no credentials were sent.
+    expect(await response.json()).toEqual({
+      error_description: expect.stringContaining("Authentication required"),
+    });
     expect(fakes.size).toBe(1);
   });
 
@@ -308,6 +288,27 @@ describe("HTTP endpoint", () => {
     expect(response.headers.get("WWW-Authenticate")).toBe(
       `Bearer error="invalid_token", error_description="Authentication failed: invalid JWT: expired. The bearer token must be a valid, unexpired Supabase access token for a Fitme user.", resource_metadata="${METADATA_URL}"`
     );
+  });
+
+  it("rejects a bad token on any request, not just user tool calls", async () => {
+    const { app } = createTestApp(ISSUER, {
+      throws: new Error("JWT has expired"),
+    });
+
+    const list = await rpc(app, { method: "tools/list" }, "stale");
+    const ping = await callToolOver(app, "ping", "stale");
+
+    expect([list.status, ping.status]).toEqual([401, 401]);
+    expect(await list.json()).toMatchObject({ error: "invalid_token" });
+  });
+
+  it("answers an unknown tool without a token with the usual error, not 401", async () => {
+    const { app, fakes } = createTestApp();
+
+    const response = await callToolOver(app, "no_such_tool");
+
+    expect(response.status).toBe(200);
+    expect(fakes.size).toBe(0);
   });
 
   it("keeps discovery and public tools anonymous", async () => {

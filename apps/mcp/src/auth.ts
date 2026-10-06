@@ -1,5 +1,5 @@
 import { AuthenticationError, type ToolContext } from "./context.js";
-import { PUBLIC_TOOL_NAMES } from "./tools/catalog.js";
+import { USER_TOOL_NAMES } from "./server.js";
 
 /**
  * MCP authorization (OAuth 2.1). This server is the protected resource; the
@@ -43,14 +43,14 @@ const isUserToolCall = (message: unknown) => {
   return (
     method === "tools/call" &&
     typeof name === "string" &&
-    !PUBLIC_TOOL_NAMES.includes(name)
+    USER_TOOL_NAMES.includes(name)
   );
 };
 
 /**
  * Whether a JSON-RPC payload (single message or batch) calls a tool that acts
- * on user data. Everything else (initialize, tools/list, public tools) works
- * without signing in.
+ * on user data. Everything else (initialize, tools/list, public tools, unknown
+ * tools, which get the usual "not found" error) works without signing in.
  */
 export const callsUserTool = (body: unknown) =>
   Array.isArray(body) ? body.some(isUserToolCall) : isUserToolCall(body);
@@ -91,7 +91,9 @@ export function unauthorizedResponse(
   params.push(`resource_metadata="${resourceMetadataUrl}"`);
 
   return Response.json(
-    { error: "invalid_token", error_description: error.message },
+    error.reason === "invalid"
+      ? { error: "invalid_token", error_description: error.message }
+      : { error_description: error.message },
     {
       headers: { "WWW-Authenticate": `Bearer ${params.join(", ")}` },
       status: 401,

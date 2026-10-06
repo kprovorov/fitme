@@ -11,7 +11,11 @@ import {
 } from "~/components/ui/card";
 import { createClient } from "~/lib/supabase/server";
 import { decideAuthorization } from "./actions";
-import { consentPath, isAuthorizationId } from "./authorization";
+import {
+  consentErrorMessage,
+  consentPath,
+  isAuthorizationId,
+} from "./authorization";
 
 export const metadata: Metadata = { title: "Authorize access · Fitme" };
 
@@ -65,8 +69,9 @@ const hostOf = (uri: string) => {
  * `authorization_id` after `/auth/v1/oauth/authorize`.
  */
 export default async function ConsentPage({ searchParams }: ConsentPageProps) {
-  const { authorization_id: authorizationId, error: decisionError } =
+  const { authorization_id: authorizationId, error: errorCode } =
     await searchParams;
+  const decisionError = consentErrorMessage(errorCode);
   if (!isAuthorizationId(authorizationId)) {
     return <ConsentError message="The authorization request is missing." />;
   }

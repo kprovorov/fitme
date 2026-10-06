@@ -98,18 +98,16 @@ export function createApp({
   // transport per request, so the process can scale without sticky sessions.
   // The caller's bearer token (if any) scopes the user tools to that user.
   app.all("/", async (c) => {
-    const context = createToolContext({
-      accessToken: extractBearerToken(c.req.header("Authorization")),
-      createSupabaseClient,
-    });
+    const accessToken = extractBearerToken(c.req.header("Authorization"));
+    const context = createToolContext({ accessToken, createSupabaseClient });
 
-    // Calls to user tools need a valid token: answer 401 so the client runs
-    // (or refreshes) OAuth. Public tools and discovery stay anonymous.
-    if (
-      c.req.method === "POST" &&
-      getAuthorizationServer() &&
-      callsUserTool(await peekJsonBody(c.req.raw))
-    ) {
+    // A token that is sent must be valid (401 lets the client refresh it).
+    // Without one, only user tool calls need signing in: answer them with 401
+    // so the client runs OAuth. Public tools and discovery stay anonymous.
+    const needsUser =
+      Boolean(accessToken) ||
+      (c.req.method === "POST" && callsUserTool(await peekJsonBody(c.req.raw)));
+    if (needsUser && getAuthorizationServer()) {
       const failure = await authenticate(context);
       if (failure) {
         const metadataUrl = new URL(

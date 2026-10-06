@@ -23,7 +23,7 @@ export async function decideAuthorization(formData: FormData) {
       : await supabase.auth.oauth.denyAuthorization(authorizationId, options);
 
   if (error) {
-    redirect(consentPath(authorizationId, error.message));
+    redirect(consentPath(authorizationId, "decision_failed"));
   }
   redirect(data.redirect_url);
 }
