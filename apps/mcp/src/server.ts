@@ -1,6 +1,10 @@
 import { McpServer } from "@modelcontextprotocol/sdk/server/mcp.js";
-import { createToolContext, type ToolContextOptions } from "./context.js";
-import { registerCatalogTools } from "./tools/catalog.js";
+import {
+  createToolContext,
+  type ToolContext,
+  type ToolContextOptions,
+} from "./context.js";
+import { PUBLIC_TOOL_NAMES, registerCatalogTools } from "./tools/catalog.js";
 import { registerExerciseTools } from "./tools/exercises.js";
 import { registerPlanTools } from "./tools/plans.js";
 import { registerProfileTools } from "./tools/profile.js";
@@ -9,15 +13,19 @@ import { registerSessionTools } from "./tools/sessions.js";
 export const SERVER_NAME = "fitme";
 export const SERVER_VERSION = "0.2.0";
 
-const INSTRUCTIONS = `Fitme is a strength-training app. Catalog tools (ping, list_muscle_groups, list_plan_options, describe_muscle_group) are public. Every other tool acts on the signed-in user's own data and needs an \`Authorization: Bearer <Supabase access token>\` header on the connection.
+const INSTRUCTIONS = `Fitme is a strength-training app. Catalog tools (${PUBLIC_TOOL_NAMES.join(", ")}) are public. Every other tool acts on the signed-in user's own data and needs the connection to be signed in (OAuth, or an \`Authorization: Bearer <Supabase access token>\` header).
 Typical flow: get_profile (units) -> list_exercises -> create_plan -> get_plan -> start_workout_session(workoutId) -> log_set(setId, ...) for each set -> finish_workout_session.
 Weights are in the user's unit (kg for metric, lbs for us/uk) and are never converted.`;
 
-export type CreateMcpServerOptions = ToolContextOptions;
+export interface CreateMcpServerOptions extends ToolContextOptions {
+  /** A context the caller already built (and may have authenticated). */
+  context?: ToolContext;
+}
 
 /**
  * Builds a fresh MCP server. The HTTP transport runs stateless, so a new
- * instance is created for every request, carrying that request's access token.
+ * instance is created for every request, carrying that request's access token
+ * (or the `context` the HTTP layer already resolved from it).
  * `createSupabaseClient` can be injected (e.g. in tests); it defaults to a
  * client built from SUPABASE_URL / SUPABASE_ANON_KEY.
  */
@@ -28,7 +36,7 @@ export function createMcpServer(
     { name: SERVER_NAME, version: SERVER_VERSION },
     { instructions: INSTRUCTIONS }
   );
-  const ctx = createToolContext(options);
+  const ctx = options.context ?? createToolContext(options);
 
   registerCatalogTools(server, { name: SERVER_NAME, version: SERVER_VERSION });
   registerExerciseTools(server, ctx);

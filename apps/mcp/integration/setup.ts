@@ -1,6 +1,6 @@
 import { randomUUID } from "node:crypto";
 import type { Client } from "@modelcontextprotocol/sdk/client/index.js";
-import { createClient } from "@supabase/supabase-js";
+import { createClient, type SupabaseClient } from "@supabase/supabase-js";
 import { call, connect } from "../src/__tests__/harness.js";
 import {
   createSupabaseClientFromEnv,
@@ -16,7 +16,7 @@ import {
 
 const TEST_PASSWORD = "integration-test-password";
 
-function requireEnv() {
+export function requireEnv() {
   const url = process.env.SUPABASE_URL;
   const anonKey = process.env.SUPABASE_ANON_KEY;
   if (!(url && anonKey)) {
@@ -29,6 +29,8 @@ function requireEnv() {
 
 export interface TestUser {
   accessToken: string;
+  /** Auth client holding the user's session (e.g. to approve OAuth consent). */
+  auth: SupabaseClient;
   /** Client acting as the user (anon key + their token), for fixtures. */
   supabase: FitmeSupabaseClient;
   userId: string;
@@ -59,6 +61,7 @@ export async function createTestUser(label: string): Promise<TestUser> {
   }
   return {
     accessToken: data.session.access_token,
+    auth,
     supabase,
     userId: data.user.id,
   };

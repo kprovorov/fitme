@@ -38,6 +38,16 @@ export interface Route {
   select?: string;
 }
 
+/**
+ * How `auth.getClaims` answers: claims for `userId` (none for a key that
+ * isn't a user token), an `error` result, or a thrown error.
+ */
+export interface FakeAuth {
+  error?: Error | string;
+  throws?: Error;
+  userId?: string;
+}
+
 export const ok = (data: unknown, count?: number): FakeResponse => ({
   count,
   data,
@@ -69,11 +79,12 @@ const matches = (route: Route, call: RecordedCall) =>
  */
 export function createFakeSupabase(
   routes: Route[],
-  auth: { userId?: string; error?: string } = { userId: "user-1" }
+  auth: FakeAuth = { userId: "user-1" }
 ) {
   const calls: RecordedCall[] = [];
   const unmatched: RecordedCall[] = [];
-  const getUserCalls: string[] = [];
+  /** Tokens passed to `auth.getClaims`, in order. */
+  const verifiedTokens: string[] = [];
   const pending = [...routes];
 
   const respond = (call: RecordedCall) => {
@@ -125,16 +136,22 @@ export function createFakeSupabase(
 
   const client = {
     auth: {
-      getUser: (token: string) => {
-        getUserCalls.push(token);
-        if (auth.error || !auth.userId) {
+      getClaims: (token: string) => {
+        verifiedTokens.push(token);
+        if (auth.throws) {
+          return Promise.reject(auth.throws);
+        }
+        if (auth.error) {
           return Promise.resolve({
-            data: { user: null },
-            error: { message: auth.error ?? "no user" },
+            data: null,
+            error:
+              typeof auth.error === "string"
+                ? { message: auth.error }
+                : auth.error,
           });
         }
         return Promise.resolve({
-          data: { user: { id: auth.userId } },
+          data: { claims: { sub: auth.userId } },
           error: null,
         });
       },
@@ -149,7 +166,7 @@ export function createFakeSupabase(
     calls,
     // The fake implements only the surface the tools use.
     client: client as unknown as FitmeSupabaseClient,
-    getUserCalls,
     unmatched,
+    verifiedTokens,
   };
 }

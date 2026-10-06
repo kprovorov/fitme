@@ -10,11 +10,11 @@ pnpm mcp test           # vitest (in-memory MCP client + Hono app, fake Supabase
 pnpm mcp test:integration  # vitest against a running Supabase stack (see below)
 ```
 
-The MCP endpoint is the root path: `POST|GET|DELETE /` (stateless, no session ids). `GET /health` for liveness.
+The MCP endpoint is the root path: `POST|GET|DELETE /` (stateless, no session ids). `GET /health` for liveness, `GET /.well-known/oauth-protected-resource` for OAuth discovery.
 
 ## Integration tests
 
-`integration/` runs the tools against a real Supabase stack instead of the fake client, so RLS, the RPCs and PostgREST behaviour (embeds, `!inner` filters, ranges past the end) are exercised for real. Each run signs up fresh users through the auth API (email confirmations are off in `config.toml`), then covers the main flow (create → get → update → activate → start session → log set → finish → list → delete) and checks that a second user can neither read nor change the first user's plans and sessions.
+`integration/` runs the tools against a real Supabase stack instead of the fake client, so RLS, the RPCs and PostgREST behaviour (embeds, `!inner` filters, ranges past the end) are exercised for real. Each run signs up fresh users through the auth API (email confirmations are off in `config.toml`), then covers the main flow (create → get → update → activate → start session → log set → finish → list → delete) and checks that a second user can neither read nor change the first user's plans and sessions. `oauth.test.ts` runs the whole MCP authorization flow (discovery, dynamic registration, PKCE authorize, consent, token exchange, refresh) against the local OAuth server.
 
 ```bash
 pnpm db start                     # local stack
@@ -34,20 +34,33 @@ See `.env.example`. The variables are read from the process environment (Vercel 
 | `PORT`              | Port for `pnpm dev` / `pnpm start` (default 3002).                      |
 | `SUPABASE_URL`      | Supabase project URL used by the user tools.                            |
 | `SUPABASE_ANON_KEY` | Supabase anon (public) key. Never configure a service-role key here.    |
+| `MCP_PUBLIC_URL`    | Optional public URL of the server, if the request URL differs (proxy).  |
 
-Without the Supabase variables the server still starts and the public tools work; user tools return a "not configured" tool error.
+Without the Supabase variables the server still starts and the public tools work; user tools return a "not configured" tool error and OAuth is off.
 
 ## Authentication
 
-Stateless bearer auth: every HTTP request may carry `Authorization: Bearer <Supabase user access token>` (the JWT from a Supabase session, e.g. `session.access_token`). For each request the server builds a Supabase client with the anon key plus that token, so all reads and writes go through RLS and the `auth.uid()`-based RPCs. The token is verified once per request (`auth.getUser`) before the first user tool runs. Tools never accept a user id.
+The server implements the [MCP authorization spec](https://modelcontextprotocol.io/specification/2025-06-18/basic/authorization) (OAuth 2.1). It is the protected resource; the authorization server is [Supabase Auth's OAuth server](https://supabase.com/docs/guides/auth/oauth-server/mcp-authentication) at `$SUPABASE_URL/auth/v1`, so MCP clients register themselves (dynamic client registration), sign the user in and refresh tokens there. The consent screen is the web app's `/oauth/consent` page (`apps/web`).
 
-- No token → user tools return `isError: true` with "Authentication required".
-- Invalid or expired token → "Authentication failed: …".
+1. `GET /.well-known/oauth-protected-resource` returns the resource URL and `authorization_servers: ["$SUPABASE_URL/auth/v1"]` (RFC 9728).
+2. A `tools/call` of a user tool without a token, or with one Supabase rejects (expired, revoked signing key, not a user token), gets **HTTP 401** with `WWW-Authenticate: Bearer resource_metadata="…"` (plus `error="invalid_token"` for a bad token). Clients use it to start OAuth, or to refresh an expired token.
+3. `initialize`, `tools/list` and the public tools never need a token.
+
+Access tokens are ordinary Supabase user JWTs. For each request the server builds a Supabase client with the anon key plus that token, so all reads and writes go through RLS and the `auth.uid()`-based RPCs. The token is verified once per request with `auth.getClaims`, locally against the project's cached JWKS when it uses asymmetric signing keys (an `auth.getUser` round-trip otherwise). Local verification does not see sign-outs, so a token stays usable until it expires (1 hour by default). Tools never accept a user id.
+
+Inside a request that passed the check:
+
+- Supabase unreachable while verifying → `isError: true` tool result (not 401, since a new token would not help).
 - Database errors are returned as `isError: true` results carrying the Postgres/PostgREST message.
 - Writes that committed but whose follow-up read failed (`create_plan`, `update_plan`, `activate_plan`, `start_workout_session`, `finish_workout_session`) return success with the id and a `warning` instead of an error, so clients don't retry and duplicate.
 - Paginated tools (`list_exercises`, `list_workout_sessions`) return an empty page with the `total` when the offset is past the end.
 
-Access tokens are short-lived (1 hour by default); clients must refresh them and reconnect with the new header.
+### Supabase setup
+
+Enable the OAuth server (Authentication → OAuth Server in the dashboard, `[auth.oauth_server]` in `config.toml` locally) with:
+
+- Authorization path `/oauth/consent`, relative to the project's Site URL, which must be the web app.
+- Dynamic client registration on, so MCP clients can register themselves.
 
 ## Tools
 
@@ -78,13 +91,13 @@ Weights are stored and returned in the user's unit (kg for the `metric` measurem
 
 ## Connecting
 
-Claude Code, public tools only:
+Claude Code (it runs the OAuth flow in the browser the first time a user tool is called, or via `/mcp`):
 
 ```bash
 claude mcp add --transport http fitme https://mcp.fitmeproject.com
 ```
 
-With the user tools, pass the access token as a header:
+A static token still works for scripts and tests, until it expires:
 
 ```bash
 claude mcp add --transport http fitme https://mcp.fitmeproject.com \

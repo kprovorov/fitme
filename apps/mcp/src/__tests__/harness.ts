@@ -3,6 +3,7 @@ import { InMemoryTransport } from "@modelcontextprotocol/sdk/inMemory.js";
 import { type CreateMcpServerOptions, createMcpServer } from "../server.js";
 import {
   createFakeSupabase,
+  type FakeAuth,
   type RecordedCall,
   type Route,
 } from "./fake-supabase.js";
@@ -43,10 +44,7 @@ export async function connect(options: CreateMcpServerOptions = {}) {
 }
 
 /** Connects a client whose user tools run against a fake Supabase client. */
-export async function connectWithFake(
-  routes: Route[],
-  auth?: { userId?: string; error?: string }
-) {
+export async function connectWithFake(routes: Route[], auth?: FakeAuth) {
   const fake = createFakeSupabase(routes, auth);
   activeFakes.push(fake);
   const client = await connect({

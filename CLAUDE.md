@@ -83,7 +83,7 @@ React Native / Expo app using **file-based routing** via `expo-router`:
 
 ### apps/web — Next.js app
 
-- `app/` — App Router routes. `(app)/` is the authenticated area (server-side guard in its layout); `login/`, `auth/callback`, `auth/signout` handle Supabase auth.
+- `app/` — App Router routes. `(app)/` is the authenticated area (server-side guard in its layout); `login/`, `auth/callback`, `auth/signout` handle Supabase auth; `oauth/consent` is the consent page of Supabase Auth's OAuth 2.1 server (used by MCP clients).
 - `proxy.ts` — Next 16 request proxy (formerly middleware) that refreshes the Supabase session cookie and redirects unauthenticated users.
 - `lib/supabase/{client,server,proxy}.ts` — `@supabase/ssr` clients typed with `Database` from `@fitme/supabase`.
 - `components/ui/` — shadcn-style primitives (Tailwind v4 + cva). `components.json` is set up for the shadcn CLI.
@@ -112,9 +112,10 @@ Stateless [Streamable HTTP](https://modelcontextprotocol.io) MCP server built on
 
 - `src/server.ts` — composition root: `createMcpServer({ accessToken, createSupabaseClient? })` registers the tool groups from `src/tools/` (`registerTool` with zod input schemas, `title`, and read-only/destructive/idempotent `annotations`).
 - `src/tools/` — `catalog.ts` (public tools from `@fitme/core`: ping, muscle groups, plan options), and user tools in `exercises.ts`, `plans.ts` (+ `plan-schemas.ts`), `sessions.ts`, `profile.ts`; shared bounds in `limits.ts`. `helpers.ts` holds `asJson`, `unwrap` (Supabase response → data or `ToolError`), `withUser` (resolves the caller and turns every failure into an `isError` tool result), `fetchPage` (offset past the end → empty page, not PGRST103) and `readBack` (a committed write whose read-back fails returns success + `warning`, never `isError`).
-- `src/context.ts` — per-request `ToolContext`; lazily verifies the bearer token once (`auth.getUser`) and caches the `{ supabase, userId }` result.
+- `src/context.ts` — per-request `ToolContext`; lazily verifies the bearer token once (`auth.getClaims`, local JWKS check) and caches the `{ supabase, userId }` result. Missing/rejected tokens throw `AuthenticationError`.
+- `src/auth.ts` — MCP authorization (OAuth 2.1): protected-resource metadata pointing at Supabase Auth's OAuth server (`$SUPABASE_URL/auth/v1`), detection of user-tool calls (anything not in `PUBLIC_TOOL_NAMES` from `tools/catalog.ts`) and the `401` + `WWW-Authenticate` challenge. The consent UI is `apps/web`'s `/oauth/consent`.
 - `src/supabase.ts` — per-request `SupabaseClient<Database>` built from `SUPABASE_URL` + `SUPABASE_ANON_KEY` with the caller's token in `global.headers.Authorization`, so RLS and the `auth.uid()` RPCs enforce ownership. Never use a service-role key, and never take a user id as tool input.
-- `src/app.ts` — `createApp({ createSupabaseClient? })` builds the Hono app (default export = `createApp()` for Vercel): the MCP endpoint is the root `/` (all methods), extracting `Authorization: Bearer <Supabase access token>` and creating a fresh server + `WebStandardStreamableHTTPServerTransport` per request; `/health` for liveness. Deployed at https://mcp.fitmeproject.com.
+- `src/app.ts` — `createApp({ authorizationServer?, createSupabaseClient? })` builds the Hono app (default export = `createApp()` for Vercel): the MCP endpoint is the root `/` (all methods), extracting `Authorization: Bearer <Supabase access token>`, answering user-tool calls without a valid token with `401`, and creating a fresh server + `WebStandardStreamableHTTPServerTransport` per request; `/.well-known/oauth-protected-resource` for OAuth discovery; `/health` for liveness. Deployed at https://mcp.fitmeproject.com.
 - `src/index.ts` — Node entrypoint, `PORT` env (default 3002).
 - Tests (`src/__tests__/`, vitest) drive `createMcpServer` through the SDK's `InMemoryTransport` + `Client` (`harness.ts`), and the Hono app via `app.request`, injecting a fake Supabase client (`fake-supabase.ts`) whose routes match on table/RPC, operation, select text and required filters; an unmatched query fails the test in `afterEach`. `integration/` (separate vitest config, `test:integration`) runs the same tools against a real local stack with freshly signed-up users, including a cross-user isolation suite; CI runs it in `.github/workflows/integration-tests.yml`.
 - Plan writes go through the `create_plan` / `update_plan` RPCs (never `store_plan`). `update_plan` with `workouts` recreates every workout (new ids), so metadata-only updates use a direct `plans` update instead. `start_workout_session` resumes an open session for the workout (the app assumes one per workout) and refuses workouts of soft-deleted plans; `finish_workout_session` falls back to a direct `finished_at` update when the session's workout is gone (`rotated: false`).
@@ -175,6 +176,7 @@ Env files live next to each app.
 - `PORT` (default 3002)
 - `SUPABASE_URL`
 - `SUPABASE_ANON_KEY` — anon key only, never the service-role key. Without these the public tools still work and user tools return an error.
+- `MCP_PUBLIC_URL` (optional) — public URL advertised as the OAuth protected resource when it differs from the request URL.
 
 ## CI/CD
 

@@ -345,12 +345,13 @@ enabled = false
 
 # OAuth server configuration
 [auth.oauth_server]
-# Enable OAuth server functionality
-enabled = false
+# Enable OAuth server functionality. MCP clients of apps/mcp sign users in
+# through it; the consent UI is apps/web's /oauth/consent (relative to site_url).
+enabled = true
 # Path for OAuth consent flow UI
 authorization_url_path = "/oauth/consent"
-# Allow dynamic client registration
-allow_dynamic_registration = false
+# Allow dynamic client registration (MCP clients register themselves)
+allow_dynamic_registration = true
 
 [functions.ai-agent]
 enabled = true
