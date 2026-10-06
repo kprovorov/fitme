@@ -1,0 +1,55 @@
+name: Integration Tests
+
+on:
+  workflow_call:
+  pull_request:
+
+jobs:
+  mcp:
+    name: MCP server (local Supabase)
+    runs-on: ubuntu-latest
+    timeout-minutes: 20
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v4
+
+      - name: Setup pnpm
+        uses: pnpm/action-setup@v4
+
+      - name: Setup Node.js
+        uses: actions/setup-node@v4
+        with:
+          node-version: "22"
+          cache: "pnpm"
+
+      - name: Install dependencies
+        run: pnpm install --frozen-lockfile
+
+      - uses: supabase/setup-cli@v1
+        with:
+          version: latest
+
+      # Only Postgres, PostgREST (API gateway) and Auth are needed.
+      - name: Start Supabase
+        working-directory: packages/supabase
+        run: supabase start -x studio,imgproxy,realtime,storage-api,edge-runtime,logflare,vector,postgres-meta
+
+      - name: Export Supabase credentials
+        working-directory: packages/supabase
+        run: |
+          supabase status -o env > "$RUNNER_TEMP/supabase.env"
+          set -a && . "$RUNNER_TEMP/supabase.env" && set +a
+          echo "::add-mask::$ANON_KEY"
+          echo "SUPABASE_URL=$API_URL" >> "$GITHUB_ENV"
+          echo "SUPABASE_ANON_KEY=$ANON_KEY" >> "$GITHUB_ENV"
+
+      - name: Seed exercise library
+        run: pnpm --filter @fitme/supabase seed
+
+      - name: Run MCP integration tests
+        run: pnpm --filter @fitme/mcp test:integration
+
+      - name: Stop Supabase
+        if: always()
+        working-directory: packages/supabase
+        run: supabase stop --no-backup
