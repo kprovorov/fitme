@@ -1,0 +1,48 @@
+name: Database Types
+
+on:
+  pull_request:
+    paths:
+      - "packages/supabase/supabase/migrations/**"
+      - "packages/supabase/supabase/config.toml"
+      - "packages/supabase/src/database.types.ts"
+      - "packages/supabase/package.json"
+      - ".github/workflows/database-types.yml"
+
+jobs:
+  database-types:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v4
+
+      - name: Setup pnpm
+        uses: pnpm/action-setup@v4
+
+      - name: Setup Node.js
+        uses: actions/setup-node@v4
+        with:
+          node-version: "22"
+          cache: "pnpm"
+
+      - name: Install dependencies
+        run: pnpm install --frozen-lockfile
+
+      - uses: supabase/setup-cli@v1
+        with:
+          version: latest
+
+      - name: Start local database
+        working-directory: packages/supabase
+        run: supabase db start
+
+      - name: Regenerate types
+        run: pnpm db types:generate
+
+      # PostgrestVersion depends on the CLI's PostgREST image, not the migrations.
+      - name: Fail if generated types are stale
+        run: |
+          if ! git diff --exit-code -I 'PostgrestVersion' -- packages/supabase/src/database.types.ts; then
+            echo "::error::packages/supabase/src/database.types.ts is out of date. Run 'pnpm db start && pnpm db types:generate' and commit the result."
+            exit 1
+          fi

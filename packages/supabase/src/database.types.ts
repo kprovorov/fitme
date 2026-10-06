@@ -7,33 +7,31 @@ export type Json =
   | Json[];
 
 export interface Database {
-  graphql_public: {
-    Tables: {
-      [_ in never]: never;
-    };
-    Views: {
-      [_ in never]: never;
-    };
-    Functions: {
-      graphql: {
-        Args: {
-          extensions?: Json;
-          operationName?: string;
-          query?: string;
-          variables?: Json;
-        };
-        Returns: Json;
-      };
-    };
-    Enums: {
-      [_ in never]: never;
-    };
-    CompositeTypes: {
-      [_ in never]: never;
-    };
+  // Allows to automatically instantiate createClient with right options
+  // instead of createClient<Database, { PostgrestVersion: 'XX' }>(URL, KEY)
+  __InternalSupabase: {
+    PostgrestVersion: "14.5";
   };
   public: {
     Tables: {
+      conversations: {
+        Row: {
+          created_at: string;
+          id: string;
+          user_id: string;
+        };
+        Insert: {
+          created_at?: string;
+          id?: string;
+          user_id: string;
+        };
+        Update: {
+          created_at?: string;
+          id?: string;
+          user_id?: string;
+        };
+        Relationships: [];
+      };
       exercises: {
         Row: {
           created_at: string | null;
@@ -72,6 +70,41 @@ export interface Database {
           video_url?: string | null;
         };
         Relationships: [];
+      };
+      messages: {
+        Row: {
+          content: string;
+          conversation_id: string;
+          created_at: string;
+          id: string;
+          metadata: Json | null;
+          role: string;
+        };
+        Insert: {
+          content: string;
+          conversation_id: string;
+          created_at?: string;
+          id?: string;
+          metadata?: Json | null;
+          role: string;
+        };
+        Update: {
+          content?: string;
+          conversation_id?: string;
+          created_at?: string;
+          id?: string;
+          metadata?: Json | null;
+          role?: string;
+        };
+        Relationships: [
+          {
+            foreignKeyName: "messages_conversation_id_fkey";
+            columns: ["conversation_id"];
+            isOneToOne: false;
+            referencedRelation: "conversations";
+            referencedColumns: ["id"];
+          },
+        ];
       };
       plans: {
         Row: {
@@ -451,25 +484,26 @@ export interface Database {
           isSetofReturn: false;
         };
       };
-      start_workout_session: {
-        Args: { p_workout_id: string };
-        Returns: string;
+      convert_measurement_system: {
+        Args: { p_new_system: string };
+        Returns: undefined;
       };
+      create_plan: { Args: { p_plan_data: Json }; Returns: string };
       finish_workout_session: {
         Args: { p_session_id: string };
         Returns: undefined;
       };
-      create_plan: {
-        Args: { p_plan_data: Json };
+      start_workout_session: {
+        Args: { p_workout_id: string };
+        Returns: string;
+      };
+      store_plan: {
+        Args: { p_plan_data: Json; p_user_id?: string };
         Returns: string;
       };
       update_plan: {
         Args: { p_plan_data: Json; p_plan_id: string; p_user_id?: string };
         Returns: string;
-      };
-      convert_measurement_system: {
-        Args: { p_new_system: string };
-        Returns: undefined;
       };
     };
     Enums: {
@@ -602,9 +636,6 @@ export type CompositeTypes<
     : never;
 
 export const Constants = {
-  graphql_public: {
-    Enums: {},
-  },
   public: {
     Enums: {},
   },
