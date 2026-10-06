@@ -25,23 +25,25 @@ jobs:
       - name: Install dependencies
         run: pnpm install --frozen-lockfile
 
-      - uses: supabase/setup-cli@v1
-        with:
-          version: latest
-
+      # Uses the Supabase CLI pinned in @fitme/supabase's devDependencies.
       # Only Postgres, PostgREST (API gateway) and Auth are needed.
       - name: Start Supabase
         working-directory: packages/supabase
-        run: supabase start -x studio,imgproxy,realtime,storage-api,edge-runtime,logflare,vector,postgres-meta
+        run: pnpm exec supabase start -x studio,imgproxy,realtime,storage-api,edge-runtime,logflare,vector,postgres-meta
 
       - name: Export Supabase credentials
         working-directory: packages/supabase
         run: |
-          supabase status -o env > "$RUNNER_TEMP/supabase.env"
+          pnpm exec supabase status -o env > "$RUNNER_TEMP/supabase.env"
           set -a && . "$RUNNER_TEMP/supabase.env" && set +a
           echo "::add-mask::$ANON_KEY"
           echo "SUPABASE_URL=$API_URL" >> "$GITHUB_ENV"
           echo "SUPABASE_ANON_KEY=$ANON_KEY" >> "$GITHUB_ENV"
+
+      # The hoisted install skips snaplet's postinstall; build the client
+      # from the committed .snaplet/dataModel.json.
+      - name: Generate seed client
+        run: pnpm --filter @fitme/supabase exec snaplet-seed generate
 
       - name: Seed exercise library
         run: pnpm --filter @fitme/supabase seed
@@ -52,4 +54,4 @@ jobs:
       - name: Stop Supabase
         if: always()
         working-directory: packages/supabase
-        run: supabase stop --no-backup
+        run: pnpm exec supabase stop --no-backup

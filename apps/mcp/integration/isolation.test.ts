@@ -12,6 +12,7 @@ import {
   planInput,
   type SessionDetail,
   type SessionPage,
+  type TestUser,
 } from "./setup.js";
 
 /**
@@ -21,6 +22,7 @@ import {
 describe("cross-user isolation against Supabase", () => {
   let owner: Client;
   let intruder: Client;
+  let intruderUser: TestUser;
   let exercises: readonly [ExerciseRow, ExerciseRow];
   let plan: PlanDetail;
   let session: SessionDetail;
@@ -28,7 +30,8 @@ describe("cross-user isolation against Supabase", () => {
   const ownerSetId = () => session.exercises[0]?.sets[0]?.id;
 
   beforeAll(async () => {
-    const [ownerUser, intruderUser] = await Promise.all([
+    let ownerUser: TestUser;
+    [ownerUser, intruderUser] = await Promise.all([
       createTestUser("owner"),
       createTestUser("intruder"),
     ]);
@@ -98,6 +101,57 @@ describe("cross-user isolation against Supabase", () => {
     await callError(intruder, "delete_workout_session", {
       sessionId: session.id,
     });
+  });
+
+  // The tools check ownership with a SELECT first, so also go straight to the
+  // database: the RPCs and the RLS write policies must refuse on their own.
+  it("refuses the owner's ids in the RPCs and table writes", async () => {
+    const db = intruderUser.supabase;
+    const workoutId = plan.workouts[1]?.id ?? "";
+
+    const rpcs = await Promise.all([
+      db.rpc("activate_plan", { plan_id: plan.id }),
+      db.rpc("update_plan", {
+        p_plan_data: planInput(exercises, "Hijacked"),
+        p_plan_id: plan.id,
+      }),
+      db.rpc("start_workout_session", { p_workout_id: workoutId }),
+      db.rpc("finish_workout_session", { p_session_id: session.id }),
+    ]);
+    for (const { error } of rpcs) {
+      expect(error).not.toBeNull();
+    }
+
+    const updatedPlans = await db
+      .from("plans")
+      .update({ name: "Hijacked" })
+      .eq("id", plan.id)
+      .select("id");
+    expect(updatedPlans).toMatchObject({ data: [], error: null });
+
+    const updatedSets = await db
+      .from("workout_session_exercise_sets")
+      .update({ reps_completed: 99 })
+      .eq("id", ownerSetId() ?? "")
+      .select("id");
+    expect(updatedSets).toMatchObject({ data: [], error: null });
+
+    const deletedSessions = await db
+      .from("workout_sessions")
+      .delete()
+      .eq("id", session.id)
+      .select("id");
+    expect(deletedSessions).toMatchObject({ data: [], error: null });
+
+    // A session of the intruder's own that points at the owner's workout.
+    const inserted = await db.from("workout_sessions").insert({
+      plan_id: plan.id,
+      started_at: new Date().toISOString(),
+      user_id: intruderUser.userId,
+      workout_id: workoutId,
+    });
+    // 42501: rejected by the policy's WITH CHECK, not by anything else.
+    expect(inserted.error?.code).toBe("42501");
   });
 
   it("keeps each user's active plan separate", async () => {

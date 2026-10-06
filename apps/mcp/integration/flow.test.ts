@@ -1,3 +1,4 @@
+import { type MuscleGroup, muscleGroups } from "@fitme/core";
 import type { Client } from "@modelcontextprotocol/sdk/client/index.js";
 import { beforeAll, describe, expect, it } from "vitest";
 import {
@@ -15,6 +16,9 @@ import {
   type SessionPage,
   type TestUser,
 } from "./setup.js";
+
+const isMuscleGroup = (value: string): value is MuscleGroup =>
+  muscleGroups.some((group) => group === value);
 
 /**
  * The main flow with one real user, in order: each step builds on the state
@@ -66,7 +70,7 @@ describe("plan and workout flow against Supabase", () => {
 
   it("searches the exercise library and pages past the end", async () => {
     const [first] = exercises;
-    const muscleGroup = first.muscle_groups?.[0];
+    const muscleGroup = first.muscle_groups?.find(isMuscleGroup);
     const found = await callOk<ExercisePage>(client, "list_exercises", {
       search: first.name,
       ...(muscleGroup ? { muscleGroup } : {}),
