@@ -48,7 +48,11 @@ describe("OAuth against Supabase Auth", () => {
     });
     const [, data] = (await response.text()).match(SSE_DATA_LINE) ?? [];
     const { result } = JSON.parse(data ?? "{}");
-    return { isError: result?.isError === true, status: response.status };
+    return {
+      isError: result?.isError === true,
+      status: response.status,
+      text: String(result?.content?.[0]?.text ?? ""),
+    };
   };
 
   const postToken = async (params: Record<string, string>) => {
@@ -76,11 +80,20 @@ describe("OAuth against Supabase Auth", () => {
       resource: RESOURCE,
     });
 
+    // RFC 8414 path insertion first, then the issuer-relative form; MCP
+    // clients try both (the local gateway only routes the latter).
     const issuer = new URL(metadata.authorization_servers[0]);
-    const discovery = await fetch(
-      `${issuer.origin}/.well-known/oauth-authorization-server${issuer.pathname}`
+    const candidates = [
+      `${issuer.origin}/.well-known/oauth-authorization-server${issuer.pathname}`,
+      `${issuer.href}/.well-known/oauth-authorization-server`,
+    ];
+    const responses = await Promise.all(
+      candidates.map((candidate) => fetch(candidate))
     );
-    expect(discovery.status).toBe(200);
+    const discovery = responses.find((response) => response.ok);
+    if (!discovery) {
+      throw new Error(`No authorization server metadata at ${candidates}`);
+    }
     expect(await discovery.json()).toMatchObject({
       authorization_endpoint: expect.any(String),
       // RFC 8414: must equal the issuer the resource metadata advertises.
@@ -153,7 +166,7 @@ describe("OAuth against Supabase Auth", () => {
       redirect_uri: REDIRECT_URI,
       resource: RESOURCE,
     });
-    expect(await callTool("list_plans", tokens.access_token)).toEqual({
+    expect(await callTool("list_plans", tokens.access_token)).toMatchObject({
       isError: false,
       status: 200,
     });
@@ -163,9 +176,8 @@ describe("OAuth against Supabase Auth", () => {
       grant_type: "refresh_token",
       refresh_token: tokens.refresh_token,
     });
-    expect(await callTool("get_profile", refreshed.access_token)).toEqual({
-      isError: false,
-      status: 200,
-    });
+    expect(await callTool("get_profile", refreshed.access_token)).toMatchObject(
+      { isError: false, status: 200 }
+    );
   });
 });
