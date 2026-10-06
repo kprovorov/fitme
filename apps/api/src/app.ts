@@ -4,7 +4,7 @@ import { HTTPException } from "hono/http-exception";
 import { logger } from "hono/logger";
 import { v1 } from "./routes/v1.js";
 
-export const app = new Hono();
+const app = new Hono();
 
 app.use(logger());
 app.use(cors({ origin: "*" }));
@@ -30,3 +30,6 @@ app.onError((error, c) => {
     500
   );
 });
+
+// Vercel's Hono preset serves the default export of dist/app.js.
+export default app;
