@@ -83,6 +83,8 @@ describe("OAuth against Supabase Auth", () => {
     expect(discovery.status).toBe(200);
     expect(await discovery.json()).toMatchObject({
       authorization_endpoint: expect.any(String),
+      // RFC 8414: must equal the issuer the resource metadata advertises.
+      issuer: authUrl,
       registration_endpoint: expect.any(String),
       token_endpoint: expect.any(String),
     });

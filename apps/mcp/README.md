@@ -34,7 +34,7 @@ See `.env.example`. The variables are read from the process environment (Vercel 
 | `PORT`              | Port for `pnpm dev` / `pnpm start` (default 3002).                      |
 | `SUPABASE_URL`      | Supabase project URL used by the user tools.                            |
 | `SUPABASE_ANON_KEY` | Supabase anon (public) key. Never configure a service-role key here.    |
-| `MCP_PUBLIC_URL`    | Optional public URL of the server, if the request URL differs (proxy).  |
+| `MCP_PUBLIC_URL`    | Public URL advertised as the OAuth resource; set it in production.     |
 
 Without the Supabase variables the server still starts and the public tools work; user tools return a "not configured" tool error and OAuth is off.
 
