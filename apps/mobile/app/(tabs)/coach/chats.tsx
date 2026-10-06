@@ -2,7 +2,16 @@ import { isLiquidGlassAvailable } from "expo-glass-effect";
 import { Color, Link, Stack, useRouter } from "expo-router";
 import { ChevronRight, Menu, Search } from "lucide-react-native";
 import { useCallback, useMemo, useState } from "react";
-import { Alert, FlatList, Pressable, Text, View } from "react-native";
+import {
+  Alert,
+  FlatList,
+  type ListRenderItemInfo,
+  type NativeSyntheticEvent,
+  Pressable,
+  Text,
+  type TextInputFocusEventData,
+  View,
+} from "react-native";
 import { useSafeAreaInsets } from "react-native-safe-area-context";
 import { useDrawer } from "@/components/drawer-content";
 import { Icon } from "@/components/icon";
@@ -21,6 +30,8 @@ function formatTimeAgo(daysAgo: number): string {
 
 type Chat = MockChat;
 
+const keyExtractor = (item: Chat) => item.id;
+
 function ChatRow({
   item,
   onRename,
@@ -28,10 +39,14 @@ function ChatRow({
   onStar,
 }: {
   item: Chat;
-  onRename: () => void;
-  onDelete: () => void;
-  onStar: () => void;
+  onRename: (chat: Chat) => void;
+  onDelete: (chat: Chat) => void;
+  onStar: (chat: Chat) => void;
 }) {
+  const handleRename = useCallback(() => onRename(item), [item, onRename]);
+  const handleDelete = useCallback(() => onDelete(item), [item, onDelete]);
+  const handleStar = useCallback(() => onStar(item), [item, onStar]);
+
   return (
     <Link asChild href="/">
       <Link.Trigger>
@@ -65,14 +80,14 @@ function ChatRow({
       <Link.Menu>
         <Link.MenuAction
           icon={item.starred ? "star.fill" : "star"}
-          onPress={onStar}
+          onPress={handleStar}
           title={item.starred ? "Unstar" : "Star"}
         />
-        <Link.MenuAction icon="pencil" onPress={onRename} title="Rename" />
+        <Link.MenuAction icon="pencil" onPress={handleRename} title="Rename" />
         <Link.MenuAction
           destructive
           icon="trash"
-          onPress={onDelete}
+          onPress={handleDelete}
           title="Delete"
         />
       </Link.Menu>
@@ -152,6 +167,26 @@ export default function ChatsScreen() {
     );
   }, []);
 
+  const renderItem = useCallback(
+    ({ item }: ListRenderItemInfo<Chat>) => (
+      <ChatRow
+        item={item}
+        onDelete={handleDelete}
+        onRename={handleRename}
+        onStar={handleStar}
+      />
+    ),
+    [handleDelete, handleRename, handleStar]
+  );
+
+  const handleSearchCancel = useCallback(() => setSearch(""), []);
+
+  const handleSearchChange = useCallback(
+    (e: NativeSyntheticEvent<TextInputFocusEventData>) =>
+      setSearch(e.nativeEvent.text),
+    []
+  );
+
   return (
     <>
       <FlatList
@@ -163,22 +198,15 @@ export default function ChatsScreen() {
         }}
         contentInsetAdjustmentBehavior="automatic"
         data={filtered}
-        keyExtractor={(item) => item.id}
+        keyExtractor={keyExtractor}
         ListEmptyComponent={search ? <EmptySearch query={search} /> : null}
-        renderItem={({ item }) => (
-          <ChatRow
-            item={item}
-            onDelete={() => handleDelete(item)}
-            onRename={() => handleRename(item)}
-            onStar={() => handleStar(item)}
-          />
-        )}
+        renderItem={renderItem}
       />
 
       <Stack.SearchBar
         hideWhenScrolling={false}
-        onCancelButtonPress={() => setSearch("")}
-        onChangeText={(e) => setSearch(e.nativeEvent.text)}
+        onCancelButtonPress={handleSearchCancel}
+        onChangeText={handleSearchChange}
         placeholder="Search"
       />
 
@@ -220,6 +248,9 @@ function RightToolbar({
   filter: Filter;
   setFilter: (filter: Filter) => void;
 }) {
+  const showAll = useCallback(() => setFilter("all"), [setFilter]);
+  const showStarred = useCallback(() => setFilter("starred"), [setFilter]);
+
   return (
     <Stack.Toolbar placement="right">
       <Stack.Toolbar.Menu icon="line.horizontal.3.decrease">
@@ -227,14 +258,14 @@ function RightToolbar({
           <Stack.Toolbar.MenuAction
             icon="bubble.left.and.bubble.right"
             isOn={filter === "all"}
-            onPress={() => setFilter("all")}
+            onPress={showAll}
           >
             All chats
           </Stack.Toolbar.MenuAction>
           <Stack.Toolbar.MenuAction
             icon="star"
             isOn={filter === "starred"}
-            onPress={() => setFilter("starred")}
+            onPress={showStarred}
           >
             Starred
           </Stack.Toolbar.MenuAction>
@@ -246,6 +277,7 @@ function RightToolbar({
 
 function BottomToolbar() {
   const router = useRouter();
+  const handleNewChat = useCallback(() => router.navigate("/"), [router]);
 
   return (
     <Stack.Toolbar placement="bottom">
@@ -254,7 +286,7 @@ function BottomToolbar() {
       )}
       <Stack.Toolbar.Button
         icon="square.and.pencil"
-        onPress={() => router.navigate("/")}
+        onPress={handleNewChat}
         separateBackground
         tintColor={Color.ios.label}
       />

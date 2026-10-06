@@ -71,11 +71,11 @@ export default function WorkoutSessionExerciseScreen() {
           showsVerticalScrollIndicator={false}
         >
           <VStack className="flex-1 items-stretch gap-md px-md py-sm">
-            {workoutSessionExercise.exercise.video_url && (
+            {workoutSessionExercise.exercise.video_url ? (
               <View className="w-full overflow-hidden rounded-lg">
                 <ExerciseVideo exercise={workoutSessionExercise.exercise} />
               </View>
-            )}
+            ) : null}
 
             <P>{workoutSessionExercise.exercise.description}</P>
 

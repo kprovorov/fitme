@@ -1,6 +1,6 @@
 import { isLiquidGlassAvailable } from "expo-glass-effect";
 import type React from "react";
-import { useState } from "react";
+import { useCallback, useState } from "react";
 import { TouchableWithoutFeedback, type ViewProps } from "react-native";
 import { Gesture, GestureDetector } from "react-native-gesture-handler";
 import Animated from "react-native-reanimated";
@@ -83,19 +83,19 @@ function TouchableGlassFallback({
   } = rest as Record<string, unknown>;
   const safeViewProps = viewProps as ViewOnlyProps;
   const [pressed, setPressed] = useState(false);
-  const onTouchBegin = () => {
+  const onTouchBegin = useCallback(() => {
     setPressed(true);
     onPressIn?.();
-  };
-  const onTouchEnd = () => {
+  }, [onPressIn]);
+  const onTouchEnd = useCallback(() => {
     setPressed(false);
     onPressOut?.();
-  };
-  const onTouchEndSuccess = () => {
+  }, [onPressOut]);
+  const onTouchEndSuccess = useCallback(() => {
     setPressed(false);
     onPress?.();
     onPressOut?.();
-  };
+  }, [onPress, onPressOut]);
 
   // TODO: Add iOS 18 bounce effect on blur.
   return (

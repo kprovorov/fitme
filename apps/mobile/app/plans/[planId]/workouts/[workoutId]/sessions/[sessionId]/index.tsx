@@ -1,6 +1,6 @@
 import { useQueryClient } from "@tanstack/react-query";
 import { Stack, useLocalSearchParams, useRouter } from "expo-router";
-import { useEffect, useState } from "react";
+import { useCallback, useEffect, useState } from "react";
 import { ScrollView } from "react-native";
 import { useSafeAreaInsets } from "react-native-safe-area-context";
 import { Button } from "~/components/ui/button";
@@ -66,6 +66,14 @@ export default function WorkoutSessionScreen() {
 
   const insets = useSafeAreaInsets();
 
+  const handleFinishWorkout = useCallback(
+    () =>
+      finishWorkoutSession({
+        sessionId: sessionId as string,
+      }),
+    [finishWorkoutSession, sessionId]
+  );
+
   return (
     <>
       <Stack.Screen
@@ -86,7 +94,7 @@ export default function WorkoutSessionScreen() {
         contentInsetAdjustmentBehavior="automatic"
         showsVerticalScrollIndicator={false}
       >
-        {workoutSession && (
+        {workoutSession ? (
           <VStack
             className="flex-1 items-stretch px-md pt-md"
             style={{ paddingBottom: insets.bottom }}
@@ -115,11 +123,7 @@ export default function WorkoutSessionScreen() {
                   {elapsedTime}
                 </Text>
                 <Button
-                  onPress={() =>
-                    finishWorkoutSession({
-                      sessionId: sessionId as string,
-                    })
-                  }
+                  onPress={handleFinishWorkout}
                   testID="finish-workout-button"
                 >
                   <Text>Finish Workout</Text>
@@ -127,7 +131,7 @@ export default function WorkoutSessionScreen() {
               </VStack>
             )}
           </VStack>
-        )}
+        ) : null}
       </ScrollView>
     </>
   );

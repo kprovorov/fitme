@@ -28,6 +28,10 @@ describe("formatHeight", () => {
     expect(formatHeight(60, "us")).toBe("5′ 0″");
   });
 
+  it("us: rounds fractional inches up to the next foot", () => {
+    expect(formatHeight(71.6, "us")).toBe("6′ 0″");
+  });
+
   it("uk: converts inches to feet and inches", () => {
     expect(formatHeight(72, "uk")).toBe("6′ 0″");
   });

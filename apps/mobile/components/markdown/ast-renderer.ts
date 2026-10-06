@@ -1,10 +1,11 @@
 import type { Node, Root } from "mdast";
-import type { ReactElement } from "react";
+import type { ReactElement, ReactNode } from "react";
 import defaultRenderRules from "./render-rules";
 import type {
   ASTRendererOptions,
   ListBulletStyle,
   NodeTypeMap,
+  RenderExtras,
   RenderFunction,
   RenderRules,
   StyleMap,
@@ -70,9 +71,9 @@ export default class ASTRenderer {
   private renderNode(
     node: Node,
     parentStack: Node[] = [],
-    extras?: Record<string, unknown>
-  ): unknown {
-    const children: unknown[] = [];
+    extras?: RenderExtras
+  ): ReactNode {
+    const children: ReactNode[] = [];
     const type = node.type as ValidNodeKey;
 
     let currentExtras = extras;
@@ -89,7 +90,7 @@ export default class ASTRenderer {
         const start = listNode.start ?? 1;
         const ordered = listNode.ordered ?? false;
 
-        for (let i = 0; i < listNode.children.length; i++) {
+        for (let i = 0; i < listNode.children.length; i += 1) {
           const listItemNode = listNode.children[i];
           const listStyleType = ordered
             ? `${start + i}.`
@@ -113,7 +114,7 @@ export default class ASTRenderer {
       } else if (type === "table") {
         // Handle table with header row detection
         const tableNode = node as import("mdast").Table;
-        for (let i = 0; i < tableNode.children.length; i++) {
+        for (let i = 0; i < tableNode.children.length; i += 1) {
           const rowNode = tableNode.children[i];
           if (rowNode) {
             children.push(
@@ -127,7 +128,7 @@ export default class ASTRenderer {
       } else if (type === "tableRow") {
         // Handle table row with cell rendering
         const tableRowNode = node as import("mdast").TableRow;
-        for (let i = 0; i < tableRowNode.children.length; i++) {
+        for (let i = 0; i < tableRowNode.children.length; i += 1) {
           const cellNode = tableRowNode.children[i];
           if (cellNode) {
             children.push(
@@ -157,5 +158,5 @@ export default class ASTRenderer {
     });
   }
 
-  readonly render = (tree: Root): unknown => this.renderNode(tree);
+  readonly render = (tree: Root): ReactNode => this.renderNode(tree);
 }

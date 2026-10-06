@@ -6,11 +6,11 @@ interface ExerciseVideoProps {
 }
 
 export default function ExerciseVideo({ exercise }: ExerciseVideoProps) {
-  const player = useVideoPlayer(exercise.video_url, (player) => {
-    player.loop = true;
-    player.play();
-    player.muted = true;
-    player.audioMixingMode = "mixWithOthers";
+  const player = useVideoPlayer(exercise.video_url, (videoPlayer) => {
+    videoPlayer.loop = true;
+    videoPlayer.play();
+    videoPlayer.muted = true;
+    videoPlayer.audioMixingMode = "mixWithOthers";
   });
 
   return (

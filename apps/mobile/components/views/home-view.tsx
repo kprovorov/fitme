@@ -14,12 +14,13 @@ export default function HomeView({ plan }: HomeViewProps) {
   const [upcomingWorkouts, setUpcomingWorkouts] = useState<Workout[]>([]);
 
   useEffect(() => {
-    const nextWorkout = plan.workouts.sort((a, b) => a.order - b.order)[0];
-    setNextWorkout(nextWorkout);
-    const upcomingWorkouts = plan.workouts
-      .filter((workout) => workout.id !== nextWorkout?.id)
-      .sort((a, b) => a.order - b.order);
-    setUpcomingWorkouts(upcomingWorkouts);
+    const [firstWorkout] = plan.workouts.sort((a, b) => a.order - b.order);
+    setNextWorkout(firstWorkout);
+    setUpcomingWorkouts(
+      plan.workouts
+        .filter((workout) => workout.id !== firstWorkout?.id)
+        .sort((a, b) => a.order - b.order)
+    );
   }, [plan.workouts]);
 
   return (

@@ -3,12 +3,9 @@
   "compilerOptions": {
     "types": ["node"]
   },
-  "include": [
-    "src",
-    "supabase/seed.ts",
-    "supabase/sync.ts",
-    "seed.ts",
-    "seed.config.ts"
-  ],
+  // The Snaplet seed files (seed.ts, seed.config.ts, supabase/seed.ts) depend
+  // on the @snaplet/seed client, which `snaplet-seed sync` generates from a
+  // live database. It never exists in CI, so those files are not typechecked.
+  "include": ["src", "supabase/sync.ts"],
   "exclude": ["supabase/functions"]
 }

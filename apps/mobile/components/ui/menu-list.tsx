@@ -11,7 +11,7 @@ const MenuList = ({
   ref,
   ...props
 }: React.ComponentPropsWithoutRef<typeof Card> & {
-  ref?: React.RefObject<React.ElementRef<typeof Card> | null>;
+  ref?: React.RefObject<React.ComponentRef<typeof Card> | null>;
 }) => (
   <Card
     className={cn("flex-col overflow-hidden", props.className)}
@@ -32,7 +32,9 @@ const MenuListItem = ({
   icon,
   ref,
   ...props
-}: (MenuListItemProps & {
+}: (Omit<MenuListItemProps, "children"> & {
+  // Rendered next to the icon, so render-function children are not supported.
+  children?: React.ReactNode;
   icon?: "chevron-right" | "square-arrow-out-up-right";
 }) & { ref?: React.RefObject<React.ElementRef<typeof Pressable> | null> }) => {
   const Icon =
@@ -55,7 +57,9 @@ const MenuListItem = ({
         {...props}
       >
         {children}
-        {Icon && <Icon className="shrink-0 text-muted-foreground" size={20} />}
+        {Icon ? (
+          <Icon className="shrink-0 text-muted-foreground" size={20} />
+        ) : null}
       </Pressable>
     </TextClassContext.Provider>
   );

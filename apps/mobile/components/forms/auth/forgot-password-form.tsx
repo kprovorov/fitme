@@ -1,5 +1,10 @@
 import { zodResolver } from "@hookform/resolvers/zod";
-import { Controller, useForm } from "react-hook-form";
+import { useCallback } from "react";
+import {
+  Controller,
+  type ControllerRenderProps,
+  useForm,
+} from "react-hook-form";
 import { z } from "zod";
 import { Button } from "~/components/ui/button";
 import { Input } from "~/components/ui/input";
@@ -26,31 +31,42 @@ export default function ForgotPasswordForm({
     resolver: zodResolver(formSchema),
   });
 
+  const { isSubmitting } = form.formState;
+
+  const renderEmailField = useCallback(
+    ({
+      field: { onChange, onBlur, value },
+    }: {
+      field: ControllerRenderProps<ForgotPasswordFormValues, "email">;
+    }) => (
+      <Input
+        autoCapitalize="none"
+        editable={!isSubmitting}
+        keyboardType="email-address"
+        onBlur={onBlur}
+        onChangeText={onChange}
+        placeholder="Email"
+        value={value}
+      />
+    ),
+    [isSubmitting]
+  );
+
   return (
     <VStack className="w-full items-stretch gap-4">
       <Controller
         control={form.control}
         name="email"
-        render={({ field: { onChange, onBlur, value } }) => (
-          <Input
-            autoCapitalize="none"
-            editable={!form.formState.isSubmitting}
-            keyboardType="email-address"
-            onBlur={onBlur}
-            onChangeText={onChange}
-            placeholder="Email"
-            value={value}
-          />
-        )}
+        render={renderEmailField}
       />
-      {form.formState.errors.email && (
+      {form.formState.errors.email ? (
         <Text className="text-red-500">
           {form.formState.errors.email.message}
         </Text>
-      )}
+      ) : null}
 
       <Button
-        isLoading={form.formState.isSubmitting}
+        isLoading={isSubmitting}
         label="Send Reset Link"
         onPress={form.handleSubmit(onSubmit)}
         systemImage="arrow.right"

@@ -66,13 +66,13 @@ function trimNewlines(string: string): string {
   let start = 0;
   let end = string.length;
   while (start < end && (string[start] === "\r" || string[start] === "\n")) {
-    start++;
+    start += 1;
   }
   while (
     end > start &&
     (string[end - 1] === "\r" || string[end - 1] === "\n")
   ) {
-    end--;
+    end -= 1;
   }
   return start > 0 || end < string.length ? string.slice(start, end) : string;
 }
@@ -86,10 +86,7 @@ interface CodeBlockProps {
   language?: string;
 }
 
-export const CodeBlock = memo(function CodeBlock({
-  code,
-  language,
-}: CodeBlockProps) {
+function CodeBlockBase({ code, language }: CodeBlockProps) {
   const colorScheme = useColorScheme();
   const isDark = colorScheme === "dark";
 
@@ -183,7 +180,9 @@ export const CodeBlock = memo(function CodeBlock({
       </SyntaxHighlighter>
     </View>
   );
-});
+}
+
+export const CodeBlock = memo(CodeBlockBase);
 
 const styles = StyleSheet.create({
   codeContent: {

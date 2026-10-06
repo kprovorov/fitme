@@ -1,6 +1,7 @@
-import { coachModels } from "@fitme/core";
+import { type CoachModelId, coachModels } from "@fitme/core";
 import { useRouter } from "expo-router";
 import { Check } from "lucide-react-native";
+import { useCallback } from "react";
 import { Pressable, ScrollView, Text, View } from "react-native";
 import { useSafeAreaInsets } from "react-native-safe-area-context";
 import { AndroidGrabber } from "@/components/grabber";
@@ -14,23 +15,27 @@ const PROVIDER_LABELS = {
 
 function ModelRow({
   description,
+  id,
   label,
   provider,
   selected,
-  onPress,
+  onSelect,
 }: {
   description: string;
+  id: CoachModelId;
   label: string;
   provider: keyof typeof PROVIDER_LABELS;
   selected: boolean;
-  onPress: () => void;
+  onSelect: (id: CoachModelId) => void;
 }) {
+  const handlePress = useCallback(() => onSelect(id), [id, onSelect]);
+
   return (
     <Pressable
       accessibilityRole="radio"
       accessibilityState={{ selected }}
       className="flex-row items-center gap-3.5 px-5 py-3.5 active:bg-muted"
-      onPress={onPress}
+      onPress={handlePress}
     >
       <View className="flex-1">
         <View className="flex-row items-center gap-2">
@@ -41,7 +46,9 @@ function ModelRow({
         </View>
         <Text className="text-[13px] text-muted-foreground">{description}</Text>
       </View>
-      {selected && <Icon className="h-5 w-5 text-foreground" icon={Check} />}
+      {selected ? (
+        <Icon className="h-5 w-5 text-foreground" icon={Check} />
+      ) : null}
     </Pressable>
   );
 }
@@ -50,6 +57,14 @@ export default function ModelPickerSheet() {
   const { selectedId, setSelectedId } = useSelectedCoachModel();
   const insets = useSafeAreaInsets();
   const router = useRouter();
+
+  const handleSelect = useCallback(
+    (id: CoachModelId) => {
+      setSelectedId(id);
+      router.back();
+    },
+    [router, setSelectedId]
+  );
 
   return (
     <ScrollView
@@ -68,12 +83,10 @@ export default function ModelPickerSheet() {
         {coachModels.map((model) => (
           <ModelRow
             description={model.description}
+            id={model.id}
             key={model.id}
             label={model.label}
-            onPress={() => {
-              setSelectedId(model.id);
-              router.back();
-            }}
+            onSelect={handleSelect}
             provider={model.provider}
             selected={model.id === selectedId}
           />

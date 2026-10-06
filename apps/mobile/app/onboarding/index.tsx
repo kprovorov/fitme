@@ -1,4 +1,5 @@
 import { Link, router, Stack } from "expo-router";
+import { useCallback } from "react";
 import { SafeAreaView } from "react-native-safe-area-context";
 import Sign from "~/components/brand/sign";
 import { Button } from "~/components/ui/button";
@@ -10,6 +11,13 @@ import { storage } from "~/lib/mmkv";
 
 export default function WelcomeScreen() {
   const { data: user } = useCurrentUserQuery();
+
+  const handleSkip = useCallback(() => {
+    if (user) {
+      storage.set(`onboarding.seen.${user.id}`, true);
+    }
+    router.dismissTo("/");
+  }, [user]);
 
   return (
     <>
@@ -35,16 +43,7 @@ export default function WelcomeScreen() {
                 systemImage="arrow.right"
               />
             </Link>
-            <Button
-              className="w-full"
-              onPress={() => {
-                if (user) {
-                  storage.set(`onboarding.seen.${user.id}`, true);
-                }
-                router.dismissTo("/");
-              }}
-              variant="link"
-            >
+            <Button className="w-full" onPress={handleSkip} variant="link">
               <Text>Skip</Text>
             </Button>
           </VStack>
