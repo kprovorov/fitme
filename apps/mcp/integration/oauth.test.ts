@@ -176,8 +176,9 @@ describe("OAuth against Supabase Auth", () => {
       grant_type: "refresh_token",
       refresh_token: tokens.refresh_token,
     });
-    expect(await callTool("get_profile", refreshed.access_token)).toMatchObject(
-      { isError: false, status: 200 }
-    );
+    expect(await callTool("list_plans", refreshed.access_token)).toMatchObject({
+      isError: false,
+      status: 200,
+    });
   });
 });
