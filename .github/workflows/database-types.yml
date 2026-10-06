@@ -7,6 +7,7 @@ on:
       - "packages/supabase/supabase/config.toml"
       - "packages/supabase/src/database.types.ts"
       - "packages/supabase/package.json"
+      - "pnpm-lock.yaml"
       - ".github/workflows/database-types.yml"
 
 jobs:
@@ -28,18 +29,14 @@ jobs:
       - name: Install dependencies
         run: pnpm install --frozen-lockfile
 
-      - uses: supabase/setup-cli@v1
-        with:
-          version: latest
-
+      # Use the lockfile-pinned CLI for both steps so output only changes on a bump.
       - name: Start local database
-        working-directory: packages/supabase
-        run: supabase db start
+        run: pnpm db exec supabase db start
 
       - name: Regenerate types
         run: pnpm db types:generate
 
-      # PostgrestVersion depends on the CLI's PostgREST image, not the migrations.
+      # PostgrestVersion comes from the CLI's PostgREST image, not the migrations.
       - name: Fail if generated types are stale
         run: |
           if ! git diff --exit-code -I 'PostgrestVersion' -- packages/supabase/src/database.types.ts; then
