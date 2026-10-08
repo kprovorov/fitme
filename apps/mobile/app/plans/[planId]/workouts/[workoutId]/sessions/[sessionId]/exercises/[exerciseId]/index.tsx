@@ -95,6 +95,7 @@ export default function WorkoutSessionExerciseScreen() {
       ) : null}
       <WorkoutSessionFinishSuggestion
         isFinished={isFinished}
+        screensAboveSession={1}
         sessionId={sessionId as string}
       />
     </>

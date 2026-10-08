@@ -7,6 +7,8 @@ import { FinishWorkoutSuggestionDialog } from "./finish-workout-suggestion-dialo
 interface WorkoutSessionFinishSuggestionProps {
   /** Whether the session has been finished; a finished one is never suggested. */
   isFinished: boolean;
+  /** How many screens this one sits above the session screen; see `useFinishWorkoutSession`. */
+  screensAboveSession?: number;
   sessionId: string;
 }
 
@@ -19,10 +21,13 @@ interface WorkoutSessionFinishSuggestionProps {
  */
 export function WorkoutSessionFinishSuggestion({
   isFinished,
+  screensAboveSession,
   sessionId,
 }: WorkoutSessionFinishSuggestionProps) {
   const { dismiss, isSuggested } = useFinishWorkoutSuggestion(sessionId);
-  const { finish, isFinishing } = useFinishWorkoutSession(sessionId);
+  const { finish, isFinishing } = useFinishWorkoutSession(sessionId, {
+    screensAboveSession,
+  });
   const isFocused = useIsFocused();
 
   // Finished some other way meanwhile: drop the suggestion for good.
