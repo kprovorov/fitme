@@ -77,6 +77,8 @@ export interface FinishWorkoutSessionVariables {
   sessionId: string;
 }
 
+export const FINISH_WORKOUT_SESSION_MUTATION_KEY = ["finish-workout-session"];
+
 export const useFinishWorkoutSessionMutation = createMutation<
   WorkoutSession,
   FinishWorkoutSessionVariables
@@ -99,6 +101,7 @@ export const useFinishWorkoutSessionMutation = createMutation<
     }
     return data as unknown as WorkoutSession;
   },
+  mutationKey: FINISH_WORKOUT_SESSION_MUTATION_KEY,
 });
 
 export const useWorkoutSessionHistoryQuery = createQuery<

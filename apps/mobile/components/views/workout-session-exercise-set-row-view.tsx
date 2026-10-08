@@ -1,6 +1,7 @@
 import type { WorkoutSessionExerciseSet } from "@fitme/core";
 import { useQueryClient } from "@tanstack/react-query";
 import { useRef, useState } from "react";
+import { reportWorkoutSetTracked } from "~/hooks/finish-workout-suggestion";
 import {
   useCreateWorkoutSessionExerciseSetMutation,
   useUpdateWorkoutSessionExerciseSetMutation,
@@ -24,6 +25,7 @@ interface WorkoutSessionExerciseSetRowViewProps {
   locked?: boolean;
   onSetCreated?: (localSetId?: string) => void;
   order?: number;
+  sessionId: string;
   timer?: boolean;
   workoutSessionExerciseSet: WorkoutSessionExerciseSet | null;
 }
@@ -37,10 +39,14 @@ export default function WorkoutSessionExerciseSetRowView({
   timer = true,
   locked = false,
   onSetCreated,
+  sessionId,
 }: WorkoutSessionExerciseSetRowViewProps) {
   const queryClient = useQueryClient();
   const isNewSet = workoutSessionExerciseSet === null;
   const pendingSetData = useRef<{ weight: number; reps: number } | null>(null);
+  // Reps of the set when it was submitted, before the save: the query may
+  // have refetched by the time the save succeeds.
+  const previousRepsCompleted = useRef<number | null>(null);
 
   const [isEditable, setIsEditable] = useState(
     isNewSet || workoutSessionExerciseSet.reps_completed === null
@@ -62,7 +68,12 @@ export default function WorkoutSessionExerciseSetRowView({
 
   const { mutate: updateWorkoutSessionExerciseSet } =
     useUpdateWorkoutSessionExerciseSetMutation({
-      onSuccess: () => {
+      onSuccess: (set) => {
+        reportWorkoutSetTracked({
+          previousRepsCompleted: previousRepsCompleted.current,
+          sessionId,
+          set,
+        });
         setIsEditable(false);
         setIsDone(true);
         trackSetCompleted();
@@ -80,7 +91,12 @@ export default function WorkoutSessionExerciseSetRowView({
 
   const { mutate: createWorkoutSessionExerciseSet } =
     useCreateWorkoutSessionExerciseSetMutation({
-      onSuccess: () => {
+      onSuccess: (set) => {
+        reportWorkoutSetTracked({
+          previousRepsCompleted: null,
+          sessionId,
+          set,
+        });
         setIsEditable(false);
         setIsDone(true);
         trackSetCompleted();
@@ -126,6 +142,7 @@ export default function WorkoutSessionExerciseSetRowView({
       reps: reps_completed,
       weight: weight_completed,
     };
+    previousRepsCompleted.current = repsCompleted;
 
     if (isNewSet) {
       createWorkoutSessionExerciseSet({

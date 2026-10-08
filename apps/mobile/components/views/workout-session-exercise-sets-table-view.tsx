@@ -12,6 +12,7 @@ import WorkoutSessionExerciseSetRowView from "./workout-session-exercise-set-row
 interface WorkoutSessionExerciseSetsTableViewProps {
   exerciseId: string;
   readOnly?: boolean;
+  sessionId: string;
   workoutSessionExerciseSets: WorkoutSessionExerciseSet[];
 }
 
@@ -24,6 +25,7 @@ export default function WorkoutSessionExerciseSetsTableView({
   exerciseId,
   workoutSessionExerciseSets,
   readOnly = false,
+  sessionId,
 }: WorkoutSessionExerciseSetsTableViewProps) {
   const { data: user } = useCurrentUserQuery();
   const [localSets, setLocalSets] = useState<LocalSet[]>([]);
@@ -84,6 +86,7 @@ export default function WorkoutSessionExerciseSetsTableView({
                 hasWeight={hasWeight}
                 key={workoutSessionExerciseSet.id}
                 locked={locked}
+                sessionId={sessionId}
                 timer={false}
                 workoutSessionExerciseSet={workoutSessionExerciseSet}
               />
@@ -105,6 +108,7 @@ export default function WorkoutSessionExerciseSetsTableView({
                 locked={locked}
                 onSetCreated={handleSetCreated}
                 order={localSet.order}
+                sessionId={sessionId}
                 timer={false}
                 workoutSessionExerciseSet={null}
               />
