@@ -8,19 +8,19 @@ import { VStack } from "~/components/ui/vstack";
 
 interface FinishWorkoutSuggestionDialogProps {
   /**
-   * Shows the Finish button as busy while the caller's finish mutation is
-   * pending. When it drops back to `false` with the dialog still open, the
-   * finish is taken to have failed and Finish becomes tappable again.
+   * Whether the caller's finish mutation is pending, e.g. its `isPending`.
+   * While it's `true` the dialog shows Finish as busy and can't be dismissed.
+   * When it drops back to `false` with the dialog still open, the finish is
+   * taken to have failed and Finish becomes tappable again.
    */
-  isFinishing?: boolean;
+  isFinishing: boolean;
   /**
-   * Called once when the user taps Finish Workout. Repeated taps are ignored
-   * until the dialog is opened again, the returned promise rejects, or
-   * `isFinishing` settles back to `false` — the latter two allow a retry.
-   * The caller owns the mutation, navigation, error reporting and closing
-   * the dialog.
+   * Called once when the user taps Finish Workout; repeated taps are ignored
+   * until `isFinishing` settles back to `false` or the dialog is opened
+   * again. The caller owns the mutation, navigation, error handling and
+   * closing the dialog.
    */
-  onFinish: () => unknown;
+  onFinish: () => void;
   /**
    * Called once when the user keeps training: the Keep Training button, the
    * close button, or dismissing the sheet by swiping it down or tapping
@@ -39,7 +39,7 @@ const FinishWorkoutSuggestionDialog = ({
   open,
   onFinish,
   onKeepTraining,
-  isFinishing = false,
+  isFinishing,
 }: FinishWorkoutSuggestionDialogProps) => {
   // A ref, not state, so a second tap landing before the re-render is still
   // seen as a duplicate.
@@ -74,17 +74,9 @@ const FinishWorkoutSuggestionDialog = ({
       return;
     }
     choiceMadeRef.current = true;
+    // Bridges the gap until the caller's `isFinishing` turns `true`.
     setIsFinishPending(true);
-
-    const result = onFinish();
-
-    if (result instanceof Promise) {
-      result.catch(() => {
-        // Errors are the caller's to surface; here they only unlock a retry.
-        choiceMadeRef.current = false;
-        setIsFinishPending(false);
-      });
-    }
+    onFinish();
   }, [onFinish]);
 
   const handleKeepTraining = useCallback(() => {
@@ -109,7 +101,11 @@ const FinishWorkoutSuggestionDialog = ({
   const finishBusy = isFinishPending || isFinishing;
 
   return (
-    <Dialog isPresented={open} onIsPresentedChange={handleIsPresentedChange}>
+    <Dialog
+      dismissDisabled={finishBusy}
+      isPresented={open}
+      onIsPresentedChange={handleIsPresentedChange}
+    >
       <HStack className="justify-end">
         <Button
           accessibilityHint="Closes this suggestion and keeps the workout going"

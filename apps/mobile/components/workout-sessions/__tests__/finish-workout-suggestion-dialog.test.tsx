@@ -12,21 +12,26 @@ jest.mock("~/components/ui/dialog", () => {
 
   return {
     Dialog: ({
+      children,
+      dismissDisabled,
       isPresented,
       onIsPresentedChange,
-      children,
     }: {
       children?: React.ReactNode;
+      dismissDisabled?: boolean;
       isPresented: boolean;
       onIsPresentedChange: (isPresented: boolean) => void;
-    }) =>
-      isPresented ? (
-        // Tests fire `isPresentedChange` on this view the way the native
-        // sheet does when swiped down or tapped outside.
-        <View {...{ onIsPresentedChange }} testID="native-sheet">
-          {children}
-        </View>
-      ) : null,
+    }) => (
+      // Tests read the sheet's props off this view and fire
+      // `isPresentedChange` on it the way the native sheet does when swiped
+      // down or tapped outside.
+      <View
+        {...{ dismissDisabled, isPresented, onIsPresentedChange }}
+        testID="native-sheet"
+      >
+        {isPresented ? children : null}
+      </View>
+    ),
   };
 });
 
@@ -71,24 +76,22 @@ jest.mock("~/components/ui/button", () => {
   };
 });
 
-const dismissSheet = () =>
-  fireEvent(screen.getByTestId("native-sheet"), "isPresentedChange", false);
+type Props = React.ComponentProps<typeof FinishWorkoutSuggestionDialog>;
+
+const sheet = () => screen.getByTestId("native-sheet");
+
+const dismissSheet = () => fireEvent(sheet(), "isPresentedChange", false);
 
 const FINISH = { name: "Finish Workout" } as const;
 const KEEP_TRAINING = { name: "Keep Training" } as const;
 const CLOSE = { name: "Close" } as const;
 
-const setup = async (
-  props: Partial<React.ComponentProps<typeof FinishWorkoutSuggestionDialog>>
-) => {
+const setup = async (props: Partial<Props> = {}) => {
   const onFinish = jest.fn();
   const onKeepTraining = jest.fn();
-  const element = (
-    overrides: Partial<
-      React.ComponentProps<typeof FinishWorkoutSuggestionDialog>
-    > = {}
-  ) => (
+  const element = (overrides: Partial<Props> = {}) => (
     <FinishWorkoutSuggestionDialog
+      isFinishing={false}
       onFinish={onFinish}
       onKeepTraining={onKeepTraining}
       open
@@ -101,24 +104,21 @@ const setup = async (
   return {
     onFinish,
     onKeepTraining,
-    rerender: (
-      overrides: Partial<
-        React.ComponentProps<typeof FinishWorkoutSuggestionDialog>
-      >
-    ) => utils.rerender(element(overrides)),
+    rerender: (overrides: Partial<Props>) => utils.rerender(element(overrides)),
   };
 };
 
 describe("FinishWorkoutSuggestionDialog", () => {
-  it("renders nothing while closed", async () => {
-    await setup({ open: false });
+  it("passes the open state to the sheet", async () => {
+    const { rerender } = await setup({ open: false });
+    expect(sheet()).toHaveProp("isPresented", false);
 
-    expect(screen.queryByText("Workout completed!")).toBeNull();
-    expect(screen.queryByRole("button", FINISH)).toBeNull();
+    await rerender({ open: true });
+    expect(sheet()).toHaveProp("isPresented", true);
   });
 
   it("shows the completion copy and both actions when open", async () => {
-    await setup({});
+    await setup();
 
     expect(screen.getByText("Workout completed!")).toBeTruthy();
     expect(
@@ -129,24 +129,30 @@ describe("FinishWorkoutSuggestionDialog", () => {
   });
 
   it("labels every action for assistive technology", async () => {
-    await setup({});
+    await setup();
+    const keepTrainingHint =
+      "Closes this suggestion and keeps the workout going";
 
-    expect(screen.getByRole("button", FINISH)).toHaveProp(
+    const finish = screen.getByTestId("finish-workout-suggestion-finish");
+    expect(finish).toHaveProp("accessibilityLabel", "Finish Workout");
+    expect(finish).toHaveProp(
       "accessibilityHint",
       "Finishes this workout session"
     );
-    expect(screen.getByRole("button", KEEP_TRAINING)).toHaveProp(
-      "accessibilityHint",
-      "Closes this suggestion and keeps the workout going"
+
+    const keepTraining = screen.getByTestId(
+      "finish-workout-suggestion-keep-training"
     );
-    expect(screen.getByRole("button", CLOSE)).toHaveProp(
-      "accessibilityHint",
-      "Closes this suggestion and keeps the workout going"
-    );
+    expect(keepTraining).toHaveProp("accessibilityLabel", "Keep Training");
+    expect(keepTraining).toHaveProp("accessibilityHint", keepTrainingHint);
+
+    const close = screen.getByTestId("finish-workout-suggestion-close");
+    expect(close).toHaveProp("accessibilityLabel", "Close");
+    expect(close).toHaveProp("accessibilityHint", keepTrainingHint);
   });
 
   it("calls onFinish when Finish Workout is tapped", async () => {
-    const { onFinish, onKeepTraining } = await setup({});
+    const { onFinish, onKeepTraining } = await setup();
 
     await fireEvent.press(screen.getByRole("button", FINISH));
 
@@ -155,7 +161,7 @@ describe("FinishWorkoutSuggestionDialog", () => {
   });
 
   it("ignores repeated Finish taps", async () => {
-    const { onFinish } = await setup({});
+    const { onFinish } = await setup();
     const finish = screen.getByRole("button", FINISH);
 
     await fireEvent.press(finish);
@@ -165,65 +171,75 @@ describe("FinishWorkoutSuggestionDialog", () => {
     expect(onFinish).toHaveBeenCalledTimes(1);
   });
 
-  it("marks Finish busy and disables the other actions once tapped", async () => {
-    await setup({});
+  it("ignores Finish taps while isFinishing is set", async () => {
+    const { onFinish, rerender } = await setup();
+
+    await fireEvent.press(screen.getByRole("button", FINISH));
+    await rerender({ isFinishing: true });
+    await fireEvent.press(screen.getByRole("button", FINISH));
+
+    expect(onFinish).toHaveBeenCalledTimes(1);
+  });
+
+  it("locks the dialog as soon as Finish is tapped", async () => {
+    await setup();
 
     await fireEvent.press(screen.getByRole("button", FINISH));
 
     expect(screen.getByRole("button", FINISH)).toBeBusy();
     expect(screen.getByRole("button", KEEP_TRAINING)).toBeDisabled();
     expect(screen.getByRole("button", CLOSE)).toBeDisabled();
+    expect(sheet()).toHaveProp("dismissDisabled", true);
   });
 
-  it("does not treat the sheet closing after Finish as Keep Training", async () => {
-    const { onFinish, onKeepTraining } = await setup({});
+  it("stays locked while isFinishing is set", async () => {
+    await setup({ isFinishing: true });
+
+    expect(screen.getByRole("button", FINISH)).toBeBusy();
+    expect(screen.getByRole("button", KEEP_TRAINING)).toBeDisabled();
+    expect(screen.getByRole("button", CLOSE)).toBeDisabled();
+    expect(sheet()).toHaveProp("dismissDisabled", true);
+  });
+
+  it("can be dismissed while idle", async () => {
+    await setup();
+
+    expect(sheet()).toHaveProp("dismissDisabled", false);
+  });
+
+  it("ignores Keep Training once Finish was tapped", async () => {
+    const { onFinish, onKeepTraining } = await setup();
 
     await fireEvent.press(screen.getByRole("button", FINISH));
-    await dismissSheet();
     await fireEvent.press(screen.getByRole("button", KEEP_TRAINING));
+    await fireEvent.press(screen.getByRole("button", CLOSE));
 
     expect(onFinish).toHaveBeenCalledTimes(1);
     expect(onKeepTraining).not.toHaveBeenCalled();
   });
 
-  it("allows a retry when the finish promise rejects", async () => {
-    const onFinish = jest
-      .fn<() => Promise<void>>()
-      .mockRejectedValueOnce(new Error("network"))
-      .mockResolvedValueOnce(undefined);
-    await setup({ onFinish });
-
-    await fireEvent.press(screen.getByRole("button", FINISH));
-    expect(await screen.findByRole("button", FINISH)).not.toBeBusy();
-
-    await fireEvent.press(screen.getByRole("button", FINISH));
-    expect(onFinish).toHaveBeenCalledTimes(2);
-  });
-
-  it("allows a retry when isFinishing settles with the dialog still open", async () => {
-    const { onFinish, rerender } = await setup({});
+  it("unlocks for a retry when the finish fails with the dialog open", async () => {
+    const { onFinish, onKeepTraining, rerender } = await setup();
 
     await fireEvent.press(screen.getByRole("button", FINISH));
     await rerender({ isFinishing: true });
-    await fireEvent.press(screen.getByRole("button", FINISH));
-    expect(onFinish).toHaveBeenCalledTimes(1);
-
     await rerender({ isFinishing: false });
+
     expect(screen.getByRole("button", FINISH)).not.toBeBusy();
+    expect(screen.getByRole("button", KEEP_TRAINING)).not.toBeDisabled();
+    expect(sheet()).toHaveProp("dismissDisabled", false);
 
     await fireEvent.press(screen.getByRole("button", FINISH));
     expect(onFinish).toHaveBeenCalledTimes(2);
-  });
 
-  it("shows Finish busy while isFinishing is set", async () => {
-    await setup({ isFinishing: true });
-
-    expect(screen.getByRole("button", FINISH)).toBeBusy();
-    expect(screen.getByRole("button", KEEP_TRAINING)).toBeDisabled();
+    await rerender({ isFinishing: true });
+    await rerender({ isFinishing: false });
+    await dismissSheet();
+    expect(onKeepTraining).toHaveBeenCalledTimes(1);
   });
 
   it("calls onKeepTraining when Keep Training is tapped", async () => {
-    const { onFinish, onKeepTraining } = await setup({});
+    const { onFinish, onKeepTraining } = await setup();
 
     await fireEvent.press(screen.getByRole("button", KEEP_TRAINING));
 
@@ -232,7 +248,7 @@ describe("FinishWorkoutSuggestionDialog", () => {
   });
 
   it("treats the close button as Keep Training", async () => {
-    const { onFinish, onKeepTraining } = await setup({});
+    const { onFinish, onKeepTraining } = await setup();
 
     await fireEvent.press(screen.getByRole("button", CLOSE));
 
@@ -241,7 +257,7 @@ describe("FinishWorkoutSuggestionDialog", () => {
   });
 
   it("treats a swipe or backdrop dismissal as Keep Training", async () => {
-    const { onFinish, onKeepTraining } = await setup({});
+    const { onFinish, onKeepTraining } = await setup();
 
     await dismissSheet();
 
@@ -250,7 +266,7 @@ describe("FinishWorkoutSuggestionDialog", () => {
   });
 
   it("reports Keep Training only once per presentation", async () => {
-    const { onKeepTraining } = await setup({});
+    const { onKeepTraining } = await setup();
 
     await fireEvent.press(screen.getByRole("button", KEEP_TRAINING));
     await dismissSheet();
@@ -260,22 +276,24 @@ describe("FinishWorkoutSuggestionDialog", () => {
   });
 
   it("does not report Keep Training when the caller closes the dialog", async () => {
-    const { onKeepTraining, rerender } = await setup({});
+    const { onKeepTraining, rerender } = await setup();
 
     await rerender({ open: false });
+    await dismissSheet();
 
     expect(onKeepTraining).not.toHaveBeenCalled();
   });
 
   it("starts fresh each time it is opened again", async () => {
-    const { onFinish, rerender } = await setup({});
+    const { onFinish, onKeepTraining, rerender } = await setup();
 
     await fireEvent.press(screen.getByRole("button", FINISH));
     await rerender({ open: false });
     await rerender({ open: true });
 
     expect(screen.getByRole("button", FINISH)).not.toBeBusy();
-    await fireEvent.press(screen.getByRole("button", FINISH));
-    expect(onFinish).toHaveBeenCalledTimes(2);
+    await fireEvent.press(screen.getByRole("button", KEEP_TRAINING));
+    expect(onKeepTraining).toHaveBeenCalledTimes(1);
+    expect(onFinish).toHaveBeenCalledTimes(1);
   });
 });
