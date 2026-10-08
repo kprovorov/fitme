@@ -17,8 +17,9 @@ interface FinishWorkoutSuggestionDialogProps {
   /**
    * Called once when the user taps Finish Workout; repeated taps are ignored
    * until `isFinishing` settles back to `false` or the dialog is opened
-   * again. The caller owns the mutation, navigation, error handling and
-   * closing the dialog.
+   * again, or `onFinish` throws or rejects. The caller owns the mutation,
+   * navigation, error handling and closing the dialog; an async `onFinish`
+   * must report its own errors, as a rejection only unlocks the dialog.
    */
   onFinish: () => void;
   /**
@@ -77,13 +78,25 @@ const FinishWorkoutSuggestionDialog = ({
     // Bridges the gap until the caller's `isFinishing` turns `true`.
     setIsFinishPending(true);
 
-    try {
-      onFinish();
-    } catch (error) {
-      // Without this the dialog would stay locked and undismissable.
+    // Without unlocking on failure the dialog would stay busy and
+    // undismissable.
+    const unlock = () => {
       choiceMadeRef.current = false;
       setIsFinishPending(false);
+    };
+
+    let result: unknown;
+    try {
+      result = onFinish();
+    } catch (error) {
+      unlock();
       throw error;
+    }
+
+    // `() => void` also accepts an async callback, whose rejection the
+    // try/catch can't see.
+    if (result instanceof Promise) {
+      result.catch(unlock);
     }
   }, [onFinish]);
 
