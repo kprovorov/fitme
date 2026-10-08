@@ -47,13 +47,13 @@ export function useFinishWorkoutSuggestion(sessionId: string): {
   dismiss: () => void;
   isSuggested: boolean;
 } {
-  const suggestedSessionId = useSyncExternalStore(
+  const suggestedSessionIds = useSyncExternalStore(
     controller.subscribe,
-    controller.getSuggestedSessionId
+    controller.getSuggestedSessionIds
   );
   const dismiss = useCallback(() => controller.dismiss(sessionId), [sessionId]);
 
   useEffect(() => controller.watch(sessionId), [sessionId]);
 
-  return { dismiss, isSuggested: suggestedSessionId === sessionId };
+  return { dismiss, isSuggested: suggestedSessionIds.has(sessionId) };
 }

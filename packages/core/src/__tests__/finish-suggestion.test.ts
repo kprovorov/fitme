@@ -68,7 +68,7 @@ describe("createFinishSuggestionController", () => {
 
     await controller.reportSetTracked(tracked("s1-0"));
 
-    expect(controller.getSuggestedSessionId()).toBe(SESSION_ID);
+    expect([...controller.getSuggestedSessionIds()]).toEqual([SESSION_ID]);
     expect(listener).toHaveBeenCalledTimes(1);
   });
 
@@ -77,7 +77,7 @@ describe("createFinishSuggestionController", () => {
 
     await controller.reportSetTracked(tracked("s1-0"));
 
-    expect(controller.getSuggestedSessionId()).toBeNull();
+    expect([...controller.getSuggestedSessionIds()]).toEqual([]);
   });
 
   it("counts zero reps as tracked", async () => {
@@ -87,7 +87,7 @@ describe("createFinishSuggestionController", () => {
       tracked("s1-0", { set: { id: "s1-0", reps_completed: 0 } })
     );
 
-    expect(controller.getSuggestedSessionId()).toBe(SESSION_ID);
+    expect([...controller.getSuggestedSessionIds()]).toEqual([SESSION_ID]);
   });
 
   it("suggests when the last set is tracked out of exercise order", async () => {
@@ -96,7 +96,7 @@ describe("createFinishSuggestionController", () => {
     // The first exercise is the last one completed.
     await controller.reportSetTracked(tracked("s0-0"));
 
-    expect(controller.getSuggestedSessionId()).toBe(SESSION_ID);
+    expect([...controller.getSuggestedSessionIds()]).toEqual([SESSION_ID]);
   });
 
   it("reconciles a read that raced the save with the saved set", async () => {
@@ -105,7 +105,7 @@ describe("createFinishSuggestionController", () => {
 
     await controller.reportSetTracked(tracked("s1-0"));
 
-    expect(controller.getSuggestedSessionId()).toBe(SESSION_ID);
+    expect([...controller.getSuggestedSessionIds()]).toEqual([SESSION_ID]);
   });
 
   it("does not resurrect a saved set that is gone from the session", async () => {
@@ -114,7 +114,7 @@ describe("createFinishSuggestionController", () => {
 
     await controller.reportSetTracked(tracked("deleted"));
 
-    expect(controller.getSuggestedSessionId()).toBeNull();
+    expect([...controller.getSuggestedSessionIds()]).toEqual([]);
   });
 
   it("ignores edits of already tracked sets", async () => {
@@ -128,7 +128,7 @@ describe("createFinishSuggestionController", () => {
     );
 
     expect(load).not.toHaveBeenCalled();
-    expect(controller.getSuggestedSessionId()).toBeNull();
+    expect([...controller.getSuggestedSessionIds()]).toEqual([]);
   });
 
   it("ignores saves that leave the set untracked", async () => {
@@ -149,7 +149,7 @@ describe("createFinishSuggestionController", () => {
       tracked("s1-0", { previousRepsCompleted: undefined })
     );
 
-    expect(controller.getSuggestedSessionId()).toBe(SESSION_ID);
+    expect([...controller.getSuggestedSessionIds()]).toEqual([SESSION_ID]);
   });
 
   it("does not suggest for a finished session", async () => {
@@ -159,7 +159,7 @@ describe("createFinishSuggestionController", () => {
 
     await controller.reportSetTracked(tracked("s1-0"));
 
-    expect(controller.getSuggestedSessionId()).toBeNull();
+    expect([...controller.getSuggestedSessionIds()]).toEqual([]);
   });
 
   it("does not suggest when the session cannot be loaded, and recovers on the next save", async () => {
@@ -168,13 +168,13 @@ describe("createFinishSuggestionController", () => {
 
     await controller.reportSetTracked(tracked("s1-0"));
 
-    expect(controller.getSuggestedSessionId()).toBeNull();
+    expect([...controller.getSuggestedSessionIds()]).toEqual([]);
     expect(onError).toHaveBeenCalledWith(error);
 
     load.mockImplementation(async () => session([[10], [12]]));
     await controller.reportSetTracked(tracked("s1-0"));
 
-    expect(controller.getSuggestedSessionId()).toBe(SESSION_ID);
+    expect([...controller.getSuggestedSessionIds()]).toEqual([SESSION_ID]);
   });
 
   it("coalesces quick repeated saves into a single suggestion", async () => {
@@ -193,7 +193,7 @@ describe("createFinishSuggestionController", () => {
     // The first load suggests; the queued re-check is skipped.
     expect(load).toHaveBeenCalledTimes(1);
     expect(listener).toHaveBeenCalledTimes(1);
-    expect(controller.getSuggestedSessionId()).toBe(SESSION_ID);
+    expect([...controller.getSuggestedSessionIds()]).toEqual([SESSION_ID]);
   });
 
   it("re-checks with fresh data when a save lands during a check", async () => {
@@ -208,7 +208,7 @@ describe("createFinishSuggestionController", () => {
     await Promise.all([firstSave, secondSave]);
 
     expect(load).toHaveBeenCalledTimes(2);
-    expect(controller.getSuggestedSessionId()).toBe(SESSION_ID);
+    expect([...controller.getSuggestedSessionIds()]).toEqual([SESSION_ID]);
   });
 
   it("checks a save that lands just as the previous check ends", async () => {
@@ -223,7 +223,7 @@ describe("createFinishSuggestionController", () => {
     await Promise.all([firstSave, secondSave]);
 
     expect(load).toHaveBeenCalledTimes(2);
-    expect(controller.getSuggestedSessionId()).toBe(SESSION_ID);
+    expect([...controller.getSuggestedSessionIds()]).toEqual([SESSION_ID]);
   });
 
   it("re-checks a save that arrived while a failing read was in flight", async () => {
@@ -238,7 +238,7 @@ describe("createFinishSuggestionController", () => {
 
     expect(onError).toHaveBeenCalledTimes(1);
     expect(load).toHaveBeenCalledTimes(2);
-    expect(controller.getSuggestedSessionId()).toBe(SESSION_ID);
+    expect([...controller.getSuggestedSessionIds()]).toEqual([SESSION_ID]);
   });
 
   it("keeps suppression in the given store across controllers", async () => {
@@ -261,7 +261,7 @@ describe("createFinishSuggestionController", () => {
     second.watch(SESSION_ID);
     await second.reportSetTracked(tracked("s1-0"));
 
-    expect(second.getSuggestedSessionId()).toBeNull();
+    expect([...second.getSuggestedSessionIds()]).toEqual([]);
   });
 
   it("suggests only once per session, even after exercises are added", async () => {
@@ -272,13 +272,13 @@ describe("createFinishSuggestionController", () => {
     await controller.reportSetTracked(tracked("s1-0"));
     controller.dismiss(SESSION_ID);
 
-    expect(controller.getSuggestedSessionId()).toBeNull();
+    expect([...controller.getSuggestedSessionIds()]).toEqual([]);
 
     // A new exercise is added and fully tracked after the dismissal.
     load.mockImplementation(async () => session([[10], [12], [8]]));
     await controller.reportSetTracked(tracked("s2-0"));
 
-    expect(controller.getSuggestedSessionId()).toBeNull();
+    expect([...controller.getSuggestedSessionIds()]).toEqual([]);
     expect(load).toHaveBeenCalledTimes(1);
     expect(listener).toHaveBeenCalledTimes(2);
   });
@@ -290,7 +290,7 @@ describe("createFinishSuggestionController", () => {
     await controller.reportSetTracked(tracked("s0-0"));
 
     expect(listener).toHaveBeenCalledTimes(1);
-    expect(controller.getSuggestedSessionId()).toBe(SESSION_ID);
+    expect([...controller.getSuggestedSessionIds()]).toEqual([SESSION_ID]);
   });
 
   it("suggests again for a different workout session", async () => {
@@ -302,7 +302,7 @@ describe("createFinishSuggestionController", () => {
       tracked("s1-0", { sessionId: "session-2" })
     );
 
-    expect(controller.getSuggestedSessionId()).toBe("session-2");
+    expect([...controller.getSuggestedSessionIds()]).toEqual(["session-2"]);
   });
 
   it("ignores dismissals of a session that is not suggested", async () => {
@@ -311,7 +311,7 @@ describe("createFinishSuggestionController", () => {
     await controller.reportSetTracked(tracked("s1-0"));
     controller.dismiss("session-2");
 
-    expect(controller.getSuggestedSessionId()).toBe(SESSION_ID);
+    expect([...controller.getSuggestedSessionIds()]).toEqual([SESSION_ID]);
     expect(listener).toHaveBeenCalledTimes(1);
   });
 
@@ -324,14 +324,14 @@ describe("createFinishSuggestionController", () => {
     read.resolve(session([[10], [12]]));
     await save;
 
-    expect(controller.getSuggestedSessionId()).toBeNull();
+    expect([...controller.getSuggestedSessionIds()]).toEqual([]);
 
     // Reopening the screen does not bring it back; a later save can suggest.
     controller.watch(SESSION_ID);
-    expect(controller.getSuggestedSessionId()).toBeNull();
+    expect([...controller.getSuggestedSessionIds()]).toEqual([]);
     load.mockImplementation(async () => session([[10], [12]]));
     await controller.reportSetTracked(tracked("s0-0"));
-    expect(controller.getSuggestedSessionId()).toBe(SESSION_ID);
+    expect([...controller.getSuggestedSessionIds()]).toEqual([SESSION_ID]);
   });
 
   it("clears the suggestion once the last screen of the session is gone", async () => {
@@ -341,17 +341,61 @@ describe("createFinishSuggestionController", () => {
     await controller.reportSetTracked(tracked("s1-0"));
     unwatchSecond();
 
-    expect(controller.getSuggestedSessionId()).toBe(SESSION_ID);
+    expect([...controller.getSuggestedSessionIds()]).toEqual([SESSION_ID]);
 
     unwatch();
     unwatch();
 
-    expect(controller.getSuggestedSessionId()).toBeNull();
+    expect([...controller.getSuggestedSessionIds()]).toEqual([]);
 
     // Suppressed for good once shown.
     controller.watch(SESSION_ID);
     await controller.reportSetTracked(tracked("s0-0"));
-    expect(controller.getSuggestedSessionId()).toBeNull();
+    expect([...controller.getSuggestedSessionIds()]).toEqual([]);
+  });
+
+  it("does not suggest on a screen reopened while a check was in flight", async () => {
+    const read = deferred<ReconcilableWorkoutSession>();
+    const { controller, unwatch } = setup(() => read.promise);
+
+    const save = controller.reportSetTracked(tracked("s1-0"));
+    unwatch();
+    controller.watch(SESSION_ID);
+    read.resolve(session([[10], [12]]));
+    await save;
+
+    expect([...controller.getSuggestedSessionIds()]).toEqual([]);
+  });
+
+  it("does not suggest from a save reported while no screen was open", async () => {
+    const read = deferred<ReconcilableWorkoutSession>();
+    const { controller, unwatch } = setup(() => read.promise);
+
+    unwatch();
+    const save = controller.reportSetTracked(tracked("s1-0"));
+    controller.watch(SESSION_ID);
+    read.resolve(session([[10], [12]]));
+    await save;
+
+    expect([...controller.getSuggestedSessionIds()]).toEqual([]);
+  });
+
+  it("keeps the suggestions of sessions completed at the same time", async () => {
+    const { controller } = setup(async () => session([[10], [12]]));
+
+    await Promise.all([
+      controller.reportSetTracked(tracked("s1-0")),
+      controller.reportSetTracked(tracked("s1-0", { sessionId: "session-2" })),
+    ]);
+
+    expect([...controller.getSuggestedSessionIds()].sort()).toEqual([
+      SESSION_ID,
+      "session-2",
+    ]);
+
+    controller.dismiss(SESSION_ID);
+
+    expect([...controller.getSuggestedSessionIds()]).toEqual(["session-2"]);
   });
 
   it("stops notifying unsubscribed listeners", async () => {

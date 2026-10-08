@@ -58,8 +58,8 @@ export interface SuggestedSessionStore {
  *   mounted and the returned function on unmount. A session is only suggested
  *   while watched, and a suggestion is cleared once its last watcher leaves,
  *   so it never shows up later on a reopened screen.
- * - Read `getSuggestedSessionId()` (subscribe with `subscribe`, e.g. through
- *   `useSyncExternalStore`) and show the suggestion while it equals the
+ * - Read `getSuggestedSessionIds()` (subscribe with `subscribe`, e.g. through
+ *   `useSyncExternalStore`) and show the suggestion while it contains the
  *   current session id.
  * - Call `dismiss(sessionId)` when the suggestion is closed, whichever action
  *   the user took.
@@ -70,7 +70,8 @@ export interface SuggestedSessionStore {
  */
 export interface FinishSuggestionController {
   dismiss: (sessionId: string) => void;
-  getSuggestedSessionId: () => string | null;
+  /** Sessions to suggest finishing now; a new set on every change. */
+  getSuggestedSessionIds: () => ReadonlySet<string>;
   reportSetTracked: (event: SetTrackedEvent) => Promise<void>;
   subscribe: (listener: () => void) => () => void;
   watch: (sessionId: string) => () => void;
@@ -78,6 +79,8 @@ export interface FinishSuggestionController {
 
 interface PendingCheck {
   dirty: boolean;
+  /** Watch generation of the session when the latest save was reported. */
+  generation: number;
   promise: Promise<void>;
   sets: Map<string, PersistedSet>;
 }
@@ -115,13 +118,25 @@ export function createFinishSuggestionController({
   const suggestedSessions = suggestedSessionStore ?? new Set<string>();
   const pendingChecks = new Map<string, PendingCheck>();
   const watchers = new Map<string, number>();
-  let suggestedSessionId: string | null = null;
+  // Bumped each time a session goes from unwatched to watched, so a save made
+  // before its screens were closed never suggests on a reopened one.
+  const watchGenerations = new Map<string, number>();
+  let suggestedSessionIds: ReadonlySet<string> = new Set();
 
-  const setSuggestedSessionId = (sessionId: string | null) => {
-    if (suggestedSessionId === sessionId) {
+  const generationOf = (sessionId: string) =>
+    watchGenerations.get(sessionId) ?? 0;
+
+  const setSuggested = (sessionId: string, suggested: boolean) => {
+    if (suggestedSessionIds.has(sessionId) === suggested) {
       return;
     }
-    suggestedSessionId = sessionId;
+    const next = new Set(suggestedSessionIds);
+    if (suggested) {
+      next.add(sessionId);
+    } else {
+      next.delete(sessionId);
+    }
+    suggestedSessionIds = next;
     for (const listener of listeners) {
       listener();
     }
@@ -145,10 +160,11 @@ export function createFinishSuggestionController({
       if (
         isWorkoutFullyTracked(session) &&
         watchers.has(sessionId) &&
+        generationOf(sessionId) === pending.generation &&
         !suggestedSessions.has(sessionId)
       ) {
         suggestedSessions.add(sessionId);
-        setSuggestedSessionId(sessionId);
+        setSuggested(sessionId, true);
       }
     } catch (error) {
       // A save that arrived during the failed read still gets its own check.
@@ -172,11 +188,13 @@ export function createFinishSuggestionController({
     if (existing) {
       existing.sets.set(set.id, set);
       existing.dirty = true;
+      existing.generation = generationOf(sessionId);
       return existing.promise;
     }
 
     const pending: PendingCheck = {
       dirty: true,
+      generation: generationOf(sessionId),
       promise: Promise.resolve(),
       sets: new Map([[set.id, set]]),
     };
@@ -185,23 +203,23 @@ export function createFinishSuggestionController({
     return pending.promise;
   };
 
-  const dismiss = (sessionId: string) => {
-    if (suggestedSessionId === sessionId) {
-      setSuggestedSessionId(null);
-    }
-  };
+  const dismiss = (sessionId: string) => setSuggested(sessionId, false);
 
   const watch = (sessionId: string) => {
-    watchers.set(sessionId, (watchers.get(sessionId) ?? 0) + 1);
+    const count = watchers.get(sessionId) ?? 0;
+    if (count === 0) {
+      watchGenerations.set(sessionId, generationOf(sessionId) + 1);
+    }
+    watchers.set(sessionId, count + 1);
     let watching = true;
     return () => {
       if (!watching) {
         return;
       }
       watching = false;
-      const count = (watchers.get(sessionId) ?? 1) - 1;
-      if (count > 0) {
-        watchers.set(sessionId, count);
+      const remaining = (watchers.get(sessionId) ?? 1) - 1;
+      if (remaining > 0) {
+        watchers.set(sessionId, remaining);
         return;
       }
       watchers.delete(sessionId);
@@ -211,7 +229,7 @@ export function createFinishSuggestionController({
 
   return {
     dismiss,
-    getSuggestedSessionId: () => suggestedSessionId,
+    getSuggestedSessionIds: () => suggestedSessionIds,
     reportSetTracked,
     subscribe: (listener) => {
       listeners.add(listener);
