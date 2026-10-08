@@ -306,7 +306,6 @@ const renderApp = async () => {
 };
 
 /** Waits until every request, query, mutation and suggestion check is done. */
-/** Waits until every request, query, mutation and suggestion check is done. */
 const settle = async () => {
   await waitFor(() => {
     expect(backend.inFlight).toBe(0);
@@ -798,6 +797,14 @@ describe.each(ENTRY_ROUTES)(
 
       expect(backend.exercises).toHaveLength(1);
       expect(isSuggestionShown()).toBe(false);
+
+      // Tracking a set of the added exercise completes the session.
+      await openExercise("Lunge");
+      await fireEvent.press(focused().getByText("Add Set"));
+      await trackSet(1);
+
+      expect(isSuggestionShown()).toBe(true);
+      expect(mockPresentations.count).toBe(1);
     });
 
     it("never suggests while an exercise has no sets", async () => {
