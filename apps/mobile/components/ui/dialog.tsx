@@ -1,4 +1,5 @@
-import { BottomSheet, RNHostView } from "@expo/ui/swift-ui";
+import { BottomSheet, Group, RNHostView } from "@expo/ui/swift-ui";
+import { interactiveDismissDisabled } from "@expo/ui/swift-ui/modifiers";
 import type * as React from "react";
 import { View } from "react-native";
 import { SwiftUIHost } from "~/components/ui/swift-ui";
@@ -8,6 +9,8 @@ interface DialogProps {
   /** React Native content shown inside the sheet. */
   children?: React.ReactNode;
   contentClassName?: string;
+  /** Stops the sheet from being swiped down or dismissed by tapping outside. */
+  dismissDisabled?: boolean;
   /** Sizes the sheet to its content instead of a half-height detent. */
   fitToContents?: boolean;
   isPresented: boolean;
@@ -22,6 +25,7 @@ const Dialog = ({
   isPresented,
   onIsPresentedChange,
   fitToContents = true,
+  dismissDisabled = false,
   children,
   contentClassName,
 }: DialogProps) => (
@@ -31,9 +35,12 @@ const Dialog = ({
       isPresented={isPresented}
       onIsPresentedChange={onIsPresentedChange}
     >
-      <RNHostView matchContents={fitToContents}>
-        <View className={cn("gap-4 p-6", contentClassName)}>{children}</View>
-      </RNHostView>
+      {/* Presentation modifiers only apply from inside the sheet's content. */}
+      <Group modifiers={[interactiveDismissDisabled(dismissDisabled)]}>
+        <RNHostView matchContents={fitToContents}>
+          <View className={cn("gap-4 p-6", contentClassName)}>{children}</View>
+        </RNHostView>
+      </Group>
     </BottomSheet>
   </SwiftUIHost>
 );

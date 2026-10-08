@@ -10,6 +10,8 @@ import {
   ZStack,
 } from "@expo/ui/swift-ui";
 import {
+  accessibilityHint as accessibilityHintModifier,
+  accessibilityLabel as accessibilityLabelModifier,
   background,
   buttonStyle,
   clipShape,
@@ -129,6 +131,10 @@ const ICON_DIAMETER: Record<ButtonSize, number> = {
 };
 
 interface ButtonProps {
+  /** Hint read by VoiceOver after the label, describing what a tap does. */
+  accessibilityHint?: string;
+  /** VoiceOver label; required for icon-only buttons, which have no text. */
+  accessibilityLabel?: string;
   children?: React.ReactNode;
   className?: string;
   disabled?: boolean;
@@ -149,6 +155,8 @@ interface ButtonProps {
 }
 
 const Button = ({
+  accessibilityHint,
+  accessibilityLabel,
   className,
   variant = "default",
   size = "default",
@@ -223,6 +231,14 @@ const Button = ({
 
   if (disabled || isLoading) {
     modifiers.push(disabledModifier(true));
+  }
+
+  if (accessibilityLabel) {
+    modifiers.push(accessibilityLabelModifier(accessibilityLabel));
+  }
+
+  if (accessibilityHint) {
+    modifiers.push(accessibilityHintModifier(accessibilityHint));
   }
 
   const role: ButtonRole =
