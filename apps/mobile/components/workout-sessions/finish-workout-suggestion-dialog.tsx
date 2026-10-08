@@ -76,7 +76,15 @@ const FinishWorkoutSuggestionDialog = ({
     choiceMadeRef.current = true;
     // Bridges the gap until the caller's `isFinishing` turns `true`.
     setIsFinishPending(true);
-    onFinish();
+
+    try {
+      onFinish();
+    } catch (error) {
+      // Without this the dialog would stay locked and undismissable.
+      choiceMadeRef.current = false;
+      setIsFinishPending(false);
+      throw error;
+    }
   }, [onFinish]);
 
   const handleKeepTraining = useCallback(() => {

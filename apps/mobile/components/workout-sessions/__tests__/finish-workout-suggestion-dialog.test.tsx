@@ -238,6 +238,20 @@ describe("FinishWorkoutSuggestionDialog", () => {
     expect(onKeepTraining).toHaveBeenCalledTimes(1);
   });
 
+  it("unlocks when onFinish throws", async () => {
+    const onFinish = jest.fn(() => {
+      throw new Error("boom");
+    });
+    await setup({ onFinish });
+
+    await expect(
+      fireEvent.press(screen.getByRole("button", FINISH))
+    ).rejects.toThrow("boom");
+
+    expect(screen.getByRole("button", FINISH)).not.toBeBusy();
+    expect(sheet()).toHaveProp("dismissDisabled", false);
+  });
+
   it("calls onKeepTraining when Keep Training is tapped", async () => {
     const { onFinish, onKeepTraining } = await setup();
 
