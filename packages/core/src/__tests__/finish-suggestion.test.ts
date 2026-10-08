@@ -54,7 +54,10 @@ const setup = (
   });
   const listener = vi.fn();
   controller.subscribe(listener);
-  return { controller, listener, load, onError };
+  // A mounted screen of each session.
+  const unwatch = controller.watch(SESSION_ID);
+  controller.watch("session-2");
+  return { controller, listener, load, onError, unwatch };
 };
 
 describe("createFinishSuggestionController", () => {
@@ -245,6 +248,7 @@ describe("createFinishSuggestionController", () => {
       loadSession,
       suggestedSessionStore: store,
     });
+    first.watch(SESSION_ID);
 
     await first.reportSetTracked(tracked("s1-0"));
     expect(store.has(SESSION_ID)).toBe(true);
@@ -254,6 +258,7 @@ describe("createFinishSuggestionController", () => {
       loadSession,
       suggestedSessionStore: store,
     });
+    second.watch(SESSION_ID);
     await second.reportSetTracked(tracked("s1-0"));
 
     expect(second.getSuggestedSessionId()).toBeNull();
@@ -308,6 +313,45 @@ describe("createFinishSuggestionController", () => {
 
     expect(controller.getSuggestedSessionId()).toBe(SESSION_ID);
     expect(listener).toHaveBeenCalledTimes(1);
+  });
+
+  it("does not suggest when the session's screens are gone before the check ends", async () => {
+    const read = deferred<ReconcilableWorkoutSession>();
+    const { controller, load, unwatch } = setup(() => read.promise);
+
+    const save = controller.reportSetTracked(tracked("s1-0"));
+    unwatch();
+    read.resolve(session([[10], [12]]));
+    await save;
+
+    expect(controller.getSuggestedSessionId()).toBeNull();
+
+    // Reopening the screen does not bring it back; a later save can suggest.
+    controller.watch(SESSION_ID);
+    expect(controller.getSuggestedSessionId()).toBeNull();
+    load.mockImplementation(async () => session([[10], [12]]));
+    await controller.reportSetTracked(tracked("s0-0"));
+    expect(controller.getSuggestedSessionId()).toBe(SESSION_ID);
+  });
+
+  it("clears the suggestion once the last screen of the session is gone", async () => {
+    const { controller, unwatch } = setup(async () => session([[10], [12]]));
+    const unwatchSecond = controller.watch(SESSION_ID);
+
+    await controller.reportSetTracked(tracked("s1-0"));
+    unwatchSecond();
+
+    expect(controller.getSuggestedSessionId()).toBe(SESSION_ID);
+
+    unwatch();
+    unwatch();
+
+    expect(controller.getSuggestedSessionId()).toBeNull();
+
+    // Suppressed for good once shown.
+    controller.watch(SESSION_ID);
+    await controller.reportSetTracked(tracked("s0-0"));
+    expect(controller.getSuggestedSessionId()).toBeNull();
   });
 
   it("stops notifying unsubscribed listeners", async () => {

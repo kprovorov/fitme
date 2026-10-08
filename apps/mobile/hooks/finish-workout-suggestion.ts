@@ -38,8 +38,10 @@ export const reportWorkoutSetTracked = (event: SetTrackedEvent): void => {
 /**
  * Whether to suggest finishing `sessionId`. `dismiss` hides the suggestion for
  * good; call it however the suggestion is closed (finish, keep training, or
- * dismissal). Unmounting the calling component dismisses it too, so a pending
- * suggestion never reappears when a screen is reopened.
+ * dismissal). The session is watched while the calling component is mounted:
+ * a save only suggests finishing while some screen of the session is mounted,
+ * and the suggestion is cleared when the last one unmounts, so it never
+ * reappears when a screen is reopened.
  */
 export function useFinishWorkoutSuggestion(sessionId: string): {
   dismiss: () => void;
@@ -51,7 +53,7 @@ export function useFinishWorkoutSuggestion(sessionId: string): {
   );
   const dismiss = useCallback(() => controller.dismiss(sessionId), [sessionId]);
 
-  useEffect(() => dismiss, [dismiss]);
+  useEffect(() => controller.watch(sessionId), [sessionId]);
 
   return { dismiss, isSuggested: suggestedSessionId === sessionId };
 }

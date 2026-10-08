@@ -54,12 +54,15 @@ export interface SuggestedSessionStore {
  * - Call `reportSetTracked` from the `onSuccess` of a set create/update
  *   mutation, never on failure. Edits of tracked sets are ignored, and
  *   deletions, additions, loads and finishes are simply not reported.
+ * - Every screen that can show the suggestion calls `watch(sessionId)` while
+ *   mounted and the returned function on unmount. A session is only suggested
+ *   while watched, and a suggestion is cleared once its last watcher leaves,
+ *   so it never shows up later on a reopened screen.
  * - Read `getSuggestedSessionId()` (subscribe with `subscribe`, e.g. through
  *   `useSyncExternalStore`) and show the suggestion while it equals the
  *   current session id.
  * - Call `dismiss(sessionId)` when the suggestion is closed, whichever action
- *   the user took, and whenever the screen showing it goes away or the session
- *   is finished: an undismissed suggestion stays pending.
+ *   the user took.
  *
  * A session is suggested at most once: after it has been suggested, later
  * saves in that session (including sets of exercises added afterwards) never
@@ -70,6 +73,7 @@ export interface FinishSuggestionController {
   getSuggestedSessionId: () => string | null;
   reportSetTracked: (event: SetTrackedEvent) => Promise<void>;
   subscribe: (listener: () => void) => () => void;
+  watch: (sessionId: string) => () => void;
 }
 
 interface PendingCheck {
@@ -110,6 +114,7 @@ export function createFinishSuggestionController({
   const listeners = new Set<() => void>();
   const suggestedSessions = suggestedSessionStore ?? new Set<string>();
   const pendingChecks = new Map<string, PendingCheck>();
+  const watchers = new Map<string, number>();
   let suggestedSessionId: string | null = null;
 
   const setSuggestedSessionId = (sessionId: string | null) => {
@@ -137,7 +142,11 @@ export function createFinishSuggestionController({
     pending.dirty = false;
     try {
       const session = reconcile(await loadSession(sessionId), pending.sets);
-      if (isWorkoutFullyTracked(session) && !suggestedSessions.has(sessionId)) {
+      if (
+        isWorkoutFullyTracked(session) &&
+        watchers.has(sessionId) &&
+        !suggestedSessions.has(sessionId)
+      ) {
         suggestedSessions.add(sessionId);
         setSuggestedSessionId(sessionId);
       }
@@ -176,12 +185,32 @@ export function createFinishSuggestionController({
     return pending.promise;
   };
 
-  return {
-    dismiss: (sessionId) => {
-      if (suggestedSessionId === sessionId) {
-        setSuggestedSessionId(null);
+  const dismiss = (sessionId: string) => {
+    if (suggestedSessionId === sessionId) {
+      setSuggestedSessionId(null);
+    }
+  };
+
+  const watch = (sessionId: string) => {
+    watchers.set(sessionId, (watchers.get(sessionId) ?? 0) + 1);
+    let watching = true;
+    return () => {
+      if (!watching) {
+        return;
       }
-    },
+      watching = false;
+      const count = (watchers.get(sessionId) ?? 1) - 1;
+      if (count > 0) {
+        watchers.set(sessionId, count);
+        return;
+      }
+      watchers.delete(sessionId);
+      dismiss(sessionId);
+    };
+  };
+
+  return {
+    dismiss,
     getSuggestedSessionId: () => suggestedSessionId,
     reportSetTracked,
     subscribe: (listener) => {
@@ -190,5 +219,6 @@ export function createFinishSuggestionController({
         listeners.delete(listener);
       };
     },
+    watch,
   };
 }
