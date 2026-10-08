@@ -1,4 +1,4 @@
-import type { WorkoutSession, WorkoutSessionExerciseSet } from "./models";
+import type { WorkoutSessionExerciseSet } from "./models";
 
 type TrackableSet = Pick<WorkoutSessionExerciseSet, "reps_completed">;
 
@@ -10,7 +10,7 @@ interface TrackableExercise {
 export interface TrackableWorkoutSession {
   exercises: TrackableExercise[];
   // The column is nullable in the database: an active session has no finish time yet.
-  finished_at: WorkoutSession["finished_at"] | null | undefined;
+  finished_at: string | null | undefined;
 }
 
 const isSetTracked = (set: TrackableSet): boolean =>

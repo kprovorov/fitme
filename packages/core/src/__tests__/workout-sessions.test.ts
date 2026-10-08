@@ -35,11 +35,11 @@ describe("isWorkoutFullyTracked", () => {
     expect(isWorkoutFullyTracked(session([[0], [0, 5]]))).toBe(true);
   });
 
-  it("ignores the order in which sets were tracked", () => {
-    // The last exercise and the second set were tracked before the first set.
+  it("is independent of exercise and set order", () => {
+    // Later sets tracked before earlier ones still leave the session incomplete.
     expect(isWorkoutFullyTracked(session([[null, 8], [12]]))).toBe(false);
-    expect(isWorkoutFullyTracked(session([[10, 8], [12]]))).toBe(true);
-    expect(isWorkoutFullyTracked(session([[12], [10, 8]]))).toBe(true);
+    expect(isWorkoutFullyTracked(session([[12], [8, null]]))).toBe(false);
+    expect(isWorkoutFullyTracked(session([[12], [8, 10]]))).toBe(true);
   });
 
   it("returns false for a finished session", () => {
