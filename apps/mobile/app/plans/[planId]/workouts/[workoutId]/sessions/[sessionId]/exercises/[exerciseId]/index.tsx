@@ -6,6 +6,7 @@ import { P } from "~/components/ui/typography";
 import { VStack } from "~/components/ui/vstack";
 import ExerciseHistoryView from "~/components/views/exercise-history-view";
 import WorkoutSessionExerciseSetsTableView from "~/components/views/workout-session-exercise-sets-table-view";
+import { WorkoutSessionFinishSuggestion } from "~/components/workout-sessions/workout-session-finish-suggestion";
 import { useWorkoutSessionExerciseQuery } from "~/hooks/queries/workout-session-exercises";
 import { useWorkoutSessionQuery } from "~/hooks/queries/workout-sessions";
 
@@ -82,6 +83,7 @@ export default function WorkoutSessionExerciseScreen() {
             <WorkoutSessionExerciseSetsTableView
               exerciseId={exerciseId as string}
               readOnly={isFinished}
+              sessionId={sessionId as string}
               workoutSessionExerciseSets={workoutSessionExercise.sets}
             />
 
@@ -91,6 +93,11 @@ export default function WorkoutSessionExerciseScreen() {
           </VStack>
         </KeyboardAwareScrollView>
       ) : null}
+      <WorkoutSessionFinishSuggestion
+        isFinished={isFinished}
+        screensAboveSession={1}
+        sessionId={sessionId as string}
+      />
     </>
   );
 }

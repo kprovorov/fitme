@@ -1,16 +1,14 @@
-import { useQueryClient } from "@tanstack/react-query";
-import { Stack, useLocalSearchParams, useRouter } from "expo-router";
-import { useCallback, useEffect, useState } from "react";
+import { Stack, useLocalSearchParams } from "expo-router";
+import { useEffect, useState } from "react";
 import { ScrollView } from "react-native";
 import { useSafeAreaInsets } from "react-native-safe-area-context";
 import { Button } from "~/components/ui/button";
 import { Text } from "~/components/ui/text";
 import { VStack } from "~/components/ui/vstack";
 import WorkoutSessionView from "~/components/views/workout-session-view";
-import {
-  useFinishWorkoutSessionMutation,
-  useWorkoutSessionQuery,
-} from "~/hooks/queries/workout-sessions";
+import { WorkoutSessionFinishSuggestion } from "~/components/workout-sessions/workout-session-finish-suggestion";
+import { useFinishWorkoutSession } from "~/hooks/finish-workout-session";
+import { useWorkoutSessionQuery } from "~/hooks/queries/workout-sessions";
 
 export default function WorkoutSessionScreen() {
   const {
@@ -18,7 +16,6 @@ export default function WorkoutSessionScreen() {
     workoutId: _workoutId,
     sessionId,
   } = useLocalSearchParams();
-  const router = useRouter();
 
   const { data: workoutSession } = useWorkoutSessionQuery({
     variables: {
@@ -26,16 +23,9 @@ export default function WorkoutSessionScreen() {
     },
   });
 
-  const queryClient = useQueryClient();
-
-  const { mutate: finishWorkoutSession } = useFinishWorkoutSessionMutation({
-    onSuccess: async () => {
-      await queryClient.invalidateQueries({ queryKey: ["workout-session"] });
-      await queryClient.invalidateQueries({ queryKey: ["plans"] });
-      await queryClient.invalidateQueries({ queryKey: ["exercise-history"] });
-      router.replace(`/workout-sessions/${sessionId}/summary`);
-    },
-  });
+  const { finish: handleFinishWorkout, isFinishing } = useFinishWorkoutSession(
+    sessionId as string
+  );
 
   const [elapsedTime, setElapsedTime] = useState<string>("");
 
@@ -65,14 +55,6 @@ export default function WorkoutSessionScreen() {
   }, [workoutSession?.started_at]);
 
   const insets = useSafeAreaInsets();
-
-  const handleFinishWorkout = useCallback(
-    () =>
-      finishWorkoutSession({
-        sessionId: sessionId as string,
-      }),
-    [finishWorkoutSession, sessionId]
-  );
 
   return (
     <>
@@ -123,16 +105,20 @@ export default function WorkoutSessionScreen() {
                   {elapsedTime}
                 </Text>
                 <Button
+                  isLoading={isFinishing}
+                  label="Finish Workout"
                   onPress={handleFinishWorkout}
                   testID="finish-workout-button"
-                >
-                  <Text>Finish Workout</Text>
-                </Button>
+                />
               </VStack>
             )}
           </VStack>
         ) : null}
       </ScrollView>
+      <WorkoutSessionFinishSuggestion
+        isFinished={!!workoutSession?.finished_at}
+        sessionId={sessionId as string}
+      />
     </>
   );
 }
