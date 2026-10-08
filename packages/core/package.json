@@ -11,7 +11,8 @@
     "./formatters": "./src/formatters.ts",
     "./types": "./src/types.ts",
     "./utils": "./src/utils.ts",
-    "./workout-sessions": "./src/workout-sessions.ts"
+    "./workout-sessions": "./src/workout-sessions.ts",
+    "./finish-suggestion": "./src/finish-suggestion.ts"
   },
   "main": "./src/index.ts",
   "types": "./src/index.ts",

@@ -1,3 +1,4 @@
+export * from "./finish-suggestion";
 export * from "./formatters";
 export * from "./labels";
 export * from "./models";
