@@ -30,8 +30,21 @@ export interface FinishSuggestionControllerOptions {
    * decides whether the save completed the workout.
    */
   loadSession: (sessionId: string) => Promise<ReconcilableWorkoutSession>;
-  /** Called when `loadSession` fails; the save then never triggers. */
+  /**
+   * Called when `loadSession` fails; that save then does not trigger, unless
+   * another save arrived during the failed read.
+   */
   onError?: (error: unknown) => void;
+  /**
+   * Remembers the sessions already suggested. Defaults to memory; pass a
+   * persistent store to keep the once-per-session rule across app restarts.
+   */
+  suggestedSessionStore?: SuggestedSessionStore;
+}
+
+export interface SuggestedSessionStore {
+  add: (sessionId: string) => void;
+  has: (sessionId: string) => boolean;
 }
 
 /**
@@ -45,7 +58,8 @@ export interface FinishSuggestionControllerOptions {
  *   `useSyncExternalStore`) and show the suggestion while it equals the
  *   current session id.
  * - Call `dismiss(sessionId)` when the suggestion is closed, whichever action
- *   the user took.
+ *   the user took, and whenever the screen showing it goes away or the session
+ *   is finished: an undismissed suggestion stays pending.
  *
  * A session is suggested at most once: after it has been suggested, later
  * saves in that session (including sets of exercises added afterwards) never
@@ -91,9 +105,10 @@ const reconcile = (
 export function createFinishSuggestionController({
   loadSession,
   onError,
+  suggestedSessionStore,
 }: FinishSuggestionControllerOptions): FinishSuggestionController {
   const listeners = new Set<() => void>();
-  const suggestedSessions = new Set<string>();
+  const suggestedSessions = suggestedSessionStore ?? new Set<string>();
   const pendingChecks = new Map<string, PendingCheck>();
   let suggestedSessionId: string | null = null;
 
@@ -113,27 +128,24 @@ export function createFinishSuggestionController({
     sessionId: string,
     pending: PendingCheck
   ): Promise<void> => {
+    // Stop synchronously, so a save reported from now on starts a new check
+    // instead of joining one that is about to end.
     if (!pending.dirty || suggestedSessions.has(sessionId)) {
+      pendingChecks.delete(sessionId);
       return;
     }
     pending.dirty = false;
-    const session = reconcile(await loadSession(sessionId), pending.sets);
-    if (isWorkoutFullyTracked(session) && !suggestedSessions.has(sessionId)) {
-      suggestedSessions.add(sessionId);
-      setSuggestedSessionId(sessionId);
-      return;
+    try {
+      const session = reconcile(await loadSession(sessionId), pending.sets);
+      if (isWorkoutFullyTracked(session) && !suggestedSessions.has(sessionId)) {
+        suggestedSessions.add(sessionId);
+        setSuggestedSessionId(sessionId);
+      }
+    } catch (error) {
+      // A save that arrived during the failed read still gets its own check.
+      onError?.(error);
     }
     return check(sessionId, pending);
-  };
-
-  const runChecks = async (sessionId: string, pending: PendingCheck) => {
-    try {
-      await check(sessionId, pending);
-    } catch (error) {
-      onError?.(error);
-    } finally {
-      pendingChecks.delete(sessionId);
-    }
   };
 
   const reportSetTracked = ({
@@ -160,7 +172,7 @@ export function createFinishSuggestionController({
       sets: new Map([[set.id, set]]),
     };
     pendingChecks.set(sessionId, pending);
-    pending.promise = runChecks(sessionId, pending);
+    pending.promise = check(sessionId, pending);
     return pending.promise;
   };
 

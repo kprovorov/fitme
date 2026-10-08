@@ -208,6 +208,57 @@ describe("createFinishSuggestionController", () => {
     expect(controller.getSuggestedSessionId()).toBe(SESSION_ID);
   });
 
+  it("checks a save that lands just as the previous check ends", async () => {
+    const { controller, load } = setup(async () => session([[10], [null]]));
+
+    const firstSave = controller.reportSetTracked(tracked("s0-0"));
+    load.mockImplementation(async () => session([[10], [12]]));
+    // Let the first check read and decide to stop, but not settle.
+    await Promise.resolve();
+    await Promise.resolve();
+    const secondSave = controller.reportSetTracked(tracked("s1-0"));
+    await Promise.all([firstSave, secondSave]);
+
+    expect(load).toHaveBeenCalledTimes(2);
+    expect(controller.getSuggestedSessionId()).toBe(SESSION_ID);
+  });
+
+  it("re-checks a save that arrived while a failing read was in flight", async () => {
+    const first = deferred<ReconcilableWorkoutSession>();
+    const { controller, load, onError } = setup(() => first.promise);
+
+    const firstSave = controller.reportSetTracked(tracked("s0-0"));
+    const secondSave = controller.reportSetTracked(tracked("s1-0"));
+    load.mockImplementation(async () => session([[10], [12]]));
+    first.reject(new Error("network"));
+    await Promise.all([firstSave, secondSave]);
+
+    expect(onError).toHaveBeenCalledTimes(1);
+    expect(load).toHaveBeenCalledTimes(2);
+    expect(controller.getSuggestedSessionId()).toBe(SESSION_ID);
+  });
+
+  it("keeps suppression in the given store across controllers", async () => {
+    const store = new Set<string>();
+    const loadSession = async () => session([[10], [12]]);
+    const first = createFinishSuggestionController({
+      loadSession,
+      suggestedSessionStore: store,
+    });
+
+    await first.reportSetTracked(tracked("s1-0"));
+    expect(store.has(SESSION_ID)).toBe(true);
+
+    // e.g. after an app restart
+    const second = createFinishSuggestionController({
+      loadSession,
+      suggestedSessionStore: store,
+    });
+    await second.reportSetTracked(tracked("s1-0"));
+
+    expect(second.getSuggestedSessionId()).toBeNull();
+  });
+
   it("suggests only once per session, even after exercises are added", async () => {
     const { controller, listener, load } = setup(async () =>
       session([[10], [12]])

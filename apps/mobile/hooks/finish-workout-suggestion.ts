@@ -3,8 +3,12 @@ import {
   type SetTrackedEvent,
 } from "@fitme/core";
 import * as Sentry from "@sentry/react-native";
-import { useCallback, useSyncExternalStore } from "react";
+import { useCallback, useEffect, useSyncExternalStore } from "react";
 import { fetchWorkoutSession } from "~/hooks/queries/workout-sessions";
+import { storage } from "~/lib/mmkv";
+
+const suggestedKey = (sessionId: string) =>
+  `finish-suggestion.suggested.${sessionId}`;
 
 // One controller for the app, so the once-per-session suppression holds across
 // every screen of a workout session.
@@ -13,6 +17,11 @@ const controller = createFinishSuggestionController({
   // the save.
   loadSession: fetchWorkoutSession,
   onError: (error) => Sentry.captureException(error),
+  // Persisted, so a restart mid-session does not suggest the session again.
+  suggestedSessionStore: {
+    add: (sessionId) => storage.set(suggestedKey(sessionId), true),
+    has: (sessionId) => storage.getBoolean(suggestedKey(sessionId)) === true,
+  },
 });
 
 /**
@@ -29,7 +38,8 @@ export const reportWorkoutSetTracked = (event: SetTrackedEvent): void => {
 /**
  * Whether to suggest finishing `sessionId`. `dismiss` hides the suggestion for
  * good; call it however the suggestion is closed (finish, keep training, or
- * dismissal).
+ * dismissal). Unmounting the calling component dismisses it too, so a pending
+ * suggestion never reappears when a screen is reopened.
  */
 export function useFinishWorkoutSuggestion(sessionId: string): {
   dismiss: () => void;
@@ -40,6 +50,8 @@ export function useFinishWorkoutSuggestion(sessionId: string): {
     controller.getSuggestedSessionId
   );
   const dismiss = useCallback(() => controller.dismiss(sessionId), [sessionId]);
+
+  useEffect(() => dismiss, [dismiss]);
 
   return { dismiss, isSuggested: suggestedSessionId === sessionId };
 }
