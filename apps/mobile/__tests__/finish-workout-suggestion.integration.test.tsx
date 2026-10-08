@@ -18,6 +18,7 @@ import {
   it,
   jest,
 } from "@jest/globals";
+import { captureException } from "@sentry/react-native";
 import { QueryClient, QueryClientProvider } from "@tanstack/react-query";
 import {
   act,
@@ -305,6 +306,7 @@ const renderApp = async () => {
 };
 
 /** Waits until every request, query, mutation and suggestion check is done. */
+/** Waits until every request, query, mutation and suggestion check is done. */
 const settle = async () => {
   await waitFor(() => {
     expect(backend.inFlight).toBe(0);
@@ -323,6 +325,8 @@ interface EntryRoute {
   name: string;
   /** Path of a session's screen, as the app navigates to it. */
   sessionPath: (sessionId: string) => string;
+  /** The session screen's route. */
+  sessionRoute: RouteName;
 }
 
 const ENTRY_ROUTES: EntryRoute[] = [
@@ -330,10 +334,12 @@ const ENTRY_ROUTES: EntryRoute[] = [
     name: "plan session route",
     sessionPath: (sessionId) =>
       `/plans/plan-1/workouts/workout-of-${sessionId}/sessions/${sessionId}`,
+    sessionRoute: "plan-session",
   },
   {
     name: "/workout-sessions route",
     sessionPath: (sessionId) => `/workout-sessions/${sessionId}`,
+    sessionRoute: "history-session",
   },
 ];
 
@@ -355,7 +361,7 @@ afterEach(() => {
 
 describe.each(ENTRY_ROUTES)(
   "finish workout suggestion via the $name",
-  ({ sessionPath }) => {
+  ({ sessionPath, sessionRoute }) => {
     /** Opens the session's screen, as a fresh start of the app would. */
     const openSession = async (sessionId: string) => {
       await act(() => mockNavigator.set([toRoute(sessionPath(sessionId))]));
@@ -403,6 +409,19 @@ describe.each(ENTRY_ROUTES)(
       const pencils = focused().getAllByLabelText("pencil");
       await fireEvent.press(pencils[order - 1] as (typeof pencils)[number]);
       await trackSet(order, reps);
+    };
+
+    /** Adds the picker's exercise from the focused session screen. */
+    const addExercise = async () => {
+      await fireEvent.press(focused().getByText("Add Exercise"));
+      // Picking an exercise awaits its save and then closes the picker; keep
+      // that whole update inside `act`.
+      const add = focused().getByText("Add");
+      await act(async () => {
+        await fireEvent.press(add);
+      });
+      await settle();
+      expect(focused().queryByText("Add")).toBeNull();
     };
 
     const keepTraining = async () => {
@@ -477,6 +496,8 @@ describe.each(ENTRY_ROUTES)(
       await trackSet(1);
 
       expect(isSuggestionShown()).toBe(false);
+      // The check's own read failed, not the screens' refetch.
+      expect(captureException).toHaveBeenCalledTimes(1);
     });
 
     it("suggests whichever order the sets are tracked in", async () => {
@@ -599,9 +620,7 @@ describe.each(ENTRY_ROUTES)(
       await keepTraining();
       await back();
 
-      await fireEvent.press(focused().getByText("Add Exercise"));
-      await fireEvent.press(focused().getByText("Add"));
-      await settle();
+      await addExercise();
       await openExercise("Lunge");
       await fireEvent.press(focused().getByText("Add Set"));
       await trackSet(1);
@@ -619,10 +638,12 @@ describe.each(ENTRY_ROUTES)(
 
       await editSet(2, "12");
       await editSet(1, "0");
+      // A set tracked with zero reps is an edit too.
+      await editSet(1, "5");
 
-      expect(backend.count("workout_session_exercise_sets", "update")).toBe(2);
+      expect(backend.count("workout_session_exercise_sets", "update")).toBe(3);
       expect(backend.sets.map(({ reps_completed }) => reps_completed)).toEqual([
-        0, 12,
+        5, 12,
       ]);
       expect(isSuggestionShown()).toBe(false);
     });
@@ -636,7 +657,14 @@ describe.each(ENTRY_ROUTES)(
         id: "s1",
       });
 
-      await fireEvent.press(focused().getAllByLabelText("Delete")[1] as never);
+      const deleteButtons = focused().getAllByLabelText("Delete");
+      // Deleting awaits the save and then updates the screen; keep that whole
+      // update inside `act`.
+      await act(async () => {
+        await fireEvent.press(
+          deleteButtons[1] as (typeof deleteButtons)[number]
+        );
+      });
       await settle();
 
       expect(backend.exercises).toHaveLength(1);
@@ -672,6 +700,43 @@ describe.each(ENTRY_ROUTES)(
       expect(backend.count("finish_workout_session", "rpc")).toBe(1);
       expect(backend.session("s1")?.finished_at).not.toBeNull();
       expect(isSuggestionShown()).toBe(false);
+    });
+
+    it("suggests on the session screen when the last save lands after going back", async () => {
+      await startApp({
+        exercises: [{ name: "Squat", sets: [null] }],
+        id: "s1",
+      });
+      await openExercise("Squat");
+
+      // A slow save: the user goes back to the session before it lands.
+      const resume = backend.pause("workout_session_exercise_sets", "update");
+      await fireEvent.press(focused().getByTestId("log-set-button-1"));
+      await waitFor(() =>
+        expect(backend.count("workout_session_exercise_sets", "update")).toBe(1)
+      );
+      await act(() => mockNavigator.dismiss());
+      await act(() => resume());
+      await settle();
+
+      expect(mockNavigator.routes.map(({ name }) => name)).toEqual([
+        sessionRoute,
+      ]);
+      expect(
+        focused().getByTestId("finish-workout-suggestion-finish")
+      ).toBeTruthy();
+      expect(mockPresentations.count).toBe(1);
+
+      await fireEvent.press(
+        screen.getByTestId("finish-workout-suggestion-finish")
+      );
+      await waitFor(() =>
+        expect(mockNavigator.routes.map(({ name }) => name)).toEqual([
+          "summary",
+        ])
+      );
+      await settle();
+      expect(backend.session("s1")?.finished_at).not.toBeNull();
     });
 
     it("finishes only once on repeated taps of Finish", async () => {
@@ -729,9 +794,7 @@ describe.each(ENTRY_ROUTES)(
     it("never suggests for a session without exercises", async () => {
       await startApp({ exercises: [], id: "s1" });
 
-      await fireEvent.press(focused().getByText("Add Exercise"));
-      await fireEvent.press(focused().getByText("Add"));
-      await settle();
+      await addExercise();
 
       expect(backend.exercises).toHaveLength(1);
       expect(isSuggestionShown()).toBe(false);

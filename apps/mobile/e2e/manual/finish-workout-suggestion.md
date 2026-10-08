@@ -10,8 +10,9 @@ both workout session routes:
   e.g. `xcrun simctl openurl booted fitme://workout-sessions/<session id>`.
 
 On both routes, sets are tracked on the exercise screen
-(`.../sessions/:sessionId/exercises/:exerciseId`), and that is where the
-suggestion appears.
+(`.../sessions/:sessionId/exercises/:exerciseId`), which is usually where the
+suggestion appears. If the user goes back before the save lands, it appears
+on the route's own session screen instead.
 
 ## Automated coverage
 
@@ -25,13 +26,13 @@ primitives (Button, Dialog, DropdownMenu, Card).
 
 | Scenario | Test |
 | --- | --- |
-| Last tracked set triggers exactly once | suggests exactly once when the last untracked set is saved |
+| Last tracked set triggers exactly once | suggests exactly once when the last untracked set is saved; suggests on the session screen when the last save lands after going back |
 | Partial session never triggers | never suggests while the session is only partly tracked |
 | Save error never triggers | never suggests when saving the last set fails, and does once it succeeds; never suggests when the completion check cannot read the session |
 | Sets tracked in any order | suggests whichever order the sets are tracked in |
 | Keep Training / dismiss stops further prompts | keeps the session going and never suggests again after Keep Training / the close button / swiping the sheet away |
 | Adding and finishing another set does not prompt again | does not suggest again for a set added and tracked after the suggestion; … for an exercise added and tracked after the suggestion |
-| Edits and deletions do not trigger | never suggests on edits of tracked sets; never suggests when deleting the last untracked exercise completes the session |
+| Edits and deletions do not trigger | never suggests on edits of tracked sets (including a set tracked with 0 reps); never suggests when deleting the last untracked exercise completes the session |
 | Zero reps count as tracked | counts zero reps as tracked |
 | Finish opens Summary | finishes the workout and opens its Summary from the suggestion; finishes only once on repeated taps of Finish; keeps the session active and lets the user retry when finishing fails |
 | Sessions with no exercises or no sets | never suggests for a session without exercises; never suggests while an exercise has no sets |
@@ -39,6 +40,9 @@ primitives (Button, Dialog, DropdownMenu, Card).
 | Reopening the same session | never suggests when reopening an incomplete or fully tracked session; does not suggest again after reopening the suggested session |
 | Session already finished | never suggests for a session that is already finished |
 | Another session can prompt on its own | suggests separately for another workout session |
+
+The app has no way to delete a single set, only a whole exercise (from the
+session screen's menu). So deletion is covered through exercise deletion only.
 
 Lower layers have their own tests:
 `packages/core/src/__tests__/finish-suggestion.test.ts` (trigger rules, races,
@@ -104,9 +108,12 @@ with at least two exercises of two or more sets each.
 ### No suggestion
 
 - [ ] Edit an already tracked set (pencil, then checkmark) in a fully
-      tracked session: no sheet.
+      tracked session, including a set tracked with 0 reps: no sheet.
 - [ ] With one exercise fully tracked and another untracked, delete the
-      untracked exercise from the session screen: no sheet.
+      untracked exercise from the session screen: no sheet. (Single sets
+      can't be deleted.)
+- [ ] On a slow connection, track the last set and go back right away: the
+      sheet appears on the session screen, and Finish opens Summary.
 - [ ] Open a fully tracked session that was never suggested: no sheet on
       load.
 - [ ] Leave the session while the sheet is open (e.g. kill the app), then
