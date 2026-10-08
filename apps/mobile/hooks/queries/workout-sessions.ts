@@ -50,21 +50,26 @@ export interface GetWorkoutSessionVariables {
   sessionId: string;
 }
 
+export const fetchWorkoutSession = async (
+  sessionId: string
+): Promise<WorkoutSession> => {
+  const { data, error } = await supabase
+    .from("workout_sessions")
+    .select(SESSION_SELECT)
+    .eq("id", sessionId)
+    .single();
+  if (error) {
+    throw error;
+  }
+  return data as unknown as WorkoutSession;
+};
+
 export const useWorkoutSessionQuery = createQuery<
   WorkoutSession,
   GetWorkoutSessionVariables
 >({
-  fetcher: async ({ sessionId }: GetWorkoutSessionVariables) => {
-    const { data, error } = await supabase
-      .from("workout_sessions")
-      .select(SESSION_SELECT)
-      .eq("id", sessionId)
-      .single();
-    if (error) {
-      throw error;
-    }
-    return data as unknown as WorkoutSession;
-  },
+  fetcher: ({ sessionId }: GetWorkoutSessionVariables) =>
+    fetchWorkoutSession(sessionId),
   queryKey: ["workout-session"],
 });
 
