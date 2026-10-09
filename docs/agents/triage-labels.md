@@ -12,10 +12,12 @@ The skills speak in terms of five canonical triage roles. This file maps those r
 
 When a skill mentions a role (e.g. "apply the AFK-ready triage label"), use the corresponding entry from this table:
 
-- **Apply `needs-triage`**: `save_issue` with `state: "Triage"` and remove any state label.
-- **Apply `needs-info`**: add the `needs-info` label and leave the issue in `Triage`.
-- **Apply `ready-for-agent` / `ready-for-human`**: add the label, remove `needs-info` if present, and accept the issue out of Triage with `state: "Todo"` (or `"Backlog"` if it isn't scheduled yet).
-- **Apply `wontfix`**: add the label, then close with `state: "Canceled"`.
+An issue carries at most one state label. Every transition first removes all the other state labels (`needs-info`, `ready-for-agent`, `ready-for-human`, `wontfix`) in the same `save_issue` call, leaving type labels (`Bug`, `Feature`, …) untouched:
+
+- **Apply `needs-triage`**: remove every state label and set `state: "Triage"`.
+- **Apply `needs-info`**: add `needs-info` and set `state: "Triage"` (moving the issue back if it had been accepted).
+- **Apply `ready-for-agent` / `ready-for-human`**: add the label and accept the issue out of Triage with `state: "Todo"` (or `"Backlog"` if it isn't scheduled yet).
+- **Apply `wontfix`**: add the label and close with `state: "Canceled"`.
 
 "Unlabeled / never triaged" means an issue in `Triage` with none of the labels above.
 
