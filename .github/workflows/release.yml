@@ -45,6 +45,7 @@ jobs:
         run: |
           # Get the latest tag
           LATEST_TAG=$(git describe --tags --abbrev=0 2>/dev/null || echo "")
+          echo "previous_tag=${LATEST_TAG}" >> $GITHUB_OUTPUT
 
           if [ -z "$LATEST_TAG" ]; then
             COMMIT_RANGE="all commits"
@@ -185,11 +186,14 @@ jobs:
             --notes-file /tmp/changelog.md
 
       # Continuous Linear pipeline: records the shipped release with every
-      # issue referenced by commits since the previous Linear release.
+      # issue referenced by commits since the previous release tag. base_ref
+      # is explicit because a pipeline's first sync would otherwise scan only
+      # HEAD, which here is the auto-bump commit.
       - name: Create Linear release
         uses: linear/linear-release-action@v0
         with:
           access_key: ${{ secrets.LINEAR_ACCESS_KEY }}
           version: v${{ steps.bump-version.outputs.new_version }}
+          base_ref: ${{ steps.bump.outputs.previous_tag }}
           links: |
             GitHub release=${{ github.server_url }}/${{ github.repository }}/releases/tag/v${{ steps.bump-version.outputs.new_version }}
