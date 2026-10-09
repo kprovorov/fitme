@@ -62,8 +62,8 @@
         "@sentry/react-native/expo",
         {
           "url": "https://sentry.io/",
-          "project": "mobile",
-          "organization": "fitme"
+          "project": "fitme-mobile",
+          "organization": "provorovdev"
         }
       ],
       "expo-localization",
