@@ -9,7 +9,7 @@ Issues and specs for this repo live in Linear, team **Fitme** (key `FIT`, so iss
 - **List issues**: `list_issues` with `team: "Fitme"` and `label` / `state` / `parentId` filters.
 - **Make an issue a sub-issue of a parent**: `save_issue` with `parentId: "FIT-<parent>"`. A feature is a parent issue (often labelled `Idea`) whose body holds the agreed behavior; implementation work is its sub-issues.
 - **Comment on an issue**: `save_comment` with `issueId` and `body`.
-- **Apply / remove labels**: `save_issue` with `id` and `addLabels` / `removeLabels`. Avoid `labels`, which replaces the whole set.
+- **Apply / remove labels**: `save_issue` with `id` and `addLabels` / `removeLabels`. If your Linear tool lacks those, read the issue's current labels and pass the complete updated set as `labels`, which replaces the whole set; never send a partial `labels` array.
 - **Close**: comment first, then `save_issue` with `state: "Done"` (or `"Canceled"` for wontfix, `"Duplicate"` with `duplicateOf` for duplicates).
 
 Workflow states: `Triage` → `Backlog` → `Todo` → `In Progress` → `In Review` → `Done` (plus `Canceled`, `Duplicate`). `Triage` is Linear's triage inbox and stands for the `needs-triage` role; see `triage-labels.md`.
