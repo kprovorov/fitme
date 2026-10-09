@@ -183,3 +183,13 @@ jobs:
           gh release create "v$NEW_VERSION" \
             --title "v$NEW_VERSION" \
             --notes-file /tmp/changelog.md
+
+      # Continuous Linear pipeline: records the shipped release with every
+      # issue referenced by commits since the previous Linear release.
+      - name: Create Linear release
+        uses: linear/linear-release-action@v0
+        with:
+          access_key: ${{ secrets.LINEAR_ACCESS_KEY }}
+          version: v${{ steps.bump-version.outputs.new_version }}
+          links: |
+            GitHub release=${{ github.server_url }}/${{ github.repository }}/releases/tag/v${{ steps.bump-version.outputs.new_version }}
