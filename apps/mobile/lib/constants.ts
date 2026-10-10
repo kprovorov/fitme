@@ -19,6 +19,6 @@ export const NAV_THEME = {
   },
 };
 
-// iOS 27 resolves the `automatic` top scroll edge effect to the hard style
+// iOS 27 resolves the `automatic` scroll edge effect to the hard style
 // (dimmed band + dividing line); pin it to the progressive blur we had on 26.
-export const SCROLL_EDGE_EFFECTS = { top: "soft" } as const;
+export const SCROLL_EDGE_EFFECTS = { bottom: "soft", top: "soft" } as const;
