@@ -1,6 +1,7 @@
 import { isLiquidGlassAvailable } from "expo-glass-effect";
 import { Stack } from "expo-router";
 import { useCSSVariable } from "uniwind";
+import { SCROLL_EDGE_EFFECTS } from "~/lib/constants";
 
 const GLASS = isLiquidGlassAvailable();
 const IS_ANDROID = process.env.EXPO_OS === "android";
@@ -21,6 +22,7 @@ export default function StackLayout() {
           : undefined,
         headerTintColor: appForeground,
         headerTransparent: GLASS,
+        scrollEdgeEffects: SCROLL_EDGE_EFFECTS,
       }}
     >
       <Stack.Screen

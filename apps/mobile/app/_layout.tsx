@@ -19,6 +19,7 @@ import "react-native-reanimated";
 import Providers from "~/components/providers";
 import "../global.css";
 import { Stack } from "expo-router";
+import { SCROLL_EDGE_EFFECTS } from "~/lib/constants";
 
 const IS_E2E = process.env.EXPO_PUBLIC_E2E_ENABLED === "true";
 
@@ -106,6 +107,7 @@ export default function RootLayout() {
       <Stack
         screenOptions={{
           headerShown: false,
+          scrollEdgeEffects: SCROLL_EDGE_EFFECTS,
         }}
       >
         <Stack.Screen name="(tabs)" options={{ title: "Home" }} />
