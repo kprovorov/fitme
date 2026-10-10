@@ -1,5 +1,6 @@
 import { PortalHost } from "@rn-primitives/portal";
 import { Stack } from "expo-router";
+import { SCROLL_EDGE_EFFECTS } from "~/lib/constants";
 
 export default function Layout() {
   return (
@@ -13,6 +14,7 @@ export default function Layout() {
           },
           // headerShown: false,
           headerTransparent: true,
+          scrollEdgeEffects: SCROLL_EDGE_EFFECTS,
         }}
       />
       <PortalHost />
