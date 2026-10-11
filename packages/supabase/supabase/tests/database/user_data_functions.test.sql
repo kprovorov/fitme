@@ -4,7 +4,7 @@
 -- Run with `pnpm db test:db` (supabase test db).
 begin;
 
-select plan(42);
+select plan(46);
 
 -- ------------------------------------------------------------
 -- Fixtures (as postgres, bypassing RLS)
@@ -212,6 +212,32 @@ select throws_ok(
   'a signed-in User can''t read the retired ids'
 );
 
+-- Writes that bypass RLS are stopped too
+set local role service_role;
+set local request.jwt.claims = '{"role":"service_role"}';
+
+select throws_ok(
+  $$select public.store_plan(
+      '{"name": "Ghost", "goal": "strength", "place": "gym", "frequency": 3,
+        "experience_level": "intermediate", "workout_duration": 60, "workouts": []}'::jsonb,
+      'user_2DeleteMe00000000000000'
+    )$$,
+  '42501', 'User id user_2DeleteMe00000000000000 is retired',
+  'a SECURITY DEFINER RPC can''t write under a deleted User id'
+);
+
+select throws_ok(
+  $$insert into public.conversations (user_id) values ('user_2DeleteMe00000000000000')$$,
+  '42501', 'User id user_2DeleteMe00000000000000 is retired',
+  'service_role can''t write under a deleted User id'
+);
+
+select throws_ok(
+  $$select public.rekey_user('user_2DeleteMe00000000000000', 'user_2Resurrected00000000000')$$,
+  '23505', 'User user_2DeleteMe00000000000000 is already retired',
+  'a deleted User id can''t be rekeyed'
+);
+
 reset role;
 
 -- ------------------------------------------------------------
@@ -262,6 +288,12 @@ set local role service_role;
 select lives_ok(
   $$select public.rekey_user('7a1b2c3d-0000-4000-8000-000000000003', 'user_2Rekeyed0000000000000000')$$,
   'rerunning rekey_user is harmless'
+);
+
+select throws_ok(
+  $$select public.rekey_user('7a1b2c3d-0000-4000-8000-000000000003', 'user_2SomeoneElse00000000000')$$,
+  '23505', 'User 7a1b2c3d-0000-4000-8000-000000000003 is already retired',
+  'a retry can''t point a rekeyed id at a different destination'
 );
 
 select throws_ok(

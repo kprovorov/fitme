@@ -49,6 +49,29 @@ ALTER TABLE private.retired_user_ids ENABLE ROW LEVEL SECURITY;
 REVOKE ALL ON SCHEMA private FROM PUBLIC, anon, authenticated;
 REVOKE ALL ON TABLE private.retired_user_ids FROM PUBLIC, anon, authenticated;
 
+-- Backstop for writes that don't go through RLS (SECURITY DEFINER RPCs,
+-- service_role): no row may be written under a retired id. VOLATILE, so the
+-- lookup sees ids retired by a deletion or rekey that committed while the
+-- write waited for its table lock.
+CREATE FUNCTION private.reject_retired_user_id()
+RETURNS trigger
+LANGUAGE plpgsql
+SECURITY DEFINER
+SET search_path = ''
+AS $$
+BEGIN
+  IF EXISTS (
+    SELECT 1 FROM private.retired_user_ids r
+    WHERE r.user_id = NEW.user_id
+  ) THEN
+    RAISE EXCEPTION 'User id % is retired', NEW.user_id
+      USING ERRCODE = '42501';
+  END IF;
+
+  RETURN NEW;
+END;
+$$;
+
 -- SECURITY DEFINER so it can read the retired ids the caller can't see
 CREATE FUNCTION public.current_user_id()
 RETURNS text
@@ -97,6 +120,22 @@ ALTER TABLE public.conversations ALTER COLUMN user_id TYPE text USING user_id::t
 
 -- conversations had no index on user_id; RLS and delete_user_data filter on it
 CREATE INDEX conversations_user_id_idx ON public.conversations(user_id);
+
+CREATE TRIGGER reject_retired_user_id
+  BEFORE INSERT OR UPDATE OF user_id ON public.profiles
+  FOR EACH ROW EXECUTE FUNCTION private.reject_retired_user_id();
+
+CREATE TRIGGER reject_retired_user_id
+  BEFORE INSERT OR UPDATE OF user_id ON public.plans
+  FOR EACH ROW EXECUTE FUNCTION private.reject_retired_user_id();
+
+CREATE TRIGGER reject_retired_user_id
+  BEFORE INSERT OR UPDATE OF user_id ON public.workout_sessions
+  FOR EACH ROW EXECUTE FUNCTION private.reject_retired_user_id();
+
+CREATE TRIGGER reject_retired_user_id
+  BEFORE INSERT OR UPDATE OF user_id ON public.conversations
+  FOR EACH ROW EXECUTE FUNCTION private.reject_retired_user_id();
 
 -- ------------------------------------------------------------
 -- 4. Policies
@@ -827,7 +866,8 @@ $$;
 --
 -- The four tables are locked against writes first, so requests already in
 -- flight finish before the delete and later ones wait for the commit; by then
--- the id is retired and current_user_id() rejects them.
+-- the id is retired: current_user_id() rejects them, and the
+-- reject_retired_user_id triggers stop RPCs that read the id before the wait.
 CREATE FUNCTION public.delete_user_data(user_id text)
 RETURNS void
 LANGUAGE plpgsql
@@ -908,6 +948,17 @@ BEGIN
   LOCK TABLE public.profiles, public.plans, public.workout_sessions, public.conversations
     IN SHARE ROW EXCLUSIVE MODE;
 
+  -- A retired old_id may only be rekeyed again to the same destination (an
+  -- idempotent retry); anything else would orphan the rows it already moved
+  IF EXISTS (
+    SELECT 1 FROM private.retired_user_ids r
+    WHERE r.user_id = rekey_user.old_id
+      AND r.rekeyed_to IS DISTINCT FROM rekey_user.new_id
+  ) THEN
+    RAISE EXCEPTION 'User % is already retired', rekey_user.old_id
+      USING ERRCODE = '23505';
+  END IF;
+
   -- Never merge two Users: refuse when the new id already owns rows and
   -- there is still something to move (a rerun after success moves nothing)
   IF (
@@ -925,12 +976,14 @@ BEGIN
       USING ERRCODE = '23505';
   END IF;
 
-  INSERT INTO private.retired_user_ids (user_id, rekeyed_to)
-  VALUES (rekey_user.old_id, rekey_user.new_id)
-  ON CONFLICT (user_id) DO UPDATE SET rekeyed_to = excluded.rekeyed_to;
-
+  -- Un-retire new_id before the rows move onto it (the triggers reject
+  -- writes under a retired id)
   DELETE FROM private.retired_user_ids r
   WHERE r.user_id = rekey_user.new_id;
+
+  INSERT INTO private.retired_user_ids (user_id, rekeyed_to)
+  VALUES (rekey_user.old_id, rekey_user.new_id)
+  ON CONFLICT (user_id) DO NOTHING;
 
   UPDATE public.profiles pr
   SET user_id = rekey_user.new_id
