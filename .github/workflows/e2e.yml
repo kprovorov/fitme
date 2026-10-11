@@ -90,6 +90,7 @@ jobs:
           EXPO_PUBLIC_E2E_ENABLED: "true"
           EXPO_PUBLIC_SUPABASE_URL: ${{ steps.branch-details.outputs.api_url }}
           EXPO_PUBLIC_SUPABASE_ANON_KEY: ${{ steps.branch-details.outputs.anon_key }}
+          EXPO_PUBLIC_CLERK_PUBLISHABLE_KEY: ${{ vars.CLERK_DEV_PUBLISHABLE_KEY }}
           EXPO_PUBLIC_REVENUECAT_IOS_API_KEY: "placeholder"
           EXPO_PUBLIC_SENTRY_DSN: ""
 
@@ -114,6 +115,7 @@ jobs:
           EXPO_PUBLIC_E2E_ENABLED: "true"
           EXPO_PUBLIC_SUPABASE_URL: ${{ steps.branch-details.outputs.api_url }}
           EXPO_PUBLIC_SUPABASE_ANON_KEY: ${{ steps.branch-details.outputs.anon_key }}
+          EXPO_PUBLIC_CLERK_PUBLISHABLE_KEY: ${{ vars.CLERK_DEV_PUBLISHABLE_KEY }}
           EXPO_PUBLIC_REVENUECAT_IOS_API_KEY: "placeholder"
           EXPO_PUBLIC_SENTRY_DSN: ""
 

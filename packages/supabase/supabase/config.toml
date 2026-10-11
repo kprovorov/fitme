@@ -338,10 +338,13 @@ enabled = false
 # user_pool_region = "us-east-1"
 
 # Use Clerk as a third-party provider alongside Supabase Auth.
+# Local and preview-branch databases trust the Clerk development instance;
+# the production project trusts the production domain (clerk.fitmeproject.com),
+# configured in the dashboard. Session tokens carry `role: authenticated` from
+# Clerk's Supabase integration.
 [auth.third_party.clerk]
-enabled = false
-# Obtain from https://clerk.com/setup/supabase
-# domain = "example.clerk.accounts.dev"
+enabled = true
+domain = "fitting-rattler-3649.clerk.accounts.dev"
 
 # OAuth server configuration
 [auth.oauth_server]
