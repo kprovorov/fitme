@@ -276,11 +276,17 @@ BEGIN
   SET is_active = false
   WHERE user_id = public.current_user_id();
 
-  -- Activate the target plan
+  -- Activate the target plan. Ownership is checked again: if the caller's id
+  -- was retired while this call waited for the plans lock, nothing matches
   UPDATE public.plans
   SET is_active = true
   WHERE id = plan_id
+    AND user_id = public.current_user_id()
   RETURNING * INTO result;
+
+  IF result.id IS NULL THEN
+    RAISE EXCEPTION 'Not authorized';
+  END IF;
 
   RETURN result;
 END;
@@ -948,8 +954,18 @@ BEGIN
   LOCK TABLE public.profiles, public.plans, public.workout_sessions, public.conversations
     IN SHARE ROW EXCLUSIVE MODE;
 
-  -- A retired old_id may only be rekeyed again to the same destination (an
-  -- idempotent retry); anything else would orphan the rows it already moved
+  -- Retrying a rekey that already happened is a no-op. It must not touch
+  -- new_id's own retirement, which a later rekey of new_id may have set
+  IF EXISTS (
+    SELECT 1 FROM private.retired_user_ids r
+    WHERE r.user_id = rekey_user.old_id
+      AND r.rekeyed_to = rekey_user.new_id
+  ) THEN
+    RETURN;
+  END IF;
+
+  -- Any other retired old_id (deleted, or rekeyed elsewhere) can't be
+  -- rekeyed: that would orphan the rows it already moved
   IF EXISTS (
     SELECT 1 FROM private.retired_user_ids r
     WHERE r.user_id = rekey_user.old_id

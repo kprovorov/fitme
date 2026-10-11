@@ -4,7 +4,7 @@
 -- Run with `pnpm db test:db` (supabase test db).
 begin;
 
-select plan(46);
+select plan(50);
 
 -- ------------------------------------------------------------
 -- Fixtures (as postgres, bypassing RLS)
@@ -390,6 +390,36 @@ select is(
 );
 
 select is(pg_temp.owned_rows('user_2Bystander000000000000'), 9, 'the other User keeps their rows (minus the Profile removed above)');
+
+-- A -> B -> C: retrying A -> B leaves B -> C alone
+insert into public.profiles (user_id, gender, age, weight, height) values
+  ('legacy-chain-a', 'female', 25, 60, 165);
+
+set local role service_role;
+
+select lives_ok(
+  $$select public.rekey_user('legacy-chain-a', 'user_2ChainB0000000000000000');
+    select public.rekey_user('user_2ChainB0000000000000000', 'user_2ChainC0000000000000000');
+    select public.rekey_user('legacy-chain-a', 'user_2ChainB0000000000000000')$$,
+  'rekeying A -> B, B -> C, then retrying A -> B succeeds'
+);
+
+set local role authenticated;
+set local request.jwt.claims = '{"sub":"user_2ChainB0000000000000000","role":"authenticated"}';
+
+select is(public.current_user_id(), null, 'the retry left B retired');
+
+set local role service_role;
+set local request.jwt.claims = '{"role":"service_role"}';
+
+select lives_ok(
+  $$select public.delete_user_data('legacy-chain-a')$$,
+  'deleting A after the chain succeeds'
+);
+
+reset role;
+
+select is(pg_temp.owned_rows('user_2ChainC0000000000000000'), 0, 'deleting A follows A -> B -> C');
 
 select * from finish();
 
