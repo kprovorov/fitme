@@ -66,6 +66,34 @@ jobs:
         env:
           SUPABASE_ACCESS_TOKEN: ${{ secrets.SUPABASE_ACCESS_TOKEN }}
 
+      # A CLI-created branch clones production's auth config, which trusts only
+      # the production Clerk instance. Add the development instance (the
+      # domain in config.toml's [auth.third_party.clerk]) so the E2E build's
+      # development session tokens are accepted.
+      - name: Trust Clerk development instance on branch
+        run: |
+          curl --fail-with-body -sS -X POST \
+            "https://api.supabase.com/v1/projects/${{ steps.branch-status.outputs.branch_project_ref }}/config/auth/third-party-auth" \
+            -H "Authorization: Bearer $SUPABASE_ACCESS_TOKEN" \
+            -H "Content-Type: application/json" \
+            -d '{"oidc_issuer_url":"https://fitting-rattler-3649.clerk.accounts.dev"}'
+        env:
+          SUPABASE_ACCESS_TOKEN: ${{ secrets.SUPABASE_ACCESS_TOKEN }}
+
+      # Skipped with a warning when the development instance's secret key is
+      # not set.
+      - name: Check Clerk third-party trust
+        env:
+          CLERK_SECRET_KEY: ${{ secrets.CLERK_DEV_SECRET_KEY }}
+          SUPABASE_URL: ${{ steps.branch-details.outputs.api_url }}
+          SUPABASE_ANON_KEY: ${{ steps.branch-details.outputs.anon_key }}
+        run: |
+          if [ -z "$CLERK_SECRET_KEY" ]; then
+            echo "::warning::CLERK_DEV_SECRET_KEY is not set; skipping the Clerk trust check"
+            exit 0
+          fi
+          pnpm --filter @fitme/supabase clerk:check
+
       - name: Deploy edge functions to branch
         working-directory: packages/supabase
         run: |
@@ -90,6 +118,7 @@ jobs:
           EXPO_PUBLIC_E2E_ENABLED: "true"
           EXPO_PUBLIC_SUPABASE_URL: ${{ steps.branch-details.outputs.api_url }}
           EXPO_PUBLIC_SUPABASE_ANON_KEY: ${{ steps.branch-details.outputs.anon_key }}
+          EXPO_PUBLIC_CLERK_PUBLISHABLE_KEY: ${{ vars.CLERK_DEV_PUBLISHABLE_KEY }}
           EXPO_PUBLIC_REVENUECAT_IOS_API_KEY: "placeholder"
           EXPO_PUBLIC_SENTRY_DSN: ""
 
@@ -114,6 +143,7 @@ jobs:
           EXPO_PUBLIC_E2E_ENABLED: "true"
           EXPO_PUBLIC_SUPABASE_URL: ${{ steps.branch-details.outputs.api_url }}
           EXPO_PUBLIC_SUPABASE_ANON_KEY: ${{ steps.branch-details.outputs.anon_key }}
+          EXPO_PUBLIC_CLERK_PUBLISHABLE_KEY: ${{ vars.CLERK_DEV_PUBLISHABLE_KEY }}
           EXPO_PUBLIC_REVENUECAT_IOS_API_KEY: "placeholder"
           EXPO_PUBLIC_SENTRY_DSN: ""
 

@@ -11,6 +11,7 @@
   "main": "./src/index.ts",
   "types": "./src/index.ts",
   "scripts": {
+    "clerk:check": "tsx scripts/check-clerk-trust.ts",
     "exercises:sync": "tsx supabase/sync.ts",
     "functions:serve": "supabase functions serve",
     "migrate": "supabase migration up",

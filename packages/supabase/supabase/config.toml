@@ -338,10 +338,14 @@ enabled = false
 # user_pool_region = "us-east-1"
 
 # Use Clerk as a third-party provider alongside Supabase Auth.
+# Local databases trust the Clerk development instance. The production project
+# trusts the production instance (clerk.fitmeproject.com), configured in the
+# dashboard; no [remotes] block, so this local config is never deployed to it.
+# The E2E workflow adds the development instance to its preview branch.
+# Session tokens carry `role: authenticated` from Clerk's Supabase integration.
 [auth.third_party.clerk]
-enabled = false
-# Obtain from https://clerk.com/setup/supabase
-# domain = "example.clerk.accounts.dev"
+enabled = true
+domain = "fitting-rattler-3649.clerk.accounts.dev"
 
 # OAuth server configuration
 [auth.oauth_server]
