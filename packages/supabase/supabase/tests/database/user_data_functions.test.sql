@@ -4,7 +4,7 @@
 -- Run with `pnpm db test:db` (supabase test db).
 begin;
 
-select plan(28);
+select plan(29);
 
 -- ------------------------------------------------------------
 -- Fixtures (as postgres, bypassing RLS)
@@ -214,8 +214,21 @@ select lives_ok(
 
 select throws_ok(
   $$select public.rekey_user('user_2Rekeyed0000000000000000', 'user_2Bystander000000000000')$$,
-  '23505', null,
-  'rekeying onto a User who already has a Profile fails'
+  '23505', 'User user_2Bystander000000000000 already owns data',
+  'rekeying onto a User who already owns data fails'
+);
+
+reset role;
+
+-- Even when the new id owns no Profile, only a Plan
+delete from public.profiles where user_id = 'user_2Bystander000000000000';
+
+set local role service_role;
+
+select throws_ok(
+  $$select public.rekey_user('user_2Rekeyed0000000000000000', 'user_2Bystander000000000000')$$,
+  '23505', 'User user_2Bystander000000000000 already owns data',
+  'rekeying onto a User who owns Plans but no Profile fails'
 );
 
 reset role;

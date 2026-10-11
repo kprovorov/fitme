@@ -823,8 +823,9 @@ $$;
 -- ------------------------------------------------------------
 -- Moves every row of one User from old_id to new_id. A function call is a
 -- single transaction, so either every table moves or none does. Other Users
--- are untouched. Rerunning after a successful call is a no-op (no rows are
--- left under old_id).
+-- are untouched, and it refuses to merge into a new_id that already owns
+-- rows. Rerunning after a successful call is a no-op (no rows are left under
+-- old_id).
 CREATE FUNCTION public.rekey_user(old_id text, new_id text)
 RETURNS void
 LANGUAGE plpgsql
@@ -840,6 +841,23 @@ BEGIN
 
   IF rekey_user.old_id = rekey_user.new_id THEN
     RETURN;
+  END IF;
+
+  -- Never merge two Users: refuse when the new id already owns rows and
+  -- there is still something to move (a rerun after success moves nothing)
+  IF (
+    EXISTS (SELECT 1 FROM public.profiles WHERE user_id = rekey_user.old_id)
+    OR EXISTS (SELECT 1 FROM public.plans WHERE user_id = rekey_user.old_id)
+    OR EXISTS (SELECT 1 FROM public.workout_sessions WHERE user_id = rekey_user.old_id)
+    OR EXISTS (SELECT 1 FROM public.conversations WHERE user_id = rekey_user.old_id)
+  ) AND (
+    EXISTS (SELECT 1 FROM public.profiles WHERE user_id = rekey_user.new_id)
+    OR EXISTS (SELECT 1 FROM public.plans WHERE user_id = rekey_user.new_id)
+    OR EXISTS (SELECT 1 FROM public.workout_sessions WHERE user_id = rekey_user.new_id)
+    OR EXISTS (SELECT 1 FROM public.conversations WHERE user_id = rekey_user.new_id)
+  ) THEN
+    RAISE EXCEPTION 'User % already owns data', rekey_user.new_id
+      USING ERRCODE = '23505';
   END IF;
 
   UPDATE public.profiles pr
