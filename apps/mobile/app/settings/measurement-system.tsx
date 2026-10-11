@@ -10,7 +10,7 @@ import { useCallback, useState } from "react";
 import { View } from "react-native";
 import { AlertDialog } from "~/components/ui/alert-dialog";
 import { RadioGroup } from "~/components/ui/radio-group";
-import { useCurrentUserQuery } from "~/hooks/queries/auth";
+import { useProfileQuery } from "~/hooks/queries/profiles";
 import { useUpdateMeasurementSystemMutation } from "~/hooks/queries/settings";
 
 const MEASUREMENT_SYSTEM_OPTIONS = measurementSystems.map((system) => ({
@@ -21,10 +21,10 @@ const MEASUREMENT_SYSTEM_OPTIONS = measurementSystems.map((system) => ({
 export default function MeasurementSystemScreen() {
   const queryClient = useQueryClient();
 
-  const { data: user } = useCurrentUserQuery();
+  const { data: profile } = useProfileQuery();
 
   const currentSystem: MeasurementSystem =
-    user?.profile?.measurement_system || "metric";
+    profile?.measurement_system || "metric";
 
   /** The option awaiting confirmation, or `null` when nothing is pending. */
   const [pendingSystem, setPendingSystem] = useState<MeasurementSystem | null>(
@@ -34,7 +34,7 @@ export default function MeasurementSystemScreen() {
   const { mutate: updateMeasurementSystem } =
     useUpdateMeasurementSystemMutation({
       onSuccess: () => {
-        queryClient.invalidateQueries({ queryKey: ["user"] });
+        queryClient.invalidateQueries({ queryKey: useProfileQuery.getKey() });
       },
     });
 

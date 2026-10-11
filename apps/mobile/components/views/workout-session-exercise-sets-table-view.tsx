@@ -1,7 +1,7 @@
 import type { WorkoutSessionExerciseSet } from "@fitme/core";
 import { getWeightLabel } from "@fitme/core";
 import { useState } from "react";
-import { useCurrentUserQuery } from "~/hooks/queries/auth";
+import { useProfileQuery } from "~/hooks/queries/profiles";
 import { Button } from "../ui/button";
 import { HStack } from "../ui/hstack";
 import { Separator } from "../ui/separator";
@@ -27,7 +27,7 @@ export default function WorkoutSessionExerciseSetsTableView({
   readOnly = false,
   sessionId,
 }: WorkoutSessionExerciseSetsTableViewProps) {
-  const { data: user } = useCurrentUserQuery();
+  const { data: profile } = useProfileQuery();
   const [localSets, setLocalSets] = useState<LocalSet[]>([]);
 
   const hasWeight = workoutSessionExerciseSets.some(
@@ -56,7 +56,7 @@ export default function WorkoutSessionExerciseSetsTableView({
   };
 
   return (
-    user && (
+    profile !== undefined && (
       <VStack className="items-stretch gap-0">
         <HStack className="justify-start py-2 pr-12">
           <Text className="w-12 text-center font-bold text-primary text-subhead uppercase">
@@ -64,7 +64,7 @@ export default function WorkoutSessionExerciseSetsTableView({
           </Text>
           {hasWeight && (
             <Text className="flex-1 text-center font-bold text-primary text-subhead uppercase">
-              {getWeightLabel(user.profile?.measurement_system ?? "metric")}
+              {getWeightLabel(profile?.measurement_system ?? "metric")}
             </Text>
           )}
           <Text className="flex-1 text-center font-bold text-primary text-subhead uppercase">

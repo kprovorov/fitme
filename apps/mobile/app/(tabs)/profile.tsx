@@ -21,6 +21,9 @@ export default function ProfileScreen() {
         queryKey: ["user"],
       }),
       queryClient.refetchQueries({
+        queryKey: ["profile"],
+      }),
+      queryClient.refetchQueries({
         queryKey: ["rc-is-pro"],
       }),
       queryClient.refetchQueries({

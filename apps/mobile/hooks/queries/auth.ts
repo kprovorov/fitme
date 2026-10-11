@@ -29,25 +29,12 @@ export const useCurrentUserQuery = createQuery<User>({
       throw userError;
     }
 
-    const { data: profile, error: profileError } = await supabase
-      .from("profiles")
-      .select("*")
-      .eq("user_id", session.user.id)
-      .order("created_at", { ascending: false })
-      .limit(1)
-      .maybeSingle();
-
-    if (profileError) {
-      throw profileError;
-    }
-
     const user: User = {
       email: session.user.email ?? "",
       id: session.user.id,
       name:
         ((authUser?.user_metadata?.name ??
           authUser?.user_metadata?.full_name) as string | undefined) ?? "",
-      profile: profile ?? undefined,
     };
 
     Sentry.setUser({

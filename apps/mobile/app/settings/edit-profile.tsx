@@ -15,6 +15,7 @@ import { Spinner } from "~/components/ui/spinner";
 import { VStack } from "~/components/ui/vstack";
 import { useUpdateProfileMutation } from "~/hooks/mutations/profiles";
 import { useCurrentUserQuery } from "~/hooks/queries/auth";
+import { useProfileQuery } from "~/hooks/queries/profiles";
 
 export default function EditProfileScreen() {
   const queryClient = useQueryClient();
@@ -25,6 +26,15 @@ export default function EditProfileScreen() {
     isError: isUserError,
     refetch: refetchUser,
   } = useCurrentUserQuery();
+  const {
+    data: profile,
+    isPending: isProfilePending,
+    isError: isProfileError,
+    refetch: refetchProfile,
+  } = useProfileQuery();
+
+  const isPendingLoad = isUserPending || isProfilePending;
+  const isLoadError = isUserError || isProfileError;
 
   // Stored values are in the profile's system; the device locale only matters
   // when there is no profile yet.
@@ -32,7 +42,7 @@ export default function EditProfileScreen() {
   const deviceMeasurementSystem = (locales[0]?.measurementSystem ??
     "metric") as MeasurementSystem;
   const measurementSystem: MeasurementSystem =
-    user?.profile?.measurement_system ?? deviceMeasurementSystem;
+    profile?.measurement_system ?? deviceMeasurementSystem;
 
   const {
     mutate: updateProfile,
@@ -42,20 +52,31 @@ export default function EditProfileScreen() {
     onError: (e) => {
       Sentry.captureException(e);
     },
-    // Also after a failure: the profile row may be saved even if the name is not
-    onSettled: () => queryClient.invalidateQueries({ queryKey: ["user"] }),
+    // Also after a failure: the Profile row may be saved even if the name is not
+    onSettled: () =>
+      Promise.all([
+        queryClient.invalidateQueries({ queryKey: useProfileQuery.getKey() }),
+        queryClient.invalidateQueries({
+          queryKey: useCurrentUserQuery.getKey(),
+        }),
+      ]),
     onSuccess: () => {
       router.back();
     },
   });
 
   const handleRetry = useCallback(() => {
-    refetchUser();
-  }, [refetchUser]);
+    if (isUserError) {
+      refetchUser();
+    }
+    if (isProfileError) {
+      refetchProfile();
+    }
+  }, [isProfileError, isUserError, refetchProfile, refetchUser]);
 
   const handleSubmit = useCallback(
     ({ age, gender, height, name, weight }: ProfileFormValues) => {
-      // The form is only rendered once the user has loaded.
+      // The form is only rendered once the User and Profile have loaded.
       if (!user) {
         return;
       }
@@ -85,12 +106,12 @@ export default function EditProfileScreen() {
           title: "Edit Profile",
         }}
       />
-      {isUserPending ? (
+      {isPendingLoad && !isLoadError ? (
         <View className="flex-1 items-center justify-center">
           <Spinner className="text-foreground" size={32} />
         </View>
       ) : null}
-      {isUserError ? (
+      {isLoadError ? (
         <VStack className="flex-1 items-stretch justify-center gap-4 p-6">
           <ErrorMessage className="text-center">
             Couldn't load your profile. Please check your connection and try
@@ -99,14 +120,14 @@ export default function EditProfileScreen() {
           <Button label="Try Again" onPress={handleRetry} variant="secondary" />
         </VStack>
       ) : null}
-      {!!user && (
+      {!!user && profile !== undefined && (
         <ProfileForm
           defaultValues={{
-            age: user.profile?.age ?? undefined,
-            gender: user.profile?.gender,
-            height: user.profile?.height ?? undefined,
+            age: profile?.age ?? undefined,
+            gender: profile?.gender,
+            height: profile?.height ?? undefined,
             name: user.name,
-            weight: user.profile?.weight ?? undefined,
+            weight: profile?.weight ?? undefined,
           }}
           footer={
             !!error && <ErrorMessage>{PROFILE_SAVE_ERROR_MESSAGE}</ErrorMessage>

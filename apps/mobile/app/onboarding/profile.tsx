@@ -1,4 +1,4 @@
-import type { MeasurementSystem, User } from "@fitme/core";
+import type { MeasurementSystem } from "@fitme/core";
 import * as Sentry from "@sentry/react-native";
 import { useQueryClient } from "@tanstack/react-query";
 import { useLocales } from "expo-localization";
@@ -14,6 +14,7 @@ import { H2 } from "~/components/ui/typography";
 import { VStack } from "~/components/ui/vstack";
 import { useStoreProfileMutation } from "~/hooks/mutations/profiles";
 import { useCurrentUserQuery } from "~/hooks/queries/auth";
+import { useProfileQuery } from "~/hooks/queries/profiles";
 import { IS_E2E } from "~/lib/constants";
 import { storage } from "~/lib/mmkv";
 import { segmentClient } from "~/lib/segment";
@@ -22,12 +23,13 @@ export default function ProfileScreen() {
   const queryClient = useQueryClient();
 
   const { data: user } = useCurrentUserQuery();
+  const { data: profile, isPending: isProfilePending } = useProfileQuery();
 
   const locales = useLocales();
   const deviceMeasurementSystem = (locales[0]?.measurementSystem ??
     "metric") as MeasurementSystem;
   const measurementSystem: MeasurementSystem =
-    user?.profile?.measurement_system ?? deviceMeasurementSystem;
+    profile?.measurement_system ?? deviceMeasurementSystem;
 
   const {
     mutate: storeProfile,
@@ -37,13 +39,11 @@ export default function ProfileScreen() {
     onError: (e) => {
       Sentry.captureException(e);
     },
-    onSuccess: (profile, variables) => {
-      // Edit Profile seeds its form from the cached user, so put the saved
-      // profile there right away and refetch to be safe.
-      queryClient.setQueryData<User>(["user"], (current) =>
-        current ? { ...current, profile } : current
-      );
-      queryClient.invalidateQueries({ queryKey: ["user"] });
+    onSuccess: (savedProfile, variables) => {
+      // Edit Profile seeds its form from the cached Profile, so put the saved
+      // Profile there right away and refetch to be safe.
+      queryClient.setQueryData(useProfileQuery.getKey(), savedProfile);
+      queryClient.invalidateQueries({ queryKey: useProfileQuery.getKey() });
       if (user) {
         storage.set(`onboarding.seen.${user.id}`, true);
       }
@@ -65,13 +65,14 @@ export default function ProfileScreen() {
   );
 
   return (
-    !!user && (
+    !!user &&
+    !isProfilePending && (
       <ProfileForm
         defaultValues={{
-          age: user.profile?.age ?? undefined,
-          gender: user.profile?.gender,
-          height: user.profile?.height ?? undefined,
-          weight: user.profile?.weight ?? undefined,
+          age: profile?.age ?? undefined,
+          gender: profile?.gender,
+          height: profile?.height ?? undefined,
+          weight: profile?.weight ?? undefined,
         }}
         footer={
           !!error && <ErrorMessage>{PROFILE_SAVE_ERROR_MESSAGE}</ErrorMessage>
