@@ -10,6 +10,8 @@
 -- Changes:
 --   1. public.current_user_id(): the one helper that returns the current User
 --      id from the JWT sub claim. auth.uid() is no longer used anywhere.
+--      Retired User ids (private.retired_user_ids) resolve to NULL, so a
+--      still-valid token of a deleted or rekeyed User can't read or write.
 --   2. Drop every policy (they reference user_id or auth.uid(), and a column
 --      used in a policy can't change type) and the plan RPCs whose
 --      p_user_id uuid DEFAULT auth.uid() parameter changes type.
@@ -19,23 +21,45 @@
 --   4. Recreate the policies on top of the helper, same rules as before.
 --   5. Recreate every RPC that checked ownership with auth.uid(); bodies are
 --      otherwise unchanged from their latest migration.
---   6. delete_user_data(user_id): removes every row the User owns. Without
---      the cascade from auth.users, account deletion has to call it.
---   7. rekey_user(old_id, new_id): moves every row of one User to a new id in
---      one transaction, for the Supabase -> Clerk migration script. Dropped
---      later together with the legacy auth rows.
+--   6. delete_user_data(user_id): retires the id and removes every row the
+--      User owns. Without the cascade from auth.users, account deletion has
+--      to call it.
+--   7. rekey_user(old_id, new_id): retires old_id and moves every row of one
+--      User to new_id in one transaction, for the Supabase -> Clerk migration
+--      script. Dropped later together with the legacy auth rows.
 --   8. Both are executable by service_role only.
 
 -- ------------------------------------------------------------
 -- 1. Current User id
 -- ------------------------------------------------------------
+-- Without the foreign key to auth.users nothing stops a token that is still
+-- valid (until it expires) from writing under an id whose data was deleted or
+-- moved. Retiring the id here blocks it in every policy and RPC at once.
+CREATE SCHEMA IF NOT EXISTS private;
+
+CREATE TABLE private.retired_user_ids (
+  user_id text PRIMARY KEY,
+  retired_at timestamptz NOT NULL DEFAULT now()
+);
+
+ALTER TABLE private.retired_user_ids ENABLE ROW LEVEL SECURITY;
+REVOKE ALL ON SCHEMA private FROM PUBLIC, anon, authenticated;
+REVOKE ALL ON TABLE private.retired_user_ids FROM PUBLIC, anon, authenticated;
+
+-- SECURITY DEFINER so it can read the retired ids the caller can't see
 CREATE FUNCTION public.current_user_id()
 RETURNS text
 LANGUAGE sql
 STABLE
+SECURITY DEFINER
 SET search_path = ''
 AS $$
-  SELECT nullif(auth.jwt() ->> 'sub', '')
+  SELECT claims.sub
+  FROM (SELECT nullif(auth.jwt() ->> 'sub', '') AS sub) claims
+  WHERE NOT EXISTS (
+    SELECT 1 FROM private.retired_user_ids r
+    WHERE r.user_id = claims.sub
+  )
 $$;
 
 -- ------------------------------------------------------------
@@ -789,10 +813,15 @@ $$;
 -- ------------------------------------------------------------
 -- 6. delete_user_data
 -- ------------------------------------------------------------
--- Removes every row owned by the User. The User-owned tables are listed
--- explicitly; their children (workouts, exercises, sets, session exercises
--- and sets, messages) go with them through the existing ON DELETE CASCADE
--- foreign keys inside the public schema. Calling it again is a no-op.
+-- Retires the User id and removes every row owned by the User. The
+-- User-owned tables are listed explicitly; their children (workouts,
+-- exercises, sets, session exercises and sets, messages) go with them through
+-- the existing ON DELETE CASCADE foreign keys inside the public schema.
+-- Calling it again is a no-op.
+--
+-- The four tables are locked against writes first, so requests already in
+-- flight finish before the delete and later ones wait for the commit; by then
+-- the id is retired and current_user_id() rejects them.
 CREATE FUNCTION public.delete_user_data(user_id text)
 RETURNS void
 LANGUAGE plpgsql
@@ -803,6 +832,13 @@ BEGIN
   IF delete_user_data.user_id IS NULL OR delete_user_data.user_id = '' THEN
     RAISE EXCEPTION 'user_id is required';
   END IF;
+
+  LOCK TABLE public.profiles, public.plans, public.workout_sessions, public.conversations
+    IN SHARE ROW EXCLUSIVE MODE;
+
+  INSERT INTO private.retired_user_ids (user_id)
+  VALUES (delete_user_data.user_id)
+  ON CONFLICT DO NOTHING;
 
   DELETE FROM public.workout_sessions ws
   WHERE ws.user_id = delete_user_data.user_id;
@@ -826,6 +862,11 @@ $$;
 -- are untouched, and it refuses to merge into a new_id that already owns
 -- rows. Rerunning after a successful call is a no-op (no rows are left under
 -- old_id).
+--
+-- old_id is retired, so a still-valid legacy token can't write rows the
+-- rekey would miss; the tables are locked against writes first, so requests
+-- in flight finish before the move. new_id is un-retired, which keeps a
+-- rollback (rekeying back to the legacy id) possible.
 CREATE FUNCTION public.rekey_user(old_id text, new_id text)
 RETURNS void
 LANGUAGE plpgsql
@@ -843,6 +884,9 @@ BEGIN
     RETURN;
   END IF;
 
+  LOCK TABLE public.profiles, public.plans, public.workout_sessions, public.conversations
+    IN SHARE ROW EXCLUSIVE MODE;
+
   -- Never merge two Users: refuse when the new id already owns rows and
   -- there is still something to move (a rerun after success moves nothing)
   IF (
@@ -859,6 +903,13 @@ BEGIN
     RAISE EXCEPTION 'User % already owns data', rekey_user.new_id
       USING ERRCODE = '23505';
   END IF;
+
+  INSERT INTO private.retired_user_ids (user_id)
+  VALUES (rekey_user.old_id)
+  ON CONFLICT DO NOTHING;
+
+  DELETE FROM private.retired_user_ids r
+  WHERE r.user_id = rekey_user.new_id;
 
   UPDATE public.profiles pr
   SET user_id = rekey_user.new_id

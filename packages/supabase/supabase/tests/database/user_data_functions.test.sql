@@ -4,7 +4,7 @@
 -- Run with `pnpm db test:db` (supabase test db).
 begin;
 
-select plan(29);
+select plan(38);
 
 -- ------------------------------------------------------------
 -- Fixtures (as postgres, bypassing RLS)
@@ -176,6 +176,44 @@ reset role;
 
 select is(pg_temp.owned_rows('user_2Bystander000000000000'), 10, 'the second call left the other User alone');
 
+-- The deleted User's token is still valid until it expires, but the id is
+-- retired: it can't write anything back
+set local role authenticated;
+set local request.jwt.claims = '{"sub":"user_2DeleteMe00000000000000","role":"authenticated"}';
+
+select is(public.current_user_id(), null, 'current_user_id() is NULL for a deleted User');
+
+select throws_ok(
+  $$insert into public.plans (user_id, goal, place, frequency)
+    values ('user_2DeleteMe00000000000000', 'strength', 'gym', 3)$$,
+  '42501', null,
+  'a deleted User can''t create a Plan with their old token'
+);
+
+select throws_ok(
+  $$insert into public.profiles (user_id, gender, age, weight, height)
+    values ('user_2DeleteMe00000000000000', 'male', 30, 80, 180)$$,
+  '42501', null,
+  'a deleted User can''t create a Profile with their old token'
+);
+
+select throws_ok(
+  $$select public.store_plan(
+      '{"name": "Ghost", "goal": "strength", "place": "gym", "frequency": 3,
+        "experience_level": "intermediate", "workout_duration": 60, "workouts": []}'::jsonb
+    )$$,
+  '42501', 'Not authorized',
+  'a deleted User can''t store a Plan through the RPC'
+);
+
+select throws_ok(
+  $$select user_id from private.retired_user_ids$$,
+  '42501', null,
+  'a signed-in User can''t read the retired ids'
+);
+
+reset role;
+
 -- ------------------------------------------------------------
 -- rekey_user as service_role: legacy UUID -> Clerk id
 -- ------------------------------------------------------------
@@ -200,6 +238,20 @@ select is(
   (select count(*)::int from public.workout_session_exercise_sets),
   1,
   'the rekeyed User sees their Workout Session sets under the new sub'
+);
+
+-- The legacy token can't write rows the rekey would leave behind
+set local request.jwt.claims = '{"sub":"7a1b2c3d-0000-4000-8000-000000000003","role":"authenticated"}';
+
+select is_empty(
+  $$select id from public.plans$$,
+  'the legacy sub sees nothing after the rekey'
+);
+
+select throws_ok(
+  $$insert into public.conversations (user_id) values ('7a1b2c3d-0000-4000-8000-000000000003')$$,
+  '42501', null,
+  'the legacy sub can''t write after the rekey'
 );
 
 reset role;
@@ -266,6 +318,25 @@ select is(
   0,
   'a failed rekey moves no rows at all'
 );
+
+-- Rekeying back to the legacy id (a rollback) makes it usable again
+set local role service_role;
+
+select lives_ok(
+  $$select public.rekey_user('user_2Rekeyed0000000000000000', '7a1b2c3d-0000-4000-8000-000000000003')$$,
+  'service_role can rekey a User back to the legacy id'
+);
+
+set local role authenticated;
+set local request.jwt.claims = '{"sub":"7a1b2c3d-0000-4000-8000-000000000003","role":"authenticated"}';
+
+select is(
+  (select count(*)::int from public.plans),
+  1,
+  'the legacy sub sees its Plan again after the rollback'
+);
+
+reset role;
 
 select * from finish();
 
