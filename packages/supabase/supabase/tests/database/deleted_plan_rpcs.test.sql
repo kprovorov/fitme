@@ -7,20 +7,16 @@ select plan(13);
 -- ------------------------------------------------------------
 -- Fixtures (as postgres, bypassing RLS)
 -- ------------------------------------------------------------
-insert into auth.users (id, email) values
-  ('55555555-5555-5555-5555-555555555555', 'owner-deleted-plans@test.local'),
-  ('66666666-6666-6666-6666-666666666666', 'other-deleted-plans@test.local');
-
 insert into public.exercises (id, name, slug) values
   ('d5e00000-0000-0000-0000-000000000001', 'Test Deadlift', 'test-deadlift-deleted-plans');
 
 -- Owner: one active plan, one live inactive plan, one soft-deleted plan.
 -- Other user: one live plan.
 insert into public.plans (id, user_id, goal, place, frequency, is_active, deleted_at) values
-  ('d5a00000-0000-0000-0000-000000000001', '55555555-5555-5555-5555-555555555555', 'strength', 'gym', 3, true,  null),
-  ('d5a00000-0000-0000-0000-000000000002', '55555555-5555-5555-5555-555555555555', 'strength', 'gym', 3, false, null),
-  ('d5a00000-0000-0000-0000-000000000003', '55555555-5555-5555-5555-555555555555', 'strength', 'gym', 3, false, now()),
-  ('d5a00000-0000-0000-0000-000000000004', '66666666-6666-6666-6666-666666666666', 'strength', 'gym', 3, false, null);
+  ('d5a00000-0000-0000-0000-000000000001', 'user_2DeletedPlansOwner00000', 'strength', 'gym', 3, true,  null),
+  ('d5a00000-0000-0000-0000-000000000002', 'user_2DeletedPlansOwner00000', 'strength', 'gym', 3, false, null),
+  ('d5a00000-0000-0000-0000-000000000003', 'user_2DeletedPlansOwner00000', 'strength', 'gym', 3, false, now()),
+  ('d5a00000-0000-0000-0000-000000000004', 'user_2DeletedPlansOther00000', 'strength', 'gym', 3, false, null);
 
 insert into public.workouts (id, plan_id, "order", name, description) values
   ('d5b00000-0000-0000-0000-000000000002', 'd5a00000-0000-0000-0000-000000000002', 1, 'Live Day', 'Pull'),
@@ -34,7 +30,7 @@ insert into public.workout_exercises (id, workout_id, exercise_id, "order") valu
 -- activate_plan
 -- ------------------------------------------------------------
 set local role authenticated;
-set local request.jwt.claims = '{"sub":"55555555-5555-5555-5555-555555555555","role":"authenticated"}';
+set local request.jwt.claims = '{"sub":"user_2DeletedPlansOwner00000","role":"authenticated"}';
 
 select throws_ok(
   $$select public.activate_plan('d5a00000-0000-0000-0000-000000000003')$$,
@@ -123,7 +119,7 @@ select is(
 );
 
 insert into public.plans (id, user_id, goal, place, frequency, is_active, deleted_at) values
-  ('d5a00000-0000-0000-0000-000000000005', '55555555-5555-5555-5555-555555555555', 'strength', 'gym', 3, true, now());
+  ('d5a00000-0000-0000-0000-000000000005', 'user_2DeletedPlansOwner00000', 'strength', 'gym', 3, true, now());
 
 select is(
   (select is_active from public.plans where id = 'd5a00000-0000-0000-0000-000000000005'),
@@ -133,7 +129,7 @@ select is(
 
 select is(
   (select count(*)::int from public.plans
-   where user_id = '55555555-5555-5555-5555-555555555555'
+   where user_id = 'user_2DeletedPlansOwner00000'
      and deleted_at is not null
      and is_active),
   0,

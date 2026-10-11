@@ -7,15 +7,10 @@ SELECT plan(17);
 
 -- Fixtures -------------------------------------------------------------------
 -- User A owns two plans, user B owns nothing.
-INSERT INTO auth.users (id, email)
-VALUES
-  ('a0000000-0000-0000-0000-000000000001', 'finish-a@test.local'),
-  ('b0000000-0000-0000-0000-000000000001', 'finish-b@test.local');
-
 INSERT INTO public.plans (id, user_id, name, goal, place, frequency)
 VALUES
-  ('10000000-0000-0000-0000-000000000001', 'a0000000-0000-0000-0000-000000000001', 'Contiguous', 'strength', 'gym', 3),
-  ('10000000-0000-0000-0000-000000000002', 'a0000000-0000-0000-0000-000000000001', 'Gappy', 'strength', 'gym', 3);
+  ('10000000-0000-0000-0000-000000000001', 'user_2FinishOwnerA00000000000', 'Contiguous', 'strength', 'gym', 3),
+  ('10000000-0000-0000-0000-000000000002', 'user_2FinishOwnerA00000000000', 'Gappy', 'strength', 'gym', 3);
 
 INSERT INTO public.workouts (id, plan_id, "order", name, description)
 VALUES
@@ -32,17 +27,17 @@ VALUES
 INSERT INTO public.workout_sessions (id, user_id, plan_id, workout_id, started_at, created_at, updated_at)
 VALUES
   -- (a)/(b) open session on W1
-  ('30000000-0000-0000-0000-000000000001', 'a0000000-0000-0000-0000-000000000001', '10000000-0000-0000-0000-000000000001', '20000000-0000-0000-0000-000000000001', now() - interval '1 hour', now() - interval '1 hour', now() - interval '1 hour'),
+  ('30000000-0000-0000-0000-000000000001', 'user_2FinishOwnerA00000000000', '10000000-0000-0000-0000-000000000001', '20000000-0000-0000-0000-000000000001', now() - interval '1 hour', now() - interval '1 hour', now() - interval '1 hour'),
   -- (c) open session whose workout template was deleted
-  ('30000000-0000-0000-0000-000000000002', 'a0000000-0000-0000-0000-000000000001', '10000000-0000-0000-0000-000000000001', NULL, now() - interval '1 hour', now() - interval '1 hour', now() - interval '1 hour'),
+  ('30000000-0000-0000-0000-000000000002', 'user_2FinishOwnerA00000000000', '10000000-0000-0000-0000-000000000001', NULL, now() - interval '1 hour', now() - interval '1 hour', now() - interval '1 hour'),
   -- (d) open session on W2 that user B tries to finish
-  ('30000000-0000-0000-0000-000000000003', 'a0000000-0000-0000-0000-000000000001', '10000000-0000-0000-0000-000000000001', '20000000-0000-0000-0000-000000000002', now() - interval '1 hour', now() - interval '1 hour', now() - interval '1 hour'),
+  ('30000000-0000-0000-0000-000000000003', 'user_2FinishOwnerA00000000000', '10000000-0000-0000-0000-000000000001', '20000000-0000-0000-0000-000000000002', now() - interval '1 hour', now() - interval '1 hour', now() - interval '1 hour'),
   -- (f) open session on X2 in the gappy plan
-  ('30000000-0000-0000-0000-000000000004', 'a0000000-0000-0000-0000-000000000001', '10000000-0000-0000-0000-000000000002', '20000000-0000-0000-0000-000000000012', now() - interval '1 hour', now() - interval '1 hour', now() - interval '1 hour');
+  ('30000000-0000-0000-0000-000000000004', 'user_2FinishOwnerA00000000000', '10000000-0000-0000-0000-000000000002', '20000000-0000-0000-0000-000000000012', now() - interval '1 hour', now() - interval '1 hour', now() - interval '1 hour');
 
 -- (a) Finishing an open session ------------------------------------------------
 SET LOCAL ROLE authenticated;
-SELECT set_config('request.jwt.claims', '{"sub":"a0000000-0000-0000-0000-000000000001","role":"authenticated"}', true);
+SELECT set_config('request.jwt.claims', '{"sub":"user_2FinishOwnerA00000000000","role":"authenticated"}', true);
 
 SELECT lives_ok(
   $$SELECT public.finish_workout_session('30000000-0000-0000-0000-000000000001')$$,
@@ -132,7 +127,7 @@ SELECT results_eq(
 
 -- (d) Another user's session ---------------------------------------------------
 SET LOCAL ROLE authenticated;
-SELECT set_config('request.jwt.claims', '{"sub":"b0000000-0000-0000-0000-000000000001","role":"authenticated"}', true);
+SELECT set_config('request.jwt.claims', '{"sub":"user_2FinishOtherB00000000000","role":"authenticated"}', true);
 
 SELECT throws_ok(
   $$SELECT public.finish_workout_session('30000000-0000-0000-0000-000000000003')$$,
@@ -157,7 +152,7 @@ SELECT results_eq(
 
 -- (e) Non-existent session -----------------------------------------------------
 SET LOCAL ROLE authenticated;
-SELECT set_config('request.jwt.claims', '{"sub":"a0000000-0000-0000-0000-000000000001","role":"authenticated"}', true);
+SELECT set_config('request.jwt.claims', '{"sub":"user_2FinishOwnerA00000000000","role":"authenticated"}', true);
 
 SELECT throws_ok(
   $$SELECT public.finish_workout_session('30000000-0000-0000-0000-0000000000ff')$$,

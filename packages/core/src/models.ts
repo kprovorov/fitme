@@ -63,7 +63,7 @@ export interface User {
 }
 
 export type Profile = Model & {
-  user_id: string; // UUID from auth.users
+  user_id: string; // User id (JWT sub claim)
   gender: Gender;
   age: number;
   height: number;
@@ -82,7 +82,7 @@ export type Exercise = Model & {
 };
 
 export type Plan = Model & {
-  user_id: string; // UUID from auth.users
+  user_id: string; // User id (JWT sub claim)
   name: string;
   description: string;
   goal: Goal;

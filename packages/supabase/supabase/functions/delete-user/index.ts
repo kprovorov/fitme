@@ -7,6 +7,17 @@ export default {
       return Response.json({ error: "Unauthorized" }, { status: 401 });
     }
 
+    // User-owned rows are no longer tied to auth.users, so deleting the auth
+    // user doesn't cascade to them; remove them first.
+    const { error: dataError } = await ctx.supabaseAdmin.rpc(
+      "delete_user_data",
+      { user_id: userId }
+    );
+
+    if (dataError) {
+      return Response.json({ error: dataError.message }, { status: 500 });
+    }
+
     const { error } = await ctx.supabaseAdmin.auth.admin.deleteUser(userId);
 
     if (error) {

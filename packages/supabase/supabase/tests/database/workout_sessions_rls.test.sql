@@ -8,18 +8,14 @@ select plan(20);
 -- ------------------------------------------------------------
 -- Fixtures (as postgres, bypassing RLS)
 -- ------------------------------------------------------------
-insert into auth.users (id, email) values
-  ('11111111-1111-1111-1111-111111111111', 'owner@rls.test.local'),
-  ('22222222-2222-2222-2222-222222222222', 'other@rls.test.local');
-
 insert into public.exercises (id, name, slug) values
   ('e1000000-0000-0000-0000-000000000001', 'Test Squat', 'test-squat-sessions-rls');
 
 -- a1: owner's plan, a2: other user's plan, a3: owner's soft-deleted plan
 insert into public.plans (id, user_id, goal, place, frequency, deleted_at) values
-  ('a1000000-0000-0000-0000-000000000001', '11111111-1111-1111-1111-111111111111', 'strength', 'gym', 3, null),
-  ('a1000000-0000-0000-0000-000000000002', '22222222-2222-2222-2222-222222222222', 'strength', 'gym', 3, null),
-  ('a1000000-0000-0000-0000-000000000003', '11111111-1111-1111-1111-111111111111', 'strength', 'gym', 3, now());
+  ('a1000000-0000-0000-0000-000000000001', 'user_2RlsOwner00000000000000', 'strength', 'gym', 3, null),
+  ('a1000000-0000-0000-0000-000000000002', 'user_2RlsOther00000000000000', 'strength', 'gym', 3, null),
+  ('a1000000-0000-0000-0000-000000000003', 'user_2RlsOwner00000000000000', 'strength', 'gym', 3, now());
 
 insert into public.workouts (id, plan_id, "order", name, description) values
   ('b1000000-0000-0000-0000-000000000001', 'a1000000-0000-0000-0000-000000000001', 1, 'Owner A', 'Legs'),
@@ -38,13 +34,13 @@ values
 -- Owner's finished session on the soft-deleted plan
 insert into public.workout_sessions (id, workout_id, plan_id, user_id, started_at, finished_at) values
   ('d1000000-0000-0000-0000-000000000099', 'b1000000-0000-0000-0000-000000000003',
-   'a1000000-0000-0000-0000-000000000003', '11111111-1111-1111-1111-111111111111', now(), now());
+   'a1000000-0000-0000-0000-000000000003', 'user_2RlsOwner00000000000000', now(), now());
 
 -- ------------------------------------------------------------
 -- Inserts as the owner
 -- ------------------------------------------------------------
 set local role authenticated;
-set local request.jwt.claims = '{"sub":"11111111-1111-1111-1111-111111111111","role":"authenticated"}';
+set local request.jwt.claims = '{"sub":"user_2RlsOwner00000000000000","role":"authenticated"}';
 
 select lives_ok(
   $$insert into public.workout_sessions (id, workout_id, plan_id, user_id, started_at)
@@ -52,7 +48,7 @@ select lives_ok(
       'd1000000-0000-0000-0000-000000000001',
       'b1000000-0000-0000-0000-000000000001',
       'a1000000-0000-0000-0000-000000000001',
-      '11111111-1111-1111-1111-111111111111',
+      'user_2RlsOwner00000000000000',
       now()
     )$$,
   'owner can insert a session for their own workout and plan'
@@ -64,7 +60,7 @@ select lives_ok(
       'd1000000-0000-0000-0000-000000000002',
       null,
       null,
-      '11111111-1111-1111-1111-111111111111',
+      'user_2RlsOwner00000000000000',
       now()
     )$$,
   'owner can insert a session with NULL workout_id and plan_id'
@@ -75,7 +71,7 @@ select throws_ok(
     values (
       'b1000000-0000-0000-0000-000000000002',
       null,
-      '11111111-1111-1111-1111-111111111111',
+      'user_2RlsOwner00000000000000',
       now()
     )$$,
   '42501',
@@ -88,7 +84,7 @@ select throws_ok(
     values (
       null,
       'a1000000-0000-0000-0000-000000000002',
-      '11111111-1111-1111-1111-111111111111',
+      'user_2RlsOwner00000000000000',
       now()
     )$$,
   '42501',
@@ -101,7 +97,7 @@ select throws_ok(
     values (
       null,
       null,
-      '22222222-2222-2222-2222-222222222222',
+      'user_2RlsOther00000000000000',
       now()
     )$$,
   '42501',
@@ -132,7 +128,7 @@ select throws_ok(
 
 select throws_ok(
   $$update public.workout_sessions
-    set user_id = '22222222-2222-2222-2222-222222222222'
+    set user_id = 'user_2RlsOther00000000000000'
     where id = 'd1000000-0000-0000-0000-000000000001'$$,
   '42501',
   null,
@@ -201,11 +197,11 @@ select isnt(
 -- ------------------------------------------------------------
 -- Another user cannot see, update or delete the owner's sessions
 -- ------------------------------------------------------------
-set local request.jwt.claims = '{"sub":"22222222-2222-2222-2222-222222222222","role":"authenticated"}';
+set local request.jwt.claims = '{"sub":"user_2RlsOther00000000000000","role":"authenticated"}';
 
 select is(
   (select count(*)::int from public.workout_sessions
-   where user_id = '11111111-1111-1111-1111-111111111111'),
+   where user_id = 'user_2RlsOwner00000000000000'),
   0,
   'another user cannot see the owner''s sessions'
 );

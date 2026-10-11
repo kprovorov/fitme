@@ -484,8 +484,14 @@ export interface Database {
         Returns: undefined;
       };
       create_plan: { Args: { p_plan_data: Json }; Returns: string };
+      current_user_id: { Args: never; Returns: string };
+      delete_user_data: { Args: { user_id: string }; Returns: undefined };
       finish_workout_session: {
         Args: { p_session_id: string };
+        Returns: undefined;
+      };
+      rekey_user: {
+        Args: { new_id: string; old_id: string };
         Returns: undefined;
       };
       start_workout_session: {
