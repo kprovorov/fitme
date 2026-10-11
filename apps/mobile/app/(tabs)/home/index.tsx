@@ -14,6 +14,7 @@ import { H1 } from "~/components/ui/typography";
 import { VStack } from "~/components/ui/vstack";
 import { useCurrentUserQuery } from "~/hooks/queries/auth";
 import { usePlansQuery } from "~/hooks/queries/plans";
+import { useProfileQuery } from "~/hooks/queries/profiles";
 import { storage } from "~/lib/mmkv";
 
 const IS_E2E = process.env.EXPO_PUBLIC_E2E_ENABLED === "true";
@@ -21,7 +22,8 @@ const IS_E2E = process.env.EXPO_PUBLIC_E2E_ENABLED === "true";
 import HomeView from "~/components/views/home-view";
 
 export default function HomeScreen() {
-  const { data: user, isFetched: isUserFetched } = useCurrentUserQuery();
+  const { data: user } = useCurrentUserQuery();
+  const { data: profile } = useProfileQuery();
   const [activePlan, setActivePlan] = useState<Plan | null>(null);
   const [refreshing, setRefreshing] = useState(false);
 
@@ -51,13 +53,15 @@ export default function HomeScreen() {
   const router = useRouter();
 
   useEffect(() => {
-    if (isUserFetched && user && !user.profile) {
+    // `null` means the Profile loaded and there is none; `undefined` means it
+    // has not loaded (or failed), so do not send the User to onboarding yet.
+    if (user && profile === null) {
       const hasSeen = storage.getBoolean(`onboarding.seen.${user.id}`) ?? false;
       if (!hasSeen) {
         router.push("/onboarding");
       }
     }
-  }, [isUserFetched, user, router]);
+  }, [profile, user, router]);
 
   const handleCreatePlan = useCallback(() => router.push("/planner"), [router]);
 

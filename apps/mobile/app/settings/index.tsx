@@ -7,9 +7,11 @@ import { MenuList, MenuListItem } from "~/components/ui/menu-list";
 import { Text } from "~/components/ui/text";
 import { useDeleteUserMutation } from "~/hooks/mutations/auth";
 import { useCurrentUserQuery } from "~/hooks/queries/auth";
+import { useProfileQuery } from "~/hooks/queries/profiles";
 
 export default function SettingsScreen() {
   const { data: user } = useCurrentUserQuery();
+  const { data: profile } = useProfileQuery();
 
   const { mutateAsync: deleteUser, isPending } = useDeleteUserMutation();
 
@@ -41,7 +43,7 @@ export default function SettingsScreen() {
                     <Text>Measurement System</Text>
                     <Text className="text-footnote text-muted-foreground">
                       {getMeasurementSystemLabel(
-                        user.profile?.measurement_system ?? "metric"
+                        profile?.measurement_system ?? "metric"
                       )}
                     </Text>
                   </HStack>

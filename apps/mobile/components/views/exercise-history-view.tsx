@@ -1,7 +1,7 @@
 import { getWeightLabel } from "@fitme/core";
 import { format } from "date-fns";
-import { useCurrentUserQuery } from "~/hooks/queries/auth";
 import { useExerciseHistoryQuery } from "~/hooks/queries/exercises";
+import { useProfileQuery } from "~/hooks/queries/profiles";
 import { HStack } from "../ui/hstack";
 import { Text } from "../ui/text";
 import { H2 } from "../ui/typography";
@@ -20,7 +20,7 @@ export default function ExerciseHistoryView({
     },
   });
 
-  const { data: user } = useCurrentUserQuery();
+  const { data: profile } = useProfileQuery();
 
   return (
     <VStack className="items-stretch">
@@ -45,9 +45,7 @@ export default function ExerciseHistoryView({
                 </HStack>
                 <Text className="w-16">
                   {set.weight_completed}{" "}
-                  {getWeightLabel(
-                    user?.profile?.measurement_system ?? "metric"
-                  )}
+                  {getWeightLabel(profile?.measurement_system ?? "metric")}
                 </Text>
                 <Text className="text-muted-foreground">
                   x {set.reps_completed} reps

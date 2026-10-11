@@ -59,7 +59,6 @@ export interface User {
   email: string;
   id: string; // UUID from auth.users
   name: string;
-  profile?: Profile;
 }
 
 export type Profile = Model & {

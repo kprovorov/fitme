@@ -135,10 +135,8 @@ jest.mock("~/lib/supabase", () => ({
   >("~/test-utils/fake-workout-backend").fakeSupabase,
 }));
 
-jest.mock("~/hooks/queries/auth", () => ({
-  useCurrentUserQuery: () => ({
-    data: { profile: { measurement_system: "metric" } },
-  }),
+jest.mock("~/hooks/queries/profiles", () => ({
+  useProfileQuery: () => ({ data: { measurement_system: "metric" } }),
 }));
 
 jest.mock("@sentry/react-native", () => ({ captureException: jest.fn() }));

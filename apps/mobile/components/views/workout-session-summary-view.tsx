@@ -6,7 +6,7 @@ import { HStack } from "~/components/ui/hstack";
 import { Separator } from "~/components/ui/separator";
 import { Text } from "~/components/ui/text";
 import { VStack } from "~/components/ui/vstack";
-import { useCurrentUserQuery } from "~/hooks/queries/auth";
+import { useProfileQuery } from "~/hooks/queries/profiles";
 import {
   WorkoutSessionSummaryBodyBack,
   WorkoutSessionSummaryBodyFront,
@@ -23,8 +23,8 @@ export default function WorkoutSessionSummaryView({
   workoutSession,
   onContinue,
 }: WorkoutSessionSummaryViewProps) {
-  const { data: user } = useCurrentUserQuery();
-  const measurementSystem = user?.profile?.measurement_system ?? "metric";
+  const { data: profile } = useProfileQuery();
+  const measurementSystem = profile?.measurement_system ?? "metric";
 
   const muscleGroups = useMemo(
     () =>

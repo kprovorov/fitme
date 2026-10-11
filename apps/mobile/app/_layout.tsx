@@ -73,6 +73,7 @@ export default function RootLayout() {
       } = supabase.auth.onAuthStateChange(async (event, session) => {
         if (event === "SIGNED_IN" || event === "TOKEN_REFRESHED") {
           queryClient.invalidateQueries({ queryKey: ["user"] });
+          queryClient.invalidateQueries({ queryKey: ["profile"] });
           if (!IS_E2E && session?.user?.id) {
             await Purchases.logIn(session.user.id);
             queryClient.invalidateQueries({ queryKey: ["rc-is-pro"] });
