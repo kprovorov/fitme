@@ -4,7 +4,7 @@
 -- Run with `pnpm db test:db` (supabase test db).
 begin;
 
-select plan(50);
+select plan(53);
 
 -- ------------------------------------------------------------
 -- Fixtures (as postgres, bypassing RLS)
@@ -409,6 +409,26 @@ set local request.jwt.claims = '{"sub":"user_2ChainB0000000000000000","role":"au
 
 select is(public.current_user_id(), null, 'the retry left B retired');
 
+reset role;
+
+-- An unrelated User can't be rekeyed onto B, which is retired and points at C
+insert into public.profiles (user_id, gender, age, weight, height) values
+  ('legacy-chain-d', 'female', 25, 60, 165);
+
+set local role service_role;
+
+select throws_ok(
+  $$select public.rekey_user('legacy-chain-d', 'user_2ChainB0000000000000000')$$,
+  '23505', 'User user_2ChainB0000000000000000 is already retired',
+  'a User can''t be rekeyed onto another User''s retired id'
+);
+
+select throws_ok(
+  $$select public.rekey_user('legacy-chain-d', 'user_2DeleteMe00000000000000')$$,
+  '23505', 'User user_2DeleteMe00000000000000 is already retired',
+  'a User can''t be rekeyed onto a deleted id'
+);
+
 set local role service_role;
 set local request.jwt.claims = '{"role":"service_role"}';
 
@@ -420,6 +440,7 @@ select lives_ok(
 reset role;
 
 select is(pg_temp.owned_rows('user_2ChainC0000000000000000'), 0, 'deleting A follows A -> B -> C');
+select is(pg_temp.owned_rows('legacy-chain-d'), 1, 'the unrelated User kept their row');
 
 select * from finish();
 

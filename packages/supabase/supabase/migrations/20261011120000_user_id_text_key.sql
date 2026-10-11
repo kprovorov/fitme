@@ -870,8 +870,8 @@ $$;
 -- If the id was rekeyed, the ids it was rekeyed to are deleted too, so a
 -- deletion requested with a legacy token still removes the moved rows.
 --
--- The four tables are locked against writes first, so requests already in
--- flight finish before the delete and later ones wait for the commit; by then
+-- The User-owned tables and their children are locked against writes first,
+-- so requests already in flight finish before the delete and later ones wait for the commit; by then
 -- the id is retired: current_user_id() rejects them, and the
 -- reject_retired_user_id triggers stop RPCs that read the id before the wait.
 CREATE FUNCTION public.delete_user_data(user_id text)
@@ -887,7 +887,11 @@ BEGIN
     RAISE EXCEPTION 'user_id is required';
   END IF;
 
-  LOCK TABLE public.profiles, public.plans, public.workout_sessions, public.conversations
+  LOCK TABLE
+    public.profiles, public.plans, public.workout_sessions, public.conversations,
+    public.workouts, public.workout_exercises, public.workout_exercise_sets,
+    public.workout_session_exercises, public.workout_session_exercise_sets,
+    public.messages
     IN SHARE ROW EXCLUSIVE MODE;
 
   -- The id plus every id its rows were rekeyed to (read after the lock, so a
@@ -931,9 +935,10 @@ $$;
 --
 -- old_id is retired with a pointer to new_id, so a still-valid legacy token
 -- can't write rows the rekey would miss and deleting old_id later still
--- deletes the moved rows; the tables are locked against writes first, so requests
--- in flight finish before the move. new_id is un-retired, which keeps a
--- rollback (rekeying back to the legacy id) possible.
+-- deletes the moved rows. The User-owned tables and their children are
+-- locked against writes first, so requests in flight finish before the move.
+-- A retired new_id is only accepted when this call reverses its own rekey
+-- (a rollback to the legacy id); it is then un-retired.
 CREATE FUNCTION public.rekey_user(old_id text, new_id text)
 RETURNS void
 LANGUAGE plpgsql
@@ -951,7 +956,11 @@ BEGIN
     RETURN;
   END IF;
 
-  LOCK TABLE public.profiles, public.plans, public.workout_sessions, public.conversations
+  LOCK TABLE
+    public.profiles, public.plans, public.workout_sessions, public.conversations,
+    public.workouts, public.workout_exercises, public.workout_exercise_sets,
+    public.workout_session_exercises, public.workout_session_exercise_sets,
+    public.messages
     IN SHARE ROW EXCLUSIVE MODE;
 
   -- Retrying a rekey that already happened is a no-op. It must not touch
@@ -972,6 +981,18 @@ BEGIN
       AND r.rekeyed_to IS DISTINCT FROM rekey_user.new_id
   ) THEN
     RAISE EXCEPTION 'User % is already retired', rekey_user.old_id
+      USING ERRCODE = '23505';
+  END IF;
+
+  -- A retired new_id can only be reclaimed by reversing its own rekey
+  -- (rolling old_id's rows back to the id they came from). Anything else
+  -- would break new_id's existing chain or resurrect a deleted id
+  IF EXISTS (
+    SELECT 1 FROM private.retired_user_ids r
+    WHERE r.user_id = rekey_user.new_id
+      AND r.rekeyed_to IS DISTINCT FROM rekey_user.old_id
+  ) THEN
+    RAISE EXCEPTION 'User % is already retired', rekey_user.new_id
       USING ERRCODE = '23505';
   END IF;
 
