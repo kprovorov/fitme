@@ -4,7 +4,7 @@ on:
   workflow_dispatch:
   push:
     branches:
-      - master
+      - main
     paths:
       - "packages/supabase/data/exercises.csv"
       - "packages/supabase/data/descriptions/**"
