@@ -66,6 +66,21 @@ jobs:
         env:
           SUPABASE_ACCESS_TOKEN: ${{ secrets.SUPABASE_ACCESS_TOKEN }}
 
+      # The preview branch takes [auth.third_party.clerk] from config.toml and
+      # must accept Clerk development session tokens. Skipped with a warning
+      # when the development instance's secret key is not set.
+      - name: Check Clerk third-party trust
+        env:
+          CLERK_SECRET_KEY: ${{ secrets.CLERK_DEV_SECRET_KEY }}
+          SUPABASE_URL: ${{ steps.branch-details.outputs.api_url }}
+          SUPABASE_ANON_KEY: ${{ steps.branch-details.outputs.anon_key }}
+        run: |
+          if [ -z "$CLERK_SECRET_KEY" ]; then
+            echo "::warning::CLERK_DEV_SECRET_KEY is not set; skipping the Clerk trust check"
+            exit 0
+          fi
+          pnpm --filter @fitme/supabase clerk:check
+
       - name: Deploy edge functions to branch
         working-directory: packages/supabase
         run: |

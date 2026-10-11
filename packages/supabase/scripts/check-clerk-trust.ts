@@ -85,6 +85,8 @@ async function main() {
       );
     }
 
+    // PostgREST rejects a token it cannot verify with 401 and otherwise runs
+    // the request as the token's `role` claim, checked above.
     const response = await fetch(
       `${supabaseUrl}/rest/v1/exercises?select=id&limit=1`,
       { headers: { Authorization: `Bearer ${jwt}`, apikey: anonKey } }
@@ -99,7 +101,10 @@ async function main() {
       `Supabase at ${supabaseUrl} accepts Clerk development session tokens as authenticated.`
     );
   } finally {
-    await clerkRequest(secretKey, "DELETE", `/users/${user.id}`);
+    // A failed cleanup must not mask the outcome of the check.
+    await clerkRequest(secretKey, "DELETE", `/users/${user.id}`).catch((err) =>
+      console.error(`Failed to delete Clerk user ${user.id}:`, err)
+    );
   }
 }
 

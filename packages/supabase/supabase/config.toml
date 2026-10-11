@@ -339,9 +339,9 @@ enabled = false
 
 # Use Clerk as a third-party provider alongside Supabase Auth.
 # Local and preview-branch databases trust the Clerk development instance;
-# the production project trusts the production domain (clerk.fitmeproject.com),
-# configured in the dashboard. Session tokens carry `role: authenticated` from
-# Clerk's Supabase integration.
+# production trusts the production instance (see [remotes.production] at the
+# end of this file). Session tokens carry `role: authenticated` from Clerk's
+# Supabase integration.
 [auth.third_party.clerk]
 enabled = true
 domain = "fitting-rattler-3649.clerk.accounts.dev"
@@ -404,3 +404,12 @@ s3_region = "env(S3_REGION)"
 s3_access_key = "env(S3_ACCESS_KEY)"
 # Configures AWS_SECRET_ACCESS_KEY for S3 bucket
 s3_secret_key = "env(S3_SECRET_KEY)"
+
+# Production project. Overrides the local defaults above when config is
+# deployed to it, so it keeps trusting the production Clerk instance.
+[remotes.production]
+project_id = "zujyynezicwviytereod"
+
+[remotes.production.auth.third_party.clerk]
+enabled = true
+domain = "clerk.fitmeproject.com"
