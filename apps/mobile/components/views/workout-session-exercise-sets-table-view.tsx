@@ -27,7 +27,7 @@ export default function WorkoutSessionExerciseSetsTableView({
   readOnly = false,
   sessionId,
 }: WorkoutSessionExerciseSetsTableViewProps) {
-  const { data: profile } = useProfileQuery();
+  const { data: profile, isPending: isProfilePending } = useProfileQuery();
   const [localSets, setLocalSets] = useState<LocalSet[]>([]);
 
   const hasWeight = workoutSessionExerciseSets.some(
@@ -56,7 +56,7 @@ export default function WorkoutSessionExerciseSetsTableView({
   };
 
   return (
-    profile !== undefined && (
+    !isProfilePending && (
       <VStack className="items-stretch gap-0">
         <HStack className="justify-start py-2 pr-12">
           <Text className="w-12 text-center font-bold text-primary text-subhead uppercase">

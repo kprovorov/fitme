@@ -29,7 +29,7 @@ export const useProfileQuery = createQuery<Profile | null>({
       throw error;
     }
 
-    return profile as Profile | null;
+    return profile;
   },
   queryKey: ["profile"],
   retry: false,
