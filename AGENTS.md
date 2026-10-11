@@ -183,9 +183,13 @@ Env files live next to each app.
 - `SUPABASE_ANON_KEY` — anon key only, never the service-role key. Without these the public tools still work and user tools return an error.
 - `MCP_PUBLIC_URL` (optional) — public URL advertised as the OAuth protected resource when it differs from the request URL.
 
+## Git
+
+The default branch is `main` (there is no `master`); branch from it and open pull requests against it. A clone whose `origin/HEAD` still points at `origin/master` is stale; repair it with `git remote set-head origin --auto && git remote prune origin`.
+
 ## CI/CD
 
-GitHub Actions use pnpm (`pnpm/action-setup`) and `pnpm install --frozen-lockfile`. Unit tests run through `pnpm turbo run test`; the MCP integration tests run separately against a local Supabase stack (Supabase CLI) in `.github/workflows/integration-tests.yml`. The release workflow (`.github/workflows/release.yml`) bumps the version in `apps/mobile/package.json` and `apps/mobile/app.json` following conventional commits: `feat:` → minor, `fix:` → patch, `BREAKING CHANGE:` → major. The exercise sync workflow runs `pnpm --filter @fitme/supabase exercises:sync`. The Database Types workflow (`.github/workflows/database-types.yml`) starts a local database, runs `pnpm db types:generate` (which also normalizes the output with Biome) and fails if `packages/supabase/src/database.types.ts` is stale.
+GitHub Actions use pnpm (`pnpm/action-setup`) and `pnpm install --frozen-lockfile`. Unit tests run through `pnpm turbo run test`; the MCP integration tests run separately against a local Supabase stack (Supabase CLI) in `.github/workflows/integration-tests.yml`. The release workflow (`.github/workflows/release.yml`) bumps the version in `apps/mobile/package.json` and `apps/mobile/app.json` following conventional commits: `feat:` → minor, `fix:` → patch, `BREAKING CHANGE:` → major. The exercise sync workflow runs `pnpm --filter @fitme/supabase exercises:sync` on pushes to `main` that touch the exercise data. The Database Types workflow (`.github/workflows/database-types.yml`) starts a local database, runs `pnpm db types:generate` (which also normalizes the output with Biome) and fails if `packages/supabase/src/database.types.ts` is stale.
 
 ## Agent skills
 
