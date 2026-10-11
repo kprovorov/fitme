@@ -220,7 +220,7 @@ select throws_ok(
 
 reset role;
 
--- Even when the new id owns no Profile, only a Plan
+-- Not only the Profile unique key: the guard covers every User-owned table
 delete from public.profiles where user_id = 'user_2Bystander000000000000';
 
 set local role service_role;
@@ -228,7 +228,7 @@ set local role service_role;
 select throws_ok(
   $$select public.rekey_user('user_2Rekeyed0000000000000000', 'user_2Bystander000000000000')$$,
   '23505', 'User user_2Bystander000000000000 already owns data',
-  'rekeying onto a User who owns Plans but no Profile fails'
+  'rekeying onto a User who owns data but no Profile fails'
 );
 
 reset role;
