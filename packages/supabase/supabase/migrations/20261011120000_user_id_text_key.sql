@@ -786,6 +786,12 @@ DECLARE
   v_workout_id uuid;
   v_plan_id uuid;
 BEGIN
+  -- Take the workout_sessions write lock before any row lock: it conflicts
+  -- with the table locks of delete_user_data and rekey_user, so a finish
+  -- racing them waits up front instead of holding a plan row lock they need
+  -- while waiting for a table lock they hold
+  LOCK TABLE public.workout_sessions IN ROW EXCLUSIVE MODE;
+
   -- Lock the plan before the session, the same order update_plan takes its
   -- locks in (plan, then workouts, then sessions via ON DELETE SET NULL), so
   -- a finish racing a plan edit waits instead of deadlocking
