@@ -57,7 +57,7 @@ export type Model = Identifiable & Timestamped;
 
 export interface User {
   email: string;
-  id: string; // UUID from auth.users
+  id: string; // User id (JWT sub claim)
   name: string;
   profile?: Profile;
 }

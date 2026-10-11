@@ -8,7 +8,8 @@ export default {
     }
 
     // User-owned rows are no longer tied to auth.users, so deleting the auth
-    // user doesn't cascade to them; remove them first.
+    // user doesn't cascade to them; remove them first. delete_user_data is
+    // idempotent, so a retry after a failed deleteUser below is safe.
     const { error: dataError } = await ctx.supabaseAdmin.rpc(
       "delete_user_data",
       { user_id: userId }

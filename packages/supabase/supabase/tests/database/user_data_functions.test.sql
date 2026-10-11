@@ -4,7 +4,7 @@
 -- Run with `pnpm db test:db` (supabase test db).
 begin;
 
-select plan(26);
+select plan(28);
 
 -- ------------------------------------------------------------
 -- Fixtures (as postgres, bypassing RLS)
@@ -204,7 +204,7 @@ select is(
 
 reset role;
 
--- Rerunning is a no-op; a conflicting new id rolls the whole rekey back
+-- Rerunning is a no-op
 set local role service_role;
 
 select lives_ok(
@@ -220,9 +220,37 @@ select throws_ok(
 
 reset role;
 
+-- A failure on the last table (conversations) undoes the tables already moved
+create function pg_temp.fail_rekey() returns trigger language plpgsql as $$
+begin
+  raise exception 'forced rekey failure';
+end;
+$$;
+
+create trigger fail_rekey before update on public.conversations
+  for each row execute function pg_temp.fail_rekey();
+
+set local role service_role;
+
+select throws_ok(
+  $$select public.rekey_user('user_2Rekeyed0000000000000000', 'user_2RekeyedAgain00000000000')$$,
+  'P0001', 'forced rekey failure',
+  'rekey_user fails when the last table can''t be updated'
+);
+
+reset role;
+
+drop trigger fail_rekey on public.conversations;
+
 select is(
   pg_temp.owned_rows('user_2Rekeyed0000000000000000'),
   10,
+  'a failed rekey leaves every row under the old id'
+);
+
+select is(
+  pg_temp.owned_rows('user_2RekeyedAgain00000000000'),
+  0,
   'a failed rekey moves no rows at all'
 );
 
