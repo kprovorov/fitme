@@ -37,8 +37,11 @@
 -- moved. Retiring the id here blocks it in every policy and RPC at once.
 CREATE SCHEMA IF NOT EXISTS private;
 
+-- rekeyed_to records where rekey_user moved the id's rows, so deleting the
+-- old id still finds them
 CREATE TABLE private.retired_user_ids (
   user_id text PRIMARY KEY,
+  rekeyed_to text,
   retired_at timestamptz NOT NULL DEFAULT now()
 );
 
@@ -819,6 +822,9 @@ $$;
 -- the existing ON DELETE CASCADE foreign keys inside the public schema.
 -- Calling it again is a no-op.
 --
+-- If the id was rekeyed, the ids it was rekeyed to are deleted too, so a
+-- deletion requested with a legacy token still removes the moved rows.
+--
 -- The four tables are locked against writes first, so requests already in
 -- flight finish before the delete and later ones wait for the commit; by then
 -- the id is retired and current_user_id() rejects them.
@@ -828,6 +834,8 @@ LANGUAGE plpgsql
 SECURITY DEFINER
 SET search_path = ''
 AS $$
+DECLARE
+  v_ids text[];
 BEGIN
   IF delete_user_data.user_id IS NULL OR delete_user_data.user_id = '' THEN
     RAISE EXCEPTION 'user_id is required';
@@ -836,21 +844,33 @@ BEGIN
   LOCK TABLE public.profiles, public.plans, public.workout_sessions, public.conversations
     IN SHARE ROW EXCLUSIVE MODE;
 
+  -- The id plus every id its rows were rekeyed to (read after the lock, so a
+  -- rekey that committed first is followed)
+  WITH RECURSIVE ids(id) AS (
+    SELECT delete_user_data.user_id
+    UNION
+    SELECT r.rekeyed_to
+    FROM private.retired_user_ids r
+    JOIN ids ON r.user_id = ids.id
+    WHERE r.rekeyed_to IS NOT NULL
+  )
+  SELECT array_agg(id) INTO v_ids FROM ids;
+
   INSERT INTO private.retired_user_ids (user_id)
-  VALUES (delete_user_data.user_id)
+  SELECT unnest(v_ids)
   ON CONFLICT DO NOTHING;
 
   DELETE FROM public.workout_sessions ws
-  WHERE ws.user_id = delete_user_data.user_id;
+  WHERE ws.user_id = ANY (v_ids);
 
   DELETE FROM public.plans p
-  WHERE p.user_id = delete_user_data.user_id;
+  WHERE p.user_id = ANY (v_ids);
 
   DELETE FROM public.conversations c
-  WHERE c.user_id = delete_user_data.user_id;
+  WHERE c.user_id = ANY (v_ids);
 
   DELETE FROM public.profiles pr
-  WHERE pr.user_id = delete_user_data.user_id;
+  WHERE pr.user_id = ANY (v_ids);
 END;
 $$;
 
@@ -863,8 +883,9 @@ $$;
 -- rows. Rerunning after a successful call is a no-op (no rows are left under
 -- old_id).
 --
--- old_id is retired, so a still-valid legacy token can't write rows the
--- rekey would miss; the tables are locked against writes first, so requests
+-- old_id is retired with a pointer to new_id, so a still-valid legacy token
+-- can't write rows the rekey would miss and deleting old_id later still
+-- deletes the moved rows; the tables are locked against writes first, so requests
 -- in flight finish before the move. new_id is un-retired, which keeps a
 -- rollback (rekeying back to the legacy id) possible.
 CREATE FUNCTION public.rekey_user(old_id text, new_id text)
@@ -904,9 +925,9 @@ BEGIN
       USING ERRCODE = '23505';
   END IF;
 
-  INSERT INTO private.retired_user_ids (user_id)
-  VALUES (rekey_user.old_id)
-  ON CONFLICT DO NOTHING;
+  INSERT INTO private.retired_user_ids (user_id, rekeyed_to)
+  VALUES (rekey_user.old_id, rekey_user.new_id)
+  ON CONFLICT (user_id) DO UPDATE SET rekeyed_to = excluded.rekeyed_to;
 
   DELETE FROM private.retired_user_ids r
   WHERE r.user_id = rekey_user.new_id;

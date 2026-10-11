@@ -4,7 +4,7 @@
 -- Run with `pnpm db test:db` (supabase test db).
 begin;
 
-select plan(38);
+select plan(42);
 
 -- ------------------------------------------------------------
 -- Fixtures (as postgres, bypassing RLS)
@@ -337,6 +337,27 @@ select is(
 );
 
 reset role;
+
+-- Deleting an id that was rekeyed away also deletes the rows it moved to:
+-- user_2Rekeyed... was rekeyed back to the legacy id just above
+select is(pg_temp.owned_rows('7a1b2c3d-0000-4000-8000-000000000003'), 10, 'the legacy id owns the rows before the delete');
+
+set local role service_role;
+
+select lives_ok(
+  $$select public.delete_user_data('user_2Rekeyed0000000000000000')$$,
+  'service_role can delete a User by an id that was rekeyed away'
+);
+
+reset role;
+
+select is(
+  pg_temp.owned_rows('7a1b2c3d-0000-4000-8000-000000000003'),
+  0,
+  'deleting the rekeyed-away id removes the rows under the id they moved to'
+);
+
+select is(pg_temp.owned_rows('user_2Bystander000000000000'), 9, 'the other User keeps their rows (minus the Profile removed above)');
 
 select * from finish();
 
