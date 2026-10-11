@@ -23,7 +23,7 @@
 --      otherwise unchanged from their latest migration.
 --   6. delete_user_data(user_id): retires the id and removes every row the
 --      User owns. Without the cascade from auth.users, account deletion has
---      to call it.
+--      to call it. Refuses ids that were rekeyed away.
 --   7. rekey_user(old_id, new_id): retires old_id and moves every row of one
 --      User to new_id in one transaction, for the Supabase -> Clerk migration
 --      script. Dropped later together with the legacy auth rows.
@@ -37,8 +37,8 @@
 -- moved. Retiring the id here blocks it in every policy and RPC at once.
 CREATE SCHEMA IF NOT EXISTS private;
 
--- rekeyed_to records where rekey_user moved the id's rows, so deleting the
--- old id still finds them
+-- rekeyed_to records where rekey_user moved the id's rows: it pins retries to
+-- the same destination and makes delete_user_data refuse the old id
 CREATE TABLE private.retired_user_ids (
   user_id text PRIMARY KEY,
   rekeyed_to text,
@@ -699,6 +699,7 @@ SET search_path = public
 AS $$
 DECLARE
   v_session_id uuid;
+  v_session_user_id text;
   v_plan_id uuid;
   v_exercise RECORD;
   v_session_exercise_id uuid;
@@ -716,13 +717,19 @@ BEGIN
   END IF;
 
   LOOP
-    -- Resume the open session if there already is one
-    SELECT ws.id INTO v_session_id
+    -- Resume the open session if there already is one. Its owner is checked
+    -- again: if the caller's id was retired after the check above, the
+    -- session now belongs to another id
+    SELECT ws.id, ws.user_id INTO v_session_id, v_session_user_id
     FROM public.workout_sessions ws
     WHERE ws.workout_id = p_workout_id
       AND ws.finished_at IS NULL;
 
     IF v_session_id IS NOT NULL THEN
+      IF v_session_user_id IS DISTINCT FROM public.current_user_id() THEN
+        RAISE EXCEPTION 'Workout not found or not authorized';
+      END IF;
+
       RETURN v_session_id;
     END IF;
 
@@ -867,8 +874,10 @@ $$;
 -- the existing ON DELETE CASCADE foreign keys inside the public schema.
 -- Calling it again is a no-op.
 --
--- If the id was rekeyed, the ids it was rekeyed to are deleted too, so a
--- deletion requested with a legacy token still removes the moved rows.
+-- An id that was rekeyed away is refused (SQLSTATE 55000): its rows and
+-- its account now live under the new id, so deleting only the old account
+-- would leave a live account without data, and deleting only the data would
+-- leave a live account behind. The User deletes the new account instead.
 --
 -- The User-owned tables and their children are locked against writes first,
 -- so requests already in flight finish before the delete and later ones wait for the commit; by then
@@ -880,8 +889,6 @@ LANGUAGE plpgsql
 SECURITY DEFINER
 SET search_path = ''
 AS $$
-DECLARE
-  v_ids text[];
 BEGIN
   IF delete_user_data.user_id IS NULL OR delete_user_data.user_id = '' THEN
     RAISE EXCEPTION 'user_id is required';
@@ -894,33 +901,31 @@ BEGIN
     public.messages
     IN SHARE ROW EXCLUSIVE MODE;
 
-  -- The id plus every id its rows were rekeyed to (read after the lock, so a
-  -- rekey that committed first is followed)
-  WITH RECURSIVE ids(id) AS (
-    SELECT delete_user_data.user_id
-    UNION
-    SELECT r.rekeyed_to
-    FROM private.retired_user_ids r
-    JOIN ids ON r.user_id = ids.id
-    WHERE r.rekeyed_to IS NOT NULL
-  )
-  SELECT array_agg(id) INTO v_ids FROM ids;
+  -- Checked after the lock, so a rekey that committed first is seen
+  IF EXISTS (
+    SELECT 1 FROM private.retired_user_ids r
+    WHERE r.user_id = delete_user_data.user_id
+      AND r.rekeyed_to IS NOT NULL
+  ) THEN
+    RAISE EXCEPTION 'User % was rekeyed', delete_user_data.user_id
+      USING ERRCODE = '55000';
+  END IF;
 
   INSERT INTO private.retired_user_ids (user_id)
-  SELECT unnest(v_ids)
+  VALUES (delete_user_data.user_id)
   ON CONFLICT DO NOTHING;
 
   DELETE FROM public.workout_sessions ws
-  WHERE ws.user_id = ANY (v_ids);
+  WHERE ws.user_id = delete_user_data.user_id;
 
   DELETE FROM public.plans p
-  WHERE p.user_id = ANY (v_ids);
+  WHERE p.user_id = delete_user_data.user_id;
 
   DELETE FROM public.conversations c
-  WHERE c.user_id = ANY (v_ids);
+  WHERE c.user_id = delete_user_data.user_id;
 
   DELETE FROM public.profiles pr
-  WHERE pr.user_id = ANY (v_ids);
+  WHERE pr.user_id = delete_user_data.user_id;
 END;
 $$;
 
@@ -930,12 +935,11 @@ $$;
 -- Moves every row of one User from old_id to new_id. A function call is a
 -- single transaction, so either every table moves or none does. Other Users
 -- are untouched, and it refuses to merge into a new_id that already owns
--- rows. Rerunning after a successful call is a no-op (no rows are left under
--- old_id).
+-- rows. Rerunning the same call after success is a no-op.
 --
 -- old_id is retired with a pointer to new_id, so a still-valid legacy token
--- can't write rows the rekey would miss and deleting old_id later still
--- deletes the moved rows. The User-owned tables and their children are
+-- can't write rows the rekey would miss, and deleting old_id later is
+-- refused rather than leaving the new account behind. The User-owned tables and their children are
 -- locked against writes first, so requests in flight finish before the move.
 -- A retired new_id is only accepted when this call reverses its own rekey
 -- (a rollback to the legacy id); it is then un-retired.
@@ -996,14 +1000,9 @@ BEGIN
       USING ERRCODE = '23505';
   END IF;
 
-  -- Never merge two Users: refuse when the new id already owns rows and
-  -- there is still something to move (a rerun after success moves nothing)
+  -- Never merge two Users: refuse a new id that already owns rows (an exact
+  -- retry after success has already returned above)
   IF (
-    EXISTS (SELECT 1 FROM public.profiles WHERE user_id = rekey_user.old_id)
-    OR EXISTS (SELECT 1 FROM public.plans WHERE user_id = rekey_user.old_id)
-    OR EXISTS (SELECT 1 FROM public.workout_sessions WHERE user_id = rekey_user.old_id)
-    OR EXISTS (SELECT 1 FROM public.conversations WHERE user_id = rekey_user.old_id)
-  ) AND (
     EXISTS (SELECT 1 FROM public.profiles WHERE user_id = rekey_user.new_id)
     OR EXISTS (SELECT 1 FROM public.plans WHERE user_id = rekey_user.new_id)
     OR EXISTS (SELECT 1 FROM public.workout_sessions WHERE user_id = rekey_user.new_id)

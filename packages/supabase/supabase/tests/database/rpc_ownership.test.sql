@@ -4,7 +4,7 @@
 -- Run with `pnpm db test:db` (supabase test db).
 begin;
 
-select plan(24);
+select plan(25);
 
 -- ------------------------------------------------------------
 -- Fixtures (as postgres, bypassing RLS): User A owns everything
@@ -30,6 +30,14 @@ insert into public.workout_exercise_sets
   (workout_exercise_id, "order", reps_recommended, weight_recommended, rest_recommended)
 values
   ('f2c00000-0000-0000-0000-000000000001', 1, 5, 100, 120);
+
+-- A second workout of User A whose open session belongs to another id, as
+-- after a rekey that committed while start_workout_session was running
+insert into public.workouts (id, plan_id, "order", name, description) values
+  ('f2b00000-0000-0000-0000-000000000002', 'f2a00000-0000-0000-0000-000000000001', 2, 'A Day 2', 'Push');
+
+insert into public.workout_sessions (workout_id, plan_id, user_id, started_at) values
+  ('f2b00000-0000-0000-0000-000000000002', 'f2a00000-0000-0000-0000-000000000001', 'user_2RpcElsewhere000000000', now());
 
 insert into public.workout_sessions (id, workout_id, plan_id, user_id, started_at) values
   ('f2500000-0000-0000-0000-000000000001', null,
@@ -207,6 +215,12 @@ select is(
    where id = current_setting('test.first_session')::uuid),
   'user_2RpcOwnerA0000000000000',
   'start_workout_session keys the Workout Session by the caller''s sub'
+);
+
+select throws_ok(
+  $$select public.start_workout_session('f2b00000-0000-0000-0000-000000000002')$$,
+  'P0001', 'Workout not found or not authorized',
+  'start_workout_session doesn''t resume an open session owned by another id'
 );
 
 select lives_ok(

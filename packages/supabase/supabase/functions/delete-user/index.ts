@@ -5,6 +5,9 @@ import { withSupabase } from "npm:@supabase/server";
 const SUPABASE_USER_ID =
   /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i;
 
+// delete_user_data refuses an id that rekey_user moved to a new User id
+const ACCOUNT_MIGRATED = "55000";
+
 export default {
   fetch: withSupabase({ auth: "user" }, async (_req, ctx) => {
     const userId = ctx.userClaims?.id;
@@ -28,6 +31,15 @@ export default {
       "delete_user_data",
       { user_id: userId }
     );
+
+    // The account was migrated: its data and its live account are under the
+    // new User id, so it has to be deleted from there
+    if (dataError?.code === ACCOUNT_MIGRATED) {
+      return Response.json(
+        { error: "This account was migrated; delete it from the updated app" },
+        { status: 409 }
+      );
+    }
 
     if (dataError) {
       return Response.json({ error: dataError.message }, { status: 500 });

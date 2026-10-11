@@ -370,26 +370,34 @@ select is(
 
 reset role;
 
--- Deleting an id that was rekeyed away also deletes the rows it moved to:
--- user_2Rekeyed... was rekeyed back to the legacy id just above
-select is(pg_temp.owned_rows('7a1b2c3d-0000-4000-8000-000000000003'), 10, 'the legacy id owns the rows before the delete');
-
+-- Deleting an id that was rekeyed away is refused: its rows (and account)
+-- now live under the legacy id it was rolled back to
 set local role service_role;
 
-select lives_ok(
+select throws_ok(
   $$select public.delete_user_data('user_2Rekeyed0000000000000000')$$,
-  'service_role can delete a User by an id that was rekeyed away'
+  '55000', 'User user_2Rekeyed0000000000000000 was rekeyed',
+  'delete_user_data refuses an id that was rekeyed away'
 );
 
 reset role;
 
 select is(
   pg_temp.owned_rows('7a1b2c3d-0000-4000-8000-000000000003'),
-  0,
-  'deleting the rekeyed-away id removes the rows under the id they moved to'
+  10,
+  'the refused delete left the moved rows alone'
 );
 
-select is(pg_temp.owned_rows('user_2Bystander000000000000'), 9, 'the other User keeps their rows (minus the Profile removed above)');
+-- A destination that owns rows is refused even when the source owns nothing
+set local role service_role;
+
+select throws_ok(
+  $$select public.rekey_user('legacy-empty-source', '7a1b2c3d-0000-4000-8000-000000000003')$$,
+  '23505', 'User 7a1b2c3d-0000-4000-8000-000000000003 already owns data',
+  'rekey_user refuses an occupied destination when the source is empty'
+);
+
+reset role;
 
 -- A -> B -> C: retrying A -> B leaves B -> C alone
 insert into public.profiles (user_id, gender, age, weight, height) values
@@ -432,14 +440,20 @@ select throws_ok(
 set local role service_role;
 set local request.jwt.claims = '{"role":"service_role"}';
 
-select lives_ok(
+select throws_ok(
   $$select public.delete_user_data('legacy-chain-a')$$,
-  'deleting A after the chain succeeds'
+  '55000', 'User legacy-chain-a was rekeyed',
+  'deleting A after A -> B -> C is refused'
+);
+
+select lives_ok(
+  $$select public.delete_user_data('user_2ChainC0000000000000000')$$,
+  'deleting the current id C succeeds'
 );
 
 reset role;
 
-select is(pg_temp.owned_rows('user_2ChainC0000000000000000'), 0, 'deleting A follows A -> B -> C');
+select is(pg_temp.owned_rows('user_2ChainC0000000000000000'), 0, 'deleting C removes the chain''s rows');
 select is(pg_temp.owned_rows('legacy-chain-d'), 1, 'the unrelated User kept their row');
 
 select * from finish();
