@@ -2,6 +2,7 @@ import type { Gender, MeasurementSystem, Profile } from "@fitme/core";
 import { createMutation } from "react-query-kit";
 import { supabase } from "@/lib/supabase";
 import { getClerk, getCurrentUserId } from "~/lib/clerk";
+import { splitFullName } from "~/lib/user-name";
 
 export interface StoreProfileData {
   age: number;
@@ -37,19 +38,6 @@ export const useStoreProfileMutation = createMutation<
     return profile as unknown as Profile;
   },
 });
-
-/** Splits a full name on its first space into Clerk's first and last name. */
-const splitName = (name: string) => {
-  const trimmed = name.trim();
-  const separator = trimmed.indexOf(" ");
-  if (separator === -1) {
-    return { firstName: trimmed, lastName: "" };
-  }
-  return {
-    firstName: trimmed.slice(0, separator),
-    lastName: trimmed.slice(separator + 1).trim(),
-  };
-};
 
 export interface UpdateProfileData extends StoreProfileData {
   name: string;
@@ -101,7 +89,7 @@ export const useUpdateProfileMutation = createMutation<
     // The name lives in Clerk, not in the profiles table
     const { user } = getClerk();
     if (user && name !== (user.fullName ?? "")) {
-      await user.update(splitName(name));
+      await user.update(splitFullName(name));
     }
 
     return profile;

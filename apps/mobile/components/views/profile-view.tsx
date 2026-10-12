@@ -9,7 +9,9 @@ import { useLogoutMutation } from "~/hooks/mutations/auth";
 import { useCustomerInfoQuery, useIsProQuery } from "~/hooks/revenueCat";
 import { Heart } from "~/lib/icons/Heart";
 import { Trophy } from "~/lib/icons/Trophy";
+import { UserRound } from "~/lib/icons/UserRound";
 import { Volleyball } from "~/lib/icons/Volleyball";
+import { getProfileIdentity } from "~/lib/user-name";
 import { Avatar, AvatarFallback } from "../ui/avatar";
 import { Card, CardContent } from "../ui/card";
 import { HStack } from "../ui/hstack";
@@ -27,8 +29,10 @@ const openAppStoreReview = () => Linking.openURL(APP_STORE_REVIEW_URL);
 
 export default function ProfileView() {
   const { user } = useUser();
-  const name = user?.fullName ?? "";
-  const email = user?.primaryEmailAddress?.emailAddress ?? "";
+  const { initial, subtitle, title } = getProfileIdentity({
+    email: user?.primaryEmailAddress?.emailAddress,
+    fullName: user?.fullName,
+  });
 
   // Clearing the cache and RevenueCat happens in AuthSync once Clerk signs out.
   const { mutateAsync: logout } = useLogoutMutation({
@@ -57,14 +61,20 @@ export default function ProfileView() {
     !!user && (
       <VStack className="grow items-stretch justify-between gap-4">
         <HStack className="items-center justify-start">
-          <Avatar alt={name}>
+          <Avatar alt={title}>
             <AvatarFallback>
-              <Text>{name.charAt(0)}</Text>
+              {initial ? (
+                <Text>{initial}</Text>
+              ) : (
+                <UserRound className="text-foreground" size={20} />
+              )}
             </AvatarFallback>
           </Avatar>
-          <VStack className="items-stretch gap-0">
-            <Text className="font-bold text-title-2">{name}</Text>
-            <Muted>{email}</Muted>
+          <VStack className="shrink items-stretch gap-0">
+            <Text className="font-bold text-title-2" numberOfLines={1}>
+              {title}
+            </Text>
+            {subtitle ? <Muted numberOfLines={1}>{subtitle}</Muted> : null}
           </VStack>
         </HStack>
 
