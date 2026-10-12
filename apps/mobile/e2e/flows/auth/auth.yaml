@@ -1,41 +1,86 @@
 appId: com.fitmeproject.ios
 ---
+# Clerk keeps its client token in the keychain, which clearState leaves alone
 - launchApp:
     clearState: true
+    clearKeychain: true
 
 - waitForAnimationToEnd
 
-# ===== REGISTER =====
+# Signed out, the protected Home tab redirects to the auth entry screen
 - assertVisible:
     text: "Welcome to Fitme!"
 
 - tapOn:
-    id: "name-input"
-- inputText: "Tony Stark"
-
-- tapOn:
-    id: "email-input"
-- inputText: "tony@stark.com"
-
-- tapOn:
-    id: "password-input"
-- inputText: "secret"
-
-- tapOn:
-    id: "register-button"
+    id: "login-here-link"
 
 - waitForAnimationToEnd
 
-# Lands on onboarding welcome — skip to home
+# ===== WRONG PASSWORD =====
+- tapOn:
+    id: "login-email-input"
+- waitForAnimationToEnd
+- inputText: ${E2E_USER_EMAIL}
+
+- tapOn:
+    id: "login-password-input"
+- waitForAnimationToEnd
+- inputText: "not-the-right-password"
+
+- tapOn:
+    id: "login-button"
+
 - extendedWaitUntil:
     visible:
-      text: "Get Started"
+      text: "Password is incorrect.*"
     timeout: 10000
+
+- launchApp:
+    clearState: true
+    clearKeychain: true
+
+- waitForAnimationToEnd
+
+- tapOn:
+    id: "login-here-link"
+
+- waitForAnimationToEnd
+
+# ===== LOGIN =====
+- runFlow: ../../subflows/sign-in.yaml
+
+# Lands on onboarding (no Profile yet) — skip to Home
+- extendedWaitUntil:
+    visible:
+      text: "Get Started|Not Now"
+    timeout: 15000
+
+- tapOn:
+    text: "Not Now"
+    optional: true
 
 - tapOn:
     text: "Skip"
 
 - waitForAnimationToEnd
+
+- assertVisible:
+    text: "Home"
+    enabled: true
+
+# ===== SESSION SURVIVES A RESTART =====
+- stopApp
+- launchApp
+
+- waitForAnimationToEnd
+
+- extendedWaitUntil:
+    visible:
+      text: "Home"
+    timeout: 15000
+
+- assertNotVisible:
+    text: "Welcome to Fitme!"
 
 # ===== LOGOUT =====
 - tapOn:
@@ -51,21 +96,8 @@ appId: com.fitmeproject.ios
 - assertVisible:
     text: "Welcome to Fitme!"
 
-# ===== LOGIN =====
-- tapOn:
-    id: "login-email-input"
-- waitForAnimationToEnd
-- inputText: "tony@stark.com"
-
-- tapOn:
-    id: "login-password-input"
-- waitForAnimationToEnd
-- inputText: "secret"
-
-- waitForAnimationToEnd
-
-- tapOn:
-    id: "login-button"
+# ===== LOGIN AGAIN =====
+- runFlow: ../../subflows/sign-in.yaml
 
 - waitForAnimationToEnd
 - assertVisible:

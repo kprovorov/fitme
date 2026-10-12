@@ -19,11 +19,11 @@ import {
 } from "@/components/chat";
 import { Icon } from "@/components/icon";
 import { useIsProQuery } from "~/hooks/revenueCat";
+import { getClerk } from "~/lib/clerk";
 import {
   getSelectedCoachModelId,
   useSelectedCoachModel,
 } from "~/lib/coach-model";
-import { supabase } from "~/lib/supabase";
 
 const SUPABASE_URL = process.env.EXPO_PUBLIC_SUPABASE_URL ?? "";
 
@@ -41,8 +41,8 @@ function useAIChat() {
       body: () => ({ model: getSelectedCoachModelId() }),
       fetch: expoFetch as unknown as typeof globalThis.fetch,
       headers: async () => {
-        const { data } = await supabase.auth.getSession();
-        return { Authorization: `Bearer ${data.session?.access_token ?? ""}` };
+        const token = await getClerk().session?.getToken();
+        return { Authorization: `Bearer ${token ?? ""}` };
       },
     }),
   });

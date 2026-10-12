@@ -1,3 +1,4 @@
+import { useUser } from "@clerk/expo";
 import { getMeasurementSystemLabel } from "@fitme/core";
 import { Link, Stack } from "expo-router";
 import { ScrollView } from "react-native";
@@ -6,11 +7,10 @@ import { HStack } from "~/components/ui/hstack";
 import { MenuList, MenuListItem } from "~/components/ui/menu-list";
 import { Text } from "~/components/ui/text";
 import { useDeleteUserMutation } from "~/hooks/mutations/auth";
-import { useCurrentUserQuery } from "~/hooks/queries/auth";
 import { useProfileQuery } from "~/hooks/queries/profiles";
 
 export default function SettingsScreen() {
-  const { data: user } = useCurrentUserQuery();
+  const { user } = useUser();
   const { data: profile } = useProfileQuery();
 
   const { mutateAsync: deleteUser, isPending } = useDeleteUserMutation();

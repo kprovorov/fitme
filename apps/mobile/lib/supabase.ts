@@ -1,32 +1,13 @@
-import { AppState, Platform } from "react-native";
 import "react-native-url-polyfill/auto";
-import AsyncStorage from "@react-native-async-storage/async-storage";
-import { createClient, processLock } from "@supabase/supabase-js";
+import { createClient } from "@supabase/supabase-js";
+import { getClerk } from "~/lib/clerk";
 
 export const supabaseUrl = process.env.EXPO_PUBLIC_SUPABASE_URL ?? "";
 export const supabaseAnonKey = process.env.EXPO_PUBLIC_SUPABASE_ANON_KEY ?? "";
 
+// Every Data API call and edge-function invocation carries the Clerk session
+// token, which Supabase trusts through third-party auth. Clerk refreshes the
+// token itself; signed out, requests go with the anon key alone.
 export const supabase = createClient(supabaseUrl, supabaseAnonKey, {
-  auth: {
-    ...(Platform.OS === "web" ? {} : { storage: AsyncStorage }),
-    autoRefreshToken: true,
-    detectSessionInUrl: false,
-    lock: processLock,
-    persistSession: true,
-  },
+  accessToken: async () => (await getClerk().session?.getToken()) ?? null,
 });
-
-// Tells Supabase Auth to continuously refresh the session automatically
-// if the app is in the foreground. When this is added, you will continue
-// to receive `onAuthStateChange` events with the `TOKEN_REFRESHED` or
-// `SIGNED_OUT` event if the user's session is terminated. This should
-// only be registered once.
-if (Platform.OS !== "web") {
-  AppState.addEventListener("change", (state) => {
-    if (state === "active") {
-      supabase.auth.startAutoRefresh();
-    } else {
-      supabase.auth.stopAutoRefresh();
-    }
-  });
-}

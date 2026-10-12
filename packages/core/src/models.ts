@@ -55,12 +55,6 @@ export interface Timestamped {
 
 export type Model = Identifiable & Timestamped;
 
-export interface User {
-  email: string;
-  id: string; // User id (JWT sub claim)
-  name: string;
-}
-
 export type Profile = Model & {
   user_id: string; // User id (JWT sub claim)
   gender: Gender;

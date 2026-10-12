@@ -1,3 +1,4 @@
+import { useUser } from "@clerk/expo";
 import { useCallback, useState } from "react";
 import { RefreshControl, ScrollView } from "react-native";
 import Purchases from "react-native-purchases";
@@ -10,6 +11,7 @@ import { useQueryClient } from "@tanstack/react-query";
 export default function ProfileScreen() {
   const [refreshing, setRefreshing] = useState(false);
   const queryClient = useQueryClient();
+  const { user } = useUser();
 
   const onRefresh = useCallback(async () => {
     setRefreshing(true);
@@ -17,9 +19,7 @@ export default function ProfileScreen() {
       await Purchases.invalidateCustomerInfoCache();
     }
     await Promise.all([
-      queryClient.refetchQueries({
-        queryKey: ["user"],
-      }),
+      user?.reload(),
       queryClient.refetchQueries({
         queryKey: ["profile"],
       }),
@@ -31,7 +31,7 @@ export default function ProfileScreen() {
       }),
     ]);
     setRefreshing(false);
-  }, [queryClient.refetchQueries]);
+  }, [queryClient.refetchQueries, user]);
 
   return (
     <ScrollView
