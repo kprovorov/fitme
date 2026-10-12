@@ -1,3 +1,4 @@
+import { useUser } from "@clerk/expo";
 import type { Plan } from "@fitme/core";
 import { Stack, useRouter } from "expo-router";
 import { useCallback, useEffect, useState } from "react";
@@ -12,7 +13,6 @@ import { Button } from "~/components/ui/button";
 import { Text } from "~/components/ui/text";
 import { H1 } from "~/components/ui/typography";
 import { VStack } from "~/components/ui/vstack";
-import { useCurrentUserQuery } from "~/hooks/queries/auth";
 import { usePlansQuery } from "~/hooks/queries/plans";
 import { useProfileQuery } from "~/hooks/queries/profiles";
 import { storage } from "~/lib/mmkv";
@@ -22,7 +22,7 @@ const IS_E2E = process.env.EXPO_PUBLIC_E2E_ENABLED === "true";
 import HomeView from "~/components/views/home-view";
 
 export default function HomeScreen() {
-  const { data: user } = useCurrentUserQuery();
+  const { user } = useUser();
   const { data: profile } = useProfileQuery();
   const [activePlan, setActivePlan] = useState<Plan | null>(null);
   const [refreshing, setRefreshing] = useState(false);

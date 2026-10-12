@@ -6,8 +6,6 @@ import {
 } from "@expo-google-fonts/nunito-sans";
 import { PortalHost } from "@rn-primitives/portal";
 import * as Sentry from "@sentry/react-native";
-import { QueryClient } from "@tanstack/react-query";
-import { supabase } from "@/lib/supabase";
 import "expo-dev-client";
 import { useFonts } from "expo-font";
 import * as SplashScreen from "expo-splash-screen";
@@ -38,7 +36,16 @@ Sentry.init({
 // Prevent the splash screen from auto-hiding before asset loading is complete.
 SplashScreen.preventAutoHideAsync();
 
-const queryClient = new QueryClient();
+// Configured before anything renders, so the signed-in User can be logged in
+// to RevenueCat as soon as Clerk loads.
+if (!IS_E2E) {
+  const revenueCatApiKey = Platform.select({
+    android: process.env.EXPO_PUBLIC_REVENUECAT_ANDROID_API_KEY,
+    ios: process.env.EXPO_PUBLIC_REVENUECAT_IOS_API_KEY,
+    web: process.env.EXPO_PUBLIC_REVENUECAT_WEB_API_KEY,
+  });
+  Purchases.configure({ apiKey: revenueCatApiKey ?? "" });
+}
 
 export default function RootLayout() {
   const [loaded] = useFonts({
@@ -47,55 +54,9 @@ export default function RootLayout() {
     NunitoSans_700Bold,
   });
 
-  // biome-ignore lint/complexity/noExcessiveCognitiveComplexity: Refactor later
   useEffect(() => {
     if (loaded) {
       SplashScreen.hideAsync();
-
-      if (!IS_E2E) {
-        if (Platform.OS === "web") {
-          Purchases.configure({
-            apiKey: process.env.EXPO_PUBLIC_REVENUECAT_WEB_API_KEY ?? "",
-          });
-        } else if (Platform.OS === "ios") {
-          Purchases.configure({
-            apiKey: process.env.EXPO_PUBLIC_REVENUECAT_IOS_API_KEY ?? "",
-          });
-        } else if (Platform.OS === "android") {
-          Purchases.configure({
-            apiKey: process.env.EXPO_PUBLIC_REVENUECAT_ANDROID_API_KEY ?? "",
-          });
-        }
-      }
-
-      const {
-        data: { subscription },
-      } = supabase.auth.onAuthStateChange(async (event, session) => {
-        if (event === "SIGNED_IN" || event === "TOKEN_REFRESHED") {
-          queryClient.invalidateQueries({ queryKey: ["user"] });
-          queryClient.invalidateQueries({ queryKey: ["profile"] });
-          if (!IS_E2E && session?.user?.id) {
-            await Purchases.logIn(session.user.id);
-            queryClient.invalidateQueries({ queryKey: ["rc-is-pro"] });
-          }
-        }
-        if (event === "SIGNED_OUT") {
-          if (!IS_E2E) {
-            await Purchases.logOut();
-          }
-          queryClient.clear();
-        }
-      });
-
-      if (!IS_E2E) {
-        Purchases.addCustomerInfoUpdateListener(async () => {
-          await queryClient.invalidateQueries({
-            queryKey: ["rc-is-pro"],
-          });
-        });
-      }
-
-      return () => subscription.unsubscribe();
     }
   }, [loaded]);
 

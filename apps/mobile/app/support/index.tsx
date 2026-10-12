@@ -8,7 +8,6 @@ import { HStack } from "~/components/ui/hstack";
 import { Text } from "~/components/ui/text";
 import { P } from "~/components/ui/typography";
 import { VStack } from "~/components/ui/vstack";
-import { useCurrentUserQuery } from "~/hooks/queries/auth";
 
 const openSupportEmail = () =>
   Linking.openURL("mailto:support@fitmeproject.com");
@@ -19,8 +18,6 @@ const openThreads = () =>
   Linking.openURL("https://www.threads.net/@fitmeprojectcom");
 
 export default function SupportScreen() {
-  const { data: _user } = useCurrentUserQuery();
-
   return (
     <>
       <Stack.Screen

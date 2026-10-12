@@ -1,6 +1,7 @@
 import type { Gender, MeasurementSystem, Profile } from "@fitme/core";
 import { createMutation } from "react-query-kit";
 import { supabase } from "@/lib/supabase";
+import { getClerk, getCurrentUserId } from "~/lib/clerk";
 
 export interface StoreProfileData {
   age: number;
@@ -11,22 +12,6 @@ export interface StoreProfileData {
   weight: number;
 }
 
-const getAuthUser = async () => {
-  const {
-    data: { user },
-    error,
-  } = await supabase.auth.getUser();
-
-  if (error) {
-    throw error;
-  }
-  if (!user) {
-    throw new Error("Not authenticated");
-  }
-
-  return user;
-};
-
 export const useStoreProfileMutation = createMutation<
   Profile,
   StoreProfileData
@@ -35,12 +20,12 @@ export const useStoreProfileMutation = createMutation<
     measurementSystem,
     ...data
   }: StoreProfileData): Promise<Profile> => {
-    const user = await getAuthUser();
+    const userId = getCurrentUserId();
 
     const { data: profile, error } = await supabase
       .from("profiles")
       .upsert(
-        { ...data, measurement_system: measurementSystem, user_id: user.id },
+        { ...data, measurement_system: measurementSystem, user_id: userId },
         { onConflict: "user_id" }
       )
       .select()
@@ -52,6 +37,19 @@ export const useStoreProfileMutation = createMutation<
     return profile as unknown as Profile;
   },
 });
+
+/** Splits a full name on its first space into Clerk's first and last name. */
+const splitName = (name: string) => {
+  const trimmed = name.trim();
+  const separator = trimmed.indexOf(" ");
+  if (separator === -1) {
+    return { firstName: trimmed, lastName: "" };
+  }
+  return {
+    firstName: trimmed.slice(0, separator),
+    lastName: trimmed.slice(separator + 1).trim(),
+  };
+};
 
 export interface UpdateProfileData extends StoreProfileData {
   name: string;
@@ -66,14 +64,14 @@ export const useUpdateProfileMutation = createMutation<
     name,
     ...data
   }: UpdateProfileData): Promise<Profile> => {
-    const user = await getAuthUser();
+    const userId = getCurrentUserId();
 
     let profile: Profile;
 
     const { data: updated, error: updateError } = await supabase
       .from("profiles")
       .update(data)
-      .eq("user_id", user.id)
+      .eq("user_id", userId)
       .select()
       .maybeSingle();
     if (updateError) {
@@ -90,7 +88,7 @@ export const useUpdateProfileMutation = createMutation<
         .insert({
           ...data,
           measurement_system: measurementSystem,
-          user_id: user.id,
+          user_id: userId,
         })
         .select()
         .single();
@@ -100,16 +98,10 @@ export const useUpdateProfileMutation = createMutation<
       profile = inserted as unknown as Profile;
     }
 
-    // The name lives in auth metadata, not in the profiles table
-    const currentName =
-      user.user_metadata?.name ?? user.user_metadata?.full_name;
-    if (name !== currentName) {
-      const { error: userError } = await supabase.auth.updateUser({
-        data: { name },
-      });
-      if (userError) {
-        throw userError;
-      }
+    // The name lives in Clerk, not in the profiles table
+    const { user } = getClerk();
+    if (user && name !== (user.fullName ?? "")) {
+      await user.update(splitName(name));
     }
 
     return profile;

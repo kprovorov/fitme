@@ -2,6 +2,7 @@ name: E2E Tests
 
 on:
   workflow_call:
+  workflow_dispatch:
 
 jobs:
   e2e:
@@ -157,9 +158,17 @@ jobs:
           xcrun simctl install "$UDID" "$APP"
           echo "SIM_UDID=$UDID" >> $GITHUB_ENV
 
+      # The flows sign in a User pre-created on the Clerk development instance
+      # with a +clerk_test address (test mode's fixed code is 424242).
       - name: Run E2E tests
         working-directory: apps/mobile
-        run: pnpm test:e2e -- --format junit --output e2e-results.xml
+        run: |
+          pnpm test:e2e -- --format junit --output e2e-results.xml \
+            -e E2E_USER_EMAIL="$E2E_USER_EMAIL" \
+            -e E2E_USER_PASSWORD="$E2E_USER_PASSWORD"
+        env:
+          E2E_USER_EMAIL: ${{ vars.E2E_USER_EMAIL }}
+          E2E_USER_PASSWORD: ${{ secrets.E2E_USER_PASSWORD }}
 
       - name: Upload test results
         uses: actions/upload-artifact@v4

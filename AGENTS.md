@@ -60,7 +60,7 @@ pnpm --filter @fitme/mobile exec jest --testPathPattern="<file>"
 React Native / Expo app using **file-based routing** via `expo-router`:
 
 - `app/` — Expo Router routes (file-based navigation)
-  - `_layout.tsx` — Root layout: initializes fonts, Sentry, RevenueCat, Supabase auth listener, and QueryClient
+  - `_layout.tsx` — Root layout: initializes fonts, Sentry and RevenueCat
   - `(tabs)/` — Bottom tab navigator (Home, History, Library, Profile)
   - `auth/` — Login/Register screens (presented as fullscreen modal)
   - `onboarding/` — Post-registration onboarding flow (fullscreen modal)
@@ -69,14 +69,15 @@ React Native / Expo app using **file-based routing** via `expo-router`:
   - `exercises/[exerciseId]/` — Exercise detail view
 - `components/` — Reusable UI components
   - `ui/` — Primitive UI components (Button, Input, Dialog, etc.) built on `@rn-primitives`
-  - `providers.tsx` — Wraps app with QueryClientProvider, ThemeProvider, KeyboardProvider
-  - `authenticated.tsx` — Auth guard component: redirects to `/auth/register` if no user
+  - `providers.tsx` — Wraps app with ClerkProvider (secure-store token cache), QueryClientProvider, ThemeProvider, KeyboardProvider; renders `auth-sync.tsx`, which identifies the Clerk User to Sentry/RevenueCat/Segment and clears the query cache on sign-out
+  - `authenticated.tsx` — Auth guard component: waits for Clerk to load, redirects to `/auth/register` when signed out
 - `hooks/` — Data layer
   - `queries/` — Read queries using `react-query-kit`'s `createQuery`
   - `mutations/` — Write mutations using `react-query-kit`'s `createMutation`
   - `revenueCat.ts` — RevenueCat subscription queries
 - `lib/` — App-specific utilities
-  - `supabase.ts` — Supabase client (uses AsyncStorage for session persistence)
+  - `supabase.ts` — Supabase client whose access token is the Clerk session token (no Supabase Auth session)
+  - `clerk.ts` — Clerk publishable key, `getClerk()` for code outside React, `getCurrentUserId()`, `getClerkErrorMessage()`
   - `mmkv.ts` — MMKV storage instance
   - `utils.ts` — `cn()` class merger (tailwind-merge with the HIG font scale)
   - `constants.ts`, `segment.ts`, `useColorScheme.tsx`
@@ -143,7 +144,7 @@ Platform-agnostic code shared by both apps: `models.ts` (User, Profile, Plan, Wo
 
 **Shared types**: Import domain types from `@fitme/core`, never from an app's `lib/`. Import row types from `@fitme/supabase` (`Tables<"plans">`).
 
-**Authentication (mobile)**: `useCurrentUserQuery` (queryKey `["user"]`) fetches the session from Supabase and the user's profile. Auth state changes in `_layout.tsx` invalidate `["user"]` or clear the QueryClient on sign-out. The `<Authenticated>` component wraps protected screens and redirects unauthenticated users.
+**Authentication (mobile)**: Clerk (`@clerk/expo`, hooks-based custom flows on the existing screens). Identity (id, email, name) comes from Clerk's `useUser`; the Profile from `useProfileQuery`. Never call Supabase Auth APIs. `@clerk/expo` is excluded from Expo autolinking in `package.json` (its native module needs iOS 17 and is only used by Clerk's prebuilt native views); the JS SDK treats it as optional. The `<Authenticated>` component wraps protected screens and redirects signed-out users. E2E flows sign in a User pre-created on the Clerk development instance (`E2E_USER_EMAIL` variable / `E2E_USER_PASSWORD` secret, passed to Maestro with `-e`).
 
 **Styling (mobile)**: uniwind (Tailwind CSS for React Native). CSS variables are defined in `apps/mobile/global.css` for theming. Custom spacing tokens: `xs`, `sm`, `md`, `lg`. Custom font families: `nunito-sans-regular/semibold/bold`, `ibm-plex-mono`.
 

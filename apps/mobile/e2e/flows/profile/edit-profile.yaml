@@ -2,35 +2,23 @@ appId: com.fitmeproject.ios
 ---
 - launchApp:
     clearState: true
+    clearKeychain: true
 
 - waitForAnimationToEnd
 
-# ===== REGISTER =====
-- assertVisible:
-    text: "Welcome to Fitme!"
-
+# ===== LOGIN =====
 - tapOn:
-    id: "name-input"
-- inputText: "Pepper Potts"
-
-- tapOn:
-    id: "email-input"
-- inputRandomEmail
-
-- tapOn:
-    id: "password-input"
-- inputText: "secret"
-
-- tapOn:
-    id: "register-button"
+    id: "login-here-link"
 
 - waitForAnimationToEnd
 
-# Lands on onboarding welcome — iOS may offer to save the password first
+- runFlow: ../../subflows/sign-in.yaml
+
+# Lands on onboarding — iOS may offer to save the password first
 - extendedWaitUntil:
     visible:
       text: "Get Started|Not Now"
-    timeout: 10000
+    timeout: 15000
 
 - tapOn:
     text: "Not Now"
