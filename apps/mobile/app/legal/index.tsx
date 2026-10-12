@@ -1,5 +1,3 @@
-import * as Sentry from "@sentry/react-native";
-import { useQueryClient } from "@tanstack/react-query";
 import { Link, router, Stack } from "expo-router";
 import { ScrollView } from "react-native";
 import { AlertDialog } from "~/components/ui/alert-dialog";
@@ -7,17 +5,10 @@ import { MenuList, MenuListItem } from "~/components/ui/menu-list";
 import { Separator } from "~/components/ui/separator";
 import { Text } from "~/components/ui/text";
 import { useDeleteUserMutation } from "~/hooks/mutations/auth";
-import { useCurrentUserQuery } from "~/hooks/queries/auth";
 
 export default function LegalScreen() {
-  const queryClient = useQueryClient();
-
-  const { data: _user } = useCurrentUserQuery();
-
   const { mutateAsync: deleteUser } = useDeleteUserMutation({
     onSuccess: () => {
-      Sentry.setUser(null);
-      queryClient.clear();
       router.replace("/auth/login");
     },
   });

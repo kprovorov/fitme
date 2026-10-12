@@ -21,9 +21,9 @@ export type LoginFormValues = z.infer<typeof formSchema>;
 
 const formSchema = z.object({
   email: z.string().email(),
-  password: z.string().min(6, {
-    message: "Password must be at least 6 characters.",
-  }),
+  // Clerk checks the password; existing Users may have one shorter than
+  // Clerk's minimum for new passwords.
+  password: z.string().min(1, { message: "Enter your password." }),
 });
 
 export default function LoginForm({ onSubmit, errors }: LoginFormProps) {

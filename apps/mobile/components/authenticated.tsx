@@ -1,15 +1,15 @@
+import { useAuth } from "@clerk/expo";
 import { Redirect } from "expo-router";
 import { ActivityIndicator, View } from "react-native";
-import { useCurrentUserQuery } from "~/hooks/queries/auth";
 
 interface AuthenticatedProps {
   children: React.ReactNode;
 }
 
 export default function Authenticated({ children }: AuthenticatedProps) {
-  const { data: user, isLoading, isFetched } = useCurrentUserQuery();
+  const { isLoaded, isSignedIn } = useAuth();
 
-  if (isLoading) {
+  if (!isLoaded) {
     return (
       <View className="flex-1 items-center justify-center">
         <ActivityIndicator color="#ffffff" size="large" />
@@ -17,7 +17,7 @@ export default function Authenticated({ children }: AuthenticatedProps) {
     );
   }
 
-  if (!user && isFetched) {
+  if (!isSignedIn) {
     return <Redirect href="/auth/register" />;
   }
 

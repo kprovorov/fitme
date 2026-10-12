@@ -1,35 +1,20 @@
 import type { MeasurementSystem } from "@fitme/core";
 import { createMutation } from "react-query-kit";
 import { supabase } from "@/lib/supabase";
+import { getClerk } from "~/lib/clerk";
 import { IS_E2E } from "~/lib/constants";
 import { segmentClient } from "~/lib/segment";
 
-export interface LoginData {
-  email: string;
-  password: string;
-}
-
-export const useLoginMutation = createMutation<void, LoginData>({
-  mutationFn: async (data: LoginData): Promise<void> => {
-    const { error } = await supabase.auth.signInWithPassword({
-      email: data.email,
-      password: data.password,
-    });
-    if (error) {
-      throw error;
-    }
-    if (!IS_E2E) {
-      segmentClient.track("User Logged In");
-    }
-  },
-});
+// Registration and password reset move to Clerk in their own changes; until
+// then they fail with this message instead of calling Supabase Auth.
+const notAvailableYet = (): Promise<void> =>
+  Promise.reject(
+    new Error("This isn't available yet. Please try again later.")
+  );
 
 export const useLogoutMutation = createMutation<void, void>({
   mutationFn: async (): Promise<void> => {
-    const { error } = await supabase.auth.signOut();
-    if (error) {
-      throw error;
-    }
+    await getClerk().signOut();
     if (!IS_E2E) {
       segmentClient.track("User Logged Out");
       segmentClient.reset();
@@ -45,24 +30,7 @@ export interface RegisterData {
 }
 
 export const useRegisterMutation = createMutation<void, RegisterData>({
-  mutationFn: async (data: RegisterData): Promise<void> => {
-    const { error } = await supabase.auth.signUp({
-      email: data.email,
-      options: {
-        data: {
-          measurement_system: data.measurement_system,
-          name: data.name,
-        },
-      },
-      password: data.password,
-    });
-    if (error) {
-      throw error;
-    }
-    if (!IS_E2E) {
-      segmentClient.track("User Registered");
-    }
-  },
+  mutationFn: (_data: RegisterData): Promise<void> => notAvailableYet(),
 });
 
 export interface ForgotPasswordData {
@@ -73,17 +41,7 @@ export const useForgotPasswordMutation = createMutation<
   void,
   ForgotPasswordData
 >({
-  mutationFn: async (data: ForgotPasswordData): Promise<void> => {
-    const { error } = await supabase.auth.resetPasswordForEmail(data.email, {
-      redirectTo: `${process.env.EXPO_PUBLIC_APP_URL}/auth/reset-password`,
-    });
-    if (error) {
-      throw error;
-    }
-    if (!IS_E2E) {
-      segmentClient.track("Password Reset Requested");
-    }
-  },
+  mutationFn: (_data: ForgotPasswordData): Promise<void> => notAvailableYet(),
 });
 
 export interface ResetPasswordData {
@@ -92,17 +50,7 @@ export interface ResetPasswordData {
 
 export const useResetPasswordMutation = createMutation<void, ResetPasswordData>(
   {
-    mutationFn: async (data: ResetPasswordData): Promise<void> => {
-      const { error } = await supabase.auth.updateUser({
-        password: data.password,
-      });
-      if (error) {
-        throw error;
-      }
-      if (!IS_E2E) {
-        segmentClient.track("Password Reset Completed");
-      }
-    },
+    mutationFn: (_data: ResetPasswordData): Promise<void> => notAvailableYet(),
   }
 );
 
@@ -112,6 +60,6 @@ export const useDeleteUserMutation = createMutation<void, void>({
     if (error) {
       throw error;
     }
-    await supabase.auth.signOut();
+    await getClerk().signOut();
   },
 });

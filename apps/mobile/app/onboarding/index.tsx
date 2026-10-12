@@ -1,3 +1,4 @@
+import { useUser } from "@clerk/expo";
 import { Link, router, Stack } from "expo-router";
 import { useCallback } from "react";
 import { SafeAreaView } from "react-native-safe-area-context";
@@ -6,11 +7,10 @@ import { Button } from "~/components/ui/button";
 import { Text } from "~/components/ui/text";
 import { H2 } from "~/components/ui/typography";
 import { VStack } from "~/components/ui/vstack";
-import { useCurrentUserQuery } from "~/hooks/queries/auth";
 import { storage } from "~/lib/mmkv";
 
 export default function WelcomeScreen() {
-  const { data: user } = useCurrentUserQuery();
+  const { user } = useUser();
 
   const handleSkip = useCallback(() => {
     if (user) {

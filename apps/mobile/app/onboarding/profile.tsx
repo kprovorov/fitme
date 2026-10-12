@@ -1,3 +1,4 @@
+import { useUser } from "@clerk/expo";
 import type { MeasurementSystem } from "@fitme/core";
 import * as Sentry from "@sentry/react-native";
 import { useQueryClient } from "@tanstack/react-query";
@@ -13,7 +14,6 @@ import { Text } from "~/components/ui/text";
 import { H2 } from "~/components/ui/typography";
 import { VStack } from "~/components/ui/vstack";
 import { useStoreProfileMutation } from "~/hooks/mutations/profiles";
-import { useCurrentUserQuery } from "~/hooks/queries/auth";
 import { useProfileQuery } from "~/hooks/queries/profiles";
 import { IS_E2E } from "~/lib/constants";
 import { storage } from "~/lib/mmkv";
@@ -22,7 +22,7 @@ import { segmentClient } from "~/lib/segment";
 export default function ProfileScreen() {
   const queryClient = useQueryClient();
 
-  const { data: user } = useCurrentUserQuery();
+  const { user } = useUser();
   const { data: profile, isPending: isProfilePending } = useProfileQuery();
 
   const locales = useLocales();

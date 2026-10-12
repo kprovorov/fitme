@@ -1,5 +1,4 @@
-import * as Sentry from "@sentry/react-native";
-import { useQueryClient } from "@tanstack/react-query";
+import { useUser } from "@clerk/expo";
 import { Link, router } from "expo-router";
 import { useCallback } from "react";
 import { Linking } from "react-native";
@@ -7,7 +6,6 @@ import RevenueCatUI from "react-native-purchases-ui";
 import { Button } from "~/components/ui/button";
 import { Text } from "~/components/ui/text";
 import { useLogoutMutation } from "~/hooks/mutations/auth";
-import { useCurrentUserQuery } from "~/hooks/queries/auth";
 import { useCustomerInfoQuery, useIsProQuery } from "~/hooks/revenueCat";
 import { Heart } from "~/lib/icons/Heart";
 import { Trophy } from "~/lib/icons/Trophy";
@@ -28,14 +26,13 @@ const presentPaywall = () => RevenueCatUI.presentPaywall();
 const openAppStoreReview = () => Linking.openURL(APP_STORE_REVIEW_URL);
 
 export default function ProfileView() {
-  const queryClient = useQueryClient();
+  const { user } = useUser();
+  const name = user?.fullName ?? "";
+  const email = user?.primaryEmailAddress?.emailAddress ?? "";
 
-  const { data: user } = useCurrentUserQuery();
-
+  // Clearing the cache and RevenueCat happens in AuthSync once Clerk signs out.
   const { mutateAsync: logout } = useLogoutMutation({
     onSuccess: () => {
-      Sentry.setUser(null);
-      queryClient.clear();
       router.replace("/auth/login");
     },
   });
@@ -60,14 +57,14 @@ export default function ProfileView() {
     !!user && (
       <VStack className="grow items-stretch justify-between gap-4">
         <HStack className="items-center justify-start">
-          <Avatar alt={user.name}>
+          <Avatar alt={name}>
             <AvatarFallback>
-              <Text>{user.name.charAt(0)}</Text>
+              <Text>{name.charAt(0)}</Text>
             </AvatarFallback>
           </Avatar>
           <VStack className="items-stretch gap-0">
-            <Text className="font-bold text-title-2">{user.name}</Text>
-            <Muted>{user.email}</Muted>
+            <Text className="font-bold text-title-2">{name}</Text>
+            <Muted>{email}</Muted>
           </VStack>
         </HStack>
 

@@ -47,6 +47,8 @@ pnpm db start            # supabase start     (alias for pnpm --filter @fitme/su
 pnpm db seed             # seed local database
 pnpm db types:generate   # regenerate packages/supabase/src/database.types.ts
 pnpm db clerk:check      # prove a Supabase stack accepts Clerk dev session tokens (CLERK_SECRET_KEY sk_test_…, SUPABASE_URL, SUPABASE_ANON_KEY)
+pnpm db users:migrate [--dry-run]  # one-shot: copy Supabase Auth users into Clerk and rekey their rows (CLERK_SECRET_KEY, SUPABASE_URL, SUPABASE_SERVICE_ROLE_KEY, SUPABASE_DB_URL)
+pnpm db clerk:check-migration      # dry-run/run/rerun users:migrate end to end on a fresh local stack + Clerk dev instance, then clean up
 
 # Single test file
 pnpm --filter @fitme/core exec vitest run src/__tests__/formatters.test.ts
@@ -60,7 +62,7 @@ pnpm --filter @fitme/mobile exec jest --testPathPattern="<file>"
 React Native / Expo app using **file-based routing** via `expo-router`:
 
 - `app/` — Expo Router routes (file-based navigation)
-  - `_layout.tsx` — Root layout: initializes fonts, Sentry, RevenueCat, Supabase auth listener, and QueryClient
+  - `_layout.tsx` — Root layout: initializes fonts, Sentry and RevenueCat
   - `(tabs)/` — Bottom tab navigator (Home, History, Library, Profile)
   - `auth/` — Login/Register screens (presented as fullscreen modal)
   - `onboarding/` — Post-registration onboarding flow (fullscreen modal)
@@ -69,14 +71,15 @@ React Native / Expo app using **file-based routing** via `expo-router`:
   - `exercises/[exerciseId]/` — Exercise detail view
 - `components/` — Reusable UI components
   - `ui/` — Primitive UI components (Button, Input, Dialog, etc.) built on `@rn-primitives`
-  - `providers.tsx` — Wraps app with QueryClientProvider, ThemeProvider, KeyboardProvider
-  - `authenticated.tsx` — Auth guard component: redirects to `/auth/register` if no user
+  - `providers.tsx` — Wraps app with ClerkProvider (secure-store token cache), QueryClientProvider, ThemeProvider, KeyboardProvider; renders `auth-sync.tsx`, which identifies the Clerk User to Sentry/RevenueCat/Segment and clears the query cache on sign-out
+  - `authenticated.tsx` — Auth guard component: waits for Clerk to load, redirects to `/auth/register` when signed out
 - `hooks/` — Data layer
   - `queries/` — Read queries using `react-query-kit`'s `createQuery`
   - `mutations/` — Write mutations using `react-query-kit`'s `createMutation`
   - `revenueCat.ts` — RevenueCat subscription queries
 - `lib/` — App-specific utilities
-  - `supabase.ts` — Supabase client (uses AsyncStorage for session persistence)
+  - `supabase.ts` — Supabase client whose access token is the Clerk session token (no Supabase Auth session)
+  - `clerk.ts` — Clerk publishable key, `getClerk()` for code outside React, `getCurrentUserId()`, `getClerkErrorMessage()`
   - `mmkv.ts` — MMKV storage instance
   - `utils.ts` — `cn()` class merger (tailwind-merge with the HIG font scale)
   - `constants.ts`, `segment.ts`, `useColorScheme.tsx`
@@ -123,7 +126,7 @@ Stateless [Streamable HTTP](https://modelcontextprotocol.io) MCP server built on
 
 ### packages/core — `@fitme/core`
 
-Platform-agnostic code shared by both apps: `models.ts` (User, Profile, Plan, Workout, Exercise, etc. plus enum arrays like `goals`, `muscleGroups`), `labels.ts`, `formatters.ts`, `types.ts` (pagination), `utils.ts` (`range`, `muscleGroupToName`, `handleSupabaseError`). Tests use vitest. Nothing in here may import React Native, Expo, or Next.
+Platform-agnostic code shared by both apps: `models.ts` (Profile, Plan, Workout, Exercise, etc. plus enum arrays like `goals`, `muscleGroups`), `labels.ts`, `formatters.ts`, `types.ts` (pagination), `utils.ts` (`range`, `muscleGroupToName`, `handleSupabaseError`). Tests use vitest. Nothing in here may import React Native, Expo, or Next.
 
 ### packages/supabase — `@fitme/supabase`
 
@@ -133,6 +136,7 @@ Platform-agnostic code shared by both apps: `models.ts` (User, Profile, Plan, Wo
 - Run the Supabase CLI from this directory (or via `pnpm db <script>`).
 - Auth: Supabase trusts Clerk session tokens through third-party auth (`[auth.third_party.clerk]` in `config.toml` points local stacks at the Clerk development instance; the E2E workflow adds it to its preview branch through the Management API; production trusts the production instance via the dashboard, and `config.toml` has no `[remotes]` block so it is never deployed there). `scripts/check-clerk-trust.ts` (`clerk:check`) verifies it; CI runs it against the local stack (integration-tests workflow) and the E2E preview branch (e2e workflow) when the `CLERK_DEV_SECRET_KEY` secret is set.
 - Identity (ADR 0001): every `user_id` column is `text` with no foreign key to `auth.users`. RLS policies and RPCs read the caller through `public.current_user_id()` (the JWT `sub` claim, NULL for ids in `private.retired_user_ids`); never use `auth.uid()`. Nothing cascades from Supabase Auth, so account deletion calls `delete_user_data(user_id)`, which retires the id so a still-valid token can't write it back (`current_user_id()` is NULL for it, and `reject_retired_user_id` triggers stop writes that bypass RLS); `rekey_user(old_id, new_id)` retires `old_id` with a pointer to `new_id`, and `delete_user_data` then refuses `old_id` (SQLSTATE 55000; delete-user answers 409). Both are executable by `service_role` only.
+- Clerk User migration (FIT-73, one-shot, removed with the legacy auth rows): `scripts/clerk-migration.ts` reads `auth.users` over a direct Postgres connection, creates each Clerk User (verified email, name split on the first space, Supabase's bcrypt digest via `password_hasher: "bcrypt"`, legacy UUID as `external_id`; a rejected digest falls back to no password) and calls `rekey_user` with the service key. Reruns find Clerk Users by `external_id` and `private.retired_user_ids` marks Users already rekeyed. `scripts/migrate-users-to-clerk.ts` is the CLI; `scripts/check-clerk-migration.ts` is the CI check (integration-tests workflow, needs `CLERK_DEV_SECRET_KEY`).
 - `supabase/tests/` — pgTAP suite (`pnpm db test:db`). Impersonate a User with `set local role authenticated` plus `request.jwt.claims` carrying a Clerk-style text `sub`; don't insert into `auth.users`.
 
 ## Key Patterns
@@ -143,7 +147,7 @@ Platform-agnostic code shared by both apps: `models.ts` (User, Profile, Plan, Wo
 
 **Shared types**: Import domain types from `@fitme/core`, never from an app's `lib/`. Import row types from `@fitme/supabase` (`Tables<"plans">`).
 
-**Authentication (mobile)**: `useCurrentUserQuery` (queryKey `["user"]`) fetches the session from Supabase and the user's profile. Auth state changes in `_layout.tsx` invalidate `["user"]` or clear the QueryClient on sign-out. The `<Authenticated>` component wraps protected screens and redirects unauthenticated users.
+**Authentication (mobile)**: Clerk (`@clerk/expo`, hooks-based custom flows on the existing screens). Identity (id, email, name) comes from Clerk's `useUser`; the Profile from `useProfileQuery`. Never call Supabase Auth APIs. `@clerk/expo` is excluded from Expo autolinking in `package.json` (its native module needs iOS 17 and is only used by Clerk's prebuilt native views); the JS SDK treats it as optional. The `<Authenticated>` component wraps protected screens and redirects signed-out users. E2E flows sign in a User pre-created on the Clerk development instance (`E2E_USER_EMAIL` variable / `E2E_USER_PASSWORD` secret, passed to Maestro with `-e`).
 
 **Styling (mobile)**: uniwind (Tailwind CSS for React Native). CSS variables are defined in `apps/mobile/global.css` for theming. Custom spacing tokens: `xs`, `sm`, `md`, `lg`. Custom font families: `nunito-sans-regular/semibold/bold`, `ibm-plex-mono`.
 

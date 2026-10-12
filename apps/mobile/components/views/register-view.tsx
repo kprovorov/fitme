@@ -1,11 +1,10 @@
+import { useAuth } from "@clerk/expo";
 import { handleSupabaseError } from "@fitme/core";
-import { useQueryClient } from "@tanstack/react-query";
 import { useLocales } from "expo-localization";
 import { router } from "expo-router";
 import { useCallback, useEffect, useState } from "react";
 import { Pressable, View } from "react-native";
 import { useRegisterMutation } from "@/hooks/mutations/auth";
-import { useCurrentUserQuery } from "~/hooks/queries/auth";
 import RegisterForm, {
   type RegisterFormValues,
 } from "../forms/auth/register-form";
@@ -16,25 +15,19 @@ import { VStack } from "../ui/vstack";
 const goToLogin = () => router.push("/auth/login");
 
 export default function RegisterView() {
-  const queryClient = useQueryClient();
-
   const [errorMessage, setErrorMessage] = useState<string | undefined>();
 
-  const { data: user } = useCurrentUserQuery();
+  const { isSignedIn } = useAuth();
 
   useEffect(() => {
-    if (user) {
+    if (isSignedIn) {
       router.replace("/");
     }
-  }, [user]);
+  }, [isSignedIn]);
 
   const { mutateAsync: register } = useRegisterMutation({
     onError: (error) => {
       handleSupabaseError(error, setErrorMessage);
-    },
-    onSuccess: async () => {
-      // Supabase signUp with confirmations disabled creates a session automatically
-      await queryClient.invalidateQueries({ queryKey: ["user"] });
     },
   });
 

@@ -1,3 +1,4 @@
+import { useUser } from "@clerk/expo";
 import type { MeasurementSystem } from "@fitme/core";
 import * as Sentry from "@sentry/react-native";
 import { useQueryClient } from "@tanstack/react-query";
@@ -14,18 +15,12 @@ import { ErrorMessage } from "~/components/ui/error-message";
 import { Spinner } from "~/components/ui/spinner";
 import { VStack } from "~/components/ui/vstack";
 import { useUpdateProfileMutation } from "~/hooks/mutations/profiles";
-import { useCurrentUserQuery } from "~/hooks/queries/auth";
 import { useProfileQuery } from "~/hooks/queries/profiles";
 
 export default function EditProfileScreen() {
   const queryClient = useQueryClient();
 
-  const {
-    data: user,
-    isPending: isUserPending,
-    isError: isUserError,
-    refetch: refetchUser,
-  } = useCurrentUserQuery();
+  const { isLoaded: isUserLoaded, user } = useUser();
   const {
     data: profile,
     isPending: isProfilePending,
@@ -33,8 +28,9 @@ export default function EditProfileScreen() {
     refetch: refetchProfile,
   } = useProfileQuery();
 
-  const isPendingLoad = isUserPending || isProfilePending;
-  const isLoadError = isUserError || isProfileError;
+  const isPendingLoad = !isUserLoaded || isProfilePending;
+  const isLoadError = isProfileError;
+  const name = user?.fullName ?? "";
 
   // Stored values are in the profile's system; the device locale only matters
   // when there is no profile yet.
@@ -52,30 +48,21 @@ export default function EditProfileScreen() {
     onError: (e) => {
       Sentry.captureException(e);
     },
-    // Also after a failure: the Profile row may be saved even if the name is not
+    // Also after a failure: the Profile row may be saved even if the name is
+    // not. Clerk's user hook picks up the new name by itself.
     onSettled: () =>
-      Promise.all([
-        queryClient.invalidateQueries({ queryKey: useProfileQuery.getKey() }),
-        queryClient.invalidateQueries({
-          queryKey: useCurrentUserQuery.getKey(),
-        }),
-      ]),
+      queryClient.invalidateQueries({ queryKey: useProfileQuery.getKey() }),
     onSuccess: () => {
       router.back();
     },
   });
 
   const handleRetry = useCallback(() => {
-    if (isUserError) {
-      refetchUser();
-    }
-    if (isProfileError) {
-      refetchProfile();
-    }
-  }, [isProfileError, isUserError, refetchProfile, refetchUser]);
+    refetchProfile();
+  }, [refetchProfile]);
 
   const handleSubmit = useCallback(
-    ({ age, gender, height, name, weight }: ProfileFormValues) => {
+    ({ age, gender, height, name: formName, weight }: ProfileFormValues) => {
       // The form is only rendered once the User and Profile have loaded.
       if (!user) {
         return;
@@ -85,11 +72,11 @@ export default function EditProfileScreen() {
         gender,
         height,
         measurementSystem,
-        name: name ?? user.name,
+        name: formName ?? name,
         weight,
       });
     },
-    [measurementSystem, updateProfile, user]
+    [measurementSystem, name, updateProfile, user]
   );
 
   return (
@@ -126,7 +113,7 @@ export default function EditProfileScreen() {
             age: profile?.age ?? undefined,
             gender: profile?.gender,
             height: profile?.height ?? undefined,
-            name: user.name,
+            name,
             weight: profile?.weight ?? undefined,
           }}
           footer={
