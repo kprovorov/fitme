@@ -8,8 +8,11 @@
 # The deterministic rules (path floor, title rule, verdict validation) live in
 # packages/pr-risk; this workflow only collects inputs and applies the result.
 # The classifier runs from the base commit, so a PR cannot rewrite the rules
-# that judge it. This file itself runs from the PR (pull_request), which is why
-# .github/workflows is on the path floor.
+# that judge it by editing packages/pr-risk. This file itself runs from the PR
+# (pull_request), so a PR that edits it can label itself: treat any PR touching
+# .github/ as high risk regardless of its label. Revisit with
+# pull_request_target when the repo goes public (it also gives fork PRs a
+# token that can label).
 name: PR Risk
 
 on:
@@ -34,7 +37,7 @@ concurrency:
       (
         ((github.event.action == 'labeled' || github.event.action == 'unlabeled') &&
           github.event.label.name != 'no-auto-merge') ||
-        (github.event.action == 'edited' && github.event.changes.title == null)
+        (github.event.action == 'edited' && github.event.changes.title == null && github.event.changes.base == null)
       ) &&
       format('-{0}', github.run_id) || ''
     }}
@@ -57,7 +60,7 @@ jobs:
       !github.event.pull_request.draft &&
       !contains(github.event.pull_request.labels.*.name, 'no-auto-merge') &&
       (
-        (github.event.action == 'edited' && github.event.changes.title != null) ||
+        (github.event.action == 'edited' && (github.event.changes.title != null || github.event.changes.base != null)) ||
         (github.event.action != 'edited' && github.event.action != 'labeled' && github.event.action != 'unlabeled') ||
         (github.event.action == 'unlabeled' && github.event.label.name == 'no-auto-merge')
       )
@@ -151,15 +154,17 @@ jobs:
       # configured yet".
 
       - name: Fall back to needs-human
-        if: steps.decide.outcome != 'success'
+        if: steps.decide.outcome != 'success' || steps.remove.outcome != 'success'
+        env:
+          FAILURE: ${{ steps.remove.outcome != 'success' && 'could not remove the previous verdict label' || 'the classifier failed' }}
         run: |
           {
             echo "<!-- pr-risk -->"
             echo "## PR Risk: \`needs-human\`"
             echo
-            echo "**Source:** classifier error"
+            echo "**Source:** workflow error"
             echo
-            echo "- The PR Risk classifier failed; see the [workflow run]($GITHUB_SERVER_URL/$GH_REPO/actions/runs/$GITHUB_RUN_ID)."
+            echo "- PR Risk $FAILURE; see the [workflow run]($GITHUB_SERVER_URL/$GH_REPO/actions/runs/$GITHUB_RUN_ID)."
           } > "$COMMENT_PATH"
 
       - name: Ensure labels exist
