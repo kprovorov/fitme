@@ -205,7 +205,7 @@ Issues live in Linear, team Fitme (`FIT-<n>`), via the Linear MCP tools. See `do
 
 ### Triage labels
 
-Linear's `Triage` status stands for `needs-triage`; `needs-info`, `ready-for-agent`, `ready-for-human`, `wontfix` are Fitme team labels. See `docs/agents/triage-labels.md`.
+Linear's `Triage` status stands for `needs-triage`; `needs-info`, `ready-for-agent`, `ready-for-human`, `wontfix` are workspace-level labels. See `docs/agents/triage-labels.md`.
 
 ### Domain docs
 

@@ -1,6 +1,6 @@
 # Triage Labels
 
-The skills speak in terms of five canonical triage roles. This file maps those roles to what this repo's Linear team (Fitme) actually uses: Linear's native **Triage** status for `needs-triage`, and team labels for the rest.
+The skills speak in terms of five canonical triage roles. This file maps those roles to what this repo's Linear workspace actually uses: Linear's native **Triage** status for `needs-triage`, and workspace-level labels for the rest.
 
 | Label in mattpocock/skills | In our tracker                       | Meaning                                  |
 | -------------------------- | ------------------------------------ | ---------------------------------------- |
@@ -12,7 +12,7 @@ The skills speak in terms of five canonical triage roles. This file maps those r
 
 When a skill mentions a role (e.g. "apply the AFK-ready triage label"), use the corresponding entry from this table:
 
-An issue carries at most one state label. Every transition first removes all the other state labels (`needs-info`, `ready-for-agent`, `ready-for-human`, `wontfix`) in the same `save_issue` call, leaving type labels (`Bug`, `Feature`, …) untouched:
+An issue carries at most one state label. Every transition first removes all the other state labels (`needs-info`, `ready-for-agent`, `ready-for-human`, `wontfix`) in the same `save_issue` call, leaving type labels (`bug`, `feature`, …) untouched:
 
 - **Apply `needs-triage`**: remove every state label and set `state: "Triage"`.
 - **Apply `needs-info`**: add `needs-info` and set `state: "Triage"` (moving the issue back if it had been accepted).
@@ -21,6 +21,6 @@ An issue carries at most one state label. Every transition first removes all the
 
 "Unlabeled / never triaged" means an issue in `Triage` with none of the labels above.
 
-Category roles map to the team's type labels: `bug` → `Bug`; `enhancement` → `Feature` (new capability) or `Improvement` (change to existing behavior). `Idea` marks a raw idea that still needs specifying and counts as `enhancement`.
+Category roles map to the workspace's type labels: `bug` → `bug`; `enhancement` → `feature` (new capability) or `improvement` (change to existing behavior). `idea` marks a raw idea that still needs specifying and counts as `enhancement`.
 
 Edit the "In our tracker" column to match whatever vocabulary you actually use.

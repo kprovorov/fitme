@@ -1,13 +1,13 @@
 # Issue tracker: Linear
 
-Issues and specs for this repo live in Linear, team **Fitme** (key `FIT`, so issues are `FIT-<n>`). Use the Linear MCP tools (`mcp__plugin_linear_linear__*`) for all operations. Pass markdown with real newlines, not `\n` escapes.
+Issues and specs for this repo live in Linear, team **Fitme** (key `FIT`, so issues are `FIT-<n>`). Use the Linear MCP tools (`mcp__claude_ai_Linear__*`) for all operations. Pass markdown with real newlines, not `\n` escapes.
 
 ## Conventions
 
-- **Create an issue**: `save_issue` with `team: "Fitme"`, `title`, `description`, and one type label (`Feature`, `Bug`, `Improvement`, or `Idea` for a raw idea that still needs specifying). Pass `state: "Triage"` for a new request or bug report; when the skill already knows its triage role (e.g. `/to-tickets` writing agent-ready tickets), apply that role instead (see `triage-labels.md`).
+- **Create an issue**: `save_issue` with `team: "Fitme"`, `title`, `description`, and one type label (`feature`, `bug`, `improvement`, or `idea` for a raw idea that still needs specifying). Pass `state: "Triage"` for a new request or bug report; when the skill already knows its triage role (e.g. `/to-tickets` writing agent-ready tickets), apply that role instead (see `triage-labels.md`).
 - **Read an issue**: `get_issue` with the identifier (`FIT-55`) and `includeRelations: true`; `list_comments` for the conversation.
 - **List issues**: `list_issues` with `team: "Fitme"` and `label` / `state` / `parentId` filters.
-- **Make an issue a sub-issue of a parent**: `save_issue` with `parentId: "FIT-<parent>"`. A feature is a parent issue (often labelled `Idea`) whose body holds the agreed behavior; implementation work is its sub-issues.
+- **Make an issue a sub-issue of a parent**: `save_issue` with `parentId: "FIT-<parent>"`. A feature is a parent issue (often labelled `idea`) whose body holds the agreed behavior; implementation work is its sub-issues.
 - **Comment on an issue**: `save_comment` with `issueId` and `body`.
 - **Apply / remove labels**: `save_issue` with `id` and `addLabels` / `removeLabels`. If your Linear tool lacks those, read the issue's current labels and pass the complete updated set as `labels`, which replaces the whole set; never send a partial `labels` array.
 - **Close**: comment first, then `save_issue` with `state: "Done"` (or `"Canceled"` for wontfix, `"Duplicate"` with `duplicateOf` for duplicates).
