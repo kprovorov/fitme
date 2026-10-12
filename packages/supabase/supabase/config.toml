@@ -357,13 +357,16 @@ authorization_url_path = "/oauth/consent"
 # Allow dynamic client registration (MCP clients register themselves)
 allow_dynamic_registration = true
 
+# ai-agent and preview-plan take Clerk session tokens, which the gateway's JWT
+# check rejects (it only accepts tokens signed with the project's own keys).
+# They verify the token themselves through functions/_shared/clerk-auth.ts.
 [functions.ai-agent]
 enabled = true
-verify_jwt = true
+verify_jwt = false
 
 [functions.preview-plan]
 enabled = true
-verify_jwt = true
+verify_jwt = false
 
 [functions.delete-user]
 enabled = true

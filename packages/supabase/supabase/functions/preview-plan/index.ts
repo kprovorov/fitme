@@ -1,4 +1,4 @@
-import { withSupabase } from "npm:@supabase/server";
+import { withClerkUser } from "../_shared/clerk-auth.ts";
 
 const MAX_ATTEMPTS = 3;
 
@@ -342,11 +342,8 @@ async function callAIWithRetry(
 }
 
 export default {
-  fetch: withSupabase({ auth: "user" }, async (req, ctx) => {
-    const userId = ctx.userClaims?.id;
-    if (!userId) {
-      return Response.json({ error: "Unauthorized" }, { status: 401 });
-    }
+  fetch: withClerkUser(async (req, ctx) => {
+    const { userId } = ctx;
 
     // Early return for E2E tests: skips AI call, returns a fixture plan
     if (req.headers.get("x-e2e") === "true") {

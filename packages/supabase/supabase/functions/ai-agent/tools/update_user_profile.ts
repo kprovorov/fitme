@@ -1,24 +1,17 @@
-import type { SupabaseContext } from "npm:@supabase/server";
 import { tool } from "npm:ai";
 import { z } from "npm:zod";
+import type { UserContext } from "../../_shared/clerk-auth.ts";
 
-export function createUpdateUserProfileTool({ supabase }: SupabaseContext) {
+export function createUpdateUserProfileTool({ supabase, userId }: UserContext) {
   return tool({
     description:
       "Update the user's profile. All fields are optional — only provide the fields that need to change.",
     execute: async (input) => {
-      const {
-        data: { user },
-        error: authError,
-      } = await supabase.auth.getUser();
-      if (authError || !user) {
-        return { error: "Could not identify user" };
-      }
       try {
         const { data: existing, error: fetchError } = await supabase
           .from("profiles")
           .select("gender, age, height, weight, measurement_system")
-          .eq("user_id", user.id)
+          .eq("user_id", userId)
           .single();
         if (fetchError) {
           throw fetchError;
@@ -27,7 +20,7 @@ export function createUpdateUserProfileTool({ supabase }: SupabaseContext) {
         const { data, error } = await supabase
           .from("profiles")
           .upsert(
-            { ...existing, ...input, user_id: user.id },
+            { ...existing, ...input, user_id: userId },
             { onConflict: "user_id" }
           )
           .select("gender, age, height, weight, measurement_system")

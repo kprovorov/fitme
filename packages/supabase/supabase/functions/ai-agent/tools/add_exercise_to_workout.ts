@@ -1,6 +1,6 @@
-import type { SupabaseContext } from "npm:@supabase/server";
 import { tool } from "npm:ai";
 import { z } from "npm:zod";
+import type { UserContext } from "../../_shared/clerk-auth.ts";
 
 const setSchema = z.object({
   reps_recommended: z
@@ -19,7 +19,7 @@ const setSchema = z.object({
     .describe("Recommended weight in the user's unit system"),
 });
 
-export function createAddExerciseToWorkoutTool({ supabase }: SupabaseContext) {
+export function createAddExerciseToWorkoutTool({ supabase }: UserContext) {
   return tool({
     description:
       "Add an exercise to a specific workout in the user's plan. Use search_exercises first to find a valid exercise_id. Provide initial sets with rep, weight, and rest recommendations.",

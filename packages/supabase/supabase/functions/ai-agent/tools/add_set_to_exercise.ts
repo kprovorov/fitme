@@ -1,8 +1,8 @@
-import type { SupabaseContext } from "npm:@supabase/server";
 import { tool } from "npm:ai";
 import { z } from "npm:zod";
+import type { UserContext } from "../../_shared/clerk-auth.ts";
 
-export function createAddSetToExerciseTool({ supabase }: SupabaseContext) {
+export function createAddSetToExerciseTool({ supabase }: UserContext) {
   return tool({
     description:
       "Add a new set to an existing workout exercise. The set is appended after all current sets. Find workout_exercise_id via get_active_plan.",

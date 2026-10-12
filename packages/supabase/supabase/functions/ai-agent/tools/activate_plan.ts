@@ -1,8 +1,8 @@
-import type { SupabaseContext } from "npm:@supabase/server";
 import { tool } from "npm:ai";
 import { z } from "npm:zod";
+import type { UserContext } from "../../_shared/clerk-auth.ts";
 
-export function createActivatePlanTool({ supabase }: SupabaseContext) {
+export function createActivatePlanTool({ supabase }: UserContext) {
   return tool({
     description: "Set a specific plan as the user's active plan",
     execute: async ({ plan_id }) => {

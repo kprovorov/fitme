@@ -1,10 +1,8 @@
-import type { SupabaseContext } from "npm:@supabase/server";
 import { tool } from "npm:ai";
 import { z } from "npm:zod";
+import type { UserContext } from "../../_shared/clerk-auth.ts";
 
-export function createUpdateSetRecommendationsTool({
-  supabase,
-}: SupabaseContext) {
+export function createUpdateSetRecommendationsTool({ supabase }: UserContext) {
   return tool({
     description:
       "Update the recommended reps, weight, or rest time on a specific set. Provide only the fields that need to change. Find set IDs via get_active_plan in the 'sets' array of each exercise.",
