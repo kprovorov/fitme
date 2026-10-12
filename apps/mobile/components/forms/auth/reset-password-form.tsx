@@ -10,6 +10,7 @@ import { Button } from "~/components/ui/button";
 import { Input } from "~/components/ui/input";
 import { Text } from "~/components/ui/text";
 import { VStack } from "~/components/ui/vstack";
+import { PASSWORD_MIN_LENGTH } from "~/lib/constants";
 
 interface ResetPasswordFormProps {
   onSubmit: (values: ResetPasswordFormValues) => Promise<void>;
@@ -20,8 +21,8 @@ export type ResetPasswordFormValues = z.infer<typeof formSchema>;
 const formSchema = z
   .object({
     confirmPassword: z.string(),
-    password: z.string().min(6, {
-      message: "Password must be at least 6 characters.",
+    password: z.string().min(PASSWORD_MIN_LENGTH, {
+      message: `Password must be at least ${PASSWORD_MIN_LENGTH} characters.`,
     }),
   })
   .refine((data) => data.password === data.confirmPassword, {
@@ -54,6 +55,7 @@ export default function ResetPasswordForm({
         onChangeText={onChange}
         placeholder="New Password"
         secureTextEntry
+        testID="reset-password-input"
         value={value}
       />
     ),
@@ -72,6 +74,7 @@ export default function ResetPasswordForm({
         onChangeText={onChange}
         placeholder="Confirm Password"
         secureTextEntry
+        testID="reset-password-confirm-input"
         value={value}
       />
     ),
@@ -107,6 +110,7 @@ export default function ResetPasswordForm({
         label="Update Password"
         onPress={form.handleSubmit(onSubmit)}
         systemImage="arrow.right"
+        testID="reset-password-button"
       />
     </VStack>
   );
