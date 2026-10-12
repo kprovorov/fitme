@@ -7,7 +7,8 @@
 // Env: CLERK_SECRET_KEY (sk_test_… for development, sk_live_… for
 // production), SUPABASE_URL, SUPABASE_SERVICE_ROLE_KEY, SUPABASE_DB_URL
 // (direct Postgres connection; reads the password digests in auth.users).
-// Exits non-zero when rows still carry a legacy UUID after a real run.
+// Exits non-zero after a real run when rows still carry a legacy UUID or a
+// User's Clerk creation or rekey failed.
 
 import {
   type MigrationReport,
@@ -104,7 +105,8 @@ async function main() {
     (sum, count) => sum + count,
     0
   );
-  if (!dryRun && legacyRows > 0) {
+  const failed = report.users.some((user) => user.failed);
+  if (!dryRun && (legacyRows > 0 || failed)) {
     process.exitCode = 1;
   }
 }

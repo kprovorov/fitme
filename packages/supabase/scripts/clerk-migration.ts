@@ -47,8 +47,10 @@ export type UserStatus = "created" | "resumed" | "already-migrated" | "skipped";
 export interface UserResult {
   clerkId?: string;
   email: string | null;
+  // Clerk User creation or the rekey failed; a rerun retries it
+  failed?: boolean;
   legacyId: string;
-  // Set when the Clerk User was (or would be) created without a password
+  // Set when the Clerk User has (or would get) no password
   passwordNotImported?: string;
   // Skip reason, or what a dry run would do
   reason?: string;
@@ -228,6 +230,13 @@ export function digestProblem(digest: string | null): string | null {
     return "password digest is not a bcrypt hash";
   }
   return null;
+}
+
+// A Clerk User found on a rerun may have been created without a password
+function passwordMissing(user: ClerkUser): string | undefined {
+  return user.password_enabled
+    ? undefined
+    : "the Clerk User has no password (not imported)";
 }
 
 function isPasswordError(error: unknown): error is ClerkRequestError {
@@ -419,6 +428,7 @@ function planDryRun(
     return {
       ...result,
       clerkId: existing.id,
+      passwordNotImported: passwordMissing(existing),
       reason: `would rekey rows to existing Clerk User ${existing.id}`,
       status: "resumed",
     };
@@ -448,7 +458,7 @@ async function createAndRekey(
 ): Promise<UserResult> {
   const existing = ctx.clerkUsers.get(user.id);
   let clerkId = existing?.id;
-  let passwordNotImported: string | undefined;
+  let passwordNotImported = existing && passwordMissing(existing);
   if (!clerkId) {
     try {
       const { clerkUser, passwordNotImported: problem } = await createClerkUser(
@@ -461,6 +471,7 @@ async function createAndRekey(
     } catch (error) {
       return {
         ...result,
+        failed: true,
         reason: `Clerk User creation failed: ${error instanceof ClerkRequestError ? error.detail : String(error)}`,
       };
     }
@@ -473,6 +484,7 @@ async function createAndRekey(
     return {
       ...result,
       clerkId,
+      failed: true,
       passwordNotImported,
       reason: error instanceof Error ? error.message : String(error),
     };
@@ -513,6 +525,7 @@ async function migrateUser(
       return {
         ...result,
         clerkId: existing.id,
+        passwordNotImported: passwordMissing(existing),
         rowCount: await countRows(ctx.db, existing.id),
         status: "already-migrated",
       };

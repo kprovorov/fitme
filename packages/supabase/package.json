@@ -6,8 +6,7 @@
   "type": "module",
   "exports": {
     ".": "./src/index.ts",
-    "./database.types": "./src/database.types.ts",
-    "users:migrate": "tsx scripts/migrate-users-to-clerk.ts"
+    "./database.types": "./src/database.types.ts"
   },
   "main": "./src/index.ts",
   "types": "./src/index.ts",
