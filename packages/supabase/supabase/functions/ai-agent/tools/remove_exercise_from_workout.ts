@@ -1,10 +1,8 @@
-import type { SupabaseContext } from "npm:@supabase/server";
 import { tool } from "npm:ai";
 import { z } from "npm:zod";
+import type { UserContext } from "../../_shared/clerk-auth.ts";
 
-export function createRemoveExerciseFromWorkoutTool({
-  supabase,
-}: SupabaseContext) {
+export function createRemoveExerciseFromWorkoutTool({ supabase }: UserContext) {
   return tool({
     description:
       "Remove an exercise from a workout. Use get_active_plan to find the workout_exercise_id (the join-table ID found as 'id' on each exercise entry in the plan, not the exercise library ID). This also removes all associated sets.",

@@ -1,8 +1,8 @@
-import type { SupabaseContext } from "npm:@supabase/server";
 import { tool } from "npm:ai";
 import { z } from "npm:zod";
+import type { UserContext } from "../../_shared/clerk-auth.ts";
 
-export function createGetWorkoutsHistoryTool({ supabase }: SupabaseContext) {
+export function createGetWorkoutsHistoryTool({ supabase }: UserContext) {
   return tool({
     description:
       "Get the user's recent completed workout sessions with exercises and actual sets performed. Use this to analyze progress, spot patterns, or give personalized advice.",

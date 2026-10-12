@@ -13,6 +13,7 @@
   "scripts": {
     "clerk:check": "tsx scripts/check-clerk-trust.ts",
     "clerk:check-migration": "tsx scripts/check-clerk-migration.ts",
+    "clerk:jwt-key": "tsx scripts/clerk-jwt-key.ts",
     "exercises:sync": "tsx supabase/sync.ts",
     "functions:serve": "supabase functions serve",
     "migrate": "supabase migration up",

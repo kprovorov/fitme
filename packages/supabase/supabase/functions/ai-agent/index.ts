@@ -1,7 +1,7 @@
 import { createAnthropic } from "npm:@ai-sdk/anthropic";
 import { createOpenAI } from "npm:@ai-sdk/openai";
-import { withSupabase } from "npm:@supabase/server";
 import { createAgentUIStreamResponse, ToolLoopAgent } from "npm:ai";
+import { withClerkUser } from "../_shared/clerk-auth.ts";
 import { createActivatePlanTool } from "./tools/activate_plan.ts";
 import { createAddExerciseToWorkoutTool } from "./tools/add_exercise_to_workout.ts";
 import { createAddSetToExerciseTool } from "./tools/add_set_to_exercise.ts";
@@ -41,7 +41,7 @@ function isCoachModelId(value: unknown): value is CoachModelId {
 }
 
 export default {
-  fetch: withSupabase({ auth: "user" }, async (req, ctx) => {
+  fetch: withClerkUser(async (req, ctx) => {
     const { messages, model: requestedModel } = await req.json();
 
     const modelId = requestedModel ?? DEFAULT_COACH_MODEL;

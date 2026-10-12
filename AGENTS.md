@@ -49,6 +49,7 @@ pnpm db types:generate   # regenerate packages/supabase/src/database.types.ts
 pnpm db clerk:check      # prove a Supabase stack accepts Clerk dev session tokens (CLERK_SECRET_KEY sk_test_…, SUPABASE_URL, SUPABASE_ANON_KEY)
 pnpm db users:migrate [--dry-run]  # one-shot: copy Supabase Auth users into Clerk and rekey their rows (CLERK_SECRET_KEY, SUPABASE_URL, SUPABASE_SERVICE_ROLE_KEY, SUPABASE_DB_URL)
 pnpm db clerk:check-migration      # dry-run/run/rerun users:migrate end to end on a fresh local stack + Clerk dev instance, then clean up
+pnpm --silent db clerk:jwt-key [domain] # print a Clerk instance's JWT public key (CLERK_JWT_KEY); defaults to the dev instance
 
 # Single test file
 pnpm --filter @fitme/core exec vitest run src/__tests__/formatters.test.ts
@@ -131,6 +132,7 @@ Platform-agnostic code shared by both apps: `models.ts` (Profile, Plan, Workout,
 ### packages/supabase — `@fitme/supabase`
 
 - `supabase/` — Supabase CLI project: `config.toml`, `migrations/`, `functions/` (Edge Functions: `preview-plan`, `delete-user`, `ai-agent`, `revenuecat-webhook`), `templates/`, `seed.ts`, `sync.ts`
+- Edge-function auth: `ai-agent` and `preview-plan` take Clerk session tokens, so `verify_jwt` is off for them and they wrap their handler in `withClerkUser` from `functions/_shared/clerk-auth.ts`. It verifies the bearer token networkless against the `CLERK_JWT_KEY` function secret (the Clerk instance's PEM public key; `pnpm --silent db clerk:jwt-key` prints it, `clerk.fitmeproject.com` for production), answers 401 before any work, and hands the handler `{ userId, supabase, supabaseAdmin }` (`userId` = the `sub` claim; `supabase` is RLS-scoped with the Clerk token). Never reimplement token checks in a function, and never use `supabase.auth.getUser()` there. The E2E workflow sets `CLERK_JWT_KEY` on its preview branch; locally put it in `supabase/functions/.env`.
 - `data/` — exercise CSV + markdown descriptions/instructions used by the sync script
 - `src/database.types.ts` — generated Supabase types; `src/index.ts` exports `Database`, `Tables<>`, `TablesInsert<>`, `TablesUpdate<>`, `Enums<>`
 - Run the Supabase CLI from this directory (or via `pnpm db <script>`).

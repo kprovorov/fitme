@@ -1,8 +1,8 @@
-import type { SupabaseContext } from "npm:@supabase/server";
 import { tool } from "npm:ai";
 import { z } from "npm:zod";
+import type { UserContext } from "../../_shared/clerk-auth.ts";
 
-export function createGetActivePlanTool({ supabase }: SupabaseContext) {
+export function createGetActivePlanTool({ supabase }: UserContext) {
   return tool({
     description:
       "Get the user's currently active workout plan with all workouts and exercises",

@@ -1,8 +1,8 @@
-import type { SupabaseContext } from "npm:@supabase/server";
 import { tool } from "npm:ai";
 import { z } from "npm:zod";
+import type { UserContext } from "../../_shared/clerk-auth.ts";
 
-export function createSearchExercisesTool({ supabase }: SupabaseContext) {
+export function createSearchExercisesTool({ supabase }: UserContext) {
   return tool({
     description:
       "Search for exercises in the exercise library by name or muscle group",
