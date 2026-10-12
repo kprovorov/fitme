@@ -116,6 +116,12 @@ describe("title rule", () => {
     expect(decision.comment).toContain("is not a conventional commit");
   });
 
+  it("quotes the title as inline code", () => {
+    const decision = decide({ files: APP_FILES, title: "Ping @someone `now`" });
+
+    expect(decision.comment).toContain("Title `Ping @someone 'now'` is not");
+  });
+
   it.each([
     "feat: add rest timer",
     "fix(mobile): stop timer drift",
@@ -134,6 +140,7 @@ describe("evaluator", () => {
     const decision = decide({ files: APP_FILES, title: GOOD_TITLE });
 
     expect(decision.label).toBe("needs-human");
+    expect(decision.source).toBe("pending");
     expect(decision.runEvaluator).toBe(true);
     expect(decision.comment).toContain("Evaluator not configured yet.");
   });

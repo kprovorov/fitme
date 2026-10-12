@@ -7,7 +7,12 @@ export const RISK_LABELS = [
 
 export type RiskLabel = (typeof RISK_LABELS)[number];
 
-export type VerdictSource = "floor" | "title" | "evaluator" | "error";
+export type VerdictSource =
+  | "floor"
+  | "title"
+  | "pending"
+  | "evaluator"
+  | "error";
 
 /** Hidden marker that identifies the sticky PR Risk comment. */
 export const COMMENT_MARKER = "<!-- pr-risk -->";
@@ -123,6 +128,7 @@ const SOURCE_NAMES: Record<VerdictSource, string> = {
   error: "evaluator error",
   evaluator: "evaluator",
   floor: "path floor",
+  pending: "evaluator not run",
   title: "title rule",
 };
 
@@ -141,7 +147,7 @@ export function decide({ files, title, evaluator }: DecisionInput): Decision {
       "needs-human",
       "title",
       [
-        `Title \`${title}\` is not a conventional commit (\`type(scope)?: subject\` with type one of ${CONVENTIONAL_TYPES.join(", ")}).`,
+        `Title ${codeSpan(title)} is not a conventional commit (\`type(scope)?: subject\` with type one of ${CONVENTIONAL_TYPES.join(", ")}).`,
       ],
       false
     );
@@ -150,7 +156,7 @@ export function decide({ files, title, evaluator }: DecisionInput): Decision {
   if (!evaluator) {
     return verdict(
       "needs-human",
-      "evaluator",
+      "pending",
       ["Evaluator not configured yet."],
       true
     );
@@ -201,6 +207,11 @@ function parseVerdict(
     return { invalid: "reasons must be a non-empty list of strings." };
   }
   return { level: level as EvaluatorLevel, reasons: reasons as string[] };
+}
+
+/** Inline code keeps a PR title from rendering markdown or @-mentions. */
+function codeSpan(text: string): string {
+  return `\`${text.replaceAll("`", "'")}\``;
 }
 
 function verdict(

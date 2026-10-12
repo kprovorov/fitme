@@ -7,15 +7,33 @@
 #
 # The deterministic rules (path floor, title rule, verdict validation) live in
 # packages/pr-risk; this workflow only collects inputs and applies the result.
+# The classifier runs from the base commit, so a PR cannot rewrite the rules
+# that judge it. This file itself runs from the PR (pull_request), which is why
+# .github/workflows is on the path floor.
 name: PR Risk
 
 on:
   pull_request:
     branches: [main]
-    types: [opened, synchronize, reopened, ready_for_review]
+    types:
+      - opened
+      - synchronize
+      - reopened
+      - ready_for_review
+      - converted_to_draft
+      - labeled
+      - unlabeled
 
+# One run per PR; a new push cancels the running one. Label events other than
+# no-auto-merge (including the verdict labels themselves) get their own group
+# so they never cancel a classification.
 concurrency:
-  group: pr-risk-${{ github.event.pull_request.number }}
+  group: >-
+    pr-risk-${{ github.event.pull_request.number }}${{
+      (github.event.action == 'labeled' || github.event.action == 'unlabeled') &&
+      github.event.label.name != 'no-auto-merge' &&
+      format('-{0}', github.run_id) || ''
+    }}
   cancel-in-progress: true
 
 permissions:
@@ -23,23 +41,55 @@ permissions:
   pull-requests: write
   issues: write
 
+env:
+  GH_TOKEN: ${{ github.token }}
+  GH_REPO: ${{ github.repository }}
+  PR_NUMBER: ${{ github.event.pull_request.number }}
+
 jobs:
   classify:
     name: PR Risk
     if: >-
       !github.event.pull_request.draft &&
-      !contains(github.event.pull_request.labels.*.name, 'no-auto-merge')
+      !contains(github.event.pull_request.labels.*.name, 'no-auto-merge') &&
+      (
+        (github.event.action != 'labeled' && github.event.action != 'unlabeled') ||
+        (github.event.action == 'unlabeled' && github.event.label.name == 'no-auto-merge')
+      )
     runs-on: ubuntu-latest
     timeout-minutes: 15
     env:
-      GH_TOKEN: ${{ github.token }}
-      GH_REPO: ${{ github.repository }}
-      PR_NUMBER: ${{ github.event.pull_request.number }}
       PR_TITLE: ${{ github.event.pull_request.title }}
-      CHANGED_FILES_PATH: ${{ runner.temp }}/changed-files.txt
-      COMMENT_PATH: ${{ runner.temp }}/pr-risk-comment.md
     steps:
-      - name: Checkout code
+      - name: Set paths
+        run: |
+          {
+            echo "CHANGED_FILES_PATH=$RUNNER_TEMP/changed-files.txt"
+            echo "COMMENT_PATH=$RUNNER_TEMP/pr-risk-comment.md"
+          } >> "$GITHUB_ENV"
+
+      # Removing the old verdict first means any later failure leaves no
+      # label, never a stale one from an earlier head.
+      - name: Remove previous verdict
+        continue-on-error: true
+        run: |
+          current=$(gh pr view "$PR_NUMBER" --json labels --jq '.labels[].name')
+          for label in risk:low risk:medium risk:high needs-human; do
+            if grep -qxF "$label" <<< "$current"; then
+              gh pr edit "$PR_NUMBER" --remove-label "$label"
+            fi
+          done
+
+      - name: Checkout base
+        uses: actions/checkout@v4
+        with:
+          ref: ${{ github.event.pull_request.base.sha }}
+          persist-credentials: false
+
+      # Bootstrap only: until packages/pr-risk exists on main, the PR that
+      # adds it runs its own copy.
+      - name: Checkout PR (classifier not on base yet)
+        if: hashFiles('packages/pr-risk/package.json') == ''
         uses: actions/checkout@v4
         with:
           persist-credentials: false
@@ -82,7 +132,6 @@ jobs:
       # configured yet".
 
       - name: Fall back to needs-human
-        id: fallback
         if: steps.decide.outcome != 'success'
         run: |
           {
@@ -113,12 +162,7 @@ jobs:
         continue-on-error: true
         env:
           LABEL: ${{ steps.decide.outputs.label || 'needs-human' }}
-        run: |
-          stale=()
-          for label in risk:low risk:medium risk:high needs-human; do
-            [ "$label" != "$LABEL" ] && stale+=(--remove-label "$label")
-          done
-          gh pr edit "$PR_NUMBER" --add-label "$LABEL" "${stale[@]}"
+        run: gh pr edit "$PR_NUMBER" --add-label "$LABEL"
 
       - name: Update sticky comment
         continue-on-error: true
@@ -132,3 +176,23 @@ jobs:
           else
             gh pr comment "$PR_NUMBER" --body-file "$COMMENT_PATH"
           fi
+
+  # A PR that goes back to draft or gets no-auto-merge loses its verdict, so
+  # no stale risk label survives the opt-out.
+  clear:
+    name: PR Risk (clear verdict)
+    if: >-
+      github.event.action == 'converted_to_draft' ||
+      (github.event.action == 'labeled' && github.event.label.name == 'no-auto-merge')
+    runs-on: ubuntu-latest
+    timeout-minutes: 5
+    steps:
+      - name: Remove verdict labels
+        continue-on-error: true
+        run: |
+          current=$(gh pr view "$PR_NUMBER" --json labels --jq '.labels[].name')
+          for label in risk:low risk:medium risk:high needs-human; do
+            if grep -qxF "$label" <<< "$current"; then
+              gh pr edit "$PR_NUMBER" --remove-label "$label"
+            fi
+          done
