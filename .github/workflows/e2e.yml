@@ -114,6 +114,14 @@ jobs:
         env:
           SUPABASE_ACCESS_TOKEN: ${{ secrets.SUPABASE_ACCESS_TOKEN }}
 
+      # A CLI-created branch starts without the repo's migrations. The
+      # session pooler (5432) is used because db push needs prepared statements.
+      - name: Apply migrations to branch
+        working-directory: packages/supabase
+        run: supabase db push --db-url "${DATABASE_URL/:6543\//:5432/}"
+        env:
+          DATABASE_URL: ${{ steps.branch-details.outputs.postgres_url }}
+
       # The hoisted install skips snaplet's postinstall; build the client
       # from the committed .snaplet/dataModel.json.
       - name: Generate seed client
