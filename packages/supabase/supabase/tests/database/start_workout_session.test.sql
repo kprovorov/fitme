@@ -7,16 +7,12 @@ select plan(13);
 -- ------------------------------------------------------------
 -- Fixtures (as postgres, bypassing RLS)
 -- ------------------------------------------------------------
-insert into auth.users (id, email) values
-  ('11111111-1111-1111-1111-111111111111', 'owner@test.local'),
-  ('22222222-2222-2222-2222-222222222222', 'intruder@test.local');
-
 insert into public.exercises (id, name, slug) values
   ('e0000000-0000-0000-0000-000000000001', 'Test Squat', 'test-squat-start-session'),
   ('e0000000-0000-0000-0000-000000000002', 'Test Press', 'test-press-start-session');
 
 insert into public.plans (id, user_id, goal, place, frequency) values
-  ('a0000000-0000-0000-0000-000000000001', '11111111-1111-1111-1111-111111111111', 'strength', 'gym', 3);
+  ('a0000000-0000-0000-0000-000000000001', 'user_2StartOwner000000000000', 'strength', 'gym', 3);
 
 insert into public.workouts (id, plan_id, "order", name, description) values
   ('b0000000-0000-0000-0000-000000000001', 'a0000000-0000-0000-0000-000000000001', 1, 'Day A', 'Legs'),
@@ -37,7 +33,7 @@ values
 -- Owner starts the same workout twice
 -- ------------------------------------------------------------
 set local role authenticated;
-set local request.jwt.claims = '{"sub":"11111111-1111-1111-1111-111111111111","role":"authenticated"}';
+set local request.jwt.claims = '{"sub":"user_2StartOwner000000000000","role":"authenticated"}';
 
 select set_config(
   'test.first_session',
@@ -131,7 +127,7 @@ select isnt(
 -- ------------------------------------------------------------
 -- Unauthorized caller
 -- ------------------------------------------------------------
-set local request.jwt.claims = '{"sub":"22222222-2222-2222-2222-222222222222","role":"authenticated"}';
+set local request.jwt.claims = '{"sub":"user_2StartIntruder000000000","role":"authenticated"}';
 
 select throws_ok(
   $$select public.start_workout_session('b0000000-0000-0000-0000-000000000002')$$,
@@ -150,7 +146,7 @@ select throws_ok(
     values (
       'b0000000-0000-0000-0000-000000000001',
       'a0000000-0000-0000-0000-000000000001',
-      '11111111-1111-1111-1111-111111111111',
+      'user_2StartOwner000000000000',
       now()
     )$$,
   '23505',
@@ -161,8 +157,8 @@ select throws_ok(
 select lives_ok(
   $$insert into public.workout_sessions (workout_id, plan_id, user_id, started_at)
     values
-      (null, 'a0000000-0000-0000-0000-000000000001', '11111111-1111-1111-1111-111111111111', now()),
-      (null, 'a0000000-0000-0000-0000-000000000001', '11111111-1111-1111-1111-111111111111', now())$$,
+      (null, 'a0000000-0000-0000-0000-000000000001', 'user_2StartOwner000000000000', now()),
+      (null, 'a0000000-0000-0000-0000-000000000001', 'user_2StartOwner000000000000', now())$$,
   'open sessions with a NULL workout_id (deleted workout) do not collide'
 );
 
@@ -171,7 +167,7 @@ select lives_ok(
     values (
       'b0000000-0000-0000-0000-000000000001',
       'a0000000-0000-0000-0000-000000000001',
-      '11111111-1111-1111-1111-111111111111',
+      'user_2StartOwner000000000000',
       now(),
       now()
     )$$,

@@ -15,7 +15,8 @@ export type SupabaseClientFactory = (
 
 /**
  * Per-request client authenticated with the caller's access token. Only the
- * anon key is used, so RLS and the `auth.uid()`-based RPCs enforce ownership.
+ * anon key is used, so RLS and the RPCs (keyed by the JWT `sub` claim) enforce
+ * ownership.
  */
 export const createSupabaseClientFromEnv: SupabaseClientFactory = (
   accessToken
