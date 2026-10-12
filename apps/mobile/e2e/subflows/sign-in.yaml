@@ -1,24 +1,23 @@
-# Signs in the pre-created +clerk_test User from the login screen.
-# Needs E2E_USER_EMAIL and E2E_USER_PASSWORD (`maestro test -e`).
+# Signs in from the login screen. Needs EMAIL and PASSWORD (runFlow env).
 appId: com.fitmeproject.ios
 ---
 - tapOn:
     id: "login-email-input"
 - waitForAnimationToEnd
-- inputText: ${E2E_USER_EMAIL}
+- inputText: ${EMAIL}
 
 - tapOn:
     id: "login-password-input"
 - waitForAnimationToEnd
-- inputText: ${E2E_USER_PASSWORD}
+- inputText: ${PASSWORD}
 
 - waitForAnimationToEnd
 
 - tapOn:
     id: "login-button"
 
-# A fresh simulator is a new device, so Clerk's Device Trust asks for an
-# emailed code. Test mode accepts 424242 for +clerk_test addresses.
+# A sign-in from a new device also needs an emailed code (Clerk's Device
+# Trust). Test mode accepts 424242 for +clerk_test addresses.
 - extendedWaitUntil:
     visible:
       text: "Check your email|Home|Get Started|Not Now"

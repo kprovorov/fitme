@@ -11,6 +11,7 @@ import { Button } from "~/components/ui/button";
 import { Input } from "~/components/ui/input";
 import { Text } from "~/components/ui/text";
 import { VStack } from "~/components/ui/vstack";
+import { PASSWORD_MIN_LENGTH } from "~/lib/constants";
 
 interface RegisterFormProps {
   errors?: FieldErrors<RegisterFormValues>;
@@ -24,8 +25,8 @@ const formSchema = z.object({
   name: z.string().min(2, {
     message: "Name must be at least 2 characters.",
   }),
-  password: z.string().min(6, {
-    message: "Password must be at least 6 characters.",
+  password: z.string().min(PASSWORD_MIN_LENGTH, {
+    message: `Password must be at least ${PASSWORD_MIN_LENGTH} characters.`,
   }),
 });
 
