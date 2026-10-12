@@ -1,26 +1,18 @@
+import { auth } from "@clerk/nextjs/server";
 import type { Database } from "@fitme/supabase";
-import { createServerClient } from "@supabase/ssr";
-import { cookies } from "next/headers";
+import { createClient as createSupabaseClient } from "@supabase/supabase-js";
 import { supabaseAnonKey, supabaseUrl } from "~/lib/env";
 
+/**
+ * Supabase client for Server Components and Server Actions. Requests carry the
+ * User's Clerk session token, so RLS sees their Clerk id as `sub`.
+ */
 export async function createClient() {
-  const cookieStore = await cookies();
+  // Read auth here, not inside `accessToken`: supabase-js turns errors thrown
+  // there into query errors, which would swallow Next's dynamic-rendering bailout.
+  const { getToken } = await auth();
 
-  return createServerClient<Database>(supabaseUrl, supabaseAnonKey, {
-    cookies: {
-      getAll() {
-        return cookieStore.getAll();
-      },
-      setAll(cookiesToSet) {
-        try {
-          for (const { name, value, options } of cookiesToSet) {
-            cookieStore.set(name, value, options);
-          }
-        } catch {
-          // Called from a Server Component where cookies are read-only.
-          // The proxy refreshes sessions, so this is safe to ignore.
-        }
-      },
-    },
+  return createSupabaseClient<Database>(supabaseUrl, supabaseAnonKey, {
+    accessToken: () => getToken(),
   });
 }
