@@ -47,6 +47,8 @@ pnpm db start            # supabase start     (alias for pnpm --filter @fitme/su
 pnpm db seed             # seed local database
 pnpm db types:generate   # regenerate packages/supabase/src/database.types.ts
 pnpm db clerk:check      # prove a Supabase stack accepts Clerk dev session tokens (CLERK_SECRET_KEY sk_test_…, SUPABASE_URL, SUPABASE_ANON_KEY)
+pnpm db users:migrate [--dry-run]  # one-shot: copy Supabase Auth users into Clerk and rekey their rows (CLERK_SECRET_KEY, SUPABASE_URL, SUPABASE_SERVICE_ROLE_KEY, SUPABASE_DB_URL)
+pnpm db clerk:check-migration      # dry-run/run/rerun users:migrate end to end on a fresh local stack + Clerk dev instance, then clean up
 
 # Single test file
 pnpm --filter @fitme/core exec vitest run src/__tests__/formatters.test.ts
@@ -134,6 +136,7 @@ Platform-agnostic code shared by both apps: `models.ts` (Profile, Plan, Workout,
 - Run the Supabase CLI from this directory (or via `pnpm db <script>`).
 - Auth: Supabase trusts Clerk session tokens through third-party auth (`[auth.third_party.clerk]` in `config.toml` points local stacks at the Clerk development instance; the E2E workflow adds it to its preview branch through the Management API; production trusts the production instance via the dashboard, and `config.toml` has no `[remotes]` block so it is never deployed there). `scripts/check-clerk-trust.ts` (`clerk:check`) verifies it; CI runs it against the local stack (integration-tests workflow) and the E2E preview branch (e2e workflow) when the `CLERK_DEV_SECRET_KEY` secret is set.
 - Identity (ADR 0001): every `user_id` column is `text` with no foreign key to `auth.users`. RLS policies and RPCs read the caller through `public.current_user_id()` (the JWT `sub` claim, NULL for ids in `private.retired_user_ids`); never use `auth.uid()`. Nothing cascades from Supabase Auth, so account deletion calls `delete_user_data(user_id)`, which retires the id so a still-valid token can't write it back (`current_user_id()` is NULL for it, and `reject_retired_user_id` triggers stop writes that bypass RLS); `rekey_user(old_id, new_id)` retires `old_id` with a pointer to `new_id`, and `delete_user_data` then refuses `old_id` (SQLSTATE 55000; delete-user answers 409). Both are executable by `service_role` only.
+- Clerk User migration (FIT-73, one-shot, removed with the legacy auth rows): `scripts/clerk-migration.ts` reads `auth.users` over a direct Postgres connection, creates each Clerk User (verified email, name split on the first space, Supabase's bcrypt digest via `password_hasher: "bcrypt"`, legacy UUID as `external_id`; a rejected digest falls back to no password) and calls `rekey_user` with the service key. Reruns find Clerk Users by `external_id` and `private.retired_user_ids` marks Users already rekeyed. `scripts/migrate-users-to-clerk.ts` is the CLI; `scripts/check-clerk-migration.ts` is the CI check (integration-tests workflow, needs `CLERK_DEV_SECRET_KEY`).
 - `supabase/tests/` — pgTAP suite (`pnpm db test:db`). Impersonate a User with `set local role authenticated` plus `request.jwt.claims` carrying a Clerk-style text `sub`; don't insert into `auth.users`.
 
 ## Key Patterns
