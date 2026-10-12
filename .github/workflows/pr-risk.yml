@@ -15,35 +15,17 @@
 # .github/ as high risk regardless of its label. Revisit with
 # pull_request_target when the repo goes public (it also gives fork PRs a
 # token that can label).
+#
+# Title/base edits, no-auto-merge and back-to-draft are handled by
+# pr-risk-events.yml, which calls this workflow; keeping those events out of
+# here means their skipped runs never show up as the PR Risk check.
 name: PR Risk
 
 on:
   pull_request:
     branches: [main]
-    types:
-      - opened
-      - synchronize
-      - reopened
-      - ready_for_review
-      - edited
-      - converted_to_draft
-      - labeled
-      - unlabeled
-
-# One run per PR; a new push cancels the running one. Label events other than
-# no-auto-merge (including the verdict labels themselves) and edits that leave
-# the title alone get their own group so they never cancel a classification.
-concurrency:
-  group: >-
-    pr-risk-${{ github.event.pull_request.number }}${{
-      (
-        ((github.event.action == 'labeled' || github.event.action == 'unlabeled') &&
-          github.event.label.name != 'no-auto-merge') ||
-        (github.event.action == 'edited' && github.event.changes.title == null && github.event.changes.base == null)
-      ) &&
-      format('-{0}', github.run_id) || ''
-    }}
-  cancel-in-progress: true
+    types: [opened, synchronize, reopened, ready_for_review]
+  workflow_call:
 
 permissions:
   contents: read
@@ -60,12 +42,11 @@ jobs:
     name: PR Risk
     if: >-
       !github.event.pull_request.draft &&
-      !contains(github.event.pull_request.labels.*.name, 'no-auto-merge') &&
-      (
-        (github.event.action == 'edited' && (github.event.changes.title != null || github.event.changes.base != null)) ||
-        (github.event.action != 'edited' && github.event.action != 'labeled' && github.event.action != 'unlabeled') ||
-        (github.event.action == 'unlabeled' && github.event.label.name == 'no-auto-merge')
-      )
+      !contains(github.event.pull_request.labels.*.name, 'no-auto-merge')
+    # One run per PR, shared with pr-risk-events.yml; the newest one wins.
+    concurrency:
+      group: pr-risk-${{ github.event.pull_request.number }}
+      cancel-in-progress: true
     runs-on: ubuntu-latest
     timeout-minutes: 15
     env:
@@ -198,34 +179,3 @@ jobs:
             gh pr comment "$PR_NUMBER" --body-file "$COMMENT_PATH"
           fi
 
-  # A PR that goes back to draft or gets no-auto-merge loses its verdict, so
-  # no stale risk label survives the opt-out.
-  clear:
-    name: PR Risk (clear verdict)
-    if: >-
-      github.event.action == 'converted_to_draft' ||
-      (github.event.action == 'labeled' && github.event.label.name == 'no-auto-merge')
-    runs-on: ubuntu-latest
-    timeout-minutes: 5
-    steps:
-      - name: Remove verdict labels
-        run: |
-          current=$(gh pr view "$PR_NUMBER" --json labels --jq '.labels[].name')
-          for label in risk:low risk:medium risk:high needs-human; do
-            if grep -qxF "$label" <<< "$current"; then
-              gh pr edit "$PR_NUMBER" --remove-label "$label"
-            fi
-          done
-
-      - name: Mark sticky comment as skipped
-        env:
-          REASON: ${{ github.event.action == 'converted_to_draft' && 'the PR is a draft' || 'the PR is labelled no-auto-merge' }}
-        run: |
-          comment_ids=$(gh api --paginate "repos/$GH_REPO/issues/$PR_NUMBER/comments" \
-            --jq '.[] | select(.user.login == "github-actions[bot]" and (.body | startswith("<!-- pr-risk -->"))) | .id')
-          comment_id=${comment_ids%%$'\n'*}
-          if [ -n "$comment_id" ]; then
-            body=$(printf '<!-- pr-risk -->\n## PR Risk: skipped\n\nNo verdict: %s.\n' "$REASON")
-            gh api --method PATCH "repos/$GH_REPO/issues/comments/$comment_id" \
-              -f "body=$body" > /dev/null
-          fi

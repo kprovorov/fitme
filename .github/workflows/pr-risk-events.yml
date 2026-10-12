@@ -1,0 +1,63 @@
+# PR events that change whether or how a PR is classified, split out of
+# pr-risk.yml so the runs they skip never show up as the PR Risk check.
+name: PR Risk events
+
+on:
+  pull_request:
+    branches: [main]
+    types: [edited, converted_to_draft, labeled, unlabeled]
+
+permissions:
+  contents: read
+  pull-requests: write
+  issues: write
+
+env:
+  GH_TOKEN: ${{ github.token }}
+  GH_REPO: ${{ github.repository }}
+  PR_NUMBER: ${{ github.event.pull_request.number }}
+
+jobs:
+  # A new title can break the title rule; a retarget to main or dropping
+  # no-auto-merge makes the PR eligible again.
+  reclassify:
+    if: >-
+      (github.event.action == 'edited' &&
+        (github.event.changes.title != null || github.event.changes.base != null)) ||
+      (github.event.action == 'unlabeled' && github.event.label.name == 'no-auto-merge')
+    uses: ./.github/workflows/pr-risk.yml
+
+  # A PR that goes back to draft or gets no-auto-merge loses its verdict, so
+  # no stale risk label survives the opt-out.
+  clear:
+    name: PR Risk (clear verdict)
+    if: >-
+      github.event.action == 'converted_to_draft' ||
+      (github.event.action == 'labeled' && github.event.label.name == 'no-auto-merge')
+    concurrency:
+      group: pr-risk-${{ github.event.pull_request.number }}
+      cancel-in-progress: true
+    runs-on: ubuntu-latest
+    timeout-minutes: 5
+    steps:
+      - name: Remove verdict labels
+        run: |
+          current=$(gh pr view "$PR_NUMBER" --json labels --jq '.labels[].name')
+          for label in risk:low risk:medium risk:high needs-human; do
+            if grep -qxF "$label" <<< "$current"; then
+              gh pr edit "$PR_NUMBER" --remove-label "$label"
+            fi
+          done
+
+      - name: Mark sticky comment as skipped
+        env:
+          REASON: ${{ github.event.action == 'converted_to_draft' && 'the PR is a draft' || 'the PR is labelled no-auto-merge' }}
+        run: |
+          comment_ids=$(gh api --paginate "repos/$GH_REPO/issues/$PR_NUMBER/comments" \
+            --jq '.[] | select(.user.login == "github-actions[bot]" and (.body | startswith("<!-- pr-risk -->"))) | .id')
+          comment_id=${comment_ids%%$'\n'*}
+          if [ -n "$comment_id" ]; then
+            body=$(printf '<!-- pr-risk -->\n## PR Risk: skipped\n\nNo verdict: %s.\n' "$REASON")
+            gh api --method PATCH "repos/$GH_REPO/issues/comments/$comment_id" \
+              -f "body=$body" > /dev/null
+          fi
