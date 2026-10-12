@@ -1,18 +1,21 @@
 appId: com.fitmeproject.ios
 ---
+# A fresh +clerk_test User per run (see the auth flow)
+- evalScript: ${output.email = 'e2e-profile-' + Date.now() + '+clerk_test@fitmeproject.com'}
+
 - launchApp:
     clearState: true
     clearKeychain: true
 
 - waitForAnimationToEnd
 
-# ===== LOGIN =====
-- tapOn:
-    id: "login-here-link"
-
-- waitForAnimationToEnd
-
-- runFlow: ../../subflows/sign-in.yaml
+# ===== REGISTER =====
+- runFlow:
+    file: ../../subflows/register.yaml
+    env:
+      NAME: "Tony Stark"
+      EMAIL: ${output.email}
+      PASSWORD: "fitme-e2e-kettlebell-swing"
 
 # Lands on onboarding — iOS may offer to save the password first
 - extendedWaitUntil:

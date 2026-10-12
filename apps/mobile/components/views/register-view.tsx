@@ -1,10 +1,9 @@
-import { useAuth } from "@clerk/expo";
-import { handleSupabaseError } from "@fitme/core";
-import { useLocales } from "expo-localization";
+import { useAuth, useSignUp } from "@clerk/expo";
+import { splitName } from "@fitme/core";
 import { router } from "expo-router";
 import { useCallback, useEffect, useState } from "react";
 import { Pressable, View } from "react-native";
-import { useRegisterMutation } from "@/hooks/mutations/auth";
+import { getClerkErrorMessage } from "~/lib/clerk";
 import RegisterForm, {
   type RegisterFormValues,
 } from "../forms/auth/register-form";
@@ -15,6 +14,8 @@ import { VStack } from "../ui/vstack";
 const goToLogin = () => router.push("/auth/login");
 
 export default function RegisterView() {
+  const { signUp } = useSignUp();
+
   const [errorMessage, setErrorMessage] = useState<string | undefined>();
 
   const { isSignedIn } = useAuth();
@@ -25,22 +26,32 @@ export default function RegisterView() {
     }
   }, [isSignedIn]);
 
-  const { mutateAsync: register } = useRegisterMutation({
-    onError: (error) => {
-      handleSupabaseError(error, setErrorMessage);
-    },
-  });
-
-  const locales = useLocales();
-
   const handleSubmit = useCallback(
-    async (values: RegisterFormValues) => {
-      await register({
-        ...values,
-        measurement_system: locales[0].measurementSystem ?? "metric",
+    async ({ email, name, password }: RegisterFormValues) => {
+      setErrorMessage(undefined);
+      const { firstName, lastName } = splitName(name);
+      const { error } = await signUp.password({
+        emailAddress: email,
+        firstName,
+        lastName: lastName || undefined,
+        password,
+      });
+      if (error) {
+        setErrorMessage(getClerkErrorMessage(error));
+        return;
+      }
+
+      const { error: sendError } = await signUp.verifications.sendEmailCode();
+      if (sendError) {
+        setErrorMessage(getClerkErrorMessage(sendError));
+        return;
+      }
+      router.push({
+        params: { purpose: "sign-up" },
+        pathname: "/auth/verify-code",
       });
     },
-    [locales, register]
+    [signUp]
   );
 
   return (

@@ -1,12 +1,11 @@
-import type { MeasurementSystem } from "@fitme/core";
 import { createMutation } from "react-query-kit";
 import { supabase } from "@/lib/supabase";
 import { getClerk } from "~/lib/clerk";
 import { IS_E2E } from "~/lib/constants";
 import { segmentClient } from "~/lib/segment";
 
-// Registration and password reset move to Clerk in their own changes; until
-// then they fail with this message instead of calling Supabase Auth.
+// Password reset moves to Clerk in its own change; until then it fails with
+// this message instead of calling Supabase Auth.
 const notAvailableYet = (): Promise<void> =>
   Promise.reject(
     new Error("This isn't available yet. Please try again later.")
@@ -20,17 +19,6 @@ export const useLogoutMutation = createMutation<void, void>({
       segmentClient.reset();
     }
   },
-});
-
-export interface RegisterData {
-  email: string;
-  measurement_system: MeasurementSystem;
-  name: string;
-  password: string;
-}
-
-export const useRegisterMutation = createMutation<void, RegisterData>({
-  mutationFn: (_data: RegisterData): Promise<void> => notAvailableYet(),
 });
 
 export interface ForgotPasswordData {

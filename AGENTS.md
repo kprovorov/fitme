@@ -65,7 +65,7 @@ React Native / Expo app using **file-based routing** via `expo-router`:
 - `app/` — Expo Router routes (file-based navigation)
   - `_layout.tsx` — Root layout: initializes fonts, Sentry and RevenueCat
   - `(tabs)/` — Bottom tab navigator (Home, History, Library, Profile)
-  - `auth/` — Login/Register screens (presented as fullscreen modal)
+  - `auth/` — Login/Register screens and the shared emailed-code screen (presented as fullscreen modal)
   - `onboarding/` — Post-registration onboarding flow (fullscreen modal)
   - `planner/` — AI plan generation flow (modal)
   - `plans/[planId]/` — Plan detail and workout views
@@ -149,7 +149,7 @@ Platform-agnostic code shared by both apps: `models.ts` (Profile, Plan, Workout,
 
 **Shared types**: Import domain types from `@fitme/core`, never from an app's `lib/`. Import row types from `@fitme/supabase` (`Tables<"plans">`).
 
-**Authentication (mobile)**: Clerk (`@clerk/expo`, hooks-based custom flows on the existing screens). Identity (id, email, name) comes from Clerk's `useUser`; the Profile from `useProfileQuery`. Never call Supabase Auth APIs. `@clerk/expo` is excluded from Expo autolinking in `package.json` (its native module needs iOS 17 and is only used by Clerk's prebuilt native views); the JS SDK treats it as optional. The `<Authenticated>` component wraps protected screens and redirects signed-out users. E2E flows sign in a User pre-created on the Clerk development instance (`E2E_USER_EMAIL` variable / `E2E_USER_PASSWORD` secret, passed to Maestro with `-e`).
+**Authentication (mobile)**: Clerk (`@clerk/expo`, hooks-based custom flows on the existing screens). Identity (id, email, name) comes from Clerk's `useUser`; the Profile from `useProfileQuery`. Never call Supabase Auth APIs. `@clerk/expo` is excluded from Expo autolinking in `package.json` (its native module needs iOS 17 and is only used by Clerk's prebuilt native views); the JS SDK treats it as optional. The `<Authenticated>` component wraps protected screens and redirects signed-out users. Registration ends on the shared code screen `app/auth/verify-code.tsx` (`?purpose=sign-up`; each purpose maps to its Clerk flow in `components/views/verify-code-view.tsx`). The register form mirrors Clerk's minimum password length (`PASSWORD_MIN_LENGTH` in `lib/constants.ts`, 15 on both instances). E2E flows register a fresh `+clerk_test` User per run on the Clerk development instance (test mode: no email sent, fixed code 424242) through `e2e/subflows/register.yaml`, and sign in through `e2e/subflows/sign-in.yaml` (`EMAIL`/`PASSWORD` runFlow env).
 
 **Styling (mobile)**: uniwind (Tailwind CSS for React Native). CSS variables are defined in `apps/mobile/global.css` for theming. Custom spacing tokens: `xs`, `sm`, `md`, `lg`. Custom font families: `nunito-sans-regular/semibold/bold`, `ibm-plex-mono`.
 

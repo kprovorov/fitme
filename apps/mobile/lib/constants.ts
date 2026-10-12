@@ -22,3 +22,7 @@ export const NAV_THEME = {
 // iOS 27 resolves the `automatic` scroll edge effect to the hard style
 // (dimmed band + dividing line); pin it to the progressive blur we had on 26.
 export const SCROLL_EDGE_EFFECTS = { bottom: "soft", top: "soft" } as const;
+
+// Mirrors the minimum password length set on both Clerk instances, so the
+// register form can reject a short password before calling Clerk.
+export const PASSWORD_MIN_LENGTH = 15;
