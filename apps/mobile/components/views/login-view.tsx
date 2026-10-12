@@ -170,6 +170,7 @@ export default function LoginView() {
         <Link
           className="font-nunito-sans-bold text-primary"
           href="/auth/forgot-password"
+          testID="forgot-password-link"
         >
           Forgot password?
         </Link>
