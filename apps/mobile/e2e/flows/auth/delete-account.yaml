@@ -1,0 +1,98 @@
+appId: com.fitmeproject.ios
+env:
+  NAME: "Tony Stark"
+  PASSWORD: "fitme-e2e-kettlebell-swing"
+---
+# A fresh +clerk_test User per run (see the auth flow), deleted at the end
+- evalScript: ${output.email = 'e2e-delete-' + Date.now() + '-' + Math.floor(Math.random() * 1e6) + '+clerk_test@fitmeproject.com'}
+
+- launchApp:
+    clearState: true
+    clearKeychain: true
+
+- waitForAnimationToEnd
+
+# ===== REGISTER =====
+- runFlow:
+    file: ../../subflows/register.yaml
+    env:
+      NAME: ${NAME}
+      EMAIL: ${output.email}
+      PASSWORD: ${PASSWORD}
+
+# Lands on onboarding — iOS may offer to save the password first
+- extendedWaitUntil:
+    visible:
+      text: "Get Started|Not Now"
+    timeout: 15000
+
+- tapOn:
+    text: "Not Now"
+    optional: true
+
+- tapOn:
+    text: "Skip"
+
+- waitForAnimationToEnd
+
+# ===== DELETE ACCOUNT =====
+- tapOn:
+    text: "Profile"
+
+- waitForAnimationToEnd
+
+- tapOn:
+    text: "Settings"
+
+- waitForAnimationToEnd
+
+- tapOn:
+    id: "delete-account-button"
+
+- waitForAnimationToEnd
+
+# Confirm in the alert
+- tapOn:
+    text: "Delete"
+
+# Signed out and back on the welcome screen
+- extendedWaitUntil:
+    visible:
+      text: "Welcome to Fitme!"
+    timeout: 15000
+
+# ===== OLD CREDENTIALS NO LONGER SIGN IN =====
+# A restart starts from a fresh login form; the User is still signed out
+- stopApp
+- launchApp
+
+- waitForAnimationToEnd
+
+- assertVisible:
+    text: "Welcome to Fitme!"
+
+- tapOn:
+    id: "login-here-link"
+
+- waitForAnimationToEnd
+
+- tapOn:
+    id: "login-email-input"
+- waitForAnimationToEnd
+- inputText: ${output.email}
+
+- tapOn:
+    id: "login-password-input"
+- waitForAnimationToEnd
+- inputText: ${PASSWORD}
+
+- tapOn:
+    id: "login-button"
+
+- extendedWaitUntil:
+    visible:
+      id: "login-error"
+    timeout: 10000
+
+- assertNotVisible:
+    text: "Home"

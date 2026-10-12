@@ -164,7 +164,11 @@ export default function LoginView() {
           Log in to your account to access your workouts
         </Text>
       </VStack>
-      {errorMessage ? <P className="text-red-500">{errorMessage}</P> : null}
+      {errorMessage ? (
+        <P className="text-red-500" testID="login-error">
+          {errorMessage}
+        </P>
+      ) : null}
       <LoginForm onSubmit={handleSubmit} />
       <Text className="font-nunito-sans-bold text-subhead">
         <Link

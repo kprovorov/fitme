@@ -26,6 +26,13 @@ jobs:
       - name: Run unit tests
         run: pnpm turbo run test
 
+      - uses: denoland/setup-deno@v2
+        with:
+          deno-version: v2.x
+
+      - name: Run edge function tests
+        run: pnpm --filter @fitme/supabase test:functions
+
   checks:
     runs-on: ubuntu-latest
     steps:
