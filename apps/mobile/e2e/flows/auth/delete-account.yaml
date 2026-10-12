@@ -76,6 +76,8 @@ env:
 
 - waitForAnimationToEnd
 
+# Typed here rather than through the sign-in subflow, which waits for a
+# successful sign-in
 - tapOn:
     id: "login-email-input"
 - waitForAnimationToEnd

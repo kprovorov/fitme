@@ -1,21 +1,13 @@
-import { Link, router, Stack } from "expo-router";
-import { Alert, ScrollView } from "react-native";
+import { Link, Stack } from "expo-router";
+import { ScrollView } from "react-native";
 import { AlertDialog } from "~/components/ui/alert-dialog";
 import { MenuList, MenuListItem } from "~/components/ui/menu-list";
 import { Separator } from "~/components/ui/separator";
 import { Text } from "~/components/ui/text";
 import { useDeleteUserMutation } from "~/hooks/mutations/auth";
-import { getClerkErrorMessage } from "~/lib/clerk";
 
 export default function LegalScreen() {
-  const { mutate: deleteUser } = useDeleteUserMutation({
-    onError: (error) => {
-      Alert.alert("Couldn't delete your account", getClerkErrorMessage(error));
-    },
-    onSuccess: () => {
-      router.replace("/auth/login");
-    },
-  });
+  const { mutate: deleteUser } = useDeleteUserMutation();
 
   return (
     <>

@@ -1,5 +1,8 @@
+import * as Sentry from "@sentry/react-native";
+import { router } from "expo-router";
+import { Alert } from "react-native";
 import { createMutation } from "react-query-kit";
-import { getClerk } from "~/lib/clerk";
+import { getClerk, getClerkErrorMessage } from "~/lib/clerk";
 import { IS_E2E } from "~/lib/constants";
 import { segmentClient } from "~/lib/segment";
 
@@ -42,8 +45,9 @@ export const useResetPasswordMutation = createMutation<void, ResetPasswordData>(
 );
 
 // Deletes the User in Clerk (the instance must allow Users to delete their
-// accounts). Their rows are removed afterwards by the clerk-webhook edge
-// function when Clerk delivers user.deleted.
+// accounts), signs out and shows the login screen. Their rows are removed
+// afterwards by the clerk-webhook edge function when Clerk delivers
+// user.deleted.
 export const useDeleteUserMutation = createMutation<void, void>({
   mutationFn: async (): Promise<void> => {
     const clerk = getClerk();
@@ -51,10 +55,18 @@ export const useDeleteUserMutation = createMutation<void, void>({
       throw new Error("Not authenticated");
     }
     await clerk.user.delete();
-    await clerk.signOut();
+    // The deletion already ended the session; a failed sign-out must not
+    // report the deleted account as still there
+    await clerk.signOut().catch(Sentry.captureException);
     if (!IS_E2E) {
       segmentClient.track("User Deleted Account");
       segmentClient.reset();
     }
+  },
+  onError: (error) => {
+    Alert.alert("Couldn't delete your account", getClerkErrorMessage(error));
+  },
+  onSuccess: () => {
+    router.replace("/auth/login");
   },
 });
