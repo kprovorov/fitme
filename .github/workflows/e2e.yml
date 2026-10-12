@@ -153,7 +153,9 @@ jobs:
 
       - name: Build iOS simulator app
         working-directory: apps/mobile
+        # pipefail: xcpretty would otherwise hide a failed build.
         run: |
+          set -o pipefail
           WORKSPACE=$(find ios -name "*.xcworkspace" -maxdepth 1 | head -1)
           SCHEME=$(basename "$WORKSPACE" .xcworkspace)
           xcodebuild \
