@@ -7,7 +7,8 @@ import {
   type Place,
 } from "@fitme/core";
 import type { Tables } from "@fitme/supabase";
-import { format, formatDistanceToNow } from "date-fns";
+import { formatDistanceToNow } from "date-fns";
+import { LocalDate } from "~/components/local-date";
 import {
   Card,
   CardContent,
@@ -88,8 +89,6 @@ interface SessionItem {
 }
 
 function SessionRow({ session }: { session: SessionItem }) {
-  const startedAt = new Date(session.started_at);
-
   return (
     <li className="flex items-center justify-between gap-4 py-3">
       <div className="flex flex-col">
@@ -103,7 +102,7 @@ function SessionRow({ session }: { session: SessionItem }) {
         ) : null}
       </div>
       <div className="flex flex-col items-end text-sm">
-        <time dateTime={session.started_at}>{format(startedAt, "PP")}</time>
+        <LocalDate value={session.started_at} />
         <span className="text-muted-foreground text-xs">
           {session.finished_at ? "Finished" : "In progress"}
         </span>
