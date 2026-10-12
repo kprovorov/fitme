@@ -40,6 +40,12 @@ describe("path floor", () => {
       "packages/supabase/scripts/check-clerk-trust.ts",
     ],
     ["auth / Clerk / RevenueCat code", "apps/mobile/hooks/revenueCat.ts"],
+    ["auth / Clerk / RevenueCat code", "apps/mcp/src/context.ts"],
+    ["auth / Clerk / RevenueCat code", "apps/mobile/app/_layout.tsx"],
+    ["auth / Clerk / RevenueCat code", "apps/mobile/lib/supabase.ts"],
+    ["auth / Clerk / RevenueCat code", "apps/web/app/(app)/layout.tsx"],
+    ["auth / Clerk / RevenueCat code", "apps/web/lib/supabase/proxy.ts"],
+    ["auth / Clerk / RevenueCat code", "apps/web/proxy.ts"],
   ])("forces risk:high for a %s change (%s)", (family, path) => {
     const decision = decide({ files: [...APP_FILES, path], title: GOOD_TITLE });
 

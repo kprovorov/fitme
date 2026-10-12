@@ -40,6 +40,15 @@ const ENV_FILE = /(^|\/)\.env(\.[^/]*)?$/;
 const MARKDOWN_FILE = /\.mdx?$/;
 // "auth" also matches oauth, authenticated, authorization; "author" is a blog byline.
 const AUTH_PATH = /auth(?!ors?\b)|clerk|revenue-?cat/;
+/** Session, token and auth-guard code whose path doesn't say so. */
+const AUTH_FILES = new Set([
+  "apps/mcp/src/context.ts",
+  "apps/mobile/app/_layout.tsx",
+  "apps/mobile/lib/supabase.ts",
+  "apps/web/app/(app)/layout.tsx",
+  "apps/web/lib/supabase/proxy.ts",
+  "apps/web/proxy.ts",
+]);
 
 interface FloorFamily {
   matches: (path: string) => boolean;
@@ -92,7 +101,9 @@ const FLOOR_FAMILIES: FloorFamily[] = [
     name: "env file",
   },
   {
-    matches: (p) => !MARKDOWN_FILE.test(p) && AUTH_PATH.test(p.toLowerCase()),
+    matches: (p) =>
+      AUTH_FILES.has(p) ||
+      (!MARKDOWN_FILE.test(p) && AUTH_PATH.test(p.toLowerCase())),
     name: "auth / Clerk / RevenueCat code",
   },
 ];

@@ -20,18 +20,22 @@ on:
       - synchronize
       - reopened
       - ready_for_review
+      - edited
       - converted_to_draft
       - labeled
       - unlabeled
 
 # One run per PR; a new push cancels the running one. Label events other than
-# no-auto-merge (including the verdict labels themselves) get their own group
-# so they never cancel a classification.
+# no-auto-merge (including the verdict labels themselves) and edits that leave
+# the title alone get their own group so they never cancel a classification.
 concurrency:
   group: >-
     pr-risk-${{ github.event.pull_request.number }}${{
-      (github.event.action == 'labeled' || github.event.action == 'unlabeled') &&
-      github.event.label.name != 'no-auto-merge' &&
+      (
+        ((github.event.action == 'labeled' || github.event.action == 'unlabeled') &&
+          github.event.label.name != 'no-auto-merge') ||
+        (github.event.action == 'edited' && github.event.changes.title == null)
+      ) &&
       format('-{0}', github.run_id) || ''
     }}
   cancel-in-progress: true
@@ -53,7 +57,8 @@ jobs:
       !github.event.pull_request.draft &&
       !contains(github.event.pull_request.labels.*.name, 'no-auto-merge') &&
       (
-        (github.event.action != 'labeled' && github.event.action != 'unlabeled') ||
+        (github.event.action == 'edited' && github.event.changes.title != null) ||
+        (github.event.action != 'edited' && github.event.action != 'labeled' && github.event.action != 'unlabeled') ||
         (github.event.action == 'unlabeled' && github.event.label.name == 'no-auto-merge')
       )
     runs-on: ubuntu-latest
@@ -71,6 +76,7 @@ jobs:
       # Removing the old verdict first means any later failure leaves no
       # label, never a stale one from an earlier head.
       - name: Remove previous verdict
+        id: remove
         continue-on-error: true
         run: |
           current=$(gh pr view "$PR_NUMBER" --json labels --jq '.labels[].name')
@@ -80,7 +86,10 @@ jobs:
             fi
           done
 
+      # Setup failures must not turn the check red: decide is skipped and the
+      # fallback below applies needs-human instead.
       - name: Checkout base
+        continue-on-error: true
         uses: actions/checkout@v4
         with:
           ref: ${{ github.event.pull_request.base.sha }}
@@ -90,14 +99,17 @@ jobs:
       # adds it runs its own copy.
       - name: Checkout PR (classifier not on base yet)
         if: hashFiles('packages/pr-risk/package.json') == ''
+        continue-on-error: true
         uses: actions/checkout@v4
         with:
           persist-credentials: false
 
       - name: Setup pnpm
+        continue-on-error: true
         uses: pnpm/action-setup@v4
 
       - name: Setup Node.js
+        continue-on-error: true
         uses: actions/setup-node@v4
         with:
           node-version: "22"
@@ -113,11 +125,18 @@ jobs:
         if: steps.install.outcome == 'success'
         continue-on-error: true
         # Renames list the old path too, so moving a file out of a floor path
-        # still counts as touching it.
+        # still counts as touching it. The API lists at most 3000 files; a
+        # longer list fails this step, so the PR falls back to needs-human.
+        env:
+          EXPECTED_FILES: ${{ github.event.pull_request.changed_files }}
         run: |
-          gh api --paginate "repos/$GH_REPO/pulls/$PR_NUMBER/files" \
-            --jq '.[] | .filename, (.previous_filename // empty)' \
-            > "$CHANGED_FILES_PATH"
+          files=$(gh api --paginate "repos/$GH_REPO/pulls/$PR_NUMBER/files" --jq '.[]')
+          jq -r '.filename, (.previous_filename // empty)' <<< "$files" > "$CHANGED_FILES_PATH"
+          listed=$(jq -s 'length' <<< "$files")
+          if [ "$listed" -lt "$EXPECTED_FILES" ]; then
+            echo "::error::Listed $listed of $EXPECTED_FILES changed files"
+            exit 1
+          fi
           cat "$CHANGED_FILES_PATH"
 
       - name: Decide (path floor and title rule)
@@ -160,8 +179,10 @@ jobs:
 
       - name: Apply label
         continue-on-error: true
+        # If the old verdict could not be removed, never add a mergeable label
+        # next to it.
         env:
-          LABEL: ${{ steps.decide.outputs.label || 'needs-human' }}
+          LABEL: ${{ steps.remove.outcome == 'success' && steps.decide.outputs.label || 'needs-human' }}
         run: gh pr edit "$PR_NUMBER" --add-label "$LABEL"
 
       - name: Update sticky comment
@@ -196,3 +217,17 @@ jobs:
               gh pr edit "$PR_NUMBER" --remove-label "$label"
             fi
           done
+
+      - name: Mark sticky comment as skipped
+        continue-on-error: true
+        env:
+          REASON: ${{ github.event.action == 'converted_to_draft' && 'the PR is a draft' || 'the PR is labelled no-auto-merge' }}
+        run: |
+          comment_ids=$(gh api --paginate "repos/$GH_REPO/issues/$PR_NUMBER/comments" \
+            --jq '.[] | select(.user.login == "github-actions[bot]" and (.body | startswith("<!-- pr-risk -->"))) | .id')
+          comment_id=${comment_ids%%$'\n'*}
+          if [ -n "$comment_id" ]; then
+            body=$(printf '<!-- pr-risk -->\n## PR Risk: skipped\n\nNo verdict: %s.\n' "$REASON")
+            gh api --method PATCH "repos/$GH_REPO/issues/comments/$comment_id" \
+              -f "body=$body" > /dev/null
+          fi
