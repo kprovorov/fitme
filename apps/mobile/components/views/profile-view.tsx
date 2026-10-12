@@ -11,7 +11,7 @@ import { Heart } from "~/lib/icons/Heart";
 import { Trophy } from "~/lib/icons/Trophy";
 import { UserRound } from "~/lib/icons/UserRound";
 import { Volleyball } from "~/lib/icons/Volleyball";
-import { getProfileIdentity } from "~/lib/user-name";
+import { getProfileHeader } from "~/lib/user-name";
 import { Avatar, AvatarFallback } from "../ui/avatar";
 import { Card, CardContent } from "../ui/card";
 import { HStack } from "../ui/hstack";
@@ -29,7 +29,7 @@ const openAppStoreReview = () => Linking.openURL(APP_STORE_REVIEW_URL);
 
 export default function ProfileView() {
   const { user } = useUser();
-  const { initial, subtitle, title } = getProfileIdentity({
+  const { initial, subtitle, title } = getProfileHeader({
     email: user?.primaryEmailAddress?.emailAddress,
     fullName: user?.fullName,
   });

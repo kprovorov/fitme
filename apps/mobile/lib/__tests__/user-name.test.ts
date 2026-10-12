@@ -1,5 +1,5 @@
 import { describe, expect, it } from "@jest/globals";
-import { getProfileIdentity, splitFullName } from "../user-name";
+import { getProfileHeader, splitFullName } from "../user-name";
 
 describe("splitFullName", () => {
   it("makes a single word the first name", () => {
@@ -17,10 +17,10 @@ describe("splitFullName", () => {
   });
 });
 
-describe("getProfileIdentity", () => {
+describe("getProfileHeader", () => {
   it("shows the name with the email beneath it", () => {
     expect(
-      getProfileIdentity({
+      getProfileHeader({
         email: "pepper@stark.com",
         fullName: "Pepper Potts",
       })
@@ -33,13 +33,13 @@ describe("getProfileIdentity", () => {
 
   it("falls back to the email when the User has no name", () => {
     expect(
-      getProfileIdentity({ email: "pepper@stark.com", fullName: null })
+      getProfileHeader({ email: "pepper@stark.com", fullName: null })
     ).toEqual({ initial: "P", title: "pepper@stark.com" });
   });
 
   it("treats a blank name as no name", () => {
     expect(
-      getProfileIdentity({ email: "pepper@stark.com", fullName: "  " })
+      getProfileHeader({ email: "pepper@stark.com", fullName: "  " })
     ).toEqual({ initial: "P", title: "pepper@stark.com" });
   });
 });

@@ -106,4 +106,5 @@ appId: com.fitmeproject.ios
     id: "edit-profile-link"
 - waitForAnimationToEnd
 - assertVisible:
+    id: "edit-profile-name-input"
     text: ${output.newName}
