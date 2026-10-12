@@ -81,6 +81,9 @@ async function verifyUser(req: Request): Promise<UserContext | null> {
     ({ sub: userId } = await verifyToken(accessToken, { jwtKey }));
   } catch (error) {
     if (error instanceof TokenVerificationError) {
+      // A wrong CLERK_JWT_KEY fails every token with the same reasons as a
+      // forged one, so log them: a burst of these points at the key.
+      console.warn(`Rejected Clerk token: ${error.reason}`);
       return null;
     }
     throw error;
