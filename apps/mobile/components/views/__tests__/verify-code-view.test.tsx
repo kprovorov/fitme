@@ -35,6 +35,17 @@ const mockSignUp = {
  * `EMAILED_CODE` moves it on to asking for a new password.
  */
 const mockSignIn = {
+  finalize: jest.fn(() => Promise.resolve({ error: null })),
+  mfa: {
+    sendEmailCode: jest.fn(() => Promise.resolve({ error: null })),
+    verifyEmailCode: jest.fn(({ code }: { code: string }) => {
+      if (code !== EMAILED_CODE) {
+        return Promise.resolve({ error: clerkError("Incorrect code") });
+      }
+      mockSignIn.status = "complete";
+      return Promise.resolve({ error: null });
+    }),
+  },
   resetPasswordEmailCode: {
     sendCode: jest.fn(() => Promise.resolve({ error: null })),
     verifyCode: jest.fn(({ code }: { code: string }) => {
@@ -140,5 +151,26 @@ describe("VerifyCodeView for a password reset", () => {
 
     expect(mockSignIn.resetPasswordEmailCode.sendCode).toHaveBeenCalledTimes(1);
     expect(screen.getByText("We sent you a new code.")).toBeTruthy();
+  });
+});
+
+describe("VerifyCodeView for a sign-in from a new device", () => {
+  it("signs the User in with the emailed code", async () => {
+    mockSignIn.status = "needs_client_trust";
+    await render(<VerifyCodeView purpose="sign-in" />);
+
+    await enterCode(EMAILED_CODE);
+
+    expect(mockSignIn.finalize).toHaveBeenCalledTimes(1);
+  });
+
+  it("emails a new code on request", async () => {
+    await render(<VerifyCodeView purpose="sign-in" />);
+
+    await fireEvent.press(
+      screen.getByRole("button", { name: "Send a new code" })
+    );
+
+    expect(mockSignIn.mfa.sendEmailCode).toHaveBeenCalledTimes(1);
   });
 });

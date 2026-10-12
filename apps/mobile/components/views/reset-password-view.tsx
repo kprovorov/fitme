@@ -7,6 +7,7 @@ import ResetPasswordForm, {
 import { Text } from "~/components/ui/text";
 import { H3, P } from "~/components/ui/typography";
 import { VStack } from "~/components/ui/vstack";
+import type { CodePurpose } from "~/components/views/verify-code-view";
 import { getClerkErrorMessage } from "~/lib/clerk";
 
 /** Sets a new password once the emailed reset code checked out. */
@@ -22,6 +23,35 @@ export default function ResetPasswordView() {
     }
   }, [isSignedIn]);
 
+  // Device Trust: on a new device the password alone doesn't sign the User in,
+  // so the shared code screen finishes the sign-in with an emailed code.
+  const confirmDevice = useCallback(async () => {
+    const canUseEmailCode = signIn.supportedSecondFactors.some(
+      (factor) => factor.strategy === "email_code"
+    );
+    if (
+      !(
+        (signIn.status === "needs_client_trust" ||
+          signIn.status === "needs_second_factor") &&
+        canUseEmailCode
+      )
+    ) {
+      setErrorMessage(
+        "Your password was changed. Log in with your new password."
+      );
+      return;
+    }
+    const { error } = await signIn.mfa.sendEmailCode();
+    if (error) {
+      setErrorMessage(getClerkErrorMessage(error));
+      return;
+    }
+    router.push({
+      params: { purpose: "sign-in" satisfies CodePurpose },
+      pathname: "/auth/verify-code",
+    });
+  }, [signIn]);
+
   const handleSubmit = useCallback(
     async ({ password }: ResetPasswordFormValues) => {
       setErrorMessage(undefined);
@@ -33,7 +63,7 @@ export default function ResetPasswordView() {
         return;
       }
       if (signIn.status !== "complete") {
-        setErrorMessage("This account can't sign in here yet.");
+        await confirmDevice();
         return;
       }
       const { error: finalizeError } = await signIn.finalize();
@@ -42,7 +72,7 @@ export default function ResetPasswordView() {
       }
       // The isSignedIn effect takes the User Home.
     },
-    [signIn]
+    [confirmDevice, signIn]
   );
 
   return (

@@ -11,7 +11,7 @@ import { H3, P } from "../ui/typography";
 import { VStack } from "../ui/vstack";
 
 /** What the emailed code proves; each purpose drives its own Clerk flow. */
-export const codePurposes = ["sign-up", "reset-password"] as const;
+export const codePurposes = ["sign-up", "reset-password", "sign-in"] as const;
 export type CodePurpose = (typeof codePurposes)[number];
 
 export const isCodePurpose = (value: unknown): value is CodePurpose =>
@@ -82,14 +82,49 @@ const useResetPasswordVerification = (): CodeVerification => {
   return { isFetching: fetchStatus === "fetching", resend, verify };
 };
 
+/** Device Trust: a sign-in on a new device also needs an emailed code. */
+const useSignInVerification = (): CodeVerification => {
+  const { signIn, fetchStatus } = useSignIn();
+
+  const resend = useCallback(async () => {
+    const { error } = await signIn.mfa.sendEmailCode();
+    return error ? getClerkErrorMessage(error) : undefined;
+  }, [signIn]);
+
+  const verify = useCallback(
+    async (code: string) => {
+      const { error } = await signIn.mfa.verifyEmailCode({ code });
+      if (error) {
+        return getClerkErrorMessage(error);
+      }
+      if (signIn.status !== "complete") {
+        return "We couldn't sign you in. Please try again.";
+      }
+      const { error: finalizeError } = await signIn.finalize();
+      if (finalizeError) {
+        return getClerkErrorMessage(finalizeError);
+      }
+    },
+    [signIn]
+  );
+
+  return { isFetching: fetchStatus === "fetching", resend, verify };
+};
+
 const VERIFICATIONS: Record<CodePurpose, () => CodeVerification> = {
   "reset-password": useResetPasswordVerification,
+  "sign-in": useSignInVerification,
   "sign-up": useSignUpVerification,
 };
 
 const COPY: Record<CodePurpose, { description: string; title: string }> = {
   "reset-password": {
     description: "Enter the code we emailed you to reset your password",
+    title: "Check your email",
+  },
+  "sign-in": {
+    description:
+      "Enter the code we sent you to confirm it's you on this device",
     title: "Check your email",
   },
   "sign-up": {
@@ -121,8 +156,8 @@ export default function VerifyCodeView({ purpose }: VerifyCodeViewProps) {
   const handleVerify = useCallback(async () => {
     setErrorMessage(undefined);
     setNotice(undefined);
-    // Sign-up ends signed in, and the isSignedIn effect takes the User on to
-    // onboarding; a reset moves on to the new-password screen itself.
+    // Sign-up and sign-in end signed in, and the isSignedIn effect takes the
+    // User on; a reset moves on to the new-password screen itself.
     setErrorMessage(await verify(code));
   }, [code, verify]);
 
