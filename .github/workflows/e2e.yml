@@ -114,6 +114,11 @@ jobs:
         env:
           SUPABASE_ACCESS_TOKEN: ${{ secrets.SUPABASE_ACCESS_TOKEN }}
 
+      # The hoisted install skips snaplet's postinstall; build the client
+      # from the committed .snaplet/dataModel.json.
+      - name: Generate seed client
+        run: pnpm --filter @fitme/supabase exec snaplet-seed generate
+
       - name: Seed database
         run: pnpm --filter @fitme/supabase seed
         env:
