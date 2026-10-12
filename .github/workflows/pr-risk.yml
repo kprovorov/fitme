@@ -1,7 +1,9 @@
 # Classifies every non-draft PR to main as risk:low, risk:medium, risk:high or
 # needs-human, with one sticky comment listing the reasons. It never merges.
 #
-# The check always passes: the gate is the label, not the check. The repo is
+# The gate is the label, not the check: the check is green for every verdict,
+# risk:high and needs-human included, and turns red only when the workflow
+# itself fails (it still tries to leave needs-human first). The repo is
 # private on the free plan, which has no branch protection or rulesets, so the
 # label is the only gate until the repo goes public.
 #
@@ -76,11 +78,23 @@ jobs:
             echo "COMMENT_PATH=$RUNNER_TEMP/pr-risk-comment.md"
           } >> "$GITHUB_ENV"
 
-      # Removing the old verdict first means any later failure leaves no
-      # label, never a stale one from an earlier head.
+      - name: Ensure labels exist
+        run: |
+          existing=$(gh label list --limit 1000 --json name --jq '.[].name')
+          create() {
+            if ! grep -qxF "$1" <<< "$existing"; then
+              gh label create "$1" --color "$2" --description "$3"
+            fi
+          }
+          create "risk:low" "0E8A16" "PR Risk: low risk, an agent may merge"
+          create "risk:medium" "FBCA04" "PR Risk: medium risk, an agent may merge"
+          create "risk:high" "B60205" "PR Risk: high risk, a human must merge"
+          create "needs-human" "D93F0B" "PR Risk: a human must look before merging"
+          create "no-auto-merge" "5319E7" "Skip PR Risk classification; a human merges"
+
+      # Removing the old verdict first means a later failure never leaves a
+      # stale label from an earlier head.
       - name: Remove previous verdict
-        id: remove
-        continue-on-error: true
         run: |
           current=$(gh pr view "$PR_NUMBER" --json labels --jq '.labels[].name')
           for label in risk:low risk:medium risk:high needs-human; do
@@ -89,10 +103,7 @@ jobs:
             fi
           done
 
-      # Setup failures must not turn the check red: decide is skipped and the
-      # fallback below applies needs-human instead.
       - name: Checkout base
-        continue-on-error: true
         uses: actions/checkout@v4
         with:
           ref: ${{ github.event.pull_request.base.sha }}
@@ -102,34 +113,26 @@ jobs:
       # adds it runs its own copy.
       - name: Checkout PR (classifier not on base yet)
         if: hashFiles('packages/pr-risk/package.json') == ''
-        continue-on-error: true
         uses: actions/checkout@v4
         with:
           persist-credentials: false
 
       - name: Setup pnpm
-        continue-on-error: true
         uses: pnpm/action-setup@v4
 
       - name: Setup Node.js
-        continue-on-error: true
         uses: actions/setup-node@v4
         with:
           node-version: "22"
           cache: "pnpm"
 
       - name: Install the classifier
-        id: install
-        continue-on-error: true
         run: pnpm install --frozen-lockfile --filter @fitme/pr-risk
 
       - name: List changed files
-        id: files
-        if: steps.install.outcome == 'success'
-        continue-on-error: true
         # Renames list the old path too, so moving a file out of a floor path
         # still counts as touching it. The API lists at most 3000 files; a
-        # longer list fails this step, so the PR falls back to needs-human.
+        # longer list fails the run rather than classify a partial list.
         env:
           EXPECTED_FILES: ${{ github.event.pull_request.changed_files }}
         run: |
@@ -144,8 +147,6 @@ jobs:
 
       - name: Decide (path floor and title rule)
         id: decide
-        if: steps.files.outcome == 'success'
-        continue-on-error: true
         run: pnpm --filter @fitme/pr-risk --silent decide
 
       # The evaluator (FIT-82) runs here when steps.decide.outputs.run_evaluator
@@ -153,10 +154,27 @@ jobs:
       # Until then the first decision stands: needs-human, "evaluator not
       # configured yet".
 
-      - name: Fall back to needs-human
-        if: steps.decide.outcome != 'success' || steps.remove.outcome != 'success'
+      - name: Apply label
         env:
-          FAILURE: ${{ steps.remove.outcome != 'success' && 'could not remove the previous verdict label' || 'the classifier failed' }}
+          LABEL: ${{ steps.decide.outputs.label }}
+        run: gh pr edit "$PR_NUMBER" --add-label "$LABEL"
+
+      - name: Update sticky comment
+        run: |
+          comment_ids=$(gh api --paginate "repos/$GH_REPO/issues/$PR_NUMBER/comments" \
+            --jq '.[] | select(.user.login == "github-actions[bot]" and (.body | startswith("<!-- pr-risk -->"))) | .id')
+          comment_id=${comment_ids%%$'\n'*}
+          if [ -n "$comment_id" ]; then
+            gh api --method PATCH "repos/$GH_REPO/issues/comments/$comment_id" \
+              -F "body=@$COMMENT_PATH" > /dev/null
+          else
+            gh pr comment "$PR_NUMBER" --body-file "$COMMENT_PATH"
+          fi
+
+      # The run is already red; this only tells a human why the PR carries
+      # needs-human (or no verdict, if the GitHub API itself is failing).
+      - name: Leave needs-human on failure
+        if: failure()
         run: |
           {
             echo "<!-- pr-risk -->"
@@ -164,35 +182,12 @@ jobs:
             echo
             echo "**Source:** workflow error"
             echo
-            echo "- PR Risk $FAILURE; see the [workflow run]($GITHUB_SERVER_URL/$GH_REPO/actions/runs/$GITHUB_RUN_ID)."
+            echo "- The PR Risk workflow failed; see the [workflow run]($GITHUB_SERVER_URL/$GH_REPO/actions/runs/$GITHUB_RUN_ID)."
           } > "$COMMENT_PATH"
-
-      - name: Ensure labels exist
-        continue-on-error: true
-        run: |
-          existing=$(gh label list --limit 1000 --json name --jq '.[].name')
-          create() {
-            if ! grep -qxF "$1" <<< "$existing"; then
-              gh label create "$1" --color "$2" --description "$3"
-            fi
-          }
-          create "risk:low" "0E8A16" "PR Risk: low risk, an agent may merge"
-          create "risk:medium" "FBCA04" "PR Risk: medium risk, an agent may merge"
-          create "risk:high" "B60205" "PR Risk: high risk, a human must merge"
-          create "needs-human" "D93F0B" "PR Risk: a human must look before merging"
-          create "no-auto-merge" "5319E7" "Skip PR Risk classification; a human merges"
-
-      - name: Apply label
-        continue-on-error: true
-        # If the old verdict could not be removed, never add a mergeable label
-        # next to it.
-        env:
-          LABEL: ${{ steps.remove.outcome == 'success' && steps.decide.outputs.label || 'needs-human' }}
-        run: gh pr edit "$PR_NUMBER" --add-label "$LABEL"
-
-      - name: Update sticky comment
-        continue-on-error: true
-        run: |
+          for label in risk:low risk:medium risk:high; do
+            gh pr edit "$PR_NUMBER" --remove-label "$label" || true
+          done
+          gh pr edit "$PR_NUMBER" --add-label needs-human
           comment_ids=$(gh api --paginate "repos/$GH_REPO/issues/$PR_NUMBER/comments" \
             --jq '.[] | select(.user.login == "github-actions[bot]" and (.body | startswith("<!-- pr-risk -->"))) | .id')
           comment_id=${comment_ids%%$'\n'*}
@@ -214,7 +209,6 @@ jobs:
     timeout-minutes: 5
     steps:
       - name: Remove verdict labels
-        continue-on-error: true
         run: |
           current=$(gh pr view "$PR_NUMBER" --json labels --jq '.labels[].name')
           for label in risk:low risk:medium risk:high needs-human; do
@@ -224,7 +218,6 @@ jobs:
           done
 
       - name: Mark sticky comment as skipped
-        continue-on-error: true
         env:
           REASON: ${{ github.event.action == 'converted_to_draft' && 'the PR is a draft' || 'the PR is labelled no-auto-merge' }}
         run: |
