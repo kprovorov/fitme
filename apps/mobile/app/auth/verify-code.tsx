@@ -11,13 +11,8 @@ import { useSafeAreaInsets } from "react-native-safe-area-context";
 import Sign from "~/components/brand/sign";
 import { VStack } from "~/components/ui/vstack";
 import VerifyCodeView, {
-  type CodePurpose,
+  isCodePurpose,
 } from "~/components/views/verify-code-view";
-
-const PURPOSES: readonly string[] = ["sign-up"] satisfies CodePurpose[];
-
-const isCodePurpose = (value: unknown): value is CodePurpose =>
-  typeof value === "string" && PURPOSES.includes(value);
 
 /** Enters an emailed code; `purpose` says which Clerk flow it completes. */
 export default function VerifyCodeScreen() {
@@ -59,7 +54,7 @@ export default function VerifyCodeScreen() {
                 height={isKeyboardVisible ? 35 : 70}
                 width={isKeyboardVisible ? 35 : 70}
               />
-              <VerifyCodeView purpose={purpose} />
+              <VerifyCodeView key={purpose} purpose={purpose} />
             </VStack>
           </TouchableWithoutFeedback>
         </KeyboardAvoidingView>

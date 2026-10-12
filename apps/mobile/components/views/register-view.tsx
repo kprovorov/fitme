@@ -3,6 +3,7 @@ import { splitName } from "@fitme/core";
 import { router } from "expo-router";
 import { useCallback, useEffect, useState } from "react";
 import { Pressable, View } from "react-native";
+import type { CodePurpose } from "~/components/views/verify-code-view";
 import { getClerkErrorMessage } from "~/lib/clerk";
 import RegisterForm, {
   type RegisterFormValues,
@@ -47,7 +48,7 @@ export default function RegisterView() {
         return;
       }
       router.push({
-        params: { purpose: "sign-up" },
+        params: { purpose: "sign-up" satisfies CodePurpose },
         pathname: "/auth/verify-code",
       });
     },

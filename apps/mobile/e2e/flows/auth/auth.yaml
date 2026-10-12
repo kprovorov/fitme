@@ -6,7 +6,7 @@ env:
 ---
 # A fresh +clerk_test User per run: Clerk's test mode sends no email and
 # accepts the fixed code 424242.
-- evalScript: ${output.email = 'e2e-auth-' + Date.now() + '+clerk_test@fitmeproject.com'}
+- evalScript: ${output.email = 'e2e-auth-' + Date.now() + '-' + Math.floor(Math.random() * 1e6) + '+clerk_test@fitmeproject.com'}
 
 # Clerk keeps its client token in the keychain, which clearState leaves alone
 - launchApp:
@@ -49,6 +49,11 @@ env:
 
 - tapOn:
     id: "register-button"
+
+# iOS may offer to save the password as the form submits
+- tapOn:
+    text: "Not Now"
+    optional: true
 
 - extendedWaitUntil:
     visible:

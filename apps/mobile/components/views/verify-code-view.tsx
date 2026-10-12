@@ -11,7 +11,11 @@ import { H3, P } from "../ui/typography";
 import { VStack } from "../ui/vstack";
 
 /** What the emailed code proves; each purpose drives its own Clerk flow. */
-export type CodePurpose = "sign-up";
+export const codePurposes = ["sign-up"] as const;
+export type CodePurpose = (typeof codePurposes)[number];
+
+export const isCodePurpose = (value: unknown): value is CodePurpose =>
+  codePurposes.some((purpose) => purpose === value);
 
 /** The Clerk flow behind one purpose; both return an error message or none. */
 interface CodeVerification {
@@ -63,6 +67,7 @@ const COPY: Record<CodePurpose, { description: string; title: string }> = {
 };
 
 interface VerifyCodeViewProps {
+  /** Picks the Clerk hook, so render with `key={purpose}` to keep hook order. */
   purpose: CodePurpose;
 }
 
