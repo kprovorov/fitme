@@ -1,5 +1,8 @@
 name: Release
 
+# The release tag is the app version: this workflow never commits to main.
+# The build job stamps the tag's version into app.json at build time.
+
 on:
   workflow_dispatch:
 
@@ -15,54 +18,41 @@ jobs:
   release:
     # needs: e2e
     runs-on: ubuntu-latest
+    environment: production
     permissions:
       contents: write
       id-token: write
+    outputs:
+      tag: v${{ steps.version.outputs.new_version }}
     steps:
       - name: Checkout code
         uses: actions/checkout@v4
         with:
           fetch-depth: 0
-          token: ${{ secrets.GITHUB_TOKEN }}
-
-      - name: Setup Node.js
-        uses: actions/setup-node@v4
-        with:
-          node-version: "22"
-
-      - name: Configure Git
-        run: |
-          git config --local user.email "github-actions[bot]@users.noreply.github.com"
-          git config --local user.name "github-actions[bot]"
-
-      - name: Check current branch
-        run: |
-          echo "Current branch: $(git branch --show-current)"
-          echo "Default branch: ${{ github.event.repository.default_branch }}"
 
       - name: Detect bump type (major/minor/patch)
         id: bump
         run: |
-          # Get the latest tag
-          LATEST_TAG=$(git describe --tags --abbrev=0 2>/dev/null || echo "")
+          LATEST_TAG=$(git describe --tags --abbrev=0 --match 'v*' 2>/dev/null || echo "")
           echo "previous_tag=${LATEST_TAG}" >> $GITHUB_OUTPUT
 
           if [ -z "$LATEST_TAG" ]; then
-            COMMIT_RANGE="all commits"
-            COMMITS=$(git log --oneline)
+            COMMITS=$(git log --format='%s%n%b')
           else
-            COMMIT_RANGE="commits since $LATEST_TAG"
-            COMMITS=$(git log --oneline ${LATEST_TAG}..HEAD)
+            if [ -z "$(git rev-list ${LATEST_TAG}..HEAD)" ]; then
+              echo "::error::No commits since ${LATEST_TAG}, nothing to release."
+              exit 1
+            fi
+            COMMITS=$(git log --format='%s%n%b' ${LATEST_TAG}..HEAD)
           fi
 
-          COMMIT_COUNT=$(echo "$COMMITS" | grep -v '^$' | wc -l)
-          echo "Analyzing $COMMIT_COUNT $COMMIT_RANGE:"
+          echo "Commits since ${LATEST_TAG:-the beginning}:"
           echo "$COMMITS"
 
-          # Check for breaking changes first, then features, then defaults to patch
-          if echo "$COMMITS" | grep -q "BREAKING CHANGE\|major:"; then
+          # Breaking changes first, then features, then default to patch
+          if echo "$COMMITS" | grep -qE "BREAKING CHANGE|^[a-z]+(\(.+\))?!:|^major:"; then
             BUMP="major"
-          elif echo "$COMMITS" | grep -q "feat:"; then
+          elif echo "$COMMITS" | grep -qE "^feat(\(.+\))?:"; then
             BUMP="minor"
           else
             BUMP="patch"
@@ -70,63 +60,31 @@ jobs:
           echo "type=${BUMP}" >> $GITHUB_OUTPUT
           echo "Detected bump type: ${BUMP}"
 
-      - name: Get current version
-        id: current-version
+      - name: Compute new version
+        id: version
         run: |
-          CURRENT_VERSION=$(node -p "require('./apps/mobile/package.json').version")
-          echo "current_version=$CURRENT_VERSION" >> $GITHUB_OUTPUT
-          echo "Current version: $CURRENT_VERSION"
+          PREVIOUS="${{ steps.bump.outputs.previous_tag }}"
+          IFS=. read -r MAJOR MINOR PATCH <<< "${PREVIOUS#v}"
+          MAJOR=${MAJOR:-0}; MINOR=${MINOR:-0}; PATCH=${PATCH:-0}
 
-      - name: Bump version in package.json
-        id: bump-version
-        working-directory: apps/mobile
-        run: |
-          BUMP_TYPE="${{ steps.bump.outputs.type }}"
-          echo "Bumping version with type: $BUMP_TYPE"
+          case "${{ steps.bump.outputs.type }}" in
+            major) MAJOR=$((MAJOR + 1)); MINOR=0; PATCH=0 ;;
+            minor) MINOR=$((MINOR + 1)); PATCH=0 ;;
+            patch) PATCH=$((PATCH + 1)) ;;
+          esac
 
-          # npm version will automatically calculate the new version
-          npm version $BUMP_TYPE --no-git-tag-version --workspaces=false
-          # Get the new version that npm version created
-          NEW_VERSION=$(node -p "require('./package.json').version")
+          NEW_VERSION="${MAJOR}.${MINOR}.${PATCH}"
           echo "new_version=$NEW_VERSION" >> $GITHUB_OUTPUT
           echo "New version: $NEW_VERSION"
 
-      - name: Bump version in app.json
-        working-directory: apps/mobile
-        run: |
-          NEW_VERSION="${{ steps.bump-version.outputs.new_version }}"
-          jq --arg version "$NEW_VERSION" '.expo.version = $version' app.json > app.json.tmp
-          mv app.json.tmp app.json
-
-      - name: Verify version changes
-        working-directory: apps/mobile
-        run: |
-          echo "package.json version: $(node -p "require('./package.json').version")"
-          echo "app.json version: $(jq -r '.expo.version' app.json)"
-
-      - name: Commit and push version bump
-        run: |
-          git add apps/mobile/package.json apps/mobile/app.json
-          git commit -m "chore: auto-bump version to ${{ steps.bump-version.outputs.new_version }} [skip ci]"
-          git push origin ${{ github.event.repository.default_branch }}
-
-      - name: Create and push tag
-        run: |
-          NEW_VERSION="${{ steps.bump-version.outputs.new_version }}"
-          git tag "v$NEW_VERSION"
-          git push origin "v$NEW_VERSION"
-          echo "Created and pushed tag v$NEW_VERSION"
-
       - name: Generate changelog
-        id: changelog
         run: |
-          LATEST_TAG=$(git describe --tags --abbrev=0 2>/dev/null || echo "")
-          NEW_VERSION="${{ steps.bump-version.outputs.new_version }}"
+          PREVIOUS="${{ steps.bump.outputs.previous_tag }}"
 
-          if [ -z "$LATEST_TAG" ]; then
+          if [ -z "$PREVIOUS" ]; then
             COMMITS=$(git log --pretty=format:"%s" HEAD)
           else
-            COMMITS=$(git log --pretty=format:"%s" ${LATEST_TAG}~1..HEAD)
+            COMMITS=$(git log --pretty=format:"%s" ${PREVIOUS}..HEAD)
           fi
 
           # Build changelog sections
@@ -136,12 +94,12 @@ jobs:
           OTHER=""
 
           while IFS= read -r msg; do
-            # Skip version bump commits and empty lines
+            # Skip legacy version bump commits and empty lines
             if echo "$msg" | grep -q "^\[skip ci\]\|auto-bump version\|^$"; then
               continue
             fi
 
-            if echo "$msg" | grep -q "BREAKING CHANGE\|major:"; then
+            if echo "$msg" | grep -qE "BREAKING CHANGE|^[a-z]+(\(.+\))?!:|^major:"; then
               BREAKING="$BREAKING"$'\n'"- $msg"
             elif echo "$msg" | grep -qE "^feat(\(.+\))?:"; then
               FEATURES="$FEATURES"$'\n'"- $msg"
@@ -176,24 +134,34 @@ jobs:
           echo "$CHANGELOG" > /tmp/changelog.md
           cat /tmp/changelog.md
 
+      # Creating the release also creates the tag on the commit this run
+      # checked out. Tags aren't covered by the main branch ruleset.
       - name: Create GitHub release
         env:
           GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
         run: |
-          NEW_VERSION="${{ steps.bump-version.outputs.new_version }}"
+          NEW_VERSION="${{ steps.version.outputs.new_version }}"
           gh release create "v$NEW_VERSION" \
+            --target "$GITHUB_SHA" \
             --title "v$NEW_VERSION" \
             --notes-file /tmp/changelog.md
 
       # Continuous Linear pipeline: records the shipped release with every
-      # issue referenced by commits since the previous release tag. base_ref
-      # is explicit because a pipeline's first sync would otherwise scan only
-      # HEAD, which here is the auto-bump commit.
+      # issue referenced by commits since the previous release tag.
       - name: Create Linear release
         uses: linear/linear-release-action@v0
         with:
           access_key: ${{ secrets.LINEAR_ACCESS_KEY }}
-          version: v${{ steps.bump-version.outputs.new_version }}
+          version: v${{ steps.version.outputs.new_version }}
           base_ref: ${{ steps.bump.outputs.previous_tag }}
           links: |
-            GitHub release=${{ github.server_url }}/${{ github.repository }}/releases/tag/v${{ steps.bump-version.outputs.new_version }}
+            GitHub release=${{ github.server_url }}/${{ github.repository }}/releases/tag/v${{ steps.version.outputs.new_version }}
+
+  # A tag pushed with GITHUB_TOKEN doesn't trigger other workflows, so the
+  # build runs from here instead of on `push: tags`.
+  build:
+    needs: release
+    uses: ./.github/workflows/build-mobile.yml
+    with:
+      tag: ${{ needs.release.outputs.tag }}
+    secrets: inherit

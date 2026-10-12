@@ -2,7 +2,7 @@
   "expo": {
     "name": "Fitme Project",
     "slug": "fitme-project",
-    "version": "1.22.0",
+    "version": "0.0.0",
     "orientation": "portrait",
     "icon": "./assets/images/icon.png",
     "scheme": ["fitme", "rc-d91405cd5f"],
