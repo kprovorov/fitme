@@ -7,6 +7,7 @@ import {
 import { createMutation } from "react-query-kit";
 import { supabase } from "@/lib/supabase";
 import { getClerk, getCurrentUserId } from "~/lib/clerk";
+import { splitFullName } from "~/lib/user-name";
 
 export interface StoreProfileData {
   age: number;
@@ -93,7 +94,7 @@ export const useUpdateProfileMutation = createMutation<
     // The name lives in Clerk, not in the profiles table
     const { user } = getClerk();
     if (user && name !== (user.fullName ?? "")) {
-      await user.update(splitName(name));
+      await user.update(splitFullName(name));
     }
 
     return profile;

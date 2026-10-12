@@ -50,10 +50,14 @@ appId: com.fitmeproject.ios
 - assertVisible:
     text: "Edit Profile"
 
+# The E2E User persists between runs, so a fresh name proves the save
+# reached Clerk rather than matching a name left by an earlier run.
+- evalScript: ${output.newName = 'Pepper ' + Date.now()}
+
 - tapOn:
     id: "edit-profile-name-input"
-- eraseText: 20
-- inputText: "Virginia Potts"
+- eraseText: 50
+- inputText: ${output.newName}
 
 - tapOn:
     text: "Female"
@@ -98,4 +102,12 @@ appId: com.fitmeproject.ios
 - assertVisible:
     id: "edit-profile-link"
 - assertVisible:
-    text: "Virginia Potts"
+    text: ${output.newName}
+
+# Edit-profile pre-fills the saved name from Clerk
+- tapOn:
+    id: "edit-profile-link"
+- waitForAnimationToEnd
+- assertVisible:
+    id: "edit-profile-name-input"
+    text: ${output.newName}

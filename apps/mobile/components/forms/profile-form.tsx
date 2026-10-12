@@ -69,11 +69,11 @@ const formSchema = z.object({
     })
     .min(1)
     .max(500),
-  // Only rendered (and therefore only set) when `showName` is enabled.
+  // Only rendered (and therefore only set) when `showName` is enabled. Clerk's
+  // Name is optional, so a User without one can still save the other fields.
   name: z
     .string()
     .trim()
-    .min(1, { message: "Name is required" })
     .max(50, { message: "Name must be at most 50 characters" })
     .optional(),
   weight: z.coerce
@@ -93,7 +93,7 @@ interface ProfileFormProps {
   isSubmitting?: boolean;
   measurementSystem: MeasurementSystem;
   onSubmit: (values: ProfileFormValues) => unknown;
-  /** Renders a required Name input above the other fields. */
+  /** Renders an optional Name input above the other fields. */
   showName?: boolean;
   submitLabel: string;
   submitSystemImage?: SFSymbol;
