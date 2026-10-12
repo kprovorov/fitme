@@ -6,12 +6,14 @@
   "type": "module",
   "exports": {
     ".": "./src/index.ts",
-    "./database.types": "./src/database.types.ts"
+    "./database.types": "./src/database.types.ts",
+    "users:migrate": "tsx scripts/migrate-users-to-clerk.ts"
   },
   "main": "./src/index.ts",
   "types": "./src/index.ts",
   "scripts": {
     "clerk:check": "tsx scripts/check-clerk-trust.ts",
+    "clerk:check-migration": "tsx scripts/check-clerk-migration.ts",
     "exercises:sync": "tsx supabase/sync.ts",
     "functions:serve": "supabase functions serve",
     "migrate": "supabase migration up",
@@ -23,7 +25,8 @@
     "stop": "supabase stop",
     "test:db": "supabase test db",
     "typecheck": "tsc --noEmit",
-    "types:generate": "supabase gen types typescript --local --schema public > src/database.types.ts && biome check --write --unsafe src/database.types.ts"
+    "types:generate": "supabase gen types typescript --local --schema public > src/database.types.ts && biome check --write --unsafe src/database.types.ts",
+    "users:migrate": "tsx scripts/migrate-users-to-clerk.ts"
   },
   "dependencies": {
     "@supabase/supabase-js": "^2.97.0",

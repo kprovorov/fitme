@@ -37,8 +37,11 @@ jobs:
           pnpm exec supabase status -o env > "$RUNNER_TEMP/supabase.env"
           set -a && . "$RUNNER_TEMP/supabase.env" && set +a
           echo "::add-mask::$ANON_KEY"
+          echo "::add-mask::$SERVICE_ROLE_KEY"
           echo "SUPABASE_URL=$API_URL" >> "$GITHUB_ENV"
           echo "SUPABASE_ANON_KEY=$ANON_KEY" >> "$GITHUB_ENV"
+          echo "SUPABASE_SERVICE_ROLE_KEY=$SERVICE_ROLE_KEY" >> "$GITHUB_ENV"
+          echo "SUPABASE_DB_URL=$DB_URL" >> "$GITHUB_ENV"
 
       # The hoisted install skips snaplet's postinstall; build the client
       # from the committed .snaplet/dataModel.json.
@@ -60,6 +63,19 @@ jobs:
             exit 0
           fi
           pnpm --filter @fitme/supabase clerk:check
+
+      # Runs the Supabase Auth -> Clerk migration script (dry run, run, rerun)
+      # against freshly signed-up users and deletes the Clerk Users it made.
+      # Must run before the MCP tests: it migrates every user in auth.users.
+      - name: Check Clerk User migration
+        env:
+          CLERK_SECRET_KEY: ${{ secrets.CLERK_DEV_SECRET_KEY }}
+        run: |
+          if [ -z "$CLERK_SECRET_KEY" ]; then
+            echo "::warning::CLERK_DEV_SECRET_KEY is not set; skipping the Clerk User migration check"
+            exit 0
+          fi
+          pnpm --filter @fitme/supabase clerk:check-migration
 
       - name: Run MCP integration tests
         run: pnpm --filter @fitme/mcp test:integration
