@@ -1,4 +1,4 @@
-import { Link, router, Stack } from "expo-router";
+import { Link, Stack } from "expo-router";
 import { ScrollView } from "react-native";
 import { AlertDialog } from "~/components/ui/alert-dialog";
 import { MenuList, MenuListItem } from "~/components/ui/menu-list";
@@ -7,11 +7,7 @@ import { Text } from "~/components/ui/text";
 import { useDeleteUserMutation } from "~/hooks/mutations/auth";
 
 export default function LegalScreen() {
-  const { mutateAsync: deleteUser } = useDeleteUserMutation({
-    onSuccess: () => {
-      router.replace("/auth/login");
-    },
-  });
+  const { mutate: deleteUser } = useDeleteUserMutation();
 
   return (
     <>

@@ -13,7 +13,7 @@ export default function SettingsScreen() {
   const { user } = useUser();
   const { data: profile } = useProfileQuery();
 
-  const { mutateAsync: deleteUser, isPending } = useDeleteUserMutation();
+  const { mutate: deleteUser, isPending } = useDeleteUserMutation();
 
   return (
     <>
@@ -65,7 +65,10 @@ export default function SettingsScreen() {
                 message="This will permanently delete your account and all associated data. This action cannot be undone."
                 title="Delete Account"
               >
-                <MenuListItem disabled={isPending}>
+                <MenuListItem
+                  disabled={isPending}
+                  testID="delete-account-button"
+                >
                   <Text className="text-destructive">Delete Account</Text>
                 </MenuListItem>
               </AlertDialog>

@@ -24,6 +24,7 @@
     "status": "supabase status",
     "stop": "supabase stop",
     "test:db": "supabase test db",
+    "test:functions": "deno test --no-config --node-modules-dir=none --allow-env supabase/functions",
     "typecheck": "tsc --noEmit",
     "types:generate": "supabase gen types typescript --local --schema public > src/database.types.ts && biome check --write --unsafe src/database.types.ts",
     "users:migrate": "tsx scripts/migrate-users-to-clerk.ts"
