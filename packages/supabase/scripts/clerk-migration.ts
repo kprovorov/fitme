@@ -530,8 +530,10 @@ async function migrateUser(
         status: "already-migrated",
       };
     }
+    // The rows sit under an id nobody can sign in as: needs a look
     return {
       ...result,
+      failed: true,
       reason: existing
         ? `rows were rekeyed to ${retired}, but the Clerk User with this external_id is ${existing.id}`
         : `rows were rekeyed to ${retired}, but no Clerk User has this external_id`,

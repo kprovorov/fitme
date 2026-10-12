@@ -25,7 +25,8 @@ import {
 const LOCAL_HOSTS = new Set(["127.0.0.1", "localhost", "::1"]);
 
 interface Fixture {
-  // Breaks the stored digest so Clerk can't import it
+  // Breaks the stored digest; the script's bcrypt format check catches it
+  // before Clerk sees it
   corruptDigest?: boolean;
   expectedName: { first_name: string | null; last_name: string | null };
   name?: string;
@@ -234,8 +235,10 @@ async function main() {
       }
     }
     ensure(
-      run.users.find((user) => user.legacyId === legacy[3].id)
-        ?.passwordNotImported,
+      run.users.find(
+        (result) =>
+          result.legacyId === legacy.find((user) => user.corruptDigest)?.id
+      )?.passwordNotImported,
       "the summary lists the user whose password was not imported"
     );
 

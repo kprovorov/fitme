@@ -2,13 +2,17 @@
 // Clerk id (see clerk-migration.ts). Safe to rerun after a failure.
 //
 //   pnpm db users:migrate --dry-run   # no writes, prints the planned actions
+//
+// The dry run flags digests that aren't bcrypt; Clerk can still reject one
+// on the real run, which then creates that User without a password.
 //   pnpm db users:migrate
 //
 // Env: CLERK_SECRET_KEY (sk_test_… for development, sk_live_… for
 // production), SUPABASE_URL, SUPABASE_SERVICE_ROLE_KEY, SUPABASE_DB_URL
 // (direct Postgres connection; reads the password digests in auth.users).
 // Exits non-zero after a real run when rows still carry a legacy UUID or a
-// User's Clerk creation or rekey failed.
+// User failed (Clerk creation or rekey error, rows rekeyed to an id that no
+// Clerk User with their external_id holds).
 
 import {
   type MigrationReport,
