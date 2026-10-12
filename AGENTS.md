@@ -88,9 +88,9 @@ React Native / Expo app using **file-based routing** via `expo-router`:
 
 ### apps/web — Next.js app
 
-- `app/` — App Router routes. `(app)/` is the authenticated area (server-side guard in its layout); `login/`, `auth/callback`, `auth/signout` handle Supabase auth; `oauth/consent` is the consent page of Supabase Auth's OAuth 2.1 server (used by MCP clients).
-- `proxy.ts` — Next 16 request proxy (formerly middleware) that refreshes the Supabase session cookie and redirects unauthenticated users.
-- `lib/supabase/{client,server,proxy}.ts` — `@supabase/ssr` clients typed with `Database` from `@fitme/supabase`.
+- `app/` — App Router routes. `(app)/` is the authenticated area (dashboard; account menu is Clerk's `<UserButton>`); `sign-in/[[...sign-in]]` is Clerk's prebuilt `<SignIn>` page. `ClerkProvider` in the root layout sets the sign-in URL and sends signed-out Users to `/`.
+- `proxy.ts` — Next 16 request proxy running `clerkMiddleware`: every route except `/` and `/sign-in` calls `auth.protect()`, which redirects signed-out requests to sign-in with a `redirect_url` back. Route paths live in `lib/routes.ts`.
+- `lib/supabase/server.ts` (`createClient()`, Server Components) and `lib/supabase/client.ts` (`useSupabase()` hook, Client Components) — `supabase-js` clients typed with `Database` from `@fitme/supabase` whose `accessToken` is the User's Clerk session token, so RLS reads their Clerk id from `sub`. There is no Supabase Auth session in the web app.
 - `components/ui/` — shadcn-style primitives (Tailwind v4 + cva). `components.json` is set up for the shadcn CLI.
 - Styling: Tailwind v4 via `@tailwindcss/postcss`; theme tokens in `app/globals.css` mirror the mobile palette.
 
@@ -118,7 +118,7 @@ Stateless [Streamable HTTP](https://modelcontextprotocol.io) MCP server built on
 - `src/server.ts` — composition root: `createMcpServer({ accessToken, createSupabaseClient?, context? })` (`context` = a `ToolContext` the HTTP layer already authenticated) registers the tool groups from `src/tools/` (`registerTool` with zod input schemas, `title`, and read-only/destructive/idempotent `annotations`).
 - `src/tools/` — `catalog.ts` (public tools from `@fitme/core`: ping, muscle groups, plan options), and user tools in `exercises.ts`, `plans.ts` (+ `plan-schemas.ts`), `sessions.ts`, `profile.ts`; shared bounds in `limits.ts`. `helpers.ts` holds `asJson`, `unwrap` (Supabase response → data or `ToolError`), `withUser` (resolves the caller and turns every failure into an `isError` tool result), `fetchPage` (offset past the end → empty page, not PGRST103) and `readBack` (a committed write whose read-back fails returns success + `warning`, never `isError`).
 - `src/context.ts` — per-request `ToolContext`; lazily verifies the bearer token once (`auth.getClaims`, local JWKS check) and caches the `{ supabase, userId }` result. Missing/rejected tokens throw `AuthenticationError`.
-- `src/auth.ts` — MCP authorization (OAuth 2.1): protected-resource metadata pointing at Supabase Auth's OAuth server (`$SUPABASE_URL/auth/v1`), detection of user-tool calls (`USER_TOOL_NAMES` in `server.ts`; public ones are `PUBLIC_TOOL_NAMES` in `tools/catalog.ts`) and the `401` + `WWW-Authenticate` challenge. The consent UI is `apps/web`'s `/oauth/consent`.
+- `src/auth.ts` — MCP authorization (OAuth 2.1): protected-resource metadata pointing at Supabase Auth's OAuth server (`$SUPABASE_URL/auth/v1`), detection of user-tool calls (`USER_TOOL_NAMES` in `server.ts`; public ones are `PUBLIC_TOOL_NAMES` in `tools/catalog.ts`) and the `401` + `WWW-Authenticate` challenge. Its consent UI was `apps/web`'s `/oauth/consent`, removed when the web app moved to Clerk (FIT-72); MCP OAuth sign-in is broken until MCP authorization moves to Clerk (FIT-79).
 - `src/supabase.ts` — per-request `SupabaseClient<Database>` built from `SUPABASE_URL` + `SUPABASE_ANON_KEY` with the caller's token in `global.headers.Authorization`, so RLS and the RPCs (which read the caller's User id from the JWT `sub` claim) enforce ownership. Never use a service-role key, and never take a user id as tool input.
 - `src/app.ts` — `createApp({ authorizationServer?, createSupabaseClient? })` builds the Hono app (default export = `createApp()` for Vercel): the MCP endpoint is the root `/` (all methods), extracting `Authorization: Bearer <Supabase access token>`, answering requests with a rejected token, and user-tool calls without one, with `401`, and creating a fresh server + `WebStandardStreamableHTTPServerTransport` per request; `/.well-known/oauth-protected-resource` for OAuth discovery; `/health` for liveness. Deployed at https://mcp.fitmeproject.com.
 - `src/index.ts` — Node entrypoint, `PORT` env (default 3002).
@@ -146,7 +146,7 @@ Platform-agnostic code shared by both apps: `models.ts` (Profile, Plan, Workout,
 
 **Data fetching (mobile)**: All queries/mutations use `react-query-kit` wrappers (`createQuery`, `createMutation`) around the Supabase JS client. Import from `~/hooks/queries/<entity>` or `~/hooks/mutations/<entity>`.
 
-**Data fetching (web)**: Server Components query Supabase directly through `createClient()` from `~/lib/supabase/server`. Client components use `~/lib/supabase/client` and TanStack Query (provider in `components/providers.tsx`).
+**Data fetching (web)**: Server Components query Supabase directly through `createClient()` from `~/lib/supabase/server`. Client components use `useSupabase()` from `~/lib/supabase/client` and TanStack Query (provider in `components/providers.tsx`).
 
 **Shared types**: Import domain types from `@fitme/core`, never from an app's `lib/`. Import row types from `@fitme/supabase` (`Tables<"plans">`).
 
@@ -181,7 +181,6 @@ Env files live next to each app.
 - `NEXT_PUBLIC_SUPABASE_ANON_KEY`
 - `NEXT_PUBLIC_CLERK_PUBLISHABLE_KEY`
 - `CLERK_SECRET_KEY`
-- `NEXT_PUBLIC_SITE_URL`
 
 `apps/site/.env.local` (see `apps/site/.env.example`): App Store id/url, support email, social links, GTM id, PostHog key.
 

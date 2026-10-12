@@ -8,6 +8,7 @@ import {
 } from "@fitme/core";
 import type { Tables } from "@fitme/supabase";
 import { formatDistanceToNow } from "date-fns";
+import { LocalDate } from "~/components/local-date";
 import {
   Card,
   CardContent,
@@ -18,6 +19,10 @@ import {
 import { createClient } from "~/lib/supabase/server";
 
 type PlanRow = Tables<"plans">;
+
+const RECENT_SESSIONS_LIMIT = 10;
+const SESSION_SELECT =
+  "id, started_at, finished_at, workout:workouts (name), plan:plans (name)";
 
 function PlanCard({ plan }: { plan: PlanRow }) {
   return (
@@ -75,18 +80,63 @@ function PlanCard({ plan }: { plan: PlanRow }) {
   );
 }
 
+interface SessionItem {
+  finished_at: string | null;
+  id: string;
+  plan: { name: string | null } | null;
+  started_at: string;
+  workout: { name: string } | null;
+}
+
+function SessionRow({ session }: { session: SessionItem }) {
+  return (
+    <li className="flex items-center justify-between gap-4 py-3">
+      <div className="flex flex-col">
+        <span className="font-semibold">
+          {session.workout?.name ?? "Deleted workout"}
+        </span>
+        {session.plan?.name ? (
+          <span className="text-muted-foreground text-xs">
+            {session.plan.name}
+          </span>
+        ) : null}
+      </div>
+      <div className="flex flex-col items-end text-sm">
+        <LocalDate value={session.started_at} />
+        <span className="text-muted-foreground text-xs">
+          {session.finished_at ? "Finished" : "In progress"}
+        </span>
+      </div>
+    </li>
+  );
+}
+
 export default async function DashboardPage() {
   const supabase = await createClient();
-  const { data: plans, error } = await supabase
-    .from("plans")
-    .select("*")
-    .is("deleted_at", null)
-    .order("is_active", { ascending: false })
-    .order("created_at", { ascending: false });
+  const [plansResult, sessionsResult] = await Promise.all([
+    supabase
+      .from("plans")
+      .select("*")
+      .is("deleted_at", null)
+      .order("is_active", { ascending: false })
+      .order("created_at", { ascending: false }),
+    supabase
+      .from("workout_sessions")
+      .select(SESSION_SELECT)
+      .order("started_at", { ascending: false })
+      .limit(RECENT_SESSIONS_LIMIT),
+  ]);
 
-  if (error) {
-    throw new Error(`Failed to load plans: ${error.message}`);
+  if (plansResult.error) {
+    throw new Error(`Failed to load plans: ${plansResult.error.message}`);
   }
+  if (sessionsResult.error) {
+    throw new Error(
+      `Failed to load workout sessions: ${sessionsResult.error.message}`
+    );
+  }
+  const plans = plansResult.data;
+  const sessions = sessionsResult.data;
 
   return (
     <>
@@ -114,6 +164,25 @@ export default async function DashboardPage() {
           ))}
         </div>
       )}
+
+      <section className="flex flex-col gap-4">
+        <h2 className="font-bold text-xl">Recent workouts</h2>
+        <Card>
+          <CardContent className="py-3">
+            {sessions.length === 0 ? (
+              <p className="text-muted-foreground text-sm">
+                Workouts you log in the Fitme app show up here.
+              </p>
+            ) : (
+              <ul className="divide-y">
+                {sessions.map((session) => (
+                  <SessionRow key={session.id} session={session} />
+                ))}
+              </ul>
+            )}
+          </CardContent>
+        </Card>
+      </section>
     </>
   );
 }

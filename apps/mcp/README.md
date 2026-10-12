@@ -40,7 +40,7 @@ Without the Supabase variables the server still starts and the public tools work
 
 ## Authentication
 
-The server implements the [MCP authorization spec](https://modelcontextprotocol.io/specification/2025-06-18/basic/authorization) (OAuth 2.1). It is the protected resource; the authorization server is [Supabase Auth's OAuth server](https://supabase.com/docs/guides/auth/oauth-server/mcp-authentication) at `$SUPABASE_URL/auth/v1`, so MCP clients register themselves (dynamic client registration), sign the user in and refresh tokens there. The consent screen is the web app's `/oauth/consent` page (`apps/web`).
+The server implements the [MCP authorization spec](https://modelcontextprotocol.io/specification/2025-06-18/basic/authorization) (OAuth 2.1). It is the protected resource; the authorization server is [Supabase Auth's OAuth server](https://supabase.com/docs/guides/auth/oauth-server/mcp-authentication) at `$SUPABASE_URL/auth/v1`, so MCP clients register themselves (dynamic client registration), sign the user in and refresh tokens there. The consent screen was the web app's `/oauth/consent` page (`apps/web`), removed when the web app moved to Clerk (FIT-72): MCP clients can't complete sign-in until MCP authorization moves to Clerk (FIT-79).
 
 1. `GET /.well-known/oauth-protected-resource` returns the resource URL and `authorization_servers: ["$SUPABASE_URL/auth/v1"]` (RFC 9728).
 2. Any request carrying a token Supabase rejects (expired, revoked signing key, not a user token) gets **HTTP 401** with `WWW-Authenticate: Bearer error="invalid_token", …, resource_metadata="…"`, so the client refreshes it.
@@ -62,7 +62,7 @@ Inside a request that passed the check:
 
 Enable the OAuth server (Authentication → OAuth Server in the dashboard, `[auth.oauth_server]` in `config.toml` locally) with:
 
-- Authorization path `/oauth/consent`, relative to the project's Site URL, which must be the web app.
+- Authorization path `/oauth/consent`, relative to the project's Site URL, which must be the web app (the page no longer exists, see FIT-79).
 - Dynamic client registration on, so MCP clients can register themselves.
 
 ## Tools
