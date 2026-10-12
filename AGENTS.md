@@ -13,6 +13,7 @@ apps/web                @fitme/web     — Next.js (App Router) web app
 apps/site               @fitme/site    — Next.js marketing site (fitmeproject.com)
 packages/core           @fitme/core    — domain models, labels, formatters, pure helpers
 packages/supabase       @fitme/supabase — Supabase project + generated DB types
+packages/pr-risk        @fitme/pr-risk  — deterministic PR Risk classification (path floor, title rule)
 packages/typescript-config              — shared tsconfig presets
 ```
 
@@ -192,6 +193,8 @@ The default branch is `main` (there is no `master`); branch from it and open pul
 ## CI/CD
 
 GitHub Actions use pnpm (`pnpm/action-setup`) and `pnpm install --frozen-lockfile`. Unit tests run through `pnpm turbo run test`; the MCP integration tests run separately against a local Supabase stack (Supabase CLI) in `.github/workflows/integration-tests.yml`. The release workflow (`.github/workflows/release.yml`) bumps the version in `apps/mobile/package.json` and `apps/mobile/app.json` following conventional commits: `feat:` → minor, `fix:` → patch, `BREAKING CHANGE:` → major. The exercise sync workflow runs `pnpm --filter @fitme/supabase exercises:sync` on pushes to `main` that touch the exercise data. The Database Types workflow (`.github/workflows/database-types.yml`) starts a local database, runs `pnpm db types:generate` (which also normalizes the output with Biome) and fails if `packages/supabase/src/database.types.ts` is stale.
+
+The PR Risk workflow (`.github/workflows/pr-risk.yml`) runs on every non-draft PR to `main` not labelled `no-auto-merge` and leaves exactly one of `risk:low`, `risk:medium`, `risk:high`, `needs-human` plus one sticky comment with the reasons. Its rules live in `packages/pr-risk` (`decide()`): touching a floor path (migrations, Supabase config, Edge Functions, workflows, mobile app/EAS config and plugins, the lockfile, env files, auth/Clerk/RevenueCat code, the classifier itself) forces `risk:high`; a title that is not a conventional commit gives `needs-human`. Its check always passes; the label is the gate (the private free plan has no branch protection).
 
 ## Agent skills
 

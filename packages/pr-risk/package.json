@@ -1,0 +1,23 @@
+{
+  "name": "@fitme/pr-risk",
+  "version": "0.0.0",
+  "private": true,
+  "description": "Deterministic PR Risk classification: path floor, title rule and evaluator verdict validation for the PR Risk workflow.",
+  "type": "module",
+  "exports": {
+    ".": "./src/decide.ts"
+  },
+  "scripts": {
+    "decide": "tsx src/cli.ts",
+    "test": "vitest run",
+    "test:watch": "vitest",
+    "typecheck": "tsc --noEmit"
+  },
+  "devDependencies": {
+    "@fitme/typescript-config": "workspace:*",
+    "@types/node": "22.15.21",
+    "tsx": "^4.23.15",
+    "typescript": "~5.9.2",
+    "vitest": "^3.2.4"
+  }
+}

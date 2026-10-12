@@ -1,0 +1,134 @@
+# Classifies every non-draft PR to main as risk:low, risk:medium, risk:high or
+# needs-human, with one sticky comment listing the reasons. It never merges.
+#
+# The check always passes: the gate is the label, not the check. The repo is
+# private on the free plan, which has no branch protection or rulesets, so the
+# label is the only gate until the repo goes public.
+#
+# The deterministic rules (path floor, title rule, verdict validation) live in
+# packages/pr-risk; this workflow only collects inputs and applies the result.
+name: PR Risk
+
+on:
+  pull_request:
+    branches: [main]
+    types: [opened, synchronize, reopened, ready_for_review]
+
+concurrency:
+  group: pr-risk-${{ github.event.pull_request.number }}
+  cancel-in-progress: true
+
+permissions:
+  contents: read
+  pull-requests: write
+  issues: write
+
+jobs:
+  classify:
+    name: PR Risk
+    if: >-
+      !github.event.pull_request.draft &&
+      !contains(github.event.pull_request.labels.*.name, 'no-auto-merge')
+    runs-on: ubuntu-latest
+    timeout-minutes: 15
+    env:
+      GH_TOKEN: ${{ github.token }}
+      GH_REPO: ${{ github.repository }}
+      PR_NUMBER: ${{ github.event.pull_request.number }}
+      PR_TITLE: ${{ github.event.pull_request.title }}
+      CHANGED_FILES_PATH: ${{ runner.temp }}/changed-files.txt
+      COMMENT_PATH: ${{ runner.temp }}/pr-risk-comment.md
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v4
+        with:
+          persist-credentials: false
+
+      - name: Setup pnpm
+        uses: pnpm/action-setup@v4
+
+      - name: Setup Node.js
+        uses: actions/setup-node@v4
+        with:
+          node-version: "22"
+          cache: "pnpm"
+
+      - name: Install the classifier
+        id: install
+        continue-on-error: true
+        run: pnpm install --frozen-lockfile --filter @fitme/pr-risk
+
+      - name: List changed files
+        id: files
+        if: steps.install.outcome == 'success'
+        continue-on-error: true
+        # Renames list the old path too, so moving a file out of a floor path
+        # still counts as touching it.
+        run: |
+          gh api --paginate "repos/$GH_REPO/pulls/$PR_NUMBER/files" \
+            --jq '.[] | .filename, (.previous_filename // empty)' \
+            > "$CHANGED_FILES_PATH"
+          cat "$CHANGED_FILES_PATH"
+
+      - name: Decide (path floor and title rule)
+        id: decide
+        if: steps.files.outcome == 'success'
+        continue-on-error: true
+        run: pnpm --filter @fitme/pr-risk --silent decide
+
+      # The evaluator (FIT-82) runs here when steps.decide.outputs.run_evaluator
+      # is 'true', followed by a second decide call with its verdict or error.
+      # Until then the first decision stands: needs-human, "evaluator not
+      # configured yet".
+
+      - name: Fall back to needs-human
+        id: fallback
+        if: steps.decide.outcome != 'success'
+        run: |
+          {
+            echo "<!-- pr-risk -->"
+            echo "## PR Risk: \`needs-human\`"
+            echo
+            echo "**Source:** classifier error"
+            echo
+            echo "- The PR Risk classifier failed; see the [workflow run]($GITHUB_SERVER_URL/$GH_REPO/actions/runs/$GITHUB_RUN_ID)."
+          } > "$COMMENT_PATH"
+
+      - name: Ensure labels exist
+        continue-on-error: true
+        run: |
+          existing=$(gh label list --limit 1000 --json name --jq '.[].name')
+          create() {
+            if ! grep -qxF "$1" <<< "$existing"; then
+              gh label create "$1" --color "$2" --description "$3"
+            fi
+          }
+          create "risk:low" "0E8A16" "PR Risk: low risk, an agent may merge"
+          create "risk:medium" "FBCA04" "PR Risk: medium risk, an agent may merge"
+          create "risk:high" "B60205" "PR Risk: high risk, a human must merge"
+          create "needs-human" "D93F0B" "PR Risk: a human must look before merging"
+          create "no-auto-merge" "5319E7" "Skip PR Risk classification; a human merges"
+
+      - name: Apply label
+        continue-on-error: true
+        env:
+          LABEL: ${{ steps.decide.outputs.label || 'needs-human' }}
+        run: |
+          stale=()
+          for label in risk:low risk:medium risk:high needs-human; do
+            [ "$label" != "$LABEL" ] && stale+=(--remove-label "$label")
+          done
+          gh pr edit "$PR_NUMBER" --add-label "$LABEL" "${stale[@]}"
+
+      - name: Update sticky comment
+        continue-on-error: true
+        run: |
+          comment_ids=$(gh api --paginate "repos/$GH_REPO/issues/$PR_NUMBER/comments" \
+            --jq '.[] | select(.user.login == "github-actions[bot]" and (.body | startswith("<!-- pr-risk -->"))) | .id')
+          comment_id=${comment_ids%%$'\n'*}
+          if [ -n "$comment_id" ]; then
+            gh api --method PATCH "repos/$GH_REPO/issues/comments/$comment_id" \
+              -F "body=@$COMMENT_PATH" > /dev/null
+          else
+            gh pr comment "$PR_NUMBER" --body-file "$COMMENT_PATH"
+          fi
