@@ -1,6 +1,5 @@
 {
   "name": "@fitme/mobile",
-  "version": "1.22.0",
   "private": true,
   "main": "expo-router/entry",
   "scripts": {
