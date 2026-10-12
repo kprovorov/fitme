@@ -1,4 +1,4 @@
-import { useAuth, useSignUp } from "@clerk/expo";
+import { useAuth, useSignIn, useSignUp } from "@clerk/expo";
 import { router } from "expo-router";
 import { useCallback, useEffect, useState } from "react";
 import { getClerkErrorMessage } from "~/lib/clerk";
@@ -11,7 +11,7 @@ import { H3, P } from "../ui/typography";
 import { VStack } from "../ui/vstack";
 
 /** What the emailed code proves; each purpose drives its own Clerk flow. */
-export const codePurposes = ["sign-up"] as const;
+export const codePurposes = ["sign-up", "reset-password"] as const;
 export type CodePurpose = (typeof codePurposes)[number];
 
 export const isCodePurpose = (value: unknown): value is CodePurpose =>
@@ -55,11 +55,43 @@ const useSignUpVerification = (): CodeVerification => {
   return { isFetching: fetchStatus === "fetching", resend, verify };
 };
 
+const useResetPasswordVerification = (): CodeVerification => {
+  const { signIn, fetchStatus } = useSignIn();
+
+  const resend = useCallback(async () => {
+    const { error } = await signIn.resetPasswordEmailCode.sendCode();
+    return error ? getClerkErrorMessage(error) : undefined;
+  }, [signIn]);
+
+  const verify = useCallback(
+    async (code: string) => {
+      const { error } = await signIn.resetPasswordEmailCode.verifyCode({
+        code,
+      });
+      if (error) {
+        return getClerkErrorMessage(error);
+      }
+      if (signIn.status !== "needs_new_password") {
+        return "We couldn't verify the code. Please try again.";
+      }
+      router.replace("/auth/reset-password");
+    },
+    [signIn]
+  );
+
+  return { isFetching: fetchStatus === "fetching", resend, verify };
+};
+
 const VERIFICATIONS: Record<CodePurpose, () => CodeVerification> = {
+  "reset-password": useResetPasswordVerification,
   "sign-up": useSignUpVerification,
 };
 
 const COPY: Record<CodePurpose, { description: string; title: string }> = {
+  "reset-password": {
+    description: "Enter the code we emailed you to reset your password",
+    title: "Check your email",
+  },
   "sign-up": {
     description: "Enter the code we emailed you to activate your account",
     title: "Check your email",
@@ -89,7 +121,8 @@ export default function VerifyCodeView({ purpose }: VerifyCodeViewProps) {
   const handleVerify = useCallback(async () => {
     setErrorMessage(undefined);
     setNotice(undefined);
-    // Once signed in, the isSignedIn effect takes the User on to onboarding.
+    // Sign-up ends signed in, and the isSignedIn effect takes the User on to
+    // onboarding; a reset moves on to the new-password screen itself.
     setErrorMessage(await verify(code));
   }, [code, verify]);
 

@@ -46,6 +46,7 @@ export default function ForgotPasswordForm({
         onBlur={onBlur}
         onChangeText={onChange}
         placeholder="Email"
+        testID="forgot-password-email-input"
         value={value}
       />
     ),
@@ -67,9 +68,10 @@ export default function ForgotPasswordForm({
 
       <Button
         isLoading={isSubmitting}
-        label="Send Reset Link"
+        label="Send Code"
         onPress={form.handleSubmit(onSubmit)}
         systemImage="arrow.right"
+        testID="forgot-password-button"
       />
     </VStack>
   );

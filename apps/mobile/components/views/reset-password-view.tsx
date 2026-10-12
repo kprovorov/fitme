@@ -1,29 +1,48 @@
-import { handleSupabaseError } from "@fitme/core";
+import { useAuth, useSignIn } from "@clerk/expo";
 import { router } from "expo-router";
-import { useCallback, useState } from "react";
+import { useCallback, useEffect, useState } from "react";
 import ResetPasswordForm, {
   type ResetPasswordFormValues,
 } from "~/components/forms/auth/reset-password-form";
 import { Text } from "~/components/ui/text";
 import { H3, P } from "~/components/ui/typography";
 import { VStack } from "~/components/ui/vstack";
-import { useResetPasswordMutation } from "~/hooks/mutations/auth";
+import { getClerkErrorMessage } from "~/lib/clerk";
 
+/** Sets a new password once the emailed reset code checked out. */
 export default function ResetPasswordView() {
+  const { signIn } = useSignIn();
+
   const [errorMessage, setErrorMessage] = useState<string | undefined>();
 
-  const { mutateAsync: resetPassword } = useResetPasswordMutation({
-    onError: (error) => {
-      handleSupabaseError(error, setErrorMessage);
-    },
-  });
+  const { isSignedIn } = useAuth();
+  useEffect(() => {
+    if (isSignedIn) {
+      router.replace("/");
+    }
+  }, [isSignedIn]);
 
   const handleSubmit = useCallback(
-    async (values: ResetPasswordFormValues) => {
-      await resetPassword({ password: values.password });
-      router.replace("/");
+    async ({ password }: ResetPasswordFormValues) => {
+      setErrorMessage(undefined);
+      const { error } = await signIn.resetPasswordEmailCode.submitPassword({
+        password,
+      });
+      if (error) {
+        setErrorMessage(getClerkErrorMessage(error));
+        return;
+      }
+      if (signIn.status !== "complete") {
+        setErrorMessage("This account can't sign in here yet.");
+        return;
+      }
+      const { error: finalizeError } = await signIn.finalize();
+      if (finalizeError) {
+        setErrorMessage(getClerkErrorMessage(finalizeError));
+      }
+      // The isSignedIn effect takes the User Home.
     },
-    [resetPassword]
+    [signIn]
   );
 
   return (

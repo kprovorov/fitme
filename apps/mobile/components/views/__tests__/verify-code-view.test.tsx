@@ -1,5 +1,6 @@
 import { beforeEach, describe, expect, it, jest } from "@jest/globals";
 import { fireEvent, render, screen } from "@testing-library/react-native";
+import { router } from "expo-router";
 import VerifyCodeView from "../verify-code-view";
 
 const EMAILED_CODE = "424242";
@@ -29,10 +30,29 @@ const mockSignUp = {
   },
 };
 
+/**
+ * Stand-in for Clerk's sign-in resource after a reset code was requested:
+ * `EMAILED_CODE` moves it on to asking for a new password.
+ */
+const mockSignIn = {
+  resetPasswordEmailCode: {
+    sendCode: jest.fn(() => Promise.resolve({ error: null })),
+    verifyCode: jest.fn(({ code }: { code: string }) => {
+      if (code !== EMAILED_CODE) {
+        return Promise.resolve({ error: clerkError("Incorrect code") });
+      }
+      mockSignIn.status = "needs_new_password";
+      return Promise.resolve({ error: null });
+    }),
+  },
+  status: "needs_first_factor",
+};
+
 jest.mock("@clerk/expo", () => ({
   isClerkAPIResponseError: (error: { isClerkApiError?: boolean }) =>
     error.isClerkApiError === true,
   useAuth: () => ({ isSignedIn: false }),
+  useSignIn: () => ({ fetchStatus: "idle", signIn: mockSignIn }),
   useSignUp: () => ({ fetchStatus: "idle", signUp: mockSignUp }),
 }));
 jest.mock("@clerk/expo/token-cache", () => ({ tokenCache: {} }));
@@ -50,6 +70,7 @@ const enterCode = async (code: string) => {
 beforeEach(() => {
   jest.clearAllMocks();
   mockSignUp.status = "missing_requirements";
+  mockSignIn.status = "needs_first_factor";
 });
 
 describe("VerifyCodeView for sign-up", () => {
@@ -83,6 +104,41 @@ describe("VerifyCodeView for sign-up", () => {
     );
 
     expect(mockSignUp.verifications.sendEmailCode).toHaveBeenCalledTimes(1);
+    expect(screen.getByText("We sent you a new code.")).toBeTruthy();
+  });
+});
+
+describe("VerifyCodeView for a password reset", () => {
+  it("asks for a new password once the emailed code checks out", async () => {
+    await render(<VerifyCodeView purpose="reset-password" />);
+
+    await enterCode(EMAILED_CODE);
+
+    expect(router.replace).toHaveBeenCalledWith("/auth/reset-password");
+  });
+
+  it("shows Clerk's error for a wrong code and accepts the right one after", async () => {
+    await render(<VerifyCodeView purpose="reset-password" />);
+
+    await enterCode("000000");
+
+    expect(screen.getByText("Incorrect code")).toBeTruthy();
+    expect(router.replace).not.toHaveBeenCalled();
+
+    await enterCode(EMAILED_CODE);
+
+    expect(screen.queryByText("Incorrect code")).toBeNull();
+    expect(router.replace).toHaveBeenCalledWith("/auth/reset-password");
+  });
+
+  it("emails a new reset code on request", async () => {
+    await render(<VerifyCodeView purpose="reset-password" />);
+
+    await fireEvent.press(
+      screen.getByRole("button", { name: "Send a new code" })
+    );
+
+    expect(mockSignIn.resetPasswordEmailCode.sendCode).toHaveBeenCalledTimes(1);
     expect(screen.getByText("We sent you a new code.")).toBeTruthy();
   });
 });
