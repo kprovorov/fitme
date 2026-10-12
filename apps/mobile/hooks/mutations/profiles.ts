@@ -1,9 +1,4 @@
-import {
-  type Gender,
-  type MeasurementSystem,
-  type Profile,
-  splitName,
-} from "@fitme/core";
+import type { Gender, MeasurementSystem, Profile } from "@fitme/core";
 import { createMutation } from "react-query-kit";
 import { supabase } from "@/lib/supabase";
 import { getClerk, getCurrentUserId } from "~/lib/clerk";
