@@ -39,6 +39,12 @@ export default function AuthSync() {
     const isNewUser = signedInUserId.current !== userId;
     signedInUserId.current = userId;
 
+    if (isNewUser) {
+      // Screens outside the tabs (deep links) can query before Clerk loads,
+      // with only the anon key; refetch them as the User.
+      queryClient.invalidateQueries();
+    }
+
     Sentry.setUser({ email, id: userId, username: email });
 
     if (IS_E2E) {
