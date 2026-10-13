@@ -6,8 +6,8 @@ import { createMiddleware } from "hono/factory";
 import { decodeJwt } from "jose";
 import type { ClerkUser } from "./context.js";
 import {
+  cachedSupabaseTokenSigner,
   type SupabaseTokenSigner,
-  supabaseTokenSignerFromEnv,
 } from "./supabase-token.js";
 
 /**
@@ -85,10 +85,7 @@ export const requireConfig = createMiddleware<{ Variables: AuthVariables }>(
   async (c, next) => {
     const values = env<Record<string, string | undefined>>(c);
     const missing = REQUIRED_ENV.filter((name) => !values[name]);
-    const signToken = supabaseTokenSignerFromEnv(
-      values.SUPABASE_JWT_SIGNING_KEY
-    );
-    if (missing.length > 0 || !signToken) {
+    if (missing.length > 0) {
       return c.json(
         {
           error: {
@@ -99,7 +96,10 @@ export const requireConfig = createMiddleware<{ Variables: AuthVariables }>(
         500
       );
     }
-    c.set("signToken", signToken);
+    c.set(
+      "signToken",
+      cachedSupabaseTokenSigner(String(values.SUPABASE_JWT_SIGNING_KEY))
+    );
     await next();
   }
 );
@@ -118,7 +118,11 @@ export const requireBearerToken = createMiddleware<{
   await next();
 });
 
-/** The token's `exp`, when it is a JWT (Clerk's opaque tokens have none). */
+/**
+ * The token's `exp`, when it is a JWT (Clerk's opaque tokens have none). The
+ * signed Supabase token is only used within this request, so without a cap it
+ * still lives at most 5 minutes.
+ */
 function tokenExpiry(token: string): number | undefined {
   try {
     return decodeJwt(token).exp;
