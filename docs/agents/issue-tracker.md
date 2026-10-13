@@ -1,13 +1,13 @@
 # Issue tracker: Linear
 
-Issues and specs for this repo live in Linear, team **Fitme** (key `FIT`, so issues are `FIT-<n>`). Use the Linear MCP tools (`mcp__claude_ai_Linear__*`) for all operations. Pass markdown with real newlines, not `\n` escapes.
+Issues and specs (as projects) for this repo live in Linear, team **Fitme** (key `FIT`, so issues are `FIT-<n>`). Use the Linear MCP tools (`mcp__claude_ai_Linear__*`) for all operations. Pass markdown with real newlines, not `\n` escapes.
 
 ## Conventions
 
 - **Create an issue**: `save_issue` with `team: "Fitme"`, `title`, `description`, and one type label (`feature`, `bug`, `improvement`, or `idea` for a raw idea that still needs specifying). Pass `state: "Triage"` for a new request or bug report; when the skill already knows its triage role (e.g. `/to-tickets` writing agent-ready tickets), apply that role instead (see `triage-labels.md`).
 - **Read an issue**: `get_issue` with the identifier (`FIT-55`) and `includeRelations: true`; `list_comments` for the conversation.
 - **List issues**: `list_issues` with `team: "Fitme"` and `label` / `state` / `parentId` filters.
-- **Make an issue a sub-issue of a parent**: `save_issue` with `parentId: "FIT-<parent>"`. A feature is a parent issue (often labelled `idea`) whose body holds the agreed behavior; implementation work is its sub-issues.
+- **Make an issue a sub-issue of a parent**: `save_issue` with `parentId: "FIT-<parent>"`. Use it to split one issue into smaller pieces; a feature with a spec is a project, not a parent issue (see **Specs live in projects** below).
 - **Comment on an issue**: `save_comment` with `issueId` and `body`.
 - **Apply / remove labels**: `save_issue` with `id` and `addLabels` / `removeLabels`. If your Linear tool lacks those, read the issue's current labels and pass the complete updated set as `labels`, which replaces the whole set; never send a partial `labels` array.
 - **Close**: comment first, then `save_issue` with `state: "Done"` (or `"Canceled"` for wontfix, `"Duplicate"` with `duplicateOf` for duplicates).
@@ -20,9 +20,13 @@ Branches and PRs reference the issue identifier (e.g. a PR titled `feat(mobile):
 
 **PRs as a request surface: no.** _(Set to `yes` if this repo treats external GitHub PRs on `kprovorov/fitme` as feature requests; `/triage` reads this flag.)_
 
+## Specs live in projects
+
+A spec (e.g. from `/to-spec`) is a Linear **project**, not an issue: `save_project` with `addTeams: ["Fitme"]`, `lead: "me"`, `state: "Planned"`, a one-line `summary` and the whole spec as the project `description`. The implementation issues (e.g. from `/to-tickets`, including `ready-for-human` ones for manual setup) are created in that project with `save_issue` and `project: "<project name>"`. Read a spec with `get_project`; list its issues with `list_issues` and `project`. Prior art: "Migrate authentication to Clerk", "MCP OAuth through Clerk".
+
 ## When a skill says "publish to the issue tracker"
 
-Create a Linear issue in the Fitme team.
+Create a Linear issue in the Fitme team. If what's being published is a spec, create a project instead (see **Specs live in projects**).
 
 ## When a skill says "fetch the relevant ticket"
 

@@ -203,7 +203,7 @@ GitHub Actions use pnpm (`pnpm/action-setup`) and `pnpm install --frozen-lockfil
 
 ### Issue tracker
 
-Issues live in Linear, team Fitme (`FIT-<n>`), via the Linear MCP tools. See `docs/agents/issue-tracker.md`.
+Issues live in Linear, team Fitme (`FIT-<n>`), via the Linear MCP tools. A spec is a Linear project (spec in the project description, its issues in the project), not an issue. See `docs/agents/issue-tracker.md`.
 
 ### Triage labels
 
