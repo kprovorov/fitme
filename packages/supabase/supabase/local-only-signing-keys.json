@@ -1,0 +1,25 @@
+[
+  {
+    "kty": "EC",
+    "kid": "1c212804-39f8-47d0-98fd-a743dca4c02c",
+    "use": "sig",
+    "key_ops": ["sign", "verify"],
+    "alg": "ES256",
+    "ext": true,
+    "d": "4jMN5fcLGU-2PjZApWg2B0S9uYKtJgby58MXF2JMqQM",
+    "crv": "P-256",
+    "x": "GnUq3154iHcsZcy3JjvwgA6kUY5rUrsU6T7ta-KbXdU",
+    "y": "VICMRcRkbIe4ItSW5udjUpL5IGsJSHpVVuOmqem6fr0"
+  },
+  {
+    "kty": "EC",
+    "kid": "2ea81bba-4dd5-4a33-8f57-b627edd1c356",
+    "use": "sig",
+    "key_ops": ["verify"],
+    "alg": "ES256",
+    "ext": true,
+    "crv": "P-256",
+    "x": "IZ-EcgKysosuNxJpPcIkc772zQSUeS_owqBW8c0JSvE",
+    "y": "mREIDrgQidSAUheqlzqaPbJQdWCxrrVJEUzcSm9JZzE"
+  }
+]

@@ -14,7 +14,9 @@ The MCP endpoint is the root path: `POST|GET|DELETE /` (stateless, no session id
 
 ## Integration tests
 
-`integration/` runs the tools against a real Supabase stack instead of the fake client, so RLS, the RPCs and PostgREST behaviour (embeds, `!inner` filters, ranges past the end) are exercised for real. Each run signs up fresh users through the auth API (email confirmations are off in `config.toml`), then covers the main flow (create → get → update → activate → start session → log set → finish → list → delete) and checks that a second user can neither read nor change the first user's plans and sessions. `oauth.test.ts` runs the whole MCP authorization flow (discovery, dynamic registration, PKCE authorize, consent, token exchange, refresh) against the local OAuth server.
+`integration/` runs the tools against a real Supabase stack instead of the fake client, so RLS, the RPCs and PostgREST behaviour (embeds, `!inner` filters, ranges past the end) are exercised for real. Each run creates fresh Users as made-up Clerk-style `user_…` ids with Supabase tokens from the server's signer (see [Signed Supabase tokens](#signed-supabase-tokens)), with no Supabase Auth account, then covers the main flow (create → get → update → activate → start session → log set → finish → list → delete) and checks that a second user can neither read nor change the first user's plans and sessions. `oauth.test.ts` runs the whole MCP authorization flow (discovery, dynamic registration, PKCE authorize, consent, token exchange, refresh) against the local OAuth server; it still signs a User up through Supabase Auth, since consent needs a Supabase session.
+
+The tokens are signed with `SUPABASE_JWT_SIGNING_KEY` when it is set, otherwise with the committed development key (`integration/local-only-signing-key.json`), which every local stack trusts.
 
 ```bash
 pnpm db start                     # local stack
@@ -35,6 +37,7 @@ See `.env.example`. The variables are read from the process environment (Vercel 
 | `SUPABASE_URL`      | Supabase project URL used by the user tools.                            |
 | `SUPABASE_ANON_KEY` | Supabase anon (public) key. Never configure a service-role key here.    |
 | `MCP_PUBLIC_URL`    | Public URL advertised as the OAuth resource; set it in production.     |
+| `SUPABASE_JWT_SIGNING_KEY` | Private ES256 JWK the server signs Supabase tokens with. See below. |
 
 Without the Supabase variables the server still starts and the public tools work; user tools return a "not configured" tool error and OAuth is off.
 
@@ -64,6 +67,19 @@ Enable the OAuth server (Authentication → OAuth Server in the dashboard, `[aut
 
 - Authorization path `/oauth/consent`, relative to the project's Site URL, which must be the web app (the page no longer exists, see FIT-79).
 - Dynamic client registration on, so MCP clients can register themselves.
+
+## Signed Supabase tokens
+
+`src/supabase-token.ts` signs a short-lived Supabase access token for a verified User id, so that once the server verifies Clerk OAuth tokens (FIT-94) RLS keeps working: Clerk OAuth tokens have no `role` claim, so Supabase would run them as `anon`. See [ADR 0002](../../docs/adr/0002-mcp-server-signs-supabase-tokens.md).
+
+- ES256, `kid` from the key. Hard-coded claims: `role: authenticated`, `aud: authenticated`, `iss: fitme-mcp`; `sub` is the User id.
+- `iat` = now, `exp` = now + 5 minutes, capped at an optional upper bound (the Clerk token's `exp`).
+- The key is the private JWK in `SUPABASE_JWT_SIGNING_KEY`, as printed by `supabase gen signing-key --algorithm ES256` (`key_ops`, `use` and `ext` are stripped before import). It is as powerful as the service-role key: it lives only in this server's env, and `sub` must only ever come from a verified Clerk token.
+
+Supabase trusts the public half of the key:
+
+- **Local stacks** trust the committed development key out of the box. `packages/supabase/supabase/local-only-signing-keys.json` (`[auth] signing_keys_path` in `config.toml`) lists the stack's own signer first, then the development key's public half. The private half is in `.env.example` and `integration/local-only-signing-key.json`. Both files are for local use only; never trust these keys on a hosted project.
+- **Hosted projects**: generate a key, put the private JWK in the server's env, and import the public half on the Supabase project as a **standby** key (Settings → JWT Keys), so Supabase verifies the server's tokens but never signs with that key.
 
 ## Tools
 

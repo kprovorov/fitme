@@ -1,7 +1,8 @@
-import { createHash, randomBytes } from "node:crypto";
+import { createHash, randomBytes, randomUUID } from "node:crypto";
+import { createClient, type SupabaseClient } from "@supabase/supabase-js";
 import { beforeAll, describe, expect, it } from "vitest";
 import { createApp } from "../src/app.js";
-import { createTestUser, requireEnv, type TestUser } from "./setup.js";
+import { requireEnv } from "./setup.js";
 
 const SSE_DATA_LINE = /^data: (.*)$/m;
 const REDIRECT_URI = "http://127.0.0.1:8976/callback";
@@ -16,6 +17,31 @@ interface TokenResponse {
 const base64Url = (bytes: Buffer) => bytes.toString("base64url");
 
 /**
+ * Consent needs a Supabase Auth session, so this suite still signs a User up
+ * through Supabase Auth (needs email confirmations disabled, config.toml).
+ * Goes away when MCP authorization moves to Clerk (FIT-94).
+ */
+async function signUpWithSupabaseAuth(): Promise<SupabaseClient> {
+  const { anonKey, url } = requireEnv();
+  const auth = createClient(url, anonKey, {
+    auth: { autoRefreshToken: false, persistSession: false },
+  });
+  const { data, error } = await auth.auth.signUp({
+    email: `mcp-oauth-${randomUUID()}@integration.test`,
+    password: "integration-test-password",
+  });
+  if (error) {
+    throw new Error(`Sign-up failed: ${error.message}`);
+  }
+  if (!data.session) {
+    throw new Error(
+      "Sign-up returned no session: email confirmations must be disabled."
+    );
+  }
+  return auth;
+}
+
+/**
  * Runs the MCP authorization flow end to end against the local stack, the way
  * an MCP client does: discovery → dynamic registration → authorize (PKCE) →
  * consent (as the signed-in user) → token exchange → tool call → refresh.
@@ -25,10 +51,10 @@ describe("OAuth against Supabase Auth", () => {
   const app = createApp({ logRequests: false });
   const { anonKey, url } = requireEnv();
   const authUrl = `${url}/auth/v1`;
-  let user: TestUser;
+  let auth: SupabaseClient;
 
   beforeAll(async () => {
-    user = await createTestUser("oauth");
+    auth = await signUpWithSupabaseAuth();
   });
 
   const callTool = async (name: string, token: string) => {
@@ -142,14 +168,14 @@ describe("OAuth against Supabase Auth", () => {
     expect(authorizationId).toBeTruthy();
 
     // What apps/web's consent page does for the signed-in user.
-    const details = await user.auth.auth.oauth.getAuthorizationDetails(
+    const details = await auth.auth.oauth.getAuthorizationDetails(
       authorizationId ?? ""
     );
     expect(details.error).toBeNull();
     expect(details.data).toMatchObject({
       client: { name: "MCP integration test" },
     });
-    const approval = await user.auth.auth.oauth.approveAuthorization(
+    const approval = await auth.auth.oauth.approveAuthorization(
       authorizationId ?? "",
       { skipBrowserRedirect: true }
     );
