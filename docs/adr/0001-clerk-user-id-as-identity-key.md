@@ -16,5 +16,5 @@ Fitme is moving authentication from Supabase Auth to Clerk (Supabase third-party
 ## Consequences
 
 - There is no referential integrity between app rows and the identity provider. Deleting a user in Clerk must be mirrored explicitly; nothing cascades any more. The only cleanup path is a Clerk `user.deleted` webhook that removes the user's rows, so in-app account deletion is a client-side Clerk call and row cleanup is eventually consistent.
-- `auth.uid()` must not be used anywhere; policies and functions use a single helper that reads the `sub` claim.
+- `auth.uid()` must not be used anywhere; policies and functions use a single helper that reads the `sub` claim. The helper only trusts tokens whose `role` claim is `authenticated` (FIT-92), because Supabase also accepts Clerk OAuth access tokens issued to third-party clients, and those carry no role.
 - Third-party identifiers (RevenueCat app user id, Segment user id, Sentry user id) change from the Supabase UUID to the Clerk id at migration time.
