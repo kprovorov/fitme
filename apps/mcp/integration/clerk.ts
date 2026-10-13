@@ -138,11 +138,20 @@ export function clerkDev(secretKey: string) {
         if (hopsLeft === 0) {
           throw new Error(`Clerk authorization did not reach ${redirectUri}.`);
         }
-        const next =
-          url.origin === fapi.origin
-            ? await redirectOf(url)
-            : await consent(url, String(sessionId));
-        return await follow(next, hopsLeft - 1);
+        return await follow(await nextPage(url), hopsLeft - 1);
+      }
+
+      async function nextPage(url: URL) {
+        if (url.origin === fapi.origin) {
+          return await redirectOf(url);
+        }
+        // Clerk's Account Portal (hosted pages). Its sign-in page sends a
+        // signed-in User straight on to `redirect_url` (the consent page).
+        const afterSignIn = url.searchParams.get("redirect_url");
+        if (url.pathname === "/sign-in" && afterSignIn) {
+          return withDevBrowser(new URL(afterSignIn));
+        }
+        return await consent(url, String(sessionId));
       }
 
       /**
