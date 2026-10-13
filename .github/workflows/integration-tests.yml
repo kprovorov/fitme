@@ -43,6 +43,10 @@ jobs:
           echo "SUPABASE_SERVICE_ROLE_KEY=$SERVICE_ROLE_KEY" >> "$GITHUB_ENV"
           echo "SUPABASE_DB_URL=$DB_URL" >> "$GITHUB_ENV"
 
+      - name: Run database tests (pgTAP)
+        working-directory: packages/supabase
+        run: pnpm exec supabase test db
+
       # The hoisted install skips snaplet's postinstall; build the client
       # from the committed .snaplet/dataModel.json.
       - name: Generate seed client
