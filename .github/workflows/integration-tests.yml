@@ -29,12 +29,12 @@ jobs:
       # Only Postgres, PostgREST (API gateway) and Auth are needed.
       - name: Start Supabase
         working-directory: packages/supabase
-        run: pnpm exec supabase start -x studio,imgproxy,realtime,storage-api,edge-runtime,logflare,vector,postgres-meta
+        run: pnpm exec supabase start --exclude studio,realtime,storage,functions,mail,analytics,pooler
 
       - name: Export Supabase credentials
         working-directory: packages/supabase
         run: |
-          pnpm exec supabase status -o env > "$RUNNER_TEMP/supabase.env"
+          pnpm exec supabase status --env --output-format text > "$RUNNER_TEMP/supabase.env"
           set -a && . "$RUNNER_TEMP/supabase.env" && set +a
           echo "::add-mask::$ANON_KEY"
           echo "::add-mask::$SERVICE_ROLE_KEY"
@@ -42,6 +42,7 @@ jobs:
           echo "SUPABASE_ANON_KEY=$ANON_KEY" >> "$GITHUB_ENV"
           echo "SUPABASE_SERVICE_ROLE_KEY=$SERVICE_ROLE_KEY" >> "$GITHUB_ENV"
           echo "SUPABASE_DB_URL=$DB_URL" >> "$GITHUB_ENV"
+          echo "DATABASE_URL=$DB_URL" >> "$GITHUB_ENV"
 
       - name: Run database tests (pgTAP)
         working-directory: packages/supabase
@@ -87,4 +88,4 @@ jobs:
       - name: Stop Supabase
         if: always()
         working-directory: packages/supabase
-        run: pnpm exec supabase stop --no-backup
+        run: pnpm exec supabase stop
