@@ -128,11 +128,16 @@ export function clerkDev(secretKey: string) {
         );
       }
 
+      // The flow must pass the consent screen, not skip it.
+      let consented = false;
       return await follow(withDevBrowser(authorizationUrl), MAX_REDIRECTS);
 
       /** Follows Clerk's redirects, consenting on the way, to the client. */
       async function follow(url: URL, hopsLeft: number): Promise<URL> {
         if (url.href.startsWith(redirectUri)) {
+          if (!consented) {
+            throw new Error("Clerk redirected back without asking consent.");
+          }
           return url;
         }
         if (hopsLeft === 0) {
@@ -168,6 +173,7 @@ export function clerkDev(secretKey: string) {
         }
         params.delete("__clerk_db_jwt");
         params.set("consented", "true");
+        consented = true;
         const action = withDevBrowser(
           new URL(`/v1/me/oauth/consent/${encodeURIComponent(clientId)}`, fapi)
         );

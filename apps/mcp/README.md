@@ -14,7 +14,7 @@ The MCP endpoint is the root path: `POST|GET|DELETE /` (stateless, no session id
 
 ## Integration tests
 
-`integration/` runs the tools against a real Supabase stack instead of the fake client, so RLS, the RPCs and PostgREST behaviour (embeds, `!inner` filters, ranges past the end) are exercised for real. Each run creates fresh Users as made-up Clerk-style `user_…` ids with Supabase tokens from the server's signer (see [Signed Supabase tokens](#signed-supabase-tokens)), with no Supabase Auth account, then covers the main flow (create → get → update → activate → start session → log set → finish → list → delete) and checks that a second user can neither read nor change the first user's plans and sessions. The Clerk side (a real OAuth flow against the development instance) is not covered here yet (FIT-97); the app-level auth paths are unit-tested with Clerk stubbed.
+`integration/` runs the tools against a real Supabase stack instead of the fake client, so RLS, the RPCs and PostgREST behaviour (embeds, `!inner` filters, ranges past the end) are exercised for real. Each run creates fresh Users as made-up Clerk-style `user_…` ids with Supabase tokens from the server's signer (see [Signed Supabase tokens](#signed-supabase-tokens)), with no Supabase Auth account, then covers the main flow (create → get → update → activate → start session → log set → finish → list → delete) and checks that a second user can neither read nor change the first user's plans and sessions.
 
 The tokens are signed with `SUPABASE_JWT_SIGNING_KEY` when it is set, otherwise with the committed development key (`integration/local-only-signing-key.json`), which every local stack trusts.
 
@@ -23,6 +23,12 @@ pnpm db start                     # local stack
 pnpm db exec snaplet-seed generate && pnpm db seed   # exercise library
 eval "$(pnpm --silent db exec supabase status -o env | sed -n 's/^API_URL=/export SUPABASE_URL=/p; s/^ANON_KEY=/export SUPABASE_ANON_KEY=/p')"
 pnpm mcp test:integration
+```
+
+`integration/clerk-oauth.test.ts` runs the whole chain against the Clerk development instance, with no browser: it serves the real app over HTTP, creates a public OAuth application and two `+clerk_test` Users through the Backend API, and lets the MCP SDK's OAuth client discover Clerk from the server's 401. The flow signs the User in with a sign-in token on a dev browser (`__clerk_db_jwt`), passes the Account Portal's sign-in page, submits "Allow" to Clerk's consent endpoint the way the hosted consent form does, and exchanges the code with PKCE (S256). The Clerk access token then calls `list_plans` and `create_plan`, and the second User can't see the first User's Plan. It deletes the Users and the application afterwards. It needs `CLERK_DEV_SECRET_KEY` (the development `sk_test_…` key) and is skipped without it:
+
+```bash
+CLERK_DEV_SECRET_KEY=sk_test_… pnpm mcp test:integration
 ```
 
 CI runs the suite on every pull request (`.github/workflows/integration-tests.yml`), separately from the unit tests.
