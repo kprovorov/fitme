@@ -82,7 +82,12 @@ jobs:
           fi
           pnpm --filter @fitme/supabase clerk:check-migration
 
+      # The Clerk OAuth suite (integration/clerk-oauth.test.ts) runs a real
+      # headless OAuth flow against the Clerk development instance and is
+      # skipped when CLERK_DEV_SECRET_KEY is not set.
       - name: Run MCP integration tests
+        env:
+          CLERK_DEV_SECRET_KEY: ${{ secrets.CLERK_DEV_SECRET_KEY }}
         run: pnpm --filter @fitme/mcp test:integration
 
       - name: Stop Supabase
