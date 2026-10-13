@@ -1,20 +1,24 @@
-import { randomUUID } from "node:crypto";
+import { randomBytes } from "node:crypto";
+import { readFileSync } from "node:fs";
 import type { Client } from "@modelcontextprotocol/sdk/client/index.js";
-import { createClient, type SupabaseClient } from "@supabase/supabase-js";
 import { call, connect } from "../src/__tests__/harness.js";
 import {
   createSupabaseClientFromEnv,
   type FitmeSupabaseClient,
 } from "../src/supabase.js";
+import {
+  createSupabaseTokenSigner,
+  supabaseTokenSignerFromEnv,
+} from "../src/supabase-token.js";
 
 /**
  * Helpers for the integration suite, which runs the MCP tools against a real
- * Supabase stack (`pnpm db start` + `pnpm db seed`). Users are created through
- * the public sign-up endpoint with the anon key, so every query goes through
- * the same RLS policies and RPCs as in production.
+ * Supabase stack (`pnpm db start` + `pnpm db seed`). Test Users are made-up
+ * Clerk-style ids whose tokens the MCP server's signer issues, the way the
+ * server will once it verifies Clerk tokens (ADR 0002). Local stacks trust the
+ * development signing key (`local-only-signing-keys.json`), and every query
+ * goes through the same RLS policies and RPCs as in production.
  */
-
-const TEST_PASSWORD = "integration-test-password";
 
 export function requireEnv() {
   const url = process.env.SUPABASE_URL;
@@ -27,44 +31,43 @@ export function requireEnv() {
   return { anonKey, url };
 }
 
+/**
+ * Signs with `SUPABASE_JWT_SIGNING_KEY` when set, otherwise with the
+ * committed development key that local stacks trust.
+ */
+const signToken =
+  supabaseTokenSignerFromEnv() ??
+  createSupabaseTokenSigner(
+    readFileSync(
+      new URL("local-only-signing-key.json", import.meta.url),
+      "utf8"
+    )
+  );
+
+/** A made-up id in Clerk's `user_…` format, unique per run. */
+const clerkStyleUserId = (label: string) =>
+  `user_${label}${randomBytes(16).toString("hex")}`;
+
 export interface TestUser {
   accessToken: string;
-  /** Auth client holding the user's session (e.g. to approve OAuth consent). */
-  auth: SupabaseClient;
-  /** Client acting as the user (anon key + their token), for fixtures. */
+  /** Client acting as the User (anon key + their token), for fixtures. */
   supabase: FitmeSupabaseClient;
   userId: string;
 }
 
-/** Signs up a fresh user; needs email confirmations disabled (config.toml). */
+/**
+ * A fresh User with a signed Supabase token (valid for 5 minutes, enough for
+ * one suite). No Supabase Auth account is created.
+ */
 export async function createTestUser(label: string): Promise<TestUser> {
-  const { anonKey, url } = requireEnv();
-  const auth = createClient(url, anonKey, {
-    auth: { autoRefreshToken: false, persistSession: false },
-  });
-  const { data, error } = await auth.auth.signUp({
-    email: `mcp-${label}-${randomUUID()}@integration.test`,
-    password: TEST_PASSWORD,
-  });
-  if (error) {
-    throw new Error(`Sign-up failed: ${error.message}`);
-  }
-  if (!(data.session && data.user)) {
-    throw new Error(
-      "Sign-up returned no session: email confirmations must be disabled."
-    );
-  }
-
-  const supabase = createSupabaseClientFromEnv(data.session.access_token);
+  requireEnv();
+  const userId = clerkStyleUserId(label);
+  const accessToken = await signToken(userId);
+  const supabase = createSupabaseClientFromEnv(accessToken);
   if (!supabase) {
     throw new Error("Could not build a Supabase client from the environment.");
   }
-  return {
-    accessToken: data.session.access_token,
-    auth,
-    supabase,
-    userId: data.user.id,
-  };
+  return { accessToken, supabase, userId };
 }
 
 /** MCP client whose user tools run against the real stack as `user`. */
