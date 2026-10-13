@@ -15,6 +15,7 @@ export interface Database {
           id: string;
           user_id: string;
         };
+        ComputedFields: never;
         Insert: {
           created_at?: string;
           id?: string;
@@ -40,6 +41,7 @@ export interface Database {
           updated_at: string | null;
           video_url: string | null;
         };
+        ComputedFields: never;
         Insert: {
           created_at?: string | null;
           description?: string | null;
@@ -75,6 +77,7 @@ export interface Database {
           metadata: Json | null;
           role: string;
         };
+        ComputedFields: never;
         Insert: {
           content: string;
           conversation_id: string;
@@ -118,6 +121,7 @@ export interface Database {
           user_id: string;
           workout_duration: number;
         };
+        ComputedFields: never;
         Insert: {
           created_at?: string | null;
           deleted_at?: string | null;
@@ -164,6 +168,7 @@ export interface Database {
           user_id: string;
           weight: number;
         };
+        ComputedFields: never;
         Insert: {
           age: number;
           created_at?: string | null;
@@ -199,6 +204,7 @@ export interface Database {
           weight_recommended: number;
           workout_exercise_id: string;
         };
+        ComputedFields: never;
         Insert: {
           created_at?: string | null;
           id?: string;
@@ -238,6 +244,7 @@ export interface Database {
           updated_at: string | null;
           workout_id: string;
         };
+        ComputedFields: never;
         Insert: {
           created_at?: string | null;
           exercise_id: string;
@@ -285,6 +292,7 @@ export interface Database {
           weight_recommended: number | null;
           workout_session_exercise_id: string;
         };
+        ComputedFields: never;
         Insert: {
           created_at?: string | null;
           id?: string;
@@ -330,6 +338,7 @@ export interface Database {
           updated_at: string | null;
           workout_session_id: string;
         };
+        ComputedFields: never;
         Insert: {
           created_at?: string | null;
           exercise_id: string;
@@ -374,6 +383,7 @@ export interface Database {
           user_id: string;
           workout_id: string | null;
         };
+        ComputedFields: never;
         Insert: {
           created_at?: string | null;
           finished_at?: string | null;
@@ -421,6 +431,7 @@ export interface Database {
           plan_id: string;
           updated_at: string | null;
         };
+        ComputedFields: never;
         Insert: {
           created_at?: string | null;
           description: string;
@@ -484,7 +495,7 @@ export interface Database {
         Returns: undefined;
       };
       create_plan: { Args: { p_plan_data: Json }; Returns: string };
-      current_user_id: { Args: never; Returns: string };
+      current_user_id: { Args: Record<PropertyKey, never>; Returns: string };
       delete_user_data: { Args: { user_id: string }; Returns: undefined };
       finish_workout_session: {
         Args: { p_session_id: string };
