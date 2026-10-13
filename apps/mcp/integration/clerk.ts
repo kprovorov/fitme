@@ -113,7 +113,8 @@ export function clerkDev(secretKey: string) {
           expires_in_seconds: 300,
           user_id: user.id,
         }),
-        backend<{ token: string }>("POST", "/testing_tokens"),
+        // Clerk answers 415 to a POST without a JSON body.
+        backend<{ token: string }>("POST", "/testing_tokens", {}),
       ]);
       const signInUrl = withDevBrowser(new URL("/v1/client/sign_ins", fapi));
       signInUrl.searchParams.set("__clerk_testing_token", testingToken);
