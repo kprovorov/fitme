@@ -92,12 +92,10 @@ describe.skipIf(!secretKey)("Clerk OAuth flow end to end", () => {
     app = await clerk.createOAuthApp(
       new URL("/oauth/callback", server.url).href
     );
-    users.push(
-      ...(await Promise.all([
-        clerk.createUser("owner"),
-        clerk.createUser("other"),
-      ]))
-    );
+    // One at a time, each tracked as soon as it exists, so afterAll deletes
+    // it even when the next one fails.
+    users.push(await clerk.createUser("owner"));
+    users.push(await clerk.createUser("other"));
   });
 
   afterAll(async () => {

@@ -64,8 +64,15 @@ export function clerkDev(secretKey: string) {
     return (await response.json()) as T;
   }
 
+  let frontendApi: Promise<string> | undefined;
+
   /** The instance's Frontend API, e.g. https://foo-bar-1.clerk.accounts.dev. */
-  async function frontendApiUrl(): Promise<string> {
+  function frontendApiUrl(): Promise<string> {
+    frontendApi ??= lookUpFrontendApiUrl();
+    return frontendApi;
+  }
+
+  async function lookUpFrontendApiUrl(): Promise<string> {
     const { data } = await backend<{
       data: { frontend_api_url: string; is_satellite: boolean }[];
     }>("GET", "/domains");
