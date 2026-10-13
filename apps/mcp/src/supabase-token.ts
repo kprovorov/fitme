@@ -1,4 +1,4 @@
-import { type CryptoKey, importJWK, type JWK, SignJWT } from "jose";
+import { importJWK, type JWK, SignJWT } from "jose";
 
 /**
  * Supabase access tokens the MCP server signs itself (ADR 0002). Supabase
@@ -15,7 +15,7 @@ const ROLE = "authenticated";
 /** Upper bound on a signed token's lifetime, in seconds. */
 const MAX_LIFETIME_SECONDS = 5 * 60;
 
-export interface SignOptions {
+export interface SupabaseTokenSignOptions {
   /**
    * Latest expiry allowed, as epoch seconds (e.g. the Clerk token's `exp`).
    * The token expires at the earlier of this and 5 minutes from now.
@@ -26,7 +26,7 @@ export interface SignOptions {
 /** Signs a short-lived Supabase access token for a verified User id. */
 export type SupabaseTokenSigner = (
   userId: string,
-  options?: SignOptions
+  options?: SupabaseTokenSignOptions
 ) => Promise<string>;
 
 const invalidKey = (reason: string) =>
@@ -60,7 +60,10 @@ function parseSigningKey(signingKey: string): JWK & { kid: string } {
 async function importSigningKey(signingKey: string) {
   const jwk = parseSigningKey(signingKey);
   const key = await importJWK(jwk, ALGORITHM);
-  return { key: key as CryptoKey, kid: jwk.kid };
+  if (key instanceof Uint8Array) {
+    throw invalidKey("it is a symmetric key");
+  }
+  return { key, kid: jwk.kid };
 }
 
 /**
@@ -81,6 +84,11 @@ export function createSupabaseTokenSigner(
     const { key, kid } = await imported;
 
     const issuedAt = Math.floor(Date.now() / 1000);
+    if (expiresAtMost !== undefined && expiresAtMost <= issuedAt) {
+      throw new Error(
+        "Cannot sign a Supabase token: its expiry upper bound has already passed."
+      );
+    }
     const expiresAt = Math.min(
       issuedAt + MAX_LIFETIME_SECONDS,
       expiresAtMost ?? Number.POSITIVE_INFINITY

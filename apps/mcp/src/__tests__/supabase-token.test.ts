@@ -66,6 +66,12 @@ describe("createSupabaseTokenSigner", () => {
     expect(decodeJwt(token).exp).toBe(NOW_SECONDS + 42);
   });
 
+  it("refuses an upper bound that has already passed", async () => {
+    await expect(sign(USER_ID, { expiresAtMost: NOW_SECONDS })).rejects.toThrow(
+      "already passed"
+    );
+  });
+
   it("refuses an empty User id", async () => {
     await expect(sign("")).rejects.toThrow("User id");
   });
