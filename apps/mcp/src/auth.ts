@@ -1,102 +1,151 @@
-import { AuthenticationError, type ToolContext } from "./context.js";
-import { USER_TOOL_NAMES } from "./server.js";
+import { getAuth } from "@clerk/hono";
+import { protectedResourceHandlerClerk } from "@clerk/mcp-tools/hono";
+import type { Context } from "hono";
+import { env } from "hono/adapter";
+import { createMiddleware } from "hono/factory";
+import { decodeJwt } from "jose";
+import type { ClerkUser } from "./context.js";
+import {
+  cachedSupabaseTokenSigner,
+  type SupabaseTokenSigner,
+} from "./supabase-token.js";
 
 /**
  * MCP authorization (OAuth 2.1). This server is the protected resource; the
- * authorization server is Supabase Auth's OAuth server, so clients register,
- * sign the user in (through the web app's consent page) and refresh tokens
- * there. Access tokens are ordinary Supabase user JWTs.
+ * authorization server is Clerk. Every MCP request needs a Clerk OAuth access
+ * token. Once Clerk has verified it, the server signs a short-lived Supabase
+ * token for the User (ADR 0002), so RLS keeps enforcing ownership.
  */
 
 /** RFC 9728 metadata for a resource served at the root path. */
 export const PROTECTED_RESOURCE_METADATA_PATH =
   "/.well-known/oauth-protected-resource";
 
+/** Without these the server refuses MCP requests rather than skip auth. */
+const REQUIRED_ENV = [
+  "CLERK_SECRET_KEY",
+  "CLERK_PUBLISHABLE_KEY",
+  "SUPABASE_JWT_SIGNING_KEY",
+] as const;
+
+export interface AuthVariables {
+  /** The bearer token of the request (set by `requireBearerToken`). */
+  accessToken: string;
+  /** The verified Clerk User (set by `requireClerkUser`). */
+  clerkUser: ClerkUser;
+  signToken: SupabaseTokenSigner;
+}
+
 /**
  * Canonical URI of this MCP server (the endpoint is the root path).
- * `publicUrl` (MCP_PUBLIC_URL) overrides the request URL behind proxies.
+ * `MCP_PUBLIC_URL` overrides the request URL behind proxies.
  */
-export const resourceUrl = (requestUrl: string, publicUrl?: string) =>
-  new URL("/", publicUrl || requestUrl).href;
+const resourceUrl = (c: Context) =>
+  new URL("/", env<{ MCP_PUBLIC_URL?: string }>(c).MCP_PUBLIC_URL || c.req.url)
+    .href;
 
-export const protectedResourceMetadata = (
-  resource: string,
-  authorizationServer: string
-) => ({
-  authorization_servers: [authorizationServer],
-  bearer_methods_supported: ["header"],
-  resource,
-  resource_name: "Fitme",
-});
+const resourceMetadataUrl = (c: Context) =>
+  new URL(PROTECTED_RESOURCE_METADATA_PATH, resourceUrl(c)).href;
 
-interface JsonRpcRequestLike {
-  method?: unknown;
-  params?: { name?: unknown } | null;
-}
-
-const isUserToolCall = (message: unknown) => {
-  if (typeof message !== "object" || message === null) {
-    return false;
-  }
-  const { method, params } = message as JsonRpcRequestLike;
-  const name = params?.name;
-  return (
-    method === "tools/call" &&
-    typeof name === "string" &&
-    USER_TOOL_NAMES.includes(name)
-  );
-};
-
-/**
- * Whether a JSON-RPC payload (single message or batch) calls a tool that acts
- * on user data. Everything else (initialize, tools/list, public tools, unknown
- * tools, which get the usual "not found" error) works without signing in.
- */
-export const callsUserTool = (body: unknown) =>
-  Array.isArray(body) ? body.some(isUserToolCall) : isUserToolCall(body);
-
-/**
- * Verifies the caller up front. Returns the failure when the credentials are
- * missing or rejected; other errors (not configured, Supabase unreachable)
- * are left for the tool to report, since a new token would not help.
- */
-export async function authenticate(
-  context: ToolContext
-): Promise<AuthenticationError | null> {
-  try {
-    await context.getUserContext();
-    return null;
-  } catch (error) {
-    return error instanceof AuthenticationError ? error : null;
-  }
-}
-
-/** Characters RFC 6750 allows inside `error_description`. */
-const NON_DESCRIPTION_CHARS = /[^\x20\x21\x23-\x5B\x5D-\x7E]/g;
+/** Protected-resource metadata naming the Clerk instance as the issuer. */
+export const protectedResourceMetadata = (c: Context) =>
+  protectedResourceHandlerClerk({
+    bearer_methods_supported: ["header"],
+    resource: resourceUrl(c),
+    resource_name: "Fitme",
+  })(c);
 
 /**
  * 401 with the `WWW-Authenticate` challenge MCP clients use to discover the
- * authorization server and start (or, for an expired token, refresh) OAuth.
+ * authorization server and start (or, for a rejected token, redo) OAuth.
  */
-export function unauthorizedResponse(
-  error: AuthenticationError,
-  resourceMetadataUrl: string
-): Response {
-  const description = error.message.replace(NON_DESCRIPTION_CHARS, "");
-  // RFC 6750: a request without credentials gets no error code.
-  const params =
-    error.reason === "invalid"
-      ? [`error="invalid_token"`, `error_description="${description}"`]
-      : [];
-  params.push(`resource_metadata="${resourceMetadataUrl}"`);
-
-  return Response.json(
-    error.reason === "invalid"
-      ? { error: "invalid_token", error_description: error.message }
-      : { error_description: error.message },
-    {
-      headers: { "WWW-Authenticate": `Bearer ${params.join(", ")}` },
-      status: 401,
-    }
+function unauthorized(c: Context, reason: "invalid" | "missing") {
+  const metadata = `resource_metadata="${resourceMetadataUrl(c)}"`;
+  if (reason === "missing") {
+    // RFC 6750: a request without credentials gets no error code.
+    c.header("WWW-Authenticate", `Bearer ${metadata}`);
+    return c.json(
+      { error_description: "Authentication required: sign in with OAuth." },
+      401
+    );
+  }
+  const description = "The access token is invalid or expired. Sign in again.";
+  c.header(
+    "WWW-Authenticate",
+    `Bearer error="invalid_token", error_description="${description}", ${metadata}`
+  );
+  return c.json(
+    { error: "invalid_token", error_description: description },
+    401
   );
 }
+
+/** Fails closed (500) when the Clerk or signing config is missing. */
+export const requireConfig = createMiddleware<{ Variables: AuthVariables }>(
+  async (c, next) => {
+    const values = env<Record<string, string | undefined>>(c);
+    const missing = REQUIRED_ENV.filter((name) => !values[name]);
+    if (missing.length > 0) {
+      return c.json(
+        {
+          error: {
+            code: "not_configured",
+            message: `This MCP server is not configured: ${missing.join(", ")} must be set.`,
+          },
+        },
+        500
+      );
+    }
+    c.set(
+      "signToken",
+      cachedSupabaseTokenSigner(String(values.SUPABASE_JWT_SIGNING_KEY))
+    );
+    await next();
+  }
+);
+
+const BEARER_TOKEN = /^Bearer\s+(\S+)\s*$/i;
+
+/** 401 without `Authorization: Bearer <token>`, before asking Clerk. */
+export const requireBearerToken = createMiddleware<{
+  Variables: AuthVariables;
+}>(async (c, next) => {
+  const token = c.req.header("Authorization")?.match(BEARER_TOKEN)?.[1];
+  if (!token) {
+    return unauthorized(c, "missing");
+  }
+  c.set("accessToken", token);
+  await next();
+});
+
+/**
+ * The token's `exp`, when it is a JWT (Clerk's opaque tokens have none). The
+ * signed Supabase token is only used within this request, so without a cap it
+ * still lives at most 5 minutes.
+ */
+function tokenExpiry(token: string): number | undefined {
+  try {
+    return decodeJwt(token).exp;
+  } catch {
+    // Not a JWT: Clerk verified an opaque token, whose expiry isn't readable.
+    return undefined;
+  }
+}
+
+/**
+ * Admits only Clerk OAuth access tokens that `clerkMiddleware` verified.
+ * The User id comes from Clerk, never from the request.
+ */
+export const requireClerkUser = createMiddleware<{ Variables: AuthVariables }>(
+  async (c, next) => {
+    const auth = getAuth(c, { acceptsToken: "oauth_token" });
+    if (!(auth.isAuthenticated && auth.userId)) {
+      return unauthorized(c, "invalid");
+    }
+    c.set("clerkUser", {
+      expiresAt: tokenExpiry(c.get("accessToken")),
+      userId: auth.userId,
+    });
+    await next();
+  }
+);

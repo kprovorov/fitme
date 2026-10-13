@@ -1,7 +1,7 @@
 import { randomBytes } from "node:crypto";
 import { readFileSync } from "node:fs";
 import type { Client } from "@modelcontextprotocol/sdk/client/index.js";
-import { call, connect } from "../src/__tests__/harness.js";
+import { call, connect, contextFor } from "../src/__tests__/harness.js";
 import {
   createSupabaseClientFromEnv,
   type FitmeSupabaseClient,
@@ -15,7 +15,7 @@ import {
  * Helpers for the integration suite, which runs the MCP tools against a real
  * Supabase stack (`pnpm db start` + `pnpm db seed`). Test Users are made-up
  * Clerk-style ids whose tokens the MCP server's signer issues, the way the
- * server will once it verifies Clerk tokens (ADR 0002). Local stacks trust the
+ * server does once Clerk has verified a token (ADR 0002). Local stacks trust the
  * development signing key (`local-only-signing-keys.json`), and every query
  * goes through the same RLS policies and RPCs as in production.
  */
@@ -72,7 +72,7 @@ export async function createTestUser(label: string): Promise<TestUser> {
 
 /** MCP client whose user tools run against the real stack as `user`. */
 export const connectAs = (user: TestUser) =>
-  connect({ accessToken: user.accessToken });
+  connect(contextFor({ supabase: user.supabase, userId: user.userId }));
 
 /** Calls a tool and returns its JSON payload, failing on `isError`. */
 export async function callOk<T>(

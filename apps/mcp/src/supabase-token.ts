@@ -113,3 +113,22 @@ export function supabaseTokenSignerFromEnv(): SupabaseTokenSigner | null {
   const signingKey = process.env.SUPABASE_JWT_SIGNING_KEY;
   return signingKey ? createSupabaseTokenSigner(signingKey) : null;
 }
+
+let cachedSigner: { signer: SupabaseTokenSigner; signingKey: string } | null =
+  null;
+
+/**
+ * `createSupabaseTokenSigner`, reused while the key stays the same, so the
+ * HTTP layer imports the key once per process rather than once per request.
+ */
+export function cachedSupabaseTokenSigner(
+  signingKey: string
+): SupabaseTokenSigner {
+  if (cachedSigner?.signingKey !== signingKey) {
+    cachedSigner = {
+      signer: createSupabaseTokenSigner(signingKey),
+      signingKey,
+    };
+  }
+  return cachedSigner.signer;
+}
