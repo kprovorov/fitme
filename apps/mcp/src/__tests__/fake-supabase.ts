@@ -38,16 +38,6 @@ export interface Route {
   select?: string;
 }
 
-/**
- * How `auth.getClaims` answers: claims for `userId` (none for a key that
- * isn't a user token), an `error` result, or a thrown error.
- */
-export interface FakeAuth {
-  error?: Error | string;
-  throws?: Error;
-  userId?: string;
-}
-
 export const ok = (data: unknown, count?: number): FakeResponse => ({
   count,
   data,
@@ -77,14 +67,9 @@ const matches = (route: Route, call: RecordedCall) =>
  * answers it from the first matching route. Unmatched queries are collected in
  * `unmatched` (tests assert it stays empty) and fail the query.
  */
-export function createFakeSupabase(
-  routes: Route[],
-  auth: FakeAuth = { userId: "user-1" }
-) {
+export function createFakeSupabase(routes: Route[]) {
   const calls: RecordedCall[] = [];
   const unmatched: RecordedCall[] = [];
-  /** Tokens passed to `auth.getClaims`, in order. */
-  const verifiedTokens: string[] = [];
   const pending = [...routes];
 
   const respond = (call: RecordedCall) => {
@@ -135,27 +120,6 @@ export function createFakeSupabase(
   };
 
   const client = {
-    auth: {
-      getClaims: (token: string) => {
-        verifiedTokens.push(token);
-        if (auth.throws) {
-          return Promise.reject(auth.throws);
-        }
-        if (auth.error) {
-          return Promise.resolve({
-            data: null,
-            error:
-              typeof auth.error === "string"
-                ? { message: auth.error }
-                : auth.error,
-          });
-        }
-        return Promise.resolve({
-          data: { claims: { sub: auth.userId } },
-          error: null,
-        });
-      },
-    },
     from: (table: string) =>
       builder({ filters: [], name: table, operation: "select" }),
     rpc: (name: string, args: unknown) =>
@@ -167,6 +131,5 @@ export function createFakeSupabase(
     // The fake implements only the surface the tools use.
     client: client as unknown as FitmeSupabaseClient,
     unmatched,
-    verifiedTokens,
   };
 }

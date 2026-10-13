@@ -1,9 +1,9 @@
 import { Client } from "@modelcontextprotocol/sdk/client/index.js";
 import { InMemoryTransport } from "@modelcontextprotocol/sdk/inMemory.js";
-import { type CreateMcpServerOptions, createMcpServer } from "../server.js";
+import type { ToolContext, UserContext } from "../context.js";
+import { createMcpServer } from "../server.js";
 import {
   createFakeSupabase,
-  type FakeAuth,
   type RecordedCall,
   type Route,
 } from "./fake-supabase.js";
@@ -31,8 +31,18 @@ export function expectAllCallsRouted() {
   }
 }
 
-export async function connect(options: CreateMcpServerOptions = {}) {
-  const server = createMcpServer(options);
+/** A context whose user tools run as `user` (the HTTP layer's job). */
+export const contextFor = (user: UserContext): ToolContext => ({
+  getUserContext: () => Promise.resolve(user),
+});
+
+/** For tests that never reach a user tool. */
+const NO_USER: ToolContext = {
+  getUserContext: () => Promise.reject(new Error("No User in this test.")),
+};
+
+export async function connect(context: ToolContext = NO_USER) {
+  const server = createMcpServer({ context });
   const [clientTransport, serverTransport] =
     InMemoryTransport.createLinkedPair();
   const client = new Client({ name: "test-client", version: "0.0.0" });
@@ -44,13 +54,12 @@ export async function connect(options: CreateMcpServerOptions = {}) {
 }
 
 /** Connects a client whose user tools run against a fake Supabase client. */
-export async function connectWithFake(routes: Route[], auth?: FakeAuth) {
-  const fake = createFakeSupabase(routes, auth);
+export async function connectWithFake(routes: Route[]) {
+  const fake = createFakeSupabase(routes);
   activeFakes.push(fake);
-  const client = await connect({
-    accessToken: "token-123",
-    createSupabaseClient: () => fake.client,
-  });
+  const client = await connect(
+    contextFor({ supabase: fake.client, userId: "user-1" })
+  );
   return { client, fake };
 }
 

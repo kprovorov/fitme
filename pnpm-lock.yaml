@@ -63,6 +63,12 @@ importers:
 
   apps/mcp:
     dependencies:
+      '@clerk/hono':
+        specifier: ^0.1.88
+        version: 0.1.88(hono@4.13.9)(react-dom@19.2.6(react@19.2.6))(react@19.2.6)
+      '@clerk/mcp-tools':
+        specifier: ^0.6.0
+        version: 0.6.0(@clerk/hono@0.1.88(hono@4.13.9)(react-dom@19.2.6(react@19.2.6))(react@19.2.6))(@clerk/nextjs@7.9.14(next@16.3.5(@opentelemetry/api@1.9.1)(@types/node@22.15.21)(babel-plugin-react-compiler@1.0.0)(react-dom@19.2.6(react@19.2.6))(react@19.2.6))(react-dom@19.2.6(react@19.2.6))(react@19.2.6))(express@5.2.1)(hono@4.13.9)(next@16.3.5(@opentelemetry/api@1.9.1)(@types/node@22.15.21)(babel-plugin-react-compiler@1.0.0)(react-dom@19.2.6(react@19.2.6))(react@19.2.6))(pg@8.23.0)(zod@3.25.76)
       '@fitme/core':
         specifier: workspace:*
         version: link:../../packages/core
@@ -1319,6 +1325,44 @@ packages:
       expo-web-browser:
         optional: true
       react-dom:
+        optional: true
+
+  '@clerk/hono@0.1.88':
+    resolution: {integrity: sha512-1prp9iFKryyqjnnMLS7WZWeQ9wQcpjIvE+uxEkOv+su7jlaqHgdnXmHk3H787vRUy532uMpRXuRWTSsebXaOOQ==}
+    engines: {node: '>=20.9.0'}
+    peerDependencies:
+      hono: '>=4'
+
+  '@clerk/mcp-tools@0.6.0':
+    resolution: {integrity: sha512-YXGZujj6oxD5T4XOi08UsLbPiWYD88Fe1uOwqZQekak8i2vitOgugRw7guwat3GuzQearRGdsW1P5AweQ043Sg==}
+    peerDependencies:
+      '@clerk/express': ^2.1.5
+      '@clerk/hono': ^0.1.0
+      '@clerk/nextjs': ^7.2.3
+      better-sqlite3: ^8.7.0
+      express: ^5.0.0
+      hono: ^4.0.0
+      next: ^15.2.8 || ^15.3.8 || ^15.4.10 || ^15.5.9 || ^15.6.0-0 || ^16.0.10 || ^16.1.0-0
+      pg: ^8.11.0
+      redis: ^4.0.0
+    peerDependenciesMeta:
+      '@clerk/express':
+        optional: true
+      '@clerk/hono':
+        optional: true
+      '@clerk/nextjs':
+        optional: true
+      better-sqlite3:
+        optional: true
+      express:
+        optional: true
+      hono:
+        optional: true
+      next:
+        optional: true
+      pg:
+        optional: true
+      redis:
         optional: true
 
   '@clerk/nextjs@7.9.14':
@@ -10741,6 +10785,30 @@ snapshots:
       - typescript
       - use-sync-external-store
       - utf-8-validate
+      - zod
+
+  '@clerk/hono@0.1.88(hono@4.13.9)(react-dom@19.2.6(react@19.2.6))(react@19.2.6)':
+    dependencies:
+      '@clerk/backend': 3.23.2(react-dom@19.2.6(react@19.2.6))(react@19.2.6)
+      '@clerk/shared': 4.40.0(react-dom@19.2.6(react@19.2.6))(react@19.2.6)
+      hono: 4.13.9
+    transitivePeerDependencies:
+      - react
+      - react-dom
+
+  '@clerk/mcp-tools@0.6.0(@clerk/hono@0.1.88(hono@4.13.9)(react-dom@19.2.6(react@19.2.6))(react@19.2.6))(@clerk/nextjs@7.9.14(next@16.3.5(@opentelemetry/api@1.9.1)(@types/node@22.15.21)(babel-plugin-react-compiler@1.0.0)(react-dom@19.2.6(react@19.2.6))(react@19.2.6))(react-dom@19.2.6(react@19.2.6))(react@19.2.6))(express@5.2.1)(hono@4.13.9)(next@16.3.5(@opentelemetry/api@1.9.1)(@types/node@22.15.21)(babel-plugin-react-compiler@1.0.0)(react-dom@19.2.6(react@19.2.6))(react@19.2.6))(pg@8.23.0)(zod@3.25.76)':
+    dependencies:
+      '@modelcontextprotocol/sdk': 1.30.1(zod@3.25.76)
+    optionalDependencies:
+      '@clerk/hono': 0.1.88(hono@4.13.9)(react-dom@19.2.6(react@19.2.6))(react@19.2.6)
+      '@clerk/nextjs': 7.9.14(next@16.3.5(@opentelemetry/api@1.9.1)(@types/node@22.15.21)(babel-plugin-react-compiler@1.0.0)(react-dom@19.2.6(react@19.2.6))(react@19.2.6))(react-dom@19.2.6(react@19.2.6))(react@19.2.6)
+      express: 5.2.1
+      hono: 4.13.9
+      next: 16.3.5(@opentelemetry/api@1.9.1)(@types/node@22.15.21)(babel-plugin-react-compiler@1.0.0)(react-dom@19.2.6(react@19.2.6))(react@19.2.6)
+      pg: 8.23.0
+    transitivePeerDependencies:
+      - '@cfworker/json-schema'
+      - supports-color
       - zod
 
   '@clerk/nextjs@7.9.14(next@16.3.5(@opentelemetry/api@1.9.1)(@types/node@22.15.21)(babel-plugin-react-compiler@1.0.0)(react-dom@19.2.6(react@19.2.6))(react@19.2.6))(react-dom@19.2.6(react@19.2.6))(react@19.2.6)':

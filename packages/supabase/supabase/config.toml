@@ -350,17 +350,6 @@ enabled = false
 enabled = true
 domain = "fitting-rattler-3649.clerk.accounts.dev"
 
-# OAuth server configuration
-[auth.oauth_server]
-# Enable OAuth server functionality. MCP clients of apps/mcp sign users in
-# through it. Its consent UI (apps/web /oauth/consent) was removed when the web
-# app moved to Clerk (FIT-72); MCP authorization moves to Clerk in FIT-79.
-enabled = true
-# Path for OAuth consent flow UI
-authorization_url_path = "/oauth/consent"
-# Allow dynamic client registration (MCP clients register themselves)
-allow_dynamic_registration = true
-
 # ai-agent and preview-plan take Clerk session tokens, which the gateway's JWT
 # check rejects (it only accepts tokens signed with the project's own keys).
 # They verify the token themselves through functions/_shared/clerk-auth.ts.
