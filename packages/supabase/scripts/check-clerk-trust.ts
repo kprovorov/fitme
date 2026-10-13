@@ -75,7 +75,9 @@ async function main() {
     const { jwt } = await clerkRequest<{ jwt: string }>(
       secretKey,
       "POST",
-      `/sessions/${session.id}/tokens`
+      `/sessions/${session.id}/tokens`,
+      // Clerk answers 415 to a POST without a JSON body.
+      {}
     );
 
     const { role } = decodeJwtPayload(jwt);
