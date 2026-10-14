@@ -36,45 +36,59 @@ describe("conversation owner", () => {
 });
 
 describe("admitTurn", () => {
-  const deps = () => ({
-    record: vi.fn().mockResolvedValue(undefined),
+  const deps = (owner: string | null = "user_alice") => ({
+    claim: vi.fn().mockResolvedValue(owner),
     report: vi.fn().mockResolvedValue(undefined),
   });
 
   it("records the session for its owner and lets the turn run", async () => {
-    const { record, report } = deps();
+    const { claim, report } = deps();
 
     expect(
       await admitTurn(
         { auth: { current: alice, initiator: alice }, sessionId: "wrun_1" },
-        { record, report }
+        { claim, report }
       )
     ).toBe(true);
-    expect(record).toHaveBeenCalledWith("user_alice", "wrun_1");
+    expect(claim).toHaveBeenCalledWith("wrun_1", "user_alice");
     expect(report).not.toHaveBeenCalled();
   });
 
   it("refuses a turn someone else sends to the owner's session", async () => {
-    const { record, report } = deps();
+    const { claim, report } = deps();
 
     expect(
       await admitTurn(
         { auth: { current: mallory, initiator: alice }, sessionId: "wrun_1" },
-        { record, report }
+        { claim, report }
       )
     ).toBe(false);
-    expect(record).not.toHaveBeenCalled();
+    expect(claim).not.toHaveBeenCalled();
   });
 
-  it("refuses the turn and reports when the session can't be recorded", async () => {
-    const { record, report } = deps();
-    const failure = new Error("pooler down");
-    record.mockRejectedValue(failure);
+  it("refuses the turn when the session is recorded for someone else", async () => {
+    const { claim, report } = deps("user_mallory");
 
     expect(
       await admitTurn(
         { auth: { current: alice, initiator: alice }, sessionId: "wrun_1" },
-        { record, report }
+        { claim, report }
+      )
+    ).toBe(false);
+    expect(report).toHaveBeenCalledWith(expect.any(Error), {
+      sessionId: "wrun_1",
+    });
+  });
+
+  it("refuses the turn and reports when the session can't be recorded", async () => {
+    const { claim, report } = deps();
+    const failure = new Error("pooler down");
+    claim.mockRejectedValue(failure);
+
+    expect(
+      await admitTurn(
+        { auth: { current: alice, initiator: alice }, sessionId: "wrun_1" },
+        { claim, report }
       )
     ).toBe(false);
     expect(report).toHaveBeenCalledWith(failure, { sessionId: "wrun_1" });

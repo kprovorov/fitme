@@ -1,6 +1,6 @@
 import { generateKeyPairSync, sign } from "node:crypto";
 import { routeAuth } from "eve/channels/auth";
-import { describe, expect, it, vi } from "vitest";
+import { beforeEach, describe, expect, it, vi } from "vitest";
 import { clerkSession } from "../agent/lib/clerk-auth";
 
 // A stand-in for the Clerk instance's signing key: the channel only ever sees
@@ -39,12 +39,26 @@ const request = (authorization?: string, path = "/eve/v1/session") =>
     method: "POST",
   });
 
-const sessionOwners: Record<string, string> = { wrun_alice: "user_alice" };
-const sessionOwner = vi.fn((sessionId: string) =>
-  Promise.resolve(sessionOwners[sessionId] ?? null)
-);
+/** A fake claim: first claimant owns a session; wrun_alice is Alice's. */
+const fakeOwners = () => {
+  const owners = new Map([["wrun_alice", "user_alice"]]);
+  return vi.fn((sessionId: string, userId: string) => {
+    if (!owners.has(sessionId)) {
+      owners.set(sessionId, userId);
+    }
+    return Promise.resolve(owners.get(sessionId) ?? null);
+  });
+};
 
-const auth = clerkSession({ jwtKey: () => jwtKey, sessionOwner });
+let claimSession = fakeOwners();
+const auth = clerkSession({
+  claimSession: (sessionId, userId) => claimSession(sessionId, userId),
+  jwtKey: () => jwtKey,
+});
+
+beforeEach(() => {
+  claimSession = fakeOwners();
+});
 
 describe("clerkSession", () => {
   it("makes the verified Clerk User the principal", async () => {
@@ -104,8 +118,8 @@ describe("clerkSession", () => {
 
   it("fails closed when CLERK_JWT_KEY is missing", async () => {
     const unconfigured = clerkSession({
+      claimSession,
       jwtKey: () => undefined,
-      sessionOwner,
     });
 
     await expect(
@@ -122,7 +136,7 @@ describe("clerkSession", () => {
       auth
     );
 
-    expect(sessionOwner).not.toHaveBeenCalled();
+    expect(claimSession).not.toHaveBeenCalled();
   });
 
   it.each([
@@ -136,7 +150,7 @@ describe("clerkSession", () => {
     );
 
     expect(result).toMatchObject({ principalId: "user_alice" });
-    expect(sessionOwner).toHaveBeenCalledWith("wrun_alice");
+    expect(claimSession).toHaveBeenCalledWith("wrun_alice", "user_alice");
   });
 
   it.each([
@@ -155,15 +169,37 @@ describe("clerkSession", () => {
     expect((result as Response).status).toBe(403);
   });
 
-  it("lets a session through before its first turn records it", async () => {
-    const result = await routeAuth(
+  it("records an unowned session for its first caller, then refuses others", async () => {
+    const alice = await routeAuth(
       request(
         `Bearer ${clerkToken({ sub: "user_alice" })}`,
         "/eve/v1/session/wrun_new/stream"
       ),
       auth
     );
+    const mallory = await routeAuth(
+      request(
+        `Bearer ${clerkToken({ sub: "user_mallory" })}`,
+        "/eve/v1/session/wrun_new/stream"
+      ),
+      auth
+    );
 
-    expect(result).toMatchObject({ principalId: "user_alice" });
+    expect(alice).toMatchObject({ principalId: "user_alice" });
+    expect((mallory as Response).status).toBe(403);
+  });
+
+  it("answers 403 when the session's owner can't be recorded", async () => {
+    claimSession.mockResolvedValueOnce(null);
+
+    const result = await routeAuth(
+      request(
+        `Bearer ${clerkToken({ sub: "user_alice" })}`,
+        "/eve/v1/session/wrun_alice/stream"
+      ),
+      auth
+    );
+
+    expect((result as Response).status).toBe(403);
   });
 });
