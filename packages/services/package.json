@@ -1,0 +1,24 @@
+{
+  "name": "@fitme/services",
+  "version": "0.0.0",
+  "private": true,
+  "description": "Business logic shared by the backend apps, run inside an asUser or withService transaction (ADR 0004).",
+  "type": "module",
+  "exports": {
+    "./delete-user-data": "./src/delete-user-data.ts"
+  },
+  "scripts": {
+    "test:integration": "vitest run --config vitest.integration.config.ts",
+    "typecheck": "tsc --noEmit"
+  },
+  "dependencies": {
+    "@fitme/db": "workspace:*",
+    "drizzle-orm": "^0.45.4"
+  },
+  "devDependencies": {
+    "@fitme/typescript-config": "workspace:*",
+    "@types/node": "^22.15.21",
+    "typescript": "~5.9.2",
+    "vitest": "^3.2.4"
+  }
+}
