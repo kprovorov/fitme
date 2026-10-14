@@ -14,6 +14,7 @@
     "dev:mobile": "turbo run dev --filter=@fitme/mobile",
     "dev:site": "turbo run dev --filter=@fitme/site",
     "dev:web": "turbo run dev --filter=@fitme/web",
+    "dev:webhooks": "turbo run dev --filter=@fitme/webhooks",
     "fix": "ultracite fix",
     "ios": "pnpm --filter @fitme/mobile ios",
     "lint": "turbo run lint",
@@ -23,7 +24,8 @@
     "site": "pnpm --filter @fitme/site",
     "test": "turbo run test",
     "typecheck": "turbo run typecheck",
-    "web": "pnpm --filter @fitme/web"
+    "web": "pnpm --filter @fitme/web",
+    "webhooks": "pnpm --filter @fitme/webhooks"
   },
   "lint-staged": {
     "*.{js,jsx,ts,tsx,json,jsonc,css,scss,md,mdx}": [

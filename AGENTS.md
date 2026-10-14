@@ -11,6 +11,7 @@ apps/api                @fitme/api     — Hono REST API (Node)
 apps/mobile             @fitme/mobile  — Expo / React Native app
 apps/web                @fitme/web     — Next.js (App Router) web app
 apps/site               @fitme/site    — Next.js marketing site (fitmeproject.com)
+apps/webhooks           @fitme/webhooks — Hono app receiving third-party webhooks (Node)
 packages/core           @fitme/core    — domain models, labels, formatters, pure helpers
 packages/supabase       @fitme/supabase — Supabase project + generated DB types
 packages/db             @fitme/db      — asUser / withService: the only way backend apps reach Postgres
@@ -30,8 +31,9 @@ pnpm dev:web             # next dev on :3000
 pnpm dev:site            # next dev on :3001
 pnpm dev:mcp             # tsx watch MCP server on :3002 (MCP endpoint at /)
 pnpm dev:api             # tsx watch REST API on :3003
+pnpm dev:webhooks        # tsx watch webhooks app on :3004 (needs FITME_DATABASE_URL, CLERK_WEBHOOK_SIGNING_SECRET)
 pnpm build               # turbo run build
-pnpm test                # turbo run test (jest in mobile, vitest in core, mcp and api)
+pnpm test                # turbo run test (jest in mobile, vitest in core, mcp, api and webhooks)
 pnpm typecheck           # turbo run typecheck
 pnpm check / pnpm fix    # ultracite (Biome) over the whole repo
 
@@ -46,6 +48,8 @@ pnpm mcp test            # vitest (in-memory MCP client)
 pnpm mcp test:integration # vitest against the local Supabase stack (needs SUPABASE_URL / SUPABASE_ANON_KEY, seeded exercises; CLERK_DEV_SECRET_KEY adds the Clerk OAuth suite)
 pnpm api build           # tsdown bundle → apps/api/dist
 pnpm api test            # vitest (Hono app via app.request)
+pnpm webhooks build      # tsdown bundle → apps/webhooks/dist
+pnpm webhooks test       # vitest (Hono app via app.request, signed payloads, fake services)
 pnpm --filter @fitme/db test:integration # vitest through the local Supavisor pooler as the fitme login (needs a local stack)
 pnpm --filter @fitme/services test:integration # services inside withService/asUser through the local pooler (needs a local stack)
 pnpm db start            # supabase start     (alias for pnpm --filter @fitme/supabase start)
@@ -119,6 +123,17 @@ Hono app served with `@hono/node-server`, bundled with tsdown. Reads domain data
 - `src/routes/client-config.ts` — public, unauthenticated `GET /v1/client-config`: `{ data: { minimumVersion: { ios, android } } }`, the oldest supported mobile app version per platform from `MIN_APP_VERSION_IOS` / `MIN_APP_VERSION_ANDROID` (`x.y.z`; unset or malformed → `null`, no minimum). Cached for 5 minutes (`Cache-Control: public, max-age=300, s-maxage=300`).
 - Tests (`src/__tests__/`, vitest) drive the app through `app.request`.
 - Deployed to Vercel (project `fitme-api`, region `cle1` in `vercel.json`) at https://api.fitmeproject.com.
+
+### apps/webhooks — webhooks app
+
+Hono app served with `@hono/node-server`, bundled with tsdown (same setup as `apps/api`), that receives every third-party webhook. It reaches Postgres only through `withService` from `@fitme/db` and runs business logic from `@fitme/services`.
+
+- `src/app.ts` — `createApp(deps)` (default export = `createApp()` with the real dependencies, for Vercel): logger, public `/health`, one route per sender, and the same JSON `notFound`/`onError` handlers as `apps/api` (`{ error: { code, message } }`).
+- `src/routes/clerk.ts` — `POST /clerk`, `clerkRoutes({ deleteUserData, reportError, signingSecret })`: verifies the Svix signature with `verifyWebhook` from `@clerk/backend` on the raw request before anything reads the body (401 otherwise; an unset `CLERK_WEBHOOK_SIGNING_SECRET` answers a reported 500 so Clerk retries). `user.deleted` runs `deleteUserData` through `withService`; a failure is reported and answers 500 so Clerk retries. Other events answer 200. No `svix-id` dedupe: `deleteUserData` is idempotent; a webhook that isn't must dedupe on `svix-id`.
+- `src/sentry.ts` — `reportError`: logs, captures with `@sentry/node` (initialized on first use from `SENTRY_DSN`; unset → disabled) and flushes before the response.
+- `src/index.ts` — Node entrypoint, `PORT` env (default 3004).
+- Tests (`src/__tests__/`, vitest) drive the app through `app.request` with payloads signed by a test secret (`standardwebhooks`) and fake dependencies, so they need no database.
+- Deployed to Vercel as its own Pro project, region `cle1` (`vercel.json`). `FITME_DATABASE_URL` carries `application_name=webhooks`. Not yet registered with Clerk: until the cutover (FIT-104) `clerk-webhook` still handles `user.deleted`.
 
 ### apps/mcp — MCP server
 
@@ -219,6 +234,13 @@ Env files live next to each app.
 
 - `PORT` (default 3003)
 - `MIN_APP_VERSION_IOS`, `MIN_APP_VERSION_ANDROID` — minimum supported mobile app version (`x.y.z`) served by `GET /v1/client-config`; unset means no minimum. Set on the `fitme-api` Vercel project; a change takes effect on the API's next deployment.
+
+`apps/webhooks` (see `apps/webhooks/.env.example`; read from the process environment, not auto-loaded from a file):
+
+- `PORT` (default 3004)
+- `CLERK_WEBHOOK_SIGNING_SECRET` — the Clerk webhook endpoint's signing secret (`whsec_…`); unset → `POST /clerk` answers 500 (reported)
+- `FITME_DATABASE_URL` — see below, with `?application_name=webhooks`
+- `SENTRY_DSN` — failed cleanups are reported here; unset disables Sentry
 
 `apps/site/.env.local` (see `apps/site/.env.example`): App Store id/url, support email, social links, GTM id, PostHog key.
 
