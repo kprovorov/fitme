@@ -23,6 +23,12 @@
       "skillPath": "assistant-ui/skills/cloud/SKILL.md",
       "computedHash": "cf6312de5be25e06c83c5a7012499686f6f2bb542594087c681cc67f9902b30c"
     },
+    "eve": {
+      "source": "vercel/eve",
+      "sourceType": "github",
+      "skillPath": "skills/eve/SKILL.md",
+      "computedHash": "4833349453c45c606f79202e495b7bbc42ea380f329f3beee36b9927763f19ef"
+    },
     "migrate-nativewind-to-uniwind": {
       "source": "uni-stack/uniwind",
       "sourceType": "github",
