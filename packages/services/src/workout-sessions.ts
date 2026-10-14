@@ -23,11 +23,8 @@ import type { AnyPgColumn } from "drizzle-orm/pg-core";
  * A timestamp as PostgREST rendered it (`2026-10-01T10:00:00.123456+00:00`),
  * so outputs don't change shape: `pg` would return `2026-10-01 10:00:00+00`.
  */
-const timestampText = (column: AnyPgColumn) =>
-  sql<string>`to_json(${column}) #>> '{}'`;
-
-const nullableTimestampText = (column: AnyPgColumn) =>
-  sql<string | null>`to_json(${column}) #>> '{}'`;
+const timestampText = <T extends string | null = string>(column: AnyPgColumn) =>
+  sql<T>`to_json(${column}) #>> '{}'`;
 
 /** numeric columns arrive as strings; PostgREST returned numbers. */
 const toNumber = (value: string | null) =>
@@ -111,7 +108,10 @@ interface JoinedRefs {
   workoutName: string | null;
 }
 
-/** The left-joined Workout and Plan, or `null` where the join found none. */
+/**
+ * The left-joined Workout and Plan, or `null` where the join found none. A
+ * Plan's name may be unset; a Workout's never is, so a null one means no match.
+ */
 const refsOf = ({ planId, planName, workoutId, workoutName }: JoinedRefs) => ({
   plan: planId === null ? null : { id: planId, name: planName },
   workout:
@@ -121,7 +121,7 @@ const refsOf = ({ planId, planName, workoutId, workoutName }: JoinedRefs) => ({
 });
 
 const sessionColumns = {
-  finishedAt: nullableTimestampText(workoutSessions.finishedAt),
+  finishedAt: timestampText<string | null>(workoutSessions.finishedAt),
   id: workoutSessions.id,
   planId: plans.id,
   planName: plans.name,
@@ -132,7 +132,7 @@ const sessionColumns = {
 
 const setColumns = {
   id: workoutSessionExerciseSets.id,
-  loggedAt: nullableTimestampText(workoutSessionExerciseSets.loggedAt),
+  loggedAt: timestampText<string | null>(workoutSessionExerciseSets.loggedAt),
   order: workoutSessionExerciseSets.order,
   repsCompleted: workoutSessionExerciseSets.repsCompleted,
   repsRecommended: workoutSessionExerciseSets.repsRecommended,
@@ -320,7 +320,7 @@ export const logSet = async (
 ): Promise<LogSetResult> => {
   const [owner] = await tx
     .select({
-      finishedAt: nullableTimestampText(workoutSessions.finishedAt),
+      finishedAt: timestampText<string | null>(workoutSessions.finishedAt),
       sessionId: workoutSessions.id,
     })
     .from(workoutSessionExerciseSets)
