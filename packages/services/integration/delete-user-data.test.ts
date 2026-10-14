@@ -17,7 +17,7 @@ import {
   workoutSessions,
   workouts,
 } from "@fitme/db";
-import { eq, sql } from "drizzle-orm";
+import { eq, inArray, sql } from "drizzle-orm";
 import { afterAll, beforeAll, describe, expect, it } from "vitest";
 import { deleteUserData, UserRekeyedError } from "../src/delete-user-data";
 
@@ -227,6 +227,9 @@ afterAll(async () => {
   await withService(async (tx) => {
     await deleteUserData(tx, bystander);
     await deleteUserData(tx, rekeyed);
+    await tx
+      .delete(coachSessions)
+      .where(inArray(coachSessions.userId, [deleted, bystander]));
     await tx.delete(exercises).where(eq(exercises.id, exerciseId));
   });
 });
@@ -234,12 +237,22 @@ afterAll(async () => {
 describe("deleteUserData", () => {
   it("removes every row the User owns, children included", async () => {
     expect(await remaining(deletedRows)).toEqual(allRows(1));
-    expect(await coachSessionsLeft(deleted)).toBe(1);
 
     await withService((tx) => deleteUserData(tx, deleted));
 
     expect(await remaining(deletedRows)).toEqual(allRows(0));
-    expect(await coachSessionsLeft(deleted)).toBe(0);
+  });
+
+  it("keeps the User's Coach session ids, so their EVE sessions stay theirs", async () => {
+    expect(await coachSessionsLeft(deleted)).toBe(1);
+    expect(
+      await withService((tx) =>
+        tx
+          .select({ userId: coachSessions.userId })
+          .from(coachSessions)
+          .where(eq(coachSessions.sessionId, coachSessionId(deleted)))
+      )
+    ).toEqual([{ userId: deleted }]);
   });
 
   it("leaves another User's rows untouched", async () => {
