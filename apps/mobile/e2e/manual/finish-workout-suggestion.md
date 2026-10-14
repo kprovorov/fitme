@@ -70,9 +70,9 @@ simulator (checklist below):
   MMKV. Persistence is covered at controller level, but there is no
   end-to-end test of a cold start.
 - **Maestro**: this suite has no Maestro flow (`e2e/flows`). It would need
-  a seeded plan with workouts (created through the `preview-plan` edge
-  function) and the macOS simulator job in `.github/workflows/e2e.yml`,
-  which can only be verified on CI. Add one when plan seeding for E2E exists.
+  a seeded plan with workouts and the macOS simulator job in
+  `.github/workflows/e2e.yml`, which can only be verified on CI. Add one
+  when plan seeding for E2E exists.
 
 ## Manual QA checklist
 
