@@ -1,6 +1,5 @@
 -- update_plan must only accept a p_user_id other than the current User id
--- (public.current_user_id()) from the service role. store_plan is gone
--- (20261014120000_drop_store_plan.sql).
+-- (public.current_user_id()) from the service role.
 --
 -- User A: user_2PlanRpcUserA0000000000
 -- User B: user_2PlanRpcUserB0000000000
@@ -149,6 +148,9 @@ SELECT ok(
   'authenticated keeps EXECUTE on update_plan'
 );
 
+-- ------------------------------------------------------------
+-- store_plan is gone (20261014120000_drop_store_plan.sql)
+-- ------------------------------------------------------------
 SELECT hasnt_function('public', 'store_plan', 'store_plan is dropped');
 
 SELECT * FROM finish();

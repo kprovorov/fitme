@@ -4,7 +4,7 @@
 -- Run with `pnpm db test:db` (supabase test db).
 begin;
 
-select plan(52);
+select plan(53);
 
 -- ------------------------------------------------------------
 -- Fixtures (as postgres, bypassing RLS)
@@ -217,6 +217,13 @@ select throws_ok(
 -- Writes that bypass RLS are stopped too
 set local role service_role;
 set local request.jwt.claims = '{"role":"service_role"}';
+
+select throws_ok(
+  $$insert into public.plans (user_id, goal, place, frequency)
+    values ('user_2DeleteMe00000000000000', 'strength', 'gym', 3)$$,
+  '42501', 'User id user_2DeleteMe00000000000000 is retired',
+  'service_role can''t create a Plan under a deleted User id'
+);
 
 select throws_ok(
   $$insert into public.conversations (user_id) values ('user_2DeleteMe00000000000000')$$,
