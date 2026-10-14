@@ -199,6 +199,16 @@ Env files live next to each app.
 
 The default branch is `main` (there is no `master`); branch from it and open pull requests against it. A clone whose `origin/HEAD` still points at `origin/master` is stale; repair it with `git remote set-head origin --auto && git remote prune origin`.
 
+## Code Review Rules
+
+Before reviewing a pull request's diff, gather its intent:
+
+1. Read the PR description in full. It states what the change does, why, and what was deliberately left out.
+2. Read the linked Linear issue. The issue key (`FIT-<n>`) is in the PR title, branch name or description. Read its description and comments, including acceptance criteria and blocking relations.
+3. If the issue belongs to a Linear project, also read the project description. The project description is the spec, and it holds the decisions and constraints that apply across all of the project's issues.
+
+Then review the diff against that intent: flag code that misses an acceptance criterion, goes beyond the issue's scope, or contradicts a decision in the spec, the ADRs (`docs/adr/`) or this file. Don't flag things the description or spec explicitly defers to a later issue. If a PR names no issue, or you can't read Linear, say so in the review and review against the PR description alone; never guess what an issue says.
+
 ## CI/CD
 
 GitHub Actions use pnpm (`pnpm/action-setup`) and `pnpm install --frozen-lockfile`. Unit tests run through `pnpm turbo run test`; the pgTAP suite and the MCP integration tests run separately against a local Supabase stack (Supabase CLI) in `.github/workflows/integration-tests.yml`. The release workflow (`.github/workflows/release.yml`) never commits to `main` (it's protected): it derives the next version from the commits since the last `v*` tag following conventional commits (`feat:` → minor, `fix:` → patch, `BREAKING CHANGE:` or `type!:` → major), creates the tag with the GitHub release and the Linear release, then calls `.github/workflows/build-mobile.yml`. That workflow (also runnable by hand with a tag, to rebuild) stamps the tag's version into `apps/mobile/app.json` (whose committed `version` is a `0.0.0` placeholder) and starts the iOS production EAS build with auto-submit (both jobs run in the `production` GitHub environment, which holds the `EXPO_TOKEN` and `LINEAR_ACCESS_KEY` secrets). The tag is the source of truth for the app version. The exercise sync workflow runs `pnpm --filter @fitme/supabase exercises:sync` on pushes to `main` that touch the exercise data. The Database Types workflow (`.github/workflows/database-types.yml`) starts a local database, runs `pnpm db types:generate` (which also normalizes the output with Biome) and fails if `packages/supabase/src/database.types.ts` is stale.
