@@ -109,12 +109,12 @@ const callTool = (
 ) =>
   rpc(app, { method: "tools/call", params: { arguments: args, name } }, token);
 
-const SESSION_ID = "22222222-2222-4222-8222-222222222222";
-const session = { exercises: [], finished_at: null, id: SESSION_ID };
+const PLAN_ID = "11111111-1111-4111-8111-111111111111";
+const planSummary = { id: PLAN_ID, is_active: true, workouts: [] };
 
-/** A tool still on Supabase (it answers `get_workout_session` for `SESSION_ID`). */
+/** A tool still on Supabase (it answers `activate_plan` for `PLAN_ID`). */
 const callSupabaseTool = (app: TestApp, token?: string) =>
-  callTool(app, "get_workout_session", token, { sessionId: SESSION_ID });
+  callTool(app, "activate_plan", token, { planId: PLAN_ID });
 
 /** The tool result inside a 200 SSE response. */
 const readToolResult = async (response: Response) => {
@@ -154,7 +154,7 @@ const profileServices: ServicesFactory = (userId) =>
 /**
  * The app with fake services and a fake Supabase client per request. Records
  * the User id every services object is built for and every signed token the
- * Supabase client receives (it answers `get_workout_session` for `SESSION_ID`).
+ * Supabase client receives (it answers `activate_plan` for `PLAN_ID`).
  */
 const createTestApp = () => {
   const servicesUserIds: string[] = [];
@@ -168,11 +168,20 @@ const createTestApp = () => {
       supabaseTokens.push(token);
       return createFakeSupabase([
         {
-          filters: [["eq", "id", SESSION_ID]],
-          name: "workout_sessions",
+          filters: [["eq", "id", PLAN_ID]],
+          name: "plans",
           operation: "select",
-          response: ok(session),
+          response: ok(planSummary),
+          select: "exercises:workout_exercises ( id )",
         },
+        {
+          filters: [["eq", "id", PLAN_ID]],
+          name: "plans",
+          operation: "select",
+          response: ok({ id: PLAN_ID }),
+          select: "id",
+        },
+        { name: "activate_plan", operation: "rpc", response: ok(null) },
       ]).client;
     },
     logRequests: false,
@@ -385,7 +394,10 @@ describe("with a valid Clerk token", () => {
     expect(response.status).toBe(200);
     const result = await readToolResult(response);
     expect(result.isError).toBe(false);
-    expect(JSON.parse(result.text)).toMatchObject({ id: SESSION_ID });
+    expect(JSON.parse(result.text)).toEqual({
+      activated: true,
+      plan: planSummary,
+    });
     expect(supabaseTokens).toHaveLength(1);
     expect(await verifySupabaseToken(supabaseTokens[0] ?? "")).toEqual({
       aud: "authenticated",
