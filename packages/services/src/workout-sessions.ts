@@ -1,7 +1,10 @@
+import { randomUUID } from "node:crypto";
 import {
   exercises,
   plans,
   type Transaction,
+  workoutExerciseSets,
+  workoutExercises,
   workoutSessionExerciseSets,
   workoutSessionExercises,
   workoutSessions,
@@ -428,4 +431,269 @@ export const deleteWorkoutSession = async (
     .where(eq(workoutSessions.id, sessionId))
     .returning({ id: workoutSessions.id });
   return deleted.length > 0;
+};
+
+export type StartWorkoutSessionResult =
+  | { resumed: boolean; session: WorkoutSessionDetail; status: "started" }
+  | { status: "not_found" };
+
+/**
+ * A lost race for the one open session per Workout is retried this often: the
+ * winner's session is resumed, or, if it was finished meanwhile, a fresh one is
+ * inserted. An open session the User can't see (owned by another id) keeps
+ * winning, so the start gives up as `not_found`.
+ */
+const START_ATTEMPTS = 3;
+
+const findOpenSessionId = async (tx: Transaction, workoutId: string) => {
+  const [open] = await tx
+    .select({ id: workoutSessions.id })
+    .from(workoutSessions)
+    .where(
+      and(
+        eq(workoutSessions.workoutId, workoutId),
+        isNull(workoutSessions.finishedAt)
+      )
+    );
+  return open?.id ?? null;
+};
+
+/** A Postgres uuid[] literal; uuids need no quoting. */
+const uuidArray = (ids: string[]) => `{${ids.join(",")}}`;
+
+/** Copies the Workout's exercises and their sets into the session. */
+const copyWorkoutTemplate = async (
+  tx: Transaction,
+  workoutId: string,
+  sessionId: string
+) => {
+  const templateExercises = await tx
+    .select({
+      exerciseId: workoutExercises.exerciseId,
+      id: workoutExercises.id,
+      order: workoutExercises.order,
+    })
+    .from(workoutExercises)
+    .where(eq(workoutExercises.workoutId, workoutId))
+    .orderBy(asc(workoutExercises.order), asc(workoutExercises.id));
+  if (templateExercises.length === 0) {
+    return;
+  }
+
+  // Ids chosen up front, so the sets can be copied in one statement
+  const copies = templateExercises.map((template) => ({
+    id: randomUUID(),
+    template,
+  }));
+  await tx.insert(workoutSessionExercises).values(
+    copies.map(({ id, template }) => ({
+      exerciseId: template.exerciseId,
+      id,
+      order: template.order,
+      workoutSessionId: sessionId,
+    }))
+  );
+  await tx.execute(sql`
+    insert into ${workoutSessionExerciseSets}
+      (workout_session_exercise_id, "order", reps_recommended, weight_recommended, rest_recommended)
+    select copy.id, ${workoutExerciseSets.order}, ${workoutExerciseSets.repsRecommended}, ${workoutExerciseSets.weightRecommended}, ${workoutExerciseSets.restRecommended}
+    from ${workoutExerciseSets}
+    join unnest(
+      ${uuidArray(copies.map(({ template }) => template.id))}::uuid[],
+      ${uuidArray(copies.map(({ id }) => id))}::uuid[]
+    ) as copy (template_id, id)
+      on copy.template_id = ${workoutExerciseSets.workoutExerciseId}
+  `);
+};
+
+/** The session as the same transaction sees it; it was just written. */
+const sessionWritten = async (tx: Transaction, sessionId: string) => {
+  const session = await getWorkoutSession(tx, sessionId);
+  if (!session) {
+    throw new Error(`Workout session ${sessionId} vanished after its write.`);
+  }
+  return session;
+};
+
+/**
+ * Resumes the User's open session for the Workout, or inserts one and copies
+ * the Workout into it.
+ */
+const insertOrResume = async (
+  tx: Transaction,
+  workoutId: string,
+  planId: string,
+  attemptsLeft: number
+): Promise<StartWorkoutSessionResult> => {
+  if (attemptsLeft === 0) {
+    return { status: "not_found" };
+  }
+  // RLS only shows the User's own open session
+  const openId = await findOpenSessionId(tx, workoutId);
+  if (openId) {
+    return {
+      resumed: true,
+      session: await sessionWritten(tx, openId),
+      status: "started",
+    };
+  }
+
+  const [created] = await tx
+    .insert(workoutSessions)
+    .values({
+      planId,
+      startedAt: sql`now()`,
+      userId: sql`public.current_user_id()`,
+      workoutId,
+    })
+    .onConflictDoNothing({
+      target: workoutSessions.workoutId,
+      where: isNull(workoutSessions.finishedAt),
+    })
+    .returning({ id: workoutSessions.id });
+  if (!created) {
+    // Lost a race with a concurrent start: the next attempt resumes its
+    // session (copied by that start, which has committed by now)
+    return insertOrResume(tx, workoutId, planId, attemptsLeft - 1);
+  }
+  await copyWorkoutTemplate(tx, workoutId, created.id);
+  return {
+    resumed: false,
+    session: await sessionWritten(tx, created.id),
+    status: "started",
+  };
+};
+
+/**
+ * Starts a Workout Session from one of the User's Workouts, in `tx` (from
+ * `asUser`), copying its exercises and sets, and returns it. If the Workout
+ * already has an open session, that one is returned (`resumed`) and nothing
+ * is copied: the one-open-session-per-Workout index makes concurrent starts
+ * agree on one session. A Workout the User can't see, or of a soft-deleted
+ * Plan, is `not_found`.
+ *
+ * Mirrors the `start_workout_session` RPC, which the mobile app still calls:
+ * a behaviour change goes into both.
+ */
+export const startWorkoutSession = async (
+  tx: Transaction,
+  workoutId: string
+): Promise<StartWorkoutSessionResult> => {
+  const [workout] = await tx
+    .select({ planId: workouts.planId })
+    .from(workouts)
+    .innerJoin(plans, eq(plans.id, workouts.planId))
+    .where(and(eq(workouts.id, workoutId), isNull(plans.deletedAt)));
+  if (!workout) {
+    return { status: "not_found" };
+  }
+
+  return insertOrResume(tx, workoutId, workout.planId, START_ATTEMPTS);
+};
+
+export type FinishWorkoutSessionResult =
+  | {
+      alreadyFinished: boolean;
+      rotated: boolean;
+      session: WorkoutSessionDetail;
+      status: "finished";
+    }
+  | { status: "not_found" };
+
+/**
+ * Moves the finished Workout to the end of its Plan's queue and renumbers the
+ * Plan's Workouts from 1, keeping the others' relative order. False when the
+ * Workout is gone.
+ */
+const rotateWorkout = async (tx: Transaction, workoutId: string) => {
+  const [workout] = await tx
+    .select({ planId: workouts.planId })
+    .from(workouts)
+    .where(eq(workouts.id, workoutId));
+  if (!workout) {
+    return false;
+  }
+
+  // Lock the Plan's Workouts so concurrent finishes of the same Plan
+  // renumber one after another
+  await tx
+    .select({ id: workouts.id })
+    .from(workouts)
+    .where(eq(workouts.planId, workout.planId))
+    .orderBy(asc(workouts.id))
+    .for("update");
+
+  await tx.execute(sql`
+    with ranked as (
+      select id, row_number() over (
+        order by (id = ${workoutId}), "order", created_at, id
+      ) as new_order
+      from ${workouts}
+      where plan_id = ${workout.planId}
+    )
+    update ${workouts} w
+    set "order" = ranked.new_order
+    from ranked
+    where w.id = ranked.id
+      and w."order" <> ranked.new_order
+  `);
+  return true;
+};
+
+/**
+ * Finishes one of the User's Workout Sessions, in `tx` (from `asUser`), and
+ * moves its Workout to the end of the Plan's queue (`rotated`). A session
+ * whose Workout was removed (e.g. update_plan replaced the Workouts) is only
+ * finished. Finishing an already finished session changes nothing
+ * (`alreadyFinished`); one the User can't see is `not_found`.
+ *
+ * Mirrors the `finish_workout_session` RPC, which the mobile app still calls,
+ * including its lock order: a behaviour change goes into both.
+ */
+export const finishWorkoutSession = async (
+  tx: Transaction,
+  sessionId: string
+): Promise<FinishWorkoutSessionResult> => {
+  // Take the workout_sessions write lock before any row lock: it conflicts
+  // with the table locks of deleteUserData and rekey_user, so a finish racing
+  // them waits up front instead of holding a Plan row lock they need while
+  // waiting for a table lock they hold
+  await tx.execute(sql`lock table ${workoutSessions} in row exclusive mode`);
+
+  // Lock the Plan before the session, the order update_plan takes its locks
+  // in (Plan, then Workouts, then sessions via ON DELETE SET NULL), so a
+  // finish racing a Plan edit waits instead of deadlocking
+  const [owned] = await tx
+    .select({ planId: workoutSessions.planId })
+    .from(workoutSessions)
+    .where(eq(workoutSessions.id, sessionId));
+  if (!owned) {
+    return { status: "not_found" };
+  }
+  if (owned.planId) {
+    await tx
+      .select({ id: plans.id })
+      .from(plans)
+      .where(eq(plans.id, owned.planId))
+      .for("no key update");
+  }
+
+  // Claim the session: only an open one is finished, and only once
+  const [claimed] = await tx
+    .update(workoutSessions)
+    .set({ finishedAt: sql`now()`, updatedAt: sql`now()` })
+    .where(
+      and(eq(workoutSessions.id, sessionId), isNull(workoutSessions.finishedAt))
+    )
+    .returning({ workoutId: workoutSessions.workoutId });
+
+  const rotated = claimed?.workoutId
+    ? await rotateWorkout(tx, claimed.workoutId)
+    : false;
+  return {
+    alreadyFinished: !claimed,
+    rotated,
+    session: await sessionWritten(tx, sessionId),
+    status: "finished",
+  };
 };
