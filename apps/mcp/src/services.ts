@@ -25,12 +25,16 @@ import {
 import { getProfile, type ProfileWithUnits } from "@fitme/services/profile";
 import {
   deleteWorkoutSession,
+  type FinishWorkoutSessionResult,
+  finishWorkoutSession,
   getWorkoutSession,
   type ListWorkoutSessionsOptions,
   type LogSetInput,
   type LogSetResult,
   listWorkoutSessions,
   logSet,
+  type StartWorkoutSessionResult,
+  startWorkoutSession,
   type WorkoutSessionDetail,
   type WorkoutSessionPage,
 } from "@fitme/services/workout-sessions";
@@ -45,6 +49,9 @@ export interface UserServices {
   createPlan: (plan: NewPlan) => Promise<PlanDetail>;
   deletePlan: (planId: string) => Promise<DeletedPlan | null>;
   deleteWorkoutSession: (sessionId: string) => Promise<boolean>;
+  finishWorkoutSession: (
+    sessionId: string
+  ) => Promise<FinishWorkoutSessionResult>;
   getExercise: (exerciseId: string) => Promise<Exercise | null>;
   getExerciseHistory: (
     query: ExerciseHistoryQuery
@@ -60,6 +67,9 @@ export interface UserServices {
     options: ListWorkoutSessionsOptions
   ) => Promise<WorkoutSessionPage>;
   logSet: (input: LogSetInput) => Promise<LogSetResult>;
+  startWorkoutSession: (
+    workoutId: string
+  ) => Promise<StartWorkoutSessionResult>;
   updatePlan: (
     planId: string,
     changes: PlanChanges
@@ -85,6 +95,8 @@ export const createServicesFromEnv: ServicesFactory = (userId) => {
       asUser(userId, (tx) => deletePlan(tx, userId, planId)),
     deleteWorkoutSession: (sessionId) =>
       asUser(userId, (tx) => deleteWorkoutSession(tx, sessionId)),
+    finishWorkoutSession: (sessionId) =>
+      asUser(userId, (tx) => finishWorkoutSession(tx, sessionId)),
     getExercise: (exerciseId) =>
       asUser(userId, (tx) => getExercise(tx, exerciseId)),
     getExerciseHistory: (query) =>
@@ -98,6 +110,8 @@ export const createServicesFromEnv: ServicesFactory = (userId) => {
     listWorkoutSessions: (options) =>
       asUser(userId, (tx) => listWorkoutSessions(tx, options)),
     logSet: (input) => asUser(userId, (tx) => logSet(tx, input)),
+    startWorkoutSession: (workoutId) =>
+      asUser(userId, (tx) => startWorkoutSession(tx, workoutId)),
     updatePlan: (planId, changes) =>
       asUser(userId, (tx) => updatePlan(tx, userId, planId, changes)),
   };

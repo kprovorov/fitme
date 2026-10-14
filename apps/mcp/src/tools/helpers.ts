@@ -119,25 +119,6 @@ export const toErrorMessage = (error: unknown) => {
 };
 
 /**
- * Reads back the result of a write that already committed. A failed read is
- * reported as success plus a `warning`, so the client doesn't retry the write.
- */
-export async function readBack(
-  load: () => Promise<unknown>,
-  written: Record<string, unknown>,
-  followUp: string
-): Promise<CallToolResult> {
-  try {
-    return asJson(await load());
-  } catch (error) {
-    return asJson({
-      ...written,
-      warning: `The change was saved, but reading it back failed (${toErrorMessage(error)}). Do not repeat the call; use ${followUp} to see the result.`,
-    });
-  }
-}
-
-/**
  * Wraps a user tool handler: resolves the authenticated caller first and turns
  * every failure into an `isError` tool result instead of a protocol error.
  */

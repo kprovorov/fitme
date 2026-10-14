@@ -63,7 +63,7 @@ Clerk OAuth access tokens are JWTs verified locally against the instance's JWKS.
 Inside a request that passed the check:
 
 - Database errors are returned as `isError: true` results carrying the Postgres/PostgREST message (never the SQL); any other failure of a tool on services is logged and reported as "The database request failed."
-- Writes that committed but whose follow-up read failed (`start_workout_session`, `finish_workout_session`) return success with the id and a `warning` instead of an error, so clients don't retry and duplicate.
+- Every write runs in one transaction with its read-back, so it either returns its result or fails without changing anything.
 - Paginated tools (`list_exercises`, `list_workout_sessions`) return an empty page with the `total` when the offset is past the end.
 
 ## Signed Supabase tokens
