@@ -115,6 +115,14 @@ describe("MinimumVersionGate", () => {
     expect(screen.getByText("Home")).toBeTruthy();
   });
 
+  it("doesn't block when the API answers with an unexpected payload", async () => {
+    mockFetch.mockResolvedValue(Response.json({ data: {} }));
+
+    await renderGate();
+
+    expect(screen.getByText("Home")).toBeTruthy();
+  });
+
   it("checks again when the app returns to the foreground", async () => {
     serveMinimumIosVersion("1.5.0");
     await renderGate();
