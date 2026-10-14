@@ -109,12 +109,12 @@ const callTool = (
 ) =>
   rpc(app, { method: "tools/call", params: { arguments: args, name } }, token);
 
-const EXERCISE_ID = "55555555-5555-4555-8555-555555555555";
-const exercise = { id: EXERCISE_ID, name: "Bench press" };
+const SESSION_ID = "22222222-2222-4222-8222-222222222222";
+const session = { exercises: [], finished_at: null, id: SESSION_ID };
 
-/** A tool still on Supabase (it answers `get_exercise` for `EXERCISE_ID`). */
+/** A tool still on Supabase (it answers `get_workout_session` for `SESSION_ID`). */
 const callSupabaseTool = (app: TestApp, token?: string) =>
-  callTool(app, "get_exercise", token, { exerciseId: EXERCISE_ID });
+  callTool(app, "get_workout_session", token, { sessionId: SESSION_ID });
 
 /** The tool result inside a 200 SSE response. */
 const readToolResult = async (response: Response) => {
@@ -154,7 +154,7 @@ const profileServices: ServicesFactory = (userId) =>
 /**
  * The app with fake services and a fake Supabase client per request. Records
  * the User id every services object is built for and every signed token the
- * Supabase client receives (it answers `get_exercise` for `EXERCISE_ID`).
+ * Supabase client receives (it answers `get_workout_session` for `SESSION_ID`).
  */
 const createTestApp = () => {
   const servicesUserIds: string[] = [];
@@ -168,10 +168,10 @@ const createTestApp = () => {
       supabaseTokens.push(token);
       return createFakeSupabase([
         {
-          filters: [["eq", "id", EXERCISE_ID]],
-          name: "exercises",
+          filters: [["eq", "id", SESSION_ID]],
+          name: "workout_sessions",
           operation: "select",
-          response: ok(exercise),
+          response: ok(session),
         },
       ]).client;
     },
@@ -385,7 +385,7 @@ describe("with a valid Clerk token", () => {
     expect(response.status).toBe(200);
     const result = await readToolResult(response);
     expect(result.isError).toBe(false);
-    expect(JSON.parse(result.text)).toEqual(exercise);
+    expect(JSON.parse(result.text)).toMatchObject({ id: SESSION_ID });
     expect(supabaseTokens).toHaveLength(1);
     expect(await verifySupabaseToken(supabaseTokens[0] ?? "")).toEqual({
       aud: "authenticated",

@@ -1,5 +1,15 @@
 import { asUser } from "@fitme/db";
 import {
+  type Exercise,
+  type ExerciseHistoryEntry,
+  type ExerciseHistoryQuery,
+  type ExercisePage,
+  type ExerciseQuery,
+  getExercise,
+  getExerciseHistory,
+  listExercises,
+} from "@fitme/services/exercises";
+import {
   type DeletedPlan,
   deletePlan,
   getPlan,
@@ -16,8 +26,13 @@ import { getProfile, type ProfileWithUnits } from "@fitme/services/profile";
  */
 export interface UserServices {
   deletePlan: (planId: string) => Promise<DeletedPlan | null>;
+  getExercise: (exerciseId: string) => Promise<Exercise | null>;
+  getExerciseHistory: (
+    query: ExerciseHistoryQuery
+  ) => Promise<ExerciseHistoryEntry[]>;
   getPlan: (planId: string) => Promise<PlanDetail | null>;
   getProfile: () => Promise<ProfileWithUnits | null>;
+  listExercises: (query: ExerciseQuery) => Promise<ExercisePage>;
   listPlans: () => Promise<PlanSummary[]>;
 }
 
@@ -35,8 +50,13 @@ export const createServicesFromEnv: ServicesFactory = (userId) => {
   return {
     deletePlan: (planId) =>
       asUser(userId, (tx) => deletePlan(tx, userId, planId)),
+    getExercise: (exerciseId) =>
+      asUser(userId, (tx) => getExercise(tx, exerciseId)),
+    getExerciseHistory: (query) =>
+      asUser(userId, (tx) => getExerciseHistory(tx, userId, query)),
     getPlan: (planId) => asUser(userId, (tx) => getPlan(tx, userId, planId)),
     getProfile: () => asUser(userId, (tx) => getProfile(tx, userId)),
+    listExercises: (query) => asUser(userId, (tx) => listExercises(tx, query)),
     listPlans: () => asUser(userId, (tx) => listPlans(tx, userId)),
   };
 };

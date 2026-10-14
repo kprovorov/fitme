@@ -1,5 +1,6 @@
 import { plans, type Transaction } from "@fitme/db";
 import { and, eq, isNotNull, isNull, sql } from "drizzle-orm";
+import { jsonTimestamp } from "./json-timestamp";
 
 /** A Plan's own columns, without its Workouts. */
 export interface PlanRow {
@@ -59,11 +60,7 @@ export interface PlanDetail extends PlanRow {
   workouts: PlanWorkout[];
 }
 
-/**
- * The Plan columns of a relational query. Timestamps come as Postgres encodes
- * them in JSON (what PostgREST returned), e.g.
- * `2026-10-14T20:42:57.711123+00:00`, instead of `pg`'s text format.
- */
+/** The Plan columns of a relational query, timestamps in PostgREST's format. */
 const planQuery = {
   columns: {
     description: true,
@@ -78,12 +75,8 @@ const planQuery = {
     workoutDuration: true,
   },
   extras: {
-    createdAtJson: sql<string | null>`to_json(${plans.createdAt}) #>> '{}'`.as(
-      "created_at_json"
-    ),
-    updatedAtJson: sql<string | null>`to_json(${plans.updatedAt}) #>> '{}'`.as(
-      "updated_at_json"
-    ),
+    createdAtJson: jsonTimestamp(plans.createdAt).as("created_at_json"),
+    updatedAtJson: jsonTimestamp(plans.updatedAt).as("updated_at_json"),
   },
 } as const;
 

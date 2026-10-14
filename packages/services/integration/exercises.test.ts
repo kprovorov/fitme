@@ -1,0 +1,326 @@
+import { randomUUID } from "node:crypto";
+import {
+  asUser,
+  exercises,
+  plans,
+  withService,
+  workoutSessionExerciseSets,
+  workoutSessionExercises,
+  workoutSessions,
+  workouts,
+} from "@fitme/db";
+import { inArray } from "drizzle-orm";
+import { afterAll, beforeAll, describe, expect, it } from "vitest";
+import { deleteUserData } from "../src/delete-user-data";
+import {
+  getExercise,
+  getExerciseHistory,
+  listExercises,
+} from "../src/exercises";
+
+/**
+ * The exercise services through asUser, against a local Supabase stack via
+ * the Supavisor pooler as the fitme login. Made-up Clerk-style User ids and
+ * Exercise names, unique per run.
+ */
+
+const runId = randomUUID().replaceAll("-", "").slice(0, 12);
+const owner = `user_svcExOwner${runId}`;
+const intruder = `user_svcExIntruder${runId}`;
+const prefix = `Zz${runId}`;
+
+const ISO_TIMESTAMP = /^\d{4}-\d{2}-\d{2}T\d{2}:\d{2}:\d{2}(\.\d+)?\+00:00$/;
+
+let alpha: string;
+let beta: string;
+let gamma: string;
+
+interface SeededSession {
+  planId: string;
+  sessionExerciseId: string;
+  sessionId: string;
+  workoutId: string;
+}
+
+/**
+ * A Plan with one Workout and a Workout Session in it, holding one entry of
+ * `exerciseId` with the given sets (`null` = no weight logged).
+ */
+const seedSession = (
+  userId: string,
+  createdAt: string,
+  weights: (number | null)[]
+): Promise<SeededSession> =>
+  withService(async (tx) => {
+    const [plan] = await tx
+      .insert(plans)
+      .values({
+        frequency: 3,
+        goal: "general",
+        name: `Plan ${createdAt}`,
+        place: "gym",
+        userId,
+      })
+      .returning({ id: plans.id });
+    const [workout] = await tx
+      .insert(workouts)
+      .values({
+        description: "Day A",
+        name: "Day A",
+        order: 1,
+        planId: plan.id,
+      })
+      .returning({ id: workouts.id });
+    const [session] = await tx
+      .insert(workoutSessions)
+      .values({
+        finishedAt: createdAt,
+        planId: plan.id,
+        startedAt: createdAt,
+        userId,
+        workoutId: workout.id,
+      })
+      .returning({ id: workoutSessions.id });
+    const [sessionExercise] = await tx
+      .insert(workoutSessionExercises)
+      .values({
+        createdAt,
+        exerciseId: alpha,
+        order: 1,
+        workoutSessionId: session.id,
+      })
+      .returning({ id: workoutSessionExercises.id });
+    // inserted out of order, to show the sets come back by `order`
+    await tx.insert(workoutSessionExerciseSets).values(
+      weights
+        .map((weight, index) => ({
+          order: index + 1,
+          repsCompleted: 8 - index,
+          weightCompleted: weight === null ? null : String(weight),
+          workoutSessionExerciseId: sessionExercise.id,
+        }))
+        .reverse()
+    );
+    return {
+      planId: plan.id,
+      sessionExerciseId: sessionExercise.id,
+      sessionId: session.id,
+      workoutId: workout.id,
+    };
+  });
+
+let older: SeededSession;
+let newer: SeededSession;
+let intruders: SeededSession;
+
+beforeAll(async () => {
+  const rows = await withService((tx) =>
+    tx
+      .insert(exercises)
+      .values([
+        {
+          description: "Pressing",
+          muscleGroups: ["chest", "triceps"],
+          name: `${prefix} Alpha Press_1%`,
+          slug: `alpha-${runId}`,
+        },
+        {
+          muscleGroups: ["back"],
+          name: `${prefix} Beta Row`,
+          slug: `beta-${runId}`,
+        },
+        {
+          muscleGroups: ["quadriceps", "glutes"],
+          name: `${prefix} Gamma Squat`,
+          slug: `gamma-${runId}`,
+        },
+      ])
+      .returning({ id: exercises.id })
+  );
+  [alpha, beta, gamma] = rows.map((row) => row.id) as [string, string, string];
+
+  older = await seedSession(owner, "2026-10-01T10:00:00+00:00", [75, 80, null]);
+  // only a set without a weight: skipped
+  await seedSession(owner, "2026-10-02T10:00:00+00:00", [null]);
+  newer = await seedSession(owner, "2026-10-03T10:00:00+00:00", [85]);
+  intruders = await seedSession(intruder, "2026-10-04T10:00:00+00:00", [200]);
+});
+
+afterAll(async () => {
+  await withService(async (tx) => {
+    await deleteUserData(tx, owner);
+    await deleteUserData(tx, intruder);
+    await tx
+      .delete(exercises)
+      .where(inArray(exercises.id, [alpha, beta, gamma]));
+  });
+});
+
+const list = (query: Parameters<typeof listExercises>[1]) =>
+  asUser(owner, (tx) => listExercises(tx, query));
+
+const namesOf = (page: Awaited<ReturnType<typeof listExercises>>) =>
+  page.exercises.map((exercise) => exercise.name);
+
+describe("listExercises", () => {
+  it("pages alphabetically through the matches, with the total", async () => {
+    const first = await list({ limit: 2, offset: 0, search: prefix });
+    expect(first).toMatchObject({
+      hasMore: true,
+      limit: 2,
+      offset: 0,
+      total: 3,
+    });
+    expect(namesOf(first)).toEqual([
+      `${prefix} Alpha Press_1%`,
+      `${prefix} Beta Row`,
+    ]);
+
+    const last = await list({ limit: 2, offset: 2, search: prefix });
+    expect(last).toMatchObject({ hasMore: false, total: 3 });
+    expect(namesOf(last)).toEqual([`${prefix} Gamma Squat`]);
+  });
+
+  it("returns an empty page with the total for an offset past the end", async () => {
+    expect(await list({ limit: 20, offset: 5, search: prefix })).toEqual({
+      exercises: [],
+      hasMore: false,
+      limit: 20,
+      offset: 5,
+      total: 3,
+    });
+  });
+
+  it("returns compact rows", async () => {
+    const page = await list({ limit: 1, offset: 0, search: prefix });
+    expect(page.exercises).toEqual([
+      {
+        description: "Pressing",
+        id: alpha,
+        muscle_groups: ["chest", "triceps"],
+        name: `${prefix} Alpha Press_1%`,
+        slug: `alpha-${runId}`,
+      },
+    ]);
+  });
+
+  it("searches case-insensitively, treating % and _ literally", async () => {
+    expect(
+      namesOf(await list({ limit: 20, offset: 0, search: "PRESS_1%" }))
+    ).toContain(`${prefix} Alpha Press_1%`);
+    expect(
+      await list({ limit: 20, offset: 0, search: `${prefix} Alpha%Press` })
+    ).toMatchObject({ exercises: [], total: 0 });
+    expect(
+      await list({ limit: 20, offset: 0, search: `${prefix} Alpha_Press` })
+    ).toMatchObject({ exercises: [], total: 0 });
+  });
+
+  it("filters by muscle group", async () => {
+    const page = await list({
+      limit: 20,
+      muscleGroup: "glutes",
+      offset: 0,
+      search: prefix,
+    });
+    expect(namesOf(page)).toEqual([`${prefix} Gamma Squat`]);
+    expect(page.total).toBe(1);
+  });
+});
+
+describe("getExercise", () => {
+  it("returns every detail, with timestamps as PostgREST showed them", async () => {
+    const exercise = await asUser(owner, (tx) => getExercise(tx, alpha));
+    expect(exercise).toEqual({
+      created_at: expect.stringMatching(ISO_TIMESTAMP),
+      description: "Pressing",
+      id: alpha,
+      instructions: null,
+      muscle_groups: ["chest", "triceps"],
+      name: `${prefix} Alpha Press_1%`,
+      slug: `alpha-${runId}`,
+      thumbnail_url: null,
+      updated_at: expect.stringMatching(ISO_TIMESTAMP),
+      video_url: null,
+    });
+  });
+
+  it("returns null for an unknown id", async () => {
+    expect(
+      await asUser(owner, (tx) => getExercise(tx, randomUUID()))
+    ).toBeNull();
+  });
+});
+
+describe("getExerciseHistory", () => {
+  const history = (userId: string, limit = 10) =>
+    asUser(userId, (tx) =>
+      getExerciseHistory(tx, userId, { exerciseId: alpha, limit })
+    );
+
+  it("returns the User's entries newest first, with weighted sets in order", async () => {
+    expect(await history(owner)).toEqual([
+      {
+        finished_at: "2026-10-03T10:00:00+00:00",
+        plan: { id: newer.planId, name: "Plan 2026-10-03T10:00:00+00:00" },
+        session_exercise_id: newer.sessionExerciseId,
+        session_id: newer.sessionId,
+        sets: [
+          {
+            id: expect.any(String),
+            logged_at: null,
+            order: 1,
+            reps_completed: 8,
+            weight_completed: 85,
+          },
+        ],
+        started_at: "2026-10-03T10:00:00+00:00",
+        workout: { id: newer.workoutId, name: "Day A" },
+      },
+      {
+        finished_at: "2026-10-01T10:00:00+00:00",
+        plan: { id: older.planId, name: "Plan 2026-10-01T10:00:00+00:00" },
+        session_exercise_id: older.sessionExerciseId,
+        session_id: older.sessionId,
+        sets: [
+          expect.objectContaining({ order: 1, weight_completed: 75 }),
+          expect.objectContaining({ order: 2, weight_completed: 80 }),
+        ],
+        started_at: "2026-10-01T10:00:00+00:00",
+        workout: { id: older.workoutId, name: "Day A" },
+      },
+    ]);
+  });
+
+  it("counts entries towards the limit", async () => {
+    expect((await history(owner, 1)).map((entry) => entry.session_id)).toEqual([
+      newer.sessionId,
+    ]);
+  });
+
+  it("never includes another User's Workout Sessions", async () => {
+    expect((await history(intruder)).map((entry) => entry.session_id)).toEqual([
+      intruders.sessionId,
+    ]);
+    expect(
+      await asUser(owner, (tx) =>
+        getExerciseHistory(tx, intruder, { exerciseId: alpha, limit: 10 })
+      )
+    ).toEqual([]);
+  });
+
+  it("shows a Workout Session whose Plan and Workout are gone without them", async () => {
+    const orphan = await seedSession(owner, "2026-09-01T10:00:00+00:00", [60]);
+    await withService((tx) =>
+      tx.delete(plans).where(inArray(plans.id, [orphan.planId]))
+    );
+
+    const entries = await history(owner);
+
+    expect(entries.at(-1)).toMatchObject({
+      plan: null,
+      session_id: orphan.sessionId,
+      workout: null,
+    });
+  });
+});
