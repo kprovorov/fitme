@@ -4,40 +4,16 @@ import { z } from "zod";
 import type { ToolContext } from "../context.js";
 import {
   asJson,
-  byOrder,
-  fetchPage,
   READ_ONLY,
   requireFound,
-  unwrap,
   WEIGHT_UNIT_NOTE,
-  withUser,
+  withServices,
 } from "./helpers.js";
 import { DEFAULT_PAGE_SIZE, MAX_PAGE_SIZE } from "./limits.js";
 
 const DEFAULT_HISTORY_LIMIT = 10;
 const MAX_HISTORY_LIMIT = 50;
 const MAX_SEARCH_LENGTH = 100;
-
-const LIKE_SPECIAL_CHARACTERS = /[\\%_]/g;
-
-/** Matches `search` anywhere in the name, treating `%` and `_` literally. */
-export const toContainsPattern = (search: string) =>
-  `%${search.replace(LIKE_SPECIAL_CHARACTERS, "\\$&")}%`;
-
-const EXERCISE_SUMMARY_SELECT = "id, name, slug, muscle_groups, description";
-
-const HISTORY_SELECT = `
-  id,
-  created_at,
-  sets:workout_session_exercise_sets!inner (
-    id, order, reps_completed, weight_completed, logged_at
-  ),
-  session:workout_sessions!inner (
-    id, started_at, finished_at,
-    workout:workouts ( id, name ),
-    plan:plans ( id, name )
-  )
-`;
 
 const exerciseIdSchema = z
   .string()
@@ -81,36 +57,8 @@ export function registerExerciseTools(server: McpServer, ctx: ToolContext) {
       },
       title: "List exercises",
     },
-    withUser(
-      ctx,
-      async ({ limit, muscleGroup, offset, search }, { supabase }) => {
-        const query = (head: boolean) => {
-          let filtered = supabase
-            .from("exercises")
-            .select(EXERCISE_SUMMARY_SELECT, { count: "exact", head });
-          if (search) {
-            filtered = filtered.ilike("name", toContainsPattern(search));
-          }
-          if (muscleGroup) {
-            filtered = filtered.contains(
-              "muscle_groups",
-              JSON.stringify([muscleGroup])
-            );
-          }
-          return filtered;
-        };
-
-        const { rows, ...page } = await fetchPage(
-          () =>
-            query(false)
-              .order("name")
-              .order("id")
-              .range(offset, offset + limit - 1),
-          () => query(true),
-          { limit, offset }
-        );
-        return asJson({ exercises: rows, ...page });
-      }
+    withServices(ctx, async (query, services) =>
+      asJson(await services.listExercises(query))
     )
   );
 
@@ -123,18 +71,14 @@ export function registerExerciseTools(server: McpServer, ctx: ToolContext) {
       inputSchema: { exerciseId: exerciseIdSchema },
       title: "Get exercise",
     },
-    withUser(ctx, async ({ exerciseId }, { supabase }) => {
-      const exercise = unwrap(
-        await supabase
-          .from("exercises")
-          .select("*")
-          .eq("id", exerciseId)
-          .maybeSingle()
-      );
-      return asJson(
-        requireFound(exercise, `Exercise ${exerciseId} not found.`)
-      );
-    })
+    withServices(ctx, async ({ exerciseId }, services) =>
+      asJson(
+        requireFound(
+          await services.getExercise(exerciseId),
+          `Exercise ${exerciseId} not found.`
+        )
+      )
+    )
   );
 
   server.registerTool(
@@ -156,29 +100,11 @@ export function registerExerciseTools(server: McpServer, ctx: ToolContext) {
       },
       title: "Get exercise history",
     },
-    withUser(ctx, async ({ exerciseId, limit }, { supabase }) => {
-      const rows = unwrap(
-        await supabase
-          .from("workout_session_exercises")
-          .select(HISTORY_SELECT)
-          .eq("exercise_id", exerciseId)
-          .not("sets.weight_completed", "is", null)
-          .order("created_at", { ascending: false })
-          .limit(limit)
-      );
-
-      return asJson({
-        entries: rows.map(({ id, session, sets }) => ({
-          finished_at: session.finished_at,
-          plan: session.plan,
-          session_exercise_id: id,
-          session_id: session.id,
-          sets: byOrder(sets),
-          started_at: session.started_at,
-          workout: session.workout,
-        })),
+    withServices(ctx, async ({ exerciseId, limit }, services) =>
+      asJson({
+        entries: await services.getExerciseHistory({ exerciseId, limit }),
         exerciseId,
-      });
-    })
+      })
+    )
   );
 }

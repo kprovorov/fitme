@@ -32,19 +32,21 @@ export function expectAllCallsRouted() {
   }
 }
 
+const notFaked = (name: string) => () =>
+  Promise.reject(new Error(`${name} is not faked.`));
+
 /** Services where every method a test didn't fake fails the call. */
-export const fakeServices = (faked: Partial<UserServices>): UserServices => {
-  const notFaked = (name: string) => () =>
-    Promise.reject(new Error(`${name} is not faked.`));
-  return {
-    deleteWorkoutSession: notFaked("deleteWorkoutSession"),
-    getProfile: notFaked("getProfile"),
-    getWorkoutSession: notFaked("getWorkoutSession"),
-    listWorkoutSessions: notFaked("listWorkoutSessions"),
-    logSet: notFaked("logSet"),
-    ...faked,
-  };
-};
+export const fakeServices = (faked: Partial<UserServices>): UserServices => ({
+  deleteWorkoutSession: notFaked("deleteWorkoutSession"),
+  getExercise: notFaked("getExercise"),
+  getExerciseHistory: notFaked("getExerciseHistory"),
+  getProfile: notFaked("getProfile"),
+  getWorkoutSession: notFaked("getWorkoutSession"),
+  listExercises: notFaked("listExercises"),
+  listWorkoutSessions: notFaked("listWorkoutSessions"),
+  logSet: notFaked("logSet"),
+  ...faked,
+});
 
 /**
  * A context whose user tools run as `user` (the HTTP layer's job): on

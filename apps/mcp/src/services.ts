@@ -1,4 +1,14 @@
 import { asUser } from "@fitme/db";
+import {
+  type Exercise,
+  type ExerciseHistoryEntry,
+  type ExerciseHistoryQuery,
+  type ExercisePage,
+  type ExerciseQuery,
+  getExercise,
+  getExerciseHistory,
+  listExercises,
+} from "@fitme/services/exercises";
 import { getProfile, type ProfileWithUnits } from "@fitme/services/profile";
 import {
   deleteWorkoutSession,
@@ -19,10 +29,15 @@ import {
  */
 export interface UserServices {
   deleteWorkoutSession: (sessionId: string) => Promise<boolean>;
+  getExercise: (exerciseId: string) => Promise<Exercise | null>;
+  getExerciseHistory: (
+    query: ExerciseHistoryQuery
+  ) => Promise<ExerciseHistoryEntry[]>;
   getProfile: () => Promise<ProfileWithUnits | null>;
   getWorkoutSession: (
     sessionId: string
   ) => Promise<WorkoutSessionDetail | null>;
+  listExercises: (query: ExerciseQuery) => Promise<ExercisePage>;
   listWorkoutSessions: (
     options: ListWorkoutSessionsOptions
   ) => Promise<WorkoutSessionPage>;
@@ -43,9 +58,14 @@ export const createServicesFromEnv: ServicesFactory = (userId) => {
   return {
     deleteWorkoutSession: (sessionId) =>
       asUser(userId, (tx) => deleteWorkoutSession(tx, sessionId)),
+    getExercise: (exerciseId) =>
+      asUser(userId, (tx) => getExercise(tx, exerciseId)),
+    getExerciseHistory: (query) =>
+      asUser(userId, (tx) => getExerciseHistory(tx, userId, query)),
     getProfile: () => asUser(userId, (tx) => getProfile(tx, userId)),
     getWorkoutSession: (sessionId) =>
       asUser(userId, (tx) => getWorkoutSession(tx, sessionId)),
+    listExercises: (query) => asUser(userId, (tx) => listExercises(tx, query)),
     listWorkoutSessions: (options) =>
       asUser(userId, (tx) => listWorkoutSessions(tx, options)),
     logSet: (input) => asUser(userId, (tx) => logSet(tx, input)),
