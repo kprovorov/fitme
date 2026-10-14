@@ -2,8 +2,9 @@ import { getAuth } from "@clerk/hono";
 import { decodeJwt, importJWK, jwtVerify, UnsecuredJWT } from "jose";
 import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
 import { createApp } from "../app.js";
+import type { ServicesFactory } from "../services.js";
 import { createFakeSupabase, ok } from "./fake-supabase.js";
-import { expectAllCallsRouted } from "./harness.js";
+import { expectAllCallsRouted, fakeServices } from "./harness.js";
 import { SIGNING_KEY } from "./signing-key.js";
 
 // Clerk is stubbed at its SDK boundary: no Clerk instance or network. The
@@ -119,34 +120,52 @@ const profiles: Record<string, string> = {
   user_bob: "us",
 };
 
+const unitsOf: Record<string, { height: string; weight: string }> = {
+  metric: { height: "cm", weight: "kg" },
+  us: { height: "in", weight: "lbs" },
+};
+
+/** Services answering the Profile of whichever User they were built for. */
+const profileServices: ServicesFactory = (userId) =>
+  fakeServices({
+    getProfile: () =>
+      Promise.resolve({
+        age: 30,
+        gender: "female",
+        height: 170,
+        measurement_system: profiles[userId] ?? "metric",
+        units: unitsOf[profiles[userId] ?? "metric"] ?? unitsOf.metric,
+        weight: 60,
+      }),
+  });
+
 /**
- * The app with a fake Supabase client per request, answering the profile of
- * whichever User the signed token names. Records every token it receives.
+ * The app with fake services and a fake Supabase client per request. Records
+ * the User id every services object is built for and every signed token the
+ * Supabase client receives (it answers `list_plans` with no plans).
  */
 const createTestApp = () => {
+  const servicesUserIds: string[] = [];
   const supabaseTokens: string[] = [];
   const app = createApp({
+    createServices: (userId) => {
+      servicesUserIds.push(userId);
+      return profileServices(userId);
+    },
     createSupabaseClient: (token) => {
       supabaseTokens.push(token);
-      const userId = String(decodeJwt(token).sub);
       return createFakeSupabase([
         {
-          filters: [["eq", "user_id", userId]],
-          name: "profiles",
+          filters: [["is", "deleted_at", null]],
+          name: "plans",
           operation: "select",
-          response: ok({
-            age: 30,
-            gender: "female",
-            height: 170,
-            measurement_system: profiles[userId],
-            weight: 60,
-          }),
+          response: ok([]),
         },
       ]).client;
     },
     logRequests: false,
   });
-  return { app, supabaseTokens };
+  return { app, servicesUserIds, supabaseTokens };
 };
 
 beforeEach(() => {
@@ -154,6 +173,10 @@ beforeEach(() => {
   vi.stubEnv("CLERK_SECRET_KEY", "sk_test_secret");
   vi.stubEnv("CLERK_PUBLISHABLE_KEY", PUBLISHABLE_KEY);
   vi.stubEnv("SUPABASE_JWT_SIGNING_KEY", JSON.stringify(SIGNING_KEY));
+  vi.stubEnv(
+    "FITME_DATABASE_URL",
+    "postgresql://fitme.test:secret@127.0.0.1:1/postgres?application_name=mcp"
+  );
   vi.stubEnv("MCP_PUBLIC_URL", "");
   mockedGetAuth.mockReset();
 });
@@ -253,10 +276,11 @@ describe("misconfiguration", () => {
     "CLERK_SECRET_KEY",
     "CLERK_PUBLISHABLE_KEY",
     "SUPABASE_JWT_SIGNING_KEY",
+    "FITME_DATABASE_URL",
   ])("answers 500 instead of serving when %s is missing", async (name) => {
     vi.stubEnv(name, "");
     signInAs("user_alice");
-    const { app, supabaseTokens } = createTestApp();
+    const { app, servicesUserIds, supabaseTokens } = createTestApp();
 
     const withToken = await callTool(app, "ping", clerkToken("user_alice"));
     const withoutToken = await callTool(app, "ping");
@@ -269,6 +293,7 @@ describe("misconfiguration", () => {
       },
     });
     expect(mockedGetAuth).not.toHaveBeenCalled();
+    expect(servicesUserIds).toEqual([]);
     expect(supabaseTokens).toEqual([]);
   });
 });
@@ -319,9 +344,9 @@ describe("public routes", () => {
 });
 
 describe("with a valid Clerk token", () => {
-  it("runs user tools with a Supabase token signed for the Clerk User", async () => {
+  it("runs services as the Clerk User", async () => {
     signInAs("user_alice");
-    const { app, supabaseTokens } = createTestApp();
+    const { app, servicesUserIds, supabaseTokens } = createTestApp();
 
     const response = await callTool(
       app,
@@ -335,6 +360,24 @@ describe("with a valid Clerk token", () => {
     expect(JSON.parse(result.text)).toMatchObject({
       measurement_system: "metric",
     });
+    expect(servicesUserIds).toEqual(["user_alice"]);
+    expect(supabaseTokens).toEqual([]);
+  });
+
+  it("runs Supabase tools with a token signed for the Clerk User", async () => {
+    signInAs("user_alice");
+    const { app, supabaseTokens } = createTestApp();
+
+    const response = await callTool(
+      app,
+      "list_plans",
+      clerkToken("user_alice")
+    );
+
+    expect(response.status).toBe(200);
+    const result = await readToolResult(response);
+    expect(result.isError).toBe(false);
+    expect(JSON.parse(result.text)).toEqual([]);
     expect(supabaseTokens).toHaveLength(1);
     expect(await verifySupabaseToken(supabaseTokens[0] ?? "")).toEqual({
       aud: "authenticated",
@@ -352,7 +395,7 @@ describe("with a valid Clerk token", () => {
 
     const response = await callTool(
       app,
-      "get_profile",
+      "list_plans",
       clerkToken("user_alice", NOW_SECONDS + 42)
     );
 
@@ -379,9 +422,9 @@ describe("with a valid Clerk token", () => {
     });
   });
 
-  it("serves initialize, tools/list and catalog tools without touching Supabase", async () => {
+  it("serves initialize, tools/list and catalog tools without touching the database", async () => {
     signInAs("user_alice");
-    const { app, supabaseTokens } = createTestApp();
+    const { app, servicesUserIds, supabaseTokens } = createTestApp();
     const token = clerkToken("user_alice");
 
     const responses = [
@@ -396,7 +439,24 @@ describe("with a valid Clerk token", () => {
     expect((await readToolResult(responses[2] as Response)).isError).toBe(
       false
     );
+    expect(servicesUserIds).toEqual([]);
     expect(supabaseTokens).toEqual([]);
+  });
+
+  it("reports missing database config as a tool error", async () => {
+    signInAs("user_alice");
+    const app = createApp({ createServices: () => null, logRequests: false });
+
+    const response = await callTool(
+      app,
+      "get_profile",
+      clerkToken("user_alice")
+    );
+
+    expect(response.status).toBe(200);
+    const result = await readToolResult(response);
+    expect(result.isError).toBe(true);
+    expect(result.text).toContain("not configured");
   });
 
   it("reports missing Supabase config as a tool error", async () => {
@@ -407,7 +467,7 @@ describe("with a valid Clerk token", () => {
 
     const response = await callTool(
       app,
-      "get_profile",
+      "list_plans",
       clerkToken("user_alice")
     );
 

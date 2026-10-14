@@ -89,13 +89,15 @@ jobs:
       - name: Run packages/db integration tests
         run: pnpm --filter @fitme/db test:integration
 
-      # Services (deleteUserData) inside withService, through the same pooler
+      # Services (deleteUserData, getProfile) inside withService / asUser,
+      # through the same pooler
       - name: Run packages/services integration tests
         run: pnpm --filter @fitme/services test:integration
 
       # The Clerk OAuth suite (integration/clerk-oauth.test.ts) runs a real
       # headless OAuth flow against the Clerk development instance and is
-      # skipped when CLERK_DEV_SECRET_KEY is not set.
+      # skipped when CLERK_DEV_SECRET_KEY is not set. Tools on services reach
+      # the stack through the same pooler (URL from `supabase status`).
       - name: Run MCP integration tests
         env:
           CLERK_DEV_SECRET_KEY: ${{ secrets.CLERK_DEV_SECRET_KEY }}

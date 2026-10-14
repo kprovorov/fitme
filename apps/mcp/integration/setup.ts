@@ -2,6 +2,7 @@ import { randomBytes } from "node:crypto";
 import { readFileSync } from "node:fs";
 import type { Client } from "@modelcontextprotocol/sdk/client/index.js";
 import { call, connect, contextFor } from "../src/__tests__/harness.js";
+import { createServicesFromEnv } from "../src/services.js";
 import {
   createSupabaseClientFromEnv,
   type FitmeSupabaseClient,
@@ -14,8 +15,10 @@ import {
 /**
  * Helpers for the integration suite, which runs the MCP tools against a real
  * Supabase stack (`pnpm db start` + `pnpm db seed`). Test Users are made-up
- * Clerk-style ids whose tokens the MCP server's signer issues, the way the
- * server does once Clerk has verified a token (ADR 0002). Local stacks trust the
+ * Clerk-style ids. Tools on services run as them through `asUser` on the
+ * stack's pooler (`FITME_DATABASE_URL`, set by the vitest config); the rest
+ * use tokens the MCP server's signer issues, the way the server does once
+ * Clerk has verified a token (ADR 0002). Local stacks trust the
  * development signing key (`local-only-signing-keys.json`), and every query
  * goes through the same RLS policies and RPCs as in production.
  */
@@ -71,8 +74,15 @@ export async function createTestUser(label: string): Promise<TestUser> {
 }
 
 /** MCP client whose user tools run against the real stack as `user`. */
-export const connectAs = (user: TestUser) =>
-  connect(contextFor({ supabase: user.supabase, userId: user.userId }));
+export function connectAs(user: TestUser) {
+  const services = createServicesFromEnv(user.userId);
+  if (!services) {
+    throw new Error("FITME_DATABASE_URL must point at the stack's pooler.");
+  }
+  return connect(
+    contextFor({ supabase: user.supabase, userId: user.userId }, services)
+  );
+}
 
 /** Calls a tool and returns its JSON payload, failing on `isError`. */
 export async function callOk<T>(

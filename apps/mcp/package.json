@@ -16,6 +16,8 @@
     "@clerk/hono": "^0.1.88",
     "@clerk/mcp-tools": "^0.6.0",
     "@fitme/core": "workspace:*",
+    "@fitme/db": "workspace:*",
+    "@fitme/services": "workspace:*",
     "@fitme/supabase": "workspace:*",
     "@hono/node-server": "^2.1.1",
     "@modelcontextprotocol/sdk": "^1.30.1",
