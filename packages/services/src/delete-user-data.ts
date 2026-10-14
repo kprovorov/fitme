@@ -1,4 +1,5 @@
 import {
+  coachSessions,
   conversations,
   messages,
   plans,
@@ -16,8 +17,9 @@ import { and, eq, isNotNull, sql } from "drizzle-orm";
 
 /**
  * The User-owned tables and their children, in the order rekey_user locks
- * them. Every table that holds a User's rows must be here: a schema change
- * that adds one has to add it, and the integration test catches a miss.
+ * them, then the tables rekey_user doesn't touch. Every table that holds a
+ * User's rows must be here: a schema change that adds one has to add it, and
+ * the integration test catches a miss.
  */
 const LOCKED_TABLES = sql.join(
   [
@@ -31,6 +33,7 @@ const LOCKED_TABLES = sql.join(
     workoutSessionExercises,
     workoutSessionExerciseSets,
     messages,
+    coachSessions,
   ],
   sql`, `
 );
@@ -103,4 +106,6 @@ export const deleteUserData = async (
   await tx.delete(plans).where(eq(plans.userId, userId));
   await tx.delete(conversations).where(eq(conversations.userId, userId));
   await tx.delete(profiles).where(eq(profiles.userId, userId));
+  // The Coach's session ids; resetting the EVE sessions themselves is FIT-121
+  await tx.delete(coachSessions).where(eq(coachSessions.userId, userId));
 };

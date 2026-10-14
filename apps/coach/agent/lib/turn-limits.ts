@@ -5,7 +5,14 @@
  * cancels the turn before the call that would go over.
  *
  * Tokens, not dollars: the direct OpenAI and Anthropic providers report no
- * cost. A durable step that retries counts twice, which only errs low.
+ * cost. Usage is only known after a call, so the budget stops the turn from
+ * starting another call once it is spent: the last call can overshoot it by
+ * its own size.
+ *
+ * The 20 counts model steps (`stepIndex`), not provider attempts. EVE retries
+ * a crashed or failed step up to 4 times under the same index, and restores
+ * session state from the step's input on each retry, so attempts can't be
+ * counted durably from here; retries are bounded by EVE, not by this cap.
  */
 export const MAX_STEPS_PER_TURN = 20;
 export const MAX_TURN_INPUT_TOKENS = 1_500_000;

@@ -2,7 +2,11 @@ import { randomUUID } from "node:crypto";
 import { asUser, coachSessions, withService } from "@fitme/db";
 import { inArray } from "drizzle-orm";
 import { afterAll, describe, expect, it } from "vitest";
-import { listCoachSessionIds, recordCoachSession } from "../src/coach-sessions";
+import {
+  getCoachSessionOwner,
+  listCoachSessionIds,
+  recordCoachSession,
+} from "../src/coach-sessions";
 
 /**
  * recordCoachSession and listCoachSessionIds through asUser, against a local
@@ -62,5 +66,23 @@ describe("recordCoachSession", () => {
     expect(
       await asUser(owner, (tx) => listCoachSessionIds(tx, owner))
     ).not.toContain(otherSession);
+  });
+});
+
+describe("getCoachSessionOwner", () => {
+  it("names the User a session was recorded for", async () => {
+    await asUser(owner, (tx) => recordCoachSession(tx, owner, ownerSession));
+
+    expect(
+      await withService((tx) => getCoachSessionOwner(tx, ownerSession))
+    ).toBe(owner);
+  });
+
+  it("returns null for a session nobody recorded", async () => {
+    expect(
+      await withService((tx) =>
+        getCoachSessionOwner(tx, `wrun_svcCoachUnknown${runId}`)
+      )
+    ).toBeNull();
   });
 });

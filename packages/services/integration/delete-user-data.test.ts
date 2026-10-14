@@ -1,6 +1,7 @@
 import { randomUUID } from "node:crypto";
 import {
   asUser,
+  coachSessions,
   conversations,
   exercises,
   messages,
@@ -39,6 +40,7 @@ const chainC = `user_svcChainC${runId}`;
 const REFUSED = "42501";
 
 interface OwnedRows {
+  coachSession: string;
   conversation: string;
   message: string;
   plan: string;
@@ -112,8 +114,13 @@ const seedUser = (userId: string): Promise<OwnedRows> =>
       .insert(messages)
       .values({ content: "Hi", conversationId: conversation.id, role: "user" })
       .returning({ id: messages.id });
+    const [coachSession] = await tx
+      .insert(coachSessions)
+      .values({ sessionId: `wrun_${userId}`, userId })
+      .returning({ sessionId: coachSessions.sessionId });
 
     return {
+      coachSession: coachSession.sessionId,
       conversation: conversation.id,
       message: message.id,
       plan: plan.id,
@@ -146,6 +153,10 @@ const count = async (
 /** How many of the seeded rows still exist, per table. */
 const remaining = (rows: OwnedRows) =>
   withService(async (tx) => ({
+    coachSession: await tx.$count(
+      coachSessions,
+      eq(coachSessions.sessionId, rows.coachSession)
+    ),
     conversation: await count(tx, conversations, rows.conversation),
     message: await count(tx, messages, rows.message),
     plan: await count(tx, plans, rows.plan),
@@ -163,6 +174,7 @@ const remaining = (rows: OwnedRows) =>
   }));
 
 const allRows = (present: 0 | 1) => ({
+  coachSession: present,
   conversation: present,
   message: present,
   plan: present,

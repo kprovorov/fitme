@@ -33,13 +33,18 @@ const clerkToken = (
   return `${unsigned}.${signature.toString("base64url")}`;
 };
 
-const request = (authorization?: string) =>
-  new Request("http://coach.test/eve/v1/session", {
+const request = (authorization?: string, path = "/eve/v1/session") =>
+  new Request(`http://coach.test${path}`, {
     headers: authorization ? { authorization } : {},
     method: "POST",
   });
 
-const auth = clerkSession({ jwtKey: () => jwtKey });
+const sessionOwners: Record<string, string> = { wrun_alice: "user_alice" };
+const sessionOwner = vi.fn((sessionId: string) =>
+  Promise.resolve(sessionOwners[sessionId] ?? null)
+);
+
+const auth = clerkSession({ jwtKey: () => jwtKey, sessionOwner });
 
 describe("clerkSession", () => {
   it("makes the verified Clerk User the principal", async () => {
@@ -98,7 +103,10 @@ describe("clerkSession", () => {
   });
 
   it("fails closed when CLERK_JWT_KEY is missing", async () => {
-    const unconfigured = clerkSession({ jwtKey: () => undefined });
+    const unconfigured = clerkSession({
+      jwtKey: () => undefined,
+      sessionOwner,
+    });
 
     await expect(
       routeAuth(
@@ -106,5 +114,56 @@ describe("clerkSession", () => {
         unconfigured
       )
     ).rejects.toThrow("CLERK_JWT_KEY");
+  });
+
+  it("doesn't look up an owner when no session is addressed", async () => {
+    await routeAuth(
+      request(`Bearer ${clerkToken({ sub: "user_alice" })}`),
+      auth
+    );
+
+    expect(sessionOwner).not.toHaveBeenCalled();
+  });
+
+  it.each([
+    "/eve/v1/session/wrun_alice",
+    "/eve/v1/session/wrun_alice/stream",
+    "/eve/v1/session/wrun_alice/reset",
+  ])("lets the owner use their session at %s", async (path) => {
+    const result = await routeAuth(
+      request(`Bearer ${clerkToken({ sub: "user_alice" })}`, path),
+      auth
+    );
+
+    expect(result).toMatchObject({ principalId: "user_alice" });
+    expect(sessionOwner).toHaveBeenCalledWith("wrun_alice");
+  });
+
+  it.each([
+    "/eve/v1/session/wrun_alice",
+    "/eve/v1/session/wrun_alice/stream",
+    "/eve/v1/session/wrun_alice/cancel",
+    "/eve/v1/session/wrun_alice/clear",
+    "/eve/v1/session/wrun_alice/compact",
+    "/eve/v1/session/wrun_alice/reset",
+  ])("answers 403 on another User's session at %s", async (path) => {
+    const result = await routeAuth(
+      request(`Bearer ${clerkToken({ sub: "user_mallory" })}`, path),
+      auth
+    );
+
+    expect((result as Response).status).toBe(403);
+  });
+
+  it("lets a session through before its first turn records it", async () => {
+    const result = await routeAuth(
+      request(
+        `Bearer ${clerkToken({ sub: "user_alice" })}`,
+        "/eve/v1/session/wrun_new/stream"
+      ),
+      auth
+    );
+
+    expect(result).toMatchObject({ principalId: "user_alice" });
   });
 });

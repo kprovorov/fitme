@@ -45,7 +45,6 @@ export const coachSessions = pgTable(
       as: "permissive",
       for: "select",
       to: ["authenticated"],
-      using: sql`(user_id = ( SELECT current_user_id() AS current_user_id))`,
     }),
   ]
 );
