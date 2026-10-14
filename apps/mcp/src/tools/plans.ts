@@ -27,12 +27,6 @@ import {
 const PLAN_METADATA_COLUMNS =
   "name, description, goal, place, frequency, experience_level, workout_duration, note";
 
-const PLAN_SUMMARY_SELECT = `
-  id, name, description, goal, place, frequency, experience_level,
-  workout_duration, note, is_active, created_at, updated_at,
-  workouts ( id, name, order, exercises:workout_exercises ( id ) )
-`;
-
 const PLAN_DETAIL_SELECT = `
   id, name, description, goal, place, frequency, experience_level,
   workout_duration, note, is_active, created_at, updated_at,
@@ -72,23 +66,6 @@ const sortWorkouts = <W extends OrderedWorkout>(workouts: W[]) =>
     })),
   }));
 
-interface SummaryWorkout {
-  exercises: unknown[];
-  order: number;
-}
-
-/** Plan columns plus workouts in rotation order with an exercise count. */
-const toPlanSummary = <P extends { workouts: SummaryWorkout[] }>({
-  workouts,
-  ...plan
-}: P) => ({
-  ...plan,
-  workouts: byOrder(workouts).map(({ exercises, ...workout }) => ({
-    ...workout,
-    exercise_count: exercises.length,
-  })),
-});
-
 async function loadPlan(supabase: FitmeSupabaseClient, planId: string) {
   const plan = requireFound(
     unwrap(
@@ -102,21 +79,6 @@ async function loadPlan(supabase: FitmeSupabaseClient, planId: string) {
     planNotFound(planId)
   );
   return { ...plan, workouts: sortWorkouts(plan.workouts) };
-}
-
-async function loadPlanSummary(supabase: FitmeSupabaseClient, planId: string) {
-  const plan = requireFound(
-    unwrap(
-      await supabase
-        .from("plans")
-        .select(PLAN_SUMMARY_SELECT)
-        .eq("id", planId)
-        .is("deleted_at", null)
-        .maybeSingle()
-    ),
-    planNotFound(planId)
-  );
-  return toPlanSummary(plan);
 }
 
 const chunk = <T>(items: T[], size: number): T[][] =>
@@ -145,21 +107,6 @@ async function assertExercisesExist(
       `Unknown exercise_id(s): ${unknown.join(", ")}. Use list_exercises to look up valid exercise ids.`
     );
   }
-}
-
-/** Throws unless the plan exists, belongs to the caller and isn't deleted. */
-async function assertPlanIsLive(supabase: FitmeSupabaseClient, planId: string) {
-  requireFound(
-    unwrap(
-      await supabase
-        .from("plans")
-        .select("id")
-        .eq("id", planId)
-        .is("deleted_at", null)
-        .maybeSingle()
-    ),
-    planNotFound(planId)
-  );
 }
 
 type PlanMetadataUpdate = Partial<{
@@ -363,19 +310,15 @@ function registerPlanWriteTools(server: McpServer, ctx: ToolContext) {
       inputSchema: { planId: planIdSchema },
       title: "Activate plan",
     },
-    withUser(ctx, async ({ planId }, { supabase }) => {
-      // The RPC only checks ownership, so guard against soft-deleted plans.
-      await assertPlanIsLive(supabase, planId);
-      unwrap(await supabase.rpc("activate_plan", { plan_id: planId }));
-      return readBack(
-        async () => ({
-          activated: true,
-          plan: await loadPlanSummary(supabase, planId),
-        }),
-        { activated: true, planId },
-        GET_PLAN_FOLLOW_UP
-      );
-    })
+    withServices(ctx, async ({ planId }, services) =>
+      asJson({
+        activated: true,
+        plan: requireFound(
+          await services.activatePlan(planId),
+          planNotFound(planId)
+        ),
+      })
+    )
   );
 }
 
