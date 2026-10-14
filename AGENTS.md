@@ -13,6 +13,7 @@ apps/web                @fitme/web     — Next.js (App Router) web app
 apps/site               @fitme/site    — Next.js marketing site (fitmeproject.com)
 packages/core           @fitme/core    — domain models, labels, formatters, pure helpers
 packages/supabase       @fitme/supabase — Supabase project + generated DB types
+packages/db             @fitme/db      — asUser / withService: the only way backend apps reach Postgres
 packages/typescript-config              — shared tsconfig presets
 ```
 
@@ -44,6 +45,7 @@ pnpm mcp test            # vitest (in-memory MCP client)
 pnpm mcp test:integration # vitest against the local Supabase stack (needs SUPABASE_URL / SUPABASE_ANON_KEY, seeded exercises; CLERK_DEV_SECRET_KEY adds the Clerk OAuth suite)
 pnpm api build           # tsdown bundle → apps/api/dist
 pnpm api test            # vitest (Hono app via app.request)
+pnpm --filter @fitme/db test:integration # vitest through the local Supavisor pooler as the fitme login (needs a local stack)
 pnpm db start            # supabase start     (alias for pnpm --filter @fitme/supabase start)
 pnpm db seed             # seed local database
 pnpm db types:generate   # regenerate packages/supabase/src/database.types.ts
@@ -134,6 +136,16 @@ Stateless [Streamable HTTP](https://modelcontextprotocol.io) MCP server built on
 
 Platform-agnostic code shared by both apps: `models.ts` (Profile, Plan, Workout, Exercise, etc. plus enum arrays like `goals`, `muscleGroups`), `labels.ts`, `formatters.ts`, `names.ts` (`splitName`), `types.ts` (pagination), `utils.ts` (`range`, `muscleGroupToName`, `handleSupabaseError`). Tests use vitest. Nothing in here may import React Native, Expo, or Next.
 
+### packages/db — `@fitme/db`
+
+The only way backend apps reach Postgres (ADR 0003): Drizzle on node-postgres (`pg`, not postgres.js) through the Supavisor transaction pooler, as the shared `fitme` login. Source-only, like the other workspace packages.
+
+- `src/index.ts` — the two doors and the `Transaction` type. `asUser(userId, fn)` opens a transaction, runs `SET LOCAL ROLE authenticated` and `set_config('request.jwt.claims', {sub, role: authenticated}, true)`, then `fn(tx)`, so RLS and `current_user_id()` apply; `userId` only ever comes from a verified token. `withService(fn)` does the same as `service_role` (bypasses RLS; only where that is the point, such as webhooks). Both also set `application_name` locally.
+- `src/client.ts` — internal: the lazily created `pg.Pool` (small `max`, registered with `@vercel/functions`' `attachDatabasePool`) and Drizzle client, from `FITME_DATABASE_URL`, which must carry `?application_name=<app>`. Never export the raw client or pool, and never import this module from outside the package.
+- Never use a session-level `SET ROLE` or `set_config(…, false)` anywhere: the transaction pooler doesn't reset connections, so session state leaks to other requests.
+- `fitme` (migration `20261014130000_fitme_login.sql`) is `LOGIN NOINHERIT` with no grants of its own, a member of `authenticated` and `service_role` only, so a query outside both doors fails with "permission denied". Its credential is service-role strength: server environments only. Local stacks set its development password in `supabase/roles.sql` (run by the CLI before the migrations, never pushed); hosted projects set theirs by hand. The pooler user is `fitme.pooler-dev` locally and `fitme.<project-ref>` on hosted projects.
+- `integration/` (`test:integration`) runs the doors against the local stack's pooler (its port comes from `supabase status --output-format json`; `FITME_DATABASE_URL` overrides): identity and RLS, concurrent transactions with rollbacks never seeing another User's id, clean reused connections, and the login denied outside the doors. CI runs it in the integration-tests workflow.
+
 ### packages/supabase — `@fitme/supabase`
 
 - `supabase/` — Supabase CLI project: `config.toml`, `migrations/`, `functions/` (Edge Functions: `clerk-webhook`, `ai-agent`), `templates/`, `seed.ts`, `sync.ts`
@@ -146,7 +158,7 @@ Platform-agnostic code shared by both apps: `models.ts` (Profile, Plan, Workout,
 - Local signing keys: `config.toml` sets `[auth] signing_keys_path` to `supabase/local-only-signing-keys.json` (committed, development only): the local stack's own ES256 signer first, then the public half of the MCP server's development key, so local stacks accept tokens the MCP server signs (ADR 0002). Hosted projects trust their own MCP key as a standby key instead.
 - Identity (ADR 0001): every `user_id` column is `text` with no foreign key to `auth.users`. RLS policies and RPCs read the caller through `public.current_user_id()` (the JWT `sub` claim, only when the token's `role` claim is `authenticated`; NULL for role-less tokens such as Clerk OAuth access tokens, `anon` and any other role, and for ids in `private.retired_user_ids`); never use `auth.uid()`. Nothing cascades from Supabase Auth, so account deletion calls `delete_user_data(user_id)`, which retires the id so a still-valid token can't write it back (`current_user_id()` is NULL for it, and `reject_retired_user_id` triggers stop writes that bypass RLS); `rekey_user(old_id, new_id)` retires `old_id` with a pointer to `new_id`, and `delete_user_data` then refuses `old_id` (SQLSTATE 55000). Both are executable by `service_role` only.
 - Clerk User migration (FIT-73, one-shot, removed with the legacy auth rows): `scripts/clerk-migration.ts` reads `auth.users` over a direct Postgres connection, creates each Clerk User (verified email, name split on the first space, Supabase's bcrypt digest via `password_hasher: "bcrypt"`, legacy UUID as `external_id`; a rejected digest falls back to no password) and calls `rekey_user` with the service key. Reruns find Clerk Users by `external_id` and `private.retired_user_ids` marks Users already rekeyed. `scripts/migrate-users-to-clerk.ts` is the CLI; `scripts/check-clerk-migration.ts` is the CI check (integration-tests workflow, needs `CLERK_DEV_SECRET_KEY`).
-- `supabase/tests/` — pgTAP suite (`pnpm db test:db`). Impersonate a User with `set local role authenticated` plus `request.jwt.claims` carrying a Clerk-style text `sub` and `"role": "authenticated"`; don't insert into `auth.users`.
+- `supabase/tests/` — pgTAP suite (`pnpm db test:db`). `fitme_login.test.sql` checks the `fitme` login's attributes and memberships and fails when any `public` table has RLS disabled; every new table needs RLS. Impersonate a User with `set local role authenticated` plus `request.jwt.claims` carrying a Clerk-style text `sub` and `"role": "authenticated"`; don't insert into `auth.users`.
 
 ## Key Patterns
 
@@ -198,6 +210,10 @@ Env files live next to each app.
 
 `apps/site/.env.local` (see `apps/site/.env.example`): App Store id/url, support email, social links, GTM id, PostHog key.
 
+Backend apps that use `@fitme/db`:
+
+- `FITME_DATABASE_URL` — the `fitme` login's Supavisor transaction-pooler connection string with `?application_name=<app>` (locally `postgresql://fitme.pooler-dev:fitme-local-only@127.0.0.1:<pooler port>/postgres?application_name=<app>`; each stack's pooler port is in `supabase status --output-format json`). Service-role strength; server environments only.
+
 `apps/mcp` (see `apps/mcp/.env.example`; read from the process environment, not auto-loaded from a file):
 
 - `PORT` (default 3002)
@@ -223,7 +239,7 @@ Then review the diff against that intent: flag code that misses an acceptance cr
 
 ## CI/CD
 
-GitHub Actions use pnpm (`pnpm/action-setup`) and `pnpm install --frozen-lockfile`. Unit tests run through `pnpm turbo run test`; the pgTAP suite and the MCP integration tests run separately against a local Supabase stack (Supabase CLI) in `.github/workflows/integration-tests.yml`. The release workflow (`.github/workflows/release.yml`) never commits to `main` (it's protected): it derives the next version from the commits since the last `v*` tag following conventional commits (`feat:` → minor, `fix:` → patch, `BREAKING CHANGE:` or `type!:` → major), creates the tag with the GitHub release and the Linear release, then calls `.github/workflows/build-mobile.yml`. That workflow (also runnable by hand with a tag, to rebuild) stamps the tag's version into `apps/mobile/app.json` (whose committed `version` is a `0.0.0` placeholder) and starts the iOS production EAS build with auto-submit (both jobs run in the `production` GitHub environment, which holds the `EXPO_TOKEN` and `LINEAR_ACCESS_KEY` secrets). The tag is the source of truth for the app version. The exercise sync workflow runs `pnpm --filter @fitme/supabase exercises:sync` on pushes to `main` that touch the exercise data. The Database Types workflow (`.github/workflows/database-types.yml`) starts a local database, runs `pnpm db types:generate` (which also normalizes the output with Biome) and fails if `packages/supabase/src/database.types.ts` is stale.
+GitHub Actions use pnpm (`pnpm/action-setup`) and `pnpm install --frozen-lockfile`. Unit tests run through `pnpm turbo run test`; the pgTAP suite and the MCP and `packages/db` integration tests run separately against a local Supabase stack (Supabase CLI, Supavisor in transaction mode) in `.github/workflows/integration-tests.yml`. The release workflow (`.github/workflows/release.yml`) never commits to `main` (it's protected): it derives the next version from the commits since the last `v*` tag following conventional commits (`feat:` → minor, `fix:` → patch, `BREAKING CHANGE:` or `type!:` → major), creates the tag with the GitHub release and the Linear release, then calls `.github/workflows/build-mobile.yml`. That workflow (also runnable by hand with a tag, to rebuild) stamps the tag's version into `apps/mobile/app.json` (whose committed `version` is a `0.0.0` placeholder) and starts the iOS production EAS build with auto-submit (both jobs run in the `production` GitHub environment, which holds the `EXPO_TOKEN` and `LINEAR_ACCESS_KEY` secrets). The tag is the source of truth for the app version. The exercise sync workflow runs `pnpm --filter @fitme/supabase exercises:sync` on pushes to `main` that touch the exercise data. The Database Types workflow (`.github/workflows/database-types.yml`) starts a local database, runs `pnpm db types:generate` (which also normalizes the output with Biome) and fails if `packages/supabase/src/database.types.ts` is stale.
 
 ## Agent skills
 
