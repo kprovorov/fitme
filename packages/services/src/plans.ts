@@ -1,46 +1,5 @@
-import {
-  exercises,
-  plans,
-  type Transaction,
-  workoutExerciseSets,
-  workoutExercises,
-  workouts,
-} from "@fitme/db";
-import {
-  and,
-  asc,
-  count,
-  desc,
-  eq,
-  inArray,
-  isNotNull,
-  isNull,
-  type SQL,
-  sql,
-} from "drizzle-orm";
-import type { AnyPgColumn } from "drizzle-orm/pg-core";
-
-/**
- * A timestamp as Postgres encodes it in JSON (what PostgREST returned), e.g.
- * `2026-10-14T20:42:57.711123+00:00`, instead of `pg`'s text format.
- */
-const jsonTimestamp = (column: AnyPgColumn): SQL<string | null> =>
-  sql<string | null>`to_json(${column}) #>> '{}'`;
-
-const planColumns = {
-  created_at: jsonTimestamp(plans.createdAt),
-  description: plans.description,
-  experience_level: plans.experienceLevel,
-  frequency: plans.frequency,
-  goal: plans.goal,
-  id: plans.id,
-  is_active: plans.isActive,
-  name: plans.name,
-  note: plans.note,
-  place: plans.place,
-  updated_at: jsonTimestamp(plans.updatedAt),
-  workout_duration: plans.workoutDuration,
-};
+import { plans, type Transaction } from "@fitme/db";
+import { and, eq, isNotNull, isNull, sql } from "drizzle-orm";
 
 /** A Plan's own columns, without its Workouts. */
 export interface PlanRow {
@@ -100,165 +59,170 @@ export interface PlanDetail extends PlanRow {
   workouts: PlanWorkout[];
 }
 
-/** Looks rows up by a key: each key's rows, in the rows' order. */
-const lookupBy = <T>(rows: T[], key: (row: T) => string) => {
-  const groups = new Map<string, T[]>();
-  for (const row of rows) {
-    const group = groups.get(key(row));
-    if (group) {
-      group.push(row);
-    } else {
-      groups.set(key(row), [row]);
-    }
-  }
-  return (id: string) => groups.get(id) ?? [];
-};
+/**
+ * The Plan columns of a relational query. Timestamps come as Postgres encodes
+ * them in JSON (what PostgREST returned), e.g.
+ * `2026-10-14T20:42:57.711123+00:00`, instead of `pg`'s text format.
+ */
+const planQuery = {
+  columns: {
+    description: true,
+    experienceLevel: true,
+    frequency: true,
+    goal: true,
+    id: true,
+    isActive: true,
+    name: true,
+    note: true,
+    place: true,
+    workoutDuration: true,
+  },
+  extras: {
+    createdAtJson: sql<string | null>`to_json(${plans.createdAt}) #>> '{}'`.as(
+      "created_at_json"
+    ),
+    updatedAtJson: sql<string | null>`to_json(${plans.updatedAt}) #>> '{}'`.as(
+      "updated_at_json"
+    ),
+  },
+} as const;
+
+interface PlanQueryRow {
+  createdAtJson: string | null;
+  description: string | null;
+  experienceLevel: string;
+  frequency: number;
+  goal: string;
+  id: string;
+  isActive: boolean;
+  name: string | null;
+  note: string | null;
+  place: string;
+  updatedAtJson: string | null;
+  workoutDuration: number;
+}
+
+const toPlanRow = (plan: PlanQueryRow): PlanRow => ({
+  created_at: plan.createdAtJson,
+  description: plan.description,
+  experience_level: plan.experienceLevel,
+  frequency: plan.frequency,
+  goal: plan.goal,
+  id: plan.id,
+  is_active: plan.isActive,
+  name: plan.name,
+  note: plan.note,
+  place: plan.place,
+  updated_at: plan.updatedAtJson,
+  workout_duration: plan.workoutDuration,
+});
 
 const livePlansOf = (userId: string) =>
   and(eq(plans.userId, userId), isNull(plans.deletedAt));
 
 /**
  * The User's live (not soft-deleted) Plans, newest first, each with its
- * Workouts in rotation order and their Exercise counts. Runs in `tx` from
- * `asUser`; RLS hides every other User's Plans as well.
+ * Workouts in rotation order and their Exercise counts. One statement, so one
+ * snapshot: a concurrent update never mixes old and new rows. Runs in `tx`
+ * from `asUser`; RLS hides every other User's Plans as well.
  */
 export const listPlans = async (
   tx: Transaction,
   userId: string
 ): Promise<PlanSummary[]> => {
-  const rows = await tx
-    .select(planColumns)
-    .from(plans)
-    .where(livePlansOf(userId))
-    .orderBy(desc(plans.createdAt), asc(plans.id));
-  if (rows.length === 0) {
-    return [];
-  }
-  const planWorkouts = await tx
-    .select({
-      exercise_count: count(workoutExercises.id),
-      id: workouts.id,
-      name: workouts.name,
-      order: workouts.order,
-      planId: workouts.planId,
-    })
-    .from(workouts)
-    .leftJoin(workoutExercises, eq(workoutExercises.workoutId, workouts.id))
-    .where(
-      inArray(
-        workouts.planId,
-        rows.map((plan) => plan.id)
-      )
-    )
-    .groupBy(workouts.id)
-    .orderBy(asc(workouts.order), asc(workouts.id));
-  const workoutsOf = lookupBy(planWorkouts, (workout) => workout.planId);
-  return rows.map((plan) => ({
-    ...plan,
-    workouts: workoutsOf(plan.id).map(
-      ({ planId: _planId, ...workout }) => workout
-    ),
-  }));
-};
-
-/** The Workouts of a Plan in full, each level in order. */
-const loadWorkouts = async (
-  tx: Transaction,
-  planId: string
-): Promise<PlanWorkout[]> => {
-  const planWorkouts = await tx
-    .select({
-      description: workouts.description,
-      id: workouts.id,
-      name: workouts.name,
-      order: workouts.order,
-    })
-    .from(workouts)
-    .where(eq(workouts.planId, planId))
-    .orderBy(asc(workouts.order), asc(workouts.id));
-  if (planWorkouts.length === 0) {
-    return [];
-  }
-  const workoutExerciseRows = await tx
-    .select({
-      exercise: {
-        id: exercises.id,
-        muscle_groups: exercises.muscleGroups,
-        name: exercises.name,
+  const rows = await tx.query.plans.findMany({
+    ...planQuery,
+    orderBy: (plan, { asc, desc }) => [desc(plan.createdAt), asc(plan.id)],
+    where: livePlansOf(userId),
+    with: {
+      workouts: {
+        columns: { id: true, name: true, order: true },
+        orderBy: (workout, { asc }) => [asc(workout.order), asc(workout.id)],
+        with: { workoutExercises: { columns: { id: true } } },
       },
-      id: workoutExercises.id,
-      order: workoutExercises.order,
-      workoutId: workoutExercises.workoutId,
-    })
-    .from(workoutExercises)
-    .innerJoin(exercises, eq(exercises.id, workoutExercises.exerciseId))
-    .where(
-      inArray(
-        workoutExercises.workoutId,
-        planWorkouts.map((workout) => workout.id)
-      )
-    )
-    .orderBy(asc(workoutExercises.order), asc(workoutExercises.id));
-  const setRows =
-    workoutExerciseRows.length === 0
-      ? []
-      : await tx
-          .select({
-            id: workoutExerciseSets.id,
-            order: workoutExerciseSets.order,
-            reps_recommended: workoutExerciseSets.repsRecommended,
-            rest_recommended: workoutExerciseSets.restRecommended,
-            weight_recommended: workoutExerciseSets.weightRecommended,
-            workoutExerciseId: workoutExerciseSets.workoutExerciseId,
-          })
-          .from(workoutExerciseSets)
-          .where(
-            inArray(
-              workoutExerciseSets.workoutExerciseId,
-              workoutExerciseRows.map((row) => row.id)
-            )
-          )
-          .orderBy(asc(workoutExerciseSets.order), asc(workoutExerciseSets.id));
-  const setsOf = lookupBy(setRows, (set) => set.workoutExerciseId);
-  const exercisesOf = lookupBy(workoutExerciseRows, (row) => row.workoutId);
-  return planWorkouts.map((workout) => ({
-    ...workout,
-    exercises: exercisesOf(workout.id).map(
-      ({ workoutId: _workoutId, ...exercise }) => ({
-        ...exercise,
-        sets: setsOf(exercise.id).map(
-          ({
-            weight_recommended,
-            workoutExerciseId: _workoutExerciseId,
-            ...set
-          }) => ({
-            ...set,
-            // numeric columns arrive as strings; PostgREST returned numbers
-            weight_recommended: Number(weight_recommended),
-          })
-        ),
-      })
-    ),
+    },
+  });
+  return rows.map(({ workouts, ...plan }) => ({
+    ...toPlanRow(plan),
+    workouts: workouts.map(({ workoutExercises, ...workout }) => ({
+      exercise_count: workoutExercises.length,
+      ...workout,
+    })),
   }));
 };
 
 /**
  * One of the User's live Plans in full, or `null` when it doesn't exist, was
- * soft-deleted or belongs to another User. Runs in `tx` from `asUser`.
+ * soft-deleted or belongs to another User. One statement, so one snapshot.
+ * Runs in `tx` from `asUser`.
  */
 export const getPlan = async (
   tx: Transaction,
   userId: string,
   planId: string
 ): Promise<PlanDetail | null> => {
-  const [plan] = await tx
-    .select(planColumns)
-    .from(plans)
-    .where(and(livePlansOf(userId), eq(plans.id, planId)));
-  if (!plan) {
+  const row = await tx.query.plans.findFirst({
+    ...planQuery,
+    where: and(livePlansOf(userId), eq(plans.id, planId)),
+    with: {
+      workouts: {
+        columns: { description: true, id: true, name: true, order: true },
+        orderBy: (workout, { asc }) => [asc(workout.order), asc(workout.id)],
+        with: {
+          workoutExercises: {
+            columns: { id: true, order: true },
+            orderBy: (exercise, { asc }) => [
+              asc(exercise.order),
+              asc(exercise.id),
+            ],
+            with: {
+              exercise: {
+                columns: { id: true, muscleGroups: true, name: true },
+              },
+              workoutExerciseSets: {
+                columns: {
+                  id: true,
+                  order: true,
+                  repsRecommended: true,
+                  restRecommended: true,
+                  weightRecommended: true,
+                },
+                orderBy: (set, { asc }) => [asc(set.order), asc(set.id)],
+              },
+            },
+          },
+        },
+      },
+    },
+  });
+  if (!row) {
     return null;
   }
-  return { ...plan, workouts: await loadWorkouts(tx, plan.id) };
+  const { workouts, ...plan } = row;
+  return {
+    ...toPlanRow(plan),
+    workouts: workouts.map(({ workoutExercises, ...workout }) => ({
+      ...workout,
+      exercises: workoutExercises.map(
+        ({ exercise, workoutExerciseSets, ...workoutExercise }) => ({
+          exercise: {
+            id: exercise.id,
+            muscle_groups: exercise.muscleGroups,
+            name: exercise.name,
+          },
+          ...workoutExercise,
+          sets: workoutExerciseSets.map((set) => ({
+            id: set.id,
+            order: set.order,
+            reps_recommended: set.repsRecommended,
+            rest_recommended: set.restRecommended,
+            // numeric columns arrive as strings; PostgREST returned numbers
+            weight_recommended: Number(set.weightRecommended),
+          })),
+        })
+      ),
+    })),
+  };
 };
 
 export interface DeletedPlan {
