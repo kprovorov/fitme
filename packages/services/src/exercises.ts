@@ -156,32 +156,27 @@ export interface ExerciseHistoryQuery {
   limit: number;
 }
 
+const hasWeight = isNotNull(workoutSessionExerciseSets.weightCompleted);
+
 /**
  * The User's logged sets for one Exercise, newest entry first, in `tx` (from
  * `asUser`). Entries without a set with a logged weight are skipped. Only the
- * User's own Workout Sessions count; RLS hides everyone else's too.
+ * User's own Workout Sessions count; RLS hides everyone else's too. One
+ * statement, so entries and their sets come from one snapshot.
  */
 export const getExerciseHistory = async (
   tx: Transaction,
   userId: string,
   { exerciseId, limit }: ExerciseHistoryQuery
 ): Promise<ExerciseHistoryEntry[]> => {
-  const entries = await tx
-    .select({
-      finished_at: jsonTimestamp(workoutSessions.finishedAt),
-      plan: { id: plans.id, name: plans.name },
-      session_exercise_id: workoutSessionExercises.id,
-      session_id: workoutSessions.id,
-      started_at: jsonTimestamp(workoutSessions.startedAt),
-      workout: { id: workouts.id, name: workouts.name },
-    })
+  const newest = desc(workoutSessionExercises.createdAt);
+  const latestEntries = tx
+    .select({ id: workoutSessionExercises.id })
     .from(workoutSessionExercises)
     .innerJoin(
       workoutSessions,
       eq(workoutSessions.id, workoutSessionExercises.workoutSessionId)
     )
-    .leftJoin(workouts, eq(workouts.id, workoutSessions.workoutId))
-    .leftJoin(plans, eq(plans.id, workoutSessions.planId))
     .where(
       and(
         eq(workoutSessionExercises.exerciseId, exerciseId),
@@ -196,54 +191,72 @@ export const getExerciseHistory = async (
                   workoutSessionExerciseSets.workoutSessionExerciseId,
                   workoutSessionExercises.id
                 ),
-                isNotNull(workoutSessionExerciseSets.weightCompleted)
+                hasWeight
               )
             )
         )
       )
     )
-    .orderBy(
-      desc(workoutSessionExercises.createdAt),
-      desc(workoutSessionExercises.id)
-    )
+    .orderBy(newest, desc(workoutSessionExercises.id))
     .limit(limit);
-  if (entries.length === 0) {
-    return [];
-  }
 
-  const sets = await tx
+  const rows = await tx
     .select({
-      id: workoutSessionExerciseSets.id,
-      logged_at: jsonTimestamp(workoutSessionExerciseSets.loggedAt),
-      order: workoutSessionExerciseSets.order,
-      reps_completed: workoutSessionExerciseSets.repsCompleted,
-      sessionExerciseId: workoutSessionExerciseSets.workoutSessionExerciseId,
-      weight_completed: workoutSessionExerciseSets.weightCompleted,
+      entry: {
+        finished_at: jsonTimestamp(workoutSessions.finishedAt),
+        session_exercise_id: workoutSessionExercises.id,
+        session_id: workoutSessions.id,
+        started_at: jsonTimestamp(workoutSessions.startedAt),
+      },
+      plan: { id: plans.id, name: plans.name },
+      set: {
+        id: workoutSessionExerciseSets.id,
+        logged_at: jsonTimestamp(workoutSessionExerciseSets.loggedAt),
+        order: workoutSessionExerciseSets.order,
+        reps_completed: workoutSessionExerciseSets.repsCompleted,
+        weight_completed: workoutSessionExerciseSets.weightCompleted,
+      },
+      workout: { id: workouts.id, name: workouts.name },
     })
-    .from(workoutSessionExerciseSets)
-    .where(
+    .from(workoutSessionExercises)
+    .innerJoin(
+      workoutSessions,
+      eq(workoutSessions.id, workoutSessionExercises.workoutSessionId)
+    )
+    .innerJoin(
+      workoutSessionExerciseSets,
       and(
-        inArray(
+        eq(
           workoutSessionExerciseSets.workoutSessionExerciseId,
-          entries.map((entry) => entry.session_exercise_id)
+          workoutSessionExercises.id
         ),
-        isNotNull(workoutSessionExerciseSets.weightCompleted)
+        hasWeight
       )
     )
+    .leftJoin(workouts, eq(workouts.id, workoutSessions.workoutId))
+    .leftJoin(plans, eq(plans.id, workoutSessions.planId))
+    .where(inArray(workoutSessionExercises.id, latestEntries))
     .orderBy(
+      newest,
+      desc(workoutSessionExercises.id),
       asc(workoutSessionExerciseSets.order),
       asc(workoutSessionExerciseSets.id)
     );
 
-  const setsByEntry = new Map<string, ExerciseHistorySet[]>();
-  for (const { sessionExerciseId, weight_completed, ...set } of sets) {
-    const entrySets = setsByEntry.get(sessionExerciseId) ?? [];
+  const entries = new Map<string, ExerciseHistoryEntry>();
+  for (const { entry, plan, set, workout } of rows) {
+    const current = entries.get(entry.session_exercise_id) ?? {
+      ...entry,
+      plan,
+      sets: [],
+      workout,
+    };
     // numeric columns arrive as strings; PostgREST returned numbers
-    entrySets.push({ ...set, weight_completed: Number(weight_completed) });
-    setsByEntry.set(sessionExerciseId, entrySets);
+    current.sets.push({
+      ...set,
+      weight_completed: Number(set.weight_completed),
+    });
+    entries.set(entry.session_exercise_id, current);
   }
-  return entries.map((entry) => ({
-    ...entry,
-    sets: setsByEntry.get(entry.session_exercise_id) ?? [],
-  }));
+  return [...entries.values()];
 };
