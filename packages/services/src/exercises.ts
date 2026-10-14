@@ -18,6 +18,7 @@ import {
   ilike,
   inArray,
   isNotNull,
+  type SQL,
   sql,
 } from "drizzle-orm";
 import { jsonTimestamp } from "./json-timestamp";
@@ -54,6 +55,15 @@ export interface ExercisePage {
   total: number;
 }
 
+/** An empty page has no row to carry the total: count it on its own. */
+const countMatches = async (tx: Transaction, filters: SQL | undefined) => {
+  const [counted] = await tx
+    .select({ total: count() })
+    .from(exercises)
+    .where(filters);
+  return counted?.total ?? 0;
+};
+
 /**
  * One page of the Exercise library, alphabetical (ties by id), plus the total
  * matching the filters. An offset past the end is an empty page, not an error.
@@ -68,27 +78,23 @@ export const listExercises = async (
       ? sql`${exercises.muscleGroups} @> ${JSON.stringify([muscleGroup])}::jsonb`
       : undefined
   );
-  const [counted] = await tx
-    .select({ total: count() })
+  // the total rides along on every row, so page and total share a snapshot
+  const matches = await tx
+    .select({
+      description: exercises.description,
+      id: exercises.id,
+      muscle_groups: exercises.muscleGroups,
+      name: exercises.name,
+      slug: exercises.slug,
+      total: sql<number>`count(*) over ()`.mapWith(Number),
+    })
     .from(exercises)
-    .where(filters);
-  const total = counted?.total ?? 0;
-  const rows =
-    offset < total
-      ? await tx
-          .select({
-            description: exercises.description,
-            id: exercises.id,
-            muscle_groups: exercises.muscleGroups,
-            name: exercises.name,
-            slug: exercises.slug,
-          })
-          .from(exercises)
-          .where(filters)
-          .orderBy(asc(exercises.name), asc(exercises.id))
-          .limit(limit)
-          .offset(offset)
-      : [];
+    .where(filters)
+    .orderBy(asc(exercises.name), asc(exercises.id))
+    .limit(limit)
+    .offset(offset);
+  const rows = matches.map(({ total: _, ...row }) => row);
+  const total = matches[0]?.total ?? (await countMatches(tx, filters));
   return {
     exercises: rows,
     hasMore: offset + rows.length < total,
