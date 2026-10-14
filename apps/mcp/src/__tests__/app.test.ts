@@ -1,9 +1,9 @@
 import { getAuth } from "@clerk/hono";
-import { decodeJwt, importJWK, jwtVerify, UnsecuredJWT } from "jose";
+import { UnsecuredJWT } from "jose";
 import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
 import { createApp } from "../app.js";
 import type { ServicesFactory } from "../services.js";
-import { createFakeSupabase, ok } from "./fake-supabase.js";
+import { createFakeSupabase } from "./fake-supabase.js";
 import { expectAllCallsRouted, fakeServices } from "./harness.js";
 import { SIGNING_KEY } from "./signing-key.js";
 
@@ -53,16 +53,6 @@ const rejectToken = () => {
   } as unknown as ReturnType<typeof getAuth>);
 };
 
-const verifySupabaseToken = async (token: string) => {
-  const { d: _private, ...publicKey } = SIGNING_KEY;
-  const { payload } = await jwtVerify(
-    token,
-    await importJWK({ ...publicKey, key_ops: ["verify"] }, "ES256"),
-    { currentDate: NOW }
-  );
-  return payload;
-};
-
 type TestApp = ReturnType<typeof createApp>;
 
 const rpc = (
@@ -109,15 +99,6 @@ const callTool = (
 ) =>
   rpc(app, { method: "tools/call", params: { arguments: args, name } }, token);
 
-const PLAN_ID = "11111111-1111-4111-8111-111111111111";
-const renamedPlan = { id: PLAN_ID, name: "Renamed", workouts: [] };
-
-/**
- * A tool still on Supabase (it answers `update_plan` renaming `PLAN_ID`).
- */
-const callSupabaseTool = (app: TestApp, token?: string) =>
-  callTool(app, "update_plan", token, { name: "Renamed", planId: PLAN_ID });
-
 /** The tool result inside a 200 SSE response. */
 const readToolResult = async (response: Response) => {
   const [, data] = (await response.text()).match(SSE_DATA_LINE) ?? [];
@@ -156,7 +137,7 @@ const profileServices: ServicesFactory = (userId) =>
 /**
  * The app with fake services and a fake Supabase client per request. Records
  * the User id every services object is built for and every signed token the
- * Supabase client receives (it answers `update_plan` renaming `PLAN_ID`).
+ * Supabase client receives (no tool reaches it any more, so none should).
  */
 const createTestApp = () => {
   const servicesUserIds: string[] = [];
@@ -168,21 +149,7 @@ const createTestApp = () => {
     },
     createSupabaseClient: (token) => {
       supabaseTokens.push(token);
-      return createFakeSupabase([
-        {
-          filters: [["eq", "id", PLAN_ID]],
-          name: "plans",
-          operation: "update",
-          response: ok([{ id: PLAN_ID }]),
-        },
-        {
-          filters: [["eq", "id", PLAN_ID]],
-          name: "plans",
-          operation: "select",
-          response: ok(renamedPlan),
-          select: "workouts (",
-        },
-      ]).client;
+      return createFakeSupabase([]).client;
     },
     logRequests: false,
   });
@@ -385,41 +352,6 @@ describe("with a valid Clerk token", () => {
     expect(supabaseTokens).toEqual([]);
   });
 
-  it("runs Supabase tools with a token signed for the Clerk User", async () => {
-    signInAs("user_alice");
-    const { app, supabaseTokens } = createTestApp();
-
-    const response = await callSupabaseTool(app, clerkToken("user_alice"));
-
-    expect(response.status).toBe(200);
-    const result = await readToolResult(response);
-    expect(result.isError).toBe(false);
-    expect(JSON.parse(result.text)).toEqual(renamedPlan);
-    expect(supabaseTokens).toHaveLength(1);
-    expect(await verifySupabaseToken(supabaseTokens[0] ?? "")).toEqual({
-      aud: "authenticated",
-      exp: NOW_SECONDS + 300,
-      iat: NOW_SECONDS,
-      iss: "fitme-mcp",
-      role: "authenticated",
-      sub: "user_alice",
-    });
-  });
-
-  it("never lets the Supabase token outlive the Clerk token", async () => {
-    signInAs("user_alice");
-    const { app, supabaseTokens } = createTestApp();
-
-    const response = await callSupabaseTool(
-      app,
-      clerkToken("user_alice", NOW_SECONDS + 42)
-    );
-
-    expect((await readToolResult(response)).isError).toBe(false);
-
-    expect(decodeJwt(supabaseTokens[0] ?? "").exp).toBe(NOW_SECONDS + 42);
-  });
-
   it("scopes each request to its own User", async () => {
     const { app } = createTestApp();
 
@@ -468,20 +400,6 @@ describe("with a valid Clerk token", () => {
       "get_profile",
       clerkToken("user_alice")
     );
-
-    expect(response.status).toBe(200);
-    const result = await readToolResult(response);
-    expect(result.isError).toBe(true);
-    expect(result.text).toContain("not configured");
-  });
-
-  it("reports missing Supabase config as a tool error", async () => {
-    vi.stubEnv("SUPABASE_URL", "");
-    vi.stubEnv("SUPABASE_ANON_KEY", "");
-    signInAs("user_alice");
-    const app = createApp({ logRequests: false });
-
-    const response = await callSupabaseTool(app, clerkToken("user_alice"));
 
     expect(response.status).toBe(200);
     const result = await readToolResult(response);
