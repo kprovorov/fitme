@@ -34,11 +34,15 @@ select is(
   'fitme can switch to authenticated and service_role only'
 );
 
+-- Straight from the ACLs: information_schema hides grants on objects the
+-- session's roles don't own.
 select is_empty(
   $$
-    select table_schema, table_name, privilege_type
-    from information_schema.role_table_grants
-    where grantee = 'fitme'
+    select n.nspname, c.relname, acl.privilege_type
+    from pg_catalog.pg_class c
+    join pg_catalog.pg_namespace n on n.oid = c.relnamespace
+    cross join lateral aclexplode(c.relacl) acl
+    where acl.grantee = 'fitme'::regrole
   $$,
   'fitme has no direct table grants'
 );

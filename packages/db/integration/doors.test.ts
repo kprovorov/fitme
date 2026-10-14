@@ -1,7 +1,7 @@
 import { randomUUID } from "node:crypto";
 import { sql } from "drizzle-orm";
 import { afterAll, beforeAll, describe, expect, it } from "vitest";
-import { closeDatabase, getDatabase } from "../src/client";
+import { closeConnection, getConnection } from "../src/client";
 import { asUser, type Transaction, withService } from "../src/index";
 
 /**
@@ -62,7 +62,7 @@ afterAll(async () => {
       sql`delete from public.conversations where user_id in ${everyUser}`
     )
   );
-  await closeDatabase();
+  await closeConnection();
 });
 
 describe("asUser", () => {
@@ -195,7 +195,7 @@ describe("on the pooler", () => {
   });
 
   it("leaves reused connections with the role reset and no claims", async () => {
-    const { pool } = getDatabase();
+    const { pool } = getConnection();
 
     const rows = await Promise.all(
       Array.from({ length: BARE_QUERIES }, async () => {
@@ -221,7 +221,7 @@ describe("on the pooler", () => {
   });
 
   it("denies the fitme login outside both doors", async () => {
-    const { pool } = getDatabase();
+    const { pool } = getConnection();
 
     await expect(
       pool.query("select user_id from public.conversations limit 1")

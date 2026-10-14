@@ -9,7 +9,7 @@ import { Pool } from "pg";
  */
 
 /** The fitme login's pooler connection string, with `application_name`. */
-export const DATABASE_URL_ENV = "FITME_DATABASE_URL";
+const DATABASE_URL_ENV = "FITME_DATABASE_URL";
 
 // Fluid instances each hold their own pool; keep it small (research §9.5).
 const POOL_MAX = 5;
@@ -17,13 +17,13 @@ const POOL_MAX = 5;
 // alive until idle clients are released.
 const IDLE_TIMEOUT_MS = 10_000;
 
-interface Database {
+interface Connection {
   applicationName: string;
   db: NodePgDatabase;
   pool: Pool;
 }
 
-let database: Database | undefined;
+let connection: Connection | undefined;
 
 const readConfig = () => {
   const connectionString = process.env[DATABASE_URL_ENV];
@@ -42,9 +42,9 @@ const readConfig = () => {
 };
 
 /** The pool, created from env on first use. */
-export const getDatabase = (): Database => {
-  if (database) {
-    return database;
+export const getConnection = (): Connection => {
+  if (connection) {
+    return connection;
   }
   const { applicationName, connectionString } = readConfig();
   const pool = new Pool({
@@ -58,13 +58,13 @@ export const getDatabase = (): Database => {
   pool.on("error", () => undefined);
   // A no-op off Vercel.
   attachDatabasePool(pool);
-  database = { applicationName, db: drizzle({ client: pool }), pool };
-  return database;
+  connection = { applicationName, db: drizzle({ client: pool }), pool };
+  return connection;
 };
 
 /** Closes the pool. For tests and scripts that must exit. */
-export const closeDatabase = async () => {
-  const current = database;
-  database = undefined;
+export const closeConnection = async () => {
+  const current = connection;
+  connection = undefined;
   await current?.pool.end();
 };
