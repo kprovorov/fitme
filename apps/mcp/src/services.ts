@@ -1,4 +1,12 @@
 import { asUser } from "@fitme/db";
+import {
+  type DeletedPlan,
+  deletePlan,
+  getPlan,
+  listPlans,
+  type PlanDetail,
+  type PlanSummary,
+} from "@fitme/services/plans";
 import { getProfile, type ProfileWithUnits } from "@fitme/services/profile";
 
 /**
@@ -7,7 +15,10 @@ import { getProfile, type ProfileWithUnits } from "@fitme/services/profile";
  * it comes from the verified Clerk token the services were built for.
  */
 export interface UserServices {
+  deletePlan: (planId: string) => Promise<DeletedPlan | null>;
+  getPlan: (planId: string) => Promise<PlanDetail | null>;
   getProfile: () => Promise<ProfileWithUnits | null>;
+  listPlans: () => Promise<PlanSummary[]>;
 }
 
 /**
@@ -22,6 +33,10 @@ export const createServicesFromEnv: ServicesFactory = (userId) => {
     return null;
   }
   return {
+    deletePlan: (planId) =>
+      asUser(userId, (tx) => deletePlan(tx, userId, planId)),
+    getPlan: (planId) => asUser(userId, (tx) => getPlan(tx, userId, planId)),
     getProfile: () => asUser(userId, (tx) => getProfile(tx, userId)),
+    listPlans: () => asUser(userId, (tx) => listPlans(tx, userId)),
   };
 };

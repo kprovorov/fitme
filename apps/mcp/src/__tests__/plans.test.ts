@@ -1,10 +1,11 @@
-import { afterEach, describe, expect, it } from "vitest";
+import { afterEach, describe, expect, it, vi } from "vitest";
 import { type Filter, failure, ok, type Route } from "./fake-supabase.js";
 import {
   BENCH_ID,
   call,
   callsTo,
   connectWithFake,
+  connectWithServices,
   expectAllCallsRouted,
   PLAN_ID,
   SQUAT_ID,
@@ -105,73 +106,114 @@ const knownExercises: Route = {
   response: ok([{ id: BENCH_ID }, { id: SQUAT_ID }]),
 };
 
+const planSummary = {
+  ...metadata,
+  created_at: "2026-10-01T10:00:00+00:00",
+  id: PLAN_ID,
+  is_active: true,
+  updated_at: "2026-10-02T10:00:00+00:00",
+  workouts: [
+    { exercise_count: 2, id: "w1", name: "Day A", order: 1 },
+    { exercise_count: 0, id: "w2", name: "Day B", order: 2 },
+  ],
+};
+
+const servicePlan = {
+  ...planSummary,
+  workouts: [
+    {
+      description: "Chest",
+      exercises: [
+        {
+          exercise: { id: BENCH_ID, muscle_groups: ["chest"], name: "Bench" },
+          id: "we1",
+          order: 1,
+          sets: [
+            {
+              id: "set-1",
+              order: 1,
+              reps_recommended: 8,
+              rest_recommended: 90,
+              weight_recommended: 60,
+            },
+          ],
+        },
+      ],
+      id: "w1",
+      name: "Day A",
+      order: 1,
+    },
+  ],
+};
+
+/** A database failure as Drizzle reports it: the SQL, with pg's error as cause. */
+const failedQuery = (message: string) =>
+  new Error('Failed query: select "id" from "plans"\nparams: user_1', {
+    cause: Object.assign(new Error(message), { code: "57014" }),
+  });
+
 describe("list_plans", () => {
-  it("lists live plans with workouts in rotation order and exercise counts", async () => {
-    const { client } = await connectWithFake([
-      {
-        filters: [
-          ["is", "deleted_at", null],
-          ["order", "created_at", { ascending: false }],
-        ],
-        name: "plans",
-        operation: "select",
-        response: ok([
-          {
-            ...metadata,
-            id: PLAN_ID,
-            workouts: [
-              { exercises: [], id: "w2", name: "Day B", order: 4 },
-              {
-                exercises: [{ id: "we1" }, { id: "we2" }],
-                id: "w1",
-                name: "Day A",
-                order: 2,
-              },
-            ],
-          },
-        ]),
-      },
-    ]);
+  it("returns the User's plans from the service", async () => {
+    const client = await connectWithServices({
+      listPlans: () => Promise.resolve([planSummary]),
+    });
 
     const result = await call(client, "list_plans");
 
-    expect(JSON.parse(result.text)).toEqual([
-      {
-        ...metadata,
-        id: PLAN_ID,
-        workouts: [
-          { exercise_count: 2, id: "w1", name: "Day A", order: 2 },
-          { exercise_count: 0, id: "w2", name: "Day B", order: 4 },
-        ],
-      },
-    ]);
+    expect(result.isError).toBe(false);
+    expect(JSON.parse(result.text)).toEqual([planSummary]);
+  });
+
+  it("returns an empty list for a User without plans", async () => {
+    const client = await connectWithServices({
+      listPlans: () => Promise.resolve([]),
+    });
+    expect(JSON.parse((await call(client, "list_plans")).text)).toEqual([]);
+  });
+
+  it("reports a database failure as a tool error without the SQL", async () => {
+    const client = await connectWithServices({
+      listPlans: () => Promise.reject(failedQuery("canceling statement")),
+    });
+
+    const result = await call(client, "list_plans");
+
+    expect(result.isError).toBe(true);
+    expect(result.text).toBe("canceling statement");
   });
 });
 
 describe("get_plan", () => {
-  it("sorts workouts, exercises and sets by order", async () => {
-    const { client } = await connectWithFake([detailRoute()]);
+  it("returns the plan in full for its id", async () => {
+    const getPlan = vi.fn(() => Promise.resolve(servicePlan));
+    const client = await connectWithServices({ getPlan });
 
     const result = await call(client, "get_plan", { planId: PLAN_ID });
 
-    const plan = result.json as typeof planDetail;
-    expect(plan.workouts.map((workout) => workout.id)).toEqual(["w1", "w2"]);
-    const [dayA] = plan.workouts;
-    expect(dayA?.exercises.map((exercise) => exercise.id)).toEqual([
-      "we1",
-      "we2",
-    ]);
-    expect(dayA?.exercises[0]?.sets.map((set) => set.id)).toEqual([
-      "set-1",
-      "set-2",
-    ]);
+    expect(result.isError).toBe(false);
+    expect(result.json).toEqual(servicePlan);
+    expect(getPlan).toHaveBeenCalledWith(PLAN_ID);
   });
 
   it("does not return soft-deleted or foreign plans", async () => {
-    const { client } = await connectWithFake([detailRoute(ok(null))]);
+    const client = await connectWithServices({
+      getPlan: () => Promise.resolve(null),
+    });
     const result = await call(client, "get_plan", { planId: PLAN_ID });
     expect(result.isError).toBe(true);
-    expect(result.text).toContain(`Plan ${PLAN_ID} not found`);
+    expect(result.text).toBe(
+      `Plan ${PLAN_ID} not found (it may have been deleted or belong to another user).`
+    );
+  });
+
+  it("rejects a plan id that isn't a uuid", async () => {
+    const getPlan = vi.fn(() => Promise.resolve(servicePlan));
+    const client = await connectWithServices({ getPlan });
+
+    const result = await call(client, "get_plan", { planId: "plan-1" });
+
+    expect(result.isError).toBe(true);
+    expect(getPlan).not.toHaveBeenCalled();
   });
 });
 
@@ -347,15 +389,15 @@ describe("update_plan", () => {
 });
 
 describe("delete_plan", () => {
-  it("soft-deletes and deactivates a live plan", async () => {
-    const { client, fake } = await connectWithFake([
-      {
-        filters: LIVE_PLAN,
-        name: "plans",
-        operation: "update",
-        response: ok([{ id: PLAN_ID, name: "My plan" }]),
-      },
-    ]);
+  it("soft-deletes a live plan", async () => {
+    const deletePlan = vi.fn(() =>
+      Promise.resolve({
+        alreadyDeleted: false,
+        deleted: true as const,
+        plan: { id: PLAN_ID, name: "My plan" },
+      })
+    );
+    const client = await connectWithServices({ deletePlan });
 
     const result = await call(client, "delete_plan", { planId: PLAN_ID });
 
@@ -364,28 +406,18 @@ describe("delete_plan", () => {
       deleted: true,
       plan: { id: PLAN_ID, name: "My plan" },
     });
-    const [update] = callsTo(fake.calls, "plans", "update");
-    expect(update?.args).toEqual({
-      deleted_at: expect.any(String),
-      is_active: false,
-      updated_at: expect.any(String),
-    });
+    expect(deletePlan).toHaveBeenCalledWith(PLAN_ID);
   });
 
   it("is a no-op for an already deleted plan", async () => {
-    const { client } = await connectWithFake([
-      { name: "plans", operation: "update", response: ok([]) },
-      {
-        filters: [["eq", "id", PLAN_ID]],
-        name: "plans",
-        operation: "select",
-        response: ok({
-          deleted_at: "2026-09-01T00:00:00Z",
-          id: PLAN_ID,
-          name: "Old",
+    const client = await connectWithServices({
+      deletePlan: () =>
+        Promise.resolve({
+          alreadyDeleted: true,
+          deleted: true as const,
+          plan: { id: PLAN_ID, name: "Old" },
         }),
-      },
-    ]);
+    });
 
     const result = await call(client, "delete_plan", { planId: PLAN_ID });
 
@@ -398,13 +430,23 @@ describe("delete_plan", () => {
   });
 
   it("errors for an unknown plan", async () => {
-    const { client } = await connectWithFake([
-      { name: "plans", operation: "update", response: ok([]) },
-      { name: "plans", operation: "select", response: ok(null) },
-    ]);
+    const client = await connectWithServices({
+      deletePlan: () => Promise.resolve(null),
+    });
     const result = await call(client, "delete_plan", { planId: PLAN_ID });
     expect(result.isError).toBe(true);
     expect(result.text).toContain(`Plan ${PLAN_ID} not found`);
+  });
+
+  it("reports a database failure as a tool error without the SQL", async () => {
+    const client = await connectWithServices({
+      deletePlan: () => Promise.reject(failedQuery("deadlock detected")),
+    });
+
+    const result = await call(client, "delete_plan", { planId: PLAN_ID });
+
+    expect(result.isError).toBe(true);
+    expect(result.text).toBe("deadlock detected");
   });
 });
 

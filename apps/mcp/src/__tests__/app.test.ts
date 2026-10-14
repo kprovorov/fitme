@@ -101,8 +101,20 @@ const initialize = (app: TestApp, token?: string) =>
 const listTools = (app: TestApp, token?: string) =>
   rpc(app, { method: "tools/list" }, token);
 
-const callTool = (app: TestApp, name: string, token?: string) =>
-  rpc(app, { method: "tools/call", params: { arguments: {}, name } }, token);
+const callTool = (
+  app: TestApp,
+  name: string,
+  token?: string,
+  args: Record<string, unknown> = {}
+) =>
+  rpc(app, { method: "tools/call", params: { arguments: args, name } }, token);
+
+const EXERCISE_ID = "55555555-5555-4555-8555-555555555555";
+const exercise = { id: EXERCISE_ID, name: "Bench press" };
+
+/** A tool still on Supabase (it answers `get_exercise` for `EXERCISE_ID`). */
+const callSupabaseTool = (app: TestApp, token?: string) =>
+  callTool(app, "get_exercise", token, { exerciseId: EXERCISE_ID });
 
 /** The tool result inside a 200 SSE response. */
 const readToolResult = async (response: Response) => {
@@ -142,7 +154,7 @@ const profileServices: ServicesFactory = (userId) =>
 /**
  * The app with fake services and a fake Supabase client per request. Records
  * the User id every services object is built for and every signed token the
- * Supabase client receives (it answers `list_plans` with no plans).
+ * Supabase client receives (it answers `get_exercise` for `EXERCISE_ID`).
  */
 const createTestApp = () => {
   const servicesUserIds: string[] = [];
@@ -156,10 +168,10 @@ const createTestApp = () => {
       supabaseTokens.push(token);
       return createFakeSupabase([
         {
-          filters: [["is", "deleted_at", null]],
-          name: "plans",
+          filters: [["eq", "id", EXERCISE_ID]],
+          name: "exercises",
           operation: "select",
-          response: ok([]),
+          response: ok(exercise),
         },
       ]).client;
     },
@@ -368,16 +380,12 @@ describe("with a valid Clerk token", () => {
     signInAs("user_alice");
     const { app, supabaseTokens } = createTestApp();
 
-    const response = await callTool(
-      app,
-      "list_plans",
-      clerkToken("user_alice")
-    );
+    const response = await callSupabaseTool(app, clerkToken("user_alice"));
 
     expect(response.status).toBe(200);
     const result = await readToolResult(response);
     expect(result.isError).toBe(false);
-    expect(JSON.parse(result.text)).toEqual([]);
+    expect(JSON.parse(result.text)).toEqual(exercise);
     expect(supabaseTokens).toHaveLength(1);
     expect(await verifySupabaseToken(supabaseTokens[0] ?? "")).toEqual({
       aud: "authenticated",
@@ -393,9 +401,8 @@ describe("with a valid Clerk token", () => {
     signInAs("user_alice");
     const { app, supabaseTokens } = createTestApp();
 
-    const response = await callTool(
+    const response = await callSupabaseTool(
       app,
-      "list_plans",
       clerkToken("user_alice", NOW_SECONDS + 42)
     );
 
@@ -465,11 +472,7 @@ describe("with a valid Clerk token", () => {
     signInAs("user_alice");
     const app = createApp({ logRequests: false });
 
-    const response = await callTool(
-      app,
-      "list_plans",
-      clerkToken("user_alice")
-    );
+    const response = await callSupabaseTool(app, clerkToken("user_alice"));
 
     expect(response.status).toBe(200);
     const result = await readToolResult(response);

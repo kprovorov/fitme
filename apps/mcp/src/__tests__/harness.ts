@@ -32,9 +32,15 @@ export function expectAllCallsRouted() {
   }
 }
 
+const notFaked = (name: keyof UserServices) => () =>
+  Promise.reject(new Error(`${name} is not faked.`));
+
 /** Services where every method a test didn't fake fails the call. */
 export const fakeServices = (faked: Partial<UserServices>): UserServices => ({
-  getProfile: () => Promise.reject(new Error("getProfile is not faked.")),
+  deletePlan: notFaked("deletePlan"),
+  getPlan: notFaked("getPlan"),
+  getProfile: notFaked("getProfile"),
+  listPlans: notFaked("listPlans"),
   ...faked,
 });
 
