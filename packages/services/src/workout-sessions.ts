@@ -177,6 +177,14 @@ const statusCondition = (status: WorkoutSessionStatusFilter) => {
 const countOf = (subquery: SQL) =>
   sql<number>`(${subquery})::int`.mapWith(Number);
 
+const countSessions = async (tx: Transaction, where: SQL | undefined) => {
+  const [{ total }] = await tx
+    .select({ total: count() })
+    .from(workoutSessions)
+    .where(where);
+  return total;
+};
+
 /**
  * The User's Workout Sessions, newest first, with their Workout and Plan and
  * how many sets were logged, in `tx` (from `asUser`; RLS hides every other
@@ -200,6 +208,8 @@ export const listWorkoutSessions = async (
       setCount: countOf(
         sql`select count(*) from ${workoutSessionExerciseSets} where ${workoutSessionExerciseSets.workoutSessionExerciseId} in (${sessionExerciseIds})`
       ),
+      // counted in the page's own statement, so it matches the rows
+      total: sql<number>`(count(*) over ())::int`.mapWith(Number),
     })
     .from(workoutSessions)
     .leftJoin(workouts, eq(workouts.id, workoutSessions.workoutId))
@@ -208,10 +218,10 @@ export const listWorkoutSessions = async (
     .orderBy(desc(workoutSessions.startedAt), asc(workoutSessions.id))
     .limit(limit)
     .offset(offset);
-  const [{ total }] = await tx
-    .select({ total: count() })
-    .from(workoutSessions)
-    .where(where);
+  const [first] = rows;
+  // An empty page has no row to carry the total: count on its own (no rows
+  // to disagree with).
+  const total = first ? first.total : await countSessions(tx, where);
 
   return {
     sessions: rows.map((row) => ({
