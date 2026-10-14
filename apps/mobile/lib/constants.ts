@@ -1,3 +1,5 @@
+const TRAILING_SLASH = /\/$/;
+
 export const IS_E2E = process.env.EXPO_PUBLIC_E2E_ENABLED === "true";
 
 export const NAV_THEME = {
@@ -26,3 +28,10 @@ export const SCROLL_EDGE_EFFECTS = { bottom: "soft", top: "soft" } as const;
 // Mirrors the minimum password length set on both Clerk instances, so the
 // register form can reject a short password before calling Clerk.
 export const PASSWORD_MIN_LENGTH = 15;
+
+/**
+ * Base URL of `apps/api` (`EXPO_PUBLIC_API_URL`), without a trailing slash;
+ * empty when unset. Read on each call so tests can set it.
+ */
+export const getApiUrl = () =>
+  (process.env.EXPO_PUBLIC_API_URL ?? "").replace(TRAILING_SLASH, "");

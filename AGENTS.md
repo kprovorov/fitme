@@ -29,7 +29,7 @@ pnpm dev:site            # next dev on :3001
 pnpm dev:mcp             # tsx watch MCP server on :3002 (MCP endpoint at /)
 pnpm dev:api             # tsx watch REST API on :3003
 pnpm build               # turbo run build
-pnpm test                # turbo run test (jest in mobile, vitest in core and mcp)
+pnpm test                # turbo run test (jest in mobile, vitest in core, mcp and api)
 pnpm typecheck           # turbo run typecheck
 pnpm check / pnpm fix    # ultracite (Biome) over the whole repo
 
@@ -43,6 +43,7 @@ pnpm mcp build           # tsdown bundle → apps/mcp/dist
 pnpm mcp test            # vitest (in-memory MCP client)
 pnpm mcp test:integration # vitest against the local Supabase stack (needs SUPABASE_URL / SUPABASE_ANON_KEY, seeded exercises; CLERK_DEV_SECRET_KEY adds the Clerk OAuth suite)
 pnpm api build           # tsdown bundle → apps/api/dist
+pnpm api test            # vitest (Hono app via app.request)
 pnpm db start            # supabase start     (alias for pnpm --filter @fitme/supabase start)
 pnpm db seed             # seed local database
 pnpm db types:generate   # regenerate packages/supabase/src/database.types.ts
@@ -110,6 +111,9 @@ Hono app served with `@hono/node-server`, bundled with tsdown. Reads domain data
 - `src/index.ts` — Node entrypoint, `PORT` env (default 3003).
 - `src/app.ts` — Hono app: global middleware (logger, CORS), `/health`, JSON `notFound`/`onError` handlers returning `{ error: { code, message } }`.
 - `src/routes/v1.ts` — versioned router; each resource lives in its own file under `src/routes/` and is mounted here. Input validation uses `@hono/zod-validator`.
+- `src/routes/client-config.ts` — public, unauthenticated `GET /v1/client-config`: `{ data: { minimumVersion: { ios, android } } }`, the oldest supported mobile app version per platform from `MIN_APP_VERSION_IOS` / `MIN_APP_VERSION_ANDROID` (`x.y.z`; unset or malformed → `null`, no minimum). Cached for 5 minutes (`Cache-Control: public, max-age=300, s-maxage=300`).
+- Tests (`src/__tests__/`, vitest) drive the app through `app.request`.
+- Deployed to Vercel (project `fitme-api`, region `cle1` in `vercel.json`) at https://api.fitmeproject.com.
 
 ### apps/mcp — MCP server
 
@@ -158,6 +162,8 @@ Platform-agnostic code shared by both apps: `models.ts` (Profile, Plan, Workout,
 
 **UI Components (mobile)**: Built on `@rn-primitives` (shadcn/ui-compatible for React Native). Use components from `apps/mobile/components/ui/`.
 
+**Minimum version gate (mobile)**: `components/minimum-version-gate.tsx` wraps the root `Stack` in `app/_layout.tsx`. On launch and on every return to the foreground it fetches `GET /v1/client-config` from `EXPO_PUBLIC_API_URL` (`useClientConfigQuery`) and compares the build's version (`Constants.expoConfig.version`, stamped from the release tag) with the platform's minimum through `isBelowMinimumVersion` (`lib/app-version.ts`; numeric `x.y.z` comparison, the `0.0.0` dev placeholder and unreadable versions never block). Below the minimum the whole app is replaced by `UpdateRequiredView`, whose button opens the App Store (`ios.appStoreUrl` in `app.json`) or Play Store listing. A failed request, an error response or an unset `EXPO_PUBLIC_API_URL` never blocks. To cut off old builds, set `MIN_APP_VERSION_IOS` / `MIN_APP_VERSION_ANDROID` on the `fitme-api` Vercel project (production) and redeploy the API so it picks up the env; no app release is needed. Lowering or removing it unblocks Users the next time they foreground the app (after the 5-minute cache). Only raise it once most installs run a build that has the gate.
+
 **Subscriptions**: RevenueCat manages IAP. `useIsProQuery` (queryKey `["rc-is-pro"]`) checks the "Fitme Pro" entitlement. Customer info updates are listened to in `_layout.tsx`.
 
 **Module aliases**: Inside each app, `~/` and `@/` resolve to that app's root. Cross-workspace imports always go through the package name (`@fitme/core`, `@fitme/supabase`).
@@ -170,6 +176,7 @@ Env files live next to each app.
 
 `apps/mobile/.env` (prefix `EXPO_PUBLIC_` for client exposure):
 
+- `EXPO_PUBLIC_API_URL` — `apps/api` base URL (`https://api.fitmeproject.com` in production, `http://localhost:3003` locally); unset skips the minimum version check
 - `EXPO_PUBLIC_SUPABASE_URL`
 - `EXPO_PUBLIC_SUPABASE_ANON_KEY`
 - `EXPO_PUBLIC_CLERK_PUBLISHABLE_KEY`
@@ -183,6 +190,11 @@ Env files live next to each app.
 - `NEXT_PUBLIC_SUPABASE_ANON_KEY`
 - `NEXT_PUBLIC_CLERK_PUBLISHABLE_KEY`
 - `CLERK_SECRET_KEY`
+
+`apps/api` (see `apps/api/.env.example`; read from the process environment):
+
+- `PORT` (default 3003)
+- `MIN_APP_VERSION_IOS`, `MIN_APP_VERSION_ANDROID` — minimum supported mobile app version (`x.y.z`) served by `GET /v1/client-config`; unset means no minimum. Set on the `fitme-api` Vercel project; a change takes effect on the API's next deployment.
 
 `apps/site/.env.local` (see `apps/site/.env.example`): App Store id/url, support email, social links, GTM id, PostHog key.
 
