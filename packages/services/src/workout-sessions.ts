@@ -508,7 +508,7 @@ const copyWorkoutTemplate = async (
   `);
 };
 
-/** The session as the same transaction sees it; it was just written. */
+/** The session this transaction just inserted; no one else can delete it yet. */
 const readWrittenSession = async (tx: Transaction, sessionId: string) => {
   const session = await getWorkoutSession(tx, sessionId);
   if (!session) {
@@ -533,11 +533,12 @@ const insertOrResume = async (
   // RLS only shows the User's own open session
   const openId = await findOpenSessionId(tx, workoutId);
   if (openId) {
-    return {
-      resumed: true,
-      session: await readWrittenSession(tx, openId),
-      status: "started",
-    };
+    const open = await getWorkoutSession(tx, openId);
+    if (open) {
+      return { resumed: true, session: open, status: "started" };
+    }
+    // Deleted between the two reads (READ COMMITTED): start a fresh one
+    return insertOrResume(tx, workoutId, planId, attemptsLeft - 1);
   }
 
   const [created] = await tx
@@ -692,10 +693,11 @@ export const finishWorkoutSession = async (
   const rotated = claimed?.workoutId
     ? await rotateWorkout(tx, claimed.workoutId)
     : false;
-  return {
-    alreadyFinished: !claimed,
-    rotated,
-    session: await readWrittenSession(tx, sessionId),
-    status: "finished",
-  };
+  // An already finished session isn't locked, so it may have been deleted
+  // since the claim (READ COMMITTED)
+  const session = await getWorkoutSession(tx, sessionId);
+  if (!session) {
+    return { status: "not_found" };
+  }
+  return { alreadyFinished: !claimed, rotated, session, status: "finished" };
 };
