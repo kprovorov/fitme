@@ -15,7 +15,7 @@ The fitness facts a User provides during onboarding: gender, age, height, weight
 _Avoid_: User profile, user data, account details
 
 **User id**:
-The Clerk identifier of a User. The single key under which all User-owned data (Profile, Plans, Workout Sessions, agent messages) is stored and authorised.
+The Clerk identifier of a User. The single key under which all User-owned data (Profile, Plans, Workout Sessions, Conversations) is stored and authorised.
 _Avoid_: UUID, auth uid, sub
 
 ### Training
@@ -32,3 +32,13 @@ _Avoid_: Session (ambiguous with a sign-in session), training log
 
 **Exercise**:
 A named movement from the shared exercise library, independent of any User.
+
+### Coaching
+
+**Coach**:
+The AI assistant a User talks to about their training.
+_Avoid_: Agent, AI agent, assistant, chatbot
+
+**Conversation**:
+One thread of messages between a User and the Coach. A User works in one current Conversation at a time; past ones are not kept beyond a limited retention period and are wiped when the User deletes their account.
+_Avoid_: Chat, thread, session

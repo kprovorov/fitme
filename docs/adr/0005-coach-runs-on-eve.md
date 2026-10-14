@@ -1,0 +1,26 @@
+---
+status: accepted
+date: 2026-10-14
+---
+
+# The Coach runs on EVE in its own app
+
+The Coach moves from the `ai-agent` Supabase Edge Function to `apps/coach`, its own Vercel project built on Vercel's EVE framework (`ai@7`). It runs separately from `apps/api` because it is its own body of business logic with its own runtime needs. Its turns are durable: a step can retry, a turn survives redeploys and has no overall time limit, and a client can reconnect to a running stream. Each step still has to fit Vercel's function limit (800 s on Pro).
+
+The channel verifies the Clerk session once and keeps the User id on the EVE session, and the Coach's tools call `asUser` with that id (ADR 0003). The Coach never forwards Clerk tokens, which expire in about 60 s while a turn can run for minutes.
+
+## Considered options
+
+- **EVE (chosen).** Durable turns, built-in resume, Agent Runs observability and evals, and it stays on Vercel. assistant-ui ships an EVE runtime (`@assistant-ui/eve`).
+- **A plain Vercel Function in `apps/api`.** Simplest, but turns are capped by the function limit and lost on disconnect, and it mixes the Coach into the API.
+- **Cloudflare Workers / Agents SDK.** No wall-clock limit and CPU-only billing, but it adds a vendor, the Agents SDK is 0.x and talks over WebSocket, and history lives outside Postgres.
+
+## Consequences
+
+- **Conversations are now stored on the server.** EVE keeps them, where the old function stored nothing. A User works in one current Conversation, old ones expire after 30 days, and account deletion wipes them (the Clerk webhook resets the User's EVE sessions after `deleteUserData`).
+- **The Coach is Pro-only, enforced on the server.** The channel checks the "Fitme Pro" entitlement against RevenueCat (cached ~5 min) before running a turn.
+- Spend is capped by an EVE per-turn budget plus a 20-step limit. The model the client asks for must be in `coachModels`.
+- `defaultTools: false`: the Coach gets no shell, file or web tools, only our own.
+- EVE is in preview (0.x) and moves fast, so pin it exactly and read its changelog on every bump.
+- **Assumption:** `@assistant-ui/eve` streams and resumes in Expo, likely with `globalThis.fetch` set to `expo/fetch`. If it doesn't, the fallback is a custom channel that emits the AI SDK UI message stream, so the app keeps `useChat`.
+- The `ai-agent` edge function stays deployed until app builds below the minimum supported version are cut off.
