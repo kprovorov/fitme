@@ -509,10 +509,6 @@ export interface Database {
         Args: { p_workout_id: string };
         Returns: string;
       };
-      store_plan: {
-        Args: { p_plan_data: Json; p_user_id?: string };
-        Returns: string;
-      };
       update_plan: {
         Args: { p_plan_data: Json; p_plan_id: string; p_user_id?: string };
         Returns: string;

@@ -197,13 +197,15 @@ select throws_ok(
   'a deleted User can''t create a Profile with their old token'
 );
 
+-- create_plan keys the Plan by current_user_id(), NULL here, so the insert
+-- hits plans.user_id NOT NULL
 select throws_ok(
-  $$select public.store_plan(
+  $$select public.create_plan(
       '{"name": "Ghost", "goal": "strength", "place": "gym", "frequency": 3,
         "experience_level": "intermediate", "workout_duration": 60, "workouts": []}'::jsonb
     )$$,
-  '42501', 'Not authorized',
-  'a deleted User can''t store a Plan through the RPC'
+  '23502', null,
+  'a deleted User can''t create a Plan through the RPC'
 );
 
 select throws_ok(
@@ -217,13 +219,10 @@ set local role service_role;
 set local request.jwt.claims = '{"role":"service_role"}';
 
 select throws_ok(
-  $$select public.store_plan(
-      '{"name": "Ghost", "goal": "strength", "place": "gym", "frequency": 3,
-        "experience_level": "intermediate", "workout_duration": 60, "workouts": []}'::jsonb,
-      'user_2DeleteMe00000000000000'
-    )$$,
+  $$insert into public.plans (user_id, goal, place, frequency)
+    values ('user_2DeleteMe00000000000000', 'strength', 'gym', 3)$$,
   '42501', 'User id user_2DeleteMe00000000000000 is retired',
-  'a SECURITY DEFINER RPC can''t write under a deleted User id'
+  'service_role can''t create a Plan under a deleted User id'
 );
 
 select throws_ok(
