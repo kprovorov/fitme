@@ -100,8 +100,8 @@ export interface PlanDetail extends PlanRow {
   workouts: PlanWorkout[];
 }
 
-/** Groups rows by a key, keeping each group in the rows' order. */
-const groupBy = <T>(rows: T[], key: (row: T) => string) => {
+/** Looks rows up by a key: each key's rows, in the rows' order. */
+const lookupBy = <T>(rows: T[], key: (row: T) => string) => {
   const groups = new Map<string, T[]>();
   for (const row of rows) {
     const group = groups.get(key(row));
@@ -152,7 +152,7 @@ export const listPlans = async (
     )
     .groupBy(workouts.id)
     .orderBy(asc(workouts.order), asc(workouts.id));
-  const workoutsOf = groupBy(planWorkouts, (workout) => workout.planId);
+  const workoutsOf = lookupBy(planWorkouts, (workout) => workout.planId);
   return rows.map((plan) => ({
     ...plan,
     workouts: workoutsOf(plan.id).map(
@@ -219,15 +219,19 @@ const loadWorkouts = async (
             )
           )
           .orderBy(asc(workoutExerciseSets.order), asc(workoutExerciseSets.id));
-  const setsOf = groupBy(setRows, (set) => set.workoutExerciseId);
-  const exercisesOf = groupBy(workoutExerciseRows, (row) => row.workoutId);
+  const setsOf = lookupBy(setRows, (set) => set.workoutExerciseId);
+  const exercisesOf = lookupBy(workoutExerciseRows, (row) => row.workoutId);
   return planWorkouts.map((workout) => ({
     ...workout,
     exercises: exercisesOf(workout.id).map(
       ({ workoutId: _workoutId, ...exercise }) => ({
         ...exercise,
         sets: setsOf(exercise.id).map(
-          ({ weight_recommended, workoutExerciseId: _id, ...set }) => ({
+          ({
+            weight_recommended,
+            workoutExerciseId: _workoutExerciseId,
+            ...set
+          }) => ({
             ...set,
             // numeric columns arrive as strings; PostgREST returned numbers
             weight_recommended: Number(weight_recommended),
