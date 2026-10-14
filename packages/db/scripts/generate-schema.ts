@@ -7,7 +7,7 @@ import { join } from "node:path";
  * with `drizzle-kit pull` (see drizzle.config.ts), then normalizes them so a
  * rerun against the same migrations is byte-identical: declarations sorted by
  * name (pull lists tables in catalog order) and Biome formatting. The Database
- * Schema workflow fails when the committed files differ from the output.
+ * Types workflow fails when the committed files differ from the output.
  */
 
 const PULL_DIR = ".drizzle";
@@ -17,7 +17,7 @@ const SCHEMA_DECLARATION = /^export const \w+ = pgSchema\(/;
 // pull names the `private` schema `private`, a reserved word in modules
 const PRIVATE_SCHEMA = /\bprivate(?=( = pgSchema\(|\.table\())/g;
 
-const run = (command: string, args: string[]) =>
+const pnpmExec = (command: string, args: string[]) =>
   execFileSync("pnpm", ["exec", command, ...args], { stdio: "inherit" });
 
 // By name (each starts `export const <name> `), in code-unit order rather
@@ -48,7 +48,7 @@ const normalize = (source: string) => {
 
 rmSync(PULL_DIR, { force: true, recursive: true });
 try {
-  run("drizzle-kit", ["pull", "--config", "drizzle.config.ts"]);
+  pnpmExec("drizzle-kit", ["pull", "--config", "drizzle.config.ts"]);
   for (const file of GENERATED) {
     const source = readFileSync(join(PULL_DIR, file), "utf8");
     writeFileSync(join("src", file), `${normalize(source)}\n`);
@@ -56,7 +56,7 @@ try {
 } finally {
   rmSync(PULL_DIR, { force: true, recursive: true });
 }
-run("biome", [
+pnpmExec("biome", [
   "check",
   "--write",
   "--unsafe",
