@@ -26,10 +26,11 @@ jobs:
         run: pnpm install --frozen-lockfile
 
       # Uses the Supabase CLI pinned in @fitme/supabase's devDependencies.
-      # Only Postgres, PostgREST (API gateway) and Auth are needed.
+      # Only Postgres, PostgREST (API gateway), Auth and the Supavisor pooler
+      # (transaction mode, for packages/db) are needed.
       - name: Start Supabase
         working-directory: packages/supabase
-        run: pnpm exec supabase start --exclude studio,realtime,storage,functions,mail,analytics,pooler
+        run: pnpm exec supabase start --exclude studio,realtime,storage,functions,mail,analytics
 
       - name: Export Supabase credentials
         working-directory: packages/supabase
@@ -81,6 +82,12 @@ jobs:
             exit 0
           fi
           pnpm --filter @fitme/supabase clerk:check-migration
+
+      # asUser / withService through the local Supavisor pooler as the fitme
+      # login; vitest.integration.config.ts has the local connection string
+      # (development password from supabase/roles.sql).
+      - name: Run packages/db integration tests
+        run: pnpm --filter @fitme/db test:integration
 
       # The Clerk OAuth suite (integration/clerk-oauth.test.ts) runs a real
       # headless OAuth flow against the Clerk development instance and is
