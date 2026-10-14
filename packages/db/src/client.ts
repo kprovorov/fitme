@@ -1,6 +1,8 @@
 import { attachDatabasePool } from "@vercel/functions";
 import { drizzle, type NodePgDatabase } from "drizzle-orm/node-postgres";
 import { Pool } from "pg";
+import * as relations from "./relations";
+import * as tables from "./schema";
 
 /**
  * The raw pool and Drizzle client. Internal to packages/db: apps only ever get
@@ -19,9 +21,14 @@ const IDLE_TIMEOUT_MS = 10_000;
 
 interface Connection {
   applicationName: string;
-  db: NodePgDatabase;
+  db: Database;
   pool: Pool;
 }
+
+/** The generated tables and their relations, for typed and relational queries. */
+const schema = { ...tables, ...relations };
+
+export type Database = NodePgDatabase<typeof schema>;
 
 let connection: Connection | undefined;
 
@@ -58,7 +65,7 @@ export const getConnection = (): Connection => {
   pool.on("error", () => undefined);
   // A no-op off Vercel.
   attachDatabasePool(pool);
-  connection = { applicationName, db: drizzle({ client: pool }), pool };
+  connection = { applicationName, db: drizzle({ client: pool, schema }), pool };
   return connection;
 };
 

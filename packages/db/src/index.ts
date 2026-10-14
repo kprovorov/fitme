@@ -1,6 +1,8 @@
 import { sql } from "drizzle-orm";
-import type { NodePgDatabase } from "drizzle-orm/node-postgres";
-import { getConnection } from "./client";
+import { type Database, getConnection } from "./client";
+
+// The generated tables (pnpm --filter @fitme/db schema:generate)
+export * from "./schema";
 
 /**
  * The only two doors into Postgres (ADR 0003). Each opens a transaction on the
@@ -12,10 +14,11 @@ import { getConnection } from "./client";
  * other requests.
  */
 
-/** The transaction handed to `asUser` and `withService` callbacks. */
-export type Transaction = Parameters<
-  Parameters<NodePgDatabase["transaction"]>[0]
->[0];
+/**
+ * The transaction handed to `asUser` and `withService` callbacks, typed with
+ * the generated schema (including `tx.query` for relational reads).
+ */
+export type Transaction = Parameters<Parameters<Database["transaction"]>[0]>[0];
 
 /** The JWT claims a door sets; `role` is also the database role it switches to. */
 interface Claims {

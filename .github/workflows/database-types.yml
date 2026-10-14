@@ -7,6 +7,12 @@ on:
       - "packages/supabase/supabase/config.toml"
       - "packages/supabase/src/database.types.ts"
       - "packages/supabase/package.json"
+      - "packages/db/src/schema.ts"
+      - "packages/db/src/relations.ts"
+      - "packages/db/scripts/generate-schema.ts"
+      - "packages/db/drizzle.config.ts"
+      - "packages/db/integration/local-database-url.ts"
+      - "packages/db/package.json"
       - "pnpm-lock.yaml"
       - ".github/workflows/database-types.yml"
 
@@ -40,5 +46,16 @@ jobs:
         run: |
           if ! git diff --exit-code -- packages/supabase/src/database.types.ts; then
             echo "::error::packages/supabase/src/database.types.ts is out of date. Run 'pnpm db start && pnpm db types:generate' and commit the result."
+            exit 1
+          fi
+
+      # The Drizzle schema in packages/db, pulled from the same database (ADR 0004)
+      - name: Regenerate Drizzle schema
+        run: pnpm --filter @fitme/db schema:generate
+
+      - name: Fail if the Drizzle schema is stale
+        run: |
+          if ! git diff --exit-code -- packages/db/src/schema.ts packages/db/src/relations.ts; then
+            echo "::error::packages/db/src/schema.ts or relations.ts is out of date. Run 'pnpm db start && pnpm --filter @fitme/db schema:generate' and commit the result."
             exit 1
           fi
