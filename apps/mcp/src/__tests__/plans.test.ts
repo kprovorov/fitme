@@ -451,66 +451,53 @@ describe("delete_plan", () => {
 });
 
 describe("activate_plan", () => {
-  it("refuses soft-deleted plans", async () => {
-    const { client, fake } = await connectWithFake([
-      {
-        filters: LIVE_PLAN,
-        name: "plans",
-        operation: "select",
-        response: ok(null),
-      },
-    ]);
-    const result = await call(client, "activate_plan", { planId: PLAN_ID });
-    expect(result.isError).toBe(true);
-    expect(result.text).toBe(
-      `Plan ${PLAN_ID} not found (it may have been deleted or belong to another user).`
+  it("activates the plan and returns its summary", async () => {
+    const activatePlan = vi.fn(() =>
+      Promise.resolve({ ...planSummary, is_active: true })
     );
-    expect(callsTo(fake.calls, "activate_plan")).toHaveLength(0);
-  });
-
-  it("activates through the RPC and returns the plan summary", async () => {
-    const { client, fake } = await connectWithFake([
-      {
-        filters: LIVE_PLAN,
-        name: "plans",
-        operation: "select",
-        response: ok({
-          ...metadata,
-          id: PLAN_ID,
-          is_active: true,
-          workouts: [
-            { exercises: [{ id: "we1" }], id: "w1", name: "A", order: 1 },
-          ],
-        }),
-        select: "exercises:workout_exercises ( id )",
-      },
-      {
-        filters: LIVE_PLAN,
-        name: "plans",
-        operation: "select",
-        response: ok({ id: PLAN_ID }),
-        select: "id",
-      },
-      {
-        name: "activate_plan",
-        operation: "rpc",
-        response: ok({ deleted_at: null, id: PLAN_ID, user_id: "user-1" }),
-      },
-    ]);
+    const client = await connectWithServices({ activatePlan });
 
     const result = await call(client, "activate_plan", { planId: PLAN_ID });
 
     expect(result.isError).toBe(false);
     expect(result.json).toEqual({
       activated: true,
-      plan: {
-        ...metadata,
-        id: PLAN_ID,
-        is_active: true,
-        workouts: [{ exercise_count: 1, id: "w1", name: "A", order: 1 }],
-      },
+      plan: { ...planSummary, is_active: true },
     });
-    const [rpc] = callsTo(fake.calls, "activate_plan");
-    expect(rpc?.args).toEqual({ plan_id: PLAN_ID });
+    expect(activatePlan).toHaveBeenCalledWith(PLAN_ID);
+  });
+
+  it("errors for a missing, deleted or foreign plan", async () => {
+    const client = await connectWithServices({
+      activatePlan: () => Promise.resolve(null),
+    });
+
+    const result = await call(client, "activate_plan", { planId: PLAN_ID });
+
+    expect(result.isError).toBe(true);
+    expect(result.text).toBe(
+      `Plan ${PLAN_ID} not found (it may have been deleted or belong to another user).`
+    );
+  });
+
+  it("rejects a plan id that isn't a uuid", async () => {
+    const activatePlan = vi.fn();
+    const client = await connectWithServices({ activatePlan });
+
+    const result = await call(client, "activate_plan", { planId: "nope" });
+
+    expect(result.isError).toBe(true);
+    expect(activatePlan).not.toHaveBeenCalled();
+  });
+
+  it("reports a database failure as a tool error without the SQL", async () => {
+    const client = await connectWithServices({
+      activatePlan: () => Promise.reject(failedQuery("deadlock detected")),
+    });
+
+    const result = await call(client, "activate_plan", { planId: PLAN_ID });
+
+    expect(result.isError).toBe(true);
+    expect(result.text).toBe("deadlock detected");
   });
 });

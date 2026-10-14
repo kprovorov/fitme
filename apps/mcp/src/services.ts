@@ -10,6 +10,7 @@ import {
   listExercises,
 } from "@fitme/services/exercises";
 import {
+  activatePlan,
   type DeletedPlan,
   deletePlan,
   getPlan,
@@ -36,6 +37,7 @@ import {
  * it comes from the verified Clerk token the services were built for.
  */
 export interface UserServices {
+  activatePlan: (planId: string) => Promise<PlanSummary | null>;
   deletePlan: (planId: string) => Promise<DeletedPlan | null>;
   deleteWorkoutSession: (sessionId: string) => Promise<boolean>;
   getExercise: (exerciseId: string) => Promise<Exercise | null>;
@@ -67,6 +69,8 @@ export const createServicesFromEnv: ServicesFactory = (userId) => {
     return null;
   }
   return {
+    activatePlan: (planId) =>
+      asUser(userId, (tx) => activatePlan(tx, userId, planId)),
     deletePlan: (planId) =>
       asUser(userId, (tx) => deletePlan(tx, userId, planId)),
     deleteWorkoutSession: (sessionId) =>
