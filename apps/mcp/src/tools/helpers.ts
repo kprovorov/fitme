@@ -157,12 +157,14 @@ export function withUser<Args>(
 
 const SERVICE_FAILURE_MESSAGE = "The database request failed.";
 
-/** A Postgres error, as `pg` raises it (Drizzle wraps it as the `cause`). */
-const postgresError = (error: unknown): DatabaseError | undefined => {
+/** Postgres errors from `pg` carry a SQLSTATE `code`. */
+const isPostgresError = (value: unknown): value is Error & DatabaseError =>
+  value instanceof Error && "code" in value && typeof value.code === "string";
+
+/** The Postgres error Drizzle wrapped as the `cause`, if there is one. */
+const postgresCause = (error: unknown) => {
   const cause = error instanceof Error ? error.cause : undefined;
-  return cause instanceof Error && "code" in cause
-    ? (cause as Error & DatabaseError)
-    : undefined;
+  return isPostgresError(cause) ? cause : undefined;
 };
 
 /**
@@ -174,7 +176,7 @@ const describeServiceError = (error: unknown) => {
   if (error instanceof ToolError) {
     return error.message;
   }
-  const database = postgresError(error);
+  const database = postgresCause(error);
   if (database) {
     return describeDatabaseError(database);
   }
