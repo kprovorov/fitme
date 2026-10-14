@@ -86,11 +86,6 @@ jobs:
       # asUser / withService through the local Supavisor pooler as the fitme
       # login; the test config reads the pooler's port from `supabase status`
       # (development password from supabase/roles.sql).
-      # TEMP (FIT-99): see what status reports for the pooler
-      - name: Debug supabase status
-        working-directory: packages/supabase
-        run: pnpm exec supabase status --output-format json | jq 'walk(if type == "object" then with_entries(select(.key | test("key|secret|password|jwt|token"; "i") | not)) else . end)'
-
       - name: Run packages/db integration tests
         run: pnpm --filter @fitme/db test:integration
 
