@@ -16,14 +16,11 @@ export default defineHook({
   events: {
     "step.completed"(event) {
       turnUsage.update((usage) =>
-        addStepUsage(usage ?? undefined, event.data.turnId, event.data.usage)
+        addStepUsage(usage, event.data.turnId, event.data.usage)
       );
     },
     "step.started"(event, ctx) {
-      const reached = turnLimitReached(
-        event.data,
-        turnUsage.get() ?? undefined
-      );
+      const reached = turnLimitReached(event.data, turnUsage.get());
       if (reached) {
         console.warn(`Coach turn hit its ${reached} limit`, {
           sessionId: ctx.session.id,

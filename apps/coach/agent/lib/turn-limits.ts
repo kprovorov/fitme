@@ -25,7 +25,7 @@ interface StepUsage {
 
 /** `usage` plus one finished step of `turnId`; a new turn starts from zero. */
 export const addStepUsage = (
-  usage: TurnUsage | undefined,
+  usage: TurnUsage | null,
   turnId: string,
   step: StepUsage | undefined
 ): TurnUsage => {
@@ -46,7 +46,7 @@ export const addStepUsage = (
  */
 export const turnLimitReached = (
   step: { readonly stepIndex: number; readonly turnId: string },
-  usage: TurnUsage | undefined
+  usage: TurnUsage | null
 ): "budget" | "steps" | null => {
   if (step.stepIndex >= MAX_STEPS_PER_TURN) {
     return "steps";

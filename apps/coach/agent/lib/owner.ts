@@ -16,12 +16,13 @@ export const conversationOwner = (auth: SessionAuth): string | null =>
   clerkUserId(auth.initiator);
 
 /**
- * Whether the turn's caller owns the Conversation. Route auth only proves who
- * the caller is; anyone holding a session id could otherwise post to it.
+ * The Conversation owner when they are the turn's caller, else `null`. Route
+ * auth only proves who the caller is; anyone holding a session id could
+ * otherwise post to it.
  */
-export const isOwnerTurn = (auth: SessionAuth): boolean => {
+export const ownerOfTurn = (auth: SessionAuth): string | null => {
   const owner = conversationOwner(auth);
-  return owner !== null && clerkUserId(auth.current) === owner;
+  return owner !== null && clerkUserId(auth.current) === owner ? owner : null;
 };
 
 /** The Conversation owner's User id; throws when the session has none. */

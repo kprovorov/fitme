@@ -1,5 +1,5 @@
 import type { SessionContext } from "eve/tools";
-import { isOwnerTurn, requireConversationOwner } from "./owner";
+import { ownerOfTurn } from "./owner";
 
 interface AdmitTurnDeps {
   /** Records `sessionId` as the User's; must be safe to repeat. */
@@ -20,11 +20,12 @@ export const admitTurn = async (
   }: { auth: SessionContext["session"]["auth"]; sessionId: string },
   { record, report }: AdmitTurnDeps
 ): Promise<boolean> => {
-  if (!isOwnerTurn(auth)) {
+  const owner = ownerOfTurn(auth);
+  if (!owner) {
     return false;
   }
   try {
-    await record(requireConversationOwner(auth), sessionId);
+    await record(owner, sessionId);
     return true;
   } catch (error) {
     await report(error, { sessionId });

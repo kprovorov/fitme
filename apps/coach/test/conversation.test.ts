@@ -1,6 +1,6 @@
 import { describe, expect, it, vi } from "vitest";
 import { admitTurn } from "../agent/lib/conversation";
-import { conversationOwner, isOwnerTurn } from "../agent/lib/owner";
+import { conversationOwner, ownerOfTurn } from "../agent/lib/owner";
 
 const clerkUser = (principalId: string) => ({
   attributes: {},
@@ -27,9 +27,11 @@ describe("conversation owner", () => {
   });
 
   it("only owns turns the owner sends", () => {
-    expect(isOwnerTurn({ current: alice, initiator: alice })).toBe(true);
-    expect(isOwnerTurn({ current: mallory, initiator: alice })).toBe(false);
-    expect(isOwnerTurn({ current: null, initiator: alice })).toBe(false);
+    expect(ownerOfTurn({ current: alice, initiator: alice })).toBe(
+      "user_alice"
+    );
+    expect(ownerOfTurn({ current: mallory, initiator: alice })).toBeNull();
+    expect(ownerOfTurn({ current: null, initiator: alice })).toBeNull();
   });
 });
 
