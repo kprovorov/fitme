@@ -1,6 +1,7 @@
 import { randomUUID } from "node:crypto";
 import {
   asUser,
+  coachSessions,
   conversations,
   exercises,
   messages,
@@ -16,7 +17,7 @@ import {
   workoutSessions,
   workouts,
 } from "@fitme/db";
-import { eq, sql } from "drizzle-orm";
+import { eq, inArray, sql } from "drizzle-orm";
 import { afterAll, beforeAll, describe, expect, it } from "vitest";
 import { deleteUserData, UserRekeyedError } from "../src/delete-user-data";
 
@@ -175,6 +176,28 @@ const allRows = (present: 0 | 1) => ({
   workoutSet: present,
 });
 
+/**
+ * A recorded Coach session per User. Not part of seedUser: rekey_user (the
+ * one-shot Supabase Auth -> Clerk migration) never sees Coach sessions, which
+ * only exist for Clerk ids.
+ */
+const coachSessionId = (userId: string) => `wrun_${userId}`;
+
+const recordCoachSessionFor = (userId: string) =>
+  withService((tx) =>
+    tx
+      .insert(coachSessions)
+      .values({ sessionId: coachSessionId(userId), userId })
+  );
+
+const coachSessionsLeft = (userId: string) =>
+  withService((tx) =>
+    tx.$count(
+      coachSessions,
+      eq(coachSessions.sessionId, coachSessionId(userId))
+    )
+  );
+
 const retirement = (userId: string) =>
   withService((tx) =>
     tx
@@ -196,12 +219,17 @@ beforeAll(async () => {
   exerciseId = exercise.id;
   deletedRows = await seedUser(deleted);
   bystanderRows = await seedUser(bystander);
+  await recordCoachSessionFor(deleted);
+  await recordCoachSessionFor(bystander);
 });
 
 afterAll(async () => {
   await withService(async (tx) => {
     await deleteUserData(tx, bystander);
     await deleteUserData(tx, rekeyed);
+    await tx
+      .delete(coachSessions)
+      .where(inArray(coachSessions.userId, [deleted, bystander]));
     await tx.delete(exercises).where(eq(exercises.id, exerciseId));
   });
 });
@@ -215,8 +243,21 @@ describe("deleteUserData", () => {
     expect(await remaining(deletedRows)).toEqual(allRows(0));
   });
 
+  it("keeps the User's Coach session ids, so their EVE sessions stay theirs", async () => {
+    expect(await coachSessionsLeft(deleted)).toBe(1);
+    expect(
+      await withService((tx) =>
+        tx
+          .select({ userId: coachSessions.userId })
+          .from(coachSessions)
+          .where(eq(coachSessions.sessionId, coachSessionId(deleted)))
+      )
+    ).toEqual([{ userId: deleted }]);
+  });
+
   it("leaves another User's rows untouched", async () => {
     expect(await remaining(bystanderRows)).toEqual(allRows(1));
+    expect(await coachSessionsLeft(bystander)).toBe(1);
   });
 
   it("retires the id, so a later write as that User is refused", async () => {

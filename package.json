@@ -7,9 +7,11 @@
     "api": "pnpm --filter @fitme/api",
     "build": "turbo run build",
     "check": "ultracite check",
+    "coach": "pnpm --filter @fitme/coach",
     "db": "pnpm --filter @fitme/supabase",
     "dev": "turbo run dev",
     "dev:api": "turbo run dev --filter=@fitme/api",
+    "dev:coach": "turbo run dev --filter=@fitme/coach",
     "dev:mcp": "turbo run dev --filter=@fitme/mcp",
     "dev:mobile": "turbo run dev --filter=@fitme/mobile",
     "dev:site": "turbo run dev --filter=@fitme/site",
@@ -42,6 +44,6 @@
   },
   "packageManager": "pnpm@10.34.5",
   "engines": {
-    "node": "^22.13.0 || ^24.3.0 || >=25.0.0"
+    "node": "^24.3.0 || >=25.0.0"
   }
 }

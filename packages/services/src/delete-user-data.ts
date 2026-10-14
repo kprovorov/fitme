@@ -1,4 +1,5 @@
 import {
+  coachSessions,
   conversations,
   messages,
   plans,
@@ -16,8 +17,9 @@ import { and, eq, isNotNull, sql } from "drizzle-orm";
 
 /**
  * The User-owned tables and their children, in the order rekey_user locks
- * them. Every table that holds a User's rows must be here: a schema change
- * that adds one has to add it, and the integration test catches a miss.
+ * them, then the tables rekey_user doesn't touch. Every table that holds a
+ * User's rows must be here: a schema change that adds one has to add it, and
+ * the integration test catches a miss.
  */
 const LOCKED_TABLES = sql.join(
   [
@@ -31,6 +33,7 @@ const LOCKED_TABLES = sql.join(
     workoutSessionExercises,
     workoutSessionExerciseSets,
     messages,
+    coachSessions,
   ],
   sql`, `
 );
@@ -103,4 +106,8 @@ export const deleteUserData = async (
   await tx.delete(plans).where(eq(plans.userId, userId));
   await tx.delete(conversations).where(eq(conversations.userId, userId));
   await tx.delete(profiles).where(eq(profiles.userId, userId));
+  // coach_sessions stays: each row is the ACL for an EVE session that still
+  // exists, and without it the Coach channel would let anyone reach that
+  // session. It holds only the (already retired) id and the session id; the
+  // rows go once the EVE sessions are reset (FIT-121).
 };

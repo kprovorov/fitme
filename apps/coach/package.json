@@ -1,0 +1,33 @@
+{
+  "name": "@fitme/coach",
+  "version": "0.1.0",
+  "private": true,
+  "type": "module",
+  "scripts": {
+    "build": "eve build",
+    "dev": "eve dev --no-ui --port 3005",
+    "test": "vitest run",
+    "test:watch": "vitest",
+    "typecheck": "tsc --noEmit"
+  },
+  "dependencies": {
+    "@clerk/backend": "^3.23.2",
+    "@fitme/core": "workspace:*",
+    "@fitme/db": "workspace:*",
+    "@fitme/services": "workspace:*",
+    "@sentry/node": "^11.7.0",
+    "ai": "^7.0.140",
+    "eve": "0.79.1",
+    "just-bash": "^3.6.0",
+    "zod": "3.25.76"
+  },
+  "devDependencies": {
+    "@fitme/typescript-config": "workspace:*",
+    "@types/node": "24.19.2",
+    "typescript": "~5.9.3",
+    "vitest": "^3.2.7"
+  },
+  "engines": {
+    "node": ">=24"
+  }
+}
