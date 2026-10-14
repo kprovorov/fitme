@@ -1,4 +1,11 @@
-import { plans, type Transaction } from "@fitme/db";
+import {
+  exercises as exercisesTable,
+  plans,
+  type Transaction,
+  workoutExerciseSets as workoutExerciseSetsTable,
+  workoutExercises as workoutExercisesTable,
+  workouts as workoutsTable,
+} from "@fitme/db";
 import { and, eq, inArray, isNotNull, isNull, or, sql } from "drizzle-orm";
 import { jsonTimestamp } from "./json-timestamp";
 
@@ -330,4 +337,246 @@ export const activatePlan = async (
     );
   const [activated] = await findPlanSummaries(tx, userId, planId);
   return activated ?? null;
+};
+
+/** A set to perform, as a Plan write takes it. */
+export interface PlanSetInput {
+  reps_recommended: number;
+  rest_recommended: number;
+  /** In the User's unit (kg for metric, lbs for us/uk), never converted. */
+  weight_recommended: number;
+}
+
+export interface PlanExerciseInput {
+  /** A library Exercise (exercises.id). */
+  exercise_id: string;
+  /** In the order they are performed. */
+  sets: PlanSetInput[];
+}
+
+export interface PlanWorkoutInput {
+  description: string;
+  /** In the order they are performed. */
+  exercises: PlanExerciseInput[];
+  name: string;
+}
+
+/** A Plan's own columns, as a Plan write takes them. */
+export interface PlanMetadata {
+  description: string;
+  experience_level: string;
+  frequency: number;
+  goal: string;
+  name: string;
+  note?: string | null;
+  place: string;
+  workout_duration: number;
+}
+
+/** A Plan to create; every `order` comes from the array positions (1-based). */
+export interface NewPlan extends PlanMetadata {
+  /** In rotation order. */
+  workouts: PlanWorkoutInput[];
+}
+
+/** Thrown before anything is written when a Plan names unknown Exercises. */
+export class UnknownExercisesError extends Error {
+  readonly exerciseIds: string[];
+
+  constructor(exerciseIds: string[]) {
+    super(`Unknown exercise_id(s): ${exerciseIds.join(", ")}`);
+    this.name = "UnknownExercisesError";
+    this.exerciseIds = exerciseIds;
+  }
+}
+
+/**
+ * Throws `UnknownExercisesError` when any Workout names an Exercise that
+ * doesn't exist, which the inserts would otherwise abort on with an opaque
+ * foreign-key violation.
+ */
+const assertExercisesExist = async (
+  tx: Transaction,
+  planWorkouts: PlanWorkoutInput[]
+) => {
+  const ids = [
+    ...new Set(
+      planWorkouts.flatMap((workout) =>
+        workout.exercises.map((exercise) => exercise.exercise_id)
+      )
+    ),
+  ];
+  if (ids.length === 0) {
+    return;
+  }
+  const known = new Set(
+    (
+      await tx
+        .select({ id: exercisesTable.id })
+        .from(exercisesTable)
+        .where(inArray(exercisesTable.id, ids))
+    ).map((row) => row.id)
+  );
+  const unknown = ids.filter((id) => !known.has(id));
+  if (unknown.length > 0) {
+    throw new UnknownExercisesError(unknown);
+  }
+};
+
+/** The plans columns for the metadata fields given (`undefined` = unchanged). */
+const metadataColumns = (metadata: Partial<PlanMetadata>) => {
+  const columns = {
+    description: metadata.description,
+    experienceLevel: metadata.experience_level,
+    frequency: metadata.frequency,
+    goal: metadata.goal,
+    name: metadata.name,
+    note: metadata.note,
+    place: metadata.place,
+    workoutDuration: metadata.workout_duration,
+  };
+  return Object.fromEntries(
+    Object.entries(columns).filter(([, value]) => value !== undefined)
+  ) as Partial<typeof columns>;
+};
+
+/**
+ * Inserts a Plan's Workouts, their Exercises and sets, each `order` from its
+ * array position (1-based): one statement per table. Rows are matched to
+ * their parents by `order`, never by the order RETURNING lists them in.
+ */
+const insertWorkouts = async (
+  tx: Transaction,
+  planId: string,
+  planWorkouts: PlanWorkoutInput[]
+) => {
+  if (planWorkouts.length === 0) {
+    return;
+  }
+  const insertedWorkouts = await tx
+    .insert(workoutsTable)
+    .values(
+      planWorkouts.map((workout, index) => ({
+        description: workout.description,
+        name: workout.name,
+        order: index + 1,
+        planId,
+      }))
+    )
+    .returning({ id: workoutsTable.id, order: workoutsTable.order });
+  const workoutIds = new Map(
+    insertedWorkouts.map((workout) => [workout.order, workout.id])
+  );
+  const exerciseRows = planWorkouts.flatMap((workout, workoutIndex) =>
+    workout.exercises.map((exercise, index) => ({
+      exerciseId: exercise.exercise_id,
+      order: index + 1,
+      workoutId: workoutIds.get(workoutIndex + 1) as string,
+    }))
+  );
+  if (exerciseRows.length === 0) {
+    return;
+  }
+  const insertedExercises = await tx
+    .insert(workoutExercisesTable)
+    .values(exerciseRows)
+    .returning({
+      id: workoutExercisesTable.id,
+      order: workoutExercisesTable.order,
+      workoutId: workoutExercisesTable.workoutId,
+    });
+  const exerciseIds = new Map(
+    insertedExercises.map((exercise) => [
+      `${exercise.workoutId}:${exercise.order}`,
+      exercise.id,
+    ])
+  );
+  const setRows = planWorkouts.flatMap((workout, workoutIndex) =>
+    workout.exercises.flatMap((exercise, exerciseIndex) => {
+      const workoutExerciseId = exerciseIds.get(
+        `${workoutIds.get(workoutIndex + 1)}:${exerciseIndex + 1}`
+      ) as string;
+      return exercise.sets.map((set, index) => ({
+        order: index + 1,
+        repsRecommended: set.reps_recommended,
+        restRecommended: set.rest_recommended,
+        weightRecommended: String(set.weight_recommended),
+        workoutExerciseId,
+      }));
+    })
+  );
+  if (setRows.length > 0) {
+    await tx.insert(workoutExerciseSetsTable).values(setRows);
+  }
+};
+
+/**
+ * Creates a Plan for the User with its Workouts, Exercises and sets, in array
+ * order, and makes it the User's active Plan (the `create_plan` RPC, which the
+ * mobile app still calls: change both together). Returns the Plan in full.
+ * Runs in `tx` from `asUser`, so it commits fully or not at all; RLS and the
+ * retired-id triggers refuse a `userId` other than the caller's own.
+ * Throws `UnknownExercisesError`, before writing anything, for unknown
+ * Exercises.
+ */
+export const createPlan = async (
+  tx: Transaction,
+  userId: string,
+  plan: NewPlan
+): Promise<PlanDetail> => {
+  await assertExercisesExist(tx, plan.workouts);
+  const [created] = await tx
+    .insert(plans)
+    .values({ ...metadataColumns(plan), userId } as typeof plans.$inferInsert)
+    .returning({ id: plans.id });
+  await insertWorkouts(tx, created.id, plan.workouts);
+  await activatePlan(tx, userId, created.id);
+  return (await getPlan(tx, userId, created.id)) as PlanDetail;
+};
+
+/**
+ * Changes to a Plan: only the metadata fields given (`note: null` clears the
+ * note) and, with `workouts`, the complete new list of Workouts.
+ */
+export interface PlanChanges extends Partial<PlanMetadata> {
+  /** Replaces every Workout, in rotation order. */
+  workouts?: PlanWorkoutInput[];
+}
+
+/**
+ * Updates one of the User's live Plans and returns it in full, or `null`
+ * without changing anything when the User has no such live Plan (missing,
+ * soft-deleted or another User's). Only the given metadata fields change,
+ * plus `updated_at`. Without `workouts` the Workouts and their ids stay; with
+ * `workouts` every Workout is deleted and recreated from the list, in array
+ * order (new ids; past Workout Sessions keep their logged sets but lose the
+ * link to their Workout), as the `update_plan` RPC does, which the mobile app
+ * still calls: change both together. Does not change which Plan is active.
+ * Runs in `tx` from `asUser`, so it commits fully or not at all.
+ *
+ * The Plan row is locked first, by its UPDATE, before any Workout, the order
+ * the RPC and `finish_workout_session` take their locks in. Throws
+ * `UnknownExercisesError` for unknown Exercises, which rolls back the
+ * transaction.
+ */
+export const updatePlan = async (
+  tx: Transaction,
+  userId: string,
+  planId: string,
+  { workouts: newWorkouts, ...metadata }: PlanChanges
+): Promise<PlanDetail | null> => {
+  const [updated] = await tx
+    .update(plans)
+    .set({ ...metadataColumns(metadata), updatedAt: sql`now()` })
+    .where(livePlanOf(userId, planId))
+    .returning({ id: plans.id });
+  if (!updated) {
+    return null;
+  }
+  if (newWorkouts) {
+    await assertExercisesExist(tx, newWorkouts);
+    await tx.delete(workoutsTable).where(eq(workoutsTable.planId, planId));
+    await insertWorkouts(tx, planId, newWorkouts);
+  }
+  return getPlan(tx, userId, planId);
 };

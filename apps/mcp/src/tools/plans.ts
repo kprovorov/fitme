@@ -1,172 +1,41 @@
+import { UnknownExercisesError } from "@fitme/services/plans";
 import type { McpServer } from "@modelcontextprotocol/sdk/server/mcp.js";
 import { z } from "zod";
 import type { ToolContext } from "../context.js";
-import type { FitmeSupabaseClient } from "../supabase.js";
 import {
   asJson,
-  byOrder,
-  nowIso,
   pickDefined,
   READ_ONLY,
-  readBack,
   requireFound,
   ToolError,
-  unwrap,
   WEIGHT_UNIT_NOTE,
   withServices,
-  withUser,
 } from "./helpers.js";
 import {
-  collectExerciseIds,
   planMetadataShape,
   planNoteSchema,
-  type WorkoutsInput,
   workoutsSchema,
 } from "./plan-schemas.js";
-
-const PLAN_METADATA_COLUMNS =
-  "name, description, goal, place, frequency, experience_level, workout_duration, note";
-
-const PLAN_DETAIL_SELECT = `
-  id, name, description, goal, place, frequency, experience_level,
-  workout_duration, note, is_active, created_at, updated_at,
-  workouts (
-    id, name, description, order,
-    exercises:workout_exercises (
-      id, order,
-      exercise:exercises ( id, name, muscle_groups ),
-      sets:workout_exercise_sets (
-        id, order, reps_recommended, weight_recommended, rest_recommended
-      )
-    )
-  )
-`;
-
-/** Keeps the `in (...)` filter comfortably below URL length limits. */
-const EXERCISE_ID_BATCH_SIZE = 100;
 
 const planIdSchema = z.string().uuid().describe("Plan id (plans.id).");
 
 const planNotFound = (planId: string) =>
   `Plan ${planId} not found (it may have been deleted or belong to another user).`;
 
-const GET_PLAN_FOLLOW_UP = "get_plan";
-
-interface OrderedWorkout {
-  exercises: { order: number; sets: { order: number }[] }[];
-  order: number;
-}
-
-const sortWorkouts = <W extends OrderedWorkout>(workouts: W[]) =>
-  byOrder(workouts).map((workout) => ({
-    ...workout,
-    exercises: byOrder(workout.exercises).map((exercise) => ({
-      ...exercise,
-      sets: byOrder(exercise.sets),
-    })),
-  }));
-
-async function loadPlan(supabase: FitmeSupabaseClient, planId: string) {
-  const plan = requireFound(
-    unwrap(
-      await supabase
-        .from("plans")
-        .select(PLAN_DETAIL_SELECT)
-        .eq("id", planId)
-        .is("deleted_at", null)
-        .maybeSingle()
-    ),
-    planNotFound(planId)
-  );
-  return { ...plan, workouts: sortWorkouts(plan.workouts) };
-}
-
-const chunk = <T>(items: T[], size: number): T[][] =>
-  Array.from({ length: Math.ceil(items.length / size) }, (_, index) =>
-    items.slice(index * size, (index + 1) * size)
-  );
-
-/**
- * Fails with a readable list of unknown ids; otherwise the plan RPCs would
- * abort with an opaque foreign-key violation.
- */
-async function assertExercisesExist(
-  supabase: FitmeSupabaseClient,
-  workouts: WorkoutsInput
-) {
-  const ids = collectExerciseIds(workouts);
-  const batches = await Promise.all(
-    chunk(ids, EXERCISE_ID_BATCH_SIZE).map(async (batch) =>
-      unwrap(await supabase.from("exercises").select("id").in("id", batch))
-    )
-  );
-  const known = new Set(batches.flat().map((row) => row.id));
-  const unknown = ids.filter((id) => !known.has(id));
-  if (unknown.length > 0) {
-    throw new ToolError(
-      `Unknown exercise_id(s): ${unknown.join(", ")}. Use list_exercises to look up valid exercise ids.`
-    );
+/** Turns unknown exercise ids into a message pointing at list_exercises. */
+const describingUnknownExercises = async <T>(write: () => Promise<T>) => {
+  try {
+    return await write();
+  } catch (error) {
+    if (error instanceof UnknownExercisesError) {
+      throw new ToolError(
+        `Unknown exercise_id(s): ${error.exerciseIds.join(", ")}. Use list_exercises to look up valid exercise ids.`,
+        { cause: error }
+      );
+    }
+    throw error;
   }
-}
-
-type PlanMetadataUpdate = Partial<{
-  description: string;
-  experience_level: string;
-  frequency: number;
-  goal: string;
-  name: string;
-  note: string | null;
-  place: string;
-  workout_duration: number;
-}>;
-
-async function updatePlanMetadata(
-  supabase: FitmeSupabaseClient,
-  planId: string,
-  metadata: PlanMetadataUpdate
-) {
-  const rows = unwrap(
-    await supabase
-      .from("plans")
-      .update({ ...metadata, updated_at: nowIso() })
-      .eq("id", planId)
-      .is("deleted_at", null)
-      .select("id")
-  );
-  if (rows.length === 0) {
-    throw new ToolError(planNotFound(planId));
-  }
-}
-
-/**
- * The `update_plan` RPC overwrites every metadata column and recreates all
- * workouts, so the current metadata is merged under the provided fields.
- */
-async function replacePlanWorkouts(
-  supabase: FitmeSupabaseClient,
-  planId: string,
-  metadata: PlanMetadataUpdate,
-  workouts: WorkoutsInput
-) {
-  const current = requireFound(
-    unwrap(
-      await supabase
-        .from("plans")
-        .select(PLAN_METADATA_COLUMNS)
-        .eq("id", planId)
-        .is("deleted_at", null)
-        .maybeSingle()
-    ),
-    planNotFound(planId)
-  );
-  await assertExercisesExist(supabase, workouts);
-  unwrap(
-    await supabase.rpc("update_plan", {
-      p_plan_data: { ...current, ...metadata, workouts },
-      p_plan_id: planId,
-    })
-  );
-}
+};
 
 function registerPlanReadTools(server: McpServer, ctx: ToolContext) {
   server.registerTool(
@@ -207,7 +76,7 @@ function registerPlanWriteTools(server: McpServer, ctx: ToolContext) {
         openWorldHint: false,
         readOnlyHint: false,
       },
-      description: `Creates a training plan for the user and makes it their ACTIVE plan (every other plan is deactivated). Look up exercise ids with list_exercises first; unknown ids are rejected. Order of workouts, exercises and sets comes from their array position. Use list_plan_options for valid goal / place / experience_level values. ${WEIGHT_UNIT_NOTE} Returns the created plan in full (or its id and a \`warning\` if it was saved but couldn't be read back — don't create it again).`,
+      description: `Creates a training plan for the user and makes it their ACTIVE plan (every other plan is deactivated). Look up exercise ids with list_exercises first; unknown ids are rejected. Order of workouts, exercises and sets comes from their array position. Use list_plan_options for valid goal / place / experience_level values. ${WEIGHT_UNIT_NOTE} Returns the created plan in full.`,
       inputSchema: {
         ...planMetadataShape,
         note: planNoteSchema.optional(),
@@ -215,17 +84,9 @@ function registerPlanWriteTools(server: McpServer, ctx: ToolContext) {
       },
       title: "Create plan",
     },
-    withUser(ctx, async (plan, { supabase }) => {
-      await assertExercisesExist(supabase, plan.workouts);
-      const planId = unwrap(
-        await supabase.rpc("create_plan", { p_plan_data: plan })
-      );
-      return readBack(
-        () => loadPlan(supabase, planId),
-        { created: true, planId },
-        GET_PLAN_FOLLOW_UP
-      );
-    })
+    withServices(ctx, async (plan, services) =>
+      asJson(await describingUnknownExercises(() => services.createPlan(plan)))
+    )
   );
 
   server.registerTool(
@@ -255,23 +116,20 @@ function registerPlanWriteTools(server: McpServer, ctx: ToolContext) {
       },
       title: "Update plan",
     },
-    withUser(ctx, async ({ planId, workouts, ...fields }, { supabase }) => {
+    withServices(ctx, async ({ planId, workouts, ...fields }, services) => {
       const metadata = pickDefined(fields);
       if (!workouts && Object.keys(metadata).length === 0) {
         throw new ToolError(
           "Nothing to update: pass at least one plan field or `workouts`."
         );
       }
-      if (workouts) {
-        await replacePlanWorkouts(supabase, planId, metadata, workouts);
-      } else {
-        await updatePlanMetadata(supabase, planId, metadata);
-      }
-      return readBack(
-        () => loadPlan(supabase, planId),
-        { planId, updated: true },
-        GET_PLAN_FOLLOW_UP
+      const updated = await describingUnknownExercises(() =>
+        services.updatePlan(
+          planId,
+          workouts ? { ...metadata, workouts } : metadata
+        )
       );
+      return asJson(requireFound(updated, planNotFound(planId)));
     })
   );
 

@@ -4,8 +4,8 @@ import type { UserServices } from "../services.js";
 
 /** An expected failure whose message is safe to show to the MCP client. */
 export class ToolError extends Error {
-  constructor(message: string) {
-    super(message);
+  constructor(message: string, options?: ErrorOptions) {
+    super(message, options);
     this.name = "ToolError";
   }
 }

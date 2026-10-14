@@ -3,6 +3,7 @@ import {
   asUser,
   exercises,
   plans,
+  retiredUserIdsInPrivate,
   withService,
   workoutExerciseSets,
   workoutExercises,
@@ -10,7 +11,16 @@ import {
 } from "@fitme/db";
 import { and, eq, inArray } from "drizzle-orm";
 import { afterAll, beforeAll, describe, expect, it } from "vitest";
-import { activatePlan, deletePlan, getPlan, listPlans } from "../src/plans";
+import {
+  activatePlan,
+  createPlan,
+  deletePlan,
+  getPlan,
+  listPlans,
+  type NewPlan,
+  UnknownExercisesError,
+  updatePlan,
+} from "../src/plans";
 
 /**
  * The plan services through asUser, against a local Supabase stack via the
@@ -23,6 +33,15 @@ const owner = `user_svcPlanOwner${runId}`;
 const intruder = `user_svcPlanIntruder${runId}`;
 const activator = `user_svcPlanActivator${runId}`;
 const bystander = `user_svcPlanBystander${runId}`;
+const creator = `user_svcPlanCreator${runId}`;
+const retired = `user_svcPlanRetired${runId}`;
+const updater = `user_svcPlanUpdater${runId}`;
+
+// Past int4: the sets insert fails after the Plan and Workouts went in
+const OUT_OF_RANGE_REPS = 2 ** 31;
+const NUMERIC_OUT_OF_RANGE = "22003";
+// RLS, or the reject_retired_user_id trigger
+const INSUFFICIENT_PRIVILEGE = "42501";
 
 // PostgREST's JSON timestamp encoding, which the MCP tools returned
 const JSON_TIMESTAMP = /^\d{4}-\d\d-\d\dT\d\d:\d\d:\d\d(\.\d+)?\+00:00$/;
@@ -145,7 +164,17 @@ afterAll(async () => {
   await withService(async (tx) => {
     await tx
       .delete(plans)
-      .where(inArray(plans.userId, [owner, intruder, activator, bystander]));
+      .where(
+        inArray(plans.userId, [
+          owner,
+          intruder,
+          activator,
+          bystander,
+          creator,
+          retired,
+          updater,
+        ])
+      );
     await tx.delete(exercises).where(inArray(exercises.id, [benchId, squatId]));
   });
 });
@@ -462,5 +491,438 @@ describe("activatePlan", () => {
     expect(active).toHaveLength(1);
     expect(targets).toContain(active[0]);
     expect(await activePlans(bystander)).toEqual([bystanderPlan.id]);
+  });
+});
+
+/** Every Plan of `userId`, oldest first, with its active flag. */
+const plansOf = (userId: string) =>
+  withService((tx) =>
+    tx
+      .select({ id: plans.id, isActive: plans.isActive, name: plans.name })
+      .from(plans)
+      .where(eq(plans.userId, userId))
+      .orderBy(plans.createdAt, plans.id)
+  );
+
+/** Two Workouts: Push (Bench with two sets, then Squat) and Legs (Squat). */
+const newPlan = (name: string): NewPlan => ({
+  description: `${name} description`,
+  experience_level: "beginner",
+  frequency: 2,
+  goal: "strength",
+  name,
+  note: "Created by a service",
+  place: "gym",
+  workout_duration: 45,
+  workouts: [
+    {
+      description: "Chest first",
+      exercises: [
+        {
+          exercise_id: benchId,
+          sets: [
+            {
+              reps_recommended: 8,
+              rest_recommended: 90,
+              weight_recommended: 60,
+            },
+            {
+              reps_recommended: 6,
+              rest_recommended: 120,
+              weight_recommended: 62.5,
+            },
+          ],
+        },
+        {
+          exercise_id: squatId,
+          sets: [
+            {
+              reps_recommended: 5,
+              rest_recommended: 180,
+              weight_recommended: 100,
+            },
+          ],
+        },
+      ],
+      name: "Push",
+    },
+    {
+      description: "Legs only",
+      exercises: [
+        {
+          exercise_id: squatId,
+          sets: [
+            {
+              reps_recommended: 10,
+              rest_recommended: 60,
+              weight_recommended: 80,
+            },
+          ],
+        },
+      ],
+      name: "Legs",
+    },
+  ],
+});
+
+describe("createPlan", () => {
+  it("creates the Plan with its Workouts, Exercises and sets in array order and activates it", async () => {
+    const existing = await seedPlan(
+      creator,
+      "Existing",
+      "2026-01-01T00:00:00Z",
+      true
+    );
+
+    const created = await asUser(creator, (tx) =>
+      createPlan(tx, creator, newPlan("Created"))
+    );
+
+    expect(created).toEqual({
+      created_at: expect.stringMatching(JSON_TIMESTAMP),
+      description: "Created description",
+      experience_level: "beginner",
+      frequency: 2,
+      goal: "strength",
+      id: expect.any(String),
+      is_active: true,
+      name: "Created",
+      note: "Created by a service",
+      place: "gym",
+      updated_at: expect.stringMatching(JSON_TIMESTAMP),
+      workout_duration: 45,
+      workouts: [
+        {
+          description: "Chest first",
+          exercises: [
+            {
+              exercise: {
+                id: benchId,
+                muscle_groups: ["chest"],
+                name: "Test bench",
+              },
+              id: expect.any(String),
+              order: 1,
+              sets: [
+                {
+                  id: expect.any(String),
+                  order: 1,
+                  reps_recommended: 8,
+                  rest_recommended: 90,
+                  weight_recommended: 60,
+                },
+                {
+                  id: expect.any(String),
+                  order: 2,
+                  reps_recommended: 6,
+                  rest_recommended: 120,
+                  weight_recommended: 62.5,
+                },
+              ],
+            },
+            {
+              exercise: {
+                id: squatId,
+                muscle_groups: ["quads", "glutes"],
+                name: "Test squat",
+              },
+              id: expect.any(String),
+              order: 2,
+              sets: [
+                {
+                  id: expect.any(String),
+                  order: 1,
+                  reps_recommended: 5,
+                  rest_recommended: 180,
+                  weight_recommended: 100,
+                },
+              ],
+            },
+          ],
+          id: expect.any(String),
+          name: "Push",
+          order: 1,
+        },
+        {
+          description: "Legs only",
+          exercises: [
+            {
+              exercise: {
+                id: squatId,
+                muscle_groups: ["quads", "glutes"],
+                name: "Test squat",
+              },
+              id: expect.any(String),
+              order: 1,
+              sets: [
+                {
+                  id: expect.any(String),
+                  order: 1,
+                  reps_recommended: 10,
+                  rest_recommended: 60,
+                  weight_recommended: 80,
+                },
+              ],
+            },
+          ],
+          id: expect.any(String),
+          name: "Legs",
+          order: 2,
+        },
+      ],
+    });
+    expect(
+      await asUser(creator, (tx) => getPlan(tx, creator, created.id))
+    ).toEqual(created);
+    expect(await plansOf(creator)).toEqual([
+      { id: existing.id, isActive: false, name: "Existing" },
+      { id: created.id, isActive: true, name: "Created" },
+    ]);
+  });
+
+  it("refuses unknown Exercises without creating anything", async () => {
+    const before = await plansOf(creator);
+    const unknownId = randomUUID();
+    const plan = newPlan("Unknown exercises");
+    plan.workouts[1].exercises.push({
+      exercise_id: unknownId,
+      sets: [
+        { reps_recommended: 5, rest_recommended: 60, weight_recommended: 0 },
+      ],
+    });
+
+    const error = await asUser(creator, (tx) =>
+      createPlan(tx, creator, plan)
+    ).catch((caught: unknown) => caught);
+
+    expect(error).toBeInstanceOf(UnknownExercisesError);
+    expect((error as UnknownExercisesError).exerciseIds).toEqual([unknownId]);
+    expect(await plansOf(creator)).toEqual(before);
+  });
+
+  it("leaves nothing behind when a write fails partway", async () => {
+    const before = await plansOf(creator);
+    const plan = newPlan("Half written");
+    plan.workouts[1].exercises[0].sets[0].reps_recommended = OUT_OF_RANGE_REPS;
+
+    await expect(
+      asUser(creator, (tx) => createPlan(tx, creator, plan))
+    ).rejects.toMatchObject({ cause: { code: NUMERIC_OUT_OF_RANGE } });
+
+    expect(await plansOf(creator)).toEqual(before);
+    const orphans = await withService((tx) =>
+      tx
+        .select({ id: workouts.id })
+        .from(workouts)
+        .innerJoin(plans, eq(plans.id, workouts.planId))
+        .where(and(eq(plans.userId, creator), eq(plans.name, "Half written")))
+    );
+    expect(orphans).toEqual([]);
+  });
+
+  it("never creates a Plan for another User", async () => {
+    await expect(
+      asUser(intruder, (tx) => createPlan(tx, creator, newPlan("Planted")))
+    ).rejects.toMatchObject({ cause: { code: INSUFFICIENT_PRIVILEGE } });
+    expect((await plansOf(creator)).map((plan) => plan.name)).not.toContain(
+      "Planted"
+    );
+  });
+
+  it("refuses a retired User id", async () => {
+    await withService((tx) =>
+      tx.insert(retiredUserIdsInPrivate).values({ userId: retired })
+    );
+
+    await expect(
+      asUser(retired, (tx) => createPlan(tx, retired, newPlan("Ghost")))
+    ).rejects.toMatchObject({ cause: { code: INSUFFICIENT_PRIVILEGE } });
+    expect(await plansOf(retired)).toEqual([]);
+  });
+});
+
+describe("updatePlan", () => {
+  let plan: Awaited<ReturnType<typeof seedPlan>>;
+  let deleted: Awaited<ReturnType<typeof seedPlan>>;
+  let bystanderPlan: Awaited<ReturnType<typeof seedPlan>>;
+
+  /** The Plan as the User sees it, read in its own transaction. */
+  const read = (userId: string, planId: string) =>
+    asUser(userId, (tx) => getPlan(tx, userId, planId));
+
+  beforeAll(async () => {
+    plan = await seedPlan(updater, "To update", "2026-01-01T00:00:00Z");
+    deleted = await seedPlan(updater, "Deleted", "2026-02-01T00:00:00Z");
+    await withService((tx) =>
+      tx
+        .update(plans)
+        .set({ deletedAt: "2026-02-02T00:00:00Z" })
+        .where(eq(plans.id, deleted.id))
+    );
+    bystanderPlan = await seedPlan(
+      bystander,
+      "Bystander update",
+      "2026-01-01T00:00:00Z"
+    );
+  });
+
+  it("updates only the given metadata and keeps the Workouts and their ids", async () => {
+    const before = await read(updater, plan.id);
+
+    const updated = await asUser(updater, (tx) =>
+      updatePlan(tx, updater, plan.id, {
+        frequency: 4,
+        name: "Renamed",
+        note: null,
+      })
+    );
+
+    expect(updated).toEqual({
+      ...before,
+      frequency: 4,
+      name: "Renamed",
+      note: null,
+      updated_at: expect.stringMatching(JSON_TIMESTAMP),
+    });
+    expect(updated?.updated_at).not.toBe(before?.updated_at);
+    expect(await read(updater, plan.id)).toEqual(updated);
+  });
+
+  it("recreates every Workout from the list, in order, with new ids", async () => {
+    const before = await read(updater, plan.id);
+    const oldIds = new Set(before?.workouts.map((workout) => workout.id));
+    const { workouts: replacement } = newPlan("Replacement");
+
+    const updated = await asUser(updater, (tx) =>
+      updatePlan(tx, updater, plan.id, {
+        goal: "muscle-gain",
+        workouts: [...replacement].reverse(),
+      })
+    );
+
+    expect(updated).toMatchObject({
+      description: before?.description,
+      frequency: 4,
+      goal: "muscle-gain",
+      is_active: false,
+      name: "Renamed",
+    });
+    expect(
+      updated?.workouts.map((workout) => [
+        workout.order,
+        workout.name,
+        workout.exercises.map((exercise) => [
+          exercise.order,
+          exercise.exercise.id,
+          exercise.sets.map((set) => [set.order, set.reps_recommended]),
+        ]),
+      ])
+    ).toEqual([
+      [1, "Legs", [[1, squatId, [[1, 10]]]]],
+      [
+        2,
+        "Push",
+        [
+          [
+            1,
+            benchId,
+            [
+              [1, 8],
+              [2, 6],
+            ],
+          ],
+          [2, squatId, [[1, 5]]],
+        ],
+      ],
+    ]);
+    for (const workout of updated?.workouts ?? []) {
+      expect(oldIds.has(workout.id)).toBe(false);
+    }
+    const leftovers = await withService((tx) =>
+      tx
+        .select({ id: workouts.id })
+        .from(workouts)
+        .where(inArray(workouts.id, [...oldIds]))
+    );
+    expect(leftovers).toEqual([]);
+    expect(await read(updater, plan.id)).toEqual(updated);
+  });
+
+  it("never updates another User's Plan", async () => {
+    const before = await read(bystander, bystanderPlan.id);
+
+    expect(
+      await asUser(updater, (tx) =>
+        updatePlan(tx, updater, bystanderPlan.id, { name: "Hijacked" })
+      )
+    ).toBeNull();
+    // asking with the owner's id doesn't get past RLS either
+    expect(
+      await asUser(updater, (tx) =>
+        updatePlan(tx, bystander, bystanderPlan.id, {
+          name: "Hijacked",
+          workouts: newPlan("Hijacked").workouts,
+        })
+      )
+    ).toBeNull();
+    expect(await read(bystander, bystanderPlan.id)).toEqual(before);
+  });
+
+  it("refuses a soft-deleted Plan without changing it", async () => {
+    expect(
+      await asUser(updater, (tx) =>
+        updatePlan(tx, updater, deleted.id, { name: "Revived" })
+      )
+    ).toBeNull();
+    const [row] = await withService((tx) =>
+      tx
+        .select({ deletedAt: plans.deletedAt, name: plans.name })
+        .from(plans)
+        .where(eq(plans.id, deleted.id))
+    );
+    expect(row).toEqual({ deletedAt: expect.any(String), name: "Deleted" });
+  });
+
+  it("returns null for an unknown Plan", async () => {
+    expect(
+      await asUser(updater, (tx) =>
+        updatePlan(tx, updater, randomUUID(), { name: "Nobody" })
+      )
+    ).toBeNull();
+  });
+
+  it("refuses unknown Exercises without changing anything", async () => {
+    const before = await read(updater, plan.id);
+    const unknownId = randomUUID();
+    const { workouts: replacement } = newPlan("Unknown");
+    replacement[0].exercises[0].exercise_id = unknownId;
+
+    const error = await asUser(updater, (tx) =>
+      updatePlan(tx, updater, plan.id, {
+        name: "Not saved",
+        workouts: replacement,
+      })
+    ).catch((caught: unknown) => caught);
+
+    expect(error).toBeInstanceOf(UnknownExercisesError);
+    expect((error as UnknownExercisesError).exerciseIds).toEqual([unknownId]);
+    expect(await read(updater, plan.id)).toEqual(before);
+  });
+
+  it("changes nothing when a write fails partway", async () => {
+    const before = await read(updater, plan.id);
+    const { workouts: replacement } = newPlan("Half written");
+    replacement[1].exercises[0].sets[0].reps_recommended = OUT_OF_RANGE_REPS;
+
+    await expect(
+      asUser(updater, (tx) =>
+        updatePlan(tx, updater, plan.id, {
+          name: "Not saved",
+          workouts: replacement,
+        })
+      )
+    ).rejects.toMatchObject({ cause: { code: NUMERIC_OUT_OF_RANGE } });
+
+    expect(await read(updater, plan.id)).toEqual(before);
   });
 });

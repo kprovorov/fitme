@@ -1,22 +1,12 @@
-import { afterEach, describe, expect, it, vi } from "vitest";
-import { type Filter, failure, ok, type Route } from "./fake-supabase.js";
+import { UnknownExercisesError } from "@fitme/services/plans";
+import { describe, expect, it, vi } from "vitest";
 import {
   BENCH_ID,
   call,
-  callsTo,
-  connectWithFake,
   connectWithServices,
-  expectAllCallsRouted,
   PLAN_ID,
   SQUAT_ID,
 } from "./harness.js";
-
-afterEach(expectAllCallsRouted);
-
-const LIVE_PLAN: Filter[] = [
-  ["eq", "id", PLAN_ID],
-  ["is", "deleted_at", null],
-];
 
 const metadata = {
   description: "Upper/lower split",
@@ -28,52 +18,6 @@ const metadata = {
   place: "gym",
   workout_duration: 60,
 };
-
-/** A plan whose workouts, exercises and sets all arrive out of order. */
-const planDetail = {
-  ...metadata,
-  id: PLAN_ID,
-  is_active: true,
-  workouts: [
-    {
-      exercises: [],
-      id: "w2",
-      name: "Day B",
-      order: 5,
-    },
-    {
-      exercises: [
-        {
-          exercise: { id: SQUAT_ID, name: "Squat" },
-          id: "we2",
-          order: 2,
-          sets: [{ id: "set-b", order: 1 }],
-        },
-        {
-          exercise: { id: BENCH_ID, name: "Bench" },
-          id: "we1",
-          order: 1,
-          sets: [
-            { id: "set-2", order: 2 },
-            { id: "set-1", order: 1 },
-          ],
-        },
-      ],
-      id: "w1",
-      name: "Day A",
-      order: 3,
-    },
-  ],
-};
-
-/** Plan detail read (`workouts (` only appears in the nested selects). */
-const detailRoute = (response = ok(planDetail)): Route => ({
-  filters: LIVE_PLAN,
-  name: "plans",
-  operation: "select",
-  response,
-  select: "sets:workout_exercise_sets",
-});
 
 const workoutsInput = [
   {
@@ -99,12 +43,6 @@ const workoutsInput = [
     name: "Day A",
   },
 ];
-
-const knownExercises: Route = {
-  name: "exercises",
-  operation: "select",
-  response: ok([{ id: BENCH_ID }, { id: SQUAT_ID }]),
-};
 
 const planSummary = {
   ...metadata,
@@ -229,15 +167,21 @@ describe("create_plan", () => {
     workouts: workoutsInput,
   };
 
-  it("lists unknown exercise ids instead of calling the RPC", async () => {
-    const { client, fake } = await connectWithFake([
-      {
-        filters: [["in", "id", [BENCH_ID, SQUAT_ID]]],
-        name: "exercises",
-        operation: "select",
-        response: ok([{ id: BENCH_ID }]),
-      },
-    ]);
+  it("creates the plan through the service and returns it in full", async () => {
+    const createPlan = vi.fn(() => Promise.resolve(servicePlan));
+    const client = await connectWithServices({ createPlan });
+
+    const result = await call(client, "create_plan", plan);
+
+    expect(result.isError).toBe(false);
+    expect(result.json).toEqual(servicePlan);
+    expect(createPlan).toHaveBeenCalledWith(plan);
+  });
+
+  it("lists unknown exercise ids", async () => {
+    const client = await connectWithServices({
+      createPlan: () => Promise.reject(new UnknownExercisesError([SQUAT_ID])),
+    });
 
     const result = await call(client, "create_plan", plan);
 
@@ -245,64 +189,34 @@ describe("create_plan", () => {
     expect(result.text).toBe(
       `Unknown exercise_id(s): ${SQUAT_ID}. Use list_exercises to look up valid exercise ids.`
     );
-    expect(callsTo(fake.calls, "create_plan")).toHaveLength(0);
   });
 
-  it("creates the plan through the RPC and returns it", async () => {
-    const { client, fake } = await connectWithFake([
-      knownExercises,
-      { name: "create_plan", operation: "rpc", response: ok(PLAN_ID) },
-      detailRoute(),
-    ]);
+  it("rejects a plan without workouts before calling the service", async () => {
+    const createPlan = vi.fn(() => Promise.resolve(servicePlan));
+    const client = await connectWithServices({ createPlan });
 
-    const result = await call(client, "create_plan", plan);
+    const result = await call(client, "create_plan", { ...plan, workouts: [] });
 
-    expect(result.isError).toBe(false);
-    expect(result.json).toMatchObject({ id: PLAN_ID });
-    const [rpc] = callsTo(fake.calls, "create_plan");
-    expect(rpc?.args).toEqual({ p_plan_data: plan });
-  });
-
-  it("reports success with a warning when the read-back fails", async () => {
-    const { client } = await connectWithFake([
-      knownExercises,
-      { name: "create_plan", operation: "rpc", response: ok(PLAN_ID) },
-      detailRoute(failure("connection reset")),
-    ]);
-
-    const result = await call(client, "create_plan", plan);
-
-    expect(result.isError).toBe(false);
-    expect(result.json).toMatchObject({ created: true, planId: PLAN_ID });
-    expect(result.json.warning).toContain("Do not repeat the call");
-  });
-
-  it("surfaces database errors as tool errors", async () => {
-    const { client } = await connectWithFake([
-      knownExercises,
-      {
-        name: "create_plan",
-        operation: "rpc",
-        response: failure("permission denied for function create_plan"),
-      },
-    ]);
-    const result = await call(client, "create_plan", plan);
     expect(result.isError).toBe(true);
-    expect(result.text).toBe("permission denied for function create_plan");
+    expect(createPlan).not.toHaveBeenCalled();
+  });
+
+  it("reports a database failure as a tool error without the SQL", async () => {
+    const client = await connectWithServices({
+      createPlan: () => Promise.reject(failedQuery("deadlock detected")),
+    });
+
+    const result = await call(client, "create_plan", plan);
+
+    expect(result.isError).toBe(true);
+    expect(result.text).toBe("deadlock detected");
   });
 });
 
 describe("update_plan", () => {
-  it("updates only metadata of a live plan without touching workouts", async () => {
-    const { client, fake } = await connectWithFake([
-      {
-        filters: LIVE_PLAN,
-        name: "plans",
-        operation: "update",
-        response: ok([{ id: PLAN_ID }]),
-      },
-      detailRoute(),
-    ]);
+  it("passes only the given metadata fields to the service", async () => {
+    const updatePlan = vi.fn(() => Promise.resolve(servicePlan));
+    const client = await connectWithServices({ updatePlan });
 
     const result = await call(client, "update_plan", {
       name: "Renamed",
@@ -311,80 +225,86 @@ describe("update_plan", () => {
     });
 
     expect(result.isError).toBe(false);
-    expect(callsTo(fake.calls, "update_plan")).toHaveLength(0);
-    const [update] = callsTo(fake.calls, "plans", "update");
-    expect(update?.args).toEqual({
+    expect(result.json).toEqual(servicePlan);
+    expect(updatePlan).toHaveBeenCalledWith(PLAN_ID, {
       name: "Renamed",
       note: null,
-      updated_at: expect.any(String),
     });
   });
 
-  it("errors when the plan doesn't exist", async () => {
-    const { client } = await connectWithFake([
-      { name: "plans", operation: "update", response: ok([]) },
-    ]);
+  it("passes the workouts that replace the plan's", async () => {
+    const updatePlan = vi.fn(() => Promise.resolve(servicePlan));
+    const client = await connectWithServices({ updatePlan });
+
+    const result = await call(client, "update_plan", {
+      frequency: 4,
+      planId: PLAN_ID,
+      workouts: workoutsInput,
+    });
+
+    expect(result.isError).toBe(false);
+    expect(updatePlan).toHaveBeenCalledWith(PLAN_ID, {
+      frequency: 4,
+      workouts: workoutsInput,
+    });
+  });
+
+  it("errors for a missing, deleted or foreign plan", async () => {
+    const client = await connectWithServices({
+      updatePlan: () => Promise.resolve(null),
+    });
+
     const result = await call(client, "update_plan", {
       frequency: 4,
       planId: PLAN_ID,
     });
+
     expect(result.isError).toBe(true);
-    expect(result.text).toContain(`Plan ${PLAN_ID} not found`);
+    expect(result.text).toBe(
+      `Plan ${PLAN_ID} not found (it may have been deleted or belong to another user).`
+    );
   });
 
-  it("merges current metadata into the update_plan RPC when workouts change", async () => {
-    const { client, fake } = await connectWithFake([
-      detailRoute(),
-      {
-        filters: LIVE_PLAN,
-        name: "plans",
-        operation: "select",
-        response: ok(metadata),
-        select: "workout_duration, note",
-      },
-      knownExercises,
-      { name: "update_plan", operation: "rpc", response: ok(PLAN_ID) },
-    ]);
-
-    const result = await call(client, "update_plan", {
-      frequency: 4,
-      planId: PLAN_ID,
-      workouts: workoutsInput,
+  it("lists unknown exercise ids", async () => {
+    const client = await connectWithServices({
+      updatePlan: () =>
+        Promise.reject(new UnknownExercisesError([BENCH_ID, SQUAT_ID])),
     });
-
-    expect(result.isError).toBe(false);
-    const [rpc] = callsTo(fake.calls, "update_plan");
-    expect(rpc?.args).toEqual({
-      p_plan_data: { ...metadata, frequency: 4, workouts: workoutsInput },
-      p_plan_id: PLAN_ID,
-    });
-    expect(callsTo(fake.calls, "plans", "update")).toHaveLength(0);
-  });
-
-  it("reports success with a warning when the read-back fails", async () => {
-    const { client } = await connectWithFake([
-      detailRoute(failure("connection reset")),
-      { name: "plans", operation: "select", response: ok(metadata) },
-      knownExercises,
-      { name: "update_plan", operation: "rpc", response: ok(PLAN_ID) },
-    ]);
 
     const result = await call(client, "update_plan", {
       planId: PLAN_ID,
       workouts: workoutsInput,
     });
 
-    expect(result.isError).toBe(false);
-    expect(result.json).toMatchObject({ planId: PLAN_ID, updated: true });
-    expect(result.json.warning).toContain("get_plan");
+    expect(result.isError).toBe(true);
+    expect(result.text).toBe(
+      `Unknown exercise_id(s): ${BENCH_ID}, ${SQUAT_ID}. Use list_exercises to look up valid exercise ids.`
+    );
   });
 
   it("rejects a call with nothing to update", async () => {
-    const { client, fake } = await connectWithFake([]);
+    const updatePlan = vi.fn(() => Promise.resolve(servicePlan));
+    const client = await connectWithServices({ updatePlan });
+
     const result = await call(client, "update_plan", { planId: PLAN_ID });
+
     expect(result.isError).toBe(true);
     expect(result.text).toContain("Nothing to update");
-    expect(fake.calls).toHaveLength(0);
+    expect(updatePlan).not.toHaveBeenCalled();
+  });
+
+  it("reports a database failure as a tool error without the SQL", async () => {
+    const client = await connectWithServices({
+      updatePlan: () => Promise.reject(failedQuery("deadlock detected")),
+    });
+
+    const result = await call(client, "update_plan", {
+      name: "Renamed",
+      planId: PLAN_ID,
+    });
+
+    expect(result.isError).toBe(true);
+    expect(result.text).toBe("deadlock detected");
   });
 });
 

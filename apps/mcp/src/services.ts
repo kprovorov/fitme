@@ -11,12 +11,16 @@ import {
 } from "@fitme/services/exercises";
 import {
   activatePlan,
+  createPlan,
   type DeletedPlan,
   deletePlan,
   getPlan,
   listPlans,
+  type NewPlan,
+  type PlanChanges,
   type PlanDetail,
   type PlanSummary,
+  updatePlan,
 } from "@fitme/services/plans";
 import { getProfile, type ProfileWithUnits } from "@fitme/services/profile";
 import {
@@ -38,6 +42,7 @@ import {
  */
 export interface UserServices {
   activatePlan: (planId: string) => Promise<PlanSummary | null>;
+  createPlan: (plan: NewPlan) => Promise<PlanDetail>;
   deletePlan: (planId: string) => Promise<DeletedPlan | null>;
   deleteWorkoutSession: (sessionId: string) => Promise<boolean>;
   getExercise: (exerciseId: string) => Promise<Exercise | null>;
@@ -55,6 +60,10 @@ export interface UserServices {
     options: ListWorkoutSessionsOptions
   ) => Promise<WorkoutSessionPage>;
   logSet: (input: LogSetInput) => Promise<LogSetResult>;
+  updatePlan: (
+    planId: string,
+    changes: PlanChanges
+  ) => Promise<PlanDetail | null>;
 }
 
 /**
@@ -71,6 +80,7 @@ export const createServicesFromEnv: ServicesFactory = (userId) => {
   return {
     activatePlan: (planId) =>
       asUser(userId, (tx) => activatePlan(tx, userId, planId)),
+    createPlan: (plan) => asUser(userId, (tx) => createPlan(tx, userId, plan)),
     deletePlan: (planId) =>
       asUser(userId, (tx) => deletePlan(tx, userId, planId)),
     deleteWorkoutSession: (sessionId) =>
@@ -88,5 +98,7 @@ export const createServicesFromEnv: ServicesFactory = (userId) => {
     listWorkoutSessions: (options) =>
       asUser(userId, (tx) => listWorkoutSessions(tx, options)),
     logSet: (input) => asUser(userId, (tx) => logSet(tx, input)),
+    updatePlan: (planId, changes) =>
+      asUser(userId, (tx) => updatePlan(tx, userId, planId, changes)),
   };
 };

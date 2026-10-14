@@ -97,13 +97,3 @@ export const planNoteSchema = z
   .string()
   .max(MAX_TEXT_LENGTH)
   .describe("Free-form note shown with the plan.");
-
-export type WorkoutsInput = z.infer<typeof workoutsSchema>;
-
-export const collectExerciseIds = (workouts: WorkoutsInput) => [
-  ...new Set(
-    workouts.flatMap((workout) =>
-      workout.exercises.map((exercise) => exercise.exercise_id)
-    )
-  ),
-];
