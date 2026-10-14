@@ -9,6 +9,25 @@ export type Json =
 export interface Database {
   public: {
     Tables: {
+      coach_sessions: {
+        Row: {
+          created_at: string;
+          session_id: string;
+          user_id: string;
+        };
+        ComputedFields: never;
+        Insert: {
+          created_at?: string;
+          session_id: string;
+          user_id: string;
+        };
+        Update: {
+          created_at?: string;
+          session_id?: string;
+          user_id?: string;
+        };
+        Relationships: [];
+      };
       conversations: {
         Row: {
           created_at: string;

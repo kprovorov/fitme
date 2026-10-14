@@ -8,6 +8,7 @@ This is a **pnpm + Turborepo** monorepo. Run repo-wide tasks from the root; run 
 
 ```
 apps/api                @fitme/api     — Hono REST API (Node)
+apps/coach              @fitme/coach   — the Coach: an EVE agent (Vercel's durable agent framework, ai@7)
 apps/mobile             @fitme/mobile  — Expo / React Native app
 apps/web                @fitme/web     — Next.js (App Router) web app
 apps/site               @fitme/site    — Next.js marketing site (fitmeproject.com)
@@ -32,8 +33,9 @@ pnpm dev:site            # next dev on :3001
 pnpm dev:mcp             # tsx watch MCP server on :3002 (MCP endpoint at /)
 pnpm dev:api             # tsx watch REST API on :3003
 pnpm dev:webhooks        # tsx watch webhooks app on :3004 (needs FITME_DATABASE_URL, CLERK_WEBHOOK_SIGNING_SECRET)
+pnpm dev:coach           # eve dev (no TUI) on :3005 against the local stack (apps/coach/.env.local: CLERK_JWT_KEY, FITME_DATABASE_URL, model keys)
 pnpm build               # turbo run build
-pnpm test                # turbo run test (jest in mobile, vitest in core, mcp, api and webhooks)
+pnpm test                # turbo run test (jest in mobile, vitest in core, mcp, api, webhooks and coach)
 pnpm typecheck           # turbo run typecheck
 pnpm check / pnpm fix    # ultracite (Biome) over the whole repo
 
@@ -50,6 +52,8 @@ pnpm api build           # tsdown bundle → apps/api/dist
 pnpm api test            # vitest (Hono app via app.request)
 pnpm webhooks build      # tsdown bundle → apps/webhooks/dist
 pnpm webhooks test       # vitest (Hono app via app.request, signed payloads, fake services)
+pnpm coach build         # eve build → apps/coach/.output
+pnpm coach test          # vitest (channel auth, model selection, turn limits, tool wiring; no database or model)
 pnpm --filter @fitme/db test:integration # vitest through the local Supavisor pooler as the fitme login (needs a local stack)
 pnpm --filter @fitme/services test:integration # services inside withService/asUser through the local pooler (needs a local stack)
 pnpm db start            # supabase start     (alias for pnpm --filter @fitme/supabase start)
@@ -135,6 +139,21 @@ Hono app served with `@hono/node-server`, bundled with tsdown (same setup as `ap
 - Tests (`src/__tests__/`, vitest) drive the app through `app.request` with payloads signed by a test secret (`standardwebhooks`) and fake dependencies, so they need no database.
 - Deployed to Vercel as its own Pro project, region `cle1` (`vercel.json`). `FITME_DATABASE_URL` carries `application_name=webhooks`. Its `/clerk` endpoint is registered for `user.deleted` on both Clerk instances, each with its own signing secret in the matching Vercel environment.
 
+### apps/coach — the Coach (EVE)
+
+The Coach as an [EVE](https://www.npmjs.com/package/eve) agent (ADR 0005), replacing the `ai-agent` edge function. EVE is in preview: it is pinned to an exact version; read its changelog on every bump. Its docs ship in the package (`node_modules/eve/docs/`, start at `README.md`; the `eve` agent skill points there). EVE is filesystem-first: every file under `agent/` is discovered by its path, so put helpers in `agent/lib/` and tests in `test/`. Needs Node 24.
+
+- `agent/agent.ts` — `defaultTools: false` (no shell, file or web tools; `eve info --json` lists what the model gets), Conversations end 30 days after they start (`limits.sessionTimeoutMs`), and the model is resolved on every `step.started` by `coachModelSelection` (`agent/lib/models.ts`): the client sends `clientContext: { model }` per turn, eve hands it to the resolver as a `context.instruction` user message (`Client context:` + JSON), and the id must be in `coachModels` from `@fitme/core`, the only list (none → `defaultCoachModelId`; anything else fails the turn). Ids map to the direct OpenAI / Anthropic providers through `eve/models/*` (`OPENAI_API_KEY`, `ANTHROPIC_API_KEY`; no AI Gateway).
+- `agent/instructions.md` — the system prompt, carried over from `ai-agent`.
+- `agent/channels/eve.ts` — the eve HTTP channel (`/eve/v1/session…`) behind `clerkSession()` (`agent/lib/clerk-auth.ts`) only: a Clerk session token verified networkless against `CLERK_JWT_KEY`; its `sub` becomes the session principal (`authenticator: "clerk"`). Missing or bad token → 401; missing key → 500. No `localDev()`, so local requests need a token too. Clerk tokens never go past the channel. `/eve/v1/health` is public.
+- `agent/lib/owner.ts` — the Conversation owner is the session's `auth.initiator` (the verified caller who started it): the only User id tools act as. Route auth doesn't check session ownership, so `agent/hooks/conversation.ts` cancels a `turn.started` whose caller isn't the owner, and records the session id for the owner (`recordCoachSession` in `asUser`; idempotent, every turn) before the model runs; a failed recording is reported and cancels the turn (account deletion needs every session id, FIT-121).
+- `agent/hooks/turn-limits.ts` — caps per turn (`agent/lib/turn-limits.ts`): 20 model calls and a token budget (input and output tokens summed from `step.completed`; the direct providers report no cost). The `step.started` that would go over cancels the turn. eve's own `limits.max*PerSession` are per session and prompt the user to continue, so they aren't used.
+- `agent/hooks/sentry.ts` — `step.failed`, `turn.failed` and `session.failed` go to Sentry (`agent/lib/sentry.ts`, `SENTRY_DSN`; unset → logs only).
+- `agent/tools/` — one file per tool, the filename is the tool name. Each is a thin wrapper: `asUser(owner, (tx) => service(tx, owner, …))` with `owner` from `requireConversationOwner(ctx.session.auth)`; tool inputs never carry a User id (their zod schemas strip unknown keys). So far: `get_user_profile` → `getProfile`.
+- `agent/sandbox.ts` — just-bash (in-process, nothing to build or pay for): eve prepares a sandbox even though no tool uses one.
+- `eve build` bundles the source-only `@fitme/*` packages into `.output/` itself. `FITME_DATABASE_URL` carries `application_name=coach`.
+- Tests (`test/`, vitest) call the pure functions and the tools' `execute` directly: channel auth through `routeAuth` with tokens signed by a test RSA key, model selection, turn limits, the owner/turn guard, and `get_user_profile` with `@fitme/db` and the service mocked.
+
 ### apps/mcp — MCP server
 
 Stateless [Streamable HTTP](https://modelcontextprotocol.io) MCP server built on Hono + `@modelcontextprotocol/sdk`, served with `@hono/node-server`.
@@ -170,7 +189,8 @@ The only way backend apps reach Postgres (ADR 0003): Drizzle on node-postgres (`
 Business logic shared by the backend apps (ADR 0004), replacing the Postgres RPCs one by one. Source-only; each service is its own export (`@fitme/services/<name>`), no barrel.
 
 - The rule: a service takes the `Transaction` from `asUser` or `withService` as its first argument and never opens its own connection. Any User id it acts on comes from a verified source (a verified token, or a signed webhook), never from request or tool input.
-- `profile.ts` — `getProfile(tx, userId)`, run inside `asUser`: the User's Profile (gender, age, height, weight as numbers, `measurement_system`) plus its `units` (metric = cm/kg, us/uk = in/lbs; an unknown system counts as metric), or `null` without a Profile. Used by MCP's `get_profile`.
+- `profile.ts` — `getProfile(tx, userId)`, run inside `asUser`: the User's Profile (gender, age, height, weight as numbers, `measurement_system`) plus its `units` (metric = cm/kg, us/uk = in/lbs; an unknown system counts as metric), or `null` without a Profile. Used by MCP's `get_profile` and the Coach's `get_user_profile`.
+- `coach-sessions.ts` — `recordCoachSession(tx, userId, sessionId)` / `listCoachSessionIds(tx, userId)`, run inside `asUser`: the Coach's EVE session ids per User in `coach_sessions` (migration `20261014160000_coach_sessions.sql`; RLS: a User reads and inserts only their own rows, `service_role` may delete). Recording is idempotent (`on conflict do nothing`), and an id already recorded for another User stays theirs. `deleteUserData` doesn't touch this table yet: account deletion resets the recorded sessions in FIT-121.
 - `delete-user-data.ts` — `deleteUserData(tx, userId)`, run inside `withService` (it replaced the dropped `delete_user_data` SQL function): rejects an empty id, locks the User-owned tables and their children `IN SHARE ROW EXCLUSIVE MODE` in `rekey_user`'s order, throws `UserRekeyedError` (`code` `55000`) for an id that was rekeyed away, retires the id in `private.retired_user_ids` (on conflict do nothing) and deletes the root rows (Workout Sessions, Plans, conversations, Profile), whose children cascade. A second run is a no-op. Its table list must track the schema. `service_role`'s grants for it come from migration `20261014140000_service_role_deletes_user_data.sql`.
 - `integration/` (`test:integration`) runs the services against the local stack's pooler like `packages/db` (the URL helper is `@fitme/db/local-database-url`), as made-up Clerk-style `user_…` ids; CI runs it in the integration-tests workflow.
 
@@ -242,6 +262,13 @@ Env files live next to each app.
 - `CLERK_WEBHOOK_SIGNING_SECRET` — the Clerk webhook endpoint's signing secret (`whsec_…`); unset → `POST /clerk` answers 500 (reported)
 - `FITME_DATABASE_URL` — see below, with `?application_name=webhooks`
 - `SENTRY_DSN` — failed cleanups are reported here; unset disables Sentry
+
+`apps/coach` (see `apps/coach/.env.example`; `eve dev` loads `apps/coach/.env.local`; deployed, the Vercel project's environment):
+
+- `CLERK_JWT_KEY` — the Clerk instance's PEM public key (`pnpm --silent db clerk:jwt-key`); the channel verifies session tokens against it. Missing → requests with a token answer 500.
+- `FITME_DATABASE_URL` — see below, with `?application_name=coach`
+- `OPENAI_API_KEY`, `ANTHROPIC_API_KEY` — direct providers for `coachModels`
+- `SENTRY_DSN` — failed steps, turns and sessions are reported here; unset disables Sentry
 
 `apps/site/.env.local` (see `apps/site/.env.example`): App Store id/url, support email, social links, GTM id, PostHog key.
 
