@@ -84,7 +84,7 @@ jobs:
           pnpm --filter @fitme/supabase clerk:check-migration
 
       # asUser / withService through the local Supavisor pooler as the fitme
-      # login; vitest.integration.config.ts has the local connection string
+      # login; the test config reads the pooler's port from `supabase status`
       # (development password from supabase/roles.sql).
       - name: Run packages/db integration tests
         run: pnpm --filter @fitme/db test:integration

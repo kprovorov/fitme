@@ -140,7 +140,7 @@ The only way backend apps reach Postgres (ADR 0003): Drizzle on node-postgres (`
 - `src/client.ts` — internal: the lazily created `pg.Pool` (small `max`, registered with `@vercel/functions`' `attachDatabasePool`) and Drizzle client, from `FITME_DATABASE_URL`, which must carry `?application_name=<app>`. Never export the raw client or pool, and never import this module from outside the package.
 - Never use a session-level `SET ROLE` or `set_config(…, false)` anywhere: the transaction pooler doesn't reset connections, so session state leaks to other requests.
 - `fitme` (migration `20261014130000_fitme_login.sql`) is `LOGIN NOINHERIT` with no grants of its own, a member of `authenticated` and `service_role` only, so a query outside both doors fails with "permission denied". Its credential is service-role strength: server environments only. Local stacks set its development password in `supabase/roles.sql` (run by the CLI before the migrations, never pushed); hosted projects set theirs by hand. The pooler user is `fitme.pooler-dev` locally and `fitme.<project-ref>` on hosted projects.
-- `integration/` (`test:integration`) runs the doors against the local stack's pooler (port 54329): identity and RLS, concurrent transactions with rollbacks never seeing another User's id, clean reused connections, and the login denied outside the doors. CI runs it in the integration-tests workflow.
+- `integration/` (`test:integration`) runs the doors against the local stack's pooler (its port comes from `supabase status -o json`; `FITME_DATABASE_URL` overrides): identity and RLS, concurrent transactions with rollbacks never seeing another User's id, clean reused connections, and the login denied outside the doors. CI runs it in the integration-tests workflow.
 
 ### packages/supabase — `@fitme/supabase`
 
@@ -200,7 +200,7 @@ Env files live next to each app.
 
 Backend apps that use `@fitme/db`:
 
-- `FITME_DATABASE_URL` — the `fitme` login's Supavisor transaction-pooler connection string with `?application_name=<app>` (locally `postgresql://fitme.pooler-dev:fitme-local-only@127.0.0.1:54329/postgres?application_name=<app>`). Service-role strength; server environments only.
+- `FITME_DATABASE_URL` — the `fitme` login's Supavisor transaction-pooler connection string with `?application_name=<app>` (locally `postgresql://fitme.pooler-dev:fitme-local-only@127.0.0.1:<pooler port>/postgres?application_name=<app>`; each stack's pooler port is in `supabase status -o json`). Service-role strength; server environments only.
 
 `apps/mcp` (see `apps/mcp/.env.example`; read from the process environment, not auto-loaded from a file):
 
