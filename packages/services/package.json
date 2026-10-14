@@ -7,6 +7,7 @@
   "exports": {
     "./coach-sessions": "./src/coach-sessions.ts",
     "./delete-user-data": "./src/delete-user-data.ts",
+    "./exercises": "./src/exercises.ts",
     "./profile": "./src/profile.ts"
   },
   "scripts": {
