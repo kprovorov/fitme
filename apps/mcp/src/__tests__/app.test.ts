@@ -109,20 +109,14 @@ const callTool = (
 ) =>
   rpc(app, { method: "tools/call", params: { arguments: args, name } }, token);
 
-const SESSION_ID = "11111111-1111-4111-8111-111111111111";
-const FINISHED_AT = "2026-10-01T10:00:00+00:00";
-const finishedSession = {
-  exercises: [],
-  finished_at: FINISHED_AT,
-  id: SESSION_ID,
-};
+const PLAN_ID = "11111111-1111-4111-8111-111111111111";
+const renamedPlan = { id: PLAN_ID, name: "Renamed", workouts: [] };
 
 /**
- * A tool still on Supabase (it answers `finish_workout_session` for the
- * already finished `SESSION_ID`).
+ * A tool still on Supabase (it answers `update_plan` renaming `PLAN_ID`).
  */
 const callSupabaseTool = (app: TestApp, token?: string) =>
-  callTool(app, "finish_workout_session", token, { sessionId: SESSION_ID });
+  callTool(app, "update_plan", token, { name: "Renamed", planId: PLAN_ID });
 
 /** The tool result inside a 200 SSE response. */
 const readToolResult = async (response: Response) => {
@@ -162,8 +156,7 @@ const profileServices: ServicesFactory = (userId) =>
 /**
  * The app with fake services and a fake Supabase client per request. Records
  * the User id every services object is built for and every signed token the
- * Supabase client receives (it answers `finish_workout_session` for the
- * already finished `SESSION_ID`).
+ * Supabase client receives (it answers `update_plan` renaming `PLAN_ID`).
  */
 const createTestApp = () => {
   const servicesUserIds: string[] = [];
@@ -177,22 +170,17 @@ const createTestApp = () => {
       supabaseTokens.push(token);
       return createFakeSupabase([
         {
-          filters: [["eq", "id", SESSION_ID]],
-          name: "workout_sessions",
-          operation: "select",
-          response: ok({
-            finished_at: FINISHED_AT,
-            id: SESSION_ID,
-            workout_id: null,
-          }),
-          select: "id, finished_at, workout_id",
+          filters: [["eq", "id", PLAN_ID]],
+          name: "plans",
+          operation: "update",
+          response: ok([{ id: PLAN_ID }]),
         },
         {
-          filters: [["eq", "id", SESSION_ID]],
-          name: "workout_sessions",
+          filters: [["eq", "id", PLAN_ID]],
+          name: "plans",
           operation: "select",
-          response: ok(finishedSession),
-          select: "exercises:workout_session_exercises",
+          response: ok(renamedPlan),
+          select: "workouts (",
         },
       ]).client;
     },
@@ -406,11 +394,7 @@ describe("with a valid Clerk token", () => {
     expect(response.status).toBe(200);
     const result = await readToolResult(response);
     expect(result.isError).toBe(false);
-    expect(JSON.parse(result.text)).toEqual({
-      alreadyFinished: true,
-      rotated: false,
-      session: { ...finishedSession, status: "finished" },
-    });
+    expect(JSON.parse(result.text)).toEqual(renamedPlan);
     expect(supabaseTokens).toHaveLength(1);
     expect(await verifySupabaseToken(supabaseTokens[0] ?? "")).toEqual({
       aud: "authenticated",

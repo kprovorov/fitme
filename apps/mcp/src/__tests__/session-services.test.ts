@@ -3,7 +3,13 @@ import type {
   WorkoutSessionSet,
 } from "@fitme/services/workout-sessions";
 import { describe, expect, it, vi } from "vitest";
-import { call, connectWithServices, SESSION_ID, SET_ID } from "./harness.js";
+import {
+  call,
+  connectWithServices,
+  SESSION_ID,
+  SET_ID,
+  WORKOUT_ID,
+} from "./harness.js";
 
 const FINISHED_AT = "2026-10-01T11:00:00.123+00:00";
 
@@ -269,5 +275,203 @@ describe("delete_workout_session", () => {
     expect(result.text).toBe(
       `Workout session ${SESSION_ID} not found (it may have been deleted or belong to another user).`
     );
+  });
+});
+
+const openSession: WorkoutSessionDetail = {
+  ...sessionDetail,
+  finished_at: null,
+  status: "in_progress",
+  workout: { id: WORKOUT_ID, name: "Day A" },
+};
+
+describe("start_workout_session", () => {
+  it("starts a session and returns it", async () => {
+    const startWorkoutSession = vi.fn(() =>
+      Promise.resolve({
+        resumed: false,
+        session: openSession,
+        status: "started" as const,
+      })
+    );
+    const client = await connectWithServices({ startWorkoutSession });
+
+    const result = await call(client, "start_workout_session", {
+      workoutId: WORKOUT_ID,
+    });
+
+    expect(result.isError).toBe(false);
+    expect(result.json).toEqual({ resumed: false, session: openSession });
+    expect(startWorkoutSession).toHaveBeenCalledWith(WORKOUT_ID);
+  });
+
+  it("returns the open session it resumed", async () => {
+    const client = await connectWithServices({
+      startWorkoutSession: () =>
+        Promise.resolve({
+          resumed: true,
+          session: openSession,
+          status: "started" as const,
+        }),
+    });
+
+    const result = await call(client, "start_workout_session", {
+      workoutId: WORKOUT_ID,
+    });
+
+    expect(result.json).toEqual({ resumed: true, session: openSession });
+  });
+
+  it("errors for a Workout it can't start (unknown, another user's or of a deleted plan)", async () => {
+    const client = await connectWithServices({
+      startWorkoutSession: () =>
+        Promise.resolve({ status: "not_found" as const }),
+    });
+
+    const result = await call(client, "start_workout_session", {
+      workoutId: WORKOUT_ID,
+    });
+
+    expect(result.isError).toBe(true);
+    expect(result.text).toBe(
+      `Workout ${WORKOUT_ID} not found (its plan may have been deleted or belong to another user, or update_plan replaced it — get_plan returns the current workout ids).`
+    );
+  });
+
+  it("rejects a workout id that isn't a uuid", async () => {
+    const startWorkoutSession = vi.fn();
+    const client = await connectWithServices({ startWorkoutSession });
+
+    const result = await call(client, "start_workout_session", {
+      workoutId: "nope",
+    });
+
+    expect(result.isError).toBe(true);
+    expect(startWorkoutSession).not.toHaveBeenCalled();
+  });
+
+  it("reports a database failure as a tool error", async () => {
+    const client = await connectWithServices({
+      startWorkoutSession: () =>
+        Promise.reject(
+          new Error("Failed query: ...", {
+            cause: Object.assign(new Error("deadlock detected"), {
+              code: "40P01",
+            }),
+          })
+        ),
+    });
+
+    const result = await call(client, "start_workout_session", {
+      workoutId: WORKOUT_ID,
+    });
+
+    expect(result.isError).toBe(true);
+    expect(result.text).toBe("deadlock detected");
+  });
+});
+
+describe("finish_workout_session", () => {
+  const finished = (alreadyFinished: boolean, rotated: boolean) => () =>
+    Promise.resolve({
+      alreadyFinished,
+      rotated,
+      session: sessionDetail,
+      status: "finished" as const,
+    });
+
+  it("finishes the session and reports the rotation", async () => {
+    const finishWorkoutSession = vi.fn(finished(false, true));
+    const client = await connectWithServices({ finishWorkoutSession });
+
+    const result = await call(client, "finish_workout_session", {
+      sessionId: SESSION_ID,
+    });
+
+    expect(result.isError).toBe(false);
+    expect(result.json).toEqual({
+      alreadyFinished: false,
+      rotated: true,
+      session: sessionDetail,
+    });
+    expect(finishWorkoutSession).toHaveBeenCalledWith(SESSION_ID);
+  });
+
+  it("reports rotated: false when the session's workout is gone", async () => {
+    const client = await connectWithServices({
+      finishWorkoutSession: finished(false, false),
+    });
+
+    const result = await call(client, "finish_workout_session", {
+      sessionId: SESSION_ID,
+    });
+
+    expect(result.json).toMatchObject({
+      alreadyFinished: false,
+      rotated: false,
+    });
+  });
+
+  it("reports an already finished session", async () => {
+    const client = await connectWithServices({
+      finishWorkoutSession: finished(true, false),
+    });
+
+    const result = await call(client, "finish_workout_session", {
+      sessionId: SESSION_ID,
+    });
+
+    expect(result.json).toMatchObject({
+      alreadyFinished: true,
+      rotated: false,
+    });
+  });
+
+  it("errors for an unknown session", async () => {
+    const client = await connectWithServices({
+      finishWorkoutSession: () =>
+        Promise.resolve({ status: "not_found" as const }),
+    });
+
+    const result = await call(client, "finish_workout_session", {
+      sessionId: SESSION_ID,
+    });
+
+    expect(result.isError).toBe(true);
+    expect(result.text).toBe(
+      `Workout session ${SESSION_ID} not found (it may have been deleted or belong to another user).`
+    );
+  });
+
+  it("rejects a session id that isn't a uuid", async () => {
+    const finishWorkoutSession = vi.fn();
+    const client = await connectWithServices({ finishWorkoutSession });
+
+    const result = await call(client, "finish_workout_session", {
+      sessionId: "nope",
+    });
+
+    expect(result.isError).toBe(true);
+    expect(finishWorkoutSession).not.toHaveBeenCalled();
+  });
+
+  it("reports a database failure as a tool error", async () => {
+    const client = await connectWithServices({
+      finishWorkoutSession: () =>
+        Promise.reject(
+          new Error("Failed query: ...", {
+            cause: Object.assign(new Error("deadlock detected"), {
+              code: "40P01",
+            }),
+          })
+        ),
+    });
+
+    const result = await call(client, "finish_workout_session", {
+      sessionId: SESSION_ID,
+    });
+
+    expect(result.isError).toBe(true);
+    expect(result.text).toBe("deadlock detected");
   });
 });

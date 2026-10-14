@@ -1,19 +1,13 @@
 import type { McpServer } from "@modelcontextprotocol/sdk/server/mcp.js";
 import { z } from "zod";
 import type { ToolContext } from "../context.js";
-import type { FitmeSupabaseClient } from "../supabase.js";
 import {
   asJson,
-  byOrder,
-  nowIso,
   READ_ONLY,
-  readBack,
   requireFound,
   ToolError,
-  unwrap,
   WEIGHT_UNIT_NOTE,
   withServices,
-  withUser,
 } from "./helpers.js";
 import {
   DEFAULT_PAGE_SIZE,
@@ -21,24 +15,6 @@ import {
   MAX_REPS,
   MAX_WEIGHT,
 } from "./limits.js";
-
-const SESSION_DETAIL_SELECT = `
-  id, started_at, finished_at,
-  workout:workouts ( id, name ),
-  plan:plans ( id, name ),
-  exercises:workout_session_exercises (
-    id, order,
-    exercise:exercises ( id, name ),
-    sets:workout_session_exercise_sets (
-      id, order, reps_recommended, weight_recommended, rest_recommended,
-      reps_completed, weight_completed, logged_at
-    )
-  )
-`;
-
-const SESSION_STATE_SELECT = "id, finished_at, workout_id";
-
-const GET_SESSION_FOLLOW_UP = "get_workout_session";
 
 const sessionIdSchema = z
   .string()
@@ -50,154 +26,6 @@ const sessionNotFound = (sessionId: string) =>
 
 const workoutNotFound = (workoutId: string) =>
   `Workout ${workoutId} not found (its plan may have been deleted or belong to another user, or update_plan replaced it — get_plan returns the current workout ids).`;
-
-const statusOf = (finishedAt: string | null) =>
-  finishedAt ? "finished" : "in_progress";
-
-async function loadSession(supabase: FitmeSupabaseClient, sessionId: string) {
-  const session = requireFound(
-    unwrap(
-      await supabase
-        .from("workout_sessions")
-        .select(SESSION_DETAIL_SELECT)
-        .eq("id", sessionId)
-        .maybeSingle()
-    ),
-    sessionNotFound(sessionId)
-  );
-  return {
-    ...session,
-    exercises: byOrder(session.exercises).map((exercise) => ({
-      ...exercise,
-      sets: byOrder(exercise.sets),
-    })),
-    status: statusOf(session.finished_at),
-  };
-}
-
-async function loadSessionState(
-  supabase: FitmeSupabaseClient,
-  sessionId: string
-) {
-  return requireFound(
-    unwrap(
-      await supabase
-        .from("workout_sessions")
-        .select(SESSION_STATE_SELECT)
-        .eq("id", sessionId)
-        .maybeSingle()
-    ),
-    sessionNotFound(sessionId)
-  );
-}
-
-/** The RPC doesn't look at `deleted_at`, so check the workout's plan here. */
-async function assertWorkoutIsLive(
-  supabase: FitmeSupabaseClient,
-  workoutId: string
-) {
-  requireFound(
-    unwrap(
-      await supabase
-        .from("workouts")
-        .select("id, plan:plans!inner ( id )")
-        .eq("id", workoutId)
-        .is("plan.deleted_at", null)
-        .maybeSingle()
-    ),
-    workoutNotFound(workoutId)
-  );
-}
-
-/** The app assumes at most one unfinished session per workout. */
-async function findOpenSessionId(
-  supabase: FitmeSupabaseClient,
-  workoutId: string
-) {
-  const [open] = unwrap(
-    await supabase
-      .from("workout_sessions")
-      .select("id")
-      .eq("workout_id", workoutId)
-      .is("finished_at", null)
-      .order("started_at", { ascending: false })
-      .limit(1)
-  );
-  return open?.id ?? null;
-}
-
-interface FinishOutcome {
-  alreadyFinished: boolean;
-  rotated: boolean;
-}
-
-const ALREADY_FINISHED: FinishOutcome = {
-  alreadyFinished: true,
-  rotated: false,
-};
-
-/** Sets `finished_at` without rotating; true if an open session matched. */
-async function finishDirectly(
-  supabase: FitmeSupabaseClient,
-  sessionId: string
-) {
-  const rows = unwrap(
-    await supabase
-      .from("workout_sessions")
-      .update({ finished_at: nowIso() })
-      .eq("id", sessionId)
-      .is("finished_at", null)
-      .select("id")
-  );
-  return rows.length > 0;
-}
-
-/**
- * After a failed finish, re-reads the session: it may have been finished
- * concurrently, or its workout removed (then the direct update applies).
- */
-async function recoverFinish(
-  supabase: FitmeSupabaseClient,
-  sessionId: string,
-  failure: string
-): Promise<FinishOutcome> {
-  const state = await loadSessionState(supabase, sessionId);
-  if (state.finished_at) {
-    return ALREADY_FINISHED;
-  }
-  if (!state.workout_id && (await finishDirectly(supabase, sessionId))) {
-    return { alreadyFinished: false, rotated: false };
-  }
-  throw new ToolError(failure);
-}
-
-/**
- * `finish_workout_session` resolves the plan through the session's workout,
- * so it raises for sessions whose workout was removed by update_plan. Those
- * are only marked finished; there is no workout left to rotate.
- */
-async function finishSession(
-  supabase: FitmeSupabaseClient,
-  sessionId: string
-): Promise<FinishOutcome> {
-  const state = await loadSessionState(supabase, sessionId);
-  if (state.finished_at) {
-    return ALREADY_FINISHED;
-  }
-  if (state.workout_id) {
-    const { error } = await supabase.rpc("finish_workout_session", {
-      p_session_id: sessionId,
-    });
-    if (!error) {
-      return { alreadyFinished: false, rotated: true };
-    }
-    return recoverFinish(supabase, sessionId, error.message);
-  }
-  if (await finishDirectly(supabase, sessionId)) {
-    return { alreadyFinished: false, rotated: false };
-  }
-  return recoverFinish(supabase, sessionId, sessionNotFound(sessionId));
-}
 
 function registerSessionReadTools(server: McpServer, ctx: ToolContext) {
   server.registerTool(
@@ -284,29 +112,13 @@ function registerSessionWriteTools(server: McpServer, ctx: ToolContext) {
       },
       title: "Start workout session",
     },
-    withUser(ctx, async ({ workoutId }, { supabase }) => {
-      await assertWorkoutIsLive(supabase, workoutId);
-      const openSessionId = await findOpenSessionId(supabase, workoutId);
-      if (openSessionId) {
-        return asJson({
-          resumed: true,
-          session: await loadSession(supabase, openSessionId),
-        });
+    withServices(ctx, async ({ workoutId }, services) => {
+      const result = await services.startWorkoutSession(workoutId);
+      if (result.status === "not_found") {
+        throw new ToolError(workoutNotFound(workoutId));
       }
-
-      const sessionId = unwrap(
-        await supabase.rpc("start_workout_session", {
-          p_workout_id: workoutId,
-        })
-      );
-      return readBack(
-        async () => ({
-          resumed: false,
-          session: await loadSession(supabase, sessionId),
-        }),
-        { resumed: false, sessionId },
-        GET_SESSION_FOLLOW_UP
-      );
+      const { resumed, session } = result;
+      return asJson({ resumed, session });
     })
   );
 
@@ -371,16 +183,13 @@ function registerSessionWriteTools(server: McpServer, ctx: ToolContext) {
       inputSchema: { sessionId: sessionIdSchema },
       title: "Finish workout session",
     },
-    withUser(ctx, async ({ sessionId }, { supabase }) => {
-      const outcome = await finishSession(supabase, sessionId);
-      return readBack(
-        async () => ({
-          ...outcome,
-          session: await loadSession(supabase, sessionId),
-        }),
-        { ...outcome, sessionId },
-        GET_SESSION_FOLLOW_UP
-      );
+    withServices(ctx, async ({ sessionId }, services) => {
+      const result = await services.finishWorkoutSession(sessionId);
+      if (result.status === "not_found") {
+        throw new ToolError(sessionNotFound(sessionId));
+      }
+      const { alreadyFinished, rotated, session } = result;
+      return asJson({ alreadyFinished, rotated, session });
     })
   );
 
