@@ -1,4 +1,4 @@
--- The fitme login (20261014120000_fitme_login.sql, ADR 0003) and the rule
+-- The fitme login (20261014130000_fitme_login.sql, ADR 0003) and the rule
 -- that every public table has RLS: a table without it keeps Supabase's
 -- default grants, so anyone switching to authenticated could read all of it.
 -- Run with `pnpm db test:db` (supabase test db).
