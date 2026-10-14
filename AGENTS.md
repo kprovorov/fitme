@@ -14,6 +14,7 @@ apps/site               @fitme/site    — Next.js marketing site (fitmeproject.
 packages/core           @fitme/core    — domain models, labels, formatters, pure helpers
 packages/supabase       @fitme/supabase — Supabase project + generated DB types
 packages/db             @fitme/db      — asUser / withService: the only way backend apps reach Postgres
+packages/services       @fitme/services — business logic run inside an asUser / withService transaction
 packages/typescript-config              — shared tsconfig presets
 ```
 
@@ -46,6 +47,7 @@ pnpm mcp test:integration # vitest against the local Supabase stack (needs SUPAB
 pnpm api build           # tsdown bundle → apps/api/dist
 pnpm api test            # vitest (Hono app via app.request)
 pnpm --filter @fitme/db test:integration # vitest through the local Supavisor pooler as the fitme login (needs a local stack)
+pnpm --filter @fitme/services test:integration # services inside withService/asUser through the local pooler (needs a local stack)
 pnpm db start            # supabase start     (alias for pnpm --filter @fitme/supabase start)
 pnpm db seed             # seed local database
 pnpm db types:generate   # regenerate packages/supabase/src/database.types.ts
@@ -148,6 +150,14 @@ The only way backend apps reach Postgres (ADR 0003): Drizzle on node-postgres (`
 - `fitme` (migration `20261014130000_fitme_login.sql`) is `LOGIN NOINHERIT` with no grants of its own, a member of `authenticated` and `service_role` only, so a query outside both doors fails with "permission denied". Its credential is service-role strength: server environments only. Local stacks set its development password in `supabase/roles.sql` (run by the CLI before the migrations, never pushed); hosted projects set theirs by hand. The pooler user is `fitme.pooler-dev` locally and `fitme.<project-ref>` on hosted projects.
 - `integration/` (`test:integration`) runs the doors against the local stack's pooler (its port comes from `supabase status --output-format json`; `FITME_DATABASE_URL` overrides): identity and RLS, concurrent transactions with rollbacks never seeing another User's id, clean reused connections, and the login denied outside the doors. CI runs it in the integration-tests workflow.
 
+### packages/services — `@fitme/services`
+
+Business logic shared by the backend apps (ADR 0004), replacing the Postgres RPCs one by one. Source-only; each service is its own export (`@fitme/services/<name>`), no barrel.
+
+- The rule: a service takes the `Transaction` from `asUser` or `withService` as its first argument and never opens its own connection. Any User id it acts on comes from a verified source (a verified token, or a signed webhook), never from request or tool input.
+- `delete-user-data.ts` — `deleteUserData(tx, userId)`, the TypeScript port of `delete_user_data`, run inside `withService`: rejects an empty id, locks the User-owned tables and their children `IN SHARE ROW EXCLUSIVE MODE` in `rekey_user`'s order, throws `UserRekeyedError` (`code` `55000`) for an id that was rekeyed away, retires the id in `private.retired_user_ids` (on conflict do nothing) and deletes the root rows (Workout Sessions, Plans, conversations, Profile), whose children cascade. A second run is a no-op. Its table list must track the schema. `service_role`'s grants for it come from migration `20261014140000_service_role_deletes_user_data.sql`. The SQL function stays until the webhook cutover.
+- `integration/` (`test:integration`) runs the services against the local stack's pooler like `packages/db` (the URL helper is `@fitme/db/local-database-url`), as made-up Clerk-style `user_…` ids; CI runs it in the integration-tests workflow.
+
 ### packages/supabase — `@fitme/supabase`
 
 - `supabase/` — Supabase CLI project: `config.toml`, `migrations/`, `functions/` (Edge Functions: `clerk-webhook`, `ai-agent`), `templates/`, `seed.ts`, `sync.ts`
@@ -241,7 +251,7 @@ Then review the diff against that intent: flag code that misses an acceptance cr
 
 ## CI/CD
 
-GitHub Actions use pnpm (`pnpm/action-setup`) and `pnpm install --frozen-lockfile`. Unit tests run through `pnpm turbo run test`; the pgTAP suite and the MCP and `packages/db` integration tests run separately against a local Supabase stack (Supabase CLI, Supavisor in transaction mode) in `.github/workflows/integration-tests.yml`. The release workflow (`.github/workflows/release.yml`) never commits to `main` (it's protected): it derives the next version from the commits since the last `v*` tag following conventional commits (`feat:` → minor, `fix:` → patch, `BREAKING CHANGE:` or `type!:` → major), creates the tag with the GitHub release and the Linear release, then calls `.github/workflows/build-mobile.yml`. That workflow (also runnable by hand with a tag, to rebuild) stamps the tag's version into `apps/mobile/app.json` (whose committed `version` is a `0.0.0` placeholder) and starts the iOS production EAS build with auto-submit (both jobs run in the `production` GitHub environment, which holds the `EXPO_TOKEN` and `LINEAR_ACCESS_KEY` secrets). The tag is the source of truth for the app version. The exercise sync workflow runs `pnpm --filter @fitme/supabase exercises:sync` on pushes to `main` that touch the exercise data. The Database Types workflow (`.github/workflows/database-types.yml`) starts a local database, runs `pnpm db types:generate` (which also normalizes the output with Biome) and fails if `packages/supabase/src/database.types.ts` is stale; against the same database it then runs `pnpm --filter @fitme/db schema:generate` and fails if `packages/db/src/schema.ts` or `src/relations.ts` is stale.
+GitHub Actions use pnpm (`pnpm/action-setup`) and `pnpm install --frozen-lockfile`. Unit tests run through `pnpm turbo run test`; the pgTAP suite and the MCP, `packages/db` and `packages/services` integration tests run separately against a local Supabase stack (Supabase CLI, Supavisor in transaction mode) in `.github/workflows/integration-tests.yml`. The release workflow (`.github/workflows/release.yml`) never commits to `main` (it's protected): it derives the next version from the commits since the last `v*` tag following conventional commits (`feat:` → minor, `fix:` → patch, `BREAKING CHANGE:` or `type!:` → major), creates the tag with the GitHub release and the Linear release, then calls `.github/workflows/build-mobile.yml`. That workflow (also runnable by hand with a tag, to rebuild) stamps the tag's version into `apps/mobile/app.json` (whose committed `version` is a `0.0.0` placeholder) and starts the iOS production EAS build with auto-submit (both jobs run in the `production` GitHub environment, which holds the `EXPO_TOKEN` and `LINEAR_ACCESS_KEY` secrets). The tag is the source of truth for the app version. The exercise sync workflow runs `pnpm --filter @fitme/supabase exercises:sync` on pushes to `main` that touch the exercise data. The Database Types workflow (`.github/workflows/database-types.yml`) starts a local database, runs `pnpm db types:generate` (which also normalizes the output with Biome) and fails if `packages/supabase/src/database.types.ts` is stale; against the same database it then runs `pnpm --filter @fitme/db schema:generate` and fails if `packages/db/src/schema.ts` or `src/relations.ts` is stale.
 
 ## Agent skills
 
