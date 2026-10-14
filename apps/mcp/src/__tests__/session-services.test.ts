@@ -1,0 +1,273 @@
+import type {
+  WorkoutSessionDetail,
+  WorkoutSessionSet,
+} from "@fitme/services/workout-sessions";
+import { describe, expect, it, vi } from "vitest";
+import { call, connectWithServices, SESSION_ID, SET_ID } from "./harness.js";
+
+const FINISHED_AT = "2026-10-01T11:00:00.123+00:00";
+
+const loggedSet: WorkoutSessionSet = {
+  id: SET_ID,
+  logged_at: "2026-10-01T10:30:00.5+00:00",
+  order: 1,
+  reps_completed: 8,
+  reps_recommended: 8,
+  rest_recommended: 90,
+  weight_completed: 62.5,
+  weight_recommended: 60,
+};
+
+const sessionDetail: WorkoutSessionDetail = {
+  exercises: [
+    {
+      exercise: { id: "bench", name: "Bench" },
+      id: "wse-1",
+      order: 1,
+      sets: [loggedSet],
+    },
+  ],
+  finished_at: FINISHED_AT,
+  id: SESSION_ID,
+  plan: { id: "plan", name: null },
+  started_at: "2026-10-01T10:00:00+00:00",
+  status: "finished",
+  workout: null,
+};
+
+describe("get_workout_session", () => {
+  it("returns the session the service found", async () => {
+    const getWorkoutSession = vi.fn(() => Promise.resolve(sessionDetail));
+    const client = await connectWithServices({ getWorkoutSession });
+
+    const result = await call(client, "get_workout_session", {
+      sessionId: SESSION_ID,
+    });
+
+    expect(result.isError).toBe(false);
+    expect(result.json).toEqual(sessionDetail);
+    expect(getWorkoutSession).toHaveBeenCalledWith(SESSION_ID);
+  });
+
+  it("errors for an unknown session", async () => {
+    const client = await connectWithServices({
+      getWorkoutSession: () => Promise.resolve(null),
+    });
+
+    const result = await call(client, "get_workout_session", {
+      sessionId: SESSION_ID,
+    });
+
+    expect(result.isError).toBe(true);
+    expect(result.text).toBe(
+      `Workout session ${SESSION_ID} not found (it may have been deleted or belong to another user).`
+    );
+  });
+
+  it("rejects a session id that isn't a uuid", async () => {
+    const getWorkoutSession = vi.fn();
+    const client = await connectWithServices({ getWorkoutSession });
+
+    const result = await call(client, "get_workout_session", {
+      sessionId: "nope",
+    });
+
+    expect(result.isError).toBe(true);
+    expect(getWorkoutSession).not.toHaveBeenCalled();
+  });
+});
+
+describe("list_workout_sessions", () => {
+  const summary = {
+    exercise_count: 2,
+    finished_at: null,
+    id: SESSION_ID,
+    logged_set_count: 2,
+    plan: null,
+    set_count: 3,
+    started_at: "2026-10-01T10:00:00+00:00",
+    status: "in_progress" as const,
+    workout: null,
+  };
+
+  it("passes the defaults and returns the page with hasMore", async () => {
+    const listWorkoutSessions = vi.fn(() =>
+      Promise.resolve({ sessions: [summary], total: 21 })
+    );
+    const client = await connectWithServices({ listWorkoutSessions });
+
+    const result = await call(client, "list_workout_sessions");
+
+    expect(listWorkoutSessions).toHaveBeenCalledWith({
+      limit: 20,
+      offset: 0,
+      status: "all",
+    });
+    expect(result.json).toEqual({
+      hasMore: true,
+      limit: 20,
+      offset: 0,
+      sessions: [summary],
+      total: 21,
+    });
+  });
+
+  it("passes the status filter and reports the last page", async () => {
+    const listWorkoutSessions = vi.fn(() =>
+      Promise.resolve({ sessions: [summary], total: 6 })
+    );
+    const client = await connectWithServices({ listWorkoutSessions });
+
+    const result = await call(client, "list_workout_sessions", {
+      limit: 5,
+      offset: 5,
+      status: "in_progress",
+    });
+
+    expect(listWorkoutSessions).toHaveBeenCalledWith({
+      limit: 5,
+      offset: 5,
+      status: "in_progress",
+    });
+    expect(result.json).toMatchObject({ hasMore: false, total: 6 });
+  });
+
+  it("returns an empty page for an offset past the end", async () => {
+    const client = await connectWithServices({
+      listWorkoutSessions: () => Promise.resolve({ sessions: [], total: 3 }),
+    });
+
+    const result = await call(client, "list_workout_sessions", {
+      offset: 20,
+      status: "finished",
+    });
+
+    expect(result.json).toEqual({
+      hasMore: false,
+      limit: 20,
+      offset: 20,
+      sessions: [],
+      total: 3,
+    });
+  });
+
+  it("rejects a page size over the maximum", async () => {
+    const listWorkoutSessions = vi.fn();
+    const client = await connectWithServices({ listWorkoutSessions });
+
+    const result = await call(client, "list_workout_sessions", {
+      limit: 101,
+    });
+
+    expect(result.isError).toBe(true);
+    expect(listWorkoutSessions).not.toHaveBeenCalled();
+  });
+});
+
+describe("log_set", () => {
+  const args = { repsCompleted: 8, setId: SET_ID, weightCompleted: 62.5 };
+
+  it("logs the set and returns it, weight unconverted", async () => {
+    const logSet = vi.fn(() =>
+      Promise.resolve({ set: loggedSet, status: "logged" as const })
+    );
+    const client = await connectWithServices({ logSet });
+
+    const result = await call(client, "log_set", args);
+
+    expect(result.isError).toBe(false);
+    expect(result.json).toEqual(loggedSet);
+    expect(logSet).toHaveBeenCalledWith(args);
+  });
+
+  it("errors when no set matches (e.g. another user's set or a plan set id)", async () => {
+    const client = await connectWithServices({
+      logSet: () => Promise.resolve({ status: "not_found" as const }),
+    });
+
+    const result = await call(client, "log_set", args);
+
+    expect(result.isError).toBe(true);
+    expect(result.text).toBe(
+      `Set ${SET_ID} not found. Use the set ids from get_workout_session (workout_session_exercise_sets.id).`
+    );
+  });
+
+  it("refuses to log into a finished session", async () => {
+    const client = await connectWithServices({
+      logSet: () =>
+        Promise.resolve({
+          finishedAt: FINISHED_AT,
+          sessionId: SESSION_ID,
+          status: "session_finished" as const,
+        }),
+    });
+
+    const result = await call(client, "log_set", args);
+
+    expect(result.isError).toBe(true);
+    expect(result.text).toBe(
+      `Workout session ${SESSION_ID} was finished at ${FINISHED_AT}; its sets can no longer be logged.`
+    );
+  });
+
+  it("rejects negative reps before calling the service", async () => {
+    const logSet = vi.fn();
+    const client = await connectWithServices({ logSet });
+
+    const result = await call(client, "log_set", {
+      ...args,
+      repsCompleted: -1,
+    });
+
+    expect(result.isError).toBe(true);
+    expect(logSet).not.toHaveBeenCalled();
+  });
+
+  it("reports a database failure as a tool error", async () => {
+    const client = await connectWithServices({
+      logSet: () =>
+        Promise.reject(
+          new Error("Failed query: update ...", {
+            cause: Object.assign(new Error("deadlock detected"), {
+              code: "40P01",
+            }),
+          })
+        ),
+    });
+
+    const result = await call(client, "log_set", args);
+
+    expect(result.isError).toBe(true);
+    expect(result.text).toBe("deadlock detected");
+  });
+});
+
+describe("delete_workout_session", () => {
+  it("deletes the session", async () => {
+    const deleteWorkoutSession = vi.fn(() => Promise.resolve(true));
+    const client = await connectWithServices({ deleteWorkoutSession });
+
+    const result = await call(client, "delete_workout_session", {
+      sessionId: SESSION_ID,
+    });
+
+    expect(result.json).toEqual({ deleted: true, sessionId: SESSION_ID });
+    expect(deleteWorkoutSession).toHaveBeenCalledWith(SESSION_ID);
+  });
+
+  it("errors when nothing was deleted", async () => {
+    const client = await connectWithServices({
+      deleteWorkoutSession: () => Promise.resolve(false),
+    });
+
+    const result = await call(client, "delete_workout_session", {
+      sessionId: SESSION_ID,
+    });
+
+    expect(result.isError).toBe(true);
+    expect(result.text).toBe(
+      `Workout session ${SESSION_ID} not found (it may have been deleted or belong to another user).`
+    );
+  });
+});

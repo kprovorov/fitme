@@ -5,7 +5,6 @@ import type { FitmeSupabaseClient } from "../supabase.js";
 import {
   asJson,
   byOrder,
-  fetchPage,
   nowIso,
   READ_ONLY,
   readBack,
@@ -13,6 +12,7 @@ import {
   ToolError,
   unwrap,
   WEIGHT_UNIT_NOTE,
+  withServices,
   withUser,
 } from "./helpers.js";
 import {
@@ -36,20 +36,7 @@ const SESSION_DETAIL_SELECT = `
   )
 `;
 
-const SESSION_SUMMARY_SELECT = `
-  id, started_at, finished_at,
-  workout:workouts ( id, name ),
-  plan:plans ( id, name ),
-  exercises:workout_session_exercises (
-    id,
-    sets:workout_session_exercise_sets ( logged_at )
-  )
-`;
-
 const SESSION_STATE_SELECT = "id, finished_at, workout_id";
-
-const SET_SELECT =
-  "id, order, reps_recommended, weight_recommended, rest_recommended, reps_completed, weight_completed, logged_at";
 
 const GET_SESSION_FOLLOW_UP = "get_workout_session";
 
@@ -139,27 +126,6 @@ async function findOpenSessionId(
   return open?.id ?? null;
 }
 
-async function assertSetIsOpen(supabase: FitmeSupabaseClient, setId: string) {
-  const set = requireFound(
-    unwrap(
-      await supabase
-        .from("workout_session_exercise_sets")
-        .select(
-          "id, session_exercise:workout_session_exercises!inner ( session:workout_sessions!inner ( id, finished_at ) )"
-        )
-        .eq("id", setId)
-        .maybeSingle()
-    ),
-    `Set ${setId} not found. Use the set ids from get_workout_session (workout_session_exercise_sets.id).`
-  );
-  const { session } = set.session_exercise;
-  if (session.finished_at) {
-    throw new ToolError(
-      `Workout session ${session.id} was finished at ${session.finished_at}; its sets can no longer be logged.`
-    );
-  }
-}
-
 interface FinishOutcome {
   alreadyFinished: boolean;
   rotated: boolean;
@@ -242,8 +208,13 @@ function registerSessionReadTools(server: McpServer, ctx: ToolContext) {
       inputSchema: { sessionId: sessionIdSchema },
       title: "Get workout session",
     },
-    withUser(ctx, async ({ sessionId }, { supabase }) =>
-      asJson(await loadSession(supabase, sessionId))
+    withServices(ctx, async ({ sessionId }, services) =>
+      asJson(
+        requireFound(
+          await services.getWorkoutSession(sessionId),
+          sessionNotFound(sessionId)
+        )
+      )
     )
   );
 
@@ -276,40 +247,19 @@ function registerSessionReadTools(server: McpServer, ctx: ToolContext) {
       },
       title: "List workout sessions",
     },
-    withUser(ctx, async ({ limit, offset, status }, { supabase }) => {
-      const query = (head: boolean) => {
-        const all = supabase
-          .from("workout_sessions")
-          .select(SESSION_SUMMARY_SELECT, { count: "exact", head });
-        if (status === "in_progress") {
-          return all.is("finished_at", null);
-        }
-        if (status === "finished") {
-          return all.not("finished_at", "is", null);
-        }
-        return all;
-      };
-
-      const { rows, ...page } = await fetchPage(
-        () =>
-          query(false)
-            .order("started_at", { ascending: false })
-            .order("id")
-            .range(offset, offset + limit - 1),
-        () => query(true),
-        { limit, offset }
-      );
-      const sessions = rows.map(({ exercises, ...session }) => {
-        const sets = exercises.flatMap((exercise) => exercise.sets);
-        return {
-          ...session,
-          exercise_count: exercises.length,
-          logged_set_count: sets.filter((set) => set.logged_at).length,
-          set_count: sets.length,
-          status: statusOf(session.finished_at),
-        };
+    withServices(ctx, async ({ limit, offset, status }, services) => {
+      const { sessions, total } = await services.listWorkoutSessions({
+        limit,
+        offset,
+        status,
       });
-      return asJson({ sessions, ...page });
+      return asJson({
+        hasMore: offset + sessions.length < total,
+        limit,
+        offset,
+        sessions,
+        total,
+      });
     })
   );
 }
@@ -391,25 +341,20 @@ function registerSessionWriteTools(server: McpServer, ctx: ToolContext) {
       },
       title: "Log set",
     },
-    withUser(
-      ctx,
-      async ({ repsCompleted, setId, weightCompleted }, { supabase }) => {
-        await assertSetIsOpen(supabase, setId);
-        const set = unwrap(
-          await supabase
-            .from("workout_session_exercise_sets")
-            .update({
-              logged_at: nowIso(),
-              reps_completed: repsCompleted,
-              weight_completed: weightCompleted,
-            })
-            .eq("id", setId)
-            .select(SET_SELECT)
-            .maybeSingle()
+    withServices(ctx, async (input, services) => {
+      const result = await services.logSet(input);
+      if (result.status === "not_found") {
+        throw new ToolError(
+          `Set ${input.setId} not found. Use the set ids from get_workout_session (workout_session_exercise_sets.id).`
         );
-        return asJson(requireFound(set, `Set ${setId} not found.`));
       }
-    )
+      if (result.status === "session_finished") {
+        throw new ToolError(
+          `Workout session ${result.sessionId} was finished at ${result.finishedAt}; its sets can no longer be logged.`
+        );
+      }
+      return asJson(result.set);
+    })
   );
 
   server.registerTool(
@@ -453,15 +398,8 @@ function registerSessionWriteTools(server: McpServer, ctx: ToolContext) {
       inputSchema: { sessionId: sessionIdSchema },
       title: "Delete workout session",
     },
-    withUser(ctx, async ({ sessionId }, { supabase }) => {
-      const rows = unwrap(
-        await supabase
-          .from("workout_sessions")
-          .delete()
-          .eq("id", sessionId)
-          .select("id")
-      );
-      if (rows.length === 0) {
+    withServices(ctx, async ({ sessionId }, services) => {
+      if (!(await services.deleteWorkoutSession(sessionId))) {
         throw new ToolError(sessionNotFound(sessionId));
       }
       return asJson({ deleted: true, sessionId });
