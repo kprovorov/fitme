@@ -19,7 +19,10 @@
       "distribution": "internal"
     },
     "production": {
-      "autoIncrement": true
+      "autoIncrement": true,
+      "env": {
+        "EXPO_PUBLIC_API_URL": "https://api.fitmeproject.com"
+      }
     },
     "e2e-simulator": {
       "developmentClient": true,

@@ -14,6 +14,7 @@ import { useEffect } from "react";
 import { Platform } from "react-native";
 import Purchases from "react-native-purchases";
 import "react-native-reanimated";
+import MinimumVersionGate from "~/components/minimum-version-gate";
 import Providers from "~/components/providers";
 import "../global.css";
 import { Stack } from "expo-router";
@@ -66,35 +67,37 @@ export default function RootLayout() {
 
   return (
     <Providers>
-      <Stack
-        screenOptions={{
-          headerShown: false,
-          scrollEdgeEffects: SCROLL_EDGE_EFFECTS,
-        }}
-      >
-        <Stack.Screen name="(tabs)" options={{ title: "Home" }} />
-        <Stack.Screen
-          name="onboarding"
-          options={{
-            presentation: "modal",
+      <MinimumVersionGate>
+        <Stack
+          screenOptions={{
+            headerShown: false,
+            scrollEdgeEffects: SCROLL_EDGE_EFFECTS,
           }}
-        />
-        <Stack.Screen
-          name="planner"
-          options={{
-            presentation: "modal",
-          }}
-        />
-        <Stack.Screen
-          name="exercises/[exerciseId]/guide"
-          options={{
-            presentation: "formSheet",
-            sheetAllowedDetents: [0.5, 1],
-            sheetGrabberVisible: true,
-            sheetInitialDetentIndex: 0,
-          }}
-        />
-      </Stack>
+        >
+          <Stack.Screen name="(tabs)" options={{ title: "Home" }} />
+          <Stack.Screen
+            name="onboarding"
+            options={{
+              presentation: "modal",
+            }}
+          />
+          <Stack.Screen
+            name="planner"
+            options={{
+              presentation: "modal",
+            }}
+          />
+          <Stack.Screen
+            name="exercises/[exerciseId]/guide"
+            options={{
+              presentation: "formSheet",
+              sheetAllowedDetents: [0.5, 1],
+              sheetGrabberVisible: true,
+              sheetInitialDetentIndex: 0,
+            }}
+          />
+        </Stack>
+      </MinimumVersionGate>
       <PortalHost />
       <StatusBar style="auto" />
     </Providers>
