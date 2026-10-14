@@ -2,6 +2,8 @@ import { verifyWebhook, type WebhookEvent } from "@clerk/backend/webhooks";
 import { Hono } from "hono";
 
 export interface ClerkWebhookDeps {
+  /** Resets the User's Coach sessions and drops their records. */
+  deleteCoachConversations: (userId: string) => Promise<void>;
   deleteUserData: (userId: string) => Promise<void>;
   reportError: (error: unknown) => Promise<void>;
   /** Unset fails every delivery with a reported 500, so Clerk keeps retrying. */
@@ -14,10 +16,12 @@ const errorBody = (code: string, message: string) => ({
 
 /**
  * Clerk's webhooks (Svix-signed). Only `user.deleted` acts: it wipes the
- * User's data. Every other event is acknowledged so Clerk doesn't retry it.
- * There is no svix-id dedupe: deleteUserData is idempotent.
+ * User's data, then (once that has committed and the id is retired) their
+ * Coach Conversations. Every other event is acknowledged so Clerk doesn't
+ * retry it. There is no svix-id dedupe: both steps are idempotent.
  */
 export const clerkRoutes = ({
+  deleteCoachConversations,
   deleteUserData,
   reportError,
   signingSecret,
@@ -42,6 +46,7 @@ export const clerkRoutes = ({
     if (event.type === "user.deleted" && event.data.id) {
       try {
         await deleteUserData(event.data.id);
+        await deleteCoachConversations(event.data.id);
       } catch (error) {
         await reportError(error);
         return c.json(

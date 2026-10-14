@@ -109,5 +109,6 @@ export const deleteUserData = async (
   // coach_sessions stays: each row is the ACL for an EVE session that still
   // exists, and without it the Coach channel would let anyone reach that
   // session. It holds only the (already retired) id and the session id; the
-  // rows go once the EVE sessions are reset (FIT-121).
+  // webhook deletes the rows (deleteCoachSessions) once it has reset the EVE
+  // sessions, after this commits.
 };

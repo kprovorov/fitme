@@ -1,5 +1,5 @@
 import { coachSessions, type Transaction } from "@fitme/db";
-import { eq } from "drizzle-orm";
+import { and, eq, inArray } from "drizzle-orm";
 
 /**
  * Records that the Coach's EVE session `sessionId` belongs to the User, in
@@ -35,7 +35,10 @@ export const getCoachSessionOwner = async (
   return row?.userId ?? null;
 };
 
-/** The User's recorded Coach session ids, in `tx` (from `asUser`). */
+/**
+ * The User's recorded Coach session ids, in `tx` (from `asUser`, or
+ * `withService` for a deleted User, whose retired id RLS no longer matches).
+ */
 export const listCoachSessionIds = async (
   tx: Transaction,
   userId: string
@@ -45,4 +48,29 @@ export const listCoachSessionIds = async (
     .from(coachSessions)
     .where(eq(coachSessions.userId, userId));
   return rows.map((row) => row.sessionId);
+};
+
+/**
+ * Deletes the User's records of the given Coach sessions, in `tx` (from
+ * `withService`: only service_role may delete). Account deletion calls it
+ * once those EVE sessions are reset: each row is the ACL for its session, so
+ * deleting it while the session is live would open that session to anyone.
+ * Ids recorded for another User are left alone.
+ */
+export const deleteCoachSessions = async (
+  tx: Transaction,
+  userId: string,
+  sessionIds: readonly string[]
+): Promise<void> => {
+  if (sessionIds.length === 0) {
+    return;
+  }
+  await tx
+    .delete(coachSessions)
+    .where(
+      and(
+        eq(coachSessions.userId, userId),
+        inArray(coachSessions.sessionId, [...sessionIds])
+      )
+    );
 };

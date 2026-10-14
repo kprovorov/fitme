@@ -3,6 +3,7 @@ import { asUser, coachSessions, withService } from "@fitme/db";
 import { inArray } from "drizzle-orm";
 import { afterAll, describe, expect, it } from "vitest";
 import {
+  deleteCoachSessions,
   getCoachSessionOwner,
   listCoachSessionIds,
   recordCoachSession,
@@ -25,7 +26,13 @@ afterAll(async () => {
   await withService((tx) =>
     tx
       .delete(coachSessions)
-      .where(inArray(coachSessions.userId, [owner, other]))
+      .where(
+        inArray(coachSessions.userId, [
+          owner,
+          other,
+          `user_svcCoachForget${runId}`,
+        ])
+      )
   );
 });
 
@@ -84,5 +91,43 @@ describe("getCoachSessionOwner", () => {
         getCoachSessionOwner(tx, `wrun_svcCoachUnknown${runId}`)
       )
     ).toBeNull();
+  });
+});
+
+describe("deleteCoachSessions", () => {
+  it("deletes only the given sessions of the User, in withService", async () => {
+    const user = `user_svcCoachForget${runId}`;
+    const reset = `wrun_svcCoachForgetReset${runId}`;
+    const kept = `wrun_svcCoachForgetKept${runId}`;
+    await asUser(user, (tx) => recordCoachSession(tx, user, reset));
+    await asUser(user, (tx) => recordCoachSession(tx, user, kept));
+    await asUser(other, (tx) => recordCoachSession(tx, other, otherSession));
+
+    await withService((tx) =>
+      deleteCoachSessions(tx, user, [reset, otherSession])
+    );
+
+    expect(await withService((tx) => listCoachSessionIds(tx, user))).toEqual([
+      kept,
+    ]);
+    // Another User's session is never deleted through this User's id
+    expect(
+      await withService((tx) => getCoachSessionOwner(tx, otherSession))
+    ).toBe(other);
+
+    await withService((tx) => deleteCoachSessions(tx, user, [kept]));
+    expect(await withService((tx) => listCoachSessionIds(tx, user))).toEqual(
+      []
+    );
+  });
+
+  it("does nothing for an empty list", async () => {
+    await asUser(owner, (tx) => recordCoachSession(tx, owner, ownerSession));
+
+    await withService((tx) => deleteCoachSessions(tx, owner, []));
+
+    expect(
+      await withService((tx) => getCoachSessionOwner(tx, ownerSession))
+    ).toBe(owner);
   });
 });
