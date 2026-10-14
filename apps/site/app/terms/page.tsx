@@ -10,12 +10,13 @@ function TermsOfServicePage() {
   return (
     <div className="prose prose-base dark:prose-invert p-6">
       <h2>Terms of Service (ToS)</h2>
-      <p>Effective Date: 20 February 2025</p>
+      <p>Effective Date: 13 October 2026</p>
       <p>
         Please read these Terms of Service (&quot;ToS&quot;) carefully before
-        using the Fitme mobile application (&quot;App&quot;) provided by Kyrylo
-        Provorov (referred to as &quot;Developer&quot;). By using the App, you
-        agree to be bound by these ToS.
+        using the Fitme mobile application and its connections to services such
+        as ChatGPT (together, the &quot;App&quot;) provided by Kyrylo Provorov
+        (referred to as &quot;Developer&quot;). By using the App, you agree to
+        be bound by these ToS.
       </p>
       <h4>Use and Restrictions:</h4>
       <ul>
@@ -32,8 +33,28 @@ function TermsOfServicePage() {
           the App.
         </li>
       </ul>
-      <h4>Subscription-Based Services:</h4>
-      <p>The App offers subscription-based services with different tiers:</p>
+      <h3>Fitme connection for ChatGPT</h3>
+      <p>
+        A Fitme account and sign-in are required to use the connection. It lets
+        you search exercises, manage your training plans, record workout sets,
+        and review your workout history. Changes made through the connection
+        affect the same Fitme records used by the mobile app.
+      </p>
+      <p>
+        Creating a plan makes it your active plan. Replacing a plan&apos;s
+        workouts recreates them, and deleting a workout session permanently
+        removes that session and its sets. Review the requested changes before
+        authorizing them in ChatGPT.
+      </p>
+      <p>
+        The Fitme ChatGPT connection has no paid features or purchases. Mobile
+        app subscriptions described below are separate. OpenAI&apos;s own terms
+        apply to your use of ChatGPT.
+      </p>
+      <h4>Mobile Subscription-Based Services:</h4>
+      <p>
+        The mobile app offers subscription-based services with different tiers:
+      </p>
       <ul>
         <li>
           Free Tier: Includes limited functionality, such as a maximum of 1
@@ -64,8 +85,8 @@ function TermsOfServicePage() {
       </ul>
       <h4>App Store Terms:</h4>
       <p>
-        The App is subject to the standard terms and conditions set forth by the
-        Apple App Store.
+        The mobile app is subject to the standard terms and conditions set forth
+        by the Apple App Store.
       </p>
       <p>
         By using the App, you acknowledge that you have read, understood, and

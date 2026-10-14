@@ -38,7 +38,22 @@ describe("tool registry", () => {
     const { tools } = await client.listTools();
     const hints = new Map(tools.map((tool) => [tool.name, tool.annotations]));
 
+    for (const tool of tools) {
+      expect(tool.annotations, tool.name).toMatchObject({
+        destructiveHint: expect.any(Boolean),
+        openWorldHint: expect.any(Boolean),
+        readOnlyHint: expect.any(Boolean),
+      });
+      if (tool.annotations?.readOnlyHint) {
+        expect(tool.annotations.destructiveHint, tool.name).toBe(false);
+      }
+    }
+
     expect(hints.get("get_plan")?.readOnlyHint).toBe(true);
+    expect(hints.get("log_set")).toMatchObject({
+      destructiveHint: true,
+      readOnlyHint: false,
+    });
     expect(hints.get("delete_plan")).toMatchObject({
       destructiveHint: true,
       idempotentHint: true,
