@@ -6,11 +6,13 @@ REST API for Fitme built on [Hono](https://hono.dev) and served with `@hono/node
 pnpm dev:api            # tsx watch, http://localhost:3003
 pnpm api build          # tsdown bundle → dist/
 pnpm api start          # runs dist/index.js
+pnpm api test           # vitest
 ```
 
 ## Endpoints
 
 - `GET /health` — liveness
+- `GET /v1/client-config` — public mobile client config: minimum supported app version per platform (`MIN_APP_VERSION_IOS`, `MIN_APP_VERSION_ANDROID`; unset → `null`), cached for 5 minutes
 - `GET /v1/muscle-groups` — list muscle groups
 - `GET /v1/muscle-groups/:muscleGroup` — single muscle group
 
