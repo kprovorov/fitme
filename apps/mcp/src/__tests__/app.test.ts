@@ -1,5 +1,4 @@
 import { getAuth } from "@clerk/hono";
-import { UnsecuredJWT } from "jose";
 import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
 import { createApp } from "../app.js";
 import type { ServicesFactory } from "../services.js";
@@ -20,12 +19,9 @@ const SSE_DATA_LINE = /^data: (.*)$/m;
 const CLERK_FRONTEND_API = "fitme-test.clerk.accounts.dev";
 const PUBLISHABLE_KEY = `pk_test_${btoa(`${CLERK_FRONTEND_API}$`)}`;
 const METADATA_URL = "http://localhost/.well-known/oauth-protected-resource";
-const NOW = new Date("2026-10-13T12:00:00Z");
-const NOW_SECONDS = NOW.getTime() / 1000;
 
-/** A Clerk-shaped OAuth access token (Clerk itself is stubbed). */
-const clerkToken = (userId: string, exp = NOW_SECONDS + 3600) =>
-  new UnsecuredJWT({ sub: userId }).setExpirationTime(exp).encode();
+/** A bearer token for `userId` (Clerk is stubbed, so its shape doesn't matter). */
+const clerkToken = (userId: string) => `oat_${userId}`;
 
 /** Makes `getAuth` accept the request's OAuth token as `userId`. */
 const signInAs = (userId: string) => {
@@ -149,7 +145,6 @@ const createTestApp = () => {
 };
 
 beforeEach(() => {
-  vi.useFakeTimers({ now: NOW, toFake: ["Date"] });
   vi.stubEnv("CLERK_SECRET_KEY", "sk_test_secret");
   vi.stubEnv("CLERK_PUBLISHABLE_KEY", PUBLISHABLE_KEY);
   vi.stubEnv(
@@ -161,7 +156,6 @@ beforeEach(() => {
 });
 
 afterEach(() => {
-  vi.useRealTimers();
   vi.unstubAllEnvs();
 });
 

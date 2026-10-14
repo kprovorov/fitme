@@ -25,7 +25,7 @@ const isMuscleGroup = (value: string): value is MuscleGroup =>
  * The main flow with one real user, in order: each step builds on the state
  * left by the previous one.
  */
-describe("plan and workout flow against Supabase", () => {
+describe("plan and workout flow against the local stack", () => {
   let user: TestUser;
   let client: Client;
   let exercises: readonly [ExerciseRow, ExerciseRow];
@@ -85,7 +85,7 @@ describe("plan and workout flow against Supabase", () => {
     expect(all.total).toBeGreaterThanOrEqual(2);
     expect(all.hasMore).toBe(true);
 
-    // PostgREST answers this range with PGRST103; the tool returns a page.
+    // An offset past the end is an empty page, not an error.
     const pastEnd = await callOk<ExercisePage>(client, "list_exercises", {
       offset: all.total + 10,
     });

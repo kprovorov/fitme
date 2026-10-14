@@ -27,7 +27,7 @@ import {
  * Two real users: everything the intruder does with the owner's ids must fail
  * (RLS hides the rows), and the owner's data must be left untouched.
  */
-describe("cross-user isolation against Supabase", () => {
+describe("cross-user isolation against the local stack", () => {
   let owner: Client;
   let intruder: Client;
   let intruderUser: TestUser;
@@ -137,12 +137,13 @@ describe("cross-user isolation against Supabase", () => {
         )
       ),
     ]);
-    expect(rpcs.map(({ status }) => status)).toEqual([
-      "rejected",
-      "rejected",
-      "rejected",
-      "rejected",
-    ]);
+    // P0001: each RPC's own ownership check, not a typo or missing function.
+    for (const result of rpcs) {
+      expect(result).toMatchObject({
+        reason: { cause: { code: "P0001" } },
+        status: "rejected",
+      });
+    }
 
     const updatedPlans = await asIntruder((tx) =>
       tx
