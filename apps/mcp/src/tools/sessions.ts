@@ -364,7 +364,7 @@ function registerSessionWriteTools(server: McpServer, ctx: ToolContext) {
     "log_set",
     {
       annotations: {
-        destructiveHint: false,
+        destructiveHint: true,
         idempotentHint: true,
         openWorldHint: false,
         readOnlyHint: false,

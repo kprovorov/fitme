@@ -170,6 +170,7 @@ export function pickDefined<T extends Record<string, unknown>>(
 }
 
 export const READ_ONLY = {
+  destructiveHint: false,
   idempotentHint: true,
   openWorldHint: false,
   readOnlyHint: true,

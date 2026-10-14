@@ -2,7 +2,7 @@ function PrivacyPolicyPage() {
   return (
     <div className="prose prose-base dark:prose-invert p-6">
       <h1>Privacy Policy</h1>
-      <p>Last updated: January 27, 2025</p>
+      <p>Last updated: October 13, 2026</p>
       <p>
         This Privacy Policy describes Our policies and procedures on the
         collection, use and disclosure of Your information when You use the
@@ -50,7 +50,7 @@ function PrivacyPolicyPage() {
           <p>
             <strong>Company</strong> (referred to as either &quot;the
             Company&quot;, &quot;We&quot;, &quot;Us&quot; or &quot;Our&quot; in
-            this Agreement) refers to Fitme.
+            this Agreement) refers to Kyrylo Provorov, the provider of Fitme.
           </p>
         </li>
         <li>
@@ -72,7 +72,8 @@ function PrivacyPolicyPage() {
         </li>
         <li>
           <p>
-            <strong>Service</strong> refers to the Application.
+            <strong>Service</strong> refers to the Application, the Fitme
+            website, and Fitme connections to services such as ChatGPT.
           </p>
         </li>
         <li>
@@ -110,8 +111,54 @@ function PrivacyPolicyPage() {
         not limited to:
       </p>
       <ul>
+        <li>Account information, including Your user ID, email, and name</li>
+        <li>
+          Profile information You provide, including age, gender, height,
+          weight, and preferred measurement system
+        </li>
+        <li>
+          Training plans, exercises, workout sessions, and logged repetitions
+          and weights
+        </li>
         <li>Usage Data</li>
       </ul>
+      <h4>Connecting Fitme to ChatGPT</h4>
+      <p>
+        When You connect Your Fitme account to ChatGPT, Fitme processes the
+        requests that ChatGPT sends to the connection and returns the requested
+        information. Depending on the tools used, this can include Your profile,
+        training plans, workout history, and logged repetitions and weights. The
+        connection can also save changes to Your plans and workout records.
+      </p>
+      <p>
+        Fitme uses Clerk to authenticate the connection, Supabase to store and
+        retrieve Fitme records, and Vercel to host the connection. Information
+        returned to ChatGPT is shared with OpenAI to provide the interaction.
+        Your use of ChatGPT is also subject to OpenAI&apos;s own privacy policy
+        and Your ChatGPT account settings.
+      </p>
+      <p>
+        Disconnecting the connection does not itself delete Your Fitme account
+        or training records, or copies of information already returned to
+        ChatGPT. You can manage Your Fitme account in the app or contact Us
+        through the support page for help with Your data.
+      </p>
+      <h4>Mobile analytics and connection logs</h4>
+      <p>
+        The mobile app sends product analytics to Segment. These include account
+        identifiers, email and name, profile-completion events with age and
+        gender, and training events with plan, session and exercise identifiers,
+        repetitions, and weights. The mobile source is configured to forward
+        events and their properties to Mixpanel using its EU data region. This
+        analytics information helps Us understand how the app is used.
+      </p>
+      <p>
+        The Fitme connection server does not directly send tool calls to Segment
+        or Mixpanel. Its normal access logs record the request method, URL,
+        response status, and processing time rather than the contents of tool
+        requests and responses. Hosting and authentication providers also
+        process technical information to operate their services.
+      </p>
       <h4>Usage Data</h4>
       <p>Usage Data is collected automatically when using the Service.</p>
       <p>
