@@ -22,7 +22,7 @@ const readStatus = (): unknown =>
         "exec",
         "supabase",
         "status",
-        "--output",
+        "--output-format",
         "json",
       ],
       { encoding: "utf8" }

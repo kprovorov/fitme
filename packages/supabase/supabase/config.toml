@@ -30,7 +30,7 @@ major_version = 17
 # Supavisor, as on hosted projects. Backend apps reach Postgres through it in
 # transaction mode with the fitme login (packages/db, ADR 0003); locally that
 # login is `fitme.pooler-dev`. No fixed port: each stack gets its own
-# (`[experimental] stack`), and `supabase status -o json` reports it.
+# (`[experimental] stack`), and `supabase status --output-format json` reports it.
 [db.pooler]
 enabled = true
 # Specifies when a server connection can be reused by other clients.
