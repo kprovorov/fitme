@@ -8,9 +8,9 @@ import {
   workoutExercises,
   workouts,
 } from "@fitme/db";
-import { eq, inArray } from "drizzle-orm";
+import { and, eq, inArray } from "drizzle-orm";
 import { afterAll, beforeAll, describe, expect, it } from "vitest";
-import { deletePlan, getPlan, listPlans } from "../src/plans";
+import { activatePlan, deletePlan, getPlan, listPlans } from "../src/plans";
 
 /**
  * The plan services through asUser, against a local Supabase stack via the
@@ -21,6 +21,8 @@ import { deletePlan, getPlan, listPlans } from "../src/plans";
 const runId = randomUUID().replaceAll("-", "").slice(0, 12);
 const owner = `user_svcPlanOwner${runId}`;
 const intruder = `user_svcPlanIntruder${runId}`;
+const activator = `user_svcPlanActivator${runId}`;
+const bystander = `user_svcPlanBystander${runId}`;
 
 // PostgREST's JSON timestamp encoding, which the MCP tools returned
 const JSON_TIMESTAMP = /^\d{4}-\d\d-\d\dT\d\d:\d\d:\d\d(\.\d+)?\+00:00$/;
@@ -141,7 +143,9 @@ beforeAll(async () => {
 
 afterAll(async () => {
   await withService(async (tx) => {
-    await tx.delete(plans).where(inArray(plans.userId, [owner, intruder]));
+    await tx
+      .delete(plans)
+      .where(inArray(plans.userId, [owner, intruder, activator, bystander]));
     await tx.delete(exercises).where(inArray(exercises.id, [benchId, squatId]));
   });
 });
@@ -334,5 +338,129 @@ describe("deletePlan", () => {
     expect(
       await asUser(owner, (tx) => deletePlan(tx, owner, randomUUID()))
     ).toBeNull();
+  });
+});
+
+describe("activatePlan", () => {
+  let first: Awaited<ReturnType<typeof seedPlan>>;
+  let second: Awaited<ReturnType<typeof seedPlan>>;
+  let third: Awaited<ReturnType<typeof seedPlan>>;
+  let deleted: Awaited<ReturnType<typeof seedPlan>>;
+  let bystanderPlan: Awaited<ReturnType<typeof seedPlan>>;
+
+  /** Every Plan of `userId` that is active, by id. */
+  const activePlans = (userId: string) =>
+    withService(async (tx) =>
+      (
+        await tx
+          .select({ id: plans.id })
+          .from(plans)
+          .where(and(eq(plans.userId, userId), eq(plans.isActive, true)))
+      ).map((row) => row.id)
+    );
+
+  beforeAll(async () => {
+    first = await seedPlan(activator, "First", "2026-01-01T00:00:00Z", true);
+    second = await seedPlan(activator, "Second", "2026-02-01T00:00:00Z");
+    third = await seedPlan(activator, "Third", "2026-03-01T00:00:00Z");
+    deleted = await seedPlan(activator, "Deleted", "2026-04-01T00:00:00Z");
+    await withService((tx) =>
+      tx
+        .update(plans)
+        .set({ deletedAt: "2026-04-02T00:00:00Z" })
+        .where(eq(plans.id, deleted.id))
+    );
+    bystanderPlan = await seedPlan(
+      bystander,
+      "Bystander",
+      "2026-01-01T00:00:00Z",
+      true
+    );
+  });
+
+  it("activates the Plan, deactivates the others and returns its summary", async () => {
+    const activated = await asUser(activator, (tx) =>
+      activatePlan(tx, activator, second.id)
+    );
+
+    expect(activated).toEqual({
+      created_at: "2026-02-01T00:00:00+00:00",
+      description: "Second description",
+      experience_level: "intermediate",
+      frequency: 3,
+      goal: "muscle-gain",
+      id: second.id,
+      is_active: true,
+      name: "Second",
+      note: "Keep it",
+      place: "gym",
+      updated_at: expect.stringMatching(JSON_TIMESTAMP),
+      workout_duration: 60,
+      workouts: [
+        { exercise_count: 2, id: second.dayA, name: "Day A", order: 1 },
+        { exercise_count: 0, id: second.dayB, name: "Day B", order: 2 },
+      ],
+    });
+    expect(await activePlans(activator)).toEqual([second.id]);
+  });
+
+  it("leaves other Users' active Plans untouched", async () => {
+    expect(await activePlans(bystander)).toEqual([bystanderPlan.id]);
+  });
+
+  it("keeps the active Plan active when activated again", async () => {
+    const activated = await asUser(activator, (tx) =>
+      activatePlan(tx, activator, second.id)
+    );
+    expect(activated?.is_active).toBe(true);
+    expect(await activePlans(activator)).toEqual([second.id]);
+  });
+
+  it("refuses a soft-deleted Plan without changing anything", async () => {
+    expect(
+      await asUser(activator, (tx) => activatePlan(tx, activator, deleted.id))
+    ).toBeNull();
+    expect(await activePlans(activator)).toEqual([second.id]);
+  });
+
+  it("refuses another User's Plan without changing anything", async () => {
+    expect(
+      await asUser(activator, (tx) =>
+        activatePlan(tx, activator, bystanderPlan.id)
+      )
+    ).toBeNull();
+    // asking with the owner's id doesn't get past RLS either
+    expect(
+      await asUser(activator, (tx) =>
+        activatePlan(tx, bystander, bystanderPlan.id)
+      )
+    ).toBeNull();
+    expect(
+      await asUser(bystander, (tx) => activatePlan(tx, activator, first.id))
+    ).toBeNull();
+    expect(await activePlans(activator)).toEqual([second.id]);
+    expect(await activePlans(bystander)).toEqual([bystanderPlan.id]);
+  });
+
+  it("returns null for an unknown Plan", async () => {
+    expect(
+      await asUser(activator, (tx) => activatePlan(tx, activator, randomUUID()))
+    ).toBeNull();
+    expect(await activePlans(activator)).toEqual([second.id]);
+  });
+
+  it("never leaves two active Plans after concurrent activations", async () => {
+    const targets = [first.id, second.id, third.id];
+    const results = await Promise.all(
+      [...targets, ...targets, ...targets, ...targets].map((planId) =>
+        asUser(activator, (tx) => activatePlan(tx, activator, planId))
+      )
+    );
+
+    expect(results.every((plan) => plan?.is_active)).toBe(true);
+    const active = await activePlans(activator);
+    expect(active).toHaveLength(1);
+    expect(targets).toContain(active[0]);
+    expect(await activePlans(bystander)).toEqual([bystanderPlan.id]);
   });
 });

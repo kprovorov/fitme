@@ -1,5 +1,14 @@
 import { plans, type Transaction } from "@fitme/db";
-import { and, eq, isNotNull, isNull, sql } from "drizzle-orm";
+import {
+  and,
+  eq,
+  inArray,
+  isNotNull,
+  isNull,
+  or,
+  type SQL,
+  sql,
+} from "drizzle-orm";
 import { jsonTimestamp } from "./json-timestamp";
 
 /** A Plan's own columns, without its Workouts. */
@@ -113,20 +122,15 @@ const toPlanRow = (plan: PlanQueryRow): PlanRow => ({
 const livePlansOf = (userId: string) =>
   and(eq(plans.userId, userId), isNull(plans.deletedAt));
 
-/**
- * The User's live (not soft-deleted) Plans, newest first, each with its
- * Workouts in rotation order and their Exercise counts. One statement, so one
- * snapshot: a concurrent update never mixes old and new rows. Runs in `tx`
- * from `asUser`; RLS hides every other User's Plans as well.
- */
-export const listPlans = async (
+/** Plan summaries matching `where`, newest first, in one statement. */
+const findPlanSummaries = async (
   tx: Transaction,
-  userId: string
+  where: SQL | undefined
 ): Promise<PlanSummary[]> => {
   const rows = await tx.query.plans.findMany({
     ...planQuery,
     orderBy: (plan, { asc, desc }) => [desc(plan.createdAt), asc(plan.id)],
-    where: livePlansOf(userId),
+    where,
     with: {
       workouts: {
         columns: { id: true, name: true, order: true },
@@ -143,6 +147,17 @@ export const listPlans = async (
     })),
   }));
 };
+
+/**
+ * The User's live (not soft-deleted) Plans, newest first, each with its
+ * Workouts in rotation order and their Exercise counts. One statement, so one
+ * snapshot: a concurrent update never mixes old and new rows. Runs in `tx`
+ * from `asUser`; RLS hides every other User's Plans as well.
+ */
+export const listPlans = (
+  tx: Transaction,
+  userId: string
+): Promise<PlanSummary[]> => findPlanSummaries(tx, livePlansOf(userId));
 
 /**
  * One of the User's live Plans in full, or `null` when it doesn't exist, was
@@ -258,4 +273,64 @@ export const deletePlan = async (
   return existing
     ? { alreadyDeleted: true, deleted: true, plan: existing }
     : null;
+};
+
+/**
+ * Makes one of the User's live Plans the active one and deactivates every
+ * other Plan of the User, so at most one Plan is active (the `activate_plan`
+ * RPC, which the mobile app still calls: change both together). Returns the
+ * activated Plan's summary, or `null` without changing anything when the User
+ * has no such live Plan (missing, soft-deleted or another User's).
+ * Runs in `tx` from `asUser`.
+ *
+ * Concurrent activations for the same User serialize on the first statement,
+ * which row-locks every Plan of the User (taking the same table lock as the
+ * RPC's UPDATE, so it queues cleanly behind `deleteUserData`). Nothing is
+ * written until the target is known to be live. The statements
+ * after it see everything those activations committed, including a Plan one
+ * of them created and activated, so the last activation wins.
+ */
+export const activatePlan = async (
+  tx: Transaction,
+  userId: string,
+  planId: string
+): Promise<PlanSummary | null> => {
+  // A no-op UPDATE, so the table lock is ROW EXCLUSIVE before any row is
+  // locked; its subquery row-locks the Plans in id order, so two activations
+  // never deadlock on each other.
+  await tx
+    .update(plans)
+    .set({ isActive: sql`${plans.isActive}` })
+    .where(
+      inArray(
+        plans.id,
+        tx
+          .select({ id: plans.id })
+          .from(plans)
+          .where(eq(plans.userId, userId))
+          .orderBy(plans.id)
+          .for("update")
+      )
+    );
+  const [target] = await tx
+    .select({ id: plans.id })
+    .from(plans)
+    .where(and(livePlansOf(userId), eq(plans.id, planId)));
+  if (!target) {
+    return null;
+  }
+  await tx
+    .update(plans)
+    .set({ isActive: sql`(${plans.id} = ${planId})` })
+    .where(
+      and(
+        eq(plans.userId, userId),
+        or(eq(plans.isActive, true), eq(plans.id, planId))
+      )
+    );
+  const [activated] = await findPlanSummaries(
+    tx,
+    and(livePlansOf(userId), eq(plans.id, planId))
+  );
+  return activated ?? null;
 };

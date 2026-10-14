@@ -37,6 +37,7 @@ const notFaked = (name: keyof UserServices) => () =>
 
 /** Services where every method a test didn't fake fails the call. */
 export const fakeServices = (faked: Partial<UserServices>): UserServices => ({
+  activatePlan: notFaked("activatePlan"),
   deletePlan: notFaked("deletePlan"),
   deleteWorkoutSession: notFaked("deleteWorkoutSession"),
   getExercise: notFaked("getExercise"),
