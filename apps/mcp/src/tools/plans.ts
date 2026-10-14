@@ -23,13 +23,13 @@ const planNotFound = (planId: string) =>
   `Plan ${planId} not found (it may have been deleted or belong to another user).`;
 
 /** Turns unknown exercise ids into a message pointing at list_exercises. */
-const describingUnknownExercises = async <T>(write: () => Promise<T>) => {
+const withUnknownExerciseHint = async <T>(write: () => Promise<T>) => {
   try {
     return await write();
   } catch (error) {
     if (error instanceof UnknownExercisesError) {
       throw new ToolError(
-        `Unknown exercise_id(s): ${error.exerciseIds.join(", ")}. Use list_exercises to look up valid exercise ids.`,
+        `${error.message}. Use list_exercises to look up valid exercise ids.`,
         { cause: error }
       );
     }
@@ -85,7 +85,7 @@ function registerPlanWriteTools(server: McpServer, ctx: ToolContext) {
       title: "Create plan",
     },
     withServices(ctx, async (plan, services) =>
-      asJson(await describingUnknownExercises(() => services.createPlan(plan)))
+      asJson(await withUnknownExerciseHint(() => services.createPlan(plan)))
     )
   );
 
@@ -123,7 +123,7 @@ function registerPlanWriteTools(server: McpServer, ctx: ToolContext) {
           "Nothing to update: pass at least one plan field or `workouts`."
         );
       }
-      const updated = await describingUnknownExercises(() =>
+      const updated = await withUnknownExerciseHint(() =>
         services.updatePlan(
           planId,
           workouts ? { ...metadata, workouts } : metadata

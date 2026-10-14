@@ -925,4 +925,38 @@ describe("updatePlan", () => {
 
     expect(await read(updater, plan.id)).toEqual(before);
   });
+
+  it("refuses a retired User's Plan without changing it", async () => {
+    const before = await read(updater, plan.id);
+    await withService((tx) =>
+      tx
+        .insert(retiredUserIdsInPrivate)
+        .values({ userId: updater })
+        .onConflictDoNothing()
+    );
+
+    expect(
+      await asUser(updater, (tx) =>
+        updatePlan(tx, updater, plan.id, {
+          name: "Ghost",
+          workouts: newPlan("Ghost").workouts,
+        })
+      )
+    ).toBeNull();
+
+    const [row] = await withService((tx) =>
+      tx.select({ name: plans.name }).from(plans).where(eq(plans.id, plan.id))
+    );
+    expect(row?.name).toBe(before?.name);
+    const workoutIds = await withService((tx) =>
+      tx
+        .select({ id: workouts.id })
+        .from(workouts)
+        .where(eq(workouts.planId, plan.id))
+        .orderBy(workouts.order)
+    );
+    expect(workoutIds.map((workout) => workout.id)).toEqual(
+      before?.workouts.map((workout) => workout.id)
+    );
+  });
 });

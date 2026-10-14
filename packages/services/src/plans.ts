@@ -423,22 +423,45 @@ const assertExercisesExist = async (
   }
 };
 
-/** The plans columns for the metadata fields given (`undefined` = unchanged). */
-const metadataColumns = (metadata: Partial<PlanMetadata>) => {
-  const columns = {
-    description: metadata.description,
-    experienceLevel: metadata.experience_level,
-    frequency: metadata.frequency,
-    goal: metadata.goal,
-    name: metadata.name,
-    note: metadata.note,
-    place: metadata.place,
-    workoutDuration: metadata.workout_duration,
-  };
-  return Object.fromEntries(
-    Object.entries(columns).filter(([, value]) => value !== undefined)
-  ) as Partial<typeof columns>;
+/**
+ * The plans columns for the metadata fields given. Drizzle leaves a column
+ * whose value is `undefined` out of an UPDATE's SET (and an INSERT gives it
+ * its default), so a field not given stays unchanged.
+ */
+const metadataColumns = <M extends Partial<PlanMetadata>>(
+  metadata: M
+): {
+  description: M["description"];
+  experienceLevel: M["experience_level"];
+  frequency: M["frequency"];
+  goal: M["goal"];
+  name: M["name"];
+  note: M["note"];
+  place: M["place"];
+  workoutDuration: M["workout_duration"];
+} => ({
+  description: metadata.description,
+  experienceLevel: metadata.experience_level,
+  frequency: metadata.frequency,
+  goal: metadata.goal,
+  name: metadata.name,
+  note: metadata.note,
+  place: metadata.place,
+  workoutDuration: metadata.workout_duration,
+});
+
+/** A row id the statement before just returned, by its key. */
+const insertedId = <K>(ids: Map<K, string>, key: K) => {
+  const id = ids.get(key);
+  if (id === undefined) {
+    throw new Error(`No inserted row for ${String(key)}`);
+  }
+  return id;
 };
+
+/** Keys a Workout Exercise by its Workout and its position in it. */
+const exerciseKey = (workoutId: string, order: number) =>
+  `${workoutId}:${order}`;
 
 /**
  * Inserts a Plan's Workouts, their Exercises and sets, each `order` from its
@@ -471,7 +494,7 @@ const insertWorkouts = async (
     workout.exercises.map((exercise, index) => ({
       exerciseId: exercise.exercise_id,
       order: index + 1,
-      workoutId: workoutIds.get(workoutIndex + 1) as string,
+      workoutId: insertedId(workoutIds, workoutIndex + 1),
     }))
   );
   if (exerciseRows.length === 0) {
@@ -487,15 +510,16 @@ const insertWorkouts = async (
     });
   const exerciseIds = new Map(
     insertedExercises.map((exercise) => [
-      `${exercise.workoutId}:${exercise.order}`,
+      exerciseKey(exercise.workoutId, exercise.order),
       exercise.id,
     ])
   );
   const setRows = planWorkouts.flatMap((workout, workoutIndex) =>
     workout.exercises.flatMap((exercise, exerciseIndex) => {
-      const workoutExerciseId = exerciseIds.get(
-        `${workoutIds.get(workoutIndex + 1)}:${exerciseIndex + 1}`
-      ) as string;
+      const workoutExerciseId = insertedId(
+        exerciseIds,
+        exerciseKey(insertedId(workoutIds, workoutIndex + 1), exerciseIndex + 1)
+      );
       return exercise.sets.map((set, index) => ({
         order: index + 1,
         repsRecommended: set.reps_recommended,
@@ -527,11 +551,15 @@ export const createPlan = async (
   await assertExercisesExist(tx, plan.workouts);
   const [created] = await tx
     .insert(plans)
-    .values({ ...metadataColumns(plan), userId } as typeof plans.$inferInsert)
+    .values({ ...metadataColumns(plan), userId })
     .returning({ id: plans.id });
   await insertWorkouts(tx, created.id, plan.workouts);
   await activatePlan(tx, userId, created.id);
-  return (await getPlan(tx, userId, created.id)) as PlanDetail;
+  const detail = await getPlan(tx, userId, created.id);
+  if (!detail) {
+    throw new Error(`Plan ${created.id} vanished after it was created`);
+  }
+  return detail;
 };
 
 /**
