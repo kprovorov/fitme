@@ -1,4 +1,14 @@
 import { asUser } from "@fitme/db";
+import {
+  type Exercise,
+  type ExerciseHistoryEntry,
+  type ExerciseHistoryQuery,
+  type ExercisePage,
+  type ExerciseQuery,
+  getExercise,
+  getExerciseHistory,
+  listExercises,
+} from "@fitme/services/exercises";
 import { getProfile, type ProfileWithUnits } from "@fitme/services/profile";
 
 /**
@@ -7,7 +17,12 @@ import { getProfile, type ProfileWithUnits } from "@fitme/services/profile";
  * it comes from the verified Clerk token the services were built for.
  */
 export interface UserServices {
+  getExercise: (exerciseId: string) => Promise<Exercise | null>;
+  getExerciseHistory: (
+    query: ExerciseHistoryQuery
+  ) => Promise<ExerciseHistoryEntry[]>;
   getProfile: () => Promise<ProfileWithUnits | null>;
+  listExercises: (query: ExerciseQuery) => Promise<ExercisePage>;
 }
 
 /**
@@ -22,6 +37,11 @@ export const createServicesFromEnv: ServicesFactory = (userId) => {
     return null;
   }
   return {
+    getExercise: (exerciseId) =>
+      asUser(userId, (tx) => getExercise(tx, exerciseId)),
+    getExerciseHistory: (query) =>
+      asUser(userId, (tx) => getExerciseHistory(tx, userId, query)),
     getProfile: () => asUser(userId, (tx) => getProfile(tx, userId)),
+    listExercises: (query) => asUser(userId, (tx) => listExercises(tx, query)),
   };
 };
