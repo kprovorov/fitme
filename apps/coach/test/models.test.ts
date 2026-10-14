@@ -66,6 +66,17 @@ describe("coachModelSelection", () => {
     ).toBe("claude-opus-5");
   });
 
+  it("uses the default when the latest client context names no model", () => {
+    expect(
+      coachModelSelection([
+        clientContext({ model: "claude-opus-5" }),
+        userSays("hi"),
+        clientContext({ route: "/coach" }),
+        userSays("and now?"),
+      ]).id
+    ).toBe(defaultCoachModelId);
+  });
+
   it("refuses a model outside coachModels", () => {
     expect(() =>
       coachModelSelection([clientContext({ model: "gpt-4o" }), userSays("hi")])

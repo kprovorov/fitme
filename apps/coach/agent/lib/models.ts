@@ -59,12 +59,12 @@ const parseClientContext = (text: string): Record<string, unknown> | null => {
   }
 };
 
-/** The `model` of the latest client context that names one, if any. */
+/** The `model` of the latest client context, if it names one. */
 const requestedModel = (messages: readonly ModelMessage[]): unknown => {
   for (const message of [...messages].reverse()) {
     for (const text of clientContextTexts(message).reverse()) {
       const context = parseClientContext(text);
-      if (context && "model" in context) {
+      if (context) {
         return context.model;
       }
     }
