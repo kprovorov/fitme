@@ -7,6 +7,7 @@
   "exports": {
     "./delete-user-data": "./src/delete-user-data.ts",
     "./exercises": "./src/exercises.ts",
+    "./plans": "./src/plans.ts",
     "./profile": "./src/profile.ts",
     "./workout-sessions": "./src/workout-sessions.ts"
   },

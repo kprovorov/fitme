@@ -13,6 +13,7 @@ import {
   ToolError,
   unwrap,
   WEIGHT_UNIT_NOTE,
+  withServices,
   withUser,
 } from "./helpers.js";
 import {
@@ -220,41 +221,6 @@ async function replacePlanWorkouts(
   );
 }
 
-/**
- * Soft-deletes a live plan. A plan that is already soft-deleted is reported
- * as such (so a retry is a no-op); an unknown id is an error.
- */
-async function softDeletePlan(supabase: FitmeSupabaseClient, planId: string) {
-  const now = nowIso();
-  const [deleted] = unwrap(
-    await supabase
-      .from("plans")
-      .update({ deleted_at: now, is_active: false, updated_at: now })
-      .eq("id", planId)
-      .is("deleted_at", null)
-      .select("id, name")
-  );
-  if (deleted) {
-    return { alreadyDeleted: false, deleted: true, plan: deleted };
-  }
-
-  const existing = unwrap(
-    await supabase
-      .from("plans")
-      .select("id, name, deleted_at")
-      .eq("id", planId)
-      .maybeSingle()
-  );
-  if (!existing?.deleted_at) {
-    throw new ToolError(planNotFound(planId));
-  }
-  return {
-    alreadyDeleted: true,
-    deleted: true,
-    plan: { id: existing.id, name: existing.name },
-  };
-}
-
 function registerPlanReadTools(server: McpServer, ctx: ToolContext) {
   server.registerTool(
     "list_plans",
@@ -265,17 +231,9 @@ function registerPlanReadTools(server: McpServer, ctx: ToolContext) {
       inputSchema: {},
       title: "List plans",
     },
-    withUser(ctx, async (_args, { supabase }) => {
-      const plans = unwrap(
-        await supabase
-          .from("plans")
-          .select(PLAN_SUMMARY_SELECT)
-          .is("deleted_at", null)
-          .order("created_at", { ascending: false })
-          .order("id")
-      );
-      return asJson(plans.map(toPlanSummary));
-    })
+    withServices(ctx, async (_args, services) =>
+      asJson(await services.listPlans())
+    )
   );
 
   server.registerTool(
@@ -286,8 +244,8 @@ function registerPlanReadTools(server: McpServer, ctx: ToolContext) {
       inputSchema: { planId: planIdSchema },
       title: "Get plan",
     },
-    withUser(ctx, async ({ planId }, { supabase }) =>
-      asJson(await loadPlan(supabase, planId))
+    withServices(ctx, async ({ planId }, services) =>
+      asJson(requireFound(await services.getPlan(planId), planNotFound(planId)))
     )
   );
 }
@@ -384,8 +342,10 @@ function registerPlanWriteTools(server: McpServer, ctx: ToolContext) {
       inputSchema: { planId: planIdSchema },
       title: "Delete plan",
     },
-    withUser(ctx, async ({ planId }, { supabase }) =>
-      asJson(await softDeletePlan(supabase, planId))
+    withServices(ctx, async ({ planId }, services) =>
+      asJson(
+        requireFound(await services.deletePlan(planId), planNotFound(planId))
+      )
     )
   );
 
