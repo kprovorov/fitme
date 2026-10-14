@@ -1,8 +1,13 @@
 import { randomUUID } from "node:crypto";
-import { sql } from "drizzle-orm";
+import { eq, inArray, sql } from "drizzle-orm";
 import { afterAll, beforeAll, describe, expect, it } from "vitest";
 import { closeConnection, getConnection } from "../src/client";
-import { asUser, type Transaction, withService } from "../src/index";
+import {
+  asUser,
+  conversations,
+  type Transaction,
+  withService,
+} from "../src/index";
 
 /**
  * asUser / withService against a local Supabase stack through the Supavisor
@@ -149,6 +154,30 @@ describe("withService", () => {
     );
 
     expect(new Set(owners)).toEqual(new Set([userA, userB]));
+  });
+});
+
+describe("the generated schema", () => {
+  it("types asUser queries, still under RLS", async () => {
+    const rows = await asUser(userA, (tx) =>
+      tx
+        .select({ userId: conversations.userId })
+        .from(conversations)
+        .where(inArray(conversations.userId, [userA, userB]))
+    );
+
+    expect(new Set(rows.map((row) => row.userId))).toEqual(new Set([userA]));
+  });
+
+  it("gives transactions the relational query API", async () => {
+    const found = await asUser(userA, (tx) =>
+      tx.query.conversations.findFirst({
+        where: eq(conversations.userId, userA),
+        with: { messages: true },
+      })
+    );
+
+    expect(found).toMatchObject({ messages: [], userId: userA });
   });
 });
 
