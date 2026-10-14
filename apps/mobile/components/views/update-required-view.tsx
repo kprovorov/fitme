@@ -1,3 +1,4 @@
+import * as Sentry from "@sentry/react-native";
 import Constants from "expo-constants";
 import { Linking, Platform } from "react-native";
 import { Button } from "~/components/ui/button";
@@ -20,7 +21,7 @@ const STORE_URL = getStoreUrl();
 
 const openStore = () => {
   if (STORE_URL) {
-    Linking.openURL(STORE_URL);
+    Linking.openURL(STORE_URL).catch(Sentry.captureException);
   }
 };
 
