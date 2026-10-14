@@ -8,10 +8,12 @@ import {
   workouts,
 } from "@fitme/db";
 import {
+  and,
   asc,
   count,
   desc,
   eq,
+  inArray,
   isNotNull,
   isNull,
   type SQL,
@@ -235,58 +237,82 @@ export const getWorkoutSession = async (
   tx: Transaction,
   sessionId: string
 ): Promise<WorkoutSessionDetail | null> => {
-  const [session] = await tx
-    .select(sessionColumns)
+  // One statement, so a concurrent delete can't leave a half-read session
+  // (READ COMMITTED gives each statement its own snapshot).
+  const rows = await tx
+    .select({
+      ...sessionColumns,
+      exerciseId: exercises.id,
+      exerciseName: exercises.name,
+      sessionExerciseId: workoutSessionExercises.id,
+      sessionExerciseOrder: workoutSessionExercises.order,
+      ...setColumns,
+      id: workoutSessions.id,
+      setId: workoutSessionExerciseSets.id,
+      setOrder: workoutSessionExerciseSets.order,
+    })
     .from(workoutSessions)
     .leftJoin(workouts, eq(workouts.id, workoutSessions.workoutId))
     .leftJoin(plans, eq(plans.id, workoutSessions.planId))
-    .where(eq(workoutSessions.id, sessionId));
+    .leftJoin(
+      workoutSessionExercises,
+      eq(workoutSessionExercises.workoutSessionId, workoutSessions.id)
+    )
+    .leftJoin(exercises, eq(exercises.id, workoutSessionExercises.exerciseId))
+    .leftJoin(
+      workoutSessionExerciseSets,
+      eq(
+        workoutSessionExerciseSets.workoutSessionExerciseId,
+        workoutSessionExercises.id
+      )
+    )
+    .where(eq(workoutSessions.id, sessionId))
+    .orderBy(
+      asc(workoutSessionExercises.order),
+      asc(workoutSessionExercises.id),
+      asc(workoutSessionExerciseSets.order),
+      asc(workoutSessionExerciseSets.id)
+    );
+  const [session] = rows;
   if (!session) {
     return null;
   }
 
-  const sessionExercises = await tx
-    .select({
-      exerciseId: exercises.id,
-      exerciseName: exercises.name,
-      id: workoutSessionExercises.id,
-      order: workoutSessionExercises.order,
-    })
-    .from(workoutSessionExercises)
-    .innerJoin(exercises, eq(exercises.id, workoutSessionExercises.exerciseId))
-    .where(eq(workoutSessionExercises.workoutSessionId, sessionId))
-    .orderBy(
-      asc(workoutSessionExercises.order),
-      asc(workoutSessionExercises.id)
-    );
-  const sets = await tx
-    .select({
-      ...setColumns,
-      sessionExerciseId: workoutSessionExerciseSets.workoutSessionExerciseId,
-    })
-    .from(workoutSessionExerciseSets)
-    .innerJoin(
-      workoutSessionExercises,
-      eq(
-        workoutSessionExercises.id,
-        workoutSessionExerciseSets.workoutSessionExerciseId
-      )
-    )
-    .where(eq(workoutSessionExercises.workoutSessionId, sessionId))
-    .orderBy(
-      asc(workoutSessionExerciseSets.order),
-      asc(workoutSessionExerciseSets.id)
-    );
+  const sessionExercises = new Map<string, WorkoutSessionExercise>();
+  for (const row of rows) {
+    const {
+      exerciseId,
+      exerciseName,
+      sessionExerciseId,
+      sessionExerciseOrder,
+      setId,
+      setOrder,
+    } = row;
+    if (
+      sessionExerciseId === null ||
+      sessionExerciseOrder === null ||
+      exerciseId === null ||
+      exerciseName === null
+    ) {
+      continue;
+    }
+    let exercise = sessionExercises.get(sessionExerciseId);
+    if (!exercise) {
+      exercise = {
+        exercise: { id: exerciseId, name: exerciseName },
+        id: sessionExerciseId,
+        order: sessionExerciseOrder,
+        sets: [],
+      };
+      sessionExercises.set(sessionExerciseId, exercise);
+    }
+    if (setId !== null && setOrder !== null) {
+      exercise.sets.push(toSet({ ...row, id: setId, order: setOrder }));
+    }
+  }
 
   return {
-    exercises: sessionExercises.map((exercise) => ({
-      exercise: { id: exercise.exerciseId, name: exercise.exerciseName },
-      id: exercise.id,
-      order: exercise.order,
-      sets: sets
-        .filter((set) => set.sessionExerciseId === exercise.id)
-        .map(toSet),
-    })),
+    exercises: [...sessionExercises.values()],
     finished_at: session.finishedAt,
     id: session.id,
     started_at: session.startedAt,
@@ -311,14 +337,47 @@ export type LogSetResult =
  * Records reps, weight and `logged_at` (now) on one set of the User's open
  * Workout Session, in `tx` (from `asUser`), overwriting an earlier log. A set
  * the User can't see is `not_found`; a set of a finished Workout Session is
- * left as it was. The session row is share-locked so it can't be finished
- * between the check and the write.
+ * left as it was.
+ *
+ * The write comes first and checks the session is open itself, so the only
+ * lock it takes is the sets table's, the same one deleteUserData takes; no
+ * row lock is held while waiting for it, so they can't deadlock.
  */
 export const logSet = async (
   tx: Transaction,
   { repsCompleted, setId, weightCompleted }: LogSetInput
 ): Promise<LogSetResult> => {
-  const [owner] = await tx
+  const openSessionExerciseIds = tx
+    .select({ id: workoutSessionExercises.id })
+    .from(workoutSessionExercises)
+    .innerJoin(
+      workoutSessions,
+      eq(workoutSessions.id, workoutSessionExercises.workoutSessionId)
+    )
+    .where(isNull(workoutSessions.finishedAt));
+  const [set] = await tx
+    .update(workoutSessionExerciseSets)
+    .set({
+      loggedAt: sql`now()`,
+      repsCompleted,
+      weightCompleted: String(weightCompleted),
+    })
+    // set rows carry no user id; RLS scopes the update to the User
+    .where(
+      and(
+        eq(workoutSessionExerciseSets.id, setId),
+        inArray(
+          workoutSessionExerciseSets.workoutSessionExerciseId,
+          openSessionExerciseIds
+        )
+      )
+    )
+    .returning(setColumns);
+  if (set) {
+    return { set: toSet(set), status: "logged" };
+  }
+
+  const [finished] = await tx
     .select({
       finishedAt: timestampText<string | null>(workoutSessions.finishedAt),
       sessionId: workoutSessions.id,
@@ -335,30 +394,15 @@ export const logSet = async (
       workoutSessions,
       eq(workoutSessions.id, workoutSessionExercises.workoutSessionId)
     )
-    .where(eq(workoutSessionExerciseSets.id, setId))
-    .for("share", { of: workoutSessions });
-  if (!owner) {
-    return { status: "not_found" };
-  }
-  if (owner.finishedAt) {
+    .where(eq(workoutSessionExerciseSets.id, setId));
+  if (finished?.finishedAt) {
     return {
-      finishedAt: owner.finishedAt,
-      sessionId: owner.sessionId,
+      finishedAt: finished.finishedAt,
+      sessionId: finished.sessionId,
       status: "session_finished",
     };
   }
-
-  const [set] = await tx
-    .update(workoutSessionExerciseSets)
-    .set({
-      loggedAt: sql`now()`,
-      repsCompleted,
-      weightCompleted: String(weightCompleted),
-    })
-    // set rows carry no user id; RLS scopes the update to the User
-    .where(eq(workoutSessionExerciseSets.id, setId))
-    .returning(setColumns);
-  return set ? { set: toSet(set), status: "logged" } : { status: "not_found" };
+  return { status: "not_found" };
 };
 
 /**
