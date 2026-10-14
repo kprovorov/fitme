@@ -91,7 +91,10 @@ describe("asUser", () => {
   it("refuses writes to another User's rows", async () => {
     await expect(
       asUser(userA, (tx) => insertConversation(tx, userB))
-    ).rejects.toThrow(RLS_VIOLATION);
+    ).rejects.toMatchObject({
+      // Drizzle wraps the Postgres error
+      cause: { message: expect.stringMatching(RLS_VIOLATION) },
+    });
 
     const changed = await asUser(userA, async (tx) => {
       const updated = await tx.execute(
