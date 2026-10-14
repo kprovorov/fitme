@@ -349,6 +349,26 @@ describe("start_workout_session", () => {
     expect(result.isError).toBe(true);
     expect(startWorkoutSession).not.toHaveBeenCalled();
   });
+
+  it("reports a database failure as a tool error", async () => {
+    const client = await connectWithServices({
+      startWorkoutSession: () =>
+        Promise.reject(
+          new Error("Failed query: ...", {
+            cause: Object.assign(new Error("deadlock detected"), {
+              code: "40P01",
+            }),
+          })
+        ),
+    });
+
+    const result = await call(client, "start_workout_session", {
+      workoutId: WORKOUT_ID,
+    });
+
+    expect(result.isError).toBe(true);
+    expect(result.text).toBe("deadlock detected");
+  });
 });
 
 describe("finish_workout_session", () => {
@@ -433,5 +453,25 @@ describe("finish_workout_session", () => {
 
     expect(result.isError).toBe(true);
     expect(finishWorkoutSession).not.toHaveBeenCalled();
+  });
+
+  it("reports a database failure as a tool error", async () => {
+    const client = await connectWithServices({
+      finishWorkoutSession: () =>
+        Promise.reject(
+          new Error("Failed query: ...", {
+            cause: Object.assign(new Error("deadlock detected"), {
+              code: "40P01",
+            }),
+          })
+        ),
+    });
+
+    const result = await call(client, "finish_workout_session", {
+      sessionId: SESSION_ID,
+    });
+
+    expect(result.isError).toBe(true);
+    expect(result.text).toBe("deadlock detected");
   });
 });

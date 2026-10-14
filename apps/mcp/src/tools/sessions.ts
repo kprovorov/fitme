@@ -117,7 +117,8 @@ function registerSessionWriteTools(server: McpServer, ctx: ToolContext) {
       if (result.status === "not_found") {
         throw new ToolError(workoutNotFound(workoutId));
       }
-      return asJson({ resumed: result.resumed, session: result.session });
+      const { resumed, session } = result;
+      return asJson({ resumed, session });
     })
   );
 

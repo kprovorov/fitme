@@ -440,8 +440,10 @@ export type StartWorkoutSessionResult =
 /**
  * A lost race for the one open session per Workout is retried this often: the
  * winner's session is resumed, or, if it was finished meanwhile, a fresh one is
- * inserted. An open session the User can't see (owned by another id) keeps
- * winning, so the start gives up as `not_found`.
+ * inserted. Unlike the RPC (SECURITY DEFINER, which sees every session) the
+ * start can't loop until it wins: under RLS an open session owned by another
+ * id is invisible and keeps winning, so after the last attempt the start is
+ * `not_found`, the RPC's error for that case.
  */
 const START_ATTEMPTS = 3;
 
@@ -507,7 +509,7 @@ const copyWorkoutTemplate = async (
 };
 
 /** The session as the same transaction sees it; it was just written. */
-const sessionWritten = async (tx: Transaction, sessionId: string) => {
+const readWrittenSession = async (tx: Transaction, sessionId: string) => {
   const session = await getWorkoutSession(tx, sessionId);
   if (!session) {
     throw new Error(`Workout session ${sessionId} vanished after its write.`);
@@ -533,7 +535,7 @@ const insertOrResume = async (
   if (openId) {
     return {
       resumed: true,
-      session: await sessionWritten(tx, openId),
+      session: await readWrittenSession(tx, openId),
       status: "started",
     };
   }
@@ -559,7 +561,7 @@ const insertOrResume = async (
   await copyWorkoutTemplate(tx, workoutId, created.id);
   return {
     resumed: false,
-    session: await sessionWritten(tx, created.id),
+    session: await readWrittenSession(tx, created.id),
     status: "started",
   };
 };
@@ -601,7 +603,7 @@ export type FinishWorkoutSessionResult =
   | { status: "not_found" };
 
 /**
- * Moves the finished Workout to the end of its Plan's queue and renumbers the
+ * Moves the finished Workout to the end of its Plan and renumbers the
  * Plan's Workouts from 1, keeping the others' relative order. False when the
  * Workout is gone.
  */
@@ -625,11 +627,11 @@ const rotateWorkout = async (tx: Transaction, workoutId: string) => {
 
   await tx.execute(sql`
     with ranked as (
-      select id, row_number() over (
-        order by (id = ${workoutId}), "order", created_at, id
+      select ${workouts.id} as id, row_number() over (
+        order by (${workouts.id} = ${workoutId}), ${workouts.order}, ${workouts.createdAt}, ${workouts.id}
       ) as new_order
       from ${workouts}
-      where plan_id = ${workout.planId}
+      where ${workouts.planId} = ${workout.planId}
     )
     update ${workouts} w
     set "order" = ranked.new_order
@@ -642,7 +644,7 @@ const rotateWorkout = async (tx: Transaction, workoutId: string) => {
 
 /**
  * Finishes one of the User's Workout Sessions, in `tx` (from `asUser`), and
- * moves its Workout to the end of the Plan's queue (`rotated`). A session
+ * moves its Workout to the end of its Plan (`rotated`). A session
  * whose Workout was removed (e.g. update_plan replaced the Workouts) is only
  * finished. Finishing an already finished session changes nothing
  * (`alreadyFinished`); one the User can't see is `not_found`.
@@ -693,7 +695,7 @@ export const finishWorkoutSession = async (
   return {
     alreadyFinished: !claimed,
     rotated,
-    session: await sessionWritten(tx, sessionId),
+    session: await readWrittenSession(tx, sessionId),
     status: "finished",
   };
 };
