@@ -6,7 +6,7 @@ Streamable HTTP [MCP](https://modelcontextprotocol.io) server for Fitme. Catalog
 pnpm dev:mcp            # tsx watch, http://localhost:3002
 pnpm mcp build          # tsdown bundle → dist/
 pnpm mcp start          # runs dist/index.js
-pnpm mcp test           # vitest (in-memory MCP client + Hono app, fake Supabase client)
+pnpm mcp test           # vitest (in-memory MCP client + Hono app, fake services / fake Supabase client)
 pnpm mcp test:integration  # vitest against a running Supabase stack (see below)
 ```
 
@@ -14,14 +14,14 @@ The MCP endpoint is the root path: `POST|GET|DELETE /` (stateless, no session id
 
 ## Integration tests
 
-`integration/` runs the tools against a real Supabase stack instead of the fake client, so RLS, the RPCs and PostgREST behaviour (embeds, `!inner` filters, ranges past the end) are exercised for real. Each run creates fresh Users as made-up Clerk-style `user_…` ids with Supabase tokens from the server's signer (see [Signed Supabase tokens](#signed-supabase-tokens)), with no Supabase Auth account, then covers the main flow (create → get → update → activate → start session → log set → finish → list → delete) and checks that a second user can neither read nor change the first user's plans and sessions.
+`integration/` runs the tools against a real Supabase stack instead of the fakes, so RLS, the RPCs and PostgREST behaviour (embeds, `!inner` filters, ranges past the end) are exercised for real. Each run creates fresh Users as made-up Clerk-style `user_…` ids, with no Supabase Auth account: tools on services run as them through `asUser` on the stack's Supavisor pooler (the vitest config reads its URL from `supabase status`; `FITME_DATABASE_URL` overrides it), the rest with Supabase tokens from the server's signer (see [Signed Supabase tokens](#signed-supabase-tokens)), then covers the main flow (create → get → update → activate → start session → log set → finish → list → delete) and checks that a second user can neither read nor change the first user's plans and sessions.
 
 The tokens are signed with `SUPABASE_JWT_SIGNING_KEY` when it is set, otherwise with the committed development key (`integration/local-only-signing-key.json`), which every local stack trusts.
 
 ```bash
 pnpm db start                     # local stack
 pnpm db exec snaplet-seed generate && pnpm db seed   # exercise library
-eval "$(pnpm --silent db exec supabase status -o env | sed -n 's/^API_URL=/export SUPABASE_URL=/p; s/^ANON_KEY=/export SUPABASE_ANON_KEY=/p')"
+eval "$(pnpm --silent db exec supabase status --env --output-format text | sed -n 's/^API_URL=/export SUPABASE_URL=/p; s/^ANON_KEY=/export SUPABASE_ANON_KEY=/p')"
 pnpm mcp test:integration
 ```
 
@@ -42,12 +42,13 @@ See `.env.example`. The variables are read from the process environment (Vercel 
 | `PORT`              | Port for `pnpm dev` / `pnpm start` (default 3002).                      |
 | `CLERK_SECRET_KEY`  | Secret key of the Clerk instance that issues OAuth access tokens.       |
 | `CLERK_PUBLISHABLE_KEY` | Its publishable key; names the instance in the OAuth metadata.      |
+| `FITME_DATABASE_URL` | The `fitme` login's Supavisor transaction-pooler URL with `?application_name=mcp`, for the tools on services (`asUser`). Service-role strength. |
 | `SUPABASE_JWT_SIGNING_KEY` | Private ES256 JWK the server signs Supabase tokens with. See below. |
 | `SUPABASE_URL`      | Supabase project URL used by the user tools.                            |
 | `SUPABASE_ANON_KEY` | Supabase anon (public) key. Never configure a service-role key here.    |
 | `MCP_PUBLIC_URL`    | Public URL advertised as the OAuth resource; set it in production.     |
 
-The MCP endpoint fails closed: without `CLERK_SECRET_KEY`, `CLERK_PUBLISHABLE_KEY` or `SUPABASE_JWT_SIGNING_KEY` it answers **HTTP 500** to every request instead of serving without auth. Production uses the production Clerk instance; every other environment uses the development instance. Without the Supabase variables, user tools return a "not configured" tool error.
+The MCP endpoint fails closed: without `CLERK_SECRET_KEY`, `CLERK_PUBLISHABLE_KEY`, `SUPABASE_JWT_SIGNING_KEY` or `FITME_DATABASE_URL` it answers **HTTP 500** to every request instead of serving without auth. Production uses the production Clerk instance; every other environment uses the development instance. Without the Supabase variables (or the database URL, for tools on services), user tools return a "not configured" tool error.
 
 ## Authentication
 
@@ -57,11 +58,11 @@ The server implements the [MCP authorization spec](https://modelcontextprotocol.
 2. Every request to the MCP endpoint (`initialize`, `tools/list`, `tools/call`, catalog tools included) without a bearer token gets **HTTP 401** with `WWW-Authenticate: Bearer resource_metadata="…"`, so the client starts OAuth.
 3. A token Clerk rejects (expired, revoked, not an OAuth access token, another instance) gets **HTTP 401** with `WWW-Authenticate: Bearer error="invalid_token", …, resource_metadata="…"`, so the client refreshes it or signs in again.
 
-Clerk OAuth access tokens are JWTs verified locally against the instance's JWKS. They carry no `aud`, so there is no audience check, and no custom scopes are required. Clerk tokens also have no `role` claim, so Supabase would run them as `anon`: after Clerk verifies a token, the server signs its own short-lived Supabase token for the Clerk User id (see [Signed Supabase tokens](#signed-supabase-tokens)), expiring at the earlier of 5 minutes and the Clerk token's `exp`. For each request the server builds a Supabase client with the anon key plus that signed token, so all reads and writes go through RLS and the RPCs, which identify the caller by the JWT `sub` claim. Tools never accept a user id.
+Clerk OAuth access tokens are JWTs verified locally against the instance's JWKS. They carry no `aud`, so there is no audience check, and no custom scopes are required. Clerk tokens also have no `role` claim, so Supabase would run them as `anon`: after Clerk verifies a token, the server signs its own short-lived Supabase token for the Clerk User id (see [Signed Supabase tokens](#signed-supabase-tokens)), expiring at the earlier of 5 minutes and the Clerk token's `exp`. For each request the server builds a Supabase client with the anon key plus that signed token, so all reads and writes go through RLS and the RPCs, which identify the caller by the JWT `sub` claim. Tools moved to `@fitme/services` (so far `get_profile`) instead run inside `asUser` with the verified Clerk User id ([ADR 0003](../../docs/adr/0003-apps-reach-postgres-through-asuser-and-withservice.md)), under the same RLS. Tools never accept a user id.
 
 Inside a request that passed the check:
 
-- Database errors are returned as `isError: true` results carrying the Postgres/PostgREST message.
+- Database errors are returned as `isError: true` results carrying the Postgres/PostgREST message (never the SQL); any other failure of a tool on services is logged and reported as "The database request failed."
 - Writes that committed but whose follow-up read failed (`create_plan`, `update_plan`, `activate_plan`, `start_workout_session`, `finish_workout_session`) return success with the id and a `warning` instead of an error, so clients don't retry and duplicate.
 - Paginated tools (`list_exercises`, `list_workout_sessions`) return an empty page with the `total` when the offset is past the end.
 

@@ -2,6 +2,7 @@ import { Client } from "@modelcontextprotocol/sdk/client/index.js";
 import { InMemoryTransport } from "@modelcontextprotocol/sdk/inMemory.js";
 import type { ToolContext, UserContext } from "../context.js";
 import { createMcpServer } from "../server.js";
+import type { UserServices } from "../services.js";
 import {
   createFakeSupabase,
   type RecordedCall,
@@ -31,13 +32,29 @@ export function expectAllCallsRouted() {
   }
 }
 
-/** A context whose user tools run as `user` (the HTTP layer's job). */
-export const contextFor = (user: UserContext): ToolContext => ({
+/** Services where every method a test didn't fake fails the call. */
+export const fakeServices = (faked: Partial<UserServices>): UserServices => ({
+  getProfile: () => Promise.reject(new Error("getProfile is not faked.")),
+  ...faked,
+});
+
+/**
+ * A context whose user tools run as `user` (the HTTP layer's job): on
+ * `services` for the tools that moved to them, on `user.supabase` otherwise.
+ */
+export const contextFor = (
+  user: UserContext,
+  services: UserServices = fakeServices({})
+): ToolContext => ({
+  getServices: () => services,
   getUserContext: () => Promise.resolve(user),
 });
 
 /** For tests that never reach a user tool. */
 const NO_USER: ToolContext = {
+  getServices: () => {
+    throw new Error("No User in this test.");
+  },
   getUserContext: () => Promise.reject(new Error("No User in this test.")),
 };
 
@@ -62,6 +79,13 @@ export async function connectWithFake(routes: Route[]) {
   );
   return { client, fake };
 }
+
+/** Connects a client whose service-backed tools run on `faked` services. */
+export const connectWithServices = (faked: Partial<UserServices>) =>
+  connect({
+    ...NO_USER,
+    getServices: () => fakeServices(faked),
+  });
 
 export interface ToolOutcome {
   isError: boolean;

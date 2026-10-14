@@ -13,8 +13,10 @@ import {
 /**
  * MCP authorization (OAuth 2.1). This server is the protected resource; the
  * authorization server is Clerk. Every MCP request needs a Clerk OAuth access
- * token. Once Clerk has verified it, the server signs a short-lived Supabase
- * token for the User (ADR 0002), so RLS keeps enforcing ownership.
+ * token. Once Clerk has verified it, tools run as the User through `asUser`
+ * (ADR 0003), or, for tools not moved to services yet, on a short-lived
+ * Supabase token the server signs for the User (ADR 0002), so RLS keeps
+ * enforcing ownership.
  */
 
 /** RFC 9728 metadata for a resource served at the root path. */
@@ -26,6 +28,7 @@ const REQUIRED_ENV = [
   "CLERK_SECRET_KEY",
   "CLERK_PUBLISHABLE_KEY",
   "SUPABASE_JWT_SIGNING_KEY",
+  "FITME_DATABASE_URL",
 ] as const;
 
 export interface AuthVariables {
@@ -80,7 +83,7 @@ function unauthorized(c: Context, reason: "invalid" | "missing") {
   );
 }
 
-/** Fails closed (500) when the Clerk or signing config is missing. */
+/** Fails closed (500) when the Clerk, signing or database config is missing. */
 export const requireConfig = createMiddleware<{ Variables: AuthVariables }>(
   async (c, next) => {
     const values = env<Record<string, string | undefined>>(c);

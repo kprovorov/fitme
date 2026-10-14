@@ -1,5 +1,6 @@
 import type { CallToolResult } from "@modelcontextprotocol/sdk/types.js";
 import type { ToolContext, UserContext } from "../context.js";
+import type { UserServices } from "../services.js";
 
 /** An expected failure whose message is safe to show to the MCP client. */
 export class ToolError extends Error {
@@ -150,6 +151,53 @@ export function withUser<Args>(
       return await handler(args, user);
     } catch (error) {
       return errorResult(toErrorMessage(error));
+    }
+  };
+}
+
+const SERVICE_FAILURE_MESSAGE = "The database request failed.";
+
+/** Postgres errors from `pg` carry a SQLSTATE `code`. */
+const isPostgresError = (value: unknown): value is Error & DatabaseError =>
+  value instanceof Error && "code" in value && typeof value.code === "string";
+
+/** The Postgres error Drizzle wrapped as the `cause`, if there is one. */
+const postgresCause = (error: unknown) => {
+  const cause = error instanceof Error ? error.cause : undefined;
+  return isPostgresError(cause) ? cause : undefined;
+};
+
+/**
+ * The message a failed service call shows the MCP client: a `ToolError`'s, or
+ * the Postgres message (never Drizzle's, which carries the SQL and its
+ * parameters). Anything else is logged and reported generically.
+ */
+const describeServiceError = (error: unknown) => {
+  if (error instanceof ToolError) {
+    return error.message;
+  }
+  const database = postgresCause(error);
+  if (database) {
+    return describeDatabaseError(database);
+  }
+  console.error(error);
+  return SERVICE_FAILURE_MESSAGE;
+};
+
+/**
+ * Wraps a user tool handler that runs on services: hands it the caller's
+ * services (bound to the verified User) and turns every failure into an
+ * `isError` tool result instead of a protocol error.
+ */
+export function withServices<Args>(
+  ctx: ToolContext,
+  handler: (args: Args, services: UserServices) => Promise<CallToolResult>
+): (args: Args) => Promise<CallToolResult> {
+  return async (args) => {
+    try {
+      return await handler(args, ctx.getServices());
+    } catch (error) {
+      return errorResult(describeServiceError(error));
     }
   };
 }

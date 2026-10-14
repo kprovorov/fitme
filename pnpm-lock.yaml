@@ -75,6 +75,12 @@ importers:
       '@fitme/core':
         specifier: workspace:*
         version: link:../../packages/core
+      '@fitme/db':
+        specifier: workspace:*
+        version: link:../../packages/db
+      '@fitme/services':
+        specifier: workspace:*
+        version: link:../../packages/services
       '@fitme/supabase':
         specifier: workspace:*
         version: link:../../packages/supabase
@@ -657,6 +663,9 @@ importers:
 
   packages/services:
     dependencies:
+      '@fitme/core':
+        specifier: workspace:*
+        version: link:../core
       '@fitme/db':
         specifier: workspace:*
         version: link:../db
