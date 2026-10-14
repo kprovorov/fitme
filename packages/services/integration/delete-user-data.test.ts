@@ -31,6 +31,9 @@ const deleted = `user_svcDel${runId}`;
 const bystander = `user_svcKeep${runId}`;
 const legacy = `user_svcLegacy${runId}`;
 const rekeyed = `user_svcRekeyed${runId}`;
+const chainA = `user_svcChainA${runId}`;
+const chainB = `user_svcChainB${runId}`;
+const chainC = `user_svcChainC${runId}`;
 
 // insufficient_privilege: the reject_retired_user_id trigger, or RLS
 const REFUSED = "42501";
@@ -266,6 +269,27 @@ describe("deleteUserData", () => {
           .where(eq(profiles.id, legacyRows.profile))
       )
     ).toEqual([{ userId: rekeyed }]);
+  });
+
+  it("refuses every id along a rekey chain and deletes its current id", async () => {
+    const chainRows = await seedUser(chainA);
+    await withService(async (tx) => {
+      await tx.execute(sql`select public.rekey_user(${chainA}, ${chainB})`);
+      await tx.execute(sql`select public.rekey_user(${chainB}, ${chainC})`);
+    });
+
+    await expect(
+      withService((tx) => deleteUserData(tx, chainA))
+    ).rejects.toMatchObject({ code: "55000", userId: chainA });
+    await expect(
+      withService((tx) => deleteUserData(tx, chainB))
+    ).rejects.toMatchObject({ code: "55000", userId: chainB });
+    expect(await remaining(chainRows)).toEqual(allRows(1));
+
+    await withService((tx) => deleteUserData(tx, chainC));
+
+    expect(await remaining(chainRows)).toEqual(allRows(0));
+    expect(await remaining(bystanderRows)).toEqual(allRows(1));
   });
 
   it("rejects an empty id", async () => {

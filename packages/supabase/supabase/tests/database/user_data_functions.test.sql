@@ -92,10 +92,12 @@ $$;
 select is(pg_temp.owned_rows('user_2DeleteMe00000000000000'), 10, 'User 1 starts with ten owned rows');
 select is(pg_temp.owned_rows('user_2Bystander000000000000'), 10, 'User 2 starts with ten owned rows');
 
+-- delete_user_data was dropped: deleteUserData in packages/services
+select hasnt_function('public', 'delete_user_data', 'delete_user_data is gone');
+
 -- ------------------------------------------------------------
 -- Grants: service_role only
 -- ------------------------------------------------------------
-select hasnt_function('public', 'delete_user_data', 'delete_user_data is gone');
 select ok(
   not has_function_privilege('anon', 'public.rekey_user(text, text)', 'EXECUTE'),
   'anon has no EXECUTE on rekey_user'
