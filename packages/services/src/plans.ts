@@ -1,14 +1,5 @@
 import { plans, type Transaction } from "@fitme/db";
-import {
-  and,
-  eq,
-  inArray,
-  isNotNull,
-  isNull,
-  or,
-  type SQL,
-  sql,
-} from "drizzle-orm";
+import { and, eq, inArray, isNotNull, isNull, or, sql } from "drizzle-orm";
 import { jsonTimestamp } from "./json-timestamp";
 
 /** A Plan's own columns, without its Workouts. */
@@ -122,15 +113,22 @@ const toPlanRow = (plan: PlanQueryRow): PlanRow => ({
 const livePlansOf = (userId: string) =>
   and(eq(plans.userId, userId), isNull(plans.deletedAt));
 
-/** Plan summaries matching `where`, newest first, in one statement. */
+const livePlanOf = (userId: string, planId: string) =>
+  and(livePlansOf(userId), eq(plans.id, planId));
+
+/**
+ * Summaries of the User's live Plans (only `planId` when given), newest
+ * first, in one statement.
+ */
 const findPlanSummaries = async (
   tx: Transaction,
-  where: SQL | undefined
+  userId: string,
+  planId?: string
 ): Promise<PlanSummary[]> => {
   const rows = await tx.query.plans.findMany({
     ...planQuery,
     orderBy: (plan, { asc, desc }) => [desc(plan.createdAt), asc(plan.id)],
-    where,
+    where: planId ? livePlanOf(userId, planId) : livePlansOf(userId),
     with: {
       workouts: {
         columns: { id: true, name: true, order: true },
@@ -157,7 +155,7 @@ const findPlanSummaries = async (
 export const listPlans = (
   tx: Transaction,
   userId: string
-): Promise<PlanSummary[]> => findPlanSummaries(tx, livePlansOf(userId));
+): Promise<PlanSummary[]> => findPlanSummaries(tx, userId);
 
 /**
  * One of the User's live Plans in full, or `null` when it doesn't exist, was
@@ -171,7 +169,7 @@ export const getPlan = async (
 ): Promise<PlanDetail | null> => {
   const row = await tx.query.plans.findFirst({
     ...planQuery,
-    where: and(livePlansOf(userId), eq(plans.id, planId)),
+    where: livePlanOf(userId, planId),
     with: {
       workouts: {
         columns: { description: true, id: true, name: true, order: true },
@@ -255,7 +253,7 @@ export const deletePlan = async (
   const [deleted] = await tx
     .update(plans)
     .set({ deletedAt: sql`now()`, updatedAt: sql`now()` })
-    .where(and(livePlansOf(userId), eq(plans.id, planId)))
+    .where(livePlanOf(userId, planId))
     .returning({ id: plans.id, name: plans.name });
   if (deleted) {
     return { alreadyDeleted: false, deleted: true, plan: deleted };
@@ -286,9 +284,11 @@ export const deletePlan = async (
  * Concurrent activations for the same User serialize on the first statement,
  * which row-locks every Plan of the User (taking the same table lock as the
  * RPC's UPDATE, so it queues cleanly behind `deleteUserData`). Nothing is
- * written until the target is known to be live. The statements
- * after it see everything those activations committed, including a Plan one
- * of them created and activated, so the last activation wins.
+ * written until the target is known to be live. The statements after it see
+ * everything those activations committed, including a Plan one of them
+ * created and activated, so the last activation wins. The RPC locks in scan
+ * order instead, so a concurrent RPC call can still deadlock with this; Postgres
+ * aborts one of them and at most one Plan stays active either way.
  */
 export const activatePlan = async (
   tx: Transaction,
@@ -296,7 +296,7 @@ export const activatePlan = async (
   planId: string
 ): Promise<PlanSummary | null> => {
   // A no-op UPDATE, so the table lock is ROW EXCLUSIVE before any row is
-  // locked; its subquery row-locks the Plans in id order, so two activations
+  // locked; its subquery row-locks the Plans in id order, so two of these
   // never deadlock on each other.
   await tx
     .update(plans)
@@ -315,7 +315,7 @@ export const activatePlan = async (
   const [target] = await tx
     .select({ id: plans.id })
     .from(plans)
-    .where(and(livePlansOf(userId), eq(plans.id, planId)));
+    .where(livePlanOf(userId, planId));
   if (!target) {
     return null;
   }
@@ -328,9 +328,6 @@ export const activatePlan = async (
         or(eq(plans.isActive, true), eq(plans.id, planId))
       )
     );
-  const [activated] = await findPlanSummaries(
-    tx,
-    and(livePlansOf(userId), eq(plans.id, planId))
-  );
+  const [activated] = await findPlanSummaries(tx, userId, planId);
   return activated ?? null;
 };
