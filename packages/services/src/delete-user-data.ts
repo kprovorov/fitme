@@ -35,7 +35,7 @@ const LOCKED_TABLES = sql.join(
   sql`, `
 );
 
-/** SQLSTATE 55000 (object_not_in_prerequisite_state), as delete_user_data raised. */
+/** SQLSTATE 55000 (object_not_in_prerequisite_state), as the dropped delete_user_data raised. */
 const REKEYED_CODE = "55000";
 
 /**
@@ -56,7 +56,7 @@ export class UserRekeyedError extends Error {
 
 /**
  * Retires `userId` and deletes every row the User owns, in `tx` (from
- * `withService`): the same behaviour as the delete_user_data SQL function.
+ * `withService`), as the dropped delete_user_data SQL function did.
  * Retiring the id makes `current_user_id()` NULL for it and the
  * reject_retired_user_id triggers refuse writes under it, so a still-valid
  * token can't write the data back. Running it again for the same User is a

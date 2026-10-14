@@ -496,7 +496,6 @@ export interface Database {
       };
       create_plan: { Args: { p_plan_data: Json }; Returns: string };
       current_user_id: { Args: Record<PropertyKey, never>; Returns: string };
-      delete_user_data: { Args: { user_id: string }; Returns: undefined };
       finish_workout_session: {
         Args: { p_session_id: string };
         Returns: undefined;

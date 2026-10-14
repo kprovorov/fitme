@@ -1,10 +1,12 @@
--- delete_user_data and rekey_user (20261011120000_user_id_text_key.sql):
--- they act on one User's rows across every User-owned table, leave other
--- Users alone, and only the service role can execute them.
+-- rekey_user (20261011120000_user_id_text_key.sql) and the retired-id rules:
+-- rekey_user moves one User's rows across every User-owned table and leaves
+-- other Users alone, only the service role can execute it, and a retired id
+-- (deleted or rekeyed away) can't write data back. Deleting a User's data is
+-- deleteUserData in packages/services, covered by its integration tests.
 -- Run with `pnpm db test:db` (supabase test db).
 begin;
 
-select plan(53);
+select plan(37);
 
 -- ------------------------------------------------------------
 -- Fixtures (as postgres, bypassing RLS)
@@ -93,18 +95,7 @@ select is(pg_temp.owned_rows('user_2Bystander000000000000'), 10, 'User 2 starts 
 -- ------------------------------------------------------------
 -- Grants: service_role only
 -- ------------------------------------------------------------
-select ok(
-  not has_function_privilege('anon', 'public.delete_user_data(text)', 'EXECUTE'),
-  'anon has no EXECUTE on delete_user_data'
-);
-select ok(
-  not has_function_privilege('authenticated', 'public.delete_user_data(text)', 'EXECUTE'),
-  'authenticated has no EXECUTE on delete_user_data'
-);
-select ok(
-  has_function_privilege('service_role', 'public.delete_user_data(text)', 'EXECUTE'),
-  'service_role has EXECUTE on delete_user_data'
-);
+select hasnt_function('public', 'delete_user_data', 'delete_user_data is gone');
 select ok(
   not has_function_privilege('anon', 'public.rekey_user(text, text)', 'EXECUTE'),
   'anon has no EXECUTE on rekey_user'
@@ -122,12 +113,6 @@ set local role authenticated;
 set local request.jwt.claims = '{"sub":"user_2DeleteMe00000000000000","role":"authenticated"}';
 
 select throws_ok(
-  $$select public.delete_user_data('user_2DeleteMe00000000000000')$$,
-  '42501', 'permission denied for function delete_user_data',
-  'a signed-in User cannot execute delete_user_data, even for themselves'
-);
-
-select throws_ok(
   $$select public.rekey_user('user_2Bystander000000000000', 'user_2DeleteMe00000000000000')$$,
   '42501', 'permission denied for function rekey_user',
   'a signed-in User cannot execute rekey_user'
@@ -135,46 +120,17 @@ select throws_ok(
 
 reset role;
 
-select is(pg_temp.owned_rows('user_2DeleteMe00000000000000'), 10, 'the rejected calls changed nothing');
+select is(pg_temp.owned_rows('user_2DeleteMe00000000000000'), 10, 'the rejected call changed nothing');
 
 -- ------------------------------------------------------------
--- delete_user_data as service_role
+-- A deleted User: retired and their root rows removed, as deleteUserData
+-- does it (as postgres here)
 -- ------------------------------------------------------------
-set local role service_role;
-set local request.jwt.claims = '{"role":"service_role"}';
-
-select lives_ok(
-  $$select public.delete_user_data('user_2DeleteMe00000000000000')$$,
-  'service_role can delete a User''s data'
-);
-
-reset role;
-
-select is(pg_temp.owned_rows('user_2DeleteMe00000000000000'), 0, 'every row of the deleted User is gone');
-select is(
-  (select count(*)::int from public.workout_exercise_sets
-   where workout_exercise_id = 'f3c00000-0000-0000-0000-000000000001'),
-  0,
-  'the deleted User''s Plan sets are gone'
-);
-select is(
-  (select count(*)::int from public.messages
-   where conversation_id = 'f3800000-0000-0000-0000-000000000001'),
-  0,
-  'the deleted User''s agent messages are gone'
-);
-select is(pg_temp.owned_rows('user_2Bystander000000000000'), 10, 'the other User keeps all their rows');
-
-set local role service_role;
-
-select lives_ok(
-  $$select public.delete_user_data('user_2DeleteMe00000000000000')$$,
-  'calling delete_user_data again is harmless'
-);
-
-reset role;
-
-select is(pg_temp.owned_rows('user_2Bystander000000000000'), 10, 'the second call left the other User alone');
+insert into private.retired_user_ids (user_id) values ('user_2DeleteMe00000000000000');
+delete from public.workout_sessions where user_id = 'user_2DeleteMe00000000000000';
+delete from public.plans where user_id = 'user_2DeleteMe00000000000000';
+delete from public.conversations where user_id = 'user_2DeleteMe00000000000000';
+delete from public.profiles where user_id = 'user_2DeleteMe00000000000000';
 
 -- The deleted User's token is still valid until it expires, but the id is
 -- retired: it can't write anything back
@@ -369,24 +325,6 @@ select is(
 
 reset role;
 
--- Deleting an id that was rekeyed away is refused: its rows (and account)
--- now live under the legacy id it was rolled back to
-set local role service_role;
-
-select throws_ok(
-  $$select public.delete_user_data('user_2Rekeyed0000000000000000')$$,
-  '55000', 'User user_2Rekeyed0000000000000000 was rekeyed',
-  'delete_user_data refuses an id that was rekeyed away'
-);
-
-reset role;
-
-select is(
-  pg_temp.owned_rows('7a1b2c3d-0000-4000-8000-000000000003'),
-  10,
-  'the refused delete left the moved rows alone'
-);
-
 -- A destination that owns rows is refused even when the source owns nothing
 set local role service_role;
 
@@ -436,24 +374,7 @@ select throws_ok(
   'a User can''t be rekeyed onto a deleted id'
 );
 
-set local role service_role;
-set local request.jwt.claims = '{"role":"service_role"}';
-
-select throws_ok(
-  $$select public.delete_user_data('legacy-chain-a')$$,
-  '55000', 'User legacy-chain-a was rekeyed',
-  'deleting A after A -> B -> C is refused'
-);
-
-select lives_ok(
-  $$select public.delete_user_data('user_2ChainC0000000000000000')$$,
-  'deleting the current id C succeeds'
-);
-
 reset role;
-
-select is(pg_temp.owned_rows('user_2ChainC0000000000000000'), 0, 'deleting C removes the chain''s rows');
-select is(pg_temp.owned_rows('legacy-chain-d'), 1, 'the unrelated User kept their row');
 
 select * from finish();
 

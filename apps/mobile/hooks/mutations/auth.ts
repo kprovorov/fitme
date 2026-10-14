@@ -18,8 +18,7 @@ export const useLogoutMutation = createMutation<void, void>({
 
 // Deletes the User in Clerk (the instance must allow Users to delete their
 // accounts), signs out and shows the login screen. Their rows are removed
-// afterwards by the clerk-webhook edge function when Clerk delivers
-// user.deleted.
+// afterwards by apps/webhooks when Clerk delivers user.deleted.
 export const useDeleteUserMutation = createMutation<void, void>({
   mutationFn: async (): Promise<void> => {
     const clerk = getClerk();
