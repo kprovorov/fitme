@@ -40,7 +40,6 @@ const chainC = `user_svcChainC${runId}`;
 const REFUSED = "42501";
 
 interface OwnedRows {
-  coachSession: string;
   conversation: string;
   message: string;
   plan: string;
@@ -114,13 +113,8 @@ const seedUser = (userId: string): Promise<OwnedRows> =>
       .insert(messages)
       .values({ content: "Hi", conversationId: conversation.id, role: "user" })
       .returning({ id: messages.id });
-    const [coachSession] = await tx
-      .insert(coachSessions)
-      .values({ sessionId: `wrun_${userId}`, userId })
-      .returning({ sessionId: coachSessions.sessionId });
 
     return {
-      coachSession: coachSession.sessionId,
       conversation: conversation.id,
       message: message.id,
       plan: plan.id,
@@ -153,10 +147,6 @@ const count = async (
 /** How many of the seeded rows still exist, per table. */
 const remaining = (rows: OwnedRows) =>
   withService(async (tx) => ({
-    coachSession: await tx.$count(
-      coachSessions,
-      eq(coachSessions.sessionId, rows.coachSession)
-    ),
     conversation: await count(tx, conversations, rows.conversation),
     message: await count(tx, messages, rows.message),
     plan: await count(tx, plans, rows.plan),
@@ -174,7 +164,6 @@ const remaining = (rows: OwnedRows) =>
   }));
 
 const allRows = (present: 0 | 1) => ({
-  coachSession: present,
   conversation: present,
   message: present,
   plan: present,
@@ -186,6 +175,28 @@ const allRows = (present: 0 | 1) => ({
   workoutExercise: present,
   workoutSet: present,
 });
+
+/**
+ * A recorded Coach session per User. Not part of seedUser: rekey_user (the
+ * one-shot Supabase Auth -> Clerk migration) never sees Coach sessions, which
+ * only exist for Clerk ids.
+ */
+const coachSessionId = (userId: string) => `wrun_${userId}`;
+
+const recordCoachSessionFor = (userId: string) =>
+  withService((tx) =>
+    tx
+      .insert(coachSessions)
+      .values({ sessionId: coachSessionId(userId), userId })
+  );
+
+const coachSessionsLeft = (userId: string) =>
+  withService((tx) =>
+    tx.$count(
+      coachSessions,
+      eq(coachSessions.sessionId, coachSessionId(userId))
+    )
+  );
 
 const retirement = (userId: string) =>
   withService((tx) =>
@@ -208,6 +219,8 @@ beforeAll(async () => {
   exerciseId = exercise.id;
   deletedRows = await seedUser(deleted);
   bystanderRows = await seedUser(bystander);
+  await recordCoachSessionFor(deleted);
+  await recordCoachSessionFor(bystander);
 });
 
 afterAll(async () => {
@@ -221,14 +234,17 @@ afterAll(async () => {
 describe("deleteUserData", () => {
   it("removes every row the User owns, children included", async () => {
     expect(await remaining(deletedRows)).toEqual(allRows(1));
+    expect(await coachSessionsLeft(deleted)).toBe(1);
 
     await withService((tx) => deleteUserData(tx, deleted));
 
     expect(await remaining(deletedRows)).toEqual(allRows(0));
+    expect(await coachSessionsLeft(deleted)).toBe(0);
   });
 
   it("leaves another User's rows untouched", async () => {
     expect(await remaining(bystanderRows)).toEqual(allRows(1));
+    expect(await coachSessionsLeft(bystander)).toBe(1);
   });
 
   it("retires the id, so a later write as that User is refused", async () => {
