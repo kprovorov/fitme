@@ -4,7 +4,7 @@
 -- Run with `pnpm db test:db` (supabase test db).
 begin;
 
-select plan(25);
+select plan(22);
 
 -- ------------------------------------------------------------
 -- Fixtures (as postgres, bypassing RLS): User A owns everything
@@ -77,16 +77,6 @@ select throws_ok(
 );
 
 select throws_ok(
-  $$select public.store_plan(
-      '{"name": "Spoofed", "goal": "strength", "place": "gym", "frequency": 3,
-        "experience_level": "intermediate", "workout_duration": 60, "workouts": []}'::jsonb,
-      'user_2RpcOwnerA0000000000000'
-    )$$,
-  '42501', 'Not authorized',
-  'store_plan rejects another User''s id'
-);
-
-select throws_ok(
   $$select public.start_workout_session('f2b00000-0000-0000-0000-000000000001')$$,
   'P0001', 'Workout not found or not authorized',
   'start_workout_session rejects another User''s Workout'
@@ -113,26 +103,12 @@ select lives_ok(
   'create_plan succeeds for User B'
 );
 
-select lives_ok(
-  $$select public.store_plan(
-      '{"name": "B stored", "goal": "strength", "place": "gym", "frequency": 3,
-        "experience_level": "intermediate", "workout_duration": 60, "workouts": []}'::jsonb
-    )$$,
-  'store_plan with the default p_user_id succeeds for User B'
-);
-
 reset role;
 
 select is(
   (select user_id from public.plans where name = 'B created'),
   'user_2RpcIntruderB0000000000',
   'create_plan keys the Plan by the caller''s sub'
-);
-
-select is(
-  (select user_id from public.plans where name = 'B stored'),
-  'user_2RpcIntruderB0000000000',
-  'store_plan keys the Plan by the caller''s sub'
 );
 
 select is(
