@@ -30,5 +30,8 @@ describe("app", () => {
     const response = await app.request("/clerk");
 
     expect(response.status).toBe(404);
+    expect(await response.json()).toEqual({
+      error: { code: "not_found", message: "Route not found" },
+    });
   });
 });

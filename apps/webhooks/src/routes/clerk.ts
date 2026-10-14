@@ -32,7 +32,10 @@ export const clerkRoutes = ({
     let event: WebhookEvent;
     try {
       event = await verifyWebhook(c.req.raw, { signingSecret });
-    } catch {
+    } catch (error) {
+      // Not reported: anyone can send a forged request. Logged so a wrong
+      // secret in production is visible.
+      console.warn("Rejected Clerk webhook", error);
       return c.json(errorBody("unauthorized", "Invalid signature"), 401);
     }
 

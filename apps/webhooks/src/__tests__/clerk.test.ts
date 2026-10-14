@@ -7,7 +7,7 @@ import type { ClerkWebhookDeps } from "../routes/clerk.js";
 const SIGNING_SECRET = "whsec_MfKQ9r8GKYqrTwjUPD8ILPZIo2LaLaSw";
 const OTHER_SECRET = "whsec_c2lnbmVkIGJ5IHNvbWVvbmUgZWxzZQ==";
 const USER_ID = "user_2DeleteMe00000000000000";
-const URL = "http://localhost/clerk";
+const CLERK_URL = "http://localhost/clerk";
 
 const userDeleted = (id = USER_ID) => ({
   data: { deleted: true, id, object: "user" },
@@ -24,7 +24,7 @@ const signedRequest = (
 ): Request => {
   const body = JSON.stringify(event);
   const timestamp = new Date();
-  return new Request(URL, {
+  return new Request(CLERK_URL, {
     body,
     headers: {
       "content-type": "application/json",
@@ -60,7 +60,7 @@ describe("POST /clerk", () => {
   it("rejects an unsigned request without deleting anything", async () => {
     const { app, deleted } = setup();
 
-    const response = await app.request(URL, {
+    const response = await app.request(CLERK_URL, {
       body: JSON.stringify(userDeleted()),
       headers: { "content-type": "application/json" },
       method: "POST",
@@ -94,7 +94,7 @@ describe("POST /clerk", () => {
     const { app, deleted } = setup();
     const signed = signedRequest(userDeleted("user_someoneElse"));
 
-    const response = await app.request(URL, {
+    const response = await app.request(CLERK_URL, {
       body: JSON.stringify(userDeleted()),
       headers: signed.headers,
       method: "POST",
