@@ -1,4 +1,5 @@
 import { type MuscleGroup, muscleGroups } from "@fitme/core";
+import { asUser, profiles } from "@fitme/db";
 import type { Client } from "@modelcontextprotocol/sdk/client/index.js";
 import { beforeAll, describe, expect, it } from "vitest";
 import {
@@ -41,22 +42,23 @@ describe("plan and workout flow against Supabase", () => {
   };
 
   beforeAll(async () => {
-    user = await createTestUser("flow");
+    user = createTestUser("flow");
     client = await connectAs(user);
     exercises = await pickExercises(client);
   });
 
   it("reads the profile written by onboarding", async () => {
     await callError(client, "get_profile");
-    const { error } = await user.supabase.from("profiles").insert({
-      age: 30,
-      gender: "female",
-      height: 66,
-      measurement_system: "us",
-      user_id: user.userId,
-      weight: 150,
-    });
-    expect(error).toBeNull();
+    await asUser(user.userId, (tx) =>
+      tx.insert(profiles).values({
+        age: 30,
+        gender: "female",
+        height: "66",
+        measurementSystem: "us",
+        userId: user.userId,
+        weight: "150",
+      })
+    );
 
     const profile = await callOk<Record<string, unknown>>(
       client,

@@ -96,8 +96,9 @@ jobs:
 
       # The Clerk OAuth suite (integration/clerk-oauth.test.ts) runs a real
       # headless OAuth flow against the Clerk development instance and is
-      # skipped when CLERK_DEV_SECRET_KEY is not set. Tools on services reach
-      # the stack through the same pooler (URL from `supabase status`).
+      # skipped when CLERK_DEV_SECRET_KEY is not set. The tools reach the
+      # stack only through the same pooler (URL from `supabase status`): no
+      # Supabase URL, anon key or signing key.
       - name: Run MCP integration tests
         env:
           CLERK_DEV_SECRET_KEY: ${{ secrets.CLERK_DEV_SECRET_KEY }}

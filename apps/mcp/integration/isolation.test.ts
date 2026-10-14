@@ -1,4 +1,12 @@
+import {
+  asUser,
+  plans,
+  type Transaction,
+  workoutSessionExerciseSets,
+  workoutSessions,
+} from "@fitme/db";
 import type { Client } from "@modelcontextprotocol/sdk/client/index.js";
+import { eq, sql } from "drizzle-orm";
 import { beforeAll, describe, expect, it } from "vitest";
 import {
   callError,
@@ -30,11 +38,8 @@ describe("cross-user isolation against Supabase", () => {
   const ownerSetId = () => session.exercises[0]?.sets[0]?.id;
 
   beforeAll(async () => {
-    let ownerUser: TestUser;
-    [ownerUser, intruderUser] = await Promise.all([
-      createTestUser("owner"),
-      createTestUser("intruder"),
-    ]);
+    const ownerUser = createTestUser("owner");
+    intruderUser = createTestUser("intruder");
     owner = await connectAs(ownerUser);
     intruder = await connectAs(intruderUser);
     exercises = await pickExercises(owner);
@@ -104,54 +109,81 @@ describe("cross-user isolation against Supabase", () => {
   });
 
   // The tools check ownership with a SELECT first, so also go straight to the
-  // database: the RPCs and the RLS write policies must refuse on their own.
+  // database as the intruder: the RPCs and the RLS write policies must refuse
+  // on their own.
   it("refuses the owner's ids in the RPCs and table writes", async () => {
-    const db = intruderUser.supabase;
+    const asIntruder = <T>(fn: (tx: Transaction) => Promise<T>) =>
+      asUser(intruderUser.userId, fn);
     const workoutId = plan.workouts[1]?.id ?? "";
+    const planData = JSON.stringify(planInput(exercises, "Hijacked"));
 
-    const rpcs = await Promise.all([
-      db.rpc("activate_plan", { plan_id: plan.id }),
-      db.rpc("update_plan", {
-        p_plan_data: planInput(exercises, "Hijacked"),
-        p_plan_id: plan.id,
-      }),
-      db.rpc("start_workout_session", { p_workout_id: workoutId }),
-      db.rpc("finish_workout_session", { p_session_id: session.id }),
+    const rpcs = await Promise.allSettled([
+      asIntruder((tx) =>
+        tx.execute(sql`select public.activate_plan(plan_id => ${plan.id})`)
+      ),
+      asIntruder((tx) =>
+        tx.execute(
+          sql`select public.update_plan(p_plan_id => ${plan.id}, p_plan_data => ${planData}::jsonb)`
+        )
+      ),
+      asIntruder((tx) =>
+        tx.execute(
+          sql`select public.start_workout_session(p_workout_id => ${workoutId})`
+        )
+      ),
+      asIntruder((tx) =>
+        tx.execute(
+          sql`select public.finish_workout_session(p_session_id => ${session.id})`
+        )
+      ),
     ]);
-    for (const { error } of rpcs) {
-      expect(error).not.toBeNull();
-    }
+    expect(rpcs.map(({ status }) => status)).toEqual([
+      "rejected",
+      "rejected",
+      "rejected",
+      "rejected",
+    ]);
 
-    const updatedPlans = await db
-      .from("plans")
-      .update({ name: "Hijacked" })
-      .eq("id", plan.id)
-      .select("id");
-    expect(updatedPlans).toMatchObject({ data: [], error: null });
+    const updatedPlans = await asIntruder((tx) =>
+      tx
+        .update(plans)
+        .set({ name: "Hijacked" })
+        .where(eq(plans.id, plan.id))
+        .returning({ id: plans.id })
+    );
+    expect(updatedPlans).toEqual([]);
 
-    const updatedSets = await db
-      .from("workout_session_exercise_sets")
-      .update({ reps_completed: 99 })
-      .eq("id", ownerSetId() ?? "")
-      .select("id");
-    expect(updatedSets).toMatchObject({ data: [], error: null });
+    const updatedSets = await asIntruder((tx) =>
+      tx
+        .update(workoutSessionExerciseSets)
+        .set({ repsCompleted: 99 })
+        .where(eq(workoutSessionExerciseSets.id, ownerSetId() ?? ""))
+        .returning({ id: workoutSessionExerciseSets.id })
+    );
+    expect(updatedSets).toEqual([]);
 
-    const deletedSessions = await db
-      .from("workout_sessions")
-      .delete()
-      .eq("id", session.id)
-      .select("id");
-    expect(deletedSessions).toMatchObject({ data: [], error: null });
+    const deletedSessions = await asIntruder((tx) =>
+      tx
+        .delete(workoutSessions)
+        .where(eq(workoutSessions.id, session.id))
+        .returning({ id: workoutSessions.id })
+    );
+    expect(deletedSessions).toEqual([]);
 
     // A session of the intruder's own that points at the owner's workout.
-    const inserted = await db.from("workout_sessions").insert({
-      plan_id: plan.id,
-      started_at: new Date().toISOString(),
-      user_id: intruderUser.userId,
-      workout_id: workoutId,
-    });
+    const inserted = await asIntruder((tx) =>
+      tx.insert(workoutSessions).values({
+        planId: plan.id,
+        startedAt: new Date().toISOString(),
+        userId: intruderUser.userId,
+        workoutId,
+      })
+    ).then(
+      () => undefined,
+      (error: unknown) => error
+    );
     // 42501: rejected by the policy's WITH CHECK, not by anything else.
-    expect(inserted.error?.code).toBe("42501");
+    expect(inserted).toMatchObject({ cause: { code: "42501" } });
   });
 
   it("keeps each user's active plan separate", async () => {

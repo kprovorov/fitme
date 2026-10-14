@@ -2,9 +2,9 @@ import { localDatabaseUrl } from "@fitme/db/local-database-url";
 import { defineConfig } from "vitest/config";
 
 /**
- * Runs against a live Supabase stack; see README, Integration tests. Tools on
- * services reach it through its Supavisor pooler as the fitme login;
- * FITME_DATABASE_URL overrides the running stack's URL.
+ * Runs against a live Supabase stack; see README, Integration tests. The tools
+ * reach it through its Supavisor pooler as the fitme login; FITME_DATABASE_URL
+ * overrides the running stack's URL.
  */
 export default defineConfig({
   test: {

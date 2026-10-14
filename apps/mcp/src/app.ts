@@ -14,19 +14,15 @@ import {
 import { createToolContext } from "./context.js";
 import { createMcpServer } from "./server.js";
 import type { ServicesFactory } from "./services.js";
-import type { SupabaseClientFactory } from "./supabase.js";
 
 export interface CreateAppOptions {
   /** Overrides the services on `FITME_DATABASE_URL` (used by tests). */
   createServices?: ServicesFactory;
-  /** Overrides the env-based Supabase client (used by tests). */
-  createSupabaseClient?: SupabaseClientFactory;
   logRequests?: boolean;
 }
 
 export function createApp({
   createServices,
-  createSupabaseClient,
   logRequests = true,
 }: CreateAppOptions = {}) {
   const app = new Hono<{ Variables: AuthVariables }>();
@@ -67,8 +63,6 @@ export function createApp({
   app.all("/", (c) => {
     const context = createToolContext({
       createServices,
-      createSupabaseClient,
-      signToken: c.get("signToken"),
       user: c.get("clerkUser"),
     });
     return streamableHttpHandler(() => createMcpServer({ context }))(c);
