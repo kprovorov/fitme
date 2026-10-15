@@ -1,4 +1,4 @@
-import type { UIMessage } from "@ai-sdk/react";
+import type { ThreadMessage } from "@assistant-ui/react-native";
 import { createContext, use } from "react";
 import type { StreamingStore } from "./streaming-store";
 
@@ -6,7 +6,7 @@ export interface ChatContextValue {
   error?: Error | null;
   input: string;
   isGenerating: boolean;
-  messages: UIMessage[];
+  messages: readonly ThreadMessage[];
   onSend: () => void;
   setInput: (value: string) => void;
   streamingStore: StreamingStore;

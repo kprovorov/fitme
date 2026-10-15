@@ -23,4 +23,5 @@ The channel verifies the Clerk session once and keeps the User id on the EVE ses
 - `defaultTools: false`: the Coach gets no shell, file or web tools, only our own.
 - EVE is in preview (0.x) and moves fast, so pin it exactly and read its changelog on every bump.
 - **Assumption:** `@assistant-ui/eve` streams and resumes in Expo, likely with `globalThis.fetch` set to `expo/fetch`. If it doesn't, the fallback is a custom channel that emits the AI SDK UI message stream, so the app keeps `useChat`.
+- **Path taken (FIT-123): `@assistant-ui/eve`, not the fallback.** The coach screen runs on `useEveAgentRuntime` with the Clerk token as a per-request bearer. No fetch shim was needed: Expo SDK 57's runtime already installs `expo/fetch` as the global `fetch` (and `AbortSignal.any`, `DOMException`, `TextDecoder`, which eve's client uses), and Metro bundles `eve/react`. The app saves the session cursor and event log per User and resumes with `resume: true`.
 - The `ai-agent` edge function stays deployed until app builds below the minimum supported version are cut off.

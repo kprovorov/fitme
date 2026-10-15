@@ -1,6 +1,15 @@
-import { useChat } from "@ai-sdk/react";
-import { AssistantChatTransport } from "@assistant-ui/react-ai-sdk";
-import { fetch as expoFetch } from "expo/fetch";
+import {
+  useEveAgentRuntime,
+  useEveError,
+  useEveReset,
+} from "@assistant-ui/eve";
+import {
+  AssistantRuntimeProvider,
+  type TextMessagePart,
+  useAui,
+  useAuiState,
+} from "@assistant-ui/react-native";
+import { useUser } from "@clerk/expo";
 import * as Haptics from "expo-haptics";
 import { Link, Stack, useLocalSearchParams, useRouter } from "expo-router";
 import { Plus } from "lucide-react-native";
@@ -21,37 +30,90 @@ import { Icon } from "@/components/icon";
 import { useIsProQuery } from "~/hooks/revenueCat";
 import { getClerk } from "~/lib/clerk";
 import {
+  COACH_URL,
+  clearSavedCoachConversation,
+  coachErrorAction,
+  coachRunConfig,
+  loadSavedCoachConversation,
+  saveCoachConversation,
+  saveCoachSession,
+} from "~/lib/coach-chat";
+import {
   getSelectedCoachModelId,
   useSelectedCoachModel,
 } from "~/lib/coach-model";
 
-const SUPABASE_URL = process.env.EXPO_PUBLIC_SUPABASE_URL ?? "";
-
 const ATTACHMENTS_ENABLED: boolean = false;
 
-function useAIChat() {
+const getCoachToken = async () => (await getClerk().session?.getToken()) ?? "";
+
+/**
+ * The Coach runtime for one User. Their current Conversation is saved per
+ * User, so reopening the screen resumes it, an answer still streaming
+ * included.
+ */
+function CoachRuntime({
+  children,
+  userId,
+}: {
+  children: React.ReactNode;
+  userId: string;
+}) {
+  const [saved] = useState(() => loadSavedCoachConversation(userId));
+  const runtime = useEveAgentRuntime({
+    // Resolved per request, reconnects included: Clerk tokens live ~60 s.
+    auth: { bearer: getCoachToken },
+    host: COACH_URL,
+    initialEvents: saved.events,
+    initialSession: saved.session,
+    onFinish: (snapshot) => {
+      if (snapshot.session) {
+        saveCoachConversation(userId, {
+          events: snapshot.events,
+          session: snapshot.session,
+        });
+      }
+    },
+    onSessionChange: (session) => saveCoachSession(userId, session),
+    resume: saved.session !== undefined,
+  });
+
+  return (
+    <AssistantRuntimeProvider runtime={runtime}>
+      {children}
+    </AssistantRuntimeProvider>
+  );
+}
+
+function useCoachChat(userId: string) {
+  const aui = useAui();
+  const messages = useAuiState((s) => s.thread.messages);
+  const isRunning = useAuiState((s) => s.thread.isRunning);
+  const isLoading = useAuiState((s) => s.thread.isLoading);
+  const eveError = useEveError();
+  const resetSession = useEveReset();
   const [input, setInput] = useState("");
   const streamingStore = useMemo(() => createStreamingStore(), []);
   const prevStreamingTextRef = useRef<string>("");
 
-  const { messages, sendMessage, status, error } = useChat({
-    transport: new AssistantChatTransport({
-      api: `${SUPABASE_URL}/functions/v1/ai-agent`,
-      // Resolved per request so a model change applies to the next message.
-      body: () => ({ model: getSelectedCoachModelId() }),
-      fetch: expoFetch as unknown as typeof globalThis.fetch,
-      headers: async () => {
-        const token = await getClerk().session?.getToken();
-        return { Authorization: `Bearer ${token ?? ""}` };
-      },
-    }),
-  });
+  const errorAction = coachErrorAction(eveError);
 
-  const isStreaming = status === "streaming";
+  const newConversation = useCallback(() => {
+    clearSavedCoachConversation(userId);
+    resetSession();
+  }, [resetSession, userId]);
+
+  useEffect(() => {
+    if (errorAction === "paywall") {
+      RevenueCatUI.presentPaywall();
+    } else if (errorAction === "new-conversation") {
+      newConversation();
+    }
+  }, [errorAction, newConversation]);
 
   // Sync streaming text to the store
   useEffect(() => {
-    if (!isStreaming) {
+    if (!isRunning) {
       if (prevStreamingTextRef.current) {
         prevStreamingTextRef.current = "";
         streamingStore.set("");
@@ -60,11 +122,8 @@ function useAIChat() {
     }
     const lastMessage = messages.at(-1);
     if (lastMessage?.role === "assistant") {
-      const text = lastMessage.parts
-        .filter(
-          (p): p is { type: "text"; text: string } =>
-            p.type === "text" && "text" in p
-        )
+      const text = lastMessage.content
+        .filter((p): p is TextMessagePart => p.type === "text")
         .map((p) => p.text)
         .join("");
       if (text !== prevStreamingTextRef.current) {
@@ -72,22 +131,37 @@ function useAIChat() {
         streamingStore.set(text);
       }
     }
-  }, [messages, isStreaming, streamingStore]);
+  }, [messages, isRunning, streamingStore]);
+
+  const sendMessage = useCallback(
+    (text: string) => {
+      aui.thread().append({
+        content: [{ text, type: "text" }],
+        role: "user",
+        // Read per send so a model change applies to the next message.
+        runConfig: coachRunConfig(getSelectedCoachModelId()),
+      });
+    },
+    [aui]
+  );
+
+  const isBusy = isRunning || isLoading;
 
   const onSend = useCallback(() => {
-    if (!input.trim() || isStreaming) {
+    if (!input.trim() || isBusy) {
       return;
     }
     Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Light);
-    sendMessage({ text: input });
+    sendMessage(input);
     setInput("");
-  }, [input, isStreaming, sendMessage]);
+  }, [input, isBusy, sendMessage]);
 
   return {
-    error: error ?? null,
+    error: errorAction === "show" ? (eveError as Error) : null,
     input,
-    isGenerating: isStreaming,
+    isGenerating: isRunning,
     messages,
+    newConversation,
     onSend,
     sendMessage,
     setInput,
@@ -95,8 +169,8 @@ function useAIChat() {
   };
 }
 
-export default function CoachScreen() {
-  const chat = useAIChat();
+function CoachChat({ userId }: { userId: string }) {
+  const chat = useCoachChat(userId);
   const { data: isPro } = useIsProQuery();
   const { model } = useSelectedCoachModel();
   const { initialMessage } = useLocalSearchParams<{
@@ -108,7 +182,7 @@ export default function CoachScreen() {
   useEffect(() => {
     if (initialMessage && initialMessage !== sentInitialMessageRef.current) {
       sentInitialMessageRef.current = initialMessage;
-      chat.sendMessage({ text: initialMessage });
+      chat.sendMessage(initialMessage);
       router.setParams({ initialMessage: undefined });
     }
   }, [initialMessage, chat, router]);
@@ -120,6 +194,8 @@ export default function CoachScreen() {
     }
     chat.onSend();
   }, [isPro, chat]);
+
+  const { newConversation } = chat;
 
   return (
     <>
@@ -144,6 +220,16 @@ export default function CoachScreen() {
               },
               type: "button",
             },
+            {
+              accessibilityLabel: "New conversation",
+              icon: {
+                name: "plus",
+                type: "sfSymbol",
+              },
+              label: "New conversation",
+              onPress: newConversation,
+              type: "button",
+            },
           ],
         }}
       />
@@ -166,5 +252,18 @@ export default function CoachScreen() {
         </Conversation>
       </ChatProvider>
     </>
+  );
+}
+
+export default function CoachScreen() {
+  const { user } = useUser();
+  if (!user) {
+    return null;
+  }
+  // Keyed by User: a different User gets their own runtime and Conversation.
+  return (
+    <CoachRuntime key={user.id} userId={user.id}>
+      <CoachChat userId={user.id} />
+    </CoachRuntime>
   );
 }

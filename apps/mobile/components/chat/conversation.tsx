@@ -1,5 +1,9 @@
+import type {
+  TextMessagePart,
+  ThreadMessage,
+  ToolCallMessagePart,
+} from "@assistant-ui/react-native";
 import { LegendList, type LegendListRef } from "@legendapp/list/react-native";
-import type { UIMessage } from "ai";
 import { isLiquidGlassAvailable } from "expo-glass-effect";
 import {
   createContext,
@@ -57,7 +61,7 @@ function AnimatableLegendList({ ref, ...props }: AnimatableLegendListProps) {
 const AnimatedLegendList =
   Animated.createAnimatedComponent(AnimatableLegendList);
 
-const messageKeyExtractor = (item: unknown) => (item as UIMessage).id;
+const messageKeyExtractor = (item: unknown) => (item as ThreadMessage).id;
 
 // biome-ignore lint/suspicious/noExplicitAny: Reanimated animated styles are opaque worklet objects with no exported type
 type AnimatedStyle = any;
@@ -289,16 +293,17 @@ export function Conversation({ children }: { children?: ReactNode }) {
   // -- Message rendering ---------------------------------------------------
 
   const renderItem = useCallback(
-    ({ item }: { item: UIMessage }) => {
+    ({ item }: { item: ThreadMessage }) => {
       if (item.role === "user") {
-        const text = item.parts
-          .filter(
-            (p): p is { type: "text"; text: string } =>
-              p.type === "text" && "text" in p
-          )
+        const text = item.content
+          .filter((p): p is TextMessagePart => p.type === "text")
           .map((p) => p.text)
           .join("");
         return <Message from="user">{text}</Message>;
+      }
+
+      if (item.role !== "assistant") {
+        return null;
       }
 
       if (isGenerating && item === messages.at(-1)) {
@@ -311,35 +316,26 @@ export function Conversation({ children }: { children?: ReactNode }) {
 
       return (
         <Message from="assistant">
-          {item.parts
-            .filter(
-              (p): p is { type: "text"; text: string } =>
-                p.type === "text" &&
-                "text" in p &&
-                !!(p as { type: "text"; text: string }).text
-            )
+          {item.content
+            .filter((p): p is TextMessagePart => p.type === "text" && !!p.text)
             .map((part, i) => {
               // biome-ignore lint/suspicious/noArrayIndexKey: text parts have no stable ID
               return <MessageResponse key={i}>{part.text}</MessageResponse>;
             })}
-          {item.parts
-            .filter((p) => p.type === "tool-display_workout_plan")
-            .map((part) => {
-              const tool = part as {
-                toolCallId: string;
-                state: string;
-                output: unknown;
-              };
-              if (tool.state !== "output-available") {
-                return null;
-              }
-              return (
-                <WorkoutPlanCard
-                  key={tool.toolCallId}
-                  plan={tool.output as WorkoutPlan}
-                />
-              );
-            })}
+          {item.content
+            .filter(
+              (p): p is ToolCallMessagePart =>
+                p.type === "tool-call" &&
+                p.toolName === "display_workout_plan" &&
+                p.result !== undefined &&
+                !p.isError
+            )
+            .map((tool) => (
+              <WorkoutPlanCard
+                key={tool.toolCallId}
+                plan={tool.result as WorkoutPlan}
+              />
+            ))}
         </Message>
       );
     },
