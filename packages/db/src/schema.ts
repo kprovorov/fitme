@@ -229,6 +229,7 @@ export const workoutExerciseSets = pgTable(
     id: uuid().defaultRandom().primaryKey().notNull(),
     order: integer().notNull(),
     repsRecommended: integer("reps_recommended").notNull(),
+    requestKey: text("request_key"),
     restRecommended: integer("rest_recommended").notNull(),
     updatedAt: timestamp("updated_at", {
       mode: "string",
@@ -241,6 +242,9 @@ export const workoutExerciseSets = pgTable(
     workoutExerciseId: uuid("workout_exercise_id").notNull(),
   },
   (table) => [
+    uniqueIndex("workout_exercise_sets_request_key_key")
+      .using("btree", table.requestKey.asc().nullsLast().op("text_ops"))
+      .where(sql`(request_key IS NOT NULL)`),
     foreignKey({
       columns: [table.workoutExerciseId],
       foreignColumns: [workoutExercises.id],
@@ -270,6 +274,7 @@ export const workoutExercises = pgTable(
     exerciseId: uuid("exercise_id").notNull(),
     id: uuid().defaultRandom().primaryKey().notNull(),
     order: integer().notNull(),
+    requestKey: text("request_key"),
     updatedAt: timestamp("updated_at", {
       mode: "string",
       withTimezone: true,
@@ -277,6 +282,9 @@ export const workoutExercises = pgTable(
     workoutId: uuid("workout_id").notNull(),
   },
   (table) => [
+    uniqueIndex("workout_exercises_request_key_key")
+      .using("btree", table.requestKey.asc().nullsLast().op("text_ops"))
+      .where(sql`(request_key IS NOT NULL)`),
     foreignKey({
       columns: [table.workoutId],
       foreignColumns: [workouts.id],

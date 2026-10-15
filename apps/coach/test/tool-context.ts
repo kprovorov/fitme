@@ -9,13 +9,15 @@ const clerkUser = (principalId: string) => ({
 
 /**
  * A tool context whose session was started by `owner`, in a turn sent by
- * `caller` (the owner unless given).
+ * `caller` (the owner unless given), on the turn's first step.
  */
 export const contextFor = (
   owner: string | null,
   caller: string | null = owner
 ): ToolContext =>
   ({
+    callId: "call_1",
+    messages: [{ content: "Hi coach", role: "user" }],
     session: {
       auth: {
         current: caller ? clerkUser(caller) : null,

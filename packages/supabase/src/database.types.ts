@@ -218,6 +218,7 @@ export interface Database {
           id: string;
           order: number;
           reps_recommended: number;
+          request_key: string | null;
           rest_recommended: number;
           updated_at: string | null;
           weight_recommended: number;
@@ -229,6 +230,7 @@ export interface Database {
           id?: string;
           order: number;
           reps_recommended: number;
+          request_key?: string | null;
           rest_recommended: number;
           updated_at?: string | null;
           weight_recommended: number;
@@ -239,6 +241,7 @@ export interface Database {
           id?: string;
           order?: number;
           reps_recommended?: number;
+          request_key?: string | null;
           rest_recommended?: number;
           updated_at?: string | null;
           weight_recommended?: number;
@@ -260,6 +263,7 @@ export interface Database {
           exercise_id: string;
           id: string;
           order: number;
+          request_key: string | null;
           updated_at: string | null;
           workout_id: string;
         };
@@ -269,6 +273,7 @@ export interface Database {
           exercise_id: string;
           id?: string;
           order: number;
+          request_key?: string | null;
           updated_at?: string | null;
           workout_id: string;
         };
@@ -277,6 +282,7 @@ export interface Database {
           exercise_id?: string;
           id?: string;
           order?: number;
+          request_key?: string | null;
           updated_at?: string | null;
           workout_id?: string;
         };
