@@ -1,3 +1,4 @@
+import { proEntitlement } from "@fitme/core";
 import Purchases, { type CustomerInfo } from "react-native-purchases";
 import { createQuery } from "react-query-kit";
 
@@ -21,7 +22,7 @@ export const useIsProQuery = createQuery<boolean>({
     const customerInfo = await Purchases.getCustomerInfo();
 
     return (
-      typeof customerInfo?.entitlements.active["Fitme Pro"] !== "undefined"
+      typeof customerInfo?.entitlements.active[proEntitlement] !== "undefined"
     );
   },
   queryKey: ["rc-is-pro"],

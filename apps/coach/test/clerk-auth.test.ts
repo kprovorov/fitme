@@ -1,4 +1,5 @@
 import { generateKeyPairSync, sign } from "node:crypto";
+import { coachErrorCodes } from "@fitme/core";
 import { routeAuth } from "eve/channels/auth";
 import { beforeEach, describe, expect, it, vi } from "vitest";
 import { clerkSession } from "../agent/lib/clerk-auth";
@@ -51,13 +52,19 @@ const fakeOwners = () => {
 };
 
 let claimSession = fakeOwners();
+let checkPro = vi.fn((_userId: string) => Promise.resolve(true));
+let report = vi.fn((_error: unknown, _tags: object) => Promise.resolve());
 const auth = clerkSession({
+  checkPro: (userId) => checkPro(userId),
   claimSession: (sessionId, userId) => claimSession(sessionId, userId),
   jwtKey: () => jwtKey,
+  report: (error, tags) => report(error, tags),
 });
 
 beforeEach(() => {
   claimSession = fakeOwners();
+  checkPro = vi.fn((_userId: string) => Promise.resolve(true));
+  report = vi.fn((_error: unknown, _tags: object) => Promise.resolve());
 });
 
 describe("clerkSession", () => {
@@ -118,8 +125,10 @@ describe("clerkSession", () => {
 
   it("fails closed when CLERK_JWT_KEY is missing", async () => {
     const unconfigured = clerkSession({
+      checkPro,
       claimSession,
       jwtKey: () => undefined,
+      report,
     });
 
     await expect(
@@ -201,5 +210,69 @@ describe("clerkSession", () => {
     );
 
     expect((result as Response).status).toBe(403);
+  });
+});
+
+describe("clerkSession Pro check", () => {
+  const aliceToken = () => `Bearer ${clerkToken({ sub: "user_alice" })}`;
+
+  it("lets a Pro User through, checked by their User id", async () => {
+    const result = await routeAuth(request(aliceToken()), auth);
+
+    expect(result).toMatchObject({ principalId: "user_alice" });
+    expect(checkPro).toHaveBeenCalledWith("user_alice");
+  });
+
+  it.each([
+    "/eve/v1/session",
+    "/eve/v1/session/wrun_alice",
+    "/eve/v1/session/wrun_alice/stream",
+    "/eve/v1/session/wrun_alice/compact",
+  ])(
+    "refuses a User without Pro at %s with the paywall error",
+    async (path) => {
+      checkPro.mockResolvedValue(false);
+
+      const result = (await routeAuth(
+        request(aliceToken(), path),
+        auth
+      )) as Response;
+
+      expect(result).toBeInstanceOf(Response);
+      expect(result.status).toBe(403);
+      expect(await result.json()).toMatchObject({
+        code: coachErrorCodes.proRequired,
+        ok: false,
+      });
+      expect(claimSession).not.toHaveBeenCalled();
+    }
+  );
+
+  it("fails closed with the outage error when RevenueCat can't answer", async () => {
+    const failure = new Error("RevenueCat answered 503");
+    checkPro.mockRejectedValue(failure);
+
+    const result = (await routeAuth(
+      request(aliceToken(), "/eve/v1/session/wrun_alice"),
+      auth
+    )) as Response;
+
+    expect(result).toBeInstanceOf(Response);
+    expect(result.status).toBe(503);
+    expect(await result.json()).toMatchObject({
+      code: coachErrorCodes.proCheckUnavailable,
+      ok: false,
+    });
+    expect(report).toHaveBeenCalledWith(failure, {
+      path: "/eve/v1/session/wrun_alice",
+      userId: "user_alice",
+    });
+    expect(claimSession).not.toHaveBeenCalled();
+  });
+
+  it("doesn't check Pro for a request without a valid token", async () => {
+    await routeAuth(request(), auth);
+
+    expect(checkPro).not.toHaveBeenCalled();
   });
 });

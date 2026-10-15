@@ -1,18 +1,41 @@
 import { verifyToken } from "@clerk/backend";
 import { TokenVerificationError } from "@clerk/backend/errors";
+import { coachErrorCodes } from "@fitme/core";
 import {
   type AuthFn,
   extractBearerToken,
   ForbiddenError,
   withAuthChallenges,
 } from "eve/channels/auth";
+import type { ProCheck } from "./pro-access";
 
 export type ClaimSession = (
   sessionId: string,
   userId: string
 ) => Promise<string | null>;
 
+/**
+ * Rejects a route with a 503 shaped like eve's auth failures (`no-store`,
+ * `{ ok: false, code, error }`). `routeAuth` answers with the `response` of
+ * anything thrown that carries one, like eve's own 401 and 403 errors (whose
+ * types only take those two statuses).
+ */
+class ProCheckUnavailableError extends Error {
+  override readonly name = "ProCheckUnavailableError";
+  readonly response = Response.json(
+    {
+      code: coachErrorCodes.proCheckUnavailable,
+      error:
+        "The Coach can't check your subscription right now. Try again soon.",
+      ok: false,
+    },
+    { headers: { "cache-control": "no-store" }, status: 503 }
+  );
+}
+
 interface ClerkSessionOptions {
+  /** Whether the User has Pro; throws when that can't be told. */
+  checkPro: ProCheck;
   /**
    * Records `sessionId` for `userId` unless it is recorded already, then
    * returns the User it is recorded for (`null` if that can't be told).
@@ -20,6 +43,11 @@ interface ClerkSessionOptions {
   claimSession: ClaimSession;
   /** The Clerk instance's PEM public key; defaults to `CLERK_JWT_KEY`. */
   jwtKey?: () => string | undefined;
+  /** Reports a failed Pro check, tagged with the User and route. */
+  report: (
+    error: unknown,
+    tags: { path: string; userId: string }
+  ) => Promise<void>;
 }
 
 // Every route that addresses one session: messages, stream, cancel, clear,
@@ -40,12 +68,20 @@ const SESSION_ROUTE = /\/eve\/v1\/session\/([^/]+)/;
  * so this is the earliest point to record it. If the owner can't be
  * recorded, the route fails rather than let anyone in.
  *
+ * Only Pro Users may use the Coach: every route checks the verified User's
+ * entitlement (cached by `checkPro`) before anything else runs, so a free
+ * User can't start, continue or compact a Conversation. Without Pro the
+ * answer is a 403 `coach_pro_required` (the app's paywall); when it can't be
+ * told, a reported 503 `coach_pro_check_unavailable`: never let through.
+ *
  * The token itself never reaches the session: tools act through `asUser` with
  * the principal id, so a turn outliving the ~60 s token still works.
  */
 export const clerkSession = ({
-  jwtKey = () => process.env.CLERK_JWT_KEY,
+  checkPro,
   claimSession,
+  jwtKey = () => process.env.CLERK_JWT_KEY,
+  report,
 }: ClerkSessionOptions): AuthFn<Request> =>
   withAuthChallenges(
     async (request) => {
@@ -69,6 +105,21 @@ export const clerkSession = ({
           return null;
         }
         throw error;
+      }
+      let isPro: boolean;
+      try {
+        isPro = await checkPro(userId);
+      } catch (error) {
+        await report(error, { path: new URL(request.url).pathname, userId });
+        throw new ProCheckUnavailableError("Pro check unavailable", {
+          cause: error,
+        });
+      }
+      if (!isPro) {
+        throw new ForbiddenError({
+          code: coachErrorCodes.proRequired,
+          message: "The Coach is a Fitme Pro feature.",
+        });
       }
       const sessionId = new URL(request.url).pathname.match(SESSION_ROUTE)?.[1];
       if (sessionId) {
