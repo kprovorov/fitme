@@ -113,6 +113,13 @@ function useCoachChat(userId: string) {
 
   const errorAction = coachErrorAction(eveError);
 
+  // A turn that settled without an error was answered: nothing to give back.
+  useEffect(() => {
+    if (!(isRunning || eveError)) {
+      lastSentRef.current = "";
+    }
+  }, [isRunning, eveError]);
+
   const newConversation = useCallback(() => {
     clearSavedCoachConversation(userId);
     resetSession();
@@ -126,7 +133,9 @@ function useCoachChat(userId: string) {
       return;
     }
     // The refused text goes back into the composer, to send again.
-    setInput((current) => current || lastSentRef.current);
+    const refused = lastSentRef.current;
+    lastSentRef.current = "";
+    setInput((current) => current || refused);
     if (action === "paywall") {
       RevenueCatUI.presentPaywall();
     } else {
@@ -197,7 +206,7 @@ function useCoachChat(userId: string) {
 
 function CoachChat({ userId }: { userId: string }) {
   const chat = useCoachChat(userId);
-  const { data: isPro } = useIsProQuery();
+  const { data: isPro, isPending: isProPending } = useIsProQuery();
   const { model } = useSelectedCoachModel();
   const { initialMessage } = useLocalSearchParams<{
     initialMessage?: string;
@@ -205,13 +214,25 @@ function CoachChat({ userId }: { userId: string }) {
   const router = useRouter();
   const sentInitialMessageRef = useRef<string | null>(null);
 
+  // Planner prompts take the same Pro gate as typed ones: a refused send
+  // would make the Coach cache "not Pro" for minutes, past a purchase.
   useEffect(() => {
-    if (initialMessage && initialMessage !== sentInitialMessageRef.current) {
-      sentInitialMessageRef.current = initialMessage;
-      chat.sendMessage(initialMessage);
-      router.setParams({ initialMessage: undefined });
+    if (
+      !initialMessage ||
+      initialMessage === sentInitialMessageRef.current ||
+      isProPending
+    ) {
+      return;
     }
-  }, [initialMessage, chat, router]);
+    sentInitialMessageRef.current = initialMessage;
+    router.setParams({ initialMessage: undefined });
+    if (isPro === false) {
+      chat.setInput(initialMessage);
+      RevenueCatUI.presentPaywall();
+      return;
+    }
+    chat.sendMessage(initialMessage);
+  }, [initialMessage, isPro, isProPending, chat, router]);
 
   const handleSend = useCallback(() => {
     if (isPro === false) {
