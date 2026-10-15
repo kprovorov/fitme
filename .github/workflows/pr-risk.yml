@@ -10,19 +10,21 @@ name: PR Risk
 # of the pull request head here.
 on:
   pull_request_target:
-    types: [opened, synchronize, reopened]
+    # edited: a pull request retargeted to main (other edits are skipped below)
+    types: [opened, synchronize, reopened, edited]
     branches: [main]
 
 permissions:
   contents: read
   pull-requests: write
 
-concurrency:
-  group: pr-risk-${{ github.event.pull_request.number }}
-  cancel-in-progress: true
-
 jobs:
   label:
+    if: github.event.action != 'edited' || github.event.changes.base
+    # Job level, so a skipped edit never cancels a running label job.
+    concurrency:
+      group: pr-risk-${{ github.event.pull_request.number }}
+      cancel-in-progress: true
     runs-on: ubuntu-latest
     steps:
       - name: Label Protected Path changes

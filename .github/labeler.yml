@@ -3,13 +3,14 @@
 risk:high:
   - changed-files:
       - any-glob-to-any-file:
-          # Supabase: schema, auth trust, Edge Functions, one-shot data scripts
+          # Supabase: schema, auth trust, Edge Functions, data scripts (sync.ts writes production)
           - packages/supabase/supabase/migrations/**
           - packages/supabase/supabase/config.toml
           - packages/supabase/supabase/roles.sql
           - packages/supabase/supabase/local-only-signing-keys.json
           - packages/supabase/supabase/functions/**
           - packages/supabase/scripts/**
+          - packages/supabase/supabase/sync.ts
 
           # GitHub: workflows (what runs with repo secrets) and this file
           - .github/**
@@ -25,7 +26,7 @@ risk:high:
           - apps/mobile/eas.json
           - apps/mobile/plugins/**
 
-          # Mobile auth, session and payments
+          # Mobile auth, session and payments (_layout.tsx configures RevenueCat)
           - apps/mobile/lib/clerk.ts
           - apps/mobile/lib/supabase.ts
           - apps/mobile/components/authenticated.tsx
@@ -33,6 +34,7 @@ risk:high:
           - apps/mobile/components/providers.tsx
           - apps/mobile/hooks/mutations/auth.ts
           - apps/mobile/hooks/revenueCat.ts
+          - apps/mobile/app/_layout.tsx
 
           # MCP: OAuth, the per-request User context and its services
           - apps/mcp/src/app.ts
@@ -49,9 +51,11 @@ risk:high:
           - apps/coach/agent/lib/eval-runner.ts
           - apps/coach/agent/lib/pro-access.ts
           - apps/coach/agent/lib/claim-session.ts
+          - apps/coach/agent/lib/conversation.ts
           - apps/coach/agent/lib/owner.ts
 
           # Webhooks: signature checks and account deletion
+          - apps/webhooks/src/app.ts
           - apps/webhooks/src/routes/clerk.ts
           - apps/webhooks/src/coach.ts
 
