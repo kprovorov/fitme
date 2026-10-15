@@ -59,7 +59,7 @@ describe("accountDeletionReset", () => {
     const unconfigured = accountDeletionReset({ secret: () => undefined });
 
     const result = await routeAuth(
-      request("Bearer ", "/eve/v1/session/wrun_alice/reset"),
+      request(`Bearer ${SECRET}`, "/eve/v1/session/wrun_alice/reset"),
       unconfigured
     );
 

@@ -1,6 +1,4 @@
 export interface CoachConversationDeps {
-  /** Deletes the User's records of these (reset) sessions. */
-  deleteSessionRecords: (userId: string, sessionIds: string[]) => Promise<void>;
   /** The Coach session ids recorded for the User. */
   listSessionIds: (userId: string) => Promise<string[]>;
   /** Retires one Coach session; succeeds for one already gone. */
@@ -12,40 +10,33 @@ const RESET_BATCH_SIZE = 5;
 
 /**
  * Wipes a deleted User's Coach Conversations: resets every EVE session
- * recorded for them, then deletes the records of the ones that reset. A
- * record is the session's ACL, so one whose reset failed stays, and the error
- * is thrown so the webhook answers 500 and Clerk retries; resetting a session
+ * recorded for them. The records stay as tombstones: eve keeps a reset
+ * session's stream until retention ends, and a missing record would let the
+ * first caller with the id claim it and read it, while one owned by the
+ * retired id fails closed. Any failed reset throws (the first error as the
+ * cause) so the webhook answers 500 and Clerk retries; resetting a session
  * again is harmless. A User with no recorded sessions needs no Coach at all.
  */
 export const deleteCoachConversations =
-  ({
-    deleteSessionRecords,
-    listSessionIds,
-    resetSession,
-  }: CoachConversationDeps) =>
+  ({ listSessionIds, resetSession }: CoachConversationDeps) =>
   async (userId: string): Promise<void> => {
     const sessionIds = await listSessionIds(userId);
-    const reset: string[] = [];
     const failures: unknown[] = [];
     for (let start = 0; start < sessionIds.length; start += RESET_BATCH_SIZE) {
       const batch = sessionIds.slice(start, start + RESET_BATCH_SIZE);
       // biome-ignore lint/performance/noAwaitInLoops: batches of five so a User with many sessions doesn't flood the Coach
       const results = await Promise.allSettled(batch.map(resetSession));
-      for (const [index, result] of results.entries()) {
-        if (result.status === "fulfilled") {
-          reset.push(batch[index] as string);
-        } else {
+      for (const result of results) {
+        if (result.status === "rejected") {
           failures.push(result.reason);
         }
       }
     }
-    if (reset.length > 0) {
-      await deleteSessionRecords(userId, reset);
-    }
     if (failures.length > 0) {
       throw new AggregateError(
         failures,
-        `Failed to reset ${failures.length} of ${sessionIds.length} Coach sessions: ${failures.map(String).join("; ")}`
+        `Failed to reset ${failures.length} of ${sessionIds.length} Coach sessions`,
+        { cause: failures[0] }
       );
     }
   };

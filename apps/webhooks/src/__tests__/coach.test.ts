@@ -5,71 +5,85 @@ const USER_ID = "user_2DeleteMe00000000000000";
 const COACH_URL = "https://coach.test";
 const SECRET = "reset-secret-0123456789abcdef0123456789abcdef";
 
-/** Fake records and Coach: `failing` session ids fail to reset. */
+/**
+ * Fake records and Coach: `failing` session ids fail to reset; like eve,
+ * resetting a session again succeeds and leaves it retired.
+ */
 const setup = (recorded: string[], failing: string[] = []) => {
-  const records = new Set(recorded);
-  const reset: string[] = [];
-  const askedFor: string[] = [];
+  const retired = new Set<string>();
+  const listedFor: string[] = [];
   const wipe = deleteCoachConversations({
-    deleteSessionRecords: (userId, sessionIds) => {
-      askedFor.push(userId);
-      for (const id of sessionIds) {
-        records.delete(id);
-      }
-      return Promise.resolve();
-    },
     listSessionIds: (userId) => {
-      askedFor.push(userId);
-      return Promise.resolve([...records]);
+      listedFor.push(userId);
+      return Promise.resolve(recorded);
     },
     resetSession: (sessionId) => {
       if (failing.includes(sessionId)) {
         return Promise.reject(new Error(`Coach unreachable for ${sessionId}`));
       }
-      reset.push(sessionId);
+      retired.add(sessionId);
       return Promise.resolve();
     },
   });
-  return { askedFor, records, reset, wipe };
+  return { listedFor, retired, wipe };
 };
 
 describe("deleteCoachConversations", () => {
-  it("resets every recorded session, then deletes the records", async () => {
-    const { askedFor, records, reset, wipe } = setup(["wrun_a", "wrun_b"]);
+  it("resets every session recorded for the User", async () => {
+    const { listedFor, retired, wipe } = setup([
+      "wrun_a",
+      "wrun_b",
+      "wrun_c",
+      "wrun_d",
+      "wrun_e",
+      "wrun_f",
+    ]);
 
     await wipe(USER_ID);
 
-    expect(reset.sort()).toEqual(["wrun_a", "wrun_b"]);
-    expect([...records]).toEqual([]);
-    expect(askedFor).toEqual([USER_ID, USER_ID]);
+    expect(listedFor).toEqual([USER_ID]);
+    expect([...retired].sort()).toEqual([
+      "wrun_a",
+      "wrun_b",
+      "wrun_c",
+      "wrun_d",
+      "wrun_e",
+      "wrun_f",
+    ]);
   });
 
   it("deletes fine for a User with no recorded sessions", async () => {
-    const { reset, wipe } = setup([]);
+    const { retired, wipe } = setup([]);
 
     await wipe(USER_ID);
 
-    expect(reset).toEqual([]);
+    expect(retired.size).toBe(0);
   });
 
-  it("keeps the record of a session that failed to reset, and fails", async () => {
-    const { records, reset, wipe } = setup(["wrun_a", "wrun_b"], ["wrun_b"]);
+  it("resets the rest and fails when one session fails to reset", async () => {
+    const { retired, wipe } = setup(["wrun_a", "wrun_b"], ["wrun_b"]);
 
-    await expect(wipe(USER_ID)).rejects.toThrow("wrun_b");
+    const failure = await wipe(USER_ID).catch((error: unknown) => error);
 
-    expect(reset).toEqual(["wrun_a"]);
-    expect([...records]).toEqual(["wrun_b"]);
+    expect(failure).toBeInstanceOf(AggregateError);
+    expect((failure as AggregateError).message).toBe(
+      "Failed to reset 1 of 2 Coach sessions"
+    );
+    expect((failure as AggregateError).cause).toEqual(
+      new Error("Coach unreachable for wrun_b")
+    );
+    expect([...retired]).toEqual(["wrun_a"]);
   });
 
   it("finishes on a retry after a partial failure", async () => {
     const failing = ["wrun_b"];
-    const { records, wipe } = setup(["wrun_a", "wrun_b"], failing);
+    const { retired, wipe } = setup(["wrun_a", "wrun_b"], failing);
     await expect(wipe(USER_ID)).rejects.toThrow();
 
     failing.length = 0;
     await wipe(USER_ID);
 
-    expect([...records]).toEqual([]);
+    expect([...retired].sort()).toEqual(["wrun_a", "wrun_b"]);
   });
 });
 

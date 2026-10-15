@@ -1,8 +1,5 @@
 import { withService } from "@fitme/db";
-import {
-  deleteCoachSessions,
-  listCoachSessionIds,
-} from "@fitme/services/coach-sessions";
+import { listCoachSessionIds } from "@fitme/services/coach-sessions";
 import { deleteUserData } from "@fitme/services/delete-user-data";
 import { Hono } from "hono";
 import { HTTPException } from "hono/http-exception";
@@ -17,14 +14,12 @@ export interface AppDeps {
 
 /**
  * The real dependencies: the database through withService, the Coach, Sentry,
- * env. The Coach session records are read in withService: by then the User's
+ * env. The Coach session ids are read in withService: by then the User's
  * id is retired, so asUser would see none.
  */
 const defaultDeps = (): AppDeps => ({
   clerk: {
     deleteCoachConversations: deleteCoachConversations({
-      deleteSessionRecords: (userId, sessionIds) =>
-        withService((tx) => deleteCoachSessions(tx, userId, sessionIds)),
       listSessionIds: (userId) =>
         withService((tx) => listCoachSessionIds(tx, userId)),
       resetSession: coachSessionResetter({

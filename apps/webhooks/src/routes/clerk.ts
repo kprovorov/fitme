@@ -2,7 +2,7 @@ import { verifyWebhook, type WebhookEvent } from "@clerk/backend/webhooks";
 import { Hono } from "hono";
 
 export interface ClerkWebhookDeps {
-  /** Resets the User's Coach sessions and drops their records. */
+  /** Resets every Coach session recorded for the User. */
   deleteCoachConversations: (userId: string) => Promise<void>;
   deleteUserData: (userId: string) => Promise<void>;
   reportError: (error: unknown) => Promise<void>;
