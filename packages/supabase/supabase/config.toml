@@ -141,10 +141,8 @@ additional_redirect_urls = ["https://127.0.0.1:3000"]
 jwt_expiry = 3600
 # JWT issuer URL. If not set, defaults to the local API URL (http://127.0.0.1:<port>/auth/v1).
 # jwt_issuer = ""
-# Path to JWT signing keys. Local stacks only (ADR 0002): the first key is
-# the stack's own signer, the second is the public half of the MCP server's
-# development signing key, so the stack accepts tokens the MCP server signs.
-# Both are throwaway development keys; never use them on a hosted project.
+# Path to JWT signing keys. Local stacks only: the stack's own signer, a
+# throwaway development key; never use it on a hosted project.
 signing_keys_path = "./local-only-signing-keys.json"
 # If disabled, the refresh token will never expire.
 enable_refresh_token_rotation = true

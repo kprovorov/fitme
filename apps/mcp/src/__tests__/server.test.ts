@@ -1,9 +1,5 @@
-import { afterEach, describe, expect, it } from "vitest";
-import { call, connect, expectAllCallsRouted } from "./harness.js";
-
-afterEach(() => {
-  expectAllCallsRouted();
-});
+import { describe, expect, it } from "vitest";
+import { call, connect } from "./harness.js";
 
 describe("tool registry", () => {
   it("lists every tool", async () => {
@@ -67,7 +63,7 @@ describe("tool registry", () => {
 });
 
 describe("catalog tools", () => {
-  it("need no Supabase", async () => {
+  it("need no database", async () => {
     const client = await connect();
 
     const ping = await call(client, "ping");

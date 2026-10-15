@@ -1,77 +1,29 @@
 import { randomBytes } from "node:crypto";
-import { readFileSync } from "node:fs";
 import type { Client } from "@modelcontextprotocol/sdk/client/index.js";
 import { call, connect, contextFor } from "../src/__tests__/harness.js";
 import { createServicesFromEnv } from "../src/services.js";
-import {
-  createSupabaseClientFromEnv,
-  type FitmeSupabaseClient,
-} from "../src/supabase.js";
-import {
-  createSupabaseTokenSigner,
-  supabaseTokenSignerFromEnv,
-} from "../src/supabase-token.js";
 
 /**
  * Helpers for the integration suite, which runs the MCP tools against a real
  * Supabase stack (`pnpm db start` + `pnpm db seed`). Test Users are made-up
- * Clerk-style ids. Tools on services run as them through `asUser` on the
- * stack's pooler (`FITME_DATABASE_URL`, set by the vitest config); the rest
- * use tokens the MCP server's signer issues, the way the server does once
- * Clerk has verified a token (ADR 0002). Local stacks trust the
- * development signing key (`local-only-signing-keys.json`), and every query
- * goes through the same RLS policies and RPCs as in production.
+ * Clerk-style ids, and the tools run as them through `asUser` on the stack's
+ * Supavisor pooler (`FITME_DATABASE_URL`, set by the vitest config), the way
+ * the server does once Clerk has verified a token (ADR 0003). Every query goes
+ * through the same RLS policies as in production.
  */
-
-export function requireEnv() {
-  const url = process.env.SUPABASE_URL;
-  const anonKey = process.env.SUPABASE_ANON_KEY;
-  if (!(url && anonKey)) {
-    throw new Error(
-      "SUPABASE_URL and SUPABASE_ANON_KEY must point at a running Supabase stack (see apps/mcp/README.md, Integration tests)."
-    );
-  }
-  return { anonKey, url };
-}
-
-/**
- * Signs with `SUPABASE_JWT_SIGNING_KEY` when set, otherwise with the
- * committed development key that local stacks trust.
- */
-const signToken =
-  supabaseTokenSignerFromEnv() ??
-  createSupabaseTokenSigner(
-    readFileSync(
-      new URL("local-only-signing-key.json", import.meta.url),
-      "utf8"
-    )
-  );
 
 /** A made-up id in Clerk's `user_…` format, unique per run. */
 const clerkStyleUserId = (label: string) =>
   `user_${label}${randomBytes(16).toString("hex")}`;
 
 export interface TestUser {
-  accessToken: string;
-  /** Client acting as the User (anon key + their token), for fixtures. */
-  supabase: FitmeSupabaseClient;
   userId: string;
 }
 
-/**
- * A fresh User with a signed Supabase token (valid for 5 minutes, enough for
- * one suite). No Supabase Auth account is created.
- */
-export async function createTestUser(label: string): Promise<TestUser> {
-  requireEnv();
-  const userId = clerkStyleUserId(label);
-  const accessToken = await signToken(userId);
-  const supabase = createSupabaseClientFromEnv(accessToken);
-  if (!supabase) {
-    throw new Error("Could not build a Supabase client from the environment.");
-  }
-  return { accessToken, supabase, userId };
-}
+/** A fresh User. No Clerk or Supabase Auth account is created. */
+export const createTestUser = (label: string): TestUser => ({
+  userId: clerkStyleUserId(label),
+});
 
 /** MCP client whose user tools run against the real stack as `user`. */
 export function connectAs(user: TestUser) {
@@ -79,9 +31,7 @@ export function connectAs(user: TestUser) {
   if (!services) {
     throw new Error("FITME_DATABASE_URL must point at the stack's pooler.");
   }
-  return connect(
-    contextFor({ supabase: user.supabase, userId: user.userId }, services)
-  );
+  return connect(contextFor(services));
 }
 
 /** Calls a tool and returns its JSON payload, failing on `isError`. */
