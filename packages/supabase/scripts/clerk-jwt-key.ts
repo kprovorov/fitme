@@ -1,5 +1,5 @@
-// Prints the PEM public key of a Clerk instance on one line, the value of the
-// CLERK_JWT_KEY function secret that edge functions verify session tokens
+// Prints the PEM public key of a Clerk instance on one line, the value of
+// apps/coach's CLERK_JWT_KEY, which its channel verifies session tokens
 // with. Reads the instance's public JWKS, so it needs no credentials.
 //
 // Usage: clerk-jwt-key [frontend-api-domain]

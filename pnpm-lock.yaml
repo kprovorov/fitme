@@ -738,9 +738,6 @@ importers:
       '@snaplet/seed':
         specifier: ^0.98.0
         version: 0.98.0(@snaplet/copycat@6.0.0)(@types/pg@8.23.1)(openai@4.104.0(ws@8.21.3)(zod@3.25.76))(pg@8.23.0)(ws@8.21.3)
-      '@supabase/server':
-        specifier: ^1.0.0
-        version: 1.6.1(@supabase/supabase-js@2.116.0(@opentelemetry/api@1.9.1))(h3@2.0.2(crossws@0.4.15(srvx@1.0.5))(ocache@0.3.0))(hono@4.13.9)(pg@8.23.0)(typescript@5.9.3)
       '@types/node':
         specifier: ^22.15.0
         version: 22.20.3
@@ -4526,15 +4523,6 @@ packages:
     resolution: {integrity: sha512-fSaA0ZeBUS9hMgpGZt5shIZvfs3Mvx2ZdajQT4kv/whubqDBAp3GU5W8iIXy21MRvKmO2NpAj8/Q6y+ZkZyF/w==}
     engines: {node: '>=20.0.0'}
 
-  '@supabase/middleware@0.5.0':
-    resolution: {integrity: sha512-OjukUo+5p14zxTuylf2zVg1hZCHWKLO6VrZhtVeQQw09yrVo3GAduvFJPiFDhTAz/Du1ZfEzAR+s6aRAWD5wzQ==}
-    engines: {node: '>=22'}
-    peerDependencies:
-      typescript: '>=5.4'
-    peerDependenciesMeta:
-      typescript:
-        optional: true
-
   '@supabase/phoenix@0.4.5':
     resolution: {integrity: sha512-aAn9H9ovVyeApKy11OWOrrOGq8DV68yWeH4ud2lN9fzn4aO8Zb5GLL9m1pUg9nLqIcT+ZDfAcsZe0E/nqdv2lw==}
 
@@ -4553,28 +4541,6 @@ packages:
   '@supabase/realtime-js@2.97.0':
     resolution: {integrity: sha512-37Jw0NLaFP0CZd7qCan97D1zWutPrTSpgWxAw6Yok59JZoxp4IIKMrPeftJ3LZHmf+ILQOPy3i0pRDHM9FY36Q==}
     engines: {node: '>=20.0.0'}
-
-  '@supabase/server@1.6.1':
-    resolution: {integrity: sha512-yNQTMa2F8pbgifbjbXLPGc9G9qOnRQnvg8B/fr0WK2HwsQozMqcSinS86mD/BWQJG8USyKSvBiPu/+EYlPH0wQ==}
-    engines: {node: '>=22'}
-    peerDependencies:
-      '@nestjs/common': ^10.0.0 || ^11.0.0
-      '@supabase/supabase-js': ^2.0.0
-      elysia: ^1.4.0
-      h3: ^2.0.0
-      hono: ^4.0.0
-      pg: ^8.0.0
-    peerDependenciesMeta:
-      '@nestjs/common':
-        optional: true
-      elysia:
-        optional: true
-      h3:
-        optional: true
-      hono:
-        optional: true
-      pg:
-        optional: true
 
   '@supabase/storage-js@2.116.0':
     resolution: {integrity: sha512-6/3hR6vccBP6oGM5B6RfbwZcTCKmQOodd/ZWQdsw8yJsU5zO/a//oBL6yLnmgxcjnHSrelW8rsO7hL5DPybyUQ==}
@@ -9983,9 +9949,6 @@ packages:
   std-env@3.10.0:
     resolution: {integrity: sha512-5GS12FdOZNliM5mAOxFRg7Ir0pWz8MdpYm6AY6VPkGpbA7ZzmbzNcBJQ0GPvvyWgcY7QAhCgf9Uy89I03faLkg==}
 
-  std-env@4.2.0:
-    resolution: {integrity: sha512-oCUKSupKTHX53EyjDtuZQ64pjLJ6yYCtpmEw0goYxtjG9KpbRe8KAsl2tBUGU9DyMcJ0RwJ8GqJAFzMXcXW1Rw==}
-
   stdin-discarder@0.2.2:
     resolution: {integrity: sha512-UhDfHmA92YAlNnCfhmq0VeNL5bDbiZGg7sZ2IvPsXubGkiNa9EC+tUTsjBRsYUAz87btI6/1wf4XoVvQ3uRnmQ==}
     engines: {node: '>=18'}
@@ -14958,12 +14921,6 @@ snapshots:
     dependencies:
       tslib: 2.8.1
 
-  '@supabase/middleware@0.5.0(typescript@5.9.3)':
-    dependencies:
-      std-env: 4.2.0
-    optionalDependencies:
-      typescript: 5.9.3
-
   '@supabase/phoenix@0.4.5': {}
 
   '@supabase/postgrest-js@2.116.0':
@@ -14988,18 +14945,6 @@ snapshots:
     transitivePeerDependencies:
       - bufferutil
       - utf-8-validate
-
-  '@supabase/server@1.6.1(@supabase/supabase-js@2.116.0(@opentelemetry/api@1.9.1))(h3@2.0.2(crossws@0.4.15(srvx@1.0.5))(ocache@0.3.0))(hono@4.13.9)(pg@8.23.0)(typescript@5.9.3)':
-    dependencies:
-      '@supabase/middleware': 0.5.0(typescript@5.9.3)
-      '@supabase/supabase-js': 2.116.0(@opentelemetry/api@1.9.1)
-      jose: 6.2.12
-    optionalDependencies:
-      h3: 2.0.2(crossws@0.4.15(srvx@1.0.5))(ocache@0.3.0)
-      hono: 4.13.9
-      pg: 8.23.0
-    transitivePeerDependencies:
-      - typescript
 
   '@supabase/storage-js@2.116.0':
     dependencies:
@@ -20993,8 +20938,6 @@ snapshots:
   statuses@2.0.2: {}
 
   std-env@3.10.0: {}
-
-  std-env@4.2.0: {}
 
   stdin-discarder@0.2.2: {}
 

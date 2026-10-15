@@ -2,7 +2,7 @@
   "name": "@fitme/supabase",
   "version": "0.0.0",
   "private": true,
-  "description": "Supabase project (config, migrations, edge functions, seeds) plus generated database types.",
+  "description": "Supabase project (config, migrations, seeds) plus generated database types.",
   "type": "module",
   "exports": {
     ".": "./src/index.ts",
@@ -15,7 +15,6 @@
     "clerk:check-migration": "tsx scripts/check-clerk-migration.ts",
     "clerk:jwt-key": "tsx scripts/clerk-jwt-key.ts",
     "exercises:sync": "tsx supabase/sync.ts",
-    "functions:serve": "supabase functions serve",
     "migrate": "supabase migration up",
     "reset": "supabase db reset",
     "seed": "tsx supabase/seed.ts",
@@ -24,7 +23,6 @@
     "status": "supabase status",
     "stop": "supabase stop",
     "test:db": "supabase test db",
-    "test:functions": "deno test --permit-no-files --no-config --node-modules-dir=none --allow-env supabase/functions",
     "typecheck": "tsc --noEmit",
     "types:generate": "supabase gen types typescript --local --schema public > src/database.types.ts && biome check --write --unsafe src/database.types.ts",
     "users:migrate": "tsx scripts/migrate-users-to-clerk.ts"
@@ -37,7 +35,6 @@
     "@fitme/typescript-config": "workspace:*",
     "@snaplet/copycat": "^6.0.0",
     "@snaplet/seed": "^0.98.0",
-    "@supabase/server": "^1.0.0",
     "@types/node": "^22.15.0",
     "@types/pg": "^8.16.0",
     "pg": "^8.18.0",

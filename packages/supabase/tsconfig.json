@@ -6,6 +6,5 @@
   // The Snaplet seed files (seed.ts, seed.config.ts, supabase/seed.ts) depend
   // on the @snaplet/seed client, which `snaplet-seed sync` generates from a
   // live database. It never exists in CI, so those files are not typechecked.
-  "include": ["src", "scripts", "supabase/sync.ts"],
-  "exclude": ["supabase/functions"]
+  "include": ["src", "scripts", "supabase/sync.ts"]
 }

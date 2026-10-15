@@ -43,11 +43,5 @@
     "args": ["db", "migrate"],
     "reveal": "no_focus",
     "hide": "on_success"
-  },
-  {
-    "label": "Supabase: Serve Functions",
-    "command": "pnpm",
-    "args": ["db", "functions:serve"],
-    "reveal": "no_focus"
   }
 ]

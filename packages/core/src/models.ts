@@ -200,9 +200,7 @@ export type WorkoutExerciseSetInput = Omit<WorkoutExerciseSetData, "order">;
 
 /**
  * Models the Coach can run on, by their Vercel AI Gateway id
- * (`<creator>/<model>`). The Coach (`apps/coach`) accepts only these. The
- * `ai-agent` edge function keeps its own list of the old, pre-Gateway ids for
- * old app builds; it doesn't follow this one.
+ * (`<creator>/<model>`), the only list: `apps/coach` rejects any id outside it.
  */
 export const coachModels = [
   {
