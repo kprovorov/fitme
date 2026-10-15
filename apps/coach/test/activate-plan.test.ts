@@ -63,6 +63,18 @@ describe("activate_plan", () => {
     ).toEqual({ error: "Plan not found" });
   });
 
+  it("acts as the session's owner, never the turn's caller", async () => {
+    await activatePlan.execute(
+      { plan_id: planId },
+      contextFor("user_alice", "user_mallory")
+    );
+
+    expect(db.asUser).toHaveBeenCalledWith("user_alice", expect.any(Function));
+    expect(
+      JSON.stringify([db.asUser.mock.calls, services.activatePlan.mock.calls])
+    ).not.toContain("user_mallory");
+  });
+
   it("refuses to run without a Clerk User owning the session", async () => {
     await expect(
       activatePlan.execute({ plan_id: planId }, contextFor(null))

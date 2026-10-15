@@ -382,6 +382,21 @@ describe("updateProfile", () => {
     });
   }
 
+  it("converts an unknown stored system as imperial, like the RPC", async () => {
+    const throughService = newUser("SvcUnknown");
+    const throughRpc = newUser("RpcUnknown");
+    const seed = { system: "imperial" as MeasurementSystem, weight: "181.37" };
+    await seedUser(throughService, seed);
+    await seedUser(throughRpc, seed);
+
+    await update(throughService, { measurement_system: "metric" });
+    await convertThroughRpc(throughRpc, "metric");
+
+    const converted = await storedValues(throughService);
+    expect(converted).toEqual(await storedValues(throughRpc));
+    expect(converted.profile?.weight).toBe("82.27");
+  });
+
   it("writes the given weight and height in the new system's units", async () => {
     const userId = newUser("ChangeAndSet");
     await seedUser(userId, { system: "metric" });

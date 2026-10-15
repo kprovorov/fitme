@@ -7,12 +7,18 @@ const clerkUser = (principalId: string) => ({
   principalType: "user",
 });
 
-/** A tool context whose session was started by `owner`. */
-export const contextFor = (owner: string | null): ToolContext =>
+/**
+ * A tool context whose session was started by `owner`, in a turn sent by
+ * `caller` (the owner unless given).
+ */
+export const contextFor = (
+  owner: string | null,
+  caller: string | null = owner
+): ToolContext =>
   ({
     session: {
       auth: {
-        current: owner ? clerkUser(owner) : null,
+        current: caller ? clerkUser(caller) : null,
         initiator: owner ? clerkUser(owner) : null,
       },
       id: "wrun_test",

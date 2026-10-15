@@ -92,15 +92,16 @@ export interface ProfileChanges {
 const isImperial = (system: string) => system === "us" || system === "uk";
 
 /**
- * The weight and height factors from `from` to `to`, as SQL so the arithmetic
- * is Postgres numeric like the RPC's (`1.0 / 2.20462` at numeric precision),
- * or `null` when both store the same units.
+ * The weight and height factors from `from` to a different system `to`, as
+ * SQL so the arithmetic is Postgres numeric like the RPC's (`1.0 / 2.20462`
+ * at numeric precision), or `null` between us and uk, which store the same
+ * units. Like the RPC, anything stored other than metric converts as imperial.
  */
 const conversionFactors = (
   from: string,
   to: MeasurementSystem
 ): { height: SQL; weight: SQL } | null => {
-  if (isImperial(from) === isImperial(to)) {
+  if (isImperial(from) && isImperial(to)) {
     return null;
   }
   return from === "metric"
@@ -108,6 +109,7 @@ const conversionFactors = (
     : { height: sql`(1.0 / 0.393701)`, weight: sql`(1.0 / 2.20462)` };
 };
 
+/** `column` times `factor`, rounded to 2 decimals as the RPC stores it. */
 const converted = (column: AnyPgColumn, factor: SQL) =>
   sql`round(${column} * ${factor}, 2)`;
 
@@ -180,7 +182,8 @@ const convertStoredWeights = async (
 
 /**
  * Changes the User's Profile in `tx` (from `asUser`) and returns it with its
- * units, or `null` without changing anything when they have no Profile.
+ * units, or `null` without changing anything when they have no Profile (the
+ * RPC raises "Profile not found" there instead).
  *
  * A new measurement system first converts every stored height and weight of
  * the User (the Profile's, their Plans' and their Workout Sessions'), as the

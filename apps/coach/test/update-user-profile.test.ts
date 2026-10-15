@@ -100,6 +100,18 @@ describe("update_user_profile", () => {
     ).toEqual({ error: "Profile not found" });
   });
 
+  it("acts as the session's owner, never the turn's caller", async () => {
+    await updateUserProfile.execute(
+      { age: 31 },
+      contextFor("user_alice", "user_mallory")
+    );
+
+    expect(db.asUser).toHaveBeenCalledWith("user_alice", expect.any(Function));
+    expect(
+      JSON.stringify([db.asUser.mock.calls, services.updateProfile.mock.calls])
+    ).not.toContain("user_mallory");
+  });
+
   it("refuses to run without a Clerk User owning the session", async () => {
     await expect(
       updateUserProfile.execute({ age: 31 }, contextFor(null))
