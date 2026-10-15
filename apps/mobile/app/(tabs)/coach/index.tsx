@@ -5,7 +5,6 @@ import {
 } from "@assistant-ui/eve";
 import {
   AssistantRuntimeProvider,
-  type TextMessagePart,
   useAui,
   useAuiState,
 } from "@assistant-ui/react-native";
@@ -13,13 +12,21 @@ import { useUser } from "@clerk/expo";
 import * as Haptics from "expo-haptics";
 import { Link, Stack, useLocalSearchParams, useRouter } from "expo-router";
 import { Plus } from "lucide-react-native";
-import { useCallback, useEffect, useMemo, useRef, useState } from "react";
+import {
+  useCallback,
+  useEffect,
+  useEffectEvent,
+  useMemo,
+  useRef,
+  useState,
+} from "react";
 import RevenueCatUI from "react-native-purchases-ui";
 import {
   ChatProvider,
   Conversation,
   ConversationScrollButton,
   createStreamingStore,
+  messageText,
   PromptInput,
   PromptInputAction,
   PromptInputBody,
@@ -85,6 +92,10 @@ function CoachRuntime({
   );
 }
 
+function toError(error: unknown): Error {
+  return error instanceof Error ? error : new Error(String(error));
+}
+
 function useCoachChat(userId: string) {
   const aui = useAui();
   const messages = useAuiState((s) => s.thread.messages);
@@ -96,6 +107,10 @@ function useCoachChat(userId: string) {
   const streamingStore = useMemo(() => createStreamingStore(), []);
   const prevStreamingTextRef = useRef<string>("");
 
+  // The text of the last send, given back to the composer when the send
+  // lands on an ended session, so starting over doesn't lose it.
+  const lastSentRef = useRef("");
+
   const errorAction = coachErrorAction(eveError);
 
   const newConversation = useCallback(() => {
@@ -103,13 +118,21 @@ function useCoachChat(userId: string) {
     resetSession();
   }, [resetSession, userId]);
 
-  useEffect(() => {
-    if (errorAction === "paywall") {
+  // An effect event, so the paywall opens once per error, not on every render
+  // (`useEveReset` returns a new function each time).
+  const handleError = useEffectEvent((error: unknown) => {
+    const action = coachErrorAction(error);
+    if (action === "paywall") {
       RevenueCatUI.presentPaywall();
-    } else if (errorAction === "new-conversation") {
+    } else if (action === "new-conversation") {
       newConversation();
+      setInput((current) => current || lastSentRef.current);
     }
-  }, [errorAction, newConversation]);
+  });
+
+  useEffect(() => {
+    handleError(eveError);
+  }, [eveError]);
 
   // Sync streaming text to the store
   useEffect(() => {
@@ -122,10 +145,7 @@ function useCoachChat(userId: string) {
     }
     const lastMessage = messages.at(-1);
     if (lastMessage?.role === "assistant") {
-      const text = lastMessage.content
-        .filter((p): p is TextMessagePart => p.type === "text")
-        .map((p) => p.text)
-        .join("");
+      const text = messageText(lastMessage);
       if (text !== prevStreamingTextRef.current) {
         prevStreamingTextRef.current = text;
         streamingStore.set(text);
@@ -135,6 +155,7 @@ function useCoachChat(userId: string) {
 
   const sendMessage = useCallback(
     (text: string) => {
+      lastSentRef.current = text;
       aui.thread().append({
         content: [{ text, type: "text" }],
         role: "user",
@@ -157,7 +178,7 @@ function useCoachChat(userId: string) {
   }, [input, isBusy, sendMessage]);
 
   return {
-    error: errorAction === "show" ? (eveError as Error) : null,
+    error: errorAction === "show" ? toError(eveError) : null,
     input,
     isGenerating: isRunning,
     messages,

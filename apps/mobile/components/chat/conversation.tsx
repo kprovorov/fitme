@@ -30,6 +30,7 @@ import { TouchableGlass } from "../touchable-glass";
 import { KeyboardGestureArea } from "../tw";
 import { useChatContext } from "./chat-context";
 import { Message, MessageResponse } from "./message";
+import { messageText } from "./message-text";
 import { StreamingMessage } from "./streaming-message";
 import { type WorkoutPlan, WorkoutPlanCard } from "./workout-plan-card";
 
@@ -295,11 +296,7 @@ export function Conversation({ children }: { children?: ReactNode }) {
   const renderItem = useCallback(
     ({ item }: { item: ThreadMessage }) => {
       if (item.role === "user") {
-        const text = item.content
-          .filter((p): p is TextMessagePart => p.type === "text")
-          .map((p) => p.text)
-          .join("");
-        return <Message from="user">{text}</Message>;
+        return <Message from="user">{messageText(item)}</Message>;
       }
 
       if (item.role !== "assistant") {

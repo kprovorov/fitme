@@ -57,27 +57,51 @@ export interface SavedCoachConversation {
   session?: ClientSessionState;
 }
 
-const storageKey = (userId: string) => `coach.conversation.${userId}`;
+// Two keys, so the cursor (saved on every streamed event) never rewrites the
+// event log (saved once per finished turn).
+const sessionKey = (userId: string) => `coach.conversation.${userId}.session`;
+const eventsKey = (userId: string) => `coach.conversation.${userId}.events`;
+
+function readJson<T>(key: string): T | undefined {
+  const raw = storage.getString(key);
+  if (!raw) {
+    return;
+  }
+  let value: T | undefined;
+  try {
+    value = JSON.parse(raw) as T;
+  } catch {
+    // An unreadable value counts as nothing saved.
+    value = undefined;
+  }
+  return value;
+}
 
 export function loadSavedCoachConversation(
   userId: string
 ): SavedCoachConversation {
-  const raw = storage.getString(storageKey(userId));
-  if (!raw) {
+  const session = readJson<ClientSessionState>(sessionKey(userId));
+  if (!session) {
     return {};
   }
-  try {
-    return JSON.parse(raw) as SavedCoachConversation;
-  } catch {
-    return {};
-  }
+  const events = readJson<MessageStreamEvent[]>(eventsKey(userId));
+  return events ? { events, session } : { session };
 }
 
 export function saveCoachConversation(
   userId: string,
-  conversation: SavedCoachConversation
+  { events, session }: SavedCoachConversation
 ) {
-  storage.set(storageKey(userId), JSON.stringify(conversation));
+  if (!session) {
+    clearSavedCoachConversation(userId);
+    return;
+  }
+  storage.set(sessionKey(userId), JSON.stringify(session));
+  if (events) {
+    storage.set(eventsKey(userId), JSON.stringify(events));
+  } else {
+    storage.delete(eventsKey(userId));
+  }
 }
 
 /**
@@ -93,12 +117,14 @@ export function saveCoachSession(
     clearSavedCoachConversation(userId);
     return;
   }
-  const saved = loadSavedCoachConversation(userId);
-  const events =
-    saved.session?.sessionId === session.sessionId ? saved.events : undefined;
-  saveCoachConversation(userId, events ? { events, session } : { session });
+  const saved = readJson<ClientSessionState>(sessionKey(userId));
+  if (saved?.sessionId !== session.sessionId) {
+    storage.delete(eventsKey(userId));
+  }
+  storage.set(sessionKey(userId), JSON.stringify(session));
 }
 
 export function clearSavedCoachConversation(userId: string) {
-  storage.delete(storageKey(userId));
+  storage.delete(sessionKey(userId));
+  storage.delete(eventsKey(userId));
 }
