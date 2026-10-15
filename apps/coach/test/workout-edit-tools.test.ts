@@ -1,5 +1,5 @@
 import type { ToolContext } from "eve/tools";
-import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
+import { beforeEach, describe, expect, it, vi } from "vitest";
 import type { ZodTypeAny } from "zod";
 import { contextFor, userIdFields } from "./tool-context";
 
@@ -267,64 +267,64 @@ describe("request keys", () => {
     return edits.addSetToExercise.mock.calls[0][2].requestKey as string;
   };
   const alice = contextFor("user_alice");
-  const withCallId = (callId: string) =>
-    ({ ...alice, callId }) as unknown as ToolContext;
-  const onStep = (messages: unknown[]) =>
-    ({ ...alice, messages }) as unknown as ToolContext;
-  /** How long after an attempt a step re-runs: a crash, redeploy or timeout. */
-  const RERUN_DELAY_MS = 10 * 60 * 1000;
-  // Keeps moving forward across tests; useFakeTimers resets the clock
-  let clock = Date.now();
-  const rerunLater = () => {
-    clock += RERUN_DELAY_MS;
-    vi.setSystemTime(clock);
-  };
-
-  beforeEach(() => {
-    vi.useFakeTimers({ toFake: ["Date"] });
-    // Every test starts long after the last one's calls
-    rerunLater();
-  });
-  afterEach(() => {
-    vi.useRealTimers();
+  /**
+   * One execution of a step: the AI SDK hands every tool call of it the same
+   * model input array; a re-run rebuilds that input as a new array.
+   */
+  const attempt = (messages: unknown[] = [...alice.messages]) => ({
+    call: (callId: string) =>
+      ({ ...alice, callId, messages }) as unknown as ToolContext,
   });
 
   it("is the same when a step re-runs and the model asks again", async () => {
-    const first = await keyOf(withCallId("call_1"));
-    rerunLater();
+    const first = await keyOf(attempt().call("call_1"));
 
-    // A re-run step replays the same model input; the model's call gets a new id
-    expect(await keyOf(withCallId("call_9"))).toBe(first);
+    // Same model input, new array; the model's call gets a new id
+    expect(await keyOf(attempt().call("call_9"))).toBe(first);
   });
 
   it("differs for identical calls in one step, and a re-run matches each", async () => {
-    const firstAttempt = [
-      await keyOf(withCallId("call_1")),
-      await keyOf(withCallId("call_2")),
+    const firstAttempt = attempt();
+    const firstKeys = [
+      await keyOf(firstAttempt.call("call_1")),
+      await keyOf(firstAttempt.call("call_2")),
     ];
-    rerunLater();
-    const rerun = [
-      await keyOf(withCallId("call_8")),
-      await keyOf(withCallId("call_9")),
+    const rerun = attempt();
+    const rerunKeys = [
+      await keyOf(rerun.call("call_8")),
+      await keyOf(rerun.call("call_9")),
     ];
 
-    expect(firstAttempt[0]).not.toBe(firstAttempt[1]);
-    expect(rerun).toEqual(firstAttempt);
+    expect(firstKeys[0]).not.toBe(firstKeys[1]);
+    expect(rerunKeys).toEqual(firstKeys);
+  });
+
+  it("is the same for a re-run on the same instance right after the first attempt", async () => {
+    const firstAttempt = attempt();
+    const first = await keyOf(firstAttempt.call("call_1"));
+    // The first attempt's calls stay known, but the re-run is its own attempt
+    const rerun = attempt();
+
+    expect(await keyOf(rerun.call("call_2"))).toBe(first);
   });
 
   it("stays the same for one call asked about twice", async () => {
-    expect(await keyOf(withCallId("call_1"))).toBe(
-      await keyOf(withCallId("call_1"))
+    const step = attempt();
+
+    expect(await keyOf(step.call("call_1"))).toBe(
+      await keyOf(step.call("call_1"))
     );
   });
 
   it("differs on a later step of the turn", async () => {
-    const laterStep = onStep([
+    const laterStep = attempt([
       ...alice.messages,
       { content: "tool result", role: "tool" },
     ]);
 
-    expect(await keyOf(laterStep)).not.toBe(await keyOf(alice));
+    expect(await keyOf(laterStep.call("call_1"))).not.toBe(
+      await keyOf(attempt().call("call_1"))
+    );
   });
 
   it("differs for different input", async () => {
@@ -334,13 +334,13 @@ describe("request keys", () => {
   });
 
   it("differs in another turn or session", async () => {
-    const key = await keyOf(alice);
+    const key = await keyOf(attempt().call("call_1"));
     const otherTurn = {
-      ...alice,
+      ...attempt().call("call_1"),
       session: { ...alice.session, turn: { id: "turn_2", sequence: 2 } },
     } as ToolContext;
     const otherSession = {
-      ...alice,
+      ...attempt().call("call_1"),
       session: { ...alice.session, id: "wrun_other" },
     } as ToolContext;
 

@@ -1,26 +1,17 @@
 import { createHash } from "node:crypto";
 import type { ToolContext } from "eve/tools";
 
-/**
- * How long the identical calls of one step keep counting up. A step's tool
- * calls start within moments of each other; a re-run of an interrupted step
- * (crash, redeploy, timeout) comes much later, usually in another instance.
- */
-const ATTEMPT_WINDOW_MS = 30_000;
-
 const sha256 = (value: unknown) =>
   createHash("sha256").update(JSON.stringify(value)).digest("hex");
 
-/** Per identical call: the call ids seen in the current attempt, in order. */
-const attempts = new Map<string, { callIds: string[]; startedAt: number }>();
-
-const forgetOldAttempts = (now: number) => {
-  for (const [call, attempt] of attempts) {
-    if (now - attempt.startedAt > ATTEMPT_WINDOW_MS) {
-      attempts.delete(call);
-    }
-  }
-};
+/**
+ * Per execution of a step, keyed by its model input array: the call ids seen
+ * for each identical call, in arrival order. The AI SDK hands every tool call
+ * of one step execution the same `messages` array (eve passes it through as
+ * `ctx.messages`), and a re-run step rebuilds it, so the array marks one
+ * attempt. Dropped with the array.
+ */
+const attempts = new WeakMap<object, Map<string, string[]>>();
 
 /**
  * A key for a tool call that stays the same when its durable step re-runs.
@@ -32,15 +23,12 @@ const forgetOldAttempts = (now: number) => {
  * added.
  *
  * Identical calls in one step ("add two sets") are told apart by the order
- * their call ids arrive in this instance, so each adds its own row, and a
- * re-run's calls get the same keys in the same order. A re-run on the same
- * instance within `ATTEMPT_WINDOW_MS` counts on from the first attempt's
- * calls and appends again, as `ai-agent` always did; so does a re-run whose
- * model asks with different input.
+ * their call ids arrive within the attempt, so each adds its own row, and a
+ * re-run's calls, counted afresh, get the same keys in the same order. A
+ * re-run whose model asks with different input appends again, as `ai-agent`
+ * always did.
  */
 export const requestKey = (ctx: ToolContext, input: unknown): string => {
-  const now = Date.now();
-  forgetOldAttempts(now);
   const call = sha256([
     ctx.session.id,
     ctx.session.turn.id,
@@ -48,14 +36,16 @@ export const requestKey = (ctx: ToolContext, input: unknown): string => {
     ctx.toolName,
     input,
   ]);
-  let attempt = attempts.get(call);
-  if (!attempt) {
-    attempt = { callIds: [], startedAt: now };
-    attempts.set(call, attempt);
+  let calls = attempts.get(ctx.messages);
+  if (!calls) {
+    calls = new Map();
+    attempts.set(ctx.messages, calls);
   }
-  let occurrence = attempt.callIds.indexOf(ctx.callId);
+  const callIds = calls.get(call) ?? [];
+  calls.set(call, callIds);
+  let occurrence = callIds.indexOf(ctx.callId);
   if (occurrence === -1) {
-    occurrence = attempt.callIds.push(ctx.callId) - 1;
+    occurrence = callIds.push(ctx.callId) - 1;
   }
   return sha256([call, occurrence]);
 };
