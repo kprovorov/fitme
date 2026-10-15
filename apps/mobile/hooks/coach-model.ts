@@ -1,4 +1,3 @@
-import { useCallback } from "react";
 import { useMMKVString } from "react-native-mmkv";
 import { useCoachModelsQuery } from "~/hooks/queries/coach-models";
 import { resolveCoachModel, SELECTED_MODEL_KEY } from "~/lib/coach-model";
@@ -14,14 +13,7 @@ import { storage } from "~/lib/mmkv";
 export function useSelectedCoachModel() {
   const hasApi = getApiUrl() !== "";
   const { data: list, isFetching } = useCoachModelsQuery({ enabled: hasApi });
-  const [stored, setStored] = useMMKVString(SELECTED_MODEL_KEY, storage);
-
-  const setSelectedId = useCallback(
-    (id: string) => {
-      setStored(id);
-    },
-    [setStored]
-  );
+  const [stored, setSelectedId] = useMMKVString(SELECTED_MODEL_KEY, storage);
 
   return {
     isLoading: !list && isFetching,

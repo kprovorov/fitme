@@ -4,7 +4,7 @@ import { storage } from "~/lib/mmkv";
 /** The User's model pick, a model id; kept even once it leaves the list. */
 export const SELECTED_MODEL_KEY = "coach.model";
 /** The last list `GET /v1/coach/models` answered, the same for every User. */
-const MODELS_KEY = "coach.models";
+export const MODELS_KEY = "coach.models";
 
 const coachModelSchema = z.object({
   description: z.string(),
@@ -20,7 +20,7 @@ export const coachModelListSchema = z
   })
   .refine(({ defaultId, models }) => models.some(({ id }) => id === defaultId));
 
-export type CoachModel = z.infer<typeof coachModelSchema>;
+export type CoachModelOption = z.infer<typeof coachModelSchema>;
 export type CoachModelList = z.infer<typeof coachModelListSchema>;
 
 /**
@@ -30,7 +30,7 @@ export type CoachModelList = z.infer<typeof coachModelListSchema>;
 export function resolveCoachModel(
   savedId: string | undefined,
   list: CoachModelList | undefined
-): CoachModel | undefined {
+): CoachModelOption | undefined {
   if (!list) {
     return;
   }

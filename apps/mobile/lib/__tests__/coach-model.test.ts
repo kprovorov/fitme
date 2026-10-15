@@ -2,8 +2,10 @@ import { beforeEach, describe, expect, it } from "@jest/globals";
 import {
   type CoachModelList,
   getSelectedCoachModelId,
+  MODELS_KEY,
   readCachedCoachModels,
   resolveCoachModel,
+  SELECTED_MODEL_KEY,
   writeCachedCoachModels,
 } from "../coach-model";
 import { storage } from "../mmkv";
@@ -62,25 +64,25 @@ describe("coach.models cache", () => {
   });
 
   it("treats an unreadable value as no list", () => {
-    storage.set("coach.models", "{not json");
+    storage.set(MODELS_KEY, "{not json");
     expect(readCachedCoachModels()).toBeUndefined();
   });
 
   it("treats a value of another shape as no list", () => {
-    storage.set("coach.models", JSON.stringify({ models: "nope" }));
+    storage.set(MODELS_KEY, JSON.stringify({ models: "nope" }));
     expect(readCachedCoachModels()).toBeUndefined();
-    storage.set("coach.models", JSON.stringify([list]));
+    storage.set(MODELS_KEY, JSON.stringify([list]));
     expect(readCachedCoachModels()).toBeUndefined();
   });
 
   it("treats a list without models, or whose default isn't in it, as no list", () => {
     storage.set(
-      "coach.models",
+      MODELS_KEY,
       JSON.stringify({ defaultId: "openai/gpt-5.5", models: [] })
     );
     expect(readCachedCoachModels()).toBeUndefined();
     storage.set(
-      "coach.models",
+      MODELS_KEY,
       JSON.stringify({ ...list, defaultId: "openai/removed" })
     );
     expect(readCachedCoachModels()).toBeUndefined();
@@ -94,18 +96,18 @@ describe("getSelectedCoachModelId", () => {
 
   it("sends the saved pick when the cached list has it", () => {
     writeCachedCoachModels(list);
-    storage.set("coach.model", "anthropic/claude-haiku-4.5");
+    storage.set(SELECTED_MODEL_KEY, "anthropic/claude-haiku-4.5");
     expect(getSelectedCoachModelId()).toBe("anthropic/claude-haiku-4.5");
   });
 
   it("sends the default for an old pick", () => {
     writeCachedCoachModels(list);
-    storage.set("coach.model", "claude-haiku-4-5");
+    storage.set(SELECTED_MODEL_KEY, "claude-haiku-4-5");
     expect(getSelectedCoachModelId()).toBe("openai/gpt-5.5");
   });
 
   it("sends no model without a cached list", () => {
-    storage.set("coach.model", "openai/gpt-5.5");
+    storage.set(SELECTED_MODEL_KEY, "openai/gpt-5.5");
     expect(getSelectedCoachModelId()).toBeUndefined();
   });
 });
