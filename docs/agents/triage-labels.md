@@ -16,7 +16,7 @@ An issue carries at most one state label. Every transition first removes all the
 
 - **Apply `needs-triage`**: remove every state label and set `state: "Triage"`.
 - **Apply `needs-info`**: add `needs-info` and set `state: "Triage"` (moving the issue back if it had been accepted).
-- **Apply `ready-for-agent` / `ready-for-human`**: add the label and accept the issue out of Triage with `state: "Todo"` (or `"Backlog"` if it isn't scheduled yet).
+- **Apply `ready-for-agent` / `ready-for-human`**: add the label and accept the issue out of Triage with `state: "Backlog"`. Never move an issue to `Todo`; that's the maintainer's call.
 - **Apply `wontfix`**: add the label and close with `state: "Canceled"`.
 
 "Unlabeled / never triaged" means an issue in `Triage` with none of the labels above.

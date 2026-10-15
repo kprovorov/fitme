@@ -320,11 +320,15 @@ GitHub Actions use pnpm (`pnpm/action-setup`), `pnpm install --frozen-lockfile` 
 
 ### Issue tracker
 
-Issues live in Linear, team Fitme (`FIT-<n>`), via the Linear MCP tools. A spec is a Linear project (spec in the project description, its issues in the project), not an issue. See `docs/agents/issue-tracker.md`.
+Issues live in Linear, team Fitme (`FIT-<n>`), via the Linear MCP tools. A spec is a Linear project (spec in the project description, its issues in the project), not an issue; projects never get labels. New issues always go to `Backlog`, never `Todo`. A `ready-for-human` issue carries a step-by-step guide, the complete list of env vars to add or change, and a checklist of every required action. See `docs/agents/issue-tracker.md`.
 
 ### Triage labels
 
 Linear's `Triage` status stands for `needs-triage`; `needs-info`, `ready-for-agent`, `ready-for-human`, `wontfix` are workspace-level labels. See `docs/agents/triage-labels.md`.
+
+### Grilling
+
+During a grilling session (`/grill-me`, `/grilling`), never ask how to split the work into tickets or projects, or how to sequence or size them. That gets decided later (`/to-spec`, `/to-tickets`); keep the questions on the design itself.
 
 ### Domain docs
 
