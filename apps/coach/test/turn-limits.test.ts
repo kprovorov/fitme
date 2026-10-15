@@ -3,6 +3,7 @@ import {
   addStepCost,
   MAX_STEPS_PER_TURN,
   MAX_TURN_COST_USD,
+  missingCostError,
   reportedCostUsd,
   turnLimitReached,
 } from "../agent/lib/turn-limits";
@@ -87,5 +88,21 @@ describe("reportedCostUsd", () => {
     expect(reportedCostUsd(tokensOnly)).toBe(null);
     expect(reportedCostUsd({ costUsd: Number.NaN })).toBe(null);
     expect(reportedCostUsd({ costUsd: -1 })).toBe(null);
+  });
+});
+
+describe("missingCostError", () => {
+  it("reports a step that reported no cost", () => {
+    const error = missingCostError({ stepIndex: 3, usage: tokensOnly });
+
+    expect(error?.name).toBe("Coach step cost missing");
+    expect(error?.message).toContain("step 3 reported no cost");
+    expect(missingCostError({ stepIndex: 0 })).not.toBe(null);
+  });
+
+  it("reports nothing for a step that reported its cost", () => {
+    expect(missingCostError({ stepIndex: 3, usage: { costUsd: 0 } })).toBe(
+      null
+    );
   });
 });

@@ -26,7 +26,7 @@ export interface TurnSpend {
   unpriced: boolean;
 }
 
-/** A `step.completed` event's `usage`; only the cost counts here. */
+/** A `step.completed` event's `usage`; only the cost counts, tokens don't. */
 interface StepUsage {
   readonly costUsd?: number;
   readonly inputTokens?: number;
@@ -41,6 +41,24 @@ export const reportedCostUsd = (
   return typeof cost === "number" && Number.isFinite(cost) && cost >= 0
     ? cost
     : null;
+};
+
+/**
+ * The error to report for a finished step that reported no cost (the turn
+ * stops before its next call), or `null` when it reported one.
+ */
+export const missingCostError = (step: {
+  readonly stepIndex: number;
+  readonly usage?: StepUsage;
+}): Error | null => {
+  if (reportedCostUsd(step.usage) !== null) {
+    return null;
+  }
+  const error = new Error(
+    `step ${step.stepIndex} reported no cost; the turn stops before its next model call`
+  );
+  error.name = "Coach step cost missing";
+  return error;
 };
 
 /** `spend` plus one finished step of `turnId`; a new turn starts from zero. */

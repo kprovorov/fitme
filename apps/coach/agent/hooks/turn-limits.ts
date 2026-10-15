@@ -3,7 +3,7 @@ import { defineHook } from "eve/hooks";
 import { reportError } from "../lib/sentry";
 import {
   addStepCost,
-  reportedCostUsd,
+  missingCostError,
   type TurnSpend,
   turnLimitReached,
 } from "../lib/turn-limits";
@@ -19,11 +19,8 @@ export default defineHook({
     async "step.completed"(event, ctx) {
       const { stepIndex, turnId, usage } = event.data;
       turnSpend.update((spend) => addStepCost(spend, turnId, usage));
-      if (reportedCostUsd(usage) === null) {
-        const error = new Error(
-          `step ${stepIndex} reported no cost; the turn stops before its next model call`
-        );
-        error.name = "Coach step cost missing";
+      const error = missingCostError(event.data);
+      if (error) {
         await reportError(error, {
           sessionId: ctx.session.id,
           stepIndex: String(stepIndex),
