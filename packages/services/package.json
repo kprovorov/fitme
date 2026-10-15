@@ -10,6 +10,7 @@
     "./exercises": "./src/exercises.ts",
     "./plans": "./src/plans.ts",
     "./profile": "./src/profile.ts",
+    "./workout-edits": "./src/workout-edits.ts",
     "./workout-sessions": "./src/workout-sessions.ts"
   },
   "scripts": {
