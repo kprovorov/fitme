@@ -4,13 +4,17 @@ Issues and specs (as projects) for this repo live in Linear, team **Fitme** (key
 
 ## Conventions
 
-- **Create an issue**: `save_issue` with `team: "Fitme"`, `title`, `description`, and one type label (`feature`, `bug`, `improvement`, or `idea` for a raw idea that still needs specifying). Always pass `state: "Backlog"`, never `"Todo"` or `"Triage"`: moving an issue to `Todo` is the maintainer's call. When the skill knows its triage role (e.g. `/to-tickets` writing agent-ready tickets), add that role's label too (see `triage-labels.md`), still in `Backlog`.
+- **Create an issue**: `save_issue` with `team: "Fitme"`, `title`, `description`, one type label (`feature`, `bug`, `improvement`, or `idea` for a raw idea that still needs specifying) and an area label for every app or area the issue is expected to change (see **Area labels**). Always pass `state: "Backlog"`, never `"Todo"` or `"Triage"`: moving an issue to `Todo` is the maintainer's call. When the skill knows its triage role (e.g. `/to-tickets` writing agent-ready tickets), add that role's label too (see `triage-labels.md`), still in `Backlog`.
 - **Read an issue**: `get_issue` with the identifier (`FIT-55`) and `includeRelations: true`; `list_comments` for the conversation.
 - **List issues**: `list_issues` with `team: "Fitme"` and `label` / `state` / `parentId` filters.
 - **Make an issue a sub-issue of a parent**: `save_issue` with `parentId: "FIT-<parent>"`. Use it to split one issue into smaller pieces; a feature with a spec is a project, not a parent issue (see **Specs live in projects** below).
 - **Comment on an issue**: `save_comment` with `issueId` and `body`.
 - **Apply / remove labels**: `save_issue` with `id` and `addLabels` / `removeLabels`. If your Linear tool lacks those, read the issue's current labels and pass the complete updated set as `labels`, which replaces the whole set; never send a partial `labels` array.
 - **Close**: comment first, then `save_issue` with `state: "Done"` (or `"Canceled"` for wontfix, `"Duplicate"` with `duplicateOf` for duplicates).
+
+## Area labels
+
+Every issue carries one label per area it's expected to change, alongside its type and triage labels: `mobile` (`apps/mobile`), `web` (`apps/web`), `site` (`apps/site`), `mcp` (`apps/mcp`), `api` (`apps/api`), `coach` (`apps/coach`), `webhooks` (`apps/webhooks`), `database` (schema, migrations, RLS, RPCs and pgTAP in `packages/supabase`, plus `packages/db`), `ci` (`.github/`: workflows, release and build pipelines) and `docs` (`AGENTS.md`, `docs/`, ADRs, `GLOSSARY.md`). Add all that apply (a Coach feature with a new mobile screen is `coach` + `mobile`). Other shared packages (`packages/core`, `packages/services`) have no label of their own: label the apps whose behaviour the change affects (e.g. a `packages/services` change used by MCP and the Coach is `mcp` + `coach`). A feature that needs a migration gets `database` next to its app labels. Docs updated as part of a code change (e.g. the `AGENTS.md` entry for a new route) don't earn `docs`; it's for issues whose point is the docs. When an issue's scope changes, update its area labels too (see **Apply / remove labels**).
 
 Workflow states: `Triage` → `Backlog` → `Todo` → `In Progress` → `In Review` → `Done` (plus `Canceled`, `Duplicate`). `Triage` is Linear's triage inbox and stands for the `needs-triage` role; see `triage-labels.md`.
 
