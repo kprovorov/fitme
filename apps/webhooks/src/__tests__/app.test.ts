@@ -3,6 +3,7 @@ import { createApp } from "../app.js";
 
 const app = createApp({
   clerk: {
+    deleteCoachConversations: () => Promise.reject(new Error("not called")),
     deleteUserData: () => Promise.reject(new Error("not called")),
     reportError: () => Promise.resolve(),
     signingSecret: "whsec_MfKQ9r8GKYqrTwjUPD8ILPZIo2LaLaSw",

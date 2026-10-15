@@ -7,6 +7,7 @@ import {
   listCoachSessionIds,
   recordCoachSession,
 } from "../src/coach-sessions";
+import { deleteUserData } from "../src/delete-user-data";
 
 /**
  * recordCoachSession and listCoachSessionIds through asUser, against a local
@@ -20,12 +21,14 @@ const other = `user_svcCoachOther${runId}`;
 const ownerSession = `wrun_svcCoachOwner${runId}`;
 const secondSession = `wrun_svcCoachSecond${runId}`;
 const otherSession = `wrun_svcCoachOther${runId}`;
+const deleted = `user_svcCoachDeleted${runId}`;
+const deletedSession = `wrun_svcCoachDeleted${runId}`;
 
 afterAll(async () => {
   await withService((tx) =>
     tx
       .delete(coachSessions)
-      .where(inArray(coachSessions.userId, [owner, other]))
+      .where(inArray(coachSessions.userId, [owner, other, deleted]))
   );
 });
 
@@ -84,5 +87,35 @@ describe("getCoachSessionOwner", () => {
         getCoachSessionOwner(tx, `wrun_svcCoachUnknown${runId}`)
       )
     ).toBeNull();
+  });
+});
+
+describe("a deleted User's Coach sessions", () => {
+  it("stay recorded for the retired id, listed in withService", async () => {
+    await asUser(deleted, (tx) =>
+      recordCoachSession(tx, deleted, deletedSession)
+    );
+
+    await withService((tx) => deleteUserData(tx, deleted));
+
+    // The webhook resets these; the rows stay as the sessions' ACL
+    expect(await withService((tx) => listCoachSessionIds(tx, deleted))).toEqual(
+      [deletedSession]
+    );
+    expect(
+      await withService((tx) => getCoachSessionOwner(tx, deletedSession))
+    ).toBe(deleted);
+    // RLS no longer matches the retired id
+    expect(
+      await asUser(deleted, (tx) => listCoachSessionIds(tx, deleted))
+    ).toEqual([]);
+  });
+
+  it("can't be claimed again by the retired id", async () => {
+    await expect(
+      asUser(deleted, (tx) =>
+        recordCoachSession(tx, deleted, `wrun_svcCoachDeletedNew${runId}`)
+      )
+    ).rejects.toThrow();
   });
 });

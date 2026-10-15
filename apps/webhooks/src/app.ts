@@ -1,8 +1,10 @@
 import { withService } from "@fitme/db";
+import { listCoachSessionIds } from "@fitme/services/coach-sessions";
 import { deleteUserData } from "@fitme/services/delete-user-data";
 import { Hono } from "hono";
 import { HTTPException } from "hono/http-exception";
 import { logger } from "hono/logger";
+import { coachSessionResetter, deleteCoachConversations } from "./coach.js";
 import { type ClerkWebhookDeps, clerkRoutes } from "./routes/clerk.js";
 import { reportError } from "./sentry.js";
 
@@ -10,9 +12,21 @@ export interface AppDeps {
   clerk: ClerkWebhookDeps;
 }
 
-/** The real dependencies: the database through withService, Sentry, env. */
+/**
+ * The real dependencies: the database through withService, the Coach, Sentry,
+ * env. The Coach session ids are read in withService: by then the User's
+ * id is retired, so asUser would see none.
+ */
 const defaultDeps = (): AppDeps => ({
   clerk: {
+    deleteCoachConversations: deleteCoachConversations({
+      listSessionIds: (userId) =>
+        withService((tx) => listCoachSessionIds(tx, userId)),
+      resetSession: coachSessionResetter({
+        coachUrl: process.env.COACH_URL,
+        secret: process.env.COACH_RESET_SECRET,
+      }),
+    }),
     deleteUserData: (userId) => withService((tx) => deleteUserData(tx, userId)),
     reportError,
     signingSecret: process.env.CLERK_WEBHOOK_SIGNING_SECRET,

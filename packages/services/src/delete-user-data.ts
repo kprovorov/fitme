@@ -106,8 +106,8 @@ export const deleteUserData = async (
   await tx.delete(plans).where(eq(plans.userId, userId));
   await tx.delete(conversations).where(eq(conversations.userId, userId));
   await tx.delete(profiles).where(eq(profiles.userId, userId));
-  // coach_sessions stays: each row is the ACL for an EVE session that still
-  // exists, and without it the Coach channel would let anyone reach that
-  // session. It holds only the (already retired) id and the session id; the
-  // rows go once the EVE sessions are reset (FIT-121).
+  // coach_sessions stays: each row is the ACL for an EVE session, whose
+  // stream eve keeps until retention ends even after the webhook resets it,
+  // and without the row the Coach channel would let the first caller with the
+  // id claim it. It holds only the (already retired) id and the session id.
 };

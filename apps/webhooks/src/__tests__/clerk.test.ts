@@ -39,10 +39,17 @@ const signedRequest = (
 const setup = (overrides: Partial<ClerkWebhookDeps> = {}) => {
   const deleted: string[] = [];
   const reported: unknown[] = [];
+  // Every cleanup step, in the order it ran
+  const steps: string[] = [];
   const app = createApp({
     clerk: {
+      deleteCoachConversations: (userId) => {
+        steps.push(`conversations:${userId}`);
+        return Promise.resolve();
+      },
       deleteUserData: (userId) => {
         deleted.push(userId);
+        steps.push(`data:${userId}`);
         return Promise.resolve();
       },
       reportError: (error) => {
@@ -53,7 +60,7 @@ const setup = (overrides: Partial<ClerkWebhookDeps> = {}) => {
       ...overrides,
     },
   });
-  return { app, deleted, reported };
+  return { app, deleted, reported, steps };
 };
 
 describe("POST /clerk", () => {
@@ -77,6 +84,41 @@ describe("POST /clerk", () => {
 
     expect(response.status).toBe(200);
     expect(deleted).toEqual([USER_ID]);
+  });
+
+  it("wipes the User's Coach Conversations after their data", async () => {
+    const { app, steps } = setup();
+
+    const response = await app.request(signedRequest(userDeleted()));
+
+    expect(response.status).toBe(200);
+    expect(steps).toEqual([`data:${USER_ID}`, `conversations:${USER_ID}`]);
+  });
+
+  it("leaves the Conversations alone when the data deletion fails", async () => {
+    const { app, steps } = setup({
+      deleteUserData: () => Promise.reject(new Error("database unreachable")),
+    });
+
+    const response = await app.request(signedRequest(userDeleted()));
+
+    expect(response.status).toBe(500);
+    expect(steps).toEqual([]);
+  });
+
+  it("reports a failed Conversation wipe and answers 500 so Clerk retries", async () => {
+    const failure = new Error("Coach unreachable");
+    const { app, reported } = setup({
+      deleteCoachConversations: () => Promise.reject(failure),
+    });
+
+    const response = await app.request(signedRequest(userDeleted()));
+
+    expect(response.status).toBe(500);
+    expect(await response.json()).toEqual({
+      error: { code: "cleanup_failed", message: "User data cleanup failed" },
+    });
+    expect(reported).toEqual([failure]);
   });
 
   it("rejects an event signed with another secret", async () => {
@@ -120,25 +162,29 @@ describe("POST /clerk", () => {
   });
 
   it("acknowledges other events without deleting anything", async () => {
-    const { app, deleted } = setup();
+    const { app, steps } = setup();
 
     const response = await app.request(
       signedRequest({ ...userDeleted(), type: "user.updated" })
     );
 
     expect(response.status).toBe(200);
-    expect(deleted).toEqual([]);
+    expect(steps).toEqual([]);
   });
 
   it("accepts a replayed user.deleted event again", async () => {
-    const { app, deleted } = setup();
+    const { app, deleted, steps } = setup();
 
     await app.request(signedRequest(userDeleted()));
     const response = await app.request(signedRequest(userDeleted()));
 
-    // deleteUserData is idempotent, so there is no svix-id dedupe
+    // Both steps are idempotent, so there is no svix-id dedupe
     expect(response.status).toBe(200);
     expect(deleted).toEqual([USER_ID, USER_ID]);
+    expect(steps.filter((step) => step.startsWith("conversations:"))).toEqual([
+      `conversations:${USER_ID}`,
+      `conversations:${USER_ID}`,
+    ]);
   });
 });
 

@@ -35,7 +35,10 @@ export const getCoachSessionOwner = async (
   return row?.userId ?? null;
 };
 
-/** The User's recorded Coach session ids, in `tx` (from `asUser`). */
+/**
+ * The User's recorded Coach session ids, in `tx` (from `asUser`, or
+ * `withService` for a deleted User, whose retired id RLS no longer matches).
+ */
 export const listCoachSessionIds = async (
   tx: Transaction,
   userId: string
