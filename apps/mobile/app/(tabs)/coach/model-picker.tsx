@@ -8,23 +8,26 @@ import { AndroidGrabber } from "@/components/grabber";
 import { Icon } from "@/components/icon";
 import { useSelectedCoachModel } from "~/lib/coach-model";
 
-const PROVIDER_LABELS = {
+const PROVIDER_LABELS: Record<string, string> = {
   anthropic: "Anthropic",
   openai: "OpenAI",
-} as const;
+};
+
+/** The model's creator, from its Gateway id (`<creator>/<model>`). */
+function providerLabel(id: CoachModelId): string | undefined {
+  return PROVIDER_LABELS[id.slice(0, id.indexOf("/"))];
+}
 
 function ModelRow({
   description,
   id,
   label,
-  provider,
   selected,
   onSelect,
 }: {
   description: string;
   id: CoachModelId;
   label: string;
-  provider: keyof typeof PROVIDER_LABELS;
   selected: boolean;
   onSelect: (id: CoachModelId) => void;
 }) {
@@ -41,7 +44,7 @@ function ModelRow({
         <View className="flex-row items-center gap-2">
           <Text className="text-[17px] text-foreground">{label}</Text>
           <Text className="text-[12px] text-muted-foreground">
-            {PROVIDER_LABELS[provider]}
+            {providerLabel(id)}
           </Text>
         </View>
         <Text className="text-[13px] text-muted-foreground">{description}</Text>
@@ -87,7 +90,6 @@ export default function ModelPickerSheet() {
             key={model.id}
             label={model.label}
             onSelect={handleSelect}
-            provider={model.provider}
             selected={model.id === selectedId}
           />
         ))}
