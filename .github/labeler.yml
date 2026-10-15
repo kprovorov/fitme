@@ -63,9 +63,10 @@ risk:high:
           - apps/webhooks/src/routes/clerk.ts
           - apps/webhooks/src/coach.ts
 
-          # Web: the request proxy, its public routes and the Supabase clients
+          # Web: the request proxy, its public routes and the Supabase clients and their endpoint
           - apps/web/proxy.ts
           - apps/web/lib/routes.ts
+          - apps/web/lib/env.ts
           - apps/web/lib/supabase/**
 
           # Any env file, anywhere
