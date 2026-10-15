@@ -3,20 +3,13 @@ import { protectedResourceHandlerClerk } from "@clerk/mcp-tools/hono";
 import type { Context } from "hono";
 import { env } from "hono/adapter";
 import { createMiddleware } from "hono/factory";
-import { decodeJwt } from "jose";
 import type { ClerkUser } from "./context.js";
-import {
-  cachedSupabaseTokenSigner,
-  type SupabaseTokenSigner,
-} from "./supabase-token.js";
 
 /**
  * MCP authorization (OAuth 2.1). This server is the protected resource; the
  * authorization server is Clerk. Every MCP request needs a Clerk OAuth access
  * token. Once Clerk has verified it, tools run as the User through `asUser`
- * (ADR 0003), or, for tools not moved to services yet, on a short-lived
- * Supabase token the server signs for the User (ADR 0002), so RLS keeps
- * enforcing ownership.
+ * (ADR 0003), so RLS keeps enforcing ownership.
  */
 
 /** RFC 9728 metadata for a resource served at the root path. */
@@ -27,16 +20,12 @@ export const PROTECTED_RESOURCE_METADATA_PATH =
 const REQUIRED_ENV = [
   "CLERK_SECRET_KEY",
   "CLERK_PUBLISHABLE_KEY",
-  "SUPABASE_JWT_SIGNING_KEY",
   "FITME_DATABASE_URL",
 ] as const;
 
 export interface AuthVariables {
-  /** The bearer token of the request (set by `requireBearerToken`). */
-  accessToken: string;
   /** The verified Clerk User (set by `requireClerkUser`). */
   clerkUser: ClerkUser;
-  signToken: SupabaseTokenSigner;
 }
 
 /**
@@ -83,7 +72,7 @@ function unauthorized(c: Context, reason: "invalid" | "missing") {
   );
 }
 
-/** Fails closed (500) when the Clerk, signing or database config is missing. */
+/** Fails closed (500) when the Clerk or database config is missing. */
 export const requireConfig = createMiddleware<{ Variables: AuthVariables }>(
   async (c, next) => {
     const values = env<Record<string, string | undefined>>(c);
@@ -99,41 +88,21 @@ export const requireConfig = createMiddleware<{ Variables: AuthVariables }>(
         500
       );
     }
-    c.set(
-      "signToken",
-      cachedSupabaseTokenSigner(String(values.SUPABASE_JWT_SIGNING_KEY))
-    );
     await next();
   }
 );
 
-const BEARER_TOKEN = /^Bearer\s+(\S+)\s*$/i;
+const BEARER_TOKEN = /^Bearer\s+\S+\s*$/i;
 
 /** 401 without `Authorization: Bearer <token>`, before asking Clerk. */
 export const requireBearerToken = createMiddleware<{
   Variables: AuthVariables;
 }>(async (c, next) => {
-  const token = c.req.header("Authorization")?.match(BEARER_TOKEN)?.[1];
-  if (!token) {
+  if (!BEARER_TOKEN.test(c.req.header("Authorization") ?? "")) {
     return unauthorized(c, "missing");
   }
-  c.set("accessToken", token);
   await next();
 });
-
-/**
- * The token's `exp`, when it is a JWT (Clerk's opaque tokens have none). The
- * signed Supabase token is only used within this request, so without a cap it
- * still lives at most 5 minutes.
- */
-function tokenExpiry(token: string): number | undefined {
-  try {
-    return decodeJwt(token).exp;
-  } catch {
-    // Not a JWT: Clerk verified an opaque token, whose expiry isn't readable.
-    return undefined;
-  }
-}
 
 /**
  * Admits only Clerk OAuth access tokens that `clerkMiddleware` verified.
@@ -145,10 +114,7 @@ export const requireClerkUser = createMiddleware<{ Variables: AuthVariables }>(
     if (!(auth.isAuthenticated && auth.userId)) {
       return unauthorized(c, "invalid");
     }
-    c.set("clerkUser", {
-      expiresAt: tokenExpiry(c.get("accessToken")),
-      userId: auth.userId,
-    });
+    c.set("clerkUser", { userId: auth.userId });
     await next();
   }
 );

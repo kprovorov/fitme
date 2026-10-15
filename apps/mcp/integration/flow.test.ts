@@ -1,4 +1,5 @@
 import { type MuscleGroup, muscleGroups } from "@fitme/core";
+import { asUser, profiles } from "@fitme/db";
 import type { Client } from "@modelcontextprotocol/sdk/client/index.js";
 import { beforeAll, describe, expect, it } from "vitest";
 import {
@@ -24,7 +25,7 @@ const isMuscleGroup = (value: string): value is MuscleGroup =>
  * The main flow with one real user, in order: each step builds on the state
  * left by the previous one.
  */
-describe("plan and workout flow against Supabase", () => {
+describe("plan and workout flow against the local stack", () => {
   let user: TestUser;
   let client: Client;
   let exercises: readonly [ExerciseRow, ExerciseRow];
@@ -41,22 +42,23 @@ describe("plan and workout flow against Supabase", () => {
   };
 
   beforeAll(async () => {
-    user = await createTestUser("flow");
+    user = createTestUser("flow");
     client = await connectAs(user);
     exercises = await pickExercises(client);
   });
 
   it("reads the profile written by onboarding", async () => {
     await callError(client, "get_profile");
-    const { error } = await user.supabase.from("profiles").insert({
-      age: 30,
-      gender: "female",
-      height: 66,
-      measurement_system: "us",
-      user_id: user.userId,
-      weight: 150,
-    });
-    expect(error).toBeNull();
+    await asUser(user.userId, (tx) =>
+      tx.insert(profiles).values({
+        age: 30,
+        gender: "female",
+        height: "66",
+        measurementSystem: "us",
+        userId: user.userId,
+        weight: "150",
+      })
+    );
 
     const profile = await callOk<Record<string, unknown>>(
       client,
@@ -83,7 +85,7 @@ describe("plan and workout flow against Supabase", () => {
     expect(all.total).toBeGreaterThanOrEqual(2);
     expect(all.hasMore).toBe(true);
 
-    // PostgREST answers this range with PGRST103; the tool returns a page.
+    // An offset past the end is an empty page, not an error.
     const pastEnd = await callOk<ExercisePage>(client, "list_exercises", {
       offset: all.total + 10,
     });

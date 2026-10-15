@@ -1,11 +1,8 @@
 import { getAuth } from "@clerk/hono";
-import { UnsecuredJWT } from "jose";
 import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
 import { createApp } from "../app.js";
 import type { ServicesFactory } from "../services.js";
-import { createFakeSupabase } from "./fake-supabase.js";
-import { expectAllCallsRouted, fakeServices } from "./harness.js";
-import { SIGNING_KEY } from "./signing-key.js";
+import { fakeServices } from "./harness.js";
 
 // Clerk is stubbed at its SDK boundary: no Clerk instance or network. The
 // middleware passes through and `getAuth` answers what each test sets up.
@@ -22,12 +19,9 @@ const SSE_DATA_LINE = /^data: (.*)$/m;
 const CLERK_FRONTEND_API = "fitme-test.clerk.accounts.dev";
 const PUBLISHABLE_KEY = `pk_test_${btoa(`${CLERK_FRONTEND_API}$`)}`;
 const METADATA_URL = "http://localhost/.well-known/oauth-protected-resource";
-const NOW = new Date("2026-10-13T12:00:00Z");
-const NOW_SECONDS = NOW.getTime() / 1000;
 
-/** A Clerk-shaped OAuth access token; only its `exp` is read. */
-const clerkToken = (userId: string, exp = NOW_SECONDS + 3600) =>
-  new UnsecuredJWT({ sub: userId }).setExpirationTime(exp).encode();
+/** A bearer token for `userId` (Clerk is stubbed, so its shape doesn't matter). */
+const clerkToken = (userId: string) => `oat_${userId}`;
 
 /** Makes `getAuth` accept the request's OAuth token as `userId`. */
 const signInAs = (userId: string) => {
@@ -135,32 +129,24 @@ const profileServices: ServicesFactory = (userId) =>
   });
 
 /**
- * The app with fake services and a fake Supabase client per request. Records
- * the User id every services object is built for and every signed token the
- * Supabase client receives (no tool reaches it any more, so none should).
+ * The app with fake services, recording the User id every services object is
+ * built for.
  */
 const createTestApp = () => {
   const servicesUserIds: string[] = [];
-  const supabaseTokens: string[] = [];
   const app = createApp({
     createServices: (userId) => {
       servicesUserIds.push(userId);
       return profileServices(userId);
     },
-    createSupabaseClient: (token) => {
-      supabaseTokens.push(token);
-      return createFakeSupabase([]).client;
-    },
     logRequests: false,
   });
-  return { app, servicesUserIds, supabaseTokens };
+  return { app, servicesUserIds };
 };
 
 beforeEach(() => {
-  vi.useFakeTimers({ now: NOW, toFake: ["Date"] });
   vi.stubEnv("CLERK_SECRET_KEY", "sk_test_secret");
   vi.stubEnv("CLERK_PUBLISHABLE_KEY", PUBLISHABLE_KEY);
-  vi.stubEnv("SUPABASE_JWT_SIGNING_KEY", JSON.stringify(SIGNING_KEY));
   vi.stubEnv(
     "FITME_DATABASE_URL",
     "postgresql://fitme.test:secret@127.0.0.1:1/postgres?application_name=mcp"
@@ -170,9 +156,7 @@ beforeEach(() => {
 });
 
 afterEach(() => {
-  vi.useRealTimers();
   vi.unstubAllEnvs();
-  expectAllCallsRouted();
 });
 
 describe("without a token", () => {
@@ -182,7 +166,7 @@ describe("without a token", () => {
     ["a catalog tool call", (app: TestApp) => callTool(app, "ping")],
     ["a user tool call", (app: TestApp) => callTool(app, "list_plans")],
   ])("answers %s with 401 and the metadata URL", async (_name, send) => {
-    const { app, supabaseTokens } = createTestApp();
+    const { app, servicesUserIds } = createTestApp();
 
     const response = await send(app);
 
@@ -192,7 +176,7 @@ describe("without a token", () => {
     );
     // RFC 6750: no error code when no credentials were sent.
     expect(await response.json()).not.toHaveProperty("error");
-    expect(supabaseTokens).toEqual([]);
+    expect(servicesUserIds).toEqual([]);
   });
 
   it("treats a non-Bearer Authorization header as no token", async () => {
@@ -223,7 +207,7 @@ describe("without a token", () => {
 describe("with a token Clerk rejects", () => {
   it("answers 401 invalid_token on every method", async () => {
     rejectToken();
-    const { app, supabaseTokens } = createTestApp();
+    const { app, servicesUserIds } = createTestApp();
     const token = clerkToken("user_alice");
 
     const responses = [
@@ -244,7 +228,7 @@ describe("with a token Clerk rejects", () => {
     for (const body of bodies) {
       expect(body).toMatchObject({ error: "invalid_token" });
     }
-    expect(supabaseTokens).toEqual([]);
+    expect(servicesUserIds).toEqual([]);
   });
 
   it("asks Clerk to accept OAuth tokens only", async () => {
@@ -260,30 +244,27 @@ describe("with a token Clerk rejects", () => {
 });
 
 describe("misconfiguration", () => {
-  it.each([
-    "CLERK_SECRET_KEY",
-    "CLERK_PUBLISHABLE_KEY",
-    "SUPABASE_JWT_SIGNING_KEY",
-    "FITME_DATABASE_URL",
-  ])("answers 500 instead of serving when %s is missing", async (name) => {
-    vi.stubEnv(name, "");
-    signInAs("user_alice");
-    const { app, servicesUserIds, supabaseTokens } = createTestApp();
+  it.each(["CLERK_SECRET_KEY", "CLERK_PUBLISHABLE_KEY", "FITME_DATABASE_URL"])(
+    "answers 500 instead of serving when %s is missing",
+    async (name) => {
+      vi.stubEnv(name, "");
+      signInAs("user_alice");
+      const { app, servicesUserIds } = createTestApp();
 
-    const withToken = await callTool(app, "ping", clerkToken("user_alice"));
-    const withoutToken = await callTool(app, "ping");
+      const withToken = await callTool(app, "ping", clerkToken("user_alice"));
+      const withoutToken = await callTool(app, "ping");
 
-    expect([withToken.status, withoutToken.status]).toEqual([500, 500]);
-    expect(await withToken.json()).toEqual({
-      error: {
-        code: "not_configured",
-        message: expect.stringContaining(name),
-      },
-    });
-    expect(mockedGetAuth).not.toHaveBeenCalled();
-    expect(servicesUserIds).toEqual([]);
-    expect(supabaseTokens).toEqual([]);
-  });
+      expect([withToken.status, withoutToken.status]).toEqual([500, 500]);
+      expect(await withToken.json()).toEqual({
+        error: {
+          code: "not_configured",
+          message: expect.stringContaining(name),
+        },
+      });
+      expect(mockedGetAuth).not.toHaveBeenCalled();
+      expect(servicesUserIds).toEqual([]);
+    }
+  );
 });
 
 describe("public routes", () => {
@@ -334,7 +315,7 @@ describe("public routes", () => {
 describe("with a valid Clerk token", () => {
   it("runs services as the Clerk User", async () => {
     signInAs("user_alice");
-    const { app, servicesUserIds, supabaseTokens } = createTestApp();
+    const { app, servicesUserIds } = createTestApp();
 
     const response = await callTool(
       app,
@@ -349,7 +330,6 @@ describe("with a valid Clerk token", () => {
       measurement_system: "metric",
     });
     expect(servicesUserIds).toEqual(["user_alice"]);
-    expect(supabaseTokens).toEqual([]);
   });
 
   it("scopes each request to its own User", async () => {
@@ -372,7 +352,7 @@ describe("with a valid Clerk token", () => {
 
   it("serves initialize, tools/list and catalog tools without touching the database", async () => {
     signInAs("user_alice");
-    const { app, servicesUserIds, supabaseTokens } = createTestApp();
+    const { app, servicesUserIds } = createTestApp();
     const token = clerkToken("user_alice");
 
     const responses = [
@@ -388,7 +368,6 @@ describe("with a valid Clerk token", () => {
       false
     );
     expect(servicesUserIds).toEqual([]);
-    expect(supabaseTokens).toEqual([]);
   });
 
   it("reports missing database config as a tool error", async () => {

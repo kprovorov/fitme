@@ -1,4 +1,3 @@
-import { readFileSync } from "node:fs";
 import { UnauthorizedError } from "@modelcontextprotocol/sdk/client/auth.js";
 import { Client } from "@modelcontextprotocol/sdk/client/index.js";
 import { StreamableHTTPClientTransport } from "@modelcontextprotocol/sdk/client/streamableHttp.js";
@@ -19,7 +18,6 @@ import {
   type PlanSummary,
   pickExercises,
   planInput,
-  requireEnv,
 } from "./setup.js";
 
 const secretKey = process.env.CLERK_DEV_SECRET_KEY;
@@ -29,8 +27,8 @@ const RESOURCE_METADATA = /resource_metadata="([^"]+)"/;
  * The whole chain against the Clerk development instance and the local stack:
  * an MCP client over HTTP discovers Clerk from the server's 401, a
  * `+clerk_test` User signs in and consents, the client exchanges the code with
- * PKCE for a Clerk access token, and the user tools run past RLS with the
- * Supabase token the server signs. Skipped without CLERK_DEV_SECRET_KEY.
+ * PKCE for a Clerk access token, and the user tools run as that User through
+ * `asUser`, past RLS. Skipped without CLERK_DEV_SECRET_KEY.
  */
 describe.skipIf(!secretKey)("Clerk OAuth flow end to end", () => {
   let clerk: ClerkDev;
@@ -78,16 +76,11 @@ describe.skipIf(!secretKey)("Clerk OAuth flow end to end", () => {
   }
 
   beforeAll(async () => {
-    requireEnv();
     clerk = clerkDev(String(secretKey));
-    // The server under test trusts the development instance and signs
-    // Supabase tokens with the key the local stack trusts.
+    // The server under test trusts the development instance and reaches the
+    // stack through FITME_DATABASE_URL (set by the vitest config).
     process.env.CLERK_SECRET_KEY = secretKey;
     process.env.CLERK_PUBLISHABLE_KEY = await clerk.publishableKey();
-    process.env.SUPABASE_JWT_SIGNING_KEY ||= readFileSync(
-      new URL("local-only-signing-key.json", import.meta.url),
-      "utf8"
-    );
     server = await startMcpServer();
     app = await clerk.createOAuthApp(
       new URL("/oauth/callback", server.url).href
