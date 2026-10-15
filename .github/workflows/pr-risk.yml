@@ -1,0 +1,33 @@
+name: PR Risk
+
+# Labels pull requests that change a Protected Path with `risk:high`
+# (.github/labeler.yml, docs/agents/pr-risk.md).
+#
+# pull_request_target runs this workflow and its labeler config from `main`,
+# and gives fork pull requests a token that can write labels. That is safe
+# only because the job never checks out or runs pull request code: the
+# labeler reads the changed file list through the API. Never add a checkout
+# of the pull request head here.
+on:
+  pull_request_target:
+    # edited: a pull request retargeted to main (other edits are skipped below)
+    types: [opened, synchronize, reopened, edited]
+    branches: [main]
+
+permissions:
+  contents: read
+  pull-requests: write
+
+jobs:
+  label:
+    if: github.event.action != 'edited' || github.event.changes.base
+    # Job level, so a skipped edit never cancels a running label job.
+    concurrency:
+      group: pr-risk-${{ github.event.pull_request.number }}
+      cancel-in-progress: true
+    runs-on: ubuntu-latest
+    steps:
+      - name: Label Protected Path changes
+        uses: actions/labeler@v7
+        with:
+          sync-labels: true
