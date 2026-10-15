@@ -14,7 +14,7 @@ if [[ "$root" == "$worktree" ]]; then
 fi
 
 # Env files are gitignored, so new worktrees don't get them. Copy any that exist
-# in the main checkout (apps/*/.env*, supabase function secrets, ...) without
+# in the main checkout (apps/*/.env*, ...) without
 # overwriting files already present in the worktree.
 while IFS= read -r -d '' src; do
   rel="${src#"$root"/}"

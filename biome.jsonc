@@ -19,19 +19,6 @@
   },
   "overrides": [
     {
-      "includes": ["**/supabase/functions/**"],
-      "javascript": {
-        "globals": ["Deno", "EdgeRuntime"]
-      },
-      "linter": {
-        "rules": {
-          "correctness": {
-            "noUndeclaredVariables": "off"
-          }
-        }
-      }
-    },
-    {
       "includes": ["**/public/**/*.svg"],
       "linter": {
         "rules": {

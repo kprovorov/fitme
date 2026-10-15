@@ -333,13 +333,6 @@ enabled = false
 enabled = true
 domain = "fitting-rattler-3649.clerk.accounts.dev"
 
-# ai-agent takes Clerk session tokens, which the gateway's JWT check rejects
-# (it only accepts tokens signed with the project's own keys). It verifies the
-# token itself through functions/_shared/clerk-auth.ts.
-[functions.ai-agent]
-enabled = true
-verify_jwt = false
-
 [edge_runtime]
 enabled = true
 # Supported request policies: `oneshot`, `per_worker`.
