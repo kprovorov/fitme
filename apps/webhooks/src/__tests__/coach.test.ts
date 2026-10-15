@@ -158,6 +158,27 @@ describe("coachSessionResetter", () => {
     ).rejects.toThrow("reset failed");
   });
 
+  it.each([
+    ["without ok", { previousSessionId: "wrun_a", status: "reset" }],
+    [
+      "with ok: false",
+      { ok: false, previousSessionId: "wrun_a", status: "reset" },
+    ],
+    [
+      "naming another session",
+      { ok: true, previousSessionId: "wrun_b", status: "reset" },
+    ],
+    ["with an unknown status", { ok: true, status: "accepted" }],
+  ])("fails on a 200 reset answer %s", async (_case, body) => {
+    const { fetch } = fakeFetch(() => Response.json(body));
+
+    await expect(
+      coachSessionResetter({ coachUrl: COACH_URL, fetch, secret: SECRET })(
+        "wrun_a"
+      )
+    ).rejects.toThrow("reset failed");
+  });
+
   it("fails without COACH_URL or COACH_RESET_SECRET, before any request", async () => {
     const { fetch, requests } = fakeFetch(() => Response.json({}));
 

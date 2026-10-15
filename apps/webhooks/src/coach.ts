@@ -51,8 +51,24 @@ interface CoachSessionResetterOptions {
 
 const RESET_TIMEOUT_MS = 20_000;
 
-// eve's reset statuses; anything else isn't the Coach answering
-const RESET_DONE = new Set<unknown>(["reset", "no_active_session"]);
+/**
+ * Whether `body` is eve's success answer for resetting `sessionId`:
+ * `{ ok: true, status: "reset", previousSessionId: sessionId }` or
+ * `{ ok: true, status: "no_active_session" }`. Anything else (a proxy, a
+ * misrouted COACH_URL) leaves the session possibly live.
+ */
+const isResetDone = (body: unknown, sessionId: string): boolean => {
+  if (!body || typeof body !== "object") {
+    return false;
+  }
+  const answer = body as Record<string, unknown>;
+  if (answer.ok !== true) {
+    return false;
+  }
+  return answer.status === "reset"
+    ? answer.previousSessionId === sessionId
+    : answer.status === "no_active_session";
+};
 
 /**
  * Resets one Coach session through the Coach's eve channel
@@ -87,11 +103,7 @@ export const coachSessionResetter =
       signal: AbortSignal.timeout(RESET_TIMEOUT_MS),
     });
     const body: unknown = await response.json().catch(() => null);
-    const status =
-      body && typeof body === "object" && "status" in body
-        ? body.status
-        : undefined;
-    if (!(response.ok && RESET_DONE.has(status))) {
+    if (!(response.ok && isResetDone(body, sessionId))) {
       throw new Error(
         `Coach session ${sessionId} reset failed: HTTP ${response.status} ${JSON.stringify(body)}`
       );
