@@ -128,6 +128,7 @@ Hono app served with `@hono/node-server`, bundled with tsdown. Reads domain data
 - `src/app.ts` — Hono app: global middleware (logger, CORS), `/health`, JSON `notFound`/`onError` handlers returning `{ error: { code, message } }`.
 - `src/routes/v1.ts` — versioned router; each resource lives in its own file under `src/routes/` and is mounted here. Input validation uses `@hono/zod-validator`.
 - `src/routes/client-config.ts` — public, unauthenticated `GET /v1/client-config`: `{ data: { minimumVersion: { ios, android } } }`, the oldest supported mobile app version per platform from `MIN_APP_VERSION_IOS` / `MIN_APP_VERSION_ANDROID` (`x.y.z`; unset or malformed → `null`, no minimum). Cached for 5 minutes (`Cache-Control: public, max-age=300, s-maxage=300`).
+- `src/routes/coach-models.ts` — public, unauthenticated `GET /v1/coach/models`: `{ data: { models: [{ id, label, description }], defaultId } }`, straight from `coachModels` and `defaultCoachModelId` in `@fitme/core` (list order; no other fields per model), so it always matches what the Coach accepts. No auth: the list isn't secret, the Coach channel does the gating. Cached for 5 minutes like `client-config`.
 - Tests (`src/__tests__/`, vitest) drive the app through `app.request`.
 - Deployed to Vercel (project `fitme-api`, region `cle1` in `vercel.json`) at https://api.fitmeproject.com.
 
