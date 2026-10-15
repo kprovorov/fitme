@@ -1,5 +1,5 @@
 import type { ThreadMessage } from "@assistant-ui/react-native";
-import { type CoachModelId, coachErrorCodes } from "@fitme/core";
+import { coachErrorCodes } from "@fitme/core";
 import type { ClientSessionState, MessageStreamEvent } from "eve/client";
 import { storage } from "~/lib/mmkv";
 
@@ -9,9 +9,11 @@ export const COACH_URL = process.env.EXPO_PUBLIC_COACH_URL ?? "";
 /**
  * The run config a Coach turn is sent with. eve forwards `custom` as the
  * turn's client context, where the Coach reads the model to answer with.
+ * Without a model (no model list on the device) nothing is sent, so the Coach
+ * picks its own default.
  */
-export function coachRunConfig(model: CoachModelId) {
-  return { custom: { model } };
+export function coachRunConfig(model: string | undefined) {
+  return model ? { custom: { model } } : {};
 }
 
 /**
