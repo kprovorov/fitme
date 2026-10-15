@@ -8,8 +8,9 @@ import {
   workoutExercises,
   workouts,
 } from "@fitme/db";
-import { inArray } from "drizzle-orm";
+import { inArray, sql } from "drizzle-orm";
 import { afterAll, beforeAll, describe, expect, it } from "vitest";
+import { deleteUserData } from "../src/delete-user-data";
 import { deletePlan, getPlan, UnknownExercisesError } from "../src/plans";
 import {
   addExerciseToWorkout,
@@ -29,6 +30,7 @@ import {
 const runId = randomUUID().replaceAll("-", "").slice(0, 12);
 const owner = `user_svcEditOwner${runId}`;
 const intruder = `user_svcEditIntruder${runId}`;
+const leaver = `user_svcEditLeaver${runId}`;
 
 // Past int4: a sets insert fails after the rows before it went in
 const OUT_OF_RANGE_REPS = 2 ** 31;
@@ -164,7 +166,9 @@ beforeAll(async () => {
 
 afterAll(async () => {
   await withService(async (tx) => {
-    await tx.delete(plans).where(inArray(plans.userId, [owner, intruder]));
+    await tx
+      .delete(plans)
+      .where(inArray(plans.userId, [owner, intruder, leaver]));
     await tx
       .delete(exercises)
       .where(inArray(exercises.id, [benchId, squatId, rowId]));
@@ -639,5 +643,36 @@ describe("updateSetRecommendations", () => {
       )
     ).rejects.toMatchObject({ cause: { code: NUMERIC_OUT_OF_RANGE } });
     expect(await shapeOf(plan)).toEqual(seededShape);
+  });
+});
+
+describe("edits during account deletion", () => {
+  const DELETION_HOLDS_LOCKS_MS = 1500;
+
+  it("queue behind deleteUserData instead of deadlocking with it", async () => {
+    const plan = await seedPlan(leaver);
+    let edit: Promise<unknown> | undefined;
+
+    await withService(async (tx) => {
+      // deleteUserData's first statement: every User table, share row exclusive
+      await tx.execute(sql`
+        lock table workouts, workout_exercises, workout_exercise_sets
+        in share row exclusive mode
+      `);
+      edit = asUser(leaver, (editTx) =>
+        addSetToExercise(editTx, leaver, {
+          set: newSet,
+          workoutExerciseId: plan.bench,
+        })
+      );
+      // Let the edit get as far as it can before the cascade needs its rows
+      await new Promise((resolve) =>
+        setTimeout(resolve, DELETION_HOLDS_LOCKS_MS)
+      );
+      await deleteUserData(tx, leaver);
+    });
+
+    // The Plan is gone, so the edit finds nothing to add to
+    await expect(edit).resolves.toBeNull();
   });
 });

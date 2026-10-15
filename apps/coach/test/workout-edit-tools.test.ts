@@ -1,5 +1,5 @@
 import type { ToolContext } from "eve/tools";
-import { beforeEach, describe, expect, it, vi } from "vitest";
+import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
 import type { ZodTypeAny } from "zod";
 import { contextFor, userIdFields } from "./tool-context";
 
@@ -267,13 +267,54 @@ describe("request keys", () => {
     return edits.addSetToExercise.mock.calls[0][2].requestKey as string;
   };
   const alice = contextFor("user_alice");
-  const onStep = (messages: unknown[], callId = "call_1") =>
-    ({ ...alice, callId, messages }) as unknown as ToolContext;
+  const withCallId = (callId: string) =>
+    ({ ...alice, callId }) as unknown as ToolContext;
+  const onStep = (messages: unknown[]) =>
+    ({ ...alice, messages }) as unknown as ToolContext;
+  /** How long after an attempt a step re-runs: a crash, redeploy or timeout. */
+  const RERUN_DELAY_MS = 10 * 60 * 1000;
+  // Keeps moving forward across tests; useFakeTimers resets the clock
+  let clock = Date.now();
+  const rerunLater = () => {
+    clock += RERUN_DELAY_MS;
+    vi.setSystemTime(clock);
+  };
+
+  beforeEach(() => {
+    vi.useFakeTimers({ toFake: ["Date"] });
+    // Every test starts long after the last one's calls
+    rerunLater();
+  });
+  afterEach(() => {
+    vi.useRealTimers();
+  });
 
   it("is the same when a step re-runs and the model asks again", async () => {
+    const first = await keyOf(withCallId("call_1"));
+    rerunLater();
+
     // A re-run step replays the same model input; the model's call gets a new id
-    expect(await keyOf(onStep(alice.messages as unknown[], "call_2"))).toBe(
-      await keyOf(alice)
+    expect(await keyOf(withCallId("call_9"))).toBe(first);
+  });
+
+  it("differs for identical calls in one step, and a re-run matches each", async () => {
+    const firstAttempt = [
+      await keyOf(withCallId("call_1")),
+      await keyOf(withCallId("call_2")),
+    ];
+    rerunLater();
+    const rerun = [
+      await keyOf(withCallId("call_8")),
+      await keyOf(withCallId("call_9")),
+    ];
+
+    expect(firstAttempt[0]).not.toBe(firstAttempt[1]);
+    expect(rerun).toEqual(firstAttempt);
+  });
+
+  it("stays the same for one call asked about twice", async () => {
+    expect(await keyOf(withCallId("call_1"))).toBe(
+      await keyOf(withCallId("call_1"))
     );
   });
 
@@ -323,11 +364,12 @@ describe("remove_exercise_from_workout", () => {
     );
   });
 
-  it("tells the model when the User has no such Workout Exercise", async () => {
+  it("tells the model the Workout Exercise is gone, even when a re-run removed it", async () => {
     edits.removeExerciseFromWorkout.mockResolvedValue(false);
 
     expect(await run(removeExerciseFromWorkout, input)).toEqual({
-      error: "Workout exercise not found",
+      error:
+        "Workout exercise not found: it doesn't exist or was already removed",
     });
   });
 });
@@ -349,7 +391,7 @@ describe("remove_set_from_exercise", () => {
     edits.removeSetFromExercise.mockResolvedValue(false);
 
     expect(await run(removeSetFromExercise, { set_id: setId })).toEqual({
-      error: "Set not found",
+      error: "Set not found: it doesn't exist or was already removed",
     });
   });
 });

@@ -12,7 +12,10 @@ export default defineTool({
     const removed = await asUser(userId, (tx) =>
       removeSetFromExercise(tx, userId, set_id)
     );
-    return removed ? { set_id, success: true } : { error: "Set not found" };
+    // A re-run step repeats a removal that already committed
+    return removed
+      ? { set_id, success: true }
+      : { error: "Set not found: it doesn't exist or was already removed" };
   },
   inputSchema: z.object({
     set_id: z

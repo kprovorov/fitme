@@ -20,19 +20,30 @@ import {
  * a soft-deleted Plan is still edited, as the `ai-agent` tools did (RLS
  * doesn't look at `deleted_at`).
  *
- * Every edit first row-locks the parent whose children it renumbers or
- * appends to (the Workout for its Exercises, the Workout Exercise for its
- * sets), so concurrent edits of the same parent queue up and `order` stays
- * contiguous from 1. `FOR NO KEY UPDATE` still lets other transactions insert
- * rows referencing the parent, and no edit locks anything above it, so they
- * can't deadlock with `updatePlan` or `finishWorkoutSession`, which lock the
- * Plan first.
+ * Every edit that appends, removes or replaces first takes ROW EXCLUSIVE on
+ * the Plan's child tables, in `deleteUserData`'s order, then row-locks the
+ * parent whose children it appends to or renumbers (the Workout for its
+ * Exercises, the Workout Exercise for its sets). The table locks come first so
+ * an edit queues behind an account deletion before it holds any row the
+ * deletion's cascade needs; taken later, the two deadlock. The row lock makes
+ * concurrent edits of the same parent queue up, so `order` stays contiguous
+ * from 1. `FOR NO KEY UPDATE` still lets other transactions insert rows
+ * referencing the parent, and no edit locks anything above it, so they can't
+ * deadlock with `updatePlan` or `finishWorkoutSession`, which lock the Plan
+ * first.
  *
  * A durable Coach step can re-run after its tool committed. Removing,
  * replacing and updating are safe to repeat; the two appends take a
  * `requestKey`, stored on the row they add, and a repeated call with the same
  * key returns that row instead of adding another.
  */
+
+/** ROW EXCLUSIVE on the tables an edit writes, in `deleteUserData`'s order. */
+const lockEditedTables = (tx: Transaction) =>
+  tx.execute(sql`
+    lock table ${workouts}, ${workoutExercises}, ${workoutExerciseSets}
+    in row exclusive mode
+  `);
 
 /** Locks one of the User's Workouts; its id, or `undefined`. */
 const lockWorkout = async (
@@ -53,7 +64,7 @@ const lockWorkout = async (
  * Locks the Workout of one of the User's Workout Exercises; the Workout's id,
  * or `undefined`.
  */
-const lockWorkoutOf = async (
+const lockWorkoutByExercise = async (
   tx: Transaction,
   userId: string,
   workoutExerciseId: string
@@ -107,6 +118,7 @@ export const addSetToExercise = async (
     workoutExerciseId,
   }: { requestKey?: string; set: PlanSetInput; workoutExerciseId: string }
 ): Promise<AddedSet | null> => {
+  await lockEditedTables(tx);
   if (!(await lockWorkoutExercise(tx, userId, workoutExerciseId))) {
     return null;
   }
@@ -206,6 +218,7 @@ export const addExerciseToWorkout = async (
     workoutId: string;
   }
 ): Promise<AddedExercise | null> => {
+  await lockEditedTables(tx);
   if (!(await lockWorkout(tx, userId, workoutId))) {
     return null;
   }
@@ -270,7 +283,8 @@ export const removeExerciseFromWorkout = async (
   userId: string,
   workoutExerciseId: string
 ): Promise<boolean> => {
-  const workoutId = await lockWorkoutOf(tx, userId, workoutExerciseId);
+  await lockEditedTables(tx);
+  const workoutId = await lockWorkoutByExercise(tx, userId, workoutExerciseId);
   if (!workoutId) {
     return false;
   }
@@ -306,6 +320,7 @@ export const replaceExerciseInWorkout = async (
     workoutExerciseId,
   }: { newExerciseId: string; sets: PlanSetInput[]; workoutExerciseId: string }
 ): Promise<boolean> => {
+  await lockEditedTables(tx);
   if (!(await lockWorkoutExercise(tx, userId, workoutExerciseId))) {
     return false;
   }
@@ -325,7 +340,7 @@ export const replaceExerciseInWorkout = async (
  * Locks the Workout Exercise of one of the User's sets; the Workout
  * Exercise's id, or `undefined`.
  */
-const lockWorkoutExerciseOf = async (
+const lockWorkoutExerciseBySet = async (
   tx: Transaction,
   userId: string,
   setId: string
@@ -355,7 +370,8 @@ export const removeSetFromExercise = async (
   userId: string,
   setId: string
 ): Promise<boolean> => {
-  const workoutExerciseId = await lockWorkoutExerciseOf(tx, userId, setId);
+  await lockEditedTables(tx);
+  const workoutExerciseId = await lockWorkoutExerciseBySet(tx, userId, setId);
   if (!workoutExerciseId) {
     return false;
   }

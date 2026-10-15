@@ -3,8 +3,8 @@ import { addExerciseToWorkout } from "@fitme/services/workout-edits";
 import { defineTool } from "eve/tools";
 import { z } from "zod";
 import { requireConversationOwner } from "../lib/owner";
-import { reportingUnknownExercises, setSchema } from "../lib/plan-edits";
 import { requestKey } from "../lib/request-key";
+import { reportingUnknownExercises, setSchema } from "../lib/workout-edits";
 
 export default defineTool({
   description:

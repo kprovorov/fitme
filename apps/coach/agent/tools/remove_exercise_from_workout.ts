@@ -12,9 +12,13 @@ export default defineTool({
     const removed = await asUser(userId, (tx) =>
       removeExerciseFromWorkout(tx, userId, workout_exercise_id)
     );
+    // A re-run step repeats a removal that already committed
     return removed
       ? { success: true, workout_exercise_id }
-      : { error: "Workout exercise not found" };
+      : {
+          error:
+            "Workout exercise not found: it doesn't exist or was already removed",
+        };
   },
   inputSchema: z.object({
     workout_exercise_id: z

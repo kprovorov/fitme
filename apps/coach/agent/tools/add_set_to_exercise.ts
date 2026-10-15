@@ -22,6 +22,7 @@ export default defineTool({
       ? { order: added.order, set_id: added.id, success: true }
       : { error: "Workout exercise not found" };
   },
+  // Not setSchema: ai-agent described these fields differently here
   inputSchema: z.object({
     reps_recommended: z
       .number()
