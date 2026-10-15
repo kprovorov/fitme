@@ -4,6 +4,14 @@ import type { ZodTypeAny } from "zod";
 import { contextFor, userIdFields } from "./tool-context";
 
 const db = vi.hoisted(() => ({ asUser: vi.fn() }));
+const editErrors = vi.hoisted(() => ({
+  MAX_SETS_PER_EXERCISE: 20,
+  TooManySetsError: class FakeTooManySetsError extends Error {
+    constructor(maxSets: number) {
+      super(`An exercise can have at most ${maxSets} sets`);
+    }
+  },
+}));
 const edits = vi.hoisted(() => ({
   addExerciseToWorkout: vi.fn(),
   addSetToExercise: vi.fn(),
@@ -13,7 +21,10 @@ const edits = vi.hoisted(() => ({
   updateSetRecommendations: vi.fn(),
 }));
 vi.mock("@fitme/db", () => db);
-vi.mock("@fitme/services/workout-edits", () => edits);
+vi.mock("@fitme/services/workout-edits", () => ({
+  ...edits,
+  ...editErrors,
+}));
 
 const plans = vi.hoisted(() => ({
   UnknownExercisesError: class FakeUnknownExercisesError extends Error {
@@ -247,6 +258,16 @@ describe("add_set_to_exercise", () => {
       requestKey: expect.any(String),
       set: newSet,
       workoutExerciseId,
+    });
+  });
+
+  it("tells the model when the Exercise already has the most sets allowed", async () => {
+    edits.addSetToExercise.mockRejectedValue(
+      new editErrors.TooManySetsError(20)
+    );
+
+    expect(await run(addSetToExercise, input)).toEqual({
+      error: "An exercise can have at most 20 sets",
     });
   });
 

@@ -38,6 +38,20 @@ import {
  * key returns that row instead of adding another.
  */
 
+/** The most sets a Workout Exercise may have, as MCP's plan tools allow. */
+export const MAX_SETS_PER_EXERCISE = 20;
+
+/** Thrown, before writing anything, by an append past `MAX_SETS_PER_EXERCISE`. */
+export class TooManySetsError extends Error {
+  readonly maxSets: number;
+
+  constructor(maxSets: number) {
+    super(`An exercise can have at most ${maxSets} sets`);
+    this.name = "TooManySetsError";
+    this.maxSets = maxSets;
+  }
+}
+
 /** ROW EXCLUSIVE on the tables an edit writes, in `deleteUserData`'s order. */
 const lockEditedTables = (tx: Transaction) =>
   tx.execute(sql`
@@ -107,7 +121,9 @@ export interface AddedSet {
 /**
  * Appends a set after the last set of one of the User's Workout Exercises.
  * Returns the set, or `null` without changing anything when the User has no
- * such Workout Exercise.
+ * such Workout Exercise. Throws `TooManySetsError`, before writing anything,
+ * when it already has `MAX_SETS_PER_EXERCISE` sets (a repeat of the call that
+ * added the last one still returns that set).
  */
 export const addSetToExercise = async (
   tx: Transaction,
@@ -135,10 +151,16 @@ export const addSetToExercise = async (
       return repeated;
     }
   }
-  const [{ last }] = await tx
-    .select({ last: max(workoutExerciseSets.order) })
+  const [{ last, sets }] = await tx
+    .select({
+      last: max(workoutExerciseSets.order),
+      sets: count(workoutExerciseSets.id),
+    })
     .from(workoutExerciseSets)
     .where(inExercise);
+  if (sets >= MAX_SETS_PER_EXERCISE) {
+    throw new TooManySetsError(MAX_SETS_PER_EXERCISE);
+  }
   const [added] = await tx
     .insert(workoutExerciseSets)
     .values({
@@ -321,6 +343,15 @@ const isAlreadyReplaced = async (
   if (current?.exerciseId !== exerciseId) {
     return false;
   }
+  // The weights as numeric(8,2) stores them, rounded by Postgres, not JS
+  const {
+    rows: [{ weights }],
+  } = await tx.execute<{ weights: string[] }>(sql`
+    select array[${sql.join(
+      sets.map((set) => sql`${String(set.weight_recommended)}::numeric(8,2)`),
+      sql`, `
+    )}]::text[] as weights
+  `);
   const currentSets = await tx
     .select({
       order: workoutExerciseSets.order,
@@ -338,9 +369,7 @@ const isAlreadyReplaced = async (
         set.order === index + 1 &&
         set.repsRecommended === sets[index].reps_recommended &&
         set.restRecommended === sets[index].rest_recommended &&
-        // numeric(8,2) keeps two decimals, as the insert would
-        Number(set.weightRecommended) ===
-          Number(sets[index].weight_recommended.toFixed(2))
+        set.weightRecommended === weights[index]
     )
   );
 };

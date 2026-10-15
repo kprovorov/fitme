@@ -1,11 +1,11 @@
 import { UnknownExercisesError } from "@fitme/services/plans";
+import { TooManySetsError } from "@fitme/services/workout-edits";
 import { z } from "zod";
 
 /** The bounds MCP's plan tools use (apps/mcp/src/tools/plan-schemas.ts). */
 export const MAX_REPS = 1000;
 export const MAX_REST_SECONDS = 3600;
 export const MAX_WEIGHT = 10_000;
-export const MAX_SETS_PER_EXERCISE = 20;
 
 /** A set's targets, as the Plan-editing tools take them. */
 export const setSchema = z.object({
@@ -29,16 +29,20 @@ export const setSchema = z.object({
 });
 
 /**
- * Runs a Plan edit; an Exercise missing from the library becomes an error the
- * model can act on (search again), anything else still throws.
+ * Runs a Plan edit; an Exercise missing from the library (search again) or an
+ * Exercise already at its set limit becomes an error the model can act on,
+ * anything else still throws.
  */
-export const reportingUnknownExercises = async <T>(
+export const reportingEditErrors = async <T>(
   edit: () => Promise<T>
 ): Promise<T | { error: string }> => {
   try {
     return await edit();
   } catch (error) {
-    if (error instanceof UnknownExercisesError) {
+    if (
+      error instanceof UnknownExercisesError ||
+      error instanceof TooManySetsError
+    ) {
       return { error: error.message };
     }
     throw error;

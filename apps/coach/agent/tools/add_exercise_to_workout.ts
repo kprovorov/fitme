@@ -1,14 +1,13 @@
 import { asUser } from "@fitme/db";
-import { addExerciseToWorkout } from "@fitme/services/workout-edits";
+import {
+  addExerciseToWorkout,
+  MAX_SETS_PER_EXERCISE,
+} from "@fitme/services/workout-edits";
 import { defineTool } from "eve/tools";
 import { z } from "zod";
 import { requireConversationOwner } from "../lib/owner";
 import { requestKey } from "../lib/request-key";
-import {
-  MAX_SETS_PER_EXERCISE,
-  reportingUnknownExercises,
-  setSchema,
-} from "../lib/workout-edits";
+import { reportingEditErrors, setSchema } from "../lib/workout-edits";
 
 export default defineTool({
   description:
@@ -16,7 +15,7 @@ export default defineTool({
   async execute(input, ctx) {
     const userId = requireConversationOwner(ctx.session.auth);
     const { exercise_id, sets, workout_id } = input;
-    return await reportingUnknownExercises(async () => {
+    return await reportingEditErrors(async () => {
       const added = await asUser(userId, (tx) =>
         addExerciseToWorkout(tx, userId, {
           exerciseId: exercise_id,

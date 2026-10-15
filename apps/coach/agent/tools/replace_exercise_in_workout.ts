@@ -1,20 +1,19 @@
 import { asUser } from "@fitme/db";
-import { replaceExerciseInWorkout } from "@fitme/services/workout-edits";
+import {
+  MAX_SETS_PER_EXERCISE,
+  replaceExerciseInWorkout,
+} from "@fitme/services/workout-edits";
 import { defineTool } from "eve/tools";
 import { z } from "zod";
 import { requireConversationOwner } from "../lib/owner";
-import {
-  MAX_SETS_PER_EXERCISE,
-  reportingUnknownExercises,
-  setSchema,
-} from "../lib/workout-edits";
+import { reportingEditErrors, setSchema } from "../lib/workout-edits";
 
 export default defineTool({
   description:
     "Swap one exercise for another in a workout and replace its sets with new rep/weight/rest recommendations suited to the new exercise. Use search_exercises to find the new_exercise_id.",
   async execute({ new_exercise_id, sets, workout_exercise_id }, ctx) {
     const userId = requireConversationOwner(ctx.session.auth);
-    return await reportingUnknownExercises(async () => {
+    return await reportingEditErrors(async () => {
       const replaced = await asUser(userId, (tx) =>
         replaceExerciseInWorkout(tx, userId, {
           newExerciseId: new_exercise_id,

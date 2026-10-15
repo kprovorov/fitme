@@ -15,9 +15,11 @@ import { deletePlan, getPlan, UnknownExercisesError } from "../src/plans";
 import {
   addExerciseToWorkout,
   addSetToExercise,
+  MAX_SETS_PER_EXERCISE,
   removeExerciseFromWorkout,
   removeSetFromExercise,
   replaceExerciseInWorkout,
+  TooManySetsError,
   updateSetRecommendations,
 } from "../src/workout-edits";
 
@@ -238,6 +240,30 @@ describe("addSetToExercise", () => {
     expect((await shapeOf(plan))?.[1].sets.map(([order]) => order)).toEqual([
       1, 2, 3, 4,
     ]);
+  });
+
+  it("refuses a set past the limit, but still answers a repeat of the last one", async () => {
+    const plan = await seedPlan(owner);
+    const requestKey = newKey();
+    const add = (key?: string) =>
+      asUser(owner, (tx) =>
+        addSetToExercise(tx, owner, {
+          requestKey: key,
+          set: newSet,
+          workoutExerciseId: plan.squat,
+        })
+      );
+    // The squat starts with one set; fill it up to one short of the limit
+    await Promise.all(
+      Array.from({ length: MAX_SETS_PER_EXERCISE - 2 }, () => add())
+    );
+    const last = await add(requestKey);
+
+    await expect(add()).rejects.toEqual(
+      new TooManySetsError(MAX_SETS_PER_EXERCISE)
+    );
+    expect(await add(requestKey)).toEqual(last);
+    expect((await shapeOf(plan))?.[1].sets).toHaveLength(MAX_SETS_PER_EXERCISE);
   });
 
   it("can't add to another User's Exercise", async () => {
@@ -472,11 +498,13 @@ describe("replaceExerciseInWorkout", () => {
 
   it("keeps the set ids when the replacement is already in place", async () => {
     const plan = await seedPlan(owner);
+    // numeric(8,2) stores 1.01; a binary float's toFixed(2) says "1.00"
+    const roundingBoundary = [{ ...sets[0], weight_recommended: 1.005 }];
     const replace = () =>
       asUser(owner, (tx) =>
         replaceExerciseInWorkout(tx, owner, {
           newExerciseId: rowId,
-          sets,
+          sets: roundingBoundary,
           workoutExerciseId: plan.bench,
         })
       );
