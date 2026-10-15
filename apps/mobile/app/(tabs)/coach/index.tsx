@@ -117,7 +117,8 @@ function useCoachChat(userId: string, [input, setInput]: Composer) {
   const prevStreamingTextRef = useRef<string>("");
 
   // The text of the last send, given back to the composer when the Coach
-  // refuses it (paywall, ended session), so it isn't lost.
+  // refuses it or it fails (its placeholder bubble is hidden), so it isn't
+  // lost. Cleared once a turn settles, so an answered prompt never returns.
   const lastSentRef = useRef("");
 
   const errorAction = coachErrorAction(eveError);
@@ -145,7 +146,7 @@ function useCoachChat(userId: string, [input, setInput]: Composer) {
   // (`useEveReset` returns a new function each time).
   const handleError = useEffectEvent((error: unknown) => {
     const action = coachErrorAction(error);
-    if (action !== "paywall" && action !== "new-conversation") {
+    if (action === "none") {
       return;
     }
     // The refused text goes back into the composer, to send again.
@@ -154,7 +155,7 @@ function useCoachChat(userId: string, [input, setInput]: Composer) {
     setInput((current) => current || refused);
     if (action === "paywall") {
       RevenueCatUI.presentPaywall();
-    } else {
+    } else if (action === "new-conversation") {
       newConversation();
     }
   });
