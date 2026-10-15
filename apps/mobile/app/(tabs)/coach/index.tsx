@@ -34,6 +34,7 @@ import {
   PromptInputTextarea,
 } from "@/components/chat";
 import { Icon } from "@/components/icon";
+import { useSelectedCoachModel } from "~/hooks/coach-model";
 import { useIsProQuery } from "~/hooks/revenueCat";
 import { getClerk } from "~/lib/clerk";
 import {
@@ -46,10 +47,7 @@ import {
   saveCoachConversation,
   saveCoachSession,
 } from "~/lib/coach-chat";
-import {
-  getSelectedCoachModelId,
-  useSelectedCoachModel,
-} from "~/lib/coach-model";
+import { getSelectedCoachModelId } from "~/lib/coach-model";
 
 const ATTACHMENTS_ENABLED: boolean = false;
 
@@ -285,7 +283,7 @@ function CoachChat({
                 name: "cpu",
                 type: "sfSymbol",
               },
-              label: model.label,
+              label: model?.label ?? "Model",
               onPress: () => {
                 router.push("/coach/model-picker");
               },

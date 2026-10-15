@@ -1,4 +1,4 @@
-import { coachErrorCodes, coachModels } from "@fitme/core";
+import { coachErrorCodes } from "@fitme/core";
 import { describe, expect, it } from "@jest/globals";
 import type { MessageStreamEvent } from "eve/client";
 import {
@@ -22,8 +22,13 @@ function clientError(status: number, code?: string) {
 
 describe("coachRunConfig", () => {
   it("sends the chosen model as the turn's client context", () => {
-    const [model] = coachModels;
-    expect(coachRunConfig(model.id)).toEqual({ custom: { model: model.id } });
+    expect(coachRunConfig("openai/gpt-5.5")).toEqual({
+      custom: { model: "openai/gpt-5.5" },
+    });
+  });
+
+  it("sends no client context without a model, so the Coach uses its default", () => {
+    expect(coachRunConfig(undefined)).toEqual({});
   });
 });
 

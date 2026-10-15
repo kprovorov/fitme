@@ -24,3 +24,18 @@ Every Coach model call goes through Vercel AI Gateway instead of calling OpenAI 
 - Each Gateway-routed step reports its cost in USD, which lets the per-turn budget be capped in dollars instead of tokens.
 - The context window for each model comes from the Gateway catalog through eve, so there is no per-model window to maintain.
 - A model the Gateway stops listing can't be offered; adding one means adding its Gateway id to `coachModels` (and its creator's host order in the Coach, if it's a new creator).
+
+## Served model list
+
+The app no longer bundles the Coach models. `apps/api` serves `coachModels` from `@fitme/core` at `GET /v1/coach/models` (public, cached 5 minutes), so a model is added or removed by deploying the backend, with no app release, and the list the app shows is the list the Coach accepts.
+
+- **The device caches the last list.** The app keeps the last successful response in one global MMKV key, `coach.models` (the list is the same for every User), reads it as the query's initial data and rewrites it on every successful fetch. No bundled fallback and no react-query persister. An unreadable or malformed cached value counts as no list.
+- **A saved pick that left the list falls back to the default.** The pick (`coach.model`) is sent while it's in the current list; one that isn't (a removed model, or an id from before the Gateway rename) resolves to the list's `defaultId`. Old picks are not migrated.
+- **No list never blocks the chat.** With nothing cached and the fetch failed (or no `EXPO_PUBLIC_API_URL`), the picker shows that models are unavailable and sends carry no client context, so the Coach answers on its own default model.
+- **A stale cache can name a removed model.** Offline after a model is removed, the cached list still offers it; a send on it fails that turn until the next successful fetch replaces the list. There is no grace period on the Coach.
+
+### Considered options (served list)
+
+- **Served list, cached in MMKV (chosen).** Models change with a backend deploy, and the last list still shows offline.
+- **Bundled list.** Every model change needs an App Store release, and old builds keep offering models the Coach refuses.
+- **Served list with a bundled fallback.** A second copy of the list to keep in sync, and it goes stale in old builds exactly when it's needed.
