@@ -1,0 +1,65 @@
+# PR Risk labels (docs/agents/pr-risk.md). This file is the only list of
+# Protected Paths: a pull request that changes any file matching one of these
+# globs gets `risk:high`, and loses it once it no longer does. The workflow
+# reads this file from `main`, so a pull request can't edit the rules that
+# judge it. `risk:medium` and `risk:low` are set by hand and never listed here.
+# The pnpm lockfile is deliberately not a Protected Path.
+risk:high:
+  - changed-files:
+      - any-glob-to-any-file:
+          # Supabase: schema, auth trust, Edge Functions, one-shot data scripts
+          - packages/supabase/supabase/migrations/**
+          - packages/supabase/supabase/config.toml
+          - packages/supabase/supabase/roles.sql
+          - packages/supabase/supabase/local-only-signing-keys.json
+          - packages/supabase/supabase/functions/**
+          - packages/supabase/scripts/**
+
+          # GitHub: workflows (what runs with repo secrets) and this file
+          - .github/**
+
+          # Database access: the asUser / withService doors and User data deletion
+          - packages/db/src/index.ts
+          - packages/db/src/client.ts
+          - packages/services/src/delete-user-data.ts
+          - packages/services/src/coach-sessions.ts
+
+          # Mobile native config: hard to roll back once shipped
+          - apps/mobile/app.json
+          - apps/mobile/eas.json
+          - apps/mobile/plugins/**
+
+          # Mobile auth, session and payments
+          - apps/mobile/lib/clerk.ts
+          - apps/mobile/lib/supabase.ts
+          - apps/mobile/components/authenticated.tsx
+          - apps/mobile/components/auth-sync.tsx
+          - apps/mobile/components/providers.tsx
+          - apps/mobile/hooks/mutations/auth.ts
+          - apps/mobile/hooks/revenueCat.ts
+
+          # MCP: OAuth, the per-request User context and its services
+          - apps/mcp/src/auth.ts
+          - apps/mcp/src/context.ts
+          - apps/mcp/src/services.ts
+
+          # Coach: channel auth, Pro check, session ownership
+          - apps/coach/agent/channels/**
+          - apps/coach/agent/hooks/conversation.ts
+          - apps/coach/agent/lib/clerk-auth.ts
+          - apps/coach/agent/lib/reset-auth.ts
+          - apps/coach/agent/lib/eval-runner.ts
+          - apps/coach/agent/lib/pro-access.ts
+          - apps/coach/agent/lib/claim-session.ts
+          - apps/coach/agent/lib/owner.ts
+
+          # Webhooks: signature checks and account deletion
+          - apps/webhooks/src/routes/clerk.ts
+          - apps/webhooks/src/coach.ts
+
+          # Web: the request proxy and the Supabase clients
+          - apps/web/proxy.ts
+          - apps/web/lib/supabase/**
+
+          # Any env file, anywhere
+          - "**/.env*"
