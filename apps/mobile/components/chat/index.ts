@@ -10,6 +10,9 @@ export {
   useConversationContext,
 } from "./conversation";
 
+// Messages
+export { messageText } from "./message-text";
+
 // Prompt Input
 export {
   PromptInput,

@@ -97,6 +97,8 @@ React Native / Expo app using **file-based routing** via `expo-router`:
   - `supabase.ts` — Supabase client whose access token is the Clerk session token (no Supabase Auth session)
   - `clerk.ts` — Clerk publishable key, `getClerk()` for code outside React, `getCurrentUserId()`, `getClerkErrorMessage()`
   - `mmkv.ts` — MMKV storage instance
+  - `coach-chat.ts` — Coach screen helpers: `COACH_URL`, per-turn model context, error → paywall mapping, the saved Conversation (see Key Patterns)
+  - `coach-model.ts` — the model picker's choice (MMKV), resolved against `coachModels`
   - `utils.ts` — `cn()` class merger (tailwind-merge with the HIG font scale)
   - `constants.ts`, `segment.ts`, `useColorScheme.tsx`
 - `plugins/` — local Expo config plugins for Xcode 27 compatibility: `with-ios-min-deployment-target.js` (raises pod targets below iOS 15.1, including resource bundles) and `with-revenuecat-xcode27-patch.js` (Swift 6.4 fix for `PaywallColor`; drop once `react-native-purchases` pins purchases-ios ≥ 5.78.0). UIScene adoption comes from `expo-build-properties` `ios.enableSceneSupport` (SDK 57); SDK 58 needs no flag.
@@ -230,6 +232,8 @@ Business logic shared by the backend apps (ADR 0004), replacing the Postgres RPC
 
 **Minimum version gate (mobile)**: `components/minimum-version-gate.tsx` wraps the root `Stack` in `app/_layout.tsx`. On launch and on every return to the foreground it fetches `GET /v1/client-config` from `EXPO_PUBLIC_API_URL` (`useClientConfigQuery`) and compares the build's version (`Constants.expoConfig.version`, stamped from the release tag) with the platform's minimum through `isBelowMinimumVersion` (`lib/app-version.ts`; numeric `x.y.z` comparison, the `0.0.0` dev placeholder and unreadable versions never block). Below the minimum the whole app is replaced by `UpdateRequiredView`, whose button opens the App Store (`ios.appStoreUrl` in `app.json`) or Play Store listing. A failed request, an error response or an unset `EXPO_PUBLIC_API_URL` never blocks (a failed foreground recheck keeps the last answer the app got). The app renders normally while the launch check is in flight. To cut off old builds, set `MIN_APP_VERSION_IOS` / `MIN_APP_VERSION_ANDROID` on the `fitme-api` Vercel project (production) and redeploy the API so it picks up the env; no app release is needed. Lowering or removing it unblocks Users the next time they foreground the app (after the 5-minute cache). Only raise it once most installs run a build that has the gate.
 
+**Coach screen (mobile)**: `app/(tabs)/coach/index.tsx` talks to `apps/coach` through `useEveAgentRuntime` from `@assistant-ui/eve` (ADR 0005), pointed at `EXPO_PUBLIC_COACH_URL`, with the Clerk session token as the bearer, resolved per request (reconnects included). The global `fetch` is `expo/fetch`, installed by Expo's runtime (SDK 57), so eve's NDJSON stream streams; don't set `EXPO_PUBLIC_USE_RN_FETCH`. The custom chat components (`components/chat/`) read the runtime's state (`useAuiState`) as assistant-ui `ThreadMessage`s; the plan card renders from a `display_workout_plan` tool call's result. `lib/coach-chat.ts` holds the pure parts (unit-tested): each send carries `runConfig: { custom: { model } }` (`coachRunConfig`), which eve sends as the turn's client context, with the model-picker's choice read at send time; `coachErrorAction` maps the channel's `coach_pro_required` refusal to the paywall, an ended session (`session_not_active`, `session_expired`, `session_stranded`) to a new Conversation, and anything else to the existing error state; a refused or failed send's text goes back into the composer and its failed bubble is hidden (`isRefusedSend`); and the User's current Conversation (eve session cursor plus the event log from the last finished turn) is saved in MMKV per Clerk User id (`coach.conversation.<userId>.session`, rewritten on every streamed event, and `….events`, once per finished turn), so reopening the screen resumes it, an answer still streaming included. "+" in the header resets the eve session and forgets the saved one.
+
 **Subscriptions**: RevenueCat manages IAP. `useIsProQuery` (queryKey `["rc-is-pro"]`) checks the "Fitme Pro" entitlement. Customer info updates are listened to in `_layout.tsx`.
 
 **Module aliases**: Inside each app, `~/` and `@/` resolve to that app's root. Cross-workspace imports always go through the package name (`@fitme/core`, `@fitme/supabase`).
@@ -243,6 +247,7 @@ Env files live next to each app.
 `apps/mobile/.env` (prefix `EXPO_PUBLIC_` for client exposure):
 
 - `EXPO_PUBLIC_API_URL` — `apps/api` base URL (`http://localhost:3003` locally; the EAS `production` profile in `eas.json` sets `https://api.fitmeproject.com`); unset skips the minimum version check
+- `EXPO_PUBLIC_COACH_URL` — `apps/coach` base URL (`http://localhost:3005` locally, `pnpm dev:coach`); the coach screen talks to its eve routes
 - `EXPO_PUBLIC_SUPABASE_URL`
 - `EXPO_PUBLIC_SUPABASE_ANON_KEY`
 - `EXPO_PUBLIC_CLERK_PUBLISHABLE_KEY`

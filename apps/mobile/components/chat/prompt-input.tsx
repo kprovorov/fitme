@@ -195,9 +195,9 @@ const submitButtonStyle = ({
  * is generating. Reads state from `ChatContext`.
  */
 export function PromptInputSubmit() {
-  const { input, isGenerating, onSend } = useChatContext();
+  const { input, isGenerating, isLoading, onSend } = useChatContext();
   const foreground = useCSSVariable("--foreground") as string;
-  const disabled = !input.trim() || isGenerating;
+  const disabled = !input.trim() || isGenerating || isLoading;
 
   return (
     <Pressable
