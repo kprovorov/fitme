@@ -198,73 +198,58 @@ export interface WorkoutExerciseInput {
 
 export type WorkoutExerciseSetInput = Omit<WorkoutExerciseSetData, "order">;
 
-export const coachModelProviders = ["openai", "anthropic"] as const;
-export type CoachModelProvider = (typeof coachModelProviders)[number];
-
 /**
- * Models the coach AI agent can run on. The `ai-agent` edge function keeps a
- * matching allowlist and rejects any id outside it.
+ * Models the Coach can run on, by their Vercel AI Gateway id
+ * (`<creator>/<model>`). The Coach (`apps/coach`) accepts only these. The
+ * `ai-agent` edge function keeps its own list of the old, pre-Gateway ids for
+ * old app builds; it doesn't follow this one.
  */
 export const coachModels = [
   {
     description: "Fast and capable, balanced for everyday coaching",
-    id: "gpt-5.5",
+    id: "openai/gpt-5.5",
     label: "GPT-5.5",
-    provider: "openai",
-  },
-  {
-    description: "OpenAI's newest generation, sharper reasoning than 5.5",
-    id: "gpt-5.6",
-    label: "GPT-5.6",
-    provider: "openai",
   },
   {
     description: "GPT-5.6 Luna variant",
-    id: "gpt-5.6-luna",
+    id: "openai/gpt-5.6-luna",
     label: "GPT-5.6 Luna",
-    provider: "openai",
   },
   {
     description: "GPT-5.6 Sol variant",
-    id: "gpt-5.6-sol",
+    id: "openai/gpt-5.6-sol",
     label: "GPT-5.6 Sol",
-    provider: "openai",
   },
   {
     description: "GPT-5.6 Terra variant",
-    id: "gpt-5.6-terra",
+    id: "openai/gpt-5.6-terra",
     label: "GPT-5.6 Terra",
-    provider: "openai",
   },
   {
     description: "Strong reasoning with a natural conversational tone",
-    id: "claude-sonnet-5",
+    id: "anthropic/claude-sonnet-5",
     label: "Claude Sonnet 5",
-    provider: "anthropic",
   },
   {
     description: "Most thorough answers for complex plans and analysis",
-    id: "claude-opus-5",
+    id: "anthropic/claude-opus-5",
     label: "Claude Opus 5",
-    provider: "anthropic",
   },
   {
     description: "Quickest replies for short questions",
-    id: "claude-haiku-4-5-20251001",
+    id: "anthropic/claude-haiku-4.5",
     label: "Claude Haiku 4.5",
-    provider: "anthropic",
   },
 ] as const satisfies readonly {
   description: string;
-  id: string;
+  id: `${string}/${string}`;
   label: string;
-  provider: CoachModelProvider;
 }[];
 
 export type CoachModel = (typeof coachModels)[number];
 export type CoachModelId = CoachModel["id"];
 
-export const defaultCoachModelId: CoachModelId = "gpt-5.5";
+export const defaultCoachModelId: CoachModelId = "openai/gpt-5.5";
 
 export function isCoachModelId(value: unknown): value is CoachModelId {
   return coachModels.some((model) => model.id === value);
