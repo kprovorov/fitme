@@ -17,8 +17,6 @@ Pull requests to `main` carry a risk label so the maintainer knows how closely t
 
 ## How `risk:high` is set
 
-`.github/workflows/pr-risk.yml` runs `actions/labeler` on every pull request to `main` (opened, pushed to, reopened; drafts included). It adds `risk:high` when any changed file matches a Protected Path glob in `.github/labeler.yml`, and removes it once none does. The workflow owns that label: adding or removing it by hand is overwritten on the next push, so to disagree with it, change the Protected Path list. It never touches `risk:medium` or `risk:low`, so a hand-set one can sit next to `risk:high`; clearing it is on the maintainer.
+`.github/workflows/pr-risk.yml` runs `actions/labeler` on every pull request to `main` (opened, pushed to, reopened; drafts included). It adds `risk:high` when any changed file matches a Protected Path glob in `.github/labeler.yml`, and removes it once none does. The workflow owns that label: adding or removing it by hand is overwritten on the next push, so to disagree with it, change the Protected Path list (itself a Protected Path, under `.github`). It never touches `risk:medium` or `risk:low`, so a hand-set one can sit next to `risk:high`; clearing it is on the maintainer.
 
 The workflow runs on `pull_request_target`, so it and the Protected Path list always come from `main`: a pull request that changes either is labeled by the version on `main`, not its own. It never checks out or runs pull request code, which is what makes fork pull requests safe.
-
-If your pull request got `risk:high`, it changed at least one file matching `.github/labeler.yml`. To add or remove a Protected Path, edit that file (which is itself protected).
