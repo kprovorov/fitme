@@ -6,6 +6,8 @@ export interface ChatContextValue {
   error?: Error | null;
   input: string;
   isGenerating: boolean;
+  /** A saved Conversation is replaying; sends wait for it. */
+  isLoading?: boolean;
   messages: readonly ThreadMessage[];
   onSend: () => void;
   setInput: (value: string) => void;

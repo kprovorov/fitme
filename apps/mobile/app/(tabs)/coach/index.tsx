@@ -107,8 +107,8 @@ function useCoachChat(userId: string) {
   const streamingStore = useMemo(() => createStreamingStore(), []);
   const prevStreamingTextRef = useRef<string>("");
 
-  // The text of the last send, given back to the composer when the send
-  // lands on an ended session, so starting over doesn't lose it.
+  // The text of the last send, given back to the composer when the Coach
+  // refuses it (paywall, ended session), so it isn't lost.
   const lastSentRef = useRef("");
 
   const errorAction = coachErrorAction(eveError);
@@ -122,11 +122,15 @@ function useCoachChat(userId: string) {
   // (`useEveReset` returns a new function each time).
   const handleError = useEffectEvent((error: unknown) => {
     const action = coachErrorAction(error);
+    if (action !== "paywall" && action !== "new-conversation") {
+      return;
+    }
+    // The refused text goes back into the composer, to send again.
+    setInput((current) => current || lastSentRef.current);
     if (action === "paywall") {
       RevenueCatUI.presentPaywall();
-    } else if (action === "new-conversation") {
+    } else {
       newConversation();
-      setInput((current) => current || lastSentRef.current);
     }
   });
 
@@ -181,6 +185,7 @@ function useCoachChat(userId: string) {
     error: errorAction === "show" ? toError(eveError) : null,
     input,
     isGenerating: isRunning,
+    isLoading,
     messages,
     newConversation,
     onSend,
