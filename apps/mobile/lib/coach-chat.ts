@@ -1,3 +1,4 @@
+import type { ThreadMessage } from "@assistant-ui/react-native";
 import { type CoachModelId, coachErrorCodes } from "@fitme/core";
 import type { ClientSessionState, MessageStreamEvent } from "eve/client";
 import { storage } from "~/lib/mmkv";
@@ -48,6 +49,17 @@ export function coachErrorAction(error: unknown): CoachErrorAction {
     return "new-conversation";
   }
   return "show";
+}
+
+/**
+ * eve keeps a refused send in the thread as a failed user message (its
+ * metadata `status`). The screen gives that text back to the composer, so it
+ * hides the placeholder rather than show a request that never went through.
+ */
+export function isRefusedSend(message: ThreadMessage): boolean {
+  return (
+    message.role === "user" && message.metadata.custom?.status === "failed"
+  );
 }
 
 /** The User's current Conversation, enough for eve to resume it. */

@@ -41,6 +41,7 @@ import {
   clearSavedCoachConversation,
   coachErrorAction,
   coachRunConfig,
+  isRefusedSend,
   loadSavedCoachConversation,
   saveCoachConversation,
   saveCoachSession,
@@ -60,9 +61,12 @@ const getCoachToken = async () => (await getClerk().session?.getToken()) ?? "";
  * included.
  */
 function CoachRuntime({
+  canResume,
   children,
   userId,
 }: {
+  /** False for a free User: resuming would only meet the Pro refusal. */
+  canResume: boolean;
   children: React.ReactNode;
   userId: string;
 }) {
@@ -82,7 +86,7 @@ function CoachRuntime({
       }
     },
     onSessionChange: (session) => saveCoachSession(userId, session),
-    resume: saved.session !== undefined,
+    resume: canResume && saved.session !== undefined,
   });
 
   return (
@@ -96,14 +100,19 @@ function toError(error: unknown): Error {
   return error instanceof Error ? error : new Error(String(error));
 }
 
-function useCoachChat(userId: string) {
+type Composer = [string, React.Dispatch<React.SetStateAction<string>>];
+
+function useCoachChat(userId: string, [input, setInput]: Composer) {
   const aui = useAui();
-  const messages = useAuiState((s) => s.thread.messages);
+  const threadMessages = useAuiState((s) => s.thread.messages);
+  const messages = useMemo(
+    () => threadMessages.filter((message) => !isRefusedSend(message)),
+    [threadMessages]
+  );
   const isRunning = useAuiState((s) => s.thread.isRunning);
   const isLoading = useAuiState((s) => s.thread.isLoading);
   const eveError = useEveError();
   const resetSession = useEveReset();
-  const [input, setInput] = useState("");
   const streamingStore = useMemo(() => createStreamingStore(), []);
   const prevStreamingTextRef = useRef<string>("");
 
@@ -120,10 +129,17 @@ function useCoachChat(userId: string) {
     }
   }, [isRunning, eveError]);
 
+  const isBusy = isRunning || isLoading;
+
+  // Not while a turn runs: a local reset leaves the durable turn running on
+  // the Coach, where it could still change a Plan nobody sees anymore.
   const newConversation = useCallback(() => {
+    if (isBusy) {
+      return;
+    }
     clearSavedCoachConversation(userId);
     resetSession();
-  }, [resetSession, userId]);
+  }, [isBusy, resetSession, userId]);
 
   // An effect event, so the paywall opens once per error, not on every render
   // (`useEveReset` returns a new function each time).
@@ -179,8 +195,6 @@ function useCoachChat(userId: string) {
     [aui]
   );
 
-  const isBusy = isRunning || isLoading;
-
   const onSend = useCallback(() => {
     if (!input.trim() || isBusy) {
       return;
@@ -188,11 +202,12 @@ function useCoachChat(userId: string) {
     Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Light);
     sendMessage(input);
     setInput("");
-  }, [input, isBusy, sendMessage]);
+  }, [input, isBusy, sendMessage, setInput]);
 
   return {
     error: errorAction === "show" ? toError(eveError) : null,
     input,
+    isBusy,
     isGenerating: isRunning,
     isLoading,
     messages,
@@ -204,9 +219,16 @@ function useCoachChat(userId: string) {
   };
 }
 
-function CoachChat({ userId }: { userId: string }) {
-  const chat = useCoachChat(userId);
-  const { data: isPro, isPending: isProPending } = useIsProQuery();
+function CoachChat({
+  composer,
+  isPro,
+  userId,
+}: {
+  composer: Composer;
+  isPro: boolean | undefined;
+  userId: string;
+}) {
+  const chat = useCoachChat(userId, composer);
   const { model } = useSelectedCoachModel();
   const { initialMessage } = useLocalSearchParams<{
     initialMessage?: string;
@@ -214,13 +236,14 @@ function CoachChat({ userId }: { userId: string }) {
   const router = useRouter();
   const sentInitialMessageRef = useRef<string | null>(null);
 
-  // Planner prompts take the same Pro gate as typed ones: a refused send
-  // would make the Coach cache "not Pro" for minutes, past a purchase.
+  // Planner prompts take the same Pro gate as typed ones (a refused send
+  // would make the Coach cache "not Pro" for minutes, past a purchase), and
+  // wait for a resuming or running turn: eve refuses sends meanwhile.
   useEffect(() => {
     if (
       !initialMessage ||
       initialMessage === sentInitialMessageRef.current ||
-      isProPending
+      (isPro !== false && chat.isBusy)
     ) {
       return;
     }
@@ -232,7 +255,7 @@ function CoachChat({ userId }: { userId: string }) {
       return;
     }
     chat.sendMessage(initialMessage);
-  }, [initialMessage, isPro, isProPending, chat, router]);
+  }, [initialMessage, isPro, chat, router]);
 
   const handleSend = useCallback(() => {
     if (isPro === false) {
@@ -242,7 +265,7 @@ function CoachChat({ userId }: { userId: string }) {
     chat.onSend();
   }, [isPro, chat]);
 
-  const { newConversation } = chat;
+  const { isBusy, newConversation } = chat;
 
   return (
     <>
@@ -269,6 +292,7 @@ function CoachChat({ userId }: { userId: string }) {
             },
             {
               accessibilityLabel: "New conversation",
+              disabled: isBusy,
               icon: {
                 name: "plus",
                 type: "sfSymbol",
@@ -304,13 +328,24 @@ function CoachChat({ userId }: { userId: string }) {
 
 export default function CoachScreen() {
   const { user } = useUser();
-  if (!user) {
+  const { data: isPro, isPending: isProPending } = useIsProQuery();
+  // Above the runtime, so a remount after a purchase keeps the draft.
+  const composer = useState("");
+  // Wait for the entitlement: a free User's saved Conversation must not
+  // resume, since every Coach request checks Pro and a refusal is cached.
+  if (!user || isProPending) {
     return null;
   }
-  // Keyed by User: a different User gets their own runtime and Conversation.
+  const canResume = isPro !== false;
+  // Keyed by User and access: a different User gets their own runtime, and
+  // buying Pro remounts it so the saved Conversation resumes.
   return (
-    <CoachRuntime key={user.id} userId={user.id}>
-      <CoachChat userId={user.id} />
+    <CoachRuntime
+      canResume={canResume}
+      key={`${user.id}:${canResume}`}
+      userId={user.id}
+    >
+      <CoachChat composer={composer} isPro={isPro} userId={user.id} />
     </CoachRuntime>
   );
 }

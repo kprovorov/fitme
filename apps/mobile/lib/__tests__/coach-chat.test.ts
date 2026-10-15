@@ -5,6 +5,7 @@ import {
   clearSavedCoachConversation,
   coachErrorAction,
   coachRunConfig,
+  isRefusedSend,
   loadSavedCoachConversation,
   saveCoachConversation,
   saveCoachSession,
@@ -111,5 +112,31 @@ describe("saved Coach Conversation", () => {
     saveCoachSession("user_f", undefined);
 
     expect(loadSavedCoachConversation("user_f")).toEqual({});
+  });
+});
+
+describe("isRefusedSend", () => {
+  const userMessage = (status?: string) =>
+    ({
+      content: [{ text: "Build me a plan", type: "text" }],
+      metadata: { custom: status ? { status } : {} },
+      role: "user",
+    }) as unknown as Parameters<typeof isRefusedSend>[0];
+
+  it("spots the placeholder eve keeps for a send the Coach refused", () => {
+    expect(isRefusedSend(userMessage("failed"))).toBe(true);
+  });
+
+  it("keeps a delivered message", () => {
+    expect(isRefusedSend(userMessage())).toBe(false);
+  });
+
+  it("keeps a failed assistant answer, which shows as an error", () => {
+    expect(
+      isRefusedSend({
+        ...userMessage("failed"),
+        role: "assistant",
+      } as Parameters<typeof isRefusedSend>[0])
+    ).toBe(false);
   });
 });
