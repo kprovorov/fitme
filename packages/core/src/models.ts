@@ -269,3 +269,16 @@ export const defaultCoachModelId: CoachModelId = "gpt-5.5";
 export function isCoachModelId(value: unknown): value is CoachModelId {
   return coachModels.some((model) => model.id === value);
 }
+
+/** The RevenueCat entitlement that makes a User Pro (and unlocks the Coach). */
+export const proEntitlement = "Fitme Pro";
+
+/**
+ * Stable `code`s of the Coach channel's `{ ok: false, code, error }` refusals:
+ * `proRequired` (403) shows the paywall; `proCheckUnavailable` (503) means
+ * the subscription couldn't be checked, so retry instead.
+ */
+export const coachErrorCodes = {
+  proCheckUnavailable: "coach_pro_check_unavailable",
+  proRequired: "coach_pro_required",
+} as const;
