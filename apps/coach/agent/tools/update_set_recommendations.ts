@@ -3,6 +3,7 @@ import { updateSetRecommendations } from "@fitme/services/workout-edits";
 import { defineTool } from "eve/tools";
 import { z } from "zod";
 import { requireConversationOwner } from "../lib/owner";
+import { MAX_REPS, MAX_REST_SECONDS, MAX_WEIGHT } from "../lib/workout-edits";
 
 export default defineTool({
   description:
@@ -29,12 +30,14 @@ export default defineTool({
       .number()
       .int()
       .min(1)
+      .max(MAX_REPS)
       .optional()
       .describe("New recommended rep count"),
     rest_recommended: z
       .number()
       .int()
       .min(0)
+      .max(MAX_REST_SECONDS)
       .optional()
       .describe("New recommended rest duration in seconds"),
     set_id: z
@@ -44,6 +47,7 @@ export default defineTool({
     weight_recommended: z
       .number()
       .min(0)
+      .max(MAX_WEIGHT)
       .optional()
       .describe("New recommended weight in the user's unit system"),
   }),

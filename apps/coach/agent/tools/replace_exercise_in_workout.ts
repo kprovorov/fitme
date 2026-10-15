@@ -3,7 +3,11 @@ import { replaceExerciseInWorkout } from "@fitme/services/workout-edits";
 import { defineTool } from "eve/tools";
 import { z } from "zod";
 import { requireConversationOwner } from "../lib/owner";
-import { reportingUnknownExercises, setSchema } from "../lib/workout-edits";
+import {
+  MAX_SETS_PER_EXERCISE,
+  reportingUnknownExercises,
+  setSchema,
+} from "../lib/workout-edits";
 
 export default defineTool({
   description:
@@ -38,6 +42,7 @@ export default defineTool({
     sets: z
       .array(setSchema)
       .min(1)
+      .max(MAX_SETS_PER_EXERCISE)
       .describe(
         "New sets configuration suited to the replacement exercise. Replaces all existing sets."
       ),

@@ -4,6 +4,7 @@ import { defineTool } from "eve/tools";
 import { z } from "zod";
 import { requireConversationOwner } from "../lib/owner";
 import { requestKey } from "../lib/request-key";
+import { MAX_REPS, MAX_REST_SECONDS, MAX_WEIGHT } from "../lib/workout-edits";
 
 export default defineTool({
   description:
@@ -28,15 +29,18 @@ export default defineTool({
       .number()
       .int()
       .min(1)
+      .max(MAX_REPS)
       .describe("Recommended reps for the new set"),
     rest_recommended: z
       .number()
       .int()
       .min(0)
+      .max(MAX_REST_SECONDS)
       .describe("Recommended rest time in seconds after this set"),
     weight_recommended: z
       .number()
       .min(0)
+      .max(MAX_WEIGHT)
       .describe("Recommended weight for the new set in the user's unit system"),
     workout_exercise_id: z
       .string()

@@ -259,6 +259,64 @@ describe("add_set_to_exercise", () => {
   });
 });
 
+describe("set targets", () => {
+  const tooMuch = [
+    { reps_recommended: 1001 },
+    { rest_recommended: 3601 },
+    { weight_recommended: 10_001 },
+  ];
+  const accepts = (tool: Tool, input: unknown) =>
+    (tool.inputSchema as ZodTypeAny).safeParse(input).success;
+
+  it.each(tooMuch)("rejects %o past the domain limits", (change) => {
+    expect(
+      accepts(addSetToExercise, {
+        ...newSet,
+        ...change,
+        workout_exercise_id: workoutExerciseId,
+      })
+    ).toBe(false);
+    expect(
+      accepts(updateSetRecommendations, { ...change, set_id: setId })
+    ).toBe(false);
+    expect(
+      accepts(addExerciseToWorkout, {
+        exercise_id: exerciseId,
+        sets: [{ ...newSet, ...change }],
+        workout_id: workoutId,
+      })
+    ).toBe(false);
+    expect(
+      accepts(replaceExerciseInWorkout, {
+        new_exercise_id: exerciseId,
+        sets: [{ ...newSet, ...change }],
+        workout_exercise_id: workoutExerciseId,
+      })
+    ).toBe(false);
+  });
+
+  it("rejects more than 20 sets for one Exercise", () => {
+    expect(
+      accepts(addExerciseToWorkout, {
+        exercise_id: exerciseId,
+        sets: Array.from({ length: 21 }, () => newSet),
+        workout_id: workoutId,
+      })
+    ).toBe(false);
+  });
+
+  it("accepts targets at the limits", () => {
+    expect(
+      accepts(addSetToExercise, {
+        reps_recommended: 1000,
+        rest_recommended: 3600,
+        weight_recommended: 10_000,
+        workout_exercise_id: workoutExerciseId,
+      })
+    ).toBe(true);
+  });
+});
+
 describe("request keys", () => {
   const input = { ...newSet, workout_exercise_id: workoutExerciseId };
   const keyOf = async (ctx: ToolContext, call = input) => {

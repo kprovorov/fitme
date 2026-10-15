@@ -470,6 +470,26 @@ describe("replaceExerciseInWorkout", () => {
     expect(await shapeOf(plan)).toEqual(replacedShape);
   });
 
+  it("keeps the set ids when the replacement is already in place", async () => {
+    const plan = await seedPlan(owner);
+    const replace = () =>
+      asUser(owner, (tx) =>
+        replaceExerciseInWorkout(tx, owner, {
+          newExerciseId: rowId,
+          sets,
+          workoutExerciseId: plan.bench,
+        })
+      );
+    const setIds = async () =>
+      (await dayAOf(plan))?.exercises[0].sets.map((set) => set.id);
+
+    await replace();
+    const firstIds = await setIds();
+    await replace();
+
+    expect(await setIds()).toEqual(firstIds);
+  });
+
   it("can't replace in another User's Workout", async () => {
     const plan = await seedPlan(owner);
 

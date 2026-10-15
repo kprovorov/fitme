@@ -6,7 +6,7 @@ import {
   workoutExercises,
   workouts,
 } from "@fitme/db";
-import { and, count, eq, inArray, max, type SQL, sql } from "drizzle-orm";
+import { and, asc, count, eq, inArray, max, type SQL, sql } from "drizzle-orm";
 import {
   type PlanSet,
   type PlanSetInput,
@@ -305,11 +305,54 @@ export const removeExerciseFromWorkout = async (
 };
 
 /**
+ * Whether a Workout Exercise already is `exerciseId` with exactly `sets`, in
+ * order: what `replaceExerciseInWorkout` would leave behind.
+ */
+const isAlreadyReplaced = async (
+  tx: Transaction,
+  workoutExerciseId: string,
+  exerciseId: string,
+  sets: PlanSetInput[]
+) => {
+  const [current] = await tx
+    .select({ exerciseId: workoutExercises.exerciseId })
+    .from(workoutExercises)
+    .where(eq(workoutExercises.id, workoutExerciseId));
+  if (current?.exerciseId !== exerciseId) {
+    return false;
+  }
+  const currentSets = await tx
+    .select({
+      order: workoutExerciseSets.order,
+      repsRecommended: workoutExerciseSets.repsRecommended,
+      restRecommended: workoutExerciseSets.restRecommended,
+      weightRecommended: workoutExerciseSets.weightRecommended,
+    })
+    .from(workoutExerciseSets)
+    .where(eq(workoutExerciseSets.workoutExerciseId, workoutExerciseId))
+    .orderBy(asc(workoutExerciseSets.order), asc(workoutExerciseSets.id));
+  return (
+    currentSets.length === sets.length &&
+    currentSets.every(
+      (set, index) =>
+        set.order === index + 1 &&
+        set.repsRecommended === sets[index].reps_recommended &&
+        set.restRecommended === sets[index].rest_recommended &&
+        // numeric(8,2) keeps two decimals, as the insert would
+        Number(set.weightRecommended) ===
+          Number(sets[index].weight_recommended.toFixed(2))
+    )
+  );
+};
+
+/**
  * Swaps the library Exercise of one of the User's Workout Exercises, keeping
  * its id and place in the Workout, and replaces all its sets with `sets`, in
  * array order. Returns `false`, changing nothing, when the User has no such
  * Workout Exercise. Throws `UnknownExercisesError`, before writing anything,
- * for an unknown Exercise.
+ * for an unknown Exercise. When the Workout Exercise already is that Exercise
+ * with exactly those sets (a repeated call), nothing is rewritten, so the set
+ * ids a read in between handed out stay valid.
  */
 export const replaceExerciseInWorkout = async (
   tx: Transaction,
@@ -323,6 +366,9 @@ export const replaceExerciseInWorkout = async (
   await lockEditedTables(tx);
   if (!(await lockWorkoutExercise(tx, userId, workoutExerciseId))) {
     return false;
+  }
+  if (await isAlreadyReplaced(tx, workoutExerciseId, newExerciseId, sets)) {
+    return true;
   }
   await assertExerciseExists(tx, newExerciseId);
   await tx

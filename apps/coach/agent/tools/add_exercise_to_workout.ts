@@ -4,7 +4,11 @@ import { defineTool } from "eve/tools";
 import { z } from "zod";
 import { requireConversationOwner } from "../lib/owner";
 import { requestKey } from "../lib/request-key";
-import { reportingUnknownExercises, setSchema } from "../lib/workout-edits";
+import {
+  MAX_SETS_PER_EXERCISE,
+  reportingUnknownExercises,
+  setSchema,
+} from "../lib/workout-edits";
 
 export default defineTool({
   description:
@@ -38,6 +42,7 @@ export default defineTool({
     sets: z
       .array(setSchema)
       .min(1)
+      .max(MAX_SETS_PER_EXERCISE)
       .describe("Initial sets configuration for this exercise"),
     workout_id: z
       .string()
