@@ -1,26 +1,38 @@
 import { defineState } from "eve/context";
 import { defineHook } from "eve/hooks";
+import { reportError } from "../lib/sentry";
 import {
-  addStepUsage,
-  type TurnUsage,
+  addStepCost,
+  reportedCostUsd,
+  type TurnSpend,
   turnLimitReached,
 } from "../lib/turn-limits";
 
-const turnUsage = defineState<TurnUsage | null>(
-  "fitme-coach.turn-usage",
+const turnSpend = defineState<TurnSpend | null>(
+  "fitme-coach.turn-spend",
   () => null
 );
 
 /** Cancels a turn before the model call that would exceed its caps. */
 export default defineHook({
   events: {
-    "step.completed"(event) {
-      turnUsage.update((usage) =>
-        addStepUsage(usage, event.data.turnId, event.data.usage)
-      );
+    async "step.completed"(event, ctx) {
+      const { stepIndex, turnId, usage } = event.data;
+      turnSpend.update((spend) => addStepCost(spend, turnId, usage));
+      if (reportedCostUsd(usage) === null) {
+        const error = new Error(
+          `step ${stepIndex} reported no cost; the turn stops before its next model call`
+        );
+        error.name = "Coach step cost missing";
+        await reportError(error, {
+          sessionId: ctx.session.id,
+          stepIndex: String(stepIndex),
+          turnId,
+        });
+      }
     },
     "step.started"(event, ctx) {
-      const reached = turnLimitReached(event.data, turnUsage.get());
+      const reached = turnLimitReached(event.data, turnSpend.get());
       if (reached) {
         console.warn(`Coach turn hit its ${reached} limit`, {
           sessionId: ctx.session.id,

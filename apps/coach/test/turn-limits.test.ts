@@ -1,11 +1,14 @@
 import { describe, expect, it } from "vitest";
 import {
-  addStepUsage,
+  addStepCost,
   MAX_STEPS_PER_TURN,
-  MAX_TURN_INPUT_TOKENS,
-  MAX_TURN_OUTPUT_TOKENS,
+  MAX_TURN_COST_USD,
+  reportedCostUsd,
   turnLimitReached,
 } from "../agent/lib/turn-limits";
+
+/** A step's usage with token counts but no cost. */
+const tokensOnly = { inputTokens: 10, outputTokens: 5 };
 
 describe("turnLimitReached", () => {
   it("lets the first 20 model calls of a turn run", () => {
@@ -21,45 +24,68 @@ describe("turnLimitReached", () => {
     ).toBe("steps");
   });
 
-  it("stops the next call once the turn spent its input or output budget", () => {
-    const spentInput = addStepUsage(null, "t1", {
-      inputTokens: MAX_TURN_INPUT_TOKENS,
-    });
-    const spentOutput = addStepUsage(null, "t1", {
-      outputTokens: MAX_TURN_OUTPUT_TOKENS,
-    });
+  it("adds up a turn's cost and starts over on the next turn", () => {
+    const once = addStepCost(null, "t1", { costUsd: 0.25 });
+    const twice = addStepCost(once, "t1", { costUsd: 0.5 });
 
-    expect(turnLimitReached({ stepIndex: 3, turnId: "t1" }, spentInput)).toBe(
-      "budget"
-    );
-    expect(turnLimitReached({ stepIndex: 3, turnId: "t1" }, spentOutput)).toBe(
-      "budget"
-    );
-  });
-
-  it("adds up a turn's steps and starts over on the next turn", () => {
-    const half = Math.ceil(MAX_TURN_INPUT_TOKENS / 2);
-    const once = addStepUsage(null, "t1", { inputTokens: half });
-    const twice = addStepUsage(once, "t1", { inputTokens: half });
-
-    expect(turnLimitReached({ stepIndex: 1, turnId: "t1" }, once)).toBe(null);
-    expect(turnLimitReached({ stepIndex: 2, turnId: "t1" }, twice)).toBe(
-      "budget"
-    );
-
-    expect(turnLimitReached({ stepIndex: 0, turnId: "t2" }, twice)).toBe(null);
-    expect(addStepUsage(twice, "t2", { inputTokens: 10 })).toEqual({
-      inputTokens: 10,
-      outputTokens: 0,
+    expect(twice).toEqual({ costUsd: 0.75, turnId: "t1", unpriced: false });
+    expect(addStepCost(twice, "t2", { costUsd: 0.1 })).toEqual({
+      costUsd: 0.1,
       turnId: "t2",
+      unpriced: false,
     });
   });
 
-  it("counts a step without reported usage as free", () => {
-    expect(addStepUsage(null, "t1", undefined)).toEqual({
-      inputTokens: 0,
-      outputTokens: 0,
-      turnId: "t1",
-    });
+  it("stops the next call once the turn spent $1.00", () => {
+    expect(MAX_TURN_COST_USD).toBe(1);
+    const under = addStepCost(null, "t1", { costUsd: 0.99 });
+    const spent = addStepCost(under, "t1", { costUsd: 0.01 });
+    const over = addStepCost(under, "t1", { costUsd: 0.6 });
+
+    expect(turnLimitReached({ stepIndex: 1, turnId: "t1" }, under)).toBe(null);
+    expect(turnLimitReached({ stepIndex: 2, turnId: "t1" }, spent)).toBe(
+      "budget"
+    );
+    expect(turnLimitReached({ stepIndex: 2, turnId: "t1" }, over)).toBe(
+      "budget"
+    );
+  });
+
+  it("lets a new turn run after the previous one spent its budget", () => {
+    const spent = addStepCost(null, "t1", { costUsd: 1.5 });
+
+    expect(turnLimitReached({ stepIndex: 0, turnId: "t2" }, spent)).toBe(null);
+  });
+
+  it("stops the call after a step that reported no cost", () => {
+    const priced = addStepCost(null, "t1", { costUsd: 0.01 });
+    const noUsage = addStepCost(priced, "t1", undefined);
+    const noCost = addStepCost(priced, "t1", tokensOnly);
+    const thenPriced = addStepCost(noCost, "t1", { costUsd: 0.01 });
+
+    expect(turnLimitReached({ stepIndex: 2, turnId: "t1" }, noUsage)).toBe(
+      "unpriced"
+    );
+    expect(turnLimitReached({ stepIndex: 2, turnId: "t1" }, noCost)).toBe(
+      "unpriced"
+    );
+    expect(turnLimitReached({ stepIndex: 3, turnId: "t1" }, thenPriced)).toBe(
+      "unpriced"
+    );
+    expect(turnLimitReached({ stepIndex: 0, turnId: "t2" }, noCost)).toBe(null);
+  });
+});
+
+describe("reportedCostUsd", () => {
+  it("is the step's reported cost, free steps included", () => {
+    expect(reportedCostUsd({ costUsd: 0.0123 })).toBe(0.0123);
+    expect(reportedCostUsd({ costUsd: 0 })).toBe(0);
+  });
+
+  it("is null, to be reported, when the step reported no usable cost", () => {
+    expect(reportedCostUsd(undefined)).toBe(null);
+    expect(reportedCostUsd(tokensOnly)).toBe(null);
+    expect(reportedCostUsd({ costUsd: Number.NaN })).toBe(null);
+    expect(reportedCostUsd({ costUsd: -1 })).toBe(null);
   });
 });
