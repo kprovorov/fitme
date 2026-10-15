@@ -242,16 +242,16 @@ export const listWorkoutSessions = async (
 };
 
 /**
- * One of the User's Workout Sessions with its Workout and Plan, and its
- * exercises and their sets in order, in `tx` (from `asUser`), or `null` when
- * there is none with that id the User can see.
+ * The Workout Sessions matching `where`, in `orderBy` order, each with its
+ * Workout and Plan, and its exercises and their sets in order. One statement,
+ * so a concurrent delete can't leave a half-read session (READ COMMITTED gives
+ * each statement its own snapshot).
  */
-export const getWorkoutSession = async (
+const findSessionDetails = async (
   tx: Transaction,
-  sessionId: string
-): Promise<WorkoutSessionDetail | null> => {
-  // One statement, so a concurrent delete can't leave a half-read session
-  // (READ COMMITTED gives each statement its own snapshot).
+  where: SQL,
+  orderBy: SQL[] = []
+): Promise<WorkoutSessionDetail[]> => {
   const rows = await tx
     .select({
       ...sessionColumns,
@@ -279,20 +279,31 @@ export const getWorkoutSession = async (
         workoutSessionExercises.id
       )
     )
-    .where(eq(workoutSessions.id, sessionId))
+    .where(where)
     .orderBy(
+      ...orderBy,
+      asc(workoutSessions.id),
       asc(workoutSessionExercises.order),
       asc(workoutSessionExercises.id),
       asc(workoutSessionExerciseSets.order),
       asc(workoutSessionExerciseSets.id)
     );
-  const [session] = rows;
-  if (!session) {
-    return null;
-  }
 
+  const sessions = new Map<string, WorkoutSessionDetail>();
   const sessionExercises = new Map<string, WorkoutSessionExercise>();
   for (const row of rows) {
+    let session = sessions.get(row.id);
+    if (!session) {
+      session = {
+        exercises: [],
+        finished_at: row.finishedAt,
+        id: row.id,
+        started_at: row.startedAt,
+        status: statusOf(row.finishedAt),
+        ...refsOf(row),
+      };
+      sessions.set(row.id, session);
+    }
     const {
       exerciseId,
       exerciseName,
@@ -318,20 +329,54 @@ export const getWorkoutSession = async (
         sets: [],
       };
       sessionExercises.set(sessionExerciseId, exercise);
+      session.exercises.push(exercise);
     }
     if (setId !== null && setOrder !== null) {
       exercise.sets.push(toSet({ ...row, id: setId, order: setOrder }));
     }
   }
+  return [...sessions.values()];
+};
 
-  return {
-    exercises: [...sessionExercises.values()],
-    finished_at: session.finishedAt,
-    id: session.id,
-    started_at: session.startedAt,
-    status: statusOf(session.finishedAt),
-    ...refsOf(session),
-  };
+/**
+ * One of the User's Workout Sessions with its Workout and Plan, and its
+ * exercises and their sets in order, in `tx` (from `asUser`), or `null` when
+ * there is none with that id the User can see.
+ */
+export const getWorkoutSession = async (
+  tx: Transaction,
+  sessionId: string
+): Promise<WorkoutSessionDetail | null> => {
+  const [session] = await findSessionDetails(
+    tx,
+    eq(workoutSessions.id, sessionId)
+  );
+  return session ?? null;
+};
+
+export interface WorkoutHistoryOptions {
+  limit: number;
+}
+
+/**
+ * The User's last `limit` finished Workout Sessions, last finished first, each
+ * in full like `getWorkoutSession` (the reps and weights logged per set), in
+ * `tx` (from `asUser`; RLS hides every other User's). One statement, so one
+ * snapshot.
+ */
+export const listWorkoutHistory = (
+  tx: Transaction,
+  { limit }: WorkoutHistoryOptions
+): Promise<WorkoutSessionDetail[]> => {
+  const latestFinished = tx
+    .select({ id: workoutSessions.id })
+    .from(workoutSessions)
+    .where(isNotNull(workoutSessions.finishedAt))
+    .orderBy(desc(workoutSessions.finishedAt), asc(workoutSessions.id))
+    .limit(limit);
+  return findSessionDetails(tx, inArray(workoutSessions.id, latestFinished), [
+    desc(workoutSessions.finishedAt),
+  ]);
 };
 
 export interface LogSetInput {

@@ -4,5 +4,5 @@
     "lib": ["ES2022"],
     "types": ["node"]
   },
-  "include": ["agent", "test", "vitest.config.ts"]
+  "include": ["agent", "evals", "test", "vitest.config.ts"]
 }

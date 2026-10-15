@@ -15,6 +15,7 @@ import {
   activatePlan,
   createPlan,
   deletePlan,
+  getActivePlan,
   getPlan,
   listPlans,
   type NewPlan,
@@ -300,6 +301,31 @@ describe("listPlans", () => {
   });
 });
 
+describe("getActivePlan", () => {
+  it("returns the User's active Plan in full", async () => {
+    const active = await asUser(owner, (tx) => getActivePlan(tx, owner));
+    const plan = await asUser(owner, (tx) => getPlan(tx, owner, newer.id));
+
+    expect(active).toEqual(plan);
+    expect(active).toMatchObject({ id: newer.id, is_active: true });
+    expect(active?.workouts.map((workout) => workout.id)).toEqual([
+      newer.dayA,
+      newer.dayB,
+    ]);
+  });
+
+  it("returns null when the User has no active Plan", async () => {
+    expect(
+      await asUser(intruder, (tx) => getActivePlan(tx, intruder))
+    ).toBeNull();
+  });
+
+  it("never returns another User's active Plan", async () => {
+    // asking with the owner's id doesn't get past RLS
+    expect(await asUser(intruder, (tx) => getActivePlan(tx, owner))).toBeNull();
+  });
+});
+
 describe("deletePlan", () => {
   it("never deletes another User's Plan", async () => {
     expect(
@@ -341,6 +367,7 @@ describe("deletePlan", () => {
         .where(eq(workouts.planId, newer.id))
     );
     expect(remaining).toHaveLength(2);
+    expect(await asUser(owner, (tx) => getActivePlan(tx, owner))).toBeNull();
   });
 
   it("hides the deleted Plan from listPlans and getPlan", async () => {

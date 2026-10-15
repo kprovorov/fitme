@@ -1,9 +1,12 @@
 import type { SessionContext } from "eve/tools";
 import type { ClaimSession } from "./clerk-auth";
+import { isEvalRunnerTurn } from "./eval-runner";
 import { ownerOfTurn } from "./owner";
 
 interface AdmitTurnDeps {
   claim: ClaimSession;
+  /** Whether this is a local `eve eval` run (`isLocalEvalRun`). */
+  isEvalRun: () => boolean;
   report: (error: unknown, context: { sessionId: string }) => Promise<void>;
 }
 
@@ -13,14 +16,20 @@ interface AdmitTurnDeps {
  * already), so account deletion can find every session the User has and the
  * channel keeps others out. A session recorded for anyone else, or one that
  * can't be recorded, cancels the turn; the next turn tries again.
+ *
+ * In a local `eve eval` run only, the eval runner's own turns run too: they
+ * have no User, so there is nothing to record, and no tool can act as them.
  */
 export const admitTurn = async (
   {
     auth,
     sessionId,
   }: { auth: SessionContext["session"]["auth"]; sessionId: string },
-  { claim, report }: AdmitTurnDeps
+  { claim, isEvalRun, report }: AdmitTurnDeps
 ): Promise<boolean> => {
+  if (isEvalRunnerTurn(auth)) {
+    return isEvalRun();
+  }
   const owner = ownerOfTurn(auth);
   if (!owner) {
     return false;

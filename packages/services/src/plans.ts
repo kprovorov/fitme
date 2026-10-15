@@ -6,7 +6,16 @@ import {
   workoutExercises as workoutExercisesTable,
   workouts as workoutsTable,
 } from "@fitme/db";
-import { and, eq, inArray, isNotNull, isNull, or, sql } from "drizzle-orm";
+import {
+  and,
+  eq,
+  inArray,
+  isNotNull,
+  isNull,
+  or,
+  type SQL,
+  sql,
+} from "drizzle-orm";
 import { jsonTimestamp } from "./json-timestamp";
 
 /** A Plan's own columns, without its Workouts. */
@@ -164,19 +173,14 @@ export const listPlans = (
   userId: string
 ): Promise<PlanSummary[]> => findPlanSummaries(tx, userId);
 
-/**
- * One of the User's live Plans in full, or `null` when it doesn't exist, was
- * soft-deleted or belongs to another User. One statement, so one snapshot.
- * Runs in `tx` from `asUser`.
- */
-export const getPlan = async (
+/** The first Plan matching `where` in full, in one statement. */
+const findPlanDetail = async (
   tx: Transaction,
-  userId: string,
-  planId: string
+  where: SQL | undefined
 ): Promise<PlanDetail | null> => {
   const row = await tx.query.plans.findFirst({
     ...planQuery,
-    where: livePlanOf(userId, planId),
+    where,
     with: {
       workouts: {
         columns: { description: true, id: true, name: true, order: true },
@@ -237,6 +241,29 @@ export const getPlan = async (
     })),
   };
 };
+
+/**
+ * One of the User's live Plans in full, or `null` when it doesn't exist, was
+ * soft-deleted or belongs to another User. One statement, so one snapshot.
+ * Runs in `tx` from `asUser`.
+ */
+export const getPlan = (
+  tx: Transaction,
+  userId: string,
+  planId: string
+): Promise<PlanDetail | null> => findPlanDetail(tx, livePlanOf(userId, planId));
+
+/**
+ * The User's active Plan in full, or `null` when none is active. A
+ * soft-deleted Plan is never active (`deactivate_deleted_plan`), but it is
+ * filtered out too. One statement, so one snapshot. Runs in `tx` from
+ * `asUser`; RLS hides every other User's Plans as well.
+ */
+export const getActivePlan = (
+  tx: Transaction,
+  userId: string
+): Promise<PlanDetail | null> =>
+  findPlanDetail(tx, and(livePlansOf(userId), eq(plans.isActive, true)));
 
 export interface DeletedPlan {
   /** True when the Plan was already soft-deleted, so nothing changed. */

@@ -1,6 +1,7 @@
 import { defineHook } from "eve/hooks";
 import { claimSession } from "../lib/claim-session";
 import { admitTurn } from "../lib/conversation";
+import { isLocalEvalRun } from "../lib/eval-runner";
 import { reportError } from "../lib/sentry";
 
 /**
@@ -13,7 +14,7 @@ export default defineHook({
     async "turn.started"(_event, ctx) {
       const admitted = await admitTurn(
         { auth: ctx.session.auth, sessionId: ctx.session.id },
-        { claim: claimSession, report: reportError }
+        { claim: claimSession, isEvalRun: isLocalEvalRun, report: reportError }
       );
       if (!admitted) {
         ctx.cancel();

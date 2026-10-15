@@ -6,6 +6,7 @@
   "scripts": {
     "build": "eve build",
     "dev": "eve dev --no-ui --port 3005",
+    "eval": "eve eval",
     "test": "vitest run",
     "test:watch": "vitest",
     "typecheck": "tsc --noEmit"

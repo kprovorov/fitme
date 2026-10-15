@@ -38,16 +38,17 @@ describe("conversation owner", () => {
 describe("admitTurn", () => {
   const deps = (owner: string | null = "user_alice") => ({
     claim: vi.fn().mockResolvedValue(owner),
+    isEvalRun: () => false,
     report: vi.fn().mockResolvedValue(undefined),
   });
 
   it("records the session for its owner and lets the turn run", async () => {
-    const { claim, report } = deps();
+    const { claim, isEvalRun, report } = deps();
 
     expect(
       await admitTurn(
         { auth: { current: alice, initiator: alice }, sessionId: "wrun_1" },
-        { claim, report }
+        { claim, isEvalRun, report }
       )
     ).toBe(true);
     expect(claim).toHaveBeenCalledWith("wrun_1", "user_alice");
@@ -55,24 +56,24 @@ describe("admitTurn", () => {
   });
 
   it("refuses a turn someone else sends to the owner's session", async () => {
-    const { claim, report } = deps();
+    const { claim, isEvalRun, report } = deps();
 
     expect(
       await admitTurn(
         { auth: { current: mallory, initiator: alice }, sessionId: "wrun_1" },
-        { claim, report }
+        { claim, isEvalRun, report }
       )
     ).toBe(false);
     expect(claim).not.toHaveBeenCalled();
   });
 
   it("refuses the turn when the session is recorded for someone else", async () => {
-    const { claim, report } = deps("user_mallory");
+    const { claim, isEvalRun, report } = deps("user_mallory");
 
     expect(
       await admitTurn(
         { auth: { current: alice, initiator: alice }, sessionId: "wrun_1" },
-        { claim, report }
+        { claim, isEvalRun, report }
       )
     ).toBe(false);
     expect(report).toHaveBeenCalledWith(expect.any(Error), {
@@ -81,14 +82,14 @@ describe("admitTurn", () => {
   });
 
   it("refuses the turn and reports when the session can't be recorded", async () => {
-    const { claim, report } = deps();
+    const { claim, isEvalRun, report } = deps();
     const failure = new Error("pooler down");
     claim.mockRejectedValue(failure);
 
     expect(
       await admitTurn(
         { auth: { current: alice, initiator: alice }, sessionId: "wrun_1" },
-        { claim, report }
+        { claim, isEvalRun, report }
       )
     ).toBe(false);
     expect(report).toHaveBeenCalledWith(failure, { sessionId: "wrun_1" });
