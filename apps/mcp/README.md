@@ -5,7 +5,7 @@ Streamable HTTP [MCP](https://modelcontextprotocol.io) server for Fitme. Catalog
 ```bash
 pnpm dev:mcp            # tsx watch, http://localhost:3002
 pnpm mcp build          # tsdown bundle → dist/
-pnpm mcp start          # runs dist/index.js
+pnpm mcp start          # runs dist/node/index.js
 pnpm mcp test           # vitest (in-memory MCP client + Hono app, fake services)
 pnpm mcp test:integration  # vitest against a running Supabase stack (see below)
 ```

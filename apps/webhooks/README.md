@@ -5,7 +5,7 @@ Receives third-party webhooks. [Hono](https://hono.dev) app served with `@hono/n
 ```bash
 pnpm dev:webhooks          # tsx watch, http://localhost:3004
 pnpm webhooks build        # tsdown bundle → dist/
-pnpm webhooks start        # runs dist/index.js
+pnpm webhooks start        # runs dist/node/index.js
 pnpm webhooks test         # vitest
 ```
 

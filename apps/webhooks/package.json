@@ -6,7 +6,7 @@
   "scripts": {
     "build": "tsdown",
     "dev": "tsx watch src/index.ts",
-    "start": "node dist/index.js",
+    "start": "node dist/node/index.js",
     "test": "vitest run",
     "test:watch": "vitest",
     "typecheck": "tsc --noEmit"
@@ -17,7 +17,10 @@
     "@fitme/services": "workspace:*",
     "@hono/node-server": "^2.1.1",
     "@sentry/node": "^11.7.0",
-    "hono": "^4.13.9"
+    "@vercel/functions": "^3.10.1",
+    "drizzle-orm": "^0.45.4",
+    "hono": "^4.13.9",
+    "pg": "^8.23.0"
   },
   "devDependencies": {
     "@fitme/typescript-config": "workspace:*",

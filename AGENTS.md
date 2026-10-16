@@ -239,7 +239,7 @@ Business logic shared by the backend apps (ADR 0004), replacing the Postgres RPC
 
 **Module aliases**: Inside each app, `~/` and `@/` resolve to that app's root. Cross-workspace imports always go through the package name (`@fitme/core`, `@fitme/supabase`).
 
-**Workspace packages are source-only**: no build step. Metro resolves them through the hoisted `node_modules`; Next compiles them via `transpilePackages`. pnpm uses `nodeLinker: hoisted` (see `pnpm-workspace.yaml`) because React Native autolinking needs a flat `node_modules`.
+**Workspace packages are source-only**: no build step. Metro resolves them through the hoisted `node_modules`; Next compiles them via `transpilePackages`. The tsdown apps (`apps/api`, `apps/mcp`, `apps/webhooks`) inline `@fitme/*` and nothing else (`deps.onlyBundle`): a workspace package's runtime dependency (`pg`, `drizzle-orm`, `@vercel/functions` for `@fitme/db`) must also be in the app's `dependencies`, or its build fails; it stays external and Vercel traces it into the function. Their build emits the Vercel entry as `dist/app.js` and the standalone Node server (`pnpm start`) as `dist/node/index.js`, out of Vercel's entrypoint lookup. pnpm uses `nodeLinker: hoisted` (see `pnpm-workspace.yaml`) because React Native autolinking needs a flat `node_modules`.
 
 ## Environment Variables
 
