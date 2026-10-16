@@ -1,9 +1,9 @@
-import type { Metadata } from "next";
+import type { Metadata, Viewport } from "next";
 import "./globals.css";
 import { GoogleTagManager } from "@next/third-parties/google";
 import { Analytics } from "@vercel/analytics/next";
 import { SpeedInsights } from "@vercel/speed-insights/next";
-import { Nunito_Sans } from "next/font/google";
+import { Archivo, Nunito_Sans } from "next/font/google";
 import Footer from "@/components/footer";
 import Header from "@/components/header";
 import { MainBox } from "@/components/mainbox";
@@ -14,19 +14,29 @@ const nunitoSans = Nunito_Sans({
   weight: ["200", "300", "400", "500", "600", "700", "800", "900"],
 });
 
+// Display face: Archivo's condensed, heavy cut for headlines (see `display-type`).
+const archivo = Archivo({
+  axes: ["wdth"],
+  subsets: ["latin"],
+  variable: "--font-archivo",
+});
+
 export const metadata: Metadata = {
   description:
-    "Fitme is your AI-powered workout tracker and fitness coach. Generate personalized plans, track progress, and achieve your goals with our iPhone app",
+    "Fitme builds your strength plan, tracks every set and gives you an AI Coach that knows your training. Workout planner and tracker for iPhone.",
   itunes: {
     appId: process.env.NEXT_PUBLIC_APPSTORE_ID || "",
   },
-  keywords:
-    "fitness, workout, workout tracker, fitness coach, iPhone app, workout app, workout planner, workout routine, workout schedule, workout timer, workout log, workout history, workout progress, workout goal, workout goal progress, workout goal history, workout goal schedule, workout goal timer, workout goal log, workout goal history, workout goal progress",
   metadataBase: new URL("https://fitmeproject.com"),
   openGraph: {
     url: "https://fitmeproject.com",
   },
-  title: "Fitme Project — AI Workout Tracker & Fitness Coach for iPhone",
+  title: "Fitme: AI workout planner, tracker and Coach for iPhone",
+};
+
+export const viewport: Viewport = {
+  colorScheme: "dark",
+  themeColor: "#1f1f1f",
 };
 
 export default function RootLayout({
@@ -35,9 +45,11 @@ export default function RootLayout({
   children: React.ReactNode;
 }>) {
   return (
-    <html lang="en">
+    <html className="dark" lang="en">
       <GoogleTagManager gtmId={process.env.NEXT_PUBLIC_GTM_ID || ""} />
-      <body className={`${nunitoSans.className} dark antialiased`}>
+      <body
+        className={`${nunitoSans.className} ${nunitoSans.variable} ${archivo.variable} antialiased`}
+      >
         <Header />
         <MainBox>{children}</MainBox>
         <Footer />

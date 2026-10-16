@@ -6,7 +6,7 @@ function MainBox({ className, ...props }: ComponentProps<"main">) {
   return (
     <main
       className={cn(
-        "flex min-h-screen flex-col items-center justify-start gap-12 py-20",
+        "flex min-h-screen flex-col items-center justify-start gap-12 py-20 has-[>[data-bleed]]:py-0",
         className
       )}
       {...props}

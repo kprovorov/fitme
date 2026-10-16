@@ -52,7 +52,7 @@
     --popover: 0 0% 100%;
     --popover-foreground: 0 0% 12%;
     --primary: 79 100% 61%;
-    --primary-foreground: 0 0% 98%;
+    --primary-foreground: 0 0% 12%;
     --secondary: 0 0% 96.1%;
     --secondary-foreground: 79 100% 61%;
     --muted: 0 0% 96.1%;
@@ -80,7 +80,7 @@
     --popover-foreground: 0 0% 98%;
     --primary: 79 100% 61%;
     --primary-foreground: 0 0% 12%;
-    --secondary: 0 0% 14.9%;
+    --secondary: 0 0% 15.5%;
     --secondary-foreground: 0 0% 98%;
     --muted: 0 0% 14.9%;
     --muted-foreground: 0 0% 63.9%;
@@ -88,8 +88,8 @@
     --accent-foreground: 0 0% 98%;
     --destructive: 0 62.8% 30.6%;
     --destructive-foreground: 0 0% 98%;
-    --border: 0 0% 14.9%;
-    --input: 0 0% 14.9%;
+    --border: 0 0% 22%;
+    --input: 0 0% 22%;
     --ring: 0 0% 83.1%;
     --chart-1: 220 70% 50%;
     --chart-2: 160 60% 45%;
@@ -103,19 +103,49 @@
   * {
     @apply border-border;
   }
+  html.dark {
+    color-scheme: dark;
+  }
   body {
     @apply bg-background text-foreground;
   }
   h1 {
-    @apply font-bold text-primary text-4xl;
+    @apply display-type text-5xl text-primary;
   }
   h2 {
-    @apply font-bold text-3xl;
+    @apply display-type text-3xl;
   }
   h3 {
     @apply font-medium;
   }
   h4 {
     @apply font-medium;
+  }
+}
+
+/* Headlines: Archivo, condensed and heavy, set tight. */
+@utility display-type {
+  font-family: var(--font-archivo), var(--font-nunito-sans), sans-serif;
+  font-weight: 800;
+  font-stretch: 72%;
+  line-height: 0.95;
+  letter-spacing: -0.015em;
+}
+
+/* The page's one load moment: the hero phone rises into place. */
+@keyframes hero-phone-in {
+  from {
+    opacity: 0;
+    transform: translateY(24px) scale(0.98);
+  }
+}
+
+.hero-phone {
+  animation: hero-phone-in 700ms cubic-bezier(0.2, 0.8, 0.2, 1) both;
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .hero-phone {
+    animation-name: none;
   }
 }
