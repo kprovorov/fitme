@@ -28,6 +28,7 @@ import { Text } from "~/components/ui/text";
 import { Textarea } from "~/components/ui/textarea";
 import { H4, Muted } from "~/components/ui/typography";
 import { VStack } from "~/components/ui/vstack";
+import { numberInRange } from "~/lib/form-schemas";
 import { BicepsFlexed } from "~/lib/icons/BicepsFlexed";
 import { Flame } from "~/lib/icons/Flame";
 import { HeartPulse } from "~/lib/icons/HeartPulse";
@@ -50,23 +51,14 @@ function buildPlanMessage(data: PlanFormValues): string {
 
 export type PlanFormValues = z.infer<typeof formSchema>;
 
-// Every value comes from a picker, so the coerced numbers' input type is
-// `number` too (zod 4's coerce input is `unknown`, which react-hook-form can't
-// type the fields from). The messages are zod 3's defaults, which the screen
-// showed until zod 4.
+// The enum messages are zod 3's defaults, which the screen showed until zod 4.
 const formSchema = z.object({
   experience_level: z.enum(experienceLevels, { error: "Required" }),
-  frequency: z.coerce
-    .number<number>({ error: "Required" })
-    .min(1, { error: "Number must be greater than or equal to 1" })
-    .max(7, { error: "Number must be less than or equal to 7" }),
+  frequency: numberInRange(1, 7, "Required"),
   goal: z.enum(goals, { error: "Required" }),
   note: z.string().optional(),
   place: z.enum(places, { error: "Required" }),
-  workout_duration: z.coerce
-    .number<number>({ error: "Required" })
-    .min(1, { error: "Number must be greater than or equal to 1" })
-    .max(120, { error: "Number must be less than or equal to 120" }),
+  workout_duration: numberInRange(1, 120, "Required"),
 });
 
 const goalOptions = [
