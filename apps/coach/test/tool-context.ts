@@ -1,4 +1,5 @@
 import type { ToolContext } from "eve/tools";
+import type { ZodType } from "zod";
 
 const clerkUser = (principalId: string) => ({
   attributes: {},
@@ -34,3 +35,12 @@ export const userIdFields = {
   user_id: "user_mallory",
   userId: "user_mallory",
 };
+
+/**
+ * A tool's zod input schema, typed with the input its `execute` takes, to
+ * parse a model's input the way eve does before calling `execute`.
+ */
+export const inputSchemaOf = <Input>(tool: {
+  execute: (input: Input, ctx: ToolContext) => unknown;
+  inputSchema: unknown;
+}) => tool.inputSchema as ZodType<Input>;

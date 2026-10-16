@@ -50,8 +50,7 @@ export default defineTool({
       .max(MAX_WEIGHT)
       .describe("Recommended weight for the new set in the user's unit system"),
     workout_exercise_id: z
-      .string()
-      .uuid()
+      .guid()
       .describe("The ID of the workout_exercise row to add a set to"),
   }),
 });

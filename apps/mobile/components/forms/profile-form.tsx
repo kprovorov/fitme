@@ -53,35 +53,30 @@ const WHEEL_HEIGHT = 200;
 /** Default height (5 ft) shown on the imperial wheels when none is set. */
 const DEFAULT_HEIGHT_INCHES = 60;
 
+// The wheels set numbers, so the input type is `number` too (zod 4's coerce
+// input is `unknown`, which react-hook-form can't type the fields from). The
+// range messages are zod 3's defaults, which the form showed until zod 4.
 const formSchema = z.object({
   age: z.coerce
-    .number({
-      message: "Age is required",
-    })
-    .min(4)
-    .max(150),
-  gender: z.enum(genders, {
-    message: "Gender is required",
-  }),
+    .number<number>({ error: "Age is required" })
+    .min(4, { error: "Number must be greater than or equal to 4" })
+    .max(150, { error: "Number must be less than or equal to 150" }),
+  gender: z.enum(genders, { error: "Gender is required" }),
   height: z.coerce
-    .number({
-      message: "Height is required",
-    })
-    .min(1)
-    .max(500),
+    .number<number>({ error: "Height is required" })
+    .min(1, { error: "Number must be greater than or equal to 1" })
+    .max(500, { error: "Number must be less than or equal to 500" }),
   // Only rendered (and therefore only set) when `showName` is enabled. Clerk's
   // Name is optional, so a User without one can still save the other fields.
   name: z
     .string()
     .trim()
-    .max(50, { message: "Name must be at most 50 characters" })
+    .max(50, { error: "Name must be at most 50 characters" })
     .optional(),
   weight: z.coerce
-    .number({
-      message: "Weight is required",
-    })
-    .min(1)
-    .max(500),
+    .number<number>({ error: "Weight is required" })
+    .min(1, { error: "Number must be greater than or equal to 1" })
+    .max(500, { error: "Number must be less than or equal to 500" }),
 });
 
 interface ProfileFormProps {

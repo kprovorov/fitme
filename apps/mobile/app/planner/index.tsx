@@ -50,13 +50,23 @@ function buildPlanMessage(data: PlanFormValues): string {
 
 export type PlanFormValues = z.infer<typeof formSchema>;
 
+// Every value comes from a picker, so the coerced numbers' input type is
+// `number` too (zod 4's coerce input is `unknown`, which react-hook-form can't
+// type the fields from). The messages are zod 3's defaults, which the screen
+// showed until zod 4.
 const formSchema = z.object({
-  experience_level: z.enum(experienceLevels),
-  frequency: z.coerce.number().min(1).max(7),
-  goal: z.enum(goals),
+  experience_level: z.enum(experienceLevels, { error: "Required" }),
+  frequency: z.coerce
+    .number<number>({ error: "Required" })
+    .min(1, { error: "Number must be greater than or equal to 1" })
+    .max(7, { error: "Number must be less than or equal to 7" }),
+  goal: z.enum(goals, { error: "Required" }),
   note: z.string().optional(),
-  place: z.enum(places),
-  workout_duration: z.coerce.number().min(1).max(120),
+  place: z.enum(places, { error: "Required" }),
+  workout_duration: z.coerce
+    .number<number>({ error: "Required" })
+    .min(1, { error: "Number must be greater than or equal to 1" })
+    .max(120, { error: "Number must be less than or equal to 120" }),
 });
 
 const goalOptions = [

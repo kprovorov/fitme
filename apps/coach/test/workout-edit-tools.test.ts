@@ -1,7 +1,6 @@
 import type { ToolContext } from "eve/tools";
 import { beforeEach, describe, expect, it, vi } from "vitest";
-import type { ZodTypeAny } from "zod";
-import { contextFor, userIdFields } from "./tool-context";
+import { contextFor, inputSchemaOf, userIdFields } from "./tool-context";
 
 const db = vi.hoisted(() => ({ asUser: vi.fn() }));
 const editErrors = vi.hoisted(() => ({
@@ -72,7 +71,7 @@ interface Tool {
 
 /** What eve hands `execute` after validating the model's input. */
 const parseInput = (tool: Tool, input: unknown) =>
-  (tool.inputSchema as ZodTypeAny).parse(input);
+  inputSchemaOf(tool).parse(input);
 const run = (tool: Tool, input: unknown, ctx = contextFor("user_alice")) =>
   tool.execute(parseInput(tool, input) as never, ctx);
 
@@ -194,9 +193,7 @@ describe.each(cases)("$name", ({ input, service, tool }) => {
       ])
     );
 
-    expect((tool.inputSchema as ZodTypeAny).safeParse(withBadIds).success).toBe(
-      false
-    );
+    expect(inputSchemaOf(tool).safeParse(withBadIds).success).toBe(false);
   });
 });
 
@@ -237,7 +234,7 @@ describe("add_exercise_to_workout", () => {
 
   it("needs at least one set", () => {
     expect(
-      (addExerciseToWorkout.inputSchema as ZodTypeAny).safeParse({
+      inputSchemaOf(addExerciseToWorkout).safeParse({
         ...input,
         sets: [],
       }).success
@@ -287,7 +284,7 @@ describe("set targets", () => {
     { weight_recommended: 10_001 },
   ];
   const accepts = (tool: Tool, input: unknown) =>
-    (tool.inputSchema as ZodTypeAny).safeParse(input).success;
+    inputSchemaOf(tool).safeParse(input).success;
 
   it.each(tooMuch)("rejects %o past the domain limits", (change) => {
     expect(

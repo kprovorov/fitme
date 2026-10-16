@@ -1,6 +1,5 @@
 import { beforeEach, describe, expect, it, vi } from "vitest";
-import type { ZodTypeAny } from "zod";
-import { contextFor, userIdFields } from "./tool-context";
+import { contextFor, inputSchemaOf, userIdFields } from "./tool-context";
 
 const db = vi.hoisted(() => ({ asUser: vi.fn() }));
 const plans = vi.hoisted(() => ({
@@ -31,8 +30,10 @@ const { default: displayWorkoutPlan } = await import(
 const tx = { fake: "transaction" };
 
 /** What eve hands `execute` after validating the model's input. */
-const parseInput = (tool: { inputSchema: unknown }, input: unknown) =>
-  (tool.inputSchema as ZodTypeAny).parse(input);
+const parseInput = <Input>(
+  tool: Parameters<typeof inputSchemaOf<Input>>[0],
+  input: unknown
+) => inputSchemaOf(tool).parse(input);
 const alice = contextFor("user_alice");
 
 const plan = { id: "plan_1", is_active: true, name: "Push pull", workouts: [] };

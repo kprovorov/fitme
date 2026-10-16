@@ -22,11 +22,11 @@ const formSchema = z
   .object({
     confirmPassword: z.string(),
     password: z.string().min(PASSWORD_MIN_LENGTH, {
-      message: `Password must be at least ${PASSWORD_MIN_LENGTH} characters.`,
+      error: `Password must be at least ${PASSWORD_MIN_LENGTH} characters.`,
     }),
   })
   .refine((data) => data.password === data.confirmPassword, {
-    message: "Passwords do not match.",
+    error: "Passwords do not match.",
     path: ["confirmPassword"],
   });
 

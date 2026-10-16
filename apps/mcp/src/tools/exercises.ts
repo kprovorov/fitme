@@ -16,8 +16,7 @@ const MAX_HISTORY_LIMIT = 50;
 const MAX_SEARCH_LENGTH = 100;
 
 const exerciseIdSchema = z
-  .string()
-  .uuid()
+  .guid()
   .describe("Exercise library id (exercises.id).");
 
 export function registerExerciseTools(server: McpServer, ctx: ToolContext) {
