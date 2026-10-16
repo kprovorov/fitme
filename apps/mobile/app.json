@@ -70,14 +70,6 @@
       "expo-image",
       "expo-web-browser",
       "expo-status-bar",
-      [
-        "expo-build-properties",
-        {
-          "ios": {
-            "enableSceneSupport": true
-          }
-        }
-      ],
       "./plugins/with-ios-min-deployment-target.js",
       "./plugins/with-revenuecat-xcode27-patch.js"
     ],

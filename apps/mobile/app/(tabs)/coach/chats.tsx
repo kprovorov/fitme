@@ -9,10 +9,10 @@ import {
   type NativeSyntheticEvent,
   Pressable,
   Text,
-  type TextInputFocusEventData,
   View,
 } from "react-native";
 import { useSafeAreaInsets } from "react-native-safe-area-context";
+import type { SearchBarTextEventData } from "react-native-screens";
 import { useDrawer } from "@/components/drawer-content";
 import { Icon } from "@/components/icon";
 import { Image } from "@/components/tw";
@@ -182,7 +182,7 @@ export default function ChatsScreen() {
   const handleSearchCancel = useCallback(() => setSearch(""), []);
 
   const handleSearchChange = useCallback(
-    (e: NativeSyntheticEvent<TextInputFocusEventData>) =>
+    (e: NativeSyntheticEvent<SearchBarTextEventData>) =>
       setSearch(e.nativeEvent.text),
     []
   );
@@ -199,7 +199,7 @@ export default function ChatsScreen() {
         contentInsetAdjustmentBehavior="automatic"
         data={filtered}
         keyExtractor={keyExtractor}
-        ListEmptyComponent={search ? <EmptySearch query={search} /> : null}
+        ListEmptyComponent={search ? <EmptySearch query={search} /> : undefined}
         renderItem={renderItem}
       />
 

@@ -7,12 +7,12 @@ nodeLinker: hoisted
 autoInstallPeers: true
 strictPeerDependencies: false
 
-# One react for the whole workspace: the version React Native in Expo SDK 57
+# One react for the whole workspace: the version React Native in Expo SDK 58
 # expects. Without this, auto-installed peers (Clerk, Next in the backend apps)
 # resolve the newest react and leave a second copy for expo-doctor to flag.
 overrides:
-  react: 19.2.3
-  react-dom: 19.2.3
+  react: 19.3.0
+  react-dom: 19.3.0
 
 onlyBuiltDependencies:
   - "@prisma/engines"

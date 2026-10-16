@@ -67,7 +67,7 @@ beforeEach(() => {
   jest.clearAllMocks();
   process.env.EXPO_PUBLIC_API_URL = API_URL;
   global.fetch = mockFetch;
-  openURL.mockResolvedValue(true);
+  openURL.mockResolvedValue();
   jest.spyOn(AppState, "addEventListener").mockImplementation((_, handler) => {
     changeAppState = handler;
     return { remove: jest.fn() };
