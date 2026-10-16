@@ -48,7 +48,11 @@ export default function VerifyCodeScreen() {
           behavior={Platform.OS === "ios" ? "padding" : "height"}
           style={{ flex: 1 }}
         >
-          <TouchableWithoutFeedback onPress={Keyboard.dismiss}>
+          {/* Tap-outside-to-dismiss only; keep the fields individually accessible */}
+          <TouchableWithoutFeedback
+            accessible={false}
+            onPress={Keyboard.dismiss}
+          >
             <VStack className="h-full p-6">
               <Sign
                 height={isKeyboardVisible ? 35 : 70}
