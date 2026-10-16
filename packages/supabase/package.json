@@ -28,7 +28,7 @@
     "users:migrate": "tsx scripts/migrate-users-to-clerk.ts"
   },
   "dependencies": {
-    "@supabase/supabase-js": "^2.97.0",
+    "@supabase/supabase-js": "^2.118.0",
     "csv-parse": "^7.0.3"
   },
   "devDependencies": {
