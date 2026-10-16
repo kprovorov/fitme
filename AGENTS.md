@@ -248,7 +248,7 @@ Env files live next to each app.
 
 `apps/mobile/.env` (prefix `EXPO_PUBLIC_` for client exposure):
 
-- `EXPO_PUBLIC_API_URL` — `apps/api` base URL (`http://localhost:3003` locally; the EAS `production` profile in `eas.json` sets `https://api.fitmeproject.com`); unset skips the minimum version check
+- `EXPO_PUBLIC_API_URL` — `apps/api` base URL (`http://localhost:3003` locally; production builds get `https://api.fitmeproject.com` from the EAS `production` environment, never from an `eas.json` build profile); unset skips the minimum version check
 - `EXPO_PUBLIC_COACH_URL` — `apps/coach` base URL (`http://localhost:3005` locally, `pnpm dev:coach`); the coach screen talks to its eve routes
 - `EXPO_PUBLIC_SUPABASE_URL`
 - `EXPO_PUBLIC_SUPABASE_ANON_KEY`
