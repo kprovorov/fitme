@@ -123,7 +123,8 @@ export default function HomeScreen() {
       >
         {activePlan ? (
           <HomeView plan={activePlan} />
-        ) : isLoadingPlans ? (
+        ) : // biome-ignore lint/suspicious/noUnnecessaryConditions: false positive, Biome resolves react-query-kit's initialData overload, where isLoading is always false
+        isLoadingPlans ? (
           <View className="flex-1 items-center justify-center">
             <ActivityIndicator color="#ffffff" size="large" />
           </View>

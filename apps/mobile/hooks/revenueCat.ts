@@ -22,7 +22,7 @@ export const useIsProQuery = createQuery<boolean>({
     const customerInfo = await Purchases.getCustomerInfo();
 
     return (
-      typeof customerInfo?.entitlements.active[proEntitlement] !== "undefined"
+      typeof customerInfo.entitlements.active[proEntitlement] !== "undefined"
     );
   },
   queryKey: ["rc-is-pro"],

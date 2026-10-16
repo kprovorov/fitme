@@ -59,9 +59,7 @@ export function coachErrorAction(error: unknown): CoachErrorAction {
  * hides the placeholder rather than show a request that never went through.
  */
 export function isRefusedSend(message: ThreadMessage): boolean {
-  return (
-    message.role === "user" && message.metadata.custom?.status === "failed"
-  );
+  return message.role === "user" && message.metadata.custom.status === "failed";
 }
 
 /** The User's current Conversation, enough for eve to resume it. */
