@@ -18,7 +18,7 @@ Most people who train follow a plan they found online. It wasn't written for the
 
 ## What Fitme does
 
-1. **Builds your plan.** Tell Fitme your goal, experience, how often and how long you want to train, and anything else that matters ("more focus on abs"). The Coach writes a multi-day plan with exercises, sets, reps, target weights and rest times, sized to your profile.
+1. **Builds your plan.** Tell Fitme your goal, experience, how often and how long you want to train, and anything else that matters ("more focus on abs"). The Coach writes a multi-day plan with exercises, sets, reps and rest times.
 2. **Runs your workout.** Open today's workout, start the session, and log each set's reps and weight as you go, with a running timer and the targets right there.
 3. **Shows your progress.** Every finished session gets a summary: duration, total volume, exercises, sets, the muscles you hit on a body map, and a trophy for every new personal best. Each exercise keeps its own history, so you can watch the numbers climb week to week.
 4. **Coaches you.** Chat with an AI Coach that can read your profile, plan and workout history, and change your plan for you: swap an exercise, add a set, adjust weights, or write you a new plan.
@@ -35,8 +35,8 @@ Most people who train follow a plan they found online. It wasn't written for the
 ### AI plan generation
 
 - Inputs: goal (lose weight, gain muscle, improve health), experience (beginner, intermediate, advanced), workout duration (up to 120 minutes), frequency (1–7 days a week), place (gym), and a free-text note.
-- Uses the profile from onboarding: gender, age, height and weight.
-- Output: a named plan (for example "Upper / Lower, 4 days") of workouts, each an ordered list of exercises with sets, recommended reps, weight and rest.
+- The Coach can also look at your profile (gender, age, height, weight); mention anything else in the note.
+- Output: a named plan (for example "Upper / Lower, 4 days") of workouts, each an ordered list of exercises with sets, recommended reps and rest. Target weights aren't part of a generated plan yet; ask the Coach to set them.
 - The Coach shows the proposed plan as a card in the chat; one tap makes it your active plan.
 - Keep as many plans as you like and switch the active one any time, or delete the ones you're done with. Ask the Coach to revise a plan.
 
@@ -54,7 +54,7 @@ Most people who train follow a plan they found online. It wasn't written for the
 ### Session summary and personal records
 
 - After every workout: duration, volume, exercise and set count.
-- Front and back body map highlighting the muscle groups you trained.
+- Front and back body map highlighting the muscle groups in the workout.
 - A trophy next to every exercise where you lifted heavier than ever before.
 
 ### History and progress
@@ -64,9 +64,9 @@ Most people who train follow a plan they found online. It wasn't written for the
 
 ### Exercise library
 
-- A curated catalogue of 77 exercises (squats, deadlifts, presses, rows, pull-ups, curls, cable and machine work, and more).
+- A curated catalogue of 77 gym exercises (squats, deadlifts, presses, rows, pull-ups, curls, cable and machine work, and more).
 - Each has a looping 3D demonstration video, a description and step-by-step form instructions.
-- Browse by muscle group: chest, back, lats, shoulders, traps, biceps, triceps, forearms, abs, obliques, lower back, quads, hamstrings, glutes, calves, cardio and full body. Search by name.
+- Browse by muscle group: chest, back, lats, shoulders, traps, biceps, triceps, forearms, abs, obliques, lower back, quads, hamstrings, glutes and calves.
 
 ### The Coach (Fitme Pro)
 
@@ -85,15 +85,10 @@ Details worth mentioning:
 - **Picks up where you left off.** Your current conversation is saved, so you can close the app and come back to it. Tap "+" for a fresh one.
 - **Acts only for you.** The Coach can only read and change your own data, and it can't touch your account.
 
-### Fitme for ChatGPT
-
-Connect your Fitme account in ChatGPT to search exercises, create and manage plans, start and log workouts, and review your history right from the chat. Changes land in the same account you use in the app. The connection is free and requires sign-in.
-
 ### Account and privacy
 
-- Sign up with email and a verification code, or sign in with a password.
 - Two minutes of onboarding: gender, age, height, weight, units.
-- Delete your account from the app: your profile, plans, workout history and Coach conversations are wiped.
+- Delete your account from the app: your profile, plans and workout history are deleted, and your Coach conversations are closed for good.
 
 ### Craft
 
@@ -109,11 +104,10 @@ Connect your Fitme account in ChatGPT to search exercises, create and manage pla
 
 ## Messaging pillars
 
-1. **Personal, not generic.** Your plan is built from your body, goal, schedule and experience, then edited by asking.
+1. **Personal, not generic.** Your plan is built around your goal, schedule and experience, then edited by asking.
 2. **Every rep counts.** Fast set logging, session summaries, PR trophies and per-exercise history turn training into visible progress.
 3. **A coach in your pocket.** An AI that knows your plan and your numbers, and can actually change them, not just give advice.
 4. **Your choice of AI.** Pick the model behind your Coach, from fast to thorough.
-5. **Works where you are.** In the app, or in ChatGPT through Fitme for ChatGPT.
 
 ## Draft App Store copy
 
@@ -128,7 +122,7 @@ Get a workout plan built for you, log every set, and chat with an AI Coach that 
 Fitme is your AI personal trainer and workout log in one.
 
 TELL US YOUR GOAL, GET YOUR PLAN
-Pick your goal, experience, schedule and session length. Fitme's AI Coach builds a multi-day plan with exercises, sets, reps, weights and rest, tailored to your profile.
+Pick your goal, experience, schedule and session length. Fitme's AI Coach builds a multi-day plan with exercises, sets, reps and rest, tailored to you.
 
 TRACK EVERY SET
 Start today's workout, log reps and weight as you go, and keep the timer running. Fitme queues up your next workout automatically.
@@ -141,9 +135,6 @@ LEARN EVERY MOVE
 
 A COACH THAT KNOWS YOU (FITME PRO)
 Ask the Coach anything about your training. It reads your plan and history and can swap exercises, add sets, adjust weights or write a whole new plan. Choose the AI model behind it: GPT or Claude.
-
-ALSO IN CHATGPT
-Connect Fitme to ChatGPT to manage plans and log workouts from the chat.
 
 Metric and imperial units. Dark mode.
 
@@ -170,6 +161,8 @@ Missing: a Coach conversation with a plan card, and the planner's result. Both n
 - **Android.** iPhone only for now.
 - **Apple Health sync, automatic weekly plan adaptation, rest timer alerts.** Not in the app. The Coach adjusts plans when asked, not on its own schedule.
 - **Multiple saved Coach conversations.** One current conversation at a time; conversations end after 30 days.
+- **Fitme for ChatGPT.** Being prepared, not published yet.
+- **Exercise search by name, cardio and full-body exercises.** The library is browsed by muscle group only.
 - **Web app.** Not a product yet.
 
 ## Facts and links
