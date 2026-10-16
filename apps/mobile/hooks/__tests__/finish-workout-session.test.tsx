@@ -68,7 +68,16 @@ const setup = async (screensAboveSession = 0) => {
     }),
     { wrapper }
   );
-  return { queryClient, result };
+  // Waits until no finish is pending, so react-query's last state updates
+  // (scheduled after onSuccess navigates) land inside the test.
+  const settled = () =>
+    waitFor(() =>
+      expect([
+        result.current.session.isFinishing,
+        result.current.exercise.isFinishing,
+      ]).toEqual([false, false])
+    );
+  return { queryClient, result, settled };
 };
 
 describe("useFinishWorkoutSession", () => {
@@ -80,7 +89,7 @@ describe("useFinishWorkoutSession", () => {
 
   it("finishes the session and opens its summary", async () => {
     mockFinishRpc.mockResolvedValue({});
-    const { result } = await setup();
+    const { result, settled } = await setup();
 
     await act(() => result.current.session.finish());
 
@@ -89,17 +98,19 @@ describe("useFinishWorkoutSession", () => {
         "/workout-sessions/session-1/summary"
       )
     );
+    await settled();
     expect(mockFinishRpc).toHaveBeenCalledWith({ sessionId: "session-1" });
   });
 
   it("shows the finished session everywhere at once", async () => {
     const finished = { finished_at: "2026-10-08T10:00:00Z", id: "session-1" };
     mockFinishRpc.mockResolvedValue(finished);
-    const { queryClient, result } = await setup();
+    const { queryClient, result, settled } = await setup();
 
     await act(() => result.current.session.finish());
 
     await waitFor(() => expect(mockReplace).toHaveBeenCalled());
+    await settled();
     expect(
       queryClient.getQueryData(["workout-session", { sessionId: "session-1" }])
     ).toEqual(finished);
@@ -111,11 +122,12 @@ describe("useFinishWorkoutSession", () => {
       index: 2,
       routes: [{}, { params: { sessionId: "session-1" } }, {}],
     });
-    const { result } = await setup(1);
+    const { result, settled } = await setup(1);
 
     await act(() => result.current.exercise.finish());
 
     await waitFor(() => expect(mockReplace).toHaveBeenCalled());
+    await settled();
     expect(mockDismiss).toHaveBeenCalledWith(1);
     expect(mockDismiss.mock.invocationCallOrder[0]).toBeLessThan(
       mockReplace.mock.invocationCallOrder[0] ?? 0
@@ -128,7 +140,7 @@ describe("useFinishWorkoutSession", () => {
       index: 1,
       routes: [{ params: {} }, {}],
     });
-    const { result } = await setup(1);
+    const { result, settled } = await setup(1);
 
     await act(() => result.current.exercise.finish());
 
@@ -137,13 +149,14 @@ describe("useFinishWorkoutSession", () => {
         "/workout-sessions/session-1/summary"
       )
     );
+    await settled();
     expect(mockDismiss).not.toHaveBeenCalled();
   });
 
   it("never finishes twice while a finish is pending, from any screen", async () => {
     const pending = deferred();
     mockFinishRpc.mockReturnValue(pending.promise);
-    const { result } = await setup();
+    const { result, settled } = await setup();
 
     await act(() => {
       result.current.session.finish();
@@ -159,16 +172,17 @@ describe("useFinishWorkoutSession", () => {
       pending.resolve({});
       await pending.promise;
     });
-    await waitFor(() => expect(result.current.session.isFinishing).toBe(false));
+    await settled();
   });
 
   it("alerts on failure and allows another try", async () => {
     mockFinishRpc.mockRejectedValueOnce(new Error("offline"));
-    const { result } = await setup();
+    const { result, settled } = await setup();
 
     await act(() => result.current.session.finish());
 
     await waitFor(() => expect(Alert.alert).toHaveBeenCalledTimes(1));
+    await settled();
     expect(result.current.session.isFinishing).toBe(false);
     expect(mockReplace).not.toHaveBeenCalled();
 
@@ -176,6 +190,7 @@ describe("useFinishWorkoutSession", () => {
     await act(() => result.current.session.finish());
 
     await waitFor(() => expect(mockReplace).toHaveBeenCalledTimes(1));
+    await settled();
     expect(mockFinishRpc).toHaveBeenCalledTimes(2);
   });
 });
