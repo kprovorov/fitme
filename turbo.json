@@ -14,6 +14,7 @@
         "FITME_DATABASE_URL",
         "CLERK_*",
         "COACH_RESET_SECRET",
+        "COACH_URL",
         "REVENUECAT_SECRET_KEY",
         "MIN_APP_VERSION_*",
         "MCP_PUBLIC_URL"
