@@ -6,7 +6,7 @@ const THIRTY_DAYS_MS = 30 * 24 * 60 * 60 * 1000;
 export default defineAgent({
   // Only our own tools: no shell, file or web tools.
   defaultTools: false,
-  // Keep an ended run's data for the World's default period. Without this,
+  // Keep an ended run's data for the plan's default period. Without this,
   // eve deletes a private session's run data as soon as its run ends, and
   // account deletion relies on a reset session's stream outliving the reset.
   experimental: {
