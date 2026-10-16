@@ -2,14 +2,26 @@
   "hooks": {
     "PostToolUse": [
       {
+        "matcher": "Write|Edit",
         "hooks": [
           {
-            "command": "npm run fix -- --skip=correctness/noUnusedImports",
-            "type": "command"
+            "type": "command",
+            "command": "npm run fix -- --skip=correctness/noUnusedImports"
           }
-        ],
-        "matcher": "Write|Edit"
+        ]
       }
     ]
+  },
+  "enabledPlugins": {
+    "figma@claude-plugins-official": true,
+    "mattpocock-skills@claude-plugins-official": true,
+    "vercel@anthropic-plugin-directory": true,
+    "cloudflare@claude-plugins-official": true,
+    "expo@anthropic-plugin-directory": true,
+    "mobbin@anthropic-plugin-directory": true,
+    "sentry@anthropic-plugin-directory": true,
+    "sentry-cli@anthropic-plugin-directory": true,
+    "supabase@anthropic-plugin-directory": true,
+    "revenuecat@anthropic-plugin-directory": true
   }
 }

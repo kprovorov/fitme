@@ -5,6 +5,10 @@
     "ultracite/biome/jest"
   ],
   "$schema": "./node_modules/@biomejs/biome/configuration_schema.json",
+  "files": {
+    // Vendored agent skills (npx skills add): third-party code, hashed in skills-lock.json.
+    "includes": ["!.agents/skills"]
+  },
   "linter": {
     "rules": {
       "style": {
