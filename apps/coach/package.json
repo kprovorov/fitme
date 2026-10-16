@@ -12,12 +12,12 @@
     "typecheck": "tsc --noEmit"
   },
   "dependencies": {
-    "@clerk/backend": "^3.23.2",
+    "@clerk/backend": "^3.25.0",
     "@fitme/core": "workspace:*",
     "@fitme/db": "workspace:*",
     "@fitme/services": "workspace:*",
-    "@sentry/node": "^11.7.0",
-    "ai": "^7.0.140",
+    "@sentry/node": "^11.8.0",
+    "ai": "^7.0.142",
     "eve": "0.80.0",
     "just-bash": "^3.6.0",
     "zod": "3.25.76"
