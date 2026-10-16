@@ -5,7 +5,7 @@ REST API for Fitme built on [Hono](https://hono.dev) and served with `@hono/node
 ```bash
 pnpm dev:api            # tsx watch, http://localhost:3003
 pnpm api build          # tsdown bundle → dist/
-pnpm api start          # runs dist/index.js
+pnpm api start          # runs dist/node/index.js
 pnpm api test           # vitest
 ```
 
