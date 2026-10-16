@@ -8,7 +8,16 @@
       "dependsOn": ["^build"],
       "inputs": ["$TURBO_DEFAULT$", ".env*"],
       "outputs": [".next/**", "!.next/cache/**", "dist/**", ".output/**"],
-      "env": ["NEXT_PUBLIC_*", "EXPO_PUBLIC_*", "SUPABASE_*"]
+      "env": ["NEXT_PUBLIC_*", "EXPO_PUBLIC_*", "SUPABASE_*"],
+      "passThroughEnv": [
+        "SENTRY_*",
+        "FITME_DATABASE_URL",
+        "CLERK_*",
+        "COACH_RESET_SECRET",
+        "REVENUECAT_SECRET_KEY",
+        "MIN_APP_VERSION_*",
+        "MCP_PUBLIC_URL"
+      ]
     },
     "dev": {
       "cache": false,
@@ -22,7 +31,7 @@
     },
     "test": {
       "dependsOn": ["^test"],
-      "outputs": ["coverage/**"]
+      "outputs": []
     },
     "prebuild": {
       "cache": false,

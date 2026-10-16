@@ -16,7 +16,10 @@ onlyBuiltDependencies:
   - supabase
 
 ignoredBuiltDependencies:
+  - "@mongodb-js/zstd"
+  - browser-tabs-lock
   - core-js
+  - node-liblzma
 
 minimumReleaseAgeExclude:
   - lucide-react@1.47.0
