@@ -4,7 +4,7 @@
  * accessibility element (FIT-164): VoiceOver and Maestro must still reach the
  * input and each button on their own.
  */
-import { describe, expect, it, jest } from "@jest/globals";
+import { afterEach, describe, expect, it, jest } from "@jest/globals";
 import { fireEvent, render, screen } from "@testing-library/react-native";
 import type { ComponentType } from "react";
 import { Keyboard } from "react-native";
@@ -12,7 +12,7 @@ import ForgotPasswordScreen from "~/app/auth/forgot-password";
 import ResetPasswordScreen from "~/app/auth/reset-password";
 import VerifyCodeScreen from "~/app/auth/verify-code";
 
-type Element = ReturnType<typeof screen.getByTestId>;
+type TestNode = ReturnType<typeof screen.getByTestId>;
 
 jest.mock("expo-router", () => ({
   Redirect: () => null,
@@ -50,7 +50,7 @@ jest.mock("~/components/views/forgot-password-view", () => mockFormView);
 jest.mock("~/components/views/reset-password-view", () => mockFormView);
 
 /** True when an ancestor groups the element into one accessibility element. */
-const isMergedIntoAncestor = (element: Element) => {
+const isMergedIntoAncestor = (element: TestNode) => {
   for (let node = element.parent; node; node = node.parent) {
     if (node.props.accessible === true) {
       return true;
@@ -64,6 +64,10 @@ const screens: [string, ComponentType][] = [
   ["forgot-password", ForgotPasswordScreen],
   ["reset-password", ResetPasswordScreen],
 ];
+
+afterEach(() => {
+  jest.restoreAllMocks();
+});
 
 describe.each(screens)("%s screen", (_name, Screen) => {
   it("keeps the input and the button their own accessibility elements", async () => {
@@ -79,6 +83,6 @@ describe.each(screens)("%s screen", (_name, Screen) => {
 
     await fireEvent.press(screen.getByTestId("form-text"));
 
-    expect(dismiss).toHaveBeenCalled();
+    expect(dismiss).toHaveBeenCalledTimes(1);
   });
 });
