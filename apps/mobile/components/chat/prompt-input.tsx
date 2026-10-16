@@ -157,6 +157,7 @@ export function PromptInputTextarea({
 
   useEffect(() => {
     if (input === "") {
+      // biome-ignore lint/suspicious/noUnnecessaryConditions: the ref is null until the TextInput mounts
       inputRef.current?.clear();
     }
   }, [input]);

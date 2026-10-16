@@ -96,6 +96,7 @@ function CodeBlockBase({ code, language }: CodeBlockProps) {
     () =>
       StyleSheet.flatten([
         styles.text,
+        // biome-ignore lint/suspicious/noUnnecessaryConditions: a highlight theme may have no hljs entry; the Record type can't say so
         { color: stylesheet.hljs?.color || (isDark ? "#f8f8f2" : "#333") },
       ]),
     [stylesheet, isDark]
