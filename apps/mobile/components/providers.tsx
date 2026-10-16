@@ -27,7 +27,7 @@ const queryClient = new QueryClient();
 function DevToolsSync() {
   useSyncQueriesExternal({
     asyncStorage: AsyncStorage, // AsyncStorage for ['#storage', 'async', 'key'] queries + monitoring
-    deviceId: Platform.OS, // Use a PERSISTENT identifier (see note below)
+    deviceId: Platform.OS,
     deviceName: Platform.OS, // Platform detection
     enableLogs: false,
     envVariables: {
