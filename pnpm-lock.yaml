@@ -89,8 +89,8 @@ importers:
         specifier: ^7.0.140
         version: 7.0.140(zod@3.25.76)
       eve:
-        specifier: 0.79.1
-        version: 0.79.1(@opentelemetry/api@1.9.1)(ai@7.0.140(zod@3.25.76))(just-bash@3.6.0)
+        specifier: 0.80.0
+        version: 0.80.0(@opentelemetry/api@1.9.1)(ai@7.0.140(zod@3.25.76))(just-bash@3.6.0)
       just-bash:
         specifier: ^3.6.0
         version: 3.6.0
@@ -176,7 +176,7 @@ importers:
     dependencies:
       '@assistant-ui/eve':
         specifier: 0.0.24
-        version: 0.0.24(@assistant-ui/tap@0.9.23(@types/react@19.2.14)(react@19.2.3))(@opentelemetry/api@1.9.1)(@types/react@19.2.14)(ai@7.0.140(zod@3.25.76))(eve@0.79.1(@opentelemetry/api@1.9.1)(ai@7.0.140(zod@3.25.76))(just-bash@3.6.0))(react@19.2.3)
+        version: 0.0.24(@assistant-ui/tap@0.9.23(@types/react@19.2.14)(react@19.2.3))(@opentelemetry/api@1.9.1)(@types/react@19.2.14)(ai@7.0.140(zod@3.25.76))(eve@0.80.0(@opentelemetry/api@1.9.1)(ai@7.0.140(zod@3.25.76))(just-bash@3.6.0))(react@19.2.3)
       '@assistant-ui/react-native':
         specifier: 0.1.47
         version: 0.1.47(@opentelemetry/api@1.9.1)(@types/react@19.2.14)(ai@7.0.140(zod@3.25.76))(react-native@0.86.3(@babel/core@7.29.7)(@react-native/jest-preset@0.86.3(@babel/core@7.29.7)(react@19.2.3))(@react-native/metro-config@0.86.3(@babel/core@7.29.7))(@types/react@19.2.14)(react@19.2.3))(react@19.2.3)
@@ -283,8 +283,8 @@ importers:
         specifier: 3.2.0
         version: 3.2.0(date-fns@4.1.0)
       eve:
-        specifier: 0.79.1
-        version: 0.79.1(@opentelemetry/api@1.9.1)(ai@7.0.140(zod@3.25.76))(just-bash@3.6.0)
+        specifier: 0.80.0
+        version: 0.80.0(@opentelemetry/api@1.9.1)(ai@7.0.140(zod@3.25.76))(just-bash@3.6.0)
       expo:
         specifier: 57.0.30
         version: 57.0.30(@babel/core@7.29.7)(@expo/dom-webview@57.0.1)(@expo/metro-runtime@57.0.17)(expo-router@57.0.28)(react-dom@19.2.3(react@19.2.3))(react-native-web@0.21.2(react-dom@19.2.3(react@19.2.3))(react@19.2.3))(react-native-webview@13.16.1(react-native@0.86.3(@babel/core@7.29.7)(@react-native/jest-preset@0.86.3(@babel/core@7.29.7)(react@19.2.3))(@react-native/metro-config@0.86.3(@babel/core@7.29.7))(@types/react@19.2.14)(react@19.2.3))(react@19.2.3))(react-native-worklets@0.10.1(@babel/core@7.29.7)(@react-native/metro-config@0.86.3(@babel/core@7.29.7))(react-native@0.86.3(@babel/core@7.29.7)(@react-native/jest-preset@0.86.3(@babel/core@7.29.7)(react@19.2.3))(@react-native/metro-config@0.86.3(@babel/core@7.29.7))(@types/react@19.2.14)(react@19.2.3))(react@19.2.3))(react-native@0.86.3(@babel/core@7.29.7)(@react-native/jest-preset@0.86.3(@babel/core@7.29.7)(react@19.2.3))(@react-native/metro-config@0.86.3(@babel/core@7.29.7))(@types/react@19.2.14)(react@19.2.3))(react@19.2.3)(typescript@5.9.3)
@@ -6519,15 +6519,15 @@ packages:
     resolution: {integrity: sha512-aIL5Fx7mawVa300al2BnEE4iNvo1qETxLrPI/o05L7z6go7fCw1J6EQmbK4FmJ2AS7kgVF/KEZWufBfdClMcPg==}
     engines: {node: '>= 0.6'}
 
-  eve@0.79.1:
-    resolution: {integrity: sha512-7hbpSi6mCqsrq3W7C9Y8Z2vTny01hunaNilEFj2qy/DkotztaW+KD4BNwut3oz2iSQ8yryyl46XhOspQ6PmZOg==}
+  eve@0.80.0:
+    resolution: {integrity: sha512-ocFBHm5swGuTyW/JXW72Ze6wge8yI8Le6FoDuQG6me3QNyPckYKakxAjqlw53jasrIRfxvNxvjBVLQXGuEyB8g==}
     engines: {node: '>=24'}
     hasBin: true
     peerDependencies:
       '@opentelemetry/api': ^1.0.0
       ai: ^7.0.137
       braintrust: ^3.0.0
-      chat: ^4.41.0
+      chat: ^4.42.0
       dd-trace: ^6.13.0
       just-bash: ^3.1.0
       microsandbox: ^0.5.0
@@ -10958,12 +10958,12 @@ snapshots:
       - ioredis
       - redis
 
-  '@assistant-ui/eve@0.0.24(@assistant-ui/tap@0.9.23(@types/react@19.2.14)(react@19.2.3))(@opentelemetry/api@1.9.1)(@types/react@19.2.14)(ai@7.0.140(zod@3.25.76))(eve@0.79.1(@opentelemetry/api@1.9.1)(ai@7.0.140(zod@3.25.76))(just-bash@3.6.0))(react@19.2.3)':
+  '@assistant-ui/eve@0.0.24(@assistant-ui/tap@0.9.23(@types/react@19.2.14)(react@19.2.3))(@opentelemetry/api@1.9.1)(@types/react@19.2.14)(ai@7.0.140(zod@3.25.76))(eve@0.80.0(@opentelemetry/api@1.9.1)(ai@7.0.140(zod@3.25.76))(just-bash@3.6.0))(react@19.2.3)':
     dependencies:
       '@assistant-ui/core': 0.3.28(@assistant-ui/store@0.3.20(@assistant-ui/tap@0.9.23(@types/react@19.2.14)(react@19.2.3))(@types/react@19.2.14)(react@19.2.3))(@assistant-ui/tap@0.9.23(@types/react@19.2.14)(react@19.2.3))(@types/react@19.2.14)(ai@7.0.140(zod@3.25.76))(assistant-cloud@0.2.7(@opentelemetry/api@1.9.1)(ai@7.0.140(zod@3.25.76)))(react@19.2.3)
       '@assistant-ui/store': 0.3.20(@assistant-ui/tap@0.9.23(@types/react@19.2.14)(react@19.2.3))(@types/react@19.2.14)(react@19.2.3)
       assistant-cloud: 0.2.7(@opentelemetry/api@1.9.1)(ai@7.0.140(zod@3.25.76))
-      eve: 0.79.1(@opentelemetry/api@1.9.1)(ai@7.0.140(zod@3.25.76))(just-bash@3.6.0)
+      eve: 0.80.0(@opentelemetry/api@1.9.1)(ai@7.0.140(zod@3.25.76))(just-bash@3.6.0)
       react: 19.2.3
     optionalDependencies:
       '@types/react': 19.2.14
@@ -16685,7 +16685,7 @@ snapshots:
 
   etag@1.8.1: {}
 
-  eve@0.79.1(@opentelemetry/api@1.9.1)(ai@7.0.140(zod@3.25.76))(just-bash@3.6.0):
+  eve@0.80.0(@opentelemetry/api@1.9.1)(ai@7.0.140(zod@3.25.76))(just-bash@3.6.0):
     dependencies:
       ai: 7.0.140(zod@3.25.76)
       nitro: 3.0.260903-beta
