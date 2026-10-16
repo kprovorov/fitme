@@ -13,6 +13,9 @@ export default defineConfig({
     },
     hookTimeout: 30_000,
     include: ["integration/**/*.test.ts"],
+    // A deprecation fails the run: pg's "client.query() when the client is
+    // already executing a query" means two statements raced on one connection
+    poolOptions: { forks: { execArgv: ["--throw-deprecation"] } },
     testTimeout: 30_000,
   },
 });

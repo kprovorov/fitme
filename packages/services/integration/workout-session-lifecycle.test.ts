@@ -441,16 +441,15 @@ describe("finishWorkoutSession", () => {
     const sessionId = await seedOpenSession(planId, workoutIds.W1);
     await finish(sessionId);
     // Put W1 back first so a second rotation would be visible.
-    await withService((tx) =>
-      Promise.all(
-        Object.entries(THREE_DAYS).map(([name, order]) =>
-          tx
-            .update(workouts)
-            .set({ order })
-            .where(eq(workouts.id, workoutIds[name]))
-        )
-      )
-    );
+    await withService(async (tx) => {
+      for (const [name, order] of Object.entries(THREE_DAYS)) {
+        // biome-ignore lint/performance/noAwaitInLoops: a transaction is one connection, so its queries must run one at a time
+        await tx
+          .update(workouts)
+          .set({ order })
+          .where(eq(workouts.id, workoutIds[name]));
+      }
+    });
     const before = await sessionTimes(sessionId);
 
     const result = await finish(sessionId);
