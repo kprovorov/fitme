@@ -46,7 +46,7 @@ Most people who train follow a plan they found online. It wasn't written for the
 
 ### Workout tracking
 
-- Start a session from any workout in the plan; the exercises and target sets are filled in for you.
+- Start your next workout from Home; its exercises and target sets are filled in for you.
 - Log reps and weight per set, see which sets are done, keep an eye on the session timer.
 - An unfinished workout stays open: close the app mid-workout and pick up where you left off.
 - Weights and heights in metric (kg, cm) or US/UK (lbs, ft/in); switching converts everything you've already logged.
@@ -72,7 +72,7 @@ Most people who train follow a plan they found online. It wasn't written for the
 
 The Coach is an AI personal trainer in a chat, with direct access to your Fitme data. It can:
 
-- read your profile, active plan, all your plans and your recent workouts;
+- read your profile, your active plan in full, an overview of your other plans, and your recent workouts;
 - search the exercise library for alternatives;
 - propose a whole new plan and activate it;
 - edit your plan in place: add, remove or replace an exercise, add or remove a set, change target reps, weight or rest;
