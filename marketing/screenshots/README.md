@@ -25,6 +25,12 @@ Real app (Release build, no dev overlays) against a local Supabase stack seeded 
 
 Not captured: the planner's result and a Coach conversation with the plan card. Both need the Coach (`apps/coach`) answering for a Pro User; there was no `apps/coach/.env.local`/AI Gateway key, and the only RevenueCat project is the real one, so no test entitlement was granted.
 
+`framed/` holds the same 18 shots in a drawn iPhone Pro frame with a Dynamic Island (1458×3006, transparent background), made by `frame.py`:
+
+```sh
+for f in marketing/screenshots/iphone/*.png; do python3 marketing/screenshots/frame.py "$f" "marketing/screenshots/framed/$(basename "$f")"; done
+```
+
 ## How to reproduce
 
 1. Local stack for this worktree: `pnpm --filter @fitme/supabase exec supabase start` (prints the API/DB ports), then load the exercise catalog: `SUPABASE_URL=<api url> SUPABASE_SERVICE_ROLE_KEY=<service key> pnpm --filter @fitme/supabase exec tsx supabase/sync.ts`.
