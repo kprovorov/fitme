@@ -18,7 +18,7 @@
     "@fitme/services": "workspace:*",
     "@sentry/node": "^11.7.0",
     "ai": "^7.0.140",
-    "eve": "0.79.1",
+    "eve": "0.80.0",
     "just-bash": "^3.6.0",
     "zod": "3.25.76"
   },

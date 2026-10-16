@@ -59,7 +59,7 @@
     "css-to-react-native": "3.2.0",
     "date-fns": "4.1.0",
     "date-fns-tz": "3.2.0",
-    "eve": "0.79.1",
+    "eve": "0.80.0",
     "expo": "57.0.30",
     "expo-blur": "57.0.3",
     "expo-build-properties": "~57.0.22",
