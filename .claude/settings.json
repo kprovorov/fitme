@@ -14,7 +14,6 @@
   },
   "enabledPlugins": {
     "figma@claude-plugins-official": true,
-    "mattpocock-skills@claude-plugins-official": true,
     "vercel@anthropic-plugin-directory": true,
     "expo@anthropic-plugin-directory": true,
     "mobbin@anthropic-plugin-directory": true,
