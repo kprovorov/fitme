@@ -2,6 +2,7 @@ import { useColorScheme as useRNColorScheme } from "react-native";
 import { Uniwind } from "uniwind";
 
 export function useColorScheme() {
+  // biome-ignore lint/suspicious/noUnnecessaryConditions: React Native types it non-null, but it returns null without the native Appearance module
   const colorScheme = useRNColorScheme() ?? "dark";
   return {
     colorScheme,

@@ -27,8 +27,8 @@ const queryClient = new QueryClient();
 function DevToolsSync() {
   useSyncQueriesExternal({
     asyncStorage: AsyncStorage, // AsyncStorage for ['#storage', 'async', 'key'] queries + monitoring
-    deviceId: Platform?.OS || "web", // Use a PERSISTENT identifier (see note below)
-    deviceName: Platform?.OS || "web", // Platform detection
+    deviceId: Platform.OS, // Use a PERSISTENT identifier (see note below)
+    deviceName: Platform.OS, // Platform detection
     enableLogs: false,
     envVariables: {
       NODE_ENV: process.env.NODE_ENV,
@@ -37,7 +37,7 @@ function DevToolsSync() {
     },
     // Storage monitoring with CRUD operations
     mmkvStorage: storage, // MMKV storage for ['#storage', 'mmkv', 'key'] queries + monitoring
-    platform: Platform?.OS || "web", // Use appropriate platform identifier
+    platform: Platform.OS, // Use appropriate platform identifier
     queryClient,
     secureStorage: SecureStore, // SecureStore for ['#storage', 'secure', 'key'] queries + monitoring
     secureStorageKeys: ["biometricKey", "deviceId"], // SecureStore keys to monitor
