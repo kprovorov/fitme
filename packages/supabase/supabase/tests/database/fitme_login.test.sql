@@ -1,6 +1,7 @@
 -- The fitme login (20261014130000_fitme_login.sql, ADR 0003) and the rule
--- that every public table has RLS: a table without it keeps Supabase's
--- default grants, so anyone switching to authenticated could read all of it.
+-- that every public table has RLS: a table without it is open to every role
+-- its grants name (anon and authenticated on the app tables, and on hosted
+-- projects Supabase's default grants), so they could read all of it.
 -- Run with `pnpm db test:db` (supabase test db).
 begin;
 
