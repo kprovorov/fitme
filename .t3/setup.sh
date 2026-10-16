@@ -13,19 +13,20 @@ if [[ "$root" == "$worktree" ]]; then
   exit 0
 fi
 
-# Env files are gitignored, so new worktrees don't get them. Copy any that exist
-# in the main checkout (apps/*/.env*, ...) without
-# overwriting files already present in the worktree.
-while IFS= read -r -d '' src; do
-  rel="${src#"$root"/}"
-  dest="$worktree/$rel"
-  if [[ ! -e "$dest" ]]; then
-    mkdir -p "$(dirname "$dest")"
-    cp "$src" "$dest"
-    echo "Copied $rel"
-  fi
-done < <(
-  find "$root" \
-    \( -name node_modules -o -name .git -o -name .next -o -name .turbo -o -name ios -o -name android \) -prune \
-    -o -type f -name '.env*' ! -name '.env.example' -print0
-)
+# Env files are gitignored, so new worktrees don't get them. Copy every
+# apps/*/.env* and packages/*/.env* from the main checkout, without overwriting
+# files already present in the worktree. Copies, not symlinks: each worktree
+# runs its own Supabase stack (`[experimental] stack`), so its URLs and ports
+# can differ, and editing them must not touch the main checkout's files.
+for dir in "$root"/apps/* "$root"/packages/*; do
+  for src in "$dir"/.env*; do
+    [[ -f "$src" && "$src" != *.example ]] || continue
+    rel="${src#"$root"/}"
+    dest="$worktree/$rel"
+    if [[ ! -e "$dest" ]]; then
+      mkdir -p "$(dirname "$dest")"
+      cp "$src" "$dest"
+      echo "Copied $rel"
+    fi
+  done
+done
