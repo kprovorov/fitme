@@ -7,14 +7,14 @@ import {
   Activity,
   ArrowRight,
   ArrowUp,
-  Building2,
+  BuildingComplex,
   ChevronDown,
   ChevronRight,
+  CircleQuestionMark,
   Clock,
   Dumbbell,
   Heart,
-  HelpCircle,
-  Home,
+  House,
   type LucideIcon,
   MessageSquare,
   Plus,
@@ -36,7 +36,7 @@ const LUCIDE_FALLBACKS: Record<string, LucideIcon> = {
   "arrow.up": ArrowUp,
   "bolt.fill": Zap,
   "bubble.left.and.bubble.right": MessageSquare,
-  "building.2": Building2,
+  "building.2": BuildingComplex,
   "chevron.down": ChevronDown,
   "chevron.right": ChevronRight,
   clock: Clock,
@@ -46,7 +46,7 @@ const LUCIDE_FALLBACKS: Record<string, LucideIcon> = {
   "figure.strengthtraining.traditional": Dumbbell,
   "figure.walk": Activity,
   heart: Heart,
-  house: Home,
+  house: House,
   plus: Plus,
   "scalemass.fill": Weight,
   "trophy.fill": Trophy,
@@ -86,7 +86,7 @@ export function SymbolImage({
     );
   }
 
-  const Icon = LUCIDE_FALLBACKS[name] ?? HelpCircle;
+  const Icon = LUCIDE_FALLBACKS[name] ?? CircleQuestionMark;
   // biome-ignore lint/suspicious/noExplicitAny: Lucide icon style prop type is wider than what RN provides
   return <Icon color={tintColor} size={size} style={style as any} />;
 }
