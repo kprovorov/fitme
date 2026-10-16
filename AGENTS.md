@@ -79,7 +79,7 @@ React Native / Expo app using **file-based routing** via `expo-router`:
 
 - `app/` — Expo Router routes (file-based navigation)
   - `_layout.tsx` — Root layout: initializes fonts, Sentry and RevenueCat
-  - `(tabs)/` — Bottom tab navigator (Home, History, Library, Profile)
+  - `(tabs)/` — Bottom tab navigator (Home, History, Coach, Library, Profile). Native tabs only show routes declared in `_layout.tsx` (SDK 58), so Home is the `(home)` group: its `index.tsx` is the app's `/` route, with no redirect route in between
   - `auth/` — Login/Register screens and the shared emailed-code screen (presented as fullscreen modal)
   - `onboarding/` — Post-registration onboarding flow (fullscreen modal)
   - `planner/` — AI plan generation flow (modal)
