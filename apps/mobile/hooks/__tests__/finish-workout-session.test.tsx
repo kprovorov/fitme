@@ -68,15 +68,16 @@ const setup = async (screensAboveSession = 0) => {
     }),
     { wrapper }
   );
-  // Waits until no finish is pending, so react-query's last state updates
-  // (scheduled after onSuccess navigates) land inside the test.
-  const settled = () =>
-    waitFor(() =>
-      expect([
-        result.current.session.isFinishing,
-        result.current.exercise.isFinishing,
-      ]).toEqual([false, false])
-    );
+  // Waits until no finish is running, then lets react-query's last
+  // notification (a 0 ms timer) re-render the hooks inside act.
+  const settled = async () => {
+    await waitFor(() => expect(queryClient.isMutating()).toBe(0));
+    await act(() => new Promise((resolve) => setTimeout(resolve, 0)));
+    expect([
+      result.current.session.isFinishing,
+      result.current.exercise.isFinishing,
+    ]).toEqual([false, false]);
+  };
   return { queryClient, result, settled };
 };
 
