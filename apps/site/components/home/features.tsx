@@ -14,8 +14,8 @@ import { PhoneShot } from "@/components/phone-shot";
 import { SectionHeading } from "@/components/section-heading";
 import { Container } from "@/components/ui/container";
 import { cn } from "@/lib/utils";
-import exerciseShot from "@/public/screens/exercise-detail.png";
 import progressShot from "@/public/screens/exercise-progress.png";
+import libraryShot from "@/public/screens/library-chest.png";
 import loggingShot from "@/public/screens/session-logging.png";
 import summaryShot from "@/public/screens/session-summary.png";
 
@@ -69,7 +69,7 @@ const features: Feature[] = [
     title: "Watch your lifts go up",
   },
   {
-    alt: "Exercise detail for Bench Press: an illustration of the movement with the worked muscles highlighted, and step-by-step instructions",
+    alt: "Exercise library filtered to Chest: bench presses, flies and dumbbell presses, each with an illustration",
     description:
       "A library of 75+ gym exercises, each with an illustration of the movement, the muscles it works and how to do it right.",
     eyebrow: "Exercise library",
@@ -78,7 +78,7 @@ const features: Feature[] = [
       "Step-by-step instructions",
       "Your own history on every exercise",
     ],
-    shot: exerciseShot,
+    shot: libraryShot,
     title: "Know every movement",
   },
 ];
