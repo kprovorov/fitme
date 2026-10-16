@@ -10,11 +10,11 @@ jobs:
     timeout-minutes: 60
 
     steps:
-      - uses: actions/checkout@v4
+      - uses: actions/checkout@v7
 
-      - uses: pnpm/action-setup@v4
+      - uses: pnpm/action-setup@v6
 
-      - uses: actions/setup-node@v4
+      - uses: actions/setup-node@v7
         with:
           node-version: "24"
           cache: "pnpm"
@@ -22,9 +22,10 @@ jobs:
       - name: Install dependencies
         run: pnpm install --frozen-lockfile
 
-      - uses: supabase/setup-cli@v1
-        with:
-          version: latest
+      # Puts the Supabase CLI pinned in @fitme/supabase's devDependencies
+      # (hoisted into the root node_modules) on PATH for the steps below.
+      - name: Use the lockfile-pinned Supabase CLI
+        run: echo "$GITHUB_WORKSPACE/node_modules/.bin" >> "$GITHUB_PATH"
 
       - name: Create Supabase preview branch
         id: branch
@@ -172,7 +173,7 @@ jobs:
         run: pnpm test:e2e -- --format junit --output e2e-results.xml
 
       - name: Upload test results
-        uses: actions/upload-artifact@v4
+        uses: actions/upload-artifact@v7
         if: always()
         with:
           name: e2e-results
