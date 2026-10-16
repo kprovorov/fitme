@@ -55,11 +55,11 @@ function Footer() {
                 <h2 className="font-bold text-foreground text-sm">
                   {column.title}
                 </h2>
-                <ul className="flex flex-col gap-1">
+                <ul className="flex flex-col">
                   {column.links.map((link) => (
                     <li key={link.href}>
                       <Link
-                        className="inline-block py-1 text-muted-foreground text-sm transition-colors hover:text-foreground"
+                        className="inline-flex min-h-11 items-center text-muted-foreground text-sm transition-colors hover:text-foreground"
                         href={link.href}
                       >
                         {link.title}

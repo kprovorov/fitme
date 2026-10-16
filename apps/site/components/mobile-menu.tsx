@@ -2,16 +2,27 @@
 
 import { Menu, X } from "lucide-react";
 import Link from "next/link";
-import { useCallback, useEffect, useState } from "react";
+import { usePathname } from "next/navigation";
+import { useCallback, useEffect, useRef, useState } from "react";
 
 import { navLinks } from "@/lib/site";
 import { Button } from "./ui/button";
 
-/** The header's links below `md`, in a dropdown that closes when one is picked or on Escape. */
+/**
+ * The header's links below `md`, in a dropdown that closes when one is picked,
+ * on Escape (focus goes back to the toggle) or when the route changes.
+ */
 function MobileMenu() {
-  const [isOpen, setIsOpen] = useState(false);
-  const toggle = useCallback(() => setIsOpen((open) => !open), []);
-  const close = useCallback(() => setIsOpen(false), []);
+  const pathname = usePathname();
+  const triggerRef = useRef<HTMLButtonElement>(null);
+  // The path the menu was opened on: navigating anywhere else closes it.
+  const [openPath, setOpenPath] = useState<string | null>(null);
+  const isOpen = openPath === pathname;
+  const toggle = useCallback(
+    () => setOpenPath((path) => (path === pathname ? null : pathname)),
+    [pathname]
+  );
+  const close = useCallback(() => setOpenPath(null), []);
 
   useEffect(() => {
     if (!isOpen) {
@@ -19,7 +30,8 @@ function MobileMenu() {
     }
     const onKeyDown = (event: KeyboardEvent) => {
       if (event.key === "Escape") {
-        setIsOpen(false);
+        setOpenPath(null);
+        triggerRef.current?.focus();
       }
     };
     document.addEventListener("keydown", onKeyDown);
@@ -34,6 +46,7 @@ function MobileMenu() {
         aria-label={isOpen ? "Close menu" : "Open menu"}
         className="size-11"
         onClick={toggle}
+        ref={triggerRef}
         size="icon"
         variant="ghost"
       >
