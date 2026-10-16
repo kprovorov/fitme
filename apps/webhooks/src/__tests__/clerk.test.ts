@@ -1,5 +1,5 @@
 import { Webhook } from "standardwebhooks";
-import { describe, expect, it } from "vitest";
+import { afterEach, describe, expect, it, vi } from "vitest";
 import { createApp } from "../app.js";
 import type { ClerkWebhookDeps } from "../routes/clerk.js";
 
@@ -63,9 +63,18 @@ const setup = (overrides: Partial<ClerkWebhookDeps> = {}) => {
   return { app, deleted, reported, steps };
 };
 
+/** Captures the route's rejection log so expected rejections print nothing. */
+const spyOnRejectionLog = () =>
+  vi.spyOn(console, "warn").mockImplementation(() => undefined);
+
+afterEach(() => {
+  vi.restoreAllMocks();
+});
+
 describe("POST /clerk", () => {
   it("rejects an unsigned request without deleting anything", async () => {
     const { app, deleted } = setup();
+    const warn = spyOnRejectionLog();
 
     const response = await app.request(CLERK_URL, {
       body: JSON.stringify(userDeleted()),
@@ -75,6 +84,10 @@ describe("POST /clerk", () => {
 
     expect(response.status).toBe(401);
     expect(deleted).toEqual([]);
+    expect(warn).toHaveBeenCalledExactlyOnceWith(
+      "Rejected Clerk webhook",
+      expect.any(Error)
+    );
   });
 
   it("deletes the User's data on a signed user.deleted event", async () => {
@@ -123,6 +136,7 @@ describe("POST /clerk", () => {
 
   it("rejects an event signed with another secret", async () => {
     const { app, deleted } = setup();
+    const warn = spyOnRejectionLog();
 
     const response = await app.request(
       signedRequest(userDeleted(), { secret: OTHER_SECRET })
@@ -130,10 +144,15 @@ describe("POST /clerk", () => {
 
     expect(response.status).toBe(401);
     expect(deleted).toEqual([]);
+    expect(warn).toHaveBeenCalledExactlyOnceWith(
+      "Rejected Clerk webhook",
+      expect.any(Error)
+    );
   });
 
   it("rejects a tampered body", async () => {
     const { app, deleted } = setup();
+    const warn = spyOnRejectionLog();
     const signed = signedRequest(userDeleted("user_someoneElse"));
 
     const response = await app.request(CLERK_URL, {
@@ -144,6 +163,10 @@ describe("POST /clerk", () => {
 
     expect(response.status).toBe(401);
     expect(deleted).toEqual([]);
+    expect(warn).toHaveBeenCalledExactlyOnceWith(
+      "Rejected Clerk webhook",
+      expect.any(Error)
+    );
   });
 
   it("reports a failed cleanup once and answers 500 so Clerk retries", async () => {
