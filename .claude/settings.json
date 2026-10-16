@@ -16,7 +16,6 @@
     "figma@claude-plugins-official": true,
     "mattpocock-skills@claude-plugins-official": true,
     "vercel@anthropic-plugin-directory": true,
-    "cloudflare@claude-plugins-official": true,
     "expo@anthropic-plugin-directory": true,
     "mobbin@anthropic-plugin-directory": true,
     "sentry@anthropic-plugin-directory": true,
