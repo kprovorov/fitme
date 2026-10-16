@@ -18,7 +18,7 @@
   "dependencies": {
     "@vercel/functions": "^3.10.1",
     "drizzle-orm": "^0.45.4",
-    "pg": "^8.23.0"
+    "pg": "^8.23.1"
   },
   "devDependencies": {
     "@fitme/typescript-config": "workspace:*",
