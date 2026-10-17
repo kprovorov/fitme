@@ -70,8 +70,7 @@
       "expo-image",
       "expo-web-browser",
       "expo-status-bar",
-      "./plugins/with-ios-min-deployment-target.js",
-      "./plugins/with-revenuecat-xcode27-patch.js"
+      "./plugins/with-ios-min-deployment-target.js"
     ],
     "experiments": {
       "typedRoutes": true,
