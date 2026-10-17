@@ -17,24 +17,21 @@ jest.mock("../workout-card", () => {
 const workoutNamed = (name: string, order: number) =>
   ({ id: name, name, order }) as Workout;
 
-const planWith = (workouts: Workout[]) => ({ workouts }) as Plan;
+const renderHome = (workouts: Workout[]) =>
+  render(<HomeView plan={{ workouts } as Plan} />);
 
 const upcomingNames = () =>
   screen
     .queryAllByTestId("workout-card-default")
-    .map((card) => card.props.children);
+    .map((card) => card.children.join(""));
 
 describe("HomeView", () => {
   it("shows the first Workout by order as Next Workout and the rest under Upcoming, in rotation order", async () => {
-    await render(
-      <HomeView
-        plan={planWith([
-          workoutNamed("Day C", 3),
-          workoutNamed("Day A", 1),
-          workoutNamed("Day B", 2),
-        ])}
-      />
-    );
+    await renderHome([
+      workoutNamed("Day C", 3),
+      workoutNamed("Day A", 1),
+      workoutNamed("Day B", 2),
+    ]);
 
     expect(screen.getByTestId("workout-card-upcoming")).toHaveTextContent(
       "Day A"
@@ -44,11 +41,7 @@ describe("HomeView", () => {
   });
 
   it("lists the other Workout under Upcoming in a two-Workout Plan", async () => {
-    await render(
-      <HomeView
-        plan={planWith([workoutNamed("Day B", 1), workoutNamed("Day A", 2)])}
-      />
-    );
+    await renderHome([workoutNamed("Day B", 1), workoutNamed("Day A", 2)]);
 
     expect(screen.getByTestId("workout-card-upcoming")).toHaveTextContent(
       "Day B"
@@ -57,7 +50,7 @@ describe("HomeView", () => {
   });
 
   it("hides the Upcoming heading for a single-Workout Plan", async () => {
-    await render(<HomeView plan={planWith([workoutNamed("Day A", 1)])} />);
+    await renderHome([workoutNamed("Day A", 1)]);
 
     expect(screen.getByTestId("workout-card-upcoming")).toHaveTextContent(
       "Day A"
@@ -68,7 +61,7 @@ describe("HomeView", () => {
   it("doesn't reorder the Plan's Workouts", async () => {
     const workouts = [workoutNamed("Day B", 2), workoutNamed("Day A", 1)];
 
-    await render(<HomeView plan={planWith(workouts)} />);
+    await renderHome(workouts);
 
     expect(workouts.map(({ name }) => name)).toEqual(["Day B", "Day A"]);
   });
