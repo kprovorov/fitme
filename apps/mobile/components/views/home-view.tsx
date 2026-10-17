@@ -1,5 +1,4 @@
 import type { Plan, Workout } from "@fitme/core";
-import { useEffect, useState } from "react";
 import { H3, H4 } from "../ui/typography";
 import { VStack } from "../ui/vstack";
 import ActivePlanView from "./active-plan-view";
@@ -10,23 +9,15 @@ interface HomeViewProps {
 }
 
 export default function HomeView({ plan }: HomeViewProps) {
-  const [nextWorkout, setNextWorkout] = useState<Workout | undefined>();
-  const [upcomingWorkouts, setUpcomingWorkouts] = useState<Workout[]>([]);
-
-  useEffect(() => {
-    const [firstWorkout] = plan.workouts.sort((a, b) => a.order - b.order);
-    setNextWorkout(firstWorkout);
-    setUpcomingWorkouts(
-      plan.workouts
-        .filter((workout) => workout.id !== firstWorkout?.id)
-        .sort((a, b) => a.order - b.order)
-    );
-  }, [plan.workouts]);
+  // A copy: plan.workouts is the query cache's array, so it's never sorted in place.
+  const rotation = [...plan.workouts].sort((a, b) => a.order - b.order);
+  const nextWorkout: Workout | undefined = rotation[0];
+  const upcomingWorkouts = rotation.slice(1);
 
   return (
-    <VStack className="flex-1 items-stretch gap-lg px-md">
+    <VStack className="items-stretch gap-lg">
       <ActivePlanView />
-      <VStack className="flex-1 items-stretch">
+      <VStack className="items-stretch">
         <H4>Next Workout</H4>
         {nextWorkout ? (
           <WorkoutCard state="upcoming" workout={nextWorkout} />
@@ -36,7 +27,7 @@ export default function HomeView({ plan }: HomeViewProps) {
           </H3>
         )}
       </VStack>
-      {!!nextWorkout && (
+      {upcomingWorkouts.length > 0 && (
         <VStack className="items-stretch">
           <H4>Upcoming</H4>
           {upcomingWorkouts.map((workout) => (
