@@ -5,6 +5,7 @@ import { useQueryClient } from "@tanstack/react-query";
 import { useLocales } from "expo-localization";
 import { router, Stack } from "expo-router";
 import { useCallback } from "react";
+import { ActivityIndicator, ScrollView } from "react-native";
 import ProfileForm, {
   PROFILE_SAVE_ERROR_MESSAGE,
   type ProfileFormValues,
@@ -69,14 +70,27 @@ export default function ProfileScreen() {
           instead of sliding under its buttons. */}
       <Stack.Screen
         options={{
-          headerLargeTitle: true,
+          headerLargeTitleEnabled: true,
           headerLargeTitleShadowVisible: false,
-          headerLargeTitleStyle: { fontFamily: "NunitoSans12pt-Bold" },
+          // Below the default 34 pt so the title fits a 375 pt wide iPhone.
+          headerLargeTitleStyle: {
+            fontFamily: "NunitoSans12pt-Bold",
+            fontSize: 30,
+          },
           headerTitle: "Let's get to know you",
           headerTitleStyle: { fontFamily: "NunitoSans12pt-Bold" },
         }}
       />
-      {!!user && !isProfilePending && (
+      {!user || isProfilePending ? (
+        // A scroll view from the first render, so the large title has one to
+        // track before the form mounts.
+        <ScrollView
+          contentContainerClassName="flex-1 items-center justify-center"
+          contentInsetAdjustmentBehavior="automatic"
+        >
+          <ActivityIndicator colorClassName="accent-foreground" />
+        </ScrollView>
+      ) : (
         <ProfileForm
           defaultValues={{
             age: profile?.age ?? undefined,
