@@ -12,6 +12,7 @@ import {
   type StyleProp,
   Text,
   TextInput,
+  type TextInputInstance,
   View,
   type ViewStyle,
 } from "react-native";
@@ -151,11 +152,12 @@ export function PromptInputTextarea({
   maxLength?: number;
 }) {
   const { input, setInput } = useChatContext();
-  const inputRef = useRef<TextInput>(null);
+  const inputRef = useRef<TextInputInstance>(null);
   const foreground = useCSSVariable("--foreground") as string;
 
   useEffect(() => {
     if (input === "") {
+      // biome-ignore lint/suspicious/noUnnecessaryConditions: the ref is null until the TextInput mounts
       inputRef.current?.clear();
     }
   }, [input]);

@@ -17,7 +17,12 @@ import {
   useController,
   useForm,
 } from "react-hook-form";
-import { Keyboard, Pressable, ScrollView } from "react-native";
+import {
+  Keyboard,
+  Pressable,
+  ScrollView,
+  type ScrollViewInstance,
+} from "react-native";
 import Animated, {
   useAnimatedStyle,
   useSharedValue,
@@ -103,7 +108,7 @@ export default function ProfileForm({
     resolver: zodResolver(formSchema),
   });
 
-  const scrollViewRef = useRef<ScrollView>(null);
+  const scrollViewRef = useRef<ScrollViewInstance>(null);
 
   const [fieldFocused, setFieldFocused] = useState<ProfileField | null>(null);
 

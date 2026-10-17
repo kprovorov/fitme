@@ -1,5 +1,6 @@
 import { useQueryClient } from "@tanstack/react-query";
 import { Stack, useLocalSearchParams, useRouter } from "expo-router";
+import { useCallback } from "react";
 import { Alert, RefreshControl, ScrollView } from "react-native";
 import { VStack } from "~/components/ui/vstack";
 import WorkoutList from "~/components/views/workout-list";
@@ -39,6 +40,10 @@ export default function PlanScreen() {
       id: planId as string,
     },
   });
+
+  const onRefresh = useCallback(async () => {
+    await refetch();
+  }, [refetch]);
 
   return (
     <>
@@ -125,7 +130,7 @@ export default function PlanScreen() {
         className="flex-1 p-6"
         contentInsetAdjustmentBehavior="automatic"
         refreshControl={
-          <RefreshControl onRefresh={refetch} refreshing={isLoading} />
+          <RefreshControl onRefresh={onRefresh} refreshing={isLoading} />
         }
       >
         {plan ? (

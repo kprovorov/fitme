@@ -34,10 +34,13 @@
   --radius-sm: calc(var(--radius) - 4px);
 }
 
-/* Mirrors the v3 `theme.container` config: centered, 2rem padding, 1400px cap at 2xl. */
+/* Centered, 1.25rem gutters on phones and 2rem from `sm`, 1400px cap at 2xl. */
 @utility container {
-  padding-inline: 2rem;
+  padding-inline: 1.25rem;
   margin-inline: auto;
+  @media (width >= 40rem) {
+    padding-inline: 2rem;
+  }
   @media (width >= 96rem) {
     max-width: 1400px;
   }
@@ -88,7 +91,7 @@
     --accent-foreground: 0 0% 98%;
     --destructive: 0 62.8% 30.6%;
     --destructive-foreground: 0 0% 98%;
-    --border: 0 0% 14.9%;
+    --border: 0 0% 21%;
     --input: 0 0% 14.9%;
     --ring: 0 0% 83.1%;
     --chart-1: 220 70% 50%;

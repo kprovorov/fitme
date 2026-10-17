@@ -7,7 +7,7 @@ const POST_INSTALL_MARKER = "react_native_post_install(";
 const buildHook = (minVersion) => `
     # Xcode 27 rejects deployment targets below iOS 15. Some third-party pods
     # (and their resource-bundle targets) still declare older minimums, so raise
-    # every pod target to at least the app's minimum.
+    # every pod target to at least React Native's minimum.
     installer.pods_project.targets.each do |target|
       target.build_configurations.each do |build_configuration|
         current = build_configuration.build_settings['IPHONEOS_DEPLOYMENT_TARGET']

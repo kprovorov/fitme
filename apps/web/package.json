@@ -19,8 +19,8 @@
     "date-fns": "4.4.0",
     "lucide-react": "^1.58.0",
     "next": "^16.4.2",
-    "react": "19.2.3",
-    "react-dom": "19.2.3",
+    "react": "19.3.0",
+    "react-dom": "19.3.0",
     "tailwind-merge": "3.7.0"
   },
   "devDependencies": {
@@ -28,8 +28,8 @@
     "@tailwindcss/postcss": "^4.3.3",
     "@tanstack/react-query-devtools": "^5.104.3",
     "@types/node": "22.15.21",
-    "@types/react": "19.2.14",
-    "@types/react-dom": "~19.2.0",
+    "@types/react": "19.3.0",
+    "@types/react-dom": "~19.3.0",
     "tailwindcss": "4.3.3",
     "typescript": "5.9.3"
   }
