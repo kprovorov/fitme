@@ -97,7 +97,7 @@ React Native / Expo app using **file-based routing** via `expo-router`:
 - `lib/` — App-specific utilities
   - `supabase.ts` — Supabase client whose access token is the Clerk session token (no Supabase Auth session)
   - `clerk.ts` — Clerk publishable key, `getClerk()` for code outside React, `getCurrentUserId()`, `getClerkErrorMessage()`
-  - `mmkv.ts` — MMKV storage instance (`createMMKV()`, react-native-mmkv 4 on Nitro Modules; same default instance and directory as v3, so saved data carries over). Under Jest MMKV swaps in its own in-memory instance; `package.json` maps `react-native-nitro-modules` to `test-utils/nitro-modules.ts` so the import resolves
+  - `mmkv.ts` — MMKV storage instance (`createMMKV()`, react-native-mmkv 4 on Nitro Modules; same default instance and directory as v3, so saved data carries over), plus `devToolsStorage`, the same instance with `delete` for the devtools sync. Under Jest MMKV swaps in its own in-memory instance; `package.json` maps `react-native-nitro-modules` to `test-utils/nitro-modules.ts` so the import resolves
   - `coach-chat.ts` — Coach screen helpers: `COACH_URL`, per-turn model context, error → paywall mapping, the saved Conversation (see Key Patterns)
   - `coach-model.ts` — the Coach model list's schema and MMKV cache (`coach.models`), and the picker's choice (`coach.model`) resolved against it (see Key Patterns)
   - `utils.ts` — `cn()` class merger (tailwind-merge with the HIG font scale)

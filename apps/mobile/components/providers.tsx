@@ -19,25 +19,10 @@ import { useSyncQueriesExternal } from "react-query-external-sync";
 import AuthSync from "@/components/auth-sync";
 import { useColorScheme } from "@/hooks/useColorScheme";
 import { clerkPublishableKey, tokenCache } from "~/lib/clerk";
-import { storage } from "~/lib/mmkv";
+import { devToolsStorage } from "~/lib/mmkv";
 import { segmentClient } from "~/lib/segment";
 
 const queryClient = new QueryClient();
-
-// The devtools sync deletes keys through `delete`, which MMKV 4 renamed `remove`.
-const devToolsMmkvStorage = {
-  addOnValueChangedListener: (listener: (key: string) => void) =>
-    storage.addOnValueChangedListener(listener),
-  delete: (key: string) => {
-    storage.remove(key);
-  },
-  getAllKeys: () => storage.getAllKeys(),
-  getBoolean: (key: string) => storage.getBoolean(key),
-  getNumber: (key: string) => storage.getNumber(key),
-  getString: (key: string) => storage.getString(key),
-  set: (key: string, value: string | number | boolean) =>
-    storage.set(key, value),
-};
 
 function DevToolsSync() {
   useSyncQueriesExternal({
@@ -51,7 +36,7 @@ function DevToolsSync() {
       // Public environment variables are automatically loaded
     },
     // Storage monitoring with CRUD operations
-    mmkvStorage: devToolsMmkvStorage, // MMKV storage for ['#storage', 'mmkv', 'key'] queries + monitoring
+    mmkvStorage: devToolsStorage, // MMKV storage for ['#storage', 'mmkv', 'key'] queries + monitoring
     platform: Platform.OS, // Use appropriate platform identifier
     queryClient,
     secureStorage: SecureStore, // SecureStore for ['#storage', 'secure', 'key'] queries + monitoring
