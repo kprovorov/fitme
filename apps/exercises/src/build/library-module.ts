@@ -177,17 +177,19 @@ export const generateLibraryModule = async ({
       ),
     };
   }
-  const fromBlob = env.VERCEL_ENV === "production";
-  const name = fromBlob
-    ? `Vercel Blob ${LIBRARY_BLOB}`
-    : resolve(appRoot, env.LIBRARY_BUNDLE || FIXTURE_BUNDLE);
-  const text = fromBlob
-    ? await readBlobText(name, env, getBlob)
-    : await readFileText(name);
+  let bundleName: string;
+  let text: TextResult;
+  if (env.VERCEL_ENV === "production") {
+    bundleName = `Vercel Blob ${LIBRARY_BLOB}`;
+    text = await readBlobText(bundleName, env, getBlob);
+  } else {
+    bundleName = resolve(appRoot, env.LIBRARY_BUNDLE || FIXTURE_BUNDLE);
+    text = await readFileText(bundleName);
+  }
   if (!text.ok) {
     return text;
   }
-  const result = parseBundle(name, text.text);
+  const result = parseBundle(bundleName, text.text);
   if (!result.ok) {
     return result;
   }
@@ -199,7 +201,7 @@ import type { ServedLibrary } from "../served-library";
 export const library: ServedLibrary = ${JSON.stringify(library, null, 2)};
 `;
   return {
-    bundle: name,
+    bundle: bundleName,
     exercises: library.exercises.length,
     hash: library.hash,
     ok: true,

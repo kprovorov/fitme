@@ -6,14 +6,11 @@ import { generateLibraryModule } from "./build/library-module";
 const APP_ROOT = resolve(import.meta.dirname, "..");
 
 /**
- * Generates src/generated/library.ts, the Exercise Library the API serves.
- * A production build (VERCEL_ENV=production) builds from library.json in the
- * private Blob store, read through Vercel OIDC (BLOB_STORE_ID), or
- * BLOB_READ_WRITE_TOKEN as the fallback; any other build from the bundle at
- * LIBRARY_BUNDLE (by default the committed fixture of made-up Exercises).
- * Media URLs are resolved on the Supabase project at SUPABASE_URL. Runs
- * before every build, dev server, typecheck and test run; fails (exit code 1)
- * on a missing or invalid bundle.
+ * Generates src/generated/library.ts, the Exercise Library the API serves,
+ * from the bundle `generateLibraryModule` picks (production: the private Blob
+ * store; anywhere else: LIBRARY_BUNDLE or the fixture). Runs before every
+ * build, dev server, typecheck and test run; fails (exit code 1) on a missing
+ * or invalid bundle.
  */
 const out = resolve(import.meta.dirname, "generated/library.ts");
 
@@ -27,8 +24,10 @@ if (result.ok) {
   await mkdir(dirname(out), { recursive: true });
   await writeFile(out, result.source);
   // The build log names the deployment's content: its source, size and hash.
+  const exercises =
+    result.exercises === 1 ? "1 Exercise" : `${result.exercises} Exercises`;
   console.log(
-    `generated ${out} from ${result.bundle}: ${result.exercises} Exercise${result.exercises === 1 ? "" : "s"}, library hash ${result.hash}`
+    `generated ${out} from ${result.bundle}: ${exercises}, library hash ${result.hash}`
   );
 } else {
   const count = result.problems.length;

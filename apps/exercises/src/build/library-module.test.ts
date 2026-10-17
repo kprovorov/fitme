@@ -51,6 +51,27 @@ const importModule = async (source: string) => {
 
 const valid = libraryBundle([libraryExercise("squat", "Squat")]);
 
+/** A fake Blob `get` answering `library.json` with `bundle`, recording its calls. */
+const blobHolding = (bundle: unknown) => {
+  const calls: Parameters<BlobGet>[] = [];
+  const getBlob: BlobGet = (...args) => {
+    calls.push(args);
+    const body = typeof bundle === "string" ? bundle : JSON.stringify(bundle);
+    return Promise.resolve({
+      statusCode: 200,
+      stream: new Response(body).body as ReadableStream<Uint8Array>,
+    });
+  };
+  return { calls, getBlob };
+};
+
+const PRODUCTION: LibraryEnv = {
+  BLOB_STORE_ID: "store_test",
+  SUPABASE_URL,
+  VERCEL: "1",
+  VERCEL_ENV: "production",
+};
+
 /** A version 1 bundle whose Exercises can be anything, to break the format. */
 const bundleOf = (exercises: unknown[]) => ({ exercises, version: 1 });
 
@@ -203,27 +224,6 @@ describe("generateLibraryModule", () => {
   });
 });
 
-/** A fake Blob `get` answering `library.json` with `bundle`, recording its calls. */
-const blobHolding = (bundle: unknown) => {
-  const calls: Parameters<BlobGet>[] = [];
-  const getBlob: BlobGet = (...args) => {
-    calls.push(args);
-    const body = typeof bundle === "string" ? bundle : JSON.stringify(bundle);
-    return Promise.resolve({
-      statusCode: 200,
-      stream: new Response(body).body as ReadableStream<Uint8Array>,
-    });
-  };
-  return { calls, getBlob };
-};
-
-const PRODUCTION: LibraryEnv = {
-  BLOB_STORE_ID: "store_test",
-  SUPABASE_URL,
-  VERCEL: "1",
-  VERCEL_ENV: "production",
-};
-
 describe("generateLibraryModule in production", () => {
   it("builds from the latest library.json in the private Blob store", async () => {
     const blob = blobHolding(libraryBundle([libraryExercise("lunge", "Lunge")]));
@@ -244,6 +244,18 @@ describe("generateLibraryModule in production", () => {
       ["lunge"]
     );
     expect(result.ok && result.hash).toBe(library.hash);
+  });
+
+  it("ignores LIBRARY_BUNDLE", async () => {
+    const blob = blobHolding(libraryBundle([libraryExercise("lunge", "Lunge")]));
+
+    const result = await generate(
+      { ...PRODUCTION, LIBRARY_BUNDLE: await writeBundle(valid) },
+      blob.getBlob
+    );
+
+    expect(result).toMatchObject({ exercises: 1, ok: true });
+    expect(blob.calls).toHaveLength(1);
   });
 
   it("fails without a Blob store, never falling back to the fixture", async () => {
