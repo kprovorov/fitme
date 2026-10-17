@@ -36,19 +36,21 @@ oasdiff breaking "$tmp/base.json" "$spec" \
 # Errors and warnings (level 3 and 2) both fail. The one exception: a new
 # muscle group, a new enum value of the muscle_groups response property.
 # Clients must tolerate muscle groups they don't know; any other response
-# enum stays closed.
+# enum stays closed. The property path is the last backticked one in the
+# message: `muscle_groups/items/` on the single lookup, prefixed with the
+# union branch on the list (`anyOf[…]/data/items/muscle_groups/items/`).
 jq -r '
   .[]
   | select(.level >= 2)
   | select(.id == "response-property-enum-value-added"
-      and (.text | contains("`muscle_groups/items/`")) | not)
+      and (.text | test("`([^`]*/)?muscle_groups/items/`")) | not)
   | "\(.operation) \(.path) \(.text)  [\(.id)]"
 ' "$tmp/changes.json" >"$tmp/breaking.txt"
 
 if [[ -s $tmp/breaking.txt ]]; then
   echo "breaking API changes against the base branch (the API is additive only):"
   sed 's/^/  /' "$tmp/breaking.txt"
-  echo "A deliberate removal needs its line (without the [check id]) in .github/oasdiff/allowed-breaking-changes.txt: see "apps/exercises" in AGENTS.md."
+  echo "A deliberate removal needs its line (without the [check id]) in .github/oasdiff/allowed-breaking-changes.txt: see apps/exercises in AGENTS.md."
   exit 1
 fi
 echo "no breaking API changes against the base branch"
