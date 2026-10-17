@@ -4,10 +4,23 @@ import { join, resolve } from "node:path";
 import { pathToFileURL } from "node:url";
 import { afterEach, beforeEach, describe, expect, it } from "vitest";
 import { fakeOid, libraryBundle, libraryExercise } from "../test/fixtures";
-import { generateLibraryModule } from "./library-module";
+import {
+  type BlobGet,
+  generateLibraryModule,
+  type LibraryEnv,
+} from "./library-module";
 
 const SUPABASE_URL = "https://project.supabase.co";
-const FIXTURE_BUNDLE = resolve(import.meta.dirname, "../../fixtures/library.json");
+const APP_ROOT = resolve(import.meta.dirname, "../..");
+
+/** Blob outside production: any read fails the test. */
+const noBlob: BlobGet = () => {
+  throw new Error("read Blob outside production");
+};
+
+/** Runs the bundle step as `pnpm generate` does, with `env` and a fake Blob `get`. */
+const generate = (env: LibraryEnv, getBlob: BlobGet = noBlob) =>
+  generateLibraryModule({ appRoot: APP_ROOT, env, getBlob });
 
 let dir: string;
 
@@ -38,14 +51,35 @@ const importModule = async (source: string) => {
 
 const valid = libraryBundle([libraryExercise("squat", "Squat")]);
 
+/** A fake Blob `get` answering `library.json` with `bundle`, recording its calls. */
+const blobHolding = (bundle: unknown) => {
+  const calls: Parameters<BlobGet>[] = [];
+  const getBlob: BlobGet = (...args) => {
+    calls.push(args);
+    const body = typeof bundle === "string" ? bundle : JSON.stringify(bundle);
+    return Promise.resolve({
+      statusCode: 200,
+      stream: new Response(body).body as ReadableStream<Uint8Array>,
+    });
+  };
+  return { calls, getBlob };
+};
+
+const PRODUCTION: LibraryEnv = {
+  BLOB_STORE_ID: "store_test",
+  SUPABASE_URL,
+  VERCEL: "1",
+  VERCEL_ENV: "production",
+};
+
 /** A version 1 bundle whose Exercises can be anything, to break the format. */
 const bundleOf = (exercises: unknown[]) => ({ exercises, version: 1 });
 
 describe("generateLibraryModule", () => {
   it("generates a module holding every Exercise with its media URLs and the search index", async () => {
-    const result = await generateLibraryModule({
-      bundlePath: await writeBundle(valid),
-      supabaseUrl: `${SUPABASE_URL}/`,
+    const result = await generate({
+      LIBRARY_BUNDLE: await writeBundle(valid),
+      SUPABASE_URL: `${SUPABASE_URL}/`,
     });
 
     expect(result.ok).toBe(true);
@@ -68,10 +102,7 @@ describe("generateLibraryModule", () => {
   });
 
   it("accepts the committed fixture bundle", async () => {
-    const result = await generateLibraryModule({
-      bundlePath: FIXTURE_BUNDLE,
-      supabaseUrl: SUPABASE_URL,
-    });
+    const result = await generate({ SUPABASE_URL });
 
     expect(result.ok).toBe(true);
     const { library } = await importModule(result.ok ? result.source : "");
@@ -124,10 +155,7 @@ describe("generateLibraryModule", () => {
   ])("fails on %s, naming the field", async (_, bundle, problem) => {
     const bundlePath = await writeBundle(bundle);
 
-    const result = await generateLibraryModule({
-      bundlePath,
-      supabaseUrl: SUPABASE_URL,
-    });
+    const result = await generate({ LIBRARY_BUNDLE: bundlePath, SUPABASE_URL });
 
     expect(result).toEqual({ ok: false, problems: [expect.any(String)] });
     const [message] = result.ok ? [] : result.problems;
@@ -136,12 +164,12 @@ describe("generateLibraryModule", () => {
   });
 
   it("names every problem", async () => {
-    const result = await generateLibraryModule({
-      bundlePath: await writeBundle({
+    const result = await generate({
+      LIBRARY_BUNDLE: await writeBundle({
         exercises: [{ ...libraryExercise("squat", ""), muscle_groups: [] }],
         version: 0,
       }),
-      supabaseUrl: SUPABASE_URL,
+      SUPABASE_URL,
     });
 
     expect(result.ok ? [] : result.problems).toHaveLength(3);
@@ -150,10 +178,7 @@ describe("generateLibraryModule", () => {
   it("fails on a bundle that isn't JSON", async () => {
     const bundlePath = await writeBundle("{ not json");
 
-    const result = await generateLibraryModule({
-      bundlePath,
-      supabaseUrl: SUPABASE_URL,
-    });
+    const result = await generate({ LIBRARY_BUNDLE: bundlePath, SUPABASE_URL });
 
     expect(result).toEqual({
       ok: false,
@@ -162,9 +187,9 @@ describe("generateLibraryModule", () => {
   });
 
   it("fails on a missing bundle", async () => {
-    const result = await generateLibraryModule({
-      bundlePath: join(dir, "nope.json"),
-      supabaseUrl: SUPABASE_URL,
+    const result = await generate({
+      LIBRARY_BUNDLE: join(dir, "nope.json"),
+      SUPABASE_URL,
     });
 
     expect(result).toEqual({
@@ -184,9 +209,10 @@ describe("generateLibraryModule", () => {
     ["not an origin (fragment)", "https://project.supabase.co#x"],
     ["not an origin (credentials)", "https://user:pass@project.supabase.co"],
   ])("fails when the Supabase URL is %s", async (_, supabaseUrl) => {
-    const result = await generateLibraryModule({
-      bundlePath: await writeBundle(valid),
-      supabaseUrl,
+    const result = await generate({
+      LIBRARY_BUNDLE: await writeBundle(valid),
+      SUPABASE_URL: supabaseUrl,
+      VERCEL: "1",
     });
 
     expect(result).toEqual({
@@ -194,6 +220,128 @@ describe("generateLibraryModule", () => {
       problems: [
         expect.stringMatching(/^SUPABASE_URL: must be the https URL/),
       ],
+    });
+  });
+});
+
+describe("generateLibraryModule in production", () => {
+  it("builds from the latest library.json in the private Blob store", async () => {
+    const blob = blobHolding(libraryBundle([libraryExercise("lunge", "Lunge")]));
+
+    const result = await generate(PRODUCTION, blob.getBlob);
+
+    expect(blob.calls).toEqual([
+      ["library.json", { access: "private", useCache: false }],
+    ]);
+    expect(result).toMatchObject({
+      bundle: "Vercel Blob library.json",
+      exercises: 1,
+      hash: expect.stringMatching(/^[0-9a-f]{64}$/),
+      ok: true,
+    });
+    const { library } = await importModule(result.ok ? result.source : "");
+    expect(library.exercises.map(({ slug }: { slug: string }) => slug)).toEqual(
+      ["lunge"]
+    );
+    expect(result.ok && result.hash).toBe(library.hash);
+  });
+
+  it("ignores LIBRARY_BUNDLE", async () => {
+    const blob = blobHolding(libraryBundle([libraryExercise("lunge", "Lunge")]));
+
+    const result = await generate(
+      { ...PRODUCTION, LIBRARY_BUNDLE: await writeBundle(valid) },
+      blob.getBlob
+    );
+
+    expect(result).toMatchObject({ exercises: 1, ok: true });
+    expect(blob.calls).toHaveLength(1);
+  });
+
+  it("fails without a Blob store, never falling back to the fixture", async () => {
+    const blob = blobHolding(valid);
+
+    const result = await generate(
+      { ...PRODUCTION, BLOB_STORE_ID: undefined },
+      blob.getBlob
+    );
+
+    expect(blob.calls).toEqual([]);
+    expect(result).toEqual({
+      ok: false,
+      problems: [
+        expect.stringMatching(/^Vercel Blob library\.json: no Blob store: /),
+      ],
+    });
+  });
+
+  it("reads the store with the BLOB_READ_WRITE_TOKEN fallback", async () => {
+    const blob = blobHolding(valid);
+
+    const result = await generate(
+      { ...PRODUCTION, BLOB_READ_WRITE_TOKEN: "token", BLOB_STORE_ID: undefined },
+      blob.getBlob
+    );
+
+    expect(result.ok).toBe(true);
+    expect(blob.calls).toHaveLength(1);
+  });
+
+  it("fails when library.json isn't in the store", async () => {
+    const result = await generate(PRODUCTION, () => Promise.resolve(null));
+
+    expect(result).toEqual({
+      ok: false,
+      problems: ["Vercel Blob library.json: not in the Blob store"],
+    });
+  });
+
+  it("fails when the fetch fails", async () => {
+    const result = await generate(PRODUCTION, () =>
+      Promise.reject(new Error("Vercel Blob: Access denied"))
+    );
+
+    expect(result).toEqual({
+      ok: false,
+      problems: [
+        "Vercel Blob library.json: can't fetch the bundle (Vercel Blob: Access denied)",
+      ],
+    });
+  });
+
+  it.each([
+    ["isn't JSON", "{ not json", /: not valid JSON \(/],
+    [
+      "is invalid",
+      { ...valid, version: 2 },
+      /: version: unsupported bundle version 2/,
+    ],
+  ])("fails when the bundle %s, naming it", async (_, bundle, problem) => {
+    const result = await generate(PRODUCTION, blobHolding(bundle).getBlob);
+
+    expect(result).toEqual({
+      ok: false,
+      problems: [expect.stringMatching(problem)],
+    });
+    const [message] = result.ok ? [] : result.problems;
+    expect(message?.startsWith("Vercel Blob library.json: ")).toBe(true);
+  });
+});
+
+describe("generateLibraryModule outside production", () => {
+  it.each([
+    ["off Vercel", { SUPABASE_URL }],
+    ["in a Vercel preview build", { ...PRODUCTION, VERCEL_ENV: "preview" }],
+  ])("builds from the fixture %s without calling Blob", async (_, env) => {
+    const blob = blobHolding(libraryBundle([libraryExercise("lunge", "Lunge")]));
+
+    const result = await generate(env, blob.getBlob);
+
+    expect(blob.calls).toEqual([]);
+    expect(result).toMatchObject({
+      bundle: resolve(APP_ROOT, "fixtures/library.json"),
+      exercises: 3,
+      ok: true,
     });
   });
 });

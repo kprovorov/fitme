@@ -2,10 +2,20 @@
   "$schema": "https://turborepo.dev/schema.json",
   "extends": ["//"],
   "tasks": {
-    // generate bakes the bundle at LIBRARY_BUNDLE into dist/: turbo would hash
-    // the path, not the file, and replay a build holding a stale library.
+    // generate bakes the bundle into dist/: turbo would hash the
+    // LIBRARY_BUNDLE path, not the file, and in production the bundle comes
+    // from Blob, which turbo can't see at all. Never replay a build.
     "build": {
-      "cache": false
+      "cache": false,
+      // A production build reads library.json from the private Blob store
+      // through Vercel OIDC (or the BLOB_READ_WRITE_TOKEN fallback).
+      "passThroughEnv": [
+        "$TURBO_EXTENDS$",
+        "VERCEL_ENV",
+        "VERCEL_OIDC_TOKEN",
+        "BLOB_STORE_ID",
+        "BLOB_READ_WRITE_TOKEN"
+      ]
     }
   }
 }

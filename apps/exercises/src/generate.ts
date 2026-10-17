@@ -1,34 +1,34 @@
 import { mkdir, writeFile } from "node:fs/promises";
 import { dirname, resolve } from "node:path";
+import { get } from "@vercel/blob";
 import { generateLibraryModule } from "./build/library-module";
-import { PLACEHOLDER_SUPABASE_URL } from "./served-library";
 
 const APP_ROOT = resolve(import.meta.dirname, "..");
 
 /**
  * Generates src/generated/library.ts, the Exercise Library the API serves,
- * from the library.json bundle at LIBRARY_BUNDLE (absolute, or relative to
- * apps/exercises; by default the committed fixture of made-up Exercises) and
- * the Supabase project at SUPABASE_URL. Runs before every build, dev server,
- * typecheck and test run; fails (exit code 1) on an invalid bundle.
+ * from the bundle `generateLibraryModule` picks (production: the private Blob
+ * store; anywhere else: LIBRARY_BUNDLE or the fixture). Runs before every
+ * build, dev server, typecheck and test run; fails (exit code 1) on a missing
+ * or invalid bundle.
  */
 const out = resolve(import.meta.dirname, "generated/library.ts");
-const bundlePath = resolve(
-  APP_ROOT,
-  process.env.LIBRARY_BUNDLE || "fixtures/library.json"
-);
-// Required on Vercel, where the media URLs are served for real. Anywhere
-// else (local runs, CI, tests) a placeholder project will do.
-const supabaseUrl =
-  process.env.SUPABASE_URL ||
-  (process.env.VERCEL ? undefined : PLACEHOLDER_SUPABASE_URL);
 
-const result = await generateLibraryModule({ bundlePath, supabaseUrl });
+const result = await generateLibraryModule({
+  appRoot: APP_ROOT,
+  env: process.env,
+  getBlob: get,
+});
 
 if (result.ok) {
   await mkdir(dirname(out), { recursive: true });
   await writeFile(out, result.source);
-  console.log(`generated ${out} from ${bundlePath} (media on ${supabaseUrl})`);
+  // The build log names the deployment's content: its source, size and hash.
+  const exercises =
+    result.exercises === 1 ? "1 Exercise" : `${result.exercises} Exercises`;
+  console.log(
+    `generated ${out} from ${result.bundle}: ${exercises}, library hash ${result.hash}`
+  );
 } else {
   const count = result.problems.length;
   console.error(
