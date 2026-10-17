@@ -19,7 +19,7 @@ import { useSyncQueriesExternal } from "react-query-external-sync";
 import AuthSync from "@/components/auth-sync";
 import { useColorScheme } from "@/hooks/useColorScheme";
 import { clerkPublishableKey, tokenCache } from "~/lib/clerk";
-import { storage } from "~/lib/mmkv";
+import { devToolsStorage } from "~/lib/mmkv";
 import { segmentClient } from "~/lib/segment";
 
 const queryClient = new QueryClient();
@@ -36,7 +36,7 @@ function DevToolsSync() {
       // Public environment variables are automatically loaded
     },
     // Storage monitoring with CRUD operations
-    mmkvStorage: storage, // MMKV storage for ['#storage', 'mmkv', 'key'] queries + monitoring
+    mmkvStorage: devToolsStorage, // MMKV storage for ['#storage', 'mmkv', 'key'] queries + monitoring
     platform: Platform.OS, // Use appropriate platform identifier
     queryClient,
     secureStorage: SecureStore, // SecureStore for ['#storage', 'secure', 'key'] queries + monitoring
