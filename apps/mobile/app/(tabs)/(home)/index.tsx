@@ -115,6 +115,7 @@ export default function HomeScreen() {
         }}
       />
       <ScrollView
+        contentContainerClassName="grow px-md pb-md"
         contentInsetAdjustmentBehavior="automatic"
         refreshControl={
           <RefreshControl onRefresh={onRefresh} refreshing={refreshing} />
@@ -129,7 +130,7 @@ export default function HomeScreen() {
             <ActivityIndicator color="#ffffff" size="large" />
           </View>
         ) : (
-          <VStack className="h-full p-6">
+          <VStack className="flex-1 py-md">
             <H1 className="text-center">No active plan</H1>
             <Text className="text-center">
               You don&apos;t have an active workout plan. Create one to get
