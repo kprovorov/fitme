@@ -13,7 +13,7 @@
       "dependsOn": ["^build"],
       "inputs": ["$TURBO_DEFAULT$", ".env*"],
       "outputs": [".next/**", "!.next/cache/**", "dist/**", ".output/**"],
-      "env": ["NEXT_PUBLIC_*", "EXPO_PUBLIC_*", "SUPABASE_*"],
+      "env": ["NEXT_PUBLIC_*", "EXPO_PUBLIC_*", "SUPABASE_*", "LIBRARY_BUNDLE"],
       "passThroughEnv": [
         "SENTRY_*",
         "FITME_DATABASE_URL",
@@ -22,7 +22,8 @@
         "COACH_URL",
         "REVENUECAT_SECRET_KEY",
         "MIN_APP_VERSION_*",
-        "MCP_PUBLIC_URL"
+        "MCP_PUBLIC_URL",
+        "VERCEL"
       ]
     },
     "dev": {

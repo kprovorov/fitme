@@ -1,0 +1,6 @@
+dist/
+*.tsbuildinfo
+.env*
+!.env.example
+# Written by `pnpm generate` from the bundle: never committed.
+src/generated/

@@ -58,6 +58,10 @@ risk:high:
           - apps/coach/agent/lib/owner.ts
           - apps/coach/agent/lib/turn-limits.ts
 
+          # Exercise Library API: caller auth and the middleware order around it
+          - apps/exercises/src/auth.ts
+          - apps/exercises/src/create-app.ts
+
           # Webhooks: signature checks and account deletion
           - apps/webhooks/src/app.ts
           - apps/webhooks/src/routes/clerk.ts
