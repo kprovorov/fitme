@@ -111,12 +111,6 @@ const useSignInVerification = (): CodeVerification => {
   return { isFetching: fetchStatus === "fetching", resend, verify };
 };
 
-const VERIFICATIONS: Record<CodePurpose, () => CodeVerification> = {
-  "reset-password": useResetPasswordVerification,
-  "sign-in": useSignInVerification,
-  "sign-up": useSignUpVerification,
-};
-
 const COPY: Record<CodePurpose, { description: string; title: string }> = {
   "reset-password": {
     description: "Enter the code we emailed you to reset your password",
@@ -134,12 +128,20 @@ const COPY: Record<CodePurpose, { description: string; title: string }> = {
 };
 
 interface VerifyCodeViewProps {
-  /** Picks the Clerk hook, so render with `key={purpose}` to keep hook order. */
+  /** Picks the Clerk flow the code completes. */
   purpose: CodePurpose;
 }
 
 export default function VerifyCodeView({ purpose }: VerifyCodeViewProps) {
-  const { isFetching, resend, verify } = VERIFICATIONS[purpose]();
+  // Every flow's hook runs on every render, called by name: the React
+  // Compiler memoizes a hook picked at runtime (`hooks[purpose]()`) as a plain
+  // call, skipping Clerk's hooks on re-renders and breaking the hook order.
+  const verifications: Record<CodePurpose, CodeVerification> = {
+    "reset-password": useResetPasswordVerification(),
+    "sign-in": useSignInVerification(),
+    "sign-up": useSignUpVerification(),
+  };
+  const { isFetching, resend, verify } = verifications[purpose];
   const { description, title } = COPY[purpose];
 
   const [code, setCode] = useState("");
