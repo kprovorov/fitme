@@ -1,6 +1,8 @@
+import { countUnloggedSets } from "@fitme/core";
 import * as Sentry from "@sentry/react-native";
 import {
   type MutationFilters,
+  type QueryClient,
   useIsMutating,
   useQueryClient,
 } from "@tanstack/react-query";
@@ -47,6 +49,50 @@ const isSessionScreenBelow = (
   );
 };
 
+/** Sessions whose "Finish workout?" question is open, so it's never asked twice. */
+const confirmingSessions = new Set<string>();
+
+/**
+ * Resolves whether to finish `sessionId`: true at once when every planned set
+ * is logged, otherwise only once the user confirms. Reads the session from the
+ * cache, fetching it when it isn't there; if that fetch fails it resolves true,
+ * so the finish itself reports the error. Resolves false while the question is
+ * already open for the session (a repeated tap).
+ */
+export async function confirmFinishWorkout(
+  queryClient: QueryClient,
+  sessionId: string
+): Promise<boolean> {
+  if (confirmingSessions.has(sessionId)) {
+    return false;
+  }
+  confirmingSessions.add(sessionId);
+  try {
+    const session = await queryClient
+      .ensureQueryData(useWorkoutSessionQuery.getFetchOptions({ sessionId }))
+      .catch(() => null);
+    const unloggedSets = session ? countUnloggedSets(session) : 0;
+    if (unloggedSets === 0) {
+      return true;
+    }
+    return await new Promise<boolean>((resolve) => {
+      Alert.alert(
+        "Finish workout?",
+        unloggedSets === 1
+          ? "1 planned set isn't logged."
+          : `${unloggedSets} planned sets aren't logged.`,
+        [
+          { onPress: () => resolve(false), style: "cancel", text: "Cancel" },
+          { onPress: () => resolve(true), text: "Finish" },
+        ],
+        { cancelable: true, onDismiss: () => resolve(false) }
+      );
+    });
+  } finally {
+    confirmingSessions.delete(sessionId);
+  }
+}
+
 /**
  * Finishes a workout session and opens its Summary. Shared by every way of
  * finishing a session from its screens (the Finish Workout button and the
@@ -60,11 +106,16 @@ const isSessionScreenBelow = (
  * is indeed this session's, the ones above it are closed before Summary
  * replaces it, so finishing from anywhere leaves the same stack as finishing
  * from the session screen.
+ *
+ * `confirmFinish` is for the Finish Workout button: it asks first when some
+ * planned sets aren't logged (see `confirmFinishWorkout`). `finish` never
+ * asks, for the finish suggestion, which only opens once every set is logged.
  */
 export function useFinishWorkoutSession(
   sessionId: string,
   { screensAboveSession = 0 }: { screensAboveSession?: number } = {}
 ): {
+  confirmFinish: () => void;
   finish: () => void;
   isFinishing: boolean;
 } {
@@ -112,5 +163,13 @@ export function useFinishWorkoutSession(
     mutate({ sessionId });
   }, [filters, mutate, queryClient, sessionId]);
 
-  return { finish, isFinishing };
+  const confirmFinish = useCallback(() => {
+    confirmFinishWorkout(queryClient, sessionId).then((confirmed) => {
+      if (confirmed) {
+        finish();
+      }
+    });
+  }, [finish, queryClient, sessionId]);
+
+  return { confirmFinish, finish, isFinishing };
 }

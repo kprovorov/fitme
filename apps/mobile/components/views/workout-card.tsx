@@ -8,6 +8,7 @@ import { Text } from "@/components/ui/text";
 import { H4 } from "@/components/ui/typography";
 import { VStack } from "@/components/ui/vstack";
 import { Zap } from "@/lib/icons/Zap";
+import { confirmFinishWorkout } from "~/hooks/finish-workout-session";
 import {
   useCreateWorkoutSessionMutation,
   useFinishWorkoutSessionMutation,
@@ -59,11 +60,13 @@ export default function WorkoutCard({
     createWorkoutSession({ workoutId: workout.id });
   };
 
-  const finishWorkout = () => {
-    if (activeSession) {
-      finishWorkoutSession({
-        sessionId: activeSession.id,
-      });
+  const finishWorkout = async () => {
+    if (!activeSession) {
+      return;
+    }
+    const sessionId = activeSession.id;
+    if (await confirmFinishWorkout(queryClient, sessionId)) {
+      finishWorkoutSession({ sessionId });
     }
   };
 
