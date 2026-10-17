@@ -10,6 +10,11 @@ overrides:
   '@vercel/cli-config>zod': 4.6.7
   ultracite>zod: 4.6.7
 
+patchedDependencies:
+  uniwind@1.12.2:
+    hash: cf0f78832f0189fc704f396a7b02670c4c3cf40da2214dcf88afcef16f582574
+    path: patches/uniwind@1.12.2.patch
+
 importers:
 
   .:
@@ -439,7 +444,7 @@ importers:
         version: 1.0.7(tailwindcss@4.3.0)
       uniwind:
         specifier: 1.12.2
-        version: 1.12.2(@expo/metro-config@58.0.14(expo@58.0.14)(typescript@5.9.3))(metro-cache@0.87.1)(metro-transform-worker@0.87.1)(metro@0.87.1)(react-native@0.88.0(@babel/core@7.29.7)(@react-native/metro-config@0.88.0(@babel/core@7.29.7))(@types/react@19.3.0)(react@19.3.0))(react@19.3.0)(tailwindcss@4.3.0)
+        version: 1.12.2(patch_hash=cf0f78832f0189fc704f396a7b02670c4c3cf40da2214dcf88afcef16f582574)(@expo/metro-config@58.0.14(expo@58.0.14)(typescript@5.9.3))(metro-cache@0.87.1)(metro-transform-worker@0.87.1)(metro@0.87.1)(react-native@0.88.0(@babel/core@7.29.7)(@react-native/metro-config@0.88.0(@babel/core@7.29.7))(@types/react@19.3.0)(react@19.3.0))(react@19.3.0)(tailwindcss@4.3.0)
       whatwg-fetch:
         specifier: 3.6.20
         version: 3.6.20
@@ -21686,7 +21691,7 @@ snapshots:
 
   universalify@2.0.1: {}
 
-  uniwind@1.12.2(@expo/metro-config@58.0.14(expo@58.0.14)(typescript@5.9.3))(metro-cache@0.87.1)(metro-transform-worker@0.87.1)(metro@0.87.1)(react-native@0.88.0(@babel/core@7.29.7)(@react-native/metro-config@0.88.0(@babel/core@7.29.7))(@types/react@19.3.0)(react@19.3.0))(react@19.3.0)(tailwindcss@4.3.0):
+  uniwind@1.12.2(patch_hash=cf0f78832f0189fc704f396a7b02670c4c3cf40da2214dcf88afcef16f582574)(@expo/metro-config@58.0.14(expo@58.0.14)(typescript@5.9.3))(metro-cache@0.87.1)(metro-transform-worker@0.87.1)(metro@0.87.1)(react-native@0.88.0(@babel/core@7.29.7)(@react-native/metro-config@0.88.0(@babel/core@7.29.7))(@types/react@19.3.0)(react@19.3.0))(react@19.3.0)(tailwindcss@4.3.0):
     dependencies:
       '@tailwindcss/node': 4.3.3
       '@tailwindcss/oxide': 4.3.3
