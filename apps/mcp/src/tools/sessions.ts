@@ -17,8 +17,7 @@ import {
 } from "./limits.js";
 
 const sessionIdSchema = z
-  .string()
-  .uuid()
+  .guid()
   .describe("Workout session id (workout_sessions.id).");
 
 const sessionNotFound = (sessionId: string) =>
@@ -106,8 +105,7 @@ function registerSessionWriteTools(server: McpServer, ctx: ToolContext) {
         "Starts a workout session from one of the user's plan workouts (ids from get_plan / list_plans): the workout's exercises and recommended sets are copied into the session. If that workout already has an unfinished session, that session is returned instead (`resumed: true`) — there is at most one open session per workout. Returns `{ resumed, session }`; the session's set ids are what log_set needs. Call finish_workout_session when done.",
       inputSchema: {
         workoutId: z
-          .string()
-          .uuid()
+          .guid()
           .describe("Plan workout id (workouts.id), e.g. from get_plan."),
       },
       title: "Start workout session",
@@ -140,8 +138,7 @@ function registerSessionWriteTools(server: McpServer, ctx: ToolContext) {
           .max(MAX_REPS)
           .describe("Repetitions performed."),
         setId: z
-          .string()
-          .uuid()
+          .guid()
           .describe(
             "Session set id (workout_session_exercise_sets.id) from get_workout_session or start_workout_session — not a plan set id."
           ),

@@ -35,8 +35,7 @@ export default defineTool({
   },
   inputSchema: z.object({
     exercise_id: z
-      .string()
-      .uuid()
+      .guid()
       .describe("The ID of the exercise to add (from search_exercises)"),
     sets: z
       .array(setSchema)
@@ -44,8 +43,7 @@ export default defineTool({
       .max(MAX_SETS_PER_EXERCISE)
       .describe("Initial sets configuration for this exercise"),
     workout_id: z
-      .string()
-      .uuid()
+      .guid()
       .describe("The ID of the workout to add the exercise to"),
   }),
 });

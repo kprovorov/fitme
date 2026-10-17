@@ -1,6 +1,5 @@
 import { beforeEach, describe, expect, it, vi } from "vitest";
-import type { ZodTypeAny } from "zod";
-import { contextFor, userIdFields } from "./tool-context";
+import { contextFor, inputSchemaOf, userIdFields } from "./tool-context";
 
 const db = vi.hoisted(() => ({ asUser: vi.fn() }));
 const services = vi.hoisted(() => ({ activatePlan: vi.fn() }));
@@ -34,7 +33,7 @@ describe("activate_plan", () => {
   });
 
   it("ignores any User id in its input", async () => {
-    const input = (activatePlan.inputSchema as ZodTypeAny).parse({
+    const input = inputSchemaOf(activatePlan).parse({
       ...userIdFields,
       plan_id: planId,
     });
@@ -50,8 +49,7 @@ describe("activate_plan", () => {
 
   it("rejects a plan_id that isn't a Plan id", () => {
     expect(
-      (activatePlan.inputSchema as ZodTypeAny).safeParse({ plan_id: "latest" })
-        .success
+      inputSchemaOf(activatePlan).safeParse({ plan_id: "latest" }).success
     ).toBe(false);
   });
 

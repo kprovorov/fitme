@@ -19,8 +19,7 @@ export default defineTool({
   },
   inputSchema: z.object({
     set_id: z
-      .string()
-      .uuid()
+      .guid()
       .describe("The ID of the workout_exercise_sets row to delete"),
   }),
 });

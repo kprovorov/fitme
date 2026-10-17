@@ -59,13 +59,27 @@ const mockSignIn = {
   status: "needs_first_factor",
 };
 
-jest.mock("@clerk/expo", () => ({
-  isClerkAPIResponseError: (error: { isClerkApiError?: boolean }) =>
-    error.isClerkApiError === true,
-  useAuth: () => ({ isSignedIn: false }),
-  useSignIn: () => ({ fetchStatus: "idle", signIn: mockSignIn }),
-  useSignUp: () => ({ fetchStatus: "idle", signUp: mockSignUp }),
-}));
+/**
+ * Clerk's hooks run React hooks of their own (`useClerkSignal` opens with
+ * `useContext`), so the stand-ins do too: a View that skips them on a
+ * re-render breaks the hook order, as on a device.
+ */
+jest.mock("@clerk/expo", () => {
+  const { useState } = jest.requireActual<typeof import("react")>("react");
+  return {
+    isClerkAPIResponseError: (error: { isClerkApiError?: boolean }) =>
+      error.isClerkApiError === true,
+    useAuth: () => ({ isSignedIn: false }),
+    useSignIn: () => {
+      const [fetchStatus] = useState("idle");
+      return { fetchStatus, signIn: mockSignIn };
+    },
+    useSignUp: () => {
+      const [fetchStatus] = useState("idle");
+      return { fetchStatus, signUp: mockSignUp };
+    },
+  };
+});
 jest.mock("@clerk/expo/token-cache", () => ({ tokenCache: {} }));
 jest.mock("expo-router", () => ({ router: { replace: jest.fn() } }));
 jest.mock("~/lib/segment", () => ({ segmentClient: { track: jest.fn() } }));

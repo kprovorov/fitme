@@ -1,6 +1,5 @@
 import { beforeEach, describe, expect, it, vi } from "vitest";
-import type { ZodTypeAny } from "zod";
-import { contextFor, userIdFields } from "./tool-context";
+import { contextFor, inputSchemaOf, userIdFields } from "./tool-context";
 
 const db = vi.hoisted(() => ({ asUser: vi.fn() }));
 const services = vi.hoisted(() => ({ getProfile: vi.fn() }));
@@ -38,9 +37,7 @@ describe("get_user_profile", () => {
 
   it("ignores any User id in its input", async () => {
     // What eve hands execute after validating the model's input
-    const input = (getUserProfile.inputSchema as ZodTypeAny).parse(
-      userIdFields
-    );
+    const input = inputSchemaOf(getUserProfile).parse(userIdFields);
 
     await getUserProfile.execute(input, contextFor("user_alice"));
 

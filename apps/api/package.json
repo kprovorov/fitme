@@ -14,9 +14,9 @@
   "dependencies": {
     "@fitme/core": "workspace:*",
     "@hono/node-server": "^2.1.5",
-    "@hono/zod-validator": "^0.7.6",
+    "@hono/zod-validator": "^0.9.1",
     "hono": "^4.13.13",
-    "zod": "3.25.76"
+    "zod": "4.6.7"
   },
   "devDependencies": {
     "@fitme/typescript-config": "workspace:*",

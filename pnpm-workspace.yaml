@@ -13,6 +13,11 @@ strictPeerDependencies: false
 overrides:
   react: 19.3.0
   react-dom: 19.3.0
+  # One zod 4 for the workspace: @vercel/cli-config (under @vercel/functions)
+  # and ultracite pin other 4.x versions exactly. Keep them on the apps' zod
+  # version.
+  "@vercel/cli-config>zod": 4.6.7
+  "ultracite>zod": 4.6.7
 
 onlyBuiltDependencies:
   - "@prisma/engines"

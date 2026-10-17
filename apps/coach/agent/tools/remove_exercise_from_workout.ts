@@ -22,8 +22,7 @@ export default defineTool({
   },
   inputSchema: z.object({
     workout_exercise_id: z
-      .string()
-      .uuid()
+      .guid()
       .describe(
         "The ID of the workout_exercise row to remove (the 'id' field on each exercise entry from get_active_plan)"
       ),

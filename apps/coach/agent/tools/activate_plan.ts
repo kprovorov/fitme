@@ -14,6 +14,6 @@ export default defineTool({
     return plan ? { plan_id, success: true } : { error: "Plan not found" };
   },
   inputSchema: z.object({
-    plan_id: z.string().uuid().describe("The ID of the plan to activate"),
+    plan_id: z.guid().describe("The ID of the plan to activate"),
   }),
 });

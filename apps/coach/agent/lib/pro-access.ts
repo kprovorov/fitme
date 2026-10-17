@@ -13,11 +13,12 @@ const MAX_CACHED_USERS = 10_000;
 
 const REVENUECAT_SUBSCRIBERS_URL = "https://api.revenuecat.com/v1/subscribers";
 
-const isoTimestampOrNull = z.string().datetime({ offset: true }).nullish();
+const isoTimestampOrNull = z.iso.datetime({ offset: true }).nullish();
 
 const subscriberResponse = z.object({
   subscriber: z.object({
     entitlements: z.record(
+      z.string(),
       z.object({
         expires_date: isoTimestampOrNull,
         grace_period_expires_date: isoTimestampOrNull,

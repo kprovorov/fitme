@@ -18,7 +18,7 @@ interface ForgotPasswordFormProps {
 export type ForgotPasswordFormValues = z.infer<typeof formSchema>;
 
 const formSchema = z.object({
-  email: z.string().email(),
+  email: z.email({ error: "Invalid email" }),
 });
 
 export default function ForgotPasswordForm({
