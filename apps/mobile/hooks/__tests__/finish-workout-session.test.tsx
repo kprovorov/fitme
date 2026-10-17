@@ -13,6 +13,7 @@ const mockNavigationState: {
 } = { index: 0, routes: [{}] };
 const mockFinishRpc =
   jest.fn<(variables: { sessionId: string }) => Promise<unknown>>();
+const mockFetchSession = jest.fn<() => Promise<unknown>>();
 
 jest.mock("expo-router", () => ({
   useNavigation: () => ({ getState: () => mockNavigationState }),
@@ -35,7 +36,7 @@ jest.mock("~/hooks/queries/workout-sessions", () => {
       mutationKey: FINISH_WORKOUT_SESSION_MUTATION_KEY,
     }),
     useWorkoutSessionQuery: createQuery({
-      fetcher: () => Promise.resolve({}),
+      fetcher: () => mockFetchSession(),
       queryKey: ["workout-session"],
     }),
   };
@@ -307,6 +308,21 @@ describe("useFinishWorkoutSession", () => {
       await waitFor(() => expect(mockReplace).toHaveBeenCalled());
       await settled();
       expect(mockFinishRpc).toHaveBeenCalledTimes(1);
+    });
+
+    it("doesn't finish when the session can't be read", async () => {
+      mockFetchSession.mockRejectedValueOnce(new Error("offline"));
+      const { result } = await setup();
+
+      await act(() => result.current.session.confirmFinish());
+
+      await waitFor(() =>
+        expect(Alert.alert).toHaveBeenCalledWith(
+          "Couldn't finish workout",
+          "Check your connection and try again."
+        )
+      );
+      expect(mockFinishRpc).not.toHaveBeenCalled();
     });
 
     it("finish skips the question, for the finish suggestion", async () => {

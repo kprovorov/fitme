@@ -1,4 +1,4 @@
-import { countUnloggedSets } from "@fitme/core";
+import { countUnloggedSets, type WorkoutSession } from "@fitme/core";
 import * as Sentry from "@sentry/react-native";
 import {
   type MutationFilters,
@@ -49,15 +49,22 @@ const isSessionScreenBelow = (
   );
 };
 
+const alertFinishFailed = () =>
+  Alert.alert(
+    "Couldn't finish workout",
+    "Check your connection and try again."
+  );
+
 /** Sessions whose "Finish workout?" question is open, so it's never asked twice. */
 const confirmingSessions = new Set<string>();
 
 /**
  * Resolves whether to finish `sessionId`: true at once when every planned set
  * is logged, otherwise only once the user confirms. Reads the session from the
- * cache, fetching it when it isn't there; if that fetch fails it resolves true,
- * so the finish itself reports the error. Resolves false while the question is
- * already open for the session (a repeated tap).
+ * cache, fetching it when it isn't there; if that fetch fails it alerts and
+ * resolves false, never treating an unreadable session as fully logged.
+ * Resolves false while the question is already open for the session (a
+ * repeated tap).
  */
 export async function confirmFinishWorkout(
   queryClient: QueryClient,
@@ -68,10 +75,17 @@ export async function confirmFinishWorkout(
   }
   confirmingSessions.add(sessionId);
   try {
-    const session = await queryClient
-      .ensureQueryData(useWorkoutSessionQuery.getFetchOptions({ sessionId }))
-      .catch(() => null);
-    const unloggedSets = session ? countUnloggedSets(session) : 0;
+    let session: WorkoutSession;
+    try {
+      session = await queryClient.ensureQueryData(
+        useWorkoutSessionQuery.getFetchOptions({ sessionId })
+      );
+    } catch (error) {
+      Sentry.captureException(error);
+      alertFinishFailed();
+      return false;
+    }
+    const unloggedSets = countUnloggedSets(session);
     if (unloggedSets === 0) {
       return true;
     }
@@ -128,10 +142,7 @@ export function useFinishWorkoutSession(
   const { mutate } = useFinishWorkoutSessionMutation({
     onError: (error) => {
       Sentry.captureException(error);
-      Alert.alert(
-        "Couldn't finish workout",
-        "Check your connection and try again."
-      );
+      alertFinishFailed();
     },
     onSuccess: async (session) => {
       // Every screen sees the session finished right away, even if a refetch
