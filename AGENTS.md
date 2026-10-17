@@ -260,6 +260,7 @@ Env files live next to each app.
 - `EXPO_PUBLIC_SENTRY_DSN`
 - `EXPO_PUBLIC_REVENUECAT_IOS_API_KEY`
 - `EXPO_PUBLIC_REVENUECAT_ANDROID_API_KEY`
+- `EXPO_PUBLIC_DEVTOOLS_SYNC` — `true` turns on `react-query-external-sync` (`components/providers.tsx`, socket on `localhost:42831`) in non-production builds; leave unset unless its desktop devtools app is running, or the failed socket shows a red LogBox toast on every launch
 
 `apps/web/.env.local`:
 

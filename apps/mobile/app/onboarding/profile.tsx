@@ -3,7 +3,7 @@ import type { MeasurementSystem } from "@fitme/core";
 import * as Sentry from "@sentry/react-native";
 import { useQueryClient } from "@tanstack/react-query";
 import { useLocales } from "expo-localization";
-import { router } from "expo-router";
+import { router, Stack } from "expo-router";
 import { useCallback } from "react";
 import ProfileForm, {
   PROFILE_SAVE_ERROR_MESSAGE,
@@ -11,8 +11,6 @@ import ProfileForm, {
 } from "~/components/forms/profile-form";
 import { ErrorMessage } from "~/components/ui/error-message";
 import { Text } from "~/components/ui/text";
-import { H2 } from "~/components/ui/typography";
-import { VStack } from "~/components/ui/vstack";
 import { useStoreProfileMutation } from "~/hooks/mutations/profiles";
 import { useProfileQuery } from "~/hooks/queries/profiles";
 import { IS_E2E } from "~/lib/constants";
@@ -65,32 +63,42 @@ export default function ProfileScreen() {
   );
 
   return (
-    !!user &&
-    !isProfilePending && (
-      <ProfileForm
-        defaultValues={{
-          age: profile?.age ?? undefined,
-          gender: profile?.gender,
-          height: profile?.height ?? undefined,
-          weight: profile?.weight ?? undefined,
+    <>
+      {/* A native large title, not a heading in the content: opening a wheel
+          scrolls the form, and the title then collapses into the header
+          instead of sliding under its buttons. */}
+      <Stack.Screen
+        options={{
+          headerLargeTitle: true,
+          headerLargeTitleShadowVisible: false,
+          headerLargeTitleStyle: { fontFamily: "NunitoSans12pt-Bold" },
+          headerTitle: "Let's get to know you",
+          headerTitleStyle: { fontFamily: "NunitoSans12pt-Bold" },
         }}
-        footer={
-          !!error && <ErrorMessage>{PROFILE_SAVE_ERROR_MESSAGE}</ErrorMessage>
-        }
-        heading={
-          <VStack className="gap-2">
-            <H2>Let's get to know you!</H2>
-            <Text className="text-center">
+      />
+      {!!user && !isProfilePending && (
+        <ProfileForm
+          defaultValues={{
+            age: profile?.age ?? undefined,
+            gender: profile?.gender,
+            height: profile?.height ?? undefined,
+            weight: profile?.weight ?? undefined,
+          }}
+          footer={
+            !!error && <ErrorMessage>{PROFILE_SAVE_ERROR_MESSAGE}</ErrorMessage>
+          }
+          heading={
+            <Text>
               We'll use this information to personalize your experience.
             </Text>
-          </VStack>
-        }
-        isSubmitting={isPending}
-        measurementSystem={measurementSystem}
-        onSubmit={handleSubmit}
-        submitLabel="Next"
-        submitSystemImage="arrow.right"
-      />
-    )
+          }
+          isSubmitting={isPending}
+          measurementSystem={measurementSystem}
+          onSubmit={handleSubmit}
+          submitLabel="Next"
+          submitSystemImage="arrow.right"
+        />
+      )}
+    </>
   );
 }
