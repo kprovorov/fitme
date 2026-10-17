@@ -30,6 +30,17 @@ export const SCROLL_EDGE_EFFECTS = { bottom: "soft", top: "soft" } as const;
 export const PASSWORD_MIN_LENGTH = 15;
 
 /**
+ * Whether to sync React Query and storage to the desktop devtools app
+ * (`react-query-external-sync`). Development builds only, and only when opted
+ * in with `EXPO_PUBLIC_DEVTOOLS_SYNC=true`: without the app running, the sync's
+ * socket fails and LogBox shows a red error toast on every launch. Read on
+ * each call so tests can set it.
+ */
+export const isDevToolsSyncEnabled = () =>
+  process.env.NODE_ENV !== "production" &&
+  process.env.EXPO_PUBLIC_DEVTOOLS_SYNC === "true";
+
+/**
  * Base URL of `apps/api` (`EXPO_PUBLIC_API_URL`), without a trailing slash;
  * empty when unset. Read on each call so tests can set it.
  */

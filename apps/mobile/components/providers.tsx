@@ -19,6 +19,7 @@ import { useSyncQueriesExternal } from "react-query-external-sync";
 import AuthSync from "@/components/auth-sync";
 import { useColorScheme } from "@/hooks/useColorScheme";
 import { clerkPublishableKey, tokenCache } from "~/lib/clerk";
+import { isDevToolsSyncEnabled } from "~/lib/constants";
 import { devToolsStorage } from "~/lib/mmkv";
 import { segmentClient } from "~/lib/segment";
 
@@ -60,7 +61,7 @@ function Providers({ children }: { children: React.ReactNode }) {
               tokenCache={tokenCache}
             >
               <QueryClientProvider client={queryClient}>
-                <DevToolsSync />
+                {isDevToolsSyncEnabled() ? <DevToolsSync /> : null}
                 <AuthSync />
                 <ThemeProvider
                   value={
