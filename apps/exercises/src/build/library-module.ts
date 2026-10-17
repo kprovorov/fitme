@@ -1,7 +1,33 @@
 import { readFile } from "node:fs/promises";
+import { resolve } from "node:path";
+import type { GetCommandOptions } from "@vercel/blob";
 import { z } from "zod";
 import { LibraryBundle } from "../bundle";
-import { serveLibrary } from "../served-library";
+import { PLACEHOLDER_SUPABASE_URL, serveLibrary } from "../served-library";
+
+/** The pathname `fitme-exercises` publishes the bundle at in the private Blob store. */
+export const LIBRARY_BLOB = "library.json";
+
+/** The bundle a build uses when it isn't a production one and LIBRARY_BUNDLE is unset. */
+const FIXTURE_BUNDLE = "fixtures/library.json";
+
+/** The variables the bundle step reads (`process.env` in `pnpm generate`). */
+export interface LibraryEnv {
+  /** Set by connecting the Blob store; the SDK authenticates through Vercel OIDC with it. */
+  BLOB_STORE_ID?: string;
+  /** The fallback when OIDC isn't available at build time. */
+  BLOB_READ_WRITE_TOKEN?: string;
+  LIBRARY_BUNDLE?: string;
+  SUPABASE_URL?: string;
+  VERCEL?: string;
+  VERCEL_ENV?: string;
+}
+
+/** `get` from `@vercel/blob`, narrowed to what the build reads. */
+export type BlobGet = (
+  pathname: string,
+  options: GetCommandOptions
+) => Promise<{ stream: ReadableStream<Uint8Array> | null } | null>;
 
 const URL_PROBLEM =
   "must be the https URL of the Supabase project, e.g. https://<project>.supabase.co";
@@ -24,26 +50,82 @@ interface Problems {
   problems: string[];
 }
 
-export type GenerateResult = { ok: true; source: string } | Problems;
+export type GenerateResult =
+  | {
+      ok: true;
+      /** Which bundle the module was built from, for the build log. */
+      bundle: string;
+      /** How many Exercises it holds. */
+      exercises: number;
+      /** The library hash (the `ETag`), so a deployment's content can be told apart. */
+      hash: string;
+      /** The generated module. */
+      source: string;
+    }
+  | Problems;
+
+type TextResult = { ok: true; text: string } | Problems;
 
 type ReadResult = { ok: true; bundle: LibraryBundle } | Problems;
 
-/** Reads and validates the bundle at `path`; every problem names the file and the field. */
-const readBundle = async (path: string): Promise<ReadResult> => {
-  let text: string;
+const reasonOf = (error: unknown) =>
+  error instanceof Error ? error.message : String(error);
+
+const readFileText = async (path: string): Promise<TextResult> => {
   try {
-    text = await readFile(path, "utf8");
+    return { ok: true, text: await readFile(path, "utf8") };
   } catch (error) {
     const code =
       error instanceof Error && "code" in error ? error.code : String(error);
     return { ok: false, problems: [`${path}: can't read the bundle (${code})`] };
   }
+};
+
+/**
+ * Fetches the bundle from the private Blob store, uncached so the build gets
+ * the version just published. A missing store or blob, or a failed fetch,
+ * is a problem: production never falls back to the fixture.
+ */
+const readBlobText = async (
+  name: string,
+  env: LibraryEnv,
+  getBlob: BlobGet
+): Promise<TextResult> => {
+  if (!(env.BLOB_STORE_ID || env.BLOB_READ_WRITE_TOKEN)) {
+    return {
+      ok: false,
+      problems: [
+        `${name}: no Blob store: BLOB_STORE_ID is unset (connect the store to the project's Production environment)`,
+      ],
+    };
+  }
+  try {
+    const blob = await getBlob(LIBRARY_BLOB, {
+      access: "private",
+      useCache: false,
+    });
+    if (!blob?.stream) {
+      return { ok: false, problems: [`${name}: not in the Blob store`] };
+    }
+    return { ok: true, text: await new Response(blob.stream).text() };
+  } catch (error) {
+    return {
+      ok: false,
+      problems: [`${name}: can't fetch the bundle (${reasonOf(error)})`],
+    };
+  }
+};
+
+/** Parses and validates a bundle; every problem names it (`name`) and the field. */
+const parseBundle = (name: string, text: string): ReadResult => {
   let json: unknown;
   try {
     json = JSON.parse(text);
   } catch (error) {
-    const reason = error instanceof Error ? error.message : String(error);
-    return { ok: false, problems: [`${path}: not valid JSON (${reason})`] };
+    return {
+      ok: false,
+      problems: [`${name}: not valid JSON (${reasonOf(error)})`],
+    };
   }
   const bundle = LibraryBundle.safeParse(json);
   if (!bundle.success) {
@@ -51,8 +133,8 @@ const readBundle = async (path: string): Promise<ReadResult> => {
       ok: false,
       problems: bundle.error.issues.map((issue) =>
         issue.path.length > 0
-          ? `${path}: ${issue.path.join(".")}: ${issue.message}`
-          : `${path}: ${issue.message}`
+          ? `${name}: ${issue.path.join(".")}: ${issue.message}`
+          : `${name}: ${issue.message}`
       ),
     };
   }
@@ -60,20 +142,33 @@ const readBundle = async (path: string): Promise<ReadResult> => {
 };
 
 /**
- * Reads and validates the `library.json` bundle at `bundlePath` and turns it
- * into the source of a TypeScript module the API imports: every Exercise with
- * its media URLs resolved on the Supabase project at `supabaseUrl`, and the
- * lowercased name index search runs on. An invalid bundle (or URL) gives
- * problems instead, so the build fails.
+ * Reads and validates the `library.json` bundle and turns it into the source
+ * of a TypeScript module the API imports: every Exercise with its media URLs
+ * resolved on the Supabase project at SUPABASE_URL, and the lowercased name
+ * index search runs on. Which bundle:
+ *
+ * - a production build (`VERCEL_ENV=production`) fetches `library.json` from
+ *   the private Blob store through `getBlob`, and fails without it;
+ * - any other build reads LIBRARY_BUNDLE (absolute, or relative to
+ *   `appRoot`), by default the committed fixture of made-up Exercises, and
+ *   never calls Blob.
+ *
+ * SUPABASE_URL is required on Vercel (`VERCEL` set); anywhere else media URLs
+ * point at a placeholder project. An invalid bundle (or URL) gives problems
+ * instead, so the build fails.
  */
 export const generateLibraryModule = async ({
-  bundlePath,
-  supabaseUrl,
+  appRoot,
+  env,
+  getBlob,
 }: {
-  bundlePath: string;
-  supabaseUrl: string | undefined;
+  appRoot: string;
+  env: LibraryEnv;
+  getBlob: BlobGet;
 }): Promise<GenerateResult> => {
-  const url = SupabaseUrl.safeParse(supabaseUrl);
+  const url = SupabaseUrl.safeParse(
+    env.SUPABASE_URL || (env.VERCEL ? undefined : PLACEHOLDER_SUPABASE_URL)
+  );
   if (!url.success) {
     return {
       ok: false,
@@ -82,7 +177,17 @@ export const generateLibraryModule = async ({
       ),
     };
   }
-  const result = await readBundle(bundlePath);
+  const fromBlob = env.VERCEL_ENV === "production";
+  const name = fromBlob
+    ? `Vercel Blob ${LIBRARY_BLOB}`
+    : resolve(appRoot, env.LIBRARY_BUNDLE || FIXTURE_BUNDLE);
+  const text = fromBlob
+    ? await readBlobText(name, env, getBlob)
+    : await readFileText(name);
+  if (!text.ok) {
+    return text;
+  }
+  const result = parseBundle(name, text.text);
   if (!result.ok) {
     return result;
   }
@@ -93,5 +198,11 @@ import type { ServedLibrary } from "../served-library";
 
 export const library: ServedLibrary = ${JSON.stringify(library, null, 2)};
 `;
-  return { ok: true, source };
+  return {
+    bundle: name,
+    exercises: library.exercises.length,
+    hash: library.hash,
+    ok: true,
+    source,
+  };
 };

@@ -24,6 +24,7 @@
   "devDependencies": {
     "@fitme/typescript-config": "workspace:*",
     "@types/node": "24.19.2",
+    "@vercel/blob": "^2.8.2",
     "tsdown": "^0.23.1",
     "tsx": "^4.23.15",
     "typescript": "~5.9.2",
