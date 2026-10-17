@@ -29,7 +29,6 @@
   "dependencies": {
     "@assistant-ui/eve": "0.0.24",
     "@assistant-ui/react-native": "0.1.48",
-    "@callstack/liquid-glass": "0.7.1",
     "@clerk/expo": "4.13.0",
     "@expo-google-fonts/ibm-plex-mono": "0.3.0",
     "@expo-google-fonts/nunito-sans": "0.3.0",
@@ -95,6 +94,7 @@
     "react-hook-form": "7.90.0",
     "react-native": "0.88.0",
     "react-native-gesture-handler": "3.3.0",
+    "react-native-get-random-values": "1.11.0",
     "react-native-gifted-charts": "1.4.81",
     "react-native-keyboard-controller": "1.22.7",
     "react-native-mmkv": "4.3.2",

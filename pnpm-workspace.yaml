@@ -32,3 +32,9 @@ ignoredBuiltDependencies:
   - browser-tabs-lock
   - core-js
   - node-liblzma
+
+# uniwind's Metro resolver swaps `react-native` for its own export list, which
+# lacks RN 0.88's AssetRegistry: expo-asset reads it, so fonts never load and
+# the splash never hides. Drop the patch once uniwind exports it (FIT-170).
+patchedDependencies:
+  uniwind@1.12.2: patches/uniwind@1.12.2.patch

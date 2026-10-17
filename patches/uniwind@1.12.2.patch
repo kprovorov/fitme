@@ -1,0 +1,14 @@
+diff --git a/src/components/index.ts b/src/components/index.ts
+index 6fcad21b91dae2d029671aca1a6588a031831236..2a1c497a8df70fe039b778eddd0a993921a2b0f2 100644
+--- a/src/components/index.ts
++++ b/src/components/index.ts
+@@ -97,6 +97,9 @@ module.exports = {
+     get ActionSheetIOS() {
+         return require('react-native').ActionSheetIOS
+     },
++    get AssetRegistry() {
++        return require('react-native').AssetRegistry
++    },
+     get Alert() {
+         return require('react-native').Alert
+     },

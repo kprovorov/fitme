@@ -10,6 +10,11 @@ overrides:
   '@vercel/cli-config>zod': 4.6.7
   ultracite>zod: 4.6.7
 
+patchedDependencies:
+  uniwind@1.12.2:
+    hash: cf0f78832f0189fc704f396a7b02670c4c3cf40da2214dcf88afcef16f582574
+    path: patches/uniwind@1.12.2.patch
+
 importers:
 
   .:
@@ -182,9 +187,6 @@ importers:
       '@assistant-ui/react-native':
         specifier: 0.1.48
         version: 0.1.48(@opentelemetry/api@1.9.1)(@types/react@19.3.0)(ai@7.0.142(zod@4.6.7))(react-native@0.88.0(@babel/core@7.29.7)(@react-native/metro-config@0.88.0(@babel/core@7.29.7))(@types/react@19.3.0)(react@19.3.0))(react@19.3.0)
-      '@callstack/liquid-glass':
-        specifier: 0.7.1
-        version: 0.7.1(react-native@0.88.0(@babel/core@7.29.7)(@react-native/metro-config@0.88.0(@babel/core@7.29.7))(@types/react@19.3.0)(react@19.3.0))(react@19.3.0)
       '@clerk/expo':
         specifier: 4.13.0
         version: 4.13.0(@types/react@19.3.0)(expo-constants@58.0.12)(expo-secure-store@58.0.2(expo@58.0.14))(expo-web-browser@58.0.6(expo@58.0.14)(react-native@0.88.0(@babel/core@7.29.7)(@react-native/metro-config@0.88.0(@babel/core@7.29.7))(@types/react@19.3.0)(react@19.3.0)))(expo@58.0.14)(react-dom@19.3.0(react@19.3.0))(react-native@0.88.0(@babel/core@7.29.7)(@react-native/metro-config@0.88.0(@babel/core@7.29.7))(@types/react@19.3.0)(react@19.3.0))(react@19.3.0)(typescript@5.9.3)(use-sync-external-store@1.7.0(react@19.3.0))(zod@4.6.7)
@@ -380,6 +382,9 @@ importers:
       react-native-gesture-handler:
         specifier: 3.3.0
         version: 3.3.0(react-native@0.88.0(@babel/core@7.29.7)(@react-native/metro-config@0.88.0(@babel/core@7.29.7))(@types/react@19.3.0)(react@19.3.0))(react@19.3.0)
+      react-native-get-random-values:
+        specifier: 1.11.0
+        version: 1.11.0(react-native@0.88.0(@babel/core@7.29.7)(@react-native/metro-config@0.88.0(@babel/core@7.29.7))(@types/react@19.3.0)(react@19.3.0))
       react-native-gifted-charts:
         specifier: 1.4.81
         version: 1.4.81(expo-linear-gradient@58.0.3(expo@58.0.14)(react-native@0.88.0(@babel/core@7.29.7)(@react-native/metro-config@0.88.0(@babel/core@7.29.7))(@types/react@19.3.0)(react@19.3.0))(react@19.3.0))(react-native-svg@15.16.0(react-native@0.88.0(@babel/core@7.29.7)(@react-native/metro-config@0.88.0(@babel/core@7.29.7))(@types/react@19.3.0)(react@19.3.0))(react@19.3.0))(react-native@0.88.0(@babel/core@7.29.7)(@react-native/metro-config@0.88.0(@babel/core@7.29.7))(@types/react@19.3.0)(react@19.3.0))(react@19.3.0)
@@ -439,7 +444,7 @@ importers:
         version: 1.0.7(tailwindcss@4.3.0)
       uniwind:
         specifier: 1.12.2
-        version: 1.12.2(@expo/metro-config@58.0.14(expo@58.0.14)(typescript@5.9.3))(metro-cache@0.87.1)(metro-transform-worker@0.87.1)(metro@0.87.1)(react-native@0.88.0(@babel/core@7.29.7)(@react-native/metro-config@0.88.0(@babel/core@7.29.7))(@types/react@19.3.0)(react@19.3.0))(react@19.3.0)(tailwindcss@4.3.0)
+        version: 1.12.2(patch_hash=cf0f78832f0189fc704f396a7b02670c4c3cf40da2214dcf88afcef16f582574)(@expo/metro-config@58.0.14(expo@58.0.14)(typescript@5.9.3))(metro-cache@0.87.1)(metro-transform-worker@0.87.1)(metro@0.87.1)(react-native@0.88.0(@babel/core@7.29.7)(@react-native/metro-config@0.88.0(@babel/core@7.29.7))(@types/react@19.3.0)(react@19.3.0))(react@19.3.0)(tailwindcss@4.3.0)
       whatwg-fetch:
         specifier: 3.6.20
         version: 3.6.20
@@ -1410,12 +1415,6 @@ packages:
 
   '@borewit/text-codec@0.2.2':
     resolution: {integrity: sha512-DDaRehssg1aNrH4+2hnj1B7vnUGEjU6OIlyRdkMd0aUdIUvKXrJfXsy8LVtXAy7DRvYVluWbMspsRhz2lcW0mQ==}
-
-  '@callstack/liquid-glass@0.7.1':
-    resolution: {integrity: sha512-N2rzs8g3kneI5G/98AZdVtjc6OUFBBFwPxVGVMoXUEI7QiioB4+aWwbImg5h8Z3Vb/T+fgLYWmmNhi27wHwE4g==}
-    peerDependencies:
-      react: 19.3.0
-      react-native: '*'
 
   '@clack/core@1.5.1':
     resolution: {integrity: sha512-iHTrHA8MtVuLl2TfZySmcKv1qO2PoyC9Z7pfSDozEuV5vtY3/wcOPKJXlqJ5Oq2Cx5DDGQGAMVx6HZfRRoVEbQ==}
@@ -11888,11 +11887,6 @@ snapshots:
 
   '@borewit/text-codec@0.2.2': {}
 
-  '@callstack/liquid-glass@0.7.1(react-native@0.88.0(@babel/core@7.29.7)(@react-native/metro-config@0.88.0(@babel/core@7.29.7))(@types/react@19.3.0)(react@19.3.0))(react@19.3.0)':
-    dependencies:
-      react: 19.3.0
-      react-native: 0.88.0(@babel/core@7.29.7)(@react-native/metro-config@0.88.0(@babel/core@7.29.7))(@types/react@19.3.0)(react@19.3.0)
-
   '@clack/core@1.5.1':
     dependencies:
       fast-wrap-ansi: 0.2.2
@@ -17549,8 +17543,7 @@ snapshots:
       iconv-lite: 0.4.24
       tmp: 0.0.33
 
-  fast-base64-decode@1.0.0:
-    optional: true
+  fast-base64-decode@1.0.0: {}
 
   fast-copy@3.1.0: {}
 
@@ -20411,7 +20404,6 @@ snapshots:
     dependencies:
       fast-base64-decode: 1.0.0
       react-native: 0.88.0(@babel/core@7.29.7)(@react-native/metro-config@0.88.0(@babel/core@7.29.7))(@types/react@19.3.0)(react@19.3.0)
-    optional: true
 
   react-native-gifted-charts@1.4.81(expo-linear-gradient@58.0.3(expo@58.0.14)(react-native@0.88.0(@babel/core@7.29.7)(@react-native/metro-config@0.88.0(@babel/core@7.29.7))(@types/react@19.3.0)(react@19.3.0))(react@19.3.0))(react-native-svg@15.16.0(react-native@0.88.0(@babel/core@7.29.7)(@react-native/metro-config@0.88.0(@babel/core@7.29.7))(@types/react@19.3.0)(react@19.3.0))(react@19.3.0))(react-native@0.88.0(@babel/core@7.29.7)(@react-native/metro-config@0.88.0(@babel/core@7.29.7))(@types/react@19.3.0)(react@19.3.0))(react@19.3.0):
     dependencies:
@@ -21699,7 +21691,7 @@ snapshots:
 
   universalify@2.0.1: {}
 
-  uniwind@1.12.2(@expo/metro-config@58.0.14(expo@58.0.14)(typescript@5.9.3))(metro-cache@0.87.1)(metro-transform-worker@0.87.1)(metro@0.87.1)(react-native@0.88.0(@babel/core@7.29.7)(@react-native/metro-config@0.88.0(@babel/core@7.29.7))(@types/react@19.3.0)(react@19.3.0))(react@19.3.0)(tailwindcss@4.3.0):
+  uniwind@1.12.2(patch_hash=cf0f78832f0189fc704f396a7b02670c4c3cf40da2214dcf88afcef16f582574)(@expo/metro-config@58.0.14(expo@58.0.14)(typescript@5.9.3))(metro-cache@0.87.1)(metro-transform-worker@0.87.1)(metro@0.87.1)(react-native@0.88.0(@babel/core@7.29.7)(@react-native/metro-config@0.88.0(@babel/core@7.29.7))(@types/react@19.3.0)(react@19.3.0))(react@19.3.0)(tailwindcss@4.3.0):
     dependencies:
       '@tailwindcss/node': 4.3.3
       '@tailwindcss/oxide': 4.3.3
