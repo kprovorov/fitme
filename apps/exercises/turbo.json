@@ -1,0 +1,11 @@
+{
+  "$schema": "https://turborepo.dev/schema.json",
+  "extends": ["//"],
+  "tasks": {
+    // generate bakes the bundle at LIBRARY_BUNDLE into dist/: turbo would hash
+    // the path, not the file, and replay a build holding a stale library.
+    "build": {
+      "cache": false
+    }
+  }
+}

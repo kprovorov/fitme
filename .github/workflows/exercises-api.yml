@@ -63,13 +63,10 @@ jobs:
         env:
           BASE_REF: ${{ github.base_ref }}
 
-      # Generates the Exercise Library module from the fixture bundle and
-      # bundles the API. The media URLs don't matter here, so any Supabase URL
-      # will do.
+      # Generates the Exercise Library module from the fixture bundle (media
+      # URLs on the placeholder Supabase project) and bundles the API.
       - name: Build the Exercise Library API
         run: pnpm --filter @fitme/exercises build
-        env:
-          SUPABASE_URL: https://ci.supabase.co
 
       # Vercel's Hono preset rejects an entrypoint without an exact "hono"
       # import (the regex from @vercel/hono's build).

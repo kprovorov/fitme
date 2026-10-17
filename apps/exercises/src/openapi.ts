@@ -1,7 +1,7 @@
 import { writeFile } from "node:fs/promises";
 import { resolve } from "node:path";
 import { createApp } from "./create-app";
-import { serveLibrary } from "./served-library";
+import { PLACEHOLDER_SUPABASE_URL, serveLibrary } from "./served-library";
 
 /**
  * Writes openapi.json, the Exercise Library API's OpenAPI spec, from the
@@ -10,7 +10,7 @@ import { serveLibrary } from "./served-library";
  * spec is stale or has a breaking change against the base branch.
  */
 const out = resolve(import.meta.dirname, "../openapi.json");
-const library = serveLibrary({ exercises: [] }, "https://example.supabase.co");
+const library = serveLibrary({ exercises: [] }, PLACEHOLDER_SUPABASE_URL);
 const spec = createApp({
   auth: { clerkJwtKeys: {}, serverSecrets: {} },
   library,

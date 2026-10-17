@@ -1,11 +1,9 @@
 import { mkdir, writeFile } from "node:fs/promises";
 import { dirname, resolve } from "node:path";
 import { generateLibraryModule } from "./build/library-module";
+import { PLACEHOLDER_SUPABASE_URL } from "./served-library";
 
 const APP_ROOT = resolve(import.meta.dirname, "..");
-
-/** Media URLs off Vercel when SUPABASE_URL is unset: fixture media isn't uploaded anywhere. */
-const PLACEHOLDER_SUPABASE_URL = "https://example.supabase.co";
 
 /**
  * Generates src/generated/library.ts, the Exercise Library the API serves,

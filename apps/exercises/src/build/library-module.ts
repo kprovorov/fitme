@@ -18,13 +18,15 @@ const SupabaseUrl = z
   }, URL_PROBLEM)
   .transform((value) => new URL(value).origin);
 
-export type GenerateResult =
-  | { ok: true; source: string }
-  | { ok: false; problems: string[] };
+/** Why the build can't go on, each problem naming its file (or variable) and field. */
+interface Problems {
+  ok: false;
+  problems: string[];
+}
 
-type ReadResult =
-  | { ok: true; bundle: LibraryBundle }
-  | { ok: false; problems: string[] };
+export type GenerateResult = { ok: true; source: string } | Problems;
+
+type ReadResult = { ok: true; bundle: LibraryBundle } | Problems;
 
 /** Reads and validates the bundle at `path`; every problem names the file and the field. */
 const readBundle = async (path: string): Promise<ReadResult> => {
@@ -32,7 +34,8 @@ const readBundle = async (path: string): Promise<ReadResult> => {
   try {
     text = await readFile(path, "utf8");
   } catch (error) {
-    const code = (error as NodeJS.ErrnoException).code ?? String(error);
+    const code =
+      error instanceof Error && "code" in error ? error.code : String(error);
     return { ok: false, problems: [`${path}: can't read the bundle (${code})`] };
   }
   let json: unknown;

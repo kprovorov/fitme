@@ -5,6 +5,12 @@ import type { Exercise } from "./schemas";
 /** The public Supabase Storage bucket the Exercise Library's media is uploaded to. */
 export const MEDIA_BUCKET = "exercise-media";
 
+/**
+ * The Supabase project media URLs point at where none is configured (off
+ * Vercel, and for the OpenAPI spec): fixture media isn't uploaded anywhere.
+ */
+export const PLACEHOLDER_SUPABASE_URL = "https://example.supabase.co";
+
 const TRAILING_SLASHES = /\/+$/;
 
 /**
@@ -40,11 +46,11 @@ export const mediaObjectPath = (slug: string, media: BundleMedia) =>
  * public object URL.
  */
 export const serveLibrary = (
-  library: Pick<LibraryBundle, "exercises">,
+  bundle: Pick<LibraryBundle, "exercises">,
   supabaseUrl: string
 ): ServedLibrary => {
   const storage = `${supabaseUrl.replace(TRAILING_SLASHES, "")}/storage/v1`;
-  const exercises: Exercise[] = library.exercises
+  const exercises: Exercise[] = bundle.exercises
     .map((exercise) => {
       const { name, description, instructions } = exercise.locales.en;
       return {
