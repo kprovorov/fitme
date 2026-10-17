@@ -327,7 +327,7 @@ GitHub Actions use pnpm (`pnpm/action-setup`), `pnpm install --frozen-lockfile` 
 
 ### Issue tracker
 
-Issues live in Linear, team Fitme (`FIT-<n>`), via the Linear MCP tools. A spec is a Linear project (spec in the project description, its issues in the project), not an issue; projects never get labels. New issues always go to `Backlog`, never `Todo`, and carry an area label (`mobile`, `web`, `site`, `mcp`, `api`, `coach`, `webhooks`, `database`, `ci`, `docs`) for every area they're expected to change. A `ready-for-human` issue carries a step-by-step guide, the complete list of env vars to add or change, and a checklist of every required action. See `docs/agents/issue-tracker.md`.
+Issues live in Linear, team Fitme (`FIT-<n>`), via the Linear MCP tools. A spec is a Linear project (spec in the project description, its issues in the project), not an issue; projects never get labels. New issues always go to `Backlog`, never `Todo`, and carry an area label (`mobile`, `web`, `site`, `mcp`, `api`, `coach`, `webhooks`, `exercises-api`, `database`, `ci`, `docs`) for every area they're expected to change; `exercises` is only for work in the private `fitme-exercises` repo. A `ready-for-human` issue carries a step-by-step guide, the complete list of env vars to add or change, and a checklist of every required action. See `docs/agents/issue-tracker.md`.
 
 ### Triage labels
 
