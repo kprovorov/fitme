@@ -1,4 +1,5 @@
 import { createRoute, OpenAPIHono, z } from "@hono/zod-openapi";
+import { cors } from "hono/cors";
 import { HTTPException } from "hono/http-exception";
 import { logger } from "hono/logger";
 import {
@@ -37,6 +38,11 @@ export const createApp = ({ auth, library }: AppDeps) => {
   const app = new OpenAPIHono<AuthEnv>();
 
   app.use(logger());
+  // Before auth (ADR 0007): a browser's preflight carries no token, so it's
+  // answered here, and every response, a 401 included, is readable
+  // cross-origin. Callers authenticate with a bearer token, never cookies, so
+  // any origin is fine.
+  app.use(cors({ origin: "*" }));
 
   // Registered before auth, so it answers without a token.
   app.openapi(health, (c) => c.json({ ok: true }, 200));

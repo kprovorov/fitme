@@ -751,6 +751,46 @@ describe("device caching", () => {
   });
 });
 
+describe("CORS", () => {
+  const origin = "https://app.fitmeproject.com";
+
+  it("answers a preflight before auth, allowing the Authorization header", async () => {
+    const response = await app.request("/exercises/bench-press", {
+      headers: {
+        "Access-Control-Request-Headers": "authorization,if-none-match",
+        "Access-Control-Request-Method": "GET",
+        Origin: origin,
+      },
+      method: "OPTIONS",
+    });
+
+    expect(response.status).toBe(204);
+    expect(response.headers.get("Access-Control-Allow-Origin")).toBe("*");
+    expect(response.headers.get("Access-Control-Allow-Methods")).toContain(
+      "GET"
+    );
+    expect(
+      response.headers.get("Access-Control-Allow-Headers")?.toLowerCase()
+    ).toContain("authorization");
+  });
+
+  it("lets a browser read responses, errors included", async () => {
+    const responses = [
+      await app.request("/exercises/bench-press", {
+        headers: { ...asUser.headers, Origin: origin },
+      }),
+      await app.request("/exercises/bench-press", {
+        headers: { Origin: origin },
+      }),
+    ];
+
+    expect(responses.map((response) => response.status)).toEqual([200, 401]);
+    for (const response of responses) {
+      expect(response.headers.get("Access-Control-Allow-Origin")).toBe("*");
+    }
+  });
+});
+
 describe("GET /health", () => {
   it("is public", async () => {
     const response = await app.request("/health");
