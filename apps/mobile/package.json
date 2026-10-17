@@ -29,7 +29,6 @@
   "dependencies": {
     "@assistant-ui/eve": "0.0.24",
     "@assistant-ui/react-native": "0.1.48",
-    "@callstack/liquid-glass": "0.7.1",
     "@clerk/expo": "4.13.0",
     "@expo-google-fonts/ibm-plex-mono": "0.3.0",
     "@expo-google-fonts/nunito-sans": "0.3.0",
