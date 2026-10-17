@@ -5,6 +5,8 @@ date: 2026-10-17
 
 # The Exercise Library is a separate private service keyed by Exercise slug
 
+Partly superseded by ADR 0008: the Exercise Library API lives in the monorepo as `apps/exercises`, and only the content stays in `fitme-exercises`. It replaces the decision bullets "Every merge to `main` is a release" (deploying) and "The Exercise Library API serves the data baked into its deployment" (where the API lives and how the data reaches it: a `library.json` bundle in a private Vercel Blob store, baked in by the API's build, which a content release triggers through a deploy hook). The rest of this ADR stands.
+
 The Exercise Library leaves Postgres. Until now it was the `exercises` table, synced from CSV and markdown files in this monorepo (`packages/supabase/data/`), with media on DigitalOcean Spaces, readable by anyone who can call Supabase. A private repository, `fitme-exercises`, now owns it end to end, and the Exercise Library API serves it. Exercises are identified by their Exercise slug instead of a uuid.
 
 ## Context
