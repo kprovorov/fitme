@@ -112,7 +112,7 @@ export function saveCoachConversation(
   if (events) {
     storage.set(eventsKey(userId), JSON.stringify(events));
   } else {
-    storage.delete(eventsKey(userId));
+    storage.remove(eventsKey(userId));
   }
 }
 
@@ -131,12 +131,12 @@ export function saveCoachSession(
   }
   const saved = readJson<ClientSessionState>(sessionKey(userId));
   if (saved?.sessionId !== session.sessionId) {
-    storage.delete(eventsKey(userId));
+    storage.remove(eventsKey(userId));
   }
   storage.set(sessionKey(userId), JSON.stringify(session));
 }
 
 export function clearSavedCoachConversation(userId: string) {
-  storage.delete(sessionKey(userId));
-  storage.delete(eventsKey(userId));
+  storage.remove(sessionKey(userId));
+  storage.remove(eventsKey(userId));
 }

@@ -24,6 +24,21 @@ import { segmentClient } from "~/lib/segment";
 
 const queryClient = new QueryClient();
 
+// The devtools sync deletes keys through `delete`, which MMKV 4 renamed `remove`.
+const devToolsMmkvStorage = {
+  addOnValueChangedListener: (listener: (key: string) => void) =>
+    storage.addOnValueChangedListener(listener),
+  delete: (key: string) => {
+    storage.remove(key);
+  },
+  getAllKeys: () => storage.getAllKeys(),
+  getBoolean: (key: string) => storage.getBoolean(key),
+  getNumber: (key: string) => storage.getNumber(key),
+  getString: (key: string) => storage.getString(key),
+  set: (key: string, value: string | number | boolean) =>
+    storage.set(key, value),
+};
+
 function DevToolsSync() {
   useSyncQueriesExternal({
     asyncStorage: AsyncStorage, // AsyncStorage for ['#storage', 'async', 'key'] queries + monitoring
@@ -36,7 +51,7 @@ function DevToolsSync() {
       // Public environment variables are automatically loaded
     },
     // Storage monitoring with CRUD operations
-    mmkvStorage: storage, // MMKV storage for ['#storage', 'mmkv', 'key'] queries + monitoring
+    mmkvStorage: devToolsMmkvStorage, // MMKV storage for ['#storage', 'mmkv', 'key'] queries + monitoring
     platform: Platform.OS, // Use appropriate platform identifier
     queryClient,
     secureStorage: SecureStore, // SecureStore for ['#storage', 'secure', 'key'] queries + monitoring
