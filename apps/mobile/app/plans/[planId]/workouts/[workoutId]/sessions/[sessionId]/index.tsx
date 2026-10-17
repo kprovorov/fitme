@@ -23,9 +23,8 @@ export default function WorkoutSessionScreen() {
     },
   });
 
-  const { finish: handleFinishWorkout, isFinishing } = useFinishWorkoutSession(
-    sessionId as string
-  );
+  const { confirmFinish: handleFinishWorkout, isFinishing } =
+    useFinishWorkoutSession(sessionId as string);
 
   const [elapsedTime, setElapsedTime] = useState<string>("");
 

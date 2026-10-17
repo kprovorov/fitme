@@ -1,6 +1,8 @@
 import { describe, expect, it } from "vitest";
 import {
+  countUnloggedSets,
   isWorkoutFullyTracked,
+  loggedExercises,
   type TrackableWorkoutSession,
 } from "../workout-sessions";
 
@@ -55,5 +57,41 @@ describe("isWorkoutFullyTracked", () => {
         finished_at: undefined,
       })
     ).toBe(true);
+  });
+});
+
+describe("loggedExercises", () => {
+  it("keeps only exercises with at least one logged set", () => {
+    const squat = {
+      name: "squat",
+      sets: [{ reps_completed: 8 }, { reps_completed: null }],
+    };
+    const bench = { name: "bench", sets: [{ reps_completed: null }] };
+    const plank = { name: "plank", sets: [] };
+
+    expect(loggedExercises([squat, bench, plank])).toEqual([squat]);
+  });
+
+  it("counts zero reps as logged", () => {
+    const pullUp = { sets: [{ reps_completed: 0 }] };
+
+    expect(loggedExercises([pullUp])).toEqual([pullUp]);
+  });
+});
+
+describe("countUnloggedSets", () => {
+  it("counts every set without reps across exercises", () => {
+    expect(
+      countUnloggedSets(
+        session([
+          [60, 65, null],
+          [null, null, null],
+        ])
+      )
+    ).toBe(4);
+  });
+
+  it("returns zero when every set is logged", () => {
+    expect(countUnloggedSets(session([[0], [8, 8]]))).toBe(0);
   });
 });

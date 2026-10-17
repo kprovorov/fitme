@@ -1,5 +1,9 @@
 import type { MuscleGroup, WorkoutSession } from "@fitme/core";
-import { formatWeight, formatWorkoutDuration } from "@fitme/core";
+import {
+  formatWeight,
+  formatWorkoutDuration,
+  loggedExercises,
+} from "@fitme/core";
 import { Fragment, useMemo } from "react";
 import { Button } from "~/components/ui/button";
 import { HStack } from "~/components/ui/hstack";
@@ -26,17 +30,24 @@ export default function WorkoutSessionSummaryView({
   const { data: profile } = useProfileQuery();
   const measurementSystem = profile?.measurement_system ?? "metric";
 
-  const muscleGroups = useMemo(
+  // Skipped exercises (no set logged) don't count toward the summary.
+  const exercises = useMemo(
     () =>
-      new Set<MuscleGroup>(
-        workoutSession.exercises.flatMap(
-          (exercise) => exercise.exercise.muscle_groups
-        )
+      loggedExercises(workoutSession.exercises).sort(
+        (a, b) => a.order - b.order
       ),
     [workoutSession.exercises]
   );
 
-  const volume = workoutSession.exercises.reduce(
+  const muscleGroups = useMemo(
+    () =>
+      new Set<MuscleGroup>(
+        exercises.flatMap((exercise) => exercise.exercise.muscle_groups)
+      ),
+    [exercises]
+  );
+
+  const volume = exercises.reduce(
     (exerciseTotal, exercise) =>
       exerciseTotal +
       exercise.sets.reduce(
@@ -47,7 +58,7 @@ export default function WorkoutSessionSummaryView({
     0
   );
 
-  const setsLogged = workoutSession.exercises.reduce(
+  const setsLogged = exercises.reduce(
     (total, exercise) =>
       total + exercise.sets.filter((set) => set.reps_completed !== null).length,
     0
@@ -81,7 +92,7 @@ export default function WorkoutSessionSummaryView({
           <WorkoutSessionSummaryStat
             icon="dumbbell.fill"
             title="Exercises"
-            value={String(workoutSession.exercises.length)}
+            value={String(exercises.length)}
           />
           <WorkoutSessionSummaryStat
             icon="bolt.fill"
@@ -99,19 +110,17 @@ export default function WorkoutSessionSummaryView({
       <Separator />
 
       <VStack className="w-full items-stretch gap-md">
-        {workoutSession.exercises
-          .sort((a, b) => a.order - b.order)
-          .map((exercise, index) => (
-            <Fragment key={exercise.id}>
-              {index > 0 && <Separator />}
-              <WorkoutSessionSummaryExerciseRow
-                planId={workoutSession.plan_id}
-                sessionId={workoutSession.id}
-                workoutId={workoutSession.workout_id}
-                workoutSessionExercise={exercise}
-              />
-            </Fragment>
-          ))}
+        {exercises.map((exercise, index) => (
+          <Fragment key={exercise.id}>
+            {index > 0 && <Separator />}
+            <WorkoutSessionSummaryExerciseRow
+              planId={workoutSession.plan_id}
+              sessionId={workoutSession.id}
+              workoutId={workoutSession.workout_id}
+              workoutSessionExercise={exercise}
+            />
+          </Fragment>
+        ))}
       </VStack>
 
       <Separator />

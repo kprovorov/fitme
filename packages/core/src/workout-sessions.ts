@@ -36,3 +36,25 @@ export function isWorkoutFullyTracked(
     session.exercises.length > 0 && session.exercises.every(isExerciseTracked)
   );
 }
+
+/**
+ * The exercises with at least one set logged (`reps_completed` recorded; zero
+ * counts), in their given order. A finished session's skipped exercises are
+ * left out of its summary and history.
+ */
+export function loggedExercises<T extends TrackableExercise>(
+  exercises: T[]
+): T[] {
+  return exercises.filter((exercise) => exercise.sets.some(isSetTracked));
+}
+
+/** How many sets of a session have no `reps_completed` recorded yet. */
+export function countUnloggedSets(
+  session: Pick<TrackableWorkoutSession, "exercises">
+): number {
+  return session.exercises.reduce(
+    (total, exercise) =>
+      total + exercise.sets.filter((set) => !isSetTracked(set)).length,
+    0
+  );
+}

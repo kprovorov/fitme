@@ -1,4 +1,4 @@
-import type { WorkoutSession } from "@fitme/core";
+import { loggedExercises, type WorkoutSession } from "@fitme/core";
 import type { ViewRef } from "@rn-primitives/types";
 import type * as React from "react";
 import { ScrollView, type ViewProps } from "react-native";
@@ -34,50 +34,52 @@ const WorkoutSessionCard = ({
   ...props
 }: (ViewProps & WorkoutSessionCardProps) & {
   ref?: React.RefObject<ViewRef | null>;
-}) => (
-  <Card className={cn("flex gap-4 py-4", className)} ref={ref} {...props}>
-    <CardHeader>
-      <CardTitle className="text-muted-foreground text-subhead">
-        {new Date(workoutSession.started_at).toLocaleDateString(undefined, {
-          day: "numeric",
-          month: "short",
-          weekday: "short",
-          year: "numeric",
-        })}
-      </CardTitle>
-    </CardHeader>
-    <HStack className="justify-start gap-3 px-4">
-      <Badge>
-        <HStack className="gap-1">
-          <Zap color="black" size={16} />
-          <Text className="text-subhead">
-            {workoutSession.exercises.length} Exercises
-          </Text>
-        </HStack>
-      </Badge>
-      <Badge>
-        <HStack className="gap-1">
-          <Timer color="black" size={16} />
-          <Text className="text-subhead">
-            {formatDuration(
-              workoutSession.started_at,
-              workoutSession.finished_at
-            )}
-          </Text>
-        </HStack>
-      </Badge>
-    </HStack>
-    <ScrollView
-      contentContainerClassName="px-4 gap-2"
-      horizontal
-      showsHorizontalScrollIndicator={false}
-    >
-      {workoutSession.exercises.map((exercise) => (
-        <ExerciseImage exercise={exercise.exercise} key={exercise.id} />
-      ))}
-    </ScrollView>
-  </Card>
-);
+}) => {
+  // Skipped exercises (no set logged) aren't part of the session's history.
+  const exercises = loggedExercises(workoutSession.exercises);
+  return (
+    <Card className={cn("flex gap-4 py-4", className)} ref={ref} {...props}>
+      <CardHeader>
+        <CardTitle className="text-muted-foreground text-subhead">
+          {new Date(workoutSession.started_at).toLocaleDateString(undefined, {
+            day: "numeric",
+            month: "short",
+            weekday: "short",
+            year: "numeric",
+          })}
+        </CardTitle>
+      </CardHeader>
+      <HStack className="justify-start gap-3 px-4">
+        <Badge>
+          <HStack className="gap-1">
+            <Zap color="black" size={16} />
+            <Text className="text-subhead">{exercises.length} Exercises</Text>
+          </HStack>
+        </Badge>
+        <Badge>
+          <HStack className="gap-1">
+            <Timer color="black" size={16} />
+            <Text className="text-subhead">
+              {formatDuration(
+                workoutSession.started_at,
+                workoutSession.finished_at
+              )}
+            </Text>
+          </HStack>
+        </Badge>
+      </HStack>
+      <ScrollView
+        contentContainerClassName="px-4 gap-2"
+        horizontal
+        showsHorizontalScrollIndicator={false}
+      >
+        {exercises.map((exercise) => (
+          <ExerciseImage exercise={exercise.exercise} key={exercise.id} />
+        ))}
+      </ScrollView>
+    </Card>
+  );
+};
 WorkoutSessionCard.displayName = "WorkoutSessionCard";
 
 export default WorkoutSessionCard;

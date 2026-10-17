@@ -13,6 +13,7 @@ const mockNavigationState: {
 } = { index: 0, routes: [{}] };
 const mockFinishRpc =
   jest.fn<(variables: { sessionId: string }) => Promise<unknown>>();
+const mockFetchSession = jest.fn<() => Promise<unknown>>();
 
 jest.mock("expo-router", () => ({
   useNavigation: () => ({ getState: () => mockNavigationState }),
@@ -35,7 +36,7 @@ jest.mock("~/hooks/queries/workout-sessions", () => {
       mutationKey: FINISH_WORKOUT_SESSION_MUTATION_KEY,
     }),
     useWorkoutSessionQuery: createQuery({
-      fetcher: () => Promise.resolve({}),
+      fetcher: () => mockFetchSession(),
       queryKey: ["workout-session"],
     }),
   };
@@ -193,5 +194,146 @@ describe("useFinishWorkoutSession", () => {
     await waitFor(() => expect(mockReplace).toHaveBeenCalledTimes(1));
     await settled();
     expect(mockFinishRpc).toHaveBeenCalledTimes(2);
+  });
+
+  describe("confirmFinish", () => {
+    const partlyLogged = {
+      exercises: [
+        { sets: [{ reps_completed: 8 }, { reps_completed: null }] },
+        { sets: [{ reps_completed: null }, { reps_completed: null }] },
+      ],
+      id: "session-1",
+    };
+    type AlertButtons = Parameters<typeof Alert.alert>[2];
+    const pressAlertButton = async (text: string, call = 0) => {
+      const buttons = jest.mocked(Alert.alert).mock.calls[call]?.[2] as
+        | AlertButtons
+        | undefined;
+      const button = buttons?.find((candidate) => candidate.text === text);
+      await act(() => button?.onPress?.());
+    };
+    const setupWith = async (session: unknown) => {
+      const setupResult = await setup();
+      setupResult.queryClient.setQueryData(
+        ["workout-session", { sessionId: "session-1" }],
+        session
+      );
+      return setupResult;
+    };
+
+    it("asks before finishing when planned sets are unlogged, and finishes once confirmed", async () => {
+      mockFinishRpc.mockResolvedValue({});
+      const { result, settled } = await setupWith(partlyLogged);
+
+      await act(() => result.current.session.confirmFinish());
+
+      await waitFor(() =>
+        expect(Alert.alert).toHaveBeenCalledWith(
+          "Finish workout?",
+          "3 planned sets aren't logged.",
+          expect.any(Array),
+          expect.any(Object)
+        )
+      );
+      expect(mockFinishRpc).not.toHaveBeenCalled();
+
+      await pressAlertButton("Finish");
+
+      await waitFor(() =>
+        expect(mockReplace).toHaveBeenCalledWith(
+          "/workout-sessions/session-1/summary"
+        )
+      );
+      await settled();
+      expect(mockFinishRpc).toHaveBeenCalledTimes(1);
+    });
+
+    it("keeps the session going when cancelled", async () => {
+      const { result } = await setupWith(partlyLogged);
+
+      await act(() => result.current.session.confirmFinish());
+      await waitFor(() => expect(Alert.alert).toHaveBeenCalled());
+      await pressAlertButton("Cancel");
+
+      expect(mockFinishRpc).not.toHaveBeenCalled();
+      expect(mockReplace).not.toHaveBeenCalled();
+    });
+
+    it("says set, not sets, for a single unlogged set", async () => {
+      const { result } = await setupWith({
+        exercises: [{ sets: [{ reps_completed: null }] }],
+        id: "session-1",
+      });
+
+      await act(() => result.current.session.confirmFinish());
+
+      await waitFor(() =>
+        expect(Alert.alert).toHaveBeenCalledWith(
+          "Finish workout?",
+          "1 planned set isn't logged.",
+          expect.any(Array),
+          expect.any(Object)
+        )
+      );
+      await pressAlertButton("Cancel");
+    });
+
+    it("finishes without asking when every set is logged", async () => {
+      mockFinishRpc.mockResolvedValue({});
+      const { result, settled } = await setupWith({
+        exercises: [{ sets: [{ reps_completed: 0 }] }],
+        id: "session-1",
+      });
+
+      await act(() => result.current.session.confirmFinish());
+
+      await waitFor(() => expect(mockReplace).toHaveBeenCalled());
+      await settled();
+      expect(Alert.alert).not.toHaveBeenCalled();
+    });
+
+    it("asks only once while the question is open", async () => {
+      mockFinishRpc.mockResolvedValue({});
+      const { result, settled } = await setupWith(partlyLogged);
+
+      await act(() => {
+        result.current.session.confirmFinish();
+        result.current.exercise.confirmFinish();
+      });
+      await waitFor(() => expect(Alert.alert).toHaveBeenCalled());
+      await act(() => new Promise((resolve) => setTimeout(resolve, 0)));
+      expect(Alert.alert).toHaveBeenCalledTimes(1);
+
+      await pressAlertButton("Finish");
+      await waitFor(() => expect(mockReplace).toHaveBeenCalled());
+      await settled();
+      expect(mockFinishRpc).toHaveBeenCalledTimes(1);
+    });
+
+    it("doesn't finish when the session can't be read", async () => {
+      mockFetchSession.mockRejectedValueOnce(new Error("offline"));
+      const { result } = await setup();
+
+      await act(() => result.current.session.confirmFinish());
+
+      await waitFor(() =>
+        expect(Alert.alert).toHaveBeenCalledWith(
+          "Couldn't finish workout",
+          "Check your connection and try again."
+        )
+      );
+      expect(mockFinishRpc).not.toHaveBeenCalled();
+    });
+
+    it("finish skips the question, for the finish suggestion", async () => {
+      mockFinishRpc.mockResolvedValue({});
+      const { result, settled } = await setupWith(partlyLogged);
+
+      await act(() => result.current.session.finish());
+
+      await waitFor(() => expect(mockReplace).toHaveBeenCalled());
+      await settled();
+      expect(Alert.alert).not.toHaveBeenCalled();
+    });
   });
 });
