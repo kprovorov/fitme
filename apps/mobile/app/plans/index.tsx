@@ -1,4 +1,5 @@
 import { Stack, useRouter } from "expo-router";
+import { useCallback } from "react";
 import { RefreshControl, ScrollView } from "react-native";
 import PlansListView from "~/components/views/plan-list-view";
 import { usePlansQuery } from "~/hooks/queries/plans";
@@ -6,6 +7,9 @@ import { usePlansQuery } from "~/hooks/queries/plans";
 export default function PlansScreen() {
   const { refetch, isLoading } = usePlansQuery();
   const router = useRouter();
+  const onRefresh = useCallback(async () => {
+    await refetch();
+  }, [refetch]);
 
   return (
     <>
@@ -39,7 +43,7 @@ export default function PlansScreen() {
         className="flex-1 p-6"
         contentInsetAdjustmentBehavior="automatic"
         refreshControl={
-          <RefreshControl onRefresh={refetch} refreshing={isLoading} />
+          <RefreshControl onRefresh={onRefresh} refreshing={isLoading} />
         }
       >
         <PlansListView />

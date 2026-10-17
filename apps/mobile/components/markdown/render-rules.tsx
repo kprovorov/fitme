@@ -53,12 +53,10 @@ const renderRules: RenderRules = {
     const imageProps: ImageProps = {
       source: { uri: node.url },
       style: styles.image as ImageStyle,
+      ...(node.alt
+        ? { accessibilityLabel: node.alt, accessible: true, alt: node.alt }
+        : {}),
     };
-    if (node.alt) {
-      imageProps.accessibilityLabel = node.alt;
-      imageProps.alt = node.alt;
-      imageProps.accessible = true;
-    }
     return <Image key={node.key} {...imageProps} />;
   },
   inlineCode: ({ node, styles }) => (

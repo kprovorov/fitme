@@ -4,7 +4,12 @@ import {
   GlassView as XGlassView,
 } from "expo-glass-effect";
 import { Image as XImage } from "expo-image";
-import { StyleSheet, type ViewProps, type ViewStyle } from "react-native";
+import {
+  type StyleProp,
+  StyleSheet,
+  type ViewProps,
+  type ViewStyle,
+} from "react-native";
 import { KeyboardGestureArea as XKeyboardGestureArea } from "react-native-keyboard-controller";
 import Animated from "react-native-reanimated";
 import { SafeAreaView as XSafeAreaView } from "react-native-safe-area-context";
@@ -51,7 +56,10 @@ const FallbackAppleGlassView = ({
     // AppleGlassView is picked per platform but exposes the glass view's ref
     // type; on this fallback path the ref resolves to the BlurView instance.
     ref={ref as React.Ref<EXBlurView>}
-    style={[{ overflow: "hidden" }, StyleSheet.flatten(style) as ViewStyle]}
+    style={[
+      { overflow: "hidden" },
+      StyleSheet.flatten(style as StyleProp<ViewStyle>),
+    ]}
     tint={fallbackTint}
     {...(viewProps as ViewProps)}
   >
@@ -82,10 +90,8 @@ function convertStylesToProps(
   if (!style) {
     return { props: {} as Record<string, unknown>, style };
   }
-  const flatStyle = (StyleSheet.flatten(style) || {}) as Record<
-    string,
-    unknown
-  >;
+  const flatStyle = (StyleSheet.flatten(style as StyleProp<ViewStyle>) ||
+    {}) as Record<string, unknown>;
   const props: Record<string, unknown> = {};
 
   for (const [styleKey, propKey] of Object.entries(move)) {
