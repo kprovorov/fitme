@@ -41,8 +41,7 @@ export default defineTool({
       .optional()
       .describe("New recommended rest duration in seconds"),
     set_id: z
-      .string()
-      .uuid()
+      .guid()
       .describe("The ID of the workout_exercise_sets row to update"),
     weight_recommended: z
       .number()

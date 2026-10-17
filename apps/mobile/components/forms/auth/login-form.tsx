@@ -20,10 +20,10 @@ interface LoginFormProps {
 export type LoginFormValues = z.infer<typeof formSchema>;
 
 const formSchema = z.object({
-  email: z.string().email(),
+  email: z.email({ error: "Invalid email" }),
   // Clerk checks the password; existing Users may have one shorter than
   // Clerk's minimum for new passwords.
-  password: z.string().min(1, { message: "Enter your password." }),
+  password: z.string().min(1, { error: "Enter your password." }),
 });
 
 export default function LoginForm({ onSubmit, errors }: LoginFormProps) {

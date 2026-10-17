@@ -17,7 +17,7 @@ import {
   workoutsSchema,
 } from "./plan-schemas.js";
 
-const planIdSchema = z.string().uuid().describe("Plan id (plans.id).");
+const planIdSchema = z.guid().describe("Plan id (plans.id).");
 
 const planNotFound = (planId: string) =>
   `Plan ${planId} not found (it may have been deleted or belong to another user).`;

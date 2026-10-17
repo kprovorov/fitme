@@ -21,12 +21,12 @@ interface RegisterFormProps {
 export type RegisterFormValues = z.infer<typeof formSchema>;
 
 const formSchema = z.object({
-  email: z.string().email(),
+  email: z.email({ error: "Invalid email" }),
   name: z.string().min(2, {
-    message: "Name must be at least 2 characters.",
+    error: "Name must be at least 2 characters.",
   }),
   password: z.string().min(PASSWORD_MIN_LENGTH, {
-    message: `Password must be at least ${PASSWORD_MIN_LENGTH} characters.`,
+    error: `Password must be at least ${PASSWORD_MIN_LENGTH} characters.`,
   }),
 });
 

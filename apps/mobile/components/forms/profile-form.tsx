@@ -41,6 +41,7 @@ import { Separator } from "~/components/ui/separator";
 import { Text } from "~/components/ui/text";
 import { H4 } from "~/components/ui/typography";
 import { VStack } from "~/components/ui/vstack";
+import { numberInRange } from "~/lib/form-schemas";
 
 export type ProfileFormValues = z.infer<typeof formSchema>;
 
@@ -59,34 +60,17 @@ const WHEEL_HEIGHT = 200;
 const DEFAULT_HEIGHT_INCHES = 60;
 
 const formSchema = z.object({
-  age: z.coerce
-    .number({
-      message: "Age is required",
-    })
-    .min(4)
-    .max(150),
-  gender: z.enum(genders, {
-    message: "Gender is required",
-  }),
-  height: z.coerce
-    .number({
-      message: "Height is required",
-    })
-    .min(1)
-    .max(500),
+  age: numberInRange(4, 150, "Age is required"),
+  gender: z.enum(genders, { error: "Gender is required" }),
+  height: numberInRange(1, 500, "Height is required"),
   // Only rendered (and therefore only set) when `showName` is enabled. Clerk's
   // Name is optional, so a User without one can still save the other fields.
   name: z
     .string()
     .trim()
-    .max(50, { message: "Name must be at most 50 characters" })
+    .max(50, { error: "Name must be at most 50 characters" })
     .optional(),
-  weight: z.coerce
-    .number({
-      message: "Weight is required",
-    })
-    .min(1)
-    .max(500),
+  weight: numberInRange(1, 500, "Weight is required"),
 });
 
 interface ProfileFormProps {

@@ -28,6 +28,7 @@ import { Text } from "~/components/ui/text";
 import { Textarea } from "~/components/ui/textarea";
 import { H4, Muted } from "~/components/ui/typography";
 import { VStack } from "~/components/ui/vstack";
+import { numberInRange } from "~/lib/form-schemas";
 import { BicepsFlexed } from "~/lib/icons/BicepsFlexed";
 import { Flame } from "~/lib/icons/Flame";
 import { HeartPulse } from "~/lib/icons/HeartPulse";
@@ -50,13 +51,14 @@ function buildPlanMessage(data: PlanFormValues): string {
 
 export type PlanFormValues = z.infer<typeof formSchema>;
 
+// The enum messages are zod 3's defaults, which the screen showed until zod 4.
 const formSchema = z.object({
-  experience_level: z.enum(experienceLevels),
-  frequency: z.coerce.number().min(1).max(7),
-  goal: z.enum(goals),
+  experience_level: z.enum(experienceLevels, { error: "Required" }),
+  frequency: numberInRange(1, 7, "Required"),
+  goal: z.enum(goals, { error: "Required" }),
   note: z.string().optional(),
-  place: z.enum(places),
-  workout_duration: z.coerce.number().min(1).max(120),
+  place: z.enum(places, { error: "Required" }),
+  workout_duration: numberInRange(1, 120, "Required"),
 });
 
 const goalOptions = [

@@ -36,8 +36,7 @@ const setSchema = z.object({
 
 const exerciseSchema = z.object({
   exercise_id: z
-    .string()
-    .uuid()
+    .guid()
     .describe("Exercise library id from list_exercises (exercises.id)."),
   sets: z
     .array(setSchema)

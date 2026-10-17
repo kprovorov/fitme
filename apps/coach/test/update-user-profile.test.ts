@@ -1,6 +1,5 @@
 import { beforeEach, describe, expect, it, vi } from "vitest";
-import type { ZodTypeAny } from "zod";
-import { contextFor, userIdFields } from "./tool-context";
+import { contextFor, inputSchemaOf, userIdFields } from "./tool-context";
 
 const db = vi.hoisted(() => ({ asUser: vi.fn() }));
 const services = vi.hoisted(() => ({ updateProfile: vi.fn() }));
@@ -22,8 +21,7 @@ const profile = {
   weight: 132.28,
 };
 
-const parse = (input: unknown) =>
-  (updateUserProfile.inputSchema as ZodTypeAny).parse(input);
+const parse = (input: unknown) => inputSchemaOf(updateUserProfile).parse(input);
 
 beforeEach(() => {
   db.asUser.mockImplementation((_userId, fn) => fn(tx));
@@ -86,9 +84,9 @@ describe("update_user_profile", () => {
       { measurement_system: "imperial" },
       { weight: -1 },
     ]) {
-      expect(
-        (updateUserProfile.inputSchema as ZodTypeAny).safeParse(invalid).success
-      ).toBe(false);
+      expect(inputSchemaOf(updateUserProfile).safeParse(invalid).success).toBe(
+        false
+      );
     }
   });
 

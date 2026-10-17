@@ -33,8 +33,7 @@ export default defineTool({
   },
   inputSchema: z.object({
     new_exercise_id: z
-      .string()
-      .uuid()
+      .guid()
       .describe(
         "The ID of the replacement exercise from the exercise library (from search_exercises)"
       ),
@@ -46,8 +45,7 @@ export default defineTool({
         "New sets configuration suited to the replacement exercise. Replaces all existing sets."
       ),
     workout_exercise_id: z
-      .string()
-      .uuid()
+      .guid()
       .describe(
         "The ID of the workout_exercise row to replace (the 'id' field on each exercise entry from get_active_plan)"
       ),
