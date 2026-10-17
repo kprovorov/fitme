@@ -102,7 +102,7 @@ React Native / Expo app using **file-based routing** via `expo-router`:
   - `coach-model.ts` — the Coach model list's schema and MMKV cache (`coach.models`), and the picker's choice (`coach.model`) resolved against it (see Key Patterns)
   - `utils.ts` — `cn()` class merger (tailwind-merge with the HIG font scale)
   - `constants.ts`, `segment.ts`, `useColorScheme.tsx`
-- `plugins/` — local Expo config plugins for Xcode 27 compatibility: `with-ios-min-deployment-target.js` (raises pod targets below iOS 15.1, including resource bundles; still needed on SDK 58, since pods such as `react-native-keyboard-controller`, `react-native-safe-area-context`, `@sentry/react-native` and Segment still declare older minimums) and `with-revenuecat-xcode27-patch.js` (Swift 6.4 fix for `PaywallColor`; drop once `react-native-purchases` pins purchases-ios ≥ 5.78.0). The app itself targets iOS 16.4 (SDK 58's default). UIScene adoption needs no flag on SDK 58: prebuild generates `SceneDelegate.swift`, so there is no `expo-build-properties` plugin.
+- `plugins/` — local Expo config plugin for Xcode 27 compatibility: `with-ios-min-deployment-target.js` (raises pod targets below iOS 15.1, including resource bundles; still needed on SDK 58, since pods such as `react-native-keyboard-controller`, `react-native-safe-area-context`, `@sentry/react-native` and Segment still declare older minimums). RevenueCat needs no patch: `react-native-purchases` 10 pins purchases-ios 5.95.0, which builds under Xcode 27 / Swift 6.4. The app itself targets iOS 16.4 (SDK 58's default). UIScene adoption needs no flag on SDK 58: prebuild generates `SceneDelegate.swift`, so there is no `expo-build-properties` plugin.
 
 ### apps/web — Next.js app
 
