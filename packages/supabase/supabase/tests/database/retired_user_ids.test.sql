@@ -1,12 +1,13 @@
--- rekey_user (20261011120000_user_id_text_key.sql) and the retired-id rules:
--- rekey_user moves one User's rows across every User-owned table and leaves
--- other Users alone, only the service role can execute it, and a retired id
--- (deleted or rekeyed away) can't write data back. Deleting a User's data is
+-- The retired-id rules (20261011120000_user_id_text_key.sql): a retired id,
+-- deleted or rekeyed away by the Supabase Auth -> Clerk migration (FIT-73),
+-- can't read or write data, through RLS or around it. rekey_user, which did
+-- the rekeying, was dropped with the migration tooling (FIT-77); production
+-- keeps the retired ids it left behind. Deleting a User's data is
 -- deleteUserData in packages/services, covered by its integration tests.
 -- Run with `pnpm db test:db` (supabase test db).
 begin;
 
-select plan(37);
+select plan(18);
 
 -- ------------------------------------------------------------
 -- Fixtures (as postgres, bypassing RLS)
@@ -95,34 +96,8 @@ select is(pg_temp.owned_rows('user_2Bystander000000000000'), 10, 'User 2 starts 
 -- delete_user_data was dropped: deleteUserData in packages/services
 select hasnt_function('public', 'delete_user_data', 'delete_user_data is gone');
 
--- ------------------------------------------------------------
--- Grants: service_role only
--- ------------------------------------------------------------
-select ok(
-  not has_function_privilege('anon', 'public.rekey_user(text, text)', 'EXECUTE'),
-  'anon has no EXECUTE on rekey_user'
-);
-select ok(
-  not has_function_privilege('authenticated', 'public.rekey_user(text, text)', 'EXECUTE'),
-  'authenticated has no EXECUTE on rekey_user'
-);
-select ok(
-  has_function_privilege('service_role', 'public.rekey_user(text, text)', 'EXECUTE'),
-  'service_role has EXECUTE on rekey_user'
-);
-
-set local role authenticated;
-set local request.jwt.claims = '{"sub":"user_2DeleteMe00000000000000","role":"authenticated"}';
-
-select throws_ok(
-  $$select public.rekey_user('user_2Bystander000000000000', 'user_2DeleteMe00000000000000')$$,
-  '42501', 'permission denied for function rekey_user',
-  'a signed-in User cannot execute rekey_user'
-);
-
-reset role;
-
-select is(pg_temp.owned_rows('user_2DeleteMe00000000000000'), 10, 'the rejected call changed nothing');
+-- rekey_user was dropped with the migration tooling
+select hasnt_function('public', 'rekey_user', 'rekey_user is gone');
 
 -- ------------------------------------------------------------
 -- A deleted User: retired and their root rows removed, as deleteUserData
@@ -189,194 +164,65 @@ select throws_ok(
   'service_role can''t write under a deleted User id'
 );
 
-select throws_ok(
-  $$select public.rekey_user('user_2DeleteMe00000000000000', 'user_2Resurrected00000000000')$$,
-  '23505', 'User user_2DeleteMe00000000000000 is already retired',
-  'a deleted User id can''t be rekeyed'
-);
-
 reset role;
 
 -- ------------------------------------------------------------
--- rekey_user as service_role: legacy UUID -> Clerk id
+-- A User rekeyed away: legacy UUID -> Clerk id, as rekey_user left it in
+-- production (as postgres here)
 -- ------------------------------------------------------------
-set local role service_role;
+update public.profiles set user_id = 'user_2Rekeyed0000000000000000'
+  where user_id = '7a1b2c3d-0000-4000-8000-000000000003';
+update public.plans set user_id = 'user_2Rekeyed0000000000000000'
+  where user_id = '7a1b2c3d-0000-4000-8000-000000000003';
+update public.workout_sessions set user_id = 'user_2Rekeyed0000000000000000'
+  where user_id = '7a1b2c3d-0000-4000-8000-000000000003';
+update public.conversations set user_id = 'user_2Rekeyed0000000000000000'
+  where user_id = '7a1b2c3d-0000-4000-8000-000000000003';
+insert into private.retired_user_ids (user_id, rekeyed_to)
+  values ('7a1b2c3d-0000-4000-8000-000000000003', 'user_2Rekeyed0000000000000000');
 
-select lives_ok(
-  $$select public.rekey_user('7a1b2c3d-0000-4000-8000-000000000003', 'user_2Rekeyed0000000000000000')$$,
-  'service_role can rekey a User'
-);
+select is(pg_temp.owned_rows('user_2Rekeyed0000000000000000'), 10, 'every row is under the Clerk id');
 
-reset role;
-
-select is(pg_temp.owned_rows('7a1b2c3d-0000-4000-8000-000000000003'), 0, 'nothing is left under the old id');
-select is(pg_temp.owned_rows('user_2Rekeyed0000000000000000'), 10, 'every row moved to the new id');
-select is(pg_temp.owned_rows('user_2Bystander000000000000'), 10, 'rekeying left the other User alone');
-
--- The rekeyed User reaches their data through RLS with the new sub
+-- The rekeyed User reaches their data through RLS with the Clerk sub
 set local role authenticated;
 set local request.jwt.claims = '{"sub":"user_2Rekeyed0000000000000000","role":"authenticated"}';
 
 select is(
   (select count(*)::int from public.workout_session_exercise_sets),
   1,
-  'the rekeyed User sees their Workout Session sets under the new sub'
+  'the rekeyed User sees their Workout Session sets under the Clerk sub'
 );
 
--- The legacy token can't write rows the rekey would leave behind
+-- A token for the legacy id reads and writes nothing
 set local request.jwt.claims = '{"sub":"7a1b2c3d-0000-4000-8000-000000000003","role":"authenticated"}';
+
+select is(public.current_user_id(), null, 'current_user_id() is NULL for a rekeyed-away id');
 
 select is_empty(
   $$select id from public.plans$$,
-  'the legacy sub sees nothing after the rekey'
+  'the legacy sub sees nothing'
 );
 
 select throws_ok(
   $$insert into public.conversations (user_id) values ('7a1b2c3d-0000-4000-8000-000000000003')$$,
   '42501', null,
-  'the legacy sub can''t write after the rekey'
+  'the legacy sub can''t write'
 );
 
-reset role;
-
--- Rerunning is a no-op
+-- Writes that bypass RLS are stopped too
 set local role service_role;
-
-select lives_ok(
-  $$select public.rekey_user('7a1b2c3d-0000-4000-8000-000000000003', 'user_2Rekeyed0000000000000000')$$,
-  'rerunning rekey_user is harmless'
-);
+set local request.jwt.claims = '{"role":"service_role"}';
 
 select throws_ok(
-  $$select public.rekey_user('7a1b2c3d-0000-4000-8000-000000000003', 'user_2SomeoneElse00000000000')$$,
-  '23505', 'User 7a1b2c3d-0000-4000-8000-000000000003 is already retired',
-  'a retry can''t point a rekeyed id at a different destination'
-);
-
-select throws_ok(
-  $$select public.rekey_user('user_2Rekeyed0000000000000000', 'user_2Bystander000000000000')$$,
-  '23505', 'User user_2Bystander000000000000 already owns data',
-  'rekeying onto a User who already owns data fails'
+  $$insert into public.profiles (user_id, gender, age, weight, height)
+    values ('7a1b2c3d-0000-4000-8000-000000000003', 'male', 30, 80, 180)$$,
+  '42501', 'User id 7a1b2c3d-0000-4000-8000-000000000003 is retired',
+  'service_role can''t write under a rekeyed-away id'
 );
 
 reset role;
 
--- Not only the Profile unique key: the guard covers every User-owned table
-delete from public.profiles where user_id = 'user_2Bystander000000000000';
-
-set local role service_role;
-
-select throws_ok(
-  $$select public.rekey_user('user_2Rekeyed0000000000000000', 'user_2Bystander000000000000')$$,
-  '23505', 'User user_2Bystander000000000000 already owns data',
-  'rekeying onto a User who owns data but no Profile fails'
-);
-
-reset role;
-
--- A failure on the last table (conversations) undoes the tables already moved
-create function pg_temp.fail_rekey() returns trigger language plpgsql as $$
-begin
-  raise exception 'forced rekey failure';
-end;
-$$;
-
-create trigger fail_rekey before update on public.conversations
-  for each row execute function pg_temp.fail_rekey();
-
-set local role service_role;
-
-select throws_ok(
-  $$select public.rekey_user('user_2Rekeyed0000000000000000', 'user_2RekeyedAgain00000000000')$$,
-  'P0001', 'forced rekey failure',
-  'rekey_user fails when the last table can''t be updated'
-);
-
-reset role;
-
-drop trigger fail_rekey on public.conversations;
-
-select is(
-  pg_temp.owned_rows('user_2Rekeyed0000000000000000'),
-  10,
-  'a failed rekey leaves every row under the old id'
-);
-
-select is(
-  pg_temp.owned_rows('user_2RekeyedAgain00000000000'),
-  0,
-  'a failed rekey moves no rows at all'
-);
-
--- Rekeying back to the legacy id (a rollback) makes it usable again
-set local role service_role;
-
-select lives_ok(
-  $$select public.rekey_user('user_2Rekeyed0000000000000000', '7a1b2c3d-0000-4000-8000-000000000003')$$,
-  'service_role can rekey a User back to the legacy id'
-);
-
-set local role authenticated;
-set local request.jwt.claims = '{"sub":"7a1b2c3d-0000-4000-8000-000000000003","role":"authenticated"}';
-
-select is(
-  (select count(*)::int from public.plans),
-  1,
-  'the legacy sub sees its Plan again after the rollback'
-);
-
-reset role;
-
--- A destination that owns rows is refused even when the source owns nothing
-set local role service_role;
-
-select throws_ok(
-  $$select public.rekey_user('legacy-empty-source', '7a1b2c3d-0000-4000-8000-000000000003')$$,
-  '23505', 'User 7a1b2c3d-0000-4000-8000-000000000003 already owns data',
-  'rekey_user refuses an occupied destination when the source is empty'
-);
-
-reset role;
-
--- A -> B -> C: retrying A -> B leaves B -> C alone
-insert into public.profiles (user_id, gender, age, weight, height) values
-  ('legacy-chain-a', 'female', 25, 60, 165);
-
-set local role service_role;
-
-select lives_ok(
-  $$select public.rekey_user('legacy-chain-a', 'user_2ChainB0000000000000000');
-    select public.rekey_user('user_2ChainB0000000000000000', 'user_2ChainC0000000000000000');
-    select public.rekey_user('legacy-chain-a', 'user_2ChainB0000000000000000')$$,
-  'rekeying A -> B, B -> C, then retrying A -> B succeeds'
-);
-
-set local role authenticated;
-set local request.jwt.claims = '{"sub":"user_2ChainB0000000000000000","role":"authenticated"}';
-
-select is(public.current_user_id(), null, 'the retry left B retired');
-
-reset role;
-
--- An unrelated User can't be rekeyed onto B, which is retired and points at C
-insert into public.profiles (user_id, gender, age, weight, height) values
-  ('legacy-chain-d', 'female', 25, 60, 165);
-
-set local role service_role;
-
-select throws_ok(
-  $$select public.rekey_user('legacy-chain-d', 'user_2ChainB0000000000000000')$$,
-  '23505', 'User user_2ChainB0000000000000000 is already retired',
-  'a User can''t be rekeyed onto another User''s retired id'
-);
-
-select throws_ok(
-  $$select public.rekey_user('legacy-chain-d', 'user_2DeleteMe00000000000000')$$,
-  '23505', 'User user_2DeleteMe00000000000000 is already retired',
-  'a User can''t be rekeyed onto a deleted id'
-);
-
-reset role;
+select is(pg_temp.owned_rows('user_2Bystander000000000000'), 10, 'the other User was left alone');
 
 select * from finish();
 

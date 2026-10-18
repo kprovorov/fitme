@@ -7,7 +7,7 @@ date: 2026-10-14
 
 Plan, workout-session, profile and account-deletion logic moves out of Postgres functions (`create_plan`, `update_plan`, `start_workout_session`, `finish_workout_session`, `activate_plan`, `convert_measurement_system`, `delete_user_data`, …) into TypeScript in `packages/services`. Those functions run inside a transaction from `asUser` or `withService` (ADR 0003). The mobile app, MCP, the Coach, webhooks and the future public API then share one implementation, and every client (mobile and web, reads included) eventually reaches data only through `apps/api`.
 
-Postgres keeps what must hold however the data is reached: RLS, `current_user_id()`, the retired-id triggers, `deactivate_deleted_plan` and the one-open-session-per-Workout index. `rekey_user` stays in SQL until the one-shot Clerk migration code is removed.
+Postgres keeps what must hold however the data is reached: RLS, `current_user_id()`, the retired-id triggers, `deactivate_deleted_plan` and the one-open-session-per-Workout index. `rekey_user` stays in SQL until the one-shot Clerk migration code is removed (both were removed in FIT-77).
 
 ## Considered options
 

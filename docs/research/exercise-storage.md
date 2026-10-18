@@ -117,8 +117,8 @@ claims link to the primary source. Anything I couldn't check is marked **(unveri
     behind, still referenced by users.
 - `.github/workflows/sync-exercises.yml`: runs on pushes to `main` that touch
   `data/exercises.csv`, `data/descriptions/**`, `data/instructions/**` or `sync.ts`,
-  in the `production` environment. Like `scripts/clerk-migration.ts`, it's a
-  service-role REST user outside the apps. ADR 0003 covers the apps only, so this isn't a violation, just the odd one out.
+  in the `production` environment. Like the one-shot Clerk migration script (since
+  removed), it's a service-role REST user outside the apps. ADR 0003 covers the apps only, so this isn't a violation, just the odd one out.
 - `supabase/seed.ts:33-45`: the snaplet seed client inserts the same rows without ids,
   so every local stack and every E2E preview branch (`e2e.yml:106-110`) gets **different
   uuids** from prod.
