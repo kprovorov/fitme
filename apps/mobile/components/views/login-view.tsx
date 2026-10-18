@@ -170,15 +170,15 @@ export default function LoginView() {
         </P>
       ) : null}
       <LoginForm onSubmit={handleSubmit} />
-      <Text className="font-nunito-sans-bold text-subhead">
-        <Link
-          className="font-nunito-sans-bold text-primary"
-          href="/auth/forgot-password"
-          testID="forgot-password-link"
-        >
-          Forgot password?
-        </Link>
-      </Text>
+      {/* Not nested in a Text: iOS merges nested Text into one element and
+          drops the link's testID */}
+      <Link
+        className="font-nunito-sans-bold text-primary text-subhead"
+        href="/auth/forgot-password"
+        testID="forgot-password-link"
+      >
+        Forgot password?
+      </Link>
       <Text className="font-nunito-sans-bold text-subhead">
         Don&apos;t have an account?{" "}
         <Link
