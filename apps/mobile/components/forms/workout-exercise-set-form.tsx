@@ -35,7 +35,8 @@ interface WorkoutSessionExerciseSetFormProps {
     values: WorkoutSessionExerciseSetFormValues
   ) => void | Promise<void>;
   recommendedValues?: { reps: string; weight: string };
-  setIndex?: number;
+  /** The set's 1-based number, as shown on its row. */
+  setIndex: number;
 }
 
 /**
@@ -100,7 +101,7 @@ export default function WorkoutSessionExerciseSetForm({
   error,
   isDone,
   isEditing,
-  setIndex = 0,
+  setIndex,
 }: WorkoutSessionExerciseSetFormProps) {
   const form = useForm<
     WorkoutSessionExerciseSetFormInput,
@@ -230,7 +231,7 @@ export default function WorkoutSessionExerciseSetForm({
           {showsLoggedValues ? (
             <Button
               accessibilityHint="Opens the set for editing"
-              accessibilityLabel={`Set ${setIndex} logged`}
+              accessibilityLabel={`Edit set ${setIndex}`}
               onPress={startEditing}
               shape="pill"
               size="icon"

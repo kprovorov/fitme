@@ -134,7 +134,11 @@ export default function WorkoutSessionExerciseCard({
         />
       </Pressable>
       {menuItems.length > 0 ? (
-        <DropdownMenu items={menuItems} systemImage="ellipsis" />
+        <DropdownMenu
+          accessibilityLabel={`More options for ${workoutSessionExercise.exercise.name}`}
+          items={menuItems}
+          systemImage="ellipsis"
+        />
       ) : (
         <SymbolImage
           className="text-muted-foreground/60"

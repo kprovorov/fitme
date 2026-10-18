@@ -3,7 +3,7 @@
 -- Run with `pnpm db test:db` (supabase test db).
 begin;
 
-select plan(47);
+select plan(37);
 
 -- ------------------------------------------------------------
 -- Schema: text User id, no link to Supabase Auth
@@ -11,7 +11,6 @@ select plan(47);
 select col_type_is('public', 'profiles', 'user_id', 'text', 'profiles.user_id is text');
 select col_type_is('public', 'plans', 'user_id', 'text', 'plans.user_id is text');
 select col_type_is('public', 'workout_sessions', 'user_id', 'text', 'workout_sessions.user_id is text');
-select col_type_is('public', 'conversations', 'user_id', 'text', 'conversations.user_id is text');
 select col_not_null('public', 'workout_sessions', 'user_id', 'workout_sessions.user_id stays NOT NULL');
 
 select is(
@@ -79,12 +78,6 @@ insert into public.workout_session_exercises (id, workout_session_id, exercise_i
 insert into public.workout_session_exercise_sets (id, workout_session_exercise_id, "order", reps_recommended) values
   ('f1700000-0000-0000-0000-000000000001', 'f1600000-0000-0000-0000-000000000001', 1, 5);
 
-insert into public.conversations (id, user_id) values
-  ('f1800000-0000-0000-0000-000000000001', 'user_2IsolationA000000000000');
-
-insert into public.messages (id, conversation_id, role, content) values
-  ('f1900000-0000-0000-0000-000000000001', 'f1800000-0000-0000-0000-000000000001', 'user', 'hi');
-
 -- ------------------------------------------------------------
 -- User A sees their own rows
 -- ------------------------------------------------------------
@@ -102,11 +95,9 @@ select is(
      + (select count(*) from public.workout_exercise_sets)
      + (select count(*) from public.workout_sessions)
      + (select count(*) from public.workout_session_exercises)
-     + (select count(*) from public.workout_session_exercise_sets)
-     + (select count(*) from public.conversations)
-     + (select count(*) from public.messages))::int,
-  10,
-  'User A sees one row in each of their ten tables'
+     + (select count(*) from public.workout_session_exercise_sets))::int,
+  8,
+  'User A sees one row in each of their eight tables'
 );
 
 -- ------------------------------------------------------------
@@ -122,8 +113,6 @@ select is_empty($$select id from public.workout_exercise_sets$$, 'User B cannot 
 select is_empty($$select id from public.workout_sessions$$, 'User B cannot read User A''s Workout Sessions');
 select is_empty($$select id from public.workout_session_exercises$$, 'User B cannot read User A''s session exercises');
 select is_empty($$select id from public.workout_session_exercise_sets$$, 'User B cannot read User A''s session sets');
-select is_empty($$select id from public.conversations$$, 'User B cannot read User A''s conversations');
-select is_empty($$select id from public.messages$$, 'User B cannot read User A''s agent messages');
 
 -- ------------------------------------------------------------
 -- User B can't update or delete User A's rows
@@ -149,16 +138,8 @@ select is_empty(
   'User B cannot update User A''s session sets'
 );
 select is_empty(
-  $$update public.messages set content = 'hijacked' returning id$$,
-  'User B cannot update User A''s agent messages'
-);
-select is_empty(
   $$delete from public.workouts returning id$$,
   'User B cannot delete User A''s Workouts'
-);
-select is_empty(
-  $$delete from public.conversations returning id$$,
-  'User B cannot delete User A''s conversations'
 );
 
 -- ------------------------------------------------------------
@@ -201,27 +182,12 @@ select throws_ok(
   '42501', null,
   'User B cannot add a set to User A''s Workout Session'
 );
-select throws_ok(
-  $$insert into public.conversations (user_id) values ('user_2IsolationA000000000000')$$,
-  '42501', null,
-  'User B cannot create a conversation for User A'
-);
-select throws_ok(
-  $$insert into public.messages (conversation_id, role, content)
-    values ('f1800000-0000-0000-0000-000000000001', 'user', 'intruder')$$,
-  '42501', null,
-  'User B cannot post into User A''s conversation'
-);
 
 -- User B can still write their own rows
 select lives_ok(
   $$insert into public.plans (user_id, goal, place, frequency)
     values ('user_2IsolationB000000000000', 'strength', 'gym', 3)$$,
   'User B can create their own Plan'
-);
-select lives_ok(
-  $$insert into public.conversations (user_id) values ('user_2IsolationB000000000000')$$,
-  'User B can create their own conversation'
 );
 
 -- ------------------------------------------------------------
@@ -256,16 +222,6 @@ select is(
   (select count(*)::int from public.workouts where plan_id = 'f1a00000-0000-0000-0000-000000000001'),
   1,
   'User A''s Plan still has exactly its one Workout'
-);
-select is(
-  (select content from public.messages where id = 'f1900000-0000-0000-0000-000000000001'),
-  'hi',
-  'User A''s agent message is unchanged'
-);
-select is(
-  (select count(*)::int from public.conversations where user_id = 'user_2IsolationA000000000000'),
-  1,
-  'User A''s conversation still exists'
 );
 
 select * from finish();

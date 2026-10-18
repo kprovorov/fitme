@@ -49,29 +49,6 @@ export const coachSessions = pgTable(
   ]
 );
 
-export const conversations = pgTable(
-  "conversations",
-  {
-    createdAt: timestamp("created_at", { mode: "string", withTimezone: true })
-      .defaultNow()
-      .notNull(),
-    id: uuid().defaultRandom().primaryKey().notNull(),
-    userId: text("user_id").notNull(),
-  },
-  (table) => [
-    index("conversations_user_id_idx").using(
-      "btree",
-      table.userId.asc().nullsLast().op("text_ops")
-    ),
-    pgPolicy("Users can manage their own conversations", {
-      as: "permissive",
-      for: "all",
-      to: ["public"],
-      using: sql`(user_id = ( SELECT current_user_id() AS current_user_id))`,
-    }),
-  ]
-);
-
 export const exercises = pgTable(
   "exercises",
   {
@@ -100,39 +77,6 @@ export const exercises = pgTable(
       to: ["public"],
       using: sql`true`,
     }),
-  ]
-);
-
-export const messages = pgTable(
-  "messages",
-  {
-    content: text().notNull(),
-    conversationId: uuid("conversation_id").notNull(),
-    createdAt: timestamp("created_at", { mode: "string", withTimezone: true })
-      .defaultNow()
-      .notNull(),
-    id: uuid().defaultRandom().primaryKey().notNull(),
-    metadata: jsonb(),
-    role: text().notNull(),
-  },
-  (table) => [
-    foreignKey({
-      columns: [table.conversationId],
-      foreignColumns: [conversations.id],
-      name: "messages_conversation_id_fkey",
-    }).onDelete("cascade"),
-    pgPolicy("Users can manage messages in their conversations", {
-      as: "permissive",
-      for: "all",
-      to: ["public"],
-      using: sql`(conversation_id IN ( SELECT conversations.id
-   FROM conversations
-  WHERE (conversations.user_id = ( SELECT current_user_id() AS current_user_id))))`,
-    }),
-    check(
-      "messages_role_check",
-      sql`role = ANY (ARRAY['user'::text, 'assistant'::text])`
-    ),
   ]
 );
 

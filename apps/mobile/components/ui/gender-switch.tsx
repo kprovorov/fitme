@@ -33,6 +33,7 @@ function GenderOption({
 
   return (
     <Pressable
+      accessibilityLabel={getGenderLabel(gender)}
       accessibilityRole="radio"
       accessibilityState={{ checked: isSelected, disabled }}
       className={cn(

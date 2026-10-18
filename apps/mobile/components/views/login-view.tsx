@@ -4,13 +4,14 @@ import { useCallback, useEffect, useState } from "react";
 import LoginForm, {
   type LoginFormValues,
 } from "@/components/forms/auth/login-form";
+import { ErrorMessage } from "~/components/ui/error-message";
 import { getClerkErrorMessage } from "~/lib/clerk";
 import { IS_E2E } from "~/lib/constants";
 import { segmentClient } from "~/lib/segment";
 import { Button } from "../ui/button";
 import { Input } from "../ui/input";
 import { Text } from "../ui/text";
-import { H3, P } from "../ui/typography";
+import { H3 } from "../ui/typography";
 import { VStack } from "../ui/vstack";
 
 export default function LoginView() {
@@ -119,7 +120,7 @@ export default function LoginView() {
             Enter the code we sent you to confirm it&apos;s you on this device
           </Text>
         </VStack>
-        {errorMessage ? <P className="text-red-500">{errorMessage}</P> : null}
+        {errorMessage ? <ErrorMessage>{errorMessage}</ErrorMessage> : null}
         <VStack className="w-full items-stretch gap-4">
           <Input
             autoComplete="one-time-code"
@@ -165,9 +166,7 @@ export default function LoginView() {
         </Text>
       </VStack>
       {errorMessage ? (
-        <P className="text-red-500" testID="login-error">
-          {errorMessage}
-        </P>
+        <ErrorMessage testID="login-error">{errorMessage}</ErrorMessage>
       ) : null}
       <LoginForm onSubmit={handleSubmit} />
       {/* Not nested in a Text: iOS merges nested Text into one element and

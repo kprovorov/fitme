@@ -2,9 +2,7 @@ import { randomUUID } from "node:crypto";
 import {
   asUser,
   coachSessions,
-  conversations,
   exercises,
-  messages,
   plans,
   profiles,
   retiredUserIdsInPrivate,
@@ -40,8 +38,6 @@ const chainC = `user_svcChainC${runId}`;
 const REFUSED = "42501";
 
 interface OwnedRows {
-  conversation: string;
-  message: string;
   plan: string;
   profile: string;
   session: string;
@@ -105,18 +101,8 @@ const seedUser = (userId: string): Promise<OwnedRows> =>
       .insert(workoutSessionExerciseSets)
       .values({ order: 1, workoutSessionExerciseId: sessionExercise.id })
       .returning({ id: workoutSessionExerciseSets.id });
-    const [conversation] = await tx
-      .insert(conversations)
-      .values({ userId })
-      .returning({ id: conversations.id });
-    const [message] = await tx
-      .insert(messages)
-      .values({ content: "Hi", conversationId: conversation.id, role: "user" })
-      .returning({ id: messages.id });
 
     return {
-      conversation: conversation.id,
-      message: message.id,
       plan: plan.id,
       profile: profile.id,
       session: session.id,
@@ -131,8 +117,6 @@ const seedUser = (userId: string): Promise<OwnedRows> =>
 const count = async (
   tx: Transaction,
   table:
-    | typeof conversations
-    | typeof messages
     | typeof plans
     | typeof profiles
     | typeof workoutExerciseSets
@@ -147,8 +131,6 @@ const count = async (
 /** How many of the seeded rows still exist, per table. */
 const remaining = (rows: OwnedRows) =>
   withService(async (tx) => ({
-    conversation: await count(tx, conversations, rows.conversation),
-    message: await count(tx, messages, rows.message),
     plan: await count(tx, plans, rows.plan),
     profile: await count(tx, profiles, rows.profile),
     session: await count(tx, workoutSessions, rows.session),
@@ -164,8 +146,6 @@ const remaining = (rows: OwnedRows) =>
   }));
 
 const allRows = (present: 0 | 1) => ({
-  conversation: present,
-  message: present,
   plan: present,
   profile: present,
   session: present,
@@ -192,10 +172,6 @@ const rekey = async (tx: Transaction, oldId: string, newId: string) => {
     .update(workoutSessions)
     .set({ userId: newId })
     .where(eq(workoutSessions.userId, oldId));
-  await tx
-    .update(conversations)
-    .set({ userId: newId })
-    .where(eq(conversations.userId, oldId));
   await tx
     .insert(retiredUserIdsInPrivate)
     .values({ rekeyedTo: newId, userId: oldId });
@@ -291,7 +267,13 @@ describe("deleteUserData", () => {
 
     await expect(
       asUser(deleted, (tx) =>
-        tx.insert(conversations).values({ userId: deleted })
+        tx.insert(profiles).values({
+          age: 30,
+          gender: "male",
+          height: "180",
+          userId: deleted,
+          weight: "80",
+        })
       )
     ).rejects.toMatchObject({
       // Drizzle wraps the Postgres error

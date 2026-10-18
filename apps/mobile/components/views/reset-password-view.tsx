@@ -4,8 +4,9 @@ import { useCallback, useEffect, useState } from "react";
 import ResetPasswordForm, {
   type ResetPasswordFormValues,
 } from "~/components/forms/auth/reset-password-form";
+import { ErrorMessage } from "~/components/ui/error-message";
 import { Text } from "~/components/ui/text";
-import { H3, P } from "~/components/ui/typography";
+import { H3 } from "~/components/ui/typography";
 import { VStack } from "~/components/ui/vstack";
 import type { CodePurpose } from "~/components/views/verify-code-view";
 import { getClerkErrorMessage } from "~/lib/clerk";
@@ -83,7 +84,7 @@ export default function ResetPasswordView() {
           Choose a new password for your account.
         </Text>
       </VStack>
-      {errorMessage ? <P className="text-red-500">{errorMessage}</P> : null}
+      {errorMessage ? <ErrorMessage>{errorMessage}</ErrorMessage> : null}
       <ResetPasswordForm onSubmit={handleSubmit} />
     </VStack>
   );
