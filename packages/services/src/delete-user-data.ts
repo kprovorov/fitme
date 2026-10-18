@@ -16,8 +16,9 @@ import {
 import { and, eq, isNotNull, sql } from "drizzle-orm";
 
 /**
- * The User-owned tables (roots first), their children, then coach_sessions,
- * in the order the dropped rekey_user locked them. Every table that holds a
+ * The User-owned tables: the roots, their children, then coach_sessions. The
+ * Plan edits in workout-edits.ts take their locks in this order too, so they
+ * queue behind an account deletion instead of deadlocking. Every table that holds a
  * User's rows must be here: a schema change that adds one has to add it, and
  * the integration test catches a miss.
  */
@@ -44,8 +45,8 @@ const REKEYED_CODE = "55000";
 /**
  * The id was rekeyed to another one (the one-shot Supabase -> Clerk
  * migration; production keeps its retired ids), so its rows now belong to the
- * new id. Deleting it would leave that account behind;
- * delete the new id instead.
+ * new id. Deleting it would leave that account behind; delete the new id
+ * instead.
  */
 export class UserRekeyedError extends Error {
   readonly code = REKEYED_CODE;
