@@ -6,6 +6,11 @@ import {
   useForm,
 } from "react-hook-form";
 import { z } from "zod";
+import {
+  formatSetWeight,
+  setRepsField,
+  setWeightField,
+} from "~/lib/set-inputs";
 import { Button } from "../ui/button";
 import { ErrorMessage } from "../ui/error-message";
 import { HStack } from "../ui/hstack";
@@ -21,15 +26,18 @@ interface WorkoutSessionExerciseSetFormProps {
   onSubmit: (
     values: WorkoutSessionExerciseSetFormValues
   ) => void | Promise<void>;
-  recommendedValues?: z.infer<typeof formSchema>;
+  recommendedValues?: WorkoutSessionExerciseSetFormInput;
   setIndex?: number;
 }
 
-export type WorkoutSessionExerciseSetFormValues = z.infer<typeof formSchema>;
+/** What the fields hold. */
+type WorkoutSessionExerciseSetFormInput = z.input<typeof formSchema>;
+/** The parsed set: `null` for an empty field (the recommended value). */
+export type WorkoutSessionExerciseSetFormValues = z.output<typeof formSchema>;
 
 const formSchema = z.object({
-  reps: z.string(),
-  weight: z.string(),
+  reps: setRepsField,
+  weight: setWeightField,
 });
 
 export default function WorkoutSessionExerciseSetForm({
@@ -42,7 +50,11 @@ export default function WorkoutSessionExerciseSetForm({
   isEditing,
   setIndex = 0,
 }: WorkoutSessionExerciseSetFormProps) {
-  const form = useForm<WorkoutSessionExerciseSetFormValues>({
+  const form = useForm<
+    WorkoutSessionExerciseSetFormInput,
+    unknown,
+    WorkoutSessionExerciseSetFormValues
+  >({
     defaultValues: {
       reps: "",
       weight: "",
@@ -53,12 +65,24 @@ export default function WorkoutSessionExerciseSetForm({
 
   const { disabled: isFormDisabled } = form.formState;
 
+  // The fields then show what is sent, so what was stored: `05` as `5`,
+  // `1.50` as `1,5`.
+  const submit = form.handleSubmit((values) => {
+    if (values.weight !== null) {
+      form.setValue("weight", formatSetWeight(values.weight));
+    }
+    if (values.reps !== null) {
+      form.setValue("reps", values.reps.toString());
+    }
+    return onSubmit(values);
+  });
+
   const renderWeightField = useCallback(
     ({
       field: { onChange, onBlur, value },
     }: {
       field: ControllerRenderProps<
-        WorkoutSessionExerciseSetFormValues,
+        WorkoutSessionExerciseSetFormInput,
         "weight"
       >;
     }) => (
@@ -80,7 +104,7 @@ export default function WorkoutSessionExerciseSetForm({
     ({
       field: { onChange, onBlur, value },
     }: {
-      field: ControllerRenderProps<WorkoutSessionExerciseSetFormValues, "reps">;
+      field: ControllerRenderProps<WorkoutSessionExerciseSetFormInput, "reps">;
     }) => (
       <Input
         autoCapitalize="none"
@@ -129,7 +153,7 @@ export default function WorkoutSessionExerciseSetForm({
           ) : (
             <Button
               disabled={disabled}
-              onPress={form.handleSubmit(onSubmit)}
+              onPress={submit}
               shape="pill"
               size="icon-xs"
               systemImage="checkmark"

@@ -8,6 +8,7 @@
     ".": "./src/index.ts",
     "./models": "./src/models.ts",
     "./labels": "./src/labels.ts",
+    "./limits": "./src/limits.ts",
     "./names": "./src/names.ts",
     "./formatters": "./src/formatters.ts",
     "./types": "./src/types.ts",

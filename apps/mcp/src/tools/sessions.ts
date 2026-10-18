@@ -1,3 +1,4 @@
+import { MAX_REPS, MAX_WEIGHT } from "@fitme/core/limits";
 import type { McpServer } from "@modelcontextprotocol/sdk/server/mcp.js";
 import { z } from "zod";
 import type { ToolContext } from "../context.js";
@@ -9,12 +10,7 @@ import {
   WEIGHT_UNIT_NOTE,
   withServices,
 } from "./helpers.js";
-import {
-  DEFAULT_PAGE_SIZE,
-  MAX_PAGE_SIZE,
-  MAX_REPS,
-  MAX_WEIGHT,
-} from "./limits.js";
+import { DEFAULT_PAGE_SIZE, MAX_PAGE_SIZE } from "./limits.js";
 
 const sessionIdSchema = z
   .guid()

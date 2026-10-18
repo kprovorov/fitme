@@ -1,15 +1,11 @@
+import { MAX_REPS, MAX_WEIGHT } from "@fitme/core/limits";
 import { asUser } from "@fitme/db";
 import { addSetToExercise } from "@fitme/services/workout-edits";
 import { defineTool } from "eve/tools";
 import { z } from "zod";
 import { requireConversationOwner } from "../lib/owner";
 import { requestKey } from "../lib/request-key";
-import {
-  MAX_REPS,
-  MAX_REST_SECONDS,
-  MAX_WEIGHT,
-  reportingEditErrors,
-} from "../lib/workout-edits";
+import { MAX_REST_SECONDS, reportingEditErrors } from "../lib/workout-edits";
 
 export default defineTool({
   description:

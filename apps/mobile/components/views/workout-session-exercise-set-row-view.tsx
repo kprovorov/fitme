@@ -10,6 +10,7 @@ import { IS_E2E } from "~/lib/constants";
 import { Check } from "~/lib/icons/Check";
 import { ClockFading } from "~/lib/icons/ClockFading";
 import { segmentClient } from "~/lib/segment";
+import { formatSetWeight } from "~/lib/set-inputs";
 import { cn } from "~/lib/utils";
 import WorkoutSessionExerciseSetForm, {
   type WorkoutSessionExerciseSetFormValues,
@@ -133,10 +134,8 @@ export default function WorkoutSessionExerciseSetRowView({
   const handleEdit = () => setIsEditable(true);
 
   const handleSubmit = (values: WorkoutSessionExerciseSetFormValues) => {
-    const weight_completed = values.weight
-      ? Number(values.weight.replace(",", "."))
-      : weightRecommended;
-    const reps_completed = values.reps ? Number(values.reps) : repsRecommended;
+    const weight_completed = values.weight ?? weightRecommended;
+    const reps_completed = values.reps ?? repsRecommended;
 
     pendingSetData.current = {
       reps: reps_completed,
@@ -186,10 +185,7 @@ export default function WorkoutSessionExerciseSetRowView({
         onSubmit={handleSubmit}
         recommendedValues={{
           reps: (repsCompleted ?? repsRecommended).toString(),
-          weight: (weightCompleted ?? weightRecommended)
-            .toFixed(2)
-            .replace(".00", "")
-            .replace(".", ","),
+          weight: formatSetWeight(weightCompleted ?? weightRecommended),
         }}
         setIndex={setOrder}
       />
