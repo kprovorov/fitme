@@ -85,6 +85,19 @@ const MockAction = ({
   );
 };
 
+// Like a native button.
+const MockButton = ({
+  label,
+  onPress,
+}: {
+  label: string;
+  onPress: () => void;
+}) => (
+  <Pressable accessibilityRole="button" onPress={onPress}>
+    <Text>{label}</Text>
+  </Pressable>
+);
+
 // The real primitives render native SwiftUI views that can't mount under
 // Jest, so they're swapped for plain React Native stand-ins. The picker
 // stand-in exposes the `value` it's given, which is what the native picker
@@ -121,6 +134,12 @@ jest.mock("~/components/ui/radio-group", () => {
     ),
   };
 });
+
+jest.mock("~/components/ui/button", () => ({
+  Button: (props: { label: string; onPress: () => void }) => (
+    <MockButton {...props} />
+  ),
+}));
 
 jest.mock("~/components/ui/alert-dialog", () => {
   const { Text: MockText, View: MockView } =
@@ -253,7 +272,9 @@ describe("MeasurementSystemScreen", () => {
     expect((Alert.alert as jest.Mock).mock.calls[0]?.[0]).toBe(
       "Couldn't Check Your Units"
     );
-    expect(screen.getByTestId("picker")).not.toBeDisabled();
+    // The cached Profile may be in the old units, so it's dropped.
+    expect(await screen.findByText("Try Again")).toBeTruthy();
+    expect(screen.queryByTestId("picker")).toBeNull();
   });
 
   it("shows no error when the call fails but the switch went through", async () => {
@@ -271,7 +292,7 @@ describe("MeasurementSystemScreen", () => {
     expect(Alert.alert).not.toHaveBeenCalled();
   });
 
-  it("can't be picked from until the saved system has loaded", async () => {
+  it("shows a loading state until the saved system has loaded", async () => {
     const fetch = deferred();
     mockFetchProfile.mockReturnValue(fetch.promise.then(() => profile("us")));
     const queryClient = new QueryClient({
@@ -283,19 +304,62 @@ describe("MeasurementSystemScreen", () => {
       </QueryClientProvider>
     );
 
-    expect(screen.getByTestId("picker")).toBeDisabled();
-    await fireEvent.press(screen.getByTestId("option-metric"));
-    expect(screen.queryByTestId("confirm-dialog")).toBeNull();
+    expect(screen.getByTestId("measurement-system-loading")).toBeTruthy();
+    expect(screen.queryByTestId("picker")).toBeNull();
 
     await act(async () => {
       fetch.resolve();
       await fetch.promise;
     });
     await waitFor(() => expect(shown()).toHaveTextContent("us"));
-    expect(screen.getByTestId("picker")).not.toBeDisabled();
 
     await fireEvent.press(screen.getByTestId("option-metric"));
     expect(screen.getByTestId("confirm-dialog")).toBeTruthy();
+  });
+
+  it("offers a retry when the saved system can't be loaded", async () => {
+    mockFetchProfile.mockRejectedValueOnce(new Error("offline"));
+    const queryClient = new QueryClient({
+      defaultOptions: { queries: { retry: false } },
+    });
+    await render(
+      <QueryClientProvider client={queryClient}>
+        <MeasurementSystemScreen />
+      </QueryClientProvider>
+    );
+
+    await fireEvent.press(await screen.findByText("Try Again"));
+
+    await waitFor(() => expect(shown()).toHaveTextContent("metric"));
+  });
+
+  it("shows no alert when the switch finishes after the Screen is gone", async () => {
+    const convert = deferred();
+    mockConvert.mockReturnValue(convert.promise);
+    const queryClient = new QueryClient({
+      defaultOptions: {
+        mutations: { retry: false },
+        queries: { retry: false },
+      },
+    });
+    const { unmount } = await render(
+      <QueryClientProvider client={queryClient}>
+        <MeasurementSystemScreen />
+      </QueryClientProvider>
+    );
+    await waitFor(() => expect(shown()).toHaveTextContent("metric"));
+
+    await fireEvent.press(screen.getByTestId("option-us"));
+    await fireEvent.press(screen.getByText("Confirm"));
+    await unmount();
+    await act(async () => {
+      convert.reject(new Error("numeric field overflow"));
+      await convert.promise.catch(() => undefined);
+    });
+
+    await waitFor(() => expect(mockFetchProfile).toHaveBeenCalledTimes(2));
+    await act(() => new Promise((resolve) => setTimeout(resolve, 0)));
+    expect(Alert.alert).not.toHaveBeenCalled();
   });
 
   it("ignores picks while a switch is in flight", async () => {

@@ -7,10 +7,13 @@ import {
 import * as Sentry from "@sentry/react-native";
 import { useQueryClient } from "@tanstack/react-query";
 import { Stack } from "expo-router";
-import { useCallback, useState } from "react";
-import { Alert, View } from "react-native";
+import { useCallback, useEffect, useRef, useState } from "react";
+import { ActivityIndicator, Alert, View } from "react-native";
 import { AlertDialog } from "~/components/ui/alert-dialog";
+import { Button } from "~/components/ui/button";
+import { ErrorMessage } from "~/components/ui/error-message";
 import { RadioGroup } from "~/components/ui/radio-group";
+import { VStack } from "~/components/ui/vstack";
 import { useProfileQuery } from "~/hooks/queries/profiles";
 import { useUpdateMeasurementSystemMutation } from "~/hooks/queries/settings";
 
@@ -22,7 +25,17 @@ const MEASUREMENT_SYSTEM_OPTIONS = measurementSystems.map((system) => ({
 export default function MeasurementSystemScreen() {
   const queryClient = useQueryClient();
 
-  const { data: profile } = useProfileQuery();
+  const { data: profile, isError: isProfileError, refetch } = useProfileQuery();
+
+  // A switch can finish after the User has gone back; its alerts would then
+  // show over another Screen.
+  const isMounted = useRef<boolean>(true);
+  useEffect(() => {
+    isMounted.current = true;
+    return () => {
+      isMounted.current = false;
+    };
+  }, []);
 
   /** The saved system, or `undefined` until the Profile has loaded. */
   const savedSystem: MeasurementSystem | undefined =
@@ -64,15 +77,19 @@ export default function MeasurementSystemScreen() {
           saved = fresh?.measurement_system ?? "metric";
         } catch (fetchError) {
           Sentry.captureException(fetchError);
-          // So no screen keeps using a Profile that may be in the old units.
-          queryClient.invalidateQueries({ queryKey: useProfileQuery.getKey() });
+          // Dropped, not just marked stale, so no Screen keeps showing or
+          // submitting a height and weight that may be in the old units.
+          queryClient.resetQueries({ queryKey: useProfileQuery.getKey() });
         }
         setSwitchingTo(null);
 
+        if (!isMounted.current) {
+          return;
+        }
         if (saved === undefined) {
           Alert.alert(
             "Couldn't Check Your Units",
-            "Check your connection, then open this screen again to see which system is saved."
+            "Check your connection, then try again to see which system is saved."
           );
         } else if (error && saved !== system) {
           Alert.alert(
@@ -101,6 +118,10 @@ export default function MeasurementSystemScreen() {
     [isLoaded, isSwitching, savedSystem]
   );
 
+  const handleRetry = useCallback(() => {
+    refetch();
+  }, [refetch]);
+
   const handleIsPresentedChange = useCallback((isPresented: boolean) => {
     if (!isPresented) {
       setPendingSystem(null);
@@ -121,35 +142,54 @@ export default function MeasurementSystemScreen() {
           title: "Measurement System",
         }}
       />
-      <View className="flex-1">
-        <RadioGroup
-          disabled={!isLoaded || isSwitching}
-          footer={shownSystem && getMeasurementSystemDisclaimer(shownSystem)}
-          onValueChange={handleValueChange}
-          options={MEASUREMENT_SYSTEM_OPTIONS}
-          value={shownSystem}
-        />
+      {!(isLoaded || isProfileError) && (
+        <View className="flex-1 items-center justify-center">
+          <ActivityIndicator
+            colorClassName="accent-foreground"
+            testID="measurement-system-loading"
+          />
+        </View>
+      )}
+      {!isLoaded && isProfileError && (
+        <VStack className="flex-1 items-stretch justify-center gap-4 p-6">
+          <ErrorMessage className="text-center">
+            Couldn't load your measurement system. Please check your connection
+            and try again.
+          </ErrorMessage>
+          <Button label="Try Again" onPress={handleRetry} variant="secondary" />
+        </VStack>
+      )}
+      {savedSystem !== undefined && (
+        <View className="flex-1">
+          <RadioGroup
+            disabled={isSwitching}
+            footer={getMeasurementSystemDisclaimer(shownSystem ?? savedSystem)}
+            onValueChange={handleValueChange}
+            options={MEASUREMENT_SYSTEM_OPTIONS}
+            value={shownSystem ?? savedSystem}
+          />
 
-        <AlertDialog
-          actions={[
-            { label: "Cancel", role: "cancel" },
-            {
-              label: "Confirm",
-              onPress: () => {
-                if (pendingSystem) {
-                  setSwitchingTo(pendingSystem);
-                  updateMeasurementSystem(pendingSystem);
-                }
-                setPendingSystem(null);
+          <AlertDialog
+            actions={[
+              { label: "Cancel", role: "cancel" },
+              {
+                label: "Confirm",
+                onPress: () => {
+                  if (pendingSystem) {
+                    setSwitchingTo(pendingSystem);
+                    updateMeasurementSystem(pendingSystem);
+                  }
+                  setPendingSystem(null);
+                },
               },
-            },
-          ]}
-          isPresented={pendingSystem !== null}
-          message="Updating your measurement system will affect all of your measurements. Your profile data and workout history will be converted to the new system."
-          onIsPresentedChange={handleIsPresentedChange}
-          title="Are you sure?"
-        />
-      </View>
+            ]}
+            isPresented={pendingSystem !== null}
+            message="Updating your measurement system will affect all of your measurements. Your profile data and workout history will be converted to the new system."
+            onIsPresentedChange={handleIsPresentedChange}
+            title="Are you sure?"
+          />
+        </View>
+      )}
     </>
   );
 }
