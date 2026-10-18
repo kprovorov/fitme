@@ -109,7 +109,7 @@ export async function confirmFinishWorkout(
 
 /**
  * Finishes a workout session and opens its Summary. Shared by every way of
- * finishing a session from its screens (the Finish Workout button and the
+ * finishing a session from its screens (the header's Finish button and the
  * finish suggestion), so they behave the same. `isFinishing` covers finishes
  * started from any screen, and `finish` does nothing while one is pending,
  * so the session is never finished twice. A failed finish shows an alert and
@@ -121,7 +121,7 @@ export async function confirmFinishWorkout(
  * replaces it, so finishing from anywhere leaves the same stack as finishing
  * from the session screen.
  *
- * `confirmFinish` is for the Finish Workout button: it asks first when some
+ * `confirmFinish` is for the header's Finish button: it asks first when some
  * planned sets aren't logged (see `confirmFinishWorkout`). `finish` never
  * asks, for the finish suggestion, which only opens once every set is logged.
  */

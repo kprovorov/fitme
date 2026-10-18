@@ -1,21 +1,24 @@
-import type { WorkoutSessionExerciseSet } from "@fitme/core";
+import {
+  formatSetResult,
+  type SetResult,
+  type WorkoutSessionExerciseSet,
+} from "@fitme/core";
 import { useQueryClient } from "@tanstack/react-query";
+import * as Haptics from "expo-haptics";
 import { useRef, useState } from "react";
+import { View } from "react-native";
 import { reportWorkoutSetTracked } from "~/hooks/finish-workout-suggestion";
 import {
   useCreateWorkoutSessionExerciseSetMutation,
   useUpdateWorkoutSessionExerciseSetMutation,
 } from "~/hooks/queries/workout-session-exercise-sets";
 import { IS_E2E } from "~/lib/constants";
-import { Check } from "~/lib/icons/Check";
-import { ClockFading } from "~/lib/icons/ClockFading";
 import { segmentClient } from "~/lib/segment";
 import { cn } from "~/lib/utils";
 import WorkoutSessionExerciseSetForm, {
+  SET_TABLE_MAX_FONT_SCALE,
   type WorkoutSessionExerciseSetFormValues,
 } from "../forms/workout-exercise-set-form";
-import { HStack } from "../ui/hstack";
-import { Separator } from "../ui/separator";
 import { Text } from "../ui/text";
 
 interface WorkoutSessionExerciseSetRowViewProps {
@@ -23,12 +26,19 @@ interface WorkoutSessionExerciseSetRowViewProps {
   hasWeight?: boolean;
   localSetId?: string;
   locked?: boolean;
+  /** Called once a set is logged for the first time (not on edits). */
+  onSetLogged?: (set: WorkoutSessionExerciseSet) => void;
   onSetCreated?: (localSetId?: string) => void;
   order?: number;
+  /** The same set in the exercise's previous session, if any. */
+  previous?: SetResult;
   sessionId: string;
-  timer?: boolean;
   workoutSessionExerciseSet: WorkoutSessionExerciseSet | null;
 }
+
+/** `17.5`, `62`: weights without trailing zeros. */
+const formatWeightValue = (weight: number) =>
+  Number(weight.toFixed(2)).toString();
 
 export default function WorkoutSessionExerciseSetRowView({
   exerciseId,
@@ -36,9 +46,10 @@ export default function WorkoutSessionExerciseSetRowView({
   localSetId,
   order = 0,
   hasWeight = true,
-  timer = true,
   locked = false,
   onSetCreated,
+  onSetLogged,
+  previous,
   sessionId,
 }: WorkoutSessionExerciseSetRowViewProps) {
   const queryClient = useQueryClient();
@@ -48,12 +59,19 @@ export default function WorkoutSessionExerciseSetRowView({
   // have refetched by the time the save succeeds.
   const previousRepsCompleted = useRef<number | null>(null);
 
-  const [isEditable, setIsEditable] = useState(
-    isNewSet || workoutSessionExerciseSet.reps_completed === null
-  );
-  const [isDone, setIsDone] = useState(
-    !isNewSet && workoutSessionExerciseSet.reps_completed !== null
-  );
+  // Whether the set is logged comes from the data, so a change made elsewhere
+  // (a refetch, the Coach) shows up here. `justLogged` bridges the moment
+  // between a successful save and the refetch that carries it.
+  const loggedReps = isNewSet ? null : workoutSessionExerciseSet.reps_completed;
+  const [justLogged, setJustLogged] = useState(false);
+  const [seenReps, setSeenReps] = useState(loggedReps);
+  if (loggedReps !== seenReps) {
+    setSeenReps(loggedReps);
+    setJustLogged(false);
+  }
+  const [isEditing, setIsEditing] = useState(false);
+  const isDone = loggedReps !== null || justLogged;
+  const isEditable = !isDone || isEditing;
 
   const trackSetCompleted = () => {
     if (!IS_E2E && pendingSetData.current) {
@@ -66,6 +84,28 @@ export default function WorkoutSessionExerciseSetRowView({
     }
   };
 
+  const handleLogged = (
+    set: WorkoutSessionExerciseSet,
+    repsBefore: number | null
+  ) => {
+    Haptics.notificationAsync(Haptics.NotificationFeedbackType.Success);
+    setIsEditing(false);
+    setJustLogged(true);
+    trackSetCompleted();
+    queryClient.invalidateQueries({
+      queryKey: ["workout-session-exercise"],
+    });
+    queryClient.invalidateQueries({
+      queryKey: ["workout-session"],
+    });
+    queryClient.invalidateQueries({
+      queryKey: ["exercise-history"],
+    });
+    if (repsBefore === null) {
+      onSetLogged?.(set);
+    }
+  };
+
   const { mutate: updateWorkoutSessionExerciseSet } =
     useUpdateWorkoutSessionExerciseSetMutation({
       onSuccess: (set) => {
@@ -74,18 +114,7 @@ export default function WorkoutSessionExerciseSetRowView({
           sessionId,
           set,
         });
-        setIsEditable(false);
-        setIsDone(true);
-        trackSetCompleted();
-        queryClient.invalidateQueries({
-          queryKey: ["workout-session-exercise"],
-        });
-        queryClient.invalidateQueries({
-          queryKey: ["workout-session"],
-        });
-        queryClient.invalidateQueries({
-          queryKey: ["exercise-history"],
-        });
+        handleLogged(set, previousRepsCompleted.current);
       },
     });
 
@@ -97,18 +126,7 @@ export default function WorkoutSessionExerciseSetRowView({
           sessionId,
           set,
         });
-        setIsEditable(false);
-        setIsDone(true);
-        trackSetCompleted();
-        queryClient.invalidateQueries({
-          queryKey: ["workout-session-exercise"],
-        });
-        queryClient.invalidateQueries({
-          queryKey: ["workout-session"],
-        });
-        queryClient.invalidateQueries({
-          queryKey: ["exercise-history"],
-        });
+        handleLogged(set, null);
         onSetCreated?.(localSetId);
       },
     });
@@ -126,17 +144,18 @@ export default function WorkoutSessionExerciseSetRowView({
   const repsCompleted = isNewSet
     ? null
     : workoutSessionExerciseSet.reps_completed;
-  const restRecommended = isNewSet
-    ? null
-    : workoutSessionExerciseSet.rest_recommended;
 
-  const handleEdit = () => setIsEditable(true);
+  const handleEdit = () => setIsEditing(true);
 
   const handleSubmit = (values: WorkoutSessionExerciseSetFormValues) => {
+    // An empty field keeps what's shown as its placeholder: the logged value
+    // when editing a logged set, otherwise the recommended one.
     const weight_completed = values.weight
       ? Number(values.weight.replace(",", "."))
-      : weightRecommended;
-    const reps_completed = values.reps ? Number(values.reps) : repsRecommended;
+      : (weightCompleted ?? weightRecommended);
+    const reps_completed = values.reps
+      ? Number(values.reps)
+      : (repsCompleted ?? repsRecommended);
 
     pendingSetData.current = {
       reps: reps_completed,
@@ -167,15 +186,31 @@ export default function WorkoutSessionExerciseSetRowView({
     }
   };
 
+  const showsLogged = isDone && !isEditable;
+
   return (
-    <HStack className="justify-start py-sm">
-      {isDone ? (
-        <HStack className="w-12">
-          <Check className="text-primary" size={16} strokeWidth={3} />
-        </HStack>
-      ) : (
-        <Text className="w-12 text-center font-bold">#{setOrder}</Text>
+    <View
+      className={cn(
+        "flex-row items-center gap-2 rounded-xl border-continuous py-1 pr-1 pl-2",
+        showsLogged && "bg-primary/10"
       )}
+    >
+      <Text
+        className={cn(
+          "w-7 font-ibm-plex-mono-semibold text-body",
+          showsLogged && "text-primary"
+        )}
+        maxFontSizeMultiplier={SET_TABLE_MAX_FONT_SCALE}
+      >
+        {setOrder}
+      </Text>
+      <Text
+        className="flex-1 font-ibm-plex-mono text-footnote text-muted-foreground"
+        maxFontSizeMultiplier={SET_TABLE_MAX_FONT_SCALE}
+        numberOfLines={1}
+      >
+        {previous ? formatSetResult(previous) : "–"}
+      </Text>
 
       <WorkoutSessionExerciseSetForm
         disabled={!isEditable || locked}
@@ -186,43 +221,10 @@ export default function WorkoutSessionExerciseSetRowView({
         onSubmit={handleSubmit}
         recommendedValues={{
           reps: (repsCompleted ?? repsRecommended).toString(),
-          weight: (weightCompleted ?? weightRecommended)
-            .toFixed(2)
-            .replace(".00", "")
-            .replace(".", ","),
+          weight: formatWeightValue(weightCompleted ?? weightRecommended),
         }}
         setIndex={setOrder}
       />
-
-      <HStack className={cn("absolute inset-x-0 -bottom-3 h-6 gap-1")}>
-        <Separator className={cn("flex-1", timer && "bg-primary")} />
-        {!!restRecommended && (
-          <>
-            <HStack
-              className={cn(
-                "h-6 gap-1 rounded-full px-1.5",
-                timer && "bg-primary"
-              )}
-            >
-              <ClockFading
-                className={cn(
-                  timer ? "text-primary-foreground" : "text-muted-foreground"
-                )}
-                size={12}
-              />
-              <Text
-                className={cn(
-                  "text-footnote",
-                  timer ? "text-primary-foreground" : "text-muted-foreground"
-                )}
-              >
-                {restRecommended}s
-              </Text>
-            </HStack>
-            <Separator className={cn("flex-1", timer && "bg-primary")} />
-          </>
-        )}
-      </HStack>
-    </HStack>
+    </View>
   );
 }

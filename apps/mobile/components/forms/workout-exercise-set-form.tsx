@@ -5,12 +5,12 @@ import {
   type ControllerRenderProps,
   useForm,
 } from "react-hook-form";
+import { View } from "react-native";
 import { z } from "zod";
+import { cn } from "~/lib/utils";
 import { Button } from "../ui/button";
-import { ErrorMessage } from "../ui/error-message";
-import { HStack } from "../ui/hstack";
 import { Input } from "../ui/input";
-import { VStack } from "../ui/vstack";
+import { Text } from "../ui/text";
 
 interface WorkoutSessionExerciseSetFormProps {
   disabled?: boolean;
@@ -27,11 +27,42 @@ interface WorkoutSessionExerciseSetFormProps {
 
 export type WorkoutSessionExerciseSetFormValues = z.infer<typeof formSchema>;
 
+// Optional: react-hook-form reports a field as `undefined` while the form is
+// disabled, and a set row is re-enabled once the sets before it are logged.
+// An empty field falls back to the shown placeholder.
 const formSchema = z.object({
-  reps: z.string(),
-  weight: z.string(),
+  reps: z.string().optional(),
+  weight: z.string().optional(),
 });
 
+/**
+ * The table's numbers stop growing past this text scale, so the five columns
+ * still fit a phone's width at the largest accessibility sizes.
+ */
+export const SET_TABLE_MAX_FONT_SCALE = 1.4;
+
+const CELL_CLASS =
+  "min-h-10 native:min-h-10 w-18 rounded-lg border-continuous px-1 text-center font-ibm-plex-mono text-body";
+
+/** A logged value, shown in place of its input until the set is edited. */
+function LoggedValue({ value }: { value?: string }) {
+  return (
+    <View className="min-h-10 w-18 items-center justify-center">
+      <Text
+        className="font-ibm-plex-mono-semibold text-body"
+        maxFontSizeMultiplier={SET_TABLE_MAX_FONT_SCALE}
+      >
+        {value}
+      </Text>
+    </View>
+  );
+}
+
+/**
+ * The KG, REPS and check cells of a set row. A set to log shows inputs with
+ * the recommended values as placeholders; a logged set shows its values and a
+ * check that opens it for editing.
+ */
 export default function WorkoutSessionExerciseSetForm({
   onSubmit,
   onEdit,
@@ -52,6 +83,13 @@ export default function WorkoutSessionExerciseSetForm({
   });
 
   const { disabled: isFormDisabled } = form.formState;
+  const showsLoggedValues = isDone && !isEditing;
+  const inputClass = cn(
+    CELL_CLASS,
+    isFormDisabled
+      ? "bg-foreground/5 opacity-60"
+      : "border border-input bg-foreground/5"
+  );
 
   const renderWeightField = useCallback(
     ({
@@ -63,17 +101,20 @@ export default function WorkoutSessionExerciseSetForm({
       >;
     }) => (
       <Input
-        className="h-10 native:h-10 w-full text-center font-bold"
+        accessibilityLabel={`Set ${setIndex} weight`}
+        className={inputClass}
         editable={!isFormDisabled}
         keyboardType="decimal-pad"
+        maxFontSizeMultiplier={SET_TABLE_MAX_FONT_SCALE}
         onBlur={onBlur}
         onChangeText={onChange}
         placeholder={recommendedValues?.weight}
+        selectTextOnFocus
         testID={`set-weight-input-${setIndex}`}
         value={value}
       />
     ),
-    [isFormDisabled, recommendedValues?.weight, setIndex]
+    [inputClass, isFormDisabled, recommendedValues?.weight, setIndex]
   );
 
   const renderRepsField = useCallback(
@@ -83,67 +124,76 @@ export default function WorkoutSessionExerciseSetForm({
       field: ControllerRenderProps<WorkoutSessionExerciseSetFormValues, "reps">;
     }) => (
       <Input
+        accessibilityLabel={`Set ${setIndex} reps`}
         autoCapitalize="none"
-        className="h-10 native:h-10 w-full text-center font-bold"
+        className={inputClass}
         editable={!isFormDisabled}
         keyboardType="number-pad"
+        maxFontSizeMultiplier={SET_TABLE_MAX_FONT_SCALE}
         onBlur={onBlur}
         onChangeText={onChange}
         placeholder={recommendedValues?.reps}
+        selectTextOnFocus
         testID={`set-reps-input-${setIndex}`}
         value={value}
       />
     ),
-    [isFormDisabled, recommendedValues?.reps, setIndex]
+    [inputClass, isFormDisabled, recommendedValues?.reps, setIndex]
   );
 
   return (
-    <VStack className="flex-1 gap-xs">
-      <HStack className="flex-1 justify-between gap-xs">
-        {hasWeight ? (
-          <HStack className="flex-1">
-            <Controller
-              control={form.control}
-              name="weight"
-              render={renderWeightField}
-            />
-          </HStack>
-        ) : null}
-        <HStack className="flex-1">
+    <View className="flex-row items-center gap-2">
+      {hasWeight &&
+        (showsLoggedValues ? (
+          <LoggedValue value={recommendedValues?.weight} />
+        ) : (
           <Controller
             control={form.control}
-            name="reps"
-            render={renderRepsField}
+            name="weight"
+            render={renderWeightField}
           />
-        </HStack>
+        ))}
+      {showsLoggedValues ? (
+        <LoggedValue value={recommendedValues?.reps} />
+      ) : (
+        <Controller
+          control={form.control}
+          name="reps"
+          render={renderRepsField}
+        />
+      )}
 
-        <HStack className="w-10 flex-none">
-          {isDone && !isEditing ? (
-            <Button
-              onPress={onEdit}
-              shape="pill"
-              size="icon-xs"
-              systemImage="pencil"
-              variant="ghost"
-            />
-          ) : (
-            <Button
-              disabled={disabled}
-              onPress={form.handleSubmit(onSubmit)}
-              shape="pill"
-              size="icon-xs"
-              systemImage="checkmark"
-              testID={`log-set-button-${setIndex}`}
-            />
-          )}
-        </HStack>
-      </HStack>
-      {form.formState.errors.weight ? (
-        <ErrorMessage>{form.formState.errors.weight.message}</ErrorMessage>
-      ) : null}
-      {form.formState.errors.reps ? (
-        <ErrorMessage>{form.formState.errors.reps.message}</ErrorMessage>
-      ) : null}
-    </VStack>
+      <View
+        className={cn(
+          "w-11 items-center",
+          disabled && !showsLoggedValues && "opacity-40"
+        )}
+      >
+        {showsLoggedValues ? (
+          <Button
+            accessibilityHint="Opens the set for editing"
+            accessibilityLabel={`Set ${setIndex} logged`}
+            onPress={onEdit}
+            shape="pill"
+            size="icon"
+            systemImage="checkmark"
+            testID={`edit-set-button-${setIndex}`}
+            variant="ghost"
+          />
+        ) : (
+          // The next set to log carries the screen's one lime action.
+          <Button
+            accessibilityLabel={`Log set ${setIndex}`}
+            disabled={disabled}
+            onPress={form.handleSubmit(onSubmit)}
+            shape="pill"
+            size="icon"
+            systemImage="checkmark"
+            testID={`log-set-button-${setIndex}`}
+            variant={disabled ? "secondary" : "default"}
+          />
+        )}
+      </View>
+    </View>
   );
 }

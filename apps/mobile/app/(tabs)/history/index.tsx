@@ -1,71 +1,180 @@
 import type { WorkoutSession } from "@fitme/core";
-import { Link, Stack } from "expo-router";
-import { useCallback, useState } from "react";
-import { FlatList, Pressable, RefreshControl, View } from "react-native";
+import { LegendList } from "@legendapp/list/react-native";
+import { format } from "date-fns";
+import { Link, Stack, useRouter } from "expo-router";
+import { useCallback, useMemo, useState } from "react";
+import { ActivityIndicator, Pressable, RefreshControl, View } from "react-native";
 import Purchases from "react-native-purchases";
+import { useResolveClassNames } from "uniwind";
+import { Button } from "~/components/ui/button";
+import { Card } from "~/components/ui/card";
+import { Separator } from "~/components/ui/separator";
 import { Text } from "~/components/ui/text";
-import { VStack } from "~/components/ui/vstack";
-import WorkoutSessionCard from "~/components/views/workout-session-card";
+import { H1 } from "~/components/ui/typography";
+import WorkoutSessionHistoryRow from "~/components/views/workout-session-history-row";
 import { useWorkoutSessionHistoryQuery } from "~/hooks/queries/workout-sessions";
 
-const ItemSeparator = () => <View className="h-4" />;
+interface Month {
+  key: string;
+  sessions: WorkoutSession[];
+  title: string;
+}
 
-const keyExtractor = (item: WorkoutSession) => item.id;
+/** Sessions (newest first) grouped by the month they started in. */
+function groupByMonth(sessions: WorkoutSession[]): Month[] {
+  const months: Month[] = [];
+  for (const session of sessions) {
+    const startedAt = new Date(session.started_at);
+    const key = format(startedAt, "yyyy-MM");
+    const last = months.at(-1);
+    if (last?.key === key) {
+      last.sessions.push(session);
+    } else {
+      months.push({
+        key,
+        sessions: [session],
+        title: format(startedAt, "LLLL yyyy"),
+      });
+    }
+  }
+  return months;
+}
 
-// `asChild` keeps the card out of the Text wrapper Link renders by default,
-// which clips the top edge of an inlined View.
-const renderItem = ({ item }: { item: WorkoutSession }) => (
-  <Link asChild href={`/workout-sessions/${item.id}/summary`}>
-    <Pressable className="active:opacity-80">
-      <WorkoutSessionCard className="w-full" workoutSession={item} />
-    </Pressable>
-  </Link>
-);
+const keyExtractor = (month: Month) => month.key;
+
+const renderMonth = ({ item }: { item: Month }) => <MonthSection month={item} />;
+
+function MonthSection({ month }: { month: Month }) {
+  return (
+    <View className="gap-xs pb-md">
+      <View className="flex-row items-baseline gap-2 px-1">
+        <Text
+          accessibilityRole="header"
+          className="flex-1 font-nunito-sans-bold text-subhead"
+        >
+          {month.title}
+        </Text>
+        <Text className="text-footnote text-muted-foreground">
+          {month.sessions.length === 1
+            ? "1 workout"
+            : `${month.sessions.length} workouts`}
+        </Text>
+      </View>
+      <Card>
+        {month.sessions.map((session, index) => (
+          <View key={session.id}>
+            {index > 0 && <Separator className="ml-sm" />}
+            {/* `asChild` keeps the row out of the Text wrapper Link renders by default. */}
+            <Link asChild href={`/workout-sessions/${session.id}/summary`}>
+              <Pressable accessibilityRole="button" className="active:opacity-80">
+                <WorkoutSessionHistoryRow workoutSession={session} />
+              </Pressable>
+            </Link>
+          </View>
+        ))}
+      </Card>
+    </View>
+  );
+}
+
+function EmptyHistory() {
+  const router = useRouter();
+  return (
+    <View className="flex-1 items-center justify-center gap-sm px-md pt-lg">
+      <H1 className="text-center">No workouts yet</H1>
+      <Text className="text-center text-muted-foreground">
+        Finished workouts show up here, with how long they took and what you
+        lifted.
+      </Text>
+      <Button
+        fill={false}
+        label="Start a Workout"
+        onPress={() => router.navigate("/")}
+        shape="pill"
+      />
+    </View>
+  );
+}
 
 export default function HistoryScreen() {
   const [refreshing, setRefreshing] = useState(false);
+  // LegendList takes no class names: resolve the spacing tokens to a style.
+  const contentContainerStyle = useResolveClassNames("px-sm pt-xs pb-lg");
 
-  const { data: workoutSessions, refetch: refetchWorkoutSessions } =
-    useWorkoutSessionHistoryQuery();
+  const {
+    data: workoutSessions,
+    isError,
+    refetch: refetchWorkoutSessions,
+  } = useWorkoutSessionHistoryQuery();
+
+  const months = useMemo(
+    () => groupByMonth(workoutSessions ?? []),
+    [workoutSessions]
+  );
 
   const onRefresh = useCallback(async () => {
     setRefreshing(true);
-    await Purchases.invalidateCustomerInfoCache();
-    await refetchWorkoutSessions();
-    setRefreshing(false);
+    try {
+      await Purchases.invalidateCustomerInfoCache();
+      await refetchWorkoutSessions();
+    } finally {
+      setRefreshing(false);
+    }
   }, [refetchWorkoutSessions]);
+
+  const renderEmpty = () => {
+    if (isError) {
+      return (
+        <View className="items-center gap-sm px-md pt-lg">
+          <Text className="text-center text-muted-foreground">
+            Couldn't load your workouts. Check your connection and try again.
+          </Text>
+          <Button
+            fill={false}
+            label="Try Again"
+            onPress={() => refetchWorkoutSessions()}
+            shape="pill"
+            variant="secondary"
+          />
+        </View>
+      );
+    }
+    if (!workoutSessions) {
+      return (
+        <View className="items-center pt-lg">
+          <ActivityIndicator colorClassName="accent-foreground" />
+        </View>
+      );
+    }
+    return <EmptyHistory />;
+  };
 
   return (
     <>
       <Stack.Screen
         options={{
-          headerBackButtonDisplayMode: "minimal",
+          headerLargeTitle: true,
+          headerLargeTitleStyle: { fontFamily: "NunitoSans12pt-Bold" },
           headerTitleStyle: {
             fontFamily: "NunitoSans12pt-Bold",
             fontWeight: "bold",
           },
           headerTransparent: true,
-          title: "Finished workouts",
+          title: "History",
         }}
       />
 
-      <FlatList
-        className="px-6"
+      <LegendList
+        contentContainerStyle={contentContainerStyle}
         contentInsetAdjustmentBehavior="automatic"
-        data={workoutSessions ?? []}
-        ItemSeparatorComponent={ItemSeparator}
+        data={months}
         keyExtractor={keyExtractor}
-        ListEmptyComponent={
-          <VStack className="flex-1 items-center justify-center p-6">
-            <Text className="text-center">
-              You don't have any finished workouts yet.
-            </Text>
-          </VStack>
-        }
+        ListEmptyComponent={renderEmpty()}
+        recycleItems={false}
         refreshControl={
           <RefreshControl onRefresh={onRefresh} refreshing={refreshing} />
         }
-        renderItem={renderItem}
+        renderItem={renderMonth}
         showsVerticalScrollIndicator={false}
       />
     </>
