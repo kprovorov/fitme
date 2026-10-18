@@ -1,6 +1,7 @@
 import type { WorkoutSessionExerciseSet } from "@fitme/core";
 import { useQueryClient } from "@tanstack/react-query";
 import { useRef, useState } from "react";
+import { AccessibilityInfo } from "react-native";
 import { reportWorkoutSetTracked } from "~/hooks/finish-workout-suggestion";
 import {
   useCreateWorkoutSessionExerciseSetMutation,
@@ -18,6 +19,10 @@ import WorkoutSessionExerciseSetForm, {
 import { HStack } from "../ui/hstack";
 import { Separator } from "../ui/separator";
 import { Text } from "../ui/text";
+
+// Never the backend's message: the User can't act on a Postgres error. Kept
+// neutral, since a lost connection isn't the only way a save fails.
+const SET_SAVE_ERROR = "Couldn't save this set. Try again.";
 
 interface WorkoutSessionExerciseSetRowViewProps {
   exerciseId: string;
@@ -55,6 +60,13 @@ export default function WorkoutSessionExerciseSetRowView({
   const [isDone, setIsDone] = useState(
     !isNewSet && workoutSessionExerciseSet.reps_completed !== null
   );
+  const [saveError, setSaveError] = useState<string | null>(null);
+
+  const handleSaveError = () => {
+    setSaveError(SET_SAVE_ERROR);
+    // Focus stays on ✓, so a screen reader wouldn't read the new message.
+    AccessibilityInfo.announceForAccessibility(SET_SAVE_ERROR);
+  };
 
   const trackSetCompleted = () => {
     if (!IS_E2E && pendingSetData.current) {
@@ -67,49 +79,42 @@ export default function WorkoutSessionExerciseSetRowView({
     }
   };
 
+  // Shared by both saves: the set is logged, so lock the row and refresh.
+  const handleSaved = (
+    set: WorkoutSessionExerciseSet,
+    previousReps: number | null
+  ) => {
+    reportWorkoutSetTracked({
+      previousRepsCompleted: previousReps,
+      sessionId,
+      set,
+    });
+    setSaveError(null);
+    setIsEditable(false);
+    setIsDone(true);
+    trackSetCompleted();
+    queryClient.invalidateQueries({
+      queryKey: ["workout-session-exercise"],
+    });
+    queryClient.invalidateQueries({
+      queryKey: ["workout-session"],
+    });
+    queryClient.invalidateQueries({
+      queryKey: ["exercise-history"],
+    });
+  };
+
   const { mutate: updateWorkoutSessionExerciseSet } =
     useUpdateWorkoutSessionExerciseSetMutation({
-      onSuccess: (set) => {
-        reportWorkoutSetTracked({
-          previousRepsCompleted: previousRepsCompleted.current,
-          sessionId,
-          set,
-        });
-        setIsEditable(false);
-        setIsDone(true);
-        trackSetCompleted();
-        queryClient.invalidateQueries({
-          queryKey: ["workout-session-exercise"],
-        });
-        queryClient.invalidateQueries({
-          queryKey: ["workout-session"],
-        });
-        queryClient.invalidateQueries({
-          queryKey: ["exercise-history"],
-        });
-      },
+      onError: handleSaveError,
+      onSuccess: (set) => handleSaved(set, previousRepsCompleted.current),
     });
 
   const { mutate: createWorkoutSessionExerciseSet } =
     useCreateWorkoutSessionExerciseSetMutation({
+      onError: handleSaveError,
       onSuccess: (set) => {
-        reportWorkoutSetTracked({
-          previousRepsCompleted: null,
-          sessionId,
-          set,
-        });
-        setIsEditable(false);
-        setIsDone(true);
-        trackSetCompleted();
-        queryClient.invalidateQueries({
-          queryKey: ["workout-session-exercise"],
-        });
-        queryClient.invalidateQueries({
-          queryKey: ["workout-session"],
-        });
-        queryClient.invalidateQueries({
-          queryKey: ["exercise-history"],
-        });
+        handleSaved(set, null);
         onSetCreated?.(localSetId);
       },
     });
@@ -178,6 +183,7 @@ export default function WorkoutSessionExerciseSetRowView({
 
       <WorkoutSessionExerciseSetForm
         disabled={!isEditable || locked}
+        error={saveError}
         hasWeight={hasWeight}
         isDone={isDone}
         isEditing={isEditable}
