@@ -51,11 +51,11 @@ export default function SessionExerciseHeader({
   return (
     <View className={stacked ? "gap-3.5" : "flex-row items-center gap-3.5"}>
       <Pressable
-        disabled={!onOpenGuide}
         accessibilityHint="Opens the exercise guide"
         accessibilityLabel={`How to do ${exercise.name}`}
         accessibilityRole="button"
         className="active:opacity-80"
+        disabled={!onOpenGuide}
         hitSlop={8}
         onPress={onOpenGuide}
       >
@@ -89,7 +89,7 @@ export default function SessionExerciseHeader({
           </View>
         )}
         {lines.length > 0 && (
-          <Text className="text-subhead text-muted-foreground">
+          <Text className="text-muted-foreground text-subhead">
             {lines.join("\n")}
           </Text>
         )}

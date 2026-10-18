@@ -92,7 +92,9 @@ export default function RestTimer({
             className="min-w-24 flex-1"
           >
             <Text className="text-footnote text-muted-foreground">
-              {rest.nextSetOrder ? `Rest · then set ${rest.nextSetOrder}` : "Rest"}
+              {rest.nextSetOrder
+                ? `Rest · then set ${rest.nextSetOrder}`
+                : "Rest"}
             </Text>
             <Text className="font-ibm-plex-mono-semibold text-title-2">
               {clock}

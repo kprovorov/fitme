@@ -49,7 +49,7 @@ function Stat({
       >
         {value}
         {unit ? (
-          <Text className="font-nunito-sans-semibold text-subhead text-muted-foreground">
+          <Text className="font-nunito-sans-semibold text-muted-foreground text-subhead">
             {` ${unit}`}
           </Text>
         ) : null}
@@ -122,7 +122,10 @@ export default function WorkoutSessionStats({
             >
               {progress.map(({ id, state }) => (
                 <View
-                  className={cn("h-1 flex-1 rounded-full", SEGMENT_CLASS[state])}
+                  className={cn(
+                    "h-1 flex-1 rounded-full",
+                    SEGMENT_CLASS[state]
+                  )}
                   key={id}
                 />
               ))}

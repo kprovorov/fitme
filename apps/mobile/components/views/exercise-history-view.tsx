@@ -14,16 +14,17 @@ import { Card, CardTitle } from "../ui/card";
 import { Text } from "../ui/text";
 
 interface ExerciseHistoryViewProps {
-  /** The catalog exercise. */
-  exerciseId: string;
   /** The session exercise being logged, left out of its own history. */
   excludeId?: string;
+  /** The catalog exercise. */
+  exerciseId: string;
 }
 
 /** How many past sessions the card lists. */
 const SHOWN_SESSIONS = 3;
 
-const isLogged = (set: WorkoutSessionExerciseSet) => set.reps_completed !== null;
+const isLogged = (set: WorkoutSessionExerciseSet) =>
+  set.reps_completed !== null;
 
 const hasLoggedSet = (entry: WorkoutSessionExercise) =>
   entry.sets.some(isLogged);
@@ -94,7 +95,7 @@ export default function ExerciseHistoryView({
               {format(new Date(entry.created_at ?? ""), "MMM d")}
             </Text>
             <Text
-              className="flex-1 text-subhead text-muted-foreground"
+              className="flex-1 text-muted-foreground text-subhead"
               maxFontSizeMultiplier={SET_TABLE_MAX_FONT_SCALE}
             >
               {setsLine(entry.sets, weightLabel)}

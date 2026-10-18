@@ -3,7 +3,12 @@ import { LegendList } from "@legendapp/list/react-native";
 import { format } from "date-fns";
 import { Link, Stack, useRouter } from "expo-router";
 import { useCallback, useMemo, useState } from "react";
-import { ActivityIndicator, Pressable, RefreshControl, View } from "react-native";
+import {
+  ActivityIndicator,
+  Pressable,
+  RefreshControl,
+  View,
+} from "react-native";
 import Purchases from "react-native-purchases";
 import { useResolveClassNames } from "uniwind";
 import { Button } from "~/components/ui/button";
@@ -42,7 +47,9 @@ function groupByMonth(sessions: WorkoutSession[]): Month[] {
 
 const keyExtractor = (month: Month) => month.key;
 
-const renderMonth = ({ item }: { item: Month }) => <MonthSection month={item} />;
+const renderMonth = ({ item }: { item: Month }) => (
+  <MonthSection month={item} />
+);
 
 function MonthSection({ month }: { month: Month }) {
   return (
@@ -66,7 +73,10 @@ function MonthSection({ month }: { month: Month }) {
             {index > 0 && <Separator className="ml-sm" />}
             {/* `asChild` keeps the row out of the Text wrapper Link renders by default. */}
             <Link asChild href={`/workout-sessions/${session.id}/summary`}>
-              <Pressable accessibilityRole="button" className="active:opacity-80">
+              <Pressable
+                accessibilityRole="button"
+                className="active:opacity-80"
+              >
                 <WorkoutSessionHistoryRow workoutSession={session} />
               </Pressable>
             </Link>

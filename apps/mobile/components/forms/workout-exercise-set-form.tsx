@@ -1,4 +1,5 @@
 import { zodResolver } from "@hookform/resolvers/zod";
+import type { ReactNode } from "react";
 import { useCallback } from "react";
 import {
   Controller,
@@ -7,33 +8,57 @@ import {
 } from "react-hook-form";
 import { View } from "react-native";
 import { z } from "zod";
+import {
+  formatSetWeight,
+  setRepsField,
+  setWeightField,
+} from "~/lib/set-inputs";
 import { cn } from "~/lib/utils";
 import { Button } from "../ui/button";
+import { ErrorMessage } from "../ui/error-message";
 import { Input } from "../ui/input";
 import { Text } from "../ui/text";
 
 interface WorkoutSessionExerciseSetFormProps {
+  /** Classes of the row (padding, the logged tint). */
+  className?: string;
   disabled?: boolean;
+  /** Shown under the row, e.g. when saving the set failed. */
+  error?: string | null;
   hasWeight: boolean;
   isDone?: boolean;
   isEditing?: boolean;
+  /** The row's cells before the inputs: the set number and PREVIOUS. */
+  leading?: ReactNode;
   onEdit: () => void;
   onSubmit: (
     values: WorkoutSessionExerciseSetFormValues
   ) => void | Promise<void>;
-  recommendedValues?: z.infer<typeof formSchema>;
+  recommendedValues?: { reps: string; weight: string };
   setIndex?: number;
 }
 
-export type WorkoutSessionExerciseSetFormValues = z.infer<typeof formSchema>;
+/**
+ * react-hook-form reports a field as `undefined` while the form is disabled,
+ * and a set row is enabled once the sets before it are logged: read that as
+ * an empty field (the shown placeholder).
+ */
+const optionalField = <T extends z.ZodType<unknown, string>>(field: T) =>
+  z
+    .string()
+    .optional()
+    .transform((value) => value ?? "")
+    .pipe(field);
 
-// Optional: react-hook-form reports a field as `undefined` while the form is
-// disabled, and a set row is re-enabled once the sets before it are logged.
-// An empty field falls back to the shown placeholder.
 const formSchema = z.object({
-  reps: z.string().optional(),
-  weight: z.string().optional(),
+  reps: optionalField(setRepsField),
+  weight: optionalField(setWeightField),
 });
+
+/** What the fields hold. */
+type WorkoutSessionExerciseSetFormInput = z.input<typeof formSchema>;
+/** The parsed set: `null` for an empty field (the placeholder's value). */
+export type WorkoutSessionExerciseSetFormValues = z.output<typeof formSchema>;
 
 /**
  * The table's numbers stop growing past this text scale, so the five columns
@@ -59,21 +84,29 @@ function LoggedValue({ value }: { value?: string }) {
 }
 
 /**
- * The KG, REPS and check cells of a set row. A set to log shows inputs with
- * the recommended values as placeholders; a logged set shows its values and a
- * check that opens it for editing.
+ * A set row: `leading` cells, then KG, REPS and the check, with any error
+ * under the row. A set to log shows inputs with the recommended values as
+ * placeholders; a logged set shows its values and a check that opens it for
+ * editing.
  */
 export default function WorkoutSessionExerciseSetForm({
+  className,
   onSubmit,
   onEdit,
   hasWeight = true,
+  leading,
   recommendedValues,
   disabled,
+  error,
   isDone,
   isEditing,
   setIndex = 0,
 }: WorkoutSessionExerciseSetFormProps) {
-  const form = useForm<WorkoutSessionExerciseSetFormValues>({
+  const form = useForm<
+    WorkoutSessionExerciseSetFormInput,
+    unknown,
+    WorkoutSessionExerciseSetFormValues
+  >({
     defaultValues: {
       reps: "",
       weight: "",
@@ -91,12 +124,24 @@ export default function WorkoutSessionExerciseSetForm({
       : "border border-input bg-foreground/5"
   );
 
+  // The fields then show what is sent, so what was stored: `05` as `5`,
+  // `1.50` as `1,5`.
+  const submit = form.handleSubmit((values) => {
+    if (values.weight !== null) {
+      form.setValue("weight", formatSetWeight(values.weight));
+    }
+    if (values.reps !== null) {
+      form.setValue("reps", values.reps.toString());
+    }
+    return onSubmit(values);
+  });
+
   const renderWeightField = useCallback(
     ({
       field: { onChange, onBlur, value },
     }: {
       field: ControllerRenderProps<
-        WorkoutSessionExerciseSetFormValues,
+        WorkoutSessionExerciseSetFormInput,
         "weight"
       >;
     }) => (
@@ -121,7 +166,7 @@ export default function WorkoutSessionExerciseSetForm({
     ({
       field: { onChange, onBlur, value },
     }: {
-      field: ControllerRenderProps<WorkoutSessionExerciseSetFormValues, "reps">;
+      field: ControllerRenderProps<WorkoutSessionExerciseSetFormInput, "reps">;
     }) => (
       <Input
         accessibilityLabel={`Set ${setIndex} reps`}
@@ -141,59 +186,69 @@ export default function WorkoutSessionExerciseSetForm({
     [inputClass, isFormDisabled, recommendedValues?.reps, setIndex]
   );
 
+  const { errors } = form.formState;
+
   return (
-    <View className="flex-row items-center gap-2">
-      {hasWeight &&
-        (showsLoggedValues ? (
-          <LoggedValue value={recommendedValues?.weight} />
+    <View className={cn("gap-1", className)}>
+      <View className="flex-row items-center gap-2">
+        {leading}
+        {hasWeight &&
+          (showsLoggedValues ? (
+            <LoggedValue value={recommendedValues?.weight} />
+          ) : (
+            <Controller
+              control={form.control}
+              name="weight"
+              render={renderWeightField}
+            />
+          ))}
+        {showsLoggedValues ? (
+          <LoggedValue value={recommendedValues?.reps} />
         ) : (
           <Controller
             control={form.control}
-            name="weight"
-            render={renderWeightField}
+            name="reps"
+            render={renderRepsField}
           />
-        ))}
-      {showsLoggedValues ? (
-        <LoggedValue value={recommendedValues?.reps} />
-      ) : (
-        <Controller
-          control={form.control}
-          name="reps"
-          render={renderRepsField}
-        />
-      )}
+        )}
 
-      <View
-        className={cn(
-          "w-11 items-center",
-          disabled && !showsLoggedValues && "opacity-40"
-        )}
-      >
-        {showsLoggedValues ? (
-          <Button
-            accessibilityHint="Opens the set for editing"
-            accessibilityLabel={`Set ${setIndex} logged`}
-            onPress={onEdit}
-            shape="pill"
-            size="icon"
-            systemImage="checkmark"
-            testID={`edit-set-button-${setIndex}`}
-            variant="ghost"
-          />
-        ) : (
-          // The next set to log carries the screen's one lime action.
-          <Button
-            accessibilityLabel={`Log set ${setIndex}`}
-            disabled={disabled}
-            onPress={form.handleSubmit(onSubmit)}
-            shape="pill"
-            size="icon"
-            systemImage="checkmark"
-            testID={`log-set-button-${setIndex}`}
-            variant={disabled ? "secondary" : "default"}
-          />
-        )}
+        <View
+          className={cn(
+            "w-11 items-center",
+            disabled && !showsLoggedValues && "opacity-40"
+          )}
+        >
+          {showsLoggedValues ? (
+            <Button
+              accessibilityHint="Opens the set for editing"
+              accessibilityLabel={`Set ${setIndex} logged`}
+              onPress={onEdit}
+              shape="pill"
+              size="icon"
+              systemImage="checkmark"
+              testID={`edit-set-button-${setIndex}`}
+              variant="ghost"
+            />
+          ) : (
+            // The next set to log carries the screen's one lime action.
+            <Button
+              accessibilityLabel={`Log set ${setIndex}`}
+              disabled={disabled}
+              onPress={submit}
+              shape="pill"
+              size="icon"
+              systemImage="checkmark"
+              testID={`log-set-button-${setIndex}`}
+              variant={disabled ? "secondary" : "default"}
+            />
+          )}
+        </View>
       </View>
+      {errors.weight ? (
+        <ErrorMessage>{errors.weight.message}</ErrorMessage>
+      ) : null}
+      {errors.reps ? <ErrorMessage>{errors.reps.message}</ErrorMessage> : null}
+      {error ? <ErrorMessage>{error}</ErrorMessage> : null}
     </View>
   );
 }

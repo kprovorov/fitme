@@ -20,7 +20,7 @@ export interface TestUser {
   userId: string;
 }
 
-/** A fresh User. No Clerk or Supabase Auth account is created. */
+/** A fresh User. No Clerk account is created. */
 export const createTestUser = (label: string): TestUser => ({
   userId: clerkStyleUserId(label),
 });

@@ -6,7 +6,7 @@ import {
 import { useQueryClient } from "@tanstack/react-query";
 import * as Haptics from "expo-haptics";
 import { useRef, useState } from "react";
-import { View } from "react-native";
+import { AccessibilityInfo } from "react-native";
 import { reportWorkoutSetTracked } from "~/hooks/finish-workout-suggestion";
 import {
   useCreateWorkoutSessionExerciseSetMutation,
@@ -14,6 +14,7 @@ import {
 } from "~/hooks/queries/workout-session-exercise-sets";
 import { IS_E2E } from "~/lib/constants";
 import { segmentClient } from "~/lib/segment";
+import { formatSetWeight } from "~/lib/set-inputs";
 import { cn } from "~/lib/utils";
 import WorkoutSessionExerciseSetForm, {
   SET_TABLE_MAX_FONT_SCALE,
@@ -21,24 +22,24 @@ import WorkoutSessionExerciseSetForm, {
 } from "../forms/workout-exercise-set-form";
 import { Text } from "../ui/text";
 
+// Never the backend's message: the User can't act on a Postgres error. Kept
+// neutral, since a lost connection isn't the only way a save fails.
+const SET_SAVE_ERROR = "Couldn't save this set. Try again.";
+
 interface WorkoutSessionExerciseSetRowViewProps {
   exerciseId: string;
   hasWeight?: boolean;
   localSetId?: string;
   locked?: boolean;
+  onSetCreated?: (localSetId?: string) => void;
   /** Called once a set is logged for the first time (not on edits). */
   onSetLogged?: (set: WorkoutSessionExerciseSet) => void;
-  onSetCreated?: (localSetId?: string) => void;
   order?: number;
   /** The same set in the exercise's previous session, if any. */
   previous?: SetResult;
   sessionId: string;
   workoutSessionExerciseSet: WorkoutSessionExerciseSet | null;
 }
-
-/** `17.5`, `62`: weights without trailing zeros. */
-const formatWeightValue = (weight: number) =>
-  Number(weight.toFixed(2)).toString();
 
 export default function WorkoutSessionExerciseSetRowView({
   exerciseId,
@@ -72,6 +73,13 @@ export default function WorkoutSessionExerciseSetRowView({
   const [isEditing, setIsEditing] = useState(false);
   const isDone = loggedReps !== null || justLogged;
   const isEditable = !isDone || isEditing;
+  const [saveError, setSaveError] = useState<string | null>(null);
+
+  const handleSaveError = () => {
+    setSaveError(SET_SAVE_ERROR);
+    // Focus stays on ✓, so a screen reader wouldn't read the new message.
+    AccessibilityInfo.announceForAccessibility(SET_SAVE_ERROR);
+  };
 
   const trackSetCompleted = () => {
     if (!IS_E2E && pendingSetData.current) {
@@ -84,11 +92,18 @@ export default function WorkoutSessionExerciseSetRowView({
     }
   };
 
-  const handleLogged = (
+  // Shared by both saves: the set is logged, so lock the row and refresh.
+  const handleSaved = (
     set: WorkoutSessionExerciseSet,
-    repsBefore: number | null
+    previousReps: number | null
   ) => {
+    reportWorkoutSetTracked({
+      previousRepsCompleted: previousReps,
+      sessionId,
+      set,
+    });
     Haptics.notificationAsync(Haptics.NotificationFeedbackType.Success);
+    setSaveError(null);
     setIsEditing(false);
     setJustLogged(true);
     trackSetCompleted();
@@ -101,32 +116,22 @@ export default function WorkoutSessionExerciseSetRowView({
     queryClient.invalidateQueries({
       queryKey: ["exercise-history"],
     });
-    if (repsBefore === null) {
+    if (previousReps === null) {
       onSetLogged?.(set);
     }
   };
 
   const { mutate: updateWorkoutSessionExerciseSet } =
     useUpdateWorkoutSessionExerciseSetMutation({
-      onSuccess: (set) => {
-        reportWorkoutSetTracked({
-          previousRepsCompleted: previousRepsCompleted.current,
-          sessionId,
-          set,
-        });
-        handleLogged(set, previousRepsCompleted.current);
-      },
+      onError: handleSaveError,
+      onSuccess: (set) => handleSaved(set, previousRepsCompleted.current),
     });
 
   const { mutate: createWorkoutSessionExerciseSet } =
     useCreateWorkoutSessionExerciseSetMutation({
+      onError: handleSaveError,
       onSuccess: (set) => {
-        reportWorkoutSetTracked({
-          previousRepsCompleted: null,
-          sessionId,
-          set,
-        });
-        handleLogged(set, null);
+        handleSaved(set, null);
         onSetCreated?.(localSetId);
       },
     });
@@ -150,12 +155,9 @@ export default function WorkoutSessionExerciseSetRowView({
   const handleSubmit = (values: WorkoutSessionExerciseSetFormValues) => {
     // An empty field keeps what's shown as its placeholder: the logged value
     // when editing a logged set, otherwise the recommended one.
-    const weight_completed = values.weight
-      ? Number(values.weight.replace(",", "."))
-      : (weightCompleted ?? weightRecommended);
-    const reps_completed = values.reps
-      ? Number(values.reps)
-      : (repsCompleted ?? repsRecommended);
+    const weight_completed =
+      values.weight ?? weightCompleted ?? weightRecommended;
+    const reps_completed = values.reps ?? repsCompleted ?? repsRecommended;
 
     pendingSetData.current = {
       reps: reps_completed,
@@ -189,42 +191,43 @@ export default function WorkoutSessionExerciseSetRowView({
   const showsLogged = isDone && !isEditable;
 
   return (
-    <View
+    <WorkoutSessionExerciseSetForm
       className={cn(
-        "flex-row items-center gap-2 rounded-xl border-continuous py-1 pr-1 pl-2",
+        "rounded-xl border-continuous py-1 pr-1 pl-2",
         showsLogged && "bg-primary/10"
       )}
-    >
-      <Text
-        className={cn(
-          "w-7 font-ibm-plex-mono-semibold text-body",
-          showsLogged && "text-primary"
-        )}
-        maxFontSizeMultiplier={SET_TABLE_MAX_FONT_SCALE}
-      >
-        {setOrder}
-      </Text>
-      <Text
-        className="flex-1 font-ibm-plex-mono text-footnote text-muted-foreground"
-        maxFontSizeMultiplier={SET_TABLE_MAX_FONT_SCALE}
-        numberOfLines={1}
-      >
-        {previous ? formatSetResult(previous) : "–"}
-      </Text>
-
-      <WorkoutSessionExerciseSetForm
-        disabled={!isEditable || locked}
-        hasWeight={hasWeight}
-        isDone={isDone}
-        isEditing={isEditable}
-        onEdit={handleEdit}
-        onSubmit={handleSubmit}
-        recommendedValues={{
-          reps: (repsCompleted ?? repsRecommended).toString(),
-          weight: formatWeightValue(weightCompleted ?? weightRecommended),
-        }}
-        setIndex={setOrder}
-      />
-    </View>
+      disabled={!isEditable || locked}
+      error={saveError}
+      hasWeight={hasWeight}
+      isDone={isDone}
+      isEditing={isEditable}
+      leading={
+        <>
+          <Text
+            className={cn(
+              "w-7 font-ibm-plex-mono-semibold text-body",
+              showsLogged && "text-primary"
+            )}
+            maxFontSizeMultiplier={SET_TABLE_MAX_FONT_SCALE}
+          >
+            {setOrder}
+          </Text>
+          <Text
+            className="flex-1 font-ibm-plex-mono text-footnote text-muted-foreground"
+            maxFontSizeMultiplier={SET_TABLE_MAX_FONT_SCALE}
+            numberOfLines={1}
+          >
+            {previous ? formatSetResult(previous) : "–"}
+          </Text>
+        </>
+      }
+      onEdit={handleEdit}
+      onSubmit={handleSubmit}
+      recommendedValues={{
+        reps: (repsCompleted ?? repsRecommended).toString(),
+        weight: formatSetWeight(weightCompleted ?? weightRecommended),
+      }}
+      setIndex={setOrder}
+    />
   );
 }

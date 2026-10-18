@@ -162,7 +162,10 @@ export function bestSet(
     if (!isSetTracked(set)) {
       continue;
     }
-    const result = { reps: set.reps_completed ?? 0, weight: set.weight_completed };
+    const result = {
+      reps: set.reps_completed ?? 0,
+      weight: set.weight_completed,
+    };
     const weight = result.weight ?? 0;
     const bestWeight = best?.weight ?? 0;
     if (

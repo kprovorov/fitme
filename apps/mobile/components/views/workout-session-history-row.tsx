@@ -47,7 +47,7 @@ export default function WorkoutSessionHistoryRow({
         <Text className="font-nunito-sans-semibold text-body">
           {workoutSession.workout?.name ?? "Workout"}
         </Text>
-        <Text className="text-subhead text-muted-foreground">
+        <Text className="text-muted-foreground text-subhead">
           {format(new Date(workoutSession.started_at), "EEE, MMM d · h:mm a")}
         </Text>
         <Text className="text-footnote text-muted-foreground">{totals}</Text>

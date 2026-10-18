@@ -4,10 +4,10 @@ import { useState } from "react";
 import { View } from "react-native";
 import { useProfileQuery } from "~/hooks/queries/profiles";
 import { cn } from "~/lib/utils";
+import { SET_TABLE_MAX_FONT_SCALE } from "../forms/workout-exercise-set-form";
 import { Button } from "../ui/button";
 import { Text } from "../ui/text";
 import { VStack } from "../ui/vstack";
-import { SET_TABLE_MAX_FONT_SCALE } from "../forms/workout-exercise-set-form";
 import WorkoutSessionExerciseSetRowView from "./workout-session-exercise-set-row-view";
 
 interface WorkoutSessionExerciseSetsTableViewProps {
