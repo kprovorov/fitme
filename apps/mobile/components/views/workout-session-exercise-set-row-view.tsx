@@ -1,6 +1,7 @@
 import type { WorkoutSessionExerciseSet } from "@fitme/core";
 import { useQueryClient } from "@tanstack/react-query";
 import { useRef, useState } from "react";
+import { AccessibilityInfo } from "react-native";
 import { reportWorkoutSetTracked } from "~/hooks/finish-workout-suggestion";
 import {
   useCreateWorkoutSessionExerciseSetMutation,
@@ -63,6 +64,8 @@ export default function WorkoutSessionExerciseSetRowView({
   const handleSaveError = () => {
     pendingSetData.current = null;
     setSaveError(SET_SAVE_ERROR);
+    // Focus stays on ✓, so a screen reader wouldn't read the new message.
+    AccessibilityInfo.announceForAccessibility(SET_SAVE_ERROR);
   };
 
   const trackSetCompleted = () => {

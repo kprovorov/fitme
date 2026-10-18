@@ -29,7 +29,7 @@ import {
   within,
 } from "@testing-library/react-native";
 import { createContext, type ReactNode, useSyncExternalStore } from "react";
-import { Alert, View } from "react-native";
+import { AccessibilityInfo, Alert, View } from "react-native";
 import PlanSessionExerciseScreen from "~/app/plans/[planId]/workouts/[workoutId]/sessions/[sessionId]/exercises/[exerciseId]/index";
 import PlanSessionScreen from "~/app/plans/[planId]/workouts/[workoutId]/sessions/[sessionId]/index";
 import HistorySessionScreen from "~/app/workout-sessions/[workoutSessionId]";
@@ -353,6 +353,9 @@ beforeEach(() => {
   mockNavigator.routes = [];
   mockPresentations.count = 0;
   jest.spyOn(Alert, "alert").mockImplementation(() => undefined);
+  jest
+    .spyOn(AccessibilityInfo, "announceForAccessibility")
+    .mockImplementation(() => undefined);
 });
 
 afterEach(() => {
@@ -499,6 +502,9 @@ describe.each(ENTRY_ROUTES)(
       expect(
         focused().queryByText("update workout_session_exercise_sets failed")
       ).toBeNull();
+      expect(AccessibilityInfo.announceForAccessibility).toHaveBeenCalledWith(
+        SET_SAVE_ERROR
+      );
       // The row stays editable: its ✓ is still there to retry.
       expect(focused().getByTestId("log-set-button-1")).toBeTruthy();
 
