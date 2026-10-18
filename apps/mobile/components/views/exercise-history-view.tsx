@@ -65,7 +65,8 @@ export default function ExerciseHistoryView({
     },
   });
   const { data: profile } = useProfileQuery();
-  const weightLabel = getWeightLabel(profile?.measurement_system ?? "metric");
+  const weightLabel =
+    getWeightLabel(profile?.measurement_system ?? "metric") ?? "";
 
   const entries = (items ?? []).filter(
     (item) => item.id !== excludeId && hasLoggedSet(item)

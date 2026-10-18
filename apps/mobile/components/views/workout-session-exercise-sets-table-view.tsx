@@ -1,6 +1,6 @@
 import type { SetResult, WorkoutSessionExerciseSet } from "@fitme/core";
 import { getWeightLabel } from "@fitme/core";
-import { useState } from "react";
+import { type ReactNode, useState } from "react";
 import { View } from "react-native";
 import { useProfileQuery } from "~/hooks/queries/profiles";
 import { cn } from "~/lib/utils";
@@ -36,7 +36,7 @@ function ColumnLabel({
   children,
   className,
 }: {
-  children: string;
+  children: ReactNode;
   className?: string;
 }) {
   return (
