@@ -154,9 +154,7 @@ export function previousSetsByOrder(
  * The heaviest logged set (most reps breaks a tie), or `null` when nothing is
  * logged. Sets without a weight only win when no set has one.
  */
-export function bestSet(
-  sets: Omit<ResultSet, "order">[]
-): SetResult | null {
+export function bestSet(sets: Omit<ResultSet, "order">[]): SetResult | null {
   let best: SetResult | null = null;
   for (const set of sets) {
     if (!isSetTracked(set)) {
