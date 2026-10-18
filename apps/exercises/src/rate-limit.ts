@@ -1,5 +1,6 @@
 import { Ratelimit } from "@upstash/ratelimit";
 import { Redis } from "@upstash/redis";
+import { waitUntil } from "@vercel/functions";
 import { createMiddleware } from "hono/factory";
 import type { z } from "zod";
 import type { AuthEnv } from "./auth";
@@ -68,17 +69,33 @@ export const upstashRateLimiter = ({
   url: string;
 }): RateLimiter => {
   const ratelimit = new Ratelimit({
+    // Upstash's Rate Limit Analytics dashboard: who's counted, who's refused.
+    analytics: true,
     limiter: Ratelimit.fixedWindow(USER_REQUESTS_PER_WINDOW, `${WINDOW_MS} ms`),
     prefix: "exercises:user",
-    // No retries: a slow Upstash would hold every request past our timeout.
-    redis: new Redis({ retry: false, token, url }),
+    redis: new Redis({
+      // No retries: a slow Upstash would hold every request past our timeout.
+      retry: false,
+      // Each call gets its own signal, so a request the middleware served
+      // uncounted can't still increment the window once Upstash answers.
+      signal: () => AbortSignal.timeout(LIMITER_TIMEOUT_MS),
+      token,
+      url,
+    }),
     // Fails would pass silently (`reason: "timeout"`); the middleware times
     // out itself so an outage gets reported.
     timeout: 0,
   });
   return {
     limit: async (userId) => {
-      const { reset, success } = await ratelimit.limit(userId);
+      const { pending, reset, success } = await ratelimit.limit(userId);
+      // The analytics write, after the response: a serverless instance that
+      // freezes once it's answered would drop it otherwise.
+      waitUntil(
+        pending.catch((error: unknown) => {
+          console.warn("Rate limit analytics write failed", error);
+        })
+      );
       return success
         ? { allowed: true }
         : {

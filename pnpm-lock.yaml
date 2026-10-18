@@ -141,6 +141,9 @@ importers:
       '@upstash/redis':
         specifier: ^1.39.0
         version: 1.39.0
+      '@vercel/functions':
+        specifier: ^3.10.1
+        version: 3.10.1(ws@8.21.3)
       hono:
         specifier: ^4.13.13
         version: 4.13.13
