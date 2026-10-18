@@ -1,4 +1,5 @@
 import { Stack } from "expo-router";
+import { useCallback } from "react";
 import { ActivityIndicator, Platform, ScrollView, View } from "react-native";
 import { useSafeAreaInsets } from "react-native-safe-area-context";
 import { useResolveClassNames } from "uniwind";
@@ -32,6 +33,9 @@ export default function WorkoutSessionScreen({
   });
 
   const { confirmFinish, isFinishing } = useFinishWorkoutSession(sessionId);
+  const retry = useCallback(() => {
+    refetch();
+  }, [refetch]);
   const primary = useResolveClassNames("text-primary").color;
   const primaryForeground = useResolveClassNames(
     "text-primary-foreground"
@@ -69,7 +73,7 @@ export default function WorkoutSessionScreen({
           <Button
             fill={false}
             label="Try Again"
-            onPress={() => refetch()}
+            onPress={retry}
             shape="pill"
             variant="secondary"
           />

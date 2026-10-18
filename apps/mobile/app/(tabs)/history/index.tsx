@@ -95,6 +95,7 @@ function MonthSection({ month }: { month: Month }) {
 
 function EmptyHistory() {
   const router = useRouter();
+  const goHome = useCallback(() => router.navigate("/"), [router]);
   return (
     <View className="flex-1 items-center justify-center gap-sm px-md pt-lg">
       <H1 className="text-center">No workouts yet</H1>
@@ -105,7 +106,7 @@ function EmptyHistory() {
       <Button
         fill={false}
         label="Start a Workout"
-        onPress={() => router.navigate("/")}
+        onPress={goHome}
         shape="pill"
       />
     </View>
@@ -128,6 +129,10 @@ export default function HistoryScreen() {
     [workoutSessions]
   );
 
+  const retry = useCallback(() => {
+    refetchWorkoutSessions();
+  }, [refetchWorkoutSessions]);
+
   const onRefresh = useCallback(async () => {
     setRefreshing(true);
     try {
@@ -148,7 +153,7 @@ export default function HistoryScreen() {
           <Button
             fill={false}
             label="Try Again"
-            onPress={() => refetchWorkoutSessions()}
+            onPress={retry}
             shape="pill"
             variant="secondary"
           />

@@ -1,4 +1,5 @@
 import { Stack, useLocalSearchParams } from "expo-router";
+import { useCallback } from "react";
 import { ActivityIndicator, ScrollView, View } from "react-native";
 import ExerciseVideo from "~/components/exercises/exercise-video";
 import { Button } from "~/components/ui/button";
@@ -26,6 +27,9 @@ export default function ExerciseGuideScreen() {
   } = useExerciseQuery({
     variables: { exerciseId: exerciseId as string },
   });
+  const retry = useCallback(() => {
+    refetch();
+  }, [refetch]);
 
   const renderContent = () => {
     if (exercise) {
@@ -63,7 +67,7 @@ export default function ExerciseGuideScreen() {
           <Button
             fill={false}
             label="Try Again"
-            onPress={() => refetch()}
+            onPress={retry}
             shape="pill"
             variant="secondary"
           />

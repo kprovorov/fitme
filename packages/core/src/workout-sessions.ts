@@ -101,7 +101,7 @@ type ResultSet = Pick<
  * weights are stored in. Sets without a weight count as zero.
  */
 export function sessionVolume(
-  exercises: Array<{ sets: Array<Omit<ResultSet, "order">> }>
+  exercises: { sets: Omit<ResultSet, "order">[] }[]
 ): number {
   const volume = exercises.reduce(
     (total, exercise) =>
@@ -155,7 +155,7 @@ export function previousSetsByOrder(
  * logged. Sets without a weight only win when no set has one.
  */
 export function bestSet(
-  sets: Array<Omit<ResultSet, "order">>
+  sets: Omit<ResultSet, "order">[]
 ): SetResult | null {
   let best: SetResult | null = null;
   for (const set of sets) {
@@ -186,7 +186,7 @@ export function formatSetResult({ reps, weight }: SetResult): string {
 
 /** The recommended reps of some sets as `12` or a range `10–12`, or `null`. */
 export function formatRepRange(
-  sets: Array<Pick<WorkoutSessionExerciseSet, "reps_recommended">>
+  sets: Pick<WorkoutSessionExerciseSet, "reps_recommended">[]
 ): string | null {
   const reps = sets
     .map((set) => set.reps_recommended)

@@ -1,6 +1,6 @@
 import { formatElapsed } from "@fitme/core";
 import * as Haptics from "expo-haptics";
-import { useEffect } from "react";
+import { useCallback, useEffect } from "react";
 import { AccessibilityInfo, type LayoutChangeEvent, View } from "react-native";
 import Animated, {
   FadeIn,
@@ -50,6 +50,11 @@ export default function RestTimer({
   const reduceMotion = useReducedMotion();
   const entering = (reduceMotion ? FadeIn : FadeInDown).duration(ENTER_MS);
   const exiting = (reduceMotion ? FadeOut : FadeOutDown).duration(EXIT_MS);
+  const lessRest = useCallback(
+    () => onAdjust(-ADJUST_STEP_SECONDS),
+    [onAdjust]
+  );
+  const moreRest = useCallback(() => onAdjust(ADJUST_STEP_SECONDS), [onAdjust]);
   const now = useNow(true, 250);
   const remaining = Math.max(0, rest.endsAt - now);
   const isOver = remaining === 0;
@@ -104,7 +109,7 @@ export default function RestTimer({
             accessibilityLabel="15 seconds less"
             fill={false}
             label={`−${ADJUST_STEP_SECONDS}`}
-            onPress={() => onAdjust(-ADJUST_STEP_SECONDS)}
+            onPress={lessRest}
             shape="pill"
             variant="secondary"
           />
@@ -112,7 +117,7 @@ export default function RestTimer({
             accessibilityLabel="15 seconds more"
             fill={false}
             label={`+${ADJUST_STEP_SECONDS}`}
-            onPress={() => onAdjust(ADJUST_STEP_SECONDS)}
+            onPress={moreRest}
             shape="pill"
             variant="secondary"
           />

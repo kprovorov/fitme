@@ -192,8 +192,8 @@ export default function WorkoutSessionExerciseSetForm({
     <View className={cn("gap-1", className)}>
       <View className="flex-row items-center gap-2">
         {leading}
-        {hasWeight &&
-          (showsLoggedValues ? (
+        {hasWeight ? (
+          showsLoggedValues ? (
             <LoggedValue value={recommendedValues?.weight} />
           ) : (
             <Controller
@@ -201,7 +201,8 @@ export default function WorkoutSessionExerciseSetForm({
               name="weight"
               render={renderWeightField}
             />
-          ))}
+          )
+        ) : null}
         {showsLoggedValues ? (
           <LoggedValue value={recommendedValues?.reps} />
         ) : (

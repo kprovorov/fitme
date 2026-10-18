@@ -4,7 +4,7 @@ import {
 } from "@fitme/core";
 import { Stack, useLocalSearchParams, useRouter } from "expo-router";
 import { useCallback, useMemo, useState } from "react";
-import { ActivityIndicator, View } from "react-native";
+import { ActivityIndicator, type LayoutChangeEvent, View } from "react-native";
 import { KeyboardAwareScrollView } from "react-native-keyboard-controller";
 import { useSafeAreaInsets } from "react-native-safe-area-context";
 import { Button } from "~/components/ui/button";
@@ -102,6 +102,14 @@ export default function WorkoutSessionExerciseScreen() {
 
   const endRest = useCallback(() => setRest(null), []);
 
+  const handleRestTimerLayout = useCallback((event: LayoutChangeEvent) => {
+    setRestTimerHeight(event.nativeEvent.layout.height);
+  }, []);
+
+  const retry = useCallback(() => {
+    refetch();
+  }, [refetch]);
+
   const renderContent = () => {
     if (workoutSessionExercise) {
       return (
@@ -139,7 +147,7 @@ export default function WorkoutSessionExerciseScreen() {
           <Button
             fill={false}
             label="Try Again"
-            onPress={() => refetch()}
+            onPress={retry}
             shape="pill"
             variant="secondary"
           />
@@ -198,9 +206,7 @@ export default function WorkoutSessionExerciseScreen() {
           bottomInset={insets.bottom}
           onAdjust={adjustRest}
           onEnd={endRest}
-          onLayout={(event) =>
-            setRestTimerHeight(event.nativeEvent.layout.height)
-          }
+          onLayout={handleRestTimerLayout}
           rest={rest}
         />
       ) : null}

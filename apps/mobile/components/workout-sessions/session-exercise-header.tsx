@@ -79,7 +79,7 @@ export default function SessionExerciseHeader({
         </View>
       </Pressable>
       <View className={stacked ? "gap-2" : "flex-1 gap-2"}>
-        {exercise.muscle_groups?.length > 0 && (
+        {exercise.muscle_groups.length > 0 && (
           <View className="flex-row flex-wrap gap-1.5">
             {exercise.muscle_groups.map((muscleGroup) => (
               <Badge key={muscleGroup} variant="secondary">
