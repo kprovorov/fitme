@@ -29,7 +29,8 @@ interface WorkoutSessionExerciseSetFormProps {
     values: WorkoutSessionExerciseSetFormValues
   ) => void | Promise<void>;
   recommendedValues?: WorkoutSessionExerciseSetFormInput;
-  setIndex?: number;
+  /** The set's 1-based number, as shown on its row (`#1`). */
+  setIndex: number;
 }
 
 /** What the fields hold. */
@@ -51,7 +52,7 @@ export default function WorkoutSessionExerciseSetForm({
   error,
   isDone,
   isEditing,
-  setIndex = 0,
+  setIndex,
 }: WorkoutSessionExerciseSetFormProps) {
   const form = useForm<
     WorkoutSessionExerciseSetFormInput,

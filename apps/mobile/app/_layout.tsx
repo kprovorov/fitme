@@ -22,8 +22,7 @@ import { getFocusedRouteNameFromRoute } from "expo-router/react-navigation";
 import { SCROLL_EDGE_EFFECTS } from "~/lib/constants";
 import { getTabTitle } from "~/lib/tabs";
 
-// Titled after the focused tab: a screen pushed over the tabs takes its back
-// button's title (and VoiceOver label) from it.
+// Back buttons over the tabs name the focused tab (see `getTabTitle`).
 const tabsScreenOptions = ({
   route,
 }: {
