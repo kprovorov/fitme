@@ -7,6 +7,7 @@
   --font-nunito-sans-bold: "NunitoSans12pt-Bold";
   --font-ibm-plex-mono: "IBM Plex Mono";
   --font-ibm-plex-mono-bold: "IBM Plex Mono Bold";
+  --font-ibm-plex-mono-semibold: "IBMPlexMono-SemiBold";
 
   /* Apple Human Interface Guidelines type scale (size/leading in points) */
   --text-caption-2: 11px;

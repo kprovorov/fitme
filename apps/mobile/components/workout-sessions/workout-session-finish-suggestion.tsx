@@ -16,7 +16,7 @@ interface WorkoutSessionFinishSuggestionProps {
  * Suggests finishing the session once its final set is saved. Mount it on
  * every screen of a workout session: it watches the session while mounted,
  * and only the focused screen shows the suggestion, so it appears wherever
- * the user is and only once. Finish behaves like the Finish Workout button;
+ * the user is and only once. Finish behaves like the header's Finish button;
  * Keep Training and dismissing just close it and leave the session active.
  */
 export function WorkoutSessionFinishSuggestion({

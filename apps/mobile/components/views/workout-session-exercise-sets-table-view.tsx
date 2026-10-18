@@ -1,16 +1,27 @@
-import type { WorkoutSessionExerciseSet } from "@fitme/core";
+import type { SetResult, WorkoutSessionExerciseSet } from "@fitme/core";
 import { getWeightLabel } from "@fitme/core";
-import { useState } from "react";
+import { type ReactNode, useState } from "react";
+import { View } from "react-native";
 import { useProfileQuery } from "~/hooks/queries/profiles";
+import { cn } from "~/lib/utils";
+import { SET_TABLE_MAX_FONT_SCALE } from "../forms/workout-exercise-set-form";
 import { Button } from "../ui/button";
-import { HStack } from "../ui/hstack";
-import { Separator } from "../ui/separator";
 import { Text } from "../ui/text";
 import { VStack } from "../ui/vstack";
 import WorkoutSessionExerciseSetRowView from "./workout-session-exercise-set-row-view";
 
 interface WorkoutSessionExerciseSetsTableViewProps {
   exerciseId: string;
+  /**
+   * A set was logged for the first time; `nextSetOrder` is the next set still
+   * to log (an added one included), or `null` when none is left.
+   */
+  onSetLogged?: (
+    set: WorkoutSessionExerciseSet,
+    nextSetOrder: number | null
+  ) => void;
+  /** The exercise's previous session, by set order. */
+  previousSets?: Map<number, SetResult>;
   readOnly?: boolean;
   sessionId: string;
   workoutSessionExerciseSets: WorkoutSessionExerciseSet[];
@@ -21,8 +32,32 @@ interface LocalSet {
   order: number;
 }
 
+function ColumnLabel({
+  children,
+  className,
+}: {
+  children: ReactNode;
+  className?: string;
+}) {
+  return (
+    <Text
+      adjustsFontSizeToFit
+      className={cn(
+        "font-nunito-sans-bold text-caption-1 text-muted-foreground uppercase",
+        className
+      )}
+      maxFontSizeMultiplier={SET_TABLE_MAX_FONT_SCALE}
+      numberOfLines={1}
+    >
+      {children}
+    </Text>
+  );
+}
+
 export default function WorkoutSessionExerciseSetsTableView({
   exerciseId,
+  onSetLogged,
+  previousSets,
   workoutSessionExerciseSets,
   readOnly = false,
   sessionId,
@@ -48,6 +83,21 @@ export default function WorkoutSessionExerciseSetsTableView({
     setLocalSets([...localSets, newLocalSet]);
   };
 
+  const handleSetLogged = (set: WorkoutSessionExerciseSet) => {
+    const pendingOrders = [
+      ...workoutSessionExerciseSets
+        .filter((other) => other.id !== set.id && other.reps_completed === null)
+        .map((other) => other.order),
+      ...localSets
+        .filter((local) => local.order !== set.order)
+        .map((local) => local.order),
+    ];
+    onSetLogged?.(
+      set,
+      pendingOrders.length > 0 ? Math.min(...pendingOrders) : null
+    );
+  };
+
   const handleSetCreated = (localId?: string) => {
     if (!localId) {
       return;
@@ -57,24 +107,24 @@ export default function WorkoutSessionExerciseSetsTableView({
 
   return (
     !isProfilePending && (
-      <VStack className="items-stretch gap-0">
-        <HStack className="justify-start py-2 pr-12">
-          <Text className="w-12 text-center font-bold text-primary text-subhead uppercase">
-            Set
-          </Text>
+      <VStack className="items-stretch gap-1">
+        <View
+          accessibilityElementsHidden
+          className="flex-row items-center gap-2 pt-1 pr-1 pl-2"
+          importantForAccessibility="no-hide-descendants"
+        >
+          <ColumnLabel className="w-7">Set</ColumnLabel>
+          <ColumnLabel className="flex-1">Previous</ColumnLabel>
           {hasWeight && (
-            <Text className="flex-1 text-center font-bold text-primary text-subhead uppercase">
+            <ColumnLabel className="w-18 text-center">
               {getWeightLabel(profile?.measurement_system ?? "metric")}
-            </Text>
+            </ColumnLabel>
           )}
-          <Text className="flex-1 text-center font-bold text-primary text-subhead uppercase">
-            Reps
-          </Text>
-        </HStack>
+          <ColumnLabel className="w-18 text-center">Reps</ColumnLabel>
+          <View className="w-11" />
+        </View>
 
-        <Separator />
-
-        {workoutSessionExerciseSets
+        {[...workoutSessionExerciseSets]
           .sort((a, b) => a.order - b.order)
           .map((workoutSessionExerciseSet, index, sorted) => {
             const locked = sorted
@@ -86,8 +136,9 @@ export default function WorkoutSessionExerciseSetsTableView({
                 hasWeight={hasWeight}
                 key={workoutSessionExerciseSet.id}
                 locked={locked}
+                onSetLogged={handleSetLogged}
+                previous={previousSets?.get(workoutSessionExerciseSet.order)}
                 sessionId={sessionId}
-                timer={false}
                 workoutSessionExerciseSet={workoutSessionExerciseSet}
               />
             );
@@ -107,16 +158,17 @@ export default function WorkoutSessionExerciseSetsTableView({
                 localSetId={localSet.id}
                 locked={locked}
                 onSetCreated={handleSetCreated}
+                onSetLogged={handleSetLogged}
                 order={localSet.order}
+                previous={previousSets?.get(localSet.order)}
                 sessionId={sessionId}
-                timer={false}
                 workoutSessionExerciseSet={null}
               />
             );
           })}
 
         {!readOnly && (
-          <VStack className="items-stretch py-3">
+          <VStack className="items-stretch pt-1">
             <Button
               label="Add Set"
               onPress={handleAddSet}

@@ -152,6 +152,8 @@ jest.mock("react-native-keyboard-controller", () => {
 jest.mock("~/components/exercises/exercise-image", () => () => null);
 jest.mock("~/components/exercises/exercise-video", () => () => null);
 jest.mock("~/components/views/exercise-history-view", () => () => null);
+// Reanimated can't load under Jest; seeded sets have no rest, so it never shows.
+jest.mock("~/components/workout-sessions/rest-timer", () => () => null);
 // The exercise picker offers a single exercise to add.
 jest.mock("~/components/views/exercises-view", () => ({
   __esModule: true,
@@ -409,8 +411,7 @@ describe.each(ENTRY_ROUTES)(
 
     /** Edits a set that was tracked already. */
     const editSet = async (order: number, reps: string) => {
-      const pencils = focused().getAllByLabelText("pencil");
-      await fireEvent.press(pencils[order - 1] as (typeof pencils)[number]);
+      await fireEvent.press(focused().getByTestId(`edit-set-button-${order}`));
       await trackSet(order, reps);
     };
 
