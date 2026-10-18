@@ -24,8 +24,11 @@ export default function MeasurementSystemScreen() {
 
   const { data: profile } = useProfileQuery();
 
-  const currentSystem: MeasurementSystem =
-    profile?.measurement_system || "metric";
+  /** The saved system, or `undefined` until the Profile has loaded. */
+  const savedSystem: MeasurementSystem | undefined =
+    profile === undefined
+      ? undefined
+      : (profile?.measurement_system ?? "metric");
 
   /** The option awaiting confirmation, or `null` when nothing is pending. */
   const [pendingSystem, setPendingSystem] = useState<MeasurementSystem | null>(
@@ -33,58 +36,69 @@ export default function MeasurementSystemScreen() {
   );
 
   /**
-   * The system being switched to, from Confirm until the switch has
-   * finished, or `null` when none is running. Set in the same handler that
-   * clears `pendingSystem`, so the picker never has a render in between
+   * The system being switched to, from Confirm until the Profile has been
+   * read again, or `null` when no switch is running. Set in the same handler
+   * that clears `pendingSystem`, so the picker never has a render in between
    * showing the old system.
    */
   const [switchingTo, setSwitchingTo] = useState<MeasurementSystem | null>(
     null
   );
 
-  const invalidateProfile = useCallback(
-    () => queryClient.invalidateQueries({ queryKey: useProfileQuery.getKey() }),
-    [queryClient]
-  );
-
   const { mutate: updateMeasurementSystem } =
     useUpdateMeasurementSystemMutation({
       onError: (error) => {
         Sentry.captureException(error);
-        setSwitchingTo(null);
-        Alert.alert(
-          "Couldn't Change Units",
-          "Your measurements weren't changed. Please try again."
-        );
-        // In case the switch did go through after all.
-        invalidateProfile();
       },
-      onSuccess: (_, system) => {
-        // Saved before the refetch, so the picker never drops back to the old
-        // system, even if the refetch fails.
-        queryClient.setQueryData(useProfileQuery.getKey(), (cached) =>
-          cached ? { ...cached, measurement_system: system } : cached
-        );
+      // A failed call doesn't prove nothing changed (the response can be lost
+      // after the conversion commits), and the cached Profile's height and
+      // weight are in the old units either way, so the Profile is read again
+      // and the picker stays on the new system until it has been.
+      onSettled: async (_data, error, system) => {
+        let saved: MeasurementSystem | undefined;
+        try {
+          const fresh = await queryClient.fetchQuery({
+            ...useProfileQuery.getFetchOptions(),
+            staleTime: 0,
+          });
+          saved = fresh?.measurement_system ?? "metric";
+        } catch (fetchError) {
+          Sentry.captureException(fetchError);
+          // So no screen keeps using a Profile that may be in the old units.
+          queryClient.invalidateQueries({ queryKey: useProfileQuery.getKey() });
+        }
         setSwitchingTo(null);
-        invalidateProfile();
+
+        if (saved === undefined) {
+          Alert.alert(
+            "Couldn't Check Your Units",
+            "Check your connection, then open this screen again to see which system is saved."
+          );
+        } else if (error && saved !== system) {
+          Alert.alert(
+            "Couldn't Change Units",
+            "Your measurements weren't changed. Please try again."
+          );
+        }
       },
     });
 
+  const isLoaded = savedSystem !== undefined;
   const isSwitching = switchingTo !== null;
 
   // The native picker keeps whatever was tapped until its `value` changes, so
   // it's handed the tapped option while that's pending or switching, and the
   // saved system again after Cancel or a failure.
-  const shownSystem = pendingSystem ?? switchingTo ?? currentSystem;
+  const shownSystem = pendingSystem ?? switchingTo ?? savedSystem;
 
   const handleValueChange = useCallback(
     (system: MeasurementSystem) => {
-      if (isSwitching || system === currentSystem) {
+      if (!isLoaded || isSwitching || system === savedSystem) {
         return;
       }
       setPendingSystem(system);
     },
-    [currentSystem, isSwitching]
+    [isLoaded, isSwitching, savedSystem]
   );
 
   const handleIsPresentedChange = useCallback((isPresented: boolean) => {
@@ -109,8 +123,8 @@ export default function MeasurementSystemScreen() {
       />
       <View className="flex-1">
         <RadioGroup
-          disabled={isSwitching}
-          footer={getMeasurementSystemDisclaimer(switchingTo ?? currentSystem)}
+          disabled={!isLoaded || isSwitching}
+          footer={shownSystem && getMeasurementSystemDisclaimer(shownSystem)}
           onValueChange={handleValueChange}
           options={MEASUREMENT_SYSTEM_OPTIONS}
           value={shownSystem}

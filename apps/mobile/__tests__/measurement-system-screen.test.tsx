@@ -241,7 +241,7 @@ describe("MeasurementSystemScreen", () => {
     expect(mockFetchProfile).toHaveBeenCalledTimes(2);
   });
 
-  it("keeps the new system shown when the switch succeeds but the refetch fails", async () => {
+  it("says it couldn't check when the switch succeeds but the Profile can't be read", async () => {
     mockConvert.mockResolvedValue();
     await setup();
     mockFetchProfile.mockRejectedValue(new Error("offline"));
@@ -249,12 +249,53 @@ describe("MeasurementSystemScreen", () => {
     await fireEvent.press(screen.getByTestId("option-us"));
     await fireEvent.press(screen.getByText("Confirm"));
 
-    await waitFor(() => expect(mockFetchProfile).toHaveBeenCalledTimes(2));
+    await waitFor(() => expect(Alert.alert).toHaveBeenCalledTimes(1));
+    expect((Alert.alert as jest.Mock).mock.calls[0]?.[0]).toBe(
+      "Couldn't Check Your Units"
+    );
+    expect(screen.getByTestId("picker")).not.toBeDisabled();
+  });
+
+  it("shows no error when the call fails but the switch went through", async () => {
+    mockConvert.mockRejectedValue(new Error("Network request failed"));
+    await setup();
+    mockFetchProfile.mockResolvedValue(profile("us"));
+
+    await fireEvent.press(screen.getByTestId("option-us"));
+    await fireEvent.press(screen.getByText("Confirm"));
+
     await waitFor(() =>
       expect(screen.getByTestId("picker")).not.toBeDisabled()
     );
     expect(shown()).toHaveTextContent("us");
     expect(Alert.alert).not.toHaveBeenCalled();
+  });
+
+  it("can't be picked from until the saved system has loaded", async () => {
+    const fetch = deferred();
+    mockFetchProfile.mockReturnValue(fetch.promise.then(() => profile("us")));
+    const queryClient = new QueryClient({
+      defaultOptions: { queries: { retry: false } },
+    });
+    await render(
+      <QueryClientProvider client={queryClient}>
+        <MeasurementSystemScreen />
+      </QueryClientProvider>
+    );
+
+    expect(screen.getByTestId("picker")).toBeDisabled();
+    await fireEvent.press(screen.getByTestId("option-metric"));
+    expect(screen.queryByTestId("confirm-dialog")).toBeNull();
+
+    await act(async () => {
+      fetch.resolve();
+      await fetch.promise;
+    });
+    await waitFor(() => expect(shown()).toHaveTextContent("us"));
+    expect(screen.getByTestId("picker")).not.toBeDisabled();
+
+    await fireEvent.press(screen.getByTestId("option-metric"));
+    expect(screen.getByTestId("confirm-dialog")).toBeTruthy();
   });
 
   it("ignores picks while a switch is in flight", async () => {
