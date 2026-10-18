@@ -6,9 +6,9 @@ import {
   Text as SwiftUIText,
 } from "@expo/ui/swift-ui";
 import { frame } from "@expo/ui/swift-ui/modifiers";
+import * as Slot from "@rn-primitives/slot";
 import type * as React from "react";
 import { useCallback, useState } from "react";
-import { Pressable } from "react-native";
 import { isStretchClassName, SwiftUIHost } from "~/components/ui/swift-ui";
 
 type AlertDialogActionRole = "default" | "cancel" | "destructive";
@@ -22,10 +22,12 @@ interface AlertDialogAction {
 interface AlertDialogProps {
   actions: AlertDialogAction[];
   /**
-   * React Native content that opens the dialog when pressed. Leave empty for a
-   * dialog driven entirely by `isPresented`.
+   * A pressable React Native element (e.g. a `MenuListItem`) that opens the
+   * dialog when pressed: its `onPress` is set, not wrapped in another
+   * Pressable, which would never get the press. Leave empty for a dialog
+   * driven entirely by `isPresented`.
    */
-  children?: React.ReactNode;
+  children?: React.ReactElement;
   className?: string;
   /** Omit to let the dialog manage its own open state. */
   isPresented?: boolean;
@@ -70,7 +72,7 @@ const AlertDialog = ({
         <Alert.Trigger>
           {children ? (
             <RNHostView matchContents>
-              <Pressable onPress={present}>{children}</Pressable>
+              <Slot.Pressable onPress={present}>{children}</Slot.Pressable>
             </RNHostView>
           ) : (
             <Spacer modifiers={[frame({ height: 0, width: 0 })]} />

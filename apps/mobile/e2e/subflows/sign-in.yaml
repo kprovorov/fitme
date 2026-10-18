@@ -34,4 +34,15 @@ appId: com.fitmeproject.ios
       - tapOn:
           id: "login-code-button"
 
+# iOS may offer to save the password once the form is gone; its sheet hides
+# the screen behind it
+- extendedWaitUntil:
+    visible:
+      text: "Home|Get Started|Not Now"
+    timeout: 15000
+
+- tapOn:
+    text: "Not Now"
+    optional: true
+
 - waitForAnimationToEnd

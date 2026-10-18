@@ -133,6 +133,10 @@ jobs:
       - name: Build iOS simulator app
         working-directory: apps/mobile
         # pipefail: xcpretty would otherwise hide a failed build.
+        # Signed ad hoc, never unsigned: an unsigned app has no
+        # application-identifier entitlement, so the keychain refuses it, Clerk's
+        # token cache (expo-secure-store) never answers and the app never gets
+        # past its loading spinner.
         run: |
           set -o pipefail
           WORKSPACE=$(find ios -name "*.xcworkspace" -maxdepth 1 | head -1)
@@ -143,7 +147,7 @@ jobs:
             -configuration Release \
             -sdk iphonesimulator \
             -derivedDataPath ios/build \
-            CODE_SIGNING_ALLOWED=NO \
+            CODE_SIGN_IDENTITY=- \
             SENTRY_DISABLE_AUTO_UPLOAD=true | xcpretty
         env:
           EXPO_PUBLIC_E2E_ENABLED: "true"
