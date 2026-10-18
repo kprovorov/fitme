@@ -16,8 +16,8 @@ import {
 import { and, eq, isNotNull, sql } from "drizzle-orm";
 
 /**
- * The User-owned tables and their children, in the order rekey_user locks
- * them, then the tables rekey_user doesn't touch. Every table that holds a
+ * The User-owned tables (roots first), their children, then coach_sessions,
+ * in the order the dropped rekey_user locked them. Every table that holds a
  * User's rows must be here: a schema change that adds one has to add it, and
  * the integration test catches a miss.
  */
@@ -42,8 +42,9 @@ const LOCKED_TABLES = sql.join(
 const REKEYED_CODE = "55000";
 
 /**
- * The id was rekeyed to another one (the Supabase -> Clerk migration), so its
- * rows now belong to the new id. Deleting it would leave that account behind;
+ * The id was rekeyed to another one (the one-shot Supabase -> Clerk
+ * migration; production keeps its retired ids), so its rows now belong to the
+ * new id. Deleting it would leave that account behind;
  * delete the new id instead.
  */
 export class UserRekeyedError extends Error {

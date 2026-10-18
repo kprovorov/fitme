@@ -525,10 +525,6 @@ export interface Database {
         Args: { p_session_id: string };
         Returns: undefined;
       };
-      rekey_user: {
-        Args: { new_id: string; old_id: string };
-        Returns: undefined;
-      };
       start_workout_session: {
         Args: { p_workout_id: string };
         Returns: string;

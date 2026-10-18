@@ -12,7 +12,6 @@
   "types": "./src/index.ts",
   "scripts": {
     "clerk:check": "tsx scripts/check-clerk-trust.ts",
-    "clerk:check-migration": "tsx scripts/check-clerk-migration.ts",
     "clerk:jwt-key": "tsx scripts/clerk-jwt-key.ts",
     "exercises:sync": "tsx supabase/sync.ts",
     "migrate": "supabase migration up",
@@ -24,8 +23,7 @@
     "stop": "supabase stop",
     "test:db": "supabase test db",
     "typecheck": "tsc --noEmit",
-    "types:generate": "supabase gen types typescript --local --schema public > src/database.types.ts && biome check --write --unsafe src/database.types.ts",
-    "users:migrate": "tsx scripts/migrate-users-to-clerk.ts"
+    "types:generate": "supabase gen types typescript --local --schema public > src/database.types.ts && biome check --write --unsafe src/database.types.ts"
   },
   "dependencies": {
     "@supabase/supabase-js": "^2.118.0",

@@ -703,9 +703,9 @@ export const finishWorkoutSession = async (
   sessionId: string
 ): Promise<FinishWorkoutSessionResult> => {
   // Take the workout_sessions write lock before any row lock: it conflicts
-  // with the table locks of deleteUserData and rekey_user, so a finish racing
-  // them waits up front instead of holding a Plan row lock they need while
-  // waiting for a table lock they hold
+  // with deleteUserData's table locks, so a finish racing it waits up front
+  // instead of holding a Plan row lock it needs while waiting for a table
+  // lock it holds
   await tx.execute(sql`lock table ${workoutSessions} in row exclusive mode`);
 
   // Lock the Plan before the session, the order update_plan takes its locks

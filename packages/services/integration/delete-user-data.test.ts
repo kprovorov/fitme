@@ -17,7 +17,7 @@ import {
   workoutSessions,
   workouts,
 } from "@fitme/db";
-import { eq, inArray, sql } from "drizzle-orm";
+import { eq, inArray } from "drizzle-orm";
 import { afterAll, beforeAll, describe, expect, it } from "vitest";
 import { deleteUserData, UserRekeyedError } from "../src/delete-user-data";
 
@@ -177,9 +177,33 @@ const allRows = (present: 0 | 1) => ({
 });
 
 /**
- * A recorded Coach session per User. Not part of seedUser: rekey_user (the
- * one-shot Supabase Auth -> Clerk migration) never sees Coach sessions, which
- * only exist for Clerk ids.
+ * What the one-shot Supabase Auth -> Clerk migration's rekey_user (dropped
+ * with the migration tooling) left behind in production: the root rows moved
+ * to the new id, their children with them, and the old id retired with a
+ * pointer to the new one.
+ */
+const rekey = async (tx: Transaction, oldId: string, newId: string) => {
+  await tx
+    .update(profiles)
+    .set({ userId: newId })
+    .where(eq(profiles.userId, oldId));
+  await tx.update(plans).set({ userId: newId }).where(eq(plans.userId, oldId));
+  await tx
+    .update(workoutSessions)
+    .set({ userId: newId })
+    .where(eq(workoutSessions.userId, oldId));
+  await tx
+    .update(conversations)
+    .set({ userId: newId })
+    .where(eq(conversations.userId, oldId));
+  await tx
+    .insert(retiredUserIdsInPrivate)
+    .values({ rekeyedTo: newId, userId: oldId });
+};
+
+/**
+ * A recorded Coach session per User. Not part of seedUser: the rekey never
+ * saw Coach sessions, which only exist for Clerk ids.
  */
 const coachSessionId = (userId: string) => `wrun_${userId}`;
 
@@ -287,9 +311,7 @@ describe("deleteUserData", () => {
 
   it("refuses an id that was rekeyed away, changing nothing", async () => {
     const legacyRows = await seedUser(legacy);
-    await withService((tx) =>
-      tx.execute(sql`select public.rekey_user(${legacy}, ${rekeyed})`)
-    );
+    await withService((tx) => rekey(tx, legacy, rekeyed));
 
     const attempt = withService((tx) => deleteUserData(tx, legacy));
 
@@ -315,8 +337,8 @@ describe("deleteUserData", () => {
   it("refuses every id along a rekey chain and deletes its current id", async () => {
     const chainRows = await seedUser(chainA);
     await withService(async (tx) => {
-      await tx.execute(sql`select public.rekey_user(${chainA}, ${chainB})`);
-      await tx.execute(sql`select public.rekey_user(${chainB}, ${chainC})`);
+      await rekey(tx, chainA, chainB);
+      await rekey(tx, chainB, chainC);
     });
 
     await expect(
