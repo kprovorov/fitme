@@ -2,12 +2,7 @@ import { randomUUID } from "node:crypto";
 import { eq, inArray, sql } from "drizzle-orm";
 import { afterAll, beforeAll, describe, expect, it } from "vitest";
 import { closeConnection, getConnection } from "../src/client";
-import {
-  asUser,
-  conversations,
-  type Transaction,
-  withService,
-} from "../src/index";
+import { asUser, profiles, type Transaction, withService } from "../src/index";
 
 /**
  * asUser / withService against a local Supabase stack through the Supavisor
@@ -18,11 +13,12 @@ import {
 const runId = randomUUID().replaceAll("-", "").slice(0, 12);
 const userA = `user_dbA${runId}`;
 const userB = `user_dbB${runId}`;
+const writer = `user_dbW${runId}`;
 const concurrentUsers = Array.from(
   { length: 20 },
   (_, index) => `user_dbC${index}x${runId}`
 );
-const everyUser = [userA, userB, ...concurrentUsers];
+const everyUser = [userA, userB, writer, ...concurrentUsers];
 
 const CONCURRENT_TRANSACTIONS = 300;
 const THROW_EVERY = 7;
@@ -42,30 +38,28 @@ const identity = async (tx: Transaction) => {
   return rows[0];
 };
 
-const conversationOwners = async (tx: Transaction, userIds: string[]) => {
+const profileOwners = async (tx: Transaction, userIds: string[]) => {
   const { rows } = await tx.execute<{ user_id: string }>(
-    sql`select user_id from public.conversations where user_id in ${userIds} order by user_id`
+    sql`select user_id from public.profiles where user_id in ${userIds} order by user_id`
   );
   return rows.map((row) => row.user_id);
 };
 
-const insertConversation = (tx: Transaction, userId: string) =>
+const insertProfile = (tx: Transaction, userId: string) =>
   tx.execute(
-    sql`insert into public.conversations (user_id) values (${userId})`
+    sql`insert into public.profiles (user_id, age, gender, height, weight) values (${userId}, 30, 'male', 180, 80)`
   );
 
 beforeAll(async () => {
   await withService(async (tx) => {
-    await insertConversation(tx, userA);
-    await insertConversation(tx, userB);
+    await insertProfile(tx, userA);
+    await insertProfile(tx, userB);
   });
 });
 
 afterAll(async () => {
   await withService((tx) =>
-    tx.execute(
-      sql`delete from public.conversations where user_id in ${everyUser}`
-    )
+    tx.execute(sql`delete from public.profiles where user_id in ${everyUser}`)
   );
   await closeConnection();
 });
@@ -81,21 +75,28 @@ describe("asUser", () => {
 
   it("limits reads to the User's rows", async () => {
     expect(
-      await asUser(userA, (tx) => conversationOwners(tx, [userA, userB]))
+      await asUser(userA, (tx) => profileOwners(tx, [userA, userB]))
     ).toEqual([userA]);
   });
 
   it("lets the User write their own rows", async () => {
-    await asUser(userA, (tx) => insertConversation(tx, userA));
+    const updated = await asUser(writer, async (tx) => {
+      await insertProfile(tx, writer);
+      const update = await tx.execute(
+        sql`update public.profiles set weight = 81 where user_id = ${writer}`
+      );
+      return update.rowCount;
+    });
 
-    expect(
-      await withService((tx) => conversationOwners(tx, [userA]))
-    ).toHaveLength(2);
+    expect(updated).toBe(1);
+    expect(await withService((tx) => profileOwners(tx, [writer]))).toEqual([
+      writer,
+    ]);
   });
 
   it("refuses writes to another User's rows", async () => {
     await expect(
-      asUser(userA, (tx) => insertConversation(tx, userB))
+      asUser(userA, (tx) => insertProfile(tx, userB))
     ).rejects.toMatchObject({
       // Drizzle wraps the Postgres error
       cause: { message: expect.stringMatching(RLS_VIOLATION) },
@@ -103,16 +104,16 @@ describe("asUser", () => {
 
     const changed = await asUser(userA, async (tx) => {
       const updated = await tx.execute(
-        sql`update public.conversations set created_at = now() where user_id = ${userB}`
+        sql`update public.profiles set updated_at = now() where user_id = ${userB}`
       );
       const deleted = await tx.execute(
-        sql`delete from public.conversations where user_id = ${userB}`
+        sql`delete from public.profiles where user_id = ${userB}`
       );
       return [updated.rowCount, deleted.rowCount];
     });
 
     expect(changed).toEqual([0, 0]);
-    expect(await withService((tx) => conversationOwners(tx, [userB]))).toEqual([
+    expect(await withService((tx) => profileOwners(tx, [userB]))).toEqual([
       userB,
     ]);
   });
@@ -122,14 +123,14 @@ describe("asUser", () => {
 
     await expect(
       asUser(rolledBack, async (tx) => {
-        await insertConversation(tx, rolledBack);
+        await insertProfile(tx, rolledBack);
         throw new Error("abort");
       })
     ).rejects.toThrow("abort");
 
-    expect(
-      await withService((tx) => conversationOwners(tx, [rolledBack]))
-    ).toEqual([]);
+    expect(await withService((tx) => profileOwners(tx, [rolledBack]))).toEqual(
+      []
+    );
   });
 
   it("rejects an empty User id", async () => {
@@ -149,9 +150,7 @@ describe("withService", () => {
   });
 
   it("sees every User's rows", async () => {
-    const owners = await withService((tx) =>
-      conversationOwners(tx, [userA, userB])
-    );
+    const owners = await withService((tx) => profileOwners(tx, [userA, userB]));
 
     expect(new Set(owners)).toEqual(new Set([userA, userB]));
   });
@@ -161,9 +160,9 @@ describe("the generated schema", () => {
   it("types asUser queries, still under RLS", async () => {
     const rows = await asUser(userA, (tx) =>
       tx
-        .select({ userId: conversations.userId })
-        .from(conversations)
-        .where(inArray(conversations.userId, [userA, userB]))
+        .select({ userId: profiles.userId })
+        .from(profiles)
+        .where(inArray(profiles.userId, [userA, userB]))
     );
 
     expect(new Set(rows.map((row) => row.userId))).toEqual(new Set([userA]));
@@ -171,13 +170,12 @@ describe("the generated schema", () => {
 
   it("gives transactions the relational query API", async () => {
     const found = await asUser(userA, (tx) =>
-      tx.query.conversations.findFirst({
-        where: eq(conversations.userId, userA),
-        with: { messages: true },
+      tx.query.profiles.findFirst({
+        where: eq(profiles.userId, userA),
       })
     );
 
-    expect(found).toMatchObject({ messages: [], userId: userA });
+    expect(found).toMatchObject({ userId: userA });
   });
 });
 
@@ -256,7 +254,7 @@ describe("on the pooler", () => {
     const { pool } = getConnection();
 
     await expect(
-      pool.query("select user_id from public.conversations limit 1")
+      pool.query("select user_id from public.profiles limit 1")
     ).rejects.toThrow(PERMISSION_DENIED);
   });
 });
