@@ -62,7 +62,6 @@ export default function WorkoutSessionExerciseSetRowView({
   const [saveError, setSaveError] = useState<string | null>(null);
 
   const handleSaveError = () => {
-    pendingSetData.current = null;
     setSaveError(SET_SAVE_ERROR);
     // Focus stays on ✓, so a screen reader wouldn't read the new message.
     AccessibilityInfo.announceForAccessibility(SET_SAVE_ERROR);
