@@ -23,6 +23,18 @@ const unauthorized = {
   description: "No valid Clerk session token or server secret",
 };
 
+/** A User over their limit (`rateLimitUsers`). */
+const rateLimited = {
+  content: { "application/json": { schema: ErrorResponse } },
+  description: "Too many requests from this User; retry after `Retry-After`",
+  headers: z.object({
+    "Retry-After": z.string().openapi({
+      description: "Seconds until the limit resets",
+      example: "30",
+    }),
+  }),
+};
+
 /** A Clerk session token or a server secret, as `Authorization: Bearer`. */
 const security = [{ [BEARER_AUTH]: [] }];
 
@@ -109,6 +121,7 @@ const listExercises = createRoute({
       description: "An invalid query parameter",
     },
     401: unauthorized,
+    429: rateLimited,
   },
   security,
   summary: "List Exercises, or look up a batch by Exercise slug",
@@ -132,6 +145,7 @@ const getExercise = createRoute({
       content: { "application/json": { schema: ErrorResponse } },
       description: "No Exercise has this Exercise slug",
     },
+    429: rateLimited,
   },
   security,
   summary: "Get one Exercise by Exercise slug",

@@ -3,6 +3,8 @@
 import "hono";
 import { createApp } from "./create-app";
 import { library } from "./generated/library";
+import { rateLimiterFromEnv } from "./rate-limit";
+import { reportError } from "./sentry";
 
 // Vercel's Hono preset serves the default export of dist/app.js.
 export default createApp({
@@ -17,4 +19,7 @@ export default createApp({
     },
   },
   library,
+  // Throws in production without Upstash, so the deployment fails at startup.
+  rateLimiter: rateLimiterFromEnv(process.env),
+  reportError,
 });
