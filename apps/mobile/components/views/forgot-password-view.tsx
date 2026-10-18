@@ -4,8 +4,9 @@ import { useCallback, useState } from "react";
 import ForgotPasswordForm, {
   type ForgotPasswordFormValues,
 } from "~/components/forms/auth/forgot-password-form";
+import { ErrorMessage } from "~/components/ui/error-message";
 import { Text } from "~/components/ui/text";
-import { H3, P } from "~/components/ui/typography";
+import { H3 } from "~/components/ui/typography";
 import { VStack } from "~/components/ui/vstack";
 import type { CodePurpose } from "~/components/views/verify-code-view";
 import { getClerkErrorMessage } from "~/lib/clerk";
@@ -46,7 +47,7 @@ export default function ForgotPasswordView() {
           Enter your email and we&apos;ll send you a code to reset it.
         </Text>
       </VStack>
-      {errorMessage ? <P className="text-red-500">{errorMessage}</P> : null}
+      {errorMessage ? <ErrorMessage>{errorMessage}</ErrorMessage> : null}
       <ForgotPasswordForm onSubmit={handleSubmit} />
       <Text className="font-nunito-sans-bold text-subhead">
         Remember your password?{" "}

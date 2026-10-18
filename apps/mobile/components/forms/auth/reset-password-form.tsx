@@ -7,8 +7,8 @@ import {
 } from "react-hook-form";
 import { z } from "zod";
 import { Button } from "~/components/ui/button";
+import { ErrorMessage } from "~/components/ui/error-message";
 import { Input } from "~/components/ui/input";
-import { Text } from "~/components/ui/text";
 import { VStack } from "~/components/ui/vstack";
 import { PASSWORD_MIN_LENGTH } from "~/lib/constants";
 
@@ -89,9 +89,7 @@ export default function ResetPasswordForm({
         render={renderPasswordField}
       />
       {form.formState.errors.password ? (
-        <Text className="text-red-500">
-          {form.formState.errors.password.message}
-        </Text>
+        <ErrorMessage>{form.formState.errors.password.message}</ErrorMessage>
       ) : null}
 
       <Controller
@@ -100,9 +98,9 @@ export default function ResetPasswordForm({
         render={renderConfirmPasswordField}
       />
       {form.formState.errors.confirmPassword ? (
-        <Text className="text-red-500">
+        <ErrorMessage>
           {form.formState.errors.confirmPassword.message}
-        </Text>
+        </ErrorMessage>
       ) : null}
 
       <Button

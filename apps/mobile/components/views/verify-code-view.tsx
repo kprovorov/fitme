@@ -1,6 +1,7 @@
 import { useAuth, useSignIn, useSignUp } from "@clerk/expo";
 import { router } from "expo-router";
 import { useCallback, useEffect, useState } from "react";
+import { ErrorMessage } from "~/components/ui/error-message";
 import { getClerkErrorMessage } from "~/lib/clerk";
 import { IS_E2E } from "~/lib/constants";
 import { segmentClient } from "~/lib/segment";
@@ -183,9 +184,7 @@ export default function VerifyCodeView({ purpose }: VerifyCodeViewProps) {
         </Text>
       </VStack>
       {errorMessage ? (
-        <P className="text-red-500" testID="verify-code-error">
-          {errorMessage}
-        </P>
+        <ErrorMessage testID="verify-code-error">{errorMessage}</ErrorMessage>
       ) : null}
       {notice ? <P className="text-muted-foreground">{notice}</P> : null}
       <VStack className="w-full items-stretch gap-4">

@@ -5,6 +5,7 @@ import {
 } from "expo-router/react-navigation";
 import { NativeTabs } from "expo-router/unstable-native-tabs";
 import Authenticated from "~/components/authenticated";
+import { TAB_TITLES } from "~/lib/tabs";
 import { useColorScheme } from "~/lib/useColorScheme";
 
 const darkTheme = {
@@ -29,7 +30,9 @@ export default function TabLayout() {
             <NativeTabs.Trigger.Icon
               sf={{ default: "dumbbell", selected: "dumbbell.fill" }}
             />
-            <NativeTabs.Trigger.Label>Home</NativeTabs.Trigger.Label>
+            <NativeTabs.Trigger.Label>
+              {TAB_TITLES["(home)"]}
+            </NativeTabs.Trigger.Label>
           </NativeTabs.Trigger>
 
           <NativeTabs.Trigger name="history">
@@ -39,7 +42,9 @@ export default function TabLayout() {
                 selected: "list.clipboard.fill",
               }}
             />
-            <NativeTabs.Trigger.Label>History</NativeTabs.Trigger.Label>
+            <NativeTabs.Trigger.Label>
+              {TAB_TITLES.history}
+            </NativeTabs.Trigger.Label>
           </NativeTabs.Trigger>
 
           <NativeTabs.Trigger name="coach">
@@ -49,7 +54,9 @@ export default function TabLayout() {
                 selected: "bubble.left.and.bubble.right.fill",
               }}
             />
-            <NativeTabs.Trigger.Label>Coach</NativeTabs.Trigger.Label>
+            <NativeTabs.Trigger.Label>
+              {TAB_TITLES.coach}
+            </NativeTabs.Trigger.Label>
           </NativeTabs.Trigger>
 
           <NativeTabs.Trigger name="library">
@@ -59,14 +66,18 @@ export default function TabLayout() {
                 selected: "books.vertical.fill",
               }}
             />
-            <NativeTabs.Trigger.Label>Library</NativeTabs.Trigger.Label>
+            <NativeTabs.Trigger.Label>
+              {TAB_TITLES.library}
+            </NativeTabs.Trigger.Label>
           </NativeTabs.Trigger>
 
           <NativeTabs.Trigger name="profile">
             <NativeTabs.Trigger.Icon
               sf={{ default: "person", selected: "person.fill" }}
             />
-            <NativeTabs.Trigger.Label>Profile</NativeTabs.Trigger.Label>
+            <NativeTabs.Trigger.Label>
+              {TAB_TITLES.profile}
+            </NativeTabs.Trigger.Label>
           </NativeTabs.Trigger>
         </NativeTabs>
       </ThemeProvider>

@@ -4,7 +4,12 @@ import type * as React from "react";
 import { ScrollView, type ViewProps } from "react-native";
 import ExerciseImage from "@/components/exercises/exercise-image";
 import { Badge } from "@/components/ui/badge";
-import { Card, CardHeader, CardTitle } from "@/components/ui/card";
+import {
+  Card,
+  CardDescription,
+  CardHeader,
+  CardTitle,
+} from "@/components/ui/card";
 import { HStack } from "@/components/ui/hstack";
 import { Text } from "@/components/ui/text";
 import { Timer } from "@/lib/icons/Timer";
@@ -40,14 +45,17 @@ const WorkoutSessionCard = ({
   return (
     <Card className={cn("flex gap-4 py-4", className)} ref={ref} {...props}>
       <CardHeader>
-        <CardTitle className="text-muted-foreground text-subhead">
+        {workoutSession.workout ? (
+          <CardTitle>{workoutSession.workout.name}</CardTitle>
+        ) : null}
+        <CardDescription>
           {new Date(workoutSession.started_at).toLocaleDateString(undefined, {
             day: "numeric",
             month: "short",
             weekday: "short",
             year: "numeric",
           })}
-        </CardTitle>
+        </CardDescription>
       </CardHeader>
       <HStack className="justify-start gap-3 px-4">
         <Badge>
