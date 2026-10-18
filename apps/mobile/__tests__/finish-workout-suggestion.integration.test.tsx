@@ -341,8 +341,7 @@ const ENTRY_ROUTES: EntryRoute[] = [
 ];
 
 /** What a set row shows when its save fails. */
-const SET_SAVE_ERROR =
-  "Couldn't save this set. Check your connection and try again.";
+const SET_SAVE_ERROR = "Couldn't save this set. Try again.";
 
 const isSuggestionShown = () =>
   screen.queryByTestId("finish-suggestion") !== null;
@@ -509,6 +508,30 @@ describe.each(ENTRY_ROUTES)(
       expect(
         backend.sets.find(({ id }) => id === "s1-e1-s1")?.reps_completed
       ).toBe(8);
+    });
+
+    it("shows an error on a tracked set when saving an edit fails, and clears it once a retry succeeds", async () => {
+      await startApp({
+        exercises: [{ name: "Squat", sets: [10, null] }],
+        id: "s1",
+      });
+      await openExercise("Squat");
+
+      backend.failNext("workout_session_exercise_sets", "update");
+      await editSet(1, "12");
+
+      expect(focused().getByText(SET_SAVE_ERROR)).toBeTruthy();
+      expect(focused().getByTestId("log-set-button-1")).toBeTruthy();
+      expect(
+        backend.sets.find(({ id }) => id === "s1-e1-s1")?.reps_completed
+      ).toBe(10);
+
+      await trackSet(1);
+
+      expect(focused().queryByText(SET_SAVE_ERROR)).toBeNull();
+      expect(
+        backend.sets.find(({ id }) => id === "s1-e1-s1")?.reps_completed
+      ).toBe(12);
     });
 
     it("shows an error on an added set when creating it fails, and clears it once a retry succeeds", async () => {

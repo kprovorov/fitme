@@ -147,11 +147,7 @@ export default function WorkoutSessionExerciseSetForm({
       {form.formState.errors.reps ? (
         <ErrorMessage>{form.formState.errors.reps.message}</ErrorMessage>
       ) : null}
-      {error ? (
-        <ErrorMessage testID={`set-save-error-${setIndex}`}>
-          {error}
-        </ErrorMessage>
-      ) : null}
+      {error ? <ErrorMessage>{error}</ErrorMessage> : null}
     </VStack>
   );
 }

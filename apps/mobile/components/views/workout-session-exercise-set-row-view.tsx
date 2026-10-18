@@ -18,9 +18,9 @@ import { HStack } from "../ui/hstack";
 import { Separator } from "../ui/separator";
 import { Text } from "../ui/text";
 
-// Never the backend's message: the User can't act on a Postgres error.
-const SET_SAVE_ERROR =
-  "Couldn't save this set. Check your connection and try again.";
+// Never the backend's message: the User can't act on a Postgres error. Kept
+// neutral, since a lost connection isn't the only way a save fails.
+const SET_SAVE_ERROR = "Couldn't save this set. Try again.";
 
 interface WorkoutSessionExerciseSetRowViewProps {
   exerciseId: string;
@@ -76,53 +76,42 @@ export default function WorkoutSessionExerciseSetRowView({
     }
   };
 
+  // Shared by both saves: the set is logged, so lock the row and refresh.
+  const handleSaved = (
+    set: WorkoutSessionExerciseSet,
+    previousReps: number | null
+  ) => {
+    reportWorkoutSetTracked({
+      previousRepsCompleted: previousReps,
+      sessionId,
+      set,
+    });
+    setSaveError(null);
+    setIsEditable(false);
+    setIsDone(true);
+    trackSetCompleted();
+    queryClient.invalidateQueries({
+      queryKey: ["workout-session-exercise"],
+    });
+    queryClient.invalidateQueries({
+      queryKey: ["workout-session"],
+    });
+    queryClient.invalidateQueries({
+      queryKey: ["exercise-history"],
+    });
+  };
+
   const { mutate: updateWorkoutSessionExerciseSet } =
     useUpdateWorkoutSessionExerciseSetMutation({
       onError: handleSaveError,
-      onSuccess: (set) => {
-        reportWorkoutSetTracked({
-          previousRepsCompleted: previousRepsCompleted.current,
-          sessionId,
-          set,
-        });
-        setSaveError(null);
-        setIsEditable(false);
-        setIsDone(true);
-        trackSetCompleted();
-        queryClient.invalidateQueries({
-          queryKey: ["workout-session-exercise"],
-        });
-        queryClient.invalidateQueries({
-          queryKey: ["workout-session"],
-        });
-        queryClient.invalidateQueries({
-          queryKey: ["exercise-history"],
-        });
-      },
+      onSuccess: (set) => handleSaved(set, previousRepsCompleted.current),
     });
 
   const { mutate: createWorkoutSessionExerciseSet } =
     useCreateWorkoutSessionExerciseSetMutation({
       onError: handleSaveError,
       onSuccess: (set) => {
-        reportWorkoutSetTracked({
-          previousRepsCompleted: null,
-          sessionId,
-          set,
-        });
-        setSaveError(null);
-        setIsEditable(false);
-        setIsDone(true);
-        trackSetCompleted();
-        queryClient.invalidateQueries({
-          queryKey: ["workout-session-exercise"],
-        });
-        queryClient.invalidateQueries({
-          queryKey: ["workout-session"],
-        });
-        queryClient.invalidateQueries({
-          queryKey: ["exercise-history"],
-        });
+        handleSaved(set, null);
         onSetCreated?.(localSetId);
       },
     });
