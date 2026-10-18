@@ -93,7 +93,11 @@ export default function WorkoutSessionExerciseCard({
         </VStack>
       </Pressable>
       {menuItems.length > 0 && (
-        <DropdownMenu items={menuItems} systemImage="ellipsis" />
+        <DropdownMenu
+          accessibilityLabel={`More options for ${workoutSessionExercise.exercise.name}`}
+          items={menuItems}
+          systemImage="ellipsis"
+        />
       )}
     </HStack>
   );

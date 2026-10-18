@@ -29,7 +29,8 @@ interface WorkoutSessionExerciseSetFormProps {
     values: WorkoutSessionExerciseSetFormValues
   ) => void | Promise<void>;
   recommendedValues?: WorkoutSessionExerciseSetFormInput;
-  setIndex?: number;
+  /** The set's 1-based number, as shown on its row (`#1`). */
+  setIndex: number;
 }
 
 /** What the fields hold. */
@@ -51,7 +52,7 @@ export default function WorkoutSessionExerciseSetForm({
   error,
   isDone,
   isEditing,
-  setIndex = 0,
+  setIndex,
 }: WorkoutSessionExerciseSetFormProps) {
   const form = useForm<
     WorkoutSessionExerciseSetFormInput,
@@ -90,6 +91,7 @@ export default function WorkoutSessionExerciseSetForm({
       >;
     }) => (
       <Input
+        accessibilityLabel={`Set ${setIndex} weight`}
         className="h-10 native:h-10 w-full text-center font-bold"
         editable={!isFormDisabled}
         keyboardType="decimal-pad"
@@ -110,6 +112,7 @@ export default function WorkoutSessionExerciseSetForm({
       field: ControllerRenderProps<WorkoutSessionExerciseSetFormInput, "reps">;
     }) => (
       <Input
+        accessibilityLabel={`Set ${setIndex} reps`}
         autoCapitalize="none"
         className="h-10 native:h-10 w-full text-center font-bold"
         editable={!isFormDisabled}
@@ -147,6 +150,7 @@ export default function WorkoutSessionExerciseSetForm({
         <HStack className="w-10 flex-none">
           {isDone && !isEditing ? (
             <Button
+              accessibilityLabel={`Edit set ${setIndex}`}
               onPress={onEdit}
               shape="pill"
               size="icon-xs"
@@ -155,6 +159,7 @@ export default function WorkoutSessionExerciseSetForm({
             />
           ) : (
             <Button
+              accessibilityLabel={`Log set ${setIndex}`}
               disabled={disabled}
               onPress={submit}
               shape="pill"

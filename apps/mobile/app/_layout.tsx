@@ -18,7 +18,18 @@ import MinimumVersionGate from "~/components/minimum-version-gate";
 import Providers from "~/components/providers";
 import "../global.css";
 import { Stack } from "expo-router";
+import { getFocusedRouteNameFromRoute } from "expo-router/react-navigation";
 import { SCROLL_EDGE_EFFECTS } from "~/lib/constants";
+import { getTabTitle } from "~/lib/tabs";
+
+// Back buttons over the tabs name the focused tab (see `getTabTitle`).
+const tabsScreenOptions = ({
+  route,
+}: {
+  route: Parameters<typeof getFocusedRouteNameFromRoute>[0];
+}) => ({
+  title: getTabTitle(getFocusedRouteNameFromRoute(route)),
+});
 
 const IS_E2E = process.env.EXPO_PUBLIC_E2E_ENABLED === "true";
 
@@ -74,7 +85,7 @@ export default function RootLayout() {
             scrollEdgeEffects: SCROLL_EDGE_EFFECTS,
           }}
         >
-          <Stack.Screen name="(tabs)" options={{ title: "Home" }} />
+          <Stack.Screen name="(tabs)" options={tabsScreenOptions} />
           <Stack.Screen
             name="onboarding"
             options={{

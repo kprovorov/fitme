@@ -21,6 +21,7 @@ import { useSafeAreaInsets } from "react-native-safe-area-context";
 import { z } from "zod";
 import { Badge } from "~/components/ui/badge";
 import { Button } from "~/components/ui/button";
+import { ErrorMessage } from "~/components/ui/error-message";
 import { HStack } from "~/components/ui/hstack";
 import { Label } from "~/components/ui/label";
 import { Slider } from "~/components/ui/slider";
@@ -234,9 +235,7 @@ export default function PlannerScreen() {
               render={renderGoalField}
             />
             {form.formState.errors.goal ? (
-              <Text className="text-red-500">
-                {form.formState.errors.goal.message}
-              </Text>
+              <ErrorMessage>{form.formState.errors.goal.message}</ErrorMessage>
             ) : null}
 
             <VStack className="items-start justify-start gap-0">
@@ -252,9 +251,9 @@ export default function PlannerScreen() {
               render={renderExperienceLevelField}
             />
             {form.formState.errors.experience_level ? (
-              <Text className="text-red-500">
+              <ErrorMessage>
                 {form.formState.errors.experience_level.message}
-              </Text>
+              </ErrorMessage>
             ) : null}
 
             <VStack className="items-stretch justify-start gap-0">
@@ -275,9 +274,9 @@ export default function PlannerScreen() {
               render={renderWorkoutDurationField}
             />
             {form.formState.errors.workout_duration ? (
-              <Text className="text-red-500">
+              <ErrorMessage>
                 {form.formState.errors.workout_duration.message}
-              </Text>
+              </ErrorMessage>
             ) : null}
 
             <VStack className="items-start justify-start gap-0">
@@ -293,9 +292,7 @@ export default function PlannerScreen() {
               render={renderPlaceField}
             />
             {form.formState.errors.place ? (
-              <Text className="text-red-500">
-                {form.formState.errors.place.message}
-              </Text>
+              <ErrorMessage>{form.formState.errors.place.message}</ErrorMessage>
             ) : null}
 
             <VStack className="items-start justify-start gap-0">
@@ -311,9 +308,9 @@ export default function PlannerScreen() {
               render={renderFrequencyField}
             />
             {form.formState.errors.frequency ? (
-              <Text className="text-red-500">
+              <ErrorMessage>
                 {form.formState.errors.frequency.message}
-              </Text>
+              </ErrorMessage>
             ) : null}
 
             <VStack className="items-start justify-start gap-0">
@@ -329,9 +326,7 @@ export default function PlannerScreen() {
               render={renderNoteField}
             />
             {form.formState.errors.note ? (
-              <Text className="text-red-500">
-                {form.formState.errors.note.message}
-              </Text>
+              <ErrorMessage>{form.formState.errors.note.message}</ErrorMessage>
             ) : null}
 
             <VStack className="items-stretch gap-2">

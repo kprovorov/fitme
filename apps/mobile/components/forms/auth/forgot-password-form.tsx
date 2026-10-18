@@ -7,8 +7,8 @@ import {
 } from "react-hook-form";
 import { z } from "zod";
 import { Button } from "~/components/ui/button";
+import { ErrorMessage } from "~/components/ui/error-message";
 import { Input } from "~/components/ui/input";
-import { Text } from "~/components/ui/text";
 import { VStack } from "~/components/ui/vstack";
 
 interface ForgotPasswordFormProps {
@@ -41,11 +41,14 @@ export default function ForgotPasswordForm({
     }) => (
       <Input
         autoCapitalize="none"
+        autoComplete="email"
+        autoCorrect={false}
         editable={!isSubmitting}
         keyboardType="email-address"
         onBlur={onBlur}
         onChangeText={onChange}
         placeholder="Email"
+        spellCheck={false}
         testID="forgot-password-email-input"
         value={value}
       />
@@ -61,9 +64,7 @@ export default function ForgotPasswordForm({
         render={renderEmailField}
       />
       {form.formState.errors.email ? (
-        <Text className="text-red-500">
-          {form.formState.errors.email.message}
-        </Text>
+        <ErrorMessage>{form.formState.errors.email.message}</ErrorMessage>
       ) : null}
 
       <Button

@@ -5,7 +5,12 @@ import {
   Button as SwiftUIButton,
   Image as SwiftUIImage,
 } from "@expo/ui/swift-ui";
-import { contentShape, frame, shapes } from "@expo/ui/swift-ui/modifiers";
+import {
+  accessibilityLabel as accessibilityLabelModifier,
+  contentShape,
+  frame,
+  shapes,
+} from "@expo/ui/swift-ui/modifiers";
 import type * as React from "react";
 import type { SFSymbol } from "sf-symbols-typescript";
 import { SwiftUIHost, useSwiftUITheme } from "~/components/ui/swift-ui";
@@ -20,6 +25,8 @@ interface DropdownMenuItem {
 }
 
 interface DropdownMenuProps {
+  /** VoiceOver label for the menu button; required for an icon-only menu. */
+  accessibilityLabel?: string;
   /**
    * React Native content used as the menu button. Takes precedence over
    * `label`/`systemImage`.
@@ -39,6 +46,7 @@ interface DropdownMenuProps {
 const MIN_HIT_TARGET_SIZE = 44;
 
 const DropdownMenu = ({
+  accessibilityLabel,
   items,
   label,
   systemImage,
@@ -76,6 +84,11 @@ const DropdownMenu = ({
     <SwiftUIHost className={className} matchContents>
       <Menu
         label={menuLabel()}
+        modifiers={
+          accessibilityLabel
+            ? [accessibilityLabelModifier(accessibilityLabel)]
+            : undefined
+        }
         onPrimaryAction={onPrimaryAction}
         systemImage={label ? systemImage : undefined}
         testID={testID}

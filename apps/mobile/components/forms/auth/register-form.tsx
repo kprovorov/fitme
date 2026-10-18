@@ -8,8 +8,8 @@ import {
 } from "react-hook-form";
 import { z } from "zod";
 import { Button } from "~/components/ui/button";
+import { ErrorMessage } from "~/components/ui/error-message";
 import { Input } from "~/components/ui/input";
-import { Text } from "~/components/ui/text";
 import { VStack } from "~/components/ui/vstack";
 import { PASSWORD_MIN_LENGTH } from "~/lib/constants";
 
@@ -70,11 +70,14 @@ export default function RegisterForm({ onSubmit, errors }: RegisterFormProps) {
     }) => (
       <Input
         autoCapitalize="none"
+        autoComplete="email"
+        autoCorrect={false}
         editable={!isSubmitting}
         keyboardType="email-address"
         onBlur={onBlur}
         onChangeText={onChange}
         placeholder="Email"
+        spellCheck={false}
         testID="email-input"
         value={value}
       />
@@ -105,9 +108,7 @@ export default function RegisterForm({ onSubmit, errors }: RegisterFormProps) {
     <VStack className="w-full items-stretch gap-4">
       <Controller control={form.control} name="name" render={renderNameField} />
       {form.formState.errors.name ? (
-        <Text className="text-red-500">
-          {form.formState.errors.name.message}
-        </Text>
+        <ErrorMessage>{form.formState.errors.name.message}</ErrorMessage>
       ) : null}
 
       <Controller
@@ -116,9 +117,7 @@ export default function RegisterForm({ onSubmit, errors }: RegisterFormProps) {
         render={renderEmailField}
       />
       {form.formState.errors.email ? (
-        <Text className="text-red-500">
-          {form.formState.errors.email.message}
-        </Text>
+        <ErrorMessage>{form.formState.errors.email.message}</ErrorMessage>
       ) : null}
 
       <Controller
@@ -127,9 +126,7 @@ export default function RegisterForm({ onSubmit, errors }: RegisterFormProps) {
         render={renderPasswordField}
       />
       {form.formState.errors.password ? (
-        <Text className="text-red-500">
-          {form.formState.errors.password.message}
-        </Text>
+        <ErrorMessage>{form.formState.errors.password.message}</ErrorMessage>
       ) : null}
 
       <Button

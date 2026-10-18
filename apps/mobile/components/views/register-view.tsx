@@ -3,13 +3,14 @@ import { splitName } from "@fitme/core";
 import { router } from "expo-router";
 import { useCallback, useEffect, useState } from "react";
 import { Pressable, View } from "react-native";
+import { ErrorMessage } from "~/components/ui/error-message";
 import type { CodePurpose } from "~/components/views/verify-code-view";
 import { getClerkErrorMessage } from "~/lib/clerk";
 import RegisterForm, {
   type RegisterFormValues,
 } from "../forms/auth/register-form";
 import { Text } from "../ui/text";
-import { H3, P } from "../ui/typography";
+import { H3 } from "../ui/typography";
 import { VStack } from "../ui/vstack";
 
 const goToLogin = () => router.push("/auth/login");
@@ -63,7 +64,7 @@ export default function RegisterView() {
           Create an account to get started
         </Text>
       </VStack>
-      {errorMessage ? <P className="text-red-500">{errorMessage}</P> : null}
+      {errorMessage ? <ErrorMessage>{errorMessage}</ErrorMessage> : null}
       <RegisterForm onSubmit={handleSubmit} />
       <View className="flex-row items-center">
         <Text className="font-nunito-sans-bold text-subhead">
