@@ -136,6 +136,14 @@ export default function WorkoutSessionExerciseSetForm({
     return onSubmit(values);
   });
 
+  // Opening a logged set clears the fields, so they show its current values
+  // as placeholders rather than what was typed when it was last saved (the
+  // set may have changed since, e.g. by the Coach).
+  const startEditing = useCallback(() => {
+    form.reset({ reps: "", weight: "" });
+    onEdit();
+  }, [form, onEdit]);
+
   const renderWeightField = useCallback(
     ({
       field: { onChange, onBlur, value },
@@ -223,7 +231,7 @@ export default function WorkoutSessionExerciseSetForm({
             <Button
               accessibilityHint="Opens the set for editing"
               accessibilityLabel={`Set ${setIndex} logged`}
-              onPress={onEdit}
+              onPress={startEditing}
               shape="pill"
               size="icon"
               systemImage="checkmark"
