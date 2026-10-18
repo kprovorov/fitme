@@ -5,6 +5,7 @@ import {
   Text as SwiftUIText,
 } from "@expo/ui/swift-ui";
 import {
+  disabled as disabledModifier,
   pickerStyle,
   scrollContentBackground,
   tag,
@@ -17,6 +18,8 @@ import type { PickerOption, PickerValue } from "./picker";
 
 interface RadioGroupProps<TValue extends PickerValue> {
   className?: string;
+  /** Greys the options out and ignores taps. */
+  disabled?: boolean;
   /** Explanatory text below the options. */
   footer?: string;
   /** Section header above the options. */
@@ -42,6 +45,7 @@ const RadioGroup = <TValue extends PickerValue>({
   label,
   footer,
   className,
+  disabled = false,
   testID,
 }: RadioGroupProps<TValue>) => {
   const theme = useSwiftUITheme();
@@ -59,7 +63,11 @@ const RadioGroup = <TValue extends PickerValue>({
           title={label}
         >
           <SwiftUIPicker
-            modifiers={[pickerStyle("inline"), tint(theme.primary)]}
+            modifiers={[
+              pickerStyle("inline"),
+              tint(theme.primary),
+              disabledModifier(disabled),
+            ]}
             onSelectionChange={handleSelectionChange}
             selection={value ?? null}
             testID={testID}
