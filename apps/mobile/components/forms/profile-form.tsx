@@ -9,7 +9,13 @@ import {
 } from "@fitme/core";
 import { zodResolver } from "@hookform/resolvers/zod";
 import { Stack } from "expo-router";
-import { type ReactNode, useCallback, useRef, useState } from "react";
+import {
+  type ReactNode,
+  useCallback,
+  useEffect,
+  useRef,
+  useState,
+} from "react";
 import {
   type Control,
   Controller,
@@ -56,7 +62,12 @@ const PROFILE_FIELDS: ProfileField[] = ["age", "weight", "height"];
 /** Height of the wheel picker drawer when expanded. */
 const WHEEL_HEIGHT = 200;
 
-/** Default height (5 ft) shown on the imperial wheels when none is set. */
+/** Values the wheels open on (and store) for a field that isn't set yet. */
+const DEFAULT_AGE = 25;
+const DEFAULT_WEIGHT_KG = 80;
+const DEFAULT_WEIGHT_LBS = 176;
+const DEFAULT_HEIGHT_CM = 176;
+/** 5 ft. */
 const DEFAULT_HEIGHT_INCHES = 60;
 
 const formSchema = z.object({
@@ -73,7 +84,7 @@ const formSchema = z.object({
   weight: numberInRange(1, 500, "Weight is required"),
 });
 
-interface ProfileFormProps {
+export interface ProfileFormProps {
   defaultValues: Partial<ProfileFormValues>;
   /** Rendered below the fields, e.g. a request error. */
   footer?: ReactNode;
@@ -192,6 +203,8 @@ export default function ProfileForm({
     [handleNameFocus, isFormSubmitting]
   );
 
+  // The rows read `getValues`, so this re-validation is also what re-renders
+  // them with a wheel's new value.
   const handleWheelChange = useCallback(() => {
     if (activeWheel) {
       form.trigger(activeWheel);
@@ -447,30 +460,54 @@ function ParameterWheel({
 
 type WheelProps = Omit<ParameterWheelProps, "field">;
 
+/**
+ * A wheel's field value and setter. The native wheel only reports a selection
+ * the User scrolls to, so an unset field gets the default the wheel opens on
+ * as soon as it mounts; a stored value is never overwritten.
+ */
+function useWheelValue(
+  control: Control<ProfileFormValues>,
+  name: ProfileField,
+  defaultValue: number,
+  onChange: () => void
+): [number, (value: number) => void] {
+  const {
+    field: { onChange: setFieldValue, value },
+  } = useController({ control, name });
+
+  const setValue = useCallback(
+    (v: number) => {
+      setFieldValue(v);
+      onChange();
+    },
+    [onChange, setFieldValue]
+  );
+
+  const isUnset = value === undefined || value === null;
+
+  useEffect(() => {
+    if (isUnset) {
+      setValue(defaultValue);
+    }
+  }, [defaultValue, isUnset, setValue]);
+
+  return [value ?? defaultValue, setValue];
+}
+
 function AgeWheel({
   control,
   onChange,
 }: Omit<WheelProps, "measurementSystem">) {
-  const {
-    field: { onChange: setAge, value },
-  } = useController({ control, name: "age" });
-
-  const handleValueChange = useCallback(
-    (v: number) => {
-      setAge(v);
-      onChange();
-    },
-    [onChange, setAge]
-  );
+  const [value, setAge] = useWheelValue(control, "age", DEFAULT_AGE, onChange);
 
   return (
     <Picker
-      onValueChange={handleValueChange}
+      onValueChange={setAge}
       options={range(4, 150).map((i) => ({
         label: `${i}`,
         value: i,
       }))}
-      value={Math.round(value ?? 25)}
+      value={Math.round(value)}
       variant="wheel"
     />
   );
@@ -478,26 +515,21 @@ function AgeWheel({
 
 function WeightWheel({ control, measurementSystem, onChange }: WheelProps) {
   const isMetric = measurementSystem === "metric";
-  const {
-    field: { onChange: setWeight, value },
-  } = useController({ control, name: "weight" });
-
-  const handleValueChange = useCallback(
-    (v: number) => {
-      setWeight(v);
-      onChange();
-    },
-    [onChange, setWeight]
+  const [value, setWeight] = useWheelValue(
+    control,
+    "weight",
+    isMetric ? DEFAULT_WEIGHT_KG : DEFAULT_WEIGHT_LBS,
+    onChange
   );
 
   return (
     <Picker
-      onValueChange={handleValueChange}
+      onValueChange={setWeight}
       options={range(1, isMetric ? 454 : 1000).map((i) => ({
         label: formatWeight(i, measurementSystem),
         value: i,
       }))}
-      value={Math.round(value ?? (isMetric ? 80 : 176))}
+      value={Math.round(value)}
       variant="wheel"
     />
   );
@@ -505,47 +537,34 @@ function WeightWheel({ control, measurementSystem, onChange }: WheelProps) {
 
 function HeightWheel({ control, measurementSystem, onChange }: WheelProps) {
   const isMetric = measurementSystem === "metric";
-  const {
-    field: { onChange: setHeight, value },
-  } = useController({ control, name: "height" });
-
-  const { feet, inches } = inchesToFeetAndInches(
-    value ?? DEFAULT_HEIGHT_INCHES
+  const [value, setHeight] = useWheelValue(
+    control,
+    "height",
+    isMetric ? DEFAULT_HEIGHT_CM : DEFAULT_HEIGHT_INCHES,
+    onChange
   );
 
-  const handleCentimetersChange = useCallback(
-    (v: number) => {
-      setHeight(v);
-      onChange();
-    },
-    [onChange, setHeight]
-  );
+  const { feet, inches } = inchesToFeetAndInches(value);
 
   const handleFeetChange = useCallback(
-    (v: number) => {
-      setHeight(feetAndInchesToInches(v, inches));
-      onChange();
-    },
-    [inches, onChange, setHeight]
+    (v: number) => setHeight(feetAndInchesToInches(v, inches)),
+    [inches, setHeight]
   );
 
   const handleInchesChange = useCallback(
-    (v: number) => {
-      setHeight(feetAndInchesToInches(feet, v));
-      onChange();
-    },
-    [feet, onChange, setHeight]
+    (v: number) => setHeight(feetAndInchesToInches(feet, v)),
+    [feet, setHeight]
   );
 
   if (isMetric) {
     return (
       <Picker
-        onValueChange={handleCentimetersChange}
+        onValueChange={setHeight}
         options={range(30, 275).map((i) => ({
           label: `${i} cm`,
           value: i,
         }))}
-        value={Math.round(value ?? 176)}
+        value={Math.round(value)}
         variant="wheel"
       />
     );
