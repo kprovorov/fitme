@@ -340,6 +340,10 @@ const ENTRY_ROUTES: EntryRoute[] = [
   },
 ];
 
+/** What a set row shows when its save fails. */
+const SET_SAVE_ERROR =
+  "Couldn't save this set. Check your connection and try again.";
+
 const isSuggestionShown = () =>
   screen.queryByTestId("finish-suggestion") !== null;
 
@@ -480,6 +484,58 @@ describe.each(ENTRY_ROUTES)(
 
       expect(isSuggestionShown()).toBe(true);
       expect(mockPresentations.count).toBe(1);
+    });
+
+    it("shows an error on the set when saving it fails, and clears it once a retry succeeds", async () => {
+      await startApp({
+        exercises: [{ name: "Squat", sets: [null, null] }],
+        id: "s1",
+      });
+      await openExercise("Squat");
+
+      backend.failNext("workout_session_exercise_sets", "update");
+      await trackSet(1, "8");
+
+      expect(focused().getByText(SET_SAVE_ERROR)).toBeTruthy();
+      expect(
+        focused().queryByText("update workout_session_exercise_sets failed")
+      ).toBeNull();
+      // The row stays editable: its ✓ is still there to retry.
+      expect(focused().getByTestId("log-set-button-1")).toBeTruthy();
+
+      await trackSet(1);
+
+      expect(focused().queryByText(SET_SAVE_ERROR)).toBeNull();
+      expect(
+        backend.sets.find(({ id }) => id === "s1-e1-s1")?.reps_completed
+      ).toBe(8);
+    });
+
+    it("shows an error on an added set when creating it fails, and clears it once a retry succeeds", async () => {
+      await startApp({
+        exercises: [{ name: "Squat", sets: [10] }],
+        id: "s1",
+      });
+      await openExercise("Squat");
+      await fireEvent.press(focused().getByText("Add Set"));
+
+      backend.failNext("workout_session_exercise_sets", "insert");
+      await trackSet(2, "6");
+
+      expect(focused().getByText(SET_SAVE_ERROR)).toBeTruthy();
+      expect(focused().getByTestId("log-set-button-2")).toBeTruthy();
+      const squatSets = () =>
+        backend.sets.filter(
+          (set) => set.workout_session_exercise_id === "s1-e1"
+        );
+      expect(squatSets()).toHaveLength(1);
+
+      await trackSet(2);
+
+      expect(focused().queryByText(SET_SAVE_ERROR)).toBeNull();
+      expect(squatSets().map(({ reps_completed }) => reps_completed)).toEqual([
+        10, 6,
+      ]);
     });
 
     it("never suggests when the completion check cannot read the session", async () => {

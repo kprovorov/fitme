@@ -18,6 +18,10 @@ import { HStack } from "../ui/hstack";
 import { Separator } from "../ui/separator";
 import { Text } from "../ui/text";
 
+// Never the backend's message: the User can't act on a Postgres error.
+const SET_SAVE_ERROR =
+  "Couldn't save this set. Check your connection and try again.";
+
 interface WorkoutSessionExerciseSetRowViewProps {
   exerciseId: string;
   hasWeight?: boolean;
@@ -54,6 +58,12 @@ export default function WorkoutSessionExerciseSetRowView({
   const [isDone, setIsDone] = useState(
     !isNewSet && workoutSessionExerciseSet.reps_completed !== null
   );
+  const [saveError, setSaveError] = useState<string | null>(null);
+
+  const handleSaveError = () => {
+    pendingSetData.current = null;
+    setSaveError(SET_SAVE_ERROR);
+  };
 
   const trackSetCompleted = () => {
     if (!IS_E2E && pendingSetData.current) {
@@ -68,12 +78,14 @@ export default function WorkoutSessionExerciseSetRowView({
 
   const { mutate: updateWorkoutSessionExerciseSet } =
     useUpdateWorkoutSessionExerciseSetMutation({
+      onError: handleSaveError,
       onSuccess: (set) => {
         reportWorkoutSetTracked({
           previousRepsCompleted: previousRepsCompleted.current,
           sessionId,
           set,
         });
+        setSaveError(null);
         setIsEditable(false);
         setIsDone(true);
         trackSetCompleted();
@@ -91,12 +103,14 @@ export default function WorkoutSessionExerciseSetRowView({
 
   const { mutate: createWorkoutSessionExerciseSet } =
     useCreateWorkoutSessionExerciseSetMutation({
+      onError: handleSaveError,
       onSuccess: (set) => {
         reportWorkoutSetTracked({
           previousRepsCompleted: null,
           sessionId,
           set,
         });
+        setSaveError(null);
         setIsEditable(false);
         setIsDone(true);
         trackSetCompleted();
@@ -179,6 +193,7 @@ export default function WorkoutSessionExerciseSetRowView({
 
       <WorkoutSessionExerciseSetForm
         disabled={!isEditable || locked}
+        error={saveError}
         hasWeight={hasWeight}
         isDone={isDone}
         isEditing={isEditable}

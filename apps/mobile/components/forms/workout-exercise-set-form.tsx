@@ -14,6 +14,8 @@ import { VStack } from "../ui/vstack";
 
 interface WorkoutSessionExerciseSetFormProps {
   disabled?: boolean;
+  /** Shown under the row, e.g. when saving the set failed. */
+  error?: string | null;
   hasWeight: boolean;
   isDone?: boolean;
   isEditing?: boolean;
@@ -38,6 +40,7 @@ export default function WorkoutSessionExerciseSetForm({
   hasWeight = true,
   recommendedValues,
   disabled,
+  error,
   isDone,
   isEditing,
   setIndex = 0,
@@ -143,6 +146,11 @@ export default function WorkoutSessionExerciseSetForm({
       ) : null}
       {form.formState.errors.reps ? (
         <ErrorMessage>{form.formState.errors.reps.message}</ErrorMessage>
+      ) : null}
+      {error ? (
+        <ErrorMessage testID={`set-save-error-${setIndex}`}>
+          {error}
+        </ErrorMessage>
       ) : null}
     </VStack>
   );
