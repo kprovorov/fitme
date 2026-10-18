@@ -13,7 +13,7 @@ select plan(18);
 -- Fixtures (as postgres, bypassing RLS)
 -- ------------------------------------------------------------
 -- Each User gets a Profile, a Plan with a Workout, exercise and set, a
--- Workout Session with an exercise and set, and a conversation with a message.
+-- Workout Session with an exercise and set.
 insert into public.exercises (id, name, slug) values
   ('f3e00000-0000-0000-0000-000000000001', 'Test Lunge', 'test-lunge-user-data-functions');
 
@@ -55,12 +55,6 @@ from test_users;
 insert into public.workout_session_exercise_sets (workout_session_exercise_id, "order", reps_completed)
 select ('f3600000-0000-0000-0000-00000000000' || n)::uuid, 1, 8 from test_users;
 
-insert into public.conversations (id, user_id)
-select ('f3800000-0000-0000-0000-00000000000' || n)::uuid, user_id from test_users;
-
-insert into public.messages (conversation_id, role, content)
-select ('f3800000-0000-0000-0000-00000000000' || n)::uuid, 'user', 'hello' from test_users;
-
 -- Rows of every User-owned table reachable from a User id
 create function pg_temp.owned_rows(p_user_id text)
 returns int
@@ -84,14 +78,11 @@ as $$
     + (select count(*) from public.workout_session_exercise_sets wses
        join public.workout_session_exercises wse on wse.id = wses.workout_session_exercise_id
        join public.workout_sessions ws on ws.id = wse.workout_session_id where ws.user_id = p_user_id)
-    + (select count(*) from public.conversations where user_id = p_user_id)
-    + (select count(*) from public.messages m
-       join public.conversations c on c.id = m.conversation_id where c.user_id = p_user_id)
   )::int
 $$;
 
-select is(pg_temp.owned_rows('user_2DeleteMe00000000000000'), 10, 'User 1 starts with ten owned rows');
-select is(pg_temp.owned_rows('user_2Bystander000000000000'), 10, 'User 2 starts with ten owned rows');
+select is(pg_temp.owned_rows('user_2DeleteMe00000000000000'), 8, 'User 1 starts with eight owned rows');
+select is(pg_temp.owned_rows('user_2Bystander000000000000'), 8, 'User 2 starts with eight owned rows');
 
 -- delete_user_data was dropped: deleteUserData in packages/services
 select hasnt_function('public', 'delete_user_data', 'delete_user_data is gone');
@@ -106,7 +97,6 @@ select hasnt_function('public', 'rekey_user', 'rekey_user is gone');
 insert into private.retired_user_ids (user_id) values ('user_2DeleteMe00000000000000');
 delete from public.workout_sessions where user_id = 'user_2DeleteMe00000000000000';
 delete from public.plans where user_id = 'user_2DeleteMe00000000000000';
-delete from public.conversations where user_id = 'user_2DeleteMe00000000000000';
 delete from public.profiles where user_id = 'user_2DeleteMe00000000000000';
 
 -- The deleted User's token is still valid until it expires, but the id is
@@ -159,9 +149,10 @@ select throws_ok(
 );
 
 select throws_ok(
-  $$insert into public.conversations (user_id) values ('user_2DeleteMe00000000000000')$$,
+  $$insert into public.workout_sessions (user_id, started_at)
+    values ('user_2DeleteMe00000000000000', now())$$,
   '42501', 'User id user_2DeleteMe00000000000000 is retired',
-  'service_role can''t write under a deleted User id'
+  'service_role can''t create a Workout Session under a deleted User id'
 );
 
 reset role;
@@ -176,12 +167,10 @@ update public.plans set user_id = 'user_2Rekeyed0000000000000000'
   where user_id = '7a1b2c3d-0000-4000-8000-000000000003';
 update public.workout_sessions set user_id = 'user_2Rekeyed0000000000000000'
   where user_id = '7a1b2c3d-0000-4000-8000-000000000003';
-update public.conversations set user_id = 'user_2Rekeyed0000000000000000'
-  where user_id = '7a1b2c3d-0000-4000-8000-000000000003';
 insert into private.retired_user_ids (user_id, rekeyed_to)
   values ('7a1b2c3d-0000-4000-8000-000000000003', 'user_2Rekeyed0000000000000000');
 
-select is(pg_temp.owned_rows('user_2Rekeyed0000000000000000'), 10, 'every row is under the Clerk id');
+select is(pg_temp.owned_rows('user_2Rekeyed0000000000000000'), 8, 'every row is under the Clerk id');
 
 -- The rekeyed User reaches their data through RLS with the Clerk sub
 set local role authenticated;
@@ -204,7 +193,8 @@ select is_empty(
 );
 
 select throws_ok(
-  $$insert into public.conversations (user_id) values ('7a1b2c3d-0000-4000-8000-000000000003')$$,
+  $$insert into public.workout_sessions (user_id, started_at)
+    values ('7a1b2c3d-0000-4000-8000-000000000003', now())$$,
   '42501', null,
   'the legacy sub can''t write'
 );
@@ -222,7 +212,7 @@ select throws_ok(
 
 reset role;
 
-select is(pg_temp.owned_rows('user_2Bystander000000000000'), 10, 'the other User was left alone');
+select is(pg_temp.owned_rows('user_2Bystander000000000000'), 8, 'the other User was left alone');
 
 select * from finish();
 

@@ -2,9 +2,7 @@
 
 import { relations } from "drizzle-orm/relations";
 import {
-  conversations,
   exercises,
-  messages,
   plans,
   workoutExerciseSets,
   workoutExercises,
@@ -14,20 +12,9 @@ import {
   workouts,
 } from "./schema";
 
-export const conversationsRelations = relations(conversations, ({ many }) => ({
-  messages: many(messages),
-}));
-
 export const exercisesRelations = relations(exercises, ({ many }) => ({
   workoutExercises: many(workoutExercises),
   workoutSessionExercises: many(workoutSessionExercises),
-}));
-
-export const messagesRelations = relations(messages, ({ one }) => ({
-  conversation: one(conversations, {
-    fields: [messages.conversationId],
-    references: [conversations.id],
-  }),
 }));
 
 export const plansRelations = relations(plans, ({ many }) => ({

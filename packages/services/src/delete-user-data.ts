@@ -1,7 +1,5 @@
 import {
   coachSessions,
-  conversations,
-  messages,
   plans,
   profiles,
   retiredUserIdsInPrivate,
@@ -27,13 +25,11 @@ const LOCKED_TABLES = sql.join(
     profiles,
     plans,
     workoutSessions,
-    conversations,
     workouts,
     workoutExercises,
     workoutExerciseSets,
     workoutSessionExercises,
     workoutSessionExerciseSets,
-    messages,
     coachSessions,
   ],
   sql`, `
@@ -106,7 +102,6 @@ export const deleteUserData = async (
   // Root rows only; their children go through the foreign key cascades
   await tx.delete(workoutSessions).where(eq(workoutSessions.userId, userId));
   await tx.delete(plans).where(eq(plans.userId, userId));
-  await tx.delete(conversations).where(eq(conversations.userId, userId));
   await tx.delete(profiles).where(eq(profiles.userId, userId));
   // coach_sessions stays: each row is the ACL for an EVE session, whose
   // stream eve keeps until retention ends even after the webhook resets it,
