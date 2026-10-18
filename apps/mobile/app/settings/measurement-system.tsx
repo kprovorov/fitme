@@ -33,30 +33,40 @@ export default function MeasurementSystemScreen() {
   );
 
   /**
-   * The system being switched to, from Confirm until the Profile has been
-   * read again, or `null` when no switch is running. Set in the same handler
-   * that clears `pendingSystem`, so the picker never has a render in between
+   * The system being switched to, from Confirm until the switch has
+   * finished, or `null` when none is running. Set in the same handler that
+   * clears `pendingSystem`, so the picker never has a render in between
    * showing the old system.
    */
   const [switchingTo, setSwitchingTo] = useState<MeasurementSystem | null>(
     null
   );
 
+  const invalidateProfile = useCallback(
+    () => queryClient.invalidateQueries({ queryKey: useProfileQuery.getKey() }),
+    [queryClient]
+  );
+
   const { mutate: updateMeasurementSystem } =
     useUpdateMeasurementSystemMutation({
       onError: (error) => {
         Sentry.captureException(error);
+        setSwitchingTo(null);
         Alert.alert(
           "Couldn't Change Units",
           "Your measurements weren't changed. Please try again."
         );
+        // In case the switch did go through after all.
+        invalidateProfile();
       },
-      // Also after a failure, in case the switch did go through.
-      onSettled: async () => {
-        await queryClient.invalidateQueries({
-          queryKey: useProfileQuery.getKey(),
-        });
+      onSuccess: (_, system) => {
+        // Saved before the refetch, so the picker never drops back to the old
+        // system, even if the refetch fails.
+        queryClient.setQueryData(useProfileQuery.getKey(), (cached) =>
+          cached ? { ...cached, measurement_system: system } : cached
+        );
         setSwitchingTo(null);
+        invalidateProfile();
       },
     });
 
@@ -100,7 +110,7 @@ export default function MeasurementSystemScreen() {
       <View className="flex-1">
         <RadioGroup
           disabled={isSwitching}
-          footer={getMeasurementSystemDisclaimer(currentSystem)}
+          footer={getMeasurementSystemDisclaimer(switchingTo ?? currentSystem)}
           onValueChange={handleValueChange}
           options={MEASUREMENT_SYSTEM_OPTIONS}
           value={shownSystem}

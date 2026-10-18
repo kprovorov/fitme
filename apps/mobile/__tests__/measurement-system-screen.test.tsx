@@ -1,4 +1,5 @@
 import { beforeEach, describe, expect, it, jest } from "@jest/globals";
+import * as Sentry from "@sentry/react-native";
 import { QueryClient, QueryClientProvider } from "@tanstack/react-query";
 import {
   act,
@@ -240,6 +241,22 @@ describe("MeasurementSystemScreen", () => {
     expect(mockFetchProfile).toHaveBeenCalledTimes(2);
   });
 
+  it("keeps the new system shown when the switch succeeds but the refetch fails", async () => {
+    mockConvert.mockResolvedValue();
+    await setup();
+    mockFetchProfile.mockRejectedValue(new Error("offline"));
+
+    await fireEvent.press(screen.getByTestId("option-us"));
+    await fireEvent.press(screen.getByText("Confirm"));
+
+    await waitFor(() => expect(mockFetchProfile).toHaveBeenCalledTimes(2));
+    await waitFor(() =>
+      expect(screen.getByTestId("picker")).not.toBeDisabled()
+    );
+    expect(shown()).toHaveTextContent("us");
+    expect(Alert.alert).not.toHaveBeenCalled();
+  });
+
   it("ignores picks while a switch is in flight", async () => {
     const convert = deferred();
     mockConvert.mockReturnValue(convert.promise);
@@ -272,6 +289,7 @@ describe("MeasurementSystemScreen", () => {
     ];
     expect(title).toBe("Couldn't Change Units");
     expect(message).not.toContain("numeric");
+    expect(Sentry.captureException).toHaveBeenCalledTimes(1);
     await waitFor(() =>
       expect(screen.getByTestId("picker")).not.toBeDisabled()
     );
