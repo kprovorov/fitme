@@ -1,6 +1,7 @@
 import { writeFile } from "node:fs/promises";
 import { resolve } from "node:path";
 import { createApp } from "./create-app";
+import { memoryRateLimiter } from "./rate-limit";
 import { PLACEHOLDER_SUPABASE_URL, serveLibrary } from "./served-library";
 
 /**
@@ -14,6 +15,8 @@ const library = serveLibrary({ exercises: [] }, PLACEHOLDER_SUPABASE_URL);
 const spec = createApp({
   auth: { clerkJwtKeys: {}, serverSecrets: {} },
   library,
+  rateLimiter: memoryRateLimiter(),
+  reportError: () => Promise.resolve(),
 }).getOpenAPIDocument({
   info: { title: "Exercise Library API", version: "1.0.0" },
   openapi: "3.0.3",

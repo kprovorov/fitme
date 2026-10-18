@@ -2,6 +2,11 @@ import { muscleGroups } from "@fitme/core/models";
 import { describe, expect, it, vi } from "vitest";
 import type { BundleExercise as LibraryExercise } from "./bundle";
 import { type AppDeps, createApp } from "./create-app";
+import {
+  memoryRateLimiter,
+  type RateLimiter,
+  rateLimiterFromEnv,
+} from "./rate-limit";
 import type { ExerciseBatch, ExercisePage } from "./schemas";
 import { serveLibrary } from "./served-library";
 import { clerkInstance, clerkToken } from "./test/clerk";
@@ -26,8 +31,20 @@ const auth: AppDeps["auth"] = {
   serverSecrets: { coach: COACH_SECRET, mcp: MCP_SECRET },
 };
 
-const app = createApp({
+/** A limiter that never refuses, for tests that aren't about limits. */
+const unlimited: RateLimiter = {
+  limit: () => Promise.resolve({ allowed: true }),
+};
+
+/** The deps every test app shares: no limits, errors dropped. */
+const base = {
   auth,
+  rateLimiter: unlimited,
+  reportError: () => Promise.resolve(),
+};
+
+const app = createApp({
+  ...base,
   library: serveLibrary(
     {
       exercises: [
@@ -48,7 +65,7 @@ const asUser = {
 /** An app whose `/caller` route answers the caller auth resolved. */
 const callerApp = (deps: Partial<AppDeps> = {}) =>
   createApp({
-    auth,
+    ...base,
     library: serveLibrary({ exercises: [] }, SUPABASE_URL),
     ...deps,
   }).get("/caller", (c) => c.json(c.get("caller")));
@@ -66,7 +83,10 @@ const unauthorized = {
 
 /** An app serving an empty Exercise Library, for adding test routes to. */
 const emptyApp = () =>
-  createApp({ auth, library: serveLibrary({ exercises: [] }, SUPABASE_URL) });
+  createApp({
+    ...base,
+    library: serveLibrary({ exercises: [] }, SUPABASE_URL),
+  });
 
 const currentEtag = async () => {
   const etag = (
@@ -79,7 +99,7 @@ const currentEtag = async () => {
 };
 
 const listApp = createApp({
-  auth,
+  ...base,
   library: serveLibrary(
     {
       // sorted by Exercise slug, as the bundle lists them
@@ -278,7 +298,7 @@ describe("GET /exercises search", () => {
 
   it("treats % and _ as literal characters", async () => {
     const wildcardApp = createApp({
-      auth,
+      ...base,
       library: serveLibrary(
         {
           exercises: [
@@ -406,7 +426,7 @@ describe("GET /exercises pagination", () => {
       (_, i) => `exercise-${String(i).padStart(2, "0")}`
     );
     const big = createApp({
-      auth,
+      ...base,
       library: serveLibrary(
         { exercises: slugs.map((slug) => libraryExercise(slug, slug)) },
         SUPABASE_URL
@@ -661,10 +681,6 @@ describe("device caching", () => {
     const failing = emptyApp().get("/exercises/boom/now", () => {
       throw new Error("boom");
     });
-    const errors = vi.spyOn(console, "error").mockImplementation(() => {
-      // keep the expected error out of the test output
-    });
-
     const responses = [
       await app.request("/exercises/deadlift", {
         headers: { ...asUser.headers, "If-None-Match": etag },
@@ -680,7 +696,6 @@ describe("device caching", () => {
       expect(response.headers.get("ETag")).toBeNull();
       expect(response.headers.get("Cache-Control")).toBeNull();
     }
-    errors.mockRestore();
   });
 
   it("doesn't cache /health", async () => {
@@ -729,7 +744,7 @@ describe("device caching", () => {
   ])("changes the ETag when %s changes", async (_, change) => {
     const etag = await currentEtag();
     const changed = createApp({
-      auth,
+      ...base,
       library: serveLibrary(
         {
           exercises: [
@@ -810,12 +825,18 @@ describe("errors", () => {
     });
   });
 
-  it("answers a thrown error with a JSON 500", async () => {
-    const failing = emptyApp().get("/boom", () => {
-      throw new Error("boom");
-    });
-    const errors = vi.spyOn(console, "error").mockImplementation(() => {
-      // keep the expected error out of the test output
+  it("reports a thrown error and answers a JSON 500", async () => {
+    const reported: unknown[] = [];
+    const boom = new Error("boom");
+    const failing = createApp({
+      ...base,
+      library: serveLibrary({ exercises: [] }, SUPABASE_URL),
+      reportError: (error) => {
+        reported.push(error);
+        return Promise.resolve();
+      },
+    }).get("/boom", () => {
+      throw boom;
     });
 
     const response = await failing.request("/boom", asUser);
@@ -824,6 +845,208 @@ describe("errors", () => {
     expect(await response.json()).toEqual({
       error: { code: "internal_error", message: "Internal server error" },
     });
-    errors.mockRestore();
+    expect(reported).toEqual([boom]);
+  });
+});
+
+const MINUTE_MS = 60_000;
+
+/** An app serving one Exercise, limited by `rateLimiter`, recording what it reports. */
+const limitedApp = (rateLimiter: RateLimiter) => {
+  const reported: unknown[] = [];
+  const limited = createApp({
+    ...base,
+    library: serveLibrary(
+      { exercises: [libraryExercise("squat", "Squat")] },
+      SUPABASE_URL
+    ),
+    rateLimiter,
+    reportError: (error) => {
+      reported.push(error);
+      return Promise.resolve();
+    },
+  });
+  return { limited, reported };
+};
+
+/** A clock tests move by hand. */
+const fakeClock = (start = Date.UTC(2026, 9, 18)) => {
+  let time = start;
+  return {
+    advance: (ms: number) => {
+      time += ms;
+    },
+    now: () => time,
+  };
+};
+
+const requestTimes = async (
+  target: { request: typeof app.request },
+  times: number,
+  init: RequestInit = asUser
+) => {
+  const statuses: number[] = [];
+  for (let i = 0; i < times; i += 1) {
+    // biome-ignore lint/performance/noAwaitInLoops: one at a time, so the statuses come back in the order they were counted
+    statuses.push((await target.request("/exercises/squat", init)).status);
+  }
+  return statuses;
+};
+
+describe("rate limiting", () => {
+  it("answers a User's 121st request within a minute with 429 and Retry-After", async () => {
+    const clock = fakeClock();
+    const { limited } = limitedApp(memoryRateLimiter({ now: clock.now }));
+
+    const statuses = await requestTimes(limited, 120);
+    clock.advance(45_000);
+    const response = await limited.request("/exercises/squat", asUser);
+
+    expect(statuses.every((status) => status === 200)).toBe(true);
+    expect(response.status).toBe(429);
+    expect(response.headers.get("Retry-After")).toBe("15");
+    expect(response.headers.get("ETag")).toBeNull();
+    expect(await response.json()).toEqual({
+      error: {
+        code: "rate_limited",
+        message:
+          "Too many requests, retry after the Retry-After header's seconds",
+      },
+    });
+  });
+
+  it("resets the window after a minute", async () => {
+    const clock = fakeClock();
+    const { limited } = limitedApp(memoryRateLimiter({ now: clock.now }));
+
+    await requestTimes(limited, 121);
+    clock.advance(MINUTE_MS);
+
+    expect(await requestTimes(limited, 120)).toEqual(new Array(120).fill(200));
+  });
+
+  it("counts each User separately", async () => {
+    const clock = fakeClock();
+    const { limited } = limitedApp(memoryRateLimiter({ now: clock.now }));
+
+    await requestTimes(limited, 121);
+    const response = await limited.request(
+      "/exercises/squat",
+      bearer(clerkToken(production.privateKey, { sub: "user_bob" }))
+    );
+
+    expect(response.status).toBe(200);
+  });
+
+  it("counts a 304 too", async () => {
+    const clock = fakeClock();
+    const { limited } = limitedApp(memoryRateLimiter({ now: clock.now }));
+    const etag = (
+      await limited.request("/exercises/squat", asUser)
+    ).headers.get("ETag");
+
+    const statuses = await requestTimes(limited, 120, {
+      headers: { ...asUser.headers, "If-None-Match": etag ?? "" },
+    });
+
+    expect(statuses.at(-2)).toBe(304);
+    expect(statuses.at(-1)).toBe(429);
+  });
+
+  it.each([
+    ["the Coach", COACH_SECRET],
+    ["the MCP server", MCP_SECRET],
+  ])("never limits %s", async (_, secret) => {
+    const limiter = vi.fn<RateLimiter["limit"]>(() =>
+      Promise.resolve({ allowed: false, retryAfterSeconds: 60 })
+    );
+    const { limited } = limitedApp({ limit: limiter });
+
+    expect(await requestTimes(limited, 200, bearer(secret))).toEqual(
+      new Array(200).fill(200)
+    );
+    expect(limiter).not.toHaveBeenCalled();
+  });
+
+  it("checks the token before counting", async () => {
+    const limiter = vi.fn<RateLimiter["limit"]>(() =>
+      Promise.resolve({ allowed: true })
+    );
+    const { limited } = limitedApp({ limit: limiter });
+
+    const response = await limited.request("/exercises/squat");
+
+    expect(response.status).toBe(401);
+    expect(limiter).not.toHaveBeenCalled();
+  });
+
+  it("serves the request and reports when the limiter throws", async () => {
+    const outage = new Error("Upstash is down");
+    const { limited, reported } = limitedApp({
+      limit: () => Promise.reject(outage),
+    });
+
+    const response = await limited.request("/exercises/squat", asUser);
+
+    expect(response.status).toBe(200);
+    expect(reported).toHaveLength(1);
+    expect((reported[0] as Error).cause).toBe(outage);
+  });
+
+  it("serves the request and reports when the limiter times out", async () => {
+    vi.useFakeTimers();
+    const { limited, reported } = limitedApp({
+      limit: () => new Promise(() => undefined),
+    });
+
+    let settled = false;
+    const pending = Promise.resolve(
+      limited.request("/exercises/squat", asUser)
+    ).finally(() => {
+      settled = true;
+    });
+    // Token verification is async, so the limiter's timer starts some ticks in.
+    while (!settled) {
+      // biome-ignore lint/performance/noAwaitInLoops: each step lets the request reach its next timer
+      await vi.advanceTimersByTimeAsync(100);
+    }
+    const response = await pending;
+    vi.useRealTimers();
+
+    expect(response.status).toBe(200);
+    expect(reported).toHaveLength(1);
+    expect((reported[0] as Error).cause).toEqual(
+      new Error("Rate limiter timed out after 1000 ms")
+    );
+  });
+});
+
+describe("rateLimiterFromEnv", () => {
+  it("refuses to start in production without Upstash", () => {
+    expect(() => rateLimiterFromEnv({ NODE_ENV: "production" })).toThrow(
+      "UPSTASH_REDIS_REST_URL and UPSTASH_REDIS_REST_TOKEN are required in production"
+    );
+    expect(() =>
+      rateLimiterFromEnv({
+        NODE_ENV: "production",
+        UPSTASH_REDIS_REST_URL: "https://example.upstash.io",
+      })
+    ).toThrow();
+  });
+
+  it("uses the in-memory limiter outside production without Upstash", async () => {
+    const limiter = rateLimiterFromEnv({ NODE_ENV: "development" });
+
+    expect(await limiter.limit("user_alice")).toEqual({ allowed: true });
+  });
+
+  it("uses Upstash in production when it's configured", () => {
+    expect(() =>
+      rateLimiterFromEnv({
+        NODE_ENV: "production",
+        UPSTASH_REDIS_REST_TOKEN: "token",
+        UPSTASH_REDIS_REST_URL: "https://example.upstash.io",
+      })
+    ).not.toThrow();
   });
 });

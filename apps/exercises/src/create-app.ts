@@ -9,6 +9,7 @@ import {
   requireCaller,
 } from "./auth";
 import { deviceCache } from "./cache";
+import { type RateLimiter, rateLimitUsers } from "./rate-limit";
 import { exerciseRoutes } from "./routes/exercises";
 import type { ServedLibrary } from "./served-library";
 
@@ -17,6 +18,10 @@ export interface AppDeps {
   auth: AuthConfig;
   /** The whole Exercise Library, baked into the build: nothing is read at runtime. */
   library: ServedLibrary;
+  /** Counts each User's requests; server callers are never counted. */
+  rateLimiter: RateLimiter;
+  /** Sends an error to Sentry (and the logs), resolving once it's delivered. */
+  reportError: (error: unknown) => Promise<void>;
 }
 
 const health = createRoute({
@@ -34,7 +39,12 @@ const health = createRoute({
 });
 
 /** The Exercise Library API, serving the injected Exercise Library. */
-export const createApp = ({ auth, library }: AppDeps) => {
+export const createApp = ({
+  auth,
+  library,
+  rateLimiter,
+  reportError,
+}: AppDeps) => {
   const app = new OpenAPIHono<AuthEnv>();
 
   app.use(logger());
@@ -54,6 +64,8 @@ export const createApp = ({ auth, library }: AppDeps) => {
     scheme: "bearer",
     type: "http",
   });
+  // Counted before anything is served, a 304 included.
+  app.use(rateLimitUsers({ limiter: rateLimiter, reportError }));
 
   // Every content route, current and future, lives under /exercises. After
   // auth, so a 304 only ever goes to a caller.
@@ -64,14 +76,14 @@ export const createApp = ({ auth, library }: AppDeps) => {
     c.json({ error: { code: "not_found", message: "Route not found" } }, 404)
   );
 
-  app.onError((error, c) => {
+  app.onError(async (error, c) => {
     if (error instanceof HTTPException) {
       return c.json(
         { error: { code: "http_error", message: error.message } },
         error.status
       );
     }
-    console.error(error);
+    await reportError(error);
     return c.json(
       { error: { code: "internal_error", message: "Internal server error" } },
       500
