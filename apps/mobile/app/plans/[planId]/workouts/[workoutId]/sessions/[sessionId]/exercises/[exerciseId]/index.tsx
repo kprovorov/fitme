@@ -74,21 +74,18 @@ export default function WorkoutSessionExerciseScreen() {
   }, [router, workoutSessionExercise]);
 
   const handleSetLogged = useCallback(
-    (set: WorkoutSessionExerciseSet) => {
-      const nextSet = [...(workoutSessionExercise?.sets ?? [])]
-        .sort((a, b) => a.order - b.order)
-        .find((other) => other.id !== set.id && other.reps_completed === null);
-      if (isFinished || !set.rest_recommended || !nextSet) {
+    (set: WorkoutSessionExerciseSet, nextSetOrder: number | null) => {
+      if (isFinished || !set.rest_recommended || nextSetOrder === null) {
         setRest(null);
         return;
       }
       setRest({
         duration: set.rest_recommended,
         endsAt: Date.now() + set.rest_recommended * 1000,
-        nextSetOrder: nextSet.order,
+        nextSetOrder,
       });
     },
-    [isFinished, workoutSessionExercise]
+    [isFinished]
   );
 
   const adjustRest = useCallback((seconds: number) => {

@@ -25,10 +25,16 @@ interface Month {
   title: string;
 }
 
-/** Sessions (newest first) grouped by the month they started in. */
+/** Sessions grouped by the month they started in, newest first. */
 function groupByMonth(sessions: WorkoutSession[]): Month[] {
+  // Sorted by start, the date grouped on: the query orders by finish, and a
+  // long session finished late would otherwise split its month in two.
+  const byStart = [...sessions].sort(
+    (a, b) =>
+      new Date(b.started_at).getTime() - new Date(a.started_at).getTime()
+  );
   const months: Month[] = [];
-  for (const session of sessions) {
+  for (const session of byStart) {
     const startedAt = new Date(session.started_at);
     const key = format(startedAt, "yyyy-MM");
     const last = months.at(-1);

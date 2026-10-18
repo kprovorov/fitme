@@ -12,7 +12,14 @@ import WorkoutSessionExerciseSetRowView from "./workout-session-exercise-set-row
 
 interface WorkoutSessionExerciseSetsTableViewProps {
   exerciseId: string;
-  onSetLogged?: (set: WorkoutSessionExerciseSet) => void;
+  /**
+   * A set was logged for the first time; `nextSetOrder` is the next set still
+   * to log (an added one included), or `null` when none is left.
+   */
+  onSetLogged?: (
+    set: WorkoutSessionExerciseSet,
+    nextSetOrder: number | null
+  ) => void;
   /** The exercise's previous session, by set order. */
   previousSets?: Map<number, SetResult>;
   readOnly?: boolean;
@@ -76,6 +83,21 @@ export default function WorkoutSessionExerciseSetsTableView({
     setLocalSets([...localSets, newLocalSet]);
   };
 
+  const handleSetLogged = (set: WorkoutSessionExerciseSet) => {
+    const pendingOrders = [
+      ...workoutSessionExerciseSets
+        .filter((other) => other.id !== set.id && other.reps_completed === null)
+        .map((other) => other.order),
+      ...localSets
+        .filter((local) => local.order !== set.order)
+        .map((local) => local.order),
+    ];
+    onSetLogged?.(
+      set,
+      pendingOrders.length > 0 ? Math.min(...pendingOrders) : null
+    );
+  };
+
   const handleSetCreated = (localId?: string) => {
     if (!localId) {
       return;
@@ -114,7 +136,7 @@ export default function WorkoutSessionExerciseSetsTableView({
                 hasWeight={hasWeight}
                 key={workoutSessionExerciseSet.id}
                 locked={locked}
-                onSetLogged={onSetLogged}
+                onSetLogged={handleSetLogged}
                 previous={previousSets?.get(workoutSessionExerciseSet.order)}
                 sessionId={sessionId}
                 workoutSessionExerciseSet={workoutSessionExerciseSet}
@@ -136,7 +158,7 @@ export default function WorkoutSessionExerciseSetsTableView({
                 localSetId={localSet.id}
                 locked={locked}
                 onSetCreated={handleSetCreated}
-                onSetLogged={onSetLogged}
+                onSetLogged={handleSetLogged}
                 order={localSet.order}
                 previous={previousSets?.get(localSet.order)}
                 sessionId={sessionId}

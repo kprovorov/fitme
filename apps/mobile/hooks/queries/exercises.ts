@@ -104,12 +104,14 @@ export const useExerciseHistoryQuery = createQuery<
       throw error;
     }
     interface WseRaw {
-      sets: Array<{ weight_completed: unknown }>;
+      sets: Array<{ reps_completed: unknown }>;
     }
+    // Logged sets only: reps are recorded on every logged set, a weight only
+    // when the exercise has one (bodyweight sets have none).
     const withCompletedSets = (data ?? [])
       .map((wse: WseRaw) => ({
         ...wse,
-        sets: wse.sets.filter((set) => set.weight_completed !== null),
+        sets: wse.sets.filter((set) => set.reps_completed !== null),
       }))
       .filter((wse: WseRaw) => wse.sets.length > 0);
     return withCompletedSets as unknown as WorkoutSessionExercise[];

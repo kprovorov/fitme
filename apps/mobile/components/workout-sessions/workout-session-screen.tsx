@@ -1,5 +1,5 @@
 import { Stack } from "expo-router";
-import { ActivityIndicator, ScrollView, View } from "react-native";
+import { ActivityIndicator, Platform, ScrollView, View } from "react-native";
 import { useSafeAreaInsets } from "react-native-safe-area-context";
 import { useResolveClassNames } from "uniwind";
 import { Button } from "~/components/ui/button";
@@ -47,6 +47,16 @@ export default function WorkoutSessionScreen({
             sessionId={sessionId}
             workoutSession={workoutSession}
           />
+          {/* Header items are iOS only: elsewhere Finish stays in the content. */}
+          {canFinish && Platform.OS !== "ios" ? (
+            <Button
+              isLoading={isFinishing}
+              label="Finish Workout"
+              onPress={confirmFinish}
+              shape="pill"
+              testID="finish-workout-button"
+            />
+          ) : null}
         </>
       );
     }
