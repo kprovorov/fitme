@@ -79,9 +79,11 @@ export const formatSetTarget = (
     reps_recommended: reps,
     weight_recommended: weight,
   }: { reps_recommended: number | null; weight_recommended: number | null },
-  weightLabel: string
+  weightLabel: string | undefined
 ) => {
-  const weightText = weight ? `${formatSetWeight(weight)}${weightLabel}` : null;
+  const weightText = weight
+    ? `${formatSetWeight(weight)}${weightLabel ?? ""}`
+    : null;
   if (reps && weightText) {
     return `${reps}×${weightText}`;
   }

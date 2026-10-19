@@ -32,7 +32,7 @@ interface WorkoutSessionExerciseSetRowViewProps {
   order?: number;
   sessionId: string;
   /** The User's weight unit, for the REC cell. */
-  weightLabel: string;
+  weightLabel: string | undefined;
   workoutSessionExerciseSet: WorkoutSessionExerciseSet | null;
 }
 
