@@ -1,12 +1,15 @@
 import { muscleGroupToName, type WorkoutSessionExercise } from "@fitme/core";
 import { useRouter } from "expo-router";
-import { Pressable, View } from "react-native";
+import { Pressable, useWindowDimensions, View } from "react-native";
 import { SymbolImage } from "~/components/symbol-image";
 import { Card } from "~/components/ui/card";
 import { DropdownMenu } from "~/components/ui/dropdown-menu";
 import { Text } from "~/components/ui/text";
 import ExerciseImage from "../exercises/exercise-image";
 import WorkoutSessionExerciseSetsTableView from "./workout-session-exercise-sets-table-view";
+
+/** Past this text scale the thumbnail goes above the name instead of beside it. */
+const STACKED_FONT_SCALE = 1.4;
 
 interface WorkoutSessionExerciseCardProps {
   onDelete?: () => void;
@@ -34,6 +37,8 @@ export default function WorkoutSessionExerciseCard({
 }: WorkoutSessionExerciseCardProps) {
   const router = useRouter();
   const { exercise } = workoutSessionExercise;
+  const { fontScale } = useWindowDimensions();
+  const stacked = fontScale > STACKED_FONT_SCALE;
 
   // The exercise screen lives under the session's plan and workout.
   const canOpen = !!(planId && workoutId);
@@ -76,12 +81,16 @@ export default function WorkoutSessionExerciseCard({
           <Pressable
             accessibilityHint={canOpen ? "Opens the exercise" : undefined}
             accessibilityRole="button"
-            className="flex-1 flex-row items-center gap-sm active:opacity-80"
+            className={
+              stacked
+                ? "flex-1 gap-sm active:opacity-80"
+                : "flex-1 flex-row items-center gap-sm active:opacity-80"
+            }
             disabled={!canOpen}
             onPress={handlePress}
           >
             <ExerciseImage exercise={exercise} radius={10} size={50} />
-            <View className="flex-1 gap-1">
+            <View className={stacked ? "gap-1" : "flex-1 gap-1"}>
               <Text className="font-nunito-sans-bold text-body">
                 {exercise.name}
               </Text>

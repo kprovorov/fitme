@@ -1,6 +1,6 @@
 import { Stack } from "expo-router";
 import { useCallback } from "react";
-import { ActivityIndicator, View } from "react-native";
+import { ActivityIndicator, useWindowDimensions, View } from "react-native";
 import { KeyboardAwareScrollView } from "react-native-keyboard-controller";
 import { useSafeAreaInsets } from "react-native-safe-area-context";
 import { Button } from "~/components/ui/button";
@@ -11,6 +11,10 @@ import { WorkoutSessionFinishSuggestion } from "~/components/workout-sessions/wo
 import WorkoutSessionStats from "~/components/workout-sessions/workout-session-stats";
 import { useFinishWorkoutSession } from "~/hooks/finish-workout-session";
 import { useWorkoutSessionQuery } from "~/hooks/queries/workout-sessions";
+import { cn } from "~/lib/utils";
+
+/** Past this text scale Finish goes under the name, which would break mid-word. */
+const STACKED_FONT_SCALE = 1.4;
 
 interface WorkoutSessionScreenProps {
   sessionId: string;
@@ -25,6 +29,8 @@ export default function WorkoutSessionScreen({
   sessionId,
 }: WorkoutSessionScreenProps) {
   const insets = useSafeAreaInsets();
+  const { fontScale } = useWindowDimensions();
+  const stacked = fontScale > STACKED_FONT_SCALE;
   const {
     data: workoutSession,
     isError,
@@ -44,8 +50,17 @@ export default function WorkoutSessionScreen({
       return (
         <>
           <View className="gap-sm p-sm">
-            <View className="flex-row items-center gap-sm">
-              <H4 className="flex-1 font-nunito-sans-bold text-primary">
+            <View
+              className={
+                stacked ? "items-start gap-sm" : "flex-row items-center gap-sm"
+              }
+            >
+              <H4
+                className={cn(
+                  "font-nunito-sans-bold text-primary",
+                  !stacked && "flex-1"
+                )}
+              >
                 {workoutSession.workout?.name}
               </H4>
               {canFinish ? (
