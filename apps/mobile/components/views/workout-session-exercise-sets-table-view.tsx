@@ -116,10 +116,10 @@ export default function WorkoutSessionExerciseSetsTableView({
         >
           <ColumnLabel className="w-7">set</ColumnLabel>
           <ColumnLabel className="w-18">rec</ColumnLabel>
+          <ColumnLabel className="flex-1">reps</ColumnLabel>
           {hasWeight && (
             <ColumnLabel className="flex-1">{weightLabel}</ColumnLabel>
           )}
-          <ColumnLabel className="flex-1">reps</ColumnLabel>
           <View className={SET_CHECK_COLUMN_CLASS} />
         </View>
 

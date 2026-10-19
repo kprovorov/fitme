@@ -66,7 +66,7 @@ export type WorkoutSessionExerciseSetFormValues = z.output<typeof formSchema>;
 export const SET_TABLE_MAX_FONT_SCALE = 1.4;
 
 /**
- * A KG or REPS cell: an input to log, or the logged value in the same box.
+ * A REPS or KG cell: an input to log, or the logged value in the same box.
  * Each takes half the width the other columns leave.
  */
 const CELL_CLASS =
@@ -96,7 +96,7 @@ function LoggedValue({ value }: { value?: string }) {
 }
 
 /**
- * A set row: `leading` cells, then KG, REPS and the check, with any error
+ * A set row: `leading` cells, then REPS, KG and the check, with any error
  * under the row. A set to log shows inputs with the recommended values as
  * placeholders and a grey check; a logged set shows its values and a lime
  * check that opens it for editing.
@@ -205,6 +205,15 @@ export default function WorkoutSessionExerciseSetForm({
     <View className="gap-1">
       <View className="flex-row items-center gap-3">
         {leading}
+        {showsLoggedValues ? (
+          <LoggedValue value={recommendedValues?.reps} />
+        ) : (
+          <Controller
+            control={form.control}
+            name="reps"
+            render={renderRepsField}
+          />
+        )}
         {hasWeight ? (
           showsLoggedValues ? (
             <LoggedValue value={recommendedValues?.weight} />
@@ -216,15 +225,6 @@ export default function WorkoutSessionExerciseSetForm({
             />
           )
         ) : null}
-        {showsLoggedValues ? (
-          <LoggedValue value={recommendedValues?.reps} />
-        ) : (
-          <Controller
-            control={form.control}
-            name="reps"
-            render={renderRepsField}
-          />
-        )}
 
         <View
           className={cn(
