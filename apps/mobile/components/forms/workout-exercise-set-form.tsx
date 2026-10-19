@@ -236,7 +236,7 @@ export default function WorkoutSessionExerciseSetForm({
             <Button
               accessibilityHint="Opens the set for editing"
               accessibilityLabel={`Edit set ${setIndex}`}
-              contentClassName="text-primary"
+              contentColorClassName="text-primary"
               onPress={startEditing}
               shape="pill"
               size="icon-sm"
@@ -247,7 +247,7 @@ export default function WorkoutSessionExerciseSetForm({
           ) : (
             <Button
               accessibilityLabel={`Log set ${setIndex}`}
-              contentClassName="text-muted-foreground"
+              contentColorClassName="text-muted-foreground"
               disabled={disabled}
               onPress={submit}
               shape="pill"

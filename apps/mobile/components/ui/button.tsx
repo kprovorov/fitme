@@ -142,7 +142,7 @@ interface ButtonProps {
    * A text color class (`text-primary`) for the label and icon, in place of
    * the variant's own.
    */
-  contentClassName?: string;
+  contentColorClassName?: string;
   disabled?: boolean;
   /** Overrides whether the button spans its container's width. */
   fill?: boolean;
@@ -164,7 +164,7 @@ const Button = ({
   accessibilityHint,
   accessibilityLabel,
   className,
-  contentClassName,
+  contentColorClassName,
   variant = "default",
   size = "default",
   shape = "default",
@@ -178,9 +178,8 @@ const Button = ({
   children,
 }: ButtonProps) => {
   const theme = useSwiftUITheme();
-  const contentOverride = useResolveClassNames(contentClassName ?? "").color as
-    | string
-    | undefined;
+  const contentOverride = useResolveClassNames(contentColorClassName ?? "")
+    .color as string | undefined;
 
   const resolvedVariant = variant ?? "default";
   const resolvedSize = size ?? "default";

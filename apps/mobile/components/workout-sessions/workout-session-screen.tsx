@@ -13,6 +13,9 @@ import { useFinishWorkoutSession } from "~/hooks/finish-workout-session";
 import { useWorkoutSessionQuery } from "~/hooks/queries/workout-sessions";
 import { cn } from "~/lib/utils";
 
+/** Space kept between a focused set input and the keyboard. */
+const KEYBOARD_BOTTOM_OFFSET = 62;
+
 /** Past this text scale Finish goes under the name, which would break mid-word. */
 const STACKED_FONT_SCALE = 1.4;
 
@@ -119,7 +122,7 @@ export default function WorkoutSessionScreen({
         }}
       />
       <KeyboardAwareScrollView
-        bottomOffset={62}
+        bottomOffset={KEYBOARD_BOTTOM_OFFSET}
         contentContainerClassName="gap-sm px-sm pt-xs"
         contentContainerStyle={{ paddingBottom: insets.bottom + 16 }}
         contentInsetAdjustmentBehavior="automatic"
