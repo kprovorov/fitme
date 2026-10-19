@@ -451,6 +451,19 @@ describe.each(ENTRY_ROUTES)(
       expect(mockPresentations.count).toBe(1);
     });
 
+    it("suggests once when the last set is logged on the session screen", async () => {
+      await startApp({
+        exercises: [{ name: "Squat", sets: [10, null] }],
+        id: "s1",
+      });
+
+      await trackSet(2);
+
+      expect(mockNavigator.routes.at(-1)?.name).toBe(sessionRoute);
+      expect(isSuggestionShown()).toBe(true);
+      expect(mockPresentations.count).toBe(1);
+    });
+
     it("never suggests while the session is only partly tracked", async () => {
       await startApp({
         exercises: [

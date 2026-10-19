@@ -1,61 +1,39 @@
-import {
-  type ExerciseProgress,
-  exerciseProgress,
-  formatRepRange,
-  type WorkoutSessionExercise,
-} from "@fitme/core";
+import { muscleGroupToName, type WorkoutSessionExercise } from "@fitme/core";
 import { useRouter } from "expo-router";
 import { Pressable, View } from "react-native";
 import { SymbolImage } from "~/components/symbol-image";
+import { Card } from "~/components/ui/card";
 import { DropdownMenu } from "~/components/ui/dropdown-menu";
 import { Text } from "~/components/ui/text";
-import { cn } from "~/lib/utils";
 import ExerciseImage from "../exercises/exercise-image";
+import WorkoutSessionExerciseSetsTableView from "./workout-session-exercise-sets-table-view";
 
 interface WorkoutSessionExerciseCardProps {
   onDelete?: () => void;
   onReplace?: () => void;
   planId: string | null;
+  /** A finished session: no sets can be added. */
+  readOnly: boolean;
   sessionId: string;
   workoutId: string | null;
   workoutSessionExercise: WorkoutSessionExercise;
 }
 
-/** The row's second line: progress in words, so it never relies on color. */
-function progressText(
-  { logged, state, total }: ExerciseProgress,
-  repRange: string | null
-): string {
-  if (state === "done") {
-    return `${logged} of ${total} sets logged`;
-  }
-  if (state === "in-progress") {
-    return `Set ${logged + 1} of ${total} · in progress`;
-  }
-  if (total === 0) {
-    return "No sets yet";
-  }
-  const sets = total === 1 ? "1 set" : `${total} sets`;
-  return repRange ? `${sets} · ${repRange} reps` : sets;
-}
-
-const INDICATOR = {
-  done: { className: "text-primary", name: "checkmark.circle.fill" },
-  "in-progress": { className: "text-primary", name: "circle.inset.filled" },
-  todo: { className: "text-muted-foreground/60", name: "circle" },
-} as const;
-
+/**
+ * An exercise of a workout session: its header (opening the exercise's
+ * screen) above its sets, logged right here.
+ */
 export default function WorkoutSessionExerciseCard({
   workoutSessionExercise,
   onDelete,
   onReplace,
   planId,
+  readOnly,
   workoutId,
   sessionId,
 }: WorkoutSessionExerciseCardProps) {
   const router = useRouter();
-  const progress = exerciseProgress(workoutSessionExercise.sets);
-  const indicator = INDICATOR[progress.state];
+  const { exercise } = workoutSessionExercise;
 
   // The exercise screen lives under the session's plan and workout.
   const canOpen = !!(planId && workoutId);
@@ -92,60 +70,51 @@ export default function WorkoutSessionExerciseCard({
   ];
 
   return (
-    <View
-      className={cn(
-        "flex-row items-center gap-2 pr-3",
-        progress.state === "in-progress" && "bg-primary/10"
-      )}
-    >
-      <Pressable
-        accessibilityRole="button"
-        className="flex-1 flex-row items-center gap-3 py-3 pl-sm active:opacity-80"
-        disabled={!canOpen}
-        onPress={handlePress}
-      >
-        <ExerciseImage
-          exercise={workoutSessionExercise.exercise}
-          radius={12}
-          size={52}
-        />
-        <View className="flex-1 gap-0.5">
-          <Text className="font-nunito-sans-semibold text-body">
-            {workoutSessionExercise.exercise.name}
-          </Text>
-          <Text
-            className={cn(
-              "text-subhead",
-              progress.state === "in-progress"
-                ? "text-primary"
-                : "text-muted-foreground"
-            )}
+    <Card>
+      <View className="gap-sm p-sm">
+        <View className="flex-row items-center gap-2">
+          <Pressable
+            accessibilityHint={canOpen ? "Opens the exercise" : undefined}
+            accessibilityRole="button"
+            className="flex-1 flex-row items-center gap-sm active:opacity-80"
+            disabled={!canOpen}
+            onPress={handlePress}
           >
-            {progressText(
-              progress,
-              formatRepRange(workoutSessionExercise.sets)
-            )}
-          </Text>
+            <ExerciseImage exercise={exercise} radius={10} size={50} />
+            <View className="flex-1 gap-1">
+              <Text className="font-nunito-sans-bold text-body">
+                {exercise.name}
+              </Text>
+              {exercise.muscle_groups.length > 0 && (
+                <Text className="text-footnote text-muted-foreground">
+                  {exercise.muscle_groups.map(muscleGroupToName).join(", ")}
+                </Text>
+              )}
+            </View>
+          </Pressable>
+          {menuItems.length > 0 ? (
+            <DropdownMenu
+              accessibilityLabel={`More options for ${exercise.name}`}
+              items={menuItems}
+              systemImage="ellipsis"
+            />
+          ) : (
+            canOpen && (
+              <SymbolImage
+                className="text-muted-foreground/60"
+                name="chevron.right"
+                size={14}
+              />
+            )
+          )}
         </View>
-        <SymbolImage
-          className={indicator.className}
-          name={indicator.name}
-          size={24}
+        <WorkoutSessionExerciseSetsTableView
+          exerciseId={workoutSessionExercise.id}
+          readOnly={readOnly}
+          sessionId={sessionId}
+          workoutSessionExerciseSets={workoutSessionExercise.sets}
         />
-      </Pressable>
-      {menuItems.length > 0 ? (
-        <DropdownMenu
-          accessibilityLabel={`More options for ${workoutSessionExercise.exercise.name}`}
-          items={menuItems}
-          systemImage="ellipsis"
-        />
-      ) : (
-        <SymbolImage
-          className="text-muted-foreground/60"
-          name="chevron.right"
-          size={14}
-        />
-      )}
-    </View>
+      </View>
+    </Card>
   );
 }

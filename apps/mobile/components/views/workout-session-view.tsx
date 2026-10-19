@@ -1,7 +1,7 @@
 import type { Exercise, WorkoutSession } from "@fitme/core";
 import { useQueryClient } from "@tanstack/react-query";
 import { useCallback, useState } from "react";
-import { Modal, ScrollView, View } from "react-native";
+import { Modal, ScrollView } from "react-native";
 import {
   useCreateWorkoutSessionExerciseMutation,
   useDeleteWorkoutSessionExerciseMutation,
@@ -10,9 +10,7 @@ import {
 import { IS_E2E } from "~/lib/constants";
 import { segmentClient } from "~/lib/segment";
 import { Button } from "../ui/button";
-import { Card } from "../ui/card";
 import { HStack } from "../ui/hstack";
-import { Separator } from "../ui/separator";
 import { VStack } from "../ui/vstack";
 import ExercisesView from "./exercises-view";
 import WorkoutSessionExerciseCard from "./workout-session-exercise-card";
@@ -167,7 +165,7 @@ export default function WorkoutSessionView({
   };
 
   return (
-    <VStack className="items-stretch justify-stretch">
+    <>
       <Modal
         animationType="slide"
         backdropColorClassName="accent-background"
@@ -197,45 +195,39 @@ export default function WorkoutSessionView({
         </ScrollView>
       </Modal>
 
-      <Card>
+      <VStack className="items-stretch justify-stretch gap-sm">
         {[...workoutSession.exercises]
           .sort((a, b) => a.order - b.order)
-          .map((exercise, index) => (
-            <View key={exercise.id}>
-              {index > 0 && <Separator className="ml-20" />}
-              <WorkoutSessionExerciseCard
-                onDelete={
-                  workoutSession.finished_at
-                    ? undefined
-                    : () => handleDeleteExercise(exercise.id)
-                }
-                onReplace={
-                  workoutSession.finished_at
-                    ? undefined
-                    : () => handleReplaceExercise(exercise.id)
-                }
-                planId={workoutSession.plan_id}
-                sessionId={workoutSession.id}
-                workoutId={workoutSession.workout_id}
-                workoutSessionExercise={exercise}
-              />
-            </View>
+          .map((exercise) => (
+            <WorkoutSessionExerciseCard
+              key={exercise.id}
+              onDelete={
+                workoutSession.finished_at
+                  ? undefined
+                  : () => handleDeleteExercise(exercise.id)
+              }
+              onReplace={
+                workoutSession.finished_at
+                  ? undefined
+                  : () => handleReplaceExercise(exercise.id)
+              }
+              planId={workoutSession.plan_id}
+              readOnly={!!workoutSession.finished_at}
+              sessionId={workoutSession.id}
+              workoutId={workoutSession.workout_id}
+              workoutSessionExercise={exercise}
+            />
           ))}
         {!workoutSession.finished_at && (
-          <>
-            {workoutSession.exercises.length > 0 && <Separator />}
-            <VStack className="items-stretch p-2">
-              <Button
-                label="Add Exercise"
-                onPress={openModal}
-                shape="pill"
-                systemImage="plus"
-                variant="ghost"
-              />
-            </VStack>
-          </>
+          <Button
+            label="Add Exercise"
+            onPress={openModal}
+            shape="pill"
+            systemImage="plus"
+            variant="secondary"
+          />
         )}
-      </Card>
-    </VStack>
+      </VStack>
+    </>
   );
 }

@@ -93,16 +93,14 @@ export function exerciseProgress(sets: TrackableSet[]): ExerciseProgress {
 
 type ResultSet = Pick<
   WorkoutSessionExerciseSet,
-  "order" | "reps_completed" | "weight_completed"
+  "reps_completed" | "weight_completed"
 >;
 
 /**
  * Total weight moved: weight × reps over every logged set, in the unit the
  * weights are stored in. Sets without a weight count as zero.
  */
-export function sessionVolume(
-  exercises: { sets: Omit<ResultSet, "order">[] }[]
-): number {
+export function sessionVolume(exercises: { sets: ResultSet[] }[]): number {
   const volume = exercises.reduce(
     (total, exercise) =>
       total +
@@ -125,36 +123,10 @@ export interface SetResult {
 }
 
 /**
- * The sets of the most recent other session of an exercise, by set order:
- * what to beat in the "previous" column. `history` is newest first (as the
- * exercise history query returns it); the entry with `currentId` (the
- * exercise of the session being logged) is skipped, as are entries with
- * nothing logged.
- */
-export function previousSetsByOrder(
-  history: Array<{ id: string; sets: ResultSet[] }>,
-  currentId: string
-): Map<number, SetResult> {
-  const previous = history.find(
-    (entry) => entry.id !== currentId && entry.sets.some(isSetTracked)
-  );
-  const byOrder = new Map<number, SetResult>();
-  for (const set of previous?.sets ?? []) {
-    if (isSetTracked(set)) {
-      byOrder.set(set.order, {
-        reps: set.reps_completed ?? 0,
-        weight: set.weight_completed,
-      });
-    }
-  }
-  return byOrder;
-}
-
-/**
  * The heaviest logged set (most reps breaks a tie), or `null` when nothing is
  * logged. Sets without a weight only win when no set has one.
  */
-export function bestSet(sets: Omit<ResultSet, "order">[]): SetResult | null {
+export function bestSet(sets: ResultSet[]): SetResult | null {
   let best: SetResult | null = null;
   for (const set of sets) {
     if (!isSetTracked(set)) {

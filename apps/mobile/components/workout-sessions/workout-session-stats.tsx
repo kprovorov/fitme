@@ -8,7 +8,6 @@ import {
 } from "@fitme/core";
 import { useIsFocused } from "expo-router";
 import { useWindowDimensions, View } from "react-native";
-import { Card } from "~/components/ui/card";
 import { Text } from "~/components/ui/text";
 import { useProfileQuery } from "~/hooks/queries/profiles";
 import { useNow } from "~/hooks/use-now";
@@ -21,7 +20,7 @@ interface WorkoutSessionStatsProps {
 const SEGMENT_CLASS = {
   done: "bg-primary",
   "in-progress": "bg-primary/40",
-  todo: "bg-foreground/10",
+  todo: "bg-muted-foreground",
 } as const;
 
 /** Past this text scale the three stats don't fit side by side. */
@@ -30,29 +29,21 @@ const STACKED_FONT_SCALE = 1.4;
 function Stat({
   label,
   stacked,
-  unit,
   value,
 }: {
   label: string;
   stacked: boolean;
-  /** Set in the body font after the number, so the mono value stays tight. */
-  unit?: string;
   value: string;
 }) {
   return (
-    <View accessible className={cn("gap-0.5", !stacked && "flex-1")}>
-      <Text className="text-footnote text-muted-foreground">{label}</Text>
+    <View accessible className={cn("gap-1", !stacked && "flex-1")}>
+      <Text className="text-caption-1 text-muted-foreground">{label}</Text>
       <Text
         adjustsFontSizeToFit
-        className="font-ibm-plex-mono-semibold text-title-3"
+        className="font-ibm-plex-mono-semibold text-body"
         numberOfLines={1}
       >
         {value}
-        {unit ? (
-          <Text className="font-nunito-sans-semibold text-muted-foreground text-subhead">
-            {` ${unit}`}
-          </Text>
-        ) : null}
       </Text>
     </View>
   );
@@ -93,49 +84,43 @@ export default function WorkoutSessionStats({
   const doneCount = progress.filter(({ state }) => state === "done").length;
 
   return (
-    <Card>
-      <View className="gap-3.5 p-sm">
-        <View className={stacked ? "gap-3" : "flex-row gap-2"}>
-          <Stat
-            label="Duration"
-            stacked={stacked}
-            value={formatElapsed(endedAt - startedAt)}
-          />
-          <Stat
-            label="Volume"
-            stacked={stacked}
-            unit={weightLabel}
-            value={volume.toLocaleString()}
-          />
-          <Stat
-            label="Sets"
-            stacked={stacked}
-            value={`${countLoggedSets(workoutSession)}/${totalSets}`}
-          />
-        </View>
-        {progress.length > 0 && (
-          <View className="gap-2">
-            <View
-              accessibilityElementsHidden
-              className="flex-row gap-1"
-              importantForAccessibility="no-hide-descendants"
-            >
-              {progress.map(({ id, state }) => (
-                <View
-                  className={cn(
-                    "h-1 flex-1 rounded-full",
-                    SEGMENT_CLASS[state]
-                  )}
-                  key={id}
-                />
-              ))}
-            </View>
-            <Text className="text-footnote text-muted-foreground">
-              {doneCount} of {progress.length} exercises done
-            </Text>
-          </View>
-        )}
+    <View className="gap-sm">
+      <View className={stacked ? "gap-3" : "flex-row gap-2"}>
+        <Stat
+          label="Duration"
+          stacked={stacked}
+          value={formatElapsed(endedAt - startedAt)}
+        />
+        <Stat
+          label="Volume"
+          stacked={stacked}
+          value={`${volume.toLocaleString()} ${weightLabel}`}
+        />
+        <Stat
+          label="Sets"
+          stacked={stacked}
+          value={`${countLoggedSets(workoutSession)}/${totalSets}`}
+        />
       </View>
-    </Card>
+      {progress.length > 0 && (
+        <View className="gap-sm">
+          <View
+            accessibilityElementsHidden
+            className="flex-row gap-2"
+            importantForAccessibility="no-hide-descendants"
+          >
+            {progress.map(({ id, state }) => (
+              <View
+                className={cn("h-1 flex-1 rounded-full", SEGMENT_CLASS[state])}
+                key={id}
+              />
+            ))}
+          </View>
+          <Text className="text-caption-1 text-muted-foreground">
+            {doneCount} of {progress.length} exercises done
+          </Text>
+        </View>
+      )}
+    </View>
   );
 }

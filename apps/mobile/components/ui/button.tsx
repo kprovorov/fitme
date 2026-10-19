@@ -30,6 +30,7 @@ import {
 import type * as React from "react";
 import { View } from "react-native";
 import type { SFSymbol } from "sf-symbols-typescript";
+import { useResolveClassNames } from "uniwind";
 import {
   childrenToLabel,
   FILL,
@@ -137,6 +138,11 @@ interface ButtonProps {
   accessibilityLabel?: string;
   children?: React.ReactNode;
   className?: string;
+  /**
+   * A text color class (`text-primary`) for the label and icon, in place of
+   * the variant's own.
+   */
+  contentClassName?: string;
   disabled?: boolean;
   /** Overrides whether the button spans its container's width. */
   fill?: boolean;
@@ -158,6 +164,7 @@ const Button = ({
   accessibilityHint,
   accessibilityLabel,
   className,
+  contentClassName,
   variant = "default",
   size = "default",
   shape = "default",
@@ -171,6 +178,9 @@ const Button = ({
   children,
 }: ButtonProps) => {
   const theme = useSwiftUITheme();
+  const contentOverride = useResolveClassNames(contentClassName ?? "").color as
+    | string
+    | undefined;
 
   const resolvedVariant = variant ?? "default";
   const resolvedSize = size ?? "default";
@@ -208,14 +218,16 @@ const Button = ({
 
   // SwiftUI's prominent button styles force a white label; the app's lime
   // primary needs a dark one, so the content always states its own color.
-  const contentColor = {
-    default: theme.primaryForeground,
-    destructive: theme.destructiveForeground,
-    ghost: theme.foreground,
-    link: theme.primary,
-    outline: theme.foreground,
-    secondary: theme.secondaryForeground,
-  }[resolvedVariant];
+  const contentColor =
+    contentOverride ??
+    {
+      default: theme.primaryForeground,
+      destructive: theme.destructiveForeground,
+      ghost: theme.foreground,
+      link: theme.primary,
+      outline: theme.foreground,
+      secondary: theme.secondaryForeground,
+    }[resolvedVariant];
 
   const modifiers: ViewModifier[] = [
     buttonStyle(isCircular ? "plain" : BUTTON_STYLE[resolvedVariant]),

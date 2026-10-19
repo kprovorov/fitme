@@ -1,9 +1,6 @@
-import {
-  previousSetsByOrder,
-  type WorkoutSessionExerciseSet,
-} from "@fitme/core";
+import type { WorkoutSessionExerciseSet } from "@fitme/core";
 import { Stack, useLocalSearchParams, useRouter } from "expo-router";
-import { useCallback, useMemo, useState } from "react";
+import { useCallback, useState } from "react";
 import { ActivityIndicator, type LayoutChangeEvent, View } from "react-native";
 import { KeyboardAwareScrollView } from "react-native-keyboard-controller";
 import { useSafeAreaInsets } from "react-native-safe-area-context";
@@ -15,7 +12,6 @@ import WorkoutSessionExerciseSetsTableView from "~/components/views/workout-sess
 import RestTimer, { type Rest } from "~/components/workout-sessions/rest-timer";
 import SessionExerciseHeader from "~/components/workout-sessions/session-exercise-header";
 import { WorkoutSessionFinishSuggestion } from "~/components/workout-sessions/workout-session-finish-suggestion";
-import { useExerciseHistoryQuery } from "~/hooks/queries/exercises";
 import { useWorkoutSessionExerciseQuery } from "~/hooks/queries/workout-session-exercises";
 import { useWorkoutSessionQuery } from "~/hooks/queries/workout-sessions";
 
@@ -47,15 +43,6 @@ export default function WorkoutSessionExerciseScreen() {
   const { data: workoutSession } = useWorkoutSessionQuery({
     variables: { sessionId: sessionId as string },
   });
-
-  const { data: history } = useExerciseHistoryQuery({
-    enabled: !!workoutSessionExercise,
-    variables: { exerciseId: workoutSessionExercise?.exercise_id ?? "" },
-  });
-  const previousSets = useMemo(
-    () => previousSetsByOrder(history ?? [], exerciseId as string),
-    [history, exerciseId]
-  );
 
   const isFinished = !!workoutSession?.finished_at;
   const [rest, setRest] = useState<Rest | null>(null);
@@ -120,11 +107,10 @@ export default function WorkoutSessionExerciseScreen() {
             sets={workoutSessionExercise.sets}
           />
           <Card>
-            <View className="p-2">
+            <View className="p-sm">
               <WorkoutSessionExerciseSetsTableView
                 exerciseId={exerciseId as string}
                 onSetLogged={handleSetLogged}
-                previousSets={previousSets}
                 readOnly={isFinished}
                 sessionId={sessionId as string}
                 workoutSessionExerciseSets={workoutSessionExercise.sets}

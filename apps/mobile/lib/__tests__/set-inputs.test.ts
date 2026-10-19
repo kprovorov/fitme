@@ -1,5 +1,10 @@
 import { describe, expect, it } from "@jest/globals";
-import { formatSetWeight, setRepsField, setWeightField } from "../set-inputs";
+import {
+  formatSetTarget,
+  formatSetWeight,
+  setRepsField,
+  setWeightField,
+} from "../set-inputs";
 
 const errorOf = (field: typeof setWeightField, input: string) =>
   field.safeParse(input).error?.issues.map((issue) => issue.message);
@@ -81,5 +86,43 @@ describe("formatSetWeight", () => {
     expect(formatSetWeight(1.5)).toBe("1,5");
     expect(formatSetWeight(22.25)).toBe("22,25");
     expect(formatSetWeight(0)).toBe("0");
+  });
+});
+
+describe("formatSetTarget", () => {
+  it("shows the recommended reps × weight with the unit", () => {
+    expect(
+      formatSetTarget({ reps_recommended: 12, weight_recommended: 45 }, "kg")
+    ).toBe("12×45kg");
+    expect(
+      formatSetTarget({ reps_recommended: 8, weight_recommended: 22.5 }, "lbs")
+    ).toBe("8×22,5lbs");
+  });
+
+  it("shows reps alone without a weight", () => {
+    expect(
+      formatSetTarget({ reps_recommended: 12, weight_recommended: null }, "kg")
+    ).toBe("12");
+    expect(
+      formatSetTarget({ reps_recommended: 12, weight_recommended: 0 }, "kg")
+    ).toBe("12");
+  });
+
+  it("shows the weight alone without reps", () => {
+    expect(
+      formatSetTarget({ reps_recommended: null, weight_recommended: 40 }, "kg")
+    ).toBe("40kg");
+  });
+
+  it("shows a dash without a recommendation", () => {
+    expect(
+      formatSetTarget(
+        { reps_recommended: null, weight_recommended: null },
+        "kg"
+      )
+    ).toBe("–");
+    expect(
+      formatSetTarget({ reps_recommended: 0, weight_recommended: 0 }, "kg")
+    ).toBe("–");
   });
 });
