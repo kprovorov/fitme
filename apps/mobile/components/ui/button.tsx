@@ -160,6 +160,32 @@ interface ButtonProps {
   variant?: ButtonVariant | null;
 }
 
+/**
+ * The label and icon color: `colorClassName`'s when given, else the
+ * variant's. SwiftUI's prominent button styles force a white label; the app's
+ * lime primary needs a dark one, so the content always states its own color.
+ */
+function useContentColor(
+  variant: ButtonVariant,
+  colorClassName: string | undefined
+): string {
+  const theme = useSwiftUITheme();
+  const override = useResolveClassNames(colorClassName ?? "").color as
+    | string
+    | undefined;
+  return (
+    override ??
+    {
+      default: theme.primaryForeground,
+      destructive: theme.destructiveForeground,
+      ghost: theme.foreground,
+      link: theme.primary,
+      outline: theme.foreground,
+      secondary: theme.secondaryForeground,
+    }[variant]
+  );
+}
+
 const Button = ({
   accessibilityHint,
   accessibilityLabel,
@@ -178,8 +204,6 @@ const Button = ({
   children,
 }: ButtonProps) => {
   const theme = useSwiftUITheme();
-  const contentOverride = useResolveClassNames(contentColorClassName ?? "")
-    .color as string | undefined;
 
   const resolvedVariant = variant ?? "default";
   const resolvedSize = size ?? "default";
@@ -215,18 +239,7 @@ const Button = ({
     secondary: theme.secondary,
   }[resolvedVariant];
 
-  // SwiftUI's prominent button styles force a white label; the app's lime
-  // primary needs a dark one, so the content always states its own color.
-  const contentColor =
-    contentOverride ??
-    {
-      default: theme.primaryForeground,
-      destructive: theme.destructiveForeground,
-      ghost: theme.foreground,
-      link: theme.primary,
-      outline: theme.foreground,
-      secondary: theme.secondaryForeground,
-    }[resolvedVariant];
+  const contentColor = useContentColor(resolvedVariant, contentColorClassName);
 
   const modifiers: ViewModifier[] = [
     buttonStyle(isCircular ? "plain" : BUTTON_STYLE[resolvedVariant]),
