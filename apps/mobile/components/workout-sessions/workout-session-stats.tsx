@@ -17,9 +17,10 @@ interface WorkoutSessionStatsProps {
   workoutSession: WorkoutSession;
 }
 
+/** Lime once an exercise is done, grey until then (started or not). */
 const SEGMENT_CLASS = {
   done: "bg-primary",
-  "in-progress": "bg-primary/40",
+  "in-progress": "bg-muted-foreground",
   todo: "bg-muted-foreground",
 } as const;
 
