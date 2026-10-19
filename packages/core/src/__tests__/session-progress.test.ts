@@ -6,7 +6,6 @@ import {
   exerciseProgress,
   formatRepRange,
   formatSetResult,
-  previousSetsByOrder,
   sessionVolume,
 } from "../workout-sessions";
 
@@ -59,28 +58,6 @@ describe("sessionVolume", () => {
 
   it("counts sets without a weight as zero", () => {
     expect(sessionVolume([{ sets: [set(1, 15, null)] }])).toBe(0);
-  });
-});
-
-describe("previousSetsByOrder", () => {
-  it("takes the newest other entry with logged sets", () => {
-    const previous = previousSetsByOrder(
-      [
-        { id: "current", sets: [set(1, 10, 60)] },
-        { id: "empty", sets: [set(1, null, 60)] },
-        { id: "last", sets: [set(1, 9, 57.5), set(2, 0, null)] },
-        { id: "older", sets: [set(1, 5, 50)] },
-      ],
-      "current"
-    );
-    expect([...previous.entries()]).toEqual([
-      [1, { reps: 9, weight: 57.5 }],
-      [2, { reps: 0, weight: null }],
-    ]);
-  });
-
-  it("is empty without history", () => {
-    expect(previousSetsByOrder([], "current").size).toBe(0);
   });
 });
 

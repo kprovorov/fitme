@@ -1,29 +1,39 @@
 import { Stack } from "expo-router";
 import { useCallback } from "react";
-import { ActivityIndicator, Platform, ScrollView, View } from "react-native";
+import { ActivityIndicator, useWindowDimensions, View } from "react-native";
+import { KeyboardAwareScrollView } from "react-native-keyboard-controller";
 import { useSafeAreaInsets } from "react-native-safe-area-context";
-import { useResolveClassNames } from "uniwind";
 import { Button } from "~/components/ui/button";
 import { Text } from "~/components/ui/text";
+import { H4 } from "~/components/ui/typography";
 import WorkoutSessionView from "~/components/views/workout-session-view";
 import { WorkoutSessionFinishSuggestion } from "~/components/workout-sessions/workout-session-finish-suggestion";
 import WorkoutSessionStats from "~/components/workout-sessions/workout-session-stats";
 import { useFinishWorkoutSession } from "~/hooks/finish-workout-session";
 import { useWorkoutSessionQuery } from "~/hooks/queries/workout-sessions";
+import { cn } from "~/lib/utils";
+
+/** Space kept between a focused set input and the keyboard. */
+const KEYBOARD_BOTTOM_OFFSET = 62;
+
+/** Past this text scale Finish goes under the name, which would break mid-word. */
+const STACKED_FONT_SCALE = 1.4;
 
 interface WorkoutSessionScreenProps {
   sessionId: string;
 }
 
 /**
- * A workout session's exercises with its stats, and Finish in the header
- * while it runs. Both session routes (from a plan, and
- * `/workout-sessions/:id`) render it.
+ * A workout session: its name with Finish while it runs, its stats, then a
+ * card per exercise whose sets are logged right there. Both session routes
+ * (from a plan, and `/workout-sessions/:id`) render it.
  */
 export default function WorkoutSessionScreen({
   sessionId,
 }: WorkoutSessionScreenProps) {
   const insets = useSafeAreaInsets();
+  const { fontScale } = useWindowDimensions();
+  const stacked = fontScale > STACKED_FONT_SCALE;
   const {
     data: workoutSession,
     isError,
@@ -36,31 +46,44 @@ export default function WorkoutSessionScreen({
   const retry = useCallback(() => {
     refetch();
   }, [refetch]);
-  const primary = useResolveClassNames("text-primary").color;
-  const primaryForeground = useResolveClassNames(
-    "text-primary-foreground"
-  ).color;
   const canFinish = !!workoutSession && !workoutSession.finished_at;
 
   const renderContent = () => {
     if (workoutSession) {
       return (
         <>
-          <WorkoutSessionStats workoutSession={workoutSession} />
+          <View className="gap-sm p-sm">
+            <View
+              className={
+                stacked ? "items-start gap-sm" : "flex-row items-center gap-sm"
+              }
+            >
+              <H4
+                className={cn(
+                  "font-nunito-sans-bold text-primary",
+                  !stacked && "flex-1"
+                )}
+              >
+                {workoutSession.workout?.name}
+              </H4>
+              {canFinish ? (
+                <Button
+                  fill={false}
+                  isLoading={isFinishing}
+                  label="Finish"
+                  onPress={confirmFinish}
+                  shape="pill"
+                  size="sm"
+                  testID="finish-workout-button"
+                />
+              ) : null}
+            </View>
+            <WorkoutSessionStats workoutSession={workoutSession} />
+          </View>
           <WorkoutSessionView
             sessionId={sessionId}
             workoutSession={workoutSession}
           />
-          {/* Header items are iOS only: elsewhere Finish stays in the content. */}
-          {canFinish && Platform.OS !== "ios" ? (
-            <Button
-              isLoading={isFinishing}
-              label="Finish Workout"
-              onPress={confirmFinish}
-              shape="pill"
-              testID="finish-workout-button"
-            />
-          ) : null}
         </>
       );
     }
@@ -89,44 +112,25 @@ export default function WorkoutSessionScreen({
 
   return (
     <>
+      {/* The workout's name and Finish head the content: the header only goes back. */}
       <Stack.Screen
         options={{
           headerBackButtonDisplayMode: "minimal",
           headerShown: true,
-          headerTitleStyle: {
-            fontFamily: "NunitoSans12pt-Bold",
-            fontWeight: "bold",
-          },
           headerTransparent: true,
-          title: workoutSession?.workout?.name ?? "",
-          unstable_headerRightItems: () =>
-            canFinish
-              ? [
-                  {
-                    disabled: isFinishing,
-                    label: "Finish",
-                    labelStyle: {
-                      color: primaryForeground,
-                      fontFamily: "NunitoSans12pt-Bold",
-                      fontWeight: "bold",
-                    },
-                    onPress: confirmFinish,
-                    tintColor: primary,
-                    type: "button",
-                    variant: "prominent",
-                  },
-                ]
-              : [],
+          title: "",
         }}
       />
-      <ScrollView
+      <KeyboardAwareScrollView
+        bottomOffset={KEYBOARD_BOTTOM_OFFSET}
         contentContainerClassName="gap-sm px-sm pt-xs"
         contentContainerStyle={{ paddingBottom: insets.bottom + 16 }}
         contentInsetAdjustmentBehavior="automatic"
+        keyboardShouldPersistTaps="handled"
         showsVerticalScrollIndicator={false}
       >
         {renderContent()}
-      </ScrollView>
+      </KeyboardAwareScrollView>
       <WorkoutSessionFinishSuggestion
         isFinished={!!workoutSession?.finished_at}
         sessionId={sessionId}

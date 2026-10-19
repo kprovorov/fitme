@@ -69,3 +69,23 @@ export const setRepsField = setNumberField("Reps", MAX_REPS, (value) =>
 /** A stored weight as the weight field shows it: `,` separator, no trailing zeros. */
 export const formatSetWeight = (weight: number) =>
   String(Math.round(weight * 100) / 100).replace(".", ",");
+
+/**
+ * A set's recommendation as its table's REC cell: `12×45kg`, `12` without a
+ * weight, `45kg` without reps, `–` without either.
+ */
+export const formatSetTarget = (
+  {
+    reps_recommended: reps,
+    weight_recommended: weight,
+  }: { reps_recommended: number | null; weight_recommended: number | null },
+  weightLabel: string | undefined
+) => {
+  const weightText = weight
+    ? `${formatSetWeight(weight)}${weightLabel ?? ""}`
+    : null;
+  if (reps && weightText) {
+    return `${reps}×${weightText}`;
+  }
+  return reps ? `${reps}` : (weightText ?? "–");
+};

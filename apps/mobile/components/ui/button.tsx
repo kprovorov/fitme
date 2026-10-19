@@ -30,6 +30,7 @@ import {
 import type * as React from "react";
 import { View } from "react-native";
 import type { SFSymbol } from "sf-symbols-typescript";
+import { useResolveClassNames } from "uniwind";
 import {
   childrenToLabel,
   FILL,
@@ -137,6 +138,11 @@ interface ButtonProps {
   accessibilityLabel?: string;
   children?: React.ReactNode;
   className?: string;
+  /**
+   * A text color class (`text-primary`) for the label and icon, in place of
+   * the variant's own.
+   */
+  contentColorClassName?: string;
   disabled?: boolean;
   /** Overrides whether the button spans its container's width. */
   fill?: boolean;
@@ -154,10 +160,37 @@ interface ButtonProps {
   variant?: ButtonVariant | null;
 }
 
+/**
+ * The label and icon color: `colorClassName`'s when given, else the
+ * variant's. SwiftUI's prominent button styles force a white label; the app's
+ * lime primary needs a dark one, so the content always states its own color.
+ */
+function useContentColor(
+  variant: ButtonVariant,
+  colorClassName: string | undefined
+): string {
+  const theme = useSwiftUITheme();
+  const override = useResolveClassNames(colorClassName ?? "").color as
+    | string
+    | undefined;
+  return (
+    override ??
+    {
+      default: theme.primaryForeground,
+      destructive: theme.destructiveForeground,
+      ghost: theme.foreground,
+      link: theme.primary,
+      outline: theme.foreground,
+      secondary: theme.secondaryForeground,
+    }[variant]
+  );
+}
+
 const Button = ({
   accessibilityHint,
   accessibilityLabel,
   className,
+  contentColorClassName,
   variant = "default",
   size = "default",
   shape = "default",
@@ -206,16 +239,7 @@ const Button = ({
     secondary: theme.secondary,
   }[resolvedVariant];
 
-  // SwiftUI's prominent button styles force a white label; the app's lime
-  // primary needs a dark one, so the content always states its own color.
-  const contentColor = {
-    default: theme.primaryForeground,
-    destructive: theme.destructiveForeground,
-    ghost: theme.foreground,
-    link: theme.primary,
-    outline: theme.foreground,
-    secondary: theme.secondaryForeground,
-  }[resolvedVariant];
+  const contentColor = useContentColor(resolvedVariant, contentColorClassName);
 
   const modifiers: ViewModifier[] = [
     buttonStyle(isCircular ? "plain" : BUTTON_STYLE[resolvedVariant]),

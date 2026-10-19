@@ -1,8 +1,4 @@
-import {
-  formatSetResult,
-  type SetResult,
-  type WorkoutSessionExerciseSet,
-} from "@fitme/core";
+import type { WorkoutSessionExerciseSet } from "@fitme/core";
 import { useQueryClient } from "@tanstack/react-query";
 import * as Haptics from "expo-haptics";
 import { useRef, useState } from "react";
@@ -14,8 +10,7 @@ import {
 } from "~/hooks/queries/workout-session-exercise-sets";
 import { IS_E2E } from "~/lib/constants";
 import { segmentClient } from "~/lib/segment";
-import { formatSetWeight } from "~/lib/set-inputs";
-import { cn } from "~/lib/utils";
+import { formatSetTarget, formatSetWeight } from "~/lib/set-inputs";
 import WorkoutSessionExerciseSetForm, {
   SET_TABLE_MAX_FONT_SCALE,
   type WorkoutSessionExerciseSetFormValues,
@@ -35,9 +30,9 @@ interface WorkoutSessionExerciseSetRowViewProps {
   /** Called once a set is logged for the first time (not on edits). */
   onSetLogged?: (set: WorkoutSessionExerciseSet) => void;
   order?: number;
-  /** The same set in the exercise's previous session, if any. */
-  previous?: SetResult;
   sessionId: string;
+  /** The User's weight unit, for the REC cell. */
+  weightLabel: string | undefined;
   workoutSessionExerciseSet: WorkoutSessionExerciseSet | null;
 }
 
@@ -50,8 +45,8 @@ export default function WorkoutSessionExerciseSetRowView({
   locked = false,
   onSetCreated,
   onSetLogged,
-  previous,
   sessionId,
+  weightLabel,
 }: WorkoutSessionExerciseSetRowViewProps) {
   const queryClient = useQueryClient();
   const isNewSet = workoutSessionExerciseSet === null;
@@ -188,14 +183,8 @@ export default function WorkoutSessionExerciseSetRowView({
     }
   };
 
-  const showsLogged = isDone && !isEditable;
-
   return (
     <WorkoutSessionExerciseSetForm
-      className={cn(
-        "rounded-xl border-continuous py-1 pr-1 pl-2",
-        showsLogged && "bg-primary/10"
-      )}
       disabled={!isEditable || locked}
       error={saveError}
       hasWeight={hasWeight}
@@ -204,20 +193,20 @@ export default function WorkoutSessionExerciseSetRowView({
       leading={
         <>
           <Text
-            className={cn(
-              "w-7 font-ibm-plex-mono-semibold text-body",
-              showsLogged && "text-primary"
-            )}
+            className="w-7 text-center font-ibm-plex-mono text-footnote"
             maxFontSizeMultiplier={SET_TABLE_MAX_FONT_SCALE}
           >
-            {setOrder}
+            #{setOrder}
           </Text>
           <Text
-            className="flex-1 font-ibm-plex-mono text-footnote text-muted-foreground"
+            adjustsFontSizeToFit
+            className="w-18 text-center font-ibm-plex-mono text-footnote"
             maxFontSizeMultiplier={SET_TABLE_MAX_FONT_SCALE}
             numberOfLines={1}
           >
-            {previous ? formatSetResult(previous) : "–"}
+            {isNewSet
+              ? "–"
+              : formatSetTarget(workoutSessionExerciseSet, weightLabel)}
           </Text>
         </>
       }

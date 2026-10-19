@@ -1,10 +1,13 @@
-import type { SetResult, WorkoutSessionExerciseSet } from "@fitme/core";
+import type { WorkoutSessionExerciseSet } from "@fitme/core";
 import { getWeightLabel } from "@fitme/core";
 import { type ReactNode, useState } from "react";
 import { View } from "react-native";
 import { useProfileQuery } from "~/hooks/queries/profiles";
 import { cn } from "~/lib/utils";
-import { SET_TABLE_MAX_FONT_SCALE } from "../forms/workout-exercise-set-form";
+import {
+  SET_CHECK_COLUMN_CLASS,
+  SET_TABLE_MAX_FONT_SCALE,
+} from "../forms/workout-exercise-set-form";
 import { Button } from "../ui/button";
 import { Text } from "../ui/text";
 import { VStack } from "../ui/vstack";
@@ -20,8 +23,6 @@ interface WorkoutSessionExerciseSetsTableViewProps {
     set: WorkoutSessionExerciseSet,
     nextSetOrder: number | null
   ) => void;
-  /** The exercise's previous session, by set order. */
-  previousSets?: Map<number, SetResult>;
   readOnly?: boolean;
   sessionId: string;
   workoutSessionExerciseSets: WorkoutSessionExerciseSet[];
@@ -43,7 +44,7 @@ function ColumnLabel({
     <Text
       adjustsFontSizeToFit
       className={cn(
-        "font-nunito-sans-bold text-caption-1 text-muted-foreground uppercase",
+        "text-center font-ibm-plex-mono-semibold text-caption-1 text-primary",
         className
       )}
       maxFontSizeMultiplier={SET_TABLE_MAX_FONT_SCALE}
@@ -57,12 +58,12 @@ function ColumnLabel({
 export default function WorkoutSessionExerciseSetsTableView({
   exerciseId,
   onSetLogged,
-  previousSets,
   workoutSessionExerciseSets,
   readOnly = false,
   sessionId,
 }: WorkoutSessionExerciseSetsTableViewProps) {
   const { data: profile, isPending: isProfilePending } = useProfileQuery();
+  const weightLabel = getWeightLabel(profile?.measurement_system ?? "metric");
   const [localSets, setLocalSets] = useState<LocalSet[]>([]);
 
   const hasWeight = workoutSessionExerciseSets.some(
@@ -107,21 +108,19 @@ export default function WorkoutSessionExerciseSetsTableView({
 
   return (
     !isProfilePending && (
-      <VStack className="items-stretch gap-1">
+      <VStack className="items-stretch gap-3">
         <View
           accessibilityElementsHidden
-          className="flex-row items-center gap-2 pt-1 pr-1 pl-2"
+          className="flex-row items-center gap-3"
           importantForAccessibility="no-hide-descendants"
         >
-          <ColumnLabel className="w-7">Set</ColumnLabel>
-          <ColumnLabel className="flex-1">Previous</ColumnLabel>
+          <ColumnLabel className="w-7">set</ColumnLabel>
+          <ColumnLabel className="w-18">rec</ColumnLabel>
+          <ColumnLabel className="flex-1">reps</ColumnLabel>
           {hasWeight && (
-            <ColumnLabel className="w-18 text-center">
-              {getWeightLabel(profile?.measurement_system ?? "metric")}
-            </ColumnLabel>
+            <ColumnLabel className="flex-1">{weightLabel}</ColumnLabel>
           )}
-          <ColumnLabel className="w-18 text-center">Reps</ColumnLabel>
-          <View className="w-11" />
+          <View className={SET_CHECK_COLUMN_CLASS} />
         </View>
 
         {[...workoutSessionExerciseSets]
@@ -137,8 +136,8 @@ export default function WorkoutSessionExerciseSetsTableView({
                 key={workoutSessionExerciseSet.id}
                 locked={locked}
                 onSetLogged={handleSetLogged}
-                previous={previousSets?.get(workoutSessionExerciseSet.order)}
                 sessionId={sessionId}
+                weightLabel={weightLabel}
                 workoutSessionExerciseSet={workoutSessionExerciseSet}
               />
             );
@@ -160,24 +159,23 @@ export default function WorkoutSessionExerciseSetsTableView({
                 onSetCreated={handleSetCreated}
                 onSetLogged={handleSetLogged}
                 order={localSet.order}
-                previous={previousSets?.get(localSet.order)}
                 sessionId={sessionId}
+                weightLabel={weightLabel}
                 workoutSessionExerciseSet={null}
               />
             );
           })}
 
         {!readOnly && (
-          <VStack className="items-stretch pt-1">
-            <Button
-              label="Add Set"
-              onPress={handleAddSet}
-              shape="pill"
-              size="sm"
-              systemImage="plus"
-              variant="ghost"
-            />
-          </VStack>
+          <Button
+            contentColorClassName="text-primary"
+            label="Add Set"
+            onPress={handleAddSet}
+            shape="pill"
+            size="sm"
+            systemImage="plus"
+            variant="secondary"
+          />
         )}
       </VStack>
     )

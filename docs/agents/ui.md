@@ -87,7 +87,7 @@ The scale is Apple's text styles, defined as tokens in `global.css`. Fonts: Nuni
 
 Look in `components/ui/` before building anything. The ones that trip agents up:
 
-- **`Button`** is a native SwiftUI button. Pass `label` (a string), `systemImage` (an SF Symbol name) and `shape="pill"` for calls to action; `variant` is `default` (lime), `secondary`, `outline`, `ghost`, `destructive` or `link`. Use `isLoading` while its action runs, and `accessibilityLabel` on every icon-only button. It spans its container's width unless it's an icon or link button (or you pass `fill={false}`). `className` only lays it out; the label's font and color come from `variant` and `size`. `<Button><Text>…</Text></Button>` is the older form; new code uses `label`.
+- **`Button`** is a native SwiftUI button. Pass `label` (a string), `systemImage` (an SF Symbol name) and `shape="pill"` for calls to action; `variant` is `default` (lime), `secondary`, `outline`, `ghost`, `destructive` or `link`. Use `isLoading` while its action runs, and `accessibilityLabel` on every icon-only button. It spans its container's width unless it's an icon or link button (or you pass `fill={false}`). `className` only lays it out; the label's font and color come from `variant` and `size`, unless `contentColorClassName` (a `text-…` class) recolors the label and icon, as the lime "Add Set" on a `secondary` pill does. `<Button><Text>…</Text></Button>` is the older form; new code uses `label`.
 - **`Card`** is a Liquid Glass surface. Never put a `bg-*` class on it: a background color on the native view turns the effect off (use `tintColor` for a tint). Pad its content with `CardHeader` / `CardContent`.
 - **`Switch`** is a native SwiftUI `Toggle`, with its own haptic.
 - **Icons** are SF Symbols: `systemImage` on `Button`, `sfSymbol` items in headers, `SymbolImage` (`components/symbol-image.tsx`) everywhere else. A symbol new to `SymbolImage` also gets its Lucide fallback in `LUCIDE_FALLBACKS`, or Android shows a question mark. Raster images use `expo-image` (`Image` from `~/components/tw`).
@@ -126,7 +126,7 @@ Load `animate-expo` for anything that moves; it holds the springs, curves and re
 Copy patterns from these:
 
 - `components/views/workout-session-summary-view.tsx`: spacing tokens, stretched stacks, `Separator` between rows, a pill call to action with an SF Symbol.
-- `components/views/workout-session-view.tsx`: a list inside one `Card`, a ghost pill "Add" button, a `pageSheet` picker. Its `backdropColor="#1F1D20"` should be `backdropColorClassName="accent-background"`.
+- `components/views/workout-session-view.tsx`: a `Card` per exercise (each holds its own sets table, so they aren't rows of one list), a `pageSheet` picker. Its `backdropColor="#1F1D20"` should be `backdropColorClassName="accent-background"`.
 - `app/(tabs)/home/index.tsx`: a native header with an SF Symbol menu, pull to refresh, the empty state. Its `ActivityIndicator color="#ffffff"` should be `colorClassName="accent-foreground"`, and its `<Text>` button child is the older form.
 - `components/chat/conversation.tsx`: a `LegendList`.
 
