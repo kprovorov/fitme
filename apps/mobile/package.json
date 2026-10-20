@@ -36,6 +36,7 @@
     "@expo/ui": "58.0.20",
     "@expo/vector-icons": "15.0.3",
     "@fitme/core": "workspace:*",
+    "@fitme/design-tokens": "workspace:*",
     "@fitme/supabase": "workspace:*",
     "@hookform/resolvers": "5.9.1",
     "@legendapp/list": "3.6.0",

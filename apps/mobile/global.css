@@ -1,113 +1,17 @@
 @import "tailwindcss";
 @import "uniwind";
+@import "@fitme/design-tokens/tokens.css";
 
+/* The font roles from the tokens, mapped to the font files the app loads */
 @theme {
   --font-nunito-sans-regular: "NunitoSans12pt-Regular";
   --font-nunito-sans-semibold: "NunitoSans12pt-SemiBold";
   --font-nunito-sans-bold: "NunitoSans12pt-Bold";
   --font-ibm-plex-mono: "IBM Plex Mono";
-  --font-ibm-plex-mono-bold: "IBM Plex Mono Bold";
   --font-ibm-plex-mono-semibold: "IBMPlexMono-SemiBold";
-
-  /* Apple Human Interface Guidelines type scale (size/leading in points) */
-  --text-caption-2: 11px;
-  --text-caption-2--line-height: 13px;
-  --text-caption-1: 12px;
-  --text-caption-1--line-height: 16px;
-  --text-footnote: 13px;
-  --text-footnote--line-height: 18px;
-  --text-subhead: 15px;
-  --text-subhead--line-height: 20px;
-  --text-callout: 16px;
-  --text-callout--line-height: 21px;
-  --text-body: 17px;
-  --text-body--line-height: 22px;
-  --text-headline: 17px;
-  --text-headline--line-height: 22px;
-  --text-title-3: 20px;
-  --text-title-3--line-height: 25px;
-  --text-title-2: 22px;
-  --text-title-2--line-height: 28px;
-  --text-title-1: 28px;
-  --text-title-1--line-height: 34px;
-  --text-large-title: 34px;
-  --text-large-title--line-height: 41px;
-
-  --spacing-xs: 0.5rem;
-  --spacing-sm: 1rem;
-  --spacing-md: 1.5rem;
-  --spacing-lg: 2rem;
-
-  --color-border: var(--border);
-  --color-input: var(--input);
-  --color-ring: var(--ring);
-  --color-background: var(--background);
-  --color-foreground: var(--foreground);
-  --color-primary: var(--primary);
-  --color-primary-foreground: var(--primary-foreground);
-  --color-secondary: var(--secondary);
-  --color-secondary-foreground: var(--secondary-foreground);
-  --color-destructive: var(--destructive);
-  --color-destructive-foreground: var(--destructive-foreground);
-  --color-muted: var(--muted);
-  --color-muted-foreground: var(--muted-foreground);
-  --color-accent: var(--accent);
-  --color-accent-foreground: var(--accent-foreground);
-  --color-popover: var(--popover);
-  --color-popover-foreground: var(--popover-foreground);
-  --color-card: var(--card);
-  --color-card-foreground: var(--card-foreground);
 }
 
 @utility border-hairline {
   /* biome-ignore lint/correctness/noUnknownFunction: Uniwind CSS function */
   border-width: hairlineWidth();
-}
-
-@layer theme {
-  :root {
-    @variant light {
-      --background: hsl(0 0% 100%);
-      --foreground: hsl(240 10% 3.9%);
-      --card: hsl(0 0% 100%);
-      --card-foreground: hsl(240 10% 3.9%);
-      --popover: hsl(0 0% 100%);
-      --popover-foreground: hsl(240 10% 3.9%);
-      --primary: hsl(79 100% 61%);
-      --primary-foreground: hsl(0 0% 98%);
-      --secondary: hsl(240 4.8% 95.9%);
-      --secondary-foreground: hsl(240 5.9% 10%);
-      --muted: hsl(240 4.8% 95.9%);
-      --muted-foreground: hsl(240 3.8% 46.1%);
-      --accent: hsl(240 4.8% 95.9%);
-      --accent-foreground: hsl(240 5.9% 10%);
-      --destructive: hsl(0 84.2% 60.2%);
-      --destructive-foreground: hsl(0 0% 98%);
-      --border: hsl(240 5.9% 90%);
-      --input: hsl(240 5.9% 90%);
-      --ring: hsl(240 5.9% 10%);
-    }
-    @variant dark {
-      /* biome-ignore lint/suspicious/noDuplicateCustomProperties: @variant creates distinct CSS scopes */
-      --background: hsl(280 5% 12%);
-      --foreground: hsl(0 0% 98%);
-      --card: hsl(0 0% 9%);
-      --card-foreground: hsl(0 0% 98%);
-      --popover: hsl(0 0% 9%);
-      --popover-foreground: hsl(0 0% 98%);
-      --primary: hsl(79 100% 61%);
-      --primary-foreground: hsl(0 0% 3.9%);
-      --secondary: hsl(240 3.7% 15.9%);
-      --secondary-foreground: hsl(0 0% 98%);
-      --muted: hsl(0 0% 14.9%);
-      --muted-foreground: hsl(0 0% 63.1%);
-      --accent: hsl(0 0% 14.9%);
-      --accent-foreground: hsl(0 0% 98%);
-      --destructive: hsl(359 100% 69.6%);
-      --destructive-foreground: hsl(0 0% 98%);
-      --border: rgba(255, 255, 255, 0.1);
-      --input: rgba(255, 255, 255, 0.15);
-      --ring: hsl(0 0% 45.1%);
-    }
-  }
 }
