@@ -1,5 +1,6 @@
 #!/usr/bin/env bash
-# T3 Code worktree setup: install deps and copy local env files from the main checkout.
+# T3 Code worktree setup: install deps, copy local env files from the main
+# checkout, then start this checkout's Supabase stack and point the env files at it.
 set -euo pipefail
 
 worktree="${T3CODE_WORKTREE_PATH:-$(git rev-parse --show-toplevel)}"
@@ -9,24 +10,79 @@ cd "$worktree"
 
 pnpm install
 
-if [[ "$root" == "$worktree" ]]; then
-  exit 0
-fi
-
 # Env files are gitignored, so new worktrees don't get them. Copy every
 # apps/*/.env* and packages/*/.env* from the main checkout, without overwriting
 # files already present in the worktree. Copies, not symlinks: each worktree
 # runs its own Supabase stack (`[experimental] stack`), so its URLs and ports
 # can differ, and editing them must not touch the main checkout's files.
-for dir in "$root"/apps/* "$root"/packages/*; do
-  for src in "$dir"/.env*; do
-    [[ -f "$src" && "$src" != *.example ]] || continue
-    rel="${src#"$root"/}"
-    dest="$worktree/$rel"
-    if [[ ! -e "$dest" ]]; then
-      mkdir -p "$(dirname "$dest")"
-      cp "$src" "$dest"
-      echo "Copied $rel"
-    fi
+if [[ "$root" != "$worktree" ]]; then
+  for dir in "$root"/apps/* "$root"/packages/*; do
+    for src in "$dir"/.env*; do
+      [[ -f "$src" && "$src" != *.example ]] || continue
+      rel="${src#"$root"/}"
+      dest="$worktree/$rel"
+      if [[ ! -e "$dest" ]]; then
+        mkdir -p "$(dirname "$dest")"
+        cp "$src" "$dest"
+        echo "Copied $rel"
+      fi
+    done
   done
-done
+fi
+
+# The copied env files point at another checkout's stack (or at placeholders),
+# so start this checkout's own and rewrite the local Supabase URL and key and
+# the pooler port. A remote value is left alone. Not fatal: without Docker the
+# install above still stands, the env files just keep their old values.
+if ! stack="$(cd packages/supabase && pnpm exec supabase start --output-format json)"; then
+  echo "warning: couldn't start the local Supabase stack, so the env files weren't updated" >&2
+  exit 0
+fi
+
+read -r api_url secret_key < <(STACK="$stack" node - <<'JS'
+const fs = require("node:fs");
+const path = require("node:path");
+
+const json = process.env.STACK.split("\n").reverse().find((line) => line.startsWith("{"));
+const stack = JSON.parse(json);
+const apiUrl = stack.env.API_URL;
+const publishableKey = stack.env.PUBLISHABLE_KEY;
+const poolerPort = stack.endpoints["pooler.sql"].port;
+
+const local = /^(https?:\/\/(127\.0\.0\.1|localhost)(:\d+)?\/?)?$/;
+const pairs = [
+  ["EXPO_PUBLIC_SUPABASE_URL", "EXPO_PUBLIC_SUPABASE_ANON_KEY"],
+  ["NEXT_PUBLIC_SUPABASE_URL", "NEXT_PUBLIC_SUPABASE_ANON_KEY"],
+];
+const poolerUrl = /^(FITME_DATABASE_URL=postgres(?:ql)?:\/\/[^@\s]*@(?:127\.0\.0\.1|localhost):)[^/\n]+/m;
+
+for (const parent of ["apps", "packages"]) {
+  for (const dir of fs.readdirSync(parent)) {
+    const full = path.join(parent, dir);
+    if (!fs.statSync(full).isDirectory()) continue;
+    for (const name of fs.readdirSync(full)) {
+      if (!name.startsWith(".env") || name.endsWith(".example")) continue;
+      const file = path.join(full, name);
+      let text = fs.readFileSync(file, "utf8");
+      const before = text;
+      for (const [urlKey, anonKey] of pairs) {
+        const current = text.match(new RegExp(`^${urlKey}=(.*)$`, "m"));
+        if (!current || !local.test(current[1].trim())) continue;
+        text = text.replace(new RegExp(`^${urlKey}=.*$`, "m"), `${urlKey}=${apiUrl}`);
+        text = text.replace(new RegExp(`^${anonKey}=.*$`, "m"), `${anonKey}=${publishableKey}`);
+      }
+      text = text.replace(poolerUrl, `$1${poolerPort}`);
+      if (text !== before) {
+        fs.writeFileSync(file, text);
+        console.error(`Pointed ${file} at the local stack`);
+      }
+    }
+  }
+}
+
+console.log(`${apiUrl} ${stack.env.SECRET_KEY}`);
+JS
+)
+
+# A fresh stack has no exercises; the sync upserts by slug, so a rerun is harmless.
+SUPABASE_URL="$api_url" SUPABASE_SERVICE_ROLE_KEY="$secret_key" pnpm --filter @fitme/supabase exercises:sync

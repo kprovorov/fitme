@@ -1,47 +1,85 @@
 [
   {
-    "label": "Mobile: Run iOS",
+    "label": "Setup",
+    "command": "./.t3/setup.sh",
+    "reveal": "no_focus",
+    "hide": "on_success"
+  },
+  {
+    "label": "Destroy Supabase stack",
+    "command": "./.t3/settle.sh",
+    "reveal": "no_focus",
+    "hide": "on_success"
+  },
+  {
+    "label": "Run all",
     "command": "pnpm",
-    "args": ["mobile", "ios"],
+    "args": ["dev"],
     "reveal": "no_focus"
   },
   {
-    "label": "Mobile: Dev",
+    "label": "Run mobile",
     "command": "pnpm",
-    "args": ["dev:mobile"],
+    "args": ["mobile", "dev"],
     "reveal": "no_focus"
   },
   {
-    "label": "Web: Dev",
+    "label": "Build mobile",
+    "command": "pnpm",
+    "args": ["ios", "--no-bundler"],
+    "reveal": "no_focus",
+    "hide": "on_success"
+  },
+  {
+    "label": "Run web",
     "command": "pnpm",
     "args": ["dev:web"],
     "reveal": "no_focus"
   },
   {
-    "label": "Mobile: Prebuild",
+    "label": "Run site",
     "command": "pnpm",
-    "args": ["mobile", "prebuild", "--clean"],
-    "reveal": "no_focus",
-    "hide": "on_success"
+    "args": ["dev:site"],
+    "reveal": "no_focus"
   },
   {
-    "label": "Supabase: Start",
+    "label": "Run MCP",
+    "command": "pnpm",
+    "args": ["dev:mcp"],
+    "reveal": "no_focus"
+  },
+  {
+    "label": "Run API",
+    "command": "pnpm",
+    "args": ["dev:api"],
+    "reveal": "no_focus"
+  },
+  {
+    "label": "Run webhooks",
+    "command": "pnpm",
+    "args": ["dev:webhooks"],
+    "reveal": "no_focus"
+  },
+  {
+    "label": "Run coach",
+    "command": "pnpm",
+    "args": ["dev:coach"],
+    "reveal": "no_focus"
+  },
+  {
+    "label": "Start Supabase",
     "command": "pnpm",
     "args": ["db", "start"],
     "reveal": "no_focus",
     "hide": "on_success"
   },
   {
-    "label": "Supabase: Restart",
-    "command": "pnpm db stop && pnpm db start",
-    "reveal": "no_focus",
-    "hide": "on_success"
+    "label": "Test",
+    "command": "pnpm",
+    "args": ["test"]
   },
   {
-    "label": "Supabase: Migrate",
-    "command": "pnpm",
-    "args": ["db", "migrate"],
-    "reveal": "no_focus",
-    "hide": "on_success"
+    "label": "Check",
+    "command": "pnpm check && pnpm typecheck"
   }
 ]
