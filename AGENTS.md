@@ -107,7 +107,7 @@ React Native / Expo app using **file-based routing** via `expo-router`:
   - `coach-model.ts` — the Coach model list's schema and MMKV cache (`coach.models`), and the picker's choice (`coach.model`) resolved against it (see Key Patterns)
   - `utils.ts` — `cn()` class merger (tailwind-merge with the HIG font scale)
   - `segment.ts` — the Segment client, created at import. Segment generates ids through `crypto.getRandomValues`, so `react-native-get-random-values` is a direct dependency even though no app code imports it: only a direct dependency gets its native module (`RNGetRandomValues`) autolinked, and without it the client throws at import and the app never renders. Don't remove it as unused.
-  - `constants.ts`, `useColorScheme.tsx`
+  - `constants.ts`
 - `plugins/` — local Expo config plugin for Xcode 27 compatibility: `with-ios-min-deployment-target.js` (raises pod targets below iOS 15.1, including resource bundles; still needed on SDK 58, since pods such as `react-native-keyboard-controller`, `react-native-safe-area-context`, `@sentry/react-native` and Segment still declare older minimums). RevenueCat needs no patch: `react-native-purchases` 10 pins purchases-ios 5.95.0, which builds under Xcode 27 / Swift 6.4. The app itself targets iOS 16.4 (SDK 58's default). UIScene adoption needs no flag on SDK 58: prebuild generates `SceneDelegate.swift`, so there is no `expo-build-properties` plugin.
 
 ### apps/web — Next.js app
