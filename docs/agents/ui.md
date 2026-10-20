@@ -37,7 +37,7 @@ iOS first. Android renders but is second: icons fall back to Lucide, glass falls
 
 ## Tokens
 
-Every Token lives in one file, `packages/design-tokens/src/tokens.css` (`@fitme/design-tokens`, ADR 0009). Mobile's `global.css` imports it and only maps the font roles to the font files the app bundles; web and site import the same file. Code is the source of truth and Figma follows it:
+Every Token lives in one file, `packages/design-tokens/src/tokens.css` (`@fitme/design-tokens`, ADR 0009). Mobile's `global.css` imports it and only maps the font roles to the font files the app bundles; web and site move onto the same file in later issues (FIT-198 for web). Code is the source of truth and Figma follows it:
 
 - **Changing a Token**: edit `tokens.css`, never an app's stylesheet. The same PR updates the matching Figma variable in the `Fitme` file (named like the Token minus its prefix: `--color-primary` is `Color/primary`) through the Figma MCP, and the tables below.
 - Dark only: one value per Token, no `@variant light` / `@variant dark`, no light values anywhere.
@@ -52,21 +52,21 @@ Every Token lives in one file, `packages/design-tokens/src/tokens.css` (`@fitme/
 | `foreground`             | `#fafafa`   | Body text                                                              |
 | `card`                   | `#171717`   | Surface that isn't glass                                               |
 | `card-foreground`        | `#fafafa`   | Text on `card`                                                         |
-| `popover`                | `#171717`   | Menus and popovers                                                     |
-| `popover-foreground`     | `#fafafa`   | Text on `popover`                                                      |
+| `popover`                | `#171717`   | Menus and popovers (shadcn set; unused on mobile so far)               |
+| `popover-foreground`     | `#fafafa`   | Text on `popover` (unused on mobile so far)                            |
 | `primary`                | `#c0ff38`   | The brand (lime): H1, H2, card titles, the main action, the active tab |
 | `primary-foreground`     | `#0a0a0a`   | Text on a lime fill (dark, not white)                                  |
 | `secondary`              | `#27272a`   | Secondary surfaces and buttons                                         |
 | `secondary-foreground`   | `#fafafa`   | Text on `secondary`                                                    |
 | `muted`                  | `#262626`   | Quiet surfaces                                                         |
 | `muted-foreground`       | `#a1a1a1`   | Secondary text: captions, metadata, hints                              |
-| `accent`                 | `#262626`   | Pressed and highlighted rows                                           |
+| `accent`                 | `#262626`   | Pressed and hover highlights                                           |
 | `accent-foreground`      | `#fafafa`   | Text on `accent`                                                       |
 | `destructive`            | `#ff6467`   | Delete and error, nothing else                                         |
 | `destructive-foreground` | `#fafafa`   | Text on `destructive`                                                  |
 | `border`                 | `#ffffff1a` | Separators and row dividers (`border-border`, often `border-hairline`) |
-| `input`                  | `#ffffff26` | Input borders                                                          |
-| `ring`                   | `#737373`   | Focus ring                                                             |
+| `input`                  | `#ffffff26` | Input borders (`Textarea`)                                             |
+| `ring`                   | `#737373`   | Focus ring (web only)                                                  |
 
 - In `className` use token names only (`text-muted-foreground`, `bg-background`). No hex, `rgb()` or `hsl()` in `className` or `style`.
 - A color prop that isn't part of `style` on a React Native component gets its `…ClassName` prop with an `accent-` class: `<ActivityIndicator colorClassName="accent-foreground" />`, `tintColorClassName`, `backdropColorClassName="accent-background"`, `placeholderTextColorClassName` (`components/ui/input.tsx`). `className="text-…"` sets nothing there.

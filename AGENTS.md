@@ -15,7 +15,7 @@ apps/web                @fitme/web     — Next.js (App Router) web app
 apps/site               @fitme/site    — Next.js marketing site (fitmeproject.com)
 apps/webhooks           @fitme/webhooks — Hono app receiving third-party webhooks (Node)
 packages/core           @fitme/core    — domain models, labels, formatters, pure helpers
-packages/design-tokens  @fitme/design-tokens — the design tokens: one Tailwind v4 @theme CSS file every app imports
+packages/design-tokens  @fitme/design-tokens — the design tokens: one Tailwind v4 @theme CSS file (mobile imports it; web and site follow)
 packages/supabase       @fitme/supabase — Supabase project + generated DB types
 packages/db             @fitme/db      — asUser / withService: the only way backend apps reach Postgres
 packages/services       @fitme/services — business logic run inside an asUser / withService transaction
@@ -208,7 +208,7 @@ Platform-agnostic code shared by both apps: `models.ts` (Profile, Plan, Workout,
 The design tokens (ADR 0009): the only place a token value is defined. Source-only, like the other `@fitme/*` packages.
 
 - `src/tokens.css` (export `@fitme/design-tokens/tokens.css`) — one Tailwind v4 `@theme` block, no `@import`s of its own: the 19 `--color-*` tokens (hex, 8-digit where there's alpha), the 11 HIG `--text-*` sizes with their `--line-height`s, `--spacing-xs/sm/md/lg`, Tailwind's default `--radius-*` scale plus `--radius-card`, and the font roles (`--font-nunito-sans-regular/semibold/bold`, `--font-ibm-plex-mono`, `--font-ibm-plex-mono-semibold`) with generic fallback families. Dark only: one value per token, no theme variants, no light values anywhere. The final tables are in `docs/agents/ui.md`.
-- How apps use it: the app's global stylesheet `@import`s it after `tailwindcss` (and `uniwind` on mobile), then maps each font role to the fonts it loads in its own small `@theme` (native font-file names on mobile, `next/font` on web and site). An app defines no other token itself. On mobile uniwind follows the `@import` through Tailwind's compiler under Metro, in dev and release builds. Code that reads a token at runtime reads the `--color-*` variable (`useCSSVariable("--color-foreground")`); there are no bare `--background`-style variables.
+- How apps use it: `apps/mobile/global.css` `@import`s it after `tailwindcss` and `uniwind`, then maps each font role to the bundled font files in its own small `@theme`; it defines no other token itself. uniwind follows the `@import` through Tailwind's compiler under Metro, in dev and release builds. Web and site still have their own palettes; they move onto the package in later issues (FIT-198 for web), mapping the font roles to their `next/font` fonts. Code that reads a token at runtime reads the `--color-*` variable (`useCSSVariable("--color-foreground")`); there are no bare `--background`-style variables.
 - `src/index.ts` — the reader: `parseTokens(css)` turns the `@theme` block into a typed `Token[]` (`kind`, `name`, `value`, `variable`; an unknown prefix throws), `readTokens()` parses the package's own file. Used by its tests (and later the CI literal check).
 - Tests (`src/__tests__/`, vitest) check what a consumer sees: the 19 colors present and valid hex, every HIG style's size and line height, the spacing, radius and font tokens.
 - A PR that changes a value here also updates the matching Figma variable through the Figma MCP (`docs/agents/ui.md`).
