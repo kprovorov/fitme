@@ -20,6 +20,10 @@ Workflow states: `Triage` → `Backlog` → `Todo` → `In Progress` → `In Rev
 
 Branches and PRs reference the issue identifier (e.g. a PR titled `feat(mobile): … (FIT-60)`), which links them in Linear.
 
+## Platform label
+
+Agents run on Linux unless an issue says otherwise. An issue that needs macOS to be done or verified (the iOS simulator, Xcode, a local iOS build, Maestro flows, or the `docs/agents/ui.md` screenshot loop on a mobile screen) also gets `macos`; agents on Linux skip it. Web, site and Figma-only work doesn't need it.
+
 ## Pull requests as a triage surface
 
 **PRs as a request surface: no.** _(Set to `yes` if this repo treats external GitHub PRs on `kprovorov/fitme` as feature requests; `/triage` reads this flag.)_
