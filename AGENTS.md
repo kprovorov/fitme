@@ -15,6 +15,7 @@ apps/web                @fitme/web     — Next.js (App Router) web app
 apps/site               @fitme/site    — Next.js marketing site (fitmeproject.com)
 apps/webhooks           @fitme/webhooks — Hono app receiving third-party webhooks (Node)
 packages/core           @fitme/core    — domain models, labels, formatters, pure helpers
+packages/design-tokens  @fitme/design-tokens — the design tokens: one Tailwind v4 @theme CSS file every app imports
 packages/supabase       @fitme/supabase — Supabase project + generated DB types
 packages/db             @fitme/db      — asUser / withService: the only way backend apps reach Postgres
 packages/services       @fitme/services — business logic run inside an asUser / withService transaction
@@ -37,7 +38,7 @@ pnpm dev:webhooks        # tsx watch webhooks app on :3004 (needs FITME_DATABASE
 pnpm dev:coach           # eve dev (no TUI) on :3005 against the local stack (apps/coach/.env.local: CLERK_JWT_KEY, FITME_DATABASE_URL, AI_GATEWAY_API_KEY)
 pnpm dev:exercises       # generate + tsx watch Exercise Library API on :3006, serving the fixture bundle (apps/exercises/.env: Clerk keys and/or server secrets to call it)
 pnpm build               # turbo run build
-pnpm test                # turbo run test (jest in mobile, vitest in core, mcp, api, webhooks, coach and exercises)
+pnpm test                # turbo run test (jest in mobile, vitest in core, design-tokens, mcp, api, webhooks, coach and exercises)
 pnpm typecheck           # turbo run typecheck
 pnpm check / pnpm fix    # ultracite (Biome) over the whole repo
 
@@ -202,6 +203,16 @@ Stateless [Streamable HTTP](https://modelcontextprotocol.io) MCP server built on
 
 Platform-agnostic code shared by both apps: `models.ts` (Profile, Plan, Workout, Exercise, etc. plus enum arrays like `goals`, `muscleGroups`), `labels.ts`, `formatters.ts`, `names.ts` (`splitName`), `limits.ts` (`MAX_REPS`, `MAX_WEIGHT`, `MAX_WEIGHT_DECIMALS`: a set's bounds, shared by the mobile set inputs, MCP and the Coach), `types.ts` (pagination), `utils.ts` (`range`, `muscleGroupToName`, `handleSupabaseError`). Tests use vitest. Nothing in here may import React Native, Expo, or Next.
 
+### packages/design-tokens — `@fitme/design-tokens`
+
+The design tokens (ADR 0009): the only place a token value is defined. Source-only, like the other `@fitme/*` packages.
+
+- `src/tokens.css` (export `@fitme/design-tokens/tokens.css`) — one Tailwind v4 `@theme` block, no `@import`s of its own: the 19 `--color-*` tokens (hex, 8-digit where there's alpha), the 11 HIG `--text-*` sizes with their `--line-height`s, `--spacing-xs/sm/md/lg`, Tailwind's default `--radius-*` scale plus `--radius-card`, and the font roles (`--font-nunito-sans-regular/semibold/bold`, `--font-ibm-plex-mono`, `--font-ibm-plex-mono-semibold`) with generic fallback families. Dark only: one value per token, no theme variants, no light values anywhere. The final tables are in `docs/agents/ui.md`.
+- How apps use it: the app's global stylesheet `@import`s it after `tailwindcss` (and `uniwind` on mobile), then maps each font role to the fonts it loads in its own small `@theme` (native font-file names on mobile, `next/font` on web and site). An app defines no other token itself. On mobile uniwind follows the `@import` through Tailwind's compiler under Metro, in dev and release builds. Code that reads a token at runtime reads the `--color-*` variable (`useCSSVariable("--color-foreground")`); there are no bare `--background`-style variables.
+- `src/index.ts` — the reader: `parseTokens(css)` turns the `@theme` block into a typed `Token[]` (`kind`, `name`, `value`, `variable`; an unknown prefix throws), `readTokens()` parses the package's own file. Used by its tests (and later the CI literal check).
+- Tests (`src/__tests__/`, vitest) check what a consumer sees: the 19 colors present and valid hex, every HIG style's size and line height, the spacing, radius and font tokens.
+- A PR that changes a value here also updates the matching Figma variable through the Figma MCP (`docs/agents/ui.md`).
+
 ### packages/db — `@fitme/db`
 
 The only way backend apps reach Postgres (ADR 0003): Drizzle on node-postgres (`pg`, not postgres.js) through the Supavisor transaction pooler, as the shared `fitme` login. Source-only, like the other workspace packages.
@@ -252,7 +263,7 @@ Business logic shared by the backend apps (ADR 0004), replacing the Postgres RPC
 
 **Authentication (mobile)**: Clerk (`@clerk/expo`, hooks-based custom flows on the existing screens). Identity (id, email, name) comes from Clerk's `useUser`; the Profile from `useProfileQuery`. Never call Supabase Auth APIs. `@clerk/expo` is excluded from Expo autolinking in `package.json` (its native module needs iOS 17 and is only used by Clerk's prebuilt native views); the JS SDK treats it as optional. The `<Authenticated>` component wraps protected screens and redirects signed-out users. Registration and password reset both go through the shared code screen `app/auth/verify-code.tsx` (`?purpose=sign-up`, `?purpose=reset-password`, or `?purpose=sign-in` when Device Trust wants a code after a reset; each purpose maps to its Clerk flow in `components/views/verify-code-view.tsx`): forgot-password starts a sign-in and emails the reset code, the code screen moves on to reset-password, which submits the new password and signs the User in. There is no web reset page or universal link. The register and reset-password forms mirror Clerk's minimum password length (`PASSWORD_MIN_LENGTH` in `lib/constants.ts`, 15 on both instances). E2E flows register a fresh `+clerk_test` User per run on the Clerk development instance (test mode: no email sent, fixed code 424242) through `e2e/subflows/register.yaml`, and sign in through `e2e/subflows/sign-in.yaml` (`EMAIL`/`PASSWORD` runFlow env).
 
-**Styling (mobile)**: uniwind (Tailwind CSS for React Native). CSS variables are defined in `apps/mobile/global.css` for theming. Custom spacing tokens: `xs`, `sm`, `md`, `lg`. Custom font families: `nunito-sans-regular/semibold/bold`, `ibm-plex-mono`.
+**Styling (mobile)**: uniwind (Tailwind CSS for React Native). The tokens come from `@fitme/design-tokens`, which `apps/mobile/global.css` imports; the stylesheet itself only maps the font roles to the bundled font files and adds `border-hairline`. One dark theme, no light variant. Custom spacing tokens: `xs`, `sm`, `md`, `lg`. Font families: `nunito-sans-regular/semibold/bold`, `ibm-plex-mono`, `ibm-plex-mono-semibold`.
 
 **UI Components (mobile)**: Built on `@rn-primitives` (shadcn/ui-compatible for React Native). Use components from `apps/mobile/components/ui/`.
 
@@ -266,7 +277,7 @@ Business logic shared by the backend apps (ADR 0004), replacing the Postgres RPC
 
 **Module aliases**: Inside each app, `~/` and `@/` resolve to that app's root. Cross-workspace imports always go through the package name (`@fitme/core`, `@fitme/supabase`).
 
-**Workspace packages are source-only**: no build step. Metro resolves them through the hoisted `node_modules`; Next compiles them via `transpilePackages`. The tsdown apps (`apps/api`, `apps/exercises`, `apps/mcp`, `apps/webhooks`) inline `@fitme/*` and no package from `node_modules` (`deps.onlyBundle: []`): a workspace package's runtime dependency (`pg`, `drizzle-orm`, `@vercel/functions` for `@fitme/db`) must also be in the app's `dependencies`, or its build fails; it stays external and Vercel traces it into the function. Their build emits the Vercel entry as `dist/app.js` and the standalone Node server (`pnpm start`) as `dist/node/index.js`, out of Vercel's entrypoint lookup. pnpm uses `nodeLinker: hoisted` (see `pnpm-workspace.yaml`) because React Native autolinking needs a flat `node_modules`. Its `overrides` pin `react` / `react-dom` to the version Expo's React Native expects, so the workspace has one copy (`expo-doctor` flags a second); move it with the Expo SDK, together with each app's own pin. Its `patchedDependencies` patch uniwind (`patches/`): uniwind's Metro resolver swaps `react-native` for its own export list, which lacks RN 0.88's `AssetRegistry`, so expo-asset can't load assets, `useFonts` fails without a LogBox error and the splash never hides. Drop the patch once a uniwind release exports it (FIT-170).
+**Workspace packages are source-only**: no build step. Metro resolves them through the hoisted `node_modules`; Next compiles them via `transpilePackages`. CSS (`@fitme/design-tokens/tokens.css`) is `@import`ed by package name and resolved by Tailwind's compiler (uniwind's, under Metro). The tsdown apps (`apps/api`, `apps/exercises`, `apps/mcp`, `apps/webhooks`) inline `@fitme/*` and no package from `node_modules` (`deps.onlyBundle: []`): a workspace package's runtime dependency (`pg`, `drizzle-orm`, `@vercel/functions` for `@fitme/db`) must also be in the app's `dependencies`, or its build fails; it stays external and Vercel traces it into the function. Their build emits the Vercel entry as `dist/app.js` and the standalone Node server (`pnpm start`) as `dist/node/index.js`, out of Vercel's entrypoint lookup. pnpm uses `nodeLinker: hoisted` (see `pnpm-workspace.yaml`) because React Native autolinking needs a flat `node_modules`. Its `overrides` pin `react` / `react-dom` to the version Expo's React Native expects, so the workspace has one copy (`expo-doctor` flags a second); move it with the Expo SDK, together with each app's own pin. Its `patchedDependencies` patch uniwind (`patches/`): uniwind's Metro resolver swaps `react-native` for its own export list, which lacks RN 0.88's `AssetRegistry`, so expo-asset can't load assets, `useFonts` fails without a LogBox error and the splash never hides. Drop the patch once a uniwind release exports it (FIT-170).
 
 ## Environment Variables
 

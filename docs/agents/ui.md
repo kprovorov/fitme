@@ -9,7 +9,7 @@ Where a skill says otherwise, this file wins for this repo: [When a skill disagr
 - **Screen**: a route file under `apps/mobile/app/`. It owns the native header (`Stack.Screen` options), the data hooks, and the choice between loading, empty, error and content. _Avoid_: page, route component.
 - **View**: a component a Screen renders with data passed as props, under `components/views/` or a feature folder (`components/plans/`, `components/chat/`). _Avoid_: container, widget.
 - **Primitive**: a component in `components/ui/`. Screens and Views are built from Primitives, never from bare `react-native` controls when a Primitive exists. _Avoid_: atom, base component.
-- **Token**: a theme value defined in `apps/mobile/global.css` (color, type size, spacing, font family). _Avoid_: magic number, hard-coded value.
+- **Token**: a semantic design value (color, type size, spacing, radius, font role), defined once in `@fitme/design-tokens` (`packages/design-tokens/src/tokens.css`) and imported by every app. _Avoid_: magic number, hard-coded value.
 
 ## See it before you ship it
 
@@ -23,7 +23,7 @@ Code that compiles isn't done. Every UI change is looked at, by you and then by 
 
 Screenshots prove layout, not feel. Motion, gestures and haptics are judged on a release build on a real iPhone (the simulator fires no haptics), so a pull request that adds any lists what still needs that check, for the maintainer to do.
 
-The app is dark only (`userInterfaceStyle: "dark"` in `app.json`) and phone only (`supportsTablet: false`): don't spend time checking light mode or iPad. The light tokens still exist (see [Color](#color)).
+The app is dark only (`userInterfaceStyle: "dark"` in `app.json`) and phone only (`supportsTablet: false`): don't spend time checking light mode or iPad. There are no light tokens.
 
 ## Platform
 
@@ -35,29 +35,63 @@ iOS first. Android renders but is second: icons fall back to Lucide, glass falls
 - Secondary flows are sheets: a route with `presentation: "formSheet"` or `"modal"`. A `Modal` with `presentationStyle="pageSheet"` is for a picker that belongs to one Screen (the exercise picker in `workout-session-view.tsx`).
 - Liquid Glass comes from the Primitives (`Card`, `Button`), switched on `GLASS_ENABLED` with a fallback for older iOS. Never build your own glass or blur surface.
 
+## Tokens
+
+Every Token lives in one file, `packages/design-tokens/src/tokens.css` (`@fitme/design-tokens`, ADR 0009). Mobile's `global.css` imports it and only maps the font roles to the font files the app bundles; web and site import the same file. Code is the source of truth and Figma follows it:
+
+- **Changing a Token**: edit `tokens.css`, never an app's stylesheet. The same PR updates the matching Figma variable in the `Fitme` file (named like the Token minus its prefix: `--color-primary` is `Color/primary`) through the Figma MCP, and the tables below.
+- Dark only: one value per Token, no `@variant light` / `@variant dark`, no light values anywhere.
+- Colors are hex, 8-digit where there's alpha, so a value compares with Figma as a plain string.
+- Code that needs a Token's value at runtime reads its `--color-*` variable (`useCSSVariable("--color-foreground")`), never a hex copy.
+
 ## Color
 
-| Token                                | Use                                                                    |
-| ------------------------------------ | ---------------------------------------------------------------------- |
-| `background`                         | Screen background                                                      |
-| `foreground`                         | Body text                                                              |
-| `muted-foreground`                   | Secondary text: captions, metadata, hints                              |
-| `primary` (lime, `hsl(79 100% 61%)`) | The brand: H1, H2, card titles, the main action, the active tab        |
-| `primary-foreground`                 | Text on a lime fill (dark, not white)                                  |
-| `card`, `secondary`, `muted`         | Surfaces that aren't glass                                             |
-| `border`                             | Separators and row dividers (`border-border`, often `border-hairline`) |
-| `destructive`                        | Delete and error, nothing else                                         |
+| Token                    | Value       | Use                                                                    |
+| ------------------------ | ----------- | ---------------------------------------------------------------------- |
+| `background`             | `#1f1d20`   | Screen background                                                      |
+| `foreground`             | `#fafafa`   | Body text                                                              |
+| `card`                   | `#171717`   | Surface that isn't glass                                               |
+| `card-foreground`        | `#fafafa`   | Text on `card`                                                         |
+| `popover`                | `#171717`   | Menus and popovers                                                     |
+| `popover-foreground`     | `#fafafa`   | Text on `popover`                                                      |
+| `primary`                | `#c0ff38`   | The brand (lime): H1, H2, card titles, the main action, the active tab |
+| `primary-foreground`     | `#0a0a0a`   | Text on a lime fill (dark, not white)                                  |
+| `secondary`              | `#27272a`   | Secondary surfaces and buttons                                         |
+| `secondary-foreground`   | `#fafafa`   | Text on `secondary`                                                    |
+| `muted`                  | `#262626`   | Quiet surfaces                                                         |
+| `muted-foreground`       | `#a1a1a1`   | Secondary text: captions, metadata, hints                              |
+| `accent`                 | `#262626`   | Pressed and highlighted rows                                           |
+| `accent-foreground`      | `#fafafa`   | Text on `accent`                                                       |
+| `destructive`            | `#ff6467`   | Delete and error, nothing else                                         |
+| `destructive-foreground` | `#fafafa`   | Text on `destructive`                                                  |
+| `border`                 | `#ffffff1a` | Separators and row dividers (`border-border`, often `border-hairline`) |
+| `input`                  | `#ffffff26` | Input borders                                                          |
+| `ring`                   | `#737373`   | Focus ring                                                             |
 
 - In `className` use token names only (`text-muted-foreground`, `bg-background`). No hex, `rgb()` or `hsl()` in `className` or `style`.
 - A color prop that isn't part of `style` on a React Native component gets its `…ClassName` prop with an `accent-` class: `<ActivityIndicator colorClassName="accent-foreground" />`, `tintColorClassName`, `backdropColorClassName="accent-background"`, `placeholderTextColorClassName` (`components/ui/input.tsx`). `className="text-…"` sets nothing there.
 - Anything else that wants a color string (`@expo/ui` SwiftUI modifiers, a navigation theme, an SVG `fill`) gets a resolved token: `useSwiftUITheme()` from `components/ui/swift-ui.tsx`, or `useResolveClassNames("text-primary").color` from `uniwind`.
 - Lime is the accent, not the paint. One lime action per Screen; everything else is `secondary`, `outline` or `ghost`.
-- A new token goes in the `@theme` mapping and in both `@variant light` and `@variant dark`: uniwind fails at runtime when the variants don't define the same variables, even though the app only shows dark.
+- A new color is a new Token in `@fitme/design-tokens` (see [Tokens](#tokens)), never a literal in an app.
 - The literal `#C0FF38` and `#1F1D20` in `app/(tabs)/_layout.tsx`, `components/providers.tsx` and the workout session Screens are old debt. Don't copy them.
 
 ## Type
 
-The scale is Apple's text styles, defined as tokens in `global.css`. Fonts: Nunito Sans for UI (`font-nunito-sans-regular` / `-semibold` / `-bold`), IBM Plex Mono (`font-ibm-plex-mono`) for numbers that line up in columns, like set counts.
+The scale is Apple's text styles (iOS, default Large size; letter spacing 0), defined as Tokens in `@fitme/design-tokens`. Fonts: Nunito Sans for UI (`font-nunito-sans-regular` / `-semibold` / `-bold`), IBM Plex Mono (`font-ibm-plex-mono` / `-semibold`) for numbers that line up in columns, like set counts. Those five font roles are Tokens too; each app maps them to the font it loads (mobile: the bundled font files, in `global.css`).
+
+| Token / class      | Size / line height (pt) |
+| ------------------ | ----------------------- |
+| `text-large-title` | 34 / 41                 |
+| `text-title-1`     | 28 / 34                 |
+| `text-title-2`     | 22 / 28                 |
+| `text-title-3`     | 20 / 25                 |
+| `text-headline`    | 17 / 22                 |
+| `text-body`        | 17 / 22                 |
+| `text-callout`     | 16 / 21                 |
+| `text-subhead`     | 15 / 20                 |
+| `text-footnote`    | 13 / 18                 |
+| `text-caption-1`   | 12 / 16                 |
+| `text-caption-2`   | 11 / 13                 |
 
 | Role                       | Class                             | Primitive                          |
 | -------------------------- | --------------------------------- | ---------------------------------- |
@@ -77,7 +111,8 @@ The scale is Apple's text styles, defined as tokens in `global.css`. Fonts: Nuni
 
 ## Spacing and layout
 
-- Screen gutters and gaps between sections use the spacing tokens: `xs` 8, `sm` 16, `md` 24, `lg` 32 (`px-md`, `gap-md`, `p-md`).
+- Screen gutters and gaps between sections use the spacing Tokens: `xs` 8, `sm` 16, `md` 24, `lg` 32 (`px-md`, `gap-md`, `p-md`).
+- Corners use the radius Tokens: Tailwind's default scale (`rounded-xs` 2, `-sm` 4, `-md` 6, `-lg` 8, `-xl` 12, `-2xl` 16, `-3xl` 24, `-4xl` 32), with no per-app overrides, plus `rounded-card` 16 for cards.
 - Inside a component, use Tailwind's numeric steps (`gap-2`, `px-3`, `py-2`). Never an arbitrary value (`p-[13px]`, `rounded-[10px]`).
 - `VStack` and `HStack` default to `items-center justify-center gap-4`. Centered is right for empty states and single-message Screens and wrong for content: lists, cards and forms pass `items-stretch` (or `items-start`). Everything ending up centered is the most common way generated UI looks off.
 - Rows in a list are divided by `Separator` or `border-border border-b`, not wrapped in a card each. Never nest a `Card` in a `Card`.
