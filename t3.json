@@ -9,6 +9,12 @@
       "async": false
     },
     {
+      "name": "Destroy Supabase stack",
+      "command": "./.t3/settle.sh",
+      "icon": "configure",
+      "runOnSettle": true
+    },
+    {
       "name": "Run all",
       "command": "pnpm dev",
       "icon": "play"

@@ -5,8 +5,8 @@
   "type": "module",
   "scripts": {
     "build": "pnpm generate && tsdown",
-    "dev": "pnpm generate && tsx watch --env-file-if-exists=.env.local src/index.ts",
-    "generate": "tsx --env-file-if-exists=.env.local src/generate.ts",
+    "dev": "pnpm generate && tsx watch --env-file-if-exists=.env src/index.ts",
+    "generate": "tsx --env-file-if-exists=.env src/generate.ts",
     "openapi": "tsx src/openapi.ts",
     "start": "node dist/node/index.js",
     "test": "pnpm generate && vitest run",
