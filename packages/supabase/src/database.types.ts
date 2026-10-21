@@ -347,6 +347,7 @@ export interface Database {
           created_at: string | null;
           finished_at: string | null;
           id: string;
+          plan_changes_applied_at: string | null;
           plan_id: string | null;
           started_at: string;
           updated_at: string | null;
@@ -358,6 +359,7 @@ export interface Database {
           created_at?: string | null;
           finished_at?: string | null;
           id?: string;
+          plan_changes_applied_at?: string | null;
           plan_id?: string | null;
           started_at: string;
           updated_at?: string | null;
@@ -368,6 +370,7 @@ export interface Database {
           created_at?: string | null;
           finished_at?: string | null;
           id?: string;
+          plan_changes_applied_at?: string | null;
           plan_id?: string | null;
           started_at?: string;
           updated_at?: string | null;
@@ -477,6 +480,10 @@ export interface Database {
       update_plan: {
         Args: { p_plan_data: Json; p_plan_id: string; p_user_id?: string };
         Returns: string;
+      };
+      workout_session_plan_changes: {
+        Args: { apply?: boolean; session_id: string };
+        Returns: Json;
       };
     };
     Enums: {

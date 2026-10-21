@@ -350,6 +350,10 @@ export const workoutSessions = pgTable(
       withTimezone: true,
     }),
     id: uuid().defaultRandom().primaryKey().notNull(),
+    planChangesAppliedAt: timestamp("plan_changes_applied_at", {
+      mode: "string",
+      withTimezone: true,
+    }),
     planId: uuid("plan_id"),
     startedAt: timestamp("started_at", {
       mode: "string",
