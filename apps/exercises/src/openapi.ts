@@ -14,6 +14,7 @@ const out = resolve(import.meta.dirname, "../openapi.json");
 const library = serveLibrary({ exercises: [] }, PLACEHOLDER_SUPABASE_URL);
 const spec = createApp({
   auth: { clerkJwtKeys: {}, serverSecrets: {} },
+  identifyUser: () => undefined,
   library,
   rateLimiter: memoryRateLimiter(),
   reportError: () => Promise.resolve(),

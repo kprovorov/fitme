@@ -132,6 +132,9 @@ importers:
       '@fitme/core':
         specifier: workspace:*
         version: link:../../packages/core
+      '@fitme/observability':
+        specifier: workspace:*
+        version: link:../../packages/observability
       '@hono/node-server':
         specifier: ^2.1.5
         version: 2.1.5(hono@4.13.13)
