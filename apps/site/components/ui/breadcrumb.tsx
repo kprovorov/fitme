@@ -50,7 +50,7 @@ function BreadcrumbPage({ className, ...props }: ComponentProps<"span">) {
   return (
     <span
       aria-current="page"
-      className={cn("font-normal text-foreground", className)}
+      className={cn("text-foreground", className)}
       {...props}
     />
   );

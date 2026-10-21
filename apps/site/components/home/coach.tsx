@@ -21,7 +21,7 @@ function Coach() {
       <Container>
         <div className="grid items-center gap-10 overflow-hidden rounded-3xl border bg-secondary px-6 pt-10 md:grid-cols-2 md:gap-16 md:px-12 md:pt-12">
           <div className="flex flex-col items-start gap-5 md:pb-12">
-            <p className="rounded-full border border-primary/40 px-3 py-1 font-semibold text-footnote text-primary">
+            <p className="rounded-full border border-primary/40 px-3 py-1 text-footnote-emphasized text-primary">
               Fitme Pro
             </p>
             <h2

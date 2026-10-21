@@ -66,7 +66,7 @@ function Faq() {
           <p className="text-muted-foreground">
             Something else on your mind?{" "}
             <Link
-              className="font-semibold text-foreground underline underline-offset-4 hover:text-primary"
+              className="text-body-emphasized text-foreground underline underline-offset-4 hover:text-primary"
               href="/support"
             >
               Get in touch
@@ -76,7 +76,7 @@ function Faq() {
         <div className="flex flex-col border-t">
           {questions.map(({ answer, question }) => (
             <details className="group border-b" key={question}>
-              <summary className="flex cursor-pointer list-none items-center justify-between gap-6 py-5 font-semibold text-foreground text-headline focus-visible:outline-hidden focus-visible:ring-2 focus-visible:ring-ring [&::-webkit-details-marker]:hidden">
+              <summary className="flex cursor-pointer list-none items-center justify-between gap-6 py-5 text-foreground text-headline focus-visible:outline-hidden focus-visible:ring-2 focus-visible:ring-ring [&::-webkit-details-marker]:hidden">
                 {question}
                 <Plus
                   aria-hidden="true"

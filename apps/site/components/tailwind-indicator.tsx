@@ -4,7 +4,7 @@ export function TailwindIndicator() {
   }
 
   return (
-    <div className="fixed top-1 left-1 z-50 flex h-6 w-6 items-center justify-center rounded-full bg-secondary p-3 font-ibm-plex-mono text-caption-1 text-secondary-foreground">
+    <div className="fixed top-1 left-1 z-50 flex h-6 w-6 items-center justify-center rounded-full bg-secondary p-3 text-mono-caption-1 text-secondary-foreground">
       <div className="block sm:hidden">xs</div>
       <div className="hidden sm:block md:hidden lg:hidden xl:hidden 2xl:hidden">
         sm

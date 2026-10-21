@@ -59,18 +59,18 @@
     @apply border-border;
   }
   body {
-    @apply bg-background font-nunito-sans-regular text-body text-foreground;
+    @apply bg-background text-body text-foreground;
   }
   h1 {
     @apply font-bold text-display-1 text-primary;
   }
   h2 {
-    @apply font-bold text-title-1;
+    @apply text-title-1-emphasized;
   }
   h3 {
-    @apply font-semibold text-title-3;
+    @apply text-title-3-emphasized;
   }
   h4 {
-    @apply font-semibold text-headline;
+    @apply text-headline;
   }
 }
