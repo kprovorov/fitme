@@ -4,7 +4,7 @@
   "private": true,
   "type": "module",
   "scripts": {
-    "build": "eve build",
+    "build": "eve build && node scripts/upload-source-maps.ts",
     "dev": "eve dev --no-ui --port 3005",
     "eval": "eve eval",
     "test": "vitest run",
@@ -15,8 +15,10 @@
     "@clerk/backend": "^3.25.0",
     "@fitme/core": "workspace:*",
     "@fitme/db": "workspace:*",
+    "@fitme/observability": "workspace:*",
     "@fitme/services": "workspace:*",
     "@sentry/node": "^11.8.0",
+    "@vercel/otel": "2.1.3",
     "ai": "^7.0.142",
     "eve": "0.80.0",
     "just-bash": "^3.6.0",
@@ -24,6 +26,7 @@
   },
   "devDependencies": {
     "@fitme/typescript-config": "workspace:*",
+    "@sentry/cli": "3.8.0",
     "@types/node": "24.19.2",
     "typescript": "~5.9.3",
     "vitest": "^5.0.5"

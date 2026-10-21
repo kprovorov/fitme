@@ -1,5 +1,5 @@
+import { reportError } from "@fitme/observability/node";
 import { defineHook } from "eve/hooks";
-import { reportError } from "../lib/sentry";
 
 interface Failure {
   readonly code: string;
@@ -13,7 +13,7 @@ const failureError = (type: string, { code, message }: Failure): Error => {
   return error;
 };
 
-/** Every failed model step, turn and session reaches Sentry. */
+/** Every failed model step, turn and session is reported. */
 export default defineHook({
   events: {
     async "session.failed"(event, ctx) {
