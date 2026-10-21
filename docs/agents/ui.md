@@ -159,7 +159,7 @@ What it leaves alone, and why:
 ## Spacing and layout
 
 - Screen gutters and gaps between sections use the spacing Tokens: `xs` 8, `sm` 16, `md` 24, `lg` 32 (`px-md`, `gap-md`, `p-md`).
-- Corners use the radius Tokens: Tailwind's default scale (`rounded-xs` 2, `-sm` 4, `-md` 6, `-lg` 8, `-xl` 12, `-2xl` 16, `-3xl` 24, `-4xl` 32), with no per-app overrides, plus `rounded-card` 16 for cards.
+- Corners use the radius Tokens: Tailwind's default scale (`rounded-xs` 2, `-sm` 4, `-md` 6, `-lg` 8, `-xl` 12, `-2xl` 16, `-3xl` 24, `-4xl` 32), with no per-app overrides, plus `rounded-card` 16 for cards and `rounded-full` (9999) for pills and circles.
 - Inside a component, use Tailwind's numeric steps (`gap-2`, `px-3`, `py-2`). Never an arbitrary value (`p-[13px]`, `rounded-[10px]`). A token the scale doesn't name is referenced by its variable, in parentheses: `h-(--size-button-pill-default)`.
 - The spacing Tokens shadow Tailwind's named sizes: `max-w-md` is 24 px here, not 28 rem. Use the numeric step (`max-w-112`, `max-w-80`).
 - `VStack` and `HStack` default to `items-center justify-center gap-4`. Centered is right for empty states and single-message Screens and wrong for content: lists, cards and forms pass `items-stretch` (or `items-start`). Everything ending up centered is the most common way generated UI looks off.

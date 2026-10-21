@@ -162,6 +162,7 @@ describe("parseUtilities", () => {
 const require = createRequire(import.meta.url);
 
 const RULE_BODY = /\.text-body-emphasized \{([^}]*)\}/;
+const ROUNDED_FULL_BODY = /\.rounded-full \{([^}]*)\}/;
 
 // Builds the given classes the way an app's Tailwind does, with the app's own
 // font roles mapped after the import
@@ -217,5 +218,13 @@ describe("in Tailwind", () => {
       "letter-spacing: 0",
       "line-height: var(--text-body--line-height)",
     ]);
+  });
+
+  it("resolves rounded-full through the radius-full token", async () => {
+    const css = await build(["rounded-full"]);
+    expect(css).toContain("--radius-full: 9999px;");
+    expect(css.match(ROUNDED_FULL_BODY)?.[1]?.trim()).toBe(
+      "border-radius: var(--radius-full);"
+    );
   });
 });
