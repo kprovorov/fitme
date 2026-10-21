@@ -7,6 +7,8 @@ import {
 import {
   disabled as disabledModifier,
   foregroundStyle,
+  listRowBackground,
+  listRowSeparatorTint,
   pickerStyle,
   scrollContentBackground,
   tag,
@@ -80,7 +82,12 @@ const RadioGroup = <TValue extends PickerValue>({
           }
         >
           <SwiftUIPicker
-            modifiers={[pickerStyle("inline"), disabledModifier(disabled)]}
+            modifiers={[
+              pickerStyle("inline"),
+              listRowBackground(theme.card),
+              listRowSeparatorTint(theme.border),
+              disabledModifier(disabled),
+            ]}
             onSelectionChange={handleSelectionChange}
             selection={value ?? null}
             testID={testID}

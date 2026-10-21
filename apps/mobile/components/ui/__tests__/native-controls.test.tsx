@@ -36,6 +36,8 @@ jest.mock("@expo/ui/swift-ui/modifiers", () => {
     frame: modifier("frame"),
     interactiveDismissDisabled: modifier("interactiveDismissDisabled"),
     labelsHidden: modifier("labelsHidden"),
+    listRowBackground: modifier("listRowBackground"),
+    listRowSeparatorTint: modifier("listRowSeparatorTint"),
     pickerStyle: modifier("pickerStyle"),
     scrollContentBackground: modifier("scrollContentBackground"),
     shapes: { rectangle: () => "rectangle" },
@@ -203,6 +205,13 @@ describe("native controls", () => {
       "text-muted-foreground",
       "text-muted-foreground",
     ]);
+  });
+
+  it("puts a radio group's rows on the card and border tokens", async () => {
+    await render(<RadioGroup options={options} />);
+
+    expect(argsOf("Picker", "listRowBackground")).toEqual(["text-card"]);
+    expect(argsOf("Picker", "listRowSeparatorTint")).toEqual(["text-border"]);
   });
 
   // A tint on a menu also repaints its items' icons, a destructive item's

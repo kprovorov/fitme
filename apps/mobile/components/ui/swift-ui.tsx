@@ -53,9 +53,13 @@ export function useSwiftUITheme() {
     "text-destructive-foreground"
   );
   const foreground = useResolveClassNames("text-foreground");
+  const card = useResolveClassNames("text-card");
+  const border = useResolveClassNames("text-border");
   const mutedForeground = useResolveClassNames("text-muted-foreground");
 
   return {
+    border: border.color as string,
+    card: card.color as string,
     destructive: destructive.color as string,
     destructiveForeground: destructiveForeground.color as string,
     foreground: foreground.color as string,

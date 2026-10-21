@@ -38,7 +38,7 @@ function GenderOption({
       accessibilityState={{ checked: isSelected, disabled }}
       className={cn(
         "flex-1 flex-row items-center justify-start gap-2 rounded-lg border-2 bg-card p-4",
-        isSelected && "border-primary",
+        isSelected ? "border-primary" : "border-border",
         disabled && "opacity-50"
       )}
       disabled={disabled}
@@ -46,7 +46,8 @@ function GenderOption({
     >
       <View
         className={cn(
-          "aspect-square h-5 w-5 items-center justify-center rounded-full border-2 border-primary",
+          "aspect-square h-5 w-5 items-center justify-center rounded-full border-2",
+          isSelected ? "border-primary" : "border-muted-foreground",
           disabled && "border-muted"
         )}
       >
