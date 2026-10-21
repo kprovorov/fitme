@@ -249,6 +249,8 @@ describe("Button", () => {
       <Button icon="plus" key="icon-only-pill" />,
       // @ts-expect-error a pill needs a label
       <Button key="empty" />,
+      // @ts-expect-error empty children aren't a label
+      <Button key="empty-children">{undefined}</Button>,
       // @ts-expect-error a circle needs an icon
       <Button accessibilityLabel="Add" key="no-icon" shape="circle" />,
       // @ts-expect-error a circle needs an accessibility label
@@ -275,6 +277,6 @@ describe("Button", () => {
       />,
     ];
 
-    expect(elements).toHaveLength(13);
+    expect(elements).toHaveLength(14);
   });
 });

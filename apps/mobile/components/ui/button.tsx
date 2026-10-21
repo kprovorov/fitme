@@ -157,7 +157,10 @@ type PillButtonProps = PillBaseProps &
         /** Button text. Takes precedence over `children`. */
         label: string;
       }
-    | { children: React.ReactNode; label?: undefined }
+    | {
+        children: Exclude<React.ReactNode, null | undefined | boolean>;
+        label?: undefined;
+      }
   );
 
 /** An icon on its own. It has no visible text, so VoiceOver needs a label. */
