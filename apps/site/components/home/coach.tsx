@@ -1,4 +1,4 @@
-import { Check } from "lucide-react";
+import { IconCheck } from "@tabler/icons-react";
 
 import { PhoneShot } from "@/components/phone-shot";
 import { Container } from "@/components/ui/container";
@@ -39,7 +39,7 @@ function Coach() {
             <ul className="flex flex-col gap-3">
               {points.map((point) => (
                 <li className="flex items-start gap-3" key={point}>
-                  <Check
+                  <IconCheck
                     aria-hidden="true"
                     className="mt-0.5 size-5 shrink-0 text-primary"
                   />

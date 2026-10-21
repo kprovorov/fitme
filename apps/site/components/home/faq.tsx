@@ -1,4 +1,4 @@
-import { Plus } from "lucide-react";
+import { IconPlus } from "@tabler/icons-react";
 import Link from "next/link";
 import type { ReactNode } from "react";
 
@@ -78,7 +78,7 @@ function Faq() {
             <details className="group border-b" key={question}>
               <summary className="flex cursor-pointer list-none items-center justify-between gap-6 py-5 text-foreground text-headline focus-visible:outline-hidden focus-visible:ring-2 focus-visible:ring-ring [&::-webkit-details-marker]:hidden">
                 {question}
-                <Plus
+                <IconPlus
                   aria-hidden="true"
                   className="size-5 shrink-0 text-muted-foreground transition-transform duration-200 group-open:rotate-45 motion-reduce:transition-none"
                 />

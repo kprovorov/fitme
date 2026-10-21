@@ -1,6 +1,6 @@
 "use client";
 
-import { Menu, X } from "lucide-react";
+import { IconMenu2, IconX } from "@tabler/icons-react";
 import Link from "next/link";
 import { usePathname } from "next/navigation";
 import { useCallback, useEffect, useRef, useState } from "react";
@@ -44,7 +44,7 @@ function MobileMenu() {
         aria-controls="mobile-menu"
         aria-expanded={isOpen}
         aria-label={isOpen ? "Close menu" : "Open menu"}
-        icon={isOpen ? X : Menu}
+        icon={isOpen ? IconX : IconMenu2}
         onClick={toggle}
         ref={triggerRef}
         shape="circle"

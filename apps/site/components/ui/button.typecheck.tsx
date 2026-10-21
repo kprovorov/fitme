@@ -1,4 +1,4 @@
-import { ArrowRight } from "lucide-react";
+import { IconArrowRight } from "@tabler/icons-react";
 import { Button } from "./button";
 
 // Compiled by the app's normal tsc/Next build, never imported at runtime.
@@ -6,7 +6,7 @@ export function buttonTypecheckCases() {
   const valid = [
     <Button key="pill">Continue</Button>,
     <Button
-      icon={ArrowRight}
+      icon={IconArrowRight}
       iconPosition="trailing"
       key="trailing"
       size="lg"
@@ -16,13 +16,13 @@ export function buttonTypecheckCases() {
     </Button>,
     <Button
       aria-label="Next"
-      icon={<ArrowRight />}
+      icon={<IconArrowRight />}
       key="circle"
       shape="circle"
       size="sm"
       variant="ghost"
     />,
-    <Button asChild icon={ArrowRight} key="link">
+    <Button asChild icon={IconArrowRight} key="link">
       <a href="/support">Support</a>
     </Button>,
   ];
@@ -67,23 +67,28 @@ export function buttonTypecheckCases() {
     // @ts-expect-error A circle requires an icon.
     <Button aria-label="Next" key="invalid-8" shape="circle" />,
     // @ts-expect-error A circle requires aria-label.
-    <Button icon={ArrowRight} key="invalid-9" shape="circle" />,
+    <Button icon={IconArrowRight} key="invalid-9" shape="circle" />,
     // @ts-expect-error A null icon cannot satisfy a circle's icon requirement.
     <Button aria-label="Next" icon={null} key="invalid-10" shape="circle" />,
     // @ts-expect-error A circle has no visible label.
-    <Button aria-label="Next" icon={ArrowRight} key="invalid-11" shape="circle">
+    <Button
+      aria-label="Next"
+      icon={IconArrowRight}
+      key="invalid-11"
+      shape="circle"
+    >
       Next
     </Button>,
     // @ts-expect-error A circle has no label to position an icon around.
     <Button
       aria-label="Next"
-      icon={ArrowRight}
+      icon={IconArrowRight}
       iconPosition="trailing"
       key="invalid-12"
       shape="circle"
     />,
     // @ts-expect-error An icon-only pill must be a circle.
-    <Button icon={ArrowRight} key="invalid-13" />,
+    <Button icon={IconArrowRight} key="invalid-13" />,
   ];
   return { invalid, valid };
 }
