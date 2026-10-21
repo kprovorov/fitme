@@ -58,7 +58,9 @@
   --spacing-md: 1.5rem;
   --spacing-lg: 2rem;
 
-  /* Tailwind's default scale, restated so the file holds every radius */
+  /* Tailwind's default xs–4xl scale, restated so the file holds every radius,
+     plus our own: card, and full (Tailwind's own rounded-full is
+     calc(infinity * 1px), not a theme token) */
   --radius-xs: 0.125rem;
   --radius-sm: 0.25rem;
   --radius-md: 0.375rem;
