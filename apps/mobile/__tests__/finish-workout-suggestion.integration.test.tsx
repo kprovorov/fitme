@@ -6,7 +6,7 @@
  * (opened from a plan and from `/workout-sessions/:id`). Only the edges are
  * swapped out: Supabase for an in-memory backend, expo-router for a small
  * stack navigator that keeps lower screens mounted like the native stack, and
- * the SwiftUI-backed primitives (Button, Dialog, menus, cards) for plain
+ * the SwiftUI-backed primitives (Button, Dialog, menus) for plain
  * React Native stand-ins. See `e2e/manual/finish-workout-suggestion.md` for
  * what still needs checking on a device.
  */
@@ -160,16 +160,6 @@ jest.mock("~/components/views/exercises-view", () => ({
   default: ({ itemCta }: { itemCta: (exercise: object) => ReactNode }) =>
     itemCta({ id: "catalog-Lunge", muscle_groups: ["legs"], name: "Lunge" }),
 }));
-
-jest.mock("~/components/ui/card", () => {
-  const { View: MockView } =
-    jest.requireActual<typeof import("react-native")>("react-native");
-  return {
-    Card: ({ children }: { children?: ReactNode }) => (
-      <MockView>{children}</MockView>
-    ),
-  };
-});
 
 jest.mock("~/components/ui/button", () => {
   const { Pressable, Text } =

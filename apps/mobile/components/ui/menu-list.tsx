@@ -1,25 +1,29 @@
+import type { ViewRef } from "@rn-primitives/types";
 import type React from "react";
-import { Pressable } from "react-native";
+import { Pressable, View, type ViewProps } from "react-native";
 import { TextClassContext } from "~/components/ui/text";
 import { ChevronRight } from "~/lib/icons/ChevronRight";
 import { SquareArrowOutUpRight } from "~/lib/icons/SquareArrowOutUpRight";
 import { cn } from "~/lib/utils";
-import { Card } from "./card";
 
+/**
+ * A grouped list: rows that run edge to edge on a `card` surface, divided by
+ * `Separator`s. It isn't a `Card`, whose padding would inset the rows and
+ * their pressed highlight; its fill and radius are Card's.
+ */
 const MenuList = ({
-  children,
+  className,
   ref,
   ...props
-}: React.ComponentPropsWithoutRef<typeof Card> & {
-  ref?: React.RefObject<React.ComponentRef<typeof Card> | null>;
-}) => (
-  <Card
-    className={cn("flex-col overflow-hidden", props.className)}
+}: ViewProps & { ref?: React.RefObject<ViewRef | null> }) => (
+  <View
+    className={cn(
+      "overflow-hidden rounded-card border-continuous bg-card",
+      className
+    )}
     ref={ref}
     {...props}
-  >
-    {children}
-  </Card>
+  />
 );
 
 MenuList.displayName = "MenuList";
@@ -48,7 +52,7 @@ const MenuListItem = ({
     <TextClassContext.Provider value="web:pointer-events-none font-nunito-sans-regular">
       <Pressable
         className={cn(
-          "flex-1 flex-row items-center justify-between gap-2 p-4 active:bg-card/50",
+          "flex-1 flex-row items-center justify-between gap-2 p-4 active:bg-accent",
           props.disabled && "web:pointer-events-none opacity-50",
           className
         )}

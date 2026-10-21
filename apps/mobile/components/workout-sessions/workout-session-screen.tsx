@@ -4,6 +4,7 @@ import { ActivityIndicator, useWindowDimensions, View } from "react-native";
 import { KeyboardAwareScrollView } from "react-native-keyboard-controller";
 import { useSafeAreaInsets } from "react-native-safe-area-context";
 import { Button } from "~/components/ui/button";
+import { Card } from "~/components/ui/card";
 import { Text } from "~/components/ui/text";
 import { H4 } from "~/components/ui/typography";
 import WorkoutSessionView from "~/components/views/workout-session-view";
@@ -52,7 +53,7 @@ export default function WorkoutSessionScreen({
     if (workoutSession) {
       return (
         <>
-          <View className="gap-sm p-sm">
+          <Card className="gap-sm" variant="ghost">
             <View
               className={
                 stacked ? "items-start gap-sm" : "flex-row items-center gap-sm"
@@ -79,7 +80,7 @@ export default function WorkoutSessionScreen({
               ) : null}
             </View>
             <WorkoutSessionStats workoutSession={workoutSession} />
-          </View>
+          </Card>
           <WorkoutSessionView
             sessionId={sessionId}
             workoutSession={workoutSession}

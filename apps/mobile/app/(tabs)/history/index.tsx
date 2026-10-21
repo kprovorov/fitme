@@ -12,7 +12,7 @@ import {
 import Purchases from "react-native-purchases";
 import { useResolveClassNames } from "uniwind";
 import { Button } from "~/components/ui/button";
-import { Card } from "~/components/ui/card";
+import { MenuList } from "~/components/ui/menu-list";
 import { Separator } from "~/components/ui/separator";
 import { Text } from "~/components/ui/text";
 import { H1 } from "~/components/ui/typography";
@@ -73,7 +73,7 @@ function MonthSection({ month }: { month: Month }) {
             : `${month.sessions.length} workouts`}
         </Text>
       </View>
-      <Card>
+      <MenuList>
         {month.sessions.map((session, index) => (
           <View key={session.id}>
             {index > 0 && <Separator className="ml-sm" />}
@@ -88,7 +88,7 @@ function MonthSection({ month }: { month: Month }) {
             </Link>
           </View>
         ))}
-      </Card>
+      </MenuList>
     </View>
   );
 }

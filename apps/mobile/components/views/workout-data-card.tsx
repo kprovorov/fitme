@@ -24,7 +24,7 @@ export default function WorkoutDataCard({
     <VStack
       className={cn(
         "w-full items-stretch",
-        compact ? "gap-0 px-3 py-3" : "gap-4 p-4"
+        compact ? "gap-0 px-3 py-3" : "gap-4"
       )}
     >
       <VStack className={cn("items-stretch", compact ? "gap-2" : "gap-3")}>
@@ -86,5 +86,5 @@ export default function WorkoutDataCard({
     return content;
   }
 
-  return <Card className="overflow-hidden">{content}</Card>;
+  return <Card>{content}</Card>;
 }
