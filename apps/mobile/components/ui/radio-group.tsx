@@ -58,7 +58,11 @@ const RadioGroup = <TValue extends PickerValue>({
 
   return (
     <SwiftUIHost className={cn("flex-1", className)} useViewportSizeMeasurement>
-      <Form modifiers={[scrollContentBackground("hidden")]}>
+      {/* The checkmark takes the Form's tint: on the inline Picker itself it
+          stays the system blue. */}
+      <Form
+        modifiers={[scrollContentBackground("hidden"), tint(theme.primary)]}
+      >
         <Section
           footer={
             footer ? (
@@ -76,11 +80,7 @@ const RadioGroup = <TValue extends PickerValue>({
           }
         >
           <SwiftUIPicker
-            modifiers={[
-              pickerStyle("inline"),
-              tint(theme.primary),
-              disabledModifier(disabled),
-            ]}
+            modifiers={[pickerStyle("inline"), disabledModifier(disabled)]}
             onSelectionChange={handleSelectionChange}
             selection={value ?? null}
             testID={testID}

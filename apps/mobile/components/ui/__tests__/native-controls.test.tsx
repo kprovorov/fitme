@@ -146,7 +146,7 @@ describe("native controls", () => {
     ["Picker", "Picker", <Picker key="picker" options={options} />],
     ["Select", "Picker", <Select key="select" options={options} />],
     ["Tabs", "Picker", <Tabs key="tabs" options={options} />],
-    ["RadioGroup", "Picker", <RadioGroup key="radio" options={options} />],
+    ["RadioGroup", "Form", <RadioGroup key="radio" options={options} />],
     [
       "WheelSelect",
       "Picker",
