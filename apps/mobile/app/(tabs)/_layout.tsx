@@ -1,29 +1,17 @@
-import {
-  DarkTheme,
-  DefaultTheme,
-  ThemeProvider,
-} from "expo-router/react-navigation";
+import { DarkTheme, ThemeProvider } from "expo-router/react-navigation";
 import { NativeTabs } from "expo-router/unstable-native-tabs";
 import Authenticated from "~/components/authenticated";
 import { TAB_TITLES } from "~/lib/tabs";
-import { useColorScheme } from "~/lib/useColorScheme";
 
 const darkTheme = {
   ...DarkTheme,
   colors: { ...DarkTheme.colors, background: "#1F1D20", primary: "#C0FF38" },
 };
 
-const lightTheme = {
-  ...DefaultTheme,
-  colors: { ...DefaultTheme.colors, primary: "#C0FF38" },
-};
-
 export default function TabLayout() {
-  const { colorScheme } = useColorScheme();
-
   return (
     <Authenticated>
-      <ThemeProvider value={colorScheme === "dark" ? darkTheme : lightTheme}>
+      <ThemeProvider value={darkTheme}>
         <NativeTabs minimizeBehavior="onScrollDown" tintColor="#C0FF38">
           {/* A group, so its index is the app's "/" route. */}
           <NativeTabs.Trigger name="(home)">

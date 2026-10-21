@@ -1,10 +1,8 @@
 import type { MuscleGroup } from "@fitme/core";
 import Svg, { G, Path, type SvgProps } from "react-native-svg";
-import { useColorScheme } from "~/lib/useColorScheme";
 
 const ACTIVE_FILL = "#C0FF38";
-const INACTIVE_FILL_LIGHT = "#a1a1aa";
-const INACTIVE_FILL_DARK = "#6b6b70";
+const INACTIVE_FILL = "#6b6b70";
 
 interface MuscleRegion {
   group: MuscleGroup;
@@ -240,10 +238,7 @@ export function WorkoutSessionSummaryBodyFront({
   groups,
   ...props
 }: BodyDiagramProps) {
-  const { isDarkColorScheme } = useColorScheme();
-  const inactiveFill = isDarkColorScheme
-    ? INACTIVE_FILL_DARK
-    : INACTIVE_FILL_LIGHT;
+  const inactiveFill = INACTIVE_FILL;
 
   return (
     <Svg height={230} viewBox={FRONT_VIEW_BOX} width={73} {...props}>
@@ -274,10 +269,7 @@ export function WorkoutSessionSummaryBodyBack({
   groups,
   ...props
 }: BodyDiagramProps) {
-  const { isDarkColorScheme } = useColorScheme();
-  const inactiveFill = isDarkColorScheme
-    ? INACTIVE_FILL_DARK
-    : INACTIVE_FILL_LIGHT;
+  const inactiveFill = INACTIVE_FILL;
 
   return (
     <Svg height={230} viewBox={BACK_VIEW_BOX} width={76} {...props}>

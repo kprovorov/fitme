@@ -153,7 +153,7 @@ export function PromptInputTextarea({
 }) {
   const { input, setInput } = useChatContext();
   const inputRef = useRef<TextInputInstance>(null);
-  const foreground = useCSSVariable("--foreground") as string;
+  const foreground = useCSSVariable("--color-foreground") as string;
 
   useEffect(() => {
     if (input === "") {
@@ -198,7 +198,7 @@ const submitButtonStyle = ({
  */
 export function PromptInputSubmit() {
   const { input, isGenerating, isLoading, onSend } = useChatContext();
-  const foreground = useCSSVariable("--foreground") as string;
+  const foreground = useCSSVariable("--color-foreground") as string;
   const disabled = !input.trim() || isGenerating || isLoading;
 
   return (

@@ -12,14 +12,10 @@ import {
   StyleSheet,
   Text,
   type TextStyle,
-  useColorScheme,
   View,
 } from "react-native";
 import SyntaxHighlighter from "react-syntax-highlighter";
-import {
-  githubGist,
-  irBlack,
-} from "react-syntax-highlighter/dist/esm/styles/hljs";
+import { irBlack } from "react-syntax-highlighter/dist/esm/styles/hljs";
 
 interface HighlighterStyleSheet {
   [key: string]: TextStyle;
@@ -77,9 +73,8 @@ function trimNewlines(string: string): string {
   return start > 0 || end < string.length ? string.slice(start, end) : string;
 }
 
-// Pre-compute stylesheets for both themes
-const darkStylesheet = getRNStylesFromHljsStyle(irBlack as ReactStyle);
-const lightStylesheet = getRNStylesFromHljsStyle(githubGist as ReactStyle);
+// Pre-computed once: the app is dark only, so there is one theme
+const stylesheet = getRNStylesFromHljsStyle(irBlack as ReactStyle);
 
 interface CodeBlockProps {
   code: string;
@@ -87,38 +82,27 @@ interface CodeBlockProps {
 }
 
 function CodeBlockBase({ code, language }: CodeBlockProps) {
-  const colorScheme = useColorScheme();
-  const isDark = colorScheme === "dark";
-
-  const stylesheet = isDark ? darkStylesheet : lightStylesheet;
-
   const baseStyle = useMemo(
     () =>
       StyleSheet.flatten([
         styles.text,
         // biome-ignore lint/suspicious/noUnnecessaryConditions: a highlight theme may have no hljs entry; the Record type can't say so
-        { color: stylesheet.hljs?.color || (isDark ? "#f8f8f2" : "#333") },
+        { color: stylesheet.hljs?.color || "#f8f8f2" },
       ]),
-    [stylesheet, isDark]
+    []
   );
 
   const containerStyle = useMemo(
-    () => [
-      styles.container,
-      { backgroundColor: isDark ? "#1a1a1a" : "#f6f8fa" },
-    ],
-    [isDark]
+    () => [styles.container, { backgroundColor: "#1a1a1a" }],
+    []
   );
 
-  const getStylesForNode = useCallback(
-    (node: RendererNode): TextStyle[] => {
-      const classes: string[] = node.properties?.className ?? [];
-      return classes
-        .map((c: string) => stylesheet[c])
-        .filter((c) => !!c) as TextStyle[];
-    },
-    [stylesheet]
-  );
+  const getStylesForNode = useCallback((node: RendererNode): TextStyle[] => {
+    const classes: string[] = node.properties?.className ?? [];
+    return classes
+      .map((c: string) => stylesheet[c])
+      .filter((c) => !!c) as TextStyle[];
+  }, []);
 
   const renderNodeChildren = useCallback(
     (nodes: RendererNode[], keyPrefix = "row"): ReactNode[] =>

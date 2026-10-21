@@ -14,6 +14,7 @@ import { useEffect } from "react";
 import { Platform } from "react-native";
 import Purchases from "react-native-purchases";
 import "react-native-reanimated";
+import { Uniwind } from "uniwind";
 import MinimumVersionGate from "~/components/minimum-version-gate";
 import Providers from "~/components/providers";
 import "../global.css";
@@ -44,6 +45,11 @@ Sentry.init({
   // https://docs.sentry.io/platforms/javascript/configuration/options/#traces-sample-rate
   tracesSampleRate: 0.1,
 });
+
+// The app is dark only (ADR 0009). Native builds are already forced dark by
+// `userInterfaceStyle`, but web follows the OS, so pin uniwind to the dark
+// theme on every platform and `dark:` variants always apply.
+Uniwind.setTheme("dark");
 
 // Prevent the splash screen from auto-hiding before asset loading is complete.
 SplashScreen.preventAutoHideAsync();

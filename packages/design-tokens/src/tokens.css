@@ -1,0 +1,83 @@
+/*
+ * Fitme's design tokens: the only place a token value is defined (ADR 0009).
+ * Every app's global stylesheet imports this file after Tailwind. Dark only,
+ * so there is one value per token and no theme variants. Colors are hex,
+ * 8-digit where there's alpha, so they compare with Figma as plain strings.
+ * Changing a value here also means updating the matching Figma variable
+ * through the Figma MCP in the same PR (docs/agents/ui.md).
+ */
+
+@theme {
+  --color-background: #1f1d20;
+  --color-foreground: #fafafa;
+  --color-card: #171717;
+  --color-card-foreground: #fafafa;
+  --color-popover: #171717;
+  --color-popover-foreground: #fafafa;
+  --color-primary: #c0ff38;
+  --color-primary-foreground: #0a0a0a;
+  --color-secondary: #27272a;
+  --color-secondary-foreground: #fafafa;
+  --color-muted: #262626;
+  --color-muted-foreground: #a1a1a1;
+  --color-accent: #262626;
+  --color-accent-foreground: #fafafa;
+  --color-destructive: #ff6467;
+  --color-destructive-foreground: #fafafa;
+  --color-border: #ffffff1a;
+  --color-input: #ffffff26;
+  --color-ring: #737373;
+
+  /* Apple Human Interface Guidelines text styles (size/leading in points) */
+  --text-caption-2: 11px;
+  --text-caption-2--line-height: 13px;
+  --text-caption-1: 12px;
+  --text-caption-1--line-height: 16px;
+  --text-footnote: 13px;
+  --text-footnote--line-height: 18px;
+  --text-subhead: 15px;
+  --text-subhead--line-height: 20px;
+  --text-callout: 16px;
+  --text-callout--line-height: 21px;
+  --text-body: 17px;
+  --text-body--line-height: 22px;
+  --text-headline: 17px;
+  --text-headline--line-height: 22px;
+  --text-title-3: 20px;
+  --text-title-3--line-height: 25px;
+  --text-title-2: 22px;
+  --text-title-2--line-height: 28px;
+  --text-title-1: 28px;
+  --text-title-1--line-height: 34px;
+  --text-large-title: 34px;
+  --text-large-title--line-height: 41px;
+
+  --spacing-xs: 0.5rem;
+  --spacing-sm: 1rem;
+  --spacing-md: 1.5rem;
+  --spacing-lg: 2rem;
+
+  /* Tailwind's default scale, restated so the file holds every radius */
+  --radius-xs: 0.125rem;
+  --radius-sm: 0.25rem;
+  --radius-md: 0.375rem;
+  --radius-lg: 0.5rem;
+  --radius-xl: 0.75rem;
+  --radius-2xl: 1rem;
+  --radius-3xl: 1.5rem;
+  --radius-4xl: 2rem;
+  --radius-card: 1rem;
+
+  /*
+   * Font roles. The values are generic fallbacks: each app maps every role to
+   * the font it loads (native font-file names on mobile, next/font on web and
+   * site) in its own @theme after importing this file.
+   */
+  --font-nunito-sans-regular:
+    "Nunito Sans", ui-sans-serif, system-ui, sans-serif;
+  --font-nunito-sans-semibold:
+    "Nunito Sans", ui-sans-serif, system-ui, sans-serif;
+  --font-nunito-sans-bold: "Nunito Sans", ui-sans-serif, system-ui, sans-serif;
+  --font-ibm-plex-mono: "IBM Plex Mono", ui-monospace, monospace;
+  --font-ibm-plex-mono-semibold: "IBM Plex Mono", ui-monospace, monospace;
+}
