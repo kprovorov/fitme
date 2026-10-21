@@ -375,7 +375,11 @@ const Button = (props: ButtonProps) => {
     // centered over the content without growing the button.
     const spinner = (
       <ProgressView
-        modifiers={[frame({ height: 0, width: 0 }), tint(theme.primary)]}
+        modifiers={[
+          frame({ height: 0, width: 0 }),
+          controlSize(size === "sm" ? "small" : "regular"),
+          tint(theme.primary),
+        ]}
       />
     );
 

@@ -213,7 +213,6 @@ export default function WorkoutSessionView({
         {!workoutSession.finished_at && (
           <Button
             icon="plus"
-            iconPosition="trailing"
             label="Add Exercise"
             onPress={openModal}
             variant="secondary"
