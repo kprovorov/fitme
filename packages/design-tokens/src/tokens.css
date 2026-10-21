@@ -1,8 +1,9 @@
 /*
- * Fitme's design tokens: the only place a token value is defined (ADR 0009).
- * Every app's global stylesheet imports this file after Tailwind. Dark only,
- * so there is one value per token and no theme variants. Colors are hex,
- * 8-digit where there's alpha, so they compare with Figma as plain strings.
+ * Fitme's design tokens: the only place a token value is defined (ADR 0009),
+ * plus the text style utilities built on them. Every app's global stylesheet
+ * imports this file after Tailwind. Dark only, so there is one value per
+ * token and no theme variants. Colors are hex, 8-digit where there's alpha,
+ * so they compare with Figma as plain strings.
  * Changing a value here also means updating the matching Figma variable
  * through the Figma MCP in the same PR (docs/agents/ui.md).
  */
@@ -80,4 +81,276 @@
   --font-nunito-sans-bold: "Nunito Sans", ui-sans-serif, system-ui, sans-serif;
   --font-ibm-plex-mono: "IBM Plex Mono", ui-monospace, monospace;
   --font-ibm-plex-mono-semibold: "IBM Plex Mono", ui-monospace, monospace;
+}
+
+/*
+ * Apple HIG text styles as utilities: each sets the family, weight, size and
+ * line height together, with letter spacing 0 (Apple's tracking is tuned for
+ * SF Pro, not Nunito Sans). `text-<style>` is the HIG's Regular weight,
+ * `text-<style>-emphasized` its Emphasized one. Text gets one of these and no
+ * separate font, weight, leading or tracking class. The font comes from the
+ * app's font roles above; the weight is stated too, for web fonts that hold
+ * every weight in one family.
+ */
+
+@utility text-large-title {
+  font-family: var(--font-nunito-sans-regular);
+  font-size: var(--text-large-title);
+  font-weight: 400;
+  line-height: var(--text-large-title--line-height);
+  letter-spacing: 0;
+}
+
+@utility text-large-title-emphasized {
+  font-family: var(--font-nunito-sans-bold);
+  font-size: var(--text-large-title);
+  font-weight: 700;
+  line-height: var(--text-large-title--line-height);
+  letter-spacing: 0;
+}
+
+@utility text-title-1 {
+  font-family: var(--font-nunito-sans-regular);
+  font-size: var(--text-title-1);
+  font-weight: 400;
+  line-height: var(--text-title-1--line-height);
+  letter-spacing: 0;
+}
+
+@utility text-title-1-emphasized {
+  font-family: var(--font-nunito-sans-bold);
+  font-size: var(--text-title-1);
+  font-weight: 700;
+  line-height: var(--text-title-1--line-height);
+  letter-spacing: 0;
+}
+
+@utility text-title-2 {
+  font-family: var(--font-nunito-sans-regular);
+  font-size: var(--text-title-2);
+  font-weight: 400;
+  line-height: var(--text-title-2--line-height);
+  letter-spacing: 0;
+}
+
+@utility text-title-2-emphasized {
+  font-family: var(--font-nunito-sans-bold);
+  font-size: var(--text-title-2);
+  font-weight: 700;
+  line-height: var(--text-title-2--line-height);
+  letter-spacing: 0;
+}
+
+@utility text-title-3 {
+  font-family: var(--font-nunito-sans-regular);
+  font-size: var(--text-title-3);
+  font-weight: 400;
+  line-height: var(--text-title-3--line-height);
+  letter-spacing: 0;
+}
+
+@utility text-title-3-emphasized {
+  font-family: var(--font-nunito-sans-semibold);
+  font-size: var(--text-title-3);
+  font-weight: 600;
+  line-height: var(--text-title-3--line-height);
+  letter-spacing: 0;
+}
+
+@utility text-headline {
+  font-family: var(--font-nunito-sans-semibold);
+  font-size: var(--text-headline);
+  font-weight: 600;
+  line-height: var(--text-headline--line-height);
+  letter-spacing: 0;
+}
+
+@utility text-headline-emphasized {
+  font-family: var(--font-nunito-sans-semibold);
+  font-size: var(--text-headline);
+  font-weight: 600;
+  line-height: var(--text-headline--line-height);
+  letter-spacing: 0;
+}
+
+@utility text-body {
+  font-family: var(--font-nunito-sans-regular);
+  font-size: var(--text-body);
+  font-weight: 400;
+  line-height: var(--text-body--line-height);
+  letter-spacing: 0;
+}
+
+@utility text-body-emphasized {
+  font-family: var(--font-nunito-sans-semibold);
+  font-size: var(--text-body);
+  font-weight: 600;
+  line-height: var(--text-body--line-height);
+  letter-spacing: 0;
+}
+
+@utility text-callout {
+  font-family: var(--font-nunito-sans-regular);
+  font-size: var(--text-callout);
+  font-weight: 400;
+  line-height: var(--text-callout--line-height);
+  letter-spacing: 0;
+}
+
+@utility text-callout-emphasized {
+  font-family: var(--font-nunito-sans-semibold);
+  font-size: var(--text-callout);
+  font-weight: 600;
+  line-height: var(--text-callout--line-height);
+  letter-spacing: 0;
+}
+
+@utility text-subhead {
+  font-family: var(--font-nunito-sans-regular);
+  font-size: var(--text-subhead);
+  font-weight: 400;
+  line-height: var(--text-subhead--line-height);
+  letter-spacing: 0;
+}
+
+@utility text-subhead-emphasized {
+  font-family: var(--font-nunito-sans-semibold);
+  font-size: var(--text-subhead);
+  font-weight: 600;
+  line-height: var(--text-subhead--line-height);
+  letter-spacing: 0;
+}
+
+@utility text-footnote {
+  font-family: var(--font-nunito-sans-regular);
+  font-size: var(--text-footnote);
+  font-weight: 400;
+  line-height: var(--text-footnote--line-height);
+  letter-spacing: 0;
+}
+
+@utility text-footnote-emphasized {
+  font-family: var(--font-nunito-sans-semibold);
+  font-size: var(--text-footnote);
+  font-weight: 600;
+  line-height: var(--text-footnote--line-height);
+  letter-spacing: 0;
+}
+
+@utility text-caption-1 {
+  font-family: var(--font-nunito-sans-regular);
+  font-size: var(--text-caption-1);
+  font-weight: 400;
+  line-height: var(--text-caption-1--line-height);
+  letter-spacing: 0;
+}
+
+@utility text-caption-1-emphasized {
+  font-family: var(--font-nunito-sans-semibold);
+  font-size: var(--text-caption-1);
+  font-weight: 600;
+  line-height: var(--text-caption-1--line-height);
+  letter-spacing: 0;
+}
+
+@utility text-caption-2 {
+  font-family: var(--font-nunito-sans-regular);
+  font-size: var(--text-caption-2);
+  font-weight: 400;
+  line-height: var(--text-caption-2--line-height);
+  letter-spacing: 0;
+}
+
+@utility text-caption-2-emphasized {
+  font-family: var(--font-nunito-sans-semibold);
+  font-size: var(--text-caption-2);
+  font-weight: 600;
+  line-height: var(--text-caption-2--line-height);
+  letter-spacing: 0;
+}
+
+/*
+ * Mono: IBM Plex Mono for numbers that line up in columns (reps, weights,
+ * stats), at five of the HIG sizes, in Regular and Semibold (the two weights
+ * the apps load).
+ */
+
+@utility text-mono-title-2 {
+  font-family: var(--font-ibm-plex-mono);
+  font-size: var(--text-title-2);
+  font-weight: 400;
+  line-height: var(--text-title-2--line-height);
+  letter-spacing: 0;
+}
+
+@utility text-mono-title-2-semibold {
+  font-family: var(--font-ibm-plex-mono-semibold);
+  font-size: var(--text-title-2);
+  font-weight: 600;
+  line-height: var(--text-title-2--line-height);
+  letter-spacing: 0;
+}
+
+@utility text-mono-body {
+  font-family: var(--font-ibm-plex-mono);
+  font-size: var(--text-body);
+  font-weight: 400;
+  line-height: var(--text-body--line-height);
+  letter-spacing: 0;
+}
+
+@utility text-mono-body-semibold {
+  font-family: var(--font-ibm-plex-mono-semibold);
+  font-size: var(--text-body);
+  font-weight: 600;
+  line-height: var(--text-body--line-height);
+  letter-spacing: 0;
+}
+
+@utility text-mono-subhead {
+  font-family: var(--font-ibm-plex-mono);
+  font-size: var(--text-subhead);
+  font-weight: 400;
+  line-height: var(--text-subhead--line-height);
+  letter-spacing: 0;
+}
+
+@utility text-mono-subhead-semibold {
+  font-family: var(--font-ibm-plex-mono-semibold);
+  font-size: var(--text-subhead);
+  font-weight: 600;
+  line-height: var(--text-subhead--line-height);
+  letter-spacing: 0;
+}
+
+@utility text-mono-footnote {
+  font-family: var(--font-ibm-plex-mono);
+  font-size: var(--text-footnote);
+  font-weight: 400;
+  line-height: var(--text-footnote--line-height);
+  letter-spacing: 0;
+}
+
+@utility text-mono-footnote-semibold {
+  font-family: var(--font-ibm-plex-mono-semibold);
+  font-size: var(--text-footnote);
+  font-weight: 600;
+  line-height: var(--text-footnote--line-height);
+  letter-spacing: 0;
+}
+
+@utility text-mono-caption-1 {
+  font-family: var(--font-ibm-plex-mono);
+  font-size: var(--text-caption-1);
+  font-weight: 400;
+  line-height: var(--text-caption-1--line-height);
+  letter-spacing: 0;
+}
+
+@utility text-mono-caption-1-semibold {
+  font-family: var(--font-ibm-plex-mono-semibold);
+  font-size: var(--text-caption-1);
+  font-weight: 600;
+  line-height: var(--text-caption-1--line-height);
+  letter-spacing: 0;
 }
