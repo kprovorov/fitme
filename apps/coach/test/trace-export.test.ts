@@ -43,6 +43,8 @@ describe("sentryExportPolicy", () => {
     "ai.toolCall.name",
     "agent.action.name",
     "agent.turn.id",
+    "agent.turn.outcome",
+    "eve.tool.outcome",
     "agent.step.index",
     "gen_ai.operation.name",
     "gen_ai.conversation.id",
