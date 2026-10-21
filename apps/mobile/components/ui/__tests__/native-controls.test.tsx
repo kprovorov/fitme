@@ -214,6 +214,18 @@ describe("native controls", () => {
     expect(argsOf("Picker", "listRowSeparatorTint")).toEqual(["text-border"]);
   });
 
+  it("sets a wheel's selected row in primary, the others untouched", async () => {
+    await render(<Picker options={options} value="us" variant="wheel" />);
+
+    expect(argsOf("Text", "foregroundStyle")).toEqual(["text-primary"]);
+  });
+
+  it("leaves a menu picker's options untouched", async () => {
+    await render(<Picker options={options} value="us" />);
+
+    expect(argsOf("Text", "foregroundStyle")).toEqual([]);
+  });
+
   // A tint on a menu also repaints its items' icons, a destructive item's
   // included, so only a dropdown's own button takes a token.
   it("leaves menu items to the system", async () => {
