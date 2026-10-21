@@ -1,11 +1,13 @@
 import type { ComponentProps } from "react";
 import { cn } from "~/lib/utils";
 
+// The Card owns the padding and the gap between its parts, so every card gets
+// the same inset whether or not it has a header.
 export function Card({ className, ...props }: ComponentProps<"div">) {
   return (
     <div
       className={cn(
-        "rounded-lg border bg-card text-card-foreground shadow-sm",
+        "flex flex-col gap-sm rounded-card bg-card p-sm text-card-foreground",
         className
       )}
       {...props}
@@ -14,15 +16,16 @@ export function Card({ className, ...props }: ComponentProps<"div">) {
 }
 
 export function CardHeader({ className, ...props }: ComponentProps<"div">) {
-  return (
-    <div className={cn("flex flex-col gap-1.5 p-6", className)} {...props} />
-  );
+  return <div className={cn("flex flex-col gap-1.5", className)} {...props} />;
 }
 
 export function CardTitle({ className, ...props }: ComponentProps<"h3">) {
   return (
     <h3
-      className={cn("font-bold text-lg leading-none tracking-tight", className)}
+      className={cn(
+        "font-bold text-lg text-primary leading-none tracking-tight",
+        className
+      )}
       {...props}
     />
   );
@@ -35,5 +38,5 @@ export function CardDescription({ className, ...props }: ComponentProps<"p">) {
 }
 
 export function CardContent({ className, ...props }: ComponentProps<"div">) {
-  return <div className={cn("p-6 pt-0", className)} {...props} />;
+  return <div className={className} {...props} />;
 }

@@ -643,6 +643,9 @@ importers:
       '@fitme/core':
         specifier: workspace:*
         version: link:../../packages/core
+      '@fitme/design-tokens':
+        specifier: workspace:*
+        version: link:../../packages/design-tokens
       '@fitme/supabase':
         specifier: workspace:*
         version: link:../../packages/supabase

@@ -15,7 +15,7 @@ apps/web                @fitme/web     — Next.js (App Router) web app
 apps/site               @fitme/site    — Next.js marketing site (fitmeproject.com)
 apps/webhooks           @fitme/webhooks — Hono app receiving third-party webhooks (Node)
 packages/core           @fitme/core    — domain models, labels, formatters, pure helpers
-packages/design-tokens  @fitme/design-tokens — the design tokens: one Tailwind v4 @theme CSS file (mobile imports it; web and site follow)
+packages/design-tokens  @fitme/design-tokens — the design tokens: one Tailwind v4 @theme CSS file (mobile, web and site import it)
 packages/supabase       @fitme/supabase — Supabase project + generated DB types
 packages/db             @fitme/db      — asUser / withService: the only way backend apps reach Postgres
 packages/services       @fitme/services — business logic run inside an asUser / withService transaction
@@ -116,7 +116,8 @@ React Native / Expo app using **file-based routing** via `expo-router`:
 - `proxy.ts` — Next 16 request proxy running `clerkMiddleware`: every route except `/` and `/sign-in` calls `auth.protect()`, which redirects signed-out requests to sign-in with a `redirect_url` back. Route paths live in `lib/routes.ts`.
 - `lib/supabase/server.ts` (`createClient()`, Server Components) and `lib/supabase/client.ts` (`useSupabase()` hook, Client Components) — `supabase-js` clients typed with `Database` from `@fitme/supabase` whose `accessToken` is the User's Clerk session token, so RLS reads their Clerk id from `sub`. There is no Supabase Auth session in the web app.
 - `components/ui/` — shadcn-style primitives (Tailwind v4 + cva). `components.json` is set up for the shadcn CLI.
-- Styling: Tailwind v4 via `@tailwindcss/postcss`; theme tokens in `app/globals.css` mirror the mobile palette.
+- Styling: Tailwind v4 via `@tailwindcss/postcss`; `app/globals.css` imports `@fitme/design-tokens` and only maps the font roles to the `next/font` variables (`--next-font-*`). Dark only (`color-scheme: dark`), whatever the OS setting.
+- `lib/clerk-appearance.ts` — Clerk's `appearance.variables` as `var(--color-…)` / `var(--radius-…)` / `var(--font-…)` strings, passed once to `ClerkProvider`, so `<SignIn>` and `<UserButton>` follow the tokens.
 
 ### apps/site — Next.js marketing site
 
@@ -208,7 +209,7 @@ Platform-agnostic code shared by both apps: `models.ts` (Profile, Plan, Workout,
 The design tokens (ADR 0009): the only place a token value is defined. Source-only, like the other `@fitme/*` packages.
 
 - `src/tokens.css` (export `@fitme/design-tokens/tokens.css`) — one Tailwind v4 `@theme` block, no `@import`s of its own: the 19 `--color-*` tokens (hex, 8-digit where there's alpha), the 11 HIG `--text-*` sizes with their `--line-height`s, `--spacing-xs/sm/md/lg`, Tailwind's default `--radius-*` scale plus `--radius-card`, and the font roles (`--font-nunito-sans-regular/semibold/bold`, `--font-ibm-plex-mono`, `--font-ibm-plex-mono-semibold`) with generic fallback families. Dark only: one value per token, no theme variants, no light values anywhere. The final tables are in `docs/agents/ui.md`.
-- How apps use it: `apps/mobile/global.css` `@import`s it after `tailwindcss` and `uniwind`, then maps each font role to the bundled font files in its own small `@theme`; it defines no other token itself. uniwind follows the `@import` through Tailwind's compiler under Metro, in dev and release builds. The site imports it the same way, mapping the font roles to its `next/font` font; web still has its own palette and moves onto the package in FIT-198. Code that reads a token at runtime reads the `--color-*` variable (`useCSSVariable("--color-foreground")`); there are no bare `--background`-style variables.
+- How apps use it: `apps/mobile/global.css` `@import`s it after `tailwindcss` and `uniwind`, then maps each font role to the bundled font files in its own small `@theme`; it defines no other token itself. uniwind follows the `@import` through Tailwind's compiler under Metro, in dev and release builds. The site and `apps/web/app/globals.css` import it the same way, mapping the font roles to their `next/font` fonts. Code that reads a token at runtime reads the `--color-*` variable (`useCSSVariable("--color-foreground")`); there are no bare `--background`-style variables.
 - `src/index.ts` — the reader: `parseTokens(css)` turns the `@theme` block into a typed `Token[]` (`kind`, `name`, `value`, `variable`; an unknown prefix throws), `readTokens()` parses the package's own file. Used by its tests (and later the CI literal check).
 - Tests (`src/__tests__/`, vitest) check what a consumer sees: the 19 colors present and valid hex, every HIG style's size and line height, the spacing, radius and font tokens.
 - A PR that changes a value here also updates the matching Figma variable through the Figma MCP (`docs/agents/ui.md`).

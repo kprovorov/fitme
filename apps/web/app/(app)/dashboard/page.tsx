@@ -90,7 +90,7 @@ interface SessionItem {
 
 function SessionRow({ session }: { session: SessionItem }) {
   return (
-    <li className="flex items-center justify-between gap-4 py-3">
+    <li className="flex items-center justify-between gap-4 py-3 first:pt-0 last:pb-0">
       <div className="flex flex-col">
         <span className="font-semibold">
           {session.workout?.name ?? "Deleted workout"}
@@ -141,7 +141,7 @@ export default async function DashboardPage() {
   return (
     <>
       <div className="flex flex-col gap-1">
-        <h1 className="font-bold text-2xl">Your plans</h1>
+        <h1 className="font-bold text-2xl text-primary">Your plans</h1>
         <p className="text-muted-foreground text-sm">
           Plans are generated and edited in the Fitme mobile app.
         </p>
@@ -166,9 +166,9 @@ export default async function DashboardPage() {
       )}
 
       <section className="flex flex-col gap-4">
-        <h2 className="font-bold text-xl">Recent workouts</h2>
+        <h2 className="font-bold text-primary text-xl">Recent workouts</h2>
         <Card>
-          <CardContent className="py-3">
+          <CardContent>
             {sessions.length === 0 ? (
               <p className="text-muted-foreground text-sm">
                 Workouts you log in the Fitme app show up here.

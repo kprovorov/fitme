@@ -37,7 +37,7 @@ iOS first. Android renders but is second: icons fall back to Lucide, glass falls
 
 ## Tokens
 
-Every Token lives in one file, `packages/design-tokens/src/tokens.css` (`@fitme/design-tokens`, ADR 0009). Mobile's `global.css` imports it and only maps the font roles to the font files the app bundles; the site imports it too (its own stylesheet only adds `display-1` / `display-2`); web moves onto it in FIT-198. Code is the source of truth and Figma follows it:
+Every Token lives in one file, `packages/design-tokens/src/tokens.css` (`@fitme/design-tokens`, ADR 0009). Mobile's `global.css` imports it and only maps the font roles to the font files the app bundles; the site imports it too (its own stylesheet only adds `display-1` / `display-2`); so does web, whose `globals.css` only maps the font roles to its `next/font` fonts. Code is the source of truth and Figma follows it:
 
 - **Changing a Token**: edit `tokens.css`, never an app's stylesheet. The same PR updates the matching Figma variable in the `Fitme` file (named like the Token minus its prefix: `--color-primary` is `Color/primary`) through the Figma MCP, and the tables below.
 - Dark only: one value per Token, no `@variant light` / `@variant dark`, no light values anywhere.
@@ -205,6 +205,6 @@ These skills say something this file overrides, for this repo only:
 
 ## Web and site
 
-- `apps/web` uses shadcn-style Primitives in `components/ui/` (Tailwind v4, `cva`); add new ones with the shadcn CLI (`components.json`). It follows the system's light or dark mode, and its `primary` is zinc, not lime, so check both modes there.
+- `apps/web` uses shadcn-style Primitives in `components/ui/` (Tailwind v4, `cva`); add new ones with the shadcn CLI (`components.json`). It's on the shared tokens and dark only, like mobile, whatever the OS setting; Clerk's components get the tokens through `lib/clerk-appearance.ts`.
 - `apps/site` (marketing) has its own `components/ui/`, is dark only on the shared tokens, and uses the lime `primary`. Hero and page headings use its `text-display-1` (36/40) and `text-display-2` (30/36); everything else is the HIG scale.
-- The loop is the same: open the page with Playwright or Chrome DevTools, screenshot at 320 px and 1280 px wide (both color schemes on web), and have a fresh agent review the screenshots (see [Skills](#skills)). Screenshots cover layout only: touch, viewport height, input zoom and safe areas only show on a real phone, so list what needs that check in the pull request.
+- The loop is the same: open the page with Playwright or Chrome DevTools, screenshot at 320 px and 1280 px wide (web and site with the OS in light mode too, to prove they stay dark), and have a fresh agent review the screenshots (see [Skills](#skills)). Screenshots cover layout only: touch, viewport height, input zoom and safe areas only show on a real phone, so list what needs that check in the pull request.
