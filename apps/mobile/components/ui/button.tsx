@@ -370,12 +370,17 @@ const Button = (props: ButtonProps) => {
     }
 
     // A loading button is also disabled, which greys out its fill, so the
-    // spinner uses the brand green rather than the label color.
-    const spinner = <ProgressView modifiers={[tint(theme.primary)]} />;
+    // spinner uses the brand green rather than the label color. A spinner is
+    // its own size, so a zero frame keeps it out of the layout: it draws
+    // centered over the content without growing the button.
+    const spinner = (
+      <ProgressView
+        modifiers={[frame({ height: 0, width: 0 }), tint(theme.primary)]}
+      />
+    );
 
-    // A spinner is smaller than the content it replaces, so the button would
-    // shrink around it. Keeping the content in the layout — just invisible —
-    // holds the button at exactly the size it has when idle.
+    // Keeping the content in the layout — just invisible — holds the button
+    // at exactly the size it has when idle.
     return (
       <ZStack modifiers={isCircle ? [] : contentFrame}>
         <Group modifiers={[opacity(0)]}>{renderLabel()}</Group>
