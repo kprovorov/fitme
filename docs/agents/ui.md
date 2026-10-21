@@ -102,7 +102,7 @@ Mono is IBM Plex Mono, for numbers that line up in columns (reps, weights, timer
 | Card or group title        | `text-title-2-emphasized`                   | `H3`, `CardTitle`                  |
 | Row title, emphasized line | `text-title-3-emphasized`                   | `H4`                               |
 | Body                       | `text-body`                                 | `Text` (`components/ui/text`), `P` |
-| Button label, strong label | `text-body-emphasized`, `-subhead-emphasized` | `Button` (by `size`)             |
+| Button label, strong label | `text-body-emphasized`, `-subhead-emphasized`, `-title-3-emphasized` | `Button` (by `size`) |
 | Secondary line             | `text-subhead`                              | `Muted`                            |
 | Metadata, captions         | `text-footnote`, `text-caption-1`           | `Text` with the class              |
 | Numbers in columns         | `text-mono-footnote`, `text-mono-body-semibold` | `Text` with the class          |
@@ -145,7 +145,7 @@ Look in `components/ui/` before building anything. The ones that trip agents up:
 
 - **`Button`** (`components/ui/button.tsx`, the Figma `Button` set) is a native SwiftUI button; web and site get the same API with solid fills (FIT-209):
   - `variant`: `default` (lime, prominent glass), `destructive` (prominent glass tinted `destructive`), `secondary` (regular glass) or `ghost` (plain, no fill). Without Liquid Glass (before iOS 26) the same mapping uses the solid native styles (`borderedProminent`, `bordered`).
-  - `size`: `sm`, `default` or `lg`, at the native heights in [Size](#size). The label is the size's Emphasized text style (Semibold Subhead, Body, Title 3).
+  - `size`: `sm`, `default` or `lg`, at the native heights in [Size](#size). The label is the size's Emphasized text style: `text-subhead-emphasized`, `text-body-emphasized`, `text-title-3-emphasized`.
   - `shape`: `pill` (default) or `circle`. A circle takes `icon` and `accessibilityLabel` (both required, the types enforce it) and shows no label.
   - `icon` (an SF Symbol name) and `iconPosition` (`leading`, the default, or `trailing`; the forward `arrow.right` trails).
   - A pill needs `label` (a string), or `children`: the older form, kept for views that aren't SF Symbols (the support page's brand logos, each in a 44 pt-wide view so it's a full tap target). A lone icon is a circle. Use `isLoading` while its action runs; the button keeps its size. It spans its container's width unless it's a circle or `ghost` (or you pass `fill`). `className` only lays it out; the label's font and color come from `variant` and `size`, unless `contentColorClassName` (a `text-…` class) recolors the label and icon, as the lime "Add Set" on a `secondary` pill does.
