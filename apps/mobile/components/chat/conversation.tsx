@@ -436,9 +436,8 @@ export function ConversationEmptyState({
   return (
     <View className="flex-1 items-center justify-center gap-2">
       <SymbolImage
-        className="text-muted-foreground dark:text-muted-foreground"
+        className="text-large-title text-muted-foreground"
         name={icon}
-        size={48}
       />
       <Text className="text-foreground text-title-2-emphasized dark:text-foreground">
         {title}
