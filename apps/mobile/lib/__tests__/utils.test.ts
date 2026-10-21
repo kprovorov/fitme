@@ -58,7 +58,7 @@ describe("cn", () => {
     expect(cn("border border-border border-continuous")).toBe(
       "border border-border border-continuous"
     );
-    expect(cn("border-continuous border border-border")).toBe(
+    expect(cn("border-continuous", "border border-border")).toBe(
       "border-continuous border border-border"
     );
   });

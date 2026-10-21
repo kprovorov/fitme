@@ -3,6 +3,7 @@ import { Linking, Text, View } from "react-native";
 import { useCSSVariable, useResolveClassNames } from "uniwind";
 import { Table, TableCell, TableHead, TableRow } from "~/components/ui/table";
 import { Text as StyledText } from "~/components/ui/text";
+import { cn } from "~/lib/utils";
 import Markdown from "./markdown";
 
 const VAR_NAMES = [
@@ -139,17 +140,27 @@ export function ChatMarkdown({ children }: { children: string }) {
             {rows}
           </Table>
         ),
+        // Dividers go before a cell or row, never after the last one, so
+        // they don't double the table's own border at the right and bottom
         tableCell: ({ node, children: content, extras }) => {
           const Cell = extras?.isHeader ? TableHead : TableCell;
           return (
-            <Cell className="flex-1 border-border border-r" key={node.key}>
+            <Cell
+              className={cn(
+                "flex-1",
+                (extras?.cellIndex ?? 0) > 0 && "border-border border-l"
+              )}
+              key={node.key}
+            >
               <StyledText>{content}</StyledText>
             </Cell>
           );
         },
         tableRow: ({ node, children: cells, extras }) => (
           <TableRow
-            className={extras?.isHeader ? "bg-muted" : undefined}
+            className={
+              extras?.isHeader ? "border-b-0 bg-muted" : "border-t border-b-0"
+            }
             key={node.key}
           >
             {cells}
