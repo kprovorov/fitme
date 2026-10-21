@@ -36,9 +36,10 @@ const unlimited: RateLimiter = {
   limit: () => Promise.resolve({ allowed: true }),
 };
 
-/** The deps every test app shares: no limits, errors dropped. */
+/** The deps every test app shares: no limits, no one identified, errors dropped. */
 const base = {
   auth,
+  identifyUser: () => undefined,
   rateLimiter: unlimited,
   reportError: () => Promise.resolve(),
 };
@@ -234,6 +235,49 @@ describe("auth", () => {
     }).request("/caller", asUser);
 
     expect(response.status).toBe(401);
+  });
+});
+
+describe("error reporting identity", () => {
+  /** An app recording every User it identifies to error reporting. */
+  const identifyingApp = () => {
+    const identified: string[] = [];
+    const identifying = callerApp({
+      identifyUser: (userId) => {
+        identified.push(userId);
+      },
+    });
+    return { identified, identifying };
+  };
+
+  it("identifies a User by their Clerk id", async () => {
+    const { identified, identifying } = identifyingApp();
+
+    const response = await identifying.request("/caller", asUser);
+
+    expect(response.status).toBe(200);
+    expect(identified).toEqual(["user_alice"]);
+  });
+
+  it.each([
+    ["coach", COACH_SECRET],
+    ["mcp", MCP_SECRET],
+  ])("identifies no User for the %s server caller", async (_name, secret) => {
+    const { identified, identifying } = identifyingApp();
+
+    const response = await identifying.request("/caller", bearer(secret));
+
+    expect(response.status).toBe(200);
+    expect(identified).toEqual([]);
+  });
+
+  it("identifies no one for a refused request", async () => {
+    const { identified, identifying } = identifyingApp();
+
+    const response = await identifying.request("/caller");
+
+    expect(response.status).toBe(401);
+    expect(identified).toEqual([]);
   });
 });
 

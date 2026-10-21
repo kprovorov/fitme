@@ -1,3 +1,4 @@
+import { observeHono } from "@fitme/observability/node";
 import { createRoute, OpenAPIHono, z } from "@hono/zod-openapi";
 import { cors } from "hono/cors";
 import { HTTPException } from "hono/http-exception";
@@ -16,6 +17,8 @@ import type { ServedLibrary } from "./served-library";
 export interface AppDeps {
   /** The Clerk keys and server secrets a caller can prove who they are with. */
   auth: AuthConfig;
+  /** Sets the request's User (their Clerk id) on what error reporting sends. */
+  identifyUser: (userId: string) => void;
   /** The whole Exercise Library, baked into the build: nothing is read at runtime. */
   library: ServedLibrary;
   /** Counts each User's requests; server callers are never counted. */
@@ -41,12 +44,15 @@ const health = createRoute({
 /** The Exercise Library API, serving the injected Exercise Library. */
 export const createApp = ({
   auth,
+  identifyUser,
   library,
   rateLimiter,
   reportError,
 }: AppDeps) => {
   const app = new OpenAPIHono<AuthEnv>();
 
+  // First, so the request span covers every other middleware
+  app.use(observeHono(app));
   app.use(logger());
   // Before auth (ADR 0007): a browser's preflight carries no token, so it's
   // answered here, and every response, a 401 included, is readable
@@ -59,6 +65,14 @@ export const createApp = ({
 
   // Every route from here on (unknown ones too) needs a caller.
   app.use(requireCaller(auth));
+  // A User is known by their Clerk id only; a server caller is no User.
+  app.use(async (c, next) => {
+    const caller = c.get("caller");
+    if (caller.type === "user") {
+      identifyUser(caller.userId);
+    }
+    await next();
+  });
   app.openAPIRegistry.registerComponent("securitySchemes", BEARER_AUTH, {
     description: "A Clerk session token, or the Coach's or MCP server's secret",
     scheme: "bearer",

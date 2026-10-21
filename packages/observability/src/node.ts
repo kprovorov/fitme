@@ -67,6 +67,16 @@ export const reportError = async (
 };
 
 /**
+ * Identifies the current request's User by their Clerk id, and nothing else,
+ * on its events and traces. Call it only with an id from a verified token,
+ * inside the request (each request has its own scope); a request from no User
+ * (a server caller) doesn't call it.
+ */
+export const identifyUser = (userId: string): void => {
+  Sentry.setUser({ id: userId });
+};
+
+/**
  * Request spans for a Hono app: register it first, `app.use(observeHono(app))`.
  * Works whether or not Hono was loaded before `initObservability` (bundled apps
  * import it first), and does nothing when observability is off.
