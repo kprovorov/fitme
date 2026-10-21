@@ -1,3 +1,4 @@
+import type { reportError as observabilityReportError } from "@fitme/observability/node";
 import {
   createServicesFromEnv,
   type ServicesFactory,
@@ -6,10 +7,7 @@ import {
 import { ToolError } from "./tools/helpers.js";
 
 /** Reports an unexpected failure (logs, captures, waits for delivery). */
-export type ReportError = (
-  error: unknown,
-  tags?: Record<string, string>
-) => Promise<void>;
+export type ReportError = typeof observabilityReportError;
 
 export interface ToolContext {
   /**

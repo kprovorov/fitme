@@ -45,7 +45,8 @@ export const recordingReporter = () => {
   return { reportError, reported };
 };
 
-const ignoreReports: ToolContext["reportError"] = () => Promise.resolve();
+export const ignoreReports: ToolContext["reportError"] = () =>
+  Promise.resolve();
 
 /** A context whose user tools run on `services`. */
 export const contextFor = (

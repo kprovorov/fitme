@@ -2,7 +2,7 @@ import { getAuth } from "@clerk/hono";
 import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
 import { createApp } from "../create-app.js";
 import type { ServicesFactory } from "../services.js";
-import { fakeServices, recordingReporter } from "./harness.js";
+import { fakeServices, ignoreReports, recordingReporter } from "./harness.js";
 
 // Clerk is stubbed at its SDK boundary: no Clerk instance or network. The
 // middleware passes through and `getAuth` answers what each test sets up.
@@ -382,7 +382,7 @@ describe("with a valid Clerk token", () => {
     const app = createApp({
       createServices: () => null,
       logRequests: false,
-      reportError: () => Promise.resolve(),
+      reportError: ignoreReports,
     });
 
     const response = await callTool(
