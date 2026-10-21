@@ -9,7 +9,7 @@ const cardVariants = {
   ghost: "bg-transparent",
 } as const;
 
-type CardProps = ViewProps & {
+type CardProps = Omit<ViewProps, "style"> & {
   ref?: React.RefObject<ViewRef | null>;
   variant?: keyof typeof cardVariants;
 };
@@ -19,14 +19,15 @@ type CardProps = ViewProps & {
  * `card` radius and `sm` padding, no glass, border or shadow. `ghost` keeps
  * the radius and padding with no fill, for grouped content that shouldn't
  * read as a surface. Card owns its look: `className` only lays it out (flex,
- * gap), never sets a background, radius or padding.
+ * gap). Card's own classes are merged after it, so a caller's background,
+ * radius or padding is dropped, and there's no `style` to get around that.
  */
 const Card = ({ className, ref, variant = "default", ...props }: CardProps) => (
   <View
     className={cn(
+      className,
       "rounded-card border-continuous p-sm",
-      cardVariants[variant],
-      className
+      cardVariants[variant]
     )}
     ref={ref}
     {...props}
