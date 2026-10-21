@@ -249,4 +249,3 @@ export const updateProfile = async (
 
   return getProfile(tx, userId);
 };
-// throwaway
