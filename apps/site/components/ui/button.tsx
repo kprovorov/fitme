@@ -15,7 +15,7 @@ type ButtonVariant = "default" | "secondary" | "destructive" | "ghost";
 type ButtonSize = "sm" | "default" | "lg";
 type ButtonShape = "pill" | "circle";
 type ButtonIconPosition = "leading" | "trailing";
-// Library-independent: pass a Lucide/Tabler component, or an already made icon.
+// Pass a Tabler component or an already made icon.
 type ButtonIcon = ComponentType<SVGProps<SVGSVGElement>> | ReactElement;
 
 const buttonVariants = cva(

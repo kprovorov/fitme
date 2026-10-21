@@ -1,13 +1,13 @@
 import {
-  Check,
-  type LucideIcon,
-  MessagesSquare,
-  PersonStanding,
-  Repeat,
-  Ruler,
-  ShieldCheck,
-  Trophy,
-} from "lucide-react";
+  IconCheck,
+  IconMan,
+  IconMessages,
+  IconRepeat,
+  IconRuler,
+  IconShieldCheck,
+  IconTrophy,
+  type TablerIcon,
+} from "@tabler/icons-react";
 import type { StaticImageData } from "next/image";
 
 import { PhoneShot } from "@/components/phone-shot";
@@ -85,7 +85,7 @@ const features: Feature[] = [
 
 interface Extra {
   description: string;
-  icon: LucideIcon;
+  icon: TablerIcon;
   title: string;
 }
 
@@ -93,37 +93,37 @@ const extras: Extra[] = [
   {
     description:
       "Finish a workout and the next one in your plan moves up. Miss a day and nothing breaks.",
-    icon: Repeat,
+    icon: IconRepeat,
     title: "Workouts in rotation",
   },
   {
     description:
       "Beat your best and the summary marks it with a trophy, so the wins don't slip by.",
-    icon: Trophy,
+    icon: IconTrophy,
     title: "Personal records",
   },
   {
     description:
       "See which muscles each workout hit, front and back, right after you finish.",
-    icon: PersonStanding,
+    icon: IconMan,
     title: "Muscle map",
   },
   {
     description:
       "Metric, US or UK units. Switch any time and your history converts with you.",
-    icon: Ruler,
+    icon: IconRuler,
     title: "Your units",
   },
   {
     description:
       "Connect your Fitme account in ChatGPT to search exercises, manage plans and log sets.",
-    icon: MessagesSquare,
+    icon: IconMessages,
     title: "Works in ChatGPT",
   },
   {
     description:
       "Delete your account in the app and your plans, workouts and Coach chats go with it.",
-    icon: ShieldCheck,
+    icon: IconShieldCheck,
     title: "Your data, your call",
   },
 ];
@@ -155,7 +155,7 @@ function FeatureRow({
         <ul className="flex flex-col gap-3">
           {feature.points.map((point) => (
             <li className="flex items-start gap-3" key={point}>
-              <Check
+              <IconCheck
                 aria-hidden="true"
                 className="mt-0.5 size-5 shrink-0 text-primary"
               />
