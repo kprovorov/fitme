@@ -76,12 +76,11 @@ function BreadcrumbSeparator({
 function BreadcrumbEllipsis({ className, ...props }: ComponentProps<"span">) {
   return (
     <span
-      aria-hidden="true"
       className={cn("flex h-9 w-9 items-center justify-center", className)}
       role="presentation"
       {...props}
     >
-      <IconDots className="h-4 w-4" />
+      <IconDots aria-hidden="true" className="size-4" />
       <span className="sr-only">More</span>
     </span>
   );
