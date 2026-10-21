@@ -35,9 +35,13 @@ export const TEXT_STYLES = [
 // `card` radius tokens are registered too, so a later `p-sm` or
 // `rounded-card` replaces an earlier `p-0` or `rounded-none` instead of
 // keeping both.
-const twMerge = extendTailwindMerge<"text-style">({
+// `border-continuous` (uniwind's smooth iOS corners) isn't a border color, so
+// it gets its own group too: otherwise `border-border border-continuous`
+// keeps only the last one and the border turns black.
+const twMerge = extendTailwindMerge<"text-style" | "border-curve">({
   extend: {
     classGroups: {
+      "border-curve": ["border-continuous"],
       "text-style": [{ text: TEXT_STYLES }],
     },
     conflictingClassGroups: {

@@ -53,4 +53,13 @@ describe("cn", () => {
       cn("text-footnote-emphasized text-foreground", "text-muted-foreground")
     ).toBe("text-footnote-emphasized text-muted-foreground");
   });
+
+  it("keeps a border color next to border-continuous, in either order", () => {
+    expect(cn("border border-border border-continuous")).toBe(
+      "border border-border border-continuous"
+    );
+    expect(cn("border-continuous border border-border")).toBe(
+      "border-continuous border border-border"
+    );
+  });
 });
