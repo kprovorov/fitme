@@ -1,0 +1,86 @@
+# The Risk Path list: the only list of Risk Paths (see docs/agents/pr-risk.md).
+# The PR Risk workflow labels a pull request `risk:high` when any changed file
+# matches a high glob, otherwise `risk:medium` when any matches a medium glob,
+# otherwise `risk:low`. Overlaps between tiers are intentional: the highest
+# tier wins, so medium can use broad globs. The pnpm lockfile is deliberately
+# not listed.
+#
+# The workflow parses this file itself (no YAML library): only the two keys
+# below, each a list of `- glob` items, plus comments and blank lines.
+# Globs are Node's path.matchesGlob; files in dot directories match too.
+
+high:
+  # Supabase: schema, auth trust, signing keys, the production data script
+  - packages/supabase/supabase/migrations/**
+  - packages/supabase/supabase/config.toml
+  - packages/supabase/supabase/roles.sql
+  - packages/supabase/supabase/local-only-signing-keys.json
+  - packages/supabase/supabase/sync.ts
+  # GitHub: workflows, the Risk Path list, the API contract allowlist
+  - .github/**
+  # Database doors, account deletion, Coach session ownership
+  - packages/db/src/index.ts
+  - packages/db/src/client.ts
+  - packages/services/src/delete-user-data.ts
+  - packages/services/src/coach-sessions.ts
+  # Mobile store config and auth, session, payments
+  - apps/mobile/app.json
+  - apps/mobile/eas.json
+  - apps/mobile/plugins/**
+  - apps/mobile/lib/clerk.ts
+  - apps/mobile/lib/supabase.ts
+  - apps/mobile/components/authenticated.tsx
+  - apps/mobile/components/auth-sync.tsx
+  - apps/mobile/components/providers.tsx
+  - apps/mobile/hooks/mutations/auth.ts
+  - apps/mobile/hooks/revenueCat.ts
+  - apps/mobile/app/_layout.tsx
+  - apps/mobile/components/views/{login,register,forgot-password,reset-password,verify-code}-view.tsx
+  # MCP: OAuth, per-request User context, services
+  - apps/mcp/src/app.ts
+  - apps/mcp/src/auth.ts
+  - apps/mcp/src/context.ts
+  - apps/mcp/src/services.ts
+  # Coach: agent config, channel auth, Pro check, ownership, cost caps
+  - apps/coach/agent/agent.ts
+  - apps/coach/agent/channels/**
+  - apps/coach/agent/hooks/conversation.ts
+  - apps/coach/agent/hooks/turn-limits.ts
+  - apps/coach/agent/lib/{clerk-auth,reset-auth,eval-runner,pro-access,claim-session,conversation,owner,turn-limits}.ts
+  # Webhooks: signature checks and account deletion
+  - apps/webhooks/src/app.ts
+  - apps/webhooks/src/routes/clerk.ts
+  - apps/webhooks/src/coach.ts
+  # Web: where User tokens are sent
+  - apps/web/lib/env.ts
+  - apps/web/lib/supabase/**
+  # Any env file, anywhere
+  - "**/.env*"
+
+medium:
+  # Demoted from high
+  - apps/coach/agent/lib/models.ts
+  - apps/exercises/src/auth.ts
+  - apps/exercises/src/create-app.ts
+  - apps/web/proxy.ts
+  - apps/web/lib/routes.ts
+  - packages/supabase/scripts/**
+  # Backend logic on User data
+  - packages/services/**
+  - packages/db/**
+  - packages/core/**
+  - apps/coach/agent/**
+  - apps/mcp/src/**
+  - apps/api/src/**
+  - apps/webhooks/src/**
+  - apps/exercises/src/**
+  - apps/exercises/openapi.json
+  # Mobile data layer (no OTA updates)
+  - apps/mobile/hooks/**
+  - apps/mobile/lib/**
+  # Dependencies and deploy config
+  - "**/package.json"
+  - pnpm-workspace.yaml
+  - patches/**
+  - turbo.json
+  - apps/*/vercel.json
