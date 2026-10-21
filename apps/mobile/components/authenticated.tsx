@@ -12,7 +12,7 @@ export default function Authenticated({ children }: AuthenticatedProps) {
   if (!isLoaded) {
     return (
       <View className="flex-1 items-center justify-center">
-        <ActivityIndicator color="#ffffff" size="large" />
+        <ActivityIndicator colorClassName="accent-foreground" size="large" />
       </View>
     );
   }

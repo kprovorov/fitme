@@ -22,6 +22,7 @@
     "fix": "ultracite fix",
     "ios": "pnpm --filter @fitme/mobile ios",
     "lint": "turbo run lint",
+    "literal-check": "pnpm --filter @fitme/design-tokens literal-check",
     "mcp": "pnpm --filter @fitme/mcp",
     "mobile": "pnpm --filter @fitme/mobile",
     "prepare": "husky",

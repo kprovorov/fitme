@@ -1,5 +1,6 @@
 import { Stack } from "expo-router";
 import { Linking, ScrollView, View } from "react-native";
+import { useCSSVariable } from "uniwind";
 import Instagram from "~/components/icons/social/instagram";
 import Threads from "~/components/icons/social/threads";
 import X from "~/components/icons/social/x";
@@ -23,6 +24,8 @@ const openThreads = () =>
   Linking.openURL("https://www.threads.net/@fitmeprojectcom");
 
 export default function SupportScreen() {
+  const primary = useCSSVariable("--color-primary") as string;
+
   return (
     <>
       <Stack.Screen
@@ -56,7 +59,7 @@ export default function SupportScreen() {
           <HStack className="gap-0">
             <Button accessibilityLabel="X" onPress={openX} variant="ghost">
               <View className={LOGO_TARGET_CLASS}>
-                <X fill="#C0FF38" height={16} width={16} />
+                <X fill={primary} height={16} width={16} />
               </View>
             </Button>
             <Button
@@ -65,7 +68,7 @@ export default function SupportScreen() {
               variant="ghost"
             >
               <View className={LOGO_TARGET_CLASS}>
-                <Instagram fill="#C0FF38" height={16} width={16} />
+                <Instagram fill={primary} height={16} width={16} />
               </View>
             </Button>
             <Button
@@ -74,7 +77,7 @@ export default function SupportScreen() {
               variant="ghost"
             >
               <View className={LOGO_TARGET_CLASS}>
-                <Threads fill="#C0FF38" height={16} width={16} />
+                <Threads fill={primary} height={16} width={16} />
               </View>
             </Button>
           </HStack>

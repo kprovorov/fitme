@@ -15,6 +15,7 @@ import {
 } from "react-native";
 import SyntaxHighlighter from "react-syntax-highlighter";
 import { irBlack } from "react-syntax-highlighter/dist/esm/styles/hljs";
+import { useCSSVariable } from "uniwind";
 
 interface HighlighterStyleSheet {
   [key: string]: TextStyle;
@@ -81,16 +82,19 @@ interface CodeBlockProps {
 }
 
 function CodeBlockBase({ code, language }: CodeBlockProps) {
+  const foreground = useCSSVariable("--color-foreground") as string;
+  const surface = useCSSVariable("--color-muted") as string;
+
   const baseStyle = useMemo(
     () =>
       // biome-ignore lint/suspicious/noUnnecessaryConditions: a highlight theme may have no hljs entry; the Record type can't say so
-      ({ color: stylesheet.hljs?.color || "#f8f8f2" }),
-    []
+      ({ color: stylesheet.hljs?.color || foreground }),
+    [foreground]
   );
 
   const containerStyle = useMemo(
-    () => [styles.container, { backgroundColor: "#1a1a1a" }],
-    []
+    () => [styles.container, { backgroundColor: surface }],
+    [surface]
   );
 
   const getStylesForNode = useCallback((node: RendererNode): TextStyle[] => {

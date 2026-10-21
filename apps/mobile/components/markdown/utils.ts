@@ -8,22 +8,20 @@ import {
 } from "react-native";
 import type { StyleMap } from "./types";
 
+// Layout only: colors come from the tokens, in the renderer's styles
+// (`chat-markdown.tsx`)
 const defaultStyles: StyleMap = {
   blockquote: {
-    backgroundColor: "#f5f5f5",
-    borderColor: "#3840ba",
     borderLeftWidth: 4,
     marginVertical: 8,
     paddingHorizontal: 5,
   },
   codeContainer: {
-    backgroundColor: "#f0f0f0",
     borderRadius: 4,
     marginVertical: 4,
     padding: 8,
   },
   codeText: {
-    color: "#1c1c1c",
     ...Platform.select({
       android: {
         fontFamily: "monospace",
@@ -59,7 +57,6 @@ const defaultStyles: StyleMap = {
   },
   image: {
     aspectRatio: 1,
-    backgroundColor: "#f0f0f0",
     height: 300,
     overflow: "hidden",
     resizeMode: "cover",
@@ -74,10 +71,8 @@ const defaultStyles: StyleMap = {
         fontFamily: "ui-monospace",
       },
     }),
-    backgroundColor: "#f0f0f0",
   },
   link: {
-    color: "#1e90ff",
     textDecorationLine: "underline",
     transform: [{ translateY: 2 }],
   },
@@ -111,36 +106,28 @@ const defaultStyles: StyleMap = {
   },
   // Table styles
   table: {
-    borderColor: "#ddd",
     borderRadius: 4,
     borderWidth: 1,
     marginVertical: 8,
     overflow: "hidden",
   },
   tableCell: {
-    borderRightColor: "#ddd",
     borderRightWidth: 1,
     flex: 1,
     padding: 8,
   },
   tableCellText: {},
-  tableHeaderCell: {
-    backgroundColor: "#f5f5f5",
-  },
+  tableHeaderCell: {},
   tableHeaderCellText: {
     fontWeight: "600",
   },
-  tableHeaderRow: {
-    backgroundColor: "#f5f5f5",
-  },
+  tableHeaderRow: {},
   tableRow: {
-    borderBottomColor: "#ddd",
     borderBottomWidth: 1,
     flexDirection: "row",
   },
   text: {},
   thematicBreak: {
-    backgroundColor: "#0000006c",
     flex: 1,
     height: 1,
     marginVertical: 8,
