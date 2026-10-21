@@ -24,7 +24,6 @@ const defaultStyles: StyleMap = {
   },
   codeText: {
     color: "#1c1c1c",
-    fontSize: 14,
     ...Platform.select({
       android: {
         fontFamily: "monospace",
@@ -41,27 +40,21 @@ const defaultStyles: StyleMap = {
     fontStyle: "italic",
   },
   heading1: {
-    fontSize: 48,
     fontWeight: "bold",
   },
   heading2: {
-    fontSize: 36,
     fontWeight: "600",
   },
   heading3: {
-    fontSize: 32,
     fontWeight: "600",
   },
   heading4: {
-    fontSize: 28,
     fontWeight: "600",
   },
   heading5: {
-    fontSize: 24,
     fontWeight: "600",
   },
   heading6: {
-    fontSize: 20,
     fontWeight: "600",
   },
   image: {
@@ -85,7 +78,6 @@ const defaultStyles: StyleMap = {
   },
   link: {
     color: "#1e90ff",
-    fontSize: 16,
     textDecorationLine: "underline",
     transform: [{ translateY: 2 }],
   },
@@ -93,7 +85,6 @@ const defaultStyles: StyleMap = {
     flex: 1,
   },
   listBullet: {
-    fontSize: 16,
     fontWeight: "900",
   },
   listItem: {
@@ -132,9 +123,7 @@ const defaultStyles: StyleMap = {
     flex: 1,
     padding: 8,
   },
-  tableCellText: {
-    fontSize: 14,
-  },
+  tableCellText: {},
   tableHeaderCell: {
     backgroundColor: "#f5f5f5",
   },

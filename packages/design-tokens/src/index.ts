@@ -70,6 +70,47 @@ export function parseTokens(css: string): Token[] {
     });
 }
 
+/** One `@utility` of `tokens.css`, such as a text style. */
+export interface Utility {
+  /** Declarations in file order: `font-size` → `var(--text-body)`. */
+  declarations: Record<string, string>;
+  /** The class name: `text-body-emphasized`. */
+  name: string;
+}
+
+const UTILITY_BLOCK = /@utility\s+([a-z0-9-]+)\s*\{([^}]*)\}/g;
+
+/**
+ * Parses the `@utility` blocks of token CSS, in file order. A declaration
+ * without a `property: value` shape, or a repeated property, throws.
+ */
+export function parseUtilities(css: string): Utility[] {
+  return [...css.replace(COMMENT, "").matchAll(UTILITY_BLOCK)].map(
+    ([, name = "", body = ""]) => {
+      const declarations: Record<string, string> = {};
+      for (const statement of body.split(";")) {
+        const trimmed = statement.trim();
+        if (trimmed === "") {
+          continue;
+        }
+        const [, property, value] = trimmed.match(DECLARATION) ?? [];
+        if (property === undefined || value === undefined) {
+          throw new Error(`Malformed declaration in @utility ${name}`);
+        }
+        if (property in declarations) {
+          throw new Error(`Repeated ${property} in @utility ${name}`);
+        }
+        declarations[property] = value.trim();
+      }
+      return { declarations, name };
+    }
+  );
+}
+
+const readTokenCss = () => readFileSync(TOKENS_CSS_PATH, "utf8");
+
 /** Reads and parses the package's own `tokens.css`. */
-export const readTokens = (): Token[] =>
-  parseTokens(readFileSync(TOKENS_CSS_PATH, "utf8"));
+export const readTokens = (): Token[] => parseTokens(readTokenCss());
+
+/** Reads the `@utility` blocks of the package's own `tokens.css`. */
+export const readUtilities = (): Utility[] => parseUtilities(readTokenCss());

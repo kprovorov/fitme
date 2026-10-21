@@ -1,6 +1,6 @@
 import * as WebBrowser from "expo-web-browser";
-import { Linking, Platform, StyleSheet, Text, View } from "react-native";
-import { useCSSVariable } from "uniwind";
+import { Linking, Text, View } from "react-native";
+import { useCSSVariable, useResolveClassNames } from "uniwind";
 import Markdown from "./markdown";
 
 const VAR_NAMES = [
@@ -41,9 +41,20 @@ export function ChatMarkdown({ children }: { children: string }) {
 
   const text = "white";
 
-  const isWeb = process.env.EXPO_OS === "web";
-  const baseFontSize = isWeb ? 13 : 16;
-  const baseLineHeight = isWeb ? 21.5 : 22;
+  // Type comes from the text styles: Callout for the message, titles for
+  // headings, Mono for code
+  const body = useResolveClassNames("text-callout");
+  const bold = useResolveClassNames("text-callout-emphasized");
+  const heading1 = useResolveClassNames("text-title-2-emphasized");
+  const heading2 = useResolveClassNames("text-title-3-emphasized");
+  const heading3 = useResolveClassNames("text-headline");
+  const heading4 = useResolveClassNames("text-callout-emphasized");
+  const heading5 = useResolveClassNames("text-subhead-emphasized");
+  const heading6 = useResolveClassNames("text-footnote-emphasized");
+  const code = useResolveClassNames("text-mono-footnote");
+  const inlineCode = useResolveClassNames("text-mono-subhead");
+  const bullet = useResolveClassNames("text-body");
+  const tableCell = useResolveClassNames("text-subhead");
 
   // Only overrides — defaults from utils.ts are merged automatically
   const markdownStyles = {
@@ -54,24 +65,15 @@ export function ChatMarkdown({ children }: { children: string }) {
     },
     codeContainer: { backgroundColor: fill3, borderRadius: 8, padding: 12 },
     codeText: {
+      ...code,
       color: text,
-      fontFamily: Platform.select({
-        default: "monospace",
-        ios: "ui-monospace",
-      }),
-      fontSize: isWeb ? 12 : 14,
     },
-    heading1: { color: text, fontSize: 24 },
-    heading2: {
-      color: text,
-      fontSize: 20,
-      fontWeight: "bold" as const,
-      lineHeight: 28,
-    },
-    heading3: { color: text, fontSize: 18 },
-    heading4: { color: text, fontSize: 16 },
-    heading5: { color: text, fontSize: 14 },
-    heading6: { color: text, fontSize: 12 },
+    heading1: { ...heading1, color: text },
+    heading2: { ...heading2, color: text },
+    heading3: { ...heading3, color: text },
+    heading4: { ...heading4, color: text },
+    heading5: { ...heading5, color: text },
+    heading6: { ...heading6, color: text },
     image: {
       aspectRatio: 16 / 9,
       backgroundColor: fill3,
@@ -81,34 +83,32 @@ export function ChatMarkdown({ children }: { children: string }) {
     inlineCode: {
       backgroundColor: fill3,
       borderRadius: 4,
+      ...inlineCode,
       color: text,
-      fontFamily: Platform.select({
-        default: "monospace",
-        ios: "ui-monospace",
-      }),
-      fontSize: isWeb ? 12 : 15,
       overflow: "hidden" as const,
       paddingHorizontal: 4,
     },
-    link: { color: link, fontSize: baseFontSize },
+    // Only the color: a link takes its type from the paragraph, heading or
+    // emphasis around it
+    link: { color: link },
     listBullet: {
+      ...bullet,
       color: text,
       fontVariant: ["tabular-nums" as const],
       marginRight: 8,
     },
-    paragraph: {
-      fontSize: baseFontSize,
-      lineHeight: baseLineHeight,
-      marginVertical: 8,
-    },
+    paragraph: { ...body, marginVertical: 8 },
+    strong: { fontFamily: bold.fontFamily, fontWeight: bold.fontWeight },
     table: { borderColor: border, borderRadius: 8 },
     tableCell: { borderRightColor: border, padding: 10 },
-    tableCellText: { color: text },
+    tableCellText: { ...tableCell, color: text },
     tableHeaderCell: { backgroundColor: bg2 },
     tableHeaderCellText: { color: text },
     tableHeaderRow: { backgroundColor: bg2 },
     tableRow: { borderBottomColor: border },
-    text: { color: text, fontSize: baseFontSize, lineHeight: baseLineHeight },
+    // Leaf text inherits the type of its paragraph, heading, emphasis or
+    // table cell
+    text: { color: text },
     thematicBreak: { backgroundColor: border },
   };
 
@@ -127,9 +127,7 @@ export function ChatMarkdown({ children }: { children: string }) {
                 style={[
                   // biome-ignore lint/suspicious/noExplicitAny: StyleMap values are NamedStyle which requires cast for Text style prop
                   styles.listBullet as any,
-                  extras?.ordered
-                    ? fullStyles.orderedBullet
-                    : fullStyles.unorderedBullet,
+                  extras?.ordered ? inlineCode : undefined,
                 ]}
               >
                 {extras?.listStyleType as string}
@@ -144,14 +142,3 @@ export function ChatMarkdown({ children }: { children: string }) {
     />
   );
 }
-
-const fullStyles = StyleSheet.create({
-  orderedBullet: {
-    fontFamily: Platform.select({ default: "monospace", ios: "ui-monospace" }),
-    fontWeight: "normal",
-  },
-  unorderedBullet: {
-    fontSize: 18,
-    fontWeight: "900",
-  },
-});

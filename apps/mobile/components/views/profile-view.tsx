@@ -71,7 +71,7 @@ export default function ProfileView() {
             </AvatarFallback>
           </Avatar>
           <VStack className="shrink items-stretch gap-0">
-            <Text className="font-bold text-title-2" numberOfLines={1}>
+            <Text className="text-title-2-emphasized" numberOfLines={1}>
               {title}
             </Text>
             {subtitle ? <Muted numberOfLines={1}>{subtitle}</Muted> : null}
@@ -84,7 +84,7 @@ export default function ProfileView() {
               <VStack className="items-stretch gap-2">
                 <HStack className="flex-1 justify-start gap-2">
                   <Trophy className="text-primary" size={20} />
-                  <Text className="font-bold text-primary">
+                  <Text className="text-body-emphasized text-primary">
                     You&apos;re Pro!
                   </Text>
                 </HStack>
@@ -102,7 +102,7 @@ export default function ProfileView() {
               <VStack className="items-stretch gap-2">
                 <HStack className="flex-1 justify-start gap-2">
                   <Volleyball className="text-foreground" size={20} />
-                  <Text className="font-bold text-foreground">
+                  <Text className="text-body-emphasized text-foreground">
                     You&apos;re on a free plan
                   </Text>
                 </HStack>
@@ -153,7 +153,9 @@ export default function ProfileView() {
             <HStack className="flex-1 justify-start gap-4">
               <Heart className="text-foreground" size={24} />
               <VStack className="items-start gap-0">
-                <Text className="font-bold text-primary">Like the app?</Text>
+                <Text className="text-body-emphasized text-primary">
+                  Like the app?
+                </Text>
                 <Text>Rate it in the App Store!</Text>
               </VStack>
             </HStack>

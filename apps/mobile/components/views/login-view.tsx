@@ -116,7 +116,7 @@ export default function LoginView() {
       <VStack className="w-full">
         <VStack className="gap-0">
           <H3>Check your email</H3>
-          <Text className="font-nunito-sans-bold text-md text-muted-foreground">
+          <Text className="text-muted-foreground text-subhead-emphasized">
             Enter the code we sent you to confirm it&apos;s you on this device
           </Text>
         </VStack>
@@ -161,7 +161,7 @@ export default function LoginView() {
     <VStack className="w-full">
       <VStack className="gap-0">
         <H3>Welcome to Fitme!</H3>
-        <Text className="font-nunito-sans-bold text-md text-muted-foreground">
+        <Text className="text-muted-foreground text-subhead-emphasized">
           Log in to your account to access your workouts
         </Text>
       </VStack>
@@ -172,16 +172,16 @@ export default function LoginView() {
       {/* Not nested in a Text: iOS merges nested Text into one element and
           drops the link's testID */}
       <Link
-        className="font-nunito-sans-bold text-primary text-subhead"
+        className="text-primary text-subhead-emphasized"
         href="/auth/forgot-password"
         testID="forgot-password-link"
       >
         Forgot password?
       </Link>
-      <Text className="font-nunito-sans-bold text-subhead">
+      <Text className="text-subhead-emphasized">
         Don&apos;t have an account?{" "}
         <Link
-          className="font-nunito-sans-bold text-primary"
+          className="text-primary text-subhead-emphasized"
           href="/auth/register"
         >
           Register here

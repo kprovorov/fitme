@@ -29,32 +29,38 @@ function PlanCard({ plan }: { plan: PlanRow }) {
     <Card>
       <CardHeader>
         <div className="flex items-center justify-between gap-4">
-          <CardTitle>{plan.name ?? "Untitled plan"}</CardTitle>
+          <CardTitle className="text-title-3-emphasized">
+            {plan.name ?? "Untitled plan"}
+          </CardTitle>
           {plan.is_active ? (
-            <span className="rounded-full bg-primary px-2 py-0.5 font-semibold text-primary-foreground text-xs">
+            <span className="rounded-full bg-primary px-2 py-0.5 text-caption-1-emphasized text-primary-foreground">
               Active
             </span>
           ) : null}
         </div>
         {plan.description ? (
-          <CardDescription>{plan.description}</CardDescription>
+          <CardDescription className="text-subhead">
+            {plan.description}
+          </CardDescription>
         ) : null}
       </CardHeader>
       <CardContent>
-        <dl className="grid grid-cols-2 gap-x-6 gap-y-2 text-sm sm:grid-cols-4">
+        <dl className="grid grid-cols-2 gap-x-6 gap-y-2 text-subhead sm:grid-cols-4">
           <div>
             <dt className="text-muted-foreground">Goal</dt>
-            <dd className="font-semibold">{getGoalLabel(plan.goal as Goal)}</dd>
+            <dd className="text-subhead-emphasized">
+              {getGoalLabel(plan.goal as Goal)}
+            </dd>
           </div>
           <div>
             <dt className="text-muted-foreground">Place</dt>
-            <dd className="font-semibold">
+            <dd className="text-subhead-emphasized">
               {getPlaceLabel(plan.place as Place)}
             </dd>
           </div>
           <div>
             <dt className="text-muted-foreground">Level</dt>
-            <dd className="font-semibold">
+            <dd className="text-subhead-emphasized">
               {getExperienceLevelLabel(
                 plan.experience_level as ExperienceLevel
               )}
@@ -62,13 +68,13 @@ function PlanCard({ plan }: { plan: PlanRow }) {
           </div>
           <div>
             <dt className="text-muted-foreground">Schedule</dt>
-            <dd className="font-semibold">
+            <dd className="text-subhead-emphasized">
               {plan.frequency}x / week · {plan.workout_duration} min
             </dd>
           </div>
         </dl>
         {plan.created_at ? (
-          <p className="mt-4 text-muted-foreground text-xs">
+          <p className="mt-4 text-caption-1 text-muted-foreground">
             Created{" "}
             {formatDistanceToNow(new Date(plan.created_at), {
               addSuffix: true,
@@ -92,18 +98,18 @@ function SessionRow({ session }: { session: SessionItem }) {
   return (
     <li className="flex items-center justify-between gap-4 py-3 first:pt-0 last:pb-0">
       <div className="flex flex-col">
-        <span className="font-semibold">
+        <span className="text-body-emphasized">
           {session.workout?.name ?? "Deleted workout"}
         </span>
         {session.plan?.name ? (
-          <span className="text-muted-foreground text-xs">
+          <span className="text-caption-1 text-muted-foreground">
             {session.plan.name}
           </span>
         ) : null}
       </div>
-      <div className="flex flex-col items-end text-sm">
+      <div className="flex flex-col items-end text-subhead">
         <LocalDate value={session.started_at} />
-        <span className="text-muted-foreground text-xs">
+        <span className="text-caption-1 text-muted-foreground">
           {session.finished_at ? "Finished" : "In progress"}
         </span>
       </div>
@@ -141,8 +147,8 @@ export default async function DashboardPage() {
   return (
     <>
       <div className="flex flex-col gap-1">
-        <h1 className="font-bold text-2xl text-primary">Your plans</h1>
-        <p className="text-muted-foreground text-sm">
+        <h1 className="text-primary text-title-1-emphasized">Your plans</h1>
+        <p className="text-muted-foreground text-subhead">
           Plans are generated and edited in the Fitme mobile app.
         </p>
       </div>
@@ -150,8 +156,10 @@ export default async function DashboardPage() {
       {plans.length === 0 ? (
         <Card>
           <CardHeader>
-            <CardTitle>No plans yet</CardTitle>
-            <CardDescription>
+            <CardTitle className="text-title-3-emphasized">
+              No plans yet
+            </CardTitle>
+            <CardDescription className="text-subhead">
               Open the Fitme app and let the AI planner build your first
               program.
             </CardDescription>
@@ -166,11 +174,13 @@ export default async function DashboardPage() {
       )}
 
       <section className="flex flex-col gap-4">
-        <h2 className="font-bold text-primary text-xl">Recent workouts</h2>
+        <h2 className="text-primary text-title-2-emphasized">
+          Recent workouts
+        </h2>
         <Card>
           <CardContent>
             {sessions.length === 0 ? (
-              <p className="text-muted-foreground text-sm">
+              <p className="text-muted-foreground text-subhead">
                 Workouts you log in the Fitme app show up here.
               </p>
             ) : (

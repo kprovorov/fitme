@@ -26,7 +26,7 @@ function Header() {
               </li>
             ))}
           </ul>
-          <Button asChild className="rounded-full font-bold">
+          <Button asChild className="rounded-full">
             <a href={appStoreUrl}>Download</a>
           </Button>
           <MobileMenu />

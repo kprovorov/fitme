@@ -6,6 +6,7 @@ import { useLocales } from "expo-localization";
 import { router, Stack } from "expo-router";
 import { useCallback } from "react";
 import { ActivityIndicator, ScrollView } from "react-native";
+import { useResolveClassNames } from "uniwind";
 import ProfileForm, {
   PROFILE_SAVE_ERROR_MESSAGE,
   type ProfileFormValues,
@@ -57,6 +58,10 @@ export default function ProfileScreen() {
     },
   });
 
+  // Title 1 rather than Large Title (34 pt), so the title fits a 375 pt wide
+  // iPhone.
+  const largeTitle = useResolveClassNames("text-title-1-emphasized");
+
   const handleSubmit = useCallback(
     ({ age, gender, height, weight }: ProfileFormValues) =>
       storeProfile({ age, gender, height, measurementSystem, weight }),
@@ -72,10 +77,9 @@ export default function ProfileScreen() {
         options={{
           headerLargeTitleEnabled: true,
           headerLargeTitleShadowVisible: false,
-          // Below the default 34 pt so the title fits a 375 pt wide iPhone.
           headerLargeTitleStyle: {
-            fontFamily: "NunitoSans12pt-Bold",
-            fontSize: 30,
+            fontFamily: largeTitle.fontFamily,
+            fontSize: largeTitle.fontSize,
           },
           headerTitle: "Let's get to know you",
           headerTitleStyle: { fontFamily: "NunitoSans12pt-Bold" },

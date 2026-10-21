@@ -29,15 +29,13 @@ export default function WorkoutDataCard({
     >
       <VStack className={cn("items-stretch", compact ? "gap-2" : "gap-3")}>
         <HStack className="items-center justify-between">
-          <H4 className="flex-1 font-nunito-sans-bold text-primary">
-            {workoutData.name}
-          </H4>
+          <H4 className="flex-1 text-primary">{workoutData.name}</H4>
           <Badge
             className="flex-row gap-1 rounded-full px-2 py-0.5"
             variant="secondary"
           >
             <Zap className="text-secondary-foreground" size={11} />
-            <Text className="font-nunito-sans-semibold text-footnote text-secondary-foreground">
+            <Text className="text-footnote-emphasized text-secondary-foreground">
               {workoutData.exercises.length}
             </Text>
           </Badge>
@@ -62,13 +60,15 @@ export default function WorkoutDataCard({
           >
             <Pressable className="flex-row items-center justify-between py-0.5 active:opacity-70">
               <HStack className="flex-1 items-center gap-2.5">
-                <Text className="w-6 text-right font-ibm-plex-mono text-footnote text-primary">
+                <Text className="w-6 text-right text-mono-footnote text-primary">
                   {exercise.sets.length}×
                 </Text>
                 <Text
                   className={cn(
-                    "flex-1 font-nunito-sans-semibold",
-                    compact ? "text-subhead" : "text-footnote"
+                    "flex-1",
+                    compact
+                      ? "text-subhead-emphasized"
+                      : "text-footnote-emphasized"
                   )}
                 >
                   {exercise.exercise.name}

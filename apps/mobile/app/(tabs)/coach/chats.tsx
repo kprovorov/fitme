@@ -53,13 +53,13 @@ function ChatRow({
         <Pressable className="flex-row items-center px-5 py-4 active:bg-card">
           <View className="mr-3 flex-1 gap-0.5">
             <Text
-              className="text-[17px] text-foreground dark:text-foreground"
+              className="text-body text-foreground dark:text-foreground"
               numberOfLines={1}
               selectable
             >
               {item.title}
             </Text>
-            <Text className="text-[13px] text-muted-foreground dark:text-muted-foreground">
+            <Text className="text-footnote text-muted-foreground dark:text-muted-foreground">
               {formatTimeAgo(item.daysAgo)}
             </Text>
           </View>
@@ -99,7 +99,7 @@ function EmptySearch({ query }: { query: string }) {
   return (
     <View className="flex-1 items-center justify-center gap-2 pt-32">
       <Icon className="h-10 w-10 text-muted-foreground" icon={Search} />
-      <Text className="px-10 text-center text-[17px] text-muted-foreground">
+      <Text className="px-10 text-center text-body text-muted-foreground">
         No results found for &ldquo;{query}&rdquo;
       </Text>
     </View>

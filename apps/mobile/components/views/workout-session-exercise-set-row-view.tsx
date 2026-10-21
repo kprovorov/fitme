@@ -193,14 +193,14 @@ export default function WorkoutSessionExerciseSetRowView({
       leading={
         <>
           <Text
-            className="w-7 text-center font-ibm-plex-mono text-footnote"
+            className="w-7 text-center text-mono-footnote"
             maxFontSizeMultiplier={SET_TABLE_MAX_FONT_SCALE}
           >
             #{setOrder}
           </Text>
           <Text
             adjustsFontSizeToFit
-            className="w-18 text-center font-ibm-plex-mono text-footnote"
+            className="w-18 text-center text-mono-footnote"
             maxFontSizeMultiplier={SET_TABLE_MAX_FONT_SCALE}
             numberOfLines={1}
           >

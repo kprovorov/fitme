@@ -439,7 +439,7 @@ export function ConversationEmptyState({
         name={icon}
         size={48}
       />
-      <Text className="font-semibold text-foreground text-title-2 dark:text-foreground">
+      <Text className="text-foreground text-title-2-emphasized dark:text-foreground">
         {title}
       </Text>
       {description ? (

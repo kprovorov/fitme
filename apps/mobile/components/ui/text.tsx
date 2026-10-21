@@ -19,30 +19,30 @@ const textVariants = cva(
       variant: {
         blockquote: "mt-4 border-l-2 pl-3 italic sm:mt-6 sm:pl-6",
         code: cn(
-          "relative rounded bg-muted px-[0.3rem] py-[0.2rem] font-mono font-semibold text-subhead"
+          "relative rounded bg-muted px-[0.3rem] py-[0.2rem] text-mono-subhead-semibold"
         ),
         default: "",
         h1: cn(
-          "text-center font-extrabold text-large-title tracking-tight",
+          "text-center text-large-title-emphasized",
           Platform.select({ web: "scroll-m-20 text-balance" })
         ),
         h2: cn(
-          "border-border border-b pb-2 font-semibold text-title-1 tracking-tight",
+          "border-border border-b pb-2 text-title-1-emphasized",
           Platform.select({ web: "scroll-m-20 first:mt-0" })
         ),
         h3: cn(
-          "font-semibold text-title-2 tracking-tight",
+          "text-title-2-emphasized",
           Platform.select({ web: "scroll-m-20" })
         ),
         h4: cn(
-          "font-semibold text-title-3 tracking-tight",
+          "text-title-3-emphasized",
           Platform.select({ web: "scroll-m-20" })
         ),
-        large: "font-semibold text-title-3",
+        large: "text-title-3-emphasized",
         lead: "text-muted-foreground text-title-2",
         muted: "text-muted-foreground text-subhead",
-        p: "mt-3 leading-7 sm:mt-6",
-        small: "font-medium text-subhead leading-none",
+        p: "mt-3 sm:mt-6",
+        small: "text-subhead-emphasized",
       },
     },
   }

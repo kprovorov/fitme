@@ -37,7 +37,7 @@ const badgeVariants = cva(
   }
 );
 
-const badgeTextVariants = cva("font-medium text-footnote", {
+const badgeTextVariants = cva("text-footnote-emphasized", {
   defaultVariants: {
     variant: "default",
   },

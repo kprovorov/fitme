@@ -411,7 +411,7 @@ function RadioGroupItemWithLabel({
       <HStack className="flex-1 items-center justify-between gap-0 p-0">
         <VStack className="flex-1 items-start gap-0 p-0">
           <Label
-            className={`font-nunito-sans-bold text-body text-white ${
+            className={`text-body-emphasized text-white ${
               disabled ? "opacity-50" : ""
             }`}
             nativeID={`label-for-${value}`}
@@ -470,7 +470,7 @@ function RadioGroupItemTileWithIcon({
           })
         : null}
       <Label
-        className={`text-center font-nunito-sans-bold text-body text-white ${
+        className={`text-center text-body-emphasized text-white ${
           disabled ? "opacity-50" : ""
         }`}
         nativeID={`label-for-${value}`}
@@ -517,7 +517,7 @@ function RadioGroupItemTile({
       testID={testID}
     >
       <Label
-        className={`text-center font-nunito-sans-bold text-body text-white ${
+        className={`text-center text-body-emphasized text-white ${
           disabled ? "opacity-50" : ""
         }`}
         nativeID={`label-for-${value}`}

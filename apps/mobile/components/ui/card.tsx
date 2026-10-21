@@ -55,10 +55,7 @@ const CardTitle = ({
 }: TextProps & { ref?: React.RefObject<TextRef | null> }) => (
   <Text
     aria-level={3}
-    className={cn(
-      "font-nunito-sans-bold text-primary text-title-2 tracking-tight",
-      className
-    )}
+    className={cn("text-primary text-title-2-emphasized", className)}
     ref={ref}
     role="heading"
     {...props}

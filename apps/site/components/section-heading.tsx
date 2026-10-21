@@ -28,7 +28,7 @@ function SectionHeading({
       )}
     >
       {eyebrow ? (
-        <p className="font-semibold text-footnote text-primary uppercase tracking-wider">
+        <p className="text-footnote-emphasized text-primary uppercase">
           {eyebrow}
         </p>
       ) : null}

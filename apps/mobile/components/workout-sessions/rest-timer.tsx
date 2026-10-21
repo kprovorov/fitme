@@ -101,9 +101,7 @@ export default function RestTimer({
                 ? `Rest · then set ${rest.nextSetOrder}`
                 : "Rest"}
             </Text>
-            <Text className="font-ibm-plex-mono-semibold text-title-2">
-              {clock}
-            </Text>
+            <Text className="text-mono-title-2-semibold">{clock}</Text>
           </View>
           <Button
             accessibilityLabel="15 seconds less"

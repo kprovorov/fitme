@@ -70,7 +70,7 @@ export default function PlanDataView({
                 variant="secondary"
               >
                 {item.icon}
-                <Text className="font-nunito-sans-semibold text-footnote text-secondary-foreground">
+                <Text className="text-footnote-emphasized text-secondary-foreground">
                   {item.label}
                 </Text>
               </Badge>

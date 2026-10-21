@@ -179,7 +179,7 @@ export default function VerifyCodeView({ purpose }: VerifyCodeViewProps) {
     <VStack className="w-full">
       <VStack className="gap-0">
         <H3>{title}</H3>
-        <Text className="font-nunito-sans-bold text-md text-muted-foreground">
+        <Text className="text-muted-foreground text-subhead-emphasized">
           {description}
         </Text>
       </VStack>

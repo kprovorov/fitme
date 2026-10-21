@@ -12,7 +12,7 @@ const Input = ({
 }) => (
   <TextInput
     className={cn(
-      "web:flex h-12 native:h-12 web:w-full rounded-md bg-black/30 px-3 web:py-2 font-nunito-sans-bold text-foreground text-subhead native:leading-[1.25] web:ring-offset-background file:border-0 file:bg-transparent file:font-medium placeholder:text-muted-foreground web:focus-visible:outline-none web:focus-visible:ring-2 web:focus-visible:ring-ring web:focus-visible:ring-offset-2",
+      "web:flex h-12 native:h-12 web:w-full rounded-md bg-black/30 px-3 web:py-2 text-foreground text-subhead-emphasized web:ring-offset-background file:border-0 file:bg-transparent placeholder:text-muted-foreground web:focus-visible:outline-none web:focus-visible:ring-2 web:focus-visible:ring-ring web:focus-visible:ring-offset-2",
       props.editable === false && "web:cursor-not-allowed opacity-50",
       className
     )}

@@ -52,7 +52,7 @@ function Footer() {
           >
             {columns.map((column) => (
               <div className="flex flex-col gap-4" key={column.title}>
-                <h2 className="font-bold text-foreground text-subhead">
+                <h2 className="text-foreground text-subhead-emphasized">
                   {column.title}
                 </h2>
                 <ul className="flex flex-col">

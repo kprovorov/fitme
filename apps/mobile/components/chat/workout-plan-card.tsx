@@ -98,7 +98,7 @@ function ExerciseRow({ exercise }: { exercise: WorkoutExercise }) {
       className="flex-row items-center border-border/15 border-b py-3 active:opacity-60"
       onPress={handlePress}
     >
-      <Text className="w-8 font-semibold text-primary text-subhead">
+      <Text className="w-8 text-primary text-subhead-emphasized">
         {exercise.sets}×
       </Text>
       <Text className="flex-1 text-foreground text-subhead" numberOfLines={1}>
@@ -123,7 +123,7 @@ function WorkoutDaySection({
   return (
     <View className={last ? "" : "mb-6"}>
       <View className="mb-2 flex-row items-center justify-between">
-        <Text className="flex-1 pr-2 font-bold text-primary text-subhead leading-tight">
+        <Text className="flex-1 pr-2 text-primary text-subhead-emphasized">
           {workout.name}
         </Text>
         <View className="flex-row items-center gap-1 rounded-full bg-muted/40 px-2.5 py-1">
@@ -132,7 +132,7 @@ function WorkoutDaySection({
             name="bolt.fill"
             size={10}
           />
-          <Text className="font-semibold text-footnote text-foreground">
+          <Text className="text-footnote-emphasized text-foreground">
             {workout.exercises.length}
           </Text>
         </View>
@@ -199,7 +199,7 @@ export function WorkoutPlanCard({ plan }: { plan: WorkoutPlan }) {
       style={{ borderCurve: "continuous" }}
     >
       <View className="border-border/20 border-b px-4 pt-4 pb-3">
-        <Text className="mb-3 font-bold text-foreground text-title-3 leading-tight">
+        <Text className="mb-3 text-foreground text-title-3-emphasized">
           {plan.name}
         </Text>
         <View className="flex-row flex-wrap gap-2">

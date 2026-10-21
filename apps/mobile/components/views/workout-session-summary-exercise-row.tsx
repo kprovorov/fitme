@@ -54,12 +54,10 @@ export default function WorkoutSessionSummaryExerciseRow({
     <Pressable className="active:opacity-80" onPress={handlePress}>
       <HStack className="w-full items-center gap-2 px-md">
         <ExerciseImage exercise={workoutSessionExercise.exercise} size={32} />
-        <Text className="font-nunito-sans-bold text-body text-primary">
-          {setsLogged}
-        </Text>
+        <Text className="text-body-emphasized text-primary">{setsLogged}</Text>
         <SymbolImage name="xmark" size={10} tintColor="#C0FF38" />
         <Text
-          className="flex-1 font-nunito-sans-bold text-body text-foreground"
+          className="flex-1 text-body-emphasized text-foreground"
           numberOfLines={1}
         >
           {workoutSessionExercise.exercise.name}

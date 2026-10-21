@@ -7,7 +7,6 @@ import {
   useMemo,
 } from "react";
 import {
-  Platform,
   ScrollView,
   StyleSheet,
   Text,
@@ -84,11 +83,8 @@ interface CodeBlockProps {
 function CodeBlockBase({ code, language }: CodeBlockProps) {
   const baseStyle = useMemo(
     () =>
-      StyleSheet.flatten([
-        styles.text,
-        // biome-ignore lint/suspicious/noUnnecessaryConditions: a highlight theme may have no hljs entry; the Record type can't say so
-        { color: stylesheet.hljs?.color || "#f8f8f2" },
-      ]),
+      // biome-ignore lint/suspicious/noUnnecessaryConditions: a highlight theme may have no hljs entry; the Record type can't say so
+      ({ color: stylesheet.hljs?.color || "#f8f8f2" }),
     []
   );
 
@@ -137,8 +133,12 @@ function CodeBlockBase({ code, language }: CodeBlockProps) {
         >
           <View style={styles.codeContent}>
             {rows.map((row: RendererNode, index: number) => (
-              // biome-ignore lint/suspicious/noArrayIndexKey: syntax rows have no stable identity
-              <Text key={`row_${index}`} style={baseStyle}>
+              <Text
+                className="text-mono-footnote"
+                // biome-ignore lint/suspicious/noArrayIndexKey: syntax rows have no stable identity
+                key={`row_${index}`}
+                style={baseStyle}
+              >
                 {renderNodeChildren(row.children || [], `row_${index}`)}
               </Text>
             ))}
@@ -180,10 +180,5 @@ const styles = StyleSheet.create({
   },
   scrollContent: {
     minWidth: "100%",
-  },
-  text: {
-    fontFamily: Platform.select({ default: "monospace", ios: "monospace-ui" }),
-    fontSize: 14,
-    lineHeight: 20,
   },
 });

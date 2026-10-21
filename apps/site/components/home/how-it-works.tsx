@@ -40,11 +40,11 @@ function HowItWorks() {
             >
               <span
                 aria-hidden="true"
-                className="flex size-9 items-center justify-center rounded-full border border-primary/40 font-bold text-primary"
+                className="flex size-9 items-center justify-center rounded-full border border-primary/40 text-body-emphasized text-primary"
               >
                 {index + 1}
               </span>
-              <h3 className="font-bold text-foreground text-title-3">
+              <h3 className="text-foreground text-title-3-emphasized">
                 {step.title}
               </h3>
               <p className="text-muted-foreground">{step.description}</p>

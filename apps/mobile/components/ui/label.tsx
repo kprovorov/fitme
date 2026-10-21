@@ -22,7 +22,7 @@ const Label = ({
   >
     <LabelPrimitive.Text
       className={cn(
-        "font-medium native:text-body text-foreground text-subhead leading-none web:peer-disabled:cursor-not-allowed web:peer-disabled:opacity-70",
+        "text-body-emphasized text-foreground web:peer-disabled:cursor-not-allowed web:peer-disabled:opacity-70",
         className
       )}
       ref={ref}
