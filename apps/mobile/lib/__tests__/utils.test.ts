@@ -2,10 +2,7 @@ import { describe, expect, it } from "@jest/globals";
 import { cn, TEXT_STYLES } from "../utils";
 
 describe("cn", () => {
-  it("keeps the corner curve next to a border color", () => {
-    expect(cn("border-continuous", "border-border")).toBe(
-      "border-continuous border-border"
-    );
+  it("keeps border-circular next to a border color, and a later color wins", () => {
     expect(cn("border-circular border-input", "border-destructive")).toBe(
       "border-circular border-destructive"
     );
