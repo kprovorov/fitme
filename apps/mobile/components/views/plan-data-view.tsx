@@ -28,13 +28,8 @@ export default function PlanDataView({
 }: PlanDataViewProps) {
   return (
     <VStack className="items-stretch">
-      <Card
-        className={cn(
-          "flex-col items-stretch justify-start",
-          compact ? "gap-3 py-3" : "gap-sm py-sm"
-        )}
-      >
-        <CardHeader className={compact ? "gap-3 px-3" : undefined}>
+      <Card className={compact ? "gap-3" : "gap-sm"}>
+        <CardHeader className={compact ? "gap-3" : undefined}>
           <CardTitle>{planData.name}</CardTitle>
           <HStack className="flex-wrap justify-start gap-2">
             {[

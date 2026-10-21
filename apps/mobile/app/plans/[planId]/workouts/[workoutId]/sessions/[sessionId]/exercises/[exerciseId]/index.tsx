@@ -107,15 +107,13 @@ export default function WorkoutSessionExerciseScreen() {
             sets={workoutSessionExercise.sets}
           />
           <Card>
-            <View className="p-sm">
-              <WorkoutSessionExerciseSetsTableView
-                exerciseId={exerciseId as string}
-                onSetLogged={handleSetLogged}
-                readOnly={isFinished}
-                sessionId={sessionId as string}
-                workoutSessionExerciseSets={workoutSessionExercise.sets}
-              />
-            </View>
+            <WorkoutSessionExerciseSetsTableView
+              exerciseId={exerciseId as string}
+              onSetLogged={handleSetLogged}
+              readOnly={isFinished}
+              sessionId={sessionId as string}
+              workoutSessionExerciseSets={workoutSessionExercise.sets}
+            />
           </Card>
           <ExerciseHistoryView
             excludeId={exerciseId as string}

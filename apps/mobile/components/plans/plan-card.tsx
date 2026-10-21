@@ -23,7 +23,7 @@ interface PlanCardProps {
 
 export default function PlanCard({ plan }: PlanCardProps) {
   return (
-    <Card className="flex-1 flex-col items-stretch justify-start gap-sm py-sm">
+    <Card className="flex-1 gap-sm">
       <CardHeader>
         <CardTitle
           className={plan.is_active ? "text-primary" : "text-muted-foreground"}

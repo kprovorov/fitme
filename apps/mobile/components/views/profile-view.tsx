@@ -79,45 +79,43 @@ export default function ProfileView() {
         </HStack>
 
         <Card>
-          <VStack className="items-stretch gap-4 py-4">
-            <CardContent>
-              {isPro ? (
-                <VStack className="items-stretch gap-2">
-                  <HStack className="flex-1 justify-start gap-2">
-                    <Trophy className="text-primary" size={20} />
-                    <Text className="font-bold text-primary">
-                      You&apos;re Pro!
-                    </Text>
-                  </HStack>
-                  <Muted>
-                    You have access to all of our features. You can cancel your
-                    subscription at any time.
-                  </Muted>
-                  {!!managementURL && (
-                    <Button onPress={openManagementURL} variant="secondary">
-                      <Text>Manage Subscription</Text>
-                    </Button>
-                  )}
-                </VStack>
-              ) : (
-                <VStack className="items-stretch gap-2">
-                  <HStack className="flex-1 justify-start gap-2">
-                    <Volleyball className="text-foreground" size={20} />
-                    <Text className="font-bold text-foreground">
-                      You&apos;re on a free plan
-                    </Text>
-                  </HStack>
-                  <Muted>
-                    Subscribe to Fitme Pro to get unlimited access to all of our
-                    features
-                  </Muted>
-                  <Button onPress={presentPaywall}>
-                    <Text>Upgrade to Pro</Text>
+          <CardContent>
+            {isPro ? (
+              <VStack className="items-stretch gap-2">
+                <HStack className="flex-1 justify-start gap-2">
+                  <Trophy className="text-primary" size={20} />
+                  <Text className="font-bold text-primary">
+                    You&apos;re Pro!
+                  </Text>
+                </HStack>
+                <Muted>
+                  You have access to all of our features. You can cancel your
+                  subscription at any time.
+                </Muted>
+                {!!managementURL && (
+                  <Button onPress={openManagementURL} variant="secondary">
+                    <Text>Manage Subscription</Text>
                   </Button>
-                </VStack>
-              )}
-            </CardContent>
-          </VStack>
+                )}
+              </VStack>
+            ) : (
+              <VStack className="items-stretch gap-2">
+                <HStack className="flex-1 justify-start gap-2">
+                  <Volleyball className="text-foreground" size={20} />
+                  <Text className="font-bold text-foreground">
+                    You&apos;re on a free plan
+                  </Text>
+                </HStack>
+                <Muted>
+                  Subscribe to Fitme Pro to get unlimited access to all of our
+                  features
+                </Muted>
+                <Button onPress={presentPaywall}>
+                  <Text>Upgrade to Pro</Text>
+                </Button>
+              </VStack>
+            )}
+          </CardContent>
         </Card>
 
         <MenuList>

@@ -75,55 +75,53 @@ export default function WorkoutSessionExerciseCard({
   ];
 
   return (
-    <Card>
-      <View className="gap-sm p-sm">
-        <View className="flex-row items-center gap-2">
-          <Pressable
-            accessibilityHint={canOpen ? "Opens the exercise" : undefined}
-            accessibilityRole="button"
-            className={
-              stacked
-                ? "flex-1 gap-sm active:opacity-80"
-                : "flex-1 flex-row items-center gap-sm active:opacity-80"
-            }
-            disabled={!canOpen}
-            onPress={handlePress}
-          >
-            <ExerciseImage exercise={exercise} radius={10} size={50} />
-            <View className={stacked ? "gap-1" : "flex-1 gap-1"}>
-              <Text className="font-nunito-sans-bold text-body">
-                {exercise.name}
+    <Card className="gap-sm">
+      <View className="flex-row items-center gap-2">
+        <Pressable
+          accessibilityHint={canOpen ? "Opens the exercise" : undefined}
+          accessibilityRole="button"
+          className={
+            stacked
+              ? "flex-1 gap-sm active:opacity-80"
+              : "flex-1 flex-row items-center gap-sm active:opacity-80"
+          }
+          disabled={!canOpen}
+          onPress={handlePress}
+        >
+          <ExerciseImage exercise={exercise} radius={10} size={50} />
+          <View className={stacked ? "gap-1" : "flex-1 gap-1"}>
+            <Text className="font-nunito-sans-bold text-body">
+              {exercise.name}
+            </Text>
+            {exercise.muscle_groups.length > 0 && (
+              <Text className="text-footnote text-muted-foreground">
+                {exercise.muscle_groups.map(muscleGroupToName).join(", ")}
               </Text>
-              {exercise.muscle_groups.length > 0 && (
-                <Text className="text-footnote text-muted-foreground">
-                  {exercise.muscle_groups.map(muscleGroupToName).join(", ")}
-                </Text>
-              )}
-            </View>
-          </Pressable>
-          {menuItems.length > 0 ? (
-            <DropdownMenu
-              accessibilityLabel={`More options for ${exercise.name}`}
-              items={menuItems}
-              systemImage="ellipsis"
+            )}
+          </View>
+        </Pressable>
+        {menuItems.length > 0 ? (
+          <DropdownMenu
+            accessibilityLabel={`More options for ${exercise.name}`}
+            items={menuItems}
+            systemImage="ellipsis"
+          />
+        ) : (
+          canOpen && (
+            <SymbolImage
+              className="text-muted-foreground/60"
+              name="chevron.right"
+              size={14}
             />
-          ) : (
-            canOpen && (
-              <SymbolImage
-                className="text-muted-foreground/60"
-                name="chevron.right"
-                size={14}
-              />
-            )
-          )}
-        </View>
-        <WorkoutSessionExerciseSetsTableView
-          exerciseId={workoutSessionExercise.id}
-          readOnly={readOnly}
-          sessionId={sessionId}
-          workoutSessionExerciseSets={workoutSessionExercise.sets}
-        />
+          )
+        )}
       </View>
+      <WorkoutSessionExerciseSetsTableView
+        exerciseId={workoutSessionExercise.id}
+        readOnly={readOnly}
+        sessionId={sessionId}
+        workoutSessionExerciseSets={workoutSessionExercise.sets}
+      />
     </Card>
   );
 }

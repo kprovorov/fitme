@@ -33,7 +33,7 @@ iOS first. Android renders but is second: icons fall back to Lucide, glass falls
 - Content Screens scroll in a `ScrollView` with `contentInsetAdjustmentBehavior="automatic"`, so content sits under the transparent header and above the tab bar. Gutters and gaps go on `contentContainerClassName`, not `className`.
 - List Screens (anything that maps rows of data) use `LegendList` from `@legendapp/list`, as the Coach conversation does, with the same `contentInsetAdjustmentBehavior` and a `refreshControl`. The `FlatList`s in history and the Coach's chat list are the older pattern.
 - Secondary flows are sheets: a route with `presentation: "formSheet"` or `"modal"`. A `Modal` with `presentationStyle="pageSheet"` is for a picker that belongs to one Screen (the exercise picker in `workout-session-view.tsx`).
-- Liquid Glass comes from the Primitives (`Card`, `Button`), switched on `GLASS_ENABLED` with a fallback for older iOS. Never build your own glass or blur surface.
+- Liquid Glass comes from `Button`, switched on `GLASS_ENABLED` with a fallback for older iOS. Cards are flat, not glass. Never build your own glass or blur surface.
 
 ## Tokens
 
@@ -50,7 +50,7 @@ Every Token lives in one file, `packages/design-tokens/src/tokens.css` (`@fitme/
 | ------------------------ | ----------- | ---------------------------------------------------------------------- |
 | `background`             | `#1f1d20`   | Screen background                                                      |
 | `foreground`             | `#fafafa`   | Body text                                                              |
-| `card`                   | `#171717`   | Surface that isn't glass                                               |
+| `card`                   | `#171717`   | Card surface (`Card`, `MenuList`)                                      |
 | `card-foreground`        | `#fafafa`   | Text on `card`                                                         |
 | `popover`                | `#171717`   | Menus and popovers (shadcn set; unused on mobile so far)               |
 | `popover-foreground`     | `#fafafa`   | Text on `popover` (unused on mobile so far)                            |
@@ -124,7 +124,7 @@ The scale is Apple's text styles (iOS, default Large size; letter spacing 0), de
 Look in `components/ui/` before building anything. The ones that trip agents up:
 
 - **`Button`** is a native SwiftUI button. Pass `label` (a string), `systemImage` (an SF Symbol name) and `shape="pill"` for calls to action; `variant` is `default` (lime), `secondary`, `outline`, `ghost`, `destructive` or `link`. Use `isLoading` while its action runs, and `accessibilityLabel` on every icon-only button. It spans its container's width unless it's an icon or link button (or you pass `fill={false}`). `className` only lays it out; the label's font and color come from `variant` and `size`, unless `contentColorClassName` (a `text-…` class) recolors the label and icon, as the lime "Add Set" on a `secondary` pill does. `<Button><Text>…</Text></Button>` is the older form; new code uses `label`.
-- **`Card`** is a Liquid Glass surface. Never put a `bg-*` class on it: a background color on the native view turns the effect off (use `tintColor` for a tint). Pad its content with `CardHeader` / `CardContent`.
+- **`Card`** is a flat `card` surface with the `card` radius (16) and `sm` padding (16), with no glass, border or shadow. `variant` is `default` or `ghost` (transparent, same radius and padding, for grouped content that shouldn't read as a surface), and it's the only styling prop Card needs: `className` only lays out its children (`gap-sm`, `flex-1`), never sets a background, radius or padding. Card already pads its content, so `CardHeader` / `CardContent` add none. Rows that run edge to edge (a settings list, History's months) go in `MenuList`, which has Card's fill and radius but no padding, divided by `Separator`.
 - **`Switch`** is a native SwiftUI `Toggle`, with its own haptic.
 - **Icons** are SF Symbols: `systemImage` on `Button`, `sfSymbol` items in headers, `SymbolImage` (`components/symbol-image.tsx`) everywhere else. A symbol new to `SymbolImage` also gets its Lucide fallback in `LUCIDE_FALLBACKS`, or Android shows a question mark. Raster images use `expo-image` (`Image` from `~/components/tw`).
 - **Forms** use `Input`, `Label` and `ErrorMessage`, inside the keyboard handling `react-native-keyboard-controller` already provides (`KeyboardProvider` in `components/providers.tsx`). See `components/forms/`.

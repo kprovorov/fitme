@@ -105,14 +105,14 @@ export default function WorkoutCard({
   const toggleOpen = useCallback(() => setIsOpen(!isOpen), [isOpen]);
 
   return (
-    <Card className="flex-1 overflow-hidden">
-      <VStack className="flex-1 items-stretch gap-0">
+    <Card className="flex-1">
+      <VStack className="flex-1 items-stretch gap-4">
         {activeSession && (
           <Link
             asChild
             href={`/plans/${workout.plan_id}/workouts/${workout.id}/sessions/${activeSession.id}`}
           >
-            <Pressable className="flex flex-1 flex-row items-center justify-between bg-primary px-4 py-2 active:opacity-80">
+            <Pressable className="flex-row items-center justify-between rounded-xl border-continuous bg-primary px-3 py-2 active:opacity-80">
               <HStack className="flex-1 justify-start gap-1">
                 <Timer className="text-primary-foreground" size={16} />
                 <Text className="font-nunito-sans-bold text-primary-foreground text-subhead">
@@ -130,7 +130,7 @@ export default function WorkoutCard({
           </Link>
         )}
         <Pressable onPress={toggleOpen}>
-          <VStack className="w-full flex-shrink items-stretch gap-4 p-4">
+          <VStack className="w-full flex-shrink items-stretch gap-4">
             <H4 className="font-nunito-sans-bold text-primary">
               {workout.name}
             </H4>
@@ -184,7 +184,7 @@ export default function WorkoutCard({
           </VStack>
         </Pressable>
         {state === "upcoming" && (
-          <VStack className="items-stretch px-4 pb-4">
+          <VStack className="items-stretch">
             {activeSession ? (
               <Button
                 isLoading={isFinishingWorkoutSession}

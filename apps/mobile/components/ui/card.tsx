@@ -1,89 +1,37 @@
 import type { TextRef, ViewRef } from "@rn-primitives/types";
-import { GlassView } from "expo-glass-effect";
-import { LinearGradient } from "expo-linear-gradient";
 import type * as React from "react";
-import {
-  StyleSheet,
-  Text,
-  type TextProps,
-  View,
-  type ViewProps,
-  type ViewStyle,
-} from "react-native";
-import { useResolveClassNames } from "uniwind";
-import { AppleGlassView } from "~/components/tw";
-import { GLASS_ENABLED } from "~/components/ui/swift-ui";
+import { Text, type TextProps, View, type ViewProps } from "react-native";
 import { TextClassContext } from "~/components/ui/text";
 import { cn } from "~/lib/utils";
 
-const GLASS_HIGHLIGHT = [
-  "rgba(255, 255, 255, 0.16)",
-  "rgba(255, 255, 255, 0)",
-] as const;
+const cardVariants = {
+  default: "bg-card",
+  ghost: "bg-transparent",
+} as const;
 
-const highlightStyle = StyleSheet.flatten([
-  StyleSheet.absoluteFill,
-  { height: "45%" as const },
-]);
-
-type CardProps = ViewProps & { ref?: React.RefObject<ViewRef | null> };
-
-/**
- * Glass surface for every card in the app.
- *
- * On iOS 26+ this is expo-glass-effect's native `GlassView` (UIGlassEffect)
- * in the `clear` style, which lenses and refracts whatever scrolls behind it.
- * The system draws its own rim and highlights, so nothing is layered on top,
- * and consumers must not set a `bg-*` class: a background colour on the native
- * view disables the effect. Use `tintColor` for a tint instead. Elsewhere it
- * falls back to a blurred material dressed with a frosted wash and a top-edge
- * highlight so the surface still reads as glass.
- */
-const LiquidGlassCard = ({ className, ref, style, ...props }: CardProps) => {
-  // GlassView is a raw native view without className support, so the
-  // Tailwind classes are resolved to a style object here.
-  const resolved = useResolveClassNames(
-    cn("overflow-hidden rounded-2xl", className)
-  );
-
-  return (
-    <GlassView
-      glassEffectStyle="clear"
-      ref={ref}
-      style={[resolved as ViewStyle, { borderCurve: "continuous" }, style]}
-      {...props}
-    />
-  );
+type CardProps = ViewProps & {
+  ref?: React.RefObject<ViewRef | null>;
+  variant?: keyof typeof cardVariants;
 };
 
-const Card: React.FC<CardProps> = GLASS_ENABLED
-  ? LiquidGlassCard
-  : ({ className, children, ref, style, ...props }: CardProps) => (
-      <AppleGlassView
-        className={cn(
-          "overflow-hidden rounded-2xl border-hairline border-white/70 dark:border-white/15",
-          className
-        )}
-        fallbackIntensity={60}
-        fallbackTint="systemChromeMaterial"
-        ref={ref}
-        style={[{ borderCurve: "continuous" }, style]}
-        {...props}
-      >
-        <View
-          className="absolute inset-0 bg-white/60 dark:bg-white/[0.07]"
-          pointerEvents="none"
-        />
-        <LinearGradient
-          colors={GLASS_HIGHLIGHT}
-          end={{ x: 0.5, y: 1 }}
-          pointerEvents="none"
-          start={{ x: 0.5, y: 0 }}
-          style={highlightStyle}
-        />
-        {children}
-      </AppleGlassView>
-    );
+/**
+ * The surface every card in the app sits on: a flat `card` fill with the
+ * `card` radius and `sm` padding, no glass, border or shadow. `ghost` keeps
+ * the radius and padding with no fill, for grouped content that shouldn't
+ * read as a surface. Card owns its look: `className` only lays it out (flex,
+ * gap), never sets a background, radius or padding.
+ */
+const Card = ({ className, ref, variant = "default", ...props }: CardProps) => (
+  <View
+    className={cn(
+      "rounded-card border-continuous p-sm",
+      cardVariants[variant],
+      className
+    )}
+    ref={ref}
+    {...props}
+  />
+);
 Card.displayName = "Card";
 
 const CardHeader = ({
@@ -92,7 +40,7 @@ const CardHeader = ({
   ...props
 }: ViewProps & { ref?: React.RefObject<ViewRef | null> }) => (
   <View
-    className={cn("flex flex-col gap-sm px-sm", className)}
+    className={cn("flex flex-col gap-sm", className)}
     ref={ref}
     {...props}
   />
@@ -136,7 +84,7 @@ const CardContent = ({
   ...props
 }: ViewProps & { ref?: React.RefObject<ViewRef | null> }) => (
   <TextClassContext.Provider value="text-card-foreground">
-    <View className={cn("px-sm", className)} ref={ref} {...props} />
+    <View className={className} ref={ref} {...props} />
   </TextClassContext.Provider>
 );
 CardContent.displayName = "CardContent";
@@ -147,13 +95,14 @@ const CardFooter = ({
   ...props
 }: ViewProps & { ref?: React.RefObject<ViewRef | null> }) => (
   <View
-    className={cn("flex flex-row items-center px-4", className)}
+    className={cn("flex flex-row items-center", className)}
     ref={ref}
     {...props}
   />
 );
 CardFooter.displayName = "CardFooter";
 
+export type { CardProps };
 export {
   Card,
   CardContent,

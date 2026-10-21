@@ -77,33 +77,31 @@ export default function ExerciseHistoryView({
   const best = bestSet(entries.flatMap((entry) => entry.sets));
 
   return (
-    <Card>
-      <View className="gap-3 p-sm">
-        <View className="flex-row flex-wrap items-baseline justify-between gap-x-2">
-          <CardTitle>History</CardTitle>
-          {best ? (
-            <Text className="text-footnote text-muted-foreground">
-              Best {formatSetResult(best)}
-            </Text>
-          ) : null}
-        </View>
-        {entries.slice(0, SHOWN_SESSIONS).map((entry) => (
-          <View className="flex-row items-baseline gap-3" key={entry.id}>
-            <Text
-              className="w-16 text-subhead"
-              maxFontSizeMultiplier={SET_TABLE_MAX_FONT_SCALE}
-            >
-              {format(new Date(entry.created_at ?? ""), "MMM d")}
-            </Text>
-            <Text
-              className="flex-1 text-muted-foreground text-subhead"
-              maxFontSizeMultiplier={SET_TABLE_MAX_FONT_SCALE}
-            >
-              {setsLine(entry.sets, weightLabel)}
-            </Text>
-          </View>
-        ))}
+    <Card className="gap-3">
+      <View className="flex-row flex-wrap items-baseline justify-between gap-x-2">
+        <CardTitle>History</CardTitle>
+        {best ? (
+          <Text className="text-footnote text-muted-foreground">
+            Best {formatSetResult(best)}
+          </Text>
+        ) : null}
       </View>
+      {entries.slice(0, SHOWN_SESSIONS).map((entry) => (
+        <View className="flex-row items-baseline gap-3" key={entry.id}>
+          <Text
+            className="w-16 text-subhead"
+            maxFontSizeMultiplier={SET_TABLE_MAX_FONT_SCALE}
+          >
+            {format(new Date(entry.created_at ?? ""), "MMM d")}
+          </Text>
+          <Text
+            className="flex-1 text-muted-foreground text-subhead"
+            maxFontSizeMultiplier={SET_TABLE_MAX_FONT_SCALE}
+          >
+            {setsLine(entry.sets, weightLabel)}
+          </Text>
+        </View>
+      ))}
     </Card>
   );
 }
