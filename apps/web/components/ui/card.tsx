@@ -12,7 +12,7 @@ export function Card({ className, ...props }: ComponentProps<"div">) {
 
 export function CardHeader({ className, ...props }: ComponentProps<"div">) {
   return (
-    <div className={cn("flex flex-col gap-1.5 p-6", className)} {...props} />
+    <div className={cn("flex flex-col gap-1.5 p-sm", className)} {...props} />
   );
 }
 
@@ -35,5 +35,5 @@ export function CardDescription({ className, ...props }: ComponentProps<"p">) {
 }
 
 export function CardContent({ className, ...props }: ComponentProps<"div">) {
-  return <div className={cn("p-6 pt-0", className)} {...props} />;
+  return <div className={cn("p-sm pt-0", className)} {...props} />;
 }
