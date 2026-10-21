@@ -20,7 +20,8 @@ const SIZES: Record<string, number> = {
 };
 
 jest.mock("uniwind", () => ({
-  useCSSVariable: (names: string[]) => names.map(() => "#000000"),
+  // Each token resolves to its own name, so a color says where it came from
+  useCSSVariable: (names: string[]) => names,
   useResolveClassNames: (className: string) => ({
     fontFamily: className,
     fontSize: SIZES[className],
@@ -56,6 +57,49 @@ function effectiveType(text: string): Pick<TextStyle, TypeKey> {
     node = node.parent;
   }
   return type;
+}
+
+/** The color React Native draws a piece of text in: the nearest one set. */
+function effectiveColor(text: string): unknown {
+  let node: Node | null = screen.getByText(text) as unknown as Node;
+  while (node) {
+    const style = StyleSheet.flatten(node.props.style as TextStyle) ?? {};
+    if (style.color !== undefined) {
+      return style.color;
+    }
+    node = node.parent;
+  }
+  return undefined;
+}
+
+interface JsonNode {
+  children: (JsonNode | string)[] | null;
+  props: { style?: unknown };
+}
+
+/**
+ * Every flattened style in the rendered tree. Typed as TextStyle like
+ * effectiveType: ViewStyle clashes with reanimated's flatten augmentation.
+ */
+function viewStyles(): TextStyle[] {
+  const styles: TextStyle[] = [];
+  const visit = (node: JsonNode | string | null) => {
+    if (!node || typeof node === "string") {
+      return;
+    }
+    const style = StyleSheet.flatten(node.props.style as TextStyle);
+    if (style) {
+      styles.push(style);
+    }
+    for (const child of node.children ?? []) {
+      visit(child);
+    }
+  };
+  const tree = screen.toJSON() as JsonNode | JsonNode[] | null;
+  for (const node of Array.isArray(tree) ? tree : [tree]) {
+    visit(node);
+  }
+  return styles;
 }
 
 /** The role of the table cell a piece of text sits in. */
@@ -120,5 +164,44 @@ describe("ChatMarkdown", () => {
       expect(cellRole(text)).toBe("cell");
     }
     expect(screen.getByText("Squat")).toBeTruthy();
+  });
+
+  it("draws links in primary and body text in foreground", async () => {
+    await render(
+      <ChatMarkdown>{"Read [the guide](https://fitme.app) first"}</ChatMarkdown>
+    );
+    expect(effectiveColor("the guide")).toBe("--color-primary");
+    expect(effectiveColor("Read ")).toBe("--color-foreground");
+  });
+
+  it("keeps a link primary inside bold text and headings", async () => {
+    await render(
+      <ChatMarkdown>
+        {
+          "**[bold link](https://fitme.app)**\n\n## [heading link](https://fitme.app)"
+        }
+      </ChatMarkdown>
+    );
+    expect(effectiveColor("bold link")).toBe("--color-primary");
+    expect(effectiveColor("heading link")).toBe("--color-primary");
+  });
+
+  it("draws rules in border and quotes on muted", async () => {
+    await render(
+      <ChatMarkdown>{"> Rest two minutes\n\n---\n\nDone"}</ChatMarkdown>
+    );
+    const styles = viewStyles();
+    const quote = styles.find((style) => style.borderLeftWidth !== undefined);
+    expect(quote).toMatchObject({
+      backgroundColor: "--color-muted",
+      borderColor: "--color-border",
+    });
+    expect(
+      styles.some(
+        (style) =>
+          style.height === 1 && style.backgroundColor === "--color-border"
+      )
+    ).toBe(true);
+    expect(effectiveColor("Rest two minutes")).toBe("--color-foreground");
   });
 });

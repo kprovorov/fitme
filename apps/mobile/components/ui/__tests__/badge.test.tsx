@@ -42,18 +42,23 @@ describe("Badge", () => {
     }
   );
 
-  it("keeps its own shape when a caller passes surface classes", async () => {
+  it("keeps its own fill and shape when a caller passes surface classes", async () => {
     await render(
-      <Badge className="mt-2 rounded-none bg-primary px-4" testID="badge">
+      <Badge
+        className="mt-2 rounded-none bg-primary px-4"
+        testID="badge"
+        variant="secondary"
+      >
         <Text>Gym</Text>
       </Badge>
     );
 
     const classes = screen.getByTestId("badge").props.className.split(" ");
+    // Placement applies; the caller's fill, radius and padding don't
     expect(classes).toEqual(
-      expect.arrayContaining(["mt-2", "rounded-full", "px-2", "bg-primary"])
+      expect.arrayContaining(["mt-2", "bg-secondary", "rounded-full", "px-2"])
     );
-    for (const dropped of ["rounded-none", "px-4"]) {
+    for (const dropped of ["bg-primary", "rounded-none", "px-4"]) {
       expect(classes).not.toContain(dropped);
     }
   });
