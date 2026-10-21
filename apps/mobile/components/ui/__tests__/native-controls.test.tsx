@@ -63,7 +63,8 @@ jest.mock("@expo/ui/swift-ui", () => {
     }) => (
       <View testID={`native-${name}`} {...{ modifierRecords: modifiers ?? [] }}>
         {header}
-        {typeof children === "string" ? <RNText>{children}</RNText> : children}
+        {typeof children === "string" ? <RNText>{children}</RNText> : null}
+        {typeof children === "string" ? null : children}
         {footer}
       </View>
     );
@@ -118,10 +119,10 @@ jest.mock("uniwind", () => {
   const actual = jest.requireActual<typeof import("uniwind")>("uniwind");
   return {
     ...actual,
-    useResolveClassNames: (className: string) =>
-      mockColorClass.test(className)
-        ? { color: className }
-        : actual.useResolveClassNames(className),
+    useResolveClassNames: (className: string) => {
+      const resolved = actual.useResolveClassNames(className);
+      return mockColorClass.test(className) ? { color: className } : resolved;
+    },
   };
 });
 
