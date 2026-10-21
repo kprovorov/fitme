@@ -2,19 +2,25 @@ import * as LabelPrimitive from "@rn-primitives/label";
 import type * as React from "react";
 import { cn } from "~/lib/utils";
 
+type LabelProps = LabelPrimitive.TextProps & {
+  /** Dims the label with the field it names. */
+  disabled?: boolean;
+  ref?: React.RefObject<LabelPrimitive.TextRef | null>;
+};
+
+/** A field's name: Body Emphasized in `foreground`, dimmed when `disabled`. */
 const Label = ({
   className,
+  disabled = false,
   onPress,
   onLongPress,
   onPressIn,
   onPressOut,
   ref,
   ...props
-}: LabelPrimitive.TextProps & {
-  ref?: React.RefObject<LabelPrimitive.TextRef | null>;
-}) => (
+}: LabelProps) => (
   <LabelPrimitive.Root
-    className="web:cursor-default"
+    disabled={disabled}
     onLongPress={onLongPress}
     onPress={onPress}
     onPressIn={onPressIn}
@@ -22,7 +28,8 @@ const Label = ({
   >
     <LabelPrimitive.Text
       className={cn(
-        "text-body-emphasized text-foreground web:peer-disabled:cursor-not-allowed web:peer-disabled:opacity-70",
+        "text-body-emphasized text-foreground",
+        disabled && "opacity-50",
         className
       )}
       ref={ref}
@@ -32,4 +39,5 @@ const Label = ({
 );
 Label.displayName = LabelPrimitive.Root.displayName;
 
+export type { LabelProps };
 export { Label };

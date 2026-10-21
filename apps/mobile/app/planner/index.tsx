@@ -12,6 +12,7 @@ import { router, Stack } from "expo-router";
 import React, { useCallback } from "react";
 import {
   Controller,
+  type ControllerFieldState,
   type ControllerRenderProps,
   useForm,
 } from "react-hook-form";
@@ -81,6 +82,7 @@ const frequencyOptions = [1, 2, 3, 4, 5, 6, 7];
 
 interface PlanFieldProps<TName extends keyof PlanFormValues> {
   field: ControllerRenderProps<PlanFormValues, TName>;
+  fieldState: ControllerFieldState;
 }
 
 function renderGoalField({
@@ -180,10 +182,12 @@ function renderFrequencyField({
 
 function renderNoteField({
   field: { onChange, value },
+  fieldState: { error },
 }: PlanFieldProps<"note">) {
   return (
     <Textarea
       className="h-48"
+      error={error?.message}
       onChangeText={onChange}
       placeholder="e.g. I want to pay more attention to my abs"
       value={value}
@@ -325,9 +329,6 @@ export default function PlannerScreen() {
               name="note"
               render={renderNoteField}
             />
-            {form.formState.errors.note ? (
-              <ErrorMessage>{form.formState.errors.note.message}</ErrorMessage>
-            ) : null}
 
             <VStack className="items-stretch gap-2">
               <Button
@@ -410,9 +411,7 @@ function RadioGroupItemWithLabel({
       <HStack className="flex-1 items-center justify-between gap-0 p-0">
         <VStack className="flex-1 items-start gap-0 p-0">
           <Label
-            className={`text-body-emphasized text-white ${
-              disabled ? "opacity-50" : ""
-            }`}
+            disabled={disabled}
             nativeID={`label-for-${value}`}
             onPress={handlePress}
           >
@@ -469,9 +468,8 @@ function RadioGroupItemTileWithIcon({
           })
         : null}
       <Label
-        className={`text-center text-body-emphasized text-white ${
-          disabled ? "opacity-50" : ""
-        }`}
+        className="text-center"
+        disabled={disabled}
         nativeID={`label-for-${value}`}
         onPress={handlePress}
       >
@@ -516,9 +514,8 @@ function RadioGroupItemTile({
       testID={testID}
     >
       <Label
-        className={`text-center text-body-emphasized text-white ${
-          disabled ? "opacity-50" : ""
-        }`}
+        className="text-center"
+        disabled={disabled}
         nativeID={`label-for-${value}`}
         onPress={handlePress}
       >

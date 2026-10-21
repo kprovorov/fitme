@@ -2,13 +2,13 @@ import { zodResolver } from "@hookform/resolvers/zod";
 import { useCallback } from "react";
 import {
   Controller,
+  type ControllerFieldState,
   type ControllerRenderProps,
   type FieldErrors,
   useForm,
 } from "react-hook-form";
 import { z } from "zod";
 import { Button } from "~/components/ui/button";
-import { ErrorMessage } from "~/components/ui/error-message";
 import { Input } from "~/components/ui/input";
 import { VStack } from "~/components/ui/vstack";
 
@@ -41,14 +41,17 @@ export default function LoginForm({ onSubmit, errors }: LoginFormProps) {
   const renderEmailField = useCallback(
     ({
       field: { onChange, onBlur, value },
+      fieldState: { error },
     }: {
       field: ControllerRenderProps<LoginFormValues, "email">;
+      fieldState: ControllerFieldState;
     }) => (
       <Input
         autoCapitalize="none"
         autoComplete="email"
         autoCorrect={false}
         editable={!isSubmitting}
+        error={error?.message}
         keyboardType="email-address"
         onBlur={onBlur}
         onChangeText={onChange}
@@ -64,11 +67,14 @@ export default function LoginForm({ onSubmit, errors }: LoginFormProps) {
   const renderPasswordField = useCallback(
     ({
       field: { onChange, onBlur, value },
+      fieldState: { error },
     }: {
       field: ControllerRenderProps<LoginFormValues, "password">;
+      fieldState: ControllerFieldState;
     }) => (
       <Input
         editable={!isSubmitting}
+        error={error?.message}
         onBlur={onBlur}
         onChangeText={onChange}
         placeholder="Password"
@@ -87,19 +93,11 @@ export default function LoginForm({ onSubmit, errors }: LoginFormProps) {
         name="email"
         render={renderEmailField}
       />
-      {form.formState.errors.email ? (
-        <ErrorMessage>{form.formState.errors.email.message}</ErrorMessage>
-      ) : null}
-
       <Controller
         control={form.control}
         name="password"
         render={renderPasswordField}
       />
-      {form.formState.errors.password ? (
-        <ErrorMessage>{form.formState.errors.password.message}</ErrorMessage>
-      ) : null}
-
       <Button
         icon="arrow.right"
         iconPosition="trailing"
