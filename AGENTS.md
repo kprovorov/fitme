@@ -15,7 +15,7 @@ apps/web                @fitme/web     — Next.js (App Router) web app
 apps/site               @fitme/site    — Next.js marketing site (fitmeproject.com)
 apps/webhooks           @fitme/webhooks — Hono app receiving third-party webhooks (Node)
 packages/core           @fitme/core    — domain models, labels, formatters, pure helpers
-packages/design-tokens  @fitme/design-tokens — the design tokens: one Tailwind v4 @theme CSS file (mobile and web import it; site follows)
+packages/design-tokens  @fitme/design-tokens — the design tokens: one Tailwind v4 @theme CSS file (mobile, web and site import it)
 packages/supabase       @fitme/supabase — Supabase project + generated DB types
 packages/db             @fitme/db      — asUser / withService: the only way backend apps reach Postgres
 packages/services       @fitme/services — business logic run inside an asUser / withService transaction
