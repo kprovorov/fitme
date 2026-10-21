@@ -88,7 +88,9 @@ export function ChatMarkdown({ children }: { children: string }) {
       overflow: "hidden" as const,
       paddingHorizontal: 4,
     },
-    link: { ...body, color: link },
+    // Only the color: a link takes its type from the paragraph, heading or
+    // emphasis around it
+    link: { color: link },
     listBullet: {
       ...bullet,
       color: text,
