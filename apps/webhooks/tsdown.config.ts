@@ -20,9 +20,13 @@ const uploadSourceMaps = Boolean(process.env.SENTRY_AUTH_TOKEN);
 // Source maps for the deployed bundle, uploaded to the Sentry project
 // (SENTRY_ORG / SENTRY_PROJECT) for the release: the commit, as
 // @fitme/observability reports it. Without SENTRY_AUTH_TOKEN (local, CI) the
-// build skips the upload, keeps the maps and still passes.
+// build skips the upload, keeps the maps and still passes. A failed upload
+// (Sentry down, a wrong project) is logged, never blocks a deployment.
 const sentry = sentryRollupPlugin({
   authToken: process.env.SENTRY_AUTH_TOKEN,
+  errorHandler: (error) => {
+    console.warn("Sentry source map upload failed", error);
+  },
   org: process.env.SENTRY_ORG,
   project: process.env.SENTRY_PROJECT,
   release: { name: process.env.VERCEL_GIT_COMMIT_SHA },
@@ -32,8 +36,9 @@ const sentry = sentryRollupPlugin({
   telemetry: false,
 });
 
-// Two separate builds so neither entry is split into a shared chunk: Vercel's
-// Hono preset only picks dist/app.js if it imports "hono" directly.
+// Two separate builds so neither entry shares a chunk with the other. Each
+// still splits off the app src/app.ts imports dynamically; Vercel's Hono
+// preset only picks dist/app.js if it imports "hono" directly.
 export default defineConfig([
   // Vercel entrypoint: default-exports the Hono app.
   {

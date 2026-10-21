@@ -16,8 +16,8 @@ export interface AppDeps {
 
 /**
  * The real dependencies: the database through withService, the Coach,
- * @fitme/observability, env. The Coach session ids are read in withService: by then the User's
- * id is retired, so asUser would see none.
+ * @fitme/observability, env. The Coach session ids are read in withService:
+ * by then the User's id is retired, so asUser would see none.
  */
 const defaultDeps = (): AppDeps => ({
   clerk: {

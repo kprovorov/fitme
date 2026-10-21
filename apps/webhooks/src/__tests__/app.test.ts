@@ -1,5 +1,5 @@
 import { HTTPException } from "hono/http-exception";
-import { afterEach, describe, expect, it, vi } from "vitest";
+import { afterEach, describe, expect, it } from "vitest";
 import { createApp } from "../create-app.js";
 
 const reported: unknown[] = [];
@@ -27,7 +27,6 @@ app.get("/test/teapot", () => {
 
 afterEach(() => {
   reported.length = 0;
-  vi.restoreAllMocks();
 });
 
 describe("app", () => {
