@@ -85,7 +85,7 @@ pnpm --filter @fitme/mobile exec jest --testPathPatterns="<file>"
 React Native / Expo app using **file-based routing** via `expo-router`:
 
 - `app/` — Expo Router routes (file-based navigation)
-  - `_layout.tsx` — Root layout: initializes fonts, Sentry and RevenueCat
+  - `_layout.tsx` — Root layout: initializes fonts, Sentry and RevenueCat, and default-exports the layout through `Sentry.wrap` (render crashes, touch breadcrumbs, app start). Sentry (`@sentry/react-native`, the `fitme-mobile` project) is off in `__DEV__` builds (`enabled: !__DEV__`), takes `scrubEvent` (`beforeSend` / `beforeSendTransaction`) and `tracePropagationTargets` from `@fitme/observability`'s root export (trace headers to our services only, never Clerk, RevenueCat, Supabase or Segment), `sendDefaultPii: false`, traces at 0.1 and profiles at 0.5 of traced sessions. Release builds upload source maps and dSYMs through the `@sentry/react-native/expo` plugin (`SENTRY_AUTH_TOKEN` in the EAS `production` environment)
   - `(tabs)/` — Bottom tab navigator (Home, History, Coach, Library, Profile). Native tabs only show routes declared in `_layout.tsx` (SDK 58), so Home is the `(home)` group: its `index.tsx` is the app's `/` route, with no redirect route in between
   - `auth/` — Login/Register screens and the shared emailed-code screen (presented as fullscreen modal)
   - `onboarding/` — Post-registration onboarding flow (fullscreen modal)
@@ -94,7 +94,7 @@ React Native / Expo app using **file-based routing** via `expo-router`:
   - `exercises/[exerciseId]/` — Exercise detail view
 - `components/` — Reusable UI components
   - `ui/` — Primitive UI components (Button, Input, Dialog, etc.) built on `@rn-primitives`
-  - `providers.tsx` — Wraps app with ClerkProvider (secure-store token cache), QueryClientProvider, ThemeProvider, KeyboardProvider; renders `auth-sync.tsx`, which identifies the Clerk User to Sentry/RevenueCat/Segment and clears the query cache on sign-out
+  - `providers.tsx` — Wraps app with ClerkProvider (secure-store token cache), QueryClientProvider, ThemeProvider, KeyboardProvider; renders `auth-sync.tsx`, which identifies the Clerk User to Sentry (`{ id }`, the Clerk id only: no email or name; cleared on sign-out)/RevenueCat/Segment and clears the query cache on sign-out
   - `authenticated.tsx` — Auth guard component: waits for Clerk to load, redirects to `/auth/register` when signed out
 - `hooks/` — Data layer
   - `queries/` — Read queries using `react-query-kit`'s `createQuery`
@@ -224,7 +224,7 @@ The design tokens (ADR 0009): the only place a token value is defined. Source-on
 
 ### packages/observability — `@fitme/observability`
 
-Errors and traces for every app (Sentry today; the vendor-neutral name leaves room for Axiom). Source-only, like `@fitme/db`. An app on it never imports `@sentry/*` for errors or traces: it goes through this package, which keeps the rules in one place. So far `apps/webhooks`, `apps/api` and `apps/exercises` are on it; the other apps still have their own Sentry setup (or none) until their tickets (FIT-219 to FIT-224) move them.
+Errors and traces for every app (Sentry today; the vendor-neutral name leaves room for Axiom). Source-only, like `@fitme/db`. An app on it never imports `@sentry/*` for errors or traces: it goes through this package, which keeps the rules in one place. So far `apps/webhooks`, `apps/api` and `apps/exercises` are on it, and `apps/mobile` reads its root export (the scrubber and propagation targets; it keeps `@sentry/react-native` itself); the other apps still have their own Sentry setup (or none) until their tickets (FIT-219 to FIT-223) move them.
 
 - `.` (`src/index.ts`) — pure, no SDK import, safe for Node, React Native and Next: `scrubEvent` (`beforeSend` / `beforeSendTransaction`: drops `Authorization`, `Proxy-Authorization`, `Cookie` and `Set-Cookie` headers, cookies and request bodies, and reduces the user to `{ id }`, the Clerk id; a user without an id is dropped), `tracePropagationTargets` (regexes: our services `api`, `app`, `coach`, `exercises`, `mcp`, `webhooks` on `fitmeproject.com`, localhost / 127.0.0.1, and same-origin relative paths; never a wildcard over `*.fitmeproject.com`, since Clerk answers on `clerk.fitmeproject.com`), and `resolveObservabilityConfig({ dsn, env })` (`environment` = `VERCEL_ENV`, `development` without it; `release` = `VERCEL_GIT_COMMIT_SHA`; traces at 0.2 in production and 1.0 otherwise; no DSN → `enabled: false`, nothing sent). Each platform passes its own DSN variable.
 - `./node` (`src/node.ts`) — `initObservability({ service })`: called once at process startup, before the app is built; without `SENTRY_DSN` it does nothing (local runs, tests, CI). Otherwise it starts `@sentry/node` with the resolved config, the scrubber, the propagation targets, a `service` tag, `traceLifecycle: "static"` (SDK 11 streams spans by default, which skips `beforeSendTransaction`) and `dataCollection` locked down (SDK 11's replacement for `sendDefaultPii: false`: no user info, cookies, bodies, credential headers, response headers, DB query data, gen-AI inputs/outputs or stack-frame variables). `reportError(error, tags?)` logs, captures and flushes (2 s) before the response, since a serverless instance may freeze afterwards; before init it only logs. `identifyUser(userId)` sets the request's Sentry user to `{ id }` (a Clerk id from a verified token only; each request has its own scope). `observeHono(app)` (Sentry's `honoMiddleware`, registered first with `app.use`) gives a Hono app its request spans whatever order Hono was loaded in. On Vercel the SDK also keeps the function alive until each request's spans are flushed.
@@ -309,7 +309,7 @@ Env files live next to each app.
 - `EXPO_PUBLIC_SUPABASE_URL`
 - `EXPO_PUBLIC_SUPABASE_ANON_KEY`
 - `EXPO_PUBLIC_CLERK_PUBLISHABLE_KEY`
-- `EXPO_PUBLIC_SENTRY_DSN`
+- `EXPO_PUBLIC_SENTRY_DSN` — the `fitme-mobile` Sentry project; ignored in `__DEV__` builds, which send nothing
 - `EXPO_PUBLIC_REVENUECAT_IOS_API_KEY`
 - `EXPO_PUBLIC_REVENUECAT_ANDROID_API_KEY`
 - `EXPO_PUBLIC_DEVTOOLS_SYNC` — `true` turns on `react-query-external-sync` (`components/providers.tsx`, socket on `localhost:42831`) in non-production builds; leave unset unless its desktop devtools app is running, or the failed socket shows a red LogBox toast on every launch

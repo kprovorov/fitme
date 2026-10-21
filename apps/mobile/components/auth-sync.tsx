@@ -45,7 +45,8 @@ export default function AuthSync() {
       queryClient.invalidateQueries();
     }
 
-    Sentry.setUser({ email, id: userId, username: email });
+    // The Clerk id only: no email or name reaches Sentry.
+    Sentry.setUser({ id: userId });
 
     if (IS_E2E) {
       return;

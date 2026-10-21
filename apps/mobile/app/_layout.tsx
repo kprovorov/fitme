@@ -4,6 +4,7 @@ import {
   NunitoSans_600SemiBold,
   NunitoSans_700Bold,
 } from "@expo-google-fonts/nunito-sans";
+import { scrubEvent, tracePropagationTargets } from "@fitme/observability";
 import { PortalHost } from "@rn-primitives/portal";
 import * as Sentry from "@sentry/react-native";
 import "expo-dev-client";
@@ -32,17 +33,23 @@ const tabsScreenOptions = ({
   title: getTabTitle(getFocusedRouteNameFromRoute(route)),
 });
 
+// React Native's global: true in development builds.
+declare const __DEV__: boolean;
+
 const IS_E2E = process.env.EXPO_PUBLIC_E2E_ENABLED === "true";
 
 Sentry.init({
+  beforeSend: scrubEvent,
+  beforeSendTransaction: scrubEvent,
   dsn: process.env.EXPO_PUBLIC_SENTRY_DSN,
-  // profilesSampleRate is relative to tracesSampleRate.
-  // Here, we'll capture profiles for 100% of transactions.
+  // Development builds (simulator, Expo Go, dev clients) send nothing.
+  enabled: !__DEV__,
+  // Relative to tracesSampleRate: half of the traced sessions are profiled.
   profilesSampleRate: 0.5,
-  // Set tracesSampleRate to 1.0 to capture 100% of transactions for tracing.
-  // We recommend adjusting this value in production.
-  // Learn more at
-  // https://docs.sentry.io/platforms/javascript/configuration/options/#traces-sample-rate
+  sendDefaultPii: false,
+  // Trace headers go to our own services only (api, coach, exercises, mcp…),
+  // never to Clerk, RevenueCat, Supabase or Segment.
+  tracePropagationTargets,
   tracesSampleRate: 0.1,
 });
 
@@ -65,7 +72,7 @@ if (!IS_E2E) {
   Purchases.configure({ apiKey: revenueCatApiKey ?? "" });
 }
 
-export default function RootLayout() {
+function RootLayout() {
   const [loaded] = useFonts({
     NunitoSans_400Regular,
     NunitoSans_600SemiBold,
@@ -120,3 +127,6 @@ export default function RootLayout() {
     </Providers>
   );
 }
+
+// Captures render crashes and touch breadcrumbs, and traces app start.
+export default Sentry.wrap(RootLayout);
