@@ -109,6 +109,24 @@ describe("spacing and radius", () => {
   });
 });
 
+describe("size", () => {
+  it.each([
+    ["button-pill-sm", "31px"],
+    ["button-pill-default", "53px"],
+    ["button-pill-lg", "57px"],
+    ["button-circle-sm", "25px"],
+    ["button-circle-default", "47px"],
+    ["button-circle-lg", "50px"],
+  ])("%s is %s, the native iOS button's height", (name, value) => {
+    expect(tokenValue("size", name)).toBe(value);
+  });
+
+  it("defines only the button sizes", () => {
+    const sizes = tokens.filter((t) => t.kind === "size").map((t) => t.name);
+    expect(sizes).toHaveLength(6);
+  });
+});
+
 describe("parseTokens", () => {
   it("ignores comments and anything outside @theme", () => {
     const css = `

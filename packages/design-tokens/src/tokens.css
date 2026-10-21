@@ -70,6 +70,18 @@
   --radius-card: 1rem;
 
   /*
+   * Button heights, measured from the native SwiftUI buttons on iOS 27 (glass
+   * and solid styles draw the same box), rounded to whole points. A circle's
+   * diameter is its own: it holds a glyph, which is shorter than a label.
+   */
+  --size-button-pill-sm: 31px;
+  --size-button-pill-default: 53px;
+  --size-button-pill-lg: 57px;
+  --size-button-circle-sm: 25px;
+  --size-button-circle-default: 47px;
+  --size-button-circle-lg: 50px;
+
+  /*
    * Font roles. The values are generic fallbacks: each app maps every role to
    * the font it loads (native font-file names on mobile, next/font on web and
    * site) in its own @theme after importing this file.
