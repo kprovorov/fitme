@@ -215,14 +215,13 @@ export function PromptInputSubmit() {
       ) : (
         <SymbolImage
           className={cn(
-            "font-semibold",
+            "text-body-emphasized",
             disabled
               ? "text-muted-foreground"
               : "text-background dark:text-background"
           )}
           name="arrow.up"
           sfEffect="scale/up"
-          size={16}
         />
       )}
     </Pressable>

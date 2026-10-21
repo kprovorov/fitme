@@ -62,7 +62,11 @@ export function SymbolImage({
     width: number;
   } | null>(null);
   const handleLoad = useCallback(({ source }: ImageLoadEventData) => {
-    setSymbolSize({ height: source.height, width: source.width });
+    setSymbolSize((previous) =>
+      previous?.height === source.height && previous.width === source.width
+        ? previous
+        : { height: source.height, width: source.width }
+    );
   }, []);
   const box = pointSize
     ? {

@@ -60,9 +60,8 @@ export default function WorkoutSessionHistoryRow({
         <Text className="text-mono-footnote-semibold">{duration}</Text>
       </View>
       <SymbolImage
-        className="text-muted-foreground/60"
+        className="text-footnote-emphasized text-muted-foreground/60"
         name="chevron.right"
-        size={14}
       />
     </View>
   );

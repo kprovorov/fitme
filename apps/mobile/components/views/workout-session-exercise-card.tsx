@@ -107,9 +107,8 @@ export default function WorkoutSessionExerciseCard({
         ) : (
           canOpen && (
             <SymbolImage
-              className="text-muted-foreground/60"
+              className="text-footnote-emphasized text-muted-foreground/60"
               name="chevron.right"
-              size={14}
             />
           )
         )}
