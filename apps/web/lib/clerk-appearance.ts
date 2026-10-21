@@ -10,24 +10,33 @@ type Appearance = NonNullable<
  * components (`<SignIn>`, `<UserButton>` and its menu, the account modal)
  * follow the tokens with no copy of their values. Clerk derives its shades
  * from these with `color-mix()` and relative colors, which accept `var()`.
+ * Tailwind only emits a token some source names, and it finds these literal
+ * `var(--…)` strings, so keep them literal.
+ *
  * Mapped onto what Clerk draws: its "background" is its card, so `card`; its
- * "input" is a field's fill, so `muted`, which shows on the card (Clerk fades
- * its own borders too far for them to outline a field); its borders get
- * `input`. There's no warning token, so Clerk's notices stay neutral. No
- * shadows (ADR 0009). Passed once, to `ClerkProvider`.
+ * "input" is a field's fill, so `muted`, which shows on the card. Clerk fades
+ * its borders to a few percent of `colorBorder`, so the code boxes and the
+ * menu get their fill and edge in `elements`. There's no warning token, so
+ * Clerk's notices stay neutral. No shadows (ADR 0009). Passed once, to
+ * `ClerkProvider`.
  */
 export const clerkAppearance: Appearance = {
-  // The code boxes ignore `colorInput`, so they get its fill here
-  elements: { otpCodeFieldInput: { backgroundColor: "var(--color-muted)" } },
+  elements: {
+    // The code boxes ignore `colorInput`, so they get its fill here
+    otpCodeFieldInput: { backgroundColor: "var(--color-muted)" },
+    // The menu is `card` over cards, so it needs a visible edge
+    userButtonPopoverCard: { border: "1px solid var(--color-border)" },
+  },
   variables: {
     borderRadius: "var(--radius-lg)",
     colorBackground: "var(--color-card)",
-    colorBorder: "var(--color-input)",
+    colorBorder: "var(--color-border)",
     colorDanger: "var(--color-destructive)",
     colorForeground: "var(--color-foreground)",
     colorInput: "var(--color-muted)",
     colorInputForeground: "var(--color-foreground)",
-    colorModalBackdrop: "var(--color-background)",
+    colorModalBackdrop:
+      "color-mix(in srgb, var(--color-background) 75%, transparent)",
     colorMuted: "var(--color-muted)",
     colorMutedForeground: "var(--color-muted-foreground)",
     colorNeutral: "var(--color-foreground)",
