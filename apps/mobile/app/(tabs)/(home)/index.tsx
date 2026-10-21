@@ -136,9 +136,11 @@ export default function HomeScreen() {
               You don&apos;t have an active workout plan. Create one to get
               started.
             </Text>
-            <Button className="w-full" onPress={handleCreatePlan}>
-              <Text>Create Workout Plan</Text>
-            </Button>
+            <Button
+              className="w-full"
+              label="Create Workout Plan"
+              onPress={handleCreatePlan}
+            />
           </VStack>
         )}
       </ScrollView>

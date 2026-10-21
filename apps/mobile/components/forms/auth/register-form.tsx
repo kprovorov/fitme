@@ -130,10 +130,11 @@ export default function RegisterForm({ onSubmit, errors }: RegisterFormProps) {
       ) : null}
 
       <Button
+        icon="arrow.right"
+        iconPosition="trailing"
         isLoading={isSubmitting}
         label="Sign Up"
         onPress={form.handleSubmit(onSubmit)}
-        systemImage="arrow.right"
         testID="register-button"
       />
     </VStack>

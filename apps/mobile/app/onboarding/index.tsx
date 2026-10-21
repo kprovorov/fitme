@@ -39,13 +39,17 @@ export default function WelcomeScreen() {
             <Link asChild href="/onboarding/profile">
               <Button
                 className="w-full"
+                icon="arrow.right"
+                iconPosition="trailing"
                 label="Get Started"
-                systemImage="arrow.right"
               />
             </Link>
-            <Button className="w-full" onPress={handleSkip} variant="link">
-              <Text>Skip</Text>
-            </Button>
+            <Button
+              className="w-full"
+              label="Skip"
+              onPress={handleSkip}
+              variant="ghost"
+            />
           </VStack>
         </VStack>
       </SafeAreaView>

@@ -5,7 +5,6 @@ import Threads from "~/components/icons/social/threads";
 import X from "~/components/icons/social/x";
 import { Button } from "~/components/ui/button";
 import { HStack } from "~/components/ui/hstack";
-import { Text } from "~/components/ui/text";
 import { P } from "~/components/ui/typography";
 import { VStack } from "~/components/ui/vstack";
 
@@ -42,17 +41,27 @@ export default function SupportScreen() {
             Feel free to contact us at any time if you have any questions or
             feedback
           </P>
-          <Button className="h-8 p-0" onPress={openSupportEmail} variant="link">
-            <Text>support@fitmeproject.com</Text>
-          </Button>
+          <Button
+            label="support@fitmeproject.com"
+            onPress={openSupportEmail}
+            variant="ghost"
+          />
           <HStack>
-            <Button className="h-8 p-0" onPress={openX} variant="link">
+            <Button accessibilityLabel="X" onPress={openX} variant="ghost">
               <X fill="#C0FF38" height={16} width={16} />
             </Button>
-            <Button className="h-8 p-0" onPress={openInstagram} variant="link">
+            <Button
+              accessibilityLabel="Instagram"
+              onPress={openInstagram}
+              variant="ghost"
+            >
               <Instagram fill="#C0FF38" height={16} width={16} />
             </Button>
-            <Button className="h-8 p-0" onPress={openThreads} variant="link">
+            <Button
+              accessibilityLabel="Threads"
+              onPress={openThreads}
+              variant="ghost"
+            >
               <Threads fill="#C0FF38" height={16} width={16} />
             </Button>
           </HStack>

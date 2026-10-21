@@ -4,7 +4,6 @@ import { usePlansQuery } from "~/hooks/queries/plans";
 import { useIsProQuery } from "~/hooks/revenueCat";
 import PlanCard from "../plans/plan-card";
 import { Button } from "../ui/button";
-import { Text } from "../ui/text";
 import { VStack } from "../ui/vstack";
 
 export default function PlansListView() {
@@ -23,9 +22,7 @@ export default function PlansListView() {
         </Link>
       ))}
       <Link asChild href="/planner">
-        <Button>
-          <Text>Create New Workout Plan</Text>
-        </Button>
+        <Button label="Create New Workout Plan" />
       </Link>
     </VStack>
   );

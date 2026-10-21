@@ -68,10 +68,11 @@ export default function ForgotPasswordForm({
       ) : null}
 
       <Button
+        icon="arrow.right"
+        iconPosition="trailing"
         isLoading={isSubmitting}
         label="Send Code"
         onPress={form.handleSubmit(onSubmit)}
-        systemImage="arrow.right"
         testID="forgot-password-button"
       />
     </VStack>

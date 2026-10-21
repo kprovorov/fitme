@@ -331,15 +331,14 @@ export default function PlannerScreen() {
 
             <VStack className="items-stretch gap-2">
               <Button
+                label="Get my plan!"
                 onPress={form.handleSubmit((data) => {
                   router.dismissTo({
                     params: { initialMessage: buildPlanMessage(data) },
                     pathname: "/(tabs)/coach",
                   });
                 })}
-              >
-                <Text>Get my plan!</Text>
-              </Button>
+              />
             </VStack>
           </VStack>
         </VStack>

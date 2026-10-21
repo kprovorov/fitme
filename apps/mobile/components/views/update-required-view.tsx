@@ -36,9 +36,10 @@ export default function UpdateRequiredView() {
       </Text>
       {STORE_URL ? (
         <Button
+          icon="arrow.down.app"
+          iconPosition="trailing"
           label="Update"
           onPress={openStore}
-          systemImage="arrow.down.app"
         />
       ) : null}
     </VStack>

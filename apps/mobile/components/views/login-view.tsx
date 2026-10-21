@@ -134,23 +134,24 @@ export default function LoginView() {
           />
           <Button
             disabled={!code}
+            icon="arrow.right"
+            iconPosition="trailing"
             isLoading={isFetching}
             label="Verify"
             onPress={handleVerifyCode}
-            systemImage="arrow.right"
             testID="login-code-button"
           />
           <Button
             disabled={isFetching}
             label="Send a new code"
             onPress={handleResendCode}
-            variant="link"
+            variant="ghost"
           />
           <Button
             disabled={isFetching}
             label="Use a different account"
             onPress={handleStartOver}
-            variant="link"
+            variant="ghost"
           />
         </VStack>
       </VStack>

@@ -101,10 +101,11 @@ export default function LoginForm({ onSubmit, errors }: LoginFormProps) {
       ) : null}
 
       <Button
+        icon="arrow.right"
+        iconPosition="trailing"
         isLoading={isSubmitting}
         label="Continue"
         onPress={form.handleSubmit(onSubmit)}
-        systemImage="arrow.right"
         testID="login-button"
       />
     </VStack>

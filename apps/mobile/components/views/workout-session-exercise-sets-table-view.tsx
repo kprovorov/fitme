@@ -169,11 +169,11 @@ export default function WorkoutSessionExerciseSetsTableView({
         {!readOnly && (
           <Button
             contentColorClassName="text-primary"
+            icon="plus"
+            iconPosition="trailing"
             label="Add Set"
             onPress={handleAddSet}
-            shape="pill"
             size="sm"
-            systemImage="plus"
             variant="secondary"
           />
         )}

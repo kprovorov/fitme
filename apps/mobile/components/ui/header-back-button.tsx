@@ -1,17 +1,19 @@
 import { useRouter } from "expo-router";
 import { useCallback } from "react";
-import { Button, type ButtonProps } from "~/components/ui/button";
+import { Button, type CircleButtonProps } from "~/components/ui/button";
 
-const HeaderBackButton = (props: Omit<ButtonProps, "systemImage">) => {
+type HeaderBackButtonProps = Partial<Omit<CircleButtonProps, "icon" | "shape">>;
+
+const HeaderBackButton = (props: HeaderBackButtonProps) => {
   const router = useRouter();
   const goBack = useCallback(() => router.back(), [router]);
 
   return (
     <Button
+      accessibilityLabel="Back"
+      icon="arrow.left"
       onPress={goBack}
-      shape="pill"
-      size="icon-sm"
-      systemImage="arrow.left"
+      shape="circle"
       variant="ghost"
       {...props}
     />

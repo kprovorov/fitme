@@ -10,7 +10,7 @@ export default function NotFoundScreen() {
       <VStack>
         <H1>This screen doesn't exist.</H1>
         <Link asChild href="/">
-          <Button>Go to home screen!</Button>
+          <Button label="Go to home screen!" />
         </Link>
       </VStack>
     </>

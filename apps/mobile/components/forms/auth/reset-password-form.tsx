@@ -104,10 +104,11 @@ export default function ResetPasswordForm({
       ) : null}
 
       <Button
+        icon="arrow.right"
+        iconPosition="trailing"
         isLoading={isSubmitting}
         label="Update Password"
         onPress={form.handleSubmit(onSubmit)}
-        systemImage="arrow.right"
         testID="reset-password-button"
       />
     </VStack>

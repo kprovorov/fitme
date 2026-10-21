@@ -200,10 +200,11 @@ export default function VerifyCodeView({ purpose }: VerifyCodeViewProps) {
         />
         <Button
           disabled={!code}
+          icon="arrow.right"
+          iconPosition="trailing"
           isLoading={isFetching}
           label="Verify"
           onPress={handleVerify}
-          systemImage="arrow.right"
           testID="verify-code-button"
         />
         <Button
@@ -211,7 +212,7 @@ export default function VerifyCodeView({ purpose }: VerifyCodeViewProps) {
           label="Send a new code"
           onPress={handleResend}
           testID="verify-code-resend-button"
-          variant="link"
+          variant="ghost"
         />
       </VStack>
     </VStack>

@@ -192,10 +192,11 @@ export default function WorkoutCard({
               />
             ) : (
               <Button
+                icon="arrow.right"
+                iconPosition="trailing"
                 isLoading={isCreatingWorkoutSession}
                 label="Start Workout"
                 onPress={startWorkout}
-                systemImage="arrow.right"
                 testID="start-workout-button"
               />
             )}

@@ -128,10 +128,11 @@ export default function WorkoutSessionSummaryView({
       <VStack className="w-full px-md">
         <Button
           className="w-full"
+          icon="arrow.right"
+          iconPosition="trailing"
           label="Continue"
           onPress={onContinue}
           shape="pill"
-          systemImage="arrow.right"
         />
       </VStack>
     </VStack>
