@@ -44,8 +44,8 @@ describe("cn", () => {
 
   it("merges spacing and radius tokens next to a text style", () => {
     expect(
-      cn("p-0 rounded-none text-body", "p-sm rounded-card text-body-emphasized")
-    ).toBe("p-sm rounded-card text-body-emphasized");
+      cn("rounded-none p-0 text-body", "rounded-card p-sm text-body-emphasized")
+    ).toBe("rounded-card p-sm text-body-emphasized");
   });
 
   it("lets a later text color override an earlier one", () => {

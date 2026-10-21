@@ -153,7 +153,9 @@ export default function ProfileView() {
             <HStack className="flex-1 justify-start gap-4">
               <Heart className="text-foreground" size={24} />
               <VStack className="items-start gap-0">
-                <Text className="text-body-emphasized text-primary">Like the app?</Text>
+                <Text className="text-body-emphasized text-primary">
+                  Like the app?
+                </Text>
                 <Text>Rate it in the App Store!</Text>
               </VStack>
             </HStack>

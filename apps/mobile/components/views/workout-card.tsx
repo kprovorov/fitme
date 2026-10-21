@@ -131,9 +131,7 @@ export default function WorkoutCard({
         )}
         <Pressable onPress={toggleOpen}>
           <VStack className="w-full flex-shrink items-stretch gap-4">
-            <H4 className="text-primary">
-              {workout.name}
-            </H4>
+            <H4 className="text-primary">{workout.name}</H4>
             <HStack className="justify-start">
               <HStack className="gap-1">
                 <Zap color="#808080" size={16} />
