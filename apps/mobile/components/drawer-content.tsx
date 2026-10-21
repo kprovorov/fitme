@@ -170,6 +170,7 @@ export function DrawerContent({
         <TouchableGlass
           accessibilityLabel="New chat"
           accessibilityRole="button"
+          accessible
           className="h-10 w-10 items-center justify-center rounded-full bg-foreground active:bg-muted dark:bg-foreground"
           onPress={navigateHome}
         >

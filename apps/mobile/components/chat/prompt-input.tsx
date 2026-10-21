@@ -89,6 +89,8 @@ export function PromptInputAction(props: {
 }) {
   return (
     <TouchableGlass
+      accessibilityRole="button"
+      accessible
       hitSlop={4}
       {...props}
       style={{
@@ -203,6 +205,8 @@ export function PromptInputSubmit() {
 
   return (
     <Pressable
+      accessibilityLabel="Send message"
+      accessibilityRole="button"
       className={disabled ? "bg-secondary" : "bg-foreground"}
       disabled={disabled}
       onPress={onSend}

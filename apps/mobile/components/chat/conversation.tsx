@@ -410,6 +410,9 @@ export function ConversationScrollButton() {
       style={[{ position: "absolute", right: 16 }, scrollButtonStyle]}
     >
       <TouchableGlass
+        accessibilityLabel="Scroll to latest messages"
+        accessibilityRole="button"
+        accessible
         className="h-10 w-10 items-center justify-center rounded-full"
         hitSlop={8}
         onPress={scrollToBottom}
