@@ -10,7 +10,7 @@ export const metadata: Metadata = {
 function TermsOfServicePage() {
   return (
     <Prose className="p-6">
-      <h2>Terms of Service (ToS)</h2>
+      <h1>Terms of Service (ToS)</h1>
       <p>Effective Date: 13 October 2026</p>
       <p>
         Please read these Terms of Service (&quot;ToS&quot;) carefully before
