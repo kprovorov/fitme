@@ -1,4 +1,5 @@
 import { clerkMiddleware, createRouteMatcher } from "@clerk/nextjs/server";
+import * as Sentry from "@sentry/nextjs";
 import { SIGN_IN_PATH } from "~/lib/routes";
 
 // Everything else needs a signed-in User; new pages are protected by default.
@@ -6,6 +7,11 @@ const isPublicRoute = createRouteMatcher(["/", `${SIGN_IN_PATH}(.*)`]);
 
 export default clerkMiddleware(
   async (auth, request) => {
+    // Errors in this request carry the User's Clerk id, nothing else.
+    const { userId } = await auth();
+    if (userId) {
+      Sentry.setUser({ id: userId });
+    }
     if (!isPublicRoute(request)) {
       // Redirects to sign-in with a `redirect_url` back to the requested page.
       await auth.protect();
