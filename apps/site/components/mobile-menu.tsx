@@ -44,14 +44,12 @@ function MobileMenu() {
         aria-controls="mobile-menu"
         aria-expanded={isOpen}
         aria-label={isOpen ? "Close menu" : "Open menu"}
-        className="size-11"
+        icon={isOpen ? X : Menu}
         onClick={toggle}
         ref={triggerRef}
-        size="icon"
+        shape="circle"
         variant="ghost"
-      >
-        {isOpen ? <X /> : <Menu />}
-      </Button>
+      />
       {isOpen ? (
         <ul
           className="absolute inset-x-0 top-full flex flex-col border-b bg-background px-5 py-2"
