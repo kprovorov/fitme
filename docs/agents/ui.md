@@ -9,7 +9,7 @@ Where a skill says otherwise, this file wins for this repo: [When a skill disagr
 - **Screen**: a route file under `apps/mobile/app/`. It owns the native header (`Stack.Screen` options), the data hooks, and the choice between loading, empty, error and content. _Avoid_: page, route component.
 - **View**: a component a Screen renders with data passed as props, under `components/views/` or a feature folder (`components/plans/`, `components/chat/`). _Avoid_: container, widget.
 - **Primitive**: a component in `components/ui/`. Screens and Views are built from Primitives, never from bare `react-native` controls when a Primitive exists. _Avoid_: atom, base component.
-- **Token**: a semantic design value (color, type size, spacing, radius, font role), or a text style built on them, defined once in `@fitme/design-tokens` (`packages/design-tokens/src/tokens.css`) and imported by every app. _Avoid_: magic number, hard-coded value.
+- **Token**: a semantic design value (color, type size, spacing, radius, size, font role), or a text style built on them, defined once in `@fitme/design-tokens` (`packages/design-tokens/src/tokens.css`) and imported by every app. _Avoid_: magic number, hard-coded value.
 
 ## See it before you ship it
 
@@ -71,7 +71,7 @@ Every Token lives in one file, `packages/design-tokens/src/tokens.css` (`@fitme/
 - In `className` use token names only (`text-muted-foreground`, `bg-background`). No hex, `rgb()` or `hsl()` in `className` or `style`.
 - A color prop that isn't part of `style` on a React Native component gets its `…ClassName` prop with an `accent-` class: `<ActivityIndicator colorClassName="accent-foreground" />`, `tintColorClassName`, `backdropColorClassName="accent-background"`, `placeholderTextColorClassName` (`components/ui/input.tsx`). `className="text-…"` sets nothing there.
 - Anything else that wants a color string (`@expo/ui` SwiftUI modifiers, a navigation theme, an SVG `fill`) gets a resolved token: `useSwiftUITheme()` from `components/ui/swift-ui.tsx`, or `useResolveClassNames("text-primary").color` from `uniwind`.
-- Lime is the accent, not the paint. One lime action per Screen; everything else is `secondary`, `outline` or `ghost`.
+- Lime is the accent, not the paint. One lime action per Screen; everything else is `secondary` or `ghost`.
 - A new color is a new Token in `@fitme/design-tokens` (see [Tokens](#tokens)), never a literal in an app.
 - The literal `#C0FF38` and `#1F1D20` in `app/(tabs)/_layout.tsx`, `components/providers.tsx` and the workout session Screens are old debt. Don't copy them.
 
@@ -114,6 +114,21 @@ Mono is IBM Plex Mono, for numbers that line up in columns (reps, weights, timer
 - Write class names out in full. uniwind only sees literal classes, so `` `text-${color}` `` silently styles nothing: pick from a map or a ternary of full names.
 - Changing a text style means editing `tokens.css` (the `--text-*` sizes or the `@utility` blocks) and the matching Figma text style in the same PR.
 
+## Size
+
+Button heights, measured from the native SwiftUI buttons on iOS 27 with our labels (Liquid Glass and the solid fallback styles draw the same box), rounded to whole points. A circle's diameter is its own size: it holds a glyph, which is shorter than a label. The native Button sizes itself; the tokens are for what can't (a `ghost` Button, which takes them so it lines up with its siblings) and for web and Figma (`Size/button-pill-default`) to copy.
+
+| Token                          | Value | `Button`                            | Measured (pt) |
+| ------------------------------ | ----- | ----------------------------------- | ------------- |
+| `--size-button-pill-sm`        | 31px  | `size="sm"` (`controlSize(.small)`) | 30.67         |
+| `--size-button-pill-default`   | 53px  | `size="default"` (`.large`)         | 53.33         |
+| `--size-button-pill-lg`        | 57px  | `size="lg"` (`.extraLarge`)         | 57.33         |
+| `--size-button-circle-sm`      | 25px  | `shape="circle" size="sm"`          | 25.00         |
+| `--size-button-circle-default` | 47px  | `shape="circle"`                    | 46.67         |
+| `--size-button-circle-lg`      | 50px  | `shape="circle" size="lg"`          | 49.67         |
+
+On iOS 27 `.large` and `.extraLarge` draw the same padding, so `lg` is taller only by its Title 3 label. Re-measure when the label fonts, the control sizes or the iOS version change: render each size in a throwaway `__DEV__` screen, log the `onLayout` height of a `View` around each Button, then update `tokens.css`, the Figma `Size` variables and this table together.
+
 ## Spacing and layout
 
 - Screen gutters and gaps between sections use the spacing Tokens: `xs` 8, `sm` 16, `md` 24, `lg` 32 (`px-md`, `gap-md`, `p-md`).
@@ -128,10 +143,15 @@ Mono is IBM Plex Mono, for numbers that line up in columns (reps, weights, timer
 
 Look in `components/ui/` before building anything. The ones that trip agents up:
 
-- **`Button`** is a native SwiftUI button. Pass `label` (a string), `systemImage` (an SF Symbol name) and `shape="pill"` for calls to action; `variant` is `default` (lime), `secondary`, `outline`, `ghost`, `destructive` or `link`. Use `isLoading` while its action runs, and `accessibilityLabel` on every icon-only button. It spans its container's width unless it's an icon or link button (or you pass `fill={false}`). `className` only lays it out; the label's font and color come from `variant` and `size`, unless `contentColorClassName` (a `text-…` class) recolors the label and icon, as the lime "Add Set" on a `secondary` pill does. `<Button><Text>…</Text></Button>` is the older form; new code uses `label`.
+- **`Button`** (`components/ui/button.tsx`, the Figma `Button` set) is a native SwiftUI button; web and site get the same API with solid fills (FIT-209):
+  - `variant`: `default` (lime, prominent glass), `destructive` (prominent glass tinted `destructive`), `secondary` (regular glass) or `ghost` (plain, no fill). Without Liquid Glass (before iOS 26) the same mapping uses the solid native styles (`borderedProminent`, `bordered`).
+  - `size`: `sm`, `default` or `lg`, at the native heights in [Size](#size). The label is the size's Emphasized text style (Semibold Subhead, Body, Title 3).
+  - `shape`: `pill` (default) or `circle`. A circle takes `icon` and `accessibilityLabel` (both required, the types enforce it) and shows no label.
+  - `icon` (an SF Symbol name) and `iconPosition` (`leading`, the default, or `trailing`; the forward `arrow.right` trails).
+  - Pass `label` (a string); `children` is the older form, kept for views that aren't SF Symbols (the support page's brand logos). Use `isLoading` while its action runs; the button keeps its size. It spans its container's width unless it's a circle or `ghost` (or you pass `fill`). `className` only lays it out; the label's font and color come from `variant` and `size`, unless `contentColorClassName` (a `text-…` class) recolors the label and icon, as the lime "Add Set" on a `secondary` pill does.
 - **`Card`** is a flat `card` surface with the `card` radius (16) and `sm` padding (16), with no glass, border or shadow. `variant` is `default` or `ghost` (transparent, same radius and padding, for grouped content that shouldn't read as a surface), and it's the only styling prop Card needs: `className` only lays out its children (`gap-sm`, `flex-1`), never sets a background, radius or padding. Card already pads its content, so `CardHeader` / `CardContent` add none. Rows that run edge to edge (a settings list, History's months) go in `MenuList`, which has Card's fill and radius but no padding, divided by `Separator`.
 - **`Switch`** is a native SwiftUI `Toggle`, with its own haptic.
-- **Icons** are SF Symbols: `systemImage` on `Button`, `sfSymbol` items in headers, `SymbolImage` (`components/symbol-image.tsx`) everywhere else. A symbol new to `SymbolImage` also gets its Lucide fallback in `LUCIDE_FALLBACKS`, or Android shows a question mark. Raster images use `expo-image` (`Image` from `~/components/tw`).
+- **Icons** are SF Symbols: `icon` on `Button`, `sfSymbol` items in headers, `SymbolImage` (`components/symbol-image.tsx`) everywhere else. A symbol new to `SymbolImage` also gets its Lucide fallback in `LUCIDE_FALLBACKS`, or Android shows a question mark. Raster images use `expo-image` (`Image` from `~/components/tw`).
 - **Forms** use `Input`, `Label` and `ErrorMessage`, inside the keyboard handling `react-native-keyboard-controller` already provides (`KeyboardProvider` in `components/providers.tsx`). See `components/forms/`.
 
 ## Every Screen has four states
@@ -157,8 +177,8 @@ Load `animate-expo` for anything that moves; it holds the springs, curves and re
 
 ## Accessibility
 
-- Tap targets are at least 44×44 pt. The small icon `Button` sizes (`icon-sm` 36, `icon-xs` 32) only go inside a row that is itself the target; a small `Pressable` (a `SymbolImage` you tap) gets `hitSlop` up to 44 pt instead of a bigger visual.
-- Every icon-only control has an `accessibilityLabel`. Headings come from `H1`–`H4`, so VoiceOver finds them.
+- Tap targets are at least 44×44 pt. A circle `Button` is `size="default"` (47 pt) unless it sits inside a row that is itself the target; `sm` (25 pt) and `sm` pills (31 pt) are for those rows and dense toolbars. A small `Pressable` (a `SymbolImage` you tap) gets `hitSlop` up to 44 pt instead of a bigger visual.
+- Every icon-only control has an `accessibilityLabel` (a circle `Button` won't type-check without one). Headings come from `H1`–`H4`, so VoiceOver finds them.
 - Information is never color alone: a failed or completed set says so in text or a symbol too.
 - Reduced motion ships with the animation, not later: `useReducedMotion()` or `reduceMotion: ReduceMotion.System`. Fewer and gentler, not zero: keep the opacity change, drop the movement.
 
