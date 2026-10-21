@@ -3,6 +3,7 @@ import {
   Text as SwiftUIText,
 } from "@expo/ui/swift-ui";
 import {
+  foregroundStyle,
   type PickerStyleType,
   pickerStyle,
   tag,
@@ -66,7 +67,16 @@ const Picker = <TValue extends PickerValue>({
         testID={testID}
       >
         {options.map((option) => (
-          <SwiftUIText key={option.value} modifiers={[tag(option.value)]}>
+          <SwiftUIText
+            key={option.value}
+            modifiers={
+              // The wheel ignores `tint`, so its selected row is set in
+              // `primary` by hand; the others keep the system color.
+              isWheel && option.value === value
+                ? [tag(option.value), foregroundStyle(theme.primary)]
+                : [tag(option.value)]
+            }
+          >
             {option.label}
           </SwiftUIText>
         ))}

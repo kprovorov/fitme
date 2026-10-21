@@ -22,6 +22,11 @@ interface ContextMenuProps {
   testID?: string;
 }
 
+/**
+ * A native context menu on long press. It takes no `tint`: the system draws
+ * the items in the label color and a destructive one in red, and a tint would
+ * repaint every item's icon (the destructive one's included) in `primary`.
+ */
 const ContextMenu = ({
   items,
   children,

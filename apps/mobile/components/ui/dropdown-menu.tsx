@@ -4,10 +4,12 @@ import {
   RNHostView,
   Button as SwiftUIButton,
   Image as SwiftUIImage,
+  Label as SwiftUILabel,
 } from "@expo/ui/swift-ui";
 import {
   accessibilityLabel as accessibilityLabelModifier,
   contentShape,
+  foregroundStyle,
   frame,
   shapes,
 } from "@expo/ui/swift-ui/modifiers";
@@ -58,7 +60,10 @@ const DropdownMenu = ({
   const theme = useSwiftUITheme();
 
   // SwiftUI's `Menu` only honours `systemImage` alongside a text label, so an
-  // icon-only menu has to supply its button as a label view instead.
+  // icon-only menu has to supply its button as a label view instead. A text
+  // button is a label view too, in `primary`: a `tint` on the Menu would also
+  // tint every item's icon (a destructive item's included), which the system
+  // draws in the label color.
   const menuLabel = () => {
     if (children) {
       return (
@@ -66,7 +71,13 @@ const DropdownMenu = ({
       );
     }
     if (label) {
-      return label;
+      return (
+        <SwiftUILabel
+          modifiers={[foregroundStyle(theme.primary)]}
+          systemImage={systemImage}
+          title={label}
+        />
+      );
     }
     return (
       <SwiftUIImage
@@ -87,10 +98,9 @@ const DropdownMenu = ({
         modifiers={
           accessibilityLabel
             ? [accessibilityLabelModifier(accessibilityLabel)]
-            : undefined
+            : []
         }
         onPrimaryAction={onPrimaryAction}
-        systemImage={label ? systemImage : undefined}
         testID={testID}
       >
         {items.flatMap((item) => [

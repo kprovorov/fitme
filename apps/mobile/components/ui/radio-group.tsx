@@ -6,6 +6,9 @@ import {
 } from "@expo/ui/swift-ui";
 import {
   disabled as disabledModifier,
+  foregroundStyle,
+  listRowBackground,
+  listRowSeparatorTint,
   pickerStyle,
   scrollContentBackground,
   tag,
@@ -57,15 +60,32 @@ const RadioGroup = <TValue extends PickerValue>({
 
   return (
     <SwiftUIHost className={cn("flex-1", className)} useViewportSizeMeasurement>
-      <Form modifiers={[scrollContentBackground("hidden")]}>
+      {/* The checkmark takes the Form's tint: on the inline Picker itself it
+          stays the system blue. */}
+      <Form
+        modifiers={[scrollContentBackground("hidden"), tint(theme.primary)]}
+      >
         <Section
-          footer={footer ? <SwiftUIText>{footer}</SwiftUIText> : undefined}
-          title={label}
+          footer={
+            footer ? (
+              <SwiftUIText modifiers={[foregroundStyle(theme.mutedForeground)]}>
+                {footer}
+              </SwiftUIText>
+            ) : undefined
+          }
+          header={
+            label ? (
+              <SwiftUIText modifiers={[foregroundStyle(theme.mutedForeground)]}>
+                {label}
+              </SwiftUIText>
+            ) : undefined
+          }
         >
           <SwiftUIPicker
             modifiers={[
               pickerStyle("inline"),
-              tint(theme.primary),
+              listRowBackground(theme.card),
+              listRowSeparatorTint(theme.border),
               disabledModifier(disabled),
             ]}
             onSelectionChange={handleSelectionChange}
