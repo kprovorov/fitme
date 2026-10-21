@@ -19,6 +19,7 @@ import {
 import {
   type Control,
   Controller,
+  type ControllerFieldState,
   type ControllerRenderProps,
   useController,
   useForm,
@@ -184,13 +185,16 @@ export default function ProfileForm({
   const renderNameField = useCallback(
     ({
       field: { onChange, onBlur, value },
+      fieldState: { error },
     }: {
       field: ControllerRenderProps<ProfileFormValues, "name">;
+      fieldState: ControllerFieldState;
     }) => (
       <Input
         autoCapitalize="words"
         autoComplete="name"
         editable={!isFormSubmitting}
+        error={error?.message}
         maxLength={50}
         onBlur={onBlur}
         onChangeText={onChange}
@@ -251,14 +255,7 @@ export default function ProfileForm({
 
             {showName ? (
               <VStack className="items-stretch gap-2">
-                <VStack className="items-start justify-start gap-0">
-                  <H4>Name</H4>
-                  {form.formState.errors.name ? (
-                    <ErrorMessage>
-                      {form.formState.errors.name.message}
-                    </ErrorMessage>
-                  ) : null}
-                </VStack>
+                <H4>Name</H4>
                 <Controller
                   control={form.control}
                   name="name"

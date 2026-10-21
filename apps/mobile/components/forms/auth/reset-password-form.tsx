@@ -2,12 +2,12 @@ import { zodResolver } from "@hookform/resolvers/zod";
 import { useCallback } from "react";
 import {
   Controller,
+  type ControllerFieldState,
   type ControllerRenderProps,
   useForm,
 } from "react-hook-form";
 import { z } from "zod";
 import { Button } from "~/components/ui/button";
-import { ErrorMessage } from "~/components/ui/error-message";
 import { Input } from "~/components/ui/input";
 import { VStack } from "~/components/ui/vstack";
 import { PASSWORD_MIN_LENGTH } from "~/lib/constants";
@@ -46,11 +46,14 @@ export default function ResetPasswordForm({
   const renderPasswordField = useCallback(
     ({
       field: { onChange, onBlur, value },
+      fieldState: { error },
     }: {
       field: ControllerRenderProps<ResetPasswordFormValues, "password">;
+      fieldState: ControllerFieldState;
     }) => (
       <Input
         editable={!isSubmitting}
+        error={error?.message}
         onBlur={onBlur}
         onChangeText={onChange}
         placeholder="New Password"
@@ -65,11 +68,14 @@ export default function ResetPasswordForm({
   const renderConfirmPasswordField = useCallback(
     ({
       field: { onChange, onBlur, value },
+      fieldState: { error },
     }: {
       field: ControllerRenderProps<ResetPasswordFormValues, "confirmPassword">;
+      fieldState: ControllerFieldState;
     }) => (
       <Input
         editable={!isSubmitting}
+        error={error?.message}
         onBlur={onBlur}
         onChangeText={onChange}
         placeholder="Confirm Password"
@@ -88,21 +94,11 @@ export default function ResetPasswordForm({
         name="password"
         render={renderPasswordField}
       />
-      {form.formState.errors.password ? (
-        <ErrorMessage>{form.formState.errors.password.message}</ErrorMessage>
-      ) : null}
-
       <Controller
         control={form.control}
         name="confirmPassword"
         render={renderConfirmPasswordField}
       />
-      {form.formState.errors.confirmPassword ? (
-        <ErrorMessage>
-          {form.formState.errors.confirmPassword.message}
-        </ErrorMessage>
-      ) : null}
-
       <Button
         icon="arrow.right"
         iconPosition="trailing"

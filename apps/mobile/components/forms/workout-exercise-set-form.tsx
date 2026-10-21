@@ -3,6 +3,7 @@ import type { ReactNode } from "react";
 import { useCallback } from "react";
 import {
   Controller,
+  type ControllerFieldState,
   type ControllerRenderProps,
   useForm,
 } from "react-hook-form";
@@ -69,13 +70,10 @@ export const SET_TABLE_MAX_FONT_SCALE = 1.4;
  * A REPS or KG cell: an input to log, or the logged value in the same box.
  * Each takes half the width the other columns leave.
  */
-const CELL_CLASS =
-  "h-10 flex-1 rounded-lg border-continuous border border-border bg-card";
+const CELL_CLASS = "h-10 flex-1";
 
-const INPUT_CLASS = cn(
-  CELL_CLASS,
-  "native:h-10 px-1 text-center text-mono-subhead"
-);
+/** A cell's input: Input's field, sized and set for numbers. */
+const INPUT_CLASS = "h-10 px-1 text-center text-mono-subhead";
 
 /** Width of the check column; the table's header lines up with it. */
 export const SET_CHECK_COLUMN_CLASS = "w-12 items-center";
@@ -83,7 +81,12 @@ export const SET_CHECK_COLUMN_CLASS = "w-12 items-center";
 /** A logged value, shown in place of its input until the set is edited. */
 function LoggedValue({ value }: { value?: string }) {
   return (
-    <View className={cn(CELL_CLASS, "items-center justify-center")}>
+    <View
+      className={cn(
+        CELL_CLASS,
+        "items-center justify-center rounded-lg border border-border border-continuous"
+      )}
+    >
       <Text
         className="text-foreground text-mono-subhead"
         maxFontSizeMultiplier={SET_TABLE_MAX_FONT_SCALE}
@@ -152,16 +155,20 @@ export default function WorkoutSessionExerciseSetForm({
   const renderWeightField = useCallback(
     ({
       field: { onChange, onBlur, value },
+      fieldState: { error: fieldError },
     }: {
       field: ControllerRenderProps<
         WorkoutSessionExerciseSetFormInput,
         "weight"
       >;
+      fieldState: ControllerFieldState;
     }) => (
       <Input
         accessibilityLabel={`Set ${setIndex} weight`}
         className={INPUT_CLASS}
+        containerClassName={CELL_CLASS}
         editable={!isFormDisabled}
+        error={!!fieldError}
         keyboardType="decimal-pad"
         maxFontSizeMultiplier={SET_TABLE_MAX_FONT_SCALE}
         onBlur={onBlur}
@@ -178,14 +185,18 @@ export default function WorkoutSessionExerciseSetForm({
   const renderRepsField = useCallback(
     ({
       field: { onChange, onBlur, value },
+      fieldState: { error: fieldError },
     }: {
       field: ControllerRenderProps<WorkoutSessionExerciseSetFormInput, "reps">;
+      fieldState: ControllerFieldState;
     }) => (
       <Input
         accessibilityLabel={`Set ${setIndex} reps`}
         autoCapitalize="none"
         className={INPUT_CLASS}
+        containerClassName={CELL_CLASS}
         editable={!isFormDisabled}
+        error={!!fieldError}
         keyboardType="number-pad"
         maxFontSizeMultiplier={SET_TABLE_MAX_FONT_SCALE}
         onBlur={onBlur}

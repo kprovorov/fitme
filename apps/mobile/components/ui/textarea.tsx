@@ -1,30 +1,20 @@
-import type * as React from "react";
-import { TextInput, type TextInputProps } from "react-native";
+import { Field, type InputProps } from "~/components/ui/input";
 import { cn } from "~/lib/utils";
 
+/**
+ * A multi-line text field, at least 80 pt tall: Input's field, states and
+ * `error`, with the text starting at the top.
+ */
 const Textarea = ({
   className,
   multiline = true,
   numberOfLines = 4,
-  placeholderTextColorClassName,
-  ref,
   ...props
-}: TextInputProps & {
-  ref?: React.RefObject<React.ElementRef<typeof TextInput> | null>;
-}) => (
-  <TextInput
-    className={cn(
-      "web:flex min-h-[80px] w-full rounded-md border border-input bg-background px-3 py-2 native:text-title-3 text-body text-foreground web:ring-offset-background placeholder:text-muted-foreground web:focus-visible:outline-none web:focus-visible:ring-2 web:focus-visible:ring-ring web:focus-visible:ring-offset-2 lg:text-subhead",
-      props.editable === false && "web:cursor-not-allowed opacity-50",
-      className
-    )}
+}: InputProps) => (
+  <Field
+    className={cn("min-h-20 py-xs", className)}
     multiline={multiline}
     numberOfLines={numberOfLines}
-    placeholderTextColorClassName={cn(
-      "accent-muted-foreground",
-      placeholderTextColorClassName
-    )}
-    ref={ref}
     textAlignVertical="top"
     {...props}
   />

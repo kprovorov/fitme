@@ -2,12 +2,12 @@ import { zodResolver } from "@hookform/resolvers/zod";
 import { useCallback } from "react";
 import {
   Controller,
+  type ControllerFieldState,
   type ControllerRenderProps,
   useForm,
 } from "react-hook-form";
 import { z } from "zod";
 import { Button } from "~/components/ui/button";
-import { ErrorMessage } from "~/components/ui/error-message";
 import { Input } from "~/components/ui/input";
 import { VStack } from "~/components/ui/vstack";
 
@@ -36,14 +36,17 @@ export default function ForgotPasswordForm({
   const renderEmailField = useCallback(
     ({
       field: { onChange, onBlur, value },
+      fieldState: { error },
     }: {
       field: ControllerRenderProps<ForgotPasswordFormValues, "email">;
+      fieldState: ControllerFieldState;
     }) => (
       <Input
         autoCapitalize="none"
         autoComplete="email"
         autoCorrect={false}
         editable={!isSubmitting}
+        error={error?.message}
         keyboardType="email-address"
         onBlur={onBlur}
         onChangeText={onChange}
@@ -63,10 +66,6 @@ export default function ForgotPasswordForm({
         name="email"
         render={renderEmailField}
       />
-      {form.formState.errors.email ? (
-        <ErrorMessage>{form.formState.errors.email.message}</ErrorMessage>
-      ) : null}
-
       <Button
         icon="arrow.right"
         iconPosition="trailing"

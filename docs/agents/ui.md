@@ -65,8 +65,8 @@ Every Token lives in one file, `packages/design-tokens/src/tokens.css` (`@fitme/
 | `destructive`            | `#ff6467`   | Delete and error, nothing else                                         |
 | `destructive-foreground` | `#fafafa`   | Text on `destructive`                                                  |
 | `border`                 | `#ffffff1a` | Separators and row dividers (`border-border`, often `border-hairline`) |
-| `input`                  | `#ffffff26` | Input borders (`Textarea`)                                             |
-| `ring`                   | `#737373`   | Focus ring (web only)                                                  |
+| `input`                  | `#ffffff26` | Field stroke (`Input`, `Textarea`)                                     |
+| `ring`                   | `#737373`   | Focused field stroke (`Input`, `Textarea`)                             |
 
 - In `className` use token names only (`text-muted-foreground`, `bg-background`). No hex, `rgb()` or `hsl()` in `className` or `style`.
 - A color prop that isn't part of `style` on a React Native component gets its `…ClassName` prop with an `accent-` class: `<ActivityIndicator colorClassName="accent-foreground" />`, `tintColorClassName`, `backdropColorClassName="accent-background"`, `placeholderTextColorClassName` (`components/ui/input.tsx`). `className="text-…"` sets nothing there.
@@ -167,7 +167,11 @@ Look in `components/ui/` before building anything. The ones that trip agents up:
 - **`Table`** (`TableHeader`, `TableRow`, `TableHead`, `TableCell`, …) divides rows with `border`, puts the header and footer on `muted` and sets cells in Subhead. The Coach's markdown tables render with it (`components/markdown/chat-markdown.tsx`). **`Accordion`** has a Body Emphasized trigger with an SF Symbol `chevron.down`. Neither has another call site yet.
 - **`Switch`** is a native SwiftUI `Toggle`, with its own haptic.
 - **Icons** are SF Symbols: `icon` on `Button`, `sfSymbol` items in headers, `SymbolImage` (`components/symbol-image.tsx`) everywhere else. A symbol new to `SymbolImage` also gets its Lucide fallback in `LUCIDE_FALLBACKS`, or Android shows a question mark. Raster images use `expo-image` (`Image` from `~/components/tw`).
-- **Forms** use `Input`, `Label` and `ErrorMessage`, inside the keyboard handling `react-native-keyboard-controller` already provides (`KeyboardProvider` in `components/providers.tsx`). See `components/forms/`.
+- **Forms** use `Input`, `Textarea`, `Label` and `ErrorMessage`, inside the keyboard handling `react-native-keyboard-controller` already provides (`KeyboardProvider` in `components/providers.tsx`). See `components/forms/`.
+  - `Input` (48 pt) and `Textarea` (at least 80 pt, text from the top) are the same field: a transparent fill with an `input` stroke, `rounded-lg`, `sm` side padding and `text-body` in `foreground`, so it reads the same on `background` and on a `card`. The stroke is `ring` while focused and `destructive` with an error (which wins over focus); a field that isn't `editable` is dimmed. The placeholder is `muted-foreground` through `placeholderTextColorClassName`.
+  - A field's error goes in its `error` prop, never in an `ErrorMessage` next to it: a string shows under the field in `destructive` and VoiceOver reads it as the field's hint; `true` only turns the stroke `destructive`, for a form that shows the message elsewhere (a set row's errors go under the row). With react-hook-form, pass `fieldState.error?.message` from the `Controller`'s render.
+  - `className` styles the field (`h-10 text-center text-mono-subhead` for a set cell); `containerClassName` lays out the field and its message together (`flex-1` in a row).
+  - `Label` is `text-body-emphasized` in `foreground`, dimmed with `disabled`. `ErrorMessage` is `text-subhead` in `destructive` with the alert role, for errors that belong to a whole form or Screen (a failed save, a rejected code).
 
 ## Every Screen has four states
 
@@ -175,7 +179,7 @@ Design all four, not just the happy path:
 
 - **Loading**: the native `ActivityIndicator` with `colorClassName="accent-foreground"` in the space the content will fill, or a `Button` with `isLoading` for an action. Never a blank Screen.
 - **Empty**: a centered `VStack` with a title, one line saying what's missing and one lime action that fixes it (the no-active-plan state in `app/(tabs)/home/index.tsx`).
-- **Error**: say what failed in plain words and offer a retry. `ErrorMessage` for form fields. Never show a raw error string or a stack.
+- **Error**: say what failed in plain words and offer a retry. A form field's `error` prop for its own message, `ErrorMessage` for the form's. Never show a raw error string or a stack.
 - **Content**: what you were asked to build. Lists also get pull to refresh (`RefreshControl`).
 
 ## Feel

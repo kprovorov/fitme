@@ -2,13 +2,13 @@ import { zodResolver } from "@hookform/resolvers/zod";
 import { useCallback } from "react";
 import {
   Controller,
+  type ControllerFieldState,
   type ControllerRenderProps,
   type FieldErrors,
   useForm,
 } from "react-hook-form";
 import { z } from "zod";
 import { Button } from "~/components/ui/button";
-import { ErrorMessage } from "~/components/ui/error-message";
 import { Input } from "~/components/ui/input";
 import { VStack } from "~/components/ui/vstack";
 import { PASSWORD_MIN_LENGTH } from "~/lib/constants";
@@ -46,12 +46,15 @@ export default function RegisterForm({ onSubmit, errors }: RegisterFormProps) {
   const renderNameField = useCallback(
     ({
       field: { onChange, onBlur, value },
+      fieldState: { error },
     }: {
       field: ControllerRenderProps<RegisterFormValues, "name">;
+      fieldState: ControllerFieldState;
     }) => (
       <Input
         autoCapitalize="words"
         editable={!isSubmitting}
+        error={error?.message}
         onBlur={onBlur}
         onChangeText={onChange}
         placeholder="Name"
@@ -65,14 +68,17 @@ export default function RegisterForm({ onSubmit, errors }: RegisterFormProps) {
   const renderEmailField = useCallback(
     ({
       field: { onChange, onBlur, value },
+      fieldState: { error },
     }: {
       field: ControllerRenderProps<RegisterFormValues, "email">;
+      fieldState: ControllerFieldState;
     }) => (
       <Input
         autoCapitalize="none"
         autoComplete="email"
         autoCorrect={false}
         editable={!isSubmitting}
+        error={error?.message}
         keyboardType="email-address"
         onBlur={onBlur}
         onChangeText={onChange}
@@ -88,11 +94,14 @@ export default function RegisterForm({ onSubmit, errors }: RegisterFormProps) {
   const renderPasswordField = useCallback(
     ({
       field: { onChange, onBlur, value },
+      fieldState: { error },
     }: {
       field: ControllerRenderProps<RegisterFormValues, "password">;
+      fieldState: ControllerFieldState;
     }) => (
       <Input
         editable={!isSubmitting}
+        error={error?.message}
         onBlur={onBlur}
         onChangeText={onChange}
         placeholder="Password"
@@ -107,28 +116,16 @@ export default function RegisterForm({ onSubmit, errors }: RegisterFormProps) {
   return (
     <VStack className="w-full items-stretch gap-4">
       <Controller control={form.control} name="name" render={renderNameField} />
-      {form.formState.errors.name ? (
-        <ErrorMessage>{form.formState.errors.name.message}</ErrorMessage>
-      ) : null}
-
       <Controller
         control={form.control}
         name="email"
         render={renderEmailField}
       />
-      {form.formState.errors.email ? (
-        <ErrorMessage>{form.formState.errors.email.message}</ErrorMessage>
-      ) : null}
-
       <Controller
         control={form.control}
         name="password"
         render={renderPasswordField}
       />
-      {form.formState.errors.password ? (
-        <ErrorMessage>{form.formState.errors.password.message}</ErrorMessage>
-      ) : null}
-
       <Button
         icon="arrow.right"
         iconPosition="trailing"
