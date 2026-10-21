@@ -132,14 +132,16 @@ Public site at fitmeproject.com. No auth, no Supabase. Tailwind v4 via `@tailwin
 
 ### apps/api — REST API
 
-Hono app served with `@hono/node-server`, bundled with tsdown. Reads domain data from `@fitme/core`.
+Hono app served with `@hono/node-server`, bundled with tsdown. Reads domain data from `@fitme/core`. Reports to the `fitme-api` Sentry project through `@fitme/observability`, with the same entry, build setup and `turbo.json` as `apps/webhooks`.
 
 - `src/index.ts` — Node entrypoint, `PORT` env (default 3003).
-- `src/app.ts` — Hono app: global middleware (logger, CORS), `/health`, JSON `notFound`/`onError` handlers returning `{ error: { code, message } }`.
+- `src/app.ts` — the Vercel entry (`dist/app.js`): imports `hono`, calls `initObservability({ service: "api" })`, then loads `create-app` with a dynamic `import()` and default-exports `createApp()` (see `apps/webhooks`).
+- `src/create-app.ts` — `createApp({ reportError })` (no argument = `@fitme/observability/node`'s `reportError`): `observeHono(app)` first (request spans), logger, CORS, `/health`, `/v1`, JSON `notFound`/`onError` handlers returning `{ error: { code, message } }`; `onError` reports every unhandled error before the 500, an `HTTPException` (and any 4xx a route answers itself) goes out unreported.
 - `src/routes/v1.ts` — versioned router; each resource lives in its own file under `src/routes/` and is mounted here. Input validation uses `@hono/zod-validator`.
 - `src/routes/client-config.ts` — public, unauthenticated `GET /v1/client-config`: `{ data: { minimumVersion: { ios, android } } }`, the oldest supported mobile app version per platform from `MIN_APP_VERSION_IOS` / `MIN_APP_VERSION_ANDROID` (`x.y.z`; unset or malformed → `null`, no minimum). Cached for 5 minutes (`Cache-Control: public, max-age=300, s-maxage=300`).
 - `src/routes/coach-models.ts` — public, unauthenticated `GET /v1/coach/models`: `{ data: { models: [{ id, label, description }], defaultId } }`, straight from `coachModels` and `defaultCoachModelId` in `@fitme/core` (list order; no other fields per model), so it always matches what the Coach accepts. No auth: the list isn't secret, the Coach channel does the gating. Cached for 5 minutes like `client-config`.
-- Tests (`src/__tests__/`, vitest) drive the app through `app.request`.
+- Tests (`src/__tests__/`, vitest) drive `createApp` through `app.request`, with a fake `reportError` where what gets reported matters (`app.test.ts`), so they need no Sentry.
+- `tsdown.config.ts` — source maps for the Vercel build, uploaded for the release `VERCEL_GIT_COMMIT_SHA` with `SENTRY_AUTH_TOKEN` and skipped without it, exactly as in `apps/webhooks`; `apps/api/turbo.json` hashes `VERCEL_GIT_COMMIT_SHA` into the build.
 - Deployed to Vercel (project `fitme-api`, region `cle1` in `vercel.json`) at https://api.fitmeproject.com.
 
 ### apps/webhooks — webhooks app
@@ -220,7 +222,7 @@ The design tokens (ADR 0009): the only place a token value is defined. Source-on
 
 ### packages/observability — `@fitme/observability`
 
-Errors and traces for every app (Sentry today; the vendor-neutral name leaves room for Axiom). Source-only, like `@fitme/db`. An app on it never imports `@sentry/*` for errors or traces: it goes through this package, which keeps the rules in one place. So far only `apps/webhooks` is on it; the other apps still have their own Sentry setup until their tickets (FIT-218 to FIT-224) move them.
+Errors and traces for every app (Sentry today; the vendor-neutral name leaves room for Axiom). Source-only, like `@fitme/db`. An app on it never imports `@sentry/*` for errors or traces: it goes through this package, which keeps the rules in one place. So far `apps/webhooks` and `apps/api` are on it; the other apps still have their own Sentry setup (or none) until their tickets (FIT-219 to FIT-224) move them.
 
 - `.` (`src/index.ts`) — pure, no SDK import, safe for Node, React Native and Next: `scrubEvent` (`beforeSend` / `beforeSendTransaction`: drops `Authorization`, `Proxy-Authorization`, `Cookie` and `Set-Cookie` headers, cookies and request bodies, and reduces the user to `{ id }`, the Clerk id; a user without an id is dropped), `tracePropagationTargets` (regexes: our services `api`, `app`, `coach`, `exercises`, `mcp`, `webhooks` on `fitmeproject.com`, localhost / 127.0.0.1, and same-origin relative paths; never a wildcard over `*.fitmeproject.com`, since Clerk answers on `clerk.fitmeproject.com`), and `resolveObservabilityConfig({ dsn, env })` (`environment` = `VERCEL_ENV`, `development` without it; `release` = `VERCEL_GIT_COMMIT_SHA`; traces at 0.2 in production and 1.0 otherwise; no DSN → `enabled: false`, nothing sent). Each platform passes its own DSN variable.
 - `./node` (`src/node.ts`) — `initObservability({ service })`: called once at process startup, before the app is built; without `SENTRY_DSN` it does nothing (local runs, tests, CI). Otherwise it starts `@sentry/node` with the resolved config, the scrubber, the propagation targets, a `service` tag, `traceLifecycle: "static"` (SDK 11 streams spans by default, which skips `beforeSendTransaction`) and `dataCollection` locked down (SDK 11's replacement for `sendDefaultPii: false`: no user info, cookies, bodies, credential headers, response headers, DB query data, gen-AI inputs/outputs or stack-frame variables). `reportError(error, tags?)` logs, captures and flushes (2 s) before the response, since a serverless instance may freeze afterwards; before init it only logs. `observeHono(app)` (Sentry's `honoMiddleware`, registered first with `app.use`) gives a Hono app its request spans whatever order Hono was loaded in. On Vercel the SDK also keeps the function alive until each request's spans are flushed.
@@ -321,6 +323,9 @@ Env files live next to each app.
 
 - `PORT` (default 3003)
 - `MIN_APP_VERSION_IOS`, `MIN_APP_VERSION_ANDROID` — minimum supported mobile app version (`x.y.z`) served by `GET /v1/client-config`; unset means no minimum. Set on the `fitme-api` Vercel project; a change takes effect on the API's next deployment.
+- `SENTRY_DSN` — the `fitme-api` Sentry project: unhandled errors and request traces; unset (local, tests, CI) sends nothing
+- `SENTRY_AUTH_TOKEN`, `SENTRY_ORG`, `SENTRY_PROJECT` — build time: source map upload for the release; set on Vercel by the Sentry integration; no token → the upload is skipped
+- `VERCEL_ENV`, `VERCEL_GIT_COMMIT_SHA` — set by Vercel: each event's `environment` and `release`
 
 `apps/webhooks` (see `apps/webhooks/.env.example`; read from the process environment, not auto-loaded from a file):
 

@@ -1,6 +1,8 @@
 import { coachModels, defaultCoachModelId } from "@fitme/core";
 import { describe, expect, it } from "vitest";
-import app from "../app.js";
+import { createApp } from "../create-app.js";
+
+const app = createApp();
 
 const getCoachModels = async () => {
   const response = await app.request("/v1/coach/models");

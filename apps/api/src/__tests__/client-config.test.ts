@@ -1,5 +1,7 @@
 import { afterEach, describe, expect, it, vi } from "vitest";
-import app from "../app.js";
+import { createApp } from "../create-app.js";
+
+const app = createApp();
 
 const getClientConfig = async () => {
   const response = await app.request("/v1/client-config");

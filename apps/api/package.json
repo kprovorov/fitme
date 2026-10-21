@@ -13,8 +13,10 @@
   },
   "dependencies": {
     "@fitme/core": "workspace:*",
+    "@fitme/observability": "workspace:*",
     "@hono/node-server": "^2.1.5",
     "@hono/zod-validator": "^0.9.1",
+    "@sentry/node": "^11.8.0",
     "hono": "^4.13.13",
     "zod": "4.6.7"
   },

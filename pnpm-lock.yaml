@@ -43,12 +43,18 @@ importers:
       '@fitme/core':
         specifier: workspace:*
         version: link:../../packages/core
+      '@fitme/observability':
+        specifier: workspace:*
+        version: link:../../packages/observability
       '@hono/node-server':
         specifier: ^2.1.5
         version: 2.1.5(hono@4.13.13)
       '@hono/zod-validator':
         specifier: ^0.9.1
         version: 0.9.1(hono@4.13.13)(zod@4.6.7)
+      '@sentry/node':
+        specifier: ^11.8.0
+        version: 11.8.0(@babel/core@7.29.7)(rollup@4.63.3)
       hono:
         specifier: ^4.13.13
         version: 4.13.13
