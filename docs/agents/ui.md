@@ -73,7 +73,7 @@ Every Token lives in one file, `packages/design-tokens/src/tokens.css` (`@fitme/
 - Anything else that wants a color string (`@expo/ui` SwiftUI modifiers, a navigation theme, an SVG `fill`) gets a resolved token: `useSwiftUITheme()` from `components/ui/swift-ui.tsx`, or `useResolveClassNames("text-primary").color` from `uniwind`.
 - Lime is the accent, not the paint. One lime action per Screen; everything else is `secondary` or `ghost`.
 - A new color is a new Token in `@fitme/design-tokens` (see [Tokens](#tokens)), never a literal in an app.
-- The literal `#C0FF38` and `#1F1D20` in `app/(tabs)/_layout.tsx`, `components/providers.tsx` and the workout session Screens are old debt. Don't copy them.
+- The navigation theme and the tab bar tint come from `useNavigationTheme()` (`hooks/navigation-theme.ts`): React Navigation's dark theme with `background` and `primary` read from the tokens. The brand sign (`components/brand/sign.tsx`) fills from `--color-primary`.
 
 ## Type
 
@@ -139,11 +139,28 @@ Button heights, measured from the native SwiftUI buttons on iOS 27 with our labe
 
 On iOS 27 `.large` and `.extraLarge` draw the same padding, so `lg` is taller only by its Title 3 label. Re-measure when the label fonts, the control sizes or the iOS version change: render each size in a throwaway `__DEV__` screen, log the `onLayout` height of a `View` around each Button, then update `tokens.css`, the Figma `Size` variables and this table together.
 
+## The literal check
+
+No `.tsx` file in mobile, web or site hardcodes a color or an off-scale size, and CI keeps it that way: `pnpm literal-check` (`packages/design-tokens/src/literal-check.ts`, run in the `checks` job of `.github/workflows/unit-tests.yml`) fails on any of these in a string literal, naming the file, line, column and literal, and the token it matches when there is one:
+
+- a hex color (`#c0ff38`, `#fff`, `#ffffff1a`), arbitrary properties included (`[color:#fff]`), `rgb()`, `rgba()`, `hsl()`, `hsla()`;
+- an arbitrary `text-[…]`, `leading-[…]`, `rounded-[…]` (any corner), or spacing value: `p-[…]`, `m-[…]` (every side, negatives too), `gap-[…]`, `space-x/y-[…]`, with or without a variant (`active:rounded-[10px]`).
+
+What it leaves alone, and why:
+
+- Comments, JSX text (copy like "Order #1"), URL fragments (`page#faq`) and the values of `href`, `id`, `testID` and `nativeID`: anchors and ids, not colors. It reads the code through TypeScript's parser, so only real string literals count (quoted strings, JSX attribute values, the static parts of template literals).
+- Token references: the CSS-variable shorthand in parentheses (`h-(--size-button-pill-default)`) has no brackets, and a bracket that holds only a variable (`[var(--x)]`, `[--x]`) names a token, not a value.
+- Other arbitrary utilities (`w-[…]`, `h-[…]`, `max-w-[80%]`, `grid-cols-[…]`, `ring-[…]`): sizes the scales don't cover; prefer a numeric step where one fits.
+- Tests (`__tests__/`, `*.test.tsx`), native projects and build output: fixtures and generated code, not UI. `.ts` files aren't read either, so a color constant in one isn't caught: native props read the tokens through `useCSSVariable` or `useResolveClassNames` instead (see [Color](#color)), never a TypeScript copy.
+- Named colors (`"white"`) and Tailwind's default palette (`text-blue-400`) aren't caught; they're still not tokens, so don't use them.
+
+**Allowlist.** `ALLOWLIST` in `literal-check.ts` exempts a whole file, with a reason each. It is empty: every literal found when the check landed moved to a token (FIT-202), the syntax theme of `components/markdown/code-block.tsx` is imported from `react-syntax-highlighter` rather than written out, and the brand sign is the only brand artwork with a fill. An entry is for a color or size that genuinely can't be a token (third-party artwork with its own colors, a vendored syntax theme), never for a value that just hasn't moved yet. An entry whose file has no literal left fails the check, so the list can't go stale.
+
 ## Spacing and layout
 
 - Screen gutters and gaps between sections use the spacing Tokens: `xs` 8, `sm` 16, `md` 24, `lg` 32 (`px-md`, `gap-md`, `p-md`).
 - Corners use the radius Tokens: Tailwind's default scale (`rounded-xs` 2, `-sm` 4, `-md` 6, `-lg` 8, `-xl` 12, `-2xl` 16, `-3xl` 24, `-4xl` 32), with no per-app overrides, plus `rounded-card` 16 for cards.
-- Inside a component, use Tailwind's numeric steps (`gap-2`, `px-3`, `py-2`). Never an arbitrary value (`p-[13px]`, `rounded-[10px]`).
+- Inside a component, use Tailwind's numeric steps (`gap-2`, `px-3`, `py-2`). Never an arbitrary value (`p-[13px]`, `rounded-[10px]`). A token the scale doesn't name is referenced by its variable, in parentheses: `h-(--size-button-pill-default)`.
 - The spacing Tokens shadow Tailwind's named sizes: `max-w-md` is 24 px here, not 28 rem. Use the numeric step (`max-w-112`, `max-w-80`).
 - `VStack` and `HStack` default to `items-center justify-center gap-4`. Centered is right for empty states and single-message Screens and wrong for content: lists, cards and forms pass `items-stretch` (or `items-start`). Everything ending up centered is the most common way generated UI looks off.
 - Rows in a list are divided by `Separator` or `border-border border-b`, not wrapped in a card each. Never nest a `Card` in a `Card`.
@@ -206,8 +223,8 @@ Load `animate-expo` for anything that moves; it holds the springs, curves and re
 Copy patterns from these:
 
 - `components/views/workout-session-summary-view.tsx`: spacing tokens, stretched stacks, `Separator` between rows, a pill call to action with an SF Symbol.
-- `components/views/workout-session-view.tsx`: a `Card` per exercise (each holds its own sets table, so they aren't rows of one list), a `pageSheet` picker. Its `backdropColor="#1F1D20"` should be `backdropColorClassName="accent-background"`.
-- `app/(tabs)/home/index.tsx`: a native header with an SF Symbol menu, pull to refresh, the empty state. Its `ActivityIndicator color="#ffffff"` should be `colorClassName="accent-foreground"`, and its `<Text>` button child is the older form.
+- `components/views/workout-session-view.tsx`: a `Card` per exercise (each holds its own sets table, so they aren't rows of one list), a `pageSheet` picker.
+- `app/(tabs)/(home)/index.tsx`: a native header with an SF Symbol menu, pull to refresh, the empty state. Its `<Text>` button child is the older form.
 - `components/chat/conversation.tsx`: a `LegendList`.
 
 ## Skills

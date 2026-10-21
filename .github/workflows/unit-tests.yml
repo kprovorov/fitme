@@ -47,5 +47,8 @@ jobs:
       - name: Lint and format (ultracite)
         run: pnpm check
 
+      - name: No color literals or arbitrary sizes (design tokens)
+        run: pnpm literal-check
+
       - name: Typecheck
         run: pnpm typecheck
