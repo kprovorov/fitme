@@ -24,10 +24,7 @@ export function Message({
         style={{ borderCurve: "continuous" }}
       >
         {typeof children === "string" ? (
-          <Text
-            className="text-black text-body leading-5.5 dark:text-black"
-            selectable
-          >
+          <Text className="text-black text-body dark:text-black" selectable>
             {children}
           </Text>
         ) : (

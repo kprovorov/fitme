@@ -90,7 +90,7 @@ export default function WorkoutSessionExerciseCard({
         >
           <ExerciseImage exercise={exercise} radius={10} size={50} />
           <View className={stacked ? "gap-1" : "flex-1 gap-1"}>
-            <Text className="font-nunito-sans-bold text-body">
+            <Text className="text-body-emphasized">
               {exercise.name}
             </Text>
             {exercise.muscle_groups.length > 0 && (

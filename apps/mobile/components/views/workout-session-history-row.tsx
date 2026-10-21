@@ -44,7 +44,7 @@ export default function WorkoutSessionHistoryRow({
   return (
     <View className="flex-row items-center gap-3 py-3.5 pr-3 pl-sm">
       <View className="flex-1 gap-0.5">
-        <Text className="font-nunito-sans-semibold text-body">
+        <Text className="text-body-emphasized">
           {workoutSession.workout?.name ?? "Workout"}
         </Text>
         <Text className="text-muted-foreground text-subhead">
@@ -57,9 +57,7 @@ export default function WorkoutSessionHistoryRow({
         accessible
         className="rounded-lg border-continuous bg-foreground/10 px-2 py-0.5"
       >
-        <Text className="font-ibm-plex-mono-semibold text-footnote">
-          {duration}
-        </Text>
+        <Text className="text-mono-footnote-semibold">{duration}</Text>
       </View>
       <SymbolImage
         className="text-muted-foreground/60"

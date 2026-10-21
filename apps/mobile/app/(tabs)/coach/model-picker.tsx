@@ -36,8 +36,10 @@ function ModelRow({
       onPress={handlePress}
     >
       <View className="flex-1">
-        <Text className="text-[17px] text-foreground">{label}</Text>
-        <Text className="text-[13px] text-muted-foreground">{description}</Text>
+        <Text className="text-body text-foreground">{label}</Text>
+        <Text className="text-footnote text-muted-foreground">
+          {description}
+        </Text>
       </View>
       {selected ? (
         <Icon className="h-5 w-5 text-foreground" icon={Check} />
@@ -55,7 +57,7 @@ function NoModels({ isLoading }: { isLoading: boolean }) {
     );
   }
   return (
-    <Text className="px-5 py-3.5 text-[15px] text-muted-foreground">
+    <Text className="px-5 py-3.5 text-muted-foreground text-subhead">
       Models aren't available right now. Your messages use the Coach's default
       model.
     </Text>
@@ -86,7 +88,7 @@ export default function ModelPickerSheet() {
     >
       <AndroidGrabber />
       <View className="pt-2 pb-4">
-        <Text className="px-5 pb-2 text-[13px] text-muted-foreground">
+        <Text className="px-5 pb-2 text-footnote text-muted-foreground">
           Applies to your next message
         </Text>
         {models ? (

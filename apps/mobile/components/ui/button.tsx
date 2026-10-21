@@ -98,14 +98,14 @@ const SWIFT_UI_CONTROL_SIZE: Record<
 /** Icon buttons hug their glyph; every other size spans the width it's given. */
 const ICON_SIZES: ButtonSize[] = ["icon", "icon-sm", "icon-xs"];
 
-/** Brand type scale per size, mirroring the previous NativeWind text variants. */
+/** Each size's label in the Emphasized HIG text style. */
 const LABEL_FONT_CLASS: Record<ButtonSize, string> = {
-  default: "font-nunito-sans-bold text-body",
-  icon: "font-nunito-sans-bold text-body",
-  "icon-sm": "font-nunito-sans-bold text-subhead",
-  "icon-xs": "font-nunito-sans-bold text-footnote",
-  lg: "font-nunito-sans-bold text-title-3",
-  sm: "font-nunito-sans-bold text-subhead",
+  default: "text-body-emphasized",
+  icon: "text-body-emphasized",
+  "icon-sm": "text-subhead-emphasized",
+  "icon-xs": "text-footnote-emphasized",
+  lg: "text-title-3-emphasized",
+  sm: "text-subhead-emphasized",
 };
 
 /** Glyph point sizes for icon-only buttons. */

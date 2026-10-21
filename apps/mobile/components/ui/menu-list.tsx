@@ -49,7 +49,7 @@ const MenuListItem = ({
         : null;
 
   return (
-    <TextClassContext.Provider value="web:pointer-events-none font-nunito-sans-regular">
+    <TextClassContext.Provider value="web:pointer-events-none">
       <Pressable
         className={cn(
           "flex-1 flex-row items-center justify-between gap-2 p-4 active:bg-accent",

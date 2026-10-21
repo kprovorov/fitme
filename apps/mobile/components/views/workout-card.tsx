@@ -115,13 +115,13 @@ export default function WorkoutCard({
             <Pressable className="flex-row items-center justify-between rounded-xl border-continuous bg-primary px-3 py-2 active:opacity-80">
               <HStack className="flex-1 justify-start gap-1">
                 <Timer className="text-primary-foreground" size={16} />
-                <Text className="font-nunito-sans-bold text-primary-foreground text-subhead">
+                <Text className="text-primary-foreground text-subhead-emphasized">
                   {elapsedTime}
                 </Text>
               </HStack>
 
               <HStack className="gap-1">
-                <Text className="font-nunito-sans-bold text-primary-foreground text-subhead">
+                <Text className="text-primary-foreground text-subhead-emphasized">
                   To Workout
                 </Text>
                 <ArrowRight className="text-primary-foreground" size={16} />
@@ -131,13 +131,13 @@ export default function WorkoutCard({
         )}
         <Pressable onPress={toggleOpen}>
           <VStack className="w-full flex-shrink items-stretch gap-4">
-            <H4 className="font-nunito-sans-bold text-primary">
+            <H4 className="text-primary">
               {workout.name}
             </H4>
             <HStack className="justify-start">
               <HStack className="gap-1">
                 <Zap color="#808080" size={16} />
-                <Text className="font-nunito-sans-bold text-subhead">
+                <Text className="text-subhead-emphasized">
                   {workout.exercises.length} Exercises
                 </Text>
               </HStack>
@@ -165,8 +165,8 @@ export default function WorkoutCard({
                       <HStack className="gap-2">
                         <ExerciseImage exercise={exercise.exercise} />
                         {isOpen ? (
-                          <Text className="font-bold text-footnote">
-                            <Text className="font-bold text-footnote text-primary">
+                          <Text className="text-footnote-emphasized">
+                            <Text className="text-footnote-emphasized text-primary">
                               {exercise.sets.length} x{" "}
                             </Text>
                             {exercise.exercise.name}

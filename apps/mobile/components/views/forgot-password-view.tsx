@@ -43,15 +43,18 @@ export default function ForgotPasswordView() {
     <VStack className="w-full gap-4">
       <VStack className="gap-0">
         <H3>Forgot password?</H3>
-        <Text className="font-nunito-sans-bold text-md text-muted-foreground">
+        <Text className="text-muted-foreground text-subhead-emphasized">
           Enter your email and we&apos;ll send you a code to reset it.
         </Text>
       </VStack>
       {errorMessage ? <ErrorMessage>{errorMessage}</ErrorMessage> : null}
       <ForgotPasswordForm onSubmit={handleSubmit} />
-      <Text className="font-nunito-sans-bold text-subhead">
+      <Text className="text-subhead-emphasized">
         Remember your password?{" "}
-        <Link className="font-nunito-sans-bold text-primary" href="/auth/login">
+        <Link
+          className="text-primary text-subhead-emphasized"
+          href="/auth/login"
+        >
           Login here
         </Link>
       </Text>

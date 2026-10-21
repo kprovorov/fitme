@@ -85,7 +85,7 @@ const AccordionTrigger = ({
   }));
 
   return (
-    <TextClassContext.Provider value="native:text-title-3 font-medium web:group-hover:underline">
+    <TextClassContext.Provider value="native:text-title-3 web:group-hover:underline">
       <AccordionPrimitive.Header className="flex">
         <AccordionPrimitive.Trigger ref={ref} {...props} asChild>
           <Trigger

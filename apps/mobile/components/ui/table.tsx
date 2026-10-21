@@ -58,10 +58,7 @@ function TableFooter({
 }) {
   return (
     <TablePrimitive.Footer
-      className={cn(
-        "bg-muted/50 font-medium [&>tr]:last:border-b-0",
-        className
-      )}
+      className={cn("bg-muted/50 [&>tr]:last:border-b-0", className)}
       {...props}
     />
   );
@@ -91,7 +88,7 @@ function TableHead({
   ref?: React.RefObject<TablePrimitive.HeadRef>;
 }) {
   return (
-    <TextClassContext.Provider value="text-primary font-nunito-sans-bold uppercase">
+    <TextClassContext.Provider value="text-primary text-body-emphasized uppercase">
       <TablePrimitive.Head
         className={cn(
           "h-12 justify-center px-4 text-left [&:has([role=checkbox])]:pr-0",

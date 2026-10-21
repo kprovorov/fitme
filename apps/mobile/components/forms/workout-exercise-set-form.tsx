@@ -74,7 +74,7 @@ const CELL_CLASS =
 
 const INPUT_CLASS = cn(
   CELL_CLASS,
-  "native:h-10 px-1 text-center font-ibm-plex-mono text-subhead"
+  "native:h-10 px-1 text-center text-mono-subhead"
 );
 
 /** Width of the check column; the table's header lines up with it. */
@@ -85,7 +85,7 @@ function LoggedValue({ value }: { value?: string }) {
   return (
     <View className={cn(CELL_CLASS, "items-center justify-center")}>
       <Text
-        className="font-ibm-plex-mono text-foreground text-subhead"
+        className="text-foreground text-mono-subhead"
         maxFontSizeMultiplier={SET_TABLE_MAX_FONT_SCALE}
         numberOfLines={1}
       >

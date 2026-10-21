@@ -78,7 +78,7 @@ function DrawerChatItem({
     >
       <Text
         className={cn(
-          "text-[15px]",
+          "text-subhead",
           active
             ? "text-foreground dark:text-foreground"
             : "text-muted-foreground dark:text-muted-foreground"
@@ -122,7 +122,7 @@ export function DrawerContent({
     >
       {/* Header */}
       <View className="px-4 pt-2 pb-3">
-        <Text className="font-bold text-[28px] text-foreground dark:text-foreground">
+        <Text className="text-foreground text-title-1-emphasized dark:text-foreground">
           Chat
         </Text>
       </View>
@@ -136,7 +136,7 @@ export function DrawerContent({
         <DrawerNavItem label="Settings" onPress={openSettings} />
 
         {/* Recents */}
-        <Text className="px-6 pt-5 pb-1.5 font-semibold text-[13px] text-muted-foreground dark:text-muted-foreground">
+        <Text className="px-6 pt-5 pb-1.5 text-footnote-emphasized text-muted-foreground dark:text-muted-foreground">
           Recents
         </Text>
         {MOCK_CHATS.map((chat) => (
@@ -159,7 +159,7 @@ export function DrawerContent({
           onPress={openSettingsModal}
         >
           <View className="h-8 w-8 items-center justify-center rounded-full bg-muted dark:bg-muted">
-            <Text className="font-semibold text-[13px] text-foreground dark:text-foreground">
+            <Text className="text-footnote-emphasized text-foreground dark:text-foreground">
               EB
             </Text>
           </View>

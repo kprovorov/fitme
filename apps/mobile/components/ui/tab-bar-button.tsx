@@ -21,7 +21,7 @@ export const TabBarButton = ({
   <Pressable ref={ref} {...props} onPressIn={triggerHaptics}>
     <VStack className="w-12 items-center justify-center gap-1">
       {props.renderIcon({ isFocused: props.isFocused ?? false })}
-      <Text className="font-nunito-sans-bold text-footnote text-white">
+      <Text className="text-footnote-emphasized text-white">
         {props.children}
       </Text>
     </VStack>

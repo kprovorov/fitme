@@ -30,7 +30,7 @@ export default function UpdateRequiredView() {
   return (
     <VStack className="flex-1 items-center justify-center gap-4 bg-background p-lg">
       <H3 className="text-center">Update required</H3>
-      <Text className="text-center font-nunito-sans-semibold text-muted-foreground">
+      <Text className="text-center text-body-emphasized text-muted-foreground">
         This version of Fitme is no longer supported. Update the app to keep
         training.
       </Text>

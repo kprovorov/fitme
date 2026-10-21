@@ -66,7 +66,7 @@ export default function WorkoutSessionSummaryView({
 
   return (
     <VStack className="w-full items-stretch gap-md">
-      <Text className="text-center font-nunito-sans-semibold text-primary text-title-1">
+      <Text className="text-center text-primary text-title-1-emphasized">
         Workout Complete!
       </Text>
 

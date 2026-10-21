@@ -59,12 +59,7 @@ export default function WorkoutSessionScreen({
                 stacked ? "items-start gap-sm" : "flex-row items-center gap-sm"
               }
             >
-              <H4
-                className={cn(
-                  "font-nunito-sans-bold text-primary",
-                  !stacked && "flex-1"
-                )}
-              >
+              <H4 className={cn("text-primary", !stacked && "flex-1")}>
                 {workoutSession.workout?.name}
               </H4>
               {canFinish ? (

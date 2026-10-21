@@ -49,7 +49,7 @@ export default function ExerciseGuideScreen() {
           ) : null}
           {steps.map((step, index) => (
             <View className="flex-row gap-3" key={step}>
-              <Text className="w-6 font-ibm-plex-mono-semibold text-body text-primary">
+              <Text className="w-6 text-mono-body-semibold text-primary">
                 {index + 1}
               </Text>
               <Text className="flex-1 text-body">{step}</Text>

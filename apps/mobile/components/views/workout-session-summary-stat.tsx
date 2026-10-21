@@ -20,9 +20,7 @@ export default function WorkoutSessionSummaryStat({
         <SymbolImage name={icon} size={12} tintColor="#a1a1a1" />
         <Text className="text-footnote text-muted-foreground">{title}</Text>
       </HStack>
-      <Text className="font-nunito-sans-bold text-foreground text-title-1">
-        {value}
-      </Text>
+      <Text className="text-foreground text-title-1-emphasized">{value}</Text>
     </VStack>
   );
 }

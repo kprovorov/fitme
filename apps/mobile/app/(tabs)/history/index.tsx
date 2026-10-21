@@ -63,7 +63,7 @@ function MonthSection({ month }: { month: Month }) {
       <View className="flex-row items-baseline gap-2 px-1">
         <Text
           accessibilityRole="header"
-          className="flex-1 font-nunito-sans-bold text-subhead"
+          className="flex-1 text-subhead-emphasized"
         >
           {month.title}
         </Text>

@@ -60,18 +60,18 @@ export default function RegisterView() {
     <VStack className="w-full gap-4">
       <VStack className="gap-0">
         <H3>Welcome to Fitme!</H3>
-        <Text className="font-nunito-sans-bold text-md text-muted-foreground">
+        <Text className="text-muted-foreground text-subhead-emphasized">
           Create an account to get started
         </Text>
       </VStack>
       {errorMessage ? <ErrorMessage>{errorMessage}</ErrorMessage> : null}
       <RegisterForm onSubmit={handleSubmit} />
       <View className="flex-row items-center">
-        <Text className="font-nunito-sans-bold text-subhead">
+        <Text className="text-subhead-emphasized">
           Already have an account?{" "}
         </Text>
         <Pressable onPress={goToLogin} testID="login-here-link">
-          <Text className="font-nunito-sans-bold text-primary text-subhead">
+          <Text className="text-primary text-subhead-emphasized">
             Login here
           </Text>
         </Pressable>

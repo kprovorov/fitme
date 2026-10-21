@@ -55,9 +55,9 @@ export function useSwiftUITheme() {
 }
 
 /**
- * Resolves a Tailwind font utility pair (family + size) into the shape
- * SwiftUI's `font` modifier wants, so native controls stay on the brand type
- * scale defined in `global.css`.
+ * Resolves a text style utility (`text-body-emphasized`) into the family and
+ * size SwiftUI's `font` modifier wants, so native controls use the same type
+ * scale as the rest of the app (`@fitme/design-tokens`).
  */
 export function useSwiftUIFont(className: string) {
   const style = useResolveClassNames(className);

@@ -32,7 +32,7 @@ function AttachmentButton({
         className="h-6 w-6 text-foreground dark:text-foreground"
         icon={icon}
       />
-      <Text className="text-[13px] text-foreground dark:text-foreground">
+      <Text className="text-footnote text-foreground dark:text-foreground">
         {label}
       </Text>
     </Pressable>
@@ -58,12 +58,12 @@ function ToggleRow({
         className="h-5 w-5 text-foreground dark:text-foreground"
         icon={icon}
       />
-      <Text className="flex-1 text-[17px] text-foreground dark:text-foreground">
+      <Text className="flex-1 text-body text-foreground dark:text-foreground">
         {label}
       </Text>
       {badge ? (
         <View className="rounded bg-muted px-1.5 py-0.5 dark:bg-muted">
-          <Text className="font-medium text-[11px] text-muted-foreground dark:text-muted-foreground">
+          <Text className="text-caption-2-emphasized text-muted-foreground dark:text-muted-foreground">
             {badge}
           </Text>
         </View>
@@ -93,10 +93,10 @@ function DisclosureRow({
         className="h-5 w-5 text-foreground dark:text-foreground"
         icon={icon}
       />
-      <Text className="flex-1 text-[17px] text-foreground dark:text-foreground">
+      <Text className="flex-1 text-body text-foreground dark:text-foreground">
         {label}
       </Text>
-      <Text className="text-[15px] text-muted-foreground dark:text-muted-foreground">
+      <Text className="text-muted-foreground text-subhead dark:text-muted-foreground">
         {detail}
       </Text>
       <Icon

@@ -44,7 +44,7 @@ function ColumnLabel({
     <Text
       adjustsFontSizeToFit
       className={cn(
-        "text-center font-ibm-plex-mono-semibold text-caption-1 text-primary",
+        "text-center text-mono-caption-1-semibold text-primary",
         className
       )}
       maxFontSizeMultiplier={SET_TABLE_MAX_FONT_SCALE}

@@ -164,7 +164,7 @@ export function PromptInputTextarea({
 
   return (
     <TextInput
-      className="max-h-25 flex-1 py-3 pr-2 pl-4 text-foreground dark:text-foreground"
+      className="max-h-25 flex-1 py-3 pr-2 pl-4 text-callout text-foreground dark:text-foreground"
       cursorColor={foreground}
       maxLength={maxLength}
       multiline
@@ -173,7 +173,6 @@ export function PromptInputTextarea({
       placeholder={placeholder}
       ref={inputRef}
       selectionColor={foreground}
-      style={{ fontSize: 16 }}
       value={input}
     />
   );

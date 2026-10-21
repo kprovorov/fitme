@@ -41,7 +41,7 @@ function Stat({
       <Text className="text-caption-1 text-muted-foreground">{label}</Text>
       <Text
         adjustsFontSizeToFit
-        className="font-ibm-plex-mono-semibold text-body"
+        className="text-mono-body-semibold"
         numberOfLines={1}
       >
         {value}
