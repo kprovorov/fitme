@@ -12,6 +12,7 @@ import { router, Stack } from "expo-router";
 import React, { useCallback } from "react";
 import {
   Controller,
+  type ControllerFieldState,
   type ControllerRenderProps,
   useForm,
 } from "react-hook-form";
@@ -81,6 +82,7 @@ const frequencyOptions = [1, 2, 3, 4, 5, 6, 7];
 
 interface PlanFieldProps<TName extends keyof PlanFormValues> {
   field: ControllerRenderProps<PlanFormValues, TName>;
+  fieldState: ControllerFieldState;
 }
 
 function renderGoalField({
@@ -180,10 +182,12 @@ function renderFrequencyField({
 
 function renderNoteField({
   field: { onChange, value },
+  fieldState: { error },
 }: PlanFieldProps<"note">) {
   return (
     <Textarea
       className="h-48"
+      error={error?.message}
       onChangeText={onChange}
       placeholder="e.g. I want to pay more attention to my abs"
       value={value}
@@ -325,9 +329,6 @@ export default function PlannerScreen() {
               name="note"
               render={renderNoteField}
             />
-            {form.formState.errors.note ? (
-              <ErrorMessage>{form.formState.errors.note.message}</ErrorMessage>
-            ) : null}
 
             <VStack className="items-stretch gap-2">
               <Button

@@ -38,6 +38,31 @@ describe("Input", () => {
     expect(screen.queryByRole("alert")).toBeNull();
   });
 
+  it("draws the ring stroke while focused, and the destructive one over it with an error", async () => {
+    const { rerender } = await render(<Input placeholder="Email" />);
+    await fireEvent(screen.getByPlaceholderText("Email"), "focus");
+    expect(screen.getByPlaceholderText("Email").props.className).toContain(
+      "border-ring"
+    );
+
+    await rerender(<Input error="Invalid email" placeholder="Email" />);
+    const field = screen.getByPlaceholderText("Email");
+    expect(field.props.className).toContain("border-destructive");
+    expect(field.props.className).not.toContain("border-ring");
+  });
+
+  it("dims a field that isn't editable", async () => {
+    const { rerender } = await render(<Input placeholder="Email" />);
+    expect(screen.getByPlaceholderText("Email").props.className).not.toContain(
+      "opacity-50"
+    );
+
+    await rerender(<Input editable={false} placeholder="Email" />);
+    expect(screen.getByPlaceholderText("Email").props.className).toContain(
+      "opacity-50"
+    );
+  });
+
   it("still calls the caller's focus handlers", async () => {
     const onFocus = jest.fn();
     const onBlur = jest.fn();
