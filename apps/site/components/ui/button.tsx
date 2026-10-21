@@ -76,13 +76,22 @@ type ButtonBaseProps = Omit<ComponentProps<"button">, "children"> & {
   variant?: ButtonVariant;
 };
 
-type PillButtonProps = ButtonBaseProps & {
-  /** Render a link with Button styling; keep its native link semantics. */
-  asChild?: boolean;
-  children: Exclude<ReactNode, null | undefined | boolean>;
+type PillBaseProps = ButtonBaseProps & {
   icon?: ButtonIcon;
   iconPosition?: ButtonIconPosition;
   shape?: "pill";
+};
+
+type PillButtonProps = PillBaseProps & {
+  asChild?: false;
+  children: Exclude<ReactNode, null | undefined | boolean>;
+};
+
+/** Render a link with Button styling; keep its native link semantics. */
+type ChildButtonProps = Omit<PillBaseProps, "disabled"> & {
+  asChild: true;
+  children: ReactElement;
+  disabled?: never;
 };
 
 type CircleButtonProps = ButtonBaseProps & {
@@ -94,7 +103,7 @@ type CircleButtonProps = ButtonBaseProps & {
   shape: "circle";
 };
 
-type ButtonProps = PillButtonProps | CircleButtonProps;
+type ButtonProps = PillButtonProps | ChildButtonProps | CircleButtonProps;
 
 function Button({
   asChild = false,
@@ -123,7 +132,7 @@ function Button({
 
   return (
     <Comp
-      className={cn(buttonVariants({ shape, size, variant }), className)}
+      className={cn(className, buttonVariants({ shape, size, variant }))}
       type={asChild ? undefined : (type ?? "button")}
       {...props}
     >
@@ -141,7 +150,8 @@ export type {
   ButtonShape,
   ButtonSize,
   ButtonVariant,
+  ChildButtonProps,
   CircleButtonProps,
   PillButtonProps,
 };
-export { Button, buttonVariants };
+export { Button };

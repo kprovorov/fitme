@@ -28,6 +28,14 @@ export function buttonTypecheckCases() {
   ];
 
   const invalid = [
+    // @ts-expect-error Slot requires an element to clone.
+    <Button asChild key="invalid-child">
+      Text
+    </Button>,
+    // @ts-expect-error A composed link cannot be disabled.
+    <Button asChild disabled key="invalid-disabled-link">
+      <a href="/support">Support</a>
+    </Button>,
     // @ts-expect-error FIT-209 removes outline.
     <Button key="invalid-1" variant="outline">
       Continue
