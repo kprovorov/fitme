@@ -33,15 +33,7 @@ function ExerciseCtaButton({
 }: ExerciseCtaButtonProps) {
   const handlePress = useCallback(() => onPress(exercise), [exercise, onPress]);
 
-  return (
-    <Button
-      fill={false}
-      label={label}
-      onPress={handlePress}
-      shape="pill"
-      size="sm"
-    />
-  );
+  return <Button fill={false} label={label} onPress={handlePress} size="sm" />;
 }
 
 export default function WorkoutSessionView({
@@ -180,10 +172,10 @@ export default function WorkoutSessionView({
           <VStack className="flex-1 items-stretch bg-background p-md">
             <HStack className="justify-end">
               <Button
+                accessibilityLabel="Close"
+                icon="xmark"
                 onPress={handleCloseModal}
-                shape="pill"
-                size="icon-sm"
-                systemImage="xmark"
+                shape="circle"
                 variant="ghost"
               />
             </HStack>
@@ -220,10 +212,9 @@ export default function WorkoutSessionView({
           ))}
         {!workoutSession.finished_at && (
           <Button
+            icon="plus"
             label="Add Exercise"
             onPress={openModal}
-            shape="pill"
-            systemImage="plus"
             variant="secondary"
           />
         )}

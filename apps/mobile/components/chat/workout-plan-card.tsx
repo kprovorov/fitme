@@ -239,7 +239,6 @@ export function WorkoutPlanCard({ plan }: { plan: WorkoutPlan }) {
           isLoading={isSaving}
           label={saved ? "Plan Saved" : "Save Plan"}
           onPress={handleSave}
-          shape="pill"
         />
       </View>
     </Animated.View>

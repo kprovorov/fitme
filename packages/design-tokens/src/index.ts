@@ -1,7 +1,13 @@
 import { readFileSync } from "node:fs";
 
 /** The kind of design value a token holds, from its CSS variable prefix. */
-export type TokenKind = "color" | "text" | "spacing" | "radius" | "font";
+export type TokenKind =
+  | "color"
+  | "text"
+  | "spacing"
+  | "radius"
+  | "size"
+  | "font";
 
 /** One custom property of the `@theme` block in `tokens.css`. */
 export interface Token {
@@ -30,6 +36,7 @@ const KINDS: readonly TokenKind[] = [
   "text",
   "spacing",
   "radius",
+  "size",
   "font",
 ];
 

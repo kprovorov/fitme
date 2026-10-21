@@ -78,7 +78,7 @@ const INPUT_CLASS = cn(
 );
 
 /** Width of the check column; the table's header lines up with it. */
-export const SET_CHECK_COLUMN_CLASS = "w-9 items-center";
+export const SET_CHECK_COLUMN_CLASS = "w-12 items-center";
 
 /** A logged value, shown in place of its input until the set is edited. */
 function LoggedValue({ value }: { value?: string }) {
@@ -237,10 +237,9 @@ export default function WorkoutSessionExerciseSetForm({
               accessibilityHint="Opens the set for editing"
               accessibilityLabel={`Edit set ${setIndex}`}
               contentColorClassName="text-primary"
+              icon="checkmark"
               onPress={startEditing}
-              shape="pill"
-              size="icon-sm"
-              systemImage="checkmark"
+              shape="circle"
               testID={`edit-set-button-${setIndex}`}
               variant="secondary"
             />
@@ -249,10 +248,9 @@ export default function WorkoutSessionExerciseSetForm({
               accessibilityLabel={`Log set ${setIndex}`}
               contentColorClassName="text-muted-foreground"
               disabled={disabled}
+              icon="checkmark"
               onPress={submit}
-              shape="pill"
-              size="icon-sm"
-              systemImage="checkmark"
+              shape="circle"
               testID={`log-set-button-${setIndex}`}
               variant="secondary"
             />

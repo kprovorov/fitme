@@ -1,13 +1,18 @@
 import { Stack } from "expo-router";
-import { Linking, ScrollView } from "react-native";
+import { Linking, ScrollView, View } from "react-native";
 import Instagram from "~/components/icons/social/instagram";
 import Threads from "~/components/icons/social/threads";
 import X from "~/components/icons/social/x";
 import { Button } from "~/components/ui/button";
 import { HStack } from "~/components/ui/hstack";
-import { Text } from "~/components/ui/text";
 import { P } from "~/components/ui/typography";
 import { VStack } from "~/components/ui/vstack";
+
+/**
+ * A 16 pt logo in a 44 pt-wide tap target (the ghost Button gives the
+ * height), aligned with the text above it.
+ */
+const LOGO_TARGET_CLASS = "w-11 items-start";
 
 const openSupportEmail = () =>
   Linking.openURL("mailto:support@fitmeproject.com");
@@ -42,18 +47,35 @@ export default function SupportScreen() {
             Feel free to contact us at any time if you have any questions or
             feedback
           </P>
-          <Button className="h-8 p-0" onPress={openSupportEmail} variant="link">
-            <Text>support@fitmeproject.com</Text>
-          </Button>
-          <HStack>
-            <Button className="h-8 p-0" onPress={openX} variant="link">
-              <X fill="#C0FF38" height={16} width={16} />
+          <Button
+            contentColorClassName="text-primary"
+            label="support@fitmeproject.com"
+            onPress={openSupportEmail}
+            variant="ghost"
+          />
+          <HStack className="gap-0">
+            <Button accessibilityLabel="X" onPress={openX} variant="ghost">
+              <View className={LOGO_TARGET_CLASS}>
+                <X fill="#C0FF38" height={16} width={16} />
+              </View>
             </Button>
-            <Button className="h-8 p-0" onPress={openInstagram} variant="link">
-              <Instagram fill="#C0FF38" height={16} width={16} />
+            <Button
+              accessibilityLabel="Instagram"
+              onPress={openInstagram}
+              variant="ghost"
+            >
+              <View className={LOGO_TARGET_CLASS}>
+                <Instagram fill="#C0FF38" height={16} width={16} />
+              </View>
             </Button>
-            <Button className="h-8 p-0" onPress={openThreads} variant="link">
-              <Threads fill="#C0FF38" height={16} width={16} />
+            <Button
+              accessibilityLabel="Threads"
+              onPress={openThreads}
+              variant="ghost"
+            >
+              <View className={LOGO_TARGET_CLASS}>
+                <Threads fill="#C0FF38" height={16} width={16} />
+              </View>
             </Button>
           </HStack>
         </VStack>

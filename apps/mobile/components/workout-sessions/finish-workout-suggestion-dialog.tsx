@@ -132,10 +132,9 @@ const FinishWorkoutSuggestionDialog = ({
           accessibilityHint="Closes this suggestion and keeps the workout going"
           accessibilityLabel="Close"
           disabled={finishBusy}
+          icon="xmark"
           onPress={handleKeepTraining}
-          shape="pill"
-          size="icon-sm"
-          systemImage="xmark"
+          shape="circle"
           testID="finish-workout-suggestion-close"
           variant="ghost"
         />
@@ -153,7 +152,6 @@ const FinishWorkoutSuggestionDialog = ({
           isLoading={finishBusy}
           label="Finish Workout"
           onPress={handleFinish}
-          shape="pill"
           testID="finish-workout-suggestion-finish"
         />
         <Button
@@ -162,7 +160,6 @@ const FinishWorkoutSuggestionDialog = ({
           disabled={finishBusy}
           label="Keep Training"
           onPress={handleKeepTraining}
-          shape="pill"
           testID="finish-workout-suggestion-keep-training"
           variant="secondary"
         />

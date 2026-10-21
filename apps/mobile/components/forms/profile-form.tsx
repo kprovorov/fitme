@@ -346,10 +346,11 @@ export default function ProfileForm({
         style={{ paddingBottom: Math.max(24, insets.bottom) }}
       >
         <Button
+          icon={submitSystemImage}
+          iconPosition="trailing"
           isLoading={isFormSubmitting}
           label={submitLabel}
           onPress={form.handleSubmit(onSubmit)}
-          systemImage={submitSystemImage}
           testID={submitTestID}
         />
       </VStack>

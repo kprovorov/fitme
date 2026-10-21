@@ -68,7 +68,6 @@ export default function ExerciseGuideScreen() {
             fill={false}
             label="Try Again"
             onPress={retry}
-            shape="pill"
             variant="secondary"
           />
         </View>

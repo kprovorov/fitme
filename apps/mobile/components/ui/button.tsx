@@ -13,15 +13,15 @@ import {
   accessibilityHint as accessibilityHintModifier,
   accessibilityLabel as accessibilityLabelModifier,
   background,
+  buttonBorderShape,
   buttonStyle,
-  clipShape,
+  contentShape,
   controlSize,
   disabled as disabledModifier,
   fixedSize,
   font,
   foregroundStyle,
   frame,
-  glassEffect,
   opacity,
   shapes,
   tint,
@@ -36,23 +36,20 @@ import {
   FILL,
   GLASS_ENABLED,
   isStretchClassName,
+  NATIVE_CIRCLE_ENABLED,
   SwiftUIHost,
   useSwiftUIFont,
   useSwiftUITheme,
 } from "~/components/ui/swift-ui";
 import { cn } from "~/lib/utils";
 
-type ButtonVariant =
-  | "default"
-  | "destructive"
-  | "outline"
-  | "secondary"
-  | "ghost"
-  | "link";
+type ButtonVariant = "default" | "secondary" | "destructive" | "ghost";
 
-type ButtonSize = "sm" | "default" | "lg" | "icon" | "icon-sm" | "icon-xs";
+type ButtonSize = "sm" | "default" | "lg";
 
-type ButtonShape = "pill" | "default";
+type ButtonShape = "pill" | "circle";
+
+type ButtonIconPosition = "leading" | "trailing";
 
 type SwiftUIButtonStyle =
   | "borderedProminent"
@@ -66,8 +63,6 @@ const GLASS_BUTTON_STYLE: Record<ButtonVariant, SwiftUIButtonStyle> = {
   default: "glassProminent",
   destructive: "glassProminent",
   ghost: "plain",
-  link: "plain",
-  outline: "glass",
   secondary: "glass",
 };
 
@@ -76,67 +71,56 @@ const SOLID_BUTTON_STYLE: Record<ButtonVariant, SwiftUIButtonStyle> = {
   default: "borderedProminent",
   destructive: "borderedProminent",
   ghost: "plain",
-  link: "plain",
-  outline: "bordered",
   secondary: "bordered",
 };
 
-const BUTTON_STYLE = GLASS_ENABLED ? GLASS_BUTTON_STYLE : SOLID_BUTTON_STYLE;
-
 const SWIFT_UI_CONTROL_SIZE: Record<
   ButtonSize,
-  "mini" | "small" | "regular" | "large"
+  "mini" | "small" | "regular" | "large" | "extraLarge"
 > = {
   default: "large",
-  icon: "regular",
-  "icon-sm": "small",
-  "icon-xs": "mini",
-  lg: "large",
+  lg: "extraLarge",
   sm: "small",
 };
 
-/** Icon buttons hug their glyph; every other size spans the width it's given. */
-const ICON_SIZES: ButtonSize[] = ["icon", "icon-sm", "icon-xs"];
-
-/** Each size's label in the Emphasized HIG text style. */
+/**
+ * Each size's label in its Emphasized HIG text style. The icon is drawn at
+ * the same point size.
+ */
 const LABEL_FONT_CLASS: Record<ButtonSize, string> = {
   default: "text-body-emphasized",
-  icon: "text-body-emphasized",
-  "icon-sm": "text-subhead-emphasized",
-  "icon-xs": "text-footnote-emphasized",
   lg: "text-title-3-emphasized",
   sm: "text-subhead-emphasized",
 };
 
-/** Glyph point sizes for icon-only buttons. */
-const ICON_GLYPH_SIZE: Record<ButtonSize, number> = {
-  default: 17,
-  icon: 24,
-  "icon-sm": 21,
-  "icon-xs": 16,
-  lg: 20,
-  sm: 16,
+/**
+ * The native height of each size (`--size-button-*`): a pill's height, a
+ * circle's diameter. Native styles size themselves; a ghost button has no
+ * style to do it, so it takes the token and lines up with its siblings.
+ */
+const SIZE_CLASS: Record<ButtonShape, Record<ButtonSize, string>> = {
+  circle: {
+    default: "size-button-circle-default",
+    lg: "size-button-circle-lg",
+    sm: "size-button-circle-sm",
+  },
+  pill: {
+    default: "size-button-pill-default",
+    lg: "size-button-pill-lg",
+    sm: "size-button-pill-sm",
+  },
 };
 
-/** Gap between a button's label and its trailing icon. */
+/**
+ * Gap between a button's label and its icon: `--spacing-xs`. SwiftUI's
+ * `spacing` takes a number, so this mirrors the token (Figma binds the same
+ * gap to `Spacing/xs`).
+ */
 const ICON_LABEL_SPACING = 8;
 
-/** Tap-target diameter for circular icon buttons, matching the old h-10/9/8. */
-const ICON_DIAMETER: Record<ButtonSize, number> = {
-  default: 40,
-  icon: 40,
-  "icon-sm": 36,
-  "icon-xs": 32,
-  lg: 44,
-  sm: 36,
-};
-
-interface ButtonProps {
+interface ButtonBaseProps {
   /** Hint read by VoiceOver after the label, describing what a tap does. */
   accessibilityHint?: string;
-  /** VoiceOver label; required for icon-only buttons, which have no text. */
-  accessibilityLabel?: string;
-  children?: React.ReactNode;
   className?: string;
   /**
    * A text color class (`text-primary`) for the label and icon, in place of
@@ -148,17 +132,51 @@ interface ButtonProps {
   fill?: boolean;
   /** Swaps the button's content for a native spinner. */
   isLoading?: boolean;
-  /** Button text. Takes precedence over `children`. */
-  label?: string;
   onPress?: () => void;
-  /** `pill` gives a capsule, or a circle when paired with an icon size. */
-  shape?: ButtonShape | null;
-  size?: ButtonSize | null;
-  /** SF Symbol rendered next to the label, or on its own for icon buttons. */
-  systemImage?: SFSymbol;
+  size?: ButtonSize;
   testID?: string;
-  variant?: ButtonVariant | null;
+  variant?: ButtonVariant;
 }
+
+/** A capsule with a label, and optionally an icon before or after it. */
+interface PillBaseProps extends ButtonBaseProps {
+  /** VoiceOver label, when the visible one doesn't say enough. */
+  accessibilityLabel?: string;
+  /** SF Symbol drawn next to the label. */
+  icon?: SFSymbol;
+  iconPosition?: ButtonIconPosition;
+  shape?: "pill";
+}
+
+/**
+ * A pill always has something to read: a `label`, or `children` (the older
+ * form: text, or views when there's no SF Symbol). A lone icon is a circle.
+ */
+type PillButtonProps = PillBaseProps &
+  (
+    | {
+        children?: React.ReactNode;
+        /** Button text. Takes precedence over `children`. */
+        label: string;
+      }
+    | {
+        children: Exclude<React.ReactNode, null | undefined | boolean>;
+        label?: undefined;
+      }
+  );
+
+/** An icon on its own. It has no visible text, so VoiceOver needs a label. */
+interface CircleButtonProps extends ButtonBaseProps {
+  accessibilityLabel: string;
+  children?: never;
+  /** SF Symbol, the circle's only content. */
+  icon: SFSymbol;
+  iconPosition?: never;
+  label?: never;
+  shape: "circle";
+}
+
+type ButtonProps = PillButtonProps | CircleButtonProps;
 
 /**
  * The label and icon color: `colorClassName`'s when given, else the
@@ -179,96 +197,145 @@ function useContentColor(
       default: theme.primaryForeground,
       destructive: theme.destructiveForeground,
       ghost: theme.foreground,
-      link: theme.primary,
-      outline: theme.foreground,
       secondary: theme.secondaryForeground,
     }[variant]
   );
 }
 
-const Button = ({
+/** The button's own modifiers: native style, shape, size, state and labels. */
+function buttonModifiers({
   accessibilityHint,
   accessibilityLabel,
-  className,
-  contentColorClassName,
-  variant = "default",
-  size = "default",
-  shape = "default",
   disabled,
-  onPress,
-  label: labelProp,
-  systemImage,
-  isLoading = false,
+  isCircle,
+  paintsCircle,
+  size,
+  tintColor,
+  variant,
+}: {
+  accessibilityHint?: string;
+  accessibilityLabel?: string;
+  disabled: boolean;
+  isCircle: boolean;
+  paintsCircle: boolean;
+  size: ButtonSize;
+  tintColor: string;
+  variant: ButtonVariant;
+}): ViewModifier[] {
+  const styles = GLASS_ENABLED ? GLASS_BUTTON_STYLE : SOLID_BUTTON_STYLE;
+  // A painted circle draws its own fill, so the button itself stays plain.
+  const style = paintsCircle
+    ? buttonStyle("plain")
+    : buttonStyle(styles[variant]);
+  return [
+    style,
+    ...(paintsCircle
+      ? []
+      : [buttonBorderShape(isCircle ? "circle" : "capsule")]),
+    controlSize(SWIFT_UI_CONTROL_SIZE[size]),
+    tint(tintColor),
+    ...(disabled ? [disabledModifier(true)] : []),
+    ...(accessibilityLabel
+      ? [accessibilityLabelModifier(accessibilityLabel)]
+      : []),
+    ...(accessibilityHint
+      ? [accessibilityHintModifier(accessibilityHint)]
+      : []),
+  ];
+}
+
+/**
+ * Sizes the content where no native style does. A ghost button has no style to
+ * give it a height, so it takes the native one from the token, and the whole
+ * box is tappable. Below iOS 17 a circle can't get its shape from the style,
+ * so it's framed at the token's diameter and paints its own circle (`fill`;
+ * none for ghost). Other buttons need nothing.
+ */
+function frameModifiers({
   fill,
-  testID,
-  children,
-}: ButtonProps) => {
+  isCircle,
+  nativeHeight,
+  paintsCircle,
+  variant,
+}: {
+  fill: string | undefined;
+  isCircle: boolean;
+  nativeHeight: number | undefined;
+  paintsCircle: boolean;
+  variant: ButtonVariant;
+}): ViewModifier[] {
+  if (nativeHeight === undefined || !(paintsCircle || variant === "ghost")) {
+    return [];
+  }
+  return isCircle
+    ? [
+        frame({ height: nativeHeight, width: nativeHeight }),
+        ...(fill ? [background(fill, shapes.circle())] : []),
+        contentShape(shapes.circle()),
+      ]
+    : [frame({ minHeight: nativeHeight }), contentShape(shapes.capsule())];
+}
+
+const Button = (props: ButtonProps) => {
+  const {
+    accessibilityHint,
+    accessibilityLabel,
+    children,
+    className,
+    contentColorClassName,
+    disabled = false,
+    fill,
+    icon,
+    iconPosition = "leading",
+    isLoading = false,
+    label: labelProp,
+    onPress,
+    shape = "pill",
+    size = "default",
+    testID,
+    variant = "default",
+  } = props;
+  const isCircle = shape === "circle";
+  const paintsCircle = isCircle && !NATIVE_CIRCLE_ENABLED;
+
   const theme = useSwiftUITheme();
+  const labelFont = useSwiftUIFont(LABEL_FONT_CLASS[size]);
+  const nativeHeight = useResolveClassNames(SIZE_CLASS[shape][size]).height as
+    | number
+    | undefined;
+  const contentColor = useContentColor(variant, contentColorClassName);
 
-  const resolvedVariant = variant ?? "default";
-  const resolvedSize = size ?? "default";
-  const labelFont = useSwiftUIFont(LABEL_FONT_CLASS[resolvedSize]);
-  const isIcon = ICON_SIZES.includes(resolvedSize);
-
-  // Icon and link buttons sit inline; everything else fills, as the previous
-  // NativeWind button did inside a stretching container.
+  // Circles and ghost buttons sit inline; everything else fills, as the
+  // previous NativeWind button did inside a stretching container.
   const stretch =
     fill ??
-    (!(isIcon || resolvedVariant === "link") || isStretchClassName(className));
+    (!(isCircle || variant === "ghost") || isStretchClassName(className));
 
+  // Prominent styles fill with the tint. The regular styles only use it for
+  // their translucent fill, which `foreground` keeps a neutral grey.
   const tintColor = {
     default: theme.primary,
     destructive: theme.destructive,
     ghost: theme.foreground,
-    link: theme.primary,
-    outline: theme.foreground,
-    secondary: theme.secondary,
-  }[resolvedVariant];
+    secondary: theme.foreground,
+  }[variant];
 
-  // A round icon button can't come from `buttonStyle`, whose padding is wider
-  // than it is tall. Painting a circle behind a square-framed glyph instead is
-  // the only way to guarantee the shape.
-  const isCircular = isIcon && shape === "pill";
-
-  const circleFill = {
-    default: theme.primary,
-    destructive: theme.destructive,
-    ghost: undefined,
-    link: undefined,
-    outline: undefined,
-    secondary: theme.secondary,
-  }[resolvedVariant];
-
-  const contentColor = useContentColor(resolvedVariant, contentColorClassName);
-
-  const modifiers: ViewModifier[] = [
-    buttonStyle(isCircular ? "plain" : BUTTON_STYLE[resolvedVariant]),
-    controlSize(SWIFT_UI_CONTROL_SIZE[resolvedSize]),
-    tint(tintColor),
-  ];
-
-  // Glass buttons are already capsules on iOS 26, and clipping them would cut
-  // off the effect's edge lighting.
-  if (shape === "pill" && !(isCircular || GLASS_ENABLED)) {
-    modifiers.push(clipShape("capsule"));
-  }
-
-  if (disabled || isLoading) {
-    modifiers.push(disabledModifier(true));
-  }
-
-  if (accessibilityLabel) {
-    modifiers.push(accessibilityLabelModifier(accessibilityLabel));
-  }
-
-  if (accessibilityHint) {
-    modifiers.push(accessibilityHintModifier(accessibilityHint));
-  }
+  const modifiers = buttonModifiers({
+    accessibilityHint,
+    accessibilityLabel,
+    disabled: disabled || isLoading,
+    isCircle,
+    paintsCircle,
+    size,
+    tintColor,
+    variant,
+  });
 
   const role: ButtonRole =
-    resolvedVariant === "destructive" ? "destructive" : "default";
+    variant === "destructive" ? "destructive" : "default";
 
-  const label = labelProp ?? childrenToLabel(children);
+  // A circle shows only its icon, whatever the props say.
+  const label = isCircle ? null : (labelProp ?? childrenToLabel(children));
 
   // A button style draws its background around the label, so the label — not
   // the button — is what has to span the full width. An inline button, by
@@ -279,32 +346,34 @@ const Button = ({
     ? [frame({ maxWidth: FILL })]
     : [fixedSize({ horizontal: true })];
 
-  // Circular buttons opt out of the button style, so they draw their own fill:
-  // a glass circle where the OS supports it, a solid one otherwise.
-  const circleModifiers = (): ViewModifier[] => {
-    const diameter = ICON_DIAMETER[resolvedSize];
-    const shapeFrame = frame({ height: diameter, width: diameter });
+  const sizeFrame = frameModifiers({
+    // A painted circle's fill: the solid style's, as there's no glass below
+    // iOS 17.
+    fill: {
+      default: theme.primary,
+      destructive: theme.destructive,
+      ghost: undefined,
+      secondary: theme.secondary,
+    }[variant],
+    isCircle,
+    nativeHeight,
+    paintsCircle,
+    variant,
+  });
 
-    if (GLASS_ENABLED) {
-      return [
-        shapeFrame,
-        glassEffect({
-          glass: {
-            interactive: true,
-            tint: circleFill,
-            variant: "regular",
-          },
-          shape: "circle",
-        }),
-      ];
-    }
-
-    return circleFill
-      ? [shapeFrame, background(circleFill, shapes.circle())]
-      : [shapeFrame];
-  };
+  const iconView = icon ? (
+    <SwiftUIImage
+      color={contentColor}
+      size={labelFont.size}
+      systemName={icon}
+    />
+  ) : null;
 
   const renderLabel = () => {
+    if (isCircle) {
+      return <HStack modifiers={sizeFrame}>{iconView}</HStack>;
+    }
+
     if (label !== null) {
       const labelText = (
         <SwiftUIText
@@ -317,44 +386,36 @@ const Button = ({
         </SwiftUIText>
       );
 
-      if (!systemImage) {
-        return contentFrame.length > 0 ? (
-          <HStack modifiers={contentFrame}>{labelText}</HStack>
-        ) : (
-          labelText
-        );
-      }
-
-      // SwiftUI's `Label` is always icon-first, so a trailing icon has to be
-      // laid out by hand.
+      // SwiftUI's `Label` is always icon-first, so the row is laid out by
+      // hand to put the icon on either side.
       return (
-        <HStack modifiers={contentFrame} spacing={ICON_LABEL_SPACING}>
+        <HStack
+          modifiers={[...contentFrame, ...sizeFrame]}
+          spacing={ICON_LABEL_SPACING}
+        >
+          {iconPosition === "leading" ? iconView : null}
           {labelText}
-          <SwiftUIImage
-            color={contentColor}
-            size={labelFont.size ?? ICON_GLYPH_SIZE[resolvedSize]}
-            systemName={systemImage}
-          />
+          {iconPosition === "trailing" ? iconView : null}
         </HStack>
       );
     }
-    if (systemImage) {
-      return (
-        <SwiftUIImage
-          color={contentColor}
-          modifiers={isCircular ? circleModifiers() : undefined}
-          size={ICON_GLYPH_SIZE[resolvedSize]}
-          systemName={systemImage}
-        />
-      );
-    }
+
     if (children) {
-      return (
+      const hosted = (
         <RNHostView matchContents>
           <View className="flex-row items-center gap-2">{children}</View>
         </RNHostView>
       );
+      return sizeFrame.length > 0 ? (
+        <HStack modifiers={sizeFrame}>{hosted}</HStack>
+      ) : (
+        hosted
+      );
     }
+
+    return (
+      <HStack modifiers={[...contentFrame, ...sizeFrame]}>{iconView}</HStack>
+    );
   };
 
   const renderContent = () => {
@@ -363,18 +424,33 @@ const Button = ({
     }
 
     // A loading button is also disabled, which greys out its fill, so the
-    // spinner uses the brand green rather than the label color.
-    const spinner = <ProgressView modifiers={[tint(theme.primary)]} />;
+    // spinner uses the brand green rather than the label color. A spinner is
+    // its own size, so a zero frame keeps it out of the layout: it draws
+    // centered over the content without growing the button.
+    const spinner = (
+      <ProgressView
+        modifiers={[
+          frame({ height: 0, width: 0 }),
+          controlSize(size === "sm" ? "small" : "regular"),
+          tint(theme.primary),
+        ]}
+      />
+    );
 
-    if (label === null) {
-      return spinner;
+    // Keeping the content in the layout — just invisible — holds the button
+    // at exactly the size it has when idle. A painted circle keeps its fill
+    // visible: the frame and circle go on the stack, only the icon hides.
+    if (paintsCircle) {
+      return (
+        <ZStack modifiers={sizeFrame}>
+          <Group modifiers={[opacity(0)]}>{iconView}</Group>
+          {spinner}
+        </ZStack>
+      );
     }
 
-    // A spinner is smaller than the label it replaces, so the button would
-    // shrink around it. Keeping the label in the layout — just invisible —
-    // holds the button at exactly the size it has when idle.
     return (
-      <ZStack modifiers={contentFrame}>
+      <ZStack modifiers={isCircle ? [] : contentFrame}>
         <Group modifiers={[opacity(0)]}>{renderLabel()}</Group>
         {spinner}
       </ZStack>
@@ -400,5 +476,13 @@ const Button = ({
 
 Button.displayName = "Button";
 
-export type { ButtonProps, ButtonSize, ButtonVariant };
+export type {
+  ButtonIconPosition,
+  ButtonProps,
+  ButtonShape,
+  ButtonSize,
+  ButtonVariant,
+  CircleButtonProps,
+  PillButtonProps,
+};
 export { Button };

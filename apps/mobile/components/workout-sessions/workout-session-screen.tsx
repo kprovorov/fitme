@@ -68,7 +68,6 @@ export default function WorkoutSessionScreen({
                   isLoading={isFinishing}
                   label="Finish"
                   onPress={confirmFinish}
-                  shape="pill"
                   size="sm"
                   testID="finish-workout-button"
                 />
@@ -93,7 +92,6 @@ export default function WorkoutSessionScreen({
             fill={false}
             label="Try Again"
             onPress={retry}
-            shape="pill"
             variant="secondary"
           />
         </View>

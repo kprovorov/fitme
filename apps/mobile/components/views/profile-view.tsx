@@ -93,9 +93,11 @@ export default function ProfileView() {
                   subscription at any time.
                 </Muted>
                 {!!managementURL && (
-                  <Button onPress={openManagementURL} variant="secondary">
-                    <Text>Manage Subscription</Text>
-                  </Button>
+                  <Button
+                    label="Manage Subscription"
+                    onPress={openManagementURL}
+                    variant="secondary"
+                  />
                 )}
               </VStack>
             ) : (
@@ -110,9 +112,7 @@ export default function ProfileView() {
                   Subscribe to Fitme Pro to get unlimited access to all of our
                   features
                 </Muted>
-                <Button onPress={presentPaywall}>
-                  <Text>Upgrade to Pro</Text>
-                </Button>
+                <Button label="Upgrade to Pro" onPress={presentPaywall} />
               </VStack>
             )}
           </CardContent>

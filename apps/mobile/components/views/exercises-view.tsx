@@ -4,7 +4,6 @@ import { useCallback, useImperativeHandle, useState } from "react";
 import ExercisesList from "~/components/exercises/exercises-list";
 import { Button } from "~/components/ui/button";
 import { Picker } from "~/components/ui/picker";
-import { Text } from "~/components/ui/text";
 import { VStack } from "~/components/ui/vstack";
 import { useExercisesQuery } from "~/hooks/queries/exercises";
 
@@ -74,9 +73,7 @@ const ExercisesView = ({
       />
 
       {hasNextPage ? (
-        <Button onPress={loadMore} variant="secondary">
-          <Text>Load more...</Text>
-        </Button>
+        <Button label="Load more..." onPress={loadMore} variant="secondary" />
       ) : null}
     </VStack>
   );
