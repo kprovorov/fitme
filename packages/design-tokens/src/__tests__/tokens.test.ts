@@ -134,6 +134,47 @@ describe("parseTokens", () => {
     );
   });
 
+  it.each([
+    "--Color-primary",
+    "--colorprimary",
+    "--color-Primary",
+    "--color-",
+    "--color--primary",
+    "--color-primary-",
+    "--color_primary",
+    "-color-primary",
+    "color",
+  ])("rejects the malformed token name %s", (variable) => {
+    expect(() => parseTokens(`@theme { ${variable}: #c0ff38; }`)).toThrow(
+      `Malformed token name ${variable}`
+    );
+  });
+
+  it("rejects a malformed name among valid tokens", () => {
+    const css = `@theme {
+      --color-primary: #c0ff38;
+      --Color-background: #1f1d20;
+    }`;
+    expect(() => parseTokens(css)).toThrow(
+      "Malformed token name --Color-background"
+    );
+  });
+
+  it.each(["--color-primary #c0ff38", "--color-primary:", "--color-primary: "])(
+    "rejects the malformed declaration %j",
+    (statement) => {
+      expect(() => parseTokens(`@theme { ${statement}; }`)).toThrow(
+        "Malformed declaration in @theme"
+      );
+    }
+  );
+
+  it("accepts a last declaration without a semicolon", () => {
+    expect(parseTokens("@theme { --radius-2xl: 1rem }")).toEqual([
+      { kind: "radius", name: "2xl", value: "1rem", variable: "--radius-2xl" },
+    ]);
+  });
+
   it("rejects CSS without a @theme block", () => {
     expect(() => parseTokens(":root { --color-primary: red; }")).toThrow(
       "No @theme block"
