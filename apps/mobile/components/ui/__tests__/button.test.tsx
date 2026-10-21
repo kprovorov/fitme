@@ -19,6 +19,7 @@ jest.mock("@expo/ui/swift-ui/modifiers", () => {
   return {
     accessibilityHint: modifier("accessibilityHint"),
     accessibilityLabel: modifier("accessibilityLabel"),
+    background: modifier("background"),
     buttonBorderShape: modifier("buttonBorderShape"),
     buttonStyle: modifier("buttonStyle"),
     contentShape: modifier("contentShape"),
@@ -42,8 +43,17 @@ jest.mock("@expo/ui/swift-ui", () => {
     modifiers?.find((m) => m.type === type)?.args[0];
 
   // Lowercase, so React Refresh doesn't register it from inside the factory
-  const container = ({ children }: { children?: React.ReactNode }) => (
-    <View>{children}</View>
+  // Each stack lists its modifiers' types, for the tests that check them.
+  const container = ({
+    children,
+    modifiers,
+  }: {
+    children?: React.ReactNode;
+    modifiers?: Modifier[];
+  }) => (
+    <View {...{ modifierTypes: modifiers?.map((m) => m.type) ?? [] }}>
+      {children}
+    </View>
   );
 
   return {
@@ -93,19 +103,45 @@ jest.mock("@expo/ui/swift-ui", () => {
   };
 });
 
-let mockGlassEnabled = true;
+// uniwind resolves no theme values under Jest. The size tokens get a stand-in
+// diameter and the colors their class name, so the buttons that read them
+// (ghost, painted circles) frame and fill themselves.
+const mockColorClass = /^text-(primary|secondary|destructive|foreground)/;
 
-// Liquid Glass is on unless a test turns it off. A getter defined in place
-// (a spread would copy the flag's value once, when the factory runs).
+jest.mock("uniwind", () => {
+  const actual = jest.requireActual<typeof import("uniwind")>("uniwind");
+  return {
+    ...actual,
+    useResolveClassNames: (className: string) => {
+      const resolved = actual.useResolveClassNames(className);
+      if (className.startsWith("size-button-")) {
+        return { height: 47, width: 47 };
+      }
+      if (mockColorClass.test(className)) {
+        return { color: className };
+      }
+      return resolved;
+    },
+  };
+});
+
+let mockGlassEnabled = true;
+let mockNativeCircleEnabled = true;
+
+// Liquid Glass and the native circle shape (iOS 17+) are on unless a test
+// turns them off. Getters defined in place (a spread would copy the flags'
+// values once, when the factory runs).
 jest.mock("~/components/ui/swift-ui", () =>
-  Object.defineProperty(
+  Object.defineProperties(
     {
       ...jest.requireActual<typeof import("~/components/ui/swift-ui")>(
         "~/components/ui/swift-ui"
       ),
     },
-    "GLASS_ENABLED",
-    { get: () => mockGlassEnabled }
+    {
+      GLASS_ENABLED: { get: () => mockGlassEnabled },
+      NATIVE_CIRCLE_ENABLED: { get: () => mockNativeCircleEnabled },
+    }
   )
 );
 
@@ -131,6 +167,35 @@ const texts = (node: JsonNode | JsonNode[] | string | null): string[] => {
     return node.flatMap(texts);
   }
   return (node.children ?? []).flatMap(texts);
+};
+
+interface JsonHost {
+  children: (JsonHost | string)[] | null;
+  props: { modifierTypes?: string[] };
+}
+
+/** Every stack's modifier types, outermost first. */
+const modifierLists = (): string[][] => {
+  const lists: string[][] = [];
+  const walk = (node: JsonHost | JsonHost[] | string | null) => {
+    if (node === null || typeof node === "string") {
+      return;
+    }
+    if (Array.isArray(node)) {
+      for (const child of node) {
+        walk(child);
+      }
+      return;
+    }
+    if (node.props.modifierTypes) {
+      lists.push(node.props.modifierTypes);
+    }
+    for (const child of node.children ?? []) {
+      walk(child);
+    }
+  };
+  walk(screen.toJSON() as JsonHost | JsonHost[] | null);
+  return lists;
 };
 
 /** The button's text in reading order, icons as `[symbol]`. */
@@ -177,6 +242,44 @@ describe("Button", () => {
       }
     }
   );
+
+  it("paints its own circle below iOS 17, where the native shape is missing", async () => {
+    mockNativeCircleEnabled = false;
+    try {
+      await render(
+        <Button
+          accessibilityLabel="Log set"
+          icon="checkmark"
+          shape="circle"
+          variant="secondary"
+        />
+      );
+
+      const button = screen.getByRole("button", { name: "Log set" });
+      expect(button.props.buttonStyle).toBe("plain");
+      expect(button.props.buttonBorderShape).toBeUndefined();
+      const painted = modifierLists().filter((types) =>
+        types.includes("background")
+      );
+      expect(painted).toEqual([["frame", "background", "contentShape"]]);
+    } finally {
+      mockNativeCircleEnabled = true;
+    }
+  });
+
+  it("keeps a pill native below iOS 17", async () => {
+    mockNativeCircleEnabled = false;
+    try {
+      await render(<Button label="Save" variant="secondary" />);
+
+      expect(screen.getByRole("button").props.buttonStyle).toBe("glass");
+      expect(screen.getByRole("button").props.buttonBorderShape).toBe(
+        "capsule"
+      );
+    } finally {
+      mockNativeCircleEnabled = true;
+    }
+  });
 
   it("draws a pill as a capsule", async () => {
     await render(<Button label="Save" />);

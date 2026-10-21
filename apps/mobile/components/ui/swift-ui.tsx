@@ -1,6 +1,7 @@
 import { Host } from "@expo/ui/swift-ui";
 import { isLiquidGlassAvailable } from "expo-glass-effect";
 import { Children, isValidElement, type ReactNode } from "react";
+import { Platform } from "react-native";
 import { useResolveClassNames, withUniwind } from "uniwind";
 
 /**
@@ -10,6 +11,15 @@ import { useResolveClassNames, withUniwind } from "uniwind";
  * glass treatment needs a solid fallback behind this flag.
  */
 export const GLASS_ENABLED = isLiquidGlassAvailable();
+
+/**
+ * `buttonBorderShape("circle")` needs iOS 17: below it `@expo/ui` quietly
+ * falls back to `.automatic` (`ios/Modifiers/ButtonBorderShapeModifier.swift`),
+ * which draws a rounded rectangle. The app supports iOS 16.4, so circle
+ * buttons paint their own circle where this is false.
+ */
+export const NATIVE_CIRCLE_ENABLED =
+  Platform.OS !== "ios" || Number.parseInt(String(Platform.Version), 10) >= 17;
 
 /**
  * SwiftUI's `.infinity` can't cross the bridge, but `.frame(maxWidth:)` is

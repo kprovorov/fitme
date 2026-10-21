@@ -12,6 +12,7 @@ import {
 import {
   accessibilityHint as accessibilityHintModifier,
   accessibilityLabel as accessibilityLabelModifier,
+  background,
   buttonBorderShape,
   buttonStyle,
   contentShape,
@@ -35,6 +36,7 @@ import {
   FILL,
   GLASS_ENABLED,
   isStretchClassName,
+  NATIVE_CIRCLE_ENABLED,
   SwiftUIHost,
   useSwiftUIFont,
   useSwiftUITheme,
@@ -206,6 +208,7 @@ function buttonModifiers({
   accessibilityLabel,
   disabled,
   isCircle,
+  paintsCircle,
   size,
   tintColor,
   variant,
@@ -214,14 +217,21 @@ function buttonModifiers({
   accessibilityLabel?: string;
   disabled: boolean;
   isCircle: boolean;
+  paintsCircle: boolean;
   size: ButtonSize;
   tintColor: string;
   variant: ButtonVariant;
 }): ViewModifier[] {
   const styles = GLASS_ENABLED ? GLASS_BUTTON_STYLE : SOLID_BUTTON_STYLE;
+  // A painted circle draws its own fill, so the button itself stays plain.
+  const style = paintsCircle
+    ? buttonStyle("plain")
+    : buttonStyle(styles[variant]);
   return [
-    buttonStyle(styles[variant]),
-    buttonBorderShape(isCircle ? "circle" : "capsule"),
+    style,
+    ...(paintsCircle
+      ? []
+      : [buttonBorderShape(isCircle ? "circle" : "capsule")]),
     controlSize(SWIFT_UI_CONTROL_SIZE[size]),
     tint(tintColor),
     ...(disabled ? [disabledModifier(true)] : []),
@@ -235,20 +245,32 @@ function buttonModifiers({
 }
 
 /**
- * A ghost button has no style to give it a height, so it takes the native one
- * from the token, and the whole box is tappable. Other variants need nothing.
+ * Sizes the content where no native style does. A ghost button has no style to
+ * give it a height, so it takes the native one from the token, and the whole
+ * box is tappable. Below iOS 17 a circle can't get its shape from the style,
+ * so it's framed at the token's diameter and paints its own circle (`fill`;
+ * none for ghost). Other buttons need nothing.
  */
-function ghostFrameModifiers(
-  variant: ButtonVariant,
-  isCircle: boolean,
-  nativeHeight: number | undefined
-): ViewModifier[] {
-  if (variant !== "ghost" || nativeHeight === undefined) {
+function frameModifiers({
+  fill,
+  isCircle,
+  nativeHeight,
+  paintsCircle,
+  variant,
+}: {
+  fill: string | undefined;
+  isCircle: boolean;
+  nativeHeight: number | undefined;
+  paintsCircle: boolean;
+  variant: ButtonVariant;
+}): ViewModifier[] {
+  if (nativeHeight === undefined || !(paintsCircle || variant === "ghost")) {
     return [];
   }
   return isCircle
     ? [
         frame({ height: nativeHeight, width: nativeHeight }),
+        ...(fill ? [background(fill, shapes.circle())] : []),
         contentShape(shapes.circle()),
       ]
     : [frame({ minHeight: nativeHeight }), contentShape(shapes.capsule())];
@@ -274,6 +296,7 @@ const Button = (props: ButtonProps) => {
     variant = "default",
   } = props;
   const isCircle = shape === "circle";
+  const paintsCircle = isCircle && !NATIVE_CIRCLE_ENABLED;
 
   const theme = useSwiftUITheme();
   const labelFont = useSwiftUIFont(LABEL_FONT_CLASS[size]);
@@ -302,6 +325,7 @@ const Button = (props: ButtonProps) => {
     accessibilityLabel,
     disabled: disabled || isLoading,
     isCircle,
+    paintsCircle,
     size,
     tintColor,
     variant,
@@ -322,7 +346,20 @@ const Button = (props: ButtonProps) => {
     ? [frame({ maxWidth: FILL })]
     : [fixedSize({ horizontal: true })];
 
-  const ghostFrame = ghostFrameModifiers(variant, isCircle, nativeHeight);
+  const sizeFrame = frameModifiers({
+    // A painted circle's fill: the solid style's, as there's no glass below
+    // iOS 17.
+    fill: {
+      default: theme.primary,
+      destructive: theme.destructive,
+      ghost: undefined,
+      secondary: theme.secondary,
+    }[variant],
+    isCircle,
+    nativeHeight,
+    paintsCircle,
+    variant,
+  });
 
   const iconView = icon ? (
     <SwiftUIImage
@@ -334,7 +371,7 @@ const Button = (props: ButtonProps) => {
 
   const renderLabel = () => {
     if (isCircle) {
-      return <HStack modifiers={ghostFrame}>{iconView}</HStack>;
+      return <HStack modifiers={sizeFrame}>{iconView}</HStack>;
     }
 
     if (label !== null) {
@@ -353,7 +390,7 @@ const Button = (props: ButtonProps) => {
       // hand to put the icon on either side.
       return (
         <HStack
-          modifiers={[...contentFrame, ...ghostFrame]}
+          modifiers={[...contentFrame, ...sizeFrame]}
           spacing={ICON_LABEL_SPACING}
         >
           {iconPosition === "leading" ? iconView : null}
@@ -369,15 +406,15 @@ const Button = (props: ButtonProps) => {
           <View className="flex-row items-center gap-2">{children}</View>
         </RNHostView>
       );
-      return ghostFrame.length > 0 ? (
-        <HStack modifiers={ghostFrame}>{hosted}</HStack>
+      return sizeFrame.length > 0 ? (
+        <HStack modifiers={sizeFrame}>{hosted}</HStack>
       ) : (
         hosted
       );
     }
 
     return (
-      <HStack modifiers={[...contentFrame, ...ghostFrame]}>{iconView}</HStack>
+      <HStack modifiers={[...contentFrame, ...sizeFrame]}>{iconView}</HStack>
     );
   };
 
@@ -401,7 +438,17 @@ const Button = (props: ButtonProps) => {
     );
 
     // Keeping the content in the layout — just invisible — holds the button
-    // at exactly the size it has when idle.
+    // at exactly the size it has when idle. A painted circle keeps its fill
+    // visible: the frame and circle go on the stack, only the icon hides.
+    if (paintsCircle) {
+      return (
+        <ZStack modifiers={sizeFrame}>
+          <Group modifiers={[opacity(0)]}>{iconView}</Group>
+          {spinner}
+        </ZStack>
+      );
+    }
+
     return (
       <ZStack modifiers={isCircle ? [] : contentFrame}>
         <Group modifiers={[opacity(0)]}>{renderLabel()}</Group>
