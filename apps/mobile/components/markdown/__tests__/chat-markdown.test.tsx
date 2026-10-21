@@ -58,6 +58,20 @@ function effectiveType(text: string): Pick<TextStyle, TypeKey> {
   return type;
 }
 
+/** The role of the table cell a piece of text sits in. */
+function cellRole(text: string): unknown {
+  let node: (Node & { props: { role?: string } }) | null = screen.getByText(
+    text
+  ) as unknown as Node & { props: { role?: string } };
+  while (node) {
+    if (node.props.role === "cell" || node.props.role === "columnheader") {
+      return node.props.role;
+    }
+    node = node.parent as typeof node;
+  }
+  return undefined;
+}
+
 describe("ChatMarkdown", () => {
   it("sets paragraph text in Callout", async () => {
     await render(<ChatMarkdown>Plain words</ChatMarkdown>);
@@ -90,5 +104,21 @@ describe("ChatMarkdown", () => {
       fontSize: 22,
       fontWeight: 600,
     });
+  });
+
+  it("renders a table as the Table Primitive, header row first", async () => {
+    await render(
+      <ChatMarkdown>
+        {"| Exercise | Sets |\n| --- | --- |\n| Squat | 3 |\n| Bench | 4 |"}
+      </ChatMarkdown>
+    );
+
+    // Table views aren't accessibility elements, so find each text's cell
+    expect(cellRole("Exercise")).toBe("columnheader");
+    expect(cellRole("Sets")).toBe("columnheader");
+    for (const text of ["Squat", "3", "Bench", "4"]) {
+      expect(cellRole(text)).toBe("cell");
+    }
+    expect(screen.getByText("Squat")).toBeTruthy();
   });
 });

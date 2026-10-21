@@ -12,10 +12,15 @@ import Animated, {
   useDerivedValue,
   withTiming,
 } from "react-native-reanimated";
+import { SymbolImage } from "~/components/symbol-image";
 import { TextClassContext } from "~/components/ui/text";
-import { ChevronDown } from "~/lib/icons/ChevronDown";
 import { cn } from "~/lib/utils";
 
+/**
+ * Collapsible rows divided by `border`: a Body Emphasized trigger with an SF
+ * Symbol chevron that turns as the row opens, and Body content in
+ * `muted-foreground`.
+ */
 const Accordion = ({
   children,
   ref,
@@ -47,7 +52,7 @@ const AccordionItem = ({
   ref?: React.RefObject<AccordionPrimitive.ItemRef | null>;
 }) => (
   <Animated.View
-    className={"overflow-hidden"}
+    className="overflow-hidden"
     layout={LinearTransition.duration(200)}
   >
     <AccordionPrimitive.Item
@@ -80,23 +85,27 @@ const AccordionTrigger = ({
       : withTiming(0, { duration: 200 })
   );
   const chevronStyle = useAnimatedStyle(() => ({
-    opacity: interpolate(progress.value, [0, 1], [1, 0.8], Extrapolation.CLAMP),
-    transform: [{ rotate: `${progress.value * 180}deg` }],
+    opacity: interpolate(progress.get(), [0, 1], [1, 0.8], Extrapolation.CLAMP),
+    transform: [{ rotate: `${progress.get() * 180}deg` }],
   }));
 
   return (
-    <TextClassContext.Provider value="native:text-title-3 web:group-hover:underline">
+    <TextClassContext.Provider value="text-body-emphasized text-foreground">
       <AccordionPrimitive.Header className="flex">
         <AccordionPrimitive.Trigger ref={ref} {...props} asChild>
           <Trigger
             className={cn(
-              "group flex web:flex-1 flex-row items-center justify-between py-4 web:transition-all web:focus-visible:outline-none web:focus-visible:ring-1 web:focus-visible:ring-muted-foreground",
+              "flex-row items-center justify-between gap-2 py-3",
               className
             )}
           >
             {children}
             <Animated.View style={chevronStyle}>
-              <ChevronDown className={"shrink-0 text-foreground"} size={18} />
+              <SymbolImage
+                className="shrink-0 text-muted-foreground"
+                name="chevron.down"
+                size={16}
+              />
             </Animated.View>
           </Trigger>
         </AccordionPrimitive.Trigger>
@@ -116,18 +125,16 @@ const AccordionContent = ({
 }) => {
   const { isExpanded } = AccordionPrimitive.useItemContext();
   return (
-    <TextClassContext.Provider value="native:text-title-3">
+    <TextClassContext.Provider value="text-body text-muted-foreground">
       <AccordionPrimitive.Content
         className={cn(
-          "overflow-hidden text-subhead web:transition-all",
+          "overflow-hidden",
           isExpanded ? "web:animate-accordion-down" : "web:animate-accordion-up"
         )}
         ref={ref}
         {...props}
       >
-        <InnerContent className={cn("pb-4", className)}>
-          {children}
-        </InnerContent>
+        <InnerContent className={className}>{children}</InnerContent>
       </AccordionPrimitive.Content>
     </TextClassContext.Provider>
   );
@@ -141,11 +148,11 @@ function InnerContent({
   className?: string;
 }) {
   if (Platform.OS === "web") {
-    return <View className={cn("pb-4", className)}>{children}</View>;
+    return <View className={cn("pb-3", className)}>{children}</View>;
   }
   return (
     <Animated.View
-      className={cn("pb-4", className)}
+      className={cn("pb-3", className)}
       entering={FadeIn}
       exiting={FadeOutUp.duration(200)}
     >

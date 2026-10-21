@@ -1,6 +1,8 @@
 import * as WebBrowser from "expo-web-browser";
 import { Linking, Text, View } from "react-native";
 import { useCSSVariable, useResolveClassNames } from "uniwind";
+import { Table, TableCell, TableHead, TableRow } from "~/components/ui/table";
+import { Text as StyledText } from "~/components/ui/text";
 import Markdown from "./markdown";
 
 const VAR_NAMES = [
@@ -35,11 +37,9 @@ function openLink(url: string) {
 }
 
 export function ChatMarkdown({ children }: { children: string }) {
-  const [, border, bg2, bg3, fill3, link] = useCSSVariable(
+  const [text, border, , bg3, fill3, link] = useCSSVariable(
     VAR_NAMES as unknown as string[]
   ) as string[];
-
-  const text = "white";
 
   // Type comes from the text styles: Callout for the message, titles for
   // headings, Mono for code
@@ -54,7 +54,6 @@ export function ChatMarkdown({ children }: { children: string }) {
   const code = useResolveClassNames("text-mono-footnote");
   const inlineCode = useResolveClassNames("text-mono-subhead");
   const bullet = useResolveClassNames("text-body");
-  const tableCell = useResolveClassNames("text-subhead");
 
   // Only overrides — defaults from utils.ts are merged automatically
   const markdownStyles = {
@@ -99,13 +98,6 @@ export function ChatMarkdown({ children }: { children: string }) {
     },
     paragraph: { ...body, marginVertical: 8 },
     strong: { fontFamily: bold.fontFamily, fontWeight: bold.fontWeight },
-    table: { borderColor: border, borderRadius: 8 },
-    tableCell: { borderRightColor: border, padding: 10 },
-    tableCellText: { ...tableCell, color: text },
-    tableHeaderCell: { backgroundColor: bg2 },
-    tableHeaderCellText: { color: text },
-    tableHeaderRow: { backgroundColor: bg2 },
-    tableRow: { borderBottomColor: border },
     // Leaf text inherits the type of its paragraph, heading, emphasis or
     // table cell
     text: { color: text },
@@ -136,6 +128,32 @@ export function ChatMarkdown({ children }: { children: string }) {
             {/* biome-ignore lint/suspicious/noExplicitAny: StyleMap values are NamedStyle which requires cast for View style prop */}
             <View style={styles.listItemContent as any}>{itemChildren}</View>
           </View>
+        ),
+        // Tables are the Table Primitive, so they take its border and text
+        // styles: a header row on `muted`, Subhead cells
+        table: ({ node, children: rows }) => (
+          <Table
+            className="my-2 overflow-hidden rounded-lg border border-border border-continuous"
+            key={node.key}
+          >
+            {rows}
+          </Table>
+        ),
+        tableCell: ({ node, children: content, extras }) => {
+          const Cell = extras?.isHeader ? TableHead : TableCell;
+          return (
+            <Cell className="flex-1 border-border border-r" key={node.key}>
+              <StyledText>{content}</StyledText>
+            </Cell>
+          );
+        },
+        tableRow: ({ node, children: cells, extras }) => (
+          <TableRow
+            className={extras?.isHeader ? "bg-muted" : undefined}
+            key={node.key}
+          >
+            {cells}
+          </TableRow>
         ),
       }}
       styles={markdownStyles}

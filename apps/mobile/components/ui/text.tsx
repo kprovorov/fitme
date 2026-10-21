@@ -1,56 +1,31 @@
 import * as Slot from "@rn-primitives/slot";
-import { cva, type VariantProps } from "class-variance-authority";
 import * as React from "react";
 import { Platform, Text as RNText, type Role } from "react-native";
 import { cn } from "~/lib/utils";
 
-const textVariants = cva(
-  cn(
-    "text-body text-foreground",
-    Platform.select({
-      web: "select-text",
-    })
-  ),
-  {
-    defaultVariants: {
-      variant: "default",
-    },
-    variants: {
-      variant: {
-        blockquote: "mt-4 border-l-2 pl-3 italic sm:mt-6 sm:pl-6",
-        code: cn(
-          "relative rounded bg-muted px-[0.3rem] py-[0.2rem] text-mono-subhead-semibold"
-        ),
-        default: "",
-        h1: cn(
-          "text-center text-large-title-emphasized",
-          Platform.select({ web: "scroll-m-20 text-balance" })
-        ),
-        h2: cn(
-          "border-border border-b pb-2 text-title-1-emphasized",
-          Platform.select({ web: "scroll-m-20 first:mt-0" })
-        ),
-        h3: cn(
-          "text-title-2-emphasized",
-          Platform.select({ web: "scroll-m-20" })
-        ),
-        h4: cn(
-          "text-title-3-emphasized",
-          Platform.select({ web: "scroll-m-20" })
-        ),
-        large: "text-title-3-emphasized",
-        lead: "text-muted-foreground text-title-2",
-        muted: "text-muted-foreground text-subhead",
-        p: "mt-3 sm:mt-6",
-        small: "text-subhead-emphasized",
-      },
-    },
-  }
-);
+/**
+ * The text variants: each is exactly one HIG text style plus its color
+ * (docs/agents/ui.md). `Text`'s `variant` and the components in
+ * `typography.tsx` (`H1` is `h1`, `Muted` is `muted`, …) both read this map,
+ * so the two can't drift. Only `code` and `blockquote` add more than a style
+ * and a color: the chip behind inline code and the quote's rule.
+ */
+const TEXT_VARIANTS = {
+  blockquote: "border-border border-l-2 pl-3 text-body text-foreground",
+  code: "rounded-sm bg-muted px-1 py-0.5 text-foreground text-mono-subhead-semibold",
+  default: "text-body text-foreground",
+  h1: "text-large-title-emphasized text-primary",
+  h2: "text-primary text-title-1-emphasized",
+  h3: "text-foreground text-title-2-emphasized",
+  h4: "text-foreground text-title-3-emphasized",
+  large: "text-foreground text-headline",
+  lead: "text-muted-foreground text-title-2",
+  muted: "text-muted-foreground text-subhead",
+  p: "text-body text-foreground",
+  small: "text-foreground text-subhead-emphasized",
+} as const;
 
-type TextVariantProps = VariantProps<typeof textVariants>;
-
-type TextVariant = NonNullable<TextVariantProps["variant"]>;
+type TextVariant = keyof typeof TEXT_VARIANTS;
 
 const ROLE: Partial<Record<TextVariant, Role>> = {
   blockquote: Platform.select({ web: "blockquote" as Role }),
@@ -70,25 +45,38 @@ const ARIA_LEVEL: Partial<Record<TextVariant, string>> = {
 
 const TextClassContext = React.createContext<string | undefined>(undefined);
 
+type TextProps = React.ComponentProps<typeof RNText> & {
+  asChild?: boolean;
+  variant?: TextVariant;
+};
+
+/**
+ * Body text by default. A Primitive that wraps text (`Badge`, `TableHead`,
+ * `AvatarFallback`) restyles the `Text` inside it through `TextClassContext`;
+ * `className` still wins over both.
+ */
 function Text({
   className,
   asChild = false,
   variant = "default",
   ...props
-}: React.ComponentProps<typeof RNText> &
-  TextVariantProps & {
-    asChild?: boolean;
-  }) {
+}: TextProps) {
   const textClass = React.useContext(TextClassContext);
   const Component = asChild ? Slot.Text : RNText;
   return (
     <Component
-      aria-level={variant ? ARIA_LEVEL[variant] : undefined}
-      className={cn(textVariants({ variant }), textClass, className)}
-      role={variant ? ROLE[variant] : undefined}
+      aria-level={ARIA_LEVEL[variant]}
+      className={cn(
+        "web:select-text",
+        TEXT_VARIANTS[variant],
+        textClass,
+        className
+      )}
+      role={ROLE[variant]}
       {...props}
     />
   );
 }
 
-export { Text, TextClassContext };
+export type { TextProps, TextVariant };
+export { ARIA_LEVEL, ROLE, TEXT_VARIANTS, Text, TextClassContext };

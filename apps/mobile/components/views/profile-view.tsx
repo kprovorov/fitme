@@ -66,7 +66,7 @@ export default function ProfileView() {
               {initial ? (
                 <Text>{initial}</Text>
               ) : (
-                <UserRound className="text-foreground" size={20} />
+                <UserRound className="text-muted-foreground" size={20} />
               )}
             </AvatarFallback>
           </Avatar>
