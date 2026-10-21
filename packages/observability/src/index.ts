@@ -6,4 +6,4 @@ export {
   resolveObservabilityConfig,
 } from "./config";
 export { tracePropagationTargets } from "./propagation";
-export { type ScrubbableEvent, scrubEvent } from "./scrub";
+export { type ScrubbableEvent, SECRET_HEADERS, scrubEvent } from "./scrub";

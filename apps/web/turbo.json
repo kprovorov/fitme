@@ -1,0 +1,12 @@
+{
+  "$schema": "https://turborepo.dev/schema.json",
+  "extends": ["//"],
+  "tasks": {
+    "build": {
+      // The build inlines the environment and commit into the browser's
+      // Sentry config and uploads its source maps for the commit's release,
+      // so a new commit never replays another commit's .next/.
+      "env": ["$TURBO_EXTENDS$", "VERCEL_ENV", "VERCEL_GIT_COMMIT_SHA"]
+    }
+  }
+}
