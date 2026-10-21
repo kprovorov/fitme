@@ -13,7 +13,7 @@ posthog.init(process.env.NEXT_PUBLIC_POSTHOG_KEY ?? "", {
 // Browser errors and page-load traces to fitme-site. next.config.ts inlines
 // VERCEL_ENV and the commit at build time; without a DSN (local) nothing is
 // sent.
-const sentry = resolveObservabilityConfig({
+const sentryConfig = resolveObservabilityConfig({
   dsn: process.env.NEXT_PUBLIC_SENTRY_DSN,
   env: {
     VERCEL_ENV: process.env.NEXT_PUBLIC_VERCEL_ENV,
@@ -21,32 +21,37 @@ const sentry = resolveObservabilityConfig({
   },
 });
 
-if (sentry.enabled) {
+if (sentryConfig.enabled) {
   Sentry.init({
     beforeSend: scrubEvent,
     // No web vitals (Vercel Speed Insights has them): whatever pageload
     // measurements the SDK still takes are dropped with the rest
     beforeSendTransaction: (event) =>
       scrubEvent({ ...event, measurements: {} }),
-    dataCollection: { cookies: false, userInfo: false },
-    dsn: sentry.dsn,
-    environment: sentry.environment,
+    // Nothing that could carry User data: no cookies, headers, bodies, query
+    // strings (UTM and the like) or user info
+    dataCollection: {
+      cookies: false,
+      httpBodies: [],
+      httpHeaders: false,
+      urlQueryParams: false,
+      userInfo: false,
+    },
+    dsn: sentryConfig.dsn,
+    environment: sentryConfig.environment,
     integrations: [
       Sentry.browserTracingIntegration({
-        enableInp: false,
         enableLongTask: false,
+        webVitals: { ignore: ["cls", "inp", "lcp"] },
       }),
-      // Registered by hand so browserTracingIntegration doesn't add one that
-      // tracks CLS, LCP and INP
-      Sentry.webVitalsIntegration({ ignore: ["cls", "inp", "lcp"] }),
     ],
-    release: sentry.release,
+    release: sentryConfig.release,
     // Whole transactions, not streamed spans, so beforeSendTransaction (the
     // scrubber) sees every one
     traceLifecycle: "static",
     // The site calls no backend of ours, so no request gets trace headers
     tracePropagationTargets: [],
-    tracesSampleRate: sentry.tracesSampleRate,
+    tracesSampleRate: sentryConfig.tracesSampleRate,
   });
 }
 
