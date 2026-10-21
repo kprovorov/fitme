@@ -84,7 +84,7 @@ function LoggedValue({ value }: { value?: string }) {
     <View
       className={cn(
         CELL_CLASS,
-        "items-center justify-center rounded-lg border border-border border-continuous"
+        "items-center justify-center rounded-lg border border-continuous border-input"
       )}
     >
       <Text

@@ -34,7 +34,7 @@ const fieldStateClasses: Record<FieldState, string> = {
  * The field Input and Textarea share: an `input` stroke on whatever surface
  * it sits on (`background` or `card`), `ring` while focused and `destructive`
  * with an error, which wins over focus. A field that isn't `editable` is
- * dimmed.
+ * dimmed. The caret and selection are `primary`, not the system blue.
  */
 const Field = ({
   accessibilityHint,
@@ -45,6 +45,7 @@ const Field = ({
   onFocus,
   placeholderTextColorClassName,
   ref,
+  selectionColorClassName,
   ...props
 }: FieldProps) => {
   const [isFocused, setIsFocused] = useState(false);
@@ -91,6 +92,7 @@ const Field = ({
           placeholderTextColorClassName
         )}
         ref={ref}
+        selectionColorClassName={cn("accent-primary", selectionColorClassName)}
         {...props}
       />
       {message ? <ErrorMessage>{message}</ErrorMessage> : null}

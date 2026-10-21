@@ -2,6 +2,15 @@ import { describe, expect, it } from "@jest/globals";
 import { cn, TEXT_STYLES } from "../utils";
 
 describe("cn", () => {
+  it("keeps the corner curve next to a border color", () => {
+    expect(cn("border-continuous", "border-border")).toBe(
+      "border-continuous border-border"
+    );
+    expect(cn("border-circular border-input", "border-destructive")).toBe(
+      "border-circular border-destructive"
+    );
+  });
+
   it("knows the 22 HIG and 10 Mono text styles", () => {
     expect(TEXT_STYLES).toHaveLength(32);
     expect(new Set(TEXT_STYLES).size).toBe(32);
