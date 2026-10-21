@@ -98,9 +98,12 @@ const Field = ({
   );
 };
 
-/** A single-line text field, 48 pt tall, with an optional `error`. */
+/**
+ * A single-line text field, at least 48 pt tall (it grows with large text),
+ * with an optional `error`.
+ */
 const Input = ({ className, ...props }: FieldProps) => (
-  <Field className={cn("h-12", className)} {...props} />
+  <Field className={cn("min-h-12", className)} {...props} />
 );
 Input.displayName = "Input";
 

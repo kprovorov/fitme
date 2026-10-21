@@ -73,7 +73,7 @@ export const SET_TABLE_MAX_FONT_SCALE = 1.4;
 const CELL_CLASS = "h-10 flex-1";
 
 /** A cell's input: Input's field, sized and set for numbers. */
-const INPUT_CLASS = "h-10 px-1 text-center text-mono-subhead";
+const INPUT_CLASS = "min-h-10 px-1 text-center text-mono-subhead";
 
 /** Width of the check column; the table's header lines up with it. */
 export const SET_CHECK_COLUMN_CLASS = "w-12 items-center";
