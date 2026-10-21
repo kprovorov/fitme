@@ -1,5 +1,5 @@
-import { describe, expect, it, vi } from "vitest";
-import { call, connectWithServices } from "./harness.js";
+import { describe, expect, it } from "vitest";
+import { call, connectWithServices, recordingReporter } from "./harness.js";
 
 const metricProfile = {
   age: 30,
@@ -35,10 +35,12 @@ describe("get_profile", () => {
     expect((await call(client, "get_profile")).json).toEqual(usProfile);
   });
 
-  it("reports a User without a Profile as a tool error", async () => {
-    const client = await connectWithServices({
-      getProfile: () => Promise.resolve(null),
-    });
+  it("answers a User without a Profile with a tool error, unreported", async () => {
+    const { reportError, reported } = recordingReporter();
+    const client = await connectWithServices(
+      { getProfile: () => Promise.resolve(null) },
+      reportError
+    );
 
     const outcome = await call(client, "get_profile");
 
@@ -46,42 +48,43 @@ describe("get_profile", () => {
     expect(outcome.text).toBe(
       "No profile found: the user has not completed onboarding in the Fitme app yet."
     );
+    expect(reported).toEqual([]);
   });
 
-  it("reports a database failure as a tool error without the SQL", async () => {
-    const client = await connectWithServices({
-      getProfile: () =>
-        Promise.reject(
-          new Error(
-            'Failed query: select "age" from "profiles" where "user_id" = $1\nparams: user_1',
-            {
-              cause: Object.assign(new Error("canceling statement"), {
-                code: "57014",
-              }),
-            }
-          )
-        ),
-    });
+  it("reports a database failure and answers a tool error without the SQL", async () => {
+    const { reportError, reported } = recordingReporter();
+    const failure = new Error(
+      'Failed query: select "age" from "profiles" where "user_id" = $1\nparams: user_1',
+      {
+        cause: Object.assign(new Error("canceling statement"), {
+          code: "57014",
+        }),
+      }
+    );
+    const client = await connectWithServices(
+      { getProfile: () => Promise.reject(failure) },
+      reportError
+    );
 
     const outcome = await call(client, "get_profile");
 
     expect(outcome.isError).toBe(true);
     expect(outcome.text).toBe("canceling statement");
+    expect(reported).toEqual([failure]);
   });
 
-  it("reports an unexpected failure without its details", async () => {
-    const logged = vi
-      .spyOn(console, "error")
-      .mockImplementation(() => undefined);
-    const client = await connectWithServices({
-      getProfile: () => Promise.reject(new Error("connect ECONNREFUSED")),
-    });
+  it("reports an unexpected failure and answers a tool error without its details", async () => {
+    const { reportError, reported } = recordingReporter();
+    const failure = new Error("connect ECONNREFUSED");
+    const client = await connectWithServices(
+      { getProfile: () => Promise.reject(failure) },
+      reportError
+    );
 
     const outcome = await call(client, "get_profile");
 
     expect(outcome.isError).toBe(true);
     expect(outcome.text).toBe("The database request failed.");
-    expect(logged).toHaveBeenCalledOnce();
-    logged.mockRestore();
+    expect(reported).toEqual([failure]);
   });
 });

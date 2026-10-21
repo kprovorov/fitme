@@ -56,7 +56,7 @@ Clerk OAuth access tokens are JWTs verified locally against the instance's JWKS.
 
 Inside a request that passed the check:
 
-- Database errors are returned as `isError: true` results carrying the Postgres message (never the SQL); any other failure is logged and reported as "The database request failed."
+- Database errors are returned as `isError: true` results carrying the Postgres message (never the SQL); any other failure is returned as "The database request failed." Both are reported to Sentry (`fitme-mcp`); expected outcomes (not found, invalid input, 401) aren't.
 - Every write runs in one transaction with its read-back, so it either returns its result or fails without changing anything.
 - Paginated tools (`list_exercises`, `list_workout_sessions`) return an empty page with the `total` when the offset is past the end.
 

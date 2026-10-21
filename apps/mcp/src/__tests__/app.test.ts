@@ -1,8 +1,8 @@
 import { getAuth } from "@clerk/hono";
 import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
-import { createApp } from "../app.js";
+import { createApp } from "../create-app.js";
 import type { ServicesFactory } from "../services.js";
-import { fakeServices } from "./harness.js";
+import { fakeServices, recordingReporter } from "./harness.js";
 
 // Clerk is stubbed at its SDK boundary: no Clerk instance or network. The
 // middleware passes through and `getAuth` answers what each test sets up.
@@ -130,18 +130,24 @@ const profileServices: ServicesFactory = (userId) =>
 
 /**
  * The app with fake services, recording the User id every services object is
- * built for.
+ * built for, every User identified to observability and every reported error.
  */
 const createTestApp = () => {
   const servicesUserIds: string[] = [];
+  const identifiedUserIds: string[] = [];
+  const { reportError, reported } = recordingReporter();
   const app = createApp({
     createServices: (userId) => {
       servicesUserIds.push(userId);
       return profileServices(userId);
     },
+    identifyUser: (userId) => {
+      identifiedUserIds.push(userId);
+    },
     logRequests: false,
+    reportError,
   });
-  return { app, servicesUserIds };
+  return { app, identifiedUserIds, reported, servicesUserIds };
 };
 
 beforeEach(() => {
@@ -166,7 +172,7 @@ describe("without a token", () => {
     ["a catalog tool call", (app: TestApp) => callTool(app, "ping")],
     ["a user tool call", (app: TestApp) => callTool(app, "list_plans")],
   ])("answers %s with 401 and the metadata URL", async (_name, send) => {
-    const { app, servicesUserIds } = createTestApp();
+    const { app, reported, servicesUserIds } = createTestApp();
 
     const response = await send(app);
 
@@ -177,6 +183,7 @@ describe("without a token", () => {
     // RFC 6750: no error code when no credentials were sent.
     expect(await response.json()).not.toHaveProperty("error");
     expect(servicesUserIds).toEqual([]);
+    expect(reported).toEqual([]);
   });
 
   it("treats a non-Bearer Authorization header as no token", async () => {
@@ -372,7 +379,11 @@ describe("with a valid Clerk token", () => {
 
   it("reports missing database config as a tool error", async () => {
     signInAs("user_alice");
-    const app = createApp({ createServices: () => null, logRequests: false });
+    const app = createApp({
+      createServices: () => null,
+      logRequests: false,
+      reportError: () => Promise.resolve(),
+    });
 
     const response = await callTool(
       app,
@@ -384,5 +395,45 @@ describe("with a valid Clerk token", () => {
     const result = await readToolResult(response);
     expect(result.isError).toBe(true);
     expect(result.text).toContain("not configured");
+  });
+});
+
+describe("observability", () => {
+  it("identifies the verified Clerk User, never one from tool input", async () => {
+    signInAs("user_alice");
+    const { app, identifiedUserIds } = createTestApp();
+
+    await callTool(app, "get_profile", clerkToken("user_alice"), {
+      userId: "user_mallory",
+    });
+
+    expect(identifiedUserIds).toEqual(["user_alice"]);
+  });
+
+  it("neither identifies nor reports a rejected token", async () => {
+    rejectToken();
+    const { app, identifiedUserIds, reported } = createTestApp();
+
+    const response = await listTools(app, "oat_expired");
+
+    expect(response.status).toBe(401);
+    expect(identifiedUserIds).toEqual([]);
+    expect(reported).toEqual([]);
+  });
+
+  it("reports an unhandled error and answers a JSON 500", async () => {
+    const crash = new Error("Clerk is down");
+    mockedGetAuth.mockImplementation(() => {
+      throw crash;
+    });
+    const { app, reported } = createTestApp();
+
+    const response = await listTools(app, clerkToken("user_alice"));
+
+    expect(response.status).toBe(500);
+    expect(await response.json()).toEqual({
+      error: { code: "internal_error", message: "Internal server error" },
+    });
+    expect(reported).toEqual([crash]);
   });
 });

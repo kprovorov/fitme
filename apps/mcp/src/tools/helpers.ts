@@ -49,26 +49,21 @@ const postgresCause = (error: unknown) => {
 };
 
 /**
- * The message a failed service call shows the MCP client: a `ToolError`'s, or
- * the Postgres message (never Drizzle's, which carries the SQL and its
- * parameters). Anything else is logged and reported generically.
+ * The message an unexpected service failure shows the MCP client: the
+ * Postgres message (never Drizzle's, which carries the SQL and its
+ * parameters), or a generic one for anything else.
  */
 const describeServiceError = (error: unknown) => {
-  if (error instanceof ToolError) {
-    return error.message;
-  }
   const database = postgresCause(error);
-  if (database) {
-    return describeDatabaseError(database);
-  }
-  console.error(error);
-  return SERVICE_FAILURE_MESSAGE;
+  return database ? describeDatabaseError(database) : SERVICE_FAILURE_MESSAGE;
 };
 
 /**
  * Wraps a user tool handler that runs on services: hands it the caller's
  * services (bound to the verified User) and turns every failure into an
- * `isError` tool result instead of a protocol error.
+ * `isError` tool result instead of a protocol error. A `ToolError` (not
+ * found, not configured, …) is expected and shown as is; anything else (a
+ * Postgres error, an unknown exception) is reported first.
  */
 export function withServices<Args>(
   ctx: ToolContext,
@@ -78,6 +73,10 @@ export function withServices<Args>(
     try {
       return await handler(args, ctx.getServices());
     } catch (error) {
+      if (error instanceof ToolError) {
+        return errorResult(error.message);
+      }
+      await ctx.reportError(error);
       return errorResult(describeServiceError(error));
     }
   };
