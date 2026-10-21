@@ -62,9 +62,10 @@ const main = () => {
     );
     return;
   }
-  // Uploaded: the maps don't ship with the function.
+  // Uploaded: the maps don't ship with the function. Vercel's route functions
+  // are symlinks to one function, so a map can be listed (and gone) twice.
   for (const map of maps) {
-    rmSync(map);
+    rmSync(map, { force: true });
   }
 };
 
