@@ -104,6 +104,7 @@ describe("spacing and radius", () => {
     ["3xl", "1.5rem"],
     ["4xl", "2rem"],
     ["card", "1rem"],
+    ["full", "9999px"],
   ])("radius %s is %s", (name, value) => {
     expect(tokenValue("radius", name)).toBe(value);
   });

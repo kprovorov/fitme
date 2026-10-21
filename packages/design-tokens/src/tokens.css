@@ -68,6 +68,7 @@
   --radius-3xl: 1.5rem;
   --radius-4xl: 2rem;
   --radius-card: 1rem;
+  --radius-full: 9999px;
 
   /*
    * Button heights, measured from the native SwiftUI buttons on iOS 27 and
