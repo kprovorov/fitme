@@ -9,7 +9,7 @@ Where a skill says otherwise, this file wins for this repo: [When a skill disagr
 - **Screen**: a route file under `apps/mobile/app/`. It owns the native header (`Stack.Screen` options), the data hooks, and the choice between loading, empty, error and content. _Avoid_: page, route component.
 - **View**: a component a Screen renders with data passed as props, under `components/views/` or a feature folder (`components/plans/`, `components/chat/`). _Avoid_: container, widget.
 - **Primitive**: a component in `components/ui/`. Screens and Views are built from Primitives, never from bare `react-native` controls when a Primitive exists. _Avoid_: atom, base component.
-- **Token**: a semantic design value (color, type size, spacing, radius, font role), defined once in `@fitme/design-tokens` (`packages/design-tokens/src/tokens.css`) and imported by every app. _Avoid_: magic number, hard-coded value.
+- **Token**: a semantic design value (color, type size, spacing, radius, font role), or a text style built on them, defined once in `@fitme/design-tokens` (`packages/design-tokens/src/tokens.css`) and imported by every app. _Avoid_: magic number, hard-coded value.
 
 ## See it before you ship it
 
@@ -77,37 +77,42 @@ Every Token lives in one file, `packages/design-tokens/src/tokens.css` (`@fitme/
 
 ## Type
 
-The scale is Apple's text styles (iOS, default Large size; letter spacing 0), defined as Tokens in `@fitme/design-tokens`. Fonts: Nunito Sans for UI (`font-nunito-sans-regular` / `-semibold` / `-bold`), IBM Plex Mono (`font-ibm-plex-mono` / `-semibold`) for numbers that line up in columns, like set counts. Those five font roles are Tokens too; each app maps them to the font it loads (mobile: the bundled font files, in `global.css`).
+Text is set in Apple's HIG text styles (iOS, default Large size), one utility per style from `@fitme/design-tokens`. Each sets the family, weight, size and line height together, with letter spacing 0 (Apple's tracking is tuned for SF Pro, not Nunito Sans). `text-<style>` is the HIG's Regular weight and `text-<style>-emphasized` its Emphasized weight, in Nunito Sans. The same class names work on mobile, web and site; each app maps the font roles (`--font-nunito-sans-regular` / `-semibold` / `-bold`, `--font-ibm-plex-mono` / `-semibold`) to the font it loads (mobile: the bundled font files, in `global.css`).
 
-| Token / class      | Size / line height (pt) |
-| ------------------ | ----------------------- |
-| `text-large-title` | 34 / 41                 |
-| `text-title-1`     | 28 / 34                 |
-| `text-title-2`     | 22 / 28                 |
-| `text-title-3`     | 20 / 25                 |
-| `text-headline`    | 17 / 22                 |
-| `text-body`        | 17 / 22                 |
-| `text-callout`     | 16 / 21                 |
-| `text-subhead`     | 15 / 20                 |
-| `text-footnote`    | 13 / 18                 |
-| `text-caption-1`   | 12 / 16                 |
-| `text-caption-2`   | 11 / 13                 |
+| Class                                       | Size / line height (pt) | Regular  | Emphasized |
+| ------------------------------------------- | ----------------------- | -------- | ---------- |
+| `text-large-title` / `-emphasized`          | 34 / 41                 | Regular  | Bold       |
+| `text-title-1` / `-emphasized`              | 28 / 34                 | Regular  | Bold       |
+| `text-title-2` / `-emphasized`              | 22 / 28                 | Regular  | Bold       |
+| `text-title-3` / `-emphasized`              | 20 / 25                 | Regular  | Semibold   |
+| `text-headline` / `-emphasized`             | 17 / 22                 | Semibold | Semibold   |
+| `text-body` / `-emphasized`                 | 17 / 22                 | Regular  | Semibold   |
+| `text-callout` / `-emphasized`              | 16 / 21                 | Regular  | Semibold   |
+| `text-subhead` / `-emphasized`              | 15 / 20                 | Regular  | Semibold   |
+| `text-footnote` / `-emphasized`             | 13 / 18                 | Regular  | Semibold   |
+| `text-caption-1` / `-emphasized`            | 12 / 16                 | Regular  | Semibold   |
+| `text-caption-2` / `-emphasized`            | 11 / 13                 | Regular  | Semibold   |
 
-| Role                       | Class                             | Primitive                          |
-| -------------------------- | --------------------------------- | ---------------------------------- |
-| Hero or empty-state title  | `text-large-title`                | `H1` (`components/ui/typography`)  |
-| Section title              | `text-title-1`                    | `H2`                               |
-| Card or group title        | `text-title-2`                    | `H3`, `CardTitle`                  |
-| Row title, emphasized line | `text-title-3`                    | `H4`                               |
-| Body                       | `text-body`                       | `Text` (`components/ui/text`), `P` |
-| Secondary line             | `text-subhead`                    | `Muted`                            |
-| Metadata, captions         | `text-footnote`, `text-caption-1` | `Text` with the class              |
+Mono is IBM Plex Mono, for numbers that line up in columns (reps, weights, timers, stats): `text-mono-<style>` (Regular) and `text-mono-<style>-semibold` at five of the sizes above, `title-2`, `body`, `subhead`, `footnote` and `caption-1`. Those are the only Mono styles: mobile bundles IBM Plex Mono Regular and SemiBold only.
 
-- Pick the size by role from the table; within one role, hierarchy comes from weight (`-semibold`, `-bold`) and `text-muted-foreground`, not from another size.
-- Headings come from `H1`–`H4`: they carry the font, the color and the heading role for VoiceOver. Don't rebuild one from `Text` and classes, and don't use `Text`'s `variant="h1"` and friends.
-- Never use an arbitrary size (`text-[13px]` is `text-footnote`, `[15px]` is `text-subhead`, `[17px]` is `text-body`) or Tailwind's default scale (`text-sm`, `text-lg`).
-- Merge classes with `cn()` from `~/lib/utils`, never `clsx` or `twMerge` directly: it's the one that knows the type scale (see its comment).
+| Role                       | Class                                       | Primitive                          |
+| -------------------------- | ------------------------------------------- | ---------------------------------- |
+| Hero or empty-state title  | `text-large-title-emphasized`               | `H1` (`components/ui/typography`)  |
+| Section title              | `text-title-1-emphasized`                   | `H2`                               |
+| Card or group title        | `text-title-2-emphasized`                   | `H3`, `CardTitle`                  |
+| Row title, emphasized line | `text-title-3-emphasized`                   | `H4`                               |
+| Body                       | `text-body`                                 | `Text` (`components/ui/text`), `P` |
+| Button label, strong label | `text-body-emphasized`, `-subhead-emphasized` | `Button` (by `size`)             |
+| Secondary line             | `text-subhead`                              | `Muted`                            |
+| Metadata, captions         | `text-footnote`, `text-caption-1`           | `Text` with the class              |
+| Numbers in columns         | `text-mono-footnote`, `text-mono-body-semibold` | `Text` with the class          |
+
+- Text gets exactly one text style. No `font-*` weight or family class, `leading-*` or `tracking-*` next to it, and no `font-bold` to make a label heavier: pick the `-emphasized` style. Hierarchy within one role comes from Regular vs Emphasized and `text-muted-foreground`, not from another size.
+- Headings come from `H1`–`H4`: they carry the style, the color and the heading role for VoiceOver. Don't rebuild one from `Text` and classes, and don't use `Text`'s `variant="h1"` and friends.
+- Never use an arbitrary size or leading (`text-[13px]` is `text-footnote`, `[15px]` is `text-subhead`, `[17px]` is `text-body`), Tailwind's default scale (`text-sm`, `text-lg`) or an inline `fontSize`. Where a native prop wants a font (SwiftUI's `font` modifier, a header's `headerLargeTitleStyle`, markdown styles), resolve a style: `useSwiftUIFont("text-body-emphasized")` from `components/ui/swift-ui.tsx`, or `useResolveClassNames("text-title-1-emphasized")` from `uniwind`.
+- Merge classes with `cn()` from `~/lib/utils`, never `clsx` or `twMerge` directly: it knows the text styles, so a later style replaces an earlier one (and any font, weight, size, leading or tracking class) and keeps the text color.
 - Write class names out in full. uniwind only sees literal classes, so `` `text-${color}` `` silently styles nothing: pick from a map or a ternary of full names.
+- Changing a text style means editing `tokens.css` (the `--text-*` sizes or the `@utility` blocks) and the matching Figma text style in the same PR.
 
 ## Spacing and layout
 
