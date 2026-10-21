@@ -148,8 +148,8 @@ No `.tsx` file in mobile, web or site hardcodes a color or an off-scale size, an
 
 What it leaves alone, and why:
 
-- Comments, JSX text (copy like "Order #1"), URL fragments (`page#faq`) and the values of `href`, `id`, `testID` and `nativeID`: anchors and ids, not colors. It reads the code through TypeScript's parser, so only real string literals count (quoted strings, JSX attribute values, the static parts of template literals).
-- Token references: the CSS-variable shorthand in parentheses (`h-(--size-button-pill-default)`) has no brackets, and a bracket that holds only a variable (`[var(--x)]`, `[--x]`) names a token, not a value.
+- Comments, JSX text (copy like "Order #1"), URL fragments (`page#faq`) and the values of `href`, `id`, `testID` and `nativeID`, wrapped in `{…}` or built from a template too (`` href={`${path}#add`} ``): anchors and ids, not colors. It reads the code through TypeScript's parser, so only real string literals count (quoted strings, JSX attribute values, the static parts of template literals).
+- Token references: the CSS-variable shorthand in parentheses (`h-(--size-button-pill-default)`) has no brackets, and a bracket that holds exactly one variable (`[var(--x)]`, `[--x]`) names a token, not a value. A fallback (`p-[var(--x,13px)]`) hides a value, so it fails.
 - Other arbitrary utilities (`w-[…]`, `h-[…]`, `max-w-[80%]`, `grid-cols-[…]`, `ring-[…]`): sizes the scales don't cover; prefer a numeric step where one fits.
 - Tests (`__tests__/`, `*.test.tsx`), native projects and build output: fixtures and generated code, not UI. `.ts` files aren't read either, so a color constant in one isn't caught: native props read the tokens through `useCSSVariable` or `useResolveClassNames` instead (see [Color](#color)), never a TypeScript copy.
 - Named colors (`"white"`) and Tailwind's default palette (`text-blue-400`) aren't caught; they're still not tokens, so don't use them.

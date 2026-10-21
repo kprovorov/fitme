@@ -19,9 +19,10 @@ import { readTokens, type Token } from "./index.ts";
  * - `rgb(`, `rgba(`, `hsl(`, `hsla(`;
  * - an arbitrary `text-[…]`, `leading-[…]`, `rounded-[…]` (any corner) or
  *   spacing value (`p*-[…]`, `m*-[…]`, `gap-[…]`, `space-x/y-[…]`), with any
- *   variant prefix (`active:rounded-[10px]`). A bracket holding a CSS
- *   variable (`[var(--x)]`, `[--x]`) and the variable shorthand
- *   (`h-(--size-button-pill-default)`) are token references, not values.
+ *   variant prefix (`active:rounded-[10px]`). A bracket holding exactly one
+ *   CSS variable (`[var(--x)]`, `[--x]`) and the variable shorthand
+ *   (`h-(--size-button-pill-default)`) are token references, not values; a
+ *   fallback (`[var(--x,13px)]`) hides a value, so it fails.
  */
 
 /** One literal the check rejects. */
@@ -74,7 +75,8 @@ const HEX =
 const COLOR_FUNCTION = /(?<![\w-])(?:rgba?|hsla?)\([^)]*\)?/gi;
 const ARBITRARY_CLASS =
   /(?<![\w-])-?(text|leading|rounded(?:-(?:[trblse]|tl|tr|br|bl|ss|se|es|ee))?|[pm][xytrblse]?|gap(?:-[xy])?|space-[xy])-\[([^\]\s]*)\]/g;
-const TOKEN_REFERENCE = /^(?:var\()?--/;
+// A whole `var(--name)` or `--name`, nothing else: a fallback is a value
+const TOKEN_REFERENCE = /^(?:var\(--[\w-]+\)|--[\w-]+)$/;
 // Attributes whose value is an anchor or an id, never a color
 const ID_ATTRIBUTES = new Set(["href", "id", "nativeID", "testID"]);
 
@@ -127,9 +129,31 @@ const classHint = (
   return "arbitrary spacing: use a spacing token or a numeric step (px-md, gap-2)";
 };
 
-const isIdAttributeValue = (node: ts.Node) =>
-  ts.isJsxAttribute(node.parent) &&
-  ID_ATTRIBUTES.has(node.parent.name.getText());
+// Nodes a literal can sit in and still be (part of) an attribute's value:
+// `href={"#a"}`, `href={`${path}#a`}`, `href={(cond ? "#a" : "#b")}`,
+// `href={base + "#a"}`, `href={url ?? "#a"}`
+const isValuePart = (node: ts.Node) =>
+  ts.isJsxExpression(node) ||
+  ts.isTemplateExpression(node) ||
+  ts.isTemplateSpan(node) ||
+  ts.isParenthesizedExpression(node) ||
+  ts.isConditionalExpression(node) ||
+  (ts.isBinaryExpression(node) &&
+    [
+      ts.SyntaxKind.PlusToken,
+      ts.SyntaxKind.AmpersandAmpersandToken,
+      ts.SyntaxKind.BarBarToken,
+      ts.SyntaxKind.QuestionQuestionToken,
+    ].includes(node.operatorToken.kind));
+
+/** Whether the literal is (part of) the value of an anchor or id attribute. */
+const isIdAttributeValue = (node: ts.Node) => {
+  let { parent } = node;
+  while (isValuePart(parent)) {
+    ({ parent } = parent);
+  }
+  return ts.isJsxAttribute(parent) && ID_ATTRIBUTES.has(parent.name.getText());
+};
 
 const isStringLike = (node: ts.Node) =>
   ts.isStringLiteral(node) ||

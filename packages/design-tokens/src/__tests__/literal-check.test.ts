@@ -109,6 +109,32 @@ describe("checkSource", () => {
     expect(checkSource(PATH, source)).toEqual([]);
   });
 
+  it("passes anchors wrapped in JSX expressions and templates", () => {
+    const source = [
+      "<a href={'#abc'} />",
+      // biome-ignore lint/suspicious/noTemplateCurlyInString: the fixture is source code holding a template literal
+      "<a href={`${path}#add`} />",
+      '<a href={(active ? "#fed" : "#bad")} />',
+      '<a href={base + "#cafe"} id={anchor ?? "#face"} />',
+    ].join("\n");
+
+    expect(checkSource(PATH, source)).toEqual([]);
+  });
+
+  it("still fails a template in a non-anchor attribute", () => {
+    // biome-ignore lint/suspicious/noTemplateCurlyInString: the fixture is source code holding a template literal
+    const source = "<View className={`${x} [color:#fff]`} />";
+
+    expect(literals(source)).toEqual(["#fff"]);
+  });
+
+  it("fails a CSS-variable fallback and passes a bare reference", () => {
+    const source =
+      '<View className="p-[var(--spacing-card,13px)] p-[var(--spacing-sm)] h-(--size-button-pill-sm) gap-[--spacing-xs]" />';
+
+    expect(literals(source)).toEqual(["p-[var(--spacing-card,13px)]"]);
+  });
+
   it("ignores comments, JSX text, URLs, anchors and ids", () => {
     const source = [
       "// Was #C0FF38 and rgba(0, 0, 0, 0.1), now a token",
