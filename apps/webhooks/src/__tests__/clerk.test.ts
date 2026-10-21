@@ -1,7 +1,6 @@
 import { Webhook } from "standardwebhooks";
 import { afterEach, describe, expect, it, vi } from "vitest";
-import { createApp } from "../app.js";
-import type { ClerkWebhookDeps } from "../routes/clerk.js";
+import { type AppDeps, createApp } from "../create-app.js";
 
 // A Standard Webhooks secret, as Clerk issues them: "whsec_" + base64
 const SIGNING_SECRET = "whsec_MfKQ9r8GKYqrTwjUPD8ILPZIo2LaLaSw";
@@ -36,7 +35,7 @@ const signedRequest = (
   });
 };
 
-const setup = (overrides: Partial<ClerkWebhookDeps> = {}) => {
+const setup = (overrides: Partial<AppDeps["clerk"]> = {}) => {
   const deleted: string[] = [];
   const reported: unknown[] = [];
   // Every cleanup step, in the order it ran
@@ -52,12 +51,12 @@ const setup = (overrides: Partial<ClerkWebhookDeps> = {}) => {
         steps.push(`data:${userId}`);
         return Promise.resolve();
       },
-      reportError: (error) => {
-        reported.push(error);
-        return Promise.resolve();
-      },
       signingSecret: SIGNING_SECRET,
       ...overrides,
+    },
+    reportError: (error) => {
+      reported.push(error);
+      return Promise.resolve();
     },
   });
   return { app, deleted, reported, steps };

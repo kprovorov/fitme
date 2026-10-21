@@ -14,6 +14,7 @@
   "dependencies": {
     "@clerk/backend": "^3.25.0",
     "@fitme/db": "workspace:*",
+    "@fitme/observability": "workspace:*",
     "@fitme/services": "workspace:*",
     "@hono/node-server": "^2.1.5",
     "@sentry/node": "^11.8.0",
