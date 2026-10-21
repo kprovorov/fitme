@@ -272,6 +272,9 @@ importers:
       '@fitme/design-tokens':
         specifier: workspace:*
         version: link:../../packages/design-tokens
+      '@fitme/observability':
+        specifier: workspace:*
+        version: link:../../packages/observability
       '@fitme/supabase':
         specifier: workspace:*
         version: link:../../packages/supabase
