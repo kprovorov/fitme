@@ -7,17 +7,32 @@ import { HStack } from "@/components/ui/hstack";
 import { Text } from "@/components/ui/text";
 import { H4 } from "@/components/ui/typography";
 import { VStack } from "@/components/ui/vstack";
-import { confirmFinishWorkout } from "~/hooks/finish-workout-session";
-import {
-  useCreateWorkoutSessionMutation,
-  useFinishWorkoutSessionMutation,
-} from "~/hooks/queries/workout-sessions";
+import { useFinishWorkoutSession } from "~/hooks/finish-workout-session";
+import { useCreateWorkoutSessionMutation } from "~/hooks/queries/workout-sessions";
 import { cn } from "~/lib/utils";
 import ExerciseImage from "../exercises/exercise-image";
 import { COUNT_SYMBOL } from "../plans/plan-symbols";
 import { SymbolImage } from "../symbol-image";
 import { Button } from "../ui/button";
 import { Card } from "../ui/card";
+
+/**
+ * Finishes the Workout's active session the way the session screen does
+ * (see `useFinishWorkoutSession`), then opens its Summary over Home.
+ */
+function FinishWorkoutButton({ sessionId }: { sessionId: string }) {
+  const { confirmFinish, isFinishing } = useFinishWorkoutSession(sessionId, {
+    outsideSession: true,
+  });
+  return (
+    <Button
+      isLoading={isFinishing}
+      label="Finish Workout"
+      onPress={confirmFinish}
+      variant="secondary"
+    />
+  );
+}
 
 interface WorkoutCardProps {
   state?: "upcoming" | "finished" | "default";
@@ -44,28 +59,8 @@ export default function WorkoutCard({
     },
   });
 
-  const {
-    mutateAsync: finishWorkoutSession,
-    isPending: isFinishingWorkoutSession,
-  } = useFinishWorkoutSessionMutation({
-    onSuccess: async () => {
-      await queryClient.invalidateQueries({ queryKey: ["workout-session"] });
-      await queryClient.invalidateQueries({ queryKey: ["plans"] });
-    },
-  });
-
   const startWorkout = () => {
     createWorkoutSession({ workoutId: workout.id });
-  };
-
-  const finishWorkout = async () => {
-    if (!activeSession) {
-      return;
-    }
-    const sessionId = activeSession.id;
-    if (await confirmFinishWorkout(queryClient, sessionId)) {
-      finishWorkoutSession({ sessionId });
-    }
   };
 
   const activeSession = workout.sessions.find(
@@ -194,12 +189,7 @@ export default function WorkoutCard({
         {state === "upcoming" && (
           <VStack className="items-stretch">
             {activeSession ? (
-              <Button
-                isLoading={isFinishingWorkoutSession}
-                label="Finish Workout"
-                onPress={finishWorkout}
-                variant="secondary"
-              />
+              <FinishWorkoutButton sessionId={activeSession.id} />
             ) : (
               <Button
                 icon="arrow.right"
