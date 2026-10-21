@@ -70,8 +70,9 @@
   --radius-card: 1rem;
 
   /*
-   * Button heights, measured from the native SwiftUI buttons on iOS 27 (glass
-   * and solid styles draw the same box), rounded to whole points. A circle's
+   * Button heights, measured from the native SwiftUI buttons on iOS 27 and
+   * rounded to whole points: Liquid Glass and iOS 27's solid styles draw the
+   * same box. The solid styles before iOS 26 weren't measured. A circle's
    * diameter is its own: it holds a glyph, which is shorter than a label.
    */
   --size-button-pill-sm: 31px;

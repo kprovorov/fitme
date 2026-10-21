@@ -109,7 +109,11 @@ const SIZE_CLASS: Record<ButtonShape, Record<ButtonSize, string>> = {
   },
 };
 
-/** Gap between a button's label and its icon. */
+/**
+ * Gap between a button's label and its icon: `--spacing-xs`. SwiftUI's
+ * `spacing` takes a number, so this mirrors the token (Figma binds the same
+ * gap to `Spacing/xs`).
+ */
 const ICON_LABEL_SPACING = 8;
 
 interface ButtonBaseProps {
@@ -133,18 +137,28 @@ interface ButtonBaseProps {
 }
 
 /** A capsule with a label, and optionally an icon before or after it. */
-interface PillButtonProps extends ButtonBaseProps {
+interface PillBaseProps extends ButtonBaseProps {
   /** VoiceOver label, when the visible one doesn't say enough. */
   accessibilityLabel?: string;
-  /** The older form of `label`: text, or views when there's no SF Symbol. */
-  children?: React.ReactNode;
   /** SF Symbol drawn next to the label. */
   icon?: SFSymbol;
   iconPosition?: ButtonIconPosition;
-  /** Button text. Takes precedence over `children`. */
-  label?: string;
   shape?: "pill";
 }
+
+/**
+ * A pill always has something to read: a `label`, or `children` (the older
+ * form: text, or views when there's no SF Symbol). A lone icon is a circle.
+ */
+type PillButtonProps = PillBaseProps &
+  (
+    | {
+        children?: React.ReactNode;
+        /** Button text. Takes precedence over `children`. */
+        label: string;
+      }
+    | { children: React.ReactNode; label?: undefined }
+  );
 
 /** An icon on its own. It has no visible text, so VoiceOver needs a label. */
 interface CircleButtonProps extends ButtonBaseProps {

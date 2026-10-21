@@ -1,5 +1,5 @@
 import { Stack } from "expo-router";
-import { Linking, ScrollView } from "react-native";
+import { Linking, ScrollView, View } from "react-native";
 import Instagram from "~/components/icons/social/instagram";
 import Threads from "~/components/icons/social/threads";
 import X from "~/components/icons/social/x";
@@ -7,6 +7,9 @@ import { Button } from "~/components/ui/button";
 import { HStack } from "~/components/ui/hstack";
 import { P } from "~/components/ui/typography";
 import { VStack } from "~/components/ui/vstack";
+
+/** A 16 pt logo inside a 44 pt tap target (the ghost Button gives the height). */
+const LOGO_TARGET_CLASS = "w-11 items-center";
 
 const openSupportEmail = () =>
   Linking.openURL("mailto:support@fitmeproject.com");
@@ -42,27 +45,34 @@ export default function SupportScreen() {
             feedback
           </P>
           <Button
+            contentColorClassName="text-primary"
             label="support@fitmeproject.com"
             onPress={openSupportEmail}
             variant="ghost"
           />
           <HStack>
             <Button accessibilityLabel="X" onPress={openX} variant="ghost">
-              <X fill="#C0FF38" height={16} width={16} />
+              <View className={LOGO_TARGET_CLASS}>
+                <X fill="#C0FF38" height={16} width={16} />
+              </View>
             </Button>
             <Button
               accessibilityLabel="Instagram"
               onPress={openInstagram}
               variant="ghost"
             >
-              <Instagram fill="#C0FF38" height={16} width={16} />
+              <View className={LOGO_TARGET_CLASS}>
+                <Instagram fill="#C0FF38" height={16} width={16} />
+              </View>
             </Button>
             <Button
               accessibilityLabel="Threads"
               onPress={openThreads}
               variant="ghost"
             >
-              <Threads fill="#C0FF38" height={16} width={16} />
+              <View className={LOGO_TARGET_CLASS}>
+                <Threads fill="#C0FF38" height={16} width={16} />
+              </View>
             </Button>
           </HStack>
         </VStack>
