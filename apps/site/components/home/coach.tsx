@@ -21,16 +21,16 @@ function Coach() {
       <Container>
         <div className="grid items-center gap-10 overflow-hidden rounded-3xl border bg-secondary px-6 pt-10 md:grid-cols-2 md:gap-16 md:px-12 md:pt-12">
           <div className="flex flex-col items-start gap-5 md:pb-12">
-            <p className="rounded-full border border-primary/40 px-3 py-1 font-semibold text-primary text-sm">
+            <p className="rounded-full border border-primary/40 px-3 py-1 font-semibold text-footnote text-primary">
               Fitme Pro
             </p>
             <h2
-              className="text-balance font-bold text-3xl tracking-tight sm:text-4xl"
+              className="text-balance font-bold text-display-2 tracking-tight sm:text-display-1"
               id="coach-heading"
             >
               An AI Coach that knows your training
             </h2>
-            <p className="text-pretty text-lg text-muted-foreground">
+            <p className="text-pretty text-body text-muted-foreground">
               Chat with a Coach that can read your plan and history and change
               them for you. You pick the model that answers, from GPT to Claude:
               a quick one for short questions, a thorough one for a deep look at

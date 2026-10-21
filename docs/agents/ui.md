@@ -37,7 +37,7 @@ iOS first. Android renders but is second: icons fall back to Lucide, glass falls
 
 ## Tokens
 
-Every Token lives in one file, `packages/design-tokens/src/tokens.css` (`@fitme/design-tokens`, ADR 0009). Mobile's `global.css` imports it and only maps the font roles to the font files the app bundles; web and site move onto the same file in later issues (FIT-198 for web). Code is the source of truth and Figma follows it:
+Every Token lives in one file, `packages/design-tokens/src/tokens.css` (`@fitme/design-tokens`, ADR 0009). Mobile's `global.css` imports it and only maps the font roles to the font files the app bundles; the site imports it too (its own stylesheet only adds `display-1` / `display-2`); web moves onto it in FIT-198. Code is the source of truth and Figma follows it:
 
 - **Changing a Token**: edit `tokens.css`, never an app's stylesheet. The same PR updates the matching Figma variable in the `Fitme` file (named like the Token minus its prefix: `--color-primary` is `Color/primary`) through the Figma MCP, and the tables below.
 - Dark only: one value per Token, no `@variant light` / `@variant dark`, no light values anywhere.
@@ -114,6 +114,7 @@ The scale is Apple's text styles (iOS, default Large size; letter spacing 0), de
 - Screen gutters and gaps between sections use the spacing Tokens: `xs` 8, `sm` 16, `md` 24, `lg` 32 (`px-md`, `gap-md`, `p-md`).
 - Corners use the radius Tokens: Tailwind's default scale (`rounded-xs` 2, `-sm` 4, `-md` 6, `-lg` 8, `-xl` 12, `-2xl` 16, `-3xl` 24, `-4xl` 32), with no per-app overrides, plus `rounded-card` 16 for cards.
 - Inside a component, use Tailwind's numeric steps (`gap-2`, `px-3`, `py-2`). Never an arbitrary value (`p-[13px]`, `rounded-[10px]`).
+- The spacing Tokens shadow Tailwind's named sizes: `max-w-md` is 24 px here, not 28 rem. Use the numeric step (`max-w-112`, `max-w-80`).
 - `VStack` and `HStack` default to `items-center justify-center gap-4`. Centered is right for empty states and single-message Screens and wrong for content: lists, cards and forms pass `items-stretch` (or `items-start`). Everything ending up centered is the most common way generated UI looks off.
 - Rows in a list are divided by `Separator` or `border-border border-b`, not wrapped in a card each. Never nest a `Card` in a `Card`.
 - A rounded surface that isn't a `Card` adds `border-continuous` (iOS's smooth corners), as `Card` does.
@@ -205,5 +206,5 @@ These skills say something this file overrides, for this repo only:
 ## Web and site
 
 - `apps/web` uses shadcn-style Primitives in `components/ui/` (Tailwind v4, `cva`); add new ones with the shadcn CLI (`components.json`). It follows the system's light or dark mode, and its `primary` is zinc, not lime, so check both modes there.
-- `apps/site` (marketing) has its own `components/ui/` and uses the lime `primary`.
+- `apps/site` (marketing) has its own `components/ui/`, is dark only on the shared tokens, and uses the lime `primary`. Hero and page headings use its `text-display-1` (36/40) and `text-display-2` (30/36); everything else is the HIG scale.
 - The loop is the same: open the page with Playwright or Chrome DevTools, screenshot at 320 px and 1280 px wide (both color schemes on web), and have a fresh agent review the screenshots (see [Skills](#skills)). Screenshots cover layout only: touch, viewport height, input zoom and safe areas only show on a real phone, so list what needs that check in the pull request.
