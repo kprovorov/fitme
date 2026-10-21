@@ -121,6 +121,26 @@ describe("checkSource", () => {
     expect(checkSource(PATH, source)).toEqual([]);
   });
 
+  it("skips every detector in anchor and id values", () => {
+    const source = [
+      '<a href="/colors/rgb(1,2,3)" />',
+      '<View testID="rounded-[10px]" nativeID="text-[13px] #fff" />',
+      // biome-ignore lint/suspicious/noTemplateCurlyInString: the fixture is source code holding a template literal
+      "<a id={`swatch-${n}-hsl(0 0% 0%)`} />",
+    ].join("\n");
+
+    expect(checkSource(PATH, source)).toEqual([]);
+  });
+
+  it("still fails the same text outside anchor and id values", () => {
+    const source = [
+      '<View className="rounded-[10px]" />',
+      '<View style={{ color: "rgb(1,2,3)" }} />',
+    ].join("\n");
+
+    expect(literals(source)).toEqual(["rounded-[10px]", "rgb(1,2,3)"]);
+  });
+
   it("still fails a template in a non-anchor attribute", () => {
     // biome-ignore lint/suspicious/noTemplateCurlyInString: the fixture is source code holding a template literal
     const source = "<View className={`${x} [color:#fff]`} />";

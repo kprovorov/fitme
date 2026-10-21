@@ -10,11 +10,12 @@ import { readTokens, type Token } from "./index.ts";
  *
  * Only string literals are read (quoted strings, JSX attribute values and the
  * static parts of template literals), parsed with TypeScript, so comments, JSX
- * text, numbers and identifiers never count. In them it finds:
+ * text, numbers and identifiers never count. Neither do the values of `href`,
+ * `id`, `testID` and `nativeID` (URLs, anchors and ids, never style), even
+ * wrapped in `{…}` or built from a template. In the rest it finds:
  * - a hex color (`#c0ff38`, `#fff`, `#ffffff1a`) not glued to a word, `/`,
  *   `?`, `=`, `.` or `%` (URL fragments like `page#faq` and `/#top` are
- *   skipped), and not the value of `href`, `id`, `testID` or `nativeID`
- *   (anchors). After a `:` it counts, so CSS (`color:#fff`) and arbitrary
+ *   skipped). After a `:` it counts, so CSS (`color:#fff`) and arbitrary
  *   properties (`[color:#fff]`) fail;
  * - `rgb(`, `rgba(`, `hsl(`, `hsla(`;
  * - an arbitrary `text-[…]`, `leading-[…]`, `rounded-[…]` (any corner) or
@@ -194,7 +195,8 @@ export function checkSource(
   const checkLiteral = (node: ts.Node) => {
     if (
       ts.isImportDeclaration(node.parent) ||
-      ts.isExportDeclaration(node.parent)
+      ts.isExportDeclaration(node.parent) ||
+      isIdAttributeValue(node)
     ) {
       return;
     }
@@ -203,10 +205,8 @@ export function checkSource(
     // to the file
     const text = source.slice(start, node.getEnd());
 
-    if (!isIdAttributeValue(node)) {
-      for (const match of text.matchAll(HEX)) {
-        report(start + match.index, match[0], hexHint(match[0], tokens));
-      }
+    for (const match of text.matchAll(HEX)) {
+      report(start + match.index, match[0], hexHint(match[0], tokens));
     }
     for (const match of text.matchAll(COLOR_FUNCTION)) {
       report(
