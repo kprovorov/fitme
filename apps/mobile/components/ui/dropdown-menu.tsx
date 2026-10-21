@@ -10,6 +10,7 @@ import {
   contentShape,
   frame,
   shapes,
+  tint,
 } from "@expo/ui/swift-ui/modifiers";
 import type * as React from "react";
 import type { SFSymbol } from "sf-symbols-typescript";
@@ -86,8 +87,11 @@ const DropdownMenu = ({
         label={menuLabel()}
         modifiers={
           accessibilityLabel
-            ? [accessibilityLabelModifier(accessibilityLabel)]
-            : undefined
+            ? [
+                tint(theme.primary),
+                accessibilityLabelModifier(accessibilityLabel),
+              ]
+            : [tint(theme.primary)]
         }
         onPrimaryAction={onPrimaryAction}
         systemImage={label ? systemImage : undefined}

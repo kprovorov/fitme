@@ -39,8 +39,9 @@ export function isStretchClassName(className?: string): boolean {
 }
 
 /**
- * SwiftUI colors come from the same Tailwind tokens the rest of the app uses,
- * resolved through Uniwind so theme switches keep working.
+ * SwiftUI colors come from the same tokens the rest of the app uses
+ * (`--color-*` in `@fitme/design-tokens`), resolved through Uniwind, so every
+ * native control's tint follows the token: there is no copy of a value here.
  */
 export function useSwiftUITheme() {
   const primary = useResolveClassNames("text-primary");
@@ -52,11 +53,13 @@ export function useSwiftUITheme() {
     "text-destructive-foreground"
   );
   const foreground = useResolveClassNames("text-foreground");
+  const mutedForeground = useResolveClassNames("text-muted-foreground");
 
   return {
     destructive: destructive.color as string,
     destructiveForeground: destructiveForeground.color as string,
     foreground: foreground.color as string,
+    mutedForeground: mutedForeground.color as string,
     primary: primary.color as string,
     primaryForeground: primaryForeground.color as string,
     secondary: secondary.color as string,

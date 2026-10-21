@@ -51,7 +51,7 @@ const WheelSelect = ({ label, wheels, value }: WheelSelectProps) => {
   );
 
   return (
-    <VStack className="flex-1 items-stretch gap-0 bg-black/30 p-0">
+    <VStack className="flex-1 items-stretch gap-0 bg-card p-0">
       <TouchableWithoutFeedback onPress={handlePress}>
         <HStack className="h-12 flex-1 justify-between px-3">
           <Text>{label}</Text>
@@ -60,7 +60,7 @@ const WheelSelect = ({ label, wheels, value }: WheelSelectProps) => {
       </TouchableWithoutFeedback>
 
       <Animated.View className="overflow-hidden" style={[animatedStyle]}>
-        <HStack className="gap-0 border-foreground/10 border-t">
+        <HStack className="gap-0 border-border border-t">
           {wheels.map((wheel) => (
             <Picker
               className="h-full flex-1"

@@ -6,6 +6,7 @@ import {
 } from "@expo/ui/swift-ui";
 import {
   disabled as disabledModifier,
+  foregroundStyle,
   pickerStyle,
   scrollContentBackground,
   tag,
@@ -59,8 +60,20 @@ const RadioGroup = <TValue extends PickerValue>({
     <SwiftUIHost className={cn("flex-1", className)} useViewportSizeMeasurement>
       <Form modifiers={[scrollContentBackground("hidden")]}>
         <Section
-          footer={footer ? <SwiftUIText>{footer}</SwiftUIText> : undefined}
-          title={label}
+          footer={
+            footer ? (
+              <SwiftUIText modifiers={[foregroundStyle(theme.mutedForeground)]}>
+                {footer}
+              </SwiftUIText>
+            ) : undefined
+          }
+          header={
+            label ? (
+              <SwiftUIText modifiers={[foregroundStyle(theme.mutedForeground)]}>
+                {label}
+              </SwiftUIText>
+            ) : undefined
+          }
         >
           <SwiftUIPicker
             modifiers={[

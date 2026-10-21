@@ -51,7 +51,7 @@ function GenderOption({
         )}
       >
         {isSelected ? (
-          <View className="aspect-square h-[10px] w-[10px] rounded-full bg-primary" />
+          <View className="aspect-square size-2.5 rounded-full bg-primary" />
         ) : null}
       </View>
       <Text>{getGenderLabel(gender)}</Text>

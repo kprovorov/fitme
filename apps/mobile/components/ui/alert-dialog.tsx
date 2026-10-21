@@ -5,11 +5,15 @@ import {
   Button as SwiftUIButton,
   Text as SwiftUIText,
 } from "@expo/ui/swift-ui";
-import { frame } from "@expo/ui/swift-ui/modifiers";
+import { frame, tint } from "@expo/ui/swift-ui/modifiers";
 import * as Slot from "@rn-primitives/slot";
 import type * as React from "react";
 import { useCallback, useState } from "react";
-import { isStretchClassName, SwiftUIHost } from "~/components/ui/swift-ui";
+import {
+  isStretchClassName,
+  SwiftUIHost,
+  useSwiftUITheme,
+} from "~/components/ui/swift-ui";
 
 type AlertDialogActionRole = "default" | "cancel" | "destructive";
 
@@ -45,6 +49,7 @@ const AlertDialog = ({
   children,
   className,
 }: AlertDialogProps) => {
+  const theme = useSwiftUITheme();
   const [uncontrolledPresented, setUncontrolledPresented] = useState(false);
 
   const presented = isPresented ?? uncontrolledPresented;
@@ -66,6 +71,7 @@ const AlertDialog = ({
     >
       <Alert
         isPresented={presented}
+        modifiers={[tint(theme.primary)]}
         onIsPresentedChange={setPresented}
         title={title}
       >
