@@ -1,6 +1,8 @@
 import { muscleGroups, muscleGroupToName } from "@fitme/core";
 import { describe, expect, it } from "vitest";
-import app from "../app.js";
+import { createApp } from "../create-app.js";
+
+const app = createApp();
 
 const [muscleGroup] = muscleGroups;
 
