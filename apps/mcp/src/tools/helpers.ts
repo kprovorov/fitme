@@ -1,4 +1,5 @@
 import type { CallToolResult } from "@modelcontextprotocol/sdk/types.js";
+import { DrizzleQueryError } from "drizzle-orm";
 import type { ToolContext } from "../context.js";
 import type { UserServices } from "../services.js";
 
@@ -48,27 +49,65 @@ const postgresCause = (error: unknown) => {
   return isPostgresError(cause) ? cause : undefined;
 };
 
+const STACK_FRAME = /^\s+at /;
+const MAX_CAUSE_DEPTH = 10;
+
+/** The `DrizzleQueryError` in `error`'s cause chain, if there is one. */
+const findQueryError = (error: unknown) => {
+  let current = error;
+  for (let depth = 0; depth < MAX_CAUSE_DEPTH; depth += 1) {
+    if (current instanceof DrizzleQueryError) {
+      return current;
+    }
+    if (!(current instanceof Error)) {
+      return;
+    }
+    current = current.cause;
+  }
+};
+
 /**
- * The message a failed service call shows the MCP client: a `ToolError`'s, or
- * the Postgres message (never Drizzle's, which carries the SQL and its
- * parameters). Anything else is logged and reported generically.
+ * What a failed service call reports: a query failure becomes a fresh error
+ * carrying only the SQLSTATE and the original stack frames, since Drizzle's
+ * message holds the SQL and its parameters (User data) and the Postgres
+ * message can echo input. Anything else is reported as is.
+ */
+const reportable = (
+  error: unknown
+): { error: unknown; tags?: Record<string, string> } => {
+  const query = findQueryError(error);
+  if (!query) {
+    return { error };
+  }
+  const sqlstate = postgresCause(query)?.code ?? "unknown";
+  const sanitized = new Error(`Database query failed (SQLSTATE ${sqlstate})`);
+  sanitized.name = "DatabaseQueryError";
+  const frames = (query.stack ?? "")
+    .split("\n")
+    .filter((line) => STACK_FRAME.test(line));
+  sanitized.stack = [`${sanitized.name}: ${sanitized.message}`, ...frames].join(
+    "\n"
+  );
+  return { error: sanitized, tags: { sqlstate } };
+};
+
+/**
+ * The message an unexpected service failure shows the MCP client: the
+ * Postgres message (never Drizzle's, which carries the SQL and its
+ * parameters), or a generic one for anything else.
  */
 const describeServiceError = (error: unknown) => {
-  if (error instanceof ToolError) {
-    return error.message;
-  }
   const database = postgresCause(error);
-  if (database) {
-    return describeDatabaseError(database);
-  }
-  console.error(error);
-  return SERVICE_FAILURE_MESSAGE;
+  return database ? describeDatabaseError(database) : SERVICE_FAILURE_MESSAGE;
 };
 
 /**
  * Wraps a user tool handler that runs on services: hands it the caller's
  * services (bound to the verified User) and turns every failure into an
- * `isError` tool result instead of a protocol error.
+ * `isError` tool result instead of a protocol error. A `ToolError` (not
+ * found, not configured, …) is expected and shown as is; anything else (a
+ * Postgres error, an unknown exception) is reported first, a query failure
+ * without its SQL, parameters or Postgres message.
  */
 export function withServices<Args>(
   ctx: ToolContext,
@@ -78,6 +117,11 @@ export function withServices<Args>(
     try {
       return await handler(args, ctx.getServices());
     } catch (error) {
+      if (error instanceof ToolError) {
+        return errorResult(error.message);
+      }
+      const report = reportable(error);
+      await ctx.reportError(report.error, report.tags);
       return errorResult(describeServiceError(error));
     }
   };

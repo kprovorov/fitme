@@ -1,5 +1,12 @@
+import { DrizzleQueryError } from "drizzle-orm";
 import { describe, expect, it, vi } from "vitest";
-import { BENCH_ID, call, connectWithServices, SESSION_ID } from "./harness.js";
+import {
+  BENCH_ID,
+  call,
+  connectWithServices,
+  recordingReporter,
+  SESSION_ID,
+} from "./harness.js";
 
 const benchRow = {
   description: "Barbell press",
@@ -11,9 +18,11 @@ const benchRow = {
 
 /** A failure as Drizzle throws it: the SQL in the message, Postgres as the cause. */
 const queryFailure = (message: string) =>
-  new Error('Failed query: select "id" from "exercises"\nparams: ', {
-    cause: Object.assign(new Error(message), { code: "57014" }),
-  });
+  new DrizzleQueryError(
+    'select "id" from "exercises"',
+    [],
+    Object.assign(new Error(message), { code: "57014" })
+  );
 
 describe("list_exercises", () => {
   it("passes the trimmed search, muscle group and page to the service", async () => {
@@ -91,9 +100,10 @@ describe("list_exercises", () => {
     });
   });
 
-  it("rejects a page size over the maximum and an unknown muscle group", async () => {
+  it("rejects a page size over the maximum and an unknown muscle group, unreported", async () => {
     const listExercises = vi.fn();
-    const client = await connectWithServices({ listExercises });
+    const { reportError, reported } = recordingReporter();
+    const client = await connectWithServices({ listExercises }, reportError);
 
     expect((await call(client, "list_exercises", { limit: 101 })).isError).toBe(
       true
@@ -102,6 +112,7 @@ describe("list_exercises", () => {
       (await call(client, "list_exercises", { muscleGroup: "wings" })).isError
     ).toBe(true);
     expect(listExercises).not.toHaveBeenCalled();
+    expect(reported).toEqual([]);
   });
 
   it("reports database errors as tool errors without the SQL", async () => {

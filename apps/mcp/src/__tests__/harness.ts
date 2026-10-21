@@ -35,9 +35,28 @@ export const fakeServices = (faked: Partial<UserServices>): UserServices => ({
   ...faked,
 });
 
+/** A reporter recording every error it is handed and its tags. */
+export const recordingReporter = () => {
+  const reported: unknown[] = [];
+  const reportedTags: (Record<string, string> | undefined)[] = [];
+  const reportError: ToolContext["reportError"] = (error, tags) => {
+    reported.push(error);
+    reportedTags.push(tags);
+    return Promise.resolve();
+  };
+  return { reportError, reported, reportedTags };
+};
+
+export const ignoreReports: ToolContext["reportError"] = () =>
+  Promise.resolve();
+
 /** A context whose user tools run on `services`. */
-export const contextFor = (services: UserServices): ToolContext => ({
+export const contextFor = (
+  services: UserServices,
+  reportError: ToolContext["reportError"] = ignoreReports
+): ToolContext => ({
   getServices: () => services,
+  reportError,
 });
 
 /** For tests that never reach a user tool. */
@@ -45,6 +64,7 @@ const NO_USER: ToolContext = {
   getServices: () => {
     throw new Error("No User in this test.");
   },
+  reportError: ignoreReports,
 };
 
 export async function connect(context: ToolContext = NO_USER) {
@@ -60,8 +80,10 @@ export async function connect(context: ToolContext = NO_USER) {
 }
 
 /** Connects a client whose service-backed tools run on `faked` services. */
-export const connectWithServices = (faked: Partial<UserServices>) =>
-  connect(contextFor(fakeServices(faked)));
+export const connectWithServices = (
+  faked: Partial<UserServices>,
+  reportError?: ToolContext["reportError"]
+) => connect(contextFor(fakeServices(faked), reportError));
 
 export interface ToolOutcome {
   isError: boolean;

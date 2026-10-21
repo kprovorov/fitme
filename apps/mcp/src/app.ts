@@ -1,75 +1,12 @@
-import { clerkMiddleware } from "@clerk/hono";
-import { streamableHttpHandler } from "@clerk/mcp-tools/hono";
-import { Hono } from "hono";
-import { cors } from "hono/cors";
-import { logger } from "hono/logger";
-import {
-  type AuthVariables,
-  PROTECTED_RESOURCE_METADATA_PATH,
-  protectedResourceMetadata,
-  requireBearerToken,
-  requireClerkUser,
-  requireConfig,
-} from "./auth.js";
-import { createToolContext } from "./context.js";
-import { createMcpServer } from "./server.js";
-import type { ServicesFactory } from "./services.js";
+// Vercel's Hono preset only accepts an entrypoint that imports "hono" itself.
+import "hono";
+import { initObservability } from "@fitme/observability/node";
 
-export interface CreateAppOptions {
-  /** Overrides the services on `FITME_DATABASE_URL` (used by tests). */
-  createServices?: ServicesFactory;
-  logRequests?: boolean;
-}
+initObservability({ service: "mcp" });
 
-export function createApp({
-  createServices,
-  logRequests = true,
-}: CreateAppOptions = {}) {
-  const app = new Hono<{ Variables: AuthVariables }>();
-
-  if (logRequests) {
-    app.use(logger());
-  }
-  app.use(
-    cors({
-      allowHeaders: [
-        "Authorization",
-        "Content-Type",
-        "Accept",
-        "Mcp-Session-Id",
-        "Mcp-Protocol-Version",
-      ],
-      exposeHeaders: ["Mcp-Session-Id", "WWW-Authenticate"],
-      origin: "*",
-    })
-  );
-
-  // Public: liveness and OAuth discovery.
-  app.get("/health", (c) => c.json({ ok: true }));
-  app.get(PROTECTED_RESOURCE_METADATA_PATH, protectedResourceMetadata);
-
-  // The MCP endpoint lives at the root so the server is reachable directly at
-  // https://mcp.fitmeproject.com. Every method needs a Clerk OAuth token.
-  app.use(
-    "/",
-    requireConfig,
-    requireBearerToken,
-    clerkMiddleware(),
-    requireClerkUser
-  );
-
-  // Stateless streamable HTTP: a fresh server + transport per request, so the
-  // process can scale without sticky sessions.
-  app.all("/", (c) => {
-    const context = createToolContext({
-      createServices,
-      user: c.get("clerkUser"),
-    });
-    return streamableHttpHandler(() => createMcpServer({ context }))(c);
-  });
-
-  return app;
-}
+// Loaded only now, so pg and the rest are imported after observability has
+// started and get instrumented (a static import would load them first).
+const { createDefaultApp } = await import("./create-app.js");
 
 // Vercel's Hono preset serves the default export of dist/app.js.
-export default createApp();
+export default createDefaultApp();

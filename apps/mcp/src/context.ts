@@ -1,9 +1,13 @@
+import type { reportError as observabilityReportError } from "@fitme/observability/node";
 import {
   createServicesFromEnv,
   type ServicesFactory,
   type UserServices,
 } from "./services.js";
 import { ToolError } from "./tools/helpers.js";
+
+/** Reports an unexpected failure (logs, captures, waits for delivery). */
+export type ReportError = typeof observabilityReportError;
 
 export interface ToolContext {
   /**
@@ -12,6 +16,8 @@ export interface ToolContext {
    * `ToolError` when the database isn't configured.
    */
   getServices: () => UserServices;
+  /** Reports a tool's unexpected failure; expected ones never reach it. */
+  reportError: ReportError;
 }
 
 /** The User a verified Clerk OAuth token belongs to. */
@@ -21,6 +27,7 @@ export interface ClerkUser {
 
 export interface ToolContextOptions {
   createServices?: ServicesFactory;
+  reportError: ReportError;
   /** Must come from a verified Clerk token, never from request data. */
   user: ClerkUser;
 }
@@ -34,6 +41,7 @@ const NOT_CONFIGURED_MESSAGE =
  */
 export function createToolContext({
   createServices = createServicesFromEnv,
+  reportError,
   user,
 }: ToolContextOptions): ToolContext {
   let services: UserServices | undefined;
@@ -46,5 +54,6 @@ export function createToolContext({
       }
       return services;
     },
+    reportError,
   };
 }

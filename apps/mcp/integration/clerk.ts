@@ -7,7 +7,7 @@ import type {
   OAuthClientMetadata,
   OAuthTokens,
 } from "@modelcontextprotocol/sdk/shared/auth.js";
-import { createApp } from "../src/app.js";
+import { createApp } from "../src/create-app.js";
 
 /**
  * Helpers for the Clerk OAuth suite, which runs the real authorization flow
@@ -344,7 +344,13 @@ export class HeadlessOAuthProvider implements OAuthClientProvider {
 /** Serves the real MCP app over HTTP on a free local port. */
 export async function startMcpServer() {
   const server = serve({
-    fetch: createApp({ logRequests: false }).fetch,
+    fetch: createApp({
+      logRequests: false,
+      reportError: (error) => {
+        console.error(error);
+        return Promise.resolve();
+      },
+    }).fetch,
     hostname: "127.0.0.1",
     port: 0,
   });
