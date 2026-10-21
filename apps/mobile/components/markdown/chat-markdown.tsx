@@ -104,7 +104,9 @@ export function ChatMarkdown({ children }: { children: string }) {
     tableHeaderCellText: { color: text },
     tableHeaderRow: { backgroundColor: bg2 },
     tableRow: { borderBottomColor: border },
-    text: { ...body, color: text },
+    // Leaf text inherits the type of its paragraph, heading, emphasis or
+    // table cell
+    text: { color: text },
     thematicBreak: { backgroundColor: border },
   };
 
