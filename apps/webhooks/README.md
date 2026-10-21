@@ -9,19 +9,19 @@ pnpm webhooks start        # runs dist/node/index.js
 pnpm webhooks test         # vitest
 ```
 
-Env: see `.env.example` (`CLERK_WEBHOOK_SIGNING_SECRET`, `FITME_DATABASE_URL`, `SENTRY_DSN`, `COACH_URL`, `COACH_RESET_SECRET`). The process environment is read as is; nothing loads `.env` files.
+Env: see `.env.example` (`CLERK_WEBHOOK_SIGNING_SECRET`, `FITME_DATABASE_URL`, `SENTRY_DSN`, `COACH_URL`, `COACH_RESET_SECRET`; at build time `SENTRY_AUTH_TOKEN`, `SENTRY_ORG`, `SENTRY_PROJECT` for source maps). The process environment is read as is; nothing loads `.env` files.
 
 ## Endpoints
 
 - `GET /health` — liveness
 - `POST /clerk` — Clerk (Svix-signed). Verifies the signature on the raw request with `verifyWebhook` from `@clerk/backend` (401 otherwise). `user.deleted` runs `deleteUserData` through `withService`, then resets the User's Coach sessions through the Coach (their `coach_sessions` rows stay as tombstones); a failure of either is reported to Sentry and answers 500 so Clerk retries. Other events answer 200. No `svix-id` dedupe: both steps are idempotent.
 
-Unknown routes return `{ error: { code, message } }` with 404.
+Unknown routes return `{ error: { code, message } }` with 404. An unhandled error is reported and answers a JSON 500; an `HTTPException` answers its own status, unreported.
 
 ## Layout
 
 - `src/index.ts` — Node entrypoint, `PORT` env (default 3004)
-- `src/app.ts` — `createApp(deps)` (default export = `createApp()` with the real dependencies, for Vercel)
+- `src/app.ts` — the Vercel entry: imports `hono`, starts `@fitme/observability` (`initObservability({ service: "webhooks" })`), then imports `create-app` dynamically so `pg` loads after it and gets traced; default-exports `createApp()`
+- `src/create-app.ts` — `createApp({ clerk, reportError })` (no argument = the real dependencies): request spans (`observeHono`) first, then the routes
 - `src/routes/clerk.ts` — `clerkRoutes({ deleteCoachConversations, deleteUserData, reportError, signingSecret })`
 - `src/coach.ts` — `deleteCoachConversations` (reset each recorded Coach session) and `coachSessionResetter` (the Coach's reset route over `COACH_RESET_SECRET`)
-- `src/sentry.ts` — `reportError`: logs, sends to Sentry, flushes
