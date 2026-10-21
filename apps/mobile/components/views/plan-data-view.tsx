@@ -2,13 +2,9 @@ import type { PlanData } from "@fitme/core";
 import { getGoalLabel, getPlaceLabel } from "@fitme/core";
 import { Fragment } from "react";
 import { View } from "react-native";
-import { BicepsFlexed } from "~/lib/icons/BicepsFlexed";
-import { Dumbbell } from "~/lib/icons/Dumbbell";
-import { Flame } from "~/lib/icons/Flame";
-import { HeartPulse } from "~/lib/icons/HeartPulse";
-import { House } from "~/lib/icons/House";
-import { Zap } from "~/lib/icons/Zap";
+import { SymbolImage } from "~/components/symbol-image";
 import { cn } from "~/lib/utils";
+import { COUNT_SYMBOL, goalSymbol, placeSymbol } from "../plans/plan-symbols";
 import { Badge } from "../ui/badge";
 import { Card, CardContent, CardHeader, CardTitle } from "../ui/card";
 import { HStack } from "../ui/hstack";
@@ -34,33 +30,30 @@ export default function PlanDataView({
           <HStack className="flex-wrap justify-start gap-2">
             {[
               {
-                icon:
-                  planData.goal === "muscle-gain" ? (
-                    <BicepsFlexed
-                      className="text-secondary-foreground"
-                      size={13}
-                    />
-                  ) : planData.goal === "fat-loss" ? (
-                    <Flame className="text-secondary-foreground" size={13} />
-                  ) : (
-                    <HeartPulse
-                      className="text-secondary-foreground"
-                      size={13}
-                    />
-                  ),
+                icon: (
+                  <SymbolImage
+                    className="text-footnote-emphasized text-secondary-foreground"
+                    name={goalSymbol(planData.goal)}
+                  />
+                ),
                 label: getGoalLabel(planData.goal),
               },
               {
-                icon: <Zap className="text-secondary-foreground" size={13} />,
+                icon: (
+                  <SymbolImage
+                    className="text-footnote-emphasized text-secondary-foreground"
+                    name={COUNT_SYMBOL}
+                  />
+                ),
                 label: `${planData.frequency}x / week`,
               },
               {
-                icon:
-                  planData.place === "gym" ? (
-                    <Dumbbell className="text-secondary-foreground" size={13} />
-                  ) : (
-                    <House className="text-secondary-foreground" size={13} />
-                  ),
+                icon: (
+                  <SymbolImage
+                    className="text-footnote-emphasized text-secondary-foreground"
+                    name={placeSymbol(planData.place)}
+                  />
+                ),
                 label: getPlaceLabel(planData.place),
               },
             ].map((item) => (

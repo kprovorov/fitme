@@ -9,7 +9,7 @@ import {
 } from "@fitme/core";
 import { zodResolver } from "@hookform/resolvers/zod";
 import { router, Stack } from "expo-router";
-import React, { useCallback } from "react";
+import { useCallback } from "react";
 import {
   Controller,
   type ControllerFieldState,
@@ -19,7 +19,10 @@ import {
 import { Pressable, View } from "react-native";
 import { KeyboardAwareScrollView } from "react-native-keyboard-controller";
 import { useSafeAreaInsets } from "react-native-safe-area-context";
+import type { SFSymbol } from "sf-symbols-typescript";
 import { z } from "zod";
+import { goalSymbol } from "~/components/plans/plan-symbols";
+import { SymbolImage } from "~/components/symbol-image";
 import { Badge } from "~/components/ui/badge";
 import { Button } from "~/components/ui/button";
 import { ErrorMessage } from "~/components/ui/error-message";
@@ -31,9 +34,6 @@ import { Textarea } from "~/components/ui/textarea";
 import { H4, Muted } from "~/components/ui/typography";
 import { VStack } from "~/components/ui/vstack";
 import { numberInRange } from "~/lib/form-schemas";
-import { BicepsFlexed } from "~/lib/icons/BicepsFlexed";
-import { Flame } from "~/lib/icons/Flame";
-import { HeartPulse } from "~/lib/icons/HeartPulse";
 import { cn } from "~/lib/utils";
 
 function buildPlanMessage(data: PlanFormValues): string {
@@ -64,14 +64,10 @@ const formSchema = z.object({
 });
 
 const goalOptions = [
-  { icon: Flame, label: "Lose weight", value: "fat-loss" },
-  { icon: BicepsFlexed, label: "Gain muscle", value: "muscle-gain" },
-  {
-    icon: HeartPulse,
-    label: "Improve health",
-    value: "general-health-fitness",
-  },
-];
+  { label: "Lose weight", value: "fat-loss" },
+  { label: "Gain muscle", value: "muscle-gain" },
+  { label: "Improve health", value: "general-health-fitness" },
+] as const;
 
 const placeOptions = [
   { label: "Gym", value: "gym" },
@@ -93,7 +89,7 @@ function renderGoalField({
       {goalOptions.map((option) => (
         <RadioGroupItemTileWithIcon
           disabled={false}
-          icon={option.icon}
+          icon={goalSymbol(option.value)}
           isSelected={option.value === value}
           key={option.value}
           label={option.label}
@@ -440,7 +436,7 @@ function RadioGroupItemTileWithIcon({
 }: {
   value: string;
   label: string;
-  icon?: React.ElementType;
+  icon?: SFSymbol;
   disabled: boolean;
   badge?: string;
   isSelected: boolean;
@@ -459,14 +455,15 @@ function RadioGroupItemTileWithIcon({
       } ${disabled ? "opacity-50" : ""}`}
       onPress={handlePress}
     >
-      {icon
-        ? React.createElement(icon, {
-            "aria-labelledby": `label-for-${value}`,
-            className: `w-10 h-10 ${
-              isSelected ? "text-primary" : "text-muted-foreground"
-            }`,
-          })
-        : null}
+      {icon ? (
+        <SymbolImage
+          className={cn(
+            "text-title-2",
+            isSelected ? "text-primary" : "text-muted-foreground"
+          )}
+          name={icon}
+        />
+      ) : null}
       <Label
         className="text-center"
         disabled={disabled}

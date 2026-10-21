@@ -1,6 +1,5 @@
 import { isLiquidGlassAvailable } from "expo-glass-effect";
 import { Color, Link, Stack, useRouter } from "expo-router";
-import { ChevronRight, Menu, Search } from "lucide-react-native";
 import { useCallback, useMemo, useState } from "react";
 import {
   Alert,
@@ -14,8 +13,7 @@ import {
 import { useSafeAreaInsets } from "react-native-safe-area-context";
 import type { SearchBarTextEventData } from "react-native-screens";
 import { useDrawer } from "@/components/drawer-content";
-import { Icon } from "@/components/icon";
-import { Image } from "@/components/tw";
+import { SymbolImage } from "@/components/symbol-image";
 import { MOCK_CHATS, type MockChat } from "@/utils/mock-chats";
 
 type Filter = "all" | "starred";
@@ -63,17 +61,10 @@ function ChatRow({
               {formatTimeAgo(item.daysAgo)}
             </Text>
           </View>
-          {process.env.EXPO_OS === "ios" ? (
-            <Image
-              className="h-4 w-2.5 font-medium text-muted-foreground dark:text-muted-foreground"
-              source="sf:chevron.right"
-            />
-          ) : (
-            <Icon
-              className="h-4 w-2.5 text-muted-foreground dark:text-muted-foreground"
-              icon={ChevronRight}
-            />
-          )}
+          <SymbolImage
+            className="text-body text-muted-foreground"
+            name="chevron.right"
+          />
         </Pressable>
       </Link.Trigger>
 
@@ -98,7 +89,10 @@ function ChatRow({
 function EmptySearch({ query }: { query: string }) {
   return (
     <View className="flex-1 items-center justify-center gap-2 pt-32">
-      <Icon className="h-10 w-10 text-muted-foreground" icon={Search} />
+      <SymbolImage
+        className="text-large-title text-muted-foreground"
+        name="magnifyingglass"
+      />
       <Text className="px-10 text-center text-body text-muted-foreground">
         No results found for &ldquo;{query}&rdquo;
       </Text>
@@ -229,7 +223,10 @@ function LeftToolbar() {
           className="-ml-1 p-2 active:opacity-60"
           onPress={openDrawer}
         >
-          <Icon className="h-6 w-6 text-foreground" icon={Menu} />
+          <SymbolImage
+            className="text-foreground text-title-3"
+            name="list.bullet"
+          />
         </Pressable>
       </Stack.Toolbar>
     );

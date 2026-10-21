@@ -25,6 +25,7 @@ import Animated, {
   withTiming,
 } from "react-native-reanimated";
 import { useSafeAreaInsets } from "react-native-safe-area-context";
+import type { SFSymbol } from "sf-symbols-typescript";
 import { SymbolImage } from "@/components/symbol-image";
 import { TouchableGlass } from "../touchable-glass";
 import { KeyboardGestureArea } from "../tw";
@@ -430,7 +431,7 @@ export function ConversationEmptyState({
 }: {
   title?: string;
   description?: string;
-  icon?: string;
+  icon?: SFSymbol;
 }) {
   return (
     <View className="flex-1 items-center justify-center gap-2">

@@ -3,14 +3,11 @@ import { Link, router } from "expo-router";
 import { useCallback } from "react";
 import { Linking } from "react-native";
 import RevenueCatUI from "react-native-purchases-ui";
+import { SymbolImage } from "~/components/symbol-image";
 import { Button } from "~/components/ui/button";
 import { Text } from "~/components/ui/text";
 import { useLogoutMutation } from "~/hooks/mutations/auth";
 import { useCustomerInfoQuery, useIsProQuery } from "~/hooks/revenueCat";
-import { Heart } from "~/lib/icons/Heart";
-import { Trophy } from "~/lib/icons/Trophy";
-import { UserRound } from "~/lib/icons/UserRound";
-import { Volleyball } from "~/lib/icons/Volleyball";
 import { getProfileHeader } from "~/lib/user-name";
 import { Avatar, AvatarFallback } from "../ui/avatar";
 import { Card, CardContent } from "../ui/card";
@@ -66,7 +63,10 @@ export default function ProfileView() {
               {initial ? (
                 <Text>{initial}</Text>
               ) : (
-                <UserRound className="text-muted-foreground" size={20} />
+                <SymbolImage
+                  className="text-body text-muted-foreground"
+                  name="person.fill"
+                />
               )}
             </AvatarFallback>
           </Avatar>
@@ -83,7 +83,10 @@ export default function ProfileView() {
             {isPro ? (
               <VStack className="items-stretch gap-2">
                 <HStack className="flex-1 justify-start gap-2">
-                  <Trophy className="text-primary" size={20} />
+                  <SymbolImage
+                    className="text-body-emphasized text-primary"
+                    name="trophy.fill"
+                  />
                   <Text className="text-body-emphasized text-primary">
                     You&apos;re Pro!
                   </Text>
@@ -103,7 +106,10 @@ export default function ProfileView() {
             ) : (
               <VStack className="items-stretch gap-2">
                 <HStack className="flex-1 justify-start gap-2">
-                  <Volleyball className="text-foreground" size={20} />
+                  <SymbolImage
+                    className="text-body-emphasized text-foreground"
+                    name="figure.volleyball"
+                  />
                   <Text className="text-body-emphasized text-foreground">
                     You&apos;re on a free plan
                   </Text>
@@ -151,7 +157,10 @@ export default function ProfileView() {
         <MenuList>
           <MenuListItem onPress={openAppStoreReview}>
             <HStack className="flex-1 justify-start gap-4">
-              <Heart className="text-foreground" size={24} />
+              <SymbolImage
+                className="text-foreground text-title-2"
+                name="heart"
+              />
               <VStack className="items-start gap-0">
                 <Text className="text-body-emphasized text-primary">
                   Like the app?

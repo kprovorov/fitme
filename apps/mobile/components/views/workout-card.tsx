@@ -7,17 +7,15 @@ import { HStack } from "@/components/ui/hstack";
 import { Text } from "@/components/ui/text";
 import { H4 } from "@/components/ui/typography";
 import { VStack } from "@/components/ui/vstack";
-import { Zap } from "@/lib/icons/Zap";
 import { confirmFinishWorkout } from "~/hooks/finish-workout-session";
 import {
   useCreateWorkoutSessionMutation,
   useFinishWorkoutSessionMutation,
 } from "~/hooks/queries/workout-sessions";
-import { ArrowRight } from "~/lib/icons/ArrowRight";
-import { ChevronRight } from "~/lib/icons/ChevronRight";
-import { Timer } from "~/lib/icons/Timer";
 import { cn } from "~/lib/utils";
 import ExerciseImage from "../exercises/exercise-image";
+import { COUNT_SYMBOL } from "../plans/plan-symbols";
+import { SymbolImage } from "../symbol-image";
 import { Button } from "../ui/button";
 import { Card } from "../ui/card";
 
@@ -114,7 +112,10 @@ export default function WorkoutCard({
           >
             <Pressable className="flex-row items-center justify-between rounded-xl border-continuous bg-primary px-3 py-2 active:opacity-80">
               <HStack className="flex-1 justify-start gap-1">
-                <Timer className="text-primary-foreground" size={16} />
+                <SymbolImage
+                  className="text-primary-foreground text-subhead-emphasized"
+                  name="timer"
+                />
                 <Text className="text-primary-foreground text-subhead-emphasized">
                   {elapsedTime}
                 </Text>
@@ -124,7 +125,10 @@ export default function WorkoutCard({
                 <Text className="text-primary-foreground text-subhead-emphasized">
                   To Workout
                 </Text>
-                <ArrowRight className="text-primary-foreground" size={16} />
+                <SymbolImage
+                  className="text-primary-foreground text-subhead-emphasized"
+                  name="arrow.right"
+                />
               </HStack>
             </Pressable>
           </Link>
@@ -134,7 +138,10 @@ export default function WorkoutCard({
             <H4 className="text-primary">{workout.name}</H4>
             <HStack className="justify-start">
               <HStack className="gap-1">
-                <Zap color="#808080" size={16} />
+                <SymbolImage
+                  className="text-muted-foreground text-subhead-emphasized"
+                  name={COUNT_SYMBOL}
+                />
                 <Text className="text-subhead-emphasized">
                   {workout.exercises.length} Exercises
                 </Text>
@@ -172,7 +179,10 @@ export default function WorkoutCard({
                         ) : null}
                       </HStack>
                       {isOpen ? (
-                        <ChevronRight className="text-foreground" size={16} />
+                        <SymbolImage
+                          className="text-footnote-emphasized text-foreground"
+                          name="chevron.right"
+                        />
                       ) : null}
                     </Pressable>
                   </Link>

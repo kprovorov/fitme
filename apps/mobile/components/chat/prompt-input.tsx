@@ -83,6 +83,7 @@ function PromptInputError({ message }: { message?: string }) {
  * A circular glass button for actions (e.g. attachments, camera).
  */
 export function PromptInputAction(props: {
+  accessibilityLabel: string;
   children: ReactNode;
   onPress?: () => void;
 }) {

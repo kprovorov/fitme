@@ -1,11 +1,6 @@
 import type { Plan } from "@fitme/core";
 import { getGoalLabel, getPlaceLabel } from "@fitme/core";
-import { BicepsFlexed } from "~/lib/icons/BicepsFlexed";
-import { Dumbbell } from "~/lib/icons/Dumbbell";
-import { Flame } from "~/lib/icons/Flame";
-import { HeartPulse } from "~/lib/icons/HeartPulse";
-import { House } from "~/lib/icons/House";
-import { Zap } from "~/lib/icons/Zap";
+import { SymbolImage } from "~/components/symbol-image";
 import {
   Card,
   CardContent,
@@ -16,6 +11,7 @@ import {
 import { HStack } from "../ui/hstack";
 import { Text } from "../ui/text";
 import { P } from "../ui/typography";
+import { COUNT_SYMBOL, goalSymbol, placeSymbol } from "./plan-symbols";
 
 interface PlanCardProps {
   plan: Plan;
@@ -33,33 +29,18 @@ export default function PlanCard({ plan }: PlanCardProps) {
         <CardDescription>
           <HStack className="flex-wrap justify-start">
             {[
+              { icon: goalSymbol(plan.goal), label: getGoalLabel(plan.goal) },
+              { icon: COUNT_SYMBOL, label: `${plan.frequency}x per week` },
               {
-                icon:
-                  plan.goal === "muscle-gain" ? (
-                    <BicepsFlexed className="text-muted-foreground" size={16} />
-                  ) : plan.goal === "fat-loss" ? (
-                    <Flame className="text-muted-foreground" size={16} />
-                  ) : (
-                    <HeartPulse className="text-muted-foreground" size={16} />
-                  ),
-                label: getGoalLabel(plan.goal),
-              },
-              {
-                icon: <Zap className="text-muted-foreground" size={16} />,
-                label: `${plan.frequency}x per week`,
-              },
-              {
-                icon:
-                  plan.place === "gym" ? (
-                    <Dumbbell className="text-muted-foreground" size={16} />
-                  ) : (
-                    <House className="text-muted-foreground" size={16} />
-                  ),
+                icon: placeSymbol(plan.place),
                 label: getPlaceLabel(plan.place),
               },
             ].map((item) => (
               <HStack className="gap-1" key={item.label}>
-                {item.icon}
+                <SymbolImage
+                  className="text-muted-foreground text-subhead-emphasized"
+                  name={item.icon}
+                />
                 <Text className="text-subhead-emphasized">{item.label}</Text>
               </HStack>
             ))}
