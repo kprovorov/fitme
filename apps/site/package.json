@@ -2,6 +2,7 @@
   "name": "@fitme/site",
   "version": "0.1.0",
   "private": true,
+  "description": "throwaway",
   "scripts": {
     "build": "next build",
     "dev": "next dev --port 3001",
