@@ -21,8 +21,9 @@ interface Modifier {
 
 // SwiftUI views can't mount under Jest, so every `@expo/ui` view becomes a
 // plain View named after it (`native-Toggle`) that keeps its modifiers as
-// `{ type, args }` records, and renders its node props (a Section's header and
-// footer) as children, a string child (a Text's) inside a React Native Text.
+// `{ type, args }` records and its `color`, and renders its node props (a
+// Section's header and footer, a Menu's label view) as children, a string
+// child (a Text's) inside a React Native Text.
 jest.mock("@expo/ui/swift-ui/modifiers", () => {
   const modifier =
     (type: string) =>
@@ -46,28 +47,41 @@ jest.mock("@expo/ui/swift-ui/modifiers", () => {
 jest.mock("@expo/ui/swift-ui", () => {
   const { Text: RNText, View } =
     jest.requireActual<typeof import("react-native")>("react-native");
+  const { isValidElement } =
+    jest.requireActual<typeof import("react")>("react");
 
   // Lowercase, so React Refresh doesn't register it from inside the factory
   const view =
     (name: string) =>
     ({
       children,
+      color,
       footer,
       header,
+      label,
       modifiers,
     }: {
       children?: React.ReactNode;
+      color?: string;
       footer?: React.ReactNode;
       header?: React.ReactNode;
+      label?: React.ReactNode;
       modifiers?: Modifier[];
-    }) => (
-      <View testID={`native-${name}`} {...{ modifierRecords: modifiers ?? [] }}>
-        {header}
-        {typeof children === "string" ? <RNText>{children}</RNText> : null}
-        {typeof children === "string" ? null : children}
-        {footer}
-      </View>
-    );
+    }) => {
+      const content =
+        typeof children === "string" ? <RNText>{children}</RNText> : children;
+      return (
+        <View
+          testID={`native-${name}`}
+          {...{ color, modifierRecords: modifiers ?? [] }}
+        >
+          {header}
+          {isValidElement(label) ? label : null}
+          {content}
+          {footer}
+        </View>
+      );
+    };
 
   return {
     Alert: Object.assign(view("Alert"), {
@@ -86,6 +100,7 @@ jest.mock("@expo/ui/swift-ui", () => {
     Group: view("Group"),
     Host: view("Host"),
     Image: view("Image"),
+    Label: view("Label"),
     Menu: view("Menu"),
     Picker: view("Picker"),
     RNHostView: view("RNHostView"),
@@ -158,18 +173,6 @@ describe("native controls", () => {
       />,
     ],
     [
-      "ContextMenu",
-      "ContextMenu",
-      <ContextMenu items={[{ label: "Delete" }]} key="context">
-        <Text>Row</Text>
-      </ContextMenu>,
-    ],
-    [
-      "DropdownMenu",
-      "Menu",
-      <DropdownMenu items={[{ label: "Delete" }]} key="menu" label="More" />,
-    ],
-    [
       "AlertDialog",
       "Alert",
       <AlertDialog
@@ -202,7 +205,31 @@ describe("native controls", () => {
     ]);
   });
 
-  it("keeps the tint beside an icon-only dropdown's accessibility label", async () => {
+  // A tint on a menu also repaints its items' icons, a destructive item's
+  // included, so only a dropdown's own button takes a token.
+  it("leaves menu items to the system", async () => {
+    await render(
+      <ContextMenu items={[{ destructive: true, label: "Delete" }]}>
+        <Text>Row</Text>
+      </ContextMenu>
+    );
+
+    expect(argsOf("ContextMenu", "tint")).toEqual([]);
+  });
+
+  it("draws a dropdown's text button in primary", async () => {
+    await render(
+      <DropdownMenu
+        items={[{ destructive: true, label: "Delete" }]}
+        label="More"
+      />
+    );
+
+    expect(argsOf("Menu", "tint")).toEqual([]);
+    expect(argsOf("Label", "foregroundStyle")).toEqual(["text-primary"]);
+  });
+
+  it("draws an icon-only dropdown button in foreground", async () => {
     await render(
       <DropdownMenu
         accessibilityLabel="More"
@@ -211,7 +238,9 @@ describe("native controls", () => {
       />
     );
 
-    expect(argsOf("Menu", "tint")).toEqual(["text-primary"]);
+    expect(screen.getByTestId("native-Image").props.color).toBe(
+      "text-foreground"
+    );
     expect(argsOf("Menu", "accessibilityLabel")).toEqual(["More"]);
   });
 });
