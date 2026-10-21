@@ -33,15 +33,7 @@ function ExerciseCtaButton({
 }: ExerciseCtaButtonProps) {
   const handlePress = useCallback(() => onPress(exercise), [exercise, onPress]);
 
-  return (
-    <Button
-      fill={false}
-      label={label}
-      onPress={handlePress}
-      shape="pill"
-      size="sm"
-    />
-  );
+  return <Button fill={false} label={label} onPress={handlePress} size="sm" />;
 }
 
 export default function WorkoutSessionView({

@@ -108,7 +108,6 @@ export default function RestTimer({
             fill={false}
             label={`−${ADJUST_STEP_SECONDS}`}
             onPress={lessRest}
-            shape="pill"
             variant="secondary"
           />
           <Button
@@ -116,7 +115,6 @@ export default function RestTimer({
             fill={false}
             label={`+${ADJUST_STEP_SECONDS}`}
             onPress={moreRest}
-            shape="pill"
             variant="secondary"
           />
           <Button
@@ -124,7 +122,6 @@ export default function RestTimer({
             fill={false}
             label="Skip"
             onPress={onEnd}
-            shape="pill"
             variant="secondary"
           />
         </View>

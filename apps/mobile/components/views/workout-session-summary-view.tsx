@@ -132,7 +132,6 @@ export default function WorkoutSessionSummaryView({
           iconPosition="trailing"
           label="Continue"
           onPress={onContinue}
-          shape="pill"
         />
       </VStack>
     </VStack>

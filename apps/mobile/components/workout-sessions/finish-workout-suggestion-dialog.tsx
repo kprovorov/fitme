@@ -152,7 +152,6 @@ const FinishWorkoutSuggestionDialog = ({
           isLoading={finishBusy}
           label="Finish Workout"
           onPress={handleFinish}
-          shape="pill"
           testID="finish-workout-suggestion-finish"
         />
         <Button
@@ -161,7 +160,6 @@ const FinishWorkoutSuggestionDialog = ({
           disabled={finishBusy}
           label="Keep Training"
           onPress={handleKeepTraining}
-          shape="pill"
           testID="finish-workout-suggestion-keep-training"
           variant="secondary"
         />

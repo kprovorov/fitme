@@ -103,12 +103,7 @@ function EmptyHistory() {
         Finished workouts show up here, with how long they took and what you
         lifted.
       </Text>
-      <Button
-        fill={false}
-        label="Start a Workout"
-        onPress={goHome}
-        shape="pill"
-      />
+      <Button fill={false} label="Start a Workout" onPress={goHome} />
     </View>
   );
 }
@@ -154,7 +149,6 @@ export default function HistoryScreen() {
             fill={false}
             label="Try Again"
             onPress={retry}
-            shape="pill"
             variant="secondary"
           />
         </View>
