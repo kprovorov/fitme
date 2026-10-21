@@ -143,13 +143,13 @@ function FeatureRow({
           reversed && "md:order-last"
         )}
       >
-        <p className="font-semibold text-muted-foreground text-sm uppercase tracking-wider">
+        <p className="font-semibold text-footnote text-muted-foreground uppercase tracking-wider">
           {feature.eyebrow}
         </p>
-        <h3 className="text-balance font-bold text-2xl text-foreground tracking-tight">
+        <h3 className="text-balance font-bold text-foreground text-title-2 tracking-tight">
           {feature.title}
         </h3>
-        <p className="text-pretty text-lg text-muted-foreground">
+        <p className="text-pretty text-body text-muted-foreground">
           {feature.description}
         </p>
         <ul className="flex flex-col gap-3">
@@ -205,7 +205,7 @@ function Features() {
               key={extra.title}
             >
               <extra.icon aria-hidden="true" className="size-6 text-primary" />
-              <h3 className="font-bold text-foreground text-lg">
+              <h3 className="font-bold text-foreground text-title-3">
                 {extra.title}
               </h3>
               <p className="text-muted-foreground">{extra.description}</p>

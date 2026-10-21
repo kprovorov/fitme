@@ -38,7 +38,7 @@ function Page() {
         <VStack className="gap-20">
           {posts.map((post) => (
             <VStack className="w-full items-start" key={post.slug}>
-              <HStack className="w-full justify-between font-fredoka text-sm">
+              <HStack className="w-full justify-between text-subhead">
                 <HStack className="justify-start gap-2">
                   <Image
                     alt="Kirill Provorov"
@@ -56,7 +56,7 @@ function Page() {
                     @kprovorov
                   </a>
                 </HStack>
-                <span className="text-neutral-400 text-xs">
+                <span className="text-caption-1 text-muted-foreground">
                   {moment(post.metadata.publishedAt).format("MMMM D, YYYY")}
                 </span>
               </HStack>

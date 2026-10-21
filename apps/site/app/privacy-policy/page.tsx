@@ -1,6 +1,8 @@
+import { Prose } from "@/components/prose";
+
 function PrivacyPolicyPage() {
   return (
-    <div className="prose prose-base dark:prose-invert p-6">
+    <Prose className="p-6">
       <h1>Privacy Policy</h1>
       <p>Last updated: October 13, 2026</p>
       <p>
@@ -453,7 +455,7 @@ function PrivacyPolicyPage() {
           </p>
         </li>
       </ul>
-    </div>
+    </Prose>
   );
 }
 

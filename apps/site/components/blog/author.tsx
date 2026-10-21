@@ -17,7 +17,7 @@ export default function Author() {
 
       <VStack className="items-start gap-0">
         <span className="font-medium">Kirill Provorov</span>
-        <a className="text-sm" href={"https://x.com/kprovorov"}>
+        <a className="text-subhead" href={"https://x.com/kprovorov"}>
           @kprovorov
         </a>
       </VStack>

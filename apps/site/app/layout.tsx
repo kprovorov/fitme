@@ -1,4 +1,4 @@
-import type { Metadata } from "next";
+import type { Metadata, Viewport } from "next";
 import "./globals.css";
 import { GoogleTagManager } from "@next/third-parties/google";
 import { Analytics } from "@vercel/analytics/next";
@@ -29,15 +29,22 @@ export const metadata: Metadata = {
   title: "Fitme Project — AI Workout Tracker & Fitness Coach for iPhone",
 };
 
+export const viewport: Viewport = {
+  colorScheme: "dark",
+};
+
 export default function RootLayout({
   children,
 }: Readonly<{
   children: React.ReactNode;
 }>) {
   return (
-    <html className="motion-safe:scroll-smooth" lang="en">
+    <html
+      className={`${nunitoSans.variable} motion-safe:scroll-smooth`}
+      lang="en"
+    >
       <GoogleTagManager gtmId={process.env.NEXT_PUBLIC_GTM_ID || ""} />
-      <body className={`${nunitoSans.className} dark antialiased`}>
+      <body className="antialiased">
         <Header />
         <MainBox>{children}</MainBox>
         <Footer />

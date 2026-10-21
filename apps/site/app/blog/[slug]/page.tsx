@@ -4,6 +4,7 @@ import Image from "next/image";
 import Link from "next/link";
 import { notFound } from "next/navigation";
 import { MDXRemote } from "next-mdx-remote-client/rsc";
+import { ProseArticle } from "@/components/prose";
 import {
   Breadcrumb,
   BreadcrumbItem,
@@ -96,10 +97,10 @@ export default async function Blog({ params }: Props) {
           </BreadcrumbList>
         </Breadcrumb>
         <div>
-          <span className="text-xs">
+          <span className="text-caption-1 text-muted-foreground">
             {moment(post.metadata.publishedAt).format("MMMM D, YYYY")}
           </span>
-          <article className="prose prose-base dark:prose-invert prose-a:text-primary prose-lead:text-white">
+          <ProseArticle>
             <h1>{post.metadata.title}</h1>
             <Image
               alt={post.metadata.title}
@@ -110,7 +111,7 @@ export default async function Blog({ params }: Props) {
             />
             <p className="lead">{post.metadata.summary}</p>
             <MDXRemote source={post.content} />
-          </article>
+          </ProseArticle>
         </div>
         <HStack className="justify-start gap-2">
           <Image
@@ -123,7 +124,7 @@ export default async function Blog({ params }: Props) {
 
           <VStack className="items-start gap-0">
             <span className="font-medium">Kirill Provorov</span>
-            <a className="text-sm" href={"https://x.com/kprovorov"}>
+            <a className="text-subhead" href={"https://x.com/kprovorov"}>
               @kprovorov
             </a>
           </VStack>

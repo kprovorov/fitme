@@ -15,13 +15,13 @@ function DownloadBanner() {
         <div className="grid items-center gap-10 overflow-hidden rounded-3xl border bg-secondary px-6 pt-12 md:grid-cols-[1.2fr_1fr] md:px-12">
           <div className="flex flex-col items-center gap-6 text-center md:items-start md:pb-12 md:text-left">
             <h2
-              className="text-balance font-bold text-3xl tracking-tight sm:text-4xl"
+              className="text-balance font-bold text-display-2 tracking-tight sm:text-display-1"
               id="download-heading"
             >
               Your next workout{" "}
               <span className="text-primary">starts here</span>
             </h2>
-            <p className="max-w-md text-pretty text-lg text-muted-foreground">
+            <p className="max-w-112 text-pretty text-body text-muted-foreground">
               Download Fitme for iPhone, set your goal and get a plan you can
               start today.
             </p>

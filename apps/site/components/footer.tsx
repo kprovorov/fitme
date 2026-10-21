@@ -40,7 +40,7 @@ function Footer() {
             <Link href="/">
               <Image alt="Fitme" height={30} src="/logo.svg" width={100} />
             </Link>
-            <p className="max-w-xs text-muted-foreground">
+            <p className="max-w-80 text-muted-foreground">
               The AI workout tracker and fitness coach for iPhone. Plan, train
               and see your progress in one app.
             </p>
@@ -52,14 +52,14 @@ function Footer() {
           >
             {columns.map((column) => (
               <div className="flex flex-col gap-4" key={column.title}>
-                <h2 className="font-bold text-foreground text-sm">
+                <h2 className="font-bold text-foreground text-subhead">
                   {column.title}
                 </h2>
                 <ul className="flex flex-col">
                   {column.links.map((link) => (
                     <li key={link.href}>
                       <Link
-                        className="inline-flex min-h-11 items-center text-muted-foreground text-sm transition-colors hover:text-foreground"
+                        className="inline-flex min-h-11 items-center text-muted-foreground text-subhead transition-colors hover:text-foreground"
                         href={link.href}
                       >
                         {link.title}
@@ -71,7 +71,7 @@ function Footer() {
             ))}
           </nav>
         </div>
-        <div className="flex flex-col-reverse items-start justify-between gap-6 border-t pt-8 text-muted-foreground text-sm sm:flex-row sm:items-center">
+        <div className="flex flex-col-reverse items-start justify-between gap-6 border-t pt-8 text-footnote text-muted-foreground sm:flex-row sm:items-center">
           <p>© {new Date().getFullYear()} Kyrylo Provorov. Made in Europe.</p>
           <ul className="flex items-center gap-2">
             {socialLinks.map((link) => (

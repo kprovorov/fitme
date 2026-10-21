@@ -28,18 +28,18 @@ function SectionHeading({
       )}
     >
       {eyebrow ? (
-        <p className="font-semibold text-primary text-sm uppercase tracking-wider">
+        <p className="font-semibold text-footnote text-primary uppercase tracking-wider">
           {eyebrow}
         </p>
       ) : null}
       <h2
-        className="text-balance font-bold text-3xl tracking-tight sm:text-4xl"
+        className="text-balance font-bold text-display-2 tracking-tight sm:text-display-1"
         id={id}
       >
         {title}
       </h2>
       {description ? (
-        <p className="text-pretty text-lg text-muted-foreground">
+        <p className="text-pretty text-body text-muted-foreground">
           {description}
         </p>
       ) : null}

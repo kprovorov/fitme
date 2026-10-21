@@ -10,10 +10,10 @@ function Hero() {
     <section aria-labelledby="hero-heading" className="w-full">
       <Container className="flex flex-col items-center gap-12">
         <div className="flex flex-col items-center gap-2 text-center">
-          <h1 className="font-bold text-4xl" id="hero-heading">
+          <h1 id="hero-heading">
             AI Workout Tracker & Fitness Coach for iPhone
           </h1>
-          <p className="text-balance text-2xl">
+          <p className="max-w-2xl text-balance text-title-2">
             Generate personalized workout plans, track every rep, and crush your
             fitness goals with Fitme — the smart AI fitness app.
           </p>

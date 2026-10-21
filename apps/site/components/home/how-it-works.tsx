@@ -44,7 +44,7 @@ function HowItWorks() {
               >
                 {index + 1}
               </span>
-              <h3 className="font-bold text-foreground text-lg">
+              <h3 className="font-bold text-foreground text-title-3">
                 {step.title}
               </h3>
               <p className="text-muted-foreground">{step.description}</p>

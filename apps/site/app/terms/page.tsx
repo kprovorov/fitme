@@ -1,4 +1,5 @@
 import type { Metadata } from "next";
+import { Prose } from "@/components/prose";
 
 export const metadata: Metadata = {
   openGraph: {
@@ -8,7 +9,7 @@ export const metadata: Metadata = {
 
 function TermsOfServicePage() {
   return (
-    <div className="prose prose-base dark:prose-invert p-6">
+    <Prose className="p-6">
       <h2>Terms of Service (ToS)</h2>
       <p>Effective Date: 13 October 2026</p>
       <p>
@@ -160,7 +161,7 @@ function TermsOfServicePage() {
         </a>
         .
       </p>
-    </div>
+    </Prose>
   );
 }
 
