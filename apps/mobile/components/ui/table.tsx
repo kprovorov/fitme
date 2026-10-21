@@ -3,18 +3,18 @@ import type * as React from "react";
 import { TextClassContext } from "~/components/ui/text";
 import { cn } from "~/lib/utils";
 
+/**
+ * A data table: rows divided by `border`, a `muted` header and footer, and
+ * Subhead text (Emphasized in the header). Cells hand their style to the
+ * `Text` inside them; size columns with `className` (`flex-1`, `w-24`).
+ */
 function Table({
   className,
   ...props
 }: TablePrimitive.RootProps & {
   ref?: React.RefObject<TablePrimitive.RootRef>;
 }) {
-  return (
-    <TablePrimitive.Root
-      className={cn("w-full caption-bottom text-subhead", className)}
-      {...props}
-    />
-  );
+  return <TablePrimitive.Root className={cn("w-full", className)} {...props} />;
 }
 
 function TableHeader({
@@ -24,30 +24,17 @@ function TableHeader({
   ref?: React.RefObject<TablePrimitive.HeaderRef>;
 }) {
   return (
-    <TablePrimitive.Header
-      className={cn("border-border [&_tr]:border-b", className)}
-      {...props}
-    />
+    <TablePrimitive.Header className={cn("bg-muted", className)} {...props} />
   );
 }
 
 function TableBody({
   className,
-  style,
   ...props
 }: TablePrimitive.BodyProps & {
   ref?: React.RefObject<TablePrimitive.BodyRef>;
 }) {
-  return (
-    <TablePrimitive.Body
-      className={cn(
-        "flex-1 border-border [&_tr:last-child]:border-0",
-        className
-      )}
-      style={[{ minHeight: 2 }, style]}
-      {...props}
-    />
-  );
+  return <TablePrimitive.Body className={cn("flex-1", className)} {...props} />;
 }
 
 function TableFooter({
@@ -57,10 +44,7 @@ function TableFooter({
   ref?: React.RefObject<TablePrimitive.FooterRef>;
 }) {
   return (
-    <TablePrimitive.Footer
-      className={cn("bg-muted/50 [&>tr]:last:border-b-0", className)}
-      {...props}
-    />
+    <TablePrimitive.Footer className={cn("bg-muted", className)} {...props} />
   );
 }
 
@@ -72,10 +56,7 @@ function TableRow({
 }) {
   return (
     <TablePrimitive.Row
-      className={cn(
-        "flex-row border-border border-b web:transition-colors web:hover:bg-muted/50 web:data-[state=selected]:bg-muted",
-        className
-      )}
+      className={cn("flex-row border-border border-b", className)}
       {...props}
     />
   );
@@ -88,12 +69,9 @@ function TableHead({
   ref?: React.RefObject<TablePrimitive.HeadRef>;
 }) {
   return (
-    <TextClassContext.Provider value="text-primary text-body-emphasized uppercase">
+    <TextClassContext.Provider value="text-foreground text-subhead-emphasized">
       <TablePrimitive.Head
-        className={cn(
-          "h-12 justify-center px-4 text-left [&:has([role=checkbox])]:pr-0",
-          className
-        )}
+        className={cn("justify-center px-3 py-2", className)}
         {...props}
       />
     </TextClassContext.Provider>
@@ -107,13 +85,12 @@ function TableCell({
   ref?: React.RefObject<TablePrimitive.CellRef>;
 }) {
   return (
-    <TablePrimitive.Cell
-      className={cn(
-        "p-4 align-middle [&:has([role=checkbox])]:pr-0",
-        className
-      )}
-      {...props}
-    />
+    <TextClassContext.Provider value="text-foreground text-subhead">
+      <TablePrimitive.Cell
+        className={cn("justify-center px-3 py-2", className)}
+        {...props}
+      />
+    </TextClassContext.Provider>
   );
 }
 

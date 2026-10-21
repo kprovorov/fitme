@@ -3,7 +3,7 @@ import { Link } from "expo-router";
 import { Pressable, View } from "react-native";
 import { HStack } from "@/components/ui/hstack";
 import { Text } from "@/components/ui/text";
-import { H4, P } from "@/components/ui/typography";
+import { H4, Muted } from "@/components/ui/typography";
 import { VStack } from "@/components/ui/vstack";
 import { Zap } from "@/lib/icons/Zap";
 import { ChevronRight } from "~/lib/icons/ChevronRight";
@@ -30,21 +30,12 @@ export default function WorkoutDataCard({
       <VStack className={cn("items-stretch", compact ? "gap-2" : "gap-3")}>
         <HStack className="items-center justify-between">
           <H4 className="flex-1 text-primary">{workoutData.name}</H4>
-          <Badge
-            className="flex-row gap-1 rounded-full px-2 py-0.5"
-            variant="secondary"
-          >
+          <Badge variant="secondary">
             <Zap className="text-secondary-foreground" size={11} />
-            <Text className="text-footnote-emphasized text-secondary-foreground">
-              {workoutData.exercises.length}
-            </Text>
+            <Text>{workoutData.exercises.length}</Text>
           </Badge>
         </HStack>
-        {!compact && (
-          <P className="text-left text-muted-foreground text-subhead">
-            {workoutData.description}
-          </P>
-        )}
+        {!compact && <Muted>{workoutData.description}</Muted>}
       </VStack>
       <View
         className={cn("border-white/10 border-t", compact ? "mt-2" : "mt-1")}

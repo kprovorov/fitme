@@ -64,15 +64,9 @@ export default function PlanDataView({
                 label: getPlaceLabel(planData.place),
               },
             ].map((item) => (
-              <Badge
-                className="flex-row gap-1.5 rounded-full px-2.5 py-1"
-                key={item.label}
-                variant="secondary"
-              >
+              <Badge key={item.label} variant="secondary">
                 {item.icon}
-                <Text className="text-footnote-emphasized text-secondary-foreground">
-                  {item.label}
-                </Text>
+                <Text>{item.label}</Text>
               </Badge>
             ))}
           </HStack>

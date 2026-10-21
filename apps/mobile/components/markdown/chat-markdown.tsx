@@ -1,18 +1,18 @@
 import * as WebBrowser from "expo-web-browser";
 import { Linking, Text, View } from "react-native";
 import { useCSSVariable, useResolveClassNames } from "uniwind";
+import { Table, TableCell, TableHead, TableRow } from "~/components/ui/table";
+import { Text as StyledText } from "~/components/ui/text";
+import { cn } from "~/lib/utils";
 import Markdown from "./markdown";
 
+// Read in this order: text, rules, quiet fills (quotes, code, images), links
 const VAR_NAMES = [
   "--color-foreground",
-  "--color-muted-foreground",
   "--color-border",
-  "--color-secondary",
   "--color-muted",
-  "--color-accent",
-  // Tailwind blue
-  "--color-blue-400",
-] as const;
+  "--color-primary",
+];
 
 /**
  * Convert single newlines to hard breaks (two trailing spaces) so they render
@@ -35,11 +35,7 @@ function openLink(url: string) {
 }
 
 export function ChatMarkdown({ children }: { children: string }) {
-  const [, border, bg2, bg3, fill3, link] = useCSSVariable(
-    VAR_NAMES as unknown as string[]
-  ) as string[];
-
-  const text = "white";
+  const [text, border, muted, link] = useCSSVariable(VAR_NAMES) as string[];
 
   // Type comes from the text styles: Callout for the message, titles for
   // headings, Mono for code
@@ -54,16 +50,15 @@ export function ChatMarkdown({ children }: { children: string }) {
   const code = useResolveClassNames("text-mono-footnote");
   const inlineCode = useResolveClassNames("text-mono-subhead");
   const bullet = useResolveClassNames("text-body");
-  const tableCell = useResolveClassNames("text-subhead");
 
   // Only overrides — defaults from utils.ts are merged automatically
   const markdownStyles = {
     blockquote: {
-      backgroundColor: bg3,
+      backgroundColor: muted,
       borderColor: border,
       paddingHorizontal: 8,
     },
-    codeContainer: { backgroundColor: fill3, borderRadius: 8, padding: 12 },
+    codeContainer: { backgroundColor: muted, borderRadius: 8, padding: 12 },
     codeText: {
       ...code,
       color: text,
@@ -76,12 +71,12 @@ export function ChatMarkdown({ children }: { children: string }) {
     heading6: { ...heading6, color: text },
     image: {
       aspectRatio: 16 / 9,
-      backgroundColor: fill3,
+      backgroundColor: muted,
       borderRadius: 8,
       height: 200,
     },
     inlineCode: {
-      backgroundColor: fill3,
+      backgroundColor: muted,
       borderRadius: 4,
       ...inlineCode,
       color: text,
@@ -89,7 +84,7 @@ export function ChatMarkdown({ children }: { children: string }) {
       paddingHorizontal: 4,
     },
     // Only the color: a link takes its type from the paragraph, heading or
-    // emphasis around it
+    // emphasis around it. Lime, like every other accent in the app
     link: { color: link },
     listBullet: {
       ...bullet,
@@ -97,18 +92,12 @@ export function ChatMarkdown({ children }: { children: string }) {
       fontVariant: ["tabular-nums" as const],
       marginRight: 8,
     },
-    paragraph: { ...body, marginVertical: 8 },
+    paragraph: { ...body, color: text, marginVertical: 8 },
     strong: { fontFamily: bold.fontFamily, fontWeight: bold.fontWeight },
-    table: { borderColor: border, borderRadius: 8 },
-    tableCell: { borderRightColor: border, padding: 10 },
-    tableCellText: { ...tableCell, color: text },
-    tableHeaderCell: { backgroundColor: bg2 },
-    tableHeaderCellText: { color: text },
-    tableHeaderRow: { backgroundColor: bg2 },
-    tableRow: { borderBottomColor: border },
-    // Leaf text inherits the type of its paragraph, heading, emphasis or
-    // table cell
-    text: { color: text },
+    // Leaf text inherits its type and color from its paragraph, heading,
+    // emphasis, link or table cell, so it sets neither: a color here would
+    // paint over the link's
+    text: {},
     thematicBreak: { backgroundColor: border },
   };
 
@@ -136,6 +125,42 @@ export function ChatMarkdown({ children }: { children: string }) {
             {/* biome-ignore lint/suspicious/noExplicitAny: StyleMap values are NamedStyle which requires cast for View style prop */}
             <View style={styles.listItemContent as any}>{itemChildren}</View>
           </View>
+        ),
+        // Tables are the Table Primitive, so they take its border and text
+        // styles: a header row on `muted`, Subhead cells
+        table: ({ node, children: rows }) => (
+          <Table
+            className="my-2 overflow-hidden rounded-lg border border-border border-continuous"
+            key={node.key}
+          >
+            {rows}
+          </Table>
+        ),
+        // Dividers go before a cell or row, never after the last one, so
+        // they don't double the table's own border at the right and bottom
+        tableCell: ({ node, children: content, extras }) => {
+          const Cell = extras?.isHeader ? TableHead : TableCell;
+          return (
+            <Cell
+              className={cn(
+                "flex-1",
+                (extras?.cellIndex ?? 0) > 0 && "border-border border-l"
+              )}
+              key={node.key}
+            >
+              <StyledText>{content}</StyledText>
+            </Cell>
+          );
+        },
+        tableRow: ({ node, children: cells, extras }) => (
+          <TableRow
+            className={
+              extras?.isHeader ? "border-b-0 bg-muted" : "border-t border-b-0"
+            }
+            key={node.key}
+          >
+            {cells}
+          </TableRow>
         ),
       }}
       styles={markdownStyles}

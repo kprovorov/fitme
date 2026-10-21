@@ -1,5 +1,6 @@
 import * as AvatarPrimitive from "@rn-primitives/avatar";
 import type * as React from "react";
+import { TextClassContext } from "~/components/ui/text";
 import { cn } from "~/lib/utils";
 
 const Avatar = ({
@@ -11,7 +12,7 @@ const Avatar = ({
 }) => (
   <AvatarPrimitive.Root
     className={cn(
-      "relative flex h-12 w-12 shrink-0 overflow-hidden rounded-full",
+      "relative flex size-12 shrink-0 overflow-hidden rounded-full",
       className
     )}
     ref={ref}
@@ -28,13 +29,17 @@ const AvatarImage = ({
   ref?: React.RefObject<AvatarPrimitive.ImageRef | null>;
 }) => (
   <AvatarPrimitive.Image
-    className={cn("aspect-square h-full w-full", className)}
+    className={cn("aspect-square size-full", className)}
     ref={ref}
     {...props}
   />
 );
 AvatarImage.displayName = AvatarPrimitive.Image.displayName;
 
+/**
+ * Shown until the image loads, or instead of it: a `muted` circle whose `Text`
+ * is Headline in `muted-foreground` (an initial, usually).
+ */
 const AvatarFallback = ({
   className,
   ref,
@@ -42,14 +47,16 @@ const AvatarFallback = ({
 }: AvatarPrimitive.FallbackProps & {
   ref?: React.RefObject<AvatarPrimitive.FallbackRef | null>;
 }) => (
-  <AvatarPrimitive.Fallback
-    className={cn(
-      "flex h-full w-full items-center justify-center rounded-full bg-muted",
-      className
-    )}
-    ref={ref}
-    {...props}
-  />
+  <TextClassContext.Provider value="text-headline text-muted-foreground">
+    <AvatarPrimitive.Fallback
+      className={cn(
+        "flex size-full items-center justify-center rounded-full bg-muted",
+        className
+      )}
+      ref={ref}
+      {...props}
+    />
+  </TextClassContext.Provider>
 );
 AvatarFallback.displayName = AvatarPrimitive.Fallback.displayName;
 
