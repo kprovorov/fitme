@@ -143,12 +143,14 @@ export default function LoginView() {
           />
           <Button
             disabled={isFetching}
+            fill
             label="Send a new code"
             onPress={handleResendCode}
             variant="ghost"
           />
           <Button
             disabled={isFetching}
+            fill
             label="Use a different account"
             onPress={handleStartOver}
             variant="ghost"

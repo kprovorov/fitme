@@ -8,8 +8,11 @@ import { HStack } from "~/components/ui/hstack";
 import { P } from "~/components/ui/typography";
 import { VStack } from "~/components/ui/vstack";
 
-/** A 16 pt logo inside a 44 pt tap target (the ghost Button gives the height). */
-const LOGO_TARGET_CLASS = "w-11 items-center";
+/**
+ * A 16 pt logo in a 44 pt-wide tap target (the ghost Button gives the
+ * height), aligned with the text above it.
+ */
+const LOGO_TARGET_CLASS = "w-11 items-start";
 
 const openSupportEmail = () =>
   Linking.openURL("mailto:support@fitmeproject.com");
@@ -50,7 +53,7 @@ export default function SupportScreen() {
             onPress={openSupportEmail}
             variant="ghost"
           />
-          <HStack>
+          <HStack className="gap-0">
             <Button accessibilityLabel="X" onPress={openX} variant="ghost">
               <View className={LOGO_TARGET_CLASS}>
                 <X fill="#C0FF38" height={16} width={16} />

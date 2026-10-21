@@ -209,6 +209,7 @@ export default function VerifyCodeView({ purpose }: VerifyCodeViewProps) {
         />
         <Button
           disabled={isFetching}
+          fill
           label="Send a new code"
           onPress={handleResend}
           testID="verify-code-resend-button"
