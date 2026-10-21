@@ -70,11 +70,13 @@ DECLARE
   v_workout_exercise_id uuid;
   v_next_order integer;
 BEGIN
-  -- Table locks before any row lock, in deleteUserData's order (and the
-  -- Plan-edit services'), so an apply queues behind an account deletion
-  -- instead of holding a row its cascade needs
-  LOCK TABLE public.workouts, public.workout_exercises,
-    public.workout_exercise_sets
+  -- Table locks before any row lock, in deleteUserData's order, so a call
+  -- queues behind an account deletion instead of holding a row its cascade
+  -- needs. workout_sessions comes first, as in finish_workout_session: the
+  -- apply stamps it, and taking it last would wait on a deletion that waits
+  -- on the Workout tables held here.
+  LOCK TABLE public.workout_sessions, public.workouts,
+    public.workout_exercises, public.workout_exercise_sets
     IN ROW EXCLUSIVE MODE;
 
   SELECT ws.workout_id INTO v_session_workout_id
@@ -86,10 +88,22 @@ BEGIN
     RAISE EXCEPTION 'Session not found or not authorized';
   END IF;
 
-  -- The Workout row, then the session row: two concurrent applies serialize
-  -- here, and the second sees plan_changes_applied_at. FOR NO KEY UPDATE
-  -- still lets others insert rows referencing the Workout.
+  -- The Plan row, the Workout row, then the session row: two concurrent
+  -- applies serialize here, and the second sees plan_changes_applied_at.
+  -- The Plan comes first as in finish_workout_session (Plan, session, then
+  -- the Plan's Workouts) and update_plan, so a call racing a finish of the
+  -- same session waits instead of deadlocking. FOR NO KEY UPDATE still lets
+  -- others insert rows referencing the Workout.
   IF v_session_workout_id IS NOT NULL THEN
+    PERFORM 1
+    FROM public.plans p
+    WHERE p.id = (
+      SELECT w.plan_id FROM public.workouts w
+      WHERE w.id = v_session_workout_id
+    )
+      AND p.user_id = v_user_id
+    FOR NO KEY UPDATE;
+
     SELECT w.id, w.name, p.id, p.name
     INTO v_workout_id, v_workout_name, v_plan_id, v_plan_name
     FROM public.workouts w

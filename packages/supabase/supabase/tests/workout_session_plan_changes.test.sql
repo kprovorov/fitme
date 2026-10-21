@@ -615,13 +615,14 @@ RESET ROLE;
 
 -- Locks --------------------------------------------------------------------------
 -- Two sessions can't run in one pgTAP transaction, so the lock order is read
--- off the definition: ROW EXCLUSIVE on the Plan's child tables (in
--- deleteUserData's order), then the Workout row, then the session row, so a
--- concurrent apply waits for the first and then sees plan_changes_applied_at.
+-- off the definition: ROW EXCLUSIVE on workout_sessions and the Plan's child
+-- tables (in deleteUserData's order), then the Plan row, the Workout row and
+-- the session row (finish_workout_session's order), so a concurrent apply
+-- waits for the first and then sees plan_changes_applied_at.
 SELECT matches(
   pg_get_functiondef('public.workout_session_plan_changes(uuid, boolean)'::regprocedure),
-  '(?s)LOCK TABLE public\.workouts, public\.workout_exercises,\s+public\.workout_exercise_sets\s+IN ROW EXCLUSIVE MODE.*FROM public\.workouts w.*FOR NO KEY UPDATE OF w;.*FROM public\.workout_sessions ws.*FOR NO KEY UPDATE;.*IF workout_session_plan_changes\.apply THEN',
-  'tables, then the Workout row, then the session row are locked before anything is written'
+  '(?s)LOCK TABLE public\.workout_sessions, public\.workouts,\s+public\.workout_exercises, public\.workout_exercise_sets\s+IN ROW EXCLUSIVE MODE.*FROM public\.plans p.*FOR NO KEY UPDATE;.*FROM public\.workouts w.*FOR NO KEY UPDATE OF w;.*FROM public\.workout_sessions ws.*FOR NO KEY UPDATE;.*IF workout_session_plan_changes\.apply THEN',
+  'tables, then the Plan, Workout and session rows are locked before anything is written'
 );
 
 SELECT * FROM finish();
