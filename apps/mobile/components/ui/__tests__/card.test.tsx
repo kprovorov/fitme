@@ -51,12 +51,14 @@ describe("Card", () => {
       </Card>
     );
 
-    const { className } = screen.getByTestId("card").props;
+    const classes = screen.getByTestId("card").props.className.split(" ");
     // Layout classes apply; the caller's fill, radius and padding don't.
-    expect(className.split(" ")).toEqual(
+    expect(classes).toEqual(
       expect.arrayContaining(["gap-3", "bg-card", "rounded-card", "p-sm"])
     );
-    expect(className).not.toMatch(/bg-destructive|rounded-none|p-0/);
+    for (const dropped of ["bg-destructive", "rounded-none", "p-0"]) {
+      expect(classes).not.toContain(dropped);
+    }
   });
 
   it("passes accessibility props through", async () => {
