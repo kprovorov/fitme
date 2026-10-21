@@ -127,7 +127,10 @@ export default function HomeScreen() {
         ) : // biome-ignore lint/suspicious/noUnnecessaryConditions: false positive, Biome resolves react-query-kit's initialData overload, where isLoading is always false
         isLoadingPlans ? (
           <View className="flex-1 items-center justify-center">
-            <ActivityIndicator color="#ffffff" size="large" />
+            <ActivityIndicator
+              colorClassName="accent-foreground"
+              size="large"
+            />
           </View>
         ) : (
           <VStack className="flex-1 py-md">

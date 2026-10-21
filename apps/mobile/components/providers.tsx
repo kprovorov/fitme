@@ -2,7 +2,7 @@ import { ClerkProvider } from "@clerk/expo";
 import AsyncStorage from "@react-native-async-storage/async-storage";
 import { AnalyticsProvider } from "@segment/analytics-react-native";
 import { QueryClient, QueryClientProvider } from "@tanstack/react-query";
-import { DarkTheme, ThemeProvider } from "expo-router/react-navigation";
+import { ThemeProvider } from "expo-router/react-navigation";
 import * as SecureStore from "expo-secure-store";
 import { Platform, StyleSheet } from "react-native";
 import { GestureHandlerRootView } from "react-native-gesture-handler";
@@ -13,6 +13,7 @@ import {
 } from "react-native-safe-area-context";
 import { useSyncQueriesExternal } from "react-query-external-sync";
 import AuthSync from "@/components/auth-sync";
+import { useNavigationTheme } from "~/hooks/navigation-theme";
 import { clerkPublishableKey, tokenCache } from "~/lib/clerk";
 import { isDevToolsSyncEnabled } from "~/lib/constants";
 import { devToolsStorage } from "~/lib/mmkv";
@@ -43,12 +44,9 @@ function DevToolsSync() {
   return null;
 }
 
-const navigationTheme = {
-  ...DarkTheme,
-  colors: { ...DarkTheme.colors, background: "#1F1D20", primary: "#C0FF38" },
-};
-
 function Providers({ children }: { children: React.ReactNode }) {
+  const navigationTheme = useNavigationTheme();
+
   return (
     <SafeAreaProvider initialMetrics={initialWindowMetrics}>
       <GestureHandlerRootView style={styles.root}>

@@ -1,8 +1,6 @@
 import type { MuscleGroup } from "@fitme/core";
 import Svg, { G, Path, type SvgProps } from "react-native-svg";
-
-const ACTIVE_FILL = "#C0FF38";
-const INACTIVE_FILL = "#6b6b70";
+import { useCSSVariable } from "uniwind";
 
 interface MuscleRegion {
   group: MuscleGroup;
@@ -216,17 +214,37 @@ function isActive(groups: ReadonlySet<MuscleGroup>, group: MuscleGroup) {
   return (GROUP_SYNONYMS[group] ?? []).some((synonym) => groups.has(synonym));
 }
 
+interface Fills {
+  active: string;
+  inactive: string;
+}
+
+// The muted fill at these opacities over `background` keeps the diagram as
+// dark as its design (#6b6b70 muscles on a #414045 body), so the lime stands
+// out, without a token of its own
+const INACTIVE_OPACITY = 0.44;
+const SILHOUETTE_OPACITY = 0.26;
+
+/** Worked muscles in the brand lime, the rest in the muted text color. */
+function useFills(): Fills {
+  return {
+    active: useCSSVariable("--color-primary") as string,
+    inactive: useCSSVariable("--color-muted-foreground") as string,
+  };
+}
+
 function renderRegions(
   regions: MuscleRegion[],
   groups: ReadonlySet<MuscleGroup>,
-  inactiveFill: string
+  fills: Fills
 ) {
   return regions.flatMap((region) =>
     region.paths.map((d) => (
       <Path
         clipRule="evenodd"
         d={d}
-        fill={isActive(groups, region.group) ? ACTIVE_FILL : inactiveFill}
+        fill={isActive(groups, region.group) ? fills.active : fills.inactive}
+        fillOpacity={isActive(groups, region.group) ? 1 : INACTIVE_OPACITY}
         fillRule="evenodd"
         key={d}
       />
@@ -238,24 +256,25 @@ export function WorkoutSessionSummaryBodyFront({
   groups,
   ...props
 }: BodyDiagramProps) {
-  const inactiveFill = INACTIVE_FILL;
+  const fills = useFills();
 
   return (
     <Svg height={230} viewBox={FRONT_VIEW_BOX} width={73} {...props}>
       <Path
         clipRule="evenodd"
         d={FRONT_BASE_D}
-        fill={inactiveFill}
+        fill={fills.inactive}
         fillRule="evenodd"
-        opacity={0.45}
+        opacity={SILHOUETTE_OPACITY}
       />
       <G transform={FRONT_MUSCLES_TRANSFORM}>
-        {renderRegions(FRONT_REGIONS, groups, inactiveFill)}
+        {renderRegions(FRONT_REGIONS, groups, fills)}
         {NECK_PATHS.map((d) => (
           <Path
             clipRule="evenodd"
             d={d}
-            fill={inactiveFill}
+            fill={fills.inactive}
+            fillOpacity={INACTIVE_OPACITY}
             fillRule="evenodd"
             key={d}
           />
@@ -269,19 +288,19 @@ export function WorkoutSessionSummaryBodyBack({
   groups,
   ...props
 }: BodyDiagramProps) {
-  const inactiveFill = INACTIVE_FILL;
+  const fills = useFills();
 
   return (
     <Svg height={230} viewBox={BACK_VIEW_BOX} width={76} {...props}>
       <Path
         clipRule="evenodd"
         d={BACK_BASE_D}
-        fill={inactiveFill}
+        fill={fills.inactive}
         fillRule="evenodd"
-        opacity={0.45}
+        opacity={SILHOUETTE_OPACITY}
       />
       <G transform={BACK_MUSCLES_TRANSFORM}>
-        {renderRegions(BACK_REGIONS, groups, inactiveFill)}
+        {renderRegions(BACK_REGIONS, groups, fills)}
       </G>
     </Svg>
   );

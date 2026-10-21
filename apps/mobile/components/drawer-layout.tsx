@@ -257,7 +257,6 @@ export function DrawerLayout({
               {
                 borderCurve: "continuous" as const,
                 borderRadius: CORNERS,
-                boxShadow: "0px 0px 16px rgba(0, 0, 0, 0.15)",
               },
               contentAnimatedStyle,
             ]}

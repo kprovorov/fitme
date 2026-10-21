@@ -48,7 +48,7 @@ function DrawerNavItem({
 }) {
   return (
     <Pressable
-      className="mx-2 rounded-[10px] px-4 py-3 active:bg-muted"
+      className="mx-2 rounded-xl px-4 py-3 active:bg-muted"
       onPress={onPress}
     >
       <Text className="text-body text-foreground dark:text-foreground">
@@ -70,7 +70,7 @@ function DrawerChatItem({
   return (
     <Pressable
       className={cn(
-        "mx-2 rounded-[10px] px-4 py-2.5 active:bg-accent",
+        "mx-2 rounded-xl px-4 py-2.5 active:bg-accent",
         active && "bg-muted dark:bg-muted"
       )}
       onPress={onPress}

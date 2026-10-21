@@ -64,10 +64,7 @@ function PromptInputError({ message }: { message?: string }) {
         className="flex-row items-center gap-2 rounded-xl bg-card px-3 py-2.5"
         style={{ borderCurve: "continuous" }}
       >
-        <View
-          className="h-2 w-2 rounded-full"
-          style={{ backgroundColor: "#EF4444" }}
-        />
+        <View className="h-2 w-2 rounded-full bg-destructive" />
         <Text
           className="flex-1 text-footnote text-muted-foreground"
           numberOfLines={2}
