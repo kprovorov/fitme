@@ -1,37 +1,17 @@
-import type { LucideIcon } from "lucide-react-native";
-import {
-  Archive,
-  Camera,
-  ChevronRight,
-  File,
-  Globe,
-  Image as ImageIcon,
-  Paintbrush,
-  Sparkles,
-  Wrench,
-} from "lucide-react-native";
 import { useState } from "react";
 import { Pressable, ScrollView, Text, View } from "react-native";
+import type { SFSymbol } from "sf-symbols-typescript";
 import { AndroidGrabber } from "@/components/grabber";
-import { Icon } from "@/components/icon";
+import { SymbolImage } from "@/components/symbol-image";
 import { Switch } from "~/components/ui/switch";
 
-function AttachmentButton({
-  icon,
-  label,
-}: {
-  icon: LucideIcon;
-  label: string;
-}) {
+function AttachmentButton({ icon, label }: { icon: SFSymbol; label: string }) {
   return (
     <Pressable
       className="flex-1 items-center gap-2 rounded-xl bg-secondary py-3 active:bg-muted dark:bg-secondary"
       style={{ borderCurve: "continuous" }}
     >
-      <Icon
-        className="h-6 w-6 text-foreground dark:text-foreground"
-        icon={icon}
-      />
+      <SymbolImage className="text-foreground text-title-3" name={icon} />
       <Text className="text-footnote text-foreground dark:text-foreground">
         {label}
       </Text>
@@ -46,7 +26,7 @@ function ToggleRow({
   value,
   onValueChange,
 }: {
-  icon: LucideIcon;
+  icon: SFSymbol;
   label: string;
   badge?: string;
   value: boolean;
@@ -54,10 +34,7 @@ function ToggleRow({
 }) {
   return (
     <View className="flex-row items-center gap-3.5 px-5 py-3">
-      <Icon
-        className="h-5 w-5 text-foreground dark:text-foreground"
-        icon={icon}
-      />
+      <SymbolImage className="text-body text-foreground" name={icon} />
       <Text className="flex-1 text-body text-foreground dark:text-foreground">
         {label}
       </Text>
@@ -79,7 +56,7 @@ function DisclosureRow({
   detail,
   onPress,
 }: {
-  icon: LucideIcon;
+  icon: SFSymbol;
   label: string;
   detail: string;
   onPress?: () => void;
@@ -89,19 +66,16 @@ function DisclosureRow({
       className="flex-row items-center gap-3.5 px-5 py-3.5 active:bg-muted"
       onPress={onPress}
     >
-      <Icon
-        className="h-5 w-5 text-foreground dark:text-foreground"
-        icon={icon}
-      />
+      <SymbolImage className="text-body text-foreground" name={icon} />
       <Text className="flex-1 text-body text-foreground dark:text-foreground">
         {label}
       </Text>
       <Text className="text-muted-foreground text-subhead dark:text-muted-foreground">
         {detail}
       </Text>
-      <Icon
-        className="h-3 w-3 text-muted-foreground dark:text-muted-foreground"
-        icon={ChevronRight}
+      <SymbolImage
+        className="text-muted-foreground text-subhead"
+        name="chevron.right"
       />
     </Pressable>
   );
@@ -116,21 +90,21 @@ export default function AddToChatSheet() {
       <AndroidGrabber />
       {/* Attachment buttons */}
       <View className="flex-row gap-3 px-5 pt-2 pb-4">
-        <AttachmentButton icon={Camera} label="Camera" />
-        <AttachmentButton icon={ImageIcon} label="Photos" />
-        <AttachmentButton icon={File} label="Files" />
+        <AttachmentButton icon="camera" label="Camera" />
+        <AttachmentButton icon="photo" label="Photos" />
+        <AttachmentButton icon="doc" label="Files" />
       </View>
 
       {/* Toggles */}
       <ToggleRow
-        icon={Sparkles}
+        icon="sparkles"
         label="Research"
         onValueChange={setResearch}
         value={research}
       />
       <ToggleRow
         badge="Beta"
-        icon={Globe}
+        icon="globe"
         label="Web search"
         onValueChange={setWebSearch}
         value={webSearch}
@@ -140,9 +114,9 @@ export default function AddToChatSheet() {
       <View className="mx-5 my-1 h-px bg-border dark:bg-border" />
 
       {/* Disclosure rows */}
-      <DisclosureRow detail="None" icon={Archive} label="Add to project" />
-      <DisclosureRow detail="Normal" icon={Paintbrush} label="Choose style" />
-      <DisclosureRow detail="Auto" icon={Wrench} label="Tool access" />
+      <DisclosureRow detail="None" icon="archivebox" label="Add to project" />
+      <DisclosureRow detail="Normal" icon="paintbrush" label="Choose style" />
+      <DisclosureRow detail="Auto" icon="wrench" label="Tool access" />
     </ScrollView>
   );
 }

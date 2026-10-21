@@ -11,7 +11,6 @@ import {
 import { useUser } from "@clerk/expo";
 import * as Haptics from "expo-haptics";
 import { Link, Stack, useLocalSearchParams, useRouter } from "expo-router";
-import { Plus } from "lucide-react-native";
 import {
   useCallback,
   useEffect,
@@ -33,7 +32,7 @@ import {
   PromptInputSubmit,
   PromptInputTextarea,
 } from "@/components/chat";
-import { Icon } from "@/components/icon";
+import { SymbolImage } from "@/components/symbol-image";
 import { useSelectedCoachModel } from "~/hooks/coach-model";
 import { useIsProQuery } from "~/hooks/revenueCat";
 import { getClerk } from "~/lib/clerk";
@@ -309,8 +308,11 @@ function CoachChat({
           <PromptInput>
             {ATTACHMENTS_ENABLED && (
               <Link asChild href="/coach/attachments">
-                <PromptInputAction>
-                  <Icon className="h-5 w-5 text-muted-foreground" icon={Plus} />
+                <PromptInputAction accessibilityLabel="Add to chat">
+                  <SymbolImage
+                    className="text-body text-muted-foreground"
+                    name="plus"
+                  />
                 </PromptInputAction>
               </Link>
             )}

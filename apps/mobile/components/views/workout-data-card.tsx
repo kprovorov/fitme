@@ -5,9 +5,9 @@ import { HStack } from "@/components/ui/hstack";
 import { Text } from "@/components/ui/text";
 import { H4, Muted } from "@/components/ui/typography";
 import { VStack } from "@/components/ui/vstack";
-import { Zap } from "@/lib/icons/Zap";
-import { ChevronRight } from "~/lib/icons/ChevronRight";
+import { SymbolImage } from "~/components/symbol-image";
 import { cn } from "~/lib/utils";
+import { COUNT_SYMBOL } from "../plans/plan-symbols";
 import { Badge } from "../ui/badge";
 import { Card } from "../ui/card";
 
@@ -31,7 +31,10 @@ export default function WorkoutDataCard({
         <HStack className="items-center justify-between">
           <H4 className="flex-1 text-primary">{workoutData.name}</H4>
           <Badge variant="secondary">
-            <Zap className="text-secondary-foreground" size={11} />
+            <SymbolImage
+              className="text-footnote-emphasized text-secondary-foreground"
+              name={COUNT_SYMBOL}
+            />
             <Text>{workoutData.exercises.length}</Text>
           </Badge>
         </HStack>
@@ -65,7 +68,15 @@ export default function WorkoutDataCard({
                   {exercise.exercise.name}
                 </Text>
               </HStack>
-              <ChevronRight className="text-muted-foreground" size={14} />
+              <SymbolImage
+                className={cn(
+                  "text-muted-foreground",
+                  compact
+                    ? "text-subhead-emphasized"
+                    : "text-footnote-emphasized"
+                )}
+                name="chevron.right"
+              />
             </Pressable>
           </Link>
         ))}

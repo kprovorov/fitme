@@ -55,7 +55,10 @@ export default function WorkoutSessionSummaryExerciseRow({
       <HStack className="w-full items-center gap-2 px-md">
         <ExerciseImage exercise={workoutSessionExercise.exercise} size={32} />
         <Text className="text-body-emphasized text-primary">{setsLogged}</Text>
-        <SymbolImage name="xmark" size={10} tintColor="#C0FF38" />
+        <SymbolImage
+          className="text-caption-1-emphasized text-primary"
+          name="xmark"
+        />
         <Text
           className="flex-1 text-body-emphasized text-foreground"
           numberOfLines={1}
@@ -63,9 +66,15 @@ export default function WorkoutSessionSummaryExerciseRow({
           {workoutSessionExercise.exercise.name}
         </Text>
         {isNewRecord ? (
-          <SymbolImage name="trophy.fill" size={17} tintColor="#C0FF38" />
+          <SymbolImage
+            className="text-body-emphasized text-primary"
+            name="trophy.fill"
+          />
         ) : null}
-        <SymbolImage name="chevron.right" size={17} tintColor="#FAFAFA" />
+        <SymbolImage
+          className="text-body-emphasized text-foreground"
+          name="chevron.right"
+        />
       </HStack>
     </Pressable>
   );

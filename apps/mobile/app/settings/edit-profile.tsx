@@ -5,14 +5,13 @@ import { useQueryClient } from "@tanstack/react-query";
 import { useLocales } from "expo-localization";
 import { router, Stack } from "expo-router";
 import { useCallback } from "react";
-import { View } from "react-native";
+import { ActivityIndicator, View } from "react-native";
 import ProfileForm, {
   PROFILE_SAVE_ERROR_MESSAGE,
   type ProfileFormValues,
 } from "~/components/forms/profile-form";
 import { Button } from "~/components/ui/button";
 import { ErrorMessage } from "~/components/ui/error-message";
-import { Spinner } from "~/components/ui/spinner";
 import { VStack } from "~/components/ui/vstack";
 import { useUpdateProfileMutation } from "~/hooks/mutations/profiles";
 import { useProfileQuery } from "~/hooks/queries/profiles";
@@ -95,7 +94,7 @@ export default function EditProfileScreen() {
       />
       {isPendingLoad && !isLoadError ? (
         <View className="flex-1 items-center justify-center">
-          <Spinner className="text-foreground" size={32} />
+          <ActivityIndicator colorClassName="accent-foreground" />
         </View>
       ) : null}
       {isLoadError ? (

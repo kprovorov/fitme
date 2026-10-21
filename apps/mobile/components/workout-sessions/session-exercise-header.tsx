@@ -70,9 +70,8 @@ export default function SessionExerciseHeader({
           {onOpenGuide ? (
             <View className="size-10 items-center justify-center rounded-full bg-background/80">
               <SymbolImage
-                className="text-foreground dark:text-foreground"
+                className="text-body text-foreground"
                 name={exercise.video_url ? "play.fill" : "info"}
-                size={16}
               />
             </View>
           ) : null}

@@ -1,102 +1,96 @@
 import {
   Image as ExpoImage,
+  type ImageLoadEventData,
   type ImageProps,
-  type ImageStyle,
 } from "expo-image";
-import {
-  Activity,
-  ArrowRight,
-  ArrowUp,
-  BuildingComplex,
-  ChevronDown,
-  ChevronRight,
-  Circle,
-  CircleCheck,
-  CircleDot,
-  CircleQuestionMark,
-  Clock,
-  Dumbbell,
-  Heart,
-  House,
-  Info,
-  type LucideIcon,
-  MessageSquare,
-  Play,
-  Plus,
-  Trophy,
-  Weight,
-  X,
-  Zap,
-} from "lucide-react-native";
-
-import { withUniwind } from "uniwind";
+import { useCallback, useState } from "react";
+import { View } from "react-native";
+import type { SFSymbol } from "sf-symbols-typescript";
+import { useResolveClassNames, withUniwind } from "uniwind";
+import { cn } from "~/lib/utils";
 
 const Image = withUniwind(ExpoImage);
-
-/**
- * Map of SF Symbol names to Lucide icons for Android/web fallback.
- */
-const LUCIDE_FALLBACKS: Record<string, LucideIcon> = {
-  "arrow.right": ArrowRight,
-  "arrow.up": ArrowUp,
-  "bolt.fill": Zap,
-  "bubble.left.and.bubble.right": MessageSquare,
-  "building.2": BuildingComplex,
-  "checkmark.circle.fill": CircleCheck,
-  "chevron.down": ChevronDown,
-  "chevron.right": ChevronRight,
-  circle: Circle,
-  "circle.inset.filled": CircleDot,
-  clock: Clock,
-  dumbbell: Dumbbell,
-  "dumbbell.fill": Dumbbell,
-  "figure.run": Activity,
-  "figure.strengthtraining.traditional": Dumbbell,
-  "figure.walk": Activity,
-  heart: Heart,
-  house: House,
-  info: Info,
-  "play.fill": Play,
-  plus: Plus,
-  "scalemass.fill": Weight,
-  "trophy.fill": Trophy,
-  xmark: X,
-};
+const Placeholder = withUniwind(View);
 
 interface SymbolImageProps {
+  /** VoiceOver label, for a symbol that says something on its own. */
+  accessibilityLabel?: string;
+  /**
+   * The text style and color of the text the symbol sits next to
+   * (`text-footnote text-muted-foreground`): the symbol takes the style's
+   * point size and weight and the color. Without a text style it's Body.
+   * Layout classes (`shrink-0`, `mt-1`) go here too.
+   */
   className?: string;
-  /** SF Symbol name (e.g. "arrow.up", "chevron.down") */
-  name: string;
+  name: SFSymbol;
   sfEffect?: ImageProps["sfEffect"];
+  /**
+   * Point size, for a symbol that stands alone rather than next to text (an
+   * empty state's illustration). Takes precedence over the text style's size.
+   */
   size?: number;
-  style?: ImageStyle;
-  tintColor?: string;
   transition?: ImageProps["transition"];
 }
 
+/**
+ * An SF Symbol at the text style's point size, drawn at its own size (never
+ * stretched, and a wide `dumbbell` keeps its width). Its box is as wide as the
+ * symbol and exactly as tall as the style's line, so the symbol centers on the
+ * text beside it and stacked symbols keep their labels in line (a symbol
+ * taller than the line is scaled down to fit). A standalone `size` symbol's
+ * box is at least `size` tall. Until the symbol has rendered (and on Android
+ * and web, where SF Symbols don't exist and nothing is drawn) the box is a
+ * point size wide.
+ */
 export function SymbolImage({
-  name,
-  size = 24,
-  tintColor,
-  style,
+  accessibilityLabel,
   className,
+  name,
   sfEffect,
+  size,
   transition,
 }: SymbolImageProps) {
-  if (process.env.EXPO_OS === "ios") {
-    return (
-      <Image
-        className={className}
-        sfEffect={sfEffect}
-        source={`sf:${name}`}
-        style={[{ height: size, width: size }, style]}
-        tintColor={tintColor}
-        transition={transition}
-      />
+  const classNames = cn("text-body", className);
+  const textStyle = useResolveClassNames(classNames);
+  const pointSize = size ?? (textStyle.fontSize as number | undefined);
+  const lineHeight =
+    size === undefined
+      ? (textStyle.lineHeight as number | undefined)
+      : undefined;
+  const [symbolSize, setSymbolSize] = useState<{
+    height: number;
+    width: number;
+  } | null>(null);
+  const handleLoad = useCallback(({ source }: ImageLoadEventData) => {
+    setSymbolSize((previous) =>
+      previous?.height === source.height && previous.width === source.width
+        ? previous
+        : { height: source.height, width: source.width }
     );
+  }, []);
+  const box = pointSize
+    ? {
+        fontSize: pointSize,
+        height: lineHeight ?? Math.max(symbolSize?.height ?? 0, pointSize),
+        width: symbolSize?.width ?? pointSize,
+      }
+    : undefined;
+
+  if (process.env.EXPO_OS !== "ios") {
+    return <Placeholder className={className} style={box} />;
   }
 
-  const Icon = LUCIDE_FALLBACKS[name] ?? CircleQuestionMark;
-  // biome-ignore lint/suspicious/noExplicitAny: Lucide icon style prop type is wider than what RN provides
-  return <Icon color={tintColor} size={size} style={style as any} />;
+  return (
+    <Image
+      accessibilityLabel={accessibilityLabel}
+      accessible={accessibilityLabel !== undefined}
+      className={classNames}
+      contentFit="scale-down"
+      onLoad={handleLoad}
+      sfEffect={sfEffect}
+      source={`sf:${name}`}
+      style={box}
+      transition={transition}
+    />
+  );
 }

@@ -1,11 +1,10 @@
 import "@/global.css";
 
 import type { Href } from "expo-router";
-import { Plus } from "lucide-react-native";
 import type React from "react";
 import { createContext, use, useCallback, useState } from "react";
 import { Pressable, ScrollView, StyleSheet, Text, View } from "react-native";
-import { Icon } from "@/components/icon";
+import { SymbolImage } from "@/components/symbol-image";
 import { TouchableGlass } from "@/components/touchable-glass";
 import { SafeAreaView } from "@/components/tw";
 import { MOCK_CHATS } from "@/utils/mock-chats";
@@ -169,13 +168,13 @@ export function DrawerContent({
         </TouchableGlass>
         <View className="flex-1" />
         <TouchableGlass
+          accessibilityLabel="New chat"
+          accessibilityRole="button"
+          accessible
           className="h-10 w-10 items-center justify-center rounded-full bg-foreground active:bg-muted dark:bg-foreground"
           onPress={navigateHome}
         >
-          <Icon
-            className="h-6 w-6 text-background dark:text-background"
-            icon={Plus}
-          />
+          <SymbolImage className="text-background text-title-3" name="plus" />
         </TouchableGlass>
       </View>
     </SafeAreaView>

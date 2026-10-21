@@ -4,6 +4,7 @@ import { router } from "expo-router";
 import { useCallback, useState } from "react";
 import { Pressable, Text, View } from "react-native";
 import Animated, { FadeIn } from "react-native-reanimated";
+import type { SFSymbol } from "sf-symbols-typescript";
 import { SymbolImage } from "@/components/symbol-image";
 import { Button } from "@/components/ui/button";
 import { Text as UIText } from "@/components/ui/text";
@@ -51,7 +52,7 @@ const GOAL_LABELS: Record<WorkoutPlan["goal"], string> = {
   weight_loss: "Weight Loss",
 };
 
-const GOAL_ICONS: Record<WorkoutPlan["goal"], string> = {
+const GOAL_ICONS: Record<WorkoutPlan["goal"], SFSymbol> = {
   endurance: "heart",
   general_fitness: "figure.walk",
   muscle_gain: "dumbbell",
@@ -74,13 +75,12 @@ function parseReps(reps: string): number {
   return match ? Number.parseInt(match[0], 10) : 10;
 }
 
-function PlanTag({ icon, label }: { icon: string; label: string }) {
+function PlanTag({ icon, label }: { icon: SFSymbol; label: string }) {
   return (
     <View className="flex-row items-center gap-1.5 rounded-full bg-muted/40 px-3 py-1.5">
       <SymbolImage
-        className="text-muted-foreground dark:text-muted-foreground"
+        className="text-footnote text-muted-foreground"
         name={icon}
-        size={12}
       />
       <Text className="text-footnote text-muted-foreground">{label}</Text>
     </View>
@@ -105,9 +105,8 @@ function ExerciseRow({ exercise }: { exercise: WorkoutExercise }) {
         {exercise.name}
       </Text>
       <SymbolImage
-        className="text-muted-foreground dark:text-muted-foreground"
+        className="text-muted-foreground text-subhead"
         name="chevron.right"
-        size={14}
       />
     </Pressable>
   );
@@ -128,9 +127,8 @@ function WorkoutDaySection({
         </Text>
         <View className="flex-row items-center gap-1 rounded-full bg-muted/40 px-2.5 py-1">
           <SymbolImage
-            className="text-foreground dark:text-foreground"
+            className="text-footnote-emphasized text-foreground"
             name="bolt.fill"
-            size={10}
           />
           <Text className="text-footnote-emphasized text-foreground">
             {workout.exercises.length}
@@ -189,7 +187,7 @@ export function WorkoutPlanCard({ plan }: { plan: WorkoutPlan }) {
     setSaved(true);
   }, [activatePlan, plan, queryClient, storePlan]);
 
-  const placeIcon = plan.place === "home" ? "house" : "building.2";
+  const placeIcon: SFSymbol = plan.place === "home" ? "house" : "building.2";
   const placeLabel = plan.place === "home" ? "Home" : "Gym";
 
   return (

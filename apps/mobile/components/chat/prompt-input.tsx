@@ -83,11 +83,14 @@ function PromptInputError({ message }: { message?: string }) {
  * A circular glass button for actions (e.g. attachments, camera).
  */
 export function PromptInputAction(props: {
+  accessibilityLabel: string;
   children: ReactNode;
   onPress?: () => void;
 }) {
   return (
     <TouchableGlass
+      accessibilityRole="button"
+      accessible
       hitSlop={4}
       {...props}
       style={{
@@ -202,6 +205,8 @@ export function PromptInputSubmit() {
 
   return (
     <Pressable
+      accessibilityLabel="Send message"
+      accessibilityRole="button"
       className={disabled ? "bg-secondary" : "bg-foreground"}
       disabled={disabled}
       onPress={onSend}
@@ -214,14 +219,13 @@ export function PromptInputSubmit() {
       ) : (
         <SymbolImage
           className={cn(
-            "font-semibold",
+            "text-body-emphasized",
             disabled
               ? "text-muted-foreground"
               : "text-background dark:text-background"
           )}
           name="arrow.up"
           sfEffect="scale/up"
-          size={16}
         />
       )}
     </Pressable>

@@ -1,5 +1,4 @@
 import { useRouter } from "expo-router";
-import { Check } from "lucide-react-native";
 import { useCallback } from "react";
 import {
   ActivityIndicator,
@@ -10,7 +9,7 @@ import {
 } from "react-native";
 import { useSafeAreaInsets } from "react-native-safe-area-context";
 import { AndroidGrabber } from "@/components/grabber";
-import { Icon } from "@/components/icon";
+import { SymbolImage } from "@/components/symbol-image";
 import { useSelectedCoachModel } from "~/hooks/coach-model";
 
 function ModelRow({
@@ -42,7 +41,10 @@ function ModelRow({
         </Text>
       </View>
       {selected ? (
-        <Icon className="h-5 w-5 text-foreground" icon={Check} />
+        <SymbolImage
+          className="text-body-emphasized text-foreground"
+          name="checkmark"
+        />
       ) : null}
     </Pressable>
   );
