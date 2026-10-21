@@ -1,3 +1,4 @@
+import { DrizzleQueryError } from "drizzle-orm";
 import { describe, expect, it, vi } from "vitest";
 import {
   BENCH_ID,
@@ -17,9 +18,11 @@ const benchRow = {
 
 /** A failure as Drizzle throws it: the SQL in the message, Postgres as the cause. */
 const queryFailure = (message: string) =>
-  new Error('Failed query: select "id" from "exercises"\nparams: ', {
-    cause: Object.assign(new Error(message), { code: "57014" }),
-  });
+  new DrizzleQueryError(
+    'select "id" from "exercises"',
+    [],
+    Object.assign(new Error(message), { code: "57014" })
+  );
 
 describe("list_exercises", () => {
   it("passes the trimmed search, muscle group and page to the service", async () => {
