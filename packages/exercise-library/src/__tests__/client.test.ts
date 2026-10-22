@@ -315,6 +315,38 @@ describe("errors", () => {
     );
   });
 
+  it.each([
+    ["a page without total", { data: [], hasMore: false }],
+    ["a page without hasMore", { data: [], total: 0 }],
+    [
+      "an entry that isn't an object",
+      { data: [null], hasMore: false, total: 1 },
+    ],
+    [
+      "an entry without a slug",
+      { data: [{ name: "Squat" }], hasMore: false, total: 1 },
+    ],
+  ])("maps a 200 list answer with %s to unavailable", async (_, body) => {
+    const library = failing(() => Response.json(body));
+
+    await expect(library.list()).rejects.toBeInstanceOf(
+      ExerciseLibraryUnavailableError
+    );
+  });
+
+  it.each([
+    ["without missing", { data: [] }],
+    ["with an entry that isn't an object", { data: [null], missing: [] }],
+    ["with an empty entry", { data: [{}], missing: [] }],
+    ["with a missing slug that isn't a string", { data: [], missing: [1] }],
+  ])("maps a 200 lookup answer %s to unavailable", async (_, body) => {
+    const library = failing(() => Response.json(body));
+
+    await expect(library.lookup(["squat"])).rejects.toBeInstanceOf(
+      ExerciseLibraryUnavailableError
+    );
+  });
+
   it("maps 400 to invalid request, with the API's message", async () => {
     const library = failing(() =>
       Response.json(

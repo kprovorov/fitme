@@ -5,7 +5,12 @@ import {
   ExerciseLibraryUnauthorizedError,
   ExerciseLibraryUnavailableError,
 } from "./errors";
-import type { ExerciseBatch, ExerciseLibrary, ExercisePage } from "./types";
+import type {
+  ExerciseBatch,
+  ExerciseLibrary,
+  ExercisePage,
+  ExerciseSummary,
+} from "./types";
 
 /** The API's limit on `GET /exercises?slugs=`. */
 export const MAX_LOOKUP_SLUGS = 40;
@@ -65,11 +70,34 @@ const errorMessage = async (response: Response) => {
   return typeof message === "string" ? message : undefined;
 };
 
-/** Both the page and the batch answer carry a `data` array. */
-const hasData = (body: unknown) =>
-  typeof body === "object" &&
-  body !== null &&
-  Array.isArray((body as { data?: unknown }).data);
+// Answers are checked before they're trusted (no zod here, so by hand): a
+// malformed 200 is an outage, never Exercises silently reported missing.
+const isRecord = (value: unknown): value is Record<string, unknown> =>
+  typeof value === "object" && value !== null;
+
+const isStringArray = (value: unknown): value is string[] =>
+  Array.isArray(value) && value.every((item) => typeof item === "string");
+
+/** Muscle groups are only checked to be strings, so a new one never fails an old client. */
+const isSummary = (value: unknown): value is ExerciseSummary =>
+  isRecord(value) &&
+  typeof value.slug === "string" &&
+  typeof value.name === "string" &&
+  isStringArray(value.muscle_groups) &&
+  typeof value.thumbnail_url === "string" &&
+  typeof value.video_url === "string";
+
+const hasSummaries = (value: Record<string, unknown>) =>
+  Array.isArray(value.data) && value.data.every(isSummary);
+
+const isPage = (value: unknown): value is ExercisePage =>
+  isRecord(value) &&
+  hasSummaries(value) &&
+  typeof value.total === "number" &&
+  typeof value.hasMore === "boolean";
+
+const isBatch = (value: unknown): value is ExerciseBatch =>
+  isRecord(value) && hasSummaries(value) && isStringArray(value.missing);
 
 /** The typed error for an answer that isn't a 2xx. */
 const failure = async (response: Response) => {
@@ -117,7 +145,10 @@ export const createExerciseLibrary = ({
     return value;
   };
 
-  const get = async <T>(params: QueryParams): Promise<T> => {
+  const get = async <T>(
+    params: QueryParams,
+    isAnswer: (body: unknown) => body is T
+  ): Promise<T> => {
     const authorization = `Bearer ${await bearer()}`;
     const controller = new AbortController();
     const timeout = setTimeout(() => controller.abort(), timeoutMs);
@@ -139,27 +170,22 @@ export const createExerciseLibrary = ({
     } finally {
       clearTimeout(timeout);
     }
-    if (!hasData(body)) {
+    if (!isAnswer(body)) {
       throw new ExerciseLibraryUnavailableError({ status: response.status });
     }
-    return body as T;
+    return body;
   };
 
   return {
     list: ({ limit, muscleGroup, offset, search } = {}) =>
-      get<ExercisePage>({
-        limit,
-        muscle_group: muscleGroup,
-        offset,
-        search,
-      }),
+      get({ limit, muscle_group: muscleGroup, offset, search }, isPage),
 
     lookup: async (slugs) => {
       const unique = [...new Set(slugs)];
       const asked = unique.filter((slug) => !isUnaskable(slug));
       const batches = await Promise.all(
         chunk(asked, MAX_LOOKUP_SLUGS).map((batch) =>
-          get<ExerciseBatch>({ slugs: batch.join(",") })
+          get({ slugs: batch.join(",") }, isBatch)
         )
       );
       const found = new Map(
