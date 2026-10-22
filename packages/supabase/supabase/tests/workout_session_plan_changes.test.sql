@@ -4,7 +4,7 @@ BEGIN;
 
 CREATE EXTENSION IF NOT EXISTS pgtap WITH SCHEMA extensions;
 
-SELECT plan(46);
+SELECT plan(51);
 
 -- Fixtures -------------------------------------------------------------------
 -- Owner A has every Plan; B has none. Sessions are finished unless a case
@@ -42,7 +42,9 @@ VALUES
   -- (back) replaced, then switched back to the original Exercise
   ('f2300000-0000-0000-0000-0000000000b7', 'f2300000-0000-0000-0000-0000000000a1', 6, 'Back Day', ''),
   -- (dup) two Workout Exercises in one slot
-  ('f2300000-0000-0000-0000-0000000000b8', 'f2300000-0000-0000-0000-0000000000a1', 7, 'Dup Day', '');
+  ('f2300000-0000-0000-0000-0000000000b8', 'f2300000-0000-0000-0000-0000000000a1', 7, 'Dup Day', ''),
+  -- (many) a session with more Exercises than the cap
+  ('f2300000-0000-0000-0000-0000000000b9', 'f2300000-0000-0000-0000-0000000000a1', 8, 'Many Day', '');
 
 INSERT INTO public.workout_exercises (id, workout_id, exercise_id, "order")
 VALUES
@@ -108,7 +110,8 @@ VALUES
   -- (gone) its Workout was deleted
   ('f2300000-0000-0000-0000-0000000000d7', 'user_2PlanChangesOwnerA000000', 'f2300000-0000-0000-0000-0000000000a1', NULL, now() - interval '1 hour', now()),
   ('f2300000-0000-0000-0000-0000000000d8', 'user_2PlanChangesOwnerA000000', 'f2300000-0000-0000-0000-0000000000a1', 'f2300000-0000-0000-0000-0000000000b7', now() - interval '1 hour', now()),
-  ('f2300000-0000-0000-0000-0000000000d9', 'user_2PlanChangesOwnerA000000', 'f2300000-0000-0000-0000-0000000000a1', 'f2300000-0000-0000-0000-0000000000b8', now() - interval '1 hour', now());
+  ('f2300000-0000-0000-0000-0000000000d9', 'user_2PlanChangesOwnerA000000', 'f2300000-0000-0000-0000-0000000000a1', 'f2300000-0000-0000-0000-0000000000b8', now() - interval '1 hour', now()),
+  ('f2300000-0000-0000-0000-000000000d10', 'user_2PlanChangesOwnerA000000', 'f2300000-0000-0000-0000-0000000000a1', 'f2300000-0000-0000-0000-0000000000b9', now() - interval '1 hour', now());
 
 INSERT INTO public.workout_session_exercises (id, workout_session_id, exercise_id, "order")
 VALUES
@@ -199,6 +202,17 @@ FROM generate_series(1, 22) n
 UNION ALL
 SELECT 'f2300000-0000-0000-0000-0000000002f3'::uuid, n, NULL, NULL, NULL, n, 10
 FROM generate_series(1, 21) n;
+
+-- (many) 51 added Cable Flys, each logged
+INSERT INTO public.workout_session_exercises (id, workout_session_id, exercise_id, "order")
+SELECT ('f2300000-0000-0000-0001-' || lpad(n::text, 12, '0'))::uuid,
+  'f2300000-0000-0000-0000-000000000d10', 'f2300000-0000-0000-0000-0000000000e5', n
+FROM generate_series(1, 51) n;
+
+INSERT INTO public.workout_session_exercise_sets
+  (workout_session_exercise_id, "order", reps_completed, weight_completed)
+SELECT ('f2300000-0000-0000-0001-' || lpad(n::text, 12, '0'))::uuid, 1, 12, 15
+FROM generate_series(1, 51) n;
 
 -- Snapshots of the Workouts' rows, to show what a call left unchanged
 CREATE TEMP TABLE plan_rows AS
@@ -647,6 +661,31 @@ SELECT set_eq(
   $$SELECT * FROM plan_rows WHERE workout_id = 'f2300000-0000-0000-0000-0000000000b8'$$,
   '(dup) apply with a repeated order writes nothing'
 );
+
+-- (many) More Exercises than the cap ------------------------------------------------
+SET LOCAL ROLE authenticated;
+
+SELECT is(
+  public.workout_session_plan_changes('f2300000-0000-0000-0000-000000000d10', true) -> 'changes',
+  '[]'::jsonb,
+  '(many) more than 50 Exercises on a side offers no changes'
+);
+
+RESET ROLE;
+
+SELECT is(
+  (SELECT count(*) FROM public.workout_exercises WHERE workout_id = 'f2300000-0000-0000-0000-0000000000b9'),
+  0::bigint,
+  '(many) apply past the cap writes nothing'
+);
+
+-- Indexes the lookups go through -----------------------------------------------------
+SELECT has_index('public', 'workout_exercises', 'workout_exercises_workout_id_idx', ARRAY['workout_id'],
+  'workout_exercises is indexed by workout_id');
+SELECT has_index('public', 'workout_exercise_sets', 'workout_exercise_sets_exercise_id_idx', ARRAY['workout_exercise_id'],
+  'workout_exercise_sets is indexed by workout_exercise_id');
+SELECT has_index('public', 'workout_session_exercise_sets', 'workout_session_exercise_sets_exercise_id_idx', ARRAY['workout_session_exercise_id'],
+  'workout_session_exercise_sets is indexed by workout_session_exercise_id');
 
 -- Not found --------------------------------------------------------------------
 SET LOCAL ROLE authenticated;

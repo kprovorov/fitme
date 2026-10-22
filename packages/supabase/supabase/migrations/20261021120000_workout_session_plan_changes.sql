@@ -21,6 +21,16 @@
 ALTER TABLE public.workout_sessions
   ADD COLUMN plan_changes_applied_at timestamptz;
 
+-- The function reads a Workout's Exercises and each Exercise's sets, on both
+-- sides, by these foreign keys, which had no index: every lookup scanned the
+-- whole table. The app's Plan and session reads go through them too.
+CREATE INDEX workout_exercises_workout_id_idx
+  ON public.workout_exercises(workout_id);
+CREATE INDEX workout_exercise_sets_exercise_id_idx
+  ON public.workout_exercise_sets(workout_exercise_id);
+CREATE INDEX workout_session_exercise_sets_exercise_id_idx
+  ON public.workout_session_exercise_sets(workout_session_exercise_id);
+
 -- Response, both modes:
 --   {
 --     "plan": { "id", "name" } | null,
@@ -36,8 +46,8 @@ ALTER TABLE public.workout_sessions
 -- changes are in Workout order (by `order`). plan and workout are null when
 -- the Workout is gone or its Plan is soft-deleted. changes is empty when the
 -- session is open, its Workout is gone, its Plan is soft-deleted, its changes
--- were already applied, either side repeats an `order`, or nothing
--- qualifies. Another User's or a missing
+-- were already applied, either side repeats an `order` or has more than 50
+-- Exercises, or nothing qualifies. Another User's or a missing
 -- session raises 'Session not found or not authorized'.
 CREATE FUNCTION public.workout_session_plan_changes(
   session_id uuid,
@@ -53,12 +63,15 @@ DECLARE
   c_max_sets constant integer := 20;
   -- the rest of an added Exercise's sets, as the Coach's plan card defaults
   c_default_rest constant integer := 90;
+  -- more Exercises than any real Workout has (MCP allows 30 per Workout); past
+  -- it on either side nothing is offered, so the work per call stays bounded
+  c_max_exercises constant integer := 50;
 
   v_user_id text := public.current_user_id();
   v_session_workout_id uuid;
   v_finished_at timestamptz;
   v_applied_at timestamptz;
-  v_duplicate_orders boolean;
+  v_unmatchable boolean;
   v_workout_id uuid;
   v_workout_name text;
   v_plan_id uuid;
@@ -151,8 +164,9 @@ BEGIN
   -- Slots are matched by `order`, so a repeated `order` on either side (the
   -- app never writes one, but RLS lets a User insert them) makes the match
   -- meaningless, and the join below would grow with the product of the
-  -- duplicates. Nothing is offered then.
-  v_duplicate_orders := EXISTS (
+  -- duplicates. Nothing is offered then, nor past c_max_exercises on either
+  -- side, which bounds the per-slot work below.
+  v_unmatchable := EXISTS (
     SELECT 1 FROM public.workout_session_exercises
     WHERE workout_session_id = workout_session_plan_changes.session_id
     GROUP BY "order"
@@ -162,10 +176,16 @@ BEGIN
     WHERE workout_id = v_workout_id
     GROUP BY "order"
     HAVING count(*) > 1
-  );
+  ) OR (
+    SELECT count(*) FROM public.workout_session_exercises
+    WHERE workout_session_id = workout_session_plan_changes.session_id
+  ) > c_max_exercises OR (
+    SELECT count(*) FROM public.workout_exercises
+    WHERE workout_id = v_workout_id
+  ) > c_max_exercises;
 
   IF v_finished_at IS NOT NULL AND v_applied_at IS NULL
-    AND NOT v_duplicate_orders THEN
+    AND NOT v_unmatchable THEN
     FOR v_slot IN
       SELECT
         coalesce(we."order", se."order") AS slot,
