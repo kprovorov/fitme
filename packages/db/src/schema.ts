@@ -186,6 +186,10 @@ export const workoutExerciseSets = pgTable(
     workoutExerciseId: uuid("workout_exercise_id").notNull(),
   },
   (table) => [
+    index("workout_exercise_sets_exercise_id_idx").using(
+      "btree",
+      table.workoutExerciseId.asc().nullsLast().op("uuid_ops")
+    ),
     uniqueIndex("workout_exercise_sets_request_key_key")
       .using("btree", table.requestKey.asc().nullsLast().op("text_ops"))
       .where(sql`(request_key IS NOT NULL)`),
@@ -229,6 +233,10 @@ export const workoutExercises = pgTable(
     uniqueIndex("workout_exercises_request_key_key")
       .using("btree", table.requestKey.asc().nullsLast().op("text_ops"))
       .where(sql`(request_key IS NOT NULL)`),
+    index("workout_exercises_workout_id_idx").using(
+      "btree",
+      table.workoutId.asc().nullsLast().op("uuid_ops")
+    ),
     foreignKey({
       columns: [table.workoutId],
       foreignColumns: [workouts.id],
@@ -277,6 +285,10 @@ export const workoutSessionExerciseSets = pgTable(
     workoutSessionExerciseId: uuid("workout_session_exercise_id").notNull(),
   },
   (table) => [
+    index("workout_session_exercise_sets_exercise_id_idx").using(
+      "btree",
+      table.workoutSessionExerciseId.asc().nullsLast().op("uuid_ops")
+    ),
     foreignKey({
       columns: [table.workoutSessionExerciseId],
       foreignColumns: [workoutSessionExercises.id],
@@ -350,6 +362,10 @@ export const workoutSessions = pgTable(
       withTimezone: true,
     }),
     id: uuid().defaultRandom().primaryKey().notNull(),
+    planChangesAppliedAt: timestamp("plan_changes_applied_at", {
+      mode: "string",
+      withTimezone: true,
+    }),
     planId: uuid("plan_id"),
     startedAt: timestamp("started_at", {
       mode: "string",
