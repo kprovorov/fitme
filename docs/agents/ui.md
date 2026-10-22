@@ -63,11 +63,12 @@ Every Token lives in one file, `packages/design-tokens/src/tokens.css` (`@fitme/
 | `accent`                 | `#262626`   | Pressed and hover highlights                                           |
 | `accent-foreground`      | `#fafafa`   | Text on `accent`                                                       |
 | `destructive`            | `#ff6467`   | Delete and error, nothing else                                         |
-| `destructive-foreground` | `#fafafa`   | Text on `destructive`                                                  |
+| `destructive-foreground` | `#0a0a0a`   | Text on `destructive` (dark, not white)                                |
 | `border`                 | `#ffffff1a` | Separators and row dividers (`border-border`, often `border-hairline`) |
-| `input`                  | `#ffffff26` | Field stroke (`Input`, `Textarea`)                                     |
-| `ring`                   | `#737373`   | Focused field stroke (`Input`, `Textarea`)                             |
+| `input`                  | `#ffffff57` | Field stroke (`Input`, `Textarea`)                                     |
+| `ring`                   | `#fafafa`   | Focused field stroke (`Input`, `Textarea`), web and site focus ring    |
 
+- **Contrast.** Three values deliberately differ from the palette mobile shipped with (FIT-215), which fell short of WCAG: `input` went from `#ffffff26` (about 1.6:1) to `#ffffff57`, at least 3:1 on `background` and `card` (1.4.11, component boundaries); `ring` went from `#737373` to `#fafafa`, so focus still shows next to the stronger `input` stroke (about 5:1 against it); and `destructive-foreground` went from `#fafafa` (2.8:1 on `destructive`) to `#0a0a0a` (6.9:1, AA for text), like `primary-foreground` on the lime. `destructive` itself stays, so error text in `destructive` keeps about 5.8:1 on `background` and 6.2:1 on `card`. The contrast tests in `packages/design-tokens/src/__tests__/tokens.test.ts` hold these floors: a Token change that drops below one fails them. On iOS the destructive Button is prominent glass tinted `destructive`, so its fill is close to the token, not exactly it; the solid fallback, web and site draw the token itself.
 - In `className` use token names only (`text-muted-foreground`, `bg-background`). No hex, `rgb()` or `hsl()` in `className` or `style`.
 - A color prop that isn't part of `style` on a React Native component gets its `…ClassName` prop with an `accent-` class: `<ActivityIndicator colorClassName="accent-foreground" />`, `tintColorClassName`, `backdropColorClassName="accent-background"`, `placeholderTextColorClassName` (`components/ui/input.tsx`). `className="text-…"` sets nothing there.
 - Anything else that wants a color string (`@expo/ui` SwiftUI modifiers, a navigation theme, an SVG `fill`) gets a resolved token: `useSwiftUITheme()` from `components/ui/swift-ui.tsx`, or `useResolveClassNames("text-primary").color` from `uniwind`.

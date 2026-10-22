@@ -61,6 +61,82 @@ describe("colors", () => {
   });
 });
 
+type RGB = [number, number, number];
+
+/** A color token as its [r, g, b] channels (0–255) and its alpha (0–1). */
+const channels = (name: string): { alpha: number; rgb: RGB } => {
+  const hex = tokenValue("color", name)?.slice(1) ?? "";
+  const channel = (index: number) =>
+    Number.parseInt(hex.slice(index, index + 2), 16);
+  return {
+    alpha: hex.length === 8 ? channel(6) / 255 : 1,
+    rgb: [channel(0), channel(2), channel(4)],
+  };
+};
+
+/** An opaque color token: something else is drawn on it. */
+const solid = (name: string): RGB => {
+  const { alpha, rgb } = channels(name);
+  if (alpha !== 1) {
+    throw new Error(`${name} isn't opaque, so it can't be a surface`);
+  }
+  return rgb;
+};
+
+/** `name` as drawn on the opaque `surface`: its alpha composited over it. */
+const drawnOn = (name: string, surface: string): RGB => {
+  const { alpha, rgb } = channels(name);
+  const under = solid(surface);
+  return rgb.map(
+    (value, index) => value * alpha + under[index] * (1 - alpha)
+  ) as RGB;
+};
+
+// WCAG 2 relative luminance and contrast ratio
+const luminance = (rgb: RGB) => {
+  const [r, g, b] = rgb.map((value) => {
+    const c = value / 255;
+    return c <= 0.040_45 ? c / 12.92 : ((c + 0.055) / 1.055) ** 2.4;
+  });
+  return 0.2126 * r + 0.7152 * g + 0.0722 * b;
+};
+
+const contrast = (a: RGB, b: RGB) => {
+  const [lighter, darker] = [luminance(a), luminance(b)].sort((x, y) => y - x);
+  return (lighter + 0.05) / (darker + 0.05);
+};
+
+// WCAG 1.4.11: a UI component's boundary (a field stroke, a focus ring)
+const COMPONENT_BOUNDARY = 3;
+// WCAG 1.4.3, AA: body-size text
+const TEXT_AA = 4.5;
+
+describe("contrast", () => {
+  it.each([
+    ["input", "background", COMPONENT_BOUNDARY],
+    ["input", "card", COMPONENT_BOUNDARY],
+    ["ring", "background", COMPONENT_BOUNDARY],
+    ["ring", "card", COMPONENT_BOUNDARY],
+    ["destructive-foreground", "destructive", TEXT_AA],
+    ["destructive", "background", TEXT_AA],
+    ["destructive", "card", TEXT_AA],
+  ])("%s on %s is at least %s:1", (foreground, surface, floor) => {
+    expect(
+      contrast(drawnOn(foreground, surface), solid(surface))
+    ).toBeGreaterThanOrEqual(floor);
+  });
+
+  // Focus has to show next to an unfocused field, not only on the surface
+  it.each(["background", "card"])(
+    "ring is at least 3:1 against the input stroke on %s",
+    (surface) => {
+      expect(
+        contrast(drawnOn("ring", surface), drawnOn("input", surface))
+      ).toBeGreaterThanOrEqual(COMPONENT_BOUNDARY);
+    }
+  );
+});
+
 describe("type", () => {
   it.each(Object.entries(HIG_STYLES))(
     "%s has the HIG size and line height",

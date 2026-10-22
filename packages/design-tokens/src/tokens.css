@@ -9,6 +9,8 @@
  */
 
 @theme {
+  /* Mobile's shipped palette, except input, ring and destructive-foreground,
+     raised for WCAG contrast (docs/agents/ui.md, Color) */
   --color-background: #1f1d20;
   --color-foreground: #fafafa;
   --color-card: #171717;
@@ -24,10 +26,10 @@
   --color-accent: #262626;
   --color-accent-foreground: #fafafa;
   --color-destructive: #ff6467;
-  --color-destructive-foreground: #fafafa;
+  --color-destructive-foreground: #0a0a0a;
   --color-border: #ffffff1a;
-  --color-input: #ffffff26;
-  --color-ring: #737373;
+  --color-input: #ffffff57;
+  --color-ring: #fafafa;
 
   /* Apple Human Interface Guidelines text styles (size/leading in points) */
   --text-caption-2: 11px;
