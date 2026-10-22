@@ -37,10 +37,11 @@ export const clerkAppearance: Appearance = {
         fill: "var(--color-muted-foreground)",
       },
     },
-    // Clerk's neutral badge ("This device", "Primary") draws its text and
-    // fill as alphas of `colorBorder`, which is already 10% white, so the
-    // text came out about 1.3:1 on `card`. `muted-foreground` on `muted` is
-    // about 5.9:1. Coloured badges (danger and the rest) keep Clerk's look
+    // Clerk's neutral badge ("This device", "Primary") is its default
+    // `data-color="primary"` one: text and fill as alphas of `colorBorder`,
+    // which is already 10% white, so the text came out about 1.3:1 on
+    // `card`. `muted-foreground` on `muted` is about 5.9:1. Coloured badges
+    // (danger and the rest) keep Clerk's look
     badge: {
       '&[data-color="primary"]': {
         backgroundColor: "var(--color-muted)",
@@ -48,28 +49,31 @@ export const clerkAppearance: Appearance = {
         color: "var(--color-muted-foreground)",
       },
     },
-    // Clerk's solid danger buttons (the account deletion confirm, for one)
-    // draw white text on `destructive`, about 2.8:1, and Clerk has no
-    // danger-foreground variable. They get the destructive Button's look
-    // instead (FIT-248): `secondary` fill, `destructive` text. Clerk's
-    // `box-shadow` (a `colorDanger` ring, drop shadows, its focus ring)
-    // goes, and focus gets the web Button's ring. Every one carries these
-    // data attributes, which are Clerk's markup, not its typed API: recheck
-    // on a Clerk bump
+    // Each rule below matches Clerk's data attributes, which are its markup,
+    // not its typed API: recheck on a Clerk bump
     button: {
-      // The account modal's selected page keeps its fill, not lime text
+      // Any active Clerk button (the account modal's selected page) keeps
+      // its fill, not lime text
       '&[data-active="true"]': { color: "var(--color-foreground)" },
-      // Lime is the accent, not the paint (FIT-247): only the solid primary
-      // buttons keep it. Clerk's ghost buttons ("Update password", the
-      // delete confirm's "Cancel") look like the web `ghost` Button instead:
-      // `foreground` text, `muted` on hover rather than a lime tint
+      // Lime is the accent, not the paint (FIT-247): it stays on solid
+      // primary buttons and on `link` ones (inline text links, like "Forgot
+      // password?"). Clerk's ghost buttons ("Update password", the delete
+      // confirm's "Cancel") look like the web `ghost` Button instead:
+      // `foreground` text, `muted` on hover and focus rather than a lime tint
       '&[data-variant="ghost"][data-color="primary"]': {
         color: "var(--color-foreground)",
       },
-      '&[data-variant="ghost"][data-color="primary"]:hover': {
-        backgroundColor: "var(--color-muted)",
-        color: "var(--color-foreground)",
-      },
+      '&[data-variant="ghost"][data-color="primary"]:hover, &[data-variant="ghost"][data-color="primary"]:focus-visible':
+        {
+          backgroundColor: "var(--color-muted)",
+          color: "var(--color-foreground)",
+        },
+      // Clerk's solid danger buttons (the account deletion confirm, for one)
+      // draw white text on `destructive`, about 2.8:1, and Clerk has no
+      // danger-foreground variable. They get the destructive Button's look
+      // instead (FIT-248): `secondary` fill, `destructive` text. Clerk's
+      // `box-shadow` (a `colorDanger` ring, drop shadows, its focus ring)
+      // goes, and focus gets the web Button's ring
       '&[data-variant="solid"][data-color="danger"]': {
         backgroundColor: "var(--color-secondary)",
         boxShadow: "none",
@@ -81,8 +85,8 @@ export const clerkAppearance: Appearance = {
     },
     // The code boxes ignore `colorInput`, so they get its fill here
     otpCodeFieldInput: { backgroundColor: "var(--color-muted)" },
-    // Clerk gives each section title a fixed width (264px), wider than the
-    // account modal's content at 320px, so the page scrolled sideways
+    // Clerk gives each section title a fixed width (264 px), wider than the
+    // account modal's content at 320 px, so the page scrolled sideways
     profileSectionHeader: { maxWidth: "100%" },
     // The menu is `card` over cards, so it needs a visible edge
     userButtonPopoverCard: { border: "1px solid var(--color-border)" },
