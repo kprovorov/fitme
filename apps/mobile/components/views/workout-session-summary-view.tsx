@@ -40,12 +40,12 @@ export default function WorkoutSessionSummaryView({
     [workoutSession.exercises]
   );
 
-  const shown = useExercises(
+  const shownBySlug = useExercises(
     exercises.map(({ exercise_slug }) => exercise_slug)
   );
   const muscleGroups = new Set<MuscleGroup>(
     exercises.flatMap(
-      ({ exercise_slug }) => shown[exercise_slug]?.muscle_groups ?? []
+      ({ exercise_slug }) => shownBySlug[exercise_slug]?.muscle_groups ?? []
     )
   );
 
@@ -116,7 +116,7 @@ export default function WorkoutSessionSummaryView({
           <Fragment key={exercise.id}>
             {index > 0 && <Separator />}
             <WorkoutSessionSummaryExerciseRow
-              exercise={shown[exercise.exercise_slug]}
+              exercise={shownBySlug[exercise.exercise_slug]}
               planId={workoutSession.plan_id}
               sessionId={workoutSession.id}
               workoutId={workoutSession.workout_id}

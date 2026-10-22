@@ -106,7 +106,7 @@ function ExerciseRow({
 }) {
   // The Exercise Library's name once resolved, otherwise the Coach's.
   const isResolved = !!shown?.isResolved;
-  const name = isResolved && shown ? shown.name : exercise.name;
+  const name = shown?.isResolved ? shown.name : exercise.name;
   const handlePress = useCallback(
     () => router.push(`/exercises/${exercise.exercise_slug}`),
     [exercise.exercise_slug]
@@ -142,7 +142,7 @@ function WorkoutDaySection({
   workout: WorkoutDay;
   last: boolean;
 }) {
-  const exercises = useExercises(
+  const shownBySlug = useExercises(
     workout.exercises.flatMap(({ exercise_slug }) =>
       exercise_slug ? [exercise_slug] : []
     )
@@ -170,7 +170,7 @@ function WorkoutDaySection({
           // The same Exercise can appear twice in a Workout.
           // biome-ignore lint/suspicious/noArrayIndexKey: the list never reorders
           key={`${ex.exercise_slug}-${index}`}
-          shown={ex.exercise_slug ? exercises[ex.exercise_slug] : undefined}
+          shown={ex.exercise_slug ? shownBySlug[ex.exercise_slug] : undefined}
         />
       ))}
     </View>

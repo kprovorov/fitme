@@ -151,7 +151,7 @@ export default function WorkoutCard({
     return () => clearInterval(timer);
   }, [activeSession?.started_at]);
 
-  const exercises = useExercises(
+  const shownBySlug = useExercises(
     workout.exercises.map(({ exercise_slug }) => exercise_slug)
   );
 
@@ -218,7 +218,7 @@ export default function WorkoutCard({
               >
                 {workout.exercises.map((workoutExercise) => (
                   <WorkoutExerciseRow
-                    exercise={exercises[workoutExercise.exercise_slug]}
+                    exercise={shownBySlug[workoutExercise.exercise_slug]}
                     isOpen={isOpen}
                     key={workoutExercise.id}
                     setCount={workoutExercise.sets.length}

@@ -1,5 +1,6 @@
 import type {
   MeasurementSystem,
+  PlanChangeExercise,
   PlanChangeKind,
   PlanChanges,
 } from "@fitme/core";
@@ -20,8 +21,13 @@ import {
   type PlanUpdatePrompt,
   usePlanUpdatePrompt,
 } from "~/hooks/plan-update-prompt";
+import { useExercises } from "~/hooks/queries/exercise-library";
 import { useApplyPlanChangesMutation } from "~/hooks/queries/workout-sessions";
-import { formatPlanChange, planUpdateProperties } from "~/lib/plan-changes";
+import {
+  formatPlanChange,
+  planChangeSlugs,
+  planUpdateProperties,
+} from "~/lib/plan-changes";
 import { segmentClient } from "~/lib/segment";
 
 /** Every query that reads a Plan's Workouts, refetched once changes apply. */
@@ -65,6 +71,15 @@ export function PlanUpdateSheet({
   open,
   preview,
 }: PlanUpdateSheetProps) {
+  // The Exercise Library's names once resolved, the RPC's until then.
+  const shownBySlug = useExercises(
+    preview ? planChangeSlugs(preview.changes) : []
+  );
+  const nameOf = ({ name, slug }: PlanChangeExercise) => {
+    const shown = shownBySlug[slug];
+    return shown?.isResolved ? shown.name : name;
+  };
+
   const handleIsPresentedChange = useCallback(
     (isPresented: boolean) => {
       // Dismissal is disabled; should the system close it anyway, the Plan
@@ -93,7 +108,7 @@ export function PlanUpdateSheet({
           </VStack>
           <VStack className="items-stretch gap-3" testID="plan-update-changes">
             {preview.changes.map((change, index) => {
-              const line = formatPlanChange(change, measurementSystem);
+              const line = formatPlanChange(change, measurementSystem, nameOf);
               return (
                 <View
                   accessibilityLabel={line.accessibilityLabel}

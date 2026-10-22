@@ -1,10 +1,18 @@
 import type { MuscleGroup } from "@fitme/core";
 import {
   type Exercise,
+  ExerciseLibraryInvalidRequestError,
+  ExerciseLibraryRateLimitedError,
+  ExerciseLibraryUnauthorizedError,
   type ExerciseSummary,
   exerciseNameFromSlug,
 } from "@fitme/exercise-library";
-import { queryOptions, useQueries, useQuery } from "@tanstack/react-query";
+import {
+  queryOptions,
+  useQueries,
+  useQuery,
+  useQueryClient,
+} from "@tanstack/react-query";
 import {
   readCachedExercise,
   readCachedSummary,
@@ -98,6 +106,20 @@ const lookupExercise = (slug: string) =>
     }
   });
 
+/**
+ * One retry, and none for an answer a retry won't change (or, rate limited,
+ * would only make worse): each slug retries on its own, outside the batch.
+ */
+const retryOnce = (failureCount: number, error: unknown) =>
+  failureCount < 1 &&
+  !(
+    error instanceof ExerciseLibraryRateLimitedError ||
+    error instanceof ExerciseLibraryUnauthorizedError ||
+    error instanceof ExerciseLibraryInvalidRequestError
+  );
+
+const summaryKey = (slug: string) => ["exercise-summary", slug];
+
 const exerciseSummaryQuery = (slug: string) =>
   queryOptions({
     // A cached Exercise shows at once (offline too) and is refreshed once stale.
@@ -112,7 +134,8 @@ const exerciseSummaryQuery = (slug: string) =>
       }
       return exercise;
     },
-    queryKey: ["exercise-summary", slug],
+    queryKey: summaryKey(slug),
+    retry: retryOnce,
     staleTime: EXERCISE_STALE_TIME_MS,
   });
 
@@ -143,8 +166,9 @@ export const useExercise = (slug: string | undefined): ShownExercise => {
  * One Exercise in full, for its detail screen and guide: `null` when the
  * Exercise Library has no such slug. Starts from the cached copy (offline too).
  */
-export const useExerciseDetailQuery = (slug: string) =>
-  useQuery({
+export const useExerciseDetailQuery = (slug: string) => {
+  const queryClient = useQueryClient();
+  return useQuery({
     initialData: () => readCachedExercise(slug)?.value,
     initialDataUpdatedAt: () => readCachedExercise(slug)?.savedAt,
     queryFn: async (): Promise<Exercise | null> => {
@@ -154,8 +178,15 @@ export const useExerciseDetailQuery = (slug: string) =>
       } else {
         removeCachedExercise(slug);
       }
+      // Rows showing this Exercise follow what its detail screen just read.
+      queryClient.setQueryData<ExerciseSummary | null>(
+        summaryKey(slug),
+        exercise
+      );
       return exercise;
     },
     queryKey: ["exercise-detail", slug],
+    retry: retryOnce,
     staleTime: EXERCISE_STALE_TIME_MS,
   });
+};

@@ -42,7 +42,7 @@ export default function WorkoutSessionView({
   sessionId,
 }: WorkoutSessionViewProps) {
   const queryClient = useQueryClient();
-  const exercises = useExercises(
+  const shownBySlug = useExercises(
     workoutSession.exercises.map(({ exercise_slug }) => exercise_slug)
   );
   const [showModal, setShowModal] = useState(false);
@@ -155,7 +155,7 @@ export default function WorkoutSessionView({
   const handleReplaceExercise = (exerciseId: string) => {
     const exercise = workoutSession.exercises.find((e) => e.id === exerciseId);
     const muscleGroup = exercise
-      ? exercises[exercise.exercise_slug]?.muscle_groups[0]
+      ? shownBySlug[exercise.exercise_slug]?.muscle_groups[0]
       : undefined;
     setReplacingExerciseId(exerciseId);
     setInitialMuscleGroup(muscleGroup);
@@ -198,7 +198,7 @@ export default function WorkoutSessionView({
           .sort((a, b) => a.order - b.order)
           .map((exercise) => (
             <WorkoutSessionExerciseCard
-              exercise={exercises[exercise.exercise_slug]}
+              exercise={shownBySlug[exercise.exercise_slug]}
               key={exercise.id}
               onDelete={
                 workoutSession.finished_at
