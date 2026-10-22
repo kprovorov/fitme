@@ -179,10 +179,27 @@ export const addSetToExercise = async (
 };
 
 /**
- * Throws `UnknownExercisesError` when the library has no such Exercise, which
- * the insert would otherwise abort on with an opaque foreign-key violation.
+ * An Exercise as an edit names it: by its Exercise slug, or (until the
+ * contract step drops `exercise_id`) by its legacy uuid. The
+ * `sync_exercise_slug` trigger fills in the other column. A slug isn't checked
+ * here: that's the tool layer's job (ADR 0010).
  */
-const assertExerciseExists = async (tx: Transaction, exerciseId: string) => {
+type EditExerciseRef =
+  | { exerciseId: string; exerciseSlug?: undefined }
+  | { exerciseId?: undefined; exerciseSlug: string };
+
+/**
+ * Throws `UnknownExercisesError` when the library has no Exercise with that
+ * uuid, which the insert would otherwise abort on with an opaque foreign-key
+ * violation. A slug isn't checked.
+ */
+const assertExerciseExists = async (
+  tx: Transaction,
+  { exerciseId }: EditExerciseRef
+) => {
+  if (exerciseId === undefined) {
+    return;
+  }
   const [known] = await tx
     .select({ id: exercises.id })
     .from(exercises)
@@ -220,21 +237,21 @@ export interface AddedExercise {
 }
 
 /**
- * Appends a library Exercise after the last Exercise of one of the User's
- * Workouts, with its sets in array order. Returns the new Workout Exercise, or
- * `null` without changing anything when the User has no such Workout. Throws
- * `UnknownExercisesError`, before writing anything, for an unknown Exercise.
+ * Appends a library Exercise, given by slug or uuid, after the last Exercise
+ * of one of the User's Workouts, with its sets in array order. Returns the new
+ * Workout Exercise, or `null` without changing anything when the User has no
+ * such Workout. Throws `UnknownExercisesError`, before writing anything, for
+ * an unknown uuid.
  */
 export const addExerciseToWorkout = async (
   tx: Transaction,
   userId: string,
   {
-    exerciseId,
     requestKey,
     sets,
     workoutId,
-  }: {
-    exerciseId: string;
+    ...exerciseRef
+  }: EditExerciseRef & {
     requestKey?: string;
     sets: PlanSetInput[];
     workoutId: string;
@@ -263,14 +280,20 @@ export const addExerciseToWorkout = async (
       return repeated;
     }
   }
-  await assertExerciseExists(tx, exerciseId);
+  await assertExerciseExists(tx, exerciseRef);
   const [{ last }] = await tx
     .select({ last: max(workoutExercises.order) })
     .from(workoutExercises)
     .where(inWorkout);
   const [added] = await tx
     .insert(workoutExercises)
-    .values({ exerciseId, order: (last ?? 0) + 1, requestKey, workoutId })
+    .values({
+      exerciseId: exerciseRef.exerciseId,
+      exerciseSlug: exerciseRef.exerciseSlug,
+      order: (last ?? 0) + 1,
+      requestKey,
+      workoutId,
+    })
     .returning({ id: workoutExercises.id, order: workoutExercises.order });
   await insertSets(tx, added.id, sets);
   return { ...added, setsAdded: sets.length };
@@ -326,21 +349,35 @@ export const removeExerciseFromWorkout = async (
   return true;
 };
 
+/** The Exercise slug of `exerciseRef`, or `undefined` for an unknown uuid. */
+const slugOf = async (tx: Transaction, exerciseRef: EditExerciseRef) => {
+  if (exerciseRef.exerciseSlug !== undefined) {
+    return exerciseRef.exerciseSlug;
+  }
+  const [known] = await tx
+    .select({ slug: exercises.slug })
+    .from(exercises)
+    .where(eq(exercises.id, exerciseRef.exerciseId));
+  return known?.slug;
+};
+
 /**
- * Whether a Workout Exercise already is `exerciseId` with exactly `sets`, in
- * order: what `replaceExerciseInWorkout` would leave behind.
+ * Whether a Workout Exercise already is `exerciseRef` with exactly `sets`, in
+ * order: what `replaceExerciseInWorkout` would leave behind. Compared by
+ * Exercise slug, whichever form wrote the row.
  */
 const isAlreadyReplaced = async (
   tx: Transaction,
   workoutExerciseId: string,
-  exerciseId: string,
+  exerciseRef: EditExerciseRef,
   sets: PlanSetInput[]
 ) => {
+  const slug = await slugOf(tx, exerciseRef);
   const [current] = await tx
-    .select({ exerciseId: workoutExercises.exerciseId })
+    .select({ exerciseSlug: workoutExercises.exerciseSlug })
     .from(workoutExercises)
     .where(eq(workoutExercises.id, workoutExerciseId));
-  if (current?.exerciseId !== exerciseId) {
+  if (slug === undefined || current?.exerciseSlug !== slug) {
     return false;
   }
   // The weights as numeric(8,2) stores them, rounded by Postgres, not JS
@@ -374,12 +411,17 @@ const isAlreadyReplaced = async (
   );
 };
 
+/** The Exercise to swap in, by slug or (until the contract step) uuid. */
+type NewExerciseRef =
+  | { newExerciseId: string; newExerciseSlug?: undefined }
+  | { newExerciseId?: undefined; newExerciseSlug: string };
+
 /**
  * Swaps the library Exercise of one of the User's Workout Exercises, keeping
  * its id and place in the Workout, and replaces all its sets with `sets`, in
  * array order. Returns `false`, changing nothing, when the User has no such
  * Workout Exercise. Throws `UnknownExercisesError`, before writing anything,
- * for an unknown Exercise. When the Workout Exercise already is that Exercise
+ * for an unknown uuid. When the Workout Exercise already is that Exercise
  * with exactly those sets (a repeated call), nothing is rewritten, so the set
  * ids a read in between handed out stay valid.
  */
@@ -387,22 +429,36 @@ export const replaceExerciseInWorkout = async (
   tx: Transaction,
   userId: string,
   {
-    newExerciseId,
     sets,
     workoutExerciseId,
-  }: { newExerciseId: string; sets: PlanSetInput[]; workoutExerciseId: string }
+    ...replacement
+  }: NewExerciseRef & { sets: PlanSetInput[]; workoutExerciseId: string }
 ): Promise<boolean> => {
+  const exerciseRef: EditExerciseRef =
+    replacement.newExerciseSlug === undefined
+      ? { exerciseId: replacement.newExerciseId }
+      : { exerciseSlug: replacement.newExerciseSlug };
   await lockEditedTables(tx);
   if (!(await lockWorkoutExercise(tx, userId, workoutExerciseId))) {
     return false;
   }
-  if (await isAlreadyReplaced(tx, workoutExerciseId, newExerciseId, sets)) {
+  if (await isAlreadyReplaced(tx, workoutExerciseId, exerciseRef, sets)) {
     return true;
   }
-  await assertExerciseExists(tx, newExerciseId);
+  await assertExerciseExists(tx, exerciseRef);
   await tx
     .update(workoutExercises)
-    .set({ exerciseId: newExerciseId, updatedAt: sql`now()` })
+    .set({
+      // A slug write sends the uuid too: the sync trigger would keep the old
+      // one for a slug the legacy table doesn't know, so the row would still
+      // join the replaced Exercise. NULL fails NOT NULL, as an insert does.
+      exerciseId:
+        exerciseRef.exerciseSlug === undefined
+          ? exerciseRef.exerciseId
+          : sql`(select ${exercises.id} from ${exercises} where ${exercises.slug} = ${exerciseRef.exerciseSlug})`,
+      exerciseSlug: exerciseRef.exerciseSlug,
+      updatedAt: sql`now()`,
+    })
     .where(eq(workoutExercises.id, workoutExerciseId));
   await tx
     .delete(workoutExerciseSets)

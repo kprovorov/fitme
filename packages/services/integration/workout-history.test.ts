@@ -188,6 +188,7 @@ describe("listWorkoutHistory", () => {
       exercises: [
         {
           exercise: { id: seeded.benchId, name: "Test bench" },
+          exercise_slug: `test-hist-bench-${runId}`,
           id: expect.any(String),
           order: 1,
           sets: [
@@ -210,6 +211,7 @@ describe("listWorkoutHistory", () => {
         },
         {
           exercise: { id: seeded.squatId, name: "Test squat" },
+          exercise_slug: `test-hist-squat-${runId}`,
           id: expect.any(String),
           order: 2,
           sets: [

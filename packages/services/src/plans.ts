@@ -58,6 +58,8 @@ export interface PlanSet {
 
 export interface PlanExercise {
   exercise: { id: string; muscle_groups: unknown; name: string };
+  /** The Exercise Library's key for `exercise`. */
+  exercise_slug: string;
   id: string;
   order: number;
   sets: PlanSet[];
@@ -187,7 +189,7 @@ const findPlanDetail = async (
         orderBy: (workout, { asc }) => [asc(workout.order), asc(workout.id)],
         with: {
           workoutExercises: {
-            columns: { id: true, order: true },
+            columns: { exerciseSlug: true, id: true, order: true },
             orderBy: (exercise, { asc }) => [
               asc(exercise.order),
               asc(exercise.id),
@@ -221,12 +223,18 @@ const findPlanDetail = async (
     workouts: workouts.map(({ workoutExercises, ...workout }) => ({
       ...workout,
       exercises: workoutExercises.map(
-        ({ exercise, workoutExerciseSets, ...workoutExercise }) => ({
+        ({
+          exercise,
+          exerciseSlug,
+          workoutExerciseSets,
+          ...workoutExercise
+        }) => ({
           exercise: {
             id: exercise.id,
             muscle_groups: exercise.muscleGroups,
             name: exercise.name,
           },
+          exercise_slug: exerciseSlug,
           ...workoutExercise,
           sets: workoutExerciseSets.map((set) => ({
             id: set.id,
@@ -374,12 +382,20 @@ export interface PlanSetInput {
   weight_recommended: number;
 }
 
-export interface PlanExerciseInput {
-  /** A library Exercise (exercises.id). */
-  exercise_id: string;
+/**
+ * An Exercise as a write names it: by its Exercise slug, or (until the
+ * contract step drops `exercise_id`) by its legacy uuid. The `sync_exercise_slug`
+ * trigger fills in the other column. A slug isn't checked here: that's the
+ * tool layer's job (ADR 0010).
+ */
+export type ExerciseRef =
+  | { exercise_id: string; exercise_slug?: undefined }
+  | { exercise_id?: undefined; exercise_slug: string };
+
+export type PlanExerciseInput = ExerciseRef & {
   /** In the order they are performed. */
   sets: PlanSetInput[];
-}
+};
 
 export interface PlanWorkoutInput {
   description: string;
@@ -418,9 +434,9 @@ export class UnknownExercisesError extends Error {
 }
 
 /**
- * Throws `UnknownExercisesError` when any Workout names an Exercise that
- * doesn't exist, which the inserts would otherwise abort on with an opaque
- * foreign-key violation.
+ * Throws `UnknownExercisesError` when any Workout names, by uuid, an Exercise
+ * that doesn't exist, which the inserts would otherwise abort on with an
+ * opaque foreign-key violation. Exercises named by slug aren't checked.
  */
 const assertExercisesExist = async (
   tx: Transaction,
@@ -429,7 +445,9 @@ const assertExercisesExist = async (
   const ids = [
     ...new Set(
       planWorkouts.flatMap((workout) =>
-        workout.exercises.map((exercise) => exercise.exercise_id)
+        workout.exercises.flatMap((exercise) =>
+          exercise.exercise_id === undefined ? [] : [exercise.exercise_id]
+        )
       )
     ),
   ];
@@ -520,6 +538,7 @@ const insertWorkouts = async (
   const exerciseRows = planWorkouts.flatMap((workout, workoutIndex) =>
     workout.exercises.map((exercise, index) => ({
       exerciseId: exercise.exercise_id,
+      exerciseSlug: exercise.exercise_slug,
       order: index + 1,
       workoutId: insertedId(workoutIds, workoutIndex + 1),
     }))
@@ -568,7 +587,7 @@ const insertWorkouts = async (
  * Runs in `tx` from `asUser`, so it commits fully or not at all; RLS and the
  * retired-id triggers refuse a `userId` other than the caller's own.
  * Throws `UnknownExercisesError`, before writing anything, for unknown
- * Exercises.
+ * Exercise uuids; Exercise slugs aren't checked.
  */
 export const createPlan = async (
   tx: Transaction,
@@ -611,8 +630,8 @@ export interface PlanChanges extends Partial<PlanMetadata> {
  *
  * The Plan row is locked first, by its UPDATE, before any Workout, the order
  * the RPC and `finish_workout_session` take their locks in. Throws
- * `UnknownExercisesError` for unknown Exercises, which rolls back the
- * transaction.
+ * `UnknownExercisesError` for unknown Exercise uuids (slugs aren't checked),
+ * which rolls back the transaction.
  */
 export const updatePlan = async (
   tx: Transaction,

@@ -43,7 +43,7 @@ const insertExercises = async (tx: Transaction) => {
       { name: "Test squat", slug: `test-life-squat-${suffix}` },
       { name: "Test press", slug: `test-life-press-${suffix}` },
     ])
-    .returning({ id: exercises.id });
+    .returning({ id: exercises.id, slug: exercises.slug });
   exerciseIds.push(...rows.map(({ id }) => id));
   return rows;
 };
@@ -89,7 +89,8 @@ const seedTemplate = (workoutId: string) =>
     const [squatEntry, pressEntry] = await tx
       .insert(workoutExercises)
       .values([
-        { exerciseId: squat.id, order: 1, workoutId },
+        // one written by slug, one by uuid: a start copies both alike
+        { exerciseSlug: squat.slug, order: 1, workoutId },
         { exerciseId: press.id, order: 2, workoutId },
       ])
       .returning({ id: workoutExercises.id });
@@ -116,7 +117,12 @@ const seedTemplate = (workoutId: string) =>
         workoutExerciseId: pressEntry.id,
       },
     ]);
-    return { pressId: press.id, squatId: squat.id };
+    return {
+      pressId: press.id,
+      pressSlug: press.slug,
+      squatId: squat.id,
+      squatSlug: squat.slug,
+    };
   });
 
 const sessionsOf = (workoutId: string) =>
@@ -165,7 +171,8 @@ describe("startWorkoutSession", () => {
   it("copies the Workout's exercises and sets into a new open session", async () => {
     const { planId, workoutIds } = await seedPlan({ "Day A": 1 });
     const workoutId = workoutIds["Day A"];
-    const { pressId, squatId } = await seedTemplate(workoutId);
+    const { pressId, pressSlug, squatId, squatSlug } =
+      await seedTemplate(workoutId);
 
     const result = await start(workoutId);
 
@@ -183,22 +190,26 @@ describe("startWorkoutSession", () => {
       return;
     }
     expect(
-      result.session.exercises.map(({ exercise, order, sets }) => ({
-        exerciseId: exercise.id,
-        order,
-        sets: sets.map((set) => ({
-          logged_at: set.logged_at,
-          order: set.order,
-          reps_completed: set.reps_completed,
-          reps_recommended: set.reps_recommended,
-          rest_recommended: set.rest_recommended,
-          weight_completed: set.weight_completed,
-          weight_recommended: set.weight_recommended,
-        })),
-      }))
+      result.session.exercises.map(
+        ({ exercise, exercise_slug, order, sets }) => ({
+          exerciseId: exercise.id,
+          exerciseSlug: exercise_slug,
+          order,
+          sets: sets.map((set) => ({
+            logged_at: set.logged_at,
+            order: set.order,
+            reps_completed: set.reps_completed,
+            reps_recommended: set.reps_recommended,
+            rest_recommended: set.rest_recommended,
+            weight_completed: set.weight_completed,
+            weight_recommended: set.weight_recommended,
+          })),
+        })
+      )
     ).toEqual([
       {
         exerciseId: squatId,
+        exerciseSlug: squatSlug,
         order: 1,
         sets: [1, 2].map((order) => ({
           logged_at: null,
@@ -212,6 +223,7 @@ describe("startWorkoutSession", () => {
       },
       {
         exerciseId: pressId,
+        exerciseSlug: pressSlug,
         order: 2,
         sets: [
           {
