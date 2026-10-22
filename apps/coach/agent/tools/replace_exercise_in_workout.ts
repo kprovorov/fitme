@@ -14,9 +14,9 @@ export default defineTool({
     "Swap one exercise for another in a workout and replace its sets with new rep/weight/rest recommendations suited to the new exercise. Use search_exercises to find the new_exercise_slug.",
   async execute({ new_exercise_slug, sets, workout_exercise_id }, ctx) {
     const userId = requireConversationOwner(ctx.session.auth);
-    const checked = await checkExerciseSlugs([new_exercise_slug]);
-    if ("error" in checked) {
-      return checked;
+    const refused = await checkExerciseSlugs([new_exercise_slug]);
+    if (refused) {
+      return refused;
     }
     return await reportingEditErrors(async () => {
       const replaced = await asUser(userId, (tx) =>

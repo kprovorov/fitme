@@ -16,9 +16,9 @@ export default defineTool({
   async execute(input, ctx) {
     const userId = requireConversationOwner(ctx.session.auth);
     const { exercise_slug, sets, workout_id } = input;
-    const checked = await checkExerciseSlugs([exercise_slug]);
-    if ("error" in checked) {
-      return checked;
+    const refused = await checkExerciseSlugs([exercise_slug]);
+    if (refused) {
+      return refused;
     }
     return await reportingEditErrors(async () => {
       const added = await asUser(userId, (tx) =>

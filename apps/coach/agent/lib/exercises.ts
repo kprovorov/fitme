@@ -1,8 +1,5 @@
 import type { MuscleGroup } from "@fitme/core/models";
-import {
-  ExerciseLibraryError,
-  type ExerciseSummary,
-} from "@fitme/exercise-library";
+import { ExerciseLibraryError } from "@fitme/exercise-library";
 import { reportError } from "@fitme/observability/node";
 import { z } from "zod";
 import { exerciseLibrary } from "./exercise-library";
@@ -10,8 +7,11 @@ import { exerciseLibrary } from "./exercise-library";
 const UUID = /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i;
 const SLUG_SEPARATORS = /[-_]+/g;
 
+/** Longer than any Exercise slug; only keeps a runaway input off the API. */
+const MAX_SLUG_LENGTH = 200;
+
 /** An Exercise slug as the tools take it; checked against the library before any write. */
-export const exerciseSlugSchema = z.string().trim().min(1).max(200);
+export const exerciseSlugSchema = z.string().trim().min(1).max(MAX_SLUG_LENGTH);
 
 /** An Exercise the way the read tools show it. */
 export interface ExerciseDetails {
@@ -25,21 +25,37 @@ export const nameFromSlug = (slug: string): string => {
   return words.charAt(0).toUpperCase() + words.slice(1);
 };
 
-const unavailable = {
-  error:
-    "The exercise library is unavailable right now, so nothing was saved. Try again in a moment.",
+/** What a tool answers when the Exercise Library fails: nothing was done. */
+export const libraryUnavailable = (done: string) => ({
+  error: `The exercise library is unavailable right now, so ${done}. Try again in a moment.`,
+});
+
+/**
+ * Reports an Exercise Library failure (`step` tags which use failed) and
+ * returns `fallback`; any other error is rethrown.
+ */
+export const onLibraryFailure = async <T>(
+  error: unknown,
+  step: string,
+  fallback: T
+): Promise<T> => {
+  if (!(error instanceof ExerciseLibraryError)) {
+    throw error;
+  }
+  await reportError(error, { exercise_library: step });
+  return fallback;
 };
 
 /**
  * Checks Exercise slugs before a tool writes them (one lookup, outside any
- * transaction): `{ exercises }` by slug when the library has every one, or an
- * `{ error }` for the model, so nothing gets written. A uuid (an exercise id
- * from an older Conversation) gets an error that sends the model searching by
- * name; a library failure is reported and asks to retry.
+ * transaction): `null` when the library has every one, else an `{ error }`
+ * for the model, so nothing gets written. A uuid (an exercise id from an
+ * older Conversation) gets an error that sends the model searching by name;
+ * a library failure is reported and asks to retry.
  */
 export const checkExerciseSlugs = async (
   slugs: readonly string[]
-): Promise<{ error: string } | { exercises: Map<string, ExerciseSummary> }> => {
+): Promise<{ error: string } | null> => {
   const uuids = slugs.filter((slug) => UUID.test(slug));
   if (uuids.length > 0) {
     return {
@@ -47,33 +63,42 @@ export const checkExerciseSlugs = async (
     };
   }
   try {
-    const { data, missing } = await exerciseLibrary().lookup(slugs);
-    if (missing.length > 0) {
-      return {
-        error: `Unknown exercise_slug(s): ${missing.join(", ")}. Use search_exercises to find a valid exercise_slug; nothing was saved.`,
-      };
-    }
-    return {
-      exercises: new Map(data.map((exercise) => [exercise.slug, exercise])),
-    };
+    const { missing } = await exerciseLibrary().lookup(slugs);
+    return missing.length > 0
+      ? {
+          error: `Unknown exercise_slug(s): ${missing.join(", ")}. Use search_exercises to find a valid exercise_slug; nothing was saved.`,
+        }
+      : null;
   } catch (error) {
-    if (!(error instanceof ExerciseLibraryError)) {
-      throw error;
-    }
-    await reportError(error, { exercise_library: "check" });
-    return unavailable;
+    return await onLibraryFailure(
+      error,
+      "check",
+      libraryUnavailable("nothing was saved")
+    );
   }
 };
 
+/** A Workout Exercise or Workout Session Exercise as the services return it. */
+interface StoredExercise<Set> {
+  exercise_slug: string;
+  id: string;
+  order: number;
+  sets: Set[];
+}
+
 /**
- * Name and muscle groups for each slug, through one lookup (after the read's
- * transaction). A slug the library doesn't know, or every slug when the
- * library fails (reported), gets a name made from the slug and no muscle
+ * Each group's Exercises with their name and muscle groups, through one
+ * lookup (after the read's transaction); the services' legacy joined
+ * `exercise` is left out. A slug the library doesn't know, or every slug when
+ * the library fails (reported), gets a name made from the slug and no muscle
  * groups, so a read always answers.
  */
-export const describeExercises = async (
-  slugs: readonly string[]
-): Promise<(slug: string) => ExerciseDetails> => {
+export const withExerciseDetails = async <Set>(
+  groups: readonly (readonly StoredExercise<Set>[])[]
+): Promise<(StoredExercise<Set> & ExerciseDetails)[][]> => {
+  const slugs = groups.flatMap((group) =>
+    group.map(({ exercise_slug }) => exercise_slug)
+  );
   const known = new Map<string, ExerciseDetails>();
   if (slugs.length > 0) {
     try {
@@ -82,12 +107,19 @@ export const describeExercises = async (
         known.set(slug, { muscle_groups, name });
       }
     } catch (error) {
-      if (!(error instanceof ExerciseLibraryError)) {
-        throw error;
-      }
-      await reportError(error, { exercise_library: "describe" });
+      await onLibraryFailure(error, "describe", undefined);
     }
   }
-  return (slug) =>
-    known.get(slug) ?? { muscle_groups: [], name: nameFromSlug(slug) };
+  return groups.map((group) =>
+    group.map(({ exercise_slug, id, order, sets }) => ({
+      exercise_slug,
+      id,
+      ...(known.get(exercise_slug) ?? {
+        muscle_groups: [],
+        name: nameFromSlug(exercise_slug),
+      }),
+      order,
+      sets,
+    }))
+  );
 };

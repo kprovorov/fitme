@@ -383,6 +383,19 @@ describe("display_workout_plan", () => {
     expect(db.asUser).toHaveBeenCalledWith("user_alice", expect.any(Function));
   });
 
+  it("reports a slug the legacy table doesn't know, answering a null exercise_id", async () => {
+    const card = (await run(
+      proposed(exercise("incline-dumbbell-press", "Incline press"))
+    )) as { workouts: { exercises: { exercise_id: string | null }[] }[] };
+
+    expect(card.workouts[0].exercises[0].exercise_id).toBeNull();
+    expect(observability.reportError).toHaveBeenCalledWith(
+      expect.objectContaining({
+        message: expect.stringContaining("incline-dumbbell-press"),
+      })
+    );
+  });
+
   it("refuses a slug the library doesn't know", async () => {
     expect(await run(proposed(exercise("made-up-fly", "Fly")))).toEqual({
       error: expect.stringContaining("made-up-fly"),

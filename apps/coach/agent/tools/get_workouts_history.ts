@@ -2,7 +2,7 @@ import { asUser } from "@fitme/db";
 import { listWorkoutHistory } from "@fitme/services/workout-sessions";
 import { defineTool } from "eve/tools";
 import { z } from "zod";
-import { describeExercises } from "../lib/exercises";
+import { withExerciseDetails } from "../lib/exercises";
 import { requireConversationOwner } from "../lib/owner";
 
 export default defineTool({
@@ -13,22 +13,12 @@ export default defineTool({
     const history = await asUser(userId, (tx) =>
       listWorkoutHistory(tx, { limit })
     );
-    const describe = await describeExercises(
-      history.flatMap(({ exercises }) =>
-        exercises.map(({ exercise_slug }) => exercise_slug)
-      )
+    const named = await withExerciseDetails(
+      history.map(({ exercises }) => exercises)
     );
-    return history.map((session) => ({
+    return history.map((session, index) => ({
       ...session,
-      exercises: session.exercises.map(
-        ({ exercise_slug, id, order, sets }) => ({
-          exercise_slug,
-          id,
-          ...describe(exercise_slug),
-          order,
-          sets,
-        })
-      ),
+      exercises: named[index],
     }));
   },
   inputSchema: z.object({

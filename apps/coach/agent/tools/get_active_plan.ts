@@ -2,7 +2,7 @@ import { asUser } from "@fitme/db";
 import { getActivePlan } from "@fitme/services/plans";
 import { defineTool } from "eve/tools";
 import { z } from "zod";
-import { describeExercises } from "../lib/exercises";
+import { withExerciseDetails } from "../lib/exercises";
 import { requireConversationOwner } from "../lib/owner";
 
 export default defineTool({
@@ -14,24 +14,14 @@ export default defineTool({
     if (!plan) {
       return { error: "No active plan found" };
     }
-    const describe = await describeExercises(
-      plan.workouts.flatMap(({ exercises }) =>
-        exercises.map(({ exercise_slug }) => exercise_slug)
-      )
+    const named = await withExerciseDetails(
+      plan.workouts.map(({ exercises }) => exercises)
     );
     return {
       ...plan,
-      workouts: plan.workouts.map((workout) => ({
+      workouts: plan.workouts.map((workout, index) => ({
         ...workout,
-        exercises: workout.exercises.map(
-          ({ exercise_slug, id, order, sets }) => ({
-            exercise_slug,
-            id,
-            ...describe(exercise_slug),
-            order,
-            sets,
-          })
-        ),
+        exercises: named[index],
       })),
     };
   },

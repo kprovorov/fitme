@@ -1,12 +1,13 @@
 import { muscleGroups } from "@fitme/core/models";
-import { ExerciseLibraryError } from "@fitme/exercise-library";
-import { reportError } from "@fitme/observability/node";
 import { defineTool } from "eve/tools";
 import { z } from "zod";
 import { exerciseLibrary } from "../lib/exercise-library";
+import { libraryUnavailable, onLibraryFailure } from "../lib/exercises";
 import { requireConversationOwner } from "../lib/owner";
 
 const MAX_RESULTS = 8;
+/** The Exercise Library API's limit on `search`. */
+const MAX_SEARCH_LENGTH = 100;
 
 export default defineTool({
   description:
@@ -25,14 +26,11 @@ export default defineTool({
         name,
       }));
     } catch (error) {
-      if (!(error instanceof ExerciseLibraryError)) {
-        throw error;
-      }
-      await reportError(error, { exercise_library: "search" });
-      return {
-        error:
-          "The exercise library is unavailable right now. Try again in a moment.",
-      };
+      return await onLibraryFailure(
+        error,
+        "search",
+        libraryUnavailable("the search failed")
+      );
     }
   },
   inputSchema: z.object({
@@ -42,7 +40,7 @@ export default defineTool({
       .describe(`Filter by muscle group: ${muscleGroups.join(", ")}`),
     query: z
       .string()
-      .max(100)
+      .max(MAX_SEARCH_LENGTH)
       .optional()
       .describe("Part of the exercise name to search for"),
   }),
