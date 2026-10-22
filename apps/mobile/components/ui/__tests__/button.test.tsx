@@ -43,18 +43,14 @@ jest.mock("@expo/ui/swift-ui", () => {
     modifiers?.find((m) => m.type === type)?.args[0];
 
   // Lowercase, so React Refresh doesn't register it from inside the factory
-  // Each stack lists its modifiers' types, for the tests that check them.
+  // Each stack lists its modifiers, for the tests that check them.
   const container = ({
     children,
     modifiers,
   }: {
     children?: React.ReactNode;
     modifiers?: Modifier[];
-  }) => (
-    <View {...{ modifierTypes: modifiers?.map((m) => m.type) ?? [] }}>
-      {children}
-    </View>
-  );
+  }) => <View {...{ modifierRecords: modifiers ?? [] }}>{children}</View>;
 
   return {
     Button: ({
@@ -78,10 +74,11 @@ jest.mock("@expo/ui/swift-ui", () => {
           disabled={disabled}
           onPress={onPress}
           testID={testID}
-          // The native style and shape, for the tests that check them
+          // The native style, shape and tint, for the tests that check them
           {...{
             buttonBorderShape: argOf(modifiers, "buttonBorderShape"),
             buttonStyle: argOf(modifiers, "buttonStyle"),
+            tint: argOf(modifiers, "tint"),
           }}
         >
           {children}
@@ -91,13 +88,24 @@ jest.mock("@expo/ui/swift-ui", () => {
     Group: container,
     Host: container,
     HStack: container,
-    Image: ({ systemName }: { systemName: string }) => (
-      <Text testID={`icon-${systemName}`}>{`[${systemName}]`}</Text>
+    Image: ({ color, systemName }: { color?: string; systemName: string }) => (
+      <Text testID={`icon-${systemName}`} {...{ color }}>
+        {`[${systemName}]`}
+      </Text>
     ),
     ProgressView: () => <View testID="spinner" />,
     RNHostView: container,
-    Text: ({ children }: { children?: React.ReactNode }) => (
-      <Text>{children}</Text>
+    // The label's color, for the tests that check it
+    Text: ({
+      children,
+      modifiers,
+    }: {
+      children?: React.ReactNode;
+      modifiers?: Modifier[];
+    }) => (
+      <Text {...{ color: argOf(modifiers, "foregroundStyle") }}>
+        {children}
+      </Text>
     ),
     ZStack: container,
   };
@@ -171,12 +179,12 @@ const texts = (node: JsonNode | JsonNode[] | string | null): string[] => {
 
 interface JsonHost {
   children: (JsonHost | string)[] | null;
-  props: { modifierTypes?: string[] };
+  props: { modifierRecords?: Modifier[] };
 }
 
-/** Every stack's modifier types, outermost first. */
-const modifierLists = (): string[][] => {
-  const lists: string[][] = [];
+/** Every stack's modifiers, outermost first. */
+const stackModifiers = (): Modifier[][] => {
+  const lists: Modifier[][] = [];
   const walk = (node: JsonHost | JsonHost[] | string | null) => {
     if (node === null || typeof node === "string") {
       return;
@@ -187,8 +195,8 @@ const modifierLists = (): string[][] => {
       }
       return;
     }
-    if (node.props.modifierTypes) {
-      lists.push(node.props.modifierTypes);
+    if (node.props.modifierRecords) {
+      lists.push(node.props.modifierRecords);
     }
     for (const child of node.children ?? []) {
       walk(child);
@@ -197,6 +205,17 @@ const modifierLists = (): string[][] => {
   walk(screen.toJSON() as JsonHost | JsonHost[] | null);
   return lists;
 };
+
+/** Every stack's modifier types, outermost first. */
+const modifierLists = (): string[][] =>
+  stackModifiers().map((modifiers) => modifiers.map((m) => m.type));
+
+/** The arguments of every modifier of one type, on any stack. */
+const modifierArgs = (type: string): unknown[][] =>
+  stackModifiers()
+    .flat()
+    .filter((m) => m.type === type)
+    .map((m) => m.args);
 
 /** The button's text in reading order, icons as `[symbol]`. */
 const readingOrder = () =>
@@ -242,6 +261,51 @@ describe("Button", () => {
       }
     }
   );
+
+  // Red text on a neutral fill, never text on a red one: the prominent style
+  // fills with its tint, so the fill is `secondary` itself
+  it.each([true, false])(
+    "draws destructive as a destructive label and icon on a neutral fill (glass: %s)",
+    async (glass) => {
+      mockGlassEnabled = glass;
+      try {
+        await render(
+          <Button icon="trash" label="Delete" variant="destructive" />
+        );
+
+        expect(screen.getByRole("button").props.tint).toBe("text-secondary");
+        expect(screen.getByText("Delete").props.color).toBe("text-destructive");
+        expect(screen.getByTestId("icon-trash").props.color).toBe(
+          "text-destructive"
+        );
+      } finally {
+        mockGlassEnabled = true;
+      }
+    }
+  );
+
+  it("paints a destructive circle secondary below iOS 17", async () => {
+    mockNativeCircleEnabled = false;
+    try {
+      await render(
+        <Button
+          accessibilityLabel="Delete"
+          icon="trash"
+          shape="circle"
+          variant="destructive"
+        />
+      );
+
+      expect(modifierArgs("background")).toEqual([
+        ["text-secondary", "circle"],
+      ]);
+      expect(screen.getByTestId("icon-trash").props.color).toBe(
+        "text-destructive"
+      );
+    } finally {
+      mockNativeCircleEnabled = true;
+    }
+  });
 
   it("paints its own circle below iOS 17, where the native shape is missing", async () => {
     mockNativeCircleEnabled = false;

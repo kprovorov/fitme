@@ -49,9 +49,6 @@ export function useSwiftUITheme() {
   const secondary = useResolveClassNames("text-secondary");
   const secondaryForeground = useResolveClassNames("text-secondary-foreground");
   const destructive = useResolveClassNames("text-destructive");
-  const destructiveForeground = useResolveClassNames(
-    "text-destructive-foreground"
-  );
   const foreground = useResolveClassNames("text-foreground");
   const card = useResolveClassNames("text-card");
   const border = useResolveClassNames("text-border");
@@ -61,7 +58,6 @@ export function useSwiftUITheme() {
     border: border.color as string,
     card: card.color as string,
     destructive: destructive.color as string,
-    destructiveForeground: destructiveForeground.color as string,
     foreground: foreground.color as string,
     mutedForeground: mutedForeground.color as string,
     primary: primary.color as string,

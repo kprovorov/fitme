@@ -63,7 +63,7 @@ const buttonVariants = cva(
       },
       variant: {
         default: "bg-primary text-primary-foreground",
-        destructive: "bg-destructive text-destructive-foreground",
+        destructive: "bg-secondary text-destructive",
         ghost: "bg-transparent text-foreground hover:bg-muted",
         secondary: "bg-secondary text-secondary-foreground",
       },

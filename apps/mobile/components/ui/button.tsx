@@ -58,7 +58,13 @@ type SwiftUIButtonStyle =
   | "glass"
   | "glassProminent";
 
-/** Liquid Glass styling, used when the OS supports it. */
+/**
+ * Liquid Glass styling, used when the OS supports it. Destructive is a
+ * `destructive` label on `secondary` (docs/agents/ui.md, Contrast): the
+ * prominent style tinted `secondary`, since it fills with the tint itself;
+ * regular glass draws its own lighter grey, which leaves the red label
+ * under 4.5:1.
+ */
 const GLASS_BUTTON_STYLE: Record<ButtonVariant, SwiftUIButtonStyle> = {
   default: "glassProminent",
   destructive: "glassProminent",
@@ -195,7 +201,7 @@ function useContentColor(
     override ??
     {
       default: theme.primaryForeground,
-      destructive: theme.destructiveForeground,
+      destructive: theme.destructive,
       ghost: theme.foreground,
       secondary: theme.secondaryForeground,
     }[variant]
@@ -311,11 +317,12 @@ const Button = (props: ButtonProps) => {
     fill ??
     (!(isCircle || variant === "ghost") || isStretchClassName(className));
 
-  // Prominent styles fill with the tint. The regular styles only use it for
-  // their translucent fill, which `foreground` keeps a neutral grey.
+  // Prominent styles fill with the tint: `primary`, or `secondary` under
+  // destructive's red label. The regular styles only use it for their
+  // translucent fill, which `foreground` keeps a neutral grey.
   const tintColor = {
     default: theme.primary,
-    destructive: theme.destructive,
+    destructive: theme.secondary,
     ghost: theme.foreground,
     secondary: theme.foreground,
   }[variant];
@@ -331,6 +338,8 @@ const Button = (props: ButtonProps) => {
     variant,
   });
 
+  // The role tells the system what the button does; the label still states
+  // its own color, so it's the `destructive` token, not the system red.
   const role: ButtonRole =
     variant === "destructive" ? "destructive" : "default";
 
@@ -351,7 +360,7 @@ const Button = (props: ButtonProps) => {
     // iOS 17.
     fill: {
       default: theme.primary,
-      destructive: theme.destructive,
+      destructive: theme.secondary,
       ghost: undefined,
       secondary: theme.secondary,
     }[variant],
