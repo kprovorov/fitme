@@ -34,7 +34,12 @@ import PlanSessionExerciseScreen from "~/app/plans/[planId]/workouts/[workoutId]
 import PlanSessionScreen from "~/app/plans/[planId]/workouts/[workoutId]/sessions/[sessionId]/index";
 import HistorySessionScreen from "~/app/workout-sessions/[workoutSessionId]";
 import { storage } from "~/lib/mmkv";
-import { backend, type SeedSession } from "~/test-utils/fake-workout-backend";
+import { serveLibrary } from "~/test-utils/fake-exercise-library";
+import {
+  backend,
+  libraryExerciseNamed,
+  type SeedSession,
+} from "~/test-utils/fake-workout-backend";
 
 // ---------------------------------------------------------------------------
 // Navigation: a stack of mounted screens; only the top one is focused.
@@ -135,6 +140,14 @@ jest.mock("~/lib/supabase", () => ({
   >("~/test-utils/fake-workout-backend").fakeSupabase,
 }));
 
+jest.mock(
+  "~/lib/exercise-library",
+  () =>
+    jest.requireActual<typeof import("~/test-utils/fake-exercise-library")>(
+      "~/test-utils/fake-exercise-library"
+    ).exerciseLibraryModule
+);
+
 jest.mock("~/hooks/queries/profiles", () => ({
   useProfileQuery: () => ({ data: { measurement_system: "metric" } }),
 }));
@@ -158,7 +171,7 @@ jest.mock("~/components/workout-sessions/rest-timer", () => () => null);
 jest.mock("~/components/views/exercises-view", () => ({
   __esModule: true,
   default: ({ itemCta }: { itemCta: (exercise: object) => ReactNode }) =>
-    itemCta({ id: "catalog-Lunge", muscle_groups: ["legs"], name: "Lunge" }),
+    itemCta({ muscle_groups: ["quadriceps"], name: "Lunge", slug: "lunge" }),
 }));
 
 jest.mock("~/components/ui/button", () => {
@@ -338,10 +351,16 @@ const SET_SAVE_ERROR = "Couldn't save this set. Try again.";
 const isSuggestionShown = () =>
   screen.queryByTestId("finish-suggestion") !== null;
 
+/** Every Exercise the tests seed, as the Exercise Library has them. */
+const LIBRARY = ["Squat", "Bench Press", "Deadlift", "Lunge", "Plank"].map(
+  libraryExerciseNamed
+);
+
 beforeEach(() => {
   jest.clearAllMocks();
   backend.reset();
   storage.clearAll();
+  serveLibrary(LIBRARY);
   mockNavigator.routes = [];
   mockPresentations.count = 0;
   jest.spyOn(Alert, "alert").mockImplementation(() => undefined);

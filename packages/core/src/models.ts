@@ -64,6 +64,11 @@ export type Profile = Model & {
   measurement_system: MeasurementSystem;
 };
 
+/**
+ * A row of the legacy `exercises` table, which only the Library tab and the
+ * Exercise picker still read (until FIT-242). Everything else gets Exercises
+ * from the Exercise Library API by Exercise slug.
+ */
 export type Exercise = Model & {
   name: string;
   slug: string;
@@ -101,8 +106,8 @@ export type Workout = Model & {
 export type WorkoutExercise = Model & {
   workout_id: string;
   workout: Workout;
-  exercise_id: string;
-  exercise: Exercise;
+  /** The Exercise, by its Exercise slug: details come from the Exercise Library API. */
+  exercise_slug: string;
   order: number;
   sets: WorkoutExerciseSet[];
 };
@@ -127,9 +132,9 @@ export type WorkoutSession = Model & {
 
 export type WorkoutSessionExercise = Model & {
   workout_session_id: string;
-  exercise_id: string;
+  /** The Exercise, by its Exercise slug: details come from the Exercise Library API. */
+  exercise_slug: string;
   order: number;
-  exercise: Exercise;
   sets: WorkoutSessionExerciseSet[];
 };
 
@@ -164,8 +169,7 @@ export interface WorkoutData {
 }
 
 export interface WorkoutExerciseData {
-  exercise: Exercise;
-  exercise_id: string;
+  exercise_slug: string;
   order: number;
   sets: WorkoutExerciseSetData[];
 }
@@ -192,7 +196,7 @@ export interface WorkoutInput {
 }
 
 export interface WorkoutExerciseInput {
-  exercise_id: string;
+  exercise_slug: string;
   sets: WorkoutExerciseSetInput[];
 }
 

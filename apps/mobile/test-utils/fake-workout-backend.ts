@@ -1,6 +1,8 @@
+import { libraryExercise } from "./fake-exercise-library";
+
 /**
- * In-memory stand-in for the Supabase client, covering the workout session
- * queries and mutations the session screens make. Rows live in plain arrays
+ * In-memory stand-in for the Supabase client, covering the Plan read and the
+ * workout session queries and mutations the session screens make. Rows live in plain arrays
  * and every request resolves asynchronously, like the network would, so
  * screens refetch, race and fail the way they do against a real backend.
  */
@@ -15,7 +17,7 @@ interface SessionRow {
 }
 
 interface ExerciseRow {
-  exercise_id: string;
+  exercise_slug: string;
   id: string;
   order: number;
   workout_session_id: string;
@@ -44,10 +46,25 @@ interface Failure extends Request {
   error: Error;
 }
 
-/** Sets of an exercise, as `reps_completed` values (`null` = untracked). */
+/**
+ * Sets of an exercise, as `reps_completed` values (`null` = untracked). The
+ * Exercise is stored by slug: `slug`, or one made from `name` ("Bench Press"
+ * → `bench-press`), which `libraryExerciseNamed` serves under that name.
+ */
 export interface SeedExercise {
   name: string;
   sets: Array<number | null>;
+  slug?: string;
+}
+
+export interface SeedPlan {
+  id: string;
+  name: string;
+  workouts: Array<{
+    exercises: Array<{ sets: number; slug: string }>;
+    id: string;
+    name: string;
+  }>;
 }
 
 export interface SeedSession {
@@ -58,16 +75,15 @@ export interface SeedSession {
 
 const clone = <T>(value: T): T => JSON.parse(JSON.stringify(value)) as T;
 
-const catalogExercise = (name: string) => ({
-  description: `${name} description`,
-  id: `catalog-${name}`,
-  instructions: null,
-  muscle_groups: ["chest"],
-  name,
-  video_url: null,
-});
+/** The Exercise slug a seeded Exercise named `name` is stored by. */
+export const slugOf = (name: string) => name.toLowerCase().replaceAll(" ", "-");
+
+/** The Exercise Library's Exercise for a seeded name, for the fake library. */
+export const libraryExerciseNamed = (name: string) =>
+  libraryExercise(slugOf(name), { name });
 
 class FakeWorkoutBackend {
+  plans: SeedPlan[] = [];
   sessions: SessionRow[] = [];
   exercises: ExerciseRow[] = [];
   sets: SetRow[] = [];
@@ -81,6 +97,7 @@ class FakeWorkoutBackend {
   private nextId = 1;
 
   reset() {
+    this.plans = [];
     this.sessions = [];
     this.exercises = [];
     this.sets = [];
@@ -111,10 +128,10 @@ class FakeWorkoutBackend {
       workout_id: `workout-of-${id}`,
       workoutName: `Workout ${id}`,
     });
-    exercises.forEach(({ name, sets }, exerciseIndex) => {
+    exercises.forEach(({ name, sets, slug }, exerciseIndex) => {
       const exerciseId = `${id}-e${exerciseIndex + 1}`;
       this.exercises.push({
-        exercise_id: catalogExercise(name).id,
+        exercise_slug: slug ?? slugOf(name),
         id: exerciseId,
         order: exerciseIndex + 1,
         workout_session_id: id,
@@ -133,6 +150,11 @@ class FakeWorkoutBackend {
         });
       });
     });
+  }
+
+  /** Adds a Plan; its Workout Exercises get ids `<workout>-e<n>`. */
+  seedPlan(plan: SeedPlan) {
+    this.plans.push(plan);
   }
 
   /** Makes the next matching request fail, as a lost connection would. */
@@ -202,11 +224,36 @@ class FakeWorkoutBackend {
     }
   }
 
+  nestedPlan({ id, name, workouts }: SeedPlan) {
+    return {
+      id,
+      name,
+      workouts: workouts.map((workout, workoutIndex) => ({
+        exercises: workout.exercises.map(({ sets, slug }, exerciseIndex) => ({
+          exercise_slug: slug,
+          id: `${workout.id}-e${exerciseIndex + 1}`,
+          order: exerciseIndex + 1,
+          sets: Array.from({ length: sets }, (_, setIndex) => ({
+            id: `${workout.id}-e${exerciseIndex + 1}-s${setIndex + 1}`,
+            order: setIndex + 1,
+            reps_recommended: 10,
+            rest_recommended: 90,
+            weight_recommended: 0,
+          })),
+          workout_id: workout.id,
+        })),
+        id: workout.id,
+        name: workout.name,
+        order: workoutIndex + 1,
+        plan_id: id,
+        sessions: [],
+      })),
+    };
+  }
+
   nestedExercise(row: ExerciseRow) {
-    const [, name] = row.exercise_id.split("catalog-");
     return {
       ...row,
-      exercise: catalogExercise(name ?? row.exercise_id),
       sets: this.sets.filter(
         (set) => set.workout_session_exercise_id === row.id
       ),
@@ -299,11 +346,33 @@ class FakeQuery {
   private run(): unknown {
     const key = `${this.table}.${this.operation}`;
     switch (key) {
+      case "plans.select":
+        return backend.nestedPlan(
+          requireRow(
+            backend.plans.find(({ id }) => id === this.filters.id),
+            "plan"
+          )
+        );
       case "workout_sessions.select":
         return backend.nestedSession(
           requireRow(backend.session(this.filters.id as string), "session")
         );
       case "workout_session_exercises.select":
+        if (this.filters.exercise_slug) {
+          // An Exercise's history, its session nested as the app selects it.
+          return backend.exercises
+            .filter(
+              ({ exercise_slug }) =>
+                exercise_slug === this.filters.exercise_slug
+            )
+            .map((row) => ({
+              ...backend.nestedExercise(row),
+              session: requireRow(
+                backend.session(row.workout_session_id),
+                "session"
+              ),
+            }));
+        }
         return this.filters.id
           ? backend.nestedExercise(
               requireRow(
@@ -319,12 +388,20 @@ class FakeQuery {
               .sort((a, b) => b.order - a.order);
       case "workout_session_exercises.insert": {
         const row: ExerciseRow = {
-          exercise_id: this.values.exercise_id as string,
+          exercise_slug: this.values.exercise_slug as string,
           id: backend.id("added-exercise"),
           order: this.values.order as number,
           workout_session_id: this.values.workout_session_id as string,
         };
         backend.exercises.push(row);
+        return backend.nestedExercise(row);
+      }
+      case "workout_session_exercises.update": {
+        const row = requireRow(
+          backend.exercises.find(({ id }) => id === this.filters.id),
+          "exercise"
+        );
+        Object.assign(row, this.values);
         return backend.nestedExercise(row);
       }
       case "workout_session_exercises.delete":
@@ -360,6 +437,18 @@ class FakeQuery {
         return row;
       }
       case "workout_session_exercise_sets.update": {
+        if (this.filters.workout_session_exercise_id) {
+          // Every set of an Exercise, as replacing it does.
+          for (const set of backend.sets) {
+            if (
+              set.workout_session_exercise_id ===
+              this.filters.workout_session_exercise_id
+            ) {
+              Object.assign(set, this.values);
+            }
+          }
+          return null;
+        }
         const row = requireRow(
           backend.sets.find(({ id }) => id === this.filters.id),
           "set"

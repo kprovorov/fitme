@@ -1,5 +1,4 @@
 import {
-  type Exercise,
   formatElapsed,
   formatRepRange,
   muscleGroupToName,
@@ -10,13 +9,19 @@ import { Pressable, StyleSheet, useWindowDimensions, View } from "react-native";
 import { SymbolImage } from "~/components/symbol-image";
 import { Badge } from "~/components/ui/badge";
 import { Text } from "~/components/ui/text";
+import type { ShownExercise } from "~/hooks/queries/exercise-library";
+import { sizedThumbnailUrl } from "~/lib/exercise-media";
+
+/** The thumbnail's size (`w-28`, `h-21`), for the render endpoint. */
+const THUMBNAIL_WIDTH = 112;
+const THUMBNAIL_HEIGHT = 84;
 
 /** Past this text scale the thumbnail goes above the text instead of beside it. */
 const STACKED_FONT_SCALE = 1.4;
 
 interface SessionExerciseHeaderProps {
-  exercise: Exercise;
-  /** Opens the guide; without one (nothing to show) the thumbnail isn't a button. */
+  exercise: ShownExercise;
+  /** Opens the guide; without one (not resolved) the thumbnail isn't a button. */
   onOpenGuide?: () => void;
   sets: WorkoutSessionExerciseSet[];
 }
@@ -63,7 +68,13 @@ export default function SessionExerciseHeader({
           {exercise.thumbnail_url ? (
             <Image
               contentFit="cover"
-              source={{ uri: exercise.thumbnail_url }}
+              source={{
+                uri: sizedThumbnailUrl(
+                  exercise.thumbnail_url,
+                  THUMBNAIL_WIDTH,
+                  THUMBNAIL_HEIGHT
+                ),
+              }}
               style={StyleSheet.absoluteFill}
             />
           ) : null}

@@ -8,26 +8,9 @@ import { supabase } from "@/lib/supabase";
 
 const PAGE_SIZE = 20;
 
-interface ExerciseQueryVariables {
-  exerciseId: string;
-}
-
-export const useExerciseQuery = createQuery<Exercise, ExerciseQueryVariables>({
-  fetcher: async ({
-    exerciseId,
-  }: ExerciseQueryVariables): Promise<Exercise> => {
-    const { data, error } = await supabase
-      .from("exercises")
-      .select("*")
-      .eq("id", exerciseId)
-      .single();
-    if (error) {
-      throw error;
-    }
-    return data as unknown as Exercise;
-  },
-  queryKey: ["exercise"],
-});
+// The Library tab and the Exercise picker still list the legacy `exercises`
+// table until they move to the Exercise Library API (FIT-242); everything
+// else reads Exercises from that API by slug (`./exercise-library`).
 
 interface ExercisesQueryVariables {
   muscleGroup?: string;
@@ -75,19 +58,23 @@ export const useExercisesQuery = createInfiniteQuery<
   queryKey: ["exercises"],
 });
 
+interface ExerciseHistoryQueryVariables {
+  exerciseSlug: string;
+}
+
+/** The User's Workout Session entries for an Exercise, newest first, logged sets only. */
 export const useExerciseHistoryQuery = createQuery<
   WorkoutSessionExercise[],
-  ExerciseQueryVariables
+  ExerciseHistoryQueryVariables
 >({
   fetcher: async ({
-    exerciseId,
-  }: ExerciseQueryVariables): Promise<WorkoutSessionExercise[]> => {
+    exerciseSlug,
+  }: ExerciseHistoryQueryVariables): Promise<WorkoutSessionExercise[]> => {
     const { data, error } = await supabase
       .from("workout_session_exercises")
       .select(
         `
         *,
-        exercise:exercises (*),
         sets:workout_session_exercise_sets (*),
         session:workout_sessions (
           *,
@@ -98,7 +85,7 @@ export const useExerciseHistoryQuery = createQuery<
         )
       `
       )
-      .eq("exercise_id", exerciseId)
+      .eq("exercise_slug", exerciseSlug)
       .order("created_at", { ascending: false });
     if (error) {
       throw error;

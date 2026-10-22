@@ -5,6 +5,10 @@ import { SymbolImage } from "~/components/symbol-image";
 import { Card } from "~/components/ui/card";
 import { DropdownMenu } from "~/components/ui/dropdown-menu";
 import { Text } from "~/components/ui/text";
+import {
+  type ShownExercise,
+  shownExercise,
+} from "~/hooks/queries/exercise-library";
 import ExerciseImage from "../exercises/exercise-image";
 import WorkoutSessionExerciseSetsTableView from "./workout-session-exercise-sets-table-view";
 
@@ -12,6 +16,8 @@ import WorkoutSessionExerciseSetsTableView from "./workout-session-exercise-sets
 const STACKED_FONT_SCALE = 1.4;
 
 interface WorkoutSessionExerciseCardProps {
+  /** The Exercise as resolved by `useExercises`. */
+  exercise: ShownExercise | undefined;
   onDelete?: () => void;
   onReplace?: () => void;
   planId: string | null;
@@ -27,6 +33,7 @@ interface WorkoutSessionExerciseCardProps {
  * screen) above its sets, logged right here.
  */
 export default function WorkoutSessionExerciseCard({
+  exercise: resolved,
   workoutSessionExercise,
   onDelete,
   onReplace,
@@ -36,7 +43,8 @@ export default function WorkoutSessionExerciseCard({
   sessionId,
 }: WorkoutSessionExerciseCardProps) {
   const router = useRouter();
-  const { exercise } = workoutSessionExercise;
+  const exercise =
+    resolved ?? shownExercise(workoutSessionExercise.exercise_slug, null);
   const { fontScale } = useWindowDimensions();
   const stacked = fontScale > STACKED_FONT_SCALE;
 

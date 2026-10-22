@@ -19,7 +19,6 @@ export const useWorkoutExerciseQuery = createQuery<
         `
         *,
         workout:workouts (*),
-        exercise:exercises (*),
         sets:workout_exercise_sets (*)
       `
       )

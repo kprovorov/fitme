@@ -9,12 +9,21 @@ import { SymbolImage } from "@/components/symbol-image";
 import { Button } from "@/components/ui/button";
 import { Text as UIText } from "@/components/ui/text";
 import {
+  type ShownExercise,
+  useExercises,
+} from "@/hooks/queries/exercise-library";
+import {
   useActivatePlanMutation,
   useStorePlanMutation,
 } from "@/hooks/queries/plans";
 
+/**
+ * An Exercise of `display_workout_plan`'s result, by Exercise slug. The Coach
+ * also sends each Exercise's legacy uuid for older builds, which this card
+ * ignores; a card saved in a Conversation from before slugs has no slug.
+ */
 export interface WorkoutExercise {
-  exercise_id: string;
+  exercise_slug?: string;
   name: string;
   notes?: string;
   reps: string;
@@ -87,27 +96,41 @@ function PlanTag({ icon, label }: { icon: SFSymbol; label: string }) {
   );
 }
 
-function ExerciseRow({ exercise }: { exercise: WorkoutExercise }) {
+function ExerciseRow({
+  exercise,
+  shown,
+}: {
+  exercise: WorkoutExercise;
+  /** The Exercise as resolved by `useExercises`, if it has a slug. */
+  shown: ShownExercise | undefined;
+}) {
+  // The Exercise Library's name once resolved, otherwise the Coach's.
+  const isResolved = !!shown?.isResolved;
+  const name = isResolved && shown ? shown.name : exercise.name;
   const handlePress = useCallback(
-    () => router.push(`/exercises/${exercise.exercise_id}`),
-    [exercise.exercise_id]
+    () => router.push(`/exercises/${exercise.exercise_slug}`),
+    [exercise.exercise_slug]
   );
 
   return (
     <Pressable
+      accessibilityRole={isResolved ? "button" : undefined}
       className="flex-row items-center border-border/15 border-b py-3 active:opacity-60"
+      disabled={!isResolved}
       onPress={handlePress}
     >
       <Text className="w-8 text-primary text-subhead-emphasized">
         {exercise.sets}×
       </Text>
       <Text className="flex-1 text-foreground text-subhead" numberOfLines={1}>
-        {exercise.name}
+        {name}
       </Text>
-      <SymbolImage
-        className="text-muted-foreground text-subhead"
-        name="chevron.right"
-      />
+      {isResolved ? (
+        <SymbolImage
+          className="text-muted-foreground text-subhead"
+          name="chevron.right"
+        />
+      ) : null}
     </Pressable>
   );
 }
@@ -119,6 +142,11 @@ function WorkoutDaySection({
   workout: WorkoutDay;
   last: boolean;
 }) {
+  const exercises = useExercises(
+    workout.exercises.flatMap(({ exercise_slug }) =>
+      exercise_slug ? [exercise_slug] : []
+    )
+  );
   return (
     <View className={last ? "" : "mb-6"}>
       <View className="mb-2 flex-row items-center justify-between">
@@ -136,8 +164,14 @@ function WorkoutDaySection({
         </View>
       </View>
       <View className="mb-1 border-border/20 border-b" />
-      {workout.exercises.map((ex) => (
-        <ExerciseRow exercise={ex} key={ex.exercise_id} />
+      {workout.exercises.map((ex, index) => (
+        <ExerciseRow
+          exercise={ex}
+          // The same Exercise can appear twice in a Workout.
+          // biome-ignore lint/suspicious/noArrayIndexKey: the list never reorders
+          key={`${ex.exercise_slug}-${index}`}
+          shown={ex.exercise_slug ? exercises[ex.exercise_slug] : undefined}
+        />
       ))}
     </View>
   );
@@ -155,7 +189,7 @@ export function WorkoutPlanCard({ plan }: { plan: WorkoutPlan }) {
 
   const hasInvalidExercises = plan.workouts
     .flatMap((w) => w.exercises)
-    .some((e) => !e.exercise_id);
+    .some((e) => !e.exercise_slug);
 
   const handleSave = useCallback(async () => {
     const planData: PlanInput = {
@@ -170,7 +204,8 @@ export function WorkoutPlanCard({ plan }: { plan: WorkoutPlan }) {
       workouts: plan.workouts.map((day) => ({
         description: "",
         exercises: day.exercises.map((ex) => ({
-          exercise_id: ex.exercise_id,
+          // hasInvalidExercises keeps a card without slugs from saving
+          exercise_slug: ex.exercise_slug ?? "",
           sets: Array.from({ length: ex.sets }, () => ({
             reps_recommended: parseReps(ex.reps),
             rest_recommended: ex.restSeconds ?? 90,

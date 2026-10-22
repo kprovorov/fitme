@@ -16,8 +16,8 @@ import { Text } from "../ui/text";
 interface ExerciseHistoryViewProps {
   /** The session exercise being logged, left out of its own history. */
   excludeId?: string;
-  /** The catalog exercise. */
-  exerciseId: string;
+  /** The Exercise, by its Exercise slug. */
+  exerciseSlug: string;
 }
 
 /** How many past sessions the card lists. */
@@ -56,13 +56,11 @@ function setsLine(
 
 /** The exercise's last sessions, one line of sets each, and its best set. */
 export default function ExerciseHistoryView({
-  exerciseId,
+  exerciseSlug,
   excludeId,
 }: ExerciseHistoryViewProps) {
   const { data: items } = useExerciseHistoryQuery({
-    variables: {
-      exerciseId,
-    },
+    variables: { exerciseSlug },
   });
   const { data: profile } = useProfileQuery();
   const weightLabel =

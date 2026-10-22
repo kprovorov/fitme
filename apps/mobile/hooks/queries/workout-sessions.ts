@@ -10,7 +10,6 @@ const SESSION_SELECT = `
   ),
   exercises:workout_session_exercises (
     *,
-    exercise:exercises (*),
     sets:workout_session_exercise_sets (*)
   )
 `;

@@ -5,9 +5,15 @@ import ExerciseImage from "~/components/exercises/exercise-image";
 import { SymbolImage } from "~/components/symbol-image";
 import { HStack } from "~/components/ui/hstack";
 import { Text } from "~/components/ui/text";
+import {
+  type ShownExercise,
+  shownExercise,
+} from "~/hooks/queries/exercise-library";
 import { useExerciseHistoryQuery } from "~/hooks/queries/exercises";
 
 interface WorkoutSessionSummaryExerciseRowProps {
+  /** The Exercise as resolved by `useExercises`. */
+  exercise: ShownExercise | undefined;
   planId: string | null;
   sessionId: string;
   workoutId: string | null;
@@ -15,14 +21,17 @@ interface WorkoutSessionSummaryExerciseRowProps {
 }
 
 export default function WorkoutSessionSummaryExerciseRow({
+  exercise: resolved,
   planId,
   workoutId,
   sessionId,
   workoutSessionExercise,
 }: WorkoutSessionSummaryExerciseRowProps) {
   const router = useRouter();
+  const exercise =
+    resolved ?? shownExercise(workoutSessionExercise.exercise_slug, null);
   const { data: history } = useExerciseHistoryQuery({
-    variables: { exerciseId: workoutSessionExercise.exercise_id },
+    variables: { exerciseSlug: workoutSessionExercise.exercise_slug },
   });
 
   const setsLogged = workoutSessionExercise.sets.filter(
@@ -53,7 +62,7 @@ export default function WorkoutSessionSummaryExerciseRow({
   return (
     <Pressable className="active:opacity-80" onPress={handlePress}>
       <HStack className="w-full items-center gap-2 px-md">
-        <ExerciseImage exercise={workoutSessionExercise.exercise} size={32} />
+        <ExerciseImage exercise={exercise} size={32} />
         <Text className="text-body-emphasized text-primary">{setsLogged}</Text>
         <SymbolImage
           className="text-caption-1-emphasized text-primary"
@@ -63,7 +72,7 @@ export default function WorkoutSessionSummaryExerciseRow({
           className="flex-1 text-body-emphasized text-foreground"
           numberOfLines={1}
         >
-          {workoutSessionExercise.exercise.name}
+          {exercise.name}
         </Text>
         {isNewRecord ? (
           <SymbolImage
