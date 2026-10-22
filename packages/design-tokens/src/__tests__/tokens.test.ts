@@ -63,24 +63,33 @@ describe("colors", () => {
 
 type RGB = [number, number, number];
 
-/** A color token as [r, g, b, alpha], channels 0–255 and alpha 0–1. */
-const rgba = (name: string): [number, number, number, number] => {
+/** A color token as its [r, g, b] channels (0–255) and its alpha (0–1). */
+const channels = (name: string): { alpha: number; rgb: RGB } => {
   const hex = tokenValue("color", name)?.slice(1) ?? "";
   const channel = (index: number) =>
     Number.parseInt(hex.slice(index, index + 2), 16);
-  const alpha = hex.length === 8 ? channel(6) / 255 : 1;
-  return [channel(0), channel(2), channel(4), alpha];
+  return {
+    alpha: hex.length === 8 ? channel(6) / 255 : 1,
+    rgb: [channel(0), channel(2), channel(4)],
+  };
+};
+
+/** An opaque color token: something else is drawn on it. */
+const solid = (name: string): RGB => {
+  const { alpha, rgb } = channels(name);
+  if (alpha !== 1) {
+    throw new Error(`${name} isn't opaque, so it can't be a surface`);
+  }
+  return rgb;
 };
 
 /** `name` as drawn on the opaque `surface`: its alpha composited over it. */
 const drawnOn = (name: string, surface: string): RGB => {
-  const [r, g, b, alpha] = rgba(name);
-  const [sr, sg, sb] = rgba(surface);
-  return [
-    r * alpha + sr * (1 - alpha),
-    g * alpha + sg * (1 - alpha),
-    b * alpha + sb * (1 - alpha),
-  ];
+  const { alpha, rgb } = channels(name);
+  const under = solid(surface);
+  return rgb.map(
+    (value, index) => value * alpha + under[index] * (1 - alpha)
+  ) as RGB;
 };
 
 // WCAG 2 relative luminance and contrast ratio
@@ -97,45 +106,35 @@ const contrast = (a: RGB, b: RGB) => {
   return (lighter + 0.05) / (darker + 0.05);
 };
 
-const SURFACES = ["background", "card"];
+// WCAG 1.4.11: a UI component's boundary (a field stroke, a focus ring)
+const COMPONENT_BOUNDARY = 3;
+// WCAG 1.4.3, AA: body-size text
+const TEXT_AA = 4.5;
 
-// WCAG 1.4.11 (UI component boundaries, 3:1) and 1.4.3 (text, AA 4.5:1)
 describe("contrast", () => {
-  it.each(SURFACES)("the input stroke is at least 3:1 on %s", (surface) => {
+  it.each([
+    ["input", "background", COMPONENT_BOUNDARY],
+    ["input", "card", COMPONENT_BOUNDARY],
+    ["ring", "background", COMPONENT_BOUNDARY],
+    ["ring", "card", COMPONENT_BOUNDARY],
+    ["destructive-foreground", "destructive", TEXT_AA],
+    ["destructive", "background", TEXT_AA],
+    ["destructive", "card", TEXT_AA],
+  ])("%s on %s is at least %s:1", (foreground, surface, floor) => {
     expect(
-      contrast(drawnOn("input", surface), drawnOn(surface, surface))
-    ).toBeGreaterThanOrEqual(3);
+      contrast(drawnOn(foreground, surface), solid(surface))
+    ).toBeGreaterThanOrEqual(floor);
   });
 
-  it.each(SURFACES)("the focus ring is at least 3:1 on %s", (surface) => {
-    expect(
-      contrast(drawnOn("ring", surface), drawnOn(surface, surface))
-    ).toBeGreaterThanOrEqual(3);
-  });
-
-  it.each(SURFACES)(
-    "the focus ring is at least 3:1 against the input stroke on %s",
+  // Focus has to show next to an unfocused field, not only on the surface
+  it.each(["background", "card"])(
+    "ring is at least 3:1 against the input stroke on %s",
     (surface) => {
       expect(
         contrast(drawnOn("ring", surface), drawnOn("input", surface))
-      ).toBeGreaterThanOrEqual(3);
+      ).toBeGreaterThanOrEqual(COMPONENT_BOUNDARY);
     }
   );
-
-  it("destructive-foreground on destructive is at least 4.5:1", () => {
-    expect(
-      contrast(
-        drawnOn("destructive-foreground", "destructive"),
-        drawnOn("destructive", "destructive")
-      )
-    ).toBeGreaterThanOrEqual(4.5);
-  });
-
-  it.each(SURFACES)("destructive text is at least 4.5:1 on %s", (surface) => {
-    expect(
-      contrast(drawnOn("destructive", surface), drawnOn(surface, surface))
-    ).toBeGreaterThanOrEqual(4.5);
-  });
 });
 
 describe("type", () => {
