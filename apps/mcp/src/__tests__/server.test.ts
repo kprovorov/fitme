@@ -1,6 +1,8 @@
 import { describe, expect, it } from "vitest";
 import { call, connect } from "./harness.js";
 
+const EXERCISE_ID = /exercise_?id/i;
+
 describe("tool registry", () => {
   it("lists every tool", async () => {
     const client = await connect();
@@ -27,6 +29,15 @@ describe("tool registry", () => {
       "start_workout_session",
       "update_plan",
     ]);
+  });
+
+  it("takes and describes Exercises by slug, never by exercise_id", async () => {
+    const client = await connect();
+    const { tools } = await client.listTools();
+    const listed = JSON.stringify(tools);
+
+    expect(listed).not.toMatch(EXERCISE_ID);
+    expect(listed).toContain("exercise_slug");
   });
 
   it("annotates reads, deletions and idempotency honestly", async () => {

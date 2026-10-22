@@ -68,7 +68,7 @@ describe("cross-user isolation against the local stack", () => {
     ).toMatchObject({ sessions: [], total: 0 });
     expect(
       await callOk(intruder, "get_exercise_history", {
-        exerciseId: exercises[0].id,
+        exerciseSlug: exercises[0].slug,
       })
     ).toMatchObject({ entries: [] });
 

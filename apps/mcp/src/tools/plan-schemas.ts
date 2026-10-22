@@ -1,6 +1,7 @@
 import { experienceLevels, goals, places } from "@fitme/core";
 import { MAX_REPS, MAX_WEIGHT } from "@fitme/core/limits";
 import { z } from "zod";
+import { exerciseSlugSchema } from "./exercise-library.js";
 
 const MAX_NAME_LENGTH = 200;
 const MAX_TEXT_LENGTH = 2000;
@@ -11,7 +12,6 @@ const MAX_REST_SECONDS = 3600;
 const MIN_FREQUENCY = 1;
 const MAX_FREQUENCY = 7;
 const MAX_WORKOUT_DURATION_MINUTES = 600;
-
 const setSchema = z.object({
   reps_recommended: z
     .number()
@@ -35,9 +35,7 @@ const setSchema = z.object({
 });
 
 const exerciseSchema = z.object({
-  exercise_id: z
-    .guid()
-    .describe("Exercise library id from list_exercises (exercises.id)."),
+  exercise_slug: exerciseSlugSchema,
   sets: z
     .array(setSchema)
     .min(1)

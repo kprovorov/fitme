@@ -2,6 +2,7 @@ import { MAX_REPS, MAX_WEIGHT } from "@fitme/core/limits";
 import type { McpServer } from "@modelcontextprotocol/sdk/server/mcp.js";
 import { z } from "zod";
 import type { ToolContext } from "../context.js";
+import { namedSession } from "./exercise-library.js";
 import {
   asJson,
   READ_ONLY,
@@ -27,15 +28,18 @@ function registerSessionReadTools(server: McpServer, ctx: ToolContext) {
     "get_workout_session",
     {
       annotations: READ_ONLY,
-      description: `Returns a workout session with its workout and plan (id, name), and its exercises in order, each with the library exercise (id, name) and its sets in order. Each set's \`id\` is the \`setId\` that log_set needs; \`reps_completed\` / \`weight_completed\` / \`logged_at\` are null until the set is logged. ${WEIGHT_UNIT_NOTE}`,
+      description: `Returns a workout session with its workout and plan (id, name), and its exercises in order, each with the Exercise's \`exercise_slug\`, \`name\` and \`muscle_groups\` from the Exercise Library and its sets in order. Each set's \`id\` is the \`setId\` that log_set needs; \`reps_completed\` / \`weight_completed\` / \`logged_at\` are null until the set is logged. ${WEIGHT_UNIT_NOTE}`,
       inputSchema: { sessionId: sessionIdSchema },
       title: "Get workout session",
     },
     withServices(ctx, async ({ sessionId }, services) =>
       asJson(
-        requireFound(
-          await services.getWorkoutSession(sessionId),
-          sessionNotFound(sessionId)
+        await namedSession(
+          ctx,
+          requireFound(
+            await services.getWorkoutSession(sessionId),
+            sessionNotFound(sessionId)
+          )
         )
       )
     )
@@ -112,7 +116,7 @@ function registerSessionWriteTools(server: McpServer, ctx: ToolContext) {
         throw new ToolError(workoutNotFound(workoutId));
       }
       const { resumed, session } = result;
-      return asJson({ resumed, session });
+      return asJson({ resumed, session: await namedSession(ctx, session) });
     })
   );
 
@@ -182,7 +186,11 @@ function registerSessionWriteTools(server: McpServer, ctx: ToolContext) {
         throw new ToolError(sessionNotFound(sessionId));
       }
       const { alreadyFinished, rotated, session } = result;
-      return asJson({ alreadyFinished, rotated, session });
+      return asJson({
+        alreadyFinished,
+        rotated,
+        session: await namedSession(ctx, session),
+      });
     })
   );
 

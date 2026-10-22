@@ -49,6 +49,8 @@ export interface ListExercisesParams {
 
 /** What the Coach, MCP and the mobile app read the Exercise Library through. */
 export interface ExerciseLibrary {
+  /** One Exercise in full, or `null` when no Exercise has that slug. */
+  get: (slug: string) => Promise<Exercise | null>;
   /** Exercises listed by name, filtered by `search` and `muscleGroup`. */
   list: (params?: ListExercisesParams) => Promise<ExercisePage>;
   /**

@@ -59,21 +59,19 @@ const describeServiceError = (error: unknown) => {
 };
 
 /**
- * Wraps a user tool handler that runs on services: hands it the caller's
- * services (bound to the verified User) and turns every failure into an
- * `isError` tool result instead of a protocol error. A `ToolError` (not
- * found, not configured, …) is expected and shown as is; anything else (a
- * Postgres error, an unknown exception) is reported first; `reportError`
- * (`@fitme/observability/node`) strips a query failure's SQL, parameters and
- * Postgres message.
+ * Wraps a tool handler, turning every failure into an `isError` tool result
+ * instead of a protocol error. A `ToolError` (not found, not configured, …)
+ * is expected and shown as is; anything else (a Postgres error, an unknown
+ * exception) is reported first; `reportError` (`@fitme/observability/node`)
+ * strips a query failure's SQL, parameters and Postgres message.
  */
-export function withServices<Args>(
+export function withToolErrors<Args>(
   ctx: ToolContext,
-  handler: (args: Args, services: UserServices) => Promise<CallToolResult>
+  handler: (args: Args) => Promise<CallToolResult>
 ): (args: Args) => Promise<CallToolResult> {
   return async (args) => {
     try {
-      return await handler(args, ctx.getServices());
+      return await handler(args);
     } catch (error) {
       if (error instanceof ToolError) {
         return errorResult(error.message);
@@ -82,6 +80,17 @@ export function withServices<Args>(
       return errorResult(describeServiceError(error));
     }
   };
+}
+
+/**
+ * Wraps a user tool handler that runs on services: hands it the caller's
+ * services (bound to the verified User), with `withToolErrors`' handling.
+ */
+export function withServices<Args>(
+  ctx: ToolContext,
+  handler: (args: Args, services: UserServices) => Promise<CallToolResult>
+): (args: Args) => Promise<CallToolResult> {
+  return withToolErrors(ctx, (args: Args) => handler(args, ctx.getServices()));
 }
 
 /** Drops keys whose value is `undefined` so they don't overwrite anything. */

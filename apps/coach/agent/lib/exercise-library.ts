@@ -6,6 +6,7 @@ import {
 
 /** Answers every call unavailable: `EXERCISES_URL` isn't set. */
 const unconfigured: ExerciseLibrary = {
+  get: () => Promise.reject(notConfigured()),
   list: () => Promise.reject(notConfigured()),
   lookup: () => Promise.reject(notConfigured()),
 };

@@ -148,6 +148,82 @@ describe("list", () => {
   });
 });
 
+describe("get", () => {
+  it("answers one Exercise in full, description and instructions included", async () => {
+    const squat = exercise("barbell-back-squat");
+    const api = stubApi([squat, exercise("bench-press")]);
+    const library = createExerciseLibrary({
+      fetch: api.fetch,
+      token,
+      url: URL,
+    });
+
+    expect(await library.get("barbell-back-squat")).toEqual(squat);
+    expect(api.requests[0]?.url.pathname).toBe("/exercises/barbell-back-squat");
+    expect(api.requests[0]?.authorization).toBe("Bearer secret-token");
+  });
+
+  it("answers null for a slug no Exercise has (404)", async () => {
+    const api = stubApi([exercise("squat")]);
+    const library = createExerciseLibrary({
+      fetch: api.fetch,
+      token,
+      url: URL,
+    });
+
+    expect(await library.get("nope")).toBeNull();
+  });
+
+  it("escapes the slug into one path segment", async () => {
+    const api = stubApi([exercise("squat")]);
+    const library = createExerciseLibrary({
+      fetch: api.fetch,
+      token,
+      url: URL,
+    });
+
+    expect(await library.get("../health?x=1")).toBeNull();
+    expect(api.requests[0]?.exerciseSlug).toBe("../health?x=1");
+  });
+
+  it("answers null for an empty slug without a request", async () => {
+    const api = stubApi([exercise("squat")]);
+    const library = createExerciseLibrary({
+      fetch: api.fetch,
+      token,
+      url: URL,
+    });
+
+    expect(await library.get("")).toBeNull();
+    expect(api.requests).toHaveLength(0);
+  });
+
+  it("maps an answer without description or instructions to unavailable", async () => {
+    const { description: _, ...withoutDescription } = exercise("squat");
+    const library = createExerciseLibrary({
+      fetch: stubApi([], () => Response.json(withoutDescription)).fetch,
+      token,
+      url: URL,
+    });
+
+    await expect(library.get("squat")).rejects.toBeInstanceOf(
+      ExerciseLibraryUnavailableError
+    );
+  });
+
+  it("maps a 5xx to unavailable", async () => {
+    const library = createExerciseLibrary({
+      fetch: stubApi([], () => new Response(null, { status: 503 })).fetch,
+      token,
+      url: URL,
+    });
+
+    await expect(library.get("squat")).rejects.toBeInstanceOf(
+      ExerciseLibraryUnavailableError
+    );
+  });
+});
+
 const errorBody = (code: string) =>
   ({ error: { code, message: code } }) as const;
 

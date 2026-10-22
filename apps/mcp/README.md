@@ -14,7 +14,7 @@ The MCP endpoint is the root path: `POST|GET|DELETE /` (stateless, no session id
 
 ## Integration tests
 
-`integration/` runs the tools against a real Supabase stack instead of the fakes, so RLS and the services' queries are exercised for real. Each run creates fresh Users as made-up Clerk-style `user_…` ids, with no Clerk or Supabase Auth account, and runs the tools as them through `asUser` on the stack's Supavisor pooler (the vitest config reads its URL from `supabase status`; `FITME_DATABASE_URL` overrides it). It covers the main flow (create → get → update → activate → start session → log set → finish → list → delete) and checks that a second user can neither read nor change the first user's plans and sessions, through the tools or straight through the RPCs and table writes.
+`integration/` runs the tools against a real Supabase stack instead of the fake services, so RLS and the services' queries are exercised for real. The Exercise Library is always the in-memory fake (`INTEGRATION_EXERCISES` in `integration/setup.ts`), never the network. Until the contract step drops `exercise_id`, a slug write still needs its slug in the seeded legacy `exercises` table (the `sync_exercise_slug` trigger fills the uuid from it), so the fake's slugs are seeded ones. Each run creates fresh Users as made-up Clerk-style `user_…` ids, with no Clerk or Supabase Auth account, and runs the tools as them through `asUser` on the stack's Supavisor pooler (the vitest config reads its URL from `supabase status`; `FITME_DATABASE_URL` overrides it). It covers the main flow (create → get → update → activate → start session → log set → finish → list → delete) and checks that a second user can neither read nor change the first user's plans and sessions, through the tools or straight through the RPCs and table writes.
 
 ```bash
 pnpm db start                     # local stack
@@ -41,6 +41,8 @@ See `.env.example`. The variables are read from the process environment (Vercel 
 | `CLERK_PUBLISHABLE_KEY` | Its publishable key; names the instance in the OAuth metadata.      |
 | `FITME_DATABASE_URL` | The `fitme` login's Supavisor transaction-pooler URL with `?application_name=mcp`; the user tools run through it (`asUser`). Service-role strength. |
 | `MCP_PUBLIC_URL`    | Public URL advertised as the OAuth resource; set it in production.     |
+| `EXERCISES_URL`     | The Exercise Library API (`apps/exercises`; `http://localhost:3006` locally). |
+| `EXERCISES_MCP_SECRET` | The MCP server's bearer for the Exercise Library API; the same value as `apps/exercises`' `EXERCISES_MCP_SECRET`. Production's never leaves Vercel. |
 
 The MCP endpoint fails closed: without `CLERK_SECRET_KEY`, `CLERK_PUBLISHABLE_KEY` or `FITME_DATABASE_URL` it answers **HTTP 500** to every request instead of serving without auth. Production uses the production Clerk instance; every other environment uses the development instance.
 
@@ -59,6 +61,7 @@ Inside a request that passed the check:
 - Database errors are returned as `isError: true` results carrying the Postgres message (never the SQL); any other failure is returned as "The database request failed." Both are reported to Sentry (`fitme-mcp`); expected outcomes (not found, invalid input, 401) aren't.
 - Every write runs in one transaction with its read-back, so it either returns its result or fails without changing anything.
 - Paginated tools (`list_exercises`, `list_workout_sessions`) return an empty page with the `total` when the offset is past the end.
+- Exercises are referred to by their Exercise slug (`exercise_slug`), never a uuid, and come from the Exercise Library API (`@fitme/exercise-library`, with `EXERCISES_MCP_SECRET`). A write carrying slugs (`create_plan`, `update_plan` with `workouts`) checks them with one lookup before its transaction: unknown slugs are an error naming them, and nothing is written. Plan and Workout Session reads add each Exercise's `name` and `muscle_groups` after their transaction; a slug the library doesn't know, or the library failing, gets a name derived from the slug, and the read still answers. The library failing fails searches and writes with "Exercise Library unavailable, try again." (reported to Sentry).
 
 ## Tools
 
@@ -71,9 +74,9 @@ Weights are stored and returned in the user's unit (kg for the `metric` measurem
 | `list_plan_options`      | Valid goals, places and experience levels.                                                       |
 | `describe_muscle_group`  | Display name for a muscle group id.                                                              |
 | `get_profile`            | Gender, age, height, weight, measurement system and units.                                       |
-| `list_exercises`         | Search the exercise library by name / muscle group (paginated).                                  |
-| `get_exercise`           | Full exercise details.                                                                           |
-| `get_exercise_history`   | The user's logged sets for an exercise, one entry per session-exercise row.                      |
+| `list_exercises`         | Search the Exercise Library by name / muscle group (paginated); each row's `slug` is the `exercise_slug` plans take. |
+| `get_exercise`           | Full Exercise details by slug (description, instructions, media).                                |
+| `get_exercise_history`   | The user's logged sets for an Exercise slug, one entry per session-exercise row.                 |
 | `list_plans`             | The user's plans with a workout summary.                                                         |
 | `get_plan`               | Full plan: workouts → exercises → sets, in order.                                                |
 | `create_plan`            | Create a plan (in one transaction); it becomes the active plan.                                  |

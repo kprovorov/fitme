@@ -1,6 +1,13 @@
 import { randomBytes } from "node:crypto";
+import type { Exercise } from "@fitme/exercise-library";
 import type { Client } from "@modelcontextprotocol/sdk/client/index.js";
-import { call, connect, contextFor } from "../src/__tests__/harness.js";
+import {
+  call,
+  connect,
+  contextFor,
+  fakeLibrary,
+  ignoreReports,
+} from "../src/__tests__/harness.js";
 import { createServicesFromEnv } from "../src/services.js";
 
 /**
@@ -9,8 +16,40 @@ import { createServicesFromEnv } from "../src/services.js";
  * Clerk-style ids, and the tools run as them through `asUser` on the stack's
  * Supavisor pooler (`FITME_DATABASE_URL`, set by the vitest config), the way
  * the server does once Clerk has verified a token (ADR 0003). Every query goes
- * through the same RLS policies as in production.
+ * through the same RLS policies as in production. The Exercise Library is the
+ * in-memory fake over INTEGRATION_EXERCISES, never the network.
  */
+
+const exercise = (
+  slug: string,
+  name: string,
+  muscleGroups: Exercise["muscle_groups"]
+): Exercise => ({
+  description: `About ${name}.`,
+  instructions: `How to do ${name}.`,
+  muscle_groups: muscleGroups,
+  name,
+  slug,
+  thumbnail_url: `https://media.test/${slug}.jpg`,
+  video_url: `https://media.test/${slug}.mp4`,
+});
+
+/**
+ * The Exercises the fake Exercise Library knows. Until the contract step
+ * drops exercise_id, a slug write still needs the slug in the seeded legacy
+ * table (the sync_exercise_slug trigger fills the uuid from it), hence two
+ * seeded slugs.
+ */
+export const INTEGRATION_EXERCISES = [
+  exercise("barbell-back-squat", "Barbell Back Squat", [
+    "quadriceps",
+    "glutes",
+  ]),
+  exercise("barbell-deadlift", "Barbell Deadlift", ["back", "hamstrings"]),
+];
+
+/** A fresh fake Exercise Library over INTEGRATION_EXERCISES. */
+export const integrationLibrary = () => fakeLibrary(INTEGRATION_EXERCISES);
 
 /** A made-up id in Clerk's `user_…` format, unique per run. */
 const clerkStyleUserId = (label: string) =>
@@ -31,7 +70,7 @@ export function connectAs(user: TestUser) {
   if (!services) {
     throw new Error("FITME_DATABASE_URL must point at the stack's pooler.");
   }
-  return connect(contextFor(services));
+  return connect(contextFor(services, ignoreReports, integrationLibrary()));
 }
 
 /** Calls a tool and returns its JSON payload, failing on `isError`. */
@@ -61,9 +100,9 @@ export async function callError(
 }
 
 export interface ExerciseRow {
-  id: string;
-  muscle_groups: string[] | null;
+  muscle_groups: string[];
   name: string;
+  slug: string;
 }
 
 export interface ExercisePage {
@@ -72,16 +111,14 @@ export interface ExercisePage {
   total: number;
 }
 
-/** Two library exercises to build plans from (the library must be seeded). */
+/** Two library exercises to build plans from. */
 export async function pickExercises(client: Client) {
   const page = await callOk<ExercisePage>(client, "list_exercises", {
     limit: 2,
   });
   const [first, second] = page.exercises;
   if (!(first && second)) {
-    throw new Error(
-      "The exercise library is empty: seed it with `pnpm db seed`."
-    );
+    throw new Error("The fake Exercise Library has fewer than two Exercises.");
   }
   return [first, second] as const;
 }
@@ -96,8 +133,10 @@ export interface PlanSet {
 
 export interface PlanWorkout {
   exercises: {
-    exercise: { id: string; name: string };
+    exercise_slug: string;
     id: string;
+    muscle_groups: string[];
+    name: string;
     order: number;
     sets: PlanSet[];
   }[];
@@ -133,7 +172,12 @@ export interface SessionSet {
 }
 
 export interface SessionDetail {
-  exercises: { exercise: { id: string }; id: string; sets: SessionSet[] }[];
+  exercises: {
+    exercise_slug: string;
+    id: string;
+    name: string;
+    sets: SessionSet[];
+  }[];
   finished_at: string | null;
   id: string;
   plan: { id: string; name: string } | null;
@@ -170,7 +214,7 @@ export const planInput = (
       description: "Day A focus",
       exercises: [
         {
-          exercise_id: first.id,
+          exercise_slug: first.slug,
           sets: [
             {
               reps_recommended: 8,
@@ -185,7 +229,7 @@ export const planInput = (
           ],
         },
         {
-          exercise_id: second.id,
+          exercise_slug: second.slug,
           sets: [
             {
               reps_recommended: 10,
@@ -201,7 +245,7 @@ export const planInput = (
       description: "Day B focus",
       exercises: [
         {
-          exercise_id: second.id,
+          exercise_slug: second.slug,
           sets: [
             {
               reps_recommended: 12,

@@ -69,6 +69,10 @@ describe("the fake answers like the real client", () => {
     expect(answer.missing).toEqual(["nope", "", "a,b"]);
   });
 
+  it.each(["squat", "100-percent_curl", "nope", ""])("get %j", async (slug) => {
+    expect(await fake.get(slug)).toEqual(await real.get(slug));
+  });
+
   it("answers summaries only, without description or instructions", async () => {
     const { data } = await fake.lookup(["squat"]);
 
@@ -94,10 +98,21 @@ describe("failing", () => {
 
     await expect(library.list()).rejects.toBe(error);
     await expect(library.lookup(["squat"])).rejects.toBe(error);
+    await expect(library.get("squat")).rejects.toBe(error);
 
     library.failWith(null);
 
     expect((await library.lookup(["squat"])).data).toHaveLength(1);
+  });
+
+  it("answers get with empty texts for an Exercise given as a summary", async () => {
+    const { description: _, instructions: __, ...squat } = exercise("squat");
+
+    expect(await createFakeExerciseLibrary([squat]).get("squat")).toEqual({
+      ...squat,
+      description: "",
+      instructions: "",
+    });
   });
 
   it("validates list parameters like the API", async () => {

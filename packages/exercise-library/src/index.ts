@@ -11,6 +11,7 @@ export {
   ExerciseLibraryUnauthorizedError,
   ExerciseLibraryUnavailableError,
 } from "./errors";
+export { exerciseNameFromSlug } from "./name";
 export type {
   Exercise,
   ExerciseBatch,
