@@ -108,10 +108,10 @@ export default function WorkoutSessionExerciseSetsTableView({
 
   return (
     !isProfilePending && (
-      <VStack className="items-stretch gap-3">
+      <VStack className="items-stretch gap-sm">
         <View
           accessibilityElementsHidden
-          className="flex-row items-center gap-3"
+          className="flex-row items-center gap-sm"
           importantForAccessibility="no-hide-descendants"
         >
           <ColumnLabel className="w-7">set</ColumnLabel>
@@ -169,11 +169,12 @@ export default function WorkoutSessionExerciseSetsTableView({
         {!readOnly && (
           <Button
             contentColorClassName="text-primary"
+            fill
             icon="plus"
             label="Add Set"
             onPress={handleAddSet}
             size="sm"
-            variant="secondary"
+            variant="ghost"
           />
         )}
       </VStack>
