@@ -1,5 +1,6 @@
 import * as Sentry from "@sentry/node";
 import { resolveObservabilityConfig } from "./config";
+import { sanitizeError } from "./sanitize";
 import { sdkOptions } from "./sdk-options";
 
 const FLUSH_TIMEOUT_MS = 2000;
@@ -34,14 +35,20 @@ export const initObservability = ({ service }: ObservabilityOptions): void => {
 /**
  * Logs `error` and sends it, with `tags`, waiting for delivery so a serverless
  * instance that freezes after the response doesn't drop it. Before
- * `initObservability` (or without a DSN) it only logs.
+ * `initObservability` (or without a DSN) it only logs. A failed database
+ * query is logged and sent as `sanitizeError` makes it: the SQLSTATE (also a
+ * `sqlstate` tag) and stack frames, never the SQL, its parameters or the
+ * Postgres message.
  */
 export const reportError = async (
   error: unknown,
   tags?: Record<string, string>
 ): Promise<void> => {
-  console.error(error);
-  Sentry.captureException(error, { tags });
+  const sanitized = sanitizeError(error);
+  console.error(sanitized.error);
+  Sentry.captureException(sanitized.error, {
+    tags: sanitized.tags ? { ...tags, ...sanitized.tags } : tags,
+  });
   await Sentry.flush(FLUSH_TIMEOUT_MS);
 };
 

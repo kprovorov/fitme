@@ -6,5 +6,10 @@ export {
   resolveObservabilityConfig,
 } from "./config";
 export { tracePropagationTargets } from "./propagation";
+export {
+  isQueryError,
+  type SanitizedError,
+  sanitizeError,
+} from "./sanitize";
 export { type ScrubbableEvent, scrubEvent } from "./scrub";
 export { sdkOptions } from "./sdk-options";

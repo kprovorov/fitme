@@ -1,6 +1,18 @@
+import { reportError } from "@fitme/observability/node";
+import { DrizzleQueryError } from "drizzle-orm";
 import { Webhook } from "standardwebhooks";
 import { afterEach, describe, expect, it, vi } from "vitest";
 import { type AppDeps, createApp } from "../create-app.js";
+
+// Only what reportError sends; the rest (Hono request spans) stays real
+const sentry = vi.hoisted(() => ({
+  captureException: vi.fn(),
+  flush: vi.fn(() => Promise.resolve(true)),
+}));
+vi.mock("@sentry/node", async (importOriginal) => ({
+  ...(await importOriginal<typeof import("@sentry/node")>()),
+  ...sentry,
+}));
 
 // A Standard Webhooks secret, as Clerk issues them: "whsec_" + base64
 const SIGNING_SECRET = "whsec_MfKQ9r8GKYqrTwjUPD8ILPZIo2LaLaSw";
@@ -67,6 +79,7 @@ const spyOnRejectionLog = () =>
   vi.spyOn(console, "warn").mockImplementation(() => undefined);
 
 afterEach(() => {
+  vi.clearAllMocks();
   vi.restoreAllMocks();
 });
 
@@ -181,6 +194,43 @@ describe("POST /clerk", () => {
       error: { code: "cleanup_failed", message: "User data cleanup failed" },
     });
     expect(reported).toEqual([failure]);
+  });
+
+  it("reports a failed deletion query without the deleted User's id", async () => {
+    const log = vi.spyOn(console, "error").mockImplementation(() => undefined);
+    const failure = new DrizzleQueryError(
+      'delete from "profiles" where "user_id" = $1',
+      [USER_ID],
+      Object.assign(new Error("canceling statement due to lock timeout"), {
+        code: "55P03",
+      })
+    );
+    // The app's own reporter (@fitme/observability/node), Sentry faked
+    const app = createApp({
+      clerk: {
+        deleteCoachConversations: () => Promise.resolve(),
+        deleteUserData: () => Promise.reject(failure),
+        signingSecret: SIGNING_SECRET,
+      },
+      reportError,
+    });
+
+    const response = await app.request(signedRequest(userDeleted()));
+
+    expect(response.status).toBe(500);
+    expect(sentry.captureException).toHaveBeenCalledTimes(1);
+    const [sent, hint] = sentry.captureException.mock.calls[0] ?? [];
+    expect(sent).toBeInstanceOf(Error);
+    expect((sent as Error).message).toBe(
+      "Database query failed (SQLSTATE 55P03)"
+    );
+    expect((sent as Error).cause).toBeUndefined();
+    expect(hint).toEqual({ tags: { sqlstate: "55P03" } });
+    const logged = log.mock.calls.flat();
+    expect(logged).toEqual([sent]);
+    for (const leak of [USER_ID, "delete from", "lock timeout"]) {
+      expect((sent as Error).stack).not.toContain(leak);
+    }
   });
 
   it("acknowledges other events without deleting anything", async () => {
