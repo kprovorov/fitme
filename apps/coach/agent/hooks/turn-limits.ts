@@ -1,6 +1,6 @@
+import { reportError } from "@fitme/observability/node";
 import { defineState } from "eve/context";
 import { defineHook } from "eve/hooks";
-import { reportError } from "../lib/sentry";
 import {
   addStepCost,
   missingCostError,

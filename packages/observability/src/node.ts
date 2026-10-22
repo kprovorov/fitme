@@ -8,6 +8,12 @@ const FLUSH_TIMEOUT_MS = 2000;
 export interface ObservabilityOptions {
   /** The app reporting (`webhooks`, `api`, …), tagged on every event. */
   service: string;
+  /**
+   * Whether the SDK traces (spans, trace headers). Off for an app that traces
+   * through its own OpenTelemetry pipeline (the Coach: eve's), so the two never
+   * instrument the same runtime twice. Default on.
+   */
+  tracing?: boolean;
 }
 
 /**
@@ -15,7 +21,10 @@ export interface ObservabilityOptions {
  * startup, before the app is built. Without SENTRY_DSN (local runs, tests,
  * CI) it does nothing, so nothing is sent.
  */
-export const initObservability = ({ service }: ObservabilityOptions): void => {
+export const initObservability = ({
+  service,
+  tracing = true,
+}: ObservabilityOptions): void => {
   const config = resolveObservabilityConfig({
     dsn: process.env.SENTRY_DSN,
     env: {
@@ -29,6 +38,10 @@ export const initObservability = ({ service }: ObservabilityOptions): void => {
   Sentry.init({
     ...sdkOptions(config),
     initialScope: { tags: { service } },
+    // Without tracing: no spans and no trace headers on outgoing requests
+    ...(tracing
+      ? {}
+      : { tracePropagationTargets: [], tracesSampleRate: undefined }),
   });
 };
 
