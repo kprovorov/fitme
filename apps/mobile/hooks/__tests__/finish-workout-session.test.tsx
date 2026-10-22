@@ -1,8 +1,24 @@
-import { beforeEach, describe, expect, it, jest } from "@jest/globals";
+import {
+  afterEach,
+  beforeEach,
+  describe,
+  expect,
+  it,
+  jest,
+} from "@jest/globals";
+import * as Sentry from "@sentry/react-native";
 import { QueryClient, QueryClientProvider } from "@tanstack/react-query";
-import { act, renderHook, waitFor } from "@testing-library/react-native";
+import {
+  act,
+  fireEvent,
+  renderHook,
+  screen,
+  waitFor,
+} from "@testing-library/react-native";
 import type * as React from "react";
 import { Alert } from "react-native";
+import { PlanUpdateSheetHost } from "~/components/workout-sessions/plan-update-sheet";
+import { closePlanUpdatePrompt } from "~/hooks/plan-update-prompt";
 import { useFinishWorkoutSession } from "../finish-workout-session";
 
 const mockReplace = jest.fn();
@@ -14,6 +30,12 @@ const mockNavigationState: {
 const mockFinishRpc =
   jest.fn<(variables: { sessionId: string }) => Promise<unknown>>();
 const mockFetchSession = jest.fn<() => Promise<unknown>>();
+const mockPlanChangesRpc =
+  jest.fn<
+    (sessionId: string, options: { apply: boolean }) => Promise<unknown>
+  >();
+const mockTrack = jest.fn();
+const mockProfile = { measurement_system: "metric" };
 
 jest.mock("expo-router", () => ({
   useNavigation: () => ({ getState: () => mockNavigationState }),
@@ -21,6 +43,26 @@ jest.mock("expo-router", () => ({
 }));
 
 jest.mock("@sentry/react-native", () => ({ captureException: jest.fn() }));
+jest.mock("~/lib/segment", () => ({
+  segmentClient: { track: (...args: unknown[]) => mockTrack(...args) },
+}));
+jest.mock("~/components/ui/dialog", () =>
+  jest.requireActual("~/test-utils/dialog-stub")
+);
+jest.mock("~/components/ui/button", () =>
+  jest.requireActual("~/test-utils/button-stub")
+);
+jest.mock("~/components/symbol-image", () => ({ SymbolImage: () => null }));
+jest.mock("~/hooks/queries/profiles", () => {
+  const { createQuery } =
+    jest.requireActual<typeof import("react-query-kit")>("react-query-kit");
+  return {
+    useProfileQuery: createQuery({
+      fetcher: () => Promise.resolve(mockProfile),
+      queryKey: ["profile"],
+    }),
+  };
+});
 
 // Keeps the real mutation key and react-query wiring, swapping only the
 // network call.
@@ -39,6 +81,10 @@ jest.mock("~/hooks/queries/workout-sessions", () => {
       fetcher: () => mockFetchSession(),
       queryKey: ["workout-session"],
     }),
+    workoutSessionPlanChanges: (
+      sessionId: string,
+      options: { apply: boolean }
+    ) => mockPlanChangesRpc(sessionId, options),
   };
 });
 
@@ -58,8 +104,12 @@ const setup = async (screensAboveSession = 0) => {
       mutations: { gcTime: Number.POSITIVE_INFINITY, retry: false },
     },
   });
+  // The sheet's host sits in the root layout, next to every screen.
   const wrapper = ({ children }: { children: React.ReactNode }) => (
-    <QueryClientProvider client={queryClient}>{children}</QueryClientProvider>
+    <QueryClientProvider client={queryClient}>
+      {children}
+      <PlanUpdateSheetHost />
+    </QueryClientProvider>
   );
   // Two screens of the same session, e.g. the session and an exercise.
   const { result } = await renderHook(
@@ -82,11 +132,56 @@ const setup = async (screensAboveSession = 0) => {
   return { queryClient, result, settled };
 };
 
+const NO_CHANGES = { changes: [], plan: null, workout: null };
+
+const CHANGES = {
+  changes: [
+    {
+      exercise: { id: "e-2", name: "Dumbbell Press" },
+      kind: "replace_exercise",
+      replaced_exercise: { id: "e-1", name: "Bench Press" },
+      sets: [
+        { reps: 8, weight: 30 },
+        { reps: 8, weight: 30 },
+        { reps: 6, weight: 30 },
+      ],
+    },
+    {
+      exercise: { id: "e-3", name: "Squat" },
+      kind: "add_sets",
+      sets: [{ reps: 5, weight: 100 }],
+    },
+    { exercise: { id: "e-4", name: "Dips" }, kind: "remove_exercise" },
+    {
+      exercise: { id: "e-5", name: "Cable Fly" },
+      kind: "add_exercise",
+      sets: [
+        { reps: 12, weight: 15 },
+        { reps: 12, weight: 17.5 },
+      ],
+    },
+  ],
+  plan: { id: "plan-1", name: "PPL 4-week" },
+  workout: { id: "workout-1", name: "Push Day" },
+};
+
+const SUMMARY = "/workout-sessions/session-1/summary";
+const UPDATE = { name: "Update plan" } as const;
+const RETRY = { name: "Retry" } as const;
+const KEEP = { name: "Keep plan as is" } as const;
+
 describe("useFinishWorkoutSession", () => {
   beforeEach(() => {
     jest.clearAllMocks();
     Object.assign(mockNavigationState, { index: 0, routes: [{}] });
+    mockProfile.measurement_system = "metric";
+    mockPlanChangesRpc.mockResolvedValue(NO_CHANGES);
     jest.spyOn(Alert, "alert").mockImplementation(() => undefined);
+  });
+
+  // A question left open would show in the next test's sheet.
+  afterEach(async () => {
+    await act(() => closePlanUpdatePrompt("session-1"));
   });
 
   it("finishes the session and opens its summary", async () => {
@@ -334,6 +429,254 @@ describe("useFinishWorkoutSession", () => {
       await waitFor(() => expect(mockReplace).toHaveBeenCalled());
       await settled();
       expect(Alert.alert).not.toHaveBeenCalled();
+    });
+  });
+
+  describe("Update your plan?", () => {
+    const finishWithChanges = async (
+      how: "confirmFinish" | "finish" = "finish"
+    ) => {
+      mockFinishRpc.mockResolvedValue({});
+      mockPlanChangesRpc.mockResolvedValueOnce(CHANGES);
+      const setupResult = await setup();
+      setupResult.queryClient.setQueryData(
+        ["workout-session", { sessionId: "session-1" }],
+        { exercises: [{ sets: [{ reps_completed: 8 }] }], id: "session-1" }
+      );
+      await act(() => setupResult.result.current.session[how]());
+      await screen.findByText("Update your plan?");
+      return setupResult;
+    };
+
+    it("goes straight to the summary when nothing changed", async () => {
+      mockFinishRpc.mockResolvedValue({});
+      const { result, settled } = await setup();
+
+      await act(() => result.current.session.finish());
+
+      await waitFor(() => expect(mockReplace).toHaveBeenCalledWith(SUMMARY));
+      await settled();
+      expect(mockPlanChangesRpc).toHaveBeenCalledWith("session-1", {
+        apply: false,
+      });
+      expect(screen.queryByText("Update your plan?")).toBeNull();
+      expect(mockTrack).not.toHaveBeenCalled();
+    });
+
+    it("asks after the finish has committed, with one line per change", async () => {
+      const { settled } = await finishWithChanges();
+      await settled();
+
+      expect(
+        mockFinishRpc.mock.invocationCallOrder[0] ?? Number.POSITIVE_INFINITY
+      ).toBeLessThan(mockPlanChangesRpc.mock.invocationCallOrder[0] ?? 0);
+      expect(
+        screen.getByText("Save today's changes to Push Day in PPL 4-week.")
+      ).toBeTruthy();
+      for (const line of [
+        "Replace Bench Press with Dumbbell Press · 8×30, 8×30, 6×30 kg",
+        "Add 1 set to Squat · 5×100 kg",
+        "Remove Dips",
+        "Add Cable Fly · 12×15, 12×17.5 kg",
+      ]) {
+        expect(screen.getByText(line)).toBeTruthy();
+      }
+      expect(screen.getByRole("button", UPDATE)).toBeTruthy();
+      expect(screen.getByRole("button", KEEP)).toBeTruthy();
+      expect(mockReplace).not.toHaveBeenCalled();
+      expect(screen.getByTestId("native-sheet")).toHaveProp(
+        "dismissDisabled",
+        true
+      );
+    });
+
+    it("shows weights in the User's unit", async () => {
+      mockProfile.measurement_system = "us";
+      await finishWithChanges();
+
+      expect(
+        await screen.findByText("Add 1 set to Squat · 5×100 lbs")
+      ).toBeTruthy();
+    });
+
+    it("reports how many changes of each kind it suggested", async () => {
+      await finishWithChanges();
+
+      expect(mockTrack).toHaveBeenCalledWith("Plan Update Suggested", {
+        add_exercise: 1,
+        add_sets: 1,
+        plan_id: "plan-1",
+        remove_exercise: 1,
+        replace_exercise: 1,
+        workout_id: "workout-1",
+        workout_session_id: "session-1",
+      });
+    });
+
+    it("labels the sheet, each line and both buttons for VoiceOver", async () => {
+      await finishWithChanges();
+
+      expect(
+        screen.getByRole("heading", { name: "Update your plan?" })
+      ).toBeTruthy();
+      expect(
+        screen.getByLabelText(
+          "Replace Bench Press with Dumbbell Press: 8 reps at 30 kilograms, 8 reps at 30 kilograms, 6 reps at 30 kilograms"
+        )
+      ).toBeTruthy();
+      expect(
+        screen.getByLabelText("Add 1 set to Squat: 5 reps at 100 kilograms")
+      ).toBeTruthy();
+      expect(screen.getByLabelText("Remove Dips")).toBeTruthy();
+      expect(screen.getByTestId("plan-update-accept")).toHaveProp(
+        "accessibilityHint",
+        "Saves these changes to your plan, then shows the workout summary"
+      );
+      expect(screen.getByTestId("plan-update-decline")).toHaveProp(
+        "accessibilityHint",
+        "Leaves your plan unchanged and shows the workout summary"
+      );
+    });
+
+    it("applies the changes once, refetches the Plan and opens the summary on Update plan", async () => {
+      const { queryClient } = await finishWithChanges();
+      queryClient.setQueryData(["plans"], []);
+      queryClient.setQueryData(["plan", { planId: "plan-1" }], {});
+      mockPlanChangesRpc.mockResolvedValueOnce(CHANGES);
+
+      const update = screen.getByRole("button", UPDATE);
+      await fireEvent.press(update);
+      await fireEvent.press(update);
+
+      await waitFor(() => expect(mockReplace).toHaveBeenCalledWith(SUMMARY));
+      expect(mockPlanChangesRpc).toHaveBeenCalledTimes(2);
+      expect(mockPlanChangesRpc).toHaveBeenLastCalledWith("session-1", {
+        apply: true,
+      });
+      expect(queryClient.getQueryState(["plans"])?.isInvalidated).toBe(true);
+      expect(
+        queryClient.getQueryState(["plan", { planId: "plan-1" }])?.isInvalidated
+      ).toBe(true);
+      expect(mockTrack).toHaveBeenCalledWith("Plan Update Accepted", {
+        plan_id: "plan-1",
+        workout_id: "workout-1",
+        workout_session_id: "session-1",
+      });
+      expect(screen.getByTestId("native-sheet")).toHaveProp(
+        "isPresented",
+        false
+      );
+    });
+
+    it("opens the summary without applying on Keep plan as is", async () => {
+      await finishWithChanges();
+
+      await fireEvent.press(screen.getByRole("button", KEEP));
+
+      expect(mockReplace).toHaveBeenCalledWith(SUMMARY);
+      expect(mockPlanChangesRpc).toHaveBeenCalledTimes(1);
+      expect(mockTrack).toHaveBeenCalledWith("Plan Update Declined", {
+        plan_id: "plan-1",
+        workout_id: "workout-1",
+        workout_session_id: "session-1",
+      });
+      expect(screen.getByTestId("native-sheet")).toHaveProp(
+        "isPresented",
+        false
+      );
+    });
+
+    it("shows an error with Retry when the apply fails, and Retry works", async () => {
+      await finishWithChanges();
+      mockPlanChangesRpc.mockRejectedValueOnce(new Error("offline"));
+
+      await fireEvent.press(screen.getByRole("button", UPDATE));
+
+      expect(
+        await screen.findByText(
+          "Couldn't update your plan. Check your connection and try again."
+        )
+      ).toBeTruthy();
+      expect(Sentry.captureException).toHaveBeenCalled();
+      expect(mockReplace).not.toHaveBeenCalled();
+      expect(mockTrack).not.toHaveBeenCalledWith(
+        "Plan Update Accepted",
+        expect.anything()
+      );
+
+      mockPlanChangesRpc.mockResolvedValueOnce(NO_CHANGES);
+      await fireEvent.press(screen.getByRole("button", RETRY));
+
+      await waitFor(() => expect(mockReplace).toHaveBeenCalledWith(SUMMARY));
+      expect(mockPlanChangesRpc).toHaveBeenCalledTimes(3);
+    });
+
+    it("still reaches the summary with Keep plan as is after a failed apply", async () => {
+      await finishWithChanges();
+      mockPlanChangesRpc.mockRejectedValueOnce(new Error("offline"));
+
+      await fireEvent.press(screen.getByRole("button", UPDATE));
+      await screen.findByRole("button", RETRY);
+      await fireEvent.press(screen.getByRole("button", KEEP));
+
+      expect(mockReplace).toHaveBeenCalledWith(SUMMARY);
+    });
+
+    it("opens the summary without asking when the changes can't be read", async () => {
+      mockFinishRpc.mockResolvedValue({});
+      const failure = new Error("offline");
+      mockPlanChangesRpc.mockRejectedValueOnce(failure);
+      const { result, settled } = await setup();
+
+      await act(() => result.current.session.finish());
+
+      await waitFor(() => expect(mockReplace).toHaveBeenCalledWith(SUMMARY));
+      await settled();
+      expect(Sentry.captureException).toHaveBeenCalledWith(failure);
+      expect(screen.queryByText("Update your plan?")).toBeNull();
+      expect(Alert.alert).not.toHaveBeenCalled();
+    });
+
+    it("asks after the unlogged-sets confirmation, from the header's Finish", async () => {
+      mockFinishRpc.mockResolvedValue({});
+      mockPlanChangesRpc.mockResolvedValueOnce(CHANGES);
+      const { queryClient, result } = await setup();
+      queryClient.setQueryData(
+        ["workout-session", { sessionId: "session-1" }],
+        { exercises: [{ sets: [{ reps_completed: null }] }], id: "session-1" }
+      );
+
+      await act(() => result.current.session.confirmFinish());
+      await waitFor(() => expect(Alert.alert).toHaveBeenCalled());
+      expect(mockPlanChangesRpc).not.toHaveBeenCalled();
+      expect(screen.queryByText("Update your plan?")).toBeNull();
+
+      const buttons = jest.mocked(Alert.alert).mock.calls[0]?.[2];
+      await act(() =>
+        buttons?.find((button) => button.text === "Finish")?.onPress?.()
+      );
+
+      expect(await screen.findByText("Update your plan?")).toBeTruthy();
+      await fireEvent.press(screen.getByRole("button", KEEP));
+      expect(mockReplace).toHaveBeenCalledWith(SUMMARY);
+    });
+
+    it("asks when finishing from a screen above the session, then closes it", async () => {
+      Object.assign(mockNavigationState, {
+        index: 1,
+        routes: [{ params: { sessionId: "session-1" } }, {}],
+      });
+      mockFinishRpc.mockResolvedValue({});
+      mockPlanChangesRpc.mockResolvedValueOnce(CHANGES);
+      const { result } = await setup(1);
+
+      await act(() => result.current.exercise.finish());
+      await screen.findByText("Update your plan?");
+      expect(mockDismiss).not.toHaveBeenCalled();
+
+      await fireEvent.press(screen.getByRole("button", KEEP));
+      expect(mockDismiss).toHaveBeenCalledWith(1);
+      expect(mockReplace).toHaveBeenCalledWith(SUMMARY);
     });
   });
 });

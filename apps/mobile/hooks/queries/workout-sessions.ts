@@ -1,6 +1,7 @@
 import type { WorkoutSession } from "@fitme/core";
 import { createMutation, createQuery } from "react-query-kit";
 import { supabase } from "@/lib/supabase";
+import type { PlanChanges } from "~/lib/plan-changes";
 
 const SESSION_SELECT = `
   *,
@@ -103,6 +104,27 @@ export const useFinishWorkoutSessionMutation = createMutation<
   },
   mutationKey: FINISH_WORKOUT_SESSION_MUTATION_KEY,
 });
+
+/**
+ * The structural changes a finished Workout Session made to its Workout
+ * (`workout_session_plan_changes`). `apply: false` only reads them; `apply:
+ * true` writes them to the Plan in one transaction and answers what it
+ * applied. Once applied, both modes answer no changes, so a retried apply
+ * never writes twice.
+ */
+export const workoutSessionPlanChanges = async (
+  sessionId: string,
+  { apply }: { apply: boolean }
+): Promise<PlanChanges> => {
+  const { data, error } = await supabase.rpc("workout_session_plan_changes", {
+    apply,
+    session_id: sessionId,
+  });
+  if (error) {
+    throw error;
+  }
+  return data as unknown as PlanChanges;
+};
 
 export const useWorkoutSessionHistoryQuery = createQuery<
   WorkoutSession[],

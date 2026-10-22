@@ -377,6 +377,11 @@ export const fakeSupabase = {
   from: (table: string) => new FakeQuery(table),
   rpc: (name: string, args: Record<string, unknown>) =>
     backend.execute({ operation: "rpc", table: name }, () => {
+      if (name === "workout_session_plan_changes") {
+        // The fake has no Plan, so no session ever changed one.
+        requireRow(backend.session(args.session_id as string), "session");
+        return { changes: [], plan: null, workout: null };
+      }
       if (name !== "finish_workout_session") {
         throw new Error(`Fake backend: unsupported rpc ${name}`);
       }

@@ -7,6 +7,8 @@
 import { Pressable, Text } from "react-native";
 
 interface ButtonProps {
+  accessibilityHint?: string;
+  accessibilityLabel?: string;
   disabled?: boolean;
   isLoading?: boolean;
   label?: string;
@@ -15,6 +17,8 @@ interface ButtonProps {
 }
 
 export const Button = ({
+  accessibilityHint,
+  accessibilityLabel,
   disabled,
   isLoading,
   label,
@@ -22,6 +26,8 @@ export const Button = ({
   testID,
 }: ButtonProps) => (
   <Pressable
+    accessibilityHint={accessibilityHint}
+    accessibilityLabel={accessibilityLabel}
     accessibilityRole="button"
     accessibilityState={{
       busy: !!isLoading,

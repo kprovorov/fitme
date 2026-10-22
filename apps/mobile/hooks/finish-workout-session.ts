@@ -9,12 +9,16 @@ import {
 import { useNavigation, useRouter } from "expo-router";
 import { useCallback, useMemo } from "react";
 import { Alert } from "react-native";
+import { showPlanUpdatePrompt } from "~/hooks/plan-update-prompt";
 import {
   FINISH_WORKOUT_SESSION_MUTATION_KEY,
   type FinishWorkoutSessionVariables,
   useFinishWorkoutSessionMutation,
   useWorkoutSessionQuery,
+  workoutSessionPlanChanges,
 } from "~/hooks/queries/workout-sessions";
+import { countPlanChanges, type PlanChanges } from "~/lib/plan-changes";
+import { segmentClient } from "~/lib/segment";
 
 const finishingFilters = (sessionId: string): MutationFilters => ({
   mutationKey: FINISH_WORKOUT_SESSION_MUTATION_KEY,
@@ -108,7 +112,12 @@ async function confirmFinishWorkout(
 }
 
 /**
- * Finishes a workout session and opens its Summary. Shared by every way of
+ * Finishes a workout session and opens its Summary. When the finished session
+ * changed its Workout (replaced, added or removed Exercises, extra sets), the
+ * "Update your plan?" sheet comes first (`PlanUpdateSheetHost`), and the
+ * Summary opens once the User has answered it. If those changes can't be
+ * read, it's reported and the Summary opens without asking: finishing never
+ * fails because of it. Shared by every way of
  * finishing a session (the header's Finish button, the finish suggestion and
  * the Workout card), so they behave the same. `isFinishing` covers finishes
  * started from any screen, and `finish` does nothing while one is pending,
@@ -163,21 +172,42 @@ export function useFinishWorkoutSession(
       await queryClient.invalidateQueries({ queryKey: ["workout-session"] });
       await queryClient.invalidateQueries({ queryKey: ["plans"] });
       await queryClient.invalidateQueries({ queryKey: ["exercise-history"] });
-      const summary = `/workout-sessions/${sessionId}/summary` as const;
-      if (outsideSession) {
-        router.push(summary);
+      const openSummary = () => {
+        const summary = `/workout-sessions/${sessionId}/summary` as const;
+        if (outsideSession) {
+          router.push(summary);
+          return;
+        }
+        if (
+          isSessionScreenBelow(
+            navigation.getState(),
+            sessionId,
+            screensAboveSession
+          )
+        ) {
+          router.dismiss(screensAboveSession);
+        }
+        router.replace(summary);
+      };
+      let preview: PlanChanges;
+      try {
+        preview = await workoutSessionPlanChanges(sessionId, { apply: false });
+      } catch (error) {
+        Sentry.captureException(error);
+        openSummary();
         return;
       }
-      if (
-        isSessionScreenBelow(
-          navigation.getState(),
-          sessionId,
-          screensAboveSession
-        )
-      ) {
-        router.dismiss(screensAboveSession);
+      if (preview.changes.length === 0) {
+        openSummary();
+        return;
       }
-      router.replace(summary);
+      segmentClient.track("Plan Update Suggested", {
+        ...countPlanChanges(preview.changes),
+        plan_id: preview.plan?.id,
+        workout_id: preview.workout?.id,
+        workout_session_id: sessionId,
+      });
+      showPlanUpdatePrompt({ onDone: openSummary, preview, sessionId });
     },
   });
 
