@@ -181,7 +181,7 @@ export const getExerciseHistory = async (
   userId: string,
   { exerciseId, exerciseSlug, limit }: ExerciseHistoryQuery
 ): Promise<ExerciseHistoryEntry[]> => {
-  const isExercise =
+  const matchesExercise =
     exerciseSlug === undefined
       ? eq(workoutSessionExercises.exerciseId, exerciseId)
       : eq(workoutSessionExercises.exerciseSlug, exerciseSlug);
@@ -195,7 +195,7 @@ export const getExerciseHistory = async (
     )
     .where(
       and(
-        isExercise,
+        matchesExercise,
         eq(workoutSessions.userId, userId),
         exists(
           tx

@@ -89,7 +89,8 @@ const seedTemplate = (workoutId: string) =>
     const [squatEntry, pressEntry] = await tx
       .insert(workoutExercises)
       .values([
-        { exerciseId: squat.id, order: 1, workoutId },
+        // one written by slug, one by uuid: a start copies both alike
+        { exerciseSlug: squat.slug, order: 1, workoutId },
         { exerciseId: press.id, order: 2, workoutId },
       ])
       .returning({ id: workoutExercises.id });

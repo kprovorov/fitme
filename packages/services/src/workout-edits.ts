@@ -250,7 +250,7 @@ export const addExerciseToWorkout = async (
     requestKey,
     sets,
     workoutId,
-    ...exercise
+    ...exerciseRef
   }: EditExerciseRef & {
     requestKey?: string;
     sets: PlanSetInput[];
@@ -280,7 +280,7 @@ export const addExerciseToWorkout = async (
       return repeated;
     }
   }
-  await assertExerciseExists(tx, exercise);
+  await assertExerciseExists(tx, exerciseRef);
   const [{ last }] = await tx
     .select({ last: max(workoutExercises.order) })
     .from(workoutExercises)
@@ -288,8 +288,8 @@ export const addExerciseToWorkout = async (
   const [added] = await tx
     .insert(workoutExercises)
     .values({
-      exerciseId: exercise.exerciseId,
-      exerciseSlug: exercise.exerciseSlug,
+      exerciseId: exerciseRef.exerciseId,
+      exerciseSlug: exerciseRef.exerciseSlug,
       order: (last ?? 0) + 1,
       requestKey,
       workoutId,
@@ -349,25 +349,30 @@ export const removeExerciseFromWorkout = async (
   return true;
 };
 
+/** The Exercise slug of `exerciseRef`, or `undefined` for an unknown uuid. */
+const slugOf = async (tx: Transaction, exerciseRef: EditExerciseRef) => {
+  if (exerciseRef.exerciseSlug !== undefined) {
+    return exerciseRef.exerciseSlug;
+  }
+  const [known] = await tx
+    .select({ slug: exercises.slug })
+    .from(exercises)
+    .where(eq(exercises.id, exerciseRef.exerciseId));
+  return known?.slug;
+};
+
 /**
- * Whether a Workout Exercise already is `exercise` with exactly `sets`, in
+ * Whether a Workout Exercise already is `exerciseRef` with exactly `sets`, in
  * order: what `replaceExerciseInWorkout` would leave behind. Compared by
- * Exercise slug (a uuid is first looked up), whichever form wrote the row.
+ * Exercise slug, whichever form wrote the row.
  */
 const isAlreadyReplaced = async (
   tx: Transaction,
   workoutExerciseId: string,
-  exercise: EditExerciseRef,
+  exerciseRef: EditExerciseRef,
   sets: PlanSetInput[]
 ) => {
-  const slug =
-    exercise.exerciseSlug ??
-    (
-      await tx
-        .select({ slug: exercises.slug })
-        .from(exercises)
-        .where(eq(exercises.id, exercise.exerciseId))
-    )[0]?.slug;
+  const slug = await slugOf(tx, exerciseRef);
   const [current] = await tx
     .select({ exerciseSlug: workoutExercises.exerciseSlug })
     .from(workoutExercises)
@@ -424,31 +429,34 @@ export const replaceExerciseInWorkout = async (
   tx: Transaction,
   userId: string,
   {
-    newExerciseId,
-    newExerciseSlug,
     sets,
     workoutExerciseId,
+    ...replacement
   }: NewExerciseRef & { sets: PlanSetInput[]; workoutExerciseId: string }
 ): Promise<boolean> => {
-  const exercise = (
-    newExerciseSlug === undefined
-      ? { exerciseId: newExerciseId }
-      : { exerciseSlug: newExerciseSlug }
-  ) as EditExerciseRef;
+  const exerciseRef: EditExerciseRef =
+    replacement.newExerciseSlug === undefined
+      ? { exerciseId: replacement.newExerciseId }
+      : { exerciseSlug: replacement.newExerciseSlug };
   await lockEditedTables(tx);
   if (!(await lockWorkoutExercise(tx, userId, workoutExerciseId))) {
     return false;
   }
-  if (await isAlreadyReplaced(tx, workoutExerciseId, exercise, sets)) {
+  if (await isAlreadyReplaced(tx, workoutExerciseId, exerciseRef, sets)) {
     return true;
   }
-  await assertExerciseExists(tx, exercise);
-  // Only the column given changes; the sync trigger fills in the other
+  await assertExerciseExists(tx, exerciseRef);
   await tx
     .update(workoutExercises)
     .set({
-      exerciseId: exercise.exerciseId,
-      exerciseSlug: exercise.exerciseSlug,
+      // A slug write sends the uuid too: the sync trigger would keep the old
+      // one for a slug the legacy table doesn't know, so the row would still
+      // join the replaced Exercise. NULL fails NOT NULL, as an insert does.
+      exerciseId:
+        exerciseRef.exerciseSlug === undefined
+          ? exerciseRef.exerciseId
+          : sql`(select ${exercises.id} from ${exercises} where ${exercises.slug} = ${exerciseRef.exerciseSlug})`,
+      exerciseSlug: exerciseRef.exerciseSlug,
       updatedAt: sql`now()`,
     })
     .where(eq(workoutExercises.id, workoutExerciseId));

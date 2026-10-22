@@ -37,6 +37,8 @@ const leaver = `user_svcEditLeaver${runId}`;
 // Past int4: a sets insert fails after the rows before it went in
 const OUT_OF_RANGE_REPS = 2 ** 31;
 const NUMERIC_OUT_OF_RANGE = "22003";
+// Until the contract step, exercise_id can't be filled from an unknown slug
+const NOT_NULL_VIOLATION = "23502";
 
 let benchId: string;
 let squatId: string;
@@ -621,6 +623,21 @@ describe("replaceExerciseInWorkout", () => {
         })
       )
     ).rejects.toEqual(new UnknownExercisesError([unknownId]));
+    expect(await shapeOf(plan)).toEqual(seededShape);
+  });
+
+  it("fails, changing nothing, for a slug the legacy table doesn't know", async () => {
+    const plan = await seedPlan(owner);
+
+    await expect(
+      asUser(owner, (tx) =>
+        replaceExerciseInWorkout(tx, owner, {
+          newExerciseSlug: `unknown-${runId}`,
+          sets,
+          workoutExerciseId: plan.bench,
+        })
+      )
+    ).rejects.toMatchObject({ cause: { code: NOT_NULL_VIOLATION } });
     expect(await shapeOf(plan)).toEqual(seededShape);
   });
 
