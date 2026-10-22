@@ -49,3 +49,67 @@ describe("scrubEvent", () => {
     expect(scrubEvent(event)).toEqual({ message: "boom" });
   });
 });
+
+describe("scrubEvent's query backstop", () => {
+  const FAILED_QUERY =
+    'Failed query: delete from "profiles" where "user_id" = $1\nparams: user_2DeleteMe';
+
+  it("replaces every exception value of an event with a failed query", () => {
+    const event = {
+      exception: {
+        values: [
+          {
+            type: "error",
+            value: 'invalid input syntax for type uuid: "user_2DeleteMe"',
+          },
+          { type: "Error", value: FAILED_QUERY },
+        ],
+      },
+    };
+
+    expect(scrubEvent(event)).toEqual({
+      exception: {
+        values: [
+          { type: "error", value: "Database query failed" },
+          { type: "Error", value: "Database query failed" },
+        ],
+      },
+    });
+  });
+
+  it("replaces a breadcrumb message with a failed query, and its data", () => {
+    const event = {
+      breadcrumbs: [
+        { category: "console", message: "starting" },
+        {
+          category: "console",
+          data: { arguments: [FAILED_QUERY], logger: "console" },
+          level: "error",
+          message: `Error: ${FAILED_QUERY}`,
+        },
+        { category: "console", message: `cleanup Error: ${FAILED_QUERY}` },
+      ],
+    };
+
+    expect(scrubEvent(event)).toEqual({
+      breadcrumbs: [
+        { category: "console", message: "starting" },
+        {
+          category: "console",
+          level: "error",
+          message: "Database query failed",
+        },
+        { category: "console", message: "Database query failed" },
+      ],
+    });
+  });
+
+  it("leaves other exceptions and breadcrumbs as they are", () => {
+    const event = {
+      breadcrumbs: [{ message: "Fetched: /health" }],
+      exception: { values: [{ type: "Error", value: "boom" }] },
+    };
+
+    expect(scrubEvent(event)).toEqual(event);
+  });
+});

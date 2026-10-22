@@ -35,16 +35,14 @@ export const fakeServices = (faked: Partial<UserServices>): UserServices => ({
   ...faked,
 });
 
-/** A reporter recording every error it is handed and its tags. */
+/** A reporter recording every error it is handed. */
 export const recordingReporter = () => {
   const reported: unknown[] = [];
-  const reportedTags: (Record<string, string> | undefined)[] = [];
-  const reportError: ToolContext["reportError"] = (error, tags) => {
+  const reportError: ToolContext["reportError"] = (error) => {
     reported.push(error);
-    reportedTags.push(tags);
     return Promise.resolve();
   };
-  return { reportError, reported, reportedTags };
+  return { reportError, reported };
 };
 
 export const ignoreReports: ToolContext["reportError"] = () =>
