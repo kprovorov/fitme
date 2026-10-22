@@ -206,6 +206,7 @@ export interface Database {
         Row: {
           created_at: string | null;
           exercise_id: string;
+          exercise_slug: string;
           id: string;
           order: number;
           request_key: string | null;
@@ -215,7 +216,8 @@ export interface Database {
         ComputedFields: never;
         Insert: {
           created_at?: string | null;
-          exercise_id: string;
+          exercise_id?: string;
+          exercise_slug?: string;
           id?: string;
           order: number;
           request_key?: string | null;
@@ -225,6 +227,7 @@ export interface Database {
         Update: {
           created_at?: string | null;
           exercise_id?: string;
+          exercise_slug?: string;
           id?: string;
           order?: number;
           request_key?: string | null;
@@ -303,6 +306,7 @@ export interface Database {
         Row: {
           created_at: string | null;
           exercise_id: string;
+          exercise_slug: string;
           id: string;
           order: number;
           updated_at: string | null;
@@ -311,7 +315,8 @@ export interface Database {
         ComputedFields: never;
         Insert: {
           created_at?: string | null;
-          exercise_id: string;
+          exercise_id?: string;
+          exercise_slug?: string;
           id?: string;
           order: number;
           updated_at?: string | null;
@@ -320,6 +325,7 @@ export interface Database {
         Update: {
           created_at?: string | null;
           exercise_id?: string;
+          exercise_slug?: string;
           id?: string;
           order?: number;
           updated_at?: string | null;
