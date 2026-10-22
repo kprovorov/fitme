@@ -112,6 +112,16 @@ BEGIN
       AND p.user_id = v_user_id
       AND p.deleted_at IS NULL
     FOR NO KEY UPDATE OF w;
+
+    -- And its Exercises: the Coach's addSetToExercise and
+    -- removeSetFromExercise lock only the Workout Exercise they edit, so
+    -- without this an apply and a Coach edit could both count the same sets
+    -- and append under the same order (or past the 20-set cap)
+    PERFORM 1
+    FROM public.workout_exercises we
+    WHERE we.workout_id = v_workout_id
+    ORDER BY we.id
+    FOR NO KEY UPDATE;
   END IF;
 
   SELECT ws.workout_id, ws.finished_at, ws.plan_changes_applied_at
@@ -279,10 +289,13 @@ BEGIN
         END IF;
 
       ELSE
-        -- Same Exercise: the logged sets created during the session (copied
-        -- sets carry reps_recommended), rest of the Plan's last set, up to
-        -- 20 sets in all. Logged values that differ from the targets and
-        -- unlogged sets aren't changes.
+        -- Same Exercise: the logged sets created during the session, rest of
+        -- the Plan's last set, up to 20 sets in all. A created set carries no
+        -- reps_recommended, unlike a copied one, but replacing the Exercise
+        -- in the app zeroes every set's targets, so after switching back the
+        -- marker is gone; the session can't delete sets, so a set past the
+        -- Plan's count was created too. Logged values that differ from the
+        -- targets and unlogged sets aren't changes.
         SELECT jsonb_agg(
           jsonb_build_object(
             'reps', s.reps_completed,
@@ -294,11 +307,17 @@ BEGIN
         INTO v_sets
         FROM (
           SELECT *
-          FROM public.workout_session_exercise_sets
-          WHERE workout_session_exercise_id = v_slot.session_exercise_id
-            AND reps_recommended IS NULL
-            AND reps_completed IS NOT NULL
-          ORDER BY "order", id
+          FROM (
+            SELECT
+              ss.*,
+              row_number() OVER (ORDER BY ss."order", ss.id) AS position
+            FROM public.workout_session_exercise_sets ss
+            WHERE ss.workout_session_exercise_id = v_slot.session_exercise_id
+          ) numbered
+          WHERE (numbered.reps_recommended IS NULL
+              OR numbered.position > v_plan_sets)
+            AND numbered.reps_completed IS NOT NULL
+          ORDER BY numbered."order", numbered.id
           LIMIT greatest(c_max_sets - v_plan_sets, 0)
         ) s;
 

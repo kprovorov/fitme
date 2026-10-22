@@ -4,7 +4,7 @@ BEGIN;
 
 CREATE EXTENSION IF NOT EXISTS pgtap WITH SCHEMA extensions;
 
-SELECT plan(42);
+SELECT plan(44);
 
 -- Fixtures -------------------------------------------------------------------
 -- Owner A has every Plan; B has none. Sessions are finished unless a case
@@ -38,7 +38,9 @@ VALUES
   -- (open) an open session
   ('f2300000-0000-0000-0000-0000000000b5', 'f2300000-0000-0000-0000-0000000000a1', 5, 'Open Day', ''),
   -- (deleted) a soft-deleted Plan
-  ('f2300000-0000-0000-0000-0000000000b6', 'f2300000-0000-0000-0000-0000000000a2', 1, 'Deleted Day', '');
+  ('f2300000-0000-0000-0000-0000000000b6', 'f2300000-0000-0000-0000-0000000000a2', 1, 'Deleted Day', ''),
+  -- (back) replaced, then switched back to the original Exercise
+  ('f2300000-0000-0000-0000-0000000000b7', 'f2300000-0000-0000-0000-0000000000a1', 6, 'Back Day', '');
 
 INSERT INTO public.workout_exercises (id, workout_id, exercise_id, "order")
 VALUES
@@ -53,7 +55,8 @@ VALUES
   ('f2300000-0000-0000-0000-0000000004c1', 'f2300000-0000-0000-0000-0000000000b4', 'f2300000-0000-0000-0000-0000000000e1', 1),
   ('f2300000-0000-0000-0000-0000000004c2', 'f2300000-0000-0000-0000-0000000000b4', 'f2300000-0000-0000-0000-0000000000e2', 2),
   ('f2300000-0000-0000-0000-0000000005c1', 'f2300000-0000-0000-0000-0000000000b5', 'f2300000-0000-0000-0000-0000000000e1', 1),
-  ('f2300000-0000-0000-0000-0000000006c1', 'f2300000-0000-0000-0000-0000000000b6', 'f2300000-0000-0000-0000-0000000000e1', 1);
+  ('f2300000-0000-0000-0000-0000000006c1', 'f2300000-0000-0000-0000-0000000000b6', 'f2300000-0000-0000-0000-0000000000e1', 1),
+  ('f2300000-0000-0000-0000-0000000007c1', 'f2300000-0000-0000-0000-0000000000b7', 'f2300000-0000-0000-0000-0000000000e2', 1);
 
 INSERT INTO public.workout_exercise_sets
   (workout_exercise_id, "order", reps_recommended, weight_recommended, rest_recommended)
@@ -78,7 +81,9 @@ VALUES
   ('f2300000-0000-0000-0000-0000000004c2', 1, 5, 100, 180),
   -- (open) and (deleted)
   ('f2300000-0000-0000-0000-0000000005c1', 1, 8, 60, 120),
-  ('f2300000-0000-0000-0000-0000000006c1', 1, 8, 60, 120);
+  ('f2300000-0000-0000-0000-0000000006c1', 1, 8, 60, 120),
+  -- (back) Squat
+  ('f2300000-0000-0000-0000-0000000007c1', 1, 5, 100, 180);
 
 -- (cap) Squat already has 19 sets, Bench Press 1
 INSERT INTO public.workout_exercise_sets
@@ -97,7 +102,8 @@ VALUES
   ('f2300000-0000-0000-0000-0000000000d5', 'user_2PlanChangesOwnerA000000', 'f2300000-0000-0000-0000-0000000000a1', 'f2300000-0000-0000-0000-0000000000b5', now() - interval '1 hour', NULL),
   ('f2300000-0000-0000-0000-0000000000d6', 'user_2PlanChangesOwnerA000000', 'f2300000-0000-0000-0000-0000000000a2', 'f2300000-0000-0000-0000-0000000000b6', now() - interval '1 hour', now()),
   -- (gone) its Workout was deleted
-  ('f2300000-0000-0000-0000-0000000000d7', 'user_2PlanChangesOwnerA000000', 'f2300000-0000-0000-0000-0000000000a1', NULL, now() - interval '1 hour', now());
+  ('f2300000-0000-0000-0000-0000000000d7', 'user_2PlanChangesOwnerA000000', 'f2300000-0000-0000-0000-0000000000a1', NULL, now() - interval '1 hour', now()),
+  ('f2300000-0000-0000-0000-0000000000d8', 'user_2PlanChangesOwnerA000000', 'f2300000-0000-0000-0000-0000000000a1', 'f2300000-0000-0000-0000-0000000000b7', now() - interval '1 hour', now());
 
 INSERT INTO public.workout_session_exercises (id, workout_session_id, exercise_id, "order")
 VALUES
@@ -125,7 +131,9 @@ VALUES
   ('f2300000-0000-0000-0000-0000000004f3', 'f2300000-0000-0000-0000-0000000000d4', 'f2300000-0000-0000-0000-0000000000e5', 3),
   -- (open) and (deleted): Bench Press replaced by Dumbbell Press, logged
   ('f2300000-0000-0000-0000-0000000005f1', 'f2300000-0000-0000-0000-0000000000d5', 'f2300000-0000-0000-0000-0000000000e4', 1),
-  ('f2300000-0000-0000-0000-0000000006f1', 'f2300000-0000-0000-0000-0000000000d6', 'f2300000-0000-0000-0000-0000000000e4', 1);
+  ('f2300000-0000-0000-0000-0000000006f1', 'f2300000-0000-0000-0000-0000000000d6', 'f2300000-0000-0000-0000-0000000000e4', 1),
+  -- (back) Squat again after a replacement
+  ('f2300000-0000-0000-0000-0000000007f1', 'f2300000-0000-0000-0000-0000000000d8', 'f2300000-0000-0000-0000-0000000000e2', 1);
 
 INSERT INTO public.workout_session_exercise_sets
   (workout_session_exercise_id, "order", reps_recommended, weight_recommended, rest_recommended, reps_completed, weight_completed)
@@ -161,7 +169,12 @@ VALUES
   ('f2300000-0000-0000-0000-0000000004f3', 1, NULL, NULL, NULL, NULL, NULL),
   -- (open) and (deleted)
   ('f2300000-0000-0000-0000-0000000005f1', 1, 0, 0, 120, 8, 30),
-  ('f2300000-0000-0000-0000-0000000006f1', 1, 0, 0, 120, 8, 30);
+  ('f2300000-0000-0000-0000-0000000006f1', 1, 0, 0, 120, 8, 30),
+  -- (back) the replacement zeroed every set's targets, the added ones' too:
+  -- a copied set, an added logged set and an added unlogged one
+  ('f2300000-0000-0000-0000-0000000007f1', 1, 0, 0, 180, 5, 100),
+  ('f2300000-0000-0000-0000-0000000007f1', 2, 0, 0, NULL, 4, 100),
+  ('f2300000-0000-0000-0000-0000000007f1', 3, 0, 0, NULL, NULL, NULL);
 
 -- (cap) Squat: 19 copied sets plus 3 added and logged; Dumbbell Press: 22
 -- logged; Cable Fly: 21 logged
@@ -584,6 +597,32 @@ SELECT is(
   '(gone) apply does not stamp plan_changes_applied_at'
 );
 
+-- (back) Switched back to the original Exercise -------------------------------
+SET LOCAL ROLE authenticated;
+
+SELECT is(
+  public.workout_session_plan_changes('f2300000-0000-0000-0000-0000000000d8', true) -> 'changes',
+  $$[{
+    "kind": "add_sets",
+    "exercise": {"id": "f2300000-0000-0000-0000-0000000000e2", "name": "Test Squat"},
+    "sets": [{"reps": 4, "weight": 100}]
+  }]$$::jsonb,
+  '(back) a logged set added before a replacement and a switch back still counts as added'
+);
+
+RESET ROLE;
+
+SELECT results_eq(
+  $$
+    SELECT "order", reps_recommended, weight_recommended, rest_recommended
+    FROM public.workout_exercise_sets
+    WHERE workout_exercise_id = 'f2300000-0000-0000-0000-0000000007c1'
+    ORDER BY "order"
+  $$,
+  $$VALUES (1, 5, 100.00, 180), (2, 4, 100.00, 180)$$,
+  '(back) the Plan keeps its set and gets the added one'
+);
+
 -- Not found --------------------------------------------------------------------
 SET LOCAL ROLE authenticated;
 SELECT set_config('request.jwt.claims', '{"sub":"user_2PlanChangesOtherB000000","role":"authenticated"}', true);
@@ -616,13 +655,13 @@ RESET ROLE;
 -- Locks --------------------------------------------------------------------------
 -- Two sessions can't run in one pgTAP transaction, so the lock order is read
 -- off the definition: ROW EXCLUSIVE on workout_sessions and the Plan's child
--- tables (in deleteUserData's order), then the Plan row, the Workout row and
--- the session row (finish_workout_session's order), so a concurrent apply
+-- tables (in deleteUserData's order), then the Plan row, the Workout row, its
+-- Exercises' rows and the session row (finish_workout_session's order), so a concurrent apply
 -- waits for the first and then sees plan_changes_applied_at.
 SELECT matches(
   pg_get_functiondef('public.workout_session_plan_changes(uuid, boolean)'::regprocedure),
-  '(?s)LOCK TABLE public\.workout_sessions, public\.workouts,\s+public\.workout_exercises, public\.workout_exercise_sets\s+IN ROW EXCLUSIVE MODE.*FROM public\.plans p.*FOR NO KEY UPDATE;.*FROM public\.workouts w.*FOR NO KEY UPDATE OF w;.*FROM public\.workout_sessions ws.*FOR NO KEY UPDATE;.*IF workout_session_plan_changes\.apply THEN',
-  'tables, then the Plan, Workout and session rows are locked before anything is written'
+  '(?s)LOCK TABLE public\.workout_sessions, public\.workouts,\s+public\.workout_exercises, public\.workout_exercise_sets\s+IN ROW EXCLUSIVE MODE.*FROM public\.plans p.*FOR NO KEY UPDATE;.*FROM public\.workouts w.*FOR NO KEY UPDATE OF w;.*FROM public\.workout_exercises we.*FOR NO KEY UPDATE;.*FROM public\.workout_sessions ws.*FOR NO KEY UPDATE;.*IF workout_session_plan_changes\.apply THEN',
+  'tables, then the Plan, Workout, Workout Exercise and session rows are locked before anything is written'
 );
 
 SELECT * FROM finish();
