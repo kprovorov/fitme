@@ -1,12 +1,13 @@
 import { defineTool } from "eve/tools";
 import { z } from "zod";
+import { checkExerciseSlugs, exerciseSlugSchema } from "../lib/exercises";
+import { legacyExerciseIds } from "../lib/legacy-exercise-ids";
+import { requireConversationOwner } from "../lib/owner";
 
 const exerciseSchema = z.object({
-  exercise_id: z
-    .string()
-    .describe(
-      "The UUID of the exercise from search_exercises results. Must match an ID returned by search_exercises — do not invent IDs."
-    ),
+  exercise_slug: exerciseSlugSchema.describe(
+    "The exercise_slug from search_exercises results. Must match one search_exercises returned — do not invent slugs."
+  ),
   name: z.string().describe("The display name of the exercise."),
   notes: z.string().optional(),
   reps: z.string(),
@@ -20,12 +21,33 @@ const workoutSchema = z.object({
   name: z.string(),
 });
 
-// Pure: touches no data. The app renders its output as the plan card, so the
-// shape must stay what the app expects.
+// The app renders its output as the plan card, so the shape must stay what
+// the app expects. Writes nothing: the app creates the Plan from the card.
 export default defineTool({
   description:
     "Display a generated workout plan as a structured card in the UI. Call this when the user requests a workout plan to be created or generated.",
-  execute: (input) => input,
+  async execute(input, ctx) {
+    const userId = requireConversationOwner(ctx.session.auth);
+    const slugs = input.workouts.flatMap(({ exercises }) =>
+      exercises.map(({ exercise_slug }) => exercise_slug)
+    );
+    const checked = await checkExerciseSlugs(slugs);
+    if ("error" in checked) {
+      return checked;
+    }
+    const ids = await legacyExerciseIds(userId, slugs);
+    return {
+      ...input,
+      workouts: input.workouts.map((workout) => ({
+        ...workout,
+        exercises: workout.exercises.map((exercise) => ({
+          ...exercise,
+          // installed v2.0.0 plan cards read the legacy uuid
+          exercise_id: ids.get(exercise.exercise_slug) ?? null,
+        })),
+      })),
+    };
+  },
   inputSchema: z.object({
     description: z.string(),
     experienceLevel: z

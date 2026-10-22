@@ -5,25 +5,30 @@ import {
 } from "@fitme/services/workout-edits";
 import { defineTool } from "eve/tools";
 import { z } from "zod";
+import { checkExerciseSlugs, exerciseSlugSchema } from "../lib/exercises";
 import { requireConversationOwner } from "../lib/owner";
 import { reportingEditErrors, setSchema } from "../lib/workout-edits";
 
 export default defineTool({
   description:
-    "Swap one exercise for another in a workout and replace its sets with new rep/weight/rest recommendations suited to the new exercise. Use search_exercises to find the new_exercise_id.",
-  async execute({ new_exercise_id, sets, workout_exercise_id }, ctx) {
+    "Swap one exercise for another in a workout and replace its sets with new rep/weight/rest recommendations suited to the new exercise. Use search_exercises to find the new_exercise_slug.",
+  async execute({ new_exercise_slug, sets, workout_exercise_id }, ctx) {
     const userId = requireConversationOwner(ctx.session.auth);
+    const checked = await checkExerciseSlugs([new_exercise_slug]);
+    if ("error" in checked) {
+      return checked;
+    }
     return await reportingEditErrors(async () => {
       const replaced = await asUser(userId, (tx) =>
         replaceExerciseInWorkout(tx, userId, {
-          newExerciseId: new_exercise_id,
+          newExerciseSlug: new_exercise_slug,
           sets,
           workoutExerciseId: workout_exercise_id,
         })
       );
       return replaced
         ? {
-            new_exercise_id,
+            new_exercise_slug,
             sets_replaced: sets.length,
             success: true,
             workout_exercise_id,
@@ -32,11 +37,9 @@ export default defineTool({
     });
   },
   inputSchema: z.object({
-    new_exercise_id: z
-      .guid()
-      .describe(
-        "The ID of the replacement exercise from the exercise library (from search_exercises)"
-      ),
+    new_exercise_slug: exerciseSlugSchema.describe(
+      "The exercise_slug of the replacement exercise (from search_exercises)"
+    ),
     sets: z
       .array(setSchema)
       .min(1)

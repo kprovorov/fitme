@@ -15,6 +15,7 @@
     "@clerk/backend": "^3.25.0",
     "@fitme/core": "workspace:*",
     "@fitme/db": "workspace:*",
+    "@fitme/exercise-library": "workspace:*",
     "@fitme/observability": "workspace:*",
     "@fitme/services": "workspace:*",
     "@sentry/node": "^11.8.0",

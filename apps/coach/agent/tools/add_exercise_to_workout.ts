@@ -5,20 +5,25 @@ import {
 } from "@fitme/services/workout-edits";
 import { defineTool } from "eve/tools";
 import { z } from "zod";
+import { checkExerciseSlugs, exerciseSlugSchema } from "../lib/exercises";
 import { requireConversationOwner } from "../lib/owner";
 import { requestKey } from "../lib/request-key";
 import { reportingEditErrors, setSchema } from "../lib/workout-edits";
 
 export default defineTool({
   description:
-    "Add an exercise to a specific workout in the user's plan. Use search_exercises first to find a valid exercise_id. Provide initial sets with rep, weight, and rest recommendations.",
+    "Add an exercise to a specific workout in the user's plan. Use search_exercises first to find a valid exercise_slug. Provide initial sets with rep, weight, and rest recommendations.",
   async execute(input, ctx) {
     const userId = requireConversationOwner(ctx.session.auth);
-    const { exercise_id, sets, workout_id } = input;
+    const { exercise_slug, sets, workout_id } = input;
+    const checked = await checkExerciseSlugs([exercise_slug]);
+    if ("error" in checked) {
+      return checked;
+    }
     return await reportingEditErrors(async () => {
       const added = await asUser(userId, (tx) =>
         addExerciseToWorkout(tx, userId, {
-          exerciseId: exercise_id,
+          exerciseSlug: exercise_slug,
           requestKey: requestKey(ctx, input),
           sets,
           workoutId: workout_id,
@@ -34,9 +39,9 @@ export default defineTool({
     });
   },
   inputSchema: z.object({
-    exercise_id: z
-      .guid()
-      .describe("The ID of the exercise to add (from search_exercises)"),
+    exercise_slug: exerciseSlugSchema.describe(
+      "The exercise_slug of the exercise to add (from search_exercises)"
+    ),
     sets: z
       .array(setSchema)
       .min(1)

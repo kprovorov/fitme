@@ -2,14 +2,14 @@ import type { ToolStub } from "eve/evals";
 
 /**
  * What the Coach's read tools return for a made-up User, shaped like the
- * services' output. Every eval session stubs the tools it may call, so no
+ * tools' output (Exercises by exercise_slug, named from the library). Every eval session stubs the tools it may call, so no
  * real tool (and no database) ever runs.
  */
 
-export const BENCH_ID = "0b8f8a52-6a4e-4d47-9a43-2f1f5a1c0001";
-export const INCLINE_ID = "0b8f8a52-6a4e-4d47-9a43-2f1f5a1c0002";
-export const SQUAT_ID = "0b8f8a52-6a4e-4d47-9a43-2f1f5a1c0003";
-export const ROW_ID = "0b8f8a52-6a4e-4d47-9a43-2f1f5a1c0004";
+export const BENCH = "bench-press";
+export const INCLINE = "incline-dumbbell-press";
+export const SQUAT = "back-squat";
+export const ROW = "barbell-row";
 
 const set = (id: string, order: number, reps: number, weight: number) => ({
   id,
@@ -37,22 +37,18 @@ export const activePlan = {
       description: "Chest, back and arms",
       exercises: [
         {
-          exercise: {
-            id: BENCH_ID,
-            muscle_groups: ["chest"],
-            name: "Bench Press",
-          },
+          exercise_slug: BENCH,
           id: "we-bench",
+          muscle_groups: ["chest"],
+          name: "Bench Press",
           order: 1,
           sets: [set("s-bench-1", 1, 8, 70), set("s-bench-2", 2, 8, 70)],
         },
         {
-          exercise: {
-            id: ROW_ID,
-            muscle_groups: ["back"],
-            name: "Barbell Row",
-          },
+          exercise_slug: ROW,
           id: "we-row",
+          muscle_groups: ["back"],
+          name: "Barbell Row",
           order: 2,
           sets: [set("s-row-1", 1, 10, 60)],
         },
@@ -65,12 +61,10 @@ export const activePlan = {
       description: "Legs",
       exercises: [
         {
-          exercise: {
-            id: SQUAT_ID,
-            muscle_groups: ["quadriceps"],
-            name: "Back Squat",
-          },
+          exercise_slug: SQUAT,
           id: "we-squat",
+          muscle_groups: ["quadriceps"],
+          name: "Back Squat",
           order: 1,
           sets: [set("s-squat-1", 1, 5, 100)],
         },
@@ -103,8 +97,10 @@ export const workoutHistory = [
   {
     exercises: [
       {
-        exercise: { id: SQUAT_ID, name: "Back Squat" },
+        exercise_slug: SQUAT,
         id: "wse-squat",
+        muscle_groups: ["quadriceps"],
+        name: "Back Squat",
         order: 1,
         sets: [
           loggedSet("ls-squat-1", 1, 5, 105),
@@ -122,8 +118,10 @@ export const workoutHistory = [
   {
     exercises: [
       {
-        exercise: { id: BENCH_ID, name: "Bench Press" },
+        exercise_slug: BENCH,
         id: "wse-bench",
+        muscle_groups: ["chest"],
+        name: "Bench Press",
         order: 1,
         sets: [
           loggedSet("ls-bench-1", 1, 8, 72.5),
@@ -141,18 +139,26 @@ export const workoutHistory = [
 ];
 
 export const chestExercises = [
-  { id: BENCH_ID, muscle_groups: ["chest"], name: "Bench Press" },
-  { id: INCLINE_ID, muscle_groups: ["chest"], name: "Incline Dumbbell Press" },
+  { exercise_slug: BENCH, muscle_groups: ["chest"], name: "Bench Press" },
+  {
+    exercise_slug: INCLINE,
+    muscle_groups: ["chest"],
+    name: "Incline Dumbbell Press",
+  },
 ];
 
 const libraryExercises = [
   ...chestExercises,
-  { id: SQUAT_ID, muscle_groups: ["quadriceps"], name: "Back Squat" },
-  { id: ROW_ID, muscle_groups: ["back"], name: "Barbell Row" },
+  { exercise_slug: SQUAT, muscle_groups: ["quadriceps"], name: "Back Squat" },
+  { exercise_slug: ROW, muscle_groups: ["back"], name: "Barbell Row" },
 ];
 
-/** Every read tool, stubbed; fallbacks last (the first matching rule wins). */
-export const readToolStubs = [
+/**
+ * Every read tool and the plan card, stubbed; fallbacks last (the first
+ * matching rule wins). The plan card checks slugs against the library and
+ * reads the database, so it's stubbed too; evals check its input.
+ */
+export const readToolStubs: readonly ToolStub[] = [
   {
     id: "profile",
     outcome: {
@@ -207,4 +213,9 @@ export const readToolStubs = [
     outcome: { response: libraryExercises },
     tool: "search_exercises",
   },
-] satisfies readonly ToolStub[];
+  {
+    id: "plan-card",
+    outcome: { response: { shown: true } },
+    tool: "display_workout_plan",
+  },
+];

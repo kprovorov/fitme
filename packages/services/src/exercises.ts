@@ -136,6 +136,25 @@ export const getExercise = async (
   return exercise ?? null;
 };
 
+/**
+ * The legacy uuid of each slug the `exercises` table knows (unknown slugs are
+ * left out), for the Coach's plan card, which installed v2.0.0 apps read
+ * `exercise_id` from. Removed with the table at the contract step.
+ */
+export const legacyExerciseIdsBySlug = async (
+  tx: Transaction,
+  slugs: readonly string[]
+): Promise<Map<string, string>> => {
+  if (slugs.length === 0) {
+    return new Map();
+  }
+  const rows = await tx
+    .select({ id: exercises.id, slug: exercises.slug })
+    .from(exercises)
+    .where(inArray(exercises.slug, [...new Set(slugs)]));
+  return new Map(rows.map(({ id, slug }) => [slug, id]));
+};
+
 export interface ExerciseHistorySet {
   id: string;
   logged_at: string | null;
