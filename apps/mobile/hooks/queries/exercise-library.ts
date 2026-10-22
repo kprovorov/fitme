@@ -4,15 +4,19 @@ import {
   ExerciseLibraryInvalidRequestError,
   ExerciseLibraryRateLimitedError,
   ExerciseLibraryUnauthorizedError,
+  type ExercisePage,
   type ExerciseSummary,
   exerciseNameFromSlug,
 } from "@fitme/exercise-library";
 import {
+  keepPreviousData,
   queryOptions,
+  useInfiniteQuery,
   useQueries,
   useQuery,
   useQueryClient,
 } from "@tanstack/react-query";
+import { useEffect, useState } from "react";
 import {
   readCachedExercise,
   readCachedSummary,
@@ -190,4 +194,106 @@ export const useExerciseDetailQuery = (slug: string) => {
     retry: retryOnce,
     staleTime: EXERCISE_STALE_TIME_MS,
   });
+};
+
+/** Results per page of the Library tab and the Exercise picker. */
+export const EXERCISE_SEARCH_PAGE_SIZE = 20;
+
+/** Search waits this long after the last keystroke (120 requests a minute per User). */
+export const EXERCISE_SEARCH_DEBOUNCE_MS = 300;
+
+interface ExerciseSearchParams {
+  muscleGroup?: MuscleGroup;
+  search: string;
+}
+
+/**
+ * The Exercise Library, searched and filtered, a page at a time: what the
+ * Library tab and the Exercise picker list. A changed search is sent
+ * `EXERCISE_SEARCH_DEBOUNCE_MS` after the last keystroke, a changed muscle
+ * group at once. Rate limited, it keeps the last results (no error) and holds
+ * the next search back until `Retry-After` has passed. Every Exercise it
+ * lists is seeded into its row query and MMKV, so its detail screen has its
+ * name at once and it shows offline.
+ */
+export const useExerciseSearch = ({
+  muscleGroup,
+  search,
+}: ExerciseSearchParams) => {
+  const queryClient = useQueryClient();
+  const term = search.trim();
+  const [sent, setSent] = useState<ExerciseSearchParams>({
+    muscleGroup,
+    search: term,
+  });
+  const [rateLimitedUntil, setRateLimitedUntil] = useState(0);
+  const [lastPages, setLastPages] = useState<ExercisePage[]>();
+
+  useEffect(() => {
+    if (sent.search === term && sent.muscleGroup === muscleGroup) {
+      return;
+    }
+    const debounce = sent.search === term ? 0 : EXERCISE_SEARCH_DEBOUNCE_MS;
+    const timer = setTimeout(
+      () => setSent({ muscleGroup, search: term }),
+      Math.max(debounce, rateLimitedUntil - Date.now())
+    );
+    return () => clearTimeout(timer);
+  }, [muscleGroup, rateLimitedUntil, sent, term]);
+
+  const query = useInfiniteQuery({
+    getNextPageParam: (lastPage: ExercisePage, _pages, lastOffset: number) =>
+      lastPage.hasMore ? lastOffset + EXERCISE_SEARCH_PAGE_SIZE : undefined,
+    initialPageParam: 0,
+    // A new search keeps showing the last results until its own arrive.
+    placeholderData: keepPreviousData,
+    queryFn: async ({ pageParam }): Promise<ExercisePage> => {
+      let page: ExercisePage;
+      try {
+        page = await exerciseLibrary.list({
+          limit: EXERCISE_SEARCH_PAGE_SIZE,
+          offset: pageParam,
+          ...(sent.search ? { search: sent.search } : {}),
+          ...(sent.muscleGroup ? { muscleGroup: sent.muscleGroup } : {}),
+        });
+      } catch (error) {
+        if (error instanceof ExerciseLibraryRateLimitedError) {
+          setRateLimitedUntil(Date.now() + error.retryAfterSeconds * 1000);
+        }
+        throw error;
+      }
+      for (const exercise of page.data) {
+        writeCachedSummary(exercise);
+        queryClient.setQueryData<ExerciseSummary | null>(
+          summaryKey(exercise.slug),
+          exercise
+        );
+      }
+      return page;
+    },
+    queryKey: ["exercise-search", sent.search, sent.muscleGroup ?? null],
+    retry: retryOnce,
+    staleTime: EXERCISE_STALE_TIME_MS,
+  });
+
+  const pages = query.isPlaceholderData ? undefined : query.data?.pages;
+  useEffect(() => {
+    if (pages) {
+      setLastPages(pages);
+    }
+  }, [pages]);
+
+  const isRateLimited = query.error instanceof ExerciseLibraryRateLimitedError;
+  // Rate limited, the last results stay; with none to show it's an error.
+  const shownPages =
+    query.data?.pages ?? (isRateLimited ? lastPages : undefined);
+
+  return {
+    exercises: shownPages?.flatMap((page) => page.data),
+    hasMore: query.hasNextPage && !query.isPlaceholderData,
+    isError: query.isError && !(isRateLimited && shownPages),
+    isLoadingMore: query.isFetchingNextPage,
+    loadMore: query.fetchNextPage,
+    refetch: query.refetch,
+  };
 };

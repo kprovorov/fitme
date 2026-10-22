@@ -1,4 +1,4 @@
-import type { Exercise } from "@fitme/core";
+import type { ExerciseSummary } from "@fitme/exercise-library";
 import { router, Stack } from "expo-router";
 import { useCallback, useRef, useState } from "react";
 import { RefreshControl, ScrollView } from "react-native";
@@ -17,7 +17,7 @@ export default function LibraryScreen() {
     setRefreshing(false);
   }, []);
 
-  const onExercisePress = useCallback((exercise: Exercise) => {
+  const onExercisePress = useCallback((exercise: ExerciseSummary) => {
     router.push(`/exercises/${exercise.slug}`);
   }, []);
 

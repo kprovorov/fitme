@@ -113,12 +113,8 @@ jest.mock("~/components/ui/dropdown-menu", () => {
       )),
   };
 });
-// The Exercise picker (still on the legacy table, FIT-242) offers Lunge.
-jest.mock("~/components/views/exercises-view", () => ({
-  __esModule: true,
-  default: ({ itemCta }: { itemCta: (exercise: object) => ReactNode }) =>
-    itemCta({ muscle_groups: ["quadriceps"], name: "Lunge", slug: "lunge" }),
-}));
+// The Exercise picker's muscle group menu (SwiftUI) shows nothing.
+jest.mock("~/components/ui/picker", () => ({ Picker: () => null }));
 
 /** Not in the Exercise Library: shown as "Mystery move". */
 const UNKNOWN_SLUG = "mystery-move";
@@ -250,8 +246,10 @@ describe("a Workout Session", () => {
     await renderScreen(HistorySessionScreen, { workoutSessionId: "s1" });
 
     await fireEvent.press(await screen.findByText("Add Exercise"));
+    // The picker lists the library by name: Lunge, then Squat.
+    const [addLunge] = await screen.findAllByText("Add");
     await act(async () => {
-      await fireEvent.press(screen.getByText("Add"));
+      await fireEvent.press(addLunge as NonNullable<typeof addLunge>);
     });
     await settle();
 
@@ -269,8 +267,11 @@ describe("a Workout Session", () => {
 
     const [replaceSquat] = await screen.findAllByLabelText("Replace");
     await fireEvent.press(replaceSquat as NonNullable<typeof replaceSquat>);
+    const [replaceWithLunge] = await screen.findAllByText("Replace");
     await act(async () => {
-      await fireEvent.press(await screen.findByText("Replace"));
+      await fireEvent.press(
+        replaceWithLunge as NonNullable<typeof replaceWithLunge>
+      );
     });
     await settle();
 

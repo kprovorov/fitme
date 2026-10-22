@@ -1,4 +1,4 @@
-import type { Exercise } from "@fitme/core";
+import type { ExerciseSummary as Exercise } from "@fitme/exercise-library";
 import type React from "react";
 import { useCallback } from "react";
 import ExerciseImage from "~/components/exercises/exercise-image";
@@ -33,7 +33,7 @@ export default function ExercisesList({
           isFirst={index === 0}
           itemCta={itemCta}
           itemIcon={itemIcon}
-          key={exercise.id}
+          key={exercise.slug}
           onExercisePress={onExercisePress}
         />
       ))}
