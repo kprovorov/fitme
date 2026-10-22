@@ -5,9 +5,11 @@ import { useCallback, useImperativeHandle, useState } from "react";
 import { ActivityIndicator, View } from "react-native";
 import ExercisesList from "~/components/exercises/exercises-list";
 import { Button } from "~/components/ui/button";
+import { ErrorMessage } from "~/components/ui/error-message";
 import { Input } from "~/components/ui/input";
 import { Picker } from "~/components/ui/picker";
 import { Text } from "~/components/ui/text";
+import { H3 } from "~/components/ui/typography";
 import { VStack } from "~/components/ui/vstack";
 import { useExerciseSearch } from "~/hooks/queries/exercise-library";
 
@@ -43,11 +45,18 @@ const ExercisesView = ({
   const [muscleGroup, setMuscleGroup] =
     useState<MuscleGroupFilter>(initialMuscleGroup);
 
-  const { exercises, hasMore, isError, isLoadingMore, loadMore, refetch } =
-    useExerciseSearch({
-      muscleGroup: muscleGroup === "all" ? undefined : muscleGroup,
-      search,
-    });
+  const {
+    exercises,
+    hasMore,
+    isError,
+    isLoadMoreError,
+    isLoadingMore,
+    loadMore,
+    refetch,
+  } = useExerciseSearch({
+    muscleGroup: muscleGroup === "all" ? undefined : muscleGroup,
+    search,
+  });
 
   const refresh = useCallback(async () => {
     await refetch();
@@ -63,7 +72,7 @@ const ExercisesView = ({
     refetch();
   }, [refetch]);
 
-  const clearSearch = useCallback(() => {
+  const showAll = useCallback(() => {
     setSearch("");
     setMuscleGroup("all");
   }, []);
@@ -77,6 +86,11 @@ const ExercisesView = ({
             itemCta={itemCta}
             onExercisePress={onExercisePress}
           />
+          {isLoadMoreError ? (
+            <ErrorMessage className="text-center">
+              Couldn't load more exercises. Check your connection and try again.
+            </ErrorMessage>
+          ) : null}
           {hasMore ? (
             <Button
               isLoading={isLoadingMore}
@@ -90,17 +104,19 @@ const ExercisesView = ({
     }
     if (exercises) {
       return (
-        <View className="items-center gap-sm pt-lg">
+        <VStack className="items-center gap-sm pt-lg">
+          <H3 className="text-center">No Exercises Found</H3>
           <Text className="text-center text-muted-foreground">
             No exercises match. Try another name or muscle group.
           </Text>
-          <Button fill={false} label="Clear Search" onPress={clearSearch} />
-        </View>
+          <Button fill={false} label="Show All Exercises" onPress={showAll} />
+        </VStack>
       );
     }
     if (isError) {
       return (
-        <View className="items-center gap-sm pt-lg">
+        <VStack className="items-center gap-sm pt-lg">
+          <H3 className="text-center">Couldn't Load Exercises</H3>
           <Text className="text-center text-muted-foreground">
             Couldn't load exercises. Check your connection and try again.
           </Text>
@@ -110,7 +126,7 @@ const ExercisesView = ({
             onPress={retry}
             variant="secondary"
           />
-        </View>
+        </VStack>
       );
     }
     return (

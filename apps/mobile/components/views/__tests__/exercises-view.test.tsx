@@ -199,7 +199,7 @@ describe("searching the Exercise Library", () => {
     expect(screen.getByText("Bench Press 01")).toBeTruthy();
   });
 
-  it("says when nothing matches, and clears the search", async () => {
+  it("says when nothing matches, and shows every Exercise again", async () => {
     await renderView();
     await type("deadlift");
     await advance(300);
@@ -208,7 +208,7 @@ describe("searching the Exercise Library", () => {
       screen.getByText("No exercises match. Try another name or muscle group.")
     ).toBeTruthy();
 
-    await fireEvent.press(screen.getByText("Clear Search"));
+    await fireEvent.press(screen.getByText("Show All Exercises"));
     await advance(300);
     expect(screen.getByText("Bench Press 01")).toBeTruthy();
   });
@@ -230,6 +230,38 @@ describe("filtering and paging", () => {
     });
     expect(screen.getByText("Squat")).toBeTruthy();
     expect(screen.queryByText("Bench Press 01")).toBeNull();
+  });
+
+  it("pages a muscle group with its filter", async () => {
+    await renderView({ initialMuscleGroup: "chest" });
+    list.mockClear();
+
+    await fireEvent.press(screen.getByText("Load More"));
+    await advance(0);
+
+    expect(list).toHaveBeenLastCalledWith({
+      limit: 20,
+      muscleGroup: "chest",
+      offset: 20,
+    });
+    expect(screen.queryByText("Load More")).toBeNull();
+  });
+
+  it("sends a new muscle group at once, with the search being typed", async () => {
+    await renderView();
+    list.mockClear();
+
+    await fireEvent.changeText(screen.getByLabelText("Search exercises"), "sq");
+    await fireEvent.press(screen.getByLabelText("Muscle group Quadriceps"));
+    await advance(0);
+
+    expect(list).toHaveBeenCalledTimes(1);
+    expect(list).toHaveBeenLastCalledWith({
+      limit: 20,
+      muscleGroup: "quadriceps",
+      offset: 0,
+      search: "sq",
+    });
   });
 
   it("starts from the muscle group it's given", async () => {
@@ -259,6 +291,45 @@ describe("filtering and paging", () => {
     });
     expect(screen.getByText("Bench Press 25")).toBeTruthy();
     expect(screen.queryByText("Load More")).toBeNull();
+  });
+});
+
+describe("after a 429", () => {
+  it("holds loading the next page back until Retry-After has passed", async () => {
+    await renderView();
+    fake.failWith(new ExerciseLibraryRateLimitedError(30));
+    await fireEvent.press(screen.getByText("Load More"));
+    await advance(0);
+    expect(screen.getByText("Bench Press 01")).toBeTruthy();
+    expect(screen.queryByText(COULD_NOT_LOAD)).toBeNull();
+    fake.failWith(null);
+    list.mockClear();
+
+    await fireEvent.press(screen.getByText("Load More"));
+    await advance(10_000);
+    expect(list).not.toHaveBeenCalled();
+
+    await advance(20_000);
+    expect(list).toHaveBeenLastCalledWith({ limit: 20, offset: 20 });
+    expect(screen.getByText("Bench Press 25")).toBeTruthy();
+  });
+});
+
+describe("a failed next page", () => {
+  it("keeps the results and says it couldn't load more", async () => {
+    await renderView();
+    fake.failWith(new ExerciseLibraryUnavailableError());
+
+    await fireEvent.press(screen.getByText("Load More"));
+    await advance(1000);
+
+    expect(screen.getByText("Bench Press 01")).toBeTruthy();
+    expect(
+      screen.getByText(
+        "Couldn't load more exercises. Check your connection and try again."
+      )
+    ).toBeTruthy();
+    expect(screen.getByText("Load More")).toBeTruthy();
   });
 });
 

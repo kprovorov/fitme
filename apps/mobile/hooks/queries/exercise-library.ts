@@ -212,7 +212,8 @@ interface ExerciseSearchParams {
  * Library tab and the Exercise picker list. A changed search is sent
  * `EXERCISE_SEARCH_DEBOUNCE_MS` after the last keystroke, a changed muscle
  * group at once. Rate limited, it keeps the last results (no error) and holds
- * the next search back until `Retry-After` has passed. Every Exercise it
+ * the next request (a search, the next page, a refresh) back until
+ * `Retry-After` has passed. Every Exercise it
  * lists is seeded into its row query and MMKV, so its detail screen has its
  * name at once and it shows offline.
  */
@@ -233,7 +234,9 @@ export const useExerciseSearch = ({
     if (sent.search === term && sent.muscleGroup === muscleGroup) {
       return;
     }
-    const debounce = sent.search === term ? 0 : EXERCISE_SEARCH_DEBOUNCE_MS;
+    // A new muscle group is one tap: it goes out at once, with any typed search.
+    const debounce =
+      sent.muscleGroup === muscleGroup ? EXERCISE_SEARCH_DEBOUNCE_MS : 0;
     const timer = setTimeout(
       () => setSent({ muscleGroup, search: term }),
       Math.max(debounce, rateLimitedUntil - Date.now())
@@ -288,12 +291,23 @@ export const useExerciseSearch = ({
   const shownPages =
     query.data?.pages ?? (isRateLimited ? lastPages : undefined);
 
+  /** Runs `request` once `Retry-After` has passed (at once when not rate limited). */
+  const afterRateLimit = async <T>(request: () => Promise<T>) => {
+    const wait = rateLimitedUntil - Date.now();
+    if (wait > 0) {
+      await new Promise((resolve) => setTimeout(resolve, wait));
+    }
+    return request();
+  };
+
   return {
     exercises: shownPages?.flatMap((page) => page.data),
     hasMore: query.hasNextPage && !query.isPlaceholderData,
     isError: query.isError && !(isRateLimited && shownPages),
     isLoadingMore: query.isFetchingNextPage,
-    loadMore: query.fetchNextPage,
-    refetch: query.refetch,
+    /** The next page failed (rate limited aside): the results stay, with a message. */
+    isLoadMoreError: query.isFetchNextPageError && !isRateLimited,
+    loadMore: () => afterRateLimit(() => query.fetchNextPage()),
+    refetch: () => afterRateLimit(() => query.refetch()),
   };
 };
