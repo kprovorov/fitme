@@ -1,5 +1,12 @@
 import type { Workout } from "@fitme/core";
-import { beforeEach, describe, expect, it, jest } from "@jest/globals";
+import {
+  afterEach,
+  beforeEach,
+  describe,
+  expect,
+  it,
+  jest,
+} from "@jest/globals";
 import { QueryClient, QueryClientProvider } from "@tanstack/react-query";
 import {
   act,
@@ -9,6 +16,8 @@ import {
   waitFor,
 } from "@testing-library/react-native";
 import { Alert } from "react-native";
+import { PlanUpdateSheetHost } from "~/components/workout-sessions/plan-update-sheet";
+import { closePlanUpdatePrompt } from "~/hooks/plan-update-prompt";
 import WorkoutCard from "../workout-card";
 
 const mockPush = jest.fn();
@@ -17,6 +26,10 @@ const mockDismiss = jest.fn();
 const mockFinishRpc =
   jest.fn<(variables: { sessionId: string }) => Promise<unknown>>();
 const mockFetchSession = jest.fn<() => Promise<unknown>>();
+const mockPlanChangesRpc =
+  jest.fn<
+    (sessionId: string, options: { apply: boolean }) => Promise<unknown>
+  >();
 
 // The card sits on Home, a tab: no session screen anywhere in its stack.
 jest.mock("expo-router", () => ({
@@ -32,6 +45,20 @@ jest.mock("expo-router", () => ({
 jest.mock("@sentry/react-native", () => ({ captureException: jest.fn() }));
 jest.mock("~/components/exercises/exercise-image", () => () => null);
 jest.mock("~/components/symbol-image", () => ({ SymbolImage: () => null }));
+jest.mock("~/components/ui/dialog", () =>
+  jest.requireActual("~/test-utils/dialog-stub")
+);
+jest.mock("~/lib/segment", () => ({ segmentClient: { track: jest.fn() } }));
+jest.mock("~/hooks/queries/profiles", () => {
+  const { createQuery } =
+    jest.requireActual<typeof import("react-query-kit")>("react-query-kit");
+  return {
+    useProfileQuery: createQuery({
+      fetcher: () => Promise.resolve({ measurement_system: "metric" }),
+      queryKey: ["profile"],
+    }),
+  };
+});
 
 jest.mock("~/components/ui/button", () => {
   const { Pressable, Text } =
@@ -66,6 +93,12 @@ jest.mock("~/hooks/queries/workout-sessions", () => {
   const FINISH_WORKOUT_SESSION_MUTATION_KEY = ["finish-workout-session"];
   return {
     FINISH_WORKOUT_SESSION_MUTATION_KEY,
+    fetchPlanChanges: (sessionId: string) =>
+      mockPlanChangesRpc(sessionId, { apply: false }),
+    useApplyPlanChangesMutation: createMutation({
+      mutationFn: ({ sessionId }: { sessionId: string }) =>
+        mockPlanChangesRpc(sessionId, { apply: true }),
+    }),
     useCreateWorkoutSessionMutation: createMutation({
       mutationFn: () => Promise.reject(new Error("not expected")),
     }),
@@ -102,12 +135,18 @@ const renderCard = async (session: unknown) => {
     },
   });
   mockFetchSession.mockResolvedValue(session);
-  await render(
+  // The sheet's host sits in the root layout, next to Home.
+  const screenWith = (card: boolean) => (
     <QueryClientProvider client={queryClient}>
-      <WorkoutCard state="upcoming" workout={workout} />
+      {card ? <WorkoutCard state="upcoming" workout={workout} /> : null}
+      <PlanUpdateSheetHost />
     </QueryClientProvider>
   );
-  return queryClient;
+  const { rerender } = await render(screenWith(true));
+  return Object.assign(queryClient, {
+    /** The card leaves Home once its Plan refetches with the session finished. */
+    removeCard: () => rerender(screenWith(false)),
+  });
 };
 
 type AlertButtons = Parameters<typeof Alert.alert>[2];
@@ -127,7 +166,55 @@ const partlyLogged = {
 describe("WorkoutCard's Finish Workout", () => {
   beforeEach(() => {
     jest.clearAllMocks();
+    mockPlanChangesRpc.mockResolvedValue({
+      changes: [],
+      plan: null,
+      workout: null,
+    });
     jest.spyOn(Alert, "alert").mockImplementation(() => undefined);
+  });
+
+  afterEach(async () => {
+    await act(() => closePlanUpdatePrompt("session-1"));
+  });
+
+  it("asks to update the Plan, even once the card is gone, then opens the summary", async () => {
+    mockFinishRpc.mockResolvedValue({});
+    mockPlanChangesRpc.mockResolvedValueOnce({
+      changes: [
+        { exercise: { id: "e-1", name: "Dips" }, kind: "remove_exercise" },
+      ],
+      plan: { id: "plan-1", name: "PPL" },
+      workout: { id: "workout-1", name: "Push Day" },
+    });
+    const { removeCard } = await renderCard({
+      exercises: [{ sets: [{ reps_completed: 8 }] }],
+      id: "session-1",
+    });
+
+    await fireEvent.press(
+      screen.getByRole("button", { name: "Finish Workout" })
+    );
+
+    expect(await screen.findByText("Remove Dips")).toBeTruthy();
+    expect(mockPush).not.toHaveBeenCalled();
+
+    await removeCard();
+    mockPlanChangesRpc.mockResolvedValueOnce({
+      changes: [],
+      plan: null,
+      workout: null,
+    });
+    await fireEvent.press(screen.getByRole("button", { name: "Update plan" }));
+
+    await waitFor(() =>
+      expect(mockPush).toHaveBeenCalledWith(
+        "/workout-sessions/session-1/summary"
+      )
+    );
+    expect(mockPlanChangesRpc).toHaveBeenLastCalledWith("session-1", {
+      apply: true,
+    });
   });
 
   it("finishes the active session and opens its summary over Home", async () => {

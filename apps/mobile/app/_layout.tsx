@@ -18,6 +18,7 @@ import "react-native-reanimated";
 import { Uniwind } from "uniwind";
 import MinimumVersionGate from "~/components/minimum-version-gate";
 import Providers from "~/components/providers";
+import { PlanUpdateSheetHost } from "~/components/workout-sessions/plan-update-sheet";
 import "../global.css";
 import { Stack } from "expo-router";
 import { getFocusedRouteNameFromRoute } from "expo-router/react-navigation";
@@ -122,6 +123,7 @@ function RootLayout() {
           />
         </Stack>
       </MinimumVersionGate>
+      <PlanUpdateSheetHost />
       <PortalHost />
       <StatusBar style="auto" />
     </Providers>
