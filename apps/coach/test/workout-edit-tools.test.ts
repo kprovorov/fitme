@@ -1,5 +1,7 @@
+import { ExerciseLibraryUnavailableError } from "@fitme/exercise-library";
 import type { ToolContext } from "eve/tools";
 import { beforeEach, describe, expect, it, vi } from "vitest";
+import { fakeLibrary } from "./exercise-library";
 import { contextFor, inputSchemaOf, userIdFields } from "./tool-context";
 
 const db = vi.hoisted(() => ({ asUser: vi.fn() }));
@@ -25,15 +27,12 @@ vi.mock("@fitme/services/workout-edits", () => ({
   ...editErrors,
 }));
 
-const plans = vi.hoisted(() => ({
-  UnknownExercisesError: class FakeUnknownExercisesError extends Error {
-    constructor(exerciseIds: string[]) {
-      super(`Unknown exercise_id(s): ${exerciseIds.join(", ")}`);
-    }
-  },
-}));
-vi.mock("@fitme/services/plans", () => plans);
-const { UnknownExercisesError } = plans;
+const observability = vi.hoisted(() => ({ reportError: vi.fn() }));
+vi.mock("@fitme/observability/node", () => observability);
+vi.mock("../agent/lib/exercise-library", async () => {
+  const { fakeLibrary: library } = await import("./exercise-library");
+  return { exerciseLibrary: () => library };
+});
 
 const { default: addExerciseToWorkout } = await import(
   "../agent/tools/add_exercise_to_workout"
@@ -57,7 +56,8 @@ const { default: updateSetRecommendations } = await import(
 const tx = { fake: "transaction" };
 const workoutId = "a0000000-0000-4000-8000-000000000001";
 const workoutExerciseId = "b0000000-0000-4000-8000-000000000001";
-const exerciseId = "c0000000-0000-4000-8000-000000000001";
+const exerciseSlug = "bench-press";
+const legacyExerciseId = "c0000000-0000-4000-8000-000000000001";
 const setId = "d0000000-0000-4000-8000-000000000001";
 const sets = [
   { reps_recommended: 8, rest_recommended: 90, weight_recommended: 60 },
@@ -88,7 +88,7 @@ const cases: {
   tool: Tool;
 }[] = [
   {
-    input: { exercise_id: exerciseId, sets, workout_id: workoutId },
+    input: { exercise_slug: exerciseSlug, sets, workout_id: workoutId },
     name: "add_exercise_to_workout",
     service: "addExerciseToWorkout",
     tool: addExerciseToWorkout,
@@ -113,7 +113,7 @@ const cases: {
   },
   {
     input: {
-      new_exercise_id: exerciseId,
+      new_exercise_slug: exerciseSlug,
       sets,
       workout_exercise_id: workoutExerciseId,
     },
@@ -130,6 +130,8 @@ const cases: {
 ];
 
 beforeEach(() => {
+  fakeLibrary.failWith(null);
+  observability.reportError.mockResolvedValue(undefined);
   db.asUser.mockImplementation((_userId, fn) => fn(tx));
   edits.addExerciseToWorkout.mockResolvedValue({
     id: workoutExerciseId,
@@ -189,7 +191,7 @@ describe.each(cases)("$name", ({ input, service, tool }) => {
     const withBadIds = Object.fromEntries(
       Object.entries(input).map(([key, value]) => [
         key,
-        key.endsWith("id") ? "latest" : value,
+        key.endsWith("_id") ? "latest" : value,
       ])
     );
 
@@ -197,8 +199,68 @@ describe.each(cases)("$name", ({ input, service, tool }) => {
   });
 });
 
+/** The checks every tool writing an Exercise slug runs before asUser. */
+const slugChecks = [
+  {
+    field: "exercise_slug",
+    input: { exercise_slug: exerciseSlug, sets, workout_id: workoutId },
+    service: "addExerciseToWorkout",
+    tool: addExerciseToWorkout,
+  },
+  {
+    field: "new_exercise_slug",
+    input: {
+      new_exercise_slug: exerciseSlug,
+      sets,
+      workout_exercise_id: workoutExerciseId,
+    },
+    service: "replaceExerciseInWorkout",
+    tool: replaceExerciseInWorkout,
+  },
+] as const;
+
+describe.each(slugChecks)(
+  "$field checks",
+  ({ field, input, service, tool }) => {
+    it("refuses a slug the library doesn't know, writing nothing", async () => {
+      expect(await run(tool, { ...input, [field]: "made-up-fly" })).toEqual({
+        error:
+          "Unknown exercise_slug(s): made-up-fly. Use search_exercises to find a valid exercise_slug; nothing was saved.",
+      });
+      expect(db.asUser).not.toHaveBeenCalled();
+      expect(edits[service]).not.toHaveBeenCalled();
+    });
+
+    it("sends an old exercise id back to search_exercises by name", async () => {
+      const answer = (await run(tool, {
+        ...input,
+        [field]: legacyExerciseId,
+      })) as { error: string };
+
+      expect(answer.error).toContain("search_exercises");
+      expect(answer.error).toContain("name");
+      expect(db.asUser).not.toHaveBeenCalled();
+    });
+
+    it("asks to retry when the library fails, writing nothing", async () => {
+      const failure = new ExerciseLibraryUnavailableError();
+      fakeLibrary.failWith(failure);
+
+      expect(await run(tool, input)).toEqual({
+        error:
+          "The exercise library is unavailable right now, so nothing was saved. Try again in a moment.",
+      });
+      expect(db.asUser).not.toHaveBeenCalled();
+      expect(observability.reportError).toHaveBeenCalledWith(
+        failure,
+        expect.anything()
+      );
+    });
+  }
+);
+
 describe("add_exercise_to_workout", () => {
-  const input = { exercise_id: exerciseId, sets, workout_id: workoutId };
+  const input = { exercise_slug: exerciseSlug, sets, workout_id: workoutId };
 
   it("adds the Exercise and reports it", async () => {
     expect(await run(addExerciseToWorkout, input)).toEqual({
@@ -207,7 +269,7 @@ describe("add_exercise_to_workout", () => {
       workout_exercise_id: workoutExerciseId,
     });
     expect(edits.addExerciseToWorkout).toHaveBeenCalledWith(tx, "user_alice", {
-      exerciseId,
+      exerciseSlug,
       requestKey: expect.any(String),
       sets,
       workoutId,
@@ -219,16 +281,6 @@ describe("add_exercise_to_workout", () => {
 
     expect(await run(addExerciseToWorkout, input)).toEqual({
       error: "Workout not found",
-    });
-  });
-
-  it("tells the model when the Exercise isn't in the library", async () => {
-    edits.addExerciseToWorkout.mockRejectedValue(
-      new UnknownExercisesError([exerciseId])
-    );
-
-    expect(await run(addExerciseToWorkout, input)).toEqual({
-      error: `Unknown exercise_id(s): ${exerciseId}`,
     });
   });
 
@@ -299,14 +351,14 @@ describe("set targets", () => {
     ).toBe(false);
     expect(
       accepts(addExerciseToWorkout, {
-        exercise_id: exerciseId,
+        exercise_slug: exerciseSlug,
         sets: [{ ...newSet, ...change }],
         workout_id: workoutId,
       })
     ).toBe(false);
     expect(
       accepts(replaceExerciseInWorkout, {
-        new_exercise_id: exerciseId,
+        new_exercise_slug: exerciseSlug,
         sets: [{ ...newSet, ...change }],
         workout_exercise_id: workoutExerciseId,
       })
@@ -316,7 +368,7 @@ describe("set targets", () => {
   it("rejects more than 20 sets for one Exercise", () => {
     expect(
       accepts(addExerciseToWorkout, {
-        exercise_id: exerciseId,
+        exercise_slug: exerciseSlug,
         sets: Array.from({ length: 21 }, () => newSet),
         workout_id: workoutId,
       })
@@ -474,14 +526,14 @@ describe("remove_set_from_exercise", () => {
 
 describe("replace_exercise_in_workout", () => {
   const input = {
-    new_exercise_id: exerciseId,
+    new_exercise_slug: exerciseSlug,
     sets,
     workout_exercise_id: workoutExerciseId,
   };
 
   it("replaces the Exercise and reports it", async () => {
     expect(await run(replaceExerciseInWorkout, input)).toEqual({
-      new_exercise_id: exerciseId,
+      new_exercise_slug: exerciseSlug,
       sets_replaced: 1,
       success: true,
       workout_exercise_id: workoutExerciseId,
@@ -489,7 +541,7 @@ describe("replace_exercise_in_workout", () => {
     expect(edits.replaceExerciseInWorkout).toHaveBeenCalledWith(
       tx,
       "user_alice",
-      { newExerciseId: exerciseId, sets, workoutExerciseId }
+      { newExerciseSlug: exerciseSlug, sets, workoutExerciseId }
     );
   });
 
@@ -498,16 +550,6 @@ describe("replace_exercise_in_workout", () => {
 
     expect(await run(replaceExerciseInWorkout, input)).toEqual({
       error: "Workout exercise not found",
-    });
-  });
-
-  it("tells the model when the Exercise isn't in the library", async () => {
-    edits.replaceExerciseInWorkout.mockRejectedValue(
-      new UnknownExercisesError([exerciseId])
-    );
-
-    expect(await run(replaceExerciseInWorkout, input)).toEqual({
-      error: `Unknown exercise_id(s): ${exerciseId}`,
     });
   });
 });

@@ -1,5 +1,4 @@
 import { MAX_REPS, MAX_WEIGHT } from "@fitme/core/limits";
-import { UnknownExercisesError } from "@fitme/services/plans";
 import { TooManySetsError } from "@fitme/services/workout-edits";
 import { z } from "zod";
 
@@ -28,9 +27,9 @@ export const setSchema = z.object({
 });
 
 /**
- * Runs a Plan edit; an Exercise missing from the library (search again) or an
- * Exercise already at its set limit becomes an error the model can act on,
- * anything else still throws.
+ * Runs a Plan edit; an Exercise already at its set limit becomes an error the
+ * model can act on, anything else still throws. Exercise slugs are checked
+ * before the edit (`checkExerciseSlugs`).
  */
 export const reportingEditErrors = async <T>(
   edit: () => Promise<T>
@@ -38,10 +37,7 @@ export const reportingEditErrors = async <T>(
   try {
     return await edit();
   } catch (error) {
-    if (
-      error instanceof UnknownExercisesError ||
-      error instanceof TooManySetsError
-    ) {
+    if (error instanceof TooManySetsError) {
       return { error: error.message };
     }
     throw error;

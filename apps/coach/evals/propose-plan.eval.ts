@@ -1,22 +1,16 @@
 import { defineEval } from "eve/evals";
 import { satisfies } from "eve/evals/expect";
-import {
-  BENCH_ID,
-  INCLINE_ID,
-  ROW_ID,
-  readToolStubs,
-  SQUAT_ID,
-} from "./fixtures";
+import { BENCH, INCLINE, ROW, readToolStubs, SQUAT } from "./fixtures";
 
-const LIBRARY_IDS = new Set([BENCH_ID, INCLINE_ID, ROW_ID, SQUAT_ID]);
+const LIBRARY_SLUGS = new Set([BENCH, INCLINE, ROW, SQUAT]);
 
 interface ProposedPlan {
-  workouts: { exercises: { exercise_id: string }[] }[];
+  workouts: { exercises: { exercise_slug: string }[] }[];
 }
 
 export default defineEval({
   description:
-    "Propose a plan: searches exercises, then renders the Plan through display_workout_plan with library ids only.",
+    "Propose a plan: searches exercises, then renders the Plan through display_workout_plan with library slugs only.",
   async test(t) {
     const session = await t.session({ stubs: readToolStubs });
     const turn = await session.send(
@@ -40,9 +34,11 @@ export default defineEval({
           workouts.every(
             ({ exercises }) =>
               exercises.length > 0 &&
-              exercises.every(({ exercise_id }) => LIBRARY_IDS.has(exercise_id))
+              exercises.every(({ exercise_slug }) =>
+                LIBRARY_SLUGS.has(exercise_slug)
+              )
           ),
-        "every exercise uses an id search_exercises returned"
+        "every exercise uses a slug search_exercises returned"
       )
     );
   },
