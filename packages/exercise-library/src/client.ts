@@ -105,9 +105,12 @@ export const createExerciseLibrary = ({
   // A token getter that throws (Clerk offline) is a failure to reach the
   // library; no token at all (signed out) is unauthorized, without a request.
   const bearer = async () => {
-    const value = await token().catch((cause: unknown) => {
-      throw new ExerciseLibraryUnavailableError({ cause });
-    });
+    // through a promise chain, so a getter that throws synchronously is caught too
+    const value = await Promise.resolve()
+      .then(token)
+      .catch((cause: unknown) => {
+        throw new ExerciseLibraryUnavailableError({ cause });
+      });
     if (!value) {
       throw new ExerciseLibraryUnauthorizedError();
     }

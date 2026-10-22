@@ -205,6 +205,21 @@ describe("auth", () => {
       code: "unavailable",
     });
   });
+  it("fails unavailable when token() throws before returning a promise", async () => {
+    const cause = new Error("not loaded");
+    const library = createExerciseLibrary({
+      fetch: stubApi([exercise("squat")]).fetch,
+      token: () => {
+        throw cause;
+      },
+      url: URL,
+    });
+
+    await expect(library.list()).rejects.toMatchObject({
+      cause,
+      code: "unavailable",
+    });
+  });
 });
 
 describe("errors", () => {
