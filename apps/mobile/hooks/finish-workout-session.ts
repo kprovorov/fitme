@@ -126,9 +126,10 @@ async function confirmFinishWorkout(
  * replacing it, so the stack ends the same as finishing from the session
  * screen.
  *
- * `confirmFinish` is for the header's Finish button: it asks first when some
- * planned sets aren't logged (see `confirmFinishWorkout`). `finish` never
- * asks, for the finish suggestion, which only opens once every set is logged.
+ * `confirmFinish` is for the header's Finish button and the Workout card: it
+ * asks first when some planned sets aren't logged (see
+ * `confirmFinishWorkout`). `finish` never asks, for the finish suggestion,
+ * which only opens once every set is logged.
  */
 export function useFinishWorkoutSession(
   sessionId: string,

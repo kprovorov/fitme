@@ -21,9 +21,7 @@ const mockFetchSession = jest.fn<() => Promise<unknown>>();
 // The card sits on Home, a tab: no session screen anywhere in its stack.
 jest.mock("expo-router", () => ({
   Link: ({ children }: { children: unknown }) => children,
-  useNavigation: () => ({
-    getState: () => ({ index: 0, routes: [{ params: {} }] }),
-  }),
+  useNavigation: () => ({}),
   useRouter: () => ({
     dismiss: mockDismiss,
     push: mockPush,
