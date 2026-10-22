@@ -396,18 +396,18 @@ describe("display_workout_plan", () => {
     );
   });
 
-  it("refuses a slug the library doesn't know", async () => {
-    expect(await run(proposed(exercise("made-up-fly", "Fly")))).toEqual({
-      error: expect.stringContaining("made-up-fly"),
-    });
+  it("refuses a slug the library doesn't know with a tool error, never a result the app would render", async () => {
+    await expect(run(proposed(exercise("made-up-fly", "Fly")))).rejects.toThrow(
+      "made-up-fly"
+    );
     expect(exerciseServices.legacyExerciseIdsBySlug).not.toHaveBeenCalled();
   });
 
   it("asks to retry when the library fails", async () => {
     fakeLibrary.failWith(libraryDown);
 
-    expect(await run(proposed(exercise("bench-press", "Bench")))).toEqual({
-      error: expect.stringContaining("Try again"),
-    });
+    await expect(
+      run(proposed(exercise("bench-press", "Bench")))
+    ).rejects.toThrow("Try again");
   });
 });

@@ -35,7 +35,9 @@ export default defineTool({
     );
     const refused = await checkExerciseSlugs(slugs);
     if (refused) {
-      return refused;
+      // A tool error, never an `{ error }` result: the app renders every
+      // successful result as a plan card (installed builds included)
+      throw new Error(refused.error);
     }
     // Until the contract step (then delete this and `exercise_id`): the plan
     // card in installed v2.0.0 apps reads the legacy uuid and sends it to
