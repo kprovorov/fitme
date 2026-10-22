@@ -666,7 +666,7 @@ importers:
     dependencies:
       '@clerk/nextjs':
         specifier: ^7.9.16
-        version: 7.9.16(next@16.4.2(@opentelemetry/api@1.9.1)(@types/node@22.15.21)(babel-plugin-react-compiler@1.0.0)(react-dom@19.3.0(react@19.3.0))(react@19.3.0))(react-dom@19.3.0(react@19.3.0))(react@19.3.0)
+        version: 7.9.16(next@16.4.2(@babel/core@7.29.7)(@opentelemetry/api@1.9.1)(@types/node@22.15.21)(babel-plugin-react-compiler@1.0.0)(react-dom@19.3.0(react@19.3.0))(react@19.3.0))(react-dom@19.3.0(react@19.3.0))(react@19.3.0)
       '@fitme/core':
         specifier: workspace:*
         version: link:../../packages/core
@@ -853,6 +853,22 @@ importers:
       tailwindcss:
         specifier: 4.3.3
         version: 4.3.3
+      typescript:
+        specifier: ~5.9.2
+        version: 5.9.3
+      vitest:
+        specifier: ^5.0.5
+        version: 5.0.5(@opentelemetry/api@1.9.1)(@types/node@24.19.2)(jsdom@26.1.0)(vite@7.3.6(@types/node@24.19.2)(jiti@2.7.0)(lightningcss@1.33.0)(terser@5.51.2)(tsx@4.23.15)(yaml@2.9.1))
+
+  packages/exercise-library:
+    dependencies:
+      '@fitme/core':
+        specifier: workspace:*
+        version: link:../core
+    devDependencies:
+      '@fitme/typescript-config':
+        specifier: workspace:*
+        version: link:../typescript-config
       typescript:
         specifier: ~5.9.2
         version: 5.9.3
@@ -12316,7 +12332,7 @@ snapshots:
       '@modelcontextprotocol/sdk': 1.32.1(zod@4.6.7)
     optionalDependencies:
       '@clerk/hono': 0.1.90(hono@4.13.13)(react-dom@19.3.0(react@19.3.0))(react@19.3.0)
-      '@clerk/nextjs': 7.9.16(next@16.4.2(@opentelemetry/api@1.9.1)(@types/node@22.15.21)(babel-plugin-react-compiler@1.0.0)(react-dom@19.3.0(react@19.3.0))(react@19.3.0))(react-dom@19.3.0(react@19.3.0))(react@19.3.0)
+      '@clerk/nextjs': 7.9.16(next@16.4.2(@babel/core@7.29.7)(@opentelemetry/api@1.9.1)(@types/node@22.15.21)(babel-plugin-react-compiler@1.0.0)(react-dom@19.3.0(react@19.3.0))(react@19.3.0))(react-dom@19.3.0(react@19.3.0))(react@19.3.0)
       express: 5.2.1
       hono: 4.13.13
       next: 16.4.2(@babel/core@7.29.7)(@opentelemetry/api@1.9.1)(@types/node@22.15.21)(babel-plugin-react-compiler@1.0.0)(react-dom@19.3.0(react@19.3.0))(react@19.3.0)
@@ -12326,7 +12342,7 @@ snapshots:
       - supports-color
       - zod
 
-  '@clerk/nextjs@7.9.16(next@16.4.2(@opentelemetry/api@1.9.1)(@types/node@22.15.21)(babel-plugin-react-compiler@1.0.0)(react-dom@19.3.0(react@19.3.0))(react@19.3.0))(react-dom@19.3.0(react@19.3.0))(react@19.3.0)':
+  '@clerk/nextjs@7.9.16(next@16.4.2(@babel/core@7.29.7)(@opentelemetry/api@1.9.1)(@types/node@22.15.21)(babel-plugin-react-compiler@1.0.0)(react-dom@19.3.0(react@19.3.0))(react@19.3.0))(react-dom@19.3.0(react@19.3.0))(react@19.3.0)':
     dependencies:
       '@clerk/backend': 3.25.0(react-dom@19.3.0(react@19.3.0))(react@19.3.0)
       '@clerk/react': 6.17.8(react-dom@19.3.0(react@19.3.0))(react@19.3.0)

@@ -15,6 +15,7 @@ apps/web                @fitme/web     — Next.js (App Router) web app
 apps/site               @fitme/site    — Next.js marketing site (Vercel project fitme-site; fitmeproject.com isn't served from it yet, see apps/site)
 apps/webhooks           @fitme/webhooks — Hono app receiving third-party webhooks (Node)
 packages/core           @fitme/core    — domain models, labels, formatters, pure helpers
+packages/exercise-library @fitme/exercise-library — the Exercise Library API client shared by the Coach, MCP and mobile, plus its in-memory fake
 packages/design-tokens  @fitme/design-tokens — the design tokens and HIG text style utilities: one Tailwind v4 CSS file (mobile, web and site import it)
 packages/supabase       @fitme/supabase — Supabase project + generated DB types
 packages/db             @fitme/db      — asUser / withService: the only way backend apps reach Postgres
@@ -39,7 +40,7 @@ pnpm dev:webhooks        # tsx watch webhooks app on :3004 (needs FITME_DATABASE
 pnpm dev:coach           # eve dev (no TUI) on :3005 against the local stack (apps/coach/.env.local: CLERK_JWT_KEY, FITME_DATABASE_URL, AI_GATEWAY_API_KEY)
 pnpm dev:exercises       # generate + tsx watch Exercise Library API on :3006, serving the fixture bundle (apps/exercises/.env: Clerk keys and/or server secrets to call it)
 pnpm build               # turbo run build
-pnpm test                # turbo run test (jest in mobile, vitest in core, design-tokens, observability, mcp, api, webhooks, coach and exercises)
+pnpm test                # turbo run test (jest in mobile, vitest in core, design-tokens, exercise-library, observability, mcp, api, webhooks, coach and exercises)
 pnpm typecheck           # turbo run typecheck
 pnpm check / pnpm fix    # ultracite (Biome) over the whole repo
 pnpm literal-check       # no color literal or arbitrary size in the .tsx of mobile, web and site (alias for pnpm --filter @fitme/design-tokens literal-check)
@@ -75,6 +76,7 @@ pnpm --silent db clerk:jwt-key [domain] # print a Clerk instance's JWT public ke
 
 # Single test file
 pnpm --filter @fitme/core exec vitest run src/__tests__/formatters.test.ts
+pnpm --filter @fitme/exercise-library exec vitest run src/__tests__/client.test.ts
 pnpm --filter @fitme/mobile exec jest --testPathPatterns="<file>"
 ```
 
@@ -237,6 +239,16 @@ Errors and traces for every app (Sentry today; the vendor-neutral name leaves ro
 - `@sentry/node` is a runtime dependency here and must also be in each consuming app's own `dependencies` (the tsdown apps keep it external).
 - **Bundling finding (FIT-217):** the SDK instruments libraries through module hooks it registers at `initObservability`, so it only sees modules loaded after that. A tsdown bundle hoists every external `import` to the top of the entry, so a statically imported `pg` loads before init and gets no spans (`[instrumentation:pg, pg-pool] not injected yet`). The Vercel entry (`src/app.ts`) therefore imports `hono`, calls `initObservability`, and only then `await import("./create-app.js")`; with that, `pg` / `pg-pool` spans appear under the request span. Request spans don't depend on load order (`observeHono`), and outgoing `fetch` spans (`http.client`, with trace headers to the propagation targets) come from Node's own diagnostics channels, so bundling doesn't affect them. A tsdown app moving onto the package copies the `apps/webhooks` entry, build setup and `turbo.json`.
 - Tests (`src/__tests__/`, vitest) cover the root export: the scrubber (its `Failed query:` backstop included), `sanitizeError` on Drizzle-shaped errors, the SDK options, the propagation list (our services and localhost match; Clerk, RevenueCat, Supabase and look-alike hosts don't) and the config resolution (production, preview, no DSN, outside Vercel); `report-error.test.ts` checks what `reportError` hands a mocked `@sentry/node` and the console for a query failure.
+
+### packages/exercise-library — `@fitme/exercise-library`
+
+The one client for the Exercise Library API (`apps/exercises`), shared by the Coach, MCP and the mobile app (project "Exercises off Postgres"), plus an in-memory fake for their tests. Source-only, like the other `@fitme/*` packages, and `fetch`-only: nothing Node-specific, so it runs in Node and React Native (the query string is built by hand, since React Native's `URLSearchParams` is partial). No zod; its only dependency is `@fitme/core` (muscle groups), so a tsdown app needs nothing extra in its `dependencies`.
+
+- `src/client.ts` — `createExerciseLibrary({ url, token, fetch?, timeoutMs? })`. `token` is an async getter asked once per request: a server secret (`EXERCISES_COACH_SECRET`, `EXERCISES_MCP_SECRET`) for the Coach and MCP, the User's Clerk session token for mobile; `null` / empty fails unauthorized without a request. `lookup(slugs)` → `{ data, missing }`: drops repeated slugs, splits the rest into requests of at most 40 (`MAX_LOOKUP_SLUGS`, the API's `?slugs=` limit), sent in parallel, and answers in asked order with every slug no Exercise has in `missing` (an empty slug or one with a comma is never sent, only answered missing); one failed chunk fails the lookup. `list({ search, muscleGroup, limit, offset })` → `{ data, total, hasMore }`, sending only the parameters given so the API's defaults apply.
+- `src/errors.ts` — every failure is an `ExerciseLibraryError` with a `code` (match on it or the subclass): `ExerciseLibraryUnauthorizedError` (401, or no token), `ExerciseLibraryRateLimitedError` (429, `retryAfterSeconds` from `Retry-After`, 60 when unreadable), `ExerciseLibraryUnavailableError` (network failure, a throwing token getter, the 10 s timeout, any other status, an unreadable answer; `cause` kept) and `ExerciseLibraryInvalidRequestError` (400, the API's message).
+- `src/types.ts` — `ExerciseSummary`, `Exercise`, `ExercisePage`, `ExerciseBatch` mirror `apps/exercises`' `src/schemas.ts` by hand (muscle groups typed from `@fitme/core`): a field added there is added here too. `ExerciseLibrary` is the interface both the client and the fake implement.
+- `src/fake.ts` (export `@fitme/exercise-library/fake`) — `createFakeExerciseLibrary(exercises)`: the API's answers over those Exercises in memory (alphabetical by name, ties by slug; trimmed case-insensitive substring search, `%`/`_` literal; muscle group filter; paging with its defaults and bounds, an out-of-bounds parameter failing invalid request; lookup with `missing`; summaries only), and `failWith(error)` fails every call until `failWith(null)`. Consumers' tests use it, never the network.
+- Tests (`src/__tests__/`, vitest) drive the client through a stubbed `fetch` answering like `apps/exercises` (`stub-api.ts`): chunking at 40, order, dedupe and `missing`, the bearer on every request, the error mapping; `fake.test.ts` checks the fake answers exactly what the client does over the same Exercises, and fails on demand.
 
 ### packages/db — `@fitme/db`
 
