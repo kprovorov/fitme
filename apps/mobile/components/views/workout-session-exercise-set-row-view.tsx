@@ -2,7 +2,8 @@ import type { WorkoutSessionExerciseSet } from "@fitme/core";
 import { useQueryClient } from "@tanstack/react-query";
 import * as Haptics from "expo-haptics";
 import { useRef, useState } from "react";
-import { AccessibilityInfo } from "react-native";
+import { AccessibilityInfo, View } from "react-native";
+import { SymbolImage } from "~/components/symbol-image";
 import { reportWorkoutSetTracked } from "~/hooks/finish-workout-suggestion";
 import {
   useCreateWorkoutSessionExerciseSetMutation,
@@ -11,6 +12,7 @@ import {
 import { IS_E2E } from "~/lib/constants";
 import { segmentClient } from "~/lib/segment";
 import { formatSetTarget, formatSetWeight } from "~/lib/set-inputs";
+import { cn } from "~/lib/utils";
 import WorkoutSessionExerciseSetForm, {
   SET_TABLE_MAX_FONT_SCALE,
   type WorkoutSessionExerciseSetFormValues,
@@ -146,6 +148,8 @@ export default function WorkoutSessionExerciseSetRowView({
     : workoutSessionExerciseSet.reps_completed;
 
   const handleEdit = () => setIsEditing(true);
+  // A logged set reads as done until it's opened for editing.
+  const showsLogged = isDone && !isEditing;
 
   const handleSubmit = (values: WorkoutSessionExerciseSetFormValues) => {
     // An empty field keeps what's shown as its placeholder: the logged value
@@ -192,15 +196,28 @@ export default function WorkoutSessionExerciseSetRowView({
       isEditing={isEditable}
       leading={
         <>
-          <Text
-            className="w-7 text-center text-mono-footnote"
-            maxFontSizeMultiplier={SET_TABLE_MAX_FONT_SCALE}
-          >
-            #{setOrder}
-          </Text>
+          {showsLogged ? (
+            <View className="w-7 items-center">
+              <SymbolImage
+                accessibilityLabel={`Set ${setOrder}, logged`}
+                className="text-footnote-emphasized text-primary"
+                name="checkmark"
+              />
+            </View>
+          ) : (
+            <Text
+              className="w-7 text-center text-mono-footnote"
+              maxFontSizeMultiplier={SET_TABLE_MAX_FONT_SCALE}
+            >
+              #{setOrder}
+            </Text>
+          )}
           <Text
             adjustsFontSizeToFit
-            className="w-18 text-center text-mono-footnote"
+            className={cn(
+              "w-18 text-center text-mono-footnote",
+              showsLogged && "text-muted-foreground"
+            )}
             maxFontSizeMultiplier={SET_TABLE_MAX_FONT_SCALE}
             numberOfLines={1}
           >

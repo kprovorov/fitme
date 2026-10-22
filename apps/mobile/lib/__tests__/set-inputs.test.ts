@@ -93,10 +93,10 @@ describe("formatSetTarget", () => {
   it("shows the recommended reps × weight with the unit", () => {
     expect(
       formatSetTarget({ reps_recommended: 12, weight_recommended: 45 }, "kg")
-    ).toBe("12×45kg");
+    ).toBe("12×45 kg");
     expect(
       formatSetTarget({ reps_recommended: 8, weight_recommended: 22.5 }, "lbs")
-    ).toBe("8×22,5lbs");
+    ).toBe("8×22,5 lbs");
   });
 
   it("shows reps alone without a weight", () => {
@@ -111,7 +111,7 @@ describe("formatSetTarget", () => {
   it("shows the weight alone without reps", () => {
     expect(
       formatSetTarget({ reps_recommended: null, weight_recommended: 40 }, "kg")
-    ).toBe("40kg");
+    ).toBe("40 kg");
   });
 
   it("shows a dash without a recommendation", () => {
