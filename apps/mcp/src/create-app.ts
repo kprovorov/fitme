@@ -18,10 +18,15 @@ import {
   requireConfig,
 } from "./auth.js";
 import { createToolContext, type ReportError } from "./context.js";
+import type { ExerciseLibraryFactory } from "./exercise-library.js";
 import { createMcpServer } from "./server.js";
 import type { ServicesFactory } from "./services.js";
 
 export interface CreateAppOptions {
+  /**
+   * Overrides the Exercise Library API on `EXERCISES_URL` (used by tests).
+   */
+  createExerciseLibrary?: ExerciseLibraryFactory;
   /** Overrides the services on `FITME_DATABASE_URL` (used by tests). */
   createServices?: ServicesFactory;
   /**
@@ -38,6 +43,7 @@ export interface CreateAppOptions {
 }
 
 export function createApp({
+  createExerciseLibrary,
   createServices,
   identifyUser = identifyObservedUser,
   logRequests = true,
@@ -86,6 +92,7 @@ export function createApp({
   // process can scale without sticky sessions.
   app.all("/", (c) => {
     const context = createToolContext({
+      createExerciseLibrary,
       createServices,
       reportError,
       user: c.get("clerkUser"),

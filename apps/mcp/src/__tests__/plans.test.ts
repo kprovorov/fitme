@@ -1,12 +1,27 @@
-import { UnknownExercisesError } from "@fitme/services/plans";
+import { ExerciseLibraryUnavailableError } from "@fitme/exercise-library";
 import { describe, expect, it, vi } from "vitest";
 import {
-  BENCH_ID,
+  BENCH,
   call,
   connectWithServices,
+  fakeLibrary,
+  ignoreReports,
   PLAN_ID,
-  SQUAT_ID,
+  recordingReporter,
+  SQUAT,
 } from "./harness.js";
+
+/** The legacy uuid services still join next to the slug (until the contract step). */
+const BENCH_ID = "55555555-5555-4555-8555-555555555555";
+
+const UNAVAILABLE = "Exercise Library unavailable, try again.";
+
+/** A fake library that fails every call, as when the API is down. */
+const downLibrary = () => {
+  const library = fakeLibrary();
+  library.failWith(new ExerciseLibraryUnavailableError({ status: 503 }));
+  return library;
+};
 
 const metadata = {
   description: "Upper/lower split",
@@ -24,13 +39,13 @@ const workoutsInput = [
     description: "Chest and legs",
     exercises: [
       {
-        exercise_id: BENCH_ID,
+        exercise_slug: BENCH.slug,
         sets: [
           { reps_recommended: 8, rest_recommended: 90, weight_recommended: 60 },
         ],
       },
       {
-        exercise_id: SQUAT_ID,
+        exercise_slug: SQUAT.slug,
         sets: [
           {
             reps_recommended: 5,
@@ -56,26 +71,27 @@ const planSummary = {
   ],
 };
 
-const servicePlan = {
+const planSet = {
+  id: "set-1",
+  order: 1,
+  reps_recommended: 8,
+  rest_recommended: 90,
+  weight_recommended: 60,
+};
+
+/** A Plan as the services return it: the slug beside the legacy join. */
+const servicePlanWith = (slug: string) => ({
   ...planSummary,
   workouts: [
     {
       description: "Chest",
       exercises: [
         {
-          exercise: { id: BENCH_ID, muscle_groups: ["chest"], name: "Bench" },
-          exercise_slug: "bench-press",
+          exercise: { id: BENCH_ID, muscle_groups: ["chest"], name: "Legacy" },
+          exercise_slug: slug,
           id: "we1",
           order: 1,
-          sets: [
-            {
-              id: "set-1",
-              order: 1,
-              reps_recommended: 8,
-              rest_recommended: 90,
-              weight_recommended: 60,
-            },
-          ],
+          sets: [planSet],
         },
       ],
       id: "w1",
@@ -83,7 +99,37 @@ const servicePlan = {
       order: 1,
     },
   ],
-};
+});
+
+/** The Plan as the tools return it: the Exercise by slug, named by the library. */
+const toolPlanWith = (exercise: {
+  exercise_slug: string;
+  muscle_groups: string[];
+  name: string;
+}) => ({
+  ...planSummary,
+  workouts: [
+    {
+      description: "Chest",
+      exercises: [{ ...exercise, id: "we1", order: 1, sets: [planSet] }],
+      id: "w1",
+      name: "Day A",
+      order: 1,
+    },
+  ],
+});
+
+const servicePlan = servicePlanWith(BENCH.slug);
+const toolPlan = toolPlanWith({
+  exercise_slug: BENCH.slug,
+  muscle_groups: BENCH.muscle_groups,
+  name: BENCH.name,
+});
+const unknownToolPlan = toolPlanWith({
+  exercise_slug: "cable-fly-legacy",
+  muscle_groups: [],
+  name: "Cable fly legacy",
+});
 
 /** A database failure as Drizzle reports it: the SQL, with pg's error as cause. */
 const failedQuery = (message: string) =>
@@ -123,15 +169,48 @@ describe("list_plans", () => {
 });
 
 describe("get_plan", () => {
-  it("returns the plan in full for its id", async () => {
+  it("returns the plan in full, each Exercise by slug with its library name", async () => {
     const getPlan = vi.fn(() => Promise.resolve(servicePlan));
     const client = await connectWithServices({ getPlan });
 
     const result = await call(client, "get_plan", { planId: PLAN_ID });
 
     expect(result.isError).toBe(false);
-    expect(result.json).toEqual(servicePlan);
+    expect(result.json).toEqual(toolPlan);
+    expect(result.text).not.toContain(BENCH_ID);
     expect(getPlan).toHaveBeenCalledWith(PLAN_ID);
+  });
+
+  it("names an Exercise the library doesn't know from its slug", async () => {
+    const client = await connectWithServices({
+      getPlan: () => Promise.resolve(servicePlanWith("cable-fly-legacy")),
+    });
+
+    const result = await call(client, "get_plan", { planId: PLAN_ID });
+
+    expect(result.isError).toBe(false);
+    expect(result.json).toEqual(unknownToolPlan);
+  });
+
+  it("still answers, with slug-derived names, when the library fails, and reports it", async () => {
+    const { reportError, reported } = recordingReporter();
+    const client = await connectWithServices(
+      { getPlan: () => Promise.resolve(servicePlan) },
+      reportError,
+      downLibrary()
+    );
+
+    const result = await call(client, "get_plan", { planId: PLAN_ID });
+
+    expect(result.isError).toBe(false);
+    expect(result.json).toEqual(
+      toolPlanWith({
+        exercise_slug: BENCH.slug,
+        muscle_groups: [],
+        name: "Bench press",
+      })
+    );
+    expect(reported).toEqual([expect.any(ExerciseLibraryUnavailableError)]);
   });
 
   it("does not return soft-deleted or foreign plans", async () => {
@@ -168,28 +247,79 @@ describe("create_plan", () => {
     workouts: workoutsInput,
   };
 
-  it("creates the plan through the service and returns it in full", async () => {
+  it("creates the plan with exercise_slug through the service and returns it named", async () => {
     const createPlan = vi.fn(() => Promise.resolve(servicePlan));
     const client = await connectWithServices({ createPlan });
 
     const result = await call(client, "create_plan", plan);
 
     expect(result.isError).toBe(false);
-    expect(result.json).toEqual(servicePlan);
+    expect(result.json).toEqual(toolPlan);
     expect(createPlan).toHaveBeenCalledWith(plan);
   });
 
-  it("lists unknown exercise ids", async () => {
-    const client = await connectWithServices({
-      createPlan: () => Promise.reject(new UnknownExercisesError([SQUAT_ID])),
+  it("rejects unknown Exercise slugs, naming them, before calling the service", async () => {
+    const createPlan = vi.fn(() => Promise.resolve(servicePlan));
+    const { reportError, reported } = recordingReporter();
+    const client = await connectWithServices({ createPlan }, reportError);
+    const [workout] = workoutsInput;
+
+    const result = await call(client, "create_plan", {
+      ...plan,
+      workouts: [
+        {
+          ...workout,
+          exercises: [
+            ...workout.exercises,
+            { ...workout.exercises[0], exercise_slug: "nope-press" },
+            { ...workout.exercises[0], exercise_slug: "nope-curl" },
+          ],
+        },
+      ],
     });
+
+    expect(result.isError).toBe(true);
+    expect(result.text).toBe(
+      "Unknown exercise_slug(s): nope-press, nope-curl. Use list_exercises to look up valid Exercise slugs."
+    );
+    expect(createPlan).not.toHaveBeenCalled();
+    expect(reported).toEqual([]);
+  });
+
+  it("fails when the library is unavailable, reports it and writes nothing", async () => {
+    const createPlan = vi.fn(() => Promise.resolve(servicePlan));
+    const { reportError, reported } = recordingReporter();
+    const client = await connectWithServices(
+      { createPlan },
+      reportError,
+      downLibrary()
+    );
 
     const result = await call(client, "create_plan", plan);
 
     expect(result.isError).toBe(true);
-    expect(result.text).toBe(
-      `Unknown exercise_id(s): ${SQUAT_ID}. Use list_exercises to look up valid exercise ids.`
-    );
+    expect(result.text).toBe(UNAVAILABLE);
+    expect(createPlan).not.toHaveBeenCalled();
+    expect(reported).toEqual([expect.any(ExerciseLibraryUnavailableError)]);
+  });
+
+  it("rejects an exercise_id instead of an exercise_slug", async () => {
+    const createPlan = vi.fn(() => Promise.resolve(servicePlan));
+    const client = await connectWithServices({ createPlan });
+    const [workout] = workoutsInput;
+
+    const result = await call(client, "create_plan", {
+      ...plan,
+      workouts: [
+        {
+          ...workout,
+          exercises: [{ exercise_id: BENCH_ID, sets: [planSet] }],
+        },
+      ],
+    });
+
+    expect(result.isError).toBe(true);
+    expect(createPlan).not.toHaveBeenCalled();
   });
 
   it("rejects a plan without workouts before calling the service", async () => {
@@ -226,10 +356,30 @@ describe("update_plan", () => {
     });
 
     expect(result.isError).toBe(false);
-    expect(result.json).toEqual(servicePlan);
+    expect(result.json).toEqual(toolPlan);
     expect(updatePlan).toHaveBeenCalledWith(PLAN_ID, {
       name: "Renamed",
       note: null,
+    });
+  });
+
+  it("updates metadata, with slug-derived names, when the library fails", async () => {
+    const updatePlan = vi.fn(() => Promise.resolve(servicePlan));
+    const client = await connectWithServices(
+      { updatePlan },
+      ignoreReports,
+      downLibrary()
+    );
+
+    const result = await call(client, "update_plan", {
+      name: "Renamed",
+      planId: PLAN_ID,
+    });
+
+    expect(result.isError).toBe(false);
+    expect(updatePlan).toHaveBeenCalled();
+    expect(result.json).toMatchObject({
+      workouts: [{ exercises: [{ name: "Bench press" }] }],
     });
   });
 
@@ -244,10 +394,31 @@ describe("update_plan", () => {
     });
 
     expect(result.isError).toBe(false);
+    expect(result.json).toEqual(toolPlan);
     expect(updatePlan).toHaveBeenCalledWith(PLAN_ID, {
       frequency: 4,
       workouts: workoutsInput,
     });
+  });
+
+  it("fails replacing workouts when the library is unavailable, writing nothing", async () => {
+    const updatePlan = vi.fn(() => Promise.resolve(servicePlan));
+    const { reportError, reported } = recordingReporter();
+    const client = await connectWithServices(
+      { updatePlan },
+      reportError,
+      downLibrary()
+    );
+
+    const result = await call(client, "update_plan", {
+      planId: PLAN_ID,
+      workouts: workoutsInput,
+    });
+
+    expect(result.isError).toBe(true);
+    expect(result.text).toBe(UNAVAILABLE);
+    expect(updatePlan).not.toHaveBeenCalled();
+    expect(reported).toHaveLength(1);
   });
 
   it("errors for a missing, deleted or foreign plan", async () => {
@@ -266,11 +437,13 @@ describe("update_plan", () => {
     );
   });
 
-  it("lists unknown exercise ids", async () => {
-    const client = await connectWithServices({
-      updatePlan: () =>
-        Promise.reject(new UnknownExercisesError([BENCH_ID, SQUAT_ID])),
-    });
+  it("rejects unknown Exercise slugs before calling the service", async () => {
+    const updatePlan = vi.fn(() => Promise.resolve(servicePlan));
+    const client = await connectWithServices(
+      { updatePlan },
+      ignoreReports,
+      fakeLibrary([BENCH])
+    );
 
     const result = await call(client, "update_plan", {
       planId: PLAN_ID,
@@ -279,8 +452,9 @@ describe("update_plan", () => {
 
     expect(result.isError).toBe(true);
     expect(result.text).toBe(
-      `Unknown exercise_id(s): ${BENCH_ID}, ${SQUAT_ID}. Use list_exercises to look up valid exercise ids.`
+      `Unknown exercise_slug(s): ${SQUAT.slug}. Use list_exercises to look up valid Exercise slugs.`
     );
+    expect(updatePlan).not.toHaveBeenCalled();
   });
 
   it("rejects a call with nothing to update", async () => {

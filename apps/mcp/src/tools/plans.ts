@@ -1,7 +1,14 @@
-import { UnknownExercisesError } from "@fitme/services/plans";
 import type { McpServer } from "@modelcontextprotocol/sdk/server/mcp.js";
 import { z } from "zod";
 import type { ToolContext } from "../context.js";
+import {
+  inputSlugs,
+  lookupForRead,
+  namedPlan,
+  namePlan,
+  planSlugs,
+  requireKnownSlugs,
+} from "./exercise-library.js";
 import {
   asJson,
   pickDefined,
@@ -22,21 +29,6 @@ const planIdSchema = z.guid().describe("Plan id (plans.id).");
 const planNotFound = (planId: string) =>
   `Plan ${planId} not found (it may have been deleted or belong to another user).`;
 
-/** Turns unknown exercise ids into a message pointing at list_exercises. */
-const withUnknownExerciseHint = async <T>(write: () => Promise<T>) => {
-  try {
-    return await write();
-  } catch (error) {
-    if (error instanceof UnknownExercisesError) {
-      throw new ToolError(
-        `${error.message}. Use list_exercises to look up valid exercise ids.`,
-        { cause: error }
-      );
-    }
-    throw error;
-  }
-};
-
 function registerPlanReadTools(server: McpServer, ctx: ToolContext) {
   server.registerTool(
     "list_plans",
@@ -56,12 +48,17 @@ function registerPlanReadTools(server: McpServer, ctx: ToolContext) {
     "get_plan",
     {
       annotations: READ_ONLY,
-      description: `Returns one of the user's plans in full: workouts in rotation order (first = next up), each with its exercises (workout_exercises.id, the library exercise id/name/muscle groups) and recommended sets. Workout ids are what start_workout_session needs. ${WEIGHT_UNIT_NOTE}`,
+      description: `Returns one of the user's plans in full: workouts in rotation order (first = next up), each with its exercises (workout_exercises.id, the Exercise's \`exercise_slug\`, \`name\` and \`muscle_groups\` from the Exercise Library) and recommended sets. Workout ids are what start_workout_session needs. ${WEIGHT_UNIT_NOTE}`,
       inputSchema: { planId: planIdSchema },
       title: "Get plan",
     },
     withServices(ctx, async ({ planId }, services) =>
-      asJson(requireFound(await services.getPlan(planId), planNotFound(planId)))
+      asJson(
+        await namedPlan(
+          ctx,
+          requireFound(await services.getPlan(planId), planNotFound(planId))
+        )
+      )
     )
   );
 }
@@ -76,7 +73,7 @@ function registerPlanWriteTools(server: McpServer, ctx: ToolContext) {
         openWorldHint: false,
         readOnlyHint: false,
       },
-      description: `Creates a training plan for the user and makes it their ACTIVE plan (every other plan is deactivated). Look up exercise ids with list_exercises first; unknown ids are rejected. Order of workouts, exercises and sets comes from their array position. Use list_plan_options for valid goal / place / experience_level values. ${WEIGHT_UNIT_NOTE} Returns the created plan in full.`,
+      description: `Creates a training plan for the user and makes it their ACTIVE plan (every other plan is deactivated). Look up Exercise slugs with list_exercises first; unknown slugs are rejected and nothing is saved. Order of workouts, exercises and sets comes from their array position. Use list_plan_options for valid goal / place / experience_level values. ${WEIGHT_UNIT_NOTE} Returns the created plan in full.`,
       inputSchema: {
         ...planMetadataShape,
         note: planNoteSchema.optional(),
@@ -84,9 +81,10 @@ function registerPlanWriteTools(server: McpServer, ctx: ToolContext) {
       },
       title: "Create plan",
     },
-    withServices(ctx, async (plan, services) =>
-      asJson(await withUnknownExerciseHint(() => services.createPlan(plan)))
-    )
+    withServices(ctx, async (plan, services) => {
+      const known = await requireKnownSlugs(ctx, inputSlugs(plan.workouts));
+      return asJson(namePlan(await services.createPlan(plan), known));
+    })
   );
 
   server.registerTool(
@@ -98,7 +96,7 @@ function registerPlanWriteTools(server: McpServer, ctx: ToolContext) {
         openWorldHint: false,
         readOnlyHint: false,
       },
-      description: `Updates one of the user's plans. Pass only the fields to change. Without \`workouts\`, only the given metadata fields are updated and workout ids stay the same. With \`workouts\`, ALL existing workouts are deleted and recreated from the array (send the complete list, not a diff): workout / exercise / set ids change, and past workout sessions keep their logged sets but lose the link to their workout. Does not change which plan is active. ${WEIGHT_UNIT_NOTE} Returns the updated plan in full.`,
+      description: `Updates one of the user's plans. Pass only the fields to change. Without \`workouts\`, only the given metadata fields are updated and workout ids stay the same. With \`workouts\`, ALL existing workouts are deleted and recreated from the array (send the complete list, not a diff; unknown Exercise slugs are rejected and nothing is saved): workout / exercise / set ids change, and past workout sessions keep their logged sets but lose the link to their workout. Does not change which plan is active. ${WEIGHT_UNIT_NOTE} Returns the updated plan in full.`,
       inputSchema: {
         description: planMetadataShape.description.optional(),
         experience_level: planMetadataShape.experience_level.optional(),
@@ -123,13 +121,19 @@ function registerPlanWriteTools(server: McpServer, ctx: ToolContext) {
           "Nothing to update: pass at least one plan field or `workouts`."
         );
       }
-      const updated = await withUnknownExerciseHint(() =>
-        services.updatePlan(
+      const checked = workouts
+        ? await requireKnownSlugs(ctx, inputSlugs(workouts))
+        : undefined;
+      const updated = requireFound(
+        await services.updatePlan(
           planId,
           workouts ? { ...metadata, workouts } : metadata
-        )
+        ),
+        planNotFound(planId)
       );
-      return asJson(requireFound(updated, planNotFound(planId)));
+      // without workouts, the Plan keeps Exercises nothing has looked up yet
+      const known = checked ?? (await lookupForRead(ctx, planSlugs(updated)));
+      return asJson(namePlan(updated, known));
     })
   );
 

@@ -1,11 +1,15 @@
+import { ExerciseLibraryUnavailableError } from "@fitme/exercise-library";
 import type {
   WorkoutSessionDetail,
   WorkoutSessionSet,
 } from "@fitme/services/workout-sessions";
 import { describe, expect, it, vi } from "vitest";
 import {
+  BENCH,
   call,
   connectWithServices,
+  fakeLibrary,
+  recordingReporter,
   SESSION_ID,
   SET_ID,
   WORKOUT_ID,
@@ -28,10 +32,17 @@ const sessionDetail: WorkoutSessionDetail = {
   exercises: [
     {
       exercise: { id: "bench", name: "Bench" },
-      exercise_slug: "bench-press",
+      exercise_slug: BENCH.slug,
       id: "wse-1",
       order: 1,
       sets: [loggedSet],
+    },
+    {
+      exercise: { id: "fly", name: "Fly" },
+      exercise_slug: "cable-fly-legacy",
+      id: "wse-2",
+      order: 2,
+      sets: [],
     },
   ],
   finished_at: FINISHED_AT,
@@ -42,8 +53,31 @@ const sessionDetail: WorkoutSessionDetail = {
   workout: null,
 };
 
+/** The session as the tools return it: Exercises by slug, named by the library or from the slug. */
+const toolSession = {
+  ...sessionDetail,
+  exercises: [
+    {
+      exercise_slug: BENCH.slug,
+      id: "wse-1",
+      muscle_groups: BENCH.muscle_groups,
+      name: BENCH.name,
+      order: 1,
+      sets: [loggedSet],
+    },
+    {
+      exercise_slug: "cable-fly-legacy",
+      id: "wse-2",
+      muscle_groups: [],
+      name: "Cable fly legacy",
+      order: 2,
+      sets: [],
+    },
+  ],
+};
+
 describe("get_workout_session", () => {
-  it("returns the session the service found", async () => {
+  it("returns the session the service found, its Exercises named", async () => {
     const getWorkoutSession = vi.fn(() => Promise.resolve(sessionDetail));
     const client = await connectWithServices({ getWorkoutSession });
 
@@ -52,8 +86,32 @@ describe("get_workout_session", () => {
     });
 
     expect(result.isError).toBe(false);
-    expect(result.json).toEqual(sessionDetail);
+    expect(result.json).toEqual(toolSession);
     expect(getWorkoutSession).toHaveBeenCalledWith(SESSION_ID);
+  });
+
+  it("still answers, with slug-derived names, when the library fails, and reports it", async () => {
+    const library = fakeLibrary();
+    library.failWith(new ExerciseLibraryUnavailableError());
+    const { reportError, reported } = recordingReporter();
+    const client = await connectWithServices(
+      { getWorkoutSession: () => Promise.resolve(sessionDetail) },
+      reportError,
+      library
+    );
+
+    const result = await call(client, "get_workout_session", {
+      sessionId: SESSION_ID,
+    });
+
+    expect(result.isError).toBe(false);
+    expect(result.json).toMatchObject({
+      exercises: [
+        { muscle_groups: [], name: "Bench press" },
+        { name: "Cable fly legacy" },
+      ],
+    });
+    expect(reported).toHaveLength(1);
   });
 
   it("errors for an unknown session", async () => {
@@ -286,6 +344,13 @@ const openSession: WorkoutSessionDetail = {
   workout: { id: WORKOUT_ID, name: "Day A" },
 };
 
+const toolOpenSession = {
+  ...toolSession,
+  finished_at: null,
+  status: "in_progress",
+  workout: { id: WORKOUT_ID, name: "Day A" },
+};
+
 describe("start_workout_session", () => {
   it("starts a session and returns it", async () => {
     const startWorkoutSession = vi.fn(() =>
@@ -302,7 +367,7 @@ describe("start_workout_session", () => {
     });
 
     expect(result.isError).toBe(false);
-    expect(result.json).toEqual({ resumed: false, session: openSession });
+    expect(result.json).toEqual({ resumed: false, session: toolOpenSession });
     expect(startWorkoutSession).toHaveBeenCalledWith(WORKOUT_ID);
   });
 
@@ -320,7 +385,7 @@ describe("start_workout_session", () => {
       workoutId: WORKOUT_ID,
     });
 
-    expect(result.json).toEqual({ resumed: true, session: openSession });
+    expect(result.json).toEqual({ resumed: true, session: toolOpenSession });
   });
 
   it("errors for a Workout it can't start (unknown, another user's or of a deleted plan)", async () => {
@@ -393,7 +458,7 @@ describe("finish_workout_session", () => {
     expect(result.json).toEqual({
       alreadyFinished: false,
       rotated: true,
-      session: sessionDetail,
+      session: toolSession,
     });
     expect(finishWorkoutSession).toHaveBeenCalledWith(SESSION_ID);
   });

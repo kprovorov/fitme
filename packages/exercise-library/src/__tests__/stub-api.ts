@@ -23,8 +23,12 @@ const summary = ({ description, instructions, ...rest }: Exercise) => rest;
 
 const alphabetical = new Intl.Collator("en");
 
+const EXERCISE_PATH = /^\/exercises\/([^/]+)$/;
+
 export interface StubRequest {
   authorization: string | null;
+  /** `GET /exercises/:slug`'s slug, decoded; null for `GET /exercises`. */
+  exerciseSlug: string | null;
   limit: string | null;
   muscleGroup: string | null;
   offset: string | null;
@@ -35,7 +39,8 @@ export interface StubRequest {
 
 /**
  * A stubbed `fetch` answering `GET /exercises` the way `apps/exercises` does
- * (batch lookup with `slugs`, otherwise a page), recording every request.
+ * (batch lookup with `slugs`, otherwise a page) and `GET /exercises/:slug`
+ * (one Exercise in full, or 404), recording every request.
  * `respond` replaces the answer, to stub failures.
  */
 export const stubApi = (
@@ -49,8 +54,18 @@ export const stubApi = (
       alphabetical.compare(a.slug, b.slug)
   );
   const bySlug = new Map(sorted.map((e) => [e.slug, summary(e)]));
+  const full = new Map(sorted.map((e) => [e.slug, e]));
 
   const answer = (request: StubRequest) => {
+    if (request.exerciseSlug !== null) {
+      const found = full.get(request.exerciseSlug);
+      return found
+        ? Response.json(found)
+        : Response.json(
+            { error: { code: "not_found", message: "Exercise not found" } },
+            { status: 404 }
+          );
+    }
     if (request.slugs) {
       const slugs = [...new Set(request.slugs)];
       return Response.json({
@@ -78,8 +93,10 @@ export const stubApi = (
   const fetch = (input: RequestInfo | URL, init?: RequestInit) => {
     const url = new URL(String(input));
     const params = url.searchParams;
+    const [, slug] = EXERCISE_PATH.exec(url.pathname) ?? [];
     const request: StubRequest = {
       authorization: new Headers(init?.headers).get("authorization"),
+      exerciseSlug: slug === undefined ? null : decodeURIComponent(slug),
       limit: params.get("limit"),
       muscleGroup: params.get("muscle_group"),
       offset: params.get("offset"),

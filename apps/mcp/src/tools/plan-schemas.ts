@@ -11,6 +11,17 @@ const MAX_REST_SECONDS = 3600;
 const MIN_FREQUENCY = 1;
 const MAX_FREQUENCY = 7;
 const MAX_WORKOUT_DURATION_MINUTES = 600;
+const MAX_SLUG_LENGTH = 100;
+
+/** An Exercise by its Exercise slug; whether it exists is checked with the library. */
+export const exerciseSlugSchema = z
+  .string()
+  .trim()
+  .min(1)
+  .max(MAX_SLUG_LENGTH)
+  .describe(
+    "Exercise slug from list_exercises (its `slug`), e.g. `barbell-back-squat`."
+  );
 
 const setSchema = z.object({
   reps_recommended: z
@@ -35,9 +46,7 @@ const setSchema = z.object({
 });
 
 const exerciseSchema = z.object({
-  exercise_id: z
-    .guid()
-    .describe("Exercise library id from list_exercises (exercises.id)."),
+  exercise_slug: exerciseSlugSchema,
   sets: z
     .array(setSchema)
     .min(1)

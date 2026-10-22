@@ -3,6 +3,7 @@ import {
   ExerciseLibraryInvalidRequestError,
 } from "./errors";
 import type {
+  Exercise,
   ExerciseLibrary,
   ExercisePage,
   ExerciseSummary,
@@ -61,11 +62,23 @@ const validate = ({ limit, offset, search }: ListExercisesParams) => {
 /**
  * An in-memory Exercise Library for consumers' tests: the same answers as
  * the real client over the same Exercises (search, muscle group filter,
- * paging, lookup with `missing`), and it can be told to fail.
+ * paging, lookup with `missing`, `get`), and it can be told to fail. An
+ * Exercise given as a summary answers `get` with empty description and
+ * instructions.
  */
 export const createFakeExerciseLibrary = (
-  exercises: readonly ExerciseSummary[]
+  exercises: readonly (Exercise | ExerciseSummary)[]
 ): FakeExerciseLibrary => {
+  const full = new Map(
+    exercises.map((exercise): [string, Exercise] => [
+      exercise.slug,
+      {
+        description: "",
+        instructions: "",
+        ...exercise,
+      },
+    ])
+  );
   const sorted = exercises
     .map(toSummary)
     .sort(
@@ -91,6 +104,8 @@ export const createFakeExerciseLibrary = (
     failWith: (error) => {
       failure = error;
     },
+
+    get: (slug) => orFail(() => full.get(slug) ?? null),
 
     list: (params = {}) =>
       orFail((): ExercisePage => {

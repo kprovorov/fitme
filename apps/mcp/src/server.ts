@@ -11,6 +11,7 @@ export const SERVER_VERSION = "0.2.0";
 
 const INSTRUCTIONS = `Fitme is a strength-training app. Catalog tools describe muscle groups and plan options; every other tool acts on the signed-in user's own data.
 Typical flow: get_profile (units) -> list_exercises -> create_plan -> get_plan -> start_workout_session(workoutId) -> log_set(setId, ...) for each set -> finish_workout_session.
+Exercises come from the Fitme Exercise Library and are referred to by their Exercise slug (\`exercise_slug\`, e.g. barbell-back-squat), as list_exercises returns it.
 Weights are in the user's unit (kg for metric, lbs for us/uk) and are never converted.`;
 
 export interface CreateMcpServerOptions {

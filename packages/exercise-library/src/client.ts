@@ -6,6 +6,7 @@ import {
   ExerciseLibraryUnavailableError,
 } from "./errors";
 import type {
+  Exercise,
   ExerciseBatch,
   ExerciseLibrary,
   ExercisePage,
@@ -99,6 +100,15 @@ const isPage = (value: unknown): value is ExercisePage =>
 const isBatch = (value: unknown): value is ExerciseBatch =>
   isRecord(value) && hasSummaries(value) && isStringArray(value.missing);
 
+const isExercise = (value: unknown): value is Exercise =>
+  isRecord(value) &&
+  typeof value.description === "string" &&
+  typeof value.instructions === "string" &&
+  isSummary(value);
+
+/** `GET /exercises/:slug` answers 404 for a slug no Exercise has. */
+const NOT_FOUND = 404;
+
 /** The typed error for an answer that isn't a 2xx. */
 const failure = async (response: Response) => {
   switch (response.status) {
@@ -145,20 +155,26 @@ export const createExerciseLibrary = ({
     return value;
   };
 
-  const get = async <T>(
+  /** `null` for a 404 when `allowNotFound`; any other non-2xx fails typed. */
+  const request = async <T>(
+    path: string,
     params: QueryParams,
-    isAnswer: (body: unknown) => body is T
-  ): Promise<T> => {
+    isAnswer: (body: unknown) => body is T,
+    { allowNotFound = false } = {}
+  ): Promise<T | null> => {
     const authorization = `Bearer ${await bearer()}`;
     const controller = new AbortController();
     const timeout = setTimeout(() => controller.abort(), timeoutMs);
     let response: Response;
     let body: unknown;
     try {
-      response = await fetch(`${base}/exercises${queryString(params)}`, {
+      response = await fetch(`${base}${path}${queryString(params)}`, {
         headers: { accept: "application/json", authorization },
         signal: controller.signal,
       });
+      if (allowNotFound && response.status === NOT_FOUND) {
+        return null;
+      }
       if (!response.ok) {
         throw await failure(response);
       }
@@ -176,7 +192,20 @@ export const createExerciseLibrary = ({
     return body;
   };
 
+  /** `GET /exercises`, which never answers 404. */
+  const get = async <T>(
+    params: QueryParams,
+    isAnswer: (body: unknown) => body is T
+  ) => (await request("/exercises", params, isAnswer)) as T;
+
   return {
+    get: (slug) =>
+      slug === ""
+        ? Promise.resolve(null)
+        : request(`/exercises/${encodeURIComponent(slug)}`, {}, isExercise, {
+            allowNotFound: true,
+          }),
+
     list: ({ limit, muscleGroup, offset, search } = {}) =>
       get({ limit, muscle_group: muscleGroup, offset, search }, isPage),
 

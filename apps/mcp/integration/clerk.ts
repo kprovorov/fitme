@@ -8,6 +8,7 @@ import type {
   OAuthTokens,
 } from "@modelcontextprotocol/sdk/shared/auth.js";
 import { createApp } from "../src/create-app.js";
+import { integrationLibrary } from "./setup.js";
 
 /**
  * Helpers for the Clerk OAuth suite, which runs the real authorization flow
@@ -345,6 +346,7 @@ export class HeadlessOAuthProvider implements OAuthClientProvider {
 export async function startMcpServer() {
   const server = serve({
     fetch: createApp({
+      createExerciseLibrary: integrationLibrary,
       logRequests: false,
       reportError: (error) => {
         console.error(error);

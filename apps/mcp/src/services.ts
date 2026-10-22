@@ -1,13 +1,7 @@
 import { asUser } from "@fitme/db";
 import {
-  type Exercise,
   type ExerciseHistoryEntry,
-  type ExerciseHistoryQuery,
-  type ExercisePage,
-  type ExerciseQuery,
-  getExercise,
   getExerciseHistory,
-  listExercises,
 } from "@fitme/services/exercises";
 import {
   activatePlan,
@@ -52,16 +46,15 @@ export interface UserServices {
   finishWorkoutSession: (
     sessionId: string
   ) => Promise<FinishWorkoutSessionResult>;
-  getExercise: (exerciseId: string) => Promise<Exercise | null>;
-  getExerciseHistory: (
-    query: ExerciseHistoryQuery
-  ) => Promise<ExerciseHistoryEntry[]>;
+  getExerciseHistory: (query: {
+    exerciseSlug: string;
+    limit: number;
+  }) => Promise<ExerciseHistoryEntry[]>;
   getPlan: (planId: string) => Promise<PlanDetail | null>;
   getProfile: () => Promise<ProfileWithUnits | null>;
   getWorkoutSession: (
     sessionId: string
   ) => Promise<WorkoutSessionDetail | null>;
-  listExercises: (query: ExerciseQuery) => Promise<ExercisePage>;
   listPlans: () => Promise<PlanSummary[]>;
   listWorkoutSessions: (
     options: ListWorkoutSessionsOptions
@@ -97,15 +90,12 @@ export const createServicesFromEnv: ServicesFactory = (userId) => {
       asUser(userId, (tx) => deleteWorkoutSession(tx, sessionId)),
     finishWorkoutSession: (sessionId) =>
       asUser(userId, (tx) => finishWorkoutSession(tx, sessionId)),
-    getExercise: (exerciseId) =>
-      asUser(userId, (tx) => getExercise(tx, exerciseId)),
     getExerciseHistory: (query) =>
       asUser(userId, (tx) => getExerciseHistory(tx, userId, query)),
     getPlan: (planId) => asUser(userId, (tx) => getPlan(tx, userId, planId)),
     getProfile: () => asUser(userId, (tx) => getProfile(tx, userId)),
     getWorkoutSession: (sessionId) =>
       asUser(userId, (tx) => getWorkoutSession(tx, sessionId)),
-    listExercises: (query) => asUser(userId, (tx) => listExercises(tx, query)),
     listPlans: () => asUser(userId, (tx) => listPlans(tx, userId)),
     listWorkoutSessions: (options) =>
       asUser(userId, (tx) => listWorkoutSessions(tx, options)),
