@@ -7,7 +7,7 @@ import {
   type ControllerRenderProps,
   useForm,
 } from "react-hook-form";
-import { View } from "react-native";
+import { Pressable, View } from "react-native";
 import { z } from "zod";
 import {
   formatSetWeight,
@@ -81,6 +81,38 @@ const INPUT_CLASS = "min-h-10 px-1 text-center text-mono-subhead";
  */
 export const SET_CHECK_COLUMN_CLASS =
   "w-(--size-button-circle-sm) items-center";
+
+/**
+ * How far the check column's tap area reaches past a small circle Button
+ * (25 pt), so the target is at least 44 pt.
+ */
+const CHECK_HIT_SLOP = 10;
+
+/**
+ * The check column's button with a 44 pt tap target around the small circle:
+ * an invisible Pressable behind it takes the taps that miss the circle. It's
+ * the button's sibling, not its parent, so a tap on the circle fires once.
+ * VoiceOver skips it and reads the button.
+ */
+function SetCheckCell({
+  children,
+  onPress,
+}: {
+  children: ReactNode;
+  onPress: () => void;
+}) {
+  return (
+    <View className={SET_CHECK_COLUMN_CLASS}>
+      <Pressable
+        accessible={false}
+        className="absolute inset-0"
+        hitSlop={CHECK_HIT_SLOP}
+        onPress={onPress}
+      />
+      {children}
+    </View>
+  );
+}
 
 /**
  * A logged value, shown dimmed in place of its input until the set is
@@ -245,8 +277,8 @@ export default function WorkoutSessionExerciseSetForm({
           )
         ) : null}
 
-        <View className={SET_CHECK_COLUMN_CLASS}>
-          {showsLoggedValues ? (
+        {showsLoggedValues ? (
+          <SetCheckCell onPress={startEditing}>
             <Button
               accessibilityHint="Opens the set for editing"
               accessibilityLabel={`Edit set ${setIndex}`}
@@ -258,19 +290,21 @@ export default function WorkoutSessionExerciseSetForm({
               testID={`edit-set-button-${setIndex}`}
               variant="ghost"
             />
-          ) : (
-            !disabled && (
-              <Button
-                accessibilityLabel={`Log set ${setIndex}`}
-                icon="checkmark"
-                onPress={submit}
-                shape="circle"
-                size="sm"
-                testID={`log-set-button-${setIndex}`}
-              />
-            )
-          )}
-        </View>
+          </SetCheckCell>
+        ) : disabled ? (
+          <View className={SET_CHECK_COLUMN_CLASS} />
+        ) : (
+          <SetCheckCell onPress={submit}>
+            <Button
+              accessibilityLabel={`Log set ${setIndex}`}
+              icon="checkmark"
+              onPress={submit}
+              shape="circle"
+              size="sm"
+              testID={`log-set-button-${setIndex}`}
+            />
+          </SetCheckCell>
+        )}
       </View>
       {errors.weight ? (
         <ErrorMessage>{errors.weight.message}</ErrorMessage>
