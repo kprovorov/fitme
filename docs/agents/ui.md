@@ -29,9 +29,9 @@ The app is dark only (`userInterfaceStyle: "dark"` in `app.json`) and phone only
 
 iOS first. Android renders but is second: SF Symbols draw nothing there (their box stays empty), glass falls back to blur. Prefer the native control to a custom one:
 
-- Headers are native. The Screen's title is `Stack.Screen`'s `title`, never an `H1` at the top of the content. Options are `headerTransparent: true` and `headerBackButtonDisplayMode: "minimal"`, with actions as SF Symbol items or menus through `unstable_headerRightItems` (`app/(tabs)/home/index.tsx`) or `Stack.Toolbar` (`app/(tabs)/coach/chats.tsx`). No hand-built header rows.
+- Headers are native. The Screen's title is `Stack.Screen`'s `title`, never an `H1` at the top of the content. Options are `headerTransparent: true` and `headerBackButtonDisplayMode: "minimal"`, with actions as SF Symbol items or menus through `unstable_headerRightItems` (`app/(tabs)/(home)/index.tsx`) or `Stack.Toolbar`. No hand-built header rows.
 - Content Screens scroll in a `ScrollView` with `contentInsetAdjustmentBehavior="automatic"`, so content sits under the transparent header and above the tab bar. Gutters and gaps go on `contentContainerClassName`, not `className`.
-- List Screens (anything that maps rows of data) use `LegendList` from `@legendapp/list`, as the Coach conversation does, with the same `contentInsetAdjustmentBehavior` and a `refreshControl`. The `FlatList`s in history and the Coach's chat list are the older pattern.
+- List Screens (anything that maps rows of data) use `LegendList` from `@legendapp/list`, as the Coach conversation does, with the same `contentInsetAdjustmentBehavior` and a `refreshControl`.
 - Secondary flows are sheets: a route with `presentation: "formSheet"` or `"modal"`. A `Modal` with `presentationStyle="pageSheet"` is for a picker that belongs to one Screen (the exercise picker in `workout-session-view.tsx`).
 - Liquid Glass comes from `Button`, switched on `GLASS_ENABLED` with a fallback for older iOS. Cards are flat, not glass. Never build your own glass or blur surface.
 

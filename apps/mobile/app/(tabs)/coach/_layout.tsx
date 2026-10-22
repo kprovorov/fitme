@@ -36,16 +36,6 @@ export default function StackLayout() {
       />
 
       <Stack.Screen
-        name="chats"
-        options={{
-          animation: "none",
-          gestureEnabled: false,
-          headerLargeTitleShadowVisible: false,
-          title: "Chats",
-        }}
-      />
-
-      <Stack.Screen
         name="attachments"
         options={{
           headerLargeTitleShadowVisible: false,
