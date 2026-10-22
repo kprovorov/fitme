@@ -19,11 +19,6 @@ if command -v claude >/dev/null; then
   (cd "$worktree" && claude mcp remove --scope local supabase-local >/dev/null 2>&1) || true
 fi
 
-cd "$worktree/packages/supabase"
-
-if ! pnpm exec supabase status --output-format json >/dev/null 2>&1; then
-  echo "No Supabase stack for this worktree"
-  exit 0
-fi
-
-pnpm exec supabase stack destroy --yes
+# Every stack this worktree ever had (one per branch it was on), plus any left
+# by worktrees deleted without settling.
+"$worktree/.t3/destroy-stale-stacks.sh" "$worktree"
