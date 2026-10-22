@@ -58,10 +58,14 @@ type SwiftUIButtonStyle =
   | "glass"
   | "glassProminent";
 
-/** Liquid Glass styling, used when the OS supports it. */
+/**
+ * Liquid Glass styling, used when the OS supports it. Destructive is regular
+ * glass with a `destructive` label, as iOS draws `role: .destructive` in a
+ * glass style: no text on a red fill reaches 4.5:1 (FIT-248).
+ */
 const GLASS_BUTTON_STYLE: Record<ButtonVariant, SwiftUIButtonStyle> = {
   default: "glassProminent",
-  destructive: "glassProminent",
+  destructive: "glass",
   ghost: "plain",
   secondary: "glass",
 };
@@ -69,7 +73,7 @@ const GLASS_BUTTON_STYLE: Record<ButtonVariant, SwiftUIButtonStyle> = {
 /** Pre-iOS 26 equivalents. */
 const SOLID_BUTTON_STYLE: Record<ButtonVariant, SwiftUIButtonStyle> = {
   default: "borderedProminent",
-  destructive: "borderedProminent",
+  destructive: "bordered",
   ghost: "plain",
   secondary: "bordered",
 };
@@ -195,7 +199,7 @@ function useContentColor(
     override ??
     {
       default: theme.primaryForeground,
-      destructive: theme.destructiveForeground,
+      destructive: theme.destructive,
       ghost: theme.foreground,
       secondary: theme.secondaryForeground,
     }[variant]
@@ -311,11 +315,12 @@ const Button = (props: ButtonProps) => {
     fill ??
     (!(isCircle || variant === "ghost") || isStretchClassName(className));
 
-  // Prominent styles fill with the tint. The regular styles only use it for
-  // their translucent fill, which `foreground` keeps a neutral grey.
+  // Prominent styles fill with the tint. The regular styles (secondary and
+  // destructive) only use it for their translucent fill, which `foreground`
+  // keeps a neutral grey: destructive is red text, not a red fill.
   const tintColor = {
     default: theme.primary,
-    destructive: theme.destructive,
+    destructive: theme.foreground,
     ghost: theme.foreground,
     secondary: theme.foreground,
   }[variant];
@@ -331,6 +336,8 @@ const Button = (props: ButtonProps) => {
     variant,
   });
 
+  // The role tells the system what the button does; the label still states
+  // its own color, so it's the `destructive` token, not the system red.
   const role: ButtonRole =
     variant === "destructive" ? "destructive" : "default";
 
@@ -351,7 +358,7 @@ const Button = (props: ButtonProps) => {
     // iOS 17.
     fill: {
       default: theme.primary,
-      destructive: theme.destructive,
+      destructive: theme.secondary,
       ghost: undefined,
       secondary: theme.secondary,
     }[variant],

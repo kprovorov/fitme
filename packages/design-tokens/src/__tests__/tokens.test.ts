@@ -118,6 +118,8 @@ describe("contrast", () => {
     ["ring", "background", COMPONENT_BOUNDARY],
     ["ring", "card", COMPONENT_BOUNDARY],
     ["destructive-foreground", "destructive", TEXT_AA],
+    // The destructive Button and Badge: red text on the neutral fill
+    ["destructive", "secondary", TEXT_AA],
     ["destructive", "background", TEXT_AA],
     ["destructive", "card", TEXT_AA],
   ])("%s on %s is at least %s:1", (foreground, surface, floor) => {

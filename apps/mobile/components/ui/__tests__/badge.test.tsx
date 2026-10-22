@@ -42,6 +42,22 @@ describe("Badge", () => {
     }
   );
 
+  // Like the destructive Button: no text on a red fill reaches 4.5:1
+  it("draws destructive as destructive text on a secondary fill", async () => {
+    await render(
+      <Badge testID="badge" variant="destructive">
+        <Text>Failed</Text>
+      </Badge>
+    );
+
+    expect(screen.getByTestId("badge").props.className.split(" ")).toContain(
+      "bg-secondary"
+    );
+    expect(screen.getByText("Failed").props.className.split(" ")).toContain(
+      "text-destructive"
+    );
+  });
+
   it("keeps its own fill and shape when a caller passes surface classes", async () => {
     await render(
       <Badge

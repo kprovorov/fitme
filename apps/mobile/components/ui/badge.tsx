@@ -4,13 +4,14 @@ import { View } from "react-native";
 import { TextClassContext } from "~/components/ui/text";
 import { cn } from "~/lib/utils";
 
-/** Each variant is a token fill and the foreground that goes on it. */
+/**
+ * Each variant is a token fill and the foreground that goes on it.
+ * Destructive is `destructive` text on `secondary`, like the destructive
+ * Button: no text on a red fill reaches 4.5:1 (FIT-248).
+ */
 const badgeVariants = {
   default: { badge: "bg-primary", text: "text-primary-foreground" },
-  destructive: {
-    badge: "bg-destructive",
-    text: "text-destructive-foreground",
-  },
+  destructive: { badge: "bg-secondary", text: "text-destructive" },
   muted: { badge: "bg-muted", text: "text-muted-foreground" },
   secondary: { badge: "bg-secondary", text: "text-secondary-foreground" },
 } as const;
