@@ -4,7 +4,7 @@ BEGIN;
 
 CREATE EXTENSION IF NOT EXISTS pgtap WITH SCHEMA extensions;
 
-SELECT plan(51);
+SELECT plan(53);
 
 -- Fixtures -------------------------------------------------------------------
 -- Owner A has every Plan; B has none. Sessions are finished unless a case
@@ -44,7 +44,9 @@ VALUES
   -- (dup) two Workout Exercises in one slot
   ('f2300000-0000-0000-0000-0000000000b8', 'f2300000-0000-0000-0000-0000000000a1', 7, 'Dup Day', ''),
   -- (many) a session with more Exercises than the cap
-  ('f2300000-0000-0000-0000-0000000000b9', 'f2300000-0000-0000-0000-0000000000a1', 8, 'Many Day', '');
+  ('f2300000-0000-0000-0000-0000000000b9', 'f2300000-0000-0000-0000-0000000000a1', 8, 'Many Day', ''),
+  -- (sets) a session Exercise with more sets than the cap
+  ('f2300000-0000-0000-0000-0000000000ba', 'f2300000-0000-0000-0000-0000000000a1', 9, 'Sets Day', '');
 
 INSERT INTO public.workout_exercises (id, workout_id, exercise_id, "order")
 VALUES
@@ -111,7 +113,8 @@ VALUES
   ('f2300000-0000-0000-0000-0000000000d7', 'user_2PlanChangesOwnerA000000', 'f2300000-0000-0000-0000-0000000000a1', NULL, now() - interval '1 hour', now()),
   ('f2300000-0000-0000-0000-0000000000d8', 'user_2PlanChangesOwnerA000000', 'f2300000-0000-0000-0000-0000000000a1', 'f2300000-0000-0000-0000-0000000000b7', now() - interval '1 hour', now()),
   ('f2300000-0000-0000-0000-0000000000d9', 'user_2PlanChangesOwnerA000000', 'f2300000-0000-0000-0000-0000000000a1', 'f2300000-0000-0000-0000-0000000000b8', now() - interval '1 hour', now()),
-  ('f2300000-0000-0000-0000-000000000d10', 'user_2PlanChangesOwnerA000000', 'f2300000-0000-0000-0000-0000000000a1', 'f2300000-0000-0000-0000-0000000000b9', now() - interval '1 hour', now());
+  ('f2300000-0000-0000-0000-000000000d10', 'user_2PlanChangesOwnerA000000', 'f2300000-0000-0000-0000-0000000000a1', 'f2300000-0000-0000-0000-0000000000b9', now() - interval '1 hour', now()),
+  ('f2300000-0000-0000-0000-000000000d11', 'user_2PlanChangesOwnerA000000', 'f2300000-0000-0000-0000-0000000000a1', 'f2300000-0000-0000-0000-0000000000ba', now() - interval '1 hour', now());
 
 INSERT INTO public.workout_session_exercises (id, workout_session_id, exercise_id, "order")
 VALUES
@@ -213,6 +216,15 @@ INSERT INTO public.workout_session_exercise_sets
   (workout_session_exercise_id, "order", reps_completed, weight_completed)
 SELECT ('f2300000-0000-0000-0001-' || lpad(n::text, 12, '0'))::uuid, 1, 12, 15
 FROM generate_series(1, 51) n;
+
+-- (sets) one added Cable Fly with 101 logged sets
+INSERT INTO public.workout_session_exercises (id, workout_session_id, exercise_id, "order")
+VALUES ('f2300000-0000-0000-0002-000000000001', 'f2300000-0000-0000-0000-000000000d11', 'f2300000-0000-0000-0000-0000000000e5', 1);
+
+INSERT INTO public.workout_session_exercise_sets
+  (workout_session_exercise_id, "order", reps_completed, weight_completed)
+SELECT 'f2300000-0000-0000-0002-000000000001'::uuid, n, 12, 15
+FROM generate_series(1, 101) n;
 
 -- Snapshots of the Workouts' rows, to show what a call left unchanged
 CREATE TEMP TABLE plan_rows AS
@@ -677,6 +689,23 @@ SELECT is(
   (SELECT count(*) FROM public.workout_exercises WHERE workout_id = 'f2300000-0000-0000-0000-0000000000b9'),
   0::bigint,
   '(many) apply past the cap writes nothing'
+);
+
+-- (sets) More sets on one Exercise than the cap ---------------------------------------
+SET LOCAL ROLE authenticated;
+
+SELECT is(
+  public.workout_session_plan_changes('f2300000-0000-0000-0000-000000000d11', true) -> 'changes',
+  '[]'::jsonb,
+  '(sets) an Exercise with more than 100 sets offers no changes'
+);
+
+RESET ROLE;
+
+SELECT is(
+  (SELECT count(*) FROM public.workout_exercises WHERE workout_id = 'f2300000-0000-0000-0000-0000000000ba'),
+  0::bigint,
+  '(sets) apply past the set cap writes nothing'
 );
 
 -- Indexes the lookups go through -----------------------------------------------------
