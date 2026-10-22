@@ -60,10 +60,10 @@ type SwiftUIButtonStyle =
 
 /**
  * Liquid Glass styling, used when the OS supports it. Destructive is a
- * `destructive` label on a neutral fill, never text on a red one (no text on
- * red reaches 4.5:1, FIT-248): the prominent style tinted `secondary`, since
- * it fills with the tint itself; regular glass draws its own lighter grey,
- * which leaves the red label under 4.5:1.
+ * `destructive` label on `secondary` (docs/agents/ui.md, Contrast): the
+ * prominent style tinted `secondary`, since it fills with the tint itself;
+ * regular glass draws its own lighter grey, which leaves the red label
+ * under 4.5:1.
  */
 const GLASS_BUTTON_STYLE: Record<ButtonVariant, SwiftUIButtonStyle> = {
   default: "glassProminent",

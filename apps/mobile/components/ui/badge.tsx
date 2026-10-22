@@ -7,7 +7,7 @@ import { cn } from "~/lib/utils";
 /**
  * Each variant is a token fill and the foreground that goes on it.
  * Destructive is `destructive` text on `secondary`, like the destructive
- * Button: no text on a red fill reaches 4.5:1 (FIT-248).
+ * Button (docs/agents/ui.md, Contrast).
  */
 const badgeVariants = {
   default: { badge: "bg-primary", text: "text-primary-foreground" },

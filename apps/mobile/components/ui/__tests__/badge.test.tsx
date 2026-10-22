@@ -42,7 +42,7 @@ describe("Badge", () => {
     }
   );
 
-  // Like the destructive Button: no text on a red fill reaches 4.5:1
+  // Like the destructive Button: red text on a neutral fill
   it("draws destructive as destructive text on a secondary fill", async () => {
     await render(
       <Badge testID="badge" variant="destructive">
