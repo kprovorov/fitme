@@ -22,13 +22,22 @@ type Appearance = NonNullable<
  */
 export const clerkAppearance: Appearance = {
   elements: {
-    // Clerk has no danger-foreground variable, so its solid danger buttons
-    // (the account deletion confirm, for one) draw white text on
-    // `destructive`, about 2.8:1; every one carries these data attributes.
-    // They're Clerk's markup, not its typed API: recheck on a Clerk bump
+    // Clerk's solid danger buttons (the account deletion confirm, for one)
+    // draw white text on `destructive`, about 2.8:1, and Clerk has no
+    // danger-foreground variable. They get the destructive Button's look
+    // instead (FIT-248): `secondary` fill, `destructive` text. Clerk's
+    // `box-shadow` (a `colorDanger` ring, drop shadows, its focus ring)
+    // goes, and focus gets the web Button's ring. Every one carries these
+    // data attributes, which are Clerk's markup, not its typed API: recheck
+    // on a Clerk bump
     button: {
       '&[data-variant="solid"][data-color="danger"]': {
-        color: "var(--color-destructive-foreground)",
+        backgroundColor: "var(--color-secondary)",
+        boxShadow: "none",
+        color: "var(--color-destructive)",
+      },
+      '&[data-variant="solid"][data-color="danger"]:focus-visible': {
+        boxShadow: "0 0 0 2px var(--color-card), 0 0 0 4px var(--color-ring)",
       },
     },
     // The code boxes ignore `colorInput`, so they get its fill here
