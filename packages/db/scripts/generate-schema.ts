@@ -16,6 +16,8 @@ const DECLARATION_START = /\n(?=export const )/;
 const SCHEMA_DECLARATION = /^export const \w+ = pgSchema\(/;
 // pull names the `private` schema `private`, a reserved word in modules
 const PRIVATE_SCHEMA = /\bprivate(?=( = pgSchema\(|\.table\())/g;
+// pull unescapes an empty text default ('') into a lone quote: `.default(')`
+const EMPTY_TEXT_DEFAULT = /\.default\('\)/g;
 
 const pnpmExec = (command: string, args: string[]) =>
   execFileSync("pnpm", ["exec", command, ...args], { stdio: "inherit" });
@@ -32,6 +34,7 @@ const byName = (a: string, b: string) => {
 const normalize = (source: string) => {
   const [header, ...declarations] = source
     .replace(PRIVATE_SCHEMA, "privateSchema")
+    .replace(EMPTY_TEXT_DEFAULT, '.default("")')
     .split(DECLARATION_START);
   // pgSchema(…) objects first: tables are declared through them
   const isSchema = (declaration: string) =>

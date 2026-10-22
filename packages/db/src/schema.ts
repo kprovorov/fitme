@@ -219,7 +219,10 @@ export const workoutExercises = pgTable(
       mode: "string",
       withTimezone: true,
     }).defaultNow(),
-    exerciseId: uuid("exercise_id").notNull(),
+    exerciseId: uuid("exercise_id")
+      .default(sql`COALESCE(NULL::uuid)`)
+      .notNull(),
+    exerciseSlug: text("exercise_slug").default("").notNull(),
     id: uuid().defaultRandom().primaryKey().notNull(),
     order: integer().notNull(),
     requestKey: text("request_key"),
@@ -314,7 +317,10 @@ export const workoutSessionExercises = pgTable(
       mode: "string",
       withTimezone: true,
     }).defaultNow(),
-    exerciseId: uuid("exercise_id").notNull(),
+    exerciseId: uuid("exercise_id")
+      .default(sql`COALESCE(NULL::uuid)`)
+      .notNull(),
+    exerciseSlug: text("exercise_slug").default("").notNull(),
     id: uuid().defaultRandom().primaryKey().notNull(),
     order: integer().notNull(),
     updatedAt: timestamp("updated_at", {
