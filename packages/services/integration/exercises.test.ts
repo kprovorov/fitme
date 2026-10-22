@@ -15,6 +15,7 @@ import { deleteUserData } from "../src/delete-user-data";
 import {
   getExercise,
   getExerciseHistory,
+  legacyExerciseIdsBySlug,
   listExercises,
 } from "../src/exercises";
 
@@ -250,6 +251,31 @@ describe("getExercise", () => {
     expect(
       await asUser(owner, (tx) => getExercise(tx, randomUUID()))
     ).toBeNull();
+  });
+});
+
+describe("legacyExerciseIdsBySlug", () => {
+  it("maps each known slug to its legacy uuid and leaves unknown ones out", async () => {
+    const ids = await asUser(owner, (tx) =>
+      legacyExerciseIdsBySlug(tx, [
+        `gamma-${runId}`,
+        alphaSlug,
+        `unknown-${runId}`,
+      ])
+    );
+
+    expect(ids).toEqual(
+      new Map([
+        [`gamma-${runId}`, gamma],
+        [alphaSlug, alpha],
+      ])
+    );
+  });
+
+  it("asks nothing for no slugs", async () => {
+    expect(
+      await asUser(owner, (tx) => legacyExerciseIdsBySlug(tx, []))
+    ).toEqual(new Map());
   });
 });
 
