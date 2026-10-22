@@ -1,7 +1,6 @@
 import * as Sentry from "@sentry/node";
 import { resolveObservabilityConfig } from "./config";
-import { tracePropagationTargets } from "./propagation";
-import { SECRET_HEADERS, scrubEvent } from "./scrub";
+import { sdkOptions } from "./sdk-options";
 
 const FLUSH_TIMEOUT_MS = 2000;
 
@@ -27,28 +26,8 @@ export const initObservability = ({ service }: ObservabilityOptions): void => {
     return;
   }
   Sentry.init({
-    beforeSend: scrubEvent,
-    beforeSendTransaction: scrubEvent,
-    // SDK 11's replacement for `sendDefaultPii: false`, stricter than its
-    // defaults: nothing that could carry a token, a body or User data
-    dataCollection: {
-      cookies: false,
-      databaseQueryData: false,
-      genAI: { inputs: false, outputs: false },
-      httpBodies: [],
-      httpHeaders: { request: { deny: SECRET_HEADERS }, response: false },
-      stackFrameVariables: false,
-      userInfo: false,
-    },
-    dsn: config.dsn,
-    environment: config.environment,
+    ...sdkOptions(config),
     initialScope: { tags: { service } },
-    release: config.release,
-    // Whole transactions, not streamed spans, so beforeSendTransaction (the
-    // scrubber) sees every one
-    traceLifecycle: "static",
-    tracePropagationTargets,
-    tracesSampleRate: config.tracesSampleRate,
   });
 };
 

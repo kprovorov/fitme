@@ -7,3 +7,4 @@ export {
 } from "./config";
 export { tracePropagationTargets } from "./propagation";
 export { type ScrubbableEvent, scrubEvent } from "./scrub";
+export { sdkOptions } from "./sdk-options";
