@@ -2,7 +2,6 @@ import {
   getWeightLabel,
   type MeasurementSystem,
   type PlanChange,
-  type PlanChangeExercise,
   type PlanChangeKind,
   type PlanChangeSet,
   type PlanChanges,
@@ -38,16 +37,14 @@ const spokenSets = (sets: PlanChangeSet[], unit: string) =>
  */
 export function formatPlanChange(
   change: PlanChange,
-  measurementSystem: MeasurementSystem,
-  /** How to name an Exercise; the RPC's (legacy) name by default. */
-  nameOf: (exercise: PlanChangeExercise) => string = ({ name }) => name
+  measurementSystem: MeasurementSystem
 ): PlanChangeLine {
   const unit = getWeightLabel(measurementSystem) ?? "kg";
-  const exercise = nameOf(change.exercise);
+  const exercise = change.exercise.name;
   let title: string;
   switch (change.kind) {
     case "replace_exercise":
-      title = `Replace ${nameOf(change.replaced_exercise)} with ${exercise}`;
+      title = `Replace ${change.replaced_exercise.name} with ${exercise}`;
       break;
     case "add_exercise":
       title = `Add ${exercise}`;
@@ -72,14 +69,6 @@ export function formatPlanChange(
     text: `${title} · ${setsText(change.sets, unit)}`,
   };
 }
-
-/** Every Exercise slug the changes name, for resolving them. */
-export const planChangeSlugs = (changes: PlanChange[]): string[] =>
-  changes.flatMap((change) =>
-    change.kind === "replace_exercise"
-      ? [change.exercise.slug, change.replaced_exercise.slug]
-      : [change.exercise.slug]
-  );
 
 /** How many changes of each kind, for analytics. */
 export function countPlanChanges(

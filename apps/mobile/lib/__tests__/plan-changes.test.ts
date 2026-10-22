@@ -2,9 +2,9 @@ import type { PlanChange } from "@fitme/core";
 import { describe, expect, it } from "@jest/globals";
 import { countPlanChanges, formatPlanChange } from "../plan-changes";
 
-const bench = { id: "e-1", name: "Bench Press", slug: "bench-press" };
-const press = { id: "e-2", name: "Dumbbell Press", slug: "dumbbell-press" };
-const squat = { id: "e-3", name: "Squat", slug: "squat" };
+const bench = { id: "e-1", name: "Bench Press" };
+const press = { id: "e-2", name: "Dumbbell Press" };
+const squat = { id: "e-3", name: "Squat" };
 
 describe("formatPlanChange", () => {
   it("lists a replacement's sets in kilograms for metric", () => {
@@ -26,25 +26,6 @@ describe("formatPlanChange", () => {
         "Replace Bench Press with Dumbbell Press: 8 reps at 30 kilograms, 6 reps at 32.5 kilograms",
       text: "Replace Bench Press with Dumbbell Press · 8×30, 6×32.5 kg",
     });
-  });
-
-  it("names both Exercises of a replacement through nameOf", () => {
-    const libraryNames: Record<string, string> = {
-      "bench-press": "Barbell Bench Press",
-      "dumbbell-press": "Dumbbell Bench Press",
-    };
-    expect(
-      formatPlanChange(
-        {
-          exercise: press,
-          kind: "replace_exercise",
-          replaced_exercise: bench,
-          sets: [{ reps: 8, weight: 30 }],
-        },
-        "metric",
-        ({ name, slug }) => libraryNames[slug] ?? name
-      ).text
-    ).toBe("Replace Barbell Bench Press with Dumbbell Bench Press · 8×30 kg");
   });
 
   it("says pounds for US and UK Users", () => {

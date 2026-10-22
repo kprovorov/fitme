@@ -9,11 +9,6 @@ interface NamedRef {
   name: string;
 }
 
-/** An Exercise of a change: its legacy uuid, Exercise slug and legacy name. */
-export interface PlanChangeExercise extends NamedRef {
-  slug: string;
-}
-
 /** A set the Plan gets, its targets taken from what the User logged. */
 export interface PlanChangeSet {
   reps: number;
@@ -22,18 +17,14 @@ export interface PlanChangeSet {
 
 export type PlanChange =
   | {
-      exercise: PlanChangeExercise;
+      exercise: NamedRef;
       kind: "replace_exercise";
-      replaced_exercise: PlanChangeExercise;
+      replaced_exercise: NamedRef;
       sets: PlanChangeSet[];
     }
-  | {
-      exercise: PlanChangeExercise;
-      kind: "add_exercise";
-      sets: PlanChangeSet[];
-    }
-  | { exercise: PlanChangeExercise; kind: "remove_exercise" }
-  | { exercise: PlanChangeExercise; kind: "add_sets"; sets: PlanChangeSet[] };
+  | { exercise: NamedRef; kind: "add_exercise"; sets: PlanChangeSet[] }
+  | { exercise: NamedRef; kind: "remove_exercise" }
+  | { exercise: NamedRef; kind: "add_sets"; sets: PlanChangeSet[] };
 
 export type PlanChangeKind = PlanChange["kind"];
 

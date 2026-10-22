@@ -19,11 +19,6 @@ import type * as React from "react";
 import { Alert } from "react-native";
 import { PlanUpdateSheetHost } from "~/components/workout-sessions/plan-update-sheet";
 import { closePlanUpdatePrompt } from "~/hooks/plan-update-prompt";
-import { storage } from "~/lib/mmkv";
-import {
-  libraryExercise,
-  serveLibrary,
-} from "~/test-utils/fake-exercise-library";
 import { useFinishWorkoutSession } from "../finish-workout-session";
 
 const mockReplace = jest.fn();
@@ -49,13 +44,6 @@ jest.mock("expo-router", () => ({
 }));
 
 jest.mock("@sentry/react-native", () => ({ captureException: jest.fn() }));
-jest.mock(
-  "~/lib/exercise-library",
-  () =>
-    jest.requireActual<typeof import("~/test-utils/fake-exercise-library")>(
-      "~/test-utils/fake-exercise-library"
-    ).exerciseLibraryModule
-);
 jest.mock("~/lib/segment", () => ({
   segmentClient: { track: (...args: unknown[]) => mockTrack(...args) },
 }));
@@ -152,13 +140,9 @@ const NO_CHANGES = { changes: [], plan: null, workout: null };
 const CHANGES = {
   changes: [
     {
-      exercise: { id: "e-2", name: "Dumbbell Press", slug: "dumbbell-press" },
+      exercise: { id: "e-2", name: "Dumbbell Press" },
       kind: "replace_exercise",
-      replaced_exercise: {
-        id: "e-1",
-        name: "Bench Press",
-        slug: "bench-press",
-      },
+      replaced_exercise: { id: "e-1", name: "Bench Press" },
       sets: [
         { reps: 8, weight: 30 },
         { reps: 8, weight: 30 },
@@ -166,16 +150,13 @@ const CHANGES = {
       ],
     },
     {
-      exercise: { id: "e-3", name: "Squat", slug: "squat" },
+      exercise: { id: "e-3", name: "Squat" },
       kind: "add_sets",
       sets: [{ reps: 5, weight: 100 }],
     },
+    { exercise: { id: "e-4", name: "Dips" }, kind: "remove_exercise" },
     {
-      exercise: { id: "e-4", name: "Dips", slug: "dips" },
-      kind: "remove_exercise",
-    },
-    {
-      exercise: { id: "e-5", name: "Cable Fly", slug: "cable-fly" },
+      exercise: { id: "e-5", name: "Cable Fly" },
       kind: "add_exercise",
       sets: [
         { reps: 12, weight: 15 },
@@ -198,9 +179,6 @@ describe("useFinishWorkoutSession", () => {
     Object.assign(mockNavigationState, { index: 0, routes: [{}] });
     mockProfile.measurement_system = "metric";
     mockPlanChangesRpc.mockResolvedValue(NO_CHANGES);
-    // The library renamed Cable Fly; it doesn't know the other Exercises.
-    storage.clearAll();
-    serveLibrary([libraryExercise("cable-fly", { name: "Cable Crossover" })]);
     jest.spyOn(Alert, "alert").mockImplementation(() => undefined);
   });
 
@@ -498,14 +476,11 @@ describe("useFinishWorkoutSession", () => {
       expect(
         screen.getByText("Save today's changes to Push Day in PPL 4-week.")
       ).toBeTruthy();
-      // The library's name once resolved, the RPC's for the rest.
-      expect(
-        await screen.findByText("Add Cable Crossover · 12×15, 12×17.5 kg")
-      ).toBeTruthy();
       for (const line of [
         "Replace Bench Press with Dumbbell Press · 8×30, 8×30, 6×30 kg",
         "Add 1 set to Squat · 5×100 kg",
         "Remove Dips",
+        "Add Cable Fly · 12×15, 12×17.5 kg",
       ]) {
         expect(screen.getByText(line)).toBeTruthy();
       }

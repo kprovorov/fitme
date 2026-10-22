@@ -49,13 +49,6 @@ jest.mock("~/components/ui/dialog", () =>
   jest.requireActual("~/test-utils/dialog-stub")
 );
 jest.mock("~/lib/segment", () => ({ segmentClient: { track: jest.fn() } }));
-jest.mock(
-  "~/lib/exercise-library",
-  () =>
-    jest.requireActual<typeof import("~/test-utils/fake-exercise-library")>(
-      "~/test-utils/fake-exercise-library"
-    ).exerciseLibraryModule
-);
 jest.mock("~/hooks/queries/profiles", () => {
   const { createQuery } =
     jest.requireActual<typeof import("react-query-kit")>("react-query-kit");
@@ -189,10 +182,7 @@ describe("WorkoutCard's Finish Workout", () => {
     mockFinishRpc.mockResolvedValue({});
     mockPlanChangesRpc.mockResolvedValueOnce({
       changes: [
-        {
-          exercise: { id: "e-1", name: "Dips", slug: "dips" },
-          kind: "remove_exercise",
-        },
+        { exercise: { id: "e-1", name: "Dips" }, kind: "remove_exercise" },
       ],
       plan: { id: "plan-1", name: "PPL" },
       workout: { id: "workout-1", name: "Push Day" },

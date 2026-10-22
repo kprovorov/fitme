@@ -147,7 +147,8 @@ const exerciseSummaryQuery = (slug: string) =>
 export const useExercises = (
   slugs: readonly string[]
 ): Record<string, ShownExercise> => {
-  const unique = [...new Set(slugs)];
+  // An empty slug (a malformed row) never resolves: it isn't asked for.
+  const unique = [...new Set(slugs)].filter(Boolean);
   const results = useQueries({ queries: unique.map(exerciseSummaryQuery) });
   const shown: Record<string, ShownExercise> = {};
   unique.forEach((slug, index) => {
