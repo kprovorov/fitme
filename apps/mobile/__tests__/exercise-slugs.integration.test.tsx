@@ -191,7 +191,7 @@ describe("a Plan", () => {
     // Open the Workout card to list its Exercises by name.
     await fireEvent.press(screen.getByText("Leg Day"));
 
-    const squat = screen.getByTestId("link:/exercises/squat");
+    const squat = await screen.findByTestId("link:/exercises/squat");
     expect(within(squat).getByLabelText("Squat")).toBeTruthy();
     expect(
       within(squat).getByTestId("thumbnail:https://media.test/render/squat.jpg")
@@ -208,8 +208,8 @@ describe("a Workout Session", () => {
     seedSession();
     await renderScreen(HistorySessionScreen, { workoutSessionId: "s1" });
 
-    expect(screen.getByText("Squat")).toBeTruthy();
-    expect(screen.getByText("Chest")).toBeTruthy();
+    expect(await screen.findByText("Squat")).toBeTruthy();
+    expect(await screen.findByText("Chest")).toBeTruthy();
     expect(screen.getByText("Mystery move")).toBeTruthy();
     expect(
       screen.getByTestId("thumbnail:https://media.test/render/squat.jpg")
@@ -226,7 +226,9 @@ describe("a Workout Session", () => {
       workoutId: "workout-of-s1",
     });
 
-    expect(screen.getByLabelText("How to do Mystery move")).toBeDisabled();
+    expect(
+      await screen.findByLabelText("How to do Mystery move")
+    ).toBeDisabled();
   });
 
   it("offers the guide for an Exercise the library knows", async () => {
@@ -238,7 +240,9 @@ describe("a Workout Session", () => {
       workoutId: "workout-of-s1",
     });
 
-    expect(screen.getByLabelText("How to do Squat")).toBeEnabled();
+    await waitFor(() =>
+      expect(screen.getByLabelText("How to do Squat")).toBeEnabled()
+    );
   });
 
   it("adds an Exercise by its slug", async () => {
@@ -256,7 +260,7 @@ describe("a Workout Session", () => {
       order: 3,
       workout_session_id: "s1",
     });
-    expect(screen.getByText("Lunge")).toBeTruthy();
+    expect(await screen.findByText("Lunge")).toBeTruthy();
   });
 
   it("replaces an Exercise by its slug", async () => {
@@ -274,7 +278,7 @@ describe("a Workout Session", () => {
       exercise_slug: "lunge",
       id: "s1-e1",
     });
-    expect(screen.getByText("Lunge")).toBeTruthy();
+    expect(await screen.findByText("Lunge")).toBeTruthy();
     expect(screen.queryByText("Squat")).toBeNull();
   });
 });
@@ -284,7 +288,7 @@ describe("a Workout Session's summary", () => {
     seedSession(true);
     await renderScreen(SummaryScreen, { workoutSessionId: "s1" });
 
-    expect(screen.getByText("Squat")).toBeTruthy();
+    expect(await screen.findByText("Squat")).toBeTruthy();
     expect(screen.getByText("Mystery move")).toBeTruthy();
     expect(
       screen.getByTestId("thumbnail:https://media.test/render/squat.jpg")

@@ -126,6 +126,7 @@ describe("WorkoutPlanCard", () => {
   it("creates the Plan from each Exercise's slug", async () => {
     await renderCard();
 
+    await screen.findByText("Bench Press");
     await fireEvent.press(screen.getByText("Save Plan"));
 
     await waitFor(() => expect(screen.getByText("Plan Saved")).toBeTruthy());
