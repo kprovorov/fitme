@@ -66,7 +66,7 @@ const confirmingSessions = new Set<string>();
  * Resolves false while the question is already open for the session (a
  * repeated tap).
  */
-export async function confirmFinishWorkout(
+async function confirmFinishWorkout(
   queryClient: QueryClient,
   sessionId: string
 ): Promise<boolean> {
@@ -109,8 +109,8 @@ export async function confirmFinishWorkout(
 
 /**
  * Finishes a workout session and opens its Summary. Shared by every way of
- * finishing a session from its screens (the header's Finish button and the
- * finish suggestion), so they behave the same. `isFinishing` covers finishes
+ * finishing a session (the header's Finish button, the finish suggestion and
+ * the Workout card), so they behave the same. `isFinishing` covers finishes
  * started from any screen, and `finish` does nothing while one is pending,
  * so the session is never finished twice. A failed finish shows an alert and
  * leaves the session active, so the user can try again.
@@ -121,13 +121,22 @@ export async function confirmFinishWorkout(
  * replaces it, so finishing from anywhere leaves the same stack as finishing
  * from the session screen.
  *
- * `confirmFinish` is for the header's Finish button: it asks first when some
- * planned sets aren't logged (see `confirmFinishWorkout`). `finish` never
- * asks, for the finish suggestion, which only opens once every set is logged.
+ * `outsideSession` is for callers that aren't one of the session's screens
+ * (the Workout card on Home): Summary is pushed over the caller instead of
+ * replacing it, so the stack ends the same as finishing from the session
+ * screen.
+ *
+ * `confirmFinish` is for the header's Finish button and the Workout card: it
+ * asks first when some planned sets aren't logged (see
+ * `confirmFinishWorkout`). `finish` never asks, for the finish suggestion,
+ * which only opens once every set is logged.
  */
 export function useFinishWorkoutSession(
   sessionId: string,
-  { screensAboveSession = 0 }: { screensAboveSession?: number } = {}
+  {
+    outsideSession = false,
+    screensAboveSession = 0,
+  }: { outsideSession?: boolean; screensAboveSession?: number } = {}
 ): {
   confirmFinish: () => void;
   finish: () => void;
@@ -154,6 +163,11 @@ export function useFinishWorkoutSession(
       await queryClient.invalidateQueries({ queryKey: ["workout-session"] });
       await queryClient.invalidateQueries({ queryKey: ["plans"] });
       await queryClient.invalidateQueries({ queryKey: ["exercise-history"] });
+      const summary = `/workout-sessions/${sessionId}/summary` as const;
+      if (outsideSession) {
+        router.push(summary);
+        return;
+      }
       if (
         isSessionScreenBelow(
           navigation.getState(),
@@ -163,7 +177,7 @@ export function useFinishWorkoutSession(
       ) {
         router.dismiss(screensAboveSession);
       }
-      router.replace(`/workout-sessions/${sessionId}/summary`);
+      router.replace(summary);
     },
   });
 
