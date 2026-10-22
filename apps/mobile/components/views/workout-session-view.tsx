@@ -174,6 +174,8 @@ export default function WorkoutSessionView({
       >
         <ScrollView
           contentInsetAdjustmentBehavior="automatic"
+          // A result is tapped with the search keyboard still up.
+          keyboardShouldPersistTaps="handled"
           showsVerticalScrollIndicator={false}
         >
           <VStack className="flex-1 items-stretch bg-background p-md">

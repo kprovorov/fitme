@@ -78,6 +78,22 @@ const ExercisesView = ({
   }, []);
 
   const renderResults = () => {
+    if (isError) {
+      return (
+        <VStack className="items-center gap-sm pt-lg">
+          <H3 className="text-center">Couldn't Load Exercises</H3>
+          <Text className="text-center text-muted-foreground">
+            Couldn't load exercises. Check your connection and try again.
+          </Text>
+          <Button
+            fill={false}
+            label="Try Again"
+            onPress={retry}
+            variant="secondary"
+          />
+        </VStack>
+      );
+    }
     if (exercises?.length) {
       return (
         <>
@@ -110,22 +126,6 @@ const ExercisesView = ({
             No exercises match. Try another name or muscle group.
           </Text>
           <Button fill={false} label="Show All Exercises" onPress={showAll} />
-        </VStack>
-      );
-    }
-    if (isError) {
-      return (
-        <VStack className="items-center gap-sm pt-lg">
-          <H3 className="text-center">Couldn't Load Exercises</H3>
-          <Text className="text-center text-muted-foreground">
-            Couldn't load exercises. Check your connection and try again.
-          </Text>
-          <Button
-            fill={false}
-            label="Try Again"
-            onPress={retry}
-            variant="secondary"
-          />
         </VStack>
       );
     }

@@ -315,6 +315,56 @@ describe("after a 429", () => {
   });
 });
 
+describe("a failed refresh", () => {
+  it("shows the error state over the results it had", async () => {
+    let refresh: (() => Promise<void>) | undefined;
+    await renderView({
+      ref: (handle) => {
+        refresh = handle?.refresh;
+      },
+    });
+    fake.failWith(new ExerciseLibraryUnavailableError());
+
+    await act(async () => {
+      const refreshing = refresh?.();
+      await jest.advanceTimersByTimeAsync(1000);
+      await refreshing;
+    });
+    await advance(0);
+
+    expect(screen.getByText("Couldn't Load Exercises")).toBeTruthy();
+    expect(screen.queryByText("Bench Press 01")).toBeNull();
+  });
+});
+
+describe("the Retry-After hold", () => {
+  it("holds the Exercise picker back too, after the Library tab was rate limited", async () => {
+    await renderView();
+    fake.failWith(new ExerciseLibraryRateLimitedError(30));
+    await type("bench");
+    await advance(300);
+    fake.failWith(null);
+    list.mockClear();
+
+    // The picker opens in the same app (same query client) for a squat.
+    await screen.rerender(
+      <QueryClientProvider client={queryClient}>
+        <ExercisesView initialMuscleGroup="quadriceps" key="picker" />
+      </QueryClientProvider>
+    );
+    await advance(10_000);
+    expect(list).not.toHaveBeenCalled();
+
+    await advance(20_000);
+    expect(list).toHaveBeenLastCalledWith({
+      limit: 20,
+      muscleGroup: "quadriceps",
+      offset: 0,
+    });
+    expect(screen.getByText("Squat")).toBeTruthy();
+  });
+});
+
 describe("a failed next page", () => {
   it("keeps the results and says it couldn't load more", async () => {
     await renderView();

@@ -37,6 +37,8 @@ export default function LibraryScreen() {
       <ScrollView
         className="px-6"
         contentInsetAdjustmentBehavior="automatic"
+        // A result is tapped with the search keyboard still up.
+        keyboardShouldPersistTaps="handled"
         refreshControl={
           <RefreshControl onRefresh={onRefresh} refreshing={refreshing} />
         }

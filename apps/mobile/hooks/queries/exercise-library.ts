@@ -217,6 +217,27 @@ interface ExerciseSearchParams {
  * lists is seeded into its row query and MMKV, so its detail screen has its
  * name at once and it shows offline.
  */
+/**
+ * When the User may call `list` again after a 429, kept in the query client
+ * so the Library tab and the Exercise picker share it.
+ */
+const rateLimitKey = ["exercise-search-rate-limited-until"];
+
+/** Resolves once `until` has passed; rejects if the request is cancelled first. */
+const waitUntil = (until: number, signal: AbortSignal) =>
+  new Promise<void>((resolve, reject) => {
+    const wait = until - Date.now();
+    if (wait <= 0) {
+      resolve();
+      return;
+    }
+    const timer = setTimeout(resolve, wait);
+    signal.addEventListener("abort", () => {
+      clearTimeout(timer);
+      reject(signal.reason);
+    });
+  });
+
 export const useExerciseSearch = ({
   muscleGroup,
   search,
@@ -227,7 +248,6 @@ export const useExerciseSearch = ({
     muscleGroup,
     search: term,
   });
-  const [rateLimitedUntil, setRateLimitedUntil] = useState(0);
   const [lastPages, setLastPages] = useState<ExercisePage[]>();
 
   useEffect(() => {
@@ -239,10 +259,10 @@ export const useExerciseSearch = ({
       sent.muscleGroup === muscleGroup ? EXERCISE_SEARCH_DEBOUNCE_MS : 0;
     const timer = setTimeout(
       () => setSent({ muscleGroup, search: term }),
-      Math.max(debounce, rateLimitedUntil - Date.now())
+      debounce
     );
     return () => clearTimeout(timer);
-  }, [muscleGroup, rateLimitedUntil, sent, term]);
+  }, [muscleGroup, sent, term]);
 
   const query = useInfiniteQuery({
     getNextPageParam: (lastPage: ExercisePage, _pages, lastOffset: number) =>
@@ -250,7 +270,12 @@ export const useExerciseSearch = ({
     initialPageParam: 0,
     // A new search keeps showing the last results until its own arrive.
     placeholderData: keepPreviousData,
-    queryFn: async ({ pageParam }): Promise<ExercisePage> => {
+    queryFn: async ({ pageParam, signal }): Promise<ExercisePage> => {
+      // Every request (a search, the next page, a refresh) waits out a 429.
+      await waitUntil(
+        queryClient.getQueryData<number>(rateLimitKey) ?? 0,
+        signal
+      );
       let page: ExercisePage;
       try {
         page = await exerciseLibrary.list({
@@ -261,7 +286,10 @@ export const useExerciseSearch = ({
         });
       } catch (error) {
         if (error instanceof ExerciseLibraryRateLimitedError) {
-          setRateLimitedUntil(Date.now() + error.retryAfterSeconds * 1000);
+          queryClient.setQueryData<number>(
+            rateLimitKey,
+            Date.now() + error.retryAfterSeconds * 1000
+          );
         }
         throw error;
       }
@@ -291,23 +319,21 @@ export const useExerciseSearch = ({
   const shownPages =
     query.data?.pages ?? (isRateLimited ? lastPages : undefined);
 
-  /** Runs `request` once `Retry-After` has passed (at once when not rate limited). */
-  const afterRateLimit = async <T>(request: () => Promise<T>) => {
-    const wait = rateLimitedUntil - Date.now();
-    if (wait > 0) {
-      await new Promise((resolve) => setTimeout(resolve, wait));
-    }
-    return request();
-  };
-
   return {
     exercises: shownPages?.flatMap((page) => page.data),
     hasMore: query.hasNextPage && !query.isPlaceholderData,
-    isError: query.isError && !(isRateLimited && shownPages),
+    /**
+     * The search (or a refresh of it) failed, rate limited aside: the view's
+     * error state, whatever it showed before.
+     */
+    isError:
+      query.isError &&
+      !query.isFetchNextPageError &&
+      !(isRateLimited && shownPages),
     isLoadingMore: query.isFetchingNextPage,
     /** The next page failed (rate limited aside): the results stay, with a message. */
     isLoadMoreError: query.isFetchNextPageError && !isRateLimited,
-    loadMore: () => afterRateLimit(() => query.fetchNextPage()),
-    refetch: () => afterRateLimit(() => query.refetch()),
+    loadMore: query.fetchNextPage,
+    refetch: query.refetch,
   };
 };
