@@ -3,7 +3,7 @@
 -- Run with `pnpm db test:db` (supabase test db).
 begin;
 
-select plan(20);
+select plan(21);
 
 -- ------------------------------------------------------------
 -- Fixtures (as postgres, bypassing RLS)
@@ -93,6 +93,17 @@ select is(
    where id = 'c5000000-0000-0000-0000-000000000002'),
   'test-squat-slugs e5000000-0000-0000-0000-000000000001',
   'an update that touches neither keeps both'
+);
+
+update public.workout_exercises
+set exercise_slug = 'library-only-slug'
+where id = 'c5000000-0000-0000-0000-000000000002';
+
+select is(
+  (select exercise_slug || ' ' || exercise_id from public.workout_exercises
+   where id = 'c5000000-0000-0000-0000-000000000002'),
+  'library-only-slug e5000000-0000-0000-0000-000000000001',
+  'updating to a slug the exercises table doesn''t know keeps the uuid'
 );
 
 select throws_ok(

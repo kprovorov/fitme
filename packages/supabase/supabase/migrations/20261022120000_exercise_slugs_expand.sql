@@ -45,13 +45,12 @@ ALTER TABLE public.workout_session_exercises
 
 -- Keeps both columns in step whichever one a writer sends: a uuid-only write
 -- gets its slug, a slug-only write gets its uuid, both from exercises. A
--- write that sends both keeps both as sent. An unknown uuid or slug leaves the
--- other NULL, which the NOT NULL constraints reject. Goes away in the
--- contract step.
+-- write that sends both keeps both as sent (ADR 0010: Postgres doesn't check
+-- slugs). An insert whose uuid or slug the table doesn't know leaves the other
+-- NULL, which NOT NULL rejects. Goes away in the contract step.
 CREATE FUNCTION public.sync_exercise_slug()
 RETURNS trigger
 LANGUAGE plpgsql
-SECURITY DEFINER
 SET search_path = ''
 AS $$
 DECLARE
@@ -74,8 +73,13 @@ BEGIN
       SELECT e.slug FROM public.exercises e WHERE e.id = NEW.exercise_id
     );
   ELSIF v_slug_changed AND NOT v_id_changed THEN
-    NEW.exercise_id := (
-      SELECT e.id FROM public.exercises e WHERE e.slug = NEW.exercise_slug
+    -- On update, a slug the table doesn't know keeps the row's uuid (as a
+    -- write sending both would), so an RPC that sets both columns, such as
+    -- workout_session_plan_changes' apply, never loses it. On insert there's
+    -- none to keep, so NOT NULL rejects the row.
+    NEW.exercise_id := coalesce(
+      (SELECT e.id FROM public.exercises e WHERE e.slug = NEW.exercise_slug),
+      CASE WHEN TG_OP = 'UPDATE' THEN OLD.exercise_id END
     );
   END IF;
 
@@ -100,11 +104,11 @@ CREATE TRIGGER sync_exercise_slug
 -- either exercise_id or exercise_slug (the trigger fills the other) and copy
 -- both. Their @fitme/services twins move to slugs separately (FIT-238).
 CREATE OR REPLACE FUNCTION public.create_plan(p_plan_data jsonb)
- RETURNS uuid
- LANGUAGE plpgsql
- SECURITY DEFINER
- SET search_path TO 'public'
-AS $function$
+RETURNS uuid
+LANGUAGE plpgsql
+SECURITY DEFINER
+SET search_path = public
+AS $$
 DECLARE
   v_plan_id uuid;
   v_workout_id uuid;
@@ -188,13 +192,18 @@ BEGIN
 
   RETURN v_plan_id;
 END;
-$function$;
-CREATE OR REPLACE FUNCTION public.update_plan(p_plan_id uuid, p_plan_data jsonb, p_user_id text DEFAULT current_user_id())
- RETURNS uuid
- LANGUAGE plpgsql
- SECURITY DEFINER
- SET search_path TO 'public'
-AS $function$
+$$;
+
+CREATE OR REPLACE FUNCTION public.update_plan(
+  p_plan_id uuid,
+  p_plan_data jsonb,
+  p_user_id text DEFAULT public.current_user_id()
+)
+RETURNS uuid
+LANGUAGE plpgsql
+SECURITY DEFINER
+SET search_path = public
+AS $$
 DECLARE
   v_plan_id uuid;
   v_workout_id uuid;
@@ -288,13 +297,14 @@ BEGIN
 
   RETURN v_plan_id;
 END;
-$function$;
+$$;
+
 CREATE OR REPLACE FUNCTION public.start_workout_session(p_workout_id uuid)
- RETURNS uuid
- LANGUAGE plpgsql
- SECURITY DEFINER
- SET search_path TO 'public'
-AS $function$
+RETURNS uuid
+LANGUAGE plpgsql
+SECURITY DEFINER
+SET search_path = public
+AS $$
 DECLARE
   v_session_id uuid;
   v_session_user_id text;
@@ -376,7 +386,7 @@ BEGIN
 
   RETURN v_session_id;
 END;
-$function$;
+$$;
 
 -- workout_session_plan_changes (FIT-230) matches Exercises by slug and copies
 -- both columns when it applies. Its response is unchanged: the slug it carries
