@@ -16,12 +16,12 @@ import {
   type PlanUpdatePrompt,
   usePlanUpdatePrompt,
 } from "~/hooks/plan-update-prompt";
-import { useProfileQuery } from "~/hooks/queries/profiles";
-import { workoutSessionPlanChanges } from "~/hooks/queries/workout-sessions";
+import { useApplyPlanChangesMutation } from "~/hooks/queries/workout-sessions";
 import {
   formatPlanChange,
   type PlanChangeKind,
   type PlanChanges,
+  planUpdateProperties,
 } from "~/lib/plan-changes";
 import { segmentClient } from "~/lib/segment";
 
@@ -143,12 +143,6 @@ export function PlanUpdateSheet({
   );
 }
 
-const promptProperties = ({ preview, sessionId }: PlanUpdatePrompt) => ({
-  plan_id: preview.plan?.id,
-  workout_id: preview.workout?.id,
-  workout_session_id: sessionId,
-});
-
 /**
  * Shows the "Update your plan?" question `useFinishWorkoutSession` asks after
  * a finish (see `showPlanUpdatePrompt`). Mounted once, in the root layout.
@@ -159,69 +153,78 @@ const promptProperties = ({ preview, sessionId }: PlanUpdatePrompt) => ({
 export function PlanUpdateSheetHost() {
   const prompt = usePlanUpdatePrompt();
   const queryClient = useQueryClient();
-  const { data: profile } = useProfileQuery({ enabled: !!prompt });
-  const [isApplying, setIsApplying] = useState(false);
-  const [hasFailed, setHasFailed] = useState(false);
+  const {
+    isError: hasFailed,
+    isPending: isApplying,
+    mutate: apply,
+    reset,
+  } = useApplyPlanChangesMutation();
   // A ref, so a second tap before the re-render is still ignored.
-  const busyRef = useRef(false);
-  // Keeps the content while the sheet slides away.
-  const [shown, setShown] = useState<PlanUpdatePrompt | null>(prompt);
+  const answeredRef = useRef(false);
+  // The last question, kept so the content stays while the sheet slides away.
+  const [lastPrompt, setLastPrompt] = useState<PlanUpdatePrompt | null>(prompt);
 
   useEffect(() => {
-    busyRef.current = false;
-    setIsApplying(false);
-    setHasFailed(false);
+    answeredRef.current = false;
+    reset();
     if (prompt) {
-      setShown(prompt);
+      setLastPrompt(prompt);
     }
-  }, [prompt]);
+  }, [prompt, reset]);
 
-  const done = useCallback((answered: PlanUpdatePrompt) => {
+  const close = useCallback((answered: PlanUpdatePrompt) => {
     closePlanUpdatePrompt(answered.sessionId);
     answered.onDone();
   }, []);
 
-  const handleUpdate = useCallback(async () => {
-    if (!prompt || busyRef.current) {
+  const handleUpdate = useCallback(() => {
+    if (!prompt || answeredRef.current) {
       return;
     }
-    busyRef.current = true;
-    setIsApplying(true);
-    setHasFailed(false);
-    try {
-      await workoutSessionPlanChanges(prompt.sessionId, { apply: true });
-    } catch (error) {
-      Sentry.captureException(error);
-      busyRef.current = false;
-      setIsApplying(false);
-      setHasFailed(true);
-      return;
-    }
-    for (const queryKey of PLAN_QUERY_KEYS) {
-      queryClient.invalidateQueries({ queryKey });
-    }
-    segmentClient.track("Plan Update Accepted", promptProperties(prompt));
-    done(prompt);
-  }, [done, prompt, queryClient]);
+    answeredRef.current = true;
+    apply(
+      { sessionId: prompt.sessionId },
+      {
+        onError: (error) => {
+          Sentry.captureException(error);
+          answeredRef.current = false;
+        },
+        onSuccess: () => {
+          for (const queryKey of PLAN_QUERY_KEYS) {
+            queryClient.invalidateQueries({ queryKey });
+          }
+          segmentClient.track(
+            "Plan Update Accepted",
+            planUpdateProperties(prompt.sessionId, prompt.preview)
+          );
+          close(prompt);
+        },
+      }
+    );
+  }, [apply, close, prompt, queryClient]);
 
   const handleKeep = useCallback(() => {
-    if (!prompt || busyRef.current) {
+    if (!prompt || answeredRef.current) {
       return;
     }
-    busyRef.current = true;
-    segmentClient.track("Plan Update Declined", promptProperties(prompt));
-    done(prompt);
-  }, [done, prompt]);
+    answeredRef.current = true;
+    segmentClient.track(
+      "Plan Update Declined",
+      planUpdateProperties(prompt.sessionId, prompt.preview)
+    );
+    close(prompt);
+  }, [close, prompt]);
 
+  const shown = prompt ?? lastPrompt;
   return (
     <PlanUpdateSheet
       hasFailed={hasFailed}
       isApplying={isApplying}
-      measurementSystem={profile?.measurement_system ?? "metric"}
+      measurementSystem={shown?.measurementSystem ?? "metric"}
       onKeep={handleKeep}
       onUpdate={handleUpdate}
       open={!!prompt}
-      preview={(prompt ?? shown)?.preview ?? null}
+      preview={shown?.preview ?? null}
     />
   );
 }

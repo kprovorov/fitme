@@ -93,6 +93,12 @@ jest.mock("~/hooks/queries/workout-sessions", () => {
   const FINISH_WORKOUT_SESSION_MUTATION_KEY = ["finish-workout-session"];
   return {
     FINISH_WORKOUT_SESSION_MUTATION_KEY,
+    fetchPlanChanges: (sessionId: string) =>
+      mockPlanChangesRpc(sessionId, { apply: false }),
+    useApplyPlanChangesMutation: createMutation({
+      mutationFn: ({ sessionId }: { sessionId: string }) =>
+        mockPlanChangesRpc(sessionId, { apply: true }),
+    }),
     useCreateWorkoutSessionMutation: createMutation({
       mutationFn: () => Promise.reject(new Error("not expected")),
     }),
@@ -105,10 +111,6 @@ jest.mock("~/hooks/queries/workout-sessions", () => {
       fetcher: () => mockFetchSession(),
       queryKey: ["workout-session"],
     }),
-    workoutSessionPlanChanges: (
-      sessionId: string,
-      options: { apply: boolean }
-    ) => mockPlanChangesRpc(sessionId, options),
   };
 });
 

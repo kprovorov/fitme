@@ -1,4 +1,8 @@
-import { countUnloggedSets, type WorkoutSession } from "@fitme/core";
+import {
+  countUnloggedSets,
+  type MeasurementSystem,
+  type WorkoutSession,
+} from "@fitme/core";
 import * as Sentry from "@sentry/react-native";
 import {
   type MutationFilters,
@@ -10,14 +14,19 @@ import { useNavigation, useRouter } from "expo-router";
 import { useCallback, useMemo } from "react";
 import { Alert } from "react-native";
 import { showPlanUpdatePrompt } from "~/hooks/plan-update-prompt";
+import { useProfileQuery } from "~/hooks/queries/profiles";
 import {
   FINISH_WORKOUT_SESSION_MUTATION_KEY,
   type FinishWorkoutSessionVariables,
+  fetchPlanChanges,
   useFinishWorkoutSessionMutation,
   useWorkoutSessionQuery,
-  workoutSessionPlanChanges,
 } from "~/hooks/queries/workout-sessions";
-import { countPlanChanges, type PlanChanges } from "~/lib/plan-changes";
+import {
+  countPlanChanges,
+  type PlanChanges,
+  planUpdateProperties,
+} from "~/lib/plan-changes";
 import { segmentClient } from "~/lib/segment";
 
 const finishingFilters = (sessionId: string): MutationFilters => ({
@@ -58,6 +67,33 @@ const alertFinishFailed = () =>
     "Couldn't finish workout",
     "Check your connection and try again."
   );
+
+/**
+ * What to ask after `sessionId` has finished: the changes it made to its
+ * Workout and the User's unit for their weights, or null when there's
+ * nothing to ask (no changes, or the Plan or Workout is gone). Throws when
+ * either can't be read.
+ */
+async function planUpdateQuestion(
+  queryClient: QueryClient,
+  sessionId: string
+): Promise<{
+  measurementSystem: MeasurementSystem;
+  preview: PlanChanges;
+} | null> {
+  const preview = await fetchPlanChanges(sessionId);
+  if (preview.changes.length === 0 || !(preview.plan && preview.workout)) {
+    return null;
+  }
+  // The lines show weights in the User's unit, never in a guessed one.
+  const profile = await queryClient.ensureQueryData(
+    useProfileQuery.getFetchOptions()
+  );
+  return {
+    measurementSystem: profile?.measurement_system ?? "metric",
+    preview,
+  };
+}
 
 /** Sessions whose "Finish workout?" question is open, so it's never asked twice. */
 const confirmingSessions = new Set<string>();
@@ -189,25 +225,29 @@ export function useFinishWorkoutSession(
         }
         router.replace(summary);
       };
-      let preview: PlanChanges;
+      let question: Awaited<ReturnType<typeof planUpdateQuestion>>;
       try {
-        preview = await workoutSessionPlanChanges(sessionId, { apply: false });
+        question = await planUpdateQuestion(queryClient, sessionId);
       } catch (error) {
         Sentry.captureException(error);
         openSummary();
         return;
       }
-      if (preview.changes.length === 0) {
+      if (!question) {
         openSummary();
         return;
       }
+      const { measurementSystem, preview } = question;
       segmentClient.track("Plan Update Suggested", {
         ...countPlanChanges(preview.changes),
-        plan_id: preview.plan?.id,
-        workout_id: preview.workout?.id,
-        workout_session_id: sessionId,
+        ...planUpdateProperties(sessionId, preview),
       });
-      showPlanUpdatePrompt({ onDone: openSummary, preview, sessionId });
+      showPlanUpdatePrompt({
+        measurementSystem,
+        onDone: openSummary,
+        preview,
+        sessionId,
+      });
     },
   });
 

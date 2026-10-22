@@ -41,16 +41,20 @@ export interface PlanChangeLine {
   text: string;
 }
 
-const SPOKEN_WEIGHT_UNIT = { kg: "kilograms", lbs: "pounds" } as const;
+const SPOKEN_WEIGHT_UNIT: Record<MeasurementSystem, string> = {
+  metric: "kilograms",
+  uk: "pounds",
+  us: "pounds",
+};
 
 const setsText = (sets: PlanChangeSet[], unit: string) =>
   `${sets.map(({ reps, weight }) => `${reps}×${weight}`).join(", ")} ${unit}`;
 
-const spokenSets = (sets: PlanChangeSet[], unit: "kg" | "lbs") =>
+const spokenSets = (sets: PlanChangeSet[], unit: string) =>
   sets
     .map(
       ({ reps, weight }) =>
-        `${reps} ${reps === 1 ? "rep" : "reps"} at ${weight} ${SPOKEN_WEIGHT_UNIT[unit]}`
+        `${reps} ${reps === 1 ? "rep" : "reps"} at ${weight} ${unit}`
     )
     .join(", ");
 
@@ -63,7 +67,7 @@ export function formatPlanChange(
   change: PlanChange,
   measurementSystem: MeasurementSystem
 ): PlanChangeLine {
-  const unit = getWeightLabel(measurementSystem) as "kg" | "lbs";
+  const unit = getWeightLabel(measurementSystem) ?? "kg";
   const exercise = change.exercise.name;
   let title: string;
   switch (change.kind) {
@@ -83,11 +87,13 @@ export function formatPlanChange(
       title = `Add ${count} ${count === 1 ? "set" : "sets"} to ${exercise}`;
       break;
     }
-    default:
-      throw new Error("Unknown plan change");
+    default: {
+      const unknown: never = change;
+      throw new Error(`Unknown plan change ${JSON.stringify(unknown)}`);
+    }
   }
   return {
-    accessibilityLabel: `${title}: ${spokenSets(change.sets, unit)}`,
+    accessibilityLabel: `${title}: ${spokenSets(change.sets, SPOKEN_WEIGHT_UNIT[measurementSystem])}`,
     text: `${title} · ${setsText(change.sets, unit)}`,
   };
 }
@@ -107,3 +113,13 @@ export function countPlanChanges(
   }
   return counts;
 }
+
+/** What every Plan Update analytics event says about the question. */
+export const planUpdateProperties = (
+  sessionId: string,
+  { plan, workout }: PlanChanges
+) => ({
+  plan_id: plan?.id,
+  workout_id: workout?.id,
+  workout_session_id: sessionId,
+});

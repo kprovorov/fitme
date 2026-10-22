@@ -1,3 +1,4 @@
+import type { MeasurementSystem } from "@fitme/core";
 import { useSyncExternalStore } from "react";
 import type { PlanChanges } from "~/lib/plan-changes";
 
@@ -6,6 +7,8 @@ import type { PlanChanges } from "~/lib/plan-changes";
  * finished. `onDone` opens its Summary, once the User has answered.
  */
 export interface PlanUpdatePrompt {
+  /** The User's, for the weights' unit. */
+  measurementSystem: MeasurementSystem;
   onDone: () => void;
   preview: PlanChanges;
   sessionId: string;

@@ -36,6 +36,7 @@ const mockPlanChangesRpc =
   >();
 const mockTrack = jest.fn();
 const mockProfile = { measurement_system: "metric" };
+const mockFetchProfile = jest.fn(() => Promise.resolve(mockProfile));
 
 jest.mock("expo-router", () => ({
   useNavigation: () => ({ getState: () => mockNavigationState }),
@@ -58,7 +59,7 @@ jest.mock("~/hooks/queries/profiles", () => {
     jest.requireActual<typeof import("react-query-kit")>("react-query-kit");
   return {
     useProfileQuery: createQuery({
-      fetcher: () => Promise.resolve(mockProfile),
+      fetcher: () => mockFetchProfile(),
       queryKey: ["profile"],
     }),
   };
@@ -72,6 +73,12 @@ jest.mock("~/hooks/queries/workout-sessions", () => {
   const FINISH_WORKOUT_SESSION_MUTATION_KEY = ["finish-workout-session"];
   return {
     FINISH_WORKOUT_SESSION_MUTATION_KEY,
+    fetchPlanChanges: (sessionId: string) =>
+      mockPlanChangesRpc(sessionId, { apply: false }),
+    useApplyPlanChangesMutation: createMutation({
+      mutationFn: ({ sessionId }: { sessionId: string }) =>
+        mockPlanChangesRpc(sessionId, { apply: true }),
+    }),
     useFinishWorkoutSessionMutation: createMutation({
       mutationFn: (variables: { sessionId: string }) =>
         mockFinishRpc(variables),
@@ -81,10 +88,6 @@ jest.mock("~/hooks/queries/workout-sessions", () => {
       fetcher: () => mockFetchSession(),
       queryKey: ["workout-session"],
     }),
-    workoutSessionPlanChanges: (
-      sessionId: string,
-      options: { apply: boolean }
-    ) => mockPlanChangesRpc(sessionId, options),
   };
 });
 
@@ -635,6 +638,22 @@ describe("useFinishWorkoutSession", () => {
       expect(Sentry.captureException).toHaveBeenCalledWith(failure);
       expect(screen.queryByText("Update your plan?")).toBeNull();
       expect(Alert.alert).not.toHaveBeenCalled();
+    });
+
+    it("opens the summary without asking when the User's unit can't be read", async () => {
+      mockFinishRpc.mockResolvedValue({});
+      mockPlanChangesRpc.mockResolvedValueOnce(CHANGES);
+      const failure = new Error("offline");
+      mockFetchProfile.mockRejectedValueOnce(failure);
+      const { result, settled } = await setup();
+
+      await act(() => result.current.session.finish());
+
+      await waitFor(() => expect(mockReplace).toHaveBeenCalledWith(SUMMARY));
+      await settled();
+      expect(Sentry.captureException).toHaveBeenCalledWith(failure);
+      expect(screen.queryByText("Update your plan?")).toBeNull();
+      expect(mockTrack).not.toHaveBeenCalled();
     });
 
     it("asks after the unlogged-sets confirmation, from the header's Finish", async () => {

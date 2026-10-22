@@ -105,16 +105,9 @@ export const useFinishWorkoutSessionMutation = createMutation<
   mutationKey: FINISH_WORKOUT_SESSION_MUTATION_KEY,
 });
 
-/**
- * The structural changes a finished Workout Session made to its Workout
- * (`workout_session_plan_changes`). `apply: false` only reads them; `apply:
- * true` writes them to the Plan in one transaction and answers what it
- * applied. Once applied, both modes answer no changes, so a retried apply
- * never writes twice.
- */
-export const workoutSessionPlanChanges = async (
+const workoutSessionPlanChanges = async (
   sessionId: string,
-  { apply }: { apply: boolean }
+  apply: boolean
 ): Promise<PlanChanges> => {
   const { data, error } = await supabase.rpc("workout_session_plan_changes", {
     apply,
@@ -125,6 +118,31 @@ export const workoutSessionPlanChanges = async (
   }
   return data as unknown as PlanChanges;
 };
+
+/**
+ * The structural changes a finished Workout Session made to its Workout
+ * (`workout_session_plan_changes` with `apply = false`), without writing
+ * anything.
+ */
+export const fetchPlanChanges = (sessionId: string): Promise<PlanChanges> =>
+  workoutSessionPlanChanges(sessionId, false);
+
+export interface ApplyPlanChangesVariables {
+  sessionId: string;
+}
+
+/**
+ * Writes those changes to the Plan in one transaction (`apply = true`) and
+ * answers what it applied. Once applied, both modes answer no changes, so a
+ * retried apply never writes twice.
+ */
+export const useApplyPlanChangesMutation = createMutation<
+  PlanChanges,
+  ApplyPlanChangesVariables
+>({
+  mutationFn: ({ sessionId }: ApplyPlanChangesVariables) =>
+    workoutSessionPlanChanges(sessionId, true),
+});
 
 export const useWorkoutSessionHistoryQuery = createQuery<
   WorkoutSession[],
