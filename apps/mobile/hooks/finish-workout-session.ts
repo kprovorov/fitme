@@ -1,6 +1,7 @@
 import {
   countUnloggedSets,
   type MeasurementSystem,
+  type PlanChanges,
   type WorkoutSession,
 } from "@fitme/core";
 import * as Sentry from "@sentry/react-native";
@@ -22,11 +23,7 @@ import {
   useFinishWorkoutSessionMutation,
   useWorkoutSessionQuery,
 } from "~/hooks/queries/workout-sessions";
-import {
-  countPlanChanges,
-  type PlanChanges,
-  planUpdateProperties,
-} from "~/lib/plan-changes";
+import { countPlanChanges, planUpdateProperties } from "~/lib/plan-changes";
 import { segmentClient } from "~/lib/segment";
 
 const finishingFilters = (sessionId: string): MutationFilters => ({

@@ -1,7 +1,6 @@
-import type { WorkoutSession } from "@fitme/core";
+import type { PlanChanges, WorkoutSession } from "@fitme/core";
 import { createMutation, createQuery } from "react-query-kit";
 import { supabase } from "@/lib/supabase";
-import type { PlanChanges } from "~/lib/plan-changes";
 
 const SESSION_SELECT = `
   *,

@@ -1,6 +1,5 @@
-import type { MeasurementSystem } from "@fitme/core";
+import type { MeasurementSystem, PlanChanges } from "@fitme/core";
 import { useSyncExternalStore } from "react";
-import type { PlanChanges } from "~/lib/plan-changes";
 
 /**
  * The "Update your plan?" question for a Workout Session that has just

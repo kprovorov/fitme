@@ -1,4 +1,8 @@
-import type { MeasurementSystem } from "@fitme/core";
+import type {
+  MeasurementSystem,
+  PlanChangeKind,
+  PlanChanges,
+} from "@fitme/core";
 import * as Sentry from "@sentry/react-native";
 import { useQueryClient } from "@tanstack/react-query";
 import { useCallback, useEffect, useRef, useState } from "react";
@@ -17,12 +21,7 @@ import {
   usePlanUpdatePrompt,
 } from "~/hooks/plan-update-prompt";
 import { useApplyPlanChangesMutation } from "~/hooks/queries/workout-sessions";
-import {
-  formatPlanChange,
-  type PlanChangeKind,
-  type PlanChanges,
-  planUpdateProperties,
-} from "~/lib/plan-changes";
+import { formatPlanChange, planUpdateProperties } from "~/lib/plan-changes";
 import { segmentClient } from "~/lib/segment";
 
 /** Every query that reads a Plan's Workouts, refetched once changes apply. */

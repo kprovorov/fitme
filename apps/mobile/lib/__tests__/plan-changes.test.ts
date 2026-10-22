@@ -1,9 +1,6 @@
+import type { PlanChange } from "@fitme/core";
 import { describe, expect, it } from "@jest/globals";
-import {
-  countPlanChanges,
-  formatPlanChange,
-  type PlanChange,
-} from "../plan-changes";
+import { countPlanChanges, formatPlanChange } from "../plan-changes";
 
 const bench = { id: "e-1", name: "Bench Press" };
 const press = { id: "e-2", name: "Dumbbell Press" };
