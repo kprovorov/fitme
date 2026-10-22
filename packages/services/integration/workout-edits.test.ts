@@ -41,6 +41,7 @@ const NUMERIC_OUT_OF_RANGE = "22003";
 let benchId: string;
 let squatId: string;
 let rowId: string;
+const rowSlug = `edit-row-${runId}`;
 
 /**
  * A Plan with one Workout, Day A: Bench (sets 8×60, 6×62.5) then Squat
@@ -157,7 +158,7 @@ beforeAll(async () => {
           name: "Edit squat",
           slug: `edit-squat-${runId}`,
         },
-        { muscleGroups: ["back"], name: "Edit row", slug: `edit-row-${runId}` },
+        { muscleGroups: ["back"], name: "Edit row", slug: rowSlug },
       ])
       .returning({ id: exercises.id })
   );
@@ -340,6 +341,34 @@ describe("addExerciseToWorkout", () => {
     ]);
   });
 
+  it("appends an Exercise given by its slug as it does one given by uuid", async () => {
+    const byUuid = await seedPlan(owner);
+    const bySlug = await seedPlan(owner);
+    await asUser(owner, (tx) =>
+      addExerciseToWorkout(tx, owner, {
+        exerciseId: rowId,
+        sets,
+        workoutId: byUuid.dayA,
+      })
+    );
+
+    const added = await asUser(owner, (tx) =>
+      addExerciseToWorkout(tx, owner, {
+        exerciseSlug: rowSlug,
+        sets,
+        workoutId: bySlug.dayA,
+      })
+    );
+
+    expect(added).toEqual({ id: expect.any(String), order: 3, setsAdded: 2 });
+    expect(await shapeOf(bySlug)).toEqual(await shapeOf(byUuid));
+    // the sync trigger filled in the uuid
+    expect((await dayAOf(bySlug))?.exercises[2]).toMatchObject({
+      exercise: { id: rowId },
+      exercise_slug: rowSlug,
+    });
+  });
+
   it("adds the Exercise once when the call is repeated with its request key", async () => {
     const plan = await seedPlan(owner);
     const requestKey = newKey();
@@ -478,6 +507,27 @@ describe("replaceExerciseInWorkout", () => {
     expect((await dayAOf(plan))?.exercises[0].id).toBe(plan.bench);
   });
 
+  it("swaps in an Exercise given by its slug as it does one given by uuid", async () => {
+    const plan = await seedPlan(owner);
+
+    const replaced = await asUser(owner, (tx) =>
+      replaceExerciseInWorkout(tx, owner, {
+        newExerciseSlug: rowSlug,
+        sets,
+        workoutExerciseId: plan.bench,
+      })
+    );
+
+    expect(replaced).toBe(true);
+    expect(await shapeOf(plan)).toEqual(replacedShape);
+    // the sync trigger filled in the uuid
+    expect((await dayAOf(plan))?.exercises[0]).toMatchObject({
+      exercise: { id: rowId },
+      exercise_slug: rowSlug,
+      id: plan.bench,
+    });
+  });
+
   it("ends in the same state when the call is repeated", async () => {
     const plan = await seedPlan(owner);
     const replace = () =>
@@ -515,6 +565,31 @@ describe("replaceExerciseInWorkout", () => {
     const firstIds = await setIds();
     await replace();
 
+    expect(await setIds()).toEqual(firstIds);
+  });
+
+  it("finds the replacement in place by its slug, whichever form wrote it", async () => {
+    const plan = await seedPlan(owner);
+    const setIds = async () =>
+      (await dayAOf(plan))?.exercises[0].sets.map((set) => set.id);
+    await asUser(owner, (tx) =>
+      replaceExerciseInWorkout(tx, owner, {
+        newExerciseId: rowId,
+        sets,
+        workoutExerciseId: plan.bench,
+      })
+    );
+    const firstIds = await setIds();
+
+    const replaced = await asUser(owner, (tx) =>
+      replaceExerciseInWorkout(tx, owner, {
+        newExerciseSlug: rowSlug,
+        sets,
+        workoutExerciseId: plan.bench,
+      })
+    );
+
+    expect(replaced).toBe(true);
     expect(await setIds()).toEqual(firstIds);
   });
 

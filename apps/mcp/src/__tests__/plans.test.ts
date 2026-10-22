@@ -64,6 +64,7 @@ const servicePlan = {
       exercises: [
         {
           exercise: { id: BENCH_ID, muscle_groups: ["chest"], name: "Bench" },
+          exercise_slug: "bench-press",
           id: "we1",
           order: 1,
           sets: [

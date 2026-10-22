@@ -65,6 +65,8 @@ export interface WorkoutSessionSet {
 
 export interface WorkoutSessionExercise {
   exercise: NamedRef;
+  /** The Exercise Library's key for `exercise`. */
+  exercise_slug: string;
   id: string;
   order: number;
   sets: WorkoutSessionSet[];
@@ -257,6 +259,7 @@ const findSessionDetails = async (
       ...sessionColumns,
       exerciseId: exercises.id,
       exerciseName: exercises.name,
+      exerciseSlug: workoutSessionExercises.exerciseSlug,
       sessionExerciseId: workoutSessionExercises.id,
       sessionExerciseOrder: workoutSessionExercises.order,
       ...setColumns,
@@ -307,6 +310,7 @@ const findSessionDetails = async (
     const {
       exerciseId,
       exerciseName,
+      exerciseSlug,
       sessionExerciseId,
       sessionExerciseOrder,
       setId,
@@ -316,7 +320,8 @@ const findSessionDetails = async (
       sessionExerciseId === null ||
       sessionExerciseOrder === null ||
       exerciseId === null ||
-      exerciseName === null
+      exerciseName === null ||
+      exerciseSlug === null
     ) {
       continue;
     }
@@ -324,6 +329,7 @@ const findSessionDetails = async (
     if (!exercise) {
       exercise = {
         exercise: { id: exerciseId, name: exerciseName },
+        exercise_slug: exerciseSlug,
         id: sessionExerciseId,
         order: sessionExerciseOrder,
         sets: [],
@@ -508,7 +514,10 @@ const findOpenSessionId = async (tx: Transaction, workoutId: string) => {
 /** A Postgres uuid[] literal; uuids need no quoting. */
 const uuidArray = (ids: string[]) => `{${ids.join(",")}}`;
 
-/** Copies the Workout's exercises and their sets into the session. */
+/**
+ * Copies the Workout's exercises (both Exercise columns, as the RPC does) and
+ * their sets into the session.
+ */
 const copyWorkoutTemplate = async (
   tx: Transaction,
   workoutId: string,
@@ -517,6 +526,7 @@ const copyWorkoutTemplate = async (
   const templateExercises = await tx
     .select({
       exerciseId: workoutExercises.exerciseId,
+      exerciseSlug: workoutExercises.exerciseSlug,
       id: workoutExercises.id,
       order: workoutExercises.order,
     })
@@ -535,6 +545,7 @@ const copyWorkoutTemplate = async (
   await tx.insert(workoutSessionExercises).values(
     copies.map(({ id, template }) => ({
       exerciseId: template.exerciseId,
+      exerciseSlug: template.exerciseSlug,
       id,
       order: template.order,
       workoutSessionId: sessionId,

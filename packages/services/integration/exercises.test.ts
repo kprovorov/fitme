@@ -32,6 +32,7 @@ const prefix = `Zz${runId}`;
 const ISO_TIMESTAMP = /^\d{4}-\d{2}-\d{2}T\d{2}:\d{2}:\d{2}(\.\d+)?\+00:00$/;
 
 let alpha: string;
+const alphaSlug = `alpha-${runId}`;
 let beta: string;
 let gamma: string;
 
@@ -122,7 +123,7 @@ beforeAll(async () => {
           description: "Pressing",
           muscleGroups: ["chest", "triceps"],
           name: `${prefix} Alpha Press_1%`,
-          slug: `alpha-${runId}`,
+          slug: alphaSlug,
         },
         {
           muscleGroups: ["back"],
@@ -255,7 +256,7 @@ describe("getExercise", () => {
 describe("getExerciseHistory", () => {
   const history = (userId: string, limit = 10) =>
     asUser(userId, (tx) =>
-      getExerciseHistory(tx, userId, { exerciseId: alpha, limit })
+      getExerciseHistory(tx, userId, { exerciseSlug: alphaSlug, limit })
     );
 
   it("returns the User's entries newest first, with weighted sets in order", async () => {
@@ -292,6 +293,15 @@ describe("getExerciseHistory", () => {
     ]);
   });
 
+  it("returns the same entries by uuid as by Exercise slug", async () => {
+    const byUuid = await asUser(owner, (tx) =>
+      getExerciseHistory(tx, owner, { exerciseId: alpha, limit: 10 })
+    );
+
+    expect(byUuid).toEqual(await history(owner));
+    expect(byUuid).toHaveLength(2);
+  });
+
   it("counts entries towards the limit", async () => {
     expect((await history(owner, 1)).map((entry) => entry.session_id)).toEqual([
       newer.sessionId,
@@ -304,7 +314,10 @@ describe("getExerciseHistory", () => {
     ]);
     expect(
       await asUser(owner, (tx) =>
-        getExerciseHistory(tx, intruder, { exerciseId: alpha, limit: 10 })
+        getExerciseHistory(tx, intruder, {
+          exerciseSlug: alphaSlug,
+          limit: 10,
+        })
       )
     ).toEqual([]);
   });

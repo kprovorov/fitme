@@ -156,11 +156,17 @@ export interface ExerciseHistoryEntry {
   workout: { id: string; name: string } | null;
 }
 
-export interface ExerciseHistoryQuery {
-  exerciseId: string;
+/**
+ * The Exercise by its Exercise slug, or by its legacy uuid until MCP moves to
+ * slugs (the contract step drops `exerciseId`).
+ */
+export type ExerciseHistoryQuery = (
+  | { exerciseId?: undefined; exerciseSlug: string }
+  | { exerciseId: string; exerciseSlug?: undefined }
+) & {
   /** Maximum number of entries. */
   limit: number;
-}
+};
 
 const hasWeight = isNotNull(workoutSessionExerciseSets.weightCompleted);
 
@@ -173,8 +179,12 @@ const hasWeight = isNotNull(workoutSessionExerciseSets.weightCompleted);
 export const getExerciseHistory = async (
   tx: Transaction,
   userId: string,
-  { exerciseId, limit }: ExerciseHistoryQuery
+  { exerciseId, exerciseSlug, limit }: ExerciseHistoryQuery
 ): Promise<ExerciseHistoryEntry[]> => {
+  const isExercise =
+    exerciseSlug === undefined
+      ? eq(workoutSessionExercises.exerciseId, exerciseId)
+      : eq(workoutSessionExercises.exerciseSlug, exerciseSlug);
   const newest = desc(workoutSessionExercises.createdAt);
   const latestEntries = tx
     .select({ id: workoutSessionExercises.id })
@@ -185,7 +195,7 @@ export const getExerciseHistory = async (
     )
     .where(
       and(
-        eq(workoutSessionExercises.exerciseId, exerciseId),
+        isExercise,
         eq(workoutSessions.userId, userId),
         exists(
           tx

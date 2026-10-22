@@ -28,6 +28,7 @@ const sessionDetail: WorkoutSessionDetail = {
   exercises: [
     {
       exercise: { id: "bench", name: "Bench" },
+      exercise_slug: "bench-press",
       id: "wse-1",
       order: 1,
       sets: [loggedSet],
