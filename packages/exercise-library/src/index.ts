@@ -1,6 +1,5 @@
 export {
   createExerciseLibrary,
-  DEFAULT_TIMEOUT_MS,
   type ExerciseLibraryOptions,
   MAX_LOOKUP_SLUGS,
 } from "./client";

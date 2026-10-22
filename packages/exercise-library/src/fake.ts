@@ -76,7 +76,7 @@ export const createFakeExerciseLibrary = (
   const bySlug = new Map(sorted.map((summary) => [summary.slug, summary]));
   let failure: ExerciseLibraryError | null = null;
 
-  const answer = <T>(compute: () => T): Promise<T> => {
+  const orFail = <T>(compute: () => T): Promise<T> => {
     if (failure) {
       return Promise.reject(failure);
     }
@@ -93,7 +93,7 @@ export const createFakeExerciseLibrary = (
     },
 
     list: (params = {}) =>
-      answer((): ExercisePage => {
+      orFail((): ExercisePage => {
         validate(params);
         const {
           limit = DEFAULT_LIMIT,
@@ -116,7 +116,7 @@ export const createFakeExerciseLibrary = (
       }),
 
     lookup: (slugs) =>
-      answer(() => {
+      orFail(() => {
         const unique = [...new Set(slugs)];
         return {
           data: unique.flatMap((slug) => bySlug.get(slug) ?? []),
