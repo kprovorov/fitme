@@ -16,12 +16,21 @@ type Appearance = NonNullable<
  * Mapped onto what Clerk draws: its "background" is its card, so `card`; its
  * "input" is a field's fill, so `muted`, which shows on the card. Clerk fades
  * its borders to a few percent of `colorBorder`, so the code boxes and the
- * menu get their fill and edge in `elements`. There's no warning token, so
+ * menu get their fill and edge in `elements`, as does the text on a solid
+ * danger button (`destructive-foreground`, which Clerk has no variable for). There's no warning token, so
  * Clerk's notices stay neutral. No shadows (ADR 0009). Passed once, to
  * `ClerkProvider`.
  */
 export const clerkAppearance: Appearance = {
   elements: {
+    // Clerk has no danger-foreground variable, so its solid danger buttons
+    // (the account deletion confirm, for one) draw white text on
+    // `destructive`, about 2.8:1; every one carries these data attributes
+    button: {
+      '&[data-variant="solid"][data-color="danger"]': {
+        color: "var(--color-destructive-foreground)",
+      },
+    },
     // The code boxes ignore `colorInput`, so they get its fill here
     otpCodeFieldInput: { backgroundColor: "var(--color-muted)" },
     // The menu is `card` over cards, so it needs a visible edge
