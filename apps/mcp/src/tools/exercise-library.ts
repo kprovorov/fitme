@@ -5,8 +5,21 @@ import {
 } from "@fitme/exercise-library";
 import type { PlanDetail } from "@fitme/services/plans";
 import type { WorkoutSessionDetail } from "@fitme/services/workout-sessions";
+import { z } from "zod";
 import type { ToolContext } from "../context.js";
 import { ToolError } from "./helpers.js";
+
+const MAX_SLUG_LENGTH = 100;
+
+/** An Exercise by its Exercise slug; whether it exists is checked with the library. */
+export const exerciseSlugSchema = z
+  .string()
+  .trim()
+  .min(1)
+  .max(MAX_SLUG_LENGTH)
+  .describe(
+    "Exercise slug from list_exercises (its `slug`), e.g. `barbell-back-squat`."
+  );
 
 export const LIBRARY_UNAVAILABLE_MESSAGE =
   "Exercise Library unavailable, try again.";
@@ -93,16 +106,11 @@ const named = <T extends WithSlug & { exercise: unknown }>(
   known: KnownExercises
 ) => ({ ...rest, ...exerciseRef(exercise_slug, known) });
 
-export const planSlugs = (plan: PlanDetail) =>
-  plan.workouts.flatMap((workout) =>
-    workout.exercises.map((exercise) => exercise.exercise_slug)
-  );
-
 export const sessionSlugs = (session: WorkoutSessionDetail) =>
   session.exercises.map((exercise) => exercise.exercise_slug);
 
-/** Slugs in the order a write's workouts carry them. */
-export const inputSlugs = (workouts: { exercises: WithSlug[] }[]) =>
+/** Slugs in the order workouts carry them, a write's or a Plan's. */
+export const workoutSlugs = (workouts: { exercises: WithSlug[] }[]) =>
   workouts.flatMap((workout) =>
     workout.exercises.map((exercise) => exercise.exercise_slug)
   );
@@ -125,7 +133,7 @@ export const nameSession = (
 
 /** A Plan read with its Exercises named, looked up after the transaction. */
 export const namedPlan = async (ctx: ToolContext, plan: PlanDetail) =>
-  namePlan(plan, await lookupForRead(ctx, planSlugs(plan)));
+  namePlan(plan, await lookupForRead(ctx, workoutSlugs(plan.workouts)));
 
 /** A Workout Session read with its Exercises named, looked up after the transaction. */
 export const namedSession = async (

@@ -3,7 +3,7 @@ import type { ExercisePage } from "@fitme/exercise-library";
 import type { McpServer } from "@modelcontextprotocol/sdk/server/mcp.js";
 import { z } from "zod";
 import type { ToolContext } from "../context.js";
-import { fromLibrary } from "./exercise-library.js";
+import { exerciseSlugSchema, fromLibrary } from "./exercise-library.js";
 import {
   asJson,
   READ_ONLY,
@@ -13,7 +13,6 @@ import {
   withToolErrors,
 } from "./helpers.js";
 import { DEFAULT_PAGE_SIZE, MAX_PAGE_SIZE } from "./limits.js";
-import { exerciseSlugSchema } from "./plan-schemas.js";
 
 const DEFAULT_HISTORY_LIMIT = 10;
 const MAX_HISTORY_LIMIT = 50;

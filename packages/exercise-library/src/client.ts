@@ -193,7 +193,7 @@ export const createExerciseLibrary = ({
   };
 
   /** `GET /exercises`, which never answers 404. */
-  const get = async <T>(
+  const getExercises = async <T>(
     params: QueryParams,
     isAnswer: (body: unknown) => body is T
   ) => (await request("/exercises", params, isAnswer)) as T;
@@ -207,14 +207,17 @@ export const createExerciseLibrary = ({
           }),
 
     list: ({ limit, muscleGroup, offset, search } = {}) =>
-      get({ limit, muscle_group: muscleGroup, offset, search }, isPage),
+      getExercises(
+        { limit, muscle_group: muscleGroup, offset, search },
+        isPage
+      ),
 
     lookup: async (slugs) => {
       const unique = [...new Set(slugs)];
       const asked = unique.filter((slug) => !isUnaskable(slug));
       const batches = await Promise.all(
         chunk(asked, MAX_LOOKUP_SLUGS).map((batch) =>
-          get({ slugs: batch.join(",") }, isBatch)
+          getExercises({ slugs: batch.join(",") }, isBatch)
         )
       );
       const found = new Map(

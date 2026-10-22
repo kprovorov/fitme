@@ -1,6 +1,7 @@
 import { experienceLevels, goals, places } from "@fitme/core";
 import { MAX_REPS, MAX_WEIGHT } from "@fitme/core/limits";
 import { z } from "zod";
+import { exerciseSlugSchema } from "./exercise-library.js";
 
 const MAX_NAME_LENGTH = 200;
 const MAX_TEXT_LENGTH = 2000;
@@ -11,18 +12,6 @@ const MAX_REST_SECONDS = 3600;
 const MIN_FREQUENCY = 1;
 const MAX_FREQUENCY = 7;
 const MAX_WORKOUT_DURATION_MINUTES = 600;
-const MAX_SLUG_LENGTH = 100;
-
-/** An Exercise by its Exercise slug; whether it exists is checked with the library. */
-export const exerciseSlugSchema = z
-  .string()
-  .trim()
-  .min(1)
-  .max(MAX_SLUG_LENGTH)
-  .describe(
-    "Exercise slug from list_exercises (its `slug`), e.g. `barbell-back-squat`."
-  );
-
 const setSchema = z.object({
   reps_recommended: z
     .number()

@@ -2,12 +2,11 @@ import type { McpServer } from "@modelcontextprotocol/sdk/server/mcp.js";
 import { z } from "zod";
 import type { ToolContext } from "../context.js";
 import {
-  inputSlugs,
   lookupForRead,
   namedPlan,
   namePlan,
-  planSlugs,
   requireKnownSlugs,
+  workoutSlugs,
 } from "./exercise-library.js";
 import {
   asJson,
@@ -82,7 +81,7 @@ function registerPlanWriteTools(server: McpServer, ctx: ToolContext) {
       title: "Create plan",
     },
     withServices(ctx, async (plan, services) => {
-      const known = await requireKnownSlugs(ctx, inputSlugs(plan.workouts));
+      const known = await requireKnownSlugs(ctx, workoutSlugs(plan.workouts));
       return asJson(namePlan(await services.createPlan(plan), known));
     })
   );
@@ -122,7 +121,7 @@ function registerPlanWriteTools(server: McpServer, ctx: ToolContext) {
         );
       }
       const checked = workouts
-        ? await requireKnownSlugs(ctx, inputSlugs(workouts))
+        ? await requireKnownSlugs(ctx, workoutSlugs(workouts))
         : undefined;
       const updated = requireFound(
         await services.updatePlan(
@@ -132,7 +131,8 @@ function registerPlanWriteTools(server: McpServer, ctx: ToolContext) {
         planNotFound(planId)
       );
       // without workouts, the Plan keeps Exercises nothing has looked up yet
-      const known = checked ?? (await lookupForRead(ctx, planSlugs(updated)));
+      const known =
+        checked ?? (await lookupForRead(ctx, workoutSlugs(updated.workouts)));
       return asJson(namePlan(updated, known));
     })
   );
