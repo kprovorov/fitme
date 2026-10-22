@@ -4,7 +4,7 @@ BEGIN;
 
 CREATE EXTENSION IF NOT EXISTS pgtap WITH SCHEMA extensions;
 
-SELECT plan(44);
+SELECT plan(46);
 
 -- Fixtures -------------------------------------------------------------------
 -- Owner A has every Plan; B has none. Sessions are finished unless a case
@@ -40,7 +40,9 @@ VALUES
   -- (deleted) a soft-deleted Plan
   ('f2300000-0000-0000-0000-0000000000b6', 'f2300000-0000-0000-0000-0000000000a2', 1, 'Deleted Day', ''),
   -- (back) replaced, then switched back to the original Exercise
-  ('f2300000-0000-0000-0000-0000000000b7', 'f2300000-0000-0000-0000-0000000000a1', 6, 'Back Day', '');
+  ('f2300000-0000-0000-0000-0000000000b7', 'f2300000-0000-0000-0000-0000000000a1', 6, 'Back Day', ''),
+  -- (dup) two Workout Exercises in one slot
+  ('f2300000-0000-0000-0000-0000000000b8', 'f2300000-0000-0000-0000-0000000000a1', 7, 'Dup Day', '');
 
 INSERT INTO public.workout_exercises (id, workout_id, exercise_id, "order")
 VALUES
@@ -56,7 +58,9 @@ VALUES
   ('f2300000-0000-0000-0000-0000000004c2', 'f2300000-0000-0000-0000-0000000000b4', 'f2300000-0000-0000-0000-0000000000e2', 2),
   ('f2300000-0000-0000-0000-0000000005c1', 'f2300000-0000-0000-0000-0000000000b5', 'f2300000-0000-0000-0000-0000000000e1', 1),
   ('f2300000-0000-0000-0000-0000000006c1', 'f2300000-0000-0000-0000-0000000000b6', 'f2300000-0000-0000-0000-0000000000e1', 1),
-  ('f2300000-0000-0000-0000-0000000007c1', 'f2300000-0000-0000-0000-0000000000b7', 'f2300000-0000-0000-0000-0000000000e2', 1);
+  ('f2300000-0000-0000-0000-0000000007c1', 'f2300000-0000-0000-0000-0000000000b7', 'f2300000-0000-0000-0000-0000000000e2', 1),
+  ('f2300000-0000-0000-0000-0000000008c1', 'f2300000-0000-0000-0000-0000000000b8', 'f2300000-0000-0000-0000-0000000000e1', 1),
+  ('f2300000-0000-0000-0000-0000000008c2', 'f2300000-0000-0000-0000-0000000000b8', 'f2300000-0000-0000-0000-0000000000e2', 1);
 
 INSERT INTO public.workout_exercise_sets
   (workout_exercise_id, "order", reps_recommended, weight_recommended, rest_recommended)
@@ -103,7 +107,8 @@ VALUES
   ('f2300000-0000-0000-0000-0000000000d6', 'user_2PlanChangesOwnerA000000', 'f2300000-0000-0000-0000-0000000000a2', 'f2300000-0000-0000-0000-0000000000b6', now() - interval '1 hour', now()),
   -- (gone) its Workout was deleted
   ('f2300000-0000-0000-0000-0000000000d7', 'user_2PlanChangesOwnerA000000', 'f2300000-0000-0000-0000-0000000000a1', NULL, now() - interval '1 hour', now()),
-  ('f2300000-0000-0000-0000-0000000000d8', 'user_2PlanChangesOwnerA000000', 'f2300000-0000-0000-0000-0000000000a1', 'f2300000-0000-0000-0000-0000000000b7', now() - interval '1 hour', now());
+  ('f2300000-0000-0000-0000-0000000000d8', 'user_2PlanChangesOwnerA000000', 'f2300000-0000-0000-0000-0000000000a1', 'f2300000-0000-0000-0000-0000000000b7', now() - interval '1 hour', now()),
+  ('f2300000-0000-0000-0000-0000000000d9', 'user_2PlanChangesOwnerA000000', 'f2300000-0000-0000-0000-0000000000a1', 'f2300000-0000-0000-0000-0000000000b8', now() - interval '1 hour', now());
 
 INSERT INTO public.workout_session_exercises (id, workout_session_id, exercise_id, "order")
 VALUES
@@ -133,7 +138,9 @@ VALUES
   ('f2300000-0000-0000-0000-0000000005f1', 'f2300000-0000-0000-0000-0000000000d5', 'f2300000-0000-0000-0000-0000000000e4', 1),
   ('f2300000-0000-0000-0000-0000000006f1', 'f2300000-0000-0000-0000-0000000000d6', 'f2300000-0000-0000-0000-0000000000e4', 1),
   -- (back) Squat again after a replacement
-  ('f2300000-0000-0000-0000-0000000007f1', 'f2300000-0000-0000-0000-0000000000d8', 'f2300000-0000-0000-0000-0000000000e2', 1);
+  ('f2300000-0000-0000-0000-0000000007f1', 'f2300000-0000-0000-0000-0000000000d8', 'f2300000-0000-0000-0000-0000000000e2', 1),
+  -- (dup) Dumbbell Press, logged, in the repeated slot
+  ('f2300000-0000-0000-0000-0000000008f1', 'f2300000-0000-0000-0000-0000000000d9', 'f2300000-0000-0000-0000-0000000000e4', 1);
 
 INSERT INTO public.workout_session_exercise_sets
   (workout_session_exercise_id, "order", reps_recommended, weight_recommended, rest_recommended, reps_completed, weight_completed)
@@ -174,7 +181,8 @@ VALUES
   -- a copied set, an added logged set and an added unlogged one
   ('f2300000-0000-0000-0000-0000000007f1', 1, 0, 0, 180, 5, 100),
   ('f2300000-0000-0000-0000-0000000007f1', 2, 0, 0, NULL, 4, 100),
-  ('f2300000-0000-0000-0000-0000000007f1', 3, 0, 0, NULL, NULL, NULL);
+  ('f2300000-0000-0000-0000-0000000007f1', 3, 0, 0, NULL, NULL, NULL),
+  ('f2300000-0000-0000-0000-0000000008f1', 1, 0, 0, 120, 8, 30);
 
 -- (cap) Squat: 19 copied sets plus 3 added and logged; Dumbbell Press: 22
 -- logged; Cable Fly: 21 logged
@@ -621,6 +629,23 @@ SELECT results_eq(
   $$,
   $$VALUES (1, 5, 100.00, 180), (2, 4, 100.00, 180)$$,
   '(back) the Plan keeps its set and gets the added one'
+);
+
+-- (dup) A repeated order ----------------------------------------------------------
+SET LOCAL ROLE authenticated;
+
+SELECT is(
+  public.workout_session_plan_changes('f2300000-0000-0000-0000-0000000000d9', true) -> 'changes',
+  '[]'::jsonb,
+  '(dup) a repeated order offers no changes'
+);
+
+RESET ROLE;
+
+SELECT set_eq(
+  $$SELECT * FROM current_plan_rows WHERE workout_id = 'f2300000-0000-0000-0000-0000000000b8'$$,
+  $$SELECT * FROM plan_rows WHERE workout_id = 'f2300000-0000-0000-0000-0000000000b8'$$,
+  '(dup) apply with a repeated order writes nothing'
 );
 
 -- Not found --------------------------------------------------------------------

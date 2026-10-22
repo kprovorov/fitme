@@ -36,7 +36,8 @@ ALTER TABLE public.workout_sessions
 -- changes are in Workout order (by `order`). plan and workout are null when
 -- the Workout is gone or its Plan is soft-deleted. changes is empty when the
 -- session is open, its Workout is gone, its Plan is soft-deleted, its changes
--- were already applied, or nothing qualifies. Another User's or a missing
+-- were already applied, either side repeats an `order`, or nothing
+-- qualifies. Another User's or a missing
 -- session raises 'Session not found or not authorized'.
 CREATE FUNCTION public.workout_session_plan_changes(
   session_id uuid,
@@ -57,6 +58,7 @@ DECLARE
   v_session_workout_id uuid;
   v_finished_at timestamptz;
   v_applied_at timestamptz;
+  v_duplicate_orders boolean;
   v_workout_id uuid;
   v_workout_name text;
   v_plan_id uuid;
@@ -146,7 +148,24 @@ BEGIN
     );
   END IF;
 
-  IF v_finished_at IS NOT NULL AND v_applied_at IS NULL THEN
+  -- Slots are matched by `order`, so a repeated `order` on either side (the
+  -- app never writes one, but RLS lets a User insert them) makes the match
+  -- meaningless, and the join below would grow with the product of the
+  -- duplicates. Nothing is offered then.
+  v_duplicate_orders := EXISTS (
+    SELECT 1 FROM public.workout_session_exercises
+    WHERE workout_session_id = workout_session_plan_changes.session_id
+    GROUP BY "order"
+    HAVING count(*) > 1
+  ) OR EXISTS (
+    SELECT 1 FROM public.workout_exercises
+    WHERE workout_id = v_workout_id
+    GROUP BY "order"
+    HAVING count(*) > 1
+  );
+
+  IF v_finished_at IS NOT NULL AND v_applied_at IS NULL
+    AND NOT v_duplicate_orders THEN
     FOR v_slot IN
       SELECT
         coalesce(we."order", se."order") AS slot,
