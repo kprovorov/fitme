@@ -59,13 +59,15 @@ type SwiftUIButtonStyle =
   | "glassProminent";
 
 /**
- * Liquid Glass styling, used when the OS supports it. Destructive is regular
- * glass with a `destructive` label, as iOS draws `role: .destructive` in a
- * glass style: no text on a red fill reaches 4.5:1 (FIT-248).
+ * Liquid Glass styling, used when the OS supports it. Destructive is a
+ * `destructive` label on a neutral fill, never text on a red one (no text on
+ * red reaches 4.5:1, FIT-248): the prominent style tinted `secondary`, since
+ * it fills with the tint itself; regular glass draws its own lighter grey,
+ * which leaves the red label under 4.5:1.
  */
 const GLASS_BUTTON_STYLE: Record<ButtonVariant, SwiftUIButtonStyle> = {
   default: "glassProminent",
-  destructive: "glass",
+  destructive: "glassProminent",
   ghost: "plain",
   secondary: "glass",
 };
@@ -73,7 +75,7 @@ const GLASS_BUTTON_STYLE: Record<ButtonVariant, SwiftUIButtonStyle> = {
 /** Pre-iOS 26 equivalents. */
 const SOLID_BUTTON_STYLE: Record<ButtonVariant, SwiftUIButtonStyle> = {
   default: "borderedProminent",
-  destructive: "bordered",
+  destructive: "borderedProminent",
   ghost: "plain",
   secondary: "bordered",
 };
@@ -315,12 +317,12 @@ const Button = (props: ButtonProps) => {
     fill ??
     (!(isCircle || variant === "ghost") || isStretchClassName(className));
 
-  // Prominent styles fill with the tint. The regular styles (secondary and
-  // destructive) only use it for their translucent fill, which `foreground`
-  // keeps a neutral grey: destructive is red text, not a red fill.
+  // Prominent styles fill with the tint: `primary`, or `secondary` under
+  // destructive's red label. The regular styles only use it for their
+  // translucent fill, which `foreground` keeps a neutral grey.
   const tintColor = {
     default: theme.primary,
-    destructive: theme.foreground,
+    destructive: theme.secondary,
     ghost: theme.foreground,
     secondary: theme.foreground,
   }[variant];

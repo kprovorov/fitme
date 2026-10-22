@@ -234,7 +234,7 @@ describe("Button", () => {
 
   it.each([
     ["default", "glassProminent"],
-    ["destructive", "glass"],
+    ["destructive", "glassProminent"],
     ["secondary", "glass"],
     ["ghost", "plain"],
   ] as const)("draws %s as the native %s style", async (variant, style) => {
@@ -245,7 +245,7 @@ describe("Button", () => {
 
   it.each([
     ["default", "borderedProminent"],
-    ["destructive", "bordered"],
+    ["destructive", "borderedProminent"],
     ["secondary", "bordered"],
     ["ghost", "plain"],
   ] as const)(
@@ -262,8 +262,8 @@ describe("Button", () => {
     }
   );
 
-  // Red text on a neutral fill, never text on a red one: the regular styles
-  // fill with their tint, so `foreground` keeps it the neutral grey
+  // Red text on a neutral fill, never text on a red one: the prominent style
+  // fills with its tint, so the fill is `secondary` itself
   it.each([true, false])(
     "draws destructive as a destructive label and icon on a neutral fill (glass: %s)",
     async (glass) => {
@@ -273,7 +273,7 @@ describe("Button", () => {
           <Button icon="trash" label="Delete" variant="destructive" />
         );
 
-        expect(screen.getByRole("button").props.tint).toBe("text-foreground");
+        expect(screen.getByRole("button").props.tint).toBe("text-secondary");
         expect(screen.getByText("Delete").props.color).toBe("text-destructive");
         expect(screen.getByTestId("icon-trash").props.color).toBe(
           "text-destructive"
