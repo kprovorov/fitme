@@ -1,6 +1,7 @@
 #!/usr/bin/env bash
 # T3 Code worktree setup: install deps, copy local env files from the main
-# checkout, then start this checkout's Supabase stack and point the env files at it.
+# checkout, then start this checkout's Supabase stack, point the env files at it
+# and register its MCP server with Claude Code.
 set -euo pipefail
 
 worktree="${T3CODE_WORKTREE_PATH:-$(git rev-parse --show-toplevel)}"
@@ -39,7 +40,7 @@ if ! stack="$(cd packages/supabase && pnpm exec supabase start --output-format j
   exit 0
 fi
 
-read -r api_url secret_key < <(STACK="$stack" node - <<'JS'
+read -r api_url secret_key mcp_url < <(STACK="$stack" node - <<'JS'
 const fs = require("node:fs");
 const path = require("node:path");
 
@@ -80,9 +81,17 @@ for (const parent of ["apps", "packages"]) {
   }
 }
 
-console.log(`${apiUrl} ${stack.env.SECRET_KEY}`);
+console.log(`${apiUrl} ${stack.env.SECRET_KEY} ${stack.env.MCP_URL}`);
 JS
 )
+
+# Give Claude Code this stack's MCP server (local scope: stored per worktree
+# path in ~/.claude.json, so parallel worktrees don't clash). Remove first so a
+# rerun after the ports changed (new branch, recreated stack) replaces it.
+if command -v claude >/dev/null; then
+  claude mcp remove --scope local supabase-local >/dev/null 2>&1 || true
+  claude mcp add --scope local --transport http supabase-local "$mcp_url"
+fi
 
 # A fresh stack has no exercises; the sync upserts by slug, so a rerun is harmless.
 SUPABASE_URL="$api_url" SUPABASE_SERVICE_ROLE_KEY="$secret_key" pnpm --filter @fitme/supabase exercises:sync
