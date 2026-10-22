@@ -4,58 +4,46 @@ import { ActivityIndicator, ScrollView, View } from "react-native";
 import ExerciseVideo from "~/components/exercises/exercise-video";
 import { Button } from "~/components/ui/button";
 import { Text } from "~/components/ui/text";
-import { H4, Muted } from "~/components/ui/typography";
-import { useExerciseQuery } from "~/hooks/queries/exercises";
+import { Muted, P } from "~/components/ui/typography";
+import { VStack } from "~/components/ui/vstack";
+import {
+  useExercise,
+  useExerciseDetailQuery,
+} from "~/hooks/queries/exercise-library";
 
-/** A markdown list (`- step` or `1. step` lines) as plain steps. */
-const LIST_MARKER = /^\s*(?:[-*•]|\d+[.)])\s*/;
-
-function instructionSteps(instructions: string): string[] {
-  return instructions
-    .split("\n")
-    .map((line) => line.replace(LIST_MARKER, "").trim())
-    .filter((line) => line.length > 0);
-}
-
-export default function ExerciseGuideScreen() {
-  const { exerciseId } = useLocalSearchParams();
+export default function ExerciseScreen() {
+  const { exerciseSlug } = useLocalSearchParams<{ exerciseSlug: string }>();
 
   const {
     data: exercise,
     isError,
     refetch,
-  } = useExerciseQuery({
-    variables: { exerciseId: exerciseId as string },
-  });
+  } = useExerciseDetailQuery(exerciseSlug);
+  // The name rows already show, while the Exercise in full loads.
+  const { name } = useExercise(exerciseSlug);
   const retry = useCallback(() => {
     refetch();
   }, [refetch]);
 
   const renderContent = () => {
     if (exercise) {
-      const steps = exercise.instructions
-        ? instructionSteps(exercise.instructions)
-        : [];
       return (
-        <>
-          <H4>{exercise.name}</H4>
+        <VStack className="items-stretch">
           {exercise.video_url ? (
-            <View className="w-full overflow-hidden rounded-2xl border-continuous">
-              <ExerciseVideo exercise={exercise} />
+            <View className="w-full overflow-hidden rounded-lg">
+              <ExerciseVideo url={exercise.video_url} />
             </View>
           ) : null}
-          {exercise.description ? (
-            <Muted className="text-body">{exercise.description}</Muted>
-          ) : null}
-          {steps.map((step, index) => (
-            <View className="flex-row gap-3" key={step}>
-              <Text className="w-6 text-mono-body-semibold text-primary">
-                {index + 1}
-              </Text>
-              <Text className="flex-1 text-body">{step}</Text>
-            </View>
-          ))}
-        </>
+          <P className="text-primary">{exercise.description}</P>
+          <Muted>{exercise.instructions}</Muted>
+        </VStack>
+      );
+    }
+    if (exercise === null) {
+      return (
+        <Text className="pt-lg text-center text-muted-foreground">
+          This exercise isn't in the library any more.
+        </Text>
       );
     }
     if (isError) {
@@ -84,17 +72,20 @@ export default function ExerciseGuideScreen() {
     <>
       <Stack.Screen
         options={{
+          headerBackButtonDisplayMode: "minimal",
           headerShown: true,
           headerTitleStyle: {
             fontFamily: "NunitoSans12pt-Bold",
             fontWeight: "bold",
           },
-          title: exercise?.name ?? "",
+          headerTransparent: true,
+          title: exercise?.name ?? name,
         }}
       />
       <ScrollView
-        contentContainerClassName="gap-sm p-md"
+        className="flex-1 p-6"
         contentInsetAdjustmentBehavior="automatic"
+        showsVerticalScrollIndicator={false}
       >
         {renderContent()}
       </ScrollView>

@@ -18,7 +18,7 @@ export default function LibraryScreen() {
   }, []);
 
   const onExercisePress = useCallback((exercise: Exercise) => {
-    router.push(`/exercises/${exercise.id}`);
+    router.push(`/exercises/${exercise.slug}`);
   }, []);
 
   return (

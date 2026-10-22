@@ -12,6 +12,7 @@ import WorkoutSessionExerciseSetsTableView from "~/components/views/workout-sess
 import RestTimer, { type Rest } from "~/components/workout-sessions/rest-timer";
 import SessionExerciseHeader from "~/components/workout-sessions/session-exercise-header";
 import { WorkoutSessionFinishSuggestion } from "~/components/workout-sessions/workout-session-finish-suggestion";
+import { useExercise } from "~/hooks/queries/exercise-library";
 import { useWorkoutSessionExerciseQuery } from "~/hooks/queries/workout-session-exercises";
 import { useWorkoutSessionQuery } from "~/hooks/queries/workout-sessions";
 
@@ -47,16 +48,14 @@ export default function WorkoutSessionExerciseScreen() {
   const isFinished = !!workoutSession?.finished_at;
   const [rest, setRest] = useState<Rest | null>(null);
   const [restTimerHeight, setRestTimerHeight] = useState(0);
-  const exercise = workoutSessionExercise?.exercise;
-  const hasGuide = !!(
-    exercise?.video_url ||
-    exercise?.description ||
-    exercise?.instructions
-  );
+  const exercise = useExercise(workoutSessionExercise?.exercise_slug);
+  // The guide reads the Exercise from the Exercise Library: none for one it
+  // doesn't know (or that hasn't resolved yet).
+  const hasGuide = !!workoutSessionExercise && exercise.isResolved;
 
   const openGuide = useCallback(() => {
     if (workoutSessionExercise) {
-      router.push(`/exercises/${workoutSessionExercise.exercise_id}/guide`);
+      router.push(`/exercises/${workoutSessionExercise.exercise_slug}/guide`);
     }
   }, [router, workoutSessionExercise]);
 
@@ -102,7 +101,7 @@ export default function WorkoutSessionExerciseScreen() {
       return (
         <>
           <SessionExerciseHeader
-            exercise={workoutSessionExercise.exercise}
+            exercise={exercise}
             onOpenGuide={hasGuide ? openGuide : undefined}
             sets={workoutSessionExercise.sets}
           />
@@ -117,7 +116,7 @@ export default function WorkoutSessionExerciseScreen() {
           </Card>
           <ExerciseHistoryView
             excludeId={exerciseId as string}
-            exerciseId={workoutSessionExercise.exercise_id}
+            exerciseSlug={workoutSessionExercise.exercise_slug}
           />
         </>
       );
@@ -155,7 +154,7 @@ export default function WorkoutSessionExerciseScreen() {
             fontWeight: "bold",
           },
           headerTransparent: true,
-          title: workoutSessionExercise?.exercise?.name ?? "",
+          title: workoutSessionExercise ? exercise.name : "",
           unstable_headerRightItems: () => {
             if (!hasGuide) {
               return [];

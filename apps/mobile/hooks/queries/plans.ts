@@ -11,7 +11,6 @@ const PLAN_SELECT = `
     sessions:workout_sessions (*),
     exercises:workout_exercises (
       *,
-      exercise:exercises (*),
       sets:workout_exercise_sets (*)
     )
   )

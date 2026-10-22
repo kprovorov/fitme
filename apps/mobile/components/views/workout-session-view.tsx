@@ -2,6 +2,7 @@ import type { Exercise, WorkoutSession } from "@fitme/core";
 import { useQueryClient } from "@tanstack/react-query";
 import { useCallback, useState } from "react";
 import { Modal, ScrollView } from "react-native";
+import { useExercises } from "~/hooks/queries/exercise-library";
 import {
   useCreateWorkoutSessionExerciseMutation,
   useDeleteWorkoutSessionExerciseMutation,
@@ -41,6 +42,9 @@ export default function WorkoutSessionView({
   sessionId,
 }: WorkoutSessionViewProps) {
   const queryClient = useQueryClient();
+  const shownBySlug = useExercises(
+    workoutSession.exercises.map(({ exercise_slug }) => exercise_slug)
+  );
   const [showModal, setShowModal] = useState(false);
   const [replacingExerciseId, setReplacingExerciseId] = useState<string | null>(
     null
@@ -80,26 +84,26 @@ export default function WorkoutSessionView({
       if (replacingExerciseId === null) {
         await mutateAsync({
           data: {
-            exercise_id: exercise.id,
+            exercise_slug: exercise.slug,
           },
           sessionId,
         });
         if (!IS_E2E) {
           segmentClient.track("Exercise Added", {
-            exercise_id: exercise.id,
+            exercise_slug: exercise.slug,
             session_id: sessionId,
           });
         }
       } else {
         await replaceExercise({
           data: {
-            exercise_id: exercise.id,
+            exercise_slug: exercise.slug,
           },
           exerciseId: replacingExerciseId,
         });
         if (!IS_E2E) {
           segmentClient.track("Exercise Replaced", {
-            exercise_id: exercise.id,
+            exercise_slug: exercise.slug,
             session_id: sessionId,
           });
         }
@@ -150,7 +154,9 @@ export default function WorkoutSessionView({
 
   const handleReplaceExercise = (exerciseId: string) => {
     const exercise = workoutSession.exercises.find((e) => e.id === exerciseId);
-    const muscleGroup = exercise?.exercise.muscle_groups[0] || undefined;
+    const muscleGroup = exercise
+      ? shownBySlug[exercise.exercise_slug]?.muscle_groups[0]
+      : undefined;
     setReplacingExerciseId(exerciseId);
     setInitialMuscleGroup(muscleGroup);
     setShowModal(true);
@@ -192,6 +198,7 @@ export default function WorkoutSessionView({
           .sort((a, b) => a.order - b.order)
           .map((exercise) => (
             <WorkoutSessionExerciseCard
+              exercise={shownBySlug[exercise.exercise_slug]}
               key={exercise.id}
               onDelete={
                 workoutSession.finished_at

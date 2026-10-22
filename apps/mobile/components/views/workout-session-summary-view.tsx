@@ -10,6 +10,7 @@ import { HStack } from "~/components/ui/hstack";
 import { Separator } from "~/components/ui/separator";
 import { Text } from "~/components/ui/text";
 import { VStack } from "~/components/ui/vstack";
+import { useExercises } from "~/hooks/queries/exercise-library";
 import { useProfileQuery } from "~/hooks/queries/profiles";
 import {
   WorkoutSessionSummaryBodyBack,
@@ -39,12 +40,13 @@ export default function WorkoutSessionSummaryView({
     [workoutSession.exercises]
   );
 
-  const muscleGroups = useMemo(
-    () =>
-      new Set<MuscleGroup>(
-        exercises.flatMap((exercise) => exercise.exercise.muscle_groups)
-      ),
-    [exercises]
+  const shownBySlug = useExercises(
+    exercises.map(({ exercise_slug }) => exercise_slug)
+  );
+  const muscleGroups = new Set<MuscleGroup>(
+    exercises.flatMap(
+      ({ exercise_slug }) => shownBySlug[exercise_slug]?.muscle_groups ?? []
+    )
   );
 
   const volume = exercises.reduce(
@@ -114,6 +116,7 @@ export default function WorkoutSessionSummaryView({
           <Fragment key={exercise.id}>
             {index > 0 && <Separator />}
             <WorkoutSessionSummaryExerciseRow
+              exercise={shownBySlug[exercise.exercise_slug]}
               planId={workoutSession.plan_id}
               sessionId={workoutSession.id}
               workoutId={workoutSession.workout_id}

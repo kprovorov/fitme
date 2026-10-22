@@ -93,13 +93,13 @@ React Native / Expo app using **file-based routing** via `expo-router`:
   - `onboarding/` — Post-registration onboarding flow (fullscreen modal)
   - `planner/` — AI plan generation flow (modal)
   - `plans/[planId]/` — Plan detail and workout views
-  - `exercises/[exerciseId]/` — Exercise detail view
+  - `exercises/[exerciseSlug]/` — Exercise detail view and its guide (a form sheet), keyed by Exercise slug and read from the Exercise Library API
 - `components/` — Reusable UI components
   - `ui/` — Primitive UI components (Button, Input, Dialog, etc.) built on `@rn-primitives`
   - `providers.tsx` — Wraps app with ClerkProvider (secure-store token cache), QueryClientProvider, ThemeProvider, KeyboardProvider; renders `auth-sync.tsx`, which identifies the Clerk User to Sentry (`{ id }`, the Clerk id only: no email or name; cleared on sign-out)/RevenueCat/Segment and clears the query cache on sign-out
   - `authenticated.tsx` — Auth guard component: waits for Clerk to load, redirects to `/auth/register` when signed out
 - `hooks/` — Data layer
-  - `queries/` — Read queries using `react-query-kit`'s `createQuery`
+  - `queries/` — Read queries using `react-query-kit`'s `createQuery`; `exercise-library.ts` holds the Exercise Library hooks (see Key Patterns)
   - `mutations/` — Write mutations using `react-query-kit`'s `createMutation`
   - `revenueCat.ts` — RevenueCat subscription queries
   - `coach-model.ts` — `useSelectedCoachModel`: the served model list, the picked model and its setter, for the Coach header and model picker
@@ -108,6 +108,7 @@ React Native / Expo app using **file-based routing** via `expo-router`:
   - `clerk.ts` — Clerk publishable key, `getClerk()` for code outside React, `getCurrentUserId()`, `getClerkErrorMessage()`
   - `mmkv.ts` — MMKV storage instance (`createMMKV()`, react-native-mmkv 4 on Nitro Modules; same default instance and directory as v3, so saved data carries over), plus `devToolsStorage`, the same instance with `delete` for the devtools sync. Under Jest MMKV swaps in its own in-memory instance; `package.json` maps `react-native-nitro-modules` to `test-utils/nitro-modules.ts` so the import resolves
   - `coach-chat.ts` — Coach screen helpers: `COACH_URL`, per-turn model context, error → paywall mapping, the saved Conversation (see Key Patterns)
+  - `exercise-library.ts` — the `@fitme/exercise-library` client, at `EXPO_PUBLIC_EXERCISES_URL` with the User's Clerk session token resolved per request; `exercise-cache.ts` keeps the Exercises it resolved in MMKV (see Key Patterns)
   - `coach-model.ts` — the Coach model list's schema and MMKV cache (`coach.models`), and the picker's choice (`coach.model`) resolved against it (see Key Patterns)
   - `utils.ts` — `cn()` class merger (tailwind-merge with the HIG font scale)
   - `segment.ts` — the Segment client, created at import. Segment generates ids through `crypto.getRandomValues`, so `react-native-get-random-values` is a direct dependency even though no app code imports it: only a direct dependency gets its native module (`RNGetRandomValues`) autolinked, and without it the client throws at import and the app never renders. Don't remove it as unused.
@@ -299,6 +300,8 @@ Business logic shared by the backend apps (ADR 0004), replacing the Postgres RPC
 
 **Data fetching (mobile)**: All queries/mutations use `react-query-kit` wrappers (`createQuery`, `createMutation`) around the Supabase JS client. Import from `~/hooks/queries/<entity>` or `~/hooks/mutations/<entity>`.
 
+**Exercises (mobile)**: Plans, Workouts and Workout Sessions refer to Exercises by Exercise slug (`exercise_slug`; ADR 0007, project "Exercises off Postgres"): the Supabase reads select it and join no Exercise, and the writes (the plan and session RPCs, Workout Session Exercise inserts and replacements) send only `exercise_slug`, unchecked (ADR 0010; the `sync_exercise_slug` trigger fills the legacy `exercise_id`). Details come from the Exercise Library API through `hooks/queries/exercise-library.ts`: `useExercises(slugs)` (and `useExercise(slug)`) answer every slug as a `ShownExercise` at once, one react-query query per slug (`["exercise-summary", slug]`, stale after an hour, the API's `Cache-Control`), the slugs asked for in the same tick sharing one `lookup` (the client splits it into requests of 40); `useExerciseDetailQuery(slug)` reads one in full (`get`) for the detail screen and the guide. Each resolved Exercise is kept in MMKV (`exercises.summary.<slug>`, `exercises.exercise.<slug>`, the same for every User, with when it was saved) and read as the query's `initialData`, so it shows offline and right after a restart and is refetched once stale; one the library no longer has is forgotten. A slug never resolved (offline first run, a failing library, or unknown to it) shows `exerciseNameFromSlug`'s name, no muscle groups and no thumbnail, and isn't a link to a detail screen or guide; screens never wait on the library. Thumbnails are the render endpoint's `thumbnail_url` with the shown size appended (`sizedThumbnailUrl` in `lib/exercise-media.ts`, device pixels). Exercise history queries `workout_session_exercises` by `exercise_slug`. The Coach's plan card links and saves by each Exercise's `exercise_slug` (a card from before slugs can't be saved). Not yet moved (FIT-242): the Library tab and the Exercise picker list the legacy `exercises` table (`useExercisesQuery`), but write and link by its `slug`. The "Update your plan?" sheet still shows the names `workout_session_plan_changes` answers (its response carries no slugs). Each slug's query retries once (never on a 429, 401 or 400), and the detail query writes what it read into the slug's row query, so an Exercise that left the library stops linking at once.
+
 **Data fetching (web)**: Server Components query Supabase directly through `createClient()` from `~/lib/supabase/server`. Client components use `useSupabase()` from `~/lib/supabase/client` and TanStack Query (provider in `components/providers.tsx`).
 
 **Shared types**: Import domain types from `@fitme/core`, never from an app's `lib/`. Import row types from `@fitme/supabase` (`Tables<"plans">`).
@@ -330,6 +333,7 @@ Env files live next to each app.
 `apps/mobile/.env` (prefix `EXPO_PUBLIC_` for client exposure):
 
 - `EXPO_PUBLIC_API_URL` — `apps/api` base URL (`http://localhost:3003` locally; production builds get `https://api.fitmeproject.com` from the EAS `production` environment, never from an `eas.json` build profile); unset skips the minimum version check
+- `EXPO_PUBLIC_EXERCISES_URL` — the Exercise Library API (`http://localhost:3006` locally, `pnpm dev:exercises`, which serves the made-up fixture bundle, so a local database's slugs show their slug names unless `LIBRARY_BUNDLE` points at a real bundle; production and the E2E workflow's builds use `https://exercises.fitmeproject.com`, which accepts development-instance Clerk tokens too; EAS `production` environment). Unset → every Exercise shows its slug's name
 - `EXPO_PUBLIC_COACH_URL` — `apps/coach` base URL (`http://localhost:3005` locally, `pnpm dev:coach`); the coach screen talks to its eve routes
 - `EXPO_PUBLIC_SUPABASE_URL`
 - `EXPO_PUBLIC_SUPABASE_ANON_KEY`

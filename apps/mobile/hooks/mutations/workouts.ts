@@ -14,7 +14,6 @@ export const useStartWorkoutMutation = createMutation<Workout, string>({
         plan:plans (*),
         exercises:workout_exercises (
           *,
-          exercise:exercises (*),
           sets:workout_exercise_sets (*)
         ),
         sessions:workout_sessions (*)
@@ -46,7 +45,6 @@ export const useFinishWorkoutMutation = createMutation<Workout, string>({
         plan:plans (*),
         exercises:workout_exercises (
           *,
-          exercise:exercises (*),
           sets:workout_exercise_sets (*)
         ),
         sessions:workout_sessions (*)

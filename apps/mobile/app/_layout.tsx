@@ -113,7 +113,7 @@ function RootLayout() {
             }}
           />
           <Stack.Screen
-            name="exercises/[exerciseId]/guide"
+            name="exercises/[exerciseSlug]/guide"
             options={{
               presentation: "formSheet",
               sheetAllowedDetents: [0.5, 1],

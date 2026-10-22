@@ -16,7 +16,6 @@ export const useWorkoutQuery = createQuery<Workout, WorkoutQueryVariables>({
         plan:plans (*),
         exercises:workout_exercises (
           *,
-          exercise:exercises (*),
           sets:workout_exercise_sets (*)
         ),
         sessions:workout_sessions (*)

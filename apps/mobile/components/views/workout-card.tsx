@@ -8,6 +8,11 @@ import { Text } from "@/components/ui/text";
 import { H4 } from "@/components/ui/typography";
 import { VStack } from "@/components/ui/vstack";
 import { useFinishWorkoutSession } from "~/hooks/finish-workout-session";
+import {
+  type ShownExercise,
+  shownExercise,
+  useExercises,
+} from "~/hooks/queries/exercise-library";
 import { useCreateWorkoutSessionMutation } from "~/hooks/queries/workout-sessions";
 import { cn } from "~/lib/utils";
 import ExerciseImage from "../exercises/exercise-image";
@@ -31,6 +36,58 @@ function FinishWorkoutButton({ sessionId }: { sessionId: string }) {
       onPress={confirmFinish}
       variant="secondary"
     />
+  );
+}
+
+interface WorkoutExerciseRowProps {
+  exercise: ShownExercise | undefined;
+  isOpen: boolean;
+  setCount: number;
+  slug: string;
+}
+
+/**
+ * One of the Workout's Exercises: its thumbnail, and its sets and name once
+ * the card is open. Opens the Exercise's detail screen once it's resolved.
+ */
+function WorkoutExerciseRow({
+  exercise: resolved,
+  isOpen,
+  setCount,
+  slug,
+}: WorkoutExerciseRowProps) {
+  const exercise = resolved ?? shownExercise(slug, null);
+  const row = (
+    <Pressable
+      accessibilityLabel={exercise.name}
+      className="flex flex-row items-center justify-between active:opacity-70"
+      disabled={!exercise.isResolved}
+    >
+      <HStack className="gap-2">
+        <ExerciseImage exercise={exercise} />
+        {isOpen ? (
+          <Text className="text-footnote-emphasized">
+            <Text className="text-footnote-emphasized text-primary">
+              {setCount} x{" "}
+            </Text>
+            {exercise.name}
+          </Text>
+        ) : null}
+      </HStack>
+      {isOpen && exercise.isResolved ? (
+        <SymbolImage
+          className="text-footnote-emphasized text-foreground"
+          name="chevron.right"
+        />
+      ) : null}
+    </Pressable>
+  );
+  return exercise.isResolved ? (
+    <Link asChild href={`/exercises/${slug}`}>
+      {row}
+    </Link>
+  ) : (
+    row
   );
 }
 
@@ -94,6 +151,10 @@ export default function WorkoutCard({
     return () => clearInterval(timer);
   }, [activeSession?.started_at]);
 
+  const shownBySlug = useExercises(
+    workout.exercises.map(({ exercise_slug }) => exercise_slug)
+  );
+
   const [isOpen, setIsOpen] = useState(false);
   const toggleOpen = useCallback(() => setIsOpen(!isOpen), [isOpen]);
 
@@ -155,32 +216,14 @@ export default function WorkoutCard({
                   isOpen ? "flex-col" : "flex-row"
                 )}
               >
-                {workout.exercises.map((exercise) => (
-                  <Link
-                    asChild
-                    href={`/exercises/${exercise.exercise.id}`}
-                    key={exercise.exercise.id}
-                  >
-                    <Pressable className="flex flex-row items-center justify-between active:opacity-70">
-                      <HStack className="gap-2">
-                        <ExerciseImage exercise={exercise.exercise} />
-                        {isOpen ? (
-                          <Text className="text-footnote-emphasized">
-                            <Text className="text-footnote-emphasized text-primary">
-                              {exercise.sets.length} x{" "}
-                            </Text>
-                            {exercise.exercise.name}
-                          </Text>
-                        ) : null}
-                      </HStack>
-                      {isOpen ? (
-                        <SymbolImage
-                          className="text-footnote-emphasized text-foreground"
-                          name="chevron.right"
-                        />
-                      ) : null}
-                    </Pressable>
-                  </Link>
+                {workout.exercises.map((workoutExercise) => (
+                  <WorkoutExerciseRow
+                    exercise={shownBySlug[workoutExercise.exercise_slug]}
+                    isOpen={isOpen}
+                    key={workoutExercise.id}
+                    setCount={workoutExercise.sets.length}
+                    slug={workoutExercise.exercise_slug}
+                  />
                 ))}
               </View>
             </ScrollView>

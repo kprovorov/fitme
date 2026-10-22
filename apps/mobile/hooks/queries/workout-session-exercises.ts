@@ -4,7 +4,6 @@ import { supabase } from "@/lib/supabase";
 
 const SESSION_EXERCISE_SELECT = `
   *,
-  exercise:exercises (*),
   sets:workout_session_exercise_sets (*)
 `;
 
@@ -14,7 +13,7 @@ export interface WorkoutSessionExercisesVariables {
 }
 
 export interface StoreWorkoutSessionExerciseData {
-  exercise_id: string;
+  exercise_slug: string;
 }
 
 export const useWorkoutSessionExerciseQuery = createQuery<
@@ -46,7 +45,7 @@ export const useCreateWorkoutSessionExerciseMutation = createMutation<
 >({
   mutationFn: async ({
     sessionId,
-    data: { exercise_id },
+    data: { exercise_slug },
   }: CreateWorkoutSessionExercisesVariables) => {
     // Get the next order value
     const { data: existing } = await supabase
@@ -61,7 +60,11 @@ export const useCreateWorkoutSessionExerciseMutation = createMutation<
 
     const { data, error } = await supabase
       .from("workout_session_exercises")
-      .insert({ exercise_id, order: nextOrder, workout_session_id: sessionId })
+      .insert({
+        exercise_slug,
+        order: nextOrder,
+        workout_session_id: sessionId,
+      })
       .select(SESSION_EXERCISE_SELECT)
       .single();
     if (error) {
@@ -92,7 +95,7 @@ export const useDeleteWorkoutSessionExerciseMutation = createMutation<
 
 export interface ReplaceWorkoutSessionExerciseVariables {
   data: {
-    exercise_id?: string;
+    exercise_slug: string;
   };
   exerciseId: string;
 }
