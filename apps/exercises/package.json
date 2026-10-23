@@ -17,6 +17,7 @@
     "@clerk/backend": "^3.25.0",
     "@fitme/core": "workspace:*",
     "@fitme/observability": "workspace:*",
+    "@fitme/rate-limit": "workspace:*",
     "@hono/node-server": "^2.1.5",
     "@hono/zod-openapi": "^1.6.3",
     "@sentry/node": "^11.8.0",

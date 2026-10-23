@@ -150,6 +150,9 @@ importers:
       '@fitme/observability':
         specifier: workspace:*
         version: link:../../packages/observability
+      '@fitme/rate-limit':
+        specifier: workspace:*
+        version: link:../../packages/rate-limit
       '@hono/node-server':
         specifier: ^2.1.5
         version: 2.1.5(hono@4.13.13)
@@ -906,6 +909,31 @@ importers:
       vitest:
         specifier: ^5.0.5
         version: 5.0.5(@opentelemetry/api@1.9.1)(@types/node@22.15.21)(jsdom@26.1.0)(vite@7.3.6(@types/node@22.15.21)(jiti@2.7.0)(lightningcss@1.33.0)(terser@5.51.2)(tsx@4.23.15)(yaml@2.9.1))
+
+  packages/rate-limit:
+    dependencies:
+      '@upstash/ratelimit':
+        specifier: ^2.2.0
+        version: 2.2.0(@upstash/redis@1.39.0)
+      '@upstash/redis':
+        specifier: ^1.39.0
+        version: 1.39.0
+      '@vercel/functions':
+        specifier: ^3.10.1
+        version: 3.10.1(ws@8.21.3)
+    devDependencies:
+      '@fitme/typescript-config':
+        specifier: workspace:*
+        version: link:../typescript-config
+      '@types/node':
+        specifier: 24.19.2
+        version: 24.19.2
+      typescript:
+        specifier: ~5.9.2
+        version: 5.9.3
+      vitest:
+        specifier: ^5.0.5
+        version: 5.0.5(@opentelemetry/api@1.9.1)(@types/node@24.19.2)(jsdom@26.1.0)(vite@7.3.6(@types/node@24.19.2)(jiti@2.7.0)(lightningcss@1.33.0)(terser@5.51.2)(tsx@4.23.15)(yaml@2.9.1))
 
   packages/services:
     dependencies:
@@ -13798,7 +13826,7 @@ snapshots:
       pkce-challenge: 5.0.1
       raw-body: 3.0.2
       zod: 4.6.7
-      zod-to-json-schema: 3.25.2(zod@3.25.76)
+      zod-to-json-schema: 3.25.2(zod@4.6.7)
     transitivePeerDependencies:
       - supports-color
 
