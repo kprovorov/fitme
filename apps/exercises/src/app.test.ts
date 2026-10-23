@@ -19,6 +19,14 @@ const LIBRARY_ETAG = /^"[0-9a-f]{64}"$/;
 
 const COACH_SECRET = "c".repeat(32);
 const MCP_SECRET = "m".repeat(64);
+const API_SECRET = "a".repeat(48);
+
+/** Each server caller with its secret. */
+const SERVER_SECRETS = [
+  ["api", API_SECRET],
+  ["coach", COACH_SECRET],
+  ["mcp", MCP_SECRET],
+] as const;
 
 const production = clerkInstance();
 const development = clerkInstance();
@@ -28,7 +36,7 @@ const auth: AppDeps["auth"] = {
     development: development.jwtKey,
     production: production.jwtKey,
   },
-  serverSecrets: { coach: COACH_SECRET, mcp: MCP_SECRET },
+  serverSecrets: { api: API_SECRET, coach: COACH_SECRET, mcp: MCP_SECRET },
 };
 
 /** A limiter that never refuses, for tests that aren't about limits. */
@@ -202,20 +210,23 @@ describe("auth", () => {
     expect(await response.json()).toEqual(unauthorized);
   });
 
-  it.each([
-    ["coach", COACH_SECRET],
-    ["mcp", MCP_SECRET],
-  ])("resolves the %s server caller from its secret", async (name, secret) => {
-    const response = await callerApp().request("/caller", bearer(secret));
+  it.each(SERVER_SECRETS)(
+    "resolves the %s server caller from its secret",
+    async (name, secret) => {
+      const response = await callerApp().request("/caller", bearer(secret));
 
-    expect(response.status).toBe(200);
-    expect(await response.json()).toEqual({ name, type: "server" });
-  });
+      expect(response.status).toBe(200);
+      expect(await response.json()).toEqual({ name, type: "server" });
+    }
+  );
 
   it("accepts nothing with a secret under 32 characters", async () => {
     const short = "s".repeat(31);
     const response = await callerApp({
-      auth: { ...auth, serverSecrets: { coach: short, mcp: short } },
+      auth: {
+        ...auth,
+        serverSecrets: { api: short, coach: short, mcp: short },
+      },
     }).request("/caller", bearer(short));
 
     expect(response.status).toBe(401);
@@ -228,6 +239,40 @@ describe("auth", () => {
 
     expect(response.status).toBe(401);
   });
+
+  it.each(
+    SERVER_SECRETS.flatMap(
+      ([name, secret]) =>
+        [
+          ["unset", name, secret, undefined],
+          ["under 32 characters", name, secret, secret.slice(0, 31)],
+        ] as const
+    )
+  )(
+    "refuses a secret %s for the %s caller only",
+    async (_case, name, secret, configured) => {
+      const configuredApp = callerApp({
+        auth: {
+          ...auth,
+          serverSecrets: { ...auth.serverSecrets, [name]: configured },
+        },
+      });
+      const statusFor = async (request: ReturnType<typeof bearer>) =>
+        (await configuredApp.request("/caller", request)).status;
+      const otherSecrets = SERVER_SECRETS.filter(([other]) => other !== name);
+
+      expect(await statusFor(bearer(secret))).toBe(401);
+      if (configured) {
+        expect(await statusFor(bearer(configured))).toBe(401);
+      }
+      const stillAccepted = await Promise.all(
+        [...otherSecrets.map(([, other]) => bearer(other)), asUser].map(
+          statusFor
+        )
+      );
+      expect(stillAccepted.every((status) => status === 200)).toBe(true);
+    }
+  );
 
   it("accepts no Clerk token with no Clerk keys", async () => {
     const response = await callerApp({
@@ -259,17 +304,17 @@ describe("error reporting identity", () => {
     expect(identified).toEqual(["user_alice"]);
   });
 
-  it.each([
-    ["coach", COACH_SECRET],
-    ["mcp", MCP_SECRET],
-  ])("identifies no User for the %s server caller", async (_name, secret) => {
-    const { identified, identifying } = identifyingApp();
+  it.each(SERVER_SECRETS)(
+    "identifies no User for the %s server caller",
+    async (_name, secret) => {
+      const { identified, identifying } = identifyingApp();
 
-    const response = await identifying.request("/caller", bearer(secret));
+      const response = await identifying.request("/caller", bearer(secret));
 
-    expect(response.status).toBe(200);
-    expect(identified).toEqual([]);
-  });
+      expect(response.status).toBe(200);
+      expect(identified).toEqual([]);
+    }
+  );
 
   it("identifies no one for a refused request", async () => {
     const { identified, identifying } = identifyingApp();
@@ -998,6 +1043,7 @@ describe("rate limiting", () => {
   });
 
   it.each([
+    ["the Public API", API_SECRET],
     ["the Coach", COACH_SECRET],
     ["the MCP server", MCP_SECRET],
   ])("never limits %s", async (_, secret) => {

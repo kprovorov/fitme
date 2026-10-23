@@ -74,7 +74,8 @@ export const createApp = ({
     await next();
   });
   app.openAPIRegistry.registerComponent("securitySchemes", BEARER_AUTH, {
-    description: "A Clerk session token, or the Coach's or MCP server's secret",
+    description:
+      "A Clerk session token, or the Public API's, the Coach's or the MCP server's secret",
     scheme: "bearer",
     type: "http",
   });

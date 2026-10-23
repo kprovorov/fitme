@@ -23,6 +23,7 @@ export default createApp({
       production: process.env.CLERK_JWT_KEY_PRODUCTION,
     },
     serverSecrets: {
+      api: process.env.EXERCISES_API_SECRET,
       coach: process.env.EXERCISES_COACH_SECRET,
       mcp: process.env.EXERCISES_MCP_SECRET,
     },
