@@ -170,10 +170,12 @@ export const useExercise = (slug: string | undefined): ShownExercise => {
 /**
  * One Exercise in full, for its detail screen and guide: `null` when the
  * Exercise Library has no such slug. Starts from the cached copy (offline too).
+ * Without a slug (not known yet) it asks nothing.
  */
 export const useExerciseDetailQuery = (slug: string) => {
   const queryClient = useQueryClient();
   return useQuery({
+    enabled: slug.length > 0,
     initialData: () => readCachedExercise(slug)?.value,
     initialDataUpdatedAt: () => readCachedExercise(slug)?.savedAt,
     queryFn: async (): Promise<Exercise | null> => {

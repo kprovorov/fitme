@@ -12,7 +12,10 @@ import WorkoutSessionExerciseSetsTableView from "~/components/views/workout-sess
 import RestTimer, { type Rest } from "~/components/workout-sessions/rest-timer";
 import SessionExerciseHeader from "~/components/workout-sessions/session-exercise-header";
 import { WorkoutSessionFinishSuggestion } from "~/components/workout-sessions/workout-session-finish-suggestion";
-import { useExercise } from "~/hooks/queries/exercise-library";
+import {
+  useExercise,
+  useExerciseDetailQuery,
+} from "~/hooks/queries/exercise-library";
 import { useWorkoutSessionExerciseQuery } from "~/hooks/queries/workout-session-exercises";
 import { useWorkoutSessionQuery } from "~/hooks/queries/workout-sessions";
 
@@ -49,6 +52,11 @@ export default function WorkoutSessionExerciseScreen() {
   const [rest, setRest] = useState<Rest | null>(null);
   const [restTimerHeight, setRestTimerHeight] = useState(0);
   const exercise = useExercise(workoutSessionExercise?.exercise_slug);
+  // The description is only in the Exercise in full; the rest shows from the
+  // summary meanwhile.
+  const { data: exerciseDetail } = useExerciseDetailQuery(
+    workoutSessionExercise?.exercise_slug ?? ""
+  );
   // The guide reads the Exercise from the Exercise Library: none for one it
   // doesn't know (or that hasn't resolved yet).
   const hasGuide = !!workoutSessionExercise && exercise.isResolved;
@@ -101,9 +109,9 @@ export default function WorkoutSessionExerciseScreen() {
       return (
         <>
           <SessionExerciseHeader
+            description={exerciseDetail?.description}
             exercise={exercise}
             onOpenGuide={hasGuide ? openGuide : undefined}
-            sets={workoutSessionExercise.sets}
           />
           <Card>
             <WorkoutSessionExerciseSetsTableView
@@ -155,19 +163,6 @@ export default function WorkoutSessionExerciseScreen() {
           },
           headerTransparent: true,
           title: workoutSessionExercise ? exercise.name : "",
-          unstable_headerRightItems: () => {
-            if (!hasGuide) {
-              return [];
-            }
-            return [
-              {
-                icon: { name: "info.circle", type: "sfSymbol" },
-                label: "Exercise Guide",
-                onPress: openGuide,
-                type: "button",
-              },
-            ];
-          },
         }}
       />
       <KeyboardAwareScrollView
