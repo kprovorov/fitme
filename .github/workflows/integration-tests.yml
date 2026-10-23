@@ -28,9 +28,21 @@ jobs:
       # Uses the Supabase CLI pinned in @fitme/supabase's devDependencies.
       # Only Postgres, PostgREST (API gateway), Auth and the Supavisor pooler
       # (transaction mode, for packages/db) are needed.
+      #
+      # The image registry throttles the shared runner IPs now and then
+      # (`toomanyrequests: retry-after: 47µs, allowed: 44000/minute`), failing a
+      # pull mid-start; a retry moments later gets through, so try three times,
+      # from a clean slate each time.
       - name: Start Supabase
         working-directory: packages/supabase
-        run: pnpm exec supabase start --exclude studio,realtime,storage,functions,mail,analytics
+        run: |
+          for attempt in 1 2 3; do
+            pnpm exec supabase start --exclude studio,realtime,storage,functions,mail,analytics && exit 0
+            [ "$attempt" -eq 3 ] && exit 1
+            echo "::warning::supabase start failed (attempt $attempt of 3), retrying in 30 s"
+            pnpm exec supabase stop --no-backup || true
+            sleep 30
+          done
 
       - name: Export Supabase credentials
         working-directory: packages/supabase
