@@ -1,15 +1,14 @@
 import { muscleGroupToName } from "@fitme/core";
 import { Image } from "expo-image";
 import { Pressable, StyleSheet, useWindowDimensions, View } from "react-native";
-import ExerciseVideo from "~/components/exercises/exercise-video";
+import ExerciseVideo, {
+  CLIP_ASPECT_RATIO,
+} from "~/components/exercises/exercise-video";
 import { Badge } from "~/components/ui/badge";
 import { Button } from "~/components/ui/button";
 import { Text } from "~/components/ui/text";
 import type { ShownExercise } from "~/hooks/queries/exercise-library";
 import { sizedThumbnailUrl } from "~/lib/exercise-media";
-
-/** The media box's aspect ratio, the clips' own. */
-const MEDIA_ASPECT_RATIO = 4 / 3;
 
 interface SessionExerciseHeaderProps {
   /** From the Exercise in full: none while it loads, or when it has none. */
@@ -21,7 +20,7 @@ interface SessionExerciseHeaderProps {
 
 /**
  * The thumbnail in place of a clip, sized for the render endpoint at the
- * box's width in device pixels.
+ * window's width (a little over the box's), in device pixels.
  */
 function Thumbnail({ url }: { url: string }) {
   const { width } = useWindowDimensions();
@@ -32,7 +31,7 @@ function Thumbnail({ url }: { url: string }) {
         uri: sizedThumbnailUrl(
           url,
           Math.round(width),
-          Math.round(width / MEDIA_ASPECT_RATIO)
+          Math.round(width / CLIP_ASPECT_RATIO)
         ),
       }}
       style={StyleSheet.absoluteFill}
@@ -54,13 +53,11 @@ export default function SessionExerciseHeader({
 
   return (
     <>
-      {description ? (
+      {description && onOpenGuide ? (
         <Pressable
           accessibilityHint="Opens the exercise guide"
-          accessibilityLabel={`How to do ${exercise.name}`}
           accessibilityRole="button"
           className="px-sm active:opacity-60"
-          disabled={!onOpenGuide}
           onPress={onOpenGuide}
         >
           <Text className="text-body" numberOfLines={2}>
@@ -68,12 +65,17 @@ export default function SessionExerciseHeader({
           </Text>
         </Pressable>
       ) : null}
+      {description && !onOpenGuide ? (
+        <Text className="px-sm text-body" numberOfLines={2}>
+          {description}
+        </Text>
+      ) : null}
       {hasMedia ? (
         <View className="overflow-hidden rounded-card border-continuous bg-secondary">
           {exercise.video_url ? (
             <ExerciseVideo url={exercise.video_url} />
           ) : (
-            <View style={{ aspectRatio: MEDIA_ASPECT_RATIO }}>
+            <View style={{ aspectRatio: CLIP_ASPECT_RATIO }}>
               {exercise.thumbnail_url ? (
                 <Thumbnail url={exercise.thumbnail_url} />
               ) : null}

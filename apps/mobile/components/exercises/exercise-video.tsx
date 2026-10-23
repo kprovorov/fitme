@@ -1,6 +1,9 @@
 import { useVideoPlayer, VideoView } from "expo-video";
 import { useCSSVariable } from "uniwind";
 
+/** The clips' aspect ratio, which the box around one keeps. */
+export const CLIP_ASPECT_RATIO = 4 / 3;
+
 interface ExerciseVideoProps {
   /** The Exercise's `video_url`. */
   url: string;
@@ -24,7 +27,7 @@ export default function ExerciseVideo({ url }: ExerciseVideoProps) {
       nativeControls={false}
       player={player}
       style={{
-        aspectRatio: 4 / 3,
+        aspectRatio: CLIP_ASPECT_RATIO,
         backgroundColor: placeholder,
         width: "100%",
       }}

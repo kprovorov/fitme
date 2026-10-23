@@ -38,9 +38,7 @@ describe("SessionExerciseHeader", () => {
     );
 
     expect(screen.getByText(DESCRIPTION).props.numberOfLines).toBe(2);
-    await fireEvent.press(
-      screen.getByRole("button", { name: `How to do ${PRESS.name}` })
-    );
+    await fireEvent.press(screen.getByRole("button", { name: DESCRIPTION }));
     expect(onOpenGuide).toHaveBeenCalledTimes(1);
   });
 
@@ -83,9 +81,7 @@ describe("SessionExerciseHeader", () => {
       />
     );
 
-    expect(
-      screen.queryByRole("button", { name: `How to do ${PRESS.name}` })
-    ).toBeNull();
+    expect(screen.queryByRole("button", { name: DESCRIPTION })).toBeNull();
     expect(screen.getByRole("button", { name: "How to?" })).toBeTruthy();
   });
 

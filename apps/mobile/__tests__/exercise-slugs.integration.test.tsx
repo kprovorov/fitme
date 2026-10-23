@@ -222,9 +222,8 @@ describe("a Workout Session", () => {
       workoutId: "workout-of-s1",
     });
 
-    expect(
-      await screen.findByLabelText("How to do Mystery move")
-    ).toBeDisabled();
+    expect(await screen.findByText("12")).toBeTruthy();
+    expect(screen.queryByRole("button", { name: "How to?" })).toBeNull();
   });
 
   it("offers the guide for an Exercise the library knows", async () => {
@@ -236,9 +235,9 @@ describe("a Workout Session", () => {
       workoutId: "workout-of-s1",
     });
 
-    await waitFor(() =>
-      expect(screen.getByLabelText("How to do Squat")).toBeEnabled()
-    );
+    expect(
+      await screen.findByRole("button", { name: "How to?" })
+    ).toBeEnabled();
   });
 
   it("adds an Exercise by its slug", async () => {
