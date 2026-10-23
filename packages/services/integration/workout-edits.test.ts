@@ -794,9 +794,16 @@ describe("edits during account deletion", () => {
     let edit: Promise<unknown> | undefined;
 
     await withService(async (tx) => {
-      // deleteUserData's first statement: every User table, share row exclusive
+      // deleteUserData's first statement: every User table, share row
+      // exclusive, in its order. Locking only the edited tables would take
+      // workouts before plans and workout_sessions, so a transaction from a
+      // test file running alongside (finishing a session locks
+      // workout_sessions, then writes workouts) could deadlock with
+      // deleteUserData's own lock below
       await tx.execute(sql`
-        lock table workouts, workout_exercises, workout_exercise_sets
+        lock table profiles, plans, workout_sessions, workouts,
+          workout_exercises, workout_exercise_sets, workout_session_exercises,
+          workout_session_exercise_sets, coach_sessions
         in share row exclusive mode
       `);
       edit = asUser(leaver, (editTx) =>
