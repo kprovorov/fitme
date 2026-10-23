@@ -11,6 +11,11 @@ cd "$worktree"
 
 pnpm install
 
+# The browser the web and site screenshot loop drives through the root
+# `playwright` devDependency. Cached outside the worktree, so after the first
+# worktree this is a no-op. Not fatal: only the screenshot loop needs it.
+pnpm exec playwright install chromium-headless-shell || echo "warning: couldn't install Playwright's Chromium" >&2
+
 # Env files are gitignored, so new worktrees don't get them. Copy every
 # apps/*/.env* and packages/*/.env* from the main checkout, without overwriting
 # files already present in the worktree. Copies, not symlinks: each worktree

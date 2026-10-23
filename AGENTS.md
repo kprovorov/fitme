@@ -113,6 +113,7 @@ React Native / Expo app using **file-based routing** via `expo-router`:
   - `utils.ts` — `cn()` class merger (tailwind-merge with the HIG font scale)
   - `segment.ts` — the Segment client, created at import. Segment generates ids through `crypto.getRandomValues`, so `react-native-get-random-values` is a direct dependency even though no app code imports it: only a direct dependency gets its native module (`RNGetRandomValues`) autolinked, and without it the client throws at import and the app never renders. Don't remove it as unused.
   - `constants.ts`
+- `test-utils/` — Jest helpers. `setup.ts` (Jest `setupFiles`) swaps `~/lib/exercise-library` for the in-memory fake in every test file, so no test reaches the network; `serveLibrary` (`fake-exercise-library.ts`) points it at a test's Exercises
 - `plugins/` — local Expo config plugin for Xcode 27 compatibility: `with-ios-min-deployment-target.js` (raises pod targets below iOS 15.1, including resource bundles; still needed on SDK 58, since pods such as `react-native-keyboard-controller`, `react-native-safe-area-context`, `@sentry/react-native` and Segment still declare older minimums). RevenueCat needs no patch: `react-native-purchases` 10 pins purchases-ios 5.95.0, which builds under Xcode 27 / Swift 6.4. The app itself targets iOS 16.4 (SDK 58's default). UIScene adoption needs no flag on SDK 58: prebuild generates `SceneDelegate.swift`, so there is no `expo-build-properties` plugin.
 
 ### apps/web — Next.js app
@@ -417,9 +418,16 @@ Backend apps that use `@fitme/db`:
 - `SENTRY_AUTH_TOKEN`, `SENTRY_ORG`, `SENTRY_PROJECT` — build time: source map upload for the release; set on Vercel by the Sentry integration; no token → the upload is skipped
 - `VERCEL_ENV`, `VERCEL_GIT_COMMIT_SHA` — set by Vercel: each event's `environment` and `release`
 
+## Shell
+
+- Never `cd` inside a `&&` chain. The working directory carries over between commands, so `cd apps/mobile && <edit>` run from inside `apps/mobile` fails at the `cd` and silently skips the edit. Use absolute paths, `git -C <path>` and `pnpm --filter <package>` instead.
+- macOS has neither `timeout` nor `gtimeout`: bound a long command with your tool's own timeout, not a wrapper.
+
 ## Git
 
 The default branch is `main` (there is no `master`); branch from it and open pull requests against it. A clone whose `origin/HEAD` still points at `origin/master` is stale; repair it with `git remote set-head origin --auto && git remote prune origin`.
+
+Put a `FIT-<n>` key in a pull request's title, branch or commits only when that pull request finishes the issue: Linear links the PR on sight, moves the issue to In Progress and closes it on merge.
 
 ## Code Review Rules
 
