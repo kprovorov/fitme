@@ -16,7 +16,6 @@ import { Platform } from "react-native";
 import Purchases from "react-native-purchases";
 import "react-native-reanimated";
 import { Uniwind } from "uniwind";
-import DevSignIn from "~/components/dev-signin-fit251";
 import MinimumVersionGate from "~/components/minimum-version-gate";
 import Providers from "~/components/providers";
 import { PlanUpdateSheetHost } from "~/components/workout-sessions/plan-update-sheet";
@@ -124,7 +123,6 @@ function RootLayout() {
           />
         </Stack>
       </MinimumVersionGate>
-      {__DEV__ ? <DevSignIn /> : null}
       <PlanUpdateSheetHost />
       <PortalHost />
       <StatusBar style="auto" />
