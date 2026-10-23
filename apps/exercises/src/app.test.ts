@@ -240,27 +240,37 @@ describe("auth", () => {
     expect(response.status).toBe(401);
   });
 
-  it.each(SERVER_SECRETS)(
-    "refuses only the %s secret when it's unset",
-    async (name, secret) => {
-      const withoutIt = callerApp({
+  it.each(
+    SERVER_SECRETS.flatMap(
+      ([name, secret]) =>
+        [
+          ["unset", name, secret, undefined],
+          ["under 32 characters", name, secret, secret.slice(0, 31)],
+        ] as const
+    )
+  )(
+    "refuses a secret %s for the %s caller only",
+    async (_case, name, secret, configured) => {
+      const configuredApp = callerApp({
         auth: {
           ...auth,
-          serverSecrets: { ...auth.serverSecrets, [name]: undefined },
+          serverSecrets: { ...auth.serverSecrets, [name]: configured },
         },
       });
-      const statuses = (headers: { headers: Record<string, string> }[]) =>
-        Promise.all(
-          headers.map(
-            async (h) => (await withoutIt.request("/caller", h)).status
-          )
-        );
+      const statusFor = async (request: ReturnType<typeof bearer>) =>
+        (await configuredApp.request("/caller", request)).status;
+      const otherSecrets = SERVER_SECRETS.filter(([other]) => other !== name);
 
-      expect(await statuses([bearer(secret)])).toEqual([401]);
-      const others = SERVER_SECRETS.filter(([other]) => other !== name);
-      expect(
-        await statuses([...others.map(([, s]) => bearer(s)), asUser])
-      ).toEqual([200, 200, 200]);
+      expect(await statusFor(bearer(secret))).toBe(401);
+      if (configured) {
+        expect(await statusFor(bearer(configured))).toBe(401);
+      }
+      const stillAccepted = await Promise.all(
+        [...otherSecrets.map(([, other]) => bearer(other)), asUser].map(
+          statusFor
+        )
+      );
+      expect(stillAccepted.every((status) => status === 200)).toBe(true);
     }
   );
 
