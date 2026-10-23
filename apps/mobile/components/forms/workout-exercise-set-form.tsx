@@ -24,7 +24,6 @@ interface WorkoutSessionExerciseSetFormProps {
   disabled?: boolean;
   /** Shown under the row, e.g. when saving the set failed. */
   error?: string | null;
-  hasWeight: boolean;
   isDone?: boolean;
   isEditing?: boolean;
   /** The row's cells before the inputs: the set number and PREVIOUS. */
@@ -147,7 +146,6 @@ function LoggedValue({ value }: { value?: string }) {
 export default function WorkoutSessionExerciseSetForm({
   onSubmit,
   onEdit,
-  hasWeight = true,
   leading,
   recommendedValues,
   disabled,
@@ -265,17 +263,15 @@ export default function WorkoutSessionExerciseSetForm({
             render={renderRepsField}
           />
         )}
-        {hasWeight ? (
-          showsLoggedValues ? (
-            <LoggedValue value={recommendedValues?.weight} />
-          ) : (
-            <Controller
-              control={form.control}
-              name="weight"
-              render={renderWeightField}
-            />
-          )
-        ) : null}
+        {showsLoggedValues ? (
+          <LoggedValue value={recommendedValues?.weight} />
+        ) : (
+          <Controller
+            control={form.control}
+            name="weight"
+            render={renderWeightField}
+          />
+        )}
 
         {showsLoggedValues ? (
           <SetCheckCell onPress={startEditing}>
