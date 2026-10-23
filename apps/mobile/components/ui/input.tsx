@@ -5,6 +5,7 @@ import { ErrorMessage } from "~/components/ui/error-message";
 import { cn } from "~/lib/utils";
 
 type FieldState = "default" | "focused" | "error";
+type FieldVariant = "default" | "ghost";
 
 type FieldProps = TextInputProps & {
   /**
@@ -19,13 +20,22 @@ type FieldProps = TextInputProps & {
    */
   error?: string | boolean;
   ref?: React.RefObject<React.ElementRef<typeof TextInput> | null>;
+  /**
+   * `ghost` keeps the field's box with a transparent stroke at rest, for a
+   * value that reads as settled (a set row's logged or locked cells).
+   */
+  variant?: FieldVariant;
 };
 
 type FocusEvent = Parameters<NonNullable<TextInputProps["onFocus"]>>[0];
 type BlurEvent = Parameters<NonNullable<TextInputProps["onBlur"]>>[0];
 
-const fieldStateClasses: Record<FieldState, string> = {
+const restingStrokeClasses: Record<FieldVariant, string> = {
   default: "border-input",
+  ghost: "border-transparent",
+};
+
+const fieldStateClasses: Record<Exclude<FieldState, "default">, string> = {
   error: "border-destructive",
   focused: "border-ring",
 };
@@ -33,8 +43,8 @@ const fieldStateClasses: Record<FieldState, string> = {
 /**
  * The field Input and Textarea share: an `input` stroke on whatever surface
  * it sits on (`background` or `card`), `ring` while focused and `destructive`
- * with an error, which wins over focus. A field that isn't `editable`, or is
- * `readOnly`, is dimmed. The caret and selection are `primary`, not the system blue.
+ * with an error, which wins over focus; `ghost` has no stroke at rest. A field
+ * that isn't `editable`, or is `readOnly`, is dimmed. The caret and selection are `primary`, not the system blue.
  */
 const Field = ({
   accessibilityHint,
@@ -46,6 +56,7 @@ const Field = ({
   placeholderTextColorClassName,
   ref,
   selectionColorClassName,
+  variant = "default",
   ...props
 }: FieldProps) => {
   const [isFocused, setIsFocused] = useState(false);
@@ -81,7 +92,9 @@ const Field = ({
         }
         className={cn(
           "rounded-lg border border-continuous bg-transparent px-sm text-body text-foreground",
-          fieldStateClasses[state],
+          state === "default"
+            ? restingStrokeClasses[variant]
+            : fieldStateClasses[state],
           disabled && "opacity-50",
           className
         )}

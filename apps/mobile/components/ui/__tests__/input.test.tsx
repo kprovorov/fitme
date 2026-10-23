@@ -63,6 +63,25 @@ describe("Input", () => {
     );
   });
 
+  it("draws a transparent stroke as ghost, still ring while focused and destructive with an error", async () => {
+    const { rerender } = await render(
+      <Input placeholder="Reps" variant="ghost" />
+    );
+    const field = screen.getByPlaceholderText("Reps");
+    expect(field.props.className).toContain("border-transparent");
+    expect(field.props.className).not.toContain("border-input");
+
+    await fireEvent(screen.getByPlaceholderText("Reps"), "focus");
+    expect(screen.getByPlaceholderText("Reps").props.className).toContain(
+      "border-ring"
+    );
+
+    await rerender(<Input error placeholder="Reps" variant="ghost" />);
+    expect(screen.getByPlaceholderText("Reps").props.className).toContain(
+      "border-destructive"
+    );
+  });
+
   it("still calls the caller's focus handlers", async () => {
     const onFocus = jest.fn();
     const onBlur = jest.fn();

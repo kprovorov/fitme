@@ -115,14 +115,14 @@ function SetCheckCell({
 
 /**
  * A logged value, shown dimmed in place of its input until the set is
- * edited.
+ * edited: a ghost Input's box, with no stroke.
  */
 function LoggedValue({ value }: { value?: string }) {
   return (
     <View
       className={cn(
         CELL_CLASS,
-        "items-center justify-center rounded-lg border border-continuous border-input opacity-50"
+        "items-center justify-center rounded-lg border border-continuous border-transparent opacity-50"
       )}
     >
       <Text
@@ -139,9 +139,10 @@ function LoggedValue({ value }: { value?: string }) {
 /**
  * A set row: `leading` cells, then REPS, KG and the check column, with any
  * error under the row. A set to log shows inputs with the recommended values
- * as placeholders and a lime check; a logged set shows its values dimmed and
- * a pencil that opens it for editing. A set waiting on an earlier one shows
- * its inputs dimmed and nothing in the check column.
+ * as placeholders and a lime check; a logged set shows its values dimmed with
+ * no stroke and only a pencil that opens it for editing. A set waiting on an
+ * earlier one shows its inputs as dimmed ghost Inputs and nothing in the
+ * check column.
  */
 export default function WorkoutSessionExerciseSetForm({
   onSubmit,
@@ -215,6 +216,7 @@ export default function WorkoutSessionExerciseSetForm({
         selectTextOnFocus
         testID={`set-weight-input-${setIndex}`}
         value={value}
+        variant={isFormDisabled ? "ghost" : "default"}
       />
     ),
     [isFormDisabled, recommendedValues?.weight, setIndex]
@@ -243,6 +245,7 @@ export default function WorkoutSessionExerciseSetForm({
         selectTextOnFocus
         testID={`set-reps-input-${setIndex}`}
         value={value}
+        variant={isFormDisabled ? "ghost" : "default"}
       />
     ),
     [isFormDisabled, recommendedValues?.reps, setIndex]
