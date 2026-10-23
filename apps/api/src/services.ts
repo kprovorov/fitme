@@ -8,13 +8,15 @@ import {
 } from "@fitme/services/plans";
 import {
   getProfile,
+  lockProfileUnits,
   type ProfileUnits,
   type ProfileWithUnits,
 } from "@fitme/services/profile";
 
 /**
  * A read carrying weights, with the unit they're stored in: the User's
- * Profile's, read in the same transaction (`kg` without a Profile).
+ * Profile's (`kg` without a Profile), locked in the same transaction before
+ * the read, so no conversion can commit in between.
  */
 export interface Weighed<T> {
   value: T;
@@ -47,15 +49,14 @@ export const createServicesFromEnv: ServicesFactory = (userId) => {
     return null;
   }
 
-  /** `read` and, when it finds something, the unit of its weights. */
+  /** `read`, after locking the units its weights are in. */
   const weighed = <T>(read: (tx: Transaction) => Promise<T | null>) =>
     asUser(userId, async (tx): Promise<Weighed<T> | null> => {
+      const units = await lockProfileUnits(tx, userId);
       const value = await read(tx);
-      if (value === null) {
-        return null;
-      }
-      const profile = await getProfile(tx, userId);
-      return { value, weightUnit: profile?.units.weight ?? "kg" };
+      return value === null
+        ? null
+        : { value, weightUnit: units?.weight ?? "kg" };
     });
 
   return {

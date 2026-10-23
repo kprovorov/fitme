@@ -35,7 +35,7 @@ Responses are JSON. Successful responses wrap the payload in `data`; failures re
 - `src/app.ts` — Vercel entry: starts `@fitme/observability`, then default-exports `createApp()`
 - `src/create-app.ts` — `createApp({ clerkJwtKey, createServices, identifyUser, reportError })` (each defaults to the real one): request spans, global middleware, the public routes, then auth, the User-data routes and the error/not-found handlers (unhandled errors are reported before the 500; 4xx aren't)
 - `src/auth.ts` — `requireCaller` (the verified caller, `{ userId, kind: "session" }`, and their services) and `requires(permission)`, each User-data route's declared `read` / `write`
-- `src/services.ts` — `UserServices`, the per-User facade: each method runs one `@fitme/services` function inside `asUser` for the verified User id (a read carrying weights also reads the Profile's weight unit in the same transaction); routes never pass a User id
+- `src/services.ts` — `UserServices`, the per-User facade: each method runs one `@fitme/services` function inside `asUser` for the verified User id (a read carrying weights first share-locks the Profile and reads its weight unit in the same transaction, so a conversion can't commit in between); routes never pass a User id
 - `src/routes/v1.ts` — versioned routers mounting resource routers from `src/routes/`: `publicV1` (no caller) and `userV1` (after auth)
 - `src/schemas.ts` — shared schemas (`ErrorResponse`, `MuscleGroup`, `WeightUnit`) and `invalidRequest`, every router's validation hook
 - `src/openapi.ts` — writes `openapi.json` (`pnpm api openapi`)

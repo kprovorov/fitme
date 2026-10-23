@@ -7,6 +7,7 @@ import {
   type NewPlan,
   type PlanDetail,
 } from "@fitme/services/plans";
+import { updateProfile } from "@fitme/services/profile";
 import { afterAll, beforeAll, describe, expect, it } from "vitest";
 import { createApp } from "../src/create-app.js";
 import { createServicesFromEnv } from "../src/services.js";
@@ -33,7 +34,8 @@ const metric = testUserId("metric");
 const imperial = testUserId("imperial");
 const noProfile = testUserId("noprofile");
 const noPlans = testUserId("noplans");
-const users = [metric, imperial, noProfile, noPlans];
+const converting = testUserId("converting");
+const users = [metric, imperial, noProfile, noPlans, converting];
 
 /**
  * A Plan of two Workouts. Until the contract step drops exercise_id, a slug
@@ -101,6 +103,9 @@ const newPlan = (name: string): NewPlan => ({
 const seedPlan = (userId: string, name: string) =>
   asUser(userId, (tx) => createPlan(tx, userId, newPlan(name)));
 
+/** How long the conversion test keeps its conversion uncommitted. */
+const CONVERSION_HOLD_MS = 1000;
+
 /** A field of the services' answer the contract never shows. */
 const LEGACY_OR_INTERNAL_FIELD =
   /"(exercise_id|exercise|deleted_at|request_key|user_id)"/;
@@ -116,6 +121,7 @@ let active: PlanDetail;
 let deleted: PlanDetail;
 let imperialPlan: PlanDetail;
 let noProfilePlan: PlanDetail;
+let convertingPlan: PlanDetail;
 
 beforeAll(async () => {
   await withService((tx) =>
@@ -136,6 +142,14 @@ beforeAll(async () => {
         userId: imperial,
         weight: "180",
       },
+      {
+        age: 35,
+        gender: "female",
+        height: "65",
+        measurementSystem: "us",
+        userId: converting,
+        weight: "140",
+      },
     ])
   );
   older = await seedPlan(metric, "Older");
@@ -145,6 +159,7 @@ beforeAll(async () => {
   active = await seedPlan(metric, "Active");
   imperialPlan = await seedPlan(imperial, "Imperial");
   noProfilePlan = await seedPlan(noProfile, "No Profile");
+  convertingPlan = await seedPlan(converting, "Converting");
 });
 
 afterAll(async () => {
@@ -290,5 +305,33 @@ describe("Plans across Users", () => {
     expect((await get("/v1/plans/active", noPlans)).body).toEqual({
       data: null,
     });
+  });
+});
+
+describe("A Plan read during a measurement-system conversion", () => {
+  it("waits for the conversion, then answers its weights in the new unit", async () => {
+    let read: ReturnType<typeof get> | undefined;
+    let answered = false;
+    let answeredBeforeCommit = false;
+    await asUser(converting, async (tx) => {
+      // us → metric: 80.5 and 90 lbs are stored as 36.51 and 40.82 kg once this commits
+      await updateProfile(tx, converting, { measurement_system: "metric" });
+      read = get(`/v1/plans/${convertingPlan.id}`, converting);
+      read.then(() => {
+        answered = true;
+      });
+      await new Promise((resolve) => setTimeout(resolve, CONVERSION_HOLD_MS));
+      answeredBeforeCommit = answered;
+    });
+    const { body, status } = await (read as ReturnType<typeof get>);
+
+    expect(answeredBeforeCommit).toBe(false);
+    expect(status).toBe(200);
+    expect(body.data.weight_unit).toBe("kg");
+    expect(
+      body.data.workouts[0].exercises[0].sets.map(
+        (set: { weight_recommended: number }) => set.weight_recommended
+      )
+    ).toEqual([36.51, 40.82]);
   });
 });
