@@ -6,6 +6,7 @@
   "scripts": {
     "build": "tsdown",
     "dev": "tsx watch src/index.ts",
+    "openapi": "tsx src/openapi.ts",
     "start": "node dist/node/index.js",
     "test": "vitest run",
     "test:watch": "vitest",
@@ -15,7 +16,7 @@
     "@fitme/core": "workspace:*",
     "@fitme/observability": "workspace:*",
     "@hono/node-server": "^2.1.5",
-    "@hono/zod-validator": "^0.9.1",
+    "@hono/zod-openapi": "^1.6.3",
     "@sentry/node": "^11.8.0",
     "hono": "^4.13.13",
     "zod": "4.6.7"

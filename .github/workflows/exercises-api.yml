@@ -59,7 +59,7 @@ jobs:
           OASDIFF_SHA256: 43a4e328e2d13ba1552d760aa68d2485c75c5621f309f6ff64ae895188345247
 
       - name: Check for breaking API changes against the base branch
-        run: apps/exercises/scripts/check-api-breaking.sh "origin/$BASE_REF"
+        run: .github/oasdiff/check-api-breaking.sh apps/exercises/openapi.json "origin/$BASE_REF"
         env:
           BASE_REF: ${{ github.base_ref }}
 
