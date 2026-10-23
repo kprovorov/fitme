@@ -141,6 +141,19 @@ describe("rateLimiterFromEnv", () => {
     ]);
   });
 
+  it("uses the in-memory limiter on a Vercel preview without Upstash", async () => {
+    const limiter = rateLimiterFromEnv(
+      { NODE_ENV: "production", VERCEL_ENV: "preview" },
+      { ...perMinute(2), prefix: "test:user" }
+    );
+
+    expect(await limitTimes(limiter, "user_alice", 3)).toEqual([
+      true,
+      true,
+      false,
+    ]);
+  });
+
   it("uses Upstash in production when it's configured", () => {
     expect(() =>
       rateLimiterFromEnv(

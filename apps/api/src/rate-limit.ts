@@ -53,19 +53,14 @@ export const rateLimitFromEnv = (
 });
 
 /**
- * Upstash when configured; otherwise in memory outside production, and a
- * throw in production, so a production deployment without Upstash fails at
- * startup (see `@fitme/rate-limit`). A Vercel preview runs with
- * `NODE_ENV=production` too, but isn't production: only Production has
- * Upstash, so a preview counts in memory.
+ * Upstash when configured; otherwise in memory outside production (a Vercel
+ * preview included), and a throw in production, so a production deployment
+ * without Upstash fails at startup (see `@fitme/rate-limit`).
  */
 export const rateLimiterFromEnv = (
   env: Record<string, string | undefined>
 ): RateLimiter =>
-  sharedRateLimiterFromEnv(
-    env.VERCEL_ENV === "preview" ? { ...env, NODE_ENV: "preview" } : env,
-    { ...rateLimitFromEnv(env), prefix: "api" }
-  );
+  sharedRateLimiterFromEnv(env, { ...rateLimitFromEnv(env), prefix: "api" });
 
 /**
  * The bucket a caller's requests are counted in. A session is the User
