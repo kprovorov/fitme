@@ -127,8 +127,9 @@ describe("GET /v1/profile against the local stack", () => {
 
 const editor = testUserId("editor");
 const converter = testUserId("converter");
+const ukConverter = testUserId("ukconverter");
 const bystander = testUserId("bystander");
-const editors = [editor, converter, bystander];
+const editors = [editor, converter, ukConverter, bystander];
 
 /** A metric User with a Profile and a Plan with one 60 kg set; the set's id. */
 const seedMetricUser = (userId: string) =>
@@ -195,11 +196,13 @@ const patchProfile = async (userId: string, changes: unknown) => {
 
 describe("PATCH /v1/profile against the local stack", () => {
   let converterSet: string;
+  let ukConverterSet: string;
   let bystanderSet: string;
 
   beforeAll(async () => {
     await seedMetricUser(editor);
     converterSet = await seedMetricUser(converter);
+    ukConverterSet = await seedMetricUser(ukConverter);
     bystanderSet = await seedMetricUser(bystander);
   });
 
@@ -259,7 +262,7 @@ describe("PATCH /v1/profile against the local stack", () => {
   });
 
   it("writes a given height and weight in the new system's units", async () => {
-    const { body } = await patchProfile(converter, {
+    const { body } = await patchProfile(ukConverter, {
       height: 67.5,
       measurement_system: "uk",
       weight: 140,
@@ -271,8 +274,16 @@ describe("PATCH /v1/profile against the local stack", () => {
       units: { height: "in", weight: "lbs" },
       weight: 140,
     });
-    // us and uk share units: nothing converted again
-    expect(await storedSetWeight(converterSet)).toBe("132.28");
+    // The Plan's weights converted, the given ones written as they are
+    expect(await storedSetWeight(ukConverterSet)).toBe("132.28");
+
+    // us and uk share units: switching between them converts nothing again
+    await patchProfile(ukConverter, { measurement_system: "us" });
+    expect(await storedSetWeight(ukConverterSet)).toBe("132.28");
+    expect((await getProfile(ukConverter)).body.data).toMatchObject({
+      height: 67.5,
+      weight: 140,
+    });
   });
 
   it("answers 404 profile_not_found without a Profile, creating none", async () => {

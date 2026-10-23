@@ -65,19 +65,19 @@ const getProfile = createRoute({
 const MIN_AGE = 10;
 const MAX_AGE = 120;
 /** Generous bounds in either unit (cm or in, kg or lbs), well inside numeric(8,2) after a conversion. */
-const MAX_HEIGHT = 300;
-const MAX_WEIGHT = 1000;
+const MAX_BODY_HEIGHT = 300;
+const MAX_BODY_WEIGHT = 1000;
 /** Heights and weights are stored as numeric(8,2). */
 const HUNDREDTH = 0.01;
 
-const ProfileChanges = z
+const ProfileChangesBody = z
   .strictObject({
     age: z.number().int().min(MIN_AGE).max(MAX_AGE).openapi({ example: 31 }),
     gender: z.enum(genders),
     height: z
       .number()
       .positive()
-      .max(MAX_HEIGHT)
+      .max(MAX_BODY_HEIGHT)
       .multipleOf(HUNDREDTH)
       .openapi({
         description:
@@ -91,7 +91,7 @@ const ProfileChanges = z
     weight: z
       .number()
       .positive()
-      .max(MAX_WEIGHT)
+      .max(MAX_BODY_WEIGHT)
       .multipleOf(HUNDREDTH)
       .openapi({
         description:
@@ -100,6 +100,8 @@ const ProfileChanges = z
       }),
   })
   .partial()
+  // The refine answers the 400; minProperties says the same in the OpenAPI
+  // document, which can't see a refine.
   .refine((changes) => Object.keys(changes).length > 0, {
     message: "Give at least one field to change",
   })
@@ -115,7 +117,7 @@ const updateProfile = createRoute({
   path: "/",
   request: {
     body: {
-      content: { "application/json": { schema: ProfileChanges } },
+      content: { "application/json": { schema: ProfileChangesBody } },
       required: true,
     },
   },
