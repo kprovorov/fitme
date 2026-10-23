@@ -1,4 +1,5 @@
-import type { Exercise, WorkoutSession } from "@fitme/core";
+import type { MuscleGroup, WorkoutSession } from "@fitme/core";
+import type { ExerciseSummary } from "@fitme/exercise-library";
 import { useQueryClient } from "@tanstack/react-query";
 import { useCallback, useState } from "react";
 import { Modal, ScrollView } from "react-native";
@@ -22,9 +23,9 @@ interface WorkoutSessionViewProps {
 }
 
 interface ExerciseCtaButtonProps {
-  exercise: Exercise;
+  exercise: ExerciseSummary;
   label: string;
-  onPress: (exercise: Exercise) => void;
+  onPress: (exercise: ExerciseSummary) => void;
 }
 
 function ExerciseCtaButton({
@@ -50,7 +51,7 @@ export default function WorkoutSessionView({
     null
   );
   const [initialMuscleGroup, setInitialMuscleGroup] = useState<
-    string | undefined
+    MuscleGroup | undefined
   >(undefined);
 
   const { mutateAsync } = useCreateWorkoutSessionExerciseMutation({
@@ -80,7 +81,7 @@ export default function WorkoutSessionView({
     });
 
   const onExercisePress = useCallback(
-    async (exercise: Exercise) => {
+    async (exercise: ExerciseSummary) => {
       if (replacingExerciseId === null) {
         await mutateAsync({
           data: {
@@ -130,7 +131,7 @@ export default function WorkoutSessionView({
   const openModal = useCallback(() => setShowModal(true), []);
 
   const renderExerciseCta = useCallback(
-    (exercise: Exercise) => (
+    (exercise: ExerciseSummary) => (
       <ExerciseCtaButton
         exercise={exercise}
         label={replacingExerciseId === null ? "Add" : "Replace"}
@@ -173,6 +174,8 @@ export default function WorkoutSessionView({
       >
         <ScrollView
           contentInsetAdjustmentBehavior="automatic"
+          // A result is tapped with the search keyboard still up.
+          keyboardShouldPersistTaps="handled"
           showsVerticalScrollIndicator={false}
         >
           <VStack className="flex-1 items-stretch bg-background p-md">

@@ -1,4 +1,4 @@
-import type { Exercise } from "@fitme/core";
+import type { ExerciseSummary } from "@fitme/exercise-library";
 import type React from "react";
 import { useCallback } from "react";
 import ExerciseImage from "~/components/exercises/exercise-image";
@@ -6,13 +6,15 @@ import { MenuList, MenuListItem } from "~/components/ui/menu-list";
 import { Text } from "~/components/ui/text";
 import { cn } from "~/lib/utils";
 
-type ItemCta = React.ReactNode | ((exercise: Exercise) => React.ReactNode);
+type ItemCta =
+  | React.ReactNode
+  | ((exercise: ExerciseSummary) => React.ReactNode);
 
 interface ExercisesListProps {
-  exercises: Exercise[];
+  exercises: ExerciseSummary[];
   itemCta?: ItemCta;
   itemIcon?: "chevron-right" | "square-arrow-out-up-right";
-  onExercisePress?: (exercise: Exercise) => void;
+  onExercisePress?: (exercise: ExerciseSummary) => void;
 }
 
 const noop = () => {
@@ -27,13 +29,13 @@ export default function ExercisesList({
 }: ExercisesListProps) {
   return (
     <MenuList className="w-full">
-      {exercises.map((exercise: Exercise, index: number) => (
+      {exercises.map((exercise: ExerciseSummary, index: number) => (
         <ExercisesListItem
           exercise={exercise}
           isFirst={index === 0}
           itemCta={itemCta}
           itemIcon={itemIcon}
-          key={exercise.id}
+          key={exercise.slug}
           onExercisePress={onExercisePress}
         />
       ))}
@@ -42,11 +44,11 @@ export default function ExercisesList({
 }
 
 interface ExercisesListItemProps {
-  exercise: Exercise;
+  exercise: ExerciseSummary;
   isFirst: boolean;
   itemCta?: ItemCta;
   itemIcon?: ExercisesListProps["itemIcon"];
-  onExercisePress: (exercise: Exercise) => void;
+  onExercisePress: (exercise: ExerciseSummary) => void;
 }
 
 function ExercisesListItem({
