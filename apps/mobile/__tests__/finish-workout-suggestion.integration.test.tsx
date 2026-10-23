@@ -444,6 +444,20 @@ describe.each(ENTRY_ROUTES)(
       await settle();
     };
 
+    it("edits a logged set that comes after one still to log", async () => {
+      await startApp({
+        exercises: [{ name: "Squat", sets: [null, 10] }],
+        id: "s1",
+      });
+      await openExercise("Squat");
+
+      await editSet(2, "8");
+
+      expect(focused().queryByTestId("log-set-button-2")).toBeNull();
+      expect(focused().getByTestId("edit-set-button-2")).toBeTruthy();
+      expect(focused().queryByText(SET_SAVE_ERROR)).toBeNull();
+    });
+
     it("suggests exactly once when the last untracked set is saved", async () => {
       await startApp({
         exercises: [{ name: "Squat", sets: [10, null] }],

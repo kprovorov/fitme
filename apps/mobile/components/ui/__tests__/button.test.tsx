@@ -114,7 +114,10 @@ jest.mock("@expo/ui/swift-ui", () => {
 // uniwind resolves no theme values under Jest. The size tokens get a stand-in
 // diameter and the colors their class name, so the buttons that read them
 // (ghost, painted circles) frame and fill themselves.
+// Like uniwind on device, an empty class name answers the last color class
+// resolved (FIT-251).
 const mockColorClass = /^text-(primary|secondary|destructive|foreground)/;
+let mockLastColorClass: string | undefined;
 
 jest.mock("uniwind", () => {
   const actual = jest.requireActual<typeof import("uniwind")>("uniwind");
@@ -126,7 +129,11 @@ jest.mock("uniwind", () => {
         return { height: 47, width: 47 };
       }
       if (mockColorClass.test(className)) {
+        mockLastColorClass = className;
         return { color: className };
+      }
+      if (className === "" && mockLastColorClass !== undefined) {
+        return { color: mockLastColorClass };
       }
       return resolved;
     },
@@ -283,6 +290,31 @@ describe("Button", () => {
       }
     }
   );
+
+  it("drops a recolor once the class is gone, as a set row's pencil turns into its ✓", async () => {
+    const { rerender } = await render(
+      <Button accessibilityLabel="Log set" icon="checkmark" shape="circle" />
+    );
+    const defaultColor = screen.getByTestId("icon-checkmark").props.color;
+
+    await rerender(
+      <Button
+        accessibilityLabel="Edit set"
+        contentColorClassName="text-foreground"
+        icon="checkmark"
+        shape="circle"
+        variant="ghost"
+      />
+    );
+    expect(screen.getByTestId("icon-checkmark").props.color).toBe(
+      "text-foreground"
+    );
+
+    await rerender(
+      <Button accessibilityLabel="Log set" icon="checkmark" shape="circle" />
+    );
+    expect(screen.getByTestId("icon-checkmark").props.color).toBe(defaultColor);
+  });
 
   it("paints a destructive circle secondary below iOS 17", async () => {
     mockNativeCircleEnabled = false;

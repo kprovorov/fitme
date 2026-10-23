@@ -187,7 +187,9 @@ export default function WorkoutSessionExerciseSetRowView({
 
   return (
     <WorkoutSessionExerciseSetForm
-      disabled={!isEditable || locked}
+      // A logged set stays editable when an earlier one is still open: its
+      // pencil would otherwise open a row nothing can save.
+      disabled={!isEditable || (locked && !isDone)}
       error={saveError}
       isDone={isDone}
       isEditing={isEditable}
