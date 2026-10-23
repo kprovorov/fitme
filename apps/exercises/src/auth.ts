@@ -5,8 +5,8 @@ import { createMiddleware } from "hono/factory";
 import type { z } from "zod";
 import type { ErrorResponse } from "./schemas";
 
-/** A caller that isn't a User: the Coach or the MCP server. */
-export type ServerCallerName = "coach" | "mcp";
+/** A caller that isn't a User: the Public API, the Coach or the MCP server. */
+export type ServerCallerName = "api" | "coach" | "mcp";
 
 /** Who a request comes from: a User (by Clerk User id) or a server caller. */
 export type Caller =
@@ -70,7 +70,7 @@ export const requireCaller = ({ clerkJwtKeys, serverSecrets }: AuthConfig) => {
   const jwtKeys = [clerkJwtKeys.production, clerkJwtKeys.development].filter(
     (key): key is string => Boolean(key)
   );
-  const secrets = (["coach", "mcp"] as const).flatMap((name) => {
+  const secrets = (["api", "coach", "mcp"] as const).flatMap((name) => {
     const secret = serverSecrets[name];
     return secret && secret.length >= MIN_SECRET_LENGTH
       ? [{ hash: sha256(secret), name }]
