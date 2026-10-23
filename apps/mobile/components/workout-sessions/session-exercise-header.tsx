@@ -10,6 +10,12 @@ import { Text } from "~/components/ui/text";
 import type { ShownExercise } from "~/hooks/queries/exercise-library";
 import { sizedThumbnailUrl } from "~/lib/exercise-media";
 
+/**
+ * Past this text scale the muscle groups go under the clip: over it, a few
+ * of them at the largest sizes outgrow the box and get cut off.
+ */
+const BADGES_BELOW_FONT_SCALE = 1.4;
+
 interface SessionExerciseHeaderProps {
   /** From the Exercise in full: none while it loads, or when it has none. */
   description: string | null | undefined;
@@ -39,6 +45,19 @@ function Thumbnail({ url }: { url: string }) {
   );
 }
 
+/** The muscle groups, as badges that wrap. */
+function MuscleGroups({ exercise }: { exercise: ShownExercise }) {
+  return (
+    <View className="flex-row flex-wrap gap-xs" pointerEvents="none">
+      {exercise.muscle_groups.map((muscleGroup) => (
+        <Badge key={muscleGroup} variant="secondary">
+          <Text>{muscleGroupToName(muscleGroup)}</Text>
+        </Badge>
+      ))}
+    </View>
+  );
+}
+
 /**
  * The exercise's description (two lines, opening the guide), then its
  * looping clip with "How to?" and its muscle groups over it, above the sets.
@@ -48,8 +67,11 @@ export default function SessionExerciseHeader({
   exercise,
   onOpenGuide,
 }: SessionExerciseHeaderProps) {
+  const { fontScale } = useWindowDimensions();
   const hasMedia =
     exercise.isResolved || !!exercise.video_url || !!exercise.thumbnail_url;
+  const hasMuscleGroups = exercise.muscle_groups.length > 0;
+  const badgesBelow = fontScale > BADGES_BELOW_FONT_SCALE;
 
   return (
     <>
@@ -96,17 +118,14 @@ export default function SessionExerciseHeader({
                 />
               ) : null}
             </View>
-            {exercise.muscle_groups.length > 0 ? (
-              <View className="flex-row flex-wrap gap-xs" pointerEvents="none">
-                {exercise.muscle_groups.map((muscleGroup) => (
-                  <Badge key={muscleGroup} variant="secondary">
-                    <Text>{muscleGroupToName(muscleGroup)}</Text>
-                  </Badge>
-                ))}
-              </View>
+            {hasMuscleGroups && !badgesBelow ? (
+              <MuscleGroups exercise={exercise} />
             ) : null}
           </View>
         </View>
+      ) : null}
+      {hasMuscleGroups && badgesBelow ? (
+        <MuscleGroups exercise={exercise} />
       ) : null}
     </>
   );
