@@ -44,7 +44,8 @@ const fieldStateClasses: Record<Exclude<FieldState, "default">, string> = {
  * The field Input and Textarea share: an `input` stroke on whatever surface
  * it sits on (`background` or `card`), `ring` while focused and `destructive`
  * with an error, which wins over focus; `ghost` has no stroke at rest. A field
- * that isn't `editable`, or is `readOnly`, is dimmed. The caret and selection are `primary`, not the system blue.
+ * that isn't `editable`, or is `readOnly`, is dimmed. The caret and selection
+ * are `primary`, not the system blue.
  */
 const Field = ({
   accessibilityHint,
