@@ -6,16 +6,19 @@ import {
   type PlanDetail,
   type PlanSummary,
 } from "@fitme/services/plans";
-import { getProfile, type ProfileWithUnits } from "@fitme/services/profile";
+import {
+  getProfile,
+  type ProfileUnits,
+  type ProfileWithUnits,
+} from "@fitme/services/profile";
 
 /**
- * A read carrying weights, with the User's measurement system read in the
- * same transaction (`null` without a Profile), so the route can say which
- * unit the weights are in.
+ * A read carrying weights, with the unit they're stored in: the User's
+ * Profile's, read in the same transaction (`kg` without a Profile).
  */
 export interface Weighed<T> {
-  measurementSystem: string | null;
   value: T;
+  weightUnit: ProfileUnits["weight"];
 }
 
 /**
@@ -44,7 +47,7 @@ export const createServicesFromEnv: ServicesFactory = (userId) => {
     return null;
   }
 
-  /** `read` and, when it finds something, the User's measurement system. */
+  /** `read` and, when it finds something, the unit of its weights. */
   const weighed = <T>(read: (tx: Transaction) => Promise<T | null>) =>
     asUser(userId, async (tx): Promise<Weighed<T> | null> => {
       const value = await read(tx);
@@ -52,7 +55,7 @@ export const createServicesFromEnv: ServicesFactory = (userId) => {
         return null;
       }
       const profile = await getProfile(tx, userId);
-      return { measurementSystem: profile?.measurement_system ?? null, value };
+      return { value, weightUnit: profile?.units.weight ?? "kg" };
     });
 
   return {

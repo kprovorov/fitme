@@ -4,10 +4,8 @@ import { type ApiEnv, bearerSecurity, requires } from "../auth.js";
 import {
   ErrorResponse,
   invalidRequest,
-  notFoundResponse,
   unauthorizedResponse,
   WeightUnit,
-  weightUnitFor,
 } from "../schemas.js";
 import type { Weighed } from "../services.js";
 
@@ -47,15 +45,24 @@ const planColumns = {
   }),
 };
 
+/** A Workout's place in its Plan's rotation. */
+const rotationOrder = z.number().int().openapi({
+  description: "Position in the rotation: 1 is up next",
+  example: 1,
+});
+
+/** An error answered on purpose (unreported), in the error shape. */
+const errorResponse = (description: string) => ({
+  content: { "application/json": { schema: ErrorResponse } },
+  description,
+});
+
 const WorkoutSummary = z
   .object({
     exercise_count: z.number().int().openapi({ example: 5 }),
     id: z.uuid(),
     name: z.string().openapi({ example: "Day A" }),
-    order: z.number().int().openapi({
-      description: "Position in the rotation: 1 is up next",
-      example: 1,
-    }),
+    order: rotationOrder,
   })
   .openapi("WorkoutSummary");
 
@@ -124,10 +131,7 @@ const PlanWorkout = z
     exercises: z.array(PlanExercise).openapi({ description: "In order" }),
     id: z.uuid(),
     name: z.string().openapi({ example: "Day A" }),
-    order: z.number().int().openapi({
-      description: "Position in the rotation: 1 is up next",
-      example: 1,
-    }),
+    order: rotationOrder,
   })
   .openapi("PlanWorkout");
 
@@ -153,9 +157,9 @@ const ActivePlanResponse = z.object({
 });
 
 /** A Plan read in full, with the unit its weights are in. */
-const planData = ({ measurementSystem, value }: Weighed<PlanDetail>) => ({
+const planData = ({ value, weightUnit }: Weighed<PlanDetail>) => ({
   ...value,
-  weight_unit: weightUnitFor(measurementSystem),
+  weight_unit: weightUnit,
 });
 
 const getActivePlan = createRoute({
@@ -188,12 +192,9 @@ const getPlan = createRoute({
       description:
         "The Plan in full: its Workouts, their Exercises and sets, each in order",
     },
-    400: {
-      content: { "application/json": { schema: ErrorResponse } },
-      description: "`invalid_request`: the id isn't a uuid",
-    },
+    400: errorResponse("`invalid_request`: the id isn't a uuid"),
     401: unauthorizedResponse,
-    404: notFoundResponse(
+    404: errorResponse(
       "`not_found`: no such Plan, it was deleted, or it isn't the User's"
     ),
   },

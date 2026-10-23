@@ -284,6 +284,9 @@ describe("Plans across Users", () => {
       imperialPlan.id,
     ]);
 
+    expect((await get("/v1/plans/active", imperial)).body.data.id).toBe(
+      imperialPlan.id
+    );
     expect((await get("/v1/plans/active", noPlans)).body).toEqual({
       data: null,
     });

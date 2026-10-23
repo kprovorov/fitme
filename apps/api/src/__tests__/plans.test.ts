@@ -166,9 +166,9 @@ const servicesDetail = {
   })),
 };
 
-const weighed = (measurementSystem: string | null) => ({
-  measurementSystem,
+const weighed = (weightUnit: string) => ({
   value: servicesDetail,
+  weightUnit,
 });
 
 describe("GET /v1/plans/{id}", () => {
@@ -178,7 +178,7 @@ describe("GET /v1/plans/{id}", () => {
       services: fakeServices({
         getPlan: (id) => {
           asked.push(id);
-          return Promise.resolve(weighed("metric"));
+          return Promise.resolve(weighed("kg"));
         },
       }),
     });
@@ -195,29 +195,26 @@ describe("GET /v1/plans/{id}", () => {
     expect(reported).toEqual([]);
   });
 
-  it.each([
-    ["metric", "kg"],
-    ["us", "lbs"],
-    ["uk", "lbs"],
-    [null, "kg"],
-    ["imperial", "kg"],
-  ])("says weights are in %s → %s", async (measurementSystem, weightUnit) => {
-    const { app } = testApp({
-      services: fakeServices({
-        getPlan: () => Promise.resolve(weighed(measurementSystem)),
-      }),
-    });
+  it.each(["kg", "lbs"] as const)(
+    "returns weights as stored, in %s",
+    async (weightUnit) => {
+      const { app } = testApp({
+        services: fakeServices({
+          getPlan: () => Promise.resolve(weighed(weightUnit)),
+        }),
+      });
 
-    const response = await app.request(`/v1/plans/${planId}`, {
-      headers: signedInAs("user_alice"),
-    });
+      const response = await app.request(`/v1/plans/${planId}`, {
+        headers: signedInAs("user_alice"),
+      });
 
-    const body = await response.json();
-    expect(body.data.weight_unit).toBe(weightUnit);
-    expect(body.data.workouts[0].exercises[0].sets[0].weight_recommended).toBe(
-      80.5
-    );
-  });
+      const body = await response.json();
+      expect(body.data.weight_unit).toBe(weightUnit);
+      expect(
+        body.data.workouts[0].exercises[0].sets[0].weight_recommended
+      ).toBe(80.5);
+    }
+  );
 
   it("answers 404 not_found, unreported, for a Plan the services don't find", async () => {
     const { app, reported } = testApp({
@@ -254,7 +251,7 @@ describe("GET /v1/plans/active", () => {
   it("answers the active Plan in full with its weight unit", async () => {
     const { app } = testApp({
       services: fakeServices({
-        getActivePlan: () => Promise.resolve(weighed("us")),
+        getActivePlan: () => Promise.resolve(weighed("lbs")),
       }),
     });
 
