@@ -31,6 +31,7 @@ redistributed under its own licence:
 | `ultracite` | [haydenbleasel/ultracite](https://github.com/haydenbleasel/ultracite) | MIT |
 | `uniwind` | [uni-stack/uniwind](https://github.com/uni-stack/uniwind) | MIT |
 
-A skill whose licence doesn't allow redistribution stays out of the repo:
-git-ignore it and install it from `skills-lock.json` with
-`npx skills experimental_install`.
+`skills-lock.json` also lists skills that aren't committed (the `assistant-ui`
+ones and `migrate-nativewind-to-uniwind`). Install every skill in it with
+`npx skills experimental_install`. A skill whose licence doesn't allow
+redistribution stays out of the repo: git-ignore it and install it that way.

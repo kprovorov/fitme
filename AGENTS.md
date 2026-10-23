@@ -9,6 +9,7 @@ This is a **pnpm + Turborepo** monorepo. Run repo-wide tasks from the root; run 
 ```
 apps/api                @fitme/api     — Hono REST API (Node)
 apps/coach              @fitme/coach   — the Coach: an EVE agent (Vercel's durable agent framework, ai@7)
+apps/mcp                @fitme/mcp     — MCP server (Streamable HTTP, Clerk OAuth) over the user tools
 apps/exercises          @fitme/exercises — Exercise Library API: Hono + zod-openapi, serving a baked-in library.json bundle (Node)
 apps/mobile             @fitme/mobile  — Expo / React Native app
 apps/web                @fitme/web     — Next.js (App Router) web app
