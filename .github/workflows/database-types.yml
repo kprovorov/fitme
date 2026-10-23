@@ -36,8 +36,17 @@ jobs:
         run: pnpm install --frozen-lockfile
 
       # Use the lockfile-pinned CLI for both steps so output only changes on a bump.
+      # Retried like the integration tests' start: the image registry throttles
+      # the shared runner IPs now and then (`toomanyrequests`).
       - name: Start local database
-        run: pnpm db exec supabase db start
+        run: |
+          for attempt in 1 2 3; do
+            pnpm db exec supabase db start && exit 0
+            [ "$attempt" -eq 3 ] && exit 1
+            echo "::warning::supabase db start failed (attempt $attempt of 3), retrying in 30 s"
+            pnpm db exec supabase stop --no-backup || true
+            sleep 30
+          done
 
       - name: Regenerate types
         run: pnpm db types:generate
