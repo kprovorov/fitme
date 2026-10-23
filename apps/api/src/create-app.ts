@@ -1,18 +1,35 @@
-import { observeHono, reportError } from "@fitme/observability/node";
+import {
+  identifyUser,
+  observeHono,
+  reportError,
+} from "@fitme/observability/node";
 import { createRoute, OpenAPIHono, z } from "@hono/zod-openapi";
 import { cors } from "hono/cors";
 import { HTTPException } from "hono/http-exception";
 import { logger } from "hono/logger";
-import { v1 } from "./routes/v1.js";
+import { type ApiEnv, BEARER_AUTH, requireCaller } from "./auth.js";
+import { publicV1, userV1 } from "./routes/v1.js";
 import { invalidRequest } from "./schemas.js";
+import { createServicesFromEnv, type ServicesFactory } from "./services.js";
 
 export interface AppDeps {
+  /** The Clerk instance's PEM public key session tokens are verified against. */
+  clerkJwtKey: string | undefined;
+  /** Builds a verified User's services; `null` when the database isn't configured. */
+  createServices: ServicesFactory;
+  /** Sets the request's User (their Clerk id only) on what error reporting sends. */
+  identifyUser: (userId: string) => void;
   /** Reports an unhandled error before the 500 goes out. */
   reportError: (error: unknown) => Promise<void>;
 }
 
-/** The real dependencies: @fitme/observability's reporter. */
-const defaultDeps = (): AppDeps => ({ reportError });
+/** The real dependencies: the environment and @fitme/observability. */
+const defaultDeps = (): AppDeps => ({
+  clerkJwtKey: process.env.CLERK_JWT_KEY,
+  createServices: createServicesFromEnv,
+  identifyUser,
+  reportError,
+});
 
 const health = createRoute({
   method: "get",
@@ -28,19 +45,44 @@ const health = createRoute({
   summary: "Liveness",
 });
 
-export const createApp = ({ reportError: report }: AppDeps = defaultDeps()) => {
+export const createApp = (deps: Partial<AppDeps> = {}) => {
+  const {
+    clerkJwtKey,
+    createServices,
+    identifyUser: identify,
+    reportError: report,
+  } = { ...defaultDeps(), ...deps };
+
   // Invalid input on any route answers 400 invalid_request unless the route
   // says otherwise.
-  const app = new OpenAPIHono({ defaultHook: invalidRequest });
+  const app = new OpenAPIHono<ApiEnv>({ defaultHook: invalidRequest });
 
   // First, so the request span covers every other middleware
   app.use(observeHono(app));
   app.use(logger());
+  // Before auth: a browser's preflight carries no token, so it's answered
+  // here, and every response, a 401 included, is readable cross-origin.
+  // Callers authenticate with a bearer token, never cookies, so any origin is
+  // fine.
   app.use(cors({ origin: "*" }));
 
+  // Registered before auth, so they answer without a token.
   app.openapi(health, (c) => c.json({ ok: true }, 200));
+  app.route("/v1", publicV1);
 
-  app.route("/v1", v1);
+  // Every route from here on (unknown ones too) needs a verified caller.
+  app.use(requireCaller({ clerkJwtKey, createServices }));
+  // The User is known by their Clerk id only.
+  app.use(async (c, next) => {
+    identify(c.var.caller.userId);
+    await next();
+  });
+  app.openAPIRegistry.registerComponent("securitySchemes", BEARER_AUTH, {
+    description: "The User's Clerk session token",
+    scheme: "bearer",
+    type: "http",
+  });
+  app.route("/v1", userV1);
 
   app.notFound((c) =>
     c.json({ error: { code: "not_found", message: "Route not found" } }, 404)

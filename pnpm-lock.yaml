@@ -43,12 +43,21 @@ importers:
 
   apps/api:
     dependencies:
+      '@clerk/backend':
+        specifier: ^3.25.0
+        version: 3.25.0(react-dom@19.3.0(react@19.3.0))(react@19.3.0)
       '@fitme/core':
         specifier: workspace:*
         version: link:../../packages/core
+      '@fitme/db':
+        specifier: workspace:*
+        version: link:../../packages/db
       '@fitme/observability':
         specifier: workspace:*
         version: link:../../packages/observability
+      '@fitme/services':
+        specifier: workspace:*
+        version: link:../../packages/services
       '@hono/node-server':
         specifier: ^2.1.5
         version: 2.1.5(hono@4.13.13)
@@ -58,9 +67,18 @@ importers:
       '@sentry/node':
         specifier: ^11.8.0
         version: 11.8.0(@babel/core@7.29.7)(rollup@4.63.3)
+      '@vercel/functions':
+        specifier: ^3.10.1
+        version: 3.10.1(ws@8.21.3)
+      drizzle-orm:
+        specifier: ^0.45.4
+        version: 0.45.4(@opentelemetry/api@1.9.1)(@types/pg@8.23.1)(@upstash/redis@1.39.0)(pg@8.23.1)(sql.js@1.14.2)
       hono:
         specifier: ^4.13.13
         version: 4.13.13
+      pg:
+        specifier: ^8.23.1
+        version: 8.23.1
       zod:
         specifier: 4.6.7
         version: 4.6.7

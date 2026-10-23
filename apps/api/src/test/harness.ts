@@ -1,0 +1,62 @@
+import { type AppDeps, createApp } from "../create-app.js";
+import type { UserServices } from "../services.js";
+import { clerkInstance, clerkToken } from "./clerk.js";
+
+/** The Clerk instance the test app trusts. */
+export const clerk = clerkInstance();
+
+/** `Authorization: Bearer` with a session token for `userId` from the trusted instance. */
+export const signedInAs = (
+  userId: string,
+  claims: Record<string, unknown> = {}
+) => ({
+  authorization: `Bearer ${clerkToken(clerk.privateKey, { sub: userId, ...claims })}`,
+});
+
+/**
+ * Services that answer only what a test fakes: calling any other method fails
+ * the request (and so the test) with a reported 500.
+ */
+export const fakeServices = (faked: Partial<UserServices>): UserServices =>
+  new Proxy(faked as UserServices, {
+    get: (target, method: string) =>
+      target[method as keyof UserServices] ??
+      (() => {
+        throw new Error(`Unfaked service method: ${method}`);
+      }),
+  });
+
+/**
+ * The app over fake services, trusting `clerk`, with a recording reporter and
+ * Sentry user. `servicesFor` records the User id each facade was built for.
+ */
+export const testApp = (
+  options: {
+    /** Explicitly `undefined` for an API without CLERK_JWT_KEY. */
+    clerkJwtKey?: string;
+    services?: UserServices | null;
+  } = {}
+) => {
+  const clerkJwtKey =
+    "clerkJwtKey" in options ? options.clerkJwtKey : clerk.jwtKey;
+  const services =
+    options.services === undefined ? fakeServices({}) : options.services;
+  const reported: unknown[] = [];
+  const identified: string[] = [];
+  const servicesFor: string[] = [];
+  const deps: AppDeps = {
+    clerkJwtKey,
+    createServices: (userId) => {
+      servicesFor.push(userId);
+      return services;
+    },
+    identifyUser: (userId) => {
+      identified.push(userId);
+    },
+    reportError: (error) => {
+      reported.push(error);
+      return Promise.resolve();
+    },
+  };
+  return { app: createApp(deps), identified, reported, servicesFor };
+};

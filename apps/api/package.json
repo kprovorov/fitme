@@ -9,16 +9,23 @@
     "openapi": "tsx src/openapi.ts",
     "start": "node dist/node/index.js",
     "test": "vitest run",
+    "test:integration": "vitest run --config vitest.integration.config.ts",
     "test:watch": "vitest",
     "typecheck": "tsc --noEmit"
   },
   "dependencies": {
+    "@clerk/backend": "^3.25.0",
     "@fitme/core": "workspace:*",
+    "@fitme/db": "workspace:*",
     "@fitme/observability": "workspace:*",
+    "@fitme/services": "workspace:*",
     "@hono/node-server": "^2.1.5",
     "@hono/zod-openapi": "^1.6.3",
     "@sentry/node": "^11.8.0",
+    "@vercel/functions": "^3.10.1",
+    "drizzle-orm": "^0.45.4",
     "hono": "^4.13.13",
+    "pg": "^8.23.1",
     "zod": "4.6.7"
   },
   "devDependencies": {

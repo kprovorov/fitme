@@ -30,9 +30,8 @@ export const publicCacheHeaders = z.object({
  * The default validation hook: a request that fails its schema answers 400
  * `invalid_request` in the error shape, naming each invalid field.
  */
-export const invalidRequest: Hook<unknown, Env, string, unknown> = (
-  result,
-  c
+export const invalidRequest = <E extends Env>(
+  ...[result, c]: Parameters<Hook<unknown, E, string, unknown>>
 ) => {
   if (!result.success) {
     const message = result.error.issues
@@ -40,4 +39,10 @@ export const invalidRequest: Hook<unknown, Env, string, unknown> = (
       .join("; ");
     return c.json({ error: { code: "invalid_request", message } }, 400);
   }
+};
+
+/** Every User-data route answers 401 without a valid caller (`requireCaller`). */
+export const unauthorizedResponse = {
+  content: { "application/json": { schema: ErrorResponse } },
+  description: "No valid Clerk session token",
 };

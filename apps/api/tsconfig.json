@@ -9,5 +9,11 @@
       "@/*": ["./src/*"]
     }
   },
-  "include": ["src", "tsdown.config.ts", "vitest.config.ts"]
+  "include": [
+    "src",
+    "integration",
+    "tsdown.config.ts",
+    "vitest.config.ts",
+    "vitest.integration.config.ts"
+  ]
 }

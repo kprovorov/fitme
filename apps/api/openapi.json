@@ -10,6 +10,13 @@
     }
   ],
   "components": {
+    "securitySchemes": {
+      "bearerAuth": {
+        "description": "The User's Clerk session token",
+        "scheme": "bearer",
+        "type": "http"
+      }
+    },
     "schemas": {
       "ClientConfig": {
         "type": "object",
@@ -157,6 +164,62 @@
         "required": [
           "error"
         ]
+      },
+      "Profile": {
+        "type": "object",
+        "properties": {
+          "age": {
+            "type": "number",
+            "example": 30
+          },
+          "gender": {
+            "type": "string",
+            "example": "female"
+          },
+          "height": {
+            "type": "number",
+            "description": "In `units.height`",
+            "example": 170.5
+          },
+          "measurement_system": {
+            "type": "string",
+            "description": "`metric`, `us` or `uk`",
+            "example": "metric"
+          },
+          "units": {
+            "type": "object",
+            "properties": {
+              "height": {
+                "type": "string",
+                "description": "`cm` (metric) or `in` (us, uk)",
+                "example": "cm"
+              },
+              "weight": {
+                "type": "string",
+                "description": "`kg` (metric) or `lbs` (us, uk)",
+                "example": "kg"
+              }
+            },
+            "required": [
+              "height",
+              "weight"
+            ],
+            "description": "The units every height and weight of the User is stored and shown in"
+          },
+          "weight": {
+            "type": "number",
+            "description": "In `units.weight`",
+            "example": 60.25
+          }
+        },
+        "required": [
+          "age",
+          "gender",
+          "height",
+          "measurement_system",
+          "units",
+          "weight"
+        ]
       }
     },
     "parameters": {}
@@ -301,6 +364,53 @@
           },
           "404": {
             "description": "No such muscle group",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Error"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/v1/profile": {
+      "get": {
+        "security": [
+          {
+            "bearerAuth": []
+          }
+        ],
+        "summary": "Get the User's Profile",
+        "responses": {
+          "200": {
+            "description": "The User's Profile, or `null` without one",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object",
+                  "properties": {
+                    "data": {
+                      "anyOf": [
+                        {
+                          "$ref": "#/components/schemas/Profile"
+                        },
+                        {
+                          "nullable": true
+                        }
+                      ]
+                    }
+                  },
+                  "required": [
+                    "data"
+                  ]
+                }
+              }
+            }
+          },
+          "401": {
+            "description": "No valid Clerk session token",
             "content": {
               "application/json": {
                 "schema": {
