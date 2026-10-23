@@ -5,6 +5,7 @@ import {
   Id,
   invalidRequest,
   invalidRequestResponse,
+  rateLimitedResponse,
   unauthorizedResponse,
   WeightUnit,
 } from "../schemas.js";
@@ -164,6 +165,7 @@ const listWorkoutSessions = createRoute({
     },
     400: invalidRequestResponse,
     401: unauthorizedResponse,
+    429: rateLimitedResponse,
   },
   security: bearerSecurity,
   summary: "List the User's Workout Sessions",
@@ -185,6 +187,7 @@ const getWorkoutSession = createRoute({
       content: { "application/json": { schema: ErrorResponse } },
       description: "`not_found`: the User has no Workout Session with this id",
     },
+    429: rateLimitedResponse,
   },
   security: bearerSecurity,
   summary: "Get one of the User's Workout Sessions",

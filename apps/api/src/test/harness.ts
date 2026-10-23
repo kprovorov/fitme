@@ -1,4 +1,6 @@
+import { memoryRateLimiter } from "@fitme/rate-limit";
 import { type AppDeps, createApp } from "../create-app.js";
+import type { RateLimiter } from "../rate-limit.js";
 import type { UserServices } from "../services.js";
 import { clerkInstance, clerkToken } from "./clerk.js";
 
@@ -34,6 +36,8 @@ export const testApp = (
   options: {
     /** Explicitly `undefined` for an API without CLERK_JWT_KEY. */
     clerkJwtKey?: string;
+    /** Counts requests; by default one no test reaches (in memory, unlimited in practice). */
+    rateLimiter?: RateLimiter;
     services?: UserServices | null;
   } = {}
 ) => {
@@ -53,6 +57,9 @@ export const testApp = (
     identifyUser: (userId) => {
       identified.push(userId);
     },
+    rateLimiter:
+      options.rateLimiter ??
+      memoryRateLimiter({ limit: Number.MAX_SAFE_INTEGER, windowMs: 60_000 }),
     reportError: (error) => {
       reported.push(error);
       return Promise.resolve();

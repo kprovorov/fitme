@@ -4,6 +4,7 @@ import { type ApiEnv, bearerSecurity, requires } from "../auth.js";
 import {
   ErrorResponse,
   invalidRequest,
+  rateLimitedResponse,
   unauthorizedResponse,
 } from "../schemas.js";
 
@@ -57,6 +58,7 @@ const getProfile = createRoute({
       description: "The User's Profile, or `null` without one",
     },
     401: unauthorizedResponse,
+    429: rateLimitedResponse,
   },
   security: bearerSecurity,
   summary: "Get the User's Profile",
@@ -140,6 +142,7 @@ const updateProfile = createRoute({
       content: { "application/json": { schema: ErrorResponse } },
       description: "The body isn't `application/json`",
     },
+    429: rateLimitedResponse,
   },
   security: bearerSecurity,
   summary: "Update the User's Profile",

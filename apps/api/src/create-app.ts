@@ -8,6 +8,11 @@ import { cors } from "hono/cors";
 import { HTTPException } from "hono/http-exception";
 import { logger } from "hono/logger";
 import { type ApiEnv, BEARER_AUTH, requireCaller } from "./auth.js";
+import {
+  type RateLimiter,
+  rateLimitCallers,
+  rateLimiterFromEnv,
+} from "./rate-limit.js";
 import { publicV1, userV1 } from "./routes/v1.js";
 import { invalidRequest } from "./schemas.js";
 import { createServicesFromEnv, type ServicesFactory } from "./services.js";
@@ -19,12 +24,18 @@ export interface AppDeps {
   createServices: ServicesFactory;
   /** Sets the request's User (their Clerk id only) on what error reporting sends. */
   identifyUser: (userId: string) => void;
+  /** Counts each caller's requests (`rateLimiterFromEnv` unless given). */
+  rateLimiter: RateLimiter;
   /** Reports an unhandled error before the 500 goes out. */
   reportError: (error: unknown) => Promise<void>;
 }
 
-/** The real dependencies: the environment and @fitme/observability. */
-const defaultDeps = (): AppDeps => ({
+/**
+ * The real dependencies: the environment and @fitme/observability. The rate
+ * limiter is built only when none is given (it throws in production without
+ * Upstash).
+ */
+const defaultDeps = (): Omit<AppDeps, "rateLimiter"> => ({
   clerkJwtKey: process.env.CLERK_JWT_KEY,
   createServices: createServicesFromEnv,
   identifyUser,
@@ -52,6 +63,7 @@ export const createApp = (deps: Partial<AppDeps> = {}) => {
     identifyUser: identify,
     reportError: report,
   } = { ...defaultDeps(), ...deps };
+  const rateLimiter = deps.rateLimiter ?? rateLimiterFromEnv(process.env);
 
   // Invalid input on any route answers 400 invalid_request unless the route
   // says otherwise.
@@ -77,6 +89,8 @@ export const createApp = (deps: Partial<AppDeps> = {}) => {
     identify(c.var.caller.userId);
     await next();
   });
+  // Before anything is served, unknown routes included.
+  app.use(rateLimitCallers({ limiter: rateLimiter, reportError: report }));
   app.openAPIRegistry.registerComponent("securitySchemes", BEARER_AUTH, {
     description: "The User's Clerk session token",
     scheme: "bearer",
