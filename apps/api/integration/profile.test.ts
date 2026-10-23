@@ -94,10 +94,25 @@ describe("GET /v1/profile against the local stack", () => {
     });
   });
 
-  it("answers { data: null } for a User without a Profile, never another User's", async () => {
+  it("answers { data: null } for a User without a Profile", async () => {
     expect(await getProfile(withoutProfile)).toEqual({
       body: { data: null },
       status: 200,
     });
+  });
+
+  it("never answers another User's Profile, whatever the request names", async () => {
+    const response = await app.request(
+      `/v1/profile?user_id=${withProfile}&userId=${withProfile}`,
+      {
+        headers: {
+          ...signedInAs(withoutProfile),
+          "x-user-id": withProfile,
+        },
+      }
+    );
+
+    expect(response.status).toBe(200);
+    expect(await response.json()).toEqual({ data: null });
   });
 });

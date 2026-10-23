@@ -22,7 +22,7 @@ export interface ApiEnv {
   Variables: {
     caller: Caller;
     /** The caller's services, built on first use (a 500 when unconfigured). */
-    services: () => UserServices;
+    getServices: () => UserServices;
   };
 }
 
@@ -63,9 +63,9 @@ const verifySessionToken = async (token: string, jwtKey: string) => {
 /**
  * Requires `Authorization: Bearer <Clerk session token>`, verified without a
  * network call against the instance's public key, and sets the verified
- * `caller` and their `services`. A missing, malformed or unverifiable token
- * answers 401; a missing key throws (a reported 500), so the API never serves
- * without auth.
+ * `caller` and `getServices`. A missing key throws first (a reported 500,
+ * token or not), so the API never serves without auth; a missing, malformed
+ * or unverifiable token answers 401.
  */
 export const requireCaller = ({
   clerkJwtKey,
@@ -75,12 +75,12 @@ export const requireCaller = ({
   createServices: ServicesFactory;
 }) =>
   createMiddleware<ApiEnv>(async (c, next) => {
+    if (!clerkJwtKey) {
+      throw new Error("Missing CLERK_JWT_KEY environment variable");
+    }
     const token = c.req.header("authorization")?.match(BEARER)?.[1];
     if (!token) {
       return c.json(unauthorized, 401);
-    }
-    if (!clerkJwtKey) {
-      throw new Error("Missing CLERK_JWT_KEY environment variable");
     }
     const result = await verifySessionToken(token, clerkJwtKey);
     if (typeof result === "string") {
@@ -92,7 +92,7 @@ export const requireCaller = ({
     const caller: Caller = { kind: "session", userId: result.userId };
     c.set("caller", caller);
     let services: UserServices | undefined;
-    c.set("services", () => {
+    c.set("getServices", () => {
       services ??= createServices(caller.userId) ?? undefined;
       if (!services) {
         throw new Error("Missing FITME_DATABASE_URL environment variable");
@@ -109,19 +109,15 @@ export const requireCaller = ({
 const allows = (caller: Caller, _permission: Permission) =>
   caller.kind === "session";
 
-/** A route's own middleware: answers 403 unless the caller has `permission`. */
+/**
+ * A route's own middleware, declaring the permission it needs. No caller can
+ * lack one yet, so a refusal fails closed (a reported 500) until scoped
+ * credentials bring a documented answer for it.
+ */
 export const requires = (permission: Permission) =>
   createMiddleware<ApiEnv>(async (c, next) => {
     if (!allows(c.get("caller"), permission)) {
-      return c.json(
-        {
-          error: {
-            code: "forbidden",
-            message: `This credential can't ${permission}`,
-          },
-        },
-        403
-      );
+      throw new Error(`Caller lacks the ${permission} permission`);
     }
     await next();
   });

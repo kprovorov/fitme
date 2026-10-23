@@ -2,43 +2,44 @@ import { createRoute, OpenAPIHono, z } from "@hono/zod-openapi";
 import { type ApiEnv, bearerSecurity, requires } from "../auth.js";
 import { invalidRequest, unauthorizedResponse } from "../schemas.js";
 
-const Profile = z
-  .object({
-    age: z.number().openapi({ example: 30 }),
-    gender: z.string().openapi({ example: "female" }),
-    height: z.number().openapi({
-      description: "In `units.height`",
-      example: 170.5,
-    }),
-    measurement_system: z.string().openapi({
-      description: "`metric`, `us` or `uk`",
-      example: "metric",
-    }),
-    units: z
-      .object({
-        height: z.string().openapi({
-          description: "`cm` (metric) or `in` (us, uk)",
-          example: "cm",
-        }),
-        weight: z.string().openapi({
-          description: "`kg` (metric) or `lbs` (us, uk)",
-          example: "kg",
-        }),
-      })
-      .openapi({
-        description:
-          "The units every height and weight of the User is stored and shown in",
+// Inline rather than a named component: OpenAPI 3.0 can only mark an inline
+// schema nullable (a nullable $ref would make every use of it nullable).
+const Profile = z.object({
+  age: z.number().openapi({ example: 30 }),
+  gender: z.string().openapi({ example: "female" }),
+  height: z.number().openapi({
+    description: "In `units.height`",
+    example: 170.5,
+  }),
+  measurement_system: z.string().openapi({
+    description: "`metric`, `us` or `uk`",
+    example: "metric",
+  }),
+  units: z
+    .object({
+      height: z.string().openapi({
+        description: "`cm` (metric) or `in` (us, uk)",
+        example: "cm",
       }),
-    weight: z.number().openapi({
-      description: "In `units.weight`",
-      example: 60.25,
+      weight: z.string().openapi({
+        description: "`kg` (metric) or `lbs` (us, uk)",
+        example: "kg",
+      }),
+    })
+    .openapi({
+      description:
+        "The units every height and weight of the User is stored and shown in",
     }),
-  })
-  .openapi("Profile");
+  weight: z.number().openapi({
+    description: "In `units.weight`",
+    example: 60.25,
+  }),
+});
 
 const ProfileResponse = z.object({
-  // `null` until the User has finished onboarding
-  data: z.union([Profile, z.null()]),
+  data: Profile.nullable().openapi({
+    description: "The User's Profile, `null` until they finish onboarding",
+  }),
 });
 
 const getProfile = createRoute({
@@ -59,7 +60,7 @@ const getProfile = createRoute({
 export const profile = new OpenAPIHono<ApiEnv>({
   defaultHook: invalidRequest,
 }).openapi(getProfile, async (c) => {
-  const found = await c.var.services().getProfile();
+  const found = await c.var.getServices().getProfile();
   // Parsed through the contract, so fields beyond it never go out.
   return c.json(ProfileResponse.parse({ data: found }), 200);
 });

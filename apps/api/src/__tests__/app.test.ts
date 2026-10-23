@@ -175,6 +175,15 @@ describe("auth", () => {
     }
   );
 
+  it("answers a reported 500 without CLERK_JWT_KEY, even with no token", async () => {
+    const { app, reported } = testApp({ clerkJwtKey: undefined });
+
+    const response = await app.request("/v1/profile");
+
+    expect(response.status).toBe(500);
+    expect(String(reported[0])).toContain("CLERK_JWT_KEY");
+  });
+
   it("never serves without CLERK_JWT_KEY: a reported 500", async () => {
     const { app, reported, servicesFor } = testApp({ clerkJwtKey: undefined });
 
