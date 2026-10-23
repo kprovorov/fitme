@@ -15,7 +15,7 @@ import {
 } from "@fitme/db";
 import { asc, eq, inArray, sql } from "drizzle-orm";
 import { afterAll, beforeAll, describe, expect, it } from "vitest";
-import { getProfile, updateProfile } from "../src/profile";
+import { getProfile, getWeightUnit, updateProfile } from "../src/profile";
 
 /**
  * getProfile and updateProfile through asUser, against a local Supabase stack via the Supavisor
@@ -503,5 +503,88 @@ describe("updateProfile", () => {
 
     expect(await storedValues(other)).toEqual(otherBefore);
     expect((await storedValues(userId)).profile?.measurementSystem).toBe("us");
+  });
+});
+
+// ------------------------------------------------------------
+// getWeightUnit
+// ------------------------------------------------------------
+
+/** How long a blocked statement is given to show it's waiting. */
+const BLOCKED_FOR_MS = 300;
+
+/** Whether `promise` is still pending after BLOCKED_FOR_MS. */
+const staysPending = async (promise: Promise<unknown>) => {
+  const pending = Symbol("pending");
+  const outcome = await Promise.race([
+    promise,
+    new Promise((resolve) => setTimeout(resolve, BLOCKED_FOR_MS, pending)),
+  ]);
+  return outcome === pending;
+};
+
+/** A promise and the function that resolves it. */
+const signal = () => {
+  let resolve!: () => void;
+  const promise = new Promise<void>((done) => {
+    resolve = done;
+  });
+  return { promise, resolve };
+};
+
+describe("getWeightUnit", () => {
+  it("answers the unit of the User's measurement system, kg without a Profile", async () => {
+    expect(await asUser(metric, (tx) => getWeightUnit(tx, metric))).toBe("kg");
+    expect(await asUser(imperial, (tx) => getWeightUnit(tx, imperial))).toBe(
+      "lbs"
+    );
+    expect(await asUser(noProfile, (tx) => getWeightUnit(tx, noProfile))).toBe(
+      "kg"
+    );
+    // RLS hides another User's Profile
+    expect(await asUser(metric, (tx) => getWeightUnit(tx, imperial))).toBe(
+      "kg"
+    );
+  });
+
+  it("holds off a conversion until the reading transaction ends", async () => {
+    const userId = newUser("UnitFirst");
+    await seedUser(userId, { system: "metric" });
+    const locked = signal();
+    const release = signal();
+    const reading = asUser(userId, async (tx) => {
+      const unit = await getWeightUnit(tx, userId);
+      locked.resolve();
+      await release.promise;
+      return unit;
+    });
+    await locked.promise;
+
+    const conversion = update(userId, { measurement_system: "us" });
+
+    expect(await staysPending(conversion)).toBe(true);
+    release.resolve();
+    expect(await reading).toBe("kg");
+    expect((await conversion)?.units.weight).toBe("lbs");
+  });
+
+  it("waits for a conversion in progress and answers its new unit", async () => {
+    const userId = newUser("ConvertFirst");
+    await seedUser(userId, { system: "metric" });
+    const converted = signal();
+    const release = signal();
+    const conversion = asUser(userId, async (tx) => {
+      await updateProfile(tx, userId, { measurement_system: "us" });
+      converted.resolve();
+      await release.promise;
+    });
+    await converted.promise;
+
+    const reading = asUser(userId, (tx) => getWeightUnit(tx, userId));
+
+    expect(await staysPending(reading)).toBe(true);
+    release.resolve();
+    await conversion;
+    expect(await reading).toBe("lbs");
   });
 });

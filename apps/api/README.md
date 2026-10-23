@@ -26,7 +26,7 @@ pnpm api openapi        # regenerate openapi.json (commit it; CI fails when it's
 
 The contract is `openapi.json`, generated from the route definitions by `src/openapi.ts`. `/v1` is additive only (a breaking change means `/v2`); the Public API workflow fails a pull request on a stale document or a breaking change.
 
-Responses are JSON. Successful responses wrap the payload in `data`; failures return `{ error: { code, message } }` with a matching HTTP status. Invalid input (a non-uuid id included) answers 400 `invalid_request`. A response carrying weights carries `weight_unit` (`kg` / `lbs`, from the User's Profile in the same transaction; `kg` without one): weights are returned as stored, never converted.
+Responses are JSON. Successful responses wrap the payload in `data`; failures return `{ error: { code, message } }` with a matching HTTP status. Invalid input (a non-uuid id included) answers 400 `invalid_request`. A response carrying weights carries `weight_unit` (`kg` / `lbs`, from the User's Profile, read first and share-locked in the same transaction so a concurrent conversion can't relabel the weights; `kg` without one): weights are returned as stored, never converted.
 
 ## Layout
 
