@@ -47,7 +47,6 @@
   "submit": {
     "production": {
       "ios": {
-        "appleId": "kirillprovorov@icloud.com",
         "appleTeamId": "X75M2KSBQL",
         "ascAppId": "6741153628",
         "bundleIdentifier": "com.fitmeproject.ios"

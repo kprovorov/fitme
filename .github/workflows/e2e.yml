@@ -54,14 +54,32 @@ jobs:
         env:
           SUPABASE_ACCESS_TOKEN: ${{ secrets.SUPABASE_ACCESS_TOKEN }}
 
+      # The repo is public, so its logs are too: mask the anon key and the
+      # Postgres URL (it carries the password) before anything can print them.
+      # A step output isn't masked by itself, and a masked value stays masked
+      # in every later step that reads the output. The session-pooler variant
+      # db push uses (5432 instead of 6543) and the password alone are masked
+      # as well.
       - name: Get branch credentials
         id: branch-details
         run: |
           CREDS=$(pnpm exec supabase branches get "${{ steps.branch-status.outputs.branch_id }}" --project-ref ${{ vars.SUPABASE_PROJECT_REF }} --output json)
-          echo "api_url=$(echo $CREDS | jq -r '.SUPABASE_URL')" >> $GITHUB_OUTPUT
-          echo "anon_key=$(echo $CREDS | jq -r '.SUPABASE_ANON_KEY')" >> $GITHUB_OUTPUT
-          echo "service_key=$(echo $CREDS | jq -r '.SUPABASE_SERVICE_ROLE_KEY')" >> $GITHUB_OUTPUT
-          echo "postgres_url=$(echo $CREDS | jq -r '.POSTGRES_URL')" >> $GITHUB_OUTPUT
+          ANON_KEY=$(jq -r '.SUPABASE_ANON_KEY' <<< "$CREDS")
+          POSTGRES_URL=$(jq -r '.POSTGRES_URL' <<< "$CREDS")
+          for VALUE in "$ANON_KEY" "$POSTGRES_URL"; do
+            if [ -z "$VALUE" ] || [ "$VALUE" = null ]; then
+              echo "::error::supabase branches get returned no anon key or Postgres URL" && exit 1
+            fi
+          done
+          echo "::add-mask::$ANON_KEY"
+          echo "::add-mask::$POSTGRES_URL"
+          echo "::add-mask::${POSTGRES_URL/:6543\//:5432/}"
+          DB_PASSWORD=${POSTGRES_URL#*://*:}
+          DB_PASSWORD=${DB_PASSWORD%%@*}
+          echo "::add-mask::$DB_PASSWORD"
+          echo "api_url=$(jq -r '.SUPABASE_URL' <<< "$CREDS")" >> "$GITHUB_OUTPUT"
+          echo "anon_key=$ANON_KEY" >> "$GITHUB_OUTPUT"
+          echo "postgres_url=$POSTGRES_URL" >> "$GITHUB_OUTPUT"
         env:
           SUPABASE_ACCESS_TOKEN: ${{ secrets.SUPABASE_ACCESS_TOKEN }}
 

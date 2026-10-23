@@ -3,8 +3,7 @@
 2026-10-14: the user created and verified `demo@fitmeproject.com` in the
 Fitme account portal. The account was connected through OAuth to the existing
 ChatGPT **Fitme Project** development app and labeled
-**Fitme Demo — demo@fitmeproject.com**. The new connection id is
-`link_6acf60691bbc8191a25f86dd4ffca41a`.
+**Fitme Demo — demo@fitmeproject.com**.
 
 Credentials are intentionally absent from this repository, the plugin ZIP, and
 the demo script. Store reviewer access only in secure submission-portal fields
