@@ -1,10 +1,11 @@
 import { createRoute, OpenAPIHono, z } from "@hono/zod-openapi";
-import { invalidRequest, publicCacheHeaders } from "../schemas.js";
+import {
+  invalidRequest,
+  PUBLIC_CACHE_CONTROL,
+  publicCacheHeaders,
+} from "../schemas.js";
 
 const VERSION_PATTERN = /^\d+\.\d+\.\d+$/;
-
-/** How long clients and the CDN may reuse the config, in seconds. */
-const MAX_AGE_SECONDS = 300;
 
 /** An `x.y.z` version from env; unset or malformed means no minimum. */
 const minimumVersionFromEnv = (name: string) => {
@@ -46,10 +47,7 @@ const getClientConfig = createRoute({
 export const clientConfig = new OpenAPIHono({
   defaultHook: invalidRequest,
 }).openapi(getClientConfig, (c) => {
-  c.header(
-    "Cache-Control",
-    `public, max-age=${MAX_AGE_SECONDS}, s-maxage=${MAX_AGE_SECONDS}`
-  );
+  c.header("Cache-Control", PUBLIC_CACHE_CONTROL);
   return c.json(
     {
       data: {

@@ -3,10 +3,11 @@ import {
   defaultCoachModelId,
 } from "@fitme/core";
 import { createRoute, OpenAPIHono, z } from "@hono/zod-openapi";
-import { invalidRequest, publicCacheHeaders } from "../schemas.js";
-
-/** How long clients and the CDN may reuse the list, in seconds. */
-const MAX_AGE_SECONDS = 300;
+import {
+  invalidRequest,
+  PUBLIC_CACHE_CONTROL,
+  publicCacheHeaders,
+} from "../schemas.js";
 
 const CoachModel = z
   .object({
@@ -45,10 +46,7 @@ const listCoachModels = createRoute({
 export const coachModels = new OpenAPIHono({
   defaultHook: invalidRequest,
 }).openapi(listCoachModels, (c) => {
-  c.header(
-    "Cache-Control",
-    `public, max-age=${MAX_AGE_SECONDS}, s-maxage=${MAX_AGE_SECONDS}`
-  );
+  c.header("Cache-Control", PUBLIC_CACHE_CONTROL);
   return c.json(
     {
       data: {

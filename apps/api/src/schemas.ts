@@ -15,11 +15,15 @@ export const ErrorResponse = z
   })
   .openapi("Error");
 
-/** A response clients and the CDN may reuse for a few minutes. */
+/** How long clients and the CDN may reuse a public response, in seconds. */
+const PUBLIC_MAX_AGE_SECONDS = 300;
+
+/** The `Cache-Control` of a response anyone may cache for a few minutes. */
+export const PUBLIC_CACHE_CONTROL = `public, max-age=${PUBLIC_MAX_AGE_SECONDS}, s-maxage=${PUBLIC_MAX_AGE_SECONDS}`;
+
+/** The headers of such a response, as documented. */
 export const publicCacheHeaders = z.object({
-  "Cache-Control": z.string().openapi({
-    example: "public, max-age=300, s-maxage=300",
-  }),
+  "Cache-Control": z.string().openapi({ example: PUBLIC_CACHE_CONTROL }),
 });
 
 /**
