@@ -66,10 +66,6 @@ export default function WorkoutSessionExerciseSetsTableView({
   const weightLabel = getWeightLabel(profile?.measurement_system ?? "metric");
   const [localSets, setLocalSets] = useState<LocalSet[]>([]);
 
-  const hasWeight = workoutSessionExerciseSets.some(
-    (set) => set.weight_recommended !== null
-  );
-
   const maxOrder = Math.max(
     ...workoutSessionExerciseSets.map((set) => set.order),
     0
@@ -117,9 +113,7 @@ export default function WorkoutSessionExerciseSetsTableView({
           <ColumnLabel className="w-7">set</ColumnLabel>
           <ColumnLabel className="w-18">rec</ColumnLabel>
           <ColumnLabel className="flex-1">reps</ColumnLabel>
-          {hasWeight && (
-            <ColumnLabel className="flex-1">{weightLabel}</ColumnLabel>
-          )}
+          <ColumnLabel className="flex-1">{weightLabel}</ColumnLabel>
           <View className={SET_CHECK_COLUMN_CLASS} />
         </View>
 
@@ -132,7 +126,6 @@ export default function WorkoutSessionExerciseSetsTableView({
             return (
               <WorkoutSessionExerciseSetRowView
                 exerciseId={exerciseId}
-                hasWeight={hasWeight}
                 key={workoutSessionExerciseSet.id}
                 locked={locked}
                 onSetLogged={handleSetLogged}
@@ -152,7 +145,6 @@ export default function WorkoutSessionExerciseSetsTableView({
             return (
               <WorkoutSessionExerciseSetRowView
                 exerciseId={exerciseId}
-                hasWeight={hasWeight}
                 key={localSet.id}
                 localSetId={localSet.id}
                 locked={locked}

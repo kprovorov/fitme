@@ -25,7 +25,6 @@ const SET_SAVE_ERROR = "Couldn't save this set. Try again.";
 
 interface WorkoutSessionExerciseSetRowViewProps {
   exerciseId: string;
-  hasWeight?: boolean;
   localSetId?: string;
   locked?: boolean;
   onSetCreated?: (localSetId?: string) => void;
@@ -43,7 +42,6 @@ export default function WorkoutSessionExerciseSetRowView({
   workoutSessionExerciseSet,
   localSetId,
   order = 0,
-  hasWeight = true,
   locked = false,
   onSetCreated,
   onSetLogged,
@@ -191,7 +189,6 @@ export default function WorkoutSessionExerciseSetRowView({
     <WorkoutSessionExerciseSetForm
       disabled={!isEditable || locked}
       error={saveError}
-      hasWeight={hasWeight}
       isDone={isDone}
       isEditing={isEditable}
       leading={
