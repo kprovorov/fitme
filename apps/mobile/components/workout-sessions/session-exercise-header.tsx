@@ -1,109 +1,111 @@
-import {
-  formatElapsed,
-  formatRepRange,
-  muscleGroupToName,
-  type WorkoutSessionExerciseSet,
-} from "@fitme/core";
+import { muscleGroupToName } from "@fitme/core";
 import { Image } from "expo-image";
 import { Pressable, StyleSheet, useWindowDimensions, View } from "react-native";
-import { SymbolImage } from "~/components/symbol-image";
+import ExerciseVideo from "~/components/exercises/exercise-video";
 import { Badge } from "~/components/ui/badge";
+import { Button } from "~/components/ui/button";
 import { Text } from "~/components/ui/text";
 import type { ShownExercise } from "~/hooks/queries/exercise-library";
 import { sizedThumbnailUrl } from "~/lib/exercise-media";
 
-/** The thumbnail's size (`w-28`, `h-21`), for the render endpoint. */
-const THUMBNAIL_WIDTH = 112;
-const THUMBNAIL_HEIGHT = 84;
-
-/** Past this text scale the thumbnail goes above the text instead of beside it. */
-const STACKED_FONT_SCALE = 1.4;
+/** The media box's aspect ratio, the clips' own. */
+const MEDIA_ASPECT_RATIO = 4 / 3;
 
 interface SessionExerciseHeaderProps {
+  /** From the Exercise in full: none while it loads, or when it has none. */
+  description: string | null | undefined;
   exercise: ShownExercise;
-  /** Opens the guide; without one (not resolved) the thumbnail isn't a button. */
+  /** Opens the guide; without one (not resolved) nothing opens it. */
   onOpenGuide?: () => void;
-  sets: WorkoutSessionExerciseSet[];
-}
-
-/** What the plan asks for: `Target 4 × 12–15` and the rest between sets. */
-function targetLines(sets: WorkoutSessionExerciseSet[]): string[] {
-  const lines: string[] = [];
-  const repRange = formatRepRange(sets);
-  if (sets.length > 0 && repRange) {
-    lines.push(`Target ${sets.length} × ${repRange}`);
-  }
-  const rest = sets.find((set) => set.rest_recommended)?.rest_recommended;
-  if (rest) {
-    lines.push(`Rest ${formatElapsed(rest * 1000)} between sets`);
-  }
-  return lines;
 }
 
 /**
- * The exercise's thumbnail (opening its guide, with the video), its muscle
- * groups and the plan's target, above the sets.
+ * The thumbnail in place of a clip, sized for the render endpoint at the
+ * box's width in device pixels.
+ */
+function Thumbnail({ url }: { url: string }) {
+  const { width } = useWindowDimensions();
+  return (
+    <Image
+      contentFit="cover"
+      source={{
+        uri: sizedThumbnailUrl(
+          url,
+          Math.round(width),
+          Math.round(width / MEDIA_ASPECT_RATIO)
+        ),
+      }}
+      style={StyleSheet.absoluteFill}
+    />
+  );
+}
+
+/**
+ * The exercise's description (two lines, opening the guide), then its
+ * looping clip with "How to?" and its muscle groups over it, above the sets.
  */
 export default function SessionExerciseHeader({
+  description,
   exercise,
   onOpenGuide,
-  sets,
 }: SessionExerciseHeaderProps) {
-  const lines = targetLines(sets);
-  const { fontScale } = useWindowDimensions();
-  const stacked = fontScale > STACKED_FONT_SCALE;
+  const hasMedia =
+    exercise.isResolved || !!exercise.video_url || !!exercise.thumbnail_url;
 
   return (
-    <View className={stacked ? "gap-3.5" : "flex-row items-center gap-3.5"}>
-      <Pressable
-        accessibilityHint="Opens the exercise guide"
-        accessibilityLabel={`How to do ${exercise.name}`}
-        accessibilityRole="button"
-        className="active:opacity-80"
-        disabled={!onOpenGuide}
-        hitSlop={8}
-        onPress={onOpenGuide}
-      >
-        <View className="h-21 w-28 items-center justify-center overflow-hidden rounded-2xl border-continuous bg-secondary">
-          {exercise.thumbnail_url ? (
-            <Image
-              contentFit="cover"
-              source={{
-                uri: sizedThumbnailUrl(
-                  exercise.thumbnail_url,
-                  THUMBNAIL_WIDTH,
-                  THUMBNAIL_HEIGHT
-                ),
-              }}
-              style={StyleSheet.absoluteFill}
-            />
-          ) : null}
-          {onOpenGuide ? (
-            <View className="size-10 items-center justify-center rounded-full bg-background/80">
-              <SymbolImage
-                className="text-body text-foreground"
-                name={exercise.video_url ? "play.fill" : "info"}
-              />
-            </View>
-          ) : null}
-        </View>
-      </Pressable>
-      <View className={stacked ? "gap-2" : "flex-1 gap-2"}>
-        {exercise.muscle_groups.length > 0 && (
-          <View className="flex-row flex-wrap gap-1.5">
-            {exercise.muscle_groups.map((muscleGroup) => (
-              <Badge key={muscleGroup} variant="secondary">
-                <Text>{muscleGroupToName(muscleGroup)}</Text>
-              </Badge>
-            ))}
-          </View>
-        )}
-        {lines.length > 0 && (
-          <Text className="text-muted-foreground text-subhead">
-            {lines.join("\n")}
+    <>
+      {description ? (
+        <Pressable
+          accessibilityHint="Opens the exercise guide"
+          accessibilityLabel={`How to do ${exercise.name}`}
+          accessibilityRole="button"
+          className="px-sm active:opacity-60"
+          disabled={!onOpenGuide}
+          onPress={onOpenGuide}
+        >
+          <Text className="text-body" numberOfLines={2}>
+            {description}
           </Text>
-        )}
-      </View>
-    </View>
+        </Pressable>
+      ) : null}
+      {hasMedia ? (
+        <View className="overflow-hidden rounded-card border-continuous bg-secondary">
+          {exercise.video_url ? (
+            <ExerciseVideo url={exercise.video_url} />
+          ) : (
+            <View style={{ aspectRatio: MEDIA_ASPECT_RATIO }}>
+              {exercise.thumbnail_url ? (
+                <Thumbnail url={exercise.thumbnail_url} />
+              ) : null}
+            </View>
+          )}
+          <View
+            className="absolute inset-0 justify-between gap-xs p-sm"
+            pointerEvents="box-none"
+          >
+            <View className="flex-row justify-end" pointerEvents="box-none">
+              {onOpenGuide ? (
+                <Button
+                  accessibilityHint="Opens the exercise guide"
+                  fill={false}
+                  label="How to?"
+                  onPress={onOpenGuide}
+                  size="sm"
+                />
+              ) : null}
+            </View>
+            {exercise.muscle_groups.length > 0 ? (
+              <View className="flex-row flex-wrap gap-xs" pointerEvents="none">
+                {exercise.muscle_groups.map((muscleGroup) => (
+                  <Badge key={muscleGroup} variant="secondary">
+                    <Text>{muscleGroupToName(muscleGroup)}</Text>
+                  </Badge>
+                ))}
+              </View>
+            ) : null}
+          </View>
+        </View>
+      ) : null}
+    </>
   );
 }

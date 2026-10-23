@@ -6,6 +6,7 @@ interface ExerciseVideoProps {
   url: string;
 }
 
+/** The Exercise's clip: muted, looping, playing on its own, with no controls. */
 export default function ExerciseVideo({ url }: ExerciseVideoProps) {
   // The clips are shot on white, so the space they load into is near-white
   // too rather than flashing dark first
@@ -20,6 +21,7 @@ export default function ExerciseVideo({ url }: ExerciseVideoProps) {
   return (
     <VideoView
       contentFit="cover"
+      nativeControls={false}
       player={player}
       style={{
         aspectRatio: 4 / 3,
