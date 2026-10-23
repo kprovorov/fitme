@@ -1,6 +1,11 @@
+import { genders, measurementSystems } from "@fitme/core/models";
 import { createRoute, OpenAPIHono, z } from "@hono/zod-openapi";
 import { type ApiEnv, bearerSecurity, requires } from "../auth.js";
-import { invalidRequest, unauthorizedResponse } from "../schemas.js";
+import {
+  ErrorResponse,
+  invalidRequest,
+  unauthorizedResponse,
+} from "../schemas.js";
 
 // Inline rather than a named component: OpenAPI 3.0 can only mark an inline
 // schema nullable (a nullable $ref would make every use of it nullable).
@@ -57,10 +62,109 @@ const getProfile = createRoute({
   summary: "Get the User's Profile",
 });
 
+const MIN_AGE = 10;
+const MAX_AGE = 120;
+/** Generous bounds in either unit (cm or in, kg or lbs), well inside numeric(8,2) after a conversion. */
+const MAX_HEIGHT = 300;
+const MAX_WEIGHT = 1000;
+/** Heights and weights are stored as numeric(8,2). */
+const HUNDREDTH = 0.01;
+
+const ProfileChanges = z
+  .strictObject({
+    age: z.number().int().min(MIN_AGE).max(MAX_AGE).openapi({ example: 31 }),
+    gender: z.enum(genders),
+    height: z
+      .number()
+      .positive()
+      .max(MAX_HEIGHT)
+      .multipleOf(HUNDREDTH)
+      .openapi({
+        description:
+          "In the height unit of the resulting measurement system: `cm` (metric) or `in` (us, uk); at most 2 decimals",
+        example: 171,
+      }),
+    measurement_system: z.enum(measurementSystems).openapi({
+      description:
+        "Changing it converts every stored height and weight of the User (the Profile's, every Plan's set targets and every Workout Session's weights) to the new system's units, rounded to 2 decimals. Between `us` and `uk`, which share units, nothing is converted.",
+    }),
+    weight: z
+      .number()
+      .positive()
+      .max(MAX_WEIGHT)
+      .multipleOf(HUNDREDTH)
+      .openapi({
+        description:
+          "In the weight unit of the resulting measurement system: `kg` (metric) or `lbs` (us, uk); at most 2 decimals",
+        example: 61.5,
+      }),
+  })
+  .partial()
+  .refine((changes) => Object.keys(changes).length > 0, {
+    message: "Give at least one field to change",
+  })
+  .openapi("ProfileChanges", { minProperties: 1 });
+
+const UpdatedProfileResponse = z.object({ data: Profile });
+
+const updateProfile = createRoute({
+  description:
+    "Changes only the given fields. A new `measurement_system` first converts every stored height and weight of the User (the Profile's, every Plan's set targets and every Workout Session's weights) to the new system's units, then writes the given `height` and `weight` as they are, in the new system's units. Repeating the same request changes nothing more.",
+  method: "patch",
+  middleware: [requires("write")] as const,
+  path: "/",
+  request: {
+    body: {
+      content: { "application/json": { schema: ProfileChanges } },
+      required: true,
+    },
+  },
+  responses: {
+    200: {
+      content: { "application/json": { schema: UpdatedProfileResponse } },
+      description: "The updated Profile",
+    },
+    400: {
+      content: { "application/json": { schema: ErrorResponse } },
+      description: "`invalid_request`: the changes aren't valid",
+    },
+    401: unauthorizedResponse,
+    404: {
+      content: { "application/json": { schema: ErrorResponse } },
+      description:
+        "`profile_not_found`: the User has no Profile yet; nothing was changed",
+    },
+    415: {
+      content: { "application/json": { schema: ErrorResponse } },
+      description: "The body isn't `application/json`",
+    },
+  },
+  security: bearerSecurity,
+  summary: "Update the User's Profile",
+});
+
 export const profile = new OpenAPIHono<ApiEnv>({
   defaultHook: invalidRequest,
-}).openapi(getProfile, async (c) => {
-  const found = await c.var.getServices().getProfile();
-  // Parsed through the contract, so fields beyond it never go out.
-  return c.json(ProfileResponse.parse({ data: found }), 200);
-});
+})
+  .openapi(getProfile, async (c) => {
+    const found = await c.var.getServices().getProfile();
+    // Parsed through the contract, so fields beyond it never go out.
+    return c.json(ProfileResponse.parse({ data: found }), 200);
+  })
+  .openapi(updateProfile, async (c) => {
+    const updated = await c.var
+      .getServices()
+      .updateProfile(c.req.valid("json"));
+    if (!updated) {
+      return c.json(
+        {
+          error: {
+            code: "profile_not_found",
+            message: "The User has no Profile yet",
+          },
+        },
+        404
+      );
+    }
+    return c.json(UpdatedProfileResponse.parse({ data: updated }), 200);
+  });

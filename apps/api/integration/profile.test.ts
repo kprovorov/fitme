@@ -1,6 +1,14 @@
 import { randomBytes } from "node:crypto";
-import { profiles, withService } from "@fitme/db";
-import { inArray } from "drizzle-orm";
+import {
+  exercises,
+  plans,
+  profiles,
+  withService,
+  workoutExerciseSets,
+  workoutExercises,
+  workouts,
+} from "@fitme/db";
+import { eq, inArray } from "drizzle-orm";
 import { afterAll, beforeAll, describe, expect, it } from "vitest";
 import { createApp } from "../src/create-app.js";
 import { createServicesFromEnv } from "../src/services.js";
@@ -114,5 +122,169 @@ describe("GET /v1/profile against the local stack", () => {
 
     expect(response.status).toBe(200);
     expect(await response.json()).toEqual({ data: null });
+  });
+});
+
+const editor = testUserId("editor");
+const converter = testUserId("converter");
+const bystander = testUserId("bystander");
+const editors = [editor, converter, bystander];
+
+/** A metric User with a Profile and a Plan with one 60 kg set; the set's id. */
+const seedMetricUser = (userId: string) =>
+  withService(async (tx) => {
+    const [exercise] = await tx
+      .select({ slug: exercises.slug })
+      .from(exercises)
+      .limit(1);
+    if (!exercise) {
+      throw new Error("No seeded Exercise: run pnpm db seed");
+    }
+    await tx.insert(profiles).values({
+      age: 30,
+      gender: "female",
+      height: "170",
+      measurementSystem: "metric",
+      userId,
+      weight: "60",
+    });
+    const [plan] = await tx
+      .insert(plans)
+      .values({ frequency: 3, goal: "strength", place: "gym", userId })
+      .returning({ id: plans.id });
+    const [workout] = await tx
+      .insert(workouts)
+      .values({ description: "Push", name: "A", order: 1, planId: plan.id })
+      .returning({ id: workouts.id });
+    const [workoutExercise] = await tx
+      .insert(workoutExercises)
+      .values({ exerciseSlug: exercise.slug, order: 1, workoutId: workout.id })
+      .returning({ id: workoutExercises.id });
+    const [set] = await tx
+      .insert(workoutExerciseSets)
+      .values({
+        order: 1,
+        repsRecommended: 5,
+        restRecommended: 120,
+        weightRecommended: "60",
+        workoutExerciseId: workoutExercise.id,
+      })
+      .returning({ id: workoutExerciseSets.id });
+    return set.id;
+  });
+
+/** A Plan set's stored weight, read past RLS. */
+const storedSetWeight = (setId: string) =>
+  withService(async (tx) => {
+    const [set] = await tx
+      .select({ weight: workoutExerciseSets.weightRecommended })
+      .from(workoutExerciseSets)
+      .where(eq(workoutExerciseSets.id, setId));
+    return set?.weight;
+  });
+
+/** The status and body of `PATCH /v1/profile` as `userId`. */
+const patchProfile = async (userId: string, changes: unknown) => {
+  const response = await app.request("/v1/profile", {
+    body: JSON.stringify(changes),
+    headers: { ...signedInAs(userId), "content-type": "application/json" },
+    method: "PATCH",
+  });
+  return { body: await response.json(), status: response.status };
+};
+
+describe("PATCH /v1/profile against the local stack", () => {
+  let converterSet: string;
+  let bystanderSet: string;
+
+  beforeAll(async () => {
+    await seedMetricUser(editor);
+    converterSet = await seedMetricUser(converter);
+    bystanderSet = await seedMetricUser(bystander);
+  });
+
+  afterAll(async () => {
+    await withService(async (tx) => {
+      // A Plan's Workouts, Exercises and sets cascade
+      await tx.delete(plans).where(inArray(plans.userId, editors));
+      await tx.delete(profiles).where(inArray(profiles.userId, editors));
+    });
+  });
+
+  it("changes only the given field", async () => {
+    expect(await patchProfile(editor, { age: 31 })).toEqual({
+      body: {
+        data: {
+          age: 31,
+          gender: "female",
+          height: 170,
+          measurement_system: "metric",
+          units: { height: "cm", weight: "kg" },
+          weight: 60,
+        },
+      },
+      status: 200,
+    });
+    expect((await getProfile(editor)).body.data.age).toBe(31);
+  });
+
+  it("converts every stored height and weight to a new measurement system, and nobody else's", async () => {
+    expect(await patchProfile(converter, { measurement_system: "us" })).toEqual(
+      {
+        body: {
+          data: {
+            age: 30,
+            gender: "female",
+            height: 66.93,
+            measurement_system: "us",
+            units: { height: "in", weight: "lbs" },
+            weight: 132.28,
+          },
+        },
+        status: 200,
+      }
+    );
+    // 60 kg * 2.20462, rounded to 2 decimals
+    expect(await storedSetWeight(converterSet)).toBe("132.28");
+
+    expect((await getProfile(bystander)).body.data).toEqual({
+      age: 30,
+      gender: "female",
+      height: 170,
+      measurement_system: "metric",
+      units: { height: "cm", weight: "kg" },
+      weight: 60,
+    });
+    expect(await storedSetWeight(bystanderSet)).toBe("60.00");
+  });
+
+  it("writes a given height and weight in the new system's units", async () => {
+    const { body } = await patchProfile(converter, {
+      height: 67.5,
+      measurement_system: "uk",
+      weight: 140,
+    });
+
+    expect(body.data).toMatchObject({
+      height: 67.5,
+      measurement_system: "uk",
+      units: { height: "in", weight: "lbs" },
+      weight: 140,
+    });
+    // us and uk share units: nothing converted again
+    expect(await storedSetWeight(converterSet)).toBe("132.28");
+  });
+
+  it("answers 404 profile_not_found without a Profile, creating none", async () => {
+    expect(await patchProfile(withoutProfile, { age: 31 })).toEqual({
+      body: {
+        error: { code: "profile_not_found", message: expect.any(String) },
+      },
+      status: 404,
+    });
+    expect(await getProfile(withoutProfile)).toEqual({
+      body: { data: null },
+      status: 200,
+    });
   });
 });
