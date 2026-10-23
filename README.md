@@ -1,61 +1,76 @@
 # Fitme
 
-Turborepo monorepo for the Fitme fitness app: an Expo mobile app, a Next.js web app, and the shared packages behind them.
+The monorepo behind [Fitme](https://fitmeproject.com), an AI fitness coach: the
+iOS app, the Coach agent, the backend services and the web apps, on pnpm and
+Turborepo.
+
+Users sign in with [Clerk](https://clerk.com). Data lives in Supabase Postgres,
+reached by the Node apps through `@fitme/db` and by the clients with their Clerk
+session token (row-level security reads the Clerk id); there is no Supabase Auth
+and there are no Supabase Edge Functions.
 
 ## Layout
 
-```
-apps/
-  mobile/     Expo / React Native app (expo-router, uniwind, RevenueCat, Sentry)
-  web/        Next.js app (App Router, Tailwind v4, Supabase SSR auth)
-packages/
-  core/       @fitme/core — domain models, labels, formatters, pure helpers
-  supabase/   @fitme/supabase — Supabase project (config, migrations, edge
-              functions, seeds) plus generated database types
-  typescript-config/  @fitme/typescript-config — shared tsconfig presets
-```
+| Workspace | Package | What it is |
+| --- | --- | --- |
+| `apps/mobile` | `@fitme/mobile` | Expo / React Native app (expo-router, uniwind, RevenueCat, Sentry) |
+| `apps/coach` | `@fitme/coach` | The Coach: an [EVE](https://www.npmjs.com/package/eve) agent, models through Vercel AI Gateway |
+| `apps/api` | `@fitme/api` | Hono REST API (client config, Coach model list) |
+| `apps/exercises` | `@fitme/exercises` | Exercise Library API: Hono + zod-openapi over a baked-in `library.json` |
+| `apps/mcp` | `@fitme/mcp` | MCP server (Streamable HTTP, Clerk OAuth) for ChatGPT and other MCP clients |
+| `apps/webhooks` | `@fitme/webhooks` | Hono app receiving third-party webhooks (Clerk account deletion) |
+| `apps/web` | `@fitme/web` | Next.js web app (account area) |
+| `apps/site` | `@fitme/site` | Next.js marketing site |
+| `packages/core` | `@fitme/core` | Domain models, labels, formatters, pure helpers |
+| `packages/exercise-library` | `@fitme/exercise-library` | Exercise Library API client and its in-memory fake |
+| `packages/design-tokens` | `@fitme/design-tokens` | Design tokens and text styles, one Tailwind v4 CSS file |
+| `packages/supabase` | `@fitme/supabase` | Supabase project (migrations, seed) and generated DB types |
+| `packages/db` | `@fitme/db` | `asUser` / `withService`: the only way backend apps reach Postgres |
+| `packages/observability` | `@fitme/observability` | Errors and traces (Sentry) with shared privacy rules |
+| `packages/services` | `@fitme/services` | Business logic run inside an `asUser` / `withService` transaction |
+| `packages/typescript-config` | | Shared tsconfig presets |
 
-## Getting started
+[`AGENTS.md`](AGENTS.md) is the detailed reference: architecture, patterns,
+every environment variable and CI/CD. Decisions are in [`docs/adr/`](docs/adr),
+domain terms in [`GLOSSARY.md`](GLOSSARY.md).
+
+## Running it locally
+
+Needs Node 24, pnpm and Docker (for the local Supabase stack).
 
 ```bash
 pnpm install
 
-# Local Supabase (Docker required)
-pnpm db start            # supabase start
-pnpm db seed             # seed exercises + demo data
+pnpm db start            # local Supabase stack
+pnpm db seed             # seed data into it
 
-# Apps
-pnpm dev:mobile          # expo start        (apps/mobile)
-pnpm dev:web             # next dev :3000    (apps/web)
-pnpm dev:site            # next dev :3001    (apps/site, marketing site)
-pnpm ios                 # expo run:ios       (also: pnpm android)
+pnpm dev:mobile          # expo start
+pnpm ios                 # expo run:ios (also: pnpm android)
+pnpm dev:web             # :3000
+pnpm dev:site            # :3001
+pnpm dev:mcp             # :3002
+pnpm dev:api             # :3003
+pnpm dev:webhooks        # :3004
+pnpm dev:coach           # :3005
+pnpm dev:exercises       # :3006, serving the made-up fixture library
 ```
 
-Environment files live next to each app. Copy `apps/mobile/.env.example` to
-`apps/mobile/.env`, `apps/web/.env.example` to `apps/web/.env.local`, and
-`apps/site/.env.example` to `apps/site/.env.local`.
+Each app has an `.env.example`. Copy it to `.env` for `apps/mobile` and
+`apps/exercises`, or to `.env.local` for `apps/web`, `apps/site` and
+`apps/coach`; `apps/api`, `apps/mcp` and `apps/webhooks` read the process
+environment instead. AGENTS.md lists what each variable does.
 
-## Repo-wide scripts
+## Checks
 
-| Command           | What it does                                   |
-| ----------------- | ---------------------------------------------- |
-| `pnpm dev`        | `turbo run dev` for every app                  |
-| `pnpm build`      | `turbo run build` (web build, package outputs) |
-| `pnpm test`       | `turbo run test` across all workspaces         |
-| `pnpm typecheck`  | `turbo run typecheck`                          |
-| `pnpm check`      | `ultracite check` (Biome) for the whole repo   |
-| `pnpm fix`        | `ultracite fix`                                |
-| `pnpm db <cmd>`   | run a script in `@fitme/supabase`              |
-| `pnpm mobile <cmd>` | run a script in `@fitme/mobile`              |
-| `pnpm web <cmd>`  | run a script in `@fitme/web`                   |
-| `pnpm site <cmd>` | run a script in `@fitme/site`                  |
+```bash
+pnpm test                # unit tests in every workspace
+pnpm typecheck
+pnpm check               # Ultracite (Biome); pnpm fix applies its fixes
+pnpm literal-check       # no color literals or arbitrary sizes in the UI
+```
 
-## Shared packages
+## Contributing and security
 
-Workspace packages are consumed as TypeScript source (no build step). Metro
-picks them up through the hoisted `node_modules`; Next.js compiles them via
-`transpilePackages` in `apps/web/next.config.ts`.
-
-- Import domain types and helpers from `@fitme/core`.
-- Import generated `Database` / `Tables<"...">` types from `@fitme/supabase`.
-  Regenerate them with `pnpm db types:generate` after a migration.
+This project doesn't take outside contributions; see
+[`CONTRIBUTING.md`](CONTRIBUTING.md). Report vulnerabilities privately as
+described in [`SECURITY.md`](SECURITY.md).
