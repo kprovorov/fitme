@@ -4,6 +4,7 @@ import { invalidRequest } from "../schemas.js";
 import { clientConfig } from "./client-config.js";
 import { coachModels } from "./coach-models.js";
 import { muscleGroups } from "./muscle-groups.js";
+import { plans } from "./plans.js";
 import { profile } from "./profile.js";
 
 /** The global routes, served without a caller. */
@@ -16,4 +17,5 @@ publicV1.route("/muscle-groups", muscleGroups);
 /** The User-data routes: mounted after auth, so each has a verified caller. */
 export const userV1 = new OpenAPIHono<ApiEnv>({ defaultHook: invalidRequest });
 
+userV1.route("/plans", plans);
 userV1.route("/profile", profile);

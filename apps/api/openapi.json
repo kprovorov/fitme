@@ -164,6 +164,317 @@
         "required": [
           "error"
         ]
+      },
+      "PlanSummary": {
+        "type": "object",
+        "properties": {
+          "created_at": {
+            "type": "string",
+            "nullable": true,
+            "description": "ISO 8601",
+            "example": "2026-10-20T09:00:00+00:00"
+          },
+          "description": {
+            "type": "string",
+            "nullable": true,
+            "example": "Three full-body days"
+          },
+          "experience_level": {
+            "type": "string",
+            "description": "`beginner`, `intermediate` or `advanced`",
+            "example": "intermediate"
+          },
+          "frequency": {
+            "type": "integer",
+            "description": "Workouts a week",
+            "example": 3
+          },
+          "goal": {
+            "type": "string",
+            "example": "build_muscle"
+          },
+          "id": {
+            "type": "string",
+            "format": "uuid"
+          },
+          "is_active": {
+            "type": "boolean",
+            "description": "The User's active Plan; at most one is"
+          },
+          "name": {
+            "type": "string",
+            "nullable": true,
+            "example": "Full body"
+          },
+          "note": {
+            "type": "string",
+            "nullable": true
+          },
+          "place": {
+            "type": "string",
+            "description": "`gym` or `home`",
+            "example": "gym"
+          },
+          "updated_at": {
+            "type": "string",
+            "nullable": true,
+            "description": "ISO 8601",
+            "example": "2026-10-21T09:00:00+00:00"
+          },
+          "workout_duration": {
+            "type": "integer",
+            "description": "Minutes",
+            "example": 60
+          },
+          "workouts": {
+            "type": "array",
+            "items": {
+              "$ref": "#/components/schemas/WorkoutSummary"
+            },
+            "description": "In rotation order: the first is up next"
+          }
+        },
+        "required": [
+          "created_at",
+          "description",
+          "experience_level",
+          "frequency",
+          "goal",
+          "id",
+          "is_active",
+          "name",
+          "note",
+          "place",
+          "updated_at",
+          "workout_duration",
+          "workouts"
+        ]
+      },
+      "WorkoutSummary": {
+        "type": "object",
+        "properties": {
+          "exercise_count": {
+            "type": "integer",
+            "example": 5
+          },
+          "id": {
+            "type": "string",
+            "format": "uuid"
+          },
+          "name": {
+            "type": "string",
+            "example": "Day A"
+          },
+          "order": {
+            "type": "integer",
+            "description": "Position in the rotation: 1 is up next",
+            "example": 1
+          }
+        },
+        "required": [
+          "exercise_count",
+          "id",
+          "name",
+          "order"
+        ]
+      },
+      "WeightUnit": {
+        "type": "string",
+        "enum": [
+          "kg",
+          "lbs"
+        ],
+        "description": "The unit of every weight in the response: `kg` (metric) or `lbs` (us, uk). Weights are as stored, never converted"
+      },
+      "PlanWorkout": {
+        "type": "object",
+        "properties": {
+          "description": {
+            "type": "string",
+            "example": "Legs and pulls"
+          },
+          "exercises": {
+            "type": "array",
+            "items": {
+              "$ref": "#/components/schemas/PlanExercise"
+            },
+            "description": "In order"
+          },
+          "id": {
+            "type": "string",
+            "format": "uuid"
+          },
+          "name": {
+            "type": "string",
+            "example": "Day A"
+          },
+          "order": {
+            "type": "integer",
+            "description": "Position in the rotation: 1 is up next",
+            "example": 1
+          }
+        },
+        "required": [
+          "description",
+          "exercises",
+          "id",
+          "name",
+          "order"
+        ]
+      },
+      "PlanExercise": {
+        "type": "object",
+        "properties": {
+          "exercise_slug": {
+            "type": "string",
+            "description": "The Exercise Library's key for the Exercise; its name, muscle groups and media come from the Exercise Library API",
+            "example": "barbell-back-squat"
+          },
+          "id": {
+            "type": "string",
+            "format": "uuid"
+          },
+          "order": {
+            "type": "integer",
+            "example": 1
+          },
+          "sets": {
+            "type": "array",
+            "items": {
+              "$ref": "#/components/schemas/PlanSet"
+            },
+            "description": "In order"
+          }
+        },
+        "required": [
+          "exercise_slug",
+          "id",
+          "order",
+          "sets"
+        ]
+      },
+      "PlanSet": {
+        "type": "object",
+        "properties": {
+          "id": {
+            "type": "string",
+            "format": "uuid"
+          },
+          "order": {
+            "type": "integer",
+            "example": 1
+          },
+          "reps_recommended": {
+            "type": "integer",
+            "example": 8
+          },
+          "rest_recommended": {
+            "type": "integer",
+            "description": "Seconds",
+            "example": 120
+          },
+          "weight_recommended": {
+            "type": "number",
+            "description": "In the response's `weight_unit`",
+            "example": 80.5
+          }
+        },
+        "required": [
+          "id",
+          "order",
+          "reps_recommended",
+          "rest_recommended",
+          "weight_recommended"
+        ]
+      },
+      "Plan": {
+        "type": "object",
+        "properties": {
+          "created_at": {
+            "type": "string",
+            "nullable": true,
+            "description": "ISO 8601",
+            "example": "2026-10-20T09:00:00+00:00"
+          },
+          "description": {
+            "type": "string",
+            "nullable": true,
+            "example": "Three full-body days"
+          },
+          "experience_level": {
+            "type": "string",
+            "description": "`beginner`, `intermediate` or `advanced`",
+            "example": "intermediate"
+          },
+          "frequency": {
+            "type": "integer",
+            "description": "Workouts a week",
+            "example": 3
+          },
+          "goal": {
+            "type": "string",
+            "example": "build_muscle"
+          },
+          "id": {
+            "type": "string",
+            "format": "uuid"
+          },
+          "is_active": {
+            "type": "boolean",
+            "description": "The User's active Plan; at most one is"
+          },
+          "name": {
+            "type": "string",
+            "nullable": true,
+            "example": "Full body"
+          },
+          "note": {
+            "type": "string",
+            "nullable": true
+          },
+          "place": {
+            "type": "string",
+            "description": "`gym` or `home`",
+            "example": "gym"
+          },
+          "updated_at": {
+            "type": "string",
+            "nullable": true,
+            "description": "ISO 8601",
+            "example": "2026-10-21T09:00:00+00:00"
+          },
+          "workout_duration": {
+            "type": "integer",
+            "description": "Minutes",
+            "example": 60
+          },
+          "weight_unit": {
+            "$ref": "#/components/schemas/WeightUnit"
+          },
+          "workouts": {
+            "type": "array",
+            "items": {
+              "$ref": "#/components/schemas/PlanWorkout"
+            },
+            "description": "In rotation order: the first is up next"
+          }
+        },
+        "required": [
+          "created_at",
+          "description",
+          "experience_level",
+          "frequency",
+          "goal",
+          "id",
+          "is_active",
+          "name",
+          "note",
+          "place",
+          "updated_at",
+          "workout_duration",
+          "weight_unit",
+          "workouts"
+        ]
       }
     },
     "parameters": {}
@@ -308,6 +619,249 @@
           },
           "404": {
             "description": "No such muscle group",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Error"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/v1/plans": {
+      "get": {
+        "security": [
+          {
+            "bearerAuth": []
+          }
+        ],
+        "summary": "List the User's Plans",
+        "responses": {
+          "200": {
+            "description": "Every Plan of the User, newest first (not paged)",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object",
+                  "properties": {
+                    "data": {
+                      "type": "array",
+                      "items": {
+                        "$ref": "#/components/schemas/PlanSummary"
+                      },
+                      "description": "The User's Plans, newest first"
+                    }
+                  },
+                  "required": [
+                    "data"
+                  ]
+                }
+              }
+            }
+          },
+          "401": {
+            "description": "No valid Clerk session token",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Error"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/v1/plans/active": {
+      "get": {
+        "security": [
+          {
+            "bearerAuth": []
+          }
+        ],
+        "summary": "Get the User's active Plan",
+        "responses": {
+          "200": {
+            "description": "The User's active Plan in full, or `null` without one",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object",
+                  "properties": {
+                    "data": {
+                      "type": "object",
+                      "nullable": true,
+                      "properties": {
+                        "created_at": {
+                          "type": "string",
+                          "nullable": true,
+                          "description": "ISO 8601",
+                          "example": "2026-10-20T09:00:00+00:00"
+                        },
+                        "description": {
+                          "type": "string",
+                          "nullable": true,
+                          "example": "Three full-body days"
+                        },
+                        "experience_level": {
+                          "type": "string",
+                          "description": "`beginner`, `intermediate` or `advanced`",
+                          "example": "intermediate"
+                        },
+                        "frequency": {
+                          "type": "integer",
+                          "description": "Workouts a week",
+                          "example": 3
+                        },
+                        "goal": {
+                          "type": "string",
+                          "example": "build_muscle"
+                        },
+                        "id": {
+                          "type": "string",
+                          "format": "uuid"
+                        },
+                        "is_active": {
+                          "type": "boolean",
+                          "description": "The User's active Plan; at most one is"
+                        },
+                        "name": {
+                          "type": "string",
+                          "nullable": true,
+                          "example": "Full body"
+                        },
+                        "note": {
+                          "type": "string",
+                          "nullable": true
+                        },
+                        "place": {
+                          "type": "string",
+                          "description": "`gym` or `home`",
+                          "example": "gym"
+                        },
+                        "updated_at": {
+                          "type": "string",
+                          "nullable": true,
+                          "description": "ISO 8601",
+                          "example": "2026-10-21T09:00:00+00:00"
+                        },
+                        "workout_duration": {
+                          "type": "integer",
+                          "description": "Minutes",
+                          "example": 60
+                        },
+                        "weight_unit": {
+                          "$ref": "#/components/schemas/WeightUnit"
+                        },
+                        "workouts": {
+                          "type": "array",
+                          "items": {
+                            "$ref": "#/components/schemas/PlanWorkout"
+                          },
+                          "description": "In rotation order: the first is up next"
+                        }
+                      },
+                      "required": [
+                        "created_at",
+                        "description",
+                        "experience_level",
+                        "frequency",
+                        "goal",
+                        "id",
+                        "is_active",
+                        "name",
+                        "note",
+                        "place",
+                        "updated_at",
+                        "workout_duration",
+                        "weight_unit",
+                        "workouts"
+                      ],
+                      "description": "The User's active Plan, `null` without one"
+                    }
+                  },
+                  "required": [
+                    "data"
+                  ]
+                }
+              }
+            }
+          },
+          "401": {
+            "description": "No valid Clerk session token",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Error"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/v1/plans/{id}": {
+      "get": {
+        "security": [
+          {
+            "bearerAuth": []
+          }
+        ],
+        "summary": "Get one of the User's Plans",
+        "parameters": [
+          {
+            "schema": {
+              "type": "string",
+              "format": "uuid"
+            },
+            "required": true,
+            "in": "path",
+            "name": "id"
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "The Plan in full: its Workouts, their Exercises and sets, each in order",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object",
+                  "properties": {
+                    "data": {
+                      "$ref": "#/components/schemas/Plan"
+                    }
+                  },
+                  "required": [
+                    "data"
+                  ]
+                }
+              }
+            }
+          },
+          "400": {
+            "description": "`invalid_request`: the id isn't a uuid",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Error"
+                }
+              }
+            }
+          },
+          "401": {
+            "description": "No valid Clerk session token",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Error"
+                }
+              }
+            }
+          },
+          "404": {
+            "description": "`not_found`: no such Plan, it was deleted, or it isn't the User's",
             "content": {
               "application/json": {
                 "schema": {
