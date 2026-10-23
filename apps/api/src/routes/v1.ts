@@ -5,6 +5,7 @@ import { clientConfig } from "./client-config.js";
 import { coachModels } from "./coach-models.js";
 import { muscleGroups } from "./muscle-groups.js";
 import { profile } from "./profile.js";
+import { workoutSessions } from "./workout-sessions.js";
 
 /** The global routes, served without a caller. */
 export const publicV1 = new OpenAPIHono({ defaultHook: invalidRequest });
@@ -17,3 +18,4 @@ publicV1.route("/muscle-groups", muscleGroups);
 export const userV1 = new OpenAPIHono<ApiEnv>({ defaultHook: invalidRequest });
 
 userV1.route("/profile", profile);
+userV1.route("/workout-sessions", workoutSessions);
