@@ -61,19 +61,26 @@ export const memoryRateLimiter = ({
   };
 };
 
-/** Where an Upstash limiter keeps its windows: the key prefix names the app and bucket. */
-export interface UpstashOptions extends RateLimit {
+/**
+ * A limiter's configuration: its limit, the Upstash key prefix (naming the
+ * app and bucket), and how long an Upstash call may take before it's aborted:
+ * the same `timeoutMs` the app gives `checkRateLimit`, so a request served
+ * uncounted stays uncounted.
+ */
+export interface RateLimiterOptions extends RateLimit {
   prefix: string;
+  timeoutMs?: number;
 }
 
 /** A fixed window per key in Upstash Redis, shared by every instance. */
 export const upstashRateLimiter = ({
   limit,
   prefix,
+  timeoutMs = LIMITER_TIMEOUT_MS,
   token,
   url,
   windowMs,
-}: UpstashOptions & { token: string; url: string }): RateLimiter => {
+}: RateLimiterOptions & { token: string; url: string }): RateLimiter => {
   const ratelimit = new Ratelimit({
     // Upstash's Rate Limit Analytics dashboard: who's counted, who's refused.
     analytics: true,
@@ -84,7 +91,7 @@ export const upstashRateLimiter = ({
       retry: false,
       // Each call gets its own signal, so a request served uncounted can't
       // still increment the window once Upstash answers.
-      signal: () => AbortSignal.timeout(LIMITER_TIMEOUT_MS),
+      signal: () => AbortSignal.timeout(timeoutMs),
       token,
       url,
     }),
@@ -120,7 +127,7 @@ export const upstashRateLimiter = ({
  */
 export const rateLimiterFromEnv = (
   env: Record<string, string | undefined>,
-  options: UpstashOptions
+  options: RateLimiterOptions
 ): RateLimiter => {
   const url = env.UPSTASH_REDIS_REST_URL;
   const token = env.UPSTASH_REDIS_REST_TOKEN;

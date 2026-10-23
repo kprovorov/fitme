@@ -2,6 +2,7 @@ import {
   checkRateLimit,
   LIMITER_TIMEOUT_MS,
   type RateLimiter,
+  type RateLimiterOptions,
   memoryRateLimiter as sharedMemoryRateLimiter,
   rateLimiterFromEnv as sharedRateLimiterFromEnv,
 } from "@fitme/rate-limit";
@@ -10,7 +11,7 @@ import type { z } from "zod";
 import type { AuthEnv } from "./auth";
 import type { ErrorResponse } from "./schemas";
 
-export type { RateLimiter, RateLimitResult } from "@fitme/rate-limit";
+export type { RateLimiter } from "@fitme/rate-limit";
 
 /** Requests a User may make per window: enough for any app use, too few to scrape. */
 export const USER_REQUESTS_PER_WINDOW = 120;
@@ -20,7 +21,7 @@ const userLimit = {
   limit: USER_REQUESTS_PER_WINDOW,
   prefix: "exercises:user",
   windowMs: WINDOW_MS,
-};
+} satisfies RateLimiterOptions;
 
 /** The per-User limit in this instance's memory, for local development and tests. */
 export const memoryRateLimiter = ({
