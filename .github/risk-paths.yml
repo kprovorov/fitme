@@ -75,6 +75,7 @@ medium:
   - apps/webhooks/src/**
   - apps/exercises/src/**
   - apps/exercises/openapi.json
+  - apps/api/openapi.json
   # Mobile data layer (no OTA updates)
   - apps/mobile/hooks/**
   - apps/mobile/lib/**

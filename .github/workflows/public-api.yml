@@ -1,0 +1,73 @@
+name: Public API
+
+# The API contract of apps/api. Lint, typecheck and tests run in Unit Tests
+# through turbo, like every other app.
+on:
+  pull_request:
+    paths:
+      - apps/api/**
+      # The muscle group enum in openapi.json is muscleGroups from @fitme/core,
+      # and the Coach model example its default model.
+      - packages/core/**
+      - .github/oasdiff/**
+      - .github/workflows/public-api.yml
+      - pnpm-lock.yaml
+
+permissions:
+  contents: read
+
+jobs:
+  api-contract:
+    runs-on: ubuntu-24.04
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v7
+        with:
+          # The whole history, so the breaking-change check can compare
+          # against the base branch.
+          fetch-depth: 0
+
+      - name: Setup pnpm
+        uses: pnpm/action-setup@v6
+
+      - name: Setup Node.js
+        uses: actions/setup-node@v7
+        with:
+          node-version: "24"
+          cache: "pnpm"
+
+      - name: Install dependencies
+        run: pnpm install --frozen-lockfile
+
+      - name: Check openapi.json is up to date
+        run: |
+          pnpm --filter @fitme/api openapi
+          if [ -n "$(git status --porcelain -- apps/api/openapi.json)" ]; then
+            git diff -- apps/api/openapi.json
+            echo "::error file=apps/api/openapi.json::openapi.json is stale: run pnpm api openapi and commit it"
+            exit 1
+          fi
+
+      - name: Install oasdiff
+        run: |
+          curl -fsSL -o "$RUNNER_TEMP/oasdiff.tar.gz" \
+            "https://github.com/oasdiff/oasdiff/releases/download/v${OASDIFF_VERSION}/oasdiff_${OASDIFF_VERSION}_linux_amd64.tar.gz"
+          echo "${OASDIFF_SHA256}  $RUNNER_TEMP/oasdiff.tar.gz" | sha256sum --check
+          tar -xzf "$RUNNER_TEMP/oasdiff.tar.gz" -C "$RUNNER_TEMP" oasdiff
+          echo "$RUNNER_TEMP" >> "$GITHUB_PATH"
+        env:
+          OASDIFF_VERSION: 1.33.0
+          OASDIFF_SHA256: 43a4e328e2d13ba1552d760aa68d2485c75c5621f309f6ff64ae895188345247
+
+      - name: Check for breaking API changes against the base branch
+        run: .github/oasdiff/check-api-breaking.sh apps/api/openapi.json "origin/$BASE_REF"
+        env:
+          BASE_REF: ${{ github.base_ref }}
+
+      - name: Build the API
+        run: pnpm --filter @fitme/api build
+
+      # Vercel's Hono preset rejects an entrypoint without an exact "hono"
+      # import (the regex from @vercel/hono's build).
+      - name: Check the Vercel entrypoint imports hono
+        run: grep -qE "(from|require|import)\s*(\(\s*)?[\"']hono[\"']" apps/api/dist/app.js
