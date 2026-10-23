@@ -194,9 +194,13 @@ function useContentColor(
   colorClassName: string | undefined
 ): string {
   const theme = useSwiftUITheme();
-  const override = useResolveClassNames(colorClassName ?? "").color as
+  const resolved = useResolveClassNames(colorClassName ?? "").color as
     | string
     | undefined;
+  // `useResolveClassNames("")` keeps answering the last class it resolved,
+  // so a Button that drops its color class (a set row's muted pencil turning
+  // into its ✓) would keep the old color: only read it while there's a class.
+  const override = colorClassName ? resolved : undefined;
   return (
     override ??
     {
