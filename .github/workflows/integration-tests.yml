@@ -100,6 +100,12 @@ jobs:
           CLERK_DEV_SECRET_KEY: ${{ secrets.CLERK_DEV_SECRET_KEY }}
         run: pnpm --filter @fitme/mcp test:integration
 
+      # The Public API (apps/api) through createApp + app.request with
+      # test-signed Clerk session tokens and the real services facade on the
+      # same pooler
+      - name: Run Public API integration tests
+        run: pnpm --filter @fitme/api test:integration
+
       - name: Stop Supabase
         if: always()
         working-directory: packages/supabase
