@@ -794,9 +794,14 @@ describe("edits during account deletion", () => {
     let edit: Promise<unknown> | undefined;
 
     await withService(async (tx) => {
-      // deleteUserData's first statement: every User table, share row exclusive
+      // deleteUserData's first statement, as far as the tables an edit
+      // writes: share row exclusive in its order. Other files' transactions
+      // run alongside, and a lock taken out of that order (the Plan tables
+      // before `profiles`) deadlocks with one holding `profiles` that then
+      // needs a Plan table.
       await tx.execute(sql`
-        lock table workouts, workout_exercises, workout_exercise_sets
+        lock table profiles, plans, workout_sessions,
+          workouts, workout_exercises, workout_exercise_sets
         in share row exclusive mode
       `);
       edit = asUser(leaver, (editTx) =>
