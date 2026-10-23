@@ -1,5 +1,9 @@
 import { asUser, type Transaction } from "@fitme/db";
-import { getProfile, type ProfileWithUnits } from "@fitme/services/profile";
+import {
+  getProfile,
+  type ProfileUnits,
+  type ProfileWithUnits,
+} from "@fitme/services/profile";
 import {
   getWorkoutSession,
   type ListWorkoutSessionsOptions,
@@ -8,11 +12,8 @@ import {
   type WorkoutSessionPage,
 } from "@fitme/services/workout-sessions";
 
-/** The unit every weight of a User is stored and shown in. */
-export type WeightUnit = ProfileWithUnits["units"]["weight"];
-
-/** A read carrying weights, with the unit they're in. */
-export type WithWeightUnit<T> = T & { weight_unit: WeightUnit };
+/** A read carrying weights, with the unit they're stored and shown in. */
+export type WithWeightUnit<T> = T & { weight_unit: ProfileUnits["weight"] };
 
 /**
  * The services a verified User's requests call, each bound to that User and
@@ -42,7 +43,8 @@ export type ServicesFactory = (userId: string) => UserServices | null;
 const weightUnitOf = async (
   tx: Transaction,
   userId: string
-): Promise<WeightUnit> => (await getProfile(tx, userId))?.units.weight ?? "kg";
+): Promise<ProfileUnits["weight"]> =>
+  (await getProfile(tx, userId))?.units.weight ?? "kg";
 
 /** Services on the `fitme` login through the pooler (`FITME_DATABASE_URL`). */
 export const createServicesFromEnv: ServicesFactory = (userId) => {

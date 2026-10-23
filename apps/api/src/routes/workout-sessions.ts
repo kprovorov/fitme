@@ -35,7 +35,8 @@ const sessionFields = {
     })
     .nullable()
     .openapi({
-      description: "The Plan it was started from, `null` once that is gone",
+      description:
+        "The Plan it was started from (shown even once that Plan is deleted), `null` without one",
     }),
   started_at: timestamp("When it was started"),
   status: Status,
@@ -46,7 +47,8 @@ const sessionFields = {
     })
     .nullable()
     .openapi({
-      description: "The Workout it was started from, `null` once that is gone",
+      description:
+        "The Workout it was started from, `null` once that Workout is gone (its Plan's Workouts replaced)",
     }),
 };
 
