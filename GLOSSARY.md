@@ -50,3 +50,21 @@ _Avoid_: Agent, AI agent, assistant, chatbot
 **Conversation**:
 One thread of messages between a User and the Coach. A User works in one current Conversation at a time; past ones are not kept beyond a limited retention period and are wiped when the User deletes their account.
 _Avoid_: Chat, thread, session
+
+### Public API
+
+**Public API**:
+The one HTTP contract (`apps/api`, `/v1`) every caller uses to read and write a User's data: Fitme's own apps and anyone else's alike. There is no separate internal API; a route may be restricted to First-party apps, but it is still part of the same contract.
+_Avoid_: REST API, internal API, BFF, backend
+
+**First-party app**:
+Fitme's own mobile or web app, calling the Public API with the User's Clerk session.
+_Avoid_: Client, frontend, internal caller
+
+**Third-party app**:
+Someone else's app that a User has connected to Fitme through OAuth, acting on that User's behalf.
+_Avoid_: Integration, partner, client, OAuth app
+
+**API key**:
+A secret a User creates to call the Public API as themselves, for their own scripts and tools.
+_Avoid_: Token, personal access token, secret key
