@@ -987,9 +987,19 @@ const requestTimes = async (
 /** A small limit, so the window is tested with a handful of requests. */
 const TEST_LIMIT = 3;
 
+/** An app limited to `TEST_LIMIT` requests a minute, on a clock the test moves. */
+const smallLimitApp = () => {
+  const clock = fakeClock();
+  const { limited } = limitedApp(
+    memoryRateLimiter({ limit: TEST_LIMIT, now: clock.now })
+  );
+  return { clock, limited };
+};
+
 describe("rate limiting", () => {
-  it("limits each User to 120 requests a minute in production", async () => {
-    const limiter = memoryRateLimiter();
+  it("limits each User to 120 requests a minute by default", async () => {
+    const clock = fakeClock();
+    const limiter = memoryRateLimiter({ now: clock.now });
     const { limited } = limitedApp(limiter);
     for (let i = 0; i < USER_REQUESTS_PER_WINDOW; i += 1) {
       // biome-ignore lint/performance/noAwaitInLoops: counts the window up without sending 120 requests through the app
@@ -1007,10 +1017,7 @@ describe("rate limiting", () => {
   });
 
   it("answers a User's request past the limit within a minute with 429 and Retry-After", async () => {
-    const clock = fakeClock();
-    const { limited } = limitedApp(
-      memoryRateLimiter({ limit: TEST_LIMIT, now: clock.now })
-    );
+    const { clock, limited } = smallLimitApp();
 
     const statuses = await requestTimes(limited, TEST_LIMIT);
     clock.advance(45_000);
@@ -1030,10 +1037,7 @@ describe("rate limiting", () => {
   });
 
   it("resets the window after a minute", async () => {
-    const clock = fakeClock();
-    const { limited } = limitedApp(
-      memoryRateLimiter({ limit: TEST_LIMIT, now: clock.now })
-    );
+    const { clock, limited } = smallLimitApp();
 
     expect(await requestTimes(limited, TEST_LIMIT + 1)).toEqual([
       ...new Array(TEST_LIMIT).fill(200),
@@ -1048,10 +1052,7 @@ describe("rate limiting", () => {
   });
 
   it("counts each User separately", async () => {
-    const clock = fakeClock();
-    const { limited } = limitedApp(
-      memoryRateLimiter({ limit: TEST_LIMIT, now: clock.now })
-    );
+    const { limited } = smallLimitApp();
 
     await requestTimes(limited, TEST_LIMIT + 1);
     const response = await limited.request(
@@ -1063,10 +1064,7 @@ describe("rate limiting", () => {
   });
 
   it("counts a 304 too", async () => {
-    const clock = fakeClock();
-    const { limited } = limitedApp(
-      memoryRateLimiter({ limit: TEST_LIMIT, now: clock.now })
-    );
+    const { limited } = smallLimitApp();
     const etag = (
       await limited.request("/exercises/squat", asUser)
     ).headers.get("ETag");
@@ -1075,7 +1073,7 @@ describe("rate limiting", () => {
       headers: { ...asUser.headers, "If-None-Match": etag ?? "" },
     });
 
-    expect(statuses).toEqual([304, 304, 429]);
+    expect(statuses).toEqual([...new Array(TEST_LIMIT - 1).fill(304), 429]);
   });
 
   it.each([
@@ -1088,8 +1086,10 @@ describe("rate limiting", () => {
     );
     const { limited } = limitedApp({ limit: limiter });
 
-    expect(await requestTimes(limited, 5, bearer(secret))).toEqual(
-      new Array(5).fill(200)
+    // More than any limit a test sets, all served.
+    const times = TEST_LIMIT + 2;
+    expect(await requestTimes(limited, times, bearer(secret))).toEqual(
+      new Array(times).fill(200)
     );
     expect(limiter).not.toHaveBeenCalled();
   });
