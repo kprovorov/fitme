@@ -18,7 +18,7 @@ traffic.
 
 - The deployed apps built from this repository:
   - the REST API (`apps/api`, api.fitmeproject.com)
-  - the Coach (`apps/coach`)
+  - the Coach (`apps/arnold`)
   - the Exercise Library API (`apps/exercises`, exercises.fitmeproject.com)
   - the MCP server (`apps/mcp`, mcp.fitmeproject.com)
   - the webhooks app (`apps/webhooks`)

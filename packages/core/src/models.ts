@@ -189,7 +189,7 @@ export type WorkoutExerciseSetInput = Omit<WorkoutExerciseSetData, "order">;
 
 /**
  * Models the Coach can run on, by their Vercel AI Gateway id
- * (`<creator>/<model>`), the only list: `apps/coach` rejects any id outside it.
+ * (`<creator>/<model>`), the only list: `apps/arnold` rejects any id outside it.
  */
 export const coachModels = [
   {
