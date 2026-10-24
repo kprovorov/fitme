@@ -452,6 +452,7 @@ Backend apps that use `@fitme/db`:
 - Wait in the background: a foreground `sleep` (`sleep 60; gh pr view …`) is blocked by the harness. Run the command in the background or use Monitor; for a pull request, `watch_pull_request`.
 - `pgrep -f` / `pkill -f` match the shell running them, since the pattern is in its own command line: the wait never ends, or the kill takes your shell with it. Use a bracket pattern (`pgrep -f '[u]ltracite'`) or the PID you saved when starting the process.
 - The shell is zsh: an unquoted `?` or `*` is a glob, and one matching nothing fails the command with "no matches found". Quote URLs and arguments carrying them: `gh api 'repos/…/git/trees/HEAD?recursive=1'`, `--filter='...[origin/main]'`.
+- A Claude Code `PreToolUse` hook (`.claude/hooks/check-shell-command.mjs`, wired in `.claude/settings.json`) refuses a Bash call that breaks these rules, with the rule's reason: `timeout` / `gtimeout` as a command, `cd <relative path>` followed by `&&`, `;` or another line, `pkill -f` / `pgrep -f` without the bracket trick (`'[u]ltracite'`), and a foreground `sleep` of 5 s or more. It only reads command words, never quoted text, heredocs or comments; its matcher (`.claude/hooks/shell-rules.mjs`) is tested with `pnpm test:hooks` (Node's `node:test`).
 
 ## Git
 
