@@ -1,6 +1,6 @@
-import { memoryRateLimiter } from "@fitme/rate-limit";
 import type { ExerciseSummary } from "@fitme/exercise-library";
 import { createFakeExerciseLibrary } from "@fitme/exercise-library/fake";
+import { memoryRateLimiter } from "@fitme/rate-limit";
 import { type AppDeps, createApp } from "../create-app.js";
 import type { RateLimiter } from "../rate-limit.js";
 import type { UserServices } from "../services.js";

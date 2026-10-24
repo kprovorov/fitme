@@ -10,14 +10,14 @@ import { HTTPException } from "hono/http-exception";
 import { logger } from "hono/logger";
 import { type ApiEnv, BEARER_AUTH, requireCaller } from "./auth.js";
 import {
+  createExerciseLibraryFromEnv,
+  type ExerciseLibraryFactory,
+} from "./exercise-library.js";
+import {
   type RateLimiter,
   rateLimitCallers,
   rateLimiterFromEnv,
 } from "./rate-limit.js";
-import {
-  createExerciseLibraryFromEnv,
-  type ExerciseLibraryFactory,
-} from "./exercise-library.js";
 import { publicV1, userV1 } from "./routes/v1.js";
 import { invalidRequest } from "./schemas.js";
 import { createServicesFromEnv, type ServicesFactory } from "./services.js";
