@@ -1,1 +1,9 @@
+# Secret scan of the staged changes (.gitleaks.toml): a finding fails the
+# commit. A machine without gitleaks only gets a warning; CI scans every PR.
+if command -v gitleaks >/dev/null 2>&1; then
+  gitleaks git --pre-commit --staged --redact --no-banner || exit 1
+else
+  echo "warning: gitleaks not installed, skipping the secret scan (brew install gitleaks)" >&2
+fi
+
 pnpm exec lint-staged
