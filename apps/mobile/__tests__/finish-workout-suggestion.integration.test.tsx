@@ -1089,6 +1089,7 @@ describe.each(ENTRY_ROUTES)(
 describe("starting a Workout from Home", () => {
   const PLAN = {
     id: "plan-1",
+    is_active: true,
     name: "Strength",
     workouts: [
       {

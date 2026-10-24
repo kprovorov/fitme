@@ -1,7 +1,10 @@
-import type { Plan, PlanInput } from "@fitme/core";
+import type { Plan } from "@fitme/core";
 import { createMutation, createQuery } from "react-query-kit";
 import { supabase } from "@/lib/supabase";
+import { ApiError } from "~/lib/api/client";
 import { IS_E2E } from "~/lib/constants";
+import type { NewPlan } from "~/lib/plan-card";
+import { publicApi } from "~/lib/public-api";
 import { segmentClient } from "~/lib/segment";
 
 const PLAN_SELECT = `
@@ -50,32 +53,30 @@ export const usePlanQuery = createQuery<Plan, PlanQueryVariables>({
   queryKey: ["plan"],
 });
 
-export const useStorePlanMutation = createMutation<Plan, PlanInput>({
-  mutationFn: async (planData: PlanInput): Promise<Plan> => {
-    const { data: planId, error: rpcError } = await supabase.rpc(
-      "create_plan",
-      {
-        p_plan_data: planData,
-      }
-    );
-    if (rpcError) {
-      throw rpcError;
+/**
+ * Saves a Plan through `POST /v1/plans` and makes it the active one, in one
+ * transaction: nothing is saved unless all of it is. Fires `Plan Saved` and
+ * `Plan Activated` once it has, and refetches the Plan lists. Answers the new Plan's id; rejects with an
+ * `ApiError` (`unknown_exercises`, `exercise_library_unavailable`, …).
+ */
+export const useCreatePlanMutation = createMutation<string, NewPlan>({
+  mutationFn: async (plan: NewPlan): Promise<string> => {
+    const { data } = await publicApi().POST("/v1/plans", {
+      body: { ...plan, activate: true },
+    });
+    if (!data) {
+      throw new ApiError("Public API answered no Plan");
     }
-
-    const { data: plan, error } = await supabase
-      .from("plans")
-      .select()
-      .eq("id", planId)
-      .single();
-    if (error) {
-      throw error;
-    }
-
+    const { id } = data.data;
     if (!IS_E2E) {
-      segmentClient.track("Plan Saved", { plan_id: plan.id });
+      segmentClient.track("Plan Saved", { plan_id: id });
+      segmentClient.track("Plan Activated", { plan_id: id });
     }
-    return plan as unknown as Plan;
+    return id;
   },
+  // On the mutation, not the call: it still runs once the card is gone.
+  onSuccess: (_id, _plan, _result, { client }) =>
+    client.invalidateQueries({ queryKey: ["plans"] }),
 });
 
 export const useActivatePlanMutation = createMutation<Plan, { id: string }>({
