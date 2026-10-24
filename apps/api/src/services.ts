@@ -2,8 +2,10 @@ import { asUser } from "@fitme/db";
 import {
   getProfile,
   getWeightUnit,
+  type ProfileChanges,
   type ProfileUnits,
   type ProfileWithUnits,
+  updateProfile,
 } from "@fitme/services/profile";
 import {
   getWorkoutSession,
@@ -29,6 +31,8 @@ export interface UserServices {
   listWorkoutSessions: (
     options: ListWorkoutSessionsOptions
   ) => Promise<WorkoutSessionPage>;
+  /** The updated Profile, or `null` with nothing changed without one. */
+  updateProfile: (changes: ProfileChanges) => Promise<ProfileWithUnits | null>;
 }
 
 /**
@@ -54,5 +58,7 @@ export const createServicesFromEnv: ServicesFactory = (userId) => {
       }),
     listWorkoutSessions: (options) =>
       asUser(userId, (tx) => listWorkoutSessions(tx, options)),
+    updateProfile: (changes) =>
+      asUser(userId, (tx) => updateProfile(tx, userId, changes)),
   };
 };

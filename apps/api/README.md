@@ -19,6 +19,7 @@ pnpm api openapi        # regenerate openapi.json (commit it; CI fails when it's
 - `GET /v1/muscle-groups` — list muscle groups
 - `GET /v1/muscle-groups/:muscleGroup` — single muscle group
 - `GET /v1/profile` — the signed-in User's Profile with its units, or `{ data: null }` before onboarding
+- `PATCH /v1/profile` — changes any of `age`, `gender`, `height`, `weight`, `measurement_system` (only those given; height and weight in the resulting system's units). A new measurement system first converts every stored height and weight of the User (Profile, Plan set targets, Workout Session weights). Answers the updated Profile, or 404 `profile_not_found` without one
 - `GET /v1/workout-sessions?status=all|in_progress|finished&limit&offset` — the User's Workout Sessions newest first, each with its Exercise, set and logged-set counts, as `{ data, total, hasMore }` (`limit` 1–50, default 20; `offset` default 0; `status` default `all`; past the end is an empty page)
 - `GET /v1/workout-sessions/:id` — one Workout Session in full, its Exercises (by `exercise_slug` only) and sets in order, with `weight_unit`; 404 `not_found` when it's missing or another User's
 
