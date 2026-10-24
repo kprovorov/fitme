@@ -185,7 +185,7 @@ export default function WorkoutSessionExerciseSetForm({
 
   // Opening a logged set clears the fields, so they show its current values
   // as placeholders rather than what was typed when it was last saved (the
-  // set may have changed since, e.g. by the Coach).
+  // set may have changed since, e.g. by Arnold).
   const startEditing = useCallback(() => {
     form.reset({ reps: "", weight: "" });
     onEdit();

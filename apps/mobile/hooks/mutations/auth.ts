@@ -2,8 +2,8 @@ import * as Sentry from "@sentry/react-native";
 import { router } from "expo-router";
 import { Alert } from "react-native";
 import { createMutation } from "react-query-kit";
+import { clearSavedArnoldConversation } from "~/lib/arnold-chat";
 import { getClerk, getClerkErrorMessage } from "~/lib/clerk";
-import { clearSavedCoachConversation } from "~/lib/coach-chat";
 import { IS_E2E } from "~/lib/constants";
 import { segmentClient } from "~/lib/segment";
 
@@ -28,8 +28,8 @@ export const useDeleteUserMutation = createMutation<void, void>({
     }
     const userId = clerk.user.id;
     await clerk.user.delete();
-    // The server wipes the Coach Conversations; drop this device's copy too.
-    clearSavedCoachConversation(userId);
+    // The server wipes Arnold Conversations; drop this device's copy too.
+    clearSavedArnoldConversation(userId);
     // The deletion already ended the session; a failed sign-out must not
     // report the deleted account as still there
     await clerk.signOut().catch(Sentry.captureException);

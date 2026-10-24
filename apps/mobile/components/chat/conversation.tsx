@@ -90,7 +90,19 @@ export function useConversationContext() {
   return ctx;
 }
 
-export function Conversation({ children }: { children?: ReactNode }) {
+export function Conversation({
+  children,
+  emptyState = (
+    <ConversationEmptyState
+      description="Send a message to get started"
+      title="Chat"
+    />
+  ),
+}: {
+  children?: ReactNode;
+  /** Shown while there are no messages. */
+  emptyState?: ReactNode;
+}) {
   const { messages, isGenerating, streamingStore } = useChatContext();
   const listRef = useRef<LegendListRef>(null);
   const insets = useSafeAreaInsets();
@@ -375,12 +387,7 @@ export function Conversation({ children }: { children?: ReactNode }) {
             keyExtractor={messageKeyExtractor}
             ListFooterComponent={
               <Animated.View style={footerSpacerStyle}>
-                {!messages.length && (
-                  <ConversationEmptyState
-                    description="Send a message to get started"
-                    title="Chat"
-                  />
-                )}
+                {!messages.length && emptyState}
               </Animated.View>
             }
             maintainVisibleContentPosition
@@ -442,11 +449,11 @@ export function ConversationEmptyState({
         className="text-large-title text-muted-foreground"
         name={icon}
       />
-      <Text className="text-foreground text-title-2-emphasized dark:text-foreground">
+      <Text className="text-center text-foreground text-title-2-emphasized dark:text-foreground">
         {title}
       </Text>
       {description ? (
-        <Text className="text-muted-foreground text-subhead dark:text-muted-foreground">
+        <Text className="text-center text-muted-foreground text-subhead dark:text-muted-foreground">
           {description}
         </Text>
       ) : null}

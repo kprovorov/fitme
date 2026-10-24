@@ -58,7 +58,7 @@ export default function WorkoutSessionExerciseSetRowView({
   const previousRepsCompleted = useRef<number | null>(null);
 
   // Whether the set is logged comes from the data, so a change made elsewhere
-  // (a refetch, the Coach) shows up here. `justLogged` bridges the moment
+  // (a refetch, Arnold) shows up here. `justLogged` bridges the moment
   // between a successful save and the refetch that carries it.
   const loggedReps = isNewSet ? null : workoutSessionExerciseSet.reps_completed;
   const [justLogged, setJustLogged] = useState(false);

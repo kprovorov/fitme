@@ -145,7 +145,7 @@ export function PromptInputBody({ children }: { children: ReactNode }) {
  * input value from `ChatContext`.
  */
 export function PromptInputTextarea({
-  placeholder = "Chat with Agent...",
+  placeholder = "Message",
   maxLength = 1000,
 }: {
   placeholder?: string;

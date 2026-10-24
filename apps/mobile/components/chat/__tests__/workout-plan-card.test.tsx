@@ -1,5 +1,5 @@
 /**
- * The Coach's plan card on the mounted-screen seam: the real card, hooks and
+ * Arnold's plan card on the mounted-screen seam: the real card, hooks and
  * Public API client, with Supabase swapped for the in-memory backend and the
  * client's `fetch` for the fake Public API over the same rows (both from
  * `test-utils/`). A Plan list next to the card reads the Plans back through
@@ -50,7 +50,7 @@ jest.mock("@/components/ui/button", () =>
 
 const PLAN_ROUTE = "POST /v1/plans";
 const UNKNOWN_EXERCISES =
-  "This plan has exercises we don't know, so it can't be saved. Ask the Coach for another plan.";
+  "This plan has exercises we don't know, so it can't be saved. Ask Arnold for another plan.";
 
 // What display_workout_plan answers: each Exercise by slug.
 const plan: WorkoutPlan = {
@@ -64,7 +64,7 @@ const plan: WorkoutPlan = {
       exercises: [
         {
           exercise_slug: "bench-press",
-          name: "Coach's bench",
+          name: "Arnold's bench",
           reps: "8-10",
           restSeconds: 120,
           sets: 3,

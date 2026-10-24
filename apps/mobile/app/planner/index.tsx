@@ -332,7 +332,7 @@ export default function PlannerScreen() {
                 onPress={form.handleSubmit((data) => {
                   router.dismissTo({
                     params: { initialMessage: buildPlanMessage(data) },
-                    pathname: "/(tabs)/coach",
+                    pathname: "/(tabs)/arnold",
                   });
                 })}
               />
