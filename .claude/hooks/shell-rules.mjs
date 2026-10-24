@@ -169,6 +169,26 @@ const skipGroup = (source, start) => {
   return unterminated();
 };
 
+const EXPRESSION_START = new Set([" ", "\t", "\n"]);
+
+// The index just past the `[[ … ]]` opened at `start`, quotes inside skipped.
+const skipConditional = (source, start) => {
+  let index = start + 2;
+  while (index < source.length) {
+    if (source.startsWith("]]", index)) {
+      return index + 2;
+    }
+    if (source[index] === "\\") {
+      index += 2;
+    } else if (QUOTES.has(source[index])) {
+      index = skipQuote(source, index);
+    } else {
+      index += 1;
+    }
+  }
+  return unterminated();
+};
+
 // What the lexer's next word is.
 const NEXT = {
   heredoc: "heredoc delimiter",
@@ -201,6 +221,8 @@ class Lexer {
   step(char, following) {
     if (char === "\\") {
       this.escape(following);
+    } else if (this.word === null && this.startsExpression(char, following)) {
+      this.expression(char);
     } else if (QUOTES.has(char) || (char === "$" && following === "'")) {
       this.quote(char);
     } else if ("$<>".includes(char) && "({".includes(following)) {
@@ -222,6 +244,27 @@ class Lexer {
       this.append(char);
       this.index += 1;
     }
+  }
+
+  // `[[ … ]]` or `(( … ))` at a word start: an expression, not commands.
+  startsExpression(char, following) {
+    if (char === "(") {
+      return following === "(";
+    }
+    return (
+      char === "[" &&
+      following === "[" &&
+      EXPRESSION_START.has(this.source[this.index + 2])
+    );
+  }
+
+  expression(char) {
+    const end =
+      char === "("
+        ? skipGroup(this.source, this.index)
+        : skipConditional(this.source, this.index);
+    this.append(this.source.slice(this.index, end));
+    this.index = end;
   }
 
   append(text) {
@@ -362,6 +405,7 @@ class Parser {
     this.words = [];
     this.definesFunction = false;
     this.skipsOperator = false;
+    this.skipsWord = false;
   }
 
   frame(closer, definition) {
@@ -401,12 +445,16 @@ class Parser {
   }
 
   word(value) {
-    if (this.inCaseHeader) {
+    if (this.skipsWord) {
+      this.skipsWord = false;
+    } else if (this.inCaseHeader) {
       this.caseWord(value);
     } else if (this.words.length > 0) {
       this.words.push(value);
     } else if (value === "function") {
+      // `function name …`: the name is no command.
       this.definesFunction = true;
+      this.skipsWord = true;
     } else if (OPENERS.has(value)) {
       this.open(OPENERS.get(value));
     } else if (value === this.top.closer) {
@@ -452,7 +500,8 @@ class Parser {
   }
 
   parenthesis(following) {
-    if (this.words.length === 1 && following?.value === ")") {
+    const named = this.words.length === 1 || this.definesFunction;
+    if (named && following?.value === ")") {
       // `name() …`: a function definition, its `)` skipped.
       this.words = [];
       this.definesFunction = true;
@@ -464,10 +513,6 @@ class Parser {
   }
 
   open(closer) {
-    if (this.definesFunction && this.words.length > 0) {
-      // `function name {`: the name was read as a command word.
-      this.words = [];
-    }
     this.frames.push(this.frame(closer, this.definesFunction));
     this.definesFunction = false;
   }
@@ -496,11 +541,37 @@ class Parser {
 // value: `sudo -u me timeout 5 x` runs `timeout`.
 const WRAPPERS = new Map([
   ["command", new Set()],
-  ["env", new Set(["-C", "-S", "-u"])],
+  ["env", new Set(["-C", "-S", "-u", "--chdir", "--split-string", "--unset"])],
   ["exec", new Set(["-a"])],
-  ["nice", new Set(["-n"])],
+  ["nice", new Set(["-n", "--adjustment"])],
   ["nohup", new Set()],
-  ["sudo", new Set(["-C", "-D", "-g", "-h", "-p", "-r", "-t", "-U", "-u"])],
+  [
+    "sudo",
+    new Set([
+      "-C",
+      "-D",
+      "-g",
+      "-h",
+      "-p",
+      "-R",
+      "-r",
+      "-T",
+      "-t",
+      "-U",
+      "-u",
+      "--chdir",
+      "--chroot",
+      "--close-from",
+      "--command-timeout",
+      "--group",
+      "--host",
+      "--other-user",
+      "--prompt",
+      "--role",
+      "--type",
+      "--user",
+    ]),
+  ],
 ]);
 
 const INTROSPECTION = new Set(["-V", "-v"]);

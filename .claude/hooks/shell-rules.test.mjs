@@ -280,3 +280,22 @@ describe("self-matching patterns, introspection, continued lines and case patter
     });
   }
 });
+
+describe("expressions, function keywords and long wrapper options", () => {
+  for (const [command, rules] of [
+    ['[[ "$status" == ok || timeout == "$status" ]]', []],
+    ["(( timeout > 0 ))", []],
+    ["[[ -n $x ]] && timeout 5 y", ["timeout"]],
+    ["(( n > 0 )) && sleep 60", ["sleep"]],
+    ["for ((i = 0; i < 3; i++)); do echo $i; done", []],
+    ["function noop { :; }; sleep 60", ["sleep"]],
+    ["function noop() { sleep 60; }; noop &", []],
+    ["env --unset NODE_OPTIONS sleep 60", ["sleep"]],
+    ["sudo --user root timeout 5 node x.js", ["timeout"]],
+    ["sudo --user=root timeout 5 node x.js", ["timeout"]],
+  ]) {
+    test(`${JSON.stringify(command)} breaks ${JSON.stringify(rules)}`, () => {
+      assert.deepEqual(rulesBroken(command), rules);
+    });
+  }
+});
