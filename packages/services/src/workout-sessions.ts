@@ -63,7 +63,10 @@ export interface WorkoutSessionSet {
 }
 
 export interface WorkoutSessionExercise {
-  /** The Exercise, by its Exercise slug: details come from the Exercise Library API. */
+  /**
+   * The Exercise, by its Exercise slug: details come from the Exercise
+   * Library API.
+   */
   exercise_slug: string;
   id: string;
   order: number;

@@ -54,7 +54,7 @@ if ! stack="$(cd packages/supabase && pnpm exec supabase start --output-format j
   exit 0
 fi
 
-read -r _api_url _secret_key mcp_url < <(STACK="$stack" node - <<'JS'
+read -r mcp_url < <(STACK="$stack" node - <<'JS'
 const fs = require("node:fs");
 const path = require("node:path");
 
@@ -95,7 +95,7 @@ for (const parent of ["apps", "packages"]) {
   }
 }
 
-console.log(`${apiUrl} ${stack.env.SECRET_KEY} ${stack.env.MCP_URL}`);
+console.log(stack.env.MCP_URL);
 JS
 )
 

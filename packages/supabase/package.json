@@ -2,7 +2,7 @@
   "name": "@fitme/supabase",
   "version": "0.0.0",
   "private": true,
-  "description": "Supabase project (config, migrations, seeds) plus generated database types.",
+  "description": "Supabase project (config, migrations, pgTAP tests) plus generated database types.",
   "type": "module",
   "exports": {
     ".": "./src/index.ts",

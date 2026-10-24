@@ -13,7 +13,7 @@ interface NamedRef {
  * An Exercise of a change: its Exercise slug, and a name the RPC makes from
  * the slug (`barbell-back-squat` → `Barbell back squat`).
  */
-interface ExerciseRef {
+interface PlanChangeExercise {
   name: string;
   slug: string;
 }
@@ -26,14 +26,18 @@ export interface PlanChangeSet {
 
 export type PlanChange =
   | {
-      exercise: ExerciseRef;
+      exercise: PlanChangeExercise;
       kind: "replace_exercise";
-      replaced_exercise: ExerciseRef;
+      replaced_exercise: PlanChangeExercise;
       sets: PlanChangeSet[];
     }
-  | { exercise: ExerciseRef; kind: "add_exercise"; sets: PlanChangeSet[] }
-  | { exercise: ExerciseRef; kind: "remove_exercise" }
-  | { exercise: ExerciseRef; kind: "add_sets"; sets: PlanChangeSet[] };
+  | {
+      exercise: PlanChangeExercise;
+      kind: "add_exercise";
+      sets: PlanChangeSet[];
+    }
+  | { exercise: PlanChangeExercise; kind: "remove_exercise" }
+  | { exercise: PlanChangeExercise; kind: "add_sets"; sets: PlanChangeSet[] };
 
 export type PlanChangeKind = PlanChange["kind"];
 

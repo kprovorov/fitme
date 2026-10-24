@@ -5,7 +5,7 @@
 -- Run with `pnpm db test:db` (supabase test db).
 begin;
 
-select plan(20);
+select plan(21);
 
 -- ------------------------------------------------------------
 -- What the contract step dropped
@@ -238,9 +238,22 @@ select is(
 
 reset role;
 
+-- The same cases as exerciseNameFromSlug's tests (@fitme/exercise-library)
 select is(
-  private.exercise_name_from_slug('--'),
-  '--',
+  array[
+    private.exercise_name_from_slug('barbell-back-squat'),
+    private.exercise_name_from_slug('pull-ups'),
+    private.exercise_name_from_slug('squat'),
+    private.exercise_name_from_slug('90-90-hip-switch'),
+    private.exercise_name_from_slug('--odd--slug-')
+  ],
+  array['Barbell back squat', 'Pull ups', 'Squat', '90 90 hip switch', 'Odd slug'],
+  'a name is the slug''s words, the first capitalised'
+);
+
+select is(
+  private.exercise_name_from_slug('---'),
+  '---',
   'a slug with no words is its own name'
 );
 

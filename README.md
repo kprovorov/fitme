@@ -24,7 +24,7 @@ and there are no Supabase Edge Functions.
 | `packages/core` | `@fitme/core` | Domain models, labels, formatters, pure helpers |
 | `packages/exercise-library` | `@fitme/exercise-library` | Exercise Library API client and its in-memory fake |
 | `packages/design-tokens` | `@fitme/design-tokens` | Design tokens and text styles, one Tailwind v4 CSS file |
-| `packages/supabase` | `@fitme/supabase` | Supabase project (migrations, seed) and generated DB types |
+| `packages/supabase` | `@fitme/supabase` | Supabase project (migrations, pgTAP tests) and generated DB types |
 | `packages/db` | `@fitme/db` | `asUser` / `withService`: the only way backend apps reach Postgres |
 | `packages/observability` | `@fitme/observability` | Errors and traces (Sentry) with shared privacy rules |
 | `packages/rate-limit` | `@fitme/rate-limit` | Per-caller rate limiter (Upstash Redis or in memory, fail open) |
