@@ -10,8 +10,8 @@ import {
   unauthorizedResponse,
   WEIGHT_STEP,
   WeightUnit,
+  WorkoutSessionSet,
 } from "../schemas.js";
-import { WorkoutSessionSet } from "./workout-sessions.js";
 
 const LoggedSet = z
   .strictObject({

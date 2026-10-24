@@ -89,3 +89,34 @@ export const rateLimitedResponse = {
     }),
   }),
 };
+
+/** A timestamp as the services render it. */
+export const timestamp = (description: string) =>
+  z.string().openapi({
+    description: `${description} (ISO 8601)`,
+    example: "2026-10-01T10:00:00.123456+00:00",
+    format: "date-time",
+  });
+
+/** One set of a Workout Session, shared by the Workout Session and set routes. */
+export const WorkoutSessionSet = z
+  .object({
+    id: Id,
+    logged_at: timestamp("When its result was logged").nullable(),
+    order: z.int().openapi({ example: 1 }),
+    reps_completed: z.int().nullable().openapi({ example: 8 }),
+    reps_recommended: z.int().nullable().openapi({ example: 8 }),
+    rest_recommended: z.int().nullable().openapi({
+      description: "Rest after the set, in seconds",
+      example: 90,
+    }),
+    weight_completed: z.number().nullable().openapi({
+      description: "In `weight_unit`",
+      example: 80.5,
+    }),
+    weight_recommended: z.number().nullable().openapi({
+      description: "In `weight_unit`",
+      example: 80,
+    }),
+  })
+  .openapi("WorkoutSessionSet");

@@ -6,19 +6,14 @@ import {
   invalidRequest,
   invalidRequestResponse,
   rateLimitedResponse,
+  timestamp,
   unauthorizedResponse,
   WeightUnit,
+  WorkoutSessionSet,
 } from "../schemas.js";
 
 const DEFAULT_LIMIT = 20;
 const MAX_LIMIT = 50;
-
-const timestamp = (description: string) =>
-  z.string().openapi({
-    description: `${description} (ISO 8601)`,
-    example: "2026-10-01T10:00:00.123456+00:00",
-    format: "date-time",
-  });
 
 const Status = z.enum(["in_progress", "finished"]).openapi({
   description: "`finished` once `finished_at` is set",
@@ -78,28 +73,6 @@ const WorkoutSessionPage = z
     }),
   })
   .openapi("WorkoutSessionPage");
-
-export const WorkoutSessionSet = z
-  .object({
-    id: Id,
-    logged_at: timestamp("When its result was logged").nullable(),
-    order: z.int().openapi({ example: 1 }),
-    reps_completed: z.int().nullable().openapi({ example: 8 }),
-    reps_recommended: z.int().nullable().openapi({ example: 8 }),
-    rest_recommended: z.int().nullable().openapi({
-      description: "Rest after the set, in seconds",
-      example: 90,
-    }),
-    weight_completed: z.number().nullable().openapi({
-      description: "In `weight_unit`",
-      example: 80.5,
-    }),
-    weight_recommended: z.number().nullable().openapi({
-      description: "In `weight_unit`",
-      example: 80,
-    }),
-  })
-  .openapi("WorkoutSessionSet");
 
 const WorkoutSessionExercise = z
   .object({

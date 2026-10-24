@@ -385,6 +385,14 @@ describe("a Workout Session through the Public API against the local stack", () 
     expect((await request(owner, "GET", path)).status).toBe(404);
   });
 
+  it("answers 404 for a Workout nobody has", async () => {
+    const started = await request(owner, "POST", "/v1/workout-sessions", {
+      workout_id: "00000000-0000-4000-8000-000000000000",
+    });
+
+    expect(started.status).toBe(404);
+  });
+
   it("answers 404 for a Workout of a deleted Plan", async () => {
     await withService((tx) =>
       tx
