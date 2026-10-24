@@ -1,4 +1,15 @@
-import { asUser, type Transaction } from "@fitme/db";
+import {
+  asUser,
+  plans,
+  profiles,
+  type Transaction,
+  workoutExerciseSets,
+  workoutExercises,
+  workoutSessionExerciseSets,
+  workoutSessionExercises,
+  workoutSessions,
+  workouts,
+} from "@fitme/db";
 import {
   activatePlan,
   type CreatePlanOptions,
@@ -38,6 +49,25 @@ import {
   type WorkoutSessionDetail,
   type WorkoutSessionPage,
 } from "@fitme/services/workout-sessions";
+import { sql } from "drizzle-orm";
+
+/**
+ * The User tables a write may touch, in deleteUserData's lock order (its
+ * LOCKED_TABLES, without coach_sessions).
+ */
+const USER_TABLES = sql.join(
+  [
+    profiles,
+    plans,
+    workoutSessions,
+    workouts,
+    workoutExercises,
+    workoutExerciseSets,
+    workoutSessionExercises,
+    workoutSessionExerciseSets,
+  ],
+  sql`, `
+);
 
 /**
  * A read carrying weights, with the unit they're stored in: the User's
@@ -140,16 +170,33 @@ export const createServicesFromEnv: ServicesFactory = (userId) => {
     return null;
   }
 
-  /** `run`, after locking the units its weights are in. */
-  const inUnits = <T>(run: (tx: Transaction) => Promise<T>) =>
+  /** `run`, after locking the units its weights are in (and `before`, first). */
+  const inUnits = <T>(
+    run: (tx: Transaction) => Promise<T>,
+    { before }: { before?: (tx: Transaction) => Promise<unknown> } = {}
+  ) =>
     asUser(userId, async (tx): Promise<Weighed<T>> => {
+      await before?.(tx);
       const units = await lockProfileUnits(tx, userId);
       return { value: await run(tx), weightUnit: units?.weight ?? "kg" };
     });
 
-  /** `read` in its units, or `null` when it finds nothing. */
-  const weighed = async <T>(read: (tx: Transaction) => Promise<T | null>) => {
-    const { value, weightUnit } = await inUnits(read);
+  /**
+   * Locks the tables a write touches, before the Profile row lock: an account
+   * deletion holds those tables and then deletes that row, so asking for
+   * them after it would deadlock. Waiting for them up front holds nothing.
+   */
+  const write = {
+    before: (tx: Transaction) =>
+      tx.execute(sql`lock table ${USER_TABLES} in row exclusive mode`),
+  };
+
+  /** `read` (or a write, with `write`) in its units, or `null` when it finds nothing. */
+  const weighed = async <T>(
+    read: (tx: Transaction) => Promise<T | null>,
+    options?: typeof write
+  ) => {
+    const { value, weightUnit } = await inUnits(read, options);
     return value === null ? null : { value, weightUnit };
   };
 
@@ -160,16 +207,17 @@ export const createServicesFromEnv: ServicesFactory = (userId) => {
       weighed(async (tx) =>
         (await activatePlan(tx, userId, planId))
           ? getPlan(tx, userId, planId)
-          : null
+          : null,
+        write
       ),
     createPlan: (plan, options) =>
-      inUnits((tx) => createPlan(tx, userId, plan, options)),
+      inUnits((tx) => createPlan(tx, userId, plan, options), write),
     deletePlan: (planId) =>
       asUser(userId, (tx) => deletePlan(tx, userId, planId)),
     deleteWorkoutSession: (sessionId) =>
       asUser(userId, (tx) => deleteWorkoutSession(tx, sessionId)),
     finishWorkoutSession: (sessionId) =>
-      inUnits((tx) => finishWorkoutSession(tx, sessionId)),
+      inUnits((tx) => finishWorkoutSession(tx, sessionId), write),
     getActivePlan: () => weighed((tx) => getActivePlan(tx, userId)),
     getPlan: (planId) => weighed((tx) => getPlan(tx, userId, planId)),
     getProfile: () => asUser(userId, (tx) => getProfile(tx, userId)),
@@ -178,14 +226,17 @@ export const createServicesFromEnv: ServicesFactory = (userId) => {
     listPlans: () => asUser(userId, (tx) => listPlans(tx, userId)),
     listWorkoutSessions: (options) =>
       asUser(userId, (tx) => listWorkoutSessions(tx, options)),
-    logSet: (input) => inUnits((tx) => logSet(tx, input)),
-    replaceWorkouts: (planId, workouts) =>
-      weighed((tx) => updatePlan(tx, userId, planId, { workouts })),
+    logSet: (input) => inUnits((tx) => logSet(tx, input), write),
+    replaceWorkouts: (planId, replacement) =>
+      weighed(
+        (tx) => updatePlan(tx, userId, planId, { workouts: replacement }),
+        write
+      ),
     startWorkoutSession: (workoutId) =>
-      inUnits((tx) => startWorkoutSession(tx, workoutId)),
+      inUnits((tx) => startWorkoutSession(tx, workoutId), write),
     // Metadata only: never `workouts`, so Workout ids stay.
     updatePlan: (planId, changes) =>
-      weighed((tx) => updatePlan(tx, userId, planId, changes)),
+      weighed((tx) => updatePlan(tx, userId, planId, changes), write),
     updateProfile: (changes) =>
       asUser(userId, (tx) => updateProfile(tx, userId, changes)),
   };
