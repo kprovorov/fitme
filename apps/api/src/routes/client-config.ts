@@ -7,9 +7,16 @@ import {
 
 const VERSION_PATTERN = /^\d+\.\d+\.\d+$/;
 
-/** An `x.y.z` version from env; unset or malformed means no minimum. */
-const minimumVersionFromEnv = (name: string) => {
-  const value = process.env[name]?.trim();
+const envValue = (name: string) => process.env[name]?.trim() || undefined;
+
+/**
+ * A platform's `x.y.z` minimum from `MIN_APP_VERSION_<PLATFORM>`, or from
+ * `MIN_APP_VERSION` when that one is unset or blank; neither set, or a
+ * malformed value, means no minimum.
+ */
+const minimumVersionFromEnv = (platform: "ANDROID" | "IOS" | "WEB") => {
+  const value =
+    envValue(`MIN_APP_VERSION_${platform}`) ?? envValue("MIN_APP_VERSION");
   return value && VERSION_PATTERN.test(value) ? value : null;
 };
 
@@ -25,6 +32,7 @@ const ClientConfig = z
       minimumVersion: z.object({
         android: MinimumVersion,
         ios: MinimumVersion,
+        web: MinimumVersion,
       }),
     }),
   })
@@ -36,14 +44,14 @@ const getClientConfig = createRoute({
   responses: {
     200: {
       content: { "application/json": { schema: ClientConfig } },
-      description: "The mobile app's config: its minimum version per platform",
+      description: "The client config: the minimum app version per platform",
       headers: publicCacheHeaders,
     },
   },
-  summary: "Mobile client config",
+  summary: "Client config",
 });
 
-// Public: the mobile app reads it before anyone signs in.
+// Public: the clients read it before anyone signs in.
 export const clientConfig = new OpenAPIHono({
   defaultHook: invalidRequest,
 }).openapi(getClientConfig, (c) => {
@@ -52,8 +60,9 @@ export const clientConfig = new OpenAPIHono({
     {
       data: {
         minimumVersion: {
-          android: minimumVersionFromEnv("MIN_APP_VERSION_ANDROID"),
-          ios: minimumVersionFromEnv("MIN_APP_VERSION_IOS"),
+          android: minimumVersionFromEnv("ANDROID"),
+          ios: minimumVersionFromEnv("IOS"),
+          web: minimumVersionFromEnv("WEB"),
         },
       },
     },

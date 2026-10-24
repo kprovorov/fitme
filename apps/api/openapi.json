@@ -38,11 +38,18 @@
                     "nullable": true,
                     "description": "The oldest supported app version (`x.y.z`), or `null` for no minimum.",
                     "example": "1.10.0"
+                  },
+                  "web": {
+                    "type": "string",
+                    "nullable": true,
+                    "description": "The oldest supported app version (`x.y.z`), or `null` for no minimum.",
+                    "example": "1.10.0"
                   }
                 },
                 "required": [
                   "android",
-                  "ios"
+                  "ios",
+                  "web"
                 ]
               }
             },
@@ -1144,10 +1151,10 @@
     },
     "/v1/client-config": {
       "get": {
-        "summary": "Mobile client config",
+        "summary": "Client config",
         "responses": {
           "200": {
-            "description": "The mobile app's config: its minimum version per platform",
+            "description": "The client config: the minimum app version per platform",
             "headers": {
               "Cache-Control": {
                 "schema": {
