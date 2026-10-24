@@ -213,7 +213,9 @@ jobs:
 
       - name: Build iOS simulator app
         working-directory: apps/mobile
-        # pipefail: xcpretty would otherwise hide a failed build.
+        # pipefail: xcpretty would otherwise hide a failed build. xcpretty
+        # also drops script phases' output, so the raw log is kept and
+        # uploaded with the results.
         # Signed ad hoc, never unsigned: an unsigned app has no
         # application-identifier entitlement, so the keychain refuses it, Clerk's
         # token cache (expo-secure-store) never answers and the app never gets
@@ -229,7 +231,7 @@ jobs:
             -sdk iphonesimulator \
             -derivedDataPath ios/build \
             CODE_SIGN_IDENTITY=- \
-            SENTRY_DISABLE_AUTO_UPLOAD=true | xcpretty
+            SENTRY_DISABLE_AUTO_UPLOAD=true | tee xcodebuild.log | xcpretty
         env:
           EXPO_PUBLIC_E2E_ENABLED: "true"
           EXPO_PUBLIC_SUPABASE_URL: ${{ steps.branch-details.outputs.api_url }}
@@ -265,7 +267,9 @@ jobs:
       # instance (test mode: no email sent, fixed code 424242).
       - name: Run E2E tests
         working-directory: apps/mobile
-        run: pnpm test:e2e -- --format junit --output e2e-results.xml
+        # No `--`: pnpm forwards it, and Maestro would read the options after
+        # it as flow paths.
+        run: pnpm test:e2e --format junit --output e2e-results.xml
 
       # Artifacts aren't masked: a log holding the fitme password is never
       # uploaded. The API gets no other secret, so it is the only one to look
@@ -288,6 +292,7 @@ jobs:
           name: e2e-results
           path: |
             apps/mobile/e2e-results.xml
+            apps/mobile/xcodebuild.log
             apps/api/e2e-api.log
 
       - name: Delete Supabase preview branch
