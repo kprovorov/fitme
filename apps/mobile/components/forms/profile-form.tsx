@@ -4,7 +4,12 @@ import {
   formatWeight,
   genders,
   inchesToFeetAndInches,
+  MAX_AGE,
+  MAX_BODY_DECIMALS,
+  MAX_BODY_HEIGHT,
+  MAX_BODY_WEIGHT,
   type MeasurementSystem,
+  MIN_AGE,
   range,
 } from "@fitme/core";
 import { zodResolver } from "@hookform/resolvers/zod";
@@ -50,8 +55,6 @@ import { H4 } from "~/components/ui/typography";
 import { VStack } from "~/components/ui/vstack";
 import { numberInRange } from "~/lib/form-schemas";
 
-export type ProfileFormValues = z.infer<typeof formSchema>;
-
 /** Shown instead of raw Supabase errors when saving the profile fails. */
 export const PROFILE_SAVE_ERROR_MESSAGE =
   "Couldn't save your profile. Please check your connection and try again.";
@@ -71,19 +74,67 @@ const DEFAULT_HEIGHT_CM = 176;
 /** 5 ft. */
 const DEFAULT_HEIGHT_INCHES = 60;
 
-const formSchema = z.object({
-  age: numberInRange(4, 150, "Age is required"),
-  gender: z.enum(genders, { error: "Gender is required" }),
-  height: numberInRange(1, 500, "Height is required"),
-  // Only rendered (and therefore only set) when `showName` is enabled. Clerk's
-  // Name is optional, so a User without one can still save the other fields.
-  name: z
-    .string()
-    .trim()
-    .max(50, { error: "Name must be at most 50 characters" })
-    .optional(),
-  weight: numberInRange(1, 500, "Weight is required"),
-});
+/** The smallest height or weight step: at most `MAX_BODY_DECIMALS` decimals. */
+const BODY_STEP = 10 ** -MAX_BODY_DECIMALS;
+
+const bodyValue = (max: number, requiredMessage: string) =>
+  numberInRange(1, max, requiredMessage).multipleOf(BODY_STEP, {
+    error: `Number must have at most ${MAX_BODY_DECIMALS} decimals`,
+  });
+
+const ageSchema = numberInRange(MIN_AGE, MAX_AGE, "Age is required");
+const heightSchema = bodyValue(MAX_BODY_HEIGHT, "Height is required");
+const weightSchema = bodyValue(MAX_BODY_WEIGHT, "Weight is required");
+
+/**
+ * `schema`, except that the `saved` value passes as it is: only what the User
+ * changes is sent (edit-profile), so a value saved before today's bounds
+ * never blocks an unrelated edit.
+ */
+const orSaved = (
+  schema: typeof ageSchema,
+  saved: number | undefined,
+  requiredMessage: string
+) =>
+  saved === undefined
+    ? schema
+    : z.coerce
+        .number<number>({ error: requiredMessage })
+        .superRefine((value, ctx) => {
+          if (value === saved) {
+            return;
+          }
+          for (const issue of schema.safeParse(value).error?.issues ?? []) {
+            ctx.addIssue({ code: "custom", message: issue.message });
+          }
+        });
+
+/**
+ * The Public API's Profile bounds (`@fitme/core`), so a value the form takes
+ * is never refused after submit; a saved value passes unchanged. Heights and
+ * weights start at 1, where the wheels do (the API takes anything above 0).
+ */
+const profileFormSchema = (saved: {
+  age?: number;
+  height?: number;
+  weight?: number;
+}) =>
+  z.object({
+    age: orSaved(ageSchema, saved.age, "Age is required"),
+    gender: z.enum(genders, { error: "Gender is required" }),
+    height: orSaved(heightSchema, saved.height, "Height is required"),
+    // Only rendered (and therefore only set) when `showName` is enabled.
+    // Clerk's Name is optional, so a User without one can still save the
+    // other fields.
+    name: z
+      .string()
+      .trim()
+      .max(50, { error: "Name must be at most 50 characters" })
+      .optional(),
+    weight: orSaved(weightSchema, saved.weight, "Weight is required"),
+  });
+
+export type ProfileFormValues = z.infer<ReturnType<typeof profileFormSchema>>;
 
 export interface ProfileFormProps {
   defaultValues: Partial<ProfileFormValues>;
@@ -115,9 +166,15 @@ export default function ProfileForm({
 }: ProfileFormProps) {
   const insets = useSafeAreaInsets();
 
+  // The saved values the form starts from; later changes to `defaultValues`
+  // don't reset the form either.
+  const [resolver] = useState(() =>
+    zodResolver(profileFormSchema(defaultValues))
+  );
+
   const form = useForm<ProfileFormValues>({
     defaultValues,
-    resolver: zodResolver(formSchema),
+    resolver,
   });
 
   const scrollViewRef = useRef<ScrollViewInstance>(null);
@@ -501,7 +558,7 @@ function AgeWheel({
   return (
     <Picker
       onValueChange={setAge}
-      options={range(4, 150).map((i) => ({
+      options={range(MIN_AGE, MAX_AGE).map((i) => ({
         label: `${i}`,
         value: i,
       }))}

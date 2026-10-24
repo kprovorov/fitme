@@ -421,6 +421,15 @@ class FakeQuery {
     switch (key) {
       case "profiles.select":
         return backend.profile(this.filters.user_id as string) ?? null;
+      case "profiles.insert": {
+        // Creating a Profile; editing one goes through the Public API.
+        const row = this.values as unknown as ProfileRow;
+        if (backend.profile(row.user_id)) {
+          throw new Error("Fake backend: the User already has a Profile");
+        }
+        backend.profiles.push(row);
+        return row;
+      }
       case "plans.select":
         if (this.filters.id === undefined) {
           // The User's Plans (live ones with `.is("deleted_at", null)`),

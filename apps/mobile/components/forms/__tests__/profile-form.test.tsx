@@ -1,5 +1,5 @@
 import { describe, expect, it, jest } from "@jest/globals";
-import { fireEvent, render, screen } from "@testing-library/react-native";
+import { act, fireEvent, render, screen } from "@testing-library/react-native";
 import ProfileForm, {
   type ProfileFormProps,
   type ProfileFormValues,
@@ -25,8 +25,15 @@ jest.mock("~/components/ui/button", () =>
   jest.requireActual("~/test-utils/button-stub")
 );
 // The SwiftUI wheel can't mount under Jest; like the native one, the stub
-// never reports the selection it opens on.
-jest.mock("~/components/ui/picker", () => ({ Picker: () => null }));
+// never reports the selection it opens on. The open wheel's setter is kept, so
+// a test can pick any value, in bounds or not.
+const mockWheel: { onValueChange?: (value: number) => void } = {};
+jest.mock("~/components/ui/picker", () => ({
+  Picker: ({ onValueChange }: { onValueChange: (value: number) => void }) => {
+    mockWheel.onValueChange = onValueChange;
+    return null;
+  },
+}));
 
 const renderForm = async ({
   defaultValues = { gender: "male" },
@@ -106,5 +113,71 @@ describe("ProfileForm", () => {
       height: 65.35,
       weight: 80.5,
     });
+  });
+
+  const OUT_OF_BOUNDS = [
+    ["Age", 9, "Number must be greater than or equal to 10"],
+    ["Age", 121, "Number must be less than or equal to 120"],
+    ["Height", 300.5, "Number must be less than or equal to 300"],
+    ["Weight", 1000.5, "Number must be less than or equal to 1000"],
+    ["Weight", 80.125, "Number must have at most 2 decimals"],
+  ] as const;
+  const FORMS = [
+    ["onboarding", { gender: "male" }],
+    ["edit", { age: 30, gender: "female", height: 170, weight: 60 }],
+  ] as const;
+
+  it.each(
+    FORMS.flatMap(([form, defaultValues]) =>
+      OUT_OF_BOUNDS.map(
+        ([row, value, message]) =>
+          [form, row, value, message, defaultValues] as const
+      )
+    )
+  )(
+    "refuses on %s: %s %d",
+    async (_form, row, value, message, defaultValues) => {
+      const onSubmit = await renderForm({ defaultValues });
+
+      await openWheel("Age");
+      await openWheel("Weight");
+      await openWheel("Height");
+      await openWheel(row);
+      await act(() => mockWheel.onValueChange?.(value));
+      await submit();
+
+      expect(await screen.findByText(message)).toBeTruthy();
+      expect(onSubmit).not.toHaveBeenCalled();
+    }
+  );
+
+  it("takes the shared bounds themselves", async () => {
+    const onSubmit = await renderForm({
+      defaultValues: { age: 30, gender: "male", height: 170, weight: 60 },
+    });
+
+    await openWheel("Age");
+    await act(() => mockWheel.onValueChange?.(120));
+    await openWheel("Height");
+    await act(() => mockWheel.onValueChange?.(300));
+    await openWheel("Weight");
+    await act(() => mockWheel.onValueChange?.(999.99));
+    await submit();
+
+    expect(onSubmit.mock.calls[0]?.[0]).toMatchObject({
+      age: 120,
+      height: 300,
+      weight: 999.99,
+    });
+  });
+
+  it("lets a saved value outside the shared bounds through unchanged", async () => {
+    const onSubmit = await renderForm({
+      defaultValues: { age: 4, gender: "female", height: 400, weight: 60 },
+    });
+
+    await submit();
+
+    expect(onSubmit.mock.calls[0]?.[0]).toMatchObject({ age: 4, height: 400 });
   });
 });

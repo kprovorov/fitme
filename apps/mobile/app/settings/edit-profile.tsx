@@ -15,6 +15,14 @@ import { ErrorMessage } from "~/components/ui/error-message";
 import { VStack } from "~/components/ui/vstack";
 import { useUpdateProfileMutation } from "~/hooks/mutations/profiles";
 import { useProfileQuery } from "~/hooks/queries/profiles";
+import { rateLimitedFor } from "~/lib/api/client";
+
+const saveErrorMessage = (error: unknown) => {
+  const waitSeconds = rateLimitedFor(error);
+  return waitSeconds === null
+    ? PROFILE_SAVE_ERROR_MESSAGE
+    : `Couldn't save your profile. Too many requests: please try again in ${waitSeconds} s.`;
+};
 
 export default function EditProfileScreen() {
   const queryClient = useQueryClient();
@@ -45,10 +53,13 @@ export default function EditProfileScreen() {
     error,
   } = useUpdateProfileMutation({
     onError: (e) => {
-      Sentry.captureException(e);
+      // Too many requests is the User's to wait out, not a bug.
+      if (rateLimitedFor(e) === null) {
+        Sentry.captureException(e);
+      }
     },
-    // Also after a failure: the Profile row may be saved even if the name is
-    // not. Clerk's user hook picks up the new name by itself.
+    // Also after a failure: the Profile may be saved even if the name is not,
+    // or the answer was lost after the save. Clerk's user hook picks up the new name by itself.
     onSettled: () =>
       queryClient.invalidateQueries({ queryKey: useProfileQuery.getKey() }),
     onSuccess: () => {
@@ -72,10 +83,11 @@ export default function EditProfileScreen() {
         height,
         measurementSystem,
         name: formName ?? name,
+        profile: profile ?? null,
         weight,
       });
     },
-    [measurementSystem, name, updateProfile, user]
+    [measurementSystem, name, profile, updateProfile, user]
   );
 
   return (
@@ -116,7 +128,7 @@ export default function EditProfileScreen() {
             weight: profile?.weight ?? undefined,
           }}
           footer={
-            !!error && <ErrorMessage>{PROFILE_SAVE_ERROR_MESSAGE}</ErrorMessage>
+            !!error && <ErrorMessage>{saveErrorMessage(error)}</ErrorMessage>
           }
           isSubmitting={isPending}
           measurementSystem={measurementSystem}
