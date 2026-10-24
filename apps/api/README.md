@@ -20,6 +20,9 @@ pnpm api openapi        # regenerate openapi.json (commit it; CI fails when it's
 - `GET /v1/muscle-groups/:muscleGroup` — single muscle group
 - `GET /v1/profile` — the signed-in User's Profile with its units, or `{ data: null }` before onboarding
 - `PATCH /v1/profile` — changes any of `age`, `gender`, `height`, `weight`, `measurement_system` (only those given; height and weight in the resulting system's units). A new measurement system first converts every stored height and weight of the User (Profile, Plan set targets, Workout Session weights). Answers the updated Profile, or 404 `profile_not_found` without one
+- `GET /v1/plans` — the User's live Plans, newest first, each with its Workouts in rotation order (name, order, Exercise count); not paged
+- `GET /v1/plans/active` — the active Plan in full, or `{ data: null }` without one
+- `GET /v1/plans/:id` — one Plan in full (Workouts, Exercises by `exercise_slug`, sets, each in order, plus `weight_unit`), or 404 `not_found`
 
 `/health` and the global routes above answer without a token. Every other route, unknown ones included, needs `Authorization: Bearer <Clerk session token>`, verified networkless against `CLERK_JWT_KEY` (a token with a `sid`; `sub` is the User id); a missing or invalid one answers 401 `unauthorized`, so an unknown route answers 404 only to a signed-in caller. CORS preflights answer before auth.
 
@@ -33,9 +36,9 @@ Responses are JSON. Successful responses wrap the payload in `data`; failures re
 - `src/app.ts` — Vercel entry: starts `@fitme/observability`, then default-exports `createApp()`
 - `src/create-app.ts` — `createApp({ clerkJwtKey, createServices, identifyUser, reportError })` (each defaults to the real one): request spans, global middleware, the public routes, then auth, the User-data routes and the error/not-found handlers (unhandled errors are reported before the 500; 4xx aren't)
 - `src/auth.ts` — `requireCaller` (the verified caller, `{ userId, kind: "session" }`, and their services) and `requires(permission)`, each User-data route's declared `read` / `write`
-- `src/services.ts` — `UserServices`, the per-User facade: each method runs one `@fitme/services` function inside `asUser` for the verified User id; routes never pass a User id
+- `src/services.ts` — `UserServices`, the per-User facade: each method runs one `@fitme/services` function inside `asUser` for the verified User id (a read carrying weights first share-locks the Profile and reads its weight unit in the same transaction, so a conversion can't commit in between); routes never pass a User id
 - `src/routes/v1.ts` — versioned routers mounting resource routers from `src/routes/`: `publicV1` (no caller) and `userV1` (after auth)
-- `src/schemas.ts` — shared schemas (`ErrorResponse`, `MuscleGroup`) and `invalidRequest`, every router's validation hook
+- `src/schemas.ts` — shared schemas (`ErrorResponse`, `MuscleGroup`, `WeightUnit`) and `invalidRequest`, every router's validation hook
 - `src/openapi.ts` — writes `openapi.json` (`pnpm api openapi`)
 
 ## Tests
@@ -44,4 +47,4 @@ Responses are JSON. Successful responses wrap the payload in `data`; failures re
 
 ## Integration tests
 
-`integration/` runs the same seam against a real Supabase stack (`pnpm db start`): the real services facade through `asUser` on the stack's Supavisor pooler (the vitest config reads its URL from `supabase status`; `FITME_DATABASE_URL` overrides it), as made-up Clerk-style `user_…` ids with test-signed tokens. CI runs it in `.github/workflows/integration-tests.yml`.
+`integration/` runs the same seam against a real Supabase stack (`pnpm db start`, plus `pnpm db seed`: until the contract step a Plan written by slug needs the slug in the legacy `exercises` table): the real services facade through `asUser` on the stack's Supavisor pooler (the vitest config reads its URL from `supabase status`; `FITME_DATABASE_URL` overrides it), as made-up Clerk-style `user_…` ids with test-signed tokens. CI runs it in `.github/workflows/integration-tests.yml`.

@@ -1,10 +1,29 @@
-import { asUser } from "@fitme/db";
+import { asUser, type Transaction } from "@fitme/db";
+import {
+  getActivePlan,
+  getPlan,
+  listPlans,
+  type PlanDetail,
+  type PlanSummary,
+} from "@fitme/services/plans";
 import {
   getProfile,
+  lockProfileUnits,
   type ProfileChanges,
+  type ProfileUnits,
   type ProfileWithUnits,
   updateProfile,
 } from "@fitme/services/profile";
+
+/**
+ * A read carrying weights, with the unit they're stored in: the User's
+ * Profile's (`kg` without a Profile), locked in the same transaction before
+ * the read, so no conversion can commit in between.
+ */
+export interface Weighed<T> {
+  value: T;
+  weightUnit: ProfileUnits["weight"];
+}
 
 /**
  * The services a verified User's requests call, each bound to that User and
@@ -12,7 +31,12 @@ import {
  * a User id: it comes from the verified caller the services were built for.
  */
 export interface UserServices {
+  /** The active Plan in full, or `null` with none. */
+  getActivePlan: () => Promise<Weighed<PlanDetail> | null>;
+  /** A live Plan of the User in full, or `null` (missing, deleted, foreign). */
+  getPlan: (planId: string) => Promise<Weighed<PlanDetail> | null>;
   getProfile: () => Promise<ProfileWithUnits | null>;
+  listPlans: () => Promise<PlanSummary[]>;
   /** The updated Profile, or `null` with nothing changed without one. */
   updateProfile: (changes: ProfileChanges) => Promise<ProfileWithUnits | null>;
 }
@@ -28,8 +52,22 @@ export const createServicesFromEnv: ServicesFactory = (userId) => {
   if (!process.env.FITME_DATABASE_URL) {
     return null;
   }
+
+  /** `read`, after locking the units its weights are in. */
+  const weighed = <T>(read: (tx: Transaction) => Promise<T | null>) =>
+    asUser(userId, async (tx): Promise<Weighed<T> | null> => {
+      const units = await lockProfileUnits(tx, userId);
+      const value = await read(tx);
+      return value === null
+        ? null
+        : { value, weightUnit: units?.weight ?? "kg" };
+    });
+
   return {
+    getActivePlan: () => weighed((tx) => getActivePlan(tx, userId)),
+    getPlan: (planId) => weighed((tx) => getPlan(tx, userId, planId)),
     getProfile: () => asUser(userId, (tx) => getProfile(tx, userId)),
+    listPlans: () => asUser(userId, (tx) => listPlans(tx, userId)),
     updateProfile: (changes) =>
       asUser(userId, (tx) => updateProfile(tx, userId, changes)),
   };

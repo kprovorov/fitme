@@ -77,6 +77,27 @@ export const getProfile = async (
   };
 };
 
+/**
+ * The units of the User's stored heights and weights, in `tx` (from
+ * `asUser`), or `null` without a Profile, and the Profile row share-locked
+ * until `tx` ends. Every conversion (`updateProfile` and the
+ * `convert_measurement_system` RPC) row-locks the Profile before touching a
+ * value, so none commits while `tx` runs: whatever `tx` reads after this is
+ * in these units. (Under READ COMMITTED, two plain SELECTs in one transaction
+ * can straddle a conversion's commit.)
+ */
+export const lockProfileUnits = async (
+  tx: Transaction,
+  userId: string
+): Promise<ProfileUnits | null> => {
+  const [profile] = await tx
+    .select({ measurementSystem: profiles.measurementSystem })
+    .from(profiles)
+    .where(eq(profiles.userId, userId))
+    .for("share");
+  return profile ? unitsFor(profile.measurementSystem) : null;
+};
+
 /** Fields of a Profile to change; omitted ones stay as they are. */
 export interface ProfileChanges {
   age?: number;

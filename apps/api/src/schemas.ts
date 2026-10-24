@@ -46,3 +46,9 @@ export const unauthorizedResponse = {
   content: { "application/json": { schema: ErrorResponse } },
   description: "No valid Clerk session token",
 };
+
+/** The unit every weight of a User is stored and shown in. */
+export const WeightUnit = z.enum(["kg", "lbs"]).openapi("WeightUnit", {
+  description:
+    "The unit of every weight in the response: `kg` (metric) or `lbs` (us, uk). Weights are as stored, never converted",
+});
