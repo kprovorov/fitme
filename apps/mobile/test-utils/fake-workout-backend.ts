@@ -76,6 +76,8 @@ export interface SeedPlanSet {
 }
 
 export interface SeedPlan {
+  /** When it was soft-deleted; `null` (the default) while it's live. */
+  deleted_at?: string | null;
   id: string;
   /** Whether it's the User's active Plan; `false` unless given. */
   is_active?: boolean;
@@ -270,12 +272,23 @@ class FakeWorkoutBackend {
     }
   }
 
-  nestedPlan({ id, is_active = false, name, workouts }: SeedPlan) {
+  nestedPlan({
+    deleted_at = null,
+    id,
+    is_active = false,
+    name,
+    workouts,
+  }: SeedPlan) {
     return {
-      deleted_at: null,
+      deleted_at,
+      description: `About ${name}`,
+      experience_level: "intermediate",
+      frequency: 3,
+      goal: "strength-performance",
       id,
       is_active,
       name,
+      place: "gym",
       workouts: workouts.map((workout, workoutIndex) => ({
         exercises: workout.exercises.map(({ sets, slug }, exerciseIndex) => ({
           exercise_slug: slug,
@@ -410,8 +423,14 @@ class FakeQuery {
         return backend.profile(this.filters.user_id as string) ?? null;
       case "plans.select":
         if (this.filters.id === undefined) {
-          // Every Plan, newest first (the fake keeps no deleted ones).
-          return [...backend.plans]
+          // The User's Plans (live ones with `.is("deleted_at", null)`),
+          // newest first.
+          return backend.plans
+            .filter(
+              (plan) =>
+                !("deleted_at" in this.filters) ||
+                (plan.deleted_at ?? null) === this.filters.deleted_at
+            )
             .reverse()
             .map((plan) => backend.nestedPlan(plan));
         }

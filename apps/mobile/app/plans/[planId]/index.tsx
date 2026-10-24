@@ -9,27 +9,54 @@ import {
   useDeletePlanMutation,
   usePlanQuery,
 } from "~/hooks/queries/plans";
+import { ApiError, rateLimitedFor } from "~/lib/api/client";
+
+/**
+ * What to tell the User after a failed Plan write. A failure other than a 404
+ * or a 429 doesn't prove nothing changed (the answer can be lost after the
+ * write commits), so it never says either way.
+ */
+const failureMessage = (error: unknown) => {
+  if (error instanceof ApiError && error.code === "not_found") {
+    return "This plan no longer exists.";
+  }
+  const waitSeconds = rateLimitedFor(error);
+  return waitSeconds === null
+    ? "Please check your connection and try again."
+    : `Too many requests: please try again in ${waitSeconds} s.`;
+};
 
 export default function PlanScreen() {
   const { planId } = useLocalSearchParams();
   const queryClient = useQueryClient();
   const router = useRouter();
 
-  const { mutate: activatePlan, isPending: _isActivatingPlan } =
-    useActivatePlanMutation({
-      onSuccess: () => {
-        queryClient.invalidateQueries({ queryKey: ["plans"] });
-        router.dismissTo("/");
-      },
-    });
+  // A failed call doesn't prove nothing changed, so the Plans are read again
+  // either way.
+  const refreshPlans = useCallback(() => {
+    queryClient.invalidateQueries({ queryKey: ["plans"] });
+    queryClient.invalidateQueries({ queryKey: ["plan"] });
+  }, [queryClient]);
 
-  const { mutate: deletePlan, isPending: _isDeletingPlan } =
-    useDeletePlanMutation({
-      onSuccess: () => {
-        queryClient.invalidateQueries({ queryKey: ["plans"] });
-        router.dismissTo("/");
-      },
-    });
+  const { mutate: activatePlan } = useActivatePlanMutation({
+    onError: (error) => {
+      Alert.alert("Couldn't Activate Plan", failureMessage(error));
+    },
+    onSettled: refreshPlans,
+    onSuccess: () => {
+      router.dismissTo("/");
+    },
+  });
+
+  const { mutate: deletePlan } = useDeletePlanMutation({
+    onError: (error) => {
+      Alert.alert("Couldn't Archive Plan", failureMessage(error));
+    },
+    onSettled: refreshPlans,
+    onSuccess: () => {
+      router.dismissTo("/");
+    },
+  });
 
   const {
     data: plan,
