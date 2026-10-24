@@ -1,4 +1,5 @@
 import pg from "pg";
+import type { TestProject } from "vitest/node";
 
 /**
  * Warms the local Supavisor pooler before an integration suite starts. A cold
@@ -17,6 +18,15 @@ const errorCode = (error: unknown): string | undefined =>
   error instanceof Error && "code" in error && typeof error.code === "string"
     ? error.code
     : undefined;
+
+/**
+ * A wrong login, password or database in the URL: retrying won't help, and
+ * Postgres' own message says what's wrong.
+ */
+const isConfigError = (error: unknown): boolean => {
+  const code = errorCode(error);
+  return code !== undefined && (code.startsWith("28") || code === "3D000");
+};
 
 /** The URL without its password, for messages. */
 const redact = (url: string): string => {
@@ -55,6 +65,9 @@ export const waitForPooler = async (url: string): Promise<void> => {
     try {
       await selectOne(url, Math.max(left, 1));
     } catch (error) {
+      if (isConfigError(error)) {
+        throw error;
+      }
       const stackDown =
         errorCode(error) === "ECONNREFUSED" &&
         Date.now() - started >= REFUSED_GRACE_MS;
@@ -75,9 +88,7 @@ export const waitForPooler = async (url: string): Promise<void> => {
  * Vitest `globalSetup`: warms the pooler at the suite's FITME_DATABASE_URL
  * (from the config's `test.env`) before any test file starts.
  */
-export default async function setup(project: {
-  config: { env?: Record<string, unknown> };
-}): Promise<void> {
+export default async function setup(project: TestProject): Promise<void> {
   const url =
     project.config.env?.FITME_DATABASE_URL ?? process.env.FITME_DATABASE_URL;
   if (typeof url !== "string" || url === "") {
