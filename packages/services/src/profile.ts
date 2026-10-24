@@ -138,9 +138,9 @@ const converted = (column: AnyPgColumn, factor: SQL) =>
  * Converts the User's stored weights to another measurement system, in `tx`:
  * their Plans' set targets and their Workout Sessions' recommended and
  * completed weights, as the `convert_measurement_system` RPC does (which the
- * mobile app still calls: change both together). Like the RPC, it reaches
- * Workout Sessions through their Workout, so a session whose Workout is gone
- * keeps its values.
+ * mobile app still calls: change both together). Like the RPC, it finds
+ * Workout Sessions by their own `user_id`, so a session whose Workout is gone
+ * (its Plan's Workouts replaced) is converted too.
  */
 const convertStoredWeights = async (
   tx: Transaction,
@@ -193,9 +193,7 @@ const convertStoredWeights = async (
               workoutSessions,
               eq(workoutSessions.id, workoutSessionExercises.workoutSessionId)
             )
-            .innerJoin(workouts, eq(workouts.id, workoutSessions.workoutId))
-            .innerJoin(plans, eq(plans.id, workouts.planId))
-            .where(eq(plans.userId, userId))
+            .where(eq(workoutSessions.userId, userId))
         )
       )
     );
