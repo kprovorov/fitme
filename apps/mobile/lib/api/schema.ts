@@ -42,6 +42,43 @@ export interface paths {
     patch?: never;
     trace?: never;
   };
+  "/v1/arnold/models": {
+    parameters: {
+      query?: never;
+      header?: never;
+      path?: never;
+      cookie?: never;
+    };
+    /** Arnold models */
+    get: {
+      parameters: {
+        query?: never;
+        header?: never;
+        path?: never;
+        cookie?: never;
+      };
+      requestBody?: never;
+      responses: {
+        /** @description Every model Arnold accepts, in list order */
+        200: {
+          headers: {
+            "Cache-Control": string;
+            [name: string]: unknown;
+          };
+          content: {
+            "application/json": components["schemas"]["ArnoldModels"];
+          };
+        };
+      };
+    };
+    put?: never;
+    post?: never;
+    delete?: never;
+    options?: never;
+    head?: never;
+    patch?: never;
+    trace?: never;
+  };
   "/v1/client-config": {
     parameters: {
       query?: never;
@@ -86,7 +123,11 @@ export interface paths {
       path?: never;
       cookie?: never;
     };
-    /** Coach models */
+    /**
+     * Arnold models (deprecated)
+     * @deprecated
+     * @description The same list as `GET /v1/arnold/models`, kept for app builds from before the Arnold rename. Use `/v1/arnold/models`.
+     */
     get: {
       parameters: {
         query?: never;
@@ -96,14 +137,14 @@ export interface paths {
       };
       requestBody?: never;
       responses: {
-        /** @description Every model the Coach accepts, in list order */
+        /** @description Every model Arnold accepts, in list order */
         200: {
           headers: {
             "Cache-Control": string;
             [name: string]: unknown;
           };
           content: {
-            "application/json": components["schemas"]["CoachModels"];
+            "application/json": components["schemas"]["ArnoldModels"];
           };
         };
       };
@@ -1530,6 +1571,22 @@ export interface components {
   requestBodies: never;
   responses: never;
   schemas: {
+    ArnoldModels: {
+      data: {
+        /**
+         * @description The model Arnold uses when a turn names none.
+         * @example openai/gpt-5.5
+         */
+        defaultId: string;
+        models: components["schemas"]["ArnoldModel"][];
+      };
+    };
+    ArnoldModel: {
+      description: string;
+      /** @example openai/gpt-5.5 */
+      id: string;
+      label: string;
+    };
     ClientConfig: {
       data: {
         minimumVersion: {
@@ -1550,22 +1607,6 @@ export interface components {
           web: string | null;
         };
       };
-    };
-    CoachModels: {
-      data: {
-        /**
-         * @description The model the Coach uses when a turn names none.
-         * @example openai/gpt-5.5
-         */
-        defaultId: string;
-        models: components["schemas"]["CoachModel"][];
-      };
-    };
-    CoachModel: {
-      description: string;
-      /** @example openai/gpt-5.5 */
-      id: string;
-      label: string;
     };
     MuscleGroupItem: {
       id: components["schemas"]["MuscleGroup"];

@@ -1,4 +1,3 @@
-import { coachErrorCodes } from "@fitme/core";
 import { describe, expect, it } from "@jest/globals";
 import type { MessageStreamEvent } from "eve/client";
 import {
@@ -33,17 +32,21 @@ describe("coachRunConfig", () => {
 });
 
 describe("coachErrorAction", () => {
-  it("shows the paywall when the Coach refuses a User without Pro", () => {
-    expect(
-      coachErrorAction(clientError(403, coachErrorCodes.proRequired))
-    ).toBe("paywall");
-  });
+  // Arnold's channel sends the coach_* codes until pre-rename builds are cut
+  // off, then the arnold_* ones: either form means the same refusal.
+  it.each(["arnold_pro_required", "coach_pro_required"])(
+    "shows the paywall when Arnold refuses a User without Pro (%s)",
+    (code) => {
+      expect(coachErrorAction(clientError(403, code))).toBe("paywall");
+    }
+  );
 
-  it("shows the error when the Pro check is unavailable", () => {
-    expect(
-      coachErrorAction(clientError(503, coachErrorCodes.proCheckUnavailable))
-    ).toBe("show");
-  });
+  it.each(["arnold_pro_check_unavailable", "coach_pro_check_unavailable"])(
+    "shows the error when the Pro check is unavailable (%s)",
+    (code) => {
+      expect(coachErrorAction(clientError(503, code))).toBe("show");
+    }
+  );
 
   it("starts a new Conversation when the saved one has ended", () => {
     expect(coachErrorAction(clientError(409, "session_not_active"))).toBe(

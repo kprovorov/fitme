@@ -1,22 +1,22 @@
 import {
-  type CoachModelId,
-  coachModels,
-  defaultCoachModelId,
+  type ArnoldModelId,
+  arnoldModels,
+  defaultArnoldModelId,
 } from "@fitme/core";
 import type { ModelMessage } from "ai";
 import type { AgentModelOptionsDefinition } from "eve";
 
-/** The turn asked for a model that isn't in `coachModels`. */
-export class UnsupportedCoachModelError extends Error {
+/** The turn asked for a model that isn't in `arnoldModels`. */
+export class UnsupportedArnoldModelError extends Error {
   constructor(requested: unknown) {
     super(
-      `Unsupported coach model ${JSON.stringify(requested)}. Supported: ${coachModels.map(({ id }) => id).join(", ")}.`
+      `Unsupported Arnold model ${JSON.stringify(requested)}. Supported: ${arnoldModels.map(({ id }) => id).join(", ")}.`
     );
-    this.name = "UnsupportedCoachModelError";
+    this.name = "UnsupportedArnoldModelError";
   }
 }
 
-type CoachModelCreator = CoachModelId extends `${infer Creator}/${string}`
+type ArnoldModelCreator = ArnoldModelId extends `${infer Creator}/${string}`
   ? Creator
   : never;
 
@@ -24,13 +24,13 @@ type CoachModelCreator = CoachModelId extends `${infer Creator}/${string}`
 // the next host of the same model, in this order; nothing names a fallback
 // model, so the Gateway never swaps the model the User picked. Slugs:
 // https://vercel.com/docs/ai-gateway/provider-options#available-providers
-const hostOrder: Record<CoachModelCreator, string[]> = {
+const hostOrder: Record<ArnoldModelCreator, string[]> = {
   anthropic: ["anthropic", "bedrock", "vertex"],
   openai: ["openai", "azure", "bedrock"],
 };
 
-const creatorOf = (id: CoachModelId) =>
-  id.slice(0, id.indexOf("/")) as CoachModelCreator;
+const creatorOf = (id: ArnoldModelId) =>
+  id.slice(0, id.indexOf("/")) as ArnoldModelCreator;
 
 // eve hands a turn's `clientContext` object to the model as a user-role
 // framework message of this kind: the prefix, then the object as JSON. A
@@ -79,26 +79,26 @@ const requestedModel = (messages: readonly ModelMessage[]): unknown => {
 };
 
 /**
- * The model a Coach turn runs on: the coach model id the client sends as
- * `clientContext: { model }`, or the default when it sends none. `coachModels`
+ * The model an Arnold turn runs on: the Arnold model id the client sends as
+ * `clientContext: { model }`, or the default when it sends none. `arnoldModels`
  * in @fitme/core is the only list; any other value throws
- * `UnsupportedCoachModelError`, which fails the turn before the model runs.
+ * `UnsupportedArnoldModelError`, which fails the turn before the model runs.
  * The id is the Gateway's own, so eve routes the call through AI Gateway, with
  * the model's host order for failover.
  */
-export const coachModelSelection = (
+export const arnoldModelSelection = (
   messages: readonly ModelMessage[]
-): { model: CoachModelId; modelOptions: AgentModelOptionsDefinition } => {
-  const requested = requestedModel(messages) ?? defaultCoachModelId;
-  const coachModel = coachModels.find(({ id }) => id === requested);
-  if (!coachModel) {
-    throw new UnsupportedCoachModelError(requested);
+): { model: ArnoldModelId; modelOptions: AgentModelOptionsDefinition } => {
+  const requested = requestedModel(messages) ?? defaultArnoldModelId;
+  const arnoldModel = arnoldModels.find(({ id }) => id === requested);
+  if (!arnoldModel) {
+    throw new UnsupportedArnoldModelError(requested);
   }
   return {
-    model: coachModel.id,
+    model: arnoldModel.id,
     modelOptions: {
       providerOptions: {
-        gateway: { order: [...hostOrder[creatorOf(coachModel.id)]] },
+        gateway: { order: [...hostOrder[creatorOf(arnoldModel.id)]] },
       },
     },
   };
