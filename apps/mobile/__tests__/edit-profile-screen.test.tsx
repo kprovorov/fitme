@@ -322,19 +322,21 @@ describe("EditProfileScreen", () => {
     expect(router.back).not.toHaveBeenCalled();
   });
 
-  it("refuses a value outside the shared bounds before anything is sent", async () => {
-    // Saved before today's bounds: the form asks for a valid age.
-    backend.seedProfile(FAKE_USER_ID, { age: 4 });
+  it("lets a value saved before today's bounds through an unrelated edit", async () => {
+    backend.seedProfile(FAKE_USER_ID, { age: 4, gender: "female" });
     await mount();
 
     await fireEvent.press(screen.getByLabelText("Male"));
     await save();
 
-    expect(
-      screen.getByText("Number must be greater than or equal to 10")
-    ).toBeTruthy();
-    expect(fakePublicApi.requests).toEqual([]);
-    expect(router.back).not.toHaveBeenCalled();
+    expect(fakePublicApi.requests.map(({ body }) => body)).toEqual([
+      { gender: "male" },
+    ]);
+    expect(backend.profile(FAKE_USER_ID)).toMatchObject({
+      age: 4,
+      gender: "male",
+    });
+    expect(router.back).toHaveBeenCalledTimes(1);
   });
 
   it("only offers values inside the shared bounds", async () => {

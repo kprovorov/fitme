@@ -41,12 +41,12 @@ export const useStoreProfileMutation = createMutation<
   },
 });
 
-/** The Profile fields edit-profile changes. */
-export type ProfileChanges = Partial<
-  Pick<StoreProfileData, "age" | "gender" | "height" | "weight">
->;
-
 const EDITABLE_FIELDS = ["age", "gender", "height", "weight"] as const;
+
+/** The Profile fields edit-profile changes. */
+type EditableFields = Pick<StoreProfileData, (typeof EDITABLE_FIELDS)[number]>;
+
+export type ProfileChanges = Partial<EditableFields>;
 
 /**
  * The fields of `values` that differ from the saved `profile`: every field
@@ -55,7 +55,7 @@ const EDITABLE_FIELDS = ["age", "gender", "height", "weight"] as const;
  */
 export const profileChanges = (
   profile: Profile | null,
-  values: Pick<StoreProfileData, "age" | "gender" | "height" | "weight">
+  values: EditableFields
 ): ProfileChanges => {
   const changes: ProfileChanges = {};
   for (const field of EDITABLE_FIELDS) {
