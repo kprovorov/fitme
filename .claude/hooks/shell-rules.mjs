@@ -591,7 +591,7 @@ const CHECKS = [
       return target !== undefined && !NOT_RELATIVE.test(target);
     },
     reason:
-      "AGENTS.md Shell: never `cd` to a relative path in a `&&` or `;` chain, the working directory carries over between calls: use an absolute path, `git -C <path>` or `pnpm --filter <package>`.",
+      "AGENTS.md Shell: never `cd` to a relative path before `&&`, `;` or another line, the working directory carries over between calls: use an absolute path, `git -C <path>` or `pnpm --filter <package>`.",
     rule: "cd",
   },
   {
