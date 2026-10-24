@@ -1,12 +1,16 @@
 import { asUser, type Transaction } from "@fitme/db";
 import {
+  activatePlan,
   type CreatePlanOptions,
   createPlan,
+  type DeletedPlan,
+  deletePlan,
   getActivePlan,
   getPlan,
   listPlans,
   type NewPlan,
   type PlanDetail,
+  type PlanMetadata,
   type PlanSummary,
   type PlanWorkoutInput,
   updatePlan,
@@ -44,6 +48,12 @@ export interface Weighed<T> {
  */
 export interface UserServices {
   /**
+   * Makes a live Plan of the User the active one, every other Plan of theirs
+   * inactive; the Plan in full, or `null` with nothing changed (missing,
+   * deleted, foreign).
+   */
+  activatePlan: (planId: string) => Promise<Weighed<PlanDetail> | null>;
+  /**
    * Creates a Plan with its Workouts, Exercises and sets in one transaction,
    * active unless `activate: false`; the Plan in full. Its Exercise slugs are
    * checked before, not here (ADR 0010).
@@ -52,6 +62,11 @@ export interface UserServices {
     plan: NewPlan,
     options: CreatePlanOptions
   ) => Promise<Weighed<PlanDetail>>;
+  /**
+   * Soft-deletes a Plan of the User (its Workout Sessions stay); one already
+   * deleted answers `alreadyDeleted`, and `null` means the User never had it.
+   */
+  deletePlan: (planId: string) => Promise<DeletedPlan | null>;
   /** The active Plan in full, or `null` with none. */
   getActivePlan: () => Promise<Weighed<PlanDetail> | null>;
   /** A live Plan of the User in full, or `null` (missing, deleted, foreign). */
@@ -74,6 +89,15 @@ export interface UserServices {
   replaceWorkouts: (
     planId: string,
     workouts: PlanWorkoutInput[]
+  ) => Promise<Weighed<PlanDetail> | null>;
+  /**
+   * Changes only the given metadata fields of a live Plan of the User; its
+   * Workouts and their ids stay. The Plan in full, or `null` with nothing
+   * changed (missing, deleted, foreign).
+   */
+  updatePlan: (
+    planId: string,
+    changes: Partial<PlanMetadata>
   ) => Promise<Weighed<PlanDetail> | null>;
   /** The updated Profile, or `null` with nothing changed without one. */
   updateProfile: (changes: ProfileChanges) => Promise<ProfileWithUnits | null>;
@@ -105,8 +129,18 @@ export const createServicesFromEnv: ServicesFactory = (userId) => {
   };
 
   return {
+    // Activated and read back in one transaction, so the answer is the Plan
+    // this request activated.
+    activatePlan: (planId) =>
+      weighed(async (tx) =>
+        (await activatePlan(tx, userId, planId))
+          ? getPlan(tx, userId, planId)
+          : null
+      ),
     createPlan: (plan, options) =>
       inUnits((tx) => createPlan(tx, userId, plan, options)),
+    deletePlan: (planId) =>
+      asUser(userId, (tx) => deletePlan(tx, userId, planId)),
     getActivePlan: () => weighed((tx) => getActivePlan(tx, userId)),
     getPlan: (planId) => weighed((tx) => getPlan(tx, userId, planId)),
     getProfile: () => asUser(userId, (tx) => getProfile(tx, userId)),
@@ -117,6 +151,9 @@ export const createServicesFromEnv: ServicesFactory = (userId) => {
       asUser(userId, (tx) => listWorkoutSessions(tx, options)),
     replaceWorkouts: (planId, workouts) =>
       weighed((tx) => updatePlan(tx, userId, planId, { workouts })),
+    // Metadata only: never `workouts`, so Workout ids stay.
+    updatePlan: (planId, changes) =>
+      weighed((tx) => updatePlan(tx, userId, planId, changes)),
     updateProfile: (changes) =>
       asUser(userId, (tx) => updateProfile(tx, userId, changes)),
   };
