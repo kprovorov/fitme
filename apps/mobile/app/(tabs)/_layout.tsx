@@ -36,7 +36,7 @@ export default function TabLayout() {
             </NativeTabs.Trigger.Label>
           </NativeTabs.Trigger>
 
-          <NativeTabs.Trigger name="coach">
+          <NativeTabs.Trigger name="arnold">
             <NativeTabs.Trigger.Icon
               sf={{
                 default: "bubble.left.and.bubble.right",
@@ -44,7 +44,7 @@ export default function TabLayout() {
               }}
             />
             <NativeTabs.Trigger.Label>
-              {TAB_TITLES.coach}
+              {TAB_TITLES.arnold}
             </NativeTabs.Trigger.Label>
           </NativeTabs.Trigger>
 

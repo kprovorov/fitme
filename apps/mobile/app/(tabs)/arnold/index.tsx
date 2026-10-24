@@ -23,6 +23,7 @@ import RevenueCatUI from "react-native-purchases-ui";
 import {
   ChatProvider,
   Conversation,
+  ConversationEmptyState,
   ConversationScrollButton,
   createStreamingStore,
   messageText,
@@ -33,31 +34,31 @@ import {
   PromptInputTextarea,
 } from "@/components/chat";
 import { SymbolImage } from "@/components/symbol-image";
-import { useSelectedCoachModel } from "~/hooks/coach-model";
+import { useSelectedArnoldModel } from "~/hooks/arnold-model";
 import { useIsProQuery } from "~/hooks/revenueCat";
-import { getClerk } from "~/lib/clerk";
 import {
-  COACH_URL,
-  clearSavedCoachConversation,
-  coachErrorAction,
-  coachRunConfig,
+  arnoldErrorAction,
+  arnoldRunConfig,
+  clearSavedArnoldConversation,
+  getArnoldUrl,
   isRefusedSend,
-  loadSavedCoachConversation,
-  saveCoachConversation,
-  saveCoachSession,
-} from "~/lib/coach-chat";
-import { getSelectedCoachModelId } from "~/lib/coach-model";
+  loadSavedArnoldConversation,
+  saveArnoldConversation,
+  saveArnoldSession,
+} from "~/lib/arnold-chat";
+import { getSelectedArnoldModelId } from "~/lib/arnold-model";
+import { getClerk } from "~/lib/clerk";
 
 const ATTACHMENTS_ENABLED: boolean = false;
 
-const getCoachToken = async () => (await getClerk().session?.getToken()) ?? "";
+const getArnoldToken = async () => (await getClerk().session?.getToken()) ?? "";
 
 /**
- * The Coach runtime for one User. Their current Conversation is saved per
+ * Arnold runtime for one User. Their current Conversation is saved per
  * User, so reopening the screen resumes it, an answer still streaming
  * included.
  */
-function CoachRuntime({
+function ArnoldRuntime({
   canResume,
   children,
   userId,
@@ -67,22 +68,22 @@ function CoachRuntime({
   children: React.ReactNode;
   userId: string;
 }) {
-  const [saved] = useState(() => loadSavedCoachConversation(userId));
+  const [saved] = useState(() => loadSavedArnoldConversation(userId));
   const runtime = useEveAgentRuntime({
     // Resolved per request, reconnects included: Clerk tokens live ~60 s.
-    auth: { bearer: getCoachToken },
-    host: COACH_URL,
+    auth: { bearer: getArnoldToken },
+    host: getArnoldUrl(),
     initialEvents: saved.events,
     initialSession: saved.session,
     onFinish: (snapshot) => {
       if (snapshot.session) {
-        saveCoachConversation(userId, {
+        saveArnoldConversation(userId, {
           events: snapshot.events,
           session: snapshot.session,
         });
       }
     },
-    onSessionChange: (session) => saveCoachSession(userId, session),
+    onSessionChange: (session) => saveArnoldSession(userId, session),
     resume: canResume && saved.session !== undefined,
   });
 
@@ -99,7 +100,7 @@ function toError(error: unknown): Error {
 
 type Composer = [string, React.Dispatch<React.SetStateAction<string>>];
 
-function useCoachChat(userId: string, [input, setInput]: Composer) {
+function useArnoldChat(userId: string, [input, setInput]: Composer) {
   const aui = useAui();
   const threadMessages = useAuiState((s) => s.thread.messages);
   const messages = useMemo(
@@ -113,12 +114,12 @@ function useCoachChat(userId: string, [input, setInput]: Composer) {
   const streamingStore = useMemo(() => createStreamingStore(), []);
   const prevStreamingTextRef = useRef<string>("");
 
-  // The text of the last send, given back to the composer when the Coach
+  // The text of the last send, given back to the composer when Arnold
   // refuses it or it fails (its placeholder bubble is hidden), so it isn't
   // lost. Cleared once a turn settles, so an answered prompt never returns.
   const lastSentRef = useRef("");
 
-  const errorAction = coachErrorAction(eveError);
+  const errorAction = arnoldErrorAction(eveError);
 
   // A turn that settled without an error was answered: nothing to give back.
   useEffect(() => {
@@ -130,19 +131,19 @@ function useCoachChat(userId: string, [input, setInput]: Composer) {
   const isBusy = isRunning || isLoading;
 
   // Not while a turn runs: a local reset leaves the durable turn running on
-  // the Coach, where it could still change a Plan nobody sees anymore.
+  // Arnold, where it could still change a Plan nobody sees anymore.
   const newConversation = useCallback(() => {
     if (isBusy) {
       return;
     }
-    clearSavedCoachConversation(userId);
+    clearSavedArnoldConversation(userId);
     resetSession();
   }, [isBusy, resetSession, userId]);
 
   // An effect event, so the paywall opens once per error, not on every render
   // (`useEveReset` returns a new function each time).
   const handleError = useEffectEvent((error: unknown) => {
-    const action = coachErrorAction(error);
+    const action = arnoldErrorAction(error);
     if (action === "none") {
       return;
     }
@@ -187,7 +188,7 @@ function useCoachChat(userId: string, [input, setInput]: Composer) {
         content: [{ text, type: "text" }],
         role: "user",
         // Read per send so a model change applies to the next message.
-        runConfig: coachRunConfig(getSelectedCoachModelId()),
+        runConfig: arnoldRunConfig(getSelectedArnoldModelId()),
       });
     },
     [aui]
@@ -217,7 +218,7 @@ function useCoachChat(userId: string, [input, setInput]: Composer) {
   };
 }
 
-function CoachChat({
+function ArnoldChat({
   composer,
   isPro,
   userId,
@@ -226,8 +227,8 @@ function CoachChat({
   isPro: boolean | undefined;
   userId: string;
 }) {
-  const chat = useCoachChat(userId, composer);
-  const { model } = useSelectedCoachModel();
+  const chat = useArnoldChat(userId, composer);
+  const { model } = useSelectedArnoldModel();
   const { initialMessage } = useLocalSearchParams<{
     initialMessage?: string;
   }>();
@@ -235,7 +236,7 @@ function CoachChat({
   const sentInitialMessageRef = useRef<string | null>(null);
 
   // Planner prompts take the same Pro gate as typed ones (a refused send
-  // would make the Coach cache "not Pro" for minutes, past a purchase), and
+  // would make Arnold cache "not Pro" for minutes, past a purchase), and
   // wait for a resuming or running turn: eve refuses sends meanwhile.
   useEffect(() => {
     if (
@@ -275,7 +276,7 @@ function CoachChat({
             fontWeight: "bold",
           },
           headerTransparent: true,
-          title: "Coach",
+          title: "Arnold",
           unstable_headerRightItems: () => [
             {
               icon: {
@@ -284,7 +285,7 @@ function CoachChat({
               },
               label: model?.label ?? "Model",
               onPress: () => {
-                router.push("/coach/model-picker");
+                router.push("/arnold/model-picker");
               },
               type: "button",
             },
@@ -303,11 +304,18 @@ function CoachChat({
         }}
       />
       <ChatProvider value={{ ...chat, onSend: handleSend }}>
-        <Conversation>
+        <Conversation
+          emptyState={
+            <ConversationEmptyState
+              description="Ask about your training, plans and workouts"
+              title="Arnold"
+            />
+          }
+        >
           <ConversationScrollButton />
           <PromptInput>
             {ATTACHMENTS_ENABLED && (
-              <Link asChild href="/coach/attachments">
+              <Link asChild href="/arnold/attachments">
                 <PromptInputAction accessibilityLabel="Add to chat">
                   <SymbolImage
                     className="text-body text-muted-foreground"
@@ -317,7 +325,7 @@ function CoachChat({
               </Link>
             )}
             <PromptInputBody>
-              <PromptInputTextarea />
+              <PromptInputTextarea placeholder="Message Arnold" />
               <PromptInputSubmit />
             </PromptInputBody>
           </PromptInput>
@@ -327,13 +335,13 @@ function CoachChat({
   );
 }
 
-export default function CoachScreen() {
+export default function ArnoldScreen() {
   const { user } = useUser();
   const { data: isPro, isPending: isProPending } = useIsProQuery();
   // Above the runtime, so a remount after a purchase keeps the draft.
   const composer = useState("");
   // Wait for the entitlement: a free User's saved Conversation must not
-  // resume, since every Coach request checks Pro and a refusal is cached.
+  // resume, since every Arnold request checks Pro and a refusal is cached.
   if (!user || isProPending) {
     return null;
   }
@@ -341,12 +349,12 @@ export default function CoachScreen() {
   // Keyed by User and access: a different User gets their own runtime, and
   // buying Pro remounts it so the saved Conversation resumes.
   return (
-    <CoachRuntime
+    <ArnoldRuntime
       canResume={canResume}
       key={`${user.id}:${canResume}`}
       userId={user.id}
     >
-      <CoachChat composer={composer} isPro={isPro} userId={user.id} />
-    </CoachRuntime>
+      <ArnoldChat composer={composer} isPro={isPro} userId={user.id} />
+    </ArnoldRuntime>
   );
 }

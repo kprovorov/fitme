@@ -3,22 +3,28 @@ import { isArnoldRefusal } from "@fitme/core";
 import type { ClientSessionState, MessageStreamEvent } from "eve/client";
 import { storage } from "~/lib/mmkv";
 
-/** The Coach (`apps/arnold`) base URL; its eve routes live under `/eve/v1`. */
-export const COACH_URL = process.env.EXPO_PUBLIC_COACH_URL ?? "";
+/**
+ * Arnold's (`apps/arnold`) base URL; its eve routes live under `/eve/v1`.
+ * `EXPO_PUBLIC_ARNOLD_URL`, falling back to the pre-rename
+ * `EXPO_PUBLIC_COACH_URL` while builds are still configured with it; empty
+ * when neither is set. Read on each call so tests can set it.
+ */
+export const getArnoldUrl = () =>
+  process.env.EXPO_PUBLIC_ARNOLD_URL || process.env.EXPO_PUBLIC_COACH_URL || "";
 
 /**
- * The run config a Coach turn is sent with. eve forwards `custom` as the
- * turn's client context, where the Coach reads the model to answer with.
- * Without a model (no model list on the device) nothing is sent, so the Coach
+ * The run config a Arnold turn is sent with. eve forwards `custom` as the
+ * turn's client context, where Arnold reads the model to answer with.
+ * Without a model (no model list on the device) nothing is sent, so Arnold
  * picks its own default.
  */
-export function coachRunConfig(model: string | undefined) {
+export function arnoldRunConfig(model: string | undefined) {
   return model ? { custom: { model } } : {};
 }
 
 /**
  * eve codes for a session that can't take turns anymore: reset (account
- * deletion), past the Coach's 30-day timeout, or built by another eve version.
+ * deletion), past Arnold's 30-day timeout, or built by another eve version.
  */
 const endedSessionCodes: ReadonlySet<string> = new Set([
   "session_expired",
@@ -26,16 +32,20 @@ const endedSessionCodes: ReadonlySet<string> = new Set([
   "session_stranded",
 ]);
 
-export type CoachErrorAction = "new-conversation" | "none" | "paywall" | "show";
+export type ArnoldErrorAction =
+  | "new-conversation"
+  | "none"
+  | "paywall"
+  | "show";
 
 /**
- * What the coach screen does with a Coach error: the channel's not-Pro refusal
+ * What the Arnold screen does with a Arnold error: the channel's not-Pro refusal
  * (`arnold_pro_required` or the pre-rename `coach_pro_required`) shows the
  * paywall, an ended session starts a new Conversation, and anything
  * else shows the error state. Duck-typed on eve's `ClientError` (`code` from
  * the JSON body) so the app doesn't bundle `eve/client` for an `instanceof`.
  */
-export function coachErrorAction(error: unknown): CoachErrorAction {
+export function arnoldErrorAction(error: unknown): ArnoldErrorAction {
   if (!error) {
     return "none";
   }
@@ -64,7 +74,7 @@ export function isRefusedSend(message: ThreadMessage): boolean {
 }
 
 /** The User's current Conversation, enough for eve to resume it. */
-export interface SavedCoachConversation {
+export interface SavedArnoldConversation {
   /** An ordered prefix of the session's stream, to render before resuming. */
   events?: readonly MessageStreamEvent[];
   session?: ClientSessionState;
@@ -72,8 +82,8 @@ export interface SavedCoachConversation {
 
 // Two keys, so the cursor (saved on every streamed event) never rewrites the
 // event log (saved once per finished turn).
-const sessionKey = (userId: string) => `coach.conversation.${userId}.session`;
-const eventsKey = (userId: string) => `coach.conversation.${userId}.events`;
+const sessionKey = (userId: string) => `arnold.conversation.${userId}.session`;
+const eventsKey = (userId: string) => `arnold.conversation.${userId}.events`;
 
 function readJson<T>(key: string): T | undefined {
   const raw = storage.getString(key);
@@ -90,9 +100,9 @@ function readJson<T>(key: string): T | undefined {
   return value;
 }
 
-export function loadSavedCoachConversation(
+export function loadSavedArnoldConversation(
   userId: string
-): SavedCoachConversation {
+): SavedArnoldConversation {
   const session = readJson<ClientSessionState>(sessionKey(userId));
   if (!session) {
     return {};
@@ -101,12 +111,12 @@ export function loadSavedCoachConversation(
   return events ? { events, session } : { session };
 }
 
-export function saveCoachConversation(
+export function saveArnoldConversation(
   userId: string,
-  { events, session }: SavedCoachConversation
+  { events, session }: SavedArnoldConversation
 ) {
   if (!session) {
-    clearSavedCoachConversation(userId);
+    clearSavedArnoldConversation(userId);
     return;
   }
   storage.set(sessionKey(userId), JSON.stringify(session));
@@ -122,12 +132,12 @@ export function saveCoachConversation(
  * mid-answer resumes it. Saved events stay while the session is the same one;
  * no session (a reset) forgets the Conversation.
  */
-export function saveCoachSession(
+export function saveArnoldSession(
   userId: string,
   session: ClientSessionState | undefined
 ) {
   if (!session) {
-    clearSavedCoachConversation(userId);
+    clearSavedArnoldConversation(userId);
     return;
   }
   const saved = readJson<ClientSessionState>(sessionKey(userId));
@@ -137,7 +147,7 @@ export function saveCoachSession(
   storage.set(sessionKey(userId), JSON.stringify(session));
 }
 
-export function clearSavedCoachConversation(userId: string) {
+export function clearSavedArnoldConversation(userId: string) {
   storage.remove(sessionKey(userId));
   storage.remove(eventsKey(userId));
 }

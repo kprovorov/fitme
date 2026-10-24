@@ -1140,7 +1140,7 @@ describe("starting a Workout from Home", () => {
 
   it("resumes the Workout's open session instead of starting another", async () => {
     await startApp();
-    // Started elsewhere (the Coach, another device) after Home was read.
+    // Started elsewhere (Arnold, another device) after Home was read.
     backend.sessions.push({
       finished_at: null,
       id: "open-1",

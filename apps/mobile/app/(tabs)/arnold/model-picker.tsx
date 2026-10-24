@@ -10,7 +10,7 @@ import {
 import { useSafeAreaInsets } from "react-native-safe-area-context";
 import { AndroidGrabber } from "@/components/grabber";
 import { SymbolImage } from "@/components/symbol-image";
-import { useSelectedCoachModel } from "~/hooks/coach-model";
+import { useSelectedArnoldModel } from "~/hooks/arnold-model";
 
 function ModelRow({
   description,
@@ -60,14 +60,14 @@ function NoModels({ isLoading }: { isLoading: boolean }) {
   }
   return (
     <Text className="px-5 py-3.5 text-muted-foreground text-subhead">
-      Models aren't available right now. Your messages use the Coach's default
+      Models aren't available right now. Your messages use Arnold's default
       model.
     </Text>
   );
 }
 
 export default function ModelPickerSheet() {
-  const { isLoading, model, models, setSelectedId } = useSelectedCoachModel();
+  const { isLoading, model, models, setSelectedId } = useSelectedArnoldModel();
   const insets = useSafeAreaInsets();
   const router = useRouter();
 

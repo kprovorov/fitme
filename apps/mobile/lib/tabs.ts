@@ -1,7 +1,7 @@
 /** Each tab's route name and the title its tab bar item shows. */
 export const TAB_TITLES = {
   "(home)": "Home",
-  coach: "Coach",
+  arnold: "Arnold",
   history: "History",
   library: "Library",
   profile: "Profile",

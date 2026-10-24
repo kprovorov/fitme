@@ -33,7 +33,7 @@ export interface WorkoutDay {
   name: string;
 }
 
-/** `display_workout_plan`'s result: the Coach's suggestion, loosely bounded. */
+/** `display_workout_plan`'s result: Arnold's suggestion, loosely bounded. */
 export interface WorkoutPlan {
   description: string;
   experienceLevel?: ExperienceLevel;
@@ -67,7 +67,7 @@ const DEFAULT_PLAN_NAME = "Workout plan";
 
 const REPS_RE = /^\d+/;
 
-// The card is the Coach's tool output, from any Conversation however old, so
+// The card is Arnold's tool output, from any Conversation however old, so
 // the helpers below take its fields as `unknown`: a missing or malformed one
 // gets the default rather than failing the save.
 
@@ -82,7 +82,7 @@ const fitInteger = (
     ? Math.min(max, Math.max(min, Math.round(value)))
     : fallback;
 
-/** The first number of the Coach's reps ("8-10" → 8). */
+/** The first number of Arnold's reps ("8-10" → 8). */
 const repsOf = (reps: unknown) => {
   const match = typeof reps === "string" ? reps.match(REPS_RE) : null;
   return fitInteger(

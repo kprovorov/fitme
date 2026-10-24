@@ -9,12 +9,16 @@
  *
  * So far: `PATCH /v1/profile`, `POST /v1/plans`, activating
  * (`POST /v1/plans/{id}/activate`) and deleting (`DELETE /v1/plans/{id}`) a
- * Plan, and starting, finishing and logging a set of a Workout Session. Routes are named as templates (`Route`), each request
- * keeping its `path`. A route it doesn't implement answers 501 and fails the
+ * Plan, starting, finishing and logging a set of a Workout Session, and the
+ * public `GET /v1/arnold/models` (answered whatever the bearer, like the
+ * API's). Routes are named as templates (`Route`), each request keeping its
+ * `path`. A route it doesn't implement answers 501 and fails the
  * test after it (`test-utils/after-each.ts`). `failNext` fails a route on
  * demand.
  */
 import {
+  arnoldModels,
+  defaultArnoldModelId,
   experienceLevels,
   genders,
   goals,
@@ -557,10 +561,35 @@ const logSet = (body: unknown, setId: string): Response => {
   return json(200, { data: { ...setBody(set), weight_unit: weightUnit() } });
 };
 
+/** `apps/api`'s answer, from the same list in `@fitme/core`. */
+const listArnoldModels = () =>
+  json(200, {
+    data: {
+      defaultId: defaultArnoldModelId,
+      models: arnoldModels.map(({ description, id, label }) => ({
+        description,
+        id,
+        label,
+      })),
+    },
+  });
+
 type Handler = (body: unknown, id: string) => Promise<Response> | Response;
 
 /** Every route the fake answers, each path parameter as `(?<id>…)`. */
-const ROUTES: Array<{ handler: Handler; path: RegExp; route: Route }> = [
+const ROUTES: Array<{
+  handler: Handler;
+  path: RegExp;
+  /** Answered without a bearer, like the API's global routes. */
+  public?: boolean;
+  route: Route;
+}> = [
+  {
+    handler: listArnoldModels,
+    path: /^\/v1\/arnold\/models$/,
+    public: true,
+    route: "GET /v1/arnold/models",
+  },
   {
     handler: patchProfile,
     path: /^\/v1\/profile$/,
@@ -606,11 +635,17 @@ const match = (method: string, path: string) => {
       return {
         handler: candidate.handler,
         id: decodeURIComponent(params.groups?.id ?? ""),
+        isPublic: candidate.public === true,
         route: candidate.route,
       };
     }
   }
-  return { handler: null, id: "", route: `${method} ${path}` as const };
+  return {
+    handler: null,
+    id: "",
+    isPublic: false,
+    route: `${method} ${path}` as const,
+  };
 };
 
 class FakePublicApi {
@@ -699,7 +734,7 @@ class FakePublicApi {
   };
 
   private answer(
-    { handler, id, route }: ReturnType<typeof match>,
+    { handler, id, isPublic, route }: ReturnType<typeof match>,
     authorization: string | null,
     body: unknown
   ) {
@@ -707,7 +742,7 @@ class FakePublicApi {
       this.unhandled.push(route);
       return error(501, "not_implemented", `Fake Public API: no ${route}`);
     }
-    if (authorization !== `Bearer ${FAKE_SESSION_TOKEN}`) {
+    if (!isPublic && authorization !== `Bearer ${FAKE_SESSION_TOKEN}`) {
       return error(401, "unauthorized", "Unauthorized");
     }
     return handler(body, id);

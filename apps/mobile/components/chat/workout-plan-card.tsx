@@ -48,7 +48,7 @@ const saveErrorMessage = (error: unknown) => {
   }
   const code = error instanceof ApiError ? error.code : null;
   if (code === "unknown_exercises") {
-    return "This plan has exercises we don't know, so it can't be saved. Ask the Coach for another plan.";
+    return "This plan has exercises we don't know, so it can't be saved. Ask Arnold for another plan.";
   }
   if (code === "exercise_library_unavailable") {
     return "Couldn't check this plan's exercises. Try again.";
@@ -76,7 +76,7 @@ function ExerciseRow({
   /** The Exercise as resolved by `useExercises`, if it has a slug. */
   shown: ShownExercise | undefined;
 }) {
-  // The Exercise Library's name once resolved, otherwise the Coach's.
+  // The Exercise Library's name once resolved, otherwise Arnold's.
   const isResolved = !!shown?.isResolved;
   const name = shown?.isResolved ? shown.name : exercise.name;
   const handlePress = useCallback(

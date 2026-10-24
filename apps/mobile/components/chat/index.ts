@@ -6,6 +6,7 @@ export { ChatProvider, useChatContext } from "./chat-context";
 // Conversation
 export {
   Conversation,
+  ConversationEmptyState,
   ConversationScrollButton,
   useConversationContext,
 } from "./conversation";

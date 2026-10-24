@@ -48,7 +48,7 @@ Sentry.init({
   // Relative to tracesSampleRate: half of the traced sessions are profiled.
   profilesSampleRate: 0.5,
   sendDefaultPii: false,
-  // Trace headers go to our own services only (api, coach, exercises, mcp…),
+  // Trace headers go to our own services only (api, arnold, coach, exercises, mcp…),
   // never to Clerk, RevenueCat, Supabase or Segment.
   tracePropagationTargets,
   tracesSampleRate: 0.1,
