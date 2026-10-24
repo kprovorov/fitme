@@ -3,7 +3,7 @@
  * router recorded and the native-backed primitives for stand-ins.
  */
 import { existsSync } from "node:fs";
-import { join } from "node:path";
+import { resolve } from "node:path";
 import { describe, expect, it, jest } from "@jest/globals";
 import { fireEvent, render, screen } from "@testing-library/react-native";
 import { router } from "expo-router";
@@ -51,7 +51,8 @@ describe("PlannerScreen", () => {
     const tab = target.pathname.split("/").at(-1) ?? "";
     expect(TAB_TITLES).toHaveProperty(tab, "Arnold");
     expect(
-      existsSync(join(import.meta.dirname, `../app/(tabs)/${tab}/index.tsx`))
+      // Jest runs from apps/mobile.
+      existsSync(resolve(`app/(tabs)/${tab}/index.tsx`))
     ).toBe(true);
   });
 });
