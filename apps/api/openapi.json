@@ -667,6 +667,68 @@
         ],
         "additionalProperties": false
       },
+      "PlanChanges": {
+        "type": "object",
+        "properties": {
+          "description": {
+            "type": "string",
+            "maxLength": 2000,
+            "example": "Three full-body days"
+          },
+          "experience_level": {
+            "type": "string",
+            "enum": [
+              "beginner",
+              "intermediate",
+              "advanced"
+            ]
+          },
+          "frequency": {
+            "type": "integer",
+            "minimum": 1,
+            "maximum": 7,
+            "description": "Workouts a week",
+            "example": 3
+          },
+          "goal": {
+            "type": "string",
+            "enum": [
+              "muscle-gain",
+              "fat-loss",
+              "recomposition",
+              "strength-performance",
+              "general-health-fitness"
+            ]
+          },
+          "name": {
+            "type": "string",
+            "minLength": 1,
+            "maxLength": 200,
+            "example": "Full body"
+          },
+          "note": {
+            "type": "string",
+            "nullable": true,
+            "maxLength": 2000
+          },
+          "place": {
+            "type": "string",
+            "enum": [
+              "gym",
+              "home"
+            ]
+          },
+          "workout_duration": {
+            "type": "integer",
+            "minimum": 1,
+            "maximum": 600,
+            "description": "Minutes",
+            "example": 60
+          }
+        },
+        "additionalProperties": false,
+        "minProperties": 1
+      },
       "ProfileChanges": {
         "type": "object",
         "properties": {
@@ -1570,6 +1632,195 @@
             }
           }
         }
+      },
+      "patch": {
+        "description": "Changes only the given metadata fields (`note: null` clears the note). The Plan's Workouts, Exercises and sets, and their ids, are left as they are: a body with `workouts` is refused. Doesn't change which Plan is active. A 404 changes nothing.",
+        "security": [
+          {
+            "bearerAuth": []
+          }
+        ],
+        "summary": "Change a Plan's details",
+        "parameters": [
+          {
+            "schema": {
+              "type": "string",
+              "format": "uuid",
+              "example": "6f1c0c9e-2b7a-4c1e-9a55-3c2d1e0f4a11"
+            },
+            "required": true,
+            "name": "id",
+            "in": "path"
+          }
+        ],
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/PlanChanges"
+              }
+            }
+          }
+        },
+        "responses": {
+          "200": {
+            "description": "The changed Plan in full",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object",
+                  "properties": {
+                    "data": {
+                      "$ref": "#/components/schemas/Plan"
+                    }
+                  },
+                  "required": [
+                    "data"
+                  ]
+                }
+              }
+            }
+          },
+          "400": {
+            "description": "`invalid_request`: the id isn't a uuid, or the changes aren't valid (no field, an unknown one such as `workouts`, or a bad value); nothing was changed",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Error"
+                }
+              }
+            }
+          },
+          "401": {
+            "description": "No valid Clerk session token",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Error"
+                }
+              }
+            }
+          },
+          "404": {
+            "description": "`not_found`: no such Plan, it was deleted, or it isn't the User's",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Error"
+                }
+              }
+            }
+          },
+          "415": {
+            "description": "The body isn't `application/json`",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Error"
+                }
+              }
+            }
+          },
+          "429": {
+            "description": "Too many requests from this User; retry after `Retry-After`",
+            "headers": {
+              "Retry-After": {
+                "schema": {
+                  "type": "string",
+                  "description": "Seconds until the limit resets",
+                  "example": "30"
+                },
+                "required": true,
+                "description": "Seconds until the limit resets"
+              }
+            },
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Error"
+                }
+              }
+            }
+          }
+        }
+      },
+      "delete": {
+        "description": "Soft-deletes the Plan: it leaves the User's Plans, stops being active, and answers 404 everywhere afterwards. The User's logged Workout Sessions stay. Deleting a Plan already deleted answers 204 again, so a retry is harmless.",
+        "security": [
+          {
+            "bearerAuth": []
+          }
+        ],
+        "summary": "Delete a Plan",
+        "parameters": [
+          {
+            "schema": {
+              "type": "string",
+              "format": "uuid",
+              "example": "6f1c0c9e-2b7a-4c1e-9a55-3c2d1e0f4a11"
+            },
+            "required": true,
+            "name": "id",
+            "in": "path"
+          }
+        ],
+        "responses": {
+          "204": {
+            "description": "Deleted, now or before"
+          },
+          "400": {
+            "description": "`invalid_request`: the id isn't a uuid",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Error"
+                }
+              }
+            }
+          },
+          "401": {
+            "description": "No valid Clerk session token",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Error"
+                }
+              }
+            }
+          },
+          "404": {
+            "description": "`not_found`: the User never had such a Plan (it's missing or another User's); nothing was changed",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Error"
+                }
+              }
+            }
+          },
+          "429": {
+            "description": "Too many requests from this User; retry after `Retry-After`",
+            "headers": {
+              "Retry-After": {
+                "schema": {
+                  "type": "string",
+                  "description": "Seconds until the limit resets",
+                  "example": "30"
+                },
+                "required": true,
+                "description": "Seconds until the limit resets"
+              }
+            },
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Error"
+                }
+              }
+            }
+          }
+        }
       }
     },
     "/v1/plans/{id}/workouts": {
@@ -1684,6 +1935,100 @@
           },
           "503": {
             "description": "`exercise_library_unavailable`: the Exercise slugs couldn't be checked; nothing was changed, try again",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Error"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/v1/plans/{id}/activate": {
+      "post": {
+        "description": "Makes the Plan the User's active one; every other Plan of the User goes inactive, so at most one is active. Activating the active Plan changes nothing.",
+        "security": [
+          {
+            "bearerAuth": []
+          }
+        ],
+        "summary": "Activate a Plan",
+        "parameters": [
+          {
+            "schema": {
+              "type": "string",
+              "format": "uuid",
+              "example": "6f1c0c9e-2b7a-4c1e-9a55-3c2d1e0f4a11"
+            },
+            "required": true,
+            "name": "id",
+            "in": "path"
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "The activated Plan in full",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object",
+                  "properties": {
+                    "data": {
+                      "$ref": "#/components/schemas/Plan"
+                    }
+                  },
+                  "required": [
+                    "data"
+                  ]
+                }
+              }
+            }
+          },
+          "400": {
+            "description": "`invalid_request`: the id isn't a uuid",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Error"
+                }
+              }
+            }
+          },
+          "401": {
+            "description": "No valid Clerk session token",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Error"
+                }
+              }
+            }
+          },
+          "404": {
+            "description": "`not_found`: no such Plan, it was deleted, or it isn't the User's",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Error"
+                }
+              }
+            }
+          },
+          "429": {
+            "description": "Too many requests from this User; retry after `Retry-After`",
+            "headers": {
+              "Retry-After": {
+                "schema": {
+                  "type": "string",
+                  "description": "Seconds until the limit resets",
+                  "example": "30"
+                },
+                "required": true,
+                "description": "Seconds until the limit resets"
+              }
+            },
             "content": {
               "application/json": {
                 "schema": {

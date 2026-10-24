@@ -6,6 +6,7 @@ import { type ApiEnv, bearerSecurity, requires } from "../auth.js";
 import { checkExerciseSlugs, type SlugCheck } from "../exercise-library.js";
 import {
   ErrorResponse,
+  Id,
   invalidRequest,
   rateLimitedResponse,
   unauthorizedResponse,
@@ -183,6 +184,11 @@ const getActivePlan = createRoute({
   summary: "Get the User's active Plan",
 });
 
+/** The documented 404 of a route addressing a Plan the User has no live copy of. */
+const planNotFoundResponse = errorResponse(
+  "`not_found`: no such Plan, it was deleted, or it isn't the User's"
+);
+
 const getPlan = createRoute({
   method: "get",
   middleware: [requires("read")] as const,
@@ -200,9 +206,7 @@ const getPlan = createRoute({
     },
     400: errorResponse("`invalid_request`: the id isn't a uuid"),
     401: unauthorizedResponse,
-    404: errorResponse(
-      "`not_found`: no such Plan, it was deleted, or it isn't the User's"
-    ),
+    404: planNotFoundResponse,
     429: rateLimitedResponse,
   },
   security: bearerSecurity,
@@ -297,36 +301,41 @@ const PlanWorkoutsInput = z
       "Every Workout of the Plan, in rotation order: the first is up next. Every `order` comes from the array positions",
   });
 
+/** A Plan's metadata as a write takes it (create, or change on its own). */
+const planMetadataFields = {
+  description: z
+    .string()
+    .max(MAX_TEXT_LENGTH)
+    .openapi({ example: "Three full-body days" }),
+  experience_level: z.enum(experienceLevels),
+  frequency: z.number().int().min(MIN_FREQUENCY).max(MAX_FREQUENCY).openapi({
+    description: "Workouts a week",
+    example: 3,
+  }),
+  goal: z.enum(goals),
+  name: z
+    .string()
+    .trim()
+    .min(1)
+    .max(MAX_NAME_LENGTH)
+    .openapi({ example: "Full body" }),
+  note: z.string().max(MAX_TEXT_LENGTH).nullable().optional(),
+  place: z.enum(places),
+  workout_duration: z
+    .number()
+    .int()
+    .min(1)
+    .max(MAX_WORKOUT_DURATION_MINUTES)
+    .openapi({ description: "Minutes", example: 60 }),
+};
+
 const NewPlanBody = z
   .strictObject({
     activate: z.boolean().default(true).openapi({
       description:
         "Make it the User's active Plan, every other Plan inactive. With `false` it's created inactive and the active Plan stays",
     }),
-    description: z
-      .string()
-      .max(MAX_TEXT_LENGTH)
-      .openapi({ example: "Three full-body days" }),
-    experience_level: z.enum(experienceLevels),
-    frequency: z.number().int().min(MIN_FREQUENCY).max(MAX_FREQUENCY).openapi({
-      description: "Workouts a week",
-      example: 3,
-    }),
-    goal: z.enum(goals),
-    name: z
-      .string()
-      .trim()
-      .min(1)
-      .max(MAX_NAME_LENGTH)
-      .openapi({ example: "Full body" }),
-    note: z.string().max(MAX_TEXT_LENGTH).nullable().optional(),
-    place: z.enum(places),
-    workout_duration: z
-      .number()
-      .int()
-      .min(1)
-      .max(MAX_WORKOUT_DURATION_MINUTES)
-      .openapi({ description: "Minutes", example: 60 }),
+    ...planMetadataFields,
     workouts: PlanWorkoutsInput,
   })
   .openapi("NewPlan");
@@ -390,9 +399,7 @@ const replaceWorkoutsRoute = createRoute({
       "`invalid_request`: the id isn't a uuid or the Workouts aren't valid; `unknown_exercises`: the Exercise Library has no Exercise for the slugs the message names. Nothing was changed"
     ),
     401: unauthorizedResponse,
-    404: errorResponse(
-      "`not_found`: no such Plan, it was deleted, or it isn't the User's"
-    ),
+    404: planNotFoundResponse,
     415: errorResponse("The body isn't `application/json`"),
     429: rateLimitedResponse,
     503: errorResponse(
@@ -401,6 +408,97 @@ const replaceWorkoutsRoute = createRoute({
   },
   security: bearerSecurity,
   summary: "Replace a Plan's Workouts",
+});
+
+/** The Plan a route addresses, by id. */
+const PlanParams = z.object({ id: Id });
+
+const PlanChangesBody = z
+  // Strict, so `workouts` (and any other field) is refused: this route never
+  // touches Workouts.
+  .strictObject(planMetadataFields)
+  .partial()
+  // The refine answers the 400; minProperties says the same in the OpenAPI
+  // document, which can't see a refine.
+  .refine((changes) => Object.keys(changes).length > 0, {
+    message: "Give at least one field to change",
+  })
+  .openapi("PlanChanges", { minProperties: 1 });
+
+const updatePlanRoute = createRoute({
+  description:
+    "Changes only the given metadata fields (`note: null` clears the note). The Plan's Workouts, Exercises and sets, and their ids, are left as they are: a body with `workouts` is refused. Doesn't change which Plan is active. A 404 changes nothing.",
+  method: "patch",
+  middleware: [requires("write")] as const,
+  path: "/{id}",
+  request: {
+    body: {
+      content: { "application/json": { schema: PlanChangesBody } },
+      required: true,
+    },
+    params: PlanParams,
+  },
+  responses: {
+    200: {
+      content: { "application/json": { schema: PlanResponse } },
+      description: "The changed Plan in full",
+    },
+    400: errorResponse(
+      "`invalid_request`: the id isn't a uuid, or the changes aren't valid (no field, an unknown one such as `workouts`, or a bad value); nothing was changed"
+    ),
+    401: unauthorizedResponse,
+    404: planNotFoundResponse,
+    415: errorResponse("The body isn't `application/json`"),
+    429: rateLimitedResponse,
+  },
+  security: bearerSecurity,
+  summary: "Change a Plan's details",
+});
+
+/** The body of a 404 for a Plan the User has no live copy of. */
+const PLAN_NOT_FOUND = {
+  error: { code: "not_found", message: "Plan not found" },
+} as const;
+
+const activatePlanRoute = createRoute({
+  description:
+    "Makes the Plan the User's active one; every other Plan of the User goes inactive, so at most one is active. Activating the active Plan changes nothing.",
+  method: "post",
+  middleware: [requires("write")] as const,
+  path: "/{id}/activate",
+  request: { params: PlanParams },
+  responses: {
+    200: {
+      content: { "application/json": { schema: PlanResponse } },
+      description: "The activated Plan in full",
+    },
+    400: errorResponse("`invalid_request`: the id isn't a uuid"),
+    401: unauthorizedResponse,
+    404: planNotFoundResponse,
+    429: rateLimitedResponse,
+  },
+  security: bearerSecurity,
+  summary: "Activate a Plan",
+});
+
+const deletePlanRoute = createRoute({
+  description:
+    "Soft-deletes the Plan: it leaves the User's Plans, stops being active, and answers 404 everywhere afterwards. The User's logged Workout Sessions stay. Deleting a Plan already deleted answers 204 again, so a retry is harmless.",
+  method: "delete",
+  middleware: [requires("write")] as const,
+  path: "/{id}",
+  request: { params: PlanParams },
+  responses: {
+    204: { description: "Deleted, now or before" },
+    400: errorResponse("`invalid_request`: the id isn't a uuid"),
+    401: unauthorizedResponse,
+    404: errorResponse(
+      "`not_found`: the User never had such a Plan (it's missing or another User's); nothing was changed"
+    ),
+    429: rateLimitedResponse,
+  },
+  security: bearerSecurity,
+  summary: "Delete a Plan",
 });
 
 /** Every Exercise slug of a Plan's Workouts, each once. */
@@ -474,10 +572,7 @@ export const plans = new OpenAPIHono<ApiEnv>({
   .openapi(getPlan, async (c) => {
     const found = await c.var.getServices().getPlan(c.req.valid("param").id);
     if (!found) {
-      return c.json(
-        { error: { code: "not_found", message: "Plan not found" } },
-        404
-      );
+      return c.json(PLAN_NOT_FOUND, 404);
     }
     return c.json(PlanResponse.parse({ data: planData(found) }), 200);
   })
@@ -497,10 +592,35 @@ export const plans = new OpenAPIHono<ApiEnv>({
       .getServices()
       .replaceWorkouts(c.req.valid("param").id, workouts);
     if (!replaced) {
-      return c.json(
-        { error: { code: "not_found", message: "Plan not found" } },
-        404
-      );
+      return c.json(PLAN_NOT_FOUND, 404);
     }
     return c.json(PlanResponse.parse({ data: planData(replaced) }), 200);
+  })
+  .openapi(updatePlanRoute, async (c) => {
+    const updated = await c.var
+      .getServices()
+      .updatePlan(c.req.valid("param").id, c.req.valid("json"));
+    if (!updated) {
+      return c.json(PLAN_NOT_FOUND, 404);
+    }
+    return c.json(PlanResponse.parse({ data: planData(updated) }), 200);
+  })
+  .openapi(activatePlanRoute, async (c) => {
+    const activated = await c.var
+      .getServices()
+      .activatePlan(c.req.valid("param").id);
+    if (!activated) {
+      return c.json(PLAN_NOT_FOUND, 404);
+    }
+    return c.json(PlanResponse.parse({ data: planData(activated) }), 200);
+  })
+  .openapi(deletePlanRoute, async (c) => {
+    const result = await c.var
+      .getServices()
+      .deletePlan(c.req.valid("param").id);
+    // Already deleted answers 204 too; only a Plan the User never had is a 404
+    if (!result) {
+      return c.json(PLAN_NOT_FOUND, 404);
+    }
+    return c.body(null, 204);
   });
