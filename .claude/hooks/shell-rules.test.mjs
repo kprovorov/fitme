@@ -210,3 +210,51 @@ describe("the PreToolUse hook", () => {
     assert.equal(result.status, 0);
   });
 });
+
+describe("wrapped and compound commands", () => {
+  for (const [command, rules] of [
+    ["env timeout 5 node x.js", ["timeout"]],
+    ["sudo -n timeout 5 node x.js", ["timeout"]],
+    ["nohup timeout 5 node x.js", ["timeout"]],
+    ["command timeout 5 node x.js", ["timeout"]],
+    ["/usr/bin/timeout 5 node x.js", ["timeout"]],
+    ["exec sleep 60", ["sleep"]],
+    ["cd apps/mobile\npnpm test", ["cd"]],
+    ["while true; do sleep 60; done", ["sleep"]],
+    ["(sleep 60; echo hi)", ["sleep"]],
+  ]) {
+    test(`refuses ${JSON.stringify(command)}`, () => {
+      assert.deepEqual(rulesBroken(command), rules);
+    });
+  }
+
+  for (const command of [
+    `git commit -m "$(cat <<'EOF'\nBlocks "cd\n\ntimeout 5 x\nand " here\nEOF\n)"`,
+    `gh pr create --body "$(cat <<'EOF'\nDon't "sleep 60\nEOF\n)"`,
+    "echo $'it\\'s && sleep 60'",
+    "while true; do sleep 10; done &",
+    "for f in a b; do sleep 10; done &",
+    "{ sleep 10; } &",
+    "(sleep 60) &",
+    "(sleep 60; echo hi) &",
+    "if true; then sleep 10; fi &",
+    "wait_up() { sleep 10; }",
+    "case $x in a) sleep 1;; esac",
+  ]) {
+    test(`allows ${JSON.stringify(command)}`, () => {
+      assert.deepEqual(rulesBroken(command), []);
+    });
+  }
+});
+
+describe("heredocs inside substitutions", () => {
+  test("allows an apostrophe and blocked words in the body", () => {
+    const command = `git commit -m "$(cat <<'EOF'\nDon't run \`sleep 60\` or timeout 5.\nEOF\n)" && git push`;
+    assert.deepEqual(rulesBroken(command), []);
+  });
+
+  test("checks the command after the substitution", () => {
+    const command = "x=$(cat <<'EOF'\nDon't\nEOF\n); timeout 5 y";
+    assert.deepEqual(rulesBroken(command), ["timeout"]);
+  });
+});
