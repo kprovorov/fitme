@@ -1,3 +1,10 @@
+import {
+  MAX_AGE,
+  MAX_BODY_DECIMALS,
+  MAX_BODY_HEIGHT,
+  MAX_BODY_WEIGHT,
+  MIN_AGE,
+} from "@fitme/core/limits";
 import { genders, measurementSystems } from "@fitme/core/models";
 import { createRoute, OpenAPIHono, z } from "@hono/zod-openapi";
 import { type ApiEnv, bearerSecurity, requires } from "../auth.js";
@@ -64,13 +71,8 @@ const getProfile = createRoute({
   summary: "Get the User's Profile",
 });
 
-const MIN_AGE = 10;
-const MAX_AGE = 120;
-/** Generous bounds in either unit (cm or in, kg or lbs), well inside numeric(8,2) after a conversion. */
-const MAX_BODY_HEIGHT = 300;
-const MAX_BODY_WEIGHT = 1000;
-/** Heights and weights are stored as numeric(8,2). */
-const HUNDREDTH = 0.01;
+/** The smallest height or weight step an edit accepts: at most `MAX_BODY_DECIMALS` decimals. */
+const BODY_STEP = 10 ** -MAX_BODY_DECIMALS;
 
 const ProfileChangesBody = z
   .strictObject({
@@ -80,7 +82,7 @@ const ProfileChangesBody = z
       .number()
       .positive()
       .max(MAX_BODY_HEIGHT)
-      .multipleOf(HUNDREDTH)
+      .multipleOf(BODY_STEP)
       .openapi({
         description:
           "In the height unit of the resulting measurement system: `cm` (metric) or `in` (us, uk); at most 2 decimals",
@@ -94,7 +96,7 @@ const ProfileChangesBody = z
       .number()
       .positive()
       .max(MAX_BODY_WEIGHT)
-      .multipleOf(HUNDREDTH)
+      .multipleOf(BODY_STEP)
       .openapi({
         description:
           "In the weight unit of the resulting measurement system: `kg` (metric) or `lbs` (us, uk); at most 2 decimals",

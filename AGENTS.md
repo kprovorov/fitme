@@ -232,7 +232,7 @@ Stateless [Streamable HTTP](https://modelcontextprotocol.io) MCP server built on
 
 ### packages/core — `@fitme/core`
 
-Platform-agnostic code shared by both apps: `models.ts` (Profile, Plan, Workout, Exercise, etc. plus enum arrays like `goals`, `muscleGroups`), `labels.ts`, `formatters.ts`, `names.ts` (`splitName`), `limits.ts` (`MAX_REPS`, `MAX_WEIGHT`, `MAX_WEIGHT_DECIMALS`: a set's bounds, shared by the mobile set inputs, MCP and the Coach), `types.ts` (pagination), `utils.ts` (`range`, `muscleGroupToName`, `handleSupabaseError`). Tests use vitest. Nothing in here may import React Native, Expo, or Next.
+Platform-agnostic code shared by both apps: `models.ts` (Profile, Plan, Workout, Exercise, etc. plus enum arrays like `goals`, `muscleGroups`), `labels.ts`, `formatters.ts`, `names.ts` (`splitName`), `limits.ts` (`MAX_REPS`, `MAX_WEIGHT`, `MAX_WEIGHT_DECIMALS`: a set's bounds, shared by the mobile set inputs, MCP and the Coach; the Public API's Plan write bounds `MAX_REST_SECONDS`, `MAX_PLAN_NAME_LENGTH`, `MAX_PLAN_TEXT_LENGTH`, `MAX_WORKOUTS_PER_PLAN`, `MAX_EXERCISES_PER_WORKOUT`, `MAX_SETS_PER_EXERCISE`, `MIN_FREQUENCY` / `MAX_FREQUENCY`, `MAX_WORKOUT_DURATION_MINUTES` and `MAX_EXERCISE_SLUG_LENGTH`; its Profile edit bounds `MIN_AGE` / `MAX_AGE`, `MAX_BODY_HEIGHT`, `MAX_BODY_WEIGHT` and `MAX_BODY_DECIMALS`; `apps/api` defines no bound of its own), `types.ts` (pagination), `utils.ts` (`range`, `muscleGroupToName`, `handleSupabaseError`). Tests use vitest. Nothing in here may import React Native, Expo, or Next.
 
 ### packages/design-tokens — `@fitme/design-tokens`
 
