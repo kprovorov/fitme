@@ -17,6 +17,7 @@ const CLERK_API_URL = "https://api.clerk.com/v1";
 // password set moments before, so it gets a few tries.
 const API_ATTEMPTS = 5;
 const API_RETRY_DELAY_MS = 3000;
+const API_TIMEOUT_MS = 10_000;
 
 function requireEnv(name: string): string {
   const value = process.env[name];
@@ -63,6 +64,7 @@ async function checkApi(apiUrl: string, jwt: string) {
     // biome-ignore lint/performance/noAwaitInLoops: retries, one at a time
     const response = await fetch(`${apiUrl}/v1/profile`, {
       headers: { Authorization: `Bearer ${jwt}` },
+      signal: AbortSignal.timeout(API_TIMEOUT_MS),
     }).catch((error: unknown) => error);
     if (response instanceof Response && response.ok) {
       console.log(

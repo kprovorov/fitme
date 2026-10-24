@@ -122,13 +122,14 @@ jobs:
           if [ "$TENANT" = "$DB_USER" ] || [ -z "$TENANT" ]; then
             echo "::error::The branch's Postgres URL is not a pooler URL (postgres.<tenant>)" && exit 1
           fi
-          HOST=${POSTGRES_URL#*@}
-          HOST=${HOST%%\?*}
-          DATABASE_URL="postgresql://fitme.$TENANT:$PASSWORD@$HOST?application_name=api"
+          # Host, port, database and any query string the branch's URL carries.
+          LOCATION=${POSTGRES_URL#*@}
+          case "$LOCATION" in *\?*) SEPARATOR="&" ;; *) SEPARATOR="?" ;; esac
+          DATABASE_URL="postgresql://fitme.$TENANT:$PASSWORD@$LOCATION${SEPARATOR}application_name=api"
           echo "::add-mask::$DATABASE_URL"
           # Hex only, so the literal needs no escaping.
           jq -n --arg query "alter role fitme with password '$PASSWORD'" '{ query: $query }' |
-            curl --fail-with-body -sS -o /dev/null -X POST \
+            curl --fail-with-body -sS -X POST \
               "https://api.supabase.com/v1/projects/${{ steps.branch-status.outputs.branch_project_ref }}/database/query" \
               -H "Authorization: Bearer $SUPABASE_ACCESS_TOKEN" \
               -H "Content-Type: application/json" \
@@ -152,7 +153,7 @@ jobs:
           pnpm --filter @fitme/api build
           nohup node apps/api/dist/node/index.js > apps/api/e2e-api.log 2>&1 &
           API_PID=$!
-          for i in $(seq 1 30); do
+          for _ in $(seq 1 30); do
             if curl -fsS "$API_URL/health" > /dev/null 2>&1; then
               echo "The API answers at $API_URL"
               exit 0
@@ -258,7 +259,8 @@ jobs:
         run: pnpm test:e2e -- --format junit --output e2e-results.xml
 
       # Artifacts aren't masked: a log holding the fitme password is never
-      # uploaded.
+      # uploaded. The API gets no other secret, so it is the only one to look
+      # for; a secret added to the API's env belongs in this check too.
       - name: Check the API log holds no password
         if: always()
         run: |
