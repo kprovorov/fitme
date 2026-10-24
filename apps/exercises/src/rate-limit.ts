@@ -17,22 +17,28 @@ export type { RateLimiter } from "@fitme/rate-limit";
 export const USER_REQUESTS_PER_WINDOW = 120;
 export const WINDOW_MS = 60_000;
 
-const userLimit = {
+/** The production per-User limit, shared by both limiters. */
+export const USER_LIMIT = {
   limit: USER_REQUESTS_PER_WINDOW,
   prefix: "exercises:user",
   windowMs: WINDOW_MS,
 } satisfies RateLimiterOptions;
 
-/** The per-User limit in this instance's memory, for local development and tests. */
+/**
+ * The per-User limit in this instance's memory, for local development and
+ * tests; `limit` lets a test reach it in a handful of requests.
+ */
 export const memoryRateLimiter = ({
+  limit = USER_LIMIT.limit,
   now,
 }: {
+  limit?: number;
   now?: () => number;
-} = {}): RateLimiter => sharedMemoryRateLimiter({ ...userLimit, now });
+} = {}): RateLimiter => sharedMemoryRateLimiter({ ...USER_LIMIT, limit, now });
 
 /** The per-User limit on Upstash; throws in production without it (see `@fitme/rate-limit`). */
 export const rateLimiterFromEnv = (env: NodeJS.ProcessEnv): RateLimiter =>
-  sharedRateLimiterFromEnv(env, userLimit);
+  sharedRateLimiterFromEnv(env, USER_LIMIT);
 
 const tooManyRequests = {
   error: {
