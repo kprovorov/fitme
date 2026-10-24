@@ -1,5 +1,10 @@
 import { asUser } from "@fitme/db";
-import { getProfile, type ProfileWithUnits } from "@fitme/services/profile";
+import {
+  getProfile,
+  type ProfileChanges,
+  type ProfileWithUnits,
+  updateProfile,
+} from "@fitme/services/profile";
 
 /**
  * The services a verified User's requests call, each bound to that User and
@@ -8,6 +13,8 @@ import { getProfile, type ProfileWithUnits } from "@fitme/services/profile";
  */
 export interface UserServices {
   getProfile: () => Promise<ProfileWithUnits | null>;
+  /** The updated Profile, or `null` with nothing changed without one. */
+  updateProfile: (changes: ProfileChanges) => Promise<ProfileWithUnits | null>;
 }
 
 /**
@@ -23,5 +30,7 @@ export const createServicesFromEnv: ServicesFactory = (userId) => {
   }
   return {
     getProfile: () => asUser(userId, (tx) => getProfile(tx, userId)),
+    updateProfile: (changes) =>
+      asUser(userId, (tx) => updateProfile(tx, userId, changes)),
   };
 };
