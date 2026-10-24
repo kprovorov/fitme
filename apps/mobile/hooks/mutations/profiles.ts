@@ -70,7 +70,8 @@ export const useUpdateProfileMutation = createMutation<
       profile = updated as unknown as Profile;
     } else {
       // No profile yet (onboarding was skipped), so create one. An existing
-      // profile's system only changes through the `convert_measurement_system` RPC.
+      // profile's system only changes through `PATCH /v1/profile`, which
+      // converts every stored height and weight.
       const { data: inserted, error: insertError } = await supabase
         .from("profiles")
         .insert({

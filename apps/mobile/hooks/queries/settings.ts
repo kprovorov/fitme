@@ -1,17 +1,18 @@
 import type { MeasurementSystem } from "@fitme/core";
 import { createMutation } from "react-query-kit";
-import { supabase } from "@/lib/supabase";
+import { publicApi } from "~/lib/public-api";
 
+/**
+ * Switches the User's measurement system through `PATCH /v1/profile`, which
+ * converts every stored height and weight. Rejects with an `ApiError`.
+ */
 export const useUpdateMeasurementSystemMutation = createMutation<
   void,
   MeasurementSystem
 >({
   mutationFn: async (measurementSystem: MeasurementSystem): Promise<void> => {
-    const { error } = await supabase.rpc("convert_measurement_system", {
-      p_new_system: measurementSystem,
+    await publicApi().PATCH("/v1/profile", {
+      body: { measurement_system: measurementSystem },
     });
-    if (error) {
-      throw error;
-    }
   },
 });

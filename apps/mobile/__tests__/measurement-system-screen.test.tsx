@@ -1,46 +1,44 @@
+/**
+ * The measurement system screen on the mounted-screen seam: the real screen,
+ * hooks and Public API client, with Supabase swapped for the in-memory backend
+ * and the client's `fetch` for the fake Public API over the same rows (both
+ * from `test-utils/`), and the SwiftUI-backed primitives for stand-ins.
+ */
 import { beforeEach, describe, expect, it, jest } from "@jest/globals";
 import * as Sentry from "@sentry/react-native";
 import { QueryClientProvider } from "@tanstack/react-query";
-import {
-  act,
-  fireEvent,
-  render,
-  screen,
-  waitFor,
-} from "@testing-library/react-native";
+import { fireEvent, render, screen } from "@testing-library/react-native";
 import { useCallback } from "react";
 import { Alert, Pressable, Text } from "react-native";
 import MeasurementSystemScreen from "~/app/settings/measurement-system";
-import { createTestQueryClient } from "~/test-utils/query-client";
-
-const mockConvert = jest.fn<(system: string) => Promise<void>>();
-const mockFetchProfile = jest.fn<() => Promise<unknown>>();
+import {
+  FAKE_SESSION_TOKEN,
+  FAKE_USER_ID,
+  fakePublicApi,
+} from "~/test-utils/fake-public-api";
+import { backend } from "~/test-utils/fake-workout-backend";
+import {
+  createTestQueryClient,
+  settle,
+  until,
+} from "~/test-utils/query-client";
 
 jest.mock("expo-router", () => ({ Stack: { Screen: () => null } }));
 
 jest.mock("@sentry/react-native", () => ({ captureException: jest.fn() }));
 
-// Keeps the real react-query wiring, swapping only the network calls.
-jest.mock("~/hooks/queries/profiles", () => {
-  const { createQuery } =
-    jest.requireActual<typeof import("react-query-kit")>("react-query-kit");
-  return {
-    useProfileQuery: createQuery({
-      fetcher: () => mockFetchProfile(),
-      queryKey: ["profile"],
-    }),
-  };
-});
+jest.mock("~/lib/supabase", () => ({
+  supabase: jest.requireActual<
+    typeof import("~/test-utils/fake-workout-backend")
+  >("~/test-utils/fake-workout-backend").fakeSupabase,
+}));
 
-jest.mock("~/hooks/queries/settings", () => {
-  const { createMutation } =
-    jest.requireActual<typeof import("react-query-kit")>("react-query-kit");
-  return {
-    useUpdateMeasurementSystemMutation: createMutation({
-      mutationFn: (system: string) => mockConvert(system),
-    }),
-  };
-});
+jest.mock("~/lib/clerk", () => ({
+  getCurrentUserId: () =>
+    jest.requireActual<typeof import("~/test-utils/fake-public-api")>(
+      "~/test-utils/fake-public-api"
+    ).FAKE_USER_ID,
+}));
 
 // Buttons of the stand-ins below. Top-level (and `mock`-prefixed, so the
 // factories may use them) because the React Compiler rewrites components
@@ -173,43 +171,95 @@ jest.mock("~/components/ui/alert-dialog", () => {
   };
 });
 
-const profile = (measurementSystem: string) => ({
-  measurement_system: measurementSystem,
-});
+const PROFILE_PATCH = "PATCH /v1/profile";
 
-const deferred = () => {
-  let resolve!: () => void;
-  let reject!: (error: unknown) => void;
-  const promise = new Promise<void>((res, rej) => {
-    resolve = res;
-    reject = rej;
-  });
-  return { promise, reject, resolve };
-};
+const alerts = () =>
+  (Alert.alert as jest.Mock).mock.calls as [string, string][];
 
-const setup = async () => {
-  const queryClient = createTestQueryClient();
-  await render(
+let queryClient = createTestQueryClient();
+
+const mount = async () => {
+  queryClient = createTestQueryClient();
+  const rendered = await render(
     <QueryClientProvider client={queryClient}>
       <MeasurementSystemScreen />
     </QueryClientProvider>
   );
-  await waitFor(() =>
-    expect(screen.getByTestId("picker-value")).toHaveTextContent("metric")
-  );
+  await settle(queryClient);
+  return rendered;
 };
 
 const shown = () => screen.getByTestId("picker-value");
 
+/** Picks `system` and confirms it, then waits for the switch to settle. */
+const switchTo = async (system: string) => {
+  await fireEvent.press(screen.getByTestId(`option-${system}`));
+  await fireEvent.press(screen.getByText("Confirm"));
+  await settle(queryClient);
+};
+
 describe("MeasurementSystemScreen", () => {
   beforeEach(() => {
     jest.clearAllMocks();
-    mockFetchProfile.mockResolvedValue(profile("metric"));
+    backend.reset();
+    backend.seedProfile(FAKE_USER_ID, { height: 180, weight: 80 });
+    backend.seed({ exercises: [{ name: "Squat", sets: [5] }], id: "session" });
+    for (const set of backend.sets) {
+      set.weight_completed = 100;
+    }
     jest.spyOn(Alert, "alert").mockImplementation(() => undefined);
   });
 
+  it("switches through the Public API, converting every height and weight", async () => {
+    await mount();
+    expect(shown()).toHaveTextContent("metric");
+
+    await switchTo("us");
+
+    expect(fakePublicApi.requests).toEqual([
+      {
+        authorization: `Bearer ${FAKE_SESSION_TOKEN}`,
+        body: { measurement_system: "us" },
+        route: PROFILE_PATCH,
+      },
+    ]);
+    expect(backend.count("convert_measurement_system", "rpc")).toBe(0);
+    expect(backend.profile(FAKE_USER_ID)).toMatchObject({
+      height: 70.87,
+      measurement_system: "us",
+      weight: 176.37,
+    });
+    expect(backend.sets[0]?.weight_completed).toBe(220.46);
+    // The Profile is read again, and the picker shows what it says.
+    expect(backend.count("profiles", "select")).toBe(2);
+    expect(shown()).toHaveTextContent("us");
+    expect(screen.getByTestId("picker")).not.toBeDisabled();
+    expect(Alert.alert).not.toHaveBeenCalled();
+  });
+
+  it("keeps the new system shown and the picker disabled while switching", async () => {
+    await mount();
+    const resume = fakePublicApi.pause(PROFILE_PATCH);
+
+    await fireEvent.press(screen.getByTestId("option-us"));
+    await fireEvent.press(screen.getByText("Confirm"));
+    await until(() => fakePublicApi.count(PROFILE_PATCH) === 1);
+
+    expect(shown()).toHaveTextContent("us");
+    expect(screen.getByTestId("picker")).toBeDisabled();
+    // Picks are ignored until it's done.
+    await fireEvent.press(screen.getByTestId("option-uk"));
+    expect(screen.queryByTestId("confirm-dialog")).toBeNull();
+    expect(shown()).toHaveTextContent("us");
+
+    resume();
+    await settle(queryClient);
+    expect(shown()).toHaveTextContent("us");
+    expect(screen.getByTestId("picker")).not.toBeDisabled();
+  });
+
   it("goes back to the saved system after Cancel, and the option can be picked again", async () => {
-    await setup();
+    await mount();
 
     await fireEvent.press(screen.getByTestId("option-us"));
     expect(shown()).toHaveTextContent("us");
@@ -218,83 +268,118 @@ describe("MeasurementSystemScreen", () => {
     await fireEvent.press(screen.getByText("Cancel"));
     expect(shown()).toHaveTextContent("metric");
     expect(screen.queryByTestId("confirm-dialog")).toBeNull();
-    expect(mockConvert).not.toHaveBeenCalled();
 
     await fireEvent.press(screen.getByTestId("option-us"));
     expect(screen.getByTestId("confirm-dialog")).toBeTruthy();
+    expect(fakePublicApi.requests).toEqual([]);
   });
 
   it("does nothing when the saved system is picked", async () => {
-    await setup();
+    await mount();
 
     await fireEvent.press(screen.getByTestId("option-metric"));
 
     expect(screen.queryByTestId("confirm-dialog")).toBeNull();
     expect(shown()).toHaveTextContent("metric");
-    expect(mockConvert).not.toHaveBeenCalled();
+    expect(fakePublicApi.requests).toEqual([]);
   });
 
-  it("keeps the new system shown while switching and after it's saved", async () => {
-    const convert = deferred();
-    mockConvert.mockReturnValue(convert.promise);
-    await setup();
+  it.each([
+    ["a 5xx", { status: 503 }],
+    ["a network failure", "network"],
+  ] as const)(
+    "shows an error and the saved system on %s",
+    async (_name, failure) => {
+      await mount();
+      fakePublicApi.failNext(PROFILE_PATCH, failure);
 
-    await fireEvent.press(screen.getByTestId("option-us"));
-    await fireEvent.press(screen.getByText("Confirm"));
+      await switchTo("us");
 
-    expect(mockConvert).toHaveBeenCalledWith("us");
-    expect(shown()).toHaveTextContent("us");
-    expect(screen.getByTestId("picker")).toBeDisabled();
+      expect(alerts()).toEqual([
+        [
+          "Couldn't Change Units",
+          "Your measurements weren't changed. Please try again.",
+        ],
+      ]);
+      expect(Sentry.captureException).toHaveBeenCalledTimes(1);
+      expect(backend.profile(FAKE_USER_ID)).toMatchObject({
+        height: 180,
+        measurement_system: "metric",
+      });
+      expect(shown()).toHaveTextContent("metric");
+      expect(screen.getByTestId("picker")).not.toBeDisabled();
+      expect(backend.count("convert_measurement_system", "rpc")).toBe(0);
 
-    mockFetchProfile.mockResolvedValue(profile("us"));
-    await act(async () => {
-      convert.resolve();
-      await convert.promise;
+      await fireEvent.press(screen.getByTestId("option-us"));
+      expect(screen.getByTestId("confirm-dialog")).toBeTruthy();
+    }
+  );
+
+  it("says how long to wait when there were too many requests", async () => {
+    await mount();
+    fakePublicApi.failNext(PROFILE_PATCH, {
+      retryAfterSeconds: 42,
+      status: 429,
     });
 
-    await waitFor(() =>
-      expect(screen.getByTestId("picker")).not.toBeDisabled()
-    );
-    expect(shown()).toHaveTextContent("us");
-    expect(mockFetchProfile).toHaveBeenCalledTimes(2);
+    await switchTo("us");
+
+    expect(alerts()).toEqual([
+      [
+        "Couldn't Change Units",
+        "Your measurements weren't changed. Too many requests: please try again in 42 s.",
+      ],
+    ]);
+    expect(Sentry.captureException).not.toHaveBeenCalled();
+    expect(shown()).toHaveTextContent("metric");
   });
 
-  it("says it couldn't check when the switch succeeds but the Profile can't be read", async () => {
-    mockConvert.mockResolvedValue();
-    await setup();
-    mockFetchProfile.mockRejectedValue(new Error("offline"));
+  it("fails with the error state, never through Supabase, when the API URL is unset", async () => {
+    await mount();
+    fakePublicApi.baseUrl = "";
 
-    await fireEvent.press(screen.getByTestId("option-us"));
-    await fireEvent.press(screen.getByText("Confirm"));
+    await switchTo("us");
 
-    await waitFor(() => expect(Alert.alert).toHaveBeenCalledTimes(1));
-    expect((Alert.alert as jest.Mock).mock.calls[0]?.[0]).toBe(
-      "Couldn't Check Your Units"
-    );
-    // The cached Profile may be in the old units, so it's dropped.
-    expect(await screen.findByText("Try Again")).toBeTruthy();
-    expect(screen.queryByTestId("picker")).toBeNull();
+    expect(alerts().map(([title]) => title)).toEqual(["Couldn't Change Units"]);
+    expect(fakePublicApi.requests).toEqual([]);
+    expect(backend.count("convert_measurement_system", "rpc")).toBe(0);
+    expect(backend.profile(FAKE_USER_ID)?.measurement_system).toBe("metric");
+    expect(shown()).toHaveTextContent("metric");
   });
 
-  it("shows no error when the call fails but the switch went through", async () => {
-    mockConvert.mockRejectedValue(new Error("Network request failed"));
-    await setup();
-    mockFetchProfile.mockResolvedValue(profile("us"));
+  it("shows no error when the answer is lost but the switch went through", async () => {
+    await mount();
+    fakePublicApi.failNext(PROFILE_PATCH, "lost");
 
-    await fireEvent.press(screen.getByTestId("option-us"));
-    await fireEvent.press(screen.getByText("Confirm"));
+    await switchTo("us");
 
-    await waitFor(() =>
-      expect(screen.getByTestId("picker")).not.toBeDisabled()
-    );
+    expect(backend.profile(FAKE_USER_ID)?.measurement_system).toBe("us");
     expect(shown()).toHaveTextContent("us");
     expect(Alert.alert).not.toHaveBeenCalled();
   });
 
+  it("says it couldn't check when the switch succeeds but the Profile can't be read", async () => {
+    await mount();
+    // Offline: the read after the switch fails, and so does the one the
+    // dropped Profile starts.
+    backend.failNext("profiles", "select");
+    backend.failNext("profiles", "select");
+
+    await switchTo("us");
+
+    expect(alerts().map(([title]) => title)).toEqual([
+      "Couldn't Check Your Units",
+    ]);
+    // The cached Profile may be in the old units, so it's dropped.
+    expect(screen.getByText("Try Again")).toBeTruthy();
+    expect(screen.queryByTestId("picker")).toBeNull();
+  });
+
   it("shows a loading state until the saved system has loaded", async () => {
-    const fetch = deferred();
-    mockFetchProfile.mockReturnValue(fetch.promise.then(() => profile("us")));
-    const queryClient = createTestQueryClient();
+    backend.profiles = [];
+    backend.seedProfile(FAKE_USER_ID, { measurement_system: "us" });
+    const resume = backend.pause("profiles", "select");
+    queryClient = createTestQueryClient();
     await render(
       <QueryClientProvider client={queryClient}>
         <MeasurementSystemScreen />
@@ -304,93 +389,37 @@ describe("MeasurementSystemScreen", () => {
     expect(screen.getByTestId("measurement-system-loading")).toBeTruthy();
     expect(screen.queryByTestId("picker")).toBeNull();
 
-    await act(async () => {
-      fetch.resolve();
-      await fetch.promise;
-    });
-    await waitFor(() => expect(shown()).toHaveTextContent("us"));
+    resume();
+    await settle(queryClient);
+    expect(shown()).toHaveTextContent("us");
 
     await fireEvent.press(screen.getByTestId("option-metric"));
     expect(screen.getByTestId("confirm-dialog")).toBeTruthy();
   });
 
   it("offers a retry when the saved system can't be loaded", async () => {
-    mockFetchProfile.mockRejectedValueOnce(new Error("offline"));
-    const queryClient = createTestQueryClient();
-    await render(
-      <QueryClientProvider client={queryClient}>
-        <MeasurementSystemScreen />
-      </QueryClientProvider>
-    );
+    backend.failNext("profiles", "select");
+    await mount();
 
-    await fireEvent.press(await screen.findByText("Try Again"));
+    await fireEvent.press(screen.getByText("Try Again"));
+    await settle(queryClient);
 
-    await waitFor(() => expect(shown()).toHaveTextContent("metric"));
+    expect(shown()).toHaveTextContent("metric");
   });
 
   it("shows no alert when the switch finishes after the Screen is gone", async () => {
-    const convert = deferred();
-    mockConvert.mockReturnValue(convert.promise);
-    const queryClient = createTestQueryClient();
-    const { unmount } = await render(
-      <QueryClientProvider client={queryClient}>
-        <MeasurementSystemScreen />
-      </QueryClientProvider>
-    );
-    await waitFor(() => expect(shown()).toHaveTextContent("metric"));
+    const { unmount } = await mount();
+    const resume = fakePublicApi.pause(PROFILE_PATCH);
+    fakePublicApi.failNext(PROFILE_PATCH, { status: 500 });
 
     await fireEvent.press(screen.getByTestId("option-us"));
     await fireEvent.press(screen.getByText("Confirm"));
+    await until(() => fakePublicApi.count(PROFILE_PATCH) === 1);
     await unmount();
-    await act(async () => {
-      convert.reject(new Error("numeric field overflow"));
-      await convert.promise.catch(() => undefined);
-    });
+    resume();
+    await settle(queryClient);
 
-    await waitFor(() => expect(mockFetchProfile).toHaveBeenCalledTimes(2));
-    await act(() => new Promise((resolve) => setTimeout(resolve, 0)));
+    expect(backend.count("profiles", "select")).toBe(2);
     expect(Alert.alert).not.toHaveBeenCalled();
-  });
-
-  it("ignores picks while a switch is in flight", async () => {
-    const convert = deferred();
-    mockConvert.mockReturnValue(convert.promise);
-    await setup();
-
-    await fireEvent.press(screen.getByTestId("option-us"));
-    await fireEvent.press(screen.getByText("Confirm"));
-    await fireEvent.press(screen.getByTestId("option-uk"));
-
-    expect(screen.queryByTestId("confirm-dialog")).toBeNull();
-    expect(shown()).toHaveTextContent("us");
-
-    await act(async () => {
-      convert.resolve();
-      await convert.promise;
-    });
-  });
-
-  it("shows an error and the saved system when the switch fails", async () => {
-    mockConvert.mockRejectedValue(new Error("numeric field overflow"));
-    await setup();
-
-    await fireEvent.press(screen.getByTestId("option-us"));
-    await fireEvent.press(screen.getByText("Confirm"));
-
-    await waitFor(() => expect(Alert.alert).toHaveBeenCalledTimes(1));
-    const [title, message] = (Alert.alert as jest.Mock).mock.calls[0] as [
-      string,
-      string,
-    ];
-    expect(title).toBe("Couldn't Change Units");
-    expect(message).not.toContain("numeric");
-    expect(Sentry.captureException).toHaveBeenCalledTimes(1);
-    await waitFor(() =>
-      expect(screen.getByTestId("picker")).not.toBeDisabled()
-    );
-    expect(shown()).toHaveTextContent("metric");
-
-    await fireEvent.press(screen.getByTestId("option-us"));
-    expect(screen.getByTestId("confirm-dialog")).toBeTruthy();
   });
 });
