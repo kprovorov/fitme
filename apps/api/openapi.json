@@ -774,6 +774,89 @@
         "additionalProperties": false,
         "minProperties": 1
       },
+      "WorkoutSessionSet": {
+        "type": "object",
+        "properties": {
+          "id": {
+            "type": "string",
+            "format": "uuid",
+            "example": "6f1c0c9e-2b7a-4c1e-9a55-3c2d1e0f4a11"
+          },
+          "logged_at": {
+            "type": "string",
+            "nullable": true,
+            "format": "date-time",
+            "description": "When its result was logged (ISO 8601)",
+            "example": "2026-10-01T10:00:00.123456+00:00"
+          },
+          "order": {
+            "type": "integer",
+            "example": 1
+          },
+          "reps_completed": {
+            "type": "integer",
+            "nullable": true,
+            "example": 8
+          },
+          "reps_recommended": {
+            "type": "integer",
+            "nullable": true,
+            "example": 8
+          },
+          "rest_recommended": {
+            "type": "integer",
+            "nullable": true,
+            "description": "Rest after the set, in seconds",
+            "example": 90
+          },
+          "weight_completed": {
+            "type": "number",
+            "nullable": true,
+            "description": "In `weight_unit`",
+            "example": 80.5
+          },
+          "weight_recommended": {
+            "type": "number",
+            "nullable": true,
+            "description": "In `weight_unit`",
+            "example": 80
+          }
+        },
+        "required": [
+          "id",
+          "logged_at",
+          "order",
+          "reps_completed",
+          "reps_recommended",
+          "rest_recommended",
+          "weight_completed",
+          "weight_recommended"
+        ]
+      },
+      "LogWorkoutSessionSet": {
+        "type": "object",
+        "properties": {
+          "reps_completed": {
+            "type": "integer",
+            "minimum": 0,
+            "maximum": 1000,
+            "description": "Repetitions done",
+            "example": 8
+          },
+          "weight_completed": {
+            "type": "number",
+            "minimum": 0,
+            "maximum": 10000,
+            "description": "In the User's weight unit (`kg` for metric, `lbs` for us and uk), as stored; at most 2 decimals. 0 for bodyweight",
+            "example": 80.5
+          }
+        },
+        "required": [
+          "reps_completed",
+          "weight_completed"
+        ],
+        "additionalProperties": false
+      },
       "WorkoutSession": {
         "type": "object",
         "properties": {
@@ -896,64 +979,20 @@
           "sets"
         ]
       },
-      "WorkoutSessionSet": {
+      "StartWorkoutSession": {
         "type": "object",
         "properties": {
-          "id": {
+          "workout_id": {
             "type": "string",
             "format": "uuid",
-            "example": "6f1c0c9e-2b7a-4c1e-9a55-3c2d1e0f4a11"
-          },
-          "logged_at": {
-            "type": "string",
-            "nullable": true,
-            "format": "date-time",
-            "description": "When its result was logged (ISO 8601)",
-            "example": "2026-10-01T10:00:00.123456+00:00"
-          },
-          "order": {
-            "type": "integer",
-            "example": 1
-          },
-          "reps_completed": {
-            "type": "integer",
-            "nullable": true,
-            "example": 8
-          },
-          "reps_recommended": {
-            "type": "integer",
-            "nullable": true,
-            "example": 8
-          },
-          "rest_recommended": {
-            "type": "integer",
-            "nullable": true,
-            "description": "Rest after the set, in seconds",
-            "example": 90
-          },
-          "weight_completed": {
-            "type": "number",
-            "nullable": true,
-            "description": "In `weight_unit`",
-            "example": 80.5
-          },
-          "weight_recommended": {
-            "type": "number",
-            "nullable": true,
-            "description": "In `weight_unit`",
-            "example": 80
+            "example": "6f1c0c9e-2b7a-4c1e-9a55-3c2d1e0f4a11",
+            "description": "The Workout to start, from a Plan of the User"
           }
         },
         "required": [
-          "id",
-          "logged_at",
-          "order",
-          "reps_completed",
-          "reps_recommended",
-          "rest_recommended",
-          "weight_completed",
-          "weight_recommended"
-        ]
+          "workout_id"
+        ],
+        "additionalProperties": false
       },
       "WorkoutSessionPage": {
         "type": "object",
@@ -2309,6 +2348,145 @@
         }
       }
     },
+    "/v1/workout-session-sets/{id}": {
+      "patch": {
+        "description": "Records the reps and weight done for one set of an open Workout Session, and when (`logged_at`, now). Logging the same set again overwrites the earlier result. A finished Workout Session's sets can't change.",
+        "security": [
+          {
+            "bearerAuth": []
+          }
+        ],
+        "summary": "Log a Workout Session set",
+        "parameters": [
+          {
+            "schema": {
+              "type": "string",
+              "format": "uuid",
+              "example": "6f1c0c9e-2b7a-4c1e-9a55-3c2d1e0f4a11"
+            },
+            "required": true,
+            "name": "id",
+            "in": "path"
+          }
+        ],
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/LogWorkoutSessionSet"
+              }
+            }
+          }
+        },
+        "responses": {
+          "200": {
+            "description": "The logged set",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object",
+                  "properties": {
+                    "data": {
+                      "allOf": [
+                        {
+                          "$ref": "#/components/schemas/WorkoutSessionSet"
+                        },
+                        {
+                          "type": "object",
+                          "properties": {
+                            "weight_unit": {
+                              "$ref": "#/components/schemas/WeightUnit"
+                            }
+                          },
+                          "required": [
+                            "weight_unit"
+                          ]
+                        }
+                      ]
+                    }
+                  },
+                  "required": [
+                    "data"
+                  ]
+                }
+              }
+            }
+          },
+          "400": {
+            "description": "`invalid_request`: the input fails its schema",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Error"
+                }
+              }
+            }
+          },
+          "401": {
+            "description": "No valid Clerk session token",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Error"
+                }
+              }
+            }
+          },
+          "404": {
+            "description": "`not_found`: no set of the User's Workout Sessions has this id",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Error"
+                }
+              }
+            }
+          },
+          "409": {
+            "description": "`session_finished`: the set's Workout Session is finished; nothing was written",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Error"
+                }
+              }
+            }
+          },
+          "415": {
+            "description": "The body isn't `application/json`",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Error"
+                }
+              }
+            }
+          },
+          "429": {
+            "description": "Too many requests from this User; retry after `Retry-After`",
+            "headers": {
+              "Retry-After": {
+                "schema": {
+                  "type": "string",
+                  "description": "Seconds until the limit resets",
+                  "example": "30"
+                },
+                "required": true,
+                "description": "Seconds until the limit resets"
+              }
+            },
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Error"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
     "/v1/workout-sessions/{id}": {
       "get": {
         "security": [
@@ -2400,9 +2578,194 @@
             }
           }
         }
+      },
+      "delete": {
+        "description": "Deletes the Workout Session with its Exercises and logged sets, for good. Idempotent: an id the User has no Workout Session with (already deleted, never existed, or another User's, which is left untouched) answers 204 too.",
+        "security": [
+          {
+            "bearerAuth": []
+          }
+        ],
+        "summary": "Delete a Workout Session",
+        "parameters": [
+          {
+            "schema": {
+              "type": "string",
+              "format": "uuid",
+              "example": "6f1c0c9e-2b7a-4c1e-9a55-3c2d1e0f4a11"
+            },
+            "required": true,
+            "name": "id",
+            "in": "path"
+          }
+        ],
+        "responses": {
+          "204": {
+            "description": "The User has no Workout Session with this id now"
+          },
+          "400": {
+            "description": "`invalid_request`: the input fails its schema",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Error"
+                }
+              }
+            }
+          },
+          "401": {
+            "description": "No valid Clerk session token",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Error"
+                }
+              }
+            }
+          },
+          "429": {
+            "description": "Too many requests from this User; retry after `Retry-After`",
+            "headers": {
+              "Retry-After": {
+                "schema": {
+                  "type": "string",
+                  "description": "Seconds until the limit resets",
+                  "example": "30"
+                },
+                "required": true,
+                "description": "Seconds until the limit resets"
+              }
+            },
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Error"
+                }
+              }
+            }
+          }
+        }
       }
     },
     "/v1/workout-sessions": {
+      "post": {
+        "description": "Starts a Workout Session for one of the User's Workouts, copying its Exercises and sets in order. A Workout has at most one open Workout Session: when one is already open, it's resumed (200) instead of a new one being created (201), so a retried start never duplicates it.",
+        "security": [
+          {
+            "bearerAuth": []
+          }
+        ],
+        "summary": "Start or resume a Workout Session",
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/StartWorkoutSession"
+              }
+            }
+          }
+        },
+        "responses": {
+          "200": {
+            "description": "Resumed: the Workout Session already open for this Workout, in full",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object",
+                  "properties": {
+                    "data": {
+                      "$ref": "#/components/schemas/WorkoutSession"
+                    }
+                  },
+                  "required": [
+                    "data"
+                  ]
+                }
+              }
+            }
+          },
+          "201": {
+            "description": "Started: the new Workout Session, in full",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object",
+                  "properties": {
+                    "data": {
+                      "$ref": "#/components/schemas/WorkoutSession"
+                    }
+                  },
+                  "required": [
+                    "data"
+                  ]
+                }
+              }
+            }
+          },
+          "400": {
+            "description": "`invalid_request`: the input fails its schema",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Error"
+                }
+              }
+            }
+          },
+          "401": {
+            "description": "No valid Clerk session token",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Error"
+                }
+              }
+            }
+          },
+          "404": {
+            "description": "`not_found`: the User has no such Workout, or its Plan is deleted",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Error"
+                }
+              }
+            }
+          },
+          "415": {
+            "description": "The body isn't `application/json`",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Error"
+                }
+              }
+            }
+          },
+          "429": {
+            "description": "Too many requests from this User; retry after `Retry-After`",
+            "headers": {
+              "Retry-After": {
+                "schema": {
+                  "type": "string",
+                  "description": "Seconds until the limit resets",
+                  "example": "30"
+                },
+                "required": true,
+                "description": "Seconds until the limit resets"
+              }
+            },
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Error"
+                }
+              }
+            }
+          }
+        }
+      },
       "get": {
         "security": [
           {
@@ -2477,6 +2840,105 @@
           },
           "401": {
             "description": "No valid Clerk session token",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Error"
+                }
+              }
+            }
+          },
+          "429": {
+            "description": "Too many requests from this User; retry after `Retry-After`",
+            "headers": {
+              "Retry-After": {
+                "schema": {
+                  "type": "string",
+                  "description": "Seconds until the limit resets",
+                  "example": "30"
+                },
+                "required": true,
+                "description": "Seconds until the limit resets"
+              }
+            },
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Error"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/v1/workout-sessions/{id}/finish": {
+      "post": {
+        "description": "Finishes the Workout Session and moves its Workout to the end of its Plan's rotation (unless that Workout is gone). Finishing an already finished Workout Session changes nothing and answers `already_finished: true`, so a retried finish is harmless.",
+        "security": [
+          {
+            "bearerAuth": []
+          }
+        ],
+        "summary": "Finish a Workout Session",
+        "parameters": [
+          {
+            "schema": {
+              "type": "string",
+              "format": "uuid",
+              "example": "6f1c0c9e-2b7a-4c1e-9a55-3c2d1e0f4a11"
+            },
+            "required": true,
+            "name": "id",
+            "in": "path"
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "The finished Workout Session, in full",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object",
+                  "properties": {
+                    "already_finished": {
+                      "type": "boolean",
+                      "description": "`true` when it was finished before this request, which then changed nothing"
+                    },
+                    "data": {
+                      "$ref": "#/components/schemas/WorkoutSession"
+                    }
+                  },
+                  "required": [
+                    "already_finished",
+                    "data"
+                  ]
+                }
+              }
+            }
+          },
+          "400": {
+            "description": "`invalid_request`: the input fails its schema",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Error"
+                }
+              }
+            }
+          },
+          "401": {
+            "description": "No valid Clerk session token",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Error"
+                }
+              }
+            }
+          },
+          "404": {
+            "description": "`not_found`: the User has no Workout Session with this id",
             "content": {
               "application/json": {
                 "schema": {

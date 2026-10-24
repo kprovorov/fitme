@@ -1,24 +1,19 @@
 import { createRoute, OpenAPIHono, z } from "@hono/zod-openapi";
 import { type ApiEnv, bearerSecurity, requires } from "../auth.js";
 import {
-  ErrorResponse,
+  errorResponse,
   Id,
   invalidRequest,
   invalidRequestResponse,
   rateLimitedResponse,
+  timestamp,
   unauthorizedResponse,
   WeightUnit,
+  WorkoutSessionSet,
 } from "../schemas.js";
 
 const DEFAULT_LIMIT = 20;
 const MAX_LIMIT = 50;
-
-const timestamp = (description: string) =>
-  z.string().openapi({
-    description: `${description} (ISO 8601)`,
-    example: "2026-10-01T10:00:00.123456+00:00",
-    format: "date-time",
-  });
 
 const Status = z.enum(["in_progress", "finished"]).openapi({
   description: "`finished` once `finished_at` is set",
@@ -79,28 +74,6 @@ const WorkoutSessionPage = z
   })
   .openapi("WorkoutSessionPage");
 
-const WorkoutSessionSet = z
-  .object({
-    id: Id,
-    logged_at: timestamp("When its result was logged").nullable(),
-    order: z.int().openapi({ example: 1 }),
-    reps_completed: z.int().nullable().openapi({ example: 8 }),
-    reps_recommended: z.int().nullable().openapi({ example: 8 }),
-    rest_recommended: z.int().nullable().openapi({
-      description: "Rest after the set, in seconds",
-      example: 90,
-    }),
-    weight_completed: z.number().nullable().openapi({
-      description: "In `weight_unit`",
-      example: 80.5,
-    }),
-    weight_recommended: z.number().nullable().openapi({
-      description: "In `weight_unit`",
-      example: 80,
-    }),
-  })
-  .openapi("WorkoutSessionSet");
-
 const WorkoutSessionExercise = z
   .object({
     exercise_slug: z.string().openapi({
@@ -124,6 +97,106 @@ const WorkoutSession = z
   .openapi("WorkoutSession");
 
 const WorkoutSessionResponse = z.object({ data: WorkoutSession });
+
+const FinishedWorkoutSessionResponse = z.object({
+  already_finished: z.boolean().openapi({
+    description:
+      "`true` when it was finished before this request, which then changed nothing",
+  }),
+  data: WorkoutSession,
+});
+
+const notFoundResponse = errorResponse(
+  "`not_found`: the User has no Workout Session with this id"
+);
+
+const notFound = {
+  error: { code: "not_found", message: "Workout Session not found" },
+} as const;
+
+const startWorkoutSessionRoute = createRoute({
+  description:
+    "Starts a Workout Session for one of the User's Workouts, copying its Exercises and sets in order. A Workout has at most one open Workout Session: when one is already open, it's resumed (200) instead of a new one being created (201), so a retried start never duplicates it.",
+  method: "post",
+  middleware: [requires("write")] as const,
+  path: "/",
+  request: {
+    body: {
+      content: {
+        "application/json": {
+          schema: z
+            .strictObject({
+              workout_id: Id.openapi({
+                description: "The Workout to start, from a Plan of the User",
+              }),
+            })
+            .openapi("StartWorkoutSession"),
+        },
+      },
+      required: true,
+    },
+  },
+  responses: {
+    200: {
+      content: { "application/json": { schema: WorkoutSessionResponse } },
+      description:
+        "Resumed: the Workout Session already open for this Workout, in full",
+    },
+    201: {
+      content: { "application/json": { schema: WorkoutSessionResponse } },
+      description: "Started: the new Workout Session, in full",
+    },
+    400: invalidRequestResponse,
+    401: unauthorizedResponse,
+    404: errorResponse(
+      "`not_found`: the User has no such Workout, or its Plan is deleted"
+    ),
+    415: errorResponse("The body isn't `application/json`"),
+    429: rateLimitedResponse,
+  },
+  security: bearerSecurity,
+  summary: "Start or resume a Workout Session",
+});
+
+const finishWorkoutSessionRoute = createRoute({
+  description:
+    "Finishes the Workout Session and moves its Workout to the end of its Plan's rotation (unless that Workout is gone). Finishing an already finished Workout Session changes nothing and answers `already_finished: true`, so a retried finish is harmless.",
+  method: "post",
+  middleware: [requires("write")] as const,
+  path: "/{id}/finish",
+  request: { params: z.object({ id: Id }) },
+  responses: {
+    200: {
+      content: {
+        "application/json": { schema: FinishedWorkoutSessionResponse },
+      },
+      description: "The finished Workout Session, in full",
+    },
+    400: invalidRequestResponse,
+    401: unauthorizedResponse,
+    404: notFoundResponse,
+    429: rateLimitedResponse,
+  },
+  security: bearerSecurity,
+  summary: "Finish a Workout Session",
+});
+
+const deleteWorkoutSessionRoute = createRoute({
+  description:
+    "Deletes the Workout Session with its Exercises and logged sets, for good. Idempotent: an id the User has no Workout Session with (already deleted, never existed, or another User's, which is left untouched) answers 204 too.",
+  method: "delete",
+  middleware: [requires("write")] as const,
+  path: "/{id}",
+  request: { params: z.object({ id: Id }) },
+  responses: {
+    204: { description: "The User has no Workout Session with this id now" },
+    400: invalidRequestResponse,
+    401: unauthorizedResponse,
+    429: rateLimitedResponse,
+  },
+  security: bearerSecurity,
+  summary: "Delete a Workout Session",
+});
 
 const listWorkoutSessions = createRoute({
   method: "get",
@@ -183,10 +256,7 @@ const getWorkoutSession = createRoute({
     },
     400: invalidRequestResponse,
     401: unauthorizedResponse,
-    404: {
-      content: { "application/json": { schema: ErrorResponse } },
-      description: "`not_found`: the User has no Workout Session with this id",
-    },
+    404: notFoundResponse,
     429: rateLimitedResponse,
   },
   security: bearerSecurity,
@@ -200,12 +270,7 @@ export const workoutSessions = new OpenAPIHono<ApiEnv>({
     const { id } = c.req.valid("param");
     const found = await c.var.getServices().getWorkoutSession(id);
     if (!found) {
-      return c.json(
-        {
-          error: { code: "not_found", message: "Workout Session not found" },
-        },
-        404
-      );
+      return c.json(notFound, 404);
     }
     const { value, weightUnit } = found;
     return c.json(
@@ -214,6 +279,48 @@ export const workoutSessions = new OpenAPIHono<ApiEnv>({
       }),
       200
     );
+  })
+  .openapi(startWorkoutSessionRoute, async (c) => {
+    const { workout_id } = c.req.valid("json");
+    const { value, weightUnit } = await c.var
+      .getServices()
+      .startWorkoutSession(workout_id);
+    if (value.status === "not_found") {
+      return c.json(
+        { error: { code: "not_found", message: "Workout not found" } },
+        404
+      );
+    }
+    const body = WorkoutSessionResponse.parse({
+      data: { ...value.session, weight_unit: weightUnit },
+    });
+    if (value.resumed) {
+      return c.json(body, 200);
+    }
+    return c.json(body, 201);
+  })
+  .openapi(finishWorkoutSessionRoute, async (c) => {
+    const { id } = c.req.valid("param");
+    const { value, weightUnit } = await c.var
+      .getServices()
+      .finishWorkoutSession(id);
+    if (value.status === "not_found") {
+      return c.json(notFound, 404);
+    }
+    return c.json(
+      FinishedWorkoutSessionResponse.parse({
+        already_finished: value.alreadyFinished,
+        data: { ...value.session, weight_unit: weightUnit },
+      }),
+      200
+    );
+  })
+  .openapi(deleteWorkoutSessionRoute, async (c) => {
+    // Nothing deleted reads the same whether it was already deleted, never
+    // existed or is another User's (RLS hides it): each answers 204, so a
+    // retried delete succeeds and no id is revealed.
+    await c.var.getServices().deleteWorkoutSession(c.req.valid("param").id);
+    return c.body(null, 204);
   })
   .openapi(listWorkoutSessions, async (c) => {
     const options = c.req.valid("query");

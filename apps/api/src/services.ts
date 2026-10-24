@@ -1,4 +1,15 @@
-import { asUser, type Transaction } from "@fitme/db";
+import {
+  asUser,
+  plans,
+  profiles,
+  type Transaction,
+  workoutExerciseSets,
+  workoutExercises,
+  workoutSessionExerciseSets,
+  workoutSessionExercises,
+  workoutSessions,
+  workouts,
+} from "@fitme/db";
 import {
   activatePlan,
   type CreatePlanOptions,
@@ -24,12 +35,39 @@ import {
   updateProfile,
 } from "@fitme/services/profile";
 import {
+  deleteWorkoutSession,
+  type FinishWorkoutSessionResult,
+  finishWorkoutSession,
   getWorkoutSession,
   type ListWorkoutSessionsOptions,
+  type LogSetInput,
+  type LogSetResult,
   listWorkoutSessions,
+  logSet,
+  type StartWorkoutSessionResult,
+  startWorkoutSession,
   type WorkoutSessionDetail,
   type WorkoutSessionPage,
 } from "@fitme/services/workout-sessions";
+import { sql } from "drizzle-orm";
+
+/**
+ * The User tables a write may touch, in deleteUserData's lock order (its
+ * LOCKED_TABLES, without coach_sessions).
+ */
+const USER_TABLES = sql.join(
+  [
+    profiles,
+    plans,
+    workoutSessions,
+    workouts,
+    workoutExercises,
+    workoutExerciseSets,
+    workoutSessionExercises,
+    workoutSessionExerciseSets,
+  ],
+  sql`, `
+);
 
 /**
  * A read carrying weights, with the unit they're stored in: the User's
@@ -67,6 +105,15 @@ export interface UserServices {
    * deleted answers `alreadyDeleted`, and `null` means the User never had it.
    */
   deletePlan: (planId: string) => Promise<DeletedPlan | null>;
+  /** Deletes one of the User's Workout Sessions; false when none matched. */
+  deleteWorkoutSession: (sessionId: string) => Promise<boolean>;
+  /**
+   * Finishes one of the User's Workout Sessions and moves its Workout to the
+   * end of the Plan's rotation; a repeat changes nothing (`alreadyFinished`).
+   */
+  finishWorkoutSession: (
+    sessionId: string
+  ) => Promise<Weighed<FinishWorkoutSessionResult>>;
   /** The active Plan in full, or `null` with none. */
   getActivePlan: () => Promise<Weighed<PlanDetail> | null>;
   /** A live Plan of the User in full, or `null` (missing, deleted, foreign). */
@@ -80,6 +127,8 @@ export interface UserServices {
   listWorkoutSessions: (
     options: ListWorkoutSessionsOptions
   ) => Promise<WorkoutSessionPage>;
+  /** Logs one set of the User's open Workout Session, its weight in the User's unit. */
+  logSet: (input: LogSetInput) => Promise<Weighed<LogSetResult>>;
   /**
    * Replaces every Workout of a live Plan of the User, in rotation order (new
    * ids; metadata and active state stay); the Plan in full, or `null` with
@@ -90,6 +139,13 @@ export interface UserServices {
     planId: string,
     workouts: PlanWorkoutInput[]
   ) => Promise<Weighed<PlanDetail> | null>;
+  /**
+   * Starts a Workout Session for one of the User's Workouts (of a live Plan),
+   * or resumes the one already open for it (`resumed`).
+   */
+  startWorkoutSession: (
+    workoutId: string
+  ) => Promise<Weighed<StartWorkoutSessionResult>>;
   /**
    * Changes only the given metadata fields of a live Plan of the User; its
    * Workouts and their ids stay. The Plan in full, or `null` with nothing
@@ -115,16 +171,33 @@ export const createServicesFromEnv: ServicesFactory = (userId) => {
     return null;
   }
 
-  /** `run`, after locking the units its weights are in. */
-  const inUnits = <T>(run: (tx: Transaction) => Promise<T>) =>
+  /** `run`, after locking the units its weights are in (and `before`, first). */
+  const inUnits = <T>(
+    run: (tx: Transaction) => Promise<T>,
+    { before }: { before?: (tx: Transaction) => Promise<unknown> } = {}
+  ) =>
     asUser(userId, async (tx): Promise<Weighed<T>> => {
+      await before?.(tx);
       const units = await lockProfileUnits(tx, userId);
       return { value: await run(tx), weightUnit: units?.weight ?? "kg" };
     });
 
-  /** `read` in its units, or `null` when it finds nothing. */
-  const weighed = async <T>(read: (tx: Transaction) => Promise<T | null>) => {
-    const { value, weightUnit } = await inUnits(read);
+  /**
+   * Locks the tables a write touches, before the Profile row lock: an account
+   * deletion holds those tables and then deletes that row, so asking for
+   * them after it would deadlock. Waiting for them up front holds nothing.
+   */
+  const write = {
+    before: (tx: Transaction) =>
+      tx.execute(sql`lock table ${USER_TABLES} in row exclusive mode`),
+  };
+
+  /** `read` (or a write, with `write`) in its units, or `null` when it finds nothing. */
+  const weighed = async <T>(
+    read: (tx: Transaction) => Promise<T | null>,
+    options?: typeof write
+  ) => {
+    const { value, weightUnit } = await inUnits(read, options);
     return value === null ? null : { value, weightUnit };
   };
 
@@ -132,15 +205,21 @@ export const createServicesFromEnv: ServicesFactory = (userId) => {
     // Activated and read back in one transaction, so the answer is the Plan
     // this request activated.
     activatePlan: (planId) =>
-      weighed(async (tx) =>
-        (await activatePlan(tx, userId, planId))
-          ? getPlan(tx, userId, planId)
-          : null
+      weighed(
+        async (tx) =>
+          (await activatePlan(tx, userId, planId))
+            ? getPlan(tx, userId, planId)
+            : null,
+        write
       ),
     createPlan: (plan, options) =>
-      inUnits((tx) => createPlan(tx, userId, plan, options)),
+      inUnits((tx) => createPlan(tx, userId, plan, options), write),
     deletePlan: (planId) =>
       asUser(userId, (tx) => deletePlan(tx, userId, planId)),
+    deleteWorkoutSession: (sessionId) =>
+      asUser(userId, (tx) => deleteWorkoutSession(tx, sessionId)),
+    finishWorkoutSession: (sessionId) =>
+      inUnits((tx) => finishWorkoutSession(tx, sessionId), write),
     getActivePlan: () => weighed((tx) => getActivePlan(tx, userId)),
     getPlan: (planId) => weighed((tx) => getPlan(tx, userId, planId)),
     getProfile: () => asUser(userId, (tx) => getProfile(tx, userId)),
@@ -149,11 +228,17 @@ export const createServicesFromEnv: ServicesFactory = (userId) => {
     listPlans: () => asUser(userId, (tx) => listPlans(tx, userId)),
     listWorkoutSessions: (options) =>
       asUser(userId, (tx) => listWorkoutSessions(tx, options)),
-    replaceWorkouts: (planId, workouts) =>
-      weighed((tx) => updatePlan(tx, userId, planId, { workouts })),
+    logSet: (input) => inUnits((tx) => logSet(tx, input), write),
+    replaceWorkouts: (planId, replacement) =>
+      weighed(
+        (tx) => updatePlan(tx, userId, planId, { workouts: replacement }),
+        write
+      ),
+    startWorkoutSession: (workoutId) =>
+      inUnits((tx) => startWorkoutSession(tx, workoutId), write),
     // Metadata only: never `workouts`, so Workout ids stay.
     updatePlan: (planId, changes) =>
-      weighed((tx) => updatePlan(tx, userId, planId, changes)),
+      weighed((tx) => updatePlan(tx, userId, planId, changes), write),
     updateProfile: (changes) =>
       asUser(userId, (tx) => updateProfile(tx, userId, changes)),
   };
