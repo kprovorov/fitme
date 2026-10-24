@@ -4,12 +4,7 @@ import {
   GlassView as XGlassView,
 } from "expo-glass-effect";
 import { Image as XImage } from "expo-image";
-import {
-  type StyleProp,
-  StyleSheet,
-  type ViewProps,
-  type ViewStyle,
-} from "react-native";
+import type { StyleProp, ViewProps, ViewStyle } from "react-native";
 import { KeyboardGestureArea as XKeyboardGestureArea } from "react-native-keyboard-controller";
 import Animated from "react-native-reanimated";
 import { SafeAreaView as XSafeAreaView } from "react-native-safe-area-context";
@@ -56,10 +51,7 @@ const FallbackAppleGlassView = ({
     // AppleGlassView is picked per platform but exposes the glass view's ref
     // type; on this fallback path the ref resolves to the BlurView instance.
     ref={ref as React.Ref<EXBlurView>}
-    style={[
-      { overflow: "hidden" },
-      StyleSheet.flatten(style as StyleProp<ViewStyle>),
-    ]}
+    style={[{ overflow: "hidden" }, style as StyleProp<ViewStyle>]}
     tint={fallbackTint}
     {...(viewProps as ViewProps)}
   >
@@ -90,8 +82,7 @@ function convertStylesToProps(
   if (!style) {
     return { props: {} as Record<string, unknown>, style };
   }
-  const flatStyle = (StyleSheet.flatten(style as StyleProp<ViewStyle>) ||
-    {}) as Record<string, unknown>;
+  const flatStyle = flattenStyle(style);
   const props: Record<string, unknown> = {};
 
   for (const [styleKey, propKey] of Object.entries(move)) {
@@ -102,4 +93,18 @@ function convertStylesToProps(
   }
 
   return { props, style: flatStyle };
+}
+
+// StyleSheet.flatten's parameter is React Native's internal style type, which
+// expo/types' web additions to ViewStyle don't fit, so the style prop is merged
+// here. It returns a copy: the caller's style object is never mutated.
+function flattenStyle(style: unknown): Record<string, unknown> {
+  if (Array.isArray(style)) {
+    const flat: Record<string, unknown> = {};
+    for (const item of style) {
+      Object.assign(flat, flattenStyle(item));
+    }
+    return flat;
+  }
+  return style && typeof style === "object" ? { ...style } : {};
 }

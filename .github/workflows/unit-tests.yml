@@ -53,6 +53,11 @@ jobs:
       - name: No color literals or arbitrary sizes (design tokens)
         run: pnpm literal-check
 
+      # `expo start` writes this (gitignored) file on every developer machine,
+      # and expo/types widens ViewStyle with web props: typecheck that state.
+      - name: Write the expo-env.d.ts Metro generates
+        run: printf '/// <reference types="expo/types" />\n' > apps/mobile/expo-env.d.ts
+
       - name: Typecheck
         run: pnpm typecheck
 
