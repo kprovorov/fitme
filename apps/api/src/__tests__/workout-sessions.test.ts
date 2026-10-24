@@ -3,7 +3,7 @@ import type {
   WorkoutSessionSummary,
 } from "@fitme/services/workout-sessions";
 import { describe, expect, it } from "vitest";
-import type { UserServices, WithWeightUnit } from "../services.js";
+import type { UserServices, Weighed } from "../services.js";
 import { fakeServices, signedInAs, testApp } from "../test/harness.js";
 
 const SESSION_ID = "6f1c0c9e-2b7a-4c1e-9a55-3c2d1e0f4a11";
@@ -192,15 +192,17 @@ const sessionFields = {
 } as const;
 
 /** The Workout Session as the facade answers it: with the legacy joined Exercise. */
-const fromServices: WithWeightUnit<WorkoutSessionDetail> = {
-  ...sessionFields,
-  exercises: [
-    {
-      ...exercise,
-      exercise: { id: LEGACY_EXERCISE_ID, name: "Bench press" },
-    },
-  ],
-  weight_unit: "lbs",
+const fromServices: Weighed<WorkoutSessionDetail> = {
+  value: {
+    ...sessionFields,
+    exercises: [
+      {
+        ...exercise,
+        exercise: { id: LEGACY_EXERCISE_ID, name: "Bench press" },
+      },
+    ],
+  },
+  weightUnit: "lbs",
 };
 
 /** The same Workout Session as the API answers it. */
@@ -253,18 +255,21 @@ describe("GET /v1/workout-sessions/:id", () => {
   });
 
   it("never shows legacy or internal fields", async () => {
-    const [legacyExercise] = fromServices.exercises;
+    const [legacyExercise] = fromServices.value.exercises;
     const withInternals = {
       ...fromServices,
-      exercises: [
-        {
-          ...legacyExercise,
-          exercise_id: LEGACY_EXERCISE_ID,
-          sets: [{ ...set, workout_session_exercise_id: exercise.id }],
-        },
-      ],
-      user_id: "user_alice",
-      workout_id: WORKOUT_ID,
+      value: {
+        ...fromServices.value,
+        exercises: [
+          {
+            ...legacyExercise,
+            exercise_id: LEGACY_EXERCISE_ID,
+            sets: [{ ...set, workout_session_exercise_id: exercise.id }],
+          },
+        ],
+        user_id: "user_alice",
+        workout_id: WORKOUT_ID,
+      },
     };
     const { app } = testApp({
       services: fakeServices({

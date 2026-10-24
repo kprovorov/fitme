@@ -204,7 +204,13 @@ export const workoutSessions = new OpenAPIHono<ApiEnv>({
         404
       );
     }
-    return c.json(WorkoutSessionResponse.parse({ data: found }), 200);
+    const { value, weightUnit } = found;
+    return c.json(
+      WorkoutSessionResponse.parse({
+        data: { ...value, weight_unit: weightUnit },
+      }),
+      200
+    );
   })
   .openapi(listWorkoutSessions, async (c) => {
     const options = c.req.valid("query");

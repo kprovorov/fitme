@@ -14,15 +14,6 @@ export const Id = z.guid().openapi({
   format: "uuid",
 });
 
-/**
- * The unit every weight in a response is in: the User's, `kg` without a
- * Profile. Weights are returned as stored, never converted.
- */
-export const WeightUnit = z.enum(["kg", "lbs"]).openapi("WeightUnit", {
-  description:
-    "The unit of every weight in the response: the User's measurement system's (`kg` metric, `lbs` us and uk), `kg` without a Profile",
-});
-
 /** Every error, whatever the route: `{ error: { code, message } }`. */
 export const ErrorResponse = z
   .object({
@@ -70,3 +61,9 @@ export const invalidRequestResponse = {
   content: { "application/json": { schema: ErrorResponse } },
   description: "`invalid_request`: the input fails its schema",
 };
+
+/** The unit every weight of a User is stored and shown in. */
+export const WeightUnit = z.enum(["kg", "lbs"]).openapi("WeightUnit", {
+  description:
+    "The unit of every weight in the response: `kg` (metric) or `lbs` (us, uk). Weights are as stored, never converted",
+});

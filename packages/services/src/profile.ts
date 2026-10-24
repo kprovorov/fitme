@@ -78,26 +78,24 @@ export const getProfile = async (
 };
 
 /**
- * The unit the User's weights are stored in, in `tx` (from `asUser`): `kg`
- * without a Profile (nothing to convert then) or with an unknown system.
- *
- * Share-locks the Profile row until `tx` ends, so weights read later in `tx`
- * are in this unit: a conversion (`updateProfile` or the
- * `convert_measurement_system` RPC) updates the Profile row before any weight,
- * so one in progress makes this wait for its commit, and one starting after
- * waits for `tx`. Under READ COMMITTED, sharing a transaction alone wouldn't
- * do: each statement gets its own snapshot.
+ * The units of the User's stored heights and weights, in `tx` (from
+ * `asUser`), or `null` without a Profile, and the Profile row share-locked
+ * until `tx` ends. Every conversion (`updateProfile` and the
+ * `convert_measurement_system` RPC) row-locks the Profile before touching a
+ * value, so none commits while `tx` runs: whatever `tx` reads after this is
+ * in these units. (Under READ COMMITTED, two plain SELECTs in one transaction
+ * can straddle a conversion's commit.)
  */
-export const getWeightUnit = async (
+export const lockProfileUnits = async (
   tx: Transaction,
   userId: string
-): Promise<ProfileUnits["weight"]> => {
+): Promise<ProfileUnits | null> => {
   const [profile] = await tx
     .select({ measurementSystem: profiles.measurementSystem })
     .from(profiles)
     .where(eq(profiles.userId, userId))
     .for("share");
-  return unitsFor(profile?.measurementSystem ?? "metric").weight;
+  return profile ? unitsFor(profile.measurementSystem) : null;
 };
 
 /** Fields of a Profile to change; omitted ones stay as they are. */
