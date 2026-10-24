@@ -59,7 +59,8 @@ select is_empty(
   'anon, authenticated and service_role hold every privilege on the app tables'
 );
 
--- arnold_sessions (20261014160000_arnold_sessions.sql): a User reads and
+-- arnold_sessions (20261014160000_coach_sessions.sql, renamed by
+-- 20261024140000_arnold_sessions.sql): a User reads and
 -- records their own sessions, anon nothing.
 select is_empty(
   $$
