@@ -14,7 +14,7 @@ pnpm api openapi        # regenerate openapi.json (commit it; CI fails when it's
 ## Endpoints
 
 - `GET /health` — liveness
-- `GET /v1/client-config` — public client config: minimum supported app version per platform (`ios`, `android`, `web`) from `MIN_APP_VERSION_IOS` / `_ANDROID` / `_WEB`, each falling back to `MIN_APP_VERSION` when unset or blank (neither set, or malformed → `null`), cached for 5 minutes
+- `GET /v1/client-config` — public client config: minimum supported app version per platform (`ios`, `android`, `web`) from `MIN_APP_VERSION_IOS` / `_ANDROID` / `_WEB`, each falling back to `MIN_APP_VERSION` when unset or malformed (neither valid → `null`), cached for 5 minutes
 - `GET /v1/coach/models` — public list of Coach models and the default id, cached for 5 minutes
 - `GET /v1/muscle-groups` — list muscle groups
 - `GET /v1/muscle-groups/:muscleGroup` — single muscle group

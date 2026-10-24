@@ -7,18 +7,21 @@ import {
 
 const VERSION_PATTERN = /^\d+\.\d+\.\d+$/;
 
-const envValue = (name: string) => process.env[name]?.trim() || undefined;
+/** An `x.y.z` version from env, or `undefined` when unset or malformed. */
+const versionFromEnv = (name: string) => {
+  const value = process.env[name]?.trim();
+  return value && VERSION_PATTERN.test(value) ? value : undefined;
+};
 
 /**
- * A platform's `x.y.z` minimum from `MIN_APP_VERSION_<PLATFORM>`, or from
- * `MIN_APP_VERSION` when that one is unset or blank; neither set, or a
- * malformed value, means no minimum.
+ * A platform's minimum from `MIN_APP_VERSION_<PLATFORM>`, or from
+ * `MIN_APP_VERSION` when that one is unset or malformed (so a typo never
+ * lifts the global cutoff); neither valid means no minimum.
  */
-const minimumVersionFromEnv = (platform: "ANDROID" | "IOS" | "WEB") => {
-  const value =
-    envValue(`MIN_APP_VERSION_${platform}`) ?? envValue("MIN_APP_VERSION");
-  return value && VERSION_PATTERN.test(value) ? value : null;
-};
+const minimumVersionFromEnv = (platform: "ANDROID" | "IOS" | "WEB") =>
+  versionFromEnv(`MIN_APP_VERSION_${platform}`) ??
+  versionFromEnv("MIN_APP_VERSION") ??
+  null;
 
 const MinimumVersion = z.string().nullable().openapi({
   description:

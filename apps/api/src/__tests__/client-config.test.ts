@@ -61,6 +61,19 @@ describe("GET /v1/client-config", () => {
     });
   });
 
+  it("falls back to MIN_APP_VERSION over a malformed platform value", async () => {
+    vi.stubEnv("MIN_APP_VERSION", "1.7.0");
+    vi.stubEnv("MIN_APP_VERSION_IOS", "v1.2");
+
+    const { body } = await getClientConfig();
+
+    expect(body).toEqual({
+      data: {
+        minimumVersion: { android: "1.7.0", ios: "1.7.0", web: "1.7.0" },
+      },
+    });
+  });
+
   it("returns no minimum when env holds something other than x.y.z", async () => {
     vi.stubEnv("MIN_APP_VERSION", "1.7");
     vi.stubEnv("MIN_APP_VERSION_IOS", "v1.2");
