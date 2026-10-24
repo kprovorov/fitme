@@ -1,7 +1,8 @@
 import { beforeEach, describe, expect, it, jest } from "@jest/globals";
 import * as Sentry from "@sentry/react-native";
-import { QueryClient, QueryClientProvider } from "@tanstack/react-query";
+import { QueryClientProvider } from "@tanstack/react-query";
 import { render } from "@testing-library/react-native";
+import { createTestQueryClient } from "~/test-utils/query-client";
 import AuthSync from "../auth-sync";
 
 interface FakeUser {
@@ -37,7 +38,7 @@ jest.mock("~/lib/segment", () => ({
 const CLERK_ID = "user_2abcDEF";
 
 const renderAuthSync = async () => {
-  const queryClient = new QueryClient();
+  const queryClient = createTestQueryClient();
   const tree = () => (
     <QueryClientProvider client={queryClient}>
       <AuthSync />

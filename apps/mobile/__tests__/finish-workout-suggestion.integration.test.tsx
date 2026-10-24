@@ -19,7 +19,7 @@ import {
   jest,
 } from "@jest/globals";
 import { captureException } from "@sentry/react-native";
-import { QueryClient, QueryClientProvider } from "@tanstack/react-query";
+import { type QueryClient, QueryClientProvider } from "@tanstack/react-query";
 import {
   act,
   fireEvent,
@@ -40,6 +40,10 @@ import {
   libraryExerciseNamed,
   type SeedSession,
 } from "~/test-utils/fake-workout-backend";
+import {
+  createTestQueryClient,
+  settle as settleQueries,
+} from "~/test-utils/query-client";
 
 // ---------------------------------------------------------------------------
 // Navigation: a stack of mounted screens; only the top one is focused.
@@ -295,12 +299,7 @@ function Navigator() {
 let queryClient: QueryClient;
 
 const renderApp = async () => {
-  queryClient = new QueryClient({
-    defaultOptions: {
-      mutations: { retry: false },
-      queries: { gcTime: Number.POSITIVE_INFINITY, retry: false },
-    },
-  });
+  queryClient = createTestQueryClient();
   await render(
     <QueryClientProvider client={queryClient}>
       <Navigator />
@@ -308,18 +307,11 @@ const renderApp = async () => {
   );
 };
 
-/** Waits until every request, query, mutation and suggestion check is done. */
-const settle = async () => {
-  await waitFor(() => {
-    expect(backend.inFlight).toBe(0);
-    expect(queryClient.isFetching()).toBe(0);
-    expect(queryClient.isMutating()).toBe(0);
-  });
-  // The suggestion check resolves after the last response.
-  await act(async () => {
-    await new Promise((resolve) => setTimeout(resolve, 0));
-  });
-};
+/**
+ * Waits until every request, query, mutation and suggestion check is done (the
+ * check resolves a tick after the last response, within `settle`'s idle ticks).
+ */
+const settle = () => settleQueries(queryClient, () => backend.inFlight === 0);
 
 const focused = () => within(screen.getByTestId("focused-screen"));
 
@@ -390,9 +382,9 @@ describe.each(ENTRY_ROUTES)(
       await openSession(sessions[0]?.id ?? "");
     };
 
-    /** Taps an exercise of the focused session screen. */
+    /** Taps an exercise of the focused session screen, once it's named. */
     const openExercise = async (name: string) => {
-      await fireEvent.press(focused().getByText(name));
+      await fireEvent.press(await focused().findByText(name));
       await settle();
       expect(mockNavigator.routes.at(-1)?.name).toBe("exercise");
     };

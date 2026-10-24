@@ -7,7 +7,7 @@ import {
   jest,
 } from "@jest/globals";
 import * as Sentry from "@sentry/react-native";
-import { QueryClient, QueryClientProvider } from "@tanstack/react-query";
+import { QueryClientProvider } from "@tanstack/react-query";
 import {
   act,
   fireEvent,
@@ -19,6 +19,7 @@ import type * as React from "react";
 import { Alert } from "react-native";
 import { PlanUpdateSheetHost } from "~/components/workout-sessions/plan-update-sheet";
 import { closePlanUpdatePrompt } from "~/hooks/plan-update-prompt";
+import { createTestQueryClient } from "~/test-utils/query-client";
 import { useFinishWorkoutSession } from "../finish-workout-session";
 
 const mockReplace = jest.fn();
@@ -102,11 +103,7 @@ const deferred = () => {
 };
 
 const setup = async (screensAboveSession = 0) => {
-  const queryClient = new QueryClient({
-    defaultOptions: {
-      mutations: { gcTime: Number.POSITIVE_INFINITY, retry: false },
-    },
-  });
+  const queryClient = createTestQueryClient();
   // The sheet's host sits in the root layout, next to every screen.
   const wrapper = ({ children }: { children: React.ReactNode }) => (
     <QueryClientProvider client={queryClient}>

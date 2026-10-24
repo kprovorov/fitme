@@ -9,13 +9,12 @@
  * swapped for plain stand-ins.
  */
 import { beforeEach, describe, expect, it, jest } from "@jest/globals";
-import { QueryClient, QueryClientProvider } from "@tanstack/react-query";
+import { type QueryClient, QueryClientProvider } from "@tanstack/react-query";
 import {
   act,
   fireEvent,
   render,
   screen,
-  waitFor,
   within,
 } from "@testing-library/react-native";
 import type { ReactNode } from "react";
@@ -29,6 +28,10 @@ import {
   backend,
   libraryExerciseNamed,
 } from "~/test-utils/fake-workout-backend";
+import {
+  createTestQueryClient,
+  settle as settleQueries,
+} from "~/test-utils/query-client";
 
 const mockParams: { current: Record<string, string> } = { current: {} };
 
@@ -126,12 +129,7 @@ const renderScreen = async (
   params: Record<string, string>
 ) => {
   mockParams.current = params;
-  queryClient = new QueryClient({
-    defaultOptions: {
-      mutations: { retry: false },
-      queries: { gcTime: Number.POSITIVE_INFINITY, retry: false },
-    },
-  });
+  queryClient = createTestQueryClient();
   await render(
     <QueryClientProvider client={queryClient}>
       <Screen />
@@ -141,13 +139,7 @@ const renderScreen = async (
 };
 
 /** Waits until every request, query and mutation is done. */
-const settle = async () => {
-  await waitFor(() => {
-    expect(backend.inFlight).toBe(0);
-    expect(queryClient.isFetching()).toBe(0);
-    expect(queryClient.isMutating()).toBe(0);
-  });
-};
+const settle = () => settleQueries(queryClient, () => backend.inFlight === 0);
 
 const seedSession = (finished = false) =>
   backend.seed({
@@ -185,7 +177,7 @@ describe("a Plan", () => {
     await renderScreen(PlanScreen, { planId: "plan-1" });
 
     // Open the Workout card to list its Exercises by name.
-    await fireEvent.press(screen.getByText("Leg Day"));
+    await fireEvent.press(await screen.findByText("Leg Day"));
 
     const squat = await screen.findByTestId("link:/exercises/squat");
     expect(within(squat).getByLabelText("Squat")).toBeTruthy();

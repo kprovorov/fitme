@@ -1,6 +1,6 @@
 import { beforeEach, describe, expect, it, jest } from "@jest/globals";
 import * as Sentry from "@sentry/react-native";
-import { QueryClient, QueryClientProvider } from "@tanstack/react-query";
+import { QueryClientProvider } from "@tanstack/react-query";
 import {
   act,
   fireEvent,
@@ -11,6 +11,7 @@ import {
 import { useCallback } from "react";
 import { Alert, Pressable, Text } from "react-native";
 import MeasurementSystemScreen from "~/app/settings/measurement-system";
+import { createTestQueryClient } from "~/test-utils/query-client";
 
 const mockConvert = jest.fn<(system: string) => Promise<void>>();
 const mockFetchProfile = jest.fn<() => Promise<unknown>>();
@@ -187,9 +188,7 @@ const deferred = () => {
 };
 
 const setup = async () => {
-  const queryClient = new QueryClient({
-    defaultOptions: { mutations: { retry: false }, queries: { retry: false } },
-  });
+  const queryClient = createTestQueryClient();
   await render(
     <QueryClientProvider client={queryClient}>
       <MeasurementSystemScreen />
@@ -295,9 +294,7 @@ describe("MeasurementSystemScreen", () => {
   it("shows a loading state until the saved system has loaded", async () => {
     const fetch = deferred();
     mockFetchProfile.mockReturnValue(fetch.promise.then(() => profile("us")));
-    const queryClient = new QueryClient({
-      defaultOptions: { queries: { retry: false } },
-    });
+    const queryClient = createTestQueryClient();
     await render(
       <QueryClientProvider client={queryClient}>
         <MeasurementSystemScreen />
@@ -319,9 +316,7 @@ describe("MeasurementSystemScreen", () => {
 
   it("offers a retry when the saved system can't be loaded", async () => {
     mockFetchProfile.mockRejectedValueOnce(new Error("offline"));
-    const queryClient = new QueryClient({
-      defaultOptions: { queries: { retry: false } },
-    });
+    const queryClient = createTestQueryClient();
     await render(
       <QueryClientProvider client={queryClient}>
         <MeasurementSystemScreen />
@@ -336,12 +331,7 @@ describe("MeasurementSystemScreen", () => {
   it("shows no alert when the switch finishes after the Screen is gone", async () => {
     const convert = deferred();
     mockConvert.mockReturnValue(convert.promise);
-    const queryClient = new QueryClient({
-      defaultOptions: {
-        mutations: { retry: false },
-        queries: { retry: false },
-      },
-    });
+    const queryClient = createTestQueryClient();
     const { unmount } = await render(
       <QueryClientProvider client={queryClient}>
         <MeasurementSystemScreen />

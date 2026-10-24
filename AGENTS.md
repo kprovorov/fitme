@@ -81,7 +81,7 @@ pnpm --silent db clerk:jwt-key [domain] # print a Clerk instance's JWT public ke
 # Single test file
 pnpm --filter @fitme/core exec vitest run src/__tests__/formatters.test.ts
 pnpm --filter @fitme/exercise-library exec vitest run src/__tests__/client.test.ts
-pnpm --filter @fitme/mobile exec jest --testPathPatterns="<file>"
+pnpm --filter @fitme/mobile exec jest --runTestsByPath <path from apps/mobile> # not --testPathPatterns: it matches the absolute path, so a worktree named after the issue can match every file
 ```
 
 ## Architecture
@@ -117,7 +117,7 @@ React Native / Expo app using **file-based routing** via `expo-router`:
   - `utils.ts` — `cn()` class merger (tailwind-merge with the HIG font scale)
   - `segment.ts` — the Segment client, created at import. Segment generates ids through `crypto.getRandomValues`, so `react-native-get-random-values` is a direct dependency even though no app code imports it: only a direct dependency gets its native module (`RNGetRandomValues`) autolinked, and without it the client throws at import and the app never renders. Don't remove it as unused.
   - `constants.ts`
-- `test-utils/` — Jest helpers. `setup.ts` (Jest `setupFiles`) swaps `~/lib/exercise-library` for the in-memory fake in every test file, so no test reaches the network; `serveLibrary` (`fake-exercise-library.ts`) points it at a test's Exercises
+- `test-utils/` — Jest helpers. `setup.ts` (Jest `setupFiles`) swaps `~/lib/exercise-library` for the in-memory fake in every test file, so no test reaches the network; `serveLibrary` (`fake-exercise-library.ts`) points it at a test's Exercises. Tests build their QueryClient with `createTestQueryClient()` (`query-client.ts`: no retries, no gc timers, which would keep Jest from exiting), cleared after each test by `after-each.ts` (`setupFilesAfterEnv`), and wait for the app with `settle(client)`, which advances a macrotask at a time until nothing is fetching or mutating, never on `waitFor`'s 1 s limit
 - `plugins/` — local Expo config plugin for Xcode 27 compatibility: `with-ios-min-deployment-target.js` (raises pod targets below iOS 15.1, including resource bundles; still needed on SDK 58, since pods such as `react-native-keyboard-controller`, `react-native-safe-area-context`, `@sentry/react-native` and Segment still declare older minimums). RevenueCat needs no patch: `react-native-purchases` 10 pins purchases-ios 5.95.0, which builds under Xcode 27 / Swift 6.4. The app itself targets iOS 16.4 (SDK 58's default). UIScene adoption needs no flag on SDK 58: prebuild generates `SceneDelegate.swift`, so there is no `expo-build-properties` plugin.
 
 ### apps/web — Next.js app

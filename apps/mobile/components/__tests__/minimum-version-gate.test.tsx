@@ -1,5 +1,5 @@
 import { beforeEach, describe, expect, it, jest } from "@jest/globals";
-import { QueryClient, QueryClientProvider } from "@tanstack/react-query";
+import { QueryClientProvider } from "@tanstack/react-query";
 import {
   act,
   fireEvent,
@@ -9,6 +9,7 @@ import {
 } from "@testing-library/react-native";
 import { AppState, type AppStateStatus, Linking, Text } from "react-native";
 import { useClientConfigQuery } from "~/hooks/queries/client-config";
+import { createTestQueryClient } from "~/test-utils/query-client";
 import MinimumVersionGate from "../minimum-version-gate";
 
 const INSTALLED_VERSION = "1.4.0";
@@ -43,9 +44,7 @@ const serveMinimumIosVersion = (ios: string | null) => {
 };
 
 const renderGate = async () => {
-  const queryClient = new QueryClient({
-    defaultOptions: { queries: { gcTime: Number.POSITIVE_INFINITY } },
-  });
+  const queryClient = createTestQueryClient();
   await render(
     <QueryClientProvider client={queryClient}>
       <MinimumVersionGate>

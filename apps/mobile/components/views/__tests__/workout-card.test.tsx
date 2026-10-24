@@ -7,7 +7,7 @@ import {
   it,
   jest,
 } from "@jest/globals";
-import { QueryClient, QueryClientProvider } from "@tanstack/react-query";
+import { QueryClientProvider } from "@tanstack/react-query";
 import {
   act,
   fireEvent,
@@ -18,6 +18,7 @@ import {
 import { Alert } from "react-native";
 import { PlanUpdateSheetHost } from "~/components/workout-sessions/plan-update-sheet";
 import { closePlanUpdatePrompt } from "~/hooks/plan-update-prompt";
+import { createTestQueryClient } from "~/test-utils/query-client";
 import WorkoutCard from "../workout-card";
 
 const mockPush = jest.fn();
@@ -129,11 +130,7 @@ const workout = {
 } as unknown as Workout;
 
 const renderCard = async (session: unknown) => {
-  const queryClient = new QueryClient({
-    defaultOptions: {
-      mutations: { gcTime: Number.POSITIVE_INFINITY, retry: false },
-    },
-  });
+  const queryClient = createTestQueryClient();
   mockFetchSession.mockResolvedValue(session);
   // The sheet's host sits in the root layout, next to Home.
   const screenWith = (card: boolean) => (

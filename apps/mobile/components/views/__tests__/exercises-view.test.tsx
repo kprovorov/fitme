@@ -22,7 +22,7 @@ import {
   it,
   jest,
 } from "@jest/globals";
-import { QueryClient, QueryClientProvider } from "@tanstack/react-query";
+import { type QueryClient, QueryClientProvider } from "@tanstack/react-query";
 import { act, fireEvent, render, screen } from "@testing-library/react-native";
 import ExercisesView from "~/components/views/exercises-view";
 import { readCachedSummary } from "~/lib/exercise-cache";
@@ -31,6 +31,7 @@ import {
   libraryExercise,
   serveLibrary,
 } from "~/test-utils/fake-exercise-library";
+import { createTestQueryClient } from "~/test-utils/query-client";
 
 jest.mock(
   "~/lib/exercise-library",
@@ -82,11 +83,7 @@ const advance = async (ms: number) => {
 };
 
 const renderView = async (props: Parameters<typeof ExercisesView>[0] = {}) => {
-  queryClient = new QueryClient({
-    defaultOptions: {
-      queries: { gcTime: Number.POSITIVE_INFINITY, retry: false },
-    },
-  });
+  queryClient = createTestQueryClient();
   await render(
     <QueryClientProvider client={queryClient}>
       <ExercisesView {...props} />

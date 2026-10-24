@@ -24,6 +24,9 @@
     "setupFiles": [
       "<rootDir>/test-utils/setup.ts"
     ],
+    "setupFilesAfterEnv": [
+      "<rootDir>/test-utils/after-each.ts"
+    ],
     "transformIgnorePatterns": [
       "node_modules/(?!((jest-)?react-native|@react-native(-community)?)|expo(nent)?|@expo(nent)?/.*|@expo-google-fonts/.*|react-navigation|@react-navigation/.*|@rn-primitives/.*|@sentry/.*|native-base|react-native-svg|uniwind|mdast-.*|micromark.*|unist-.*|decode-named-character-reference|character-entities|devlop|markdown-table|longest-streak|zwitch|ccount|escape-string-regexp)"
     ]
