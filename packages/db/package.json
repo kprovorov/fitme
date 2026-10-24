@@ -6,7 +6,8 @@
   "type": "module",
   "exports": {
     ".": "./src/index.ts",
-    "./local-database-url": "./integration/local-database-url.ts"
+    "./local-database-url": "./integration/local-database-url.ts",
+    "./wait-for-pooler": "./integration/wait-for-pooler.ts"
   },
   "main": "./src/index.ts",
   "types": "./src/index.ts",
