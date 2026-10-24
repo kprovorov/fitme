@@ -1,7 +1,4 @@
-import {
-  arnoldModels as allArnoldModels,
-  defaultArnoldModelId,
-} from "@fitme/core";
+import { arnoldModels, defaultArnoldModelId } from "@fitme/core";
 import { createRoute, OpenAPIHono, z } from "@hono/zod-openapi";
 import {
   invalidRequest,
@@ -58,7 +55,7 @@ const arnoldModelsRouter = (deprecated: boolean) =>
         {
           data: {
             defaultId: defaultArnoldModelId,
-            models: allArnoldModels.map(({ description, id, label }) => ({
+            models: arnoldModels.map(({ description, id, label }) => ({
               description,
               id,
               label,
@@ -71,11 +68,11 @@ const arnoldModelsRouter = (deprecated: boolean) =>
   );
 
 /** `GET /v1/arnold/models`. */
-export const arnoldModels = arnoldModelsRouter(false);
+export const arnoldModelsRoute = arnoldModelsRouter(false);
 
 /**
  * `GET /v1/coach/models`: the route installed builds from before the Arnold
- * rename read, answering exactly like `arnoldModels` until the minimum
+ * rename read, answering exactly like `arnoldModelsRoute` until the minimum
  * version gate cuts those builds off.
  */
-export const legacyCoachModels = arnoldModelsRouter(true);
+export const legacyCoachModelsRoute = arnoldModelsRouter(true);

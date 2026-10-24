@@ -1,7 +1,7 @@
 import { OpenAPIHono } from "@hono/zod-openapi";
 import type { ApiEnv } from "../auth.js";
 import { invalidRequest } from "../schemas.js";
-import { arnoldModels, legacyCoachModels } from "./arnold-models.js";
+import { arnoldModelsRoute, legacyCoachModelsRoute } from "./arnold-models.js";
 import { clientConfig } from "./client-config.js";
 import { muscleGroups } from "./muscle-groups.js";
 import { plans } from "./plans.js";
@@ -12,9 +12,9 @@ import { workoutSessions } from "./workout-sessions.js";
 /** The global routes, served without a caller. */
 export const publicV1 = new OpenAPIHono({ defaultHook: invalidRequest });
 
-publicV1.route("/arnold/models", arnoldModels);
+publicV1.route("/arnold/models", arnoldModelsRoute);
 publicV1.route("/client-config", clientConfig);
-publicV1.route("/coach/models", legacyCoachModels);
+publicV1.route("/coach/models", legacyCoachModelsRoute);
 publicV1.route("/muscle-groups", muscleGroups);
 
 /** The User-data routes: mounted after auth, so each has a verified caller. */

@@ -79,26 +79,26 @@ const requestedModel = (messages: readonly ModelMessage[]): unknown => {
 };
 
 /**
- * The model a Coach turn runs on: the Arnold model id the client sends as
+ * The model an Arnold turn runs on: the Arnold model id the client sends as
  * `clientContext: { model }`, or the default when it sends none. `arnoldModels`
  * in @fitme/core is the only list; any other value throws
  * `UnsupportedArnoldModelError`, which fails the turn before the model runs.
  * The id is the Gateway's own, so eve routes the call through AI Gateway, with
  * the model's host order for failover.
  */
-export const coachModelSelection = (
+export const arnoldModelSelection = (
   messages: readonly ModelMessage[]
 ): { model: ArnoldModelId; modelOptions: AgentModelOptionsDefinition } => {
   const requested = requestedModel(messages) ?? defaultArnoldModelId;
-  const coachModel = arnoldModels.find(({ id }) => id === requested);
-  if (!coachModel) {
+  const arnoldModel = arnoldModels.find(({ id }) => id === requested);
+  if (!arnoldModel) {
     throw new UnsupportedArnoldModelError(requested);
   }
   return {
-    model: coachModel.id,
+    model: arnoldModel.id,
     modelOptions: {
       providerOptions: {
-        gateway: { order: [...hostOrder[creatorOf(coachModel.id)]] },
+        gateway: { order: [...hostOrder[creatorOf(arnoldModel.id)]] },
       },
     },
   };

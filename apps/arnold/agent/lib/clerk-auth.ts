@@ -25,8 +25,7 @@ class ProCheckUnavailableError extends Error {
   readonly response = Response.json(
     {
       code: legacyArnoldErrorCodes.proCheckUnavailable,
-      error:
-        "The Coach can't check your subscription right now. Try again soon.",
+      error: "Arnold can't check your subscription right now. Try again soon.",
       ok: false,
     },
     { headers: { "cache-control": "no-store" }, status: 503 }
@@ -121,7 +120,7 @@ export const clerkSession = ({
       if (!isPro) {
         throw new ForbiddenError({
           code: legacyArnoldErrorCodes.proRequired,
-          message: "The Coach is a Fitme Pro feature.",
+          message: "Arnold is a Fitme Pro feature.",
         });
       }
       const sessionId = new URL(request.url).pathname.match(SESSION_ROUTE)?.[1];
