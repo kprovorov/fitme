@@ -546,7 +546,7 @@
             },
             "minItems": 1,
             "maxItems": 14,
-            "description": "In rotation order: the first is up next. Every `order` comes from the array positions"
+            "description": "Every Workout of the Plan, in rotation order: the first is up next. Every `order` comes from the array positions"
           }
         },
         "required": [
@@ -646,6 +646,24 @@
           "reps_recommended",
           "rest_recommended",
           "weight_recommended"
+        ],
+        "additionalProperties": false
+      },
+      "ReplacePlanWorkouts": {
+        "type": "object",
+        "properties": {
+          "workouts": {
+            "type": "array",
+            "items": {
+              "$ref": "#/components/schemas/NewPlanWorkout"
+            },
+            "minItems": 1,
+            "maxItems": 14,
+            "description": "Every Workout of the Plan, in rotation order: the first is up next. Every `order` comes from the array positions"
+          }
+        },
+        "required": [
+          "workouts"
         ],
         "additionalProperties": false
       },
@@ -1543,6 +1561,129 @@
                 "description": "Seconds until the limit resets"
               }
             },
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Error"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/v1/plans/{id}/workouts": {
+      "put": {
+        "description": "Replaces every Workout of the Plan with the sent list, in one transaction: nothing changes unless all of it is saved. **Every Workout gets a new id**, the old ones are gone: past Workout Sessions keep their logged sets but lose the link to their old Workout. The Plan's details and whether it's active don't change (only its `updated_at` moves). Every Exercise slug is checked against the Exercise Library first.",
+        "security": [
+          {
+            "bearerAuth": []
+          }
+        ],
+        "summary": "Replace a Plan's Workouts",
+        "parameters": [
+          {
+            "schema": {
+              "type": "string",
+              "format": "uuid"
+            },
+            "required": true,
+            "in": "path",
+            "name": "id"
+          }
+        ],
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/ReplacePlanWorkouts"
+              }
+            }
+          }
+        },
+        "responses": {
+          "200": {
+            "description": "The Plan in full, with its new Workouts",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object",
+                  "properties": {
+                    "data": {
+                      "$ref": "#/components/schemas/Plan"
+                    }
+                  },
+                  "required": [
+                    "data"
+                  ]
+                }
+              }
+            }
+          },
+          "400": {
+            "description": "`invalid_request`: the id isn't a uuid or the Workouts aren't valid; `unknown_exercises`: the Exercise Library has no Exercise for the slugs the message names. Nothing was changed",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Error"
+                }
+              }
+            }
+          },
+          "401": {
+            "description": "No valid Clerk session token",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Error"
+                }
+              }
+            }
+          },
+          "404": {
+            "description": "`not_found`: no such Plan, it was deleted, or it isn't the User's",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Error"
+                }
+              }
+            }
+          },
+          "415": {
+            "description": "The body isn't `application/json`",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Error"
+                }
+              }
+            }
+          },
+          "429": {
+            "description": "Too many requests from this User; retry after `Retry-After`",
+            "headers": {
+              "Retry-After": {
+                "schema": {
+                  "type": "string",
+                  "description": "Seconds until the limit resets",
+                  "example": "30"
+                },
+                "required": true,
+                "description": "Seconds until the limit resets"
+              }
+            },
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Error"
+                }
+              }
+            }
+          },
+          "503": {
+            "description": "`exercise_library_unavailable`: the Exercise slugs couldn't be checked; nothing was changed, try again",
             "content": {
               "application/json": {
                 "schema": {

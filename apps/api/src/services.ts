@@ -8,6 +8,8 @@ import {
   type NewPlan,
   type PlanDetail,
   type PlanSummary,
+  type PlanWorkoutInput,
+  updatePlan,
 } from "@fitme/services/plans";
 import {
   getProfile,
@@ -63,6 +65,16 @@ export interface UserServices {
   listWorkoutSessions: (
     options: ListWorkoutSessionsOptions
   ) => Promise<WorkoutSessionPage>;
+  /**
+   * Replaces every Workout of a live Plan of the User, in rotation order (new
+   * ids; metadata and active state stay); the Plan in full, or `null` with
+   * nothing changed (missing, deleted, foreign). Its Exercise slugs are
+   * checked before, not here (ADR 0010).
+   */
+  replaceWorkouts: (
+    planId: string,
+    workouts: PlanWorkoutInput[]
+  ) => Promise<Weighed<PlanDetail> | null>;
   /** The updated Profile, or `null` with nothing changed without one. */
   updateProfile: (changes: ProfileChanges) => Promise<ProfileWithUnits | null>;
 }
@@ -103,6 +115,8 @@ export const createServicesFromEnv: ServicesFactory = (userId) => {
     listPlans: () => asUser(userId, (tx) => listPlans(tx, userId)),
     listWorkoutSessions: (options) =>
       asUser(userId, (tx) => listWorkoutSessions(tx, options)),
+    replaceWorkouts: (planId, workouts) =>
+      weighed((tx) => updatePlan(tx, userId, planId, { workouts })),
     updateProfile: (changes) =>
       asUser(userId, (tx) => updateProfile(tx, userId, changes)),
   };
