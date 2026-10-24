@@ -37,10 +37,7 @@ const noPlans = testUserId("noplans");
 const converting = testUserId("converting");
 const users = [metric, imperial, noProfile, noPlans, converting];
 
-/**
- * A Plan of two Workouts. Until the contract step drops exercise_id, a slug
- * write needs the slug in the seeded legacy `exercises` table.
- */
+/** A Plan of two Workouts. */
 const newPlan = (name: string): NewPlan => ({
   description: `${name} description`,
   experience_level: "intermediate",

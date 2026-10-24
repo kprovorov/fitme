@@ -7,10 +7,6 @@ select plan(13);
 -- ------------------------------------------------------------
 -- Fixtures (as postgres, bypassing RLS)
 -- ------------------------------------------------------------
-insert into public.exercises (id, name, slug) values
-  ('e0000000-0000-0000-0000-000000000001', 'Test Squat', 'test-squat-start-session'),
-  ('e0000000-0000-0000-0000-000000000002', 'Test Press', 'test-press-start-session');
-
 insert into public.plans (id, user_id, goal, place, frequency) values
   ('a0000000-0000-0000-0000-000000000001', 'user_2StartOwner000000000000', 'strength', 'gym', 3);
 
@@ -18,9 +14,9 @@ insert into public.workouts (id, plan_id, "order", name, description) values
   ('b0000000-0000-0000-0000-000000000001', 'a0000000-0000-0000-0000-000000000001', 1, 'Day A', 'Legs'),
   ('b0000000-0000-0000-0000-000000000002', 'a0000000-0000-0000-0000-000000000001', 2, 'Day B', 'Push');
 
-insert into public.workout_exercises (id, workout_id, exercise_id, "order") values
-  ('c0000000-0000-0000-0000-000000000001', 'b0000000-0000-0000-0000-000000000001', 'e0000000-0000-0000-0000-000000000001', 1),
-  ('c0000000-0000-0000-0000-000000000002', 'b0000000-0000-0000-0000-000000000001', 'e0000000-0000-0000-0000-000000000002', 2);
+insert into public.workout_exercises (id, workout_id, exercise_slug, "order") values
+  ('c0000000-0000-0000-0000-000000000001', 'b0000000-0000-0000-0000-000000000001', 'test-squat-start-session', 1),
+  ('c0000000-0000-0000-0000-000000000002', 'b0000000-0000-0000-0000-000000000001', 'test-press-start-session', 2);
 
 insert into public.workout_exercise_sets
   (workout_exercise_id, "order", reps_recommended, weight_recommended, rest_recommended)

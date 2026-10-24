@@ -34,7 +34,7 @@ _Avoid_: Session (ambiguous with a sign-in session), training log
 A named movement from the Exercise Library, independent of any User, identified by its Exercise slug. Plans and Workout Sessions refer to Exercises; they never own them.
 
 **Exercise Library**:
-Every Exercise Fitme offers: names, muscle groups, descriptions, instructions, thumbnails and videos. Owned by the private `fitme-exercises` repository and served to the apps by the Exercise Library API, which is to be `apps/exercises` in the monorepo (ADRs 0007 and 0008), not stored in Postgres. Until the migration lands, the code still reads the legacy `exercises` table, keyed by uuid. Exercises are added, never removed.
+Every Exercise Fitme offers: names, muscle groups, descriptions, instructions, thumbnails and videos. Owned by the private `fitme-exercises` repository and served to the apps by the Exercise Library API (`apps/exercises`, ADRs 0007 and 0008), not stored in Postgres. Exercises are added, never removed.
 _Avoid_: Exercise catalog, exercise database, exercises table
 
 **Exercise slug**:

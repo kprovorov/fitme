@@ -119,16 +119,6 @@ jobs:
         env:
           DATABASE_URL: ${{ steps.branch-details.outputs.postgres_url }}
 
-      # The hoisted install skips snaplet's postinstall; build the client
-      # from the committed .snaplet/dataModel.json.
-      - name: Generate seed client
-        run: pnpm --filter @fitme/supabase exec snaplet-seed generate
-
-      - name: Seed database
-        run: pnpm --filter @fitme/supabase seed
-        env:
-          DATABASE_URL: ${{ steps.branch-details.outputs.postgres_url }}
-
       - name: Install Maestro CLI
         run: |
           curl -Ls "https://get.maestro.mobile.dev" | bash

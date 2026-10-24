@@ -137,9 +137,9 @@ const NO_CHANGES = { changes: [], plan: null, workout: null };
 const CHANGES = {
   changes: [
     {
-      exercise: { id: "e-2", name: "Dumbbell Press" },
+      exercise: { name: "Dumbbell Press", slug: "dumbbell-press" },
       kind: "replace_exercise",
-      replaced_exercise: { id: "e-1", name: "Bench Press" },
+      replaced_exercise: { name: "Bench Press", slug: "bench-press" },
       sets: [
         { reps: 8, weight: 30 },
         { reps: 8, weight: 30 },
@@ -147,13 +147,13 @@ const CHANGES = {
       ],
     },
     {
-      exercise: { id: "e-3", name: "Squat" },
+      exercise: { name: "Squat", slug: "squat" },
       kind: "add_sets",
       sets: [{ reps: 5, weight: 100 }],
     },
-    { exercise: { id: "e-4", name: "Dips" }, kind: "remove_exercise" },
+    { exercise: { name: "Dips", slug: "dips" }, kind: "remove_exercise" },
     {
-      exercise: { id: "e-5", name: "Cable Fly" },
+      exercise: { name: "Cable Fly", slug: "cable-fly" },
       kind: "add_exercise",
       sets: [
         { reps: 12, weight: 15 },

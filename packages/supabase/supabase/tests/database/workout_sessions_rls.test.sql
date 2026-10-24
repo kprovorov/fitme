@@ -8,9 +8,6 @@ select plan(20);
 -- ------------------------------------------------------------
 -- Fixtures (as postgres, bypassing RLS)
 -- ------------------------------------------------------------
-insert into public.exercises (id, name, slug) values
-  ('e1000000-0000-0000-0000-000000000001', 'Test Squat', 'test-squat-sessions-rls');
-
 -- a1: owner's plan, a2: other user's plan, a3: owner's soft-deleted plan
 insert into public.plans (id, user_id, goal, place, frequency, deleted_at) values
   ('a1000000-0000-0000-0000-000000000001', 'user_2RlsOwner00000000000000', 'strength', 'gym', 3, null),
@@ -23,8 +20,8 @@ insert into public.workouts (id, plan_id, "order", name, description) values
   ('b1000000-0000-0000-0000-000000000003', 'a1000000-0000-0000-0000-000000000003', 1, 'Deleted A', 'Legs'),
   ('b1000000-0000-0000-0000-000000000004', 'a1000000-0000-0000-0000-000000000001', 2, 'Owner B', 'Push');
 
-insert into public.workout_exercises (id, workout_id, exercise_id, "order") values
-  ('c1000000-0000-0000-0000-000000000001', 'b1000000-0000-0000-0000-000000000004', 'e1000000-0000-0000-0000-000000000001', 1);
+insert into public.workout_exercises (id, workout_id, exercise_slug, "order") values
+  ('c1000000-0000-0000-0000-000000000001', 'b1000000-0000-0000-0000-000000000004', 'test-squat-sessions-rls', 1);
 
 insert into public.workout_exercise_sets
   (workout_exercise_id, "order", reps_recommended, weight_recommended, rest_recommended)

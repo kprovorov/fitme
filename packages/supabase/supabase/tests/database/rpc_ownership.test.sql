@@ -9,9 +9,6 @@ select plan(22);
 -- ------------------------------------------------------------
 -- Fixtures (as postgres, bypassing RLS): User A owns everything
 -- ------------------------------------------------------------
-insert into public.exercises (id, name, slug) values
-  ('f2e00000-0000-0000-0000-000000000001', 'Test Row', 'test-row-rpc-ownership');
-
 insert into public.profiles (user_id, gender, age, weight, height, measurement_system) values
   ('user_2RpcOwnerA0000000000000', 'male', 30, 100, 200, 'metric'),
   ('user_2RpcIntruderB0000000000', 'male', 30, 100, 200, 'metric');
@@ -23,8 +20,8 @@ insert into public.plans (id, user_id, goal, place, frequency, is_active) values
 insert into public.workouts (id, plan_id, "order", name, description) values
   ('f2b00000-0000-0000-0000-000000000001', 'f2a00000-0000-0000-0000-000000000001', 1, 'A Day', 'Pull');
 
-insert into public.workout_exercises (id, workout_id, exercise_id, "order") values
-  ('f2c00000-0000-0000-0000-000000000001', 'f2b00000-0000-0000-0000-000000000001', 'f2e00000-0000-0000-0000-000000000001', 1);
+insert into public.workout_exercises (id, workout_id, exercise_slug, "order") values
+  ('f2c00000-0000-0000-0000-000000000001', 'f2b00000-0000-0000-0000-000000000001', 'test-row-rpc-ownership', 1);
 
 insert into public.workout_exercise_sets
   (workout_exercise_id, "order", reps_recommended, weight_recommended, rest_recommended)

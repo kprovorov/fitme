@@ -58,14 +58,6 @@ jobs:
         working-directory: packages/supabase
         run: pnpm exec supabase test db
 
-      # The hoisted install skips snaplet's postinstall; build the client
-      # from the committed .snaplet/dataModel.json.
-      - name: Generate seed client
-        run: pnpm --filter @fitme/supabase exec snaplet-seed generate
-
-      - name: Seed exercise library
-        run: pnpm --filter @fitme/supabase seed
-
       # Proves the local stack trusts Clerk development session tokens
       # ([auth.third_party.clerk] in config.toml). Needs the development
       # instance's secret key; skipped with a warning when it is not set.

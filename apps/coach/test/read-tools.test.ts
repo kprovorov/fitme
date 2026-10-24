@@ -17,14 +17,10 @@ const plans = vi.hoisted(() => ({
   listPlans: vi.fn(),
 }));
 const sessions = vi.hoisted(() => ({ listWorkoutHistory: vi.fn() }));
-const exerciseServices = vi.hoisted(() => ({
-  legacyExerciseIdsBySlug: vi.fn(),
-}));
 const observability = vi.hoisted(() => ({ reportError: vi.fn() }));
 vi.mock("@fitme/db", () => db);
 vi.mock("@fitme/services/plans", () => plans);
 vi.mock("@fitme/services/workout-sessions", () => sessions);
-vi.mock("@fitme/services/exercises", () => exerciseServices);
 vi.mock("@fitme/observability/node", () => observability);
 vi.mock("../agent/lib/exercise-library", async () => {
   const { fakeLibrary: library } = await import("./exercise-library");
@@ -52,7 +48,6 @@ const parseInput = <Input>(tool: TestedTool<Input>, input: unknown) =>
   inputSchemaOf(tool).parse(input);
 const alice = contextFor("user_alice");
 
-const benchId = "c0000000-0000-4000-8000-000000000001";
 const set = {
   id: "set_1",
   order: 1,
@@ -60,9 +55,8 @@ const set = {
   rest_recommended: 90,
   weight_recommended: 60,
 };
-/** A Workout Exercise as the services return it, legacy join included. */
+/** A Workout Exercise as the services return it. */
 const planExercise = (id: string, slug: string) => ({
-  exercise: { id: benchId, muscle_groups: ["chest"], name: "Legacy name" },
   exercise_slug: slug,
   id,
   order: 1,
@@ -90,7 +84,6 @@ const history = [
   {
     exercises: [
       {
-        exercise: { id: benchId, name: "Legacy name" },
         exercise_slug: "back-squat",
         id: "wse_squat",
         order: 1,
@@ -108,9 +101,6 @@ beforeEach(() => {
   plans.getActivePlan.mockResolvedValue(plan);
   plans.listPlans.mockResolvedValue([plan]);
   sessions.listWorkoutHistory.mockResolvedValue(history);
-  exerciseServices.legacyExerciseIdsBySlug.mockResolvedValue(
-    new Map([["bench-press", benchId]])
-  );
   observability.reportError.mockResolvedValue(undefined);
 });
 
@@ -187,12 +177,6 @@ describe("get_active_plan", () => {
       libraryDown,
       expect.anything()
     );
-  });
-
-  it("never shows the legacy exercise uuid", async () => {
-    expect(
-      JSON.stringify(await getActivePlan.execute({}, alice))
-    ).not.toContain(benchId);
   });
 
   it("tells the model when no Plan is active", async () => {
@@ -357,50 +341,17 @@ describe("display_workout_plan", () => {
   const run = (input: unknown) =>
     displayWorkoutPlan.execute(parseInput(displayWorkoutPlan, input), alice);
 
-  it("returns the proposed Plan with both exercise_slug and the legacy exercise_id", async () => {
+  it("returns the proposed Plan as given, Exercises by exercise_slug only", async () => {
     const card = proposed(exercise("bench-press", "Bench press"));
 
-    expect(await run(card)).toEqual({
-      ...card,
-      workouts: [
-        {
-          ...card.workouts[0],
-          exercises: [
-            {
-              exercise_id: benchId,
-              exercise_slug: "bench-press",
-              name: "Bench press",
-              reps: "8-10",
-              sets: 3,
-            },
-          ],
-        },
-      ],
-    });
-    expect(exerciseServices.legacyExerciseIdsBySlug).toHaveBeenCalledWith(tx, [
-      "bench-press",
-    ]);
-    expect(db.asUser).toHaveBeenCalledWith("user_alice", expect.any(Function));
-  });
-
-  it("reports a slug the legacy table doesn't know, answering a null exercise_id", async () => {
-    const card = (await run(
-      proposed(exercise("incline-dumbbell-press", "Incline press"))
-    )) as { workouts: { exercises: { exercise_id: string | null }[] }[] };
-
-    expect(card.workouts[0].exercises[0].exercise_id).toBeNull();
-    expect(observability.reportError).toHaveBeenCalledWith(
-      expect.objectContaining({
-        message: expect.stringContaining("incline-dumbbell-press"),
-      })
-    );
+    expect(await run(card)).toEqual(card);
+    expect(db.asUser).not.toHaveBeenCalled();
   });
 
   it("refuses a slug the library doesn't know with a tool error, never a result the app would render", async () => {
     await expect(run(proposed(exercise("made-up-fly", "Fly")))).rejects.toThrow(
       "made-up-fly"
     );
-    expect(exerciseServices.legacyExerciseIdsBySlug).not.toHaveBeenCalled();
   });
 
   it("asks to retry when the library fails", async () => {

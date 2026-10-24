@@ -19,7 +19,9 @@ jest.mock("@/lib/supabase", () => ({
 }));
 
 const answer = {
-  changes: [{ exercise: { id: "e-1", name: "Dips" }, kind: "remove_exercise" }],
+  changes: [
+    { exercise: { name: "Dips", slug: "dips" }, kind: "remove_exercise" },
+  ],
   plan: { id: "plan-1", name: "PPL" },
   workout: { id: "workout-1", name: "Push Day" },
 };

@@ -10,7 +10,6 @@ import { fakeServices, signedInAs, testApp } from "../test/harness.js";
 const SESSION_ID = "6f1c0c9e-2b7a-4c1e-9a55-3c2d1e0f4a11";
 const WORKOUT_ID = "1c2d3e4f-5a6b-4c7d-8e9f-0a1b2c3d4e5f";
 const SET_ID = "3e4f5a6b-7c8d-4e9f-8a1b-2c3d4e5f6a7b";
-const LEGACY_EXERCISE_ID = "9a8b7c6d-5e4f-4a3b-8c2d-1e0f9a8b7c6d";
 
 const set: WorkoutSessionSet = {
   id: SET_ID,
@@ -39,16 +38,10 @@ const sessionFields = {
   workout: { id: WORKOUT_ID, name: "Push" },
 } as const;
 
-/** The Workout Session as the services answer it: with the legacy joined Exercise and internals. */
+/** The Workout Session as the services answer it: with their internals. */
 const session = {
   ...sessionFields,
-  exercises: [
-    {
-      ...exercise,
-      exercise: { id: LEGACY_EXERCISE_ID, name: "Bench press" },
-      exercise_id: LEGACY_EXERCISE_ID,
-    },
-  ],
+  exercises: [exercise],
   user_id: "user_alice",
 } as unknown as WorkoutSessionDetail;
 

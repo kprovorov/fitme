@@ -1,7 +1,6 @@
 import { randomUUID } from "node:crypto";
 import {
   asUser,
-  exercises,
   plans,
   withService,
   workoutSessionExerciseSets,
@@ -12,30 +11,18 @@ import {
 import { inArray } from "drizzle-orm";
 import { afterAll, beforeAll, describe, expect, it } from "vitest";
 import { deleteUserData } from "../src/delete-user-data";
-import {
-  getExercise,
-  getExerciseHistory,
-  legacyExerciseIdsBySlug,
-  listExercises,
-} from "../src/exercises";
+import { getExerciseHistory } from "../src/exercises";
 
 /**
- * The exercise services through asUser, against a local Supabase stack via
- * the Supavisor pooler as the fitme login. Made-up Clerk-style User ids and
- * Exercise names, unique per run.
+ * The Exercise history service through asUser, against a local Supabase stack
+ * via the Supavisor pooler as the fitme login. Made-up Clerk-style User ids
+ * and Exercise slugs, unique per run.
  */
 
 const runId = randomUUID().replaceAll("-", "").slice(0, 12);
 const owner = `user_svcExOwner${runId}`;
 const intruder = `user_svcExIntruder${runId}`;
-const prefix = `Zz${runId}`;
-
-const ISO_TIMESTAMP = /^\d{4}-\d{2}-\d{2}T\d{2}:\d{2}:\d{2}(\.\d+)?\+00:00$/;
-
-let alpha: string;
 const alphaSlug = `alpha-${runId}`;
-let beta: string;
-let gamma: string;
 
 interface SeededSession {
   planId: string;
@@ -46,7 +33,7 @@ interface SeededSession {
 
 /**
  * A Plan with one Workout and a Workout Session in it, holding one entry of
- * `exerciseId` with the given sets (`null` = no weight logged).
+ * `alphaSlug` with the given sets (`null` = no weight logged).
  */
 const seedSession = (
   userId: string,
@@ -87,7 +74,7 @@ const seedSession = (
       .insert(workoutSessionExercises)
       .values({
         createdAt,
-        exerciseId: alpha,
+        exerciseSlug: alphaSlug,
         order: 1,
         workoutSessionId: session.id,
       })
@@ -116,31 +103,6 @@ let newer: SeededSession;
 let intruders: SeededSession;
 
 beforeAll(async () => {
-  const rows = await withService((tx) =>
-    tx
-      .insert(exercises)
-      .values([
-        {
-          description: "Pressing",
-          muscleGroups: ["chest", "triceps"],
-          name: `${prefix} Alpha Press_1%`,
-          slug: alphaSlug,
-        },
-        {
-          muscleGroups: ["back"],
-          name: `${prefix} Beta Row`,
-          slug: `beta-${runId}`,
-        },
-        {
-          muscleGroups: ["quadriceps", "glutes"],
-          name: `${prefix} Gamma Squat`,
-          slug: `gamma-${runId}`,
-        },
-      ])
-      .returning({ id: exercises.id })
-  );
-  [alpha, beta, gamma] = rows.map((row) => row.id) as [string, string, string];
-
   older = await seedSession(owner, "2026-10-01T10:00:00+00:00", [75, 80, null]);
   // only a set without a weight: skipped
   await seedSession(owner, "2026-10-02T10:00:00+00:00", [null]);
@@ -152,130 +114,6 @@ afterAll(async () => {
   await withService(async (tx) => {
     await deleteUserData(tx, owner);
     await deleteUserData(tx, intruder);
-    await tx
-      .delete(exercises)
-      .where(inArray(exercises.id, [alpha, beta, gamma]));
-  });
-});
-
-const list = (query: Parameters<typeof listExercises>[1]) =>
-  asUser(owner, (tx) => listExercises(tx, query));
-
-const namesOf = (page: Awaited<ReturnType<typeof listExercises>>) =>
-  page.exercises.map((exercise) => exercise.name);
-
-describe("listExercises", () => {
-  it("pages alphabetically through the matches, with the total", async () => {
-    const first = await list({ limit: 2, offset: 0, search: prefix });
-    expect(first).toMatchObject({
-      hasMore: true,
-      limit: 2,
-      offset: 0,
-      total: 3,
-    });
-    expect(namesOf(first)).toEqual([
-      `${prefix} Alpha Press_1%`,
-      `${prefix} Beta Row`,
-    ]);
-
-    const last = await list({ limit: 2, offset: 2, search: prefix });
-    expect(last).toMatchObject({ hasMore: false, total: 3 });
-    expect(namesOf(last)).toEqual([`${prefix} Gamma Squat`]);
-  });
-
-  it("returns an empty page with the total for an offset past the end", async () => {
-    expect(await list({ limit: 20, offset: 5, search: prefix })).toEqual({
-      exercises: [],
-      hasMore: false,
-      limit: 20,
-      offset: 5,
-      total: 3,
-    });
-  });
-
-  it("returns compact rows", async () => {
-    const page = await list({ limit: 1, offset: 0, search: prefix });
-    expect(page.exercises).toEqual([
-      {
-        description: "Pressing",
-        id: alpha,
-        muscle_groups: ["chest", "triceps"],
-        name: `${prefix} Alpha Press_1%`,
-        slug: `alpha-${runId}`,
-      },
-    ]);
-  });
-
-  it("searches case-insensitively, treating % and _ literally", async () => {
-    expect(
-      namesOf(await list({ limit: 20, offset: 0, search: "PRESS_1%" }))
-    ).toContain(`${prefix} Alpha Press_1%`);
-    expect(
-      await list({ limit: 20, offset: 0, search: `${prefix} Alpha%Press` })
-    ).toMatchObject({ exercises: [], total: 0 });
-    expect(
-      await list({ limit: 20, offset: 0, search: `${prefix} Alpha_Press` })
-    ).toMatchObject({ exercises: [], total: 0 });
-  });
-
-  it("filters by muscle group", async () => {
-    const page = await list({
-      limit: 20,
-      muscleGroup: "glutes",
-      offset: 0,
-      search: prefix,
-    });
-    expect(namesOf(page)).toEqual([`${prefix} Gamma Squat`]);
-    expect(page.total).toBe(1);
-  });
-});
-
-describe("getExercise", () => {
-  it("returns every detail, with timestamps as PostgREST showed them", async () => {
-    const exercise = await asUser(owner, (tx) => getExercise(tx, alpha));
-    expect(exercise).toEqual({
-      created_at: expect.stringMatching(ISO_TIMESTAMP),
-      description: "Pressing",
-      id: alpha,
-      instructions: null,
-      muscle_groups: ["chest", "triceps"],
-      name: `${prefix} Alpha Press_1%`,
-      slug: `alpha-${runId}`,
-      thumbnail_url: null,
-      updated_at: expect.stringMatching(ISO_TIMESTAMP),
-      video_url: null,
-    });
-  });
-
-  it("returns null for an unknown id", async () => {
-    expect(
-      await asUser(owner, (tx) => getExercise(tx, randomUUID()))
-    ).toBeNull();
-  });
-});
-
-describe("legacyExerciseIdsBySlug", () => {
-  it("maps each known slug to its legacy uuid and leaves unknown ones out", async () => {
-    const ids = await asUser(owner, (tx) =>
-      legacyExerciseIdsBySlug(tx, [
-        `gamma-${runId}`,
-        alphaSlug,
-        `unknown-${runId}`,
-      ])
-    );
-
-    expect(ids).toEqual(
-      new Map([
-        [`gamma-${runId}`, gamma],
-        [alphaSlug, alpha],
-      ])
-    );
-  });
-
-  it("asks nothing for no slugs", async () => {
-    expect(
-      await asUser(owner, (tx) => legacyExerciseIdsBySlug(tx, []))
-    ).toEqual(new Map());
   });
 });
 
@@ -317,15 +155,6 @@ describe("getExerciseHistory", () => {
         workout: { id: older.workoutId, name: "Day A" },
       },
     ]);
-  });
-
-  it("returns the same entries by uuid as by Exercise slug", async () => {
-    const byUuid = await asUser(owner, (tx) =>
-      getExerciseHistory(tx, owner, { exerciseId: alpha, limit: 10 })
-    );
-
-    expect(byUuid).toEqual(await history(owner));
-    expect(byUuid).toHaveLength(2);
   });
 
   it("counts entries towards the limit", async () => {

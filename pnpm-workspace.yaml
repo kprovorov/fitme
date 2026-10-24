@@ -22,7 +22,6 @@ overrides:
 onlyBuiltDependencies:
   - "@prisma/engines"
   - "@sentry/cli"
-  - "@snaplet/seed"
   - esbuild
   - sharp
   - supabase

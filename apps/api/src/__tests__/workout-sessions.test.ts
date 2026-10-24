@@ -8,7 +8,6 @@ import { fakeServices, signedInAs, testApp } from "../test/harness.js";
 
 const SESSION_ID = "6f1c0c9e-2b7a-4c1e-9a55-3c2d1e0f4a11";
 const WORKOUT_ID = "1c2d3e4f-5a6b-4c7d-8e9f-0a1b2c3d4e5f";
-const LEGACY_EXERCISE_ID = "9a8b7c6d-5e4f-4a3b-8c2d-1e0f9a8b7c6d";
 
 const summary: WorkoutSessionSummary = {
   exercise_count: 2,
@@ -191,17 +190,9 @@ const sessionFields = {
   workout: summary.workout,
 } as const;
 
-/** The Workout Session as the facade answers it: with the legacy joined Exercise. */
+/** The Workout Session as the facade answers it. */
 const fromServices: Weighed<WorkoutSessionDetail> = {
-  value: {
-    ...sessionFields,
-    exercises: [
-      {
-        ...exercise,
-        exercise: { id: LEGACY_EXERCISE_ID, name: "Bench press" },
-      },
-    ],
-  },
+  value: { ...sessionFields, exercises: [exercise] },
   weightUnit: "lbs",
 };
 
@@ -254,16 +245,15 @@ describe("GET /v1/workout-sessions/:id", () => {
     expect(reported).toEqual([]);
   });
 
-  it("never shows legacy or internal fields", async () => {
-    const [legacyExercise] = fromServices.value.exercises;
+  it("never shows internal fields", async () => {
+    const [storedExercise] = fromServices.value.exercises;
     const withInternals = {
       ...fromServices,
       value: {
         ...fromServices.value,
         exercises: [
           {
-            ...legacyExercise,
-            exercise_id: LEGACY_EXERCISE_ID,
+            ...storedExercise,
             sets: [{ ...set, workout_session_exercise_id: exercise.id }],
           },
         ],

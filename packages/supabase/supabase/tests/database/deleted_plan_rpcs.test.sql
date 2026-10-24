@@ -7,9 +7,6 @@ select plan(13);
 -- ------------------------------------------------------------
 -- Fixtures (as postgres, bypassing RLS)
 -- ------------------------------------------------------------
-insert into public.exercises (id, name, slug) values
-  ('d5e00000-0000-0000-0000-000000000001', 'Test Deadlift', 'test-deadlift-deleted-plans');
-
 -- Owner: one active plan, one live inactive plan, one soft-deleted plan.
 -- Other user: one live plan.
 insert into public.plans (id, user_id, goal, place, frequency, is_active, deleted_at) values
@@ -22,9 +19,9 @@ insert into public.workouts (id, plan_id, "order", name, description) values
   ('d5b00000-0000-0000-0000-000000000002', 'd5a00000-0000-0000-0000-000000000002', 1, 'Live Day', 'Pull'),
   ('d5b00000-0000-0000-0000-000000000003', 'd5a00000-0000-0000-0000-000000000003', 1, 'Deleted Day', 'Pull');
 
-insert into public.workout_exercises (id, workout_id, exercise_id, "order") values
-  ('d5c00000-0000-0000-0000-000000000002', 'd5b00000-0000-0000-0000-000000000002', 'd5e00000-0000-0000-0000-000000000001', 1),
-  ('d5c00000-0000-0000-0000-000000000003', 'd5b00000-0000-0000-0000-000000000003', 'd5e00000-0000-0000-0000-000000000001', 1);
+insert into public.workout_exercises (id, workout_id, exercise_slug, "order") values
+  ('d5c00000-0000-0000-0000-000000000002', 'd5b00000-0000-0000-0000-000000000002', 'test-deadlift-deleted-plans', 1),
+  ('d5c00000-0000-0000-0000-000000000003', 'd5b00000-0000-0000-0000-000000000003', 'test-deadlift-deleted-plans', 1);
 
 -- ------------------------------------------------------------
 -- activate_plan

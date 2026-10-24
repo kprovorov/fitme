@@ -2,7 +2,6 @@ import { randomUUID } from "node:crypto";
 import type { MeasurementSystem } from "@fitme/core/models";
 import {
   asUser,
-  exercises,
   plans,
   profiles,
   withService,
@@ -97,7 +96,7 @@ describe("getProfile", () => {
 const NUMERIC_OUT_OF_RANGE = "22003";
 
 const updaters: string[] = [];
-let exerciseId: string;
+const exerciseSlug = `test-row-profile-${runId}`;
 
 /** A fresh made-up User id for one test, cleaned up after the suite. */
 const newUser = (label: string) => {
@@ -147,7 +146,7 @@ const seedUser = (
       .returning({ id: workouts.id });
     const [workoutExercise] = await tx
       .insert(workoutExercises)
-      .values({ exerciseId, order: 1, workoutId: workout.id })
+      .values({ exerciseSlug, order: 1, workoutId: workout.id })
       .returning({ id: workoutExercises.id });
     await tx.insert(workoutExerciseSets).values({
       order: 1,
@@ -180,7 +179,7 @@ const seedUser = (
       .insert(workoutSessionExercises)
       .values(
         sessions.map(({ id }) => ({
-          exerciseId,
+          exerciseSlug,
           order: 1,
           workoutSessionId: id,
         }))
@@ -262,16 +261,6 @@ const convertThroughRpc = (userId: string, system: MeasurementSystem) =>
 const update = (userId: string, changes: Parameters<typeof updateProfile>[2]) =>
   asUser(userId, (tx) => updateProfile(tx, userId, changes));
 
-beforeAll(async () => {
-  const [exercise] = await withService((tx) =>
-    tx
-      .insert(exercises)
-      .values({ name: "Test row", slug: `test-row-profile-${runId}` })
-      .returning({ id: exercises.id })
-  );
-  exerciseId = exercise.id;
-});
-
 afterAll(async () => {
   await withService(async (tx) => {
     await tx
@@ -279,7 +268,6 @@ afterAll(async () => {
       .where(inArray(workoutSessions.userId, updaters));
     await tx.delete(plans).where(inArray(plans.userId, updaters));
     await tx.delete(profiles).where(inArray(profiles.userId, updaters));
-    await tx.delete(exercises).where(eq(exercises.id, exerciseId));
   });
 });
 

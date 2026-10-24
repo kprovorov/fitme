@@ -32,7 +32,7 @@ const owner = testUserId("owner");
 const intruder = testUserId("intruder");
 const users = [owner, intruder];
 
-/** A Plan of two Workouts, by slugs the seeded legacy `exercises` table knows. */
+/** A Plan of two Workouts, by slugs the fake Exercise Library knows. */
 const newPlan = (name: string): NewPlan => ({
   description: `${name} description`,
   experience_level: "intermediate",

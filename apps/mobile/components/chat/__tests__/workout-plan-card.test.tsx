@@ -60,8 +60,7 @@ jest.mock("@/components/ui/button", () =>
   jest.requireActual("~/test-utils/button-stub")
 );
 
-// What display_workout_plan answers: each Exercise by slug, plus the legacy
-// uuid the Coach still sends for older builds.
+// What display_workout_plan answers: each Exercise by slug.
 const plan: WorkoutPlan = {
   description: "Three days a week",
   frequencyPerWeek: 3,
@@ -72,7 +71,6 @@ const plan: WorkoutPlan = {
       dayLabel: "Day 1",
       exercises: [
         {
-          exercise_id: "uuid-bench",
           exercise_slug: "bench-press",
           name: "Coach's bench",
           reps: "8-10",

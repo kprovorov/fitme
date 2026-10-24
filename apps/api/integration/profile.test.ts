@@ -1,6 +1,5 @@
 import { randomBytes } from "node:crypto";
 import {
-  exercises,
   plans,
   profiles,
   withService,
@@ -134,13 +133,6 @@ const editors = [editor, converter, ukConverter, bystander];
 /** A metric User with a Profile and a Plan with one 60 kg set; the set's id. */
 const seedMetricUser = (userId: string) =>
   withService(async (tx) => {
-    const [exercise] = await tx
-      .select({ slug: exercises.slug })
-      .from(exercises)
-      .limit(1);
-    if (!exercise) {
-      throw new Error("No seeded Exercise: run pnpm db seed");
-    }
     await tx.insert(profiles).values({
       age: 30,
       gender: "female",
@@ -159,7 +151,11 @@ const seedMetricUser = (userId: string) =>
       .returning({ id: workouts.id });
     const [workoutExercise] = await tx
       .insert(workoutExercises)
-      .values({ exerciseSlug: exercise.slug, order: 1, workoutId: workout.id })
+      .values({
+        exerciseSlug: "barbell-back-squat",
+        order: 1,
+        workoutId: workout.id,
+      })
       .returning({ id: workoutExercises.id });
     const [set] = await tx
       .insert(workoutExerciseSets)

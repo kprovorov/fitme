@@ -1,7 +1,6 @@
 import { randomUUID } from "node:crypto";
 import {
   asUser,
-  exercises,
   plans,
   retiredUserIdsInPrivate,
   withService,
@@ -19,8 +18,6 @@ import {
   getPlan,
   listPlans,
   type NewPlan,
-  type PlanDetail,
-  UnknownExercisesError,
   updatePlan,
 } from "../src/plans";
 
@@ -49,8 +46,6 @@ const INSUFFICIENT_PRIVILEGE = "42501";
 // PostgREST's JSON timestamp encoding, which the MCP tools returned
 const JSON_TIMESTAMP = /^\d{4}-\d\d-\d\dT\d\d:\d\d:\d\d(\.\d+)?\+00:00$/;
 
-let benchId: string;
-let squatId: string;
 const benchSlug = `test-bench-${runId}`;
 const squatSlug = `test-squat-${runId}`;
 
@@ -90,8 +85,8 @@ const seedPlan = (
     const [squat, bench] = await tx
       .insert(workoutExercises)
       .values([
-        { exerciseId: squatId, order: 2, workoutId: dayA.id },
-        { exerciseId: benchId, order: 1, workoutId: dayA.id },
+        { exerciseSlug: squatSlug, order: 2, workoutId: dayA.id },
+        { exerciseSlug: benchSlug, order: 1, workoutId: dayA.id },
       ])
       .returning({ id: workoutExercises.id });
     const [benchSet2, benchSet1, squatSet] = await tx
@@ -137,25 +132,6 @@ let newer: Awaited<ReturnType<typeof seedPlan>>;
 let intruderPlan: Awaited<ReturnType<typeof seedPlan>>;
 
 beforeAll(async () => {
-  const [bench, squat] = await withService((tx) =>
-    tx
-      .insert(exercises)
-      .values([
-        {
-          muscleGroups: ["chest"],
-          name: "Test bench",
-          slug: benchSlug,
-        },
-        {
-          muscleGroups: ["quads", "glutes"],
-          name: "Test squat",
-          slug: squatSlug,
-        },
-      ])
-      .returning({ id: exercises.id })
-  );
-  benchId = bench.id;
-  squatId = squat.id;
   older = await seedPlan(owner, "Older plan", "2026-01-01T00:00:00Z");
   newer = await seedPlan(owner, "Newer plan", "2026-02-01T00:00:00Z", true);
   intruderPlan = await seedPlan(
@@ -181,7 +157,6 @@ afterAll(async () => {
           updater,
         ])
       );
-    await tx.delete(exercises).where(inArray(exercises.id, [benchId, squatId]));
   });
 });
 
@@ -207,11 +182,6 @@ describe("getPlan", () => {
           description: "Legs",
           exercises: [
             {
-              exercise: {
-                id: benchId,
-                muscle_groups: ["chest"],
-                name: "Test bench",
-              },
               exercise_slug: benchSlug,
               id: older.bench,
               order: 1,
@@ -233,11 +203,6 @@ describe("getPlan", () => {
               ],
             },
             {
-              exercise: {
-                id: squatId,
-                muscle_groups: ["quads", "glutes"],
-                name: "Test squat",
-              },
               exercise_slug: squatSlug,
               id: older.squat,
               order: 2,
@@ -553,7 +518,7 @@ const newPlan = (name: string): NewPlan => ({
       description: "Chest first",
       exercises: [
         {
-          exercise_id: benchId,
+          exercise_slug: benchSlug,
           sets: [
             {
               reps_recommended: 8,
@@ -568,7 +533,7 @@ const newPlan = (name: string): NewPlan => ({
           ],
         },
         {
-          exercise_id: squatId,
+          exercise_slug: squatSlug,
           sets: [
             {
               reps_recommended: 5,
@@ -584,7 +549,7 @@ const newPlan = (name: string): NewPlan => ({
       description: "Legs only",
       exercises: [
         {
-          exercise_id: squatId,
+          exercise_slug: squatSlug,
           sets: [
             {
               reps_recommended: 10,
@@ -598,28 +563,6 @@ const newPlan = (name: string): NewPlan => ({
     },
   ],
 });
-
-/** `plan` naming every Exercise by its Exercise slug instead of its uuid. */
-const bySlug = (plan: NewPlan): NewPlan => ({
-  ...plan,
-  workouts: plan.workouts.map((workout) => ({
-    ...workout,
-    exercises: workout.exercises.map(({ exercise_id, sets }) => ({
-      exercise_slug: exercise_id === benchId ? benchSlug : squatSlug,
-      sets,
-    })),
-  })),
-});
-
-/** A Plan's Workouts without their generated ids, to compare two writes. */
-const structureOf = (plan: PlanDetail | null) =>
-  plan?.workouts.map(({ id: _, exercises: planExercises, ...workout }) => ({
-    ...workout,
-    exercises: planExercises.map(({ id: __, sets, ...exercise }) => ({
-      ...exercise,
-      sets: sets.map(({ id: ___, ...set }) => set),
-    })),
-  }));
 
 describe("createPlan", () => {
   it("creates the Plan with its Workouts, Exercises and sets in array order and activates it", async () => {
@@ -652,11 +595,6 @@ describe("createPlan", () => {
           description: "Chest first",
           exercises: [
             {
-              exercise: {
-                id: benchId,
-                muscle_groups: ["chest"],
-                name: "Test bench",
-              },
               exercise_slug: benchSlug,
               id: expect.any(String),
               order: 1,
@@ -678,11 +616,6 @@ describe("createPlan", () => {
               ],
             },
             {
-              exercise: {
-                id: squatId,
-                muscle_groups: ["quads", "glutes"],
-                name: "Test squat",
-              },
               exercise_slug: squatSlug,
               id: expect.any(String),
               order: 2,
@@ -705,11 +638,6 @@ describe("createPlan", () => {
           description: "Legs only",
           exercises: [
             {
-              exercise: {
-                id: squatId,
-                muscle_groups: ["quads", "glutes"],
-                name: "Test squat",
-              },
               exercise_slug: squatSlug,
               id: expect.any(String),
               order: 1,
@@ -762,38 +690,20 @@ describe("createPlan", () => {
     ]);
   });
 
-  it("creates the same Plan from Exercise slugs as from uuids", async () => {
-    const byUuid = await asUser(creator, (tx) =>
-      createPlan(tx, creator, newPlan("From uuids"))
-    );
+  it("stores any Exercise slug as given, unchecked", async () => {
+    const plan = newPlan("Any slug");
+    const anySlug = `not-in-any-library-${runId}`;
+    plan.workouts[1].exercises[0].exercise_slug = anySlug;
 
-    const fromSlugs = await asUser(creator, (tx) =>
-      createPlan(tx, creator, bySlug(newPlan("From slugs")))
-    );
-
-    // exercise.id is the uuid the sync trigger filled in from each slug
-    expect(structureOf(fromSlugs)).toEqual(structureOf(byUuid));
-    expect(fromSlugs).toMatchObject({ is_active: true, name: "From slugs" });
-  });
-
-  it("refuses unknown Exercises without creating anything", async () => {
-    const before = await plansOf(creator);
-    const unknownId = randomUUID();
-    const plan = newPlan("Unknown exercises");
-    plan.workouts[1].exercises.push({
-      exercise_id: unknownId,
-      sets: [
-        { reps_recommended: 5, rest_recommended: 60, weight_recommended: 0 },
-      ],
-    });
-
-    const error = await asUser(creator, (tx) =>
+    const created = await asUser(creator, (tx) =>
       createPlan(tx, creator, plan)
-    ).catch((caught: unknown) => caught);
+    );
 
-    expect(error).toBeInstanceOf(UnknownExercisesError);
-    expect((error as UnknownExercisesError).exerciseIds).toEqual([unknownId]);
-    expect(await plansOf(creator)).toEqual(before);
+    expect(
+      created.workouts.map((workout) =>
+        workout.exercises.map((exercise) => exercise.exercise_slug)
+      )
+    ).toEqual([[benchSlug, squatSlug], [anySlug]]);
   });
 
   it("leaves nothing behind when a write fails partway", async () => {
@@ -909,25 +819,25 @@ describe("updatePlan", () => {
         workout.name,
         workout.exercises.map((exercise) => [
           exercise.order,
-          exercise.exercise.id,
+          exercise.exercise_slug,
           exercise.sets.map((set) => [set.order, set.reps_recommended]),
         ]),
       ])
     ).toEqual([
-      [1, "Legs", [[1, squatId, [[1, 10]]]]],
+      [1, "Legs", [[1, squatSlug, [[1, 10]]]]],
       [
         2,
         "Push",
         [
           [
             1,
-            benchId,
+            benchSlug,
             [
               [1, 8],
               [2, 6],
             ],
           ],
-          [2, squatId, [[1, 5]]],
+          [2, squatSlug, [[1, 5]]],
         ],
       ],
     ]);
@@ -942,18 +852,6 @@ describe("updatePlan", () => {
     );
     expect(leftovers).toEqual([]);
     expect(await read(updater, plan.id)).toEqual(updated);
-  });
-
-  it("recreates the same Workouts from Exercise slugs as from uuids", async () => {
-    // the previous test wrote these Workouts by uuid
-    const byUuid = await read(updater, plan.id);
-    const { workouts: replacement } = bySlug(newPlan("Replacement"));
-
-    const fromSlugs = await asUser(updater, (tx) =>
-      updatePlan(tx, updater, plan.id, { workouts: [...replacement].reverse() })
-    );
-
-    expect(structureOf(fromSlugs)).toEqual(structureOf(byUuid));
   });
 
   it("never updates another User's Plan", async () => {
@@ -997,24 +895,6 @@ describe("updatePlan", () => {
         updatePlan(tx, updater, randomUUID(), { name: "Nobody" })
       )
     ).toBeNull();
-  });
-
-  it("refuses unknown Exercises without changing anything", async () => {
-    const before = await read(updater, plan.id);
-    const unknownId = randomUUID();
-    const { workouts: replacement } = newPlan("Unknown");
-    replacement[0].exercises[0].exercise_id = unknownId;
-
-    const error = await asUser(updater, (tx) =>
-      updatePlan(tx, updater, plan.id, {
-        name: "Not saved",
-        workouts: replacement,
-      })
-    ).catch((caught: unknown) => caught);
-
-    expect(error).toBeInstanceOf(UnknownExercisesError);
-    expect((error as UnknownExercisesError).exerciseIds).toEqual([unknownId]);
-    expect(await read(updater, plan.id)).toEqual(before);
   });
 
   it("changes nothing when a write fails partway", async () => {

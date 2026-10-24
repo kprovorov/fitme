@@ -11,7 +11,7 @@ import {
   SQUAT,
 } from "./harness.js";
 
-/** The legacy uuid services still join next to the slug (until the contract step). */
+/** An Exercise uuid, as tools took Exercises before slugs. */
 const BENCH_ID = "55555555-5555-4555-8555-555555555555";
 
 const UNAVAILABLE = "Exercise Library unavailable, try again.";
@@ -79,7 +79,7 @@ const planSet = {
   weight_recommended: 60,
 };
 
-/** A Plan as the services return it: the slug beside the legacy join. */
+/** A Plan as the services return it: each Exercise by its slug only. */
 const servicePlanWith = (slug: string) => ({
   ...planSummary,
   workouts: [
@@ -87,7 +87,6 @@ const servicePlanWith = (slug: string) => ({
       description: "Chest",
       exercises: [
         {
-          exercise: { id: BENCH_ID, muscle_groups: ["chest"], name: "Legacy" },
           exercise_slug: slug,
           id: "we1",
           order: 1,
@@ -177,7 +176,6 @@ describe("get_plan", () => {
 
     expect(result.isError).toBe(false);
     expect(result.json).toEqual(toolPlan);
-    expect(result.text).not.toContain(BENCH_ID);
     expect(getPlan).toHaveBeenCalledWith(PLAN_ID);
   });
 

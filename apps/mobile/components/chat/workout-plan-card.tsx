@@ -18,9 +18,8 @@ import {
 } from "@/hooks/queries/plans";
 
 /**
- * An Exercise of `display_workout_plan`'s result, by Exercise slug. The Coach
- * also sends each Exercise's legacy uuid for older builds, which this card
- * ignores; a card saved in a Conversation from before slugs has no slug.
+ * An Exercise of `display_workout_plan`'s result, by Exercise slug. A card
+ * saved in a Conversation from before slugs has no slug.
  */
 export interface WorkoutExercise {
   exercise_slug?: string;

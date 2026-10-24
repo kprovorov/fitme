@@ -56,4 +56,4 @@ Responses are JSON. Successful responses wrap the payload in `data`; failures re
 
 ## Integration tests
 
-`integration/` runs the same seam against a real Supabase stack (`pnpm db start`, plus `pnpm db seed`: until the contract step a Plan written by slug needs the slug in the legacy `exercises` table): the real services facade through `asUser` on the stack's Supavisor pooler (the vitest config reads its URL from `supabase status`; `FITME_DATABASE_URL` overrides it), as made-up Clerk-style `user_…` ids with test-signed tokens, and the fake Exercise Library over seeded slugs. CI runs it in `.github/workflows/integration-tests.yml`.
+`integration/` runs the same seam against a real Supabase stack (`pnpm db start`): the real services facade through `asUser` on the stack's Supavisor pooler (the vitest config reads its URL from `supabase status`; `FITME_DATABASE_URL` overrides it), as made-up Clerk-style `user_…` ids with test-signed tokens, and the fake Exercise Library. CI runs it in `.github/workflows/integration-tests.yml`.

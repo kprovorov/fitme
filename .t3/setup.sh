@@ -54,7 +54,7 @@ if ! stack="$(cd packages/supabase && pnpm exec supabase start --output-format j
   exit 0
 fi
 
-read -r api_url secret_key mcp_url < <(STACK="$stack" node - <<'JS'
+read -r _api_url _secret_key mcp_url < <(STACK="$stack" node - <<'JS'
 const fs = require("node:fs");
 const path = require("node:path");
 
@@ -106,6 +106,3 @@ if command -v claude >/dev/null; then
   claude mcp remove --scope local supabase-local >/dev/null 2>&1 || true
   claude mcp add --scope local --transport http supabase-local "$mcp_url"
 fi
-
-# A fresh stack has no exercises; the sync upserts by slug, so a rerun is harmless.
-SUPABASE_URL="$api_url" SUPABASE_SERVICE_ROLE_KEY="$secret_key" pnpm --filter @fitme/supabase exercises:sync

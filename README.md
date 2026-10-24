@@ -43,7 +43,6 @@ Needs Node 24, pnpm and Docker (for the local Supabase stack).
 pnpm install
 
 pnpm db start            # local Supabase stack
-pnpm db seed             # seed data into it
 
 pnpm dev:mobile          # expo start
 pnpm ios                 # expo run:ios (also: pnpm android)

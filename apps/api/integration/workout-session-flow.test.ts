@@ -13,8 +13,7 @@ import { clerk, libraryExercise, signedInAs } from "../src/test/harness.js";
  * services facade, through `asUser` on the local stack's pooler: create a
  * Plan, start, log sets, finish, see the Workout rotated and the Workout
  * Session listed as finished, then delete it; and none of it reaching another
- * User's Workouts, Workout Sessions or sets. Exercise slugs are seeded ones
- * (until the contract step a slug write needs its slug in the legacy table).
+ * User's Workouts, Workout Sessions or sets.
  */
 const library = createFakeExerciseLibrary(
   ["barbell-back-squat", "barbell-deadlift"].map(libraryExercise)

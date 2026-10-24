@@ -1,7 +1,6 @@
 import { randomUUID } from "node:crypto";
 import {
   asUser,
-  exercises,
   plans,
   withService,
   workoutSessionExerciseSets,
@@ -9,7 +8,6 @@ import {
   workoutSessions,
   workouts,
 } from "@fitme/db";
-import { inArray } from "drizzle-orm";
 import { afterAll, beforeAll, describe, expect, it } from "vitest";
 import { deleteUserData } from "../src/delete-user-data";
 import { listWorkoutHistory } from "../src/workout-sessions";
@@ -24,8 +22,10 @@ const runId = randomUUID().replaceAll("-", "").slice(0, 12);
 const owner = `user_svcHistOwner${runId}`;
 const intruder = `user_svcHistIntruder${runId}`;
 
+const benchSlug = `test-hist-bench-${runId}`;
+const squatSlug = `test-hist-squat-${runId}`;
+
 interface Seeded {
-  benchId: string;
   /** Started first but finished last: the newest in the history. */
   lateId: string;
   /** Finished in between. */
@@ -34,7 +34,6 @@ interface Seeded {
   oldestId: string;
   openId: string;
   planId: string;
-  squatId: string;
   workoutId: string;
 }
 
@@ -43,13 +42,6 @@ let intruderSessionId: string;
 
 const seedOwner = (): Promise<Seeded> =>
   withService(async (tx) => {
-    const [bench, squat] = await tx
-      .insert(exercises)
-      .values([
-        { name: "Test bench", slug: `test-hist-bench-${runId}` },
-        { name: "Test squat", slug: `test-hist-squat-${runId}` },
-      ])
-      .returning({ id: exercises.id });
     const [plan] = await tx
       .insert(plans)
       .values({
@@ -102,9 +94,9 @@ const seedOwner = (): Promise<Seeded> =>
     const [lateSquat, lateBench] = await tx
       .insert(workoutSessionExercises)
       .values([
-        { exerciseId: squat.id, order: 2, workoutSessionId: late.id },
-        { exerciseId: bench.id, order: 1, workoutSessionId: late.id },
-        { exerciseId: bench.id, order: 1, workoutSessionId: middle.id },
+        { exerciseSlug: squatSlug, order: 2, workoutSessionId: late.id },
+        { exerciseSlug: benchSlug, order: 1, workoutSessionId: late.id },
+        { exerciseSlug: benchSlug, order: 1, workoutSessionId: middle.id },
       ])
       .returning({ id: workoutSessionExercises.id });
     await tx.insert(workoutSessionExerciseSets).values([
@@ -138,13 +130,11 @@ const seedOwner = (): Promise<Seeded> =>
     ]);
 
     return {
-      benchId: bench.id,
       lateId: late.id,
       middleId: middle.id,
       oldestId: oldest.id,
       openId: open.id,
       planId: plan.id,
-      squatId: squat.id,
       workoutId: workout.id,
     };
   });
@@ -167,9 +157,6 @@ afterAll(async () => {
   await withService(async (tx) => {
     await deleteUserData(tx, owner);
     await deleteUserData(tx, intruder);
-    await tx
-      .delete(exercises)
-      .where(inArray(exercises.id, [seeded.benchId, seeded.squatId]));
   });
 });
 
@@ -187,8 +174,7 @@ describe("listWorkoutHistory", () => {
     expect(history[0]).toEqual({
       exercises: [
         {
-          exercise: { id: seeded.benchId, name: "Test bench" },
-          exercise_slug: `test-hist-bench-${runId}`,
+          exercise_slug: benchSlug,
           id: expect.any(String),
           order: 1,
           sets: [
@@ -210,8 +196,7 @@ describe("listWorkoutHistory", () => {
           ],
         },
         {
-          exercise: { id: seeded.squatId, name: "Test squat" },
-          exercise_slug: `test-hist-squat-${runId}`,
+          exercise_slug: squatSlug,
           id: expect.any(String),
           order: 2,
           sets: [

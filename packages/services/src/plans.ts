@@ -1,5 +1,4 @@
 import {
-  exercises as exercisesTable,
   plans,
   type Transaction,
   workoutExerciseSets as workoutExerciseSetsTable,
@@ -57,8 +56,7 @@ export interface PlanSet {
 }
 
 export interface PlanExercise {
-  exercise: { id: string; muscle_groups: unknown; name: string };
-  /** The Exercise Library's key for `exercise`. */
+  /** The Exercise, by its Exercise slug: details come from the Exercise Library API. */
   exercise_slug: string;
   id: string;
   order: number;
@@ -195,9 +193,6 @@ const findPlanDetail = async (
               asc(exercise.id),
             ],
             with: {
-              exercise: {
-                columns: { id: true, muscleGroups: true, name: true },
-              },
               workoutExerciseSets: {
                 columns: {
                   id: true,
@@ -223,17 +218,7 @@ const findPlanDetail = async (
     workouts: workouts.map(({ workoutExercises, ...workout }) => ({
       ...workout,
       exercises: workoutExercises.map(
-        ({
-          exercise,
-          exerciseSlug,
-          workoutExerciseSets,
-          ...workoutExercise
-        }) => ({
-          exercise: {
-            id: exercise.id,
-            muscle_groups: exercise.muscleGroups,
-            name: exercise.name,
-          },
+        ({ exerciseSlug, workoutExerciseSets, ...workoutExercise }) => ({
           exercise_slug: exerciseSlug,
           ...workoutExercise,
           sets: workoutExerciseSets.map((set) => ({
@@ -383,19 +368,14 @@ export interface PlanSetInput {
 }
 
 /**
- * An Exercise as a write names it: by its Exercise slug, or (until the
- * contract step drops `exercise_id`) by its legacy uuid. The `sync_exercise_slug`
- * trigger fills in the other column. A slug isn't checked here: that's the
- * tool layer's job (ADR 0010).
+ * An Exercise as a write names it, by its Exercise slug. The slug isn't
+ * checked here: that's the tool layer's job (ADR 0010).
  */
-export type ExerciseRef =
-  | { exercise_id: string; exercise_slug?: undefined }
-  | { exercise_id?: undefined; exercise_slug: string };
-
-export type PlanExerciseInput = ExerciseRef & {
+export interface PlanExerciseInput {
+  exercise_slug: string;
   /** In the order they are performed. */
   sets: PlanSetInput[];
-};
+}
 
 export interface PlanWorkoutInput {
   description: string;
@@ -421,52 +401,6 @@ export interface NewPlan extends PlanMetadata {
   /** In rotation order. */
   workouts: PlanWorkoutInput[];
 }
-
-/** Thrown before anything is written when a Plan names unknown Exercises. */
-export class UnknownExercisesError extends Error {
-  readonly exerciseIds: string[];
-
-  constructor(exerciseIds: string[]) {
-    super(`Unknown exercise_id(s): ${exerciseIds.join(", ")}`);
-    this.name = "UnknownExercisesError";
-    this.exerciseIds = exerciseIds;
-  }
-}
-
-/**
- * Throws `UnknownExercisesError` when any Workout names, by uuid, an Exercise
- * that doesn't exist, which the inserts would otherwise abort on with an
- * opaque foreign-key violation. Exercises named by slug aren't checked.
- */
-const assertExercisesExist = async (
-  tx: Transaction,
-  planWorkouts: PlanWorkoutInput[]
-) => {
-  const ids = [
-    ...new Set(
-      planWorkouts.flatMap((workout) =>
-        workout.exercises.flatMap((exercise) =>
-          exercise.exercise_id === undefined ? [] : [exercise.exercise_id]
-        )
-      )
-    ),
-  ];
-  if (ids.length === 0) {
-    return;
-  }
-  const known = new Set(
-    (
-      await tx
-        .select({ id: exercisesTable.id })
-        .from(exercisesTable)
-        .where(inArray(exercisesTable.id, ids))
-    ).map((row) => row.id)
-  );
-  const unknown = ids.filter((id) => !known.has(id));
-  if (unknown.length > 0) {
-    throw new UnknownExercisesError(unknown);
-  }
-};
 
 /**
  * The plans columns for the metadata fields given. Drizzle leaves a column
@@ -537,7 +471,6 @@ const insertWorkouts = async (
   );
   const exerciseRows = planWorkouts.flatMap((workout, workoutIndex) =>
     workout.exercises.map((exercise, index) => ({
-      exerciseId: exercise.exercise_id,
       exerciseSlug: exercise.exercise_slug,
       order: index + 1,
       workoutId: insertedId(workoutIds, workoutIndex + 1),
@@ -597,8 +530,7 @@ export interface CreatePlanOptions {
  * both together). Returns the Plan in full.
  * Runs in `tx` from `asUser`, so it commits fully or not at all; RLS and the
  * retired-id triggers refuse a `userId` other than the caller's own.
- * Throws `UnknownExercisesError`, before writing anything, for unknown
- * Exercise uuids; Exercise slugs aren't checked.
+ * Exercise slugs aren't checked.
  */
 export const createPlan = async (
   tx: Transaction,
@@ -606,7 +538,6 @@ export const createPlan = async (
   plan: NewPlan,
   { activate = true }: CreatePlanOptions = {}
 ): Promise<PlanDetail> => {
-  await assertExercisesExist(tx, plan.workouts);
   const [created] = await tx
     .insert(plans)
     .values({ ...metadataColumns(plan), userId })
@@ -643,9 +574,8 @@ export interface PlanChanges extends Partial<PlanMetadata> {
  * Runs in `tx` from `asUser`, so it commits fully or not at all.
  *
  * The Plan row is locked first, by its UPDATE, before any Workout, the order
- * the RPC and `finish_workout_session` take their locks in. Throws
- * `UnknownExercisesError` for unknown Exercise uuids (slugs aren't checked),
- * which rolls back the transaction.
+ * the RPC and `finish_workout_session` take their locks in. Exercise slugs
+ * aren't checked.
  */
 export const updatePlan = async (
   tx: Transaction,
@@ -662,7 +592,6 @@ export const updatePlan = async (
     return null;
   }
   if (newWorkouts) {
-    await assertExercisesExist(tx, newWorkouts);
     await tx.delete(workoutsTable).where(eq(workoutsTable.planId, planId));
     await insertWorkouts(tx, planId, newWorkouts);
   }

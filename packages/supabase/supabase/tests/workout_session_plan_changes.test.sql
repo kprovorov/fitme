@@ -11,15 +11,6 @@ SELECT plan(53);
 -- says otherwise. Session sets copied from the Workout carry
 -- reps_recommended (0 once their Exercise is replaced, as the app does); sets
 -- added during the session carry none.
-INSERT INTO public.exercises (id, name, slug)
-VALUES
-  ('f2300000-0000-0000-0000-0000000000e1', 'Test Bench Press', 'test-bench-press-fit230'),
-  ('f2300000-0000-0000-0000-0000000000e2', 'Test Squat', 'test-squat-fit230'),
-  ('f2300000-0000-0000-0000-0000000000e3', 'Test Dips', 'test-dips-fit230'),
-  ('f2300000-0000-0000-0000-0000000000e4', 'Test Dumbbell Press', 'test-dumbbell-press-fit230'),
-  ('f2300000-0000-0000-0000-0000000000e5', 'Test Cable Fly', 'test-cable-fly-fit230'),
-  ('f2300000-0000-0000-0000-0000000000e6', 'Test Leg Press', 'test-leg-press-fit230');
-
 INSERT INTO public.plans (id, user_id, name, goal, place, frequency, deleted_at)
 VALUES
   ('f2300000-0000-0000-0000-0000000000a1', 'user_2PlanChangesOwnerA000000', 'PPL', 'strength', 'gym', 3, NULL),
@@ -48,23 +39,23 @@ VALUES
   -- (sets) a session Exercise with more sets than the cap
   ('f2300000-0000-0000-0000-0000000000ba', 'f2300000-0000-0000-0000-0000000000a1', 9, 'Sets Day', '');
 
-INSERT INTO public.workout_exercises (id, workout_id, exercise_id, "order")
+INSERT INTO public.workout_exercises (id, workout_id, exercise_slug, "order")
 VALUES
-  ('f2300000-0000-0000-0000-0000000001c1', 'f2300000-0000-0000-0000-0000000000b1', 'f2300000-0000-0000-0000-0000000000e1', 1),
-  ('f2300000-0000-0000-0000-0000000001c2', 'f2300000-0000-0000-0000-0000000000b1', 'f2300000-0000-0000-0000-0000000000e2', 2),
-  ('f2300000-0000-0000-0000-0000000001c3', 'f2300000-0000-0000-0000-0000000000b1', 'f2300000-0000-0000-0000-0000000000e3', 3),
-  ('f2300000-0000-0000-0000-0000000001c4', 'f2300000-0000-0000-0000-0000000000b1', 'f2300000-0000-0000-0000-0000000000e1', 4),
-  ('f2300000-0000-0000-0000-0000000002c1', 'f2300000-0000-0000-0000-0000000000b2', 'f2300000-0000-0000-0000-0000000000e2', 1),
-  ('f2300000-0000-0000-0000-0000000002c2', 'f2300000-0000-0000-0000-0000000000b2', 'f2300000-0000-0000-0000-0000000000e1', 2),
-  ('f2300000-0000-0000-0000-0000000003c1', 'f2300000-0000-0000-0000-0000000000b3', 'f2300000-0000-0000-0000-0000000000e2', 1),
-  ('f2300000-0000-0000-0000-0000000003c2', 'f2300000-0000-0000-0000-0000000000b3', 'f2300000-0000-0000-0000-0000000000e3', 2),
-  ('f2300000-0000-0000-0000-0000000004c1', 'f2300000-0000-0000-0000-0000000000b4', 'f2300000-0000-0000-0000-0000000000e1', 1),
-  ('f2300000-0000-0000-0000-0000000004c2', 'f2300000-0000-0000-0000-0000000000b4', 'f2300000-0000-0000-0000-0000000000e2', 2),
-  ('f2300000-0000-0000-0000-0000000005c1', 'f2300000-0000-0000-0000-0000000000b5', 'f2300000-0000-0000-0000-0000000000e1', 1),
-  ('f2300000-0000-0000-0000-0000000006c1', 'f2300000-0000-0000-0000-0000000000b6', 'f2300000-0000-0000-0000-0000000000e1', 1),
-  ('f2300000-0000-0000-0000-0000000007c1', 'f2300000-0000-0000-0000-0000000000b7', 'f2300000-0000-0000-0000-0000000000e2', 1),
-  ('f2300000-0000-0000-0000-0000000008c1', 'f2300000-0000-0000-0000-0000000000b8', 'f2300000-0000-0000-0000-0000000000e1', 1),
-  ('f2300000-0000-0000-0000-0000000008c2', 'f2300000-0000-0000-0000-0000000000b8', 'f2300000-0000-0000-0000-0000000000e2', 1);
+  ('f2300000-0000-0000-0000-0000000001c1', 'f2300000-0000-0000-0000-0000000000b1', 'test-bench-press', 1),
+  ('f2300000-0000-0000-0000-0000000001c2', 'f2300000-0000-0000-0000-0000000000b1', 'test-squat', 2),
+  ('f2300000-0000-0000-0000-0000000001c3', 'f2300000-0000-0000-0000-0000000000b1', 'test-dips', 3),
+  ('f2300000-0000-0000-0000-0000000001c4', 'f2300000-0000-0000-0000-0000000000b1', 'test-bench-press', 4),
+  ('f2300000-0000-0000-0000-0000000002c1', 'f2300000-0000-0000-0000-0000000000b2', 'test-squat', 1),
+  ('f2300000-0000-0000-0000-0000000002c2', 'f2300000-0000-0000-0000-0000000000b2', 'test-bench-press', 2),
+  ('f2300000-0000-0000-0000-0000000003c1', 'f2300000-0000-0000-0000-0000000000b3', 'test-squat', 1),
+  ('f2300000-0000-0000-0000-0000000003c2', 'f2300000-0000-0000-0000-0000000000b3', 'test-dips', 2),
+  ('f2300000-0000-0000-0000-0000000004c1', 'f2300000-0000-0000-0000-0000000000b4', 'test-bench-press', 1),
+  ('f2300000-0000-0000-0000-0000000004c2', 'f2300000-0000-0000-0000-0000000000b4', 'test-squat', 2),
+  ('f2300000-0000-0000-0000-0000000005c1', 'f2300000-0000-0000-0000-0000000000b5', 'test-bench-press', 1),
+  ('f2300000-0000-0000-0000-0000000006c1', 'f2300000-0000-0000-0000-0000000000b6', 'test-bench-press', 1),
+  ('f2300000-0000-0000-0000-0000000007c1', 'f2300000-0000-0000-0000-0000000000b7', 'test-squat', 1),
+  ('f2300000-0000-0000-0000-0000000008c1', 'f2300000-0000-0000-0000-0000000000b8', 'test-bench-press', 1),
+  ('f2300000-0000-0000-0000-0000000008c2', 'f2300000-0000-0000-0000-0000000000b8', 'test-squat', 1);
 
 INSERT INTO public.workout_exercise_sets
   (workout_exercise_id, "order", reps_recommended, weight_recommended, rest_recommended)
@@ -116,37 +107,37 @@ VALUES
   ('f2300000-0000-0000-0000-000000000d10', 'user_2PlanChangesOwnerA000000', 'f2300000-0000-0000-0000-0000000000a1', 'f2300000-0000-0000-0000-0000000000b9', now() - interval '1 hour', now()),
   ('f2300000-0000-0000-0000-000000000d11', 'user_2PlanChangesOwnerA000000', 'f2300000-0000-0000-0000-0000000000a1', 'f2300000-0000-0000-0000-0000000000ba', now() - interval '1 hour', now());
 
-INSERT INTO public.workout_session_exercises (id, workout_session_id, exercise_id, "order")
+INSERT INTO public.workout_session_exercises (id, workout_session_id, exercise_slug, "order")
 VALUES
   -- (main) slot 1 replaced by Dumbbell Press, slot 2 Squat, slot 3 (Dips)
   -- deleted, slot 4 Bench Press, slot 5 Cable Fly added and logged, slot 6
   -- Leg Press added and never logged
-  ('f2300000-0000-0000-0000-0000000001f1', 'f2300000-0000-0000-0000-0000000000d1', 'f2300000-0000-0000-0000-0000000000e4', 1),
-  ('f2300000-0000-0000-0000-0000000001f2', 'f2300000-0000-0000-0000-0000000000d1', 'f2300000-0000-0000-0000-0000000000e2', 2),
-  ('f2300000-0000-0000-0000-0000000001f4', 'f2300000-0000-0000-0000-0000000000d1', 'f2300000-0000-0000-0000-0000000000e1', 4),
-  ('f2300000-0000-0000-0000-0000000001f5', 'f2300000-0000-0000-0000-0000000000d1', 'f2300000-0000-0000-0000-0000000000e5', 5),
-  ('f2300000-0000-0000-0000-0000000001f6', 'f2300000-0000-0000-0000-0000000000d1', 'f2300000-0000-0000-0000-0000000000e6', 6),
+  ('f2300000-0000-0000-0000-0000000001f1', 'f2300000-0000-0000-0000-0000000000d1', 'test-dumbbell-press', 1),
+  ('f2300000-0000-0000-0000-0000000001f2', 'f2300000-0000-0000-0000-0000000000d1', 'test-squat', 2),
+  ('f2300000-0000-0000-0000-0000000001f4', 'f2300000-0000-0000-0000-0000000000d1', 'test-bench-press', 4),
+  ('f2300000-0000-0000-0000-0000000001f5', 'f2300000-0000-0000-0000-0000000000d1', 'test-cable-fly', 5),
+  ('f2300000-0000-0000-0000-0000000001f6', 'f2300000-0000-0000-0000-0000000000d1', 'test-leg-press', 6),
   -- (cap) Squat with 3 added sets, Bench Press replaced by Dumbbell Press
   -- with 22 logged sets, Cable Fly added with 21 logged sets
-  ('f2300000-0000-0000-0000-0000000002f1', 'f2300000-0000-0000-0000-0000000000d2', 'f2300000-0000-0000-0000-0000000000e2', 1),
-  ('f2300000-0000-0000-0000-0000000002f2', 'f2300000-0000-0000-0000-0000000000d2', 'f2300000-0000-0000-0000-0000000000e4', 2),
-  ('f2300000-0000-0000-0000-0000000002f3', 'f2300000-0000-0000-0000-0000000000d2', 'f2300000-0000-0000-0000-0000000000e5', 3),
+  ('f2300000-0000-0000-0000-0000000002f1', 'f2300000-0000-0000-0000-0000000000d2', 'test-squat', 1),
+  ('f2300000-0000-0000-0000-0000000002f2', 'f2300000-0000-0000-0000-0000000000d2', 'test-dumbbell-press', 2),
+  ('f2300000-0000-0000-0000-0000000002f3', 'f2300000-0000-0000-0000-0000000000d2', 'test-cable-fly', 3),
   -- (last) Dips deleted, then Cable Fly added in its slot
-  ('f2300000-0000-0000-0000-0000000003f1', 'f2300000-0000-0000-0000-0000000000d3', 'f2300000-0000-0000-0000-0000000000e2', 1),
-  ('f2300000-0000-0000-0000-0000000003f2', 'f2300000-0000-0000-0000-0000000000d3', 'f2300000-0000-0000-0000-0000000000e5', 2),
+  ('f2300000-0000-0000-0000-0000000003f1', 'f2300000-0000-0000-0000-0000000000d3', 'test-squat', 1),
+  ('f2300000-0000-0000-0000-0000000003f2', 'f2300000-0000-0000-0000-0000000000d3', 'test-cable-fly', 2),
   -- (skip) Bench Press replaced by Dumbbell Press and never logged, Squat
   -- logged off target with an unlogged added set, Cable Fly added and never
   -- logged
-  ('f2300000-0000-0000-0000-0000000004f1', 'f2300000-0000-0000-0000-0000000000d4', 'f2300000-0000-0000-0000-0000000000e4', 1),
-  ('f2300000-0000-0000-0000-0000000004f2', 'f2300000-0000-0000-0000-0000000000d4', 'f2300000-0000-0000-0000-0000000000e2', 2),
-  ('f2300000-0000-0000-0000-0000000004f3', 'f2300000-0000-0000-0000-0000000000d4', 'f2300000-0000-0000-0000-0000000000e5', 3),
+  ('f2300000-0000-0000-0000-0000000004f1', 'f2300000-0000-0000-0000-0000000000d4', 'test-dumbbell-press', 1),
+  ('f2300000-0000-0000-0000-0000000004f2', 'f2300000-0000-0000-0000-0000000000d4', 'test-squat', 2),
+  ('f2300000-0000-0000-0000-0000000004f3', 'f2300000-0000-0000-0000-0000000000d4', 'test-cable-fly', 3),
   -- (open) and (deleted): Bench Press replaced by Dumbbell Press, logged
-  ('f2300000-0000-0000-0000-0000000005f1', 'f2300000-0000-0000-0000-0000000000d5', 'f2300000-0000-0000-0000-0000000000e4', 1),
-  ('f2300000-0000-0000-0000-0000000006f1', 'f2300000-0000-0000-0000-0000000000d6', 'f2300000-0000-0000-0000-0000000000e4', 1),
+  ('f2300000-0000-0000-0000-0000000005f1', 'f2300000-0000-0000-0000-0000000000d5', 'test-dumbbell-press', 1),
+  ('f2300000-0000-0000-0000-0000000006f1', 'f2300000-0000-0000-0000-0000000000d6', 'test-dumbbell-press', 1),
   -- (back) Squat again after a replacement
-  ('f2300000-0000-0000-0000-0000000007f1', 'f2300000-0000-0000-0000-0000000000d8', 'f2300000-0000-0000-0000-0000000000e2', 1),
+  ('f2300000-0000-0000-0000-0000000007f1', 'f2300000-0000-0000-0000-0000000000d8', 'test-squat', 1),
   -- (dup) Dumbbell Press, logged, in the repeated slot
-  ('f2300000-0000-0000-0000-0000000008f1', 'f2300000-0000-0000-0000-0000000000d9', 'f2300000-0000-0000-0000-0000000000e4', 1);
+  ('f2300000-0000-0000-0000-0000000008f1', 'f2300000-0000-0000-0000-0000000000d9', 'test-dumbbell-press', 1);
 
 INSERT INTO public.workout_session_exercise_sets
   (workout_session_exercise_id, "order", reps_recommended, weight_recommended, rest_recommended, reps_completed, weight_completed)
@@ -207,9 +198,9 @@ SELECT 'f2300000-0000-0000-0000-0000000002f3'::uuid, n, NULL, NULL, NULL, n, 10
 FROM generate_series(1, 21) n;
 
 -- (many) 51 added Cable Flys, each logged
-INSERT INTO public.workout_session_exercises (id, workout_session_id, exercise_id, "order")
+INSERT INTO public.workout_session_exercises (id, workout_session_id, exercise_slug, "order")
 SELECT ('f2300000-0000-0000-0001-' || lpad(n::text, 12, '0'))::uuid,
-  'f2300000-0000-0000-0000-000000000d10', 'f2300000-0000-0000-0000-0000000000e5', n
+  'f2300000-0000-0000-0000-000000000d10', 'test-cable-fly', n
 FROM generate_series(1, 51) n;
 
 INSERT INTO public.workout_session_exercise_sets
@@ -218,8 +209,8 @@ SELECT ('f2300000-0000-0000-0001-' || lpad(n::text, 12, '0'))::uuid, 1, 12, 15
 FROM generate_series(1, 51) n;
 
 -- (sets) one added Cable Fly with 101 logged sets
-INSERT INTO public.workout_session_exercises (id, workout_session_id, exercise_id, "order")
-VALUES ('f2300000-0000-0000-0002-000000000001', 'f2300000-0000-0000-0000-000000000d11', 'f2300000-0000-0000-0000-0000000000e5', 1);
+INSERT INTO public.workout_session_exercises (id, workout_session_id, exercise_slug, "order")
+VALUES ('f2300000-0000-0000-0002-000000000001', 'f2300000-0000-0000-0000-000000000d11', 'test-cable-fly', 1);
 
 INSERT INTO public.workout_session_exercise_sets
   (workout_session_exercise_id, "order", reps_completed, weight_completed)
@@ -228,14 +219,14 @@ FROM generate_series(1, 101) n;
 
 -- Snapshots of the Workouts' rows, to show what a call left unchanged
 CREATE TEMP TABLE plan_rows AS
-SELECT we.workout_id, we.id, we.exercise_id, we."order",
+SELECT we.workout_id, we.id, we.exercise_slug, we."order",
   wes."order" AS set_order, wes.reps_recommended, wes.weight_recommended,
   wes.rest_recommended
 FROM public.workout_exercises we
 LEFT JOIN public.workout_exercise_sets wes ON wes.workout_exercise_id = we.id;
 
 CREATE TEMP VIEW current_plan_rows AS
-SELECT we.workout_id, we.id, we.exercise_id, we."order",
+SELECT we.workout_id, we.id, we.exercise_slug, we."order",
   wes."order" AS set_order, wes.reps_recommended, wes.weight_recommended,
   wes.rest_recommended
 FROM public.workout_exercises we
@@ -250,8 +241,8 @@ INSERT INTO expected VALUES
     "changes": [
       {
         "kind": "replace_exercise",
-        "exercise": {"id": "f2300000-0000-0000-0000-0000000000e4", "name": "Test Dumbbell Press"},
-        "replaced_exercise": {"id": "f2300000-0000-0000-0000-0000000000e1", "name": "Test Bench Press"},
+        "exercise": {"slug": "test-dumbbell-press", "name": "Test dumbbell press"},
+        "replaced_exercise": {"slug": "test-bench-press", "name": "Test bench press"},
         "sets": [
           {"reps": 8, "weight": 30},
           {"reps": 6, "weight": 32.5},
@@ -261,21 +252,21 @@ INSERT INTO expected VALUES
       },
       {
         "kind": "add_sets",
-        "exercise": {"id": "f2300000-0000-0000-0000-0000000000e2", "name": "Test Squat"},
+        "exercise": {"slug": "test-squat", "name": "Test squat"},
         "sets": [{"reps": 5, "weight": 100}, {"reps": 3, "weight": 0}]
       },
       {
         "kind": "remove_exercise",
-        "exercise": {"id": "f2300000-0000-0000-0000-0000000000e3", "name": "Test Dips"}
+        "exercise": {"slug": "test-dips", "name": "Test dips"}
       },
       {
         "kind": "add_sets",
-        "exercise": {"id": "f2300000-0000-0000-0000-0000000000e1", "name": "Test Bench Press"},
+        "exercise": {"slug": "test-bench-press", "name": "Test bench press"},
         "sets": [{"reps": 10, "weight": 45}]
       },
       {
         "kind": "add_exercise",
-        "exercise": {"id": "f2300000-0000-0000-0000-0000000000e5", "name": "Test Cable Fly"},
+        "exercise": {"slug": "test-cable-fly", "name": "Test cable fly"},
         "sets": [{"reps": 12, "weight": 15}, {"reps": 12, "weight": 17.5}]
       }
     ]
@@ -357,23 +348,22 @@ RESET ROLE;
 
 SELECT results_eq(
   $$
-    SELECT e.name, we."order"
+    SELECT we.exercise_slug, we."order"
     FROM public.workout_exercises we
-    JOIN public.exercises e ON e.id = we.exercise_id
     WHERE we.workout_id = 'f2300000-0000-0000-0000-0000000000b1'
     ORDER BY we."order"
   $$,
   $$VALUES
-    ('Test Dumbbell Press', 1),
-    ('Test Squat', 2),
-    ('Test Bench Press', 3),
-    ('Test Cable Fly', 4)$$,
+    ('test-dumbbell-press', 1),
+    ('test-squat', 2),
+    ('test-bench-press', 3),
+    ('test-cable-fly', 4)$$,
   '(main) Dips removed, the rest renumbered from 1, Cable Fly appended'
 );
 
 SELECT is(
-  (SELECT exercise_id FROM public.workout_exercises WHERE id = 'f2300000-0000-0000-0000-0000000001c1'),
-  'f2300000-0000-0000-0000-0000000000e4'::uuid,
+  (SELECT exercise_slug FROM public.workout_exercises WHERE id = 'f2300000-0000-0000-0000-0000000001c1'),
+  'test-dumbbell-press',
   '(main) the replacement keeps the Workout Exercise row'
 );
 
@@ -416,7 +406,7 @@ SELECT results_eq(
     FROM public.workout_exercise_sets wes
     JOIN public.workout_exercises we ON we.id = wes.workout_exercise_id
     WHERE we.workout_id = 'f2300000-0000-0000-0000-0000000000b1'
-      AND we.exercise_id = 'f2300000-0000-0000-0000-0000000000e5'
+      AND we.exercise_slug = 'test-cable-fly'
     ORDER BY wes."order"
   $$,
   $$VALUES (1, 12, 15.00, 90), (2, 12, 17.50, 90)$$,
@@ -509,8 +499,8 @@ SELECT is(
   public.workout_session_plan_changes('f2300000-0000-0000-0000-0000000000d3') -> 'changes',
   $$[{
     "kind": "replace_exercise",
-    "exercise": {"id": "f2300000-0000-0000-0000-0000000000e5", "name": "Test Cable Fly"},
-    "replaced_exercise": {"id": "f2300000-0000-0000-0000-0000000000e3", "name": "Test Dips"},
+    "exercise": {"slug": "test-cable-fly", "name": "Test cable fly"},
+    "replaced_exercise": {"slug": "test-dips", "name": "Test dips"},
     "sets": [{"reps": 15, "weight": 20}]
   }]$$::jsonb,
   '(last) the added Exercise in the deleted one''s slot reads as a replacement'
@@ -638,7 +628,7 @@ SELECT is(
   public.workout_session_plan_changes('f2300000-0000-0000-0000-0000000000d8', true) -> 'changes',
   $$[{
     "kind": "add_sets",
-    "exercise": {"id": "f2300000-0000-0000-0000-0000000000e2", "name": "Test Squat"},
+    "exercise": {"slug": "test-squat", "name": "Test squat"},
     "sets": [{"reps": 4, "weight": 100}]
   }]$$::jsonb,
   '(back) a logged set added before a replacement and a switch back still counts as added'

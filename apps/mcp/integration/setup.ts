@@ -12,7 +12,7 @@ import { createServicesFromEnv } from "../src/services.js";
 
 /**
  * Helpers for the integration suite, which runs the MCP tools against a real
- * Supabase stack (`pnpm db start` + `pnpm db seed`). Test Users are made-up
+ * Supabase stack (`pnpm db start`). Test Users are made-up
  * Clerk-style ids, and the tools run as them through `asUser` on the stack's
  * Supavisor pooler (`FITME_DATABASE_URL`, set by the vitest config), the way
  * the server does once Clerk has verified a token (ADR 0003). Every query goes
@@ -35,10 +35,8 @@ const exercise = (
 });
 
 /**
- * The Exercises the fake Exercise Library knows. Until the contract step
- * drops exercise_id, a slug write still needs the slug in the seeded legacy
- * table (the sync_exercise_slug trigger fills the uuid from it), hence two
- * seeded slugs.
+ * The Exercises the fake Exercise Library knows. Postgres doesn't check slugs
+ * (ADR 0010), so nothing is seeded for them.
  */
 export const INTEGRATION_EXERCISES = [
   exercise("barbell-back-squat", "Barbell Back Squat", [

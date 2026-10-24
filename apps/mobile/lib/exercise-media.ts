@@ -5,7 +5,7 @@ const RENDER_ENDPOINT = "/storage/v1/render/image/";
 
 /**
  * A thumbnail at the size it's shown, in device pixels: the render endpoint
- * takes `width` / `height`. Other URLs (the legacy table's) go as they are.
+ * takes `width` / `height`. Other URLs go as they are.
  */
 export const sizedThumbnailUrl = (
   url: string,

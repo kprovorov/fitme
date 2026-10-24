@@ -88,8 +88,7 @@ interface StoredExercise<Set> {
 
 /**
  * Each group's Exercises with their name and muscle groups, through one
- * lookup (after the read's transaction); the services' legacy joined
- * `exercise` is left out. A slug the library doesn't know, or every slug when
+ * lookup (after the read's transaction). A slug the library doesn't know, or every slug when
  * the library fails (reported), gets a name made from the slug and no muscle
  * groups, so a read always answers.
  */
