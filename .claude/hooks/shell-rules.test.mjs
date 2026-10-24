@@ -350,3 +350,19 @@ describe("expansion hashes, escaped delimiters and append assignments", () => {
     });
   }
 });
+
+describe("expansion shifts, timed groups and older-than options", () => {
+  for (const [command, rules] of [
+    // biome-ignore lint/suspicious/noTemplateCurlyInString: shell text, not a template.
+    ['echo "${x:-a << b}"; sleep 60', ["sleep"]],
+    ["time { sleep 60; }", ["sleep"]],
+    ["time -p { timeout 5 x; }", ["timeout"]],
+    ["time { sleep 60; } &", []],
+    ["pgrep -O 0 -f ultracite", ["pkill"]],
+    ["pgrep --older 0 -f ultracite", ["pkill"]],
+  ]) {
+    test(`${JSON.stringify(command)} breaks ${JSON.stringify(rules)}`, () => {
+      assert.deepEqual(rulesBroken(command), rules);
+    });
+  }
+});

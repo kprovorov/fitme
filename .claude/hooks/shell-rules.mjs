@@ -172,8 +172,9 @@ const skipGroup = (source, start) => {
     // Only commands, in `$(…)` or `(…)`, have comments: in `${…}` and
     // arithmetic a `#` is text.
     comments: open === "(" && !arithmetic,
-    // In `((…))` arithmetic, `<<` is a shift, never a heredoc.
-    heredocs: arithmetic ? null : [],
+    // Only commands have heredocs: in `${…}` and arithmetic, `<<` is text or
+    // a shift.
+    heredocs: open === "(" && !arithmetic ? [] : null,
   };
   let depth = 0;
   let index = start;
@@ -442,6 +443,7 @@ class Parser {
     this.definesFunction = false;
     this.skipsOperator = false;
     this.skipsWord = false;
+    this.timed = false;
   }
 
   frame(closer, definition) {
@@ -481,6 +483,8 @@ class Parser {
   }
 
   word(value) {
+    const { timed } = this;
+    this.timed = false;
     if (this.skipsWord) {
       this.skipsWord = false;
     } else if (this.top.inLoopHeader) {
@@ -489,6 +493,9 @@ class Parser {
       this.caseWord(value);
     } else if (this.words.length > 0) {
       this.words.push(value);
+    } else if (value === "time" || (timed && value.startsWith("-"))) {
+      // `time [-p] …`: the timed command comes next, simple or compound.
+      this.timed = true;
     } else if (value === "function") {
       // `function name …`: the name is no command.
       this.definesFunction = true;
@@ -655,7 +662,19 @@ const cdTarget = (words) =>
 
 const PROCESS_MATCHERS = new Set(["pkill", "pgrep"]);
 // Short options of pkill / pgrep (macOS and procps) that take a value.
-const VALUE_OPTIONS = new Set(["F", "G", "P", "U", "d", "g", "s", "t", "u"]);
+const VALUE_OPTIONS = new Set([
+  "F",
+  "G",
+  "O",
+  "P",
+  "U",
+  "d",
+  "g",
+  "r",
+  "s",
+  "t",
+  "u",
+]);
 const VALUE_LONG_OPTIONS = new Set([
   "--cgroup",
   "--delimiter",
@@ -664,9 +683,11 @@ const VALUE_LONG_OPTIONS = new Set([
   "--group",
   "--ns",
   "--nslist",
+  "--older",
   "--parent",
   "--pgroup",
   "--pidfile",
+  "--runstates",
   "--session",
   "--signal",
   "--terminal",
