@@ -88,9 +88,10 @@ async function main() {
     }
 
     // PostgREST rejects a token it cannot verify with 401 and otherwise runs
-    // the request as the token's `role` claim, checked above.
+    // the request as the token's `role` claim, checked above. The test User
+    // has no Plans, so RLS answers an empty list.
     const response = await fetch(
-      `${supabaseUrl}/rest/v1/exercises?select=id&limit=1`,
+      `${supabaseUrl}/rest/v1/plans?select=id&limit=1`,
       { headers: { Authorization: `Bearer ${jwt}`, apikey: anonKey } }
     );
     if (!response.ok) {

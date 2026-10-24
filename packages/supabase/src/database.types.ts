@@ -28,46 +28,6 @@ export interface Database {
         };
         Relationships: [];
       };
-      exercises: {
-        Row: {
-          created_at: string | null;
-          description: string | null;
-          id: string;
-          instructions: string | null;
-          muscle_groups: Json | null;
-          name: string;
-          slug: string;
-          thumbnail_url: string | null;
-          updated_at: string | null;
-          video_url: string | null;
-        };
-        ComputedFields: never;
-        Insert: {
-          created_at?: string | null;
-          description?: string | null;
-          id?: string;
-          instructions?: string | null;
-          muscle_groups?: Json | null;
-          name: string;
-          slug: string;
-          thumbnail_url?: string | null;
-          updated_at?: string | null;
-          video_url?: string | null;
-        };
-        Update: {
-          created_at?: string | null;
-          description?: string | null;
-          id?: string;
-          instructions?: string | null;
-          muscle_groups?: Json | null;
-          name?: string;
-          slug?: string;
-          thumbnail_url?: string | null;
-          updated_at?: string | null;
-          video_url?: string | null;
-        };
-        Relationships: [];
-      };
       plans: {
         Row: {
           created_at: string | null;
@@ -205,7 +165,6 @@ export interface Database {
       workout_exercises: {
         Row: {
           created_at: string | null;
-          exercise_id: string;
           exercise_slug: string;
           id: string;
           order: number;
@@ -216,8 +175,7 @@ export interface Database {
         ComputedFields: never;
         Insert: {
           created_at?: string | null;
-          exercise_id?: string;
-          exercise_slug?: string;
+          exercise_slug: string;
           id?: string;
           order: number;
           request_key?: string | null;
@@ -226,7 +184,6 @@ export interface Database {
         };
         Update: {
           created_at?: string | null;
-          exercise_id?: string;
           exercise_slug?: string;
           id?: string;
           order?: number;
@@ -235,13 +192,6 @@ export interface Database {
           workout_id?: string;
         };
         Relationships: [
-          {
-            foreignKeyName: "workout_exercises_exercise_id_fkey";
-            columns: ["exercise_id"];
-            isOneToOne: false;
-            referencedRelation: "exercises";
-            referencedColumns: ["id"];
-          },
           {
             foreignKeyName: "workout_exercises_workout_id_fkey";
             columns: ["workout_id"];
@@ -305,7 +255,6 @@ export interface Database {
       workout_session_exercises: {
         Row: {
           created_at: string | null;
-          exercise_id: string;
           exercise_slug: string;
           id: string;
           order: number;
@@ -315,8 +264,7 @@ export interface Database {
         ComputedFields: never;
         Insert: {
           created_at?: string | null;
-          exercise_id?: string;
-          exercise_slug?: string;
+          exercise_slug: string;
           id?: string;
           order: number;
           updated_at?: string | null;
@@ -324,7 +272,6 @@ export interface Database {
         };
         Update: {
           created_at?: string | null;
-          exercise_id?: string;
           exercise_slug?: string;
           id?: string;
           order?: number;
@@ -332,13 +279,6 @@ export interface Database {
           workout_session_id?: string;
         };
         Relationships: [
-          {
-            foreignKeyName: "workout_session_exercises_exercise_id_fkey";
-            columns: ["exercise_id"];
-            isOneToOne: false;
-            referencedRelation: "exercises";
-            referencedColumns: ["id"];
-          },
           {
             foreignKeyName: "workout_session_exercises_workout_session_id_fkey";
             columns: ["workout_session_id"];

@@ -1,7 +1,6 @@
 import { randomUUID } from "node:crypto";
 import {
   asUser,
-  exercises,
   plans,
   withService,
   workoutExerciseSets,
@@ -11,7 +10,7 @@ import {
   workoutSessions,
   workouts,
 } from "@fitme/db";
-import { eq, inArray } from "drizzle-orm";
+import { eq } from "drizzle-orm";
 import { afterAll, beforeAll, describe, expect, it } from "vitest";
 import { deleteUserData } from "../src/delete-user-data";
 import {
@@ -34,8 +33,10 @@ const intruder = `user_svcSessIntruder${runId}`;
 /** How PostgREST rendered timestamps, e.g. 2026-10-01T10:00:00.123+00:00. */
 const POSTGREST_TIMESTAMP = /^\d{4}-\d\d-\d\dT\d\d:\d\d:\d\d(\.\d+)?\+00:00$/;
 
+const benchSlug = `test-sess-bench-${runId}`;
+const squatSlug = `test-sess-squat-${runId}`;
+
 interface Seeded {
-  benchId: string;
   finishedSessionId: string;
   finishedSetId: string;
   openSessionId: string;
@@ -43,7 +44,6 @@ interface Seeded {
   openSetIds: [string, string, string];
   planId: string;
   planSetId: string;
-  squatId: string;
   workoutId: string;
 }
 
@@ -52,13 +52,6 @@ let intruderSessionId: string;
 
 const seedOwner = (): Promise<Seeded> =>
   withService(async (tx) => {
-    const [bench, squat] = await tx
-      .insert(exercises)
-      .values([
-        { name: "Test bench", slug: `test-sess-bench-${runId}` },
-        { name: "Test squat", slug: `test-sess-squat-${runId}` },
-      ])
-      .returning({ id: exercises.id });
     const [plan] = await tx
       .insert(plans)
       .values({
@@ -75,7 +68,7 @@ const seedOwner = (): Promise<Seeded> =>
       .returning({ id: workouts.id });
     const [planExercise] = await tx
       .insert(workoutExercises)
-      .values({ exerciseId: bench.id, order: 1, workoutId: workout.id })
+      .values({ exerciseSlug: benchSlug, order: 1, workoutId: workout.id })
       .returning({ id: workoutExercises.id });
     const [planSet] = await tx
       .insert(workoutExerciseSets)
@@ -111,9 +104,9 @@ const seedOwner = (): Promise<Seeded> =>
     const [openSquat, openBench, finishedBench] = await tx
       .insert(workoutSessionExercises)
       .values([
-        { exerciseId: squat.id, order: 2, workoutSessionId: open.id },
-        { exerciseId: bench.id, order: 1, workoutSessionId: open.id },
-        { exerciseId: bench.id, order: 1, workoutSessionId: finished.id },
+        { exerciseSlug: squatSlug, order: 2, workoutSessionId: open.id },
+        { exerciseSlug: benchSlug, order: 1, workoutSessionId: open.id },
+        { exerciseSlug: benchSlug, order: 1, workoutSessionId: finished.id },
       ])
       .returning({ id: workoutSessionExercises.id });
     const [squatSet, benchSet2, benchSet1, finishedSet] = await tx
@@ -153,14 +146,12 @@ const seedOwner = (): Promise<Seeded> =>
       .returning({ id: workoutSessionExerciseSets.id });
 
     return {
-      benchId: bench.id,
       finishedSessionId: finished.id,
       finishedSetId: finishedSet.id,
       openSessionId: open.id,
       openSetIds: [benchSet1.id, benchSet2.id, squatSet.id],
       planId: plan.id,
       planSetId: planSet.id,
-      squatId: squat.id,
       workoutId: workout.id,
     };
   });
@@ -197,9 +188,6 @@ afterAll(async () => {
   await withService(async (tx) => {
     await deleteUserData(tx, owner);
     await deleteUserData(tx, intruder);
-    await tx
-      .delete(exercises)
-      .where(inArray(exercises.id, [seeded.benchId, seeded.squatId]));
   });
 });
 
@@ -300,8 +288,7 @@ describe("getWorkoutSession", () => {
     expect(session).toEqual({
       exercises: [
         {
-          exercise: { id: seeded.benchId, name: "Test bench" },
-          exercise_slug: `test-sess-bench-${runId}`,
+          exercise_slug: benchSlug,
           id: expect.any(String),
           order: 1,
           sets: [
@@ -319,8 +306,7 @@ describe("getWorkoutSession", () => {
           ],
         },
         {
-          exercise: { id: seeded.squatId, name: "Test squat" },
-          exercise_slug: `test-sess-squat-${runId}`,
+          exercise_slug: squatSlug,
           id: expect.any(String),
           order: 2,
           sets: [

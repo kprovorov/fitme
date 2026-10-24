@@ -104,7 +104,7 @@ const created = {
   ],
 };
 
-/** `created` as the services return it: with the legacy and internal fields. */
+/** `created` as the services return it: with their internal fields. */
 const servicesCreated = {
   ...created,
   deleted_at: null,
@@ -113,12 +113,6 @@ const servicesCreated = {
     ...workout,
     exercises: workout.exercises.map((exercise) => ({
       ...exercise,
-      exercise: {
-        id: "f6c1b5a7-2d84-4e5f-8b6c-8a0d2f4b6c70",
-        muscle_groups: ["quadriceps"],
-        name: "Squat",
-      },
-      exercise_id: "f6c1b5a7-2d84-4e5f-8b6c-8a0d2f4b6c70",
       request_key: null,
     })),
   })),

@@ -31,14 +31,12 @@ const loggedSet: WorkoutSessionSet = {
 const sessionDetail: WorkoutSessionDetail = {
   exercises: [
     {
-      exercise: { id: "bench", name: "Bench" },
       exercise_slug: BENCH.slug,
       id: "wse-1",
       order: 1,
       sets: [loggedSet],
     },
     {
-      exercise: { id: "fly", name: "Fly" },
       exercise_slug: "cable-fly-legacy",
       id: "wse-2",
       order: 2,

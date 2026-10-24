@@ -19,9 +19,7 @@ import { clerk, libraryExercise, signedInAs } from "../src/test/harness.js";
 
 /**
  * PUT /v1/plans/{id}/workouts with the real services facade, through
- * `asUser` on the local stack's pooler, and the fake Exercise Library over
- * seeded slugs (until the contract step a slug write needs its slug in the
- * legacy `exercises` table).
+ * `asUser` on the local stack's pooler, and the fake Exercise Library.
  */
 const library: FakeExerciseLibrary = createFakeExerciseLibrary(
   ["barbell-back-squat", "barbell-deadlift"].map(libraryExercise)

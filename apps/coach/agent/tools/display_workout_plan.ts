@@ -1,6 +1,3 @@
-import { asUser } from "@fitme/db";
-import { reportError } from "@fitme/observability/node";
-import { legacyExerciseIdsBySlug } from "@fitme/services/exercises";
 import { defineTool } from "eve/tools";
 import { z } from "zod";
 import { checkExerciseSlugs, exerciseSlugSchema } from "../lib/exercises";
@@ -29,7 +26,9 @@ export default defineTool({
   description:
     "Display a generated workout plan as a structured card in the UI. Call this when the user requests a workout plan to be created or generated.",
   async execute(input, ctx) {
-    const userId = requireConversationOwner(ctx.session.auth);
+    // Only for the Conversation's owner, like every tool, though it writes
+    // nothing
+    requireConversationOwner(ctx.session.auth);
     const slugs = input.workouts.flatMap(({ exercises }) =>
       exercises.map(({ exercise_slug }) => exercise_slug)
     );
@@ -39,31 +38,7 @@ export default defineTool({
       // successful result as a plan card (installed builds included)
       throw new Error(refused.error);
     }
-    // Until the contract step (then delete this and `exercise_id`): the plan
-    // card in installed v2.0.0 apps reads the legacy uuid and sends it to
-    // create_plan.
-    const ids = await asUser(userId, (tx) =>
-      legacyExerciseIdsBySlug(tx, slugs)
-    );
-    const unmapped = slugs.filter((slug) => !ids.has(slug));
-    if (unmapped.length > 0) {
-      // a v2.0.0 card can't save these: the legacy table has fallen behind
-      await reportError(
-        new Error(
-          `Exercise slugs with no legacy exercise_id: ${unmapped.join(", ")}`
-        )
-      );
-    }
-    return {
-      ...input,
-      workouts: input.workouts.map((workout) => ({
-        ...workout,
-        exercises: workout.exercises.map((exercise) => ({
-          ...exercise,
-          exercise_id: ids.get(exercise.exercise_slug) ?? null,
-        })),
-      })),
-    };
+    return input;
   },
   inputSchema: z.object({
     description: z.string(),

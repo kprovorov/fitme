@@ -48,9 +48,6 @@ select is(
 -- ------------------------------------------------------------
 -- Fixtures (as postgres, bypassing RLS): everything belongs to User A
 -- ------------------------------------------------------------
-insert into public.exercises (id, name, slug) values
-  ('f1e00000-0000-0000-0000-000000000001', 'Test Bench', 'test-bench-user-isolation');
-
 insert into public.profiles (id, user_id, gender, age, weight, height) values
   ('f1f00000-0000-0000-0000-000000000001', 'user_2IsolationA000000000000', 'male', 30, 80, 180);
 
@@ -60,8 +57,8 @@ insert into public.plans (id, user_id, goal, place, frequency) values
 insert into public.workouts (id, plan_id, "order", name, description) values
   ('f1b00000-0000-0000-0000-000000000001', 'f1a00000-0000-0000-0000-000000000001', 1, 'A Day', 'Push');
 
-insert into public.workout_exercises (id, workout_id, exercise_id, "order") values
-  ('f1c00000-0000-0000-0000-000000000001', 'f1b00000-0000-0000-0000-000000000001', 'f1e00000-0000-0000-0000-000000000001', 1);
+insert into public.workout_exercises (id, workout_id, exercise_slug, "order") values
+  ('f1c00000-0000-0000-0000-000000000001', 'f1b00000-0000-0000-0000-000000000001', 'test-bench-user-isolation', 1);
 
 insert into public.workout_exercise_sets
   (id, workout_exercise_id, "order", reps_recommended, weight_recommended, rest_recommended)
@@ -72,8 +69,8 @@ insert into public.workout_sessions (id, workout_id, plan_id, user_id, started_a
   ('f1500000-0000-0000-0000-000000000001', 'f1b00000-0000-0000-0000-000000000001',
    'f1a00000-0000-0000-0000-000000000001', 'user_2IsolationA000000000000', now());
 
-insert into public.workout_session_exercises (id, workout_session_id, exercise_id, "order") values
-  ('f1600000-0000-0000-0000-000000000001', 'f1500000-0000-0000-0000-000000000001', 'f1e00000-0000-0000-0000-000000000001', 1);
+insert into public.workout_session_exercises (id, workout_session_id, exercise_slug, "order") values
+  ('f1600000-0000-0000-0000-000000000001', 'f1500000-0000-0000-0000-000000000001', 'test-bench-user-isolation', 1);
 
 insert into public.workout_session_exercise_sets (id, workout_session_exercise_id, "order", reps_recommended) values
   ('f1700000-0000-0000-0000-000000000001', 'f1600000-0000-0000-0000-000000000001', 1, 5);

@@ -101,9 +101,9 @@ begin
     values (v_plan_id, i, w_names[i], w_descs[i], now() - interval '20 days')
     returning id into w_id;
     insert into seed_workouts values (i, w_id);
-    for e in select sp.*, ex.id as exercise_id from seed_plan sp join exercises ex on ex.slug = sp.slug where sp.w = i order by sp.pos loop
-      insert into workout_exercises (workout_id, exercise_id, "order")
-      values (w_id, e.exercise_id, e.pos) returning id into we_id;
+    for e in select sp.* from seed_plan sp where sp.w = i order by sp.pos loop
+      insert into workout_exercises (workout_id, exercise_slug, "order")
+      values (w_id, e.slug, e.pos) returning id into we_id;
       for n in 1..e.sets loop
         insert into workout_exercise_sets (workout_exercise_id, "order", reps_recommended, weight_recommended, rest_recommended)
         values (we_id, n, e.reps, e.weight, e.rest);
@@ -129,9 +129,9 @@ begin
     insert into workout_sessions (workout_id, plan_id, user_id, started_at, finished_at, created_at)
     values (w_id, v_plan_id, uid, start_ts, finish_ts, start_ts)
     returning id into s_id;
-    for e in select sp.*, ex.id as exercise_id from seed_plan sp join exercises ex on ex.slug = sp.slug where sp.w = k order by sp.pos loop
-      insert into workout_session_exercises (workout_session_id, exercise_id, "order", created_at)
-      values (s_id, e.exercise_id, e.pos, start_ts) returning id into se_id;
+    for e in select sp.* from seed_plan sp where sp.w = k order by sp.pos loop
+      insert into workout_session_exercises (workout_session_id, exercise_slug, "order", created_at)
+      values (s_id, e.slug, e.pos, start_ts) returning id into se_id;
       for n in 1..e.sets loop
         if e.weight = 0 then
           wt := 0;

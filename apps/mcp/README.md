@@ -14,11 +14,10 @@ The MCP endpoint is the root path: `POST|GET|DELETE /` (stateless, no session id
 
 ## Integration tests
 
-`integration/` runs the tools against a real Supabase stack instead of the fake services, so RLS and the services' queries are exercised for real. The Exercise Library is always the in-memory fake (`INTEGRATION_EXERCISES` in `integration/setup.ts`), never the network. Until the contract step drops `exercise_id`, a slug write still needs its slug in the seeded legacy `exercises` table (the `sync_exercise_slug` trigger fills the uuid from it), so the fake's slugs are seeded ones. Each run creates fresh Users as made-up Clerk-style `user_…` ids, with no Clerk or Supabase Auth account, and runs the tools as them through `asUser` on the stack's Supavisor pooler (the vitest config reads its URL from `supabase status`; `FITME_DATABASE_URL` overrides it). It covers the main flow (create → get → update → activate → start session → log set → finish → list → delete) and checks that a second user can neither read nor change the first user's plans and sessions, through the tools or straight through the RPCs and table writes.
+`integration/` runs the tools against a real Supabase stack instead of the fake services, so RLS and the services' queries are exercised for real. The Exercise Library is always the in-memory fake (`INTEGRATION_EXERCISES` in `integration/setup.ts`), never the network. Postgres doesn't check Exercise slugs (ADR 0010), so no Exercise is seeded. Each run creates fresh Users as made-up Clerk-style `user_…` ids, with no Clerk or Supabase Auth account, and runs the tools as them through `asUser` on the stack's Supavisor pooler (the vitest config reads its URL from `supabase status`; `FITME_DATABASE_URL` overrides it). It covers the main flow (create → get → update → activate → start session → log set → finish → list → delete) and checks that a second user can neither read nor change the first user's plans and sessions, through the tools or straight through the RPCs and table writes.
 
 ```bash
 pnpm db start                     # local stack
-pnpm db exec snaplet-seed generate && pnpm db seed   # exercise library
 pnpm mcp test:integration
 ```
 

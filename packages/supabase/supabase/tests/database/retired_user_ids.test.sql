@@ -14,9 +14,6 @@ select plan(18);
 -- ------------------------------------------------------------
 -- Each User gets a Profile, a Plan with a Workout, exercise and set, a
 -- Workout Session with an exercise and set.
-insert into public.exercises (id, name, slug) values
-  ('f3e00000-0000-0000-0000-000000000001', 'Test Lunge', 'test-lunge-user-data-functions');
-
 create temporary table test_users (n int, user_id text) on commit drop;
 insert into test_users values
   (1, 'user_2DeleteMe00000000000000'),
@@ -33,9 +30,9 @@ insert into public.workouts (id, plan_id, "order", name, description)
 select ('f3b00000-0000-0000-0000-00000000000' || n)::uuid, ('f3a00000-0000-0000-0000-00000000000' || n)::uuid, 1, 'Day', 'Legs'
 from test_users;
 
-insert into public.workout_exercises (id, workout_id, exercise_id, "order")
+insert into public.workout_exercises (id, workout_id, exercise_slug, "order")
 select ('f3c00000-0000-0000-0000-00000000000' || n)::uuid, ('f3b00000-0000-0000-0000-00000000000' || n)::uuid,
-  'f3e00000-0000-0000-0000-000000000001', 1
+  'test-lunge-user-data-functions', 1
 from test_users;
 
 insert into public.workout_exercise_sets
@@ -47,9 +44,9 @@ select ('f3500000-0000-0000-0000-00000000000' || n)::uuid, ('f3b00000-0000-0000-
   ('f3a00000-0000-0000-0000-00000000000' || n)::uuid, user_id, now()
 from test_users;
 
-insert into public.workout_session_exercises (id, workout_session_id, exercise_id, "order")
+insert into public.workout_session_exercises (id, workout_session_id, exercise_slug, "order")
 select ('f3600000-0000-0000-0000-00000000000' || n)::uuid, ('f3500000-0000-0000-0000-00000000000' || n)::uuid,
-  'f3e00000-0000-0000-0000-000000000001', 1
+  'test-lunge-user-data-functions', 1
 from test_users;
 
 insert into public.workout_session_exercise_sets (workout_session_exercise_id, "order", reps_completed)

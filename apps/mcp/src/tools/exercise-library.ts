@@ -100,9 +100,9 @@ interface WithSlug {
   exercise_slug: string;
 }
 
-/** Swaps the legacy joined `exercise` for the slug, name and muscle groups. */
-const named = <T extends WithSlug & { exercise: unknown }>(
-  { exercise: _legacy, exercise_slug, ...rest }: T,
+/** Adds the name and muscle groups next to the slug. */
+const named = <T extends WithSlug>(
+  { exercise_slug, ...rest }: T,
   known: KnownExercises
 ) => ({ ...rest, ...exerciseRef(exercise_slug, known) });
 

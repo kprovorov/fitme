@@ -2,7 +2,7 @@
 # T3 Code settle script: once a thread settles (its PR merged or closed, or
 # settled by hand), unregister its worktree's Supabase MCP server and destroy its
 # Supabase stack so stale stacks don't pile up. Its data is throwaway; rerunning
-# setup.sh brings up a fresh, seeded one.
+# setup.sh brings up a fresh one.
 set -euo pipefail
 
 worktree="${T3CODE_WORKTREE_PATH:-$(git rev-parse --show-toplevel)}"

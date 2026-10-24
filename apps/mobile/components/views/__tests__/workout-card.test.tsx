@@ -179,7 +179,7 @@ describe("WorkoutCard's Finish Workout", () => {
     mockFinishRpc.mockResolvedValue({});
     mockPlanChangesRpc.mockResolvedValueOnce({
       changes: [
-        { exercise: { id: "e-1", name: "Dips" }, kind: "remove_exercise" },
+        { exercise: { name: "Dips", slug: "dips" }, kind: "remove_exercise" },
       ],
       plan: { id: "plan-1", name: "PPL" },
       workout: { id: "workout-1", name: "Push Day" },

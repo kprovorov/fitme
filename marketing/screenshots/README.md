@@ -33,7 +33,7 @@ for f in marketing/screenshots/iphone/*.png; do python3 marketing/screenshots/fr
 
 ## How to reproduce
 
-1. Local stack for this worktree: `pnpm --filter @fitme/supabase exec supabase start` (prints the API/DB ports), then load the exercise catalog: `SUPABASE_URL=<api url> SUPABASE_SERVICE_ROLE_KEY=<service key> pnpm --filter @fitme/supabase exec tsx supabase/sync.ts`.
+1. Local stack for this worktree: `pnpm --filter @fitme/supabase exec supabase start` (prints the API/DB ports), then serve the Exercise Library the app reads names and thumbnails from: `LIBRARY_BUNDLE=<path to a real fitme-exercises library.json> pnpm dev:exercises` (the committed fixture only has made-up Exercises, so the seeded slugs would show their slug names).
 2. `apps/mobile/.env`: `EXPO_PUBLIC_SUPABASE_URL` / `_ANON_KEY` from that stack, `EXPO_PUBLIC_CLERK_PUBLISHABLE_KEY` (Clerk dev instance), `EXPO_PUBLIC_E2E_ENABLED=true` (skips RevenueCat/Segment), `EXPO_PUBLIC_API_URL=http://127.0.0.1:3003` (run `pnpm dev:api` for the Coach model list), empty `EXPO_PUBLIC_SENTRY_DSN`.
 3. Release build for the simulator (ad-hoc signed, or the keychain, and with it Clerk, never loads):
    ```sh
@@ -48,7 +48,7 @@ for f in marketing/screenshots/iphone/*.png; do python3 marketing/screenshots/fr
    ```sh
    psql "postgresql://postgres:postgres@127.0.0.1:<db port>/postgres" -v user_id=<user_…> -f marketing/screenshots/seed/seed.sql
    ```
-   `seed/seed.sql` writes a Profile (male, 29, 182 cm, 81.5 kg), the active 4-day Upper/Lower Plan with real catalog exercises, 11 finished sessions over the last 18 days (Mon/Tue/Thu/Fri, weights progressing), and one Upper A session started 35 minutes ago with 7 sets logged.
+   `seed/seed.sql` writes a Profile (male, 29, 182 cm, 81.5 kg), the active 4-day Upper/Lower Plan with real Exercise Library slugs, 11 finished sessions over the last 18 days (Mon/Tue/Thu/Fri, weights progressing), and one Upper A session started 35 minutes ago with 7 sets logged.
 6. Clean status bar, then shoot each screen: `xcrun simctl status_bar booted override --time 9:41 --dataNetwork wifi --wifiBars 3 --cellularBars 4 --batteryState charged --batteryLevel 100` and `xcrun simctl io booted screenshot --type=png <file>`. Navigation was driven with Maestro point taps (Release builds merge accessibility elements, so ids aren't reachable).
 
 ## Found along the way

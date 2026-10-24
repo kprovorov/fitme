@@ -10,12 +10,11 @@
 # Globs are Node's path.matchesGlob; files in dot directories match too.
 
 high:
-  # Supabase: schema, auth trust, signing keys, the production data script
+  # Supabase: schema, auth trust, signing keys
   - packages/supabase/supabase/migrations/**
   - packages/supabase/supabase/config.toml
   - packages/supabase/supabase/roles.sql
   - packages/supabase/supabase/local-only-signing-keys.json
-  - packages/supabase/supabase/sync.ts
   # GitHub: workflows, the Risk Path list, the API contract allowlist
   - .github/**
   # Database doors, account deletion, Coach session ownership

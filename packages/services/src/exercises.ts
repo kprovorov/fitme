@@ -1,6 +1,4 @@
-import type { MuscleGroup } from "@fitme/core/models";
 import {
-  exercises,
   plans,
   type Transaction,
   workoutSessionExerciseSets,
@@ -11,149 +9,14 @@ import {
 import {
   and,
   asc,
-  count,
   desc,
   eq,
   exists,
-  ilike,
   inArray,
   isNotNull,
-  type SQL,
   sql,
 } from "drizzle-orm";
 import { jsonTimestamp } from "./json-timestamp";
-
-const LIKE_SPECIAL_CHARACTERS = /[\\%_]/g;
-
-/** Matches `search` anywhere in the name, treating `%` and `_` literally. */
-const containsPattern = (search: string) =>
-  `%${search.replace(LIKE_SPECIAL_CHARACTERS, "\\$&")}%`;
-
-/** A library Exercise as `list_exercises` shows it. */
-export interface ExerciseSummary {
-  description: string | null;
-  id: string;
-  muscle_groups: unknown;
-  name: string;
-  slug: string;
-}
-
-export interface ExerciseQuery {
-  limit: number;
-  /** Only Exercises whose `muscle_groups` include this one. */
-  muscleGroup?: MuscleGroup;
-  offset: number;
-  /** Case-insensitive substring of the name. */
-  search?: string;
-}
-
-export interface ExercisePage {
-  exercises: ExerciseSummary[];
-  hasMore: boolean;
-  limit: number;
-  offset: number;
-  total: number;
-}
-
-/** An empty page has no row to carry the total: count it on its own. */
-const countMatches = async (tx: Transaction, filters: SQL | undefined) => {
-  const [counted] = await tx
-    .select({ total: count() })
-    .from(exercises)
-    .where(filters);
-  return counted?.total ?? 0;
-};
-
-/**
- * One page of the Exercise library, alphabetical (ties by id), plus the total
- * matching the filters. An offset past the end is an empty page, not an error.
- */
-export const listExercises = async (
-  tx: Transaction,
-  { limit, muscleGroup, offset, search }: ExerciseQuery
-): Promise<ExercisePage> => {
-  const filters = and(
-    search ? ilike(exercises.name, containsPattern(search)) : undefined,
-    muscleGroup
-      ? sql`${exercises.muscleGroups} @> ${JSON.stringify([muscleGroup])}::jsonb`
-      : undefined
-  );
-  // the total rides along on every row, so page and total share a snapshot
-  const matches = await tx
-    .select({
-      description: exercises.description,
-      id: exercises.id,
-      muscle_groups: exercises.muscleGroups,
-      name: exercises.name,
-      slug: exercises.slug,
-      total: sql<number>`count(*) over ()`.mapWith(Number),
-    })
-    .from(exercises)
-    .where(filters)
-    .orderBy(asc(exercises.name), asc(exercises.id))
-    .limit(limit)
-    .offset(offset);
-  const rows = matches.map(({ total: _, ...row }) => row);
-  const total = matches[0]?.total ?? (await countMatches(tx, filters));
-  return {
-    exercises: rows,
-    hasMore: offset + rows.length < total,
-    limit,
-    offset,
-    total,
-  };
-};
-
-/** A library Exercise with every detail. */
-export interface Exercise extends ExerciseSummary {
-  created_at: string | null;
-  instructions: string | null;
-  thumbnail_url: string | null;
-  updated_at: string | null;
-  video_url: string | null;
-}
-
-/** One Exercise from the library, or `null` when there's none with that id. */
-export const getExercise = async (
-  tx: Transaction,
-  exerciseId: string
-): Promise<Exercise | null> => {
-  const [exercise] = await tx
-    .select({
-      created_at: jsonTimestamp(exercises.createdAt),
-      description: exercises.description,
-      id: exercises.id,
-      instructions: exercises.instructions,
-      muscle_groups: exercises.muscleGroups,
-      name: exercises.name,
-      slug: exercises.slug,
-      thumbnail_url: exercises.thumbnailUrl,
-      updated_at: jsonTimestamp(exercises.updatedAt),
-      video_url: exercises.videoUrl,
-    })
-    .from(exercises)
-    .where(eq(exercises.id, exerciseId));
-  return exercise ?? null;
-};
-
-/**
- * The legacy uuid of each slug the `exercises` table knows (unknown slugs are
- * left out), for the Coach's plan card, which installed v2.0.0 apps read
- * `exercise_id` from. Removed with the table at the contract step.
- */
-export const legacyExerciseIdsBySlug = async (
-  tx: Transaction,
-  slugs: readonly string[]
-): Promise<Map<string, string>> => {
-  if (slugs.length === 0) {
-    return new Map();
-  }
-  const rows = await tx
-    .select({ id: exercises.id, slug: exercises.slug })
-    .from(exercises)
-    .where(inArray(exercises.slug, [...new Set(slugs)]));
-  return new Map(rows.map(({ id, slug }) => [slug, id]));
-};
 
 export interface ExerciseHistorySet {
   id: string;
@@ -175,17 +38,12 @@ export interface ExerciseHistoryEntry {
   workout: { id: string; name: string } | null;
 }
 
-/**
- * The Exercise by its Exercise slug, or by its legacy uuid until MCP moves to
- * slugs (the contract step drops `exerciseId`).
- */
-export type ExerciseHistoryQuery = (
-  | { exerciseId?: undefined; exerciseSlug: string }
-  | { exerciseId: string; exerciseSlug?: undefined }
-) & {
+export interface ExerciseHistoryQuery {
+  /** The Exercise, by its Exercise slug. */
+  exerciseSlug: string;
   /** Maximum number of entries. */
   limit: number;
-};
+}
 
 const hasWeight = isNotNull(workoutSessionExerciseSets.weightCompleted);
 
@@ -198,12 +56,12 @@ const hasWeight = isNotNull(workoutSessionExerciseSets.weightCompleted);
 export const getExerciseHistory = async (
   tx: Transaction,
   userId: string,
-  { exerciseId, exerciseSlug, limit }: ExerciseHistoryQuery
+  { exerciseSlug, limit }: ExerciseHistoryQuery
 ): Promise<ExerciseHistoryEntry[]> => {
-  const matchesExercise =
-    exerciseSlug === undefined
-      ? eq(workoutSessionExercises.exerciseId, exerciseId)
-      : eq(workoutSessionExercises.exerciseSlug, exerciseSlug);
+  const matchesExercise = eq(
+    workoutSessionExercises.exerciseSlug,
+    exerciseSlug
+  );
   const newest = desc(workoutSessionExercises.createdAt);
   const latestEntries = tx
     .select({ id: workoutSessionExercises.id })

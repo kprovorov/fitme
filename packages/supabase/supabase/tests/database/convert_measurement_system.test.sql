@@ -8,9 +8,6 @@ select plan(7);
 -- ------------------------------------------------------------
 -- Fixtures (as postgres, bypassing RLS)
 -- ------------------------------------------------------------
-insert into public.exercises (id, name, slug) values
-  ('e1000000-0000-0000-0000-000000000001', 'Test Row', 'test-row-convert-system');
-
 insert into public.profiles (user_id, age, gender, height, weight, measurement_system) values
   ('user_2ConvertOwner0000000000', 30, 'male', 180, 100, 'metric'),
   ('user_2ConvertOther0000000000', 30, 'male', 180, 100, 'metric');
@@ -35,10 +32,10 @@ insert into public.workout_sessions (id, user_id, plan_id, workout_id, started_a
    'a1000000-0000-0000-0000-000000000002', null,
    '2026-09-01T00:00:00Z', '2026-09-01T01:00:00Z');
 
-insert into public.workout_session_exercises (id, workout_session_id, exercise_id, "order") values
-  ('c1000000-0000-0000-0000-000000000001', 'd1000000-0000-0000-0000-000000000001', 'e1000000-0000-0000-0000-000000000001', 1),
-  ('c1000000-0000-0000-0000-000000000002', 'd1000000-0000-0000-0000-000000000002', 'e1000000-0000-0000-0000-000000000001', 1),
-  ('c1000000-0000-0000-0000-000000000003', 'd1000000-0000-0000-0000-000000000003', 'e1000000-0000-0000-0000-000000000001', 1);
+insert into public.workout_session_exercises (id, workout_session_id, exercise_slug, "order") values
+  ('c1000000-0000-0000-0000-000000000001', 'd1000000-0000-0000-0000-000000000001', 'test-row-convert-system', 1),
+  ('c1000000-0000-0000-0000-000000000002', 'd1000000-0000-0000-0000-000000000002', 'test-row-convert-system', 1),
+  ('c1000000-0000-0000-0000-000000000003', 'd1000000-0000-0000-0000-000000000003', 'test-row-convert-system', 1);
 
 insert into public.workout_session_exercise_sets
   (id, workout_session_exercise_id, "order", weight_recommended, weight_completed)

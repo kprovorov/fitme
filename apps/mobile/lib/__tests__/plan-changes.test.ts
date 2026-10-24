@@ -2,9 +2,9 @@ import type { PlanChange } from "@fitme/core";
 import { describe, expect, it } from "@jest/globals";
 import { countPlanChanges, formatPlanChange } from "../plan-changes";
 
-const bench = { id: "e-1", name: "Bench Press" };
-const press = { id: "e-2", name: "Dumbbell Press" };
-const squat = { id: "e-3", name: "Squat" };
+const bench = { name: "Bench Press", slug: "bench-press" };
+const press = { name: "Dumbbell Press", slug: "dumbbell-press" };
+const squat = { name: "Squat", slug: "squat" };
 
 describe("formatPlanChange", () => {
   it("lists a replacement's sets in kilograms for metric", () => {

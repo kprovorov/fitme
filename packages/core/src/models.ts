@@ -64,21 +64,6 @@ export type Profile = Model & {
   measurement_system: MeasurementSystem;
 };
 
-/**
- * A row of the legacy `exercises` table, which only the Library tab and the
- * Exercise picker still read (until FIT-242). Everything else gets Exercises
- * from the Exercise Library API by Exercise slug.
- */
-export type Exercise = Model & {
-  name: string;
-  slug: string;
-  description: string;
-  instructions: string;
-  video_url: string;
-  thumbnail_url: string;
-  muscle_groups: MuscleGroup[];
-};
-
 export type Plan = Model & {
   user_id: string; // User id (JWT sub claim)
   name: string;

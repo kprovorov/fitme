@@ -21,7 +21,6 @@ select is(
   ),
   array[
     'coach_sessions',
-    'exercises',
     'plans',
     'profiles',
     'workout_exercise_sets',

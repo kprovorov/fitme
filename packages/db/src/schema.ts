@@ -7,7 +7,6 @@ import {
   foreignKey,
   index,
   integer,
-  jsonb,
   numeric,
   pgPolicy,
   pgSchema,
@@ -45,37 +44,6 @@ export const coachSessions = pgTable(
       as: "permissive",
       for: "select",
       to: ["authenticated"],
-    }),
-  ]
-);
-
-export const exercises = pgTable(
-  "exercises",
-  {
-    createdAt: timestamp("created_at", {
-      mode: "string",
-      withTimezone: true,
-    }).defaultNow(),
-    description: text(),
-    id: uuid().defaultRandom().primaryKey().notNull(),
-    instructions: text(),
-    muscleGroups: jsonb("muscle_groups"),
-    name: text().notNull(),
-    slug: text().notNull(),
-    thumbnailUrl: text("thumbnail_url"),
-    updatedAt: timestamp("updated_at", {
-      mode: "string",
-      withTimezone: true,
-    }).defaultNow(),
-    videoUrl: text("video_url"),
-  },
-  (table) => [
-    unique("exercises_slug_key").on(table.slug),
-    pgPolicy("exercises_select", {
-      as: "permissive",
-      for: "select",
-      to: ["public"],
-      using: sql`true`,
     }),
   ]
 );
@@ -219,10 +187,7 @@ export const workoutExercises = pgTable(
       mode: "string",
       withTimezone: true,
     }).defaultNow(),
-    exerciseId: uuid("exercise_id")
-      .default(sql`COALESCE(NULL::uuid)`)
-      .notNull(),
-    exerciseSlug: text("exercise_slug").default("").notNull(),
+    exerciseSlug: text("exercise_slug").notNull(),
     id: uuid().defaultRandom().primaryKey().notNull(),
     order: integer().notNull(),
     requestKey: text("request_key"),
@@ -244,11 +209,6 @@ export const workoutExercises = pgTable(
       columns: [table.workoutId],
       foreignColumns: [workouts.id],
       name: "workout_exercises_workout_id_fkey",
-    }).onDelete("cascade"),
-    foreignKey({
-      columns: [table.exerciseId],
-      foreignColumns: [exercises.id],
-      name: "workout_exercises_exercise_id_fkey",
     }).onDelete("cascade"),
     pgPolicy("workout_exercises_all", {
       as: "permissive",
@@ -317,10 +277,7 @@ export const workoutSessionExercises = pgTable(
       mode: "string",
       withTimezone: true,
     }).defaultNow(),
-    exerciseId: uuid("exercise_id")
-      .default(sql`COALESCE(NULL::uuid)`)
-      .notNull(),
-    exerciseSlug: text("exercise_slug").default("").notNull(),
+    exerciseSlug: text("exercise_slug").notNull(),
     id: uuid().defaultRandom().primaryKey().notNull(),
     order: integer().notNull(),
     updatedAt: timestamp("updated_at", {
@@ -338,11 +295,6 @@ export const workoutSessionExercises = pgTable(
       columns: [table.workoutSessionId],
       foreignColumns: [workoutSessions.id],
       name: "workout_session_exercises_workout_session_id_fkey",
-    }).onDelete("cascade"),
-    foreignKey({
-      columns: [table.exerciseId],
-      foreignColumns: [exercises.id],
-      name: "workout_session_exercises_exercise_id_fkey",
     }).onDelete("cascade"),
     pgPolicy("workout_session_exercises_all", {
       as: "permissive",

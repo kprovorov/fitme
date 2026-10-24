@@ -1,6 +1,5 @@
 import { randomUUID } from "node:crypto";
 import {
-  exercises,
   plans,
   type Transaction,
   workoutExerciseSets,
@@ -64,8 +63,10 @@ export interface WorkoutSessionSet {
 }
 
 export interface WorkoutSessionExercise {
-  exercise: NamedRef;
-  /** The Exercise Library's key for `exercise`. */
+  /**
+   * The Exercise, by its Exercise slug: details come from the Exercise
+   * Library API.
+   */
   exercise_slug: string;
   id: string;
   order: number;
@@ -257,8 +258,6 @@ const findSessionDetails = async (
   const rows = await tx
     .select({
       ...sessionColumns,
-      exerciseId: exercises.id,
-      exerciseName: exercises.name,
       exerciseSlug: workoutSessionExercises.exerciseSlug,
       sessionExerciseId: workoutSessionExercises.id,
       sessionExerciseOrder: workoutSessionExercises.order,
@@ -274,7 +273,6 @@ const findSessionDetails = async (
       workoutSessionExercises,
       eq(workoutSessionExercises.workoutSessionId, workoutSessions.id)
     )
-    .leftJoin(exercises, eq(exercises.id, workoutSessionExercises.exerciseId))
     .leftJoin(
       workoutSessionExerciseSets,
       eq(
@@ -308,8 +306,6 @@ const findSessionDetails = async (
       sessions.set(row.id, session);
     }
     const {
-      exerciseId,
-      exerciseName,
       exerciseSlug,
       sessionExerciseId,
       sessionExerciseOrder,
@@ -319,8 +315,6 @@ const findSessionDetails = async (
     if (
       sessionExerciseId === null ||
       sessionExerciseOrder === null ||
-      exerciseId === null ||
-      exerciseName === null ||
       exerciseSlug === null
     ) {
       continue;
@@ -328,7 +322,6 @@ const findSessionDetails = async (
     let exercise = sessionExercises.get(sessionExerciseId);
     if (!exercise) {
       exercise = {
-        exercise: { id: exerciseId, name: exerciseName },
         exercise_slug: exerciseSlug,
         id: sessionExerciseId,
         order: sessionExerciseOrder,
@@ -515,7 +508,7 @@ const findOpenSessionId = async (tx: Transaction, workoutId: string) => {
 const uuidArray = (ids: string[]) => `{${ids.join(",")}}`;
 
 /**
- * Copies the Workout's exercises (both Exercise columns, as the RPC does) and
+ * Copies the Workout's exercises (their Exercise slugs, as the RPC does) and
  * their sets into the session.
  */
 const copyWorkoutTemplate = async (
@@ -525,7 +518,6 @@ const copyWorkoutTemplate = async (
 ) => {
   const templateExercises = await tx
     .select({
-      exerciseId: workoutExercises.exerciseId,
       exerciseSlug: workoutExercises.exerciseSlug,
       id: workoutExercises.id,
       order: workoutExercises.order,
@@ -544,7 +536,6 @@ const copyWorkoutTemplate = async (
   }));
   await tx.insert(workoutSessionExercises).values(
     copies.map(({ id, template }) => ({
-      exerciseId: template.exerciseId,
       exerciseSlug: template.exerciseSlug,
       id,
       order: template.order,

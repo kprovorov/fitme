@@ -1,7 +1,6 @@
 import { randomUUID } from "node:crypto";
 import {
   asUser,
-  exercises,
   plans,
   withService,
   workoutExerciseSets,
@@ -9,9 +8,9 @@ import {
   workouts,
 } from "@fitme/db";
 import { inArray, sql } from "drizzle-orm";
-import { afterAll, beforeAll, describe, expect, it } from "vitest";
+import { afterAll, describe, expect, it } from "vitest";
 import { deleteUserData } from "../src/delete-user-data";
-import { deletePlan, getPlan, UnknownExercisesError } from "../src/plans";
+import { deletePlan, getPlan } from "../src/plans";
 import {
   addExerciseToWorkout,
   addSetToExercise,
@@ -37,13 +36,12 @@ const leaver = `user_svcEditLeaver${runId}`;
 // Past int4: a sets insert fails after the rows before it went in
 const OUT_OF_RANGE_REPS = 2 ** 31;
 const NUMERIC_OUT_OF_RANGE = "22003";
-// Until the contract step, exercise_id can't be filled from an unknown slug
-const NOT_NULL_VIOLATION = "23502";
 
-let benchId: string;
-let squatId: string;
-let rowId: string;
+const benchSlug = `edit-bench-${runId}`;
+const squatSlug = `edit-squat-${runId}`;
 const rowSlug = `edit-row-${runId}`;
+/** Postgres doesn't check slugs (ADR 0010): any string is stored as given. */
+const unknownSlug = `not-in-any-library-${runId}`;
 
 /**
  * A Plan with one Workout, Day A: Bench (sets 8×60, 6×62.5) then Squat
@@ -69,8 +67,8 @@ const seedPlan = (userId: string) =>
     const [bench, squat] = await tx
       .insert(workoutExercises)
       .values([
-        { exerciseId: benchId, order: 1, workoutId: dayA.id },
-        { exerciseId: squatId, order: 2, workoutId: dayA.id },
+        { exerciseSlug: benchSlug, order: 1, workoutId: dayA.id },
+        { exerciseSlug: squatSlug, order: 2, workoutId: dayA.id },
       ])
       .returning({ id: workoutExercises.id });
     const [benchSet1, benchSet2, squatSet] = await tx
@@ -121,7 +119,7 @@ const dayAOf = async (plan: SeededPlan, userId = owner) => {
 /** Each Exercise of Day A with its sets as [order, reps, weight, rest]. */
 const shapeOf = async (plan: SeededPlan, userId = owner) =>
   (await dayAOf(plan, userId))?.exercises.map((exercise) => ({
-    exercise: exercise.exercise.name,
+    exercise: exercise.exercise_slug,
     order: exercise.order,
     sets: exercise.sets.map((set) => [
       set.order,
@@ -133,50 +131,23 @@ const shapeOf = async (plan: SeededPlan, userId = owner) =>
 
 const seededShape = [
   {
-    exercise: "Edit bench",
+    exercise: benchSlug,
     order: 1,
     sets: [
       [1, 8, 60, 90],
       [2, 6, 62.5, 120],
     ],
   },
-  { exercise: "Edit squat", order: 2, sets: [[1, 5, 100, 180]] },
+  { exercise: squatSlug, order: 2, sets: [[1, 5, 100, 180]] },
 ];
 
 const newKey = () => `test-${randomUUID()}`;
-
-beforeAll(async () => {
-  const [bench, squat, row] = await withService((tx) =>
-    tx
-      .insert(exercises)
-      .values([
-        {
-          muscleGroups: ["chest"],
-          name: "Edit bench",
-          slug: `edit-bench-${runId}`,
-        },
-        {
-          muscleGroups: ["quads"],
-          name: "Edit squat",
-          slug: `edit-squat-${runId}`,
-        },
-        { muscleGroups: ["back"], name: "Edit row", slug: rowSlug },
-      ])
-      .returning({ id: exercises.id })
-  );
-  benchId = bench.id;
-  squatId = squat.id;
-  rowId = row.id;
-});
 
 afterAll(async () => {
   await withService(async (tx) => {
     await tx
       .delete(plans)
       .where(inArray(plans.userId, [owner, intruder, leaver]));
-    await tx
-      .delete(exercises)
-      .where(inArray(exercises.id, [benchId, squatId, rowId]));
   });
 });
 
@@ -323,7 +294,7 @@ describe("addExerciseToWorkout", () => {
 
     const added = await asUser(owner, (tx) =>
       addExerciseToWorkout(tx, owner, {
-        exerciseId: rowId,
+        exerciseSlug: rowSlug,
         sets,
         workoutId: plan.dayA,
       })
@@ -333,7 +304,7 @@ describe("addExerciseToWorkout", () => {
     expect(await shapeOf(plan)).toEqual([
       ...seededShape,
       {
-        exercise: "Edit row",
+        exercise: rowSlug,
         order: 3,
         sets: [
           [1, 12, 40, 60],
@@ -343,31 +314,20 @@ describe("addExerciseToWorkout", () => {
     ]);
   });
 
-  it("appends an Exercise given by its slug as it does one given by uuid", async () => {
-    const byUuid = await seedPlan(owner);
-    const bySlug = await seedPlan(owner);
+  it("stores any Exercise slug as given, unchecked", async () => {
+    const plan = await seedPlan(owner);
+
     await asUser(owner, (tx) =>
       addExerciseToWorkout(tx, owner, {
-        exerciseId: rowId,
+        exerciseSlug: unknownSlug,
         sets,
-        workoutId: byUuid.dayA,
+        workoutId: plan.dayA,
       })
     );
 
-    const added = await asUser(owner, (tx) =>
-      addExerciseToWorkout(tx, owner, {
-        exerciseSlug: rowSlug,
-        sets,
-        workoutId: bySlug.dayA,
-      })
-    );
-
-    expect(added).toEqual({ id: expect.any(String), order: 3, setsAdded: 2 });
-    expect(await shapeOf(bySlug)).toEqual(await shapeOf(byUuid));
-    // the sync trigger filled in the uuid
-    expect((await dayAOf(bySlug))?.exercises[2]).toMatchObject({
-      exercise: { id: rowId },
-      exercise_slug: rowSlug,
+    expect((await dayAOf(plan))?.exercises[2]).toMatchObject({
+      exercise_slug: unknownSlug,
+      order: 3,
     });
   });
 
@@ -377,7 +337,7 @@ describe("addExerciseToWorkout", () => {
     const add = () =>
       asUser(owner, (tx) =>
         addExerciseToWorkout(tx, owner, {
-          exerciseId: rowId,
+          exerciseSlug: rowSlug,
           requestKey,
           sets,
           workoutId: plan.dayA,
@@ -397,7 +357,7 @@ describe("addExerciseToWorkout", () => {
 
     const added = await asUser(intruder, (tx) =>
       addExerciseToWorkout(tx, intruder, {
-        exerciseId: rowId,
+        exerciseSlug: rowSlug,
         sets,
         workoutId: plan.dayA,
       })
@@ -407,29 +367,13 @@ describe("addExerciseToWorkout", () => {
     expect(await shapeOf(plan)).toEqual(seededShape);
   });
 
-  it("rejects an unknown Exercise before writing anything", async () => {
-    const plan = await seedPlan(owner);
-    const unknownId = randomUUID();
-
-    await expect(
-      asUser(owner, (tx) =>
-        addExerciseToWorkout(tx, owner, {
-          exerciseId: unknownId,
-          sets,
-          workoutId: plan.dayA,
-        })
-      )
-    ).rejects.toEqual(new UnknownExercisesError([unknownId]));
-    expect(await shapeOf(plan)).toEqual(seededShape);
-  });
-
   it("leaves nothing changed when a set fails after the Exercise went in", async () => {
     const plan = await seedPlan(owner);
 
     await expect(
       asUser(owner, (tx) =>
         addExerciseToWorkout(tx, owner, {
-          exerciseId: rowId,
+          exerciseSlug: rowSlug,
           sets: [sets[0], { ...sets[1], reps_recommended: OUT_OF_RANGE_REPS }],
           workoutId: plan.dayA,
         })
@@ -489,27 +433,11 @@ describe("replaceExerciseInWorkout", () => {
     { reps_recommended: 12, rest_recommended: 60, weight_recommended: 40 },
   ];
   const replacedShape = [
-    { exercise: "Edit row", order: 1, sets: [[1, 12, 40, 60]] },
+    { exercise: rowSlug, order: 1, sets: [[1, 12, 40, 60]] },
     seededShape[1],
   ];
 
   it("swaps the Exercise in place and replaces its sets", async () => {
-    const plan = await seedPlan(owner);
-
-    const replaced = await asUser(owner, (tx) =>
-      replaceExerciseInWorkout(tx, owner, {
-        newExerciseId: rowId,
-        sets,
-        workoutExerciseId: plan.bench,
-      })
-    );
-
-    expect(replaced).toBe(true);
-    expect(await shapeOf(plan)).toEqual(replacedShape);
-    expect((await dayAOf(plan))?.exercises[0].id).toBe(plan.bench);
-  });
-
-  it("swaps in an Exercise given by its slug as it does one given by uuid", async () => {
     const plan = await seedPlan(owner);
 
     const replaced = await asUser(owner, (tx) =>
@@ -522,12 +450,7 @@ describe("replaceExerciseInWorkout", () => {
 
     expect(replaced).toBe(true);
     expect(await shapeOf(plan)).toEqual(replacedShape);
-    // the sync trigger filled in the uuid
-    expect((await dayAOf(plan))?.exercises[0]).toMatchObject({
-      exercise: { id: rowId },
-      exercise_slug: rowSlug,
-      id: plan.bench,
-    });
+    expect((await dayAOf(plan))?.exercises[0].id).toBe(plan.bench);
   });
 
   it("ends in the same state when the call is repeated", async () => {
@@ -535,7 +458,7 @@ describe("replaceExerciseInWorkout", () => {
     const replace = () =>
       asUser(owner, (tx) =>
         replaceExerciseInWorkout(tx, owner, {
-          newExerciseId: rowId,
+          newExerciseSlug: rowSlug,
           sets,
           workoutExerciseId: plan.bench,
         })
@@ -555,7 +478,7 @@ describe("replaceExerciseInWorkout", () => {
     const replace = () =>
       asUser(owner, (tx) =>
         replaceExerciseInWorkout(tx, owner, {
-          newExerciseId: rowId,
+          newExerciseSlug: rowSlug,
           sets: roundingBoundary,
           workoutExerciseId: plan.bench,
         })
@@ -570,37 +493,12 @@ describe("replaceExerciseInWorkout", () => {
     expect(await setIds()).toEqual(firstIds);
   });
 
-  it("finds the replacement in place by its slug, whichever form wrote it", async () => {
-    const plan = await seedPlan(owner);
-    const setIds = async () =>
-      (await dayAOf(plan))?.exercises[0].sets.map((set) => set.id);
-    await asUser(owner, (tx) =>
-      replaceExerciseInWorkout(tx, owner, {
-        newExerciseId: rowId,
-        sets,
-        workoutExerciseId: plan.bench,
-      })
-    );
-    const firstIds = await setIds();
-
-    const replaced = await asUser(owner, (tx) =>
-      replaceExerciseInWorkout(tx, owner, {
-        newExerciseSlug: rowSlug,
-        sets,
-        workoutExerciseId: plan.bench,
-      })
-    );
-
-    expect(replaced).toBe(true);
-    expect(await setIds()).toEqual(firstIds);
-  });
-
   it("can't replace in another User's Workout", async () => {
     const plan = await seedPlan(owner);
 
     const replaced = await asUser(intruder, (tx) =>
       replaceExerciseInWorkout(tx, intruder, {
-        newExerciseId: rowId,
+        newExerciseSlug: rowSlug,
         sets,
         workoutExerciseId: plan.bench,
       })
@@ -610,35 +508,22 @@ describe("replaceExerciseInWorkout", () => {
     expect(await shapeOf(plan)).toEqual(seededShape);
   });
 
-  it("rejects an unknown Exercise before writing anything", async () => {
-    const plan = await seedPlan(owner);
-    const unknownId = randomUUID();
-
-    await expect(
-      asUser(owner, (tx) =>
-        replaceExerciseInWorkout(tx, owner, {
-          newExerciseId: unknownId,
-          sets,
-          workoutExerciseId: plan.bench,
-        })
-      )
-    ).rejects.toEqual(new UnknownExercisesError([unknownId]));
-    expect(await shapeOf(plan)).toEqual(seededShape);
-  });
-
-  it("fails, changing nothing, for a slug the legacy table doesn't know", async () => {
+  it("swaps in any Exercise slug as given, unchecked", async () => {
     const plan = await seedPlan(owner);
 
-    await expect(
-      asUser(owner, (tx) =>
-        replaceExerciseInWorkout(tx, owner, {
-          newExerciseSlug: `unknown-${runId}`,
-          sets,
-          workoutExerciseId: plan.bench,
-        })
-      )
-    ).rejects.toMatchObject({ cause: { code: NOT_NULL_VIOLATION } });
-    expect(await shapeOf(plan)).toEqual(seededShape);
+    const replaced = await asUser(owner, (tx) =>
+      replaceExerciseInWorkout(tx, owner, {
+        newExerciseSlug: unknownSlug,
+        sets,
+        workoutExerciseId: plan.bench,
+      })
+    );
+
+    expect(replaced).toBe(true);
+    expect((await dayAOf(plan))?.exercises[0]).toMatchObject({
+      exercise_slug: unknownSlug,
+      id: plan.bench,
+    });
   });
 
   it("leaves nothing changed when the new sets fail to go in", async () => {
@@ -647,7 +532,7 @@ describe("replaceExerciseInWorkout", () => {
     await expect(
       asUser(owner, (tx) =>
         replaceExerciseInWorkout(tx, owner, {
-          newExerciseId: rowId,
+          newExerciseSlug: rowSlug,
           sets: [{ ...sets[0], reps_recommended: OUT_OF_RANGE_REPS }],
           workoutExerciseId: plan.bench,
         })

@@ -2,7 +2,6 @@ import { randomUUID } from "node:crypto";
 import {
   asUser,
   coachSessions,
-  exercises,
   plans,
   profiles,
   retiredUserIdsInPrivate,
@@ -48,7 +47,7 @@ interface OwnedRows {
   workoutSet: string;
 }
 
-let exerciseId: string;
+const exerciseSlug = `test-squat-${runId}`;
 
 /** One row in every User-owned table and child table, all linked. */
 const seedUser = (userId: string): Promise<OwnedRows> =>
@@ -72,7 +71,7 @@ const seedUser = (userId: string): Promise<OwnedRows> =>
       .returning({ id: workouts.id });
     const [workoutExercise] = await tx
       .insert(workoutExercises)
-      .values({ exerciseId, order: 1, workoutId: workout.id })
+      .values({ exerciseSlug, order: 1, workoutId: workout.id })
       .returning({ id: workoutExercises.id });
     const [workoutSet] = await tx
       .insert(workoutExerciseSets)
@@ -95,7 +94,7 @@ const seedUser = (userId: string): Promise<OwnedRows> =>
       .returning({ id: workoutSessions.id });
     const [sessionExercise] = await tx
       .insert(workoutSessionExercises)
-      .values({ exerciseId, order: 1, workoutSessionId: session.id })
+      .values({ exerciseSlug, order: 1, workoutSessionId: session.id })
       .returning({ id: workoutSessionExercises.id });
     const [sessionSet] = await tx
       .insert(workoutSessionExerciseSets)
@@ -210,13 +209,6 @@ let deletedRows: OwnedRows;
 let bystanderRows: OwnedRows;
 
 beforeAll(async () => {
-  const [exercise] = await withService((tx) =>
-    tx
-      .insert(exercises)
-      .values({ name: "Test squat", slug: `test-squat-${runId}` })
-      .returning({ id: exercises.id })
-  );
-  exerciseId = exercise.id;
   deletedRows = await seedUser(deleted);
   bystanderRows = await seedUser(bystander);
   await recordCoachSessionFor(deleted);
@@ -230,7 +222,6 @@ afterAll(async () => {
     await tx
       .delete(coachSessions)
       .where(inArray(coachSessions.userId, [deleted, bystander]));
-    await tx.delete(exercises).where(eq(exercises.id, exerciseId));
   });
 });
 

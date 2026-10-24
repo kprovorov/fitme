@@ -1,6 +1,5 @@
 import { randomBytes } from "node:crypto";
 import {
-  exercises,
   plans,
   profiles,
   withService,
@@ -10,7 +9,6 @@ import {
   workouts,
 } from "@fitme/db";
 import { deleteUserData } from "@fitme/services/delete-user-data";
-import { inArray } from "drizzle-orm";
 import { afterAll, beforeAll, describe, expect, it } from "vitest";
 import { createApp } from "../src/create-app.js";
 import { createServicesFromEnv } from "../src/services.js";
@@ -49,11 +47,6 @@ let seeded: Seeded;
 
 const seed = (): Promise<Seeded> =>
   withService(async (tx) => {
-    // Until the contract step, a slug needs its row in the legacy table.
-    await tx.insert(exercises).values([
-      { name: "Test bench", slug: benchSlug },
-      { name: "Test squat", slug: squatSlug },
-    ]);
     // us: the owner's weights are in lbs; the intruder has no Profile.
     await tx.insert(profiles).values({
       age: 41,
@@ -173,9 +166,6 @@ afterAll(async () => {
   await withService(async (tx) => {
     await deleteUserData(tx, owner);
     await deleteUserData(tx, intruder);
-    await tx
-      .delete(exercises)
-      .where(inArray(exercises.slug, [benchSlug, squatSlug]));
   });
 });
 

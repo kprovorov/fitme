@@ -9,6 +9,15 @@ interface NamedRef {
   name: string;
 }
 
+/**
+ * An Exercise of a change: its Exercise slug, and a name the RPC makes from
+ * the slug (`barbell-back-squat` → `Barbell back squat`).
+ */
+interface PlanChangeExercise {
+  name: string;
+  slug: string;
+}
+
 /** A set the Plan gets, its targets taken from what the User logged. */
 export interface PlanChangeSet {
   reps: number;
@@ -17,14 +26,18 @@ export interface PlanChangeSet {
 
 export type PlanChange =
   | {
-      exercise: NamedRef;
+      exercise: PlanChangeExercise;
       kind: "replace_exercise";
-      replaced_exercise: NamedRef;
+      replaced_exercise: PlanChangeExercise;
       sets: PlanChangeSet[];
     }
-  | { exercise: NamedRef; kind: "add_exercise"; sets: PlanChangeSet[] }
-  | { exercise: NamedRef; kind: "remove_exercise" }
-  | { exercise: NamedRef; kind: "add_sets"; sets: PlanChangeSet[] };
+  | {
+      exercise: PlanChangeExercise;
+      kind: "add_exercise";
+      sets: PlanChangeSet[];
+    }
+  | { exercise: PlanChangeExercise; kind: "remove_exercise" }
+  | { exercise: PlanChangeExercise; kind: "add_sets"; sets: PlanChangeSet[] };
 
 export type PlanChangeKind = PlanChange["kind"];
 
