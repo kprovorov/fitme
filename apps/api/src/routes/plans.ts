@@ -1,5 +1,18 @@
 import { experienceLevels, goals, places } from "@fitme/core";
-import { MAX_REPS, MAX_WEIGHT } from "@fitme/core/limits";
+import {
+  MAX_EXERCISE_SLUG_LENGTH,
+  MAX_EXERCISES_PER_WORKOUT,
+  MAX_FREQUENCY,
+  MAX_NAME_LENGTH,
+  MAX_REPS,
+  MAX_REST_SECONDS,
+  MAX_SETS_PER_EXERCISE,
+  MAX_TEXT_LENGTH,
+  MAX_WEIGHT,
+  MAX_WORKOUT_DURATION_MINUTES,
+  MAX_WORKOUTS,
+  MIN_FREQUENCY,
+} from "@fitme/core/limits";
 import type { PlanDetail } from "@fitme/services/plans";
 import { createRoute, OpenAPIHono, z } from "@hono/zod-openapi";
 import { type ApiEnv, bearerSecurity, requires } from "../auth.js";
@@ -208,16 +221,6 @@ const getPlan = createRoute({
   summary: "Get one of the User's Plans",
 });
 
-const MAX_NAME_LENGTH = 200;
-const MAX_TEXT_LENGTH = 2000;
-const MAX_WORKOUTS = 14;
-const MAX_EXERCISES_PER_WORKOUT = 30;
-const MAX_SETS_PER_EXERCISE = 20;
-const MAX_REST_SECONDS = 3600;
-const MIN_FREQUENCY = 1;
-const MAX_FREQUENCY = 7;
-const MAX_WORKOUT_DURATION_MINUTES = 600;
-const MAX_SLUG_LENGTH = 100;
 /** Lowercase letters and digits, words joined by single hyphens (apps/exercises' rule). */
 const EXERCISE_SLUG = /^[a-z0-9]+(-[a-z0-9]+)*$/;
 const NewPlanSet = z
@@ -246,7 +249,7 @@ const NewPlanExercise = z
   .strictObject({
     exercise_slug: z
       .string()
-      .max(MAX_SLUG_LENGTH)
+      .max(MAX_EXERCISE_SLUG_LENGTH)
       .regex(
         EXERCISE_SLUG,
         "must be an Exercise slug: lowercase letters and digits, words joined by single hyphens"
