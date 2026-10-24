@@ -6,7 +6,8 @@
 // comments or command substitutions.
 
 const ASSIGNMENT = /^[A-Za-z_][A-Za-z0-9_]*=/;
-const FD_NUMBER = /^\d+$/;
+// `2>…` or `{fd}>…`: the descriptor a redirection opens, no command word.
+const FD_NUMBER = /^(\d+|\{[A-Za-z_][A-Za-z0-9_]*\})$/;
 const LEADING_TABS = /^\t+/;
 const WHITESPACE = new Set([" ", "\t"]);
 const QUOTES = new Set(["'", '"', "`"]);
@@ -122,8 +123,8 @@ const readHeredoc = (source, start) => {
 };
 
 // Inside a group: the index just past the escape, quote or heredoc at
-// `index` (a newline skips the heredoc bodies it starts), or -1 for a plain
-// character.
+// `index` (a newline skips the heredoc bodies it starts; `heredocs` is null
+// in arithmetic, where there are none), or -1 for a plain character.
 const skipInGroup = (source, index, heredocs) => {
   const char = source[index];
   if (char === "\\") {
@@ -137,14 +138,18 @@ const skipInGroup = (source, index, heredocs) => {
   if (QUOTES.has(char)) {
     return skipQuote(source, index);
   }
-  if (source.startsWith("<<", index) && source[index + 2] !== "<") {
+  const opensHeredoc =
+    heredocs !== null &&
+    source.startsWith("<<", index) &&
+    source[index + 2] !== "<";
+  if (opensHeredoc) {
     const { end, heredoc } = readHeredoc(source, index);
     heredocs.push(heredoc);
     return end;
   }
   if (char === "\n") {
     let next = index + 1;
-    for (const heredoc of heredocs.splice(0)) {
+    for (const heredoc of heredocs?.splice(0) ?? []) {
       next = skipHeredocBody(source, next, heredoc);
     }
     return next;
@@ -157,7 +162,8 @@ const skipInGroup = (source, index, heredocs) => {
 const skipGroup = (source, start) => {
   const open = source[start];
   const close = open === "(" ? ")" : "}";
-  const heredocs = [];
+  // In `((…))` arithmetic, `<<` is a shift, never a heredoc.
+  const heredocs = open === "(" && source[start + 1] === "(" ? null : [];
   let depth = 0;
   let index = start;
   while (index < source.length) {
@@ -411,7 +417,7 @@ const OPENERS = new Map([
 ]);
 const LOOP_HEADERS = new Set(["for", "select"]);
 // Reserved words and prefixes after which the next word is still a command.
-const COMMAND_PREFIXES = new Set(["!", "do", "elif", "else", "then", "time"]);
+const COMMAND_PREFIXES = new Set(["!", "do", "elif", "else", "then"]);
 
 // Groups the tokens into simple commands, each with its words, the operator
 // right after it, and whether it runs in the background: a `&` backgrounds
@@ -571,6 +577,7 @@ const WRAPPERS = new Map([
   ["exec", new Set(["-a"])],
   ["nice", new Set(["-n", "--adjustment"])],
   ["nohup", new Set()],
+  ["time", new Set()],
   [
     "sudo",
     new Set([

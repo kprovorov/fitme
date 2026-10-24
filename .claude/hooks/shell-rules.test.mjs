@@ -320,3 +320,18 @@ describe("loop headers, arrays, comments in substitutions and regex dialects", (
     });
   }
 });
+
+describe("shifts, time options and named descriptors", () => {
+  for (const [command, rules] of [
+    ["x=$((1 <<\n2)); sleep 60", ["sleep"]],
+    ["time -p sleep 60", ["sleep"]],
+    ["time -p timeout 5 x", ["timeout"]],
+    ["time pnpm test", []],
+    ["{fd}>/dev/null sleep 60", ["sleep"]],
+    ["{fd}>/dev/null timeout 5 x", ["timeout"]],
+  ]) {
+    test(`${JSON.stringify(command)} breaks ${JSON.stringify(rules)}`, () => {
+      assert.deepEqual(rulesBroken(command), rules);
+    });
+  }
+});
