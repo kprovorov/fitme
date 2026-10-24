@@ -520,6 +520,306 @@
         },
         "additionalProperties": false,
         "minProperties": 1
+      },
+      "WorkoutSession": {
+        "type": "object",
+        "properties": {
+          "finished_at": {
+            "type": "string",
+            "nullable": true,
+            "format": "date-time",
+            "description": "When it was finished (ISO 8601)",
+            "example": "2026-10-01T10:00:00.123456+00:00"
+          },
+          "id": {
+            "type": "string",
+            "format": "uuid",
+            "example": "6f1c0c9e-2b7a-4c1e-9a55-3c2d1e0f4a11"
+          },
+          "plan": {
+            "type": "object",
+            "nullable": true,
+            "properties": {
+              "id": {
+                "type": "string",
+                "format": "uuid",
+                "example": "6f1c0c9e-2b7a-4c1e-9a55-3c2d1e0f4a11"
+              },
+              "name": {
+                "type": "string",
+                "nullable": true
+              }
+            },
+            "required": [
+              "id",
+              "name"
+            ],
+            "description": "The Plan it was started from (shown even once that Plan is deleted), `null` without one"
+          },
+          "started_at": {
+            "type": "string",
+            "format": "date-time",
+            "description": "When it was started (ISO 8601)",
+            "example": "2026-10-01T10:00:00.123456+00:00"
+          },
+          "status": {
+            "type": "string",
+            "enum": [
+              "in_progress",
+              "finished"
+            ],
+            "description": "`finished` once `finished_at` is set"
+          },
+          "workout": {
+            "type": "object",
+            "nullable": true,
+            "properties": {
+              "id": {
+                "type": "string",
+                "format": "uuid",
+                "example": "6f1c0c9e-2b7a-4c1e-9a55-3c2d1e0f4a11"
+              },
+              "name": {
+                "type": "string"
+              }
+            },
+            "required": [
+              "id",
+              "name"
+            ],
+            "description": "The Workout it was started from, `null` once that Workout is gone (its Plan's Workouts replaced)"
+          },
+          "exercises": {
+            "type": "array",
+            "items": {
+              "$ref": "#/components/schemas/WorkoutSessionExercise"
+            },
+            "description": "In order"
+          },
+          "weight_unit": {
+            "$ref": "#/components/schemas/WeightUnit"
+          }
+        },
+        "required": [
+          "finished_at",
+          "id",
+          "plan",
+          "started_at",
+          "status",
+          "workout",
+          "exercises",
+          "weight_unit"
+        ]
+      },
+      "WorkoutSessionExercise": {
+        "type": "object",
+        "properties": {
+          "exercise_slug": {
+            "type": "string",
+            "description": "The Exercise Library's key for the Exercise",
+            "example": "barbell-bench-press"
+          },
+          "id": {
+            "type": "string",
+            "format": "uuid",
+            "example": "6f1c0c9e-2b7a-4c1e-9a55-3c2d1e0f4a11"
+          },
+          "order": {
+            "type": "integer",
+            "example": 1
+          },
+          "sets": {
+            "type": "array",
+            "items": {
+              "$ref": "#/components/schemas/WorkoutSessionSet"
+            },
+            "description": "In order"
+          }
+        },
+        "required": [
+          "exercise_slug",
+          "id",
+          "order",
+          "sets"
+        ]
+      },
+      "WorkoutSessionSet": {
+        "type": "object",
+        "properties": {
+          "id": {
+            "type": "string",
+            "format": "uuid",
+            "example": "6f1c0c9e-2b7a-4c1e-9a55-3c2d1e0f4a11"
+          },
+          "logged_at": {
+            "type": "string",
+            "nullable": true,
+            "format": "date-time",
+            "description": "When its result was logged (ISO 8601)",
+            "example": "2026-10-01T10:00:00.123456+00:00"
+          },
+          "order": {
+            "type": "integer",
+            "example": 1
+          },
+          "reps_completed": {
+            "type": "integer",
+            "nullable": true,
+            "example": 8
+          },
+          "reps_recommended": {
+            "type": "integer",
+            "nullable": true,
+            "example": 8
+          },
+          "rest_recommended": {
+            "type": "integer",
+            "nullable": true,
+            "description": "Rest after the set, in seconds",
+            "example": 90
+          },
+          "weight_completed": {
+            "type": "number",
+            "nullable": true,
+            "description": "In `weight_unit`",
+            "example": 80.5
+          },
+          "weight_recommended": {
+            "type": "number",
+            "nullable": true,
+            "description": "In `weight_unit`",
+            "example": 80
+          }
+        },
+        "required": [
+          "id",
+          "logged_at",
+          "order",
+          "reps_completed",
+          "reps_recommended",
+          "rest_recommended",
+          "weight_completed",
+          "weight_recommended"
+        ]
+      },
+      "WorkoutSessionPage": {
+        "type": "object",
+        "properties": {
+          "data": {
+            "type": "array",
+            "items": {
+              "$ref": "#/components/schemas/WorkoutSessionSummary"
+            },
+            "description": "The page, newest first"
+          },
+          "hasMore": {
+            "type": "boolean",
+            "description": "Whether more Workout Sessions follow"
+          },
+          "total": {
+            "type": "integer",
+            "description": "How many Workout Sessions match, across every page"
+          }
+        },
+        "required": [
+          "data",
+          "hasMore",
+          "total"
+        ]
+      },
+      "WorkoutSessionSummary": {
+        "type": "object",
+        "properties": {
+          "finished_at": {
+            "type": "string",
+            "nullable": true,
+            "format": "date-time",
+            "description": "When it was finished (ISO 8601)",
+            "example": "2026-10-01T10:00:00.123456+00:00"
+          },
+          "id": {
+            "type": "string",
+            "format": "uuid",
+            "example": "6f1c0c9e-2b7a-4c1e-9a55-3c2d1e0f4a11"
+          },
+          "plan": {
+            "type": "object",
+            "nullable": true,
+            "properties": {
+              "id": {
+                "type": "string",
+                "format": "uuid",
+                "example": "6f1c0c9e-2b7a-4c1e-9a55-3c2d1e0f4a11"
+              },
+              "name": {
+                "type": "string",
+                "nullable": true
+              }
+            },
+            "required": [
+              "id",
+              "name"
+            ],
+            "description": "The Plan it was started from (shown even once that Plan is deleted), `null` without one"
+          },
+          "started_at": {
+            "type": "string",
+            "format": "date-time",
+            "description": "When it was started (ISO 8601)",
+            "example": "2026-10-01T10:00:00.123456+00:00"
+          },
+          "status": {
+            "type": "string",
+            "enum": [
+              "in_progress",
+              "finished"
+            ],
+            "description": "`finished` once `finished_at` is set"
+          },
+          "workout": {
+            "type": "object",
+            "nullable": true,
+            "properties": {
+              "id": {
+                "type": "string",
+                "format": "uuid",
+                "example": "6f1c0c9e-2b7a-4c1e-9a55-3c2d1e0f4a11"
+              },
+              "name": {
+                "type": "string"
+              }
+            },
+            "required": [
+              "id",
+              "name"
+            ],
+            "description": "The Workout it was started from, `null` once that Workout is gone (its Plan's Workouts replaced)"
+          },
+          "exercise_count": {
+            "type": "integer",
+            "example": 5
+          },
+          "logged_set_count": {
+            "type": "integer",
+            "description": "Sets with a logged result",
+            "example": 8
+          },
+          "set_count": {
+            "type": "integer",
+            "example": 15
+          }
+        },
+        "required": [
+          "finished_at",
+          "id",
+          "plan",
+          "started_at",
+          "status",
+          "workout",
+          "exercise_count",
+          "logged_set_count",
+          "set_count"
+        ]
       }
     },
     "parameters": {}
@@ -1134,6 +1434,164 @@
           },
           "415": {
             "description": "The body isn't `application/json`",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Error"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/v1/workout-sessions/{id}": {
+      "get": {
+        "security": [
+          {
+            "bearerAuth": []
+          }
+        ],
+        "summary": "Get one of the User's Workout Sessions",
+        "parameters": [
+          {
+            "schema": {
+              "type": "string",
+              "format": "uuid",
+              "example": "6f1c0c9e-2b7a-4c1e-9a55-3c2d1e0f4a11"
+            },
+            "required": true,
+            "name": "id",
+            "in": "path"
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "The Workout Session, its Exercises and sets in order",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object",
+                  "properties": {
+                    "data": {
+                      "$ref": "#/components/schemas/WorkoutSession"
+                    }
+                  },
+                  "required": [
+                    "data"
+                  ]
+                }
+              }
+            }
+          },
+          "400": {
+            "description": "`invalid_request`: the input fails its schema",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Error"
+                }
+              }
+            }
+          },
+          "401": {
+            "description": "No valid Clerk session token",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Error"
+                }
+              }
+            }
+          },
+          "404": {
+            "description": "`not_found`: the User has no Workout Session with this id",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Error"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/v1/workout-sessions": {
+      "get": {
+        "security": [
+          {
+            "bearerAuth": []
+          }
+        ],
+        "summary": "List the User's Workout Sessions",
+        "parameters": [
+          {
+            "schema": {
+              "type": "integer",
+              "minimum": 1,
+              "maximum": 50,
+              "default": 20,
+              "description": "Page size",
+              "example": 20
+            },
+            "required": false,
+            "description": "Page size",
+            "name": "limit",
+            "in": "query"
+          },
+          {
+            "schema": {
+              "type": "integer",
+              "description": "How many Workout Sessions to skip",
+              "example": 0,
+              "minimum": 0
+            },
+            "required": false,
+            "description": "How many Workout Sessions to skip",
+            "name": "offset",
+            "in": "query"
+          },
+          {
+            "schema": {
+              "type": "string",
+              "enum": [
+                "all",
+                "in_progress",
+                "finished"
+              ],
+              "default": "all",
+              "description": "Which Workout Sessions to list"
+            },
+            "required": false,
+            "description": "Which Workout Sessions to list",
+            "name": "status",
+            "in": "query"
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "A page of the User's Workout Sessions; an offset past the end is an empty page",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/WorkoutSessionPage"
+                }
+              }
+            }
+          },
+          "400": {
+            "description": "`invalid_request`: the input fails its schema",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Error"
+                }
+              }
+            }
+          },
+          "401": {
+            "description": "No valid Clerk session token",
             "content": {
               "application/json": {
                 "schema": {

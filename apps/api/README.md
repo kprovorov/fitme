@@ -23,12 +23,14 @@ pnpm api openapi        # regenerate openapi.json (commit it; CI fails when it's
 - `GET /v1/plans` — the User's live Plans, newest first, each with its Workouts in rotation order (name, order, Exercise count); not paged
 - `GET /v1/plans/active` — the active Plan in full, or `{ data: null }` without one
 - `GET /v1/plans/:id` — one Plan in full (Workouts, Exercises by `exercise_slug`, sets, each in order, plus `weight_unit`), or 404 `not_found`
+- `GET /v1/workout-sessions?status=all|in_progress|finished&limit&offset` — the User's Workout Sessions newest first, each with its Exercise, set and logged-set counts, as `{ data, total, hasMore }` (`limit` 1–50, default 20; `offset` default 0; `status` default `all`; past the end is an empty page)
+- `GET /v1/workout-sessions/:id` — one Workout Session in full, its Exercises (by `exercise_slug` only) and sets in order, with `weight_unit`; 404 `not_found` when it's missing or another User's
 
 `/health` and the global routes above answer without a token. Every other route, unknown ones included, needs `Authorization: Bearer <Clerk session token>`, verified networkless against `CLERK_JWT_KEY` (a token with a `sid`; `sub` is the User id); a missing or invalid one answers 401 `unauthorized`, so an unknown route answers 404 only to a signed-in caller. CORS preflights answer before auth.
 
 The contract is `openapi.json`, generated from the route definitions by `src/openapi.ts`. `/v1` is additive only (a breaking change means `/v2`); the Public API workflow fails a pull request on a stale document or a breaking change.
 
-Responses are JSON. Successful responses wrap the payload in `data`; failures return `{ error: { code, message } }` with a matching HTTP status. Invalid input answers 400 `invalid_request`.
+Responses are JSON. Successful responses wrap the payload in `data`; failures return `{ error: { code, message } }` with a matching HTTP status. Invalid input (a non-uuid id included) answers 400 `invalid_request`. A response carrying weights carries `weight_unit` (`kg` / `lbs`, from the User's Profile, read first and share-locked in the same transaction so a concurrent conversion can't relabel the weights; `kg` without one): weights are returned as stored, never converted.
 
 ## Layout
 
@@ -38,7 +40,7 @@ Responses are JSON. Successful responses wrap the payload in `data`; failures re
 - `src/auth.ts` — `requireCaller` (the verified caller, `{ userId, kind: "session" }`, and their services) and `requires(permission)`, each User-data route's declared `read` / `write`
 - `src/services.ts` — `UserServices`, the per-User facade: each method runs one `@fitme/services` function inside `asUser` for the verified User id (a read carrying weights first share-locks the Profile and reads its weight unit in the same transaction, so a conversion can't commit in between); routes never pass a User id
 - `src/routes/v1.ts` — versioned routers mounting resource routers from `src/routes/`: `publicV1` (no caller) and `userV1` (after auth)
-- `src/schemas.ts` — shared schemas (`ErrorResponse`, `MuscleGroup`, `WeightUnit`) and `invalidRequest`, every router's validation hook
+- `src/schemas.ts` — shared schemas (`ErrorResponse`, `Id`, `MuscleGroup`, `WeightUnit`, the documented 400 and 401 responses) and `invalidRequest`, every router's validation hook
 - `src/openapi.ts` — writes `openapi.json` (`pnpm api openapi`)
 
 ## Tests

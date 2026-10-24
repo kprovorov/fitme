@@ -14,6 +14,13 @@ import {
   type ProfileWithUnits,
   updateProfile,
 } from "@fitme/services/profile";
+import {
+  getWorkoutSession,
+  type ListWorkoutSessionsOptions,
+  listWorkoutSessions,
+  type WorkoutSessionDetail,
+  type WorkoutSessionPage,
+} from "@fitme/services/workout-sessions";
 
 /**
  * A read carrying weights, with the unit they're stored in: the User's
@@ -36,7 +43,14 @@ export interface UserServices {
   /** A live Plan of the User in full, or `null` (missing, deleted, foreign). */
   getPlan: (planId: string) => Promise<Weighed<PlanDetail> | null>;
   getProfile: () => Promise<ProfileWithUnits | null>;
+  /** One of the User's Workout Sessions in full, or `null` (missing, foreign). */
+  getWorkoutSession: (
+    sessionId: string
+  ) => Promise<Weighed<WorkoutSessionDetail> | null>;
   listPlans: () => Promise<PlanSummary[]>;
+  listWorkoutSessions: (
+    options: ListWorkoutSessionsOptions
+  ) => Promise<WorkoutSessionPage>;
   /** The updated Profile, or `null` with nothing changed without one. */
   updateProfile: (changes: ProfileChanges) => Promise<ProfileWithUnits | null>;
 }
@@ -67,7 +81,11 @@ export const createServicesFromEnv: ServicesFactory = (userId) => {
     getActivePlan: () => weighed((tx) => getActivePlan(tx, userId)),
     getPlan: (planId) => weighed((tx) => getPlan(tx, userId, planId)),
     getProfile: () => asUser(userId, (tx) => getProfile(tx, userId)),
+    getWorkoutSession: (sessionId) =>
+      weighed((tx) => getWorkoutSession(tx, sessionId)),
     listPlans: () => asUser(userId, (tx) => listPlans(tx, userId)),
+    listWorkoutSessions: (options) =>
+      asUser(userId, (tx) => listWorkoutSessions(tx, options)),
     updateProfile: (changes) =>
       asUser(userId, (tx) => updateProfile(tx, userId, changes)),
   };
