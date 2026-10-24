@@ -1,8 +1,11 @@
 import { asUser, type Transaction } from "@fitme/db";
 import {
+  type CreatePlanOptions,
+  createPlan,
   getActivePlan,
   getPlan,
   listPlans,
+  type NewPlan,
   type PlanDetail,
   type PlanSummary,
 } from "@fitme/services/plans";
@@ -38,6 +41,15 @@ export interface Weighed<T> {
  * a User id: it comes from the verified caller the services were built for.
  */
 export interface UserServices {
+  /**
+   * Creates a Plan with its Workouts, Exercises and sets in one transaction,
+   * active unless `activate: false`; the Plan in full. Its Exercise slugs are
+   * checked before, not here (ADR 0010).
+   */
+  createPlan: (
+    plan: NewPlan,
+    options: CreatePlanOptions
+  ) => Promise<Weighed<PlanDetail>>;
   /** The active Plan in full, or `null` with none. */
   getActivePlan: () => Promise<Weighed<PlanDetail> | null>;
   /** A live Plan of the User in full, or `null` (missing, deleted, foreign). */
@@ -67,17 +79,22 @@ export const createServicesFromEnv: ServicesFactory = (userId) => {
     return null;
   }
 
-  /** `read`, after locking the units its weights are in. */
-  const weighed = <T>(read: (tx: Transaction) => Promise<T | null>) =>
-    asUser(userId, async (tx): Promise<Weighed<T> | null> => {
+  /** `run`, after locking the units its weights are in. */
+  const inUnits = <T>(run: (tx: Transaction) => Promise<T>) =>
+    asUser(userId, async (tx): Promise<Weighed<T>> => {
       const units = await lockProfileUnits(tx, userId);
-      const value = await read(tx);
-      return value === null
-        ? null
-        : { value, weightUnit: units?.weight ?? "kg" };
+      return { value: await run(tx), weightUnit: units?.weight ?? "kg" };
     });
 
+  /** `read` in its units, or `null` when it finds nothing. */
+  const weighed = async <T>(read: (tx: Transaction) => Promise<T | null>) => {
+    const { value, weightUnit } = await inUnits(read);
+    return value === null ? null : { value, weightUnit };
+  };
+
   return {
+    createPlan: (plan, options) =>
+      inUnits((tx) => createPlan(tx, userId, plan, options)),
     getActivePlan: () => weighed((tx) => getActivePlan(tx, userId)),
     getPlan: (planId) => weighed((tx) => getPlan(tx, userId, planId)),
     getProfile: () => asUser(userId, (tx) => getProfile(tx, userId)),

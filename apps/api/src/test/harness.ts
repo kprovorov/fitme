@@ -1,3 +1,5 @@
+import type { ExerciseSummary } from "@fitme/exercise-library";
+import { createFakeExerciseLibrary } from "@fitme/exercise-library/fake";
 import { memoryRateLimiter } from "@fitme/rate-limit";
 import { type AppDeps, createApp } from "../create-app.js";
 import type { RateLimiter } from "../rate-limit.js";
@@ -28,9 +30,22 @@ export const fakeServices = (faked: Partial<UserServices>): UserServices =>
       }),
   });
 
+/** An Exercise the fake Exercise Library knows, by slug. */
+export const libraryExercise = (slug: string): ExerciseSummary => ({
+  muscle_groups: ["quadriceps"],
+  name: slug,
+  slug,
+  thumbnail_url: `https://media.example/${slug}.png`,
+  video_url: `https://media.example/${slug}.mp4`,
+});
+
+/** The Exercises the test app's Exercise Library knows by default. */
+export const KNOWN_SLUGS = ["barbell-back-squat", "barbell-deadlift"];
+
 /**
- * The app over fake services, trusting `clerk`, with a recording reporter and
- * Sentry user. `servicesFor` records the User id each facade was built for.
+ * The app over fake services and a fake Exercise Library knowing
+ * `KNOWN_SLUGS` (`library.failWith` for an outage), trusting `clerk`, with a
+ * recording reporter and Sentry user. `servicesFor` records the User id each facade was built for.
  */
 export const testApp = (
   options: {
@@ -38,9 +53,12 @@ export const testApp = (
     clerkJwtKey?: string;
     /** Counts requests; by default one no test reaches (in memory, unlimited in practice). */
     rateLimiter?: RateLimiter;
+    /** `null` for an API without the Exercise Library configured. */
+    exerciseLibrary?: null;
     services?: UserServices | null;
   } = {}
 ) => {
+  const library = createFakeExerciseLibrary(KNOWN_SLUGS.map(libraryExercise));
   const clerkJwtKey =
     "clerkJwtKey" in options ? options.clerkJwtKey : clerk.jwtKey;
   const services =
@@ -50,6 +68,8 @@ export const testApp = (
   const servicesFor: string[] = [];
   const deps: AppDeps = {
     clerkJwtKey,
+    createExerciseLibrary: () =>
+      options.exerciseLibrary === null ? null : library,
     createServices: (userId) => {
       servicesFor.push(userId);
       return services;
@@ -65,5 +85,5 @@ export const testApp = (
       return Promise.resolve();
     },
   };
-  return { app: createApp(deps), identified, reported, servicesFor };
+  return { app: createApp(deps), identified, library, reported, servicesFor };
 };
