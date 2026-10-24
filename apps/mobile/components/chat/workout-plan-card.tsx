@@ -1,5 +1,3 @@
-import type { ExperienceLevel, Goal, Place, PlanInput } from "@fitme/core";
-import { useQueryClient } from "@tanstack/react-query";
 import { router } from "expo-router";
 import { useCallback, useState } from "react";
 import { Pressable, Text, View } from "react-native";
@@ -7,50 +5,24 @@ import Animated, { FadeIn } from "react-native-reanimated";
 import type { SFSymbol } from "sf-symbols-typescript";
 import { SymbolImage } from "@/components/symbol-image";
 import { Button } from "@/components/ui/button";
+import { ErrorMessage } from "@/components/ui/error-message";
 import { Text as UIText } from "@/components/ui/text";
 import {
   type ShownExercise,
   useExercises,
 } from "@/hooks/queries/exercise-library";
+import { useCreatePlanMutation } from "@/hooks/queries/plans";
+import { ApiError, rateLimitedFor } from "~/lib/api/client";
 import {
-  useActivatePlanMutation,
-  useStorePlanMutation,
-} from "@/hooks/queries/plans";
+  canSavePlanCard,
+  hasExercisesWithoutSlugs,
+  planCardBody,
+  type WorkoutDay,
+  type WorkoutExercise,
+  type WorkoutPlan,
+} from "~/lib/plan-card";
 
-/**
- * An Exercise of `display_workout_plan`'s result, by Exercise slug. A card
- * saved in a Conversation from before slugs has no slug.
- */
-export interface WorkoutExercise {
-  exercise_slug?: string;
-  name: string;
-  notes?: string;
-  reps: string;
-  restSeconds?: number;
-  sets: number;
-}
-
-export interface WorkoutDay {
-  dayLabel: string;
-  exercises: WorkoutExercise[];
-  name: string;
-}
-
-export interface WorkoutPlan {
-  description: string;
-  experienceLevel?: "beginner" | "intermediate" | "advanced";
-  frequencyPerWeek: number;
-  goal:
-    | "weight_loss"
-    | "muscle_gain"
-    | "strength"
-    | "endurance"
-    | "general_fitness";
-  name: string;
-  place?: "gym" | "home";
-  workoutDuration?: number;
-  workouts: WorkoutDay[];
-}
+export type { WorkoutDay, WorkoutExercise, WorkoutPlan } from "~/lib/plan-card";
 
 const GOAL_LABELS: Record<WorkoutPlan["goal"], string> = {
   endurance: "Endurance",
@@ -68,20 +40,21 @@ const GOAL_ICONS: Record<WorkoutPlan["goal"], SFSymbol> = {
   weight_loss: "figure.run",
 };
 
-const GOAL_MAP: Record<WorkoutPlan["goal"], Goal> = {
-  endurance: "general-health-fitness",
-  general_fitness: "general-health-fitness",
-  muscle_gain: "muscle-gain",
-  strength: "strength-performance",
-  weight_loss: "fat-loss",
+/** What the card says when saving failed, by the Public API's answer. */
+const saveErrorMessage = (error: unknown) => {
+  const seconds = rateLimitedFor(error);
+  if (seconds !== null) {
+    return `Too many requests. Try again in ${seconds} s.`;
+  }
+  const code = error instanceof ApiError ? error.code : null;
+  if (code === "unknown_exercises") {
+    return "This plan has exercises we don't know, so it can't be saved. Ask the Coach for another plan.";
+  }
+  if (code === "exercise_library_unavailable") {
+    return "Couldn't check this plan's exercises. Try again.";
+  }
+  return "Couldn't save the plan. Try again.";
 };
-
-const REPS_RE = /^\d+/;
-
-function parseReps(reps: string): number {
-  const match = reps.match(REPS_RE);
-  return match ? Number.parseInt(match[0], 10) : 10;
-}
 
 function PlanTag({ icon, label }: { icon: SFSymbol; label: string }) {
   return (
@@ -178,48 +151,22 @@ function WorkoutDaySection({
 
 export function WorkoutPlanCard({ plan }: { plan: WorkoutPlan }) {
   const [saved, setSaved] = useState(false);
-  const queryClient = useQueryClient();
-  const { mutateAsync: storePlan, isPending: isStoring } =
-    useStorePlanMutation();
-  const { mutateAsync: activatePlan, isPending: isActivating } =
-    useActivatePlanMutation();
+  const {
+    error: saveError,
+    isPending: isSaving,
+    mutate: createPlan,
+  } = useCreatePlanMutation();
 
-  const isSaving = isStoring || isActivating;
+  const hasInvalidExercises = hasExercisesWithoutSlugs(plan);
+  const canSave = canSavePlanCard(plan);
 
-  const hasInvalidExercises = plan.workouts
-    .flatMap((w) => w.exercises)
-    .some((e) => !e.exercise_slug);
-
-  const handleSave = useCallback(async () => {
-    const planData: PlanInput = {
-      description: plan.description,
-      experience_level: (plan.experienceLevel ??
-        "intermediate") as ExperienceLevel,
-      frequency: plan.frequencyPerWeek,
-      goal: GOAL_MAP[plan.goal],
-      name: plan.name,
-      place: (plan.place ?? "gym") as Place,
-      workout_duration: plan.workoutDuration ?? 60,
-      workouts: plan.workouts.map((day) => ({
-        description: "",
-        exercises: day.exercises.map((ex) => ({
-          // hasInvalidExercises keeps a card without slugs from saving
-          exercise_slug: ex.exercise_slug ?? "",
-          sets: Array.from({ length: ex.sets }, () => ({
-            reps_recommended: parseReps(ex.reps),
-            rest_recommended: ex.restSeconds ?? 90,
-            weight_recommended: 0,
-          })),
-        })),
-        name: day.name,
-      })),
-    };
-
-    const savedPlan = await storePlan(planData);
-    await activatePlan({ id: savedPlan.id });
-    queryClient.invalidateQueries({ queryKey: ["plans"] });
-    setSaved(true);
-  }, [activatePlan, plan, queryClient, storePlan]);
+  const handleSave = useCallback(() => {
+    const body = planCardBody(plan);
+    if (!body) {
+      return;
+    }
+    createPlan(body, { onSuccess: () => setSaved(true) });
+  }, [createPlan, plan]);
 
   const placeIcon: SFSymbol = plan.place === "home" ? "house" : "building.2";
   const placeLabel = plan.place === "home" ? "Home" : "Gym";
@@ -266,8 +213,13 @@ export function WorkoutPlanCard({ plan }: { plan: WorkoutPlan }) {
             </UIText>
           </View>
         )}
+        {saveError && !saved ? (
+          <ErrorMessage className="mb-3">
+            {saveErrorMessage(saveError)}
+          </ErrorMessage>
+        ) : null}
         <Button
-          disabled={saved || hasInvalidExercises}
+          disabled={saved || !canSave}
           isLoading={isSaving}
           label={saved ? "Plan Saved" : "Save Plan"}
           onPress={handleSave}
