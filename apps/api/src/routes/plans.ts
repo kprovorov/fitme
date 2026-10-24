@@ -3,7 +3,7 @@ import { MAX_REPS, MAX_WEIGHT, MAX_WEIGHT_DECIMALS } from "@fitme/core/limits";
 import type { PlanDetail } from "@fitme/services/plans";
 import { createRoute, OpenAPIHono, z } from "@hono/zod-openapi";
 import { type ApiEnv, bearerSecurity, requires } from "../auth.js";
-import { checkExerciseSlugs } from "../exercise-library.js";
+import { checkExerciseSlugs, type SlugCheck } from "../exercise-library.js";
 import {
   ErrorResponse,
   invalidRequest,
@@ -355,6 +355,52 @@ const createPlanRoute = createRoute({
   summary: "Create a Plan",
 });
 
+const ReplaceWorkoutsBody = z
+  .strictObject({
+    workouts: z.array(NewPlanWorkout).min(1).max(MAX_WORKOUTS).openapi({
+      description:
+        "Every Workout of the Plan, in rotation order: the first is up next. Every `order` comes from the array positions",
+    }),
+  })
+  .openapi("ReplacePlanWorkouts");
+
+const replaceWorkoutsRoute = createRoute({
+  description:
+    "Replaces every Workout of the Plan with the sent list, in one transaction: nothing changes unless all of it is saved. **Every Workout gets a new id**, the old ones are gone: past Workout Sessions keep their logged sets but lose the link to their old Workout. The Plan's details and whether it's active don't change. Every Exercise slug is checked against the Exercise Library first. Safe to retry: the same request leaves the same Workouts (with new ids again).",
+  method: "put",
+  middleware: [requires("write")] as const,
+  path: "/{id}/workouts",
+  request: {
+    body: {
+      content: { "application/json": { schema: ReplaceWorkoutsBody } },
+      required: true,
+    },
+    params: z.object({
+      id: z.uuid().openapi({ param: { in: "path", name: "id" } }),
+    }),
+  },
+  responses: {
+    200: {
+      content: { "application/json": { schema: PlanResponse } },
+      description: "The Plan in full, with its new Workouts",
+    },
+    400: errorResponse(
+      "`invalid_request`: the id isn't a uuid or the Workouts aren't valid; `unknown_exercises`: the Exercise Library has no Exercise for the slugs the message names. Nothing was changed"
+    ),
+    401: unauthorizedResponse,
+    404: errorResponse(
+      "`not_found`: no such Plan, it was deleted, or it isn't the User's"
+    ),
+    415: errorResponse("The body isn't `application/json`"),
+    429: rateLimitedResponse,
+    503: errorResponse(
+      "`exercise_library_unavailable`: the Exercise slugs couldn't be checked; nothing was changed, try again"
+    ),
+  },
+  security: bearerSecurity,
+  summary: "Replace a Plan's Workouts",
+});
+
 /** Every Exercise slug of a Plan's Workouts, each once. */
 const workoutSlugs = (workouts: z.infer<typeof NewPlanWorkout>[]) => [
   ...new Set(
@@ -363,6 +409,34 @@ const workoutSlugs = (workouts: z.infer<typeof NewPlanWorkout>[]) => [
     )
   ),
 ];
+
+/** The error a write answers when its Exercise slugs aren't all known, or `null` when they are. */
+const slugRefusal = (check: SlugCheck) => {
+  if (check.status === "unavailable") {
+    return {
+      body: {
+        error: {
+          code: "exercise_library_unavailable",
+          message:
+            "The Exercise Library is unavailable, so the Exercises couldn't be checked; try again",
+        },
+      },
+      status: 503 as const,
+    };
+  }
+  if (check.status === "unknown") {
+    return {
+      body: {
+        error: {
+          code: "unknown_exercises",
+          message: `Unknown exercise_slug(s): ${check.slugs.join(", ")}`,
+        },
+      },
+      status: 400 as const,
+    };
+  }
+  return null;
+};
 
 export const plans = new OpenAPIHono<ApiEnv>({
   defaultHook: invalidRequest,
@@ -374,33 +448,15 @@ export const plans = new OpenAPIHono<ApiEnv>({
   })
   .openapi(createPlanRoute, async (c) => {
     const { activate, ...plan } = c.req.valid("json");
-    const check = await checkExerciseSlugs({
-      library: c.var.getExerciseLibrary(),
-      reportError: c.var.reportError,
-      slugs: workoutSlugs(plan.workouts),
-    });
-    if (check.status === "unavailable") {
-      return c.json(
-        {
-          error: {
-            code: "exercise_library_unavailable",
-            message:
-              "The Exercise Library is unavailable, so the Exercises couldn't be checked; try again",
-          },
-        },
-        503
-      );
-    }
-    if (check.status === "unknown") {
-      return c.json(
-        {
-          error: {
-            code: "unknown_exercises",
-            message: `Unknown exercise_slug(s): ${check.slugs.join(", ")}`,
-          },
-        },
-        400
-      );
+    const refusal = slugRefusal(
+      await checkExerciseSlugs({
+        library: c.var.getExerciseLibrary(),
+        reportError: c.var.reportError,
+        slugs: workoutSlugs(plan.workouts),
+      })
+    );
+    if (refusal) {
+      return c.json(refusal.body, refusal.status);
     }
     const created = await c.var.getServices().createPlan(plan, { activate });
     return c.json(PlanResponse.parse({ data: planData(created) }), 201);
@@ -422,4 +478,27 @@ export const plans = new OpenAPIHono<ApiEnv>({
       );
     }
     return c.json(PlanResponse.parse({ data: planData(found) }), 200);
+  })
+  .openapi(replaceWorkoutsRoute, async (c) => {
+    const { workouts } = c.req.valid("json");
+    const refusal = slugRefusal(
+      await checkExerciseSlugs({
+        library: c.var.getExerciseLibrary(),
+        reportError: c.var.reportError,
+        slugs: workoutSlugs(workouts),
+      })
+    );
+    if (refusal) {
+      return c.json(refusal.body, refusal.status);
+    }
+    const replaced = await c.var
+      .getServices()
+      .replaceWorkouts(c.req.valid("param").id, workouts);
+    if (!replaced) {
+      return c.json(
+        { error: { code: "not_found", message: "Plan not found" } },
+        404
+      );
+    }
+    return c.json(PlanResponse.parse({ data: planData(replaced) }), 200);
   });
