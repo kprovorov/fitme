@@ -1197,6 +1197,37 @@ describe("starting a Workout from Home", () => {
     ]);
   });
 
+  it("says how long to wait when logging a set or finishing is rate limited", async () => {
+    await startApp();
+    await startWorkout();
+    await fireEvent.press(await focused().findByText("Squat"));
+    await settle();
+
+    fakePublicApi.failNext(LOG_SET, { retryAfterSeconds: 7, status: 429 });
+    await fireEvent.press(focused().getByTestId("log-set-button-1"));
+    await settle();
+    expect(
+      focused().getByText("Too many requests. Try again in 7 s.")
+    ).toBeTruthy();
+
+    await fireEvent.press(focused().getByTestId("log-set-button-1"));
+    await settle();
+    await fireEvent.press(focused().getByTestId("log-set-button-2"));
+    await settle();
+    fakePublicApi.failNext(FINISH, { retryAfterSeconds: 9, status: 429 });
+    await fireEvent.press(
+      screen.getByTestId("finish-workout-suggestion-finish")
+    );
+    await settle();
+
+    expect(Alert.alert).toHaveBeenCalledWith(
+      "Couldn't finish workout",
+      "Too many requests: please try again in 9 s."
+    );
+    expect(captureException).not.toHaveBeenCalled();
+    expect(sessionsOf("w1")[0]?.finished_at).toBeNull();
+  });
+
   it("shows an error and stays on Home when starting fails", async () => {
     await startApp();
 

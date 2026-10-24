@@ -139,6 +139,7 @@ const patchProfile = (body: unknown): Response => {
 
 const FINISHED_AT = "2026-10-08T11:00:00.000Z";
 const LOGGED_AT = "2026-10-08T10:45:00.000Z";
+const STARTED_AT = "2026-10-08T10:00:00.000Z";
 
 const notFound = (what: string) => error(404, "not_found", `${what} not found`);
 
@@ -216,7 +217,7 @@ const startSession = (body: unknown): Response => {
     finished_at: null,
     id: backend.id("started-session"),
     plan_id: plan.id,
-    started_at: "2026-10-08T10:00:00.000Z",
+    started_at: STARTED_AT,
     workout_id: workout.id,
     workoutName: workout.name,
   };
@@ -253,7 +254,7 @@ const startSession = (body: unknown): Response => {
  * `finishWorkoutSession`: finishes the Workout Session and moves its Workout
  * to the end of its Plan's rotation; a repeat changes nothing.
  */
-const finishSession = (sessionId: string): Response => {
+const finishSession = (_body: unknown, sessionId: string): Response => {
   const session = backend.session(sessionId);
   if (!session) {
     return notFound("Workout Session");
@@ -274,7 +275,7 @@ const finishSession = (sessionId: string): Response => {
 };
 
 /** `logSet`: only a set of an open Workout Session, with the server's time. */
-const logSet = (setId: string, body: unknown): Response => {
+const logSet = (body: unknown, setId: string): Response => {
   const { reps_completed, weight_completed, ...rest } = (body ?? {}) as {
     reps_completed?: unknown;
     weight_completed?: unknown;
@@ -324,12 +325,12 @@ const ROUTES: Array<{ handler: Handler; path: RegExp; route: Route }> = [
     route: "POST /v1/workout-sessions",
   },
   {
-    handler: (_body, id) => finishSession(id),
+    handler: finishSession,
     path: /^\/v1\/workout-sessions\/(?<id>[^/]+)\/finish$/,
     route: "POST /v1/workout-sessions/{id}/finish",
   },
   {
-    handler: (body, id) => logSet(id, body),
+    handler: logSet,
     path: /^\/v1\/workout-session-sets\/(?<id>[^/]+)$/,
     route: "PATCH /v1/workout-session-sets/{id}",
   },
@@ -343,11 +344,11 @@ const match = (method: string, path: string) => {
       return {
         handler: candidate.handler,
         id: decodeURIComponent(params.groups?.id ?? ""),
-        route: candidate.route as string,
+        route: candidate.route,
       };
     }
   }
-  return { handler: null, id: "", route: `${method} ${path}` };
+  return { handler: null, id: "", route: `${method} ${path}` as const };
 };
 
 class FakePublicApi {

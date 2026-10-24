@@ -10,6 +10,7 @@ import {
   useCreateWorkoutSessionExerciseSetMutation,
   useUpdateWorkoutSessionExerciseSetMutation,
 } from "~/hooks/queries/workout-session-exercise-sets";
+import { rateLimitedFor } from "~/lib/api/client";
 import { IS_E2E } from "~/lib/constants";
 import { segmentClient } from "~/lib/segment";
 import { formatSetTarget, formatSetWeight } from "~/lib/set-inputs";
@@ -71,10 +72,15 @@ export default function WorkoutSessionExerciseSetRowView({
   const isEditable = !isDone || isEditing;
   const [saveError, setSaveError] = useState<string | null>(null);
 
-  const handleSaveError = () => {
-    setSaveError(SET_SAVE_ERROR);
+  const handleSaveError = (error: unknown) => {
+    const waitSeconds = rateLimitedFor(error);
+    const message =
+      waitSeconds === null
+        ? SET_SAVE_ERROR
+        : `Too many requests. Try again in ${waitSeconds} s.`;
+    setSaveError(message);
     // Focus stays on ✓, so a screen reader wouldn't read the new message.
-    AccessibilityInfo.announceForAccessibility(SET_SAVE_ERROR);
+    AccessibilityInfo.announceForAccessibility(message);
   };
 
   const trackSetCompleted = () => {

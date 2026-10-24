@@ -27,7 +27,7 @@ export interface ProfileRow {
   weight: number;
 }
 
-export interface ExerciseRow {
+interface ExerciseRow {
   exercise_slug: string;
   id: string;
   order: number;
