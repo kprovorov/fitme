@@ -580,10 +580,21 @@ const insertWorkouts = async (
   }
 };
 
+/** How a Plan is created. */
+export interface CreatePlanOptions {
+  /**
+   * Make it the User's active Plan, every other one inactive (default `true`,
+   * as the RPC always does). With `false` it's created inactive and the
+   * active Plan stays.
+   */
+  activate?: boolean;
+}
+
 /**
  * Creates a Plan for the User with its Workouts, Exercises and sets, in array
- * order, and makes it the User's active Plan (the `create_plan` RPC, which the
- * mobile app still calls: change both together). Returns the Plan in full.
+ * order, and by default makes it the User's active Plan (the `create_plan`
+ * RPC, which the mobile app still calls and which always activates: change
+ * both together). Returns the Plan in full.
  * Runs in `tx` from `asUser`, so it commits fully or not at all; RLS and the
  * retired-id triggers refuse a `userId` other than the caller's own.
  * Throws `UnknownExercisesError`, before writing anything, for unknown
@@ -592,7 +603,8 @@ const insertWorkouts = async (
 export const createPlan = async (
   tx: Transaction,
   userId: string,
-  plan: NewPlan
+  plan: NewPlan,
+  { activate = true }: CreatePlanOptions = {}
 ): Promise<PlanDetail> => {
   await assertExercisesExist(tx, plan.workouts);
   const [created] = await tx
@@ -600,7 +612,9 @@ export const createPlan = async (
     .values({ ...metadataColumns(plan), userId })
     .returning({ id: plans.id });
   await insertWorkouts(tx, created.id, plan.workouts);
-  await activatePlan(tx, userId, created.id);
+  if (activate) {
+    await activatePlan(tx, userId, created.id);
+  }
   const detail = await getPlan(tx, userId, created.id);
   if (!detail) {
     throw new Error(`Plan ${created.id} vanished after it was created`);

@@ -36,6 +36,7 @@ const intruder = `user_svcPlanIntruder${runId}`;
 const activator = `user_svcPlanActivator${runId}`;
 const bystander = `user_svcPlanBystander${runId}`;
 const creator = `user_svcPlanCreator${runId}`;
+const keeper = `user_svcPlanKeeper${runId}`;
 const retired = `user_svcPlanRetired${runId}`;
 const updater = `user_svcPlanUpdater${runId}`;
 
@@ -175,6 +176,7 @@ afterAll(async () => {
           activator,
           bystander,
           creator,
+          keeper,
           retired,
           updater,
         ])
@@ -734,6 +736,29 @@ describe("createPlan", () => {
     expect(await plansOf(creator)).toEqual([
       { id: existing.id, isActive: false, name: "Existing" },
       { id: created.id, isActive: true, name: "Created" },
+    ]);
+  });
+
+  it("with activate false, creates the Plan inactive and keeps the active Plan", async () => {
+    const existing = await seedPlan(
+      keeper,
+      "Kept active",
+      "2026-01-01T00:00:00Z",
+      true
+    );
+
+    const created = await asUser(keeper, (tx) =>
+      createPlan(tx, keeper, newPlan("Not activated"), { activate: false })
+    );
+
+    expect(created).toMatchObject({ is_active: false, name: "Not activated" });
+    expect(created.workouts.map((workout) => workout.name)).toEqual([
+      "Push",
+      "Legs",
+    ]);
+    expect(await plansOf(keeper)).toEqual([
+      { id: existing.id, isActive: true, name: "Kept active" },
+      { id: created.id, isActive: false, name: "Not activated" },
     ]);
   });
 

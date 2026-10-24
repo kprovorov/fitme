@@ -52,6 +52,9 @@ importers:
       '@fitme/db':
         specifier: workspace:*
         version: link:../../packages/db
+      '@fitme/exercise-library':
+        specifier: workspace:*
+        version: link:../../packages/exercise-library
       '@fitme/observability':
         specifier: workspace:*
         version: link:../../packages/observability

@@ -1,6 +1,9 @@
+import { experienceLevels, goals, places } from "@fitme/core";
+import { MAX_REPS, MAX_WEIGHT, MAX_WEIGHT_DECIMALS } from "@fitme/core/limits";
 import type { PlanDetail } from "@fitme/services/plans";
 import { createRoute, OpenAPIHono, z } from "@hono/zod-openapi";
 import { type ApiEnv, bearerSecurity, requires } from "../auth.js";
+import { checkExerciseSlugs } from "../exercise-library.js";
 import {
   ErrorResponse,
   invalidRequest,
@@ -206,6 +209,160 @@ const getPlan = createRoute({
   summary: "Get one of the User's Plans",
 });
 
+const MAX_NAME_LENGTH = 200;
+const MAX_TEXT_LENGTH = 2000;
+const MAX_WORKOUTS = 14;
+const MAX_EXERCISES_PER_WORKOUT = 30;
+const MAX_SETS_PER_EXERCISE = 20;
+const MAX_REST_SECONDS = 3600;
+const MIN_FREQUENCY = 1;
+const MAX_FREQUENCY = 7;
+const MAX_WORKOUT_DURATION_MINUTES = 600;
+const MAX_SLUG_LENGTH = 100;
+/** Lowercase letters and digits, words joined by single hyphens (apps/exercises' rule). */
+const EXERCISE_SLUG = /^[a-z0-9]+(-[a-z0-9]+)*$/;
+const WEIGHT_STEP = 10 ** -MAX_WEIGHT_DECIMALS;
+
+const NewPlanSet = z
+  .strictObject({
+    reps_recommended: z.number().int().min(1).max(MAX_REPS).openapi({
+      example: 8,
+    }),
+    rest_recommended: z.number().int().min(0).max(MAX_REST_SECONDS).openapi({
+      description: "Seconds",
+      example: 120,
+    }),
+    weight_recommended: z
+      .number()
+      .min(0)
+      .max(MAX_WEIGHT)
+      .multipleOf(WEIGHT_STEP)
+      .openapi({
+        description:
+          "In the User's weight unit (`kg` for metric, `lbs` for us and uk), as stored; at most 2 decimals. 0 for bodyweight",
+        example: 80.5,
+      }),
+  })
+  .openapi("NewPlanSet");
+
+const NewPlanExercise = z
+  .strictObject({
+    exercise_slug: z
+      .string()
+      .max(MAX_SLUG_LENGTH)
+      .regex(
+        EXERCISE_SLUG,
+        "must be an Exercise slug: lowercase letters and digits, words joined by single hyphens"
+      )
+      .openapi({
+        description:
+          "An Exercise slug from the Exercise Library API; every one is checked before anything is written",
+        example: "barbell-back-squat",
+      }),
+    sets: z
+      .array(NewPlanSet)
+      .min(1)
+      .max(MAX_SETS_PER_EXERCISE)
+      .openapi({ description: "In the order they are performed" }),
+  })
+  .openapi("NewPlanExercise");
+
+const NewPlanWorkout = z
+  .strictObject({
+    description: z
+      .string()
+      .max(MAX_TEXT_LENGTH)
+      .openapi({ example: "Legs and pulls" }),
+    exercises: z
+      .array(NewPlanExercise)
+      .min(1)
+      .max(MAX_EXERCISES_PER_WORKOUT)
+      .openapi({ description: "In the order they are performed" }),
+    name: z
+      .string()
+      .trim()
+      .min(1)
+      .max(MAX_NAME_LENGTH)
+      .openapi({ example: "Day A" }),
+  })
+  .openapi("NewPlanWorkout");
+
+const NewPlanBody = z
+  .strictObject({
+    activate: z.boolean().default(true).openapi({
+      description:
+        "Make it the User's active Plan, every other Plan inactive. With `false` it's created inactive and the active Plan stays",
+    }),
+    description: z
+      .string()
+      .max(MAX_TEXT_LENGTH)
+      .openapi({ example: "Three full-body days" }),
+    experience_level: z.enum(experienceLevels),
+    frequency: z.number().int().min(MIN_FREQUENCY).max(MAX_FREQUENCY).openapi({
+      description: "Workouts a week",
+      example: 3,
+    }),
+    goal: z.enum(goals),
+    name: z
+      .string()
+      .trim()
+      .min(1)
+      .max(MAX_NAME_LENGTH)
+      .openapi({ example: "Full body" }),
+    note: z.string().max(MAX_TEXT_LENGTH).nullable().optional(),
+    place: z.enum(places),
+    workout_duration: z
+      .number()
+      .int()
+      .min(1)
+      .max(MAX_WORKOUT_DURATION_MINUTES)
+      .openapi({ description: "Minutes", example: 60 }),
+    workouts: z.array(NewPlanWorkout).min(1).max(MAX_WORKOUTS).openapi({
+      description:
+        "In rotation order: the first is up next. Every `order` comes from the array positions",
+    }),
+  })
+  .openapi("NewPlan");
+
+const createPlanRoute = createRoute({
+  description:
+    "Creates the Plan with its Workouts, Exercises and sets in one transaction: nothing is saved unless all of it is. Every Exercise slug is checked against the Exercise Library first. By default the new Plan becomes the User's active one and every other Plan goes inactive. Not idempotent: a retried request can create a second Plan.",
+  method: "post",
+  middleware: [requires("write")] as const,
+  path: "/",
+  request: {
+    body: {
+      content: { "application/json": { schema: NewPlanBody } },
+      required: true,
+    },
+  },
+  responses: {
+    201: {
+      content: { "application/json": { schema: PlanResponse } },
+      description: "The created Plan in full",
+    },
+    400: errorResponse(
+      "`invalid_request`: the Plan isn't valid; `unknown_exercises`: the Exercise Library has no Exercise for the slugs the message names. Nothing was saved"
+    ),
+    401: unauthorizedResponse,
+    415: errorResponse("The body isn't `application/json`"),
+    503: errorResponse(
+      "`exercise_library_unavailable`: the Exercise slugs couldn't be checked; nothing was saved, try again"
+    ),
+  },
+  security: bearerSecurity,
+  summary: "Create a Plan",
+});
+
+/** Every Exercise slug of a Plan's Workouts, each once. */
+const workoutSlugs = (workouts: z.infer<typeof NewPlanWorkout>[]) => [
+  ...new Set(
+    workouts.flatMap((workout) =>
+      workout.exercises.map((exercise) => exercise.exercise_slug)
+    )
+  ),
+];
+
 export const plans = new OpenAPIHono<ApiEnv>({
   defaultHook: invalidRequest,
 })
@@ -213,6 +370,39 @@ export const plans = new OpenAPIHono<ApiEnv>({
     const found = await c.var.getServices().listPlans();
     // Parsed through the contract, so fields beyond it never go out.
     return c.json(PlanListResponse.parse({ data: found }), 200);
+  })
+  .openapi(createPlanRoute, async (c) => {
+    const { activate, ...plan } = c.req.valid("json");
+    const check = await checkExerciseSlugs({
+      library: c.var.getExerciseLibrary(),
+      reportError: c.var.reportError,
+      slugs: workoutSlugs(plan.workouts),
+    });
+    if (check.status === "unavailable") {
+      return c.json(
+        {
+          error: {
+            code: "exercise_library_unavailable",
+            message:
+              "The Exercise Library is unavailable, so the Exercises couldn't be checked; try again",
+          },
+        },
+        503
+      );
+    }
+    if (check.status === "unknown") {
+      return c.json(
+        {
+          error: {
+            code: "unknown_exercises",
+            message: `Unknown exercise_slug(s): ${check.slugs.join(", ")}`,
+          },
+        },
+        400
+      );
+    }
+    const created = await c.var.getServices().createPlan(plan, { activate });
+    return c.json(PlanResponse.parse({ data: planData(created) }), 201);
   })
   // Before `/{id}`, which would otherwise answer "active" as a malformed id.
   .openapi(getActivePlan, async (c) => {
