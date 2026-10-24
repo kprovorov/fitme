@@ -95,7 +95,8 @@ export const createApp = (deps: Partial<AppDeps> = {}) => {
   app.use(requireCaller({ clerkJwtKey, createServices }));
   // Built on first use, then shared by every request.
   let library: ExerciseLibrary | null | undefined;
-  // The User is known by their Clerk id only.
+  // Error reporting knows the User by their Clerk id only. Routes get the
+  // Exercise Library and the reporter for the answers they give themselves.
   app.use(async (c, next) => {
     identify(c.var.caller.userId);
     c.set("getExerciseLibrary", () => {

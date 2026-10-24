@@ -47,7 +47,7 @@ Responses are JSON. Successful responses wrap the payload in `data`; failures re
 
 ## Tests
 
-`src/__tests__/` drives `createApp` through `app.request` with Clerk session tokens signed by a test RSA key fake services (`src/test/harness.ts`: an unfaked method fails the request) and the fake Exercise Library from `@fitme/exercise-library/fake`, with a recording reporter and Sentry user.
+`src/__tests__/` drives `createApp` through `app.request` with Clerk session tokens signed by a test RSA key, fake services (`src/test/harness.ts`: an unfaked method fails the request) and the fake Exercise Library from `@fitme/exercise-library/fake`, with a recording reporter and Sentry user.
 
 ## Integration tests
 
