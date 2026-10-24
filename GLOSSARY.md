@@ -31,15 +31,21 @@ One occurrence of a User performing a Workout, with the sets actually completed.
 _Avoid_: Session (ambiguous with a sign-in session), training log
 
 **Exercise**:
-A named movement from the Exercise Library, independent of any User, identified by its Exercise slug. Plans and Workout Sessions refer to Exercises; they never own them.
-
-**Exercise Library**:
-Every Exercise Fitme offers: names, muscle groups, descriptions, instructions, thumbnails and videos. Owned by the private `fitme-exercises` repository and served to the apps by the Exercise Library API (`apps/exercises`, ADRs 0007 and 0008), not stored in Postgres. Exercises are added, never removed.
-_Avoid_: Exercise catalog, exercise database, exercises table
+A named movement from the Library, independent of any User, identified by its Exercise slug. Plans and Workout Sessions refer to Exercises; they never own them.
 
 **Exercise slug**:
 The permanent, readable identifier of an Exercise (`bench-press`): lowercase letters and digits joined by single hyphens. It never changes, even when the Exercise's name does.
 _Avoid_: Exercise id, exercise uuid
+
+### Library
+
+**Library**:
+Everything Fitme offers to every User, independent of any one User: today every Exercise (names, muscle groups, descriptions, instructions, thumbnails and videos). Owned by the private `fitme-exercises` repository and not stored in Postgres. Content is added, never removed.
+_Avoid_: Exercise Library, exercise catalog, exercise database, exercises table
+
+**Library API**:
+The service (`apps/library`) that serves the Library to the apps and the Public API.
+_Avoid_: Exercise API, Exercise Library API, exercises service
 
 ### Arnold
 
