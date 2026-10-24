@@ -7,8 +7,9 @@
  * `getCurrentUserId` at `FAKE_USER_ID` so its Supabase reads see the same
  * User.
  *
- * So far: `PATCH /v1/profile`, `POST /v1/plans`, and starting, finishing and logging a set of
- * a Workout Session. Routes are named as templates (`Route`), each request
+ * So far: `PATCH /v1/profile`, `POST /v1/plans`, activating
+ * (`POST /v1/plans/{id}/activate`) and deleting (`DELETE /v1/plans/{id}`) a
+ * Plan, and starting, finishing and logging a set of a Workout Session. Routes are named as templates (`Route`), each request
  * keeping its `path`. A route it doesn't implement answers 501 and fails the
  * test after it (`test-utils/after-each.ts`). `failNext` fails a route on
  * demand.
@@ -309,6 +310,33 @@ const createPlan = async (body: unknown): Promise<Response> => {
   });
 };
 
+/** The Plan becomes active, every other one of the User inactive. */
+const activatePlan = (_body: unknown, planId: string): Response => {
+  const plan = backend.plans.find(
+    ({ deleted_at, id }) => id === planId && !deleted_at
+  );
+  if (!plan) {
+    return error(404, "not_found", "Plan not found");
+  }
+  for (const other of backend.plans) {
+    other.is_active = other === plan;
+  }
+  return json(200, {
+    data: { ...backend.nestedPlan(plan), weight_unit: "kg" },
+  });
+};
+
+/** A soft delete; a Plan already deleted answers 204 again. */
+const deletePlan = (_body: unknown, planId: string): Response => {
+  const plan = backend.plans.find(({ id }) => id === planId);
+  if (!plan) {
+    return error(404, "not_found", "Plan not found");
+  }
+  plan.deleted_at ??= "2026-10-24T12:00:00.000Z";
+  plan.is_active = false;
+  return new Response(null, { status: 204 });
+};
+
 const FINISHED_AT = "2026-10-08T11:00:00.000Z";
 const LOGGED_AT = "2026-10-08T10:45:00.000Z";
 const STARTED_AT = "2026-10-08T10:00:00.000Z";
@@ -495,6 +523,16 @@ const ROUTES: Array<{ handler: Handler; path: RegExp; route: Route }> = [
     handler: createPlan,
     path: /^\/v1\/plans$/,
     route: "POST /v1/plans",
+  },
+  {
+    handler: activatePlan,
+    path: /^\/v1\/plans\/(?<id>[^/]+)\/activate$/,
+    route: "POST /v1/plans/{id}/activate",
+  },
+  {
+    handler: deletePlan,
+    path: /^\/v1\/plans\/(?<id>[^/]+)$/,
+    route: "DELETE /v1/plans/{id}",
   },
   {
     handler: startSession,

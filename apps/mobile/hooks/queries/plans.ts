@@ -79,32 +79,31 @@ export const useCreatePlanMutation = createMutation<string, NewPlan>({
     client.invalidateQueries({ queryKey: ["plans"] }),
 });
 
-export const useActivatePlanMutation = createMutation<Plan, { id: string }>({
-  mutationFn: async (data: { id: string }): Promise<Plan> => {
-    const { data: plan, error } = await supabase.rpc("activate_plan", {
-      plan_id: data.id,
+/**
+ * Makes the Plan the User's active one through
+ * `POST /v1/plans/{id}/activate`; every other Plan of theirs goes inactive.
+ * Rejects with an `ApiError`.
+ */
+export const useActivatePlanMutation = createMutation<void, { id: string }>({
+  mutationFn: async ({ id }: { id: string }): Promise<void> => {
+    await publicApi().POST("/v1/plans/{id}/activate", {
+      params: { path: { id } },
     });
-    if (error) {
-      throw error;
-    }
     if (!IS_E2E) {
-      segmentClient.track("Plan Activated", { plan_id: data.id });
+      segmentClient.track("Plan Activated", { plan_id: id });
     }
-    return plan as unknown as Plan;
   },
 });
 
+/**
+ * Soft-deletes the Plan through `DELETE /v1/plans/{id}` (its Workout Sessions
+ * stay); a Plan already deleted succeeds again. Rejects with an `ApiError`.
+ */
 export const useDeletePlanMutation = createMutation<void, { id: string }>({
-  mutationFn: async (data: { id: string }): Promise<void> => {
-    const { error } = await supabase
-      .from("plans")
-      .update({ deleted_at: new Date().toISOString(), is_active: false })
-      .eq("id", data.id);
-    if (error) {
-      throw error;
-    }
+  mutationFn: async ({ id }: { id: string }): Promise<void> => {
+    await publicApi().DELETE("/v1/plans/{id}", { params: { path: { id } } });
     if (!IS_E2E) {
-      segmentClient.track("Plan Deleted", { plan_id: data.id });
+      segmentClient.track("Plan Deleted", { plan_id: id });
     }
   },
 });
