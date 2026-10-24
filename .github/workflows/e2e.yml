@@ -97,20 +97,6 @@ jobs:
         env:
           SUPABASE_ACCESS_TOKEN: ${{ secrets.SUPABASE_ACCESS_TOKEN }}
 
-      # Skipped with a warning when the development instance's secret key is
-      # not set.
-      - name: Check Clerk third-party trust
-        env:
-          CLERK_SECRET_KEY: ${{ secrets.CLERK_DEV_SECRET_KEY }}
-          SUPABASE_URL: ${{ steps.branch-details.outputs.api_url }}
-          SUPABASE_ANON_KEY: ${{ steps.branch-details.outputs.anon_key }}
-        run: |
-          if [ -z "$CLERK_SECRET_KEY" ]; then
-            echo "::warning::CLERK_DEV_SECRET_KEY is not set; skipping the Clerk trust check"
-            exit 0
-          fi
-          pnpm --filter @fitme/supabase clerk:check
-
       # A CLI-created branch starts without the repo's migrations. The
       # session pooler (5432) is used because db push needs prepared statements.
       - name: Apply migrations to branch
@@ -118,6 +104,84 @@ jobs:
         run: pnpm exec supabase db push --db-url "${DATABASE_URL/:6543\//:5432/}"
         env:
           DATABASE_URL: ${{ steps.branch-details.outputs.postgres_url }}
+
+      # The Public API (apps/api) runs on this runner against the branch, as
+      # the fitme login through the branch's transaction pooler. The login has
+      # no password on a new branch: it gets one generated for this run, which
+      # is masked before anything can print it and dies with the branch.
+      - name: Set the fitme login's password on branch
+        id: fitme
+        run: |
+          PASSWORD=$(openssl rand -hex 32)
+          echo "::add-mask::$PASSWORD"
+          # postgresql://postgres.<tenant>:<password>@<host>:6543/postgres
+          USERINFO=${POSTGRES_URL#*://}
+          USERINFO=${USERINFO%%@*}
+          DB_USER=${USERINFO%%:*}
+          TENANT=${DB_USER#postgres.}
+          if [ "$TENANT" = "$DB_USER" ] || [ -z "$TENANT" ]; then
+            echo "::error::The branch's Postgres URL is not a pooler URL (postgres.<tenant>)" && exit 1
+          fi
+          HOST=${POSTGRES_URL#*@}
+          HOST=${HOST%%\?*}
+          DATABASE_URL="postgresql://fitme.$TENANT:$PASSWORD@$HOST?application_name=api"
+          echo "::add-mask::$DATABASE_URL"
+          # Hex only, so the literal needs no escaping.
+          jq -n --arg query "alter role fitme with password '$PASSWORD'" '{ query: $query }' |
+            curl --fail-with-body -sS -o /dev/null -X POST \
+              "https://api.supabase.com/v1/projects/${{ steps.branch-status.outputs.branch_project_ref }}/database/query" \
+              -H "Authorization: Bearer $SUPABASE_ACCESS_TOKEN" \
+              -H "Content-Type: application/json" \
+              -d @-
+          echo "password=$PASSWORD" >> "$GITHUB_OUTPUT"
+          echo "database_url=$DATABASE_URL" >> "$GITHUB_OUTPUT"
+        env:
+          POSTGRES_URL: ${{ steps.branch-details.outputs.postgres_url }}
+          SUPABASE_ACCESS_TOKEN: ${{ secrets.SUPABASE_ACCESS_TOKEN }}
+
+      # The E2E Users are on the Clerk development instance, so the API
+      # verifies its tokens (the instance's public key, no secret). No Upstash
+      # (and no NODE_ENV=production): the in-memory rate limiter. No
+      # EXERCISES_URL / EXERCISES_API_SECRET: no flow saves a Plan, so no
+      # production secret goes into GitHub; a flow that does needs its own
+      # decision. The app's minimum version gate and every write go here.
+      - name: Start the Public API
+        run: |
+          CLERK_JWT_KEY=$(pnpm --silent db clerk:jwt-key)
+          export CLERK_JWT_KEY
+          pnpm --filter @fitme/api build
+          nohup node apps/api/dist/node/index.js > apps/api/e2e-api.log 2>&1 &
+          API_PID=$!
+          for i in $(seq 1 30); do
+            if curl -fsS "$API_URL/health" > /dev/null 2>&1; then
+              echo "The API answers at $API_URL"
+              exit 0
+            fi
+            if ! kill -0 "$API_PID" 2> /dev/null; then
+              echo "::error::The API exited before answering /health" && cat apps/api/e2e-api.log && exit 1
+            fi
+            sleep 2
+          done
+          echo "::error::The API never answered /health" && cat apps/api/e2e-api.log && exit 1
+        env:
+          PORT: "3003"
+          API_URL: http://localhost:3003
+          FITME_DATABASE_URL: ${{ steps.fitme.outputs.database_url }}
+
+      # A session token of a throwaway +clerk_test User is accepted by the
+      # branch's Data API and by the Public API, which reads the branch's data
+      # as that User (GET /v1/profile).
+      - name: Check Clerk session tokens on branch and API
+        env:
+          CLERK_SECRET_KEY: ${{ secrets.CLERK_DEV_SECRET_KEY }}
+          SUPABASE_URL: ${{ steps.branch-details.outputs.api_url }}
+          SUPABASE_ANON_KEY: ${{ steps.branch-details.outputs.anon_key }}
+          API_URL: http://localhost:3003
+        run: |
+          if [ -z "$CLERK_SECRET_KEY" ]; then
+            echo "::error::CLERK_DEV_SECRET_KEY is not set" && exit 1
+          fi
+          pnpm --filter @fitme/supabase clerk:check
 
       - name: Install Maestro CLI
         run: |
@@ -134,6 +198,9 @@ jobs:
           # Production's Exercise Library, which accepts development-instance
           # Clerk tokens, so E2E needs no deployment of its own.
           EXPO_PUBLIC_EXERCISES_URL: https://exercises.fitmeproject.com
+          # The Public API started above (the simulator shares the runner's
+          # loopback).
+          EXPO_PUBLIC_API_URL: http://localhost:3003
           EXPO_PUBLIC_REVENUECAT_IOS_API_KEY: "placeholder"
           EXPO_PUBLIC_SENTRY_DSN: ""
 
@@ -168,6 +235,9 @@ jobs:
           # Production's Exercise Library, which accepts development-instance
           # Clerk tokens, so E2E needs no deployment of its own.
           EXPO_PUBLIC_EXERCISES_URL: https://exercises.fitmeproject.com
+          # The Public API started above (the simulator shares the runner's
+          # loopback).
+          EXPO_PUBLIC_API_URL: http://localhost:3003
           EXPO_PUBLIC_REVENUECAT_IOS_API_KEY: "placeholder"
           EXPO_PUBLIC_SENTRY_DSN: ""
 
@@ -187,12 +257,27 @@ jobs:
         working-directory: apps/mobile
         run: pnpm test:e2e -- --format junit --output e2e-results.xml
 
+      # Artifacts aren't masked: a log holding the fitme password is never
+      # uploaded.
+      - name: Check the API log holds no password
+        if: always()
+        run: |
+          if [ -f apps/api/e2e-api.log ] && [ -n "$PASSWORD" ] && grep -qF "$PASSWORD" apps/api/e2e-api.log; then
+            echo "::error::The API log holds the fitme password; not uploading it"
+            rm apps/api/e2e-api.log
+            exit 1
+          fi
+        env:
+          PASSWORD: ${{ steps.fitme.outputs.password }}
+
       - name: Upload test results
         uses: actions/upload-artifact@v7
         if: always()
         with:
           name: e2e-results
-          path: apps/mobile/e2e-results.xml
+          path: |
+            apps/mobile/e2e-results.xml
+            apps/api/e2e-api.log
 
       - name: Delete Supabase preview branch
         if: always()
