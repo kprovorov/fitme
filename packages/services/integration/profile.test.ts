@@ -343,9 +343,13 @@ describe("updateProfile", () => {
         weight: "220.46",
       }),
       sessionSets: [
-        // Reached only through its (gone) Workout, so the RPC skips it too
-        { linked: false, weightCompleted: "57.50", weightRecommended: "60.00" },
-        { linked: false, weightCompleted: null, weightRecommended: "62.50" },
+        // Its Workout is gone, but it's still the User's: converted too
+        {
+          linked: false,
+          weightCompleted: "126.77",
+          weightRecommended: "132.28",
+        },
+        { linked: false, weightCompleted: null, weightRecommended: "137.79" },
         {
           linked: true,
           weightCompleted: "126.77",
