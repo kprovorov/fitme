@@ -1,4 +1,3 @@
-import { clerkMiddleware } from "@clerk/hono";
 import { streamableHttpHandler } from "@clerk/mcp-tools/hono";
 import {
   identifyUser as identifyObservedUser,
@@ -16,6 +15,7 @@ import {
   requireBearerToken,
   requireClerkUser,
   requireConfig,
+  verifyClerkToken,
 } from "./auth.js";
 import { createToolContext, type ReportError } from "./context.js";
 import type { ExerciseLibraryFactory } from "./exercise-library.js";
@@ -80,7 +80,7 @@ export function createApp({
     "/",
     requireConfig,
     requireBearerToken,
-    clerkMiddleware(),
+    verifyClerkToken,
     requireClerkUser,
     async (c, next) => {
       identifyUser(c.get("clerkUser").userId);

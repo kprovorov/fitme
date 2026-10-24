@@ -144,7 +144,10 @@ describe.skipIf(!secretKey)("Clerk OAuth flow end to end", () => {
     ).toBe("S256");
     const accessToken = provider.tokens()?.access_token;
     expect(accessToken).toBeTruthy();
-    expect(decodeJwt(String(accessToken)).sub).toBe(owner.id);
+    const claims = decodeJwt(String(accessToken));
+    expect(claims.sub).toBe(owner.id);
+    // Clerk stamps the RFC 8707 resource into `aud`, which the server requires.
+    expect(claims.aud).toBeDefined();
 
     expect(await callOk<PlanSummary[]>(client, "list_plans")).toEqual([]);
     const plan = await callOk<PlanDetail>(

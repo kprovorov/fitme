@@ -1,18 +1,22 @@
-import { getAuth } from "@clerk/hono";
+import { clerkMiddleware, getAuth } from "@clerk/hono";
 import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
 import { createApp } from "../create-app.js";
 import type { ServicesFactory } from "../services.js";
 import { fakeServices, ignoreReports, recordingReporter } from "./harness.js";
 
 // Clerk is stubbed at its SDK boundary: no Clerk instance or network. The
-// middleware passes through and `getAuth` answers what each test sets up.
+// middleware passes through (recording its options) and `getAuth` answers
+// what each test sets up.
 vi.mock("@clerk/hono", () => ({
-  clerkMiddleware: () => async (_c: unknown, next: () => Promise<void>) => {
-    await next();
-  },
+  clerkMiddleware: vi.fn(
+    () => async (_c: unknown, next: () => Promise<void>) => {
+      await next();
+    }
+  ),
   getAuth: vi.fn(),
 }));
 
+const mockedClerkMiddleware = vi.mocked(clerkMiddleware);
 const mockedGetAuth = vi.mocked(getAuth);
 
 const SSE_DATA_LINE = /^data: (.*)$/m;
@@ -158,6 +162,7 @@ beforeEach(() => {
     "postgresql://fitme.test:secret@127.0.0.1:1/postgres?application_name=mcp"
   );
   vi.stubEnv("MCP_PUBLIC_URL", "");
+  mockedClerkMiddleware.mockClear();
   mockedGetAuth.mockReset();
 });
 
@@ -236,6 +241,35 @@ describe("with a token Clerk rejects", () => {
       expect(body).toMatchObject({ error: "invalid_token" });
     }
     expect(servicesUserIds).toEqual([]);
+  });
+
+  it("asks Clerk for a token issued for this server", async () => {
+    rejectToken();
+    const { app } = createTestApp();
+
+    await listTools(app, clerkToken("user_alice"));
+
+    expect(mockedClerkMiddleware).toHaveBeenCalledWith({
+      audience: ["http://localhost/", "http://localhost"],
+    });
+  });
+
+  it("takes the audience from MCP_PUBLIC_URL behind a proxy", async () => {
+    vi.stubEnv("MCP_PUBLIC_URL", "https://mcp.fitmeproject.com");
+    rejectToken();
+    const { app } = createTestApp();
+
+    await app.request("http://internal:3002/", {
+      headers: { Authorization: `Bearer ${clerkToken("user_alice")}` },
+      method: "POST",
+    });
+
+    expect(mockedClerkMiddleware).toHaveBeenCalledWith({
+      audience: [
+        "https://mcp.fitmeproject.com/",
+        "https://mcp.fitmeproject.com",
+      ],
+    });
   });
 
   it("asks Clerk to accept OAuth tokens only", async () => {

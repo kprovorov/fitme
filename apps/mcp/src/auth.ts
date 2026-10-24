@@ -1,5 +1,6 @@
-import { getAuth } from "@clerk/hono";
+import { clerkMiddleware, getAuth } from "@clerk/hono";
 import { protectedResourceHandlerClerk } from "@clerk/mcp-tools/hono";
+import type { AuthInfo } from "@modelcontextprotocol/sdk/server/auth/types.js";
 import type { Context } from "hono";
 import { env } from "hono/adapter";
 import { createMiddleware } from "hono/factory";
@@ -26,6 +27,11 @@ const REQUIRED_ENV = [
 export interface AuthVariables {
   /** The verified Clerk User (set by `requireClerkUser`). */
   clerkUser: ClerkUser;
+  /**
+   * The verified token as the MCP SDK's `AuthInfo` (set by `requireClerkUser`),
+   * which `streamableHttpHandler` hands to tool handlers as `extra.authInfo`.
+   */
+  mcpAuth: AuthInfo;
 }
 
 /**
@@ -35,6 +41,16 @@ export interface AuthVariables {
 const resourceUrl = (c: Context) =>
   new URL("/", env<{ MCP_PUBLIC_URL?: string }>(c).MCP_PUBLIC_URL || c.req.url)
     .href;
+
+/**
+ * The audiences a token for this server may carry (RFC 8707 `resource`, which
+ * Clerk stamps into `aud`): the canonical URI, and the same URI without its
+ * trailing slash, since Clerk compares them as exact strings.
+ */
+const audiences = (c: Context) => {
+  const resource = resourceUrl(c);
+  return [resource, resource.slice(0, -1)];
+};
 
 const resourceMetadataUrl = (c: Context) =>
   new URL(PROTECTED_RESOURCE_METADATA_PATH, resourceUrl(c)).href;
@@ -92,17 +108,30 @@ export const requireConfig = createMiddleware<{ Variables: AuthVariables }>(
   }
 );
 
-const BEARER_TOKEN = /^Bearer\s+\S+\s*$/i;
+const BEARER_TOKEN = /^Bearer\s+(\S+)\s*$/i;
+
+const bearerToken = (c: Context) =>
+  c.req.header("Authorization")?.match(BEARER_TOKEN)?.[1];
 
 /** 401 without `Authorization: Bearer <token>`, before asking Clerk. */
 export const requireBearerToken = createMiddleware<{
   Variables: AuthVariables;
 }>(async (c, next) => {
-  if (!BEARER_TOKEN.test(c.req.header("Authorization") ?? "")) {
+  if (!bearerToken(c)) {
     return unauthorized(c, "missing");
   }
   await next();
 });
+
+/**
+ * Clerk verifies the token, and only one issued for this server: a token
+ * without our `aud` (another resource's, or one from before Clerk added the
+ * claim) is rejected, so `requireClerkUser` answers 401 `invalid_token` and
+ * the client signs in again (MCP authorization: token audience validation).
+ */
+export const verifyClerkToken = createMiddleware<{
+  Variables: AuthVariables;
+}>((c, next) => clerkMiddleware({ audience: audiences(c) })(c, next));
 
 /**
  * Admits only Clerk OAuth access tokens that `clerkMiddleware` verified.
@@ -115,6 +144,13 @@ export const requireClerkUser = createMiddleware<{ Variables: AuthVariables }>(
       return unauthorized(c, "invalid");
     }
     c.set("clerkUser", { userId: auth.userId });
+    c.set("mcpAuth", {
+      clientId: auth.clientId,
+      extra: { userId: auth.userId },
+      resource: new URL(resourceUrl(c)),
+      scopes: auth.scopes,
+      token: bearerToken(c) ?? "",
+    });
     await next();
   }
 );
