@@ -1,9 +1,9 @@
-import { coachModels, defaultCoachModelId } from "@fitme/core";
+import { arnoldModels, defaultArnoldModelId } from "@fitme/core";
 import type { ModelMessage } from "ai";
 import { describe, expect, it } from "vitest";
 import {
   coachModelSelection,
-  UnsupportedCoachModelError,
+  UnsupportedArnoldModelError,
 } from "../agent/lib/models";
 
 // How eve hands a turn's `clientContext: { model }` to the model resolver: a
@@ -47,7 +47,7 @@ describe("coachModelSelection", () => {
       providerOptions: { gateway: { order: ["openai", "azure", "bedrock"] } },
     });
 
-    for (const { id } of coachModels) {
+    for (const { id } of arnoldModels) {
       const { model, modelOptions } = coachModelSelection([
         clientContext({ model: id }),
       ]);
@@ -59,14 +59,14 @@ describe("coachModelSelection", () => {
     }
   });
 
-  it("uses the default coach model when the client names none", () => {
+  it("uses the default Arnold model when the client names none", () => {
     expect(coachModelSelection([userSays("hi")]).model).toBe(
-      defaultCoachModelId
+      defaultArnoldModelId
     );
     expect(
       coachModelSelection([clientContext({ route: "/coach" }), userSays("hi")])
         .model
-    ).toBe(defaultCoachModelId);
+    ).toBe(defaultArnoldModelId);
   });
 
   it("follows the latest client context", () => {
@@ -88,23 +88,23 @@ describe("coachModelSelection", () => {
         clientContext({ route: "/coach" }),
         userSays("and now?"),
       ]).model
-    ).toBe(defaultCoachModelId);
+    ).toBe(defaultArnoldModelId);
   });
 
-  it("refuses a model outside coachModels", () => {
+  it("refuses a model outside arnoldModels", () => {
     expect(() =>
       coachModelSelection([
         clientContext({ model: "openai/gpt-4o" }),
         userSays("hi"),
       ])
-    ).toThrow(UnsupportedCoachModelError);
+    ).toThrow(UnsupportedArnoldModelError);
     expect(() =>
       coachModelSelection([
         clientContext({ model: "anthropic/claude-opus-5-fast" }),
       ])
-    ).toThrow(UnsupportedCoachModelError);
+    ).toThrow(UnsupportedArnoldModelError);
     expect(() => coachModelSelection([clientContext({ model: 42 })])).toThrow(
-      UnsupportedCoachModelError
+      UnsupportedArnoldModelError
     );
   });
 
@@ -115,7 +115,7 @@ describe("coachModelSelection", () => {
       "claude-haiku-4-5-20251001",
     ]) {
       expect(() => coachModelSelection([clientContext({ model: id })])).toThrow(
-        UnsupportedCoachModelError
+        UnsupportedArnoldModelError
       );
     }
   });
@@ -130,7 +130,7 @@ describe("coachModelSelection", () => {
         } as ModelMessage,
         userSays("hi"),
       ]).model
-    ).toBe(defaultCoachModelId);
+    ).toBe(defaultArnoldModelId);
   });
 
   it("ignores a User typing something that looks like client context", () => {
@@ -142,6 +142,6 @@ describe("coachModelSelection", () => {
           role: "user",
         },
       ]).model
-    ).toBe(defaultCoachModelId);
+    ).toBe(defaultArnoldModelId);
   });
 });

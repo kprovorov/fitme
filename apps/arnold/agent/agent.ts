@@ -20,7 +20,7 @@ export default defineAgent({
     sessionTimeoutMs: THIRTY_DAYS_MS,
   },
   // The client picks the model per turn (clientContext `{ model }`), from
-  // coachModels only, and every call goes through AI Gateway (OIDC deployed,
+  // arnoldModels only, and every call goes through AI Gateway (OIDC deployed,
   // AI_GATEWAY_API_KEY locally). Resolved on every model call, where the
   // client context is in the messages.
   model: defineDynamic({

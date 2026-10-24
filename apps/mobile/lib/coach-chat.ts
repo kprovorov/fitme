@@ -1,5 +1,5 @@
 import type { ThreadMessage } from "@assistant-ui/react-native";
-import { coachErrorCodes } from "@fitme/core";
+import { isArnoldRefusal } from "@fitme/core";
 import type { ClientSessionState, MessageStreamEvent } from "eve/client";
 import { storage } from "~/lib/mmkv";
 
@@ -30,7 +30,8 @@ export type CoachErrorAction = "new-conversation" | "none" | "paywall" | "show";
 
 /**
  * What the coach screen does with a Coach error: the channel's not-Pro refusal
- * shows the paywall, an ended session starts a new Conversation, and anything
+ * (`arnold_pro_required` or the pre-rename `coach_pro_required`) shows the
+ * paywall, an ended session starts a new Conversation, and anything
  * else shows the error state. Duck-typed on eve's `ClientError` (`code` from
  * the JSON body) so the app doesn't bundle `eve/client` for an `instanceof`.
  */
@@ -44,7 +45,7 @@ export function coachErrorAction(error: unknown): CoachErrorAction {
     typeof error.code === "string"
       ? error.code
       : undefined;
-  if (code === coachErrorCodes.proRequired) {
+  if (isArnoldRefusal(code, "proRequired")) {
     return "paywall";
   }
   if (code && endedSessionCodes.has(code)) {

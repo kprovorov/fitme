@@ -1,5 +1,4 @@
 import { generateKeyPairSync, sign } from "node:crypto";
-import { coachErrorCodes } from "@fitme/core";
 import { routeAuth } from "eve/channels/auth";
 import { beforeEach, describe, expect, it, vi } from "vitest";
 import { clerkSession } from "../agent/lib/clerk-auth";
@@ -241,7 +240,7 @@ describe("clerkSession Pro check", () => {
       expect(result).toBeInstanceOf(Response);
       expect(result.status).toBe(403);
       expect(await result.json()).toMatchObject({
-        code: coachErrorCodes.proRequired,
+        code: "coach_pro_required",
         ok: false,
       });
       expect(claimSession).not.toHaveBeenCalled();
@@ -260,7 +259,7 @@ describe("clerkSession Pro check", () => {
     expect(result).toBeInstanceOf(Response);
     expect(result.status).toBe(503);
     expect(await result.json()).toMatchObject({
-      code: coachErrorCodes.proCheckUnavailable,
+      code: "coach_pro_check_unavailable",
       ok: false,
     });
     expect(report).toHaveBeenCalledWith(failure, {

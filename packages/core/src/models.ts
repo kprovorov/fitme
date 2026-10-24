@@ -188,10 +188,10 @@ export interface WorkoutExerciseInput {
 export type WorkoutExerciseSetInput = Omit<WorkoutExerciseSetData, "order">;
 
 /**
- * Models the Coach can run on, by their Vercel AI Gateway id
+ * Models Arnold can run on, by their Vercel AI Gateway id
  * (`<creator>/<model>`), the only list: `apps/arnold` rejects any id outside it.
  */
-export const coachModels = [
+export const arnoldModels = [
   {
     description: "Fast and capable, balanced for everyday coaching",
     id: "openai/gpt-5.5",
@@ -233,24 +233,47 @@ export const coachModels = [
   label: string;
 }[];
 
-export type CoachModel = (typeof coachModels)[number];
-export type CoachModelId = CoachModel["id"];
+export type ArnoldModel = (typeof arnoldModels)[number];
+export type ArnoldModelId = ArnoldModel["id"];
 
-export const defaultCoachModelId: CoachModelId = "openai/gpt-5.5";
+export const defaultArnoldModelId: ArnoldModelId = "openai/gpt-5.5";
 
-export function isCoachModelId(value: unknown): value is CoachModelId {
-  return coachModels.some((model) => model.id === value);
+export function isArnoldModelId(value: unknown): value is ArnoldModelId {
+  return arnoldModels.some((model) => model.id === value);
 }
 
-/** The RevenueCat entitlement that makes a User Pro (and unlocks the Coach). */
+/** The RevenueCat entitlement that makes a User Pro (and unlocks Arnold). */
 export const proEntitlement = "Fitme Pro";
 
 /**
- * Stable `code`s of the Coach channel's `{ ok: false, code, error }` refusals:
+ * Stable `code`s of Arnold's channel's `{ ok: false, code, error }` refusals:
  * `proRequired` (403) shows the paywall; `proCheckUnavailable` (503) means
  * the subscription couldn't be checked, so retry instead.
  */
-export const coachErrorCodes = {
+export const arnoldErrorCodes = {
+  proCheckUnavailable: "arnold_pro_check_unavailable",
+  proRequired: "arnold_pro_required",
+} as const;
+
+/**
+ * The same refusals under their pre-Arnold codes: the only ones installed
+ * builds from before the rename know, so the channel keeps sending these
+ * until the minimum version gate cuts those builds off.
+ */
+export const legacyArnoldErrorCodes = {
   proCheckUnavailable: "coach_pro_check_unavailable",
   proRequired: "coach_pro_required",
-} as const;
+} as const satisfies Record<keyof typeof arnoldErrorCodes, string>;
+
+export type ArnoldRefusal = keyof typeof arnoldErrorCodes;
+
+/** Whether `code` is `refusal` in either form, `arnold_*` or `coach_*`. */
+export function isArnoldRefusal(
+  code: unknown,
+  refusal: ArnoldRefusal
+): boolean {
+  return (
+    code === arnoldErrorCodes[refusal] ||
+    code === legacyArnoldErrorCodes[refusal]
+  );
+}
