@@ -546,7 +546,7 @@
             },
             "minItems": 1,
             "maxItems": 14,
-            "description": "In rotation order: the first is up next. Every `order` comes from the array positions"
+            "description": "Every Workout of the Plan, in rotation order: the first is up next. Every `order` comes from the array positions"
           }
         },
         "required": [
@@ -1574,7 +1574,7 @@
     },
     "/v1/plans/{id}/workouts": {
       "put": {
-        "description": "Replaces every Workout of the Plan with the sent list, in one transaction: nothing changes unless all of it is saved. **Every Workout gets a new id**, the old ones are gone: past Workout Sessions keep their logged sets but lose the link to their old Workout. The Plan's details and whether it's active don't change. Every Exercise slug is checked against the Exercise Library first. Safe to retry: the same request leaves the same Workouts (with new ids again).",
+        "description": "Replaces every Workout of the Plan with the sent list, in one transaction: nothing changes unless all of it is saved. **Every Workout gets a new id**, the old ones are gone: past Workout Sessions keep their logged sets but lose the link to their old Workout. The Plan's details and whether it's active don't change (only its `updated_at` moves). Every Exercise slug is checked against the Exercise Library first.",
         "security": [
           {
             "bearerAuth": []

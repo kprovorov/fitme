@@ -287,6 +287,16 @@ const NewPlanWorkout = z
   })
   .openapi("NewPlanWorkout");
 
+/** Every Workout of a Plan, as a create or a replacement sends them. */
+const PlanWorkoutsInput = z
+  .array(NewPlanWorkout)
+  .min(1)
+  .max(MAX_WORKOUTS)
+  .openapi({
+    description:
+      "Every Workout of the Plan, in rotation order: the first is up next. Every `order` comes from the array positions",
+  });
+
 const NewPlanBody = z
   .strictObject({
     activate: z.boolean().default(true).openapi({
@@ -317,10 +327,7 @@ const NewPlanBody = z
       .min(1)
       .max(MAX_WORKOUT_DURATION_MINUTES)
       .openapi({ description: "Minutes", example: 60 }),
-    workouts: z.array(NewPlanWorkout).min(1).max(MAX_WORKOUTS).openapi({
-      description:
-        "In rotation order: the first is up next. Every `order` comes from the array positions",
-    }),
+    workouts: PlanWorkoutsInput,
   })
   .openapi("NewPlan");
 
@@ -356,17 +363,12 @@ const createPlanRoute = createRoute({
 });
 
 const ReplaceWorkoutsBody = z
-  .strictObject({
-    workouts: z.array(NewPlanWorkout).min(1).max(MAX_WORKOUTS).openapi({
-      description:
-        "Every Workout of the Plan, in rotation order: the first is up next. Every `order` comes from the array positions",
-    }),
-  })
+  .strictObject({ workouts: PlanWorkoutsInput })
   .openapi("ReplacePlanWorkouts");
 
 const replaceWorkoutsRoute = createRoute({
   description:
-    "Replaces every Workout of the Plan with the sent list, in one transaction: nothing changes unless all of it is saved. **Every Workout gets a new id**, the old ones are gone: past Workout Sessions keep their logged sets but lose the link to their old Workout. The Plan's details and whether it's active don't change. Every Exercise slug is checked against the Exercise Library first. Safe to retry: the same request leaves the same Workouts (with new ids again).",
+    "Replaces every Workout of the Plan with the sent list, in one transaction: nothing changes unless all of it is saved. **Every Workout gets a new id**, the old ones are gone: past Workout Sessions keep their logged sets but lose the link to their old Workout. The Plan's details and whether it's active don't change (only its `updated_at` moves). Every Exercise slug is checked against the Exercise Library first.",
   method: "put",
   middleware: [requires("write")] as const,
   path: "/{id}/workouts",
