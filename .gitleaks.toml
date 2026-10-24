@@ -34,9 +34,9 @@ regexes = [
 [[rules]]
 id = "password-literal"
 description = "A password as a string literal"
-regex = '''(?i)\b[a-z_]*pass(?:word|wd)\b["']?\s*(?::|=|=>|\?\?|\|\|)\s*["'`]([^"'`\s$]{8,})["'`]'''
+regex = '''(?i)\b(?:[a-z0-9_]*pass(?:word|wd)|(?:[a-z0-9]+_)*(?:pass|pwd))\b["']?\s*(?::|=|=>|\?\?|\|\|)\s*["'`]([^"'`\s$]{8,})["'`]'''
 secretGroup = 1
-keywords = ["pass"]
+keywords = ["pass", "pwd"]
 
 # Made-up passwords: unit and integration tests, the Maestro flows' throwaway
 # `+clerk_test` Users on the Clerk development instance, the local stack's
@@ -53,3 +53,7 @@ paths = [
 [[rules.allowlists]]
 regexTarget = "match"
 regexes = ['''not-a-bcrypt-digest''']
+
+# A reference, not a value: Supabase config's `env(NAME)`.
+[[rules.allowlists]]
+regexes = ['''^env\([A-Z0-9_]+\)$''']
