@@ -41,11 +41,11 @@ high:
   - apps/mcp/src/context.ts
   - apps/mcp/src/services.ts
   # Coach: agent config, channel auth, Pro check, ownership, cost caps
-  - apps/coach/agent/agent.ts
-  - apps/coach/agent/channels/**
-  - apps/coach/agent/hooks/conversation.ts
-  - apps/coach/agent/hooks/turn-limits.ts
-  - apps/coach/agent/lib/{clerk-auth,reset-auth,eval-runner,pro-access,claim-session,conversation,owner,turn-limits}.ts
+  - apps/arnold/agent/agent.ts
+  - apps/arnold/agent/channels/**
+  - apps/arnold/agent/hooks/conversation.ts
+  - apps/arnold/agent/hooks/turn-limits.ts
+  - apps/arnold/agent/lib/{clerk-auth,reset-auth,eval-runner,pro-access,claim-session,conversation,owner,turn-limits}.ts
   # Webhooks: signature checks and account deletion
   - apps/webhooks/src/app.ts
   - apps/webhooks/src/routes/clerk.ts
@@ -58,7 +58,7 @@ high:
 
 medium:
   # Demoted from high
-  - apps/coach/agent/lib/models.ts
+  - apps/arnold/agent/lib/models.ts
   - apps/exercises/src/auth.ts
   - apps/exercises/src/create-app.ts
   - apps/web/proxy.ts
@@ -68,7 +68,7 @@ medium:
   - packages/services/**
   - packages/db/**
   - packages/core/**
-  - apps/coach/agent/**
+  - apps/arnold/agent/**
   - apps/mcp/src/**
   - apps/api/src/**
   - apps/webhooks/src/**

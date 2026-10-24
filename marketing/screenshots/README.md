@@ -23,7 +23,7 @@ Real app (Release build, no dev overlays) against a local Supabase stack seeded 
 | `iphone/17-onboarding.png` | Onboarding first screen (fresh account) |
 | `iphone/18-sign-up.png` | Sign-up screen (fresh install) |
 
-Not captured: the planner's result and a Coach conversation with the plan card. Both need the Coach (`apps/coach`) answering for a Pro User; there was no `apps/coach/.env.local`/AI Gateway key, and the only RevenueCat project is the real one, so no test entitlement was granted.
+Not captured: the planner's result and a Coach conversation with the plan card. Both need the Coach (`apps/arnold`) answering for a Pro User; there was no `apps/arnold/.env.local`/AI Gateway key, and the only RevenueCat project is the real one, so no test entitlement was granted.
 
 `framed/` holds the same 18 shots in a drawn iPhone Pro frame with a Dynamic Island (1458×3006, transparent background), made by `frame.py`:
 

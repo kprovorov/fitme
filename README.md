@@ -14,7 +14,7 @@ and there are no Supabase Edge Functions.
 | Workspace | Package | What it is |
 | --- | --- | --- |
 | `apps/mobile` | `@fitme/mobile` | Expo / React Native app (expo-router, uniwind, RevenueCat, Sentry) |
-| `apps/coach` | `@fitme/coach` | The Coach: an [EVE](https://www.npmjs.com/package/eve) agent, models through Vercel AI Gateway |
+| `apps/arnold` | `@fitme/arnold` | The Coach: an [EVE](https://www.npmjs.com/package/eve) agent, models through Vercel AI Gateway |
 | `apps/api` | `@fitme/api` | Hono REST API (client config, Coach model list) |
 | `apps/exercises` | `@fitme/exercises` | Exercise Library API: Hono + zod-openapi over a baked-in `library.json` |
 | `apps/mcp` | `@fitme/mcp` | MCP server (Streamable HTTP, Clerk OAuth) for ChatGPT and other MCP clients |
@@ -51,13 +51,13 @@ pnpm dev:site            # :3001
 pnpm dev:mcp             # :3002
 pnpm dev:api             # :3003
 pnpm dev:webhooks        # :3004
-pnpm dev:coach           # :3005
+pnpm dev:arnold          # :3005
 pnpm dev:exercises       # :3006, serving the made-up fixture library
 ```
 
 Each app has an `.env.example`. Copy it to `.env` for `apps/mobile` and
 `apps/exercises`, or to `.env.local` for `apps/web`, `apps/site` and
-`apps/coach`; `apps/api`, `apps/mcp` and `apps/webhooks` read the process
+`apps/arnold`; `apps/api`, `apps/mcp` and `apps/webhooks` read the process
 environment instead. AGENTS.md lists what each variable does.
 
 ## Checks

@@ -61,9 +61,9 @@
     "reveal": "no_focus"
   },
   {
-    "label": "Run coach",
+    "label": "Run arnold",
     "command": "pnpm",
-    "args": ["dev:coach"],
+    "args": ["dev:arnold"],
     "reveal": "no_focus"
   },
   {

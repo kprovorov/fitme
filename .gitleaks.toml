@@ -21,7 +21,7 @@ regexes = ['''eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9\.eyJpc3MiOiJzdXBhYmFzZS1kZW1v
 description = "Made-up secrets in unit tests"
 regexTarget = "match"
 regexes = [
-  # apps/coach/test/pro-access.test.ts
+  # apps/arnold/test/pro-access.test.ts
   '''sk_test_revenuecat''',
   # apps/webhooks tests (and the removed clerk-webhook edge function's)
   '''whsec_MfKQ9r8GKYqrTwjUPD8ILPZIo2LaLaSw''',

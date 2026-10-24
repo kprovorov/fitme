@@ -3,7 +3,7 @@ import { coachErrorCodes } from "@fitme/core";
 import type { ClientSessionState, MessageStreamEvent } from "eve/client";
 import { storage } from "~/lib/mmkv";
 
-/** The Coach (`apps/coach`) base URL; its eve routes live under `/eve/v1`. */
+/** The Coach (`apps/arnold`) base URL; its eve routes live under `/eve/v1`. */
 export const COACH_URL = process.env.EXPO_PUBLIC_COACH_URL ?? "";
 
 /**
