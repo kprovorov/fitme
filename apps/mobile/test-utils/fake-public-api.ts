@@ -16,7 +16,12 @@
  */
 import {
   experienceLevels,
+  genders,
   goals,
+  MAX_AGE,
+  MAX_BODY_DECIMALS,
+  MAX_BODY_HEIGHT,
+  MAX_BODY_WEIGHT,
   MAX_EXERCISES_PER_WORKOUT,
   MAX_FREQUENCY,
   MAX_PLAN_NAME_LENGTH,
@@ -28,6 +33,7 @@ import {
   MAX_WORKOUT_DURATION_MINUTES,
   MAX_WORKOUTS_PER_PLAN,
   type MeasurementSystem,
+  MIN_AGE,
   MIN_FREQUENCY,
   measurementSystems,
   places,
@@ -129,6 +135,43 @@ const convert = (profile: ProfileRow, to: MeasurementSystem) => {
   }
 };
 
+const hasAtMostBodyDecimals = (value: number) => {
+  const scaled = value * 10 ** MAX_BODY_DECIMALS;
+  return Math.abs(scaled - Math.round(scaled)) < 1e-9;
+};
+
+const isBodyValue = (value: unknown, max: number) =>
+  typeof value === "number" &&
+  value > 0 &&
+  value <= max &&
+  hasAtMostBodyDecimals(value);
+
+/** The first field `PATCH /v1/profile`'s bounds refuse, if any. */
+const invalidProfileField = (changes: Partial<ProfileRow>) => {
+  if (changes.age !== undefined && !isInteger(changes.age, MIN_AGE, MAX_AGE)) {
+    return "age";
+  }
+  if (
+    changes.gender !== undefined &&
+    !(genders as readonly string[]).includes(changes.gender)
+  ) {
+    return "gender";
+  }
+  if (
+    changes.height !== undefined &&
+    !isBodyValue(changes.height, MAX_BODY_HEIGHT)
+  ) {
+    return "height";
+  }
+  if (
+    changes.weight !== undefined &&
+    !isBodyValue(changes.weight, MAX_BODY_WEIGHT)
+  ) {
+    return "weight";
+  }
+  return null;
+};
+
 const patchProfile = (body: unknown): Response => {
   if (
     typeof body !== "object" ||
@@ -139,6 +182,10 @@ const patchProfile = (body: unknown): Response => {
     return error(400, "invalid_request", "Invalid profile changes");
   }
   const changes = body as Partial<ProfileRow>;
+  const invalid = invalidProfileField(changes);
+  if (invalid) {
+    return error(400, "invalid_request", `${invalid}: out of bounds`);
+  }
   const system = changes.measurement_system;
   if (
     system !== undefined &&

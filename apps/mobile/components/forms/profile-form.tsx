@@ -4,7 +4,12 @@ import {
   formatWeight,
   genders,
   inchesToFeetAndInches,
+  MAX_AGE,
+  MAX_BODY_DECIMALS,
+  MAX_BODY_HEIGHT,
+  MAX_BODY_WEIGHT,
   type MeasurementSystem,
+  MIN_AGE,
   range,
 } from "@fitme/core";
 import { zodResolver } from "@hookform/resolvers/zod";
@@ -71,10 +76,21 @@ const DEFAULT_HEIGHT_CM = 176;
 /** 5 ft. */
 const DEFAULT_HEIGHT_INCHES = 60;
 
+/** The smallest height or weight step: at most `MAX_BODY_DECIMALS` decimals. */
+const BODY_STEP = 10 ** -MAX_BODY_DECIMALS;
+
+/**
+ * The Public API's Profile bounds (`@fitme/core`), so a value the form takes
+ * is never refused after submit. Heights and weights start at 1, where the
+ * wheels do (the API takes anything above 0).
+ */
 const formSchema = z.object({
-  age: numberInRange(4, 150, "Age is required"),
+  age: numberInRange(MIN_AGE, MAX_AGE, "Age is required"),
   gender: z.enum(genders, { error: "Gender is required" }),
-  height: numberInRange(1, 500, "Height is required"),
+  height: numberInRange(1, MAX_BODY_HEIGHT, "Height is required").multipleOf(
+    BODY_STEP,
+    { error: `Number must have at most ${MAX_BODY_DECIMALS} decimals` }
+  ),
   // Only rendered (and therefore only set) when `showName` is enabled. Clerk's
   // Name is optional, so a User without one can still save the other fields.
   name: z
@@ -82,7 +98,10 @@ const formSchema = z.object({
     .trim()
     .max(50, { error: "Name must be at most 50 characters" })
     .optional(),
-  weight: numberInRange(1, 500, "Weight is required"),
+  weight: numberInRange(1, MAX_BODY_WEIGHT, "Weight is required").multipleOf(
+    BODY_STEP,
+    { error: `Number must have at most ${MAX_BODY_DECIMALS} decimals` }
+  ),
 });
 
 export interface ProfileFormProps {
@@ -501,7 +520,7 @@ function AgeWheel({
   return (
     <Picker
       onValueChange={setAge}
-      options={range(4, 150).map((i) => ({
+      options={range(MIN_AGE, MAX_AGE).map((i) => ({
         label: `${i}`,
         value: i,
       }))}

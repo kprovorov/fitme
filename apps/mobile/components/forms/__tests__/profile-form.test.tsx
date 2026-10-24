@@ -107,4 +107,57 @@ describe("ProfileForm", () => {
       weight: 80.5,
     });
   });
+
+  it.each([
+    [
+      "an age under the shared minimum",
+      { age: 9 },
+      "Number must be greater than or equal to 10",
+    ],
+    [
+      "an age over the shared maximum",
+      { age: 121 },
+      "Number must be less than or equal to 120",
+    ],
+    [
+      "a height over the shared maximum",
+      { height: 300.5 },
+      "Number must be less than or equal to 300",
+    ],
+    [
+      "a weight over the shared maximum",
+      { weight: 1000.5 },
+      "Number must be less than or equal to 1000",
+    ],
+    [
+      "a weight with more than 2 decimals",
+      { weight: 80.125 },
+      "Number must have at most 2 decimals",
+    ],
+  ])("refuses %s", async (_name, value, message) => {
+    const onSubmit = await renderForm({
+      defaultValues: {
+        age: 30,
+        gender: "female",
+        height: 170,
+        weight: 60,
+        ...value,
+      },
+    });
+
+    await submit();
+
+    expect(await screen.findByText(message)).toBeTruthy();
+    expect(onSubmit).not.toHaveBeenCalled();
+  });
+
+  it("takes the shared bounds themselves", async () => {
+    const onSubmit = await renderForm({
+      defaultValues: { age: 120, gender: "male", height: 300, weight: 999.99 },
+    });
+
+    await submit();
+
+    expect(onSubmit).toHaveBeenCalledTimes(1);
+  });
 });
