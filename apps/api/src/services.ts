@@ -146,6 +146,7 @@ export interface UserServices {
   startWorkoutSession: (
     workoutId: string
   ) => Promise<Weighed<StartWorkoutSessionResult>>;
+  /**
    * Changes only the given metadata fields of a live Plan of the User; its
    * Workouts and their ids stay. The Plan in full, or `null` with nothing
    * changed (missing, deleted, foreign).
@@ -204,10 +205,11 @@ export const createServicesFromEnv: ServicesFactory = (userId) => {
     // Activated and read back in one transaction, so the answer is the Plan
     // this request activated.
     activatePlan: (planId) =>
-      weighed(async (tx) =>
-        (await activatePlan(tx, userId, planId))
-          ? getPlan(tx, userId, planId)
-          : null,
+      weighed(
+        async (tx) =>
+          (await activatePlan(tx, userId, planId))
+            ? getPlan(tx, userId, planId)
+            : null,
         write
       ),
     createPlan: (plan, options) =>
