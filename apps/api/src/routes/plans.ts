@@ -346,6 +346,7 @@ const createPlanRoute = createRoute({
     ),
     401: unauthorizedResponse,
     415: errorResponse("The body isn't `application/json`"),
+    429: rateLimitedResponse,
     503: errorResponse(
       "`exercise_library_unavailable`: the Exercise slugs couldn't be checked; nothing was saved, try again"
     ),
