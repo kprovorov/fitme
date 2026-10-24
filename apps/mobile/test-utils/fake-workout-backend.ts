@@ -68,15 +68,31 @@ export interface SeedExercise {
   slug?: string;
 }
 
+/** A Workout Exercise set's targets. */
+export interface SeedPlanSet {
+  reps_recommended: number;
+  rest_recommended: number;
+  weight_recommended: number;
+}
+
 export interface SeedPlan {
   id: string;
+  /** Whether it's the User's active Plan; `false` unless given. */
+  is_active?: boolean;
   name: string;
   workouts: Array<{
-    exercises: Array<{ sets: number; slug: string }>;
+    /** A number of sets at 10 reps, 90 s rest and no weight, or each set. */
+    exercises: Array<{ sets: number | SeedPlanSet[]; slug: string }>;
     id: string;
     name: string;
   }>;
 }
+
+const DEFAULT_PLAN_SET: SeedPlanSet = {
+  reps_recommended: 10,
+  rest_recommended: 90,
+  weight_recommended: 0,
+};
 
 export interface SeedSession {
   exercises: SeedExercise[];
@@ -254,21 +270,23 @@ class FakeWorkoutBackend {
     }
   }
 
-  nestedPlan({ id, name, workouts }: SeedPlan) {
+  nestedPlan({ id, is_active = false, name, workouts }: SeedPlan) {
     return {
       id,
+      is_active,
       name,
       workouts: workouts.map((workout, workoutIndex) => ({
         exercises: workout.exercises.map(({ sets, slug }, exerciseIndex) => ({
           exercise_slug: slug,
           id: `${workout.id}-e${exerciseIndex + 1}`,
           order: exerciseIndex + 1,
-          sets: Array.from({ length: sets }, (_, setIndex) => ({
+          sets: (typeof sets === "number"
+            ? Array.from({ length: sets }, () => DEFAULT_PLAN_SET)
+            : sets
+          ).map((set, setIndex) => ({
+            ...set,
             id: `${workout.id}-e${exerciseIndex + 1}-s${setIndex + 1}`,
             order: setIndex + 1,
-            reps_recommended: 10,
-            rest_recommended: 90,
-            weight_recommended: 0,
           })),
           workout_id: workout.id,
         })),
@@ -350,6 +368,11 @@ class FakeQuery {
     return this;
   }
 
+  is(column: string, value: unknown) {
+    this.filters[column] = value;
+    return this;
+  }
+
   order() {
     return this;
   }
@@ -383,6 +406,12 @@ class FakeQuery {
       case "profiles.select":
         return backend.profile(this.filters.user_id as string) ?? null;
       case "plans.select":
+        if (this.filters.id === undefined) {
+          // Every Plan, newest first (the fake keeps no deleted ones).
+          return [...backend.plans]
+            .reverse()
+            .map((plan) => backend.nestedPlan(plan));
+        }
         return backend.nestedPlan(
           requireRow(
             backend.plans.find(({ id }) => id === this.filters.id),
