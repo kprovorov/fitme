@@ -1,0 +1,60 @@
+# gitleaks config: the pre-commit hook (.husky/pre-commit) and the `secrets`
+# job in .github/workflows/unit-tests.yml both read it. It runs gitleaks'
+# default rules and allowlists the known false positives, by path or by the
+# exact made-up value, never by commit. Add a new false positive the same way.
+
+title = "fitme"
+
+[extend]
+useDefault = true
+
+[[allowlists]]
+description = "Vendored agent skills: third-party docs with placeholder keys and example tokens"
+paths = ['''^\.agents/skills/''']
+
+[[allowlists]]
+description = "The Supabase CLI's well-known local demo JWTs (iss supabase-demo), e.g. the E2E build's local anon key"
+regexTarget = "match"
+regexes = ['''eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9\.eyJpc3MiOiJzdXBhYmFzZS1kZW1vIi[A-Za-z0-9_-]*\.[A-Za-z0-9_-]+''']
+
+[[allowlists]]
+description = "Made-up secrets in unit tests"
+regexTarget = "match"
+regexes = [
+  # apps/coach/test/pro-access.test.ts
+  '''sk_test_revenuecat''',
+  # apps/webhooks tests (and the removed clerk-webhook edge function's)
+  '''whsec_MfKQ9r8GKYqrTwjUPD8ILPZIo2LaLaSw''',
+  '''whsec_c2lnbmVkIGJ5IHNvbWVvbmUgZWxzZQ==''',
+]
+
+# The default rules only catch a password literal by entropy, and skip one made
+# of dictionary words (its stopwords). A test User's password typed into source
+# (a temporary sign-in helper, FIT-275) fails the scan whatever it looks like.
+[[rules]]
+id = "password-literal"
+description = "A password as a string literal"
+regex = '''(?i)\b(?:[a-z0-9_]*pass(?:word|wd)|(?:[a-z0-9]+_)*(?:pass|pwd))\b["']?\s*(?::|=|=>|\?\?|\|\|)\s*["'`]([^"'`\n]{8,})["'`]'''
+secretGroup = 1
+keywords = ["pass", "pwd"]
+
+# Made-up passwords: unit and integration tests, the Maestro flows' throwaway
+# `+clerk_test` Users on the Clerk development instance, the local stack's
+# development-only logins. Only this rule skips them: the default rules still
+# scan these files.
+[[rules.allowlists]]
+paths = [
+  '''(?:^|/)__tests__/''',
+  '''\.test\.tsx?$''',
+  '''^(?:apps|packages)/[^/]+/integration/''',
+  '''^apps/mobile/e2e/''',
+]
+
+[[rules.allowlists]]
+regexTarget = "match"
+regexes = ['''not-a-bcrypt-digest''']
+
+# A reference, not a value: Supabase config's `env(NAME)`, a shell `$NAME`, a
+# template literal's `${…}`.
+[[rules.allowlists]]
+regexes = ['''^env\([A-Z0-9_]+\)$''', '''^\$[A-Za-z_][A-Za-z0-9_]*$''', '''\$\{''']

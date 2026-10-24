@@ -11,6 +11,11 @@ cd "$worktree"
 
 pnpm install
 
+# The git hooks (.husky/pre-commit: the secret scan, lint-staged). `pnpm install`
+# doesn't always leave `.husky/_` in a new worktree (FIT-275's had none), and
+# without it git runs no hook at all.
+pnpm exec husky
+
 # The browser the web and site screenshot loop drives through the root
 # `playwright` devDependency. Cached outside the worktree, so after the first
 # worktree this is a no-op. Not fatal: only the screenshot loop needs it.
