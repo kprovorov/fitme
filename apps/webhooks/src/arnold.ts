@@ -15,7 +15,8 @@ const RESET_BATCH_SIZE = 5;
  * first caller with the id claim it and read it, while one owned by the
  * retired id fails closed. Any failed reset throws (the first error as the
  * cause) so the webhook answers 500 and Clerk retries; resetting a session
- * again is harmless. A User with no recorded sessions needs no call to Arnold at all.
+ * again is harmless. A User with no recorded sessions needs no call to
+ * Arnold at all.
  */
 export const deleteArnoldConversations =
   ({ listSessionIds, resetSession }: ArnoldConversationDeps) =>
@@ -57,8 +58,8 @@ interface ArnoldSessionResetterOptions {
 export const arnoldResetConfig = (
   env: Record<string, string | undefined>
 ): Pick<ArnoldSessionResetterOptions, "arnoldUrl" | "secret"> => ({
-  arnoldUrl: env.ARNOLD_URL || env.COACH_URL || undefined,
-  secret: env.ARNOLD_RESET_SECRET || env.COACH_RESET_SECRET || undefined,
+  arnoldUrl: env.ARNOLD_URL || env.COACH_URL,
+  secret: env.ARNOLD_RESET_SECRET || env.COACH_RESET_SECRET,
 });
 
 const RESET_TIMEOUT_MS = 20_000;
