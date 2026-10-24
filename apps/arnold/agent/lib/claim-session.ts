@@ -1,8 +1,8 @@
 import { asUser, withService } from "@fitme/db";
 import {
-  getCoachSessionOwner,
-  recordCoachSession,
-} from "@fitme/services/coach-sessions";
+  getArnoldSessionOwner,
+  recordArnoldSession,
+} from "@fitme/services/arnold-sessions";
 import type { ClaimSession } from "./clerk-auth";
 
 /**
@@ -11,6 +11,6 @@ import type { ClaimSession } from "./clerk-auth";
  * it isn't theirs, RLS would hide the row).
  */
 export const claimSession: ClaimSession = async (sessionId, userId) => {
-  await asUser(userId, (tx) => recordCoachSession(tx, userId, sessionId));
-  return await withService((tx) => getCoachSessionOwner(tx, sessionId));
+  await asUser(userId, (tx) => recordArnoldSession(tx, userId, sessionId));
+  return await withService((tx) => getArnoldSessionOwner(tx, sessionId));
 };

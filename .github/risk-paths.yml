@@ -17,11 +17,11 @@ high:
   - packages/supabase/supabase/local-only-signing-keys.json
   # GitHub: workflows, the Risk Path list, the API contract allowlist
   - .github/**
-  # Database doors, account deletion, Coach session ownership
+  # Database doors, account deletion, Arnold session ownership
   - packages/db/src/index.ts
   - packages/db/src/client.ts
   - packages/services/src/delete-user-data.ts
-  - packages/services/src/coach-sessions.ts
+  - packages/services/src/arnold-sessions.ts
   # Mobile store config and auth, session, payments
   - apps/mobile/app.json
   - apps/mobile/eas.json

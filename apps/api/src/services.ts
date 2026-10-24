@@ -53,7 +53,7 @@ import { sql } from "drizzle-orm";
 
 /**
  * The User tables a write may touch, in deleteUserData's lock order (its
- * LOCKED_TABLES, without coach_sessions).
+ * LOCKED_TABLES, without arnold_sessions).
  */
 const USER_TABLES = sql.join(
   [

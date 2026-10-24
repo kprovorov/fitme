@@ -9,7 +9,7 @@ export type Json =
 export interface Database {
   public: {
     Tables: {
-      coach_sessions: {
+      arnold_sessions: {
         Row: {
           created_at: string;
           session_id: string;

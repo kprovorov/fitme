@@ -1,6 +1,6 @@
 import { withService } from "@fitme/db";
 import { observeHono, reportError } from "@fitme/observability/node";
-import { listCoachSessionIds } from "@fitme/services/coach-sessions";
+import { listArnoldSessionIds } from "@fitme/services/arnold-sessions";
 import { deleteUserData } from "@fitme/services/delete-user-data";
 import { Hono } from "hono";
 import { HTTPException } from "hono/http-exception";
@@ -16,14 +16,14 @@ export interface AppDeps {
 
 /**
  * The real dependencies: the database through withService, the Coach,
- * @fitme/observability, env. The Coach session ids are read in withService:
+ * @fitme/observability, env. The Arnold session ids are read in withService:
  * by then the User's id is retired, so asUser would see none.
  */
 const defaultDeps = (): AppDeps => ({
   clerk: {
     deleteCoachConversations: deleteCoachConversations({
       listSessionIds: (userId) =>
-        withService((tx) => listCoachSessionIds(tx, userId)),
+        withService((tx) => listArnoldSessionIds(tx, userId)),
       resetSession: coachSessionResetter({
         coachUrl: process.env.COACH_URL,
         secret: process.env.COACH_RESET_SECRET,

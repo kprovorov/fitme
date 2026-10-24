@@ -688,7 +688,7 @@ describe("edits during account deletion", () => {
       await tx.execute(sql`
         lock table profiles, plans, workout_sessions, workouts,
           workout_exercises, workout_exercise_sets, workout_session_exercises,
-          workout_session_exercise_sets, coach_sessions
+          workout_session_exercise_sets, arnold_sessions
         in share row exclusive mode
       `);
       edit = asUser(leaver, (editTx) =>

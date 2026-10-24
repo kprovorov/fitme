@@ -20,7 +20,7 @@ select is(
     order by 1
   ),
   array[
-    'coach_sessions',
+    'arnold_sessions',
     'plans',
     'profiles',
     'workout_exercise_sets',
@@ -42,7 +42,7 @@ select is_empty(
   'anon, authenticated and service_role can use the public schema'
 );
 
--- Every table but coach_sessions, which narrows its own grants.
+-- Every table but arnold_sessions, which narrows its own grants.
 select is_empty(
   $$
     select c.relname, r.role, p.privilege
@@ -53,23 +53,23 @@ select is_empty(
     ]) as p(privilege)
     where c.relnamespace = 'public'::regnamespace
       and c.relkind in ('r', 'p')
-      and c.relname <> 'coach_sessions'
+      and c.relname <> 'arnold_sessions'
       and not has_table_privilege(r.role, c.oid, p.privilege)
   $$,
   'anon, authenticated and service_role hold every privilege on the app tables'
 );
 
--- coach_sessions (20261014160000_coach_sessions.sql): a User reads and
+-- arnold_sessions (20261014160000_arnold_sessions.sql): a User reads and
 -- records their own sessions, anon nothing.
 select is_empty(
   $$
     select acl.privilege_type
     from pg_catalog.pg_class c
     cross join lateral aclexplode(c.relacl) acl
-    where c.oid = 'public.coach_sessions'::regclass
+    where c.oid = 'public.arnold_sessions'::regclass
       and acl.grantee = 'anon'::regrole
   $$,
-  'anon has no grants on coach_sessions'
+  'anon has no grants on arnold_sessions'
 );
 
 select is(
@@ -77,12 +77,12 @@ select is(
     select acl.privilege_type::text
     from pg_catalog.pg_class c
     cross join lateral aclexplode(c.relacl) acl
-    where c.oid = 'public.coach_sessions'::regclass
+    where c.oid = 'public.arnold_sessions'::regclass
       and acl.grantee = 'authenticated'::regrole
     order by 1
   ),
   array['INSERT', 'SELECT'],
-  'authenticated can only read and insert coach_sessions'
+  'authenticated can only read and insert arnold_sessions'
 );
 
 select is_empty(
@@ -91,9 +91,9 @@ select is_empty(
     from unnest(array[
       'select', 'insert', 'update', 'delete', 'truncate', 'references', 'trigger'
     ]) as p(privilege)
-    where not has_table_privilege('service_role', 'public.coach_sessions', p.privilege)
+    where not has_table_privilege('service_role', 'public.arnold_sessions', p.privilege)
   $$,
-  'service_role holds every privilege on coach_sessions'
+  'service_role holds every privilege on arnold_sessions'
 );
 
 select * from finish();
