@@ -67,6 +67,10 @@ const DEFAULT_PLAN_NAME = "Workout plan";
 
 const REPS_RE = /^\d+/;
 
+// The card is the Coach's tool output, from any Conversation however old, so
+// the helpers below take its fields as `unknown`: a missing or malformed one
+// gets the default rather than failing the save.
+
 /** `value` rounded to an integer within `min`–`max`; `fallback` if it isn't a number. */
 const fitInteger = (
   value: unknown,
@@ -97,23 +101,19 @@ const nameOf = (name: unknown, fallback: string) => {
 const textOf = (text: unknown) =>
   (typeof text === "string" ? text : "").slice(0, MAX_PLAN_TEXT_LENGTH);
 
-/**
- * Whether a card can be saved: every Exercise has a slug (a card from before
- * slugs can't be saved) and some Workout has an Exercise.
- */
-export const canSavePlanCard = (plan: WorkoutPlan) => {
-  const exercises = plan.workouts.flatMap((workout) => workout.exercises);
-  return (
-    exercises.length > 0 &&
-    exercises.every((exercise) => !!exercise.exercise_slug)
-  );
-};
-
 /** Whether some Exercise of the card has no slug. */
 export const hasExercisesWithoutSlugs = (plan: WorkoutPlan) =>
   plan.workouts.some((workout) =>
     workout.exercises.some((exercise) => !exercise.exercise_slug)
   );
+
+/**
+ * Whether a card can be saved: every Exercise has a slug (a card from before
+ * slugs can't be saved) and some Workout has an Exercise.
+ */
+export const canSavePlanCard = (plan: WorkoutPlan) =>
+  plan.workouts.some((workout) => workout.exercises.length > 0) &&
+  !hasExercisesWithoutSlugs(plan);
 
 /**
  * The `POST /v1/plans` body for a card, fitted into the Public API's bounds
@@ -146,6 +146,7 @@ export const planCardBody = (plan: WorkoutPlan): NewPlan | null => {
             weight_recommended: 0,
           };
           return {
+            // Never empty: `canSavePlanCard` refuses a card without slugs.
             exercise_slug: exercise.exercise_slug ?? "",
             sets: Array.from(
               {

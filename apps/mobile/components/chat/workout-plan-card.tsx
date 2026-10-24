@@ -1,4 +1,3 @@
-import { useQueryClient } from "@tanstack/react-query";
 import { router } from "expo-router";
 import { useCallback, useState } from "react";
 import { Pressable, Text, View } from "react-native";
@@ -6,6 +5,7 @@ import Animated, { FadeIn } from "react-native-reanimated";
 import type { SFSymbol } from "sf-symbols-typescript";
 import { SymbolImage } from "@/components/symbol-image";
 import { Button } from "@/components/ui/button";
+import { ErrorMessage } from "@/components/ui/error-message";
 import { Text as UIText } from "@/components/ui/text";
 import {
   type ShownExercise,
@@ -151,7 +151,6 @@ function WorkoutDaySection({
 
 export function WorkoutPlanCard({ plan }: { plan: WorkoutPlan }) {
   const [saved, setSaved] = useState(false);
-  const queryClient = useQueryClient();
   const {
     error: saveError,
     isPending: isSaving,
@@ -166,13 +165,8 @@ export function WorkoutPlanCard({ plan }: { plan: WorkoutPlan }) {
     if (!body) {
       return;
     }
-    createPlan(body, {
-      onSuccess: () => {
-        queryClient.invalidateQueries({ queryKey: ["plans"] });
-        setSaved(true);
-      },
-    });
-  }, [createPlan, plan, queryClient]);
+    createPlan(body, { onSuccess: () => setSaved(true) });
+  }, [createPlan, plan]);
 
   const placeIcon: SFSymbol = plan.place === "home" ? "house" : "building.2";
   const placeLabel = plan.place === "home" ? "Home" : "Gym";
@@ -220,11 +214,9 @@ export function WorkoutPlanCard({ plan }: { plan: WorkoutPlan }) {
           </View>
         )}
         {saveError && !saved ? (
-          <View className="mb-3 rounded-xl bg-destructive/10 px-3 py-2.5">
-            <UIText className="text-destructive text-footnote">
-              {saveErrorMessage(saveError)}
-            </UIText>
-          </View>
+          <ErrorMessage className="mb-3">
+            {saveErrorMessage(saveError)}
+          </ErrorMessage>
         ) : null}
         <Button
           disabled={saved || !canSave}

@@ -56,7 +56,7 @@ export const usePlanQuery = createQuery<Plan, PlanQueryVariables>({
 /**
  * Saves a Plan through `POST /v1/plans` and makes it the active one, in one
  * transaction: nothing is saved unless all of it is. Fires `Plan Saved` and
- * `Plan Activated` once it has. Answers the new Plan's id; rejects with an
+ * `Plan Activated` once it has, and refetches the Plan lists. Answers the new Plan's id; rejects with an
  * `ApiError` (`unknown_exercises`, `exercise_library_unavailable`, …).
  */
 export const useCreatePlanMutation = createMutation<string, NewPlan>({
@@ -74,6 +74,9 @@ export const useCreatePlanMutation = createMutation<string, NewPlan>({
     }
     return id;
   },
+  // On the mutation, not the call: it still runs once the card is gone.
+  onSuccess: (_id, _plan, _result, { client }) =>
+    client.invalidateQueries({ queryKey: ["plans"] }),
 });
 
 export const useActivatePlanMutation = createMutation<Plan, { id: string }>({
