@@ -16,6 +16,7 @@ import { RadioGroup } from "~/components/ui/radio-group";
 import { VStack } from "~/components/ui/vstack";
 import { useProfileQuery } from "~/hooks/queries/profiles";
 import { useUpdateMeasurementSystemMutation } from "~/hooks/queries/settings";
+import { rateLimitedFor } from "~/lib/api/client";
 
 const MEASUREMENT_SYSTEM_OPTIONS = measurementSystems.map((system) => ({
   label: getMeasurementSystemLabel(system),
@@ -61,7 +62,10 @@ export default function MeasurementSystemScreen() {
   const { mutate: updateMeasurementSystem } =
     useUpdateMeasurementSystemMutation({
       onError: (error) => {
-        Sentry.captureException(error);
+        // Too many requests is the User's to wait out, not a bug.
+        if (rateLimitedFor(error) === null) {
+          Sentry.captureException(error);
+        }
       },
       // A failed call doesn't prove nothing changed (the response can be lost
       // after the conversion commits), and the cached Profile's height and
@@ -92,9 +96,12 @@ export default function MeasurementSystemScreen() {
             "Check your connection, then try again to see which system is saved."
           );
         } else if (error && saved !== system) {
+          const waitSeconds = rateLimitedFor(error);
           Alert.alert(
             "Couldn't Change Units",
-            "Your measurements weren't changed. Please try again."
+            waitSeconds === null
+              ? "Your measurements weren't changed. Please try again."
+              : `Your measurements weren't changed. Too many requests: please try again in ${waitSeconds} s.`
           );
         }
       },

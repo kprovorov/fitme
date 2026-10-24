@@ -1,10 +1,12 @@
 import { libraryExercise } from "./fake-exercise-library";
 
 /**
- * In-memory stand-in for the Supabase client, covering the Plan read and the
- * workout session queries and mutations the session screens make. Rows live in plain arrays
- * and every request resolves asynchronously, like the network would, so
- * screens refetch, race and fail the way they do against a real backend.
+ * In-memory stand-in for the Supabase client, covering the Profile and Plan
+ * reads and the workout session queries and mutations the session screens
+ * make. The fake Public API (`fake-public-api.ts`) answers over the same rows,
+ * so a write through it shows in the next Supabase read. Rows live in plain
+ * arrays and every request resolves asynchronously, like the network would,
+ * so screens refetch, race and fail the way they do against a real backend.
  */
 
 interface SessionRow {
@@ -14,6 +16,15 @@ interface SessionRow {
   started_at: string;
   workout_id: string | null;
   workoutName: string;
+}
+
+export interface ProfileRow {
+  age: number;
+  gender: string;
+  height: number;
+  measurement_system: string;
+  user_id: string;
+  weight: number;
 }
 
 interface ExerciseRow {
@@ -83,6 +94,7 @@ export const libraryExerciseNamed = (name: string) =>
   libraryExercise(slugOf(name), { name });
 
 class FakeWorkoutBackend {
+  profiles: ProfileRow[] = [];
   plans: SeedPlan[] = [];
   sessions: SessionRow[] = [];
   exercises: ExerciseRow[] = [];
@@ -97,6 +109,7 @@ class FakeWorkoutBackend {
   private nextId = 1;
 
   reset() {
+    this.profiles = [];
     this.plans = [];
     this.sessions = [];
     this.exercises = [];
@@ -150,6 +163,23 @@ class FakeWorkoutBackend {
         });
       });
     });
+  }
+
+  /** Adds a Profile (metric, unless `overrides` say otherwise). */
+  seedProfile(userId: string, overrides: Partial<ProfileRow> = {}) {
+    this.profiles.push({
+      age: 30,
+      gender: "female",
+      height: 170,
+      measurement_system: "metric",
+      user_id: userId,
+      weight: 60,
+      ...overrides,
+    });
+  }
+
+  profile(userId: string) {
+    return this.profiles.find((profile) => profile.user_id === userId);
   }
 
   /** Adds a Plan; its Workout Exercises get ids `<workout>-e<n>`. */
@@ -328,6 +358,10 @@ class FakeQuery {
     return this;
   }
 
+  maybeSingle() {
+    return this.single();
+  }
+
   single() {
     return backend.execute(
       { operation: this.operation, table: this.table },
@@ -346,6 +380,8 @@ class FakeQuery {
   private run(): unknown {
     const key = `${this.table}.${this.operation}`;
     switch (key) {
+      case "profiles.select":
+        return backend.profile(this.filters.user_id as string) ?? null;
       case "plans.select":
         return backend.nestedPlan(
           requireRow(

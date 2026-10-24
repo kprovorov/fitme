@@ -4,6 +4,7 @@
   "main": "expo-router/entry",
   "scripts": {
     "android": "expo run:android",
+    "api:types": "openapi-typescript ../api/openapi.json --output lib/api/schema.ts && biome check --write --unsafe lib/api/schema.ts",
     "dev": "expo start",
     "ios": "expo run:ios",
     "lint": "expo lint",
@@ -95,6 +96,7 @@
     "mdast-util-from-markdown": "2.1.0",
     "mdast-util-gfm-table": "2.0.0",
     "micromark-extension-gfm-table": "2.1.2",
+    "openapi-fetch": "0.17.0",
     "react": "19.3.0",
     "react-dom": "19.3.0",
     "react-hook-form": "7.90.0",
@@ -137,6 +139,7 @@
     "expo-mcp": "0.2.4",
     "jest": "30.5.2",
     "jest-expo": "58.0.11",
+    "openapi-typescript": "7.13.0",
     "react-query-external-sync": "2.2.3",
     "sf-symbols-typescript": "2.2.0",
     "socket.io-client": "4.8.4",
