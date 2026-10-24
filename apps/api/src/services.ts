@@ -24,9 +24,17 @@ import {
   updateProfile,
 } from "@fitme/services/profile";
 import {
+  deleteWorkoutSession,
+  type FinishWorkoutSessionResult,
+  finishWorkoutSession,
   getWorkoutSession,
   type ListWorkoutSessionsOptions,
+  type LogSetInput,
+  type LogSetResult,
   listWorkoutSessions,
+  logSet,
+  type StartWorkoutSessionResult,
+  startWorkoutSession,
   type WorkoutSessionDetail,
   type WorkoutSessionPage,
 } from "@fitme/services/workout-sessions";
@@ -67,6 +75,15 @@ export interface UserServices {
    * deleted answers `alreadyDeleted`, and `null` means the User never had it.
    */
   deletePlan: (planId: string) => Promise<DeletedPlan | null>;
+  /** Deletes one of the User's Workout Sessions; false when none matched. */
+  deleteWorkoutSession: (sessionId: string) => Promise<boolean>;
+  /**
+   * Finishes one of the User's Workout Sessions and moves its Workout to the
+   * end of the Plan's rotation; a repeat changes nothing (`alreadyFinished`).
+   */
+  finishWorkoutSession: (
+    sessionId: string
+  ) => Promise<Weighed<FinishWorkoutSessionResult>>;
   /** The active Plan in full, or `null` with none. */
   getActivePlan: () => Promise<Weighed<PlanDetail> | null>;
   /** A live Plan of the User in full, or `null` (missing, deleted, foreign). */
@@ -80,6 +97,8 @@ export interface UserServices {
   listWorkoutSessions: (
     options: ListWorkoutSessionsOptions
   ) => Promise<WorkoutSessionPage>;
+  /** Logs one set of the User's open Workout Session, its weight in the User's unit. */
+  logSet: (input: LogSetInput) => Promise<Weighed<LogSetResult>>;
   /**
    * Replaces every Workout of a live Plan of the User, in rotation order (new
    * ids; metadata and active state stay); the Plan in full, or `null` with
@@ -91,6 +110,12 @@ export interface UserServices {
     workouts: PlanWorkoutInput[]
   ) => Promise<Weighed<PlanDetail> | null>;
   /**
+   * Starts a Workout Session for one of the User's Workouts (of a live Plan),
+   * or resumes the one already open for it (`resumed`).
+   */
+  startWorkoutSession: (
+    workoutId: string
+  ) => Promise<Weighed<StartWorkoutSessionResult>>;
    * Changes only the given metadata fields of a live Plan of the User; its
    * Workouts and their ids stay. The Plan in full, or `null` with nothing
    * changed (missing, deleted, foreign).
@@ -141,6 +166,10 @@ export const createServicesFromEnv: ServicesFactory = (userId) => {
       inUnits((tx) => createPlan(tx, userId, plan, options)),
     deletePlan: (planId) =>
       asUser(userId, (tx) => deletePlan(tx, userId, planId)),
+    deleteWorkoutSession: (sessionId) =>
+      asUser(userId, (tx) => deleteWorkoutSession(tx, sessionId)),
+    finishWorkoutSession: (sessionId) =>
+      inUnits((tx) => finishWorkoutSession(tx, sessionId)),
     getActivePlan: () => weighed((tx) => getActivePlan(tx, userId)),
     getPlan: (planId) => weighed((tx) => getPlan(tx, userId, planId)),
     getProfile: () => asUser(userId, (tx) => getProfile(tx, userId)),
@@ -149,8 +178,11 @@ export const createServicesFromEnv: ServicesFactory = (userId) => {
     listPlans: () => asUser(userId, (tx) => listPlans(tx, userId)),
     listWorkoutSessions: (options) =>
       asUser(userId, (tx) => listWorkoutSessions(tx, options)),
+    logSet: (input) => inUnits((tx) => logSet(tx, input)),
     replaceWorkouts: (planId, workouts) =>
       weighed((tx) => updatePlan(tx, userId, planId, { workouts })),
+    startWorkoutSession: (workoutId) =>
+      inUnits((tx) => startWorkoutSession(tx, workoutId)),
     // Metadata only: never `workouts`, so Workout ids stay.
     updatePlan: (planId, changes) =>
       weighed((tx) => updatePlan(tx, userId, planId, changes)),

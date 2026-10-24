@@ -1,4 +1,5 @@
 import { muscleGroups } from "@fitme/core";
+import { MAX_WEIGHT_DECIMALS } from "@fitme/core/limits";
 import { type Hook, z } from "@hono/zod-openapi";
 import type { Env } from "hono";
 
@@ -66,6 +67,15 @@ export const invalidRequestResponse = {
 export const WeightUnit = z.enum(["kg", "lbs"]).openapi("WeightUnit", {
   description:
     "The unit of every weight in the response: `kg` (metric) or `lbs` (us, uk). Weights are as stored, never converted",
+});
+
+/** The smallest weight step a write accepts: at most `MAX_WEIGHT_DECIMALS` decimals. */
+export const WEIGHT_STEP = 10 ** -MAX_WEIGHT_DECIMALS;
+
+/** An error a route answers on purpose (unreported), in the error shape. */
+export const errorResponse = (description: string) => ({
+  content: { "application/json": { schema: ErrorResponse } },
+  description,
 });
 
 /** Every User-data route answers 429 once the User is over their limit (`rateLimitCallers`). */

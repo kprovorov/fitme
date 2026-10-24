@@ -1,15 +1,16 @@
 import { experienceLevels, goals, places } from "@fitme/core";
-import { MAX_REPS, MAX_WEIGHT, MAX_WEIGHT_DECIMALS } from "@fitme/core/limits";
+import { MAX_REPS, MAX_WEIGHT } from "@fitme/core/limits";
 import type { PlanDetail } from "@fitme/services/plans";
 import { createRoute, OpenAPIHono, z } from "@hono/zod-openapi";
 import { type ApiEnv, bearerSecurity, requires } from "../auth.js";
 import { checkExerciseSlugs, type SlugCheck } from "../exercise-library.js";
 import {
-  ErrorResponse,
+  errorResponse,
   Id,
   invalidRequest,
   rateLimitedResponse,
   unauthorizedResponse,
+  WEIGHT_STEP,
   WeightUnit,
 } from "../schemas.js";
 import type { Weighed } from "../services.js";
@@ -54,12 +55,6 @@ const planColumns = {
 const rotationOrder = z.number().int().openapi({
   description: "Position in the rotation: 1 is up next",
   example: 1,
-});
-
-/** An error answered on purpose (unreported), in the error shape. */
-const errorResponse = (description: string) => ({
-  content: { "application/json": { schema: ErrorResponse } },
-  description,
 });
 
 const WorkoutSummary = z
@@ -225,8 +220,6 @@ const MAX_WORKOUT_DURATION_MINUTES = 600;
 const MAX_SLUG_LENGTH = 100;
 /** Lowercase letters and digits, words joined by single hyphens (apps/exercises' rule). */
 const EXERCISE_SLUG = /^[a-z0-9]+(-[a-z0-9]+)*$/;
-const WEIGHT_STEP = 10 ** -MAX_WEIGHT_DECIMALS;
-
 const NewPlanSet = z
   .strictObject({
     reps_recommended: z.number().int().min(1).max(MAX_REPS).openapi({
