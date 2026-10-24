@@ -10,6 +10,7 @@ const FD_NUMBER = /^\d+$/;
 const LEADING_TABS = /^\t+/;
 const WHITESPACE = new Set([" ", "\t"]);
 const QUOTES = new Set(["'", '"', "`"]);
+const AND_OR_PIPE = new Set(["&&", "||", "|"]);
 const DELIMITER_END = new Set([
   " ",
   "\t",
@@ -287,7 +288,14 @@ class Lexer {
   }
 
   newline() {
-    this.operator("\n", 1);
+    this.flush();
+    const last = this.tokens.at(-1);
+    if (last?.type === "operator" && AND_OR_PIPE.has(last.value)) {
+      // A newline after `&&`, `||` or `|` continues the list.
+      this.index += 1;
+    } else {
+      this.operator("\n", 1);
+    }
     for (const heredoc of this.heredocs.splice(0)) {
       this.index = skipHeredocBody(this.source, this.index, heredoc);
     }
@@ -320,13 +328,12 @@ class Lexer {
       this.flush();
       this.index += this.source[this.index + 2] === ">" ? 3 : 2;
       this.next = NEXT.skip;
-    } else if (char === following && char !== ";") {
+    } else if (char === following) {
+      // `&&`, `||`, or `;;` ending a case branch.
       this.operator(char + char, 2);
     } else {
-      // `|&` pipes like `|`, `;;` ends a case branch like `;`.
-      const twoCharacters =
-        (char === "|" && following === "&") || following === ";";
-      this.operator(char, twoCharacters ? 2 : 1);
+      // `|&` pipes like `|`.
+      this.operator(char, char === "|" && following === "&" ? 2 : 1);
     }
   }
 }
@@ -343,13 +350,12 @@ const OPENERS = new Map([
 ]);
 // Reserved words and prefixes after which the next word is still a command.
 const COMMAND_PREFIXES = new Set(["!", "do", "elif", "else", "then", "time"]);
-const AND_OR_PIPE = new Set(["&&", "||", "|"]);
 
 // Groups the tokens into simple commands, each with its words, the operator
 // right after it, and whether it runs in the background: a `&` backgrounds
 // the whole and-or list before it, compound commands (`while …; done &`,
 // `( … ) &`, `{ …; } &`) included. Function bodies never run, so they're
-// left out.
+// left out, and so are a `case`'s subject and patterns (`timeout) …;;`).
 class Parser {
   constructor() {
     this.frames = [this.frame(null, false)];
@@ -359,7 +365,18 @@ class Parser {
   }
 
   frame(closer, definition) {
-    return { closer, commands: [], definition, list: [] };
+    return {
+      // Where a `case` is: its "subject", a "pattern" or a branch "body".
+      casePart: closer === "esac" ? "subject" : null,
+      closer,
+      commands: [],
+      definition,
+      list: [],
+    };
+  }
+
+  get inCaseHeader() {
+    return this.top.casePart === "subject" || this.top.casePart === "pattern";
   }
 
   get top() {
@@ -384,7 +401,9 @@ class Parser {
   }
 
   word(value) {
-    if (this.words.length > 0) {
+    if (this.inCaseHeader) {
+      this.caseWord(value);
+    } else if (this.words.length > 0) {
       this.words.push(value);
     } else if (value === "function") {
       this.definesFunction = true;
@@ -397,7 +416,24 @@ class Parser {
     }
   }
 
+  caseWord(value) {
+    if (this.top.casePart === "subject" && value === "in") {
+      this.top.casePart = "pattern";
+    } else if (this.top.casePart === "pattern" && value === "esac") {
+      this.close();
+    }
+  }
+
   operator(value, following) {
+    if (this.inCaseHeader) {
+      if (value === ")" && this.top.casePart === "pattern") {
+        this.top.casePart = "body";
+      }
+      return;
+    }
+    if (value === ";;" && this.top.casePart === "body") {
+      this.top.casePart = "pattern";
+    }
     if (value === "(") {
       this.parenthesis(following);
       return;
@@ -467,12 +503,18 @@ const WRAPPERS = new Map([
   ["sudo", new Set(["-C", "-D", "-g", "-h", "-p", "-r", "-t", "-U", "-u"])],
 ]);
 
+const INTROSPECTION = new Set(["-V", "-v"]);
+
 const commandName = (word) => word.split("/").at(-1);
 
 // The words of the command a simple command runs, past its wrappers.
 const unwrap = (words) => {
   let index = 0;
   while (index < words.length && WRAPPERS.has(commandName(words[index]))) {
+    if (INTROSPECTION.has(words[index + 1])) {
+      // `command -v timeout` describes the command, never runs it.
+      return [];
+    }
     const valueOptions = WRAPPERS.get(commandName(words[index]));
     index += 1;
     while (
@@ -514,7 +556,18 @@ const VALUE_LONG_OPTIONS = new Set([
 ]);
 // `-9`, `-KILL`, `-SIGTERM`: pkill's signal, not an option.
 const SIGNAL = /^-(\d+|[A-Z]{2,}[A-Z0-9+-]*)$/;
-const BRACKET_TRICK = /\[[^\]]+\]/;
+
+// The shell running pkill / pgrep has the whole command in its own command
+// line, so a pattern matching that text (`ultracite`, `node.*[0-9]`) matches
+// the shell itself. The bracket trick (`[u]ltracite`) is safe because it
+// doesn't. A pattern JavaScript can't read as a regex is let through.
+const matchesItself = (pattern, line) => {
+  try {
+    return new RegExp(pattern).test(line);
+  } catch {
+    return false;
+  }
+};
 
 // One option word of pkill / pgrep: whether it asks for `-f`, and how many
 // of the following words it takes as its value.
@@ -595,15 +648,15 @@ const CHECKS = [
     rule: "cd",
   },
   {
-    breaks: ({ name, words }) => {
+    breaks: ({ line, name, words }) => {
       if (!PROCESS_MATCHERS.has(name)) {
         return false;
       }
       const { full, pattern } = processMatch(words);
-      return full && pattern !== undefined && !BRACKET_TRICK.test(pattern);
+      return full && pattern !== undefined && matchesItself(pattern, line);
     },
     reason:
-      "AGENTS.md Shell: `pkill -f` / `pgrep -f` match your own shell, whose command line holds the pattern: bracket a letter (`'[u]ltracite'`) or kill a saved PID.",
+      "AGENTS.md Shell: `pkill -f` / `pgrep -f` match your own shell, whose command line holds the pattern: bracket a letter (`'[u]ltracite'`) so the pattern can't match its own text, or kill a saved PID.",
     rule: "pkill",
   },
   {
@@ -653,6 +706,7 @@ export const findShellRuleViolations = (command, options = {}) => {
           {
             ...simple,
             background: simple.background || options.background === true,
+            line: command,
             name: commandName(words[0]),
             words,
           },

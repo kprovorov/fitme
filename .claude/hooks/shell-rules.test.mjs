@@ -258,3 +258,25 @@ describe("heredocs inside substitutions", () => {
     assert.deepEqual(rulesBroken(command), ["timeout"]);
   });
 });
+
+describe("self-matching patterns, introspection, continued lines and case patterns", () => {
+  for (const [command, rules] of [
+    ["pkill -f 'node.*[0-9]'", ["pkill"]],
+    ["pgrep -f 'v[i]test.*'", []],
+    ["command -v timeout", []],
+    ["command -V gtimeout || echo missing", []],
+    ["command timeout 5 x", ["timeout"]],
+    ["sleep 60 &&\necho done &", []],
+    ["sleep 60 |\ncat &", []],
+    ["sleep 60 &&\necho done", ["sleep"]],
+    ['case "$cmd" in a) echo a;; timeout) echo unavailable;; esac', []],
+    [
+      "case $x in\n  sleep|pkill) echo no ;;\n  *) timeout 5 y ;;\nesac",
+      ["timeout"],
+    ],
+  ]) {
+    test(`${JSON.stringify(command)} breaks ${JSON.stringify(rules)}`, () => {
+      assert.deepEqual(rulesBroken(command), rules);
+    });
+  }
+});
