@@ -5,7 +5,7 @@
   "description": "Business logic shared by the backend apps, run inside an asUser or withService transaction (ADR 0004).",
   "type": "module",
   "exports": {
-    "./coach-sessions": "./src/coach-sessions.ts",
+    "./arnold-sessions": "./src/arnold-sessions.ts",
     "./delete-user-data": "./src/delete-user-data.ts",
     "./exercises": "./src/exercises.ts",
     "./plans": "./src/plans.ts",

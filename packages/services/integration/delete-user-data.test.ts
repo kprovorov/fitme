@@ -1,7 +1,7 @@
 import { randomUUID } from "node:crypto";
 import {
+  arnoldSessions,
   asUser,
-  coachSessions,
   plans,
   profiles,
   retiredUserIdsInPrivate,
@@ -177,23 +177,23 @@ const rekey = async (tx: Transaction, oldId: string, newId: string) => {
 };
 
 /**
- * A recorded Coach session per User. Not part of seedUser: the rekey never
- * saw Coach sessions, which only exist for Clerk ids.
+ * A recorded Arnold session per User. Not part of seedUser: the rekey never
+ * saw Arnold sessions, which only exist for Clerk ids.
  */
-const coachSessionId = (userId: string) => `wrun_${userId}`;
+const arnoldSessionId = (userId: string) => `wrun_${userId}`;
 
-const recordCoachSessionFor = (userId: string) =>
+const recordArnoldSessionFor = (userId: string) =>
   withService((tx) =>
     tx
-      .insert(coachSessions)
-      .values({ sessionId: coachSessionId(userId), userId })
+      .insert(arnoldSessions)
+      .values({ sessionId: arnoldSessionId(userId), userId })
   );
 
-const coachSessionsLeft = (userId: string) =>
+const arnoldSessionsLeft = (userId: string) =>
   withService((tx) =>
     tx.$count(
-      coachSessions,
-      eq(coachSessions.sessionId, coachSessionId(userId))
+      arnoldSessions,
+      eq(arnoldSessions.sessionId, arnoldSessionId(userId))
     )
   );
 
@@ -211,8 +211,8 @@ let bystanderRows: OwnedRows;
 beforeAll(async () => {
   deletedRows = await seedUser(deleted);
   bystanderRows = await seedUser(bystander);
-  await recordCoachSessionFor(deleted);
-  await recordCoachSessionFor(bystander);
+  await recordArnoldSessionFor(deleted);
+  await recordArnoldSessionFor(bystander);
 });
 
 afterAll(async () => {
@@ -220,8 +220,8 @@ afterAll(async () => {
     await deleteUserData(tx, bystander);
     await deleteUserData(tx, rekeyed);
     await tx
-      .delete(coachSessions)
-      .where(inArray(coachSessions.userId, [deleted, bystander]));
+      .delete(arnoldSessions)
+      .where(inArray(arnoldSessions.userId, [deleted, bystander]));
   });
 });
 
@@ -234,21 +234,21 @@ describe("deleteUserData", () => {
     expect(await remaining(deletedRows)).toEqual(allRows(0));
   });
 
-  it("keeps the User's Coach session ids, so their EVE sessions stay theirs", async () => {
-    expect(await coachSessionsLeft(deleted)).toBe(1);
+  it("keeps the User's Arnold session ids, so their EVE sessions stay theirs", async () => {
+    expect(await arnoldSessionsLeft(deleted)).toBe(1);
     expect(
       await withService((tx) =>
         tx
-          .select({ userId: coachSessions.userId })
-          .from(coachSessions)
-          .where(eq(coachSessions.sessionId, coachSessionId(deleted)))
+          .select({ userId: arnoldSessions.userId })
+          .from(arnoldSessions)
+          .where(eq(arnoldSessions.sessionId, arnoldSessionId(deleted)))
       )
     ).toEqual([{ userId: deleted }]);
   });
 
   it("leaves another User's rows untouched", async () => {
     expect(await remaining(bystanderRows)).toEqual(allRows(1));
-    expect(await coachSessionsLeft(bystander)).toBe(1);
+    expect(await arnoldSessionsLeft(bystander)).toBe(1);
   });
 
   it("retires the id, so a later write as that User is refused", async () => {

@@ -20,8 +20,8 @@ import {
 
 export const privateSchema = pgSchema("private");
 
-export const coachSessions = pgTable(
-  "coach_sessions",
+export const arnoldSessions = pgTable(
+  "arnold_sessions",
   {
     createdAt: timestamp("created_at", { mode: "string", withTimezone: true })
       .defaultNow()
@@ -30,17 +30,17 @@ export const coachSessions = pgTable(
     userId: text("user_id").notNull(),
   },
   (table) => [
-    index("coach_sessions_user_id_idx").using(
+    index("arnold_sessions_user_id_idx").using(
       "btree",
       table.userId.asc().nullsLast().op("text_ops")
     ),
-    pgPolicy("coach_sessions_insert", {
+    pgPolicy("arnold_sessions_insert", {
       as: "permissive",
       for: "insert",
       to: ["authenticated"],
       withCheck: sql`(user_id = ( SELECT current_user_id() AS current_user_id))`,
     }),
-    pgPolicy("coach_sessions_select", {
+    pgPolicy("arnold_sessions_select", {
       as: "permissive",
       for: "select",
       to: ["authenticated"],

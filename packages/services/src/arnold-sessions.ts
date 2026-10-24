@@ -1,51 +1,51 @@
-import { coachSessions, type Transaction } from "@fitme/db";
+import { arnoldSessions, type Transaction } from "@fitme/db";
 import { eq } from "drizzle-orm";
 
 /**
- * Records that the Coach's EVE session `sessionId` belongs to the User, in
+ * Records that Arnold's EVE session `sessionId` belongs to the User, in
  * `tx` (from `asUser`). EVE can't list a User's sessions, so account deletion
  * resets the ones recorded here. Safe to repeat: a session id is recorded
  * once, and an id already recorded for anyone is left alone.
  */
-export const recordCoachSession = async (
+export const recordArnoldSession = async (
   tx: Transaction,
   userId: string,
   sessionId: string
 ): Promise<void> => {
   await tx
-    .insert(coachSessions)
+    .insert(arnoldSessions)
     .values({ sessionId, userId })
-    .onConflictDoNothing({ target: coachSessions.sessionId });
+    .onConflictDoNothing({ target: arnoldSessions.sessionId });
 };
 
 /**
- * The User a Coach session id was recorded for, or `null` when it wasn't
+ * The User an Arnold session id was recorded for, or `null` when it wasn't
  * (yet), in `tx` (from `withService`: the point is to see whose it is when
- * it isn't the caller's). The Coach channel uses it to refuse every session
+ * it isn't the caller's). Arnold's channel uses it to refuse every session
  * route to anyone but the owner.
  */
-export const getCoachSessionOwner = async (
+export const getArnoldSessionOwner = async (
   tx: Transaction,
   sessionId: string
 ): Promise<string | null> => {
   const [row] = await tx
-    .select({ userId: coachSessions.userId })
-    .from(coachSessions)
-    .where(eq(coachSessions.sessionId, sessionId));
+    .select({ userId: arnoldSessions.userId })
+    .from(arnoldSessions)
+    .where(eq(arnoldSessions.sessionId, sessionId));
   return row?.userId ?? null;
 };
 
 /**
- * The User's recorded Coach session ids, in `tx` (from `asUser`, or
+ * The User's recorded Arnold session ids, in `tx` (from `asUser`, or
  * `withService` for a deleted User, whose retired id RLS no longer matches).
  */
-export const listCoachSessionIds = async (
+export const listArnoldSessionIds = async (
   tx: Transaction,
   userId: string
 ): Promise<string[]> => {
   const rows = await tx
-    .select({ sessionId: coachSessions.sessionId })
-    .from(coachSessions)
-    .where(eq(coachSessions.userId, userId));
+    .select({ sessionId: arnoldSessions.sessionId })
+    .from(arnoldSessions)
+    .where(eq(arnoldSessions.userId, userId));
   return rows.map((row) => row.sessionId);
 };

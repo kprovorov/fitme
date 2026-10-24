@@ -14,7 +14,7 @@ Env: see `.env.example` (`CLERK_WEBHOOK_SIGNING_SECRET`, `FITME_DATABASE_URL`, `
 ## Endpoints
 
 - `GET /health` — liveness
-- `POST /clerk` — Clerk (Svix-signed). Verifies the signature on the raw request with `verifyWebhook` from `@clerk/backend` (401 otherwise). `user.deleted` runs `deleteUserData` through `withService`, then resets the User's Coach sessions through the Coach (their `coach_sessions` rows stay as tombstones); a failure of either is reported to Sentry and answers 500 so Clerk retries. Other events answer 200. No `svix-id` dedupe: both steps are idempotent.
+- `POST /clerk` — Clerk (Svix-signed). Verifies the signature on the raw request with `verifyWebhook` from `@clerk/backend` (401 otherwise). `user.deleted` runs `deleteUserData` through `withService`, then resets the User's Coach sessions through the Coach (their `arnold_sessions` rows stay as tombstones); a failure of either is reported to Sentry and answers 500 so Clerk retries. Other events answer 200. No `svix-id` dedupe: both steps are idempotent.
 
 Unknown routes return `{ error: { code, message } }` with 404. An unhandled error is reported and answers a JSON 500; an `HTTPException` answers its own status, unreported.
 
