@@ -1,4 +1,3 @@
-import type { WorkoutSessionExerciseSet } from "@fitme/core";
 import { Stack, useLocalSearchParams, useRouter } from "expo-router";
 import { useCallback, useState } from "react";
 import { ActivityIndicator, type LayoutChangeEvent, View } from "react-native";
@@ -16,6 +15,7 @@ import {
   useExercise,
   useExerciseDetailQuery,
 } from "~/hooks/queries/exercise-library";
+import type { SavedWorkoutSessionExerciseSet } from "~/hooks/queries/workout-session-exercise-sets";
 import { useWorkoutSessionExerciseQuery } from "~/hooks/queries/workout-session-exercises";
 import { useWorkoutSessionQuery } from "~/hooks/queries/workout-sessions";
 
@@ -68,7 +68,7 @@ export default function WorkoutSessionExerciseScreen() {
   }, [router, workoutSessionExercise]);
 
   const handleSetLogged = useCallback(
-    (set: WorkoutSessionExerciseSet, nextSetOrder: number | null) => {
+    (set: SavedWorkoutSessionExerciseSet, nextSetOrder: number | null) => {
       if (isFinished || !set.rest_recommended || nextSetOrder === null) {
         setRest(null);
         return;

@@ -1,6 +1,8 @@
 import type { WorkoutSessionExerciseSet } from "@fitme/core";
 import { createMutation } from "react-query-kit";
 import { supabase } from "@/lib/supabase";
+import { ApiError } from "~/lib/api/client";
+import { publicApi } from "~/lib/public-api";
 
 export interface UpdateWorkoutSessionExerciseSetParams {
   setId: string;
@@ -16,28 +18,45 @@ export interface UpdateWorkoutSessionExerciseSetVariables {
   params: UpdateWorkoutSessionExerciseSetParams;
 }
 
-export const useUpdateWorkoutSessionExerciseSetMutation = createMutation<
+/** A saved set, as both saves answer it. */
+export type SavedWorkoutSessionExerciseSet = Pick<
   WorkoutSessionExerciseSet,
+  | "id"
+  | "logged_at"
+  | "order"
+  | "reps_completed"
+  | "reps_recommended"
+  | "rest_recommended"
+  | "weight_completed"
+  | "weight_recommended"
+>;
+
+/**
+ * Logs a set's reps and weight through `PATCH /v1/workout-session-sets/{id}`;
+ * the API sets `logged_at`. Rejects with an `ApiError`.
+ */
+export const useUpdateWorkoutSessionExerciseSetMutation = createMutation<
+  SavedWorkoutSessionExerciseSet,
   UpdateWorkoutSessionExerciseSetVariables
 >({
   mutationFn: async ({
     data,
     params: { setId },
-  }: UpdateWorkoutSessionExerciseSetVariables): Promise<WorkoutSessionExerciseSet> => {
-    const { data: result, error } = await supabase
-      .from("workout_session_exercise_sets")
-      .update({
-        logged_at: new Date().toISOString(),
-        reps_completed: data.reps_completed,
-        weight_completed: data.weight_completed,
-      })
-      .eq("id", setId)
-      .select()
-      .single();
-    if (error) {
-      throw error;
+  }: UpdateWorkoutSessionExerciseSetVariables): Promise<SavedWorkoutSessionExerciseSet> => {
+    const { data: logged } = await publicApi().PATCH(
+      "/v1/workout-session-sets/{id}",
+      {
+        body: {
+          reps_completed: data.reps_completed,
+          weight_completed: data.weight_completed,
+        },
+        params: { path: { id: setId } },
+      }
+    );
+    if (!logged) {
+      throw new ApiError("Public API answered without the logged set");
     }
-    return result as unknown as WorkoutSessionExerciseSet;
+    return logged.data;
   },
 });
 

@@ -23,6 +23,7 @@ import {
   useFinishWorkoutSessionMutation,
   useWorkoutSessionQuery,
 } from "~/hooks/queries/workout-sessions";
+import { rateLimitedFor } from "~/lib/api/client";
 import { countPlanChanges, planUpdateProperties } from "~/lib/plan-changes";
 import { segmentClient } from "~/lib/segment";
 
@@ -59,10 +60,12 @@ const isSessionScreenBelow = (
   );
 };
 
-const alertFinishFailed = () =>
+const alertFinishFailed = (waitSeconds: number | null = null) =>
   Alert.alert(
     "Couldn't finish workout",
-    "Check your connection and try again."
+    waitSeconds === null
+      ? "Check your connection and try again."
+      : `Too many requests: please try again in ${waitSeconds} s.`
   );
 
 /**
@@ -192,8 +195,12 @@ export function useFinishWorkoutSession(
 
   const { mutate } = useFinishWorkoutSessionMutation({
     onError: (error) => {
-      Sentry.captureException(error);
-      alertFinishFailed();
+      const waitSeconds = rateLimitedFor(error);
+      // Too many requests is the User's to wait out, not a bug.
+      if (waitSeconds === null) {
+        Sentry.captureException(error);
+      }
+      alertFinishFailed(waitSeconds);
     },
     onSuccess: async (session) => {
       // Every screen sees the session finished right away, even if a refetch

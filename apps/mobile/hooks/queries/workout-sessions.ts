@@ -1,6 +1,8 @@
 import type { PlanChanges, WorkoutSession } from "@fitme/core";
 import { createMutation, createQuery } from "react-query-kit";
 import { supabase } from "@/lib/supabase";
+import { ApiError } from "~/lib/api/client";
+import { publicApi } from "~/lib/public-api";
 
 const SESSION_SELECT = `
   *,
@@ -18,6 +20,11 @@ export interface CreateWorkoutSessionVariables {
   workoutId: string;
 }
 
+/**
+ * Starts a Workout through `POST /v1/workout-sessions`, or resumes the
+ * Workout Session already open for it (the API answers 200 instead of 201,
+ * handled alike), then reads it through Supabase. Rejects with an `ApiError`.
+ */
 export const useCreateWorkoutSessionMutation = createMutation<
   WorkoutSession,
   CreateWorkoutSessionVariables
@@ -25,23 +32,13 @@ export const useCreateWorkoutSessionMutation = createMutation<
   mutationFn: async ({
     workoutId,
   }: CreateWorkoutSessionVariables): Promise<WorkoutSession> => {
-    const { data: sessionId, error: rpcError } = await supabase.rpc(
-      "start_workout_session",
-      { p_workout_id: workoutId }
-    );
-    if (rpcError) {
-      throw rpcError;
+    const { data } = await publicApi().POST("/v1/workout-sessions", {
+      body: { workout_id: workoutId },
+    });
+    if (!data) {
+      throw new ApiError("Public API answered without a Workout Session");
     }
-
-    const { data, error } = await supabase
-      .from("workout_sessions")
-      .select(SESSION_SELECT)
-      .eq("id", sessionId)
-      .single();
-    if (error) {
-      throw error;
-    }
-    return data as unknown as WorkoutSession;
+    return fetchWorkoutSession(data.data.id);
   },
 });
 
@@ -78,27 +75,21 @@ export interface FinishWorkoutSessionVariables {
 
 export const FINISH_WORKOUT_SESSION_MUTATION_KEY = ["finish-workout-session"];
 
+/**
+ * Finishes a Workout Session through `POST /v1/workout-sessions/{id}/finish`,
+ * which moves its Workout to the end of the Plan's rotation, then reads it
+ * through Supabase. An already finished one (a retry, a double tap) is a
+ * success. Rejects with an `ApiError`.
+ */
 export const useFinishWorkoutSessionMutation = createMutation<
   WorkoutSession,
   FinishWorkoutSessionVariables
 >({
   mutationFn: async ({ sessionId }: FinishWorkoutSessionVariables) => {
-    const { error: rpcError } = await supabase.rpc("finish_workout_session", {
-      p_session_id: sessionId,
+    await publicApi().POST("/v1/workout-sessions/{id}/finish", {
+      params: { path: { id: sessionId } },
     });
-    if (rpcError) {
-      throw rpcError;
-    }
-
-    const { data, error } = await supabase
-      .from("workout_sessions")
-      .select(SESSION_SELECT)
-      .eq("id", sessionId)
-      .single();
-    if (error) {
-      throw error;
-    }
-    return data as unknown as WorkoutSession;
+    return fetchWorkoutSession(sessionId);
   },
   mutationKey: FINISH_WORKOUT_SESSION_MUTATION_KEY,
 });

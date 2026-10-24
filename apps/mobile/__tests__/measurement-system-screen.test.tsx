@@ -220,6 +220,7 @@ describe("MeasurementSystemScreen", () => {
       {
         authorization: `Bearer ${FAKE_SESSION_TOKEN}`,
         body: { measurement_system: "us" },
+        path: "/v1/profile",
         route: PROFILE_PATCH,
       },
     ]);

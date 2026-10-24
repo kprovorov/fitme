@@ -6,9 +6,11 @@ import { AccessibilityInfo, View } from "react-native";
 import { SymbolImage } from "~/components/symbol-image";
 import { reportWorkoutSetTracked } from "~/hooks/finish-workout-suggestion";
 import {
+  type SavedWorkoutSessionExerciseSet,
   useCreateWorkoutSessionExerciseSetMutation,
   useUpdateWorkoutSessionExerciseSetMutation,
 } from "~/hooks/queries/workout-session-exercise-sets";
+import { rateLimitedFor } from "~/lib/api/client";
 import { IS_E2E } from "~/lib/constants";
 import { segmentClient } from "~/lib/segment";
 import { formatSetTarget, formatSetWeight } from "~/lib/set-inputs";
@@ -29,7 +31,7 @@ interface WorkoutSessionExerciseSetRowViewProps {
   locked?: boolean;
   onSetCreated?: (localSetId?: string) => void;
   /** Called once a set is logged for the first time (not on edits). */
-  onSetLogged?: (set: WorkoutSessionExerciseSet) => void;
+  onSetLogged?: (set: SavedWorkoutSessionExerciseSet) => void;
   order?: number;
   sessionId: string;
   /** The User's weight unit, for the REC cell. */
@@ -70,10 +72,15 @@ export default function WorkoutSessionExerciseSetRowView({
   const isEditable = !isDone || isEditing;
   const [saveError, setSaveError] = useState<string | null>(null);
 
-  const handleSaveError = () => {
-    setSaveError(SET_SAVE_ERROR);
+  const handleSaveError = (error: unknown) => {
+    const waitSeconds = rateLimitedFor(error);
+    const message =
+      waitSeconds === null
+        ? SET_SAVE_ERROR
+        : `Too many requests. Try again in ${waitSeconds} s.`;
+    setSaveError(message);
     // Focus stays on ✓, so a screen reader wouldn't read the new message.
-    AccessibilityInfo.announceForAccessibility(SET_SAVE_ERROR);
+    AccessibilityInfo.announceForAccessibility(message);
   };
 
   const trackSetCompleted = () => {
@@ -89,7 +96,7 @@ export default function WorkoutSessionExerciseSetRowView({
 
   // Shared by both saves: the set is logged, so lock the row and refresh.
   const handleSaved = (
-    set: WorkoutSessionExerciseSet,
+    set: SavedWorkoutSessionExerciseSet,
     previousReps: number | null
   ) => {
     reportWorkoutSetTracked({

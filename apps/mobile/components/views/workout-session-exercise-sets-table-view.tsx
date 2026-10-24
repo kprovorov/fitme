@@ -3,6 +3,7 @@ import { getWeightLabel } from "@fitme/core";
 import { type ReactNode, useState } from "react";
 import { View } from "react-native";
 import { useProfileQuery } from "~/hooks/queries/profiles";
+import type { SavedWorkoutSessionExerciseSet } from "~/hooks/queries/workout-session-exercise-sets";
 import { cn } from "~/lib/utils";
 import {
   SET_CHECK_COLUMN_CLASS,
@@ -20,7 +21,7 @@ interface WorkoutSessionExerciseSetsTableViewProps {
    * to log (an added one included), or `null` when none is left.
    */
   onSetLogged?: (
-    set: WorkoutSessionExerciseSet,
+    set: SavedWorkoutSessionExerciseSet,
     nextSetOrder: number | null
   ) => void;
   readOnly?: boolean;
@@ -80,7 +81,7 @@ export default function WorkoutSessionExerciseSetsTableView({
     setLocalSets([...localSets, newLocalSet]);
   };
 
-  const handleSetLogged = (set: WorkoutSessionExerciseSet) => {
+  const handleSetLogged = (set: SavedWorkoutSessionExerciseSet) => {
     const pendingOrders = [
       ...workoutSessionExerciseSets
         .filter((other) => other.id !== set.id && other.reps_completed === null)
