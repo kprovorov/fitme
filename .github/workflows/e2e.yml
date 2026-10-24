@@ -6,7 +6,9 @@ on:
 
 jobs:
   e2e:
-    runs-on: macos-15
+    # macOS 26 for its default Xcode (26.x): the Expo SDK's expo-modules-jsi
+    # builds with Swift tools 6.2, which macOS 15's default Xcode 16.4 lacks.
+    runs-on: macos-26
     timeout-minutes: 60
 
     steps:
@@ -245,8 +247,15 @@ jobs:
       - name: Boot simulator and install app
         working-directory: apps/mobile
         run: |
-          UDID=$(xcrun simctl list devices available -j | \
-            jq -r '.devices | to_entries[] | .value[] | select(.name == "iPhone 16") | .udid' | head -1)
+          # iPhone 17 (the iOS 26 runtimes have no iPhone 16), else any iPhone.
+          DEVICES=$(xcrun simctl list devices available -j)
+          UDID=$(jq -r '.devices | to_entries[] | .value[] | select(.name == "iPhone 17") | .udid' <<< "$DEVICES" | head -1)
+          if [ -z "$UDID" ]; then
+            UDID=$(jq -r '.devices | to_entries[] | .value[] | select(.name | startswith("iPhone")) | .udid' <<< "$DEVICES" | head -1)
+          fi
+          if [ -z "$UDID" ]; then
+            echo "::error::No iPhone simulator available" && exit 1
+          fi
           xcrun simctl boot "$UDID"
           APP=$(find ios/build -name "*.app" -maxdepth 6 | head -1)
           xcrun simctl install "$UDID" "$APP"
