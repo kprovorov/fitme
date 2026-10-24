@@ -34,7 +34,7 @@ regexes = [
 [[rules]]
 id = "password-literal"
 description = "A password as a string literal"
-regex = '''(?i)\b(?:[a-z0-9_]*pass(?:word|wd)|(?:[a-z0-9]+_)*(?:pass|pwd))\b["']?\s*(?::|=|=>|\?\?|\|\|)\s*["'`]([^"'`\s$]{8,})["'`]'''
+regex = '''(?i)\b(?:[a-z0-9_]*pass(?:word|wd)|(?:[a-z0-9]+_)*(?:pass|pwd))\b["']?\s*(?::|=|=>|\?\?|\|\|)\s*["'`]([^"'`\n]{8,})["'`]'''
 secretGroup = 1
 keywords = ["pass", "pwd"]
 
@@ -54,6 +54,7 @@ paths = [
 regexTarget = "match"
 regexes = ['''not-a-bcrypt-digest''']
 
-# A reference, not a value: Supabase config's `env(NAME)`.
+# A reference, not a value: Supabase config's `env(NAME)`, a shell `$NAME`, a
+# template literal's `${…}`.
 [[rules.allowlists]]
-regexes = ['''^env\([A-Z0-9_]+\)$''']
+regexes = ['''^env\([A-Z0-9_]+\)$''', '''^\$[A-Za-z_][A-Za-z0-9_]*$''', '''\$\{''']

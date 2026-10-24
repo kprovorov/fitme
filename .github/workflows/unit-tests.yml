@@ -82,4 +82,6 @@ jobs:
       - name: Scan the pull request's commits
         env:
           BASE_REF: ${{ github.base_ref }}
-        run: gitleaks git --log-opts="origin/${BASE_REF}..HEAD" --redact --no-banner .
+        # git log shows no patch for a merge commit by default, so a secret
+        # added while resolving a merge would go unseen without --diff-merges.
+        run: gitleaks git --log-opts="--diff-merges=first-parent origin/${BASE_REF}..HEAD" --redact --no-banner .
