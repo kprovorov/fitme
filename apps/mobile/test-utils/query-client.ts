@@ -36,13 +36,30 @@ const nextMacrotask = () =>
   });
 
 /**
+ * Waits until `condition` holds, one macrotask at a time inside `act`: for
+ * what `settle` can't wait on, such as a request held by a paused backend.
+ * Real timers only.
+ */
+export const until = async (condition: () => boolean) => {
+  for (let tick = 0; tick < MAX_TICKS; tick += 1) {
+    if (condition()) {
+      return;
+    }
+    // biome-ignore lint/performance/noAwaitInLoops: each tick lets the app reach its next timer
+    await nextMacrotask();
+  }
+  throw new Error(`Condition still false after ${MAX_TICKS} ticks`);
+};
+
+/**
  * Waits until nothing is fetching or mutating and `isIdle` holds, one
  * macrotask at a time inside `act`. Idle has to hold on two ticks in a row:
  * react-query renders a response a tick after it lands, and that render can
  * start the next query (a row's Exercise lookup once a session's rows arrive).
  *
  * Counts ticks rather than milliseconds, so a busy machine makes it slower but
- * never fails it, unlike `waitFor`'s 1 s limit.
+ * never fails it, unlike `waitFor`'s 1 s limit. Real timers only: under fake
+ * timers no tick ever passes.
  */
 export const settle = async (
   client: QueryClient,

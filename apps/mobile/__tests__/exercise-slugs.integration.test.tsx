@@ -151,6 +151,11 @@ const seedSession = (finished = false) =>
     id: "s1",
   });
 
+// Each test mounts whole screens and steps through many requests, so a test
+// takes seconds of CPU; Jest's 5 s default fails them on a busy 2-core runner.
+// Waits are counted in ticks (`settle`, `until`), so this only bounds a hang.
+jest.setTimeout(30_000);
+
 beforeEach(() => {
   jest.clearAllMocks();
   backend.reset();

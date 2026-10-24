@@ -25,7 +25,6 @@ import {
   fireEvent,
   render,
   screen,
-  waitFor,
   within,
 } from "@testing-library/react-native";
 import { createContext, type ReactNode, useSyncExternalStore } from "react";
@@ -43,6 +42,7 @@ import {
 import {
   createTestQueryClient,
   settle as settleQueries,
+  until,
 } from "~/test-utils/query-client";
 
 // ---------------------------------------------------------------------------
@@ -348,6 +348,11 @@ const LIBRARY = ["Squat", "Bench Press", "Deadlift", "Lunge", "Plank"].map(
   libraryExerciseNamed
 );
 
+// Each test mounts whole screens and steps through many requests, so a test
+// takes seconds of CPU; Jest's 5 s default fails them on a busy 2-core runner.
+// Waits are counted in ticks (`settle`, `until`), so this only bounds a hang.
+jest.setTimeout(30_000);
+
 beforeEach(() => {
   jest.clearAllMocks();
   backend.reset();
@@ -404,10 +409,8 @@ describe.each(ENTRY_ROUTES)(
       }
       const requests = backend.requests.length;
       await fireEvent.press(focused().getByTestId(`log-set-button-${order}`));
-      await waitFor(() =>
-        expect(backend.requests.length).toBeGreaterThan(requests)
-      );
       await settle();
+      expect(backend.requests.length).toBeGreaterThan(requests);
     };
 
     /** Edits a set that was tracked already. */
@@ -798,12 +801,8 @@ describe.each(ENTRY_ROUTES)(
       await fireEvent.press(
         screen.getByTestId("finish-workout-suggestion-finish")
       );
-      await waitFor(() =>
-        expect(mockNavigator.routes.map(({ name }) => name)).toEqual([
-          "summary",
-        ])
-      );
       await settle();
+      expect(mockNavigator.routes.map(({ name }) => name)).toEqual(["summary"]);
 
       expect(mockNavigator.routes[0]?.params).toEqual({
         workoutSessionId: "s1",
@@ -823,8 +822,8 @@ describe.each(ENTRY_ROUTES)(
       // A slow save: the user goes back to the session before it lands.
       const resume = backend.pause("workout_session_exercise_sets", "update");
       await fireEvent.press(focused().getByTestId("log-set-button-1"));
-      await waitFor(() =>
-        expect(backend.count("workout_session_exercise_sets", "update")).toBe(1)
+      await until(
+        () => backend.count("workout_session_exercise_sets", "update") === 1
       );
       await act(() => mockNavigator.dismiss());
       await act(() => resume());
@@ -841,12 +840,8 @@ describe.each(ENTRY_ROUTES)(
       await fireEvent.press(
         screen.getByTestId("finish-workout-suggestion-finish")
       );
-      await waitFor(() =>
-        expect(mockNavigator.routes.map(({ name }) => name)).toEqual([
-          "summary",
-        ])
-      );
       await settle();
+      expect(mockNavigator.routes.map(({ name }) => name)).toEqual(["summary"]);
       expect(backend.session("s1")?.finished_at).not.toBeNull();
     });
 
@@ -861,12 +856,8 @@ describe.each(ENTRY_ROUTES)(
       const finish = screen.getByTestId("finish-workout-suggestion-finish");
       await fireEvent.press(finish);
       await fireEvent.press(finish);
-      await waitFor(() =>
-        expect(mockNavigator.routes.map(({ name }) => name)).toEqual([
-          "summary",
-        ])
-      );
       await settle();
+      expect(mockNavigator.routes.map(({ name }) => name)).toEqual(["summary"]);
 
       expect(backend.count("finish_workout_session", "rpc")).toBe(1);
     });
@@ -895,11 +886,8 @@ describe.each(ENTRY_ROUTES)(
       await fireEvent.press(
         screen.getByTestId("finish-workout-suggestion-finish")
       );
-      await waitFor(() =>
-        expect(mockNavigator.routes.map(({ name }) => name)).toEqual([
-          "summary",
-        ])
-      );
+      await settle();
+      expect(mockNavigator.routes.map(({ name }) => name)).toEqual(["summary"]);
     });
 
     it("never suggests for a session without exercises", async () => {
@@ -956,8 +944,8 @@ describe.each(ENTRY_ROUTES)(
       const logSet = focused().getByTestId("log-set-button-2");
       await fireEvent.press(logSet);
       await fireEvent.press(logSet);
-      await waitFor(() =>
-        expect(backend.count("workout_session_exercise_sets", "update")).toBe(2)
+      await until(
+        () => backend.count("workout_session_exercise_sets", "update") === 2
       );
       await act(() => resume());
       await settle();
