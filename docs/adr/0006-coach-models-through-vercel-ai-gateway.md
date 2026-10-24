@@ -5,6 +5,8 @@ date: 2026-10-15
 
 # Coach model calls go through Vercel AI Gateway
 
+The Coach is now Arnold (ADR 0012).
+
 Every Coach model call goes through Vercel AI Gateway instead of calling OpenAI and Anthropic directly. This supersedes the "direct providers" and token-budget parts of ADR 0005.
 
 - **Billing: Gateway credits, not BYOK.** One bill and one dashboard for every Coach model, with spend per model and per Conversation (eve sets the Gateway session id per Conversation). The `provorovdev` team keeps credits topped up automatically; with none left, every Coach turn fails.

@@ -5,6 +5,8 @@ date: 2026-10-14
 
 # The Coach runs on EVE in its own app
 
+The Coach is now Arnold (ADR 0012).
+
 Partly superseded by ADR 0006: Coach model calls go through Vercel AI Gateway, not the direct providers, and the per-turn budget is in USD, not tokens.
 
 The Coach moves from the `ai-agent` Supabase Edge Function to `apps/coach`, its own Vercel project built on Vercel's EVE framework (`ai@7`). It runs separately from `apps/api` because it is its own body of business logic with its own runtime needs. Its turns are durable: a step can retry, a turn survives redeploys and has no overall time limit, and a client can reconnect to a running stream. Each step still has to fit Vercel's function limit (800 s on Pro).

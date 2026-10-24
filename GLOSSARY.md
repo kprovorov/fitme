@@ -41,15 +41,21 @@ _Avoid_: Exercise catalog, exercise database, exercises table
 The permanent, readable identifier of an Exercise (`bench-press`): lowercase letters and digits joined by single hyphens. It never changes, even when the Exercise's name does.
 _Avoid_: Exercise id, exercise uuid
 
+### Arnold
+
+**Arnold**:
+Fitme's AI that a User talks to about their training.
+_Avoid_: Coach, AI coach, agent, AI agent, assistant, chatbot
+
+**Conversation**:
+One thread of messages between a User and Arnold. A User works in one current Conversation at a time; past ones are not kept beyond a limited retention period and are wiped when the User deletes their account. Never a thread with a human Coach.
+_Avoid_: Chat, thread, session
+
 ### Coaching
 
 **Coach**:
-The AI assistant a User talks to about their training.
-_Avoid_: Agent, AI agent, assistant, chatbot
-
-**Conversation**:
-One thread of messages between a User and the Coach. A User works in one current Conversation at a time; past ones are not kept beyond a limited retention period and are wiped when the User deletes their account.
-_Avoid_: Chat, thread, session
+A real person who trains Users through Fitme. Never Arnold.
+_Avoid_: Trainer, PT, personal trainer
 
 ### Public API
 
