@@ -475,6 +475,51 @@
           "weight_unit",
           "workouts"
         ]
+      },
+      "ProfileChanges": {
+        "type": "object",
+        "properties": {
+          "age": {
+            "type": "integer",
+            "minimum": 10,
+            "maximum": 120,
+            "example": 31
+          },
+          "gender": {
+            "type": "string",
+            "enum": [
+              "male",
+              "female"
+            ]
+          },
+          "height": {
+            "type": "number",
+            "minimum": 0,
+            "exclusiveMinimum": true,
+            "maximum": 300,
+            "description": "In the height unit of the resulting measurement system: `cm` (metric) or `in` (us, uk); at most 2 decimals",
+            "example": 171
+          },
+          "measurement_system": {
+            "type": "string",
+            "enum": [
+              "metric",
+              "us",
+              "uk"
+            ],
+            "description": "Changing it converts every stored height and weight of the User (the Profile's, every Plan's set targets and every Workout Session's weights) to the new system's units, rounded to 2 decimals. Between `us` and `uk`, which share units, nothing is converted."
+          },
+          "weight": {
+            "type": "number",
+            "minimum": 0,
+            "exclusiveMinimum": true,
+            "maximum": 1000,
+            "description": "In the weight unit of the resulting measurement system: `kg` (metric) or `lbs` (us, uk); at most 2 decimals",
+            "example": 61.5
+          }
+        },
+        "additionalProperties": false,
+        "minProperties": 1
       }
     },
     "parameters": {}
@@ -957,6 +1002,138 @@
           },
           "401": {
             "description": "No valid Clerk session token",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Error"
+                }
+              }
+            }
+          }
+        }
+      },
+      "patch": {
+        "description": "Changes only the given fields. A new `measurement_system` first converts every stored height and weight of the User (the Profile's, every Plan's set targets and every Workout Session's weights) to the new system's units, then writes the given `height` and `weight` as they are, in the new system's units. Repeating the same request changes nothing more.",
+        "security": [
+          {
+            "bearerAuth": []
+          }
+        ],
+        "summary": "Update the User's Profile",
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/ProfileChanges"
+              }
+            }
+          }
+        },
+        "responses": {
+          "200": {
+            "description": "The updated Profile",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object",
+                  "properties": {
+                    "data": {
+                      "type": "object",
+                      "properties": {
+                        "age": {
+                          "type": "number",
+                          "example": 30
+                        },
+                        "gender": {
+                          "type": "string",
+                          "example": "female"
+                        },
+                        "height": {
+                          "type": "number",
+                          "description": "In `units.height`",
+                          "example": 170.5
+                        },
+                        "measurement_system": {
+                          "type": "string",
+                          "description": "`metric`, `us` or `uk`",
+                          "example": "metric"
+                        },
+                        "units": {
+                          "type": "object",
+                          "properties": {
+                            "height": {
+                              "type": "string",
+                              "description": "`cm` (metric) or `in` (us, uk)",
+                              "example": "cm"
+                            },
+                            "weight": {
+                              "type": "string",
+                              "description": "`kg` (metric) or `lbs` (us, uk)",
+                              "example": "kg"
+                            }
+                          },
+                          "required": [
+                            "height",
+                            "weight"
+                          ],
+                          "description": "The units every height and weight of the User is stored and shown in"
+                        },
+                        "weight": {
+                          "type": "number",
+                          "description": "In `units.weight`",
+                          "example": 60.25
+                        }
+                      },
+                      "required": [
+                        "age",
+                        "gender",
+                        "height",
+                        "measurement_system",
+                        "units",
+                        "weight"
+                      ]
+                    }
+                  },
+                  "required": [
+                    "data"
+                  ]
+                }
+              }
+            }
+          },
+          "400": {
+            "description": "`invalid_request`: the changes aren't valid",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Error"
+                }
+              }
+            }
+          },
+          "401": {
+            "description": "No valid Clerk session token",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Error"
+                }
+              }
+            }
+          },
+          "404": {
+            "description": "`profile_not_found`: the User has no Profile yet; nothing was changed",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Error"
+                }
+              }
+            }
+          },
+          "415": {
+            "description": "The body isn't `application/json`",
             "content": {
               "application/json": {
                 "schema": {

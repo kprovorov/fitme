@@ -9,8 +9,10 @@ import {
 import {
   getProfile,
   lockProfileUnits,
+  type ProfileChanges,
   type ProfileUnits,
   type ProfileWithUnits,
+  updateProfile,
 } from "@fitme/services/profile";
 
 /**
@@ -35,6 +37,8 @@ export interface UserServices {
   getPlan: (planId: string) => Promise<Weighed<PlanDetail> | null>;
   getProfile: () => Promise<ProfileWithUnits | null>;
   listPlans: () => Promise<PlanSummary[]>;
+  /** The updated Profile, or `null` with nothing changed without one. */
+  updateProfile: (changes: ProfileChanges) => Promise<ProfileWithUnits | null>;
 }
 
 /**
@@ -64,5 +68,7 @@ export const createServicesFromEnv: ServicesFactory = (userId) => {
     getPlan: (planId) => weighed((tx) => getPlan(tx, userId, planId)),
     getProfile: () => asUser(userId, (tx) => getProfile(tx, userId)),
     listPlans: () => asUser(userId, (tx) => listPlans(tx, userId)),
+    updateProfile: (changes) =>
+      asUser(userId, (tx) => updateProfile(tx, userId, changes)),
   };
 };
