@@ -11,6 +11,8 @@ const LEADING_TABS = /^\t+/;
 const WHITESPACE = new Set([" ", "\t"]);
 const QUOTES = new Set(["'", '"', "`"]);
 const AND_OR_PIPE = new Set(["&&", "||", "|"]);
+// Characters after which a `#` starts a comment inside a substitution.
+const COMMENT_AFTER = new Set([" ", "\t", "\n", ";"]);
 const DELIMITER_END = new Set([
   " ",
   "\t",
@@ -127,6 +129,11 @@ const skipInGroup = (source, index, heredocs) => {
   if (char === "\\") {
     return index + 2;
   }
+  if (char === "#" && COMMENT_AFTER.has(source[index - 1])) {
+    // A comment runs to the end of its line, quotes and all.
+    const end = source.indexOf("\n", index);
+    return end === -1 ? source.length : end;
+  }
   if (QUOTES.has(char)) {
     return skipQuote(source, index);
   }
@@ -239,7 +246,7 @@ class Lexer {
     } else if (char === "&" || char === "|" || char === ";") {
       this.control(char, following);
     } else if (char === "(" || char === ")") {
-      this.operator(char, 1);
+      this.parenthesis(char);
     } else {
       this.append(char);
       this.index += 1;
@@ -265,6 +272,17 @@ class Lexer {
         : skipConditional(this.source, this.index);
     this.append(this.source.slice(this.index, end));
     this.index = end;
+  }
+
+  parenthesis(char) {
+    if (char === "(" && this.word?.endsWith("=")) {
+      // `name=(…)`: an array assignment, its elements no commands.
+      const end = skipGroup(this.source, this.index);
+      this.append(this.source.slice(this.index, end));
+      this.index = end;
+    } else {
+      this.operator(char, 1);
+    }
   }
 
   append(text) {
@@ -391,6 +409,7 @@ const OPENERS = new Map([
   ["while", "done"],
   ["{", "}"],
 ]);
+const LOOP_HEADERS = new Set(["for", "select"]);
 // Reserved words and prefixes after which the next word is still a command.
 const COMMAND_PREFIXES = new Set(["!", "do", "elif", "else", "then", "time"]);
 
@@ -447,6 +466,8 @@ class Parser {
   word(value) {
     if (this.skipsWord) {
       this.skipsWord = false;
+    } else if (this.top.inLoopHeader) {
+      this.top.inLoopHeader = value !== "do";
     } else if (this.inCaseHeader) {
       this.caseWord(value);
     } else if (this.words.length > 0) {
@@ -457,6 +478,8 @@ class Parser {
       this.skipsWord = true;
     } else if (OPENERS.has(value)) {
       this.open(OPENERS.get(value));
+      // `for name in …; do`: the header names no command.
+      this.top.inLoopHeader = LOOP_HEADERS.has(value);
     } else if (value === this.top.closer) {
       this.close();
     } else if (!(ASSIGNMENT.test(value) || COMMAND_PREFIXES.has(value))) {
@@ -473,6 +496,9 @@ class Parser {
   }
 
   operator(value, following) {
+    if (this.top.inLoopHeader) {
+      return;
+    }
     if (this.inCaseHeader) {
       if (value === ")" && this.top.casePart === "pattern") {
         this.top.casePart = "body";
@@ -582,7 +608,10 @@ const commandName = (word) => word.split("/").at(-1);
 const unwrap = (words) => {
   let index = 0;
   while (index < words.length && WRAPPERS.has(commandName(words[index]))) {
-    if (INTROSPECTION.has(words[index + 1])) {
+    if (
+      commandName(words[index]) === "command" &&
+      INTROSPECTION.has(words[index + 1])
+    ) {
       // `command -v timeout` describes the command, never runs it.
       return [];
     }
@@ -628,15 +657,36 @@ const VALUE_LONG_OPTIONS = new Set([
 // `-9`, `-KILL`, `-SIGTERM`: pkill's signal, not an option.
 const SIGNAL = /^-(\d+|[A-Z]{2,}[A-Z0-9+-]*)$/;
 
+const POSIX_CLASS = /\[:([a-z]+):\]/g;
+const POSIX_CLASSES = {
+  alnum: "A-Za-z0-9",
+  alpha: "A-Za-z",
+  blank: " \\t",
+  cntrl: "\\x00-\\x1f\\x7f",
+  digit: "0-9",
+  graph: "!-~",
+  lower: "a-z",
+  print: " -~",
+  punct: "!-/:-@\\[-`{-~",
+  space: "\\s",
+  upper: "A-Z",
+  xdigit: "0-9A-Fa-f",
+};
+
 // The shell running pkill / pgrep has the whole command in its own command
 // line, so a pattern matching that text (`ultracite`, `node.*[0-9]`) matches
 // the shell itself. The bracket trick (`[u]ltracite`) is safe because it
-// doesn't. A pattern JavaScript can't read as a regex is let through.
+// doesn't. POSIX classes (`[:alpha:]`) are read as JavaScript ranges first;
+// a pattern JavaScript still can't read counts as matching, since pkill might.
 const matchesItself = (pattern, line) => {
+  const translated = pattern.replace(
+    POSIX_CLASS,
+    (match, name) => POSIX_CLASSES[name] ?? match
+  );
   try {
-    return new RegExp(pattern).test(line);
+    return new RegExp(translated).test(line);
   } catch {
-    return false;
+    return true;
   }
 };
 

@@ -299,3 +299,24 @@ describe("expressions, function keywords and long wrapper options", () => {
     });
   }
 });
+
+describe("loop headers, arrays, comments in substitutions and regex dialects", () => {
+  for (const [command, rules] of [
+    ["env -v sleep 60", ["sleep"]],
+    ['for timeout in 1 2; do echo "$timeout"; done', []],
+    ['for sleep in 1 5 10; do echo "$sleep"; done', []],
+    ["for f in a b; do timeout 5 $f; done", ["timeout"]],
+    // biome-ignore lint/suspicious/noTemplateCurlyInString: shell text, not a template.
+    ['checks=(timeout gtimeout); printf "%s\\n" "${checks[@]}"', []],
+    ["x=$(printf ok # don't wait here\n); sleep 60", ["sleep"]],
+    // biome-ignore lint/suspicious/noTemplateCurlyInString: shell text, not a template.
+    ['echo "${#x}" && echo $#', []],
+    ["pkill -f 'node.*[[:alpha:]]{3}'", ["pkill"]],
+    ["pkill -f '[[:alpha:]]ltracite'", []],
+    ["pkill -if ULTRACITE", ["pkill"]],
+  ]) {
+    test(`${JSON.stringify(command)} breaks ${JSON.stringify(rules)}`, () => {
+      assert.deepEqual(rulesBroken(command), rules);
+    });
+  }
+});
