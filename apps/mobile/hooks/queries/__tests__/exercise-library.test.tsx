@@ -3,7 +3,7 @@ import {
   ExerciseLibraryUnavailableError,
 } from "@fitme/exercise-library";
 import { beforeEach, describe, expect, it, jest } from "@jest/globals";
-import { QueryClient, QueryClientProvider } from "@tanstack/react-query";
+import { QueryClientProvider } from "@tanstack/react-query";
 import { renderHook, waitFor } from "@testing-library/react-native";
 import type { ReactNode } from "react";
 import { storage } from "~/lib/mmkv";
@@ -12,6 +12,7 @@ import {
   libraryExercise,
   serveLibrary,
 } from "~/test-utils/fake-exercise-library";
+import { createTestQueryClient } from "~/test-utils/query-client";
 import { useExerciseDetailQuery, useExercises } from "../exercise-library";
 
 jest.mock(
@@ -24,11 +25,7 @@ jest.mock(
 
 /** A fresh query cache, as after a restart of the app. */
 const newWrapper = () => {
-  const client = new QueryClient({
-    defaultOptions: {
-      queries: { gcTime: Number.POSITIVE_INFINITY, retry: false },
-    },
-  });
+  const client = createTestQueryClient();
   return ({ children }: { children: ReactNode }) => (
     <QueryClientProvider client={client}>{children}</QueryClientProvider>
   );

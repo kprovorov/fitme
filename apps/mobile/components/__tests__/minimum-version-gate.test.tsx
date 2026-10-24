@@ -1,14 +1,9 @@
 import { beforeEach, describe, expect, it, jest } from "@jest/globals";
-import { QueryClient, QueryClientProvider } from "@tanstack/react-query";
-import {
-  act,
-  fireEvent,
-  render,
-  screen,
-  waitFor,
-} from "@testing-library/react-native";
+import { QueryClientProvider } from "@tanstack/react-query";
+import { act, fireEvent, render, screen } from "@testing-library/react-native";
 import { AppState, type AppStateStatus, Linking, Text } from "react-native";
 import { useClientConfigQuery } from "~/hooks/queries/client-config";
+import { createTestQueryClient, settle } from "~/test-utils/query-client";
 import MinimumVersionGate from "../minimum-version-gate";
 
 const INSTALLED_VERSION = "1.4.0";
@@ -43,9 +38,7 @@ const serveMinimumIosVersion = (ios: string | null) => {
 };
 
 const renderGate = async () => {
-  const queryClient = new QueryClient({
-    defaultOptions: { queries: { gcTime: Number.POSITIVE_INFINITY } },
-  });
+  const queryClient = createTestQueryClient();
   await render(
     <QueryClientProvider client={queryClient}>
       <MinimumVersionGate>
@@ -53,14 +46,10 @@ const renderGate = async () => {
       </MinimumVersionGate>
     </QueryClientProvider>
   );
-  // Wait until the config request has settled, then let react-query's
-  // notification (a 0 ms timer) re-render the gate inside act.
-  await waitFor(() =>
-    expect(["success", "error"]).toContain(
-      queryClient.getQueryState(useClientConfigQuery.getKey())?.status
-    )
+  await settle(queryClient);
+  expect(["success", "error"]).toContain(
+    queryClient.getQueryState(useClientConfigQuery.getKey())?.status
   );
-  await act(() => new Promise((resolve) => setTimeout(resolve, 0)));
 };
 
 beforeEach(() => {

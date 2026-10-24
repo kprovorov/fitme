@@ -1,5 +1,5 @@
 import { beforeEach, describe, expect, it, jest } from "@jest/globals";
-import { QueryClient, QueryClientProvider } from "@tanstack/react-query";
+import { QueryClientProvider } from "@tanstack/react-query";
 import {
   fireEvent,
   render,
@@ -11,6 +11,7 @@ import {
   libraryExercise,
   serveLibrary,
 } from "~/test-utils/fake-exercise-library";
+import { createTestQueryClient } from "~/test-utils/query-client";
 import { type WorkoutPlan, WorkoutPlanCard } from "../workout-plan-card";
 
 const mockPush = jest.fn();
@@ -91,9 +92,7 @@ const plan: WorkoutPlan = {
 };
 
 const renderCard = async (card: WorkoutPlan = plan) => {
-  const client = new QueryClient({
-    defaultOptions: { mutations: { retry: false }, queries: { retry: false } },
-  });
+  const client = createTestQueryClient();
   await render(
     <QueryClientProvider client={client}>
       <WorkoutPlanCard plan={card} />
