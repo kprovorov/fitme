@@ -11,13 +11,13 @@ export const MAX_WEIGHT_DECIMALS = 2;
 export const MAX_REST_SECONDS = 3600;
 
 /**
- * Bounds on a Plan write, as the Public API enforces them (MCP's plan bounds):
+ * Bounds on a Plan write, as the Public API enforces them (the same values as MCP's plan schemas):
  * a Plan's and a Workout's name and text lengths, list sizes, Workouts a week
  * and minutes per Workout.
  */
-export const MAX_NAME_LENGTH = 200;
-export const MAX_TEXT_LENGTH = 2000;
-export const MAX_WORKOUTS = 14;
+export const MAX_PLAN_NAME_LENGTH = 200;
+export const MAX_PLAN_TEXT_LENGTH = 2000;
+export const MAX_WORKOUTS_PER_PLAN = 14;
 export const MAX_EXERCISES_PER_WORKOUT = 30;
 export const MAX_SETS_PER_EXERCISE = 20;
 export const MIN_FREQUENCY = 1;

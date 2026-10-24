@@ -3,14 +3,14 @@ import {
   MAX_EXERCISE_SLUG_LENGTH,
   MAX_EXERCISES_PER_WORKOUT,
   MAX_FREQUENCY,
-  MAX_NAME_LENGTH,
+  MAX_PLAN_NAME_LENGTH,
+  MAX_PLAN_TEXT_LENGTH,
   MAX_REPS,
   MAX_REST_SECONDS,
   MAX_SETS_PER_EXERCISE,
-  MAX_TEXT_LENGTH,
   MAX_WEIGHT,
   MAX_WORKOUT_DURATION_MINUTES,
-  MAX_WORKOUTS,
+  MAX_WORKOUTS_PER_PLAN,
   MIN_FREQUENCY,
 } from "@fitme/core/limits";
 import type { PlanDetail } from "@fitme/services/plans";
@@ -271,7 +271,7 @@ const NewPlanWorkout = z
   .strictObject({
     description: z
       .string()
-      .max(MAX_TEXT_LENGTH)
+      .max(MAX_PLAN_TEXT_LENGTH)
       .openapi({ example: "Legs and pulls" }),
     exercises: z
       .array(NewPlanExercise)
@@ -282,7 +282,7 @@ const NewPlanWorkout = z
       .string()
       .trim()
       .min(1)
-      .max(MAX_NAME_LENGTH)
+      .max(MAX_PLAN_NAME_LENGTH)
       .openapi({ example: "Day A" }),
   })
   .openapi("NewPlanWorkout");
@@ -291,7 +291,7 @@ const NewPlanWorkout = z
 const PlanWorkoutsInput = z
   .array(NewPlanWorkout)
   .min(1)
-  .max(MAX_WORKOUTS)
+  .max(MAX_WORKOUTS_PER_PLAN)
   .openapi({
     description:
       "Every Workout of the Plan, in rotation order: the first is up next. Every `order` comes from the array positions",
@@ -301,7 +301,7 @@ const PlanWorkoutsInput = z
 const planMetadataFields = {
   description: z
     .string()
-    .max(MAX_TEXT_LENGTH)
+    .max(MAX_PLAN_TEXT_LENGTH)
     .openapi({ example: "Three full-body days" }),
   experience_level: z.enum(experienceLevels),
   frequency: z.number().int().min(MIN_FREQUENCY).max(MAX_FREQUENCY).openapi({
@@ -313,9 +313,9 @@ const planMetadataFields = {
     .string()
     .trim()
     .min(1)
-    .max(MAX_NAME_LENGTH)
+    .max(MAX_PLAN_NAME_LENGTH)
     .openapi({ example: "Full body" }),
-  note: z.string().max(MAX_TEXT_LENGTH).nullable().optional(),
+  note: z.string().max(MAX_PLAN_TEXT_LENGTH).nullable().optional(),
   place: z.enum(places),
   workout_duration: z
     .number()
