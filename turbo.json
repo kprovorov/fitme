@@ -21,6 +21,7 @@
         "COACH_RESET_SECRET",
         "COACH_URL",
         "REVENUECAT_SECRET_KEY",
+        "MIN_APP_VERSION",
         "MIN_APP_VERSION_*",
         "MCP_PUBLIC_URL",
         "VERCEL",

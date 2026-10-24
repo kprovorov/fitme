@@ -7,11 +7,21 @@ import {
 
 const VERSION_PATTERN = /^\d+\.\d+\.\d+$/;
 
-/** An `x.y.z` version from env; unset or malformed means no minimum. */
-const minimumVersionFromEnv = (name: string) => {
+/** An `x.y.z` version from env, or `undefined` when unset or malformed. */
+const versionFromEnv = (name: string) => {
   const value = process.env[name]?.trim();
-  return value && VERSION_PATTERN.test(value) ? value : null;
+  return value && VERSION_PATTERN.test(value) ? value : undefined;
 };
+
+/**
+ * A platform's minimum from `MIN_APP_VERSION_<PLATFORM>`, or from
+ * `MIN_APP_VERSION` when that one is unset or malformed (so a typo never
+ * lifts the global cutoff); neither valid means no minimum.
+ */
+const minimumVersionFromEnv = (platform: "ANDROID" | "IOS" | "WEB") =>
+  versionFromEnv(`MIN_APP_VERSION_${platform}`) ??
+  versionFromEnv("MIN_APP_VERSION") ??
+  null;
 
 const MinimumVersion = z.string().nullable().openapi({
   description:
@@ -25,6 +35,7 @@ const ClientConfig = z
       minimumVersion: z.object({
         android: MinimumVersion,
         ios: MinimumVersion,
+        web: MinimumVersion,
       }),
     }),
   })
@@ -36,14 +47,14 @@ const getClientConfig = createRoute({
   responses: {
     200: {
       content: { "application/json": { schema: ClientConfig } },
-      description: "The mobile app's config: its minimum version per platform",
+      description: "The client config: the minimum app version per platform",
       headers: publicCacheHeaders,
     },
   },
-  summary: "Mobile client config",
+  summary: "Client config",
 });
 
-// Public: the mobile app reads it before anyone signs in.
+// Public: the clients read it before anyone signs in.
 export const clientConfig = new OpenAPIHono({
   defaultHook: invalidRequest,
 }).openapi(getClientConfig, (c) => {
@@ -52,8 +63,9 @@ export const clientConfig = new OpenAPIHono({
     {
       data: {
         minimumVersion: {
-          android: minimumVersionFromEnv("MIN_APP_VERSION_ANDROID"),
-          ios: minimumVersionFromEnv("MIN_APP_VERSION_IOS"),
+          android: minimumVersionFromEnv("ANDROID"),
+          ios: minimumVersionFromEnv("IOS"),
+          web: minimumVersionFromEnv("WEB"),
         },
       },
     },
