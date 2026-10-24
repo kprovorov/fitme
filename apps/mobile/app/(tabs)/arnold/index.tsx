@@ -307,8 +307,8 @@ function ArnoldChat({
         <Conversation
           emptyState={
             <ConversationEmptyState
-              description="Ask about your training, plans and workouts"
-              title="Arnold"
+              description="About your training, plans and workouts"
+              title="Ask Arnold"
             />
           }
         >

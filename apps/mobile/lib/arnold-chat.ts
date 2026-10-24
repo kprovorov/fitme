@@ -13,7 +13,7 @@ export const getArnoldUrl = () =>
   process.env.EXPO_PUBLIC_ARNOLD_URL || process.env.EXPO_PUBLIC_COACH_URL || "";
 
 /**
- * The run config a Arnold turn is sent with. eve forwards `custom` as the
+ * The run config each turn with Arnold is sent with. eve forwards `custom` as the
  * turn's client context, where Arnold reads the model to answer with.
  * Without a model (no model list on the device) nothing is sent, so Arnold
  * picks its own default.
@@ -39,7 +39,7 @@ export type ArnoldErrorAction =
   | "show";
 
 /**
- * What the Arnold screen does with a Arnold error: the channel's not-Pro refusal
+ * What the Arnold screen does with an error from Arnold: the channel's not-Pro refusal
  * (`arnold_pro_required` or the pre-rename `coach_pro_required`) shows the
  * paywall, an ended session starts a new Conversation, and anything
  * else shows the error state. Duck-typed on eve's `ClientError` (`code` from

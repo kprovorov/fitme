@@ -449,11 +449,11 @@ export function ConversationEmptyState({
         className="text-large-title text-muted-foreground"
         name={icon}
       />
-      <Text className="text-foreground text-title-2-emphasized dark:text-foreground">
+      <Text className="text-center text-foreground text-title-2-emphasized dark:text-foreground">
         {title}
       </Text>
       {description ? (
-        <Text className="text-muted-foreground text-subhead dark:text-muted-foreground">
+        <Text className="text-center text-muted-foreground text-subhead dark:text-muted-foreground">
           {description}
         </Text>
       ) : null}

@@ -581,13 +581,13 @@ const ROUTES: Array<{
   handler: Handler;
   path: RegExp;
   /** Answered without a bearer, like the API's global routes. */
-  public?: boolean;
+  isPublic?: boolean;
   route: Route;
 }> = [
   {
     handler: listArnoldModels,
+    isPublic: true,
     path: /^\/v1\/arnold\/models$/,
-    public: true,
     route: "GET /v1/arnold/models",
   },
   {
@@ -635,7 +635,7 @@ const match = (method: string, path: string) => {
       return {
         handler: candidate.handler,
         id: decodeURIComponent(params.groups?.id ?? ""),
-        isPublic: candidate.public === true,
+        isPublic: candidate.isPublic === true,
         route: candidate.route,
       };
     }
