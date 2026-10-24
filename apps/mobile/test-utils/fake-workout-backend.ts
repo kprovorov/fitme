@@ -4,9 +4,9 @@ import { libraryExercise } from "./fake-exercise-library";
  * In-memory stand-in for the Supabase client, covering the Profile and Plan
  * reads and the workout session queries and mutations the session screens
  * make. The fake Public API (`fake-public-api.ts`) answers over the same rows,
- * so a write through it shows in the next Supabase read. Rows live in plain arrays
- * and every request resolves asynchronously, like the network would, so
- * screens refetch, race and fail the way they do against a real backend.
+ * so a write through it shows in the next Supabase read. Rows live in plain
+ * arrays and every request resolves asynchronously, like the network would,
+ * so screens refetch, race and fail the way they do against a real backend.
  */
 
 interface SessionRow {

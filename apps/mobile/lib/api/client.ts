@@ -106,13 +106,15 @@ export const createPublicApi = ({
   // so any `fetch` (expo/fetch, a test's fake) can take it.
   const send = async (request: Request): Promise<Response> => {
     const headers = new Headers(request.headers);
-    const bearer = await token();
-    if (bearer) {
-      headers.set("Authorization", `Bearer ${bearer}`);
-    }
     const hasBody = request.method !== "GET" && request.method !== "HEAD";
     let response: Response;
     try {
+      // Inside the `try`: Clerk failing to refresh the token offline is a
+      // network failure too.
+      const bearer = await token();
+      if (bearer) {
+        headers.set("Authorization", `Bearer ${bearer}`);
+      }
       response = await (fetchImpl ?? globalThis.fetch)(request.url, {
         body: hasBody ? await request.text() : undefined,
         headers,

@@ -1,7 +1,3 @@
-import { type MeasurementSystem, measurementSystems } from "@fitme/core";
-import type { PublicApiFetch } from "~/lib/api/client";
-import { backend, type ProfileRow } from "./fake-workout-backend";
-
 /**
  * A fetch-level stand-in for `apps/api`, the `fetch` of the Public API client
  * in every test file (`test-utils/setup.ts`). It answers like the `/v1` routes
@@ -14,6 +10,9 @@ import { backend, type ProfileRow } from "./fake-workout-backend";
  * A route it doesn't implement answers 501 and fails the test after it
  * (`test-utils/after-each.ts`). `failNext` fails a route on demand.
  */
+import { type MeasurementSystem, measurementSystems } from "@fitme/core";
+import type { PublicApiFetch } from "~/lib/api/client";
+import { backend, type ProfileRow } from "./fake-workout-backend";
 
 export const FAKE_PUBLIC_API_URL = "https://api.test";
 export const FAKE_SESSION_TOKEN = "test-session-token";
@@ -37,6 +36,8 @@ export interface ReceivedRequest {
   route: string;
 }
 
+// `updateProfile`'s factors and rounding (`packages/services/src/profile.ts`,
+// the same as the `convert_measurement_system` RPC's).
 const HEIGHT_FACTOR = 0.393_701;
 const WEIGHT_FACTOR = 2.204_62;
 const PROFILE_FIELDS = new Set([
@@ -121,6 +122,10 @@ const patchProfile = (body: unknown): Response => {
   Object.assign(profile, changes);
   return json(200, { data: profileBody(profile) });
 };
+
+const ROUTES = new Set(["PATCH /v1/profile"]);
+
+const isImplemented = (route: string) => ROUTES.has(route);
 
 const answer = (route: string, body: unknown): Response | null => {
   switch (route) {
@@ -216,15 +221,14 @@ class FakePublicApi {
   };
 
   private answer(route: string, authorization: string | null, body: unknown) {
-    if (authorization !== `Bearer ${FAKE_SESSION_TOKEN}`) {
-      return error(401, "unauthorized", "Unauthorized");
-    }
-    const response = answer(route, body);
-    if (response === null) {
+    if (!isImplemented(route)) {
       this.unhandled.push(route);
       return error(501, "not_implemented", `Fake Public API: no ${route}`);
     }
-    return response;
+    if (authorization !== `Bearer ${FAKE_SESSION_TOKEN}`) {
+      return error(401, "unauthorized", "Unauthorized");
+    }
+    return answer(route, body) as Response;
   }
 }
 

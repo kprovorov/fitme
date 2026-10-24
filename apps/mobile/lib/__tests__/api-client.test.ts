@@ -127,6 +127,20 @@ describe("createPublicApi", () => {
     expect(error.cause).toBe(cause);
   });
 
+  it("throws for a token that can't be resolved, without a request", async () => {
+    const fetch = answering(() => new Response(null, { status: 204 }));
+    const api = createPublicApi({
+      baseUrl: () => BASE_URL,
+      fetch,
+      token: () => Promise.reject(new Error("offline")),
+    });
+
+    const error = await rejection(patchProfile(api));
+
+    expect(error).toMatchObject({ code: null, status: null });
+    expect(fetch).not.toHaveBeenCalled();
+  });
+
   it("throws without a request when the base URL is unset", async () => {
     const fetch = answering(() => new Response(null, { status: 204 }));
 
