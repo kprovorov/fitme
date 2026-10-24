@@ -486,7 +486,7 @@ When the user names a skill and the Skill tool refuses it or doesn't list it (`t
 
 ### Issue tracker
 
-Issues live in Linear, team Fitme (`FIT-<n>`), via the Linear MCP tools. A spec is a Linear project (spec in the project description, its issues in the project), not an issue; projects never get labels. New issues always go to `Backlog`, never `Todo`, and carry an area label (`mobile`, `web`, `site`, `mcp`, `api`, `coach`, `webhooks`, `exercises-api`, `database`, `ci`, `docs`) for every area they're expected to change; `exercises` is only for work in the private `fitme-exercises` repo. An issue that needs macOS (iOS simulator, Xcode, the mobile screenshot loop) also gets `macos`: agents run on Linux and skip it. A `ready-for-human` issue carries a step-by-step guide, the complete list of env vars to add or change, and a checklist of every required action. See `docs/agents/issue-tracker.md`.
+Issues live in Linear, team Fitme (`FIT-<n>`), via the Linear MCP tools. A spec is a Linear project (spec in the project description, its issues in the project), not an issue; projects never get labels. New issues always go to `Backlog`, never `Todo`, and carry an area label (`mobile`, `web`, `site`, `mcp`, `api`, `coach`, `webhooks`, `exercises-api`, `database`, `ci`, `docs`) for every area they're expected to change; `exercises` is only for work in the private `fitme-exercises` repo. An issue that needs macOS (iOS simulator, Xcode, the mobile screenshot loop) also gets `mac`: agents run on Linux and skip it. A `ready-for-human` issue carries a step-by-step guide, the complete list of env vars to add or change, and a checklist of every required action. See `docs/agents/issue-tracker.md`.
 
 ### Triage labels
 
