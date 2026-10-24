@@ -2,7 +2,7 @@ import type { Workout } from "@fitme/core";
 import { useQueryClient } from "@tanstack/react-query";
 import { Link, useRouter } from "expo-router";
 import { useCallback, useEffect, useState } from "react";
-import { Pressable, ScrollView, View } from "react-native";
+import { Alert, Pressable, ScrollView, View } from "react-native";
 import { HStack } from "@/components/ui/hstack";
 import { Text } from "@/components/ui/text";
 import { H4 } from "@/components/ui/typography";
@@ -14,6 +14,7 @@ import {
   useExercises,
 } from "~/hooks/queries/exercise-library";
 import { useCreateWorkoutSessionMutation } from "~/hooks/queries/workout-sessions";
+import { rateLimitedFor } from "~/lib/api/client";
 import { cn } from "~/lib/utils";
 import ExerciseImage from "../exercises/exercise-image";
 import { COUNT_SYMBOL } from "../plans/plan-symbols";
@@ -103,18 +104,25 @@ export default function WorkoutCard({
   const queryClient = useQueryClient();
   const router = useRouter();
 
-  const {
-    mutateAsync: createWorkoutSession,
-    isPending: isCreatingWorkoutSession,
-  } = useCreateWorkoutSessionMutation({
-    onSuccess: (workoutSession) => {
-      queryClient.invalidateQueries({ queryKey: ["workout"] });
-      queryClient.invalidateQueries({ queryKey: ["plans"] });
-      router.push(
-        `/plans/${workout.plan_id}/workouts/${workout.id}/sessions/${workoutSession.id}`
-      );
-    },
-  });
+  const { mutate: createWorkoutSession, isPending: isCreatingWorkoutSession } =
+    useCreateWorkoutSessionMutation({
+      onError: (error) => {
+        const waitSeconds = rateLimitedFor(error);
+        Alert.alert(
+          "Couldn't start workout",
+          waitSeconds === null
+            ? "Check your connection and try again."
+            : `Too many requests: please try again in ${waitSeconds} s.`
+        );
+      },
+      onSuccess: (workoutSession) => {
+        queryClient.invalidateQueries({ queryKey: ["workout"] });
+        queryClient.invalidateQueries({ queryKey: ["plans"] });
+        router.push(
+          `/plans/${workout.plan_id}/workouts/${workout.id}/sessions/${workoutSession.id}`
+        );
+      },
+    });
 
   const startWorkout = () => {
     createWorkoutSession({ workoutId: workout.id });

@@ -3,8 +3,10 @@
  *
  * Mounts the real workout session screens, exercise screen, set rows, finish
  * suggestion controller and finish flow, for both workout session routes
- * (opened from a plan and from `/workout-sessions/:id`). Only the edges are
- * swapped out: Supabase for an in-memory backend, expo-router for a small
+ * (opened from a plan and from `/workout-sessions/:id`), and the Workout card
+ * that starts a session. Only the edges are swapped out: Supabase for an
+ * in-memory backend, the Public API for a fake over the same rows (starting,
+ * logging a set and finishing go through it), expo-router for a small
  * stack navigator that keeps lower screens mounted like the native stack, and
  * the SwiftUI-backed primitives (Button, Dialog, menus) for plain
  * React Native stand-ins. See `e2e/manual/finish-workout-suggestion.md` for
@@ -32,8 +34,11 @@ import { AccessibilityInfo, Alert, View } from "react-native";
 import PlanSessionExerciseScreen from "~/app/plans/[planId]/workouts/[workoutId]/sessions/[sessionId]/exercises/[exerciseId]/index";
 import PlanSessionScreen from "~/app/plans/[planId]/workouts/[workoutId]/sessions/[sessionId]/index";
 import HistorySessionScreen from "~/app/workout-sessions/[workoutSessionId]";
+import HomeView from "~/components/views/home-view";
+import { usePlansQuery } from "~/hooks/queries/plans";
 import { storage } from "~/lib/mmkv";
 import { serveLibrary } from "~/test-utils/fake-exercise-library";
+import { fakePublicApi } from "~/test-utils/fake-public-api";
 import {
   backend,
   libraryExerciseNamed,
@@ -49,7 +54,12 @@ import {
 // Navigation: a stack of mounted screens; only the top one is focused.
 // ---------------------------------------------------------------------------
 
-type RouteName = "exercise" | "history-session" | "plan-session" | "summary";
+type RouteName =
+  | "exercise"
+  | "history-session"
+  | "home"
+  | "plan-session"
+  | "summary";
 
 interface Route {
   key: string;
@@ -69,16 +79,17 @@ const PATHS: [RouteName, RegExp][] = [
   ],
   ["summary", /^\/workout-sessions\/(?<workoutSessionId>[^/]+)\/summary$/],
   ["history-session", /^\/workout-sessions\/(?<workoutSessionId>[^/]+)$/],
+  ["home", /^\/$/],
 ];
 
 let routeKey = 0;
 
 const toRoute = (path: string): Route => {
   for (const [name, pattern] of PATHS) {
-    const params = path.match(pattern)?.groups;
-    if (params !== undefined) {
+    const matched = path.match(pattern);
+    if (matched) {
       routeKey += 1;
-      return { key: `route-${routeKey}`, name, params: { ...params } };
+      return { key: `route-${routeKey}`, name, params: { ...matched.groups } };
     }
   }
   throw new Error(`Unknown route ${path}`);
@@ -122,6 +133,7 @@ const mockRouteContext = createContext<{
 jest.mock("expo-router", () => {
   const { useContext } = jest.requireActual<typeof import("react")>("react");
   return {
+    Link: ({ children }: { children: ReactNode }) => children,
     Stack: { Screen: () => null },
     useIsFocused: () => useContext(mockRouteContext).focused,
     useLocalSearchParams: () => useContext(mockRouteContext).params,
@@ -268,9 +280,17 @@ jest.mock("~/components/ui/dialog", () => {
 // Harness.
 // ---------------------------------------------------------------------------
 
+/** Home's Plan, its next Workout's card first, as the Home tab shows it. */
+function HomeScreen() {
+  const { data: plans } = usePlansQuery();
+  const plan = plans?.find(({ is_active }) => is_active);
+  return plan ? <HomeView plan={plan} /> : null;
+}
+
 const SCREENS: Record<RouteName, () => ReactNode> = {
   exercise: PlanSessionExerciseScreen,
   "history-session": HistorySessionScreen,
+  home: HomeScreen,
   "plan-session": PlanSessionScreen,
   summary: () => <View testID="summary-screen" />,
 };
@@ -336,6 +356,10 @@ const ENTRY_ROUTES: EntryRoute[] = [
     sessionRoute: "history-session",
   },
 ];
+
+const START = "POST /v1/workout-sessions";
+const LOG_SET = "PATCH /v1/workout-session-sets/{id}";
+const FINISH = "POST /v1/workout-sessions/{id}/finish";
 
 /** What a set row shows when its save fails. */
 const SET_SAVE_ERROR = "Couldn't save this set. Try again.";
@@ -407,10 +431,13 @@ describe.each(ENTRY_ROUTES)(
           reps
         );
       }
-      const requests = backend.requests.length;
+      const sent = () =>
+        fakePublicApi.count(LOG_SET) +
+        backend.count("workout_session_exercise_sets", "insert");
+      const before = sent();
       await fireEvent.press(focused().getByTestId(`log-set-button-${order}`));
       await settle();
-      expect(backend.requests.length).toBeGreaterThan(requests);
+      expect(sent()).toBeGreaterThan(before);
     };
 
     /** Edits a set that was tracked already. */
@@ -506,7 +533,7 @@ describe.each(ENTRY_ROUTES)(
       });
       await openExercise("Squat");
 
-      backend.failNext("workout_session_exercise_sets", "update");
+      fakePublicApi.failNext(LOG_SET, { status: 500 });
       await trackSet(2);
 
       expect(isSuggestionShown()).toBe(false);
@@ -527,13 +554,11 @@ describe.each(ENTRY_ROUTES)(
       });
       await openExercise("Squat");
 
-      backend.failNext("workout_session_exercise_sets", "update");
+      fakePublicApi.failNext(LOG_SET, "network");
       await trackSet(1, "8");
 
       expect(focused().getByText(SET_SAVE_ERROR)).toBeTruthy();
-      expect(
-        focused().queryByText("update workout_session_exercise_sets failed")
-      ).toBeNull();
+      expect(focused().queryByText("Network request failed")).toBeNull();
       expect(AccessibilityInfo.announceForAccessibility).toHaveBeenCalledWith(
         SET_SAVE_ERROR
       );
@@ -555,7 +580,7 @@ describe.each(ENTRY_ROUTES)(
       });
       await openExercise("Squat");
 
-      backend.failNext("workout_session_exercise_sets", "update");
+      fakePublicApi.failNext(LOG_SET, { status: 503 });
       await editSet(1, "12");
 
       expect(focused().getByText(SET_SAVE_ERROR)).toBeTruthy();
@@ -688,7 +713,7 @@ describe.each(ENTRY_ROUTES)(
 
         expect(isSuggestionShown()).toBe(false);
         expect(backend.session("s1")?.finished_at).toBeNull();
-        expect(backend.count("finish_workout_session", "rpc")).toBe(0);
+        expect(fakePublicApi.count(FINISH)).toBe(0);
         expect(mockNavigator.routes.map(({ name }) => name).at(-1)).toBe(
           "exercise"
         );
@@ -755,7 +780,7 @@ describe.each(ENTRY_ROUTES)(
       // A set tracked with zero reps is an edit too.
       await editSet(1, "5");
 
-      expect(backend.count("workout_session_exercise_sets", "update")).toBe(3);
+      expect(fakePublicApi.count(LOG_SET)).toBe(3);
       expect(backend.sets.map(({ reps_completed }) => reps_completed)).toEqual([
         5, 12,
       ]);
@@ -807,7 +832,10 @@ describe.each(ENTRY_ROUTES)(
       expect(mockNavigator.routes[0]?.params).toEqual({
         workoutSessionId: "s1",
       });
-      expect(backend.count("finish_workout_session", "rpc")).toBe(1);
+      expect(fakePublicApi.count(FINISH)).toBe(1);
+      expect(fakePublicApi.requests.at(-1)?.path).toBe(
+        "/v1/workout-sessions/s1/finish"
+      );
       expect(backend.session("s1")?.finished_at).not.toBeNull();
       expect(isSuggestionShown()).toBe(false);
     });
@@ -820,11 +848,9 @@ describe.each(ENTRY_ROUTES)(
       await openExercise("Squat");
 
       // A slow save: the user goes back to the session before it lands.
-      const resume = backend.pause("workout_session_exercise_sets", "update");
+      const resume = fakePublicApi.pause(LOG_SET);
       await fireEvent.press(focused().getByTestId("log-set-button-1"));
-      await until(
-        () => backend.count("workout_session_exercise_sets", "update") === 1
-      );
+      await until(() => fakePublicApi.count(LOG_SET) === 1);
       await act(() => mockNavigator.dismiss());
       await act(() => resume());
       await settle();
@@ -859,7 +885,35 @@ describe.each(ENTRY_ROUTES)(
       await settle();
       expect(mockNavigator.routes.map(({ name }) => name)).toEqual(["summary"]);
 
-      expect(backend.count("finish_workout_session", "rpc")).toBe(1);
+      expect(fakePublicApi.count(FINISH)).toBe(1);
+    });
+
+    it("opens the Summary when a retried finish lands on a finished session", async () => {
+      await startApp({
+        exercises: [{ name: "Squat", sets: [null] }],
+        id: "s1",
+      });
+      await openExercise("Squat");
+      await trackSet(1);
+
+      // The finish is applied, but its answer is lost on the way back.
+      fakePublicApi.failNext(FINISH, "lost");
+      await fireEvent.press(
+        screen.getByTestId("finish-workout-suggestion-finish")
+      );
+      await settle();
+      expect(Alert.alert).toHaveBeenCalledTimes(1);
+      expect(backend.session("s1")?.finished_at).not.toBeNull();
+
+      // The retry answers `already_finished`, a success.
+      await fireEvent.press(
+        screen.getByTestId("finish-workout-suggestion-finish")
+      );
+      await settle();
+
+      expect(mockNavigator.routes.map(({ name }) => name)).toEqual(["summary"]);
+      expect(fakePublicApi.count(FINISH)).toBe(2);
+      expect(Alert.alert).toHaveBeenCalledTimes(1);
     });
 
     it("keeps the session active and lets the user retry when finishing fails", async () => {
@@ -870,7 +924,7 @@ describe.each(ENTRY_ROUTES)(
       await openExercise("Squat");
       await trackSet(1);
 
-      backend.failNext("finish_workout_session", "rpc");
+      fakePublicApi.failNext(FINISH, { status: 500 });
       await fireEvent.press(
         screen.getByTestId("finish-workout-suggestion-finish")
       );
@@ -940,13 +994,11 @@ describe.each(ENTRY_ROUTES)(
 
       // A double tap on a slow connection: the second save is sent before the
       // first one is answered.
-      const resume = backend.pause("workout_session_exercise_sets", "update");
+      const resume = fakePublicApi.pause(LOG_SET);
       const logSet = focused().getByTestId("log-set-button-2");
       await fireEvent.press(logSet);
       await fireEvent.press(logSet);
-      await until(
-        () => backend.count("workout_session_exercise_sets", "update") === 2
-      );
+      await until(() => fakePublicApi.count(LOG_SET) === 2);
       await act(() => resume());
       await settle();
 
@@ -1004,8 +1056,13 @@ describe.each(ENTRY_ROUTES)(
       await openExercise("Squat");
 
       expect(focused().queryByText("Add Set")).toBeNull();
+      // Its sets can't change: the API refuses (409 `session_finished`).
       await trackSet(2);
 
+      expect(focused().getByText(SET_SAVE_ERROR)).toBeTruthy();
+      expect(
+        backend.sets.find(({ id }) => id === "s1-e1-s2")?.reps_completed
+      ).toBeNull();
       expect(isSuggestionShown()).toBe(false);
       expect(mockPresentations.count).toBe(0);
     });
@@ -1028,3 +1085,142 @@ describe.each(ENTRY_ROUTES)(
     });
   }
 );
+
+describe("starting a Workout from Home", () => {
+  const PLAN = {
+    id: "plan-1",
+    name: "Strength",
+    workouts: [
+      {
+        exercises: [{ sets: 2, slug: "squat" }],
+        id: "w1",
+        name: "Leg Day",
+      },
+      {
+        exercises: [{ sets: 1, slug: "bench-press" }],
+        id: "w2",
+        name: "Push Day",
+      },
+    ],
+  };
+
+  const startApp = async () => {
+    backend.seedPlan(structuredClone(PLAN));
+    await renderApp();
+    await act(() => mockNavigator.set([toRoute("/")]));
+    await settle();
+  };
+
+  const startWorkout = async () => {
+    await fireEvent.press(await focused().findByText("Start Workout"));
+    await settle();
+  };
+
+  const sessionsOf = (workoutId: string) =>
+    backend.sessions.filter((session) => session.workout_id === workoutId);
+
+  it("starts the next Workout and opens its session with the Plan's sets", async () => {
+    await startApp();
+
+    await startWorkout();
+
+    expect(fakePublicApi.requests.at(-1)).toMatchObject({
+      body: { workout_id: "w1" },
+      route: START,
+    });
+    const [started] = sessionsOf("w1");
+    expect(mockNavigator.routes.at(-1)).toMatchObject({
+      name: "plan-session",
+      params: { sessionId: started?.id, workoutId: "w1" },
+    });
+    expect(await focused().findByText("Squat")).toBeTruthy();
+    expect(backend.count("start_workout_session", "rpc")).toBe(0);
+  });
+
+  it("resumes the Workout's open session instead of starting another", async () => {
+    await startApp();
+    // Started elsewhere (the Coach, another device) after Home was read.
+    backend.sessions.push({
+      finished_at: null,
+      id: "open-1",
+      plan_id: "plan-1",
+      started_at: "2026-10-08T09:00:00.000Z",
+      workout_id: "w1",
+      workoutName: "Leg Day",
+    });
+
+    await startWorkout();
+
+    expect(sessionsOf("w1").map(({ id }) => id)).toEqual(["open-1"]);
+    expect(mockNavigator.routes.at(-1)).toMatchObject({
+      name: "plan-session",
+      params: { sessionId: "open-1" },
+    });
+  });
+
+  it("logs the started session's sets and finishes it, rotating the Workout to the end of the Plan", async () => {
+    await startApp();
+    await startWorkout();
+
+    await fireEvent.press(await focused().findByText("Squat"));
+    await settle();
+    const logFive = async (order: number) => {
+      await fireEvent.changeText(
+        focused().getByTestId(`set-reps-input-${order}`),
+        "5"
+      );
+      await fireEvent.press(focused().getByTestId(`log-set-button-${order}`));
+      await settle();
+    };
+    await logFive(1);
+    await logFive(2);
+    const [started] = sessionsOf("w1");
+    expect(
+      backend.sets
+        .filter(({ logged_at }) => logged_at !== null)
+        .map(({ reps_completed }) => reps_completed)
+    ).toEqual([5, 5]);
+
+    await fireEvent.press(
+      screen.getByTestId("finish-workout-suggestion-finish")
+    );
+    await settle();
+
+    expect(mockNavigator.routes.map(({ name }) => name)).toEqual([
+      "home",
+      "summary",
+    ]);
+    expect(started?.finished_at).not.toBeNull();
+    expect(backend.plans[0]?.workouts.map(({ id }) => id)).toEqual([
+      "w2",
+      "w1",
+    ]);
+  });
+
+  it("shows an error and stays on Home when starting fails", async () => {
+    await startApp();
+
+    fakePublicApi.failNext(START, "network");
+    await startWorkout();
+
+    expect(Alert.alert).toHaveBeenCalledWith(
+      "Couldn't start workout",
+      "Check your connection and try again."
+    );
+    expect(backend.sessions).toEqual([]);
+    expect(mockNavigator.routes.map(({ name }) => name)).toEqual(["home"]);
+  });
+
+  it("says how long to wait when starting is rate limited", async () => {
+    await startApp();
+
+    fakePublicApi.failNext(START, { retryAfterSeconds: 12, status: 429 });
+    await startWorkout();
+
+    expect(Alert.alert).toHaveBeenCalledWith(
+      "Couldn't start workout",
+      "Too many requests: please try again in 12 s."
+    );
+    expect(backend.sessions).toEqual([]);
+  });
+});

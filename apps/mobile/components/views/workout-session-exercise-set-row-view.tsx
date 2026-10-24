@@ -6,6 +6,7 @@ import { AccessibilityInfo, View } from "react-native";
 import { SymbolImage } from "~/components/symbol-image";
 import { reportWorkoutSetTracked } from "~/hooks/finish-workout-suggestion";
 import {
+  type SavedWorkoutSessionExerciseSet,
   useCreateWorkoutSessionExerciseSetMutation,
   useUpdateWorkoutSessionExerciseSetMutation,
 } from "~/hooks/queries/workout-session-exercise-sets";
@@ -29,7 +30,7 @@ interface WorkoutSessionExerciseSetRowViewProps {
   locked?: boolean;
   onSetCreated?: (localSetId?: string) => void;
   /** Called once a set is logged for the first time (not on edits). */
-  onSetLogged?: (set: WorkoutSessionExerciseSet) => void;
+  onSetLogged?: (set: SavedWorkoutSessionExerciseSet) => void;
   order?: number;
   sessionId: string;
   /** The User's weight unit, for the REC cell. */
@@ -89,7 +90,7 @@ export default function WorkoutSessionExerciseSetRowView({
 
   // Shared by both saves: the set is logged, so lock the row and refresh.
   const handleSaved = (
-    set: WorkoutSessionExerciseSet,
+    set: SavedWorkoutSessionExerciseSet,
     previousReps: number | null
   ) => {
     reportWorkoutSetTracked({

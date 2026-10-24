@@ -9,7 +9,7 @@ import { libraryExercise } from "./fake-exercise-library";
  * so screens refetch, race and fail the way they do against a real backend.
  */
 
-interface SessionRow {
+export interface SessionRow {
   finished_at: string | null;
   id: string;
   plan_id: string | null;
@@ -27,14 +27,14 @@ export interface ProfileRow {
   weight: number;
 }
 
-interface ExerciseRow {
+export interface ExerciseRow {
   exercise_slug: string;
   id: string;
   order: number;
   workout_session_id: string;
 }
 
-interface SetRow {
+export interface SetRow {
   id: string;
   logged_at: string | null;
   order: number;
@@ -256,7 +256,9 @@ class FakeWorkoutBackend {
 
   nestedPlan({ id, name, workouts }: SeedPlan) {
     return {
+      deleted_at: null,
       id,
+      is_active: true,
       name,
       workouts: workouts.map((workout, workoutIndex) => ({
         exercises: workout.exercises.map(({ sets, slug }, exerciseIndex) => ({
@@ -276,7 +278,9 @@ class FakeWorkoutBackend {
         name: workout.name,
         order: workoutIndex + 1,
         plan_id: id,
-        sessions: [],
+        sessions: this.sessions
+          .filter((session) => session.workout_id === workout.id)
+          .map(({ workoutName: _name, ...session }) => session),
       })),
     };
   }
@@ -350,6 +354,11 @@ class FakeQuery {
     return this;
   }
 
+  is(column: string, value: unknown) {
+    this.filters[column] = value;
+    return this;
+  }
+
   order() {
     return this;
   }
@@ -383,6 +392,10 @@ class FakeQuery {
       case "profiles.select":
         return backend.profile(this.filters.user_id as string) ?? null;
       case "plans.select":
+        if (this.filters.id === undefined) {
+          // Every Plan, as Home lists them; each one is active.
+          return backend.plans.map((plan) => backend.nestedPlan(plan));
+        }
         return backend.nestedPlan(
           requireRow(
             backend.plans.find(({ id }) => id === this.filters.id),
@@ -472,26 +485,21 @@ class FakeQuery {
         backend.sets.push(row);
         return row;
       }
-      case "workout_session_exercise_sets.update": {
-        if (this.filters.workout_session_exercise_id) {
-          // Every set of an Exercise, as replacing it does.
-          for (const set of backend.sets) {
-            if (
-              set.workout_session_exercise_id ===
-              this.filters.workout_session_exercise_id
-            ) {
-              Object.assign(set, this.values);
-            }
-          }
-          return null;
+      case "workout_session_exercise_sets.update":
+        // Every set of an Exercise, as replacing it does. A set is logged
+        // through the Public API, never updated here.
+        if (!this.filters.workout_session_exercise_id) {
+          throw new Error("Fake backend: a set is logged through the API");
         }
-        const row = requireRow(
-          backend.sets.find(({ id }) => id === this.filters.id),
-          "set"
-        );
-        Object.assign(row, this.values);
-        return row;
-      }
+        for (const set of backend.sets) {
+          if (
+            set.workout_session_exercise_id ===
+            this.filters.workout_session_exercise_id
+          ) {
+            Object.assign(set, this.values);
+          }
+        }
+        return null;
       default:
         throw new Error(`Fake backend: unsupported query ${key}`);
     }
@@ -507,14 +515,7 @@ export const fakeSupabase = {
         requireRow(backend.session(args.session_id as string), "session");
         return { changes: [], plan: null, workout: null };
       }
-      if (name !== "finish_workout_session") {
-        throw new Error(`Fake backend: unsupported rpc ${name}`);
-      }
-      const session = requireRow(
-        backend.session(args.p_session_id as string),
-        "session"
-      );
-      session.finished_at = "2026-10-08T11:00:00.000Z";
-      return null;
+      // Starting and finishing go through the Public API.
+      throw new Error(`Fake backend: unsupported rpc ${name}`);
     }),
 };
