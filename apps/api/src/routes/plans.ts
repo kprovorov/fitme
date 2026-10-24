@@ -4,6 +4,7 @@ import { type ApiEnv, bearerSecurity, requires } from "../auth.js";
 import {
   ErrorResponse,
   invalidRequest,
+  rateLimitedResponse,
   unauthorizedResponse,
   WeightUnit,
 } from "../schemas.js";
@@ -91,6 +92,7 @@ const listPlans = createRoute({
       description: "Every Plan of the User, newest first (not paged)",
     },
     401: unauthorizedResponse,
+    429: rateLimitedResponse,
   },
   security: bearerSecurity,
   summary: "List the User's Plans",
@@ -172,6 +174,7 @@ const getActivePlan = createRoute({
       description: "The User's active Plan in full, or `null` without one",
     },
     401: unauthorizedResponse,
+    429: rateLimitedResponse,
   },
   security: bearerSecurity,
   summary: "Get the User's active Plan",
@@ -197,6 +200,7 @@ const getPlan = createRoute({
     404: errorResponse(
       "`not_found`: no such Plan, it was deleted, or it isn't the User's"
     ),
+    429: rateLimitedResponse,
   },
   security: bearerSecurity,
   summary: "Get one of the User's Plans",

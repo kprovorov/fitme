@@ -1015,6 +1015,27 @@
                 }
               }
             }
+          },
+          "429": {
+            "description": "Too many requests from this User; retry after `Retry-After`",
+            "headers": {
+              "Retry-After": {
+                "schema": {
+                  "type": "string",
+                  "description": "Seconds until the limit resets",
+                  "example": "30"
+                },
+                "required": true,
+                "description": "Seconds until the limit resets"
+              }
+            },
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Error"
+                }
+              }
+            }
           }
         }
       }
@@ -1143,6 +1164,27 @@
                 }
               }
             }
+          },
+          "429": {
+            "description": "Too many requests from this User; retry after `Retry-After`",
+            "headers": {
+              "Retry-After": {
+                "schema": {
+                  "type": "string",
+                  "description": "Seconds until the limit resets",
+                  "example": "30"
+                },
+                "required": true,
+                "description": "Seconds until the limit resets"
+              }
+            },
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Error"
+                }
+              }
+            }
           }
         }
       }
@@ -1207,6 +1249,27 @@
           },
           "404": {
             "description": "`not_found`: no such Plan, it was deleted, or it isn't the User's",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Error"
+                }
+              }
+            }
+          },
+          "429": {
+            "description": "Too many requests from this User; retry after `Retry-After`",
+            "headers": {
+              "Retry-After": {
+                "schema": {
+                  "type": "string",
+                  "description": "Seconds until the limit resets",
+                  "example": "30"
+                },
+                "required": true,
+                "description": "Seconds until the limit resets"
+              }
+            },
             "content": {
               "application/json": {
                 "schema": {
@@ -1302,6 +1365,27 @@
           },
           "401": {
             "description": "No valid Clerk session token",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Error"
+                }
+              }
+            }
+          },
+          "429": {
+            "description": "Too many requests from this User; retry after `Retry-After`",
+            "headers": {
+              "Retry-After": {
+                "schema": {
+                  "type": "string",
+                  "description": "Seconds until the limit resets",
+                  "example": "30"
+                },
+                "required": true,
+                "description": "Seconds until the limit resets"
+              }
+            },
             "content": {
               "application/json": {
                 "schema": {
@@ -1441,6 +1525,27 @@
                 }
               }
             }
+          },
+          "429": {
+            "description": "Too many requests from this User; retry after `Retry-After`",
+            "headers": {
+              "Retry-After": {
+                "schema": {
+                  "type": "string",
+                  "description": "Seconds until the limit resets",
+                  "example": "30"
+                },
+                "required": true,
+                "description": "Seconds until the limit resets"
+              }
+            },
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Error"
+                }
+              }
+            }
           }
         }
       }
@@ -1506,6 +1611,27 @@
           },
           "404": {
             "description": "`not_found`: the User has no Workout Session with this id",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Error"
+                }
+              }
+            }
+          },
+          "429": {
+            "description": "Too many requests from this User; retry after `Retry-After`",
+            "headers": {
+              "Retry-After": {
+                "schema": {
+                  "type": "string",
+                  "description": "Seconds until the limit resets",
+                  "example": "30"
+                },
+                "required": true,
+                "description": "Seconds until the limit resets"
+              }
+            },
             "content": {
               "application/json": {
                 "schema": {
@@ -1592,6 +1718,27 @@
           },
           "401": {
             "description": "No valid Clerk session token",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Error"
+                }
+              }
+            }
+          },
+          "429": {
+            "description": "Too many requests from this User; retry after `Retry-After`",
+            "headers": {
+              "Retry-After": {
+                "schema": {
+                  "type": "string",
+                  "description": "Seconds until the limit resets",
+                  "example": "30"
+                },
+                "required": true,
+                "description": "Seconds until the limit resets"
+              }
+            },
             "content": {
               "application/json": {
                 "schema": {

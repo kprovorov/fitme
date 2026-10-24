@@ -67,3 +67,15 @@ export const WeightUnit = z.enum(["kg", "lbs"]).openapi("WeightUnit", {
   description:
     "The unit of every weight in the response: `kg` (metric) or `lbs` (us, uk). Weights are as stored, never converted",
 });
+
+/** Every User-data route answers 429 once the User is over their limit (`rateLimitCallers`). */
+export const rateLimitedResponse = {
+  content: { "application/json": { schema: ErrorResponse } },
+  description: "Too many requests from this User; retry after `Retry-After`",
+  headers: z.object({
+    "Retry-After": z.string().openapi({
+      description: "Seconds until the limit resets",
+      example: "30",
+    }),
+  }),
+};

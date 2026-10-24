@@ -120,10 +120,18 @@ export const upstashRateLimiter = ({
 };
 
 /**
+ * Production: `NODE_ENV=production`, except a Vercel preview, which runs with
+ * it too but isn't (only Production gets Upstash).
+ */
+const isProduction = (env: Record<string, string | undefined>) =>
+  env.NODE_ENV === "production" && env.VERCEL_ENV !== "preview";
+
+/**
  * Upstash when it's configured (`UPSTASH_REDIS_REST_URL`,
- * `UPSTASH_REDIS_REST_TOKEN`). Outside production without it, an in-memory
- * limiter; in production, missing configuration throws, so a misconfigured
- * deployment fails at startup instead of serving without limits.
+ * `UPSTASH_REDIS_REST_TOKEN`). Outside production without it (a Vercel
+ * preview included), an in-memory limiter; in production, missing
+ * configuration throws, so a misconfigured deployment fails at startup
+ * instead of serving without limits.
  */
 export const rateLimiterFromEnv = (
   env: Record<string, string | undefined>,
@@ -134,7 +142,7 @@ export const rateLimiterFromEnv = (
   if (url && token) {
     return upstashRateLimiter({ ...options, token, url });
   }
-  if (env.NODE_ENV === "production") {
+  if (isProduction(env)) {
     throw new Error(
       "UPSTASH_REDIS_REST_URL and UPSTASH_REDIS_REST_TOKEN are required in production"
     );

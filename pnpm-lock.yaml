@@ -55,6 +55,9 @@ importers:
       '@fitme/observability':
         specifier: workspace:*
         version: link:../../packages/observability
+      '@fitme/rate-limit':
+        specifier: workspace:*
+        version: link:../../packages/rate-limit
       '@fitme/services':
         specifier: workspace:*
         version: link:../../packages/services
@@ -67,6 +70,12 @@ importers:
       '@sentry/node':
         specifier: ^11.8.0
         version: 11.8.0(@babel/core@7.29.7)(rollup@4.63.3)
+      '@upstash/ratelimit':
+        specifier: ^2.2.0
+        version: 2.2.0(@upstash/redis@1.39.0)
+      '@upstash/redis':
+        specifier: ^1.39.0
+        version: 1.39.0
       '@vercel/functions':
         specifier: ^3.10.1
         version: 3.10.1(ws@8.21.3)
