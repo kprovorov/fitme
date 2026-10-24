@@ -335,3 +335,18 @@ describe("shifts, time options and named descriptors", () => {
     });
   }
 });
+
+describe("expansion hashes, escaped delimiters and append assignments", () => {
+  for (const [command, rules] of [
+    // biome-ignore lint/suspicious/noTemplateCurlyInString: shell text, not a template.
+    ['echo "${label:-hello # world}"; sleep 60', ["sleep"]],
+    ["x=$(cat <<\\EOF\ndon't\nEOF\n); sleep 60", ["sleep"]],
+    ["PATH+=:/tmp sleep 60", ["sleep"]],
+    ["LOG+=more timeout 5 x", ["timeout"]],
+    ["list[0]=a timeout 5 x", ["timeout"]],
+  ]) {
+    test(`${JSON.stringify(command)} breaks ${JSON.stringify(rules)}`, () => {
+      assert.deepEqual(rulesBroken(command), rules);
+    });
+  }
+});

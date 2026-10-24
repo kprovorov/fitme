@@ -5,7 +5,8 @@
 // reserved word such as `then`), never at quoted strings, heredoc bodies,
 // comments or command substitutions.
 
-const ASSIGNMENT = /^[A-Za-z_][A-Za-z0-9_]*=/;
+// `NAME=…`, `NAME+=…` or `NAME[i]=…`.
+const ASSIGNMENT = /^[A-Za-z_][A-Za-z0-9_]*(\[[^\]]*\])?\+?=/;
 // `2>…` or `{fd}>…`: the descriptor a redirection opens, no command word.
 const FD_NUMBER = /^(\d+|\{[A-Za-z_][A-Za-z0-9_]*\})$/;
 const LEADING_TABS = /^\t+/;
@@ -114,6 +115,10 @@ const readHeredoc = (source, start) => {
       const end = skipQuote(source, index);
       delimiter += source.slice(index + 1, end - 1);
       index = end;
+    } else if (source[index] === "\\") {
+      // `<<\EOF` quotes the delimiter: the backslash is removed.
+      delimiter += source[index + 1] ?? "";
+      index += 2;
     } else {
       delimiter += source[index];
       index += 1;
@@ -122,15 +127,15 @@ const readHeredoc = (source, start) => {
   return { end: index, heredoc: { delimiter, stripTabs } };
 };
 
-// Inside a group: the index just past the escape, quote or heredoc at
-// `index` (a newline skips the heredoc bodies it starts; `heredocs` is null
-// in arithmetic, where there are none), or -1 for a plain character.
-const skipInGroup = (source, index, heredocs) => {
+// Inside a group: the index just past the escape, quote, comment or heredoc
+// at `index` (a newline skips the heredoc bodies it starts), or -1 for a plain
+// character. `comments` and `heredocs` (null: none) come from the group.
+const skipInGroup = (source, index, { comments, heredocs }) => {
   const char = source[index];
   if (char === "\\") {
     return index + 2;
   }
-  if (char === "#" && COMMENT_AFTER.has(source[index - 1])) {
+  if (comments && char === "#" && COMMENT_AFTER.has(source[index - 1])) {
     // A comment runs to the end of its line, quotes and all.
     const end = source.indexOf("\n", index);
     return end === -1 ? source.length : end;
@@ -162,12 +167,18 @@ const skipInGroup = (source, index, heredocs) => {
 const skipGroup = (source, start) => {
   const open = source[start];
   const close = open === "(" ? ")" : "}";
-  // In `((…))` arithmetic, `<<` is a shift, never a heredoc.
-  const heredocs = open === "(" && source[start + 1] === "(" ? null : [];
+  const arithmetic = open === "(" && source[start + 1] === "(";
+  const context = {
+    // Only commands, in `$(…)` or `(…)`, have comments: in `${…}` and
+    // arithmetic a `#` is text.
+    comments: open === "(" && !arithmetic,
+    // In `((…))` arithmetic, `<<` is a shift, never a heredoc.
+    heredocs: arithmetic ? null : [],
+  };
   let depth = 0;
   let index = start;
   while (index < source.length) {
-    const skipped = skipInGroup(source, index, heredocs);
+    const skipped = skipInGroup(source, index, context);
     if (skipped === -1) {
       const char = source[index];
       depth += (char === open ? 1 : 0) - (char === close ? 1 : 0);
