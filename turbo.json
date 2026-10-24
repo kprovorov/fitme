@@ -18,6 +18,8 @@
         "SENTRY_*",
         "FITME_DATABASE_URL",
         "CLERK_*",
+        "ARNOLD_RESET_SECRET",
+        "ARNOLD_URL",
         "COACH_RESET_SECRET",
         "COACH_URL",
         "REVENUECAT_SECRET_KEY",

@@ -7,7 +7,10 @@ import {
 } from "eve/channels/auth";
 
 interface AccountDeletionResetOptions {
-  /** The shared secret apps/webhooks sends; defaults to `COACH_RESET_SECRET`. */
+  /**
+   * The shared secret apps/webhooks sends; defaults to `ARNOLD_RESET_SECRET`,
+   * or the pre-rename `COACH_RESET_SECRET` when that's unset or empty.
+   */
   secret?: () => string | undefined;
 }
 
@@ -20,14 +23,15 @@ const digest = (value: string) => createHash("sha256").update(value).digest();
 
 /**
  * Route auth for account deletion: apps/webhooks resets a deleted User's
- * Coach sessions with `Authorization: Bearer <COACH_RESET_SECRET>`. The
+ * Arnold sessions with `Authorization: Bearer <ARNOLD_RESET_SECRET>`. The
  * secret only ever resets: on any other route it answers 403, so it can't
  * read, continue or start a Conversation. Any other bearer skips, so the walk
  * moves on to the Clerk session check. Unset (or too short), it accepts
  * nothing.
  */
 export const accountDeletionReset = ({
-  secret = () => process.env.COACH_RESET_SECRET,
+  secret = () =>
+    process.env.ARNOLD_RESET_SECRET || process.env.COACH_RESET_SECRET,
 }: AccountDeletionResetOptions = {}): AuthFn<Request> =>
   withAuthChallenges(
     (request) => {

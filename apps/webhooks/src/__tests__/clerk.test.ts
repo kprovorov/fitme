@@ -2,6 +2,11 @@ import { reportError } from "@fitme/observability/node";
 import { DrizzleQueryError } from "drizzle-orm";
 import { Webhook } from "standardwebhooks";
 import { afterEach, describe, expect, it, vi } from "vitest";
+import {
+  arnoldResetConfig,
+  arnoldSessionResetter,
+  deleteArnoldConversations,
+} from "../arnold.js";
 import { type AppDeps, createApp } from "../create-app.js";
 
 // Only what reportError sends; the rest (Hono request spans) stays real
@@ -54,7 +59,7 @@ const setup = (overrides: Partial<AppDeps["clerk"]> = {}) => {
   const steps: string[] = [];
   const app = createApp({
     clerk: {
-      deleteCoachConversations: (userId) => {
+      deleteArnoldConversations: (userId) => {
         steps.push(`conversations:${userId}`);
         return Promise.resolve();
       },
@@ -111,7 +116,7 @@ describe("POST /clerk", () => {
     expect(deleted).toEqual([USER_ID]);
   });
 
-  it("wipes the User's Coach Conversations after their data", async () => {
+  it("wipes the User's Arnold Conversations after their data", async () => {
     const { app, steps } = setup();
 
     const response = await app.request(signedRequest(userDeleted()));
@@ -132,9 +137,9 @@ describe("POST /clerk", () => {
   });
 
   it("reports a failed Conversation wipe and answers 500 so Clerk retries", async () => {
-    const failure = new Error("Coach unreachable");
+    const failure = new Error("Arnold unreachable");
     const { app, reported } = setup({
-      deleteCoachConversations: () => Promise.reject(failure),
+      deleteArnoldConversations: () => Promise.reject(failure),
     });
 
     const response = await app.request(signedRequest(userDeleted()));
@@ -208,7 +213,7 @@ describe("POST /clerk", () => {
     // The app's own reporter (@fitme/observability/node), Sentry faked
     const app = createApp({
       clerk: {
-        deleteCoachConversations: () => Promise.resolve(),
+        deleteArnoldConversations: () => Promise.resolve(),
         deleteUserData: () => Promise.reject(failure),
         signingSecret: SIGNING_SECRET,
       },
@@ -269,5 +274,82 @@ describe("POST /clerk without a signing secret", () => {
     expect(response.status).toBe(500);
     expect(deleted).toEqual([]);
     expect(reported).toHaveLength(1);
+  });
+});
+
+describe("POST /clerk resetting Arnold sessions from the environment", () => {
+  const ARNOLD_URL = "https://arnold.test";
+  const RESET_SECRET = "reset-secret-0123456789abcdef0123456789abcdef";
+
+  /** The real cleanup over `env`, with two recorded sessions and Arnold faked. */
+  const setupFromEnv = (env: Record<string, string | undefined>) => {
+    const requests: Request[] = [];
+    const fetch: typeof globalThis.fetch = (input, init) => {
+      const request = new Request(input, init);
+      requests.push(request);
+      const sessionId = request.url.split("/").at(-2);
+      return Promise.resolve(
+        Response.json({
+          ok: true,
+          previousSessionId: sessionId,
+          status: "reset",
+        })
+      );
+    };
+    const reported: unknown[] = [];
+    const app = createApp({
+      clerk: {
+        deleteArnoldConversations: deleteArnoldConversations({
+          listSessionIds: () => Promise.resolve(["wrun_a", "wrun_b"]),
+          resetSession: arnoldSessionResetter({
+            ...arnoldResetConfig(env),
+            fetch,
+          }),
+        }),
+        deleteUserData: () => Promise.resolve(),
+        signingSecret: SIGNING_SECRET,
+      },
+      reportError: (error) => {
+        reported.push(error);
+        return Promise.resolve();
+      },
+    });
+    return { app, reported, requests };
+  };
+
+  it.each([
+    [
+      "ARNOLD_URL and ARNOLD_RESET_SECRET",
+      { ARNOLD_RESET_SECRET: RESET_SECRET, ARNOLD_URL },
+    ],
+    [
+      "only the old COACH_URL and COACH_RESET_SECRET",
+      { COACH_RESET_SECRET: RESET_SECRET, COACH_URL: ARNOLD_URL },
+    ],
+  ])("resets each recorded session with %s", async (_, env) => {
+    const { app, requests } = setupFromEnv(env);
+
+    const response = await app.request(signedRequest(userDeleted()));
+
+    expect(response.status).toBe(200);
+    expect(requests.map((request) => request.url)).toEqual([
+      `${ARNOLD_URL}/eve/v1/session/wrun_a/reset`,
+      `${ARNOLD_URL}/eve/v1/session/wrun_b/reset`,
+    ]);
+    for (const request of requests) {
+      expect(request.headers.get("authorization")).toBe(
+        `Bearer ${RESET_SECRET}`
+      );
+    }
+  });
+
+  it("reports and answers 500 with neither name set", async () => {
+    const { app, reported, requests } = setupFromEnv({});
+
+    const response = await app.request(signedRequest(userDeleted()));
+
+    expect(response.status).toBe(500);
+    expect(reported).toHaveLength(1);
+    expect(requests).toEqual([]);
   });
 });

@@ -1,5 +1,6 @@
 import { muscleGroups } from "@fitme/core/models";
 import { describe, expect, it, vi } from "vitest";
+import { serverSecretsFromEnv } from "./auth";
 import type { BundleExercise as LibraryExercise } from "./bundle";
 import { type AppDeps, createApp } from "./create-app";
 import {
@@ -19,14 +20,14 @@ const SUPABASE_URL = "https://project.supabase.co";
 /** The library hash, a sha256, quoted. */
 const LIBRARY_ETAG = /^"[0-9a-f]{64}"$/;
 
-const COACH_SECRET = "c".repeat(32);
+const ARNOLD_SECRET = "c".repeat(32);
 const MCP_SECRET = "m".repeat(64);
 const API_SECRET = "a".repeat(48);
 
 /** Each server caller with its secret. */
 const SERVER_SECRETS = [
   ["api", API_SECRET],
-  ["coach", COACH_SECRET],
+  ["arnold", ARNOLD_SECRET],
   ["mcp", MCP_SECRET],
 ] as const;
 
@@ -38,7 +39,7 @@ const auth: AppDeps["auth"] = {
     development: development.jwtKey,
     production: production.jwtKey,
   },
-  serverSecrets: { api: API_SECRET, coach: COACH_SECRET, mcp: MCP_SECRET },
+  serverSecrets: { api: API_SECRET, arnold: ARNOLD_SECRET, mcp: MCP_SECRET },
 };
 
 /** A limiter that never refuses, for tests that aren't about limits. */
@@ -177,7 +178,7 @@ describe("auth", () => {
 
   it.each([
     ["a garbage token", { authorization: "Bearer not-a-jwt" }],
-    ["a non-bearer scheme", { authorization: `Basic ${COACH_SECRET}` }],
+    ["a non-bearer scheme", { authorization: `Basic ${ARNOLD_SECRET}` }],
     [
       "an expired token",
       {
@@ -227,7 +228,7 @@ describe("auth", () => {
     const response = await callerApp({
       auth: {
         ...auth,
-        serverSecrets: { api: short, coach: short, mcp: short },
+        serverSecrets: { api: short, arnold: short, mcp: short },
       },
     }).request("/caller", bearer(short));
 
@@ -237,9 +238,77 @@ describe("auth", () => {
   it("accepts nothing with an unset secret", async () => {
     const response = await callerApp({
       auth: { ...auth, serverSecrets: {} },
-    }).request("/caller", bearer(COACH_SECRET));
+    }).request("/caller", bearer(ARNOLD_SECRET));
 
     expect(response.status).toBe(401);
+  });
+
+  describe("server secrets from the environment", () => {
+    const OLD_SECRET = "o".repeat(40);
+
+    const envApp = (env: Record<string, string | undefined>) =>
+      callerApp({
+        auth: { ...auth, serverSecrets: serverSecretsFromEnv(env) },
+      });
+
+    it("reads each caller's secret", async () => {
+      const configured = envApp({
+        EXERCISES_API_SECRET: API_SECRET,
+        EXERCISES_ARNOLD_SECRET: ARNOLD_SECRET,
+        EXERCISES_MCP_SECRET: MCP_SECRET,
+      });
+
+      for (const [name, secret] of SERVER_SECRETS) {
+        // biome-ignore lint/performance/noAwaitInLoops: one caller at a time keeps the failure readable
+        const response = await configured.request("/caller", bearer(secret));
+        expect(await response.json()).toEqual({ name, type: "server" });
+      }
+    });
+
+    it("takes EXERCISES_ARNOLD_SECRET over the old EXERCISES_COACH_SECRET", async () => {
+      const configured = envApp({
+        EXERCISES_ARNOLD_SECRET: ARNOLD_SECRET,
+        EXERCISES_COACH_SECRET: OLD_SECRET,
+      });
+
+      expect(
+        (await configured.request("/caller", bearer(ARNOLD_SECRET))).status
+      ).toBe(200);
+      expect(
+        (await configured.request("/caller", bearer(OLD_SECRET))).status
+      ).toBe(401);
+    });
+
+    it.each([
+      ["unset", undefined],
+      ["empty", ""],
+    ])(
+      "accepts the old EXERCISES_COACH_SECRET as Arnold when the new one is %s",
+      async (_case, arnoldSecret) => {
+        const response = await envApp({
+          EXERCISES_ARNOLD_SECRET: arnoldSecret,
+          EXERCISES_COACH_SECRET: OLD_SECRET,
+        }).request("/caller", bearer(OLD_SECRET));
+
+        expect(response.status).toBe(200);
+        expect(await response.json()).toEqual({
+          name: "arnold",
+          type: "server",
+        });
+      }
+    );
+
+    it.each([
+      ["EXERCISES_ARNOLD_SECRET", { EXERCISES_ARNOLD_SECRET: "s".repeat(31) }],
+      ["EXERCISES_COACH_SECRET", { EXERCISES_COACH_SECRET: "s".repeat(31) }],
+    ])("accepts nothing with a short %s", async (_case, env) => {
+      const response = await envApp(env).request(
+        "/caller",
+        bearer("s".repeat(31))
+      );
+
+      expect(response.status).toBe(401);
+    });
   });
 
   it.each(
@@ -1078,7 +1147,7 @@ describe("rate limiting", () => {
 
   it.each([
     ["the Public API", API_SECRET],
-    ["the Coach", COACH_SECRET],
+    ["Arnold", ARNOLD_SECRET],
     ["the MCP server", MCP_SECRET],
   ])("never limits %s", async (_, secret) => {
     const limiter = vi.fn<RateLimiter["limit"]>(() =>
