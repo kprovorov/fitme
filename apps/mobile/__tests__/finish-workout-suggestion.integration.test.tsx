@@ -1548,6 +1548,23 @@ describe("the Plan Update after finishing from Home", () => {
     );
   });
 
+  it("says how long to wait when the apply is rate limited, unreported", async () => {
+    await startApp();
+    await finishFromHome();
+
+    fakePublicApi.failNext(APPLY, { retryAfterSeconds: 8, status: 429 });
+    await fireEvent.press(screen.getByRole("button", UPDATE));
+    await settle();
+
+    expect(
+      screen.getByText("Too many requests. Try again in 8 s.")
+    ).toBeTruthy();
+    expect(screen.queryByText(APPLY_ERROR)).toBeNull();
+    expect(captureException).not.toHaveBeenCalled();
+    expect(screen.getByRole("button", RETRY)).toBeTruthy();
+    expect(mockNavigator.routes.map(({ name }) => name)).toEqual(["home"]);
+  });
+
   it("applies once when the first apply's answer was lost", async () => {
     await startApp();
     await finishFromHome();

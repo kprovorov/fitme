@@ -17,6 +17,7 @@ import {
 } from "~/hooks/plan-update-prompt";
 import { shownExercise, useExercises } from "~/hooks/queries/exercise-library";
 import { useApplyPlanUpdateMutation } from "~/hooks/queries/workout-sessions";
+import { rateLimitedFor } from "~/lib/api/client";
 import {
   formatPlanChange,
   type PlanUpdate,
@@ -49,6 +50,8 @@ interface PlanUpdateSheetProps {
   onUpdate: () => void;
   open: boolean;
   preview: PlanUpdate | null;
+  /** The apply was rate limited: the seconds to wait before Retry can work. */
+  waitSeconds: number | null;
 }
 
 /**
@@ -66,6 +69,7 @@ export function PlanUpdateSheet({
   onUpdate,
   open,
   preview,
+  waitSeconds,
 }: PlanUpdateSheetProps) {
   const exercises = useExercises(planUpdateSlugs(preview?.changes ?? []));
   const nameOf = (slug: string) =>
@@ -123,7 +127,9 @@ export function PlanUpdateSheet({
           </VStack>
           {hasFailed ? (
             <ErrorMessage>
-              Couldn't update your plan. Check your connection and try again.
+              {waitSeconds === null
+                ? "Couldn't update your plan. Check your connection and try again."
+                : `Too many requests. Try again in ${waitSeconds} s.`}
             </ErrorMessage>
           ) : null}
           <VStack className="items-stretch gap-3">
@@ -162,6 +168,7 @@ export function PlanUpdateSheetHost() {
   const prompt = usePlanUpdatePrompt();
   const queryClient = useQueryClient();
   const {
+    error: applyError,
     isError: hasFailed,
     isPending: isApplying,
     mutate: apply,
@@ -194,7 +201,10 @@ export function PlanUpdateSheetHost() {
       { sessionId: prompt.sessionId },
       {
         onError: (error) => {
-          Sentry.captureException(error);
+          // Too many requests is the User's to wait out, not a bug.
+          if (rateLimitedFor(error) === null) {
+            Sentry.captureException(error);
+          }
           answeredRef.current = false;
         },
         onSuccess: () => {
@@ -232,6 +242,7 @@ export function PlanUpdateSheetHost() {
       onUpdate={handleUpdate}
       open={!!prompt}
       preview={shown?.preview ?? null}
+      waitSeconds={applyError ? rateLimitedFor(applyError) : null}
     />
   );
 }
