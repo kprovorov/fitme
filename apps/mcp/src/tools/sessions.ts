@@ -2,7 +2,6 @@ import { MAX_REPS, MAX_WEIGHT } from "@fitme/core/limits";
 import type { McpServer } from "@modelcontextprotocol/sdk/server/mcp.js";
 import { z } from "zod";
 import type { ToolContext } from "../context.js";
-import { namedSession } from "./exercise-library.js";
 import {
   asJson,
   READ_ONLY,
@@ -11,6 +10,7 @@ import {
   WEIGHT_UNIT_NOTE,
   withServices,
 } from "./helpers.js";
+import { namedSession } from "./library.js";
 import { DEFAULT_PAGE_SIZE, MAX_PAGE_SIZE } from "./limits.js";
 
 const sessionIdSchema = z
@@ -28,7 +28,7 @@ function registerSessionReadTools(server: McpServer, ctx: ToolContext) {
     "get_workout_session",
     {
       annotations: READ_ONLY,
-      description: `Returns a workout session with its workout and plan (id, name), and its exercises in order, each with the Exercise's \`exercise_slug\`, \`name\` and \`muscle_groups\` from the Exercise Library and its sets in order. Each set's \`id\` is the \`setId\` that log_set needs; \`reps_completed\` / \`weight_completed\` / \`logged_at\` are null until the set is logged. ${WEIGHT_UNIT_NOTE}`,
+      description: `Returns a workout session with its workout and plan (id, name), and its exercises in order, each with the Exercise's \`exercise_slug\`, \`name\` and \`muscle_groups\` from the Library and its sets in order. Each set's \`id\` is the \`setId\` that log_set needs; \`reps_completed\` / \`weight_completed\` / \`logged_at\` are null until the set is logged. ${WEIGHT_UNIT_NOTE}`,
       inputSchema: { sessionId: sessionIdSchema },
       title: "Get workout session",
     },

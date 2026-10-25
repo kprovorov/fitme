@@ -1,25 +1,22 @@
-import {
-  createExerciseLibrary,
-  type ExerciseLibrary,
-} from "@fitme/exercise-library";
+import { createLibrary, type Library } from "@fitme/library-sdk";
 
 /**
- * Builds the Exercise Library client writes check their Exercise slugs with,
+ * Builds the Library client writes check their Exercise slugs with,
  * or returns `null` when the API isn't configured for it.
  */
-export type ExerciseLibraryFactory = () => ExerciseLibrary | null;
+export type LibraryFactory = () => Library | null;
 
 /**
- * The Exercise Library API at `EXERCISES_URL`, called with the Public API's
- * own server secret (`EXERCISES_API_SECRET`), never a User's token.
+ * The Library API at `LIBRARY_URL`, called with the Public API's
+ * own server secret (`LIBRARY_PUBLIC_API_SECRET`), never a User's token.
  */
-export const createExerciseLibraryFromEnv: ExerciseLibraryFactory = () => {
-  const url = process.env.EXERCISES_URL;
-  const secret = process.env.EXERCISES_API_SECRET;
+export const createLibraryFromEnv: LibraryFactory = () => {
+  const url = process.env.LIBRARY_URL;
+  const secret = process.env.LIBRARY_PUBLIC_API_SECRET;
   if (!(url && secret)) {
     return null;
   }
-  return createExerciseLibrary({ token: () => Promise.resolve(secret), url });
+  return createLibrary({ token: () => Promise.resolve(secret), url });
 };
 
 /** What one batch lookup says about a write's Exercise slugs. */
@@ -39,14 +36,14 @@ export const checkExerciseSlugs = async ({
   reportError,
   slugs,
 }: {
-  library: ExerciseLibrary | null;
+  library: Library | null;
   reportError: (error: unknown) => Promise<void>;
   slugs: string[];
 }): Promise<SlugCheck> => {
   if (!library) {
     await reportError(
       new Error(
-        "Missing EXERCISES_URL or EXERCISES_API_SECRET environment variable"
+        "Missing LIBRARY_URL or LIBRARY_PUBLIC_API_SECRET environment variable"
       )
     );
     return { status: "unavailable" };

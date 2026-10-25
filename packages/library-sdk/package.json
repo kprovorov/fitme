@@ -1,8 +1,8 @@
 {
-  "name": "@fitme/exercise-library",
+  "name": "@fitme/library-sdk",
   "version": "0.0.0",
   "private": true,
-  "description": "The Exercise Library API client shared by Arnold, MCP and the mobile app, plus an in-memory fake for their tests.",
+  "description": "The Library API client shared by Arnold, MCP and the mobile app, plus an in-memory fake for their tests.",
   "type": "module",
   "exports": {
     ".": "./src/index.ts",

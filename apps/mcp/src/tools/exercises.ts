@@ -1,9 +1,8 @@
 import { muscleGroups } from "@fitme/core";
-import type { ExercisePage } from "@fitme/exercise-library";
+import type { ExercisePage } from "@fitme/library-sdk";
 import type { McpServer } from "@modelcontextprotocol/sdk/server/mcp.js";
 import { z } from "zod";
 import type { ToolContext } from "../context.js";
-import { exerciseSlugSchema, fromLibrary } from "./exercise-library.js";
 import {
   asJson,
   READ_ONLY,
@@ -12,12 +11,13 @@ import {
   withServices,
   withToolErrors,
 } from "./helpers.js";
+import { exerciseSlugSchema, fromLibrary } from "./library.js";
 import { DEFAULT_PAGE_SIZE, MAX_PAGE_SIZE } from "./limits.js";
 
 const DEFAULT_HISTORY_LIMIT = 10;
 const MAX_HISTORY_LIMIT = 50;
 const MAX_SEARCH_LENGTH = 100;
-/** The Exercise Library API's largest page; a bigger one takes two requests. */
+/** The Library API's largest page; a bigger one takes two requests. */
 const LIBRARY_PAGE_SIZE = 50;
 
 export function registerExerciseTools(server: McpServer, ctx: ToolContext) {
@@ -26,7 +26,7 @@ export function registerExerciseTools(server: McpServer, ctx: ToolContext) {
     {
       annotations: READ_ONLY,
       description:
-        "Searches the Fitme Exercise Library (alphabetical, paginated). Use an Exercise's `slug` as `exercise_slug` when building plans with create_plan / update_plan. Returns compact rows (slug, name, muscle groups, thumbnail and video URLs) plus `total` and `hasMore`; an offset past the end returns an empty page. Call get_exercise for the description and instructions.",
+        "Searches the Fitme Library (alphabetical, paginated). Use an Exercise's `slug` as `exercise_slug` when building plans with create_plan / update_plan. Returns compact rows (slug, name, muscle groups, thumbnail and video URLs) plus `total` and `hasMore`; an offset past the end returns an empty page. Call get_exercise for the description and instructions.",
       inputSchema: {
         limit: z
           .number()
@@ -88,7 +88,7 @@ export function registerExerciseTools(server: McpServer, ctx: ToolContext) {
     {
       annotations: READ_ONLY,
       description:
-        "Returns one Exercise from the Exercise Library by its slug, with its full details (description and instructions in markdown, video and thumbnail URLs, muscle groups).",
+        "Returns one Exercise from the Library by its slug, with its full details (description and instructions in markdown, video and thumbnail URLs, muscle groups).",
       inputSchema: { exerciseSlug: exerciseSlugSchema },
       title: "Get exercise",
     },

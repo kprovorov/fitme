@@ -9,11 +9,11 @@
  */
 
 import {
-  ExerciseLibraryRateLimitedError,
-  ExerciseLibraryUnavailableError,
   type ExerciseSummary,
-} from "@fitme/exercise-library";
-import type { FakeExerciseLibrary } from "@fitme/exercise-library/fake";
+  LibraryRateLimitedError,
+  LibraryUnavailableError,
+} from "@fitme/library-sdk";
+import type { FakeLibrary } from "@fitme/library-sdk/fake";
 import {
   afterEach,
   beforeEach,
@@ -60,8 +60,8 @@ const EXERCISES = [
 
 const COULD_NOT_LOAD = /Couldn't load/;
 
-let fake: FakeExerciseLibrary;
-let list: jest.SpiedFunction<FakeExerciseLibrary["list"]>;
+let fake: FakeLibrary;
+let list: jest.SpiedFunction<FakeLibrary["list"]>;
 let queryClient: QueryClient;
 
 /** Moves the clock `ms` (plus a few ms), letting the debounce, the fake's answer and react-query's batching run. */
@@ -149,7 +149,7 @@ describe("searching the Exercise Library", () => {
     await advance(300);
     expect(screen.getByText("Bench Press 01")).toBeTruthy();
 
-    fake.failWith(new ExerciseLibraryRateLimitedError(30));
+    fake.failWith(new LibraryRateLimitedError(30));
     await type("bench press 1");
     await advance(300);
 
@@ -159,7 +159,7 @@ describe("searching the Exercise Library", () => {
 
   it("holds the next search back until Retry-After has passed", async () => {
     await renderView();
-    fake.failWith(new ExerciseLibraryRateLimitedError(30));
+    fake.failWith(new LibraryRateLimitedError(30));
     await type("bench");
     await advance(300);
     const rateLimitedCalls = list.mock.calls.length;
@@ -179,7 +179,7 @@ describe("searching the Exercise Library", () => {
   });
 
   it("shows the error state for any other failure, and retries", async () => {
-    fake.failWith(new ExerciseLibraryUnavailableError());
+    fake.failWith(new LibraryUnavailableError());
     await renderView();
     // It retries once, a second later, before it gives up.
     await advance(1000);
@@ -294,7 +294,7 @@ describe("filtering and paging", () => {
 describe("after a 429", () => {
   it("holds loading the next page back until Retry-After has passed", async () => {
     await renderView();
-    fake.failWith(new ExerciseLibraryRateLimitedError(30));
+    fake.failWith(new LibraryRateLimitedError(30));
     await fireEvent.press(screen.getByText("Load More"));
     await advance(0);
     expect(screen.getByText("Bench Press 01")).toBeTruthy();
@@ -320,7 +320,7 @@ describe("a failed refresh", () => {
         refresh = handle?.refresh;
       },
     });
-    fake.failWith(new ExerciseLibraryUnavailableError());
+    fake.failWith(new LibraryUnavailableError());
 
     await act(async () => {
       const refreshing = refresh?.();
@@ -337,7 +337,7 @@ describe("a failed refresh", () => {
 describe("the Retry-After hold", () => {
   it("holds the Exercise picker back too, after the Library tab was rate limited", async () => {
     await renderView();
-    fake.failWith(new ExerciseLibraryRateLimitedError(30));
+    fake.failWith(new LibraryRateLimitedError(30));
     await type("bench");
     await advance(300);
     fake.failWith(null);
@@ -365,7 +365,7 @@ describe("the Retry-After hold", () => {
 describe("a failed next page", () => {
   it("keeps the results and says it couldn't load more", async () => {
     await renderView();
-    fake.failWith(new ExerciseLibraryUnavailableError());
+    fake.failWith(new LibraryUnavailableError());
 
     await fireEvent.press(screen.getByText("Load More"));
     await advance(1000);

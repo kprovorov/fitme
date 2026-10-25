@@ -1,8 +1,8 @@
 import type { MuscleGroup } from "@fitme/core/models";
-import { ExerciseLibraryError } from "@fitme/exercise-library";
+import { LibraryError } from "@fitme/library-sdk";
 import { reportError } from "@fitme/observability/node";
 import { z } from "zod";
-import { exerciseLibrary } from "./exercise-library";
+import { getLibrary } from "./library";
 
 const UUID = /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i;
 const SLUG_SEPARATORS = /[-_]+/g;
@@ -25,13 +25,13 @@ export const nameFromSlug = (slug: string): string => {
   return words.charAt(0).toUpperCase() + words.slice(1);
 };
 
-/** What a tool answers when the Exercise Library fails: nothing was done. */
+/** What a tool answers when the Library fails: nothing was done. */
 export const libraryUnavailable = (done: string) => ({
   error: `The exercise library is unavailable right now, so ${done}. Try again in a moment.`,
 });
 
 /**
- * Reports an Exercise Library failure (`step` tags which use failed) and
+ * Reports an Library failure (`step` tags which use failed) and
  * returns `fallback`; any other error is rethrown.
  */
 export const onLibraryFailure = async <T>(
@@ -39,7 +39,7 @@ export const onLibraryFailure = async <T>(
   step: string,
   fallback: T
 ): Promise<T> => {
-  if (!(error instanceof ExerciseLibraryError)) {
+  if (!(error instanceof LibraryError)) {
     throw error;
   }
   await reportError(error, { exercise_library: step });
@@ -63,7 +63,7 @@ export const checkExerciseSlugs = async (
     };
   }
   try {
-    const { missing } = await exerciseLibrary().lookup(slugs);
+    const { missing } = await getLibrary().lookup(slugs);
     return missing.length > 0
       ? {
           error: `Unknown exercise_slug(s): ${missing.join(", ")}. Use search_exercises to find a valid exercise_slug; nothing was saved.`,
@@ -101,7 +101,7 @@ export const withExerciseDetails = async <Set>(
   const known = new Map<string, ExerciseDetails>();
   if (slugs.length > 0) {
     try {
-      const { data } = await exerciseLibrary().lookup(slugs);
+      const { data } = await getLibrary().lookup(slugs);
       for (const { muscle_groups, name, slug } of data) {
         known.set(slug, { muscle_groups, name });
       }

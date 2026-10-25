@@ -1,7 +1,7 @@
 import { experienceLevels, goals, places } from "@fitme/core";
 import { MAX_REPS, MAX_WEIGHT } from "@fitme/core/limits";
 import { z } from "zod";
-import { exerciseSlugSchema } from "./exercise-library.js";
+import { exerciseSlugSchema } from "./library.js";
 
 const MAX_NAME_LENGTH = 200;
 const MAX_TEXT_LENGTH = 2000;

@@ -1,7 +1,7 @@
-import { ExerciseLibraryUnavailableError } from "@fitme/exercise-library";
+import { LibraryUnavailableError } from "@fitme/library-sdk";
 import type { ToolContext } from "eve/tools";
 import { beforeEach, describe, expect, it, vi } from "vitest";
-import { fakeLibrary } from "./exercise-library";
+import { fakeLibrary } from "./library";
 import { contextFor, inputSchemaOf, userIdFields } from "./tool-context";
 
 const db = vi.hoisted(() => ({ asUser: vi.fn() }));
@@ -29,9 +29,9 @@ vi.mock("@fitme/services/workout-edits", () => ({
 
 const observability = vi.hoisted(() => ({ reportError: vi.fn() }));
 vi.mock("@fitme/observability/node", () => observability);
-vi.mock("../agent/lib/exercise-library", async () => {
-  const { fakeLibrary: library } = await import("./exercise-library");
-  return { exerciseLibrary: () => library };
+vi.mock("../agent/lib/library", async () => {
+  const { fakeLibrary: library } = await import("./library");
+  return { getLibrary: () => library };
 });
 
 const { default: addExerciseToWorkout } = await import(
@@ -243,7 +243,7 @@ describe.each(slugChecks)(
     });
 
     it("asks to retry when the library fails, writing nothing", async () => {
-      const failure = new ExerciseLibraryUnavailableError();
+      const failure = new LibraryUnavailableError();
       fakeLibrary.failWith(failure);
 
       expect(await run(tool, input)).toEqual({

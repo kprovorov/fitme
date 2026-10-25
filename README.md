@@ -22,7 +22,7 @@ and there are no Supabase Edge Functions.
 | `apps/web` | `@fitme/web` | Next.js web app (account area) |
 | `apps/site` | `@fitme/site` | Next.js marketing site |
 | `packages/core` | `@fitme/core` | Domain models, labels, formatters, pure helpers |
-| `packages/exercise-library` | `@fitme/exercise-library` | Exercise Library API client and its in-memory fake |
+| `packages/library-sdk` | `@fitme/library-sdk` | Library API client and its in-memory fake |
 | `packages/design-tokens` | `@fitme/design-tokens` | Design tokens and text styles, one Tailwind v4 CSS file |
 | `packages/supabase` | `@fitme/supabase` | Supabase project (migrations, pgTAP tests) and generated DB types |
 | `packages/db` | `@fitme/db` | `asUser` / `withService`: the only way backend apps reach Postgres |

@@ -1,10 +1,7 @@
 import { randomBytes } from "node:crypto";
 import { asUser, withService } from "@fitme/db";
-import { ExerciseLibraryUnavailableError } from "@fitme/exercise-library";
-import {
-  createFakeExerciseLibrary,
-  type FakeExerciseLibrary,
-} from "@fitme/exercise-library/fake";
+import { LibraryUnavailableError } from "@fitme/library-sdk";
+import { createFakeLibrary, type FakeLibrary } from "@fitme/library-sdk/fake";
 import { deleteUserData } from "@fitme/services/delete-user-data";
 import { createPlan, deletePlan, getPlan } from "@fitme/services/plans";
 import {
@@ -19,15 +16,15 @@ import { clerk, libraryExercise, signedInAs } from "../src/test/harness.js";
 
 /**
  * PUT /v1/plans/{id}/workouts with the real services facade, through
- * `asUser` on the local stack's pooler, and the fake Exercise Library.
+ * `asUser` on the local stack's pooler, and the fake Library.
  */
-const library: FakeExerciseLibrary = createFakeExerciseLibrary(
+const library: FakeLibrary = createFakeLibrary(
   ["barbell-back-squat", "barbell-deadlift"].map(libraryExercise)
 );
 const reported: unknown[] = [];
 const app = createApp({
   clerkJwtKey: clerk.jwtKey,
-  createExerciseLibrary: () => library,
+  createLibrary: () => library,
   createServices: createServicesFromEnv,
   identifyUser: () => undefined,
   reportError: (error) => {
@@ -262,7 +259,7 @@ describe("PUT /v1/plans/{id}/workouts against the local stack", () => {
     const plan = await asUser(owner, (tx) =>
       createPlan(tx, owner, newPlan("Outage"), { activate: false })
     );
-    const outage = new ExerciseLibraryUnavailableError();
+    const outage = new LibraryUnavailableError();
     library.failWith(outage);
 
     const { body, status } = await put(owner, plan.id, replacement());

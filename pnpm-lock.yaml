@@ -52,9 +52,9 @@ importers:
       '@fitme/db':
         specifier: workspace:*
         version: link:../../packages/db
-      '@fitme/exercise-library':
+      '@fitme/library-sdk':
         specifier: workspace:*
-        version: link:../../packages/exercise-library
+        version: link:../../packages/library-sdk
       '@fitme/observability':
         specifier: workspace:*
         version: link:../../packages/observability
@@ -125,9 +125,9 @@ importers:
       '@fitme/db':
         specifier: workspace:*
         version: link:../../packages/db
-      '@fitme/exercise-library':
+      '@fitme/library-sdk':
         specifier: workspace:*
-        version: link:../../packages/exercise-library
+        version: link:../../packages/library-sdk
       '@fitme/observability':
         specifier: workspace:*
         version: link:../../packages/observability
@@ -244,9 +244,9 @@ importers:
       '@fitme/db':
         specifier: workspace:*
         version: link:../../packages/db
-      '@fitme/exercise-library':
+      '@fitme/library-sdk':
         specifier: workspace:*
-        version: link:../../packages/exercise-library
+        version: link:../../packages/library-sdk
       '@fitme/observability':
         specifier: workspace:*
         version: link:../../packages/observability
@@ -329,9 +329,9 @@ importers:
       '@fitme/design-tokens':
         specifier: workspace:*
         version: link:../../packages/design-tokens
-      '@fitme/exercise-library':
+      '@fitme/library-sdk':
         specifier: workspace:*
-        version: link:../../packages/exercise-library
+        version: link:../../packages/library-sdk
       '@fitme/observability':
         specifier: workspace:*
         version: link:../../packages/observability
@@ -872,7 +872,7 @@ importers:
         specifier: ^5.0.5
         version: 5.0.5(@opentelemetry/api@1.9.1)(@types/node@24.19.2)(jsdom@26.1.0)(vite@7.3.6(@types/node@24.19.2)(jiti@2.7.0)(lightningcss@1.33.0)(terser@5.51.2)(tsx@4.23.15)(yaml@2.9.1))
 
-  packages/exercise-library:
+  packages/library-sdk:
     dependencies:
       '@fitme/core':
         specifier: workspace:*

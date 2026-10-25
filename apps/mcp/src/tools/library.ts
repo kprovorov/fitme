@@ -1,8 +1,8 @@
 import {
-  type ExerciseLibrary,
   type ExerciseSummary,
   exerciseNameFromSlug,
-} from "@fitme/exercise-library";
+  type Library,
+} from "@fitme/library-sdk";
 import type { PlanDetail } from "@fitme/services/plans";
 import type { WorkoutSessionDetail } from "@fitme/services/workout-sessions";
 import { z } from "zod";
@@ -21,8 +21,7 @@ export const exerciseSlugSchema = z
     "Exercise slug from list_exercises (its `slug`), e.g. `barbell-back-squat`."
   );
 
-export const LIBRARY_UNAVAILABLE_MESSAGE =
-  "Exercise Library unavailable, try again.";
+export const LIBRARY_UNAVAILABLE_MESSAGE = "Library unavailable, try again.";
 
 /** Known Exercises by slug, from one lookup. */
 export type KnownExercises = ReadonlyMap<string, ExerciseSummary>;
@@ -33,9 +32,9 @@ export type KnownExercises = ReadonlyMap<string, ExerciseSummary>;
  */
 export async function fromLibrary<T>(
   ctx: ToolContext,
-  call: (library: ExerciseLibrary) => Promise<T>
+  call: (library: Library) => Promise<T>
 ): Promise<T> {
-  const library = ctx.getExerciseLibrary();
+  const library = ctx.getLibrary();
   try {
     return await call(library);
   } catch (error) {
@@ -77,7 +76,7 @@ export async function lookupForRead(
   slugs: string[]
 ): Promise<KnownExercises> {
   try {
-    return bySlug((await ctx.getExerciseLibrary().lookup(slugs)).data);
+    return bySlug((await ctx.getLibrary().lookup(slugs)).data);
   } catch (error) {
     if (!(error instanceof ToolError)) {
       await ctx.reportError(error);

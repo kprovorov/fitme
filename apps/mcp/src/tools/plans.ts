@@ -2,13 +2,6 @@ import type { McpServer } from "@modelcontextprotocol/sdk/server/mcp.js";
 import { z } from "zod";
 import type { ToolContext } from "../context.js";
 import {
-  lookupForRead,
-  namedPlan,
-  namePlan,
-  requireKnownSlugs,
-  workoutSlugs,
-} from "./exercise-library.js";
-import {
   asJson,
   pickDefined,
   READ_ONLY,
@@ -17,6 +10,13 @@ import {
   WEIGHT_UNIT_NOTE,
   withServices,
 } from "./helpers.js";
+import {
+  lookupForRead,
+  namedPlan,
+  namePlan,
+  requireKnownSlugs,
+  workoutSlugs,
+} from "./library.js";
 import {
   planMetadataShape,
   planNoteSchema,
@@ -47,7 +47,7 @@ function registerPlanReadTools(server: McpServer, ctx: ToolContext) {
     "get_plan",
     {
       annotations: READ_ONLY,
-      description: `Returns one of the user's plans in full: workouts in rotation order (first = next up), each with its exercises (workout_exercises.id, the Exercise's \`exercise_slug\`, \`name\` and \`muscle_groups\` from the Exercise Library) and recommended sets. Workout ids are what start_workout_session needs. ${WEIGHT_UNIT_NOTE}`,
+      description: `Returns one of the user's plans in full: workouts in rotation order (first = next up), each with its exercises (workout_exercises.id, the Exercise's \`exercise_slug\`, \`name\` and \`muscle_groups\` from the Library) and recommended sets. Workout ids are what start_workout_session needs. ${WEIGHT_UNIT_NOTE}`,
       inputSchema: { planId: planIdSchema },
       title: "Get plan",
     },

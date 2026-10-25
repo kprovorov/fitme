@@ -145,7 +145,7 @@ jobs:
       # The E2E Users are on the Clerk development instance, so the API
       # verifies its tokens (the instance's public key, no secret). No Upstash
       # (and no NODE_ENV=production): the in-memory rate limiter. No
-      # EXERCISES_URL / EXERCISES_API_SECRET: no flow saves a Plan, so no
+      # LIBRARY_URL / LIBRARY_PUBLIC_API_SECRET: no flow saves a Plan, so no
       # production secret goes into GitHub; a flow that does needs its own
       # decision. The app's minimum version gate and every write go here.
       - name: Start the Public API

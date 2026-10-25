@@ -1,4 +1,4 @@
-import type { Exercise, ExerciseSummary } from "@fitme/exercise-library";
+import type { Exercise, ExerciseSummary } from "@fitme/library-sdk";
 import { storage } from "~/lib/mmkv";
 
 // The Exercises the app has resolved, kept in MMKV so they show offline and

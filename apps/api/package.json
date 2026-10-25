@@ -17,7 +17,7 @@
     "@clerk/backend": "^3.25.0",
     "@fitme/core": "workspace:*",
     "@fitme/db": "workspace:*",
-    "@fitme/exercise-library": "workspace:*",
+    "@fitme/library-sdk": "workspace:*",
     "@fitme/observability": "workspace:*",
     "@fitme/rate-limit": "workspace:*",
     "@fitme/services": "workspace:*",

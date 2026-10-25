@@ -1,4 +1,4 @@
-import type { ExerciseSummary } from "@fitme/exercise-library";
+import type { ExerciseSummary } from "@fitme/library-sdk";
 import { router, Stack } from "expo-router";
 import { useCallback, useRef, useState } from "react";
 import { RefreshControl, ScrollView } from "react-native";

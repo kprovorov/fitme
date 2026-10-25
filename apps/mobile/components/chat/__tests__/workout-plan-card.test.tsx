@@ -6,7 +6,7 @@
  * Supabase, as the app's lists do.
  */
 
-import { ExerciseLibraryUnavailableError } from "@fitme/exercise-library";
+import { LibraryUnavailableError } from "@fitme/library-sdk";
 import { beforeEach, describe, expect, it, jest } from "@jest/globals";
 import { QueryClientProvider } from "@tanstack/react-query";
 import { fireEvent, render, screen } from "@testing-library/react-native";
@@ -316,7 +316,7 @@ describe("WorkoutPlanCard", () => {
       libraryExercise("mystery-move"),
     ]);
     const client = await renderCard();
-    library.failWith(new ExerciseLibraryUnavailableError());
+    library.failWith(new LibraryUnavailableError());
 
     await save(client);
 

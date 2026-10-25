@@ -1,9 +1,9 @@
 import {
-  ExerciseLibraryRateLimitedError,
-  ExerciseLibraryUnavailableError,
-} from "@fitme/exercise-library";
+  LibraryRateLimitedError,
+  LibraryUnavailableError,
+} from "@fitme/library-sdk";
 import { beforeEach, describe, expect, it, vi } from "vitest";
-import { fakeLibrary } from "./exercise-library";
+import { fakeLibrary } from "./library";
 import {
   contextFor,
   inputSchemaOf,
@@ -22,9 +22,9 @@ vi.mock("@fitme/db", () => db);
 vi.mock("@fitme/services/plans", () => plans);
 vi.mock("@fitme/services/workout-sessions", () => sessions);
 vi.mock("@fitme/observability/node", () => observability);
-vi.mock("../agent/lib/exercise-library", async () => {
-  const { fakeLibrary: library } = await import("./exercise-library");
-  return { exerciseLibrary: () => library };
+vi.mock("../agent/lib/library", async () => {
+  const { fakeLibrary: library } = await import("./library");
+  return { getLibrary: () => library };
 });
 
 const { default: getActivePlan } = await import(
@@ -113,7 +113,7 @@ const seenArguments = () =>
     sessions.listWorkoutHistory.mock.calls,
   ]);
 
-const libraryDown = new ExerciseLibraryUnavailableError();
+const libraryDown = new LibraryUnavailableError();
 
 /** An Exercise as the read tools show it. */
 interface ShownExercise {
@@ -236,7 +236,7 @@ describe("get_workouts_history", () => {
   });
 
   it("still answers, with slug-derived names, when the library fails", async () => {
-    fakeLibrary.failWith(new ExerciseLibraryRateLimitedError(30));
+    fakeLibrary.failWith(new LibraryRateLimitedError(30));
 
     const [session] = (await getWorkoutsHistory.execute(
       { limit: 10 },

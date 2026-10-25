@@ -16,7 +16,7 @@ import {
 import type { PlanDetail } from "@fitme/services/plans";
 import { createRoute, OpenAPIHono, z } from "@hono/zod-openapi";
 import { type ApiEnv, bearerSecurity, requires } from "../auth.js";
-import { checkExerciseSlugs, type SlugCheck } from "../exercise-library.js";
+import { checkExerciseSlugs, type SlugCheck } from "../library.js";
 import {
   errorResponse,
   Id,
@@ -546,7 +546,7 @@ export const plans = new OpenAPIHono<ApiEnv>({
     const { activate, ...plan } = c.req.valid("json");
     const refusal = slugRefusal(
       await checkExerciseSlugs({
-        library: c.var.getExerciseLibrary(),
+        library: c.var.getLibrary(),
         reportError: c.var.reportError,
         slugs: workoutSlugs(plan.workouts),
       })
@@ -576,7 +576,7 @@ export const plans = new OpenAPIHono<ApiEnv>({
     const { workouts } = c.req.valid("json");
     const refusal = slugRefusal(
       await checkExerciseSlugs({
-        library: c.var.getExerciseLibrary(),
+        library: c.var.getLibrary(),
         reportError: c.var.reportError,
         slugs: workoutSlugs(workouts),
       })

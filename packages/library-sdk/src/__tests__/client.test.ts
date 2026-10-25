@@ -1,11 +1,11 @@
 import { describe, expect, it } from "vitest";
 import {
-  createExerciseLibrary,
-  ExerciseLibraryError,
-  ExerciseLibraryInvalidRequestError,
-  ExerciseLibraryRateLimitedError,
-  ExerciseLibraryUnauthorizedError,
-  ExerciseLibraryUnavailableError,
+  createLibrary,
+  LibraryError,
+  LibraryInvalidRequestError,
+  LibraryRateLimitedError,
+  LibraryUnauthorizedError,
+  LibraryUnavailableError,
 } from "..";
 import { exercise, stubApi } from "./stub-api";
 
@@ -16,7 +16,7 @@ describe("lookup", () => {
   it("asks for 85 slugs in 3 requests of at most 40, in asked order, missing merged", async () => {
     const known = Array.from({ length: 80 }, (_, i) => exercise(`ex-${i}`));
     const api = stubApi(known);
-    const library = createExerciseLibrary({
+    const library = createLibrary({
       fetch: api.fetch,
       token,
       url: URL,
@@ -48,7 +48,7 @@ describe("lookup", () => {
 
   it("fetches a repeated slug once and answers it once", async () => {
     const api = stubApi([exercise("squat"), exercise("bench-press")]);
-    const library = createExerciseLibrary({
+    const library = createLibrary({
       fetch: api.fetch,
       token,
       url: URL,
@@ -70,7 +70,7 @@ describe("lookup", () => {
 
   it("answers no slugs without a request", async () => {
     const api = stubApi([exercise("squat")]);
-    const library = createExerciseLibrary({
+    const library = createLibrary({
       fetch: api.fetch,
       token,
       url: URL,
@@ -82,7 +82,7 @@ describe("lookup", () => {
 
   it("answers a slug that can't be sent (empty, or with a comma) as missing", async () => {
     const api = stubApi([exercise("squat")]);
-    const library = createExerciseLibrary({
+    const library = createLibrary({
       fetch: api.fetch,
       token,
       url: URL,
@@ -105,7 +105,7 @@ describe("list", () => {
       exercise("bench-dip", { muscle_groups: ["triceps"] }),
       exercise("squat", { muscle_groups: ["quadriceps"] }),
     ]);
-    const library = createExerciseLibrary({
+    const library = createLibrary({
       fetch: api.fetch,
       token,
       url: URL,
@@ -135,7 +135,7 @@ describe("list", () => {
 
   it("sends no parameter it wasn't given, so the API's defaults apply", async () => {
     const api = stubApi([exercise("squat")]);
-    const library = createExerciseLibrary({
+    const library = createLibrary({
       fetch: api.fetch,
       token,
       url: URL,
@@ -152,7 +152,7 @@ describe("get", () => {
   it("answers one Exercise in full, description and instructions included", async () => {
     const squat = exercise("barbell-back-squat");
     const api = stubApi([squat, exercise("bench-press")]);
-    const library = createExerciseLibrary({
+    const library = createLibrary({
       fetch: api.fetch,
       token,
       url: URL,
@@ -165,7 +165,7 @@ describe("get", () => {
 
   it("answers null for a slug no Exercise has (404)", async () => {
     const api = stubApi([exercise("squat")]);
-    const library = createExerciseLibrary({
+    const library = createLibrary({
       fetch: api.fetch,
       token,
       url: URL,
@@ -176,7 +176,7 @@ describe("get", () => {
 
   it("escapes the slug into one path segment", async () => {
     const api = stubApi([exercise("squat")]);
-    const library = createExerciseLibrary({
+    const library = createLibrary({
       fetch: api.fetch,
       token,
       url: URL,
@@ -188,7 +188,7 @@ describe("get", () => {
 
   it("answers null for an empty slug without a request", async () => {
     const api = stubApi([exercise("squat")]);
-    const library = createExerciseLibrary({
+    const library = createLibrary({
       fetch: api.fetch,
       token,
       url: URL,
@@ -200,26 +200,26 @@ describe("get", () => {
 
   it("maps an answer without description or instructions to unavailable", async () => {
     const { description: _, ...withoutDescription } = exercise("squat");
-    const library = createExerciseLibrary({
+    const library = createLibrary({
       fetch: stubApi([], () => Response.json(withoutDescription)).fetch,
       token,
       url: URL,
     });
 
     await expect(library.get("squat")).rejects.toBeInstanceOf(
-      ExerciseLibraryUnavailableError
+      LibraryUnavailableError
     );
   });
 
   it("maps a 5xx to unavailable", async () => {
-    const library = createExerciseLibrary({
+    const library = createLibrary({
       fetch: stubApi([], () => new Response(null, { status: 503 })).fetch,
       token,
       url: URL,
     });
 
     await expect(library.get("squat")).rejects.toBeInstanceOf(
-      ExerciseLibraryUnavailableError
+      LibraryUnavailableError
     );
   });
 });
@@ -236,7 +236,7 @@ describe("auth", () => {
     };
     const slugs = Array.from({ length: 85 }, (_, i) => `ex-${i}`);
     const api = stubApi(slugs.map((slug) => exercise(slug)));
-    const library = createExerciseLibrary({
+    const library = createLibrary({
       fetch: api.fetch,
       token: rotating,
       url: URL,
@@ -255,14 +255,14 @@ describe("auth", () => {
 
   it("fails unauthorized without a request when there's no token", async () => {
     const api = stubApi([exercise("squat")]);
-    const library = createExerciseLibrary({
+    const library = createLibrary({
       fetch: api.fetch,
       token: () => Promise.resolve(null),
       url: URL,
     });
 
     await expect(library.list()).rejects.toBeInstanceOf(
-      ExerciseLibraryUnauthorizedError
+      LibraryUnauthorizedError
     );
     expect(api.requests).toHaveLength(0);
   });
@@ -270,7 +270,7 @@ describe("auth", () => {
   it("fails unavailable when token() throws", async () => {
     const cause = new Error("offline");
     const api = stubApi([exercise("squat")]);
-    const library = createExerciseLibrary({
+    const library = createLibrary({
       fetch: api.fetch,
       token: () => Promise.reject(cause),
       url: URL,
@@ -283,7 +283,7 @@ describe("auth", () => {
   });
   it("fails unavailable when token() throws before returning a promise", async () => {
     const cause = new Error("not loaded");
-    const library = createExerciseLibrary({
+    const library = createLibrary({
       fetch: stubApi([exercise("squat")]).fetch,
       token: () => {
         throw cause;
@@ -300,7 +300,7 @@ describe("auth", () => {
 
 describe("errors", () => {
   const failing = (respond: () => Response | Promise<Response>) =>
-    createExerciseLibrary({
+    createLibrary({
       fetch: stubApi([], respond).fetch,
       token,
       url: URL,
@@ -313,8 +313,8 @@ describe("errors", () => {
 
     const error = await library.list().catch((e: unknown) => e);
 
-    expect(error).toBeInstanceOf(ExerciseLibraryUnauthorizedError);
-    expect(error).toBeInstanceOf(ExerciseLibraryError);
+    expect(error).toBeInstanceOf(LibraryUnauthorizedError);
+    expect(error).toBeInstanceOf(LibraryError);
     expect(error).toMatchObject({ code: "unauthorized", status: 401 });
   });
 
@@ -328,7 +328,7 @@ describe("errors", () => {
 
     const error = await library.lookup(["squat"]).catch((e: unknown) => e);
 
-    expect(error).toBeInstanceOf(ExerciseLibraryRateLimitedError);
+    expect(error).toBeInstanceOf(LibraryRateLimitedError);
     expect(error).toMatchObject({
       code: "rate_limited",
       retryAfterSeconds: 17,
@@ -350,7 +350,7 @@ describe("errors", () => {
 
     const error = await library.list().catch((e: unknown) => e);
 
-    expect(error).toBeInstanceOf(ExerciseLibraryUnavailableError);
+    expect(error).toBeInstanceOf(LibraryUnavailableError);
     expect(error).toMatchObject({ code: "unavailable", status });
   });
 
@@ -371,7 +371,7 @@ describe("errors", () => {
           reject(new DOMException("aborted", "AbortError"))
         );
       });
-    const library = createExerciseLibrary({
+    const library = createLibrary({
       fetch: hanging,
       timeoutMs: 5,
       token,
@@ -379,7 +379,7 @@ describe("errors", () => {
     });
 
     await expect(library.list()).rejects.toBeInstanceOf(
-      ExerciseLibraryUnavailableError
+      LibraryUnavailableError
     );
   });
 
@@ -387,7 +387,7 @@ describe("errors", () => {
     const library = failing(() => new Response("<html>", { status: 200 }));
 
     await expect(library.list()).rejects.toBeInstanceOf(
-      ExerciseLibraryUnavailableError
+      LibraryUnavailableError
     );
   });
 
@@ -406,7 +406,7 @@ describe("errors", () => {
     const library = failing(() => Response.json(body));
 
     await expect(library.list()).rejects.toBeInstanceOf(
-      ExerciseLibraryUnavailableError
+      LibraryUnavailableError
     );
   });
 
@@ -419,7 +419,7 @@ describe("errors", () => {
     const library = failing(() => Response.json(body));
 
     await expect(library.lookup(["squat"])).rejects.toBeInstanceOf(
-      ExerciseLibraryUnavailableError
+      LibraryUnavailableError
     );
   });
 
@@ -433,7 +433,7 @@ describe("errors", () => {
 
     const error = await library.list({ limit: 51 }).catch((e: unknown) => e);
 
-    expect(error).toBeInstanceOf(ExerciseLibraryInvalidRequestError);
+    expect(error).toBeInstanceOf(LibraryInvalidRequestError);
     expect(error).toMatchObject({
       code: "invalid_request",
       message: "limit: Too big",
@@ -455,7 +455,7 @@ describe("errors", () => {
     const slugs = Array.from({ length: 85 }, (_, i) => `ex-${i}`);
 
     await expect(library.lookup(slugs)).rejects.toBeInstanceOf(
-      ExerciseLibraryRateLimitedError
+      LibraryRateLimitedError
     );
   });
 });

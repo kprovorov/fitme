@@ -17,7 +17,7 @@
     "@clerk/mcp-tools": "^0.6.0",
     "@fitme/core": "workspace:*",
     "@fitme/db": "workspace:*",
-    "@fitme/exercise-library": "workspace:*",
+    "@fitme/library-sdk": "workspace:*",
     "@fitme/observability": "workspace:*",
     "@fitme/services": "workspace:*",
     "@hono/node-server": "^2.1.5",

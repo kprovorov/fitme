@@ -1,12 +1,12 @@
 import { muscleGroups } from "@fitme/core/models";
 import { defineTool } from "eve/tools";
 import { z } from "zod";
-import { exerciseLibrary } from "../lib/exercise-library";
 import { libraryUnavailable, onLibraryFailure } from "../lib/exercises";
+import { getLibrary } from "../lib/library";
 import { requireConversationOwner } from "../lib/owner";
 
 const MAX_RESULTS = 8;
-/** The Exercise Library API's limit on `search`. */
+/** The Library API's limit on `search`. */
 const MAX_SEARCH_LENGTH = 100;
 
 export default defineTool({
@@ -15,7 +15,7 @@ export default defineTool({
   async execute({ muscle_group, query }, ctx) {
     requireConversationOwner(ctx.session.auth);
     try {
-      const page = await exerciseLibrary().list({
+      const page = await getLibrary().list({
         limit: MAX_RESULTS,
         muscleGroup: muscle_group,
         search: query,
