@@ -16,7 +16,7 @@ Real app (Release build, no dev overlays) against a local Supabase stack seeded 
 | `iphone/10-exercise-detail.png` | Exercise detail (Bench Press): animation, summary, instructions |
 | `iphone/11-exercise-progress.png` | The User's history for an exercise (bent-over row weights going up week to week) |
 | `iphone/12-planner.png` | AI planner input step (goal, experience, duration, place) |
-| `iphone/13-arnold.png` | Arnold chat, empty state |
+| `iphone/13-arnold.png` | Arnold Conversation, empty state |
 | `iphone/14-arnold-models.png` | Arnold model picker |
 | `iphone/15-profile.png` | Profile (free plan, upgrade card) |
 | `iphone/16-edit-profile.png` | Edit profile with body parameters |

@@ -406,7 +406,7 @@ Env files live next to each app.
 - `REVENUECAT_SECRET_KEY` — RevenueCat's secret API key (v1, `sk_…`), server-only; the channel checks the "Fitme Pro" entitlement with it. Missing → every request with a valid token answers 503 `coach_pro_check_unavailable`.
 - `FITME_DATABASE_URL` — see below, with `?application_name=coach`
 - `AI_GATEWAY_API_KEY` — local only (`pnpm dev:arnold`, `pnpm arnold eval`): a Vercel AI Gateway key (`provorovdev` team → AI Gateway → API Keys). Never set on Vercel: deployed, Arnold authenticates to the Gateway through OIDC. Without either, every Arnold turn fails at the model call.
-- `SENTRY_DSN` — the `fitme-arnold` Sentry project: failed steps, turns and sessions, turn-limit and guard failures; its public key also authenticates the trace export. Unset → logs only, no traces
+- `SENTRY_DSN` — the `fitme-arnold` Sentry project (that name once FIT-289 renames the project): failed steps, turns and sessions, turn-limit and guard failures; its public key also authenticates the trace export. Unset → logs only, no traces
 - `SENTRY_OTLP_TRACES_URL` — the project's OTLP traces endpoint, set on Vercel by the Sentry integration; unset (local, evals, tests) → no traces exported
 - `SENTRY_AUTH_TOKEN`, `SENTRY_ORG`, `SENTRY_PROJECT` — build time: source map upload for the release; set on Vercel by the Sentry integration; no token → the upload is skipped
 - `VERCEL_ENV`, `VERCEL_GIT_COMMIT_SHA` — set by Vercel: each event's `environment` and `release`, and the traces' `deployment.environment`

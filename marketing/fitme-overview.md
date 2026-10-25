@@ -70,7 +70,7 @@ Most people who train follow a plan they found online. It wasn't written for the
 
 ### Arnold (Fitme Pro)
 
-Arnold is Fitme's AI personal trainer in a chat, with direct access to your Fitme data. It can:
+Arnold is Fitme's AI, in a chat, with direct access to your Fitme data. It can:
 
 - read your profile, your active plan in full, an overview of your other plans, and your recent workouts;
 - search the exercise library for alternatives;
@@ -82,13 +82,13 @@ Arnold is Fitme's AI personal trainer in a chat, with direct access to your Fitm
 Details worth mentioning:
 
 - **Pick your model.** Choose the model behind Arnold: GPT-5.5 (default, balanced for everyday coaching), GPT-5.6 variants, Claude Sonnet 5 (strong reasoning, natural tone), Claude Opus 5 (most thorough, for complex plans and analysis) or Claude Haiku 4.5 (quickest replies). New models show up without an app update.
-- **Picks up where you left off.** Your current conversation is saved, so you can close the app and come back to it. Tap "+" for a fresh one.
+- **Picks up where you left off.** Your current Conversation is saved, so you can close the app and come back to it. Tap "+" for a fresh one.
 - **Acts only for you.** Arnold can only read and change your own data, and it can't touch your account.
 
 ### Account and privacy
 
 - Two minutes of onboarding: gender, age, height, weight, units.
-- Delete your account from the app: your profile, plans and workout history are deleted, and your Arnold conversations are closed for good.
+- Delete your account from the app: your profile, plans and workout history are deleted, and your Arnold Conversations are closed for good.
 
 ### Craft
 
@@ -106,7 +106,7 @@ Details worth mentioning:
 
 1. **Personal, not generic.** Your plan is built around your goal, schedule and experience, then edited by asking.
 2. **Every rep counts.** Fast set logging, session summaries, PR trophies and per-exercise history turn training into visible progress.
-3. **A trainer in your pocket.** An AI that knows your plan and your numbers, and can actually change them, not just give advice.
+3. **Expert help in your pocket.** An AI that knows your plan and your numbers, and can actually change them, not just give advice.
 4. **Your choice of AI.** Pick the model behind Arnold, from fast to thorough.
 
 Arnold is a common first name, not a reference to anyone. No copy, imagery or catchphrase may allude to a real person, Arnold Schwarzenegger included (ADR 0012). "AI fitness coach" stays as a plain-English search phrase in titles, descriptions and keywords.
@@ -121,7 +121,7 @@ Get a workout plan built for you, log every set, and chat with Arnold, an AI tha
 
 **Description:**
 
-Fitme is your AI personal trainer and workout log in one.
+Fitme is your AI workout planner and workout log in one.
 
 TELL US YOUR GOAL, GET YOUR PLAN
 Pick your goal, experience, schedule and session length. Arnold, Fitme's AI, builds a multi-day plan with exercises, sets, reps and rest, tailored to you.
@@ -162,7 +162,7 @@ Missing: an Arnold Conversation with a plan card, and the planner's result. Both
 - **Home workouts.** "Home" shows as "Soon" in the planner; plans are gym-only today.
 - **Android.** iPhone only for now.
 - **Apple Health sync, automatic weekly plan adaptation, rest timer alerts.** Not in the app. Arnold adjusts plans when asked, not on its own schedule.
-- **Multiple saved Arnold Conversations.** One current conversation at a time; conversations end after 30 days.
+- **Multiple saved Arnold Conversations.** One current Conversation at a time; each ends after 30 days.
 - **Fitme for ChatGPT.** Being prepared, not published yet.
 - **Exercise search by name, cardio and full-body exercises.** The library is browsed by muscle group only.
 - **Web app.** Not a product yet.
