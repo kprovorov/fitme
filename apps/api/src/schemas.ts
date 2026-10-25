@@ -140,3 +140,33 @@ export const WorkoutSessionSet = z
     }),
   })
   .openapi("WorkoutSessionSet");
+
+export const WorkoutSessionExercise = z
+  .object({
+    exercise_slug: z.string().openapi({
+      description: "The Exercise Library's key for the Exercise",
+      example: "barbell-bench-press",
+    }),
+    id: Id,
+    order: z.int().openapi({ example: 1 }),
+    sets: z.array(WorkoutSessionSet).openapi({ description: "In order" }),
+  })
+  .openapi("WorkoutSessionExercise");
+
+/** A Workout Session Exercise a write answers, with the User's weight unit. */
+export const WorkoutSessionExerciseResponse = z.object({
+  data: WorkoutSessionExercise.extend({ weight_unit: WeightUnit }),
+});
+
+/** The 409 of an edit to a finished Workout Session. */
+export const sessionFinished = (sessionId: string, finishedAt: string) =>
+  ({
+    error: {
+      code: "session_finished",
+      message: `Workout Session ${sessionId} was finished at ${finishedAt}; it can no longer be changed`,
+    },
+  }) as const;
+
+export const sessionFinishedResponse = errorResponse(
+  "`session_finished`: the Workout Session is finished; nothing was written"
+);

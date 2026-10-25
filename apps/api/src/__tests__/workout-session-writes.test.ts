@@ -662,3 +662,215 @@ describe("POST /v1/workout-sessions/:id/exercises", () => {
     expect(reported).toEqual([]);
   });
 });
+
+const SESSION_EXERCISE_ID = exercise.id;
+
+describe("DELETE /v1/workout-session-exercises/:id", () => {
+  const path = `/v1/workout-session-exercises/${SESSION_EXERCISE_ID}`;
+
+  it("answers 204 with no body when it removes the Exercise", async () => {
+    const { calls, services } = recording("removeExerciseFromWorkoutSession", {
+      status: "removed",
+    });
+    const { app, servicesFor } = testApp({ services });
+
+    const response = await send(app, "DELETE", path);
+
+    expect(response.status).toBe(204);
+    expect(await response.text()).toBe("");
+    expect(calls).toEqual([SESSION_EXERCISE_ID]);
+    expect(servicesFor).toEqual(["user_alice"]);
+  });
+
+  it("answers 204 too when nothing of the User's matched (a repeat, or another User's id), unreported", async () => {
+    const { services } = recording("removeExerciseFromWorkoutSession", {
+      status: "not_found",
+    });
+    const { app, reported } = testApp({ services });
+
+    const response = await send(app, "DELETE", path);
+
+    expect(response.status).toBe(204);
+    expect(reported).toEqual([]);
+  });
+
+  it("answers 409 session_finished for an Exercise of a finished Workout Session, unreported", async () => {
+    const { services } = recording("removeExerciseFromWorkoutSession", {
+      finishedAt: "2026-10-01T11:00:00+00:00",
+      sessionId: SESSION_ID,
+      status: "session_finished",
+    });
+    const { app, reported } = testApp({ services });
+
+    const response = await send(app, "DELETE", path);
+
+    expect(response.status).toBe(409);
+    expect(await response.json()).toEqual({
+      error: {
+        code: "session_finished",
+        message: `Workout Session ${SESSION_ID} was finished at 2026-10-01T11:00:00+00:00; it can no longer be changed`,
+      },
+    });
+    expect(reported).toEqual([]);
+  });
+
+  it("answers 400 invalid_request for an id that isn't a uuid, unreported", async () => {
+    const { app, reported } = testApp({ services: fakeServices({}) });
+
+    const response = await send(
+      app,
+      "DELETE",
+      "/v1/workout-session-exercises/nope"
+    );
+
+    expect(response.status).toBe(400);
+    expect((await response.json()).error.code).toBe("invalid_request");
+    expect(reported).toEqual([]);
+  });
+});
+
+describe("PUT /v1/workout-session-exercises/:id", () => {
+  const path = `/v1/workout-session-exercises/${SESSION_EXERCISE_ID}`;
+  const replaced = {
+    ...exercise,
+    exercise_slug: "barbell-back-squat",
+    sets: [{ ...set, reps_recommended: 0, weight_recommended: 0 }],
+  };
+
+  it("replaces the Exercise and answers 200 with it, its sets and the weight unit", async () => {
+    const { calls, services } = recording("replaceExerciseInWorkoutSession", {
+      value: { exercise: replaced, status: "replaced" },
+      weightUnit: "lbs",
+    });
+    const { app, servicesFor } = testApp({ services });
+
+    const response = await send(app, "PUT", path, {
+      exercise_slug: "barbell-back-squat",
+    });
+
+    expect(response.status).toBe(200);
+    expect(await response.json()).toEqual({
+      data: { ...replaced, weight_unit: "lbs" },
+    });
+    expect(calls).toEqual([
+      {
+        exerciseSlug: "barbell-back-squat",
+        sessionExerciseId: SESSION_EXERCISE_ID,
+      },
+    ]);
+    expect(servicesFor).toEqual(["user_alice"]);
+  });
+
+  it("answers 404 not_found for a Workout Session Exercise the User doesn't have, unreported", async () => {
+    const { services } = recording("replaceExerciseInWorkoutSession", {
+      value: { status: "not_found" },
+      weightUnit: "kg",
+    });
+    const { app, reported } = testApp({ services });
+
+    const response = await send(app, "PUT", path, {
+      exercise_slug: "barbell-back-squat",
+    });
+
+    expect(response.status).toBe(404);
+    expect(await response.json()).toEqual({
+      error: {
+        code: "not_found",
+        message: "Workout Session Exercise not found",
+      },
+    });
+    expect(reported).toEqual([]);
+  });
+
+  it("answers 409 session_finished for a finished Workout Session, unreported", async () => {
+    const { services } = recording("replaceExerciseInWorkoutSession", {
+      value: {
+        finishedAt: "2026-10-01T11:00:00+00:00",
+        sessionId: SESSION_ID,
+        status: "session_finished",
+      },
+      weightUnit: "kg",
+    });
+    const { app, reported } = testApp({ services });
+
+    const response = await send(app, "PUT", path, {
+      exercise_slug: "barbell-back-squat",
+    });
+
+    expect(response.status).toBe(409);
+    expect(await response.json()).toEqual({
+      error: {
+        code: "session_finished",
+        message: `Workout Session ${SESSION_ID} was finished at 2026-10-01T11:00:00+00:00; it can no longer be changed`,
+      },
+    });
+    expect(reported).toEqual([]);
+  });
+
+  it("answers 400 unknown_exercises naming the slug, before any service call, unreported", async () => {
+    // replaceExerciseInWorkoutSession isn't faked: calling it would fail the request with a 500
+    const { app, reported } = testApp({ services: fakeServices({}) });
+
+    const response = await send(app, "PUT", path, {
+      exercise_slug: "made-up-press",
+    });
+
+    expect(response.status).toBe(400);
+    expect(await response.json()).toEqual({
+      error: {
+        code: "unknown_exercises",
+        message: "Unknown exercise_slug(s): made-up-press",
+      },
+    });
+    expect(reported).toEqual([]);
+  });
+
+  it("answers a reported 503 exercise_library_unavailable when the Library fails, before any service call", async () => {
+    const { app, library, reported } = testApp({ services: fakeServices({}) });
+    const outage = new LibraryUnavailableError();
+    library.failWith(outage);
+
+    const response = await send(app, "PUT", path, {
+      exercise_slug: "barbell-back-squat",
+    });
+
+    expect(response.status).toBe(503);
+    expect((await response.json()).error.code).toBe(
+      "exercise_library_unavailable"
+    );
+    expect(reported).toEqual([outage]);
+  });
+
+  it.each([
+    ["no slug", {}],
+    ["a slug that isn't one", { exercise_slug: "Bench Press" }],
+    [
+      "a slug over the length limit",
+      { exercise_slug: "a".repeat(MAX_EXERCISE_SLUG_LENGTH + 1) },
+    ],
+    ["an unknown field", { exercise_slug: "barbell-back-squat", order: 1 }],
+  ])("answers 400 invalid_request for %s, unreported", async (_, body) => {
+    const { app, reported } = testApp({ services: fakeServices({}) });
+
+    const response = await send(app, "PUT", path, body);
+
+    expect(response.status).toBe(400);
+    expect((await response.json()).error.code).toBe("invalid_request");
+    expect(reported).toEqual([]);
+  });
+
+  it("answers 400 invalid_request for an id that isn't a uuid, unreported", async () => {
+    const { app, reported } = testApp({ services: fakeServices({}) });
+
+    const response = await send(
+      app,
+      "PUT",
+      "/v1/workout-session-exercises/nope",
+      { exercise_slug: "barbell-back-squat" }
+    );
+
+    expect(response.status).toBe(400);
+    expect((await response.json()).error.code).toBe("invalid_request");
+    expect(reported).toEqual([]);
+  });
+});

@@ -10,10 +10,13 @@ import {
   invalidRequest,
   invalidRequestResponse,
   rateLimitedResponse,
+  sessionFinished,
+  sessionFinishedResponse,
   timestamp,
   unauthorizedResponse,
   WeightUnit,
-  WorkoutSessionSet,
+  WorkoutSessionExercise,
+  WorkoutSessionExerciseResponse,
 } from "../schemas.js";
 
 const DEFAULT_LIMIT = 20;
@@ -78,18 +81,6 @@ const WorkoutSessionPage = z
   })
   .openapi("WorkoutSessionPage");
 
-const WorkoutSessionExercise = z
-  .object({
-    exercise_slug: z.string().openapi({
-      description: "The Exercise Library's key for the Exercise",
-      example: "barbell-bench-press",
-    }),
-    id: Id,
-    order: z.int().openapi({ example: 1 }),
-    sets: z.array(WorkoutSessionSet).openapi({ description: "In order" }),
-  })
-  .openapi("WorkoutSessionExercise");
-
 const WorkoutSession = z
   .object({
     ...sessionFields,
@@ -117,23 +108,6 @@ const notFoundResponse = errorResponse(
 const notFound = {
   error: { code: "not_found", message: "Workout Session not found" },
 } as const;
-
-/** The 409 of an edit to a finished Workout Session. */
-const sessionFinished = (sessionId: string, finishedAt: string) =>
-  ({
-    error: {
-      code: "session_finished",
-      message: `Workout Session ${sessionId} was finished at ${finishedAt}; it can no longer be changed`,
-    },
-  }) as const;
-
-const sessionFinishedResponse = errorResponse(
-  "`session_finished`: the Workout Session is finished; nothing was written"
-);
-
-const WorkoutSessionExerciseResponse = z.object({
-  data: WorkoutSessionExercise.extend({ weight_unit: WeightUnit }),
-});
 
 const addExerciseRoute = createRoute({
   description:

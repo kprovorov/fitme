@@ -71,33 +71,23 @@ export default function WorkoutSessionView({
     MuscleGroup | undefined
   >(undefined);
 
+  // A failed edit may still have been saved (a lost answer): read again
+  // either way.
+  const rereadSession = useCallback(() => {
+    queryClient.invalidateQueries({
+      queryKey: ["workout-session"],
+    });
+  }, [queryClient]);
+
   const { mutateAsync } = useCreateWorkoutSessionExerciseMutation({
-    // A failed add may still have been saved (a lost answer): read again
-    // either way.
-    onSettled: () => {
-      queryClient.invalidateQueries({
-        queryKey: ["workout-session"],
-      });
-    },
+    onSettled: rereadSession,
   });
 
   const { mutateAsync: deleteExercise } =
-    useDeleteWorkoutSessionExerciseMutation({
-      onSuccess: () => {
-        queryClient.invalidateQueries({
-          queryKey: ["workout-session"],
-        });
-      },
-    });
+    useDeleteWorkoutSessionExerciseMutation({ onSettled: rereadSession });
 
   const { mutateAsync: replaceExercise } =
-    useReplaceWorkoutSessionExerciseMutation({
-      onSuccess: () => {
-        queryClient.invalidateQueries({
-          queryKey: ["workout-session"],
-        });
-      },
-    });
+    useReplaceWorkoutSessionExerciseMutation({ onSettled: rereadSession });
 
   const onExercisePress = useCallback(
     async (exercise: ExerciseSummary) => {
@@ -124,12 +114,21 @@ export default function WorkoutSessionView({
           });
         }
       } else {
-        await replaceExercise({
-          data: {
-            exercise_slug: exercise.slug,
-          },
-          exerciseId: replacingExerciseId,
-        });
+        try {
+          await replaceExercise({
+            data: {
+              exercise_slug: exercise.slug,
+            },
+            exerciseId: replacingExerciseId,
+          });
+        } catch (error) {
+          // The picker stays open, so the User can try again.
+          Alert.alert(
+            "Couldn't replace exercise",
+            sessionEditFailureMessage(error)
+          );
+          return;
+        }
         if (!IS_E2E) {
           segmentClient.track("Exercise Replaced", {
             exercise_slug: exercise.slug,
@@ -170,9 +169,14 @@ export default function WorkoutSessionView({
   );
 
   const handleDeleteExercise = async (exerciseId: string) => {
-    await deleteExercise({
-      exerciseId,
-    });
+    try {
+      await deleteExercise({
+        exerciseId,
+      });
+    } catch (error) {
+      Alert.alert("Couldn't delete exercise", sessionEditFailureMessage(error));
+      return;
+    }
     if (!IS_E2E) {
       segmentClient.track("Exercise Deleted", {
         exercise_id: exerciseId,

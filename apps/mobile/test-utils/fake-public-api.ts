@@ -10,8 +10,9 @@
  * So far: `PUT` (201 created, 200 replaced, converting to a new system) and
  * `PATCH /v1/profile`, `POST /v1/plans`, activating
  * (`POST /v1/plans/{id}/activate`) and deleting (`DELETE /v1/plans/{id}`) a
- * Plan, starting, finishing and logging a set of a Workout Session, adding an
- * Exercise to one, and the
+ * Plan, starting, finishing and logging a set of a Workout Session, adding,
+ * removing (`DELETE /v1/workout-session-exercises/{id}`) and replacing
+ * (`PUT /v1/workout-session-exercises/{id}`) an Exercise of one, and the
  * public `GET /v1/arnold/models` (answered whatever the bearer, like the
  * API's). Routes are named as templates (`Route`), each request keeping its
  * `path`. A route it doesn't implement answers 501 and fails the
@@ -625,6 +626,16 @@ const refuseUnknownSlug = async (slug: string) => {
     : null;
 };
 
+/** The 409 of an edit to a finished Workout Session, or `null` while it's open. */
+const refuseFinished = (session: SessionRow) =>
+  session.finished_at === null
+    ? null
+    : error(
+        409,
+        "session_finished",
+        `Workout Session ${session.id} is finished`
+      );
+
 /**
  * `addExerciseToWorkoutSession`: appends the Exercise, with no sets, after the
  * open Workout Session's last one (the highest `order` + 1).
@@ -648,12 +659,9 @@ const addSessionExercise = async (
   if (!session) {
     return notFound("Workout Session");
   }
-  if (session.finished_at !== null) {
-    return error(
-      409,
-      "session_finished",
-      `Workout Session ${session.id} is finished`
-    );
+  const finished = refuseFinished(session);
+  if (finished) {
+    return finished;
   }
   const last = Math.max(
     0,
@@ -909,6 +917,68 @@ const planUpdate =
     });
   };
 
+/**
+ * `removeExerciseFromWorkoutSession`: deletes the Exercise and its sets,
+ * leaving the others' `order` (the gap stays); 204 whether or not it matched.
+ */
+const removeSessionExercise = (_body: unknown, exerciseId: string) => {
+  const exercise = backend.exercises.find(({ id }) => id === exerciseId);
+  const session = exercise && backend.session(exercise.workout_session_id);
+  if (!session) {
+    return new Response(null, { status: 204 });
+  }
+  const refusal = refuseFinished(session);
+  if (refusal) {
+    return refusal;
+  }
+  backend.sets = backend.sets.filter(
+    (set) => set.workout_session_exercise_id !== exerciseId
+  );
+  backend.exercises = backend.exercises.filter(({ id }) => id !== exerciseId);
+  return new Response(null, { status: 204 });
+};
+
+/**
+ * `replaceExerciseInWorkoutSession`: swaps the slug in place and zeroes every
+ * set's targets, keeping what was logged.
+ */
+const replaceSessionExercise = async (
+  body: unknown,
+  exerciseId: string
+): Promise<Response> => {
+  if (
+    !isObject(body) ||
+    typeof body.exercise_slug !== "string" ||
+    unknownFields(body, ["exercise_slug"]).length > 0
+  ) {
+    return error(400, "invalid_request", "exercise_slug: Required");
+  }
+  const refusal = await refuseUnknownSlug(body.exercise_slug);
+  if (refusal) {
+    return refusal;
+  }
+  const exercise = backend.exercises.find(({ id }) => id === exerciseId);
+  const session = exercise && backend.session(exercise.workout_session_id);
+  if (!(exercise && session)) {
+    return notFound("Workout Session Exercise");
+  }
+  const finished = refuseFinished(session);
+  if (finished) {
+    return finished;
+  }
+  exercise.exercise_slug = body.exercise_slug;
+  const sets = backend.sets
+    .filter((set) => set.workout_session_exercise_id === exerciseId)
+    .sort((a, b) => a.order - b.order);
+  for (const set of sets) {
+    Object.assign(set, { reps_recommended: 0, weight_recommended: 0 });
+  }
+  const { workout_session_id: _session, ...shown } = exercise;
+  return json(200, {
+    data: { ...shown, sets: sets.map(setBody), weight_unit: weightUnit() },
+  });
+};
+
 /** `apps/api`'s answer, from the same list in `@fitme/core`. */
 const listArnoldModels = () =>
   json(200, {
@@ -987,6 +1057,16 @@ const ROUTES: Array<{
     handler: planUpdate(true),
     path: /^\/v1\/workout-sessions\/(?<id>[^/]+)\/plan-update$/,
     route: "POST /v1/workout-sessions/{id}/plan-update",
+  },
+  {
+    handler: removeSessionExercise,
+    path: /^\/v1\/workout-session-exercises\/(?<id>[^/]+)$/,
+    route: "DELETE /v1/workout-session-exercises/{id}",
+  },
+  {
+    handler: replaceSessionExercise,
+    path: /^\/v1\/workout-session-exercises\/(?<id>[^/]+)$/,
+    route: "PUT /v1/workout-session-exercises/{id}",
   },
   {
     handler: logSet,

@@ -479,22 +479,12 @@ class FakeQuery {
       case "workout_session_exercises.insert":
         // Adding an Exercise goes through the Public API.
         throw new Error("Fake backend: an Exercise is added through the API");
-      case "workout_session_exercises.update": {
-        const row = requireRow(
-          backend.exercises.find(({ id }) => id === this.filters.id),
-          "exercise"
-        );
-        Object.assign(row, this.values);
-        return backend.nestedExercise(row);
-      }
+      case "workout_session_exercises.update":
       case "workout_session_exercises.delete":
-        backend.sets = backend.sets.filter(
-          (set) => set.workout_session_exercise_id !== this.filters.id
+        // Replacing and removing an Exercise go through the Public API.
+        throw new Error(
+          "Fake backend: an Exercise is replaced or removed through the API"
         );
-        backend.exercises = backend.exercises.filter(
-          ({ id }) => id !== this.filters.id
-        );
-        return null;
       case "workout_session_exercise_sets.select":
         return backend.sets
           .filter(
@@ -520,20 +510,9 @@ class FakeQuery {
         return row;
       }
       case "workout_session_exercise_sets.update":
-        // Every set of an Exercise, as replacing it does. A set is logged
-        // through the Public API, never updated here.
-        if (!this.filters.workout_session_exercise_id) {
-          throw new Error("Fake backend: a set is logged through the API");
-        }
-        for (const set of backend.sets) {
-          if (
-            set.workout_session_exercise_id ===
-            this.filters.workout_session_exercise_id
-          ) {
-            Object.assign(set, this.values);
-          }
-        }
-        return null;
+        // Logging a set and zeroing its targets (replacing its Exercise) go
+        // through the Public API.
+        throw new Error("Fake backend: a set is updated through the API");
       default:
         throw new Error(`Fake backend: unsupported query ${key}`);
     }

@@ -555,6 +555,141 @@ export const addExerciseToWorkoutSession = async (
   return { exercise: { ...added, sets: [] }, status: "added" };
 };
 
+type SessionExerciseForEdit =
+  | { sessionId: string; status: "open" }
+  | { finishedAt: string; sessionId: string; status: "session_finished" }
+  | { status: "not_found" };
+
+/**
+ * Finds the Workout Session of one of the User's Workout Session Exercises and
+ * row-locks it (`lockSessionForEdit`), after the session tables' locks.
+ */
+const lockSessionOfExercise = async (
+  tx: Transaction,
+  userId: string,
+  sessionExerciseId: string
+): Promise<SessionExerciseForEdit> => {
+  await lockSessionTables(tx);
+  const [found] = await tx
+    .select({ sessionId: workoutSessionExercises.workoutSessionId })
+    .from(workoutSessionExercises)
+    .innerJoin(
+      workoutSessions,
+      eq(workoutSessions.id, workoutSessionExercises.workoutSessionId)
+    )
+    .where(
+      and(
+        eq(workoutSessionExercises.id, sessionExerciseId),
+        eq(workoutSessions.userId, userId)
+      )
+    );
+  if (!found) {
+    return { status: "not_found" };
+  }
+  const session = await lockSessionForEdit(tx, userId, found.sessionId);
+  return session.status === "not_found"
+    ? session
+    : { ...session, sessionId: found.sessionId };
+};
+
+export type RemoveExerciseFromWorkoutSessionResult =
+  | { status: "removed" }
+  | { finishedAt: string; sessionId: string; status: "session_finished" }
+  | { status: "not_found" };
+
+/**
+ * Deletes one Exercise, and by cascade its sets, from the User's open Workout
+ * Session, in `tx` (from `asUser`). The remaining Exercises keep their
+ * `order`: the Plan Update matches by `order`, so the gap records which
+ * Exercise was removed. A finished Workout Session is left as it was
+ * (`session_finished`); an Exercise the User can't see, or already removed,
+ * is `not_found`.
+ */
+export const removeExerciseFromWorkoutSession = async (
+  tx: Transaction,
+  userId: string,
+  sessionExerciseId: string
+): Promise<RemoveExerciseFromWorkoutSessionResult> => {
+  const session = await lockSessionOfExercise(tx, userId, sessionExerciseId);
+  if (session.status !== "open") {
+    return session;
+  }
+  const removed = await tx
+    .delete(workoutSessionExercises)
+    .where(
+      and(
+        eq(workoutSessionExercises.id, sessionExerciseId),
+        eq(workoutSessionExercises.workoutSessionId, session.sessionId)
+      )
+    )
+    .returning({ id: workoutSessionExercises.id });
+  return removed.length > 0 ? { status: "removed" } : { status: "not_found" };
+};
+
+export interface ReplaceExerciseInWorkoutSessionInput {
+  /** Stored as given: the caller checks it against the Library (ADR 0010). */
+  exerciseSlug: string;
+  sessionExerciseId: string;
+}
+
+export type ReplaceExerciseInWorkoutSessionResult =
+  | { exercise: WorkoutSessionExercise; status: "replaced" }
+  | { finishedAt: string; sessionId: string; status: "session_finished" }
+  | { status: "not_found" };
+
+/**
+ * Replaces the Exercise of one of the User's open Workout Session's Workout
+ * Session Exercises, in `tx` (from `asUser`): the row keeps its id, its
+ * `order` and its sets with their logged values, and every set's targets
+ * (`reps_recommended`, `weight_recommended`) become 0, as the app did. 0, not
+ * `null`: the Plan Update reads a set without `reps_recommended` as one added
+ * during the Workout Session. A finished Workout Session is left as it was
+ * (`session_finished`); an Exercise the User can't see is `not_found`.
+ */
+export const replaceExerciseInWorkoutSession = async (
+  tx: Transaction,
+  userId: string,
+  { exerciseSlug, sessionExerciseId }: ReplaceExerciseInWorkoutSessionInput
+): Promise<ReplaceExerciseInWorkoutSessionResult> => {
+  const session = await lockSessionOfExercise(tx, userId, sessionExerciseId);
+  if (session.status !== "open") {
+    return session;
+  }
+  const [replaced] = await tx
+    .update(workoutSessionExercises)
+    .set({ exerciseSlug })
+    .where(
+      and(
+        eq(workoutSessionExercises.id, sessionExerciseId),
+        eq(workoutSessionExercises.workoutSessionId, session.sessionId)
+      )
+    )
+    .returning({
+      exercise_slug: workoutSessionExercises.exerciseSlug,
+      id: workoutSessionExercises.id,
+      order: workoutSessionExercises.order,
+    });
+  if (!replaced) {
+    return { status: "not_found" };
+  }
+  const sets = await tx
+    .update(workoutSessionExerciseSets)
+    .set({ repsRecommended: 0, weightRecommended: "0" })
+    .where(
+      eq(workoutSessionExerciseSets.workoutSessionExerciseId, sessionExerciseId)
+    )
+    .returning(setColumns);
+  return {
+    exercise: {
+      ...replaced,
+      sets: sets
+        .map(toSet)
+        .sort((a, b) => a.order - b.order || a.id.localeCompare(b.id)),
+    },
+    status: "replaced",
+  };
+};
+
 /**
  * Deletes one of the User's Workout Sessions and, by cascade, its exercises
  * and sets, in `tx` (from `asUser`). False when there was none to delete.

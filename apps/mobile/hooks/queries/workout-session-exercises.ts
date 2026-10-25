@@ -65,18 +65,19 @@ export interface DeleteWorkoutSessionExerciseVariables {
   exerciseId: string;
 }
 
+/**
+ * Removes an Exercise, with its sets, from an open Workout Session through
+ * `DELETE /v1/workout-session-exercises/{id}`, leaving the others' `order`; the
+ * screen re-reads the session. Rejects with an `ApiError`.
+ */
 export const useDeleteWorkoutSessionExerciseMutation = createMutation<
   void,
   DeleteWorkoutSessionExerciseVariables
 >({
   mutationFn: async ({ exerciseId }: DeleteWorkoutSessionExerciseVariables) => {
-    const { error } = await supabase
-      .from("workout_session_exercises")
-      .delete()
-      .eq("id", exerciseId);
-    if (error) {
-      throw error;
-    }
+    await publicApi().DELETE("/v1/workout-session-exercises/{id}", {
+      params: { path: { id: exerciseId } },
+    });
   },
 });
 
@@ -87,32 +88,23 @@ export interface ReplaceWorkoutSessionExerciseVariables {
   exerciseId: string;
 }
 
+/**
+ * Replaces an open Workout Session's Exercise through
+ * `PUT /v1/workout-session-exercises/{id}`, which checks its slug against the
+ * Exercise Library and zeroes its sets' targets in the same transaction; the
+ * screen re-reads the session. Rejects with an `ApiError`.
+ */
 export const useReplaceWorkoutSessionExerciseMutation = createMutation<
-  WorkoutSessionExercise,
+  void,
   ReplaceWorkoutSessionExerciseVariables
 >({
   mutationFn: async ({
     exerciseId,
-    data,
+    data: { exercise_slug },
   }: ReplaceWorkoutSessionExerciseVariables) => {
-    const { data: result, error } = await supabase
-      .from("workout_session_exercises")
-      .update(data)
-      .eq("id", exerciseId)
-      .select(SESSION_EXERCISE_SELECT)
-      .single();
-    if (error) {
-      throw error;
-    }
-
-    const { error: setsError } = await supabase
-      .from("workout_session_exercise_sets")
-      .update({ reps_recommended: 0, weight_recommended: 0 })
-      .eq("workout_session_exercise_id", exerciseId);
-    if (setsError) {
-      throw setsError;
-    }
-
-    return result as unknown as WorkoutSessionExercise;
+    await publicApi().PUT("/v1/workout-session-exercises/{id}", {
+      body: { exercise_slug },
+      params: { path: { id: exerciseId } },
+    });
   },
 });

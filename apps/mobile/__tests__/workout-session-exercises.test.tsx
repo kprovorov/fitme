@@ -1,8 +1,10 @@
 /**
  * Editing an open Workout Session's Exercises from its screen goes through
- * the Public API (FIT-310): adding an Exercise posts to
- * `/v1/workout-sessions/{id}/exercises`, never inserts through Supabase, and
- * a failed add says what went wrong in an alert.
+ * the Public API: adding an Exercise posts to
+ * `/v1/workout-sessions/{id}/exercises` (FIT-310), removing and replacing one
+ * deletes and puts `/v1/workout-session-exercises/{id}` (FIT-312), never
+ * writing through Supabase, and a failed edit says what went wrong in an
+ * alert.
  *
  * Mounts the real screen on the fake Public API and the in-memory Supabase
  * backend over the same rows, and the fake Exercise Library; expo-router and
@@ -114,6 +116,8 @@ jest.mock("~/components/ui/dropdown-menu", () => {
 jest.mock("~/components/ui/picker", () => ({ Picker: () => null }));
 
 const ADD_EXERCISE = "POST /v1/workout-sessions/{id}/exercises";
+const REMOVE_EXERCISE = "DELETE /v1/workout-session-exercises/{id}";
+const REPLACE_EXERCISE = "PUT /v1/workout-session-exercises/{id}";
 
 let queryClient: QueryClient;
 
@@ -142,6 +146,60 @@ const addLunge = async () => {
   });
   await settle();
 };
+
+/** Deletes the first Exercise through its card's menu. */
+const deleteFirst = async () => {
+  const [deleteItem] = await screen.findAllByLabelText("Delete");
+  await act(async () => {
+    await fireEvent.press(deleteItem as NonNullable<typeof deleteItem>);
+  });
+  await settle();
+};
+
+/** Replaces the first Exercise with the picker's first one (Lunge). */
+const replaceFirstWithLunge = async () => {
+  const [replaceItem] = await screen.findAllByLabelText("Replace");
+  await fireEvent.press(replaceItem as NonNullable<typeof replaceItem>);
+  const [replaceFirst] = await screen.findAllByText("Replace");
+  await act(async () => {
+    await fireEvent.press(replaceFirst as NonNullable<typeof replaceFirst>);
+  });
+  await settle();
+};
+
+/** A failed edit and the alert message it shows. */
+const failures: [string, Failure, string][] = [
+  [
+    "the Exercise Library is down",
+    { code: "exercise_library_unavailable", status: 503 },
+    "The exercise library is unavailable right now. Please try again.",
+  ],
+  [
+    "there were too many requests",
+    { retryAfterSeconds: 12, status: 429 },
+    "Too many requests: please try again in 12 s.",
+  ],
+  [
+    "the Workout Session is already finished",
+    { code: "session_finished", status: 409 },
+    "This workout is already finished.",
+  ],
+  [
+    "the Exercise is unknown",
+    { code: "unknown_exercises", status: 400 },
+    "Please check your connection and try again.",
+  ],
+  [
+    "the server fails",
+    { status: 500 },
+    "Please check your connection and try again.",
+  ],
+  [
+    "the connection fails",
+    "network",
+    "Please check your connection and try again.",
+  ],
+];
 
 // Each test mounts a whole screen and steps through many requests, so a test
 // takes seconds of CPU; Jest's 5 s default fails them on a busy 2-core runner.
@@ -187,38 +245,7 @@ describe("adding an Exercise to a Workout Session", () => {
     });
   });
 
-  it.each<[string, Failure, string]>([
-    [
-      "the Exercise Library is down",
-      { code: "exercise_library_unavailable", status: 503 },
-      "The exercise library is unavailable right now. Please try again.",
-    ],
-    [
-      "there were too many requests",
-      { retryAfterSeconds: 12, status: 429 },
-      "Too many requests: please try again in 12 s.",
-    ],
-    [
-      "the Workout Session is already finished",
-      { code: "session_finished", status: 409 },
-      "This workout is already finished.",
-    ],
-    [
-      "the Exercise is unknown",
-      { code: "unknown_exercises", status: 400 },
-      "Please check your connection and try again.",
-    ],
-    [
-      "the server fails",
-      { status: 500 },
-      "Please check your connection and try again.",
-    ],
-    [
-      "the connection fails",
-      "network",
-      "Please check your connection and try again.",
-    ],
-  ])(
+  it.each(failures)(
     "says so in an alert when %s, adding nothing",
     async (_, failure, message) => {
       await renderSession();
@@ -256,4 +283,141 @@ describe("adding an Exercise to a Workout Session", () => {
     expect(await screen.findByText("Lunge")).toBeTruthy();
     expect(backend.count("workout_session_exercises", "insert")).toBe(0);
   });
+});
+
+describe("removing an Exercise from a Workout Session", () => {
+  beforeEach(() => {
+    backend.reset();
+    backend.seed({
+      exercises: [
+        { name: "Squat", sets: [10, 8] },
+        { name: "Lunge", sets: [12] },
+      ],
+      id: "s1",
+    });
+  });
+
+  it("removes it through the Public API, leaving the others' order", async () => {
+    await renderSession();
+
+    await deleteFirst();
+
+    expect(fakePublicApi.requests.at(-1)).toMatchObject({
+      path: "/v1/workout-session-exercises/s1-e1",
+      route: REMOVE_EXERCISE,
+    });
+    expect(backend.count("workout_session_exercises", "delete")).toBe(0);
+    expect(backend.exercises).toEqual([
+      expect.objectContaining({ exercise_slug: "lunge", order: 2 }),
+    ]);
+    expect(backend.sets.map(({ id }) => id)).toEqual(["s1-e2-s1"]);
+    expect(screen.queryByText("Squat")).toBeNull();
+    expect(screen.getByText("Lunge")).toBeTruthy();
+    expect(Alert.alert).not.toHaveBeenCalled();
+    expect(track).toHaveBeenCalledWith("Exercise Deleted", {
+      exercise_id: "s1-e1",
+      session_id: "s1",
+    });
+  });
+
+  it.each(failures)(
+    "says so in an alert when %s, removing nothing",
+    async (_, failure, message) => {
+      await renderSession();
+      fakePublicApi.failNext(REMOVE_EXERCISE, failure);
+
+      await deleteFirst();
+
+      expect(Alert.alert).toHaveBeenCalledWith(
+        "Couldn't delete exercise",
+        message
+      );
+      expect(backend.exercises).toHaveLength(2);
+      expect(screen.getByText("Squat")).toBeTruthy();
+      expect(track).not.toHaveBeenCalledWith(
+        "Exercise Deleted",
+        expect.anything()
+      );
+    }
+  );
+
+  it("shows an Exercise removed before the answer was lost as gone", async () => {
+    await renderSession();
+    fakePublicApi.failNext(REMOVE_EXERCISE, "lost");
+
+    await deleteFirst();
+
+    expect(Alert.alert).toHaveBeenCalledWith(
+      "Couldn't delete exercise",
+      "Please check your connection and try again."
+    );
+    expect(screen.queryByText("Squat")).toBeNull();
+  });
+});
+
+describe("replacing an Exercise in a Workout Session", () => {
+  it("replaces it through the Public API, zeroing its sets' targets", async () => {
+    await renderSession();
+
+    await replaceFirstWithLunge();
+
+    expect(fakePublicApi.requests.at(-1)).toMatchObject({
+      body: { exercise_slug: "lunge" },
+      path: "/v1/workout-session-exercises/s1-e1",
+      route: REPLACE_EXERCISE,
+    });
+    expect(backend.count("workout_session_exercises", "update")).toBe(0);
+    expect(backend.count("workout_session_exercise_sets", "update")).toBe(0);
+    expect(backend.exercises).toEqual([
+      expect.objectContaining({
+        exercise_slug: "lunge",
+        id: "s1-e1",
+        order: 1,
+      }),
+    ]);
+    expect(
+      backend.sets.map(({ reps_completed, reps_recommended }) => ({
+        reps_completed,
+        reps_recommended,
+      }))
+    ).toEqual([
+      { reps_completed: 10, reps_recommended: 0 },
+      { reps_completed: 8, reps_recommended: 0 },
+    ]);
+    expect(await screen.findByText("Lunge")).toBeTruthy();
+    expect(screen.queryByText("Squat")).toBeNull();
+    expect(Alert.alert).not.toHaveBeenCalled();
+    expect(track).toHaveBeenCalledWith("Exercise Replaced", {
+      exercise_slug: "lunge",
+      session_id: "s1",
+    });
+  });
+
+  it.each(failures)(
+    "says so in an alert when %s, replacing nothing",
+    async (_, failure, message) => {
+      await renderSession();
+      fakePublicApi.failNext(REPLACE_EXERCISE, failure);
+
+      await replaceFirstWithLunge();
+
+      expect(Alert.alert).toHaveBeenCalledWith(
+        "Couldn't replace exercise",
+        message
+      );
+      expect(fakePublicApi.count(REPLACE_EXERCISE)).toBe(1);
+      expect(backend.exercises).toEqual([
+        expect.objectContaining({ exercise_slug: "squat" }),
+      ]);
+      expect(
+        backend.sets.map(({ reps_recommended }) => reps_recommended)
+      ).toEqual([10, 10]);
+      // The picker stays open, so the User can try again.
+      expect(screen.queryAllByText("Replace")).not.toHaveLength(0);
+      expect(track).not.toHaveBeenCalledWith(
+        "Exercise Replaced",
+        expect.anything()
+      );
+    }
+  );
 });
