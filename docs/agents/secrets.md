@@ -12,7 +12,7 @@ One folder per app, the same in both environments. A value two apps share sits a
 | ----------- | ---------------- | --------------------------- | ---------------- | --------------- |
 | `/Api`      | `apps/api`       | `apps/api/.env`             | `fitme-api`      | `api-sync`      |
 | `/Arnold`   | `apps/arnold`    | `apps/arnold/.env.local`    | `fitme-arnold`   | `arnold-sync`   |
-| `/Library`  | `apps/library` | `apps/library/.env`       | `fitme-library`  | `library-sync`  |
+| `/Library`  | `apps/library`   | `apps/library/.env`         | `fitme-library`  | `library-sync`  |
 | `/Mcp`      | `apps/mcp`       | `apps/mcp/.env`             | `fitme-mcp`      | `mcp-sync`      |
 | `/Mobile`   | `apps/mobile`    | `apps/mobile/.env`          | (EAS, not synced)| none            |
 | `/Site`     | `apps/site`      | `apps/site/.env.local`      | `fitme-site`     | `site-sync`     |
@@ -24,7 +24,7 @@ One folder per app, the same in both environments. A value two apps share sits a
 
 `prod` root holds the shared values: the Clerk production keys (`CLERK_SECRET_KEY`, `CLERK_PUBLISHABLE_KEY`, `CLERK_JWT_KEY`) and the development instance's `CLERK_JWT_KEY_DEVELOPMENT`, `FITME_DATABASE_URL_BASE` (the `fitme` login's pooler URL without `application_name`), `EXERCISES_URL`, the server secrets the Library API accepts (`LIBRARY_ARNOLD_SECRET`, `LIBRARY_MCP_SECRET`), `ARNOLD_RESET_SECRET` and `EXERCISES_API_SECRET`.
 
-The Public API, Arnold and MCP read `LIBRARY_URL` and their `LIBRARY_*` secret (`LIBRARY_PUBLIC_API_SECRET`, `LIBRARY_ARNOLD_SECRET`, `LIBRARY_MCP_SECRET`) and nothing else; the Library API itself still reads its `EXERCISES_*` secrets until its own rename. Until the old names are removed, the app folders carry both: the `LIBRARY_*` secrets at the root, and the `EXERCISES_*` names as references to them.
+The Public API, Arnold, MCP and the Library API itself read `LIBRARY_URL` and the `LIBRARY_*` secrets (`LIBRARY_PUBLIC_API_SECRET`, `LIBRARY_ARNOLD_SECRET`, `LIBRARY_MCP_SECRET`) and nothing else. Until the old names are removed, the app folders carry both: the `LIBRARY_*` secrets at the root, and the `EXERCISES_*` names as references to them.
 
 ## Vercel syncs
 
