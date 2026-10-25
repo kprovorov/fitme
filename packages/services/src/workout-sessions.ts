@@ -484,7 +484,7 @@ type OpenSession =
  * concurrent edits of it queue up and a concurrent finish either waits for
  * the edit or is seen here once it has committed.
  */
-const lockOpenSession = async (
+const lockSessionForEdit = async (
   tx: Transaction,
   userId: string,
   sessionId: string
@@ -532,7 +532,7 @@ export const addExerciseToWorkoutSession = async (
   { exerciseSlug, sessionId }: AddExerciseToWorkoutSessionInput
 ): Promise<AddExerciseToWorkoutSessionResult> => {
   await lockSessionTables(tx);
-  const session = await lockOpenSession(tx, userId, sessionId);
+  const session = await lockSessionForEdit(tx, userId, sessionId);
   if (session.status !== "open") {
     return session;
   }

@@ -72,7 +72,9 @@ export default function WorkoutSessionView({
   >(undefined);
 
   const { mutateAsync } = useCreateWorkoutSessionExerciseMutation({
-    onSuccess: () => {
+    // A failed add may still have been saved (a lost answer): read again
+    // either way.
+    onSettled: () => {
       queryClient.invalidateQueries({
         queryKey: ["workout-session"],
       });

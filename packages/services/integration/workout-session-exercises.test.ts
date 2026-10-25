@@ -170,6 +170,6 @@ describe("addExerciseToWorkoutSession", () => {
     const orders = results.map((result) =>
       result.status === "added" ? result.exercise.order : null
     );
-    expect(orders.sort()).toEqual([4, 5, 6, 7, 8]);
+    expect(orders.sort((a, b) => (a ?? 0) - (b ?? 0))).toEqual([4, 5, 6, 7, 8]);
   });
 });

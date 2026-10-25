@@ -241,4 +241,19 @@ describe("adding an Exercise to a Workout Session", () => {
       );
     }
   );
+
+  it("shows an Exercise saved before the answer was lost", async () => {
+    await renderSession();
+    fakePublicApi.failNext(ADD_EXERCISE, "lost");
+
+    await addLunge();
+
+    expect(Alert.alert).toHaveBeenCalledWith(
+      "Couldn't add exercise",
+      "Please check your connection and try again."
+    );
+    await fireEvent.press(screen.getByLabelText("Close"));
+    expect(await screen.findByText("Lunge")).toBeTruthy();
+    expect(backend.count("workout_session_exercises", "insert")).toBe(0);
+  });
 });

@@ -608,7 +608,7 @@ const logSet = (body: unknown, setId: string): Response => {
 };
 
 /** Checks one slug against the fake Exercise Library, as `checkExerciseSlugs` does. */
-const slugRefusal = async (slug: string) => {
+const refuseUnknownSlug = async (slug: string) => {
   let missing: string[];
   try {
     ({ missing } = await library.current.lookup([slug]));
@@ -639,7 +639,7 @@ const addSessionExercise = async (
   ) {
     return error(400, "invalid_request", "exercise_slug: Required");
   }
-  const refusal = await slugRefusal(body.exercise_slug);
+  const refusal = await refuseUnknownSlug(body.exercise_slug);
   if (refusal) {
     return refusal;
   }
