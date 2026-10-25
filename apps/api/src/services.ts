@@ -11,6 +11,11 @@ import {
   workouts,
 } from "@fitme/db";
 import {
+  applyPlanUpdate,
+  type PlanUpdate,
+  previewPlanUpdate,
+} from "@fitme/services/plan-update";
+import {
   activatePlan,
   type CreatePlanOptions,
   createPlan,
@@ -105,6 +110,12 @@ export interface UserServices {
     input: AddExerciseToWorkoutSessionInput
   ) => Promise<Weighed<AddExerciseToWorkoutSessionResult>>;
   /**
+   * Applies the Plan Update of one of the User's Workout Sessions in one
+   * transaction and answers what it applied; once applied, no changes. `null`
+   * when the User has no such Workout Session.
+   */
+  applyPlanUpdate: (sessionId: string) => Promise<PlanUpdate | null>;
+  /**
    * Creates a Plan with its Workouts, Exercises and sets in one transaction,
    * active unless `activate: false`; the Plan in full. Its Exercise slugs are
    * checked before, not here (ADR 0010).
@@ -142,6 +153,11 @@ export interface UserServices {
   ) => Promise<WorkoutSessionPage>;
   /** Logs one set of the User's open Workout Session, its weight in the User's unit. */
   logSet: (input: LogSetInput) => Promise<Weighed<LogSetResult>>;
+  /**
+   * The Plan Update of one of the User's Workout Sessions, writing nothing;
+   * `null` when the User has no such Workout Session.
+   */
+  previewPlanUpdate: (sessionId: string) => Promise<PlanUpdate | null>;
   /**
    * Creates the Profile (`created: true`) or replaces it as `updateProfile`
    * with every field would, converting to a new measurement system first.
@@ -234,6 +250,9 @@ export const createServicesFromEnv: ServicesFactory = (userId) => {
       ),
     addExerciseToWorkoutSession: (input) =>
       inUnits((tx) => addExerciseToWorkoutSession(tx, userId, input), write),
+    // The service takes its own table locks and reads the unit itself.
+    applyPlanUpdate: (sessionId) =>
+      asUser(userId, (tx) => applyPlanUpdate(tx, userId, sessionId)),
     createPlan: (plan, options) =>
       inUnits((tx) => createPlan(tx, userId, plan, options), write),
     deletePlan: (planId) =>
@@ -251,6 +270,8 @@ export const createServicesFromEnv: ServicesFactory = (userId) => {
     listWorkoutSessions: (options) =>
       asUser(userId, (tx) => listWorkoutSessions(tx, options)),
     logSet: (input) => inUnits((tx) => logSet(tx, input), write),
+    previewPlanUpdate: (sessionId) =>
+      asUser(userId, (tx) => previewPlanUpdate(tx, userId, sessionId)),
     replaceProfile: (profile) =>
       asUser(userId, (tx) => replaceProfile(tx, userId, profile)),
     replaceWorkouts: (planId, replacement) =>
