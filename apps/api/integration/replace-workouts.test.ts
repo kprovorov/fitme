@@ -1,8 +1,8 @@
 import { randomBytes } from "node:crypto";
-import { asUser, withService } from "@fitme/db";
+import { asUser } from "@fitme/db";
 import { LibraryUnavailableError } from "@fitme/library-sdk";
 import { createFakeLibrary, type FakeLibrary } from "@fitme/library-sdk/fake";
-import { deleteUserData } from "@fitme/services/delete-user-data";
+import { deleteTestUsers } from "@fitme/services/delete-test-users";
 import { createPlan, deletePlan, getPlan } from "@fitme/services/plans";
 import {
   finishWorkoutSession,
@@ -107,9 +107,7 @@ beforeEach(() => {
 });
 
 afterAll(async () => {
-  await Promise.all(
-    users.map((userId) => withService((tx) => deleteUserData(tx, userId)))
-  );
+  await deleteTestUsers(users);
 });
 
 describe("PUT /v1/plans/{id}/workouts against the local stack", () => {

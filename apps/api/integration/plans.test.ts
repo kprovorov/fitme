@@ -1,6 +1,6 @@
 import { randomBytes, randomUUID } from "node:crypto";
 import { asUser, profiles, withService } from "@fitme/db";
-import { deleteUserData } from "@fitme/services/delete-user-data";
+import { deleteTestUsers } from "@fitme/services/delete-test-users";
 import {
   createPlan,
   deletePlan,
@@ -160,10 +160,7 @@ beforeAll(async () => {
 });
 
 afterAll(async () => {
-  // One transaction each, so they may run side by side
-  await Promise.all(
-    users.map((userId) => withService((tx) => deleteUserData(tx, userId)))
-  );
+  await deleteTestUsers(users);
 });
 
 /** The Plan as the contract shows it: Exercises by slug only. */

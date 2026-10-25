@@ -8,7 +8,7 @@ import {
   workoutSessions,
   workouts,
 } from "@fitme/db";
-import { deleteUserData } from "@fitme/services/delete-user-data";
+import { deleteTestUsers } from "@fitme/services/delete-test-users";
 import { afterAll, beforeAll, describe, expect, it } from "vitest";
 import { createApp } from "../src/create-app.js";
 import { createServicesFromEnv } from "../src/services.js";
@@ -163,10 +163,7 @@ beforeAll(async () => {
 });
 
 afterAll(async () => {
-  await withService(async (tx) => {
-    await deleteUserData(tx, owner);
-    await deleteUserData(tx, intruder);
-  });
+  await deleteTestUsers([owner, intruder]);
 });
 
 describe("GET /v1/workout-sessions against the local stack", () => {

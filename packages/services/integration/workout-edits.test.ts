@@ -7,7 +7,7 @@ import {
   workoutExercises,
   workouts,
 } from "@fitme/db";
-import { inArray, sql } from "drizzle-orm";
+import { inArray } from "drizzle-orm";
 import { afterAll, describe, expect, it } from "vitest";
 import { deleteUserData } from "../src/delete-user-data";
 import { deletePlan, getPlan } from "../src/plans";
@@ -21,6 +21,7 @@ import {
   TooManySetsError,
   updateSetRecommendations,
 } from "../src/workout-edits";
+import { withUserTablesLocked } from "./delete-test-users";
 
 /**
  * Arnold's Plan edits through asUser, against a local Supabase stack via
@@ -678,19 +679,10 @@ describe("edits during account deletion", () => {
     const plan = await seedPlan(leaver);
     let edit: Promise<unknown> | undefined;
 
-    await withService(async (tx) => {
-      // deleteUserData's first statement: every User table, share row
-      // exclusive, in its order. Locking only the edited tables would take
-      // workouts before plans and workout_sessions, so a transaction from a
-      // test file running alongside (finishing a session locks
-      // workout_sessions, then writes workouts) could deadlock with
-      // deleteUserData's own lock below
-      await tx.execute(sql`
-        lock table profiles, plans, workout_sessions, workouts,
-          workout_exercises, workout_exercise_sets, workout_session_exercises,
-          workout_session_exercise_sets, arnold_sessions
-        in share row exclusive mode
-      `);
+    // deleteUserData's first statement: every User table, share row
+    // exclusive, in its order, taken without waiting so a transaction from a
+    // test file running alongside can't deadlock with it
+    await withUserTablesLocked(async (tx) => {
       edit = asUser(leaver, (editTx) =>
         addSetToExercise(editTx, leaver, {
           set: newSet,

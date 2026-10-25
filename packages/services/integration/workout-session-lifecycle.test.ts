@@ -12,11 +12,11 @@ import {
 } from "@fitme/db";
 import { and, asc, eq, inArray, isNull } from "drizzle-orm";
 import { afterAll, describe, expect, it } from "vitest";
-import { deleteUserData } from "../src/delete-user-data";
 import {
   finishWorkoutSession,
   startWorkoutSession,
 } from "../src/workout-sessions";
+import { deleteTestUsers } from "./delete-test-users";
 
 /**
  * Starting and finishing Workout Sessions through asUser, against a local Supabase stack via
@@ -138,11 +138,7 @@ const closeDirectly = (sessionId: string) =>
   );
 
 afterAll(async () => {
-  await withService(async (tx) => {
-    await deleteUserData(tx, owner);
-    await deleteUserData(tx, intruder);
-    await deleteUserData(tx, elsewhere);
-  });
+  await deleteTestUsers([owner, intruder, elsewhere]);
 });
 
 describe("startWorkoutSession", () => {

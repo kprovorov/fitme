@@ -2,7 +2,7 @@ import { randomBytes } from "node:crypto";
 import { asUser, plans, profiles, withService } from "@fitme/db";
 import { LibraryUnavailableError } from "@fitme/library-sdk";
 import { createFakeLibrary, type FakeLibrary } from "@fitme/library-sdk/fake";
-import { deleteUserData } from "@fitme/services/delete-user-data";
+import { deleteTestUsers } from "@fitme/services/delete-test-users";
 import { createPlan } from "@fitme/services/plans";
 import { eq } from "drizzle-orm";
 import { afterAll, beforeAll, beforeEach, describe, expect, it } from "vitest";
@@ -141,9 +141,7 @@ beforeEach(() => {
 });
 
 afterAll(async () => {
-  await Promise.all(
-    users.map((userId) => withService((tx) => deleteUserData(tx, userId)))
-  );
+  await deleteTestUsers(users);
 });
 
 describe("POST /v1/plans against the local stack", () => {

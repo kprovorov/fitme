@@ -1,6 +1,6 @@
 import { randomBytes, randomUUID } from "node:crypto";
-import { asUser, withService } from "@fitme/db";
-import { deleteUserData } from "@fitme/services/delete-user-data";
+import { asUser } from "@fitme/db";
+import { deleteTestUsers } from "@fitme/services/delete-test-users";
 import {
   createPlan,
   type NewPlan,
@@ -123,10 +123,7 @@ beforeAll(async () => {
 });
 
 afterAll(async () => {
-  // One transaction each, so they may run side by side
-  await Promise.all(
-    users.map((userId) => withService((tx) => deleteUserData(tx, userId)))
-  );
+  await deleteTestUsers(users);
 });
 
 describe("PATCH /v1/plans/{id} against the local stack", () => {
