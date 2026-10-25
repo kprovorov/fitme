@@ -6,7 +6,7 @@ const reported: unknown[] = [];
 
 const app = createApp({
   clerk: {
-    deleteCoachConversations: () => Promise.reject(new Error("not called")),
+    deleteArnoldConversations: () => Promise.reject(new Error("not called")),
     deleteUserData: () => Promise.reject(new Error("not called")),
     signingSecret: "whsec_MfKQ9r8GKYqrTwjUPD8ILPZIo2LaLaSw",
   },

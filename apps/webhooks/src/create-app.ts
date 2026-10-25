@@ -5,7 +5,11 @@ import { deleteUserData } from "@fitme/services/delete-user-data";
 import { Hono } from "hono";
 import { HTTPException } from "hono/http-exception";
 import { logger } from "hono/logger";
-import { coachSessionResetter, deleteCoachConversations } from "./coach.js";
+import {
+  arnoldResetConfig,
+  arnoldSessionResetter,
+  deleteArnoldConversations,
+} from "./arnold.js";
 import { type ClerkWebhookDeps, clerkRoutes } from "./routes/clerk.js";
 
 export interface AppDeps {
@@ -15,19 +19,16 @@ export interface AppDeps {
 }
 
 /**
- * The real dependencies: the database through withService, the Coach,
+ * The real dependencies: the database through withService, Arnold,
  * @fitme/observability, env. The Arnold session ids are read in withService:
  * by then the User's id is retired, so asUser would see none.
  */
 const defaultDeps = (): AppDeps => ({
   clerk: {
-    deleteCoachConversations: deleteCoachConversations({
+    deleteArnoldConversations: deleteArnoldConversations({
       listSessionIds: (userId) =>
         withService((tx) => listArnoldSessionIds(tx, userId)),
-      resetSession: coachSessionResetter({
-        coachUrl: process.env.COACH_URL,
-        secret: process.env.COACH_RESET_SECRET,
-      }),
+      resetSession: arnoldSessionResetter(arnoldResetConfig(process.env)),
     }),
     deleteUserData: (userId) => withService((tx) => deleteUserData(tx, userId)),
     signingSecret: process.env.CLERK_WEBHOOK_SIGNING_SECRET,

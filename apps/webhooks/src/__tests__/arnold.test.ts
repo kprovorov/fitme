@@ -1,25 +1,29 @@
 import { describe, expect, it } from "vitest";
-import { coachSessionResetter, deleteCoachConversations } from "../coach.js";
+import {
+  arnoldResetConfig,
+  arnoldSessionResetter,
+  deleteArnoldConversations,
+} from "../arnold.js";
 
 const USER_ID = "user_2DeleteMe00000000000000";
-const COACH_URL = "https://coach.test";
+const ARNOLD_URL = "https://arnold.test";
 const SECRET = "reset-secret-0123456789abcdef0123456789abcdef";
 
 /**
- * Fake records and Coach: `failing` session ids fail to reset; like eve,
+ * Fake records and Arnold: `failing` session ids fail to reset; like eve,
  * resetting a session again succeeds and leaves it retired.
  */
 const setup = (recorded: string[], failing: string[] = []) => {
   const retired = new Set<string>();
   const listedFor: string[] = [];
-  const wipe = deleteCoachConversations({
+  const wipe = deleteArnoldConversations({
     listSessionIds: (userId) => {
       listedFor.push(userId);
       return Promise.resolve(recorded);
     },
     resetSession: (sessionId) => {
       if (failing.includes(sessionId)) {
-        return Promise.reject(new Error(`Coach unreachable for ${sessionId}`));
+        return Promise.reject(new Error(`Arnold unreachable for ${sessionId}`));
       }
       retired.add(sessionId);
       return Promise.resolve();
@@ -28,7 +32,7 @@ const setup = (recorded: string[], failing: string[] = []) => {
   return { listedFor, retired, wipe };
 };
 
-describe("deleteCoachConversations", () => {
+describe("deleteArnoldConversations", () => {
   it("resets every session recorded for the User", async () => {
     const { listedFor, retired, wipe } = setup([
       "wrun_a",
@@ -67,10 +71,10 @@ describe("deleteCoachConversations", () => {
 
     expect(failure).toBeInstanceOf(AggregateError);
     expect((failure as AggregateError).message).toBe(
-      "Failed to reset 1 of 2 Coach sessions"
+      "Failed to reset 1 of 2 Arnold sessions"
     );
     expect((failure as AggregateError).cause).toEqual(
-      new Error("Coach unreachable for wrun_b")
+      new Error("Arnold unreachable for wrun_b")
     );
     expect([...retired]).toEqual(["wrun_a"]);
   });
@@ -97,20 +101,22 @@ const fakeFetch = (response: () => Response) => {
   return { fetch, requests };
 };
 
-describe("coachSessionResetter", () => {
+describe("arnoldSessionResetter", () => {
   it("posts the reset route with the reset secret", async () => {
     const { fetch, requests } = fakeFetch(() =>
       Response.json({ ok: true, previousSessionId: "wrun_a", status: "reset" })
     );
 
-    await coachSessionResetter({ coachUrl: COACH_URL, fetch, secret: SECRET })(
-      "wrun_a"
-    );
+    await arnoldSessionResetter({
+      arnoldUrl: ARNOLD_URL,
+      fetch,
+      secret: SECRET,
+    })("wrun_a");
 
     expect(requests).toHaveLength(1);
     const [request] = requests;
     expect(request?.method).toBe("POST");
-    expect(request?.url).toBe(`${COACH_URL}/eve/v1/session/wrun_a/reset`);
+    expect(request?.url).toBe(`${ARNOLD_URL}/eve/v1/session/wrun_a/reset`);
     expect(request?.headers.get("authorization")).toBe(`Bearer ${SECRET}`);
     expect(await request?.json()).toEqual({ reason: "Account deleted" });
   });
@@ -121,8 +127,8 @@ describe("coachSessionResetter", () => {
     );
 
     await expect(
-      coachSessionResetter({
-        coachUrl: `${COACH_URL}/`,
+      arnoldSessionResetter({
+        arnoldUrl: `${ARNOLD_URL}/`,
         fetch,
         secret: SECRET,
       })("wrun_a")
@@ -140,7 +146,7 @@ describe("coachSessionResetter", () => {
     );
 
     await expect(
-      coachSessionResetter({ coachUrl: COACH_URL, fetch, secret: SECRET })(
+      arnoldSessionResetter({ arnoldUrl: ARNOLD_URL, fetch, secret: SECRET })(
         "wrun_a"
       )
     ).rejects.toThrow("500");
@@ -152,7 +158,7 @@ describe("coachSessionResetter", () => {
     );
 
     await expect(
-      coachSessionResetter({ coachUrl: COACH_URL, fetch, secret: SECRET })(
+      arnoldSessionResetter({ arnoldUrl: ARNOLD_URL, fetch, secret: SECRET })(
         "wrun_a"
       )
     ).rejects.toThrow("reset failed");
@@ -173,25 +179,57 @@ describe("coachSessionResetter", () => {
     const { fetch } = fakeFetch(() => Response.json(body));
 
     await expect(
-      coachSessionResetter({ coachUrl: COACH_URL, fetch, secret: SECRET })(
+      arnoldSessionResetter({ arnoldUrl: ARNOLD_URL, fetch, secret: SECRET })(
         "wrun_a"
       )
     ).rejects.toThrow("reset failed");
   });
 
-  it("fails without COACH_URL or COACH_RESET_SECRET, before any request", async () => {
+  it("fails without ARNOLD_URL or ARNOLD_RESET_SECRET, before any request", async () => {
     const { fetch, requests } = fakeFetch(() => Response.json({}));
 
     await expect(
-      coachSessionResetter({ coachUrl: undefined, fetch, secret: SECRET })(
+      arnoldSessionResetter({ arnoldUrl: undefined, fetch, secret: SECRET })(
         "wrun_a"
       )
-    ).rejects.toThrow("COACH_URL");
+    ).rejects.toThrow("ARNOLD_URL");
     await expect(
-      coachSessionResetter({ coachUrl: COACH_URL, fetch, secret: undefined })(
-        "wrun_a"
-      )
-    ).rejects.toThrow("COACH_RESET_SECRET");
+      arnoldSessionResetter({
+        arnoldUrl: ARNOLD_URL,
+        fetch,
+        secret: undefined,
+      })("wrun_a")
+    ).rejects.toThrow("ARNOLD_RESET_SECRET");
     expect(requests).toEqual([]);
+  });
+});
+
+describe("arnoldResetConfig", () => {
+  it("reads ARNOLD_URL and ARNOLD_RESET_SECRET", () => {
+    expect(
+      arnoldResetConfig({
+        ARNOLD_RESET_SECRET: SECRET,
+        ARNOLD_URL,
+        COACH_RESET_SECRET: "old-secret",
+        COACH_URL: "https://coach.test",
+      })
+    ).toEqual({ arnoldUrl: ARNOLD_URL, secret: SECRET });
+  });
+
+  it("falls back to COACH_URL and COACH_RESET_SECRET", () => {
+    expect(
+      arnoldResetConfig({
+        ARNOLD_RESET_SECRET: "",
+        COACH_RESET_SECRET: SECRET,
+        COACH_URL: ARNOLD_URL,
+      })
+    ).toEqual({ arnoldUrl: ARNOLD_URL, secret: SECRET });
+  });
+
+  it("is unset without either name", () => {
+    expect(arnoldResetConfig({})).toEqual({
+      arnoldUrl: undefined,
+      secret: undefined,
+    });
   });
 });

@@ -49,7 +49,7 @@ high:
   # Webhooks: signature checks and account deletion
   - apps/webhooks/src/app.ts
   - apps/webhooks/src/routes/clerk.ts
-  - apps/webhooks/src/coach.ts
+  - apps/webhooks/src/arnold.ts
   # Web: where User tokens are sent
   - apps/web/lib/env.ts
   - apps/web/lib/supabase/**

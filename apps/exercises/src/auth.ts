@@ -5,8 +5,8 @@ import { createMiddleware } from "hono/factory";
 import type { z } from "zod";
 import type { ErrorResponse } from "./schemas";
 
-/** The callers that aren't Users: the Public API, the Coach and the MCP server. */
-const SERVER_CALLERS = ["api", "coach", "mcp"] as const;
+/** The callers that aren't Users: the Public API, Arnold and the MCP server. */
+const SERVER_CALLERS = ["api", "arnold", "mcp"] as const;
 
 /** A caller that isn't a User, identified by its own secret. */
 export type ServerCallerName = (typeof SERVER_CALLERS)[number];
@@ -26,6 +26,19 @@ export interface AuthConfig {
 export interface AuthEnv {
   Variables: { caller: Caller };
 }
+
+/**
+ * Each server caller's secret from `env`. Arnold's is `EXERCISES_ARNOLD_SECRET`,
+ * or the pre-rename `EXERCISES_COACH_SECRET` when that's unset or empty; the
+ * length check applies to whichever is used.
+ */
+export const serverSecretsFromEnv = (
+  env: Record<string, string | undefined>
+): AuthConfig["serverSecrets"] => ({
+  api: env.EXERCISES_API_SECRET,
+  arnold: env.EXERCISES_ARNOLD_SECRET || env.EXERCISES_COACH_SECRET,
+  mcp: env.EXERCISES_MCP_SECRET,
+});
 
 /** The OpenAPI security scheme every content route declares. */
 export const BEARER_AUTH = "bearerAuth";
