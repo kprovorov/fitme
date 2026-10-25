@@ -74,8 +74,10 @@ const pairs = [
   ["NEXT_PUBLIC_SUPABASE_URL", "NEXT_PUBLIC_SUPABASE_ANON_KEY"],
 ];
 // Values may be quoted: `infisical export` (scripts/pull-env.sh) writes KEY='value'.
-const unquote = (value) => value.trim().replace(/^(['"])(.*)\1$/, "$2");
-const poolerUrl = /^(FITME_DATABASE_URL=['"]?postgres(?:ql)?:\/\/[^@\s]*@(?:127\.0\.0\.1|localhost):)[^/\n]+/m;
+// The quote characters are \x22 and \x27: the bash 3.2 macOS ships matches quotes inside
+// a heredoc in `<(...)`, so an unbalanced one here is a syntax error (exit 2).
+const unquote = (value) => value.trim().replace(/^([\x22\x27])(.*)\1$/, "$2");
+const poolerUrl = /^(FITME_DATABASE_URL=[\x22\x27]?postgres(?:ql)?:\/\/[^@\s]*@(?:127\.0\.0\.1|localhost):)[^/\n]+/m;
 
 for (const parent of ["apps", "packages"]) {
   for (const dir of fs.readdirSync(parent)) {
