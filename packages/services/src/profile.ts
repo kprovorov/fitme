@@ -268,3 +268,50 @@ export const updateProfile = async (
 
   return getProfile(tx, userId);
 };
+
+/** A whole Profile, every field given. */
+export type WholeProfile = Required<ProfileChanges>;
+
+/**
+ * Creates the User's Profile in `tx` (from `asUser`), or replaces the one
+ * they have exactly as `updateProfile` with every field would: a new
+ * measurement system first converts every stored height and weight of the
+ * User, then the given height and weight are written as they are. Answers
+ * whether it created the Profile, and the Profile with its units.
+ *
+ * The insert comes first and does nothing on a conflict, so two concurrent
+ * first calls never both create one: the second waits for the first to
+ * commit, then replaces it. Running it again gives the same Profile.
+ */
+export const replaceProfile = async (
+  tx: Transaction,
+  userId: string,
+  profile: WholeProfile
+): Promise<{ created: boolean; profile: ProfileWithUnits }> => {
+  if (!isKnownSystem(profile.measurement_system)) {
+    throw new Error(
+      `Invalid measurement system: ${profile.measurement_system}`
+    );
+  }
+  const inserted = await tx
+    .insert(profiles)
+    .values({
+      age: profile.age,
+      gender: profile.gender,
+      height: String(profile.height),
+      measurementSystem: profile.measurement_system,
+      userId,
+      weight: String(profile.weight),
+    })
+    .onConflictDoNothing({ target: profiles.userId })
+    .returning({ id: profiles.id });
+  const replaced =
+    inserted.length > 0
+      ? await getProfile(tx, userId)
+      : await updateProfile(tx, userId, profile);
+  if (!replaced) {
+    // The insert found a Profile, or made one: only RLS hiding it gets here.
+    throw new Error("The Profile written isn't readable");
+  }
+  return { created: inserted.length > 0, profile: replaced };
+};

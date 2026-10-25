@@ -244,3 +244,151 @@ describe("PATCH /v1/profile", () => {
     expect(response.status).toBe(401);
   });
 });
+
+/** `PUT /v1/profile` as `userId` with a JSON body. */
+const putProfile = (
+  app: ReturnType<typeof testApp>["app"],
+  body: unknown,
+  userId = "user_alice"
+) =>
+  app.request("/v1/profile", {
+    body: JSON.stringify(body),
+    headers: { ...signedInAs(userId), "content-type": "application/json" },
+    method: "PUT",
+  });
+
+const wholeProfile = {
+  age: 30,
+  gender: "female",
+  height: 170.5,
+  measurement_system: "metric",
+  weight: 60.25,
+};
+
+describe("PUT /v1/profile", () => {
+  it("answers 201 with the Profile it created", async () => {
+    const given: unknown[] = [];
+    const { app, reported, servicesFor } = testApp({
+      services: fakeServices({
+        replaceProfile: (whole) => {
+          given.push(whole);
+          return Promise.resolve({ created: true, profile });
+        },
+      }),
+    });
+
+    const response = await putProfile(app, wholeProfile);
+
+    expect(response.status).toBe(201);
+    expect(await response.json()).toEqual({ data: profile });
+    expect(given).toEqual([wholeProfile]);
+    expect(servicesFor).toEqual(["user_alice"]);
+    expect(reported).toEqual([]);
+  });
+
+  it("answers 200 with the Profile it replaced", async () => {
+    const converted = {
+      age: 31,
+      gender: "male",
+      height: 67,
+      measurement_system: "us",
+      units: { height: "in", weight: "lbs" },
+      weight: 140,
+    };
+    const { app } = testApp({
+      services: fakeServices({
+        replaceProfile: () =>
+          Promise.resolve({ created: false, profile: converted }),
+      }),
+    });
+
+    const response = await putProfile(app, {
+      age: 31,
+      gender: "male",
+      height: 67,
+      measurement_system: "us",
+      weight: 140,
+    });
+
+    expect(response.status).toBe(200);
+    expect(await response.json()).toEqual({ data: converted });
+  });
+
+  it("never shows fields beyond the contract", async () => {
+    const { app } = testApp({
+      services: fakeServices({
+        replaceProfile: () =>
+          Promise.resolve({
+            created: true,
+            profile: { ...profile, user_id: "user_alice" },
+          }),
+      }),
+    });
+
+    const response = await putProfile(app, wholeProfile);
+
+    expect(await response.json()).toEqual({ data: profile });
+  });
+
+  const { age: _age, ...withoutAge } = wholeProfile;
+  const { measurement_system: _system, ...withoutSystem } = wholeProfile;
+
+  it.each([
+    ["an empty body", {}],
+    ["a missing age", withoutAge],
+    ["a missing measurement system", withoutSystem],
+    ["an unknown field", { ...wholeProfile, user_id: "user_bob" }],
+    ["an unknown gender", { ...wholeProfile, gender: "other" }],
+    [
+      "an unknown measurement system",
+      { ...wholeProfile, measurement_system: "imperial" },
+    ],
+    ["a fractional age", { ...wholeProfile, age: 30.5 }],
+    ["an age under 10", { ...wholeProfile, age: 9 }],
+    ["an age over 120", { ...wholeProfile, age: 121 }],
+    ["a zero height", { ...wholeProfile, height: 0 }],
+    ["a height over the maximum", { ...wholeProfile, height: 301 }],
+    ["a weight over the maximum", { ...wholeProfile, weight: 1001 }],
+    ["more than 2 decimals", { ...wholeProfile, weight: 60.255 }],
+    ["a null field", { ...wholeProfile, weight: null }],
+    ["an array", [wholeProfile]],
+  ])("answers 400 invalid_request for %s, writing nothing", async (_, body) => {
+    const { app, reported } = testApp({ services: fakeServices({}) });
+
+    const response = await putProfile(app, body);
+
+    expect(response.status).toBe(400);
+    expect(await response.json()).toEqual({
+      error: { code: "invalid_request", message: expect.any(String) },
+    });
+    expect(reported).toEqual([]);
+  });
+
+  it("answers 415 for a body that isn't JSON, unreported", async () => {
+    const { app, reported } = testApp({ services: fakeServices({}) });
+
+    const response = await app.request("/v1/profile", {
+      body: "age=30",
+      headers: {
+        ...signedInAs("user_alice"),
+        "content-type": "application/x-www-form-urlencoded",
+      },
+      method: "PUT",
+    });
+
+    expect(response.status).toBe(415);
+    expect(reported).toEqual([]);
+  });
+
+  it("answers 401 without a token", async () => {
+    const { app } = testApp({ services: fakeServices({}) });
+
+    const response = await app.request("/v1/profile", {
+      body: JSON.stringify(wholeProfile),
+      headers: { "content-type": "application/json" },
+      method: "PUT",
+    });
+
+    expect(response.status).toBe(401);
+  });
+});
