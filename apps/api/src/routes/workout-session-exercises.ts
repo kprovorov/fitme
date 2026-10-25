@@ -7,12 +7,18 @@ import {
   Id,
   invalidRequest,
   invalidRequestResponse,
+  LoggedSet,
   rateLimitedResponse,
   sessionFinished,
   sessionFinishedResponse,
   unauthorizedResponse,
   WorkoutSessionExerciseResponse,
+  WorkoutSessionSetResponse,
 } from "../schemas.js";
+
+const exerciseNotFound = {
+  error: { code: "not_found", message: "Workout Session Exercise not found" },
+} as const;
 
 const removeExerciseRoute = createRoute({
   description:
@@ -78,6 +84,37 @@ const replaceExerciseRoute = createRoute({
   summary: "Replace an Exercise in a Workout Session",
 });
 
+const addSetRoute = createRoute({
+  description:
+    "Adds a set after the last one of a Workout Session Exercise of an open Workout Session, logged with the reps and weight done and when (`logged_at`, now). The set has no targets (`reps_recommended`, `weight_recommended` and `rest_recommended` are `null`). A finished Workout Session can't change. Not idempotent: a retry adds another set.",
+  method: "post",
+  middleware: [requires("write")] as const,
+  path: "/{id}/sets",
+  request: {
+    body: {
+      content: { "application/json": { schema: LoggedSet } },
+      required: true,
+    },
+    params: z.object({ id: Id }),
+  },
+  responses: {
+    201: {
+      content: { "application/json": { schema: WorkoutSessionSetResponse } },
+      description: "The added set",
+    },
+    400: invalidRequestResponse,
+    401: unauthorizedResponse,
+    404: errorResponse(
+      "`not_found`: the User has no Workout Session Exercise with this id"
+    ),
+    409: sessionFinishedResponse,
+    415: errorResponse("The body isn't `application/json`"),
+    429: rateLimitedResponse,
+  },
+  security: bearerSecurity,
+  summary: "Add a set to a Workout Session Exercise",
+});
+
 export const workoutSessionExercises = new OpenAPIHono<ApiEnv>({
   defaultHook: invalidRequest,
 })
@@ -113,15 +150,7 @@ export const workoutSessionExercises = new OpenAPIHono<ApiEnv>({
         sessionExerciseId: id,
       });
     if (value.status === "not_found") {
-      return c.json(
-        {
-          error: {
-            code: "not_found",
-            message: "Workout Session Exercise not found",
-          },
-        },
-        404
-      );
+      return c.json(exerciseNotFound, 404);
     }
     if (value.status === "session_finished") {
       return c.json(sessionFinished(value.sessionId, value.finishedAt), 409);
@@ -131,5 +160,28 @@ export const workoutSessionExercises = new OpenAPIHono<ApiEnv>({
         data: { ...value.exercise, weight_unit: weightUnit },
       }),
       200
+    );
+  })
+  .openapi(addSetRoute, async (c) => {
+    const { id } = c.req.valid("param");
+    const { reps_completed, weight_completed } = c.req.valid("json");
+    const { value, weightUnit } = await c.var
+      .getServices()
+      .addSetToWorkoutSessionExercise({
+        repsCompleted: reps_completed,
+        sessionExerciseId: id,
+        weightCompleted: weight_completed,
+      });
+    if (value.status === "not_found") {
+      return c.json(exerciseNotFound, 404);
+    }
+    if (value.status === "session_finished") {
+      return c.json(sessionFinished(value.sessionId, value.finishedAt), 409);
+    }
+    return c.json(
+      WorkoutSessionSetResponse.parse({
+        data: { ...value.set, weight_unit: weightUnit },
+      }),
+      201
     );
   });

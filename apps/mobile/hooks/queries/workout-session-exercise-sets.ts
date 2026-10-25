@@ -1,6 +1,5 @@
 import type { WorkoutSessionExerciseSet } from "@fitme/core";
 import { createMutation } from "react-query-kit";
-import { supabase } from "@/lib/supabase";
 import { ApiError } from "~/lib/api/client";
 import { publicApi } from "~/lib/public-api";
 
@@ -74,39 +73,32 @@ export interface CreateWorkoutSessionExerciseSetVariables {
   params: CreateWorkoutSessionExerciseSetParams;
 }
 
+/**
+ * Adds a set, logged with these reps and weight, after a Workout Session
+ * Exercise's last one through `POST /v1/workout-session-exercises/{id}/sets`;
+ * the API sets `logged_at` and `order`. Rejects with an `ApiError`.
+ */
 export const useCreateWorkoutSessionExerciseSetMutation = createMutation<
-  WorkoutSessionExerciseSet,
+  SavedWorkoutSessionExerciseSet,
   CreateWorkoutSessionExerciseSetVariables
 >({
   mutationFn: async ({
     data,
     params: { exerciseId },
-  }: CreateWorkoutSessionExerciseSetVariables): Promise<WorkoutSessionExerciseSet> => {
-    // Get the next order value
-    const { data: existing } = await supabase
-      .from("workout_session_exercise_sets")
-      .select("order")
-      .eq("workout_session_exercise_id", exerciseId)
-      .order("order", { ascending: false })
-      .limit(1);
-
-    const nextOrder =
-      ((existing?.[0] as { order?: number } | undefined)?.order ?? 0) + 1;
-
-    const { data: result, error } = await supabase
-      .from("workout_session_exercise_sets")
-      .insert({
-        logged_at: new Date().toISOString(),
-        order: nextOrder,
-        reps_completed: data.reps_completed,
-        weight_completed: data.weight_completed,
-        workout_session_exercise_id: exerciseId,
-      })
-      .select()
-      .single();
-    if (error) {
-      throw error;
+  }: CreateWorkoutSessionExerciseSetVariables): Promise<SavedWorkoutSessionExerciseSet> => {
+    const { data: added } = await publicApi().POST(
+      "/v1/workout-session-exercises/{id}/sets",
+      {
+        body: {
+          reps_completed: data.reps_completed,
+          weight_completed: data.weight_completed,
+        },
+        params: { path: { id: exerciseId } },
+      }
+    );
+    if (!added) {
+      throw new ApiError("Public API answered without the added set");
     }
-    return result as unknown as WorkoutSessionExerciseSet;
+    return added.data;
   },
 });

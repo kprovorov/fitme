@@ -868,3 +868,174 @@ describe("PUT /v1/workout-session-exercises/:id", () => {
     expect(reported).toEqual([]);
   });
 });
+
+describe("POST /v1/workout-session-exercises/:id/sets", () => {
+  const path = `/v1/workout-session-exercises/${SESSION_EXERCISE_ID}/sets`;
+  const added: WorkoutSessionSet = {
+    id: SET_ID,
+    logged_at: "2026-10-01T10:05:00.123456+00:00",
+    order: 2,
+    reps_completed: 8,
+    reps_recommended: null,
+    rest_recommended: null,
+    weight_completed: 82.5,
+    weight_recommended: null,
+  };
+
+  it("appends the logged set and answers 201 with it and the weight unit", async () => {
+    const { calls, services } = recording("addSetToWorkoutSessionExercise", {
+      value: { set: added, status: "added" },
+      weightUnit: "lbs",
+    });
+    const { app, servicesFor } = testApp({ services });
+
+    const response = await send(app, "POST", path, {
+      reps_completed: 8,
+      weight_completed: 82.5,
+    });
+
+    expect(response.status).toBe(201);
+    expect(await response.json()).toEqual({
+      data: { ...added, weight_unit: "lbs" },
+    });
+    expect(calls).toEqual([
+      {
+        repsCompleted: 8,
+        sessionExerciseId: SESSION_EXERCISE_ID,
+        weightCompleted: 82.5,
+      },
+    ]);
+    expect(servicesFor).toEqual(["user_alice"]);
+  });
+
+  it.each([
+    ["0 reps and 0 weight (bodyweight)", 0, 0],
+    ["the limits themselves", MAX_REPS, MAX_WEIGHT],
+  ])("accepts %s", async (_, reps, weight) => {
+    const { calls, services } = recording("addSetToWorkoutSessionExercise", {
+      value: { set: added, status: "added" },
+      weightUnit: "kg",
+    });
+    const { app } = testApp({ services });
+
+    const response = await send(app, "POST", path, {
+      reps_completed: reps,
+      weight_completed: weight,
+    });
+
+    expect(response.status).toBe(201);
+    expect(calls).toEqual([
+      {
+        repsCompleted: reps,
+        sessionExerciseId: SESSION_EXERCISE_ID,
+        weightCompleted: weight,
+      },
+    ]);
+  });
+
+  it("answers 404 not_found for a Workout Session Exercise the User doesn't have, unreported", async () => {
+    const { services } = recording("addSetToWorkoutSessionExercise", {
+      value: { status: "not_found" },
+      weightUnit: "kg",
+    });
+    const { app, reported } = testApp({ services });
+
+    const response = await send(app, "POST", path, {
+      reps_completed: 8,
+      weight_completed: 80,
+    });
+
+    expect(response.status).toBe(404);
+    expect(await response.json()).toEqual({
+      error: {
+        code: "not_found",
+        message: "Workout Session Exercise not found",
+      },
+    });
+    expect(reported).toEqual([]);
+  });
+
+  it("answers 409 session_finished for a finished Workout Session, unreported", async () => {
+    const { services } = recording("addSetToWorkoutSessionExercise", {
+      value: {
+        finishedAt: "2026-10-01T11:00:00+00:00",
+        sessionId: SESSION_ID,
+        status: "session_finished",
+      },
+      weightUnit: "kg",
+    });
+    const { app, reported } = testApp({ services });
+
+    const response = await send(app, "POST", path, {
+      reps_completed: 8,
+      weight_completed: 80,
+    });
+
+    expect(response.status).toBe(409);
+    expect(await response.json()).toEqual({
+      error: {
+        code: "session_finished",
+        message: `Workout Session ${SESSION_ID} was finished at 2026-10-01T11:00:00+00:00; it can no longer be changed`,
+      },
+    });
+    expect(reported).toEqual([]);
+  });
+
+  it.each([
+    ["negative reps", { reps_completed: -1, weight_completed: 80 }],
+    ["fractional reps", { reps_completed: 1.5, weight_completed: 80 }],
+    [
+      "reps over the limit",
+      { reps_completed: MAX_REPS + 1, weight_completed: 80 },
+    ],
+    ["negative weight", { reps_completed: 8, weight_completed: -1 }],
+    [
+      "weight over the limit",
+      { reps_completed: 8, weight_completed: MAX_WEIGHT + 1 },
+    ],
+    ["weight with 3 decimals", { reps_completed: 8, weight_completed: 80.125 }],
+    ["no weight", { reps_completed: 8 }],
+    [
+      "targets",
+      { reps_completed: 8, reps_recommended: 8, weight_completed: 80 },
+    ],
+  ])(
+    "answers 400 invalid_request for %s, before any service call, unreported",
+    async (_, body) => {
+      // addSetToWorkoutSessionExercise isn't faked: calling it would fail the request with a 500
+      const { app, reported } = testApp({ services: fakeServices({}) });
+
+      const response = await send(app, "POST", path, body);
+
+      expect(response.status).toBe(400);
+      expect((await response.json()).error.code).toBe("invalid_request");
+      expect(reported).toEqual([]);
+    }
+  );
+
+  it("answers 400 invalid_request for an id that isn't a uuid, unreported", async () => {
+    const { app, reported } = testApp({ services: fakeServices({}) });
+
+    const response = await send(
+      app,
+      "POST",
+      "/v1/workout-session-exercises/nope/sets",
+      { reps_completed: 8, weight_completed: 80 }
+    );
+
+    expect(response.status).toBe(400);
+    expect((await response.json()).error.code).toBe("invalid_request");
+    expect(reported).toEqual([]);
+  });
+
+  it("answers 415 for a body that isn't JSON, unreported", async () => {
+    const { app, reported } = testApp({ services: fakeServices({}) });
+
+    const response = await send(app, "POST", path, undefined, {
+      "content-type": "text/plain",
+    });
+
+    expect(response.status).toBe(415);
+    expect(reported).toEqual([]);
+  });
+});

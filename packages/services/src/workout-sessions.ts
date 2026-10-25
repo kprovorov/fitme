@@ -690,6 +690,73 @@ export const replaceExerciseInWorkoutSession = async (
   };
 };
 
+export interface AddSetToWorkoutSessionExerciseInput {
+  repsCompleted: number;
+  sessionExerciseId: string;
+  /** In the User's unit (kg or lbs), stored as given. */
+  weightCompleted: number;
+}
+
+export type AddSetToWorkoutSessionExerciseResult =
+  | { set: WorkoutSessionSet; status: "added" }
+  | { finishedAt: string; sessionId: string; status: "session_finished" }
+  | { status: "not_found" };
+
+/**
+ * Appends a set, logged now (`logged_at` is the server's) and without
+ * targets, after the last one of one of the User's open Workout Session's
+ * Workout Session Exercises, in `tx` (from `asUser`). A finished Workout
+ * Session is left as it was (`session_finished`); an Exercise the User can't
+ * see is `not_found`.
+ *
+ * The Workout Session Exercise row is locked, after its session's, before the
+ * next `order` (the highest + 1) is read, so concurrent adds never share one.
+ */
+export const addSetToWorkoutSessionExercise = async (
+  tx: Transaction,
+  userId: string,
+  {
+    repsCompleted,
+    sessionExerciseId,
+    weightCompleted,
+  }: AddSetToWorkoutSessionExerciseInput
+): Promise<AddSetToWorkoutSessionExerciseResult> => {
+  const session = await lockSessionOfExercise(tx, userId, sessionExerciseId);
+  if (session.status !== "open") {
+    return session;
+  }
+  const [exercise] = await tx
+    .select({ id: workoutSessionExercises.id })
+    .from(workoutSessionExercises)
+    .where(
+      and(
+        eq(workoutSessionExercises.id, sessionExerciseId),
+        eq(workoutSessionExercises.workoutSessionId, session.sessionId)
+      )
+    )
+    .for("no key update");
+  if (!exercise) {
+    return { status: "not_found" };
+  }
+  const [{ last }] = await tx
+    .select({ last: max(workoutSessionExerciseSets.order) })
+    .from(workoutSessionExerciseSets)
+    .where(
+      eq(workoutSessionExerciseSets.workoutSessionExerciseId, sessionExerciseId)
+    );
+  const [added] = await tx
+    .insert(workoutSessionExerciseSets)
+    .values({
+      loggedAt: sql`now()`,
+      order: (last ?? 0) + 1,
+      repsCompleted,
+      weightCompleted: String(weightCompleted),
+      workoutSessionExerciseId: sessionExerciseId,
+    })
+    .returning(setColumns);
+  return { set: toSet(added), status: "added" };
+};
+
 /**
  * Deletes one of the User's Workout Sessions and, by cascade, its exercises
  * and sets, in `tx` (from `asUser`). False when there was none to delete.
