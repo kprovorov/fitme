@@ -22,7 +22,7 @@ import { closePlanUpdatePrompt } from "~/hooks/plan-update-prompt";
 import {
   libraryExercise,
   serveLibrary,
-} from "~/test-utils/fake-exercise-library";
+} from "~/test-utils/fake-library";
 import { createTestQueryClient } from "~/test-utils/query-client";
 import { useFinishWorkoutSession } from "../finish-workout-session";
 
@@ -162,7 +162,7 @@ const CHANGES = {
   workout: { id: "workout-1", name: "Push Day" },
 };
 
-/** The Exercise Library's names for the changes' slugs; dips it doesn't know. */
+/** The Library's names for the changes' slugs; dips it doesn't know. */
 const LIBRARY = [
   libraryExercise("dumbbell-press", { name: "Dumbbell Press" }),
   libraryExercise("bench-press", { name: "Bench Press" }),
@@ -478,12 +478,12 @@ describe("useFinishWorkoutSession", () => {
       expect(
         screen.getByText("Save today's changes to Push Day in PPL 4-week.")
       ).toBeTruthy();
-      // The names resolve in one Exercise Library lookup.
+      // The names resolve in one Library lookup.
       await screen.findByText("Add 1 set to Back Squat · 5×100 kg");
       for (const line of [
         "Replace Bench Press with Dumbbell Press · 8×30, 8×30, 6×30 kg",
         "Add 1 set to Back Squat · 5×100 kg",
-        // Unknown to the Exercise Library: the slug's name.
+        // Unknown to the Library: the slug's name.
         "Remove Dips",
         "Add Cable Fly · 12×15, 12×17.5 kg",
       ]) {

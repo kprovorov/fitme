@@ -2,7 +2,7 @@ import type { MuscleGroup } from "@fitme/core";
 import type { Exercise, Library } from "@fitme/library-sdk";
 import { createFakeLibrary, type FakeLibrary } from "@fitme/library-sdk/fake";
 
-/** A made-up Exercise of the Exercise Library, named in title case. */
+/** A made-up Exercise of the Library, named in title case. */
 export const libraryExercise = (
   slug: string,
   overrides: Partial<Exercise> = {}
@@ -21,23 +21,21 @@ export const libraryExercise = (
 });
 
 /**
- * What `~/lib/exercise-library` exports in tests: point `current` at a fake
+ * What `~/lib/library` exports in tests: point `current` at a fake
  * (or a real client on a stubbed `fetch`) per test.
  *
- *   jest.mock("~/lib/exercise-library", () =>
- *     jest.requireActual<typeof import("~/test-utils/fake-exercise-library")>(
- *       "~/test-utils/fake-exercise-library"
- *     ).exerciseLibraryModule
+ *   jest.mock("~/lib/library", () =>
+ *     jest.requireActual<typeof import("~/test-utils/fake-library")>(
+ *       "~/test-utils/fake-library"
+ *     ).libraryModule
  *   );
  */
 export const library: { current: Library } = {
   current: createFakeLibrary([]),
 };
 
-export const exerciseLibraryModule = {
-  get exerciseLibrary() {
-    return library.current;
-  },
+export const libraryModule = {
+  getLibrary: (): Library => library.current,
 };
 
 /** Makes a fake over these Exercises the one the app reads. */

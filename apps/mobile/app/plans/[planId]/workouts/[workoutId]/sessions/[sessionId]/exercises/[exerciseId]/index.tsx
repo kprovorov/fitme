@@ -11,10 +11,7 @@ import WorkoutSessionExerciseSetsTableView from "~/components/views/workout-sess
 import RestTimer, { type Rest } from "~/components/workout-sessions/rest-timer";
 import SessionExerciseHeader from "~/components/workout-sessions/session-exercise-header";
 import { WorkoutSessionFinishSuggestion } from "~/components/workout-sessions/workout-session-finish-suggestion";
-import {
-  useExercise,
-  useExerciseDetailQuery,
-} from "~/hooks/queries/exercise-library";
+import { useExercise, useExerciseDetailQuery } from "~/hooks/queries/library";
 import type { SavedWorkoutSessionExerciseSet } from "~/hooks/queries/workout-session-exercise-sets";
 import { useWorkoutSessionExerciseQuery } from "~/hooks/queries/workout-session-exercises";
 import { useWorkoutSessionQuery } from "~/hooks/queries/workout-sessions";
@@ -57,7 +54,7 @@ export default function WorkoutSessionExerciseScreen() {
   const { data: exerciseDetail } = useExerciseDetailQuery(
     workoutSessionExercise?.exercise_slug ?? ""
   );
-  // The guide reads the Exercise from the Exercise Library: none for one it
+  // The guide reads the Exercise from the Library: none for one it
   // doesn't know (or that hasn't resolved yet).
   const hasGuide = !!workoutSessionExercise && exercise.isResolved;
 

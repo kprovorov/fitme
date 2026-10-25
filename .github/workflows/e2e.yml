@@ -198,9 +198,9 @@ jobs:
           EXPO_PUBLIC_SUPABASE_URL: ${{ steps.branch-details.outputs.api_url }}
           EXPO_PUBLIC_SUPABASE_ANON_KEY: ${{ steps.branch-details.outputs.anon_key }}
           EXPO_PUBLIC_CLERK_PUBLISHABLE_KEY: ${{ vars.CLERK_DEV_PUBLISHABLE_KEY }}
-          # Production's Exercise Library, which accepts development-instance
+          # Production's Library API, which accepts development-instance
           # Clerk tokens, so E2E needs no deployment of its own.
-          EXPO_PUBLIC_EXERCISES_URL: https://exercises.fitmeproject.com
+          EXPO_PUBLIC_LIBRARY_URL: https://library.fitmeproject.com
           # The Public API started above (the simulator shares the runner's
           # loopback).
           EXPO_PUBLIC_API_URL: http://localhost:3003
@@ -237,9 +237,9 @@ jobs:
           EXPO_PUBLIC_SUPABASE_URL: ${{ steps.branch-details.outputs.api_url }}
           EXPO_PUBLIC_SUPABASE_ANON_KEY: ${{ steps.branch-details.outputs.anon_key }}
           EXPO_PUBLIC_CLERK_PUBLISHABLE_KEY: ${{ vars.CLERK_DEV_PUBLISHABLE_KEY }}
-          # Production's Exercise Library, which accepts development-instance
+          # Production's Library API, which accepts development-instance
           # Clerk tokens, so E2E needs no deployment of its own.
-          EXPO_PUBLIC_EXERCISES_URL: https://exercises.fitmeproject.com
+          EXPO_PUBLIC_LIBRARY_URL: https://library.fitmeproject.com
           # The Public API started above (the simulator shares the runner's
           # loopback).
           EXPO_PUBLIC_API_URL: http://localhost:3003

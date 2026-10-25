@@ -6,10 +6,7 @@ import { Button } from "~/components/ui/button";
 import { Text } from "~/components/ui/text";
 import { Muted, P } from "~/components/ui/typography";
 import { VStack } from "~/components/ui/vstack";
-import {
-  useExercise,
-  useExerciseDetailQuery,
-} from "~/hooks/queries/exercise-library";
+import { useExercise, useExerciseDetailQuery } from "~/hooks/queries/library";
 
 export default function ExerciseScreen() {
   const { exerciseSlug } = useLocalSearchParams<{ exerciseSlug: string }>();

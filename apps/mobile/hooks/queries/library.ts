@@ -17,25 +17,25 @@ import {
   useQueryClient,
 } from "@tanstack/react-query";
 import { useEffect, useState } from "react";
+import { getLibrary } from "~/lib/library";
 import {
   readCachedExercise,
   readCachedSummary,
   removeCachedExercise,
   writeCachedExercise,
   writeCachedSummary,
-} from "~/lib/exercise-cache";
-import { exerciseLibrary } from "~/lib/exercise-library";
+} from "~/lib/library-cache";
 
 /** In line with the API's `Cache-Control: private, max-age=3600`. */
 export const EXERCISE_STALE_TIME_MS = 60 * 60 * 1000;
 
 /**
- * What a row shows for an Exercise: the Exercise Library's details once
+ * What a row shows for an Exercise: the Library's details once
  * resolved, otherwise (never resolved, or unknown to the library) a name made
  * from its slug, no muscle groups, no media and no detail screen.
  */
 export interface ShownExercise {
-  /** Whether the Exercise Library knows it, so its detail screen can open. */
+  /** Whether the Library knows it, so its detail screen can open. */
   isResolved: boolean;
   muscle_groups: MuscleGroup[];
   name: string;
@@ -80,7 +80,7 @@ const flush = async () => {
   const batch = waiting;
   waiting = new Map();
   try {
-    const { data } = await exerciseLibrary.lookup([...batch.keys()]);
+    const { data } = await getLibrary().lookup([...batch.keys()]);
     const found = new Map(data.map((exercise) => [exercise.slug, exercise]));
     for (const [slug, waiters] of batch) {
       for (const { resolve } of waiters) {
@@ -97,7 +97,7 @@ const flush = async () => {
 };
 
 /**
- * One Exercise's summary, or `null` when the Exercise Library has no such
+ * One Exercise's summary, or `null` when the Library has no such
  * slug. Slugs asked for in the same tick (every row of a screen) share one
  * `lookup`, which the client splits into requests of 40.
  */
@@ -146,7 +146,7 @@ const exerciseSummaryQuery = (slug: string) =>
 /**
  * The Exercises with these slugs, by slug, as rows show them. Never waits:
  * a slug not resolved yet (or that fails to) shows its slug's name, and its
- * row fills in once the Exercise Library answers.
+ * row fills in once the Library answers.
  */
 export const useExercises = (
   slugs: readonly string[]
@@ -169,7 +169,7 @@ export const useExercise = (slug: string | undefined): ShownExercise => {
 
 /**
  * One Exercise in full, for its detail screen and guide: `null` when the
- * Exercise Library has no such slug. Starts from the cached copy (offline too).
+ * Library has no such slug. Starts from the cached copy (offline too).
  * Without a slug (not known yet) it asks nothing.
  */
 export const useExerciseDetailQuery = (slug: string) => {
@@ -179,7 +179,7 @@ export const useExerciseDetailQuery = (slug: string) => {
     initialData: () => readCachedExercise(slug)?.value,
     initialDataUpdatedAt: () => readCachedExercise(slug)?.savedAt,
     queryFn: async (): Promise<Exercise | null> => {
-      const exercise = await exerciseLibrary.get(slug);
+      const exercise = await getLibrary().get(slug);
       if (exercise) {
         writeCachedExercise(exercise);
       } else {
@@ -210,7 +210,7 @@ interface ExerciseSearchParams {
 }
 
 /**
- * The Exercise Library, searched and filtered, a page at a time: what the
+ * The Library, searched and filtered, a page at a time: what the
  * Library tab and the Exercise picker list. A changed search is sent
  * `EXERCISE_SEARCH_DEBOUNCE_MS` after the last keystroke, a changed muscle
  * group at once. Rate limited, it keeps the last results (no error) and holds
@@ -280,7 +280,7 @@ export const useExerciseSearch = ({
       );
       let page: ExercisePage;
       try {
-        page = await exerciseLibrary.list({
+        page = await getLibrary().list({
           limit: EXERCISE_SEARCH_PAGE_SIZE,
           offset: pageParam,
           ...(sent.search ? { search: sent.search } : {}),

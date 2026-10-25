@@ -1,10 +1,10 @@
 /**
- * The Library tab and the Exercise picker search the Exercise Library API
+ * The Library tab and the Exercise picker search the Library API
  * (FIT-242): search waits 300 ms after the last keystroke, the muscle group
  * filter and paging go through `list`, a 429 keeps the last results with no
  * error, and every result is seeded into its row query and MMKV.
  *
- * Mounts the real view on the fake Exercise Library; the SwiftUI-backed
+ * Mounts the real view on the fake Library; the SwiftUI-backed
  * primitives are swapped for plain stand-ins.
  */
 
@@ -25,20 +25,17 @@ import {
 import { type QueryClient, QueryClientProvider } from "@tanstack/react-query";
 import { act, fireEvent, render, screen } from "@testing-library/react-native";
 import ExercisesView from "~/components/views/exercises-view";
-import { readCachedSummary } from "~/lib/exercise-cache";
+import { readCachedSummary } from "~/lib/library-cache";
 import { storage } from "~/lib/mmkv";
-import {
-  libraryExercise,
-  serveLibrary,
-} from "~/test-utils/fake-exercise-library";
+import { libraryExercise, serveLibrary } from "~/test-utils/fake-library";
 import { createTestQueryClient } from "~/test-utils/query-client";
 
 jest.mock(
-  "~/lib/exercise-library",
+  "~/lib/library",
   () =>
-    jest.requireActual<typeof import("~/test-utils/fake-exercise-library")>(
-      "~/test-utils/fake-exercise-library"
-    ).exerciseLibraryModule
+    jest.requireActual<typeof import("~/test-utils/fake-library")>(
+      "~/test-utils/fake-library"
+    ).libraryModule
 );
 jest.mock("~/components/ui/button", () =>
   jest.requireActual("~/test-utils/button-stub")
@@ -113,7 +110,7 @@ afterEach(() => {
   jest.useRealTimers();
 });
 
-describe("searching the Exercise Library", () => {
+describe("searching the Library", () => {
   it("lists the first page of every Exercise at once", async () => {
     await renderView();
 

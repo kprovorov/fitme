@@ -3,7 +3,7 @@ import type { ExerciseSummary } from "@fitme/library-sdk";
 import { useQueryClient } from "@tanstack/react-query";
 import { useCallback, useState } from "react";
 import { Alert, Modal, ScrollView } from "react-native";
-import { useExercises } from "~/hooks/queries/exercise-library";
+import { useExercises } from "~/hooks/queries/library";
 import {
   useCreateWorkoutSessionExerciseMutation,
   useDeleteWorkoutSessionExerciseMutation,
@@ -21,7 +21,7 @@ import WorkoutSessionExerciseCard from "./workout-session-exercise-card";
 /** What to tell the User after a failed edit of the Workout Session's Exercises. */
 const sessionEditFailureMessage = (error: unknown) => {
   if (error instanceof ApiError) {
-    if (error.code === "exercise_library_unavailable") {
+    if (error.code === "library_unavailable") {
       return "The exercise library is unavailable right now. Please try again.";
     }
     if (error.code === "session_finished") {

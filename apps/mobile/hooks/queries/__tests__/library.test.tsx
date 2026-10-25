@@ -8,16 +8,16 @@ import {
   library,
   libraryExercise,
   serveLibrary,
-} from "~/test-utils/fake-exercise-library";
+} from "~/test-utils/fake-library";
 import { createTestQueryClient } from "~/test-utils/query-client";
-import { useExerciseDetailQuery, useExercises } from "../exercise-library";
+import { useExerciseDetailQuery, useExercises } from "../library";
 
 jest.mock(
-  "~/lib/exercise-library",
+  "~/lib/library",
   () =>
-    jest.requireActual<typeof import("~/test-utils/fake-exercise-library")>(
-      "~/test-utils/fake-exercise-library"
-    ).exerciseLibraryModule
+    jest.requireActual<typeof import("~/test-utils/fake-library")>(
+      "~/test-utils/fake-library"
+    ).libraryModule
 );
 
 /** A fresh query cache, as after a restart of the app. */
@@ -32,6 +32,46 @@ const SLUGS_PATTERN = /[?&]slugs=([^&]*)/;
 
 beforeEach(() => {
   storage.clearAll();
+});
+
+describe("the MMKV cache", () => {
+  it("sweeps the old exercises.* keys once and caches under library.*", async () => {
+    storage.set("exercises.summary.bench-press", "{}");
+    storage.set("exercises.exercise.bench-press", "{}");
+    storage.set("exercises.summary.gone-move", "{}");
+    storage.set("arnold.models", "kept");
+    serveLibrary([libraryExercise("bench-press", { name: "Bench Press" })]);
+
+    const rows = await renderHook(() => useExercises(["bench-press"]), {
+      wrapper: newWrapper(),
+    });
+    await waitFor(() =>
+      expect(rows.result.current["bench-press"].isResolved).toBe(true)
+    );
+    const detail = await renderHook(
+      () => useExerciseDetailQuery("bench-press"),
+      { wrapper: newWrapper() }
+    );
+    await waitFor(() => expect(detail.result.current.data).toBeTruthy());
+
+    const keys = storage.getAllKeys();
+    expect(keys.filter((key) => key.startsWith("exercises."))).toEqual([]);
+    expect(keys).toEqual(
+      expect.arrayContaining([
+        "arnold.models",
+        "library.exercise-summary.bench-press",
+        "library.exercise.bench-press",
+      ])
+    );
+    expect(
+      JSON.parse(storage.getString("library.exercise.bench-press") ?? "")
+    ).toMatchObject({ value: { name: "Bench Press", slug: "bench-press" } });
+
+    // Swept once per install: an old key written later stays.
+    storage.set("exercises.summary.squat", "{}");
+    await renderHook(() => useExercises(["squat"]), { wrapper: newWrapper() });
+    expect(storage.getString("exercises.summary.squat")).toBe("{}");
+  });
 });
 
 describe("useExercises", () => {
@@ -128,7 +168,7 @@ describe("useExercises", () => {
     });
   });
 
-  it("falls back to the slug's name while the Exercise Library fails", async () => {
+  it("falls back to the slug's name while the Library fails", async () => {
     const fake = serveLibrary([libraryExercise("bench-press")]);
     fake.failWith(new LibraryUnavailableError());
     const lookup = jest.spyOn(fake, "lookup");
@@ -169,7 +209,7 @@ describe("useExerciseDetailQuery", () => {
     });
   });
 
-  it("answers null for a slug the Exercise Library doesn't have", async () => {
+  it("answers null for a slug the Library doesn't have", async () => {
     serveLibrary([]);
 
     const { result } = await renderHook(

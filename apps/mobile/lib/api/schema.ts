@@ -298,7 +298,7 @@ export interface paths {
     put?: never;
     /**
      * Create a Plan
-     * @description Creates the Plan with its Workouts, Exercises and sets in one transaction: nothing is saved unless all of it is. Every Exercise slug is checked against the Exercise Library first. By default the new Plan becomes the User's active one and every other Plan goes inactive. Not idempotent: a retried request can create a second Plan.
+     * @description Creates the Plan with its Workouts, Exercises and sets in one transaction: nothing is saved unless all of it is. Every Exercise slug is checked against the Library first. By default the new Plan becomes the User's active one and every other Plan goes inactive. Not idempotent: a retried request can create a second Plan.
      */
     post: {
       parameters: {
@@ -324,7 +324,7 @@ export interface paths {
             };
           };
         };
-        /** @description `invalid_request`: the Plan isn't valid; `unknown_exercises`: the Exercise Library has no Exercise for the slugs the message names. Nothing was saved */
+        /** @description `invalid_request`: the Plan isn't valid; `unknown_exercises`: the Library has no Exercise for the slugs the message names. Nothing was saved */
         400: {
           headers: {
             [name: string]: unknown;
@@ -362,7 +362,7 @@ export interface paths {
             "application/json": components["schemas"]["Error"];
           };
         };
-        /** @description `exercise_library_unavailable`: the Exercise slugs couldn't be checked; nothing was saved, try again */
+        /** @description `library_unavailable`: the Exercise slugs couldn't be checked; nothing was saved, try again */
         503: {
           headers: {
             [name: string]: unknown;
@@ -687,7 +687,7 @@ export interface paths {
     get?: never;
     /**
      * Replace a Plan's Workouts
-     * @description Replaces every Workout of the Plan with the sent list, in one transaction: nothing changes unless all of it is saved. **Every Workout gets a new id**, the old ones are gone: past Workout Sessions keep their logged sets but lose the link to their old Workout. The Plan's details and whether it's active don't change (only its `updated_at` moves). Every Exercise slug is checked against the Exercise Library first.
+     * @description Replaces every Workout of the Plan with the sent list, in one transaction: nothing changes unless all of it is saved. **Every Workout gets a new id**, the old ones are gone: past Workout Sessions keep their logged sets but lose the link to their old Workout. The Plan's details and whether it's active don't change (only its `updated_at` moves). Every Exercise slug is checked against the Library first.
      */
     put: {
       parameters: {
@@ -715,7 +715,7 @@ export interface paths {
             };
           };
         };
-        /** @description `invalid_request`: the id isn't a uuid or the Workouts aren't valid; `unknown_exercises`: the Exercise Library has no Exercise for the slugs the message names. Nothing was changed */
+        /** @description `invalid_request`: the id isn't a uuid or the Workouts aren't valid; `unknown_exercises`: the Library has no Exercise for the slugs the message names. Nothing was changed */
         400: {
           headers: {
             [name: string]: unknown;
@@ -762,7 +762,7 @@ export interface paths {
             "application/json": components["schemas"]["Error"];
           };
         };
-        /** @description `exercise_library_unavailable`: the Exercise slugs couldn't be checked; nothing was changed, try again */
+        /** @description `library_unavailable`: the Exercise slugs couldn't be checked; nothing was changed, try again */
         503: {
           headers: {
             [name: string]: unknown;
@@ -1239,7 +1239,7 @@ export interface paths {
     get?: never;
     /**
      * Replace an Exercise in a Workout Session
-     * @description Replaces the Exercise of a Workout Session Exercise of an open Workout Session, in one transaction: it keeps its id, its place and its sets with their logged results, and every set's targets (`reps_recommended`, `weight_recommended`) become 0. The Exercise slug is checked against the Exercise Library first. A finished Workout Session can't change.
+     * @description Replaces the Exercise of a Workout Session Exercise of an open Workout Session, in one transaction: it keeps its id, its place and its sets with their logged results, and every set's targets (`reps_recommended`, `weight_recommended`) become 0. The Exercise slug is checked against the Library first. A finished Workout Session can't change.
      */
     put: {
       parameters: {
@@ -1269,7 +1269,7 @@ export interface paths {
             };
           };
         };
-        /** @description `invalid_request`: the id isn't a uuid or the body isn't valid; `unknown_exercises`: the Exercise Library has no Exercise for the slug the message names. Nothing was changed */
+        /** @description `invalid_request`: the id isn't a uuid or the body isn't valid; `unknown_exercises`: the Library has no Exercise for the slug the message names. Nothing was changed */
         400: {
           headers: {
             [name: string]: unknown;
@@ -1325,7 +1325,7 @@ export interface paths {
             "application/json": components["schemas"]["Error"];
           };
         };
-        /** @description `exercise_library_unavailable`: the Exercise slug couldn't be checked; nothing was changed, try again */
+        /** @description `library_unavailable`: the Exercise slug couldn't be checked; nothing was changed, try again */
         503: {
           headers: {
             [name: string]: unknown;
@@ -1809,7 +1809,7 @@ export interface paths {
     put?: never;
     /**
      * Add an Exercise to a Workout Session
-     * @description Appends an Exercise, with no sets, after the last Exercise of an open Workout Session. The Exercise slug is checked against the Exercise Library first. A finished Workout Session can't change. Not idempotent: a retried request can add the Exercise twice.
+     * @description Appends an Exercise, with no sets, after the last Exercise of an open Workout Session. The Exercise slug is checked against the Library first. A finished Workout Session can't change. Not idempotent: a retried request can add the Exercise twice.
      */
     post: {
       parameters: {
@@ -1839,7 +1839,7 @@ export interface paths {
             };
           };
         };
-        /** @description `invalid_request`: the id isn't a uuid or the body isn't valid; `unknown_exercises`: the Exercise Library has no Exercise for the slug the message names. Nothing was written */
+        /** @description `invalid_request`: the id isn't a uuid or the body isn't valid; `unknown_exercises`: the Library has no Exercise for the slug the message names. Nothing was written */
         400: {
           headers: {
             [name: string]: unknown;
@@ -1895,7 +1895,7 @@ export interface paths {
             "application/json": components["schemas"]["Error"];
           };
         };
-        /** @description `exercise_library_unavailable`: the Exercise slug couldn't be checked; nothing was written, try again */
+        /** @description `library_unavailable`: the Exercise slug couldn't be checked; nothing was written, try again */
         503: {
           headers: {
             [name: string]: unknown;
@@ -2344,7 +2344,7 @@ export interface components {
     };
     PlanExercise: {
       /**
-       * @description The Exercise Library's key for the Exercise; its name, muscle groups and media come from the Exercise Library API
+       * @description The Library's key for the Exercise; its name, muscle groups and media come from the Library API
        * @example barbell-back-squat
        */
       exercise_slug: string;
@@ -2418,7 +2418,7 @@ export interface components {
     };
     NewPlanExercise: {
       /**
-       * @description An Exercise slug from the Exercise Library API; every one is checked before anything is written
+       * @description An Exercise slug from the Library API; every one is checked before anything is written
        * @example barbell-back-squat
        */
       exercise_slug: string;
@@ -2549,7 +2549,7 @@ export interface components {
     };
     WorkoutSessionExercise: {
       /**
-       * @description The Exercise Library's key for the Exercise
+       * @description The Library's key for the Exercise
        * @example barbell-bench-press
        */
       exercise_slug: string;
@@ -2565,7 +2565,7 @@ export interface components {
     };
     ReplaceWorkoutSessionExercise: {
       /**
-       * @description An Exercise slug from the Exercise Library API; every one is checked before anything is written
+       * @description An Exercise slug from the Library API; every one is checked before anything is written
        * @example barbell-back-squat
        */
       exercise_slug: string;
@@ -2658,7 +2658,7 @@ export interface components {
         name: string;
       } | null;
     };
-    /** @description One change to the Workout, by `kind`. Exercises are Exercise slugs only: their names come from the Exercise Library */
+    /** @description One change to the Workout, by `kind`. Exercises are Exercise slugs only: their names come from the Library */
     PlanUpdateChange:
       | {
           /**
@@ -2719,7 +2719,7 @@ export interface components {
     };
     AddWorkoutSessionExercise: {
       /**
-       * @description An Exercise slug from the Exercise Library API; every one is checked before anything is written
+       * @description An Exercise slug from the Library API; every one is checked before anything is written
        * @example barbell-back-squat
        */
       exercise_slug: string;

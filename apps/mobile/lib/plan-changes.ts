@@ -34,7 +34,7 @@ const spokenSets = (sets: PlanUpdateSet[], unit: string) =>
     )
     .join(", ");
 
-/** Every Exercise slug the changes name, for the Exercise Library. */
+/** Every Exercise slug the changes name, for the Library. */
 export const planUpdateSlugs = (changes: PlanUpdateChange[]): string[] =>
   changes.flatMap((change) =>
     change.kind === "replace_exercise"

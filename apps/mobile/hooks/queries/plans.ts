@@ -57,7 +57,7 @@ export const usePlanQuery = createQuery<Plan, PlanQueryVariables>({
  * Saves a Plan through `POST /v1/plans` and makes it the active one, in one
  * transaction: nothing is saved unless all of it is. Fires `Plan Saved` and
  * `Plan Activated` once it has, and refetches the Plan lists. Answers the new Plan's id; rejects with an
- * `ApiError` (`unknown_exercises`, `exercise_library_unavailable`, …).
+ * `ApiError` (`unknown_exercises`, `library_unavailable`, …).
  */
 export const useCreatePlanMutation = createMutation<string, NewPlan>({
   mutationFn: async (plan: NewPlan): Promise<string> => {

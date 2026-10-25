@@ -15,7 +15,7 @@ import {
   type PlanUpdatePrompt,
   usePlanUpdatePrompt,
 } from "~/hooks/plan-update-prompt";
-import { shownExercise, useExercises } from "~/hooks/queries/exercise-library";
+import { shownExercise, useExercises } from "~/hooks/queries/library";
 import { useApplyPlanUpdateMutation } from "~/hooks/queries/workout-sessions";
 import { rateLimitedFor } from "~/lib/api/client";
 import {

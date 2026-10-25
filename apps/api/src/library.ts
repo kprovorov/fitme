@@ -65,9 +65,9 @@ export const slugRefusal = (check: SlugCheck) => {
     return {
       body: {
         error: {
-          code: "exercise_library_unavailable",
+          code: "library_unavailable",
           message:
-            "The Exercise Library is unavailable, so the Exercises couldn't be checked; try again",
+            "The Library is unavailable, so the Exercises couldn't be checked; try again",
         },
       },
       status: 503 as const,

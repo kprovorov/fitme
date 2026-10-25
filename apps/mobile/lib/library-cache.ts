@@ -2,12 +2,30 @@ import type { Exercise, ExerciseSummary } from "@fitme/library-sdk";
 import { storage } from "~/lib/mmkv";
 
 // The Exercises the app has resolved, kept in MMKV so they show offline and
-// right after a restart. Exercise Library content is the same for every User,
-// so it isn't kept per User. Each entry carries when it was saved, so a query
+// right after a restart. Library content is the same for every User, so it
+// isn't kept per User. Each entry carries when it was saved, so a query
 // starting from it knows whether it's stale.
 
-const SUMMARY_PREFIX = "exercises.summary.";
-const EXERCISE_PREFIX = "exercises.exercise.";
+const SUMMARY_PREFIX = "library.exercise-summary.";
+const EXERCISE_PREFIX = "library.exercise.";
+
+// Builds before the Library rename kept them under `exercises.*`. Those copies
+// are deleted once per install, on first use, and refetched under the new
+// keys. A later release removes this sweep (FIT-306).
+const LEGACY_PREFIXES = ["exercises.summary.", "exercises.exercise."];
+const LEGACY_SWEPT_KEY = "library.legacy-exercises-swept";
+
+const sweepLegacyKeys = () => {
+  if (storage.getBoolean(LEGACY_SWEPT_KEY)) {
+    return;
+  }
+  for (const key of storage.getAllKeys()) {
+    if (LEGACY_PREFIXES.some((prefix) => key.startsWith(prefix))) {
+      storage.remove(key);
+    }
+  }
+  storage.set(LEGACY_SWEPT_KEY, true);
+};
 
 export interface CachedEntry<T> {
   savedAt: number;
@@ -37,6 +55,7 @@ const read = <T>(
   key: string,
   isValue: (value: unknown) => value is T
 ): CachedEntry<T> | undefined => {
+  sweepLegacyKeys();
   const raw = storage.getString(key);
   if (!raw) {
     return;
@@ -57,6 +76,7 @@ const read = <T>(
 };
 
 const write = <T>(key: string, value: T, savedAt: number) => {
+  sweepLegacyKeys();
   storage.set(key, JSON.stringify({ savedAt, value }));
 };
 
@@ -85,7 +105,7 @@ export const writeCachedExercise = (
   writeCachedSummary(exercise, savedAt);
 };
 
-/** Forgets an Exercise the Exercise Library no longer has. */
+/** Forgets an Exercise the Library no longer has. */
 export const removeCachedExercise = (slug: string) => {
   storage.remove(`${SUMMARY_PREFIX}${slug}`);
   storage.remove(`${EXERCISE_PREFIX}${slug}`);

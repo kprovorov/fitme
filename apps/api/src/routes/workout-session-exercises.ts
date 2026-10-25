@@ -36,7 +36,7 @@ const removeExerciseRoute = createRoute({
 
 const replaceExerciseRoute = createRoute({
   description:
-    "Replaces the Exercise of a Workout Session Exercise of an open Workout Session, in one transaction: it keeps its id, its place and its sets with their logged results, and every set's targets (`reps_recommended`, `weight_recommended`) become 0. The Exercise slug is checked against the Exercise Library first. A finished Workout Session can't change.",
+    "Replaces the Exercise of a Workout Session Exercise of an open Workout Session, in one transaction: it keeps its id, its place and its sets with their logged results, and every set's targets (`reps_recommended`, `weight_recommended`) become 0. The Exercise slug is checked against the Library first. A finished Workout Session can't change.",
   method: "put",
   middleware: [requires("write")] as const,
   path: "/{id}",
@@ -61,7 +61,7 @@ const replaceExerciseRoute = createRoute({
       description: "The replaced Workout Session Exercise, with its sets",
     },
     400: errorResponse(
-      "`invalid_request`: the id isn't a uuid or the body isn't valid; `unknown_exercises`: the Exercise Library has no Exercise for the slug the message names. Nothing was changed"
+      "`invalid_request`: the id isn't a uuid or the body isn't valid; `unknown_exercises`: the Library has no Exercise for the slug the message names. Nothing was changed"
     ),
     401: unauthorizedResponse,
     404: errorResponse(
@@ -71,7 +71,7 @@ const replaceExerciseRoute = createRoute({
     415: errorResponse("The body isn't `application/json`"),
     429: rateLimitedResponse,
     503: errorResponse(
-      "`exercise_library_unavailable`: the Exercise slug couldn't be checked; nothing was changed, try again"
+      "`library_unavailable`: the Exercise slug couldn't be checked; nothing was changed, try again"
     ),
   },
   security: bearerSecurity,

@@ -583,7 +583,7 @@ describe("POST /v1/workout-sessions/:id/exercises", () => {
     expect(reported).toEqual([]);
   });
 
-  it("answers a reported 503 exercise_library_unavailable when the Library fails, before any service call", async () => {
+  it("answers a reported 503 library_unavailable when the Library fails, before any service call", async () => {
     const { app, library, reported } = testApp({ services: fakeServices({}) });
     const outage = new LibraryUnavailableError();
     library.failWith(outage);
@@ -593,13 +593,11 @@ describe("POST /v1/workout-sessions/:id/exercises", () => {
     });
 
     expect(response.status).toBe(503);
-    expect((await response.json()).error.code).toBe(
-      "exercise_library_unavailable"
-    );
+    expect((await response.json()).error.code).toBe("library_unavailable");
     expect(reported).toEqual([outage]);
   });
 
-  it("answers a reported 503 exercise_library_unavailable when the Library isn't configured", async () => {
+  it("answers a reported 503 library_unavailable when the Library isn't configured", async () => {
     const { app, reported } = testApp({
       library: null,
       services: fakeServices({}),
@@ -610,9 +608,7 @@ describe("POST /v1/workout-sessions/:id/exercises", () => {
     });
 
     expect(response.status).toBe(503);
-    expect((await response.json()).error.code).toBe(
-      "exercise_library_unavailable"
-    );
+    expect((await response.json()).error.code).toBe("library_unavailable");
     expect(reported).toHaveLength(1);
   });
 
@@ -825,7 +821,7 @@ describe("PUT /v1/workout-session-exercises/:id", () => {
     expect(reported).toEqual([]);
   });
 
-  it("answers a reported 503 exercise_library_unavailable when the Library fails, before any service call", async () => {
+  it("answers a reported 503 library_unavailable when the Library fails, before any service call", async () => {
     const { app, library, reported } = testApp({ services: fakeServices({}) });
     const outage = new LibraryUnavailableError();
     library.failWith(outage);
@@ -836,7 +832,7 @@ describe("PUT /v1/workout-session-exercises/:id", () => {
 
     expect(response.status).toBe(503);
     expect((await response.json()).error.code).toBe(
-      "exercise_library_unavailable"
+      "library_unavailable"
     );
     expect(reported).toEqual([outage]);
   });

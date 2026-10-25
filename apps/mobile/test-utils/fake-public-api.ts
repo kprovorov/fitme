@@ -46,7 +46,7 @@ import {
   places,
 } from "@fitme/core";
 import type { PublicApiFetch } from "~/lib/api/client";
-import { library } from "./fake-exercise-library";
+import { library } from "./fake-library";
 import {
   backend,
   type ProfileRow,
@@ -356,7 +356,7 @@ const isNewPlan = (
   body.workouts.every(isPlanWorkout);
 
 /**
- * Checks every slug against the fake Exercise Library (`serveLibrary`, its
+ * Checks every slug against the fake Library (`serveLibrary`, its
  * `failWith` for an outage), then saves the Plan into the fake backend's
  * rows, active unless `activate: false`.
  */
@@ -373,8 +373,8 @@ const createPlan = async (body: unknown): Promise<Response> => {
   } catch {
     return error(
       503,
-      "exercise_library_unavailable",
-      "The Exercise Library is unavailable, try again"
+      "library_unavailable",
+      "The Library is unavailable, try again"
     );
   }
   if (missing.length > 0) {
@@ -609,7 +609,7 @@ const logSet = (body: unknown, setId: string): Response => {
   return json(200, { data: { ...setBody(set), weight_unit: weightUnit() } });
 };
 
-/** Checks one slug against the fake Exercise Library, as `checkExerciseSlugs` does. */
+/** Checks one slug against the fake Library, as `checkExerciseSlugs` does. */
 const refuseUnknownSlug = async (slug: string) => {
   let missing: string[];
   try {
@@ -617,8 +617,8 @@ const refuseUnknownSlug = async (slug: string) => {
   } catch {
     return error(
       503,
-      "exercise_library_unavailable",
-      "The Exercise Library is unavailable, try again"
+      "library_unavailable",
+      "The Library is unavailable, try again"
     );
   }
   return missing.length > 0

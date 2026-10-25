@@ -5,10 +5,7 @@ import { SymbolImage } from "~/components/symbol-image";
 import { Card } from "~/components/ui/card";
 import { DropdownMenu } from "~/components/ui/dropdown-menu";
 import { Text } from "~/components/ui/text";
-import {
-  type ShownExercise,
-  shownExercise,
-} from "~/hooks/queries/exercise-library";
+import { type ShownExercise, shownExercise } from "~/hooks/queries/library";
 import ExerciseImage from "../exercises/exercise-image";
 import WorkoutSessionExerciseSetsTableView from "./workout-session-exercise-sets-table-view";
 

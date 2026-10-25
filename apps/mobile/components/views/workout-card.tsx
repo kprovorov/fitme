@@ -12,7 +12,7 @@ import {
   type ShownExercise,
   shownExercise,
   useExercises,
-} from "~/hooks/queries/exercise-library";
+} from "~/hooks/queries/library";
 import { useCreateWorkoutSessionMutation } from "~/hooks/queries/workout-sessions";
 import { rateLimitedFor } from "~/lib/api/client";
 import { cn } from "~/lib/utils";
