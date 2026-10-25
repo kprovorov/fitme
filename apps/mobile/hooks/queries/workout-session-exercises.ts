@@ -1,6 +1,7 @@
 import type { WorkoutSessionExercise } from "@fitme/core";
 import { createMutation, createQuery } from "react-query-kit";
 import { supabase } from "@/lib/supabase";
+import { publicApi } from "~/lib/public-api";
 
 const SESSION_EXERCISE_SELECT = `
   *,
@@ -39,38 +40,24 @@ export interface CreateWorkoutSessionExercisesVariables {
   sessionId: string;
 }
 
+/**
+ * Appends an Exercise to an open Workout Session through
+ * `POST /v1/workout-sessions/{id}/exercises`, which checks its slug against the
+ * Exercise Library; the screen re-reads the session. Rejects with an
+ * `ApiError`.
+ */
 export const useCreateWorkoutSessionExerciseMutation = createMutation<
-  WorkoutSessionExercise,
+  void,
   CreateWorkoutSessionExercisesVariables
 >({
   mutationFn: async ({
     sessionId,
     data: { exercise_slug },
   }: CreateWorkoutSessionExercisesVariables) => {
-    // Get the next order value
-    const { data: existing } = await supabase
-      .from("workout_session_exercises")
-      .select("order")
-      .eq("workout_session_id", sessionId)
-      .order("order", { ascending: false })
-      .limit(1);
-
-    const nextOrder =
-      ((existing?.[0] as { order?: number } | undefined)?.order ?? 0) + 1;
-
-    const { data, error } = await supabase
-      .from("workout_session_exercises")
-      .insert({
-        exercise_slug,
-        order: nextOrder,
-        workout_session_id: sessionId,
-      })
-      .select(SESSION_EXERCISE_SELECT)
-      .single();
-    if (error) {
-      throw error;
-    }
-    return data as unknown as WorkoutSessionExercise;
+    await publicApi().POST("/v1/workout-sessions/{id}/exercises", {
+      body: { exercise_slug },
+      params: { path: { id: sessionId } },
+    });
   },
 });
 

@@ -1,5 +1,8 @@
 import { muscleGroups } from "@fitme/core";
-import { MAX_WEIGHT_DECIMALS } from "@fitme/core/limits";
+import {
+  MAX_EXERCISE_SLUG_LENGTH,
+  MAX_WEIGHT_DECIMALS,
+} from "@fitme/core/limits";
 import { type Hook, z } from "@hono/zod-openapi";
 import type { Env } from "hono";
 
@@ -14,6 +17,23 @@ export const Id = z.guid().openapi({
   example: "6f1c0c9e-2b7a-4c1e-9a55-3c2d1e0f4a11",
   format: "uuid",
 });
+
+/** Lowercase letters and digits, words joined by single hyphens (apps/library's rule). */
+const EXERCISE_SLUG = /^[a-z0-9]+(-[a-z0-9]+)*$/;
+
+/** An Exercise slug a write carries, checked against the Exercise Library before anything is written. */
+export const ExerciseSlug = z
+  .string()
+  .max(MAX_EXERCISE_SLUG_LENGTH)
+  .regex(
+    EXERCISE_SLUG,
+    "must be an Exercise slug: lowercase letters and digits, words joined by single hyphens"
+  )
+  .openapi({
+    description:
+      "An Exercise slug from the Exercise Library API; every one is checked before anything is written",
+    example: "barbell-back-squat",
+  });
 
 /** Every error, whatever the route: `{ error: { code, message } }`. */
 export const ErrorResponse = z

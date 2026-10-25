@@ -18,6 +18,7 @@ import {
   inArray,
   isNotNull,
   isNull,
+  max,
   type SQL,
   sql,
 } from "drizzle-orm";
@@ -460,6 +461,98 @@ export const logSet = async (
     };
   }
   return { status: "not_found" };
+};
+
+/**
+ * ROW EXCLUSIVE on the tables a session edit writes, in `deleteUserData`'s
+ * order, so an edit queues behind an account deletion before it holds any row
+ * the deletion's cascade needs; taken later, the two deadlock.
+ */
+const lockSessionTables = (tx: Transaction) =>
+  tx.execute(sql`
+    lock table ${workoutSessions}, ${workoutSessionExercises}, ${workoutSessionExerciseSets}
+    in row exclusive mode
+  `);
+
+type OpenSession =
+  | { status: "open" }
+  | { finishedAt: string; status: "session_finished" }
+  | { status: "not_found" };
+
+/**
+ * Row-locks one of the User's Workout Sessions (`FOR NO KEY UPDATE`), so
+ * concurrent edits of it queue up and a concurrent finish either waits for
+ * the edit or is seen here once it has committed.
+ */
+const lockOpenSession = async (
+  tx: Transaction,
+  userId: string,
+  sessionId: string
+): Promise<OpenSession> => {
+  const [session] = await tx
+    .select({
+      finishedAt: timestampText<string | null>(workoutSessions.finishedAt),
+    })
+    .from(workoutSessions)
+    .where(
+      and(eq(workoutSessions.id, sessionId), eq(workoutSessions.userId, userId))
+    )
+    .for("no key update");
+  if (!session) {
+    return { status: "not_found" };
+  }
+  return session.finishedAt
+    ? { finishedAt: session.finishedAt, status: "session_finished" }
+    : { status: "open" };
+};
+
+export interface AddExerciseToWorkoutSessionInput {
+  /** Stored as given: the caller checks it against the Library (ADR 0010). */
+  exerciseSlug: string;
+  sessionId: string;
+}
+
+export type AddExerciseToWorkoutSessionResult =
+  | { exercise: WorkoutSessionExercise; status: "added" }
+  | { finishedAt: string; status: "session_finished" }
+  | { status: "not_found" };
+
+/**
+ * Appends an Exercise, with no sets, after the last one of the User's open
+ * Workout Session, in `tx` (from `asUser`). A finished Workout Session is
+ * left as it was (`session_finished`); one the User can't see is
+ * `not_found`.
+ *
+ * The session row is locked before the next `order` (the highest + 1, so a
+ * remove's gap stays) is read, so concurrent adds never share one.
+ */
+export const addExerciseToWorkoutSession = async (
+  tx: Transaction,
+  userId: string,
+  { exerciseSlug, sessionId }: AddExerciseToWorkoutSessionInput
+): Promise<AddExerciseToWorkoutSessionResult> => {
+  await lockSessionTables(tx);
+  const session = await lockOpenSession(tx, userId, sessionId);
+  if (session.status !== "open") {
+    return session;
+  }
+  const [{ last }] = await tx
+    .select({ last: max(workoutSessionExercises.order) })
+    .from(workoutSessionExercises)
+    .where(eq(workoutSessionExercises.workoutSessionId, sessionId));
+  const [added] = await tx
+    .insert(workoutSessionExercises)
+    .values({
+      exerciseSlug,
+      order: (last ?? 0) + 1,
+      workoutSessionId: sessionId,
+    })
+    .returning({
+      exercise_slug: workoutSessionExercises.exerciseSlug,
+      id: workoutSessionExercises.id,
+      order: workoutSessionExercises.order,
+    });
+  return { exercise: { ...added, sets: [] }, status: "added" };
 };
 
 /**

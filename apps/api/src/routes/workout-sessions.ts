@@ -1,6 +1,8 @@
 import { createRoute, OpenAPIHono, z } from "@hono/zod-openapi";
 import { type ApiEnv, bearerSecurity, requires } from "../auth.js";
+import { checkExerciseSlugs, slugRefusal } from "../library.js";
 import {
+  ExerciseSlug,
   errorResponse,
   Id,
   invalidRequest,
@@ -113,6 +115,65 @@ const notFoundResponse = errorResponse(
 const notFound = {
   error: { code: "not_found", message: "Workout Session not found" },
 } as const;
+
+/** The 409 of an edit to a finished Workout Session. */
+const sessionFinished = (sessionId: string, finishedAt: string) =>
+  ({
+    error: {
+      code: "session_finished",
+      message: `Workout Session ${sessionId} was finished at ${finishedAt}; it can no longer be changed`,
+    },
+  }) as const;
+
+const sessionFinishedResponse = errorResponse(
+  "`session_finished`: the Workout Session is finished; nothing was written"
+);
+
+const WorkoutSessionExerciseResponse = z.object({
+  data: WorkoutSessionExercise.extend({ weight_unit: WeightUnit }),
+});
+
+const addExerciseRoute = createRoute({
+  description:
+    "Appends an Exercise, with no sets, after the last Exercise of an open Workout Session. The Exercise slug is checked against the Exercise Library first. A finished Workout Session can't change. Not idempotent: a retried request can add the Exercise twice.",
+  method: "post",
+  middleware: [requires("write")] as const,
+  path: "/{id}/exercises",
+  request: {
+    body: {
+      content: {
+        "application/json": {
+          schema: z
+            .strictObject({ exercise_slug: ExerciseSlug })
+            .openapi("AddWorkoutSessionExercise"),
+        },
+      },
+      required: true,
+    },
+    params: z.object({ id: Id }),
+  },
+  responses: {
+    201: {
+      content: {
+        "application/json": { schema: WorkoutSessionExerciseResponse },
+      },
+      description: "The added Workout Session Exercise, with its sets (none)",
+    },
+    400: errorResponse(
+      "`invalid_request`: the id isn't a uuid or the body isn't valid; `unknown_exercises`: the Exercise Library has no Exercise for the slug the message names. Nothing was written"
+    ),
+    401: unauthorizedResponse,
+    404: notFoundResponse,
+    409: sessionFinishedResponse,
+    415: errorResponse("The body isn't `application/json`"),
+    429: rateLimitedResponse,
+    503: errorResponse(
+      "`exercise_library_unavailable`: the Exercise slug couldn't be checked; nothing was written, try again"
+    ),
+  },
+  security: bearerSecurity,
+  summary: "Add an Exercise to a Workout Session",
+});
 
 const startWorkoutSessionRoute = createRoute({
   description:
@@ -313,6 +374,38 @@ export const workoutSessions = new OpenAPIHono<ApiEnv>({
         data: { ...value.session, weight_unit: weightUnit },
       }),
       200
+    );
+  })
+  .openapi(addExerciseRoute, async (c) => {
+    const { id } = c.req.valid("param");
+    const { exercise_slug } = c.req.valid("json");
+    const refusal = slugRefusal(
+      await checkExerciseSlugs({
+        library: c.var.getLibrary(),
+        reportError: c.var.reportError,
+        slugs: [exercise_slug],
+      })
+    );
+    if (refusal) {
+      return c.json(refusal.body, refusal.status);
+    }
+    const { value, weightUnit } = await c.var
+      .getServices()
+      .addExerciseToWorkoutSession({
+        exerciseSlug: exercise_slug,
+        sessionId: id,
+      });
+    if (value.status === "not_found") {
+      return c.json(notFound, 404);
+    }
+    if (value.status === "session_finished") {
+      return c.json(sessionFinished(id, value.finishedAt), 409);
+    }
+    return c.json(
+      WorkoutSessionExerciseResponse.parse({
+        data: { ...value.exercise, weight_unit: weightUnit },
+      }),
+      201
     );
   })
   .openapi(deleteWorkoutSessionRoute, async (c) => {

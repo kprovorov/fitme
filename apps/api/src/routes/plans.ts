@@ -1,6 +1,5 @@
 import { experienceLevels, goals, places } from "@fitme/core";
 import {
-  MAX_EXERCISE_SLUG_LENGTH,
   MAX_EXERCISES_PER_WORKOUT,
   MAX_FREQUENCY,
   MAX_PLAN_NAME_LENGTH,
@@ -16,8 +15,9 @@ import {
 import type { PlanDetail } from "@fitme/services/plans";
 import { createRoute, OpenAPIHono, z } from "@hono/zod-openapi";
 import { type ApiEnv, bearerSecurity, requires } from "../auth.js";
-import { checkExerciseSlugs, type SlugCheck } from "../library.js";
+import { checkExerciseSlugs, slugRefusal } from "../library.js";
 import {
+  ExerciseSlug,
   errorResponse,
   Id,
   invalidRequest,
@@ -221,8 +221,6 @@ const getPlan = createRoute({
   summary: "Get one of the User's Plans",
 });
 
-/** Lowercase letters and digits, words joined by single hyphens (apps/library's rule). */
-const EXERCISE_SLUG = /^[a-z0-9]+(-[a-z0-9]+)*$/;
 const NewPlanSet = z
   .strictObject({
     reps_recommended: z.number().int().min(1).max(MAX_REPS).openapi({
@@ -247,18 +245,7 @@ const NewPlanSet = z
 
 const NewPlanExercise = z
   .strictObject({
-    exercise_slug: z
-      .string()
-      .max(MAX_EXERCISE_SLUG_LENGTH)
-      .regex(
-        EXERCISE_SLUG,
-        "must be an Exercise slug: lowercase letters and digits, words joined by single hyphens"
-      )
-      .openapi({
-        description:
-          "An Exercise slug from the Exercise Library API; every one is checked before anything is written",
-        example: "barbell-back-squat",
-      }),
+    exercise_slug: ExerciseSlug,
     sets: z
       .array(NewPlanSet)
       .min(1)
@@ -505,34 +492,6 @@ const workoutSlugs = (workouts: z.infer<typeof NewPlanWorkout>[]) => [
     )
   ),
 ];
-
-/** The error a write answers when its Exercise slugs aren't all known, or `null` when they are. */
-const slugRefusal = (check: SlugCheck) => {
-  if (check.status === "unavailable") {
-    return {
-      body: {
-        error: {
-          code: "exercise_library_unavailable",
-          message:
-            "The Exercise Library is unavailable, so the Exercises couldn't be checked; try again",
-        },
-      },
-      status: 503 as const,
-    };
-  }
-  if (check.status === "unknown") {
-    return {
-      body: {
-        error: {
-          code: "unknown_exercises",
-          message: `Unknown exercise_slug(s): ${check.slugs.join(", ")}`,
-        },
-      },
-      status: 400 as const,
-    };
-  }
-  return null;
-};
 
 export const plans = new OpenAPIHono<ApiEnv>({
   defaultHook: invalidRequest,
