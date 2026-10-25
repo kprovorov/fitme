@@ -659,9 +659,9 @@ const addSessionExercise = async (
   if (!session) {
     return notFound("Workout Session");
   }
-  const finished = refuseFinished(session);
-  if (finished) {
-    return finished;
+  const notOpen = refuseFinished(session);
+  if (notOpen) {
+    return notOpen;
   }
   const last = Math.max(
     0,
@@ -927,9 +927,9 @@ const removeSessionExercise = (_body: unknown, exerciseId: string) => {
   if (!session) {
     return new Response(null, { status: 204 });
   }
-  const refusal = refuseFinished(session);
-  if (refusal) {
-    return refusal;
+  const notOpen = refuseFinished(session);
+  if (notOpen) {
+    return notOpen;
   }
   backend.sets = backend.sets.filter(
     (set) => set.workout_session_exercise_id !== exerciseId
@@ -962,9 +962,9 @@ const replaceSessionExercise = async (
   if (!(exercise && session)) {
     return notFound("Workout Session Exercise");
   }
-  const finished = refuseFinished(session);
-  if (finished) {
-    return finished;
+  const notOpen = refuseFinished(session);
+  if (notOpen) {
+    return notOpen;
   }
   exercise.exercise_slug = body.exercise_slug;
   const sets = backend.sets
