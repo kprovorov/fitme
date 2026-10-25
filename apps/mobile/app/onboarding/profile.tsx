@@ -8,13 +8,14 @@ import { useCallback } from "react";
 import { ActivityIndicator, ScrollView } from "react-native";
 import { useResolveClassNames } from "uniwind";
 import ProfileForm, {
-  PROFILE_SAVE_ERROR_MESSAGE,
   type ProfileFormValues,
+  profileSaveErrorMessage,
 } from "~/components/forms/profile-form";
 import { ErrorMessage } from "~/components/ui/error-message";
 import { Text } from "~/components/ui/text";
 import { useStoreProfileMutation } from "~/hooks/mutations/profiles";
 import { useProfileQuery } from "~/hooks/queries/profiles";
+import { rateLimitedFor } from "~/lib/api/client";
 import { IS_E2E } from "~/lib/constants";
 import { storage } from "~/lib/mmkv";
 import { segmentClient } from "~/lib/segment";
@@ -37,7 +38,10 @@ export default function ProfileScreen() {
     error,
   } = useStoreProfileMutation({
     onError: (e) => {
-      Sentry.captureException(e);
+      // Too many requests is the User's to wait out, not a bug.
+      if (rateLimitedFor(e) === null) {
+        Sentry.captureException(e);
+      }
     },
     onSuccess: async (_, variables) => {
       // Edit Profile seeds its form from the cached Profile, so read the saved
@@ -65,8 +69,15 @@ export default function ProfileScreen() {
 
   const handleSubmit = useCallback(
     ({ age, gender, height, weight }: ProfileFormValues) =>
-      storeProfile({ age, gender, height, measurementSystem, weight }),
-    [measurementSystem, storeProfile]
+      storeProfile({
+        age,
+        gender,
+        height,
+        measurementSystem,
+        profile: profile ?? null,
+        weight,
+      }),
+    [measurementSystem, profile, storeProfile]
   );
 
   return (
@@ -104,7 +115,9 @@ export default function ProfileScreen() {
             weight: profile?.weight ?? undefined,
           }}
           footer={
-            !!error && <ErrorMessage>{PROFILE_SAVE_ERROR_MESSAGE}</ErrorMessage>
+            !!error && (
+              <ErrorMessage>{profileSaveErrorMessage(error)}</ErrorMessage>
+            )
           }
           heading={
             <Text>

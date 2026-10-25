@@ -123,6 +123,7 @@ jest.mock("~/components/ui/picker", () => {
 // The stand-in `jest.mock("~/lib/segment")` installs.
 const track = segmentClient.track as unknown as jest.Mock;
 
+const PROFILE_PATCH = "PATCH /v1/profile";
 const PROFILE_PUT = "PUT /v1/profile";
 const SAVE_ERROR =
   "Couldn't save your profile. Please check your connection and try again.";
@@ -197,19 +198,24 @@ describe("Onboarding ProfileScreen", () => {
     expect(router.dismissTo).toHaveBeenCalledWith("/planner");
   });
 
-  it("replaces the Profile when onboarding runs again, never making a second one", async () => {
+  it("sends only the changed fields when onboarding runs again, never making a second Profile", async () => {
     backend.seedProfile(FAKE_USER_ID, {
       age: 40,
       gender: "female",
-      height: 170,
+      height: 182,
       weight: 60,
     });
     await mount();
 
     await fillAndSubmit();
 
-    expect(fakePublicApi.requests.map(({ route }) => route)).toEqual([
-      PROFILE_PUT,
+    expect(fakePublicApi.requests).toEqual([
+      {
+        authorization: `Bearer ${FAKE_SESSION_TOKEN}`,
+        body: { age: 28, gender: "male", weight: 80 },
+        path: "/v1/profile",
+        route: PROFILE_PATCH,
+      },
     ]);
     expect(backend.profiles).toEqual([
       {
@@ -222,6 +228,43 @@ describe("Onboarding ProfileScreen", () => {
       },
     ]);
     expect(router.dismissTo).toHaveBeenCalledWith("/planner");
+  });
+
+  it("lets a value saved before today's bounds through a re-run", async () => {
+    backend.seedProfile(FAKE_USER_ID, { age: 4, gender: "female" });
+    await mount();
+
+    await fireEvent.press(screen.getByLabelText("Male"));
+    await fireEvent.press(screen.getByText("Next"));
+    await settle(queryClient);
+
+    expect(fakePublicApi.requests.map(({ body }) => body)).toEqual([
+      { gender: "male" },
+    ]);
+    expect(backend.profile(FAKE_USER_ID)).toMatchObject({
+      age: 4,
+      gender: "male",
+    });
+    expect(router.dismissTo).toHaveBeenCalledWith("/planner");
+  });
+
+  it("says how long to wait when there were too many requests", async () => {
+    await mount();
+    fakePublicApi.failNext(PROFILE_PUT, {
+      retryAfterSeconds: 42,
+      status: 429,
+    });
+
+    await fillAndSubmit();
+
+    expect(
+      screen.getByText(
+        "Couldn't save your profile. Too many requests: please try again in 42 s."
+      )
+    ).toBeTruthy();
+    expect(Sentry.captureException).not.toHaveBeenCalled();
+    expect(backend.profile(FAKE_USER_ID)).toBeUndefined();
+    expect(router.dismissTo).not.toHaveBeenCalled();
   });
 
   it.each([

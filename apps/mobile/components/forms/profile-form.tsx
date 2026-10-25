@@ -53,11 +53,20 @@ import { Separator } from "~/components/ui/separator";
 import { Text } from "~/components/ui/text";
 import { H4 } from "~/components/ui/typography";
 import { VStack } from "~/components/ui/vstack";
+import { rateLimitedFor } from "~/lib/api/client";
 import { numberInRange } from "~/lib/form-schemas";
 
 /** Shown instead of raw Supabase errors when saving the profile fails. */
 export const PROFILE_SAVE_ERROR_MESSAGE =
   "Couldn't save your profile. Please check your connection and try again.";
+
+/** What a failed save shows: the wait when there were too many requests. */
+export const profileSaveErrorMessage = (error: unknown) => {
+  const waitSeconds = rateLimitedFor(error);
+  return waitSeconds === null
+    ? PROFILE_SAVE_ERROR_MESSAGE
+    : `Couldn't save your profile. Too many requests: please try again in ${waitSeconds} s.`;
+};
 
 type ProfileField = "age" | "weight" | "height";
 

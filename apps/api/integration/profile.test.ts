@@ -7,6 +7,7 @@ import {
   workoutExercises,
   workouts,
 } from "@fitme/db";
+import { deleteTestUsers } from "@fitme/services/delete-test-users";
 import { eq, inArray } from "drizzle-orm";
 import { afterAll, beforeAll, describe, expect, it } from "vitest";
 import { createApp } from "../src/create-app.js";
@@ -299,7 +300,8 @@ describe("PATCH /v1/profile against the local stack", () => {
 const creator = testUserId("creator");
 const replacer = testUserId("replacer");
 const switcher = testUserId("switcher");
-const putters = [creator, replacer, switcher];
+const invalid = testUserId("invalid");
+const putters = [creator, replacer, switcher, invalid];
 
 /** The status and body of `PUT /v1/profile` as `userId`. */
 const putProfile = async (userId: string, profile: unknown) => {
@@ -328,10 +330,7 @@ describe("PUT /v1/profile against the local stack", () => {
   });
 
   afterAll(async () => {
-    await withService(async (tx) => {
-      await tx.delete(plans).where(inArray(plans.userId, putters));
-      await tx.delete(profiles).where(inArray(profiles.userId, putters));
-    });
+    await deleteTestUsers(putters);
   });
 
   const metric = {
@@ -409,9 +408,7 @@ describe("PUT /v1/profile against the local stack", () => {
 
   it("writes nothing for an invalid Profile", async () => {
     const { measurement_system: _system, ...partial } = metric;
-    const fresh = testUserId("invalid");
-
-    expect((await putProfile(fresh, partial)).status).toBe(400);
-    expect(await profileCount(fresh)).toBe(0);
+    expect((await putProfile(invalid, partial)).status).toBe(400);
+    expect(await profileCount(invalid)).toBe(0);
   });
 });

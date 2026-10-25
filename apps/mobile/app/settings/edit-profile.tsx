@@ -7,8 +7,8 @@ import { router, Stack } from "expo-router";
 import { useCallback } from "react";
 import { ActivityIndicator, View } from "react-native";
 import ProfileForm, {
-  PROFILE_SAVE_ERROR_MESSAGE,
   type ProfileFormValues,
+  profileSaveErrorMessage,
 } from "~/components/forms/profile-form";
 import { Button } from "~/components/ui/button";
 import { ErrorMessage } from "~/components/ui/error-message";
@@ -16,13 +16,6 @@ import { VStack } from "~/components/ui/vstack";
 import { useUpdateProfileMutation } from "~/hooks/mutations/profiles";
 import { useProfileQuery } from "~/hooks/queries/profiles";
 import { rateLimitedFor } from "~/lib/api/client";
-
-const saveErrorMessage = (error: unknown) => {
-  const waitSeconds = rateLimitedFor(error);
-  return waitSeconds === null
-    ? PROFILE_SAVE_ERROR_MESSAGE
-    : `Couldn't save your profile. Too many requests: please try again in ${waitSeconds} s.`;
-};
 
 export default function EditProfileScreen() {
   const queryClient = useQueryClient();
@@ -128,7 +121,9 @@ export default function EditProfileScreen() {
             weight: profile?.weight ?? undefined,
           }}
           footer={
-            !!error && <ErrorMessage>{saveErrorMessage(error)}</ErrorMessage>
+            !!error && (
+              <ErrorMessage>{profileSaveErrorMessage(error)}</ErrorMessage>
+            )
           }
           isSubmitting={isPending}
           measurementSystem={measurementSystem}
