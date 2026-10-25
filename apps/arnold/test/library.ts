@@ -1,5 +1,5 @@
-import type { ExerciseSummary } from "@fitme/exercise-library";
-import { createFakeExerciseLibrary } from "@fitme/exercise-library/fake";
+import type { ExerciseSummary } from "@fitme/library-sdk";
+import { createFakeLibrary } from "@fitme/library-sdk/fake";
 
 const media = (slug: string) => ({
   thumbnail_url: `https://media.test/${slug}.jpg`,
@@ -29,7 +29,7 @@ export const libraryExercises: ExerciseSummary[] = [
 ];
 
 /**
- * The in-memory Exercise Library the tools get in tests, in place of the
- * API client (`vi.mock("../agent/lib/exercise-library", …)`).
+ * The in-memory Library the tools get in tests, in place of the
+ * API client (`vi.mock("../agent/lib/library", …)`).
  */
-export const fakeLibrary = createFakeExerciseLibrary(libraryExercises);
+export const fakeLibrary = createFakeLibrary(libraryExercises);

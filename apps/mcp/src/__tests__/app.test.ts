@@ -396,6 +396,32 @@ describe("with a valid Clerk token", () => {
     expect(result.isError).toBe(true);
     expect(result.text).toContain("not configured");
   });
+
+  it("reports a missing LIBRARY_URL or LIBRARY_MCP_SECRET as a tool error", async () => {
+    signInAs("user_alice");
+    // the old names configure nothing
+    vi.stubEnv("EXERCISES_URL", "https://library.test");
+    vi.stubEnv("EXERCISES_MCP_SECRET", "x".repeat(32));
+    vi.stubEnv("LIBRARY_URL", "https://library.test");
+    vi.stubEnv("LIBRARY_MCP_SECRET", "");
+    const app = createApp({
+      logRequests: false,
+      reportError: ignoreReports,
+    });
+
+    const response = await callTool(
+      app,
+      "list_exercises",
+      clerkToken("user_alice")
+    );
+
+    expect(response.status).toBe(200);
+    const result = await readToolResult(response);
+    expect(result.isError).toBe(true);
+    expect(result.text).toBe(
+      "This MCP server is not configured for the Library (LIBRARY_URL or LIBRARY_MCP_SECRET is missing)."
+    );
+  });
 });
 
 describe("observability", () => {

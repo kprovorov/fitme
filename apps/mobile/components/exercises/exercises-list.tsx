@@ -1,4 +1,4 @@
-import type { ExerciseSummary } from "@fitme/exercise-library";
+import type { ExerciseSummary } from "@fitme/library-sdk";
 import type React from "react";
 import { useCallback } from "react";
 import ExerciseImage from "~/components/exercises/exercise-image";

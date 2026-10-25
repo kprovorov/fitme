@@ -1,5 +1,5 @@
 import { type MuscleGroup, muscleGroups, muscleGroupToName } from "@fitme/core";
-import type { ExerciseSummary } from "@fitme/exercise-library";
+import type { ExerciseSummary } from "@fitme/library-sdk";
 import type React from "react";
 import { useCallback, useImperativeHandle, useState } from "react";
 import { ActivityIndicator, View } from "react-native";

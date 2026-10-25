@@ -1,5 +1,5 @@
 import { randomBytes } from "node:crypto";
-import type { Exercise } from "@fitme/exercise-library";
+import type { Exercise } from "@fitme/library-sdk";
 import type { Client } from "@modelcontextprotocol/sdk/client/index.js";
 import {
   call,
@@ -16,7 +16,7 @@ import { createServicesFromEnv } from "../src/services.js";
  * Clerk-style ids, and the tools run as them through `asUser` on the stack's
  * Supavisor pooler (`FITME_DATABASE_URL`, set by the vitest config), the way
  * the server does once Clerk has verified a token (ADR 0003). Every query goes
- * through the same RLS policies as in production. The Exercise Library is the
+ * through the same RLS policies as in production. The Library is the
  * in-memory fake over INTEGRATION_EXERCISES, never the network.
  */
 
@@ -35,7 +35,7 @@ const exercise = (
 });
 
 /**
- * The Exercises the fake Exercise Library knows. Postgres doesn't check slugs
+ * The Exercises the fake Library knows. Postgres doesn't check slugs
  * (ADR 0010), so nothing is seeded for them.
  */
 export const INTEGRATION_EXERCISES = [
@@ -46,7 +46,7 @@ export const INTEGRATION_EXERCISES = [
   exercise("barbell-deadlift", "Barbell Deadlift", ["back", "hamstrings"]),
 ];
 
-/** A fresh fake Exercise Library over INTEGRATION_EXERCISES. */
+/** A fresh fake Library over INTEGRATION_EXERCISES. */
 export const integrationLibrary = () => fakeLibrary(INTEGRATION_EXERCISES);
 
 /** A made-up id in Clerk's `user_…` format, unique per run. */
@@ -116,7 +116,7 @@ export async function pickExercises(client: Client) {
   });
   const [first, second] = page.exercises;
   if (!(first && second)) {
-    throw new Error("The fake Exercise Library has fewer than two Exercises.");
+    throw new Error("The fake Library has fewer than two Exercises.");
   }
   return [first, second] as const;
 }

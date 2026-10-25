@@ -1,12 +1,9 @@
-import {
-  type ExerciseLibraryError,
-  ExerciseLibraryInvalidRequestError,
-} from "./errors";
+import { type LibraryError, LibraryInvalidRequestError } from "./errors";
 import type {
   Exercise,
-  ExerciseLibrary,
   ExercisePage,
   ExerciseSummary,
+  Library,
   ListExercisesParams,
 } from "./types";
 
@@ -16,9 +13,9 @@ const DEFAULT_LIMIT = 20;
 const MAX_LIMIT = 50;
 const MAX_SEARCH = 100;
 
-export interface FakeExerciseLibrary extends ExerciseLibrary {
+export interface FakeLibrary extends Library {
   /** Every call fails with `error` from now on; `null` makes calls answer again. */
-  failWith: (error: ExerciseLibraryError | null) => void;
+  failWith: (error: LibraryError | null) => void;
 }
 
 const alphabetical = new Intl.Collator("en");
@@ -43,32 +40,32 @@ const validate = ({ limit, offset, search }: ListExercisesParams) => {
     limit !== undefined &&
     !(Number.isInteger(limit) && limit >= 1 && limit <= MAX_LIMIT)
   ) {
-    throw new ExerciseLibraryInvalidRequestError(
+    throw new LibraryInvalidRequestError(
       `limit: must be an integer from 1 to ${MAX_LIMIT}`
     );
   }
   if (offset !== undefined && !(Number.isInteger(offset) && offset >= 0)) {
-    throw new ExerciseLibraryInvalidRequestError(
+    throw new LibraryInvalidRequestError(
       "offset: must be a non-negative integer"
     );
   }
   if (search !== undefined && search.trim().length > MAX_SEARCH) {
-    throw new ExerciseLibraryInvalidRequestError(
+    throw new LibraryInvalidRequestError(
       `search: at most ${MAX_SEARCH} characters`
     );
   }
 };
 
 /**
- * An in-memory Exercise Library for consumers' tests: the same answers as
+ * An in-memory Library for consumers' tests: the same answers as
  * the real client over the same Exercises (search, muscle group filter,
  * paging, lookup with `missing`, `get`), and it can be told to fail. An
  * Exercise given as a summary answers `get` with empty description and
  * instructions.
  */
-export const createFakeExerciseLibrary = (
+export const createFakeLibrary = (
   exercises: readonly (Exercise | ExerciseSummary)[]
-): FakeExerciseLibrary => {
+): FakeLibrary => {
   const full = new Map(
     exercises.map((exercise): [string, Exercise] => [
       exercise.slug,
@@ -87,7 +84,7 @@ export const createFakeExerciseLibrary = (
         alphabetical.compare(a.slug, b.slug)
     );
   const bySlug = new Map(sorted.map((summary) => [summary.slug, summary]));
-  let failure: ExerciseLibraryError | null = null;
+  let failure: LibraryError | null = null;
 
   const orFail = <T>(compute: () => T): Promise<T> => {
     if (failure) {

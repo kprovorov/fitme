@@ -1,7 +1,4 @@
-import {
-  createExerciseLibrary,
-  ExerciseLibraryUnavailableError,
-} from "@fitme/exercise-library";
+import { createLibrary, LibraryUnavailableError } from "@fitme/library-sdk";
 import { beforeEach, describe, expect, it, jest } from "@jest/globals";
 import { QueryClientProvider } from "@tanstack/react-query";
 import { renderHook, waitFor } from "@testing-library/react-native";
@@ -58,7 +55,7 @@ describe("useExercises", () => {
         )
       );
     });
-    library.current = createExerciseLibrary({
+    library.current = createLibrary({
       fetch: fetch as typeof globalThis.fetch,
       token: () => Promise.resolve("session-token"),
       url: "https://exercises.test",
@@ -88,7 +85,7 @@ describe("useExercises", () => {
     );
     await first.unmount();
 
-    fake.failWith(new ExerciseLibraryUnavailableError());
+    fake.failWith(new LibraryUnavailableError());
     const lookup = jest.spyOn(fake, "lookup");
     const { result } = await renderHook(
       () => useExercises(["barbell-back-squat"]),
@@ -133,7 +130,7 @@ describe("useExercises", () => {
 
   it("falls back to the slug's name while the Exercise Library fails", async () => {
     const fake = serveLibrary([libraryExercise("bench-press")]);
-    fake.failWith(new ExerciseLibraryUnavailableError());
+    fake.failWith(new LibraryUnavailableError());
     const lookup = jest.spyOn(fake, "lookup");
 
     const { result } = await renderHook(() => useExercises(["bench-press"]), {
@@ -160,7 +157,7 @@ describe("useExerciseDetailQuery", () => {
     await waitFor(() => expect(first.result.current.data).toBeTruthy());
     await first.unmount();
 
-    fake.failWith(new ExerciseLibraryUnavailableError());
+    fake.failWith(new LibraryUnavailableError());
     const { result } = await renderHook(
       () => useExerciseDetailQuery("bench-press"),
       { wrapper: newWrapper() }

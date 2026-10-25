@@ -1,10 +1,7 @@
 import { randomBytes } from "node:crypto";
 import { asUser, plans, profiles, withService } from "@fitme/db";
-import { ExerciseLibraryUnavailableError } from "@fitme/exercise-library";
-import {
-  createFakeExerciseLibrary,
-  type FakeExerciseLibrary,
-} from "@fitme/exercise-library/fake";
+import { LibraryUnavailableError } from "@fitme/library-sdk";
+import { createFakeLibrary, type FakeLibrary } from "@fitme/library-sdk/fake";
 import { deleteUserData } from "@fitme/services/delete-user-data";
 import { createPlan } from "@fitme/services/plans";
 import { eq } from "drizzle-orm";
@@ -15,15 +12,15 @@ import { clerk, libraryExercise, signedInAs } from "../src/test/harness.js";
 
 /**
  * POST /v1/plans with the real services facade, through `asUser` on the local
- * stack's pooler, and the fake Exercise Library.
+ * stack's pooler, and the fake Library.
  */
-const library: FakeExerciseLibrary = createFakeExerciseLibrary(
+const library: FakeLibrary = createFakeLibrary(
   ["barbell-back-squat", "barbell-deadlift"].map(libraryExercise)
 );
 const reported: unknown[] = [];
 const app = createApp({
   clerkJwtKey: clerk.jwtKey,
-  createExerciseLibrary: () => library,
+  createLibrary: () => library,
   createServices: createServicesFromEnv,
   identifyUser: () => undefined,
   reportError: (error) => {
@@ -247,7 +244,7 @@ describe("POST /v1/plans against the local stack", () => {
   });
 
   it("answers a reported 503 exercise_library_unavailable during an outage, writing nothing", async () => {
-    const outage = new ExerciseLibraryUnavailableError();
+    const outage = new LibraryUnavailableError();
     library.failWith(outage);
 
     const { body: answer, status } = await post(refused, newPlan("Outage"));

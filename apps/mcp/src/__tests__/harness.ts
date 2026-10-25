@@ -1,5 +1,5 @@
-import type { Exercise, ExerciseLibrary } from "@fitme/exercise-library";
-import { createFakeExerciseLibrary } from "@fitme/exercise-library/fake";
+import type { Exercise, Library } from "@fitme/library-sdk";
+import { createFakeLibrary } from "@fitme/library-sdk/fake";
 import { Client } from "@modelcontextprotocol/sdk/client/index.js";
 import { InMemoryTransport } from "@modelcontextprotocol/sdk/inMemory.js";
 import type { ToolContext } from "../context.js";
@@ -11,7 +11,7 @@ export const SESSION_ID = "22222222-2222-4222-8222-222222222222";
 export const SET_ID = "33333333-3333-4333-8333-333333333333";
 export const WORKOUT_ID = "44444444-4444-4444-8444-444444444444";
 
-/** The Exercises the default fake Exercise Library knows. */
+/** The Exercises the default fake Library knows. */
 export const BENCH: Exercise = {
   description: "Lie on a flat bench and press the bar.",
   instructions: "1. Unrack. 2. Lower to the chest. 3. Press.",
@@ -31,9 +31,9 @@ export const SQUAT: Exercise = {
   video_url: "https://media.test/barbell-back-squat.mp4",
 };
 
-/** A fake Exercise Library knowing BENCH and SQUAT, fresh per call. */
+/** A fake Library knowing BENCH and SQUAT, fresh per call. */
 export const fakeLibrary = (exercises: Exercise[] = [BENCH, SQUAT]) =>
-  createFakeExerciseLibrary(exercises);
+  createFakeLibrary(exercises);
 
 const notFaked = (name: keyof UserServices) => () =>
   Promise.reject(new Error(`${name} is not faked.`));
@@ -74,17 +74,17 @@ export const ignoreReports: ToolContext["reportError"] = () =>
 export const contextFor = (
   services: UserServices,
   reportError: ToolContext["reportError"] = ignoreReports,
-  library: ExerciseLibrary = fakeLibrary()
+  library: Library = fakeLibrary()
 ): ToolContext => ({
-  getExerciseLibrary: () => library,
+  getLibrary: () => library,
   getServices: () => services,
   reportError,
 });
 
 /** For tests that never reach a user tool. */
 const NO_USER: ToolContext = {
-  getExerciseLibrary: () => {
-    throw new Error("No Exercise Library in this test.");
+  getLibrary: () => {
+    throw new Error("No Library in this test.");
   },
   getServices: () => {
     throw new Error("No User in this test.");
@@ -111,7 +111,7 @@ export async function connect(context: ToolContext = NO_USER) {
 export const connectWithServices = (
   faked: Partial<UserServices>,
   reportError?: ToolContext["reportError"],
-  library?: ExerciseLibrary
+  library?: Library
 ) => connect(contextFor(fakeServices(faked), reportError, library));
 
 export interface ToolOutcome {

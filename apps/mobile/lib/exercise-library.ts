@@ -1,4 +1,4 @@
-import { createExerciseLibrary } from "@fitme/exercise-library";
+import { createLibrary } from "@fitme/library-sdk";
 import { getClerk } from "~/lib/clerk";
 
 /**
@@ -7,7 +7,7 @@ import { getClerk } from "~/lib/clerk";
  * apply. Unset `EXPO_PUBLIC_EXERCISES_URL` fails every call unavailable, so
  * Exercises show the names made from their slugs.
  */
-export const exerciseLibrary = createExerciseLibrary({
+export const exerciseLibrary = createLibrary({
   token: async () => (await getClerk().session?.getToken()) ?? null,
   url: process.env.EXPO_PUBLIC_EXERCISES_URL ?? "",
 });

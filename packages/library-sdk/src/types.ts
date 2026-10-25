@@ -1,6 +1,6 @@
 import type { MuscleGroup } from "@fitme/core/models";
 
-// The Exercise Library API's response shapes, mirroring `apps/exercises`'
+// The Library API's response shapes, mirroring `apps/exercises`'
 // zod schemas (src/schemas.ts): change both together.
 
 /** An Exercise in a list or a batch lookup. */
@@ -47,8 +47,8 @@ export interface ListExercisesParams {
   search?: string;
 }
 
-/** What Arnold, MCP and the mobile app read the Exercise Library through. */
-export interface ExerciseLibrary {
+/** What Arnold, MCP and the mobile app read the Library through. */
+export interface Library {
   /** One Exercise in full, or `null` when no Exercise has that slug. */
   get: (slug: string) => Promise<Exercise | null>;
   /** Exercises listed by name, filtered by `search` and `muscleGroup`. */

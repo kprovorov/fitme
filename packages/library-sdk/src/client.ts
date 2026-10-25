@@ -1,16 +1,16 @@
 import {
-  ExerciseLibraryError,
-  ExerciseLibraryInvalidRequestError,
-  ExerciseLibraryRateLimitedError,
-  ExerciseLibraryUnauthorizedError,
-  ExerciseLibraryUnavailableError,
+  LibraryError,
+  LibraryInvalidRequestError,
+  LibraryRateLimitedError,
+  LibraryUnauthorizedError,
+  LibraryUnavailableError,
 } from "./errors";
 import type {
   Exercise,
   ExerciseBatch,
-  ExerciseLibrary,
   ExercisePage,
   ExerciseSummary,
+  Library,
 } from "./types";
 
 /** The API's limit on `GET /exercises?slugs=`. */
@@ -22,10 +22,9 @@ export const DEFAULT_TIMEOUT_MS = 10_000;
 /** The API's rate limit window, for a 429 whose `Retry-After` can't be read. */
 const DEFAULT_RETRY_AFTER_SECONDS = 60;
 
-const TRAILING_SLASHES = /\/+$/;
 const WHOLE_SECONDS = /^\d+$/;
 
-export interface ExerciseLibraryOptions {
+export interface LibraryOptions {
   /** Defaults to the global `fetch` (Node, React Native). */
   fetch?: typeof globalThis.fetch;
   /** Defaults to `DEFAULT_TIMEOUT_MS`. */
@@ -35,9 +34,21 @@ export interface ExerciseLibraryOptions {
    * User's Clerk session token for mobile.
    */
   token: () => Promise<string | null | undefined>;
-  /** The Exercise Library API's origin, e.g. `https://exercises.fitmeproject.com`. */
+  /** The Library API's origin, e.g. `https://library.fitmeproject.com`. */
   url: string;
 }
+
+/**
+ * `url` without its trailing slashes. A loop rather than `/\/+$/`, which
+ * backtracks polynomially on a long run of slashes followed by anything else.
+ */
+const withoutTrailingSlashes = (url: string) => {
+  let end = url.length;
+  while (end > 0 && url[end - 1] === "/") {
+    end -= 1;
+  }
+  return url.slice(0, end);
+};
 
 /** A slug the API can't be asked for: it would split or fail the request. */
 const isUnaskable = (slug: string) => slug === "" || slug.includes(",");
@@ -113,17 +124,17 @@ const NOT_FOUND = 404;
 const failure = async (response: Response) => {
   switch (response.status) {
     case 400:
-      return new ExerciseLibraryInvalidRequestError(
-        (await errorMessage(response)) ?? "Invalid Exercise Library request"
+      return new LibraryInvalidRequestError(
+        (await errorMessage(response)) ?? "Invalid Library request"
       );
     case 401:
-      return new ExerciseLibraryUnauthorizedError({ status: 401 });
+      return new LibraryUnauthorizedError({ status: 401 });
     case 429:
-      return new ExerciseLibraryRateLimitedError(
+      return new LibraryRateLimitedError(
         retryAfterSeconds(response.headers.get("retry-after"))
       );
     default:
-      return new ExerciseLibraryUnavailableError({ status: response.status });
+      return new LibraryUnavailableError({ status: response.status });
   }
 };
 
@@ -132,13 +143,13 @@ const chunk = <T>(items: T[], size: number) =>
     items.slice(i * size, (i + 1) * size)
   );
 
-export const createExerciseLibrary = ({
+export const createLibrary = ({
   fetch = globalThis.fetch,
   timeoutMs = DEFAULT_TIMEOUT_MS,
   token,
   url,
-}: ExerciseLibraryOptions): ExerciseLibrary => {
-  const base = url.replace(TRAILING_SLASHES, "");
+}: LibraryOptions): Library => {
+  const base = withoutTrailingSlashes(url);
 
   // A token getter that throws (Clerk offline) is a failure to reach the
   // library; no token at all (signed out) is unauthorized, without a request.
@@ -147,10 +158,10 @@ export const createExerciseLibrary = ({
     const value = await Promise.resolve()
       .then(token)
       .catch((cause: unknown) => {
-        throw new ExerciseLibraryUnavailableError({ cause });
+        throw new LibraryUnavailableError({ cause });
       });
     if (!value) {
-      throw new ExerciseLibraryUnauthorizedError();
+      throw new LibraryUnauthorizedError();
     }
     return value;
   };
@@ -180,14 +191,14 @@ export const createExerciseLibrary = ({
       }
       body = await response.json();
     } catch (error) {
-      throw error instanceof ExerciseLibraryError
+      throw error instanceof LibraryError
         ? error
-        : new ExerciseLibraryUnavailableError({ cause: error });
+        : new LibraryUnavailableError({ cause: error });
     } finally {
       clearTimeout(timeout);
     }
     if (!isAnswer(body)) {
-      throw new ExerciseLibraryUnavailableError({ status: response.status });
+      throw new LibraryUnavailableError({ status: response.status });
     }
     return body;
   };

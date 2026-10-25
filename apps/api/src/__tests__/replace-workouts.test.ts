@@ -1,4 +1,4 @@
-import { ExerciseLibraryUnavailableError } from "@fitme/exercise-library";
+import { LibraryUnavailableError } from "@fitme/library-sdk";
 import type { PlanWorkoutInput } from "@fitme/services/plans";
 import { describe, expect, it } from "vitest";
 import { fakeServices, signedInAs, testApp } from "../test/harness.js";
@@ -208,9 +208,9 @@ describe("PUT /v1/plans/{id}/workouts", () => {
     expect(reported).toEqual([]);
   });
 
-  it("answers a reported 503 exercise_library_unavailable when the Exercise Library fails, writing nothing", async () => {
+  it("answers a reported 503 exercise_library_unavailable when the Library fails, writing nothing", async () => {
     const { app, library, reported } = testApp({ services: fakeServices({}) });
-    const outage = new ExerciseLibraryUnavailableError();
+    const outage = new LibraryUnavailableError();
     library.failWith(outage);
 
     const response = await put(app, body());
@@ -226,9 +226,9 @@ describe("PUT /v1/plans/{id}/workouts", () => {
     expect(reported).toEqual([outage]);
   });
 
-  it("answers a reported 503 exercise_library_unavailable when the Exercise Library isn't configured", async () => {
+  it("answers a reported 503 exercise_library_unavailable when the Library isn't configured", async () => {
     const { app, reported } = testApp({
-      exerciseLibrary: null,
+      library: null,
       services: fakeServices({}),
     });
 
@@ -240,7 +240,7 @@ describe("PUT /v1/plans/{id}/workouts", () => {
     );
     expect(reported).toEqual([
       new Error(
-        "Missing EXERCISES_URL or EXERCISES_API_SECRET environment variable"
+        "Missing LIBRARY_URL or LIBRARY_PUBLIC_API_SECRET environment variable"
       ),
     ]);
   });

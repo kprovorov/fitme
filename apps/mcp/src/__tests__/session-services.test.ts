@@ -1,4 +1,4 @@
-import { ExerciseLibraryUnavailableError } from "@fitme/exercise-library";
+import { LibraryUnavailableError } from "@fitme/library-sdk";
 import type {
   WorkoutSessionDetail,
   WorkoutSessionSet,
@@ -90,7 +90,7 @@ describe("get_workout_session", () => {
 
   it("still answers, with slug-derived names, when the library fails, and reports it", async () => {
     const library = fakeLibrary();
-    library.failWith(new ExerciseLibraryUnavailableError());
+    library.failWith(new LibraryUnavailableError());
     const { reportError, reported } = recordingReporter();
     const client = await connectWithServices(
       { getWorkoutSession: () => Promise.resolve(sessionDetail) },

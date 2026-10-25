@@ -1,6 +1,6 @@
 import { randomBytes } from "node:crypto";
 import { plans, profiles, withService } from "@fitme/db";
-import { createFakeExerciseLibrary } from "@fitme/exercise-library/fake";
+import { createFakeLibrary } from "@fitme/library-sdk/fake";
 import { deleteUserData } from "@fitme/services/delete-user-data";
 import { eq } from "drizzle-orm";
 import { afterAll, beforeAll, describe, expect, it } from "vitest";
@@ -15,13 +15,13 @@ import { clerk, libraryExercise, signedInAs } from "../src/test/harness.js";
  * Session listed as finished, then delete it; and none of it reaching another
  * User's Workouts, Workout Sessions or sets.
  */
-const library = createFakeExerciseLibrary(
+const library = createFakeLibrary(
   ["barbell-back-squat", "barbell-deadlift"].map(libraryExercise)
 );
 const reported: unknown[] = [];
 const app = createApp({
   clerkJwtKey: clerk.jwtKey,
-  createExerciseLibrary: () => library,
+  createLibrary: () => library,
   createServices: createServicesFromEnv,
   identifyUser: () => undefined,
   reportError: (error) => {

@@ -1,5 +1,5 @@
 import type { MuscleGroup, WorkoutSession } from "@fitme/core";
-import type { ExerciseSummary } from "@fitme/exercise-library";
+import type { ExerciseSummary } from "@fitme/library-sdk";
 import { useQueryClient } from "@tanstack/react-query";
 import { useCallback, useState } from "react";
 import { Modal, ScrollView } from "react-native";

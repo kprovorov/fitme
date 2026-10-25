@@ -1,9 +1,9 @@
 import type {
   Exercise,
-  ExerciseLibrary,
+  Library,
   ListExercisesParams,
-} from "@fitme/exercise-library";
-import { ExerciseLibraryUnavailableError } from "@fitme/exercise-library";
+} from "@fitme/library-sdk";
+import { LibraryUnavailableError } from "@fitme/library-sdk";
 import { DrizzleQueryError } from "drizzle-orm";
 import { describe, expect, it, vi } from "vitest";
 import { ToolError } from "../tools/helpers.js";
@@ -20,7 +20,7 @@ import {
   SQUAT,
 } from "./harness.js";
 
-const UNAVAILABLE = "Exercise Library unavailable, try again.";
+const UNAVAILABLE = "Library unavailable, try again.";
 
 const summary = ({ description: _, instructions: __, ...rest }: Exercise) =>
   rest;
@@ -37,7 +37,7 @@ const drill = (n: number): Exercise => ({
 const spiedLibrary = (exercises: Exercise[]) => {
   const library = fakeLibrary(exercises);
   const lists: ListExercisesParams[] = [];
-  const spied: ExerciseLibrary = {
+  const spied: Library = {
     ...library,
     list: (params = {}) => {
       lists.push(params);
@@ -49,7 +49,7 @@ const spiedLibrary = (exercises: Exercise[]) => {
 
 const downLibrary = () => {
   const library = fakeLibrary();
-  library.failWith(new ExerciseLibraryUnavailableError({ status: 503 }));
+  library.failWith(new LibraryUnavailableError({ status: 503 }));
   return library;
 };
 
@@ -198,22 +198,22 @@ describe("list_exercises", () => {
 
     expect(result.isError).toBe(true);
     expect(result.text).toBe(UNAVAILABLE);
-    expect(reported).toEqual([expect.any(ExerciseLibraryUnavailableError)]);
+    expect(reported).toEqual([expect.any(LibraryUnavailableError)]);
   });
 
   it("says so, unreported, when the library isn't configured", async () => {
     const { reportError, reported } = recordingReporter();
     const client = await connect({
       ...contextFor(fakeServices({}), reportError),
-      getExerciseLibrary: () => {
-        throw new ToolError("Not configured for the Exercise Library.");
+      getLibrary: () => {
+        throw new ToolError("Not configured for the Library.");
       },
     });
 
     const result = await call(client, "list_exercises");
 
     expect(result.isError).toBe(true);
-    expect(result.text).toBe("Not configured for the Exercise Library.");
+    expect(result.text).toBe("Not configured for the Library.");
     expect(reported).toEqual([]);
   });
 });

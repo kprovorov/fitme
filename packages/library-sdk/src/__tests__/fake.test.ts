@@ -1,12 +1,12 @@
 import { describe, expect, it } from "vitest";
 import {
-  createExerciseLibrary,
-  ExerciseLibraryRateLimitedError,
-  ExerciseLibraryUnauthorizedError,
-  ExerciseLibraryUnavailableError,
+  createLibrary,
+  LibraryRateLimitedError,
+  LibraryUnauthorizedError,
+  LibraryUnavailableError,
   type ListExercisesParams,
 } from "..";
-import { createFakeExerciseLibrary } from "../fake";
+import { createFakeLibrary } from "../fake";
 import { exercise, stubApi } from "./stub-api";
 
 const exercises = [
@@ -30,12 +30,12 @@ const exercises = [
   ),
 ];
 
-const real = createExerciseLibrary({
+const real = createLibrary({
   fetch: stubApi(exercises).fetch,
   token: () => Promise.resolve("secret"),
   url: "https://exercises.test",
 });
-const fake = createFakeExerciseLibrary(exercises);
+const fake = createFakeLibrary(exercises);
 
 describe("the fake answers like the real client", () => {
   it.each<[string, ListExercisesParams | undefined]>([
@@ -88,11 +88,11 @@ describe("the fake answers like the real client", () => {
 
 describe("failing", () => {
   it.each([
-    new ExerciseLibraryUnauthorizedError(),
-    new ExerciseLibraryRateLimitedError(30),
-    new ExerciseLibraryUnavailableError(),
+    new LibraryUnauthorizedError(),
+    new LibraryRateLimitedError(30),
+    new LibraryUnavailableError(),
   ])("fails every call with $name until told to stop", async (error) => {
-    const library = createFakeExerciseLibrary(exercises);
+    const library = createFakeLibrary(exercises);
 
     library.failWith(error);
 
@@ -108,7 +108,7 @@ describe("failing", () => {
   it("answers get with empty texts for an Exercise given as a summary", async () => {
     const { description: _, instructions: __, ...squat } = exercise("squat");
 
-    expect(await createFakeExerciseLibrary([squat]).get("squat")).toEqual({
+    expect(await createFakeLibrary([squat]).get("squat")).toEqual({
       ...squat,
       description: "",
       instructions: "",

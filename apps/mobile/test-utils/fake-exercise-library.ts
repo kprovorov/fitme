@@ -1,9 +1,6 @@
 import type { MuscleGroup } from "@fitme/core";
-import type { Exercise, ExerciseLibrary } from "@fitme/exercise-library";
-import {
-  createFakeExerciseLibrary,
-  type FakeExerciseLibrary,
-} from "@fitme/exercise-library/fake";
+import type { Exercise, Library } from "@fitme/library-sdk";
+import { createFakeLibrary, type FakeLibrary } from "@fitme/library-sdk/fake";
 
 /** A made-up Exercise of the Exercise Library, named in title case. */
 export const libraryExercise = (
@@ -33,8 +30,8 @@ export const libraryExercise = (
  *     ).exerciseLibraryModule
  *   );
  */
-export const library: { current: ExerciseLibrary } = {
-  current: createFakeExerciseLibrary([]),
+export const library: { current: Library } = {
+  current: createFakeLibrary([]),
 };
 
 export const exerciseLibraryModule = {
@@ -44,10 +41,8 @@ export const exerciseLibraryModule = {
 };
 
 /** Makes a fake over these Exercises the one the app reads. */
-export const serveLibrary = (
-  exercises: readonly Exercise[]
-): FakeExerciseLibrary => {
-  const fake = createFakeExerciseLibrary(exercises);
+export const serveLibrary = (exercises: readonly Exercise[]): FakeLibrary => {
+  const fake = createFakeLibrary(exercises);
   library.current = fake;
   return fake;
 };

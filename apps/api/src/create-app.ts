@@ -1,4 +1,4 @@
-import type { ExerciseLibrary } from "@fitme/exercise-library";
+import type { Library } from "@fitme/library-sdk";
 import {
   identifyUser,
   observeHono,
@@ -9,10 +9,7 @@ import { cors } from "hono/cors";
 import { HTTPException } from "hono/http-exception";
 import { logger } from "hono/logger";
 import { type ApiEnv, BEARER_AUTH, requireCaller } from "./auth.js";
-import {
-  createExerciseLibraryFromEnv,
-  type ExerciseLibraryFactory,
-} from "./exercise-library.js";
+import { createLibraryFromEnv, type LibraryFactory } from "./library.js";
 import {
   type RateLimiter,
   rateLimitCallers,
@@ -25,8 +22,8 @@ import { createServicesFromEnv, type ServicesFactory } from "./services.js";
 export interface AppDeps {
   /** The Clerk instance's PEM public key session tokens are verified against. */
   clerkJwtKey: string | undefined;
-  /** Builds the Exercise Library client; `null` when it isn't configured. */
-  createExerciseLibrary: ExerciseLibraryFactory;
+  /** Builds the Library client; `null` when it isn't configured. */
+  createLibrary: LibraryFactory;
   /** Builds a verified User's services; `null` when the database isn't configured. */
   createServices: ServicesFactory;
   /** Sets the request's User (their Clerk id only) on what error reporting sends. */
@@ -44,7 +41,7 @@ export interface AppDeps {
  */
 const defaultDeps = (): Omit<AppDeps, "rateLimiter"> => ({
   clerkJwtKey: process.env.CLERK_JWT_KEY,
-  createExerciseLibrary: createExerciseLibraryFromEnv,
+  createLibrary: createLibraryFromEnv,
   createServices: createServicesFromEnv,
   identifyUser,
   reportError,
@@ -67,7 +64,7 @@ const health = createRoute({
 export const createApp = (deps: Partial<AppDeps> = {}) => {
   const {
     clerkJwtKey,
-    createExerciseLibrary,
+    createLibrary,
     createServices,
     identifyUser: identify,
     reportError: report,
@@ -94,14 +91,14 @@ export const createApp = (deps: Partial<AppDeps> = {}) => {
   // Every route from here on (unknown ones too) needs a verified caller.
   app.use(requireCaller({ clerkJwtKey, createServices }));
   // Built on first use, then shared by every request.
-  let library: ExerciseLibrary | null | undefined;
+  let library: Library | null | undefined;
   // Error reporting knows the User by their Clerk id only. Routes get the
-  // Exercise Library and the reporter for the answers they give themselves.
+  // Library and the reporter for the answers they give themselves.
   app.use(async (c, next) => {
     identify(c.var.caller.userId);
-    c.set("getExerciseLibrary", () => {
+    c.set("getLibrary", () => {
       if (library === undefined) {
-        library = createExerciseLibrary();
+        library = createLibrary();
       }
       return library;
     });

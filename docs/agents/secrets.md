@@ -24,7 +24,7 @@ One folder per app, the same in both environments. A value two apps share sits a
 
 `prod` root holds the shared values: the Clerk production keys (`CLERK_SECRET_KEY`, `CLERK_PUBLISHABLE_KEY`, `CLERK_JWT_KEY`) and the development instance's `CLERK_JWT_KEY_DEVELOPMENT`, `FITME_DATABASE_URL_BASE` (the `fitme` login's pooler URL without `application_name`), `EXERCISES_URL`, the server secrets the Library API accepts (`LIBRARY_ARNOLD_SECRET`, `LIBRARY_MCP_SECRET`), `ARNOLD_RESET_SECRET` and `EXERCISES_API_SECRET`.
 
-Until the Library rename lands in code, the app folders carry both names: the `LIBRARY_*` secrets at the root, and `EXERCISES_ARNOLD_SECRET` / `EXERCISES_MCP_SECRET` (what the code reads today) as references to them.
+The Public API, Arnold and MCP read `LIBRARY_URL` and their `LIBRARY_*` secret (`LIBRARY_PUBLIC_API_SECRET`, `LIBRARY_ARNOLD_SECRET`, `LIBRARY_MCP_SECRET`) and nothing else; the Library API itself still reads its `EXERCISES_*` secrets until its own rename. Until the old names are removed, the app folders carry both: the `LIBRARY_*` secrets at the root, and the `EXERCISES_*` names as references to them.
 
 ## Vercel syncs
 

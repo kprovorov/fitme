@@ -1,4 +1,4 @@
-import { ExerciseLibraryUnavailableError } from "@fitme/exercise-library";
+import { LibraryUnavailableError } from "@fitme/library-sdk";
 import { describe, expect, it, vi } from "vitest";
 import {
   BENCH,
@@ -14,12 +14,12 @@ import {
 /** An Exercise uuid, as tools took Exercises before slugs. */
 const BENCH_ID = "55555555-5555-4555-8555-555555555555";
 
-const UNAVAILABLE = "Exercise Library unavailable, try again.";
+const UNAVAILABLE = "Library unavailable, try again.";
 
 /** A fake library that fails every call, as when the API is down. */
 const downLibrary = () => {
   const library = fakeLibrary();
-  library.failWith(new ExerciseLibraryUnavailableError({ status: 503 }));
+  library.failWith(new LibraryUnavailableError({ status: 503 }));
   return library;
 };
 
@@ -208,7 +208,7 @@ describe("get_plan", () => {
         name: "Bench press",
       })
     );
-    expect(reported).toEqual([expect.any(ExerciseLibraryUnavailableError)]);
+    expect(reported).toEqual([expect.any(LibraryUnavailableError)]);
   });
 
   it("does not return soft-deleted or foreign plans", async () => {
@@ -298,7 +298,7 @@ describe("create_plan", () => {
     expect(result.isError).toBe(true);
     expect(result.text).toBe(UNAVAILABLE);
     expect(createPlan).not.toHaveBeenCalled();
-    expect(reported).toEqual([expect.any(ExerciseLibraryUnavailableError)]);
+    expect(reported).toEqual([expect.any(LibraryUnavailableError)]);
   });
 
   it("rejects an exercise_id instead of an exercise_slug", async () => {

@@ -1,13 +1,13 @@
 import type { MuscleGroup } from "@fitme/core";
 import {
   type Exercise,
-  ExerciseLibraryInvalidRequestError,
-  ExerciseLibraryRateLimitedError,
-  ExerciseLibraryUnauthorizedError,
   type ExercisePage,
   type ExerciseSummary,
   exerciseNameFromSlug,
-} from "@fitme/exercise-library";
+  LibraryInvalidRequestError,
+  LibraryRateLimitedError,
+  LibraryUnauthorizedError,
+} from "@fitme/library-sdk";
 import {
   keepPreviousData,
   queryOptions,
@@ -117,9 +117,9 @@ const lookupExercise = (slug: string) =>
 const retryOnce = (failureCount: number, error: unknown) =>
   failureCount < 1 &&
   !(
-    error instanceof ExerciseLibraryRateLimitedError ||
-    error instanceof ExerciseLibraryUnauthorizedError ||
-    error instanceof ExerciseLibraryInvalidRequestError
+    error instanceof LibraryRateLimitedError ||
+    error instanceof LibraryUnauthorizedError ||
+    error instanceof LibraryInvalidRequestError
   );
 
 const summaryKey = (slug: string) => ["exercise-summary", slug];
@@ -287,7 +287,7 @@ export const useExerciseSearch = ({
           ...(sent.muscleGroup ? { muscleGroup: sent.muscleGroup } : {}),
         });
       } catch (error) {
-        if (error instanceof ExerciseLibraryRateLimitedError) {
+        if (error instanceof LibraryRateLimitedError) {
           queryClient.setQueryData<number>(
             rateLimitKey,
             Date.now() + error.retryAfterSeconds * 1000
@@ -316,7 +316,7 @@ export const useExerciseSearch = ({
     }
   }, [pages]);
 
-  const isRateLimited = query.error instanceof ExerciseLibraryRateLimitedError;
+  const isRateLimited = query.error instanceof LibraryRateLimitedError;
   // Rate limited, the last results stay; with none to show it's an error.
   const shownPages =
     query.data?.pages ?? (isRateLimited ? lastPages : undefined);
