@@ -10,6 +10,7 @@ import { asc, eq } from "drizzle-orm";
 import { afterAll, beforeAll, describe, expect, it } from "vitest";
 import {
   addExerciseToWorkoutSession,
+  addSetToWorkoutSessionExercise,
   removeExerciseFromWorkoutSession,
   replaceExerciseInWorkoutSession,
 } from "../src/workout-sessions";
@@ -415,5 +416,119 @@ describe("replaceExerciseInWorkoutSession", () => {
       { exerciseSlug: benchSlug, order: 1 },
       { exerciseSlug: squatSlug, order: 3 },
     ]);
+  });
+});
+
+describe("addSetToWorkoutSessionExercise", () => {
+  const logged = { repsCompleted: 7, weightCompleted: 72.5 };
+
+  it("appends a logged set with the server's time and no targets", async () => {
+    const sessionId = await insertSession(owner);
+    const [benchId] = await insertExercises(sessionId);
+    await insertSets(benchId as string);
+
+    const result = await asUser(owner, (tx) =>
+      addSetToWorkoutSessionExercise(tx, owner, {
+        ...logged,
+        sessionExerciseId: benchId as string,
+      })
+    );
+
+    expect(result).toEqual({
+      set: {
+        id: expect.any(String),
+        logged_at: expect.stringMatching(POSTGREST_TIMESTAMP),
+        order: 3,
+        reps_completed: 7,
+        reps_recommended: null,
+        rest_recommended: null,
+        weight_completed: 72.5,
+        weight_recommended: null,
+      },
+      status: "added",
+    });
+    expect((await setsOf(benchId as string)).at(-1)).toEqual({
+      order: 3,
+      repsCompleted: 7,
+      repsRecommended: null,
+      restRecommended: null,
+      weightCompleted: "72.50",
+      weightRecommended: null,
+    });
+  });
+
+  it("starts at 1 for a Workout Session Exercise without sets", async () => {
+    const sessionId = await insertSession(owner);
+    const [benchId] = await insertExercises(sessionId);
+
+    const result = await asUser(owner, (tx) =>
+      addSetToWorkoutSessionExercise(tx, owner, {
+        ...logged,
+        sessionExerciseId: benchId as string,
+      })
+    );
+
+    expect(result).toMatchObject({ set: { order: 1 }, status: "added" });
+  });
+
+  it("writes nothing to a finished Workout Session", async () => {
+    const sessionId = await insertSession(owner, { finished: true });
+    const [benchId] = await insertExercises(sessionId);
+    await insertSets(benchId as string);
+
+    const result = await asUser(owner, (tx) =>
+      addSetToWorkoutSessionExercise(tx, owner, {
+        ...logged,
+        sessionExerciseId: benchId as string,
+      })
+    );
+
+    expect(result).toEqual({
+      finishedAt: expect.stringMatching(POSTGREST_TIMESTAMP),
+      sessionId,
+      status: "session_finished",
+    });
+    expect(await setsOf(benchId as string)).toHaveLength(2);
+  });
+
+  it("finds no Exercise of another User's, or an unknown id, and writes nothing", async () => {
+    const sessionId = await insertSession(intruder);
+    const [benchId] = await insertExercises(sessionId);
+
+    const results = await Promise.all(
+      [benchId as string, randomUUID()].map((sessionExerciseId) =>
+        asUser(owner, (tx) =>
+          addSetToWorkoutSessionExercise(tx, owner, {
+            ...logged,
+            sessionExerciseId,
+          })
+        )
+      )
+    );
+
+    expect(results).toEqual([{ status: "not_found" }, { status: "not_found" }]);
+    expect(await setsOf(benchId as string)).toEqual([]);
+  });
+
+  it("gives concurrent adds to one Workout Session Exercise distinct, consecutive orders", async () => {
+    const sessionId = await insertSession(owner);
+    const [benchId] = await insertExercises(sessionId);
+    await insertSets(benchId as string);
+
+    const results = await Promise.all(
+      Array.from({ length: 5 }, () =>
+        asUser(owner, (tx) =>
+          addSetToWorkoutSessionExercise(tx, owner, {
+            ...logged,
+            sessionExerciseId: benchId as string,
+          })
+        )
+      )
+    );
+
+    const orders = results.map((result) =>
+      result.status === "added" ? result.set.order : null
+    );
+    expect(orders.sort((a, b) => (a ?? 0) - (b ?? 0))).toEqual([3, 4, 5, 6, 7]);
   });
 });

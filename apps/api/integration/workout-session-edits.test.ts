@@ -340,3 +340,89 @@ describe("PUT /v1/workout-session-exercises/:id", () => {
     expect((await exercisesOf(sessionId))[0]).toEqual(squat);
   });
 });
+
+describe("POST /v1/workout-session-exercises/:id/sets", () => {
+  const addSet = (userId: string, sessionExerciseId: string, body?: unknown) =>
+    request(
+      userId,
+      "POST",
+      `/v1/workout-session-exercises/${sessionExerciseId}/sets`,
+      body ?? { reps_completed: 6, weight_completed: 102.5 }
+    );
+
+  it("appends a logged set with the server's time and no targets", async () => {
+    const sessionId = await startSession(owner);
+    const [squat] = await exercisesOf(sessionId);
+    const before = Date.now();
+
+    const added = await addSet(owner, squat?.id as string);
+
+    expect(added.status).toBe(201);
+    expect(added.body).toEqual({
+      data: {
+        id: expect.any(String),
+        logged_at: expect.any(String),
+        order: 2,
+        reps_completed: 6,
+        reps_recommended: null,
+        rest_recommended: null,
+        weight_completed: 102.5,
+        weight_recommended: null,
+        weight_unit: "kg",
+      },
+    });
+    expect(Date.parse(added.body.data.logged_at)).toBeGreaterThan(
+      before - 60_000
+    );
+    const { weight_unit: _unit, ...shown } = added.body.data;
+    expect((await exercisesOf(sessionId))[0]?.sets.at(-1)).toEqual(shown);
+  });
+
+  it("gives concurrent adds distinct, consecutive orders", async () => {
+    const sessionId = await startSession(owner);
+    const [squat] = await exercisesOf(sessionId);
+
+    const added = await Promise.all(
+      Array.from({ length: 4 }, () => addSet(owner, squat?.id as string))
+    );
+
+    expect(added.map(({ status }) => status)).toEqual([201, 201, 201, 201]);
+    expect(
+      (await exercisesOf(sessionId))[0]?.sets.map(({ order }) => order)
+    ).toEqual([1, 2, 3, 4, 5]);
+  });
+
+  it("refuses a finished Workout Session with 409, writing nothing", async () => {
+    const sessionId = await startSession(owner);
+    const [squat] = await exercisesOf(sessionId);
+    await request(owner, "POST", `/v1/workout-sessions/${sessionId}/finish`);
+
+    const refused = await addSet(owner, squat?.id as string);
+
+    expect(refused.status).toBe(409);
+    expect(refused.body.error.code).toBe("session_finished");
+    expect((await exercisesOf(sessionId))[0]?.sets).toHaveLength(1);
+  });
+
+  it("answers 404 for another User's and 400 for an out-of-bounds or unknown field, writing nothing", async () => {
+    const sessionId = await startSession(owner);
+    const [squat] = await exercisesOf(sessionId);
+    const id = squat?.id as string;
+
+    const intruding = await addSet(intruder, id);
+    const outOfBounds = await addSet(owner, id, {
+      reps_completed: 6,
+      weight_completed: 102.555,
+    });
+    const unknownField = await addSet(owner, id, {
+      reps_completed: 6,
+      reps_recommended: 6,
+      weight_completed: 100,
+    });
+
+    expect(intruding.status).toBe(404);
+    expect(outOfBounds.status).toBe(400);
+    expect(unknownField.status).toBe(400);
+    expect((await exercisesOf(sessionId))[0]?.sets).toHaveLength(1);
+  });
+});

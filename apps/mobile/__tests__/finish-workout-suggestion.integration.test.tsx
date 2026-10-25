@@ -364,6 +364,7 @@ const ENTRY_ROUTES: EntryRoute[] = [
 
 const START = "POST /v1/workout-sessions";
 const LOG_SET = "PATCH /v1/workout-session-sets/{id}";
+const ADD_SET = "POST /v1/workout-session-exercises/{id}/sets";
 const FINISH = "POST /v1/workout-sessions/{id}/finish";
 
 /** What a set row shows when its save fails. */
@@ -437,8 +438,7 @@ describe.each(ENTRY_ROUTES)(
         );
       }
       const sent = () =>
-        fakePublicApi.count(LOG_SET) +
-        backend.count("workout_session_exercise_sets", "insert");
+        fakePublicApi.count(LOG_SET) + fakePublicApi.count(ADD_SET);
       const before = sent();
       await fireEvent.press(focused().getByTestId(`log-set-button-${order}`));
       await settle();
@@ -610,7 +610,7 @@ describe.each(ENTRY_ROUTES)(
       await openExercise("Squat");
       await fireEvent.press(focused().getByText("Add Set"));
 
-      backend.failNext("workout_session_exercise_sets", "insert");
+      fakePublicApi.failNext(ADD_SET, { status: 500 });
       await trackSet(2, "6");
 
       expect(focused().getByText(SET_SAVE_ERROR)).toBeTruthy();
@@ -627,6 +627,83 @@ describe.each(ENTRY_ROUTES)(
       expect(squatSets().map(({ reps_completed }) => reps_completed)).toEqual([
         10, 6,
       ]);
+    });
+
+    it("adds a set through the Public API, logged by the server after the last one", async () => {
+      await startApp({
+        exercises: [{ name: "Squat", sets: [10] }],
+        id: "s1",
+      });
+      await openExercise("Squat");
+      await fireEvent.press(focused().getByText("Add Set"));
+
+      await fireEvent.changeText(
+        focused().getByTestId("set-weight-input-2"),
+        "42.5"
+      );
+      await trackSet(2, "6");
+
+      expect(
+        fakePublicApi.requests.find(({ route }) => route === ADD_SET)
+      ).toMatchObject({
+        body: { reps_completed: 6, weight_completed: 42.5 },
+        path: "/v1/workout-session-exercises/s1-e1/sets",
+      });
+      expect(backend.count("workout_session_exercise_sets", "insert")).toBe(0);
+      expect(
+        backend.sets.filter(
+          (set) => set.workout_session_exercise_id === "s1-e1"
+        )[1]
+      ).toMatchObject({
+        logged_at: expect.any(String),
+        order: 2,
+        reps_completed: 6,
+        reps_recommended: null,
+        weight_completed: 42.5,
+        weight_recommended: null,
+      });
+      expect(focused().getByTestId("edit-set-button-2")).toBeTruthy();
+      expect(focused().queryByText(SET_SAVE_ERROR)).toBeNull();
+    });
+
+    it("shows the row's error when the Workout Session was finished meanwhile, adding nothing", async () => {
+      await startApp({
+        exercises: [{ name: "Squat", sets: [10] }],
+        id: "s1",
+      });
+      await openExercise("Squat");
+      await fireEvent.press(focused().getByText("Add Set"));
+      const session = backend.session("s1");
+      if (session) {
+        session.finished_at = "2026-10-08T11:00:00.000Z";
+      }
+
+      await trackSet(2, "6");
+
+      expect(focused().getByText(SET_SAVE_ERROR)).toBeTruthy();
+      expect(focused().getByTestId("log-set-button-2")).toBeTruthy();
+      expect(
+        backend.sets.filter(
+          (set) => set.workout_session_exercise_id === "s1-e1"
+        )
+      ).toHaveLength(1);
+    });
+
+    it("says how long to wait when adding a set is rate limited", async () => {
+      await startApp({
+        exercises: [{ name: "Squat", sets: [10] }],
+        id: "s1",
+      });
+      await openExercise("Squat");
+      await fireEvent.press(focused().getByText("Add Set"));
+
+      fakePublicApi.failNext(ADD_SET, { retryAfterSeconds: 7, status: 429 });
+      await trackSet(2, "6");
+
+      expect(
+        focused().getByText("Too many requests. Try again in 7 s.")
+      ).toBeTruthy();
+      expect(focused().getByTestId("log-set-button-2")).toBeTruthy();
     });
 
     it("never suggests when the completion check cannot read the session", async () => {
@@ -749,7 +826,7 @@ describe.each(ENTRY_ROUTES)(
       await fireEvent.press(focused().getByText("Add Set"));
       await trackSet(3, "0");
 
-      expect(backend.count("workout_session_exercise_sets", "insert")).toBe(2);
+      expect(fakePublicApi.count(ADD_SET)).toBe(2);
       expect(isSuggestionShown()).toBe(false);
       expect(mockPresentations.count).toBe(1);
     });
@@ -1424,6 +1501,33 @@ describe("the Plan Update after finishing from Home", () => {
       replace_exercise: 0,
       ...eventProperties,
     });
+  });
+
+  it("asks to save a set added on the exercise screen, logged, after the finish", async () => {
+    await startApp({ changed: false });
+    await act(() =>
+      mockNavigator.push(
+        `/plans/plan-1/workouts/w1/sessions/${SESSION}/exercises/played-squat`
+      )
+    );
+    await settle();
+    await fireEvent.press(focused().getByText("Add Set"));
+    await fireEvent.changeText(
+      focused().getByTestId("set-weight-input-3"),
+      "100"
+    );
+    await fireEvent.changeText(focused().getByTestId("set-reps-input-3"), "5");
+    await fireEvent.press(focused().getByTestId("log-set-button-3"));
+    await settle();
+    expect(
+      fakePublicApi.count("POST /v1/workout-session-exercises/{id}/sets")
+    ).toBe(1);
+    await act(() => mockNavigator.dismiss());
+    await settle();
+
+    await finishFromHome();
+
+    expect(screen.getByText(ADDED_SET_LINE)).toBeTruthy();
   });
 
   it("shows the weights in the User's unit", async () => {

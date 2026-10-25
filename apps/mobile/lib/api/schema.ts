@@ -1404,6 +1404,111 @@ export interface paths {
     patch?: never;
     trace?: never;
   };
+  "/v1/workout-session-exercises/{id}/sets": {
+    parameters: {
+      query?: never;
+      header?: never;
+      path?: never;
+      cookie?: never;
+    };
+    get?: never;
+    put?: never;
+    /**
+     * Add a set to a Workout Session Exercise
+     * @description Adds a set after the last one of a Workout Session Exercise of an open Workout Session, logged with the reps and weight done and when (`logged_at`, now). The set has no targets (`reps_recommended`, `weight_recommended` and `rest_recommended` are `null`). A finished Workout Session can't change. Not idempotent: a retry adds another set.
+     */
+    post: {
+      parameters: {
+        query?: never;
+        header?: never;
+        path: {
+          id: string;
+        };
+        cookie?: never;
+      };
+      requestBody: {
+        content: {
+          "application/json": components["schemas"]["LogWorkoutSessionSet"];
+        };
+      };
+      responses: {
+        /** @description The added set */
+        201: {
+          headers: {
+            [name: string]: unknown;
+          };
+          content: {
+            "application/json": {
+              data: components["schemas"]["WorkoutSessionSet"] & {
+                weight_unit: components["schemas"]["WeightUnit"];
+              };
+            };
+          };
+        };
+        /** @description `invalid_request`: the input fails its schema */
+        400: {
+          headers: {
+            [name: string]: unknown;
+          };
+          content: {
+            "application/json": components["schemas"]["Error"];
+          };
+        };
+        /** @description No valid Clerk session token */
+        401: {
+          headers: {
+            [name: string]: unknown;
+          };
+          content: {
+            "application/json": components["schemas"]["Error"];
+          };
+        };
+        /** @description `not_found`: the User has no Workout Session Exercise with this id */
+        404: {
+          headers: {
+            [name: string]: unknown;
+          };
+          content: {
+            "application/json": components["schemas"]["Error"];
+          };
+        };
+        /** @description `session_finished`: the Workout Session is finished; nothing was written */
+        409: {
+          headers: {
+            [name: string]: unknown;
+          };
+          content: {
+            "application/json": components["schemas"]["Error"];
+          };
+        };
+        /** @description The body isn't `application/json` */
+        415: {
+          headers: {
+            [name: string]: unknown;
+          };
+          content: {
+            "application/json": components["schemas"]["Error"];
+          };
+        };
+        /** @description Too many requests from this User; retry after `Retry-After` */
+        429: {
+          headers: {
+            /** @description Seconds until the limit resets */
+            "Retry-After": string;
+            [name: string]: unknown;
+          };
+          content: {
+            "application/json": components["schemas"]["Error"];
+          };
+        };
+      };
+    };
+    delete?: never;
+    options?: never;
+    head?: never;
+    patch?: never;
+    trace?: never;
+  };
   "/v1/workout-session-sets/{id}": {
     parameters: {
       query?: never;

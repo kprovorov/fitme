@@ -44,7 +44,10 @@ import {
 import {
   type AddExerciseToWorkoutSessionInput,
   type AddExerciseToWorkoutSessionResult,
+  type AddSetToWorkoutSessionExerciseInput,
+  type AddSetToWorkoutSessionExerciseResult,
   addExerciseToWorkoutSession,
+  addSetToWorkoutSessionExercise,
   deleteWorkoutSession,
   type FinishWorkoutSessionResult,
   finishWorkoutSession,
@@ -114,6 +117,14 @@ export interface UserServices {
   addExerciseToWorkoutSession: (
     input: AddExerciseToWorkoutSessionInput
   ) => Promise<Weighed<AddExerciseToWorkoutSessionResult>>;
+  /**
+   * Appends a logged set to a Workout Session Exercise of the User's open
+   * Workout Session, its weight in the User's unit; a finished one is left as
+   * it was.
+   */
+  addSetToWorkoutSessionExercise: (
+    input: AddSetToWorkoutSessionExerciseInput
+  ) => Promise<Weighed<AddSetToWorkoutSessionExerciseResult>>;
   /**
    * Applies the Plan Update of one of the User's Workout Sessions in one
    * transaction and answers what it applied; once applied, no changes. `null`
@@ -270,6 +281,8 @@ export const createServicesFromEnv: ServicesFactory = (userId) => {
       ),
     addExerciseToWorkoutSession: (input) =>
       inUnits((tx) => addExerciseToWorkoutSession(tx, userId, input), write),
+    addSetToWorkoutSessionExercise: (input) =>
+      inUnits((tx) => addSetToWorkoutSessionExercise(tx, userId, input), write),
     // The service takes its own table locks and reads the unit itself.
     applyPlanUpdate: (sessionId) =>
       asUser(userId, (tx) => applyPlanUpdate(tx, userId, sessionId)),

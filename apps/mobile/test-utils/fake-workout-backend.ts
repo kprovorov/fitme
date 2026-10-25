@@ -350,7 +350,6 @@ const requireRow = <T>(row: T | undefined, what: string): T => {
 /** A chainable query, run when awaited or on `single()`. */
 class FakeQuery {
   private operation: Operation = "select";
-  private values: Record<string, unknown> = {};
   private readonly filters: Filters = {};
   private readonly table: string;
 
@@ -362,21 +361,18 @@ class FakeQuery {
     return this;
   }
 
-  insert(values: Record<string, unknown>) {
+  insert(_values: Record<string, unknown>) {
     this.operation = "insert";
-    this.values = values;
     return this;
   }
 
-  upsert(values: Record<string, unknown>) {
+  upsert(_values: Record<string, unknown>) {
     this.operation = "upsert";
-    this.values = values;
     return this;
   }
 
-  update(values: Record<string, unknown>) {
+  update(_values: Record<string, unknown>) {
     this.operation = "update";
-    this.values = values;
     return this;
   }
 
@@ -485,30 +481,9 @@ class FakeQuery {
         throw new Error(
           "Fake backend: an Exercise is replaced or removed through the API"
         );
-      case "workout_session_exercise_sets.select":
-        return backend.sets
-          .filter(
-            (set) =>
-              set.workout_session_exercise_id ===
-              this.filters.workout_session_exercise_id
-          )
-          .sort((a, b) => b.order - a.order);
-      case "workout_session_exercise_sets.insert": {
-        const row: SetRow = {
-          id: backend.id("added-set"),
-          logged_at: null,
-          order: 0,
-          reps_completed: null,
-          reps_recommended: null,
-          rest_recommended: null,
-          weight_completed: null,
-          weight_recommended: null,
-          workout_session_exercise_id: "",
-          ...(this.values as Partial<SetRow>),
-        };
-        backend.sets.push(row);
-        return row;
-      }
+      case "workout_session_exercise_sets.insert":
+        // Adding a set goes through the Public API.
+        throw new Error("Fake backend: a set is added through the API");
       case "workout_session_exercise_sets.update":
         // Logging a set and zeroing its targets (replacing its Exercise) go
         // through the Public API.

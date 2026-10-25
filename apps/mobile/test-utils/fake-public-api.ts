@@ -979,6 +979,53 @@ const replaceSessionExercise = async (
   });
 };
 
+/**
+ * `addSetToWorkoutSessionExercise`: appends a set logged with the server's
+ * time and no targets, after the Workout Session Exercise's last one.
+ */
+const addSessionSet = (body: unknown, exerciseId: string): Response => {
+  if (!isObject(body)) {
+    return error(400, "invalid_request", "Invalid set");
+  }
+  const { reps_completed, weight_completed } = body;
+  if (
+    typeof reps_completed !== "number" ||
+    !Number.isInteger(reps_completed) ||
+    typeof weight_completed !== "number" ||
+    unknownFields(body, ["reps_completed", "weight_completed"]).length > 0
+  ) {
+    return error(400, "invalid_request", "Invalid set");
+  }
+  const exercise = backend.exercises.find(({ id }) => id === exerciseId);
+  const session = exercise && backend.session(exercise.workout_session_id);
+  if (!session) {
+    return notFound("Workout Session Exercise");
+  }
+  const notOpen = refuseFinished(session);
+  if (notOpen) {
+    return notOpen;
+  }
+  const last = Math.max(
+    0,
+    ...backend.sets
+      .filter((set) => set.workout_session_exercise_id === exerciseId)
+      .map(({ order }) => order)
+  );
+  const added: SetRow = {
+    id: backend.id("added-set"),
+    logged_at: LOGGED_AT,
+    order: last + 1,
+    reps_completed,
+    reps_recommended: null,
+    rest_recommended: null,
+    weight_completed,
+    weight_recommended: null,
+    workout_session_exercise_id: exerciseId,
+  };
+  backend.sets.push(added);
+  return json(201, { data: { ...setBody(added), weight_unit: weightUnit() } });
+};
+
 /** `apps/api`'s answer, from the same list in `@fitme/core`. */
 const listArnoldModels = () =>
   json(200, {
@@ -1067,6 +1114,11 @@ const ROUTES: Array<{
     handler: replaceSessionExercise,
     path: /^\/v1\/workout-session-exercises\/(?<id>[^/]+)$/,
     route: "PUT /v1/workout-session-exercises/{id}",
+  },
+  {
+    handler: addSessionSet,
+    path: /^\/v1\/workout-session-exercises\/(?<id>[^/]+)\/sets$/,
+    route: "POST /v1/workout-session-exercises/{id}/sets",
   },
   {
     handler: logSet,

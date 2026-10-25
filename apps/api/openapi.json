@@ -3100,6 +3100,145 @@
         }
       }
     },
+    "/v1/workout-session-exercises/{id}/sets": {
+      "post": {
+        "description": "Adds a set after the last one of a Workout Session Exercise of an open Workout Session, logged with the reps and weight done and when (`logged_at`, now). The set has no targets (`reps_recommended`, `weight_recommended` and `rest_recommended` are `null`). A finished Workout Session can't change. Not idempotent: a retry adds another set.",
+        "security": [
+          {
+            "bearerAuth": []
+          }
+        ],
+        "summary": "Add a set to a Workout Session Exercise",
+        "parameters": [
+          {
+            "schema": {
+              "type": "string",
+              "format": "uuid",
+              "example": "6f1c0c9e-2b7a-4c1e-9a55-3c2d1e0f4a11"
+            },
+            "required": true,
+            "name": "id",
+            "in": "path"
+          }
+        ],
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/LogWorkoutSessionSet"
+              }
+            }
+          }
+        },
+        "responses": {
+          "201": {
+            "description": "The added set",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object",
+                  "properties": {
+                    "data": {
+                      "allOf": [
+                        {
+                          "$ref": "#/components/schemas/WorkoutSessionSet"
+                        },
+                        {
+                          "type": "object",
+                          "properties": {
+                            "weight_unit": {
+                              "$ref": "#/components/schemas/WeightUnit"
+                            }
+                          },
+                          "required": [
+                            "weight_unit"
+                          ]
+                        }
+                      ]
+                    }
+                  },
+                  "required": [
+                    "data"
+                  ]
+                }
+              }
+            }
+          },
+          "400": {
+            "description": "`invalid_request`: the input fails its schema",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Error"
+                }
+              }
+            }
+          },
+          "401": {
+            "description": "No valid Clerk session token",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Error"
+                }
+              }
+            }
+          },
+          "404": {
+            "description": "`not_found`: the User has no Workout Session Exercise with this id",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Error"
+                }
+              }
+            }
+          },
+          "409": {
+            "description": "`session_finished`: the Workout Session is finished; nothing was written",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Error"
+                }
+              }
+            }
+          },
+          "415": {
+            "description": "The body isn't `application/json`",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Error"
+                }
+              }
+            }
+          },
+          "429": {
+            "description": "Too many requests from this User; retry after `Retry-After`",
+            "headers": {
+              "Retry-After": {
+                "schema": {
+                  "type": "string",
+                  "description": "Seconds until the limit resets",
+                  "example": "30"
+                },
+                "required": true,
+                "description": "Seconds until the limit resets"
+              }
+            },
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Error"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
     "/v1/workout-session-sets/{id}": {
       "patch": {
         "description": "Records the reps and weight done for one set of an open Workout Session, and when (`logged_at`, now). Logging the same set again overwrites the earlier result. A finished Workout Session's sets can't change.",

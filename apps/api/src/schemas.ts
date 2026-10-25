@@ -1,6 +1,8 @@
 import { muscleGroups } from "@fitme/core";
 import {
   MAX_EXERCISE_SLUG_LENGTH,
+  MAX_REPS,
+  MAX_WEIGHT,
   MAX_WEIGHT_DECIMALS,
 } from "@fitme/core/limits";
 import { type Hook, z } from "@hono/zod-openapi";
@@ -140,6 +142,31 @@ export const WorkoutSessionSet = z
     }),
   })
   .openapi("WorkoutSessionSet");
+
+/** A set's result, as logging a set and adding one take it. */
+export const LoggedSet = z
+  .strictObject({
+    reps_completed: z.number().int().min(0).max(MAX_REPS).openapi({
+      description: "Repetitions done",
+      example: 8,
+    }),
+    weight_completed: z
+      .number()
+      .min(0)
+      .max(MAX_WEIGHT)
+      .multipleOf(WEIGHT_STEP)
+      .openapi({
+        description:
+          "In the User's weight unit (`kg` for metric, `lbs` for us and uk), as stored; at most 2 decimals. 0 for bodyweight",
+        example: 80.5,
+      }),
+  })
+  .openapi("LogWorkoutSessionSet");
+
+/** A set a write answers, with the User's weight unit. */
+export const WorkoutSessionSetResponse = z.object({
+  data: WorkoutSessionSet.extend({ weight_unit: WeightUnit }),
+});
 
 export const WorkoutSessionExercise = z
   .object({

@@ -1,4 +1,3 @@
-import { MAX_REPS, MAX_WEIGHT } from "@fitme/core/limits";
 import { createRoute, OpenAPIHono, z } from "@hono/zod-openapi";
 import { type ApiEnv, bearerSecurity, requires } from "../auth.js";
 import {
@@ -6,35 +5,11 @@ import {
   Id,
   invalidRequest,
   invalidRequestResponse,
+  LoggedSet,
   rateLimitedResponse,
   unauthorizedResponse,
-  WEIGHT_STEP,
-  WeightUnit,
-  WorkoutSessionSet,
+  WorkoutSessionSetResponse,
 } from "../schemas.js";
-
-const LoggedSet = z
-  .strictObject({
-    reps_completed: z.number().int().min(0).max(MAX_REPS).openapi({
-      description: "Repetitions done",
-      example: 8,
-    }),
-    weight_completed: z
-      .number()
-      .min(0)
-      .max(MAX_WEIGHT)
-      .multipleOf(WEIGHT_STEP)
-      .openapi({
-        description:
-          "In the User's weight unit (`kg` for metric, `lbs` for us and uk), as stored; at most 2 decimals. 0 for bodyweight",
-        example: 80.5,
-      }),
-  })
-  .openapi("LogWorkoutSessionSet");
-
-const LoggedSetResponse = z.object({
-  data: WorkoutSessionSet.extend({ weight_unit: WeightUnit }),
-});
 
 const logSetRoute = createRoute({
   description:
@@ -51,7 +26,7 @@ const logSetRoute = createRoute({
   },
   responses: {
     200: {
-      content: { "application/json": { schema: LoggedSetResponse } },
+      content: { "application/json": { schema: WorkoutSessionSetResponse } },
       description: "The logged set",
     },
     400: invalidRequestResponse,
@@ -99,7 +74,7 @@ export const workoutSessionSets = new OpenAPIHono<ApiEnv>({
     );
   }
   return c.json(
-    LoggedSetResponse.parse({
+    WorkoutSessionSetResponse.parse({
       data: { ...value.set, weight_unit: weightUnit },
     }),
     200
