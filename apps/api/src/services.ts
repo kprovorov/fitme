@@ -37,6 +37,9 @@ import {
   type WholeProfile,
 } from "@fitme/services/profile";
 import {
+  type AddExerciseToWorkoutSessionInput,
+  type AddExerciseToWorkoutSessionResult,
+  addExerciseToWorkoutSession,
   deleteWorkoutSession,
   type FinishWorkoutSessionResult,
   finishWorkoutSession,
@@ -93,6 +96,14 @@ export interface UserServices {
    * deleted, foreign).
    */
   activatePlan: (planId: string) => Promise<Weighed<PlanDetail> | null>;
+  /**
+   * Appends an Exercise, with no sets, after the last one of the User's open
+   * Workout Session; a finished one is left as it was. Its Exercise slug is
+   * checked before, not here (ADR 0010).
+   */
+  addExerciseToWorkoutSession: (
+    input: AddExerciseToWorkoutSessionInput
+  ) => Promise<Weighed<AddExerciseToWorkoutSessionResult>>;
   /**
    * Creates a Plan with its Workouts, Exercises and sets in one transaction,
    * active unless `activate: false`; the Plan in full. Its Exercise slugs are
@@ -221,6 +232,8 @@ export const createServicesFromEnv: ServicesFactory = (userId) => {
             : null,
         write
       ),
+    addExerciseToWorkoutSession: (input) =>
+      inUnits((tx) => addExerciseToWorkoutSession(tx, userId, input), write),
     createPlan: (plan, options) =>
       inUnits((tx) => createPlan(tx, userId, plan, options), write),
     deletePlan: (planId) =>

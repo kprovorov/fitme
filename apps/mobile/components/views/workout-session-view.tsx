@@ -2,13 +2,14 @@ import type { MuscleGroup, WorkoutSession } from "@fitme/core";
 import type { ExerciseSummary } from "@fitme/library-sdk";
 import { useQueryClient } from "@tanstack/react-query";
 import { useCallback, useState } from "react";
-import { Modal, ScrollView } from "react-native";
+import { Alert, Modal, ScrollView } from "react-native";
 import { useExercises } from "~/hooks/queries/exercise-library";
 import {
   useCreateWorkoutSessionExerciseMutation,
   useDeleteWorkoutSessionExerciseMutation,
   useReplaceWorkoutSessionExerciseMutation,
 } from "~/hooks/queries/workout-session-exercises";
+import { ApiError, rateLimitedFor } from "~/lib/api/client";
 import { IS_E2E } from "~/lib/constants";
 import { segmentClient } from "~/lib/segment";
 import { Button } from "../ui/button";
@@ -16,6 +17,22 @@ import { HStack } from "../ui/hstack";
 import { VStack } from "../ui/vstack";
 import ExercisesView from "./exercises-view";
 import WorkoutSessionExerciseCard from "./workout-session-exercise-card";
+
+/** What to tell the User after a failed edit of the Workout Session's Exercises. */
+const sessionEditFailureMessage = (error: unknown) => {
+  if (error instanceof ApiError) {
+    if (error.code === "exercise_library_unavailable") {
+      return "The exercise library is unavailable right now. Please try again.";
+    }
+    if (error.code === "session_finished") {
+      return "This workout is already finished.";
+    }
+  }
+  const waitSeconds = rateLimitedFor(error);
+  return waitSeconds === null
+    ? "Please check your connection and try again."
+    : `Too many requests: please try again in ${waitSeconds} s.`;
+};
 
 interface WorkoutSessionViewProps {
   sessionId: string;
@@ -55,7 +72,9 @@ export default function WorkoutSessionView({
   >(undefined);
 
   const { mutateAsync } = useCreateWorkoutSessionExerciseMutation({
-    onSuccess: () => {
+    // A failed add may still have been saved (a lost answer): read again
+    // either way.
+    onSettled: () => {
       queryClient.invalidateQueries({
         queryKey: ["workout-session"],
       });
@@ -83,12 +102,21 @@ export default function WorkoutSessionView({
   const onExercisePress = useCallback(
     async (exercise: ExerciseSummary) => {
       if (replacingExerciseId === null) {
-        await mutateAsync({
-          data: {
-            exercise_slug: exercise.slug,
-          },
-          sessionId,
-        });
+        try {
+          await mutateAsync({
+            data: {
+              exercise_slug: exercise.slug,
+            },
+            sessionId,
+          });
+        } catch (error) {
+          // The picker stays open, so the User can try again.
+          Alert.alert(
+            "Couldn't add exercise",
+            sessionEditFailureMessage(error)
+          );
+          return;
+        }
         if (!IS_E2E) {
           segmentClient.track("Exercise Added", {
             exercise_slug: exercise.slug,

@@ -10,7 +10,8 @@
  * So far: `PUT` (201 created, 200 replaced, converting to a new system) and
  * `PATCH /v1/profile`, `POST /v1/plans`, activating
  * (`POST /v1/plans/{id}/activate`) and deleting (`DELETE /v1/plans/{id}`) a
- * Plan, starting, finishing and logging a set of a Workout Session, and the
+ * Plan, starting, finishing and logging a set of a Workout Session, adding an
+ * Exercise to one, and the
  * public `GET /v1/arnold/models` (answered whatever the bearer, like the
  * API's). Routes are named as templates (`Route`), each request keeping its
  * `path`. A route it doesn't implement answers 501 and fails the
@@ -606,6 +607,72 @@ const logSet = (body: unknown, setId: string): Response => {
   return json(200, { data: { ...setBody(set), weight_unit: weightUnit() } });
 };
 
+/** Checks one slug against the fake Exercise Library, as `checkExerciseSlugs` does. */
+const refuseUnknownSlug = async (slug: string) => {
+  let missing: string[];
+  try {
+    ({ missing } = await library.current.lookup([slug]));
+  } catch {
+    return error(
+      503,
+      "exercise_library_unavailable",
+      "The Exercise Library is unavailable, try again"
+    );
+  }
+  return missing.length > 0
+    ? error(400, "unknown_exercises", `Unknown exercise_slug(s): ${slug}`)
+    : null;
+};
+
+/**
+ * `addExerciseToWorkoutSession`: appends the Exercise, with no sets, after the
+ * open Workout Session's last one (the highest `order` + 1).
+ */
+const addSessionExercise = async (
+  body: unknown,
+  sessionId: string
+): Promise<Response> => {
+  if (
+    !isObject(body) ||
+    typeof body.exercise_slug !== "string" ||
+    unknownFields(body, ["exercise_slug"]).length > 0
+  ) {
+    return error(400, "invalid_request", "exercise_slug: Required");
+  }
+  const refusal = await refuseUnknownSlug(body.exercise_slug);
+  if (refusal) {
+    return refusal;
+  }
+  const session = backend.session(sessionId);
+  if (!session) {
+    return notFound("Workout Session");
+  }
+  if (session.finished_at !== null) {
+    return error(
+      409,
+      "session_finished",
+      `Workout Session ${session.id} is finished`
+    );
+  }
+  const last = Math.max(
+    0,
+    ...backend.exercises
+      .filter((other) => other.workout_session_id === sessionId)
+      .map(({ order }) => order)
+  );
+  const exercise = {
+    exercise_slug: body.exercise_slug,
+    id: backend.id("added-exercise"),
+    order: last + 1,
+    workout_session_id: sessionId,
+  };
+  backend.exercises.push(exercise);
+  const { workout_session_id: _session, ...shown } = exercise;
+  return json(201, {
+    data: { ...shown, sets: [], weight_unit: weightUnit() },
+  });
+};
+
 /** `apps/api`'s answer, from the same list in `@fitme/core`. */
 const listArnoldModels = () =>
   json(200, {
@@ -669,6 +736,11 @@ const ROUTES: Array<{
     handler: finishSession,
     path: /^\/v1\/workout-sessions\/(?<id>[^/]+)\/finish$/,
     route: "POST /v1/workout-sessions/{id}/finish",
+  },
+  {
+    handler: addSessionExercise,
+    path: /^\/v1\/workout-sessions\/(?<id>[^/]+)\/exercises$/,
+    route: "POST /v1/workout-sessions/{id}/exercises",
   },
   {
     handler: logSet,

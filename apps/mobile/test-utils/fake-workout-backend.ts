@@ -470,29 +470,15 @@ class FakeQuery {
               ),
             }));
         }
-        return this.filters.id
-          ? backend.nestedExercise(
-              requireRow(
-                backend.exercises.find(({ id }) => id === this.filters.id),
-                "exercise"
-              )
-            )
-          : backend.exercises
-              .filter(
-                (row) =>
-                  row.workout_session_id === this.filters.workout_session_id
-              )
-              .sort((a, b) => b.order - a.order);
-      case "workout_session_exercises.insert": {
-        const row: ExerciseRow = {
-          exercise_slug: this.values.exercise_slug as string,
-          id: backend.id("added-exercise"),
-          order: this.values.order as number,
-          workout_session_id: this.values.workout_session_id as string,
-        };
-        backend.exercises.push(row);
-        return backend.nestedExercise(row);
-      }
+        return backend.nestedExercise(
+          requireRow(
+            backend.exercises.find(({ id }) => id === this.filters.id),
+            "exercise"
+          )
+        );
+      case "workout_session_exercises.insert":
+        // Adding an Exercise goes through the Public API.
+        throw new Error("Fake backend: an Exercise is added through the API");
       case "workout_session_exercises.update": {
         const row = requireRow(
           backend.exercises.find(({ id }) => id === this.filters.id),

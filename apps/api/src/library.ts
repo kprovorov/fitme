@@ -58,3 +58,31 @@ export const checkExerciseSlugs = async ({
     return { status: "unavailable" };
   }
 };
+
+/** The error a write answers when its Exercise slugs aren't all known, or `null` when they are. */
+export const slugRefusal = (check: SlugCheck) => {
+  if (check.status === "unavailable") {
+    return {
+      body: {
+        error: {
+          code: "exercise_library_unavailable",
+          message:
+            "The Exercise Library is unavailable, so the Exercises couldn't be checked; try again",
+        },
+      },
+      status: 503 as const,
+    };
+  }
+  if (check.status === "unknown") {
+    return {
+      body: {
+        error: {
+          code: "unknown_exercises",
+          message: `Unknown exercise_slug(s): ${check.slugs.join(", ")}`,
+        },
+      },
+      status: 400 as const,
+    };
+  }
+  return null;
+};

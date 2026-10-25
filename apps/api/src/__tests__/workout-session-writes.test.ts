@@ -1,4 +1,9 @@
-import { MAX_REPS, MAX_WEIGHT } from "@fitme/core/limits";
+import {
+  MAX_EXERCISE_SLUG_LENGTH,
+  MAX_REPS,
+  MAX_WEIGHT,
+} from "@fitme/core/limits";
+import { LibraryUnavailableError } from "@fitme/library-sdk";
 import type {
   WorkoutSessionDetail,
   WorkoutSessionSet,
@@ -477,6 +482,181 @@ describe("PATCH /v1/workout-session-sets/:id", () => {
       undefined,
       { "content-type": "text/plain" }
     );
+
+    expect(response.status).toBe(415);
+    expect(reported).toEqual([]);
+  });
+});
+
+describe("POST /v1/workout-sessions/:id/exercises", () => {
+  const path = `/v1/workout-sessions/${SESSION_ID}/exercises`;
+  const added = {
+    exercise_slug: "barbell-back-squat",
+    id: "4f5a6b7c-8d9e-4f0a-9b1c-2d3e4f5a6b7c",
+    order: 4,
+    sets: [],
+  };
+
+  it("appends the Exercise and answers 201 with it, its sets and the weight unit", async () => {
+    const { calls, services } = recording("addExerciseToWorkoutSession", {
+      value: {
+        exercise: { ...added, workout_session_id: SESSION_ID },
+        status: "added",
+      } as Awaited<
+        ReturnType<UserServices["addExerciseToWorkoutSession"]>
+      >["value"],
+      weightUnit: "lbs",
+    });
+    const { app, servicesFor } = testApp({ services });
+
+    const response = await send(app, "POST", path, {
+      exercise_slug: "barbell-back-squat",
+    });
+
+    expect(response.status).toBe(201);
+    expect(await response.json()).toEqual({
+      data: { ...added, weight_unit: "lbs" },
+    });
+    expect(calls).toEqual([
+      { exerciseSlug: "barbell-back-squat", sessionId: SESSION_ID },
+    ]);
+    expect(servicesFor).toEqual(["user_alice"]);
+  });
+
+  it("answers 404 not_found for a Workout Session the User doesn't have, unreported", async () => {
+    const { services } = recording("addExerciseToWorkoutSession", {
+      value: { status: "not_found" },
+      weightUnit: "kg",
+    });
+    const { app, reported } = testApp({ services });
+
+    const response = await send(app, "POST", path, {
+      exercise_slug: "barbell-back-squat",
+    });
+
+    expect(response.status).toBe(404);
+    expect(await response.json()).toEqual({
+      error: { code: "not_found", message: "Workout Session not found" },
+    });
+    expect(reported).toEqual([]);
+  });
+
+  it("answers 409 session_finished for a finished Workout Session, unreported", async () => {
+    const { services } = recording("addExerciseToWorkoutSession", {
+      value: {
+        finishedAt: "2026-10-01T11:00:00+00:00",
+        status: "session_finished",
+      },
+      weightUnit: "kg",
+    });
+    const { app, reported } = testApp({ services });
+
+    const response = await send(app, "POST", path, {
+      exercise_slug: "barbell-back-squat",
+    });
+
+    expect(response.status).toBe(409);
+    expect(await response.json()).toEqual({
+      error: {
+        code: "session_finished",
+        message: `Workout Session ${SESSION_ID} was finished at 2026-10-01T11:00:00+00:00; it can no longer be changed`,
+      },
+    });
+    expect(reported).toEqual([]);
+  });
+
+  it("answers 400 unknown_exercises naming the slug, before any service call, unreported", async () => {
+    // addExerciseToWorkoutSession isn't faked: calling it would fail the request with a 500
+    const { app, reported } = testApp({ services: fakeServices({}) });
+
+    const response = await send(app, "POST", path, {
+      exercise_slug: "made-up-press",
+    });
+
+    expect(response.status).toBe(400);
+    expect(await response.json()).toEqual({
+      error: {
+        code: "unknown_exercises",
+        message: "Unknown exercise_slug(s): made-up-press",
+      },
+    });
+    expect(reported).toEqual([]);
+  });
+
+  it("answers a reported 503 exercise_library_unavailable when the Library fails, before any service call", async () => {
+    const { app, library, reported } = testApp({ services: fakeServices({}) });
+    const outage = new LibraryUnavailableError();
+    library.failWith(outage);
+
+    const response = await send(app, "POST", path, {
+      exercise_slug: "barbell-back-squat",
+    });
+
+    expect(response.status).toBe(503);
+    expect((await response.json()).error.code).toBe(
+      "exercise_library_unavailable"
+    );
+    expect(reported).toEqual([outage]);
+  });
+
+  it("answers a reported 503 exercise_library_unavailable when the Library isn't configured", async () => {
+    const { app, reported } = testApp({
+      library: null,
+      services: fakeServices({}),
+    });
+
+    const response = await send(app, "POST", path, {
+      exercise_slug: "barbell-back-squat",
+    });
+
+    expect(response.status).toBe(503);
+    expect((await response.json()).error.code).toBe(
+      "exercise_library_unavailable"
+    );
+    expect(reported).toHaveLength(1);
+  });
+
+  it.each([
+    ["no slug", {}],
+    ["a slug that isn't one", { exercise_slug: "Bench Press" }],
+    [
+      "a slug over the length limit",
+      { exercise_slug: "a".repeat(MAX_EXERCISE_SLUG_LENGTH + 1) },
+    ],
+    ["an unknown field", { exercise_slug: "barbell-back-squat", order: 1 }],
+  ])("answers 400 invalid_request for %s, unreported", async (_, body) => {
+    const { app, reported } = testApp({ services: fakeServices({}) });
+
+    const response = await send(app, "POST", path, body);
+
+    expect(response.status).toBe(400);
+    expect((await response.json()).error.code).toBe("invalid_request");
+    expect(reported).toEqual([]);
+  });
+
+  it("answers 400 invalid_request for a Workout Session id that isn't a uuid, unreported", async () => {
+    const { app, reported } = testApp({ services: fakeServices({}) });
+
+    const response = await send(
+      app,
+      "POST",
+      "/v1/workout-sessions/nope/exercises",
+      {
+        exercise_slug: "barbell-back-squat",
+      }
+    );
+
+    expect(response.status).toBe(400);
+    expect((await response.json()).error.code).toBe("invalid_request");
+    expect(reported).toEqual([]);
+  });
+
+  it("answers 415 for a body that isn't JSON, unreported", async () => {
+    const { app, reported } = testApp({ services: fakeServices({}) });
+
+    const response = await send(app, "POST", path, undefined, {
+      "content-type": "text/plain",
+    });
 
     expect(response.status).toBe(415);
     expect(reported).toEqual([]);
