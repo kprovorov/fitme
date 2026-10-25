@@ -1,8 +1,6 @@
 import type { Gender, MeasurementSystem, Profile } from "@fitme/core";
 import { createMutation } from "react-query-kit";
-import { supabase } from "@/lib/supabase";
-import { ApiError } from "~/lib/api/client";
-import { getClerk, getCurrentUserId } from "~/lib/clerk";
+import { getClerk } from "~/lib/clerk";
 import { publicApi } from "~/lib/public-api";
 import { splitFullName } from "~/lib/user-name";
 
@@ -15,30 +13,23 @@ export interface StoreProfileData {
   weight: number;
 }
 
-export const useStoreProfileMutation = createMutation<
-  Profile,
-  StoreProfileData
->({
-  mutationFn: async ({
-    measurementSystem,
-    ...data
-  }: StoreProfileData): Promise<Profile> => {
-    const userId = getCurrentUserId();
+/**
+ * Creates the User's Profile through `PUT /v1/profile`, or replaces the one
+ * they have (the API converts their stored heights and weights to a new
+ * measurement system), so running onboarding again never makes a second one.
+ * Nothing from the answer is kept: the caller reads the Profile again.
+ */
+const putProfile = async ({
+  measurementSystem,
+  ...fields
+}: StoreProfileData): Promise<void> => {
+  await publicApi().PUT("/v1/profile", {
+    body: { ...fields, measurement_system: measurementSystem },
+  });
+};
 
-    const { data: profile, error } = await supabase
-      .from("profiles")
-      .upsert(
-        { ...data, measurement_system: measurementSystem, user_id: userId },
-        { onConflict: "user_id" }
-      )
-      .select()
-      .single();
-    if (error) {
-      throw error;
-    }
-
-    return profile as unknown as Profile;
-  },
+export const useStoreProfileMutation = createMutation<void, StoreProfileData>({
+  mutationFn: putProfile,
 });
 
 const EDITABLE_FIELDS = ["age", "gender", "height", "weight"] as const;
@@ -49,17 +40,17 @@ type EditableFields = Pick<StoreProfileData, (typeof EDITABLE_FIELDS)[number]>;
 export type ProfileChanges = Partial<EditableFields>;
 
 /**
- * The fields of `values` that differ from the saved `profile`: every field
- * without one. Unchanged fields are never sent, so a value saved before
- * today's bounds doesn't fail an unrelated edit.
+ * The fields of `values` that differ from the saved `profile`. Unchanged
+ * fields are never sent, so a value saved before today's bounds doesn't fail
+ * an unrelated edit.
  */
 export const profileChanges = (
-  profile: Profile | null,
+  profile: Profile,
   values: EditableFields
 ): ProfileChanges => {
   const changes: ProfileChanges = {};
   for (const field of EDITABLE_FIELDS) {
-    if (profile?.[field] !== values[field]) {
+    if (profile[field] !== values[field]) {
       Object.assign(changes, { [field]: values[field] });
     }
   }
@@ -73,12 +64,11 @@ export interface UpdateProfileData extends StoreProfileData {
 }
 
 /**
- * Saves edit-profile: the changed fields through `PATCH /v1/profile` (no
- * request when nothing changed), and the name to Clerk. Without a Profile
- * (onboarding was skipped) the API answers `profile_not_found` and the
- * Profile is created through Supabase, until the API can create one; any
- * other failure rejects with its `ApiError`. Nothing from the answer is kept:
- * the caller reads the Profile again.
+ * Saves edit-profile: without a saved Profile (onboarding was skipped) the
+ * whole Profile through `PUT /v1/profile`; with one, the changed fields
+ * through `PATCH /v1/profile` (no request when nothing changed). Then the
+ * name to Clerk. A failure rejects with its `ApiError`. Nothing from the
+ * answer is kept: the caller reads the Profile again.
  */
 export const useUpdateProfileMutation = createMutation<void, UpdateProfileData>(
   {
@@ -88,28 +78,13 @@ export const useUpdateProfileMutation = createMutation<void, UpdateProfileData>(
       profile,
       ...values
     }: UpdateProfileData): Promise<void> => {
-      const changes = profileChanges(profile, values);
-
-      if (Object.keys(changes).length > 0) {
-        try {
+      if (profile) {
+        const changes = profileChanges(profile, values);
+        if (Object.keys(changes).length > 0) {
           await publicApi().PATCH("/v1/profile", { body: changes });
-        } catch (error) {
-          if (
-            !(error instanceof ApiError && error.code === "profile_not_found")
-          ) {
-            throw error;
-          }
-          const { error: insertError } = await supabase
-            .from("profiles")
-            .insert({
-              ...values,
-              measurement_system: measurementSystem,
-              user_id: getCurrentUserId(),
-            });
-          if (insertError) {
-            throw insertError;
-          }
         }
+      } else {
+        await putProfile({ ...values, measurementSystem });
       }
 
       // The name lives in Clerk, not in the profiles table

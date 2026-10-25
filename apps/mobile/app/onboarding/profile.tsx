@@ -39,11 +39,12 @@ export default function ProfileScreen() {
     onError: (e) => {
       Sentry.captureException(e);
     },
-    onSuccess: (savedProfile, variables) => {
-      // Edit Profile seeds its form from the cached Profile, so put the saved
-      // Profile there right away and refetch to be safe.
-      queryClient.setQueryData(useProfileQuery.getKey(), savedProfile);
-      queryClient.invalidateQueries({ queryKey: useProfileQuery.getKey() });
+    onSuccess: async (_, variables) => {
+      // Edit Profile seeds its form from the cached Profile, so read the saved
+      // one before moving on (the save stays pending meanwhile).
+      await queryClient.invalidateQueries({
+        queryKey: useProfileQuery.getKey(),
+      });
       if (user) {
         storage.set(`onboarding.seen.${user.id}`, true);
       }
