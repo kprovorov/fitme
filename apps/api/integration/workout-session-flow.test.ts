@@ -1,12 +1,12 @@
 import { randomBytes } from "node:crypto";
 import { plans, profiles, withService } from "@fitme/db";
 import { createFakeLibrary } from "@fitme/library-sdk/fake";
+import { deleteTestUsers } from "@fitme/services/delete-test-users";
 import { eq } from "drizzle-orm";
 import { afterAll, beforeAll, describe, expect, it } from "vitest";
 import { createApp } from "../src/create-app.js";
 import { createServicesFromEnv } from "../src/services.js";
 import { clerk, libraryExercise, signedInAs } from "../src/test/harness.js";
-import { deleteTestUsers } from "./delete-test-users.js";
 
 /**
  * A Workout Session run end to end through the Public API with the real

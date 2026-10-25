@@ -17,6 +17,7 @@ import {
 import { eq, inArray } from "drizzle-orm";
 import { afterAll, beforeAll, describe, expect, it } from "vitest";
 import { deleteUserData, UserRekeyedError } from "../src/delete-user-data";
+import { withUserTablesLocked } from "./delete-test-users";
 
 /**
  * deleteUserData through withService, against a local Supabase stack via the
@@ -216,7 +217,7 @@ beforeAll(async () => {
 });
 
 afterAll(async () => {
-  await withService(async (tx) => {
+  await withUserTablesLocked(async (tx) => {
     await deleteUserData(tx, bystander);
     await deleteUserData(tx, rekeyed);
     await tx
@@ -229,7 +230,7 @@ describe("deleteUserData", () => {
   it("removes every row the User owns, children included", async () => {
     expect(await remaining(deletedRows)).toEqual(allRows(1));
 
-    await withService((tx) => deleteUserData(tx, deleted));
+    await withUserTablesLocked((tx) => deleteUserData(tx, deleted));
 
     expect(await remaining(deletedRows)).toEqual(allRows(0));
   });
@@ -275,7 +276,7 @@ describe("deleteUserData", () => {
   it("is a no-op when run again for the same User", async () => {
     const before = await retirement(deleted);
 
-    await withService((tx) => deleteUserData(tx, deleted));
+    await withUserTablesLocked((tx) => deleteUserData(tx, deleted));
 
     expect(await retirement(deleted)).toEqual(before);
     expect(await remaining(deletedRows)).toEqual(allRows(0));
@@ -286,7 +287,7 @@ describe("deleteUserData", () => {
     const legacyRows = await seedUser(legacy);
     await withService((tx) => rekey(tx, legacy, rekeyed));
 
-    const attempt = withService((tx) => deleteUserData(tx, legacy));
+    const attempt = withUserTablesLocked((tx) => deleteUserData(tx, legacy));
 
     await expect(attempt).rejects.toBeInstanceOf(UserRekeyedError);
     await expect(attempt).rejects.toMatchObject({
@@ -315,22 +316,22 @@ describe("deleteUserData", () => {
     });
 
     await expect(
-      withService((tx) => deleteUserData(tx, chainA))
+      withUserTablesLocked((tx) => deleteUserData(tx, chainA))
     ).rejects.toMatchObject({ code: "55000", userId: chainA });
     await expect(
-      withService((tx) => deleteUserData(tx, chainB))
+      withUserTablesLocked((tx) => deleteUserData(tx, chainB))
     ).rejects.toMatchObject({ code: "55000", userId: chainB });
     expect(await remaining(chainRows)).toEqual(allRows(1));
 
-    await withService((tx) => deleteUserData(tx, chainC));
+    await withUserTablesLocked((tx) => deleteUserData(tx, chainC));
 
     expect(await remaining(chainRows)).toEqual(allRows(0));
     expect(await remaining(bystanderRows)).toEqual(allRows(1));
   });
 
   it("rejects an empty id", async () => {
-    await expect(withService((tx) => deleteUserData(tx, ""))).rejects.toThrow(
-      "deleteUserData needs a User id"
-    );
+    await expect(
+      withUserTablesLocked((tx) => deleteUserData(tx, ""))
+    ).rejects.toThrow("deleteUserData needs a User id");
   });
 });

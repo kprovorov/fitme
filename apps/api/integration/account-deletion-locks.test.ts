@@ -1,11 +1,14 @@
 import { randomBytes } from "node:crypto";
 import { plans, profiles, withService, workouts } from "@fitme/db";
+import {
+  deleteTestUsers,
+  withUserTablesLocked,
+} from "@fitme/services/delete-test-users";
 import { eq, sql } from "drizzle-orm";
 import { afterAll, beforeAll, describe, expect, it } from "vitest";
 import { createApp } from "../src/create-app.js";
 import { createServicesFromEnv } from "../src/services.js";
 import { clerk, signedInAs } from "../src/test/harness.js";
-import { deleteTestUsers, withUserTablesLocked } from "./delete-test-users.js";
 
 /**
  * A write racing an account deletion queues behind it instead of

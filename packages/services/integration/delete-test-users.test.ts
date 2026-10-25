@@ -8,7 +8,7 @@ import {
 } from "@fitme/db";
 import { eq, sql } from "drizzle-orm";
 import { describe, expect, it } from "vitest";
-import { deleteTestUsers } from "./delete-test-users.js";
+import { deleteTestUsers } from "./delete-test-users";
 
 /**
  * The cleanup every integration file runs, racing another file's write that

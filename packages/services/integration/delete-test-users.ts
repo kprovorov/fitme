@@ -1,9 +1,6 @@
 import { type Transaction, withService } from "@fitme/db";
-import {
-  deleteUserData,
-  USER_DATA_TABLES,
-} from "@fitme/services/delete-user-data";
 import { sql } from "drizzle-orm";
+import { deleteUserData, USER_DATA_TABLES } from "../src/delete-user-data";
 
 const MAX_ATTEMPTS = 300;
 const BACKOFF_MS = 25;

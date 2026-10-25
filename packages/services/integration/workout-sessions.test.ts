@@ -12,13 +12,13 @@ import {
 } from "@fitme/db";
 import { eq } from "drizzle-orm";
 import { afterAll, beforeAll, describe, expect, it } from "vitest";
-import { deleteUserData } from "../src/delete-user-data";
 import {
   deleteWorkoutSession,
   getWorkoutSession,
   listWorkoutSessions,
   logSet,
 } from "../src/workout-sessions";
+import { deleteTestUsers } from "./delete-test-users";
 
 /**
  * The Workout Session services through asUser, against a local Supabase stack
@@ -185,10 +185,7 @@ beforeAll(async () => {
 });
 
 afterAll(async () => {
-  await withService(async (tx) => {
-    await deleteUserData(tx, owner);
-    await deleteUserData(tx, intruder);
-  });
+  await deleteTestUsers([owner, intruder]);
 });
 
 describe("listWorkoutSessions", () => {

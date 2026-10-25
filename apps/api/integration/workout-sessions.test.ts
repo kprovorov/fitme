@@ -8,11 +8,11 @@ import {
   workoutSessions,
   workouts,
 } from "@fitme/db";
+import { deleteTestUsers } from "@fitme/services/delete-test-users";
 import { afterAll, beforeAll, describe, expect, it } from "vitest";
 import { createApp } from "../src/create-app.js";
 import { createServicesFromEnv } from "../src/services.js";
 import { clerk, signedInAs } from "../src/test/harness.js";
-import { deleteTestUsers } from "./delete-test-users.js";
 
 /**
  * The Workout Session reads with the real services facade, through `asUser`

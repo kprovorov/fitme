@@ -1,5 +1,6 @@
 import { randomBytes, randomUUID } from "node:crypto";
 import { asUser, profiles, withService } from "@fitme/db";
+import { deleteTestUsers } from "@fitme/services/delete-test-users";
 import {
   createPlan,
   deletePlan,
@@ -11,7 +12,6 @@ import { afterAll, beforeAll, describe, expect, it } from "vitest";
 import { createApp } from "../src/create-app.js";
 import { createServicesFromEnv } from "../src/services.js";
 import { clerk, signedInAs } from "../src/test/harness.js";
-import { deleteTestUsers } from "./delete-test-users.js";
 
 /**
  * The app with the real services facade, through `asUser` on the local

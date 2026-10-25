@@ -6,6 +6,7 @@
   "type": "module",
   "exports": {
     "./arnold-sessions": "./src/arnold-sessions.ts",
+    "./delete-test-users": "./integration/delete-test-users.ts",
     "./delete-user-data": "./src/delete-user-data.ts",
     "./exercises": "./src/exercises.ts",
     "./plans": "./src/plans.ts",

@@ -8,6 +8,7 @@ import {
   recordArnoldSession,
 } from "../src/arnold-sessions";
 import { deleteUserData } from "../src/delete-user-data";
+import { withUserTablesLocked } from "./delete-test-users";
 
 /**
  * recordArnoldSession and listArnoldSessionIds through asUser, against a local
@@ -96,7 +97,7 @@ describe("a deleted User's Arnold sessions", () => {
       recordArnoldSession(tx, deleted, deletedSession)
     );
 
-    await withService((tx) => deleteUserData(tx, deleted));
+    await withUserTablesLocked((tx) => deleteUserData(tx, deleted));
 
     // The webhook resets these; the rows stay as the sessions' ACL
     expect(

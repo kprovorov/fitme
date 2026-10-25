@@ -9,8 +9,8 @@ import {
   workouts,
 } from "@fitme/db";
 import { afterAll, beforeAll, describe, expect, it } from "vitest";
-import { deleteUserData } from "../src/delete-user-data";
 import { listWorkoutHistory } from "../src/workout-sessions";
+import { deleteTestUsers } from "./delete-test-users";
 
 /**
  * listWorkoutHistory through asUser, against a local Supabase stack via the
@@ -154,10 +154,7 @@ beforeAll(async () => {
 });
 
 afterAll(async () => {
-  await withService(async (tx) => {
-    await deleteUserData(tx, owner);
-    await deleteUserData(tx, intruder);
-  });
+  await deleteTestUsers([owner, intruder]);
 });
 
 describe("listWorkoutHistory", () => {
