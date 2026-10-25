@@ -22,7 +22,6 @@ export const DEFAULT_TIMEOUT_MS = 10_000;
 /** The API's rate limit window, for a 429 whose `Retry-After` can't be read. */
 const DEFAULT_RETRY_AFTER_SECONDS = 60;
 
-const TRAILING_SLASHES = /\/+$/;
 const WHOLE_SECONDS = /^\d+$/;
 
 export interface LibraryOptions {
@@ -38,6 +37,18 @@ export interface LibraryOptions {
   /** The Library API's origin, e.g. `https://library.fitmeproject.com`. */
   url: string;
 }
+
+/**
+ * `url` without its trailing slashes. A loop rather than `/\/+$/`, which
+ * backtracks polynomially on a long run of slashes followed by anything else.
+ */
+const withoutTrailingSlashes = (url: string) => {
+  let end = url.length;
+  while (end > 0 && url[end - 1] === "/") {
+    end -= 1;
+  }
+  return url.slice(0, end);
+};
 
 /** A slug the API can't be asked for: it would split or fail the request. */
 const isUnaskable = (slug: string) => slug === "" || slug.includes(",");
@@ -138,7 +149,7 @@ export const createLibrary = ({
   token,
   url,
 }: LibraryOptions): Library => {
-  const base = url.replace(TRAILING_SLASHES, "");
+  const base = withoutTrailingSlashes(url);
 
   // A token getter that throws (Clerk offline) is a failure to reach the
   // library; no token at all (signed out) is unauthorized, without a request.

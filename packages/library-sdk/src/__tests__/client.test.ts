@@ -459,3 +459,20 @@ describe("errors", () => {
     );
   });
 });
+
+describe("url", () => {
+  it("drops the trailing slashes of the API's origin", async () => {
+    const api = stubApi([exercise("squat")]);
+    const library = createLibrary({
+      fetch: api.fetch,
+      token,
+      url: `${URL}///`,
+    });
+
+    await library.get("squat");
+
+    expect(api.requests.map((request) => request.url.href)).toEqual([
+      `${URL}/exercises/squat`,
+    ]);
+  });
+});
