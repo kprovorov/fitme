@@ -1052,6 +1052,200 @@
         ],
         "additionalProperties": false
       },
+      "PlanUpdate": {
+        "type": "object",
+        "properties": {
+          "changes": {
+            "type": "array",
+            "items": {
+              "$ref": "#/components/schemas/PlanUpdateChange"
+            },
+            "description": "In Workout order. None for a Workout Session still open, without a Workout, of a deleted Plan, whose Exercises can't be matched (a repeated `order`, over 50 Exercises or 100 sets of one), or whose Plan Update is already applied"
+          },
+          "plan": {
+            "type": "object",
+            "nullable": true,
+            "properties": {
+              "id": {
+                "type": "string",
+                "format": "uuid",
+                "example": "6f1c0c9e-2b7a-4c1e-9a55-3c2d1e0f4a11"
+              },
+              "name": {
+                "type": "string",
+                "nullable": true
+              }
+            },
+            "required": [
+              "id",
+              "name"
+            ],
+            "description": "The Plan it updates, `null` when the Workout is gone or its Plan deleted"
+          },
+          "weight_unit": {
+            "$ref": "#/components/schemas/WeightUnit"
+          },
+          "workout": {
+            "type": "object",
+            "nullable": true,
+            "properties": {
+              "id": {
+                "type": "string",
+                "format": "uuid",
+                "example": "6f1c0c9e-2b7a-4c1e-9a55-3c2d1e0f4a11"
+              },
+              "name": {
+                "type": "string"
+              }
+            },
+            "required": [
+              "id",
+              "name"
+            ],
+            "description": "The Workout it updates, `null` when it's gone or its Plan deleted"
+          }
+        },
+        "required": [
+          "changes",
+          "plan",
+          "weight_unit",
+          "workout"
+        ]
+      },
+      "PlanUpdateChange": {
+        "oneOf": [
+          {
+            "type": "object",
+            "properties": {
+              "exercise_slug": {
+                "type": "string",
+                "description": "The Exercise the Workout gets in its place",
+                "example": "barbell-bench-press"
+              },
+              "kind": {
+                "type": "string",
+                "enum": [
+                  "replace_exercise"
+                ]
+              },
+              "replaced_exercise_slug": {
+                "type": "string",
+                "description": "The Exercise it replaces",
+                "example": "barbell-bench-press"
+              },
+              "sets": {
+                "type": "array",
+                "items": {
+                  "$ref": "#/components/schemas/PlanUpdateSet"
+                },
+                "description": "Every set of the replacement, in order"
+              }
+            },
+            "required": [
+              "exercise_slug",
+              "kind",
+              "replaced_exercise_slug",
+              "sets"
+            ]
+          },
+          {
+            "type": "object",
+            "properties": {
+              "exercise_slug": {
+                "type": "string",
+                "description": "The Exercise appended to the Workout",
+                "example": "barbell-bench-press"
+              },
+              "kind": {
+                "type": "string",
+                "enum": [
+                  "add_exercise"
+                ]
+              },
+              "sets": {
+                "type": "array",
+                "items": {
+                  "$ref": "#/components/schemas/PlanUpdateSet"
+                },
+                "description": "In order"
+              }
+            },
+            "required": [
+              "exercise_slug",
+              "kind",
+              "sets"
+            ]
+          },
+          {
+            "type": "object",
+            "properties": {
+              "exercise_slug": {
+                "type": "string",
+                "description": "The Exercise removed from the Workout",
+                "example": "barbell-bench-press"
+              },
+              "kind": {
+                "type": "string",
+                "enum": [
+                  "remove_exercise"
+                ]
+              }
+            },
+            "required": [
+              "exercise_slug",
+              "kind"
+            ]
+          },
+          {
+            "type": "object",
+            "properties": {
+              "exercise_slug": {
+                "type": "string",
+                "description": "The Exercise that gets more sets",
+                "example": "barbell-bench-press"
+              },
+              "kind": {
+                "type": "string",
+                "enum": [
+                  "add_sets"
+                ]
+              },
+              "sets": {
+                "type": "array",
+                "items": {
+                  "$ref": "#/components/schemas/PlanUpdateSet"
+                },
+                "description": "The sets appended after its last one, in order"
+              }
+            },
+            "required": [
+              "exercise_slug",
+              "kind",
+              "sets"
+            ]
+          }
+        ],
+        "description": "One change to the Workout, by `kind`. Exercises are Exercise slugs only: their names come from the Exercise Library"
+      },
+      "PlanUpdateSet": {
+        "type": "object",
+        "properties": {
+          "reps": {
+            "type": "integer",
+            "example": 8
+          },
+          "weight": {
+            "type": "number",
+            "description": "In `weight_unit`, as logged",
+            "example": 80
+          }
+        },
+        "required": [
+          "reps",
+          "weight"
+        ],
+        "description": "A set the Plan gets, its targets taken from what the User logged"
+      },
       "AddWorkoutSessionExercise": {
         "type": "object",
         "properties": {
@@ -3227,6 +3421,192 @@
                   },
                   "required": [
                     "already_finished",
+                    "data"
+                  ]
+                }
+              }
+            }
+          },
+          "400": {
+            "description": "`invalid_request`: the input fails its schema",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Error"
+                }
+              }
+            }
+          },
+          "401": {
+            "description": "No valid Clerk session token",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Error"
+                }
+              }
+            }
+          },
+          "404": {
+            "description": "`not_found`: the User has no Workout Session with this id",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Error"
+                }
+              }
+            }
+          },
+          "429": {
+            "description": "Too many requests from this User; retry after `Retry-After`",
+            "headers": {
+              "Retry-After": {
+                "schema": {
+                  "type": "string",
+                  "description": "Seconds until the limit resets",
+                  "example": "30"
+                },
+                "required": true,
+                "description": "Seconds until the limit resets"
+              }
+            },
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Error"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/v1/workout-sessions/{id}/plan-update": {
+      "get": {
+        "description": "The Plan Update of a finished Workout Session: the changes it made to its Workout (Exercises replaced, added or removed, sets added), which the User can save to the Plan. Writes nothing. A Workout Session without a Plan Update answers no changes.",
+        "security": [
+          {
+            "bearerAuth": []
+          }
+        ],
+        "summary": "Preview a Workout Session's Plan Update",
+        "parameters": [
+          {
+            "schema": {
+              "type": "string",
+              "format": "uuid",
+              "example": "6f1c0c9e-2b7a-4c1e-9a55-3c2d1e0f4a11"
+            },
+            "required": true,
+            "name": "id",
+            "in": "path"
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "The Plan Update, possibly without changes",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object",
+                  "properties": {
+                    "data": {
+                      "$ref": "#/components/schemas/PlanUpdate"
+                    }
+                  },
+                  "required": [
+                    "data"
+                  ]
+                }
+              }
+            }
+          },
+          "400": {
+            "description": "`invalid_request`: the input fails its schema",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Error"
+                }
+              }
+            }
+          },
+          "401": {
+            "description": "No valid Clerk session token",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Error"
+                }
+              }
+            }
+          },
+          "404": {
+            "description": "`not_found`: the User has no Workout Session with this id",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Error"
+                }
+              }
+            }
+          },
+          "429": {
+            "description": "Too many requests from this User; retry after `Retry-After`",
+            "headers": {
+              "Retry-After": {
+                "schema": {
+                  "type": "string",
+                  "description": "Seconds until the limit resets",
+                  "example": "30"
+                },
+                "required": true,
+                "description": "Seconds until the limit resets"
+              }
+            },
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Error"
+                }
+              }
+            }
+          }
+        }
+      },
+      "post": {
+        "description": "Applies the Plan Update of a finished Workout Session to its Workout in one transaction (replacements and added sets, then removals renumbering the rest from 1, then added Exercises appended) and answers what it applied. Once applied, the Workout Session has no Plan Update: a repeated or concurrent apply answers no changes and writes nothing.",
+        "security": [
+          {
+            "bearerAuth": []
+          }
+        ],
+        "summary": "Apply a Workout Session's Plan Update",
+        "parameters": [
+          {
+            "schema": {
+              "type": "string",
+              "format": "uuid",
+              "example": "6f1c0c9e-2b7a-4c1e-9a55-3c2d1e0f4a11"
+            },
+            "required": true,
+            "name": "id",
+            "in": "path"
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "What was applied, possibly nothing",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object",
+                  "properties": {
+                    "data": {
+                      "$ref": "#/components/schemas/PlanUpdate"
+                    }
+                  },
+                  "required": [
                     "data"
                   ]
                 }

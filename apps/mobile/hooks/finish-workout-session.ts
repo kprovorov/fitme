@@ -1,9 +1,4 @@
-import {
-  countUnloggedSets,
-  type MeasurementSystem,
-  type PlanChanges,
-  type WorkoutSession,
-} from "@fitme/core";
+import { countUnloggedSets, type WorkoutSession } from "@fitme/core";
 import * as Sentry from "@sentry/react-native";
 import {
   type MutationFilters,
@@ -15,16 +10,19 @@ import { useNavigation, useRouter } from "expo-router";
 import { useCallback, useMemo } from "react";
 import { Alert } from "react-native";
 import { showPlanUpdatePrompt } from "~/hooks/plan-update-prompt";
-import { useProfileQuery } from "~/hooks/queries/profiles";
 import {
   FINISH_WORKOUT_SESSION_MUTATION_KEY,
   type FinishWorkoutSessionVariables,
-  fetchPlanChanges,
+  fetchPlanUpdate,
   useFinishWorkoutSessionMutation,
   useWorkoutSessionQuery,
 } from "~/hooks/queries/workout-sessions";
 import { rateLimitedFor } from "~/lib/api/client";
-import { countPlanChanges, planUpdateProperties } from "~/lib/plan-changes";
+import {
+  countPlanChanges,
+  type PlanUpdate,
+  planUpdateProperties,
+} from "~/lib/plan-changes";
 import { segmentClient } from "~/lib/segment";
 
 const finishingFilters = (sessionId: string): MutationFilters => ({
@@ -69,30 +67,18 @@ const alertFinishFailed = (waitSeconds: number | null = null) =>
   );
 
 /**
- * What to ask after `sessionId` has finished: the changes it made to its
- * Workout and the User's unit for their weights, or null when there's
- * nothing to ask (no changes, or the Plan or Workout is gone). Throws when
- * either can't be read.
+ * What to ask after `sessionId` has finished: its Plan Update, weights in
+ * its `weight_unit`, or null when there's nothing to ask (no changes, or the
+ * Plan or Workout is gone). Throws when it can't be read.
  */
 async function planUpdateQuestion(
-  queryClient: QueryClient,
   sessionId: string
-): Promise<{
-  measurementSystem: MeasurementSystem;
-  preview: PlanChanges;
-} | null> {
-  const preview = await fetchPlanChanges(sessionId);
+): Promise<PlanUpdate | null> {
+  const preview = await fetchPlanUpdate(sessionId);
   if (preview.changes.length === 0 || !(preview.plan && preview.workout)) {
     return null;
   }
-  // The lines show weights in the User's unit, never in a guessed one.
-  const profile = await queryClient.ensureQueryData(
-    useProfileQuery.getFetchOptions()
-  );
-  return {
-    measurementSystem: profile?.measurement_system ?? "metric",
-    preview,
-  };
+  return preview;
 }
 
 /** Sessions whose "Finish workout?" question is open, so it's never asked twice. */
@@ -229,25 +215,23 @@ export function useFinishWorkoutSession(
         }
         router.replace(summary);
       };
-      let question: Awaited<ReturnType<typeof planUpdateQuestion>>;
+      let preview: PlanUpdate | null;
       try {
-        question = await planUpdateQuestion(queryClient, sessionId);
+        preview = await planUpdateQuestion(sessionId);
       } catch (error) {
         Sentry.captureException(error);
         openSummary();
         return;
       }
-      if (!question) {
+      if (!preview) {
         openSummary();
         return;
       }
-      const { measurementSystem, preview } = question;
       segmentClient.track("Plan Update Suggested", {
         ...countPlanChanges(preview.changes),
         ...planUpdateProperties(sessionId, preview),
       });
       showPlanUpdatePrompt({
-        measurementSystem,
         onDone: openSummary,
         preview,
         sessionId,

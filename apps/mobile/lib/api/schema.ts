@@ -1820,6 +1820,152 @@ export interface paths {
     patch?: never;
     trace?: never;
   };
+  "/v1/workout-sessions/{id}/plan-update": {
+    parameters: {
+      query?: never;
+      header?: never;
+      path?: never;
+      cookie?: never;
+    };
+    /**
+     * Preview a Workout Session's Plan Update
+     * @description The Plan Update of a finished Workout Session: the changes it made to its Workout (Exercises replaced, added or removed, sets added), which the User can save to the Plan. Writes nothing. A Workout Session without a Plan Update answers no changes.
+     */
+    get: {
+      parameters: {
+        query?: never;
+        header?: never;
+        path: {
+          id: string;
+        };
+        cookie?: never;
+      };
+      requestBody?: never;
+      responses: {
+        /** @description The Plan Update, possibly without changes */
+        200: {
+          headers: {
+            [name: string]: unknown;
+          };
+          content: {
+            "application/json": {
+              data: components["schemas"]["PlanUpdate"];
+            };
+          };
+        };
+        /** @description `invalid_request`: the input fails its schema */
+        400: {
+          headers: {
+            [name: string]: unknown;
+          };
+          content: {
+            "application/json": components["schemas"]["Error"];
+          };
+        };
+        /** @description No valid Clerk session token */
+        401: {
+          headers: {
+            [name: string]: unknown;
+          };
+          content: {
+            "application/json": components["schemas"]["Error"];
+          };
+        };
+        /** @description `not_found`: the User has no Workout Session with this id */
+        404: {
+          headers: {
+            [name: string]: unknown;
+          };
+          content: {
+            "application/json": components["schemas"]["Error"];
+          };
+        };
+        /** @description Too many requests from this User; retry after `Retry-After` */
+        429: {
+          headers: {
+            /** @description Seconds until the limit resets */
+            "Retry-After": string;
+            [name: string]: unknown;
+          };
+          content: {
+            "application/json": components["schemas"]["Error"];
+          };
+        };
+      };
+    };
+    put?: never;
+    /**
+     * Apply a Workout Session's Plan Update
+     * @description Applies the Plan Update of a finished Workout Session to its Workout in one transaction (replacements and added sets, then removals renumbering the rest from 1, then added Exercises appended) and answers what it applied. Once applied, the Workout Session has no Plan Update: a repeated or concurrent apply answers no changes and writes nothing.
+     */
+    post: {
+      parameters: {
+        query?: never;
+        header?: never;
+        path: {
+          id: string;
+        };
+        cookie?: never;
+      };
+      requestBody?: never;
+      responses: {
+        /** @description What was applied, possibly nothing */
+        200: {
+          headers: {
+            [name: string]: unknown;
+          };
+          content: {
+            "application/json": {
+              data: components["schemas"]["PlanUpdate"];
+            };
+          };
+        };
+        /** @description `invalid_request`: the input fails its schema */
+        400: {
+          headers: {
+            [name: string]: unknown;
+          };
+          content: {
+            "application/json": components["schemas"]["Error"];
+          };
+        };
+        /** @description No valid Clerk session token */
+        401: {
+          headers: {
+            [name: string]: unknown;
+          };
+          content: {
+            "application/json": components["schemas"]["Error"];
+          };
+        };
+        /** @description `not_found`: the User has no Workout Session with this id */
+        404: {
+          headers: {
+            [name: string]: unknown;
+          };
+          content: {
+            "application/json": components["schemas"]["Error"];
+          };
+        };
+        /** @description Too many requests from this User; retry after `Retry-After` */
+        429: {
+          headers: {
+            /** @description Seconds until the limit resets */
+            "Retry-After": string;
+            [name: string]: unknown;
+          };
+          content: {
+            "application/json": components["schemas"]["Error"];
+          };
+        };
+      };
+    };
+    delete?: never;
+    options?: never;
+    head?: never;
+    patch?: never;
+    trace?: never;
+  };
 }
 export type webhooks = Record<string, never>;
 export interface components {
@@ -2306,6 +2452,88 @@ export interface components {
        * @example 6f1c0c9e-2b7a-4c1e-9a55-3c2d1e0f4a11
        */
       workout_id: string;
+    };
+    PlanUpdate: {
+      /** @description In Workout order. None for a Workout Session still open, without a Workout, of a deleted Plan, whose Exercises can't be matched (a repeated `order`, over 50 Exercises or 100 sets of one), or whose Plan Update is already applied */
+      changes: components["schemas"]["PlanUpdateChange"][];
+      /** @description The Plan it updates, `null` when the Workout is gone or its Plan deleted */
+      plan: {
+        /**
+         * Format: uuid
+         * @example 6f1c0c9e-2b7a-4c1e-9a55-3c2d1e0f4a11
+         */
+        id: string;
+        name: string | null;
+      } | null;
+      weight_unit: components["schemas"]["WeightUnit"];
+      /** @description The Workout it updates, `null` when it's gone or its Plan deleted */
+      workout: {
+        /**
+         * Format: uuid
+         * @example 6f1c0c9e-2b7a-4c1e-9a55-3c2d1e0f4a11
+         */
+        id: string;
+        name: string;
+      } | null;
+    };
+    /** @description One change to the Workout, by `kind`. Exercises are Exercise slugs only: their names come from the Exercise Library */
+    PlanUpdateChange:
+      | {
+          /**
+           * @description The Exercise the Workout gets in its place
+           * @example barbell-bench-press
+           */
+          exercise_slug: string;
+          /** @enum {string} */
+          kind: "replace_exercise";
+          /**
+           * @description The Exercise it replaces
+           * @example barbell-bench-press
+           */
+          replaced_exercise_slug: string;
+          /** @description Every set of the replacement, in order */
+          sets: components["schemas"]["PlanUpdateSet"][];
+        }
+      | {
+          /**
+           * @description The Exercise appended to the Workout
+           * @example barbell-bench-press
+           */
+          exercise_slug: string;
+          /** @enum {string} */
+          kind: "add_exercise";
+          /** @description In order */
+          sets: components["schemas"]["PlanUpdateSet"][];
+        }
+      | {
+          /**
+           * @description The Exercise removed from the Workout
+           * @example barbell-bench-press
+           */
+          exercise_slug: string;
+          /** @enum {string} */
+          kind: "remove_exercise";
+        }
+      | {
+          /**
+           * @description The Exercise that gets more sets
+           * @example barbell-bench-press
+           */
+          exercise_slug: string;
+          /** @enum {string} */
+          kind: "add_sets";
+          /** @description The sets appended after its last one, in order */
+          sets: components["schemas"]["PlanUpdateSet"][];
+        };
+    /** @description A set the Plan gets, its targets taken from what the User logged */
+    PlanUpdateSet: {
+      /** @example 8 */
+      reps: number;
+      /**
+       * @description In `weight_unit`, as logged
+       * @example 80
+       */
+      weight: number;
     };
     AddWorkoutSessionExercise: {
       /**

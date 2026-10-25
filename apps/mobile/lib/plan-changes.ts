@@ -1,11 +1,16 @@
-import {
-  getWeightLabel,
-  type MeasurementSystem,
-  type PlanChange,
-  type PlanChangeKind,
-  type PlanChangeSet,
-  type PlanChanges,
-} from "@fitme/core";
+import type { components } from "~/lib/api/schema";
+
+/**
+ * The Public API's Plan Update (`GET /v1/workout-sessions/{id}/plan-update`):
+ * the Plan and Workout a finished Workout Session would update (null when
+ * they're gone), its changes in Workout order, Exercises as slugs, and the
+ * unit of their weights.
+ */
+export type PlanUpdate = components["schemas"]["PlanUpdate"];
+export type PlanUpdateChange = components["schemas"]["PlanUpdateChange"];
+export type PlanUpdateChangeKind = PlanUpdateChange["kind"];
+type PlanUpdateSet = components["schemas"]["PlanUpdateSet"];
+type WeightUnit = PlanUpdate["weight_unit"];
 
 export interface PlanChangeLine {
   /** The line spelled out for VoiceOver, without `×` and `·`. */
@@ -13,16 +18,15 @@ export interface PlanChangeLine {
   text: string;
 }
 
-const SPOKEN_WEIGHT_UNIT: Record<MeasurementSystem, string> = {
-  metric: "kilograms",
-  uk: "pounds",
-  us: "pounds",
+const SPOKEN_WEIGHT_UNIT: Record<WeightUnit, string> = {
+  kg: "kilograms",
+  lbs: "pounds",
 };
 
-const setsText = (sets: PlanChangeSet[], unit: string) =>
+const setsText = (sets: PlanUpdateSet[], unit: string) =>
   `${sets.map(({ reps, weight }) => `${reps}×${weight}`).join(", ")} ${unit}`;
 
-const spokenSets = (sets: PlanChangeSet[], unit: string) =>
+const spokenSets = (sets: PlanUpdateSet[], unit: string) =>
   sets
     .map(
       ({ reps, weight }) =>
@@ -30,21 +34,30 @@ const spokenSets = (sets: PlanChangeSet[], unit: string) =>
     )
     .join(", ");
 
+/** Every Exercise slug the changes name, for the Exercise Library. */
+export const planUpdateSlugs = (changes: PlanUpdateChange[]): string[] =>
+  changes.flatMap((change) =>
+    change.kind === "replace_exercise"
+      ? [change.replaced_exercise_slug, change.exercise_slug]
+      : [change.exercise_slug]
+  );
+
 /**
- * The sheet's line for one change, weights in the User's unit:
- * "Replace Bench Press with Dumbbell Press · 8×30, 6×30 kg", "Add Cable Fly ·
- * 12×15 kg", "Remove Dips", "Add 1 set to Squat · 5×100 kg".
+ * The sheet's line for one change, weights in `weightUnit` and each Exercise
+ * by `nameOf` its slug: "Replace Bench Press with Dumbbell Press · 8×30, 6×30
+ * kg", "Add Cable Fly · 12×15 kg", "Remove Dips", "Add 1 set to Squat · 5×100
+ * kg".
  */
 export function formatPlanChange(
-  change: PlanChange,
-  measurementSystem: MeasurementSystem
+  change: PlanUpdateChange,
+  weightUnit: WeightUnit,
+  nameOf: (slug: string) => string
 ): PlanChangeLine {
-  const unit = getWeightLabel(measurementSystem) ?? "kg";
-  const exercise = change.exercise.name;
+  const exercise = nameOf(change.exercise_slug);
   let title: string;
   switch (change.kind) {
     case "replace_exercise":
-      title = `Replace ${change.replaced_exercise.name} with ${exercise}`;
+      title = `Replace ${nameOf(change.replaced_exercise_slug)} with ${exercise}`;
       break;
     case "add_exercise":
       title = `Add ${exercise}`;
@@ -65,16 +78,16 @@ export function formatPlanChange(
     }
   }
   return {
-    accessibilityLabel: `${title}: ${spokenSets(change.sets, SPOKEN_WEIGHT_UNIT[measurementSystem])}`,
-    text: `${title} · ${setsText(change.sets, unit)}`,
+    accessibilityLabel: `${title}: ${spokenSets(change.sets, SPOKEN_WEIGHT_UNIT[weightUnit])}`,
+    text: `${title} · ${setsText(change.sets, weightUnit)}`,
   };
 }
 
 /** How many changes of each kind, for analytics. */
 export function countPlanChanges(
-  changes: PlanChange[]
-): Record<PlanChangeKind, number> {
-  const counts: Record<PlanChangeKind, number> = {
+  changes: PlanUpdateChange[]
+): Record<PlanUpdateChangeKind, number> {
+  const counts: Record<PlanUpdateChangeKind, number> = {
     add_exercise: 0,
     add_sets: 0,
     remove_exercise: 0,
@@ -89,7 +102,7 @@ export function countPlanChanges(
 /** What every Plan Update analytics event says about the question. */
 export const planUpdateProperties = (
   sessionId: string,
-  { plan, workout }: PlanChanges
+  { plan, workout }: PlanUpdate
 ) => ({
   plan_id: plan?.id,
   workout_id: workout?.id,

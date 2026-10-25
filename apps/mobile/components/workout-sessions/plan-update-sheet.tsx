@@ -1,8 +1,3 @@
-import type {
-  MeasurementSystem,
-  PlanChangeKind,
-  PlanChanges,
-} from "@fitme/core";
 import * as Sentry from "@sentry/react-native";
 import { useQueryClient } from "@tanstack/react-query";
 import { useCallback, useEffect, useRef, useState } from "react";
@@ -20,8 +15,16 @@ import {
   type PlanUpdatePrompt,
   usePlanUpdatePrompt,
 } from "~/hooks/plan-update-prompt";
-import { useApplyPlanChangesMutation } from "~/hooks/queries/workout-sessions";
-import { formatPlanChange, planUpdateProperties } from "~/lib/plan-changes";
+import { shownExercise, useExercises } from "~/hooks/queries/exercise-library";
+import { useApplyPlanUpdateMutation } from "~/hooks/queries/workout-sessions";
+import { rateLimitedFor } from "~/lib/api/client";
+import {
+  formatPlanChange,
+  type PlanUpdate,
+  type PlanUpdateChangeKind,
+  planUpdateProperties,
+  planUpdateSlugs,
+} from "~/lib/plan-changes";
 import { segmentClient } from "~/lib/segment";
 
 /** Every query that reads a Plan's Workouts, refetched once changes apply. */
@@ -32,7 +35,7 @@ const PLAN_QUERY_KEYS = [
   ["workout-exercise"],
 ];
 
-const CHANGE_SYMBOL: Record<PlanChangeKind, SFSymbol> = {
+const CHANGE_SYMBOL: Record<PlanUpdateChangeKind, SFSymbol> = {
   add_exercise: "plus.circle",
   add_sets: "plus.circle",
   remove_exercise: "minus.circle",
@@ -43,28 +46,34 @@ interface PlanUpdateSheetProps {
   /** The apply failed: shows the error and turns Update plan into Retry. */
   hasFailed: boolean;
   isApplying: boolean;
-  measurementSystem: MeasurementSystem;
   onKeep: () => void;
   onUpdate: () => void;
   open: boolean;
-  preview: PlanChanges | null;
+  preview: PlanUpdate | null;
+  /** The apply was rate limited: the seconds to wait before Retry can work. */
+  waitSeconds: number | null;
 }
 
 /**
  * "Update your plan?": lists exactly what a finished Workout Session would
- * save to its Workout, one line per change. Purely presentational; the host
- * applies the changes and moves on. It can't be swiped away: the User picks
+ * save to its Workout, one line per change, each Exercise by its Exercise
+ * Library name (a slug the library can't resolve shows the slug's name) and
+ * weights in the preview's `weight_unit`. The host applies the changes and
+ * moves on. It can't be swiped away: the User picks
  * Update plan or Keep plan as is.
  */
 export function PlanUpdateSheet({
   hasFailed,
   isApplying,
-  measurementSystem,
   onKeep,
   onUpdate,
   open,
   preview,
+  waitSeconds,
 }: PlanUpdateSheetProps) {
+  const exercises = useExercises(planUpdateSlugs(preview?.changes ?? []));
+  const nameOf = (slug: string) =>
+    (exercises[slug] ?? shownExercise(slug, null)).name;
   const handleIsPresentedChange = useCallback(
     (isPresented: boolean) => {
       // Dismissal is disabled; should the system close it anyway, the Plan
@@ -93,7 +102,11 @@ export function PlanUpdateSheet({
           </VStack>
           <VStack className="items-stretch gap-3" testID="plan-update-changes">
             {preview.changes.map((change, index) => {
-              const line = formatPlanChange(change, measurementSystem);
+              const line = formatPlanChange(
+                change,
+                preview.weight_unit,
+                nameOf
+              );
               return (
                 <View
                   accessibilityLabel={line.accessibilityLabel}
@@ -114,7 +127,9 @@ export function PlanUpdateSheet({
           </VStack>
           {hasFailed ? (
             <ErrorMessage>
-              Couldn't update your plan. Check your connection and try again.
+              {waitSeconds === null
+                ? "Couldn't update your plan. Check your connection and try again."
+                : `Too many requests. Try again in ${waitSeconds} s.`}
             </ErrorMessage>
           ) : null}
           <VStack className="items-stretch gap-3">
@@ -153,11 +168,12 @@ export function PlanUpdateSheetHost() {
   const prompt = usePlanUpdatePrompt();
   const queryClient = useQueryClient();
   const {
+    error: applyError,
     isError: hasFailed,
     isPending: isApplying,
     mutate: apply,
     reset,
-  } = useApplyPlanChangesMutation();
+  } = useApplyPlanUpdateMutation();
   // A ref, so a second tap before the re-render is still ignored.
   const answeredRef = useRef(false);
   // The last question, kept so the content stays while the sheet slides away.
@@ -185,7 +201,10 @@ export function PlanUpdateSheetHost() {
       { sessionId: prompt.sessionId },
       {
         onError: (error) => {
-          Sentry.captureException(error);
+          // Too many requests is the User's to wait out, not a bug.
+          if (rateLimitedFor(error) === null) {
+            Sentry.captureException(error);
+          }
           answeredRef.current = false;
         },
         onSuccess: () => {
@@ -219,11 +238,11 @@ export function PlanUpdateSheetHost() {
     <PlanUpdateSheet
       hasFailed={hasFailed}
       isApplying={isApplying}
-      measurementSystem={shown?.measurementSystem ?? "metric"}
       onKeep={handleKeep}
       onUpdate={handleUpdate}
       open={!!prompt}
       preview={shown?.preview ?? null}
+      waitSeconds={applyError ? rateLimitedFor(applyError) : null}
     />
   );
 }

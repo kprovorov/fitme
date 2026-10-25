@@ -1,4 +1,6 @@
+import type { PlanUpdate as PlanUpdateAnswer } from "@fitme/services/plan-update";
 import { createRoute, OpenAPIHono, z } from "@hono/zod-openapi";
+import type { Context } from "hono";
 import { type ApiEnv, bearerSecurity, requires } from "../auth.js";
 import { checkExerciseSlugs, slugRefusal } from "../library.js";
 import {
@@ -324,6 +326,131 @@ const getWorkoutSession = createRoute({
   summary: "Get one of the User's Workout Sessions",
 });
 
+const slugField = (description: string) =>
+  z.string().openapi({ description, example: "barbell-bench-press" });
+
+const PlanUpdateSet = z
+  .object({
+    reps: z.int().openapi({ example: 8 }),
+    weight: z.number().openapi({
+      description: "In `weight_unit`, as logged",
+      example: 80,
+    }),
+  })
+  .openapi("PlanUpdateSet", {
+    description:
+      "A set the Plan gets, its targets taken from what the User logged",
+  });
+
+const planUpdateSets = z
+  .array(PlanUpdateSet)
+  .openapi({ description: "In order" });
+
+const PlanUpdateChange = z
+  .discriminatedUnion("kind", [
+    z.object({
+      exercise_slug: slugField("The Exercise the Workout gets in its place"),
+      kind: z.literal("replace_exercise"),
+      replaced_exercise_slug: slugField("The Exercise it replaces"),
+      sets: planUpdateSets.openapi({
+        description: "Every set of the replacement, in order",
+      }),
+    }),
+    z.object({
+      exercise_slug: slugField("The Exercise appended to the Workout"),
+      kind: z.literal("add_exercise"),
+      sets: planUpdateSets,
+    }),
+    z.object({
+      exercise_slug: slugField("The Exercise removed from the Workout"),
+      kind: z.literal("remove_exercise"),
+    }),
+    z.object({
+      exercise_slug: slugField("The Exercise that gets more sets"),
+      kind: z.literal("add_sets"),
+      sets: planUpdateSets.openapi({
+        description: "The sets appended after its last one, in order",
+      }),
+    }),
+  ])
+  .openapi("PlanUpdateChange", {
+    description:
+      "One change to the Workout, by `kind`. Exercises are Exercise slugs only: their names come from the Exercise Library",
+  });
+
+const PlanUpdate = z
+  .object({
+    changes: z.array(PlanUpdateChange).openapi({
+      description:
+        "In Workout order. None for a Workout Session still open, without a Workout, of a deleted Plan, whose Exercises can't be matched (a repeated `order`, over 50 Exercises or 100 sets of one), or whose Plan Update is already applied",
+    }),
+    // Inline rather than named components: OpenAPI 3.0 can only mark an
+    // inline schema nullable.
+    plan: z.object({ id: Id, name: z.string().nullable() }).nullable().openapi({
+      description:
+        "The Plan it updates, `null` when the Workout is gone or its Plan deleted",
+    }),
+    weight_unit: WeightUnit,
+    workout: z.object({ id: Id, name: z.string() }).nullable().openapi({
+      description:
+        "The Workout it updates, `null` when it's gone or its Plan deleted",
+    }),
+  })
+  .openapi("PlanUpdate");
+
+const PlanUpdateResponse = z.object({ data: PlanUpdate });
+
+/** Both Plan Update routes' answer: the Plan Update, or 404 without the Workout Session. */
+const planUpdateAnswer = (
+  c: Context<ApiEnv>,
+  planUpdate: PlanUpdateAnswer | null
+) =>
+  planUpdate
+    ? c.json(PlanUpdateResponse.parse({ data: planUpdate }), 200)
+    : c.json(notFound, 404);
+
+const previewPlanUpdateRoute = createRoute({
+  description:
+    "The Plan Update of a finished Workout Session: the changes it made to its Workout (Exercises replaced, added or removed, sets added), which the User can save to the Plan. Writes nothing. A Workout Session without a Plan Update answers no changes.",
+  method: "get",
+  middleware: [requires("read")] as const,
+  path: "/{id}/plan-update",
+  request: { params: z.object({ id: Id }) },
+  responses: {
+    200: {
+      content: { "application/json": { schema: PlanUpdateResponse } },
+      description: "The Plan Update, possibly without changes",
+    },
+    400: invalidRequestResponse,
+    401: unauthorizedResponse,
+    404: notFoundResponse,
+    429: rateLimitedResponse,
+  },
+  security: bearerSecurity,
+  summary: "Preview a Workout Session's Plan Update",
+});
+
+const applyPlanUpdateRoute = createRoute({
+  description:
+    "Applies the Plan Update of a finished Workout Session to its Workout in one transaction (replacements and added sets, then removals renumbering the rest from 1, then added Exercises appended) and answers what it applied. Once applied, the Workout Session has no Plan Update: a repeated or concurrent apply answers no changes and writes nothing.",
+  method: "post",
+  middleware: [requires("write")] as const,
+  path: "/{id}/plan-update",
+  request: { params: z.object({ id: Id }) },
+  responses: {
+    200: {
+      content: { "application/json": { schema: PlanUpdateResponse } },
+      description: "What was applied, possibly nothing",
+    },
+    400: invalidRequestResponse,
+    401: unauthorizedResponse,
+    404: notFoundResponse,
+    429: rateLimitedResponse,
+  },
+  security: bearerSecurity,
+  summary: "Apply a Workout Session's Plan Update",
+});
+
 export const workoutSessions = new OpenAPIHono<ApiEnv>({
   defaultHook: invalidRequest,
 })
@@ -376,6 +503,18 @@ export const workoutSessions = new OpenAPIHono<ApiEnv>({
       200
     );
   })
+  .openapi(previewPlanUpdateRoute, async (c) =>
+    planUpdateAnswer(
+      c,
+      await c.var.getServices().previewPlanUpdate(c.req.valid("param").id)
+    )
+  )
+  .openapi(applyPlanUpdateRoute, async (c) =>
+    planUpdateAnswer(
+      c,
+      await c.var.getServices().applyPlanUpdate(c.req.valid("param").id)
+    )
+  )
   .openapi(addExerciseRoute, async (c) => {
     const { id } = c.req.valid("param");
     const { exercise_slug } = c.req.valid("json");

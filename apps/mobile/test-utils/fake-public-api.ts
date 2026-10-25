@@ -49,6 +49,7 @@ import { library } from "./fake-exercise-library";
 import {
   backend,
   type ProfileRow,
+  type SeedPlan,
   type SeedPlanSet,
   type SessionRow,
   type SetRow,
@@ -673,6 +674,241 @@ const addSessionExercise = async (
   });
 };
 
+/** Workout Sessions whose Plan Update has been applied. */
+const appliedPlanUpdates = new Set<string>();
+
+/** No Plan Update past this many Exercises, or sets of one, on either side. */
+const MAX_PLAN_UPDATE_EXERCISES = 50;
+const MAX_PLAN_UPDATE_SETS = 100;
+const DEFAULT_REST = 90;
+
+interface PlanUpdateSet {
+  reps: number;
+  rest: number;
+  weight: number;
+}
+
+type PlanUpdateChange =
+  | {
+      exercise_slug: string;
+      kind: "replace_exercise";
+      replaced_exercise_slug: string;
+      sets: PlanUpdateSet[];
+    }
+  | { exercise_slug: string; kind: "add_exercise"; sets: PlanUpdateSet[] }
+  | { exercise_slug: string; kind: "remove_exercise" }
+  | { exercise_slug: string; kind: "add_sets"; sets: PlanUpdateSet[] };
+
+/** A seeded Workout as `backend.nestedPlan` shows it: orders, ids and set targets. */
+type PlannedWorkout = ReturnType<typeof backend.nestedPlan>["workouts"][number];
+
+/** A change, with the index of the Workout Exercise it applies to. */
+type IndexedChange = PlanUpdateChange & { index: number };
+
+const hasRepeat = (orders: number[]) => new Set(orders).size !== orders.length;
+
+/**
+ * `previewPlanUpdate`'s changes (`packages/services/src/plan-update.ts`),
+ * matching the Workout Session's Exercises to the Workout's by `order`, each
+ * with the Workout Exercise's index it applies to.
+ */
+const planUpdateChanges = (session: SessionRow, workout: PlannedWorkout) => {
+  const sessionExercises = backend.exercises
+    .filter((exercise) => exercise.workout_session_id === session.id)
+    .map((exercise) => ({
+      order: exercise.order,
+      sets: backend.sets
+        .filter((set) => set.workout_session_exercise_id === exercise.id)
+        .sort((a, b) => a.order - b.order),
+      slug: exercise.exercise_slug,
+    }));
+  const planExercises = workout.exercises.map((exercise) => ({
+    order: exercise.order,
+    rests: exercise.sets.map((set) => set.rest_recommended),
+    slug: exercise.exercise_slug,
+  }));
+  if (
+    hasRepeat(sessionExercises.map(({ order }) => order)) ||
+    hasRepeat(planExercises.map(({ order }) => order)) ||
+    sessionExercises.length > MAX_PLAN_UPDATE_EXERCISES ||
+    planExercises.length > MAX_PLAN_UPDATE_EXERCISES ||
+    sessionExercises.some(({ sets }) => sets.length > MAX_PLAN_UPDATE_SETS) ||
+    planExercises.some(({ rests }) => rests.length > MAX_PLAN_UPDATE_SETS)
+  ) {
+    return [];
+  }
+  const orders = [
+    ...new Set([...sessionExercises, ...planExercises].map((e) => e.order)),
+  ].sort((a, b) => a - b);
+  const logged = (sets: SetRow[]) =>
+    sets.filter((set) => set.reps_completed !== null);
+  const toSet = (set: SetRow, rest: number): PlanUpdateSet => ({
+    reps: set.reps_completed as number,
+    rest,
+    weight: set.weight_completed ?? 0,
+  });
+  return orders.flatMap((order): IndexedChange[] => {
+    const played = sessionExercises.find((e) => e.order === order);
+    const planned = planExercises.find((e) => e.order === order);
+    const index = planExercises.findIndex((e) => e.order === order);
+    if (planned && !played) {
+      return [{ exercise_slug: planned.slug, index, kind: "remove_exercise" }];
+    }
+    if (!played) {
+      return [];
+    }
+    if (!planned) {
+      const sets = logged(played.sets)
+        .slice(0, MAX_SETS_PER_EXERCISE)
+        .map((set) => toSet(set, DEFAULT_REST));
+      return sets.length > 0
+        ? [{ exercise_slug: played.slug, index, kind: "add_exercise", sets }]
+        : [];
+    }
+    if (played.slug !== planned.slug) {
+      const last = logged(played.sets).at(-1);
+      if (!last) {
+        return [];
+      }
+      const sets = played.sets
+        .slice(0, MAX_SETS_PER_EXERCISE)
+        .map((set, setIndex) =>
+          toSet(
+            set.reps_completed === null ? last : set,
+            planned.rests[setIndex] ?? planned.rests.at(-1) ?? DEFAULT_REST
+          )
+        );
+      return [
+        {
+          exercise_slug: played.slug,
+          index,
+          kind: "replace_exercise",
+          replaced_exercise_slug: planned.slug,
+          sets,
+        },
+      ];
+    }
+    const sets = logged(
+      played.sets.filter(
+        (set, setIndex) =>
+          set.reps_recommended === null || setIndex + 1 > planned.rests.length
+      )
+    )
+      .slice(0, Math.max(MAX_SETS_PER_EXERCISE - planned.rests.length, 0))
+      .map((set) => toSet(set, planned.rests.at(-1) ?? DEFAULT_REST));
+    return sets.length > 0
+      ? [{ exercise_slug: played.slug, index, kind: "add_sets", sets }]
+      : [];
+  });
+};
+
+const planSet = ({ reps, rest, weight }: PlanUpdateSet): SeedPlanSet => ({
+  reps_recommended: reps,
+  rest_recommended: rest,
+  weight_recommended: weight,
+});
+
+/**
+ * Writes the changes to the seeded Workout in the service's order:
+ * replacements and added sets, then removals (the rest renumbered, as an
+ * Exercise's `order` is its position), then added Exercises appended.
+ */
+const applyPlanUpdateChanges = (
+  workout: SeedPlan["workouts"][number],
+  planned: PlannedWorkout,
+  changes: IndexedChange[]
+) => {
+  const exercises = planned.exercises.map((exercise) => ({
+    sets: exercise.sets.map(
+      ({ reps_recommended, rest_recommended, weight_recommended }) => ({
+        reps_recommended,
+        rest_recommended,
+        weight_recommended,
+      })
+    ),
+    slug: exercise.exercise_slug,
+  }));
+  for (const change of changes) {
+    const exercise = exercises[change.index];
+    if (change.kind === "replace_exercise" && exercise) {
+      exercise.slug = change.exercise_slug;
+      exercise.sets = change.sets.map(planSet);
+    } else if (change.kind === "add_sets" && exercise) {
+      exercise.sets.push(...change.sets.map(planSet));
+    }
+  }
+  const removed = new Set(
+    changes.flatMap((change) =>
+      change.kind === "remove_exercise" ? [change.index] : []
+    )
+  );
+  workout.exercises = [
+    ...exercises.filter((_, index) => !removed.has(index)),
+    ...changes.flatMap((change) =>
+      change.kind === "add_exercise"
+        ? [{ sets: change.sets.map(planSet), slug: change.exercise_slug }]
+        : []
+    ),
+  ];
+};
+
+/**
+ * `previewPlanUpdate` / `applyPlanUpdate`: the Workout Session's changes to
+ * its Workout (none while it's open, without a live Plan's Workout, or once
+ * applied), applied to the seeded Plan with `apply`.
+ */
+const planUpdate =
+  (apply: boolean) =>
+  (_body: unknown, sessionId: string): Response => {
+    const session = backend.session(sessionId);
+    if (!session) {
+      return notFound("Workout Session");
+    }
+    const found = session.workout_id ? findWorkout(session.workout_id) : null;
+    if (!found || found.plan.deleted_at) {
+      return json(200, {
+        data: {
+          changes: [],
+          plan: null,
+          weight_unit: weightUnit(),
+          workout: null,
+        },
+      });
+    }
+    const { plan, workout } = found;
+    const planned = backend
+      .nestedPlan(plan)
+      .workouts.find(({ id }) => id === workout.id);
+    const changes =
+      planned &&
+      session.finished_at !== null &&
+      !appliedPlanUpdates.has(session.id)
+        ? planUpdateChanges(session, planned)
+        : [];
+    if (apply && planned && changes.length > 0) {
+      applyPlanUpdateChanges(workout, planned, changes);
+      appliedPlanUpdates.add(session.id);
+    }
+    return json(200, {
+      data: {
+        changes: changes.map(({ index: _index, ...change }) =>
+          "sets" in change
+            ? {
+                ...change,
+                sets: change.sets.map(({ reps, weight }) => ({
+                  reps,
+                  weight,
+                })),
+              }
+            : change
+        ),
+        plan: { id: plan.id, name: plan.name },
+        weight_unit: weightUnit(),
+        workout: { id: workout.id, name: workout.name },
+      },
+    });
+  };
+
 /** `apps/api`'s answer, from the same list in `@fitme/core`. */
 const listArnoldModels = () =>
   json(200, {
@@ -743,6 +979,16 @@ const ROUTES: Array<{
     route: "POST /v1/workout-sessions/{id}/exercises",
   },
   {
+    handler: planUpdate(false),
+    path: /^\/v1\/workout-sessions\/(?<id>[^/]+)\/plan-update$/,
+    route: "GET /v1/workout-sessions/{id}/plan-update",
+  },
+  {
+    handler: planUpdate(true),
+    path: /^\/v1\/workout-sessions\/(?<id>[^/]+)\/plan-update$/,
+    route: "POST /v1/workout-sessions/{id}/plan-update",
+  },
+  {
     handler: logSet,
     path: /^\/v1\/workout-session-sets\/(?<id>[^/]+)$/,
     route: "PATCH /v1/workout-session-sets/{id}",
@@ -781,6 +1027,7 @@ class FakePublicApi {
   private pauses: Array<{ resumed: Promise<void>; route: string }> = [];
 
   reset() {
+    appliedPlanUpdates.clear();
     this.baseUrl = FAKE_PUBLIC_API_URL;
     this.requests = [];
     this.unhandled = [];

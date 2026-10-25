@@ -27,7 +27,7 @@ const mockDismiss = jest.fn();
 const mockFinishRpc =
   jest.fn<(variables: { sessionId: string }) => Promise<unknown>>();
 const mockFetchSession = jest.fn<() => Promise<unknown>>();
-const mockPlanChangesRpc =
+const mockPlanUpdate =
   jest.fn<
     (sessionId: string, options: { apply: boolean }) => Promise<unknown>
   >();
@@ -50,16 +50,6 @@ jest.mock("~/components/ui/dialog", () =>
   jest.requireActual("~/test-utils/dialog-stub")
 );
 jest.mock("~/lib/segment", () => ({ segmentClient: { track: jest.fn() } }));
-jest.mock("~/hooks/queries/profiles", () => {
-  const { createQuery } =
-    jest.requireActual<typeof import("react-query-kit")>("react-query-kit");
-  return {
-    useProfileQuery: createQuery({
-      fetcher: () => Promise.resolve({ measurement_system: "metric" }),
-      queryKey: ["profile"],
-    }),
-  };
-});
 
 jest.mock("~/components/ui/button", () => {
   const { Pressable, Text } =
@@ -94,11 +84,11 @@ jest.mock("~/hooks/queries/workout-sessions", () => {
   const FINISH_WORKOUT_SESSION_MUTATION_KEY = ["finish-workout-session"];
   return {
     FINISH_WORKOUT_SESSION_MUTATION_KEY,
-    fetchPlanChanges: (sessionId: string) =>
-      mockPlanChangesRpc(sessionId, { apply: false }),
-    useApplyPlanChangesMutation: createMutation({
+    fetchPlanUpdate: (sessionId: string) =>
+      mockPlanUpdate(sessionId, { apply: false }),
+    useApplyPlanUpdateMutation: createMutation({
       mutationFn: ({ sessionId }: { sessionId: string }) =>
-        mockPlanChangesRpc(sessionId, { apply: true }),
+        mockPlanUpdate(sessionId, { apply: true }),
     }),
     useCreateWorkoutSessionMutation: createMutation({
       mutationFn: () => Promise.reject(new Error("not expected")),
@@ -163,9 +153,10 @@ const partlyLogged = {
 describe("WorkoutCard's Finish Workout", () => {
   beforeEach(() => {
     jest.clearAllMocks();
-    mockPlanChangesRpc.mockResolvedValue({
+    mockPlanUpdate.mockResolvedValue({
       changes: [],
       plan: null,
+      weight_unit: "kg",
       workout: null,
     });
     jest.spyOn(Alert, "alert").mockImplementation(() => undefined);
@@ -177,11 +168,10 @@ describe("WorkoutCard's Finish Workout", () => {
 
   it("asks to update the Plan, even once the card is gone, then opens the summary", async () => {
     mockFinishRpc.mockResolvedValue({});
-    mockPlanChangesRpc.mockResolvedValueOnce({
-      changes: [
-        { exercise: { name: "Dips", slug: "dips" }, kind: "remove_exercise" },
-      ],
+    mockPlanUpdate.mockResolvedValueOnce({
+      changes: [{ exercise_slug: "dips", kind: "remove_exercise" }],
       plan: { id: "plan-1", name: "PPL" },
+      weight_unit: "kg",
       workout: { id: "workout-1", name: "Push Day" },
     });
     const { removeCard } = await renderCard({
@@ -197,9 +187,10 @@ describe("WorkoutCard's Finish Workout", () => {
     expect(mockPush).not.toHaveBeenCalled();
 
     await removeCard();
-    mockPlanChangesRpc.mockResolvedValueOnce({
+    mockPlanUpdate.mockResolvedValueOnce({
       changes: [],
       plan: null,
+      weight_unit: "kg",
       workout: null,
     });
     await fireEvent.press(screen.getByRole("button", { name: "Update plan" }));
@@ -209,7 +200,7 @@ describe("WorkoutCard's Finish Workout", () => {
         "/workout-sessions/session-1/summary"
       )
     );
-    expect(mockPlanChangesRpc).toHaveBeenLastCalledWith("session-1", {
+    expect(mockPlanUpdate).toHaveBeenLastCalledWith("session-1", {
       apply: true,
     });
   });

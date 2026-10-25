@@ -3,10 +3,10 @@
  *
  * Mounts the real workout session screens, exercise screen, set rows, finish
  * suggestion controller and finish flow, for both workout session routes
- * (opened from a plan and from `/workout-sessions/:id`), and the Workout card
- * that starts a session. Only the edges are swapped out: Supabase for an
+ * (opened from a plan and from `/workout-sessions/:id`), the Workout card
+ * that starts and finishes a session, and the "Update your plan?" sheet. Only the edges are swapped out: Supabase for an
  * in-memory backend, the Public API for a fake over the same rows (starting,
- * logging a set and finishing go through it), expo-router for a small
+ * logging a set, finishing and the Plan Update go through it), expo-router for a small
  * stack navigator that keeps lower screens mounted like the native stack, and
  * the SwiftUI-backed primitives (Button, Dialog, menus) for plain
  * React Native stand-ins. See `e2e/manual/finish-workout-suggestion.md` for
@@ -35,10 +35,16 @@ import PlanSessionExerciseScreen from "~/app/plans/[planId]/workouts/[workoutId]
 import PlanSessionScreen from "~/app/plans/[planId]/workouts/[workoutId]/sessions/[sessionId]/index";
 import HistorySessionScreen from "~/app/workout-sessions/[workoutSessionId]";
 import HomeView from "~/components/views/home-view";
+import { PlanUpdateSheetHost } from "~/components/workout-sessions/plan-update-sheet";
+import { closePlanUpdatePrompt } from "~/hooks/plan-update-prompt";
 import { usePlansQuery } from "~/hooks/queries/plans";
 import { storage } from "~/lib/mmkv";
-import { serveLibrary } from "~/test-utils/fake-exercise-library";
-import { fakePublicApi } from "~/test-utils/fake-public-api";
+import { segmentClient } from "~/lib/segment";
+import {
+  libraryExercise,
+  serveLibrary,
+} from "~/test-utils/fake-exercise-library";
+import { FAKE_USER_ID, fakePublicApi } from "~/test-utils/fake-public-api";
 import {
   backend,
   libraryExerciseNamed,
@@ -323,6 +329,8 @@ const renderApp = async () => {
   await render(
     <QueryClientProvider client={queryClient}>
       <Navigator />
+      {/* In the root layout, next to every screen. */}
+      <PlanUpdateSheetHost />
     </QueryClientProvider>
   );
 };
@@ -833,9 +841,9 @@ describe.each(ENTRY_ROUTES)(
         workoutSessionId: "s1",
       });
       expect(fakePublicApi.count(FINISH)).toBe(1);
-      expect(fakePublicApi.requests.at(-1)?.path).toBe(
-        "/v1/workout-sessions/s1/finish"
-      );
+      expect(
+        fakePublicApi.requests.find(({ route }) => route === FINISH)?.path
+      ).toBe("/v1/workout-sessions/s1/finish");
       expect(backend.session("s1")?.finished_at).not.toBeNull();
       expect(isSuggestionShown()).toBe(false);
     });
@@ -1254,5 +1262,341 @@ describe("starting a Workout from Home", () => {
       "Too many requests: please try again in 12 s."
     );
     expect(backend.sessions).toEqual([]);
+  });
+});
+
+describe("the Plan Update after finishing from Home", () => {
+  const PLAN = {
+    id: "plan-1",
+    is_active: true,
+    name: "Strength",
+    workouts: [
+      {
+        exercises: [{ sets: 2, slug: "squat" }],
+        id: "w1",
+        name: "Leg Day",
+      },
+      {
+        exercises: [{ sets: 1, slug: "bench-press" }],
+        id: "w2",
+        name: "Push Day",
+      },
+    ],
+  };
+
+  const PREVIEW = "GET /v1/workout-sessions/{id}/plan-update";
+  const APPLY = "POST /v1/workout-sessions/{id}/plan-update";
+  const SESSION = "played-1";
+
+  const UPDATE = { name: "Update plan" } as const;
+  const RETRY = { name: "Retry" } as const;
+  const KEEP = { name: "Keep plan as is" } as const;
+  const APPLY_ERROR =
+    "Couldn't update your plan. Check your connection and try again.";
+
+  const ADDED_SET_LINE = "Add 1 set to Squat · 5×100 kg";
+  const ADDED_EXERCISE_LINE = "Add Walking Lunge · 12×20 kg";
+  // Unknown to the Exercise Library: the slug's name.
+  const UNRESOLVED_LINE = "Add Farmer carry · 1×40 kg";
+
+  const eventProperties = {
+    plan_id: "plan-1",
+    workout_id: "w1",
+    workout_session_id: SESSION,
+  };
+
+  let nextSet = 0;
+
+  /** A logged set; `planned` when copied from the Plan (it has targets). */
+  const loggedSet = (
+    exerciseId: string,
+    order: number,
+    reps: number,
+    weight: number,
+    planned: boolean
+  ) => {
+    nextSet += 1;
+    backend.sets.push({
+      id: `${exerciseId}-s${nextSet}`,
+      logged_at: "2026-10-08T10:30:00.000Z",
+      order,
+      reps_completed: reps,
+      reps_recommended: planned ? 10 : null,
+      rest_recommended: planned ? 90 : null,
+      weight_completed: weight,
+      weight_recommended: planned ? 0 : null,
+      workout_session_exercise_id: exerciseId,
+    });
+  };
+
+  /**
+   * An open Workout Session of Leg Day with both planned Squat sets logged
+   * and, with `changed`, a third Squat set, a Walking Lunge and a Farmer
+   * carry added (as the session screen adds them), each logged.
+   */
+  const seedPlayedSession = ({ changed }: { changed: boolean }) => {
+    backend.sessions.push({
+      finished_at: null,
+      id: SESSION,
+      plan_id: "plan-1",
+      started_at: "2026-10-08T10:00:00.000Z",
+      workout_id: "w1",
+      workoutName: "Leg Day",
+    });
+    const exercise = (id: string, slug: string, order: number) =>
+      backend.exercises.push({
+        exercise_slug: slug,
+        id,
+        order,
+        workout_session_id: SESSION,
+      });
+    exercise("played-squat", "squat", 1);
+    loggedSet("played-squat", 1, 5, 100, true);
+    loggedSet("played-squat", 2, 5, 100, true);
+    if (changed) {
+      loggedSet("played-squat", 3, 5, 100, false);
+      exercise("played-lunge", "lunge", 2);
+      loggedSet("played-lunge", 1, 12, 20, false);
+      exercise("played-carry", "farmer-carry", 3);
+      loggedSet("played-carry", 1, 1, 40, false);
+    }
+  };
+
+  const startApp = async ({ changed = true } = {}) => {
+    nextSet = 0;
+    serveLibrary([
+      ...LIBRARY.filter(({ slug }) => slug !== "lunge"),
+      libraryExercise("lunge", { name: "Walking Lunge" }),
+    ]);
+    backend.seedPlan(structuredClone(PLAN));
+    seedPlayedSession({ changed });
+    await renderApp();
+    await act(() => mockNavigator.set([toRoute("/")]));
+    await settle();
+  };
+
+  const finishFromHome = async () => {
+    await fireEvent.press(await focused().findByText("Finish Workout"));
+    await settle();
+  };
+
+  const legDay = () =>
+    backend.plans[0]?.workouts.find(({ id }) => id === "w1")?.exercises;
+
+  // A plain mock: `jest.mocked` on the client's overloads is too deep to type.
+  const track = () => segmentClient.track as unknown as jest.Mock;
+
+  const isSheetShown = () => screen.queryByText("Update your plan?") !== null;
+
+  afterEach(async () => {
+    await act(() => closePlanUpdatePrompt(SESSION));
+  });
+
+  it("goes straight to the Summary when the Workout Session changed nothing", async () => {
+    await startApp({ changed: false });
+
+    await finishFromHome();
+
+    expect(fakePublicApi.count(PREVIEW)).toBe(1);
+    expect(isSheetShown()).toBe(false);
+    expect(mockNavigator.routes.map(({ name }) => name)).toEqual([
+      "home",
+      "summary",
+    ]);
+    expect(track()).not.toHaveBeenCalled();
+  });
+
+  it("asks with every change, Exercises by their Library names, after the finish", async () => {
+    await startApp();
+
+    await finishFromHome();
+
+    expect(backend.session(SESSION)?.finished_at).not.toBeNull();
+    expect(
+      screen.getByText("Save today's changes to Leg Day in Strength.")
+    ).toBeTruthy();
+    for (const line of [ADDED_SET_LINE, ADDED_EXERCISE_LINE, UNRESOLVED_LINE]) {
+      expect(screen.getByText(line)).toBeTruthy();
+    }
+    // Asked, not answered: still on Home under the sheet.
+    expect(mockNavigator.routes.map(({ name }) => name)).toEqual(["home"]);
+    expect(track()).toHaveBeenCalledWith("Plan Update Suggested", {
+      add_exercise: 2,
+      add_sets: 1,
+      remove_exercise: 0,
+      replace_exercise: 0,
+      ...eventProperties,
+    });
+  });
+
+  it("shows the weights in the User's unit", async () => {
+    backend.seedProfile(FAKE_USER_ID, { measurement_system: "us" });
+    await startApp();
+
+    await finishFromHome();
+
+    expect(screen.getByText("Add 1 set to Squat · 5×100 lbs")).toBeTruthy();
+  });
+
+  it("applies the changes and opens the Summary on Update plan", async () => {
+    await startApp();
+    await finishFromHome();
+
+    await fireEvent.press(screen.getByRole("button", UPDATE));
+    await settle();
+
+    expect(fakePublicApi.count(APPLY)).toBe(1);
+    expect(legDay()).toEqual([
+      {
+        sets: [
+          { reps_recommended: 10, rest_recommended: 90, weight_recommended: 0 },
+          { reps_recommended: 10, rest_recommended: 90, weight_recommended: 0 },
+          {
+            reps_recommended: 5,
+            rest_recommended: 90,
+            weight_recommended: 100,
+          },
+        ],
+        slug: "squat",
+      },
+      {
+        sets: [
+          {
+            reps_recommended: 12,
+            rest_recommended: 90,
+            weight_recommended: 20,
+          },
+        ],
+        slug: "lunge",
+      },
+      {
+        sets: [
+          { reps_recommended: 1, rest_recommended: 90, weight_recommended: 40 },
+        ],
+        slug: "farmer-carry",
+      },
+    ]);
+    expect(isSheetShown()).toBe(false);
+    expect(mockNavigator.routes.map(({ name }) => name)).toEqual([
+      "home",
+      "summary",
+    ]);
+    expect(track()).toHaveBeenCalledWith(
+      "Plan Update Accepted",
+      eventProperties
+    );
+    expect(backend.count("workout_session_plan_changes", "rpc")).toBe(0);
+  });
+
+  it("leaves the Plan as it was on Keep plan as is", async () => {
+    await startApp();
+    await finishFromHome();
+    const before = structuredClone(legDay());
+
+    await fireEvent.press(screen.getByRole("button", KEEP));
+    await settle();
+
+    expect(fakePublicApi.count(APPLY)).toBe(0);
+    expect(legDay()).toEqual(before);
+    expect(mockNavigator.routes.map(({ name }) => name)).toEqual([
+      "home",
+      "summary",
+    ]);
+    expect(track()).toHaveBeenCalledWith(
+      "Plan Update Declined",
+      eventProperties
+    );
+    expect(track()).not.toHaveBeenCalledWith(
+      "Plan Update Accepted",
+      expect.anything()
+    );
+  });
+
+  it("keeps the sheet with Retry when the apply fails, and applies once on Retry", async () => {
+    await startApp();
+    await finishFromHome();
+    const before = structuredClone(legDay());
+
+    fakePublicApi.failNext(APPLY, { status: 500 });
+    await fireEvent.press(screen.getByRole("button", UPDATE));
+    await settle();
+
+    expect(screen.getByText(APPLY_ERROR)).toBeTruthy();
+    expect(legDay()).toEqual(before);
+    expect(mockNavigator.routes.map(({ name }) => name)).toEqual(["home"]);
+    expect(track()).not.toHaveBeenCalledWith(
+      "Plan Update Accepted",
+      expect.anything()
+    );
+
+    await fireEvent.press(screen.getByRole("button", RETRY));
+    await settle();
+
+    expect(fakePublicApi.count(APPLY)).toBe(2);
+    expect(legDay()?.map(({ slug }) => slug)).toEqual([
+      "squat",
+      "lunge",
+      "farmer-carry",
+    ]);
+    expect(mockNavigator.routes.map(({ name }) => name)).toEqual([
+      "home",
+      "summary",
+    ]);
+    expect(track()).toHaveBeenCalledWith(
+      "Plan Update Accepted",
+      eventProperties
+    );
+  });
+
+  it("says how long to wait when the apply is rate limited, unreported", async () => {
+    await startApp();
+    await finishFromHome();
+
+    fakePublicApi.failNext(APPLY, { retryAfterSeconds: 8, status: 429 });
+    await fireEvent.press(screen.getByRole("button", UPDATE));
+    await settle();
+
+    expect(
+      screen.getByText("Too many requests. Try again in 8 s.")
+    ).toBeTruthy();
+    expect(screen.queryByText(APPLY_ERROR)).toBeNull();
+    expect(captureException).not.toHaveBeenCalled();
+    expect(screen.getByRole("button", RETRY)).toBeTruthy();
+    expect(mockNavigator.routes.map(({ name }) => name)).toEqual(["home"]);
+  });
+
+  it("applies once when the first apply's answer was lost", async () => {
+    await startApp();
+    await finishFromHome();
+
+    fakePublicApi.failNext(APPLY, "lost");
+    await fireEvent.press(screen.getByRole("button", UPDATE));
+    await settle();
+    await fireEvent.press(screen.getByRole("button", RETRY));
+    await settle();
+
+    expect(legDay()?.map(({ slug }) => slug)).toEqual([
+      "squat",
+      "lunge",
+      "farmer-carry",
+    ]);
+    expect(legDay()?.[0]?.sets).toHaveLength(3);
+    expect(mockNavigator.routes.at(-1)?.name).toBe("summary");
+  });
+
+  it("reports a failed preview and opens the Summary without asking", async () => {
+    await startApp();
+
+    fakePublicApi.failNext(PREVIEW, "network");
+    await finishFromHome();
+
+    expect(isSheetShown()).toBe(false);
+    expect(captureException).toHaveBeenCalled();
+    expect(mockNavigator.routes.map(({ name }) => name)).toEqual([
+      "home",
+      "summary",
+    ]);
+    expect(track()).not.toHaveBeenCalled();
+    expect(backend.count("workout_session_plan_changes", "rpc")).toBe(0);
   });
 });
