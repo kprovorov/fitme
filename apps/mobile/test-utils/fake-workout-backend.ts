@@ -46,7 +46,7 @@ export interface SetRow {
   workout_session_exercise_id: string;
 }
 
-type Operation = "delete" | "insert" | "rpc" | "select" | "update";
+type Operation = "delete" | "insert" | "rpc" | "select" | "update" | "upsert";
 
 interface Request {
   operation: Operation;
@@ -368,6 +368,12 @@ class FakeQuery {
     return this;
   }
 
+  upsert(values: Record<string, unknown>) {
+    this.operation = "upsert";
+    this.values = values;
+    return this;
+  }
+
   update(values: Record<string, unknown>) {
     this.operation = "update";
     this.values = values;
@@ -421,15 +427,10 @@ class FakeQuery {
     switch (key) {
       case "profiles.select":
         return backend.profile(this.filters.user_id as string) ?? null;
-      case "profiles.insert": {
-        // Creating a Profile; editing one goes through the Public API.
-        const row = this.values as unknown as ProfileRow;
-        if (backend.profile(row.user_id)) {
-          throw new Error("Fake backend: the User already has a Profile");
-        }
-        backend.profiles.push(row);
-        return row;
-      }
+      case "profiles.insert":
+      case "profiles.upsert":
+        // Creating and editing a Profile go through the Public API.
+        throw new Error("Fake backend: a Profile is written through the API");
       case "plans.select":
         if (this.filters.id === undefined) {
           // The User's Plans (live ones with `.is("deleted_at", null)`),

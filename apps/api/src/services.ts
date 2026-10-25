@@ -32,7 +32,9 @@ import {
   type ProfileChanges,
   type ProfileUnits,
   type ProfileWithUnits,
+  replaceProfile,
   updateProfile,
+  type WholeProfile,
 } from "@fitme/services/profile";
 import {
   deleteWorkoutSession,
@@ -129,6 +131,13 @@ export interface UserServices {
   ) => Promise<WorkoutSessionPage>;
   /** Logs one set of the User's open Workout Session, its weight in the User's unit. */
   logSet: (input: LogSetInput) => Promise<Weighed<LogSetResult>>;
+  /**
+   * Creates the Profile (`created: true`) or replaces it as `updateProfile`
+   * with every field would, converting to a new measurement system first.
+   */
+  replaceProfile: (
+    profile: WholeProfile
+  ) => Promise<{ created: boolean; profile: ProfileWithUnits }>;
   /**
    * Replaces every Workout of a live Plan of the User, in rotation order (new
    * ids; metadata and active state stay); the Plan in full, or `null` with
@@ -229,6 +238,8 @@ export const createServicesFromEnv: ServicesFactory = (userId) => {
     listWorkoutSessions: (options) =>
       asUser(userId, (tx) => listWorkoutSessions(tx, options)),
     logSet: (input) => inUnits((tx) => logSet(tx, input), write),
+    replaceProfile: (profile) =>
+      asUser(userId, (tx) => replaceProfile(tx, userId, profile)),
     replaceWorkouts: (planId, replacement) =>
       weighed(
         (tx) => updatePlan(tx, userId, planId, { workouts: replacement }),

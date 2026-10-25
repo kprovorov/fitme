@@ -128,6 +128,7 @@ jest.mock("~/components/ui/picker", () => {
 });
 
 const PROFILE_PATCH = "PATCH /v1/profile";
+const PROFILE_PUT = "PUT /v1/profile";
 const SAVE_ERROR =
   "Couldn't save your profile. Please check your connection and try again.";
 
@@ -241,7 +242,7 @@ describe("EditProfileScreen", () => {
     expect(router.back).toHaveBeenCalledTimes(1);
   });
 
-  it("creates the Profile through Supabase when the API has none", async () => {
+  it("creates the Profile through the Public API without a saved one", async () => {
     await mount();
 
     await fireEvent.press(screen.getByLabelText("Female"));
@@ -250,10 +251,20 @@ describe("EditProfileScreen", () => {
     await pick("Height", 168);
     await save();
 
-    expect(fakePublicApi.requests.map(({ body }) => body)).toEqual([
-      { age: 28, gender: "female", height: 168, weight: 62 },
+    expect(fakePublicApi.requests).toEqual([
+      {
+        authorization: `Bearer ${FAKE_SESSION_TOKEN}`,
+        body: {
+          age: 28,
+          gender: "female",
+          height: 168,
+          measurement_system: "metric",
+          weight: 62,
+        },
+        path: "/v1/profile",
+        route: PROFILE_PUT,
+      },
     ]);
-    expect(backend.count("profiles", "insert")).toBe(1);
     expect(backend.profile(FAKE_USER_ID)).toEqual({
       age: 28,
       gender: "female",
@@ -287,9 +298,9 @@ describe("EditProfileScreen", () => {
     }
   );
 
-  it("never creates a Profile on a failure other than profile_not_found", async () => {
+  it("shows the error state when creating the Profile fails, writing nothing through Supabase", async () => {
     await mount();
-    fakePublicApi.failNext(PROFILE_PATCH, { code: "not_found", status: 404 });
+    fakePublicApi.failNext(PROFILE_PUT, { status: 503 });
 
     await fireEvent.press(screen.getByLabelText("Female"));
     await pick("Age", 28);
@@ -298,8 +309,11 @@ describe("EditProfileScreen", () => {
     await save();
 
     expect(screen.getByText(SAVE_ERROR)).toBeTruthy();
+    expect(Sentry.captureException).toHaveBeenCalledTimes(1);
     expect(backend.count("profiles", "insert")).toBe(0);
+    expect(backend.count("profiles", "upsert")).toBe(0);
     expect(backend.profile(FAKE_USER_ID)).toBeUndefined();
+    expect(router.back).not.toHaveBeenCalled();
   });
 
   it("says how long to wait when there were too many requests", async () => {

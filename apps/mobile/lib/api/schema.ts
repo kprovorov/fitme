@@ -968,7 +968,151 @@ export interface paths {
         };
       };
     };
-    put?: never;
+    /**
+     * Create or replace the User's Profile
+     * @description Creates the User's Profile (201), or replaces the one they have (200) exactly as `PATCH /v1/profile` with every field would: a different `measurement_system` first converts every stored height and weight of the User (the Profile's, every Plan's set targets and every Workout Session's weights) to the new system's units, then writes the given `height` and `weight` as they are, in the new system's units. Repeating the same request changes nothing more.
+     */
+    put: {
+      parameters: {
+        query?: never;
+        header?: never;
+        path?: never;
+        cookie?: never;
+      };
+      requestBody: {
+        content: {
+          "application/json": components["schemas"]["WholeProfile"];
+        };
+      };
+      responses: {
+        /** @description The replaced Profile */
+        200: {
+          headers: {
+            [name: string]: unknown;
+          };
+          content: {
+            "application/json": {
+              data: {
+                /** @example 30 */
+                age: number;
+                /** @example female */
+                gender: string;
+                /**
+                 * @description In `units.height`
+                 * @example 170.5
+                 */
+                height: number;
+                /**
+                 * @description `metric`, `us` or `uk`
+                 * @example metric
+                 */
+                measurement_system: string;
+                /** @description The units every height and weight of the User is stored and shown in */
+                units: {
+                  /**
+                   * @description `cm` (metric) or `in` (us, uk)
+                   * @example cm
+                   */
+                  height: string;
+                  /**
+                   * @description `kg` (metric) or `lbs` (us, uk)
+                   * @example kg
+                   */
+                  weight: string;
+                };
+                /**
+                 * @description In `units.weight`
+                 * @example 60.25
+                 */
+                weight: number;
+              };
+            };
+          };
+        };
+        /** @description The created Profile */
+        201: {
+          headers: {
+            [name: string]: unknown;
+          };
+          content: {
+            "application/json": {
+              data: {
+                /** @example 30 */
+                age: number;
+                /** @example female */
+                gender: string;
+                /**
+                 * @description In `units.height`
+                 * @example 170.5
+                 */
+                height: number;
+                /**
+                 * @description `metric`, `us` or `uk`
+                 * @example metric
+                 */
+                measurement_system: string;
+                /** @description The units every height and weight of the User is stored and shown in */
+                units: {
+                  /**
+                   * @description `cm` (metric) or `in` (us, uk)
+                   * @example cm
+                   */
+                  height: string;
+                  /**
+                   * @description `kg` (metric) or `lbs` (us, uk)
+                   * @example kg
+                   */
+                  weight: string;
+                };
+                /**
+                 * @description In `units.weight`
+                 * @example 60.25
+                 */
+                weight: number;
+              };
+            };
+          };
+        };
+        /** @description `invalid_request`: a field is missing, unknown or out of bounds; nothing was written */
+        400: {
+          headers: {
+            [name: string]: unknown;
+          };
+          content: {
+            "application/json": components["schemas"]["Error"];
+          };
+        };
+        /** @description No valid Clerk session token */
+        401: {
+          headers: {
+            [name: string]: unknown;
+          };
+          content: {
+            "application/json": components["schemas"]["Error"];
+          };
+        };
+        /** @description The body isn't `application/json` */
+        415: {
+          headers: {
+            [name: string]: unknown;
+          };
+          content: {
+            "application/json": components["schemas"]["Error"];
+          };
+        };
+        /** @description Too many requests from this User; retry after `Retry-After` */
+        429: {
+          headers: {
+            /** @description Seconds until the limit resets */
+            "Retry-After": string;
+            [name: string]: unknown;
+          };
+          content: {
+            "application/json": components["schemas"]["Error"];
+          };
+        };
+      };
+    };
     post?: never;
     delete?: never;
     options?: never;
@@ -1903,7 +2047,7 @@ export interface components {
        */
       height?: number;
       /**
-       * @description Changing it converts every stored height and weight of the User (the Profile's, every Plan's set targets and every Workout Session's weights) to the new system's units, rounded to 2 decimals. Between `us` and `uk`, which share units, nothing is converted.
+       * @description A system other than the stored one converts every stored height and weight of the User (the Profile's, every Plan's set targets and every Workout Session's weights) to the new system's units, rounded to 2 decimals. Between `us` and `uk`, which share units, nothing is converted.
        * @enum {string}
        */
       measurement_system?: "metric" | "us" | "uk";
@@ -1912,6 +2056,27 @@ export interface components {
        * @example 61.5
        */
       weight?: number;
+    };
+    WholeProfile: {
+      /** @example 31 */
+      age: number;
+      /** @enum {string} */
+      gender: "male" | "female";
+      /**
+       * @description In the height unit of the resulting measurement system: `cm` (metric) or `in` (us, uk); at most 2 decimals
+       * @example 171
+       */
+      height: number;
+      /**
+       * @description A system other than the stored one converts every stored height and weight of the User (the Profile's, every Plan's set targets and every Workout Session's weights) to the new system's units, rounded to 2 decimals. Between `us` and `uk`, which share units, nothing is converted.
+       * @enum {string}
+       */
+      measurement_system: "metric" | "us" | "uk";
+      /**
+       * @description In the weight unit of the resulting measurement system: `kg` (metric) or `lbs` (us, uk); at most 2 decimals
+       * @example 61.5
+       */
+      weight: number;
     };
     WorkoutSessionSet: {
       /**

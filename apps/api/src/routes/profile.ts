@@ -10,6 +10,7 @@ import { createRoute, OpenAPIHono, z } from "@hono/zod-openapi";
 import { type ApiEnv, bearerSecurity, requires } from "../auth.js";
 import {
   ErrorResponse,
+  errorResponse,
   invalidRequest,
   rateLimitedResponse,
   unauthorizedResponse,
@@ -74,35 +75,38 @@ const getProfile = createRoute({
 /** The smallest height or weight step an edit accepts: at most `MAX_BODY_DECIMALS` decimals. */
 const BODY_STEP = 10 ** -MAX_BODY_DECIMALS;
 
-const ProfileChangesBody = z
-  .strictObject({
-    age: z.number().int().min(MIN_AGE).max(MAX_AGE).openapi({ example: 31 }),
-    gender: z.enum(genders),
-    height: z
-      .number()
-      .positive()
-      .max(MAX_BODY_HEIGHT)
-      .multipleOf(BODY_STEP)
-      .openapi({
-        description:
-          "In the height unit of the resulting measurement system: `cm` (metric) or `in` (us, uk); at most 2 decimals",
-        example: 171,
-      }),
-    measurement_system: z.enum(measurementSystems).openapi({
+/** Every field of a Profile a client writes, each with its bounds. */
+const profileFields = {
+  age: z.number().int().min(MIN_AGE).max(MAX_AGE).openapi({ example: 31 }),
+  gender: z.enum(genders),
+  height: z
+    .number()
+    .positive()
+    .max(MAX_BODY_HEIGHT)
+    .multipleOf(BODY_STEP)
+    .openapi({
       description:
-        "Changing it converts every stored height and weight of the User (the Profile's, every Plan's set targets and every Workout Session's weights) to the new system's units, rounded to 2 decimals. Between `us` and `uk`, which share units, nothing is converted.",
+        "In the height unit of the resulting measurement system: `cm` (metric) or `in` (us, uk); at most 2 decimals",
+      example: 171,
     }),
-    weight: z
-      .number()
-      .positive()
-      .max(MAX_BODY_WEIGHT)
-      .multipleOf(BODY_STEP)
-      .openapi({
-        description:
-          "In the weight unit of the resulting measurement system: `kg` (metric) or `lbs` (us, uk); at most 2 decimals",
-        example: 61.5,
-      }),
-  })
+  measurement_system: z.enum(measurementSystems).openapi({
+    description:
+      "A system other than the stored one converts every stored height and weight of the User (the Profile's, every Plan's set targets and every Workout Session's weights) to the new system's units, rounded to 2 decimals. Between `us` and `uk`, which share units, nothing is converted.",
+  }),
+  weight: z
+    .number()
+    .positive()
+    .max(MAX_BODY_WEIGHT)
+    .multipleOf(BODY_STEP)
+    .openapi({
+      description:
+        "In the weight unit of the resulting measurement system: `kg` (metric) or `lbs` (us, uk); at most 2 decimals",
+      example: 61.5,
+    }),
+};
+
+const ProfileChangesBody = z
+  .strictObject(profileFields)
   .partial()
   // The refine answers the 400; minProperties says the same in the OpenAPI
   // document, which can't see a refine.
@@ -150,6 +154,40 @@ const updateProfile = createRoute({
   summary: "Update the User's Profile",
 });
 
+const WholeProfileBody = z.strictObject(profileFields).openapi("WholeProfile");
+
+const replaceProfile = createRoute({
+  description:
+    "Creates the User's Profile (201), or replaces the one they have (200) exactly as `PATCH /v1/profile` with every field would: a different `measurement_system` first converts every stored height and weight of the User (the Profile's, every Plan's set targets and every Workout Session's weights) to the new system's units, then writes the given `height` and `weight` as they are, in the new system's units. Repeating the same request changes nothing more.",
+  method: "put",
+  middleware: [requires("write")] as const,
+  path: "/",
+  request: {
+    body: {
+      content: { "application/json": { schema: WholeProfileBody } },
+      required: true,
+    },
+  },
+  responses: {
+    200: {
+      content: { "application/json": { schema: UpdatedProfileResponse } },
+      description: "The replaced Profile",
+    },
+    201: {
+      content: { "application/json": { schema: UpdatedProfileResponse } },
+      description: "The created Profile",
+    },
+    400: errorResponse(
+      "`invalid_request`: a field is missing, unknown or out of bounds; nothing was written"
+    ),
+    401: unauthorizedResponse,
+    415: errorResponse("The body isn't `application/json`"),
+    429: rateLimitedResponse,
+  },
+  security: bearerSecurity,
+  summary: "Create or replace the User's Profile",
+});
+
 export const profile = new OpenAPIHono<ApiEnv>({
   defaultHook: invalidRequest,
 })
@@ -174,4 +212,14 @@ export const profile = new OpenAPIHono<ApiEnv>({
       );
     }
     return c.json(UpdatedProfileResponse.parse({ data: updated }), 200);
+  })
+  .openapi(replaceProfile, async (c) => {
+    const { created, profile: written } = await c.var
+      .getServices()
+      .replaceProfile(c.req.valid("json"));
+    const body = UpdatedProfileResponse.parse({ data: written });
+    if (created) {
+      return c.json(body, 201);
+    }
+    return c.json(body, 200);
   });

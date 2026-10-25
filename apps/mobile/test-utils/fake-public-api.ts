@@ -7,7 +7,8 @@
  * `getCurrentUserId` at `FAKE_USER_ID` so its Supabase reads see the same
  * User.
  *
- * So far: `PATCH /v1/profile`, `POST /v1/plans`, activating
+ * So far: `PUT` (201 created, 200 replaced, converting to a new system) and
+ * `PATCH /v1/profile`, `POST /v1/plans`, activating
  * (`POST /v1/plans/{id}/activate`) and deleting (`DELETE /v1/plans/{id}`) a
  * Plan, starting, finishing and logging a set of a Workout Session, and the
  * public `GET /v1/arnold/models` (answered whatever the bearer, like the
@@ -176,16 +177,8 @@ const invalidProfileField = (changes: Partial<ProfileRow>) => {
   return null;
 };
 
-const patchProfile = (body: unknown): Response => {
-  if (
-    typeof body !== "object" ||
-    body === null ||
-    Object.keys(body).length === 0 ||
-    Object.keys(body).some((key) => !PROFILE_FIELDS.has(key))
-  ) {
-    return error(400, "invalid_request", "Invalid profile changes");
-  }
-  const changes = body as Partial<ProfileRow>;
+/** The 400 for Profile fields out of `PATCH /v1/profile`'s bounds, if any. */
+const profileFieldsError = (changes: Partial<ProfileRow>) => {
   const invalid = invalidProfileField(changes);
   if (invalid) {
     return error(400, "invalid_request", `${invalid}: out of bounds`);
@@ -197,15 +190,67 @@ const patchProfile = (body: unknown): Response => {
   ) {
     return error(400, "invalid_request", "measurement_system: Invalid option");
   }
+  return null;
+};
+
+/** Applies `changes` to `profile`, converting to a new system first. */
+const applyProfileChanges = (
+  profile: ProfileRow,
+  changes: Partial<ProfileRow>
+) => {
+  if (changes.measurement_system !== undefined) {
+    convert(profile, changes.measurement_system as MeasurementSystem);
+  }
+  Object.assign(profile, changes);
+};
+
+const patchProfile = (body: unknown): Response => {
+  if (
+    typeof body !== "object" ||
+    body === null ||
+    Object.keys(body).length === 0 ||
+    Object.keys(body).some((key) => !PROFILE_FIELDS.has(key))
+  ) {
+    return error(400, "invalid_request", "Invalid profile changes");
+  }
+  const changes = body as Partial<ProfileRow>;
+  const invalid = profileFieldsError(changes);
+  if (invalid) {
+    return invalid;
+  }
   const profile = backend.profile(FAKE_USER_ID);
   if (!profile) {
     return error(404, "profile_not_found", "Profile not found");
   }
-  if (system !== undefined) {
-    convert(profile, system as MeasurementSystem);
-  }
-  Object.assign(profile, changes);
+  applyProfileChanges(profile, changes);
   return json(200, { data: profileBody(profile) });
+};
+
+/**
+ * `PUT /v1/profile`: every field required, with the PATCH bounds; creates the
+ * Profile (201) or replaces it as a PATCH with every field would (200).
+ */
+const putProfile = (body: unknown): Response => {
+  if (
+    !isObject(body) ||
+    Object.keys(body).length !== PROFILE_FIELDS.size ||
+    Object.keys(body).some((key) => !PROFILE_FIELDS.has(key))
+  ) {
+    return error(400, "invalid_request", "Invalid profile");
+  }
+  const whole = body as unknown as Omit<ProfileRow, "user_id">;
+  const invalid = profileFieldsError(whole);
+  if (invalid) {
+    return invalid;
+  }
+  const existing = backend.profile(FAKE_USER_ID);
+  if (existing) {
+    applyProfileChanges(existing, whole);
+    return json(200, { data: profileBody(existing) });
+  }
+  const created = { ...whole, user_id: FAKE_USER_ID };
+  backend.profiles.push(created);
+  return json(201, { data: profileBody(created) });
 };
 
 type Body = Record<string, unknown>;
@@ -594,6 +639,11 @@ const ROUTES: Array<{
     handler: patchProfile,
     path: /^\/v1\/profile$/,
     route: "PATCH /v1/profile",
+  },
+  {
+    handler: putProfile,
+    path: /^\/v1\/profile$/,
+    route: "PUT /v1/profile",
   },
   {
     handler: createPlan,

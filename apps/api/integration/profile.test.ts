@@ -7,6 +7,7 @@ import {
   workoutExercises,
   workouts,
 } from "@fitme/db";
+import { deleteTestUsers } from "@fitme/services/delete-test-users";
 import { eq, inArray } from "drizzle-orm";
 import { afterAll, beforeAll, describe, expect, it } from "vitest";
 import { createApp } from "../src/create-app.js";
@@ -293,5 +294,121 @@ describe("PATCH /v1/profile against the local stack", () => {
       body: { data: null },
       status: 200,
     });
+  });
+});
+
+const creator = testUserId("creator");
+const replacer = testUserId("replacer");
+const switcher = testUserId("switcher");
+const invalid = testUserId("invalid");
+const putters = [creator, replacer, switcher, invalid];
+
+/** The status and body of `PUT /v1/profile` as `userId`. */
+const putProfile = async (userId: string, profile: unknown) => {
+  const response = await app.request("/v1/profile", {
+    body: JSON.stringify(profile),
+    headers: { ...signedInAs(userId), "content-type": "application/json" },
+    method: "PUT",
+  });
+  return { body: await response.json(), status: response.status };
+};
+
+/** How many Profiles `userId` has, read past RLS. */
+const profileCount = (userId: string) =>
+  withService(
+    async (tx) =>
+      (await tx.select().from(profiles).where(eq(profiles.userId, userId)))
+        .length
+  );
+
+describe("PUT /v1/profile against the local stack", () => {
+  let switcherSet: string;
+
+  beforeAll(async () => {
+    await seedMetricUser(replacer);
+    switcherSet = await seedMetricUser(switcher);
+  });
+
+  afterAll(async () => {
+    await deleteTestUsers(putters);
+  });
+
+  const metric = {
+    age: 28,
+    gender: "male",
+    height: 182.5,
+    measurement_system: "metric",
+    weight: 80.25,
+  };
+  const metricBody = {
+    ...metric,
+    units: { height: "cm", weight: "kg" },
+  };
+
+  it("creates a Profile (201), and a repeat replaces it without a second one (200)", async () => {
+    expect(await putProfile(creator, metric)).toEqual({
+      body: { data: metricBody },
+      status: 201,
+    });
+    expect(await getProfile(creator)).toEqual({
+      body: { data: metricBody },
+      status: 200,
+    });
+
+    expect(await putProfile(creator, metric)).toEqual({
+      body: { data: metricBody },
+      status: 200,
+    });
+    expect(await profileCount(creator)).toBe(1);
+  });
+
+  it("replaces every field of an existing Profile in the same system", async () => {
+    expect(await putProfile(replacer, metric)).toEqual({
+      body: { data: metricBody },
+      status: 200,
+    });
+    expect(await profileCount(replacer)).toBe(1);
+  });
+
+  it("converts the stored weights to another system and stores the given height and weight as they are", async () => {
+    expect(
+      await putProfile(switcher, {
+        age: 30,
+        gender: "female",
+        height: 67.5,
+        measurement_system: "us",
+        weight: 140,
+      })
+    ).toEqual({
+      body: {
+        data: {
+          age: 30,
+          gender: "female",
+          height: 67.5,
+          measurement_system: "us",
+          units: { height: "in", weight: "lbs" },
+          weight: 140,
+        },
+      },
+      status: 200,
+    });
+    // 60 kg * 2.20462, rounded to 2 decimals, as PATCH converts it
+    expect(await storedSetWeight(switcherSet)).toBe("132.28");
+
+    // Again in the same system: nothing is converted twice
+    await putProfile(switcher, {
+      age: 30,
+      gender: "female",
+      height: 67.5,
+      measurement_system: "us",
+      weight: 140,
+    });
+    expect(await storedSetWeight(switcherSet)).toBe("132.28");
+  });
+
+  it("writes nothing for an invalid Profile", async () => {
+    const { measurement_system: _system, ...partial } = metric;
+    expect((await putProfile(invalid, partial)).status).toBe(400);
+    expect(await profileCount(invalid)).toBe(0);
   });
 });
