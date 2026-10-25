@@ -23,7 +23,7 @@ import {
 } from "../src/workout-edits";
 
 /**
- * The Coach's Plan edits through asUser, against a local Supabase stack via
+ * Arnold's Plan edits through asUser, against a local Supabase stack via
  * the Supavisor pooler as the fitme login. Made-up Clerk-style User ids,
  * unique per run; every test edits a Plan of its own.
  */

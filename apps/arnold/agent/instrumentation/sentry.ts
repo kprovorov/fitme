@@ -6,6 +6,6 @@ import { defineInstrumentation } from "eve/instrumentation";
 // (sentry-traces.ts), so the Sentry SDK doesn't instrument the runtime twice.
 export default defineInstrumentation({
   setup: () => {
-    initObservability({ service: "coach", tracing: false });
+    initObservability({ service: "arnold", tracing: false });
   },
 });

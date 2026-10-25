@@ -1,8 +1,8 @@
 # Fitme
 
-The monorepo behind [Fitme](https://fitmeproject.com), an AI fitness coach: the
-iOS app, the Coach agent, the backend services and the web apps, on pnpm and
-Turborepo.
+The monorepo behind [Fitme](https://fitmeproject.com), an AI workout planner and
+tracker: the iOS app, Arnold (Fitme's AI), the backend services and the web
+apps, on pnpm and Turborepo.
 
 Users sign in with [Clerk](https://clerk.com). Data lives in Supabase Postgres,
 reached by the Node apps through `@fitme/db` and by the clients with their Clerk
@@ -14,8 +14,8 @@ and there are no Supabase Edge Functions.
 | Workspace | Package | What it is |
 | --- | --- | --- |
 | `apps/mobile` | `@fitme/mobile` | Expo / React Native app (expo-router, uniwind, RevenueCat, Sentry) |
-| `apps/arnold` | `@fitme/arnold` | The Coach: an [EVE](https://www.npmjs.com/package/eve) agent, models through Vercel AI Gateway |
-| `apps/api` | `@fitme/api` | Hono REST API (client config, Coach model list) |
+| `apps/arnold` | `@fitme/arnold` | Arnold, Fitme's AI: an [EVE](https://www.npmjs.com/package/eve) agent, models through Vercel AI Gateway |
+| `apps/api` | `@fitme/api` | Hono REST API (client config, Arnold model list) |
 | `apps/exercises` | `@fitme/exercises` | Exercise Library API: Hono + zod-openapi over a baked-in `library.json` |
 | `apps/mcp` | `@fitme/mcp` | MCP server (Streamable HTTP, Clerk OAuth) for ChatGPT and other MCP clients |
 | `apps/webhooks` | `@fitme/webhooks` | Hono app receiving third-party webhooks (Clerk account deletion) |

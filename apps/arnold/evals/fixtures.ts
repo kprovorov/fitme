@@ -1,7 +1,7 @@
 import type { ToolStub } from "eve/evals";
 
 /**
- * What the Coach's read tools return for a made-up User, shaped like the
+ * What Arnold's read tools return for a made-up User, shaped like the
  * tools' output (Exercises by exercise_slug, named from the library). Every eval session stubs the tools it may call, so no
  * real tool (and no database) ever runs.
  */

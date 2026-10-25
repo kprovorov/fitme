@@ -8,7 +8,7 @@ import type {
  * answers, tool results) only in local development, whatever the channel's
  * audience. Every destination (Sentry, Vercel Agent Runs) gets metadata only.
  */
-export const coachTracePolicy: TraceCapturePolicy = ({ environment }) => {
+export const arnoldTracePolicy: TraceCapturePolicy = ({ environment }) => {
   const local = environment === "development";
   return { emit: true, recordInputs: local, recordOutputs: local };
 };

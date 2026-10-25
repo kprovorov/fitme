@@ -16,14 +16,14 @@ Real app (Release build, no dev overlays) against a local Supabase stack seeded 
 | `iphone/10-exercise-detail.png` | Exercise detail (Bench Press): animation, summary, instructions |
 | `iphone/11-exercise-progress.png` | The User's history for an exercise (bent-over row weights going up week to week) |
 | `iphone/12-planner.png` | AI planner input step (goal, experience, duration, place) |
-| `iphone/13-coach.png` | Coach chat, empty state |
-| `iphone/14-coach-models.png` | Coach model picker |
+| `iphone/13-arnold.png` | Arnold chat, empty state |
+| `iphone/14-arnold-models.png` | Arnold model picker |
 | `iphone/15-profile.png` | Profile (free plan, upgrade card) |
 | `iphone/16-edit-profile.png` | Edit profile with body parameters |
 | `iphone/17-onboarding.png` | Onboarding first screen (fresh account) |
 | `iphone/18-sign-up.png` | Sign-up screen (fresh install) |
 
-Not captured: the planner's result and a Coach conversation with the plan card. Both need the Coach (`apps/arnold`) answering for a Pro User; there was no `apps/arnold/.env.local`/AI Gateway key, and the only RevenueCat project is the real one, so no test entitlement was granted.
+Not captured: the planner's result and an Arnold Conversation with the plan card. Both need Arnold (`apps/arnold`) answering for a Pro User; there was no `apps/arnold/.env.local`/AI Gateway key, and the only RevenueCat project is the real one, so no test entitlement was granted.
 
 `framed/` holds the same 18 shots in a drawn iPhone Pro frame with a Dynamic Island (1458×3006, transparent background), made by `frame.py`:
 
@@ -34,7 +34,7 @@ for f in marketing/screenshots/iphone/*.png; do python3 marketing/screenshots/fr
 ## How to reproduce
 
 1. Local stack for this worktree: `pnpm --filter @fitme/supabase exec supabase start` (prints the API/DB ports), then serve the Exercise Library the app reads names and thumbnails from: `LIBRARY_BUNDLE=<path to a real fitme-exercises library.json> pnpm dev:exercises` (the committed fixture only has made-up Exercises, so the seeded slugs would show their slug names).
-2. `apps/mobile/.env`: `EXPO_PUBLIC_SUPABASE_URL` / `_ANON_KEY` from that stack, `EXPO_PUBLIC_CLERK_PUBLISHABLE_KEY` (Clerk dev instance), `EXPO_PUBLIC_E2E_ENABLED=true` (skips RevenueCat/Segment), `EXPO_PUBLIC_API_URL=http://127.0.0.1:3003` (run `pnpm dev:api` for the Coach model list), empty `EXPO_PUBLIC_SENTRY_DSN`.
+2. `apps/mobile/.env`: `EXPO_PUBLIC_SUPABASE_URL` / `_ANON_KEY` from that stack, `EXPO_PUBLIC_CLERK_PUBLISHABLE_KEY` (Clerk dev instance), `EXPO_PUBLIC_E2E_ENABLED=true` (skips RevenueCat/Segment), `EXPO_PUBLIC_API_URL=http://127.0.0.1:3003` (run `pnpm dev:api` for the Arnold model list), empty `EXPO_PUBLIC_SENTRY_DSN`.
 3. Release build for the simulator (ad-hoc signed, or the keychain, and with it Clerk, never loads):
    ```sh
    cd apps/mobile && CI=1 npx expo prebuild --platform ios

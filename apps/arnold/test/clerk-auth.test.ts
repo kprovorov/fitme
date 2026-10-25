@@ -34,7 +34,7 @@ const clerkToken = (
 };
 
 const request = (authorization?: string, path = "/eve/v1/session") =>
-  new Request(`http://coach.test${path}`, {
+  new Request(`http://arnold.test${path}`, {
     headers: authorization ? { authorization } : {},
     method: "POST",
   });

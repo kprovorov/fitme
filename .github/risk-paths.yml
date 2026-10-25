@@ -40,7 +40,7 @@ high:
   - apps/mcp/src/auth.ts
   - apps/mcp/src/context.ts
   - apps/mcp/src/services.ts
-  # Coach: agent config, channel auth, Pro check, ownership, cost caps
+  # Arnold: agent config, channel auth, Pro check, ownership, cost caps
   - apps/arnold/agent/agent.ts
   - apps/arnold/agent/channels/**
   - apps/arnold/agent/hooks/conversation.ts

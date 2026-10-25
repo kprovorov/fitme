@@ -64,8 +64,10 @@ describe("arnoldModelSelection", () => {
       defaultArnoldModelId
     );
     expect(
-      arnoldModelSelection([clientContext({ route: "/coach" }), userSays("hi")])
-        .model
+      arnoldModelSelection([
+        clientContext({ route: "/arnold" }),
+        userSays("hi"),
+      ]).model
     ).toBe(defaultArnoldModelId);
   });
 
@@ -85,7 +87,7 @@ describe("arnoldModelSelection", () => {
       arnoldModelSelection([
         clientContext({ model: "anthropic/claude-opus-5" }),
         userSays("hi"),
-        clientContext({ route: "/coach" }),
+        clientContext({ route: "/arnold" }),
         userSays("and now?"),
       ]).model
     ).toBe(defaultArnoldModelId);

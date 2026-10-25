@@ -95,7 +95,7 @@ describe("missingCostError", () => {
   it("reports a step that reported no cost", () => {
     const error = missingCostError({ stepIndex: 3, usage: tokensOnly });
 
-    expect(error?.name).toBe("Coach step cost missing");
+    expect(error?.name).toBe("Arnold step cost missing");
     expect(error?.message).toContain("step 3 reported no cost");
     expect(missingCostError({ stepIndex: 0 })).not.toBe(null);
   });

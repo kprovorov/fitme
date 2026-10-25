@@ -11,7 +11,7 @@ interface AdmitTurnDeps {
 }
 
 /**
- * Whether a Coach turn may run: only its Conversation owner may send one, and
+ * Whether an Arnold turn may run: only its Conversation owner may send one, and
  * the session id must be recorded for them first (the channel usually has
  * already), so account deletion can find every session the User has and the
  * channel keeps others out. A session recorded for anyone else, or one that
@@ -38,7 +38,7 @@ export const admitTurn = async (
     const recorded = await claim(sessionId, owner);
     if (recorded !== owner) {
       throw new Error(
-        `Coach session ${sessionId} isn't recorded for its owner`
+        `Arnold session ${sessionId} isn't recorded for its owner`
       );
     }
     return true;

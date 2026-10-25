@@ -9,7 +9,7 @@ const request = (
   path: string,
   method = "POST"
 ) =>
-  new Request(`http://coach.test${path}`, {
+  new Request(`http://arnold.test${path}`, {
     headers: authorization ? { authorization } : {},
     method,
   });

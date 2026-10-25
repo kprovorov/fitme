@@ -10,7 +10,7 @@ export interface ObservabilityOptions {
   service: string;
   /**
    * Whether the SDK traces (spans, trace headers). Off for an app that traces
-   * through its own OpenTelemetry pipeline (the Coach: eve's), so the two never
+   * through its own OpenTelemetry pipeline (Arnold: eve's), so the two never
    * instrument the same runtime twice. Default on.
    */
   tracing?: boolean;
