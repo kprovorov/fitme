@@ -221,7 +221,7 @@ const getPlan = createRoute({
   summary: "Get one of the User's Plans",
 });
 
-/** Lowercase letters and digits, words joined by single hyphens (apps/exercises' rule). */
+/** Lowercase letters and digits, words joined by single hyphens (apps/library's rule). */
 const EXERCISE_SLUG = /^[a-z0-9]+(-[a-z0-9]+)*$/;
 const NewPlanSet = z
   .strictObject({

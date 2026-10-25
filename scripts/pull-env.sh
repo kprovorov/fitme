@@ -21,7 +21,7 @@ root="$(git -C "$(dirname "$0")" rev-parse --show-toplevel)"
 apps=(
   "api Api .env"
   "arnold Arnold .env.local"
-  "exercises Library .env"
+  "library Library .env"
   "mcp Mcp .env"
   "mobile Mobile .env"
   "site Site .env.local"

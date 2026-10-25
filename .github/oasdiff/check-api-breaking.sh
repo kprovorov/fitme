@@ -1,10 +1,10 @@
 #!/usr/bin/env bash
 # Fails on a breaking change (removed or renamed route, field or parameter,
 # narrowed type) between the base branch's copy of an OpenAPI document and
-# this one. Both APIs that commit one are additive only: apps/exercises has no
+# this one. Both APIs that commit one are additive only: apps/library has no
 # version prefix, and apps/api's breaking change means /v2. Needs oasdiff and
 # jq on PATH. Deliberate removals go in
-# .github/oasdiff/allowed-breaking-changes.txt (see "apps/exercises" in
+# .github/oasdiff/allowed-breaking-changes.txt (see "apps/library" in
 # AGENTS.md).
 #
 # Usage: .github/oasdiff/check-api-breaking.sh <openapi.json> [base-ref]  (default: origin/main)
@@ -14,14 +14,22 @@ cd "$(git rev-parse --show-toplevel)"
 spec=${1:?usage: check-api-breaking.sh <openapi.json> [base-ref]}
 base=$(git merge-base "${2:-origin/main}" HEAD)
 
+# A spec moved since the base (its app renamed) is compared with the base's
+# copy at its old path, as git's rename detection finds it.
+base_spec=$spec
 if ! git cat-file -e "$base:$spec" 2>/dev/null; then
-  echo "the base branch has no $spec yet: nothing to compare"
-  exit 0
+  base_spec=$(git diff --find-renames --diff-filter=R --name-status "$base" HEAD |
+    awk -v spec="$spec" '$3 == spec { print $2 }')
+  if [[ -z $base_spec ]]; then
+    echo "the base branch has no $spec yet: nothing to compare"
+    exit 0
+  fi
+  echo "$spec was $base_spec on the base branch: comparing with that"
 fi
 
 tmp=$(mktemp -d)
 trap 'rm -rf "$tmp"' EXIT
-git show "$base:$spec" >"$tmp/base.json"
+git show "$base:$base_spec" >"$tmp/base.json"
 
 # severity-levels.txt raises every removal oasdiff calls info (an optional
 # response field, anything deprecated first) to a warning, so all removals
@@ -37,7 +45,7 @@ oasdiff breaking "$tmp/base.json" "$spec" \
 # muscle group, a new enum value of a response property that is a muscle
 # group. Clients must tolerate muscle groups they don't know; any other
 # response enum stays closed. The property path is the last backticked one in
-# the message. apps/exercises: `muscle_groups/items/` on the single lookup,
+# the message. apps/library: `muscle_groups/items/` on the single lookup,
 # prefixed with the union branch on the list
 # (`anyOf[…]/data/items/muscle_groups/items/`). apps/api: the muscle group's
 # `id` on /v1/muscle-groups (`data/items/id`) and /v1/muscle-groups/{…}
@@ -57,7 +65,7 @@ jq -r '
 if [[ -s $tmp/breaking.txt ]]; then
   echo "breaking API changes in $spec against the base branch (the API is additive only):"
   sed 's/^/  /' "$tmp/breaking.txt"
-  echo "A deliberate removal needs its line (without the [check id]) in .github/oasdiff/allowed-breaking-changes.txt: see apps/exercises in AGENTS.md."
+  echo "A deliberate removal needs its line (without the [check id]) in .github/oasdiff/allowed-breaking-changes.txt: see apps/library in AGENTS.md."
   exit 1
 fi
 echo "no breaking API changes in $spec against the base branch"

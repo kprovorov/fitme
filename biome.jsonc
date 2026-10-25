@@ -9,11 +9,11 @@
     "includes": [
       // Vendored agent skills (npx skills add): third-party code, hashed in skills-lock.json.
       "!.agents/skills",
-      // Written by `pnpm openapi` (apps/api, apps/exercises); CI checks each is exactly what that writes.
+      // Written by `pnpm openapi` (apps/api, apps/library); CI checks each is exactly what that writes.
       "!apps/api/openapi.json",
-      "!apps/exercises/openapi.json",
+      "!apps/library/openapi.json",
       // Written by `pnpm generate`, never committed.
-      "!apps/exercises/src/generated"
+      "!apps/library/src/generated"
     ]
   },
   "linter": {

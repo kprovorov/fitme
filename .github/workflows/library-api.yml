@@ -1,15 +1,15 @@
-name: Exercise Library API
+name: Library API
 
-# The API contract of apps/exercises. Lint, typecheck and tests run in Unit
+# The API contract of apps/library. Lint, typecheck and tests run in Unit
 # Tests through turbo, like every other app.
 on:
   pull_request:
     paths:
-      - apps/exercises/**
+      - apps/library/**
       # The muscle group enum in openapi.json is muscleGroups from @fitme/core.
       - packages/core/**
       - .github/oasdiff/**
-      - .github/workflows/exercises-api.yml
+      - .github/workflows/library-api.yml
       - pnpm-lock.yaml
 
 permissions:
@@ -40,10 +40,10 @@ jobs:
 
       - name: Check openapi.json is up to date
         run: |
-          pnpm --filter @fitme/exercises openapi
-          if [ -n "$(git status --porcelain -- apps/exercises/openapi.json)" ]; then
-            git diff -- apps/exercises/openapi.json
-            echo "::error file=apps/exercises/openapi.json::openapi.json is stale: run pnpm exercises openapi and commit it"
+          pnpm --filter @fitme/library openapi
+          if [ -n "$(git status --porcelain -- apps/library/openapi.json)" ]; then
+            git diff -- apps/library/openapi.json
+            echo "::error file=apps/library/openapi.json::openapi.json is stale: run pnpm library openapi and commit it"
             exit 1
           fi
 
@@ -59,16 +59,16 @@ jobs:
           OASDIFF_SHA256: 43a4e328e2d13ba1552d760aa68d2485c75c5621f309f6ff64ae895188345247
 
       - name: Check for breaking API changes against the base branch
-        run: .github/oasdiff/check-api-breaking.sh apps/exercises/openapi.json "origin/$BASE_REF"
+        run: .github/oasdiff/check-api-breaking.sh apps/library/openapi.json "origin/$BASE_REF"
         env:
           BASE_REF: ${{ github.base_ref }}
 
-      # Generates the Exercise Library module from the fixture bundle (media
+      # Generates the Library module from the fixture bundle (media
       # URLs on the placeholder Supabase project) and bundles the API.
-      - name: Build the Exercise Library API
-        run: pnpm --filter @fitme/exercises build
+      - name: Build the Library API
+        run: pnpm --filter @fitme/library build
 
       # Vercel's Hono preset rejects an entrypoint without an exact "hono"
       # import (the regex from @vercel/hono's build).
       - name: Check the Vercel entrypoint imports hono
-        run: grep -qE "(from|require|import)\s*(\(\s*)?[\"']hono[\"']" apps/exercises/dist/app.js
+        run: grep -qE "(from|require|import)\s*(\(\s*)?[\"']hono[\"']" apps/library/dist/app.js

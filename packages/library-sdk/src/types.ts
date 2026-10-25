@@ -1,6 +1,6 @@
 import type { MuscleGroup } from "@fitme/core/models";
 
-// The Library API's response shapes, mirroring `apps/exercises`'
+// The Library API's response shapes, mirroring `apps/library`'s
 // zod schemas (src/schemas.ts): change both together.
 
 /** An Exercise in a list or a batch lookup. */
