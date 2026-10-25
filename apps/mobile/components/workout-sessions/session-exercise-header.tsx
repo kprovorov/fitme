@@ -7,7 +7,7 @@ import ExerciseVideo, {
 import { Badge } from "~/components/ui/badge";
 import { Button } from "~/components/ui/button";
 import { Text } from "~/components/ui/text";
-import type { ShownExercise } from "~/hooks/queries/exercise-library";
+import type { ShownExercise } from "~/hooks/queries/library";
 import { sizedThumbnailUrl } from "~/lib/exercise-media";
 
 /**

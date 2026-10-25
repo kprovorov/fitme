@@ -21,7 +21,7 @@ export const Id = z.guid().openapi({
 /** Lowercase letters and digits, words joined by single hyphens (apps/library's rule). */
 const EXERCISE_SLUG = /^[a-z0-9]+(-[a-z0-9]+)*$/;
 
-/** An Exercise slug a write carries, checked against the Exercise Library before anything is written. */
+/** An Exercise slug a write carries, checked against the Library before anything is written. */
 export const ExerciseSlug = z
   .string()
   .max(MAX_EXERCISE_SLUG_LENGTH)
@@ -31,7 +31,7 @@ export const ExerciseSlug = z
   )
   .openapi({
     description:
-      "An Exercise slug from the Exercise Library API; every one is checked before anything is written",
+      "An Exercise slug from the Library API; every one is checked before anything is written",
     example: "barbell-back-squat",
   });
 
@@ -144,7 +144,7 @@ export const WorkoutSessionSet = z
 export const WorkoutSessionExercise = z
   .object({
     exercise_slug: z.string().openapi({
-      description: "The Exercise Library's key for the Exercise",
+      description: "The Library's key for the Exercise",
       example: "barbell-bench-press",
     }),
     id: Id,

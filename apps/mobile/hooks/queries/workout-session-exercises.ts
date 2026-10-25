@@ -43,7 +43,7 @@ export interface CreateWorkoutSessionExercisesVariables {
 /**
  * Appends an Exercise to an open Workout Session through
  * `POST /v1/workout-sessions/{id}/exercises`, which checks its slug against the
- * Exercise Library; the screen re-reads the session. Rejects with an
+ * Library; the screen re-reads the session. Rejects with an
  * `ApiError`.
  */
 export const useCreateWorkoutSessionExerciseMutation = createMutation<
@@ -91,7 +91,7 @@ export interface ReplaceWorkoutSessionExerciseVariables {
 /**
  * Replaces an open Workout Session's Exercise through
  * `PUT /v1/workout-session-exercises/{id}`, which checks its slug against the
- * Exercise Library and zeroes its sets' targets in the same transaction; the
+ * Library and zeroes its sets' targets in the same transaction; the
  * screen re-reads the session. Rejects with an `ApiError`.
  */
 export const useReplaceWorkoutSessionExerciseMutation = createMutation<

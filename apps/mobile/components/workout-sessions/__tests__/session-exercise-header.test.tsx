@@ -1,6 +1,6 @@
 import { describe, expect, it, jest } from "@jest/globals";
 import { fireEvent, render, screen } from "@testing-library/react-native";
-import type { ShownExercise } from "~/hooks/queries/exercise-library";
+import type { ShownExercise } from "~/hooks/queries/library";
 import SessionExerciseHeader from "../session-exercise-header";
 
 jest.mock("~/components/ui/button", () =>

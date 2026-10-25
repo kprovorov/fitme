@@ -1,9 +1,9 @@
 /**
  * Runs before every test file (`jest.setupFiles` in package.json).
  *
- * Every test reads the Exercise Library through the in-memory fake, never the
+ * Every test reads the Library through the in-memory fake, never the
  * network: a component that calls `useExercises` in a test that forgot to mock
- * `~/lib/exercise-library` would otherwise send real requests and keep Jest
+ * `~/lib/library` would otherwise send real requests and keep Jest
  * from exiting. A test points the fake at its Exercises with `serveLibrary`.
  *
  * The Public API client (`~/lib/public-api`) is the real one
@@ -20,11 +20,11 @@
 import { jest } from "@jest/globals";
 
 jest.mock(
-  "~/lib/exercise-library",
+  "~/lib/library",
   () =>
-    jest.requireActual<typeof import("~/test-utils/fake-exercise-library")>(
-      "~/test-utils/fake-exercise-library"
-    ).exerciseLibraryModule
+    jest.requireActual<typeof import("~/test-utils/fake-library")>(
+      "~/test-utils/fake-library"
+    ).libraryModule
 );
 jest.mock("~/lib/public-api", () => {
   const { createPublicApi } =

@@ -14,10 +14,7 @@ import { Text } from "react-native";
 import { usePlansQuery } from "~/hooks/queries/plans";
 import { storage } from "~/lib/mmkv";
 import { segmentClient } from "~/lib/segment";
-import {
-  libraryExercise,
-  serveLibrary,
-} from "~/test-utils/fake-exercise-library";
+import { libraryExercise, serveLibrary } from "~/test-utils/fake-library";
 import { fakePublicApi } from "~/test-utils/fake-public-api";
 import { backend } from "~/test-utils/fake-workout-backend";
 import { createTestQueryClient, settle } from "~/test-utils/query-client";
@@ -310,7 +307,7 @@ describe("WorkoutPlanCard", () => {
     expect(screen.queryByText(UNKNOWN_EXERCISES)).toBeNull();
   });
 
-  it("asks to try again while the Exercise Library is down, saving nothing", async () => {
+  it("asks to try again on library_unavailable, saving nothing", async () => {
     const library = serveLibrary([
       libraryExercise("bench-press", { name: "Bench Press" }),
       libraryExercise("mystery-move"),

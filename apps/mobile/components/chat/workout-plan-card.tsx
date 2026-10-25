@@ -7,10 +7,7 @@ import { SymbolImage } from "@/components/symbol-image";
 import { Button } from "@/components/ui/button";
 import { ErrorMessage } from "@/components/ui/error-message";
 import { Text as UIText } from "@/components/ui/text";
-import {
-  type ShownExercise,
-  useExercises,
-} from "@/hooks/queries/exercise-library";
+import { type ShownExercise, useExercises } from "@/hooks/queries/library";
 import { useCreatePlanMutation } from "@/hooks/queries/plans";
 import { ApiError, rateLimitedFor } from "~/lib/api/client";
 import {
@@ -50,7 +47,7 @@ const saveErrorMessage = (error: unknown) => {
   if (code === "unknown_exercises") {
     return "This plan has exercises we don't know, so it can't be saved. Ask Arnold for another plan.";
   }
-  if (code === "exercise_library_unavailable") {
+  if (code === "library_unavailable") {
     return "Couldn't check this plan's exercises. Try again.";
   }
   return "Couldn't save the plan. Try again.";
@@ -76,7 +73,7 @@ function ExerciseRow({
   /** The Exercise as resolved by `useExercises`, if it has a slug. */
   shown: ShownExercise | undefined;
 }) {
-  // The Exercise Library's name once resolved, otherwise Arnold's.
+  // The Library's name once resolved, otherwise Arnold's.
   const isResolved = !!shown?.isResolved;
   const name = shown?.isResolved ? shown.name : exercise.name;
   const handlePress = useCallback(

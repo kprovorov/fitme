@@ -10,7 +10,10 @@ const SERVICES = [
   // Arnold's pre-rename domain, still called by installed builds until the
   // minimum version gate cuts them off.
   "coach",
+  // The Library API's pre-rename domain, still called by installed builds
+  // until the minimum version gate cuts them off.
   "exercises",
+  "library",
   "mcp",
   "webhooks",
 ];

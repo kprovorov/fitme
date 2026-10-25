@@ -1,11 +1,11 @@
 /**
  * Plans, Workout Sessions and their summary refer to Exercises by Exercise
  * slug (FIT-241): rows come from Supabase with `exercise_slug` only, and
- * names, muscle groups and thumbnails from the Exercise Library. A slug the
+ * names, muscle groups and thumbnails from the Library. A slug the
  * library doesn't know shows a name made from it, no thumbnail and no link.
  *
  * Mounts the real screens on the in-memory Supabase backend and the fake
- * Exercise Library; expo-router and the SwiftUI-backed primitives are
+ * Library; expo-router and the SwiftUI-backed primitives are
  * swapped for plain stand-ins.
  */
 import { beforeEach, describe, expect, it, jest } from "@jest/globals";
@@ -23,7 +23,7 @@ import PlanSessionExerciseScreen from "~/app/plans/[planId]/workouts/[workoutId]
 import HistorySessionScreen from "~/app/workout-sessions/[workoutSessionId]";
 import SummaryScreen from "~/app/workout-sessions/[workoutSessionId]/summary";
 import { storage } from "~/lib/mmkv";
-import { serveLibrary } from "~/test-utils/fake-exercise-library";
+import { serveLibrary } from "~/test-utils/fake-library";
 import {
   backend,
   libraryExerciseNamed,
@@ -62,11 +62,11 @@ jest.mock("~/lib/supabase", () => ({
   >("~/test-utils/fake-workout-backend").fakeSupabase,
 }));
 jest.mock(
-  "~/lib/exercise-library",
+  "~/lib/library",
   () =>
-    jest.requireActual<typeof import("~/test-utils/fake-exercise-library")>(
-      "~/test-utils/fake-exercise-library"
-    ).exerciseLibraryModule
+    jest.requireActual<typeof import("~/test-utils/fake-library")>(
+      "~/test-utils/fake-library"
+    ).libraryModule
 );
 jest.mock("~/hooks/queries/profiles", () => ({
   useProfileQuery: () => ({ data: { measurement_system: "metric" } }),
@@ -119,7 +119,7 @@ jest.mock("~/components/ui/dropdown-menu", () => {
 // The Exercise picker's muscle group menu (SwiftUI) shows nothing.
 jest.mock("~/components/ui/picker", () => ({ Picker: () => null }));
 
-/** Not in the Exercise Library: shown as "Mystery move". */
+/** Not in the Library: shown as "Mystery move". */
 const UNKNOWN_SLUG = "mystery-move";
 
 let queryClient: QueryClient;

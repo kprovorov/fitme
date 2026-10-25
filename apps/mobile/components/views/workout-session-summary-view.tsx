@@ -10,7 +10,7 @@ import { HStack } from "~/components/ui/hstack";
 import { Separator } from "~/components/ui/separator";
 import { Text } from "~/components/ui/text";
 import { VStack } from "~/components/ui/vstack";
-import { useExercises } from "~/hooks/queries/exercise-library";
+import { useExercises } from "~/hooks/queries/library";
 import { useProfileQuery } from "~/hooks/queries/profiles";
 import {
   WorkoutSessionSummaryBodyBack,

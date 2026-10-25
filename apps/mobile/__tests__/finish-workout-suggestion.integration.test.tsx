@@ -40,10 +40,7 @@ import { closePlanUpdatePrompt } from "~/hooks/plan-update-prompt";
 import { usePlansQuery } from "~/hooks/queries/plans";
 import { storage } from "~/lib/mmkv";
 import { segmentClient } from "~/lib/segment";
-import {
-  libraryExercise,
-  serveLibrary,
-} from "~/test-utils/fake-exercise-library";
+import { libraryExercise, serveLibrary } from "~/test-utils/fake-library";
 import { FAKE_USER_ID, fakePublicApi } from "~/test-utils/fake-public-api";
 import {
   backend,
@@ -163,11 +160,11 @@ jest.mock("~/lib/supabase", () => ({
 }));
 
 jest.mock(
-  "~/lib/exercise-library",
+  "~/lib/library",
   () =>
-    jest.requireActual<typeof import("~/test-utils/fake-exercise-library")>(
-      "~/test-utils/fake-exercise-library"
-    ).exerciseLibraryModule
+    jest.requireActual<typeof import("~/test-utils/fake-library")>(
+      "~/test-utils/fake-library"
+    ).libraryModule
 );
 
 jest.mock("~/hooks/queries/profiles", () => ({
@@ -375,7 +372,7 @@ const SET_SAVE_ERROR = "Couldn't save this set. Try again.";
 const isSuggestionShown = () =>
   screen.queryByTestId("finish-suggestion") !== null;
 
-/** Every Exercise the tests seed, as the Exercise Library has them. */
+/** Every Exercise the tests seed, as the Library has them. */
 const LIBRARY = ["Squat", "Bench Press", "Deadlift", "Lunge", "Plank"].map(
   libraryExerciseNamed
 );
@@ -1296,7 +1293,7 @@ describe("the Plan Update after finishing from Home", () => {
 
   const ADDED_SET_LINE = "Add 1 set to Squat · 5×100 kg";
   const ADDED_EXERCISE_LINE = "Add Walking Lunge · 12×20 kg";
-  // Unknown to the Exercise Library: the slug's name.
+  // Unknown to the Library: the slug's name.
   const UNRESOLVED_LINE = "Add Farmer carry · 1×40 kg";
 
   const eventProperties = {

@@ -1,6 +1,6 @@
 import { PixelRatio } from "react-native";
 
-/** Supabase's image transformation endpoint, which the Exercise Library's thumbnails use. */
+/** Supabase's image transformation endpoint, which the Library's thumbnails use. */
 const RENDER_ENDPOINT = "/storage/v1/render/image/";
 
 /**

@@ -7,7 +7,7 @@
  * alert.
  *
  * Mounts the real screen on the fake Public API and the in-memory Supabase
- * backend over the same rows, and the fake Exercise Library; expo-router and
+ * backend over the same rows, and the fake Library; expo-router and
  * the SwiftUI-backed primitives are swapped for plain stand-ins.
  */
 import { beforeEach, describe, expect, it, jest } from "@jest/globals";
@@ -18,7 +18,7 @@ import { Alert } from "react-native";
 import HistorySessionScreen from "~/app/workout-sessions/[workoutSessionId]";
 import { storage } from "~/lib/mmkv";
 import { segmentClient } from "~/lib/segment";
-import { serveLibrary } from "~/test-utils/fake-exercise-library";
+import { serveLibrary } from "~/test-utils/fake-library";
 import { type Failure, fakePublicApi } from "~/test-utils/fake-public-api";
 import {
   backend,
@@ -58,11 +58,11 @@ jest.mock("~/lib/supabase", () => ({
   >("~/test-utils/fake-workout-backend").fakeSupabase,
 }));
 jest.mock(
-  "~/lib/exercise-library",
+  "~/lib/library",
   () =>
-    jest.requireActual<typeof import("~/test-utils/fake-exercise-library")>(
-      "~/test-utils/fake-exercise-library"
-    ).exerciseLibraryModule
+    jest.requireActual<typeof import("~/test-utils/fake-library")>(
+      "~/test-utils/fake-library"
+    ).libraryModule
 );
 jest.mock("~/hooks/queries/profiles", () => ({
   useProfileQuery: () => ({ data: { measurement_system: "metric" } }),
@@ -170,8 +170,8 @@ const replaceFirstWithLunge = async () => {
 /** A failed edit and the alert message it shows. */
 const failures: [string, Failure, string][] = [
   [
-    "the Exercise Library is down",
-    { code: "exercise_library_unavailable", status: 503 },
+    "the Library is down",
+    { code: "library_unavailable", status: 503 },
     "The exercise library is unavailable right now. Please try again.",
   ],
   [

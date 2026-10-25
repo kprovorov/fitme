@@ -5,10 +5,7 @@ import ExerciseVideo from "~/components/exercises/exercise-video";
 import { Button } from "~/components/ui/button";
 import { Text } from "~/components/ui/text";
 import { H4, Muted } from "~/components/ui/typography";
-import {
-  useExercise,
-  useExerciseDetailQuery,
-} from "~/hooks/queries/exercise-library";
+import { useExercise, useExerciseDetailQuery } from "~/hooks/queries/library";
 
 /** A markdown list (`- step` or `1. step` lines) as plain steps. */
 const LIST_MARKER = /^\s*(?:[-*•]|\d+[.)])\s*/;

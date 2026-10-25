@@ -241,14 +241,14 @@ describe("POST /v1/plans against the local stack", () => {
     expect(reported).toEqual([]);
   });
 
-  it("answers a reported 503 exercise_library_unavailable during an outage, writing nothing", async () => {
+  it("answers a reported 503 library_unavailable during an outage, writing nothing", async () => {
     const outage = new LibraryUnavailableError();
     library.failWith(outage);
 
     const { body: answer, status } = await post(refused, newPlan("Outage"));
 
     expect(status).toBe(503);
-    expect(answer.error.code).toBe("exercise_library_unavailable");
+    expect(answer.error.code).toBe("library_unavailable");
     expect(await plansOf(refused)).toEqual([]);
     expect(reported).toEqual([outage]);
   });

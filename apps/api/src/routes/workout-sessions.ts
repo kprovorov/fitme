@@ -111,7 +111,7 @@ const notFound = {
 
 const addExerciseRoute = createRoute({
   description:
-    "Appends an Exercise, with no sets, after the last Exercise of an open Workout Session. The Exercise slug is checked against the Exercise Library first. A finished Workout Session can't change. Not idempotent: a retried request can add the Exercise twice.",
+    "Appends an Exercise, with no sets, after the last Exercise of an open Workout Session. The Exercise slug is checked against the Library first. A finished Workout Session can't change. Not idempotent: a retried request can add the Exercise twice.",
   method: "post",
   middleware: [requires("write")] as const,
   path: "/{id}/exercises",
@@ -136,7 +136,7 @@ const addExerciseRoute = createRoute({
       description: "The added Workout Session Exercise, with its sets (none)",
     },
     400: errorResponse(
-      "`invalid_request`: the id isn't a uuid or the body isn't valid; `unknown_exercises`: the Exercise Library has no Exercise for the slug the message names. Nothing was written"
+      "`invalid_request`: the id isn't a uuid or the body isn't valid; `unknown_exercises`: the Library has no Exercise for the slug the message names. Nothing was written"
     ),
     401: unauthorizedResponse,
     404: notFoundResponse,
@@ -144,7 +144,7 @@ const addExerciseRoute = createRoute({
     415: errorResponse("The body isn't `application/json`"),
     429: rateLimitedResponse,
     503: errorResponse(
-      "`exercise_library_unavailable`: the Exercise slug couldn't be checked; nothing was written, try again"
+      "`library_unavailable`: the Exercise slug couldn't be checked; nothing was written, try again"
     ),
   },
   security: bearerSecurity,
@@ -349,7 +349,7 @@ const PlanUpdateChange = z
   ])
   .openapi("PlanUpdateChange", {
     description:
-      "One change to the Workout, by `kind`. Exercises are Exercise slugs only: their names come from the Exercise Library",
+      "One change to the Workout, by `kind`. Exercises are Exercise slugs only: their names come from the Library",
   });
 
 const PlanUpdate = z

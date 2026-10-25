@@ -253,7 +253,7 @@ describe("PUT /v1/plans/{id}/workouts against the local stack", () => {
     expect(reported).toEqual([]);
   });
 
-  it("answers a reported 503 exercise_library_unavailable during an outage and keeps the old Workouts", async () => {
+  it("answers a reported 503 library_unavailable during an outage and keeps the old Workouts", async () => {
     const plan = await asUser(owner, (tx) =>
       createPlan(tx, owner, newPlan("Outage"), { activate: false })
     );
@@ -263,7 +263,7 @@ describe("PUT /v1/plans/{id}/workouts against the local stack", () => {
     const { body, status } = await put(owner, plan.id, replacement());
 
     expect(status).toBe(503);
-    expect(body.error.code).toBe("exercise_library_unavailable");
+    expect(body.error.code).toBe("library_unavailable");
     expect(await planOf(owner, plan.id)).toEqual(plan);
     expect(reported).toEqual([outage]);
   });

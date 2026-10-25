@@ -130,7 +130,7 @@ const PlanExercise = z
   .object({
     exercise_slug: z.string().openapi({
       description:
-        "The Exercise Library's key for the Exercise; its name, muscle groups and media come from the Exercise Library API",
+        "The Library's key for the Exercise; its name, muscle groups and media come from the Library API",
       example: "barbell-back-squat",
     }),
     id: z.uuid(),
@@ -325,7 +325,7 @@ const NewPlanBody = z
 
 const createPlanRoute = createRoute({
   description:
-    "Creates the Plan with its Workouts, Exercises and sets in one transaction: nothing is saved unless all of it is. Every Exercise slug is checked against the Exercise Library first. By default the new Plan becomes the User's active one and every other Plan goes inactive. Not idempotent: a retried request can create a second Plan.",
+    "Creates the Plan with its Workouts, Exercises and sets in one transaction: nothing is saved unless all of it is. Every Exercise slug is checked against the Library first. By default the new Plan becomes the User's active one and every other Plan goes inactive. Not idempotent: a retried request can create a second Plan.",
   method: "post",
   middleware: [requires("write")] as const,
   path: "/",
@@ -341,13 +341,13 @@ const createPlanRoute = createRoute({
       description: "The created Plan in full",
     },
     400: errorResponse(
-      "`invalid_request`: the Plan isn't valid; `unknown_exercises`: the Exercise Library has no Exercise for the slugs the message names. Nothing was saved"
+      "`invalid_request`: the Plan isn't valid; `unknown_exercises`: the Library has no Exercise for the slugs the message names. Nothing was saved"
     ),
     401: unauthorizedResponse,
     415: errorResponse("The body isn't `application/json`"),
     429: rateLimitedResponse,
     503: errorResponse(
-      "`exercise_library_unavailable`: the Exercise slugs couldn't be checked; nothing was saved, try again"
+      "`library_unavailable`: the Exercise slugs couldn't be checked; nothing was saved, try again"
     ),
   },
   security: bearerSecurity,
@@ -360,7 +360,7 @@ const ReplaceWorkoutsBody = z
 
 const replaceWorkoutsRoute = createRoute({
   description:
-    "Replaces every Workout of the Plan with the sent list, in one transaction: nothing changes unless all of it is saved. **Every Workout gets a new id**, the old ones are gone: past Workout Sessions keep their logged sets but lose the link to their old Workout. The Plan's details and whether it's active don't change (only its `updated_at` moves). Every Exercise slug is checked against the Exercise Library first.",
+    "Replaces every Workout of the Plan with the sent list, in one transaction: nothing changes unless all of it is saved. **Every Workout gets a new id**, the old ones are gone: past Workout Sessions keep their logged sets but lose the link to their old Workout. The Plan's details and whether it's active don't change (only its `updated_at` moves). Every Exercise slug is checked against the Library first.",
   method: "put",
   middleware: [requires("write")] as const,
   path: "/{id}/workouts",
@@ -379,14 +379,14 @@ const replaceWorkoutsRoute = createRoute({
       description: "The Plan in full, with its new Workouts",
     },
     400: errorResponse(
-      "`invalid_request`: the id isn't a uuid or the Workouts aren't valid; `unknown_exercises`: the Exercise Library has no Exercise for the slugs the message names. Nothing was changed"
+      "`invalid_request`: the id isn't a uuid or the Workouts aren't valid; `unknown_exercises`: the Library has no Exercise for the slugs the message names. Nothing was changed"
     ),
     401: unauthorizedResponse,
     404: planNotFoundResponse,
     415: errorResponse("The body isn't `application/json`"),
     429: rateLimitedResponse,
     503: errorResponse(
-      "`exercise_library_unavailable`: the Exercise slugs couldn't be checked; nothing was changed, try again"
+      "`library_unavailable`: the Exercise slugs couldn't be checked; nothing was changed, try again"
     ),
   },
   security: bearerSecurity,

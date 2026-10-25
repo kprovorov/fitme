@@ -208,7 +208,7 @@ describe("PUT /v1/plans/{id}/workouts", () => {
     expect(reported).toEqual([]);
   });
 
-  it("answers a reported 503 exercise_library_unavailable when the Library fails, writing nothing", async () => {
+  it("answers a reported 503 library_unavailable when the Library fails, writing nothing", async () => {
     const { app, library, reported } = testApp({ services: fakeServices({}) });
     const outage = new LibraryUnavailableError();
     library.failWith(outage);
@@ -218,15 +218,15 @@ describe("PUT /v1/plans/{id}/workouts", () => {
     expect(response.status).toBe(503);
     expect(await response.json()).toEqual({
       error: {
-        code: "exercise_library_unavailable",
+        code: "library_unavailable",
         message:
-          "The Exercise Library is unavailable, so the Exercises couldn't be checked; try again",
+          "The Library is unavailable, so the Exercises couldn't be checked; try again",
       },
     });
     expect(reported).toEqual([outage]);
   });
 
-  it("answers a reported 503 exercise_library_unavailable when the Library isn't configured", async () => {
+  it("answers a reported 503 library_unavailable when the Library isn't configured", async () => {
     const { app, reported } = testApp({
       library: null,
       services: fakeServices({}),
@@ -235,9 +235,7 @@ describe("PUT /v1/plans/{id}/workouts", () => {
     const response = await put(app, body());
 
     expect(response.status).toBe(503);
-    expect((await response.json()).error.code).toBe(
-      "exercise_library_unavailable"
-    );
+    expect((await response.json()).error.code).toBe("library_unavailable");
     expect(reported).toEqual([
       new Error(
         "Missing LIBRARY_URL or LIBRARY_PUBLIC_API_SECRET environment variable"

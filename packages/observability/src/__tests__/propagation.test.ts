@@ -12,6 +12,7 @@ describe("tracePropagationTargets", () => {
     "https://arnold.fitmeproject.com/eve/v1/session",
     "https://coach.fitmeproject.com/eve/v1/session",
     "https://exercises.fitmeproject.com/exercises?limit=20",
+    "https://library.fitmeproject.com/exercises?slugs=bench-press",
     "https://mcp.fitmeproject.com/",
     "https://webhooks.fitmeproject.com/clerk",
     "http://localhost:3003/v1/arnold/models",

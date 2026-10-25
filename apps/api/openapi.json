@@ -423,7 +423,7 @@
         "properties": {
           "exercise_slug": {
             "type": "string",
-            "description": "The Exercise Library's key for the Exercise; its name, muscle groups and media come from the Exercise Library API",
+            "description": "The Library's key for the Exercise; its name, muscle groups and media come from the Library API",
             "example": "barbell-back-squat"
           },
           "id": {
@@ -606,7 +606,7 @@
             "type": "string",
             "maxLength": 100,
             "pattern": "^[a-z0-9]+(-[a-z0-9]+)*$",
-            "description": "An Exercise slug from the Exercise Library API; every one is checked before anything is written",
+            "description": "An Exercise slug from the Library API; every one is checked before anything is written",
             "example": "barbell-back-squat"
           },
           "sets": {
@@ -896,7 +896,7 @@
         "properties": {
           "exercise_slug": {
             "type": "string",
-            "description": "The Exercise Library's key for the Exercise",
+            "description": "The Library's key for the Exercise",
             "example": "barbell-bench-press"
           },
           "id": {
@@ -930,7 +930,7 @@
             "type": "string",
             "maxLength": 100,
             "pattern": "^[a-z0-9]+(-[a-z0-9]+)*$",
-            "description": "An Exercise slug from the Exercise Library API; every one is checked before anything is written",
+            "description": "An Exercise slug from the Library API; every one is checked before anything is written",
             "example": "barbell-back-squat"
           }
         },
@@ -1241,7 +1241,7 @@
             ]
           }
         ],
-        "description": "One change to the Workout, by `kind`. Exercises are Exercise slugs only: their names come from the Exercise Library"
+        "description": "One change to the Workout, by `kind`. Exercises are Exercise slugs only: their names come from the Library"
       },
       "PlanUpdateSet": {
         "type": "object",
@@ -1269,7 +1269,7 @@
             "type": "string",
             "maxLength": 100,
             "pattern": "^[a-z0-9]+(-[a-z0-9]+)*$",
-            "description": "An Exercise slug from the Exercise Library API; every one is checked before anything is written",
+            "description": "An Exercise slug from the Library API; every one is checked before anything is written",
             "example": "barbell-back-squat"
           }
         },
@@ -1644,7 +1644,7 @@
         }
       },
       "post": {
-        "description": "Creates the Plan with its Workouts, Exercises and sets in one transaction: nothing is saved unless all of it is. Every Exercise slug is checked against the Exercise Library first. By default the new Plan becomes the User's active one and every other Plan goes inactive. Not idempotent: a retried request can create a second Plan.",
+        "description": "Creates the Plan with its Workouts, Exercises and sets in one transaction: nothing is saved unless all of it is. Every Exercise slug is checked against the Library first. By default the new Plan becomes the User's active one and every other Plan goes inactive. Not idempotent: a retried request can create a second Plan.",
         "security": [
           {
             "bearerAuth": []
@@ -1681,7 +1681,7 @@
             }
           },
           "400": {
-            "description": "`invalid_request`: the Plan isn't valid; `unknown_exercises`: the Exercise Library has no Exercise for the slugs the message names. Nothing was saved",
+            "description": "`invalid_request`: the Plan isn't valid; `unknown_exercises`: the Library has no Exercise for the slugs the message names. Nothing was saved",
             "content": {
               "application/json": {
                 "schema": {
@@ -1732,7 +1732,7 @@
             }
           },
           "503": {
-            "description": "`exercise_library_unavailable`: the Exercise slugs couldn't be checked; nothing was saved, try again",
+            "description": "`library_unavailable`: the Exercise slugs couldn't be checked; nothing was saved, try again",
             "content": {
               "application/json": {
                 "schema": {
@@ -2176,7 +2176,7 @@
     },
     "/v1/plans/{id}/workouts": {
       "put": {
-        "description": "Replaces every Workout of the Plan with the sent list, in one transaction: nothing changes unless all of it is saved. **Every Workout gets a new id**, the old ones are gone: past Workout Sessions keep their logged sets but lose the link to their old Workout. The Plan's details and whether it's active don't change (only its `updated_at` moves). Every Exercise slug is checked against the Exercise Library first.",
+        "description": "Replaces every Workout of the Plan with the sent list, in one transaction: nothing changes unless all of it is saved. **Every Workout gets a new id**, the old ones are gone: past Workout Sessions keep their logged sets but lose the link to their old Workout. The Plan's details and whether it's active don't change (only its `updated_at` moves). Every Exercise slug is checked against the Library first.",
         "security": [
           {
             "bearerAuth": []
@@ -2224,7 +2224,7 @@
             }
           },
           "400": {
-            "description": "`invalid_request`: the id isn't a uuid or the Workouts aren't valid; `unknown_exercises`: the Exercise Library has no Exercise for the slugs the message names. Nothing was changed",
+            "description": "`invalid_request`: the id isn't a uuid or the Workouts aren't valid; `unknown_exercises`: the Library has no Exercise for the slugs the message names. Nothing was changed",
             "content": {
               "application/json": {
                 "schema": {
@@ -2285,7 +2285,7 @@
             }
           },
           "503": {
-            "description": "`exercise_library_unavailable`: the Exercise slugs couldn't be checked; nothing was changed, try again",
+            "description": "`library_unavailable`: the Exercise slugs couldn't be checked; nothing was changed, try again",
             "content": {
               "application/json": {
                 "schema": {
@@ -2953,7 +2953,7 @@
         }
       },
       "put": {
-        "description": "Replaces the Exercise of a Workout Session Exercise of an open Workout Session, in one transaction: it keeps its id, its place and its sets with their logged results, and every set's targets (`reps_recommended`, `weight_recommended`) become 0. The Exercise slug is checked against the Exercise Library first. A finished Workout Session can't change.",
+        "description": "Replaces the Exercise of a Workout Session Exercise of an open Workout Session, in one transaction: it keeps its id, its place and its sets with their logged results, and every set's targets (`reps_recommended`, `weight_recommended`) become 0. The Exercise slug is checked against the Library first. A finished Workout Session can't change.",
         "security": [
           {
             "bearerAuth": []
@@ -3017,7 +3017,7 @@
             }
           },
           "400": {
-            "description": "`invalid_request`: the id isn't a uuid or the body isn't valid; `unknown_exercises`: the Exercise Library has no Exercise for the slug the message names. Nothing was changed",
+            "description": "`invalid_request`: the id isn't a uuid or the body isn't valid; `unknown_exercises`: the Library has no Exercise for the slug the message names. Nothing was changed",
             "content": {
               "application/json": {
                 "schema": {
@@ -3088,7 +3088,7 @@
             }
           },
           "503": {
-            "description": "`exercise_library_unavailable`: the Exercise slug couldn't be checked; nothing was changed, try again",
+            "description": "`library_unavailable`: the Exercise slug couldn't be checked; nothing was changed, try again",
             "content": {
               "application/json": {
                 "schema": {
@@ -3911,7 +3911,7 @@
     },
     "/v1/workout-sessions/{id}/exercises": {
       "post": {
-        "description": "Appends an Exercise, with no sets, after the last Exercise of an open Workout Session. The Exercise slug is checked against the Exercise Library first. A finished Workout Session can't change. Not idempotent: a retried request can add the Exercise twice.",
+        "description": "Appends an Exercise, with no sets, after the last Exercise of an open Workout Session. The Exercise slug is checked against the Library first. A finished Workout Session can't change. Not idempotent: a retried request can add the Exercise twice.",
         "security": [
           {
             "bearerAuth": []
@@ -3975,7 +3975,7 @@
             }
           },
           "400": {
-            "description": "`invalid_request`: the id isn't a uuid or the body isn't valid; `unknown_exercises`: the Exercise Library has no Exercise for the slug the message names. Nothing was written",
+            "description": "`invalid_request`: the id isn't a uuid or the body isn't valid; `unknown_exercises`: the Library has no Exercise for the slug the message names. Nothing was written",
             "content": {
               "application/json": {
                 "schema": {
@@ -4046,7 +4046,7 @@
             }
           },
           "503": {
-            "description": "`exercise_library_unavailable`: the Exercise slug couldn't be checked; nothing was written, try again",
+            "description": "`library_unavailable`: the Exercise slug couldn't be checked; nothing was written, try again",
             "content": {
               "application/json": {
                 "schema": {

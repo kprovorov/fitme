@@ -11,7 +11,7 @@ import { Picker } from "~/components/ui/picker";
 import { Text } from "~/components/ui/text";
 import { H3 } from "~/components/ui/typography";
 import { VStack } from "~/components/ui/vstack";
-import { useExerciseSearch } from "~/hooks/queries/exercise-library";
+import { useExerciseSearch } from "~/hooks/queries/library";
 
 export interface ExercisesViewHandle {
   refresh: () => Promise<void>;
@@ -27,7 +27,7 @@ const muscleGroupOptions: { label: string; value: MuscleGroupFilter }[] = [
     .map((group) => ({ label: muscleGroupToName(group), value: group })),
 ];
 
-/** The Exercise Library, searched and filtered by muscle group: the Library tab and the Exercise picker. */
+/** The Library, searched and filtered by muscle group: the Library tab and the Exercise picker. */
 const ExercisesView = ({
   onExercisePress = () => {
     /* noop */

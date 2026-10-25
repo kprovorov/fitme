@@ -5,11 +5,8 @@ import ExerciseImage from "~/components/exercises/exercise-image";
 import { SymbolImage } from "~/components/symbol-image";
 import { HStack } from "~/components/ui/hstack";
 import { Text } from "~/components/ui/text";
-import {
-  type ShownExercise,
-  shownExercise,
-} from "~/hooks/queries/exercise-library";
 import { useExerciseHistoryQuery } from "~/hooks/queries/exercises";
+import { type ShownExercise, shownExercise } from "~/hooks/queries/library";
 
 interface WorkoutSessionSummaryExerciseRowProps {
   /** The Exercise as resolved by `useExercises`. */

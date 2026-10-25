@@ -1,4 +1,4 @@
-import { libraryExercise } from "./fake-exercise-library";
+import { libraryExercise } from "./fake-library";
 
 /**
  * In-memory stand-in for the Supabase client, covering the Profile and Plan
@@ -107,7 +107,7 @@ const clone = <T>(value: T): T => JSON.parse(JSON.stringify(value)) as T;
 /** The Exercise slug a seeded Exercise named `name` is stored by. */
 export const slugOf = (name: string) => name.toLowerCase().replaceAll(" ", "-");
 
-/** The Exercise Library's Exercise for a seeded name, for the fake library. */
+/** The Library's Exercise for a seeded name, for the fake library. */
 export const libraryExerciseNamed = (name: string) =>
   libraryExercise(slugOf(name), { name });
 
