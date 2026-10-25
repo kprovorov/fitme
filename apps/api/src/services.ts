@@ -163,6 +163,7 @@ export interface UserServices {
    * `null` when the User has no such Workout Session.
    */
   previewPlanUpdate: (sessionId: string) => Promise<PlanUpdate | null>;
+  /**
    * Removes an Exercise, with its sets, from the User's open Workout Session,
    * leaving the others' `order`; a finished one is left as it was.
    */
