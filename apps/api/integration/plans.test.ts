@@ -1,6 +1,5 @@
 import { randomBytes, randomUUID } from "node:crypto";
 import { asUser, profiles, withService } from "@fitme/db";
-import { deleteUserData } from "@fitme/services/delete-user-data";
 import {
   createPlan,
   deletePlan,
@@ -12,6 +11,7 @@ import { afterAll, beforeAll, describe, expect, it } from "vitest";
 import { createApp } from "../src/create-app.js";
 import { createServicesFromEnv } from "../src/services.js";
 import { clerk, signedInAs } from "../src/test/harness.js";
+import { deleteTestUsers } from "./delete-test-users.js";
 
 /**
  * The app with the real services facade, through `asUser` on the local
@@ -160,10 +160,7 @@ beforeAll(async () => {
 });
 
 afterAll(async () => {
-  // One transaction each, so they may run side by side
-  await Promise.all(
-    users.map((userId) => withService((tx) => deleteUserData(tx, userId)))
-  );
+  await deleteTestUsers(users);
 });
 
 /** The Plan as the contract shows it: Exercises by slug only. */

@@ -1,6 +1,5 @@
 import { randomBytes, randomUUID } from "node:crypto";
-import { asUser, withService } from "@fitme/db";
-import { deleteUserData } from "@fitme/services/delete-user-data";
+import { asUser } from "@fitme/db";
 import {
   createPlan,
   type NewPlan,
@@ -11,6 +10,7 @@ import { afterAll, beforeAll, describe, expect, it } from "vitest";
 import { createApp } from "../src/create-app.js";
 import { createServicesFromEnv } from "../src/services.js";
 import { clerk, signedInAs } from "../src/test/harness.js";
+import { deleteTestUsers } from "./delete-test-users.js";
 
 /**
  * PATCH, activate and DELETE of a Plan with the real services facade, through
@@ -123,10 +123,7 @@ beforeAll(async () => {
 });
 
 afterAll(async () => {
-  // One transaction each, so they may run side by side
-  await Promise.all(
-    users.map((userId) => withService((tx) => deleteUserData(tx, userId)))
-  );
+  await deleteTestUsers(users);
 });
 
 describe("PATCH /v1/plans/{id} against the local stack", () => {

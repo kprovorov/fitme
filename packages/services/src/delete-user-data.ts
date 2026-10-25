@@ -18,22 +18,22 @@ import { and, eq, isNotNull, sql } from "drizzle-orm";
  * Plan edits in workout-edits.ts take their locks in this order too, so they
  * queue behind an account deletion instead of deadlocking. Every table that holds a
  * User's rows must be here: a schema change that adds one has to add it, and
- * the integration test catches a miss.
+ * the integration test catches a miss. Exported for integration cleanups,
+ * which take the same locks without waiting.
  */
-const LOCKED_TABLES = sql.join(
-  [
-    profiles,
-    plans,
-    workoutSessions,
-    workouts,
-    workoutExercises,
-    workoutExerciseSets,
-    workoutSessionExercises,
-    workoutSessionExerciseSets,
-    arnoldSessions,
-  ],
-  sql`, `
-);
+export const USER_DATA_TABLES = [
+  profiles,
+  plans,
+  workoutSessions,
+  workouts,
+  workoutExercises,
+  workoutExerciseSets,
+  workoutSessionExercises,
+  workoutSessionExerciseSets,
+  arnoldSessions,
+];
+
+const LOCKED_TABLES = sql.join(USER_DATA_TABLES, sql`, `);
 
 /** SQLSTATE 55000 (object_not_in_prerequisite_state), as the dropped delete_user_data raised. */
 const REKEYED_CODE = "55000";

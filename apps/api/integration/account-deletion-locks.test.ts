@@ -1,21 +1,11 @@
 import { randomBytes } from "node:crypto";
-import {
-  plans,
-  profiles,
-  withService,
-  workoutExerciseSets,
-  workoutExercises,
-  workoutSessionExerciseSets,
-  workoutSessionExercises,
-  workoutSessions,
-  workouts,
-} from "@fitme/db";
-import { deleteUserData } from "@fitme/services/delete-user-data";
+import { plans, profiles, withService, workouts } from "@fitme/db";
 import { eq, sql } from "drizzle-orm";
 import { afterAll, beforeAll, describe, expect, it } from "vitest";
 import { createApp } from "../src/create-app.js";
 import { createServicesFromEnv } from "../src/services.js";
 import { clerk, signedInAs } from "../src/test/harness.js";
+import { deleteTestUsers, withUserTablesLocked } from "./delete-test-users.js";
 
 /**
  * A write racing an account deletion queues behind it instead of
@@ -81,20 +71,14 @@ beforeAll(async () => {
 });
 
 afterAll(async () => {
-  await withService((tx) => deleteUserData(tx, user));
+  await deleteTestUsers([user]);
 });
 
 describe("a write racing an account deletion against the local stack", () => {
   it("waits for the deletion's table locks before locking the Profile row", async () => {
     let started: Promise<Response> | undefined;
-    await withService(async (tx) => {
-      // deleteUserData's first step: every User table, in its order.
-      await tx.execute(sql`
-        lock table ${profiles}, ${plans}, ${workoutSessions}, ${workouts},
-          ${workoutExercises}, ${workoutExerciseSets},
-          ${workoutSessionExercises}, ${workoutSessionExerciseSets}
-        in share row exclusive mode
-      `);
+    // deleteUserData's first step: every User table, in its order.
+    await withUserTablesLocked(async (tx) => {
       started = Promise.resolve(
         app.request("/v1/workout-sessions", {
           body: JSON.stringify({ workout_id: workoutId }),

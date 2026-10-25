@@ -1,12 +1,12 @@
 import { randomBytes } from "node:crypto";
 import { plans, profiles, withService } from "@fitme/db";
 import { createFakeLibrary } from "@fitme/library-sdk/fake";
-import { deleteUserData } from "@fitme/services/delete-user-data";
 import { eq } from "drizzle-orm";
 import { afterAll, beforeAll, describe, expect, it } from "vitest";
 import { createApp } from "../src/create-app.js";
 import { createServicesFromEnv } from "../src/services.js";
 import { clerk, libraryExercise, signedInAs } from "../src/test/harness.js";
+import { deleteTestUsers } from "./delete-test-users.js";
 
 /**
  * A Workout Session run end to end through the Public API with the real
@@ -169,10 +169,7 @@ beforeAll(async () => {
 });
 
 afterAll(async () => {
-  await withService(async (tx) => {
-    await deleteUserData(tx, owner);
-    await deleteUserData(tx, intruder);
-  });
+  await deleteTestUsers([owner, intruder]);
 });
 
 describe("a Workout Session through the Public API against the local stack", () => {

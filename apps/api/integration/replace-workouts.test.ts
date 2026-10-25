@@ -1,8 +1,7 @@
 import { randomBytes } from "node:crypto";
-import { asUser, withService } from "@fitme/db";
+import { asUser } from "@fitme/db";
 import { LibraryUnavailableError } from "@fitme/library-sdk";
 import { createFakeLibrary, type FakeLibrary } from "@fitme/library-sdk/fake";
-import { deleteUserData } from "@fitme/services/delete-user-data";
 import { createPlan, deletePlan, getPlan } from "@fitme/services/plans";
 import {
   finishWorkoutSession,
@@ -13,6 +12,7 @@ import { afterAll, beforeEach, describe, expect, it } from "vitest";
 import { createApp } from "../src/create-app.js";
 import { createServicesFromEnv } from "../src/services.js";
 import { clerk, libraryExercise, signedInAs } from "../src/test/harness.js";
+import { deleteTestUsers } from "./delete-test-users.js";
 
 /**
  * PUT /v1/plans/{id}/workouts with the real services facade, through
@@ -107,9 +107,7 @@ beforeEach(() => {
 });
 
 afterAll(async () => {
-  await Promise.all(
-    users.map((userId) => withService((tx) => deleteUserData(tx, userId)))
-  );
+  await deleteTestUsers(users);
 });
 
 describe("PUT /v1/plans/{id}/workouts against the local stack", () => {
