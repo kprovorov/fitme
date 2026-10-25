@@ -238,7 +238,7 @@ select is(
 
 reset role;
 
--- The same cases as exerciseNameFromSlug's tests (@fitme/exercise-library)
+-- The same cases as exerciseNameFromSlug's tests (@fitme/library-sdk)
 select is(
   array[
     private.exercise_name_from_slug('barbell-back-squat'),

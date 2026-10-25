@@ -3,14 +3,14 @@ status: accepted
 date: 2026-10-17
 ---
 
-# The Exercise Library API lives in the monorepo; only the content stays private
+# The Library API lives in the monorepo; only the content stays private
 
-The Exercise Library API moves out of the private `fitme-exercises` repository into this monorepo as `apps/library`, and only the content stays private. ADR 0007 is still the record of the Exercise Library leaving Postgres and being keyed by Exercise slug; this supersedes its bullets on where the API lives and how the data reaches it.
+The Library API moves out of the private `fitme-exercises` repository into this monorepo as `apps/library`, and only the content stays private. ADR 0007 is still the record of the Library leaving Postgres and being keyed by Exercise slug; this supersedes its bullets on where the API lives and how the data reaches it.
 
 ## Context
 
 - **ADR 0007 put everything in the private repo.** The API sat next to the content, with its own copy of the monorepo's API conventions and tooling (Hono, tsdown, vitest, ultracite, Sentry, the error shape), kept in step by hand.
-- **The code was never what needed hiding.** The Exercise Library is protected by its Clerk keys, server secrets and rate limits; the content and media are what must stay private. Hiding the API's code protects nothing and keeps it out of sight of everyone working in the monorepo.
+- **The code was never what needed hiding.** The Library is protected by its Clerk keys, server secrets and rate limits; the content and media are what must stay private. Hiding the API's code protects nothing and keeps it out of sight of everyone working in the monorepo.
 
 ## Decision
 
@@ -34,4 +34,4 @@ The Exercise Library API moves out of the private `fitme-exercises` repository i
 - **There are two muscle group lists.** Drift fails the API build loudly rather than serving unknown values: the build rejects a bundle with a muscle group `@fitme/core` doesn't know.
 - **Every monorepo push to `main` redeploys `apps/library` with the latest bundle.** It's a short build, and `turbo-ignore` would otherwise cancel the hook builds that content releases rely on.
 - **Instant rollback restores the previous deployment's baked-in content.** Rebuilding an old commit picks up the latest bundle, not the content it was first built with.
-- **The `exercises` app follows the monorepo's ADRs and conventions like the other apps,** apart from the ignored build step above.
+- **The Library API follows the monorepo's ADRs and conventions like the other apps,** apart from the ignored build step above.

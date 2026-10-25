@@ -5,9 +5,7 @@ const DEFAULT_PORT = 3006;
 const port = Number(process.env.PORT ?? DEFAULT_PORT);
 
 const server = serve({ fetch: app.fetch, port }, (info) => {
-  console.info(
-    `Exercise Library API listening on http://localhost:${info.port}`
-  );
+  console.info(`Library API listening on http://localhost:${info.port}`);
 });
 
 const shutdown = () => {

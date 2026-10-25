@@ -91,7 +91,7 @@ export type Workout = Model & {
 export type WorkoutExercise = Model & {
   workout_id: string;
   workout: Workout;
-  /** The Exercise, by its Exercise slug: details come from the Exercise Library API. */
+  /** The Exercise, by its Exercise slug: details come from the Library API. */
   exercise_slug: string;
   order: number;
   sets: WorkoutExerciseSet[];
@@ -117,7 +117,7 @@ export type WorkoutSession = Model & {
 
 export type WorkoutSessionExercise = Model & {
   workout_session_id: string;
-  /** The Exercise, by its Exercise slug: details come from the Exercise Library API. */
+  /** The Exercise, by its Exercise slug: details come from the Library API. */
   exercise_slug: string;
   order: number;
   sets: WorkoutSessionExerciseSet[];

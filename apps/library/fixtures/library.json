@@ -7,7 +7,7 @@
       "locales": {
         "en": {
           "name": "Example Press",
-          "description": "Example Press is a made-up fixture Exercise for the Exercise Library loader. It is not real content.\n",
+          "description": "Example Press is a made-up fixture Exercise for the Library loader. It is not real content.\n",
           "instructions": "1. This is placeholder text.\n2. Replace fixture Exercises with the real pack.\n"
         }
       },
@@ -26,7 +26,7 @@
       "locales": {
         "en": {
           "name": "Example Row",
-          "description": "Example Row is a made-up fixture Exercise for the Exercise Library loader. It is not real content.\n",
+          "description": "Example Row is a made-up fixture Exercise for the Library loader. It is not real content.\n",
           "instructions": "1. This is placeholder text.\n2. Replace fixture Exercises with the real pack.\n"
         }
       },
@@ -45,7 +45,7 @@
       "locales": {
         "en": {
           "name": "Example Squat",
-          "description": "Example Squat is a made-up fixture Exercise for the Exercise Library loader. It is not real content.\n",
+          "description": "Example Squat is a made-up fixture Exercise for the Library loader. It is not real content.\n",
           "instructions": "1. This is placeholder text.\n2. Replace fixture Exercises with the real pack.\n"
         }
       },
