@@ -38,7 +38,7 @@ export interface StubRequest {
 }
 
 /**
- * A stubbed `fetch` answering `GET /exercises` the way `apps/exercises` does
+ * A stubbed `fetch` answering `GET /exercises` the way `apps/library` does
  * (batch lookup with `slugs`, otherwise a page) and `GET /exercises/:slug`
  * (one Exercise in full, or 404), recording every request.
  * `respond` replaces the answer, to stub failures.

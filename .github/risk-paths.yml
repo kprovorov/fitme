@@ -59,8 +59,8 @@ high:
 medium:
   # Demoted from high
   - apps/arnold/agent/lib/models.ts
-  - apps/exercises/src/auth.ts
-  - apps/exercises/src/create-app.ts
+  - apps/library/src/auth.ts
+  - apps/library/src/create-app.ts
   - apps/web/proxy.ts
   - apps/web/lib/routes.ts
   - packages/supabase/scripts/**
@@ -72,8 +72,8 @@ medium:
   - apps/mcp/src/**
   - apps/api/src/**
   - apps/webhooks/src/**
-  - apps/exercises/src/**
-  - apps/exercises/openapi.json
+  - apps/library/src/**
+  - apps/library/openapi.json
   - apps/api/openapi.json
   # Mobile data layer (no OTA updates)
   - apps/mobile/hooks/**

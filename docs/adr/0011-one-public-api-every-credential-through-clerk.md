@@ -15,7 +15,7 @@ date: 2026-10-23
 
 ## Consequences
 
-- **Everything shipped is public.** Routes are resource-shaped, never screen-shaped, and additive-only within `v1` (the oasdiff check `apps/exercises` uses). A route that should never be public is marked First-party only (session tokens only); it is still part of the same contract.
+- **Everything shipped is public.** Routes are resource-shaped, never screen-shaped, and additive-only within `v1` (the oasdiff check `apps/library` uses). A route that should never be public is marked First-party only (session tokens only); it is still part of the same contract.
 - **No custom scopes yet.** Clerk OAuth tokens can't carry custom scopes, so any valid credential has full access to its User's data. Routes declare `read` / `write` from the start, so scopes can be added later without changing them: a credential without scopes keeps full access.
 - **When they land, API keys cost a network call per request.** Clerk API keys are opaque and verified through Clerk's Backend API, billed per verification beyond each plan's allowance (Hobby stops at the allowance). `@clerk/hono`'s middleware verifies any token before a route filters it, so it is mounted only where it's needed.
 - **The Public API doesn't proxy the Exercise Library.** Responses refer to Exercises by Exercise slug only, from Postgres: no name, no media. Third-party apps and API keys can't call the Exercise Library API (ADR 0007), and that's accepted.

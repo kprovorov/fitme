@@ -7,7 +7,7 @@ import type {
   ListExercisesParams,
 } from "./types";
 
-// The API's list rules (apps/exercises src/routes/exercises.ts), so the fake
+// The API's list rules (apps/library src/routes/exercises.ts), so the fake
 // answers what the real client would.
 const DEFAULT_LIMIT = 20;
 const MAX_LIMIT = 50;

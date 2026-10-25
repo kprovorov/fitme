@@ -20,7 +20,7 @@ export const WINDOW_MS = 60_000;
 /** The production per-User limit, shared by both limiters. */
 export const USER_LIMIT = {
   limit: USER_REQUESTS_PER_WINDOW,
-  prefix: "exercises:user",
+  prefix: "library:user",
   windowMs: WINDOW_MS,
 } satisfies RateLimiterOptions;
 

@@ -40,8 +40,8 @@ See `.env.example`. The variables are read from the process environment (Vercel 
 | `CLERK_PUBLISHABLE_KEY` | Its publishable key; names the instance in the OAuth metadata.      |
 | `FITME_DATABASE_URL` | The `fitme` login's Supavisor transaction-pooler URL with `?application_name=mcp`; the user tools run through it (`asUser`). Service-role strength. |
 | `MCP_PUBLIC_URL`    | Public URL advertised as the OAuth resource; set it in production.     |
-| `LIBRARY_URL`     | The Library API (`apps/exercises`; `http://localhost:3006` locally, `https://library.fitmeproject.com` deployed). |
-| `LIBRARY_MCP_SECRET` | The MCP server's bearer for the Library API; the same value as the Library API's MCP secret (`EXERCISES_MCP_SECRET` in `apps/exercises` until it's renamed). Production's never leaves Vercel. |
+| `LIBRARY_URL`     | The Library API (`apps/library`; `http://localhost:3006` locally, `https://library.fitmeproject.com` deployed). |
+| `LIBRARY_MCP_SECRET` | The MCP server's bearer for the Library API; the same value as the Library API's MCP secret (`LIBRARY_MCP_SECRET` in `apps/library`). Production's never leaves Vercel. |
 
 The MCP endpoint fails closed: without `CLERK_SECRET_KEY`, `CLERK_PUBLISHABLE_KEY` or `FITME_DATABASE_URL` it answers **HTTP 500** to every request instead of serving without auth. Production uses the production Clerk instance; every other environment uses the development instance.
 

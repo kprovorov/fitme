@@ -7,7 +7,7 @@ import {
   reportError,
 } from "@fitme/observability/node";
 
-initObservability({ service: "exercises" });
+initObservability({ service: "library" });
 
 // Loaded only now, so the rest is imported after observability has started
 // and gets instrumented (a static import would load it first).

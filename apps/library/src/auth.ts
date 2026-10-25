@@ -27,17 +27,13 @@ export interface AuthEnv {
   Variables: { caller: Caller };
 }
 
-/**
- * Each server caller's secret from `env`. Arnold's is `EXERCISES_ARNOLD_SECRET`,
- * or the pre-rename `EXERCISES_COACH_SECRET` when that's unset or empty; the
- * length check applies to whichever is used.
- */
+/** Each server caller's secret from `env`, under its `LIBRARY_*` name only. */
 export const serverSecretsFromEnv = (
   env: Record<string, string | undefined>
 ): AuthConfig["serverSecrets"] => ({
-  api: env.EXERCISES_API_SECRET,
-  arnold: env.EXERCISES_ARNOLD_SECRET || env.EXERCISES_COACH_SECRET,
-  mcp: env.EXERCISES_MCP_SECRET,
+  api: env.LIBRARY_PUBLIC_API_SECRET,
+  arnold: env.LIBRARY_ARNOLD_SECRET,
+  mcp: env.LIBRARY_MCP_SECRET,
 });
 
 /** The OpenAPI security scheme every content route declares. */

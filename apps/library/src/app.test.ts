@@ -244,8 +244,6 @@ describe("auth", () => {
   });
 
   describe("server secrets from the environment", () => {
-    const OLD_SECRET = "o".repeat(40);
-
     const envApp = (env: Record<string, string | undefined>) =>
       callerApp({
         auth: { ...auth, serverSecrets: serverSecretsFromEnv(env) },
@@ -253,9 +251,9 @@ describe("auth", () => {
 
     it("reads each caller's secret", async () => {
       const configured = envApp({
-        EXERCISES_API_SECRET: API_SECRET,
-        EXERCISES_ARNOLD_SECRET: ARNOLD_SECRET,
-        EXERCISES_MCP_SECRET: MCP_SECRET,
+        LIBRARY_ARNOLD_SECRET: ARNOLD_SECRET,
+        LIBRARY_MCP_SECRET: MCP_SECRET,
+        LIBRARY_PUBLIC_API_SECRET: API_SECRET,
       });
 
       for (const [name, secret] of SERVER_SECRETS) {
@@ -265,44 +263,27 @@ describe("auth", () => {
       }
     });
 
-    it("takes EXERCISES_ARNOLD_SECRET over the old EXERCISES_COACH_SECRET", async () => {
+    it("reads none of the old EXERCISES_* names", async () => {
       const configured = envApp({
+        EXERCISES_API_SECRET: API_SECRET,
         EXERCISES_ARNOLD_SECRET: ARNOLD_SECRET,
-        EXERCISES_COACH_SECRET: OLD_SECRET,
+        EXERCISES_COACH_SECRET: ARNOLD_SECRET,
+        EXERCISES_MCP_SECRET: MCP_SECRET,
       });
 
-      expect(
-        (await configured.request("/caller", bearer(ARNOLD_SECRET))).status
-      ).toBe(200);
-      expect(
-        (await configured.request("/caller", bearer(OLD_SECRET))).status
-      ).toBe(401);
+      for (const [, secret] of SERVER_SECRETS) {
+        // biome-ignore lint/performance/noAwaitInLoops: one caller at a time keeps the failure readable
+        const response = await configured.request("/caller", bearer(secret));
+        expect(response.status).toBe(401);
+      }
     });
 
     it.each([
-      ["unset", undefined],
-      ["empty", ""],
-    ])(
-      "accepts the old EXERCISES_COACH_SECRET as Arnold when the new one is %s",
-      async (_case, arnoldSecret) => {
-        const response = await envApp({
-          EXERCISES_ARNOLD_SECRET: arnoldSecret,
-          EXERCISES_COACH_SECRET: OLD_SECRET,
-        }).request("/caller", bearer(OLD_SECRET));
-
-        expect(response.status).toBe(200);
-        expect(await response.json()).toEqual({
-          name: "arnold",
-          type: "server",
-        });
-      }
-    );
-
-    it.each([
-      ["EXERCISES_ARNOLD_SECRET", { EXERCISES_ARNOLD_SECRET: "s".repeat(31) }],
-      ["EXERCISES_COACH_SECRET", { EXERCISES_COACH_SECRET: "s".repeat(31) }],
-    ])("accepts nothing with a short %s", async (_case, env) => {
-      const response = await envApp(env).request(
+      "LIBRARY_ARNOLD_SECRET",
+      "LIBRARY_MCP_SECRET",
+      "LIBRARY_PUBLIC_API_SECRET",
+    ])("accepts nothing with a short %s", async (name) => {
+      const response = await envApp({ [name]: "s".repeat(31) }).request(
         "/caller",
         bearer("s".repeat(31))
       );
@@ -1079,7 +1060,7 @@ describe("rate limiting", () => {
 
     expect(USER_LIMIT).toEqual({
       limit: 120,
-      prefix: "exercises:user",
+      prefix: "library:user",
       windowMs: MINUTE_MS,
     });
     expect(response.status).toBe(429);

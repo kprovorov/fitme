@@ -16,7 +16,7 @@ and there are no Supabase Edge Functions.
 | `apps/mobile` | `@fitme/mobile` | Expo / React Native app (expo-router, uniwind, RevenueCat, Sentry) |
 | `apps/arnold` | `@fitme/arnold` | Arnold, Fitme's AI: an [EVE](https://www.npmjs.com/package/eve) agent, models through Vercel AI Gateway |
 | `apps/api` | `@fitme/api` | Hono REST API (client config, Arnold model list) |
-| `apps/exercises` | `@fitme/exercises` | Exercise Library API: Hono + zod-openapi over a baked-in `library.json` |
+| `apps/library` | `@fitme/library` | Library API: Hono + zod-openapi over a baked-in `library.json` |
 | `apps/mcp` | `@fitme/mcp` | MCP server (Streamable HTTP, Clerk OAuth) for ChatGPT and other MCP clients |
 | `apps/webhooks` | `@fitme/webhooks` | Hono app receiving third-party webhooks (Clerk account deletion) |
 | `apps/web` | `@fitme/web` | Next.js web app (account area) |
@@ -52,11 +52,11 @@ pnpm dev:mcp             # :3002
 pnpm dev:api             # :3003
 pnpm dev:webhooks        # :3004
 pnpm dev:arnold          # :3005
-pnpm dev:exercises       # :3006, serving the made-up fixture library
+pnpm dev:library         # :3006, serving the made-up fixture library
 ```
 
 Each app has an `.env.example`. Copy it to `.env` for `apps/mobile` and
-`apps/exercises`, or to `.env.local` for `apps/web`, `apps/site` and
+`apps/library`, or to `.env.local` for `apps/web`, `apps/site` and
 `apps/arnold`; `apps/api`, `apps/mcp` and `apps/webhooks` read the process
 environment instead. AGENTS.md lists what each variable does.
 

@@ -12,7 +12,7 @@ One folder per app, the same in both environments. A value two apps share sits a
 | ----------- | ---------------- | --------------------------- | ---------------- | --------------- |
 | `/Api`      | `apps/api`       | `apps/api/.env`             | `fitme-api`      | `api-sync`      |
 | `/Arnold`   | `apps/arnold`    | `apps/arnold/.env.local`    | `fitme-arnold`   | `arnold-sync`   |
-| `/Library`  | `apps/exercises` | `apps/exercises/.env`       | `fitme-library`  | `library-sync`  |
+| `/Library`  | `apps/library` | `apps/library/.env`       | `fitme-library`  | `library-sync`  |
 | `/Mcp`      | `apps/mcp`       | `apps/mcp/.env`             | `fitme-mcp`      | `mcp-sync`      |
 | `/Mobile`   | `apps/mobile`    | `apps/mobile/.env`          | (EAS, not synced)| none            |
 | `/Site`     | `apps/site`      | `apps/site/.env.local`      | `fitme-site`     | `site-sync`     |
