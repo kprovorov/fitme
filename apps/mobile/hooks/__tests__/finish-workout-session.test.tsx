@@ -19,10 +19,7 @@ import type * as React from "react";
 import { Alert } from "react-native";
 import { PlanUpdateSheetHost } from "~/components/workout-sessions/plan-update-sheet";
 import { closePlanUpdatePrompt } from "~/hooks/plan-update-prompt";
-import {
-  libraryExercise,
-  serveLibrary,
-} from "~/test-utils/fake-library";
+import { libraryExercise, serveLibrary } from "~/test-utils/fake-library";
 import { createTestQueryClient } from "~/test-utils/query-client";
 import { useFinishWorkoutSession } from "../finish-workout-session";
 

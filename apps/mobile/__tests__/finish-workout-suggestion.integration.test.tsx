@@ -40,10 +40,7 @@ import { closePlanUpdatePrompt } from "~/hooks/plan-update-prompt";
 import { usePlansQuery } from "~/hooks/queries/plans";
 import { storage } from "~/lib/mmkv";
 import { segmentClient } from "~/lib/segment";
-import {
-  libraryExercise,
-  serveLibrary,
-} from "~/test-utils/fake-library";
+import { libraryExercise, serveLibrary } from "~/test-utils/fake-library";
 import { FAKE_USER_ID, fakePublicApi } from "~/test-utils/fake-public-api";
 import {
   backend,

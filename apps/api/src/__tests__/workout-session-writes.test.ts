@@ -831,9 +831,7 @@ describe("PUT /v1/workout-session-exercises/:id", () => {
     });
 
     expect(response.status).toBe(503);
-    expect((await response.json()).error.code).toBe(
-      "library_unavailable"
-    );
+    expect((await response.json()).error.code).toBe("library_unavailable");
     expect(reported).toEqual([outage]);
   });
 

@@ -5,8 +5,11 @@ import type { ReactNode } from "react";
 import { useExercises } from "~/hooks/queries/library";
 import { createTestQueryClient, settle } from "~/test-utils/query-client";
 
-// The real module, not the fake every other test file reads.
+// The real module, not the fake every other test file reads. Its Clerk
+// import is stubbed: the real `@clerk/expo` opens a MessagePort that keeps
+// Jest from exiting, and an unconfigured Library never asks for a token.
 jest.unmock("~/lib/library");
+jest.mock("~/lib/clerk", () => ({ getClerk: () => ({ session: null }) }));
 
 const client = createTestQueryClient();
 const wrapper = ({ children }: { children: ReactNode }) => (
