@@ -9,7 +9,7 @@ const steps = [
   },
   {
     description:
-      "The AI Coach writes a plan around it: workouts in rotation, exercises in order, sets with target weights and reps.",
+      "Arnold, Fitme's AI, writes a plan around it: workouts in rotation, exercises in order, sets with target weights and reps.",
     title: "Get your plan",
   },
   {

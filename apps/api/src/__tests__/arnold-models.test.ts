@@ -56,7 +56,7 @@ describe("the OpenAPI document", () => {
     openapi: "3.0.3",
   });
 
-  it("marks only the Coach route deprecated", () => {
+  it("marks only the legacy route deprecated", () => {
     expect(paths?.["/v1/coach/models"]?.get?.deprecated).toBe(true);
     expect(paths?.["/v1/arnold/models"]?.get?.deprecated).toBeUndefined();
   });

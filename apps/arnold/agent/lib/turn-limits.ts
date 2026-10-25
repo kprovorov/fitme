@@ -1,7 +1,7 @@
 /**
- * Spend caps for one Coach turn: at most 20 model calls, and $1.00 of model
+ * Spend caps for one Arnold turn: at most 20 model calls, and $1.00 of model
  * cost. eve's own usage limits are per session and ask the user to continue,
- * which the app can't answer, so the Coach enforces these per turn from hooks
+ * which the app can't answer, so Arnold enforces these per turn from hooks
  * and cancels the turn before the call that would go over.
  *
  * Every call goes through AI Gateway, which reports each step's cost in USD.
@@ -57,7 +57,7 @@ export const missingCostError = (step: {
   const error = new Error(
     `step ${step.stepIndex} reported no cost; the turn stops before its next model call`
   );
-  error.name = "Coach step cost missing";
+  error.name = "Arnold step cost missing";
   return error;
 };
 

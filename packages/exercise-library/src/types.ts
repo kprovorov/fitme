@@ -47,7 +47,7 @@ export interface ListExercisesParams {
   search?: string;
 }
 
-/** What the Coach, MCP and the mobile app read the Exercise Library through. */
+/** What Arnold, MCP and the mobile app read the Exercise Library through. */
 export interface ExerciseLibrary {
   /** One Exercise in full, or `null` when no Exercise has that slug. */
   get: (slug: string) => Promise<Exercise | null>;

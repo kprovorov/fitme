@@ -7,7 +7,7 @@ on:
     paths:
       - apps/api/**
       # The muscle group enum in openapi.json is muscleGroups from @fitme/core,
-      # and the Coach model example its default model.
+      # and the Arnold model example its default model.
       - packages/core/**
       - .github/oasdiff/**
       - .github/workflows/public-api.yml

@@ -18,7 +18,7 @@ export const contextFor = (
 ): ToolContext =>
   ({
     callId: "call_1",
-    messages: [{ content: "Hi coach", role: "user" }],
+    messages: [{ content: "Hi Arnold", role: "user" }],
     session: {
       auth: {
         current: caller ? clerkUser(caller) : null,

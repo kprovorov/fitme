@@ -31,7 +31,7 @@ export interface ExerciseLibraryOptions {
   /** Defaults to `DEFAULT_TIMEOUT_MS`. */
   timeoutMs?: number;
   /**
-   * The bearer for each request: a server secret for the Coach and MCP, the
+   * The bearer for each request: a server secret for Arnold and MCP, the
    * User's Clerk session token for mobile.
    */
   token: () => Promise<string | null | undefined>;

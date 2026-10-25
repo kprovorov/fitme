@@ -4,7 +4,7 @@ import type {
 } from "eve/instrumentation/otel";
 import { describe, expect, it } from "vitest";
 import {
-  coachTracePolicy,
+  arnoldTracePolicy,
   sentryExportPolicy,
   sentryOtlpExport,
 } from "../agent/lib/trace-export";
@@ -80,9 +80,9 @@ describe("sentryExportPolicy", () => {
   });
 });
 
-describe("coachTracePolicy", () => {
+describe("arnoldTracePolicy", () => {
   const trace: Omit<TraceCaptureContext, "environment"> = {
-    agentName: "coach",
+    agentName: "arnold",
     audience: "public",
     channel: { kind: "http", name: "eve" },
     principalType: "user",
@@ -91,7 +91,7 @@ describe("coachTracePolicy", () => {
   it.each(["preview", "production"] as const)(
     "records no content in %s, whatever the audience",
     (environment) => {
-      expect(coachTracePolicy({ ...trace, environment })).toEqual({
+      expect(arnoldTracePolicy({ ...trace, environment })).toEqual({
         emit: true,
         recordInputs: false,
         recordOutputs: false,
@@ -100,11 +100,13 @@ describe("coachTracePolicy", () => {
   );
 
   it("records content in local development", () => {
-    expect(coachTracePolicy({ ...trace, environment: "development" })).toEqual({
-      emit: true,
-      recordInputs: true,
-      recordOutputs: true,
-    });
+    expect(arnoldTracePolicy({ ...trace, environment: "development" })).toEqual(
+      {
+        emit: true,
+        recordInputs: true,
+        recordOutputs: true,
+      }
+    );
   });
 });
 

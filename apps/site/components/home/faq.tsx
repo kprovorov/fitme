@@ -8,23 +8,23 @@ import { Container } from "@/components/ui/container";
 const questions: { answer: ReactNode; question: string }[] = [
   {
     answer:
-      "Fitme is an AI workout tracker and fitness coach for iPhone. It builds a gym workout plan around your goal, tracks every set you lift, and shows your progress over time. The AI Coach can answer questions and change your plan when you ask.",
+      "Fitme is an AI workout tracker and fitness coach for iPhone. It builds a gym workout plan around your goal, tracks every set you lift, and shows your progress over time. Arnold, Fitme's AI, answers your questions and changes your plan when you ask.",
     question: "What is Fitme?",
   },
   {
     answer:
-      "Fitme is free to download. Fitme Pro gives you unlimited access to every feature, including the AI Coach that builds and adjusts your plan. You can manage or cancel your subscription any time in your App Store settings.",
+      "Fitme is free to download. Fitme Pro gives you unlimited access to every feature, including Arnold, the AI that builds and adjusts your plan. You can manage or cancel your subscription any time in your App Store settings.",
     question: "Is Fitme free?",
   },
   {
     answer:
-      "Tell the planner your goal (lose weight, gain muscle or improve health), your experience, how long and how often you want to train, and add a note if there's anything else. The Coach turns that into a plan of workouts with exercises, sets and target weights, and you can ask it to change anything.",
+      "Tell the planner your goal (lose weight, gain muscle or improve health), your experience, how long and how often you want to train, and add a note if there's anything else. Arnold turns that into a plan of workouts with exercises, sets and target weights, and you can ask it to change anything.",
     question: "How does Fitme build my plan?",
   },
   {
     answer:
-      "You choose. The Coach offers GPT and Claude models, and the one you pick answers your next message.",
-    question: "Which AI models does the Coach use?",
+      "You choose. Arnold offers GPT and Claude models, and the one you pick answers your next message.",
+    question: "Which AI models does Arnold use?",
   },
   {
     answer:
@@ -43,7 +43,7 @@ const questions: { answer: ReactNode; question: string }[] = [
   },
   {
     answer:
-      "Go to Profile, then Settings, then Delete account. Your profile, plans, workout history and Coach conversations are deleted with it.",
+      "Go to Profile, then Settings, then Delete account. Your profile, plans, workout history and Arnold conversations are deleted with it.",
     question: "How do I delete my account?",
   },
 ];

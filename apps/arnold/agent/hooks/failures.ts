@@ -9,7 +9,7 @@ interface Failure {
 /** An Error for a failure event, so Sentry groups it by type and code. */
 const failureError = (type: string, { code, message }: Failure): Error => {
   const error = new Error(`${type} ${code}: ${message}`);
-  error.name = `Coach ${type}`;
+  error.name = `Arnold ${type}`;
   return error;
 };
 

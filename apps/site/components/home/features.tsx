@@ -122,7 +122,7 @@ const extras: Extra[] = [
   },
   {
     description:
-      "Delete your account in the app and your plans, workouts and Coach chats go with it.",
+      "Delete your account in the app and your plans, workouts and Arnold chats go with it.",
     icon: IconShieldCheck,
     title: "Your data, your call",
   },

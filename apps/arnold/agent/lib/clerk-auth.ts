@@ -54,7 +54,7 @@ interface ClerkSessionOptions {
 const SESSION_ROUTE = /\/eve\/v1\/session\/([^/]+)/;
 
 /**
- * Route auth for the Coach channel: accepts a request only with a valid Clerk
+ * Route auth for Arnold's channel: accepts a request only with a valid Clerk
  * session token, verified networkless against the Clerk JWT public key, and
  * makes its User id (`sub`) the session principal. A missing, expired or
  * forged token skips, so the walk answers 401. A missing key throws: the
@@ -67,7 +67,7 @@ const SESSION_ROUTE = /\/eve\/v1\/session\/([^/]+)/;
  * so this is the earliest point to record it. If the owner can't be
  * recorded, the route fails rather than let anyone in.
  *
- * Only Pro Users may use the Coach: every route checks the verified User's
+ * Only Pro Users may use Arnold: every route checks the verified User's
  * entitlement (cached by `checkPro`) before anything else runs, so a free
  * User can't start, continue or compact a Conversation. Without Pro the
  * answer is a 403 `coach_pro_required` (the app's paywall); when it can't be

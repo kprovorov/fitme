@@ -1,4 +1,4 @@
-import { Coach } from "@/components/home/coach";
+import { Arnold } from "@/components/home/arnold";
 import { DownloadBanner } from "@/components/home/download-banner";
 import { Faq } from "@/components/home/faq";
 import { Features } from "@/components/home/features";
@@ -11,7 +11,7 @@ export default function Home() {
       <Hero />
       <HowItWorks />
       <Features />
-      <Coach />
+      <Arnold />
       <Faq />
       <DownloadBanner />
     </div>

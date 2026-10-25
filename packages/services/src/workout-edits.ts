@@ -9,7 +9,7 @@ import { and, asc, count, eq, inArray, max, type SQL, sql } from "drizzle-orm";
 import type { PlanSet, PlanSetInput } from "./plans";
 
 /**
- * The Coach's edits to one Workout of a Plan. Each runs in `tx` from `asUser`,
+ * Arnold's edits to one Workout of a Plan. Each runs in `tx` from `asUser`,
  * so it commits fully or not at all, and filters on the User id as well as
  * RLS: another User's rows are `null` (not found), never edited. A Workout of
  * a soft-deleted Plan is still edited, as the `ai-agent` tools did (RLS
@@ -27,7 +27,7 @@ import type { PlanSet, PlanSetInput } from "./plans";
  * deadlock with `updatePlan` or `finishWorkoutSession`, which lock the Plan
  * first.
  *
- * A durable Coach step can re-run after its tool committed. Removing,
+ * A durable Arnold step can re-run after its tool committed. Removing,
  * replacing and updating are safe to repeat; the two appends take a
  * `requestKey`, stored on the row they add, and a repeated call with the same
  * key returns that row instead of adding another.

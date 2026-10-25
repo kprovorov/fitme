@@ -9,7 +9,7 @@ import {
 } from "../lib/turn-limits";
 
 const turnSpend = defineState<TurnSpend | null>(
-  "fitme-coach.turn-spend",
+  "fitme-arnold.turn-spend",
   () => null
 );
 
@@ -31,7 +31,7 @@ export default defineHook({
     "step.started"(event, ctx) {
       const reached = turnLimitReached(event.data, turnSpend.get());
       if (reached) {
-        console.warn(`Coach turn hit its ${reached} limit`, {
+        console.warn(`Arnold turn hit its ${reached} limit`, {
           sessionId: ctx.session.id,
           turnId: event.data.turnId,
         });
