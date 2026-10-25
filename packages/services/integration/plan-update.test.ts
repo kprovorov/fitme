@@ -180,10 +180,26 @@ const viaService = (sessionId: string, apply: boolean, userId = owner) =>
     (apply ? applyPlanUpdate : previewPlanUpdate)(tx, userId, sessionId)
   );
 
-/**
- * An answer to compare across the two copies: the copy's own Plan and
- * Workout ids as placeholders, Exercises as slugs, weights as numbers.
- */
+type Ref = { id: string; name: string | null } | null;
+
+interface Refs {
+  plan: Ref;
+  workout: Ref;
+}
+
+/** The copy's own Plan and Workout ids as placeholders, to compare across copies. */
+const withPlaceholders = ({ plan, workout }: Refs, seeded: Seeded) => ({
+  plan: plan && {
+    id: plan.id === seeded.planId ? "<plan>" : plan.id,
+    name: plan.name,
+  },
+  workout: workout && {
+    id: workout.id === seeded.workoutId ? "<workout>" : workout.id,
+    name: workout.name,
+  },
+});
+
+/** The RPC's answer as the service's: Exercises as slugs, weights as numbers. */
 const fromRpc = (answer: RpcAnswer, seeded: Seeded) => ({
   changes: answer.changes.map((change) => ({
     exercise_slug: change.exercise.slug,
@@ -198,32 +214,13 @@ const fromRpc = (answer: RpcAnswer, seeded: Seeded) => ({
       })),
     }),
   })),
-  plan: answer.plan && {
-    id: answer.plan.id === seeded.planId ? "<plan>" : answer.plan.id,
-    name: answer.plan.name,
-  },
-  workout: answer.workout && {
-    id:
-      answer.workout.id === seeded.workoutId ? "<workout>" : answer.workout.id,
-    name: answer.workout.name,
-  },
+  ...withPlaceholders(answer, seeded),
 });
 
 const fromService = (
   { weight_unit: _, ...answer }: PlanUpdate,
   seeded: Seeded
-) => ({
-  ...answer,
-  plan: answer.plan && {
-    id: answer.plan.id === seeded.planId ? "<plan>" : answer.plan.id,
-    name: answer.plan.name,
-  },
-  workout: answer.workout && {
-    id:
-      answer.workout.id === seeded.workoutId ? "<workout>" : answer.workout.id,
-    name: answer.workout.name,
-  },
-});
+) => ({ ...answer, ...withPlaceholders(answer, seeded) });
 
 /** A copy's Workout rows and whether its Workout Session is stamped. */
 const rowsOf = (seeded: Seeded) =>
@@ -594,6 +591,26 @@ describe("Plan Update: parity with workout_session_plan_changes", () => {
       }
     }
   );
+
+  it("offers a Plan Update exactly at the caps", async () => {
+    const { answers, rpc, service } = await runBoth({
+      planExercises: [
+        {
+          sets: times(100, () => ({ reps: 8, rest: 90, weight: 20 })),
+          slug: "test-squat",
+        },
+      ],
+      sessionExercises: [
+        ...times(49, () => ({
+          sets: [logged(12, 15)],
+          slug: "test-cable-fly",
+        })),
+        { sets: times(100, () => logged(12, 15)), slug: "test-leg-press" },
+      ],
+    });
+    expect(service).toEqual(rpc);
+    expect(answers[0].changes).toHaveLength(50);
+  });
 
   it("answers kg for a User without a Profile", async () => {
     const { answers, rpc, service } = await runBoth({

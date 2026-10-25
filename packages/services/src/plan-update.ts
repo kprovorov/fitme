@@ -1,3 +1,4 @@
+import { MAX_SETS_PER_EXERCISE } from "@fitme/core/limits";
 import {
   plans,
   type Transaction,
@@ -10,7 +11,6 @@ import {
 } from "@fitme/db";
 import { and, asc, eq, inArray, isNull, max, sql } from "drizzle-orm";
 import { lockProfileUnits, type ProfileUnits } from "./profile";
-import { MAX_SETS_PER_EXERCISE } from "./workout-edits";
 
 /**
  * The Plan Update: the structural changes a finished Workout Session made to
@@ -241,15 +241,20 @@ const loadSlots = async (
   return [...slots.entries()].sort(([a], [b]) => a - b).map(([, slot]) => slot);
 };
 
+type LoggedSet = SessionSet & { repsCompleted: number };
+
+const isLogged = (set: SessionSet): set is LoggedSet =>
+  set.repsCompleted !== null;
+
 const weightOf = (set: SessionSet) => Number(set.weightCompleted ?? 0);
 
 /** The logged sets of an added Exercise, rest 90 s; none logged, `null`. */
 const addedSets = (sets: SessionSet[]): RestedSet[] | null => {
   const logged = sets
-    .filter((set) => set.repsCompleted !== null)
+    .filter(isLogged)
     .slice(0, MAX_SETS_PER_EXERCISE)
     .map((set) => ({
-      reps: set.repsCompleted as number,
+      reps: set.repsCompleted,
       rest: DEFAULT_REST,
       weight: weightOf(set),
     }));
@@ -266,7 +271,7 @@ const replacementSets = (
   sets: SessionSet[],
   planRests: number[]
 ): RestedSet[] | null => {
-  const lastLogged = sets.filter((set) => set.repsCompleted !== null).at(-1);
+  const lastLogged = sets.filter(isLogged).at(-1);
   if (!lastLogged) {
     return null;
   }
@@ -297,13 +302,12 @@ const extraSets = (
   const rest = planRests.at(-1) ?? DEFAULT_REST;
   const extra = sets
     .filter(
-      (set, index) =>
-        (set.repsRecommended === null || index + 1 > planSetCount) &&
-        set.repsCompleted !== null
+      (set, index) => set.repsRecommended === null || index + 1 > planSetCount
     )
+    .filter(isLogged)
     .slice(0, Math.max(MAX_SETS_PER_EXERCISE - planSetCount, 0))
     .map((set) => ({
-      reps: set.repsCompleted as number,
+      reps: set.repsCompleted,
       rest,
       weight: weightOf(set),
     }));
@@ -464,8 +468,8 @@ const applyChanges = async (
     .where(eq(workoutSessions.id, sessionId));
 };
 
-/** A change as answered: slugs and `{ reps, weight }` sets, no rows or rests. */
-const answered = (change: PlannedChange): PlanUpdateChange => {
+/** A change as the service answers it: slugs and `{ reps, weight }` sets, no rows or rests. */
+const toAnswer = (change: PlannedChange): PlanUpdateChange => {
   const sets = (rested: RestedSet[]) =>
     rested.map(({ reps, weight }) => ({ reps, weight }));
   switch (change.kind) {
@@ -517,18 +521,18 @@ const planUpdate = async (
     eq(workoutSessions.userId, userId)
   );
 
-  const [unlocked] = await tx
+  const [sessionWorkout] = await tx
     .select({ workoutId: workoutSessions.workoutId })
     .from(workoutSessions)
     .where(ofUser);
-  if (!unlocked) {
+  if (!sessionWorkout) {
     return null;
   }
 
   let workout:
     | { id: string; name: string; planId: string; planName: string | null }
     | undefined;
-  if (unlocked.workoutId) {
+  if (sessionWorkout.workoutId) {
     await tx
       .select({ id: plans.id })
       .from(plans)
@@ -539,7 +543,7 @@ const planUpdate = async (
             tx
               .select({ planId: workouts.planId })
               .from(workouts)
-              .where(eq(workouts.id, unlocked.workoutId))
+              .where(eq(workouts.id, sessionWorkout.workoutId))
           ),
           eq(plans.userId, userId)
         )
@@ -556,7 +560,7 @@ const planUpdate = async (
       .innerJoin(plans, eq(plans.id, workouts.planId))
       .where(
         and(
-          eq(workouts.id, unlocked.workoutId),
+          eq(workouts.id, sessionWorkout.workoutId),
           eq(plans.userId, userId),
           isNull(plans.deletedAt)
         )
@@ -605,7 +609,7 @@ const planUpdate = async (
   }
 
   return {
-    changes: changes.map(answered),
+    changes: changes.map(toAnswer),
     plan: { id: workout.planId, name: workout.planName },
     weight_unit: weightUnit,
     workout: { id: workout.id, name: workout.name },
