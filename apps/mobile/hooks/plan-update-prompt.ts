@@ -1,15 +1,14 @@
-import type { MeasurementSystem, PlanChanges } from "@fitme/core";
 import { useSyncExternalStore } from "react";
+import type { PlanUpdate } from "~/lib/plan-changes";
 
 /**
  * The "Update your plan?" question for a Workout Session that has just
  * finished. `onDone` opens its Summary, once the User has answered.
  */
 export interface PlanUpdatePrompt {
-  /** The User's, for the weights' unit. */
-  measurementSystem: MeasurementSystem;
   onDone: () => void;
-  preview: PlanChanges;
+  /** What the Public API previewed, weights in its `weight_unit`. */
+  preview: PlanUpdate;
   sessionId: string;
 }
 

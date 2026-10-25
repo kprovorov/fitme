@@ -542,14 +542,11 @@ class FakeQuery {
 
 export const fakeSupabase = {
   from: (table: string) => new FakeQuery(table),
-  rpc: (name: string, args: Record<string, unknown>) =>
+  rpc: (name: string, _args: Record<string, unknown>) =>
     backend.execute({ operation: "rpc", table: name }, () => {
-      if (name === "workout_session_plan_changes") {
-        // The fake has no Plan, so no session ever changed one.
-        requireRow(backend.session(args.session_id as string), "session");
-        return { changes: [], plan: null, workout: null };
-      }
-      // Starting and finishing go through the Public API.
+      // Starting and finishing a Workout Session, activating a Plan and the
+      // Plan Update (`workout_session_plan_changes`) go through the Public
+      // API.
       throw new Error(`Fake backend: unsupported rpc ${name}`);
     }),
 };

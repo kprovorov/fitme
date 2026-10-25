@@ -19,6 +19,10 @@ import type * as React from "react";
 import { Alert } from "react-native";
 import { PlanUpdateSheetHost } from "~/components/workout-sessions/plan-update-sheet";
 import { closePlanUpdatePrompt } from "~/hooks/plan-update-prompt";
+import {
+  libraryExercise,
+  serveLibrary,
+} from "~/test-utils/fake-exercise-library";
 import { createTestQueryClient } from "~/test-utils/query-client";
 import { useFinishWorkoutSession } from "../finish-workout-session";
 
@@ -36,8 +40,6 @@ const mockPlanChangesRpc =
     (sessionId: string, options: { apply: boolean }) => Promise<unknown>
   >();
 const mockTrack = jest.fn();
-const mockProfile = { measurement_system: "metric" };
-const mockFetchProfile = jest.fn(() => Promise.resolve(mockProfile));
 
 jest.mock("expo-router", () => ({
   useNavigation: () => ({ getState: () => mockNavigationState }),
@@ -55,17 +57,6 @@ jest.mock("~/components/ui/button", () =>
   jest.requireActual("~/test-utils/button-stub")
 );
 jest.mock("~/components/symbol-image", () => ({ SymbolImage: () => null }));
-jest.mock("~/hooks/queries/profiles", () => {
-  const { createQuery } =
-    jest.requireActual<typeof import("react-query-kit")>("react-query-kit");
-  return {
-    useProfileQuery: createQuery({
-      fetcher: () => mockFetchProfile(),
-      queryKey: ["profile"],
-    }),
-  };
-});
-
 // Keeps the real mutation key and react-query wiring, swapping only the
 // network call.
 jest.mock("~/hooks/queries/workout-sessions", () => {
@@ -74,9 +65,9 @@ jest.mock("~/hooks/queries/workout-sessions", () => {
   const FINISH_WORKOUT_SESSION_MUTATION_KEY = ["finish-workout-session"];
   return {
     FINISH_WORKOUT_SESSION_MUTATION_KEY,
-    fetchPlanChanges: (sessionId: string) =>
+    fetchPlanUpdate: (sessionId: string) =>
       mockPlanChangesRpc(sessionId, { apply: false }),
-    useApplyPlanChangesMutation: createMutation({
+    useApplyPlanUpdateMutation: createMutation({
       mutationFn: ({ sessionId }: { sessionId: string }) =>
         mockPlanChangesRpc(sessionId, { apply: true }),
     }),
@@ -132,14 +123,19 @@ const setup = async (screensAboveSession = 0) => {
   return { queryClient, result, settled };
 };
 
-const NO_CHANGES = { changes: [], plan: null, workout: null };
+const NO_CHANGES = {
+  changes: [],
+  plan: null,
+  weight_unit: "kg",
+  workout: null,
+};
 
 const CHANGES = {
   changes: [
     {
-      exercise: { name: "Dumbbell Press", slug: "dumbbell-press" },
+      exercise_slug: "dumbbell-press",
       kind: "replace_exercise",
-      replaced_exercise: { name: "Bench Press", slug: "bench-press" },
+      replaced_exercise_slug: "bench-press",
       sets: [
         { reps: 8, weight: 30 },
         { reps: 8, weight: 30 },
@@ -147,13 +143,13 @@ const CHANGES = {
       ],
     },
     {
-      exercise: { name: "Squat", slug: "squat" },
+      exercise_slug: "squat",
       kind: "add_sets",
       sets: [{ reps: 5, weight: 100 }],
     },
-    { exercise: { name: "Dips", slug: "dips" }, kind: "remove_exercise" },
+    { exercise_slug: "dips", kind: "remove_exercise" },
     {
-      exercise: { name: "Cable Fly", slug: "cable-fly" },
+      exercise_slug: "cable-fly",
       kind: "add_exercise",
       sets: [
         { reps: 12, weight: 15 },
@@ -162,8 +158,17 @@ const CHANGES = {
     },
   ],
   plan: { id: "plan-1", name: "PPL 4-week" },
+  weight_unit: "kg",
   workout: { id: "workout-1", name: "Push Day" },
 };
+
+/** The Exercise Library's names for the changes' slugs; dips it doesn't know. */
+const LIBRARY = [
+  libraryExercise("dumbbell-press", { name: "Dumbbell Press" }),
+  libraryExercise("bench-press", { name: "Bench Press" }),
+  libraryExercise("squat", { name: "Back Squat" }),
+  libraryExercise("cable-fly", { name: "Cable Fly" }),
+];
 
 const SUMMARY = "/workout-sessions/session-1/summary";
 const UPDATE = { name: "Update plan" } as const;
@@ -174,7 +179,7 @@ describe("useFinishWorkoutSession", () => {
   beforeEach(() => {
     jest.clearAllMocks();
     Object.assign(mockNavigationState, { index: 0, routes: [{}] });
-    mockProfile.measurement_system = "metric";
+    serveLibrary(LIBRARY);
     mockPlanChangesRpc.mockResolvedValue(NO_CHANGES);
     jest.spyOn(Alert, "alert").mockImplementation(() => undefined);
   });
@@ -463,7 +468,7 @@ describe("useFinishWorkoutSession", () => {
       expect(mockTrack).not.toHaveBeenCalled();
     });
 
-    it("asks after the finish has committed, with one line per change", async () => {
+    it("asks after the finish has committed, with one line per change, Exercises by their Library names", async () => {
       const { settled } = await finishWithChanges();
       await settled();
 
@@ -473,9 +478,12 @@ describe("useFinishWorkoutSession", () => {
       expect(
         screen.getByText("Save today's changes to Push Day in PPL 4-week.")
       ).toBeTruthy();
+      // The names resolve in one Exercise Library lookup.
+      await screen.findByText("Add 1 set to Back Squat · 5×100 kg");
       for (const line of [
         "Replace Bench Press with Dumbbell Press · 8×30, 8×30, 6×30 kg",
-        "Add 1 set to Squat · 5×100 kg",
+        "Add 1 set to Back Squat · 5×100 kg",
+        // Unknown to the Exercise Library: the slug's name.
         "Remove Dips",
         "Add Cable Fly · 12×15, 12×17.5 kg",
       ]) {
@@ -490,12 +498,18 @@ describe("useFinishWorkoutSession", () => {
       );
     });
 
-    it("shows weights in the User's unit", async () => {
-      mockProfile.measurement_system = "us";
-      await finishWithChanges();
+    it("shows weights in the Plan Update's unit", async () => {
+      mockFinishRpc.mockResolvedValue({});
+      mockPlanChangesRpc.mockResolvedValueOnce({
+        ...CHANGES,
+        weight_unit: "lbs",
+      });
+      const { result } = await setup();
+
+      await act(() => result.current.session.finish());
 
       expect(
-        await screen.findByText("Add 1 set to Squat · 5×100 lbs")
+        await screen.findByText("Add 1 set to Back Squat · 5×100 lbs")
       ).toBeTruthy();
     });
 
@@ -520,12 +534,14 @@ describe("useFinishWorkoutSession", () => {
         screen.getByRole("heading", { name: "Update your plan?" })
       ).toBeTruthy();
       expect(
-        screen.getByLabelText(
+        await screen.findByLabelText(
           "Replace Bench Press with Dumbbell Press: 8 reps at 30 kilograms, 8 reps at 30 kilograms, 6 reps at 30 kilograms"
         )
       ).toBeTruthy();
       expect(
-        screen.getByLabelText("Add 1 set to Squat: 5 reps at 100 kilograms")
+        await screen.findByLabelText(
+          "Add 1 set to Back Squat: 5 reps at 100 kilograms"
+        )
       ).toBeTruthy();
       expect(screen.getByLabelText("Remove Dips")).toBeTruthy();
       expect(screen.getByTestId("plan-update-accept")).toHaveProp(
@@ -635,22 +651,6 @@ describe("useFinishWorkoutSession", () => {
       expect(Sentry.captureException).toHaveBeenCalledWith(failure);
       expect(screen.queryByText("Update your plan?")).toBeNull();
       expect(Alert.alert).not.toHaveBeenCalled();
-    });
-
-    it("opens the summary without asking when the User's unit can't be read", async () => {
-      mockFinishRpc.mockResolvedValue({});
-      mockPlanChangesRpc.mockResolvedValueOnce(CHANGES);
-      const failure = new Error("offline");
-      mockFetchProfile.mockRejectedValueOnce(failure);
-      const { result, settled } = await setup();
-
-      await act(() => result.current.session.finish());
-
-      await waitFor(() => expect(mockReplace).toHaveBeenCalledWith(SUMMARY));
-      await settled();
-      expect(Sentry.captureException).toHaveBeenCalledWith(failure);
-      expect(screen.queryByText("Update your plan?")).toBeNull();
-      expect(mockTrack).not.toHaveBeenCalled();
     });
 
     it("asks after the unlogged-sets confirmation, from the header's Finish", async () => {

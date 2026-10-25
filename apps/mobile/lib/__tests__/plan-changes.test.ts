@@ -1,25 +1,34 @@
-import type { PlanChange } from "@fitme/core";
 import { describe, expect, it } from "@jest/globals";
-import { countPlanChanges, formatPlanChange } from "../plan-changes";
+import {
+  countPlanChanges,
+  formatPlanChange,
+  type PlanUpdateChange,
+  planUpdateSlugs,
+} from "../plan-changes";
 
-const bench = { name: "Bench Press", slug: "bench-press" };
-const press = { name: "Dumbbell Press", slug: "dumbbell-press" };
-const squat = { name: "Squat", slug: "squat" };
+const NAMES: Record<string, string> = {
+  "bench-press": "Bench Press",
+  "dumbbell-press": "Dumbbell Press",
+  squat: "Squat",
+};
+
+const nameOf = (slug: string) => NAMES[slug] ?? `<${slug}>`;
 
 describe("formatPlanChange", () => {
-  it("lists a replacement's sets in kilograms for metric", () => {
+  it("lists a replacement's sets in kilograms, each Exercise by name", () => {
     expect(
       formatPlanChange(
         {
-          exercise: press,
+          exercise_slug: "dumbbell-press",
           kind: "replace_exercise",
-          replaced_exercise: bench,
+          replaced_exercise_slug: "bench-press",
           sets: [
             { reps: 8, weight: 30 },
             { reps: 6, weight: 32.5 },
           ],
         },
-        "metric"
+        "kg",
+        nameOf
       )
     ).toEqual({
       accessibilityLabel:
@@ -28,37 +37,44 @@ describe("formatPlanChange", () => {
     });
   });
 
-  it("says pounds for US and UK Users", () => {
-    const change: PlanChange = {
-      exercise: squat,
-      kind: "add_exercise",
-      sets: [{ reps: 1, weight: 225 }],
-    };
-    for (const system of ["us", "uk"] as const) {
-      expect(formatPlanChange(change, system)).toEqual({
-        accessibilityLabel: "Add Squat: 1 rep at 225 pounds",
-        text: "Add Squat · 1×225 lbs",
-      });
-    }
+  it("says pounds for lbs", () => {
+    expect(
+      formatPlanChange(
+        {
+          exercise_slug: "squat",
+          kind: "add_exercise",
+          sets: [{ reps: 1, weight: 225 }],
+        },
+        "lbs",
+        nameOf
+      )
+    ).toEqual({
+      accessibilityLabel: "Add Squat: 1 rep at 225 pounds",
+      text: "Add Squat · 1×225 lbs",
+    });
   });
 
   it("counts added sets, singular and plural", () => {
-    const addSets = (count: number): PlanChange => ({
-      exercise: squat,
+    const addSets = (count: number): PlanUpdateChange => ({
+      exercise_slug: "squat",
       kind: "add_sets",
       sets: Array.from({ length: count }, () => ({ reps: 5, weight: 100 })),
     });
-    expect(formatPlanChange(addSets(1), "metric").text).toBe(
+    expect(formatPlanChange(addSets(1), "kg", nameOf).text).toBe(
       "Add 1 set to Squat · 5×100 kg"
     );
-    expect(formatPlanChange(addSets(2), "metric").text).toBe(
+    expect(formatPlanChange(addSets(2), "kg", nameOf).text).toBe(
       "Add 2 sets to Squat · 5×100, 5×100 kg"
     );
   });
 
   it("names only the Exercise for a removal", () => {
     expect(
-      formatPlanChange({ exercise: bench, kind: "remove_exercise" }, "us")
+      formatPlanChange(
+        { exercise_slug: "bench-press", kind: "remove_exercise" },
+        "lbs",
+        nameOf
+      )
     ).toEqual({
       accessibilityLabel: "Remove Bench Press",
       text: "Remove Bench Press",
@@ -69,13 +85,30 @@ describe("formatPlanChange", () => {
     expect(
       formatPlanChange(
         {
-          exercise: squat,
+          exercise_slug: "squat",
           kind: "add_exercise",
           sets: [{ reps: 12, weight: 0 }],
         },
-        "metric"
+        "kg",
+        nameOf
       ).text
     ).toBe("Add Squat · 12×0 kg");
+  });
+});
+
+describe("planUpdateSlugs", () => {
+  it("lists every Exercise the changes name, a replacement's both", () => {
+    expect(
+      planUpdateSlugs([
+        {
+          exercise_slug: "dumbbell-press",
+          kind: "replace_exercise",
+          replaced_exercise_slug: "bench-press",
+          sets: [],
+        },
+        { exercise_slug: "squat", kind: "remove_exercise" },
+      ])
+    ).toEqual(["bench-press", "dumbbell-press", "squat"]);
   });
 });
 
@@ -83,9 +116,13 @@ describe("countPlanChanges", () => {
   it("counts each kind, zero included", () => {
     expect(
       countPlanChanges([
-        { exercise: bench, kind: "remove_exercise" },
-        { exercise: squat, kind: "remove_exercise" },
-        { exercise: squat, kind: "add_sets", sets: [{ reps: 5, weight: 100 }] },
+        { exercise_slug: "bench-press", kind: "remove_exercise" },
+        { exercise_slug: "squat", kind: "remove_exercise" },
+        {
+          exercise_slug: "squat",
+          kind: "add_sets",
+          sets: [{ reps: 5, weight: 100 }],
+        },
       ])
     ).toEqual({
       add_exercise: 0,

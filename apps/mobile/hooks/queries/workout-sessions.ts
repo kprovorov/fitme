@@ -1,7 +1,8 @@
-import type { PlanChanges, WorkoutSession } from "@fitme/core";
+import type { WorkoutSession } from "@fitme/core";
 import { createMutation, createQuery } from "react-query-kit";
 import { supabase } from "@/lib/supabase";
 import { ApiError } from "~/lib/api/client";
+import type { PlanUpdate } from "~/lib/plan-changes";
 import { publicApi } from "~/lib/public-api";
 
 const SESSION_SELECT = `
@@ -94,43 +95,50 @@ export const useFinishWorkoutSessionMutation = createMutation<
   mutationKey: FINISH_WORKOUT_SESSION_MUTATION_KEY,
 });
 
-const workoutSessionPlanChanges = async (
-  sessionId: string,
-  apply: boolean
-): Promise<PlanChanges> => {
-  const { data, error } = await supabase.rpc("workout_session_plan_changes", {
-    apply,
-    session_id: sessionId,
-  });
-  if (error) {
-    throw error;
+const planUpdateOf = (answer: { data: PlanUpdate } | undefined): PlanUpdate => {
+  if (!answer) {
+    throw new ApiError("Public API answered without a Plan Update");
   }
-  return data as unknown as PlanChanges;
+  return answer.data;
 };
 
 /**
- * The structural changes a finished Workout Session made to its Workout
- * (`workout_session_plan_changes` with `apply = false`), without writing
- * anything.
+ * The Plan Update of a finished Workout Session (`GET
+ * /v1/workout-sessions/{id}/plan-update`): the changes it made to its
+ * Workout, Exercises as slugs and weights in `weight_unit`, without writing
+ * anything. Rejects with an `ApiError`.
  */
-export const fetchPlanChanges = (sessionId: string): Promise<PlanChanges> =>
-  workoutSessionPlanChanges(sessionId, false);
+export const fetchPlanUpdate = async (
+  sessionId: string
+): Promise<PlanUpdate> => {
+  const { data } = await publicApi().GET(
+    "/v1/workout-sessions/{id}/plan-update",
+    { params: { path: { id: sessionId } } }
+  );
+  return planUpdateOf(data);
+};
 
-export interface ApplyPlanChangesVariables {
+export interface ApplyPlanUpdateVariables {
   sessionId: string;
 }
 
 /**
- * Writes those changes to the Plan in one transaction (`apply = true`) and
- * answers what it applied. Once applied, both modes answer no changes, so a
- * retried apply never writes twice.
+ * Applies the Plan Update in one transaction (`POST
+ * /v1/workout-sessions/{id}/plan-update`) and answers what it applied. Once
+ * applied there are no changes, so a retried apply never writes twice.
+ * Rejects with an `ApiError`.
  */
-export const useApplyPlanChangesMutation = createMutation<
-  PlanChanges,
-  ApplyPlanChangesVariables
+export const useApplyPlanUpdateMutation = createMutation<
+  PlanUpdate,
+  ApplyPlanUpdateVariables
 >({
-  mutationFn: ({ sessionId }: ApplyPlanChangesVariables) =>
-    workoutSessionPlanChanges(sessionId, true),
+  mutationFn: async ({ sessionId }: ApplyPlanUpdateVariables) => {
+    const { data } = await publicApi().POST(
+      "/v1/workout-sessions/{id}/plan-update",
+      { params: { path: { id: sessionId } } }
+    );
+    return planUpdateOf(data);
+  },
 });
 
 export const useWorkoutSessionHistoryQuery = createQuery<
