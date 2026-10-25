@@ -1,6 +1,6 @@
 # Fitme iOS marketing screenshots
 
-Real app (Release build, no dev overlays) against a local Supabase stack seeded with a believable account. Captured 2026-10-16 from commit `44e3fb5`, iPhone 17 Pro Max simulator (iOS 26.5, 6.9", 1320×2868), dark mode, status bar overridden to 9:41 / full Wi-Fi and signal / charged battery.
+Real app (Release build, no dev overlays) against a local Supabase stack seeded with a believable account. Captured 2026-10-16 from commit `44e3fb5` (`13-arnold.png` and `14-arnold-models.png` recaptured 2026-10-25 on the Arnold tab, from a dev client with its tools hidden), iPhone 17 Pro Max simulator (iOS 26.5, 6.9", 1320×2868), dark mode, status bar overridden to 9:41 / full Wi-Fi and signal / charged battery.
 
 | File | Shows |
 | --- | --- |
