@@ -2,12 +2,17 @@ import { randomUUID } from "node:crypto";
 import {
   asUser,
   withService,
+  workoutSessionExerciseSets,
   workoutSessionExercises,
   workoutSessions,
 } from "@fitme/db";
 import { asc, eq } from "drizzle-orm";
 import { afterAll, beforeAll, describe, expect, it } from "vitest";
-import { addExerciseToWorkoutSession } from "../src/workout-sessions";
+import {
+  addExerciseToWorkoutSession,
+  removeExerciseFromWorkoutSession,
+  replaceExerciseInWorkoutSession,
+} from "../src/workout-sessions";
 import { deleteTestUsers } from "./delete-test-users";
 
 /**
@@ -43,13 +48,62 @@ const insertSession = (
     return session.id;
   });
 
-/** Exercises at 1 and 3: a remove left a gap at 2. */
+/** Exercises at 1 and 3: a remove left a gap at 2. Their ids, in order. */
 const insertExercises = (sessionId: string) =>
+  withService(async (tx) => {
+    const inserted = await tx
+      .insert(workoutSessionExercises)
+      .values([
+        { exerciseSlug: benchSlug, order: 1, workoutSessionId: sessionId },
+        { exerciseSlug: squatSlug, order: 3, workoutSessionId: sessionId },
+      ])
+      .returning({ id: workoutSessionExercises.id });
+    return inserted.map(({ id }) => id);
+  });
+
+/** Two sets with targets on a Workout Session Exercise, the first one logged. */
+const insertSets = (sessionExerciseId: string) =>
   withService((tx) =>
-    tx.insert(workoutSessionExercises).values([
-      { exerciseSlug: benchSlug, order: 1, workoutSessionId: sessionId },
-      { exerciseSlug: squatSlug, order: 3, workoutSessionId: sessionId },
+    tx.insert(workoutSessionExerciseSets).values([
+      {
+        loggedAt: "2026-10-01T10:05:00Z",
+        order: 1,
+        repsCompleted: 9,
+        repsRecommended: 10,
+        restRecommended: 90,
+        weightCompleted: "62.5",
+        weightRecommended: "60",
+        workoutSessionExerciseId: sessionExerciseId,
+      },
+      {
+        order: 2,
+        repsRecommended: 8,
+        restRecommended: 90,
+        weightRecommended: "65",
+        workoutSessionExerciseId: sessionExerciseId,
+      },
     ])
+  );
+
+const setsOf = (sessionExerciseId: string) =>
+  withService((tx) =>
+    tx
+      .select({
+        order: workoutSessionExerciseSets.order,
+        repsCompleted: workoutSessionExerciseSets.repsCompleted,
+        repsRecommended: workoutSessionExerciseSets.repsRecommended,
+        restRecommended: workoutSessionExerciseSets.restRecommended,
+        weightCompleted: workoutSessionExerciseSets.weightCompleted,
+        weightRecommended: workoutSessionExerciseSets.weightRecommended,
+      })
+      .from(workoutSessionExerciseSets)
+      .where(
+        eq(
+          workoutSessionExerciseSets.workoutSessionExerciseId,
+          sessionExerciseId
+        )
+      )
+      .orderBy(asc(workoutSessionExerciseSets.order))
   );
 
 const exercisesOf = (sessionId: string) =>
@@ -171,5 +225,195 @@ describe("addExerciseToWorkoutSession", () => {
       result.status === "added" ? result.exercise.order : null
     );
     expect(orders.sort((a, b) => (a ?? 0) - (b ?? 0))).toEqual([4, 5, 6, 7, 8]);
+  });
+});
+
+describe("removeExerciseFromWorkoutSession", () => {
+  it("deletes the Exercise and its sets, leaving the others' order and the gap", async () => {
+    const sessionId = await insertSession(owner);
+    const [benchId, squatId] = await insertExercises(sessionId);
+    await insertSets(benchId as string);
+    await insertSets(squatId as string);
+
+    const result = await asUser(owner, (tx) =>
+      removeExerciseFromWorkoutSession(tx, owner, benchId as string)
+    );
+
+    expect(result).toEqual({ status: "removed" });
+    expect(await exercisesOf(sessionId)).toEqual([
+      { exerciseSlug: squatSlug, order: 3 },
+    ]);
+    expect(await setsOf(benchId as string)).toEqual([]);
+    expect(await setsOf(squatId as string)).toHaveLength(2);
+
+    // Adding after the remove appends after the highest order: the gap stays.
+    await asUser(owner, (tx) =>
+      addExerciseToWorkoutSession(tx, owner, {
+        exerciseSlug: lungeSlug,
+        sessionId,
+      })
+    );
+    expect(await exercisesOf(sessionId)).toEqual([
+      { exerciseSlug: squatSlug, order: 3 },
+      { exerciseSlug: lungeSlug, order: 4 },
+    ]);
+  });
+
+  it("finds nothing on a repeat", async () => {
+    const sessionId = await insertSession(owner);
+    const [benchId] = await insertExercises(sessionId);
+    await asUser(owner, (tx) =>
+      removeExerciseFromWorkoutSession(tx, owner, benchId as string)
+    );
+
+    const repeat = await asUser(owner, (tx) =>
+      removeExerciseFromWorkoutSession(tx, owner, benchId as string)
+    );
+
+    expect(repeat).toEqual({ status: "not_found" });
+  });
+
+  it("deletes nothing of a finished Workout Session", async () => {
+    const sessionId = await insertSession(owner, { finished: true });
+    const [benchId] = await insertExercises(sessionId);
+
+    const result = await asUser(owner, (tx) =>
+      removeExerciseFromWorkoutSession(tx, owner, benchId as string)
+    );
+
+    expect(result).toEqual({
+      finishedAt: expect.stringMatching(POSTGREST_TIMESTAMP),
+      sessionId,
+      status: "session_finished",
+    });
+    expect(await exercisesOf(sessionId)).toHaveLength(2);
+  });
+
+  it("finds no Exercise of another User's, or an unknown id, and deletes nothing", async () => {
+    const sessionId = await insertSession(intruder);
+    const [benchId] = await insertExercises(sessionId);
+
+    const results = await Promise.all(
+      [benchId as string, randomUUID()].map((id) =>
+        asUser(owner, (tx) => removeExerciseFromWorkoutSession(tx, owner, id))
+      )
+    );
+
+    expect(results).toEqual([{ status: "not_found" }, { status: "not_found" }]);
+    expect(await exercisesOf(sessionId)).toHaveLength(2);
+  });
+});
+
+describe("replaceExerciseInWorkoutSession", () => {
+  it("swaps the slug and zeroes every set's targets, keeping the row, its place and the logged values", async () => {
+    const sessionId = await insertSession(owner);
+    const [benchId] = await insertExercises(sessionId);
+    await insertSets(benchId as string);
+
+    const result = await asUser(owner, (tx) =>
+      replaceExerciseInWorkoutSession(tx, owner, {
+        exerciseSlug: lungeSlug,
+        sessionExerciseId: benchId as string,
+      })
+    );
+
+    expect(result).toEqual({
+      exercise: {
+        exercise_slug: lungeSlug,
+        id: benchId,
+        order: 1,
+        sets: [
+          {
+            id: expect.any(String),
+            logged_at: expect.stringMatching(POSTGREST_TIMESTAMP),
+            order: 1,
+            reps_completed: 9,
+            reps_recommended: 0,
+            rest_recommended: 90,
+            weight_completed: 62.5,
+            weight_recommended: 0,
+          },
+          {
+            id: expect.any(String),
+            logged_at: null,
+            order: 2,
+            reps_completed: null,
+            reps_recommended: 0,
+            rest_recommended: 90,
+            weight_completed: null,
+            weight_recommended: 0,
+          },
+        ],
+      },
+      status: "replaced",
+    });
+    expect(await exercisesOf(sessionId)).toEqual([
+      { exerciseSlug: lungeSlug, order: 1 },
+      { exerciseSlug: squatSlug, order: 3 },
+    ]);
+    expect(await setsOf(benchId as string)).toEqual([
+      {
+        order: 1,
+        repsCompleted: 9,
+        repsRecommended: 0,
+        restRecommended: 90,
+        weightCompleted: "62.50",
+        weightRecommended: "0.00",
+      },
+      {
+        order: 2,
+        repsCompleted: null,
+        repsRecommended: 0,
+        restRecommended: 90,
+        weightCompleted: null,
+        weightRecommended: "0.00",
+      },
+    ]);
+  });
+
+  it("changes nothing of a finished Workout Session", async () => {
+    const sessionId = await insertSession(owner, { finished: true });
+    const [benchId] = await insertExercises(sessionId);
+    await insertSets(benchId as string);
+
+    const result = await asUser(owner, (tx) =>
+      replaceExerciseInWorkoutSession(tx, owner, {
+        exerciseSlug: lungeSlug,
+        sessionExerciseId: benchId as string,
+      })
+    );
+
+    expect(result).toMatchObject({ sessionId, status: "session_finished" });
+    expect(await exercisesOf(sessionId)).toEqual([
+      { exerciseSlug: benchSlug, order: 1 },
+      { exerciseSlug: squatSlug, order: 3 },
+    ]);
+    expect(
+      (await setsOf(benchId as string)).map(
+        ({ repsRecommended }) => repsRecommended
+      )
+    ).toEqual([10, 8]);
+  });
+
+  it("finds no Exercise of another User's, or an unknown id, and changes nothing", async () => {
+    const sessionId = await insertSession(intruder);
+    const [benchId] = await insertExercises(sessionId);
+
+    const results = await Promise.all(
+      [benchId as string, randomUUID()].map((sessionExerciseId) =>
+        asUser(owner, (tx) =>
+          replaceExerciseInWorkoutSession(tx, owner, {
+            exerciseSlug: lungeSlug,
+            sessionExerciseId,
+          })
+        )
+      )
+    );
+
+    expect(results).toEqual([{ status: "not_found" }, { status: "not_found" }]);
+    expect(await exercisesOf(sessionId)).toEqual([
+      { exerciseSlug: benchSlug, order: 1 },
+      { exerciseSlug: squatSlug, order: 3 },
+    ]);
   });
 });

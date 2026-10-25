@@ -54,6 +54,11 @@ import {
   type LogSetResult,
   listWorkoutSessions,
   logSet,
+  type RemoveExerciseFromWorkoutSessionResult,
+  type ReplaceExerciseInWorkoutSessionInput,
+  type ReplaceExerciseInWorkoutSessionResult,
+  removeExerciseFromWorkoutSession,
+  replaceExerciseInWorkoutSession,
   type StartWorkoutSessionResult,
   startWorkoutSession,
   type WorkoutSessionDetail,
@@ -158,6 +163,21 @@ export interface UserServices {
    * `null` when the User has no such Workout Session.
    */
   previewPlanUpdate: (sessionId: string) => Promise<PlanUpdate | null>;
+  /**
+   * Removes an Exercise, with its sets, from the User's open Workout Session,
+   * leaving the others' `order`; a finished one is left as it was.
+   */
+  removeExerciseFromWorkoutSession: (
+    sessionExerciseId: string
+  ) => Promise<RemoveExerciseFromWorkoutSessionResult>;
+  /**
+   * Replaces the Exercise of a Workout Session Exercise of the User's open
+   * Workout Session and zeroes its sets' targets; a finished one is left as it
+   * was. Its Exercise slug is checked before, not here (ADR 0010).
+   */
+  replaceExerciseInWorkoutSession: (
+    input: ReplaceExerciseInWorkoutSessionInput
+  ) => Promise<Weighed<ReplaceExerciseInWorkoutSessionResult>>;
   /**
    * Creates the Profile (`created: true`) or replaces it as `updateProfile`
    * with every field would, converting to a new measurement system first.
@@ -272,6 +292,16 @@ export const createServicesFromEnv: ServicesFactory = (userId) => {
     logSet: (input) => inUnits((tx) => logSet(tx, input), write),
     previewPlanUpdate: (sessionId) =>
       asUser(userId, (tx) => previewPlanUpdate(tx, userId, sessionId)),
+    removeExerciseFromWorkoutSession: (sessionExerciseId) =>
+      asUser(userId, async (tx) => {
+        await write.before(tx);
+        return removeExerciseFromWorkoutSession(tx, userId, sessionExerciseId);
+      }),
+    replaceExerciseInWorkoutSession: (input) =>
+      inUnits(
+        (tx) => replaceExerciseInWorkoutSession(tx, userId, input),
+        write
+      ),
     replaceProfile: (profile) =>
       asUser(userId, (tx) => replaceProfile(tx, userId, profile)),
     replaceWorkouts: (planId, replacement) =>

@@ -891,6 +891,54 @@
           "weight_recommended"
         ]
       },
+      "WorkoutSessionExercise": {
+        "type": "object",
+        "properties": {
+          "exercise_slug": {
+            "type": "string",
+            "description": "The Exercise Library's key for the Exercise",
+            "example": "barbell-bench-press"
+          },
+          "id": {
+            "type": "string",
+            "format": "uuid",
+            "example": "6f1c0c9e-2b7a-4c1e-9a55-3c2d1e0f4a11"
+          },
+          "order": {
+            "type": "integer",
+            "example": 1
+          },
+          "sets": {
+            "type": "array",
+            "items": {
+              "$ref": "#/components/schemas/WorkoutSessionSet"
+            },
+            "description": "In order"
+          }
+        },
+        "required": [
+          "exercise_slug",
+          "id",
+          "order",
+          "sets"
+        ]
+      },
+      "ReplaceWorkoutSessionExercise": {
+        "type": "object",
+        "properties": {
+          "exercise_slug": {
+            "type": "string",
+            "maxLength": 100,
+            "pattern": "^[a-z0-9]+(-[a-z0-9]+)*$",
+            "description": "An Exercise slug from the Exercise Library API; every one is checked before anything is written",
+            "example": "barbell-back-squat"
+          }
+        },
+        "required": [
+          "exercise_slug"
+        ],
+        "additionalProperties": false
+      },
       "LogWorkoutSessionSet": {
         "type": "object",
         "properties": {
@@ -1003,38 +1051,6 @@
           "workout",
           "exercises",
           "weight_unit"
-        ]
-      },
-      "WorkoutSessionExercise": {
-        "type": "object",
-        "properties": {
-          "exercise_slug": {
-            "type": "string",
-            "description": "The Exercise Library's key for the Exercise",
-            "example": "barbell-bench-press"
-          },
-          "id": {
-            "type": "string",
-            "format": "uuid",
-            "example": "6f1c0c9e-2b7a-4c1e-9a55-3c2d1e0f4a11"
-          },
-          "order": {
-            "type": "integer",
-            "example": 1
-          },
-          "sets": {
-            "type": "array",
-            "items": {
-              "$ref": "#/components/schemas/WorkoutSessionSet"
-            },
-            "description": "In order"
-          }
-        },
-        "required": [
-          "exercise_slug",
-          "id",
-          "order",
-          "sets"
         ]
       },
       "StartWorkoutSession": {
@@ -2847,6 +2863,232 @@
                 "description": "Seconds until the limit resets"
               }
             },
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Error"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/v1/workout-session-exercises/{id}": {
+      "delete": {
+        "description": "Removes an Exercise, with its sets, from an open Workout Session. The remaining Exercises keep their `order`: the gap records which Exercise was removed. Idempotent: an id the User has no Workout Session Exercise with (already removed, never existed, or another User's, which is left untouched) answers 204 too. A finished Workout Session can't change.",
+        "security": [
+          {
+            "bearerAuth": []
+          }
+        ],
+        "summary": "Remove an Exercise from a Workout Session",
+        "parameters": [
+          {
+            "schema": {
+              "type": "string",
+              "format": "uuid",
+              "example": "6f1c0c9e-2b7a-4c1e-9a55-3c2d1e0f4a11"
+            },
+            "required": true,
+            "name": "id",
+            "in": "path"
+          }
+        ],
+        "responses": {
+          "204": {
+            "description": "The User has no Workout Session Exercise with this id now"
+          },
+          "400": {
+            "description": "`invalid_request`: the input fails its schema",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Error"
+                }
+              }
+            }
+          },
+          "401": {
+            "description": "No valid Clerk session token",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Error"
+                }
+              }
+            }
+          },
+          "409": {
+            "description": "`session_finished`: the Workout Session is finished; nothing was written",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Error"
+                }
+              }
+            }
+          },
+          "429": {
+            "description": "Too many requests from this User; retry after `Retry-After`",
+            "headers": {
+              "Retry-After": {
+                "schema": {
+                  "type": "string",
+                  "description": "Seconds until the limit resets",
+                  "example": "30"
+                },
+                "required": true,
+                "description": "Seconds until the limit resets"
+              }
+            },
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Error"
+                }
+              }
+            }
+          }
+        }
+      },
+      "put": {
+        "description": "Replaces the Exercise of a Workout Session Exercise of an open Workout Session, in one transaction: it keeps its id, its place and its sets with their logged results, and every set's targets (`reps_recommended`, `weight_recommended`) become 0. The Exercise slug is checked against the Exercise Library first. A finished Workout Session can't change.",
+        "security": [
+          {
+            "bearerAuth": []
+          }
+        ],
+        "summary": "Replace an Exercise in a Workout Session",
+        "parameters": [
+          {
+            "schema": {
+              "type": "string",
+              "format": "uuid",
+              "example": "6f1c0c9e-2b7a-4c1e-9a55-3c2d1e0f4a11"
+            },
+            "required": true,
+            "name": "id",
+            "in": "path"
+          }
+        ],
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/ReplaceWorkoutSessionExercise"
+              }
+            }
+          }
+        },
+        "responses": {
+          "200": {
+            "description": "The replaced Workout Session Exercise, with its sets",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object",
+                  "properties": {
+                    "data": {
+                      "allOf": [
+                        {
+                          "$ref": "#/components/schemas/WorkoutSessionExercise"
+                        },
+                        {
+                          "type": "object",
+                          "properties": {
+                            "weight_unit": {
+                              "$ref": "#/components/schemas/WeightUnit"
+                            }
+                          },
+                          "required": [
+                            "weight_unit"
+                          ]
+                        }
+                      ]
+                    }
+                  },
+                  "required": [
+                    "data"
+                  ]
+                }
+              }
+            }
+          },
+          "400": {
+            "description": "`invalid_request`: the id isn't a uuid or the body isn't valid; `unknown_exercises`: the Exercise Library has no Exercise for the slug the message names. Nothing was changed",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Error"
+                }
+              }
+            }
+          },
+          "401": {
+            "description": "No valid Clerk session token",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Error"
+                }
+              }
+            }
+          },
+          "404": {
+            "description": "`not_found`: the User has no Workout Session Exercise with this id",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Error"
+                }
+              }
+            }
+          },
+          "409": {
+            "description": "`session_finished`: the Workout Session is finished; nothing was written",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Error"
+                }
+              }
+            }
+          },
+          "415": {
+            "description": "The body isn't `application/json`",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Error"
+                }
+              }
+            }
+          },
+          "429": {
+            "description": "Too many requests from this User; retry after `Retry-After`",
+            "headers": {
+              "Retry-After": {
+                "schema": {
+                  "type": "string",
+                  "description": "Seconds until the limit resets",
+                  "example": "30"
+                },
+                "required": true,
+                "description": "Seconds until the limit resets"
+              }
+            },
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Error"
+                }
+              }
+            }
+          },
+          "503": {
+            "description": "`exercise_library_unavailable`: the Exercise slug couldn't be checked; nothing was changed, try again",
             "content": {
               "application/json": {
                 "schema": {

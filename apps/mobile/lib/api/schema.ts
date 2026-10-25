@@ -1229,6 +1229,181 @@ export interface paths {
     };
     trace?: never;
   };
+  "/v1/workout-session-exercises/{id}": {
+    parameters: {
+      query?: never;
+      header?: never;
+      path?: never;
+      cookie?: never;
+    };
+    get?: never;
+    /**
+     * Replace an Exercise in a Workout Session
+     * @description Replaces the Exercise of a Workout Session Exercise of an open Workout Session, in one transaction: it keeps its id, its place and its sets with their logged results, and every set's targets (`reps_recommended`, `weight_recommended`) become 0. The Exercise slug is checked against the Exercise Library first. A finished Workout Session can't change.
+     */
+    put: {
+      parameters: {
+        query?: never;
+        header?: never;
+        path: {
+          id: string;
+        };
+        cookie?: never;
+      };
+      requestBody: {
+        content: {
+          "application/json": components["schemas"]["ReplaceWorkoutSessionExercise"];
+        };
+      };
+      responses: {
+        /** @description The replaced Workout Session Exercise, with its sets */
+        200: {
+          headers: {
+            [name: string]: unknown;
+          };
+          content: {
+            "application/json": {
+              data: components["schemas"]["WorkoutSessionExercise"] & {
+                weight_unit: components["schemas"]["WeightUnit"];
+              };
+            };
+          };
+        };
+        /** @description `invalid_request`: the id isn't a uuid or the body isn't valid; `unknown_exercises`: the Exercise Library has no Exercise for the slug the message names. Nothing was changed */
+        400: {
+          headers: {
+            [name: string]: unknown;
+          };
+          content: {
+            "application/json": components["schemas"]["Error"];
+          };
+        };
+        /** @description No valid Clerk session token */
+        401: {
+          headers: {
+            [name: string]: unknown;
+          };
+          content: {
+            "application/json": components["schemas"]["Error"];
+          };
+        };
+        /** @description `not_found`: the User has no Workout Session Exercise with this id */
+        404: {
+          headers: {
+            [name: string]: unknown;
+          };
+          content: {
+            "application/json": components["schemas"]["Error"];
+          };
+        };
+        /** @description `session_finished`: the Workout Session is finished; nothing was written */
+        409: {
+          headers: {
+            [name: string]: unknown;
+          };
+          content: {
+            "application/json": components["schemas"]["Error"];
+          };
+        };
+        /** @description The body isn't `application/json` */
+        415: {
+          headers: {
+            [name: string]: unknown;
+          };
+          content: {
+            "application/json": components["schemas"]["Error"];
+          };
+        };
+        /** @description Too many requests from this User; retry after `Retry-After` */
+        429: {
+          headers: {
+            /** @description Seconds until the limit resets */
+            "Retry-After": string;
+            [name: string]: unknown;
+          };
+          content: {
+            "application/json": components["schemas"]["Error"];
+          };
+        };
+        /** @description `exercise_library_unavailable`: the Exercise slug couldn't be checked; nothing was changed, try again */
+        503: {
+          headers: {
+            [name: string]: unknown;
+          };
+          content: {
+            "application/json": components["schemas"]["Error"];
+          };
+        };
+      };
+    };
+    post?: never;
+    /**
+     * Remove an Exercise from a Workout Session
+     * @description Removes an Exercise, with its sets, from an open Workout Session. The remaining Exercises keep their `order`: the gap records which Exercise was removed. Idempotent: an id the User has no Workout Session Exercise with (already removed, never existed, or another User's, which is left untouched) answers 204 too. A finished Workout Session can't change.
+     */
+    delete: {
+      parameters: {
+        query?: never;
+        header?: never;
+        path: {
+          id: string;
+        };
+        cookie?: never;
+      };
+      requestBody?: never;
+      responses: {
+        /** @description The User has no Workout Session Exercise with this id now */
+        204: {
+          headers: {
+            [name: string]: unknown;
+          };
+          content?: never;
+        };
+        /** @description `invalid_request`: the input fails its schema */
+        400: {
+          headers: {
+            [name: string]: unknown;
+          };
+          content: {
+            "application/json": components["schemas"]["Error"];
+          };
+        };
+        /** @description No valid Clerk session token */
+        401: {
+          headers: {
+            [name: string]: unknown;
+          };
+          content: {
+            "application/json": components["schemas"]["Error"];
+          };
+        };
+        /** @description `session_finished`: the Workout Session is finished; nothing was written */
+        409: {
+          headers: {
+            [name: string]: unknown;
+          };
+          content: {
+            "application/json": components["schemas"]["Error"];
+          };
+        };
+        /** @description Too many requests from this User; retry after `Retry-After` */
+        429: {
+          headers: {
+            /** @description Seconds until the limit resets */
+            "Retry-After": string;
+            [name: string]: unknown;
+          };
+          content: {
+            "application/json": components["schemas"]["Error"];
+          };
+        };
+      };
+    };
+    options?: never;
+    head?: never;
+    patch?: never;
+    trace?: never;
+  };
   "/v1/workout-session-sets/{id}": {
     parameters: {
       query?: never;
@@ -2372,6 +2547,29 @@ export interface components {
        */
       weight_recommended: number | null;
     };
+    WorkoutSessionExercise: {
+      /**
+       * @description The Exercise Library's key for the Exercise
+       * @example barbell-bench-press
+       */
+      exercise_slug: string;
+      /**
+       * Format: uuid
+       * @example 6f1c0c9e-2b7a-4c1e-9a55-3c2d1e0f4a11
+       */
+      id: string;
+      /** @example 1 */
+      order: number;
+      /** @description In order */
+      sets: components["schemas"]["WorkoutSessionSet"][];
+    };
+    ReplaceWorkoutSessionExercise: {
+      /**
+       * @description An Exercise slug from the Exercise Library API; every one is checked before anything is written
+       * @example barbell-back-squat
+       */
+      exercise_slug: string;
+    };
     LogWorkoutSessionSet: {
       /**
        * @description Repetitions done
@@ -2428,22 +2626,6 @@ export interface components {
       /** @description In order */
       exercises: components["schemas"]["WorkoutSessionExercise"][];
       weight_unit: components["schemas"]["WeightUnit"];
-    };
-    WorkoutSessionExercise: {
-      /**
-       * @description The Exercise Library's key for the Exercise
-       * @example barbell-bench-press
-       */
-      exercise_slug: string;
-      /**
-       * Format: uuid
-       * @example 6f1c0c9e-2b7a-4c1e-9a55-3c2d1e0f4a11
-       */
-      id: string;
-      /** @example 1 */
-      order: number;
-      /** @description In order */
-      sets: components["schemas"]["WorkoutSessionSet"][];
     };
     StartWorkoutSession: {
       /**

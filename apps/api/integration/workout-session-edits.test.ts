@@ -188,3 +188,155 @@ describe("POST /v1/workout-sessions/:id/exercises", () => {
     expect(await exerciseOrders(sessionId)).toHaveLength(2);
   });
 });
+
+/** The Workout Session's Exercises in full, as the API reads them. */
+const exercisesOf = async (sessionId: string) => {
+  const { body } = await request(
+    owner,
+    "GET",
+    `/v1/workout-sessions/${sessionId}`
+  );
+  return body.data.exercises as Array<{
+    exercise_slug: string;
+    id: string;
+    order: number;
+    sets: Record<string, unknown>[];
+  }>;
+};
+
+describe("DELETE /v1/workout-session-exercises/:id", () => {
+  it("removes the Exercise and its sets, leaving a gap that a later add keeps", async () => {
+    const sessionId = await startSession(owner);
+    const [squat] = await exercisesOf(sessionId);
+
+    const removed = await request(
+      owner,
+      "DELETE",
+      `/v1/workout-session-exercises/${squat?.id}`
+    );
+
+    expect(removed.status).toBe(204);
+    expect(await exerciseOrders(sessionId)).toEqual([
+      { exercise_slug: "barbell-deadlift", order: 2 },
+    ]);
+    await addLunge(owner, sessionId);
+    expect(await exerciseOrders(sessionId)).toEqual([
+      { exercise_slug: "barbell-deadlift", order: 2 },
+      { exercise_slug: "walking-lunge", order: 3 },
+    ]);
+  });
+
+  it("answers 204 for a repeat and for another User's, which stays untouched", async () => {
+    const sessionId = await startSession(owner);
+    const [squat, deadlift] = await exercisesOf(sessionId);
+    const path = `/v1/workout-session-exercises/${squat?.id}`;
+    await request(owner, "DELETE", path);
+
+    const repeat = await request(owner, "DELETE", path);
+    const intruding = await request(
+      intruder,
+      "DELETE",
+      `/v1/workout-session-exercises/${deadlift?.id}`
+    );
+
+    expect(repeat.status).toBe(204);
+    expect(intruding.status).toBe(204);
+    expect(await exerciseOrders(sessionId)).toEqual([
+      { exercise_slug: "barbell-deadlift", order: 2 },
+    ]);
+  });
+
+  it("refuses an Exercise of a finished Workout Session with 409, removing nothing", async () => {
+    const sessionId = await startSession(owner);
+    const [squat] = await exercisesOf(sessionId);
+    await request(owner, "POST", `/v1/workout-sessions/${sessionId}/finish`);
+
+    const refused = await request(
+      owner,
+      "DELETE",
+      `/v1/workout-session-exercises/${squat?.id}`
+    );
+
+    expect(refused.status).toBe(409);
+    expect(refused.body.error.code).toBe("session_finished");
+    expect(await exerciseOrders(sessionId)).toHaveLength(2);
+  });
+});
+
+describe("PUT /v1/workout-session-exercises/:id", () => {
+  it("swaps the slug and zeroes every set's targets in place, keeping the logged values", async () => {
+    const sessionId = await startSession(owner);
+    const [squat] = await exercisesOf(sessionId);
+    const [squatSet] = squat?.sets ?? [];
+    await request(owner, "PATCH", `/v1/workout-session-sets/${squatSet?.id}`, {
+      reps_completed: 7,
+      weight_completed: 95,
+    });
+
+    const replaced = await request(
+      owner,
+      "PUT",
+      `/v1/workout-session-exercises/${squat?.id}`,
+      { exercise_slug: "walking-lunge" }
+    );
+
+    expect(replaced.status).toBe(200);
+    expect(replaced.body.data).toMatchObject({
+      exercise_slug: "walking-lunge",
+      id: squat?.id,
+      order: 1,
+      sets: [
+        {
+          id: squatSet?.id,
+          reps_completed: 7,
+          reps_recommended: 0,
+          rest_recommended: 120,
+          weight_completed: 95,
+          weight_recommended: 0,
+        },
+      ],
+      weight_unit: "kg",
+    });
+    expect((await exercisesOf(sessionId))[0]).toEqual({
+      exercise_slug: "walking-lunge",
+      id: squat?.id,
+      order: 1,
+      sets: replaced.body.data.sets,
+    });
+  });
+
+  it("refuses a finished Workout Session with 409, changing nothing", async () => {
+    const sessionId = await startSession(owner);
+    const [squat] = await exercisesOf(sessionId);
+    await request(owner, "POST", `/v1/workout-sessions/${sessionId}/finish`);
+
+    const refused = await request(
+      owner,
+      "PUT",
+      `/v1/workout-session-exercises/${squat?.id}`,
+      { exercise_slug: "walking-lunge" }
+    );
+
+    expect(refused.status).toBe(409);
+    expect(refused.body.error.code).toBe("session_finished");
+    expect((await exercisesOf(sessionId))[0]).toEqual(squat);
+  });
+
+  it("answers 404 for another User's and 400 for an unknown slug, changing nothing", async () => {
+    const sessionId = await startSession(owner);
+    const [squat] = await exercisesOf(sessionId);
+    const path = `/v1/workout-session-exercises/${squat?.id}`;
+
+    const intruding = await request(intruder, "PUT", path, {
+      exercise_slug: "walking-lunge",
+    });
+    const unknown = await request(owner, "PUT", path, {
+      exercise_slug: "made-up-press",
+    });
+
+    expect(intruding.status).toBe(404);
+    expect(unknown.status).toBe(400);
+    expect(unknown.body.error.code).toBe("unknown_exercises");
+    expect((await exercisesOf(sessionId))[0]).toEqual(squat);
+  });
+});
