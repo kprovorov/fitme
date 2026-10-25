@@ -35,7 +35,7 @@ const mockNavigationState: {
 const mockFinishRpc =
   jest.fn<(variables: { sessionId: string }) => Promise<unknown>>();
 const mockFetchSession = jest.fn<() => Promise<unknown>>();
-const mockPlanChangesRpc =
+const mockPlanUpdate =
   jest.fn<
     (sessionId: string, options: { apply: boolean }) => Promise<unknown>
   >();
@@ -66,10 +66,10 @@ jest.mock("~/hooks/queries/workout-sessions", () => {
   return {
     FINISH_WORKOUT_SESSION_MUTATION_KEY,
     fetchPlanUpdate: (sessionId: string) =>
-      mockPlanChangesRpc(sessionId, { apply: false }),
+      mockPlanUpdate(sessionId, { apply: false }),
     useApplyPlanUpdateMutation: createMutation({
       mutationFn: ({ sessionId }: { sessionId: string }) =>
-        mockPlanChangesRpc(sessionId, { apply: true }),
+        mockPlanUpdate(sessionId, { apply: true }),
     }),
     useFinishWorkoutSessionMutation: createMutation({
       mutationFn: (variables: { sessionId: string }) =>
@@ -180,7 +180,7 @@ describe("useFinishWorkoutSession", () => {
     jest.clearAllMocks();
     Object.assign(mockNavigationState, { index: 0, routes: [{}] });
     serveLibrary(LIBRARY);
-    mockPlanChangesRpc.mockResolvedValue(NO_CHANGES);
+    mockPlanUpdate.mockResolvedValue(NO_CHANGES);
     jest.spyOn(Alert, "alert").mockImplementation(() => undefined);
   });
 
@@ -442,7 +442,7 @@ describe("useFinishWorkoutSession", () => {
       how: "confirmFinish" | "finish" = "finish"
     ) => {
       mockFinishRpc.mockResolvedValue({});
-      mockPlanChangesRpc.mockResolvedValueOnce(CHANGES);
+      mockPlanUpdate.mockResolvedValueOnce(CHANGES);
       const setupResult = await setup();
       setupResult.queryClient.setQueryData(
         ["workout-session", { sessionId: "session-1" }],
@@ -461,7 +461,7 @@ describe("useFinishWorkoutSession", () => {
 
       await waitFor(() => expect(mockReplace).toHaveBeenCalledWith(SUMMARY));
       await settled();
-      expect(mockPlanChangesRpc).toHaveBeenCalledWith("session-1", {
+      expect(mockPlanUpdate).toHaveBeenCalledWith("session-1", {
         apply: false,
       });
       expect(screen.queryByText("Update your plan?")).toBeNull();
@@ -474,7 +474,7 @@ describe("useFinishWorkoutSession", () => {
 
       expect(
         mockFinishRpc.mock.invocationCallOrder[0] ?? Number.POSITIVE_INFINITY
-      ).toBeLessThan(mockPlanChangesRpc.mock.invocationCallOrder[0] ?? 0);
+      ).toBeLessThan(mockPlanUpdate.mock.invocationCallOrder[0] ?? 0);
       expect(
         screen.getByText("Save today's changes to Push Day in PPL 4-week.")
       ).toBeTruthy();
@@ -500,7 +500,7 @@ describe("useFinishWorkoutSession", () => {
 
     it("shows weights in the Plan Update's unit", async () => {
       mockFinishRpc.mockResolvedValue({});
-      mockPlanChangesRpc.mockResolvedValueOnce({
+      mockPlanUpdate.mockResolvedValueOnce({
         ...CHANGES,
         weight_unit: "lbs",
       });
@@ -558,15 +558,15 @@ describe("useFinishWorkoutSession", () => {
       const { queryClient } = await finishWithChanges();
       queryClient.setQueryData(["plans"], []);
       queryClient.setQueryData(["plan", { planId: "plan-1" }], {});
-      mockPlanChangesRpc.mockResolvedValueOnce(CHANGES);
+      mockPlanUpdate.mockResolvedValueOnce(CHANGES);
 
       const update = screen.getByRole("button", UPDATE);
       await fireEvent.press(update);
       await fireEvent.press(update);
 
       await waitFor(() => expect(mockReplace).toHaveBeenCalledWith(SUMMARY));
-      expect(mockPlanChangesRpc).toHaveBeenCalledTimes(2);
-      expect(mockPlanChangesRpc).toHaveBeenLastCalledWith("session-1", {
+      expect(mockPlanUpdate).toHaveBeenCalledTimes(2);
+      expect(mockPlanUpdate).toHaveBeenLastCalledWith("session-1", {
         apply: true,
       });
       expect(queryClient.getQueryState(["plans"])?.isInvalidated).toBe(true);
@@ -590,7 +590,7 @@ describe("useFinishWorkoutSession", () => {
       await fireEvent.press(screen.getByRole("button", KEEP));
 
       expect(mockReplace).toHaveBeenCalledWith(SUMMARY);
-      expect(mockPlanChangesRpc).toHaveBeenCalledTimes(1);
+      expect(mockPlanUpdate).toHaveBeenCalledTimes(1);
       expect(mockTrack).toHaveBeenCalledWith("Plan Update Declined", {
         plan_id: "plan-1",
         workout_id: "workout-1",
@@ -604,7 +604,7 @@ describe("useFinishWorkoutSession", () => {
 
     it("shows an error with Retry when the apply fails, and Retry works", async () => {
       await finishWithChanges();
-      mockPlanChangesRpc.mockRejectedValueOnce(new Error("offline"));
+      mockPlanUpdate.mockRejectedValueOnce(new Error("offline"));
 
       await fireEvent.press(screen.getByRole("button", UPDATE));
 
@@ -620,16 +620,16 @@ describe("useFinishWorkoutSession", () => {
         expect.anything()
       );
 
-      mockPlanChangesRpc.mockResolvedValueOnce(NO_CHANGES);
+      mockPlanUpdate.mockResolvedValueOnce(NO_CHANGES);
       await fireEvent.press(screen.getByRole("button", RETRY));
 
       await waitFor(() => expect(mockReplace).toHaveBeenCalledWith(SUMMARY));
-      expect(mockPlanChangesRpc).toHaveBeenCalledTimes(3);
+      expect(mockPlanUpdate).toHaveBeenCalledTimes(3);
     });
 
     it("still reaches the summary with Keep plan as is after a failed apply", async () => {
       await finishWithChanges();
-      mockPlanChangesRpc.mockRejectedValueOnce(new Error("offline"));
+      mockPlanUpdate.mockRejectedValueOnce(new Error("offline"));
 
       await fireEvent.press(screen.getByRole("button", UPDATE));
       await screen.findByRole("button", RETRY);
@@ -641,7 +641,7 @@ describe("useFinishWorkoutSession", () => {
     it("opens the summary without asking when the changes can't be read", async () => {
       mockFinishRpc.mockResolvedValue({});
       const failure = new Error("offline");
-      mockPlanChangesRpc.mockRejectedValueOnce(failure);
+      mockPlanUpdate.mockRejectedValueOnce(failure);
       const { result, settled } = await setup();
 
       await act(() => result.current.session.finish());
@@ -655,7 +655,7 @@ describe("useFinishWorkoutSession", () => {
 
     it("asks after the unlogged-sets confirmation, from the header's Finish", async () => {
       mockFinishRpc.mockResolvedValue({});
-      mockPlanChangesRpc.mockResolvedValueOnce(CHANGES);
+      mockPlanUpdate.mockResolvedValueOnce(CHANGES);
       const { queryClient, result } = await setup();
       queryClient.setQueryData(
         ["workout-session", { sessionId: "session-1" }],
@@ -664,7 +664,7 @@ describe("useFinishWorkoutSession", () => {
 
       await act(() => result.current.session.confirmFinish());
       await waitFor(() => expect(Alert.alert).toHaveBeenCalled());
-      expect(mockPlanChangesRpc).not.toHaveBeenCalled();
+      expect(mockPlanUpdate).not.toHaveBeenCalled();
       expect(screen.queryByText("Update your plan?")).toBeNull();
 
       const buttons = jest.mocked(Alert.alert).mock.calls[0]?.[2];
@@ -683,7 +683,7 @@ describe("useFinishWorkoutSession", () => {
         routes: [{ params: { sessionId: "session-1" } }, {}],
       });
       mockFinishRpc.mockResolvedValue({});
-      mockPlanChangesRpc.mockResolvedValueOnce(CHANGES);
+      mockPlanUpdate.mockResolvedValueOnce(CHANGES);
       const { result } = await setup(1);
 
       await act(() => result.current.exercise.finish());

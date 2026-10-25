@@ -1,4 +1,6 @@
+import type { PlanUpdate as PlanUpdateAnswer } from "@fitme/services/plan-update";
 import { createRoute, OpenAPIHono, z } from "@hono/zod-openapi";
+import type { Context } from "hono";
 import { type ApiEnv, bearerSecurity, requires } from "../auth.js";
 import { checkExerciseSlugs, slugRefusal } from "../library.js";
 import {
@@ -398,6 +400,15 @@ const PlanUpdate = z
 
 const PlanUpdateResponse = z.object({ data: PlanUpdate });
 
+/** Both Plan Update routes' answer: the Plan Update, or 404 without the Workout Session. */
+const planUpdateAnswer = (
+  c: Context<ApiEnv>,
+  planUpdate: PlanUpdateAnswer | null
+) =>
+  planUpdate
+    ? c.json(PlanUpdateResponse.parse({ data: planUpdate }), 200)
+    : c.json(notFound, 404);
+
 const previewPlanUpdateRoute = createRoute({
   description:
     "The Plan Update of a finished Workout Session: the changes it made to its Workout (Exercises replaced, added or removed, sets added), which the User can save to the Plan. Writes nothing. A Workout Session without a Plan Update answers no changes.",
@@ -492,24 +503,18 @@ export const workoutSessions = new OpenAPIHono<ApiEnv>({
       200
     );
   })
-  .openapi(previewPlanUpdateRoute, async (c) => {
-    const planUpdate = await c.var
-      .getServices()
-      .previewPlanUpdate(c.req.valid("param").id);
-    if (!planUpdate) {
-      return c.json(notFound, 404);
-    }
-    return c.json(PlanUpdateResponse.parse({ data: planUpdate }), 200);
-  })
-  .openapi(applyPlanUpdateRoute, async (c) => {
-    const planUpdate = await c.var
-      .getServices()
-      .applyPlanUpdate(c.req.valid("param").id);
-    if (!planUpdate) {
-      return c.json(notFound, 404);
-    }
-    return c.json(PlanUpdateResponse.parse({ data: planUpdate }), 200);
-  })
+  .openapi(previewPlanUpdateRoute, async (c) =>
+    planUpdateAnswer(
+      c,
+      await c.var.getServices().previewPlanUpdate(c.req.valid("param").id)
+    )
+  )
+  .openapi(applyPlanUpdateRoute, async (c) =>
+    planUpdateAnswer(
+      c,
+      await c.var.getServices().applyPlanUpdate(c.req.valid("param").id)
+    )
+  )
   .openapi(addExerciseRoute, async (c) => {
     const { id } = c.req.valid("param");
     const { exercise_slug } = c.req.valid("json");

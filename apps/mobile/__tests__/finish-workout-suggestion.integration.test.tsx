@@ -1383,7 +1383,8 @@ describe("the Plan Update after finishing from Home", () => {
   const legDay = () =>
     backend.plans[0]?.workouts.find(({ id }) => id === "w1")?.exercises;
 
-  const track = () => jest.mocked(segmentClient.track);
+  // A plain mock: `jest.mocked` on the client's overloads is too deep to type.
+  const track = () => segmentClient.track as unknown as jest.Mock;
 
   const isSheetShown = () => screen.queryByText("Update your plan?") !== null;
 

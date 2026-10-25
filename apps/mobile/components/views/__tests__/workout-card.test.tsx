@@ -27,7 +27,7 @@ const mockDismiss = jest.fn();
 const mockFinishRpc =
   jest.fn<(variables: { sessionId: string }) => Promise<unknown>>();
 const mockFetchSession = jest.fn<() => Promise<unknown>>();
-const mockPlanChangesRpc =
+const mockPlanUpdate =
   jest.fn<
     (sessionId: string, options: { apply: boolean }) => Promise<unknown>
   >();
@@ -85,10 +85,10 @@ jest.mock("~/hooks/queries/workout-sessions", () => {
   return {
     FINISH_WORKOUT_SESSION_MUTATION_KEY,
     fetchPlanUpdate: (sessionId: string) =>
-      mockPlanChangesRpc(sessionId, { apply: false }),
+      mockPlanUpdate(sessionId, { apply: false }),
     useApplyPlanUpdateMutation: createMutation({
       mutationFn: ({ sessionId }: { sessionId: string }) =>
-        mockPlanChangesRpc(sessionId, { apply: true }),
+        mockPlanUpdate(sessionId, { apply: true }),
     }),
     useCreateWorkoutSessionMutation: createMutation({
       mutationFn: () => Promise.reject(new Error("not expected")),
@@ -153,7 +153,7 @@ const partlyLogged = {
 describe("WorkoutCard's Finish Workout", () => {
   beforeEach(() => {
     jest.clearAllMocks();
-    mockPlanChangesRpc.mockResolvedValue({
+    mockPlanUpdate.mockResolvedValue({
       changes: [],
       plan: null,
       weight_unit: "kg",
@@ -168,7 +168,7 @@ describe("WorkoutCard's Finish Workout", () => {
 
   it("asks to update the Plan, even once the card is gone, then opens the summary", async () => {
     mockFinishRpc.mockResolvedValue({});
-    mockPlanChangesRpc.mockResolvedValueOnce({
+    mockPlanUpdate.mockResolvedValueOnce({
       changes: [{ exercise_slug: "dips", kind: "remove_exercise" }],
       plan: { id: "plan-1", name: "PPL" },
       weight_unit: "kg",
@@ -187,7 +187,7 @@ describe("WorkoutCard's Finish Workout", () => {
     expect(mockPush).not.toHaveBeenCalled();
 
     await removeCard();
-    mockPlanChangesRpc.mockResolvedValueOnce({
+    mockPlanUpdate.mockResolvedValueOnce({
       changes: [],
       plan: null,
       weight_unit: "kg",
@@ -200,7 +200,7 @@ describe("WorkoutCard's Finish Workout", () => {
         "/workout-sessions/session-1/summary"
       )
     );
-    expect(mockPlanChangesRpc).toHaveBeenLastCalledWith("session-1", {
+    expect(mockPlanUpdate).toHaveBeenLastCalledWith("session-1", {
       apply: true,
     });
   });
