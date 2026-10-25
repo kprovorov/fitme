@@ -10,6 +10,7 @@ import { createRoute, OpenAPIHono, z } from "@hono/zod-openapi";
 import { type ApiEnv, bearerSecurity, requires } from "../auth.js";
 import {
   ErrorResponse,
+  errorResponse,
   invalidRequest,
   rateLimitedResponse,
   unauthorizedResponse,
@@ -90,7 +91,7 @@ const profileFields = {
     }),
   measurement_system: z.enum(measurementSystems).openapi({
     description:
-      "Changing it converts every stored height and weight of the User (the Profile's, every Plan's set targets and every Workout Session's weights) to the new system's units, rounded to 2 decimals. Between `us` and `uk`, which share units, nothing is converted.",
+      "A system other than the stored one converts every stored height and weight of the User (the Profile's, every Plan's set targets and every Workout Session's weights) to the new system's units, rounded to 2 decimals. Between `us` and `uk`, which share units, nothing is converted.",
   }),
   weight: z
     .number()
@@ -176,16 +177,11 @@ const replaceProfile = createRoute({
       content: { "application/json": { schema: UpdatedProfileResponse } },
       description: "The created Profile",
     },
-    400: {
-      content: { "application/json": { schema: ErrorResponse } },
-      description:
-        "`invalid_request`: a field is missing, unknown or out of bounds; nothing was written",
-    },
+    400: errorResponse(
+      "`invalid_request`: a field is missing, unknown or out of bounds; nothing was written"
+    ),
     401: unauthorizedResponse,
-    415: {
-      content: { "application/json": { schema: ErrorResponse } },
-      description: "The body isn't `application/json`",
-    },
+    415: errorResponse("The body isn't `application/json`"),
     429: rateLimitedResponse,
   },
   security: bearerSecurity,
@@ -222,5 +218,8 @@ export const profile = new OpenAPIHono<ApiEnv>({
       .getServices()
       .replaceProfile(c.req.valid("json"));
     const body = UpdatedProfileResponse.parse({ data: written });
-    return created ? c.json(body, 201) : c.json(body, 200);
+    if (created) {
+      return c.json(body, 201);
+    }
+    return c.json(body, 200);
   });

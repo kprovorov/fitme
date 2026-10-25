@@ -245,15 +245,14 @@ describe("PATCH /v1/profile", () => {
   });
 });
 
-/** `PUT /v1/profile` as `userId` with a JSON body. */
-const putProfile = (
-  app: ReturnType<typeof testApp>["app"],
-  body: unknown,
-  userId = "user_alice"
-) =>
+/** `PUT /v1/profile` as `user_alice` with a JSON body. */
+const putProfile = (app: ReturnType<typeof testApp>["app"], body: unknown) =>
   app.request("/v1/profile", {
     body: JSON.stringify(body),
-    headers: { ...signedInAs(userId), "content-type": "application/json" },
+    headers: {
+      ...signedInAs("user_alice"),
+      "content-type": "application/json",
+    },
     method: "PUT",
   });
 

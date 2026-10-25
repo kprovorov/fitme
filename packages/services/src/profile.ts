@@ -305,13 +305,13 @@ export const replaceProfile = async (
     })
     .onConflictDoNothing({ target: profiles.userId })
     .returning({ id: profiles.id });
-  const replaced =
-    inserted.length > 0
-      ? await getProfile(tx, userId)
-      : await updateProfile(tx, userId, profile);
+  const created = inserted.length > 0;
+  const replaced = created
+    ? await getProfile(tx, userId)
+    : await updateProfile(tx, userId, profile);
   if (!replaced) {
     // The insert found a Profile, or made one: only RLS hiding it gets here.
     throw new Error("The Profile written isn't readable");
   }
-  return { created: inserted.length > 0, profile: replaced };
+  return { created, profile: replaced };
 };

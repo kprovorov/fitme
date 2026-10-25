@@ -2047,7 +2047,7 @@ export interface components {
        */
       height?: number;
       /**
-       * @description Changing it converts every stored height and weight of the User (the Profile's, every Plan's set targets and every Workout Session's weights) to the new system's units, rounded to 2 decimals. Between `us` and `uk`, which share units, nothing is converted.
+       * @description A system other than the stored one converts every stored height and weight of the User (the Profile's, every Plan's set targets and every Workout Session's weights) to the new system's units, rounded to 2 decimals. Between `us` and `uk`, which share units, nothing is converted.
        * @enum {string}
        */
       measurement_system?: "metric" | "us" | "uk";
@@ -2068,7 +2068,7 @@ export interface components {
        */
       height: number;
       /**
-       * @description Changing it converts every stored height and weight of the User (the Profile's, every Plan's set targets and every Workout Session's weights) to the new system's units, rounded to 2 decimals. Between `us` and `uk`, which share units, nothing is converted.
+       * @description A system other than the stored one converts every stored height and weight of the User (the Profile's, every Plan's set targets and every Workout Session's weights) to the new system's units, rounded to 2 decimals. Between `us` and `uk`, which share units, nothing is converted.
        * @enum {string}
        */
       measurement_system: "metric" | "us" | "uk";
