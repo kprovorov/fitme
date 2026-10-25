@@ -30,6 +30,10 @@ A single training day inside a Plan: an ordered list of exercises with target se
 One occurrence of a User performing a Workout, with the sets actually completed. At most one Workout Session per Workout can be open at a time.
 _Avoid_: Session (ambiguous with a sign-in session), training log
 
+**Plan Update**:
+The structural changes a finished Workout Session suggests to its Workout (Exercises replaced, added or removed, sets added), which the User accepts or declines once. Accepted, they become the Workout's new targets.
+_Avoid_: Plan changes, plan diff
+
 **Exercise**:
 A named movement from the Library, independent of any User, identified by its Exercise slug. Plans and Workout Sessions refer to Exercises; they never own them.
 
