@@ -19,7 +19,7 @@ export interface AppDeps {
   auth: AuthConfig;
   /** Sets the request's User (their Clerk id) on what error reporting sends. */
   identifyUser: (userId: string) => void;
-  /** The whole Exercise Library, baked into the build: nothing is read at runtime. */
+  /** The whole Library, baked into the build: nothing is read at runtime. */
   library: ServedLibrary;
   /** Counts each User's requests; server callers are never counted. */
   rateLimiter: RateLimiter;
@@ -41,7 +41,7 @@ const health = createRoute({
   summary: "Liveness",
 });
 
-/** The Exercise Library API, serving the injected Exercise Library. */
+/** The Library API, serving the injected Library. */
 export const createApp = ({
   auth,
   identifyUser,

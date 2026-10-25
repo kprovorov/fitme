@@ -93,7 +93,7 @@ const unauthorized = {
   },
 };
 
-/** An app serving an empty Exercise Library, for adding test routes to. */
+/** An app serving an empty Library, for adding test routes to. */
 const emptyApp = () =>
   createApp({
     ...base,
@@ -522,7 +522,7 @@ describe("GET /exercises muscle group filter", () => {
 
   it("is an enum of every muscle group in the OpenAPI definition", () => {
     const document = listApp.getOpenAPIDocument({
-      info: { title: "Exercise Library API", version: "1" },
+      info: { title: "Library API", version: "1" },
       openapi: "3.1.0",
     });
     const parameter = document.paths["/exercises"]?.get?.parameters?.find(
@@ -682,7 +682,7 @@ describe("GET /exercises?slugs (batch lookup)", () => {
 
   it("shows both response shapes of GET /exercises, and slugs as a string, in the OpenAPI definition", () => {
     const document = listApp.getOpenAPIDocument({
-      info: { title: "Exercise Library API", version: "1" },
+      info: { title: "Library API", version: "1" },
       openapi: "3.1.0",
     });
     const get = document.paths["/exercises"]?.get;

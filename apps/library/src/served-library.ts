@@ -2,7 +2,7 @@ import { createHash } from "node:crypto";
 import type { BundleMedia, LibraryBundle } from "./bundle";
 import type { Exercise } from "./schemas";
 
-/** The public Supabase Storage bucket the Exercise Library's media is uploaded to. */
+/** The public Supabase Storage bucket the Library's media is uploaded to. */
 export const MEDIA_BUCKET = "exercise-media";
 
 /**
@@ -14,7 +14,7 @@ export const PLACEHOLDER_SUPABASE_URL = "https://example.supabase.co";
 const TRAILING_SLASHES = /\/+$/;
 
 /**
- * The Exercise Library as the API serves it: every Exercise as its response
+ * The Library as the API serves it: every Exercise as its response
  * object, media URLs resolved. Built once, at build time.
  */
 export interface ServedLibrary {

@@ -1,12 +1,12 @@
 {
   "info": {
-    "title": "Exercise Library API",
+    "title": "Library API",
     "version": "1.0.0"
   },
   "openapi": "3.0.3",
   "servers": [
     {
-      "url": "https://exercises.fitmeproject.com"
+      "url": "https://library.fitmeproject.com"
     }
   ],
   "components": {
