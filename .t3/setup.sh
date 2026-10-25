@@ -21,12 +21,16 @@ pnpm exec husky
 # worktree this is a no-op. Not fatal: only the screenshot loop needs it.
 pnpm exec playwright install chromium-headless-shell || echo "warning: couldn't install Playwright's Chromium" >&2
 
-# Env files are gitignored, so new worktrees don't get them. Copy every
-# apps/*/.env* and packages/*/.env* from the main checkout, without overwriting
-# files already present in the worktree. Copies, not symlinks: each worktree
-# runs its own Supabase stack (`[experimental] stack`), so its URLs and ports
-# can differ, and editing them must not touch the main checkout's files.
+# Env files are gitignored, so new worktrees don't get them. Infisical (`dev`)
+# is their source: pull each app's file from it, never overwriting one already
+# present (a rerun keeps this worktree's stack ports). Then copy every
+# apps/*/.env* and packages/*/.env* still missing from the main checkout (all
+# of them without the Infisical CLI or a login). Copies, not symlinks: each
+# worktree runs its own Supabase stack (`[experimental] stack`), so its URLs and
+# ports can differ, and editing them must not touch the main checkout's files.
 if [[ "$root" != "$worktree" ]]; then
+  scripts/pull-env.sh --keep-existing || echo "warning: couldn't pull every env file from Infisical, copying the rest from the main checkout" >&2
+
   for dir in "$root"/apps/* "$root"/packages/*; do
     for src in "$dir"/.env*; do
       [[ -f "$src" && "$src" != *.example ]] || continue
