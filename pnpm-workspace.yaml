@@ -18,6 +18,11 @@ overrides:
   # version.
   "@vercel/cli-config>zod": 4.6.7
   "ultracite>zod": 4.6.7
+  # zod-to-json-schema (under MCP's @modelcontextprotocol/sdk) takes zod as a
+  # peer, which resolved to zod 3: open to GHSA-mrhx-c7xc-m3w5, with no fixed
+  # 3.x (FIT-330). Keep it on the apps' zod 4; it reads schemas through
+  # `zod/v3`, which zod 4 still ships.
+  "zod-to-json-schema>zod": 4.6.7
   # Arnold's undici (FIT-328): eve pins undici 8.10.2 exactly (still in eve
   # 0.83.2) and guarded-fetch (under just-bash) 7.29.0 / 7.30.0, both open to
   # the GHSA-xjj6-f33q-929c / GHSA-w293-vg96-wgc3 advisories. Drop each line
