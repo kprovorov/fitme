@@ -21,4 +21,4 @@ fi
 
 # Every stack this worktree ever had (one per branch it was on), plus any left
 # by worktrees deleted without settling.
-"$worktree/.t3/destroy-stale-stacks.sh" "$worktree"
+"$worktree/scripts/destroy-stale-stacks.sh" "$worktree"
