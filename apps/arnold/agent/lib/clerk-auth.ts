@@ -1,6 +1,7 @@
 import { verifyToken } from "@clerk/backend";
 import { TokenVerificationError } from "@clerk/backend/errors";
 import { legacyArnoldErrorCodes } from "@fitme/core";
+import { MissingEnvError } from "@fitme/observability/node";
 import {
   type AuthFn,
   extractBearerToken,
@@ -42,11 +43,12 @@ interface ClerkSessionOptions {
   claimSession: ClaimSession;
   /** The Clerk instance's PEM public key; defaults to `CLERK_JWT_KEY`. */
   jwtKey?: () => string | undefined;
-  /** Reports a failed Pro check, tagged with the User and route. */
-  report: (
-    error: unknown,
-    tags: { path: string; userId: string }
-  ) => Promise<void>;
+  /**
+   * Reports a failed Pro check (tagged with the User and route) or a missing
+   * CLERK_JWT_KEY (a `MissingEnvError` tagged `component: clerk-auth` and
+   * `env_var`, like the startup check's).
+   */
+  report: (error: unknown, tags: Record<string, string>) => Promise<void>;
 }
 
 // Every route that addresses one session: messages, stream, cancel, clear,
@@ -57,8 +59,9 @@ const SESSION_ROUTE = /\/eve\/v1\/session\/([^/]+)/;
  * Route auth for Arnold's channel: accepts a request only with a valid Clerk
  * session token, verified networkless against the Clerk JWT public key, and
  * makes its User id (`sub`) the session principal. A missing, expired or
- * forged token skips, so the walk answers 401. A missing key throws: the
- * channel never serves without auth.
+ * forged token skips, so the walk answers 401. A missing key throws (eve
+ * answers 500): the channel never serves without auth. eve only logs what a
+ * channel throws, so the first request to find the key missing reports it.
  *
  * EVE's route auth has no session ownership, so every route addressing a
  * session claims it: the first caller to address an unrecorded session (its
@@ -84,17 +87,33 @@ export const clerkSession = ({
   claimSession,
   jwtKey = () => process.env.CLERK_JWT_KEY,
   report,
-}: ClerkSessionOptions): AuthFn<Request> =>
-  withAuthChallenges(
+}: ClerkSessionOptions): AuthFn<Request> => {
+  let reportedMissingKey = false;
+  // The key, or a throw (reported the first time) when it's missing.
+  const requireKey = async (): Promise<string> => {
+    const key = jwtKey();
+    if (key) {
+      return key;
+    }
+    const error = new MissingEnvError(
+      "Missing CLERK_JWT_KEY environment variable"
+    );
+    if (!reportedMissingKey) {
+      reportedMissingKey = true;
+      await report(error, {
+        component: "clerk-auth",
+        env_var: "CLERK_JWT_KEY",
+      });
+    }
+    throw error;
+  };
+  return withAuthChallenges(
     async (request) => {
       const token = extractBearerToken(request.headers.get("authorization"));
       if (!token) {
         return null;
       }
-      const key = jwtKey();
-      if (!key) {
-        throw new Error("Missing CLERK_JWT_KEY environment variable");
-      }
+      const key = await requireKey();
       let userId: string;
       try {
         // Checks the signature, `exp`, `nbf` and `iat`, and requires a `sub`.
@@ -139,3 +158,4 @@ export const clerkSession = ({
     },
     [{ scheme: "Bearer" }]
   );
+};

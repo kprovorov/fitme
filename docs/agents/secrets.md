@@ -46,7 +46,7 @@ The `preview` environment is Vercel's Preview target. It holds only `/Api` `CLER
 
 1. Edit it in Infisical: the app's folder, or the root for a shared value. A new variable goes in the folder of every app that reads it, as a reference when it's shared.
 2. Check the sync ran (`syncStatus` `succeeded` in the project's Secret Syncs).
-3. Redeploy the affected Vercel projects, then check the app answers as expected.
+3. Redeploy the affected Vercel projects, then check the app answers as expected: a request with a bogus bearer (`curl -i -H 'Authorization: Bearer bogus' …`) gets 401, never 500 (for webhooks, an unsigned `POST /clerk`; a 500 means a required variable is missing or empty). Arnold, the Public API, MCP and webhooks also report each of their required variables missing on Production to Sentry at startup (`reportMissingEnv`, the list in each app's `required-env.ts`), so check the project in Sentry for a `MissingEnvError` too. A variable an app can't serve without goes into its list.
 
 Rotating a secret two apps share (a Library server secret, `ARNOLD_RESET_SECRET`) changes it on both at once, so redeploy both back to back.
 
