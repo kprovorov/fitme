@@ -47,8 +47,8 @@
     },
     "apps/library": {
       "ignoreDependencies": [
-        // Runtime deps of @fitme/db and @fitme/rate-limit, which tsdown keeps
-        // external: AGENTS.md requires them in the app's dependencies.
+        // Runtime deps of @fitme/rate-limit, which tsdown keeps external:
+        // AGENTS.md requires them in the app's dependencies.
         "@upstash/ratelimit",
         "@upstash/redis",
         "@vercel/functions"
@@ -83,10 +83,13 @@
         // Primitives and their Props types are the design system's API
         // (docs/agents/ui.md), exported whether or not a screen uses them yet.
         "components/ui/**": ["exports", "types"],
-        // The chat and markdown public API barrels (marked so for Biome).
+        // The chat and markdown barrels, kept as each folder's public API
+        // (their biome-ignore says so), whether or not a screen imports
+        // every name yet.
         "components/chat/index.ts": ["exports", "types"],
         "components/markdown/index.ts": ["exports", "types"],
-        // The uniwind-wrapped components kit (docs/agents/ui.md: `Image` from
+        // uniwind-wrapped native components, the ones screens style with
+        // className (docs/agents/ui.md: raster images use `Image` from
         // `~/components/tw`), exported whether or not a screen uses them yet.
         "components/tw.tsx": ["exports"]
       },
@@ -95,6 +98,9 @@
         "@expo-google-fonts/ibm-plex-mono",
         // Loaded by the Expo CLI for the Expo MCP server's local capabilities.
         "expo-mcp"
+        // react-native-get-random-values isn't listed: knip already counts it
+        // as used, a peer dependency of Segment. AGENTS.md keeps it a direct
+        // dependency so its native module is autolinked.
       ]
     },
     "apps/site": {
@@ -121,7 +127,8 @@
       ]
     },
     "packages/db": {
-      // See apps/api: drizzle.config.ts calls `supabase status` too.
+      // See apps/api: drizzle.config.ts reads `supabase status` too, through
+      // integration/local-database-url.ts.
       "entry": ["drizzle.config.ts", "integration/**/*.test.ts"],
       "drizzle": false,
       "vitest": false
