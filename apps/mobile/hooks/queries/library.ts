@@ -4,6 +4,7 @@ import {
   type ExercisePage,
   type ExerciseSummary,
   exerciseNameFromSlug,
+  type Library,
   LibraryInvalidRequestError,
   LibraryRateLimitedError,
   LibraryUnauthorizedError,
@@ -71,16 +72,20 @@ interface Waiter {
   resolve: (exercise: ExerciseSummary | null) => void;
 }
 
-let waiting = new Map<string, Waiter[]>();
-let flushScheduled = false;
+type Batch = Map<string, Waiter[]>;
 
-/** Answers every slug asked for since the last flush with one `lookup`. */
-const flush = async () => {
-  flushScheduled = false;
-  const batch = waiting;
-  waiting = new Map();
+/**
+ * The slugs waiting for their next `lookup`, per Library client: a batch goes
+ * out through the client its slugs were asked for under, even if
+ * `getLibrary()` answers another one by the time it's sent.
+ */
+const waiting = new Map<Library, Batch>();
+
+/** Answers every slug of `batch` with one `lookup` through `library`. */
+const flush = async (library: Library, batch: Batch) => {
+  waiting.delete(library);
   try {
-    const { data } = await getLibrary().lookup([...batch.keys()]);
+    const { data } = await library.lookup([...batch.keys()]);
     const found = new Map(data.map((exercise) => [exercise.slug, exercise]));
     for (const [slug, waiters] of batch) {
       for (const { resolve } of waiters) {
@@ -96,6 +101,14 @@ const flush = async () => {
   }
 };
 
+/** A new batch for `library`, sent on the next tick. */
+const openBatch = (library: Library): Batch => {
+  const batch: Batch = new Map();
+  waiting.set(library, batch);
+  setTimeout(() => flush(library, batch), 0);
+  return batch;
+};
+
 /**
  * One Exercise's summary, or `null` when the Library has no such
  * slug. Slugs asked for in the same tick (every row of a screen) share one
@@ -103,11 +116,9 @@ const flush = async () => {
  */
 const lookupExercise = (slug: string) =>
   new Promise<ExerciseSummary | null>((resolve, reject) => {
-    waiting.set(slug, [...(waiting.get(slug) ?? []), { reject, resolve }]);
-    if (!flushScheduled) {
-      flushScheduled = true;
-      setTimeout(flush, 0);
-    }
+    const library = getLibrary();
+    const batch = waiting.get(library) ?? openBatch(library);
+    batch.set(slug, [...(batch.get(slug) ?? []), { reject, resolve }]);
   });
 
 /**

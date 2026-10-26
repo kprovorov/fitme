@@ -1,7 +1,7 @@
 import { createLibrary, LibraryUnavailableError } from "@fitme/library-sdk";
 import { beforeEach, describe, expect, it, jest } from "@jest/globals";
 import { QueryClientProvider } from "@tanstack/react-query";
-import { renderHook, waitFor } from "@testing-library/react-native";
+import { act, renderHook, waitFor } from "@testing-library/react-native";
 import type { ReactNode } from "react";
 import { storage } from "~/lib/mmkv";
 import {
@@ -9,7 +9,7 @@ import {
   libraryExercise,
   serveLibrary,
 } from "~/test-utils/fake-library";
-import { createTestQueryClient } from "~/test-utils/query-client";
+import { createTestQueryClient, until } from "~/test-utils/query-client";
 import { useExerciseDetailQuery, useExercises } from "../library";
 
 jest.mock(
@@ -40,7 +40,10 @@ describe("the MMKV cache", () => {
     storage.set("exercises.exercise.bench-press", "{}");
     storage.set("exercises.summary.gone-move", "{}");
     storage.set("arnold.models", "kept");
-    serveLibrary([libraryExercise("bench-press", { name: "Bench Press" })]);
+    const fake = serveLibrary([
+      libraryExercise("bench-press", { name: "Bench Press" }),
+    ]);
+    const lookup = jest.spyOn(fake, "lookup");
 
     const rows = await renderHook(() => useExercises(["bench-press"]), {
       wrapper: newWrapper(),
@@ -70,6 +73,11 @@ describe("the MMKV cache", () => {
     // Swept once per install: an old key written later stays.
     storage.set("exercises.summary.squat", "{}");
     await renderHook(() => useExercises(["squat"]), { wrapper: newWrapper() });
+    // Answered before the test ends, so no lookup is left for the next one.
+    const squatCall = () =>
+      lookup.mock.calls.findIndex(([slugs]) => slugs.includes("squat"));
+    await until(() => squatCall() >= 0);
+    await lookup.mock.results[squatCall()]?.value;
     expect(storage.getString("exercises.summary.squat")).toBe("{}");
   });
 });
@@ -111,6 +119,37 @@ describe("useExercises", () => {
     expect(asked.map((batch) => batch.length)).toEqual([40, 40, 20]);
     expect(asked.flat().sort()).toEqual([...slugs].sort());
     expect(result.current["exercise-7"].name).toBe("Exercise 7");
+  });
+
+  it("never sends a slug queued for one Library client through another", async () => {
+    // Held timers keep the first lookup queued while the client changes, as a
+    // test's unanswered lookup is when the next test swaps in its own client.
+    jest.useFakeTimers();
+    try {
+      const earlier = serveLibrary([libraryExercise("stray-move")]);
+      const earlierLookup = jest.spyOn(earlier, "lookup");
+      const earlierRows = await renderHook(() => useExercises(["stray-move"]), {
+        wrapper: newWrapper(),
+      });
+
+      const later = serveLibrary([libraryExercise("bench-press")]);
+      const laterLookup = jest.spyOn(later, "lookup");
+      const laterRows = await renderHook(() => useExercises(["bench-press"]), {
+        wrapper: newWrapper(),
+      });
+
+      await act(() => jest.runOnlyPendingTimersAsync());
+      await waitFor(() =>
+        expect(laterRows.result.current["bench-press"].isResolved).toBe(true)
+      );
+      await waitFor(() =>
+        expect(earlierRows.result.current["stray-move"].isResolved).toBe(true)
+      );
+      expect(earlierLookup.mock.calls).toEqual([[["stray-move"]]]);
+      expect(laterLookup.mock.calls).toEqual([[["bench-press"]]]);
+    } finally {
+      jest.useRealTimers();
+    }
   });
 
   it("serves resolved Exercises from MMKV after a restart with the network failing", async () => {
