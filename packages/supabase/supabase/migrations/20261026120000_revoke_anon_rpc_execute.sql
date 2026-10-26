@@ -9,13 +9,14 @@
 -- update_plan and workout_session_plan_changes were already revoked.
 --
 -- authenticated and service_role keep EXECUTE: installed builds older than
--- the Public API switch still call these RPCs with the User's Clerk token
--- (packages/services), until the minimum version gate cuts them off.
+-- the Public API switch still call these RPCs through PostgREST with the
+-- User's Clerk token, until the minimum version gate cuts them off (their
+-- TypeScript ports in packages/services change with them).
 --
--- current_user_id() keeps its grants. Every app table's RLS policy targets
--- PUBLIC and calls it, and anon holds the table grants
--- (20261016120000_explicit_table_grants.sql), so revoking it would turn an
--- anon read of any app table from no rows into "permission denied for
+-- current_user_id() keeps its grants. The RLS policy of every app table but
+-- arnold_sessions targets PUBLIC and calls it, and anon holds those tables'
+-- grants (20261016120000_explicit_table_grants.sql), so revoking it would
+-- turn an anon read of them from no rows into "permission denied for
 -- function current_user_id". It returns NULL for anon and reveals nothing.
 
 REVOKE EXECUTE ON FUNCTION

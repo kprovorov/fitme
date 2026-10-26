@@ -30,8 +30,6 @@ select is(
   'every SECURITY DEFINER function in public is covered by this test'
 );
 
--- The RPCs installed builds still call as authenticated (until the minimum
--- version gate cuts them off; packages/services).
 select is_empty(
   $$
     select p.oid::regprocedure
@@ -57,6 +55,8 @@ select is_empty(
   'anon has no EXECUTE on the RPCs'
 );
 
+-- Installed builds still call them as authenticated, until the minimum
+-- version gate cuts them off.
 select is_empty(
   $$
     select p.oid::regprocedure
@@ -83,9 +83,10 @@ select is_empty(
   'service_role keeps EXECUTE on the RPCs but workout_session_plan_changes'
 );
 
--- Every app table's policy targets PUBLIC and calls current_user_id(), and
--- anon holds the table grants (table_grants.test.sql), so without EXECUTE an
--- anon read fails with permission denied instead of finding no rows.
+-- The policy of every app table but arnold_sessions targets PUBLIC and calls
+-- current_user_id(), and anon holds those tables' grants
+-- (table_grants.test.sql), so without EXECUTE an anon read fails with
+-- permission denied instead of finding no rows.
 select ok(
   has_function_privilege('anon', 'public.current_user_id()', 'EXECUTE'),
   'anon keeps EXECUTE on current_user_id(), which the RLS policies call'
