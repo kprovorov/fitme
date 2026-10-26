@@ -138,6 +138,32 @@ describe("clerkSession", () => {
     ).rejects.toThrow("CLERK_JWT_KEY");
   });
 
+  it("reports a missing CLERK_JWT_KEY once per instance", async () => {
+    const unconfigured = clerkSession({
+      checkPro,
+      claimSession,
+      jwtKey: () => undefined,
+      report,
+    });
+    const send = () =>
+      routeAuth(
+        request(`Bearer ${clerkToken({ sub: "user_alice" })}`),
+        unconfigured
+      );
+
+    await expect(send()).rejects.toThrow("CLERK_JWT_KEY");
+    await expect(send()).rejects.toThrow("CLERK_JWT_KEY");
+
+    expect(report).toHaveBeenCalledTimes(1);
+    expect(report).toHaveBeenCalledWith(
+      expect.objectContaining({
+        message: "Missing CLERK_JWT_KEY environment variable",
+      }),
+      { component: "clerk-auth" }
+    );
+    expect(checkPro).not.toHaveBeenCalled();
+  });
+
   it("doesn't look up an owner when no session is addressed", async () => {
     await routeAuth(
       request(`Bearer ${clerkToken({ sub: "user_alice" })}`),

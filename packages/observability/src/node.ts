@@ -82,3 +82,53 @@ export const identifyUser = (userId: string): void => {
  */
 export const observeHono: typeof Sentry.honoMiddleware = (app, options) =>
   Sentry.honoMiddleware(app, options);
+
+/**
+ * A variable an app needs, or a renamed one with its pre-rename names, any of
+ * which will do (`["ARNOLD_URL", "COACH_URL"]`), as the app itself reads it.
+ */
+export type RequiredEnv = string | readonly [string, ...string[]];
+
+/** A required environment variable missing or empty on production. */
+export class MissingEnvError extends Error {
+  override readonly name = "MissingEnvError";
+}
+
+interface ReportMissingEnvOptions {
+  /** Defaults to `process.env`. */
+  env?: Record<string, string | undefined>;
+  /** Defaults to `reportError`. */
+  report?: (error: unknown, tags?: Record<string, string>) => Promise<void>;
+}
+
+/**
+ * Reports each of `required` that's missing or empty, one error per variable
+ * (tagged `env_var`), and answers their names. Only on Vercel production
+ * (`VERCEL_ENV=production`): elsewhere an unset variable is often on purpose.
+ * Call it at startup, after `initObservability`, so a deployment whose env was
+ * lost shows up in Sentry before the first request fails on it. It reports
+ * and never throws: the app still starts and answers as it does without it.
+ */
+export const reportMissingEnv = async (
+  required: readonly RequiredEnv[],
+  { env = process.env, report = reportError }: ReportMissingEnvOptions = {}
+): Promise<string[]> => {
+  if (env.VERCEL_ENV !== "production") {
+    return [];
+  }
+  const missing = required
+    .map((entry) => (typeof entry === "string" ? ([entry] as const) : entry))
+    .filter((names) => !names.some((name) => env[name]));
+  await Promise.all(
+    missing.map(([name, ...fallbacks]) => {
+      const label = fallbacks.length
+        ? `${name} (or ${fallbacks.join(", ")})`
+        : name;
+      return report(
+        new MissingEnvError(`Missing ${label} environment variable`),
+        { env_var: name }
+      );
+    })
+  );
+  return missing.map(([name]) => name);
+};
