@@ -22,11 +22,3 @@ fi
 # Every stack this worktree ever had (one per branch it was on), plus any left
 # by worktrees deleted without settling.
 "$worktree/scripts/destroy-stale-stacks.sh" "$worktree"
-
-# DELIBERATE BREAK (FIT-315 CI check, reverted next commit): a quote inside a
-# heredoc in $(...), which bash 5 accepts and macOS /bin/bash 3.2 rejects.
-unused="$(node - <<'JS'
-const quote = /["']/;
-JS
-)"
-echo "$unused" >/dev/null
