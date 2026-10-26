@@ -99,7 +99,7 @@ const main = ([checkout, output]) => {
       );
     }
   }
-  console.log(stack.mcpUrl);
+  console.log(stack.mcpUrl ?? "");
   return 0;
 };
 

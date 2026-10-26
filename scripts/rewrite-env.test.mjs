@@ -3,7 +3,7 @@ import { spawnSync } from "node:child_process";
 import fs from "node:fs";
 import os from "node:os";
 import path from "node:path";
-import { describe, test } from "node:test";
+import { after, describe, test } from "node:test";
 import { fileURLToPath } from "node:url";
 import { parseStackOutput, rewriteEnvText } from "./rewrite-env.mjs";
 
@@ -12,6 +12,18 @@ const POINTED_MOBILE = /Pointed apps\/mobile\/\.env at the local stack/;
 const USAGE = /Usage/;
 
 const SCRIPT = fileURLToPath(new URL("./rewrite-env.mjs", import.meta.url));
+
+const tempDirs = [];
+const tempDir = (prefix) => {
+  const dir = fs.mkdtempSync(path.join(os.tmpdir(), prefix));
+  tempDirs.push(dir);
+  return dir;
+};
+after(() => {
+  for (const dir of tempDirs) {
+    fs.rmSync(dir, { force: true, recursive: true });
+  }
+});
 
 const stack = {
   apiUrl: "http://127.0.0.1:55321",
@@ -99,7 +111,7 @@ describe("rewriteEnvText", () => {
 
 describe("the CLI", () => {
   const checkout = () => {
-    const root = fs.mkdtempSync(path.join(os.tmpdir(), "rewrite-env-"));
+    const root = tempDir("rewrite-env-");
     const write = (rel, text) => {
       fs.mkdirSync(path.dirname(path.join(root, rel)), { recursive: true });
       fs.writeFileSync(path.join(root, rel), text);

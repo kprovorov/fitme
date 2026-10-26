@@ -3,7 +3,7 @@ import { spawnSync } from "node:child_process";
 import fs from "node:fs";
 import os from "node:os";
 import path from "node:path";
-import { describe, test } from "node:test";
+import { after, describe, test } from "node:test";
 import { fileURLToPath } from "node:url";
 import { staleStacks } from "./stale-stacks.mjs";
 
@@ -12,6 +12,18 @@ const DESTROYING_GONE = /Destroying gone-id/;
 const USAGE = /Usage/;
 
 const SCRIPT = fileURLToPath(new URL("./stale-stacks.mjs", import.meta.url));
+
+const tempDirs = [];
+const tempDir = (prefix) => {
+  const dir = fs.mkdtempSync(path.join(os.tmpdir(), prefix));
+  tempDirs.push(dir);
+  return dir;
+};
+after(() => {
+  for (const dir of tempDirs) {
+    fs.rmSync(dir, { force: true, recursive: true });
+  }
+});
 
 const listOutput = (stacks) =>
   `Listing stacks...\n${JSON.stringify({ stacks })}\n`;
@@ -57,7 +69,7 @@ describe("staleStacks", () => {
 
 describe("the CLI", () => {
   test("prints one id per line, the rest on stderr", () => {
-    const live = fs.mkdtempSync(path.join(os.tmpdir(), "stale-stacks-"));
+    const live = tempDir("stale-stacks-");
     fs.mkdirSync(path.join(live, "packages/supabase"), { recursive: true });
     const output = listOutput([
       stack("live-id", path.join(live, "packages/supabase")),

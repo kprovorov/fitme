@@ -1,0 +1,50 @@
+name: Shell Scripts
+
+# The worktree scripts (scripts/*.sh: T3's setup and settle among them) and the
+# Node helpers they call. Only on pull requests touching them, since the parse
+# check needs a macOS runner.
+on:
+  pull_request:
+    paths:
+      - scripts/**
+      - .github/workflows/shell-scripts.yml
+
+permissions:
+  contents: read
+
+jobs:
+  lint:
+    runs-on: ubuntu-24.04
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v7
+
+      - name: Setup Node.js
+        uses: actions/setup-node@v7
+        with:
+          node-version: "24"
+
+      # shellcheck comes with the runner image.
+      - name: shellcheck
+        run: shellcheck scripts/*.sh
+
+      # Node built-ins only, so no install.
+      - name: Node helpers (node:test)
+        run: node --test scripts/*.test.mjs
+
+  # The scripts run under the bash 3.2 macOS ships as /bin/bash, which rejects
+  # some things bash 5 accepts (see AGENTS.md, Shell), so Linux can't check this.
+  parse-macos:
+    runs-on: macos-26
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v7
+
+      - name: Parse the scripts with /bin/bash
+        run: |
+          /bin/bash --version | head -1
+          status=0
+          for script in scripts/*.sh; do
+            /bin/bash -n "$script" || status=1
+          done
+          exit "$status"

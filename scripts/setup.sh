@@ -16,7 +16,7 @@ log() {
   local line
   line="[$(date '+%Y-%m-%d %H:%M:%S')] $*"
   echo "$line"
-  echo "$line" >>"$log_file"
+  echo "$line" >>"$log_file" 2>/dev/null || true
 }
 warn() {
   log "warning: $*" >&2
@@ -89,6 +89,10 @@ fi
 log "point the env files at the local stack"
 if ! mcp_url="$(node scripts/rewrite-env.mjs "$worktree" "$stack")"; then
   warn "couldn't point the env files at the local stack"
+  exit 0
+fi
+if [[ -z "$mcp_url" ]]; then
+  warn "the stack has no MCP URL, so supabase-local wasn't registered"
   exit 0
 fi
 

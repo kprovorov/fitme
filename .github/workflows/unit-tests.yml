@@ -61,33 +61,6 @@ jobs:
       - name: Typecheck
         run: pnpm typecheck
 
-      # The worktree scripts (scripts/*.sh, T3's setup and settle among them)
-      # and the Node they call. shellcheck comes with the runner image.
-      - name: Shell scripts (shellcheck)
-        run: shellcheck scripts/*.sh
-
-      - name: Shell scripts' Node helpers (node:test)
-        run: pnpm test:scripts
-
-  # scripts/setup.sh runs under the bash 3.2 macOS ships as /bin/bash, which
-  # parses some things bash 5 accepts as syntax errors (a quote inside a heredoc
-  # in `$(...)` broke every worktree's setup once), so parse every script with
-  # that bash. Linux's bash 5 can't catch it.
-  shell-macos:
-    runs-on: macos-26
-    steps:
-      - name: Checkout code
-        uses: actions/checkout@v7
-
-      - name: Parse the scripts with /bin/bash
-        run: |
-          /bin/bash --version | head -1
-          status=0
-          for script in scripts/*.sh; do
-            /bin/bash -n "$script" || status=1
-          done
-          exit "$status"
-
   # The backstop for the pre-commit scan (.husky/pre-commit), which a machine
   # without gitleaks skips: every commit the pull request adds, with
   # .gitleaks.toml's rules and allowlist.
