@@ -6,4 +6,13 @@ else
   echo "warning: gitleaks not installed, skipping the secret scan (brew install gitleaks)" >&2
 fi
 
+# A conflict marker left in the staged changes fails the commit (AGENTS.md
+# Git: resolve each conflict hunk by hand).
+markers=$(git diff --cached --no-color -U0 | grep -E '^\+(<<<<<<<|>>>>>>>|\|\|\|\|\|\|\|)( |$)' || true)
+if [ -n "$markers" ]; then
+  echo "error: conflict markers in the staged changes:" >&2
+  echo "$markers" >&2
+  exit 1
+fi
+
 pnpm exec lint-staged
