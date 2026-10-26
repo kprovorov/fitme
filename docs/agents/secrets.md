@@ -30,6 +30,8 @@ The Public API, Arnold, MCP and the Library API itself read `LIBRARY_URL` and th
 
 Each `prod` app folder syncs to its Vercel project's Production environment through the `vercel-api-token` App Connection (team `provorovcom`), with auto-sync on, so an edit in Infisical reaches Vercel within seconds. A Vercel deployment reads its env when it builds, so **a change only takes effect on the app's next deployment**: redeploy it.
 
+A redeploy of the same commit can be canceled before it builds ("Canceled by Ignored Build Step"): every project but `fitme-library` has an `ignoreCommand` (turbo-ignore, AGENTS.md CI/CD), which compares against the last deployment, and an env-only change touches no file. The way seen to build (2026-10-25, `fitme-api` and `fitme-webhooks`) is the Vercel MCP's `create_deployment` in team `provorovcom` with `forceNew: "1"`, the project, `target: "production"` and the commit as its `gitSource`. Vercel's docs describe `forceNew` only as skipping deployment deduplication and don't say what makes a redeploy skip the Ignored Build Step, so check the new deployment reaches Ready, not Canceled. A dashboard Redeploy with "Use existing Build Cache" unchecked only drops the build cache; the docs don't say it skips the Ignored Build Step, so don't count on it. `fitme-library` has no `ignoreCommand`, so any redeploy builds it.
+
 Every sync uses:
 
 - **Initial sync behavior `overwrite-destination`, never an import.** Vercel doesn't return Sensitive values, so an import brings them into Infisical empty, and the sync then writes the empty value back over the real one. That is how `arnold-sync` (created with `import-prioritize-source`) blanked Arnold's `CLERK_JWT_KEY` and took Arnold down on 2026-10-25. Put every value into Infisical first, then create the sync.
@@ -47,6 +49,17 @@ The `preview` environment is Vercel's Preview target. It holds only `/Api` `CLER
 3. Redeploy the affected Vercel projects, then check the app answers as expected.
 
 Rotating a secret two apps share (a Library server secret, `ARNOLD_RESET_SECRET`) changes it on both at once, so redeploy both back to back.
+
+## Handling values
+
+Secret values never go into an agent's output, a thread log or a command line:
+
+- **Inspecting an env file:** list the names only, `cut -d= -f1 <file>` or `sed -E 's/=.*/=…/' <file>`, and check one is set with `grep -q '^NAME=' <file>`. Never `cat`, `grep`, `head`, `tail`, `less` or `sed` a `.env*` file without stripping the values in the same pipeline (the committed `.env.example` files hold no secret).
+- **BSD sed (macOS) has no `\|` alternation** in its basic syntax: a `sed 's/\(SECRET\|KEY\)=.*/…/'` redaction matches nothing and prints every value. Use `sed -E` with `|`, or better, strip everything after `=`.
+- **`prod` values never enter a local shell, file or command line:** no `infisical secrets get --env=prod`, `infisical export --env=prod` or `infisical run --env=prod`, not even to pass a value straight into `curl`. Local work uses `dev`.
+- **Smoke-testing a deployment:** its `/health` route, a development-instance Clerk token (the Library API accepts both instances), or the Vercel MCP's logs and runtime errors. When a prod credential is truly needed, ask the human.
+
+The Claude Code shell hook refuses the commands that break these (AGENTS.md Shell).
 
 ## Local development
 

@@ -18,6 +18,12 @@ Every issue carries one label per area it's expected to change, alongside its ty
 
 Workflow states: `Triage` → `Backlog` → `Todo` → `In Progress` → `In Review` → `Done` (plus `Canceled`, `Duplicate`). `Triage` is Linear's triage inbox and stands for the `needs-triage` role; see `triage-labels.md`.
 
+## Gates and held issues
+
+- **Gates are `blockedBy` relations, not just prose.** When an issue must wait on another issue, a release or a deployment ("Only start when…"), give it a Linear `blockedBy` relation as well as the prose (`save_issue` with `id` and `blockedBy`): on that issue for another issue; for a release or a deployment, on a small `ready-for-human` gate issue ("v2.2.0 live in the App Store" for the release carrying FIT-n, assigned to the maintainer, closed by them when it holds). A gate that waits a further release ("one more release after the one with FIT-n") is a second gate issue, itself blocked by the first.
+- **Check the blockers before starting.** Read the issue with `get_issue` and `includeRelations: true`, then `get_issue` on each `blockedBy` issue: any blocker whose `statusType` isn't `completed`, `canceled` or `duplicate` is open, and an open blocker means don't start. Read the prose gates too, and treat one with no relation yet as open until it's checked.
+- **Holding an issue: `Backlog`, never `Todo`.** An agent that finds an issue isn't ready leaves it in `Backlog`, or moves it back there, adds the missing `blockedBy` relation, and comments what it's waiting for. It never sets `Todo`: that's the maintainer's call (see **Conventions**).
+
 Branches and PRs reference the issue identifier (e.g. a PR titled `feat(mobile): … (FIT-60)`), which links them in Linear.
 
 ## Platform label

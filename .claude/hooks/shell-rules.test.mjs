@@ -6,6 +6,8 @@ import { findShellRuleViolations } from "./shell-rules.mjs";
 
 const REASON = /^AGENTS\.md Shell: /;
 const TIMEOUT_REASON = /macOS has neither `timeout` nor `gtimeout`/;
+const WORD_SPLIT_REASON = /zsh doesn't word-split/;
+const OUTPUT_FORMAT_REASON = /--output-format json/;
 
 const rulesBroken = (command, options) =>
   findShellRuleViolations(command, options).map((violation) => violation.rule);
@@ -360,6 +362,170 @@ describe("expansion shifts, timed groups and older-than options", () => {
     ["time { sleep 60; } &", []],
     ["pgrep -O 0 -f ultracite", ["pkill"]],
     ["pgrep --older 0 -f ultracite", ["pkill"]],
+  ]) {
+    test(`${JSON.stringify(command)} breaks ${JSON.stringify(rules)}`, () => {
+      assert.deepEqual(rulesBroken(command), rules);
+    });
+  }
+});
+
+describe("zsh word-splitting in loop headers", () => {
+  for (const command of [
+    "for f in $files; do echo $f; done",
+    // biome-ignore lint/suspicious/noTemplateCurlyInString: shell text, not a template.
+    "for t in ${ids}; do gh api graphql -f id=$t; done",
+    "for f in $files\ndo\n  echo $f\ndone",
+    "select f in $files; do echo $f; done",
+  ]) {
+    test(`refuses ${JSON.stringify(command)}`, () => {
+      assert.deepEqual(rulesBroken(command), ["word-split"]);
+    });
+  }
+
+  for (const command of [
+    // biome-ignore lint/suspicious/noTemplateCurlyInString: shell text, not a template.
+    'for f in "${files[@]}"; do echo $f; done',
+    // biome-ignore lint/suspicious/noTemplateCurlyInString: shell text, not a template.
+    "for f in ${=files}; do echo $f; done",
+    'for f in "$file"; do echo $f; done',
+    "for f in $a $b; do echo $f; done",
+    "for f in a b c; do echo $f; done",
+    "for f in $(git ls-files); do echo $f; done",
+    "for f; do echo $f; done",
+    "for ((i = 0; i < 3; i++)); do echo $i; done",
+    "echo 'for f in $files; do x; done'",
+  ]) {
+    test(`allows ${JSON.stringify(command)}`, () => {
+      assert.deepEqual(rulesBroken(command), []);
+    });
+  }
+
+  test("says how to iterate instead", () => {
+    const [violation] = findShellRuleViolations("for f in $files; do x; done");
+    assert.match(violation.reason, WORD_SPLIT_REASON);
+  });
+});
+
+describe("the Supabase CLI's legacy output flag", () => {
+  for (const command of [
+    "supabase status -o json",
+    "supabase status --output json",
+    "supabase status --output=json",
+    "supabase status -ojson",
+    "pnpm exec supabase status -o json",
+    "npx supabase status -o env",
+    "pnpm --filter @fitme/supabase exec supabase status -o json",
+  ]) {
+    test(`refuses ${command}`, () => {
+      assert.deepEqual(rulesBroken(command), ["supabase-output"]);
+    });
+  }
+
+  for (const command of [
+    "supabase status --output-format json",
+    "pnpm exec supabase status --output-format=json",
+    "pnpm --filter @fitme/supabase exec supabase start",
+    "curl -o out.json localhost:54321",
+    'echo "supabase status -o json"',
+  ]) {
+    test(`allows ${command}`, () => {
+      assert.deepEqual(rulesBroken(command), []);
+    });
+  }
+
+  test("points at --output-format json", () => {
+    const [violation] = findShellRuleViolations("supabase status -o json");
+    assert.match(violation.reason, OUTPUT_FORMAT_REASON);
+  });
+});
+
+describe("prod secrets in a local shell", () => {
+  for (const command of [
+    "infisical secrets get X --env=prod",
+    "infisical secrets get X --env prod",
+    "infisical secrets --env=prod",
+    "infisical --env=prod secrets get X",
+    "infisical export --env=prod --path=/Api",
+    "infisical run --env=prod -- curl https://library.fitmeproject.com",
+    'TOKEN=$(infisical secrets get LIBRARY_MCP_SECRET --env=prod --plain); curl -H "Authorization: Bearer $TOKEN" x',
+    "for name in A B; do infisical secrets get $name --env=prod --plain; done",
+  ]) {
+    test(`refuses ${JSON.stringify(command)}`, () => {
+      assert.deepEqual(rulesBroken(command), ["infisical-prod"]);
+    });
+  }
+
+  for (const command of [
+    "infisical secrets get X --env=dev",
+    "infisical export --env=dev --path=/Api",
+    "infisical run --env=dev -- pnpm dev",
+    "infisical secrets set X=1 --env=dev",
+    "infisical secrets folders get --env=prod",
+    "infisical login",
+    'echo "infisical secrets get X --env=prod"',
+  ]) {
+    test(`allows ${command}`, () => {
+      assert.deepEqual(rulesBroken(command), []);
+    });
+  }
+});
+
+describe("printing env file values", () => {
+  for (const command of [
+    "cat apps/api/.env",
+    "cat .env.local",
+    "head -5 apps/arnold/.env.local",
+    "tail apps/mcp/.env",
+    "grep SECRET apps/api/.env",
+    "less apps/webhooks/.env",
+    "sed 's/\\(SECRET\\|KEY\\)=.*/x/' apps/library/.env",
+    "sed -n 1,5p apps/api/.env",
+    "cat apps/api/.env | grep LIBRARY",
+    "pnpm install && cat apps/api/.env",
+  ]) {
+    test(`refuses ${JSON.stringify(command)}`, () => {
+      assert.deepEqual(rulesBroken(command), ["env-file"]);
+    });
+  }
+
+  for (const command of [
+    "cut -d= -f1 apps/api/.env",
+    "cut -d '=' -f 1 apps/api/.env",
+    "sed -E 's/=.*/=…/' apps/api/.env",
+    "sed 's/=.*//' apps/api/.env",
+    "cat apps/api/.env | cut -d= -f1",
+    "grep -v '^#' apps/api/.env | cut -d= -f1",
+    "grep -q '^CLERK_JWT_KEY=' apps/api/.env",
+    "grep -c LIBRARY apps/api/.env",
+    "grep -l LIBRARY apps/api/.env apps/mcp/.env",
+    "sed -i '' 's/^PORT=.*/PORT=3010/' apps/api/.env",
+    "cat apps/api/.env.example",
+    "cat apps/api/src/env.ts",
+    "cat .envrc",
+    "ls -la apps/api/.env",
+    'echo "cat apps/api/.env"',
+  ]) {
+    test(`allows ${JSON.stringify(command)}`, () => {
+      assert.deepEqual(rulesBroken(command), []);
+    });
+  }
+});
+
+describe("commands inside substitutions", () => {
+  for (const [command, rules] of [
+    ["x=$(cat apps/api/.env)", ["env-file"]],
+    ['echo "values: $(grep KEY apps/api/.env)"', ["env-file"]],
+    ["echo `cat apps/api/.env`", ["env-file"]],
+    ["diff <(cat apps/api/.env) <(cat apps/mcp/.env)", ["env-file"]],
+    ['echo "$(sleep 60)"', ["sleep"]],
+    ["x=$(echo $(timeout 5 y))", ["timeout"]],
+    ["echo '$(cat apps/api/.env)'", []],
+    ["echo $((1 + 2)) && echo $'it\\'s $(x)'", []],
+    ["names=$(cut -d= -f1 apps/api/.env)", []],
+    [
+      "gh pr create --body \"$(cat <<'EOF'\nNever `cat apps/api/.env` or `infisical export --env=prod`.\nEOF\n)\"",
+      [],
+    ],
   ]) {
     test(`${JSON.stringify(command)} breaks ${JSON.stringify(rules)}`, () => {
       assert.deepEqual(rulesBroken(command), rules);
