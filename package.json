@@ -30,6 +30,7 @@
     "site": "pnpm --filter @fitme/site",
     "test": "turbo run test",
     "test:hooks": "node --test .claude/hooks/shell-rules.test.mjs",
+    "test:scripts": "node --test scripts/*.test.mjs",
     "typecheck": "turbo run typecheck",
     "web": "pnpm --filter @fitme/web",
     "webhooks": "pnpm --filter @fitme/webhooks"
