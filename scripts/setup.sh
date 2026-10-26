@@ -47,7 +47,7 @@ fi
 
 # A thread deleted without settling never runs settle.sh, so its stack outlives
 # its worktree; sweep those before starting another one. Not fatal.
-.t3/destroy-stale-stacks.sh || echo "warning: couldn't destroy stale Supabase stacks" >&2
+scripts/destroy-stale-stacks.sh || echo "warning: couldn't destroy stale Supabase stacks" >&2
 
 # The copied env files point at another checkout's stack (or at placeholders),
 # so start this checkout's own and rewrite the local Supabase URL and key and

@@ -466,7 +466,7 @@ Before pushing, check only what changed and leave the full matrix to CI, which s
 
 Put a `FIT-<n>` key in a pull request's title, branch or commits only when that pull request finishes the issue: Linear links the PR on sight, moves the issue to In Progress and closes it on merge.
 
-The pre-commit hook (`.husky/pre-commit`) scans the staged changes for secrets with gitleaks (`.gitleaks.toml`: the default rules, a `password-literal` rule, and the allowlisted false positives, by path or value, never by commit) and fails the commit on a finding; install it with `brew install gitleaks`, or the hook only warns. A worktree runs no hook until `pnpm exec husky` has created its `.husky/_` (`.t3/setup.sh` runs it). CI's `secrets` job (`.github/workflows/unit-tests.yml`) scans every pull request's commits the same way.
+The pre-commit hook (`.husky/pre-commit`) scans the staged changes for secrets with gitleaks (`.gitleaks.toml`: the default rules, a `password-literal` rule, and the allowlisted false positives, by path or value, never by commit) and fails the commit on a finding; install it with `brew install gitleaks`, or the hook only warns. A worktree runs no hook until `pnpm exec husky` has created its `.husky/_` (`scripts/setup.sh` runs it). CI's `secrets` job (`.github/workflows/unit-tests.yml`) scans every pull request's commits the same way.
 
 ## Code Review Rules
 

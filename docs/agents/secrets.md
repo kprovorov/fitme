@@ -50,7 +50,7 @@ Rotating a secret two apps share (a Library server secret, `ARNOLD_RESET_SECRET`
 
 ## Local development
 
-`scripts/pull-env.sh [--keep-existing] [environment]` (default `dev`) writes every app's local file from its folder, references expanded, mode 600, overwriting the files it writes (with `--keep-existing`, only the missing ones). It needs the Infisical CLI logged in (`infisical login`). `.t3/setup.sh` runs it with `--keep-existing` in every worktree (never the main checkout), then copies from the main checkout whatever it couldn't pull, then points the files at the worktree's own Supabase stack. A local value you change by hand is overwritten on the next pull: change it in Infisical `dev` instead.
+`scripts/pull-env.sh [--keep-existing] [environment]` (default `dev`) writes every app's local file from its folder, references expanded, mode 600, overwriting the files it writes (with `--keep-existing`, only the missing ones). It needs the Infisical CLI logged in (`infisical login`). `scripts/setup.sh` runs it with `--keep-existing` in every worktree (never the main checkout), then copies from the main checkout whatever it couldn't pull, then points the files at the worktree's own Supabase stack. A local value you change by hand is overwritten on the next pull: change it in Infisical `dev` instead.
 
 ## Not in Infisical yet
 

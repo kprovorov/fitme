@@ -1,13 +1,13 @@
 [
   {
     "label": "Setup",
-    "command": "./.t3/setup.sh",
+    "command": "./scripts/setup.sh",
     "reveal": "no_focus",
     "hide": "on_success"
   },
   {
     "label": "Destroy Supabase stack",
-    "command": "./.t3/settle.sh",
+    "command": "./scripts/settle.sh",
     "reveal": "no_focus",
     "hide": "on_success"
   },
@@ -29,6 +29,10 @@
     "args": ["ios", "--no-bundler"],
     "reveal": "no_focus",
     "hide": "on_success"
+  },
+  {
+    "label": "Release iOS (local)",
+    "command": "./scripts/release-ios-local.sh"
   },
   {
     "label": "Run web",

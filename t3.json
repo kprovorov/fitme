@@ -3,14 +3,14 @@
   "scripts": [
     {
       "name": "Setup",
-      "command": "./.t3/setup.sh",
+      "command": "./scripts/setup.sh",
       "icon": "configure",
       "runOnWorktreeCreate": true,
       "async": false
     },
     {
       "name": "Destroy Supabase stack",
-      "command": "./.t3/settle.sh",
+      "command": "./scripts/settle.sh",
       "icon": "configure",
       "runOnSettle": true
     },
@@ -27,6 +27,11 @@
     {
       "name": "Build mobile",
       "command": "pnpm ios --no-bundler",
+      "icon": "build"
+    },
+    {
+      "name": "Release iOS (local)",
+      "command": "./scripts/release-ios-local.sh",
       "icon": "build"
     },
     {
