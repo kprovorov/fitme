@@ -46,6 +46,7 @@ pnpm test                # turbo run test (jest in mobile, vitest in core, desig
 pnpm typecheck           # turbo run typecheck
 pnpm check / pnpm fix    # ultracite (Biome) over the whole repo
 pnpm literal-check       # no color literal or arbitrary size in the .tsx of mobile, web and site (alias for pnpm --filter @fitme/design-tokens literal-check)
+pnpm knip                # unused files, exports, dependencies and binaries across the workspace (knip.jsonc: every ignore names its reason; not in CI)
 
 # Per workspace
 pnpm ios                 # expo run:ios       (alias for pnpm --filter @fitme/mobile ios)

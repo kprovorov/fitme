@@ -20,6 +20,7 @@
     "dev:webhooks": "turbo run dev --filter=@fitme/webhooks",
     "fix": "ultracite fix",
     "ios": "pnpm --filter @fitme/mobile ios",
+    "knip": "knip --no-progress",
     "library": "pnpm --filter @fitme/library",
     "lint": "turbo run lint",
     "literal-check": "pnpm --filter @fitme/design-tokens literal-check",
@@ -41,6 +42,7 @@
   "devDependencies": {
     "@biomejs/biome": "^2.5.15",
     "husky": "^9.1.7",
+    "knip": "^6.43.0",
     "lint-staged": "^17.6.0",
     "playwright": "^1.64.1",
     "turbo": "^2.11.9",

@@ -19,7 +19,7 @@ import {
   type WorkoutPlan,
 } from "~/lib/plan-card";
 
-export type { WorkoutDay, WorkoutExercise, WorkoutPlan } from "~/lib/plan-card";
+export type { WorkoutPlan } from "~/lib/plan-card";
 
 const GOAL_LABELS: Record<WorkoutPlan["goal"], string> = {
   endurance: "Endurance",
