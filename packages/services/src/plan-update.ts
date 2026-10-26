@@ -386,7 +386,7 @@ const applyChanges = async (
 ) => {
   for (const change of changes) {
     if (change.kind === "replace_exercise") {
-      // biome-ignore lint/performance/noAwaitInLoops: one statement at a time on tx, in order
+      // biome-ignore lint/performance/noAwaitInLoops: one statement at a time on tx, in the apply order
       await tx
         .update(workoutExercises)
         .set({ exerciseSlug: change.exerciseSlug, updatedAt: sql`now()` })
@@ -491,8 +491,8 @@ const toAnswer = (change: PlannedChange): PlanUpdateChange => {
  * The Plan Update of one of the User's Workout Sessions, applied in `tx` when
  * `apply` is set, or `null` when the User has no such Workout Session.
  *
- * Locks in preview too: ROW EXCLUSIVE on `workout_sessions`
- * and the Workout tables in `deleteUserData`'s order (so a call queues behind
+ * Locks, in preview too: ROW EXCLUSIVE on `workout_sessions` and the Workout
+ * tables in `deleteUserData`'s order (so a call queues behind
  * an account deletion before it holds any row the deletion's cascade needs),
  * then the Profile row (`lockProfileUnits`, for the unit), the Plan row, the
  * Workout row, its Workout Exercise rows and the Workout Session row

@@ -167,8 +167,9 @@ export interface WorkoutExerciseSetData {
 }
 
 /**
- * Payload for the plan RPCs. They derive `order` from each item's position
- * in the arrays, so the payload carries no `order` fields.
+ * Payload for creating or rewriting a Plan (`createPlan` / `updatePlan` in
+ * `@fitme/services`). They derive `order` from each item's position in the
+ * arrays, so the payload carries no `order` fields.
  */
 export interface PlanInput extends Omit<PlanData, "workouts"> {
   workouts: WorkoutInput[];

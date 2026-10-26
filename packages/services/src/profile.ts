@@ -81,9 +81,9 @@ export const getProfile = async (
  * The units of the User's stored heights and weights, in `tx` (from
  * `asUser`), or `null` without a Profile, and the Profile row share-locked
  * until `tx` ends. Every conversion (`updateProfile`) row-locks the Profile
- * before touching a value, so none commits while `tx` runs: whatever `tx` reads after this is
- * in these units. (Under READ COMMITTED, two plain SELECTs in one transaction
- * can straddle a conversion's commit.)
+ * before touching a value, so none commits while `tx` runs: whatever `tx`
+ * reads after this is in these units. (Under READ COMMITTED, two plain
+ * SELECTs in one transaction can straddle a conversion's commit.)
  */
 export const lockProfileUnits = async (
   tx: Transaction,
@@ -136,8 +136,9 @@ const converted = (column: AnyPgColumn, factor: SQL) =>
 /**
  * Converts the User's stored weights to another measurement system, in `tx`:
  * their Plans' set targets and their Workout Sessions' recommended and
- * completed weights. It finds Workout Sessions by their own `user_id`, so a session whose Workout is gone
- * (its Plan's Workouts replaced) is converted too.
+ * completed weights. It finds Workout Sessions by their own `user_id`, so a
+ * session whose Workout is gone (its Plan's Workouts replaced) is converted
+ * too.
  */
 const convertStoredWeights = async (
   tx: Transaction,
@@ -201,10 +202,9 @@ const convertStoredWeights = async (
  * units, or `null` without changing anything when they have no Profile.
  *
  * A new measurement system first converts every stored height and weight of
- * the User (the Profile's, their Plans' and their Workout Sessions'):
- * metric <-> us/uk multiplies by
- * 2.20462 (kg -> lbs) and 0.393701 (cm -> in) or divides by them, rounded to
- * 2 decimals; us <-> uk only changes the system. The given height and weight
+ * the User (the Profile's, their Plans' and their Workout Sessions'): metric
+ * <-> us/uk multiplies by 2.20462 (kg -> lbs) and 0.393701 (cm -> in) or
+ * divides by them, rounded to 2 decimals; us <-> uk only changes the system. The given height and weight
  * are then written as they are, in the new system's units. Everything commits
  * with `tx`, so a failure partway leaves nothing changed.
  *

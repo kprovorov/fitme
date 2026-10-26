@@ -157,6 +157,16 @@ const viaService = (sessionId: string, apply: boolean, userId = owner) =>
     (apply ? applyPlanUpdate : previewPlanUpdate)(tx, userId, sessionId)
   );
 
+/** A seeded Workout's Workout Exercise ids, by `order`. */
+const exerciseIdsOf = (seeded: Seeded) =>
+  withService(async (tx) => {
+    const rows = await tx
+      .select({ id: workoutExercises.id, order: workoutExercises.order })
+      .from(workoutExercises)
+      .where(eq(workoutExercises.workoutId, seeded.workoutId));
+    return new Map(rows.map(({ id, order }) => [order, id]));
+  });
+
 /** A seeded Workout's rows and whether its Workout Session is stamped. */
 const rowsOf = (seeded: Seeded) =>
   withService(async (tx) => {
@@ -210,11 +220,13 @@ const rowsOf = (seeded: Seeded) =>
 
 /**
  * Runs `fixture` through preview, apply, preview and apply: each step's
- * answer, the rows before the first and the rows after each.
+ * answer, the rows before the first and the rows after each, and the
+ * Workout Exercise ids before.
  */
 const run = async (fixture: Fixture) => {
   const seeded = await seed(fixture);
   const before = await rowsOf(seeded);
+  const idsBefore = await exerciseIdsOf(seeded);
   const answers: (PlanUpdate | null)[] = [];
   const rows: Awaited<ReturnType<typeof rowsOf>>[] = [];
   for (const apply of [false, true, false, true]) {
@@ -222,7 +234,7 @@ const run = async (fixture: Fixture) => {
     answers.push(await viaService(seeded.sessionId, apply, fixture.userId));
     rows.push(await rowsOf(seeded));
   }
-  return { answers: answers as PlanUpdate[], before, rows, seeded };
+  return { answers: answers as PlanUpdate[], before, idsBefore, rows, seeded };
 };
 
 /** A Plan set's row as `rowsOf` reads it. */
@@ -398,7 +410,7 @@ afterAll(async () => {
 
 describe("Plan Update: previewing and applying", () => {
   it("offers and applies every change kind", async () => {
-    const { answers, before, rows, seeded } = await run(main);
+    const { answers, before, idsBefore, rows, seeded } = await run(main);
     const [preview, applied, after, again] = answers;
     expect(preview).toEqual({
       changes: mainChanges,
@@ -410,6 +422,8 @@ describe("Plan Update: previewing and applying", () => {
 
     expect(applied).toEqual(preview);
     expect(rows[1]).toEqual(mainAppliedRows);
+    // The replacement keeps its Workout Exercise row
+    expect((await exerciseIdsOf(seeded)).get(1)).toBe(idsBefore.get(1));
 
     expect(after).toEqual({ ...preview, changes: [] });
     expect(again).toEqual({ ...preview, changes: [] });
@@ -467,7 +481,7 @@ describe("Plan Update: previewing and applying", () => {
   });
 
   it("offers a replacement for the last Exercise deleted and another added", async () => {
-    const { answers, rows } = await run({
+    const { answers, idsBefore, rows, seeded } = await run({
       planExercises: [
         { sets: [{ reps: 5, rest: 180, weight: 100 }], slug: "test-squat" },
         {
@@ -498,6 +512,8 @@ describe("Plan Update: previewing and applying", () => {
       { order: 1, sets: [planSet(1, 5, 100, 180)], slug: "test-squat" },
       { order: 2, sets: [planSet(1, 15, 20, 75)], slug: "test-cable-fly" },
     ]);
+    // The slot keeps its Workout Exercise row
+    expect((await exerciseIdsOf(seeded)).get(2)).toBe(idsBefore.get(2));
   });
 
   it("offers nothing never logged or logged off target", async () => {
