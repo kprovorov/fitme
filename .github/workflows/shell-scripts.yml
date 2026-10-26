@@ -12,9 +12,15 @@ on:
 permissions:
   contents: read
 
+# A new push cancels the pull request's run still in progress.
+concurrency:
+  group: shell-scripts-${{ github.event.pull_request.number || github.run_id }}
+  cancel-in-progress: true
+
 jobs:
   lint:
     runs-on: ubuntu-24.04
+    timeout-minutes: 5
     steps:
       - name: Checkout code
         uses: actions/checkout@v7
@@ -36,6 +42,7 @@ jobs:
   # some things bash 5 accepts (see AGENTS.md, Shell), so Linux can't check this.
   parse-macos:
     runs-on: macos-26
+    timeout-minutes: 5
     steps:
       - name: Checkout code
         uses: actions/checkout@v7

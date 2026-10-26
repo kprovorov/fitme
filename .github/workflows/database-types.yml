@@ -16,9 +16,15 @@ on:
       - "pnpm-lock.yaml"
       - ".github/workflows/database-types.yml"
 
+# A new push cancels the pull request's run still in progress.
+concurrency:
+  group: database-types-${{ github.event.pull_request.number || github.run_id }}
+  cancel-in-progress: true
+
 jobs:
   database-types:
     runs-on: ubuntu-24.04
+    timeout-minutes: 15
     steps:
       - name: Checkout code
         uses: actions/checkout@v7

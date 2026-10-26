@@ -10,7 +10,6 @@
     "./labels": "./src/labels.ts",
     "./limits": "./src/limits.ts",
     "./names": "./src/names.ts",
-    "./plan-changes": "./src/plan-changes.ts",
     "./formatters": "./src/formatters.ts",
     "./types": "./src/types.ts",
     "./utils": "./src/utils.ts",

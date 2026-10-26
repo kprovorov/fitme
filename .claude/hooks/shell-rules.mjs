@@ -2,8 +2,9 @@
 // matching, no subprocess: the PreToolUse hook (check-shell-command.mjs) runs
 // it before every Bash call. Rules only look at command words (the start of
 // the command, or after &&, ||, ;, |, &, a newline, a parenthesis or a
-// reserved word such as `then`), never at quoted strings, heredoc bodies,
-// comments or command substitutions.
+// reserved word such as `then`), never at quoted strings, heredoc bodies or
+// comments. The commands inside a substitution (`$(…)`, `` `…` ``, `<(…)`),
+// quoted or not, are checked as commands of their own.
 
 // `NAME=…`, `NAME+=…` or `NAME[i]=…`.
 const ASSIGNMENT = /^[A-Za-z_][A-Za-z0-9_]*(\[[^\]]*\])?\+?=/;
@@ -74,6 +75,59 @@ const skipDoubleQuoted = (source, start) => {
     }
   }
   return unterminated();
+};
+
+// The substitution or quote starting at `index` of a word as written: where
+// it ends, and the commands inside a substitution. Null for anything else.
+const substitutionAt = (raw, index, inDouble) => {
+  const char = raw[index];
+  const following = raw[index + 1];
+  if (char === "`") {
+    const end = skipEscaped(raw, index);
+    return { body: raw.slice(index + 1, end - 1), end };
+  }
+  if (inDouble) {
+    // In double quotes `'` is text, and only `$(…)` substitutes.
+    return char === "$" && following === "(" ? groupAt(raw, index) : null;
+  }
+  if (char === "'") {
+    return { end: skipSingleQuoted(raw, index) };
+  }
+  if (char === "$" && following === "'") {
+    return { end: skipEscaped(raw, index + 1) };
+  }
+  return "$<>".includes(char) && following === "(" ? groupAt(raw, index) : null;
+};
+
+// The `$(…)`, `<(…)` or `>(…)` at `index`; arithmetic (`$((…))`) holds no
+// commands.
+const groupAt = (raw, index) => {
+  const end = skipGroup(raw, index + 1);
+  return raw[index + 2] === "("
+    ? { end }
+    : { body: raw.slice(index + 2, end - 1), end };
+};
+
+// The commands inside each substitution of a word as written: `$(…)`,
+// `` `…` ``, `<(…)` and `>(…)`, in or out of double quotes, never in single
+// quotes or arithmetic.
+const substitutionsIn = (raw) => {
+  const bodies = [];
+  let inDouble = false;
+  let index = 0;
+  while (index < raw.length) {
+    const found = substitutionAt(raw, index, inDouble);
+    if (found === null) {
+      inDouble = raw[index] === '"' ? !inDouble : inDouble;
+      index += raw[index] === "\\" ? 2 : 1;
+    } else {
+      if (found.body !== undefined) {
+        bodies.push(found.body);
+      }
+      index = found.end;
+    }
+  }
+  return bodies;
 };
 
 const skipQuote = (source, start) => {
@@ -230,8 +284,10 @@ class Lexer {
     this.source = source;
     this.index = 0;
     this.tokens = [];
+    this.substitutions = [];
     this.heredocs = [];
     this.word = null;
+    this.wordStart = 0;
     this.next = NEXT.word;
   }
 
@@ -304,13 +360,21 @@ class Lexer {
   }
 
   append(text) {
+    if (this.word === null) {
+      this.wordStart = this.index;
+    }
     this.word = (this.word ?? "") + text;
   }
 
   flush() {
     if (this.word !== null) {
+      // `raw`: the word as written, quotes and all (`"$x"` vs `$x`).
+      const raw = this.source.slice(this.wordStart, this.index);
+      if (this.next !== NEXT.heredoc && this.next !== NEXT.heredocTabs) {
+        this.substitutions.push(...substitutionsIn(raw));
+      }
       if (this.next === NEXT.word) {
-        this.tokens.push({ type: "word", value: this.word });
+        this.tokens.push({ raw, type: "word", value: this.word });
       } else if (this.next !== NEXT.skip) {
         this.heredocs.push({
           delimiter: this.word,
@@ -436,9 +500,12 @@ const COMMAND_PREFIXES = new Set(["!", "do", "elif", "else", "then"]);
 // the whole and-or list before it, compound commands (`while …; done &`,
 // `( … ) &`, `{ …; } &`) included. Function bodies never run, so they're
 // left out, and so are a `case`'s subject and patterns (`timeout) …;;`).
+// Each `for` / `select` header (`name in …`) is kept apart, as its word
+// tokens, raw text included.
 class Parser {
   constructor() {
     this.frames = [this.frame(null, false)];
+    this.loops = [];
     this.words = [];
     this.definesFunction = false;
     this.skipsOperator = false;
@@ -468,7 +535,7 @@ class Parser {
   run(tokens) {
     for (const [position, token] of tokens.entries()) {
       if (token.type === "word") {
-        this.word(token.value);
+        this.word(token);
       } else if (this.skipsOperator) {
         this.skipsOperator = false;
       } else {
@@ -479,16 +546,17 @@ class Parser {
     while (this.frames.length > 1) {
       this.close();
     }
-    return this.top.commands;
+    return { commands: this.top.commands, loops: this.loops };
   }
 
-  word(value) {
+  word(token) {
+    const { value } = token;
     const { timed } = this;
     this.timed = false;
     if (this.skipsWord) {
       this.skipsWord = false;
     } else if (this.top.inLoopHeader) {
-      this.top.inLoopHeader = value !== "do";
+      this.loopHeaderWord(token);
     } else if (this.inCaseHeader) {
       this.caseWord(value);
     } else if (this.words.length > 0) {
@@ -504,10 +572,20 @@ class Parser {
       this.open(OPENERS.get(value));
       // `for name in …; do`: the header names no command.
       this.top.inLoopHeader = LOOP_HEADERS.has(value);
+      this.top.loopHeader = [];
     } else if (value === this.top.closer) {
       this.close();
     } else if (!(ASSIGNMENT.test(value) || COMMAND_PREFIXES.has(value))) {
       this.words.push(value);
+    }
+  }
+
+  loopHeaderWord(token) {
+    if (token.value === "do") {
+      this.top.inLoopHeader = false;
+      this.loops.push(this.top.loopHeader);
+    } else {
+      this.top.loopHeader.push(token);
     }
   }
 
@@ -792,8 +870,205 @@ const sleepSeconds = (words) => {
   return seconds;
 };
 
-// Each rule: its name, the reason the agent is shown, and whether a simple
-// command (`name` is the command run, past any wrapper) breaks it.
+// `$name` or `${name}` alone: a scalar zsh never word-splits.
+const BARE_VARIABLE = /^\$([A-Za-z_][A-Za-z0-9_]*|\{[A-Za-z_][A-Za-z0-9_]*\})$/;
+
+// `for name in $var`: the whole word list one bare, unquoted variable.
+const loopsOverBareVariable = (header) => {
+  const [, keyword, ...list] = header;
+  return (
+    keyword?.value === "in" &&
+    list.length === 1 &&
+    BARE_VARIABLE.test(list[0].raw)
+  );
+};
+
+// Package runners that run the command named after them (`pnpm exec x`).
+const RUNNERS = new Set(["bunx", "npx", "pnpm", "yarn"]);
+
+// Root scripts that run a tool's package scripts: `pnpm db status` runs
+// `supabase status`.
+const TOOL_ALIASES = new Map([["supabase", "db"]]);
+
+// The arguments a command gives `tool`, run directly, through a package
+// runner (`pnpm exec supabase status`) or a root alias (`pnpm db status`), or
+// null when it doesn't run it.
+const toolArguments = (name, words, tool) => {
+  if (name === tool) {
+    return words.slice(1);
+  }
+  if (name === "pnpm" && words[1] === TOOL_ALIASES.get(tool)) {
+    return words.slice(2);
+  }
+  const index = RUNNERS.has(name) ? words.indexOf(tool) : -1;
+  return index > 0 ? words.slice(index + 1) : null;
+};
+
+const beforeDoubleDash = (words) => {
+  const end = words.indexOf("--");
+  return end === -1 ? words : words.slice(0, end);
+};
+
+// The Supabase CLI's legacy `-o` / `--output` flag (not `--output-format`).
+const isLegacyOutputFlag = (word) =>
+  word === "--output" ||
+  word.startsWith("--output=") ||
+  (word.startsWith("-o") && !word.startsWith("--"));
+
+const PROD_ENVIRONMENT = /^prod(uction)?$/;
+// Splits `--env=prod` into the flag and its value.
+const FIRST_EQUALS = /[=](.*)/s;
+const ENV_FLAGS = new Set(["--env", "-e"]);
+// Infisical options taking the next word as their value.
+const INFISICAL_VALUE_OPTIONS = new Set([
+  "--domain",
+  "--env",
+  "--path",
+  "--projectId",
+  "--tags",
+  "--token",
+  "--type",
+  "-e",
+  "-t",
+]);
+// `infisical secrets <these>` handle no value; anything else (listing, `get`,
+// `set`) prints one or takes one on the command line.
+const INFISICAL_VALUELESS = new Set([
+  "delete",
+  "folders",
+  "generate-example-env",
+]);
+
+// Whether `infisical …` handles the `prod` environment's values: `secrets`
+// (listing), `secrets get` / `set`, `export` or `run`, with `--env=prod`.
+const readsProdSecrets = (args) => {
+  const words = beforeDoubleDash(args);
+  let prod = false;
+  const positionals = [];
+  for (let index = 0; index < words.length; index += 1) {
+    const word = words[index];
+    const [flag, value] = word.split(FIRST_EQUALS);
+    if (ENV_FLAGS.has(flag)) {
+      prod ||= PROD_ENVIRONMENT.test(value ?? words[index + 1] ?? "");
+    }
+    if (word.startsWith("-")) {
+      index += INFISICAL_VALUE_OPTIONS.has(word) ? 1 : 0;
+    } else {
+      positionals.push(word);
+    }
+  }
+  const [command, subcommand] = positionals;
+  const reads =
+    command === "export" ||
+    command === "run" ||
+    (command === "secrets" && !INFISICAL_VALUELESS.has(subcommand));
+  return prod && reads;
+};
+
+// A `.env`, `.env.local`, `apps/api/.env.production` … but not the
+// committed `.env.example` files, which hold no secret.
+const ENV_FILE = /(^|\/)\.env(\.[^/]+)?$/;
+const isEnvFile = (word) => ENV_FILE.test(word) && !word.endsWith(".example");
+
+const FILE_READERS = new Set([
+  "awk",
+  "bat",
+  "cat",
+  "cut",
+  "egrep",
+  "fgrep",
+  "grep",
+  "head",
+  "less",
+  "more",
+  "rg",
+  "sed",
+  "tail",
+]);
+const GREPS = new Set(["egrep", "fgrep", "grep", "rg"]);
+// grep options after which no matched line is printed.
+const QUIET_GREP_LETTERS = /^-[A-Za-z]*[cLlq]/;
+const QUIET_GREP_OPTIONS = new Set([
+  "--count",
+  "--files-with-matches",
+  "--files-without-match",
+  "--quiet",
+  "--silent",
+]);
+// `cut -d= -f1`, `cut -d '=' -f 1`, `cut --delimiter== --fields=1`.
+const CUT_EQUALS_DELIMITER = /(^| )(-d ?|--delimiter[= ])=( |$)/;
+const CUT_FIRST_FIELD = /(^| )(-f ?|--fields[= ])1( |$)/;
+// `awk -F= '{print $1}'`, `awk -F '=' '{ print $1 }'`.
+const AWK_EQUALS_SEPARATOR = /(^| )-F ?=( |$)/;
+const AWK_FIRST_FIELD = /^\{ ?print \$1;? ?\}$/;
+// `s/=.*/…/`: a sed script dropping everything from the first `=`.
+const STRIPPING_SED_SCRIPT = /^s(.)=\.\*\1/;
+
+const printsLines = ({ name, words }) => {
+  const options = words.slice(1).filter((word) => word.startsWith("-"));
+  if (GREPS.has(name)) {
+    return !options.some(
+      (word) =>
+        QUIET_GREP_OPTIONS.has(word) ||
+        (!word.startsWith("--") && QUIET_GREP_LETTERS.test(word))
+    );
+  }
+  // `sed -i` edits the file in place and prints nothing.
+  return (
+    name !== "sed" ||
+    !options.some((word) => word.startsWith("-i") || word === "--in-place")
+  );
+};
+
+const readsEnvFile = (command) =>
+  FILE_READERS.has(command.name) &&
+  command.words.slice(1).some(isEnvFile) &&
+  printsLines(command);
+
+// `cut -d= -f1`, `awk -F= '{print $1}'` or `sed 's/=.*/…/'`: names only,
+// values stripped.
+const stripsValues = ({ name, words }) => {
+  if (name === "sed") {
+    return words.some((word) => STRIPPING_SED_SCRIPT.test(word));
+  }
+  if (name === "awk") {
+    return (
+      AWK_EQUALS_SEPARATOR.test(words.slice(1).join(" ")) &&
+      words.some((word) => AWK_FIRST_FIELD.test(word))
+    );
+  }
+  if (name !== "cut") {
+    return false;
+  }
+  const joined = words.slice(1).join(" ");
+  return CUT_EQUALS_DELIMITER.test(joined) && CUT_FIRST_FIELD.test(joined);
+};
+
+// Splits the simple commands into pipelines: runs joined by `|`.
+const pipelines = (commands) => {
+  const groups = [];
+  let current = [];
+  for (const command of commands) {
+    current.push(command);
+    if (command.operator !== "|") {
+      groups.push(current);
+      current = [];
+    }
+  }
+  if (current.length > 0) {
+    groups.push(current);
+  }
+  return groups;
+};
+
+const WORD_SPLIT_REASON =
+  // biome-ignore lint/suspicious/noTemplateCurlyInString: shell text, not a template.
+  'AGENTS.md Shell: zsh doesn\'t word-split an unquoted `$var`, so `for x in $var` runs once with the whole list as one word: use an array (`files=(a b); for f in "${files[@]}"`), `${=var}`, or pipe NUL-separated names into `xargs -0` (`git ls-files -z`, `grep -rlZ`).';
+
+// Each rule: its name, the reason the agent is shown, and whether it's broken
+// by a simple command (`name` is the command run, past any wrapper), by a
+// pipeline (`scope: "pipeline"`, its simple commands) or by a `for` /
+// `select` header (`scope: "loop"`, its word tokens).
 const CHECKS = [
   {
     breaks: ({ name, words, operator }) => {
@@ -834,31 +1109,60 @@ const CHECKS = [
       "AGENTS.md Shell: macOS has neither `timeout` nor `gtimeout`: use the Bash tool's own timeout.",
     rule: "timeout",
   },
+  {
+    breaks: loopsOverBareVariable,
+    reason: WORD_SPLIT_REASON,
+    rule: "word-split",
+    scope: "loop",
+  },
+  {
+    breaks: ({ name, words }) =>
+      beforeDoubleDash(toolArguments(name, words, "supabase") ?? []).some(
+        isLegacyOutputFlag
+      ),
+    reason:
+      "AGENTS.md Shell: the Supabase CLI refuses its legacy `-o` / `--output` flag: use `--output-format json`.",
+    rule: "supabase-output",
+  },
+  {
+    breaks: ({ name, words }) =>
+      readsProdSecrets(toolArguments(name, words, "infisical") ?? []),
+    reason:
+      "AGENTS.md Shell: `prod` secret values never enter a local shell, file or command line (`infisical secrets get|export|run --env=prod`; docs/agents/secrets.md, Handling values): smoke-test a deployment through `/health`, a development-instance Clerk token or the Vercel MCP and logs, and ask the human when a prod credential is truly needed.",
+    rule: "infisical-prod",
+  },
+  {
+    // A reader is fine when it, or a command after it, strips the values.
+    breaks: (pipeline) =>
+      pipeline.some(
+        (command, index) =>
+          readsEnvFile(command) && !pipeline.slice(index).some(stripsValues)
+      ),
+    reason:
+      "AGENTS.md Shell: never print a `.env*` file's values (docs/agents/secrets.md, Handling values): list the names only (`cut -d= -f1 <file>`, or `sed -E 's/=.*/=…/' <file>`), or check one exists with `grep -q '^NAME=' <file>`. BSD sed (macOS) has no `\\|`: use `sed -E` with `|`.",
+    rule: "env-file",
+    scope: "pipeline",
+  },
 ];
 
 const parse = (command) => {
   try {
-    return new Parser().run(new Lexer(command.trimEnd()).run());
+    const lexer = new Lexer(command.trimEnd());
+    const parsed = new Parser().run(lexer.run());
+    return { ...parsed, substitutions: lexer.substitutions };
   } catch (error) {
     if (error instanceof UnterminatedError) {
-      return [];
+      return { commands: [], loops: [], substitutions: [] };
     }
     throw error;
   }
 };
 
-/**
- * The AGENTS.md Shell rules `command` breaks, each with its reason. An
- * unparseable command (an unterminated quote) breaks none: the shell will
- * refuse it anyway.
- *
- * @param {string} command
- * @param {{ background?: boolean }} [options] `background`: the Bash tool runs
- *   the whole command in the background (`run_in_background`).
- * @returns {{ rule: string, reason: string }[]}
- */
-export const findShellRuleViolations = (command, options = {}) => {
-  const commands = parse(command).flatMap((simple) => {
+// The names of the rules `command` breaks, its substitutions' commands
+// included.
+const brokenRules = (command, options) => {
+  const parsed = parse(command);
+  const commands = parsed.commands.flatMap((simple) => {
     const words = unwrap(simple.words);
     return words.length === 0
       ? []
@@ -872,7 +1176,37 @@ export const findShellRuleViolations = (command, options = {}) => {
           },
         ];
   });
-  return CHECKS.filter(({ breaks }) => commands.some(breaks)).map(
+  const scopes = {
+    command: commands,
+    loop: parsed.loops,
+    pipeline: pipelines(commands),
+  };
+  const rules = new Set(
+    CHECKS.filter(({ breaks, scope = "command" }) =>
+      scopes[scope].some(breaks)
+    ).map(({ rule }) => rule)
+  );
+  for (const body of parsed.substitutions) {
+    for (const rule of brokenRules(body, options)) {
+      rules.add(rule);
+    }
+  }
+  return rules;
+};
+
+/**
+ * The AGENTS.md Shell rules `command` breaks, each with its reason. An
+ * unparseable command (an unterminated quote) breaks none: the shell will
+ * refuse it anyway.
+ *
+ * @param {string} command
+ * @param {{ background?: boolean }} [options] `background`: the Bash tool runs
+ *   the whole command in the background (`run_in_background`).
+ * @returns {{ rule: string, reason: string }[]}
+ */
+export const findShellRuleViolations = (command, options = {}) => {
+  const rules = brokenRules(command, options);
+  return CHECKS.filter(({ rule }) => rules.has(rule)).map(
     ({ reason, rule }) => ({ reason, rule })
   );
 };
