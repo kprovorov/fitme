@@ -37,9 +37,9 @@ export type ArnoldErrorAction =
   | "show";
 
 /**
- * What the Arnold screen does with an error from Arnold: the channel's not-Pro refusal
- * (`arnold_pro_required`) shows the paywall, an ended session starts a new Conversation, and anything
- * else shows the error state. Duck-typed on eve's `ClientError` (`code` from
+ * What the Arnold screen does with an error from Arnold: the channel's
+ * not-Pro refusal (`arnold_pro_required`) shows the paywall, an ended session
+ * starts a new Conversation, and anything else shows the error state. Duck-typed on eve's `ClientError` (`code` from
  * the JSON body) so the app doesn't bundle `eve/client` for an `instanceof`.
  */
 export function arnoldErrorAction(error: unknown): ArnoldErrorAction {

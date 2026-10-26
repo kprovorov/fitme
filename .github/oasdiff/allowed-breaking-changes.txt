@@ -1,5 +1,7 @@
 # Deliberate breaking API changes CI allows, one per line, copied from the
 # oasdiff error or warning (see "apps/library" in AGENTS.md). Empty unless a
 # removal is under review.
-# GET /v1/coach/models (FIT-297): safe since the minimum version gate (MIN_APP_VERSION 2.2.0, FIT-296) cut off every build that read it. FIT-298 empties this file again.
+# GET /v1/coach/models (FIT-297): safe since the minimum version gate
+# (MIN_APP_VERSION 2.2.0, FIT-296) cut off every build that read it. FIT-298
+# empties this file again once it's on main.
 GET /v1/coach/models api path removed with deprecation
