@@ -415,6 +415,7 @@ describe("the Supabase CLI's legacy output flag", () => {
     "pnpm exec supabase status -o json",
     "npx supabase status -o env",
     "pnpm --filter @fitme/supabase exec supabase status -o json",
+    "pnpm db status -o json",
   ]) {
     test(`refuses ${command}`, () => {
       assert.deepEqual(rulesBroken(command), ["supabase-output"]);
@@ -449,6 +450,8 @@ describe("prod secrets in a local shell", () => {
     "infisical run --env=prod -- curl https://library.fitmeproject.com",
     'TOKEN=$(infisical secrets get LIBRARY_MCP_SECRET --env=prod --plain); curl -H "Authorization: Bearer $TOKEN" x',
     "for name in A B; do infisical secrets get $name --env=prod --plain; done",
+    "infisical secrets set X=1 --env=prod",
+    "pnpm exec infisical export --env=prod",
   ]) {
     test(`refuses ${JSON.stringify(command)}`, () => {
       assert.deepEqual(rulesBroken(command), ["infisical-prod"]);
@@ -480,6 +483,9 @@ describe("printing env file values", () => {
     "less apps/webhooks/.env",
     "sed 's/\\(SECRET\\|KEY\\)=.*/x/' apps/library/.env",
     "sed -n 1,5p apps/api/.env",
+    "cut -d= -f2 apps/api/.env",
+    "awk -F= '{print $2}' apps/api/.env",
+    "cat apps/api/.env | sed 's/=.*//' | cat apps/mcp/.env",
     "cat apps/api/.env | grep LIBRARY",
     "pnpm install && cat apps/api/.env",
   ]) {
@@ -493,6 +499,7 @@ describe("printing env file values", () => {
     "cut -d '=' -f 1 apps/api/.env",
     "sed -E 's/=.*/=…/' apps/api/.env",
     "sed 's/=.*//' apps/api/.env",
+    "awk -F= '{print $1}' apps/api/.env",
     "cat apps/api/.env | cut -d= -f1",
     "grep -v '^#' apps/api/.env | cut -d= -f1",
     "grep -q '^CLERK_JWT_KEY=' apps/api/.env",
@@ -520,6 +527,7 @@ describe("commands inside substitutions", () => {
     ['echo "$(sleep 60)"', ["sleep"]],
     ["x=$(echo $(timeout 5 y))", ["timeout"]],
     ["echo '$(cat apps/api/.env)'", []],
+    ['echo "<(cat apps/api/.env)"', []],
     ["echo $((1 + 2)) && echo $'it\\'s $(x)'", []],
     ["names=$(cut -d= -f1 apps/api/.env)", []],
     [

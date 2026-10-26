@@ -77,37 +77,54 @@ const skipDoubleQuoted = (source, start) => {
   return unterminated();
 };
 
+// The substitution or quote starting at `index` of a word as written: where
+// it ends, and the commands inside a substitution. Null for anything else.
+const substitutionAt = (raw, index, inDouble) => {
+  const char = raw[index];
+  const following = raw[index + 1];
+  if (char === "`") {
+    const end = skipEscaped(raw, index);
+    return { body: raw.slice(index + 1, end - 1), end };
+  }
+  if (inDouble) {
+    // In double quotes `'` is text, and only `$(…)` substitutes.
+    return char === "$" && following === "(" ? groupAt(raw, index) : null;
+  }
+  if (char === "'") {
+    return { end: skipSingleQuoted(raw, index) };
+  }
+  if (char === "$" && following === "'") {
+    return { end: skipEscaped(raw, index + 1) };
+  }
+  return "$<>".includes(char) && following === "(" ? groupAt(raw, index) : null;
+};
+
+// The `$(…)`, `<(…)` or `>(…)` at `index`; arithmetic (`$((…))`) holds no
+// commands.
+const groupAt = (raw, index) => {
+  const end = skipGroup(raw, index + 1);
+  return raw[index + 2] === "("
+    ? { end }
+    : { body: raw.slice(index + 2, end - 1), end };
+};
+
 // The commands inside each substitution of a word as written: `$(…)`,
 // `` `…` ``, `<(…)` and `>(…)`, in or out of double quotes, never in single
-// quotes or arithmetic (`$((…))`).
+// quotes or arithmetic.
 const substitutionsIn = (raw) => {
   const bodies = [];
   let inDouble = false;
   let index = 0;
   while (index < raw.length) {
-    const char = raw[index];
-    const opensGroup = "$<>".includes(char) && raw[index + 1] === "(";
-    if (char === "\\") {
-      index += 2;
-    } else if (char === "$" && raw[index + 1] === "'" && !inDouble) {
-      index = skipEscaped(raw, index + 1);
-    } else if (char === '"') {
-      inDouble = !inDouble;
-      index += 1;
-    } else if (char === "'" && !inDouble) {
-      index = skipSingleQuoted(raw, index);
-    } else if (char === "`") {
-      const end = skipEscaped(raw, index);
-      bodies.push(raw.slice(index + 1, end - 1));
-      index = end;
-    } else if (opensGroup && raw[index + 2] !== "(") {
-      const end = skipGroup(raw, index + 1);
-      bodies.push(raw.slice(index + 2, end - 1));
-      index = end;
-    } else if (opensGroup) {
-      index = skipGroup(raw, index + 1);
+    const found = substitutionAt(raw, index, inDouble);
+    if (found === null) {
+      inDouble = raw[index] === '"' ? !inDouble : inDouble;
+      index += raw[index] === "\\" ? 2 : 1;
     } else {
-      index += 1;
+      if (found.body !== undefined) {
+        bodies.push(found.body);
+      }
+      index = found.end;
     }
   }
   return bodies;
@@ -869,11 +886,19 @@ const loopsOverBareVariable = (header) => {
 // Package runners that run the command named after them (`pnpm exec x`).
 const RUNNERS = new Set(["bunx", "npx", "pnpm", "yarn"]);
 
-// The arguments a command gives `tool`, run directly or through a package
-// runner (`pnpm exec supabase status`), or null when it doesn't run it.
+// Root scripts that run a tool's package scripts: `pnpm db status` runs
+// `supabase status`.
+const TOOL_ALIASES = new Map([["supabase", "db"]]);
+
+// The arguments a command gives `tool`, run directly, through a package
+// runner (`pnpm exec supabase status`) or a root alias (`pnpm db status`), or
+// null when it doesn't run it.
 const toolArguments = (name, words, tool) => {
   if (name === tool) {
     return words.slice(1);
+  }
+  if (name === "pnpm" && words[1] === TOOL_ALIASES.get(tool)) {
+    return words.slice(2);
   }
   const index = RUNNERS.has(name) ? words.indexOf(tool) : -1;
   return index > 0 ? words.slice(index + 1) : null;
@@ -906,16 +931,16 @@ const INFISICAL_VALUE_OPTIONS = new Set([
   "-e",
   "-t",
 ]);
-// `infisical secrets <these>` writes or manages; anything else prints values.
-const INFISICAL_SECRET_WRITES = new Set([
+// `infisical secrets <these>` handle no value; anything else (listing, `get`,
+// `set`) prints one or takes one on the command line.
+const INFISICAL_VALUELESS = new Set([
   "delete",
   "folders",
   "generate-example-env",
-  "set",
 ]);
 
-// Whether `infisical …` asks for the `prod` environment's values: `secrets`
-// (listing), `secrets get`, `export` or `run`, with `--env=prod`.
+// Whether `infisical …` handles the `prod` environment's values: `secrets`
+// (listing), `secrets get` / `set`, `export` or `run`, with `--env=prod`.
 const readsProdSecrets = (args) => {
   const words = beforeDoubleDash(args);
   let prod = false;
@@ -936,7 +961,7 @@ const readsProdSecrets = (args) => {
   const reads =
     command === "export" ||
     command === "run" ||
-    (command === "secrets" && !INFISICAL_SECRET_WRITES.has(subcommand));
+    (command === "secrets" && !INFISICAL_VALUELESS.has(subcommand));
   return prod && reads;
 };
 
@@ -946,8 +971,10 @@ const ENV_FILE = /(^|\/)\.env(\.[^/]+)?$/;
 const isEnvFile = (word) => ENV_FILE.test(word) && !word.endsWith(".example");
 
 const FILE_READERS = new Set([
+  "awk",
   "bat",
   "cat",
+  "cut",
   "egrep",
   "fgrep",
   "grep",
@@ -971,6 +998,9 @@ const QUIET_GREP_OPTIONS = new Set([
 // `cut -d= -f1`, `cut -d '=' -f 1`, `cut --delimiter== --fields=1`.
 const CUT_EQUALS_DELIMITER = /(^| )(-d ?|--delimiter[= ])=( |$)/;
 const CUT_FIRST_FIELD = /(^| )(-f ?|--fields[= ])1( |$)/;
+// `awk -F= '{print $1}'`, `awk -F '=' '{ print $1 }'`.
+const AWK_EQUALS_SEPARATOR = /(^| )-F ?=( |$)/;
+const AWK_FIRST_FIELD = /^\{ ?print \$1;? ?\}$/;
 // `s/=.*/…/`: a sed script dropping everything from the first `=`.
 const STRIPPING_SED_SCRIPT = /^s(.)=\.\*\1/;
 
@@ -995,10 +1025,17 @@ const readsEnvFile = (command) =>
   command.words.slice(1).some(isEnvFile) &&
   printsLines(command);
 
-// `cut -d= -f1` or `sed 's/=.*/…/'`: names only, values stripped.
+// `cut -d= -f1`, `awk -F= '{print $1}'` or `sed 's/=.*/…/'`: names only,
+// values stripped.
 const stripsValues = ({ name, words }) => {
   if (name === "sed") {
     return words.some((word) => STRIPPING_SED_SCRIPT.test(word));
+  }
+  if (name === "awk") {
+    return (
+      AWK_EQUALS_SEPARATOR.test(words.slice(1).join(" ")) &&
+      words.some((word) => AWK_FIRST_FIELD.test(word))
+    );
   }
   if (name !== "cut") {
     return false;
@@ -1073,7 +1110,7 @@ const CHECKS = [
     rule: "timeout",
   },
   {
-    breaks: (header) => loopsOverBareVariable(header),
+    breaks: loopsOverBareVariable,
     reason: WORD_SPLIT_REASON,
     rule: "word-split",
     scope: "loop",
@@ -1089,14 +1126,18 @@ const CHECKS = [
   },
   {
     breaks: ({ name, words }) =>
-      name === "infisical" && readsProdSecrets(words.slice(1)),
+      readsProdSecrets(toolArguments(name, words, "infisical") ?? []),
     reason:
       "AGENTS.md Shell: `prod` secret values never enter a local shell, file or command line (`infisical secrets get|export|run --env=prod`; docs/agents/secrets.md, Handling values): smoke-test a deployment through `/health`, a development-instance Clerk token or the Vercel MCP and logs, and ask the human when a prod credential is truly needed.",
     rule: "infisical-prod",
   },
   {
+    // A reader is fine when it, or a command after it, strips the values.
     breaks: (pipeline) =>
-      pipeline.some(readsEnvFile) && !pipeline.some(stripsValues),
+      pipeline.some(
+        (command, index) =>
+          readsEnvFile(command) && !pipeline.slice(index).some(stripsValues)
+      ),
     reason:
       "AGENTS.md Shell: never print a `.env*` file's values (docs/agents/secrets.md, Handling values): list the names only (`cut -d= -f1 <file>`, or `sed -E 's/=.*/=…/' <file>`), or check one exists with `grep -q '^NAME=' <file>`. BSD sed (macOS) has no `\\|`: use `sed -E` with `|`.",
     rule: "env-file",
