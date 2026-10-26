@@ -305,20 +305,17 @@ export const deletePlan = async (
 
 /**
  * Makes one of the User's live Plans the active one and deactivates every
- * other Plan of the User, so at most one Plan is active (the `activate_plan`
- * RPC, which the mobile app still calls: change both together). Returns the
+ * other Plan of the User, so at most one Plan is active. Returns the
  * activated Plan's summary, or `null` without changing anything when the User
  * has no such live Plan (missing, soft-deleted or another User's).
  * Runs in `tx` from `asUser`.
  *
  * Concurrent activations for the same User serialize on the first statement,
- * which row-locks every Plan of the User (taking the same table lock as the
- * RPC's UPDATE, so it queues cleanly behind `deleteUserData`). Nothing is
+ * which row-locks every Plan of the User (taking the same table lock as an
+ * UPDATE, so it queues cleanly behind `deleteUserData`). Nothing is
  * written until the target is known to be live. The statements after it see
  * everything those activations committed, including a Plan one of them
- * created and activated, so the last activation wins. The RPC locks in scan
- * order instead, so a concurrent RPC call can still deadlock with this; Postgres
- * aborts one of them and at most one Plan stays active either way.
+ * created and activated, so the last activation wins.
  */
 export const activatePlan = async (
   tx: Transaction,
@@ -519,18 +516,16 @@ const insertWorkouts = async (
 /** How a Plan is created. */
 export interface CreatePlanOptions {
   /**
-   * Make it the User's active Plan, every other one inactive (default `true`,
-   * as the RPC always does). With `false` it's created inactive and the
-   * active Plan stays.
+   * Make it the User's active Plan, every other one inactive (default
+   * `true`). With `false` it's created inactive and the active Plan stays.
    */
   activate?: boolean;
 }
 
 /**
  * Creates a Plan for the User with its Workouts, Exercises and sets, in array
- * order, and by default makes it the User's active Plan (the `create_plan`
- * RPC, which the mobile app still calls and which always activates: change
- * both together). Returns the Plan in full.
+ * order, and by default makes it the User's active Plan. Returns the Plan in
+ * full.
  * Runs in `tx` from `asUser`, so it commits fully or not at all; RLS and the
  * retired-id triggers refuse a `userId` other than the caller's own.
  * Exercise slugs aren't checked.
@@ -572,12 +567,11 @@ export interface PlanChanges extends Partial<PlanMetadata> {
  * plus `updated_at`. Without `workouts` the Workouts and their ids stay; with
  * `workouts` every Workout is deleted and recreated from the list, in array
  * order (new ids; past Workout Sessions keep their logged sets but lose the
- * link to their Workout), as the `update_plan` RPC does, which the mobile app
- * still calls: change both together. Does not change which Plan is active.
+ * link to their Workout). Does not change which Plan is active.
  * Runs in `tx` from `asUser`, so it commits fully or not at all.
  *
  * The Plan row is locked first, by its UPDATE, before any Workout, the order
- * the RPC and `finish_workout_session` take their locks in. Exercise slugs
+ * `finishWorkoutSession` takes its locks in. Exercise slugs
  * aren't checked.
  */
 export const updatePlan = async (

@@ -15,11 +15,7 @@ import { lockProfileUnits, type ProfileUnits } from "./profile";
 /**
  * The Plan Update: the structural changes a finished Workout Session made to
  * its Workout, which the User can save to the Plan ("Update your plan?").
- * A TypeScript port of the `workout_session_plan_changes` RPC, preview and
- * apply, run inside `asUser`. Installed builds still call the RPC, so until
- * the minimum version gate cuts them off, a behaviour change goes into both;
- * the parity test (`integration/plan-update.test.ts`) runs the same Workout
- * Sessions through each.
+ * Preview and apply, run inside `asUser`.
  *
  * Workout Session Exercises are matched to Workout Exercises by `order`:
  * a slot with only a Workout Exercise was removed, one with only a Workout
@@ -378,7 +374,7 @@ const insertSets = (
   );
 
 /**
- * Writes the changes in the RPC's order: replacements and added sets on their
+ * Writes the changes in this order: replacements and added sets on their
  * rows, then removals with the remaining Exercises renumbered from 1, then
  * added Exercises appended; then stamps the Workout Session.
  */
@@ -390,7 +386,7 @@ const applyChanges = async (
 ) => {
   for (const change of changes) {
     if (change.kind === "replace_exercise") {
-      // biome-ignore lint/performance/noAwaitInLoops: one statement at a time on tx, in the RPC's order
+      // biome-ignore lint/performance/noAwaitInLoops: one statement at a time on tx, in order
       await tx
         .update(workoutExercises)
         .set({ exerciseSlug: change.exerciseSlug, updatedAt: sql`now()` })
@@ -495,7 +491,7 @@ const toAnswer = (change: PlannedChange): PlanUpdateChange => {
  * The Plan Update of one of the User's Workout Sessions, applied in `tx` when
  * `apply` is set, or `null` when the User has no such Workout Session.
  *
- * Locks as the RPC does, in preview too: ROW EXCLUSIVE on `workout_sessions`
+ * Locks in preview too: ROW EXCLUSIVE on `workout_sessions`
  * and the Workout tables in `deleteUserData`'s order (so a call queues behind
  * an account deletion before it holds any row the deletion's cascade needs),
  * then the Profile row (`lockProfileUnits`, for the unit), the Plan row, the

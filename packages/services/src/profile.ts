@@ -80,9 +80,8 @@ export const getProfile = async (
 /**
  * The units of the User's stored heights and weights, in `tx` (from
  * `asUser`), or `null` without a Profile, and the Profile row share-locked
- * until `tx` ends. Every conversion (`updateProfile` and the
- * `convert_measurement_system` RPC) row-locks the Profile before touching a
- * value, so none commits while `tx` runs: whatever `tx` reads after this is
+ * until `tx` ends. Every conversion (`updateProfile`) row-locks the Profile
+ * before touching a value, so none commits while `tx` runs: whatever `tx` reads after this is
  * in these units. (Under READ COMMITTED, two plain SELECTs in one transaction
  * can straddle a conversion's commit.)
  */
@@ -114,9 +113,9 @@ const isImperial = (system: string) => system === "us" || system === "uk";
 
 /**
  * The weight and height factors from `from` to a different system `to`, as
- * SQL so the arithmetic is Postgres numeric like the RPC's (`1.0 / 2.20462`
- * at numeric precision), or `null` between us and uk, which store the same
- * units. Like the RPC, anything stored other than metric converts as imperial.
+ * SQL so the arithmetic is Postgres numeric (`1.0 / 2.20462` at numeric
+ * precision), or `null` between us and uk, which store the same units.
+ * Anything stored other than metric converts as imperial.
  */
 const conversionFactors = (
   from: string,
@@ -130,16 +129,14 @@ const conversionFactors = (
     : { height: sql`(1.0 / 0.393701)`, weight: sql`(1.0 / 2.20462)` };
 };
 
-/** `column` times `factor`, rounded to 2 decimals as the RPC stores it. */
+/** `column` times `factor`, rounded to 2 decimals. */
 const converted = (column: AnyPgColumn, factor: SQL) =>
   sql`round(${column} * ${factor}, 2)`;
 
 /**
  * Converts the User's stored weights to another measurement system, in `tx`:
  * their Plans' set targets and their Workout Sessions' recommended and
- * completed weights, as the `convert_measurement_system` RPC does (which the
- * mobile app still calls: change both together). Like the RPC, it finds
- * Workout Sessions by their own `user_id`, so a session whose Workout is gone
+ * completed weights. It finds Workout Sessions by their own `user_id`, so a session whose Workout is gone
  * (its Plan's Workouts replaced) is converted too.
  */
 const convertStoredWeights = async (
@@ -201,12 +198,11 @@ const convertStoredWeights = async (
 
 /**
  * Changes the User's Profile in `tx` (from `asUser`) and returns it with its
- * units, or `null` without changing anything when they have no Profile (the
- * RPC raises "Profile not found" there instead).
+ * units, or `null` without changing anything when they have no Profile.
  *
  * A new measurement system first converts every stored height and weight of
- * the User (the Profile's, their Plans' and their Workout Sessions'), as the
- * `convert_measurement_system` RPC does: metric <-> us/uk multiplies by
+ * the User (the Profile's, their Plans' and their Workout Sessions'):
+ * metric <-> us/uk multiplies by
  * 2.20462 (kg -> lbs) and 0.393701 (cm -> in) or divides by them, rounded to
  * 2 decimals; us <-> uk only changes the system. The given height and weight
  * are then written as they are, in the new system's units. Everything commits

@@ -46,7 +46,7 @@ export interface SetRow {
   workout_session_exercise_id: string;
 }
 
-type Operation = "delete" | "insert" | "rpc" | "select" | "update" | "upsert";
+type Operation = "delete" | "insert" | "select" | "update" | "upsert";
 
 interface Request {
   operation: Operation;
@@ -496,11 +496,4 @@ class FakeQuery {
 
 export const fakeSupabase = {
   from: (table: string) => new FakeQuery(table),
-  rpc: (name: string, _args: Record<string, unknown>) =>
-    backend.execute({ operation: "rpc", table: name }, () => {
-      // Starting and finishing a Workout Session, activating a Plan and the
-      // Plan Update (`workout_session_plan_changes`) go through the Public
-      // API.
-      throw new Error(`Fake backend: unsupported rpc ${name}`);
-    }),
 };

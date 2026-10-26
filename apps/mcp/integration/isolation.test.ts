@@ -6,7 +6,7 @@ import {
   workoutSessions,
 } from "@fitme/db";
 import type { Client } from "@modelcontextprotocol/sdk/client/index.js";
-import { eq, sql } from "drizzle-orm";
+import { eq } from "drizzle-orm";
 import { beforeAll, describe, expect, it } from "vitest";
 import {
   callError,
@@ -109,41 +109,11 @@ describe("cross-user isolation against the local stack", () => {
   });
 
   // The tools check ownership with a SELECT first, so also go straight to the
-  // database as the intruder: the RPCs and the RLS write policies must refuse
-  // on their own.
-  it("refuses the owner's ids in the RPCs and table writes", async () => {
+  // database as the intruder: the RLS write policies must refuse on their own.
+  it("refuses the owner's ids in table writes", async () => {
     const asIntruder = <T>(fn: (tx: Transaction) => Promise<T>) =>
       asUser(intruderUser.userId, fn);
     const workoutId = plan.workouts[1]?.id ?? "";
-    const planData = JSON.stringify(planInput(exercises, "Hijacked"));
-
-    const rpcs = await Promise.allSettled([
-      asIntruder((tx) =>
-        tx.execute(sql`select public.activate_plan(plan_id => ${plan.id})`)
-      ),
-      asIntruder((tx) =>
-        tx.execute(
-          sql`select public.update_plan(p_plan_id => ${plan.id}, p_plan_data => ${planData}::jsonb)`
-        )
-      ),
-      asIntruder((tx) =>
-        tx.execute(
-          sql`select public.start_workout_session(p_workout_id => ${workoutId})`
-        )
-      ),
-      asIntruder((tx) =>
-        tx.execute(
-          sql`select public.finish_workout_session(p_session_id => ${session.id})`
-        )
-      ),
-    ]);
-    // P0001: each RPC's own ownership check, not a typo or missing function.
-    for (const result of rpcs) {
-      expect(result).toMatchObject({
-        reason: { cause: { code: "P0001" } },
-        status: "rejected",
-      });
-    }
 
     const updatedPlans = await asIntruder((tx) =>
       tx

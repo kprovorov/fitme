@@ -154,8 +154,6 @@ describe("WorkoutPlanCard", () => {
     expect(fakePublicApi.requests.map(({ route }) => route)).toEqual([
       PLAN_ROUTE,
     ]);
-    expect(backend.count("create_plan", "rpc")).toBe(0);
-    expect(backend.count("activate_plan", "rpc")).toBe(0);
     expect(planRequests()[0]?.body).toEqual({
       activate: true,
       description: "Three days a week",
@@ -358,7 +356,6 @@ describe("WorkoutPlanCard", () => {
       ).toBeTruthy();
       expect(screen.getByText("Save Plan")).toBeEnabled();
       expect(backend.plans).toEqual([]);
-      expect(backend.count("create_plan", "rpc")).toBe(0);
       expect(backend.count("plans", "insert")).toBe(0);
       expect(tracked()).toEqual([]);
     }
