@@ -26,53 +26,38 @@ const ArnoldModels = z
   })
   .openapi("ArnoldModels");
 
-const listArnoldModels = (deprecated: boolean) =>
-  createRoute({
-    ...(deprecated && {
-      deprecated: true,
-      description:
-        "The same list as `GET /v1/arnold/models`, kept for app builds from before the Arnold rename. Use `/v1/arnold/models`.",
-    }),
-    method: "get",
-    path: "/",
-    responses: {
-      200: {
-        content: { "application/json": { schema: ArnoldModels } },
-        description: "Every model Arnold accepts, in list order",
-        headers: publicCacheHeaders,
-      },
+const listArnoldModels = createRoute({
+  method: "get",
+  path: "/",
+  responses: {
+    200: {
+      content: { "application/json": { schema: ArnoldModels } },
+      description: "Every model Arnold accepts, in list order",
+      headers: publicCacheHeaders,
     },
-    summary: deprecated ? "Arnold models (deprecated)" : "Arnold models",
-  });
-
-// Public: the list isn't secret, and Arnold's channel does the real gating.
-const arnoldModelsRouter = (deprecated: boolean) =>
-  new OpenAPIHono({ defaultHook: invalidRequest }).openapi(
-    listArnoldModels(deprecated),
-    (c) => {
-      c.header("Cache-Control", PUBLIC_CACHE_CONTROL);
-      return c.json(
-        {
-          data: {
-            defaultId: defaultArnoldModelId,
-            models: arnoldModels.map(({ description, id, label }) => ({
-              description,
-              id,
-              label,
-            })),
-          },
-        },
-        200
-      );
-    }
-  );
-
-/** `GET /v1/arnold/models`. */
-export const arnoldModelsRoute = arnoldModelsRouter(false);
+  },
+  summary: "Arnold models",
+});
 
 /**
- * `GET /v1/coach/models`: the route installed builds from before the Arnold
- * rename read, answering exactly like `arnoldModelsRoute` until the minimum
- * version gate cuts those builds off.
+ * `GET /v1/arnold/models`. Public: the list isn't secret, and Arnold's channel
+ * does the real gating.
  */
-export const legacyCoachModelsRoute = arnoldModelsRouter(true);
+export const arnoldModelsRoute = new OpenAPIHono({
+  defaultHook: invalidRequest,
+}).openapi(listArnoldModels, (c) => {
+  c.header("Cache-Control", PUBLIC_CACHE_CONTROL);
+  return c.json(
+    {
+      data: {
+        defaultId: defaultArnoldModelId,
+        models: arnoldModels.map(({ description, id, label }) => ({
+          description,
+          id,
+          label,
+        })),
+      },
+    },
+    200
+  );
+});

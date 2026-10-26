@@ -68,11 +68,6 @@ describe("arnold.models cache", () => {
     expect(JSON.parse(storage.getString("arnold.models") ?? "")).toEqual(list);
   });
 
-  it("ignores a list cached under the pre-rename coach.models", () => {
-    storage.set("coach.models", JSON.stringify(list));
-    expect(readCachedArnoldModels()).toBeUndefined();
-  });
-
   it("treats an unreadable value as no list", () => {
     storage.set(MODELS_KEY, "{not json");
     expect(readCachedArnoldModels()).toBeUndefined();
@@ -116,10 +111,8 @@ describe("getSelectedArnoldModelId", () => {
     expect(getSelectedArnoldModelId()).toBe("openai/gpt-5.5");
   });
 
-  it("reads the pick from arnold.model and ignores the pre-rename coach.model", () => {
+  it("reads the pick from arnold.model", () => {
     writeCachedArnoldModels(list);
-    storage.set("coach.model", "anthropic/claude-haiku-4.5");
-    expect(getSelectedArnoldModelId()).toBe("openai/gpt-5.5");
     storage.set("arnold.model", "anthropic/claude-haiku-4.5");
     expect(getSelectedArnoldModelId()).toBe("anthropic/claude-haiku-4.5");
   });

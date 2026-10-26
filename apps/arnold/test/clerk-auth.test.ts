@@ -267,7 +267,7 @@ describe("clerkSession Pro check", () => {
       expect(result).toBeInstanceOf(Response);
       expect(result.status).toBe(403);
       expect(await result.json()).toMatchObject({
-        code: "coach_pro_required",
+        code: "arnold_pro_required",
         ok: false,
       });
       expect(claimSession).not.toHaveBeenCalled();
@@ -286,7 +286,7 @@ describe("clerkSession Pro check", () => {
     expect(result).toBeInstanceOf(Response);
     expect(result.status).toBe(503);
     expect(await result.json()).toMatchObject({
-      code: "coach_pro_check_unavailable",
+      code: "arnold_pro_check_unavailable",
       ok: false,
     });
     expect(report).toHaveBeenCalledWith(failure, {

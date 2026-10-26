@@ -1,6 +1,7 @@
 import { arnoldModels, defaultArnoldModelId } from "@fitme/core";
 import { describe, expect, it } from "vitest";
 import { createApp } from "../create-app.js";
+import { signedInAs, testApp } from "../test/harness.js";
 
 const app = createApp();
 
@@ -9,9 +10,9 @@ const getModels = async (path: string) => {
   return { body: await response.json(), response };
 };
 
-// `/v1/coach/models` is what builds from before the Arnold rename read; it
-// answers exactly like the new route until they're cut off.
-describe.each(["/v1/arnold/models", "/v1/coach/models"])("GET %s", (path) => {
+describe("GET /v1/arnold/models", () => {
+  const path = "/v1/arnold/models";
+
   it("answers without a token", async () => {
     const { response } = await getModels(path);
 
@@ -50,14 +51,27 @@ describe.each(["/v1/arnold/models", "/v1/coach/models"])("GET %s", (path) => {
   });
 });
 
-describe("the OpenAPI document", () => {
-  const { paths } = app.getOpenAPIDocument({
-    info: { title: "Fitme API", version: "1.0.0" },
-    openapi: "3.0.3",
+// The pre-rename route, removed once the minimum version gate (2.2.0) cut off
+// the builds that read it
+describe("GET /v1/coach/models", () => {
+  it("is gone", async () => {
+    const response = await testApp().app.request("/v1/coach/models", {
+      headers: signedInAs("user_alice"),
+    });
+
+    expect(response.status).toBe(404);
+    expect(await response.json()).toMatchObject({
+      error: { code: "not_found" },
+    });
   });
 
-  it("marks only the legacy route deprecated", () => {
-    expect(paths?.["/v1/coach/models"]?.get?.deprecated).toBe(true);
+  it("isn't in the OpenAPI document", () => {
+    const { paths } = app.getOpenAPIDocument({
+      info: { title: "Fitme API", version: "1.0.0" },
+      openapi: "3.0.3",
+    });
+
+    expect(paths).not.toHaveProperty("/v1/coach/models");
     expect(paths?.["/v1/arnold/models"]?.get?.deprecated).toBeUndefined();
   });
 });

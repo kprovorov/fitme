@@ -254,26 +254,3 @@ export const arnoldErrorCodes = {
   proCheckUnavailable: "arnold_pro_check_unavailable",
   proRequired: "arnold_pro_required",
 } as const;
-
-/**
- * The same refusals under their pre-Arnold codes: the only ones installed
- * builds from before the rename know, so the channel keeps sending these
- * until the minimum version gate cuts those builds off.
- */
-export const legacyArnoldErrorCodes = {
-  proCheckUnavailable: "coach_pro_check_unavailable",
-  proRequired: "coach_pro_required",
-} as const satisfies Record<keyof typeof arnoldErrorCodes, string>;
-
-export type ArnoldRefusal = keyof typeof arnoldErrorCodes;
-
-/** Whether `code` is `refusal` in either form, `arnold_*` or `coach_*`. */
-export function isArnoldRefusal(
-  code: unknown,
-  refusal: ArnoldRefusal
-): boolean {
-  return (
-    code === arnoldErrorCodes[refusal] ||
-    code === legacyArnoldErrorCodes[refusal]
-  );
-}

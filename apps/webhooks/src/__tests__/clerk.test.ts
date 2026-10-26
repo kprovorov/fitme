@@ -317,17 +317,11 @@ describe("POST /clerk resetting Arnold sessions from the environment", () => {
     return { app, reported, requests };
   };
 
-  it.each([
-    [
-      "ARNOLD_URL and ARNOLD_RESET_SECRET",
-      { ARNOLD_RESET_SECRET: RESET_SECRET, ARNOLD_URL },
-    ],
-    [
-      "only the old COACH_URL and COACH_RESET_SECRET",
-      { COACH_RESET_SECRET: RESET_SECRET, COACH_URL: ARNOLD_URL },
-    ],
-  ])("resets each recorded session with %s", async (_, env) => {
-    const { app, requests } = setupFromEnv(env);
+  it("resets each recorded session with ARNOLD_URL and ARNOLD_RESET_SECRET", async () => {
+    const { app, requests } = setupFromEnv({
+      ARNOLD_RESET_SECRET: RESET_SECRET,
+      ARNOLD_URL,
+    });
 
     const response = await app.request(signedRequest(userDeleted()));
 
@@ -343,8 +337,14 @@ describe("POST /clerk resetting Arnold sessions from the environment", () => {
     }
   });
 
-  it("reports and answers 500 with neither name set", async () => {
-    const { app, reported, requests } = setupFromEnv({});
+  it.each([
+    ["neither set", {}],
+    [
+      "only the pre-rename COACH_URL and COACH_RESET_SECRET set",
+      { COACH_RESET_SECRET: RESET_SECRET, COACH_URL: ARNOLD_URL },
+    ],
+  ])("reports and answers 500 with %s", async (_, env) => {
+    const { app, reported, requests } = setupFromEnv(env);
 
     const response = await app.request(signedRequest(userDeleted()));
 

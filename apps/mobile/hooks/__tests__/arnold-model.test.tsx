@@ -64,24 +64,4 @@ describe("useSelectedArnoldModel", () => {
     expect(storage.getString("arnold.model")).toBe(HAIKU);
     expect(result.current.model?.id).toBe(HAIKU);
   });
-
-  it("ignores the list and pick saved under the pre-rename coach keys", async () => {
-    storage.set(
-      "coach.models",
-      JSON.stringify({
-        defaultId: HAIKU,
-        models: [{ description: "Quick", id: HAIKU, label: "Haiku" }],
-      })
-    );
-    storage.set("coach.model", HAIKU);
-    fakePublicApi.failNext("GET /v1/arnold/models", "network");
-
-    const offline = await renderSelectedModel();
-    expect(offline.result.current.models).toBeUndefined();
-    expect(offline.result.current.model).toBeUndefined();
-    await offline.unmount();
-
-    const online = await renderSelectedModel();
-    expect(online.result.current.model?.id).toBe(defaultArnoldModelId);
-  });
 });

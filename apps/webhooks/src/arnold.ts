@@ -52,14 +52,13 @@ interface ArnoldSessionResetterOptions {
 
 /**
  * Arnold's URL and reset secret from `env`: `ARNOLD_URL` and
- * `ARNOLD_RESET_SECRET`, each falling back to its pre-rename name
- * (`COACH_URL`, `COACH_RESET_SECRET`) when unset or empty.
+ * `ARNOLD_RESET_SECRET`.
  */
 export const arnoldResetConfig = (
   env: Record<string, string | undefined>
 ): Pick<ArnoldSessionResetterOptions, "arnoldUrl" | "secret"> => ({
-  arnoldUrl: env.ARNOLD_URL || env.COACH_URL,
-  secret: env.ARNOLD_RESET_SECRET || env.COACH_RESET_SECRET,
+  arnoldUrl: env.ARNOLD_URL,
+  secret: env.ARNOLD_RESET_SECRET,
 });
 
 const RESET_TIMEOUT_MS = 20_000;
@@ -97,12 +96,10 @@ export const arnoldSessionResetter =
   }: ArnoldSessionResetterOptions) =>
   async (sessionId: string): Promise<void> => {
     if (!arnoldUrl) {
-      throw new Error("Missing ARNOLD_URL (or COACH_URL) environment variable");
+      throw new Error("Missing ARNOLD_URL environment variable");
     }
     if (!secret) {
-      throw new Error(
-        "Missing ARNOLD_RESET_SECRET (or COACH_RESET_SECRET) environment variable"
-      );
+      throw new Error("Missing ARNOLD_RESET_SECRET environment variable");
     }
     const url = new URL(
       `eve/v1/session/${encodeURIComponent(sessionId)}/reset`,

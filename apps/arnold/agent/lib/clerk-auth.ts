@@ -1,6 +1,6 @@
 import { verifyToken } from "@clerk/backend";
 import { TokenVerificationError } from "@clerk/backend/errors";
-import { legacyArnoldErrorCodes } from "@fitme/core";
+import { arnoldErrorCodes } from "@fitme/core";
 import { MissingEnvError } from "@fitme/observability/node";
 import {
   type AuthFn,
@@ -25,7 +25,7 @@ class ProCheckUnavailableError extends Error {
   override readonly name = "ProCheckUnavailableError";
   readonly response = Response.json(
     {
-      code: legacyArnoldErrorCodes.proCheckUnavailable,
+      code: arnoldErrorCodes.proCheckUnavailable,
       error: "Arnold can't check your subscription right now. Try again soon.",
       ok: false,
     },
@@ -73,11 +73,8 @@ const SESSION_ROUTE = /\/eve\/v1\/session\/([^/]+)/;
  * Only Pro Users may use Arnold: every route checks the verified User's
  * entitlement (cached by `checkPro`) before anything else runs, so a free
  * User can't start, continue or compact a Conversation. Without Pro the
- * answer is a 403 `coach_pro_required` (the app's paywall); when it can't be
- * told, a reported 503 `coach_pro_check_unavailable`: never let through.
- * Both are the `coach_*` codes (`legacyArnoldErrorCodes`): installed builds
- * from before the rename know only those, so they stay until the minimum
- * version gate cuts those builds off.
+ * answer is a 403 `arnold_pro_required` (the app's paywall); when it can't
+ * be told, a reported 503 `arnold_pro_check_unavailable`: never let through.
  *
  * The token itself never reaches the session: tools act through `asUser` with
  * the principal id, so a turn outliving the ~60 s token still works.
@@ -138,7 +135,7 @@ export const clerkSession = ({
       }
       if (!isPro) {
         throw new ForbiddenError({
-          code: legacyArnoldErrorCodes.proRequired,
+          code: arnoldErrorCodes.proRequired,
           message: "Arnold is a Fitme Pro feature.",
         });
       }

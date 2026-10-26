@@ -85,7 +85,7 @@ export const observeHono: typeof Sentry.honoMiddleware = (app, options) =>
 
 /**
  * A variable an app needs, or a renamed one with its pre-rename names, any of
- * which will do (`["ARNOLD_URL", "COACH_URL"]`), as the app itself reads it.
+ * which will do (`["NEW_NAME", "OLD_NAME"]`), as the app itself reads it.
  */
 export type RequiredEnv = string | readonly [string, ...string[]];
 

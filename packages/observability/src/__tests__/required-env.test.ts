@@ -66,8 +66,8 @@ describe("reportMissingEnv", () => {
   it("accepts a pre-rename fallback in place of the variable", async () => {
     const report = recorder();
 
-    const missing = await reportMissingEnv([["ARNOLD_URL", "COACH_URL"]], {
-      env: { ...production, ARNOLD_URL: "", COACH_URL: "https://coach" },
+    const missing = await reportMissingEnv([["NEW_NAME", "OLD_NAME"]], {
+      env: { ...production, NEW_NAME: "", OLD_NAME: "value" },
       report,
     });
 
@@ -78,17 +78,17 @@ describe("reportMissingEnv", () => {
   it("names the fallback when neither is set", async () => {
     const report = recorder();
 
-    const missing = await reportMissingEnv([["ARNOLD_URL", "COACH_URL"]], {
+    const missing = await reportMissingEnv([["NEW_NAME", "OLD_NAME"]], {
       env: production,
       report,
     });
 
-    expect(missing).toEqual(["ARNOLD_URL"]);
+    expect(missing).toEqual(["NEW_NAME"]);
     expect(report).toHaveBeenCalledWith(
       expect.objectContaining({
-        message: "Missing ARNOLD_URL (or COACH_URL) environment variable",
+        message: "Missing NEW_NAME (or OLD_NAME) environment variable",
       }),
-      { env_var: "ARNOLD_URL" }
+      { env_var: "NEW_NAME" }
     );
   });
 });

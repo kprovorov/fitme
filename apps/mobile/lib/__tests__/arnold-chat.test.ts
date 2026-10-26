@@ -22,28 +22,19 @@ function clientError(status: number, code?: string) {
 }
 
 describe("getArnoldUrl", () => {
-  const { EXPO_PUBLIC_ARNOLD_URL, EXPO_PUBLIC_COACH_URL } = process.env;
+  const { EXPO_PUBLIC_ARNOLD_URL } = process.env;
 
   afterEach(() => {
     process.env.EXPO_PUBLIC_ARNOLD_URL = EXPO_PUBLIC_ARNOLD_URL;
-    process.env.EXPO_PUBLIC_COACH_URL = EXPO_PUBLIC_COACH_URL;
   });
 
-  it("uses EXPO_PUBLIC_ARNOLD_URL when it's set", () => {
+  it("uses EXPO_PUBLIC_ARNOLD_URL", () => {
     process.env.EXPO_PUBLIC_ARNOLD_URL = "https://arnold.test";
-    process.env.EXPO_PUBLIC_COACH_URL = "https://coach.test";
     expect(getArnoldUrl()).toBe("https://arnold.test");
   });
 
-  it("falls back to the pre-rename EXPO_PUBLIC_COACH_URL", () => {
-    process.env.EXPO_PUBLIC_ARNOLD_URL = "";
-    process.env.EXPO_PUBLIC_COACH_URL = "https://coach.test";
-    expect(getArnoldUrl()).toBe("https://coach.test");
-  });
-
-  it("is empty when neither is set", () => {
+  it("is empty when it's unset", () => {
     delete process.env.EXPO_PUBLIC_ARNOLD_URL;
-    delete process.env.EXPO_PUBLIC_COACH_URL;
     expect(getArnoldUrl()).toBe("");
   });
 });
@@ -61,21 +52,17 @@ describe("arnoldRunConfig", () => {
 });
 
 describe("arnoldErrorAction", () => {
-  // Arnold's channel sends the coach_* codes until pre-rename builds are cut
-  // off, then the arnold_* ones: either form means the same refusal.
-  it.each(["arnold_pro_required", "coach_pro_required"])(
-    "shows the paywall when Arnold refuses a User without Pro (%s)",
-    (code) => {
-      expect(arnoldErrorAction(clientError(403, code))).toBe("paywall");
-    }
-  );
+  it("shows the paywall when Arnold refuses a User without Pro", () => {
+    expect(arnoldErrorAction(clientError(403, "arnold_pro_required"))).toBe(
+      "paywall"
+    );
+  });
 
-  it.each(["arnold_pro_check_unavailable", "coach_pro_check_unavailable"])(
-    "shows the error when the Pro check is unavailable (%s)",
-    (code) => {
-      expect(arnoldErrorAction(clientError(503, code))).toBe("show");
-    }
-  );
+  it("shows the error when the Pro check is unavailable", () => {
+    expect(
+      arnoldErrorAction(clientError(503, "arnold_pro_check_unavailable"))
+    ).toBe("show");
+  });
 
   it("starts a new Conversation when the saved one has ended", () => {
     expect(arnoldErrorAction(clientError(409, "session_not_active"))).toBe(
@@ -153,13 +140,6 @@ describe("saved Arnold Conversation", () => {
     expect(
       JSON.parse(storage.getString("arnold.conversation.user_g.events") ?? "")
     ).toEqual(events);
-  });
-
-  it("ignores a Conversation saved under the pre-rename coach keys", () => {
-    storage.set("coach.conversation.user_h.session", JSON.stringify(session));
-    storage.set("coach.conversation.user_h.events", JSON.stringify(events));
-
-    expect(loadSavedArnoldConversation("user_h")).toEqual({});
   });
 
   it("forgets the Conversation when its session is cleared", () => {

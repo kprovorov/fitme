@@ -24,7 +24,7 @@ describe("REQUIRED_ENV", () => {
     expect(report).toHaveBeenCalledTimes(missing.length);
   });
 
-  it("accepts the pre-rename COACH_RESET_SECRET", async () => {
+  it("doesn't take the pre-rename COACH_RESET_SECRET for ARNOLD_RESET_SECRET", async () => {
     const report = vi.fn((_error: unknown, _tags?: Record<string, string>) =>
       Promise.resolve()
     );
@@ -34,6 +34,6 @@ describe("REQUIRED_ENV", () => {
       report,
     });
 
-    expect(missing).not.toContain("ARNOLD_RESET_SECRET");
+    expect(missing).toContain("ARNOLD_RESET_SECRET");
   });
 });

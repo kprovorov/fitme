@@ -8,8 +8,7 @@ import {
 
 interface AccountDeletionResetOptions {
   /**
-   * The shared secret apps/webhooks sends; defaults to `ARNOLD_RESET_SECRET`,
-   * or the pre-rename `COACH_RESET_SECRET` when that's unset or empty.
+   * The shared secret apps/webhooks sends; defaults to `ARNOLD_RESET_SECRET`.
    */
   secret?: () => string | undefined;
 }
@@ -30,8 +29,7 @@ const digest = (value: string) => createHash("sha256").update(value).digest();
  * nothing.
  */
 export const accountDeletionReset = ({
-  secret = () =>
-    process.env.ARNOLD_RESET_SECRET || process.env.COACH_RESET_SECRET,
+  secret = () => process.env.ARNOLD_RESET_SECRET,
 }: AccountDeletionResetOptions = {}): AuthFn<Request> =>
   withAuthChallenges(
     (request) => {
