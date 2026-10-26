@@ -15,9 +15,15 @@ on:
 permissions:
   contents: read
 
+# A new push cancels the pull request's run still in progress.
+concurrency:
+  group: library-api-${{ github.event.pull_request.number || github.run_id }}
+  cancel-in-progress: true
+
 jobs:
   api-contract:
     runs-on: ubuntu-24.04
+    timeout-minutes: 10
     steps:
       - name: Checkout code
         uses: actions/checkout@v7

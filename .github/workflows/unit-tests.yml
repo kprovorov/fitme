@@ -4,12 +4,19 @@ on:
   workflow_call:
   pull_request:
 
+# A new push cancels the pull request's run still in progress. Any other run
+# (workflow_call) gets a group of its own, so it's never cancelled or queued.
+concurrency:
+  group: unit-tests-${{ github.event.pull_request.number || github.run_id }}
+  cancel-in-progress: true
+
 permissions:
   contents: read
 
 jobs:
   unit-tests:
     runs-on: ubuntu-24.04
+    timeout-minutes: 15
     steps:
       - name: Checkout code
         uses: actions/checkout@v7
@@ -26,11 +33,15 @@ jobs:
       - name: Install dependencies
         run: pnpm install --frozen-lockfile
 
+      # A test that keeps Jest or vitest alive (an open handle) fails here
+      # with this step named, instead of hanging until the job limit.
       - name: Run unit tests
+        timeout-minutes: 10
         run: pnpm turbo run test
 
   checks:
     runs-on: ubuntu-24.04
+    timeout-minutes: 15
     steps:
       - name: Checkout code
         uses: actions/checkout@v7
@@ -67,6 +78,7 @@ jobs:
   secrets:
     if: github.event_name == 'pull_request'
     runs-on: ubuntu-24.04
+    timeout-minutes: 5
     env:
       GITLEAKS_VERSION: 8.30.1
       GITLEAKS_SHA256: 551f6fc83ea457d62a0d98237cbad105af8d557003051f41f3e7ca7b3f2470eb
