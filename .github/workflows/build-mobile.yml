@@ -21,6 +21,8 @@ on:
 jobs:
   build:
     runs-on: ubuntu-24.04
+    # eas build --no-wait only queues the build, so the job is short.
+    timeout-minutes: 15
     environment: production
     steps:
       - name: Validate tag

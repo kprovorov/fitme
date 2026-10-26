@@ -4,6 +4,12 @@ on:
   workflow_call:
   pull_request:
 
+# A new push cancels the pull request's run still in progress. Any other run
+# (workflow_call) gets a group of its own, so it's never cancelled or queued.
+concurrency:
+  group: integration-tests-${{ github.event.pull_request.number || github.run_id }}
+  cancel-in-progress: true
+
 jobs:
   mcp:
     name: MCP server (local Supabase)
