@@ -19,21 +19,9 @@ if ! stacks="$(pnpm exec supabase stack list --output-format json 2>/dev/null)";
   exit 0
 fi
 
-ids="$(STACKS="$stacks" CHECKOUT="$checkout" node - <<'JS'
-const fs = require("node:fs");
-const path = require("node:path");
-
-const json = process.env.STACKS.split("\n").reverse().find((line) => line.startsWith("{"));
-const own = process.env.CHECKOUT && path.join(process.env.CHECKOUT, "packages/supabase");
-
-for (const stack of JSON.parse(json).stacks) {
-  if (stack.project_root === own || !fs.existsSync(stack.project_root)) {
-    console.error(`Destroying ${stack.id.slice(0, 8)} (${stack.project_root}, ${stack.branch_context})`);
-    console.log(stack.id);
-  }
-}
-JS
-)"
+# Which stacks: scripts/stale-stacks.mjs (Node in its own file, not a heredoc,
+# so this file stays parseable by the bash 3.2 macOS ships).
+ids="$(node "$here/scripts/stale-stacks.mjs" "$stacks" "$checkout")"
 
 if [[ -z "$ids" ]]; then
   echo "No stale Supabase stacks"
@@ -41,8 +29,8 @@ if [[ -z "$ids" ]]; then
 fi
 
 args=()
-for id in $ids; do
+while read -r id; do
   args+=(--stack-id "$id")
-done
+done <<<"$ids"
 
 pnpm exec supabase stack destroy "${args[@]}" --yes

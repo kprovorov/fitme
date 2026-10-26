@@ -451,6 +451,7 @@ Backend apps that use `@fitme/db`:
 
 - Never `cd` inside a `&&` chain. The working directory carries over between commands, so `cd apps/mobile && <edit>` run from inside `apps/mobile` fails at the `cd` and silently skips the edit. Use absolute paths, `git -C <path>` and `pnpm --filter <package>` instead.
 - macOS has neither `timeout` nor `gtimeout`: bound a long command with your tool's own timeout, not a wrapper.
+- `scripts/setup.sh` (and the other `scripts/*.sh`) runs under macOS `/bin/bash` 3.2: test changes with `/bin/bash -n`, which CI's `shell-macos` job runs (bash 5 accepts things 3.2 rejects), and keep Node out of heredocs (`scripts/rewrite-env.mjs`, `scripts/stale-stacks.mjs`, tested with `pnpm test:scripts`). Setup appends timestamped step lines to `scripts/setup.log` (git-ignored).
 - Wait in the background: a foreground `sleep` (`sleep 60; gh pr view …`) is blocked by the harness. Run the command in the background or use Monitor; for a pull request, `watch_pull_request`.
 - `pgrep -f` / `pkill -f` match the shell running them, since the pattern is in its own command line: the wait never ends, or the kill takes your shell with it. Use a bracket pattern (`pgrep -f '[u]ltracite'`) or the PID you saved when starting the process.
 - The shell is zsh: an unquoted `?` or `*` is a glob, and one matching nothing fails the command with "no matches found". Quote URLs and arguments carrying them: `gh api 'repos/…/git/trees/HEAD?recursive=1'`, `--filter='...[origin/main]'`.
