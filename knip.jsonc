@@ -1,0 +1,139 @@
+{
+  "$schema": "https://unpkg.com/knip@6/schema-jsonc.json",
+  "ignoreExportsUsedInFile": true,
+  "ignore": [
+    // Vendored agent skills: templates and scripts for other projects.
+    ".agents/**"
+  ],
+  "ignoreBinaries": [
+    // Installed by the E2E workflow (get.maestro.mobile.dev), not an npm package.
+    "maestro",
+    // The @fitme/supabase devDependency, run through pnpm exec from the root.
+    "supabase"
+  ],
+  "workspaces": {
+    ".": {
+      "ignoreDependencies": [
+        // docs/agents/ui.md: the screenshot loop runs Playwright from the root.
+        "playwright"
+      ]
+    },
+    "apps/api": {
+      // Knip runs the vitest configs it loads, and the integration one calls
+      // `supabase status`, failing knip without a running stack: the plugin
+      // is off, so the configs (found through the scripts) are only parsed
+      // and the test files are listed here.
+      "entry": [
+        "vitest.config.ts",
+        "src/**/*.test.ts",
+        "integration/**/*.test.ts"
+      ],
+      "vitest": false,
+      "ignoreDependencies": [
+        // Runtime deps of @fitme/db and @fitme/rate-limit, which tsdown keeps
+        // external: AGENTS.md requires them in the app's dependencies.
+        "@upstash/ratelimit",
+        "@vercel/functions"
+      ]
+    },
+    "apps/arnold": {
+      // Read by the nitro build `eve build` runs.
+      "entry": ["nitro.config.ts"],
+      "ignoreDependencies": [
+        // Runtime dep of @fitme/observability/node: AGENTS.md
+        // (packages/observability) requires it in each consuming app.
+        "@sentry/node"
+      ]
+    },
+    "apps/library": {
+      "ignoreDependencies": [
+        // Runtime deps of @fitme/db and @fitme/rate-limit, which tsdown keeps
+        // external: AGENTS.md requires them in the app's dependencies.
+        "@upstash/ratelimit",
+        "@upstash/redis",
+        "@vercel/functions"
+      ]
+    },
+    "apps/mcp": {
+      // See apps/api: vitest configs are parsed, never run.
+      "entry": [
+        "vitest.config.ts",
+        "src/**/*.test.ts",
+        "integration/**/*.test.ts"
+      ],
+      "vitest": false,
+      "ignoreDependencies": [
+        // Runtime dep of @fitme/db, which tsdown keeps external: AGENTS.md
+        // requires it in the app's dependencies.
+        "@vercel/functions"
+      ]
+    },
+    "apps/mobile": {
+      "entry": [
+        // Platform files Metro picks by suffix instead of an import.
+        "**/*.{android,ios,native,web}.{ts,tsx}",
+        // docs/agents/ui.md keeps the Accordion Primitive with no call site yet.
+        "components/ui/accordion.tsx"
+      ],
+      "ignore": [
+        // Generated from apps/api/openapi.json (pnpm mobile api:types).
+        "lib/api/schema.ts"
+      ],
+      "ignoreIssues": {
+        // Primitives and their Props types are the design system's API
+        // (docs/agents/ui.md), exported whether or not a screen uses them yet.
+        "components/ui/**": ["exports", "types"],
+        // The chat and markdown public API barrels (marked so for Biome).
+        "components/chat/index.ts": ["exports", "types"],
+        "components/markdown/index.ts": ["exports", "types"],
+        // The uniwind-wrapped components kit (docs/agents/ui.md: `Image` from
+        // `~/components/tw`), exported whether or not a screen uses them yet.
+        "components/tw.tsx": ["exports"]
+      },
+      "ignoreDependencies": [
+        // Referenced by path in app.json (expo-font's fonts list), not imported.
+        "@expo-google-fonts/ibm-plex-mono",
+        // Loaded by the Expo CLI for the Expo MCP server's local capabilities.
+        "expo-mcp"
+      ]
+    },
+    "apps/site": {
+      // Compile-only Button type cases, checked by tsc and the Next build.
+      "entry": ["components/ui/*.typecheck.tsx"],
+      "ignoreIssues": {
+        // Primitives are the design system's API (docs/agents/ui.md).
+        "components/ui/**": ["exports", "types"]
+      }
+    },
+    "apps/web": {
+      // Compile-only Button type cases, checked by tsc and the Next build.
+      "entry": ["components/ui/*.typecheck.tsx"],
+      "ignoreIssues": {
+        // Primitives are the design system's API (docs/agents/ui.md).
+        "components/ui/**": ["exports", "types"]
+      }
+    },
+    "apps/webhooks": {
+      "ignoreDependencies": [
+        // Runtime dep of @fitme/db, which tsdown keeps external: AGENTS.md
+        // requires it in the app's dependencies.
+        "@vercel/functions"
+      ]
+    },
+    "packages/db": {
+      // See apps/api: drizzle.config.ts calls `supabase status` too.
+      "entry": ["drizzle.config.ts", "integration/**/*.test.ts"],
+      "drizzle": false,
+      "vitest": false
+    },
+    "packages/services": {
+      // See apps/api: vitest configs are parsed, never run.
+      "entry": ["integration/**/*.test.ts"],
+      "vitest": false
+    },
+    "packages/typescript-config": {
+      // nextjs.json names Next's TypeScript plugin, resolved in each Next app.
+      "ignoreUnresolved": ["next"]
+    }
+  }
+}
