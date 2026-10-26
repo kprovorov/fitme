@@ -7,8 +7,8 @@
 //
 // sentry-cli only sees a staged copy of the scripts that have a map: pointed
 // at the build output, it follows Vercel's route functions (symlinks to the
-// one function) and warns for every chunk eve compiles without a map, about
-// 1,400 lines per build (FIT-334). It also skips dot directories, so the copy
+// one function) and warns for every chunk eve compiles without a map
+// (FIT-334). It also skips dot directories, so the copy
 // stages `.well-known/workflow/v1/flow.func` (eve's workflow function) as
 // `well-known/…`.
 import { execFileSync } from "node:child_process";
@@ -57,28 +57,32 @@ const findMappedScripts = (dir: string, base = dir): string[] => {
 };
 
 /** Where a file of the build output is staged: no segment starts with a dot. */
-const stagedPath = (file: string) =>
+const stagedPath = (file: string): string =>
   file
     .split(sep)
     .map((segment) => segment.replace(LEADING_DOTS, ""))
     .join(sep);
 
-const copy = (from: string, to: string) => {
+const copy = (from: string, to: string): void => {
   mkdirSync(dirname(to), { recursive: true });
   copyFileSync(from, to);
 };
 
 const upload = (
-  outputDir: string | undefined,
+  outputDir: string,
   release: string | undefined,
   sentryCli: SentryCliRunner
-) => {
-  const scripts = outputDir ? findMappedScripts(outputDir) : [];
-  if (!outputDir || scripts.length === 0) {
+): void => {
+  const scripts = findMappedScripts(outputDir);
+  if (scripts.length === 0) {
     console.warn("No source maps in the build output: nothing to upload");
     return;
   }
   const maps = scripts.map((script) => `${script}.map`);
+  const staged = new Set([...scripts, ...maps].map(stagedPath));
+  if (staged.size !== scripts.length + maps.length) {
+    throw new Error("Two build output files would be staged at the same path");
+  }
   const staging = mkdtempSync(join(tmpdir(), "arnold-source-maps-"));
   const inOutput = (file: string) => join(outputDir, file);
   const inStaging = (file: string) => join(staging, stagedPath(file));
@@ -117,6 +121,10 @@ export const uploadSourceMaps = ({
 }) => {
   if (!env.SENTRY_AUTH_TOKEN) {
     console.log("No SENTRY_AUTH_TOKEN: skipping the source map upload");
+    return;
+  }
+  if (!outputDir) {
+    console.warn("No source maps in the build output: nothing to upload");
     return;
   }
   try {

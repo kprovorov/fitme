@@ -57,6 +57,15 @@ const vercelOutput = () => {
   symlinkSync("../../__server.func", join(output, "eve/v1/health.func"));
 };
 
+/** The directory a sentry-cli call was pointed at: its last argument. */
+const target = (args: string[]): string => {
+  const dir = args.at(-1);
+  if (!dir) {
+    throw new Error("sentry-cli was called without a directory");
+  }
+  return dir;
+};
+
 /** The files sentry-cli walks under `dir`: it skips dot directories. */
 const visibleFilesIn = (dir: string): string[] =>
   filesIn(dir).filter(
@@ -67,13 +76,14 @@ const visibleFilesIn = (dir: string): string[] =>
 const fakeSentryCli = () => {
   const calls: { args: string[]; files: string[] }[] = [];
   const run = vi.fn((args: string[]) => {
-    const dir = args.at(-1) as string;
+    const dir = target(args);
     calls.push({ args, files: visibleFilesIn(dir).sort() });
     if (args[1] === "inject") {
-      for (const file of visibleFilesIn(dir).filter((f) =>
-        f.endsWith(".mjs")
-      )) {
-        const path = join(dir, file);
+      const scripts = visibleFilesIn(dir).filter((file) =>
+        file.endsWith(".mjs")
+      );
+      for (const script of scripts) {
+        const path = join(dir, script);
         writeFileSync(path, `${readFileSync(path, "utf8")}\n${INJECTED}`);
       }
     }
@@ -100,12 +110,12 @@ describe("uploadSourceMaps", () => {
 
     uploadSourceMaps({ env: ENV, outputDir: output, sentryCli: cli.run });
 
-    // sentry-cli skips dot directories
     const mapped = [
       "__server.func/_libs/@ai-sdk/gateway+[...].mjs",
       "__server.func/_libs/@ai-sdk/gateway+[...].mjs.map",
       "__server.func/index.mjs",
       "__server.func/index.mjs.map",
+      // staged without its dot: sentry-cli skips dot directories
       "well-known/workflow/v1/flow.func/index.mjs",
       "well-known/workflow/v1/flow.func/index.mjs.map",
     ];
@@ -128,9 +138,9 @@ describe("uploadSourceMaps", () => {
       "upload",
       "--release",
       "abc123",
-      inject.args.at(-1),
+      target(inject.args),
     ]);
-    expect(existsSync(inject.args.at(-1) as string)).toBe(false);
+    expect(existsSync(target(inject.args))).toBe(false);
     expect(readFileSync(join(output, "__server.func/index.mjs"), "utf8")).toBe(
       `index\n${INJECTED}`
     );
@@ -187,7 +197,7 @@ describe("uploadSourceMaps", () => {
       "Command failed: sentry-cli sourcemaps upload"
     );
     expect(existsSync(join(output, "__server.func/index.mjs.map"))).toBe(true);
-    expect(existsSync(cli.calls[0].args.at(-1) as string)).toBe(false);
+    expect(existsSync(target(cli.calls[0].args))).toBe(false);
   });
 
   it("uploads nothing when the build output has no source maps", () => {
@@ -195,6 +205,16 @@ describe("uploadSourceMaps", () => {
     const cli = fakeSentryCli();
 
     uploadSourceMaps({ env: ENV, outputDir: output, sentryCli: cli.run });
+
+    expect(cli.run).not.toHaveBeenCalled();
+    expect(console.warn).toHaveBeenCalledWith(
+      "No source maps in the build output: nothing to upload"
+    );
+  });
+
+  it("uploads nothing when there is no build output", () => {
+    const cli = fakeSentryCli();
+
     uploadSourceMaps({ env: ENV, outputDir: undefined, sentryCli: cli.run });
 
     expect(cli.run).not.toHaveBeenCalled();
