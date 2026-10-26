@@ -1478,34 +1478,6 @@
         }
       }
     },
-    "/v1/coach/models": {
-      "get": {
-        "deprecated": true,
-        "description": "The same list as `GET /v1/arnold/models`, kept for app builds from before the Arnold rename. Use `/v1/arnold/models`.",
-        "summary": "Arnold models (deprecated)",
-        "responses": {
-          "200": {
-            "description": "Every model Arnold accepts, in list order",
-            "headers": {
-              "Cache-Control": {
-                "schema": {
-                  "type": "string",
-                  "example": "public, max-age=300, s-maxage=300"
-                },
-                "required": true
-              }
-            },
-            "content": {
-              "application/json": {
-                "schema": {
-                  "$ref": "#/components/schemas/ArnoldModels"
-                }
-              }
-            }
-          }
-        }
-      }
-    },
     "/v1/muscle-groups": {
       "get": {
         "summary": "List muscle groups",

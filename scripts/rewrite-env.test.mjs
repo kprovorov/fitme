@@ -129,7 +129,7 @@ describe("the CLI", () => {
     );
     // An orphan: a renamed app's leftover env file, no package.json.
     write(
-      "apps/coach/.env",
+      "apps/retired/.env",
       "EXPO_PUBLIC_SUPABASE_URL=http://127.0.0.1:54321\n"
     );
     return root;
@@ -158,7 +158,7 @@ describe("the CLI", () => {
       "EXPO_PUBLIC_SUPABASE_URL=\n"
     );
     assert.equal(
-      read(root, "apps/coach/.env"),
+      read(root, "apps/retired/.env"),
       "EXPO_PUBLIC_SUPABASE_URL=http://127.0.0.1:54321\n"
     );
     assert.match(run.stderr, POINTED_MOBILE);

@@ -210,23 +210,20 @@ describe("arnoldResetConfig", () => {
       arnoldResetConfig({
         ARNOLD_RESET_SECRET: SECRET,
         ARNOLD_URL,
-        COACH_RESET_SECRET: "old-secret",
-        COACH_URL: "https://coach.test",
       })
     ).toEqual({ arnoldUrl: ARNOLD_URL, secret: SECRET });
   });
 
-  it("falls back to COACH_URL and COACH_RESET_SECRET", () => {
+  it("ignores the pre-rename COACH_URL and COACH_RESET_SECRET", () => {
     expect(
       arnoldResetConfig({
-        ARNOLD_RESET_SECRET: "",
         COACH_RESET_SECRET: SECRET,
         COACH_URL: ARNOLD_URL,
       })
-    ).toEqual({ arnoldUrl: ARNOLD_URL, secret: SECRET });
+    ).toEqual({ arnoldUrl: undefined, secret: undefined });
   });
 
-  it("is unset without either name", () => {
+  it("is unset without them", () => {
     expect(arnoldResetConfig({})).toEqual({
       arnoldUrl: undefined,
       secret: undefined,

@@ -105,7 +105,6 @@ describe("rate limiting", () => {
     "/health",
     "/v1/client-config",
     "/v1/arnold/models",
-    "/v1/coach/models",
     "/v1/muscle-groups",
   ])("never counts %s, token or not", async (path) => {
     const limit = vi.fn<RateLimiter["limit"]>(() =>

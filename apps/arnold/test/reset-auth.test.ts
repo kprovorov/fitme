@@ -99,24 +99,10 @@ describe("accountDeletionReset's secret from the environment", () => {
     expect(((await resetWith(`old-${SECRET}`)) as Response).status).toBe(401);
   });
 
-  it("falls back to COACH_RESET_SECRET when ARNOLD_RESET_SECRET is unset", async () => {
+  it("ignores the pre-rename COACH_RESET_SECRET", async () => {
     vi.stubEnv("ARNOLD_RESET_SECRET", "");
     vi.stubEnv("COACH_RESET_SECRET", SECRET);
 
-    expect(await resetWith(SECRET)).toMatchObject({
-      principalId: "account-deletion",
-    });
-  });
-
-  it("still refuses the fallback secret on any other route", async () => {
-    vi.stubEnv("ARNOLD_RESET_SECRET", "");
-    vi.stubEnv("COACH_RESET_SECRET", SECRET);
-
-    const result = await routeAuth(
-      request(`Bearer ${SECRET}`, "/eve/v1/session/wrun_alice/stream", "GET"),
-      accountDeletionReset()
-    );
-
-    expect((result as Response).status).toBe(403);
+    expect(((await resetWith(SECRET)) as Response).status).toBe(401);
   });
 });

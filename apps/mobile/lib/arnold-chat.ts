@@ -1,16 +1,14 @@
 import type { ThreadMessage } from "@assistant-ui/react-native";
-import { isArnoldRefusal } from "@fitme/core";
+import { arnoldErrorCodes } from "@fitme/core";
 import type { ClientSessionState, MessageStreamEvent } from "eve/client";
 import { storage } from "~/lib/mmkv";
 
 /**
  * Arnold's (`apps/arnold`) base URL; its eve routes live under `/eve/v1`.
- * `EXPO_PUBLIC_ARNOLD_URL`, falling back to the pre-rename
- * `EXPO_PUBLIC_COACH_URL` while builds are still configured with it; empty
- * when neither is set. Read on each call so tests can set it.
+ * `EXPO_PUBLIC_ARNOLD_URL`, empty when unset. Read on each call so tests can
+ * set it.
  */
-export const getArnoldUrl = () =>
-  process.env.EXPO_PUBLIC_ARNOLD_URL || process.env.EXPO_PUBLIC_COACH_URL || "";
+export const getArnoldUrl = () => process.env.EXPO_PUBLIC_ARNOLD_URL || "";
 
 /**
  * The run config each turn with Arnold is sent with. eve forwards `custom` as the
@@ -40,8 +38,7 @@ export type ArnoldErrorAction =
 
 /**
  * What the Arnold screen does with an error from Arnold: the channel's not-Pro refusal
- * (`arnold_pro_required` or the pre-rename `coach_pro_required`) shows the
- * paywall, an ended session starts a new Conversation, and anything
+ * (`arnold_pro_required`) shows the paywall, an ended session starts a new Conversation, and anything
  * else shows the error state. Duck-typed on eve's `ClientError` (`code` from
  * the JSON body) so the app doesn't bundle `eve/client` for an `instanceof`.
  */
@@ -55,7 +52,7 @@ export function arnoldErrorAction(error: unknown): ArnoldErrorAction {
     typeof error.code === "string"
       ? error.code
       : undefined;
-  if (isArnoldRefusal(code, "proRequired")) {
+  if (code === arnoldErrorCodes.proRequired) {
     return "paywall";
   }
   if (code && endedSessionCodes.has(code)) {

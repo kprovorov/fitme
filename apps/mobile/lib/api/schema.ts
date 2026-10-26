@@ -116,47 +116,6 @@ export interface paths {
     patch?: never;
     trace?: never;
   };
-  "/v1/coach/models": {
-    parameters: {
-      query?: never;
-      header?: never;
-      path?: never;
-      cookie?: never;
-    };
-    /**
-     * Arnold models (deprecated)
-     * @deprecated
-     * @description The same list as `GET /v1/arnold/models`, kept for app builds from before the Arnold rename. Use `/v1/arnold/models`.
-     */
-    get: {
-      parameters: {
-        query?: never;
-        header?: never;
-        path?: never;
-        cookie?: never;
-      };
-      requestBody?: never;
-      responses: {
-        /** @description Every model Arnold accepts, in list order */
-        200: {
-          headers: {
-            "Cache-Control": string;
-            [name: string]: unknown;
-          };
-          content: {
-            "application/json": components["schemas"]["ArnoldModels"];
-          };
-        };
-      };
-    };
-    put?: never;
-    post?: never;
-    delete?: never;
-    options?: never;
-    head?: never;
-    patch?: never;
-    trace?: never;
-  };
   "/v1/muscle-groups": {
     parameters: {
       query?: never;

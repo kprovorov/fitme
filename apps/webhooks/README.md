@@ -9,7 +9,7 @@ pnpm webhooks start        # runs dist/node/index.js
 pnpm webhooks test         # vitest
 ```
 
-Env: see `.env.example` (`CLERK_WEBHOOK_SIGNING_SECRET`, `FITME_DATABASE_URL`, `SENTRY_DSN`, `ARNOLD_URL`, `ARNOLD_RESET_SECRET`, each falling back to its pre-rename name `COACH_URL` / `COACH_RESET_SECRET` when unset or empty; at build time `SENTRY_AUTH_TOKEN`, `SENTRY_ORG`, `SENTRY_PROJECT` for source maps). The process environment is read as is; nothing loads `.env` files.
+Env: see `.env.example` (`CLERK_WEBHOOK_SIGNING_SECRET`, `FITME_DATABASE_URL`, `SENTRY_DSN`, `ARNOLD_URL`, `ARNOLD_RESET_SECRET`; at build time `SENTRY_AUTH_TOKEN`, `SENTRY_ORG`, `SENTRY_PROJECT` for source maps). The process environment is read as is; nothing loads `.env` files.
 
 ## Endpoints
 
