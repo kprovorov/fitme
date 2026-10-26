@@ -1,5 +1,5 @@
+import { NativeTabs } from "expo-router/native-tabs";
 import { ThemeProvider } from "expo-router/react-navigation";
-import { NativeTabs } from "expo-router/unstable-native-tabs";
 import Authenticated from "~/components/authenticated";
 import { useNavigationTheme } from "~/hooks/navigation-theme";
 import { TAB_TITLES } from "~/lib/tabs";
