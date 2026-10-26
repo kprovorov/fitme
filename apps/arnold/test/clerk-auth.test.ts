@@ -158,8 +158,9 @@ describe("clerkSession", () => {
     expect(report).toHaveBeenCalledWith(
       expect.objectContaining({
         message: "Missing CLERK_JWT_KEY environment variable",
+        name: "MissingEnvError",
       }),
-      { component: "clerk-auth" }
+      { component: "clerk-auth", env_var: "CLERK_JWT_KEY" }
     );
     expect(checkPro).not.toHaveBeenCalled();
   });

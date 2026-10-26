@@ -1,6 +1,7 @@
 import { verifyToken } from "@clerk/backend";
 import { TokenVerificationError } from "@clerk/backend/errors";
 import { legacyArnoldErrorCodes } from "@fitme/core";
+import { MissingEnvError } from "@fitme/observability/node";
 import {
   type AuthFn,
   extractBearerToken,
@@ -44,7 +45,8 @@ interface ClerkSessionOptions {
   jwtKey?: () => string | undefined;
   /**
    * Reports a failed Pro check (tagged with the User and route) or a missing
-   * CLERK_JWT_KEY (tagged `component: clerk-auth`).
+   * CLERK_JWT_KEY (a `MissingEnvError` tagged `component: clerk-auth` and
+   * `env_var`, like the startup check's).
    */
   report: (error: unknown, tags: Record<string, string>) => Promise<void>;
 }
@@ -93,10 +95,15 @@ export const clerkSession = ({
     if (key) {
       return key;
     }
-    const error = new Error("Missing CLERK_JWT_KEY environment variable");
+    const error = new MissingEnvError(
+      "Missing CLERK_JWT_KEY environment variable"
+    );
     if (!reportedMissingKey) {
       reportedMissingKey = true;
-      await report(error, { component: "clerk-auth" });
+      await report(error, {
+        component: "clerk-auth",
+        env_var: "CLERK_JWT_KEY",
+      });
     }
     throw error;
   };
