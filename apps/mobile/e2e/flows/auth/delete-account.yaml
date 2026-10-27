@@ -42,7 +42,7 @@ env:
 - waitForAnimationToEnd
 
 - tapOn:
-    text: "Settings"
+    id: "settings-link"
 
 - waitForAnimationToEnd
 
