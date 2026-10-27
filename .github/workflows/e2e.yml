@@ -276,7 +276,9 @@ jobs:
         working-directory: apps/mobile
         # No `--`: pnpm forwards it, and Maestro would read the options after
         # it as flow paths.
-        run: pnpm test:e2e --format junit --output e2e-results.xml
+        # Maestro's debug output (each flow's commands, logs and a screenshot
+        # where it failed) goes into maestro-debug, uploaded with the results.
+        run: pnpm test:e2e --format junit --output e2e-results.xml --debug-output maestro-debug
         env:
           # Maestro builds and starts its XCTest driver first, which takes
           # close to its 2-minute default on this runner (ms).
@@ -303,6 +305,7 @@ jobs:
           name: e2e-results
           path: |
             apps/mobile/e2e-results.xml
+            apps/mobile/maestro-debug
             apps/mobile/xcodebuild.log
             apps/api/e2e-api.log
 
