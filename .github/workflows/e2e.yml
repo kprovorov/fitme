@@ -9,7 +9,8 @@ jobs:
     # macOS 26 for its default Xcode (26.x): the Expo SDK's expo-modules-jsi
     # builds with Swift tools 6.2, which macOS 15's default Xcode 16.4 lacks.
     runs-on: macos-26
-    timeout-minutes: 60
+    # The Release build alone takes about 30 minutes and the flows about 20.
+    timeout-minutes: 90
 
     steps:
       - uses: actions/checkout@v7
@@ -186,10 +187,14 @@ jobs:
           fi
           pnpm --filter @fitme/supabase clerk:check
 
+      # Pinned: the installer takes the latest release otherwise, and 2.12.0's
+      # iOS driver timed out starting on this runner where 2.11.0's started.
       - name: Install Maestro CLI
         run: |
           curl -Ls "https://get.maestro.mobile.dev" | bash
           echo "$HOME/.maestro/bin" >> $GITHUB_PATH
+        env:
+          MAESTRO_VERSION: "2.11.0"
 
       - name: Generate native iOS project
         run: pnpm --filter @fitme/mobile exec expo prebuild --platform ios --clean
@@ -259,6 +264,8 @@ jobs:
             echo "::error::No iPhone simulator available" && exit 1
           fi
           xcrun simctl boot "$UDID"
+          # boot returns before the simulator is up; wait until it is.
+          xcrun simctl bootstatus "$UDID" -b
           APP=$(find ios/build -name "*.app" -maxdepth 6 | head -1)
           xcrun simctl install "$UDID" "$APP"
           echo "SIM_UDID=$UDID" >> $GITHUB_ENV
@@ -270,6 +277,10 @@ jobs:
         # No `--`: pnpm forwards it, and Maestro would read the options after
         # it as flow paths.
         run: pnpm test:e2e --format junit --output e2e-results.xml
+        env:
+          # Maestro builds and starts its XCTest driver first, which takes
+          # close to its 2-minute default on this runner (ms).
+          MAESTRO_DRIVER_STARTUP_TIMEOUT: "300000"
 
       # Artifacts aren't masked: a log holding the fitme password is never
       # uploaded. The API gets no other secret, so it is the only one to look
