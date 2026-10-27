@@ -779,10 +779,9 @@ export type StartWorkoutSessionResult =
 /**
  * A lost race for the one open session per Workout is retried this often: the
  * winner's session is resumed, or, if it was finished meanwhile, a fresh one is
- * inserted. Unlike the RPC (SECURITY DEFINER, which sees every session) the
- * start can't loop until it wins: under RLS an open session owned by another
- * id is invisible and keeps winning, so after the last attempt the start is
- * `not_found`, the RPC's error for that case.
+ * inserted. The start can't loop until it wins: under RLS an open session
+ * owned by another id is invisible and keeps winning, so after the last
+ * attempt the start is `not_found`.
  */
 const START_ATTEMPTS = 3;
 
@@ -803,8 +802,8 @@ const findOpenSessionId = async (tx: Transaction, workoutId: string) => {
 const uuidArray = (ids: string[]) => `{${ids.join(",")}}`;
 
 /**
- * Copies the Workout's exercises (their Exercise slugs, as the RPC does) and
- * their sets into the session.
+ * Copies the Workout's exercises (their Exercise slugs) and their sets into
+ * the session.
  */
 const copyWorkoutTemplate = async (
   tx: Transaction,
@@ -916,9 +915,6 @@ const insertOrResume = async (
  * is copied: the one-open-session-per-Workout index makes concurrent starts
  * agree on one session. A Workout the User can't see, or of a soft-deleted
  * Plan, is `not_found`.
- *
- * Mirrors the `start_workout_session` RPC, which the mobile app still calls:
- * a behaviour change goes into both.
  */
 export const startWorkoutSession = async (
   tx: Transaction,
@@ -988,12 +984,9 @@ const rotateWorkout = async (tx: Transaction, workoutId: string) => {
 /**
  * Finishes one of the User's Workout Sessions, in `tx` (from `asUser`), and
  * moves its Workout to the end of its Plan (`rotated`). A session
- * whose Workout was removed (e.g. update_plan replaced the Workouts) is only
+ * whose Workout was removed (e.g. `updatePlan` replaced the Workouts) is only
  * finished. Finishing an already finished session changes nothing
  * (`alreadyFinished`); one the User can't see is `not_found`.
- *
- * Mirrors the `finish_workout_session` RPC, which the mobile app still calls,
- * including its lock order: a behaviour change goes into both.
  */
 export const finishWorkoutSession = async (
   tx: Transaction,

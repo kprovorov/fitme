@@ -252,11 +252,67 @@ const storedValues = (userId: string) =>
     return { planSets, profile, sessionSets };
   });
 
-/** The `convert_measurement_system` RPC, as the mobile app calls it. */
-const convertThroughRpc = (userId: string, system: MeasurementSystem) =>
-  asUser(userId, (tx) =>
-    tx.execute(sql`select public.convert_measurement_system(${system})`)
-  );
+/** The stored values `seedUser` leaves, in one system's units. */
+interface Stored {
+  completed: string;
+  height: string;
+  plan: string;
+  plan2: string;
+  weight: string;
+}
+
+/** `seedUser` with a height of 70.5 and a weight of 181.37, as stored. */
+const unconverted: Stored = {
+  completed: "57.50",
+  height: "70.50",
+  plan: "60.00",
+  plan2: "62.50",
+  weight: "181.37",
+};
+
+/**
+ * `unconverted` metric -> us/uk: weights times 2.20462, heights times
+ * 0.393701, rounded to 2 decimals.
+ */
+const toImperial: Stored = {
+  completed: "126.77",
+  height: "27.76",
+  plan: "132.28",
+  plan2: "137.79",
+  weight: "399.85",
+};
+
+/** `unconverted` us/uk -> metric: divided by the same factors, at numeric precision. */
+const toMetric: Stored = {
+  completed: "26.08",
+  height: "179.07",
+  plan: "27.22",
+  plan2: "28.35",
+  weight: "82.27",
+};
+
+/** What `storedValues` reads for a User seeded by `seedUser`, once in `system`. */
+const storedAs = (system: MeasurementSystem, values: Stored) => {
+  const sessionSets = (linked: boolean) => [
+    {
+      linked,
+      weightCompleted: values.completed,
+      weightRecommended: values.plan,
+    },
+    { linked, weightCompleted: null, weightRecommended: values.plan2 },
+  ];
+  return {
+    planSets: [{ weightRecommended: values.plan }],
+    profile: {
+      age: 30,
+      gender: "male",
+      height: values.height,
+      measurementSystem: system,
+      weight: values.weight,
+    },
+    sessionSets: [...sessionSets(false), ...sessionSets(true)],
+  };
+};
 
 const update = (userId: string, changes: Parameters<typeof updateProfile>[2]) =>
   asUser(userId, (tx) => updateProfile(tx, userId, changes));
@@ -348,45 +404,41 @@ describe("updateProfile", () => {
     });
   });
 
-  for (const [from, to] of [
-    ["metric", "us"],
-    ["metric", "uk"],
-    ["us", "metric"],
-    ["uk", "metric"],
-    ["us", "uk"],
-    ["uk", "us"],
-    ["metric", "metric"],
-    ["us", "us"],
+  for (const [from, to, values] of [
+    ["metric", "us", toImperial],
+    ["metric", "uk", toImperial],
+    ["us", "metric", toMetric],
+    ["uk", "metric", toMetric],
+    ["us", "uk", unconverted],
+    ["uk", "us", unconverted],
+    ["metric", "metric", unconverted],
+    ["us", "us", unconverted],
   ] as const) {
-    it(`converts ${from} -> ${to} exactly as convert_measurement_system does`, async () => {
-      const throughService = newUser(`Svc${from}${to}`);
-      const throughRpc = newUser(`Rpc${from}${to}`);
-      const seed = { height: "70.5", system: from, weight: "181.37" };
-      await seedUser(throughService, seed);
-      await seedUser(throughRpc, seed);
+    it(`converts ${from} -> ${to}`, async () => {
+      const userId = newUser(`Svc${from}${to}`);
+      await seedUser(userId, {
+        height: "70.5",
+        system: from,
+        weight: "181.37",
+      });
 
-      await update(throughService, { measurement_system: to });
-      await convertThroughRpc(throughRpc, to);
+      await update(userId, { measurement_system: to });
 
-      const converted = await storedValues(throughService);
-      expect(converted).toEqual(await storedValues(throughRpc));
-      expect(converted.profile?.measurementSystem).toBe(to);
+      expect(await storedValues(userId)).toEqual(storedAs(to, values));
     });
   }
 
-  it("converts an unknown stored system as imperial, like the RPC", async () => {
-    const throughService = newUser("SvcUnknown");
-    const throughRpc = newUser("RpcUnknown");
-    const seed = { system: "imperial" as MeasurementSystem, weight: "181.37" };
-    await seedUser(throughService, seed);
-    await seedUser(throughRpc, seed);
+  it("converts an unknown stored system as imperial", async () => {
+    const userId = newUser("SvcUnknown");
+    await seedUser(userId, {
+      height: "70.5",
+      system: "imperial" as MeasurementSystem,
+      weight: "181.37",
+    });
 
-    await update(throughService, { measurement_system: "metric" });
-    await convertThroughRpc(throughRpc, "metric");
+    await update(userId, { measurement_system: "metric" });
 
-    const converted = await storedValues(throughService);
-    expect(converted).toEqual(await storedValues(throughRpc));
-    expect(converted.profile?.weight).toBe("82.27");
+    expect(await storedValues(userId)).toEqual(storedAs("metric", toMetric));
   });
 
   it("writes the given weight and height in the new system's units", async () => {

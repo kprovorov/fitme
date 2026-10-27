@@ -84,8 +84,7 @@ export interface ReceivedRequest {
   route: string;
 }
 
-// `updateProfile`'s factors and rounding (`packages/services/src/profile.ts`,
-// the same as the `convert_measurement_system` RPC's).
+// `updateProfile`'s factors and rounding (`packages/services/src/profile.ts`).
 const HEIGHT_FACTOR = 0.393_701;
 const WEIGHT_FACTOR = 2.204_62;
 const PROFILE_FIELDS = new Set([

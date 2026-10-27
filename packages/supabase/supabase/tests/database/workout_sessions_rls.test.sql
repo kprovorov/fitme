@@ -3,7 +3,7 @@
 -- Run with `pnpm db test:db` (supabase test db).
 begin;
 
-select plan(20);
+select plan(17);
 
 -- ------------------------------------------------------------
 -- Fixtures (as postgres, bypassing RLS)
@@ -17,16 +17,7 @@ insert into public.plans (id, user_id, goal, place, frequency, deleted_at) value
 insert into public.workouts (id, plan_id, "order", name, description) values
   ('b1000000-0000-0000-0000-000000000001', 'a1000000-0000-0000-0000-000000000001', 1, 'Owner A', 'Legs'),
   ('b1000000-0000-0000-0000-000000000002', 'a1000000-0000-0000-0000-000000000002', 1, 'Other A', 'Legs'),
-  ('b1000000-0000-0000-0000-000000000003', 'a1000000-0000-0000-0000-000000000003', 1, 'Deleted A', 'Legs'),
-  ('b1000000-0000-0000-0000-000000000004', 'a1000000-0000-0000-0000-000000000001', 2, 'Owner B', 'Push');
-
-insert into public.workout_exercises (id, workout_id, exercise_slug, "order") values
-  ('c1000000-0000-0000-0000-000000000001', 'b1000000-0000-0000-0000-000000000004', 'test-squat-sessions-rls', 1);
-
-insert into public.workout_exercise_sets
-  (workout_exercise_id, "order", reps_recommended, weight_recommended, rest_recommended)
-values
-  ('c1000000-0000-0000-0000-000000000001', 1, 5, 100, 120);
+  ('b1000000-0000-0000-0000-000000000003', 'a1000000-0000-0000-0000-000000000003', 1, 'Deleted A', 'Legs');
 
 -- Owner's finished session on the soft-deleted plan
 insert into public.workout_sessions (id, workout_id, plan_id, user_id, started_at, finished_at) values
@@ -158,37 +149,6 @@ select is(
    where id = 'd1000000-0000-0000-0000-000000000099'),
   true,
   'the soft-deleted plan session row changed'
-);
-
--- ------------------------------------------------------------
--- RPC regression: start/finish still work for the owner
--- ------------------------------------------------------------
-select set_config(
-  'test.rpc_session',
-  public.start_workout_session('b1000000-0000-0000-0000-000000000004')::text,
-  true
-);
-
-select is(
-  (select plan_id from public.workout_sessions
-   where id = current_setting('test.rpc_session')::uuid),
-  'a1000000-0000-0000-0000-000000000001'::uuid,
-  'start_workout_session creates a session for the owner'
-);
-
-select lives_ok(
-  format(
-    'select public.finish_workout_session(%L::uuid)',
-    current_setting('test.rpc_session')
-  ),
-  'finish_workout_session succeeds for the owner'
-);
-
-select isnt(
-  (select finished_at from public.workout_sessions
-   where id = current_setting('test.rpc_session')::uuid),
-  null,
-  'finish_workout_session sets finished_at'
 );
 
 -- ------------------------------------------------------------

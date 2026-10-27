@@ -7,7 +7,7 @@
 -- Run with `pnpm db test:db` (supabase test db).
 begin;
 
-select plan(18);
+select plan(17);
 
 -- ------------------------------------------------------------
 -- Fixtures (as postgres, bypassing RLS)
@@ -115,17 +115,6 @@ select throws_ok(
     values ('user_2DeleteMe00000000000000', 'male', 30, 80, 180)$$,
   '42501', null,
   'a deleted User can''t create a Profile with their old token'
-);
-
--- create_plan keys the Plan by current_user_id(), NULL here, so the insert
--- hits plans.user_id NOT NULL
-select throws_ok(
-  $$select public.create_plan(
-      '{"name": "Ghost", "goal": "strength", "place": "gym", "frequency": 3,
-        "experience_level": "intermediate", "workout_duration": 60, "workouts": []}'::jsonb
-    )$$,
-  '23502', null,
-  'a deleted User can''t create a Plan through the RPC'
 );
 
 select throws_ok(

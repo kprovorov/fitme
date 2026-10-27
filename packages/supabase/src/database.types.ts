@@ -384,53 +384,7 @@ export interface Database {
       [_ in never]: never;
     };
     Functions: {
-      activate_plan: {
-        Args: { plan_id: string };
-        Returns: {
-          created_at: string | null;
-          deleted_at: string | null;
-          description: string | null;
-          experience_level: string;
-          frequency: number;
-          goal: string;
-          id: string;
-          is_active: boolean;
-          name: string | null;
-          note: string | null;
-          place: string;
-          updated_at: string | null;
-          user_id: string;
-          workout_duration: number;
-        };
-        SetofOptions: {
-          from: "*";
-          to: "plans";
-          isOneToOne: true;
-          isSetofReturn: false;
-        };
-      };
-      convert_measurement_system: {
-        Args: { p_new_system: string };
-        Returns: undefined;
-      };
-      create_plan: { Args: { p_plan_data: Json }; Returns: string };
       current_user_id: { Args: Record<PropertyKey, never>; Returns: string };
-      finish_workout_session: {
-        Args: { p_session_id: string };
-        Returns: undefined;
-      };
-      start_workout_session: {
-        Args: { p_workout_id: string };
-        Returns: string;
-      };
-      update_plan: {
-        Args: { p_plan_data: Json; p_plan_id: string; p_user_id?: string };
-        Returns: string;
-      };
-      workout_session_plan_changes: {
-        Args: { apply?: boolean; session_id: string };
-        Returns: Json;
-      };
     };
     Enums: {
       [_ in never]: never;

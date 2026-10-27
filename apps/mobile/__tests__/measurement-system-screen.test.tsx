@@ -224,7 +224,6 @@ describe("MeasurementSystemScreen", () => {
         route: PROFILE_PATCH,
       },
     ]);
-    expect(backend.count("convert_measurement_system", "rpc")).toBe(0);
     expect(backend.profile(FAKE_USER_ID)).toMatchObject({
       height: 70.87,
       measurement_system: "us",
@@ -309,7 +308,6 @@ describe("MeasurementSystemScreen", () => {
       });
       expect(shown()).toHaveTextContent("metric");
       expect(screen.getByTestId("picker")).not.toBeDisabled();
-      expect(backend.count("convert_measurement_system", "rpc")).toBe(0);
 
       await fireEvent.press(screen.getByTestId("option-us"));
       expect(screen.getByTestId("confirm-dialog")).toBeTruthy();
@@ -343,7 +341,6 @@ describe("MeasurementSystemScreen", () => {
 
     expect(alerts().map(([title]) => title)).toEqual(["Couldn't Change Units"]);
     expect(fakePublicApi.requests).toEqual([]);
-    expect(backend.count("convert_measurement_system", "rpc")).toBe(0);
     expect(backend.profile(FAKE_USER_ID)?.measurement_system).toBe("metric");
     expect(shown()).toHaveTextContent("metric");
   });

@@ -1217,7 +1217,6 @@ describe("starting a Workout from Home", () => {
       params: { sessionId: started?.id, workoutId: "w1" },
     });
     expect(await focused().findByText("Squat")).toBeTruthy();
-    expect(backend.count("start_workout_session", "rpc")).toBe(0);
   });
 
   it("resumes the Workout's open session instead of starting another", async () => {
@@ -1586,7 +1585,6 @@ describe("the Plan Update after finishing from Home", () => {
       "Plan Update Accepted",
       eventProperties
     );
-    expect(backend.count("workout_session_plan_changes", "rpc")).toBe(0);
   });
 
   it("leaves the Plan as it was on Keep plan as is", async () => {
@@ -1698,6 +1696,5 @@ describe("the Plan Update after finishing from Home", () => {
       "summary",
     ]);
     expect(track()).not.toHaveBeenCalled();
-    expect(backend.count("workout_session_plan_changes", "rpc")).toBe(0);
   });
 });

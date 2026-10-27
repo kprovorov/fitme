@@ -370,6 +370,11 @@ All three end in `packages/services` inside `withUser`.
 
    Expected order: `store_plan` (now), `activate_plan`, `convert_measurement_system`,
    `create_plan`/`update_plan`, `start_workout_session`, `finish_workout_session`.
+
+   **Done (FIT-339):** once the minimum version gate cut off the builds calling them,
+   every remaining RPC (these, `workout_session_plan_changes` and
+   `private.exercise_name_from_slug`) was dropped in one migration
+   (`20261027120000_drop_legacy_rpcs.sql`).
 7. **Never drop:**
    - `current_user_id()`, RLS, the retired-id triggers, `deactivate_deleted_plan` and
      the partial unique index. They are the backstop under the services too.

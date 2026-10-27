@@ -1,13 +1,13 @@
--- EXECUTE grants on the SECURITY DEFINER functions in public (FIT-326,
--- 20261026120000_revoke_anon_rpc_execute.sql): they run with their owner's
--- rights, so anon (anyone holding the publishable key) may call none of them
--- but current_user_id(). Postgres grants EXECUTE to PUBLIC by default and
--- Supabase's default privileges grant it to anon too, so a new one revokes
--- both in its own migration and gets a line here.
+-- EXECUTE grants on the SECURITY DEFINER functions in public (FIT-326): they
+-- run with their owner's rights, so anon (anyone holding the publishable key)
+-- may call none of them but current_user_id(). Postgres grants EXECUTE to
+-- PUBLIC by default and Supabase's default privileges grant it to anon too,
+-- so a new one revokes both in its own migration and gets a line here. The
+-- legacy RPCs are gone (20261027120000_drop_legacy_rpcs.sql, FIT-339).
 -- Run with `pnpm db test:db` (supabase test db).
 begin;
 
-select plan(7);
+select plan(13);
 
 select is(
   array(
@@ -18,14 +18,7 @@ select is(
     order by 1
   ),
   array[
-    'activate_plan(uuid)',
-    'convert_measurement_system(text)',
-    'create_plan(jsonb)',
-    'current_user_id()',
-    'finish_workout_session(uuid)',
-    'start_workout_session(uuid)',
-    'update_plan(uuid,jsonb,text)',
-    'workout_session_plan_changes(uuid,boolean)'
+    'current_user_id()'
   ],
   'every SECURITY DEFINER function in public is covered by this test'
 );
@@ -40,7 +33,7 @@ select is_empty(
       and p.proname <> 'current_user_id'
       and acl.grantee = 0
   $$,
-  'PUBLIC has no EXECUTE on the RPCs'
+  'PUBLIC has no EXECUTE on any other SECURITY DEFINER function'
 );
 
 select is_empty(
@@ -52,35 +45,7 @@ select is_empty(
       and p.proname <> 'current_user_id'
       and has_function_privilege('anon', p.oid, 'EXECUTE')
   $$,
-  'anon has no EXECUTE on the RPCs'
-);
-
--- Installed builds still call them as authenticated, until the minimum
--- version gate cuts them off.
-select is_empty(
-  $$
-    select p.oid::regprocedure
-    from pg_catalog.pg_proc p
-    where p.pronamespace = 'public'::regnamespace
-      and p.prosecdef
-      and p.proname <> 'current_user_id'
-      and not has_function_privilege('authenticated', p.oid, 'EXECUTE')
-  $$,
-  'authenticated keeps EXECUTE on the RPCs'
-);
-
--- workout_session_plan_changes is authenticated only
--- (20261021120000_workout_session_plan_changes.sql).
-select is_empty(
-  $$
-    select p.oid::regprocedure
-    from pg_catalog.pg_proc p
-    where p.pronamespace = 'public'::regnamespace
-      and p.prosecdef
-      and p.proname not in ('current_user_id', 'workout_session_plan_changes')
-      and not has_function_privilege('service_role', p.oid, 'EXECUTE')
-  $$,
-  'service_role keeps EXECUTE on the RPCs but workout_session_plan_changes'
+  'anon has no EXECUTE on any other SECURITY DEFINER function'
 );
 
 -- The policy of every app table but arnold_sessions targets PUBLIC and calls
@@ -92,15 +57,18 @@ select ok(
   'anon keeps EXECUTE on current_user_id(), which the RLS policies call'
 );
 
-set local role anon;
-set local request.jwt.claims to '{"role":"anon"}';
-
-select throws_ok(
-  $$select public.activate_plan('f5a00000-0000-0000-0000-000000000001')$$,
-  '42501',
-  null,
-  'anon cannot call an RPC'
-);
+-- The legacy RPCs are gone: the services in packages/services are the only
+-- implementation (20261027120000_drop_legacy_rpcs.sql, and
+-- 20261014120000_drop_store_plan.sql before it).
+select hasnt_function('public', 'activate_plan', 'activate_plan is dropped');
+select hasnt_function('public', 'create_plan', 'create_plan is dropped');
+select hasnt_function('public', 'update_plan', 'update_plan is dropped');
+select hasnt_function('public', 'convert_measurement_system', 'convert_measurement_system is dropped');
+select hasnt_function('public', 'start_workout_session', 'start_workout_session is dropped');
+select hasnt_function('public', 'finish_workout_session', 'finish_workout_session is dropped');
+select hasnt_function('public', 'workout_session_plan_changes', 'workout_session_plan_changes is dropped');
+select hasnt_function('private', 'exercise_name_from_slug', 'exercise_name_from_slug is dropped');
+select hasnt_function('public', 'store_plan', 'store_plan is dropped');
 
 select * from finish();
 rollback;

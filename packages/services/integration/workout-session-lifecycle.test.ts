@@ -20,9 +20,7 @@ import { deleteTestUsers } from "./delete-test-users";
 
 /**
  * Starting and finishing Workout Sessions through asUser, against a local Supabase stack via
- * the Supavisor pooler as the fitme login: the cases the
- * start_workout_session and finish_workout_session pgTAP suites cover. Made-up Clerk-style User ids,
- * unique per run.
+ * the Supavisor pooler as the fitme login. Made-up Clerk-style User ids, unique per run.
  */
 
 const runId = randomUUID().replaceAll("-", "").slice(0, 12);

@@ -119,9 +119,8 @@ const choose = async (item: string, button: string) => {
   await settle(queryClient);
 };
 
-/** The supabase writes the old paths made; none may happen any more. */
-const supabaseWrites = () =>
-  backend.count("activate_plan", "rpc") + backend.count("plans", "update");
+/** The supabase write the old path made; it may not happen any more. */
+const supabaseWrites = () => backend.count("plans", "update");
 
 beforeEach(() => {
   jest.clearAllMocks();
