@@ -6,11 +6,21 @@
 # or switching the branch after setup leaves the old stack behind, and
 # `supabase status` only finds the current branch's.
 #
+# On the way out, whatever happened, it also removes the BEAM perf/jit dumps in
+# /tmp of processes that are gone: the local pooler writes them on every stack
+# start and nothing else removes them (scripts/stale-beam-dumps.mjs).
+#
 # Usage: destroy-stale-stacks.sh [checkout]
 set -euo pipefail
 
 here="$(cd "$(dirname "$0")/.." && pwd)"
 checkout="${1:-}"
+
+remove_stale_beam_dumps() {
+  node "$here/scripts/stale-beam-dumps.mjs" ||
+    echo "warning: couldn't remove the stale BEAM perf/jit dumps" >&2
+}
+trap remove_stale_beam_dumps EXIT
 
 cd "$here/packages/supabase"
 
