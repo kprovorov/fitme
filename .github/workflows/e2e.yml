@@ -9,8 +9,9 @@ jobs:
     # macOS 26 for its default Xcode (26.x): the Expo SDK's expo-modules-jsi
     # builds with Swift tools 6.2, which macOS 15's default Xcode 16.4 lacks.
     runs-on: macos-26
-    # The Release build alone takes about 30 minutes and the flows about 20.
-    timeout-minutes: 90
+    # The Release build alone takes 30 to 50 minutes and the flows 20 to 30,
+    # with a retry of the failed ones; one such run ended at 90.
+    timeout-minutes: 120
 
     steps:
       - uses: actions/checkout@v7
