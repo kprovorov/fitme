@@ -280,7 +280,21 @@ jobs:
         # where it failed) goes into the runner's temp directory, uploaded as
         # its own artifact. Flattened: otherwise Maestro nests it under a
         # hidden .maestro directory, which upload-artifact skips.
-        run: pnpm test:e2e --format junit --output e2e-results.xml --debug-output "$RUNNER_TEMP/maestro-debug" --flatten-debug-output
+        # The failed flows run once more, on a fresh driver: on this runner
+        # Maestro's XCTest driver can time out taking a screenshot and never
+        # recover, failing every flow after it. Both results are kept, so a
+        # flow that only passed on the retry still shows.
+        run: |
+          if pnpm test:e2e --format junit --output e2e-results.xml --debug-output "$RUNNER_TEMP/maestro-debug" --flatten-debug-output; then
+            exit 0
+          fi
+          FAILED=$(grep -oE '<testcase [^>]*status="ERROR"' e2e-results.xml 2> /dev/null | grep -oE 'file="[^"]+"' | cut -d'"' -f2 || true)
+          if [ -z "$FAILED" ]; then
+            FAILED="e2e/flows/**/*.yaml"
+          fi
+          echo "::warning::Retrying the failed E2E flows once: $(echo $FAILED)"
+          # shellcheck disable=SC2086 # flow paths have no spaces
+          maestro test $FAILED --reinstall-driver --format junit --output e2e-results-retry.xml --debug-output "$RUNNER_TEMP/maestro-debug-retry" --flatten-debug-output
         env:
           # Maestro builds and starts its XCTest driver first, which takes
           # close to its 2-minute default on this runner (ms).
@@ -307,6 +321,7 @@ jobs:
           name: e2e-results
           path: |
             apps/mobile/e2e-results.xml
+            apps/mobile/e2e-results-retry.xml
             apps/mobile/xcodebuild.log
             apps/api/e2e-api.log
 
@@ -315,7 +330,9 @@ jobs:
         if: always()
         with:
           name: maestro-debug
-          path: ${{ runner.temp }}/maestro-debug
+          path: |
+            ${{ runner.temp }}/maestro-debug
+            ${{ runner.temp }}/maestro-debug-retry
 
       - name: Delete Supabase preview branch
         if: always()
