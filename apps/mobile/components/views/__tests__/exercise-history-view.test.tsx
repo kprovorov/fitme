@@ -78,11 +78,11 @@ describe("ExerciseHistoryView", () => {
     expect(
       screen.getAllByText(SET_NUMBER).map((cell) => cell.props.children)
     ).toEqual(["#1", "#2"]);
-    expect(screen.getAllByText("12×45 kg")).toHaveLength(2);
+    expect(screen.getAllByText("12×45kg")).toHaveLength(2);
     expect(screen.getByText("10")).toBeTruthy();
     expect(screen.getByText("50")).toBeTruthy();
     expect(
-      screen.getByLabelText("Set 2: 10 reps, 50 kg. Target 12×45 kg")
+      screen.getByLabelText("Set 2: 10 reps, 50 kg. Target 12×45kg")
     ).toBeTruthy();
   });
 
