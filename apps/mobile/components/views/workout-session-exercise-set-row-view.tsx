@@ -214,11 +214,15 @@ export default function WorkoutSessionExerciseSetRowView({
             </View>
           ) : (
             <Text
+              // At body size `#2` fills the column: shrink it at the largest
+              // text sizes rather than wrap it onto a second line.
+              adjustsFontSizeToFit
               className={cn(
                 SET_NUMBER_COLUMN_CLASS,
                 "text-center text-mono-body"
               )}
               maxFontSizeMultiplier={SET_TABLE_MAX_FONT_SCALE}
+              numberOfLines={1}
             >
               #{setOrder}
             </Text>
