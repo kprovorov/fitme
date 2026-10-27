@@ -3,17 +3,7 @@
  * `baggage`). Listed one by one, not `*.fitmeproject.com`: Clerk's Frontend
  * API answers on clerk.fitmeproject.com.
  */
-const SERVICES = [
-  "api",
-  "app",
-  "arnold",
-  // The Library API's pre-rename domain, still called by installed builds
-  // until the minimum version gate cuts them off.
-  "exercises",
-  "library",
-  "mcp",
-  "webhooks",
-];
+const SERVICES = ["api", "app", "arnold", "library", "mcp", "webhooks"];
 
 /**
  * `tracePropagationTargets` for every app: our services, localhost (local

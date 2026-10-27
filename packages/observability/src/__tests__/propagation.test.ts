@@ -10,7 +10,6 @@ describe("tracePropagationTargets", () => {
     "https://api.fitmeproject.com/v1/client-config",
     "https://app.fitmeproject.com/dashboard",
     "https://arnold.fitmeproject.com/eve/v1/session",
-    "https://exercises.fitmeproject.com/exercises?limit=20",
     "https://library.fitmeproject.com/exercises?slugs=bench-press",
     "https://mcp.fitmeproject.com/",
     "https://webhooks.fitmeproject.com/clerk",
@@ -25,6 +24,8 @@ describe("tracePropagationTargets", () => {
     "https://clerk.fitmeproject.com/v1/client",
     // Arnold's pre-rename domain, retired once old builds were cut off
     "https://coach.fitmeproject.com/eve/v1/session",
+    // The Library API's pre-rename domain, retired once old builds were cut off
+    "https://exercises.fitmeproject.com/exercises?limit=20",
     "https://accounts.fitmeproject.com/sign-in",
     "https://fitmeproject.com/",
     "https://api.clerk.com/v1/users",
