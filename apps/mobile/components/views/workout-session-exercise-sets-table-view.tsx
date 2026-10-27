@@ -7,7 +7,9 @@ import type { SavedWorkoutSessionExerciseSet } from "~/hooks/queries/workout-ses
 import { cn } from "~/lib/utils";
 import {
   SET_CHECK_COLUMN_CLASS,
+  SET_NUMBER_COLUMN_CLASS,
   SET_TABLE_MAX_FONT_SCALE,
+  SET_TARGET_COLUMN_CLASS,
 } from "../forms/workout-exercise-set-form";
 import { Button } from "../ui/button";
 import { Text } from "../ui/text";
@@ -44,10 +46,7 @@ function ColumnLabel({
   return (
     <Text
       adjustsFontSizeToFit
-      className={cn(
-        "text-center text-mono-caption-1-semibold text-primary",
-        className
-      )}
+      className={cn("text-center text-mono-body text-primary", className)}
       maxFontSizeMultiplier={SET_TABLE_MAX_FONT_SCALE}
       numberOfLines={1}
     >
@@ -111,8 +110,8 @@ export default function WorkoutSessionExerciseSetsTableView({
           className="flex-row items-center gap-sm"
           importantForAccessibility="no-hide-descendants"
         >
-          <ColumnLabel className="w-7">set</ColumnLabel>
-          <ColumnLabel className="w-18">rec</ColumnLabel>
+          <ColumnLabel className={SET_NUMBER_COLUMN_CLASS}>#</ColumnLabel>
+          <ColumnLabel className={SET_TARGET_COLUMN_CLASS}>target</ColumnLabel>
           <ColumnLabel className="flex-1">reps</ColumnLabel>
           <ColumnLabel className="flex-1">{weightLabel}</ColumnLabel>
           <View className={SET_CHECK_COLUMN_CLASS} />

@@ -16,7 +16,9 @@ import { segmentClient } from "~/lib/segment";
 import { formatSetTarget, formatSetWeight } from "~/lib/set-inputs";
 import { cn } from "~/lib/utils";
 import WorkoutSessionExerciseSetForm, {
+  SET_NUMBER_COLUMN_CLASS,
   SET_TABLE_MAX_FONT_SCALE,
+  SET_TARGET_COLUMN_CLASS,
   type WorkoutSessionExerciseSetFormValues,
 } from "../forms/workout-exercise-set-form";
 import { Text } from "../ui/text";
@@ -34,7 +36,7 @@ interface WorkoutSessionExerciseSetRowViewProps {
   onSetLogged?: (set: SavedWorkoutSessionExerciseSet) => void;
   order?: number;
   sessionId: string;
-  /** The User's weight unit, for the REC cell. */
+  /** The User's weight unit, for the target cell. */
   weightLabel: string | undefined;
   workoutSessionExerciseSet: WorkoutSessionExerciseSet | null;
 }
@@ -203,17 +205,24 @@ export default function WorkoutSessionExerciseSetRowView({
       leading={
         <>
           {showsLogged ? (
-            <View className="w-7 items-center">
+            <View className={cn(SET_NUMBER_COLUMN_CLASS, "items-center")}>
               <SymbolImage
                 accessibilityLabel={`Set ${setOrder}, logged`}
-                className="text-footnote-emphasized text-primary"
+                className="text-body-emphasized text-primary"
                 name="checkmark"
               />
             </View>
           ) : (
             <Text
-              className="w-7 text-center text-mono-footnote"
+              // At body size `#2` fills the column: shrink it at the largest
+              // text sizes rather than wrap it onto a second line.
+              adjustsFontSizeToFit
+              className={cn(
+                SET_NUMBER_COLUMN_CLASS,
+                "text-center text-mono-body"
+              )}
               maxFontSizeMultiplier={SET_TABLE_MAX_FONT_SCALE}
+              numberOfLines={1}
             >
               #{setOrder}
             </Text>
@@ -221,7 +230,8 @@ export default function WorkoutSessionExerciseSetRowView({
           <Text
             adjustsFontSizeToFit
             className={cn(
-              "w-18 text-center text-mono-footnote",
+              SET_TARGET_COLUMN_CLASS,
+              "text-center text-mono-body",
               showsLogged && "text-muted-foreground"
             )}
             maxFontSizeMultiplier={SET_TABLE_MAX_FONT_SCALE}
