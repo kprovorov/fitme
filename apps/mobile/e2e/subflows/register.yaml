@@ -37,9 +37,11 @@ appId: com.fitmeproject.ios
       id: "verify-code-input"
     timeout: 30000
 
+- runFlow: dismiss-save-password.yaml
 - tapOn:
     id: "verify-code-input"
 - inputText: "424242"
+- runFlow: dismiss-save-password.yaml
 - tapOn:
     id: "verify-code-button"
 
