@@ -532,7 +532,7 @@ Resolving a rebase or merge conflict: edit each hunk by hand, never with a regex
 
 Put a `FIT-<n>` key in a pull request's title, branch or commits only when that pull request finishes the issue: Linear links the PR on sight, moves the issue to In Progress and closes it on merge.
 
-A contract step (dropping legacy routes, RPCs, env names or code once the minimum version gate has cut off their readers) is `refactor:` / `chore:` (or `feat:` / `fix:` when it changes behaviour), never `!` or `BREAKING CHANGE`. Those are for a deliberate major app release only, since `release.yml` cuts a major version from them (see CI/CD).
+A contract step (dropping legacy routes, RPCs, env names or code once the minimum version gate has cut off their readers) is `refactor:` / `chore:` (or `feat:` / `fix:` when it changes behaviour), never `!` or `BREAKING CHANGE`. Those are for a deliberate major app release only, since `release.yml` cuts a major version from them (see CI/CD). Its check greps every commit's subject and body for `BREAKING CHANGE` anywhere, so never write that phrase in a commit message, a squash message or a pull request title, even to mention it (say "breaking-change marker").
 
 `main`'s ruleset requires every review conversation resolved before merging: with CI green and the review approved, `gh pr merge` is still refused while a thread is open. After pushing the fix for a review comment, reply with the commit and resolve the thread (`gh api graphql -f query='mutation { resolveReviewThread(input: {threadId: "…"}) { thread { isResolved } } }'`; list the ids with `reviewThreads { nodes { id isResolved } }` on the PR's `pullRequest` query). Resolve only the threads you actually fixed.
 
