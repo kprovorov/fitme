@@ -7,6 +7,7 @@ import { findShellRuleViolations } from "./shell-rules.mjs";
 const REASON = /^AGENTS\.md Shell: /;
 const TIMEOUT_REASON = /macOS has neither `timeout` nor `gtimeout`/;
 const WORD_SPLIT_REASON = /zsh doesn't word-split/;
+const ZSH_PATH_REASON = /zsh ties the lowercase `path` array to `PATH`/;
 const OUTPUT_FORMAT_REASON = /--output-format json/;
 
 const rulesBroken = (command, options) =>
@@ -403,6 +404,50 @@ describe("zsh word-splitting in loop headers", () => {
   test("says how to iterate instead", () => {
     const [violation] = findShellRuleViolations("for f in $files; do x; done");
     assert.match(violation.reason, WORD_SPLIT_REASON);
+  });
+});
+
+describe("zsh's `path` variable", () => {
+  for (const command of [
+    "local path=x",
+    "path=apps/api; ls $path",
+    "path=x node x.js",
+    "typeset path=x",
+    "typeset -a path",
+    "declare path",
+    "export path=x",
+    "readonly path=x",
+    "for path in a b; do echo $path; done",
+    "select path in a b; do echo $path; done",
+    "git ls-files | while read -r path; do echo $path; done",
+    "check() { local path=$1; ls $path; }",
+    'echo "$(path=x; echo $path)"',
+  ]) {
+    test(`refuses ${JSON.stringify(command)}`, () => {
+      assert.deepEqual(rulesBroken(command), ["zsh-path"]);
+    });
+  }
+
+  for (const command of [
+    "local filepath=x",
+    "local file=x dir=y",
+    "PATH=/usr/bin:$PATH node x.js",
+    "path+=(/opt/bin)",
+    "for file in a b; do echo $file; done",
+    "echo path=x",
+    "git commit -m 'local path=x'",
+    "grep -rn path src",
+    "read -r line",
+    "node -e 'const path = require(\"node:path\")'",
+  ]) {
+    test(`allows ${JSON.stringify(command)}`, () => {
+      assert.deepEqual(rulesBroken(command), []);
+    });
+  }
+
+  test("says why and what to name it instead", () => {
+    const [violation] = findShellRuleViolations("local path=x");
+    assert.match(violation.reason, ZSH_PATH_REASON);
   });
 });
 
