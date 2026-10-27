@@ -1,6 +1,6 @@
 # Secrets
 
-Every env var an app reads, secret or public config, lives in Infisical: the project **Fitme** in the `provorovcom` organization, whose id is in the committed `.infisical.json` (an id, not a credential: every read needs a logged-in member), so the CLI run anywhere in the repo uses it without `--projectId`. Vercel and the local env files are copies of it, never edited by hand. The variables themselves are documented in `AGENTS.md` (Environment Variables); this file is about where they live and how they move.
+Every env var an app reads, secret or public config, lives in Infisical (the exceptions are under Not in Infisical yet): the project **Fitme** in the `provorovcom` organization, whose id is in the committed `.infisical.json` (an id, not a credential: every read needs a logged-in member), so the CLI run anywhere in the repo uses it without `--projectId`. Vercel and the local env files are copies of it, never edited by hand. The variables themselves are documented in `AGENTS.md` (Environment Variables); this file is about where they live and how they move.
 
 ## Layout
 
@@ -68,3 +68,4 @@ The Claude Code shell hook refuses the commands that break these (AGENTS.md Shel
 ## Not in Infisical yet
 
 - The EAS `production` environment of `apps/mobile`: no Secret Sync exists for EAS.
+- `apps/api`'s `MIN_APP_VERSION`, `MIN_APP_VERSION_IOS`, `MIN_APP_VERSION_ANDROID` and `MIN_APP_VERSION_WEB` (the minimum version gate), by choice: they live only in the `fitme-api` Vercel project's Production (`MIN_APP_VERSION` is `2.2.0` there, set 2026-10-27), changed in the Vercel dashboard, then the API redeployed (Vercel syncs above). Never add them to Infisical `prod` `/Api`: `api-sync` overwrites the destination, so Infisical's value would replace Vercel's. Local runs leave them unset (no minimum).
