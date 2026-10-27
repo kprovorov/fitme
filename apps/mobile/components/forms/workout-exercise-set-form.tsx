@@ -74,6 +74,12 @@ const CELL_CLASS = "h-10 flex-1";
 /** A cell's input: Input's field, sized and set for numbers. */
 const INPUT_CLASS = "min-h-10 px-1 text-center text-mono-body";
 
+/** Width of a set table's `#` column: the set number, or a logged set's check. */
+export const SET_NUMBER_COLUMN_CLASS = "w-7";
+
+/** Width of a set table's target column, `12×45kg` at body size. */
+export const SET_TARGET_COLUMN_CLASS = "w-20";
+
 /**
  * Width of the check column, a small circle Button's diameter; the table's
  * header lines up with it.

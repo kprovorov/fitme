@@ -7,7 +7,9 @@ import type { SavedWorkoutSessionExerciseSet } from "~/hooks/queries/workout-ses
 import { cn } from "~/lib/utils";
 import {
   SET_CHECK_COLUMN_CLASS,
+  SET_NUMBER_COLUMN_CLASS,
   SET_TABLE_MAX_FONT_SCALE,
+  SET_TARGET_COLUMN_CLASS,
 } from "../forms/workout-exercise-set-form";
 import { Button } from "../ui/button";
 import { Text } from "../ui/text";
@@ -108,8 +110,8 @@ export default function WorkoutSessionExerciseSetsTableView({
           className="flex-row items-center gap-sm"
           importantForAccessibility="no-hide-descendants"
         >
-          <ColumnLabel className="w-7">#</ColumnLabel>
-          <ColumnLabel className="w-20">target</ColumnLabel>
+          <ColumnLabel className={SET_NUMBER_COLUMN_CLASS}>#</ColumnLabel>
+          <ColumnLabel className={SET_TARGET_COLUMN_CLASS}>target</ColumnLabel>
           <ColumnLabel className="flex-1">reps</ColumnLabel>
           <ColumnLabel className="flex-1">{weightLabel}</ColumnLabel>
           <View className={SET_CHECK_COLUMN_CLASS} />

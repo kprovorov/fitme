@@ -12,7 +12,9 @@ import { formatSetTarget, formatSetWeight } from "~/lib/set-inputs";
 import { cn } from "~/lib/utils";
 import {
   SET_CHECK_COLUMN_CLASS,
+  SET_NUMBER_COLUMN_CLASS,
   SET_TABLE_MAX_FONT_SCALE,
+  SET_TARGET_COLUMN_CLASS,
 } from "../forms/workout-exercise-set-form";
 import { Button } from "../ui/button";
 import { Card, CardTitle } from "../ui/card";
@@ -109,10 +111,10 @@ function SessionTable({
           importantForAccessibility="no-hide-descendants"
         >
           <Row>
-            <Cell className="w-7" header>
+            <Cell className={SET_NUMBER_COLUMN_CLASS} header>
               #
             </Cell>
-            <Cell className="w-20" header>
+            <Cell className={SET_TARGET_COLUMN_CLASS} header>
               target
             </Cell>
             <Cell className="flex-1" header>
@@ -130,7 +132,7 @@ function SessionTable({
             set.weight_completed === null
               ? null
               : formatSetWeight(set.weight_completed);
-          const done = [
+          const loggedText = [
             `${set.reps_completed} reps`,
             weight === null ? null : `${weight} ${weightLabel ?? ""}`.trim(),
           ]
@@ -138,11 +140,17 @@ function SessionTable({
             .join(", ");
           return (
             <Row
-              accessibilityLabel={`Set ${set.order}: ${done}. Target ${target}`}
+              accessibilityLabel={[
+                `Set ${set.order}: ${loggedText}`,
+                // A set added during the session had no target.
+                target === "–" ? null : `Target ${target}`,
+              ]
+                .filter(Boolean)
+                .join(". ")}
               key={set.id}
             >
-              <Cell className="w-7">{`#${set.order}`}</Cell>
-              <Cell className="w-20">{target}</Cell>
+              <Cell className={SET_NUMBER_COLUMN_CLASS}>{`#${set.order}`}</Cell>
+              <Cell className={SET_TARGET_COLUMN_CLASS}>{target}</Cell>
               <Cell className="flex-1">{set.reps_completed}</Cell>
               <Cell className="flex-1">{weight ?? "–"}</Cell>
             </Row>
