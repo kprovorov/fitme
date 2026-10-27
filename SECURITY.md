@@ -19,7 +19,7 @@ traffic.
 - The deployed apps built from this repository:
   - the REST API (`apps/api`, api.fitmeproject.com)
   - Arnold, Fitme's AI (`apps/arnold`)
-  - the Library API (`apps/library`, library.fitmeproject.com, and exercises.fitmeproject.com, an alias kept until the minimum version gate cuts off older builds)
+  - the Library API (`apps/library`, library.fitmeproject.com)
   - the MCP server (`apps/mcp`, mcp.fitmeproject.com)
   - the webhooks app (`apps/webhooks`)
   - the web app (`apps/web`)
