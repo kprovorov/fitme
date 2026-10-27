@@ -340,6 +340,10 @@ export const workoutSessions = pgTable(
     uniqueIndex("workout_sessions_one_open_per_workout_idx")
       .using("btree", table.workoutId.asc().nullsLast().op("uuid_ops"))
       .where(sql`(finished_at IS NULL)`),
+    index("workout_sessions_plan_id_idx").using(
+      "btree",
+      table.planId.asc().nullsLast().op("uuid_ops")
+    ),
     index("workout_sessions_user_id_idx").using(
       "btree",
       table.userId.asc().nullsLast().op("text_ops")
@@ -391,6 +395,10 @@ export const workouts = pgTable(
     }).defaultNow(),
   },
   (table) => [
+    index("workouts_plan_id_idx").using(
+      "btree",
+      table.planId.asc().nullsLast().op("uuid_ops")
+    ),
     foreignKey({
       columns: [table.planId],
       foreignColumns: [plans.id],
