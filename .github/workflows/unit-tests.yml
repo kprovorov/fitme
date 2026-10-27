@@ -82,6 +82,17 @@ jobs:
             exit 1
           fi
 
+      # New high advisories in production dependencies show on every pull
+      # request without blocking it (FIT-345). Accepted ones are listed, with
+      # their reason, under auditConfig.ignoreGhsas in pnpm-workspace.yaml.
+      - name: Dependency audit (non-blocking)
+        continue-on-error: true
+        run: |
+          if ! pnpm audit --prod --audit-level high; then
+            echo "::warning title=Dependency audit::pnpm audit --prod found a high advisory: fix it, or accept it with a reason under auditConfig.ignoreGhsas in pnpm-workspace.yaml"
+            exit 1
+          fi
+
   # The backstop for the pre-commit scan (.husky/pre-commit), which a machine
   # without gitleaks skips: every commit the pull request adds, with
   # .gitleaks.toml's rules and allowlist.

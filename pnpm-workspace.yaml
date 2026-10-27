@@ -51,3 +51,17 @@ ignoredBuiltDependencies:
 # the splash never hides. Drop the patch once uniwind exports it (FIT-170).
 patchedDependencies:
   uniwind@1.12.2: patches/uniwind@1.12.2.patch
+
+# Advisories accepted for `pnpm audit` (FIT-345). Both come only through
+# apps__mobile > expo > @expo/cli, the dev and build-time CLI, never the app
+# binary. Recheck on every Expo SDK or patch bump and drop each line once it
+# no longer shows up.
+auditConfig:
+  ignoreGhsas:
+    # zod 3.25.76: @expo/cli asks for zod ^3.25.76, and there is no fixed 3.x
+    # (the fix is zod >= 4.6.6). Forcing zod 4 on the CLI would likely break
+    # it. Drop once @expo/cli moves to zod 4.
+    - GHSA-mrhx-c7xc-m3w5
+    # node-forge 1.4.0: no patched release (accepted in FIT-330). Drop once
+    # node-forge ships a fix and @expo/cli is on it.
+    - GHSA-86w9-cpqp-85rv
