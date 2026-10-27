@@ -501,10 +501,14 @@ const COMMAND_PREFIXES = new Set(["!", "do", "elif", "else", "then"]);
 // `( … ) &`, `{ …; } &`) included. Function bodies never run, so they're
 // left out, and so are a `case`'s subject and patterns (`timeout) …;;`).
 // Each `for` / `select` header (`name in …`) is kept apart, as its word
-// tokens, raw text included.
+// tokens, raw text included. What sets a shell variable is kept apart too,
+// function bodies included (a helper runs once it's called): each simple
+// command's words and each leading `NAME=…` assignment.
 class Parser {
   constructor() {
     this.frames = [this.frame(null, false)];
+    this.assignments = [];
+    this.everyCommand = [];
     this.loops = [];
     this.words = [];
     this.definesFunction = false;
@@ -546,7 +550,12 @@ class Parser {
     while (this.frames.length > 1) {
       this.close();
     }
-    return { commands: this.top.commands, loops: this.loops };
+    return {
+      assignments: this.assignments,
+      commands: this.top.commands,
+      everyCommand: this.everyCommand,
+      loops: this.loops,
+    };
   }
 
   word(token) {
@@ -575,7 +584,9 @@ class Parser {
       this.top.loopHeader = [];
     } else if (value === this.top.closer) {
       this.close();
-    } else if (!(ASSIGNMENT.test(value) || COMMAND_PREFIXES.has(value))) {
+    } else if (ASSIGNMENT.test(value)) {
+      this.assignments.push(value);
+    } else if (!COMMAND_PREFIXES.has(value)) {
       this.words.push(value);
     }
   }
@@ -661,6 +672,7 @@ class Parser {
     const command = { background: false, operator, words: this.words };
     this.top.commands.push(command);
     this.top.list.push(command);
+    this.everyCommand.push(this.words);
     this.words = [];
   }
 }
@@ -883,6 +895,34 @@ const loopsOverBareVariable = (header) => {
   );
 };
 
+// zsh ties the lowercase array `path` to `PATH`: setting it replaces the
+// command search path. `path+=(dir)` only appends, so it's left alone.
+const PATH_ASSIGNMENT = /^path(\[[^\]]*\])?=/;
+// Builtins whose operands name the variables they set (`local path=x`,
+// `typeset -a path`, `read -r path`).
+const VARIABLE_SETTERS = new Set([
+  "declare",
+  "export",
+  "float",
+  "integer",
+  "local",
+  "private",
+  "read",
+  "readonly",
+  "typeset",
+]);
+const isPathVariable = (word) => word === "path" || PATH_ASSIGNMENT.test(word);
+
+// Whether anything sets zsh's `path`: a `path=…` assignment, a builtin
+// declaring it, or a `for` / `select` naming it as its loop variable.
+const setsZshPath = ({ assignments, everyCommand, loops }) =>
+  assignments.some((word) => PATH_ASSIGNMENT.test(word)) ||
+  everyCommand.some(
+    (words) =>
+      VARIABLE_SETTERS.has(words[0]) && words.slice(1).some(isPathVariable)
+  ) ||
+  loops.some(([name]) => name?.value === "path");
+
 // Package runners that run the command named after them (`pnpm exec x`).
 const RUNNERS = new Set(["bunx", "npx", "pnpm", "yarn"]);
 
@@ -1068,8 +1108,16 @@ const WORD_SPLIT_REASON =
 // Each rule: its name, the reason the agent is shown, and whether it's broken
 // by a simple command (`name` is the command run, past any wrapper), by a
 // pipeline (`scope: "pipeline"`, its simple commands) or by a `for` /
-// `select` header (`scope: "loop"`, its word tokens).
+// `select` header (`scope: "loop"`, its word tokens), or by the whole parsed
+// command (`scope: "parsed"`).
 const CHECKS = [
+  {
+    breaks: setsZshPath,
+    reason:
+      "AGENTS.md Shell: zsh ties the lowercase `path` array to `PATH`, so `path=…`, `local path`, `for path in …` or `read path` replaces the command search path and every later command fails: name it `file`, `dir` or `p`.",
+    rule: "zsh-path",
+    scope: "parsed",
+  },
   {
     breaks: ({ name, words, operator }) => {
       if (name !== "cd" || !CD_CHAINS.has(operator)) {
@@ -1152,7 +1200,13 @@ const parse = (command) => {
     return { ...parsed, substitutions: lexer.substitutions };
   } catch (error) {
     if (error instanceof UnterminatedError) {
-      return { commands: [], loops: [], substitutions: [] };
+      return {
+        assignments: [],
+        commands: [],
+        everyCommand: [],
+        loops: [],
+        substitutions: [],
+      };
     }
     throw error;
   }
@@ -1179,6 +1233,7 @@ const brokenRules = (command, options) => {
   const scopes = {
     command: commands,
     loop: parsed.loops,
+    parsed: [parsed],
     pipeline: pipelines(commands),
   };
   const rules = new Set(
