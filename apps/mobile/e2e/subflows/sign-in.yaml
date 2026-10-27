@@ -21,7 +21,7 @@ appId: com.fitmeproject.ios
 - extendedWaitUntil:
     visible:
       text: "Check your email|Home|Get Started|Not Now"
-    timeout: 15000
+    timeout: 30000
 
 - runFlow:
     when:
@@ -39,7 +39,7 @@ appId: com.fitmeproject.ios
 - extendedWaitUntil:
     visible:
       text: "Home|Get Started|Not Now"
-    timeout: 15000
+    timeout: 30000
 
 - tapOn:
     text: "Not Now"

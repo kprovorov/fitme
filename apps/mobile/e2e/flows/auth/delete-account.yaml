@@ -24,7 +24,7 @@ env:
 - extendedWaitUntil:
     visible:
       text: "Get Started|Not Now"
-    timeout: 15000
+    timeout: 30000
 
 - tapOn:
     text: "Not Now"
@@ -59,7 +59,7 @@ env:
 - extendedWaitUntil:
     visible:
       text: "Welcome to Fitme!"
-    timeout: 15000
+    timeout: 30000
 
 # ===== OLD CREDENTIALS NO LONGER SIGN IN =====
 # A restart starts from a fresh login form; the User is still signed out

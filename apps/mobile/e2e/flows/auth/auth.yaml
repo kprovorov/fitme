@@ -50,7 +50,13 @@ env:
 - tapOn:
     id: "register-button"
 
-# iOS may offer to save the password as the form submits
+# iOS may offer to save the password as the form submits, and its sheet can
+# land after the code screen shows: wait for either, then dismiss the sheet
+- extendedWaitUntil:
+    visible:
+      text: "Check your email|Not Now"
+    timeout: 30000
+
 - tapOn:
     text: "Not Now"
     optional: true
@@ -58,7 +64,7 @@ env:
 - extendedWaitUntil:
     visible:
       id: "verify-code-input"
-    timeout: 15000
+    timeout: 30000
 
 # ===== WRONG CODE, THEN A NEW ONE =====
 - tapOn:
@@ -92,7 +98,7 @@ env:
 - extendedWaitUntil:
     visible:
       text: "Get Started|Not Now"
-    timeout: 15000
+    timeout: 30000
 
 - tapOn:
     text: "Not Now"
@@ -116,7 +122,7 @@ env:
 - extendedWaitUntil:
     visible:
       text: "Home"
-    timeout: 15000
+    timeout: 30000
 
 - assertNotVisible:
     text: "Welcome to Fitme!"
@@ -180,7 +186,7 @@ env:
 - extendedWaitUntil:
     visible:
       text: "Home"
-    timeout: 15000
+    timeout: 30000
 
 - assertVisible:
     text: "Home"

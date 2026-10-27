@@ -277,8 +277,9 @@ jobs:
         # No `--`: pnpm forwards it, and Maestro would read the options after
         # it as flow paths.
         # Maestro's debug output (each flow's commands, logs and a screenshot
-        # where it failed) goes into maestro-debug, uploaded with the results.
-        run: pnpm test:e2e --format junit --output e2e-results.xml --debug-output maestro-debug
+        # where it failed) goes into the runner's temp directory, uploaded as
+        # its own artifact.
+        run: pnpm test:e2e --format junit --output e2e-results.xml --debug-output "$RUNNER_TEMP/maestro-debug"
         env:
           # Maestro builds and starts its XCTest driver first, which takes
           # close to its 2-minute default on this runner (ms).
@@ -305,9 +306,19 @@ jobs:
           name: e2e-results
           path: |
             apps/mobile/e2e-results.xml
-            apps/mobile/maestro-debug
             apps/mobile/xcodebuild.log
             apps/api/e2e-api.log
+
+      # Also ~/.maestro/tests, where Maestro writes it by default, in case
+      # --debug-output is ignored.
+      - name: Upload Maestro debug output
+        uses: actions/upload-artifact@v7
+        if: always()
+        with:
+          name: maestro-debug
+          path: |
+            ${{ runner.temp }}/maestro-debug
+            ~/.maestro/tests
 
       - name: Delete Supabase preview branch
         if: always()
