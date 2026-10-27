@@ -71,7 +71,7 @@ export const formatSetWeight = (weight: number) =>
   String(Math.round(weight * 100) / 100).replace(".", ",");
 
 /**
- * A set's recommendation as its table's REC cell, reps × weight: `12×45 kg`,
+ * A set's recommendation as its table's target cell, reps × weight: `12×45 kg`,
  * `12` without a weight, `45 kg` without reps, `–` without either.
  */
 export const formatSetTarget = (

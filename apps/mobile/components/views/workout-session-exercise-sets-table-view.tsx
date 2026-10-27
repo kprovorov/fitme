@@ -44,10 +44,7 @@ function ColumnLabel({
   return (
     <Text
       adjustsFontSizeToFit
-      className={cn(
-        "text-center text-mono-caption-1-semibold text-primary",
-        className
-      )}
+      className={cn("text-center text-mono-body text-primary", className)}
       maxFontSizeMultiplier={SET_TABLE_MAX_FONT_SCALE}
       numberOfLines={1}
     >
@@ -111,8 +108,8 @@ export default function WorkoutSessionExerciseSetsTableView({
           className="flex-row items-center gap-sm"
           importantForAccessibility="no-hide-descendants"
         >
-          <ColumnLabel className="w-7">set</ColumnLabel>
-          <ColumnLabel className="w-18">rec</ColumnLabel>
+          <ColumnLabel className="w-7">#</ColumnLabel>
+          <ColumnLabel className="w-20">target</ColumnLabel>
           <ColumnLabel className="flex-1">reps</ColumnLabel>
           <ColumnLabel className="flex-1">{weightLabel}</ColumnLabel>
           <View className={SET_CHECK_COLUMN_CLASS} />

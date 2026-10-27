@@ -34,7 +34,7 @@ interface WorkoutSessionExerciseSetRowViewProps {
   onSetLogged?: (set: SavedWorkoutSessionExerciseSet) => void;
   order?: number;
   sessionId: string;
-  /** The User's weight unit, for the REC cell. */
+  /** The User's weight unit, for the target cell. */
   weightLabel: string | undefined;
   workoutSessionExerciseSet: WorkoutSessionExerciseSet | null;
 }
@@ -206,13 +206,13 @@ export default function WorkoutSessionExerciseSetRowView({
             <View className="w-7 items-center">
               <SymbolImage
                 accessibilityLabel={`Set ${setOrder}, logged`}
-                className="text-footnote-emphasized text-primary"
+                className="text-body-emphasized text-primary"
                 name="checkmark"
               />
             </View>
           ) : (
             <Text
-              className="w-7 text-center text-mono-footnote"
+              className="w-7 text-center text-mono-body"
               maxFontSizeMultiplier={SET_TABLE_MAX_FONT_SCALE}
             >
               #{setOrder}
@@ -221,7 +221,7 @@ export default function WorkoutSessionExerciseSetRowView({
           <Text
             adjustsFontSizeToFit
             className={cn(
-              "w-18 text-center text-mono-footnote",
+              "w-20 text-center text-mono-body",
               showsLogged && "text-muted-foreground"
             )}
             maxFontSizeMultiplier={SET_TABLE_MAX_FONT_SCALE}

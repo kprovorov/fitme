@@ -26,7 +26,7 @@ interface WorkoutSessionExerciseSetFormProps {
   error?: string | null;
   isDone?: boolean;
   isEditing?: boolean;
-  /** The row's cells before the inputs: the set number and PREVIOUS. */
+  /** The row's cells before the inputs: the set number and its target. */
   leading?: ReactNode;
   onEdit: () => void;
   onSubmit: (
@@ -72,7 +72,7 @@ export const SET_TABLE_MAX_FONT_SCALE = 1.4;
 const CELL_CLASS = "h-10 flex-1";
 
 /** A cell's input: Input's field, sized and set for numbers. */
-const INPUT_CLASS = "min-h-10 px-1 text-center text-mono-subhead";
+const INPUT_CLASS = "min-h-10 px-1 text-center text-mono-body";
 
 /**
  * Width of the check column, a small circle Button's diameter; the table's
@@ -126,7 +126,7 @@ function LoggedValue({ value }: { value?: string }) {
       )}
     >
       <Text
-        className="text-foreground text-mono-subhead"
+        className="text-foreground text-mono-body"
         maxFontSizeMultiplier={SET_TABLE_MAX_FONT_SCALE}
         numberOfLines={1}
       >
