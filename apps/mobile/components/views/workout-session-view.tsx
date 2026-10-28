@@ -217,6 +217,7 @@ export default function WorkoutSessionView({
                 icon="xmark"
                 onPress={handleCloseModal}
                 shape="circle"
+                size="lg"
                 variant="ghost"
               />
             </HStack>

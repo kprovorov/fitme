@@ -48,6 +48,7 @@ function MobileMenu() {
         onClick={toggle}
         ref={triggerRef}
         shape="circle"
+        size="lg"
         variant="ghost"
       />
       {isOpen ? (

@@ -135,6 +135,7 @@ const FinishWorkoutSuggestionDialog = ({
           icon="xmark"
           onPress={handleKeepTraining}
           shape="circle"
+          size="lg"
           testID="finish-workout-suggestion-close"
           variant="ghost"
         />

@@ -130,16 +130,16 @@ Each text Primitive is one HIG style and one color. `H1`–`H4`, `P`, `Muted` an
 
 Button heights, measured from the native SwiftUI buttons on iOS 27 with our labels (Liquid Glass and the solid fallback styles draw the same box), rounded to whole points. A circle's diameter is its own size: it holds a glyph, which is shorter than a label. The native Button sizes itself; the tokens are for what can't (a `ghost` Button, which takes them so it lines up with its siblings) and for web and Figma (`Size/button-pill-default`) to copy.
 
-| Token                          | Value | `Button`                            | Measured (pt) |
-| ------------------------------ | ----- | ----------------------------------- | ------------- |
-| `--size-button-pill-sm`        | 31px  | `size="sm"` (`controlSize(.small)`) | 30.67         |
-| `--size-button-pill-default`   | 53px  | `size="default"` (`.large`)         | 53.33         |
-| `--size-button-pill-lg`        | 57px  | `size="lg"` (`.extraLarge`)         | 57.33         |
-| `--size-button-circle-sm`      | 25px  | `shape="circle" size="sm"`          | 25.00         |
-| `--size-button-circle-default` | 47px  | `shape="circle"`                    | 46.67         |
-| `--size-button-circle-lg`      | 50px  | `shape="circle" size="lg"`          | 49.67         |
+| Token                          | Value | `Button`                                       | Measured (pt) |
+| ------------------------------ | ----- | ---------------------------------------------- | ------------- |
+| `--size-button-pill-sm`        | 31px  | `size="sm"` (`controlSize(.small)`, Small)     | 30.67         |
+| `--size-button-pill-default`   | 37px  | `size="default"` (`.regular`, Medium)          | 37.33         |
+| `--size-button-pill-lg`        | 57px  | `size="lg"` (`.large`, Large)                  | 57.33         |
+| `--size-button-circle-sm`      | 25px  | `shape="circle" size="sm"`                     | 25.00         |
+| `--size-button-circle-default` | 31px  | `shape="circle"`                               | 30.67         |
+| `--size-button-circle-lg`      | 50px  | `shape="circle" size="lg"`                     | 49.67         |
 
-On iOS 27 `.large` and `.extraLarge` draw the same padding, so `lg` is taller only by its Title 3 label. Re-measure when the label fonts, the control sizes or the iOS version change: render each size in a throwaway `__DEV__` screen, log the `onLayout` height of a `View` around each Button, then update `tokens.css`, the Figma `Size` variables and this table together.
+The sizes follow Apple's iOS 27 kit (Small, Medium, Large), as the Figma Button set does (FIT-366). On iOS 27 `.large` and `.extraLarge` draw the same box. Web and site pills take the kit's horizontal padding: `px-2.5`, `px-3`, `px-5`. Re-measure when the label fonts, the control sizes or the iOS version change: render each size in a throwaway `__DEV__` screen, log the `onLayout` height of a `View` around each Button, then update `tokens.css`, the Figma `Size` variables and this table together.
 
 ## The literal check
 
@@ -216,7 +216,7 @@ Load `animate-expo` for anything that moves; it holds the springs, curves and re
 
 ## Accessibility
 
-- Tap targets are at least 44×44 pt. A circle `Button` is `size="default"` (47 pt) unless it sits inside a row that is itself the target; `sm` (25 pt) and `sm` pills (31 pt) are for those rows and dense toolbars. A small `Pressable` (a `SymbolImage` you tap) gets `hitSlop` up to 44 pt instead of a bigger visual.
+- Tap targets are at least 44×44 pt. A standalone circle `Button` is `size="lg"` (50 pt): `default` (31 pt) and `sm` (25 pt) circles are for rows that are themselves the target and dense toolbars, like `sm` pills (31 pt). A small `Pressable` (a `SymbolImage` you tap) gets `hitSlop` up to 44 pt instead of a bigger visual.
 - Every icon-only control has an `accessibilityLabel` (a circle `Button` won't type-check without one). Headings come from `H1`–`H4`, so VoiceOver finds them.
 - Information is never color alone: a failed or completed set says so in text or a symbol too.
 - Reduced motion ships with the animation, not later: `useReducedMotion()` or `reduceMotion: ReduceMotion.System`. Fewer and gentler, not zero: keep the opacity change, drop the movement.

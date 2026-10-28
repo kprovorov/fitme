@@ -84,8 +84,8 @@ const SWIFT_UI_CONTROL_SIZE: Record<
   ButtonSize,
   "mini" | "small" | "regular" | "large" | "extraLarge"
 > = {
-  default: "large",
-  lg: "extraLarge",
+  default: "regular",
+  lg: "large",
   sm: "small",
 };
 

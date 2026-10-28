@@ -23,17 +23,17 @@ const buttonVariants = cva(
   {
     compoundVariants: [
       {
-        className: "h-(--size-button-pill-sm) px-3",
+        className: "h-(--size-button-pill-sm) px-2.5",
         shape: "pill",
         size: "sm",
       },
       {
-        className: "h-(--size-button-pill-default) px-4",
+        className: "h-(--size-button-pill-default) px-3",
         shape: "pill",
         size: "default",
       },
       {
-        className: "h-(--size-button-pill-lg) px-6",
+        className: "h-(--size-button-pill-lg) px-5",
         shape: "pill",
         size: "lg",
       },
