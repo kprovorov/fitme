@@ -1,9 +1,44 @@
-import { describe, expect, it } from "@jest/globals";
+import { describe, expect, it, jest } from "@jest/globals";
 import { render, screen } from "@testing-library/react-native";
 import { Badge } from "../badge";
 import { Text } from "../text";
 
-const VARIANTS = ["default", "secondary", "destructive", "muted"] as const;
+const VARIANTS = [
+  "default",
+  "secondary",
+  "destructive",
+  "muted",
+  "ghost",
+] as const;
+
+// The symbol, as a plain view carrying its props: what it draws from them
+// (size, weight, color from the class names) is SymbolImage's own
+jest.mock("~/components/symbol-image", () => {
+  const { View: MockView } =
+    jest.requireActual<typeof import("react-native")>("react-native");
+  return {
+    SymbolImage: (props: object) => <MockView {...props} testID="symbol" />,
+  };
+});
+
+/** The icon, hidden from accessibility, so queries must ask for it. */
+function symbol() {
+  return screen.getByTestId("symbol", { includeHiddenElements: true });
+}
+
+/** The badge's children in order: "symbol" for the icon, else the text. */
+function childOrder(): string[] {
+  const badge = screen.getByTestId("badge");
+  return badge.children.map((child) => {
+    if (typeof child === "string") {
+      return child;
+    }
+    const [first] = child.children;
+    const isIcon =
+      typeof first !== "string" && first?.props.testID === "symbol";
+    return isIcon ? "symbol" : String(child.props.children);
+  });
+}
 
 describe("Badge", () => {
   it("renders its label with the default variant", async () => {
@@ -89,7 +124,108 @@ describe("Badge", () => {
     expect(screen.getByLabelText("4 exercises")).toBeTruthy();
   });
 
-  it("takes only the four token variants", () => {
+  it("draws ghost with no fill and a muted-foreground label", async () => {
+    await render(
+      <Badge testID="badge" variant="ghost">
+        <Text>Optional</Text>
+      </Badge>
+    );
+
+    const classes = screen.getByTestId("badge").props.className.split(" ");
+    expect(classes.some((name: string) => name.startsWith("bg-"))).toBe(false);
+    expect(screen.getByText("Optional").props.className.split(" ")).toContain(
+      "text-muted-foreground"
+    );
+  });
+
+  it("draws no icon without one", async () => {
+    await render(
+      <Badge testID="badge">
+        <Text>New</Text>
+      </Badge>
+    );
+
+    expect(
+      screen.queryByTestId("symbol", { includeHiddenElements: true })
+    ).toBeNull();
+    expect(childOrder()).toEqual(["New"]);
+  });
+
+  it("puts the icon before the label by default", async () => {
+    await render(
+      <Badge icon="plus" testID="badge">
+        <Text>Add</Text>
+      </Badge>
+    );
+
+    expect(childOrder()).toEqual(["symbol", "Add"]);
+  });
+
+  it("puts the icon after the label when trailing", async () => {
+    await render(
+      <Badge icon="chevron.right" iconPosition="trailing" testID="badge">
+        <Text>More</Text>
+      </Badge>
+    );
+
+    expect(childOrder()).toEqual(["More", "symbol"]);
+  });
+
+  it("draws the icon in the label's text style, so at its size and weight", async () => {
+    await render(
+      <Badge icon="plus">
+        <Text>Add</Text>
+      </Badge>
+    );
+
+    expect(symbol().props.name).toBe("plus");
+    expect(symbol().props.className.split(" ")).toContain(
+      "text-footnote-emphasized"
+    );
+  });
+
+  it.each([
+    ["default", "text-primary-foreground"],
+    ["secondary", "text-secondary-foreground"],
+    ["destructive", "text-destructive"],
+    ["muted", "text-muted-foreground"],
+    // The one variant whose icon differs from its label
+    ["ghost", "text-foreground"],
+  ] as const)("draws %s's icon in %s", async (variant, color) => {
+    await render(
+      <Badge icon="plus" variant={variant}>
+        <Text>Add</Text>
+      </Badge>
+    );
+
+    expect(symbol().props.className.split(" ")).toContain(color);
+  });
+
+  it("hides the icon from accessibility, so VoiceOver reads only the label", async () => {
+    await render(
+      <Badge icon="plus">
+        <Text>Add</Text>
+      </Badge>
+    );
+
+    expect(symbol().parent?.props).toEqual(
+      expect.objectContaining({
+        accessibilityElementsHidden: true,
+        importantForAccessibility: "no-hide-descendants",
+      })
+    );
+    // Not reachable by a query that respects accessibility
+    expect(screen.queryByTestId("symbol")).toBeNull();
+  });
+
+  it("takes no icon with asChild, which has room for one element only", () => {
+    // Type-level: fails typecheck if asChild and icon can be combined
+    // @ts-expect-error asChild has no icon
+    const both = <Badge asChild icon="plus" />;
+    expect(both).toBeTruthy();
+  });
+
+  it("takes only the five token variants", () => {
     // Type-level: these fail typecheck if Badge grows its outline variant back
     // or takes another one.
     // @ts-expect-error outline was removed
