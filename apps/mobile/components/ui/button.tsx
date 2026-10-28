@@ -23,6 +23,7 @@ import {
   foregroundStyle,
   frame,
   opacity,
+  padding,
   shapes,
   tint,
   type ViewModifier,
@@ -100,9 +101,10 @@ const LABEL_FONT_CLASS: Record<ButtonSize, string> = {
 };
 
 /**
- * The native height of each size (`--size-button-*`): a pill's height, a
- * circle's diameter. Native styles size themselves; a ghost button has no
- * style to do it, so it takes the token and lines up with its siblings.
+ * The height of each size (`--size-button-*`, the iOS 27 kit's): a pill's
+ * height, a circle's diameter. A native style pads around its content, so the
+ * content is sized to land the button on it (`frameModifiers`); a ghost button
+ * has no style, so it takes the token itself.
  */
 const SIZE_CLASS: Record<ButtonShape, Record<ButtonSize, string>> = {
   circle: {
@@ -115,6 +117,30 @@ const SIZE_CLASS: Record<ButtonShape, Record<ButtonSize, string>> = {
     lg: "size-button-pill-lg",
     sm: "size-button-pill-sm",
   },
+};
+
+/**
+ * The vertical padding a native style puts around its content, both edges
+ * together, per control size: measured on iOS 27, the same for pills and
+ * circles (a circle is padded as much across), Liquid Glass and the solid
+ * styles.
+ */
+const NATIVE_PADDING: Record<ButtonSize, number> = {
+  default: 14,
+  lg: 30,
+  sm: 10,
+};
+
+/**
+ * How far our label's line box overhangs the kit's at each edge, at the
+ * default text size: its font's line height less the content height the kit
+ * leaves (the token less `NATIVE_PADDING`), halved. Measured on iOS 27 (in
+ * thirds of a point, the device pixel).
+ */
+const LABEL_OVERHANG: Record<ButtonSize, number> = {
+  default: 5 / 3,
+  lg: 11 / 3,
+  sm: 4 / 3,
 };
 
 /**
@@ -255,35 +281,55 @@ function buttonModifiers({
 }
 
 /**
- * Sizes the content where no native style does. A ghost button has no style to
- * give it a height, so it takes the native one from the token, and the whole
- * box is tappable. Below iOS 17 a circle can't get its shape from the style,
- * so it's framed at the token's diameter and paints its own circle (`fill`;
- * none for ghost). Other buttons need nothing.
+ * Sizes the content so the button lands on the token. A native style pads
+ * around its content and would grow around our labels, which are taller than
+ * the kit's. A text label is trimmed by its overhang (negative padding, so it
+ * draws unclipped and centered, and still grows the button with Dynamic Type
+ * or a second line); an icon or a hosted view is framed at the token less the
+ * padding, square in a circle. A ghost button has no style to give it a
+ * height, so it takes the token's, and the whole box is tappable. Below iOS 17
+ * a circle can't get its shape from the style, so it's framed at the token's
+ * diameter and paints its own circle (`fill`; none for ghost).
  */
 function frameModifiers({
   fill,
+  hasText,
   isCircle,
-  nativeHeight,
   paintsCircle,
+  size,
+  tokenHeight,
   variant,
 }: {
   fill: string | undefined;
+  hasText: boolean;
   isCircle: boolean;
-  nativeHeight: number | undefined;
   paintsCircle: boolean;
+  size: ButtonSize;
+  tokenHeight: number | undefined;
   variant: ButtonVariant;
 }): ViewModifier[] {
-  if (nativeHeight === undefined || !(paintsCircle || variant === "ghost")) {
+  if (tokenHeight === undefined) {
     return [];
+  }
+  const hasNativeStyle = !(paintsCircle || variant === "ghost");
+  if (hasNativeStyle) {
+    if (hasText) {
+      return [padding({ vertical: -LABEL_OVERHANG[size] })];
+    }
+    const content = tokenHeight - NATIVE_PADDING[size];
+    return [
+      frame(
+        isCircle ? { height: content, width: content } : { height: content }
+      ),
+    ];
   }
   return isCircle
     ? [
-        frame({ height: nativeHeight, width: nativeHeight }),
+        frame({ height: tokenHeight, width: tokenHeight }),
         ...(fill ? [background(fill, shapes.circle())] : []),
         contentShape(shapes.circle()),
       ]
-    : [frame({ minHeight: nativeHeight }), contentShape(shapes.capsule())];
+    : [frame({ minHeight: tokenHeight }), contentShape(shapes.capsule())];
 }
 
 const Button = (props: ButtonProps) => {
@@ -310,7 +356,7 @@ const Button = (props: ButtonProps) => {
 
   const theme = useSwiftUITheme();
   const labelFont = useSwiftUIFont(LABEL_FONT_CLASS[size]);
-  const nativeHeight = useResolveClassNames(SIZE_CLASS[shape][size]).height as
+  const tokenHeight = useResolveClassNames(SIZE_CLASS[shape][size]).height as
     | number
     | undefined;
   const contentColor = useContentColor(variant, contentColorClassName);
@@ -368,9 +414,11 @@ const Button = (props: ButtonProps) => {
       ghost: undefined,
       secondary: theme.secondary,
     }[variant],
+    hasText: label !== null,
     isCircle,
-    nativeHeight,
     paintsCircle,
+    size,
+    tokenHeight,
     variant,
   });
 
