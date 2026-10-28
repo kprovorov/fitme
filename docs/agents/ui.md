@@ -216,7 +216,7 @@ Load `animate-expo` for anything that moves; it holds the springs, curves and re
 
 ## Accessibility
 
-- Tap targets are at least 44×44 pt. A circle `Button` is `size="default"` (47 pt) unless it sits inside a row that is itself the target; `sm` (25 pt) and `sm` pills (31 pt) are for those rows and dense toolbars. A small `Pressable` (a `SymbolImage` you tap) gets `hitSlop` up to 44 pt instead of a bigger visual.
+- Tap targets are at least 44×44 pt. A standalone circle `Button` is `size="lg"` (50 pt): `default` (31 pt) and `sm` (25 pt) circles are for rows that are themselves the target and dense toolbars, like `sm` pills (31 pt). A small `Pressable` (a `SymbolImage` you tap) gets `hitSlop` up to 44 pt instead of a bigger visual.
 - Every icon-only control has an `accessibilityLabel` (a circle `Button` won't type-check without one). Headings come from `H1`–`H4`, so VoiceOver finds them.
 - Information is never color alone: a failed or completed set says so in text or a symbol too.
 - Reduced motion ships with the animation, not later: `useReducedMotion()` or `reduceMotion: ReduceMotion.System`. Fewer and gentler, not zero: keep the opacity change, drop the movement.
