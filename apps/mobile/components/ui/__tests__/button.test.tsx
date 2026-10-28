@@ -1,6 +1,7 @@
 import { describe, expect, it, jest } from "@jest/globals";
 import { render, screen } from "@testing-library/react-native";
 import type * as React from "react";
+import { View as HostedView } from "react-native";
 import type { ButtonVariant } from "~/components/ui/button";
 import { Button } from "~/components/ui/button";
 
@@ -30,6 +31,7 @@ jest.mock("@expo/ui/swift-ui/modifiers", () => {
     foregroundStyle: modifier("foregroundStyle"),
     frame: modifier("frame"),
     opacity: modifier("opacity"),
+    padding: modifier("padding"),
     shapes: { capsule: () => "capsule", circle: () => "circle" },
     tint: modifier("tint"),
   };
@@ -407,20 +409,34 @@ describe("Button", () => {
     ["lg", 17],
   ] as const;
 
+  // How far each size's label overhangs the kit's at each edge.
+  const LABEL_OVERHANG = [
+    ["sm", 4 / 3],
+    ["default", 5 / 3],
+    ["lg", 11 / 3],
+  ] as const;
+
   it.each(
-    NATIVE_CONTENT.flatMap(([size, content]) =>
+    LABEL_OVERHANG.flatMap(([size, overhang]) =>
       (["default", "secondary", "destructive"] as const).map(
-        (variant) => [variant, size, content] as const
+        (variant) => [variant, size, overhang] as const
       )
     )
   )(
-    "frames a native %s %s pill's content at the token minus the native padding",
-    async (variant, size, content) => {
+    "trims a native %s %s pill's label by its overhang, unframed",
+    async (variant, size, overhang) => {
       await render(<Button label="Save" size={size} variant={variant} />);
 
-      expect(modifierArgs("frame")).toContainEqual([{ height: content }]);
+      expect(modifierArgs("padding")).toEqual([[{ vertical: -overhang }]]);
+      expect(modifierArgs("frame")).toEqual([[{ maxWidth: 10_000 }]]);
     }
   );
+
+  it("trims a loading pill's hidden label, so it keeps its height", async () => {
+    await render(<Button isLoading label="Save" />);
+
+    expect(modifierArgs("padding")).toEqual([[{ vertical: -5 / 3 }]]);
+  });
 
   it.each(NATIVE_CONTENT)(
     "frames a native %s circle's icon in a square at the token minus the native padding",
@@ -438,13 +454,20 @@ describe("Button", () => {
       expect(modifierArgs("frame")).toEqual([
         [{ height: content, width: content }],
       ]);
+      expect(modifierArgs("padding")).toEqual([]);
     }
   );
 
-  it("keeps a loading pill at its framed height", async () => {
-    await render(<Button isLoading label="Save" />);
+  it("frames a native pill's hosted views at the token minus the native padding", async () => {
+    await render(
+      <Button variant="secondary">
+        <HostedView testID="logo" />
+      </Button>
+    );
 
-    expect(modifierArgs("frame")).toContainEqual([{ height: 33 }]);
+    expect(screen.getByTestId("logo")).toBeTruthy();
+    expect(modifierArgs("frame")).toEqual([[{ height: 33 }]]);
+    expect(modifierArgs("padding")).toEqual([]);
   });
 
   it("draws a pill as a capsule", async () => {

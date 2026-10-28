@@ -78,7 +78,7 @@
    * Button heights, the iOS 27 kit's (Button - Liquid Glass): sm `.small`
    * (Small), default `.regular` (Medium), lg `.large` (Large). A circle's
    * diameter equals its pill's height, as in the kit. Our labels are taller
-   * than the kit's, so the mobile Button frames its content to land the
+   * than the kit's, so the mobile Button sizes its content to land the
    * native button on these.
    */
   --size-button-pill-sm: 28px;
