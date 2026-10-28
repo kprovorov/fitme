@@ -75,18 +75,17 @@
   --radius-full: 9999px;
 
   /*
-   * Button heights, measured from the native SwiftUI buttons on iOS 27 and
-   * rounded to whole points: Liquid Glass and iOS 27's solid styles draw the
-   * same box. The solid styles before iOS 26 weren't measured. Each size is
-   * the iOS kit's: sm `.small` (Small), default `.regular` (Medium), lg
-   * `.large` (Large). A circle's diameter is its own: it holds a glyph, which
-   * is shorter than a label.
+   * Button heights, the iOS 27 kit's (Button - Liquid Glass): sm `.small`
+   * (Small), default `.regular` (Medium), lg `.large` (Large). A circle's
+   * diameter equals its pill's height, as in the kit. Our labels are taller
+   * than the kit's, so the mobile Button frames its content to land the
+   * native button on these.
    */
-  --size-button-pill-sm: 31px;
-  --size-button-pill-default: 37px;
-  --size-button-pill-lg: 57px;
-  --size-button-circle-sm: 25px;
-  --size-button-circle-default: 31px;
+  --size-button-pill-sm: 28px;
+  --size-button-pill-default: 34px;
+  --size-button-pill-lg: 50px;
+  --size-button-circle-sm: 28px;
+  --size-button-circle-default: 34px;
   --size-button-circle-lg: 50px;
 
   /*

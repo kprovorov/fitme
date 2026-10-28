@@ -100,9 +100,10 @@ const LABEL_FONT_CLASS: Record<ButtonSize, string> = {
 };
 
 /**
- * The native height of each size (`--size-button-*`): a pill's height, a
- * circle's diameter. Native styles size themselves; a ghost button has no
- * style to do it, so it takes the token and lines up with its siblings.
+ * The height of each size (`--size-button-*`, the iOS 27 kit's): a pill's
+ * height, a circle's diameter. A native style pads around its content, so the
+ * content is framed to land the button on it (`NATIVE_PADDING`); a ghost
+ * button has no style, so it takes the token itself.
  */
 const SIZE_CLASS: Record<ButtonShape, Record<ButtonSize, string>> = {
   circle: {
@@ -115,6 +116,18 @@ const SIZE_CLASS: Record<ButtonShape, Record<ButtonSize, string>> = {
     lg: "size-button-pill-lg",
     sm: "size-button-pill-sm",
   },
+};
+
+/**
+ * The vertical padding a native style puts around its content, both edges
+ * together, per control size: measured on iOS 27, the same for pills and
+ * circles (a circle is padded as much across). The content is framed at the
+ * token minus it.
+ */
+const NATIVE_PADDING: Record<ButtonSize, number> = {
+  default: 14,
+  lg: 30,
+  sm: 10,
 };
 
 /**
@@ -255,27 +268,40 @@ function buttonModifiers({
 }
 
 /**
- * Sizes the content where no native style does. A ghost button has no style to
- * give it a height, so it takes the native one from the token, and the whole
- * box is tappable. Below iOS 17 a circle can't get its shape from the style,
- * so it's framed at the token's diameter and paints its own circle (`fill`;
- * none for ghost). Other buttons need nothing.
+ * Sizes the content so the button lands on the token. A native style pads
+ * around its content and would grow around our labels, which are taller than
+ * the kit's, so the content is framed at the token minus that padding (a
+ * label overflows the frame unclipped, centred). A ghost button has no style
+ * to give it a height, so it takes the token's, and the whole box is
+ * tappable. Below iOS 17 a circle can't get its shape from the style, so it's
+ * framed at the token's diameter and paints its own circle (`fill`; none for
+ * ghost).
  */
 function frameModifiers({
   fill,
   isCircle,
   nativeHeight,
   paintsCircle,
+  size,
   variant,
 }: {
   fill: string | undefined;
   isCircle: boolean;
   nativeHeight: number | undefined;
   paintsCircle: boolean;
+  size: ButtonSize;
   variant: ButtonVariant;
 }): ViewModifier[] {
-  if (nativeHeight === undefined || !(paintsCircle || variant === "ghost")) {
+  if (nativeHeight === undefined) {
     return [];
+  }
+  if (!(paintsCircle || variant === "ghost")) {
+    const content = nativeHeight - NATIVE_PADDING[size];
+    return [
+      frame(
+        isCircle ? { height: content, width: content } : { height: content }
+      ),
+    ];
   }
   return isCircle
     ? [
@@ -371,6 +397,7 @@ const Button = (props: ButtonProps) => {
     isCircle,
     nativeHeight,
     paintsCircle,
+    size,
     variant,
   });
 

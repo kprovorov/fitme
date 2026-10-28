@@ -190,13 +190,13 @@ describe("spacing and radius", () => {
 
 describe("size", () => {
   it.each([
-    ["button-pill-sm", "31px"],
-    ["button-pill-default", "37px"],
-    ["button-pill-lg", "57px"],
-    ["button-circle-sm", "25px"],
-    ["button-circle-default", "31px"],
+    ["button-pill-sm", "28px"],
+    ["button-pill-default", "34px"],
+    ["button-pill-lg", "50px"],
+    ["button-circle-sm", "28px"],
+    ["button-circle-default", "34px"],
     ["button-circle-lg", "50px"],
-  ])("%s is %s, the native iOS button's height", (name, value) => {
+  ])("%s is %s, the iOS 27 kit button's height", (name, value) => {
     expect(tokenValue("size", name)).toBe(value);
   });
 

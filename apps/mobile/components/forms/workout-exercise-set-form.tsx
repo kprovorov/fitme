@@ -89,7 +89,7 @@ export const SET_CHECK_COLUMN_CLASS =
 
 /**
  * How far the check column's tap area reaches past a small circle Button
- * (25 pt), so the target is at least 44 pt.
+ * (28 pt), so the target is at least 44 pt.
  */
 const CHECK_HIT_SLOP = 10;
 

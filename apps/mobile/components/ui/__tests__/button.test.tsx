@@ -400,6 +400,53 @@ describe("Button", () => {
     }
   });
 
+  // The size token stands in at 47; the native padding is 10 / 14 / 30.
+  const NATIVE_CONTENT = [
+    ["sm", 37],
+    ["default", 33],
+    ["lg", 17],
+  ] as const;
+
+  it.each(
+    NATIVE_CONTENT.flatMap(([size, content]) =>
+      (["default", "secondary", "destructive"] as const).map(
+        (variant) => [variant, size, content] as const
+      )
+    )
+  )(
+    "frames a native %s %s pill's content at the token minus the native padding",
+    async (variant, size, content) => {
+      await render(<Button label="Save" size={size} variant={variant} />);
+
+      expect(modifierArgs("frame")).toContainEqual([{ height: content }]);
+    }
+  );
+
+  it.each(NATIVE_CONTENT)(
+    "frames a native %s circle's icon in a square at the token minus the native padding",
+    async (size, content) => {
+      await render(
+        <Button
+          accessibilityLabel="Add"
+          icon="plus"
+          shape="circle"
+          size={size}
+          variant="secondary"
+        />
+      );
+
+      expect(modifierArgs("frame")).toEqual([
+        [{ height: content, width: content }],
+      ]);
+    }
+  );
+
+  it("keeps a loading pill at its framed height", async () => {
+    await render(<Button isLoading label="Save" />);
+
+    expect(modifierArgs("frame")).toContainEqual([{ height: 33 }]);
+  });
+
   it("draws a pill as a capsule", async () => {
     await render(<Button label="Save" />);
 
