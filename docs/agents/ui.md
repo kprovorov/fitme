@@ -130,16 +130,16 @@ Each text Primitive is one HIG style and one color. `H1`–`H4`, `P`, `Muted` an
 
 Button heights, measured from the native SwiftUI buttons on iOS 27 with our labels (Liquid Glass and the solid fallback styles draw the same box), rounded to whole points. A circle's diameter is its own size: it holds a glyph, which is shorter than a label. The native Button sizes itself; the tokens are for what can't (a `ghost` Button, which takes them so it lines up with its siblings) and for web and Figma (`Size/button-pill-default`) to copy.
 
-| Token                          | Value | `Button`                            | Measured (pt) |
-| ------------------------------ | ----- | ----------------------------------- | ------------- |
-| `--size-button-pill-sm`        | 31px  | `size="sm"` (`controlSize(.small)`) | 30.67         |
-| `--size-button-pill-default`   | 53px  | `size="default"` (`.large`)         | 53.33         |
-| `--size-button-pill-lg`        | 57px  | `size="lg"` (`.extraLarge`)         | 57.33         |
-| `--size-button-circle-sm`      | 25px  | `shape="circle" size="sm"`          | 25.00         |
-| `--size-button-circle-default` | 47px  | `shape="circle"`                    | 46.67         |
-| `--size-button-circle-lg`      | 50px  | `shape="circle" size="lg"`          | 49.67         |
+| Token                          | Value | `Button`                                       | Measured (pt) |
+| ------------------------------ | ----- | ---------------------------------------------- | ------------- |
+| `--size-button-pill-sm`        | 31px  | `size="sm"` (`controlSize(.small)`, Small)     | 30.67         |
+| `--size-button-pill-default`   | 37px  | `size="default"` (`.regular`, Medium)          | 37.33         |
+| `--size-button-pill-lg`        | 57px  | `size="lg"` (`.large`, Large)                  | 57.33         |
+| `--size-button-circle-sm`      | 25px  | `shape="circle" size="sm"`                     | 25.00         |
+| `--size-button-circle-default` | 31px  | `shape="circle"`                               | 30.67         |
+| `--size-button-circle-lg`      | 50px  | `shape="circle" size="lg"`                     | 49.67         |
 
-On iOS 27 `.large` and `.extraLarge` draw the same padding, so `lg` is taller only by its Title 3 label. Re-measure when the label fonts, the control sizes or the iOS version change: render each size in a throwaway `__DEV__` screen, log the `onLayout` height of a `View` around each Button, then update `tokens.css`, the Figma `Size` variables and this table together.
+The sizes follow Apple's iOS 27 kit (Small, Medium, Large), as the Figma Button set does (FIT-366). On iOS 27 `.large` and `.extraLarge` draw the same box, so `lg` didn't change when it moved from `.extraLarge` to `.large`. Re-measure when the label fonts, the control sizes or the iOS version change: render each size in a throwaway `__DEV__` screen, log the `onLayout` height of a `View` around each Button, then update `tokens.css`, the Figma `Size` variables and this table together.
 
 ## The literal check
 

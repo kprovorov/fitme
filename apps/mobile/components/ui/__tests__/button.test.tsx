@@ -78,6 +78,7 @@ jest.mock("@expo/ui/swift-ui", () => {
           {...{
             buttonBorderShape: argOf(modifiers, "buttonBorderShape"),
             buttonStyle: argOf(modifiers, "buttonStyle"),
+            controlSize: argOf(modifiers, "controlSize"),
             tint: argOf(modifiers, "tint"),
           }}
         >
@@ -263,6 +264,28 @@ describe("Button", () => {
         await render(<Button label="Save" variant={variant} />);
 
         expect(screen.getByRole("button").props.buttonStyle).toBe(style);
+      } finally {
+        mockGlassEnabled = true;
+      }
+    }
+  );
+
+  // The iOS kit's Small, Medium and Large (FIT-366), with or without glass
+  it.each([
+    ["sm", "small", true],
+    ["default", "regular", true],
+    ["lg", "large", true],
+    ["sm", "small", false],
+    ["default", "regular", false],
+    ["lg", "large", false],
+  ] as const)(
+    "draws size %s at the native %s control size (glass: %s)",
+    async (size, controlSize, glass) => {
+      mockGlassEnabled = glass;
+      try {
+        await render(<Button label="Save" size={size} />);
+
+        expect(screen.getByRole("button").props.controlSize).toBe(controlSize);
       } finally {
         mockGlassEnabled = true;
       }
