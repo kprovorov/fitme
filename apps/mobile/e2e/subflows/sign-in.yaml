@@ -1,10 +1,22 @@
 # Signs in from the login screen. Needs EMAIL and PASSWORD (runFlow env).
 appId: com.fitmeproject.ios
 ---
-- tapOn:
-    id: "login-email-input"
-- waitForAnimationToEnd
-- inputText: ${EMAIL}
+# The field as a regex: an email's only special characters are + and .
+- evalScript: ${output.emailPattern = EMAIL.split('+').join('\\+').split('.').join('\\.')}
+
+# On a slow simulator the field can drop keystrokes (it once kept only the
+# first letter): check it holds the whole address, and type it again if not
+- retry:
+    maxRetries: 2
+    commands:
+      - tapOn:
+          id: "login-email-input"
+      - waitForAnimationToEnd
+      - eraseText: 80
+      - inputText: ${EMAIL}
+      - assertVisible:
+          id: "login-email-input"
+          text: ${output.emailPattern}
 
 - tapOn:
     id: "login-password-input"
@@ -21,7 +33,7 @@ appId: com.fitmeproject.ios
 - extendedWaitUntil:
     visible:
       text: "Check your email|Home|Get Started|Not Now"
-    timeout: 15000
+    timeout: 30000
 
 - runFlow:
     when:
@@ -39,7 +51,7 @@ appId: com.fitmeproject.ios
 - extendedWaitUntil:
     visible:
       text: "Home|Get Started|Not Now"
-    timeout: 15000
+    timeout: 30000
 
 - tapOn:
     text: "Not Now"

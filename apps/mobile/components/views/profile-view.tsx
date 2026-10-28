@@ -132,7 +132,7 @@ export default function ProfileView() {
           </Link>
           <Separator />
           <Link asChild href="/settings">
-            <MenuListItem icon="chevron-right">
+            <MenuListItem icon="chevron-right" testID="settings-link">
               <Text>Settings</Text>
             </MenuListItem>
           </Link>

@@ -21,7 +21,7 @@ appId: com.fitmeproject.ios
 - extendedWaitUntil:
     visible:
       text: "Get Started|Not Now"
-    timeout: 15000
+    timeout: 30000
 
 - tapOn:
     text: "Not Now"
