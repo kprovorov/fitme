@@ -11,30 +11,13 @@ const VARIANTS = [
   "ghost",
 ] as const;
 
-// uniwind resolves no theme values under Jest: each color token answers its
-// own name, so an icon's color says which token it came from, and the
-// Footnote styles answer their point size.
-jest.mock("uniwind", () => {
-  const actual = jest.requireActual<typeof import("uniwind")>("uniwind");
-  const resolve = actual.useResolveClassNames;
-  return {
-    ...actual,
-    useCSSVariable: (name: string) => name,
-    useResolveClassNames: (className: string) => {
-      const resolved = resolve(className);
-      return className.startsWith("text-footnote")
-        ? { fontSize: 13 }
-        : resolved;
-    },
-  };
-});
-
-// The native symbol view, as a plain view carrying its props
-jest.mock("expo-symbols", () => {
+// The symbol, as a plain view carrying its props: what it draws from them
+// (size, weight, color from the class names) is SymbolImage's own
+jest.mock("~/components/symbol-image", () => {
   const { View: MockView } =
     jest.requireActual<typeof import("react-native")>("react-native");
   return {
-    SymbolView: (props: object) => <MockView {...props} testID="symbol" />,
+    SymbolImage: (props: object) => <MockView {...props} testID="symbol" />,
   };
 });
 
@@ -50,9 +33,10 @@ function childOrder(): string[] {
     if (typeof child === "string") {
       return child;
     }
-    return child.props.testID === "symbol"
-      ? "symbol"
-      : String(child.props.children);
+    const [first] = child.children;
+    const isIcon =
+      typeof first !== "string" && first?.props.testID === "symbol";
+    return isIcon ? "symbol" : String(child.props.children);
   });
 }
 
@@ -187,33 +171,34 @@ describe("Badge", () => {
     expect(childOrder()).toEqual(["More", "symbol"]);
   });
 
-  it("draws the icon at the label's size and weight", async () => {
+  it("draws the icon in the label's text style, so at its size and weight", async () => {
     await render(
       <Badge icon="plus">
         <Text>Add</Text>
       </Badge>
     );
 
-    expect(symbol().props).toEqual(
-      expect.objectContaining({ name: "plus", size: 13, weight: "semibold" })
+    expect(symbol().props.name).toBe("plus");
+    expect(symbol().props.className.split(" ")).toContain(
+      "text-footnote-emphasized"
     );
   });
 
   it.each([
-    ["default", "--color-primary-foreground"],
-    ["secondary", "--color-secondary-foreground"],
-    ["destructive", "--color-destructive"],
-    ["muted", "--color-muted-foreground"],
+    ["default", "text-primary-foreground"],
+    ["secondary", "text-secondary-foreground"],
+    ["destructive", "text-destructive"],
+    ["muted", "text-muted-foreground"],
     // The one variant whose icon differs from its label
-    ["ghost", "--color-foreground"],
-  ] as const)("draws %s's icon in %s", async (variant, token) => {
+    ["ghost", "text-foreground"],
+  ] as const)("draws %s's icon in %s", async (variant, color) => {
     await render(
       <Badge icon="plus" variant={variant}>
         <Text>Add</Text>
       </Badge>
     );
 
-    expect(symbol().props.tintColor).toBe(token);
+    expect(symbol().props.className.split(" ")).toContain(color);
   });
 
   it("hides the icon from accessibility, so VoiceOver reads only the label", async () => {
@@ -223,7 +208,7 @@ describe("Badge", () => {
       </Badge>
     );
 
-    expect(symbol().props).toEqual(
+    expect(symbol().parent?.props).toEqual(
       expect.objectContaining({
         accessibilityElementsHidden: true,
         importantForAccessibility: "no-hide-descendants",
@@ -231,6 +216,13 @@ describe("Badge", () => {
     );
     // Not reachable by a query that respects accessibility
     expect(screen.queryByTestId("symbol")).toBeNull();
+  });
+
+  it("takes no icon with asChild, which has room for one element only", () => {
+    // Type-level: fails typecheck if asChild and icon can be combined
+    // @ts-expect-error asChild has no icon
+    const both = <Badge asChild icon="plus" />;
+    expect(both).toBeTruthy();
   });
 
   it("takes only the five token variants", () => {
