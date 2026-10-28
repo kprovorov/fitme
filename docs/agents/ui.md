@@ -139,7 +139,7 @@ Button heights, measured from the native SwiftUI buttons on iOS 27 with our labe
 | `--size-button-circle-default` | 31px  | `shape="circle"`                               | 30.67         |
 | `--size-button-circle-lg`      | 50px  | `shape="circle" size="lg"`                     | 49.67         |
 
-The sizes follow Apple's iOS 27 kit (Small, Medium, Large), as the Figma Button set does (FIT-366). On iOS 27 `.large` and `.extraLarge` draw the same box, so `lg` didn't change when it moved from `.extraLarge` to `.large`. Re-measure when the label fonts, the control sizes or the iOS version change: render each size in a throwaway `__DEV__` screen, log the `onLayout` height of a `View` around each Button, then update `tokens.css`, the Figma `Size` variables and this table together.
+The sizes follow Apple's iOS 27 kit (Small, Medium, Large), as the Figma Button set does (FIT-366). On iOS 27 `.large` and `.extraLarge` draw the same box. Web and site pills take the kit's horizontal padding: `px-2.5`, `px-3`, `px-5`. Re-measure when the label fonts, the control sizes or the iOS version change: render each size in a throwaway `__DEV__` screen, log the `onLayout` height of a `View` around each Button, then update `tokens.css`, the Figma `Size` variables and this table together.
 
 ## The literal check
 
