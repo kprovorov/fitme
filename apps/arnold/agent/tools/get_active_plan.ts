@@ -2,6 +2,7 @@ import { asUser } from "@fitme/db";
 import { getActivePlan } from "@fitme/services/plans";
 import { defineTool } from "eve/tools";
 import { z } from "zod";
+import { libraryLanguage } from "../lib/client-context";
 import { withExerciseDetails } from "../lib/exercises";
 import { requireConversationOwner } from "../lib/owner";
 
@@ -15,7 +16,8 @@ export default defineTool({
       return { error: "No active plan found" };
     }
     const named = await withExerciseDetails(
-      plan.workouts.map(({ exercises }) => exercises)
+      plan.workouts.map(({ exercises }) => exercises),
+      libraryLanguage(ctx.messages)
     );
     return {
       ...plan,

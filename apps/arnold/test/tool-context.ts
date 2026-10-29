@@ -29,6 +29,27 @@ export const contextFor = (
     },
   }) as unknown as ToolContext;
 
+/**
+ * `ctx` in a turn whose client sent `clientContext`: eve puts it in the
+ * step's model input as a user-role `context.instruction` message, holding
+ * "Client context:" and the object as JSON, before the User's message.
+ */
+export const withClientContext = (
+  ctx: ToolContext,
+  clientContext: object
+): ToolContext =>
+  ({
+    ...ctx,
+    messages: [
+      {
+        content: `Client context:\n${JSON.stringify(clientContext)}`,
+        kind: "context.instruction",
+        role: "user",
+      },
+      ...ctx.messages,
+    ],
+  }) as ToolContext;
+
 /** Fields a model might slip in to act as another User. */
 export const userIdFields = {
   user: "user_mallory",

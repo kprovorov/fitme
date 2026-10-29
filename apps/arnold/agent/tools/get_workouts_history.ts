@@ -2,6 +2,7 @@ import { asUser } from "@fitme/db";
 import { listWorkoutHistory } from "@fitme/services/workout-sessions";
 import { defineTool } from "eve/tools";
 import { z } from "zod";
+import { libraryLanguage } from "../lib/client-context";
 import { withExerciseDetails } from "../lib/exercises";
 import { requireConversationOwner } from "../lib/owner";
 
@@ -14,7 +15,8 @@ export default defineTool({
       listWorkoutHistory(tx, { limit })
     );
     const named = await withExerciseDetails(
-      history.map(({ exercises }) => exercises)
+      history.map(({ exercises }) => exercises),
+      libraryLanguage(ctx.messages)
     );
     return history.map((session, index) => ({
       ...session,

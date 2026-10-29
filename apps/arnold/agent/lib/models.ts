@@ -5,6 +5,7 @@ import {
 } from "@fitme/core";
 import type { ModelMessage } from "ai";
 import type { AgentModelOptionsDefinition } from "eve";
+import { latestClientContext } from "./client-context";
 
 /** The turn asked for a model that isn't in `arnoldModels`. */
 export class UnsupportedArnoldModelError extends Error {
@@ -32,51 +33,9 @@ const hostOrder: Record<ArnoldModelCreator, string[]> = {
 const creatorOf = (id: ArnoldModelId) =>
   id.slice(0, id.indexOf("/")) as ArnoldModelCreator;
 
-// eve hands a turn's `clientContext` object to the model as a user-role
-// framework message of this kind: the prefix, then the object as JSON. A
-// User's own messages have kind "user", so typing this text selects nothing.
-// eve is pinned exactly; check this format on every bump.
-const CLIENT_CONTEXT_KIND = "context.instruction";
-const CLIENT_CONTEXT_PREFIX = "Client context:\n";
-
-const clientContextTexts = (message: ModelMessage): string[] => {
-  const { kind } = message as { kind?: unknown };
-  if (message.role !== "user" || kind !== CLIENT_CONTEXT_KIND) {
-    return [];
-  }
-  if (typeof message.content === "string") {
-    return [message.content];
-  }
-  return message.content.flatMap((part) =>
-    part.type === "text" ? [part.text] : []
-  );
-};
-
-const parseClientContext = (text: string): Record<string, unknown> | null => {
-  if (!text.startsWith(CLIENT_CONTEXT_PREFIX)) {
-    return null;
-  }
-  try {
-    const value: unknown = JSON.parse(text.slice(CLIENT_CONTEXT_PREFIX.length));
-    return typeof value === "object" && value !== null && !Array.isArray(value)
-      ? (value as Record<string, unknown>)
-      : null;
-  } catch {
-    return null;
-  }
-};
-
 /** The `model` of the latest client context, if it names one. */
-const requestedModel = (messages: readonly ModelMessage[]): unknown => {
-  for (const message of [...messages].reverse()) {
-    for (const text of clientContextTexts(message).reverse()) {
-      const context = parseClientContext(text);
-      if (context) {
-        return context.model;
-      }
-    }
-  }
-};
+const requestedModel = (messages: readonly ModelMessage[]): unknown =>
+  latestClientContext(messages)?.model;
 
 /**
  * The model an Arnold turn runs on: the Arnold model id the client sends as
