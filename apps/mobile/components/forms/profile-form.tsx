@@ -17,6 +17,7 @@ import {
   type ReactNode,
   useCallback,
   useEffect,
+  useMemo,
   useRef,
   useState,
 } from "react";
@@ -592,13 +593,23 @@ function WeightWheel({ control, measurementSystem, onChange }: WheelProps) {
     onChange
   );
 
+  // Up to 1000 labels, each through the catalog: built once per language
+  // and system, not on every value change.
+  const { language } = i18n;
+  // biome-ignore lint/correctness/useExhaustiveDependencies: `language` stands for the instance's state, which `i18n` itself doesn't change with
+  const options = useMemo(
+    () =>
+      range(1, isMetric ? 454 : 1000).map((i) => ({
+        label: formatWeight(i18n, i, measurementSystem),
+        value: i,
+      })),
+    [i18n, isMetric, language, measurementSystem]
+  );
+
   return (
     <Picker
       onValueChange={setWeight}
-      options={range(1, isMetric ? 454 : 1000).map((i) => ({
-        label: formatWeight(i18n, i, measurementSystem),
-        value: i,
-      }))}
+      options={options}
       value={Math.round(value)}
       variant="wheel"
     />
