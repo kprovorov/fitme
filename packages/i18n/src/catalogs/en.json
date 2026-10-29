@@ -1,0 +1,13 @@
+{
+  "tabs": {
+    "home": "Home",
+    "history": "History",
+    "arnold": "Arnold",
+    "library": "Library",
+    "profile": "Profile"
+  },
+  "counts": {
+    "sets_one": "{{count}} set",
+    "sets_other": "{{count}} sets"
+  }
+}
