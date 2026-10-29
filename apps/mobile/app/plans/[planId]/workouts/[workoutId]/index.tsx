@@ -81,12 +81,16 @@ function WorkoutAction({
       );
     }
     if (blockedBy) {
+      // An opaque panel: its caption and the disabled Start would be
+      // unreadable over the content scrolling under them.
       return (
-        <BlockedStart
-          blockedBy={blockedBy}
-          onContinue={continueBlocking}
-          size="lg"
-        />
+        <View className="rounded-card border-border border-hairline bg-popover p-sm">
+          <BlockedStart
+            blockedBy={blockedBy}
+            onContinue={continueBlocking}
+            size="lg"
+          />
+        </View>
       );
     }
     return (

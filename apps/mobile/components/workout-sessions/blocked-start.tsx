@@ -44,7 +44,6 @@ export function BlockedStart({
         label={name ? `Continue ${name}` : "Continue Workout"}
         onPress={onContinue}
         size={size}
-        variant="secondary"
       />
     </View>
   );
