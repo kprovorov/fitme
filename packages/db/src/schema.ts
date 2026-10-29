@@ -337,8 +337,8 @@ export const workoutSessions = pgTable(
     workoutId: uuid("workout_id"),
   },
   (table) => [
-    uniqueIndex("workout_sessions_one_open_per_workout_idx")
-      .using("btree", table.workoutId.asc().nullsLast().op("uuid_ops"))
+    uniqueIndex("workout_sessions_one_open_per_user_idx")
+      .using("btree", table.userId.asc().nullsLast().op("text_ops"))
       .where(sql`(finished_at IS NULL)`),
     index("workout_sessions_plan_id_idx").using(
       "btree",

@@ -774,28 +774,40 @@ export const deleteWorkoutSession = async (
 
 export type StartWorkoutSessionResult =
   | { resumed: boolean; session: WorkoutSessionDetail; status: "started" }
+  | {
+      /** The User's open Workout Session, on another Workout. */
+      sessionId: string;
+      status: "session_in_progress";
+      /** Its Workout's name; `null` when that Workout is gone. */
+      workoutName: string | null;
+    }
   | { status: "not_found" };
 
 /**
- * A lost race for the one open session per Workout is retried this often: the
- * winner's session is resumed, or, if it was finished meanwhile, a fresh one is
- * inserted. The start can't loop until it wins: under RLS an open session
- * owned by another id is invisible and keeps winning, so after the last
- * attempt the start is `not_found`.
+ * A lost race for the User's one open session is retried this often: the
+ * winner's session is resumed (same Workout) or refused (another Workout), or,
+ * if it was finished or deleted meanwhile, a fresh one is inserted. The start
+ * can't loop until it wins, so after the last attempt it is `not_found`.
  */
 const START_ATTEMPTS = 3;
 
-const findOpenSessionId = async (tx: Transaction, workoutId: string) => {
+/** The User's one open Workout Session (RLS only shows their own), if any. */
+const findOpenSession = async (tx: Transaction) => {
   const [open] = await tx
-    .select({ id: workoutSessions.id })
+    .select({
+      id: workoutSessions.id,
+      workoutId: workoutSessions.workoutId,
+      workoutName: workouts.name,
+    })
     .from(workoutSessions)
+    .leftJoin(workouts, eq(workouts.id, workoutSessions.workoutId))
     .where(
       and(
-        eq(workoutSessions.workoutId, workoutId),
+        eq(workoutSessions.userId, sql`public.current_user_id()`),
         isNull(workoutSessions.finishedAt)
       )
     );
-  return open?.id ?? null;
+  return open ?? null;
 };
 
 /** A Postgres uuid[] literal; uuids need no quoting. */
@@ -859,8 +871,8 @@ const readWrittenSession = async (tx: Transaction, sessionId: string) => {
 };
 
 /**
- * Resumes the User's open session for the Workout, or inserts one and copies
- * the Workout into it.
+ * Resumes the User's open session when it's the Workout's, refuses when it's
+ * another Workout's, or inserts one and copies the Workout into it.
  */
 const insertOrResume = async (
   tx: Transaction,
@@ -871,12 +883,18 @@ const insertOrResume = async (
   if (attemptsLeft === 0) {
     return { status: "not_found" };
   }
-  // RLS only shows the User's own open session
-  const openId = await findOpenSessionId(tx, workoutId);
-  if (openId) {
-    const open = await getWorkoutSession(tx, openId);
-    if (open) {
-      return { resumed: true, session: open, status: "started" };
+  const open = await findOpenSession(tx);
+  if (open && open.workoutId !== workoutId) {
+    return {
+      sessionId: open.id,
+      status: "session_in_progress",
+      workoutName: open.workoutName,
+    };
+  }
+  if (open) {
+    const session = await getWorkoutSession(tx, open.id);
+    if (session) {
+      return { resumed: true, session, status: "started" };
     }
     // Deleted between the two reads (READ COMMITTED): start a fresh one
     return insertOrResume(tx, workoutId, planId, attemptsLeft - 1);
@@ -891,13 +909,13 @@ const insertOrResume = async (
       workoutId,
     })
     .onConflictDoNothing({
-      target: workoutSessions.workoutId,
+      target: workoutSessions.userId,
       where: isNull(workoutSessions.finishedAt),
     })
     .returning({ id: workoutSessions.id });
   if (!created) {
-    // Lost a race with a concurrent start: the next attempt resumes its
-    // session (copied by that start, which has committed by now)
+    // Lost a race with a concurrent start: the next attempt resumes or
+    // refuses on its session (copied by that start, which has committed by now)
     return insertOrResume(tx, workoutId, planId, attemptsLeft - 1);
   }
   await copyWorkoutTemplate(tx, workoutId, created.id);
@@ -910,11 +928,13 @@ const insertOrResume = async (
 
 /**
  * Starts a Workout Session from one of the User's Workouts, in `tx` (from
- * `asUser`), copying its exercises and sets, and returns it. If the Workout
- * already has an open session, that one is returned (`resumed`) and nothing
- * is copied: the one-open-session-per-Workout index makes concurrent starts
- * agree on one session. A Workout the User can't see, or of a soft-deleted
- * Plan, is `not_found`.
+ * `asUser`), copying its exercises and sets, and returns it. A User has at
+ * most one open Workout Session (ADR 0013): if it's this Workout's, that one
+ * is returned (`resumed`) and nothing is copied; if it's another Workout's
+ * (or one whose Workout is gone), the start is refused with nothing written
+ * (`session_in_progress`, naming it). The one-open-session-per-User index
+ * makes concurrent starts agree on one session. A Workout the User can't see,
+ * or of a soft-deleted Plan, is `not_found`.
  */
 export const startWorkoutSession = async (
   tx: Transaction,

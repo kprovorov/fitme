@@ -1240,6 +1240,28 @@ describe("starting a Workout from Home", () => {
     });
   });
 
+  it("shows the usual start error while another Workout's session is open", async () => {
+    await startApp();
+    // Another Workout started elsewhere (MCP, another device) after Home was read.
+    backend.sessions.push({
+      finished_at: null,
+      id: "open-2",
+      plan_id: "plan-1",
+      started_at: "2026-10-08T09:00:00.000Z",
+      workout_id: "w2",
+      workoutName: "Push Day",
+    });
+
+    await startWorkout();
+
+    expect(Alert.alert).toHaveBeenCalledWith(
+      "Couldn't start workout",
+      expect.any(String)
+    );
+    expect(sessionsOf("w1")).toEqual([]);
+    expect(mockNavigator.routes.map(({ name }) => name)).toEqual(["home"]);
+  });
+
   it("logs the started session's sets and finishes it, rotating the Workout to the end of the Plan", async () => {
     await startApp();
     await startWorkout();

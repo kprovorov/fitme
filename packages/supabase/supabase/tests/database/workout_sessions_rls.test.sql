@@ -43,15 +43,16 @@ select lives_ok(
 );
 
 select lives_ok(
-  $$insert into public.workout_sessions (id, workout_id, plan_id, user_id, started_at)
+  $$insert into public.workout_sessions (id, workout_id, plan_id, user_id, started_at, finished_at)
     values (
       'd1000000-0000-0000-0000-000000000002',
       null,
       null,
       'user_2RlsOwner00000000000000',
+      now(),
       now()
     )$$,
-  'owner can insert a session with NULL workout_id and plan_id'
+  'owner can insert a (finished: one open per User) session with NULL workout_id and plan_id'
 );
 
 select throws_ok(

@@ -91,6 +91,20 @@ function registerSessionReadTools(server: McpServer, ctx: ToolContext) {
   );
 }
 
+const sessionInProgress = ({
+  sessionId,
+  workoutName,
+}: {
+  sessionId: string;
+  workoutName: string | null;
+}) => {
+  const open =
+    workoutName === null
+      ? `Workout session ${sessionId} is already in progress`
+      : `Workout "${workoutName}" is already in progress (session ${sessionId})`;
+  return `${open}: a user has at most one open workout session. Finish it with finish_workout_session (or delete_workout_session) before starting another.`;
+};
+
 function registerSessionWriteTools(server: McpServer, ctx: ToolContext) {
   server.registerTool(
     "start_workout_session",
@@ -102,7 +116,7 @@ function registerSessionWriteTools(server: McpServer, ctx: ToolContext) {
         readOnlyHint: false,
       },
       description:
-        "Starts a workout session from one of the user's plan workouts (ids from get_plan / list_plans): the workout's exercises and recommended sets are copied into the session. If that workout already has an unfinished session, that session is returned instead (`resumed: true`) — there is at most one open session per workout. Returns `{ resumed, session }`; the session's set ids are what log_set needs. Call finish_workout_session when done.",
+        "Starts a workout session from one of the user's plan workouts (ids from get_plan / list_plans): the workout's exercises and recommended sets are copied into the session. A user has at most one unfinished session: if it's this workout's, that session is returned instead (`resumed: true`); if it's another workout's, the start fails naming that workout, and nothing is written (finish or delete it first). Returns `{ resumed, session }`; the session's set ids are what log_set needs. Call finish_workout_session when done.",
       inputSchema: {
         workoutId: z
           .guid()
@@ -114,6 +128,9 @@ function registerSessionWriteTools(server: McpServer, ctx: ToolContext) {
       const result = await services.startWorkoutSession(workoutId);
       if (result.status === "not_found") {
         throw new ToolError(workoutNotFound(workoutId));
+      }
+      if (result.status === "session_in_progress") {
+        throw new ToolError(sessionInProgress(result));
       }
       const { resumed, session } = result;
       return asJson({ resumed, session: await namedSession(ctx, session) });

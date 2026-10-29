@@ -7,7 +7,7 @@ import {
   workoutSessions,
 } from "@fitme/db";
 import { asc, eq } from "drizzle-orm";
-import { afterAll, beforeAll, describe, expect, it } from "vitest";
+import { afterAll, beforeEach, describe, expect, it } from "vitest";
 import {
   addExerciseToWorkoutSession,
   addSetToWorkoutSessionExercise,
@@ -23,8 +23,18 @@ import { deleteTestUsers } from "./delete-test-users";
  */
 
 const runId = randomUUID().replaceAll("-", "").slice(0, 12);
-const owner = `user_svcSessEditOwner${runId}`;
-const intruder = `user_svcSessEditIntruder${runId}`;
+/**
+ * A fresh owner and intruder per test: a User has at most one open Workout
+ * Session, so a test's open session would collide with the next test's.
+ */
+const users: string[] = [];
+let owner = "";
+let intruder = "";
+beforeEach(() => {
+  owner = `user_svcSessEditOwner${runId}${users.length}`;
+  intruder = `user_svcSessEditIntruder${runId}${users.length}`;
+  users.push(owner, intruder);
+});
 
 const benchSlug = `test-edit-bench-${runId}`;
 const squatSlug = `test-edit-squat-${runId}`;
@@ -119,14 +129,8 @@ const exercisesOf = (sessionId: string) =>
       .orderBy(asc(workoutSessionExercises.order))
   );
 
-let intruderSessionId: string;
-
-beforeAll(async () => {
-  intruderSessionId = await insertSession(intruder);
-});
-
 afterAll(async () => {
-  await deleteTestUsers([owner, intruder]);
+  await deleteTestUsers(users);
 });
 
 describe("addExerciseToWorkoutSession", () => {
@@ -192,6 +196,7 @@ describe("addExerciseToWorkoutSession", () => {
   });
 
   it("finds no Workout Session of another User's, or an unknown id, and writes nothing", async () => {
+    const intruderSessionId = await insertSession(intruder);
     const results = await Promise.all(
       [intruderSessionId, randomUUID()].map((sessionId) =>
         asUser(owner, (tx) =>

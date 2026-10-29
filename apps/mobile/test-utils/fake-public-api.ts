@@ -488,9 +488,10 @@ const findWorkout = (workoutId: string) => {
 };
 
 /**
- * `startWorkoutSession`: resumes the Workout's open Workout Session (200), or
- * starts one copying the Workout's Exercises and sets (201), as
- * `backend.nestedPlan` shows them.
+ * `startWorkoutSession`: resumes the Workout's open Workout Session (200),
+ * refuses while another Workout's is open (409 `session_in_progress`; the
+ * User has at most one), or starts one copying the Workout's Exercises and
+ * sets (201), as `backend.nestedPlan` shows them.
  */
 const startSession = (body: unknown): Response => {
   const workoutId = (body as { workout_id?: unknown } | undefined)?.workout_id;
@@ -500,15 +501,23 @@ const startSession = (body: unknown): Response => {
   ) {
     return error(400, "invalid_request", "workout_id: Required");
   }
-  const open = backend.sessions.find(
-    (other) => other.workout_id === workoutId && other.finished_at === null
-  );
-  if (open) {
-    return json(200, { data: sessionBody(open) });
-  }
   const found = findWorkout(workoutId);
   if (!found) {
     return notFound("Workout");
+  }
+  const open = backend.sessions.find((other) => other.finished_at === null);
+  if (open?.workout_id === workoutId) {
+    return json(200, { data: sessionBody(open) });
+  }
+  if (open) {
+    const openWorkout = open.workout_id ? findWorkout(open.workout_id) : null;
+    return error(
+      409,
+      "session_in_progress",
+      openWorkout
+        ? `Workout "${openWorkout.workout.name}" is in progress (Workout Session ${open.id}); finish it before starting another`
+        : `Workout Session ${open.id} is in progress; finish it before starting another`
+    );
   }
   const { plan, workout } = found;
   const session: SessionRow = {

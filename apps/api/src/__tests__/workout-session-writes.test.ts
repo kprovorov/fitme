@@ -146,6 +146,55 @@ describe("POST /v1/workout-sessions", () => {
     expect((await response.json()).data.weight_unit).toBe("kg");
   });
 
+  it("answers 409 session_in_progress naming the Workout in progress, unreported", async () => {
+    const { services } = recording("startWorkoutSession", {
+      value: {
+        sessionId: SESSION_ID,
+        status: "session_in_progress",
+        workoutName: "Day A",
+      },
+      weightUnit: "kg",
+    });
+    const { app, reported } = testApp({ services });
+
+    const response = await send(app, "POST", "/v1/workout-sessions", {
+      workout_id: WORKOUT_ID,
+    });
+
+    expect(response.status).toBe(409);
+    expect(await response.json()).toEqual({
+      error: {
+        code: "session_in_progress",
+        message: `Workout "Day A" is in progress (Workout Session ${SESSION_ID}); finish it before starting another`,
+      },
+    });
+    expect(reported).toEqual([]);
+  });
+
+  it("answers 409 session_in_progress for an open Workout Session whose Workout is gone", async () => {
+    const { services } = recording("startWorkoutSession", {
+      value: {
+        sessionId: SESSION_ID,
+        status: "session_in_progress",
+        workoutName: null,
+      },
+      weightUnit: "kg",
+    });
+    const { app } = testApp({ services });
+
+    const response = await send(app, "POST", "/v1/workout-sessions", {
+      workout_id: WORKOUT_ID,
+    });
+
+    expect(response.status).toBe(409);
+    expect(await response.json()).toEqual({
+      error: {
+        code: "session_in_progress",
+        message: `Workout Session ${SESSION_ID} is in progress; finish it before starting another`,
+      },
+    });
+  });
+
   it("answers 404 not_found for a Workout that's missing, another User's or of a deleted Plan, unreported", async () => {
     const { services } = recording("startWorkoutSession", {
       value: { status: "not_found" },
