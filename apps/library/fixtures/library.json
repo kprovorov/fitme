@@ -9,6 +9,11 @@
           "name": "Example Press",
           "description": "Example Press is a made-up fixture Exercise for the Library loader. It is not real content.\n",
           "instructions": "1. This is placeholder text.\n2. Replace fixture Exercises with the real pack.\n"
+        },
+        "uk": {
+          "name": "Приклад жиму",
+          "description": "Приклад жиму — вигадана вправа для завантажувача Бібліотеки. Це не справжній вміст.\n",
+          "instructions": "1. Це текст-заповнювач.\n2. Замініть вправи з фікстури справжнім набором.\n"
         }
       },
       "thumbnail": {
@@ -28,6 +33,11 @@
           "name": "Example Row",
           "description": "Example Row is a made-up fixture Exercise for the Library loader. It is not real content.\n",
           "instructions": "1. This is placeholder text.\n2. Replace fixture Exercises with the real pack.\n"
+        },
+        "uk": {
+          "name": "Приклад тяги",
+          "description": "Приклад тяги — вигадана вправа для завантажувача Бібліотеки. Це не справжній вміст.\n",
+          "instructions": "1. Це текст-заповнювач.\n2. Замініть вправи з фікстури справжнім набором.\n"
         }
       },
       "thumbnail": {

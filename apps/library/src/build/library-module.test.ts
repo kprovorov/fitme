@@ -3,7 +3,12 @@ import { tmpdir } from "node:os";
 import { join, resolve } from "node:path";
 import { pathToFileURL } from "node:url";
 import { afterEach, beforeEach, describe, expect, it } from "vitest";
-import { fakeOid, libraryBundle, libraryExercise } from "../test/fixtures";
+import {
+  fakeOid,
+  inUkrainian,
+  libraryBundle,
+  libraryExercise,
+} from "../test/fixtures";
 import {
   type BlobGet,
   generateLibraryModule,
@@ -98,7 +103,51 @@ describe("generateLibraryModule", () => {
       ],
       hash: expect.stringMatching(/^[0-9a-f]{64}$/),
       searchNames: ["squat"],
+      translations: { uk: {} },
     });
+  });
+
+  it("keeps the Ukrainian content of the Exercises that have it", async () => {
+    const result = await generate({
+      LIBRARY_BUNDLE: await writeBundle(
+        libraryBundle([
+          inUkrainian(libraryExercise("squat", "Squat"), "Присідання"),
+          libraryExercise("lunge", "Lunge"),
+        ])
+      ),
+      SUPABASE_URL,
+    });
+
+    expect(result.ok).toBe(true);
+    const { library } = await importModule(result.ok ? result.source : "");
+    expect(library.translations).toEqual({
+      uk: {
+        squat: {
+          description: "Присідання — вигадана вправа для тестів.\n",
+          instructions: "1. Ляжте на лаву.\n2. Тисніть.\n",
+          name: "Присідання",
+        },
+      },
+    });
+    expect(library.exercises.map(({ name }: { name: string }) => name)).toEqual(
+      ["Lunge", "Squat"]
+    );
+  });
+
+  it("changes the library hash when only a translation changes", async () => {
+    const hashOf = async (ukrainianName: string) => {
+      const result = await generate({
+        LIBRARY_BUNDLE: await writeBundle(
+          libraryBundle([
+            inUkrainian(libraryExercise("squat", "Squat"), ukrainianName),
+          ])
+        ),
+        SUPABASE_URL,
+      });
+      return result.ok ? result.hash : "";
+    };
+
+    expect(await hashOf("Присідання")).not.toBe(await hashOf("Присід"));
   });
 
   it("accepts the committed fixture bundle", async () => {
@@ -109,6 +158,10 @@ describe("generateLibraryModule", () => {
     expect(
       library.exercises.map(({ slug }: { slug: string }) => slug)
     ).toEqual(["example-press", "example-row", "example-squat"]);
+    expect(Object.keys(library.translations.uk)).toEqual([
+      "example-press",
+      "example-row",
+    ]);
   });
 
   it.each([
@@ -146,6 +199,54 @@ describe("generateLibraryModule", () => {
         },
       ]),
       /: exercises\.0\.video\.extension: /,
+    ],
+    [
+      "a locale that isn't an App language",
+      bundleOf([
+        {
+          ...libraryExercise("squat", "Squat"),
+          locales: {
+            ...libraryExercise("squat", "Squat").locales,
+            de: libraryExercise("squat", "Kniebeuge").locales.en,
+          },
+        },
+      ]),
+      /: exercises\.0\.locales: unknown locale "de" \(known: en, uk\)$/,
+    ],
+    [
+      "a Ukrainian translation missing a field",
+      bundleOf([
+        {
+          ...libraryExercise("squat", "Squat"),
+          locales: {
+            ...libraryExercise("squat", "Squat").locales,
+            uk: { description: "", name: "Присідання" },
+          },
+        },
+      ]),
+      /: exercises\.0\.locales\.uk\.instructions: /,
+    ],
+    [
+      "a Ukrainian translation with a field the format doesn't have",
+      bundleOf([
+        {
+          ...inUkrainian(libraryExercise("squat", "Squat"), "Присідання"),
+          locales: {
+            ...libraryExercise("squat", "Squat").locales,
+            uk: {
+              ...inUkrainian(libraryExercise("squat", "Squat"), "Присідання")
+                .locales.uk,
+              summary: "x",
+            },
+          },
+        },
+      ]),
+      /: exercises\.0\.locales\.uk: Unrecognized key: "summary"$/,
+    ],
+    [
+      "a Ukrainian translation with an empty name",
+      bundleOf([inUkrainian(libraryExercise("squat", "Squat"), " ")]),
+      /: exercises\.0\.locales\.uk\.name: /,
     ],
     [
       "a field the format doesn't have",

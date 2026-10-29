@@ -1,4 +1,9 @@
-import { muscleGroups } from "@fitme/core/models";
+import {
+  type AppLanguage,
+  appLanguages,
+  defaultAppLanguage,
+  muscleGroups,
+} from "@fitme/core/models";
 import { z } from "zod";
 
 /**
@@ -30,14 +35,39 @@ const media = <const Extension extends string>(
       .regex(OID, "must be a Git LFS object id (64 lowercase hex characters)"),
   });
 
+/** An Exercise's text in one App language. */
+const ExerciseText = z.strictObject({
+  description: z.string(),
+  instructions: z.string(),
+  name: z.string().trim().min(1),
+});
+
+/** The App languages an Exercise may be translated into: every one but English. */
+export type TranslatedLanguage = Exclude<AppLanguage, "en">;
+
+/**
+ * Every Exercise's text per App language (`@fitme/core`): English required,
+ * every other App language optional. A locale that isn't one fails.
+ */
+const Locales = z.strictObject(
+  Object.fromEntries(
+    appLanguages.map((language) => [
+      language,
+      language === defaultAppLanguage ? ExerciseText : ExerciseText.optional(),
+    ])
+  ) as { en: typeof ExerciseText } & {
+    [Language in TranslatedLanguage]: z.ZodOptional<typeof ExerciseText>;
+  },
+  {
+    error: (issue) =>
+      issue.code === "unrecognized_keys"
+        ? `unknown locale ${issue.keys.map((key) => JSON.stringify(key)).join(", ")} (known: ${appLanguages.join(", ")})`
+        : undefined,
+  }
+);
+
 export const BundleExercise = z.strictObject({
-  locales: z.strictObject({
-    en: z.strictObject({
-      description: z.string(),
-      instructions: z.string(),
-      name: z.string().trim().min(1),
-    }),
-  }),
+  locales: Locales,
   muscle_groups: z
     .array(KnownMuscleGroup)
     .nonempty()
@@ -76,4 +106,5 @@ export const LibraryBundle = z.strictObject({
 
 export type BundleExercise = z.infer<typeof BundleExercise>;
 export type LibraryBundle = z.infer<typeof LibraryBundle>;
+export type BundleExerciseText = z.infer<typeof ExerciseText>;
 export type BundleMedia = BundleExercise["thumbnail" | "video"];
