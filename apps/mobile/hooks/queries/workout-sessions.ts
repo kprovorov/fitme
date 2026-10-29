@@ -81,6 +81,19 @@ export interface OpenWorkoutSession {
 
 export const OPEN_WORKOUT_SESSION_QUERY_KEY = ["open-workout-session"];
 
+/** How often an open Workout Session is read again while it blocks Start. */
+export const OPEN_WORKOUT_SESSION_POLL_MS = 30_000;
+
+/**
+ * Polls while a Workout Session is open: one finished or deleted elsewhere
+ * (MCP, another device) would otherwise block Start until the screen
+ * remounts. With none open there's nothing to poll for: a session opened
+ * elsewhere meanwhile comes back as Start's 409, which re-reads it.
+ */
+export const openWorkoutSessionRefetchInterval = (
+  openSession: OpenWorkoutSession | null | undefined
+): number | false => (openSession ? OPEN_WORKOUT_SESSION_POLL_MS : false);
+
 /**
  * The User's open Workout Session, or `null` with none: a User has at most
  * one, so it blocks starting any other Workout.
@@ -112,6 +125,8 @@ export const useOpenWorkoutSessionQuery =
       };
     },
     queryKey: OPEN_WORKOUT_SESSION_QUERY_KEY,
+    refetchInterval: (query) =>
+      openWorkoutSessionRefetchInterval(query.state.data),
   });
 
 export interface FinishWorkoutSessionVariables {

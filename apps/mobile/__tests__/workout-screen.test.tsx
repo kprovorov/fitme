@@ -8,7 +8,11 @@ import { QueryClientProvider } from "@tanstack/react-query";
 import { fireEvent, render, screen } from "@testing-library/react-native";
 import { Alert } from "react-native";
 import WorkoutScreen from "~/app/plans/[planId]/workouts/[workoutId]/index";
-import { OPEN_WORKOUT_SESSION_QUERY_KEY } from "~/hooks/queries/workout-sessions";
+import {
+  OPEN_WORKOUT_SESSION_POLL_MS,
+  OPEN_WORKOUT_SESSION_QUERY_KEY,
+  openWorkoutSessionRefetchInterval,
+} from "~/hooks/queries/workout-sessions";
 import { FAKE_USER_ID, fakePublicApi } from "~/test-utils/fake-public-api";
 import { backend, type SeedPlan } from "~/test-utils/fake-workout-backend";
 import { createTestQueryClient, settle } from "~/test-utils/query-client";
@@ -469,5 +473,20 @@ describe("Starting while another Workout is in progress", () => {
     expect(mockReplace).toHaveBeenCalledWith(
       expect.stringMatching(WORKOUT_2_SESSION_PATH)
     );
+  });
+
+  it("re-reads the blocking session while it's open, so one finished elsewhere unblocks Start", () => {
+    // The interval itself is react-query's; the screen stays mounted meanwhile.
+    expect(
+      openWorkoutSessionRefetchInterval({
+        id: "open-session",
+        planId: "plan-1",
+        workoutId: "workout-1",
+        workoutName: "Leg Day",
+      })
+    ).toBe(OPEN_WORKOUT_SESSION_POLL_MS);
+    // Nothing open: a session opened elsewhere comes back as Start's 409.
+    expect(openWorkoutSessionRefetchInterval(null)).toBe(false);
+    expect(openWorkoutSessionRefetchInterval(undefined)).toBe(false);
   });
 });
