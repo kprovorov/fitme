@@ -111,12 +111,14 @@ export default function WorkoutCard({
     workout.exercises.map(({ exercise_slug }) => exercise_slug)
   );
 
-  const workoutPath = `/plans/${workout.plan_id}/workouts/${workout.id}`;
+  const exerciseCount = `${workout.exercises.length} ${
+    workout.exercises.length === 1 ? "Exercise" : "Exercises"
+  }`;
   const openWorkout = () => {
     router.push(
       activeSession
-        ? `${workoutPath}/sessions/${activeSession.id}`
-        : workoutPath
+        ? `/plans/${workout.plan_id}/workouts/${workout.id}/sessions/${activeSession.id}`
+        : `/plans/${workout.plan_id}/workouts/${workout.id}`
     );
   };
 
@@ -157,22 +159,26 @@ export default function WorkoutCard({
               ? "Opens the workout in progress"
               : "Opens the workout"
           }
-          accessibilityLabel={`${workout.name}, ${workout.exercises.length} Exercises`}
+          accessibilityLabel={`${workout.name}, ${exerciseCount}`}
           accessibilityRole="button"
           className="active:opacity-70"
           onPress={openWorkout}
         >
           <VStack className="w-full flex-shrink items-stretch gap-4">
-            <H4 className="text-primary">{workout.name}</H4>
+            <HStack className="gap-sm">
+              <H4 className="flex-1 text-primary">{workout.name}</H4>
+              <SymbolImage
+                className="text-footnote-emphasized text-muted-foreground"
+                name="chevron.right"
+              />
+            </HStack>
             <HStack className="justify-start">
               <HStack className="gap-1">
                 <SymbolImage
                   className="text-muted-foreground text-subhead-emphasized"
                   name={COUNT_SYMBOL}
                 />
-                <Text className="text-subhead-emphasized">
-                  {workout.exercises.length} Exercises
-                </Text>
+                <Text className="text-subhead-emphasized">{exerciseCount}</Text>
               </HStack>
             </HStack>
             {workout.exercises.length > 0 && (

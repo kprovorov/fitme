@@ -117,6 +117,7 @@ jest.mock("~/components/ui/picker", () => ({ Picker: () => null }));
 
 // The Exercise header reads the name, then the muscle groups.
 const SQUAT = /^Squat/;
+const MYSTERY_MOVE = /^Mystery move/;
 
 /** Not in the Library: shown as "Mystery move". */
 const UNKNOWN_SLUG = "mystery-move";
@@ -180,7 +181,7 @@ describe("a Plan", () => {
     });
   });
 
-  it("shows each Workout's Exercises as thumbnails, a blank one for a slug the library doesn't know", async () => {
+  it("shows each Workout's Exercises as thumbnails, a blank one for a slug the library doesn't know, and opens the Workout", async () => {
     await renderScreen(PlanScreen, { planId: "plan-1" });
 
     expect(await screen.findByText("Leg Day")).toBeTruthy();
@@ -188,6 +189,11 @@ describe("a Plan", () => {
       screen.getByTestId("thumbnail:https://media.test/render/squat.jpg")
     ).toBeTruthy();
     expect(screen.getByTestId("thumbnail:none")).toBeTruthy();
+
+    await fireEvent.press(
+      screen.getByRole("button", { name: "Leg Day, 2 Exercises" })
+    );
+    expect(mockPush).toHaveBeenCalledWith("/plans/plan-1/workouts/w1");
   });
 
   it("names a Workout's Exercises from the library and links only the ones it knows", async () => {
@@ -197,7 +203,7 @@ describe("a Plan", () => {
     expect(mockPush).toHaveBeenCalledWith("/exercises/squat");
 
     expect(screen.getByText("Mystery move")).toBeTruthy();
-    expect(screen.getAllByRole("button")).toHaveLength(1);
+    expect(screen.queryByRole("button", { name: MYSTERY_MOVE })).toBeNull();
   });
 });
 

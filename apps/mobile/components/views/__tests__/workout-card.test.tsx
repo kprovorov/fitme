@@ -278,7 +278,7 @@ describe("Pressing a WorkoutCard", () => {
     jest.clearAllMocks();
   });
 
-  const renderPlain = async (
+  const renderCardOnly = async (
     shown: Workout,
     state?: "upcoming" | "default"
   ) => {
@@ -289,7 +289,7 @@ describe("Pressing a WorkoutCard", () => {
     );
   };
 
-  const idle = {
+  const withoutOpenSession = {
     ...workout,
     exercises: [
       { exercise_slug: "dips", id: "we-1", order: 1, sets: [{}, {}] },
@@ -309,10 +309,10 @@ describe("Pressing a WorkoutCard", () => {
   ] as const)(
     "opens the Workout screen from %s without an open session",
     async (_, state) => {
-      await renderPlain(idle, state);
+      await renderCardOnly(withoutOpenSession, state);
 
       await fireEvent.press(
-        screen.getByRole("button", { name: "Push Day, 1 Exercises" })
+        screen.getByRole("button", { name: "Push Day, 1 Exercise" })
       );
 
       expect(mockPush).toHaveBeenCalledWith("/plans/plan-1/workouts/workout-1");
@@ -320,7 +320,7 @@ describe("Pressing a WorkoutCard", () => {
   );
 
   it("opens the open Workout Session instead when there is one", async () => {
-    await renderPlain(workout, "default");
+    await renderCardOnly(workout, "default");
 
     await fireEvent.press(
       screen.getByRole("button", { name: "Push Day, 0 Exercises" })
@@ -332,10 +332,10 @@ describe("Pressing a WorkoutCard", () => {
   });
 
   it("shows no Exercise names or set counts: it never expands", async () => {
-    await renderPlain(idle, "default");
+    await renderCardOnly(withoutOpenSession, "default");
 
     await fireEvent.press(
-      screen.getByRole("button", { name: "Push Day, 1 Exercises" })
+      screen.getByRole("button", { name: "Push Day, 1 Exercise" })
     );
 
     expect(screen.queryByText("Dips")).toBeNull();
@@ -343,12 +343,12 @@ describe("Pressing a WorkoutCard", () => {
   });
 
   it("keeps Start Workout on the Next card only", async () => {
-    await renderPlain(idle, "upcoming");
+    await renderCardOnly(withoutOpenSession, "upcoming");
     expect(screen.getByRole("button", { name: "Start Workout" })).toBeTruthy();
   });
 
   it("has no Start or Finish on the other cards", async () => {
-    await renderPlain(idle, "default");
+    await renderCardOnly(withoutOpenSession, "default");
     expect(screen.queryByRole("button", { name: "Start Workout" })).toBeNull();
     expect(screen.queryByRole("button", { name: "Finish Workout" })).toBeNull();
   });
