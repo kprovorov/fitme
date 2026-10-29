@@ -14,6 +14,7 @@ import {
   useRef,
   useState,
 } from "react";
+import { useTranslation } from "react-i18next";
 import { type LayoutChangeEvent, Text, View } from "react-native";
 import { useKeyboardHandler } from "react-native-keyboard-controller";
 import Animated, {
@@ -92,16 +93,11 @@ export function useConversationContext() {
 
 export function Conversation({
   children,
-  emptyState = (
-    <ConversationEmptyState
-      description="Send a message to get started"
-      title="Chat"
-    />
-  ),
+  emptyState,
 }: {
   children?: ReactNode;
   /** Shown while there are no messages. */
-  emptyState?: ReactNode;
+  emptyState: ReactNode;
 }) {
   const { messages, isGenerating, streamingStore } = useChatContext();
   const listRef = useRef<LegendListRef>(null);
@@ -410,6 +406,7 @@ export function Conversation({
 
 export function ConversationScrollButton() {
   const { scrollToBottom, scrollButtonStyle } = useConversationContext();
+  const { t } = useTranslation();
 
   return (
     <Animated.View
@@ -417,7 +414,7 @@ export function ConversationScrollButton() {
       style={[{ position: "absolute", right: 16 }, scrollButtonStyle]}
     >
       <TouchableGlass
-        accessibilityLabel="Scroll to latest messages"
+        accessibilityLabel={t("arnold.scrollToLatest")}
         accessibilityRole="button"
         accessible
         className="h-10 w-10 items-center justify-center rounded-full"
@@ -435,11 +432,11 @@ export function ConversationScrollButton() {
 }
 
 export function ConversationEmptyState({
-  title = "Ready",
+  title,
   description,
   icon = "bubble.left.and.bubble.right",
 }: {
-  title?: string;
+  title: string;
   description?: string;
   icon?: SFSymbol;
 }) {

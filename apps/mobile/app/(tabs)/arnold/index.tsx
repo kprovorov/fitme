@@ -19,6 +19,7 @@ import {
   useRef,
   useState,
 } from "react";
+import { useTranslation } from "react-i18next";
 import RevenueCatUI from "react-native-purchases-ui";
 import {
   ChatProvider,
@@ -37,7 +38,9 @@ import { SymbolImage } from "@/components/symbol-image";
 import { useSelectedArnoldModel } from "~/hooks/arnold-model";
 import { useIsProQuery } from "~/hooks/revenueCat";
 import {
+  type ArnoldErrorKind,
   arnoldErrorAction,
+  arnoldErrorKind,
   arnoldRunConfig,
   clearSavedArnoldConversation,
   getArnoldUrl,
@@ -94,14 +97,18 @@ function ArnoldRuntime({
   );
 }
 
-function toError(error: unknown): Error {
-  return error instanceof Error ? error : new Error(String(error));
-}
+/** The error state's text per kind of error, never the server's message. */
+const errorMessageKeys = {
+  generic: "arnold.errors.generic",
+  network: "arnold.errors.network",
+  "pro-check-unavailable": "arnold.errors.proCheckUnavailable",
+} as const satisfies Record<ArnoldErrorKind, string>;
 
 type Composer = [string, React.Dispatch<React.SetStateAction<string>>];
 
 function useArnoldChat(userId: string, [input, setInput]: Composer) {
   const aui = useAui();
+  const { t } = useTranslation();
   const threadMessages = useAuiState((s) => s.thread.messages);
   const messages = useMemo(
     () => threadMessages.filter((message) => !isRefusedSend(message)),
@@ -204,7 +211,10 @@ function useArnoldChat(userId: string, [input, setInput]: Composer) {
   }, [input, isBusy, sendMessage, setInput]);
 
   return {
-    error: errorAction === "show" ? toError(eveError) : null,
+    errorMessage:
+      errorAction === "show"
+        ? t(errorMessageKeys[arnoldErrorKind(eveError)])
+        : null,
     input,
     isBusy,
     isGenerating: isRunning,
@@ -228,6 +238,7 @@ function ArnoldChat({
   userId: string;
 }) {
   const chat = useArnoldChat(userId, composer);
+  const { t } = useTranslation();
   const { model } = useSelectedArnoldModel();
   const { initialMessage } = useLocalSearchParams<{
     initialMessage?: string;
@@ -276,27 +287,27 @@ function ArnoldChat({
             fontWeight: "bold",
           },
           headerTransparent: true,
-          title: "Arnold",
+          title: t("arnold.title"),
           unstable_headerRightItems: () => [
             {
               icon: {
                 name: "cpu",
                 type: "sfSymbol",
               },
-              label: model?.label ?? "Model",
+              label: model?.label ?? t("arnold.model"),
               onPress: () => {
                 router.push("/arnold/model-picker");
               },
               type: "button",
             },
             {
-              accessibilityLabel: "New conversation",
+              accessibilityLabel: t("arnold.newConversation"),
               disabled: isBusy,
               icon: {
                 name: "plus",
                 type: "sfSymbol",
               },
-              label: "New conversation",
+              label: t("arnold.newConversation"),
               onPress: newConversation,
               type: "button",
             },
@@ -307,8 +318,8 @@ function ArnoldChat({
         <Conversation
           emptyState={
             <ConversationEmptyState
-              description="About your training, plans and workouts"
-              title="Ask Arnold"
+              description={t("arnold.emptyState.description")}
+              title={t("arnold.emptyState.title")}
             />
           }
         >
@@ -316,7 +327,9 @@ function ArnoldChat({
           <PromptInput>
             {ATTACHMENTS_ENABLED && (
               <Link asChild href="/arnold/attachments">
-                <PromptInputAction accessibilityLabel="Add to chat">
+                <PromptInputAction
+                  accessibilityLabel={t("arnold.composer.addToChat")}
+                >
                   <SymbolImage
                     className="text-body text-muted-foreground"
                     name="plus"
@@ -325,7 +338,9 @@ function ArnoldChat({
               </Link>
             )}
             <PromptInputBody>
-              <PromptInputTextarea placeholder="Message Arnold" />
+              <PromptInputTextarea
+                placeholder={t("arnold.composer.placeholder")}
+              />
               <PromptInputSubmit />
             </PromptInputBody>
           </PromptInput>

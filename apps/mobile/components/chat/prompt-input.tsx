@@ -5,6 +5,7 @@ import {
   isLiquidGlassAvailable,
 } from "expo-glass-effect";
 import { type ReactNode, useEffect, useRef } from "react";
+import { useTranslation } from "react-i18next";
 import {
   ActivityIndicator,
   Pressable,
@@ -33,14 +34,14 @@ const AnimatedGlassContainer = Animated.createAnimatedComponent(GlassContainer);
  */
 export function PromptInput({ children }: { children: ReactNode }) {
   const { promptInputStyle, onPromptInputLayout } = useConversationContext();
-  const { error } = useChatContext();
+  const { errorMessage } = useChatContext();
 
   return (
     <Animated.View
       onLayout={onPromptInputLayout}
       style={[{ left: 0, position: "absolute", right: 0 }, promptInputStyle]}
     >
-      {error ? <PromptInputError message={error.message} /> : null}
+      {errorMessage ? <PromptInputError message={errorMessage} /> : null}
       <AnimatedGlassContainer
         spacing={8}
         style={{
@@ -57,7 +58,7 @@ export function PromptInput({ children }: { children: ReactNode }) {
   );
 }
 
-function PromptInputError({ message }: { message?: string }) {
+function PromptInputError({ message }: { message: string }) {
   return (
     <Animated.View className="px-3 pb-2" entering={FadeIn.duration(200)}>
       <View
@@ -69,7 +70,7 @@ function PromptInputError({ message }: { message?: string }) {
           className="flex-1 text-footnote text-muted-foreground"
           numberOfLines={2}
         >
-          {message || "Something went wrong"}
+          {message}
         </Text>
       </View>
     </Animated.View>
@@ -145,10 +146,10 @@ export function PromptInputBody({ children }: { children: ReactNode }) {
  * input value from `ChatContext`.
  */
 export function PromptInputTextarea({
-  placeholder = "Message",
+  placeholder,
   maxLength = 1000,
 }: {
-  placeholder?: string;
+  placeholder: string;
   maxLength?: number;
 }) {
   const { input, setInput } = useChatContext();
@@ -197,12 +198,13 @@ const submitButtonStyle = ({
  */
 export function PromptInputSubmit() {
   const { input, isGenerating, isLoading, onSend } = useChatContext();
+  const { t } = useTranslation();
   const foreground = useCSSVariable("--color-foreground") as string;
   const disabled = !input.trim() || isGenerating || isLoading;
 
   return (
     <Pressable
-      accessibilityLabel="Send message"
+      accessibilityLabel={t("arnold.composer.send")}
       accessibilityRole="button"
       className={disabled ? "bg-secondary" : "bg-foreground"}
       disabled={disabled}

@@ -3,6 +3,7 @@ import type { MessageStreamEvent } from "eve/client";
 import { storage } from "~/lib/mmkv";
 import {
   arnoldErrorAction,
+  arnoldErrorKind,
   arnoldRunConfig,
   clearSavedArnoldConversation,
   getArnoldUrl,
@@ -85,6 +86,38 @@ describe("arnoldErrorAction", () => {
 
   it("does nothing without an error", () => {
     expect(arnoldErrorAction(undefined)).toBe("none");
+  });
+});
+
+describe("arnoldErrorKind", () => {
+  it("names the Pro check being unavailable", () => {
+    expect(
+      arnoldErrorKind(clientError(503, "arnold_pro_check_unavailable"))
+    ).toBe("pro-check-unavailable");
+  });
+
+  it("names a send that never reached Arnold", () => {
+    expect(arnoldErrorKind(new TypeError("Network request failed"))).toBe(
+      "network"
+    );
+    // expo/fetch's FetchError
+    expect(
+      arnoldErrorKind(
+        new Error("fetch failed: The network connection was lost.")
+      )
+    ).toBe("network");
+  });
+
+  it("calls anything else generic, whatever its message", () => {
+    expect(arnoldErrorKind(clientError(500))).toBe("generic");
+    expect(arnoldErrorKind(clientError(400, "invalid_request"))).toBe(
+      "generic"
+    );
+    expect(arnoldErrorKind(new Error("The model call failed"))).toBe("generic");
+    expect(arnoldErrorKind("boom")).toBe("generic");
+    expect(
+      arnoldErrorKind(new TypeError("Cannot read properties of undefined"))
+    ).toBe("generic");
   });
 });
 

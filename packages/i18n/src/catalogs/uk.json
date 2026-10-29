@@ -11,5 +11,41 @@
     "sets_few": "{{count}} підходи",
     "sets_many": "{{count}} підходів",
     "sets_other": "{{count}} підходу"
+  },
+  "arnold": {
+    "title": "Arnold",
+    "chat": "Чат",
+    "model": "Модель",
+    "newConversation": "Нова розмова",
+    "scrollToLatest": "Прокрутити до останніх повідомлень",
+    "emptyState": {
+      "title": "Запитайте Arnold",
+      "description": "Про ваші тренування, плани й заняття"
+    },
+    "composer": {
+      "placeholder": "Повідомлення для Arnold",
+      "send": "Надіслати повідомлення",
+      "addToChat": "Додати до чату"
+    },
+    "attachments": {
+      "title": "Додати до чату",
+      "camera": "Камера",
+      "photos": "Фото",
+      "files": "Файли",
+      "research": "Дослідження",
+      "webSearch": "Пошук в інтернеті",
+      "beta": "Бета",
+      "addToProject": "Додати до проєкту",
+      "none": "Немає",
+      "chooseStyle": "Вибрати стиль",
+      "normal": "Звичайний",
+      "toolAccess": "Доступ до інструментів",
+      "auto": "Авто"
+    },
+    "errors": {
+      "proCheckUnavailable": "Не вдалося перевірити підписку Fitme Pro. Спробуйте трохи згодом.",
+      "network": "Не вдалося зв’язатися з Arnold. Перевірте з’єднання й спробуйте ще раз.",
+      "generic": "Щось пішло не так. Спробуйте ще раз."
+    }
   }
 }
