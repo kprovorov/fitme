@@ -10,6 +10,17 @@ const nextConfig: NextConfig = {
     NEXT_PUBLIC_VERCEL_ENV: process.env.VERCEL_ENV ?? "",
     NEXT_PUBLIC_VERCEL_GIT_COMMIT_SHA: process.env.VERCEL_GIT_COMMIT_SHA ?? "",
   },
+  // public/.well-known/apple-app-site-association has no extension, and
+  // Apple only reads it as JSON (iOS associated domains: password AutoFill
+  // and Handoff).
+  headers() {
+    return Promise.resolve([
+      {
+        headers: [{ key: "Content-Type", value: "application/json" }],
+        source: "/.well-known/apple-app-site-association",
+      },
+    ]);
+  },
   reactStrictMode: true,
   // Workspace packages ship TypeScript source, so Next compiles them in place.
   transpilePackages: ["@fitme/core", "@fitme/observability", "@fitme/supabase"],

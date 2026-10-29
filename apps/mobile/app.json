@@ -12,8 +12,7 @@
       "bundleIdentifier": "com.fitmeproject.ios",
       "associatedDomains": [
         "webcredentials:app.fitmeproject.com",
-        "activitycontinuation:app.fitmeproject.com",
-        "appclips:app.fitmeproject.com"
+        "activitycontinuation:app.fitmeproject.com"
       ],
       "config": {
         "usesNonExemptEncryption": false
