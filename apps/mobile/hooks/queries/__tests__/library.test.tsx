@@ -1,8 +1,16 @@
 import { createLibrary, LibraryUnavailableError } from "@fitme/library-sdk";
-import { beforeEach, describe, expect, it, jest } from "@jest/globals";
+import {
+  afterEach,
+  beforeEach,
+  describe,
+  expect,
+  it,
+  jest,
+} from "@jest/globals";
 import { QueryClientProvider } from "@tanstack/react-query";
 import { act, renderHook, waitFor } from "@testing-library/react-native";
 import type { ReactNode } from "react";
+import { i18n } from "~/lib/i18n";
 import { storage } from "~/lib/mmkv";
 import {
   library,
@@ -34,9 +42,82 @@ beforeEach(() => {
   storage.clearAll();
 });
 
+// The App language is the i18n instance's, shared by every test of the file.
+afterEach(async () => {
+  await i18n.changeLanguage("en");
+});
+
+const BENCH_PRESS_UK = {
+  description: "Про жим лежачи.",
+  instructions: "- Жміть.",
+  name: "Жим лежачи",
+};
+
+/** Resolves Bench Press's row and detail in `language`, each on a fresh cache. */
+const resolveBenchPressIn = async (language: string) => {
+  await i18n.changeLanguage(language);
+  const rows = await renderHook(() => useExercises(["bench-press"]), {
+    wrapper: newWrapper(),
+  });
+  await waitFor(() =>
+    expect(rows.result.current["bench-press"].isResolved).toBe(true)
+  );
+  const detail = await renderHook(() => useExerciseDetailQuery("bench-press"), {
+    wrapper: newWrapper(),
+  });
+  await waitFor(() => expect(detail.result.current.data).toBeTruthy());
+  await rows.unmount();
+  await detail.unmount();
+};
+
+/** Bench Press's row and detail in `language` on a fresh cache, not waited for. */
+const showBenchPressIn = async (language: string) => {
+  await i18n.changeLanguage(language);
+  const rows = await renderHook(() => useExercises(["bench-press"]), {
+    wrapper: newWrapper(),
+  });
+  const detail = await renderHook(() => useExerciseDetailQuery("bench-press"), {
+    wrapper: newWrapper(),
+  });
+  return {
+    detail: detail.result.current.data,
+    row: rows.result.current["bench-press"],
+  };
+};
+
 describe("the MMKV cache", () => {
-  it("caches resolved Exercises under library.*", async () => {
-    serveLibrary([libraryExercise("bench-press", { name: "Bench Press" })]);
+  it("caches resolved Exercises per App language under library.<language>.*", async () => {
+    serveLibrary([
+      libraryExercise("bench-press", {
+        name: "Bench Press",
+        translations: { uk: BENCH_PRESS_UK },
+      }),
+    ]);
+
+    await resolveBenchPressIn("en");
+    await resolveBenchPressIn("uk");
+
+    const cached = (key: string) => JSON.parse(storage.getString(key) ?? "");
+    expect(cached("library.en.exercise-summary.bench-press")).toMatchObject({
+      value: { name: "Bench Press", slug: "bench-press" },
+    });
+    expect(cached("library.en.exercise.bench-press")).toMatchObject({
+      value: { description: "About bench-press.", name: "Bench Press" },
+    });
+    expect(cached("library.uk.exercise-summary.bench-press")).toMatchObject({
+      value: { name: "Жим лежачи", slug: "bench-press" },
+    });
+    expect(cached("library.uk.exercise.bench-press")).toMatchObject({
+      value: { description: "Про жим лежачи.", name: "Жим лежачи" },
+    });
+  });
+
+  it("sweeps the English-only library.exercise* keys once", async () => {
+    storage.set("library.exercise-summary.bench-press", "{}");
+    storage.set("library.exercise.bench-press", "{}");
+    storage.set("library.exercise-summary.gone-move", "{}");
+    storage.set("arnold.models", "kept");
+    serveLibrary([libraryExercise("bench-press")]);
 
     const rows = await renderHook(() => useExercises(["bench-press"]), {
       wrapper: newWrapper(),
@@ -44,26 +125,80 @@ describe("the MMKV cache", () => {
     await waitFor(() =>
       expect(rows.result.current["bench-press"].isResolved).toBe(true)
     );
-    const detail = await renderHook(
-      () => useExerciseDetailQuery("bench-press"),
+
+    expect(storage.getAllKeys().sort()).toEqual([
+      "arnold.models",
+      "library.en.exercise-summary.bench-press",
+      "library.untranslated-exercises-swept",
+    ]);
+
+    // Swept once per install: an old key written later stays.
+    storage.set("library.exercise-summary.squat", "{}");
+    await renderHook(() => useExerciseDetailQuery("bench-press"), {
+      wrapper: newWrapper(),
+    });
+    expect(storage.getString("library.exercise-summary.squat")).toBe("{}");
+  });
+
+  it("shows an Exercise cached in each App language offline in that language", async () => {
+    const fake = serveLibrary([
+      libraryExercise("bench-press", {
+        name: "Bench Press",
+        translations: { uk: BENCH_PRESS_UK },
+      }),
+    ]);
+    await resolveBenchPressIn("en");
+    await resolveBenchPressIn("uk");
+
+    fake.failWith(new LibraryUnavailableError());
+    const lookup = jest.spyOn(fake, "lookup");
+    const get = jest.spyOn(fake, "get");
+    const uk = await showBenchPressIn("uk");
+    expect(uk.row).toMatchObject({ isResolved: true, name: "Жим лежачи" });
+    expect(uk.detail).toMatchObject({
+      description: "Про жим лежачи.",
+      name: "Жим лежачи",
+    });
+    const en = await showBenchPressIn("en");
+    expect(en.row).toMatchObject({ isResolved: true, name: "Bench Press" });
+    expect(en.detail).toMatchObject({
+      description: "About bench-press.",
+      name: "Bench Press",
+    });
+    expect(lookup).not.toHaveBeenCalled();
+    expect(get).not.toHaveBeenCalled();
+  });
+});
+
+describe("the App language", () => {
+  it("asks the Library in it, and refetches when it changes", async () => {
+    const fake = serveLibrary([
+      libraryExercise("bench-press", {
+        name: "Bench Press",
+        translations: { uk: BENCH_PRESS_UK },
+      }),
+      libraryExercise("squat"),
+    ]);
+    const lookup = jest.spyOn(fake, "lookup");
+    const { result } = await renderHook(
+      () => useExercises(["bench-press", "squat"]),
       { wrapper: newWrapper() }
     );
-    await waitFor(() => expect(detail.result.current.data).toBeTruthy());
-
-    expect(storage.getAllKeys()).toEqual(
-      expect.arrayContaining([
-        "library.exercise-summary.bench-press",
-        "library.exercise.bench-press",
-      ])
+    await waitFor(() =>
+      expect(result.current["bench-press"].name).toBe("Bench Press")
     );
-    expect(
-      JSON.parse(
-        storage.getString("library.exercise-summary.bench-press") ?? ""
-      )
-    ).toMatchObject({ value: { name: "Bench Press", slug: "bench-press" } });
-    expect(
-      JSON.parse(storage.getString("library.exercise.bench-press") ?? "")
-    ).toMatchObject({ value: { name: "Bench Press", slug: "bench-press" } });
+
+    await act(() => i18n.changeLanguage("uk"));
+
+    await waitFor(() =>
+      expect(result.current["bench-press"].name).toBe("Жим лежачи")
+    );
+    // Untranslated, so wholly English.
+    expect(result.current.squat.name).toBe("Squat");
+    expect(lookup.mock.calls).toEqual([
+      [["bench-press", "squat"], { language: "en" }],
+      [["bench-press", "squat"], { language: "uk" }],
+    ]);
   });
 });
 
@@ -130,8 +265,12 @@ describe("useExercises", () => {
       await waitFor(() =>
         expect(earlierRows.result.current["stray-move"].isResolved).toBe(true)
       );
-      expect(earlierLookup.mock.calls).toEqual([[["stray-move"]]]);
-      expect(laterLookup.mock.calls).toEqual([[["bench-press"]]]);
+      expect(earlierLookup.mock.calls).toEqual([
+        [["stray-move"], { language: "en" }],
+      ]);
+      expect(laterLookup.mock.calls).toEqual([
+        [["bench-press"], { language: "en" }],
+      ]);
     } finally {
       jest.useRealTimers();
     }

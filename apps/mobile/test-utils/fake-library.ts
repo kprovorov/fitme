@@ -1,12 +1,20 @@
 import type { MuscleGroup } from "@fitme/core";
 import type { Exercise, Library } from "@fitme/library-sdk";
-import { createFakeLibrary, type FakeLibrary } from "@fitme/library-sdk/fake";
+import {
+  createFakeLibrary,
+  type FakeExercise,
+  type FakeLibrary,
+} from "@fitme/library-sdk/fake";
 
-/** A made-up Exercise of the Library, named in title case. */
+/**
+ * A made-up Exercise of the Library, named in title case, in English unless
+ * `overrides` gives it `translations` (`{ uk: { name, description?,
+ * instructions? } }`).
+ */
 export const libraryExercise = (
   slug: string,
-  overrides: Partial<Exercise> = {}
-): Exercise => ({
+  overrides: Partial<FakeExercise & Exercise> = {}
+): Exercise & FakeExercise => ({
   description: `About ${slug}.`,
   instructions: `- Do ${slug}.`,
   muscle_groups: ["chest"] as MuscleGroup[],
@@ -39,7 +47,9 @@ export const libraryModule = {
 };
 
 /** Makes a fake over these Exercises the one the app reads. */
-export const serveLibrary = (exercises: readonly Exercise[]): FakeLibrary => {
+export const serveLibrary = (
+  exercises: readonly FakeExercise[]
+): FakeLibrary => {
   const fake = createFakeLibrary(exercises);
   library.current = fake;
   return fake;

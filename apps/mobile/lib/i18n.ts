@@ -8,11 +8,16 @@
 import "@formatjs/intl-pluralrules/polyfill-force.js";
 import "@formatjs/intl-pluralrules/locale-data/en.js";
 import "@formatjs/intl-pluralrules/locale-data/uk.js";
-import { type AppLanguage, resolveAppLanguage } from "@fitme/core";
+import {
+  type AppLanguage,
+  defaultAppLanguage,
+  isAppLanguage,
+  resolveAppLanguage,
+} from "@fitme/core";
 import { createI18n } from "@fitme/i18n";
 import { getLocales, type Locale, useLocales } from "expo-localization";
 import { useEffect } from "react";
-import { setI18n } from "react-i18next";
+import { setI18n, useTranslation } from "react-i18next";
 
 /** The App language for the device's preferred languages, in order. */
 const appLanguageOf = (locales: readonly Locale[]): AppLanguage =>
@@ -36,4 +41,13 @@ export function useAppLanguageSync(): void {
       i18n.changeLanguage(language);
     }
   }, [language]);
+}
+
+/**
+ * The App language the screen's text is in, re-rendering when it changes, so
+ * what follows it (the Library's Exercises) switches with the text.
+ */
+export function useAppLanguage(): AppLanguage {
+  const { language } = useTranslation().i18n;
+  return isAppLanguage(language) ? language : defaultAppLanguage;
 }

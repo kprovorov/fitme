@@ -1,4 +1,4 @@
-import type { MuscleGroup } from "@fitme/core";
+import type { AppLanguage, MuscleGroup } from "@fitme/core";
 import {
   type Exercise,
   type ExercisePage,
@@ -18,6 +18,7 @@ import {
   useQueryClient,
 } from "@tanstack/react-query";
 import { useEffect, useState } from "react";
+import { useAppLanguage } from "~/lib/i18n";
 import { getLibrary } from "~/lib/library";
 import {
   readCachedExercise,
@@ -75,17 +76,18 @@ interface Waiter {
 type Batch = Map<string, Waiter[]>;
 
 /**
- * The slugs waiting for their next `lookup`, per Library client: a batch goes
- * out through the client its slugs were asked for under, even if
- * `getLibrary()` answers another one by the time it's sent.
+ * The slugs waiting for their next `lookup`, per Library client and App
+ * language: a batch goes out through the client its slugs were asked for
+ * under, even if `getLibrary()` answers another one by the time it's sent,
+ * and in the language they were asked in.
  */
-const waiting = new Map<Library, Batch>();
+const waiting = new Map<Library, Map<AppLanguage, Batch>>();
 
 /** Answers every slug of `batch` with one `lookup` through `library`. */
-const flush = async (library: Library, batch: Batch) => {
-  waiting.delete(library);
+const flush = async (library: Library, language: AppLanguage, batch: Batch) => {
+  waiting.get(library)?.delete(language);
   try {
-    const { data } = await library.lookup([...batch.keys()]);
+    const { data } = await library.lookup([...batch.keys()], { language });
     const found = new Map(data.map((exercise) => [exercise.slug, exercise]));
     for (const [slug, waiters] of batch) {
       for (const { resolve } of waiters) {
@@ -101,23 +103,26 @@ const flush = async (library: Library, batch: Batch) => {
   }
 };
 
-/** A new batch for `library`, sent on the next tick. */
-const openBatch = (library: Library): Batch => {
+/** A new batch for `library` in `language`, sent on the next tick. */
+const openBatch = (library: Library, language: AppLanguage): Batch => {
   const batch: Batch = new Map();
-  waiting.set(library, batch);
-  setTimeout(() => flush(library, batch), 0);
+  const batches = waiting.get(library) ?? new Map<AppLanguage, Batch>();
+  batches.set(language, batch);
+  waiting.set(library, batches);
+  setTimeout(() => flush(library, language, batch), 0);
   return batch;
 };
 
 /**
- * One Exercise's summary, or `null` when the Library has no such
- * slug. Slugs asked for in the same tick (every row of a screen) share one
- * `lookup`, which the client splits into requests of 40.
+ * One Exercise's summary in `language`, or `null` when the Library has no
+ * such slug. Slugs asked for in the same tick and language (every row of a
+ * screen) share one `lookup`, which the client splits into requests of 40.
  */
-const lookupExercise = (slug: string) =>
+const lookupExercise = (language: AppLanguage, slug: string) =>
   new Promise<ExerciseSummary | null>((resolve, reject) => {
     const library = getLibrary();
-    const batch = waiting.get(library) ?? openBatch(library);
+    const batch =
+      waiting.get(library)?.get(language) ?? openBatch(library, language);
     batch.set(slug, [...(batch.get(slug) ?? []), { reject, resolve }]);
   });
 
@@ -133,29 +138,38 @@ const retryOnce = (failureCount: number, error: unknown) =>
     error instanceof LibraryInvalidRequestError
   );
 
-const summaryKey = (slug: string) => ["exercise-summary", slug];
+/**
+ * Every Exercise query is keyed by the App language too, so a new language
+ * refetches and never shows another language's copy.
+ */
+const summaryKey = (language: AppLanguage, slug: string) => [
+  "exercise-summary",
+  language,
+  slug,
+];
 
-const exerciseSummaryQuery = (slug: string) =>
+const exerciseSummaryQuery = (language: AppLanguage, slug: string) =>
   queryOptions({
     // A cached Exercise shows at once (offline too) and is refreshed once stale.
-    initialData: () => readCachedSummary(slug)?.value,
-    initialDataUpdatedAt: () => readCachedSummary(slug)?.savedAt,
+    initialData: () => readCachedSummary(language, slug)?.value,
+    initialDataUpdatedAt: () => readCachedSummary(language, slug)?.savedAt,
     queryFn: async (): Promise<ExerciseSummary | null> => {
-      const exercise = await lookupExercise(slug);
+      const exercise = await lookupExercise(language, slug);
       if (exercise) {
-        writeCachedSummary(exercise);
+        writeCachedSummary(language, exercise);
       } else {
         removeCachedExercise(slug);
       }
       return exercise;
     },
-    queryKey: summaryKey(slug),
+    queryKey: summaryKey(language, slug),
     retry: retryOnce,
     staleTime: EXERCISE_STALE_TIME_MS,
   });
 
 /**
- * The Exercises with these slugs, by slug, as rows show them. Never waits:
+ * The Exercises with these slugs, by slug, as rows show them, in the App
+ * language (wholly English for one without a translation). Never waits:
  * a slug not resolved yet (or that fails to) shows its slug's name, and its
  * row fills in once the Library answers.
  */
@@ -164,7 +178,10 @@ export const useExercises = (
 ): Record<string, ShownExercise> => {
   // An empty slug (a malformed row) never resolves: it isn't asked for.
   const unique = [...new Set(slugs)].filter(Boolean);
-  const results = useQueries({ queries: unique.map(exerciseSummaryQuery) });
+  const language = useAppLanguage();
+  const results = useQueries({
+    queries: unique.map((slug) => exerciseSummaryQuery(language, slug)),
+  });
   const shown: Record<string, ShownExercise> = {};
   unique.forEach((slug, index) => {
     shown[slug] = shownExercise(slug, results[index]?.data);
@@ -179,31 +196,33 @@ export const useExercise = (slug: string | undefined): ShownExercise => {
 };
 
 /**
- * One Exercise in full, for its detail screen and guide: `null` when the
+ * One Exercise in full, in the App language, for its detail screen and
+ * guide: `null` when the
  * Library has no such slug. Starts from the cached copy (offline too).
  * Without a slug (not known yet) it asks nothing.
  */
 export const useExerciseDetailQuery = (slug: string) => {
   const queryClient = useQueryClient();
+  const language = useAppLanguage();
   return useQuery({
     enabled: slug.length > 0,
-    initialData: () => readCachedExercise(slug)?.value,
-    initialDataUpdatedAt: () => readCachedExercise(slug)?.savedAt,
+    initialData: () => readCachedExercise(language, slug)?.value,
+    initialDataUpdatedAt: () => readCachedExercise(language, slug)?.savedAt,
     queryFn: async (): Promise<Exercise | null> => {
-      const exercise = await getLibrary().get(slug);
+      const exercise = await getLibrary().get(slug, { language });
       if (exercise) {
-        writeCachedExercise(exercise);
+        writeCachedExercise(language, exercise);
       } else {
         removeCachedExercise(slug);
       }
       // Rows showing this Exercise follow what its detail screen just read.
       queryClient.setQueryData<ExerciseSummary | null>(
-        summaryKey(slug),
+        summaryKey(language, slug),
         exercise
       );
       return exercise;
     },
-    queryKey: ["exercise-detail", slug],
+    queryKey: ["exercise-detail", language, slug],
     retry: retryOnce,
     staleTime: EXERCISE_STALE_TIME_MS,
   });
@@ -306,10 +325,11 @@ export const useExerciseSearch = ({
         }
         throw error;
       }
+      // Search is English for now (FIT-408), so it seeds the English copies.
       for (const exercise of page.data) {
-        writeCachedSummary(exercise);
+        writeCachedSummary("en", exercise);
         queryClient.setQueryData<ExerciseSummary | null>(
-          summaryKey(exercise.slug),
+          summaryKey("en", exercise.slug),
           exercise
         );
       }
