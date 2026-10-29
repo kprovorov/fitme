@@ -45,17 +45,21 @@ const ExerciseText = z.strictObject({
 /** The App languages an Exercise may be translated into: every one but English. */
 export type TranslatedLanguage = Exclude<AppLanguage, "en">;
 
+export const translatedLanguages = appLanguages.filter(
+  (language): language is TranslatedLanguage => language !== defaultAppLanguage
+);
+
 /**
  * Every Exercise's text per App language (`@fitme/core`): English required,
  * every other App language optional. A locale that isn't one fails.
  */
 const Locales = z.strictObject(
-  Object.fromEntries(
-    appLanguages.map((language) => [
-      language,
-      language === defaultAppLanguage ? ExerciseText : ExerciseText.optional(),
-    ])
-  ) as { en: typeof ExerciseText } & {
+  {
+    [defaultAppLanguage]: ExerciseText,
+    ...Object.fromEntries(
+      translatedLanguages.map((language) => [language, ExerciseText.optional()])
+    ),
+  } as { en: typeof ExerciseText } & {
     [Language in TranslatedLanguage]: z.ZodOptional<typeof ExerciseText>;
   },
   {

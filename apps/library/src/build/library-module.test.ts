@@ -230,14 +230,10 @@ describe("generateLibraryModule", () => {
       "a Ukrainian translation with a field the format doesn't have",
       bundleOf([
         {
-          ...inUkrainian(libraryExercise("squat", "Squat"), "Присідання"),
+          ...libraryExercise("squat", "Squat"),
           locales: {
             ...libraryExercise("squat", "Squat").locales,
-            uk: {
-              ...inUkrainian(libraryExercise("squat", "Squat"), "Присідання")
-                .locales.uk,
-              summary: "x",
-            },
+            uk: { description: "", instructions: "", name: "Присідання", summary: "x" },
           },
         },
       ]),

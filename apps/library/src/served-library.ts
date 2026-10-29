@@ -1,10 +1,10 @@
 import { createHash } from "node:crypto";
-import { appLanguages, defaultAppLanguage } from "@fitme/core/models";
-import type {
-  BundleExerciseText,
-  BundleMedia,
-  LibraryBundle,
-  TranslatedLanguage,
+import {
+  type BundleExerciseText,
+  type BundleMedia,
+  type LibraryBundle,
+  type TranslatedLanguage,
+  translatedLanguages,
 } from "./bundle";
 import type { Exercise } from "./schemas";
 
@@ -35,16 +35,12 @@ export interface ServedLibrary {
   /** The search index: each Exercise's name lowercased, in the order of `exercises`. */
   searchNames: string[];
   /**
-   * Each Exercise's text in every other App language, by Exercise slug, in
-   * the order of `exercises`. An Exercise without a translation has no entry.
+   * Each Exercise's text in every other App language, by Exercise slug. An
+   * Exercise without a translation has no entry.
    * Not served yet: the API answers English only.
    */
   translations: Record<TranslatedLanguage, Record<string, BundleExerciseText>>;
 }
-
-const translatedLanguages = appLanguages.filter(
-  (language): language is TranslatedLanguage => language !== defaultAppLanguage
-);
 
 const alphabetical = new Intl.Collator("en");
 
