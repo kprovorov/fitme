@@ -252,5 +252,54 @@
       "spokenLine": "{{change}}: {{sets}}",
       "spokenSet": "{{reps}} at {{weight}}"
     }
+  },
+  "sets": {
+    "columns": {
+      "target": "target",
+      "reps": "reps",
+      "rest": "rest"
+    },
+    "addSet": "Add Set",
+    "noTarget": "no target",
+    "repsAtWeight": "{{reps}} at {{weight}}",
+    "plannedSet": "Set {{order, number}}: {{target}}, {{rest}}",
+    "restSeconds_one": "rest {{count, number}} second",
+    "restSeconds_other": "rest {{count, number}} seconds",
+    "noRest": "no rest",
+    "row": {
+      "repsInput": "Set {{order, number}} reps",
+      "weightInput": "Set {{order, number}} weight",
+      "log": "Log set {{order, number}}",
+      "edit": "Edit set {{order, number}}",
+      "editHint": "Opens the set for editing",
+      "logged": "Set {{order, number}}, logged"
+    },
+    "errors": {
+      "save": "Couldn't save this set. Try again.",
+      "rateLimited": "Too many requests. Try again in {{seconds, number}} s."
+    },
+    "form": {
+      "weightNotNumber": "Weight must be a number",
+      "weightNegative": "Weight can't be negative",
+      "weightTooHigh": "Weight must be at most {{max}}",
+      "weightDecimals_one": "Weight can have at most {{count, number}} decimal",
+      "weightDecimals_other": "Weight can have at most {{count, number}} decimals",
+      "repsNotNumber": "Reps must be a number",
+      "repsNegative": "Reps can't be negative",
+      "repsTooHigh": "Reps must be at most {{max}}",
+      "repsNotWhole": "Reps must be a whole number"
+    },
+    "rest": {
+      "title": "Rest",
+      "thenSet": "Rest · then set {{order, number}}",
+      "left": "Rest, {{clock}} left",
+      "less_one": "{{count, number}} second less",
+      "less_other": "{{count, number}} seconds less",
+      "more_one": "{{count, number}} second more",
+      "more_other": "{{count, number}} seconds more",
+      "skip": "Skip",
+      "skipRest": "Skip rest",
+      "over": "Rest over"
+    }
   }
 }

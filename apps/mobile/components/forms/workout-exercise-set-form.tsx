@@ -7,6 +7,7 @@ import {
   type ControllerRenderProps,
   useForm,
 } from "react-hook-form";
+import { useTranslation } from "react-i18next";
 import { Pressable, View } from "react-native";
 import { z } from "zod";
 import {
@@ -161,6 +162,7 @@ export default function WorkoutSessionExerciseSetForm({
   isEditing,
   setIndex,
 }: WorkoutSessionExerciseSetFormProps) {
+  const { t } = useTranslation();
   const form = useForm<
     WorkoutSessionExerciseSetFormInput,
     unknown,
@@ -209,7 +211,7 @@ export default function WorkoutSessionExerciseSetForm({
       fieldState: ControllerFieldState;
     }) => (
       <Input
-        accessibilityLabel={`Set ${setIndex} weight`}
+        accessibilityLabel={t("sets.row.weightInput", { order: setIndex })}
         className={INPUT_CLASS}
         containerClassName={CELL_CLASS}
         editable={!isFormDisabled}
@@ -225,7 +227,7 @@ export default function WorkoutSessionExerciseSetForm({
         variant={isFormDisabled ? "ghost" : "default"}
       />
     ),
-    [isFormDisabled, recommendedValues?.weight, setIndex]
+    [isFormDisabled, recommendedValues?.weight, setIndex, t]
   );
 
   const renderRepsField = useCallback(
@@ -237,7 +239,7 @@ export default function WorkoutSessionExerciseSetForm({
       fieldState: ControllerFieldState;
     }) => (
       <Input
-        accessibilityLabel={`Set ${setIndex} reps`}
+        accessibilityLabel={t("sets.row.repsInput", { order: setIndex })}
         autoCapitalize="none"
         className={INPUT_CLASS}
         containerClassName={CELL_CLASS}
@@ -254,7 +256,7 @@ export default function WorkoutSessionExerciseSetForm({
         variant={isFormDisabled ? "ghost" : "default"}
       />
     ),
-    [isFormDisabled, recommendedValues?.reps, setIndex]
+    [isFormDisabled, recommendedValues?.reps, setIndex, t]
   );
 
   const { errors } = form.formState;
@@ -285,8 +287,8 @@ export default function WorkoutSessionExerciseSetForm({
         {showsLoggedValues ? (
           <SetCheckCell onPress={startEditing}>
             <Button
-              accessibilityHint="Opens the set for editing"
-              accessibilityLabel={`Edit set ${setIndex}`}
+              accessibilityHint={t("sets.row.editHint")}
+              accessibilityLabel={t("sets.row.edit", { order: setIndex })}
               contentColorClassName="text-muted-foreground"
               icon="pencil"
               onPress={startEditing}
@@ -301,7 +303,7 @@ export default function WorkoutSessionExerciseSetForm({
         ) : (
           <SetCheckCell onPress={submit}>
             <Button
-              accessibilityLabel={`Log set ${setIndex}`}
+              accessibilityLabel={t("sets.row.log", { order: setIndex })}
               icon="checkmark"
               onPress={submit}
               shape="circle"

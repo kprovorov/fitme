@@ -1,6 +1,7 @@
 import type { WorkoutSessionExerciseSet } from "@fitme/core";
-import { getWeightLabel } from "@fitme/core";
+import { unitName, weightUnitOf } from "@fitme/i18n";
 import { type ReactNode, useState } from "react";
+import { useTranslation } from "react-i18next";
 import { View } from "react-native";
 import { useProfileQuery } from "~/hooks/queries/profiles";
 import type { SavedWorkoutSessionExerciseSet } from "~/hooks/queries/workout-session-exercise-sets";
@@ -63,7 +64,11 @@ export default function WorkoutSessionExerciseSetsTableView({
   sessionId,
 }: WorkoutSessionExerciseSetsTableViewProps) {
   const { data: profile, isPending: isProfilePending } = useProfileQuery();
-  const weightLabel = getWeightLabel(profile?.measurement_system ?? "metric");
+  const { i18n, t } = useTranslation();
+  const weightLabel = unitName(
+    i18n,
+    weightUnitOf(profile?.measurement_system ?? "metric")
+  );
   const [localSets, setLocalSets] = useState<LocalSet[]>([]);
 
   const maxOrder = Math.max(
@@ -111,8 +116,10 @@ export default function WorkoutSessionExerciseSetsTableView({
           importantForAccessibility="no-hide-descendants"
         >
           <ColumnLabel className={SET_NUMBER_COLUMN_CLASS}>#</ColumnLabel>
-          <ColumnLabel className={SET_TARGET_COLUMN_CLASS}>target</ColumnLabel>
-          <ColumnLabel className="flex-1">reps</ColumnLabel>
+          <ColumnLabel className={SET_TARGET_COLUMN_CLASS}>
+            {t("sets.columns.target")}
+          </ColumnLabel>
+          <ColumnLabel className="flex-1">{t("sets.columns.reps")}</ColumnLabel>
           <ColumnLabel className="flex-1">{weightLabel}</ColumnLabel>
           <View className={SET_CHECK_COLUMN_CLASS} />
         </View>
@@ -163,7 +170,7 @@ export default function WorkoutSessionExerciseSetsTableView({
             contentColorClassName="text-primary"
             fill
             icon="plus"
-            label="Add Set"
+            label={t("sets.addSet")}
             onPress={handleAddSet}
             size="sm"
             variant="ghost"

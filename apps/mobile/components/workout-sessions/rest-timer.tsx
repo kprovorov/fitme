@@ -1,6 +1,7 @@
 import { formatElapsed } from "@fitme/core";
 import * as Haptics from "expo-haptics";
 import { useCallback, useEffect } from "react";
+import { useTranslation } from "react-i18next";
 import { AccessibilityInfo, type LayoutChangeEvent, View } from "react-native";
 import Animated, {
   FadeIn,
@@ -46,6 +47,7 @@ export default function RestTimer({
   onLayout,
   rest,
 }: RestTimerProps) {
+  const { t } = useTranslation();
   // Reduced motion keeps the fade and drops the slide.
   const reduceMotion = useReducedMotion();
   const entering = (reduceMotion ? FadeIn : FadeInDown).duration(ENTER_MS);
@@ -62,10 +64,10 @@ export default function RestTimer({
   useEffect(() => {
     if (isOver) {
       Haptics.notificationAsync(Haptics.NotificationFeedbackType.Warning);
-      AccessibilityInfo.announceForAccessibility("Rest over");
+      AccessibilityInfo.announceForAccessibility(t("sets.rest.over"));
       onEnd();
     }
-  }, [isOver, onEnd]);
+  }, [isOver, onEnd, t]);
 
   // Rounded up, so the clock reads 0:00 only when the rest is over.
   const clock = formatElapsed(Math.ceil(remaining / 1000) * 1000);
@@ -91,36 +93,40 @@ export default function RestTimer({
         </View>
         <View className="flex-row flex-wrap items-center gap-2 py-2.5 pr-3 pl-5">
           <View
-            accessibilityLabel={`Rest, ${clock} left`}
+            accessibilityLabel={t("sets.rest.left", { clock })}
             accessibilityLiveRegion="polite"
             accessible
             className="min-w-24 flex-1"
           >
             <Text className="text-footnote text-muted-foreground">
               {rest.nextSetOrder
-                ? `Rest · then set ${rest.nextSetOrder}`
-                : "Rest"}
+                ? t("sets.rest.thenSet", { order: rest.nextSetOrder })
+                : t("sets.rest.title")}
             </Text>
             <Text className="text-mono-title-2-semibold">{clock}</Text>
           </View>
           <Button
-            accessibilityLabel="15 seconds less"
+            accessibilityLabel={t("sets.rest.less", {
+              count: ADJUST_STEP_SECONDS,
+            })}
             fill={false}
             label={`−${ADJUST_STEP_SECONDS}`}
             onPress={lessRest}
             variant="secondary"
           />
           <Button
-            accessibilityLabel="15 seconds more"
+            accessibilityLabel={t("sets.rest.more", {
+              count: ADJUST_STEP_SECONDS,
+            })}
             fill={false}
             label={`+${ADJUST_STEP_SECONDS}`}
             onPress={moreRest}
             variant="secondary"
           />
           <Button
-            accessibilityLabel="Skip rest"
+            accessibilityLabel={t("sets.rest.skipRest")}
             fill={false}
-            label="Skip"
+            label={t("sets.rest.skip")}
             onPress={onEnd}
             variant="secondary"
           />
