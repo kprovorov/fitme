@@ -1,6 +1,13 @@
-import { experienceLevels, type Goal, goals, places } from "@fitme/core";
+import {
+  experienceLevels,
+  type Goal,
+  goals,
+  type Place,
+  places,
+} from "@fitme/core";
 import { zodResolver } from "@hookform/resolvers/zod";
 import { router, Stack } from "expo-router";
+import type { TFunction } from "i18next";
 import { useCallback } from "react";
 import {
   Controller,
@@ -26,20 +33,15 @@ import { Text } from "~/components/ui/text";
 import { Textarea } from "~/components/ui/textarea";
 import { H4, Muted } from "~/components/ui/typography";
 import { VStack } from "~/components/ui/vstack";
-import { type ChoiceLabels, useChoiceLabels } from "~/lib/choices";
+import { choiceLabels, useChoiceLabels } from "~/lib/choices";
 import { numberInRange } from "~/lib/form-schemas";
 import { i18n } from "~/lib/i18n";
 import { cn } from "~/lib/utils";
 
-type TFunction = ReturnType<typeof useTranslation>["t"];
-
 // The message is sent to Arnold as the User's own text, so it's in the App
 // language, as the User would write it; Arnold answers in it.
-function buildPlanMessage(
-  data: PlanFormValues,
-  t: TFunction,
-  labels: ChoiceLabels
-): string {
+function buildPlanMessage(data: PlanFormValues, t: TFunction): string {
+  const labels = choiceLabels(t);
   const lines = [
     t("planner.message.intro"),
     t("planner.message.goal", { goal: labels.goal(data.goal) }),
@@ -79,7 +81,7 @@ const goalOptions = [
 ] as const satisfies readonly Goal[];
 
 // Home workouts aren't planned yet.
-const soonPlaces: readonly string[] = ["home"];
+const soonPlaces: readonly Place[] = ["home"];
 
 const frequencyOptions = [1, 2, 3, 4, 5, 6, 7];
 
@@ -231,7 +233,6 @@ export default function PlannerScreen() {
 
   const insets = useSafeAreaInsets();
   const { t } = useTranslation();
-  const labels = useChoiceLabels();
 
   return (
     <>
@@ -365,7 +366,7 @@ export default function PlannerScreen() {
                 onPress={form.handleSubmit((data) => {
                   router.dismissTo({
                     params: {
-                      initialMessage: buildPlanMessage(data, t, labels),
+                      initialMessage: buildPlanMessage(data, t),
                     },
                     pathname: "/(tabs)/arnold",
                   });
