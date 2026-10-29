@@ -13,7 +13,7 @@ import {
 import type { ExerciseBatch, ExercisePage } from "./schemas";
 import { serveLibrary } from "./served-library";
 import { clerkInstance, clerkToken } from "./test/clerk";
-import { fakeOid, libraryExercise } from "./test/fixtures";
+import { fakeOid, inUkrainian, libraryExercise } from "./test/fixtures";
 
 const SUPABASE_URL = "https://project.supabase.co";
 
@@ -740,6 +740,51 @@ describe("GET /exercises/:slug", () => {
     expect(response.status).toBe(404);
     expect(await response.json()).toEqual({
       error: { code: "not_found", message: "Exercise not found" },
+    });
+  });
+});
+
+describe("a Library with Ukrainian content", () => {
+  // the same Exercises as `app`'s, one of them translated
+  const translatedApp = createApp({
+    ...base,
+    library: serveLibrary(
+      {
+        exercises: [
+          inUkrainian(
+            libraryExercise("bench-press", "Bench Press"),
+            "Жим лежачи"
+          ),
+          libraryExercise("squat", "Squat"),
+        ],
+      },
+      SUPABASE_URL
+    ),
+  });
+
+  it.each([
+    "/exercises/bench-press",
+    "/exercises",
+    "/exercises?search=bench",
+    "/exercises?slugs=bench-press,squat",
+  ])("answers %s in English, byte for byte as without it", async (path) => {
+    const translated = await translatedApp.request(path, asUser);
+    const english = await app.request(path, asUser);
+
+    expect(translated.status).toBe(200);
+    expect(await translated.text()).toBe(await english.text());
+  });
+
+  it("doesn't find an Exercise by its Ukrainian name", async () => {
+    const response = await translatedApp.request(
+      `/exercises?search=${encodeURIComponent("жим")}`,
+      asUser
+    );
+
+    expect(await response.json()).toEqual({
+      data: [],
+      hasMore: false,
+      total: 0,
     });
   });
 });

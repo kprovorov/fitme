@@ -21,6 +21,22 @@ export const libraryExercise = (
   video: { extension: "mp4", oid: fakeOid("b") },
 });
 
+/** `exercise` with a made-up Ukrainian translation named `name`. */
+export const inUkrainian = (
+  exercise: BundleExercise,
+  name: string
+): BundleExercise => ({
+  ...exercise,
+  locales: {
+    ...exercise.locales,
+    uk: {
+      description: `${name} — вигадана вправа для тестів.\n`,
+      instructions: "1. Ляжте на лаву.\n2. Тисніть.\n",
+      name,
+    },
+  },
+});
+
 /** A version 1 `library.json` holding `exercises`. */
 export const libraryBundle = (exercises: BundleExercise[]): LibraryBundle => ({
   exercises,
