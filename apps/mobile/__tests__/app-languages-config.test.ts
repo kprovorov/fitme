@@ -10,24 +10,24 @@ import { appLanguages } from "@fitme/core";
 import { describe, expect, it } from "@jest/globals";
 import appJson from "~/app.json";
 
-type PluginEntry = string | [string, Record<string, unknown>];
+const isLocalization = (plugin: unknown) =>
+  Array.isArray(plugin)
+    ? plugin[0] === "expo-localization"
+    : plugin === "expo-localization";
 
-const localizationOptions = () => {
-  const entry = (appJson.expo.plugins as PluginEntry[]).find((plugin) =>
-    Array.isArray(plugin)
-      ? plugin[0] === "expo-localization"
-      : plugin === "expo-localization"
-  );
-  return Array.isArray(entry) ? entry[1] : undefined;
-};
+const entry: unknown = appJson.expo.plugins.find(isLocalization);
+const options: unknown = Array.isArray(entry) ? entry[1] : undefined;
 
 describe("the expo-localization plugin", () => {
   it("declares exactly the App languages as the supported locales", () => {
-    expect(localizationOptions()?.supportedLocales).toEqual([...appLanguages]);
+    expect(options).toEqual(
+      expect.objectContaining({ supportedLocales: [...appLanguages] })
+    );
   });
 
   it("keeps right-to-left support as the plugin's default", () => {
-    expect(localizationOptions()).not.toHaveProperty("supportsRTL");
-    expect(localizationOptions()).not.toHaveProperty("forcesRTL");
+    expect(options).toBeDefined();
+    expect(options).not.toHaveProperty("supportsRTL");
+    expect(options).not.toHaveProperty("forcesRTL");
   });
 });
