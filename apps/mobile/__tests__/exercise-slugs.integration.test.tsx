@@ -10,15 +10,10 @@
  */
 import { beforeEach, describe, expect, it, jest } from "@jest/globals";
 import { type QueryClient, QueryClientProvider } from "@tanstack/react-query";
-import {
-  act,
-  fireEvent,
-  render,
-  screen,
-  within,
-} from "@testing-library/react-native";
+import { act, fireEvent, render, screen } from "@testing-library/react-native";
 import type { ReactNode } from "react";
 import PlanScreen from "~/app/plans/[planId]/index";
+import WorkoutScreen from "~/app/plans/[planId]/workouts/[workoutId]/index";
 import PlanSessionExerciseScreen from "~/app/plans/[planId]/workouts/[workoutId]/sessions/[sessionId]/exercises/[exerciseId]/index";
 import HistorySessionScreen from "~/app/workout-sessions/[workoutSessionId]";
 import SummaryScreen from "~/app/workout-sessions/[workoutSessionId]/summary";
@@ -34,6 +29,7 @@ import {
 } from "~/test-utils/query-client";
 
 const mockParams: { current: Record<string, string> } = { current: {} };
+const mockPush = jest.fn();
 
 jest.mock("expo-router", () => {
   const { View } =
@@ -50,7 +46,7 @@ jest.mock("expo-router", () => {
     useRouter: () => ({
       dismiss: jest.fn(),
       dismissTo: jest.fn(),
-      push: jest.fn(),
+      push: mockPush,
       replace: jest.fn(),
     }),
   };
@@ -119,6 +115,10 @@ jest.mock("~/components/ui/dropdown-menu", () => {
 // The Exercise picker's muscle group menu (SwiftUI) shows nothing.
 jest.mock("~/components/ui/picker", () => ({ Picker: () => null }));
 
+// The Exercise header reads the name, then the muscle groups.
+const SQUAT = /^Squat/;
+const MYSTERY_MOVE = /^Mystery move/;
+
 /** Not in the Library: shown as "Mystery move". */
 const UNKNOWN_SLUG = "mystery-move";
 
@@ -164,7 +164,7 @@ beforeEach(() => {
 });
 
 describe("a Plan", () => {
-  it("names its Exercises from the library and links only the ones it knows", async () => {
+  beforeEach(() => {
     backend.seedPlan({
       id: "plan-1",
       name: "Strength",
@@ -179,20 +179,31 @@ describe("a Plan", () => {
         },
       ],
     });
+  });
+
+  it("shows each Workout's Exercises as thumbnails, a blank one for a slug the library doesn't know, and opens the Workout", async () => {
     await renderScreen(PlanScreen, { planId: "plan-1" });
 
-    // Open the Workout card to list its Exercises by name.
-    await fireEvent.press(await screen.findByText("Leg Day"));
-
-    const squat = await screen.findByTestId("link:/exercises/squat");
-    expect(within(squat).getByLabelText("Squat")).toBeTruthy();
+    expect(await screen.findByText("Leg Day")).toBeTruthy();
     expect(
-      within(squat).getByTestId("thumbnail:https://media.test/render/squat.jpg")
+      screen.getByTestId("thumbnail:https://media.test/render/squat.jpg")
     ).toBeTruthy();
-
-    expect(screen.getByLabelText("Mystery move")).toBeTruthy();
-    expect(screen.queryByTestId(`link:/exercises/${UNKNOWN_SLUG}`)).toBeNull();
     expect(screen.getByTestId("thumbnail:none")).toBeTruthy();
+
+    await fireEvent.press(
+      screen.getByRole("button", { name: "Leg Day, 2 Exercises" })
+    );
+    expect(mockPush).toHaveBeenCalledWith("/plans/plan-1/workouts/w1");
+  });
+
+  it("names a Workout's Exercises from the library and links only the ones it knows", async () => {
+    await renderScreen(WorkoutScreen, { planId: "plan-1", workoutId: "w1" });
+
+    await fireEvent.press(await screen.findByRole("button", { name: SQUAT }));
+    expect(mockPush).toHaveBeenCalledWith("/exercises/squat");
+
+    expect(screen.getByText("Mystery move")).toBeTruthy();
+    expect(screen.queryByRole("button", { name: MYSTERY_MOVE })).toBeNull();
   });
 });
 

@@ -6,8 +6,19 @@ export interface WorkoutQueryVariables {
   id: string;
 }
 
-export const useWorkoutQuery = createQuery<Workout, WorkoutQueryVariables>({
-  fetcher: async ({ id }: WorkoutQueryVariables): Promise<Workout> => {
+/** PostgREST's answer to `single()` when no row matched. */
+const NO_ROW = "PGRST116";
+
+/**
+ * A Workout with its Plan, Exercises, sets and sessions, or `null` once it's
+ * gone: replaced by a Plan edit (no row), or its Plan soft-deleted (RLS still
+ * returns those). Nested rows come unordered.
+ */
+export const useWorkoutQuery = createQuery<
+  Workout | null,
+  WorkoutQueryVariables
+>({
+  fetcher: async ({ id }: WorkoutQueryVariables): Promise<Workout | null> => {
     const { data, error } = await supabase
       .from("workouts")
       .select(
@@ -24,7 +35,13 @@ export const useWorkoutQuery = createQuery<Workout, WorkoutQueryVariables>({
       .eq("id", id)
       .single();
     if (error) {
+      if (error.code === NO_ROW) {
+        return null;
+      }
       throw error;
+    }
+    if (!data.plan || data.plan.deleted_at !== null) {
+      return null;
     }
     return data as unknown as Workout;
   },

@@ -272,3 +272,84 @@ describe("WorkoutCard's Finish Workout", () => {
     expect(mockPush).not.toHaveBeenCalled();
   });
 });
+
+describe("Pressing a WorkoutCard", () => {
+  beforeEach(() => {
+    jest.clearAllMocks();
+  });
+
+  const renderCardOnly = async (
+    shown: Workout,
+    state?: "upcoming" | "default"
+  ) => {
+    await render(
+      <QueryClientProvider client={createTestQueryClient()}>
+        <WorkoutCard state={state} workout={shown} />
+      </QueryClientProvider>
+    );
+  };
+
+  const withoutOpenSession = {
+    ...workout,
+    exercises: [
+      { exercise_slug: "dips", id: "we-1", order: 1, sets: [{}, {}] },
+    ],
+    sessions: [
+      {
+        finished_at: "2026-10-20T11:00:00Z",
+        id: "session-0",
+        started_at: "2026-10-20T10:00:00Z",
+      },
+    ],
+  } as unknown as Workout;
+
+  it.each([
+    ["the Next card", "upcoming"],
+    ["an Upcoming or Plan card", "default"],
+  ] as const)(
+    "opens the Workout screen from %s without an open session",
+    async (_, state) => {
+      await renderCardOnly(withoutOpenSession, state);
+
+      await fireEvent.press(
+        screen.getByRole("button", { name: "Push Day, 1 Exercise" })
+      );
+
+      expect(mockPush).toHaveBeenCalledWith("/plans/plan-1/workouts/workout-1");
+    }
+  );
+
+  it("opens the open Workout Session instead when there is one", async () => {
+    await renderCardOnly(workout, "default");
+
+    await fireEvent.press(
+      screen.getByRole("button", { name: "Push Day, 0 Exercises" })
+    );
+
+    expect(mockPush).toHaveBeenCalledWith(
+      "/plans/plan-1/workouts/workout-1/sessions/session-1"
+    );
+  });
+
+  it("shows no Exercise names or set counts: it never expands", async () => {
+    await renderCardOnly(withoutOpenSession, "default");
+
+    await fireEvent.press(
+      screen.getByRole("button", { name: "Push Day, 1 Exercise" })
+    );
+
+    expect(screen.queryByText("Dips")).toBeNull();
+    expect(screen.queryByText("2 x ")).toBeNull();
+  });
+
+  it("keeps Start Workout on the Next card only", async () => {
+    await renderCardOnly(withoutOpenSession, "upcoming");
+    expect(screen.getByRole("button", { name: "Start Workout" })).toBeTruthy();
+  });
+
+  it("has no Start or Finish on the other cards", async () => {
+    await renderCardOnly(withoutOpenSession, "default");
+    expect(screen.queryByRole("button", { name: "Start Workout" })).toBeNull();
+    expect(screen.queryByRole("button", { name: "Finish Workout" })).toBeNull();
+  });
+});

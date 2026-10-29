@@ -1,8 +1,8 @@
 import { libraryExercise } from "./fake-library";
 
 /**
- * In-memory stand-in for the Supabase client, covering the Profile and Plan
- * reads and the workout session queries and mutations the session screens
+ * In-memory stand-in for the Supabase client, covering the Profile, Plan and
+ * Workout reads and the workout session queries and mutations the session screens
  * make. The fake Public API (`fake-public-api.ts`) answers over the same rows,
  * so a write through it shows in the next Supabase read. Rows live in plain
  * arrays and every request resolves asynchronously, like the network would,
@@ -241,6 +241,21 @@ class FakeWorkoutBackend {
     return this.sessions.find((session) => session.id === id);
   }
 
+  /**
+   * A seeded Workout as the Workout read selects it: its Exercises, sets and
+   * sessions, and its Plan (soft-deleted ones too, as RLS lets them through).
+   */
+  nestedWorkout(id: string) {
+    for (const plan of this.plans) {
+      const { workouts, ...nested } = this.nestedPlan(plan);
+      const workout = workouts.find((candidate) => candidate.id === id);
+      if (workout) {
+        return { ...workout, plan: nested };
+      }
+    }
+    return null;
+  }
+
   async execute<T>(
     request: Request,
     handler: () => T
@@ -289,6 +304,7 @@ class FakeWorkoutBackend {
       is_active,
       name,
       place: "gym",
+      workout_duration: 60,
       workouts: workouts.map((workout, workoutIndex) => ({
         exercises: workout.exercises.map(({ sets, slug }, exerciseIndex) => ({
           exercise_slug: slug,
@@ -351,6 +367,7 @@ const requireRow = <T>(row: T | undefined, what: string): T => {
 class FakeQuery {
   private operation: Operation = "select";
   private readonly filters: Filters = {};
+  private allowsNoRow = false;
   private readonly table: string;
 
   constructor(table: string) {
@@ -400,14 +417,28 @@ class FakeQuery {
   }
 
   maybeSingle() {
+    this.allowsNoRow = true;
     return this.single();
   }
 
-  single() {
-    return backend.execute(
+  /** No row is PostgREST's PGRST116 error, unless `maybeSingle()` allows it. */
+  async single() {
+    const result = await backend.execute(
       { operation: this.operation, table: this.table },
       () => this.run()
     );
+    if (result.data === null && result.error === null && !this.allowsNoRow) {
+      return {
+        data: null,
+        error: Object.assign(
+          new Error("Cannot coerce the result to a single JSON object"),
+          {
+            code: "PGRST116",
+          }
+        ),
+      };
+    }
+    return result;
   }
 
   // biome-ignore lint/suspicious/noThenProperty: mirrors Supabase's awaitable query builder
@@ -415,6 +446,8 @@ class FakeQuery {
     onFulfilled?: (value: { data: unknown; error: Error | null }) => R1,
     onRejected?: (reason: unknown) => R2
   ) {
+    // Awaited without `single()`: a list, never PGRST116.
+    this.allowsNoRow = true;
     return this.single().then(onFulfilled, onRejected);
   }
 
@@ -446,6 +479,9 @@ class FakeQuery {
             "plan"
           )
         );
+      case "workouts.select":
+        // `null` (PGRST116 through `single()`) once it's gone.
+        return backend.nestedWorkout(this.filters.id as string);
       case "workout_sessions.select":
         return backend.nestedSession(
           requireRow(backend.session(this.filters.id as string), "session")
