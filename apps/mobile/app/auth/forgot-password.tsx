@@ -1,5 +1,6 @@
 import { Stack } from "expo-router";
 import { useEffect, useState } from "react";
+import { useTranslation } from "react-i18next";
 import {
   Keyboard,
   KeyboardAvoidingView,
@@ -13,6 +14,7 @@ import { VStack } from "~/components/ui/vstack";
 import ForgotPasswordView from "~/components/views/forgot-password-view";
 
 export default function ForgotPasswordScreen() {
+  const { t } = useTranslation();
   const insets = useSafeAreaInsets();
   const [isKeyboardVisible, setIsKeyboardVisible] = useState(false);
 
@@ -32,7 +34,7 @@ export default function ForgotPasswordScreen() {
 
   return (
     <>
-      <Stack.Screen options={{ title: "Forgot Password" }} />
+      <Stack.Screen options={{ title: t("forgotPassword.screenTitle") }} />
       <View style={{ flex: 1, paddingTop: insets.top }}>
         <KeyboardAvoidingView
           behavior={Platform.OS === "ios" ? "padding" : "height"}

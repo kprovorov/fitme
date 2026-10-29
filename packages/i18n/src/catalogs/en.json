@@ -419,5 +419,45 @@
   "support": {
     "title": "Support",
     "contact": "Feel free to contact us at any time if you have any questions or feedback"
+  },
+  "verifyCode": {
+    "screenTitle": "Verify Code",
+    "title": "Check your email",
+    "description": {
+      "signUp": "Enter the code we emailed you to activate your account",
+      "reset": "Enter the code we emailed you to reset your password",
+      "signIn": "Enter the code we sent you to confirm it's you on this device"
+    },
+    "codePlaceholder": "Code",
+    "verify": "Verify",
+    "resend": "Send a new code",
+    "resent": "We sent you a new code.",
+    "errors": {
+      "signUpIncomplete": "We couldn't finish creating your account. Please try again.",
+      "resetIncomplete": "We couldn't verify the code. Please try again.",
+      "signInIncomplete": "We couldn't sign you in. Please try again."
+    }
+  },
+  "forgotPassword": {
+    "screenTitle": "Forgot Password",
+    "title": "Forgot password?",
+    "description": "Enter your email and we'll send you a code to reset it.",
+    "emailPlaceholder": "Email",
+    "invalidEmail": "Invalid email",
+    "submit": "Send Code",
+    "remember": "Remember your password?",
+    "login": "Login here"
+  },
+  "resetPassword": {
+    "screenTitle": "Reset Password",
+    "title": "Set new password",
+    "description": "Choose a new password for your account.",
+    "newPasswordPlaceholder": "New Password",
+    "confirmPasswordPlaceholder": "Confirm Password",
+    "passwordTooShort_one": "Password must be at least {{count}} character.",
+    "passwordTooShort_other": "Password must be at least {{count}} characters.",
+    "passwordsDontMatch": "Passwords do not match.",
+    "submit": "Update Password",
+    "passwordChanged": "Your password was changed. Log in with your new password."
   }
 }

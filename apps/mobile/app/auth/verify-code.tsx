@@ -1,5 +1,6 @@
 import { Redirect, Stack, useLocalSearchParams } from "expo-router";
 import { useEffect, useState } from "react";
+import { useTranslation } from "react-i18next";
 import {
   Keyboard,
   KeyboardAvoidingView,
@@ -16,6 +17,7 @@ import VerifyCodeView, {
 
 /** Enters an emailed code; `purpose` says which Clerk flow it completes. */
 export default function VerifyCodeScreen() {
+  const { t } = useTranslation();
   const { purpose } = useLocalSearchParams<{ purpose: string }>();
   const [isKeyboardVisible, setIsKeyboardVisible] = useState(false);
 
@@ -41,7 +43,7 @@ export default function VerifyCodeScreen() {
 
   return (
     <>
-      <Stack.Screen options={{ title: "Verify Code" }} />
+      <Stack.Screen options={{ title: t("verifyCode.screenTitle") }} />
 
       <View style={{ flex: 1, paddingTop: insets.top }}>
         <KeyboardAvoidingView

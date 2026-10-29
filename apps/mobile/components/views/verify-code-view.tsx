@@ -1,6 +1,7 @@
 import { useAuth, useSignIn, useSignUp } from "@clerk/expo";
 import { router } from "expo-router";
 import { useCallback, useEffect, useState } from "react";
+import { useTranslation } from "react-i18next";
 import { ErrorMessage } from "~/components/ui/error-message";
 import { getClerkErrorMessage } from "~/lib/clerk";
 import { IS_E2E } from "~/lib/constants";
@@ -27,6 +28,7 @@ interface CodeVerification {
 
 const useSignUpVerification = (): CodeVerification => {
   const { signUp, fetchStatus } = useSignUp();
+  const { t } = useTranslation();
 
   const resend = useCallback(async () => {
     const { error } = await signUp.verifications.sendEmailCode();
@@ -40,7 +42,7 @@ const useSignUpVerification = (): CodeVerification => {
         return getClerkErrorMessage(error);
       }
       if (signUp.status !== "complete") {
-        return "We couldn't finish creating your account. Please try again.";
+        return t("verifyCode.errors.signUpIncomplete");
       }
       const { error: finalizeError } = await signUp.finalize();
       if (finalizeError) {
@@ -50,7 +52,7 @@ const useSignUpVerification = (): CodeVerification => {
         segmentClient.track("User Registered");
       }
     },
-    [signUp]
+    [signUp, t]
   );
 
   return { isFetching: fetchStatus === "fetching", resend, verify };
@@ -58,6 +60,7 @@ const useSignUpVerification = (): CodeVerification => {
 
 const useResetPasswordVerification = (): CodeVerification => {
   const { signIn, fetchStatus } = useSignIn();
+  const { t } = useTranslation();
 
   const resend = useCallback(async () => {
     const { error } = await signIn.resetPasswordEmailCode.sendCode();
@@ -73,11 +76,11 @@ const useResetPasswordVerification = (): CodeVerification => {
         return getClerkErrorMessage(error);
       }
       if (signIn.status !== "needs_new_password") {
-        return "We couldn't verify the code. Please try again.";
+        return t("verifyCode.errors.resetIncomplete");
       }
       router.replace("/auth/reset-password");
     },
-    [signIn]
+    [signIn, t]
   );
 
   return { isFetching: fetchStatus === "fetching", resend, verify };
@@ -86,6 +89,7 @@ const useResetPasswordVerification = (): CodeVerification => {
 /** Device Trust: a sign-in on a new device also needs an emailed code. */
 const useSignInVerification = (): CodeVerification => {
   const { signIn, fetchStatus } = useSignIn();
+  const { t } = useTranslation();
 
   const resend = useCallback(async () => {
     const { error } = await signIn.mfa.sendEmailCode();
@@ -99,33 +103,31 @@ const useSignInVerification = (): CodeVerification => {
         return getClerkErrorMessage(error);
       }
       if (signIn.status !== "complete") {
-        return "We couldn't sign you in. Please try again.";
+        return t("verifyCode.errors.signInIncomplete");
       }
       const { error: finalizeError } = await signIn.finalize();
       if (finalizeError) {
         return getClerkErrorMessage(finalizeError);
       }
     },
-    [signIn]
+    [signIn, t]
   );
 
   return { isFetching: fetchStatus === "fetching", resend, verify };
 };
 
-const COPY: Record<CodePurpose, { description: string; title: string }> = {
-  "reset-password": {
-    description: "Enter the code we emailed you to reset your password",
-    title: "Check your email",
-  },
-  "sign-in": {
-    description:
-      "Enter the code we sent you to confirm it's you on this device",
-    title: "Check your email",
-  },
-  "sign-up": {
-    description: "Enter the code we emailed you to activate your account",
-    title: "Check your email",
-  },
+/** The catalog key of what the code screen asks for, per purpose. */
+const descriptionKey = (purpose: CodePurpose) => {
+  switch (purpose) {
+    case "reset-password":
+      return "verifyCode.description.reset";
+    case "sign-in":
+      return "verifyCode.description.signIn";
+    case "sign-up":
+      return "verifyCode.description.signUp";
+    default:
+      return purpose satisfies never;
+  }
 };
 
 interface VerifyCodeViewProps {
@@ -143,7 +145,7 @@ export default function VerifyCodeView({ purpose }: VerifyCodeViewProps) {
     "sign-up": useSignUpVerification(),
   };
   const { isFetching, resend, verify } = verifications[purpose];
-  const { description, title } = COPY[purpose];
+  const { t } = useTranslation();
 
   const [code, setCode] = useState("");
   const [errorMessage, setErrorMessage] = useState<string | undefined>();
@@ -172,15 +174,15 @@ export default function VerifyCodeView({ purpose }: VerifyCodeViewProps) {
       setErrorMessage(error);
       return;
     }
-    setNotice("We sent you a new code.");
-  }, [resend]);
+    setNotice(t("verifyCode.resent"));
+  }, [resend, t]);
 
   return (
     <VStack className="w-full">
       <VStack className="gap-0">
-        <H3>{title}</H3>
+        <H3>{t("verifyCode.title")}</H3>
         <Text className="text-muted-foreground text-subhead-emphasized">
-          {description}
+          {t(descriptionKey(purpose))}
         </Text>
       </VStack>
       {errorMessage ? (
@@ -193,7 +195,7 @@ export default function VerifyCodeView({ purpose }: VerifyCodeViewProps) {
           editable={!isFetching}
           keyboardType="number-pad"
           onChangeText={setCode}
-          placeholder="Code"
+          placeholder={t("verifyCode.codePlaceholder")}
           testID="verify-code-input"
           textContentType="oneTimeCode"
           value={code}
@@ -203,14 +205,14 @@ export default function VerifyCodeView({ purpose }: VerifyCodeViewProps) {
           icon="arrow.right"
           iconPosition="trailing"
           isLoading={isFetching}
-          label="Verify"
+          label={t("verifyCode.verify")}
           onPress={handleVerify}
           testID="verify-code-button"
         />
         <Button
           disabled={isFetching}
           fill
-          label="Send a new code"
+          label={t("verifyCode.resend")}
           onPress={handleResend}
           testID="verify-code-resend-button"
           variant="ghost"

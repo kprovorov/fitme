@@ -20,8 +20,17 @@
  * `expo-localization` reports an English device (`en-US`), so every screen
  * renders in English; a test sets another device language with
  * `setDeviceLanguages` (`device-locales.ts`).
+ *
+ * `useTranslation()` gets an English i18next instance, so a test can render
+ * a screen or component on its own, without the root layout that loads
+ * `~/lib/i18n` in the app. A test that loads `~/lib/i18n` (to follow the
+ * device language through `useAppLanguageSync`) binds that instance instead.
  */
+import { createI18n } from "@fitme/i18n";
 import { jest } from "@jest/globals";
+import { setI18n } from "react-i18next";
+
+setI18n(createI18n("en"));
 
 jest.mock(
   "~/lib/library",
