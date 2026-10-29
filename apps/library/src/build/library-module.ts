@@ -143,9 +143,9 @@ const parseBundle = (name: string, text: string): ReadResult => {
 
 /**
  * Reads and validates the `library.json` bundle and turns it into the source
- * of a TypeScript module the API imports: every Exercise with its media URLs
- * resolved on the Supabase project at SUPABASE_URL, and the lowercased name
- * index search runs on. Which bundle:
+ * of a TypeScript module the API imports: every Exercise in every App
+ * language with its media URLs resolved on the Supabase project at
+ * SUPABASE_URL, and each language's order and search index. Which bundle:
  *
  * - a production build (`VERCEL_ENV=production`) fetches `library.json` from
  *   the private Blob store through `getBlob`, and fails without it;
@@ -202,7 +202,7 @@ export const library: ServedLibrary = ${JSON.stringify(library, null, 2)};
 `;
   return {
     bundle: bundleName,
-    exercises: library.exercises.length,
+    exercises: result.bundle.exercises.length,
     hash: library.hash,
     ok: true,
     source,

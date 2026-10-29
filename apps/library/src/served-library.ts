@@ -1,11 +1,6 @@
 import { createHash } from "node:crypto";
-import {
-  type BundleExerciseText,
-  type BundleMedia,
-  type LibraryBundle,
-  type TranslatedLanguage,
-  translatedLanguages,
-} from "./bundle";
+import { type AppLanguage, appLanguages } from "@fitme/core/models";
+import type { BundleMedia, LibraryBundle } from "./bundle";
 import type { Exercise } from "./schemas";
 
 /** The public Supabase Storage bucket the Library's media is uploaded to. */
@@ -19,30 +14,35 @@ export const PLACEHOLDER_SUPABASE_URL = "https://example.supabase.co";
 
 const TRAILING_SLASHES = /\/+$/;
 
-/**
- * The Library as the API serves it: every Exercise as its response
- * object, media URLs resolved. Built once, at build time.
- */
-export interface ServedLibrary {
-  /** Alphabetical by name, ties by Exercise slug: the order lists are served in. */
+/** The Library in one App language, as the API serves it in that language. */
+export interface ServedLanguage {
+  /**
+   * Every Exercise in this language, or wholly in English without a
+   * translation, sorted by that name with the language's collation, ties by
+   * Exercise slug: the order lists are served in.
+   */
   exercises: Exercise[];
   /**
-   * The sha256 of every Exercise as served (text, muscle groups and media
-   * URLs, which carry the LFS oids) and of every translation: changes
-   * whenever any Exercise does. Devices revalidate with it as the `ETag`.
+   * The search index, in the order of `exercises`: each Exercise's names
+   * lowercased, the served one first, then its English one when that differs.
    */
-  hash: string;
-  /** The search index: each Exercise's name lowercased, in the order of `exercises`. */
-  searchNames: string[];
-  /**
-   * Each Exercise's text in every other App language, by Exercise slug. An
-   * Exercise without a translation has no entry.
-   * Not served yet: the API answers English only.
-   */
-  translations: Record<TranslatedLanguage, Record<string, BundleExerciseText>>;
+  searchNames: string[][];
 }
 
-const alphabetical = new Intl.Collator("en");
+/**
+ * The Library as the API serves it: every Exercise as its response object
+ * in every App language, media URLs resolved. Built once, at build time.
+ */
+export interface ServedLibrary {
+  /**
+   * The sha256 of every language's Exercises as served (text, muscle groups
+   * and media URLs, which carry the LFS oids): changes whenever any Exercise
+   * or translation does. Devices revalidate with it as the `ETag`, which
+   * stays valid per URL since the language is part of the URL.
+   */
+  hash: string;
+  languages: Record<AppLanguage, ServedLanguage>;
+}
 
 /**
  * A media file's object path in the bucket: `<slug>/<lfs-oid>.<ext>`. The
@@ -52,8 +52,9 @@ export const mediaObjectPath = (slug: string, media: BundleMedia) =>
   `${slug}/${media.oid}.${media.extension}`;
 
 /**
- * Resolves the media URLs of a validated bundle's Exercises on the Supabase
- * project at `supabaseUrl`: thumbnails through the image transformation
+ * Serves a validated bundle's Exercises in every App language, each
+ * language's order and search index worked out here, once. Media URLs are
+ * resolved on the Supabase project at `supabaseUrl`: thumbnails through the image transformation
  * (render) endpoint, so clients only append `width`/`height`; videos at their
  * public object URL.
  */
@@ -62,40 +63,42 @@ export const serveLibrary = (
   supabaseUrl: string
 ): ServedLibrary => {
   const storage = `${supabaseUrl.replace(TRAILING_SLASHES, "")}/storage/v1`;
-  const sorted = bundle.exercises.toSorted(
-    (a, b) =>
-      alphabetical.compare(a.locales.en.name, b.locales.en.name) ||
-      alphabetical.compare(a.slug, b.slug)
-  );
-  const exercises: Exercise[] = sorted.map((exercise) => {
-    const { name, description, instructions } = exercise.locales.en;
+  const serveIn = (language: AppLanguage): ServedLanguage => {
+    const collator = new Intl.Collator(language);
+    const served = bundle.exercises.map((exercise) => {
+      const english = exercise.locales.en;
+      // an untranslated Exercise is served wholly in English, never field by field
+      const { name, description, instructions } =
+        exercise.locales[language] ?? english;
+      const names = [name.toLowerCase(), english.name.toLowerCase()];
+      return {
+        exercise: {
+          description,
+          instructions,
+          muscle_groups: exercise.muscle_groups,
+          name,
+          slug: exercise.slug,
+          thumbnail_url: `${storage}/render/image/public/${MEDIA_BUCKET}/${mediaObjectPath(exercise.slug, exercise.thumbnail)}`,
+          video_url: `${storage}/object/public/${MEDIA_BUCKET}/${mediaObjectPath(exercise.slug, exercise.video)}`,
+        },
+        searchNames: [...new Set(names)],
+      };
+    });
+    const sorted = served.toSorted(
+      (a, b) =>
+        collator.compare(a.exercise.name, b.exercise.name) ||
+        collator.compare(a.exercise.slug, b.exercise.slug)
+    );
     return {
-      description,
-      instructions,
-      muscle_groups: exercise.muscle_groups,
-      name,
-      slug: exercise.slug,
-      thumbnail_url: `${storage}/render/image/public/${MEDIA_BUCKET}/${mediaObjectPath(exercise.slug, exercise.thumbnail)}`,
-      video_url: `${storage}/object/public/${MEDIA_BUCKET}/${mediaObjectPath(exercise.slug, exercise.video)}`,
+      exercises: sorted.map(({ exercise }) => exercise),
+      searchNames: sorted.map(({ searchNames }) => searchNames),
     };
-  });
-  const translations = Object.fromEntries(
-    translatedLanguages.map((language) => [
-      language,
-      Object.fromEntries(
-        sorted.flatMap(({ locales, slug }) => {
-          const text = locales[language];
-          return text ? [[slug, text]] : [];
-        })
-      ),
-    ])
-  ) as ServedLibrary["translations"];
+  };
+  const languages = Object.fromEntries(
+    appLanguages.map((language) => [language, serveIn(language)])
+  ) as ServedLibrary["languages"];
   return {
-    exercises,
-    hash: createHash("sha256")
-      .update(JSON.stringify({ exercises, translations }))
-      .digest("hex"),
-    searchNames: exercises.map((exercise) => exercise.name.toLowerCase()),
-    translations,
+    hash: createHash("sha256").update(JSON.stringify(languages)).digest("hex"),
+    languages,
   };
 };

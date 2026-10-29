@@ -89,21 +89,22 @@ describe("generateLibraryModule", () => {
 
     expect(result.ok).toBe(true);
     const { library } = await importModule(result.ok ? result.source : "");
+    const squat = {
+      description: "Squat is a compound pushing movement.\n",
+      instructions: "1. Lie on the bench.\n2. Press.\n",
+      muscle_groups: ["chest", "triceps"],
+      name: "Squat",
+      slug: "squat",
+      thumbnail_url: `${SUPABASE_URL}/storage/v1/render/image/public/exercise-media/squat/${fakeOid("a")}.png`,
+      video_url: `${SUPABASE_URL}/storage/v1/object/public/exercise-media/squat/${fakeOid("b")}.mp4`,
+    };
+    // untranslated, so wholly English in Ukrainian too
     expect(library).toEqual({
-      exercises: [
-        {
-          description: "Squat is a compound pushing movement.\n",
-          instructions: "1. Lie on the bench.\n2. Press.\n",
-          muscle_groups: ["chest", "triceps"],
-          name: "Squat",
-          slug: "squat",
-          thumbnail_url: `${SUPABASE_URL}/storage/v1/render/image/public/exercise-media/squat/${fakeOid("a")}.png`,
-          video_url: `${SUPABASE_URL}/storage/v1/object/public/exercise-media/squat/${fakeOid("b")}.mp4`,
-        },
-      ],
       hash: expect.stringMatching(/^[0-9a-f]{64}$/),
-      searchNames: ["squat"],
-      translations: { uk: {} },
+      languages: {
+        en: { exercises: [squat], searchNames: [["squat"]] },
+        uk: { exercises: [squat], searchNames: [["squat"]] },
+      },
     });
   });
 
@@ -120,18 +121,22 @@ describe("generateLibraryModule", () => {
 
     expect(result.ok).toBe(true);
     const { library } = await importModule(result.ok ? result.source : "");
-    expect(library.translations).toEqual({
-      uk: {
-        squat: {
-          description: "Присідання — вигадана вправа для тестів.\n",
-          instructions: "1. Ляжте на лаву.\n2. Тисніть.\n",
-          name: "Присідання",
-        },
-      },
-    });
-    expect(library.exercises.map(({ name }: { name: string }) => name)).toEqual(
-      ["Lunge", "Squat"]
-    );
+    expect(library.languages.uk.exercises).toEqual([
+      expect.objectContaining({
+        description: "Присідання — вигадана вправа для тестів.\n",
+        instructions: "1. Ляжте на лаву.\n2. Тисніть.\n",
+        name: "Присідання",
+        slug: "squat",
+      }),
+      expect.objectContaining({ name: "Lunge", slug: "lunge" }),
+    ]);
+    expect(library.languages.uk.searchNames).toEqual([
+      ["присідання", "squat"],
+      ["lunge"],
+    ]);
+    expect(
+      library.languages.en.exercises.map(({ name }: { name: string }) => name)
+    ).toEqual(["Lunge", "Squat"]);
   });
 
   it("changes the library hash when only a translation changes", async () => {
@@ -156,12 +161,11 @@ describe("generateLibraryModule", () => {
     expect(result.ok).toBe(true);
     const { library } = await importModule(result.ok ? result.source : "");
     expect(
-      library.exercises.map(({ slug }: { slug: string }) => slug)
+      library.languages.en.exercises.map(({ slug }: { slug: string }) => slug)
     ).toEqual(["example-press", "example-row", "example-squat"]);
-    expect(Object.keys(library.translations.uk)).toEqual([
-      "example-press",
-      "example-row",
-    ]);
+    expect(
+      library.languages.uk.exercises.map(({ name }: { name: string }) => name)
+    ).toEqual(["Приклад жиму", "Приклад тяги", "Example Squat"]);
   });
 
   it.each([
@@ -337,9 +341,9 @@ describe("generateLibraryModule in production", () => {
       ok: true,
     });
     const { library } = await importModule(result.ok ? result.source : "");
-    expect(library.exercises.map(({ slug }: { slug: string }) => slug)).toEqual(
-      ["lunge"]
-    );
+    expect(
+      library.languages.en.exercises.map(({ slug }: { slug: string }) => slug)
+    ).toEqual(["lunge"]);
     expect(result.ok && result.hash).toBe(library.hash);
   });
 

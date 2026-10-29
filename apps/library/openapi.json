@@ -150,6 +150,13 @@
           "error"
         ]
       },
+      "Language": {
+        "type": "string",
+        "enum": [
+          "en",
+          "uk"
+        ]
+      },
       "Exercise": {
         "type": "object",
         "properties": {
@@ -236,6 +243,15 @@
         "parameters": [
           {
             "schema": {
+              "$ref": "#/components/schemas/Language"
+            },
+            "required": false,
+            "description": "The App language to answer in (default `en`). An Exercise without a translation in it is answered wholly in English.",
+            "name": "language",
+            "in": "query"
+          },
+          {
+            "schema": {
               "type": "integer",
               "minimum": 1,
               "maximum": 50,
@@ -274,11 +290,11 @@
             "schema": {
               "type": "string",
               "maxLength": 100,
-              "description": "Case-insensitive substring of the name, surrounding whitespace ignored; `%` and `_` match only themselves.",
+              "description": "Case-insensitive substring of the name in `language` or of the English name, surrounding whitespace ignored; `%` and `_` match only themselves.",
               "example": "bench"
             },
             "required": false,
-            "description": "Case-insensitive substring of the name, surrounding whitespace ignored; `%` and `_` match only themselves.",
+            "description": "Case-insensitive substring of the name in `language` or of the English name, surrounding whitespace ignored; `%` and `_` match only themselves.",
             "name": "search",
             "in": "query"
           },
@@ -296,7 +312,7 @@
         ],
         "responses": {
           "200": {
-            "description": "One page of matching Exercises, alphabetical by name (`ExercisePage`), or with `slugs`, the Exercises found (`ExerciseBatch`)",
+            "description": "One page of matching Exercises, alphabetical by name in `language` (`ExercisePage`), or with `slugs`, the Exercises found (`ExerciseBatch`)",
             "content": {
               "application/json": {
                 "schema": {
@@ -373,6 +389,15 @@
             "required": true,
             "name": "slug",
             "in": "path"
+          },
+          {
+            "schema": {
+              "$ref": "#/components/schemas/Language"
+            },
+            "required": false,
+            "description": "The App language to answer in (default `en`). An Exercise without a translation in it is answered wholly in English.",
+            "name": "language",
+            "in": "query"
           }
         ],
         "responses": {
@@ -382,6 +407,16 @@
               "application/json": {
                 "schema": {
                   "$ref": "#/components/schemas/Exercise"
+                }
+              }
+            }
+          },
+          "400": {
+            "description": "An invalid query parameter",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Error"
                 }
               }
             }

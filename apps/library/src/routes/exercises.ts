@@ -1,3 +1,8 @@
+import {
+  type AppLanguage,
+  appLanguages,
+  defaultAppLanguage,
+} from "@fitme/core/models";
 import { createRoute, type Hook, OpenAPIHono, z } from "@hono/zod-openapi";
 import type { Env } from "hono";
 import { BEARER_AUTH } from "../auth";
@@ -7,9 +12,10 @@ import {
   ExerciseBatch,
   ExercisePage,
   ExerciseSummary,
+  Language,
   MuscleGroup,
 } from "../schemas";
-import type { ServedLibrary } from "../served-library";
+import type { ServedLanguage, ServedLibrary } from "../served-library";
 
 const DEFAULT_LIMIT = 20;
 const MAX_LIMIT = 50;
@@ -35,6 +41,14 @@ const rateLimited = {
   }),
 };
 
+/** Optional on every content route; without it, English. */
+const languageParameter = Language.optional().openapi({
+  param: {
+    description:
+      "The App language to answer in (default `en`). An Exercise without a translation in it is answered wholly in English.",
+  },
+});
+
 /** A Clerk session token or a server secret, as `Authorization: Bearer`. */
 const security = [{ [BEARER_AUTH]: [] }];
 
@@ -46,6 +60,7 @@ const listExercises = createRoute({
     // absent one from one that was sent: the list applies the defaults
     query: z
       .object({
+        language: languageParameter,
         limit: z.coerce
           .number()
           .int()
@@ -76,7 +91,7 @@ const listExercises = createRoute({
           }),
         search: z.string().trim().max(MAX_SEARCH).optional().openapi({
           description:
-            "Case-insensitive substring of the name, surrounding whitespace ignored; `%` and `_` match only themselves.",
+            "Case-insensitive substring of the name in `language` or of the English name, surrounding whitespace ignored; `%` and `_` match only themselves.",
           example: "bench",
         }),
         slugs: z
@@ -114,7 +129,7 @@ const listExercises = createRoute({
         "application/json": { schema: z.union([ExercisePage, ExerciseBatch]) },
       },
       description:
-        "One page of matching Exercises, alphabetical by name (`ExercisePage`), or with `slugs`, the Exercises found (`ExerciseBatch`)",
+        "One page of matching Exercises, alphabetical by name in `language` (`ExercisePage`), or with `slugs`, the Exercises found (`ExerciseBatch`)",
     },
     400: {
       content: { "application/json": { schema: ErrorResponse } },
@@ -134,11 +149,16 @@ const getExercise = createRoute({
     params: z.object({
       slug: z.string().openapi({ example: "bench-press" }),
     }),
+    query: z.object({ language: languageParameter }),
   },
   responses: {
     200: {
       content: { "application/json": { schema: Exercise } },
       description: "The Exercise",
+    },
+    400: {
+      content: { "application/json": { schema: ErrorResponse } },
+      description: "An invalid query parameter",
     },
     401: unauthorized,
     404: {
@@ -161,27 +181,40 @@ const invalidRequest: Hook<unknown, Env, string, unknown> = (result, c) => {
   }
 };
 
-export const exerciseRoutes = (library: ServedLibrary) => {
+/** What the routes look Exercises up by, in one language. */
+const indexLanguage = (served: ServedLanguage) => {
   const bySlug = new Map(
-    library.exercises.map((exercise) => [exercise.slug, exercise])
+    served.exercises.map((exercise) => [exercise.slug, exercise])
   );
   // parsing strips every field ExerciseSummary doesn't define
-  const summaries = library.exercises.map((exercise) =>
+  const summaries = served.exercises.map((exercise) =>
     ExerciseSummary.parse(exercise)
   );
   const summaryBySlug = new Map(
     summaries.map((summary) => [summary.slug, summary])
   );
+  return { bySlug, searchNames: served.searchNames, summaries, summaryBySlug };
+};
+
+export const exerciseRoutes = (library: ServedLibrary) => {
+  const indexes = Object.fromEntries(
+    appLanguages.map((language) => [
+      language,
+      indexLanguage(library.languages[language]),
+    ])
+  ) as Record<AppLanguage, ReturnType<typeof indexLanguage>>;
 
   return new OpenAPIHono({ defaultHook: invalidRequest })
     .openapi(listExercises, (c) => {
       const {
+        language: asked = defaultAppLanguage,
         limit = DEFAULT_LIMIT,
         muscle_group,
         offset = 0,
         search,
         slugs,
       } = c.req.valid("query");
+      const { searchNames, summaries, summaryBySlug } = indexes[asked];
       if (slugs !== undefined) {
         const data = slugs.flatMap((slug) => summaryBySlug.get(slug) ?? []);
         const missing = slugs.filter((slug) => !summaryBySlug.has(slug));
@@ -190,7 +223,7 @@ export const exerciseRoutes = (library: ServedLibrary) => {
       const term = search?.toLowerCase();
       const matches = summaries.filter(
         (summary, i) =>
-          (!term || library.searchNames[i]?.includes(term)) &&
+          (!term || searchNames[i]?.some((name) => name.includes(term))) &&
           (!muscle_group || summary.muscle_groups.includes(muscle_group))
       );
       const data = matches.slice(offset, offset + limit);
@@ -201,7 +234,8 @@ export const exerciseRoutes = (library: ServedLibrary) => {
       );
     })
     .openapi(getExercise, (c) => {
-      const exercise = bySlug.get(c.req.valid("param").slug);
+      const { language: asked = defaultAppLanguage } = c.req.valid("query");
+      const exercise = indexes[asked].bySlug.get(c.req.valid("param").slug);
       if (!exercise) {
         return c.json(
           { error: { code: "not_found", message: "Exercise not found" } },
