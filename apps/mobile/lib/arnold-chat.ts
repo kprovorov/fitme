@@ -72,16 +72,18 @@ export type ArnoldErrorKind = "generic" | "network" | "pro-check-unavailable";
  * Which of its own messages the Arnold screen shows for an error it shows
  * (`arnoldErrorAction` → `show`), so the server's English text never reaches
  * the User: the Pro check being unavailable (`arnold_pro_check_unavailable`),
- * a send that never reached Arnold (fetch's `TypeError`, or expo/fetch's
- * `FetchError`, whose message starts `fetch failed:`), and anything else.
+ * a send that never reached Arnold (expo/fetch's `FetchError`, whose message
+ * starts `fetch failed:`, or React Native's fetch's `Network request failed`),
+ * and anything else, a bug's `TypeError` included.
  */
 export function arnoldErrorKind(error: unknown): ArnoldErrorKind {
   if (errorCode(error) === arnoldErrorCodes.proCheckUnavailable) {
     return "pro-check-unavailable";
   }
   if (
-    error instanceof TypeError ||
-    (error instanceof Error && error.message.startsWith("fetch failed:"))
+    error instanceof Error &&
+    (error.message.startsWith("fetch failed:") ||
+      error.message === "Network request failed")
   ) {
     return "network";
   }

@@ -115,6 +115,9 @@ describe("arnoldErrorKind", () => {
     );
     expect(arnoldErrorKind(new Error("The model call failed"))).toBe("generic");
     expect(arnoldErrorKind("boom")).toBe("generic");
+    expect(
+      arnoldErrorKind(new TypeError("Cannot read properties of undefined"))
+    ).toBe("generic");
   });
 });
 
