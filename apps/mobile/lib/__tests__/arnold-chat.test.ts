@@ -12,6 +12,12 @@ import {
   saveArnoldConversation,
   saveArnoldSession,
 } from "../arnold-chat";
+import {
+  MODELS_KEY,
+  SELECTED_MODEL_KEY,
+  writeCachedArnoldModels,
+} from "../arnold-model";
+import { i18n } from "../i18n";
 
 /** The shape eve's `ClientError` gives a refused request. */
 function clientError(status: number, code?: string) {
@@ -41,14 +47,55 @@ describe("getArnoldUrl", () => {
 });
 
 describe("arnoldRunConfig", () => {
-  it("sends the chosen model as the turn's client context", () => {
-    expect(arnoldRunConfig("openai/gpt-5.5")).toEqual({
-      custom: { model: "openai/gpt-5.5" },
+  const models = {
+    defaultId: "openai/gpt-5.5",
+    models: [
+      { description: "Fast", id: "openai/gpt-5.5", label: "GPT-5.5" },
+      {
+        description: "Quick",
+        id: "anthropic/claude-haiku-4.5",
+        label: "Claude Haiku 4.5",
+      },
+    ],
+  };
+
+  afterEach(async () => {
+    storage.remove(MODELS_KEY);
+    storage.remove(SELECTED_MODEL_KEY);
+    await i18n.changeLanguage("en");
+  });
+
+  it("sends the chosen model and the App language as the turn's client context", () => {
+    writeCachedArnoldModels(models);
+    storage.set(SELECTED_MODEL_KEY, "anthropic/claude-haiku-4.5");
+
+    expect(arnoldRunConfig()).toEqual({
+      custom: { language: "en", model: "anthropic/claude-haiku-4.5" },
     });
   });
 
-  it("sends no client context without a model, so Arnold uses its default", () => {
-    expect(arnoldRunConfig(undefined)).toEqual({});
+  it("sends the App language without a model, so Arnold uses its default model", () => {
+    expect(arnoldRunConfig()).toEqual({ custom: { language: "en" } });
+  });
+
+  it("reads the model and the App language at send time", async () => {
+    writeCachedArnoldModels(models);
+    expect(arnoldRunConfig()).toEqual({
+      custom: { language: "en", model: "openai/gpt-5.5" },
+    });
+
+    storage.set(SELECTED_MODEL_KEY, "anthropic/claude-haiku-4.5");
+    await i18n.changeLanguage("uk");
+
+    expect(arnoldRunConfig()).toEqual({
+      custom: { language: "uk", model: "anthropic/claude-haiku-4.5" },
+    });
+  });
+
+  it("sends English when the language isn't an App language", async () => {
+    await i18n.changeLanguage("de");
+
+    expect(arnoldRunConfig()).toEqual({ custom: { language: "en" } });
   });
 });
 

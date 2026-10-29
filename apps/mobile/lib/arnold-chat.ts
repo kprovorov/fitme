@@ -1,6 +1,12 @@
 import type { ThreadMessage } from "@assistant-ui/react-native";
-import { arnoldErrorCodes } from "@fitme/core";
+import {
+  arnoldErrorCodes,
+  defaultAppLanguage,
+  isAppLanguage,
+} from "@fitme/core";
 import type { ClientSessionState, MessageStreamEvent } from "eve/client";
+import { getSelectedArnoldModelId } from "~/lib/arnold-model";
+import { i18n } from "~/lib/i18n";
 import { storage } from "~/lib/mmkv";
 
 /**
@@ -11,13 +17,19 @@ import { storage } from "~/lib/mmkv";
 export const getArnoldUrl = () => process.env.EXPO_PUBLIC_ARNOLD_URL || "";
 
 /**
- * The run config each turn with Arnold is sent with. eve forwards `custom` as the
- * turn's client context, where Arnold reads the model to answer with.
- * Without a model (no model list on the device) nothing is sent, so Arnold
- * picks its own default.
+ * The run config each turn with Arnold is sent with, read at send time so a
+ * model or App language change applies to the next message. eve forwards
+ * `custom` as the turn's client context, where Arnold reads the model to
+ * answer with and the App language to answer in when a message doesn't make
+ * its language clear. Without a model (no model list on the device) only the
+ * language is sent, so Arnold picks its own default model.
  */
-export function arnoldRunConfig(model: string | undefined) {
-  return model ? { custom: { model } } : {};
+export function arnoldRunConfig() {
+  const model = getSelectedArnoldModelId();
+  const language = isAppLanguage(i18n.language)
+    ? i18n.language
+    : defaultAppLanguage;
+  return { custom: model ? { language, model } : { language } };
 }
 
 /**

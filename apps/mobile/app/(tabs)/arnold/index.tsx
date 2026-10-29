@@ -49,7 +49,6 @@ import {
   saveArnoldConversation,
   saveArnoldSession,
 } from "~/lib/arnold-chat";
-import { getSelectedArnoldModelId } from "~/lib/arnold-model";
 import { getClerk } from "~/lib/clerk";
 
 const ATTACHMENTS_ENABLED: boolean = false;
@@ -194,8 +193,8 @@ function useArnoldChat(userId: string, [input, setInput]: Composer) {
       aui.thread().append({
         content: [{ text, type: "text" }],
         role: "user",
-        // Read per send so a model change applies to the next message.
-        runConfig: arnoldRunConfig(getSelectedArnoldModelId()),
+        // Read per send so a model or language change applies to the next message.
+        runConfig: arnoldRunConfig(),
       });
     },
     [aui]
