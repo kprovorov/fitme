@@ -9,9 +9,9 @@ import { storage } from "~/lib/mmkv";
 // own copy. Each entry carries when it was saved, so a query starting from it
 // knows whether it's stale.
 
-const summaryKey = (language: AppLanguage, slug: string) =>
+const summaryStorageKey = (language: AppLanguage, slug: string) =>
   `library.${language}.exercise-summary.${slug}`;
-const exerciseKey = (language: AppLanguage, slug: string) =>
+const exerciseStorageKey = (language: AppLanguage, slug: string) =>
   `library.${language}.exercise.${slug}`;
 
 // Builds before the App language kept English copies under
@@ -86,10 +86,10 @@ const write = <T>(key: string, value: T, savedAt: number) => {
 };
 
 export const readCachedSummary = (language: AppLanguage, slug: string) =>
-  read(summaryKey(language, slug), isSummary);
+  read(summaryStorageKey(language, slug), isSummary);
 
 export const readCachedExercise = (language: AppLanguage, slug: string) =>
-  read(exerciseKey(language, slug), isExercise);
+  read(exerciseStorageKey(language, slug), isExercise);
 
 export const writeCachedSummary = (
   language: AppLanguage,
@@ -97,7 +97,7 @@ export const writeCachedSummary = (
   savedAt = Date.now()
 ) =>
   write(
-    summaryKey(language, slug),
+    summaryStorageKey(language, slug),
     { muscle_groups, name, slug, thumbnail_url, video_url },
     savedAt
   );
@@ -108,14 +108,14 @@ export const writeCachedExercise = (
   exercise: Exercise,
   savedAt = Date.now()
 ) => {
-  write(exerciseKey(language, exercise.slug), exercise, savedAt);
+  write(exerciseStorageKey(language, exercise.slug), exercise, savedAt);
   writeCachedSummary(language, exercise, savedAt);
 };
 
 /** Forgets an Exercise the Library no longer has, in every App language. */
 export const removeCachedExercise = (slug: string) => {
   for (const language of appLanguages) {
-    storage.remove(summaryKey(language, slug));
-    storage.remove(exerciseKey(language, slug));
+    storage.remove(summaryStorageKey(language, slug));
+    storage.remove(exerciseStorageKey(language, slug));
   }
 };

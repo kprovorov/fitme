@@ -1,4 +1,8 @@
-import type { AppLanguage, MuscleGroup } from "@fitme/core";
+import {
+  type AppLanguage,
+  defaultAppLanguage,
+  type MuscleGroup,
+} from "@fitme/core";
 import {
   type Exercise,
   type ExercisePage,
@@ -142,7 +146,7 @@ const retryOnce = (failureCount: number, error: unknown) =>
  * Every Exercise query is keyed by the App language too, so a new language
  * refetches and never shows another language's copy.
  */
-const summaryKey = (language: AppLanguage, slug: string) => [
+const summaryQueryKey = (language: AppLanguage, slug: string) => [
   "exercise-summary",
   language,
   slug,
@@ -162,7 +166,7 @@ const exerciseSummaryQuery = (language: AppLanguage, slug: string) =>
       }
       return exercise;
     },
-    queryKey: summaryKey(language, slug),
+    queryKey: summaryQueryKey(language, slug),
     retry: retryOnce,
     staleTime: EXERCISE_STALE_TIME_MS,
   });
@@ -197,9 +201,8 @@ export const useExercise = (slug: string | undefined): ShownExercise => {
 
 /**
  * One Exercise in full, in the App language, for its detail screen and
- * guide: `null` when the
- * Library has no such slug. Starts from the cached copy (offline too).
- * Without a slug (not known yet) it asks nothing.
+ * guide: `null` when the Library has no such slug. Starts from the cached
+ * copy (offline too). Without a slug (not known yet) it asks nothing.
  */
 export const useExerciseDetailQuery = (slug: string) => {
   const queryClient = useQueryClient();
@@ -217,7 +220,7 @@ export const useExerciseDetailQuery = (slug: string) => {
       }
       // Rows showing this Exercise follow what its detail screen just read.
       queryClient.setQueryData<ExerciseSummary | null>(
-        summaryKey(language, slug),
+        summaryQueryKey(language, slug),
         exercise
       );
       return exercise;
@@ -325,11 +328,11 @@ export const useExerciseSearch = ({
         }
         throw error;
       }
-      // Search is English for now (FIT-408), so it seeds the English copies.
+      // `list` gets no language yet (FIT-408), so it answers, and seeds, English.
       for (const exercise of page.data) {
-        writeCachedSummary("en", exercise);
+        writeCachedSummary(defaultAppLanguage, exercise);
         queryClient.setQueryData<ExerciseSummary | null>(
-          summaryKey("en", exercise.slug),
+          summaryQueryKey(defaultAppLanguage, exercise.slug),
           exercise
         );
       }
