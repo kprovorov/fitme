@@ -13,7 +13,7 @@ import {
   jest,
 } from "@jest/globals";
 import { QueryClientProvider } from "@tanstack/react-query";
-import { render, screen } from "@testing-library/react-native";
+import { render, screen, within } from "@testing-library/react-native";
 import ModelPickerSheet from "~/app/(tabs)/arnold/model-picker";
 import { useAppLanguageSync } from "~/lib/i18n";
 import { storage } from "~/lib/mmkv";
@@ -39,6 +39,15 @@ function Sheet() {
   useAppLanguageSync();
   return <ModelPickerSheet />;
 }
+
+/** The served default model's row is the selected one. */
+const expectDefaultSelected = () => {
+  const defaultModel = arnoldModels.find(
+    ({ id }) => id === defaultArnoldModelId
+  );
+  const selected = screen.getByRole("radio", { selected: true });
+  expect(within(selected).getByText(defaultModel?.label ?? "")).toBeTruthy();
+};
 
 const renderPicker = async ({ wait = true } = {}) => {
   const client = createTestQueryClient();
@@ -67,12 +76,7 @@ describe("Model picker", () => {
     await renderPicker();
 
     expect(screen.getByText("Applies to your next message")).toBeTruthy();
-    const defaultModel = arnoldModels.find(
-      ({ id }) => id === defaultArnoldModelId
-    );
-    expect(
-      screen.getByRole("radio", { name: new RegExp(defaultModel?.label ?? "") })
-    ).toBeSelected();
+    expectDefaultSelected();
   });
 
   it("says the models aren't available in English", async () => {
@@ -100,12 +104,7 @@ describe("Model picker in Ukrainian", () => {
       expect(screen.getByText(label)).toBeTruthy();
       expect(screen.getByText(description)).toBeTruthy();
     }
-    const defaultModel = arnoldModels.find(
-      ({ id }) => id === defaultArnoldModelId
-    );
-    expect(
-      screen.getByRole("radio", { name: new RegExp(defaultModel?.label ?? "") })
-    ).toBeSelected();
+    expectDefaultSelected();
   });
 
   it("names the loading state", async () => {

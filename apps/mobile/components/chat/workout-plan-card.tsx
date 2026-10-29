@@ -14,7 +14,7 @@ import { type ShownExercise, useExercises } from "@/hooks/queries/library";
 import { useCreatePlanMutation } from "@/hooks/queries/plans";
 import { ApiError, rateLimitedFor } from "~/lib/api/client";
 import { useChoiceLabels } from "~/lib/choices";
-import { i18n } from "~/lib/i18n";
+import { i18n, useI18n } from "~/lib/i18n";
 import {
   canSavePlanCard,
   hasExercisesWithoutSlugs,
@@ -71,7 +71,8 @@ function ExerciseRow({
   /** The Exercise as resolved by `useExercises`, if it has a slug. */
   shown: ShownExercise | undefined;
 }) {
-  const { i18n: translator, t } = useTranslation(undefined, { i18n });
+  const { t } = useTranslation(undefined, { i18n });
+  const translator = useI18n();
   // The Library's name once resolved, otherwise Arnold's.
   const isResolved = !!shown?.isResolved;
   const name = shown?.isResolved ? shown.name : exercise.name;
@@ -113,7 +114,7 @@ function WorkoutDaySection({
   workout: WorkoutDay;
   last: boolean;
 }) {
-  const { i18n: translator } = useTranslation(undefined, { i18n });
+  const translator = useI18n();
   const shownBySlug = useExercises(
     workout.exercises.flatMap(({ exercise_slug }) =>
       exercise_slug ? [exercise_slug] : []

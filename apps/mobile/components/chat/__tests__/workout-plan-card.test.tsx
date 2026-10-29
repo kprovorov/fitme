@@ -402,6 +402,16 @@ describe("WorkoutPlanCard in Ukrainian", () => {
     expect(screen.getByLabelText("2 вправи")).toBeTruthy();
     expect(screen.getByLabelText("3 підходи")).toBeTruthy();
     expect(screen.getByLabelText("2 підходи")).toBeTruthy();
+    expect(screen.getByText("3×")).toBeTruthy();
+  });
+
+  it.each([
+    [1, "1 раз на тиждень"],
+    [3, "3 рази на тиждень"],
+  ])("says %d workout(s) a week with its plural form", async (count, text) => {
+    await renderCard({ ...plan, frequencyPerWeek: count });
+
+    expect(screen.getByText(text)).toBeTruthy();
   });
 
   it("saves, then says the plan is saved", async () => {
