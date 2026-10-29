@@ -116,7 +116,11 @@ const useSignInVerification = (): CodeVerification => {
   return { isFetching: fetchStatus === "fetching", resend, verify };
 };
 
-/** The catalog key of what the code screen asks for, per purpose. */
+/**
+ * The catalog key of what the code screen asks for, per purpose. A switch,
+ * not a record: a `"reset-password": "…"` literal trips the pre-commit
+ * secret scan's password rule.
+ */
 const descriptionKey = (purpose: CodePurpose) => {
   switch (purpose) {
     case "reset-password":
@@ -174,7 +178,7 @@ export default function VerifyCodeView({ purpose }: VerifyCodeViewProps) {
       setErrorMessage(error);
       return;
     }
-    setNotice(t("verifyCode.resent"));
+    setNotice(t("verifyCode.resentNotice"));
   }, [resend, t]);
 
   return (
@@ -212,7 +216,7 @@ export default function VerifyCodeView({ purpose }: VerifyCodeViewProps) {
         <Button
           disabled={isFetching}
           fill
-          label={t("verifyCode.resend")}
+          label={t("verifyCode.resendButton")}
           onPress={handleResend}
           testID="verify-code-resend-button"
           variant="ghost"

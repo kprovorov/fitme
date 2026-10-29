@@ -10,8 +10,8 @@ import type { ReactNode } from "react";
 import ForgotPasswordView from "~/components/views/forgot-password-view";
 import ResetPasswordView from "~/components/views/reset-password-view";
 import VerifyCodeView from "~/components/views/verify-code-view";
-import { useAppLanguageSync } from "~/lib/i18n";
 import { setDeviceLanguages } from "~/test-utils/device-locales";
+import { InAppLanguage } from "~/test-utils/in-app-language";
 
 /** Clerk's resources, each answering just enough for the screens' copy. */
 const mockSignUp = {
@@ -25,7 +25,9 @@ const mockSignUp = {
 };
 
 const mockSignIn = {
-  create: jest.fn(() => Promise.resolve({ error: null })),
+  create: jest.fn(
+    (): Promise<{ error: unknown }> => Promise.resolve({ error: null })
+  ),
   finalize: jest.fn(() => Promise.resolve({ error: null })),
   mfa: {
     sendEmailCode: jest.fn(() => Promise.resolve({ error: null })),
@@ -64,11 +66,6 @@ jest.mock("~/lib/segment", () => ({ segmentClient: { track: jest.fn() } }));
 jest.mock("~/components/ui/button", () =>
   jest.requireActual("~/test-utils/button-stub")
 );
-
-function InAppLanguage({ children }: { children: ReactNode }) {
-  useAppLanguageSync();
-  return children;
-}
 
 const renderInUkrainian = async (view: ReactNode) => {
   setDeviceLanguages(["uk-UA"]);
@@ -173,6 +170,25 @@ describe("the forgot password screen in Ukrainian", () => {
     expect(screen.getByText("Некоректна електронна пошта")).toBeTruthy();
     expect(mockSignIn.create).not.toHaveBeenCalled();
   });
+
+  it("says something went wrong when the request fails outside Clerk", async () => {
+    mockSignIn.create.mockImplementationOnce(() =>
+      Promise.resolve({ error: new TypeError("Network request failed") })
+    );
+    await renderInUkrainian(<ForgotPasswordView />);
+
+    await fireEvent.changeText(
+      screen.getByPlaceholderText("Електронна пошта"),
+      "known@example.com"
+    );
+    await fireEvent.press(
+      screen.getByRole("button", { name: "Надіслати код" })
+    );
+
+    expect(
+      screen.getByText("Щось пішло не так. Спробуйте пізніше.")
+    ).toBeTruthy();
+  });
 });
 
 describe("the reset password screen in Ukrainian", () => {
@@ -214,10 +230,12 @@ describe("the reset password screen in Ukrainian", () => {
   });
 
   it("asks to log in again when Clerk can't finish the sign-in", async () => {
-    mockSignIn.resetPasswordEmailCode.submitPassword.mockImplementation(() => {
-      mockSignIn.status = "needs_second_factor";
-      return Promise.resolve({ error: null });
-    });
+    mockSignIn.resetPasswordEmailCode.submitPassword.mockImplementationOnce(
+      () => {
+        mockSignIn.status = "needs_second_factor";
+        return Promise.resolve({ error: null });
+      }
+    );
     await renderInUkrainian(<ResetPasswordView />);
 
     await submitPasswords("a-long-new-password", "a-long-new-password");

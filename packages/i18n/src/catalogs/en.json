@@ -430,13 +430,13 @@
     },
     "codePlaceholder": "Code",
     "verify": "Verify",
-    "resend": "Send a new code",
-    "resent": "We sent you a new code.",
     "errors": {
       "signUpIncomplete": "We couldn't finish creating your account. Please try again.",
       "resetIncomplete": "We couldn't verify the code. Please try again.",
       "signInIncomplete": "We couldn't sign you in. Please try again."
-    }
+    },
+    "resendButton": "Send a new code",
+    "resentNotice": "We sent you a new code."
   },
   "forgotPassword": {
     "screenTitle": "Forgot Password",
