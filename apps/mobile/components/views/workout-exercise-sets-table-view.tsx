@@ -3,7 +3,7 @@ import { formatElapsed, getWeightLabel } from "@fitme/core";
 import type { ReactNode } from "react";
 import { View } from "react-native";
 import { useProfileQuery } from "~/hooks/queries/profiles";
-import { formatSetTarget } from "~/lib/set-inputs";
+import { describeSetTarget, formatSetTarget } from "~/lib/set-inputs";
 import { cn } from "~/lib/utils";
 import {
   SET_NUMBER_COLUMN_CLASS,
@@ -50,13 +50,7 @@ const formatRest = (seconds: number) =>
 
 /** How VoiceOver reads a set: one sentence, rest in seconds. */
 const setLabel = (set: WorkoutExerciseSet, weightLabel: string | undefined) => {
-  const reps = set.reps_recommended ? `${set.reps_recommended} reps` : null;
-  const weight = set.weight_recommended
-    ? [Math.round(set.weight_recommended * 100) / 100, weightLabel]
-        .filter(Boolean)
-        .join(" ")
-    : null;
-  const target = [reps, weight].filter(Boolean).join(" at ") || "no target";
+  const target = describeSetTarget(set, weightLabel);
   const rest =
     set.rest_recommended > 0
       ? `rest ${set.rest_recommended} seconds`

@@ -10,9 +10,10 @@ import ExerciseImage from "../exercises/exercise-image";
 const STACKED_FONT_SCALE = 1.4;
 
 interface ExerciseCardHeaderProps {
-  /** What a press on the Exercise opens; none leaves it disabled. */
-  accessibilityHint: string;
+  /** What a press on the Exercise opens. */
+  accessibilityHint?: string;
   exercise: ShownExercise;
+  /** Opens the Exercise; without one the header isn't a control. */
   onPress?: () => void;
   /** Beside the Exercise: the session's menu, or a chevron when it opens. */
   trailing: ReactNode;

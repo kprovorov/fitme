@@ -90,3 +90,24 @@ export const formatSetTarget = (
   }
   return reps ? `${reps}` : (weightText ?? "–");
 };
+
+/**
+ * A set's recommendation as VoiceOver reads it: `12 reps at 45 kg`,
+ * `12 reps` or `45 kg` with one of them, `no target` without either.
+ */
+export const describeSetTarget = (
+  {
+    reps_recommended: reps,
+    weight_recommended: weight,
+  }: { reps_recommended: number | null; weight_recommended: number | null },
+  weightLabel: string | undefined
+) => {
+  const repsText = reps ? `${reps} reps` : null;
+  // A spoken decimal takes the point: "50.5", not "50,5".
+  const weightText = weight
+    ? [formatSetWeight(weight).replace(",", "."), weightLabel]
+        .filter(Boolean)
+        .join(" ")
+    : null;
+  return [repsText, weightText].filter(Boolean).join(" at ") || "no target";
+};

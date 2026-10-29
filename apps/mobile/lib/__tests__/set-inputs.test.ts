@@ -1,5 +1,6 @@
 import { describe, expect, it } from "@jest/globals";
 import {
+  describeSetTarget,
   formatSetTarget,
   formatSetWeight,
   setRepsField,
@@ -124,5 +125,31 @@ describe("formatSetTarget", () => {
     expect(
       formatSetTarget({ reps_recommended: 0, weight_recommended: 0 }, "kg")
     ).toBe("–");
+  });
+});
+
+describe("describeSetTarget", () => {
+  it("reads reps at weight, with the unit spelled as shown", () => {
+    expect(
+      describeSetTarget(
+        { reps_recommended: 10, weight_recommended: 50.5 },
+        "kg"
+      )
+    ).toBe("10 reps at 50.5 kg");
+  });
+
+  it("reads whichever of reps and weight there is", () => {
+    expect(
+      describeSetTarget({ reps_recommended: 12, weight_recommended: 0 }, "kg")
+    ).toBe("12 reps");
+    expect(
+      describeSetTarget(
+        { reps_recommended: null, weight_recommended: 45 },
+        "lbs"
+      )
+    ).toBe("45 lbs");
+    expect(
+      describeSetTarget({ reps_recommended: 0, weight_recommended: null }, "kg")
+    ).toBe("no target");
   });
 });
