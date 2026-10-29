@@ -9,7 +9,7 @@ import {
   libraryExercise,
   serveLibrary,
 } from "~/test-utils/fake-library";
-import { createTestQueryClient, until } from "~/test-utils/query-client";
+import { createTestQueryClient } from "~/test-utils/query-client";
 import { useExerciseDetailQuery, useExercises } from "../library";
 
 jest.mock(
@@ -35,15 +35,8 @@ beforeEach(() => {
 });
 
 describe("the MMKV cache", () => {
-  it("sweeps the old exercises.* keys once and caches under library.*", async () => {
-    storage.set("exercises.summary.bench-press", "{}");
-    storage.set("exercises.exercise.bench-press", "{}");
-    storage.set("exercises.summary.gone-move", "{}");
-    storage.set("arnold.models", "kept");
-    const fake = serveLibrary([
-      libraryExercise("bench-press", { name: "Bench Press" }),
-    ]);
-    const lookup = jest.spyOn(fake, "lookup");
+  it("caches resolved Exercises under library.*", async () => {
+    serveLibrary([libraryExercise("bench-press", { name: "Bench Press" })]);
 
     const rows = await renderHook(() => useExercises(["bench-press"]), {
       wrapper: newWrapper(),
@@ -57,28 +50,20 @@ describe("the MMKV cache", () => {
     );
     await waitFor(() => expect(detail.result.current.data).toBeTruthy());
 
-    const keys = storage.getAllKeys();
-    expect(keys.filter((key) => key.startsWith("exercises."))).toEqual([]);
-    expect(keys).toEqual(
+    expect(storage.getAllKeys()).toEqual(
       expect.arrayContaining([
-        "arnold.models",
         "library.exercise-summary.bench-press",
         "library.exercise.bench-press",
       ])
     );
     expect(
+      JSON.parse(
+        storage.getString("library.exercise-summary.bench-press") ?? ""
+      )
+    ).toMatchObject({ value: { name: "Bench Press", slug: "bench-press" } });
+    expect(
       JSON.parse(storage.getString("library.exercise.bench-press") ?? "")
     ).toMatchObject({ value: { name: "Bench Press", slug: "bench-press" } });
-
-    // Swept once per install: an old key written later stays.
-    storage.set("exercises.summary.squat", "{}");
-    await renderHook(() => useExercises(["squat"]), { wrapper: newWrapper() });
-    // Answered before the test ends, so no lookup is left for the next one.
-    const squatCall = () =>
-      lookup.mock.calls.findIndex(([slugs]) => slugs.includes("squat"));
-    await until(() => squatCall() >= 0);
-    await lookup.mock.results[squatCall()]?.value;
-    expect(storage.getString("exercises.summary.squat")).toBe("{}");
   });
 });
 
