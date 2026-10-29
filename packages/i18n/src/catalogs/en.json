@@ -59,6 +59,55 @@
       "generic": "Something went wrong. Try again."
     }
   },
+  "planner": {
+    "title": "Create Workout Plan",
+    "goal": {
+      "title": "Goal",
+      "question": "What is your goal?",
+      "options": {
+        "fat-loss": "Lose weight",
+        "muscle-gain": "Gain muscle",
+        "general-health-fitness": "Improve health"
+      }
+    },
+    "experience": {
+      "title": "Experience",
+      "question": "How much experience do you have?"
+    },
+    "duration": {
+      "title": "Workout duration",
+      "question": "How long do you want to workout?",
+      "minutes_one": "{{count}} minute",
+      "minutes_other": "{{count}} minutes"
+    },
+    "place": {
+      "title": "Place",
+      "question": "Choose where you want to do your workouts",
+      "soon": "Soon"
+    },
+    "frequency": {
+      "title": "Frequency",
+      "question": "How many times per week do you want to workout?"
+    },
+    "note": {
+      "title": "Custom note",
+      "question": "Add a custom note to your plan",
+      "placeholder": "e.g. I want to pay more attention to my abs"
+    },
+    "submit": "Get my plan!",
+    "required": "Required",
+    "message": {
+      "intro": "Please create a workout plan for me with the following details:",
+      "goal": "- Goal: {{goal}}",
+      "experience": "- Experience: {{experience}}",
+      "duration_one": "- Workout duration: {{count}} minute",
+      "duration_other": "- Workout duration: {{count}} minutes",
+      "place": "- Place: {{place}}",
+      "frequency_one": "- Frequency: {{count}} day per week",
+      "frequency_other": "- Frequency: {{count}} days per week",
+      "note": "- Additional notes: {{note}}"
+    }
+  },
   "choices": {
     "experienceLevel": {
       "beginner": "Beginner",

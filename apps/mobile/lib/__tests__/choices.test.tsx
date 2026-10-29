@@ -1,7 +1,7 @@
 import type { MuscleGroup } from "@fitme/core";
 import { describe, expect, it } from "@jest/globals";
 import { act, renderHook } from "@testing-library/react-native";
-import { englishChoiceLabels, useChoiceLabels } from "~/lib/choices";
+import { useChoiceLabels } from "~/lib/choices";
 import { useAppLanguageSync } from "~/lib/i18n";
 import { setDeviceLanguages } from "~/test-utils/device-locales";
 
@@ -62,14 +62,5 @@ describe("useChoiceLabels", () => {
       "upper.back"
     );
     expect(result.current.muscleGroup("x:y" as MuscleGroup)).toBe("x:y");
-  });
-});
-
-describe("englishChoiceLabels", () => {
-  it("labels in English whatever the App language", async () => {
-    setDeviceLanguages(["uk-UA"]);
-    await renderHook(useLabels);
-
-    expect(englishChoiceLabels().goal("fat-loss")).toBe("Lose Weight");
   });
 });

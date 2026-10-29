@@ -1,4 +1,4 @@
-import { experienceLevels, goals, places } from "@fitme/core";
+import { experienceLevels, type Goal, goals, places } from "@fitme/core";
 import { zodResolver } from "@hookform/resolvers/zod";
 import { router, Stack } from "expo-router";
 import { useCallback } from "react";
@@ -8,6 +8,7 @@ import {
   type ControllerRenderProps,
   useForm,
 } from "react-hook-form";
+import { useTranslation } from "react-i18next";
 import { Pressable, View } from "react-native";
 import { KeyboardAwareScrollView } from "react-native-keyboard-controller";
 import { useSafeAreaInsets } from "react-native-safe-area-context";
@@ -25,50 +26,60 @@ import { Text } from "~/components/ui/text";
 import { Textarea } from "~/components/ui/textarea";
 import { H4, Muted } from "~/components/ui/typography";
 import { VStack } from "~/components/ui/vstack";
-import { englishChoiceLabels, useChoiceLabels } from "~/lib/choices";
+import { type ChoiceLabels, useChoiceLabels } from "~/lib/choices";
 import { numberInRange } from "~/lib/form-schemas";
+import { i18n } from "~/lib/i18n";
 import { cn } from "~/lib/utils";
 
-// The message is sent to Arnold as the User's own text, all in English until
-// the planner is translated as a whole.
-function buildPlanMessage(data: PlanFormValues): string {
-  const labels = englishChoiceLabels();
+type TFunction = ReturnType<typeof useTranslation>["t"];
+
+// The message is sent to Arnold as the User's own text, so it's in the App
+// language, as the User would write it; Arnold answers in it.
+function buildPlanMessage(
+  data: PlanFormValues,
+  t: TFunction,
+  labels: ChoiceLabels
+): string {
   const lines = [
-    "Please create a workout plan for me with the following details:",
-    `- Goal: ${labels.goal(data.goal)}`,
-    `- Experience: ${labels.experienceLevel(data.experience_level)}`,
-    `- Workout duration: ${data.workout_duration} minutes`,
-    `- Place: ${labels.place(data.place)}`,
-    `- Frequency: ${data.frequency} ${data.frequency === 1 ? "day" : "days"} per week`,
+    t("planner.message.intro"),
+    t("planner.message.goal", { goal: labels.goal(data.goal) }),
+    t("planner.message.experience", {
+      experience: labels.experienceLevel(data.experience_level),
+    }),
+    t("planner.message.duration", { count: data.workout_duration }),
+    t("planner.message.place", { place: labels.place(data.place) }),
+    t("planner.message.frequency", { count: data.frequency }),
   ];
   if (data.note) {
-    lines.push(`- Additional notes: ${data.note}`);
+    lines.push(t("planner.message.note", { note: data.note }));
   }
   return lines.join("\n");
 }
 
 export type PlanFormValues = z.infer<typeof formSchema>;
 
-// The enum messages are zod 3's defaults, which the screen showed until zod 4.
+// Read when the form validates, so the message is in the App language then.
+const required = () => i18n.t("planner.required");
+
 const formSchema = z.object({
-  experience_level: z.enum(experienceLevels, { error: "Required" }),
-  frequency: numberInRange(1, 7, "Required"),
-  goal: z.enum(goals, { error: "Required" }),
+  experience_level: z.enum(experienceLevels, { error: required }),
+  frequency: numberInRange(1, 7, required),
+  goal: z.enum(goals, { error: required }),
   note: z.string().optional(),
-  place: z.enum(places, { error: "Required" }),
-  workout_duration: numberInRange(1, 120, "Required"),
+  place: z.enum(places, { error: required }),
+  workout_duration: numberInRange(1, 120, required),
 });
 
+// The goals the planner offers, each with the planner's own short wording
+// (`planner.goal.options`, by enum id).
 const goalOptions = [
-  { label: "Lose weight", value: "fat-loss" },
-  { label: "Gain muscle", value: "muscle-gain" },
-  { label: "Improve health", value: "general-health-fitness" },
-] as const;
+  "fat-loss",
+  "muscle-gain",
+  "general-health-fitness",
+] as const satisfies readonly Goal[];
 
-const placeOptions = [
-  { label: "Gym", value: "gym" },
-  { badge: "Soon", disabled: true, label: "Home", value: "home" },
-];
+// Home workouts aren't planned yet.
+const soonPlaces: readonly string[] = ["home"];
 
 const frequencyOptions = [1, 2, 3, 4, 5, 6, 7];
 
@@ -77,20 +88,19 @@ interface PlanFieldProps<TName extends keyof PlanFormValues> {
   fieldState: ControllerFieldState;
 }
 
-function renderGoalField({
-  field: { onChange, value },
-}: PlanFieldProps<"goal">) {
+function GoalOptions({ field: { onChange, value } }: PlanFieldProps<"goal">) {
+  const { t } = useTranslation();
   return (
     <View className="flex flex-row items-stretch justify-stretch gap-4">
       {goalOptions.map((option) => (
         <RadioGroupItemTileWithIcon
           disabled={false}
-          icon={goalSymbol(option.value)}
-          isSelected={option.value === value}
-          key={option.value}
-          label={option.label}
+          icon={goalSymbol(option)}
+          isSelected={option === value}
+          key={option}
+          label={t(`planner.goal.options.${option}`)}
           onSelect={onChange}
-          value={option.value}
+          value={option}
         />
       ))}
     </View>
@@ -133,22 +143,25 @@ function renderWorkoutDurationField({
   );
 }
 
-function renderPlaceField({
-  field: { onChange, value },
-}: PlanFieldProps<"place">) {
+function PlaceOptions({ field: { onChange, value } }: PlanFieldProps<"place">) {
+  const { t } = useTranslation();
+  const labels = useChoiceLabels();
   return (
     <View className="flex flex-row items-stretch justify-stretch gap-4">
-      {placeOptions.map((option) => (
-        <RadioGroupItemWithLabel
-          badge={option.badge}
-          disabled={option.disabled ?? false}
-          isSelected={option.value === value}
-          key={option.value}
-          label={option.label}
-          onSelect={onChange}
-          value={option.value}
-        />
-      ))}
+      {places.map((option) => {
+        const soon = soonPlaces.includes(option);
+        return (
+          <RadioGroupItemWithLabel
+            badge={soon ? t("planner.place.soon") : undefined}
+            disabled={soon}
+            isSelected={option === value}
+            key={option}
+            label={labels.place(option)}
+            onSelect={onChange}
+            value={option}
+          />
+        );
+      })}
     </View>
   );
 }
@@ -173,25 +186,38 @@ function renderFrequencyField({
   );
 }
 
-function renderNoteField({
+function NoteField({
   field: { onChange, value },
   fieldState: { error },
 }: PlanFieldProps<"note">) {
+  const { t } = useTranslation();
   return (
     <Textarea
       className="h-48"
       error={error?.message}
       onChangeText={onChange}
-      placeholder="e.g. I want to pay more attention to my abs"
+      placeholder={t("planner.note.placeholder")}
       value={value}
     />
   );
 }
 
-// Controller's render prop must be stable; the options read labels through a
-// hook, so they're a component behind it.
+// Controller's render prop must be stable; the fields read their text through
+// hooks, so each is a component behind one.
+function renderGoalField(props: PlanFieldProps<"goal">) {
+  return <GoalOptions {...props} />;
+}
+
 function renderExperienceLevelField(props: PlanFieldProps<"experience_level">) {
   return <ExperienceLevelOptions {...props} />;
+}
+
+function renderPlaceField(props: PlanFieldProps<"place">) {
+  return <PlaceOptions {...props} />;
+}
+
+function renderNoteField(props: PlanFieldProps<"note">) {
+  return <NoteField {...props} />;
 }
 
 export default function PlannerScreen() {
@@ -204,12 +230,14 @@ export default function PlannerScreen() {
   });
 
   const insets = useSafeAreaInsets();
+  const { t } = useTranslation();
+  const labels = useChoiceLabels();
 
   return (
     <>
       <Stack.Screen
         options={{
-          title: "Create Workout Plan",
+          title: t("planner.title"),
         }}
       />
 
@@ -226,9 +254,9 @@ export default function PlannerScreen() {
         >
           <VStack className="w-full items-stretch">
             <VStack className="items-start justify-start gap-0">
-              <H4>Goal</H4>
+              <H4>{t("planner.goal.title")}</H4>
               <Text className="text-muted-foreground text-subhead">
-                What is your goal?
+                {t("planner.goal.question")}
               </Text>
             </VStack>
 
@@ -242,9 +270,9 @@ export default function PlannerScreen() {
             ) : null}
 
             <VStack className="items-start justify-start gap-0">
-              <H4>Experience</H4>
+              <H4>{t("planner.experience.title")}</H4>
               <Text className="text-muted-foreground text-subhead">
-                How much experience do you have?
+                {t("planner.experience.question")}
               </Text>
             </VStack>
 
@@ -261,13 +289,15 @@ export default function PlannerScreen() {
 
             <VStack className="items-stretch justify-start gap-0">
               <HStack className="items-center justify-between">
-                <H4>Workout duration</H4>
+                <H4>{t("planner.duration.title")}</H4>
                 <Text className="text-primary text-subhead">
-                  {form.watch("workout_duration")} minutes
+                  {t("planner.duration.minutes", {
+                    count: form.watch("workout_duration"),
+                  })}
                 </Text>
               </HStack>
               <Text className="text-muted-foreground text-subhead">
-                How long do you want to workout?
+                {t("planner.duration.question")}
               </Text>
             </VStack>
 
@@ -283,9 +313,9 @@ export default function PlannerScreen() {
             ) : null}
 
             <VStack className="items-start justify-start gap-0">
-              <H4>Place</H4>
+              <H4>{t("planner.place.title")}</H4>
               <Text className="text-muted-foreground text-subhead">
-                Choose where you want to do your workouts
+                {t("planner.place.question")}
               </Text>
             </VStack>
 
@@ -299,9 +329,9 @@ export default function PlannerScreen() {
             ) : null}
 
             <VStack className="items-start justify-start gap-0">
-              <H4>Frequency</H4>
+              <H4>{t("planner.frequency.title")}</H4>
               <Text className="text-muted-foreground text-subhead">
-                How many times per week do you want to workout?
+                {t("planner.frequency.question")}
               </Text>
             </VStack>
 
@@ -317,9 +347,9 @@ export default function PlannerScreen() {
             ) : null}
 
             <VStack className="items-start justify-start gap-0">
-              <H4>Custom note</H4>
+              <H4>{t("planner.note.title")}</H4>
               <Text className="text-muted-foreground text-subhead">
-                Add a custom note to your plan
+                {t("planner.note.question")}
               </Text>
             </VStack>
 
@@ -331,10 +361,12 @@ export default function PlannerScreen() {
 
             <VStack className="items-stretch gap-2">
               <Button
-                label="Get my plan!"
+                label={t("planner.submit")}
                 onPress={form.handleSubmit((data) => {
                   router.dismissTo({
-                    params: { initialMessage: buildPlanMessage(data) },
+                    params: {
+                      initialMessage: buildPlanMessage(data, t, labels),
+                    },
                     pathname: "/(tabs)/arnold",
                   });
                 })}
@@ -407,8 +439,9 @@ function RadioGroupItemWithLabel({
       testID={testID}
     >
       <RadioDot disabled={disabled} selected={isSelected} />
-      <HStack className="flex-1 items-center justify-between gap-0 p-0">
-        <VStack className="flex-1 items-start gap-0 p-0">
+      {/* The badge wraps under a label too long to share the line with it. */}
+      <HStack className="flex-1 flex-wrap items-center justify-between gap-x-2 gap-y-1 p-0">
+        <VStack className="shrink items-start gap-0 p-0">
           <Label
             disabled={disabled}
             nativeID={`label-for-${value}`}

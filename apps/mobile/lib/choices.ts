@@ -56,10 +56,6 @@ export const choiceLabels = (t: TFunction): ChoiceLabels => {
   };
 };
 
-/** The fixed choices' labels in English, for text sent to Arnold as data. */
-export const englishChoiceLabels = (): ChoiceLabels =>
-  choiceLabels(i18n.getFixedT("en"));
-
 /** The fixed choices' labels in the App language, following a change of it. */
 export function useChoiceLabels(): ChoiceLabels {
   // The app's instance, named so it's started wherever this is rendered.

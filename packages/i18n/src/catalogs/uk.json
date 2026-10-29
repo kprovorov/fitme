@@ -71,6 +71,61 @@
       "generic": "Щось пішло не так. Спробуйте ще раз."
     }
   },
+  "planner": {
+    "title": "Створити план тренувань",
+    "goal": {
+      "title": "Ціль",
+      "question": "Яка ваша ціль?",
+      "options": {
+        "fat-loss": "Скинути вагу",
+        "muscle-gain": "Набрати м’язи",
+        "general-health-fitness": "Тримати форму"
+      }
+    },
+    "experience": {
+      "title": "Досвід",
+      "question": "Який у вас досвід тренувань?"
+    },
+    "duration": {
+      "title": "Тривалість тренування",
+      "question": "Скільки часу ви хочете тренуватися?",
+      "minutes_one": "{{count}} хвилина",
+      "minutes_few": "{{count}} хвилини",
+      "minutes_many": "{{count}} хвилин",
+      "minutes_other": "{{count}} хвилини"
+    },
+    "place": {
+      "title": "Місце",
+      "question": "Виберіть, де ви хочете тренуватися",
+      "soon": "Скоро"
+    },
+    "frequency": {
+      "title": "Частота",
+      "question": "Скільки разів на тиждень ви хочете тренуватися?"
+    },
+    "note": {
+      "title": "Власна примітка",
+      "question": "Додайте до плану власну примітку",
+      "placeholder": "Напр.: хочу приділяти більше уваги пресу"
+    },
+    "submit": "Отримати мій план!",
+    "required": "Обов’язково",
+    "message": {
+      "intro": "Будь ласка, створи для мене план тренувань із такими параметрами:",
+      "goal": "- Ціль: {{goal}}",
+      "experience": "- Досвід: {{experience}}",
+      "duration_one": "- Тривалість тренування: {{count}} хвилина",
+      "duration_few": "- Тривалість тренування: {{count}} хвилини",
+      "duration_many": "- Тривалість тренування: {{count}} хвилин",
+      "duration_other": "- Тривалість тренування: {{count}} хвилини",
+      "place": "- Місце: {{place}}",
+      "frequency_one": "- Частота: {{count}} день на тиждень",
+      "frequency_few": "- Частота: {{count}} дні на тиждень",
+      "frequency_many": "- Частота: {{count}} днів на тиждень",
+      "frequency_other": "- Частота: {{count}} дня на тиждень",
+      "note": "- Додаткові примітки: {{note}}"
+    }
+  },
   "choices": {
     "experienceLevel": {
       "beginner": "Початківець",
