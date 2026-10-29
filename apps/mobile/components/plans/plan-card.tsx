@@ -1,6 +1,6 @@
 import type { Plan } from "@fitme/core";
-import { getGoalLabel, getPlaceLabel } from "@fitme/core";
 import { SymbolImage } from "~/components/symbol-image";
+import { useChoiceLabels } from "~/lib/choices";
 import {
   Card,
   CardContent,
@@ -18,6 +18,7 @@ interface PlanCardProps {
 }
 
 export default function PlanCard({ plan }: PlanCardProps) {
+  const labels = useChoiceLabels();
   return (
     <Card className="flex-1 gap-sm">
       <CardHeader>
@@ -29,11 +30,11 @@ export default function PlanCard({ plan }: PlanCardProps) {
         <CardDescription>
           <HStack className="flex-wrap justify-start">
             {[
-              { icon: goalSymbol(plan.goal), label: getGoalLabel(plan.goal) },
+              { icon: goalSymbol(plan.goal), label: labels.goal(plan.goal) },
               { icon: COUNT_SYMBOL, label: `${plan.frequency}x per week` },
               {
                 icon: placeSymbol(plan.place),
-                label: getPlaceLabel(plan.place),
+                label: labels.place(plan.place),
               },
             ].map((item) => (
               <HStack className="gap-1" key={item.label}>

@@ -1,9 +1,9 @@
-import { muscleGroupToName } from "@fitme/core";
 import type { ReactNode } from "react";
 import { Pressable, useWindowDimensions, View } from "react-native";
 import { SymbolImage } from "~/components/symbol-image";
 import { Text } from "~/components/ui/text";
 import type { ShownExercise } from "~/hooks/queries/library";
+import { useChoiceLabels } from "~/lib/choices";
 import ExerciseImage from "../exercises/exercise-image";
 
 /** Past this text scale the thumbnail goes above the name instead of beside it. */
@@ -27,6 +27,7 @@ export default function ExerciseCardHeader({
   trailing,
 }: ExerciseCardHeaderProps) {
   const { fontScale } = useWindowDimensions();
+  const labels = useChoiceLabels();
   const stacked = fontScale > STACKED_FONT_SCALE;
 
   return (
@@ -48,7 +49,7 @@ export default function ExerciseCardHeader({
           <Text className="text-body-emphasized">{exercise.name}</Text>
           {exercise.muscle_groups.length > 0 && (
             <Text className="text-footnote text-muted-foreground">
-              {exercise.muscle_groups.map(muscleGroupToName).join(", ")}
+              {exercise.muscle_groups.map(labels.muscleGroup).join(", ")}
             </Text>
           )}
         </View>

@@ -1,8 +1,9 @@
-import { type Gender, genders, getGenderLabel } from "@fitme/core";
+import { type Gender, genders } from "@fitme/core";
 import { useCallback } from "react";
 import { Pressable, View } from "react-native";
 import { HStack } from "~/components/ui/hstack";
 import { Text } from "~/components/ui/text";
+import { useChoiceLabels } from "~/lib/choices";
 import { cn } from "~/lib/utils";
 
 interface GenderSwitchProps {
@@ -26,6 +27,7 @@ function GenderOption({
   isSelected,
   onValueChange,
 }: GenderOptionProps) {
+  const label = useChoiceLabels().gender(gender);
   const handlePress = useCallback(
     () => onValueChange?.(gender),
     [gender, onValueChange]
@@ -33,7 +35,7 @@ function GenderOption({
 
   return (
     <Pressable
-      accessibilityLabel={getGenderLabel(gender)}
+      accessibilityLabel={label}
       accessibilityRole="radio"
       accessibilityState={{ checked: isSelected, disabled }}
       className={cn(
@@ -55,7 +57,7 @@ function GenderOption({
           <View className="aspect-square size-2.5 rounded-full bg-primary" />
         ) : null}
       </View>
-      <Text>{getGenderLabel(gender)}</Text>
+      <Text>{label}</Text>
     </Pressable>
   );
 }

@@ -1,4 +1,3 @@
-import { muscleGroupToName } from "@fitme/core";
 import { Image } from "expo-image";
 import { Pressable, StyleSheet, useWindowDimensions, View } from "react-native";
 import ExerciseVideo, {
@@ -8,6 +7,7 @@ import { Badge } from "~/components/ui/badge";
 import { Button } from "~/components/ui/button";
 import { Text } from "~/components/ui/text";
 import type { ShownExercise } from "~/hooks/queries/library";
+import { useChoiceLabels } from "~/lib/choices";
 import { sizedThumbnailUrl } from "~/lib/exercise-media";
 
 /**
@@ -47,11 +47,12 @@ function Thumbnail({ url }: { url: string }) {
 
 /** The muscle groups, as badges that wrap. */
 function MuscleGroups({ exercise }: { exercise: ShownExercise }) {
+  const labels = useChoiceLabels();
   return (
     <View className="flex-row flex-wrap gap-xs" pointerEvents="none">
       {exercise.muscle_groups.map((muscleGroup) => (
         <Badge key={muscleGroup} variant="secondary">
-          <Text>{muscleGroupToName(muscleGroup)}</Text>
+          <Text>{labels.muscleGroup(muscleGroup)}</Text>
         </Badge>
       ))}
     </View>

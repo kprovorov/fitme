@@ -1,12 +1,4 @@
-import {
-  experienceLevels,
-  getExperienceLevelDisclaimer,
-  getExperienceLevelLabel,
-  getGoalLabel,
-  getPlaceLabel,
-  goals,
-  places,
-} from "@fitme/core";
+import { experienceLevels, goals, places } from "@fitme/core";
 import { zodResolver } from "@hookform/resolvers/zod";
 import { router, Stack } from "expo-router";
 import { useCallback } from "react";
@@ -33,16 +25,17 @@ import { Text } from "~/components/ui/text";
 import { Textarea } from "~/components/ui/textarea";
 import { H4, Muted } from "~/components/ui/typography";
 import { VStack } from "~/components/ui/vstack";
+import { type ChoiceLabels, useChoiceLabels } from "~/lib/choices";
 import { numberInRange } from "~/lib/form-schemas";
 import { cn } from "~/lib/utils";
 
-function buildPlanMessage(data: PlanFormValues): string {
+function buildPlanMessage(data: PlanFormValues, labels: ChoiceLabels): string {
   const lines = [
     "Please create a workout plan for me with the following details:",
-    `- Goal: ${getGoalLabel(data.goal)}`,
-    `- Experience: ${getExperienceLevelLabel(data.experience_level)}`,
+    `- Goal: ${labels.goal(data.goal)}`,
+    `- Experience: ${labels.experienceLevel(data.experience_level)}`,
     `- Workout duration: ${data.workout_duration} minutes`,
-    `- Place: ${getPlaceLabel(data.place)}`,
+    `- Place: ${labels.place(data.place)}`,
     `- Frequency: ${data.frequency} ${data.frequency === 1 ? "day" : "days"} per week`,
   ];
   if (data.note) {
@@ -101,18 +94,19 @@ function renderGoalField({
   );
 }
 
-function renderExperienceLevelField({
+function ExperienceLevelOptions({
   field: { onChange, value },
 }: PlanFieldProps<"experience_level">) {
+  const labels = useChoiceLabels();
   return (
     <View className="flex flex-col items-stretch justify-stretch gap-4">
       {experienceLevels.map((option) => (
         <RadioGroupItemWithLabel
           disabled={false}
-          disclaimer={getExperienceLevelDisclaimer(option)}
+          disclaimer={labels.experienceLevelDescription(option)}
           isSelected={option === value}
           key={option}
-          label={getExperienceLevelLabel(option) ?? option}
+          label={labels.experienceLevel(option)}
           onSelect={onChange}
           testID={`experience-${option}`}
           value={option}
@@ -191,7 +185,13 @@ function renderNoteField({
   );
 }
 
+// A component, not a render function: it reads the labels through a hook.
+function renderExperienceLevelField(props: PlanFieldProps<"experience_level">) {
+  return <ExperienceLevelOptions {...props} />;
+}
+
 export default function PlannerScreen() {
+  const labels = useChoiceLabels();
   const form = useForm<PlanFormValues>({
     defaultValues: {
       place: "gym",
@@ -331,7 +331,7 @@ export default function PlannerScreen() {
                 label="Get my plan!"
                 onPress={form.handleSubmit((data) => {
                   router.dismissTo({
-                    params: { initialMessage: buildPlanMessage(data) },
+                    params: { initialMessage: buildPlanMessage(data, labels) },
                     pathname: "/(tabs)/arnold",
                   });
                 })}

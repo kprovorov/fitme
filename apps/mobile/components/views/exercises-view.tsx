@@ -1,7 +1,7 @@
-import { type MuscleGroup, muscleGroups, muscleGroupToName } from "@fitme/core";
+import { type MuscleGroup, muscleGroups } from "@fitme/core";
 import type { ExerciseSummary } from "@fitme/library-sdk";
 import type React from "react";
-import { useCallback, useImperativeHandle, useState } from "react";
+import { useCallback, useImperativeHandle, useMemo, useState } from "react";
 import { ActivityIndicator, View } from "react-native";
 import ExercisesList from "~/components/exercises/exercises-list";
 import { Button } from "~/components/ui/button";
@@ -12,6 +12,7 @@ import { Text } from "~/components/ui/text";
 import { H3 } from "~/components/ui/typography";
 import { VStack } from "~/components/ui/vstack";
 import { useExerciseSearch } from "~/hooks/queries/library";
+import { type ChoiceLabels, useChoiceLabels } from "~/lib/choices";
 
 export interface ExercisesViewHandle {
   refresh: () => Promise<void>;
@@ -19,12 +20,14 @@ export interface ExercisesViewHandle {
 
 type MuscleGroupFilter = MuscleGroup | "all";
 
-const muscleGroupOptions: { label: string; value: MuscleGroupFilter }[] = [
+const muscleGroupOptions = (
+  labels: ChoiceLabels
+): { label: string; value: MuscleGroupFilter }[] => [
   { label: "All", value: "all" },
   ...muscleGroups
     // Temporary we don't have full-body and cardio exercises
     .filter((group) => !["full-body", "cardio"].includes(group))
-    .map((group) => ({ label: muscleGroupToName(group), value: group })),
+    .map((group) => ({ label: labels.muscleGroup(group), value: group })),
 ];
 
 /** The Library, searched and filtered by muscle group: the Library tab and the Exercise picker. */
@@ -41,6 +44,8 @@ const ExercisesView = ({
   initialMuscleGroup?: MuscleGroupFilter;
   ref?: React.Ref<ExercisesViewHandle>;
 }) => {
+  const labels = useChoiceLabels();
+  const filterOptions = useMemo(() => muscleGroupOptions(labels), [labels]);
   const [search, setSearch] = useState("");
   const [muscleGroup, setMuscleGroup] =
     useState<MuscleGroupFilter>(initialMuscleGroup);
@@ -152,7 +157,7 @@ const ExercisesView = ({
       <Picker
         label="Muscle group"
         onValueChange={setMuscleGroup}
-        options={muscleGroupOptions}
+        options={filterOptions}
         value={muscleGroup}
         variant="menu"
       />
