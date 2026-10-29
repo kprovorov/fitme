@@ -51,3 +51,13 @@ export function useAppLanguage(): AppLanguage {
   const { language } = useTranslation().i18n;
   return isAppLanguage(language) ? language : defaultAppLanguage;
 }
+
+/**
+ * The App language's instance, for `@fitme/i18n`'s formatters
+ * (`formatWeight(i18n, …)`), re-rendering the component when the language
+ * changes. Importing it from here starts the instance first, so a component
+ * using it works wherever it renders, outside the root layout too.
+ */
+export function useI18n(): typeof i18n {
+  return useTranslation().i18n;
+}

@@ -1,9 +1,6 @@
 import type { MuscleGroup, WorkoutSession } from "@fitme/core";
-import {
-  formatWeight,
-  formatWorkoutDuration,
-  loggedExercises,
-} from "@fitme/core";
+import { loggedExercises } from "@fitme/core";
+import { formatWeight, formatWorkoutDuration } from "@fitme/i18n";
 import { Fragment, useMemo } from "react";
 import { Button } from "~/components/ui/button";
 import { HStack } from "~/components/ui/hstack";
@@ -12,6 +9,7 @@ import { Text } from "~/components/ui/text";
 import { VStack } from "~/components/ui/vstack";
 import { useExercises } from "~/hooks/queries/library";
 import { useProfileQuery } from "~/hooks/queries/profiles";
+import { useI18n } from "~/lib/i18n";
 import {
   WorkoutSessionSummaryBodyBack,
   WorkoutSessionSummaryBodyFront,
@@ -28,6 +26,7 @@ export default function WorkoutSessionSummaryView({
   workoutSession,
   onContinue,
 }: WorkoutSessionSummaryViewProps) {
+  const i18n = useI18n();
   const { data: profile } = useProfileQuery();
   const measurementSystem = profile?.measurement_system ?? "metric";
 
@@ -80,6 +79,7 @@ export default function WorkoutSessionSummaryView({
             value={
               workoutSession.finished_at
                 ? formatWorkoutDuration(
+                    i18n,
                     workoutSession.started_at,
                     workoutSession.finished_at
                   )
@@ -89,7 +89,7 @@ export default function WorkoutSessionSummaryView({
           <WorkoutSessionSummaryStat
             icon="scalemass.fill"
             title="Volume"
-            value={formatWeight(Math.round(volume), measurementSystem)}
+            value={formatWeight(i18n, Math.round(volume), measurementSystem)}
           />
           <WorkoutSessionSummaryStat
             icon="dumbbell.fill"

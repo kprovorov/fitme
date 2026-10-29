@@ -1,7 +1,5 @@
 import {
   feetAndInchesToInches,
-  formatHeight,
-  formatWeight,
   genders,
   inchesToFeetAndInches,
   MAX_AGE,
@@ -12,6 +10,7 @@ import {
   MIN_AGE,
   range,
 } from "@fitme/core";
+import { formatHeight, formatWeight } from "@fitme/i18n";
 import { zodResolver } from "@hookform/resolvers/zod";
 import { Stack } from "expo-router";
 import {
@@ -55,6 +54,7 @@ import { H4 } from "~/components/ui/typography";
 import { VStack } from "~/components/ui/vstack";
 import { rateLimitedFor } from "~/lib/api/client";
 import { numberInRange } from "~/lib/form-schemas";
+import { useI18n } from "~/lib/i18n";
 
 /** Shown instead of raw Supabase errors when saving the profile fails. */
 export const PROFILE_SAVE_ERROR_MESSAGE =
@@ -174,6 +174,7 @@ export default function ProfileForm({
   submitTestID,
 }: ProfileFormProps) {
   const insets = useSafeAreaInsets();
+  const i18n = useI18n();
 
   // The saved values the form starts from; later changes to `defaultValues`
   // don't reset the form either.
@@ -380,7 +381,9 @@ export default function ProfileForm({
                   label="Weight"
                   onPress={toggleField}
                   value={
-                    weight ? formatWeight(weight, measurementSystem) : undefined
+                    weight
+                      ? formatWeight(i18n, weight, measurementSystem)
+                      : undefined
                   }
                 />
 
@@ -393,7 +396,9 @@ export default function ProfileForm({
                   label="Height"
                   onPress={toggleField}
                   value={
-                    height ? formatHeight(height, measurementSystem) : undefined
+                    height
+                      ? formatHeight(i18n, height, measurementSystem)
+                      : undefined
                   }
                 />
               </VStack>
@@ -578,6 +583,7 @@ function AgeWheel({
 }
 
 function WeightWheel({ control, measurementSystem, onChange }: WheelProps) {
+  const i18n = useI18n();
   const isMetric = measurementSystem === "metric";
   const [value, setWeight] = useWheelValue(
     control,
@@ -590,7 +596,7 @@ function WeightWheel({ control, measurementSystem, onChange }: WheelProps) {
     <Picker
       onValueChange={setWeight}
       options={range(1, isMetric ? 454 : 1000).map((i) => ({
-        label: formatWeight(i, measurementSystem),
+        label: formatWeight(i18n, i, measurementSystem),
         value: i,
       }))}
       value={Math.round(value)}

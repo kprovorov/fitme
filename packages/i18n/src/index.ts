@@ -4,6 +4,20 @@ import en from "./catalogs/en.json";
 import uk from "./catalogs/uk.json";
 
 export { type Catalog, checkCatalogs, pluralForms } from "./check";
+export {
+  type CountKind,
+  formatCount,
+  formatHeight,
+  formatNumber,
+  formatUnit,
+  formatWeight,
+  formatWorkoutDuration,
+  spokenUnit,
+  type Translator,
+  type Unit,
+  unitName,
+  weightUnitOf,
+} from "./format";
 
 /** The one namespace: every key lives in `translation`. */
 export const defaultNamespace = "translation";
