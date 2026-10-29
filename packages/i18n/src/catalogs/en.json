@@ -10,8 +10,18 @@
     "allMuscleGroups": "All"
   },
   "counts": {
-    "sets_one": "{{count}} set",
-    "sets_other": "{{count}} sets"
+    "exercises_one": "{{count, number}} exercise",
+    "exercises_other": "{{count, number}} exercises",
+    "minutes_one": "{{count, number}} minute",
+    "minutes_other": "{{count, number}} minutes",
+    "reps_one": "{{count, number}} rep",
+    "reps_other": "{{count, number}} reps",
+    "sets_one": "{{count, number}} set",
+    "sets_other": "{{count, number}} sets",
+    "workoutSessions_one": "{{count, number}} workout session",
+    "workoutSessions_other": "{{count, number}} workout sessions",
+    "workouts_one": "{{count, number}} workout",
+    "workouts_other": "{{count, number}} workouts"
   },
   "arnold": {
     "title": "Arnold",
@@ -104,5 +114,31 @@
       "gym": "Gym",
       "home": "Home"
     }
+  },
+  "unitNames": {
+    "cm": "cm",
+    "in": "in",
+    "kg": "kg",
+    "lbs": "lbs"
+  },
+  "units": {
+    "cm": "{{value, number}} cm",
+    "in": "{{value, number}} in",
+    "kg": "{{value, number}} kg",
+    "lbs": "{{value, number}} lbs"
+  },
+  "spokenUnits": {
+    "cm_one": "{{count, number}} centimeter",
+    "cm_other": "{{count, number}} centimeters",
+    "in_one": "{{count, number}} inch",
+    "in_other": "{{count, number}} inches",
+    "kg_one": "{{count, number}} kilogram",
+    "kg_other": "{{count, number}} kilograms",
+    "lbs_one": "{{count, number}} pound",
+    "lbs_other": "{{count, number}} pounds"
+  },
+  "duration": {
+    "hoursMinutes": "{{hours, number}}h {{minutes, number}}min",
+    "minutes": "{{minutes, number}}min"
   }
 }

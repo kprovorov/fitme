@@ -10,10 +10,30 @@
     "allMuscleGroups": "Усі"
   },
   "counts": {
-    "sets_one": "{{count}} підхід",
-    "sets_few": "{{count}} підходи",
-    "sets_many": "{{count}} підходів",
-    "sets_other": "{{count}} підходу"
+    "exercises_one": "{{count, number}} вправа",
+    "exercises_few": "{{count, number}} вправи",
+    "exercises_many": "{{count, number}} вправ",
+    "exercises_other": "{{count, number}} вправи",
+    "minutes_one": "{{count, number}} хвилина",
+    "minutes_few": "{{count, number}} хвилини",
+    "minutes_many": "{{count, number}} хвилин",
+    "minutes_other": "{{count, number}} хвилини",
+    "reps_one": "{{count, number}} повторення",
+    "reps_few": "{{count, number}} повторення",
+    "reps_many": "{{count, number}} повторень",
+    "reps_other": "{{count, number}} повторення",
+    "sets_one": "{{count, number}} підхід",
+    "sets_few": "{{count, number}} підходи",
+    "sets_many": "{{count, number}} підходів",
+    "sets_other": "{{count, number}} підходу",
+    "workoutSessions_one": "{{count, number}} тренування",
+    "workoutSessions_few": "{{count, number}} тренування",
+    "workoutSessions_many": "{{count, number}} тренувань",
+    "workoutSessions_other": "{{count, number}} тренування",
+    "workouts_one": "{{count, number}} тренування",
+    "workouts_few": "{{count, number}} тренування",
+    "workouts_many": "{{count, number}} тренувань",
+    "workouts_other": "{{count, number}} тренування"
   },
   "arnold": {
     "title": "Arnold",
@@ -106,5 +126,39 @@
       "gym": "Спортзал",
       "home": "Вдома"
     }
+  },
+  "unitNames": {
+    "cm": "см",
+    "in": "дюйм",
+    "kg": "кг",
+    "lbs": "фунт"
+  },
+  "units": {
+    "cm": "{{value, number}} см",
+    "in": "{{value, number}} дюйм",
+    "kg": "{{value, number}} кг",
+    "lbs": "{{value, number}} фунт"
+  },
+  "spokenUnits": {
+    "cm_one": "{{count, number}} сантиметр",
+    "cm_few": "{{count, number}} сантиметри",
+    "cm_many": "{{count, number}} сантиметрів",
+    "cm_other": "{{count, number}} сантиметра",
+    "in_one": "{{count, number}} дюйм",
+    "in_few": "{{count, number}} дюйми",
+    "in_many": "{{count, number}} дюймів",
+    "in_other": "{{count, number}} дюйма",
+    "kg_one": "{{count, number}} кілограм",
+    "kg_few": "{{count, number}} кілограми",
+    "kg_many": "{{count, number}} кілограмів",
+    "kg_other": "{{count, number}} кілограма",
+    "lbs_one": "{{count, number}} фунт",
+    "lbs_few": "{{count, number}} фунти",
+    "lbs_many": "{{count, number}} фунтів",
+    "lbs_other": "{{count, number}} фунта"
+  },
+  "duration": {
+    "hoursMinutes": "{{hours, number}} год {{minutes, number}} хв",
+    "minutes": "{{minutes, number}} хв"
   }
 }

@@ -19,7 +19,7 @@ describe("createI18n", () => {
     expect(i18n.t("counts.sets", { count: 3 })).toBe("3 підходи");
     expect(i18n.t("counts.sets", { count: 5 })).toBe("5 підходів");
     expect(i18n.t("counts.sets", { count: 11 })).toBe("11 підходів");
-    expect(i18n.t("counts.sets", { count: 1.5 })).toBe("1.5 підходу");
+    expect(i18n.t("counts.sets", { count: 1.5 })).toBe("1,5 підходу");
   });
 
   it("is ready at once, with nothing loaded later", () => {

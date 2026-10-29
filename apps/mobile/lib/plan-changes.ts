@@ -1,3 +1,10 @@
+import {
+  formatCount,
+  formatNumber,
+  spokenUnit,
+  type Translator,
+  unitName,
+} from "@fitme/i18n";
 import type { components } from "~/lib/api/schema";
 
 /**
@@ -18,19 +25,27 @@ export interface PlanChangeLine {
   text: string;
 }
 
-const SPOKEN_WEIGHT_UNIT: Record<WeightUnit, string> = {
-  kg: "kilograms",
-  lbs: "pounds",
-};
+const setsText = (
+  translator: Translator,
+  sets: PlanUpdateSet[],
+  unit: WeightUnit
+) =>
+  `${sets
+    .map(
+      ({ reps, weight }) =>
+        `${formatNumber(translator, reps)}×${formatNumber(translator, weight)}`
+    )
+    .join(", ")} ${unitName(translator, unit)}`;
 
-const setsText = (sets: PlanUpdateSet[], unit: string) =>
-  `${sets.map(({ reps, weight }) => `${reps}×${weight}`).join(", ")} ${unit}`;
-
-const spokenSets = (sets: PlanUpdateSet[], unit: string) =>
+const spokenSets = (
+  translator: Translator,
+  sets: PlanUpdateSet[],
+  unit: WeightUnit
+) =>
   sets
     .map(
       ({ reps, weight }) =>
-        `${reps} ${reps === 1 ? "rep" : "reps"} at ${weight} ${unit}`
+        `${formatCount(translator, "reps", reps)} at ${spokenUnit(translator, weight, unit)}`
     )
     .join(", ");
 
@@ -44,14 +59,16 @@ export const planUpdateSlugs = (changes: PlanUpdateChange[]): string[] =>
 
 /**
  * The sheet's line for one change, weights in `weightUnit` and each Exercise
- * by `nameOf` its slug: "Replace Bench Press with Dumbbell Press · 8×30, 6×30
+ * by `nameOf` its slug, its numbers, units and counts from `translator`'s
+ * catalog: "Replace Bench Press with Dumbbell Press · 8×30, 6×30
  * kg", "Add Cable Fly · 12×15 kg", "Remove Dips", "Add 1 set to Squat · 5×100
  * kg".
  */
 export function formatPlanChange(
   change: PlanUpdateChange,
   weightUnit: WeightUnit,
-  nameOf: (slug: string) => string
+  nameOf: (slug: string) => string,
+  translator: Translator
 ): PlanChangeLine {
   const exercise = nameOf(change.exercise_slug);
   let title: string;
@@ -69,7 +86,7 @@ export function formatPlanChange(
       };
     case "add_sets": {
       const count = change.sets.length;
-      title = `Add ${count} ${count === 1 ? "set" : "sets"} to ${exercise}`;
+      title = `Add ${formatCount(translator, "sets", count)} to ${exercise}`;
       break;
     }
     default: {
@@ -78,8 +95,8 @@ export function formatPlanChange(
     }
   }
   return {
-    accessibilityLabel: `${title}: ${spokenSets(change.sets, SPOKEN_WEIGHT_UNIT[weightUnit])}`,
-    text: `${title} · ${setsText(change.sets, weightUnit)}`,
+    accessibilityLabel: `${title}: ${spokenSets(translator, change.sets, weightUnit)}`,
+    text: `${title} · ${setsText(translator, change.sets, weightUnit)}`,
   };
 }
 

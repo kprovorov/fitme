@@ -1,3 +1,4 @@
+import { createI18n } from "@fitme/i18n";
 import { describe, expect, it } from "@jest/globals";
 import {
   countPlanChanges,
@@ -14,6 +15,8 @@ const NAMES: Record<string, string> = {
 
 const nameOf = (slug: string) => NAMES[slug] ?? `<${slug}>`;
 
+const i18n = createI18n("en");
+
 describe("formatPlanChange", () => {
   it("lists a replacement's sets in kilograms, each Exercise by name", () => {
     expect(
@@ -28,7 +31,8 @@ describe("formatPlanChange", () => {
           ],
         },
         "kg",
-        nameOf
+        nameOf,
+        i18n
       )
     ).toEqual({
       accessibilityLabel:
@@ -46,7 +50,8 @@ describe("formatPlanChange", () => {
           sets: [{ reps: 1, weight: 225 }],
         },
         "lbs",
-        nameOf
+        nameOf,
+        i18n
       )
     ).toEqual({
       accessibilityLabel: "Add Squat: 1 rep at 225 pounds",
@@ -60,10 +65,10 @@ describe("formatPlanChange", () => {
       kind: "add_sets",
       sets: Array.from({ length: count }, () => ({ reps: 5, weight: 100 })),
     });
-    expect(formatPlanChange(addSets(1), "kg", nameOf).text).toBe(
+    expect(formatPlanChange(addSets(1), "kg", nameOf, i18n).text).toBe(
       "Add 1 set to Squat · 5×100 kg"
     );
-    expect(formatPlanChange(addSets(2), "kg", nameOf).text).toBe(
+    expect(formatPlanChange(addSets(2), "kg", nameOf, i18n).text).toBe(
       "Add 2 sets to Squat · 5×100, 5×100 kg"
     );
   });
@@ -73,7 +78,8 @@ describe("formatPlanChange", () => {
       formatPlanChange(
         { exercise_slug: "bench-press", kind: "remove_exercise" },
         "lbs",
-        nameOf
+        nameOf,
+        i18n
       )
     ).toEqual({
       accessibilityLabel: "Remove Bench Press",
@@ -90,9 +96,33 @@ describe("formatPlanChange", () => {
           sets: [{ reps: 12, weight: 0 }],
         },
         "kg",
-        nameOf
+        nameOf,
+        i18n
       ).text
     ).toBe("Add Squat · 12×0 kg");
+  });
+
+  it("writes numbers, units and counts in the App language", () => {
+    const uk = createI18n("uk");
+    expect(
+      formatPlanChange(
+        {
+          exercise_slug: "squat",
+          kind: "add_sets",
+          sets: [
+            { reps: 5, weight: 62.5 },
+            { reps: 1, weight: 62.5 },
+          ],
+        },
+        "kg",
+        nameOf,
+        uk
+      )
+    ).toEqual({
+      accessibilityLabel:
+        "Add 2 підходи to Squat: 5 повторень at 62,5 кілограма, 1 повторення at 62,5 кілограма",
+      text: "Add 2 підходи to Squat · 5×62,5, 1×62,5 кг",
+    });
   });
 });
 

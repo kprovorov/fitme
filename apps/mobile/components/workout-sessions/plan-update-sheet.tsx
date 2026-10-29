@@ -18,6 +18,7 @@ import {
 import { shownExercise, useExercises } from "~/hooks/queries/library";
 import { useApplyPlanUpdateMutation } from "~/hooks/queries/workout-sessions";
 import { rateLimitedFor } from "~/lib/api/client";
+import { useI18n } from "~/lib/i18n";
 import {
   formatPlanChange,
   type PlanUpdate,
@@ -71,6 +72,7 @@ export function PlanUpdateSheet({
   preview,
   waitSeconds,
 }: PlanUpdateSheetProps) {
+  const i18n = useI18n();
   const exercises = useExercises(planUpdateSlugs(preview?.changes ?? []));
   const nameOf = (slug: string) =>
     (exercises[slug] ?? shownExercise(slug, null)).name;
@@ -105,7 +107,8 @@ export function PlanUpdateSheet({
               const line = formatPlanChange(
                 change,
                 preview.weight_unit,
-                nameOf
+                nameOf,
+                i18n
               );
               return (
                 <View
