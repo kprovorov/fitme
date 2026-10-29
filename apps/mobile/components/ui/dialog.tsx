@@ -31,7 +31,8 @@ const Dialog = ({
 }: DialogProps) => {
   const theme = useSwiftUITheme();
   // Sized to its contents, the sheet would grow as wide as its longest line
-  // instead of wrapping it: the content takes the sheet's full width.
+  // instead of wrapping it: the content takes the window's width, which is
+  // the sheet's on an iPhone (the app doesn't run on iPad).
   const { width } = useWindowDimensions();
 
   return (

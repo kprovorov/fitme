@@ -156,8 +156,8 @@ describe("formatPlanChange in Ukrainian", () => {
         uk
       )
     ).toEqual({
-      accessibilityLabel: "Прибрати «Bench Press»",
-      text: "Прибрати «Bench Press»",
+      accessibilityLabel: "Видалити «Bench Press»",
+      text: "Видалити «Bench Press»",
     });
   });
 

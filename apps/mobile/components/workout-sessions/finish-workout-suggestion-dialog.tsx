@@ -43,6 +43,7 @@ const FinishWorkoutSuggestionDialog = ({
   onKeepTraining,
   isFinishing,
 }: FinishWorkoutSuggestionDialogProps) => {
+  // The App language's instance, started wherever the dialog renders.
   const i18n = useI18n();
   // A ref, not state, so a second tap landing before the re-render is still
   // seen as a duplicate.

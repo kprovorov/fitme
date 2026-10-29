@@ -801,7 +801,7 @@ describe("useFinishWorkoutSession", () => {
       ).toBeTruthy();
       expect(
         screen.getByText(
-          "Зберегти сьогоднішні зміни до «Push Day» у плані «PPL 4-week»."
+          "Зберегти сьогоднішні зміни в «Push Day» у плані «PPL 4-week»."
         )
       ).toBeTruthy();
       await screen.findByText(
@@ -810,7 +810,7 @@ describe("useFinishWorkoutSession", () => {
       for (const line of [
         "Замінити «Жим лежачи» на «Жим гантелей» · 8×30, 8×30, 6×30 кг",
         // Unknown to the Library: the slug's name.
-        "Прибрати «Dips»",
+        "Видалити «Dips»",
         // No Ukrainian translation: the Exercise wholly in English.
         "Додати «Cable Fly» · 12×15, 12×17,5 кг",
       ]) {

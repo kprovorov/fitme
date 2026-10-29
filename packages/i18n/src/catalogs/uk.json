@@ -256,7 +256,7 @@
       "title": "Тренування виконано!",
       "description": "Ви записали всі заплановані підходи.",
       "close": "Закрити",
-      "keepTrainingHint": "Закриває цю підказку, тренування триває",
+      "keepTrainingHint": "Закриває підказку і продовжує тренування",
       "finish": "Завершити тренування",
       "finishHint": "Завершує це тренування",
       "keepTraining": "Продовжити тренування"
@@ -264,7 +264,7 @@
   },
   "planUpdate": {
     "title": "Оновити план?",
-    "description": "Зберегти сьогоднішні зміни до «{{workout}}» у плані «{{plan}}».",
+    "description": "Зберегти сьогоднішні зміни в «{{workout}}» у плані «{{plan}}».",
     "failed": "Не вдалося оновити план. Перевірте з’єднання і спробуйте ще раз.",
     "rateLimited": "Забагато запитів. Спробуйте ще раз через {{seconds, number}} с.",
     "update": "Оновити план",
@@ -275,7 +275,7 @@
     "changes": {
       "replace": "Замінити «{{replaced}}» на «{{exercise}}»",
       "add": "Додати «{{exercise}}»",
-      "remove": "Прибрати «{{exercise}}»",
+      "remove": "Видалити «{{exercise}}»",
       "addSets_one": "Додати {{count, number}} підхід до «{{exercise}}»",
       "addSets_few": "Додати {{count, number}} підходи до «{{exercise}}»",
       "addSets_many": "Додати {{count, number}} підходів до «{{exercise}}»",
