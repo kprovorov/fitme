@@ -210,25 +210,28 @@ export const createLibrary = ({
   ) => (await request("/exercises", params, isAnswer)) as T;
 
   return {
-    get: (slug) =>
+    get: (slug, { language } = {}) =>
       slug === ""
         ? Promise.resolve(null)
-        : request(`/exercises/${encodeURIComponent(slug)}`, {}, isExercise, {
-            allowNotFound: true,
-          }),
+        : request(
+            `/exercises/${encodeURIComponent(slug)}`,
+            { language },
+            isExercise,
+            { allowNotFound: true }
+          ),
 
-    list: ({ limit, muscleGroup, offset, search } = {}) =>
+    list: ({ language, limit, muscleGroup, offset, search } = {}) =>
       getExercises(
-        { limit, muscle_group: muscleGroup, offset, search },
+        { language, limit, muscle_group: muscleGroup, offset, search },
         isPage
       ),
 
-    lookup: async (slugs) => {
+    lookup: async (slugs, { language } = {}) => {
       const unique = [...new Set(slugs)];
       const asked = unique.filter((slug) => !isUnaskable(slug));
       const batches = await Promise.all(
         chunk(asked, MAX_LOOKUP_SLUGS).map((batch) =>
-          getExercises({ slugs: batch.join(",") }, isBatch)
+          getExercises({ language, slugs: batch.join(",") }, isBatch)
         )
       );
       const found = new Map(

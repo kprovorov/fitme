@@ -1,3 +1,4 @@
+import type { AppLanguage } from "@fitme/core/models";
 import { describe, expect, it } from "vitest";
 import {
   createLibrary,
@@ -9,13 +10,38 @@ import {
 import { createFakeLibrary } from "../fake";
 import { exercise, stubApi } from "./stub-api";
 
+/** A made-up Ukrainian translation of `name`. */
+const uk = (name: string) => ({
+  translations: {
+    uk: { description: `Про ${name}.`, instructions: `Виконуй ${name}.`, name },
+  },
+});
+
+// Some translated, some not (answered wholly in English): Ukrainian order
+// puts Ґ after Г, Є after Е and І, Ї after И, which English collation doesn't.
 const exercises = [
-  exercise("squat", { muscle_groups: ["quadriceps", "glutes"] }),
-  exercise("bench-press"),
-  exercise("incline-bench-press", { muscle_groups: ["chest", "shoulders"] }),
-  exercise("bench-dip", { muscle_groups: ["triceps"] }),
-  exercise("deadlift", { muscle_groups: ["back", "hamstrings"] }),
-  exercise("front-squat", { muscle_groups: ["quadriceps"] }),
+  exercise("squat", {
+    muscle_groups: ["quadriceps", "glutes"],
+    ...uk("Присід"),
+  }),
+  exercise("bench-press", uk("Жим лежачи")),
+  exercise("incline-bench-press", {
+    muscle_groups: ["chest", "shoulders"],
+    ...uk("Жим на похилій лаві"),
+  }),
+  exercise("bench-dip", {
+    muscle_groups: ["triceps"],
+    ...uk("Ґак-віджимання"),
+  }),
+  exercise("deadlift", { muscle_groups: ["back", "hamstrings"], ...uk("Гак") }),
+  exercise("front-squat", {
+    muscle_groups: ["quadriceps"],
+    ...uk("Їжак присід"),
+  }),
+  exercise("hip-thrust", { muscle_groups: ["glutes"], ...uk("Ехо міст") }),
+  exercise("lunge", { muscle_groups: ["glutes"], ...uk("Єдиний випад") }),
+  exercise("plank", { muscle_groups: ["abs"], ...uk("Іспит планка") }),
+  exercise("crunch", { muscle_groups: ["abs"], ...uk("Ирій скручування") }),
   exercise("100-percent_curl", {
     muscle_groups: ["biceps"],
     name: "100% Curl_",
@@ -37,9 +63,13 @@ const real = createLibrary({
 });
 const fake = createFakeLibrary(exercises);
 
-describe("the fake answers like the real client", () => {
-  it.each<[string, ListExercisesParams | undefined]>([
-    ["no parameters", undefined],
+describe.each<[string, AppLanguage | undefined]>([
+  ["no language", undefined],
+  ["English", "en"],
+  ["Ukrainian", "uk"],
+])("the fake answers like the real client, in %s", (_label, language) => {
+  it.each<[string, ListExercisesParams]>([
+    ["no parameters", {}],
     ["a search", { search: "bench" }],
     ["a case-insensitive, trimmed search", { search: "  SQUAT " }],
     ["a search with % and _ taken literally", { search: "% curl_" }],
@@ -49,8 +79,13 @@ describe("the fake answers like the real client", () => {
     ["a page", { limit: 5, offset: 3 }],
     ["the last page", { limit: 10, muscleGroup: "cardio", offset: 40 }],
     ["an offset past the end", { offset: 500 }],
+    ["a search for a Ukrainian name", { search: "жим" }],
+    ["a search for an English name", { search: "bench" }],
+    ["a search with Ukrainian letters", { search: "Ґ" }],
   ])("list with %s", async (_, params) => {
-    expect(await fake.list(params)).toEqual(await real.list(params));
+    const asked = language ? { ...params, language } : params;
+
+    expect(await fake.list(asked)).toEqual(await real.list(asked));
   });
 
   it("lookup across chunks, with repeats and missing slugs", async () => {
@@ -63,18 +98,20 @@ describe("the fake answers like the real client", () => {
       "nope",
     ];
 
-    const answer = await fake.lookup(slugs);
+    const answer = await fake.lookup(slugs, { language });
 
-    expect(answer).toEqual(await real.lookup(slugs));
+    expect(answer).toEqual(await real.lookup(slugs, { language }));
     expect(answer.missing).toEqual(["nope", "", "a,b"]);
   });
 
   it.each(["squat", "100-percent_curl", "nope", ""])("get %j", async (slug) => {
-    expect(await fake.get(slug)).toEqual(await real.get(slug));
+    expect(await fake.get(slug, { language })).toEqual(
+      await real.get(slug, { language })
+    );
   });
 
   it("answers summaries only, without description or instructions", async () => {
-    const { data } = await fake.lookup(["squat"]);
+    const { data } = await fake.lookup(["squat"], { language });
 
     expect(Object.keys(data[0] ?? {}).sort()).toEqual([
       "muscle_groups",
@@ -83,6 +120,33 @@ describe("the fake answers like the real client", () => {
       "thumbnail_url",
       "video_url",
     ]);
+  });
+});
+
+describe("language", () => {
+  it("answers a translated Exercise in the language, an untranslated one wholly in English", async () => {
+    expect(await fake.get("squat", { language: "uk" })).toMatchObject({
+      description: "Про Присід.",
+      instructions: "Виконуй Присід.",
+      name: "Присід",
+    });
+    expect(await fake.get("row-a", { language: "uk" })).toEqual(
+      await fake.get("row-a")
+    );
+  });
+
+  it("sorts by the Ukrainian name with Ukrainian collation", async () => {
+    const { data } = await fake.list({ language: "uk", muscleGroup: "abs" });
+
+    expect(data.map((e) => e.name)).toEqual([
+      "Ирій скручування",
+      "Іспит планка",
+    ]);
+  });
+
+  it("answers English without a language", async () => {
+    expect((await fake.get("squat"))?.name).toBe("Squat");
+    expect((await fake.list({ search: "присід" })).total).toBe(0);
   });
 });
 
