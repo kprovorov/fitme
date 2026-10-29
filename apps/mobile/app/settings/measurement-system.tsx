@@ -3,6 +3,7 @@ import * as Sentry from "@sentry/react-native";
 import { useQueryClient } from "@tanstack/react-query";
 import { Stack } from "expo-router";
 import { useCallback, useEffect, useMemo, useRef, useState } from "react";
+import { useTranslation } from "react-i18next";
 import { ActivityIndicator, Alert, View } from "react-native";
 import { AlertDialog } from "~/components/ui/alert-dialog";
 import { Button } from "~/components/ui/button";
@@ -13,10 +14,12 @@ import { useProfileQuery } from "~/hooks/queries/profiles";
 import { useUpdateMeasurementSystemMutation } from "~/hooks/queries/settings";
 import { rateLimitedFor } from "~/lib/api/client";
 import { useChoiceLabels } from "~/lib/choices";
+import { i18n } from "~/lib/i18n";
 
 export default function MeasurementSystemScreen() {
   const queryClient = useQueryClient();
   const labels = useChoiceLabels();
+  const { t } = useTranslation(undefined, { i18n });
   const options = useMemo(
     () =>
       measurementSystems.map((system) => ({
@@ -92,16 +95,18 @@ export default function MeasurementSystemScreen() {
         }
         if (saved === undefined) {
           Alert.alert(
-            "Couldn't Check Your Units",
-            "Check your connection, then try again to see which system is saved."
+            i18n.t("measurementSystem.checkFailed.title"),
+            i18n.t("measurementSystem.checkFailed.message")
           );
         } else if (error && saved !== system) {
           const waitSeconds = rateLimitedFor(error);
           Alert.alert(
-            "Couldn't Change Units",
+            i18n.t("measurementSystem.changeFailed.title"),
             waitSeconds === null
-              ? "Your measurements weren't changed. Please try again."
-              : `Your measurements weren't changed. Too many requests: please try again in ${waitSeconds} s.`
+              ? i18n.t("measurementSystem.changeFailed.message")
+              : i18n.t("measurementSystem.changeFailed.rateLimited", {
+                  seconds: waitSeconds,
+                })
           );
         }
       },
@@ -146,7 +151,7 @@ export default function MeasurementSystemScreen() {
             fontWeight: "bold",
           },
           headerTransparent: true,
-          title: "Measurement System",
+          title: t("measurementSystem.title"),
         }}
       />
       {!(isLoaded || isProfileError) && (
@@ -160,10 +165,13 @@ export default function MeasurementSystemScreen() {
       {!isLoaded && isProfileError && (
         <VStack className="flex-1 items-stretch justify-center gap-4 p-6">
           <ErrorMessage className="text-center">
-            Couldn't load your measurement system. Please check your connection
-            and try again.
+            {t("measurementSystem.loadError")}
           </ErrorMessage>
-          <Button label="Try Again" onPress={handleRetry} variant="secondary" />
+          <Button
+            label={t("common.tryAgain")}
+            onPress={handleRetry}
+            variant="secondary"
+          />
         </VStack>
       )}
       {savedSystem !== undefined && (
@@ -180,9 +188,9 @@ export default function MeasurementSystemScreen() {
 
           <AlertDialog
             actions={[
-              { label: "Cancel", role: "cancel" },
+              { label: t("common.cancel"), role: "cancel" },
               {
-                label: "Confirm",
+                label: t("common.confirm"),
                 onPress: () => {
                   if (pendingSystem) {
                     setSwitchingTo(pendingSystem);
@@ -193,9 +201,9 @@ export default function MeasurementSystemScreen() {
               },
             ]}
             isPresented={pendingSystem !== null}
-            message="Updating your measurement system will affect all of your measurements. Your profile data and workout history will be converted to the new system."
+            message={t("measurementSystem.confirm.message")}
             onIsPresentedChange={handleIsPresentedChange}
-            title="Are you sure?"
+            title={t("measurementSystem.confirm.title")}
           />
         </View>
       )}

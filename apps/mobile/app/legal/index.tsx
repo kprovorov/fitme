@@ -1,13 +1,16 @@
 import { Link, Stack } from "expo-router";
+import { useTranslation } from "react-i18next";
 import { ScrollView } from "react-native";
 import { AlertDialog } from "~/components/ui/alert-dialog";
 import { MenuList, MenuListItem } from "~/components/ui/menu-list";
 import { Separator } from "~/components/ui/separator";
 import { Text } from "~/components/ui/text";
 import { useDeleteUserMutation } from "~/hooks/mutations/auth";
+import { i18n } from "~/lib/i18n";
 
 export default function LegalScreen() {
   const { mutate: deleteUser } = useDeleteUserMutation();
+  const { t } = useTranslation(undefined, { i18n });
 
   return (
     <>
@@ -20,7 +23,7 @@ export default function LegalScreen() {
             fontWeight: "bold",
           },
           headerTransparent: true,
-          title: "Legal",
+          title: t("legal.title"),
         }}
       />
 
@@ -32,31 +35,31 @@ export default function LegalScreen() {
         <MenuList>
           <Link asChild href="https://fitmeproject.com/privacy-policy">
             <MenuListItem icon="square-arrow-out-up-right">
-              <Text>Privacy Policy</Text>
+              <Text>{t("legal.privacyPolicy")}</Text>
             </MenuListItem>
           </Link>
           <Separator />
           <Link asChild href="https://fitmeproject.com/terms">
             <MenuListItem icon="square-arrow-out-up-right">
-              <Text>Terms of Service</Text>
+              <Text>{t("legal.terms")}</Text>
             </MenuListItem>
           </Link>
           <Separator />
           <AlertDialog
             actions={[
-              { label: "Cancel", role: "cancel" },
+              { label: t("common.cancel"), role: "cancel" },
               {
-                label: "Yes, Delete My Account",
+                label: t("legal.deleteConfirm.confirm"),
                 onPress: () => deleteUser(),
                 role: "destructive",
               },
             ]}
             className="w-full"
-            message="This action cannot be undone. This will permanently delete your account and remove your data from our servers."
-            title="Are you sure you want to delete your account?"
+            message={t("legal.deleteConfirm.message")}
+            title={t("legal.deleteConfirm.title")}
           >
             <MenuListItem>
-              <Text>Delete Account</Text>
+              <Text>{t("legal.deleteAccount")}</Text>
             </MenuListItem>
           </AlertDialog>
         </MenuList>

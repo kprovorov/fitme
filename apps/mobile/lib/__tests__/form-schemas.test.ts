@@ -1,4 +1,5 @@
 import { describe, expect, it } from "@jest/globals";
+import { i18n } from "~/lib/i18n";
 import { numberInRange } from "../form-schemas";
 
 const age = numberInRange(4, 150, "Age is required");
@@ -19,5 +20,15 @@ describe("numberInRange", () => {
   it("shows zod 3's range messages", () => {
     expect(errorOf(3)).toEqual(["Number must be greater than or equal to 4"]);
     expect(errorOf(151)).toEqual(["Number must be less than or equal to 150"]);
+  });
+
+  it("shows the range messages in the App language when checked", async () => {
+    await i18n.changeLanguage("uk");
+    try {
+      expect(errorOf(3)).toEqual(["Число має бути не менше за 4"]);
+      expect(errorOf(1500)).toEqual(["Число має бути не більше за 150"]);
+    } finally {
+      await i18n.changeLanguage("en");
+    }
   });
 });

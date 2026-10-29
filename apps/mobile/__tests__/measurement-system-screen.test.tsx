@@ -4,13 +4,22 @@
  * and the client's `fetch` for the fake Public API over the same rows (both
  * from `test-utils/`), and the SwiftUI-backed primitives for stand-ins.
  */
-import { beforeEach, describe, expect, it, jest } from "@jest/globals";
+import {
+  afterEach,
+  beforeEach,
+  describe,
+  expect,
+  it,
+  jest,
+} from "@jest/globals";
 import * as Sentry from "@sentry/react-native";
 import { QueryClientProvider } from "@tanstack/react-query";
 import { fireEvent, render, screen } from "@testing-library/react-native";
-import { useCallback } from "react";
+import { type ReactNode, useCallback } from "react";
 import { Alert, Pressable, Text } from "react-native";
 import MeasurementSystemScreen from "~/app/settings/measurement-system";
+import { i18n, useAppLanguageSync } from "~/lib/i18n";
+import { setDeviceLanguages } from "~/test-utils/device-locales";
 import {
   FAKE_SESSION_TOKEN,
   FAKE_USER_ID,
@@ -419,5 +428,79 @@ describe("MeasurementSystemScreen", () => {
 
     expect(backend.count("profiles", "select")).toBe(2);
     expect(Alert.alert).not.toHaveBeenCalled();
+  });
+});
+
+/** The screen under the root layout's language sync. */
+function InAppLanguage({ children }: { children: ReactNode }) {
+  useAppLanguageSync();
+  return children;
+}
+
+describe("MeasurementSystemScreen on a Ukrainian device", () => {
+  beforeEach(() => {
+    setDeviceLanguages(["uk-UA"]);
+    jest.clearAllMocks();
+    backend.reset();
+    backend.seedProfile(FAKE_USER_ID, { height: 180, weight: 80 });
+    jest.spyOn(Alert, "alert").mockImplementation(() => undefined);
+  });
+
+  afterEach(async () => {
+    // The next English test renders without the sync.
+    await i18n.changeLanguage("en");
+  });
+
+  const mountInUkrainian = async () => {
+    queryClient = createTestQueryClient();
+    await render(
+      <QueryClientProvider client={queryClient}>
+        <InAppLanguage>
+          <MeasurementSystemScreen />
+        </InAppLanguage>
+      </QueryClientProvider>
+    );
+    await settle(queryClient);
+  };
+
+  it("offers the measurement systems in Ukrainian and confirms in Ukrainian", async () => {
+    await mountInUkrainian();
+
+    expect(screen.getByText("Метрична")).toBeTruthy();
+    expect(screen.getByText("США")).toBeTruthy();
+    expect(screen.getByText("Велика Британія")).toBeTruthy();
+    expect(screen.getByText("Сантиметри та кілограми")).toBeTruthy();
+
+    await fireEvent.press(screen.getByTestId("option-us"));
+
+    expect(screen.getByText("Ви впевнені?")).toBeTruthy();
+    expect(screen.getByText("Скасувати")).toBeTruthy();
+    await fireEvent.press(screen.getByText("Підтвердити"));
+    await settle(queryClient);
+
+    // The system is the User's choice, apart from the App language.
+    expect(backend.profile(FAKE_USER_ID)).toMatchObject({
+      measurement_system: "us",
+    });
+    expect(screen.getByText("Фути, дюйми та фунти")).toBeTruthy();
+  });
+
+  it("says in Ukrainian how long to wait when there were too many requests", async () => {
+    await mountInUkrainian();
+    fakePublicApi.failNext(PROFILE_PATCH, {
+      retryAfterSeconds: 42,
+      status: 429,
+    });
+
+    await fireEvent.press(screen.getByTestId("option-us"));
+    await fireEvent.press(screen.getByText("Підтвердити"));
+    await settle(queryClient);
+
+    expect(alerts()).toEqual([
+      [
+        "Не вдалося змінити одиниці",
+        "Ваші вимірювання не змінено. Забагато запитів: спробуйте ще раз через 42 с.",
+      ],
+    ]);
   });
 });

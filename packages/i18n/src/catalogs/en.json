@@ -344,5 +344,80 @@
       "saveFailed": "Couldn't save your profile. Please check your connection and try again.",
       "saveRateLimited": "Couldn't save your profile. Too many requests: please try again in {{seconds, number}} s."
     }
+  },
+  "common": {
+    "cancel": "Cancel",
+    "confirm": "Confirm",
+    "tryAgain": "Try Again",
+    "genericError": "Something went wrong. Please try again later."
+  },
+  "profile": {
+    "pro": {
+      "title": "You're Pro!",
+      "description": "You have access to all of our features. You can cancel your subscription at any time.",
+      "manage": "Manage Subscription"
+    },
+    "free": {
+      "title": "You're on a free plan",
+      "description": "Subscribe to Fitme Pro to get unlimited access to all of our features",
+      "upgrade": "Upgrade to Pro"
+    },
+    "editProfile": "Edit Profile",
+    "settings": "Settings",
+    "support": "Support",
+    "legal": "Legal",
+    "logout": "Logout",
+    "rate": {
+      "title": "Like the app?",
+      "action": "Rate it in the App Store!"
+    }
+  },
+  "editProfile": {
+    "title": "Edit Profile",
+    "loadError": "Couldn't load your profile. Please check your connection and try again.",
+    "save": "Save"
+  },
+  "settings": {
+    "title": "Settings",
+    "measurementSystem": "Measurement System",
+    "deleteAccount": "Delete Account",
+    "deleteConfirm": {
+      "title": "Delete Account",
+      "message": "This will permanently delete your account and all associated data. This action cannot be undone.",
+      "confirm": "Delete"
+    },
+    "deleteFailed": "Couldn't delete your account"
+  },
+  "measurementSystem": {
+    "title": "Measurement System",
+    "loadError": "Couldn't load your measurement system. Please check your connection and try again.",
+    "confirm": {
+      "title": "Are you sure?",
+      "message": "Updating your measurement system will affect all of your measurements. Your profile data and workout history will be converted to the new system."
+    },
+    "checkFailed": {
+      "title": "Couldn't Check Your Units",
+      "message": "Check your connection, then try again to see which system is saved."
+    },
+    "changeFailed": {
+      "title": "Couldn't Change Units",
+      "message": "Your measurements weren't changed. Please try again.",
+      "rateLimited": "Your measurements weren't changed. Too many requests: please try again in {{seconds, number}} s."
+    }
+  },
+  "legal": {
+    "title": "Legal",
+    "privacyPolicy": "Privacy Policy",
+    "terms": "Terms of Service",
+    "deleteAccount": "Delete Account",
+    "deleteConfirm": {
+      "title": "Are you sure you want to delete your account?",
+      "message": "This action cannot be undone. This will permanently delete your account and remove your data from our servers.",
+      "confirm": "Yes, Delete My Account"
+    }
+  },
+  "support": {
+    "title": "Support",
+    "contact": "Feel free to contact us at any time if you have any questions or feedback"
   }
 }

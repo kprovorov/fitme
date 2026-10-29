@@ -1,6 +1,7 @@
 import { useUser } from "@clerk/expo";
 import { Link, router } from "expo-router";
 import { useCallback } from "react";
+import { useTranslation } from "react-i18next";
 import { Linking } from "react-native";
 import RevenueCatUI from "react-native-purchases-ui";
 import { SymbolImage } from "~/components/symbol-image";
@@ -8,6 +9,7 @@ import { Button } from "~/components/ui/button";
 import { Text } from "~/components/ui/text";
 import { useLogoutMutation } from "~/hooks/mutations/auth";
 import { useCustomerInfoQuery, useIsProQuery } from "~/hooks/revenueCat";
+import { i18n } from "~/lib/i18n";
 import { getProfileHeader } from "~/lib/user-name";
 import { Avatar, AvatarFallback } from "../ui/avatar";
 import { Card, CardContent } from "../ui/card";
@@ -26,6 +28,7 @@ const openAppStoreReview = () => Linking.openURL(APP_STORE_REVIEW_URL);
 
 export default function ProfileView() {
   const { user } = useUser();
+  const { t } = useTranslation(undefined, { i18n });
   const { initial, subtitle, title } = getProfileHeader({
     email: user?.primaryEmailAddress?.emailAddress,
     fullName: user?.fullName,
@@ -88,16 +91,13 @@ export default function ProfileView() {
                     name="trophy.fill"
                   />
                   <Text className="text-body-emphasized text-primary">
-                    You&apos;re Pro!
+                    {t("profile.pro.title")}
                   </Text>
                 </HStack>
-                <Muted>
-                  You have access to all of our features. You can cancel your
-                  subscription at any time.
-                </Muted>
+                <Muted>{t("profile.pro.description")}</Muted>
                 {!!managementURL && (
                   <Button
-                    label="Manage Subscription"
+                    label={t("profile.pro.manage")}
                     onPress={openManagementURL}
                     variant="secondary"
                   />
@@ -111,14 +111,14 @@ export default function ProfileView() {
                     name="figure.volleyball"
                   />
                   <Text className="text-body-emphasized text-foreground">
-                    You&apos;re on a free plan
+                    {t("profile.free.title")}
                   </Text>
                 </HStack>
-                <Muted>
-                  Subscribe to Fitme Pro to get unlimited access to all of our
-                  features
-                </Muted>
-                <Button label="Upgrade to Pro" onPress={presentPaywall} />
+                <Muted>{t("profile.free.description")}</Muted>
+                <Button
+                  label={t("profile.free.upgrade")}
+                  onPress={presentPaywall}
+                />
               </VStack>
             )}
           </CardContent>
@@ -127,30 +127,30 @@ export default function ProfileView() {
         <MenuList>
           <Link asChild href="/settings/edit-profile">
             <MenuListItem icon="chevron-right" testID="edit-profile-link">
-              <Text>Edit Profile</Text>
+              <Text>{t("profile.editProfile")}</Text>
             </MenuListItem>
           </Link>
           <Separator />
           <Link asChild href="/settings">
             <MenuListItem icon="chevron-right" testID="settings-link">
-              <Text>Settings</Text>
+              <Text>{t("profile.settings")}</Text>
             </MenuListItem>
           </Link>
           <Separator />
           <Link asChild href="/support">
             <MenuListItem icon="chevron-right">
-              <Text>Support</Text>
+              <Text>{t("profile.support")}</Text>
             </MenuListItem>
           </Link>
           <Separator />
           <Link asChild href="/legal">
             <MenuListItem icon="chevron-right">
-              <Text>Legal</Text>
+              <Text>{t("profile.legal")}</Text>
             </MenuListItem>
           </Link>
           <Separator />
           <MenuListItem onPress={handleLogout} testID="logout-button">
-            <Text>Logout</Text>
+            <Text>{t("profile.logout")}</Text>
           </MenuListItem>
         </MenuList>
 
@@ -163,9 +163,9 @@ export default function ProfileView() {
               />
               <VStack className="items-start gap-0">
                 <Text className="text-body-emphasized text-primary">
-                  Like the app?
+                  {t("profile.rate.title")}
                 </Text>
-                <Text>Rate it in the App Store!</Text>
+                <Text>{t("profile.rate.action")}</Text>
               </VStack>
             </HStack>
           </MenuListItem>
