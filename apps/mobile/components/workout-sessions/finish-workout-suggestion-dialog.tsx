@@ -5,6 +5,7 @@ import { HStack } from "~/components/ui/hstack";
 import { Text } from "~/components/ui/text";
 import { H3 } from "~/components/ui/typography";
 import { VStack } from "~/components/ui/vstack";
+import { useI18n } from "~/lib/i18n";
 
 interface FinishWorkoutSuggestionDialogProps {
   /**
@@ -42,6 +43,7 @@ const FinishWorkoutSuggestionDialog = ({
   onKeepTraining,
   isFinishing,
 }: FinishWorkoutSuggestionDialogProps) => {
+  const i18n = useI18n();
   // A ref, not state, so a second tap landing before the re-render is still
   // seen as a duplicate.
   const choiceMadeRef = useRef<boolean>(false);
@@ -129,8 +131,10 @@ const FinishWorkoutSuggestionDialog = ({
     >
       <HStack className="justify-end">
         <Button
-          accessibilityHint="Closes this suggestion and keeps the workout going"
-          accessibilityLabel="Close"
+          accessibilityHint={i18n.t(
+            "finishWorkout.suggestion.keepTrainingHint"
+          )}
+          accessibilityLabel={i18n.t("finishWorkout.suggestion.close")}
           disabled={finishBusy}
           icon="xmark"
           onPress={handleKeepTraining}
@@ -141,25 +145,29 @@ const FinishWorkoutSuggestionDialog = ({
         />
       </HStack>
       <VStack className="items-stretch gap-2">
-        <H3 className="text-center">Workout completed!</H3>
+        <H3 className="text-center">
+          {i18n.t("finishWorkout.suggestion.title")}
+        </H3>
         <Text className="text-center text-muted-foreground">
-          You've tracked all your planned sets.
+          {i18n.t("finishWorkout.suggestion.description")}
         </Text>
       </VStack>
       <VStack className="items-stretch gap-3">
         <Button
-          accessibilityHint="Finishes this workout session"
-          accessibilityLabel="Finish Workout"
+          accessibilityHint={i18n.t("finishWorkout.suggestion.finishHint")}
+          accessibilityLabel={i18n.t("finishWorkout.suggestion.finish")}
           isLoading={finishBusy}
-          label="Finish Workout"
+          label={i18n.t("finishWorkout.suggestion.finish")}
           onPress={handleFinish}
           testID="finish-workout-suggestion-finish"
         />
         <Button
-          accessibilityHint="Closes this suggestion and keeps the workout going"
-          accessibilityLabel="Keep Training"
+          accessibilityHint={i18n.t(
+            "finishWorkout.suggestion.keepTrainingHint"
+          )}
+          accessibilityLabel={i18n.t("finishWorkout.suggestion.keepTraining")}
           disabled={finishBusy}
-          label="Keep Training"
+          label={i18n.t("finishWorkout.suggestion.keepTraining")}
           onPress={handleKeepTraining}
           testID="finish-workout-suggestion-keep-training"
           variant="secondary"

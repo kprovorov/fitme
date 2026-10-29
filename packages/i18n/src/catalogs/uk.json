@@ -236,5 +236,53 @@
   "duration": {
     "hoursMinutes": "{{hours, number}} год {{minutes, number}} хв",
     "minutes": "{{minutes, number}} хв"
+  },
+  "finishWorkout": {
+    "confirm": {
+      "title": "Завершити тренування?",
+      "unloggedSets_one": "{{count, number}} запланований підхід не записано.",
+      "unloggedSets_few": "{{count, number}} заплановані підходи не записано.",
+      "unloggedSets_many": "{{count, number}} запланованих підходів не записано.",
+      "unloggedSets_other": "{{count, number}} запланованого підходу не записано.",
+      "cancel": "Скасувати",
+      "finish": "Завершити"
+    },
+    "failed": {
+      "title": "Не вдалося завершити тренування",
+      "network": "Перевірте з’єднання і спробуйте ще раз.",
+      "rateLimited": "Забагато запитів: спробуйте ще раз через {{seconds, number}} с."
+    },
+    "suggestion": {
+      "title": "Тренування виконано!",
+      "description": "Ви записали всі заплановані підходи.",
+      "close": "Закрити",
+      "keepTrainingHint": "Закриває цю підказку, тренування триває",
+      "finish": "Завершити тренування",
+      "finishHint": "Завершує це тренування",
+      "keepTraining": "Продовжити тренування"
+    }
+  },
+  "planUpdate": {
+    "title": "Оновити план?",
+    "description": "Зберегти сьогоднішні зміни до «{{workout}}» у плані «{{plan}}».",
+    "failed": "Не вдалося оновити план. Перевірте з’єднання і спробуйте ще раз.",
+    "rateLimited": "Забагато запитів. Спробуйте ще раз через {{seconds, number}} с.",
+    "update": "Оновити план",
+    "updateHint": "Зберігає ці зміни в плані, потім показує підсумок тренування",
+    "retry": "Повторити",
+    "keep": "Залишити план без змін",
+    "keepHint": "Залишає план без змін і показує підсумок тренування",
+    "changes": {
+      "replace": "Замінити «{{replaced}}» на «{{exercise}}»",
+      "add": "Додати «{{exercise}}»",
+      "remove": "Прибрати «{{exercise}}»",
+      "addSets_one": "Додати {{count, number}} підхід до «{{exercise}}»",
+      "addSets_few": "Додати {{count, number}} підходи до «{{exercise}}»",
+      "addSets_many": "Додати {{count, number}} підходів до «{{exercise}}»",
+      "addSets_other": "Додати {{count, number}} підходу до «{{exercise}}»",
+      "line": "{{change}} · {{sets}}",
+      "spokenLine": "{{change}}: {{sets}}",
+      "spokenSet": "{{reps}} по {{weight}}"
+    }
   }
 }

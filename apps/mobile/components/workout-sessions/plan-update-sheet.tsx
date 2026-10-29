@@ -74,6 +74,9 @@ export function PlanUpdateSheet({
 }: PlanUpdateSheetProps) {
   const i18n = useI18n();
   const exercises = useExercises(planUpdateSlugs(preview?.changes ?? []));
+  const updateLabel = hasFailed
+    ? i18n.t("planUpdate.retry")
+    : i18n.t("planUpdate.update");
   const nameOf = (slug: string) =>
     (exercises[slug] ?? shownExercise(slug, null)).name;
   const handleIsPresentedChange = useCallback(
@@ -96,10 +99,12 @@ export function PlanUpdateSheet({
       {preview ? (
         <>
           <VStack className="items-stretch gap-2">
-            <H3>Update your plan?</H3>
+            <H3>{i18n.t("planUpdate.title")}</H3>
             <Muted>
-              Save today's changes to {preview.workout?.name} in{" "}
-              {preview.plan?.name}.
+              {i18n.t("planUpdate.description", {
+                plan: preview.plan?.name ?? "",
+                workout: preview.workout?.name ?? "",
+              })}
             </Muted>
           </VStack>
           <VStack className="items-stretch gap-3" testID="plan-update-changes">
@@ -131,24 +136,24 @@ export function PlanUpdateSheet({
           {hasFailed ? (
             <ErrorMessage>
               {waitSeconds === null
-                ? "Couldn't update your plan. Check your connection and try again."
-                : `Too many requests. Try again in ${waitSeconds} s.`}
+                ? i18n.t("planUpdate.failed")
+                : i18n.t("planUpdate.rateLimited", { seconds: waitSeconds })}
             </ErrorMessage>
           ) : null}
           <VStack className="items-stretch gap-3">
             <Button
-              accessibilityHint="Saves these changes to your plan, then shows the workout summary"
-              accessibilityLabel={hasFailed ? "Retry" : "Update plan"}
+              accessibilityHint={i18n.t("planUpdate.updateHint")}
+              accessibilityLabel={updateLabel}
               isLoading={isApplying}
-              label={hasFailed ? "Retry" : "Update plan"}
+              label={updateLabel}
               onPress={onUpdate}
               testID="plan-update-accept"
             />
             <Button
-              accessibilityHint="Leaves your plan unchanged and shows the workout summary"
-              accessibilityLabel="Keep plan as is"
+              accessibilityHint={i18n.t("planUpdate.keepHint")}
+              accessibilityLabel={i18n.t("planUpdate.keep")}
               disabled={isApplying}
-              label="Keep plan as is"
+              label={i18n.t("planUpdate.keep")}
               onPress={onKeep}
               testID="plan-update-decline"
               variant="secondary"

@@ -101,17 +101,21 @@ describe("formatPlanChange", () => {
       ).text
     ).toBe("Add Squat · 12×0 kg");
   });
+});
 
-  it("writes numbers, units and counts in the App language", () => {
-    const uk = createI18n("uk");
+describe("formatPlanChange in Ukrainian", () => {
+  const uk = createI18n("uk");
+
+  it("replaces an Exercise, numbers and units as Ukrainian writes them", () => {
     expect(
       formatPlanChange(
         {
-          exercise_slug: "squat",
-          kind: "add_sets",
+          exercise_slug: "dumbbell-press",
+          kind: "replace_exercise",
+          replaced_exercise_slug: "bench-press",
           sets: [
-            { reps: 5, weight: 62.5 },
-            { reps: 1, weight: 62.5 },
+            { reps: 8, weight: 30 },
+            { reps: 6, weight: 32.5 },
           ],
         },
         "kg",
@@ -120,9 +124,64 @@ describe("formatPlanChange", () => {
       )
     ).toEqual({
       accessibilityLabel:
-        "Add 2 підходи to Squat: 5 повторень at 62,5 кілограма, 1 повторення at 62,5 кілограма",
-      text: "Add 2 підходи to Squat · 5×62,5, 1×62,5 кг",
+        "Замінити «Bench Press» на «Dumbbell Press»: 8 повторень по 30 кілограмів, 6 повторень по 32,5 кілограма",
+      text: "Замінити «Bench Press» на «Dumbbell Press» · 8×30, 6×32,5 кг",
     });
+  });
+
+  it("adds an Exercise, in pounds for lbs", () => {
+    expect(
+      formatPlanChange(
+        {
+          exercise_slug: "squat",
+          kind: "add_exercise",
+          sets: [{ reps: 1, weight: 225 }],
+        },
+        "lbs",
+        nameOf,
+        uk
+      )
+    ).toEqual({
+      accessibilityLabel: "Додати «Squat»: 1 повторення по 225 фунтів",
+      text: "Додати «Squat» · 1×225 фунт",
+    });
+  });
+
+  it("removes an Exercise", () => {
+    expect(
+      formatPlanChange(
+        { exercise_slug: "bench-press", kind: "remove_exercise" },
+        "kg",
+        nameOf,
+        uk
+      )
+    ).toEqual({
+      accessibilityLabel: "Прибрати «Bench Press»",
+      text: "Прибрати «Bench Press»",
+    });
+  });
+
+  it.each([
+    [1, "Додати 1 підхід до «Squat»"],
+    [2, "Додати 2 підходи до «Squat»"],
+    [5, "Додати 5 підходів до «Squat»"],
+  ])("adds %i set(s) with Ukrainian's plural form", (count, change) => {
+    const line = formatPlanChange(
+      {
+        exercise_slug: "squat",
+        kind: "add_sets",
+        sets: Array.from({ length: count }, () => ({ reps: 5, weight: 62.5 })),
+      },
+      "kg",
+      nameOf,
+      uk
+    );
+    expect(line.text).toBe(
+      `${change} · ${Array.from({ length: count }, () => "5×62,5").join(", ")} кг`
+    );
+    expect(line.accessibilityLabel).toBe(
+      `${change}: ${Array.from({ length: count }, () => "5 повторень по 62,5 кілограма").join(", ")}`
+    );
   });
 });
 

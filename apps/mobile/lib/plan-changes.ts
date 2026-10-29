@@ -43,9 +43,11 @@ const spokenSets = (
   unit: WeightUnit
 ) =>
   sets
-    .map(
-      ({ reps, weight }) =>
-        `${formatCount(translator, "reps", reps)} at ${spokenUnit(translator, weight, unit)}`
+    .map(({ reps, weight }) =>
+      translator.t("planUpdate.changes.spokenSet", {
+        reps: formatCount(translator, "reps", reps),
+        weight: spokenUnit(translator, weight, unit),
+      })
     )
     .join(", ");
 
@@ -59,10 +61,10 @@ export const planUpdateSlugs = (changes: PlanUpdateChange[]): string[] =>
 
 /**
  * The sheet's line for one change, weights in `weightUnit` and each Exercise
- * by `nameOf` its slug, its numbers, units and counts from `translator`'s
- * catalog: "Replace Bench Press with Dumbbell Press · 8×30, 6×30
- * kg", "Add Cable Fly · 12×15 kg", "Remove Dips", "Add 1 set to Squat · 5×100
- * kg".
+ * by `nameOf` its slug, its text, numbers, units and counts from
+ * `translator`'s catalog: "Replace Bench Press with Dumbbell Press · 8×30,
+ * 6×30 kg", "Add Cable Fly · 12×15 kg", "Remove Dips", "Add 1 set to Squat ·
+ * 5×100 kg" ("Додати 2 підходи до «Squat» · 5×62,5, 5×62,5 кг").
  */
 export function formatPlanChange(
   change: PlanUpdateChange,
@@ -74,29 +76,38 @@ export function formatPlanChange(
   let title: string;
   switch (change.kind) {
     case "replace_exercise":
-      title = `Replace ${nameOf(change.replaced_exercise_slug)} with ${exercise}`;
+      title = translator.t("planUpdate.changes.replace", {
+        exercise,
+        replaced: nameOf(change.replaced_exercise_slug),
+      });
       break;
     case "add_exercise":
-      title = `Add ${exercise}`;
+      title = translator.t("planUpdate.changes.add", { exercise });
       break;
-    case "remove_exercise":
-      return {
-        accessibilityLabel: `Remove ${exercise}`,
-        text: `Remove ${exercise}`,
-      };
-    case "add_sets": {
-      const count = change.sets.length;
-      title = `Add ${formatCount(translator, "sets", count)} to ${exercise}`;
-      break;
+    case "remove_exercise": {
+      const text = translator.t("planUpdate.changes.remove", { exercise });
+      return { accessibilityLabel: text, text };
     }
+    case "add_sets":
+      title = translator.t("planUpdate.changes.addSets", {
+        count: change.sets.length,
+        exercise,
+      });
+      break;
     default: {
       const unknown: never = change;
       throw new Error(`Unknown plan change ${JSON.stringify(unknown)}`);
     }
   }
   return {
-    accessibilityLabel: `${title}: ${spokenSets(translator, change.sets, weightUnit)}`,
-    text: `${title} · ${setsText(translator, change.sets, weightUnit)}`,
+    accessibilityLabel: translator.t("planUpdate.changes.spokenLine", {
+      change: title,
+      sets: spokenSets(translator, change.sets, weightUnit),
+    }),
+    text: translator.t("planUpdate.changes.line", {
+      change: title,
+      sets: setsText(translator, change.sets, weightUnit),
+    }),
   };
 }
 

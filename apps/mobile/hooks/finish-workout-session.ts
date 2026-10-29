@@ -19,6 +19,7 @@ import {
   useWorkoutSessionQuery,
 } from "~/hooks/queries/workout-sessions";
 import { rateLimitedFor } from "~/lib/api/client";
+import { i18n } from "~/lib/i18n";
 import {
   countPlanChanges,
   type PlanUpdate,
@@ -61,10 +62,10 @@ const isSessionScreenBelow = (
 
 const alertFinishFailed = (waitSeconds: number | null = null) =>
   Alert.alert(
-    "Couldn't finish workout",
+    i18n.t("finishWorkout.failed.title"),
     waitSeconds === null
-      ? "Check your connection and try again."
-      : `Too many requests: please try again in ${waitSeconds} s.`
+      ? i18n.t("finishWorkout.failed.network")
+      : i18n.t("finishWorkout.failed.rateLimited", { seconds: waitSeconds })
   );
 
 /**
@@ -118,13 +119,18 @@ async function confirmFinishWorkout(
     }
     return await new Promise<boolean>((resolve) => {
       Alert.alert(
-        "Finish workout?",
-        unloggedSets === 1
-          ? "1 planned set isn't logged."
-          : `${unloggedSets} planned sets aren't logged.`,
+        i18n.t("finishWorkout.confirm.title"),
+        i18n.t("finishWorkout.confirm.unloggedSets", { count: unloggedSets }),
         [
-          { onPress: () => resolve(false), style: "cancel", text: "Cancel" },
-          { onPress: () => resolve(true), text: "Finish" },
+          {
+            onPress: () => resolve(false),
+            style: "cancel",
+            text: i18n.t("finishWorkout.confirm.cancel"),
+          },
+          {
+            onPress: () => resolve(true),
+            text: i18n.t("finishWorkout.confirm.finish"),
+          },
         ],
         { cancelable: true, onDismiss: () => resolve(false) }
       );
