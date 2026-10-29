@@ -2,6 +2,7 @@ import type { WorkoutSessionExerciseSet } from "@fitme/core";
 import { useQueryClient } from "@tanstack/react-query";
 import * as Haptics from "expo-haptics";
 import { useRef, useState } from "react";
+import { useTranslation } from "react-i18next";
 import { AccessibilityInfo, View } from "react-native";
 import { SymbolImage } from "~/components/symbol-image";
 import { reportWorkoutSetTracked } from "~/hooks/finish-workout-suggestion";
@@ -22,10 +23,6 @@ import WorkoutSessionExerciseSetForm, {
   type WorkoutSessionExerciseSetFormValues,
 } from "../forms/workout-exercise-set-form";
 import { Text } from "../ui/text";
-
-// Never the backend's message: the User can't act on a Postgres error. Kept
-// neutral, since a lost connection isn't the only way a save fails.
-const SET_SAVE_ERROR = "Couldn't save this set. Try again.";
 
 interface WorkoutSessionExerciseSetRowViewProps {
   exerciseId: string;
@@ -52,6 +49,7 @@ export default function WorkoutSessionExerciseSetRowView({
   sessionId,
   weightLabel,
 }: WorkoutSessionExerciseSetRowViewProps) {
+  const { t } = useTranslation();
   const queryClient = useQueryClient();
   const isNewSet = workoutSessionExerciseSet === null;
   const pendingSetData = useRef<{ weight: number; reps: number } | null>(null);
@@ -76,10 +74,12 @@ export default function WorkoutSessionExerciseSetRowView({
 
   const handleSaveError = (error: unknown) => {
     const waitSeconds = rateLimitedFor(error);
+    // Never the backend's message: the User can't act on a Postgres error.
+    // Kept neutral, since a lost connection isn't the only way a save fails.
     const message =
       waitSeconds === null
-        ? SET_SAVE_ERROR
-        : `Too many requests. Try again in ${waitSeconds} s.`;
+        ? t("sets.errors.save")
+        : t("sets.errors.rateLimited", { seconds: waitSeconds });
     setSaveError(message);
     // Focus stays on ✓, so a screen reader wouldn't read the new message.
     AccessibilityInfo.announceForAccessibility(message);
@@ -207,7 +207,7 @@ export default function WorkoutSessionExerciseSetRowView({
           {showsLogged ? (
             <View className={cn(SET_NUMBER_COLUMN_CLASS, "items-center")}>
               <SymbolImage
-                accessibilityLabel={`Set ${setOrder}, logged`}
+                accessibilityLabel={t("sets.row.logged", { order: setOrder })}
                 className="text-body-emphasized text-primary"
                 name="checkmark"
               />

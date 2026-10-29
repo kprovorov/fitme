@@ -284,5 +284,62 @@
       "spokenLine": "{{change}}: {{sets}}",
       "spokenSet": "{{reps}} по {{weight}}"
     }
+  },
+  "sets": {
+    "columns": {
+      "target": "ціль",
+      "reps": "повтори",
+      "rest": "відпочинок"
+    },
+    "addSet": "Додати підхід",
+    "noTarget": "без цілі",
+    "repsAtWeight": "{{reps}} по {{weight}}",
+    "plannedSet": "Підхід {{order, number}}: {{target}}, {{rest}}",
+    "restSeconds_one": "відпочинок {{count, number}} секунда",
+    "restSeconds_few": "відпочинок {{count, number}} секунди",
+    "restSeconds_many": "відпочинок {{count, number}} секунд",
+    "restSeconds_other": "відпочинок {{count, number}} секунди",
+    "noRest": "без відпочинку",
+    "row": {
+      "repsInput": "Підхід {{order, number}}, повторення",
+      "weightInput": "Підхід {{order, number}}, вага",
+      "log": "Записати підхід {{order, number}}",
+      "edit": "Редагувати підхід {{order, number}}",
+      "editHint": "Відкриває підхід для редагування",
+      "logged": "Підхід {{order, number}} записано"
+    },
+    "errors": {
+      "save": "Не вдалося зберегти підхід. Спробуйте ще раз.",
+      "rateLimited": "Забагато запитів. Спробуйте ще раз через {{seconds, number}} с."
+    },
+    "form": {
+      "weightNotNumber": "Вага має бути числом",
+      "weightNegative": "Вага не може бути від’ємною",
+      "weightTooHigh": "Вага має бути не більше {{max}}",
+      "weightDecimals_one": "Вага може мати не більше {{count, number}} знака після коми",
+      "weightDecimals_few": "Вага може мати не більше {{count, number}} знаків після коми",
+      "weightDecimals_many": "Вага може мати не більше {{count, number}} знаків після коми",
+      "weightDecimals_other": "Вага може мати не більше {{count, number}} знака після коми",
+      "repsNotNumber": "Кількість повторень має бути числом",
+      "repsNegative": "Кількість повторень не може бути від’ємною",
+      "repsTooHigh": "Кількість повторень має бути не більше {{max}}",
+      "repsNotWhole": "Кількість повторень має бути цілим числом"
+    },
+    "rest": {
+      "title": "Відпочинок",
+      "thenSet": "Відпочинок · далі підхід {{order, number}}",
+      "left": "Відпочинок, залишилося {{clock}}",
+      "less_one": "На {{count, number}} секунду менше",
+      "less_few": "На {{count, number}} секунди менше",
+      "less_many": "На {{count, number}} секунд менше",
+      "less_other": "На {{count, number}} секунди менше",
+      "more_one": "На {{count, number}} секунду більше",
+      "more_few": "На {{count, number}} секунди більше",
+      "more_many": "На {{count, number}} секунд більше",
+      "more_other": "На {{count, number}} секунди більше",
+      "skip": "Пропустити",
+      "skipRest": "Пропустити відпочинок",
+      "over": "Відпочинок завершено"
+    }
   }
 }

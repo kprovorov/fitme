@@ -1,6 +1,8 @@
 import type { WorkoutExerciseSet } from "@fitme/core";
-import { formatElapsed, getWeightLabel } from "@fitme/core";
+import { formatElapsed } from "@fitme/core";
+import { type Translator, unitName, weightUnitOf } from "@fitme/i18n";
 import type { ReactNode } from "react";
+import { useTranslation } from "react-i18next";
 import { View } from "react-native";
 import { useProfileQuery } from "~/hooks/queries/profiles";
 import { describeSetTarget, formatSetTarget } from "~/lib/set-inputs";
@@ -49,14 +51,19 @@ const formatRest = (seconds: number) =>
   seconds > 0 ? formatElapsed(seconds * 1000) : "–";
 
 /** How VoiceOver reads a set: one sentence, rest in seconds. */
-const setLabel = (set: WorkoutExerciseSet, weightLabel: string | undefined) => {
-  const target = describeSetTarget(set, weightLabel);
-  const rest =
-    set.rest_recommended > 0
-      ? `rest ${set.rest_recommended} seconds`
-      : "no rest";
-  return `Set ${set.order}: ${target}, ${rest}`;
-};
+const setLabel = (
+  translator: Translator,
+  set: WorkoutExerciseSet,
+  weightLabel: string
+) =>
+  translator.t("sets.plannedSet", {
+    order: set.order,
+    rest:
+      set.rest_recommended > 0
+        ? translator.t("sets.restSeconds", { count: set.rest_recommended })
+        : translator.t("sets.noRest"),
+    target: describeSetTarget(set, weightLabel, translator),
+  });
 
 /**
  * A Workout Exercise's sets as planned, read-only: each set's target reps ×
@@ -66,7 +73,11 @@ export default function WorkoutExerciseSetsTableView({
   sets,
 }: WorkoutExerciseSetsTableViewProps) {
   const { data: profile, isPending: isProfilePending } = useProfileQuery();
-  const weightLabel = getWeightLabel(profile?.measurement_system ?? "metric");
+  const { i18n, t } = useTranslation();
+  const weightLabel = unitName(
+    i18n,
+    weightUnitOf(profile?.measurement_system ?? "metric")
+  );
 
   return (
     !isProfilePending && (
@@ -80,10 +91,10 @@ export default function WorkoutExerciseSetsTableView({
             #
           </Cell>
           <Cell className="flex-1" header>
-            target
+            {t("sets.columns.target")}
           </Cell>
           <Cell className="flex-1" header>
-            rest
+            {t("sets.columns.rest")}
           </Cell>
         </View>
 
@@ -91,7 +102,7 @@ export default function WorkoutExerciseSetsTableView({
           .sort((a, b) => a.order - b.order)
           .map((set) => (
             <View
-              accessibilityLabel={setLabel(set, weightLabel)}
+              accessibilityLabel={setLabel(i18n, set, weightLabel)}
               accessible
               className={ROW_CLASS}
               key={set.id}
