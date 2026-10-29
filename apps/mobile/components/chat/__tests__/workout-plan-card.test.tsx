@@ -12,8 +12,10 @@ import { QueryClientProvider } from "@tanstack/react-query";
 import { fireEvent, render, screen } from "@testing-library/react-native";
 import { Text } from "react-native";
 import { usePlansQuery } from "~/hooks/queries/plans";
+import { useAppLanguageSync } from "~/lib/i18n";
 import { storage } from "~/lib/mmkv";
 import { segmentClient } from "~/lib/segment";
+import { setDeviceLanguages } from "~/test-utils/device-locales";
 import { libraryExercise, serveLibrary } from "~/test-utils/fake-library";
 import { fakePublicApi } from "~/test-utils/fake-public-api";
 import { backend } from "~/test-utils/fake-workout-backend";
@@ -78,6 +80,12 @@ const plan: WorkoutPlan = {
   ],
 };
 
+/** The root layout's language sync, following the device's languages. */
+function LanguageSync() {
+  useAppLanguageSync();
+  return null;
+}
+
 /** The Plans as the app's lists read them, through Supabase. */
 function PlanList() {
   const { data: plans } = usePlansQuery();
@@ -96,6 +104,7 @@ const renderCard = async (card: WorkoutPlan = plan) => {
   const client = createTestQueryClient();
   await render(
     <QueryClientProvider client={client}>
+      <LanguageSync />
       <WorkoutPlanCard plan={card} />
       <PlanList />
     </QueryClientProvider>
@@ -369,5 +378,107 @@ describe("WorkoutPlanCard", () => {
 
     expect(screen.getByText("Couldn't save the plan. Try again.")).toBeTruthy();
     expect(backend.plans).toEqual([]);
+  });
+});
+
+describe("WorkoutPlanCard in Ukrainian", () => {
+  const saveInUkrainian = async (
+    client: ReturnType<typeof createTestQueryClient>
+  ) => {
+    await fireEvent.press(screen.getByText("Зберегти план"));
+    await settle(client);
+  };
+
+  beforeEach(() => {
+    setDeviceLanguages(["uk-UA"]);
+  });
+
+  it("shows the goal, place, frequency and counts in Ukrainian", async () => {
+    await renderCard({ ...plan, frequencyPerWeek: 5, place: "home" });
+
+    expect(screen.getByText("Сила та результативність")).toBeTruthy();
+    expect(screen.getByText("Вдома")).toBeTruthy();
+    expect(screen.getByText("5 разів на тиждень")).toBeTruthy();
+    expect(screen.getByLabelText("2 вправи")).toBeTruthy();
+    expect(screen.getByLabelText("3 підходи")).toBeTruthy();
+    expect(screen.getByLabelText("2 підходи")).toBeTruthy();
+  });
+
+  it("saves, then says the plan is saved", async () => {
+    const client = await renderCard();
+
+    await saveInUkrainian(client);
+
+    expect(backend.plans).toHaveLength(1);
+    expect(screen.getByText("План збережено")).toBeDisabled();
+  });
+
+  it("says a card from before Exercise slugs can't be saved", async () => {
+    const legacy = structuredClone(plan);
+    for (const exercise of legacy.workouts[0]?.exercises ?? []) {
+      exercise.exercise_slug = undefined;
+    }
+    await renderCard(legacy);
+
+    expect(
+      screen.getByText(
+        "Деякі вправи не знайдено в бібліотеці, тому план не можна зберегти. Попросіть Arnold створити план ще раз."
+      )
+    ).toBeTruthy();
+    expect(screen.getByText("Зберегти план")).toBeDisabled();
+  });
+
+  it("says the plan has Exercises we don't know", async () => {
+    serveLibrary([libraryExercise("bench-press", { name: "Bench Press" })]);
+    const client = await renderCard();
+
+    await saveInUkrainian(client);
+
+    expect(
+      screen.getByText(
+        "У цьому плані є невідомі нам вправи, тому його не можна зберегти. Попросіть Arnold про інший план."
+      )
+    ).toBeTruthy();
+    expect(backend.plans).toEqual([]);
+  });
+
+  it("asks to try again on library_unavailable", async () => {
+    const library = serveLibrary([
+      libraryExercise("bench-press", { name: "Bench Press" }),
+      libraryExercise("mystery-move"),
+    ]);
+    const client = await renderCard();
+    library.failWith(new LibraryUnavailableError());
+
+    await saveInUkrainian(client);
+
+    expect(
+      screen.getByText(
+        "Не вдалося перевірити вправи цього плану. Спробуйте ще раз."
+      )
+    ).toBeTruthy();
+  });
+
+  it("says how long to wait when rate limited", async () => {
+    fakePublicApi.failNext(PLAN_ROUTE, { retryAfterSeconds: 12, status: 429 });
+    const client = await renderCard();
+
+    await saveInUkrainian(client);
+
+    expect(
+      screen.getByText("Забагато запитів. Спробуйте ще раз через 12 с.")
+    ).toBeTruthy();
+  });
+
+  it("shows the generic error on a server error", async () => {
+    fakePublicApi.failNext(PLAN_ROUTE, { status: 500 });
+    const client = await renderCard();
+
+    await saveInUkrainian(client);
+
+    expect(
+      screen.getByText("Не вдалося зберегти план. Спробуйте ще раз.")
+    ).toBeTruthy();
+    expect(screen.getByText("Зберегти план")).toBeEnabled();
   });
 });

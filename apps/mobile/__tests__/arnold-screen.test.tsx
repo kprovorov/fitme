@@ -85,7 +85,7 @@ jest.mock("@/components/touchable-glass", () => {
   return { TouchableGlass: Pressable };
 });
 
-// The plan card has its own tests (and its own ticket for its text).
+// The plan card has its own tests, its text in Ukrainian included.
 jest.mock("@/components/chat/workout-plan-card", () => ({
   WorkoutPlanCard: () => null,
 }));

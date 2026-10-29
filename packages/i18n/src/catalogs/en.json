@@ -57,6 +57,25 @@
       "proCheckUnavailable": "Couldn't check your Fitme Pro subscription. Try again in a moment.",
       "network": "Couldn't reach Arnold. Check your connection and try again.",
       "generic": "Something went wrong. Try again."
+    },
+    "modelPicker": {
+      "appliesToNextMessage": "Applies to your next message",
+      "loading": "Loading models",
+      "unavailable": "Models aren't available right now. Your messages use Arnold's default model."
+    },
+    "planCard": {
+      "frequency_one": "{{count, number}}x / week",
+      "frequency_other": "{{count, number}}x / week",
+      "setCount": "{{count, number}}×",
+      "save": "Save Plan",
+      "saved": "Plan Saved",
+      "unmatchedExercises": "Some exercises could not be matched to the library and cannot be saved. Try regenerating the plan.",
+      "errors": {
+        "unknownExercises": "This plan has exercises we don't know, so it can't be saved. Ask Arnold for another plan.",
+        "libraryUnavailable": "Couldn't check this plan's exercises. Try again.",
+        "rateLimited": "Too many requests. Try again in {{seconds, number}} s.",
+        "generic": "Couldn't save the plan. Try again."
+      }
     }
   },
   "planner": {
