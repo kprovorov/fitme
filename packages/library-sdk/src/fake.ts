@@ -1,3 +1,8 @@
+import {
+  type AppLanguage,
+  appLanguages,
+  defaultAppLanguage,
+} from "@fitme/core/models";
 import { type LibraryError, LibraryInvalidRequestError } from "./errors";
 import type {
   Exercise,
@@ -18,7 +23,29 @@ export interface FakeLibrary extends Library {
   failWith: (error: LibraryError | null) => void;
 }
 
-const alphabetical = new Intl.Collator("en");
+/**
+ * An Exercise's text in another App language. A description or instructions
+ * left out answer empty, like an Exercise given as a summary.
+ */
+export interface FakeTranslation {
+  description?: string;
+  instructions?: string;
+  name: string;
+}
+
+/** An Exercise for the fake, in English, with its translations, if any. */
+export type FakeExercise = (Exercise | ExerciseSummary) & {
+  translations?: Partial<Record<AppLanguage, FakeTranslation>>;
+};
+
+/** The fake's Library in one App language, the way `apps/library` serves it. */
+interface FakeLanguage {
+  bySlug: Map<string, ExerciseSummary>;
+  full: Map<string, Exercise>;
+  /** Each Exercise's lowercased served and English names, in `sorted` order. */
+  searchNames: string[][];
+  sorted: ExerciseSummary[];
+}
 
 /** Just the summary fields: an `Exercise`'s description and instructions dropped. */
 const toSummary = ({
@@ -57,33 +84,63 @@ const validate = ({ limit, offset, search }: ListExercisesParams) => {
 };
 
 /**
- * An in-memory Library for consumers' tests: the same answers as
- * the real client over the same Exercises (search, muscle group filter,
- * paging, lookup with `missing`, `get`), and it can be told to fail. An
- * Exercise given as a summary answers `get` with empty description and
- * instructions.
+ * The Exercises in `language`: each one translated, or wholly English
+ * without a translation (never field by field), sorted by that name with the
+ * language's collation, ties by slug.
  */
-export const createFakeLibrary = (
-  exercises: readonly (Exercise | ExerciseSummary)[]
-): FakeLibrary => {
-  const full = new Map(
-    exercises.map((exercise): [string, Exercise] => [
-      exercise.slug,
-      {
+const serveIn = (
+  exercises: readonly FakeExercise[],
+  language: AppLanguage
+): FakeLanguage => {
+  const collator = new Intl.Collator(language);
+  const served = exercises
+    .map(({ translations, ...english }) => {
+      const translation = translations?.[language];
+      const exercise: Exercise = {
         description: "",
         instructions: "",
-        ...exercise,
-      },
-    ])
-  );
-  const sorted = exercises
-    .map(toSummary)
+        ...english,
+        ...(translation && {
+          description: translation.description ?? "",
+          instructions: translation.instructions ?? "",
+          name: translation.name,
+        }),
+      };
+      const names = [exercise.name.toLowerCase(), english.name.toLowerCase()];
+      return { exercise, searchNames: [...new Set(names)] };
+    })
     .sort(
       (a, b) =>
-        alphabetical.compare(a.name, b.name) ||
-        alphabetical.compare(a.slug, b.slug)
+        collator.compare(a.exercise.name, b.exercise.name) ||
+        collator.compare(a.exercise.slug, b.exercise.slug)
     );
-  const bySlug = new Map(sorted.map((summary) => [summary.slug, summary]));
+  const sorted = served.map(({ exercise }) => toSummary(exercise));
+  return {
+    bySlug: new Map(sorted.map((summary) => [summary.slug, summary])),
+    full: new Map(served.map(({ exercise }) => [exercise.slug, exercise])),
+    searchNames: served.map(({ searchNames }) => searchNames),
+    sorted,
+  };
+};
+
+/**
+ * An in-memory Library for consumers' tests: the same answers as
+ * the real client over the same Exercises (search, muscle group filter,
+ * paging, lookup with `missing`, `get`, each in the `language` asked for),
+ * and it can be told to fail. An Exercise given as a summary answers `get`
+ * with empty description and instructions. An Exercise can carry
+ * `translations`: without one in the language asked for, it answers wholly
+ * in English, and search matches its name in that language or its English
+ * one, as the API does.
+ */
+export const createFakeLibrary = (
+  exercises: readonly FakeExercise[]
+): FakeLibrary => {
+  const languages = Object.fromEntries(
+    appLanguages.map((language) => [language, serveIn(exercises, language)])
+  ) as Record<AppLanguage, FakeLanguage>;
+  const inLanguage = (language: AppLanguage = defaultAppLanguage) =>
+    languages[language];
   let failure: LibraryError | null = null;
 
   const orFail = <T>(compute: () => T): Promise<T> => {
@@ -102,21 +159,24 @@ export const createFakeLibrary = (
       failure = error;
     },
 
-    get: (slug) => orFail(() => full.get(slug) ?? null),
+    get: (slug, { language } = {}) =>
+      orFail(() => inLanguage(language).full.get(slug) ?? null),
 
     list: (params = {}) =>
       orFail((): ExercisePage => {
         validate(params);
         const {
+          language,
           limit = DEFAULT_LIMIT,
           muscleGroup,
           offset = 0,
           search,
         } = params;
+        const { searchNames, sorted } = inLanguage(language);
         const term = search?.trim().toLowerCase();
         const matches = sorted.filter(
-          (summary) =>
-            (!term || summary.name.toLowerCase().includes(term)) &&
+          (summary, i) =>
+            (!term || searchNames[i]?.some((name) => name.includes(term))) &&
             (!muscleGroup || summary.muscle_groups.includes(muscleGroup))
         );
         const data = matches.slice(offset, offset + limit);
@@ -127,8 +187,9 @@ export const createFakeLibrary = (
         };
       }),
 
-    lookup: (slugs) =>
+    lookup: (slugs, { language } = {}) =>
       orFail(() => {
+        const { bySlug } = inLanguage(language);
         const unique = [...new Set(slugs)];
         return {
           data: unique.flatMap((slug) => bySlug.get(slug) ?? []),

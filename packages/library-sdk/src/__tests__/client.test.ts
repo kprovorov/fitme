@@ -224,6 +224,79 @@ describe("get", () => {
   });
 });
 
+describe("language", () => {
+  const squat = exercise("squat", {
+    translations: {
+      uk: {
+        description: "Про присід.",
+        instructions: "Присідай.",
+        name: "Присід",
+      },
+    },
+  });
+  const translatedLibrary = (exercises = [squat]) => {
+    const api = stubApi(exercises);
+    return {
+      api,
+      library: createLibrary({ fetch: api.fetch, token, url: URL }),
+    };
+  };
+
+  it("sends it on get and answers in it", async () => {
+    const { api, library } = translatedLibrary();
+
+    const found = await library.get("squat", { language: "uk" });
+
+    expect(api.requests[0]?.language).toBe("uk");
+    expect(found).toMatchObject({ instructions: "Присідай.", name: "Присід" });
+  });
+
+  it("sends it on list with the other parameters", async () => {
+    const { api, library } = translatedLibrary();
+
+    const page = await library.list({ language: "uk", search: "прис" });
+
+    expect(api.requests[0]?.language).toBe("uk");
+    expect(api.requests[0]?.search).toBe("прис");
+    expect(page.data.map((e) => e.name)).toEqual(["Присід"]);
+  });
+
+  it("sends it on every request a lookup is split into", async () => {
+    const known = Array.from({ length: 85 }, (_, i) => exercise(`ex-${i}`));
+    const { api, library } = translatedLibrary([squat, ...known]);
+
+    const result = await library.lookup(
+      ["squat", ...known.map((e) => e.slug)],
+      { language: "uk" }
+    );
+
+    expect(api.requests).toHaveLength(3);
+    expect(api.requests.map((request) => request.language)).toEqual([
+      "uk",
+      "uk",
+      "uk",
+    ]);
+    expect(result.data[0]?.name).toBe("Присід");
+    expect(result.missing).toEqual([]);
+  });
+
+  it("is never sent when not given, so the API answers in English", async () => {
+    const { api, library } = translatedLibrary();
+
+    const found = await library.get("squat");
+    const page = await library.list({ search: "squat" });
+    const batch = await library.lookup(["squat"]);
+
+    expect(api.requests).toHaveLength(3);
+    for (const request of api.requests) {
+      expect(request.url.searchParams.has("language")).toBe(false);
+    }
+    expect(found?.name).toBe("Squat");
+    expect(page.data[0]?.name).toBe("Squat");
+    expect(batch.data[0]?.name).toBe("Squat");
+  });
+});
+
 const errorBody = (code: string) =>
   ({ error: { code, message: code } }) as const;
 

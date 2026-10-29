@@ -1,11 +1,19 @@
-import type { MuscleGroup } from "@fitme/core/models";
+import type { AppLanguage, MuscleGroup } from "@fitme/core/models";
 import type { Exercise } from "..";
+
+/** An Exercise's text in another App language, as the bundle carries it. */
+type Translation = Pick<Exercise, "description" | "instructions" | "name">;
+
+/** A made-up Exercise in English, with its translations, if any. */
+export type StubExercise = Exercise & {
+  translations?: Partial<Record<AppLanguage, Translation>>;
+};
 
 /** A made-up Exercise; the name defaults to the slug in title case. */
 export const exercise = (
   slug: string,
-  overrides: Partial<Exercise> = {}
-): Exercise => ({
+  overrides: Partial<StubExercise> = {}
+): StubExercise => ({
   description: `About ${slug}.`,
   instructions: `Do ${slug}.`,
   muscle_groups: ["chest"] as MuscleGroup[],
@@ -21,14 +29,13 @@ export const exercise = (
 
 const summary = ({ description, instructions, ...rest }: Exercise) => rest;
 
-const alphabetical = new Intl.Collator("en");
-
 const EXERCISE_PATH = /^\/exercises\/([^/]+)$/;
 
 export interface StubRequest {
   authorization: string | null;
   /** `GET /exercises/:slug`'s slug, decoded; null for `GET /exercises`. */
   exerciseSlug: string | null;
+  language: string | null;
   limit: string | null;
   muscleGroup: string | null;
   offset: string | null;
@@ -38,25 +45,47 @@ export interface StubRequest {
 }
 
 /**
+ * The Exercises as `apps/library` serves them in `language`: translated, or
+ * wholly English without a translation, sorted by that name with the
+ * language's collation (ties by slug), each with the names search matches.
+ */
+const serveIn = (exercises: StubExercise[], language: string) => {
+  const collator = new Intl.Collator(language);
+  return exercises
+    .map(({ translations, ...english }) => {
+      const translation = translations?.[language as AppLanguage];
+      return {
+        exercise: { ...english, ...translation },
+        names: [translation?.name ?? english.name, english.name].map((name) =>
+          name.toLowerCase()
+        ),
+      };
+    })
+    .sort(
+      (a, b) =>
+        collator.compare(a.exercise.name, b.exercise.name) ||
+        collator.compare(a.exercise.slug, b.exercise.slug)
+    );
+};
+
+/**
  * A stubbed `fetch` answering `GET /exercises` the way `apps/library` does
  * (batch lookup with `slugs`, otherwise a page) and `GET /exercises/:slug`
- * (one Exercise in full, or 404), recording every request.
- * `respond` replaces the answer, to stub failures.
+ * (one Exercise in full, or 404), each in its `language` (default `en`),
+ * recording every request. `respond` replaces the answer, to stub failures.
  */
 export const stubApi = (
-  exercises: Exercise[],
+  exercises: StubExercise[],
   respond?: (request: StubRequest) => Response | Promise<Response>
 ) => {
   const requests: StubRequest[] = [];
-  const sorted = [...exercises].sort(
-    (a, b) =>
-      alphabetical.compare(a.name, b.name) ||
-      alphabetical.compare(a.slug, b.slug)
-  );
-  const bySlug = new Map(sorted.map((e) => [e.slug, summary(e)]));
-  const full = new Map(sorted.map((e) => [e.slug, e]));
 
   const answer = (request: StubRequest) => {
+    const sorted = serveIn(exercises, request.language ?? "en");
+    const bySlug = new Map(
+      sorted.map(({ exercise: e }) => [e.slug, summary(e)])
+    );
+    const full = new Map(sorted.map(({ exercise: e }) => [e.slug, e]));
     if (request.exerciseSlug !== null) {
       const found = full.get(request.exerciseSlug);
       return found
@@ -77,12 +106,14 @@ export const stubApi = (
     const offset = Number(request.offset ?? 0);
     const term = request.search?.trim().toLowerCase();
     const matches = sorted.filter(
-      (e) =>
-        (!term || e.name.toLowerCase().includes(term)) &&
+      ({ exercise: e, names }) =>
+        (!term || names.some((name) => name.includes(term))) &&
         (!request.muscleGroup ||
           e.muscle_groups.includes(request.muscleGroup as MuscleGroup))
     );
-    const data = matches.slice(offset, offset + limit).map(summary);
+    const data = matches
+      .slice(offset, offset + limit)
+      .map(({ exercise: e }) => summary(e));
     return Response.json({
       data,
       hasMore: offset + data.length < matches.length,
@@ -97,6 +128,7 @@ export const stubApi = (
     const request: StubRequest = {
       authorization: new Headers(init?.headers).get("authorization"),
       exerciseSlug: slug === undefined ? null : decodeURIComponent(slug),
+      language: params.get("language"),
       limit: params.get("limit"),
       muscleGroup: params.get("muscle_group"),
       offset: params.get("offset"),

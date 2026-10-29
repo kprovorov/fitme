@@ -17,6 +17,7 @@ export type {
   ExerciseBatch,
   ExercisePage,
   ExerciseSummary,
+  LanguageOption,
   Library,
   ListExercisesParams,
 } from "./types";
