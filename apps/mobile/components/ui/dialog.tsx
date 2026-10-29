@@ -1,7 +1,7 @@
 import { BottomSheet, Group, RNHostView } from "@expo/ui/swift-ui";
 import { interactiveDismissDisabled, tint } from "@expo/ui/swift-ui/modifiers";
 import type * as React from "react";
-import { View } from "react-native";
+import { useWindowDimensions, View } from "react-native";
 import { SwiftUIHost, useSwiftUITheme } from "~/components/ui/swift-ui";
 import { cn } from "~/lib/utils";
 
@@ -30,6 +30,10 @@ const Dialog = ({
   contentClassName,
 }: DialogProps) => {
   const theme = useSwiftUITheme();
+  // Sized to its contents, the sheet would grow as wide as its longest line
+  // instead of wrapping it: the content takes the window's width, which is
+  // the sheet's on an iPhone (the app doesn't run on iPad).
+  const { width } = useWindowDimensions();
 
   return (
     <SwiftUIHost className="h-0 w-0">
@@ -46,7 +50,10 @@ const Dialog = ({
           ]}
         >
           <RNHostView matchContents={fitToContents}>
-            <View className={cn("gap-4 p-6", contentClassName)}>
+            <View
+              className={cn("gap-4 p-6", contentClassName)}
+              style={{ width }}
+            >
               {children}
             </View>
           </RNHostView>

@@ -1,6 +1,7 @@
 import * as Sentry from "@sentry/react-native";
 import { useQueryClient } from "@tanstack/react-query";
 import { useCallback, useEffect, useRef, useState } from "react";
+import { useTranslation } from "react-i18next";
 import { View } from "react-native";
 import type { SFSymbol } from "sf-symbols-typescript";
 import { SymbolImage } from "~/components/symbol-image";
@@ -73,7 +74,11 @@ export function PlanUpdateSheet({
   waitSeconds,
 }: PlanUpdateSheetProps) {
   const i18n = useI18n();
+  const { t } = useTranslation();
   const exercises = useExercises(planUpdateSlugs(preview?.changes ?? []));
+  const updateLabel = hasFailed
+    ? t("planUpdate.retry")
+    : t("planUpdate.update");
   const nameOf = (slug: string) =>
     (exercises[slug] ?? shownExercise(slug, null)).name;
   const handleIsPresentedChange = useCallback(
@@ -96,10 +101,12 @@ export function PlanUpdateSheet({
       {preview ? (
         <>
           <VStack className="items-stretch gap-2">
-            <H3>Update your plan?</H3>
+            <H3>{t("planUpdate.title")}</H3>
             <Muted>
-              Save today's changes to {preview.workout?.name} in{" "}
-              {preview.plan?.name}.
+              {t("planUpdate.description", {
+                plan: preview.plan?.name ?? "",
+                workout: preview.workout?.name ?? "",
+              })}
             </Muted>
           </VStack>
           <VStack className="items-stretch gap-3" testID="plan-update-changes">
@@ -131,24 +138,24 @@ export function PlanUpdateSheet({
           {hasFailed ? (
             <ErrorMessage>
               {waitSeconds === null
-                ? "Couldn't update your plan. Check your connection and try again."
-                : `Too many requests. Try again in ${waitSeconds} s.`}
+                ? t("planUpdate.failed")
+                : t("planUpdate.rateLimited", { seconds: waitSeconds })}
             </ErrorMessage>
           ) : null}
           <VStack className="items-stretch gap-3">
             <Button
-              accessibilityHint="Saves these changes to your plan, then shows the workout summary"
-              accessibilityLabel={hasFailed ? "Retry" : "Update plan"}
+              accessibilityHint={t("planUpdate.updateHint")}
+              accessibilityLabel={updateLabel}
               isLoading={isApplying}
-              label={hasFailed ? "Retry" : "Update plan"}
+              label={updateLabel}
               onPress={onUpdate}
               testID="plan-update-accept"
             />
             <Button
-              accessibilityHint="Leaves your plan unchanged and shows the workout summary"
-              accessibilityLabel="Keep plan as is"
+              accessibilityHint={t("planUpdate.keepHint")}
+              accessibilityLabel={t("planUpdate.keep")}
               disabled={isApplying}
-              label="Keep plan as is"
+              label={t("planUpdate.keep")}
               onPress={onKeep}
               testID="plan-update-decline"
               variant="secondary"

@@ -19,6 +19,9 @@ import type * as React from "react";
 import { Alert } from "react-native";
 import { PlanUpdateSheetHost } from "~/components/workout-sessions/plan-update-sheet";
 import { closePlanUpdatePrompt } from "~/hooks/plan-update-prompt";
+import { ApiError } from "~/lib/api/client";
+import { i18n } from "~/lib/i18n";
+import { setDeviceLanguages } from "~/test-utils/device-locales";
 import { libraryExercise, serveLibrary } from "~/test-utils/fake-library";
 import { createTestQueryClient } from "~/test-utils/query-client";
 import { useFinishWorkoutSession } from "../finish-workout-session";
@@ -691,6 +694,183 @@ describe("useFinishWorkoutSession", () => {
       await fireEvent.press(screen.getByRole("button", KEEP));
       expect(mockDismiss).toHaveBeenCalledWith(1);
       expect(mockReplace).toHaveBeenCalledWith(SUMMARY);
+    });
+  });
+
+  describe("in Ukrainian", () => {
+    /** The Library's names in Ukrainian; Cable Fly has no translation. */
+    const UK_LIBRARY = [
+      libraryExercise("dumbbell-press", {
+        name: "Dumbbell Press",
+        translations: { uk: { name: "Жим гантелей" } },
+      }),
+      libraryExercise("bench-press", {
+        name: "Bench Press",
+        translations: { uk: { name: "Жим лежачи" } },
+      }),
+      libraryExercise("squat", {
+        name: "Back Squat",
+        translations: { uk: { name: "Присідання зі штангою" } },
+      }),
+      libraryExercise("cable-fly", { name: "Cable Fly" }),
+    ];
+    const UK_UPDATE = { name: "Оновити план" } as const;
+    const UK_RETRY = { name: "Повторити" } as const;
+
+    beforeEach(async () => {
+      serveLibrary(UK_LIBRARY);
+      setDeviceLanguages(["uk-UA"]);
+      // The root layout's sync isn't mounted here.
+      await act(() => i18n.changeLanguage("uk"));
+    });
+
+    // The i18n instance outlives a test; the device goes back to English on its own.
+    afterEach(async () => {
+      await act(() => i18n.changeLanguage("en"));
+    });
+
+    it.each([
+      [1, "1 запланований підхід не записано."],
+      [2, "2 заплановані підходи не записано."],
+      [5, "5 запланованих підходів не записано."],
+    ])(
+      "asks to finish with %i unlogged set(s), then finishes on Завершити",
+      async (unlogged, message) => {
+        mockFinishRpc.mockResolvedValue({});
+        const { queryClient, result, settled } = await setup();
+        queryClient.setQueryData(
+          ["workout-session", { sessionId: "session-1" }],
+          {
+            exercises: [
+              {
+                sets: Array.from({ length: unlogged }, () => ({
+                  reps_completed: null,
+                })),
+              },
+            ],
+            id: "session-1",
+          }
+        );
+
+        await act(() => result.current.session.confirmFinish());
+
+        await waitFor(() =>
+          expect(Alert.alert).toHaveBeenCalledWith(
+            "Завершити тренування?",
+            message,
+            [
+              expect.objectContaining({ style: "cancel", text: "Скасувати" }),
+              expect.objectContaining({ text: "Завершити" }),
+            ],
+            expect.any(Object)
+          )
+        );
+        const buttons = jest.mocked(Alert.alert).mock.calls[0]?.[2];
+        await act(() =>
+          buttons?.find(({ text }) => text === "Завершити")?.onPress?.()
+        );
+        await waitFor(() => expect(mockReplace).toHaveBeenCalledWith(SUMMARY));
+        await settled();
+      }
+    );
+
+    it("alerts a failed finish in Ukrainian", async () => {
+      mockFinishRpc.mockRejectedValue(new Error("offline"));
+      const { result, settled } = await setup();
+
+      await act(() => result.current.session.finish());
+
+      await waitFor(() =>
+        expect(Alert.alert).toHaveBeenCalledWith(
+          "Не вдалося завершити тренування",
+          "Перевірте з’єднання і спробуйте ще раз."
+        )
+      );
+      await settled();
+    });
+
+    it("lists each change in Ukrainian, Exercises by their Ukrainian names", async () => {
+      mockFinishRpc.mockResolvedValue({});
+      mockPlanUpdate.mockResolvedValueOnce(CHANGES);
+      const { result } = await setup();
+
+      await act(() => result.current.session.finish());
+
+      expect(
+        screen.getByRole("heading", { name: "Оновити план?" })
+      ).toBeTruthy();
+      expect(
+        screen.getByText(
+          "Зберегти сьогоднішні зміни в «Push Day» у плані «PPL 4-week»."
+        )
+      ).toBeTruthy();
+      await screen.findByText(
+        "Додати 1 підхід до «Присідання зі штангою» · 5×100 кг"
+      );
+      for (const line of [
+        "Замінити «Жим лежачи» на «Жим гантелей» · 8×30, 8×30, 6×30 кг",
+        // Unknown to the Library: the slug's name.
+        "Видалити «Dips»",
+        // No Ukrainian translation: the Exercise wholly in English.
+        "Додати «Cable Fly» · 12×15, 12×17,5 кг",
+      ]) {
+        expect(screen.getByText(line)).toBeTruthy();
+      }
+      expect(
+        screen.getByLabelText(
+          "Додати 1 підхід до «Присідання зі штангою»: 5 повторень по 100 кілограмів"
+        )
+      ).toBeTruthy();
+      expect(screen.getByTestId("plan-update-accept")).toHaveProp(
+        "accessibilityHint",
+        "Зберігає ці зміни в плані, потім показує підсумок тренування"
+      );
+      expect(
+        screen.getByRole("button", { name: "Залишити план без змін" })
+      ).toBeTruthy();
+    });
+
+    it("shows a failed apply with Повторити, which works", async () => {
+      mockFinishRpc.mockResolvedValue({});
+      mockPlanUpdate.mockResolvedValueOnce(CHANGES);
+      const { result } = await setup();
+      await act(() => result.current.session.finish());
+      mockPlanUpdate.mockRejectedValueOnce(new Error("offline"));
+
+      await fireEvent.press(await screen.findByRole("button", UK_UPDATE));
+
+      expect(
+        await screen.findByText(
+          "Не вдалося оновити план. Перевірте з’єднання і спробуйте ще раз."
+        )
+      ).toBeTruthy();
+      mockPlanUpdate.mockResolvedValueOnce(NO_CHANGES);
+      await fireEvent.press(screen.getByRole("button", UK_RETRY));
+
+      await waitFor(() => expect(mockReplace).toHaveBeenCalledWith(SUMMARY));
+    });
+
+    it("gives the wait when the apply is rate limited", async () => {
+      mockFinishRpc.mockResolvedValue({});
+      mockPlanUpdate.mockResolvedValueOnce(CHANGES);
+      const { result } = await setup();
+      await act(() => result.current.session.finish());
+      mockPlanUpdate.mockRejectedValueOnce(
+        new ApiError("Too many requests", {
+          code: "rate_limited",
+          retryAfterSeconds: 12,
+          status: 429,
+        })
+      );
+
+      await fireEvent.press(await screen.findByRole("button", UK_UPDATE));
+
+      expect(
+        await screen.findByText(
+          "Забагато запитів. Спробуйте ще раз через 12 с."
+        )
+      ).toBeTruthy();
+      expect(screen.getByRole("button", UK_RETRY)).toBeTruthy();
     });
   });
 });

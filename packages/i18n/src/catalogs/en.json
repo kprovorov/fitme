@@ -208,5 +208,49 @@
   "duration": {
     "hoursMinutes": "{{hours, number}}h {{minutes, number}}min",
     "minutes": "{{minutes, number}}min"
+  },
+  "finishWorkout": {
+    "confirm": {
+      "title": "Finish workout?",
+      "unloggedSets_one": "{{count, number}} planned set isn't logged.",
+      "unloggedSets_other": "{{count, number}} planned sets aren't logged.",
+      "cancel": "Cancel",
+      "finish": "Finish"
+    },
+    "failed": {
+      "title": "Couldn't finish workout",
+      "network": "Check your connection and try again.",
+      "rateLimited": "Too many requests: please try again in {{seconds, number}} s."
+    },
+    "suggestion": {
+      "title": "Workout completed!",
+      "description": "You've tracked all your planned sets.",
+      "close": "Close",
+      "keepTrainingHint": "Closes this suggestion and keeps the workout going",
+      "finish": "Finish Workout",
+      "finishHint": "Finishes this workout session",
+      "keepTraining": "Keep Training"
+    }
+  },
+  "planUpdate": {
+    "title": "Update your plan?",
+    "description": "Save today's changes to {{workout}} in {{plan}}.",
+    "failed": "Couldn't update your plan. Check your connection and try again.",
+    "rateLimited": "Too many requests. Try again in {{seconds, number}} s.",
+    "update": "Update plan",
+    "updateHint": "Saves these changes to your plan, then shows the workout summary",
+    "retry": "Retry",
+    "keep": "Keep plan as is",
+    "keepHint": "Leaves your plan unchanged and shows the workout summary",
+    "changes": {
+      "replace": "Replace {{replaced}} with {{exercise}}",
+      "add": "Add {{exercise}}",
+      "remove": "Remove {{exercise}}",
+      "addSets_one": "Add {{count, number}} set to {{exercise}}",
+      "addSets_other": "Add {{count, number}} sets to {{exercise}}",
+      "line": "{{change}} · {{sets}}",
+      "spokenLine": "{{change}}: {{sets}}",
+      "spokenSet": "{{reps}} at {{weight}}"
+    }
   }
 }
