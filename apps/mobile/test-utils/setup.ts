@@ -16,6 +16,10 @@
  * cleanup `setInterval` (`AsyncExpiringMap` in `timeToDisplayFallback`) that
  * keeps Jest alive for seconds after the last test. A test file that checks
  * what's reported mocks it again with its own `jest.fn`s.
+ *
+ * `expo-localization` reports an English device (`en-US`), so every screen
+ * renders in English; a test sets another device language with
+ * `setDeviceLanguages` (`device-locales.ts`).
  */
 import { jest } from "@jest/globals";
 
@@ -40,6 +44,13 @@ jest.mock("~/lib/public-api", () => {
     }),
   };
 });
+jest.mock(
+  "expo-localization",
+  () =>
+    jest.requireActual<typeof import("~/test-utils/device-locales")>(
+      "~/test-utils/device-locales"
+    ).localizationModule
+);
 jest.mock("@sentry/react-native", () => ({
   captureException: jest.fn(),
   setUser: jest.fn(),

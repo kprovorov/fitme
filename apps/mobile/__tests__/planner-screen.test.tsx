@@ -8,7 +8,7 @@ import { describe, expect, it, jest } from "@jest/globals";
 import { fireEvent, render, screen } from "@testing-library/react-native";
 import { router } from "expo-router";
 import PlannerScreen from "~/app/planner";
-import { TAB_TITLES } from "~/lib/tabs";
+import { getTabTitle } from "~/lib/tabs";
 
 jest.mock("expo-router", () => ({
   router: { dismissTo: jest.fn() },
@@ -49,7 +49,7 @@ describe("PlannerScreen", () => {
 
     // The pathname is the Arnold tab: its route and its tab bar title.
     const tab = target.pathname.split("/").at(-1) ?? "";
-    expect(TAB_TITLES).toHaveProperty(tab, "Arnold");
+    expect(getTabTitle(tab)).toBe("Arnold");
     expect(
       // Jest runs from apps/mobile.
       existsSync(resolve(`app/(tabs)/${tab}/index.tsx`))
