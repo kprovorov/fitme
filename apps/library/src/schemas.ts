@@ -1,8 +1,11 @@
-import { muscleGroups } from "@fitme/core/models";
+import { appLanguages, muscleGroups } from "@fitme/core/models";
 import { z } from "@hono/zod-openapi";
 
 /** The muscle group enum, one named schema wherever it appears. */
 export const MuscleGroup = z.enum(muscleGroups).openapi("MuscleGroup");
+
+/** The App languages (`@fitme/core`) an Exercise can be asked for in. */
+export const Language = z.enum(appLanguages).openapi("Language");
 
 /**
  * The one field definition every response is built from: `ExerciseSummary`

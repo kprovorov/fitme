@@ -43,9 +43,9 @@ const ExerciseText = z.strictObject({
 });
 
 /** The App languages an Exercise may be translated into: every one but English. */
-export type TranslatedLanguage = Exclude<AppLanguage, "en">;
+type TranslatedLanguage = Exclude<AppLanguage, "en">;
 
-export const translatedLanguages = appLanguages.filter(
+const translatedLanguages = appLanguages.filter(
   (language): language is TranslatedLanguage => language !== defaultAppLanguage
 );
 
@@ -110,5 +110,4 @@ export const LibraryBundle = z.strictObject({
 
 export type BundleExercise = z.infer<typeof BundleExercise>;
 export type LibraryBundle = z.infer<typeof LibraryBundle>;
-export type BundleExerciseText = z.infer<typeof ExerciseText>;
 export type BundleMedia = BundleExercise["thumbnail" | "video"];

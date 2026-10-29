@@ -1,7 +1,11 @@
-import { muscleGroups } from "@fitme/core/models";
+import { readFileSync } from "node:fs";
+import { appLanguages, muscleGroups } from "@fitme/core/models";
 import { describe, expect, it, vi } from "vitest";
 import { serverSecretsFromEnv } from "./auth";
-import type { BundleExercise as LibraryExercise } from "./bundle";
+import {
+  LibraryBundle,
+  type BundleExercise as LibraryExercise,
+} from "./bundle";
 import { type AppDeps, createApp } from "./create-app";
 import {
   memoryRateLimiter,
@@ -16,6 +20,9 @@ import { clerkInstance, clerkToken } from "./test/clerk";
 import { fakeOid, inUkrainian, libraryExercise } from "./test/fixtures";
 
 const SUPABASE_URL = "https://project.supabase.co";
+
+/** An invalid request message naming the `language` field. */
+const LANGUAGE_PROBLEM = /^language: /;
 
 /** The library hash, a sha256, quoted. */
 const LIBRARY_ETAG = /^"[0-9a-f]{64}"$/;
@@ -744,7 +751,7 @@ describe("GET /exercises/:slug", () => {
   });
 });
 
-describe("a Library with Ukrainian content", () => {
+describe("a Library with Ukrainian content, without a language", () => {
   // the same Exercises as `app`'s, one of them translated
   const translatedApp = createApp({
     ...base,
@@ -775,6 +782,22 @@ describe("a Library with Ukrainian content", () => {
     expect(await translated.text()).toBe(await english.text());
   });
 
+  it.each([
+    "/exercises/bench-press",
+    "/exercises?search=bench",
+    "/exercises?slugs=bench-press,squat",
+  ])("answers %s with language=en exactly as without it", async (path) => {
+    const separator = path.includes("?") ? "&" : "?";
+    const english = await translatedApp.request(
+      `${path}${separator}language=en`,
+      asUser
+    );
+    const unasked = await translatedApp.request(path, asUser);
+
+    expect(english.status).toBe(200);
+    expect(await english.text()).toBe(await unasked.text());
+  });
+
   it("doesn't find an Exercise by its Ukrainian name", async () => {
     const response = await translatedApp.request(
       `/exercises?search=${encodeURIComponent("жим")}`,
@@ -785,6 +808,205 @@ describe("a Library with Ukrainian content", () => {
       data: [],
       hasMore: false,
       total: 0,
+    });
+  });
+});
+
+describe("language=uk", () => {
+  // the committed fixture: example-press and example-row have made-up `uk`
+  // content, example-squat has none
+  const fixtureApp = createApp({
+    ...base,
+    library: serveLibrary(
+      LibraryBundle.parse(
+        JSON.parse(
+          readFileSync(
+            new URL("../fixtures/library.json", import.meta.url),
+            "utf8"
+          )
+        )
+      ),
+      SUPABASE_URL
+    ),
+  });
+
+  const request = async (path: string, init = asUser) => {
+    const response = await fixtureApp.request(path, init);
+    return { body: await response.json(), response };
+  };
+
+  it("lists Exercises in Ukrainian, in Ukrainian order, an untranslated one in English", async () => {
+    const { body } = await request("/exercises?language=uk");
+
+    expect(names(body)).toEqual([
+      "Приклад жиму",
+      "Приклад тяги",
+      "Example Squat",
+    ]);
+  });
+
+  it("looks up a batch in Ukrainian, an untranslated one in English", async () => {
+    const { body } = await request(
+      "/exercises?slugs=example-squat,example-press,nope&language=uk"
+    );
+
+    expect(body).toEqual({
+      data: [
+        expect.objectContaining({
+          name: "Example Squat",
+          slug: "example-squat",
+        }),
+        expect.objectContaining({
+          name: "Приклад жиму",
+          slug: "example-press",
+        }),
+      ],
+      missing: ["nope"],
+    });
+  });
+
+  it("answers one Exercise wholly in Ukrainian", async () => {
+    const { body } = await request("/exercises/example-press?language=uk");
+    const { body: english } = await request("/exercises/example-press");
+
+    expect(body).toEqual({
+      ...english,
+      description:
+        "Приклад жиму — вигадана вправа для завантажувача Бібліотеки. Це не справжній вміст.\n",
+      instructions:
+        "1. Це текст-заповнювач.\n2. Замініть вправи з фікстури справжнім набором.\n",
+      name: "Приклад жиму",
+    });
+  });
+
+  it("answers an Exercise without a Ukrainian translation wholly in English", async () => {
+    const ukrainian = await fixtureApp.request(
+      "/exercises/example-squat?language=uk",
+      asUser
+    );
+    const english = await fixtureApp.request(
+      "/exercises/example-squat",
+      asUser
+    );
+
+    expect(ukrainian.status).toBe(200);
+    expect(await ukrainian.text()).toBe(await english.text());
+  });
+
+  it.each([
+    ["its Ukrainian name", "жиму", ["Приклад жиму"]],
+    ["its English name", "press", ["Приклад жиму"]],
+    [
+      "either name, case-insensitively",
+      "ПРИКЛАД",
+      ["Приклад жиму", "Приклад тяги"],
+    ],
+    ["an untranslated Exercise's English name", " squat ", ["Example Squat"]],
+  ])("finds an Exercise by %s", async (_, search, found) => {
+    const { body } = await request(
+      `/exercises?language=uk&search=${encodeURIComponent(search)}`
+    );
+
+    expect(names(body)).toEqual(found);
+    expect(body.total).toBe(found.length);
+  });
+
+  it("combines with the muscle group filter and paging", async () => {
+    const { body } = await request(
+      "/exercises?language=uk&muscle_group=back&limit=1&offset=0"
+    );
+
+    expect(body).toEqual({
+      data: [expect.objectContaining({ name: "Приклад тяги" })],
+      hasMore: false,
+      total: 1,
+    });
+  });
+
+  it("sorts with Ukrainian collation, not by code point", async () => {
+    const ukrainianApp = createApp({
+      ...base,
+      library: serveLibrary(
+        {
+          exercises: [
+            inUkrainian(libraryExercise("frost", "Frost"), "Іній"),
+            inUkrainian(libraryExercise("delta", "Delta"), "Дельта"),
+            inUkrainian(libraryExercise("porch", "Porch"), "Ґанок"),
+          ],
+        },
+        SUPABASE_URL
+      ),
+    });
+
+    const response = await ukrainianApp.request(
+      "/exercises?language=uk",
+      asUser
+    );
+
+    // by code point: І (U+0406), Д (U+0414), Ґ (U+0490)
+    expect(names((await response.json()) as ExercisePage)).toEqual([
+      "Ґанок",
+      "Дельта",
+      "Іній",
+    ]);
+  });
+
+  it.each([
+    "/exercises?language=de",
+    "/exercises?language=",
+    "/exercises?slugs=example-press&language=de",
+    "/exercises/example-press?language=de",
+    "/exercises/example-press?language=",
+  ])("answers %s with 400 naming the field", async (path) => {
+    const { body, response } = await request(path);
+
+    expect(response.status).toBe(400);
+    expect(body).toEqual({
+      error: {
+        code: "invalid_request",
+        message: expect.stringMatching(LANGUAGE_PROBLEM),
+      },
+    });
+  });
+
+  it.each([
+    "/exercises?language=uk",
+    "/exercises?slugs=example-press&language=uk",
+    "/exercises/example-press?language=uk",
+  ])("answers %s with 304 when If-None-Match holds its ETag", async (path) => {
+    const { response } = await request(path);
+    const etag = response.headers.get("ETag") ?? "";
+
+    const revalidated = await fixtureApp.request(path, {
+      headers: { ...asUser.headers, "If-None-Match": etag },
+    });
+
+    expect(etag).toMatch(LIBRARY_ETAG);
+    expect(response.headers.get("Cache-Control")).toBe("private, max-age=3600");
+    expect(revalidated.status).toBe(304);
+    expect(await revalidated.text()).toBe("");
+  });
+
+  it("is an optional enum of the App languages on both routes in the OpenAPI definition", () => {
+    const document = fixtureApp.getOpenAPIDocument({
+      info: { title: "Library API", version: "1" },
+      openapi: "3.1.0",
+    });
+
+    for (const path of ["/exercises", "/exercises/{slug}"]) {
+      expect(
+        document.paths[path]?.get?.parameters?.find(
+          (p) => "name" in p && p.name === "language"
+        )
+      ).toMatchObject({
+        in: "query",
+        required: false,
+        schema: { $ref: "#/components/schemas/Language" },
+      });
+    }
+    expect(document.components?.schemas?.Language).toEqual({
+      enum: [...appLanguages],
+      type: "string",
     });
   });
 });
