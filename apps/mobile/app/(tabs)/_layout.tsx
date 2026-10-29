@@ -1,11 +1,13 @@
 import { NativeTabs } from "expo-router/native-tabs";
 import { ThemeProvider } from "expo-router/react-navigation";
+import { useTranslation } from "react-i18next";
 import Authenticated from "~/components/authenticated";
 import { useNavigationTheme } from "~/hooks/navigation-theme";
-import { TAB_TITLES } from "~/lib/tabs";
+import { TAB_TITLE_KEYS } from "~/lib/tabs";
 
 export default function TabLayout() {
   const navigationTheme = useNavigationTheme();
+  const { t } = useTranslation();
 
   return (
     <Authenticated>
@@ -20,7 +22,7 @@ export default function TabLayout() {
               sf={{ default: "dumbbell", selected: "dumbbell.fill" }}
             />
             <NativeTabs.Trigger.Label>
-              {TAB_TITLES["(home)"]}
+              {t(TAB_TITLE_KEYS["(home)"])}
             </NativeTabs.Trigger.Label>
           </NativeTabs.Trigger>
 
@@ -32,7 +34,7 @@ export default function TabLayout() {
               }}
             />
             <NativeTabs.Trigger.Label>
-              {TAB_TITLES.history}
+              {t(TAB_TITLE_KEYS.history)}
             </NativeTabs.Trigger.Label>
           </NativeTabs.Trigger>
 
@@ -44,7 +46,7 @@ export default function TabLayout() {
               }}
             />
             <NativeTabs.Trigger.Label>
-              {TAB_TITLES.arnold}
+              {t(TAB_TITLE_KEYS.arnold)}
             </NativeTabs.Trigger.Label>
           </NativeTabs.Trigger>
 
@@ -56,7 +58,7 @@ export default function TabLayout() {
               }}
             />
             <NativeTabs.Trigger.Label>
-              {TAB_TITLES.library}
+              {t(TAB_TITLE_KEYS.library)}
             </NativeTabs.Trigger.Label>
           </NativeTabs.Trigger>
 
@@ -65,7 +67,7 @@ export default function TabLayout() {
               sf={{ default: "person", selected: "person.fill" }}
             />
             <NativeTabs.Trigger.Label>
-              {TAB_TITLES.profile}
+              {t(TAB_TITLE_KEYS.profile)}
             </NativeTabs.Trigger.Label>
           </NativeTabs.Trigger>
         </NativeTabs>

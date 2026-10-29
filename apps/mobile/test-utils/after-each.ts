@@ -3,6 +3,7 @@
  * (`jest.setupFilesAfterEnv` in package.json).
  */
 import { afterEach } from "@jest/globals";
+import { resetDeviceLanguages } from "~/test-utils/device-locales";
 import { fakePublicApi } from "~/test-utils/fake-public-api";
 import { clearTestQueryClients } from "~/test-utils/query-client";
 
@@ -23,4 +24,9 @@ afterEach(() => {
       `Fake Public API has no route for: ${unhandled.join(", ")}. Add it to test-utils/fake-public-api.ts.`
     );
   }
+});
+
+// Every test starts on an English device, whatever the last one set.
+afterEach(() => {
+  resetDeviceLanguages();
 });

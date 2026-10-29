@@ -1,4 +1,6 @@
 import "@/polyfills";
+// Starts the translations in the App language before anything renders.
+import "~/lib/i18n";
 import {
   NunitoSans_400Regular,
   NunitoSans_600SemiBold,
@@ -12,6 +14,7 @@ import { useFonts } from "expo-font";
 import * as SplashScreen from "expo-splash-screen";
 import { StatusBar } from "expo-status-bar";
 import { useEffect } from "react";
+import { useTranslation } from "react-i18next";
 import { Platform } from "react-native";
 import Purchases from "react-native-purchases";
 import "react-native-reanimated";
@@ -23,6 +26,7 @@ import "../global.css";
 import { Stack } from "expo-router";
 import { getFocusedRouteNameFromRoute } from "expo-router/react-navigation";
 import { SCROLL_EDGE_EFFECTS } from "~/lib/constants";
+import { useAppLanguageSync } from "~/lib/i18n";
 import { getTabTitle } from "~/lib/tabs";
 
 // Back buttons over the tabs name the focused tab (see `getTabTitle`).
@@ -74,6 +78,9 @@ if (!IS_E2E) {
 }
 
 function RootLayout() {
+  useAppLanguageSync();
+  // Re-renders on a language change, so the back button titles follow it.
+  useTranslation();
   const [loaded] = useFonts({
     NunitoSans_400Regular,
     NunitoSans_600SemiBold,
