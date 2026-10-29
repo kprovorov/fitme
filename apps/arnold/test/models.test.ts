@@ -39,6 +39,24 @@ describe("arnoldModelSelection", () => {
     });
   });
 
+  it("reads the model from a client context that also carries a language", () => {
+    expect(
+      arnoldModelSelection([
+        clientContext({ language: "uk", model: "anthropic/claude-sonnet-5" }),
+        userSays("яка моя вага?"),
+      ]).model
+    ).toBe("anthropic/claude-sonnet-5");
+    expect(
+      arnoldModelSelection([clientContext({ language: "uk" }), userSays("hi")])
+        .model
+    ).toBe(defaultArnoldModelId);
+    expect(
+      arnoldModelSelection([
+        clientContext({ language: "de", model: "openai/gpt-5.5" }),
+      ]).model
+    ).toBe("openai/gpt-5.5");
+  });
+
   it("fails over to other hosts of the same model only", () => {
     expect(
       arnoldModelSelection([clientContext({ model: "openai/gpt-5.5" })])
