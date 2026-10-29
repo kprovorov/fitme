@@ -175,23 +175,25 @@ export default function WorkoutCard({
                 </Text>
               </HStack>
             </HStack>
-            <ScrollView
-              contentContainerClassName="gap-2"
-              horizontal
-              showsHorizontalScrollIndicator={false}
-            >
-              {[...workout.exercises]
-                .sort((a, b) => a.order - b.order)
-                .map(({ exercise_slug, id }) => (
-                  <ExerciseImage
-                    exercise={
-                      shownBySlug[exercise_slug] ??
-                      shownExercise(exercise_slug, null)
-                    }
-                    key={id}
-                  />
-                ))}
-            </ScrollView>
+            {workout.exercises.length > 0 && (
+              <ScrollView
+                contentContainerClassName="gap-2"
+                horizontal
+                showsHorizontalScrollIndicator={false}
+              >
+                {[...workout.exercises]
+                  .sort((a, b) => a.order - b.order)
+                  .map(({ exercise_slug, id }) => (
+                    <ExerciseImage
+                      exercise={
+                        shownBySlug[exercise_slug] ??
+                        shownExercise(exercise_slug, null)
+                      }
+                      key={id}
+                    />
+                  ))}
+              </ScrollView>
+            )}
           </VStack>
         </Pressable>
         {state === "upcoming" && (
