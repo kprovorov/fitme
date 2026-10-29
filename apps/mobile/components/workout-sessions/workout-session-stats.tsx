@@ -51,6 +51,26 @@ function Stat({
 }
 
 /**
+ * Labelled values side by side, stacked once the text is too large: the
+ * Workout Session's stats, and the Workout screen's planned ones.
+ */
+export function StatRow({
+  stats,
+}: {
+  stats: Array<{ label: string; value: string }>;
+}) {
+  const { fontScale } = useWindowDimensions();
+  const stacked = fontScale > STACKED_FONT_SCALE;
+  return (
+    <View className={stacked ? "gap-3" : "flex-row gap-2"}>
+      {stats.map(({ label, value }) => (
+        <Stat key={label} label={label} stacked={stacked} value={value} />
+      ))}
+    </View>
+  );
+}
+
+/**
  * Duration (ticking while the session runs), volume and logged sets, then one
  * progress segment per exercise.
  */
@@ -58,8 +78,6 @@ export default function WorkoutSessionStats({
   workoutSession,
 }: WorkoutSessionStatsProps) {
   const { data: profile } = useProfileQuery();
-  const { fontScale } = useWindowDimensions();
-  const stacked = fontScale > STACKED_FONT_SCALE;
   const isFinished = !!workoutSession.finished_at;
   // Ticks only while the session screen is on top, not under an exercise.
   const isFocused = useIsFocused();
@@ -86,23 +104,19 @@ export default function WorkoutSessionStats({
 
   return (
     <View className="gap-sm">
-      <View className={stacked ? "gap-3" : "flex-row gap-2"}>
-        <Stat
-          label="Duration"
-          stacked={stacked}
-          value={formatElapsed(endedAt - startedAt)}
-        />
-        <Stat
-          label="Volume"
-          stacked={stacked}
-          value={`${volume.toLocaleString()} ${weightLabel}`}
-        />
-        <Stat
-          label="Sets"
-          stacked={stacked}
-          value={`${countLoggedSets(workoutSession)}/${totalSets}`}
-        />
-      </View>
+      <StatRow
+        stats={[
+          { label: "Duration", value: formatElapsed(endedAt - startedAt) },
+          {
+            label: "Volume",
+            value: `${volume.toLocaleString()} ${weightLabel}`,
+          },
+          {
+            label: "Sets",
+            value: `${countLoggedSets(workoutSession)}/${totalSets}`,
+          },
+        ]}
+      />
       {progress.length > 0 && (
         <View className="gap-sm">
           <View
