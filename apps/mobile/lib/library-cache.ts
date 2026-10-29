@@ -9,24 +9,6 @@ import { storage } from "~/lib/mmkv";
 const SUMMARY_PREFIX = "library.exercise-summary.";
 const EXERCISE_PREFIX = "library.exercise.";
 
-// Builds before the Library rename kept them under `exercises.*`. Those copies
-// are deleted once per install, on first use, and refetched under the new
-// keys. A later release removes this sweep (FIT-306).
-const LEGACY_PREFIXES = ["exercises.summary.", "exercises.exercise."];
-const LEGACY_SWEPT_KEY = "library.legacy-exercises-swept";
-
-const sweepLegacyKeys = () => {
-  if (storage.getBoolean(LEGACY_SWEPT_KEY)) {
-    return;
-  }
-  for (const key of storage.getAllKeys()) {
-    if (LEGACY_PREFIXES.some((prefix) => key.startsWith(prefix))) {
-      storage.remove(key);
-    }
-  }
-  storage.set(LEGACY_SWEPT_KEY, true);
-};
-
 export interface CachedEntry<T> {
   savedAt: number;
   value: T;
@@ -55,7 +37,6 @@ const read = <T>(
   key: string,
   isValue: (value: unknown) => value is T
 ): CachedEntry<T> | undefined => {
-  sweepLegacyKeys();
   const raw = storage.getString(key);
   if (!raw) {
     return;
@@ -76,7 +57,6 @@ const read = <T>(
 };
 
 const write = <T>(key: string, value: T, savedAt: number) => {
-  sweepLegacyKeys();
   storage.set(key, JSON.stringify({ savedAt, value }));
 };
 
