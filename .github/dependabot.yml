@@ -1,0 +1,37 @@
+# Dependabot version updates: only the Expo SDK's own packages in
+# apps/mobile, patch releases only, in one weekly PR, so the app stays on its
+# SDK's current patches without anyone running `expo install --check` by hand
+# (FIT-365). Everything else (a new SDK, react-native, the react-native-*
+# libraries Expo also checks, any other npm package) is updated by hand.
+# Dependabot bumps to npm's latest patch, not to the version `expo install`
+# expects; the non-blocking check in unit-tests.yml runs on its PR and warns
+# when the two differ.
+version: 2
+updates:
+  - package-ecosystem: npm
+    # The workspace root, where pnpm-lock.yaml lives; Dependabot finds the
+    # workspace packages from there.
+    directory: /
+    schedule:
+      interval: weekly
+      day: monday
+    # Keep the exact pins every dependency has in apps/mobile/package.json.
+    versioning-strategy: increase
+    allow:
+      - dependency-name: expo
+      - dependency-name: expo-*
+      - dependency-name: "@expo/*"
+      - dependency-name: jest-expo
+    ignore:
+      # Patches only: a new SDK (expo 58 → 59) is an upgrade done by hand.
+      - dependency-name: "*"
+        update-types: [version-update:semver-major, version-update:semver-minor]
+      # Matches expo-* but isn't versioned with the SDK.
+      - dependency-name: expo-mcp
+    groups:
+      expo-sdk-patches:
+        patterns: ["*"]
+    commit-message:
+      # A native patch reaches Users only through a release; fix: makes the
+      # next one a patch release that ships it.
+      prefix: fix(mobile)
