@@ -483,6 +483,24 @@ class FakeQuery {
         // `null` (PGRST116 through `single()`) once it's gone.
         return backend.nestedWorkout(this.filters.id as string);
       case "workout_sessions.select":
+        if (this.filters.id === undefined) {
+          // The User's open Workout Session (`.is("finished_at", null)`,
+          // newest first, `maybeSingle()`).
+          if (this.filters.finished_at !== null) {
+            throw new Error("Fake backend: only the open session is listed");
+          }
+          const [open] = backend.sessions
+            .filter(({ finished_at }) => finished_at === null)
+            .sort((a, b) => b.started_at.localeCompare(a.started_at));
+          return open
+            ? {
+                id: open.id,
+                plan_id: open.plan_id,
+                workout: open.workout_id ? { name: open.workoutName } : null,
+                workout_id: open.workout_id,
+              }
+            : null;
+        }
         return backend.nestedSession(
           requireRow(backend.session(this.filters.id as string), "session")
         );

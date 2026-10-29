@@ -64,6 +64,7 @@ jest.mock("~/hooks/queries/workout-sessions", () => {
     FINISH_WORKOUT_SESSION_MUTATION_KEY,
     fetchPlanUpdate: (sessionId: string) =>
       mockPlanUpdate(sessionId, { apply: false }),
+    OPEN_WORKOUT_SESSION_QUERY_KEY: ["open-workout-session"],
     useApplyPlanUpdateMutation: createMutation({
       mutationFn: ({ sessionId }: { sessionId: string }) =>
         mockPlanUpdate(sessionId, { apply: true }),

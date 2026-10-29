@@ -8,6 +8,11 @@ import { QueryClientProvider } from "@tanstack/react-query";
 import { fireEvent, render, screen } from "@testing-library/react-native";
 import { Alert } from "react-native";
 import WorkoutScreen from "~/app/plans/[planId]/workouts/[workoutId]/index";
+import {
+  OPEN_WORKOUT_SESSION_POLL_MS,
+  OPEN_WORKOUT_SESSION_QUERY_KEY,
+  openWorkoutSessionRefetchInterval,
+} from "~/hooks/queries/workout-sessions";
 import { FAKE_USER_ID, fakePublicApi } from "~/test-utils/fake-public-api";
 import { backend, type SeedPlan } from "~/test-utils/fake-workout-backend";
 import { createTestQueryClient, settle } from "~/test-utils/query-client";
@@ -88,6 +93,13 @@ const PLAN: SeedPlan = {
 };
 
 const LOAD_ERROR = /^Couldn't load this workout/;
+
+// The blocked state's caption, whichever Workout it names.
+const FINISH_FIRST = / first$/;
+
+// A Workout Session screen of `workout-2`.
+const WORKOUT_2_SESSION_PATH =
+  /^\/plans\/plan-1\/workouts\/workout-2\/sessions\//;
 
 // A planned set's row, as VoiceOver reads it.
 const SET_ROW = /^Set \d:/;
@@ -341,5 +353,140 @@ describe("Starting a Workout from its screen", () => {
     await mount();
     expect(screen.getByText("This workout no longer exists")).toBeTruthy();
     expect(screen.queryByRole("button", { name: "Start Workout" })).toBeNull();
+  });
+});
+
+describe("Starting while another Workout is in progress", () => {
+  /** Leg Day's open Workout Session, blocking every other Workout. */
+  const seedLegDayOpen = () => {
+    seedOpenSession("workout-1");
+  };
+
+  it("disables Start, says which Workout to finish first and continues it", async () => {
+    seedLegDayOpen();
+    mockWorkoutId.current = "workout-2";
+    await mount();
+
+    expect(
+      screen.getByRole("button", { name: "Start Workout" })
+    ).toBeDisabled();
+    expect(screen.getByText("Finish Leg Day first")).toBeTruthy();
+
+    await fireEvent.press(
+      screen.getByRole("button", { name: "Continue Leg Day" })
+    );
+
+    expect(mockReplace).toHaveBeenCalledWith(
+      "/plans/plan-1/workouts/workout-1/sessions/open-session"
+    );
+    expect(fakePublicApi.count(START)).toBe(0);
+  });
+
+  it("continues a Workout Session whose Workout is gone on its own screen", async () => {
+    backend.sessions.push({
+      finished_at: null,
+      id: "orphan-session",
+      plan_id: null,
+      started_at: "2026-10-29T09:00:00.000Z",
+      workout_id: null,
+      workoutName: "Gone",
+    });
+    await mount();
+
+    expect(
+      screen.getByRole("button", { name: "Start Workout" })
+    ).toBeDisabled();
+    expect(
+      screen.getByText("Finish your workout in progress first")
+    ).toBeTruthy();
+    await fireEvent.press(
+      screen.getByRole("button", { name: "Continue Workout" })
+    );
+
+    expect(mockReplace).toHaveBeenCalledWith(
+      "/workout-sessions/orphan-session"
+    );
+  });
+
+  it("turns a 409 from Start into the blocked state, without the alert", async () => {
+    mockWorkoutId.current = "workout-2";
+    await mount();
+    // Started elsewhere (MCP, another device) after the screen was read.
+    seedLegDayOpen();
+
+    await fireEvent.press(
+      screen.getByRole("button", { name: "Start Workout" })
+    );
+    await settle(queryClient);
+
+    expect(Alert.alert).not.toHaveBeenCalled();
+    expect(mockReplace).not.toHaveBeenCalled();
+    expect(
+      screen.getByRole("button", { name: "Start Workout" })
+    ).toBeDisabled();
+    expect(screen.getByText("Finish Leg Day first")).toBeTruthy();
+    expect(
+      backend.sessions.filter(({ workout_id }) => workout_id === "workout-2")
+    ).toEqual([]);
+  });
+
+  it("alerts on a 409 when the re-read finds nothing to continue", async () => {
+    mockWorkoutId.current = "workout-2";
+    await mount();
+    // Another session was open, and finished again before the re-read.
+    fakePublicApi.failNext(START, { code: "session_in_progress", status: 409 });
+
+    await fireEvent.press(
+      screen.getByRole("button", { name: "Start Workout" })
+    );
+    await settle(queryClient);
+
+    expect(Alert.alert).toHaveBeenCalledWith(
+      "Couldn't start workout",
+      "Check your connection and try again."
+    );
+    expect(screen.queryByText(FINISH_FIRST)).toBeNull();
+  });
+
+  it("starts once the other Workout's session is finished", async () => {
+    seedLegDayOpen();
+    mockWorkoutId.current = "workout-2";
+    await mount();
+    expect(screen.getByText("Finish Leg Day first")).toBeTruthy();
+
+    // Finished elsewhere; the finish flow invalidates the open Workout
+    // Session read (see the Home integration test for the whole flow).
+    const open = backend.session("open-session");
+    if (open) {
+      open.finished_at = "2026-10-29T10:00:00.000Z";
+    }
+    await queryClient.invalidateQueries({
+      queryKey: OPEN_WORKOUT_SESSION_QUERY_KEY,
+    });
+    await settle(queryClient);
+
+    expect(screen.queryByText("Finish Leg Day first")).toBeNull();
+    await fireEvent.press(
+      screen.getByRole("button", { name: "Start Workout" })
+    );
+    await settle(queryClient);
+    expect(mockReplace).toHaveBeenCalledWith(
+      expect.stringMatching(WORKOUT_2_SESSION_PATH)
+    );
+  });
+
+  it("re-reads the blocking session while it's open, so one finished elsewhere unblocks Start", () => {
+    // The interval itself is react-query's; the screen stays mounted meanwhile.
+    expect(
+      openWorkoutSessionRefetchInterval({
+        id: "open-session",
+        planId: "plan-1",
+        workoutId: "workout-1",
+        workoutName: "Leg Day",
+      })
+    ).toBe(OPEN_WORKOUT_SESSION_POLL_MS);
+    // Nothing open: a session opened elsewhere comes back as Start's 409.
+    expect(openWorkoutSessionRefetchInterval(null)).toBe(false);
+    expect(openWorkoutSessionRefetchInterval(undefined)).toBe(false);
   });
 });

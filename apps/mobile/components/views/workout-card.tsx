@@ -1,6 +1,6 @@
 import type { Workout } from "@fitme/core";
 import { Link, useRouter } from "expo-router";
-import { useEffect, useState } from "react";
+import { useCallback, useEffect, useState } from "react";
 import { Pressable, ScrollView } from "react-native";
 import { HStack } from "@/components/ui/hstack";
 import { Text } from "@/components/ui/text";
@@ -10,6 +10,7 @@ import { useFinishWorkoutSession } from "~/hooks/finish-workout-session";
 import { shownExercise, useExercises } from "~/hooks/queries/library";
 import {
   findOpenSession,
+  openSessionPath,
   useStartWorkout,
   workoutSessionPath,
 } from "~/hooks/start-workout";
@@ -18,6 +19,7 @@ import { COUNT_SYMBOL } from "../plans/plan-symbols";
 import { SymbolImage } from "../symbol-image";
 import { Button } from "../ui/button";
 import { Card } from "../ui/card";
+import { BlockedStart } from "../workout-sessions/blocked-start";
 
 /**
  * Finishes the Workout's active session the way the session screen does
@@ -45,14 +47,15 @@ interface WorkoutCardProps {
 /**
  * A Workout, compact: its name, Exercise count and thumbnails. Pressing it
  * opens its open Workout Session if it has one, otherwise its Workout
- * screen. The Next Workout (`upcoming`) also gets Start or Finish.
+ * screen. The Next Workout (`upcoming`) also gets Start or Finish, Start
+ * blocked while another Workout is in progress.
  */
 export default function WorkoutCard({
   workout,
   state = "default",
 }: WorkoutCardProps) {
   const router = useRouter();
-  const { startWorkout, isStarting } = useStartWorkout(
+  const { blockedBy, startWorkout, isStarting } = useStartWorkout(
     workout.id,
     (sessionId) => {
       router.push(workoutSessionPath(workout.plan_id, workout.id, sessionId));
@@ -60,6 +63,11 @@ export default function WorkoutCard({
   );
 
   const activeSession = findOpenSession(workout);
+  const continueBlocking = useCallback(() => {
+    if (blockedBy) {
+      router.push(openSessionPath(blockedBy));
+    }
+  }, [router, blockedBy]);
 
   const [elapsedTime, setElapsedTime] = useState<string>("");
 
@@ -185,9 +193,18 @@ export default function WorkoutCard({
         </Pressable>
         {state === "upcoming" && (
           <VStack className="items-stretch">
-            {activeSession ? (
+            {activeSession && (
               <FinishWorkoutButton sessionId={activeSession.id} />
-            ) : (
+            )}
+            {!activeSession && blockedBy && (
+              <BlockedStart
+                blockedBy={blockedBy}
+                onContinue={continueBlocking}
+                // The in-progress card's timer is Home's lime way in.
+                variant="secondary"
+              />
+            )}
+            {!(activeSession || blockedBy) && (
               <Button
                 icon="arrow.right"
                 iconPosition="trailing"

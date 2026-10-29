@@ -13,14 +13,18 @@ import { Card } from "~/components/ui/card";
 import { Text } from "~/components/ui/text";
 import { H4 } from "~/components/ui/typography";
 import PlannedWorkoutExerciseCard from "~/components/views/planned-workout-exercise-card";
+import { BlockedStart } from "~/components/workout-sessions/blocked-start";
 import { StatRow } from "~/components/workout-sessions/workout-session-stats";
 import { useExercises } from "~/hooks/queries/library";
+import { useOpenWorkoutSessionQuery } from "~/hooks/queries/workout-sessions";
 import { useWorkoutQuery } from "~/hooks/queries/workouts";
 import {
   findOpenSession,
+  openSessionPath,
   useStartWorkout,
   workoutSessionPath,
 } from "~/hooks/start-workout";
+import { cn } from "~/lib/utils";
 
 /** Space between the content's end (or the pinned action) and the bottom. */
 const BOTTOM_GAP = 16;
@@ -28,8 +32,9 @@ const BOTTOM_GAP = 16;
 /**
  * The screen's one action, pinned above the safe area with the content
  * scrolling under it: Continue Workout when the Workout already has an open
- * Workout Session, otherwise Start Workout. Either replaces this screen with
- * the Workout Session screen, so Back goes wherever the User came from.
+ * Workout Session, the blocked Start while another Workout's is open,
+ * otherwise Start Workout. Each replaces this screen with the Workout
+ * Session screen, so Back goes wherever the User came from.
  */
 function WorkoutAction({
   onLayout,
@@ -48,22 +53,25 @@ function WorkoutAction({
     },
     [router, workout.plan_id, workout.id]
   );
-  const { startWorkout, isStarting } = useStartWorkout(workout.id, openSession);
+  const { blockedBy, startWorkout, isStarting } = useStartWorkout(
+    workout.id,
+    openSession
+  );
   const ownOpenSession = findOpenSession(workout);
   const continueWorkout = useCallback(() => {
     if (ownOpenSession) {
       openSession(ownOpenSession.id);
     }
   }, [openSession, ownOpenSession]);
+  const continueBlocking = useCallback(() => {
+    if (blockedBy) {
+      router.replace(openSessionPath(blockedBy));
+    }
+  }, [router, blockedBy]);
 
-  return (
-    <View
-      className="absolute inset-x-0 bottom-0 px-sm"
-      onLayout={onLayout}
-      pointerEvents="box-none"
-      style={{ paddingBottom: insets.bottom + BOTTOM_GAP }}
-    >
-      {ownOpenSession ? (
+  const renderAction = () => {
+    if (ownOpenSession) {
+      return (
         <Button
           icon="arrow.right"
           iconPosition="trailing"
@@ -71,17 +79,45 @@ function WorkoutAction({
           onPress={continueWorkout}
           size="lg"
         />
-      ) : (
-        <Button
-          icon="arrow.right"
-          iconPosition="trailing"
-          isLoading={isStarting}
-          label="Start Workout"
-          onPress={startWorkout}
+      );
+    }
+    if (blockedBy) {
+      return (
+        <BlockedStart
+          blockedBy={blockedBy}
+          onContinue={continueBlocking}
           size="lg"
-          testID="start-workout-button"
         />
+      );
+    }
+    return (
+      <Button
+        icon="arrow.right"
+        iconPosition="trailing"
+        isLoading={isStarting}
+        label="Start Workout"
+        onPress={startWorkout}
+        size="lg"
+        testID="start-workout-button"
+      />
+    );
+  };
+
+  return (
+    <View
+      // Blocked, it's a bottom bar: its caption and the disabled Start would
+      // be unreadable over the content scrolling under them.
+      className={cn(
+        "absolute inset-x-0 bottom-0 px-sm",
+        blockedBy &&
+          !ownOpenSession &&
+          "border-border border-hairline border-t bg-background pt-sm"
       )}
+      onLayout={onLayout}
+      pointerEvents="box-none"
+      style={{ paddingBottom: insets.bottom + BOTTOM_GAP }}
+    >
+      {renderAction()}
     </View>
   );
 }
@@ -142,6 +178,8 @@ export default function WorkoutScreen() {
     isError,
     refetch,
   } = useWorkoutQuery({ variables: { id: workoutId } });
+  // Read alongside the Workout, so Start shows blocked from the first frame.
+  useOpenWorkoutSessionQuery();
   // The pinned action's height, safe area included: the content ends above it.
   const [actionHeight, setActionHeight] = useState(0);
   const measureAction = useCallback((event: LayoutChangeEvent) => {

@@ -15,6 +15,7 @@ import { H1 } from "~/components/ui/typography";
 import { VStack } from "~/components/ui/vstack";
 import { usePlansQuery } from "~/hooks/queries/plans";
 import { useProfileQuery } from "~/hooks/queries/profiles";
+import { useOpenWorkoutSessionQuery } from "~/hooks/queries/workout-sessions";
 import { storage } from "~/lib/mmkv";
 
 const IS_E2E = process.env.EXPO_PUBLIC_E2E_ENABLED === "true";
@@ -34,6 +35,9 @@ export default function HomeScreen() {
   } = usePlansQuery({
     refetchInterval: 1000 * 60, // 1 minute
   });
+  // Read alongside the Plans, so the Next card's Start shows blocked from the
+  // first frame while another Workout is in progress.
+  const { refetch: refetchOpenSession } = useOpenWorkoutSessionQuery();
 
   useEffect(() => {
     if (plans) {
@@ -46,9 +50,9 @@ export default function HomeScreen() {
     if (!IS_E2E) {
       await Purchases.invalidateCustomerInfoCache();
     }
-    await refetchWorkoutPlans();
+    await Promise.all([refetchWorkoutPlans(), refetchOpenSession()]);
     setRefreshing(false);
-  }, [refetchWorkoutPlans]);
+  }, [refetchWorkoutPlans, refetchOpenSession]);
 
   const router = useRouter();
 
