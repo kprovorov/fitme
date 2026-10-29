@@ -42,7 +42,7 @@ pnpm dev:webhooks        # tsx watch webhooks app on :3004 (needs FITME_DATABASE
 pnpm dev:arnold          # eve dev (no TUI) on :3005 against the local stack (apps/arnold/.env.local: CLERK_JWT_KEY, FITME_DATABASE_URL, AI_GATEWAY_API_KEY)
 pnpm dev:library         # generate + tsx watch Library API on :3006, serving the fixture bundle (apps/library/.env: Clerk keys and/or server secrets to call it)
 pnpm build               # turbo run build
-pnpm test                # turbo run test (jest in mobile, vitest in core, design-tokens, library-sdk, observability, rate-limit, mcp, api, webhooks, arnold and library)
+pnpm test                # turbo run test (jest in mobile, vitest in core, design-tokens, library-sdk, observability, rate-limit, mcp, api, webhooks, arnold, library and web)
 pnpm typecheck           # turbo run typecheck
 pnpm check / pnpm fix    # ultracite (Biome) over the whole repo
 pnpm test:scripts        # node:test for the Node helpers of scripts/*.sh (scripts/*.test.mjs)
@@ -144,7 +144,8 @@ React Native / Expo app using **file-based routing** via `expo-router`:
 ### apps/web — Next.js app
 
 - `app/` — App Router routes. `(app)/` is the authenticated area (dashboard; account menu is Clerk's `<UserButton>`); `sign-in/[[...sign-in]]` is Clerk's prebuilt `<SignIn>` page. `ClerkProvider` in the root layout sets the sign-in URL and sends signed-out Users to `/`.
-- `proxy.ts` — Next 16 request proxy running `clerkMiddleware`: every route except `/` and `/sign-in` calls `auth.protect()`, which redirects signed-out requests to sign-in with a `redirect_url` back. Route paths live in `lib/routes.ts`.
+- `proxy.ts` — Next 16 request proxy running `clerkMiddleware`: every route except `/` and `/sign-in` calls `auth.protect()`, which redirects signed-out requests to sign-in with a `redirect_url` back. Its matcher skips `/.well-known/` (and static files), so those are served signed out. Route paths live in `lib/routes.ts`.
+- `public/.well-known/apple-app-site-association` — the iOS app's associated domains on app.fitmeproject.com (`ios.associatedDomains` in `apps/mobile/app.json`): `webcredentials` (password AutoFill) and `activitycontinuation` (Handoff) for `X75M2KSBQL.com.fitmeproject.ios`. No `applinks` (the app has no universal links) and no `appclips` (no App Clip target, so `app.json` doesn't claim it). `next.config.ts` serves it as `application/json`. `__tests__/apple-app-site-association.test.ts` (vitest, Next's experimental `unstable_doesMiddlewareMatch` / `unstable_getResponseFromNextConfig`) checks the proxy never runs on it, the header and its content.
 - `lib/supabase/server.ts` (`createClient()`, Server Components) — a `supabase-js` client typed with `Database` from `@fitme/supabase` whose `accessToken` is the User's Clerk session token, so RLS reads their Clerk id from `sub`. There is no Supabase Auth session in the web app.
 - `components/ui/` — shadcn-style primitives (Tailwind v4 + cva). `components.json` is set up for the shadcn CLI.
 - Styling: Tailwind v4 via `@tailwindcss/postcss`; `app/globals.css` imports `@fitme/design-tokens` and only maps the font roles to the `next/font` variables (`--next-font-*`). Dark only (`color-scheme: dark`), whatever the OS setting.

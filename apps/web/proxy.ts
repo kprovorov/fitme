@@ -22,8 +22,10 @@ export default clerkMiddleware(
 
 export const config = {
   matcher: [
-    // Skip Next internals and static files unless they appear in search params.
-    "/((?!_next|[^?]*\\.(?:html?|css|js(?!on)|jpe?g|webp|png|gif|svg|ttf|woff2?|ico|csv|docx?|xlsx?|zip|webmanifest)).*)",
+    // Skip Next internals, /.well-known/ (the apple-app-site-association
+    // file, which Apple fetches signed out) and static files unless they
+    // appear in search params.
+    "/((?!_next|\\.well-known/|[^?]*\\.(?:html?|css|js(?!on)|jpe?g|webp|png|gif|svg|ttf|woff2?|ico|csv|docx?|xlsx?|zip|webmanifest)).*)",
     "/(api)(.*)",
   ],
 };
