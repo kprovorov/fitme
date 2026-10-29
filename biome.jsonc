@@ -13,7 +13,9 @@
       "!apps/api/openapi.json",
       "!apps/library/openapi.json",
       // Written by `pnpm generate`, never committed.
-      "!apps/library/src/generated"
+      "!apps/library/src/generated",
+      // Written by uniwind's Metro plugin on every expo start; committed in its raw format.
+      "!apps/mobile/uniwind-types.d.ts"
     ]
   },
   "linter": {
