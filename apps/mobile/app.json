@@ -64,7 +64,12 @@
           "organization": "provorovdev"
         }
       ],
-      "expo-localization",
+      [
+        "expo-localization",
+        {
+          "supportedLocales": ["en", "uk"]
+        }
+      ],
       "@sentry/react-native",
       "expo-image",
       "expo-web-browser",
