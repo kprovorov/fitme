@@ -12,7 +12,11 @@ const SEPARATOR = /[.,]/;
 interface FieldMessages {
   negative: () => string;
   notNumber: () => string;
-  tooHigh: () => string;
+  /**
+   * Takes the bound ungrouped (`10000`, not `10,000`): the field reads
+   * `10,000` as 10.
+   */
+  tooHigh: (max: number) => string;
 }
 
 /**
@@ -53,15 +57,13 @@ const rangeIssue = (
     return messages.negative();
   }
   if (value > max) {
-    return messages.tooHigh();
+    return messages.tooHigh(max);
   }
   return null;
 };
 
 const decimalsOf = (text: string) => text.split(SEPARATOR)[1]?.length ?? 0;
 
-// The bounds go into the messages ungrouped (`10000`, not `10,000`): the
-// field reads `10,000` as 10.
 /**
  * The weight field (in the User's unit): 0 to `MAX_WEIGHT`, at most 2
  * decimals (numeric(8,2)).
@@ -70,7 +72,7 @@ export const setWeightField = setNumberField(
   {
     negative: () => i18n.t("sets.form.weightNegative"),
     notNumber: () => i18n.t("sets.form.weightNotNumber"),
-    tooHigh: () => i18n.t("sets.form.weightTooHigh", { max: MAX_WEIGHT }),
+    tooHigh: (max) => i18n.t("sets.form.weightTooHigh", { max }),
   },
   MAX_WEIGHT,
   (_, text) =>
@@ -84,7 +86,7 @@ export const setRepsField = setNumberField(
   {
     negative: () => i18n.t("sets.form.repsNegative"),
     notNumber: () => i18n.t("sets.form.repsNotNumber"),
-    tooHigh: () => i18n.t("sets.form.repsTooHigh", { max: MAX_REPS }),
+    tooHigh: (max) => i18n.t("sets.form.repsTooHigh", { max }),
   },
   MAX_REPS,
   (value) => (Number.isInteger(value) ? null : i18n.t("sets.form.repsNotWhole"))
