@@ -11,6 +11,66 @@ import PlannedWorkoutExerciseCard from "~/components/views/planned-workout-exerc
 import { StatRow } from "~/components/workout-sessions/workout-session-stats";
 import { useExercises } from "~/hooks/queries/library";
 import { useWorkoutQuery } from "~/hooks/queries/workouts";
+import { useStartWorkout, workoutSessionPath } from "~/hooks/start-workout";
+
+/** Room the pinned `lg` pill (50 pt) needs under the content, with a gap. */
+const PINNED_ACTION_HEIGHT = 50 + 16;
+
+/**
+ * The screen's one action, pinned above the safe area with the content
+ * scrolling under it: Continue Workout when the Workout already has an open
+ * Workout Session, otherwise Start Workout. Either replaces this screen with
+ * the Workout Session screen, so Back goes wherever the User came from.
+ */
+function WorkoutAction({ workout }: { workout: Workout }) {
+  const insets = useSafeAreaInsets();
+  const router = useRouter();
+  const openSession = useCallback(
+    (sessionId: string) => {
+      router.replace(
+        workoutSessionPath(workout.plan_id, workout.id, sessionId)
+      );
+    },
+    [router, workout.plan_id, workout.id]
+  );
+  const { startWorkout, isStarting } = useStartWorkout(workout.id, openSession);
+  const ownOpenSession = workout.sessions.find(
+    (session) => session.started_at && !session.finished_at
+  );
+  const continueWorkout = useCallback(() => {
+    if (ownOpenSession) {
+      openSession(ownOpenSession.id);
+    }
+  }, [openSession, ownOpenSession]);
+
+  return (
+    <View
+      className="absolute inset-x-0 bottom-0 px-sm"
+      pointerEvents="box-none"
+      style={{ paddingBottom: insets.bottom + 16 }}
+    >
+      {ownOpenSession ? (
+        <Button
+          icon="arrow.right"
+          iconPosition="trailing"
+          label="Continue Workout"
+          onPress={continueWorkout}
+          size="lg"
+        />
+      ) : (
+        <Button
+          icon="arrow.right"
+          iconPosition="trailing"
+          isLoading={isStarting}
+          label="Start Workout"
+          onPress={startWorkout}
+          size="lg"
+          testID="start-workout-button"
+        />
+      )}
+    </View>
+  );
+}
 
 /** The Workout's name and planned stats, then a planned card per Exercise. */
 function WorkoutContent({ workout }: { workout: Workout }) {
@@ -135,12 +195,16 @@ export default function WorkoutScreen() {
       />
       <ScrollView
         contentContainerClassName="gap-sm px-sm pt-xs"
-        contentContainerStyle={{ paddingBottom: insets.bottom + 16 }}
+        contentContainerStyle={{
+          paddingBottom:
+            insets.bottom + 16 + (workout ? PINNED_ACTION_HEIGHT : 0),
+        }}
         contentInsetAdjustmentBehavior="automatic"
         showsVerticalScrollIndicator={false}
       >
         {renderContent()}
       </ScrollView>
+      {workout ? <WorkoutAction workout={workout} /> : null}
     </>
   );
 }
