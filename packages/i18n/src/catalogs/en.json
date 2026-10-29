@@ -6,6 +6,9 @@
     "library": "Library",
     "profile": "Profile"
   },
+  "library": {
+    "allMuscleGroups": "All"
+  },
   "counts": {
     "sets_one": "{{count}} set",
     "sets_other": "{{count}} sets"

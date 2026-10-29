@@ -6,6 +6,9 @@
     "library": "Бібліотека",
     "profile": "Профіль"
   },
+  "library": {
+    "allMuscleGroups": "Усі"
+  },
   "counts": {
     "sets_one": "{{count}} підхід",
     "sets_few": "{{count}} підходи",

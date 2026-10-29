@@ -25,11 +25,14 @@ import { Text } from "~/components/ui/text";
 import { Textarea } from "~/components/ui/textarea";
 import { H4, Muted } from "~/components/ui/typography";
 import { VStack } from "~/components/ui/vstack";
-import { type ChoiceLabels, useChoiceLabels } from "~/lib/choices";
+import { englishChoiceLabels, useChoiceLabels } from "~/lib/choices";
 import { numberInRange } from "~/lib/form-schemas";
 import { cn } from "~/lib/utils";
 
-function buildPlanMessage(data: PlanFormValues, labels: ChoiceLabels): string {
+// The message is sent to Arnold as the User's own text, all in English until
+// the planner is translated as a whole.
+function buildPlanMessage(data: PlanFormValues): string {
+  const labels = englishChoiceLabels();
   const lines = [
     "Please create a workout plan for me with the following details:",
     `- Goal: ${labels.goal(data.goal)}`,
@@ -185,13 +188,13 @@ function renderNoteField({
   );
 }
 
-// A component, not a render function: it reads the labels through a hook.
+// Controller's render prop must be stable; the options read labels through a
+// hook, so they're a component behind it.
 function renderExperienceLevelField(props: PlanFieldProps<"experience_level">) {
   return <ExperienceLevelOptions {...props} />;
 }
 
 export default function PlannerScreen() {
-  const labels = useChoiceLabels();
   const form = useForm<PlanFormValues>({
     defaultValues: {
       place: "gym",
@@ -331,7 +334,7 @@ export default function PlannerScreen() {
                 label="Get my plan!"
                 onPress={form.handleSubmit((data) => {
                   router.dismissTo({
-                    params: { initialMessage: buildPlanMessage(data, labels) },
+                    params: { initialMessage: buildPlanMessage(data) },
                     pathname: "/(tabs)/arnold",
                   });
                 })}

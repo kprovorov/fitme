@@ -30,14 +30,23 @@ export default function PlanCard({ plan }: PlanCardProps) {
         <CardDescription>
           <HStack className="flex-wrap justify-start">
             {[
-              { icon: goalSymbol(plan.goal), label: labels.goal(plan.goal) },
-              { icon: COUNT_SYMBOL, label: `${plan.frequency}x per week` },
+              {
+                icon: goalSymbol(plan.goal),
+                key: "goal",
+                label: labels.goal(plan.goal),
+              },
+              {
+                icon: COUNT_SYMBOL,
+                key: "frequency",
+                label: `${plan.frequency}x per week`,
+              },
               {
                 icon: placeSymbol(plan.place),
+                key: "place",
                 label: labels.place(plan.place),
               },
             ].map((item) => (
-              <HStack className="gap-1" key={item.label}>
+              <HStack className="gap-1" key={item.key}>
                 <SymbolImage
                   className="text-muted-foreground text-subhead-emphasized"
                   name={item.icon}

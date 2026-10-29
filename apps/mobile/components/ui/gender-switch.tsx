@@ -18,6 +18,7 @@ interface GenderOptionProps {
   disabled?: boolean;
   gender: Gender;
   isSelected: boolean;
+  label: string;
   onValueChange?: (value: Gender) => void;
 }
 
@@ -25,9 +26,9 @@ function GenderOption({
   disabled,
   gender,
   isSelected,
+  label,
   onValueChange,
 }: GenderOptionProps) {
-  const label = useChoiceLabels().gender(gender);
   const handlePress = useCallback(
     () => onValueChange?.(gender),
     [gender, onValueChange]
@@ -73,23 +74,27 @@ const GenderSwitch = ({
   disabled,
   className,
   testID,
-}: GenderSwitchProps) => (
-  <HStack
-    accessibilityRole="radiogroup"
-    className={cn("items-stretch justify-stretch gap-4", className)}
-    testID={testID}
-  >
-    {genders.map((gender) => (
-      <GenderOption
-        disabled={disabled}
-        gender={gender}
-        isSelected={value === gender}
-        key={gender}
-        onValueChange={onValueChange}
-      />
-    ))}
-  </HStack>
-);
+}: GenderSwitchProps) => {
+  const labels = useChoiceLabels();
+  return (
+    <HStack
+      accessibilityRole="radiogroup"
+      className={cn("items-stretch justify-stretch gap-4", className)}
+      testID={testID}
+    >
+      {genders.map((gender) => (
+        <GenderOption
+          disabled={disabled}
+          gender={gender}
+          isSelected={value === gender}
+          key={gender}
+          label={labels.gender(gender)}
+          onValueChange={onValueChange}
+        />
+      ))}
+    </HStack>
+  );
+};
 
 GenderSwitch.displayName = "GenderSwitch";
 

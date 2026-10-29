@@ -27,24 +27,38 @@ export interface ChoiceLabels {
   place: (id: Place) => string;
 }
 
+type ChoiceSection = keyof ChoiceLabels;
+
+// i18next reads these inside a key as nesting and namespace separators.
+const KEY_SEPARATORS = /[.:]/;
+
 /**
  * The labels through a `t`. An id the catalogs don't have (a muscle group the
  * Library added after this build) shows as itself, never as a raw key.
  */
-export const choiceLabels = (t: TFunction): ChoiceLabels => ({
-  experienceLevel: (id) =>
-    t(`choices.experienceLevel.${id}`, { defaultValue: id }),
-  experienceLevelDescription: (id) =>
-    t(`choices.experienceLevelDescription.${id}`, { defaultValue: id }),
-  gender: (id) => t(`choices.gender.${id}`, { defaultValue: id }),
-  goal: (id) => t(`choices.goal.${id}`, { defaultValue: id }),
-  measurementSystem: (id) =>
-    t(`choices.measurementSystem.${id}`, { defaultValue: id }),
-  measurementSystemDescription: (id) =>
-    t(`choices.measurementSystemDescription.${id}`, { defaultValue: id }),
-  muscleGroup: (id) => t(`choices.muscleGroup.${id}`, { defaultValue: id }),
-  place: (id) => t(`choices.place.${id}`, { defaultValue: id }),
-});
+export const choiceLabels = (t: TFunction): ChoiceLabels => {
+  const label =
+    <S extends ChoiceSection>(section: S) =>
+    (id: Parameters<ChoiceLabels[S]>[0]): string =>
+      KEY_SEPARATORS.test(id)
+        ? id
+        : t(`choices.${section}.${id}` as never, { defaultValue: id });
+
+  return {
+    experienceLevel: label("experienceLevel"),
+    experienceLevelDescription: label("experienceLevelDescription"),
+    gender: label("gender"),
+    goal: label("goal"),
+    measurementSystem: label("measurementSystem"),
+    measurementSystemDescription: label("measurementSystemDescription"),
+    muscleGroup: label("muscleGroup"),
+    place: label("place"),
+  };
+};
+
+/** The fixed choices' labels in English, for text sent to Arnold as data. */
+export const englishChoiceLabels = (): ChoiceLabels =>
+  choiceLabels(i18n.getFixedT("en"));
 
 /** The fixed choices' labels in the App language, following a change of it. */
 export function useChoiceLabels(): ChoiceLabels {
