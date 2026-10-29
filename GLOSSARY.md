@@ -27,7 +27,7 @@ A multi-workout training programme owned by one User. At most one Plan is active
 A single training day inside a Plan: an ordered list of exercises with target sets.
 
 **Workout Session**:
-One occurrence of a User performing a Workout, with the sets actually completed. At most one Workout Session per Workout can be open at a time.
+One occurrence of a User performing a Workout, with the sets actually completed. At most one Workout Session per User can be open at a time: another Workout can't be started until it's finished.
 _Avoid_: Session (ambiguous with a sign-in session), training log
 
 **Plan Update**:
