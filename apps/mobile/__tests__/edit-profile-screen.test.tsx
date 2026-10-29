@@ -17,10 +17,10 @@ import * as Sentry from "@sentry/react-native";
 import { QueryClientProvider } from "@tanstack/react-query";
 import { fireEvent, render, screen } from "@testing-library/react-native";
 import { router } from "expo-router";
-import { type ReactNode, useCallback } from "react";
+import { useCallback } from "react";
 import { Pressable, Text } from "react-native";
 import EditProfileScreen from "~/app/settings/edit-profile";
-import { i18n, useAppLanguageSync } from "~/lib/i18n";
+import { i18n } from "~/lib/i18n";
 import { setDeviceLanguages } from "~/test-utils/device-locales";
 import {
   FAKE_SESSION_TOKEN,
@@ -28,6 +28,7 @@ import {
   fakePublicApi,
 } from "~/test-utils/fake-public-api";
 import { backend } from "~/test-utils/fake-workout-backend";
+import { InAppLanguage } from "~/test-utils/in-app-language";
 import { createTestQueryClient, settle } from "~/test-utils/query-client";
 
 jest.mock("expo-router", () => ({
@@ -372,12 +373,6 @@ describe("EditProfileScreen", () => {
     expect(screen.queryByTestId("wheel-121")).toBeNull();
   });
 });
-
-/** The screen under the root layout's language sync. */
-function InAppLanguage({ children }: { children: ReactNode }) {
-  useAppLanguageSync();
-  return children;
-}
 
 describe("EditProfileScreen on a Ukrainian device", () => {
   beforeEach(() => {

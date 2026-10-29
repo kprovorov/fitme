@@ -15,10 +15,10 @@ import {
 import * as Sentry from "@sentry/react-native";
 import { QueryClientProvider } from "@tanstack/react-query";
 import { fireEvent, render, screen } from "@testing-library/react-native";
-import { type ReactNode, useCallback } from "react";
+import { useCallback } from "react";
 import { Alert, Pressable, Text } from "react-native";
 import MeasurementSystemScreen from "~/app/settings/measurement-system";
-import { i18n, useAppLanguageSync } from "~/lib/i18n";
+import { i18n } from "~/lib/i18n";
 import { setDeviceLanguages } from "~/test-utils/device-locales";
 import {
   FAKE_SESSION_TOKEN,
@@ -26,6 +26,7 @@ import {
   fakePublicApi,
 } from "~/test-utils/fake-public-api";
 import { backend } from "~/test-utils/fake-workout-backend";
+import { InAppLanguage } from "~/test-utils/in-app-language";
 import {
   createTestQueryClient,
   settle,
@@ -430,12 +431,6 @@ describe("MeasurementSystemScreen", () => {
     expect(Alert.alert).not.toHaveBeenCalled();
   });
 });
-
-/** The screen under the root layout's language sync. */
-function InAppLanguage({ children }: { children: ReactNode }) {
-  useAppLanguageSync();
-  return children;
-}
 
 describe("MeasurementSystemScreen on a Ukrainian device", () => {
   beforeEach(() => {

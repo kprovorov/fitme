@@ -13,10 +13,10 @@ import LegalScreen from "~/app/legal";
 import SettingsScreen from "~/app/settings";
 import SupportScreen from "~/app/support";
 import ProfileView from "~/components/views/profile-view";
-import { useAppLanguageSync } from "~/lib/i18n";
 import { setDeviceLanguages } from "~/test-utils/device-locales";
 import { FAKE_USER_ID } from "~/test-utils/fake-public-api";
 import { backend } from "~/test-utils/fake-workout-backend";
+import { InAppLanguage } from "~/test-utils/in-app-language";
 import { createTestQueryClient, settle } from "~/test-utils/query-client";
 
 // Each Screen's title, as the native header shows it.
@@ -116,12 +116,6 @@ jest.mock("~/components/ui/alert-dialog", () => ({
     <MockAlertDialog {...props} />
   ),
 }));
-
-/** The screen under the root layout's language sync. */
-function InAppLanguage({ children }: { children: ReactNode }) {
-  useAppLanguageSync();
-  return children;
-}
 
 const mount = async (element: ReactNode) => {
   const client = createTestQueryClient();
