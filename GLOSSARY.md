@@ -14,6 +14,10 @@ _Avoid_: Account, auth user, member
 The fitness facts a User provides during onboarding: gender, age, height, weight and measurement system. A User has at most one Profile and may have none until onboarding completes.
 _Avoid_: User profile, user data, account details
 
+**App language**:
+The language Fitme speaks to a User in: one of the languages Fitme supports (English, Ukrainian), taken from the User's device settings and never stored. Language only: how dates and numbers look follows the device's region.
+_Avoid_: Locale, lang, UI language
+
 **User id**:
 The Clerk identifier of a User. The single key under which all User-owned data (Profile, Plans, Workout Sessions, Conversations) is stored and authorised.
 _Avoid_: UUID, auth uid, sub
@@ -44,7 +48,7 @@ _Avoid_: Exercise id, exercise uuid
 ### Library
 
 **Library**:
-Everything Fitme offers to every User, independent of any one User: today every Exercise (names, muscle groups, descriptions, instructions, thumbnails and videos). Owned by the private `fitme-exercises` repository and not stored in Postgres. Content is added, never removed.
+Everything Fitme offers to every User, independent of any one User: today every Exercise (names, muscle groups, descriptions, instructions, thumbnails and videos), written in English and translated into other App languages. Owned by the private `fitme-exercises` repository and not stored in Postgres. Content is added, never removed.
 _Avoid_: Exercise Library, exercise catalog, exercise database, exercises table
 
 **Library API**:
