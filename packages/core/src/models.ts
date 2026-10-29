@@ -44,6 +44,38 @@ export const muscleGroups = [
 ] as const;
 export type MuscleGroup = (typeof muscleGroups)[number];
 
+/** The languages Fitme speaks to a User in (GLOSSARY.md: App language). */
+export const appLanguages = ["en", "uk"] as const;
+export type AppLanguage = (typeof appLanguages)[number];
+
+/** The App language for every device language Fitme doesn't support. */
+export const defaultAppLanguage: AppLanguage = "en";
+
+export function isAppLanguage(value: unknown): value is AppLanguage {
+  return appLanguages.some((language) => language === value);
+}
+
+const LANGUAGE_SUBTAG = /^[a-z]+/i;
+
+/**
+ * The App language for a device's preferred languages (BCP 47 tags, most
+ * preferred first): the first whose language subtag is an App language
+ * (`uk-UA` → `uk`), or the default. No language stands in for another, so
+ * Russian gets English. Walking the list in order matches how iOS and
+ * Android pick an app's bundle language.
+ */
+export function resolveAppLanguage(
+  preferredLanguages: readonly string[]
+): AppLanguage {
+  for (const tag of preferredLanguages) {
+    const subtag = LANGUAGE_SUBTAG.exec(tag)?.[0].toLowerCase();
+    if (isAppLanguage(subtag)) {
+      return subtag;
+    }
+  }
+  return defaultAppLanguage;
+}
+
 export interface Identifiable {
   id: string;
 }
