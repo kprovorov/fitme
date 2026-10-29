@@ -1,6 +1,7 @@
 import { useUser } from "@clerk/expo";
 import { Link, router, Stack } from "expo-router";
 import { useCallback } from "react";
+import { useTranslation } from "react-i18next";
 import { SafeAreaView } from "react-native-safe-area-context";
 import Sign from "~/components/brand/sign";
 import { Button } from "~/components/ui/button";
@@ -11,6 +12,7 @@ import { storage } from "~/lib/mmkv";
 
 export default function WelcomeScreen() {
   const { user } = useUser();
+  const { t } = useTranslation();
 
   const handleSkip = useCallback(() => {
     if (user) {
@@ -30,9 +32,9 @@ export default function WelcomeScreen() {
         <VStack className="h-full items-center justify-center gap-8 p-6">
           <Sign height={100} width={100} />
           <VStack className="gap-2">
-            <H2>Welcome to Fitme!</H2>
+            <H2>{t("onboarding.welcome.title")}</H2>
             <Text className="text-center">
-              Your personal AI trainer is waiting for you. Let's get started!
+              {t("onboarding.welcome.description")}
             </Text>
           </VStack>
           <VStack className="w-full items-stretch">
@@ -41,12 +43,12 @@ export default function WelcomeScreen() {
                 className="w-full"
                 icon="arrow.right"
                 iconPosition="trailing"
-                label="Get Started"
+                label={t("onboarding.welcome.getStarted")}
               />
             </Link>
             <Button
               className="w-full"
-              label="Skip"
+              label={t("onboarding.welcome.skip")}
               onPress={handleSkip}
               variant="ghost"
             />

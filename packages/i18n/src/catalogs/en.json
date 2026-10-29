@@ -301,5 +301,48 @@
       "skipRest": "Skip rest",
       "over": "Rest over"
     }
+  },
+  "forms": {
+    "numberMin": "Number must be greater than or equal to {{min, number(useGrouping: false)}}",
+    "numberMax": "Number must be less than or equal to {{max, number(useGrouping: false)}}"
+  },
+  "onboarding": {
+    "welcome": {
+      "title": "Welcome to Fitme!",
+      "description": "Your personal AI trainer is waiting for you. Let's get started!",
+      "getStarted": "Get Started",
+      "skip": "Skip"
+    },
+    "profile": {
+      "title": "Let's get to know you",
+      "description": "We'll use this information to personalize your experience.",
+      "next": "Next"
+    }
+  },
+  "profileForm": {
+    "name": "Name",
+    "gender": "Gender",
+    "parameters": "Personal Parameters",
+    "age": "Age",
+    "weight": "Weight",
+    "height": "Height",
+    "notSet": "Not Set",
+    "done": "Done",
+    "ageValue_one": "{{count, number}} y.o.",
+    "ageValue_other": "{{count, number}} y.o.",
+    "feet_one": "{{count, number}} ft",
+    "feet_other": "{{count, number}} ft",
+    "inches_one": "{{count, number}} in",
+    "inches_other": "{{count, number}} in",
+    "errors": {
+      "ageRequired": "Age is required",
+      "genderRequired": "Gender is required",
+      "heightRequired": "Height is required",
+      "weightRequired": "Weight is required",
+      "nameTooLong": "Name must be at most {{max, number(useGrouping: false)}} characters",
+      "tooManyDecimals": "Number must have at most {{max, number(useGrouping: false)}} decimals",
+      "saveFailed": "Couldn't save your profile. Please check your connection and try again.",
+      "saveRateLimited": "Couldn't save your profile. Too many requests: please try again in {{seconds, number}} s."
+    }
   }
 }

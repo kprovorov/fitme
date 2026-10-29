@@ -10,7 +10,12 @@ import {
   MIN_AGE,
   range,
 } from "@fitme/core";
-import { formatHeight, formatWeight } from "@fitme/i18n";
+import {
+  formatHeight,
+  formatUnit,
+  formatWeight,
+  type Translator,
+} from "@fitme/i18n";
 import { zodResolver } from "@hookform/resolvers/zod";
 import { Stack } from "expo-router";
 import {
@@ -29,6 +34,7 @@ import {
   useController,
   useForm,
 } from "react-hook-form";
+import { useTranslation } from "react-i18next";
 import {
   Keyboard,
   Pressable,
@@ -55,18 +61,17 @@ import { H4 } from "~/components/ui/typography";
 import { VStack } from "~/components/ui/vstack";
 import { rateLimitedFor } from "~/lib/api/client";
 import { numberInRange } from "~/lib/form-schemas";
-import { useI18n } from "~/lib/i18n";
+import { i18n as appI18n, useI18n } from "~/lib/i18n";
 
-/** Shown instead of raw Supabase errors when saving the profile fails. */
-export const PROFILE_SAVE_ERROR_MESSAGE =
-  "Couldn't save your profile. Please check your connection and try again.";
-
-/** What a failed save shows: the wait when there were too many requests. */
-export const profileSaveErrorMessage = (error: unknown) => {
-  const waitSeconds = rateLimitedFor(error);
-  return waitSeconds === null
-    ? PROFILE_SAVE_ERROR_MESSAGE
-    : `Couldn't save your profile. Too many requests: please try again in ${waitSeconds} s.`;
+/**
+ * What a failed save shows, in the App language: the wait when there were too
+ * many requests, never the API's own message.
+ */
+export const profileSaveErrorMessage = (t: Translator["t"], error: unknown) => {
+  const seconds = rateLimitedFor(error);
+  return seconds === null
+    ? t("profileForm.errors.saveFailed")
+    : t("profileForm.errors.saveRateLimited", { seconds });
 };
 
 type ProfileField = "age" | "weight" | "height";
@@ -87,14 +92,26 @@ const DEFAULT_HEIGHT_INCHES = 60;
 /** The smallest height or weight step: at most `MAX_BODY_DECIMALS` decimals. */
 const BODY_STEP = 10 ** -MAX_BODY_DECIMALS;
 
-const bodyValue = (max: number, requiredMessage: string) =>
+/** The longest Name Clerk's field takes here. */
+const MAX_NAME_LENGTH = 50;
+
+// Every message is read when the form validates, so it's in the App language
+// of that moment.
+const ageRequired = () => appI18n.t("profileForm.errors.ageRequired");
+const heightRequired = () => appI18n.t("profileForm.errors.heightRequired");
+const weightRequired = () => appI18n.t("profileForm.errors.weightRequired");
+
+const bodyValue = (max: number, requiredMessage: () => string) =>
   numberInRange(1, max, requiredMessage).multipleOf(BODY_STEP, {
-    error: `Number must have at most ${MAX_BODY_DECIMALS} decimals`,
+    error: () =>
+      appI18n.t("profileForm.errors.tooManyDecimals", {
+        max: MAX_BODY_DECIMALS,
+      }),
   });
 
-const ageSchema = numberInRange(MIN_AGE, MAX_AGE, "Age is required");
-const heightSchema = bodyValue(MAX_BODY_HEIGHT, "Height is required");
-const weightSchema = bodyValue(MAX_BODY_WEIGHT, "Weight is required");
+const ageSchema = numberInRange(MIN_AGE, MAX_AGE, ageRequired);
+const heightSchema = bodyValue(MAX_BODY_HEIGHT, heightRequired);
+const weightSchema = bodyValue(MAX_BODY_WEIGHT, weightRequired);
 
 /**
  * `schema`, except that the `saved` value passes as it is: only what the User
@@ -104,7 +121,7 @@ const weightSchema = bodyValue(MAX_BODY_WEIGHT, "Weight is required");
 const orSaved = (
   schema: typeof ageSchema,
   saved: number | undefined,
-  requiredMessage: string
+  requiredMessage: () => string
 ) =>
   saved === undefined
     ? schema
@@ -130,18 +147,25 @@ const profileFormSchema = (saved: {
   weight?: number;
 }) =>
   z.object({
-    age: orSaved(ageSchema, saved.age, "Age is required"),
-    gender: z.enum(genders, { error: "Gender is required" }),
-    height: orSaved(heightSchema, saved.height, "Height is required"),
+    age: orSaved(ageSchema, saved.age, ageRequired),
+    gender: z.enum(genders, {
+      error: () => appI18n.t("profileForm.errors.genderRequired"),
+    }),
+    height: orSaved(heightSchema, saved.height, heightRequired),
     // Only rendered (and therefore only set) when `showName` is enabled.
     // Clerk's Name is optional, so a User without one can still save the
     // other fields.
     name: z
       .string()
       .trim()
-      .max(50, { error: "Name must be at most 50 characters" })
+      .max(MAX_NAME_LENGTH, {
+        error: () =>
+          appI18n.t("profileForm.errors.nameTooLong", {
+            max: MAX_NAME_LENGTH,
+          }),
+      })
       .optional(),
-    weight: orSaved(weightSchema, saved.weight, "Weight is required"),
+    weight: orSaved(weightSchema, saved.weight, weightRequired),
   });
 
 export type ProfileFormValues = z.infer<ReturnType<typeof profileFormSchema>>;
@@ -176,6 +200,7 @@ export default function ProfileForm({
 }: ProfileFormProps) {
   const insets = useSafeAreaInsets();
   const i18n = useI18n();
+  const { t } = useTranslation();
 
   // The saved values the form starts from; later changes to `defaultValues`
   // don't reset the form either.
@@ -263,16 +288,16 @@ export default function ProfileForm({
         autoComplete="name"
         editable={!isFormSubmitting}
         error={error?.message}
-        maxLength={50}
+        maxLength={MAX_NAME_LENGTH}
         onBlur={onBlur}
         onChangeText={onChange}
         onFocus={handleNameFocus}
-        placeholder="Name"
+        placeholder={t("profileForm.name")}
         testID="edit-profile-name-input"
         value={value}
       />
     ),
-    [handleNameFocus, isFormSubmitting]
+    [handleNameFocus, isFormSubmitting, t]
   );
 
   // The rows read `getValues`, so this re-validation is also what re-renders
@@ -295,7 +320,7 @@ export default function ProfileForm({
             showWheel
               ? [
                   {
-                    label: "Done",
+                    label: t("profileForm.done"),
                     onPress: () => {
                       toggleWheel();
                       setFieldFocused(null);
@@ -323,7 +348,7 @@ export default function ProfileForm({
 
             {showName ? (
               <VStack className="items-stretch gap-2">
-                <H4>Name</H4>
+                <H4>{t("profileForm.name")}</H4>
                 <Controller
                   control={form.control}
                   name="name"
@@ -334,7 +359,7 @@ export default function ProfileForm({
 
             <VStack className="items-stretch gap-2">
               <VStack className="items-start justify-start gap-0">
-                <H4>Gender</H4>
+                <H4>{t("profileForm.gender")}</H4>
                 {form.formState.errors.gender ? (
                   <ErrorMessage>
                     {form.formState.errors.gender.message}
@@ -351,7 +376,7 @@ export default function ProfileForm({
 
             <VStack className="items-stretch gap-2">
               <VStack className="items-start justify-start gap-0">
-                <H4>Personal Parameters</H4>
+                <H4>{t("profileForm.parameters")}</H4>
                 {PROFILE_FIELDS.map((field) => (
                   <VStack key={field}>
                     {form.formState.errors[field] ? (
@@ -368,9 +393,11 @@ export default function ProfileForm({
                   field="age"
                   hasError={!!form.formState.errors.age}
                   isFocused={fieldFocused === "age"}
-                  label="Age"
+                  label={t("profileForm.age")}
                   onPress={toggleField}
-                  value={age ? `${age} y.o.` : undefined}
+                  value={
+                    age ? t("profileForm.ageValue", { count: age }) : undefined
+                  }
                 />
 
                 <Separator />
@@ -379,7 +406,7 @@ export default function ProfileForm({
                   field="weight"
                   hasError={!!form.formState.errors.weight}
                   isFocused={fieldFocused === "weight"}
-                  label="Weight"
+                  label={t("profileForm.weight")}
                   onPress={toggleField}
                   value={
                     weight
@@ -394,7 +421,7 @@ export default function ProfileForm({
                   field="height"
                   hasError={!!form.formState.errors.height}
                   isFocused={fieldFocused === "height"}
-                  label="Height"
+                  label={t("profileForm.height")}
                   onPress={toggleField}
                   value={
                     height
@@ -467,6 +494,7 @@ function ParameterRow({
   onPress,
   value,
 }: ParameterRowProps) {
+  const { t } = useTranslation();
   const handlePress = useCallback(() => onPress(field), [field, onPress]);
 
   let valueClassName = "text-muted-foreground";
@@ -480,7 +508,9 @@ function ParameterRow({
     <Pressable onPress={handlePress}>
       <HStack className="w-full justify-between p-3">
         <Text>{label}</Text>
-        <Text className={valueClassName}>{value ?? "Not Set"}</Text>
+        <Text className={valueClassName}>
+          {value ?? t("profileForm.notSet")}
+        </Text>
       </HStack>
     </Pressable>
   );
@@ -617,6 +647,8 @@ function WeightWheel({ control, measurementSystem, onChange }: WheelProps) {
 }
 
 function HeightWheel({ control, measurementSystem, onChange }: WheelProps) {
+  const i18n = useI18n();
+  const { t } = useTranslation();
   const isMetric = measurementSystem === "metric";
   const [value, setHeight] = useWheelValue(
     control,
@@ -642,7 +674,7 @@ function HeightWheel({ control, measurementSystem, onChange }: WheelProps) {
       <Picker
         onValueChange={setHeight}
         options={range(30, 275).map((i) => ({
-          label: `${i} cm`,
+          label: formatUnit(i18n, i, "cm"),
           value: i,
         }))}
         value={Math.round(value)}
@@ -656,7 +688,7 @@ function HeightWheel({ control, measurementSystem, onChange }: WheelProps) {
       <Picker
         onValueChange={handleFeetChange}
         options={range(1, 9).map((i) => ({
-          label: `${i} ft`,
+          label: t("profileForm.feet", { count: i }),
           value: i,
         }))}
         value={feet}
@@ -665,7 +697,7 @@ function HeightWheel({ control, measurementSystem, onChange }: WheelProps) {
       <Picker
         onValueChange={handleInchesChange}
         options={range(0, 11).map((i) => ({
-          label: `${i} in`,
+          label: t("profileForm.inches", { count: i }),
           value: i,
         }))}
         value={inches}
