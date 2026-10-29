@@ -1,17 +1,20 @@
-import type { ExerciseSummary } from "@fitme/library-sdk";
-import { createFakeLibrary } from "@fitme/library-sdk/fake";
+import { createFakeLibrary, type FakeExercise } from "@fitme/library-sdk/fake";
 
 const media = (slug: string) => ({
   thumbnail_url: `https://media.test/${slug}.jpg`,
   video_url: `https://media.test/${slug}.mp4`,
 });
 
-/** The Exercises the tool tests' fake library holds. */
-export const libraryExercises: ExerciseSummary[] = [
+/**
+ * The Exercises the tool tests' fake library holds, in English; Bench Press
+ * and Back Squat are translated into Ukrainian, Incline Dumbbell Press isn't.
+ */
+export const libraryExercises: FakeExercise[] = [
   {
     muscle_groups: ["chest", "triceps"],
     name: "Bench Press",
     slug: "bench-press",
+    translations: { uk: { name: "Жим лежачи" } },
     ...media("bench-press"),
   },
   {
@@ -24,6 +27,7 @@ export const libraryExercises: ExerciseSummary[] = [
     muscle_groups: ["quadriceps", "glutes"],
     name: "Back Squat",
     slug: "back-squat",
+    translations: { uk: { name: "Присідання зі штангою" } },
     ...media("back-squat"),
   },
 ];

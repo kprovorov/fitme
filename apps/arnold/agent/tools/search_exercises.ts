@@ -1,6 +1,7 @@
 import { muscleGroups } from "@fitme/core/models";
 import { defineTool } from "eve/tools";
 import { z } from "zod";
+import { libraryLanguage } from "../lib/client-context";
 import { libraryUnavailable, onLibraryFailure } from "../lib/exercises";
 import { getLibrary } from "../lib/library";
 import { requireConversationOwner } from "../lib/owner";
@@ -16,6 +17,7 @@ export default defineTool({
     requireConversationOwner(ctx.session.auth);
     try {
       const page = await getLibrary().list({
+        language: libraryLanguage(ctx.messages),
         limit: MAX_RESULTS,
         muscleGroup: muscle_group,
         search: query,

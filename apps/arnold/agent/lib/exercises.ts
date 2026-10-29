@@ -1,4 +1,4 @@
-import type { MuscleGroup } from "@fitme/core/models";
+import type { AppLanguage, MuscleGroup } from "@fitme/core/models";
 import { LibraryError } from "@fitme/library-sdk";
 import { reportError } from "@fitme/observability/node";
 import { z } from "zod";
@@ -90,10 +90,13 @@ interface StoredExercise<Set> {
  * Each group's Exercises with their name and muscle groups, through one
  * lookup (after the read's transaction). A slug the library doesn't know, or
  * every slug when the library fails (reported), gets a name made from the
- * slug and no muscle groups, so a read always answers.
+ * slug and no muscle groups, so a read always answers. Names are in
+ * `language` (English when left out); an Exercise without a translation in
+ * it is named in English.
  */
 export const withExerciseDetails = async <Set>(
-  groups: readonly (readonly StoredExercise<Set>[])[]
+  groups: readonly (readonly StoredExercise<Set>[])[],
+  language?: AppLanguage
 ): Promise<(StoredExercise<Set> & ExerciseDetails)[][]> => {
   const slugs = groups.flatMap((group) =>
     group.map(({ exercise_slug }) => exercise_slug)
@@ -101,7 +104,7 @@ export const withExerciseDetails = async <Set>(
   const known = new Map<string, ExerciseDetails>();
   if (slugs.length > 0) {
     try {
-      const { data } = await getLibrary().lookup(slugs);
+      const { data } = await getLibrary().lookup(slugs, { language });
       for (const { muscle_groups, name, slug } of data) {
         known.set(slug, { muscle_groups, name });
       }

@@ -9,6 +9,7 @@ import {
   inputSchemaOf,
   type TestedTool,
   userIdFields,
+  withClientContext,
 } from "./tool-context";
 
 const db = vi.hoisted(() => ({ asUser: vi.fn() }));
@@ -321,6 +322,129 @@ describe("search_exercises", () => {
     await expect(
       searchExercises.execute({}, contextFor(null))
     ).rejects.toThrow();
+  });
+});
+
+describe("the App language", () => {
+  const inUkrainian = withClientContext(alice, { language: "uk" });
+  const inEnglish = withClientContext(alice, { language: "en" });
+  const inGerman = withClientContext(alice, { language: "de" });
+
+  /** The names `get_active_plan` gives the active Plan's Exercises. */
+  const planNames = async (ctx: typeof alice) => {
+    plans.getActivePlan.mockResolvedValue({
+      ...plan,
+      workouts: [
+        {
+          ...plan.workouts[0],
+          exercises: [
+            planExercise("we_bench", "bench-press"),
+            planExercise("we_incline", "incline-dumbbell-press"),
+            planExercise("we_retired", "jefferson-curl"),
+          ],
+        },
+      ],
+    });
+    const answer = (await getActivePlan.execute({}, ctx)) as {
+      workouts: { exercises: ShownExercise[] }[];
+    };
+    return answer.workouts[0].exercises.map(({ name }) => name);
+  };
+
+  /** The names `search_exercises` answers for `query`. */
+  const searchNames = async (ctx: typeof alice, query?: string) => {
+    const found = (await searchExercises.execute(
+      { muscle_group: "chest", query },
+      ctx
+    )) as ShownExercise[];
+    return found.map(({ name }) => name);
+  };
+
+  it("names a Plan's Exercises in Ukrainian, an untranslated one in English and an unknown one from its slug", async () => {
+    expect(await planNames(inUkrainian)).toEqual([
+      "Жим лежачи",
+      "Incline Dumbbell Press",
+      "Jefferson curl",
+    ]);
+  });
+
+  it("names a Plan's Exercises in English without a language, in English and in a language that isn't an App language", async () => {
+    const english = ["Bench Press", "Incline Dumbbell Press", "Jefferson curl"];
+
+    expect(await planNames(alice)).toEqual(english);
+    expect(await planNames(inEnglish)).toEqual(english);
+    expect(await planNames(inGerman)).toEqual(english);
+  });
+
+  it("names the workout history's Exercises in the App language, keeping their muscle groups", async () => {
+    const shown = async (ctx: typeof alice) => {
+      const [session] = (await getWorkoutsHistory.execute(
+        { limit: 10 },
+        ctx
+      )) as { exercises: ShownExercise[] }[];
+      return session.exercises[0];
+    };
+
+    expect(await shown(inUkrainian)).toMatchObject({
+      muscle_groups: ["quadriceps", "glutes"],
+      name: "Присідання зі штангою",
+    });
+    expect(await shown(alice)).toMatchObject({ name: "Back Squat" });
+    expect(await shown(inGerman)).toMatchObject({ name: "Back Squat" });
+  });
+
+  it("names the workout history's untranslated Exercises in English", async () => {
+    sessions.listWorkoutHistory.mockResolvedValue([
+      {
+        ...history[0],
+        exercises: [
+          {
+            ...history[0].exercises[0],
+            exercise_slug: "incline-dumbbell-press",
+          },
+        ],
+      },
+    ]);
+
+    const [session] = (await getWorkoutsHistory.execute(
+      { limit: 10 },
+      inUkrainian
+    )) as { exercises: ShownExercise[] }[];
+
+    expect(session.exercises[0].name).toBe("Incline Dumbbell Press");
+  });
+
+  it("answers search results in Ukrainian, an untranslated one in English, in Ukrainian order", async () => {
+    expect(await searchNames(inUkrainian)).toEqual([
+      "Жим лежачи",
+      "Incline Dumbbell Press",
+    ]);
+  });
+
+  it("answers search results in English without a language or with one that isn't an App language", async () => {
+    const english = ["Bench Press", "Incline Dumbbell Press"];
+
+    expect(await searchNames(alice)).toEqual(english);
+    expect(await searchNames(inEnglish)).toEqual(english);
+    expect(await searchNames(inGerman)).toEqual(english);
+  });
+
+  it("finds an Exercise by its Ukrainian name, and still by its English one", async () => {
+    expect(await searchNames(inUkrainian, "жим")).toEqual(["Жим лежачи"]);
+    expect(await searchNames(inUkrainian, "bench")).toEqual(["Жим лежачи"]);
+  });
+
+  it("asks the library in the App language", async () => {
+    const list = vi.spyOn(fakeLibrary, "list");
+
+    await searchExercises.execute({ query: "жим" }, inUkrainian);
+
+    expect(list).toHaveBeenCalledWith({
+      language: "uk",
+      limit: 8,
+      muscleGroup: undefined,
+      search: "жим",
+    });
   });
 });
 
