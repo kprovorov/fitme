@@ -2,7 +2,8 @@
  * The Library tab and the Exercise picker search the Library API
  * (FIT-242): search waits 300 ms after the last keystroke, the muscle group
  * filter and paging go through `list`, a 429 keeps the last results with no
- * error, and every result is seeded into its row query and MMKV.
+ * error, and every result is seeded into its row query and MMKV. In the App
+ * language (FIT-408) it searches and lists in that language.
  *
  * Mounts the real view on the fake Library; the SwiftUI-backed
  * primitives are swapped for plain stand-ins.
@@ -24,9 +25,12 @@ import {
 } from "@jest/globals";
 import { type QueryClient, QueryClientProvider } from "@tanstack/react-query";
 import { act, fireEvent, render, screen } from "@testing-library/react-native";
+import type { ReactNode } from "react";
 import ExercisesView from "~/components/views/exercises-view";
+import { i18n, useAppLanguageSync } from "~/lib/i18n";
 import { readCachedSummary } from "~/lib/library-cache";
 import { storage } from "~/lib/mmkv";
+import { setDeviceLanguages } from "~/test-utils/device-locales";
 import { libraryExercise, serveLibrary } from "~/test-utils/fake-library";
 import { createTestQueryClient } from "~/test-utils/query-client";
 
@@ -407,5 +411,152 @@ describe("what it lists", () => {
     await fireEvent.press(screen.getByText("Bench Press 02"));
 
     expect(pressed).toEqual(["bench-press-02"]);
+  });
+});
+
+/** Translated into Ukrainian, where they sort in another order than in English. */
+const TRANSLATED = [
+  libraryExercise("bench-press", {
+    translations: { uk: { name: "Жим лежачи" } },
+  }),
+  libraryExercise("deadlift", {
+    translations: { uk: { name: "Станова тяга" } },
+  }),
+  libraryExercise("squat", { translations: { uk: { name: "Присідання" } } }),
+];
+
+function InAppLanguage({ children }: { children: ReactNode }) {
+  useAppLanguageSync();
+  return children;
+}
+
+/** The view in the App language, following the device as the root layout does. */
+const renderInAppLanguage = async () => {
+  queryClient = createTestQueryClient();
+  await render(
+    <QueryClientProvider client={queryClient}>
+      <InAppLanguage>
+        <ExercisesView />
+      </InAppLanguage>
+    </QueryClientProvider>
+  );
+  await advance(0);
+};
+
+/** The names listed, top to bottom. */
+const listedNames = (names: readonly string[]) =>
+  screen
+    .getAllByText(new RegExp(`^(${names.join("|")})$`))
+    .map((element) => element.props.children);
+
+describe("in Ukrainian", () => {
+  beforeEach(async () => {
+    fake = serveLibrary(TRANSLATED);
+    list = jest.spyOn(fake, "list");
+    setDeviceLanguages(["uk-UA"]);
+    await i18n.changeLanguage("uk");
+  });
+
+  // The i18n instance outlives a test; the device goes back to English on its own.
+  afterEach(async () => {
+    await i18n.changeLanguage("en");
+  });
+
+  it("lists Ukrainian names in Ukrainian order", async () => {
+    await renderInAppLanguage();
+
+    expect(list).toHaveBeenLastCalledWith({
+      language: "uk",
+      limit: 20,
+      offset: 0,
+    });
+    expect(listedNames(["Жим лежачи", "Присідання", "Станова тяга"])).toEqual([
+      "Жим лежачи",
+      "Присідання",
+      "Станова тяга",
+    ]);
+    expect(screen.queryByText("Squat")).toBeNull();
+  });
+
+  it("finds an Exercise by its Ukrainian name", async () => {
+    await renderInAppLanguage();
+
+    await type("прис");
+    await advance(300);
+
+    expect(list).toHaveBeenLastCalledWith({
+      language: "uk",
+      limit: 20,
+      offset: 0,
+      search: "прис",
+    });
+    expect(screen.getByText("Присідання")).toBeTruthy();
+    expect(screen.queryByText("Жим лежачи")).toBeNull();
+  });
+
+  it("finds an Exercise by its English name, named in Ukrainian", async () => {
+    await renderInAppLanguage();
+
+    await type("dead");
+    await advance(300);
+
+    expect(screen.getByText("Станова тяга")).toBeTruthy();
+    expect(screen.queryByText("Deadlift")).toBeNull();
+    expect(screen.queryByText("Присідання")).toBeNull();
+  });
+
+  it("seeds each Exercise's row query and MMKV in Ukrainian", async () => {
+    await renderInAppLanguage();
+
+    expect(
+      queryClient.getQueryData<ExerciseSummary>([
+        "exercise-summary",
+        "uk",
+        "squat",
+      ])
+    ).toMatchObject({ name: "Присідання" });
+    expect(readCachedSummary("uk", "squat")?.value).toMatchObject({
+      name: "Присідання",
+    });
+    expect(
+      queryClient.getQueryData(["exercise-summary", "en", "squat"])
+    ).toBeUndefined();
+    expect(readCachedSummary("en", "squat")).toBeUndefined();
+  });
+
+  it("searches again when the App language changes", async () => {
+    await renderInAppLanguage();
+    await type("squat");
+    await advance(300);
+    expect(screen.getByText("Присідання")).toBeTruthy();
+    list.mockClear();
+
+    await act(() => {
+      setDeviceLanguages(["en-US"]);
+    });
+    await advance(0);
+
+    expect(list).toHaveBeenCalledTimes(1);
+    expect(list).toHaveBeenLastCalledWith({
+      limit: 20,
+      offset: 0,
+      search: "squat",
+    });
+    expect(screen.getByText("Squat")).toBeTruthy();
+    expect(screen.queryByText("Присідання")).toBeNull();
+  });
+
+  it("never keeps another language's results when rate limited", async () => {
+    await renderInAppLanguage();
+    expect(screen.getByText("Присідання")).toBeTruthy();
+    fake.failWith(new LibraryRateLimitedError(30));
+
+    await act(() => {
+      setDeviceLanguages(["en-US"]);
+    });
+    await advance(0);
+
+    expect(screen.queryByText("Присідання")).toBeNull();
+    expect(screen.getByText("Couldn't Load Exercises")).toBeTruthy();
   });
 });
