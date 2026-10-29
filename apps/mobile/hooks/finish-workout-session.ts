@@ -14,6 +14,7 @@ import {
   FINISH_WORKOUT_SESSION_MUTATION_KEY,
   type FinishWorkoutSessionVariables,
   fetchPlanUpdate,
+  OPEN_WORKOUT_SESSION_QUERY_KEY,
   useFinishWorkoutSessionMutation,
   useWorkoutSessionQuery,
 } from "~/hooks/queries/workout-sessions";
@@ -198,6 +199,10 @@ export function useFinishWorkoutSession(
       await queryClient.invalidateQueries({ queryKey: ["workout-session"] });
       await queryClient.invalidateQueries({ queryKey: ["plans"] });
       await queryClient.invalidateQueries({ queryKey: ["exercise-history"] });
+      // Start is no longer blocked on it.
+      await queryClient.invalidateQueries({
+        queryKey: OPEN_WORKOUT_SESSION_QUERY_KEY,
+      });
       const openSummary = () => {
         const summary = `/workout-sessions/${sessionId}/summary` as const;
         if (outsideSession) {

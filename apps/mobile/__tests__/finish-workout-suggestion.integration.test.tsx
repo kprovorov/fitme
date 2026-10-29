@@ -31,6 +31,7 @@ import {
 } from "@testing-library/react-native";
 import { createContext, type ReactNode, useSyncExternalStore } from "react";
 import { AccessibilityInfo, Alert, View } from "react-native";
+import WorkoutScreen from "~/app/plans/[planId]/workouts/[workoutId]/index";
 import PlanSessionExerciseScreen from "~/app/plans/[planId]/workouts/[workoutId]/sessions/[sessionId]/exercises/[exerciseId]/index";
 import PlanSessionScreen from "~/app/plans/[planId]/workouts/[workoutId]/sessions/[sessionId]/index";
 import HistorySessionScreen from "~/app/workout-sessions/[workoutSessionId]";
@@ -38,6 +39,7 @@ import HomeView from "~/components/views/home-view";
 import { PlanUpdateSheetHost } from "~/components/workout-sessions/plan-update-sheet";
 import { closePlanUpdatePrompt } from "~/hooks/plan-update-prompt";
 import { usePlansQuery } from "~/hooks/queries/plans";
+import { useOpenWorkoutSessionQuery } from "~/hooks/queries/workout-sessions";
 import { storage } from "~/lib/mmkv";
 import { segmentClient } from "~/lib/segment";
 import { libraryExercise, serveLibrary } from "~/test-utils/fake-library";
@@ -62,7 +64,8 @@ type RouteName =
   | "history-session"
   | "home"
   | "plan-session"
-  | "summary";
+  | "summary"
+  | "workout";
 
 interface Route {
   key: string;
@@ -80,6 +83,7 @@ const PATHS: [RouteName, RegExp][] = [
     "plan-session",
     /^\/plans\/(?<planId>[^/]+)\/workouts\/(?<workoutId>[^/]+)\/sessions\/(?<sessionId>[^/]+)$/,
   ],
+  ["workout", /^\/plans\/(?<planId>[^/]+)\/workouts\/(?<workoutId>[^/]+)$/],
   ["summary", /^\/workout-sessions\/(?<workoutSessionId>[^/]+)\/summary$/],
   ["history-session", /^\/workout-sessions\/(?<workoutSessionId>[^/]+)$/],
   ["home", /^\/$/],
@@ -283,9 +287,13 @@ jest.mock("~/components/ui/dialog", () => {
 // Harness.
 // ---------------------------------------------------------------------------
 
-/** Home's Plan, its next Workout's card first, as the Home tab shows it. */
+/**
+ * Home's Plan, its next Workout's card first, as the Home tab shows it, with
+ * the open Workout Session read alongside.
+ */
 function HomeScreen() {
   const { data: plans } = usePlansQuery();
+  useOpenWorkoutSessionQuery();
   const plan = plans?.find(({ is_active }) => is_active);
   return plan ? <HomeView plan={plan} /> : null;
 }
@@ -296,6 +304,7 @@ const SCREENS: Record<RouteName, () => ReactNode> = {
   home: HomeScreen,
   "plan-session": PlanSessionScreen,
   summary: () => <View testID="summary-screen" />,
+  workout: WorkoutScreen,
 };
 
 function Navigator() {
@@ -1240,26 +1249,112 @@ describe("starting a Workout from Home", () => {
     });
   });
 
-  it("shows the usual start error while another Workout's session is open", async () => {
-    await startApp();
-    // Another Workout started elsewhere (MCP, another device) after Home was read.
-    backend.sessions.push({
-      finished_at: null,
+  /** Push Day's open Workout Session, one Bench Press set to log. */
+  const seedPushDayOpen = () => {
+    backend.seed({
+      exercises: [{ name: "Bench Press", sets: [null] }],
       id: "open-2",
-      plan_id: "plan-1",
-      started_at: "2026-10-08T09:00:00.000Z",
+    });
+    Object.assign(backend.session("open-2") ?? {}, {
       workout_id: "w2",
       workoutName: "Push Day",
     });
+  };
+
+  const isStartBlocked = () =>
+    focused().getByRole("button", { name: "Start Workout" }).props
+      .accessibilityState.disabled === true &&
+    focused().queryByText("Finish Push Day first") !== null;
+
+  it("blocks the Next card's Start while another Workout is in progress, and continues it", async () => {
+    seedPushDayOpen();
+    await startApp();
+
+    expect(isStartBlocked()).toBe(true);
+    await fireEvent.press(
+      focused().getByRole("button", { name: "Continue Push Day" })
+    );
+    await settle();
+
+    expect(mockNavigator.routes.at(-1)).toMatchObject({
+      name: "plan-session",
+      params: { sessionId: "open-2", workoutId: "w2" },
+    });
+    expect(fakePublicApi.count(START)).toBe(0);
+  });
+
+  it("turns a 409 from Start into the blocked state, without the alert", async () => {
+    await startApp();
+    // Another Workout started elsewhere (MCP, another device) after Home was read.
+    seedPushDayOpen();
 
     await startWorkout();
 
-    expect(Alert.alert).toHaveBeenCalledWith(
-      "Couldn't start workout",
-      expect.any(String)
-    );
+    expect(fakePublicApi.count(START)).toBe(1);
+    expect(Alert.alert).not.toHaveBeenCalled();
+    expect(isStartBlocked()).toBe(true);
     expect(sessionsOf("w1")).toEqual([]);
     expect(mockNavigator.routes.map(({ name }) => name)).toEqual(["home"]);
+  });
+
+  it("blocks Start on the Workout screen too, and finishing the other Workout unblocks both", async () => {
+    seedPushDayOpen();
+    await startApp();
+
+    await fireEvent.press(
+      focused().getByRole("button", { name: "Leg Day, 1 Exercise" })
+    );
+    await settle();
+    expect(mockNavigator.routes.at(-1)?.name).toBe("workout");
+    expect(isStartBlocked()).toBe(true);
+
+    // Continue Push Day replaces the Workout screen with its session.
+    await fireEvent.press(
+      focused().getByRole("button", { name: "Continue Push Day" })
+    );
+    await settle();
+    expect(mockNavigator.routes.map(({ name }) => name)).toEqual([
+      "home",
+      "plan-session",
+    ]);
+    await fireEvent.press(await focused().findByText("Bench Press"));
+    await settle();
+    await fireEvent.press(focused().getByTestId("log-set-button-1"));
+    await settle();
+    await fireEvent.press(
+      screen.getByTestId("finish-workout-suggestion-finish")
+    );
+    await settle();
+    expect(backend.session("open-2")?.finished_at).not.toBeNull();
+    expect(mockNavigator.routes.map(({ name }) => name)).toEqual([
+      "home",
+      "summary",
+    ]);
+
+    // Back on Home: the Next card starts again.
+    await act(() => mockNavigator.dismiss());
+    await settle();
+    expect(focused().queryByText("Finish Push Day first")).toBeNull();
+    expect(
+      focused().getByRole("button", { name: "Start Workout" }).props
+        .accessibilityState.disabled
+    ).toBe(false);
+
+    // And so does Leg Day's Workout screen.
+    await fireEvent.press(
+      focused().getByRole("button", { name: "Leg Day, 1 Exercise" })
+    );
+    await settle();
+    expect(focused().queryByText("Finish Push Day first")).toBeNull();
+    await fireEvent.press(
+      focused().getByRole("button", { name: "Start Workout" })
+    );
+    await settle();
+    expect(sessionsOf("w1")).toHaveLength(1);
+    expect(mockNavigator.routes.at(-1)).toMatchObject({
+      name: "plan-session",
+      params: { workoutId: "w1" },
+    });
   });
 
   it("logs the started session's sets and finishes it, rotating the Workout to the end of the Plan", async () => {

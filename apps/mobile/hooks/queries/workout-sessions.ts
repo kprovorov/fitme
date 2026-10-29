@@ -70,6 +70,50 @@ export const useWorkoutSessionQuery = createQuery<
   queryKey: ["workout-session"],
 });
 
+/** The User's one open Workout Session (ADR 0013), as Start needs it. */
+export interface OpenWorkoutSession {
+  id: string;
+  planId: string | null;
+  workoutId: string | null;
+  /** `null` once its Workout is gone. */
+  workoutName: string | null;
+}
+
+export const OPEN_WORKOUT_SESSION_QUERY_KEY = ["open-workout-session"];
+
+/**
+ * The User's open Workout Session, or `null` with none: a User has at most
+ * one, so it blocks starting any other Workout.
+ */
+export const useOpenWorkoutSessionQuery =
+  createQuery<OpenWorkoutSession | null>({
+    fetcher: async (): Promise<OpenWorkoutSession | null> => {
+      const { data, error } = await supabase
+        .from("workout_sessions")
+        .select("id, plan_id, workout_id, workout:workouts (name)")
+        .is("finished_at", null)
+        .order("started_at", { ascending: false })
+        .limit(1)
+        .maybeSingle();
+      if (error) {
+        throw error;
+      }
+      if (!data) {
+        return null;
+      }
+      // A to-one embed: PostgREST answers an object (or `null` once the
+      // Workout is gone), whatever the generated types say.
+      const workout = data.workout as unknown as { name: string } | null;
+      return {
+        id: data.id,
+        planId: data.plan_id,
+        workoutId: data.workout_id,
+        workoutName: workout?.name ?? null,
+      };
+    },
+    queryKey: OPEN_WORKOUT_SESSION_QUERY_KEY,
+  });
+
 export interface FinishWorkoutSessionVariables {
   sessionId: string;
 }
