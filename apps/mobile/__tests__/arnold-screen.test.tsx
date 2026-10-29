@@ -211,7 +211,7 @@ describe("Arnold screen", () => {
 
       expect(
         screen.getByText(
-          "Не вдалося перевірити підписку Fitme Pro. Спробуйте ще раз за хвилину."
+          "Не вдалося перевірити підписку Fitme Pro. Спробуйте трохи згодом."
         )
       ).toBeTruthy();
       expect(screen.queryByText(SERVER_MESSAGE)).toBeNull();

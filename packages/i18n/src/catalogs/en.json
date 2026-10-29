@@ -15,6 +15,7 @@
     "chat": "Chat",
     "model": "Model",
     "newConversation": "New conversation",
+    "scrollToLatest": "Scroll to latest messages",
     "emptyState": {
       "title": "Ask Arnold",
       "description": "About your training, plans and workouts"
@@ -22,8 +23,7 @@
     "composer": {
       "placeholder": "Message Arnold",
       "send": "Send message",
-      "addToChat": "Add to chat",
-      "scrollToLatest": "Scroll to latest messages"
+      "addToChat": "Add to chat"
     },
     "attachments": {
       "title": "Add to chat",
