@@ -1,0 +1,26 @@
+{
+  "name": "@fitme/i18n",
+  "version": "0.0.0",
+  "private": true,
+  "description": "Fitme's translations: one catalog per App language, the i18next setup and the translation check.",
+  "type": "module",
+  "exports": {
+    ".": "./src/index.ts"
+  },
+  "main": "./src/index.ts",
+  "types": "./src/index.ts",
+  "scripts": {
+    "test": "vitest run",
+    "test:watch": "vitest",
+    "typecheck": "tsc --noEmit"
+  },
+  "dependencies": {
+    "@fitme/core": "workspace:*",
+    "i18next": "^26.5.11"
+  },
+  "devDependencies": {
+    "@fitme/typescript-config": "workspace:*",
+    "typescript": "~5.9.2",
+    "vitest": "^5.0.5"
+  }
+}

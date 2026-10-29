@@ -1,0 +1,15 @@
+{
+  "tabs": {
+    "home": "Головна",
+    "history": "Історія",
+    "arnold": "Arnold",
+    "library": "Бібліотека",
+    "profile": "Профіль"
+  },
+  "counts": {
+    "sets_one": "{{count}} підхід",
+    "sets_few": "{{count}} підходи",
+    "sets_many": "{{count}} підходів",
+    "sets_other": "{{count}} підходу"
+  }
+}
