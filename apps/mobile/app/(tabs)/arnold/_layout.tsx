@@ -1,5 +1,6 @@
 import { isLiquidGlassAvailable } from "expo-glass-effect";
 import { Stack } from "expo-router";
+import { useTranslation } from "react-i18next";
 import { useCSSVariable } from "uniwind";
 import { SCROLL_EDGE_EFFECTS } from "~/lib/constants";
 
@@ -7,6 +8,7 @@ const GLASS = isLiquidGlassAvailable();
 const IS_ANDROID = process.env.EXPO_OS === "android";
 
 export default function StackLayout() {
+  const { t } = useTranslation();
   const appForeground = useCSSVariable("--color-foreground") as string;
   const appBackground = useCSSVariable("--color-background") as string;
 
@@ -31,7 +33,7 @@ export default function StackLayout() {
         options={{
           animation: "none",
           gestureEnabled: false,
-          title: "Chat",
+          title: t("arnold.chat"),
         }}
       />
 
@@ -45,7 +47,7 @@ export default function StackLayout() {
           // following https://m3.material.io/components/bottom-sheets/specs
           sheetCornerRadius: IS_ANDROID ? 28 : undefined,
           sheetGrabberVisible: true,
-          title: "Add to chat",
+          title: t("arnold.attachments.title"),
         }}
       />
 
@@ -58,7 +60,7 @@ export default function StackLayout() {
           sheetAllowedDetents: "fitToContents",
           sheetCornerRadius: IS_ANDROID ? 28 : undefined,
           sheetGrabberVisible: true,
-          title: "Model",
+          title: t("arnold.model"),
         }}
       />
     </Stack>

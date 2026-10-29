@@ -36,6 +36,16 @@ export type ArnoldErrorAction =
   | "paywall"
   | "show";
 
+/** The `code` eve's `ClientError` reads from Arnold's JSON body, if any. */
+function errorCode(error: unknown): string | undefined {
+  return typeof error === "object" &&
+    error !== null &&
+    "code" in error &&
+    typeof error.code === "string"
+    ? error.code
+    : undefined;
+}
+
 /**
  * What the Arnold screen does with an error from Arnold: the channel's
  * not-Pro refusal (`arnold_pro_required`) shows the paywall, an ended session
@@ -46,12 +56,7 @@ export function arnoldErrorAction(error: unknown): ArnoldErrorAction {
   if (!error) {
     return "none";
   }
-  const code =
-    typeof error === "object" &&
-    "code" in error &&
-    typeof error.code === "string"
-      ? error.code
-      : undefined;
+  const code = errorCode(error);
   if (code === arnoldErrorCodes.proRequired) {
     return "paywall";
   }
@@ -59,6 +64,28 @@ export function arnoldErrorAction(error: unknown): ArnoldErrorAction {
     return "new-conversation";
   }
   return "show";
+}
+
+export type ArnoldErrorKind = "generic" | "network" | "pro-check-unavailable";
+
+/**
+ * Which of its own messages the Arnold screen shows for an error it shows
+ * (`arnoldErrorAction` → `show`), so the server's English text never reaches
+ * the User: the Pro check being unavailable (`arnold_pro_check_unavailable`),
+ * a send that never reached Arnold (fetch's `TypeError`, or expo/fetch's
+ * `FetchError`, whose message starts `fetch failed:`), and anything else.
+ */
+export function arnoldErrorKind(error: unknown): ArnoldErrorKind {
+  if (errorCode(error) === arnoldErrorCodes.proCheckUnavailable) {
+    return "pro-check-unavailable";
+  }
+  if (
+    error instanceof TypeError ||
+    (error instanceof Error && error.message.startsWith("fetch failed:"))
+  ) {
+    return "network";
+  }
+  return "generic";
 }
 
 /**

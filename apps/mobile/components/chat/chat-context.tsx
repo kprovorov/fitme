@@ -3,7 +3,8 @@ import { createContext, use } from "react";
 import type { StreamingStore } from "./streaming-store";
 
 export interface ChatContextValue {
-  error?: Error | null;
+  /** The error state's text, in the App language; none while there's no error. */
+  errorMessage?: string | null;
   input: string;
   isGenerating: boolean;
   /** A saved Conversation is replaying; sends wait for it. */

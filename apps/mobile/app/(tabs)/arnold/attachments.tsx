@@ -1,4 +1,5 @@
 import { useState } from "react";
+import { useTranslation } from "react-i18next";
 import { Pressable, ScrollView, Text, View } from "react-native";
 import type { SFSymbol } from "sf-symbols-typescript";
 import { AndroidGrabber } from "@/components/grabber";
@@ -84,28 +85,32 @@ function DisclosureRow({
 export default function AddToChatSheet() {
   const [research, setResearch] = useState(false);
   const [webSearch, setWebSearch] = useState(true);
+  const { t } = useTranslation();
 
   return (
     <ScrollView className="flex-1" contentInsetAdjustmentBehavior="automatic">
       <AndroidGrabber />
       {/* Attachment buttons */}
       <View className="flex-row gap-3 px-5 pt-2 pb-4">
-        <AttachmentButton icon="camera" label="Camera" />
-        <AttachmentButton icon="photo" label="Photos" />
-        <AttachmentButton icon="doc" label="Files" />
+        <AttachmentButton
+          icon="camera"
+          label={t("arnold.attachments.camera")}
+        />
+        <AttachmentButton icon="photo" label={t("arnold.attachments.photos")} />
+        <AttachmentButton icon="doc" label={t("arnold.attachments.files")} />
       </View>
 
       {/* Toggles */}
       <ToggleRow
         icon="sparkles"
-        label="Research"
+        label={t("arnold.attachments.research")}
         onValueChange={setResearch}
         value={research}
       />
       <ToggleRow
-        badge="Beta"
+        badge={t("arnold.attachments.beta")}
         icon="globe"
-        label="Web search"
+        label={t("arnold.attachments.webSearch")}
         onValueChange={setWebSearch}
         value={webSearch}
       />
@@ -114,9 +119,21 @@ export default function AddToChatSheet() {
       <View className="mx-5 my-1 h-px bg-border dark:bg-border" />
 
       {/* Disclosure rows */}
-      <DisclosureRow detail="None" icon="archivebox" label="Add to project" />
-      <DisclosureRow detail="Normal" icon="paintbrush" label="Choose style" />
-      <DisclosureRow detail="Auto" icon="wrench" label="Tool access" />
+      <DisclosureRow
+        detail={t("arnold.attachments.none")}
+        icon="archivebox"
+        label={t("arnold.attachments.addToProject")}
+      />
+      <DisclosureRow
+        detail={t("arnold.attachments.normal")}
+        icon="paintbrush"
+        label={t("arnold.attachments.chooseStyle")}
+      />
+      <DisclosureRow
+        detail={t("arnold.attachments.auto")}
+        icon="wrench"
+        label={t("arnold.attachments.toolAccess")}
+      />
     </ScrollView>
   );
 }

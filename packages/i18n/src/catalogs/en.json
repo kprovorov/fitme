@@ -9,5 +9,41 @@
   "counts": {
     "sets_one": "{{count}} set",
     "sets_other": "{{count}} sets"
+  },
+  "arnold": {
+    "title": "Arnold",
+    "chat": "Chat",
+    "model": "Model",
+    "newConversation": "New conversation",
+    "emptyState": {
+      "title": "Ask Arnold",
+      "description": "About your training, plans and workouts"
+    },
+    "composer": {
+      "placeholder": "Message Arnold",
+      "send": "Send message",
+      "addToChat": "Add to chat",
+      "scrollToLatest": "Scroll to latest messages"
+    },
+    "attachments": {
+      "title": "Add to chat",
+      "camera": "Camera",
+      "photos": "Photos",
+      "files": "Files",
+      "research": "Research",
+      "webSearch": "Web search",
+      "beta": "Beta",
+      "addToProject": "Add to project",
+      "none": "None",
+      "chooseStyle": "Choose style",
+      "normal": "Normal",
+      "toolAccess": "Tool access",
+      "auto": "Auto"
+    },
+    "errors": {
+      "proCheckUnavailable": "Couldn't check your Fitme Pro subscription. Try again in a moment.",
+      "network": "Couldn't reach Arnold. Check your connection and try again.",
+      "generic": "Something went wrong. Try again."
+    }
   }
 }
