@@ -1,7 +1,7 @@
 import { randomBytes } from "node:crypto";
 import { createFakeLibrary } from "@fitme/library-sdk/fake";
 import { deleteTestUsers } from "@fitme/services/delete-test-users";
-import { afterAll, describe, expect, it } from "vitest";
+import { afterAll, beforeEach, describe, expect, it } from "vitest";
 import { createApp } from "../src/create-app.js";
 import { createServicesFromEnv } from "../src/services.js";
 import { clerk, libraryExercise, signedInAs } from "../src/test/harness.js";
@@ -27,8 +27,18 @@ const app = createApp({
 const testUserId = (label: string) =>
   `user_${label}${randomBytes(16).toString("hex")}`;
 
-const owner = testUserId("sessionEditOwner");
-const intruder = testUserId("sessionEditIntruder");
+/**
+ * A fresh owner and intruder per test: a User has at most one open Workout
+ * Session, so a test's open session would refuse the next test's start.
+ */
+const users: string[] = [];
+let owner = "";
+let intruder = "";
+beforeEach(() => {
+  owner = testUserId("sessionEditOwner");
+  intruder = testUserId("sessionEditIntruder");
+  users.push(owner, intruder);
+});
 
 const onePlan = {
   description: "One day",
@@ -124,7 +134,7 @@ const exerciseOrders = async (sessionId: string) => {
 };
 
 afterAll(async () => {
-  await deleteTestUsers([owner, intruder]);
+  await deleteTestUsers(users);
 });
 
 describe("POST /v1/workout-sessions/:id/exercises", () => {

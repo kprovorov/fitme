@@ -153,7 +153,7 @@ const addExerciseRoute = createRoute({
 
 const startWorkoutSessionRoute = createRoute({
   description:
-    "Starts a Workout Session for one of the User's Workouts, copying its Exercises and sets in order. A Workout has at most one open Workout Session: when one is already open, it's resumed (200) instead of a new one being created (201), so a retried start never duplicates it.",
+    "Starts a Workout Session for one of the User's Workouts, copying its Exercises and sets in order. A User has at most one open Workout Session: when this Workout's is already open, it's resumed (200) instead of a new one being created (201), so a retried start never duplicates it; when another Workout's is open (or one whose Workout is gone), the start is refused with 409 `session_in_progress`, the message naming that Workout, and nothing is written. Finish it first.",
   method: "post",
   middleware: [requires("write")] as const,
   path: "/",
@@ -187,6 +187,9 @@ const startWorkoutSessionRoute = createRoute({
     401: unauthorizedResponse,
     404: errorResponse(
       "`not_found`: the User has no such Workout, or its Plan is deleted"
+    ),
+    409: errorResponse(
+      "`session_in_progress`: another Workout's Workout Session is open, named in the message; nothing was written"
     ),
     415: errorResponse("The body isn't `application/json`"),
     429: rateLimitedResponse,
@@ -452,6 +455,13 @@ export const workoutSessions = new OpenAPIHono<ApiEnv>({
         { error: { code: "not_found", message: "Workout not found" } },
         404
       );
+    }
+    if (value.status === "session_in_progress") {
+      const message =
+        value.workoutName === null
+          ? `Workout Session ${value.sessionId} is in progress; finish it before starting another`
+          : `Workout "${value.workoutName}" is in progress (Workout Session ${value.sessionId}); finish it before starting another`;
+      return c.json({ error: { code: "session_in_progress", message } }, 409);
     }
     const body = WorkoutSessionResponse.parse({
       data: { ...value.session, weight_unit: weightUnit },

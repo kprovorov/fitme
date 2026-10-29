@@ -11,7 +11,7 @@ import {
   workouts,
 } from "@fitme/db";
 import { and, asc, eq, inArray, isNull } from "drizzle-orm";
-import { afterAll, describe, expect, it } from "vitest";
+import { afterAll, beforeEach, describe, expect, it } from "vitest";
 import {
   finishWorkoutSession,
   startWorkoutSession,
@@ -24,7 +24,16 @@ import { deleteTestUsers } from "./delete-test-users";
  */
 
 const runId = randomUUID().replaceAll("-", "").slice(0, 12);
-const owner = `user_svcLifeOwner${runId}`;
+/**
+ * A fresh owner per test: a User has at most one open Workout Session, so a
+ * test's leftover open session would refuse the next test's start.
+ */
+const owners: string[] = [];
+let owner = "";
+beforeEach(() => {
+  owner = `user_svcLifeOwner${runId}${owners.length}`;
+  owners.push(owner);
+});
 const intruder = `user_svcLifeIntruder${runId}`;
 /** Another id, as after a rekey that committed while a start was running. */
 const elsewhere = `user_svcLifeElsewhere${runId}`;
@@ -136,7 +145,7 @@ const closeDirectly = (sessionId: string) =>
   );
 
 afterAll(async () => {
-  await deleteTestUsers([owner, intruder, elsewhere]);
+  await deleteTestUsers([...owners, intruder, elsewhere]);
 });
 
 describe("startWorkoutSession", () => {
@@ -328,7 +337,7 @@ describe("startWorkoutSession", () => {
     expect(await start(randomUUID())).toEqual({ status: "not_found" });
   });
 
-  it("doesn't resume an open session owned by another id", async () => {
+  it("starts its own session next to an open session owned by another id", async () => {
     const { planId, workoutIds } = await seedPlan({ "Day A": 1 });
     const workoutId = workoutIds["Day A"];
     await withService((tx) =>
@@ -340,10 +349,153 @@ describe("startWorkoutSession", () => {
       })
     );
 
-    expect(await start(workoutId)).toEqual({ status: "not_found" });
-    expect(await sessionsOf(workoutId)).toEqual([
-      { finishedAt: null, id: expect.any(String), userId: elsewhere },
+    const result = await start(workoutId);
+
+    expect(result).toMatchObject({ resumed: false, status: "started" });
+    expect(await sessionsOf(workoutId)).toEqual(
+      expect.arrayContaining([
+        { finishedAt: null, id: expect.any(String), userId: elsewhere },
+        {
+          finishedAt: null,
+          id: result.status === "started" ? result.session.id : "",
+          userId: owner,
+        },
+      ])
+    );
+  });
+});
+
+const openSessionsOf = (userId: string) =>
+  withService((tx) =>
+    tx
+      .select({ id: workoutSessions.id, workoutId: workoutSessions.workoutId })
+      .from(workoutSessions)
+      .where(
+        and(
+          eq(workoutSessions.userId, userId),
+          isNull(workoutSessions.finishedAt)
+        )
+      )
+  );
+
+describe("startWorkoutSession, one open Workout Session per User", () => {
+  it("refuses another Workout while one is open, naming it, with nothing written", async () => {
+    const { workoutIds } = await seedPlan({ "Day A": 1, "Day B": 2 });
+    await seedTemplate(workoutIds["Day B"]);
+    const openId = await startedSessionId(workoutIds["Day A"]);
+
+    expect(await start(workoutIds["Day B"])).toEqual({
+      sessionId: openId,
+      status: "session_in_progress",
+      workoutName: "Day A",
+    });
+    expect(await sessionsOf(workoutIds["Day B"])).toEqual([]);
+    expect(await openSessionsOf(owner)).toEqual([
+      { id: openId, workoutId: workoutIds["Day A"] },
     ]);
+  });
+
+  it("still resumes the open Workout's own session", async () => {
+    const { workoutIds } = await seedPlan({ "Day A": 1, "Day B": 2 });
+    const openId = await startedSessionId(workoutIds["Day A"]);
+    await start(workoutIds["Day B"]);
+
+    expect(await start(workoutIds["Day A"])).toMatchObject({
+      resumed: true,
+      session: { id: openId },
+      status: "started",
+    });
+  });
+
+  it("starts another Workout once the open one is finished", async () => {
+    const { workoutIds } = await seedPlan({ "Day A": 1, "Day B": 2 });
+    const first = await startedSessionId(workoutIds["Day A"]);
+    await asUser(owner, (tx) => finishWorkoutSession(tx, first));
+
+    const result = await start(workoutIds["Day B"]);
+
+    expect(result).toMatchObject({
+      resumed: false,
+      session: { workout: { id: workoutIds["Day B"] } },
+      status: "started",
+    });
+  });
+
+  it("refuses with no Workout name when the open session's Workout is gone", async () => {
+    const { planId, workoutIds } = await seedPlan({ "Day A": 1 });
+    const orphanId = await seedOpenSession(planId, null);
+
+    expect(await start(workoutIds["Day A"])).toEqual({
+      sessionId: orphanId,
+      status: "session_in_progress",
+      workoutName: null,
+    });
+  });
+
+  it("leaves exactly one open session for concurrent starts of different Workouts", async () => {
+    const names = ["Day A", "Day B", "Day C"];
+    const { workoutIds } = await seedPlan({
+      "Day A": 1,
+      "Day B": 2,
+      "Day C": 3,
+    });
+    for (const name of names) {
+      // biome-ignore lint/performance/noAwaitInLoops: seeded one at a time, like the other fixtures
+      await seedTemplate(workoutIds[name]);
+    }
+
+    const results = await Promise.all(
+      names.map((name) => start(workoutIds[name]))
+    );
+
+    const open = await openSessionsOf(owner);
+    expect(open).toHaveLength(1);
+    const [winner] = open;
+    const started = results.filter((result) => result.status === "started");
+    expect(started).toHaveLength(1);
+    expect(started[0]).toMatchObject({
+      resumed: false,
+      session: { id: winner.id },
+    });
+    const winnerName = names.find(
+      (name) => workoutIds[name] === winner.workoutId
+    );
+    for (const result of results.filter((each) => each.status !== "started")) {
+      expect(result).toEqual({
+        sessionId: winner.id,
+        status: "session_in_progress",
+        workoutName: winnerName,
+      });
+    }
+    // the winner's copy is complete, and the losers wrote nothing
+    expect(
+      started[0].status === "started" && started[0].session.exercises
+    ).toHaveLength(2);
+    const sessionExercises = await withService((tx) =>
+      tx
+        .select({ id: workoutSessionExercises.id })
+        .from(workoutSessionExercises)
+        .innerJoin(
+          workoutSessions,
+          eq(workoutSessions.id, workoutSessionExercises.workoutSessionId)
+        )
+        .where(eq(workoutSessions.userId, owner))
+    );
+    expect(sessionExercises).toHaveLength(2);
+  });
+
+  it("is never blocked by another User's open session", async () => {
+    const { workoutIds: theirs } = await seedPlan(
+      { "Day A": 1 },
+      { userId: intruder }
+    );
+    await startedSessionId(theirs["Day A"], intruder);
+    const { workoutIds } = await seedPlan({ "Day A": 1 });
+
+    expect(await start(workoutIds["Day A"])).toMatchObject({
+      resumed: false,
+      status: "started",
+    });
   });
 });
 
@@ -527,19 +679,19 @@ describe("finishWorkoutSession", () => {
     expect(second.status === "started" && second.session.id).not.toBe(first);
   });
 
-  it("serializes concurrent finishes of one Plan's sessions", async () => {
+  it("serializes concurrent finishes of one session, rotating once", async () => {
     const { planId, workoutIds } = await seedPlan(THREE_DAYS);
-    const sessionIds = await Promise.all(
-      ["W1", "W2"].map((name) => seedOpenSession(planId, workoutIds[name]))
-    );
+    const sessionId = await seedOpenSession(planId, workoutIds.W1);
 
-    const results = await Promise.all(sessionIds.map((id) => finish(id)));
+    const results = await Promise.all([finish(sessionId), finish(sessionId)]);
 
-    for (const result of results) {
-      expect(result).toMatchObject({ rotated: true });
-    }
-    const orders = await workoutOrders(planId);
-    expect(orders[0]).toEqual(["W3", 1]);
-    expect(orders.map(([, order]) => order)).toEqual([1, 2, 3]);
+    expect(
+      results.map((result) => "rotated" in result && result.rotated).sort()
+    ).toEqual([false, true]);
+    expect(await workoutOrders(planId)).toEqual([
+      ["W2", 1],
+      ["W3", 2],
+      ["W1", 3],
+    ]);
   });
 });

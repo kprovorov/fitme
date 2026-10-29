@@ -402,6 +402,51 @@ describe("start_workout_session", () => {
     );
   });
 
+  it("refuses while another workout's session is open, naming it, unreported", async () => {
+    const { reportError, reported } = recordingReporter();
+    const client = await connectWithServices(
+      {
+        startWorkoutSession: () =>
+          Promise.resolve({
+            sessionId: SESSION_ID,
+            status: "session_in_progress" as const,
+            workoutName: "Day A",
+          }),
+      },
+      reportError
+    );
+
+    const result = await call(client, "start_workout_session", {
+      workoutId: WORKOUT_ID,
+    });
+
+    expect(result.isError).toBe(true);
+    expect(result.text).toBe(
+      `Workout "Day A" is already in progress (session ${SESSION_ID}): a user has at most one open workout session. Finish it with finish_workout_session (or delete_workout_session) before starting another.`
+    );
+    expect(reported).toEqual([]);
+  });
+
+  it("refuses while a session whose workout is gone is open", async () => {
+    const client = await connectWithServices({
+      startWorkoutSession: () =>
+        Promise.resolve({
+          sessionId: SESSION_ID,
+          status: "session_in_progress" as const,
+          workoutName: null,
+        }),
+    });
+
+    const result = await call(client, "start_workout_session", {
+      workoutId: WORKOUT_ID,
+    });
+
+    expect(result.isError).toBe(true);
+    expect(result.text).toBe(
+      `Workout session ${SESSION_ID} is already in progress: a user has at most one open workout session. Finish it with finish_workout_session (or delete_workout_session) before starting another.`
+    );
+  });
+
   it("rejects a workout id that isn't a uuid", async () => {
     const startWorkoutSession = vi.fn();
     const client = await connectWithServices({ startWorkoutSession });

@@ -203,6 +203,20 @@ describe("a Workout Session through the Public API against the local stack", () 
     });
   });
 
+  it("refuses another Workout with 409 session_in_progress naming the open one, writing nothing", async () => {
+    const before = await request(owner, "GET", "/v1/workout-sessions");
+
+    const refused = await request(owner, "POST", "/v1/workout-sessions", {
+      workout_id: ownerRun.workoutIds[1],
+    });
+
+    expect(refused.status).toBe(409);
+    expect(refused.body.error.code).toBe("session_in_progress");
+    expect(refused.body.error.message).toContain('"Day A"');
+    expect(await request(owner, "GET", "/v1/workout-sessions")).toEqual(before);
+    expect(reported).toEqual([]);
+  });
+
   it("logs sets in the User's unit", async () => {
     const logged = await request(
       owner,
@@ -371,6 +385,17 @@ describe("a Workout Session through the Public API against the local stack", () 
       hasMore: false,
       total: 1,
     });
+  });
+
+  it("starts another Workout with 201 once the open one is finished", async () => {
+    const started = await request(owner, "POST", "/v1/workout-sessions", {
+      workout_id: ownerRun.workoutIds[1],
+    });
+
+    expect(started.status).toBe(201);
+    expect(started.body.data.workout).toMatchObject({ name: "Day B" });
+    const path = `/v1/workout-sessions/${started.body.data.id}`;
+    expect((await request(owner, "DELETE", path)).status).toBe(204);
   });
 
   it("deletes the Workout Session, and answers 204 again on a repeat", async () => {

@@ -1640,7 +1640,7 @@ export interface paths {
     put?: never;
     /**
      * Start or resume a Workout Session
-     * @description Starts a Workout Session for one of the User's Workouts, copying its Exercises and sets in order. A Workout has at most one open Workout Session: when one is already open, it's resumed (200) instead of a new one being created (201), so a retried start never duplicates it.
+     * @description Starts a Workout Session for one of the User's Workouts, copying its Exercises and sets in order. A User has at most one open Workout Session: when this Workout's is already open, it's resumed (200) instead of a new one being created (201), so a retried start never duplicates it; when another Workout's is open (or one whose Workout is gone), the start is refused with 409 `session_in_progress`, the message naming that Workout, and nothing is written. Finish it first.
      */
     post: {
       parameters: {
@@ -1697,6 +1697,15 @@ export interface paths {
         };
         /** @description `not_found`: the User has no such Workout, or its Plan is deleted */
         404: {
+          headers: {
+            [name: string]: unknown;
+          };
+          content: {
+            "application/json": components["schemas"]["Error"];
+          };
+        };
+        /** @description `session_in_progress`: another Workout's Workout Session is open, named in the message; nothing was written */
+        409: {
           headers: {
             [name: string]: unknown;
           };
