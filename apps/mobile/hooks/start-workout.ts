@@ -1,3 +1,4 @@
+import type { Workout } from "@fitme/core";
 import { useQueryClient } from "@tanstack/react-query";
 import { Alert } from "react-native";
 import { useCreateWorkoutSessionMutation } from "~/hooks/queries/workout-sessions";
@@ -9,6 +10,12 @@ export const workoutSessionPath = (
   workoutId: string,
   sessionId: string
 ) => `/plans/${planId}/workouts/${workoutId}/sessions/${sessionId}` as const;
+
+/** The Workout's own open Workout Session, if it has one. */
+export const findOpenSession = (workout: Workout) =>
+  workout.sessions.find(
+    (session) => session.started_at && !session.finished_at
+  );
 
 /**
  * Starts a Workout (or resumes its open Workout Session) through the Public

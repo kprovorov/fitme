@@ -87,6 +87,8 @@ const PLAN: SeedPlan = {
   ],
 };
 
+const LOAD_ERROR = /^Couldn't load this workout/;
+
 // A planned set's row, as VoiceOver reads it.
 const SET_ROW = /^Set \d:/;
 
@@ -297,6 +299,8 @@ describe("Starting a Workout from its screen", () => {
       "Too many requests: please try again in 12 s."
     );
     expect(mockReplace).not.toHaveBeenCalled();
+    expect(mockPush).not.toHaveBeenCalled();
+    expect(screen.getByRole("button", { name: "Start Workout" })).toBeTruthy();
   });
 
   it("offers Continue Workout for the Workout's own open session, with no new request", async () => {
@@ -316,9 +320,26 @@ describe("Starting a Workout from its screen", () => {
   });
 
   it("has no Start while the Workout loads, fails or is gone", async () => {
+    const resume = backend.pause("workouts", "select");
+    queryClient = createTestQueryClient();
+    await render(
+      <QueryClientProvider client={queryClient}>
+        <WorkoutScreen />
+      </QueryClientProvider>
+    );
+    expect(screen.getByTestId("workout-loading")).toBeTruthy();
+    expect(screen.queryByRole("button", { name: "Start Workout" })).toBeNull();
+    resume();
+    await settle(queryClient);
+
+    backend.failNext("workouts", "select");
+    await mount();
+    expect(screen.getByText(LOAD_ERROR)).toBeTruthy();
+    expect(screen.queryByRole("button", { name: "Start Workout" })).toBeNull();
+
     mockWorkoutId.current = "workout-gone";
     await mount();
-
+    expect(screen.getByText("This workout no longer exists")).toBeTruthy();
     expect(screen.queryByRole("button", { name: "Start Workout" })).toBeNull();
   });
 });

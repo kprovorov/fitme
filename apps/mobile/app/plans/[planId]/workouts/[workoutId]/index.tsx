@@ -1,7 +1,12 @@
 import type { Workout } from "@fitme/core";
 import { Stack, useLocalSearchParams, useRouter } from "expo-router";
-import { useCallback } from "react";
-import { ActivityIndicator, ScrollView, View } from "react-native";
+import { useCallback, useState } from "react";
+import {
+  ActivityIndicator,
+  type LayoutChangeEvent,
+  ScrollView,
+  View,
+} from "react-native";
 import { useSafeAreaInsets } from "react-native-safe-area-context";
 import { Button } from "~/components/ui/button";
 import { Card } from "~/components/ui/card";
@@ -11,10 +16,14 @@ import PlannedWorkoutExerciseCard from "~/components/views/planned-workout-exerc
 import { StatRow } from "~/components/workout-sessions/workout-session-stats";
 import { useExercises } from "~/hooks/queries/library";
 import { useWorkoutQuery } from "~/hooks/queries/workouts";
-import { useStartWorkout, workoutSessionPath } from "~/hooks/start-workout";
+import {
+  findOpenSession,
+  useStartWorkout,
+  workoutSessionPath,
+} from "~/hooks/start-workout";
 
-/** Room the pinned `lg` pill (50 pt) needs under the content, with a gap. */
-const PINNED_ACTION_HEIGHT = 50 + 16;
+/** Space between the content's end (or the pinned action) and the bottom. */
+const BOTTOM_GAP = 16;
 
 /**
  * The screen's one action, pinned above the safe area with the content
@@ -22,7 +31,13 @@ const PINNED_ACTION_HEIGHT = 50 + 16;
  * Workout Session, otherwise Start Workout. Either replaces this screen with
  * the Workout Session screen, so Back goes wherever the User came from.
  */
-function WorkoutAction({ workout }: { workout: Workout }) {
+function WorkoutAction({
+  onLayout,
+  workout,
+}: {
+  onLayout: (event: LayoutChangeEvent) => void;
+  workout: Workout;
+}) {
   const insets = useSafeAreaInsets();
   const router = useRouter();
   const openSession = useCallback(
@@ -34,9 +49,7 @@ function WorkoutAction({ workout }: { workout: Workout }) {
     [router, workout.plan_id, workout.id]
   );
   const { startWorkout, isStarting } = useStartWorkout(workout.id, openSession);
-  const ownOpenSession = workout.sessions.find(
-    (session) => session.started_at && !session.finished_at
-  );
+  const ownOpenSession = findOpenSession(workout);
   const continueWorkout = useCallback(() => {
     if (ownOpenSession) {
       openSession(ownOpenSession.id);
@@ -46,8 +59,9 @@ function WorkoutAction({ workout }: { workout: Workout }) {
   return (
     <View
       className="absolute inset-x-0 bottom-0 px-sm"
+      onLayout={onLayout}
       pointerEvents="box-none"
-      style={{ paddingBottom: insets.bottom + 16 }}
+      style={{ paddingBottom: insets.bottom + BOTTOM_GAP }}
     >
       {ownOpenSession ? (
         <Button
@@ -128,6 +142,11 @@ export default function WorkoutScreen() {
     isError,
     refetch,
   } = useWorkoutQuery({ variables: { id: workoutId } });
+  // The pinned action's height, safe area included: the content ends above it.
+  const [actionHeight, setActionHeight] = useState(0);
+  const measureAction = useCallback((event: LayoutChangeEvent) => {
+    setActionHeight(event.nativeEvent.layout.height);
+  }, []);
 
   const retry = useCallback(() => {
     refetch();
@@ -196,15 +215,18 @@ export default function WorkoutScreen() {
       <ScrollView
         contentContainerClassName="gap-sm px-sm pt-xs"
         contentContainerStyle={{
-          paddingBottom:
-            insets.bottom + 16 + (workout ? PINNED_ACTION_HEIGHT : 0),
+          paddingBottom: workout
+            ? actionHeight + BOTTOM_GAP
+            : insets.bottom + BOTTOM_GAP,
         }}
         contentInsetAdjustmentBehavior="automatic"
         showsVerticalScrollIndicator={false}
       >
         {renderContent()}
       </ScrollView>
-      {workout ? <WorkoutAction workout={workout} /> : null}
+      {workout ? (
+        <WorkoutAction onLayout={measureAction} workout={workout} />
+      ) : null}
     </>
   );
 }

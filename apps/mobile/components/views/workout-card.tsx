@@ -8,7 +8,11 @@ import { H4 } from "@/components/ui/typography";
 import { VStack } from "@/components/ui/vstack";
 import { useFinishWorkoutSession } from "~/hooks/finish-workout-session";
 import { shownExercise, useExercises } from "~/hooks/queries/library";
-import { useStartWorkout, workoutSessionPath } from "~/hooks/start-workout";
+import {
+  findOpenSession,
+  useStartWorkout,
+  workoutSessionPath,
+} from "~/hooks/start-workout";
 import ExerciseImage from "../exercises/exercise-image";
 import { COUNT_SYMBOL } from "../plans/plan-symbols";
 import { SymbolImage } from "../symbol-image";
@@ -55,9 +59,7 @@ export default function WorkoutCard({
     }
   );
 
-  const activeSession = workout.sessions.find(
-    (session) => session.started_at && !session.finished_at
-  );
+  const activeSession = findOpenSession(workout);
 
   const [elapsedTime, setElapsedTime] = useState<string>("");
 
