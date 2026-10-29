@@ -1,7 +1,12 @@
 import type { Workout } from "@fitme/core";
 import { Stack, useLocalSearchParams, useRouter } from "expo-router";
-import { useCallback } from "react";
-import { ActivityIndicator, ScrollView, View } from "react-native";
+import { useCallback, useState } from "react";
+import {
+  ActivityIndicator,
+  type LayoutChangeEvent,
+  ScrollView,
+  View,
+} from "react-native";
 import { useSafeAreaInsets } from "react-native-safe-area-context";
 import { Button } from "~/components/ui/button";
 import { Card } from "~/components/ui/card";
@@ -11,6 +16,75 @@ import PlannedWorkoutExerciseCard from "~/components/views/planned-workout-exerc
 import { StatRow } from "~/components/workout-sessions/workout-session-stats";
 import { useExercises } from "~/hooks/queries/library";
 import { useWorkoutQuery } from "~/hooks/queries/workouts";
+import {
+  findOpenSession,
+  useStartWorkout,
+  workoutSessionPath,
+} from "~/hooks/start-workout";
+
+/** Space between the content's end (or the pinned action) and the bottom. */
+const BOTTOM_GAP = 16;
+
+/**
+ * The screen's one action, pinned above the safe area with the content
+ * scrolling under it: Continue Workout when the Workout already has an open
+ * Workout Session, otherwise Start Workout. Either replaces this screen with
+ * the Workout Session screen, so Back goes wherever the User came from.
+ */
+function WorkoutAction({
+  onLayout,
+  workout,
+}: {
+  onLayout: (event: LayoutChangeEvent) => void;
+  workout: Workout;
+}) {
+  const insets = useSafeAreaInsets();
+  const router = useRouter();
+  const openSession = useCallback(
+    (sessionId: string) => {
+      router.replace(
+        workoutSessionPath(workout.plan_id, workout.id, sessionId)
+      );
+    },
+    [router, workout.plan_id, workout.id]
+  );
+  const { startWorkout, isStarting } = useStartWorkout(workout.id, openSession);
+  const ownOpenSession = findOpenSession(workout);
+  const continueWorkout = useCallback(() => {
+    if (ownOpenSession) {
+      openSession(ownOpenSession.id);
+    }
+  }, [openSession, ownOpenSession]);
+
+  return (
+    <View
+      className="absolute inset-x-0 bottom-0 px-sm"
+      onLayout={onLayout}
+      pointerEvents="box-none"
+      style={{ paddingBottom: insets.bottom + BOTTOM_GAP }}
+    >
+      {ownOpenSession ? (
+        <Button
+          icon="arrow.right"
+          iconPosition="trailing"
+          label="Continue Workout"
+          onPress={continueWorkout}
+          size="lg"
+        />
+      ) : (
+        <Button
+          icon="arrow.right"
+          iconPosition="trailing"
+          isLoading={isStarting}
+          label="Start Workout"
+          onPress={startWorkout}
+          size="lg"
+          testID="start-workout-button"
+        />
+      )}
+    </View>
+  );
+}
 
 /** The Workout's name and planned stats, then a planned card per Exercise. */
 function WorkoutContent({ workout }: { workout: Workout }) {
@@ -68,6 +142,11 @@ export default function WorkoutScreen() {
     isError,
     refetch,
   } = useWorkoutQuery({ variables: { id: workoutId } });
+  // The pinned action's height, safe area included: the content ends above it.
+  const [actionHeight, setActionHeight] = useState(0);
+  const measureAction = useCallback((event: LayoutChangeEvent) => {
+    setActionHeight(event.nativeEvent.layout.height);
+  }, []);
 
   const retry = useCallback(() => {
     refetch();
@@ -135,12 +214,19 @@ export default function WorkoutScreen() {
       />
       <ScrollView
         contentContainerClassName="gap-sm px-sm pt-xs"
-        contentContainerStyle={{ paddingBottom: insets.bottom + 16 }}
+        contentContainerStyle={{
+          paddingBottom: workout
+            ? actionHeight + BOTTOM_GAP
+            : insets.bottom + BOTTOM_GAP,
+        }}
         contentInsetAdjustmentBehavior="automatic"
         showsVerticalScrollIndicator={false}
       >
         {renderContent()}
       </ScrollView>
+      {workout ? (
+        <WorkoutAction onLayout={measureAction} workout={workout} />
+      ) : null}
     </>
   );
 }

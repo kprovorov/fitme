@@ -6,13 +6,15 @@
 import { beforeEach, describe, expect, it, jest } from "@jest/globals";
 import { QueryClientProvider } from "@tanstack/react-query";
 import { fireEvent, render, screen } from "@testing-library/react-native";
+import { Alert } from "react-native";
 import WorkoutScreen from "~/app/plans/[planId]/workouts/[workoutId]/index";
-import { FAKE_USER_ID } from "~/test-utils/fake-public-api";
+import { FAKE_USER_ID, fakePublicApi } from "~/test-utils/fake-public-api";
 import { backend, type SeedPlan } from "~/test-utils/fake-workout-backend";
 import { createTestQueryClient, settle } from "~/test-utils/query-client";
 
 const mockBack = jest.fn();
 const mockPush = jest.fn();
+const mockReplace = jest.fn();
 const mockWorkoutId = { current: "workout-1" };
 
 jest.mock("expo-router", () => ({
@@ -25,6 +27,7 @@ jest.mock("expo-router", () => ({
     back: mockBack,
     canGoBack: () => true,
     push: mockPush,
+    replace: mockReplace,
   }),
 }));
 
@@ -84,6 +87,8 @@ const PLAN: SeedPlan = {
   ],
 };
 
+const LOAD_ERROR = /^Couldn't load this workout/;
+
 // A planned set's row, as VoiceOver reads it.
 const SET_ROW = /^Set \d:/;
 
@@ -101,6 +106,7 @@ const mount = async () => {
 
 beforeEach(() => {
   jest.clearAllMocks();
+  jest.spyOn(Alert, "alert").mockImplementation(() => undefined);
   backend.reset();
   backend.seedProfile(FAKE_USER_ID);
   backend.seedPlan(structuredClone(PLAN));
@@ -203,5 +209,137 @@ describe("The Workout screen", () => {
     expect(screen.getByText("This workout has no exercises yet.")).toBeTruthy();
     // No Exercises, no sets.
     expect(screen.getAllByText("0")).toHaveLength(2);
+  });
+});
+
+const START = "POST /v1/workout-sessions";
+
+/** An open Workout Session of `workoutId`, as left by an earlier Start. */
+const seedOpenSession = (workoutId: string) => {
+  backend.sessions.push({
+    finished_at: null,
+    id: "open-session",
+    plan_id: "plan-1",
+    started_at: "2026-10-29T09:00:00.000Z",
+    workout_id: workoutId,
+    workoutName: "Leg Day",
+  });
+};
+
+describe("Starting a Workout from its screen", () => {
+  it.each([
+    ["the Next Workout", "workout-1"],
+    ["an Upcoming Workout, with no Exercises", "workout-2"],
+  ])(
+    "starts %s and replaces the screen with its Workout Session",
+    async (_, workoutId) => {
+      mockWorkoutId.current = workoutId;
+      await mount();
+
+      await fireEvent.press(
+        screen.getByRole("button", { name: "Start Workout" })
+      );
+      await settle(queryClient);
+
+      const started = backend.sessions.find(
+        (session) => session.workout_id === workoutId
+      );
+      expect(started?.finished_at).toBeNull();
+      expect(fakePublicApi.count(START)).toBe(1);
+      // Replaced, not pushed: Back goes to Home or the Plan.
+      expect(mockReplace).toHaveBeenCalledWith(
+        `/plans/plan-1/workouts/${workoutId}/sessions/${started?.id}`
+      );
+      expect(mockPush).not.toHaveBeenCalled();
+      expect(Alert.alert).not.toHaveBeenCalled();
+    }
+  );
+
+  it("reads the Workout again once started", async () => {
+    await mount();
+    const reads = backend.count("workouts", "select");
+
+    await fireEvent.press(
+      screen.getByRole("button", { name: "Start Workout" })
+    );
+    await settle(queryClient);
+
+    expect(backend.count("workouts", "select")).toBeGreaterThan(reads);
+  });
+
+  it("alerts on a failed Start and stays on the Workout screen", async () => {
+    fakePublicApi.failNext(START, "network");
+    await mount();
+
+    await fireEvent.press(
+      screen.getByRole("button", { name: "Start Workout" })
+    );
+    await settle(queryClient);
+
+    expect(Alert.alert).toHaveBeenCalledWith(
+      "Couldn't start workout",
+      "Check your connection and try again."
+    );
+    expect(mockReplace).not.toHaveBeenCalled();
+    expect(mockPush).not.toHaveBeenCalled();
+    expect(screen.getByRole("button", { name: "Start Workout" })).toBeTruthy();
+  });
+
+  it("gives the wait when Start is rate limited", async () => {
+    fakePublicApi.failNext(START, { retryAfterSeconds: 12, status: 429 });
+    await mount();
+
+    await fireEvent.press(
+      screen.getByRole("button", { name: "Start Workout" })
+    );
+    await settle(queryClient);
+
+    expect(Alert.alert).toHaveBeenCalledWith(
+      "Couldn't start workout",
+      "Too many requests: please try again in 12 s."
+    );
+    expect(mockReplace).not.toHaveBeenCalled();
+    expect(mockPush).not.toHaveBeenCalled();
+    expect(screen.getByRole("button", { name: "Start Workout" })).toBeTruthy();
+  });
+
+  it("offers Continue Workout for the Workout's own open session, with no new request", async () => {
+    seedOpenSession("workout-1");
+    await mount();
+
+    expect(screen.queryByRole("button", { name: "Start Workout" })).toBeNull();
+    await fireEvent.press(
+      screen.getByRole("button", { name: "Continue Workout" })
+    );
+    await settle(queryClient);
+
+    expect(mockReplace).toHaveBeenCalledWith(
+      "/plans/plan-1/workouts/workout-1/sessions/open-session"
+    );
+    expect(fakePublicApi.count(START)).toBe(0);
+  });
+
+  it("has no Start while the Workout loads, fails or is gone", async () => {
+    const resume = backend.pause("workouts", "select");
+    queryClient = createTestQueryClient();
+    await render(
+      <QueryClientProvider client={queryClient}>
+        <WorkoutScreen />
+      </QueryClientProvider>
+    );
+    expect(screen.getByTestId("workout-loading")).toBeTruthy();
+    expect(screen.queryByRole("button", { name: "Start Workout" })).toBeNull();
+    resume();
+    await settle(queryClient);
+
+    backend.failNext("workouts", "select");
+    await mount();
+    expect(screen.getByText(LOAD_ERROR)).toBeTruthy();
+    expect(screen.queryByRole("button", { name: "Start Workout" })).toBeNull();
+
+    mockWorkoutId.current = "workout-gone";
+    await mount();
+    expect(screen.getByText("This workout no longer exists")).toBeTruthy();
+    expect(screen.queryByRole("button", { name: "Start Workout" })).toBeNull();
   });
 });

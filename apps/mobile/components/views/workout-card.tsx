@@ -1,16 +1,18 @@
 import type { Workout } from "@fitme/core";
-import { useQueryClient } from "@tanstack/react-query";
 import { Link, useRouter } from "expo-router";
 import { useEffect, useState } from "react";
-import { Alert, Pressable, ScrollView } from "react-native";
+import { Pressable, ScrollView } from "react-native";
 import { HStack } from "@/components/ui/hstack";
 import { Text } from "@/components/ui/text";
 import { H4 } from "@/components/ui/typography";
 import { VStack } from "@/components/ui/vstack";
 import { useFinishWorkoutSession } from "~/hooks/finish-workout-session";
 import { shownExercise, useExercises } from "~/hooks/queries/library";
-import { useCreateWorkoutSessionMutation } from "~/hooks/queries/workout-sessions";
-import { rateLimitedFor } from "~/lib/api/client";
+import {
+  findOpenSession,
+  useStartWorkout,
+  workoutSessionPath,
+} from "~/hooks/start-workout";
 import ExerciseImage from "../exercises/exercise-image";
 import { COUNT_SYMBOL } from "../plans/plan-symbols";
 import { SymbolImage } from "../symbol-image";
@@ -49,36 +51,15 @@ export default function WorkoutCard({
   workout,
   state = "default",
 }: WorkoutCardProps) {
-  const queryClient = useQueryClient();
   const router = useRouter();
-
-  const { mutate: createWorkoutSession, isPending: isCreatingWorkoutSession } =
-    useCreateWorkoutSessionMutation({
-      onError: (error) => {
-        const waitSeconds = rateLimitedFor(error);
-        Alert.alert(
-          "Couldn't start workout",
-          waitSeconds === null
-            ? "Check your connection and try again."
-            : `Too many requests: please try again in ${waitSeconds} s.`
-        );
-      },
-      onSuccess: (workoutSession) => {
-        queryClient.invalidateQueries({ queryKey: ["workout"] });
-        queryClient.invalidateQueries({ queryKey: ["plans"] });
-        router.push(
-          `/plans/${workout.plan_id}/workouts/${workout.id}/sessions/${workoutSession.id}`
-        );
-      },
-    });
-
-  const startWorkout = () => {
-    createWorkoutSession({ workoutId: workout.id });
-  };
-
-  const activeSession = workout.sessions.find(
-    (session) => session.started_at && !session.finished_at
+  const { startWorkout, isStarting } = useStartWorkout(
+    workout.id,
+    (sessionId) => {
+      router.push(workoutSessionPath(workout.plan_id, workout.id, sessionId));
+    }
   );
+
+  const activeSession = findOpenSession(workout);
 
   const [elapsedTime, setElapsedTime] = useState<string>("");
 
@@ -210,7 +191,7 @@ export default function WorkoutCard({
               <Button
                 icon="arrow.right"
                 iconPosition="trailing"
-                isLoading={isCreatingWorkoutSession}
+                isLoading={isStarting}
                 label="Start Workout"
                 onPress={startWorkout}
                 testID="start-workout-button"
