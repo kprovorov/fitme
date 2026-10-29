@@ -52,12 +52,13 @@ ignoredBuiltDependencies:
 patchedDependencies:
   uniwind@1.12.2: patches/uniwind@1.12.2.patch
 
-# Advisories accepted for `pnpm audit` (FIT-345). Both come only through
-# apps__mobile > expo > @expo/cli, the dev and build-time CLI, never the app
-# binary. Recheck on every Expo SDK or patch bump and drop each line once it
-# no longer shows up.
+# Advisories accepted for `pnpm audit`, each with its reason. Drop each line
+# once it no longer shows up.
 auditConfig:
   ignoreGhsas:
+    # The first two come only through apps__mobile > expo > @expo/cli, the dev
+    # and build-time CLI, never the app binary (FIT-345). Recheck on every Expo
+    # SDK or patch bump.
     # zod 3.25.76: @expo/cli asks for zod ^3.25.76, and there is no fixed 3.x
     # (the fix is zod >= 4.6.6). Forcing zod 4 on the CLI would likely break
     # it. Drop once @expo/cli moves to zod 4.
@@ -65,3 +66,9 @@ auditConfig:
     # node-forge 1.4.0: no patched release (accepted in FIT-330). Drop once
     # node-forge ships a fix and @expo/cli is on it.
     - GHSA-86w9-cpqp-85rv
+    # deepmerge 4.3.1 under apps__mobile > @segment/analytics-react-native: no
+    # patched release (FIT-364). Segment only deep-merges the device context it
+    # builds itself and the traits auth-sync.tsx passes to identify ({ email,
+    # name }: our keys, string values), never an object whose keys a User
+    # chooses. Recheck on every Segment bump, and whenever identify gets traits.
+    - GHSA-gcqx-w48m-w2h4
