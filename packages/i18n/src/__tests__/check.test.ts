@@ -33,7 +33,7 @@ describe("checkCatalogs", () => {
   });
 
   it("fails a plural in only one catalog", () => {
-    expect(checkCatalogs({ en: { counts: {}, tabs: en.tabs }, uk })).toEqual([
+    expect(checkCatalogs({ en: { tabs: en.tabs }, uk })).toEqual([
       '"counts.sets" is missing from en',
     ]);
   });
@@ -78,6 +78,58 @@ describe("checkCatalogs", () => {
     ).toEqual([
       'en: "counts.sets" is both a string and a plural',
       'uk: "counts.sets" is both a string and a plural',
+    ]);
+  });
+
+  it("fails a translation that drops or renames a placeholder", () => {
+    expect(
+      checkCatalogs({
+        en,
+        uk: {
+          ...uk,
+          counts: {
+            ...uk.counts,
+            sets_few: "{{cnt}} підходи",
+            sets_many: "підходів",
+          },
+        },
+      })
+    ).toEqual(['uk: "counts.sets" uses {{cnt}} {{count}}, en uses {{count}}']);
+  });
+
+  it("accepts a placeholder in some plural forms only, and formatted ones", () => {
+    expect(
+      checkCatalogs({
+        en: {
+          ...en,
+          counts: { sets_one: "One set", sets_other: "{{count, number}} sets" },
+        },
+        uk,
+      })
+    ).toEqual([]);
+  });
+
+  it("accepts an optional zero form in any language", () => {
+    expect(
+      checkCatalogs({
+        en: { ...en, counts: { ...en.counts, sets_zero: "No sets" } },
+        uk: { ...uk, counts: { ...uk.counts, sets_zero: "Жодного підходу" } },
+      })
+    ).toEqual([]);
+  });
+
+  it("fails a name with a dot, which i18next can't look up", () => {
+    expect(
+      checkCatalogs({ en: { counts: en.counts, "tabs.home": "Home" }, uk })
+    ).toEqual([
+      'en: "tabs.home" has a "." in a name',
+      '"tabs.home" is missing from en',
+    ]);
+  });
+
+  it("fails an empty section", () => {
+    expect(checkCatalogs({ en: { ...en, settings: {} }, uk })).toEqual([
+      'en: "settings" is an empty section',
     ]);
   });
 
