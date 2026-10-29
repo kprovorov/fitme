@@ -13,6 +13,7 @@ import { router } from "expo-router";
 import { useCallback } from "react";
 import { Pressable, Text } from "react-native";
 import ProfileScreen from "~/app/onboarding/profile";
+import { useAppLanguageSync } from "~/lib/i18n";
 import { segmentClient } from "~/lib/segment";
 import { setDeviceLanguages } from "~/test-utils/device-locales";
 import {
@@ -127,11 +128,17 @@ const SAVE_ERROR =
 
 let queryClient = createTestQueryClient();
 
+/** The screen under the root layout's language sync. */
+function App() {
+  useAppLanguageSync();
+  return <ProfileScreen />;
+}
+
 const mount = async () => {
   queryClient = createTestQueryClient();
   await render(
     <QueryClientProvider client={queryClient}>
-      <ProfileScreen />
+      <App />
     </QueryClientProvider>
   );
   await settle(queryClient);
@@ -286,4 +293,75 @@ describe("Onboarding ProfileScreen", () => {
       expect(router.dismissTo).not.toHaveBeenCalled();
     }
   );
+});
+
+describe("Onboarding ProfileScreen in Ukrainian", () => {
+  beforeEach(() => {
+    jest.clearAllMocks();
+    backend.reset();
+  });
+
+  it("shows the form, its choices and units in Ukrainian on a metric device", async () => {
+    setDeviceLanguages(["uk-UA"]);
+    await mount();
+
+    expect(
+      screen.getByText(
+        "Ми використаємо ці дані, щоб підлаштувати Fitme під вас."
+      )
+    ).toBeTruthy();
+    expect(screen.getByText("Стать")).toBeTruthy();
+    expect(screen.getByLabelText("Чоловік")).toBeTruthy();
+    expect(screen.getByLabelText("Жінка")).toBeTruthy();
+    expect(screen.getByText("Особисті параметри")).toBeTruthy();
+    expect(screen.getAllByText("Не вказано")).toHaveLength(3);
+    expect(screen.queryByText("Gender")).toBeNull();
+
+    await fireEvent.press(screen.getByText("Далі"));
+
+    expect(await screen.findByText("Вкажіть стать")).toBeTruthy();
+    expect(screen.getByText("Вкажіть вік")).toBeTruthy();
+
+    await pick("Вік", 28);
+    await pick("Вага", 80);
+    await pick("Зріст", 182);
+
+    expect(screen.getByText("28 років")).toBeTruthy();
+    expect(screen.getByText("80 кг")).toBeTruthy();
+    expect(screen.getByText("182 см")).toBeTruthy();
+  });
+
+  it("follows the device's measurement system, not the language", async () => {
+    setDeviceLanguages(["uk-US"]);
+    await mount();
+
+    await pick("Вік", 21);
+    await pick("Вага", 176);
+
+    expect(screen.getByText("21 рік")).toBeTruthy();
+    expect(screen.getByText("176 фунт")).toBeTruthy();
+  });
+
+  it("says how long to wait in Ukrainian when there were too many requests", async () => {
+    setDeviceLanguages(["uk-UA"]);
+    await mount();
+    fakePublicApi.failNext(PROFILE_PUT, {
+      retryAfterSeconds: 42,
+      status: 429,
+    });
+
+    await fireEvent.press(screen.getByLabelText("Чоловік"));
+    await pick("Вік", 28);
+    await pick("Вага", 80);
+    await pick("Зріст", 182);
+    await fireEvent.press(screen.getByText("Далі"));
+    await settle(queryClient);
+
+    expect(
+      screen.getByText(
+        "Не вдалося зберегти профіль. Забагато запитів: спробуйте ще раз через 42 с."
+      )
+    ).toBeTruthy();
+    expect(router.dismissTo).not.toHaveBeenCalled();
+  });
 });

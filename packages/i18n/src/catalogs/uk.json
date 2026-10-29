@@ -341,5 +341,54 @@
       "skipRest": "Пропустити відпочинок",
       "over": "Відпочинок завершено"
     }
+  },
+  "forms": {
+    "numberMin": "Число має бути не менше за {{min, number(useGrouping: false)}}",
+    "numberMax": "Число має бути не більше за {{max, number(useGrouping: false)}}"
+  },
+  "onboarding": {
+    "welcome": {
+      "title": "Вітаємо у Fitme!",
+      "description": "Ваш особистий AI-тренер уже чекає на вас. Почнімо!",
+      "getStarted": "Почати",
+      "skip": "Пропустити"
+    },
+    "profile": {
+      "title": "Розкажіть про себе",
+      "description": "Ми використаємо ці дані, щоб підлаштувати Fitme під вас.",
+      "next": "Далі"
+    }
+  },
+  "profileForm": {
+    "name": "Ім’я",
+    "gender": "Стать",
+    "parameters": "Особисті параметри",
+    "age": "Вік",
+    "weight": "Вага",
+    "height": "Зріст",
+    "notSet": "Не вказано",
+    "done": "Готово",
+    "ageValue_one": "{{count, number}} рік",
+    "ageValue_few": "{{count, number}} роки",
+    "ageValue_many": "{{count, number}} років",
+    "ageValue_other": "{{count, number}} року",
+    "feet_one": "{{count, number}} фут",
+    "feet_few": "{{count, number}} фути",
+    "feet_many": "{{count, number}} футів",
+    "feet_other": "{{count, number}} фута",
+    "inches_one": "{{count, number}} дюйм",
+    "inches_few": "{{count, number}} дюйми",
+    "inches_many": "{{count, number}} дюймів",
+    "inches_other": "{{count, number}} дюйма",
+    "errors": {
+      "ageRequired": "Вкажіть вік",
+      "genderRequired": "Вкажіть стать",
+      "heightRequired": "Вкажіть зріст",
+      "weightRequired": "Вкажіть вагу",
+      "nameTooLong": "Ім’я має містити не більше ніж {{max, number(useGrouping: false)}} символів",
+      "tooManyDecimals": "Забагато знаків після коми (щонайбільше {{max, number(useGrouping: false)}})",
+      "saveFailed": "Не вдалося зберегти профіль. Перевірте з’єднання й спробуйте ще раз.",
+      "saveRateLimited": "Не вдалося зберегти профіль. Забагато запитів: спробуйте ще раз через {{seconds, number}} с."
+    }
   }
 }

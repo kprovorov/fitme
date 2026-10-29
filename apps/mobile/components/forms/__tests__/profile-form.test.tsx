@@ -1,5 +1,8 @@
 import { describe, expect, it, jest } from "@jest/globals";
 import { act, fireEvent, render, screen } from "@testing-library/react-native";
+import type { ReactNode } from "react";
+import { useAppLanguageSync } from "~/lib/i18n";
+import { setDeviceLanguages } from "~/test-utils/device-locales";
 import ProfileForm, {
   type ProfileFormProps,
   type ProfileFormValues,
@@ -35,6 +38,12 @@ jest.mock("~/components/ui/picker", () => ({
   },
 }));
 
+/** The form under the root layout's language sync. */
+function App({ children }: { children: ReactNode }) {
+  useAppLanguageSync();
+  return children;
+}
+
 const renderForm = async ({
   defaultValues = { gender: "male" },
   measurementSystem = "metric",
@@ -43,12 +52,14 @@ const renderForm = async ({
 > = {}) => {
   const onSubmit = jest.fn((_values: ProfileFormValues) => undefined);
   await render(
-    <ProfileForm
-      defaultValues={defaultValues}
-      measurementSystem={measurementSystem}
-      onSubmit={onSubmit}
-      submitLabel="Next"
-    />
+    <App>
+      <ProfileForm
+        defaultValues={defaultValues}
+        measurementSystem={measurementSystem}
+        onSubmit={onSubmit}
+        submitLabel="Next"
+      />
+    </App>
   );
   return onSubmit;
 };
@@ -180,4 +191,26 @@ describe("ProfileForm", () => {
 
     expect(onSubmit.mock.calls[0]?.[0]).toMatchObject({ age: 4, height: 400 });
   });
+
+  it.each([
+    ["Вік", 121, "Число має бути не більше за 120"],
+    ["Вік", 9, "Число має бути не менше за 10"],
+    ["Вага", 80.125, "Забагато знаків після коми (щонайбільше 2)"],
+  ] as const)(
+    "refuses out of bounds in Ukrainian: %s %d",
+    async (row, value, message) => {
+      setDeviceLanguages(["uk-UA"]);
+      const onSubmit = await renderForm();
+
+      await openWheel("Вік");
+      await openWheel("Вага");
+      await openWheel("Зріст");
+      await openWheel(row);
+      await act(() => mockWheel.onValueChange?.(value));
+      await submit();
+
+      expect(await screen.findByText(message)).toBeTruthy();
+      expect(onSubmit).not.toHaveBeenCalled();
+    }
+  );
 });

@@ -5,6 +5,7 @@ import { useQueryClient } from "@tanstack/react-query";
 import { useLocales } from "expo-localization";
 import { router, Stack } from "expo-router";
 import { useCallback } from "react";
+import { useTranslation } from "react-i18next";
 import { ActivityIndicator, View } from "react-native";
 import ProfileForm, {
   type ProfileFormValues,
@@ -19,6 +20,7 @@ import { rateLimitedFor } from "~/lib/api/client";
 
 export default function EditProfileScreen() {
   const queryClient = useQueryClient();
+  const { t } = useTranslation();
 
   const { isLoaded: isUserLoaded, user } = useUser();
   const {
@@ -122,7 +124,7 @@ export default function EditProfileScreen() {
           }}
           footer={
             !!error && (
-              <ErrorMessage>{profileSaveErrorMessage(error)}</ErrorMessage>
+              <ErrorMessage>{profileSaveErrorMessage(t, error)}</ErrorMessage>
             )
           }
           isSubmitting={isPending}

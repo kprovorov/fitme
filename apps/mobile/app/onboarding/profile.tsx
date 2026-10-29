@@ -5,6 +5,7 @@ import { useQueryClient } from "@tanstack/react-query";
 import { useLocales } from "expo-localization";
 import { router, Stack } from "expo-router";
 import { useCallback } from "react";
+import { useTranslation } from "react-i18next";
 import { ActivityIndicator, ScrollView } from "react-native";
 import { useResolveClassNames } from "uniwind";
 import ProfileForm, {
@@ -22,6 +23,7 @@ import { segmentClient } from "~/lib/segment";
 
 export default function ProfileScreen() {
   const queryClient = useQueryClient();
+  const { t } = useTranslation();
 
   const { user } = useUser();
   const { data: profile, isPending: isProfilePending } = useProfileQuery();
@@ -93,7 +95,7 @@ export default function ProfileScreen() {
             fontFamily: largeTitle.fontFamily,
             fontSize: largeTitle.fontSize,
           },
-          headerTitle: "Let's get to know you",
+          headerTitle: t("onboarding.profile.title"),
           headerTitleStyle: { fontFamily: "NunitoSans12pt-Bold" },
         }}
       />
@@ -116,18 +118,14 @@ export default function ProfileScreen() {
           }}
           footer={
             !!error && (
-              <ErrorMessage>{profileSaveErrorMessage(error)}</ErrorMessage>
+              <ErrorMessage>{profileSaveErrorMessage(t, error)}</ErrorMessage>
             )
           }
-          heading={
-            <Text>
-              We'll use this information to personalize your experience.
-            </Text>
-          }
+          heading={<Text>{t("onboarding.profile.description")}</Text>}
           isSubmitting={isPending}
           measurementSystem={measurementSystem}
           onSubmit={handleSubmit}
-          submitLabel="Next"
+          submitLabel={t("onboarding.profile.next")}
           submitSystemImage="arrow.right"
         />
       )}
