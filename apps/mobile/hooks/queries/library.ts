@@ -243,16 +243,6 @@ interface ExerciseSearchParams {
 }
 
 /**
- * The Library, searched and filtered, a page at a time: what the
- * Library tab and the Exercise picker list. A changed search is sent
- * `EXERCISE_SEARCH_DEBOUNCE_MS` after the last keystroke, a changed muscle
- * group at once. Rate limited, it keeps the last results (no error) and holds
- * the next request (a search, the next page, a refresh) back until
- * `Retry-After` has passed. Every Exercise it
- * lists is seeded into its row query and MMKV, so its detail screen has its
- * name at once and it shows offline.
- */
-/**
  * When the User may call `list` again after a 429, kept in the query client
  * so the Library tab and the Exercise picker share it.
  */
@@ -273,17 +263,32 @@ const waitUntil = (until: number, signal: AbortSignal) =>
     });
   });
 
+/**
+ * The Library, searched and filtered, a page at a time, in the App language:
+ * what the Library tab and the Exercise picker list. Search matches the name
+ * in the App language or the English one, and results come in that
+ * language's alphabetical order. A changed search is sent
+ * `EXERCISE_SEARCH_DEBOUNCE_MS` after the last keystroke, a changed muscle
+ * group or App language at once. Rate limited, it keeps the last results (no
+ * error) and holds the next request (a search, the next page, a refresh) back
+ * until `Retry-After` has passed. Every Exercise it lists is seeded into its
+ * row query and MMKV in the language it was listed in, so its detail screen
+ * has its name at once and it shows offline.
+ */
 export const useExerciseSearch = ({
   muscleGroup,
   search,
 }: ExerciseSearchParams) => {
   const queryClient = useQueryClient();
+  const language = useAppLanguage();
   const term = search.trim();
   const [sent, setSent] = useState<ExerciseSearchParams>({
     muscleGroup,
     search: term,
   });
-  const [lastPages, setLastPages] = useState<ExercisePage[]>();
+  const [lastPages, setLastPages] = useState<
+    { language: AppLanguage; pages: ExercisePage[] } | undefined
+  >(undefined);
 
   useEffect(() => {
     if (sent.search === term && sent.muscleGroup === muscleGroup) {
@@ -303,8 +308,12 @@ export const useExerciseSearch = ({
     getNextPageParam: (lastPage: ExercisePage, _pages, lastOffset: number) =>
       lastPage.hasMore ? lastOffset + EXERCISE_SEARCH_PAGE_SIZE : undefined,
     initialPageParam: 0,
-    // A new search keeps showing the last results until its own arrive.
-    placeholderData: keepPreviousData,
+    // A new search keeps showing the last results until its own arrive, but
+    // never another language's.
+    placeholderData: (previous, previousQuery) =>
+      previousQuery?.queryKey[1] === language
+        ? keepPreviousData(previous)
+        : undefined,
     queryFn: async ({ pageParam, signal }): Promise<ExercisePage> => {
       // Every request (a search, the next page, a refresh) waits out a 429.
       await waitUntil(
@@ -316,6 +325,8 @@ export const useExerciseSearch = ({
         page = await getLibrary().list({
           limit: EXERCISE_SEARCH_PAGE_SIZE,
           offset: pageParam,
+          // English is the API's default.
+          ...(language === defaultAppLanguage ? {} : { language }),
           ...(sent.search ? { search: sent.search } : {}),
           ...(sent.muscleGroup ? { muscleGroup: sent.muscleGroup } : {}),
         });
@@ -328,17 +339,21 @@ export const useExerciseSearch = ({
         }
         throw error;
       }
-      // `list` gets no language yet (FIT-408), so it answers, and seeds, English.
       for (const exercise of page.data) {
-        writeCachedSummary(defaultAppLanguage, exercise);
+        writeCachedSummary(language, exercise);
         queryClient.setQueryData<ExerciseSummary | null>(
-          summaryQueryKey(defaultAppLanguage, exercise.slug),
+          summaryQueryKey(language, exercise.slug),
           exercise
         );
       }
       return page;
     },
-    queryKey: ["exercise-search", sent.search, sent.muscleGroup ?? null],
+    queryKey: [
+      "exercise-search",
+      language,
+      sent.search,
+      sent.muscleGroup ?? null,
+    ],
     retry: retryOnce,
     staleTime: EXERCISE_STALE_TIME_MS,
   });
@@ -346,14 +361,18 @@ export const useExerciseSearch = ({
   const pages = query.isPlaceholderData ? undefined : query.data?.pages;
   useEffect(() => {
     if (pages) {
-      setLastPages(pages);
+      setLastPages({ language, pages });
     }
-  }, [pages]);
+  }, [language, pages]);
 
   const isRateLimited = query.error instanceof LibraryRateLimitedError;
-  // Rate limited, the last results stay; with none to show it's an error.
+  // Rate limited, the last results in this language stay; with none to show
+  // it's an error.
   const shownPages =
-    query.data?.pages ?? (isRateLimited ? lastPages : undefined);
+    query.data?.pages ??
+    (isRateLimited && lastPages?.language === language
+      ? lastPages.pages
+      : undefined);
 
   return {
     exercises: shownPages?.flatMap((page) => page.data),

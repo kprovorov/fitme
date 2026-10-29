@@ -2,13 +2,17 @@
  * Exercises in the App language (FIT-406): in Ukrainian, Plans, Workout
  * Sessions, the Exercise detail screen and its guide show each Exercise's
  * Ukrainian name, description and instructions; one without a translation is
- * wholly English, and a new App language refetches them.
+ * wholly English, and a new App language refetches them. A Library search
+ * (FIT-408) finds one by its Ukrainian name and seeds that name.
  *
  * Mounts the real screens on the in-memory Supabase backend and the fake
  * Library holding translated Exercises, under the root layout's
  * language sync; the device language comes from the mocked
  * `expo-localization` (`test-utils/device-locales.ts`).
  */
+
+import { LibraryUnavailableError } from "@fitme/library-sdk";
+import type { FakeLibrary } from "@fitme/library-sdk/fake";
 import {
   afterEach,
   beforeEach,
@@ -18,12 +22,13 @@ import {
   jest,
 } from "@jest/globals";
 import { type QueryClient, QueryClientProvider } from "@tanstack/react-query";
-import { act, render, screen } from "@testing-library/react-native";
+import { act, fireEvent, render, screen } from "@testing-library/react-native";
 import type { ReactNode } from "react";
 import ExerciseGuideScreen from "~/app/exercises/[exerciseSlug]/guide";
 import ExerciseScreen from "~/app/exercises/[exerciseSlug]/index";
 import WorkoutScreen from "~/app/plans/[planId]/workouts/[workoutId]/index";
 import HistorySessionScreen from "~/app/workout-sessions/[workoutSessionId]";
+import ExercisesView from "~/components/views/exercises-view";
 import { i18n, useAppLanguageSync } from "~/lib/i18n";
 import { storage } from "~/lib/mmkv";
 import { setDeviceLanguages } from "~/test-utils/device-locales";
@@ -32,6 +37,7 @@ import { backend } from "~/test-utils/fake-workout-backend";
 import {
   createTestQueryClient,
   settle as settleQueries,
+  until,
 } from "~/test-utils/query-client";
 
 const mockParams: { current: Record<string, string> } = { current: {} };
@@ -146,6 +152,7 @@ const LUNGE = libraryExercise("lunge", {
 });
 
 let queryClient: QueryClient;
+let fake: FakeLibrary;
 
 function InAppLanguage({ children }: { children: ReactNode }) {
   useAppLanguageSync();
@@ -185,7 +192,7 @@ beforeEach(() => {
   jest.clearAllMocks();
   backend.reset();
   storage.clearAll();
-  serveLibrary([SQUAT, LUNGE]);
+  fake = serveLibrary([SQUAT, LUNGE]);
   setDeviceLanguages(["uk-UA"]);
 });
 
@@ -296,5 +303,60 @@ describe("an Exercise's guide", () => {
 
     expect(await screen.findByText("About the lunge.")).toBeTruthy();
     expect(screen.getByText("Step forward.")).toBeTruthy();
+  });
+});
+
+/**
+ * Types a search into the open Library view and waits until the Library has
+ * answered it, past the debounce.
+ */
+const search = async (term: string) => {
+  const list = jest.spyOn(fake, "list");
+  await fireEvent.changeText(screen.getByLabelText("Search exercises"), term);
+  await until(() =>
+    list.mock.calls.some(([params]) => params?.search === term)
+  );
+  await settle();
+};
+
+describe("searching the Library", () => {
+  it("adds the Exercise found by its Ukrainian name to a Workout Session by slug", async () => {
+    backend.seed({ exercises: [{ name: "Lunge", sets: [12] }], id: "s1" });
+    await renderScreen(HistorySessionScreen, { workoutSessionId: "s1" });
+    await fireEvent.press(await screen.findByText("Add Exercise"));
+    await settle();
+
+    await search("прис");
+    const [addFirst, ...others] = await screen.findAllByText("Add");
+    expect(others).toHaveLength(0);
+    await act(async () => {
+      await fireEvent.press(addFirst as NonNullable<typeof addFirst>);
+    });
+    await settle();
+
+    expect(backend.exercises.at(-1)).toMatchObject({
+      exercise_slug: "squat",
+      workout_session_id: "s1",
+    });
+    expect(await screen.findByText("Присідання")).toBeTruthy();
+  });
+
+  it("opens a found Exercise's detail screen with its Ukrainian name at once", async () => {
+    await renderScreen(() => <ExercisesView />, {});
+    await search("squat");
+    expect(screen.getByText("Присідання")).toBeTruthy();
+
+    // The Library goes away: the name comes from what the search listed.
+    fake.failWith(new LibraryUnavailableError());
+    mockParams.current = { exerciseSlug: "squat" };
+    await screen.rerender(
+      <QueryClientProvider client={queryClient}>
+        <InAppLanguage>
+          <ExerciseScreen />
+        </InAppLanguage>
+      </QueryClientProvider>
+    );
+
+    expect(screen.getByTestId("title")).toHaveTextContent("Присідання");
   });
 });
