@@ -9,6 +9,11 @@ interface BlockedStartProps {
   /** Opens `blockedBy`'s Workout Session. */
   onContinue: () => void;
   size?: "default" | "lg";
+  /**
+   * Continue's look: the screen's primary action by default, `secondary`
+   * where another lime action already opens the session (Home's timer).
+   */
+  variant?: "default" | "secondary";
 }
 
 /**
@@ -21,14 +26,13 @@ export function BlockedStart({
   blockedBy,
   onContinue,
   size = "default",
+  variant = "default",
 }: BlockedStartProps) {
   const name = blockedBy.workoutName;
   return (
     <View className="gap-xs">
       <Button
         disabled
-        icon="arrow.right"
-        iconPosition="trailing"
         label="Start Workout"
         size={size}
         testID="start-workout-button"
@@ -44,6 +48,7 @@ export function BlockedStart({
         label={name ? `Continue ${name}` : "Continue Workout"}
         onPress={onContinue}
         size={size}
+        variant={variant}
       />
     </View>
   );

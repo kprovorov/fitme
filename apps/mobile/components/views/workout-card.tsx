@@ -200,6 +200,8 @@ export default function WorkoutCard({
               <BlockedStart
                 blockedBy={blockedBy}
                 onContinue={continueBlocking}
+                // The in-progress card's timer is Home's lime way in.
+                variant="secondary"
               />
             )}
             {!(activeSession || blockedBy) && (

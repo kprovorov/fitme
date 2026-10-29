@@ -24,6 +24,7 @@ import {
   useStartWorkout,
   workoutSessionPath,
 } from "~/hooks/start-workout";
+import { cn } from "~/lib/utils";
 
 /** Space between the content's end (or the pinned action) and the bottom. */
 const BOTTOM_GAP = 16;
@@ -81,16 +82,12 @@ function WorkoutAction({
       );
     }
     if (blockedBy) {
-      // An opaque panel: its caption and the disabled Start would be
-      // unreadable over the content scrolling under them.
       return (
-        <View className="rounded-card border-border border-hairline bg-popover p-sm">
-          <BlockedStart
-            blockedBy={blockedBy}
-            onContinue={continueBlocking}
-            size="lg"
-          />
-        </View>
+        <BlockedStart
+          blockedBy={blockedBy}
+          onContinue={continueBlocking}
+          size="lg"
+        />
       );
     }
     return (
@@ -108,7 +105,14 @@ function WorkoutAction({
 
   return (
     <View
-      className="absolute inset-x-0 bottom-0 px-sm"
+      // Blocked, it's a bottom bar: its caption and the disabled Start would
+      // be unreadable over the content scrolling under them.
+      className={cn(
+        "absolute inset-x-0 bottom-0 px-sm",
+        blockedBy &&
+          !ownOpenSession &&
+          "border-border border-hairline border-t bg-background pt-sm"
+      )}
       onLayout={onLayout}
       pointerEvents="box-none"
       style={{ paddingBottom: insets.bottom + BOTTOM_GAP }}
