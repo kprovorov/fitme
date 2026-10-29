@@ -1,5 +1,8 @@
+import { formatCount, formatNumber } from "@fitme/i18n";
 import { router } from "expo-router";
+import type { TFunction } from "i18next";
 import { useCallback, useState } from "react";
+import { useTranslation } from "react-i18next";
 import { Pressable, Text, View } from "react-native";
 import Animated, { FadeIn } from "react-native-reanimated";
 import type { SFSymbol } from "sf-symbols-typescript";
@@ -11,24 +14,18 @@ import { type ShownExercise, useExercises } from "@/hooks/queries/library";
 import { useCreatePlanMutation } from "@/hooks/queries/plans";
 import { ApiError, rateLimitedFor } from "~/lib/api/client";
 import { useChoiceLabels } from "~/lib/choices";
+import { i18n, useI18n } from "~/lib/i18n";
 import {
   canSavePlanCard,
   hasExercisesWithoutSlugs,
   planCardBody,
+  planCardGoal,
   type WorkoutDay,
   type WorkoutExercise,
   type WorkoutPlan,
 } from "~/lib/plan-card";
 
 export type { WorkoutPlan } from "~/lib/plan-card";
-
-const GOAL_LABELS: Record<WorkoutPlan["goal"], string> = {
-  endurance: "Endurance",
-  general_fitness: "General Fitness",
-  muscle_gain: "Gain Muscle",
-  strength: "Strength",
-  weight_loss: "Weight Loss",
-};
 
 const GOAL_ICONS: Record<WorkoutPlan["goal"], SFSymbol> = {
   endurance: "heart",
@@ -39,19 +36,19 @@ const GOAL_ICONS: Record<WorkoutPlan["goal"], SFSymbol> = {
 };
 
 /** What the card says when saving failed, by the Public API's answer. */
-const saveErrorMessage = (error: unknown) => {
+const saveErrorMessage = (t: TFunction, error: unknown) => {
   const seconds = rateLimitedFor(error);
   if (seconds !== null) {
-    return `Too many requests. Try again in ${seconds} s.`;
+    return t("arnold.planCard.errors.rateLimited", { seconds });
   }
   const code = error instanceof ApiError ? error.code : null;
   if (code === "unknown_exercises") {
-    return "This plan has exercises we don't know, so it can't be saved. Ask Arnold for another plan.";
+    return t("arnold.planCard.errors.unknownExercises");
   }
   if (code === "library_unavailable") {
-    return "Couldn't check this plan's exercises. Try again.";
+    return t("arnold.planCard.errors.libraryUnavailable");
   }
-  return "Couldn't save the plan. Try again.";
+  return t("arnold.planCard.errors.generic");
 };
 
 function PlanTag({ icon, label }: { icon: SFSymbol; label: string }) {
@@ -74,6 +71,8 @@ function ExerciseRow({
   /** The Exercise as resolved by `useExercises`, if it has a slug. */
   shown: ShownExercise | undefined;
 }) {
+  const { t } = useTranslation(undefined, { i18n });
+  const translator = useI18n();
   // The Library's name once resolved, otherwise Arnold's.
   const isResolved = !!shown?.isResolved;
   const name = shown?.isResolved ? shown.name : exercise.name;
@@ -89,8 +88,11 @@ function ExerciseRow({
       disabled={!isResolved}
       onPress={handlePress}
     >
-      <Text className="w-8 text-primary text-subhead-emphasized">
-        {exercise.sets}×
+      <Text
+        accessibilityLabel={formatCount(translator, "sets", exercise.sets)}
+        className="w-8 text-primary text-subhead-emphasized"
+      >
+        {t("arnold.planCard.setCount", { count: exercise.sets })}
       </Text>
       <Text className="flex-1 text-foreground text-subhead" numberOfLines={1}>
         {name}
@@ -112,6 +114,7 @@ function WorkoutDaySection({
   workout: WorkoutDay;
   last: boolean;
 }) {
+  const translator = useI18n();
   const shownBySlug = useExercises(
     workout.exercises.flatMap(({ exercise_slug }) =>
       exercise_slug ? [exercise_slug] : []
@@ -123,13 +126,21 @@ function WorkoutDaySection({
         <Text className="flex-1 pr-2 text-primary text-subhead-emphasized">
           {workout.name}
         </Text>
-        <View className="flex-row items-center gap-1 rounded-full bg-muted/40 px-2.5 py-1">
+        <View
+          accessibilityLabel={formatCount(
+            translator,
+            "exercises",
+            workout.exercises.length
+          )}
+          accessible
+          className="flex-row items-center gap-1 rounded-full bg-muted/40 px-2.5 py-1"
+        >
           <SymbolImage
             className="text-footnote-emphasized text-foreground"
             name="bolt.fill"
           />
           <Text className="text-footnote-emphasized text-foreground">
-            {workout.exercises.length}
+            {formatNumber(translator, workout.exercises.length)}
           </Text>
         </View>
       </View>
@@ -148,6 +159,7 @@ function WorkoutDaySection({
 }
 
 export function WorkoutPlanCard({ plan }: { plan: WorkoutPlan }) {
+  const { t } = useTranslation(undefined, { i18n });
   const labels = useChoiceLabels();
   const [saved, setSaved] = useState(false);
   const {
@@ -183,11 +195,13 @@ export function WorkoutPlanCard({ plan }: { plan: WorkoutPlan }) {
         <View className="flex-row flex-wrap gap-2">
           <PlanTag
             icon={GOAL_ICONS[plan.goal]}
-            label={GOAL_LABELS[plan.goal]}
+            label={labels.goal(planCardGoal(plan.goal))}
           />
           <PlanTag
             icon="bolt.fill"
-            label={`${plan.frequencyPerWeek}x / week`}
+            label={t("arnold.planCard.frequency", {
+              count: plan.frequencyPerWeek,
+            })}
           />
           {plan.place ? <PlanTag icon={placeIcon} label={placeLabel} /> : null}
         </View>
@@ -207,20 +221,19 @@ export function WorkoutPlanCard({ plan }: { plan: WorkoutPlan }) {
         {hasInvalidExercises && (
           <View className="mb-3 rounded-xl bg-destructive/10 px-3 py-2.5">
             <UIText className="text-destructive text-footnote">
-              Some exercises could not be matched to the library and cannot be
-              saved. Try regenerating the plan.
+              {t("arnold.planCard.unmatchedExercises")}
             </UIText>
           </View>
         )}
         {saveError && !saved ? (
           <ErrorMessage className="mb-3">
-            {saveErrorMessage(saveError)}
+            {saveErrorMessage(t, saveError)}
           </ErrorMessage>
         ) : null}
         <Button
           disabled={saved || !canSave}
           isLoading={isSaving}
-          label={saved ? "Plan Saved" : "Save Plan"}
+          label={t(saved ? "arnold.planCard.saved" : "arnold.planCard.save")}
           onPress={handleSave}
         />
       </View>

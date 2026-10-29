@@ -60,6 +60,10 @@ const GOALS: Record<WorkoutPlan["goal"], Goal> = {
   weight_loss: "fat-loss",
 };
 
+/** The Plan goal a card's goal is saved as, and shown as. */
+export const planCardGoal = (goal: WorkoutPlan["goal"]): Goal =>
+  GOALS[goal] ?? "general-health-fitness";
+
 const DEFAULT_REPS = 10;
 const DEFAULT_REST_SECONDS = 90;
 const DEFAULT_WORKOUT_DURATION_MINUTES = 60;
@@ -168,7 +172,7 @@ export const planCardBody = (plan: WorkoutPlan): NewPlan | null => {
       MAX_FREQUENCY,
       MIN_FREQUENCY
     ),
-    goal: GOALS[plan.goal] ?? "general-health-fitness",
+    goal: planCardGoal(plan.goal),
     name: nameOf(plan.name, DEFAULT_PLAN_NAME),
     place: plan.place ?? "gym",
     workout_duration: fitInteger(

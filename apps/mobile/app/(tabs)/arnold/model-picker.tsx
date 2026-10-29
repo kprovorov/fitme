@@ -1,5 +1,6 @@
 import { useRouter } from "expo-router";
 import { useCallback } from "react";
+import { useTranslation } from "react-i18next";
 import {
   ActivityIndicator,
   Pressable,
@@ -11,6 +12,8 @@ import { useSafeAreaInsets } from "react-native-safe-area-context";
 import { AndroidGrabber } from "@/components/grabber";
 import { SymbolImage } from "@/components/symbol-image";
 import { useSelectedArnoldModel } from "~/hooks/arnold-model";
+// The app's instance, named so it's started wherever the sheet renders.
+import { i18n } from "~/lib/i18n";
 
 function ModelRow({
   description,
@@ -51,22 +54,25 @@ function ModelRow({
 }
 
 function NoModels({ isLoading }: { isLoading: boolean }) {
+  const { t } = useTranslation(undefined, { i18n });
   if (isLoading) {
     return (
       <View className="items-center px-5 py-8">
-        <ActivityIndicator />
+        <ActivityIndicator
+          accessibilityLabel={t("arnold.modelPicker.loading")}
+        />
       </View>
     );
   }
   return (
     <Text className="px-5 py-3.5 text-muted-foreground text-subhead">
-      Models aren't available right now. Your messages use Arnold's default
-      model.
+      {t("arnold.modelPicker.unavailable")}
     </Text>
   );
 }
 
 export default function ModelPickerSheet() {
+  const { t } = useTranslation(undefined, { i18n });
   const { isLoading, model, models, setSelectedId } = useSelectedArnoldModel();
   const insets = useSafeAreaInsets();
   const router = useRouter();
@@ -91,7 +97,7 @@ export default function ModelPickerSheet() {
       <AndroidGrabber />
       <View className="pt-2 pb-4">
         <Text className="px-5 pb-2 text-footnote text-muted-foreground">
-          Applies to your next message
+          {t("arnold.modelPicker.appliesToNextMessage")}
         </Text>
         {models ? (
           models.map((candidate) => (
