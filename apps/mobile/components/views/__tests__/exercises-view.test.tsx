@@ -382,15 +382,20 @@ describe("what it lists", () => {
     await renderView();
 
     expect(
-      queryClient.getQueryData<ExerciseSummary>(["exercise-summary", "squat"])
+      queryClient.getQueryData<ExerciseSummary>([
+        "exercise-summary",
+        "en",
+        "squat",
+      ])
     ).toBeUndefined();
     expect(
       queryClient.getQueryData<ExerciseSummary>([
         "exercise-summary",
+        "en",
         "bench-press-01",
       ])
     ).toMatchObject({ name: "Bench Press 01", slug: "bench-press-01" });
-    expect(readCachedSummary("bench-press-01")?.value).toMatchObject({
+    expect(readCachedSummary("en", "bench-press-01")?.value).toMatchObject({
       name: "Bench Press 01",
     });
   });
