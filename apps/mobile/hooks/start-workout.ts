@@ -35,6 +35,15 @@ export const findOpenSession = (workout: Workout) =>
     (session) => session.started_at && !session.finished_at
   );
 
+const alertStartFailed = (waitSeconds: number | null) => {
+  Alert.alert(
+    "Couldn't start workout",
+    waitSeconds === null
+      ? "Check your connection and try again."
+      : `Too many requests: please try again in ${waitSeconds} s.`
+  );
+};
+
 const isSessionInProgress = (error: unknown) =>
   error instanceof ApiError && error.code === "session_in_progress";
 
@@ -45,7 +54,7 @@ const isSessionInProgress = (error: unknown) =>
  * opens the session. A failure is the "Couldn't start workout" alert (the
  * wait on a 429), except a 409 `session_in_progress` (another Workout's
  * session opened meanwhile), which re-reads the open Workout Session so
- * `blockedBy` shows it instead.
+ * `blockedBy` shows it instead (still the alert if the re-read shows none).
  *
  * `blockedBy` is another Workout's open Workout Session, which Start waits
  * on (a User has at most one, ADR 0013); `null` while it's unknown, so a
@@ -58,20 +67,21 @@ export function useStartWorkout(
   const queryClient = useQueryClient();
   const { data: openSession } = useOpenWorkoutSessionQuery();
   const { mutate, isPending } = useCreateWorkoutSessionMutation({
-    onError: (error) => {
+    onError: async (error) => {
       if (isSessionInProgress(error)) {
-        queryClient.invalidateQueries({
+        await queryClient.invalidateQueries({
           queryKey: OPEN_WORKOUT_SESSION_QUERY_KEY,
         });
-        return;
+        const open = queryClient.getQueryData<OpenWorkoutSession | null>(
+          OPEN_WORKOUT_SESSION_QUERY_KEY
+        );
+        // The blocked state shows it; otherwise (finished meanwhile, or the
+        // re-read failed) the press still gets an answer.
+        if (open && open.workoutId !== workoutId) {
+          return;
+        }
       }
-      const waitSeconds = rateLimitedFor(error);
-      Alert.alert(
-        "Couldn't start workout",
-        waitSeconds === null
-          ? "Check your connection and try again."
-          : `Too many requests: please try again in ${waitSeconds} s.`
-      );
+      alertStartFailed(rateLimitedFor(error));
     },
     onSuccess: (workoutSession) => {
       queryClient.invalidateQueries({ queryKey: ["workout"] });
