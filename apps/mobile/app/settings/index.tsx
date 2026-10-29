@@ -1,5 +1,4 @@
 import { useUser } from "@clerk/expo";
-import { getMeasurementSystemLabel } from "@fitme/core";
 import { Link, Stack } from "expo-router";
 import { ScrollView } from "react-native";
 import { AlertDialog } from "~/components/ui/alert-dialog";
@@ -8,10 +7,12 @@ import { MenuList, MenuListItem } from "~/components/ui/menu-list";
 import { Text } from "~/components/ui/text";
 import { useDeleteUserMutation } from "~/hooks/mutations/auth";
 import { useProfileQuery } from "~/hooks/queries/profiles";
+import { useChoiceLabels } from "~/lib/choices";
 
 export default function SettingsScreen() {
   const { user } = useUser();
   const { data: profile } = useProfileQuery();
+  const labels = useChoiceLabels();
 
   const { mutate: deleteUser, isPending } = useDeleteUserMutation();
 
@@ -42,7 +43,7 @@ export default function SettingsScreen() {
                   <HStack className="flex-1 justify-between">
                     <Text>Measurement System</Text>
                     <Text className="text-footnote text-muted-foreground">
-                      {getMeasurementSystemLabel(
+                      {labels.measurementSystem(
                         profile?.measurement_system ?? "metric"
                       )}
                     </Text>

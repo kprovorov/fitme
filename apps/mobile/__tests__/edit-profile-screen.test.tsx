@@ -13,6 +13,7 @@ import { router } from "expo-router";
 import { useCallback } from "react";
 import { Pressable, Text } from "react-native";
 import EditProfileScreen from "~/app/settings/edit-profile";
+import { setDeviceLanguages } from "~/test-utils/device-locales";
 import {
   FAKE_SESSION_TOKEN,
   FAKE_USER_ID,
@@ -27,10 +28,6 @@ jest.mock("expo-router", () => ({
 }));
 
 jest.mock("@sentry/react-native", () => ({ captureException: jest.fn() }));
-
-jest.mock("expo-localization", () => ({
-  useLocales: () => [{ measurementSystem: "metric" }],
-}));
 
 jest.mock("~/lib/supabase", () => ({
   supabase: jest.requireActual<
@@ -157,6 +154,8 @@ const pick = async (row: string, value: number) => {
 
 describe("EditProfileScreen", () => {
   beforeEach(() => {
+    // A metric device, so the form suggests centimeters and kilograms.
+    setDeviceLanguages(["en-GB"]);
     jest.clearAllMocks();
     mockUser.fullName = "Tony Stark";
     backend.reset();

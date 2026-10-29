@@ -1,8 +1,9 @@
-import { type Gender, genders, getGenderLabel } from "@fitme/core";
+import { type Gender, genders } from "@fitme/core";
 import { useCallback } from "react";
 import { Pressable, View } from "react-native";
 import { HStack } from "~/components/ui/hstack";
 import { Text } from "~/components/ui/text";
+import { useChoiceLabels } from "~/lib/choices";
 import { cn } from "~/lib/utils";
 
 interface GenderSwitchProps {
@@ -17,6 +18,7 @@ interface GenderOptionProps {
   disabled?: boolean;
   gender: Gender;
   isSelected: boolean;
+  label: string;
   onValueChange?: (value: Gender) => void;
 }
 
@@ -24,6 +26,7 @@ function GenderOption({
   disabled,
   gender,
   isSelected,
+  label,
   onValueChange,
 }: GenderOptionProps) {
   const handlePress = useCallback(
@@ -33,7 +36,7 @@ function GenderOption({
 
   return (
     <Pressable
-      accessibilityLabel={getGenderLabel(gender)}
+      accessibilityLabel={label}
       accessibilityRole="radio"
       accessibilityState={{ checked: isSelected, disabled }}
       className={cn(
@@ -55,7 +58,7 @@ function GenderOption({
           <View className="aspect-square size-2.5 rounded-full bg-primary" />
         ) : null}
       </View>
-      <Text>{getGenderLabel(gender)}</Text>
+      <Text>{label}</Text>
     </Pressable>
   );
 }
@@ -71,23 +74,27 @@ const GenderSwitch = ({
   disabled,
   className,
   testID,
-}: GenderSwitchProps) => (
-  <HStack
-    accessibilityRole="radiogroup"
-    className={cn("items-stretch justify-stretch gap-4", className)}
-    testID={testID}
-  >
-    {genders.map((gender) => (
-      <GenderOption
-        disabled={disabled}
-        gender={gender}
-        isSelected={value === gender}
-        key={gender}
-        onValueChange={onValueChange}
-      />
-    ))}
-  </HStack>
-);
+}: GenderSwitchProps) => {
+  const labels = useChoiceLabels();
+  return (
+    <HStack
+      accessibilityRole="radiogroup"
+      className={cn("items-stretch justify-stretch gap-4", className)}
+      testID={testID}
+    >
+      {genders.map((gender) => (
+        <GenderOption
+          disabled={disabled}
+          gender={gender}
+          isSelected={value === gender}
+          key={gender}
+          label={labels.gender(gender)}
+          onValueChange={onValueChange}
+        />
+      ))}
+    </HStack>
+  );
+};
 
 GenderSwitch.displayName = "GenderSwitch";
 

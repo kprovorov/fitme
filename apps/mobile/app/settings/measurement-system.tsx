@@ -1,13 +1,8 @@
-import {
-  getMeasurementSystemDisclaimer,
-  getMeasurementSystemLabel,
-  type MeasurementSystem,
-  measurementSystems,
-} from "@fitme/core";
+import { type MeasurementSystem, measurementSystems } from "@fitme/core";
 import * as Sentry from "@sentry/react-native";
 import { useQueryClient } from "@tanstack/react-query";
 import { Stack } from "expo-router";
-import { useCallback, useEffect, useRef, useState } from "react";
+import { useCallback, useEffect, useMemo, useRef, useState } from "react";
 import { ActivityIndicator, Alert, View } from "react-native";
 import { AlertDialog } from "~/components/ui/alert-dialog";
 import { Button } from "~/components/ui/button";
@@ -17,14 +12,19 @@ import { VStack } from "~/components/ui/vstack";
 import { useProfileQuery } from "~/hooks/queries/profiles";
 import { useUpdateMeasurementSystemMutation } from "~/hooks/queries/settings";
 import { rateLimitedFor } from "~/lib/api/client";
-
-const MEASUREMENT_SYSTEM_OPTIONS = measurementSystems.map((system) => ({
-  label: getMeasurementSystemLabel(system),
-  value: system,
-}));
+import { useChoiceLabels } from "~/lib/choices";
 
 export default function MeasurementSystemScreen() {
   const queryClient = useQueryClient();
+  const labels = useChoiceLabels();
+  const options = useMemo(
+    () =>
+      measurementSystems.map((system) => ({
+        label: labels.measurementSystem(system),
+        value: system,
+      })),
+    [labels]
+  );
 
   const { data: profile, isError: isProfileError, refetch } = useProfileQuery();
 
@@ -170,9 +170,11 @@ export default function MeasurementSystemScreen() {
         <View className="flex-1">
           <RadioGroup
             disabled={isSwitching}
-            footer={getMeasurementSystemDisclaimer(shownSystem ?? savedSystem)}
+            footer={labels.measurementSystemDescription(
+              shownSystem ?? savedSystem
+            )}
             onValueChange={handleValueChange}
-            options={MEASUREMENT_SYSTEM_OPTIONS}
+            options={options}
             value={shownSystem ?? savedSystem}
           />
 

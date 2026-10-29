@@ -10,6 +10,7 @@ import { Text as UIText } from "@/components/ui/text";
 import { type ShownExercise, useExercises } from "@/hooks/queries/library";
 import { useCreatePlanMutation } from "@/hooks/queries/plans";
 import { ApiError, rateLimitedFor } from "~/lib/api/client";
+import { useChoiceLabels } from "~/lib/choices";
 import {
   canSavePlanCard,
   hasExercisesWithoutSlugs,
@@ -147,6 +148,7 @@ function WorkoutDaySection({
 }
 
 export function WorkoutPlanCard({ plan }: { plan: WorkoutPlan }) {
+  const labels = useChoiceLabels();
   const [saved, setSaved] = useState(false);
   const {
     error: saveError,
@@ -166,7 +168,7 @@ export function WorkoutPlanCard({ plan }: { plan: WorkoutPlan }) {
   }, [createPlan, plan]);
 
   const placeIcon: SFSymbol = plan.place === "home" ? "house" : "building.2";
-  const placeLabel = plan.place === "home" ? "Home" : "Gym";
+  const placeLabel = labels.place(plan.place ?? "gym");
 
   return (
     <Animated.View

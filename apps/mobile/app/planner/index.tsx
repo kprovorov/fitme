@@ -1,12 +1,4 @@
-import {
-  experienceLevels,
-  getExperienceLevelDisclaimer,
-  getExperienceLevelLabel,
-  getGoalLabel,
-  getPlaceLabel,
-  goals,
-  places,
-} from "@fitme/core";
+import { experienceLevels, goals, places } from "@fitme/core";
 import { zodResolver } from "@hookform/resolvers/zod";
 import { router, Stack } from "expo-router";
 import { useCallback } from "react";
@@ -33,16 +25,20 @@ import { Text } from "~/components/ui/text";
 import { Textarea } from "~/components/ui/textarea";
 import { H4, Muted } from "~/components/ui/typography";
 import { VStack } from "~/components/ui/vstack";
+import { englishChoiceLabels, useChoiceLabels } from "~/lib/choices";
 import { numberInRange } from "~/lib/form-schemas";
 import { cn } from "~/lib/utils";
 
+// The message is sent to Arnold as the User's own text, all in English until
+// the planner is translated as a whole.
 function buildPlanMessage(data: PlanFormValues): string {
+  const labels = englishChoiceLabels();
   const lines = [
     "Please create a workout plan for me with the following details:",
-    `- Goal: ${getGoalLabel(data.goal)}`,
-    `- Experience: ${getExperienceLevelLabel(data.experience_level)}`,
+    `- Goal: ${labels.goal(data.goal)}`,
+    `- Experience: ${labels.experienceLevel(data.experience_level)}`,
     `- Workout duration: ${data.workout_duration} minutes`,
-    `- Place: ${getPlaceLabel(data.place)}`,
+    `- Place: ${labels.place(data.place)}`,
     `- Frequency: ${data.frequency} ${data.frequency === 1 ? "day" : "days"} per week`,
   ];
   if (data.note) {
@@ -101,18 +97,19 @@ function renderGoalField({
   );
 }
 
-function renderExperienceLevelField({
+function ExperienceLevelOptions({
   field: { onChange, value },
 }: PlanFieldProps<"experience_level">) {
+  const labels = useChoiceLabels();
   return (
     <View className="flex flex-col items-stretch justify-stretch gap-4">
       {experienceLevels.map((option) => (
         <RadioGroupItemWithLabel
           disabled={false}
-          disclaimer={getExperienceLevelDisclaimer(option)}
+          disclaimer={labels.experienceLevelDescription(option)}
           isSelected={option === value}
           key={option}
-          label={getExperienceLevelLabel(option) ?? option}
+          label={labels.experienceLevel(option)}
           onSelect={onChange}
           testID={`experience-${option}`}
           value={option}
@@ -189,6 +186,12 @@ function renderNoteField({
       value={value}
     />
   );
+}
+
+// Controller's render prop must be stable; the options read labels through a
+// hook, so they're a component behind it.
+function renderExperienceLevelField(props: PlanFieldProps<"experience_level">) {
+  return <ExperienceLevelOptions {...props} />;
 }
 
 export default function PlannerScreen() {

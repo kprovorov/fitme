@@ -14,6 +14,7 @@ import { useCallback } from "react";
 import { Pressable, Text } from "react-native";
 import ProfileScreen from "~/app/onboarding/profile";
 import { segmentClient } from "~/lib/segment";
+import { setDeviceLanguages } from "~/test-utils/device-locales";
 import {
   FAKE_SESSION_TOKEN,
   FAKE_USER_ID,
@@ -30,10 +31,6 @@ jest.mock("expo-router", () => ({
 jest.mock("@sentry/react-native", () => ({ captureException: jest.fn() }));
 
 jest.mock("~/lib/segment", () => ({ segmentClient: { track: jest.fn() } }));
-
-jest.mock("expo-localization", () => ({
-  useLocales: () => [{ measurementSystem: "metric" }],
-}));
 
 jest.mock("~/lib/supabase", () => ({
   supabase: jest.requireActual<
@@ -157,6 +154,8 @@ const fillAndSubmit = async () => {
 
 describe("Onboarding ProfileScreen", () => {
   beforeEach(() => {
+    // A metric device, so the form suggests centimeters and kilograms.
+    setDeviceLanguages(["en-GB"]);
     jest.clearAllMocks();
     backend.reset();
   });

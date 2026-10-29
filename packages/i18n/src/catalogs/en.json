@@ -6,6 +6,9 @@
     "library": "Library",
     "profile": "Profile"
   },
+  "library": {
+    "allMuscleGroups": "All"
+  },
   "counts": {
     "sets_one": "{{count}} set",
     "sets_other": "{{count}} sets"
@@ -44,6 +47,62 @@
       "proCheckUnavailable": "Couldn't check your Fitme Pro subscription. Try again in a moment.",
       "network": "Couldn't reach Arnold. Check your connection and try again.",
       "generic": "Something went wrong. Try again."
+    }
+  },
+  "choices": {
+    "experienceLevel": {
+      "beginner": "Beginner",
+      "intermediate": "Intermediate",
+      "advanced": "Advanced"
+    },
+    "experienceLevelDescription": {
+      "beginner": "0-6 mo experience",
+      "intermediate": "6 mo - 3 yrs experience",
+      "advanced": "3+ yrs experience"
+    },
+    "gender": {
+      "male": "Male",
+      "female": "Female"
+    },
+    "goal": {
+      "muscle-gain": "Gain Muscle",
+      "fat-loss": "Lose Weight",
+      "recomposition": "Recomposition",
+      "strength-performance": "Strength & Performance",
+      "general-health-fitness": "General Health & Fitness"
+    },
+    "measurementSystem": {
+      "metric": "Metric",
+      "us": "US",
+      "uk": "UK"
+    },
+    "measurementSystemDescription": {
+      "metric": "Centimeters and Kilograms",
+      "us": "Feet, Inches and Pounds",
+      "uk": "Feet, Inches and Pounds"
+    },
+    "muscleGroup": {
+      "chest": "Chest",
+      "back": "Back",
+      "shoulders": "Shoulders",
+      "biceps": "Biceps",
+      "triceps": "Triceps",
+      "forearms": "Forearms",
+      "abs": "Abs",
+      "obliques": "Obliques",
+      "quadriceps": "Quadriceps",
+      "hamstrings": "Hamstrings",
+      "glutes": "Glutes",
+      "calves": "Calves",
+      "traps": "Traps",
+      "lats": "Lats",
+      "lower-back": "Lower Back",
+      "cardio": "Cardio",
+      "full-body": "Full Body"
+    },
+    "place": {
+      "gym": "Gym",
+      "home": "Home"
     }
   }
 }

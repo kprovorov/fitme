@@ -6,6 +6,9 @@
     "library": "Бібліотека",
     "profile": "Профіль"
   },
+  "library": {
+    "allMuscleGroups": "Усі"
+  },
   "counts": {
     "sets_one": "{{count}} підхід",
     "sets_few": "{{count}} підходи",
@@ -46,6 +49,62 @@
       "proCheckUnavailable": "Не вдалося перевірити підписку Fitme Pro. Спробуйте трохи згодом.",
       "network": "Не вдалося зв’язатися з Arnold. Перевірте з’єднання й спробуйте ще раз.",
       "generic": "Щось пішло не так. Спробуйте ще раз."
+    }
+  },
+  "choices": {
+    "experienceLevel": {
+      "beginner": "Початківець",
+      "intermediate": "Середній рівень",
+      "advanced": "Досвідчений"
+    },
+    "experienceLevelDescription": {
+      "beginner": "0–6 міс. досвіду",
+      "intermediate": "6 міс. – 3 роки досвіду",
+      "advanced": "3+ роки досвіду"
+    },
+    "gender": {
+      "male": "Чоловік",
+      "female": "Жінка"
+    },
+    "goal": {
+      "muscle-gain": "Набір м’язової маси",
+      "fat-loss": "Схуднення",
+      "recomposition": "Рекомпозиція",
+      "strength-performance": "Сила та результативність",
+      "general-health-fitness": "Здоров’я та загальна форма"
+    },
+    "measurementSystem": {
+      "metric": "Метрична",
+      "us": "США",
+      "uk": "Велика Британія"
+    },
+    "measurementSystemDescription": {
+      "metric": "Сантиметри та кілограми",
+      "us": "Фути, дюйми та фунти",
+      "uk": "Фути, дюйми та фунти"
+    },
+    "muscleGroup": {
+      "chest": "Груди",
+      "back": "Спина",
+      "shoulders": "Плечі",
+      "biceps": "Біцепс",
+      "triceps": "Трицепс",
+      "forearms": "Передпліччя",
+      "abs": "Прес",
+      "obliques": "Косі м’язи живота",
+      "quadriceps": "Квадрицепс",
+      "hamstrings": "Задня поверхня стегна",
+      "glutes": "Сідниці",
+      "calves": "Литки",
+      "traps": "Трапеції",
+      "lats": "Найширші м’язи спини",
+      "lower-back": "Поперек",
+      "cardio": "Кардіо",
+      "full-body": "Усе тіло"
+    },
+    "place": {
+      "gym": "Спортзал",
+      "home": "Вдома"
     }
   }
 }
