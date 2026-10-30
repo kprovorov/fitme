@@ -35,6 +35,18 @@ _Avoid_: Routine
 One occurrence of a User performing a Workout, with the sets actually completed. At most one Workout Session per User can be open at a time: another Workout can't be started until it's finished.
 _Avoid_: Session (ambiguous with a sign-in session), training log
 
+**Weekly goal**:
+The number of Workout Sessions a User aims to complete in a Monday–Sunday week, taken from their active Plan's training frequency and retained for that week; frequency changes apply from the following Monday. Only finished Workout Sessions with at least one set containing positive reps count toward it.
+_Avoid_: Weekly target, workout quota
+
+**Weekly streak**:
+Consecutive weeks in which a User meets their Weekly goal; a first partial week may start a streak without a penalty for missing that partial week's goal. Meeting the current week's goal extends the streak immediately, an unfinished current week preserves it until the week ends, and a missed completed week or a completed week without a known goal breaks it.
+_Avoid_: Daily streak, training streak
+
+**Personal record (PR)**:
+A logged set with positive reps that exceeds the User's highest weight for the same Exercise in earlier finished Workout Sessions, or exceeds the highest reps recorded at that highest weight; explicit zero weight allows bodyweight rep records while missing weight does not. First-ever results establish a baseline, ties earn no record, and an earned record is retained when the User changes measurement system.
+_Avoid_: Workout record, best workout
+
 **Plan Update**:
 The structural changes a finished Workout Session suggests to its Workout (Exercises replaced, added or removed, sets added), which the User accepts or declines once. Accepted, they become the Workout's new targets.
 _Avoid_: Plan changes, plan diff
