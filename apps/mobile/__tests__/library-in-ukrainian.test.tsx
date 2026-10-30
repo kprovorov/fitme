@@ -3,19 +3,19 @@
  * the real screens under the root layout's language sync, on the fake
  * Library. The header is rendered as its title and search bar
  * (`stack-screen-stub`), and the SwiftUI-backed primitives are swapped for
- * plain stand-ins (the picker's options are buttons labelled
- * `<label> <option>`).
+ * plain stand-ins.
  */
 import { LibraryUnavailableError } from "@fitme/library-sdk";
 import type { FakeLibrary } from "@fitme/library-sdk/fake";
 import { beforeEach, describe, expect, it, jest } from "@jest/globals";
 import { type QueryClient, QueryClientProvider } from "@tanstack/react-query";
-import { fireEvent, render, screen } from "@testing-library/react-native";
+import { act, fireEvent, render, screen } from "@testing-library/react-native";
 import { router } from "expo-router";
 import type { ComponentType } from "react";
 import LibraryScreen from "~/app/(tabs)/library/index";
 import ExerciseGuideScreen from "~/app/exercises/[exerciseSlug]/guide";
 import ExerciseScreen from "~/app/exercises/[exerciseSlug]/index";
+import { setMuscleChoice } from "~/hooks/muscle-choice";
 import { storage } from "~/lib/mmkv";
 import { setDeviceLanguages } from "~/test-utils/device-locales";
 import { libraryExercise, serveLibrary } from "~/test-utils/fake-library";
@@ -37,12 +37,10 @@ jest.mock("expo-router", () => ({
     ).StackScreenStub,
   },
   useLocalSearchParams: () => ({ exerciseSlug: mockSlug.current }),
+  useRouter: () => ({ push: jest.fn() }),
 }));
 jest.mock("~/components/ui/button", () =>
   jest.requireActual("~/test-utils/button-stub")
-);
-jest.mock("~/components/ui/picker", () =>
-  jest.requireActual("~/test-utils/picker-stub")
 );
 // A thumbnail and a video show as nothing.
 jest.mock("~/components/exercises/exercise-image", () => () => null);
@@ -81,7 +79,7 @@ beforeEach(() => {
 });
 
 describe("the Library tab in Ukrainian", () => {
-  it("titles the tab, the search and the muscle group filter in Ukrainian", async () => {
+  it("titles the tab, the search and the Muscles pill in Ukrainian", async () => {
     await renderInUkrainian(LibraryScreen);
 
     expect(screen.getByText("Бібліотека")).toBeTruthy();
@@ -90,8 +88,7 @@ describe("the Library tab in Ukrainian", () => {
     expect(screen.getByTestId(SEARCH_BAR_TEST_ID).props.placeholder).toBe(
       "Пошук вправ"
     );
-    expect(screen.getByLabelText("Група м’язів Усі")).toBeTruthy();
-    expect(screen.getByLabelText("Група м’язів Груди")).toBeTruthy();
+    expect(screen.getByRole("button", { name: "М’язи" })).toBeTruthy();
     expect(screen.getByText("Жим лежачи")).toBeTruthy();
   });
 
@@ -130,7 +127,8 @@ describe("the Library tab in Ukrainian", () => {
   it("says no Exercise matches, and offers them all, in Ukrainian", async () => {
     await renderInUkrainian(LibraryScreen);
 
-    await fireEvent.press(screen.getByLabelText("Група м’язів Квадрицепс"));
+    // The Muscles sheet confirms a Muscle group no Exercise works.
+    await act(() => setMuscleChoice("library", ["quadriceps"]));
     await settle(client);
 
     expect(screen.getByText("Вправ не знайдено")).toBeTruthy();

@@ -24,8 +24,10 @@ import { type QueryClient, QueryClientProvider } from "@tanstack/react-query";
 import { act, fireEvent, render, screen } from "@testing-library/react-native";
 import type { ReactNode } from "react";
 import { Alert } from "react-native";
+import MusclesSheet from "~/app/muscles";
 import HistorySessionScreen from "~/app/workout-sessions/[workoutSessionId]";
 import ExercisePickerScreen from "~/app/workout-sessions/[workoutSessionId]/exercise-picker";
+import { getMuscleChoice } from "~/hooks/muscle-choice";
 import { i18n } from "~/lib/i18n";
 import { storage } from "~/lib/mmkv";
 import { segmentClient } from "~/lib/segment";
@@ -136,8 +138,6 @@ jest.mock("~/components/ui/dropdown-menu", () => {
       )),
   };
 });
-// The Exercise picker's muscle group menu (SwiftUI) shows nothing.
-jest.mock("~/components/ui/picker", () => ({ Picker: () => null }));
 
 const ADD_EXERCISE = "POST /v1/workout-sessions/{id}/exercises";
 const REMOVE_EXERCISE = "DELETE /v1/workout-session-exercises/{id}";
@@ -153,7 +153,9 @@ const renderSession = async () => {
     <QueryClientProvider client={queryClient}>
       <InAppLanguage>
         <HistorySessionScreen />
-        <PushedRoutes screens={{ [PICKER]: ExercisePickerScreen }} />
+        <PushedRoutes
+          screens={{ "/muscles": MusclesSheet, [PICKER]: ExercisePickerScreen }}
+        />
       </InAppLanguage>
     </QueryClientProvider>
   );
@@ -335,6 +337,22 @@ describe("the Exercise picker", () => {
     expect(screen.queryByTestId(ADD_ICON)).toBeNull();
     expect(screen.queryByText("Replace")).toBeNull();
     expect(screen.queryByText("Push Up")).toBeNull();
+
+    // The Muscles sheet over the picker starts from that choice.
+    await fireEvent.press(screen.getByRole("button", { name: "Muscles" }));
+    await settle();
+    expect(
+      screen.getByRole("checkbox", { name: "Quadriceps" }).props
+        .accessibilityState
+    ).toEqual({ checked: true });
+    await fireEvent.press(screen.getByRole("checkbox", { name: "Chest" }));
+    await fireEvent.press(screen.getByLabelText("Done"));
+    await settle();
+
+    expect(screen.getByText("Push Up")).toBeTruthy();
+    expect(screen.getAllByText("Replace")).toHaveLength(3);
+    // The picker's choice is its own: the Library tab's is untouched.
+    expect(getMuscleChoice("library")).toEqual([]);
   });
 
   it("starts unfiltered again when adding after a replace", async () => {

@@ -2,12 +2,13 @@ import { type MuscleGroup, muscleGroups } from "@fitme/core";
 import type { ExerciseSummary } from "@fitme/library-sdk";
 import { useQueryClient } from "@tanstack/react-query";
 import { Stack, useLocalSearchParams, useRouter } from "expo-router";
-import { useCallback, useEffect, useRef } from "react";
+import { useCallback, useEffect, useRef, useState } from "react";
 import { useTranslation } from "react-i18next";
 import { Alert } from "react-native";
 import { ExerciseRowSymbol } from "~/components/exercises/exercise-row";
 import ExercisesView from "~/components/views/exercises-view";
 import { useHeaderSearch } from "~/hooks/header-search";
+import { forgetMuscleChoice, openMuscleChoice } from "~/hooks/muscle-choice";
 import {
   useCreateWorkoutSessionExerciseMutation,
   useReplaceWorkoutSessionExerciseMutation,
@@ -42,6 +43,13 @@ export default function ExercisePickerScreen() {
     replaceExerciseId?: string;
     workoutSessionId: string;
   }>();
+
+  // Each opening starts over: the replaced Exercise's first Muscle group, or
+  // none, and forgotten once closed.
+  const [muscleChoiceKey] = useState(() =>
+    openMuscleChoice(isMuscleGroup(muscleGroup) ? [muscleGroup] : [])
+  );
+  useEffect(() => () => forgetMuscleChoice(muscleChoiceKey), [muscleChoiceKey]);
 
   // A failed edit may still have been saved (a lost answer): read again
   // either way.
@@ -180,7 +188,7 @@ export default function ExercisePickerScreen() {
       {/* The list is the sheet's scroll container: no ScrollView around it. */}
       <ExercisesView
         contentContainerClassName="px-md"
-        initialMuscleGroup={isMuscleGroup(muscleGroup) ? muscleGroup : "all"}
+        muscleChoiceKey={muscleChoiceKey}
         onExercisePress={onExercisePress}
         onSearchChange={onSearchChange}
         rowAccessibilityLabel={rowAccessibilityLabel}

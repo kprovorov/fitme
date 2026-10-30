@@ -22,6 +22,7 @@ import {
   useQueryClient,
 } from "@tanstack/react-query";
 import { useEffect, useState } from "react";
+import { inCoreOrder } from "~/hooks/muscle-choice";
 import { useAppLanguage } from "~/lib/i18n";
 import { getLibrary } from "~/lib/library";
 import {
@@ -238,9 +239,14 @@ export const EXERCISE_SEARCH_PAGE_SIZE = 20;
 export const EXERCISE_SEARCH_DEBOUNCE_MS = 300;
 
 interface ExerciseSearchParams {
-  muscleGroup?: MuscleGroup;
+  /** Exercises working any of them; none is every Exercise. */
+  muscleGroups: readonly MuscleGroup[];
   search: string;
 }
+
+/** One spelling per choice, in core's order, so it reuses its cache entry. */
+const choiceKey = (groups: readonly MuscleGroup[]) =>
+  inCoreOrder(groups).join(",");
 
 /**
  * When the User may call `list` again after a 429, kept in the query client
@@ -268,7 +274,7 @@ const waitUntil = (until: number, signal: AbortSignal) =>
  * what the Library tab and the Exercise picker list. Search matches the name
  * in the App language or the English one, and results come in that
  * language's alphabetical order. A changed search is sent
- * `EXERCISE_SEARCH_DEBOUNCE_MS` after the last keystroke, a changed muscle
+ * `EXERCISE_SEARCH_DEBOUNCE_MS` after the last keystroke, a changed Muscle
  * group or App language at once. Rate limited, it keeps the last results (no
  * error) and holds the next request (a search, the next page, a refresh) back
  * until `Retry-After` has passed. Every Exercise it lists is seeded into its
@@ -276,33 +282,28 @@ const waitUntil = (until: number, signal: AbortSignal) =>
  * has its name at once and it shows offline.
  */
 export const useExerciseSearch = ({
-  muscleGroup,
+  muscleGroups,
   search,
 }: ExerciseSearchParams) => {
   const queryClient = useQueryClient();
   const language = useAppLanguage();
   const term = search.trim();
-  const [sent, setSent] = useState<ExerciseSearchParams>({
-    muscleGroup,
-    search: term,
-  });
+  const groups = choiceKey(muscleGroups);
+  const [sent, setSent] = useState({ groups, search: term });
   const [lastPages, setLastPages] = useState<
     { language: AppLanguage; pages: ExercisePage[] } | undefined
   >(undefined);
 
   useEffect(() => {
-    if (sent.search === term && sent.muscleGroup === muscleGroup) {
+    if (sent.search === term && sent.groups === groups) {
       return;
     }
-    // A new muscle group is one tap: it goes out at once, with any typed search.
-    const debounce =
-      sent.muscleGroup === muscleGroup ? EXERCISE_SEARCH_DEBOUNCE_MS : 0;
-    const timer = setTimeout(
-      () => setSent({ muscleGroup, search: term }),
-      debounce
-    );
+    // A new Muscle group choice is one tap: it goes out at once, with any
+    // typed search.
+    const debounce = sent.groups === groups ? EXERCISE_SEARCH_DEBOUNCE_MS : 0;
+    const timer = setTimeout(() => setSent({ groups, search: term }), debounce);
     return () => clearTimeout(timer);
-  }, [muscleGroup, sent, term]);
+  }, [groups, sent, term]);
 
   const query = useInfiniteQuery({
     getNextPageParam: (lastPage: ExercisePage, _pages, lastOffset: number) =>
@@ -328,7 +329,9 @@ export const useExerciseSearch = ({
           // English is the API's default.
           ...(language === defaultAppLanguage ? {} : { language }),
           ...(sent.search ? { search: sent.search } : {}),
-          ...(sent.muscleGroup ? { muscleGroup: sent.muscleGroup } : {}),
+          ...(sent.groups
+            ? { muscleGroups: sent.groups.split(",") as MuscleGroup[] }
+            : {}),
         });
       } catch (error) {
         if (error instanceof LibraryRateLimitedError) {
@@ -348,12 +351,7 @@ export const useExerciseSearch = ({
       }
       return page;
     },
-    queryKey: [
-      "exercise-search",
-      language,
-      sent.search,
-      sent.muscleGroup ?? null,
-    ],
+    queryKey: ["exercise-search", language, sent.search, sent.groups],
     retry: retryOnce,
     staleTime: EXERCISE_STALE_TIME_MS,
   });

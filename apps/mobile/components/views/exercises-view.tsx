@@ -1,7 +1,7 @@
-import { type MuscleGroup, muscleGroups } from "@fitme/core";
 import type { ExerciseSummary } from "@fitme/library-sdk";
+import { useRouter } from "expo-router";
 import type React from "react";
-import { useCallback, useMemo, useState } from "react";
+import { useCallback, useState } from "react";
 import { useTranslation } from "react-i18next";
 import {
   ActivityIndicator,
@@ -17,36 +17,24 @@ import {
 } from "~/components/exercises/exercise-row";
 import { Button } from "~/components/ui/button";
 import { ErrorMessage } from "~/components/ui/error-message";
-import { Picker } from "~/components/ui/picker";
 import { Text } from "~/components/ui/text";
 import { H3 } from "~/components/ui/typography";
 import { VStack } from "~/components/ui/vstack";
+import { setMuscleChoice, useMuscleChoice } from "~/hooks/muscle-choice";
 import { useExerciseSearch } from "~/hooks/queries/library";
-import { type ChoiceLabels, useChoiceLabels } from "~/lib/choices";
 import { i18n } from "~/lib/i18n";
-
-type MuscleGroupFilter = MuscleGroup | "all";
 
 /** How close to the end, in visible lengths, the next page starts loading. */
 const END_REACHED_THRESHOLD = 0.5;
 
-const muscleGroupOptions = (
-  labels: ChoiceLabels,
-  allLabel: string
-): { label: string; value: MuscleGroupFilter }[] => [
-  { label: allLabel, value: "all" },
-  ...muscleGroups
-    // Temporary we don't have full-body and cardio exercises
-    .filter((group) => !["full-body", "cardio"].includes(group))
-    .map((group) => ({ label: labels.muscleGroup(group), value: group })),
-];
-
 const exerciseKey = (exercise: ExerciseSummary) => exercise.slug;
 
 /**
- * The Library, searched and filtered by muscle group: the Library tab and the
+ * The Library, searched and filtered by Muscle group: the Library tab and the
  * Exercise picker. It is the screen's scroll container, a virtualised list
- * loading the next page as the User nears its end.
+ * loading the next page as the User nears its end. The Muscles pill opens the
+ * Muscles sheet over the screen, which hands the confirmed choice back under
+ * `muscleChoiceKey` (`hooks/muscle-choice.ts`), the screen's own.
  */
 const ExercisesView = ({
   onExercisePress = () => {
@@ -54,7 +42,7 @@ const ExercisesView = ({
   },
   rowAccessibilityLabel,
   trailing,
-  initialMuscleGroup = "all",
+  muscleChoiceKey,
   refreshable = false,
   contentContainerClassName,
   search,
@@ -66,7 +54,9 @@ const ExercisesView = ({
   rowAccessibilityLabel?: (exercise: ExerciseSummary) => string;
   // What ends each row: the Library's chevron, or the picker's "+" or swap.
   trailing?: React.ReactNode;
-  initialMuscleGroup?: MuscleGroupFilter;
+  // Where the screen's Muscle group choice is kept: one key per screen, so
+  // the Library tab and the picker never share a choice.
+  muscleChoiceKey: string;
   // Pull to refresh (the Library tab).
   refreshable?: boolean;
   contentContainerClassName?: string;
@@ -76,13 +66,8 @@ const ExercisesView = ({
   onSearchChange: (search: string) => void;
 }) => {
   const { t } = useTranslation(undefined, { i18n });
-  const labels = useChoiceLabels();
-  const filterOptions = useMemo(
-    () => muscleGroupOptions(labels, t("library.allMuscleGroups")),
-    [labels, t]
-  );
-  const [muscleGroup, setMuscleGroup] =
-    useState<MuscleGroupFilter>(initialMuscleGroup);
+  const router = useRouter();
+  const muscleGroups = useMuscleChoice(muscleChoiceKey);
   const [refreshing, setRefreshing] = useState(false);
 
   const {
@@ -93,10 +78,7 @@ const ExercisesView = ({
     isLoadingMore,
     loadMore,
     refetch,
-  } = useExerciseSearch({
-    muscleGroup: muscleGroup === "all" ? undefined : muscleGroup,
-    search,
-  });
+  } = useExerciseSearch({ muscleGroups, search });
 
   // A failed search or refresh shows the error state, with no rows: the
   // shortened list reaching its end must not page past it.
@@ -145,8 +127,15 @@ const ExercisesView = ({
 
   const showAll = useCallback(() => {
     onSearchChange("");
-    setMuscleGroup("all");
-  }, [onSearchChange]);
+    setMuscleChoice(muscleChoiceKey, []);
+  }, [muscleChoiceKey, onSearchChange]);
+
+  const openMuscles = useCallback(() => {
+    router.push({
+      params: { choice: muscleChoiceKey },
+      pathname: "/muscles",
+    });
+  }, [muscleChoiceKey, router]);
 
   const shown = isError ? [] : (exercises ?? []);
   const lastIndex = shown.length - 1;
@@ -231,12 +220,15 @@ const ExercisesView = ({
       ListFooterComponent={renderFooter() ?? undefined}
       ListHeaderComponent={
         <VStack className="items-stretch pb-md">
-          <Picker
-            label={t("library.muscleGroup")}
-            onValueChange={setMuscleGroup}
-            options={filterOptions}
-            value={muscleGroup}
-            variant="menu"
+          <Button
+            className="self-start"
+            fill={false}
+            icon="chevron.down"
+            iconPosition="trailing"
+            label={t("library.muscles")}
+            onPress={openMuscles}
+            size="sm"
+            variant="secondary"
           />
         </VStack>
       }

@@ -7,9 +7,12 @@
  * virtualised and loads the next page as the User nears its end (FIT-431).
  *
  * Mounts the real view on the fake Library; the SwiftUI-backed
- * primitives are swapped for plain stand-ins.
+ * primitives are swapped for plain stand-ins. The Muscle group choice is set
+ * as the Muscles sheet confirms it (`setMuscleChoice`); the sheet itself is
+ * `__tests__/muscles-sheet.test.tsx`'s.
  */
 
+import type { MuscleGroup } from "@fitme/core";
 import {
   type ExerciseSummary,
   LibraryRateLimitedError,
@@ -28,6 +31,7 @@ import { type QueryClient, QueryClientProvider } from "@tanstack/react-query";
 import { act, fireEvent, render, screen } from "@testing-library/react-native";
 import type { ReactNode } from "react";
 import { Text } from "react-native";
+import { getMuscleChoice, setMuscleChoice } from "~/hooks/muscle-choice";
 import { i18n, useAppLanguageSync } from "~/lib/i18n";
 import { readCachedSummary } from "~/lib/library-cache";
 import { storage } from "~/lib/mmkv";
@@ -46,9 +50,7 @@ jest.mock(
 jest.mock("~/components/ui/button", () =>
   jest.requireActual("~/test-utils/button-stub")
 );
-jest.mock("~/components/ui/picker", () =>
-  jest.requireActual("~/test-utils/picker-stub")
-);
+jest.mock("expo-router", () => ({ useRouter: () => ({ push: jest.fn() }) }));
 // A thumbnail shows as nothing.
 jest.mock("~/components/exercises/exercise-image", () => () => null);
 jest.mock("~/components/symbol-image", () => ({ SymbolImage: () => null }));
@@ -104,13 +106,21 @@ const advance = async (ms: number) => {
   await tick();
 };
 
+/** The view's Muscle group choice. */
+const CHOICE = "view";
+
+/** The Muscles sheet confirms `groups` for the view. */
+const chooseMuscleGroups = async (...groups: MuscleGroup[]) => {
+  await act(() => setMuscleChoice(CHOICE, groups));
+};
+
 const renderView = async (
-  props: Parameters<typeof SearchedExercisesView>[0] = {}
+  props: Partial<Parameters<typeof SearchedExercisesView>[0]> = {}
 ) => {
   queryClient = createTestQueryClient();
   await render(
     <QueryClientProvider client={queryClient}>
-      <SearchedExercisesView {...props} />
+      <SearchedExercisesView muscleChoiceKey={CHOICE} {...props} />
     </QueryClientProvider>
   );
   await advance(0);
@@ -250,28 +260,77 @@ describe("searching the Library", () => {
     await advance(300);
     expect(screen.getByText("Bench Press 01")).toBeTruthy();
   });
+
+  it("clears the search and every chosen Muscle group on Show All Exercises", async () => {
+    await chooseMuscleGroups("quadriceps", "chest");
+    await renderView();
+    await type("deadlift");
+    await advance(300);
+
+    await fireEvent.press(screen.getByText("Show All Exercises"));
+    await advance(0);
+
+    expect(getMuscleChoice(CHOICE)).toEqual([]);
+    expect(list).toHaveBeenLastCalledWith({ limit: 20, offset: 0 });
+    expect(screen.getByLabelText("Search exercises").props.value).toBe("");
+    expect(screen.getByText("Bench Press 01")).toBeTruthy();
+  });
 });
 
 describe("filtering and paging", () => {
-  it("filters by muscle group at once", async () => {
+  it("filters by the chosen Muscle groups at once", async () => {
     await renderView();
     list.mockClear();
 
-    await fireEvent.press(screen.getByLabelText("Muscle group Quadriceps"));
+    await chooseMuscleGroups("quadriceps");
     await advance(0);
 
     expect(list).toHaveBeenCalledTimes(1);
     expect(list).toHaveBeenLastCalledWith({
       limit: 20,
-      muscleGroup: "quadriceps",
+      muscleGroups: ["quadriceps"],
       offset: 0,
     });
     expect(screen.getByText("Squat")).toBeTruthy();
     expect(screen.queryByText("Bench Press 01")).toBeNull();
   });
 
-  it("pages a muscle group with its filter", async () => {
-    await renderView({ initialMuscleGroup: "chest" });
+  it("lists Exercises working any chosen Muscle group", async () => {
+    await renderView();
+
+    await chooseMuscleGroups("quadriceps", "chest");
+    await advance(0);
+
+    expect(list).toHaveBeenLastCalledWith({
+      limit: 20,
+      muscleGroups: ["chest", "quadriceps"],
+      offset: 0,
+    });
+    expect(screen.getByText("Bench Press 01")).toBeTruthy();
+    // The squat comes after the 25 bench presses, on the next page.
+    await reachEnd();
+    await advance(0);
+    expect(isListed("squat")).toBe(true);
+  });
+
+  it("reuses a choice's results, whatever order it was ticked in", async () => {
+    await renderView();
+    await chooseMuscleGroups("quadriceps", "chest");
+    await advance(0);
+    await chooseMuscleGroups();
+    await advance(0);
+    list.mockClear();
+
+    await chooseMuscleGroups("chest", "quadriceps");
+    await advance(0);
+
+    expect(list).not.toHaveBeenCalled();
+    expect(screen.getByText("Bench Press 01")).toBeTruthy();
+  });
+
+  it("pages a Muscle group with its filter", async () => {
+    await chooseMuscleGroups("chest");
+    await renderView();
     list.mockClear();
 
     await reachEnd();
@@ -279,7 +338,7 @@ describe("filtering and paging", () => {
 
     expect(list).toHaveBeenLastCalledWith({
       limit: 20,
-      muscleGroup: "chest",
+      muscleGroups: ["chest"],
       offset: 20,
     });
   });
@@ -289,24 +348,25 @@ describe("filtering and paging", () => {
     list.mockClear();
 
     await fireEvent.changeText(screen.getByLabelText("Search exercises"), "sq");
-    await fireEvent.press(screen.getByLabelText("Muscle group Quadriceps"));
+    await chooseMuscleGroups("quadriceps");
     await advance(0);
 
     expect(list).toHaveBeenCalledTimes(1);
     expect(list).toHaveBeenLastCalledWith({
       limit: 20,
-      muscleGroup: "quadriceps",
+      muscleGroups: ["quadriceps"],
       offset: 0,
       search: "sq",
     });
   });
 
-  it("starts from the muscle group it's given", async () => {
-    await renderView({ initialMuscleGroup: "quadriceps" });
+  it("starts from the screen's choice", async () => {
+    await chooseMuscleGroups("quadriceps");
+    await renderView();
 
     expect(list).toHaveBeenLastCalledWith({
       limit: 20,
-      muscleGroup: "quadriceps",
+      muscleGroups: ["quadriceps"],
       offset: 0,
     });
   });
@@ -437,9 +497,10 @@ describe("the Retry-After hold", () => {
     list.mockClear();
 
     // The picker opens in the same app (same query client) for a squat.
+    await chooseMuscleGroups("quadriceps");
     await screen.rerender(
       <QueryClientProvider client={queryClient}>
-        <SearchedExercisesView initialMuscleGroup="quadriceps" key="picker" />
+        <SearchedExercisesView key="picker" muscleChoiceKey={CHOICE} />
       </QueryClientProvider>
     );
     await advance(10_000);
@@ -448,7 +509,7 @@ describe("the Retry-After hold", () => {
     await advance(20_000);
     expect(list).toHaveBeenLastCalledWith({
       limit: 20,
-      muscleGroup: "quadriceps",
+      muscleGroups: ["quadriceps"],
       offset: 0,
     });
     expect(screen.getByText("Squat")).toBeTruthy();
@@ -610,7 +671,7 @@ const renderInAppLanguage = async () => {
   await render(
     <QueryClientProvider client={queryClient}>
       <InAppLanguage>
-        <SearchedExercisesView />
+        <SearchedExercisesView muscleChoiceKey={CHOICE} />
       </InAppLanguage>
     </QueryClientProvider>
   );
