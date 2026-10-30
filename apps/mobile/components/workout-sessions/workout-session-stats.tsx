@@ -2,12 +2,12 @@ import {
   countLoggedSets,
   exerciseProgress,
   formatElapsed,
-  getWeightLabel,
   sessionVolume,
   type WorkoutSession,
 } from "@fitme/core";
-import { formatNumber } from "@fitme/i18n";
+import { formatNumber, formatWeight } from "@fitme/i18n";
 import { useIsFocused } from "expo-router";
+import { useTranslation } from "react-i18next";
 import { useWindowDimensions, View } from "react-native";
 import { Text } from "~/components/ui/text";
 import { useProfileQuery } from "~/hooks/queries/profiles";
@@ -79,8 +79,9 @@ export function StatRow({
 export default function WorkoutSessionStats({
   workoutSession,
 }: WorkoutSessionStatsProps) {
-  const { data: profile } = useProfileQuery();
+  const { t } = useTranslation();
   const i18n = useI18n();
+  const { data: profile } = useProfileQuery();
   const isFinished = !!workoutSession.finished_at;
   // Ticks only while the session screen is on top, not under an exercise.
   const isFocused = useIsFocused();
@@ -95,7 +96,6 @@ export default function WorkoutSessionStats({
     0
   );
   const volume = sessionVolume(workoutSession.exercises);
-  const weightLabel = getWeightLabel(profile?.measurement_system ?? "metric");
 
   const progress = [...workoutSession.exercises]
     .sort((a, b) => a.order - b.order)
@@ -109,14 +109,21 @@ export default function WorkoutSessionStats({
     <View className="gap-sm">
       <StatRow
         stats={[
-          { label: "Duration", value: formatElapsed(endedAt - startedAt) },
           {
-            label: "Volume",
-            value: `${formatNumber(i18n, volume)} ${weightLabel}`,
+            label: t("workoutSession.stats.duration"),
+            value: formatElapsed(endedAt - startedAt),
           },
           {
-            label: "Sets",
-            value: `${countLoggedSets(workoutSession)}/${totalSets}`,
+            label: t("workoutSession.stats.volume"),
+            value: formatWeight(
+              i18n,
+              volume,
+              profile?.measurement_system ?? "metric"
+            ),
+          },
+          {
+            label: t("workoutSession.stats.sets"),
+            value: `${formatNumber(i18n, countLoggedSets(workoutSession))}/${formatNumber(i18n, totalSets)}`,
           },
         ]}
       />
@@ -135,7 +142,10 @@ export default function WorkoutSessionStats({
             ))}
           </View>
           <Text className="text-caption-1 text-muted-foreground">
-            {doneCount} of {progress.length} exercises done
+            {t("workoutSession.stats.exercisesDone", {
+              count: progress.length,
+              done: doneCount,
+            })}
           </Text>
         </View>
       )}

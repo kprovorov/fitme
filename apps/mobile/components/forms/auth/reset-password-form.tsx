@@ -1,11 +1,13 @@
 import { zodResolver } from "@hookform/resolvers/zod";
-import { useCallback } from "react";
+import type { TFunction } from "i18next";
+import { useCallback, useMemo } from "react";
 import {
   Controller,
   type ControllerFieldState,
   type ControllerRenderProps,
   useForm,
 } from "react-hook-form";
+import { useTranslation } from "react-i18next";
 import { z } from "zod";
 import { Button } from "~/components/ui/button";
 import { Input } from "~/components/ui/input";
@@ -16,23 +18,31 @@ interface ResetPasswordFormProps {
   onSubmit: (values: ResetPasswordFormValues) => Promise<void>;
 }
 
-export type ResetPasswordFormValues = z.infer<typeof formSchema>;
+export type ResetPasswordFormValues = z.infer<
+  ReturnType<typeof createFormSchema>
+>;
 
-const formSchema = z
-  .object({
-    confirmPassword: z.string(),
-    password: z.string().min(PASSWORD_MIN_LENGTH, {
-      error: `Password must be at least ${PASSWORD_MIN_LENGTH} characters.`,
-    }),
-  })
-  .refine((data) => data.password === data.confirmPassword, {
-    error: "Passwords do not match.",
-    path: ["confirmPassword"],
-  });
+/** The form's rules, their messages in the App language. */
+const createFormSchema = (t: TFunction) =>
+  z
+    .object({
+      confirmPassword: z.string(),
+      password: z.string().min(PASSWORD_MIN_LENGTH, {
+        error: t("resetPassword.passwordTooShort", {
+          count: PASSWORD_MIN_LENGTH,
+        }),
+      }),
+    })
+    .refine((data) => data.password === data.confirmPassword, {
+      error: t("resetPassword.passwordsDontMatch"),
+      path: ["confirmPassword"],
+    });
 
 export default function ResetPasswordForm({
   onSubmit,
 }: ResetPasswordFormProps) {
+  const { t } = useTranslation();
+  const formSchema = useMemo(() => createFormSchema(t), [t]);
   const form = useForm<ResetPasswordFormValues>({
     defaultValues: {
       confirmPassword: "",
@@ -56,13 +66,13 @@ export default function ResetPasswordForm({
         error={error?.message}
         onBlur={onBlur}
         onChangeText={onChange}
-        placeholder="New Password"
+        placeholder={t("resetPassword.newPasswordPlaceholder")}
         secureTextEntry
         testID="reset-password-input"
         value={value}
       />
     ),
-    [isSubmitting]
+    [isSubmitting, t]
   );
 
   const renderConfirmPasswordField = useCallback(
@@ -78,13 +88,13 @@ export default function ResetPasswordForm({
         error={error?.message}
         onBlur={onBlur}
         onChangeText={onChange}
-        placeholder="Confirm Password"
+        placeholder={t("resetPassword.confirmPasswordPlaceholder")}
         secureTextEntry
         testID="reset-password-confirm-input"
         value={value}
       />
     ),
-    [isSubmitting]
+    [isSubmitting, t]
   );
 
   return (
@@ -103,7 +113,7 @@ export default function ResetPasswordForm({
         icon="arrow.right"
         iconPosition="trailing"
         isLoading={isSubmitting}
-        label="Update Password"
+        label={t("resetPassword.submit")}
         onPress={form.handleSubmit(onSubmit)}
         testID="reset-password-button"
       />

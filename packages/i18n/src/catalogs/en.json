@@ -419,5 +419,92 @@
   "support": {
     "title": "Support",
     "contact": "Feel free to contact us at any time if you have any questions or feedback"
+  },
+  "verifyCode": {
+    "screenTitle": "Verify Code",
+    "title": "Check your email",
+    "description": {
+      "signUp": "Enter the code we emailed you to activate your account",
+      "reset": "Enter the code we emailed you to reset your password",
+      "signIn": "Enter the code we sent you to confirm it's you on this device"
+    },
+    "codePlaceholder": "Code",
+    "verify": "Verify",
+    "errors": {
+      "signUpIncomplete": "We couldn't finish creating your account. Please try again.",
+      "resetIncomplete": "We couldn't verify the code. Please try again.",
+      "signInIncomplete": "We couldn't sign you in. Please try again."
+    },
+    "resendButton": "Send a new code",
+    "resentNotice": "We sent you a new code."
+  },
+  "forgotPassword": {
+    "screenTitle": "Forgot Password",
+    "title": "Forgot password?",
+    "description": "Enter your email and we'll send you a code to reset it.",
+    "emailPlaceholder": "Email",
+    "invalidEmail": "Invalid email",
+    "submit": "Send Code",
+    "remember": "Remember your password?",
+    "login": "Login here"
+  },
+  "resetPassword": {
+    "screenTitle": "Reset Password",
+    "title": "Set new password",
+    "description": "Choose a new password for your account.",
+    "newPasswordPlaceholder": "New Password",
+    "confirmPasswordPlaceholder": "Confirm Password",
+    "passwordTooShort_one": "Password must be at least {{count}} character.",
+    "passwordTooShort_other": "Password must be at least {{count}} characters.",
+    "passwordsDontMatch": "Passwords do not match.",
+    "submit": "Update Password",
+    "passwordChanged": "Your password was changed. Log in with your new password."
+  },
+  "updateRequired": {
+    "title": "Update required",
+    "description": "This version of Fitme is no longer supported. Update the app to keep training.",
+    "update": "Update"
+  },
+  "notFound": {
+    "title": "Oops!",
+    "description": "This screen doesn't exist.",
+    "goHome": "Go to home screen"
+  },
+  "workoutSession": {
+    "finish": "Finish",
+    "loadError": "Couldn't load this workout. Check your connection and try again.",
+    "stats": {
+      "duration": "Duration",
+      "volume": "Volume",
+      "sets": "Sets",
+      "exercisesDone_one": "{{done, number}} of {{count, number}} exercises done",
+      "exercisesDone_other": "{{done, number}} of {{count, number}} exercises done"
+    },
+    "addExercise": "Add Exercise",
+    "picker": {
+      "add": "Add",
+      "replace": "Replace",
+      "close": "Close"
+    },
+    "exercise": {
+      "openHint": "Opens the exercise",
+      "moreOptions": "More options for {{name}}",
+      "replace": "Replace",
+      "delete": "Delete"
+    },
+    "editFailed": {
+      "addTitle": "Couldn't add exercise",
+      "replaceTitle": "Couldn't replace exercise",
+      "deleteTitle": "Couldn't delete exercise",
+      "libraryUnavailable": "The exercise library is unavailable right now. Please try again.",
+      "sessionFinished": "This workout is already finished.",
+      "rateLimited": "Too many requests: please try again in {{seconds, number}} s.",
+      "generic": "Please check your connection and try again."
+    }
+  },
+  "workoutSessionExercise": {
+    "loadError": "Couldn't load this exercise. Check your connection and try again.",
+    "howTo": "How to?",
+    "guideHint": "Opens the exercise guide"
   }
 }

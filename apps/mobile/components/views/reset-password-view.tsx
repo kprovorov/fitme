@@ -1,6 +1,7 @@
 import { useAuth, useSignIn } from "@clerk/expo";
 import { router } from "expo-router";
 import { useCallback, useEffect, useState } from "react";
+import { useTranslation } from "react-i18next";
 import ResetPasswordForm, {
   type ResetPasswordFormValues,
 } from "~/components/forms/auth/reset-password-form";
@@ -14,6 +15,7 @@ import { getClerkErrorMessage } from "~/lib/clerk";
 /** Sets a new password once the emailed reset code checked out. */
 export default function ResetPasswordView() {
   const { signIn } = useSignIn();
+  const { t } = useTranslation();
 
   const [errorMessage, setErrorMessage] = useState<string | undefined>();
 
@@ -37,9 +39,7 @@ export default function ResetPasswordView() {
         canUseEmailCode
       )
     ) {
-      setErrorMessage(
-        "Your password was changed. Log in with your new password."
-      );
+      setErrorMessage(t("resetPassword.passwordChanged"));
       return;
     }
     const { error } = await signIn.mfa.sendEmailCode();
@@ -51,7 +51,7 @@ export default function ResetPasswordView() {
       params: { purpose: "sign-in" satisfies CodePurpose },
       pathname: "/auth/verify-code",
     });
-  }, [signIn]);
+  }, [signIn, t]);
 
   const handleSubmit = useCallback(
     async ({ password }: ResetPasswordFormValues) => {
@@ -79,9 +79,9 @@ export default function ResetPasswordView() {
   return (
     <VStack className="w-full gap-4">
       <VStack className="gap-0">
-        <H3>Set new password</H3>
+        <H3>{t("resetPassword.title")}</H3>
         <Text className="text-muted-foreground text-subhead-emphasized">
-          Choose a new password for your account.
+          {t("resetPassword.description")}
         </Text>
       </VStack>
       {errorMessage ? <ErrorMessage>{errorMessage}</ErrorMessage> : null}

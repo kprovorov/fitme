@@ -465,5 +465,96 @@
   "support": {
     "title": "Підтримка",
     "contact": "Пишіть нам будь-коли, якщо маєте запитання чи відгуки"
+  },
+  "verifyCode": {
+    "screenTitle": "Підтвердження коду",
+    "title": "Перевірте пошту",
+    "description": {
+      "signUp": "Введіть код, який ми надіслали на вашу пошту, щоб активувати акаунт",
+      "reset": "Введіть код, який ми надіслали на вашу пошту, щоб скинути пароль",
+      "signIn": "Введіть код, який ми надіслали на вашу пошту, щоб підтвердити, що це ви на цьому пристрої"
+    },
+    "codePlaceholder": "Код",
+    "verify": "Підтвердити",
+    "errors": {
+      "signUpIncomplete": "Не вдалося завершити створення акаунта. Спробуйте ще раз.",
+      "resetIncomplete": "Не вдалося перевірити код. Спробуйте ще раз.",
+      "signInIncomplete": "Не вдалося увійти. Спробуйте ще раз."
+    },
+    "resendButton": "Надіслати новий код",
+    "resentNotice": "Ми надіслали вам новий код."
+  },
+  "forgotPassword": {
+    "screenTitle": "Забули пароль",
+    "title": "Забули пароль?",
+    "description": "Введіть свою електронну пошту, і ми надішлемо вам код для скидання пароля.",
+    "emailPlaceholder": "Електронна пошта",
+    "invalidEmail": "Некоректна електронна пошта",
+    "submit": "Надіслати код",
+    "remember": "Пам’ятаєте пароль?",
+    "login": "Увійдіть тут"
+  },
+  "resetPassword": {
+    "screenTitle": "Скидання пароля",
+    "title": "Встановіть новий пароль",
+    "description": "Придумайте новий пароль для свого акаунта.",
+    "newPasswordPlaceholder": "Новий пароль",
+    "confirmPasswordPlaceholder": "Підтвердьте пароль",
+    "passwordTooShort_one": "Пароль має містити щонайменше {{count}} символ.",
+    "passwordTooShort_few": "Пароль має містити щонайменше {{count}} символи.",
+    "passwordTooShort_many": "Пароль має містити щонайменше {{count}} символів.",
+    "passwordTooShort_other": "Пароль має містити щонайменше {{count}} символу.",
+    "passwordsDontMatch": "Паролі не збігаються.",
+    "submit": "Оновити пароль",
+    "passwordChanged": "Пароль змінено. Увійдіть з новим паролем."
+  },
+  "updateRequired": {
+    "title": "Потрібне оновлення",
+    "description": "Ця версія Fitme більше не підтримується. Оновіть застосунок, щоб і далі тренуватися.",
+    "update": "Оновити"
+  },
+  "notFound": {
+    "title": "Отакої!",
+    "description": "Такого екрана не існує.",
+    "goHome": "На головний екран"
+  },
+  "workoutSession": {
+    "finish": "Завершити",
+    "loadError": "Не вдалося завантажити тренування. Перевірте з’єднання і спробуйте ще раз.",
+    "stats": {
+      "duration": "Тривалість",
+      "volume": "Обсяг",
+      "sets": "Підходи",
+      "exercisesDone_one": "Виконано {{done, number}} з {{count, number}} вправи",
+      "exercisesDone_few": "Виконано {{done, number}} з {{count, number}} вправ",
+      "exercisesDone_many": "Виконано {{done, number}} з {{count, number}} вправ",
+      "exercisesDone_other": "Виконано {{done, number}} з {{count, number}} вправи"
+    },
+    "addExercise": "Додати вправу",
+    "picker": {
+      "add": "Додати",
+      "replace": "Замінити",
+      "close": "Закрити"
+    },
+    "exercise": {
+      "openHint": "Відкриває вправу",
+      "moreOptions": "Інші дії для «{{name}}»",
+      "replace": "Замінити",
+      "delete": "Видалити"
+    },
+    "editFailed": {
+      "addTitle": "Не вдалося додати вправу",
+      "replaceTitle": "Не вдалося замінити вправу",
+      "deleteTitle": "Не вдалося видалити вправу",
+      "libraryUnavailable": "Бібліотека вправ зараз недоступна. Спробуйте ще раз.",
+      "sessionFinished": "Це тренування вже завершено.",
+      "rateLimited": "Забагато запитів: спробуйте ще раз через {{seconds, number}} с.",
+      "generic": "Перевірте з’єднання і спробуйте ще раз."
+    }
+  },
+  "workoutSessionExercise": {
+    "loadError": "Не вдалося завантажити вправу. Перевірте з’єднання і спробуйте ще раз.",
+    "howTo": "Як виконувати?",
+    "guideHint": "Відкриває інструкцію до вправи"
   }
 }
