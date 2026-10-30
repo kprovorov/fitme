@@ -210,7 +210,13 @@ describe("PUT /v1/plans/{id}/workouts", () => {
     const response = await put(app, body());
 
     expect(response.status).toBe(503);
-    expect((await response.json()).error.code).toBe("library_unavailable");
+    expect(await response.json()).toEqual({
+      error: {
+        code: "library_unavailable",
+        message:
+          "The Library is unavailable, so the Workouts' Covers couldn't be picked; try again",
+      },
+    });
     expect(reported).toEqual([outage]);
   });
 

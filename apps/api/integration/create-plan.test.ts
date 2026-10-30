@@ -15,13 +15,14 @@ import {
   signedInAs,
 } from "../src/test/harness.js";
 
+/** A Cover for leg days and one for hinge days, so each Workout's pick is certain. */
+const LEGS_COVER = "5b1e7c2a-8d4f-4a6b-9c3e-1f2a3b4c5d6e";
+const HINGE_COVER = "9e8d7c6b-5a4f-4e3d-8c2b-1a0f9e8d7c6b";
+
 /**
  * POST /v1/plans with the real services facade, through `asUser` on the local
  * stack's pooler, and the fake Library.
  */
-/** A Cover for leg days and one for hinge days, so each Workout's pick is certain. */
-const LEGS_COVER = "5b1e7c2a-8d4f-4a6b-9c3e-1f2a3b4c5d6e";
-const HINGE_COVER = "9e8d7c6b-5a4f-4e3d-8c2b-1a0f9e8d7c6b";
 const library: FakeLibrary = createFakeLibrary(
   [
     libraryExercise("barbell-back-squat", ["quadriceps"]),
