@@ -1,11 +1,13 @@
 import { zodResolver } from "@hookform/resolvers/zod";
-import { useCallback } from "react";
+import type { TFunction } from "i18next";
+import { useCallback, useMemo } from "react";
 import {
   Controller,
   type ControllerFieldState,
   type ControllerRenderProps,
   useForm,
 } from "react-hook-form";
+import { useTranslation } from "react-i18next";
 import { z } from "zod";
 import { Button } from "~/components/ui/button";
 import { Input } from "~/components/ui/input";
@@ -15,15 +17,21 @@ interface ForgotPasswordFormProps {
   onSubmit: (values: ForgotPasswordFormValues) => Promise<void>;
 }
 
-export type ForgotPasswordFormValues = z.infer<typeof formSchema>;
+export type ForgotPasswordFormValues = z.infer<
+  ReturnType<typeof createFormSchema>
+>;
 
-const formSchema = z.object({
-  email: z.email({ error: "Invalid email" }),
-});
+/** The form's rules, their messages in the App language. */
+const createFormSchema = (t: TFunction) =>
+  z.object({
+    email: z.email({ error: t("forgotPassword.invalidEmail") }),
+  });
 
 export default function ForgotPasswordForm({
   onSubmit,
 }: ForgotPasswordFormProps) {
+  const { t } = useTranslation();
+  const formSchema = useMemo(() => createFormSchema(t), [t]);
   const form = useForm<ForgotPasswordFormValues>({
     defaultValues: {
       email: "",
@@ -50,13 +58,13 @@ export default function ForgotPasswordForm({
         keyboardType="email-address"
         onBlur={onBlur}
         onChangeText={onChange}
-        placeholder="Email"
+        placeholder={t("forgotPassword.emailPlaceholder")}
         spellCheck={false}
         testID="forgot-password-email-input"
         value={value}
       />
     ),
-    [isSubmitting]
+    [isSubmitting, t]
   );
 
   return (
@@ -70,7 +78,7 @@ export default function ForgotPasswordForm({
         icon="arrow.right"
         iconPosition="trailing"
         isLoading={isSubmitting}
-        label="Send Code"
+        label={t("forgotPassword.submit")}
         onPress={form.handleSubmit(onSubmit)}
         testID="forgot-password-button"
       />

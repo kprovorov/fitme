@@ -1,5 +1,6 @@
 import { Stack } from "expo-router";
 import { useEffect, useState } from "react";
+import { useTranslation } from "react-i18next";
 import {
   Keyboard,
   KeyboardAvoidingView,
@@ -13,6 +14,7 @@ import { VStack } from "~/components/ui/vstack";
 import ResetPasswordView from "~/components/views/reset-password-view";
 
 export default function ResetPasswordScreen() {
+  const { t } = useTranslation();
   const [isKeyboardVisible, setIsKeyboardVisible] = useState(false);
 
   useEffect(() => {
@@ -33,7 +35,7 @@ export default function ResetPasswordScreen() {
 
   return (
     <>
-      <Stack.Screen options={{ title: "Reset Password" }} />
+      <Stack.Screen options={{ title: t("resetPassword.screenTitle") }} />
 
       <View style={{ flex: 1, paddingTop: insets.top }}>
         <KeyboardAvoidingView
