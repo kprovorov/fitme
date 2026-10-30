@@ -1,3 +1,4 @@
+export * from "./covers";
 export * from "./finish-suggestion";
 export * from "./formatters";
 export * from "./labels";

@@ -6,6 +6,7 @@
   "type": "module",
   "exports": {
     ".": "./src/index.ts",
+    "./covers": "./src/covers.ts",
     "./models": "./src/models.ts",
     "./labels": "./src/labels.ts",
     "./limits": "./src/limits.ts",
