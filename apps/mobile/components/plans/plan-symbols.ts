@@ -17,5 +17,8 @@ export function placeSymbol(place: Place): SFSymbol {
   return place === "gym" ? "dumbbell" : "house";
 }
 
+/** The Plan's experience level. */
+export const LEVEL_SYMBOL: SFSymbol = "chart.bar.fill";
+
 /** Workouts per week, and a Workout's Exercise count. */
 export const COUNT_SYMBOL: SFSymbol = "bolt.fill";

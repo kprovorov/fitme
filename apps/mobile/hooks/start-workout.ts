@@ -8,6 +8,7 @@ import {
   useOpenWorkoutSessionQuery,
 } from "~/hooks/queries/workout-sessions";
 import { ApiError, rateLimitedFor } from "~/lib/api/client";
+import { i18n } from "~/lib/i18n";
 
 /** The Workout Session screen of a Workout of a Plan. */
 export const workoutSessionPath = (
@@ -37,10 +38,10 @@ export const findOpenSession = (workout: Workout) =>
 
 const alertStartFailed = (waitSeconds: number | null) => {
   Alert.alert(
-    "Couldn't start workout",
+    i18n.t("startWorkout.failed.title"),
     waitSeconds === null
-      ? "Check your connection and try again."
-      : `Too many requests: please try again in ${waitSeconds} s.`
+      ? i18n.t("startWorkout.failed.network")
+      : i18n.t("startWorkout.failed.rateLimited", { seconds: waitSeconds })
   );
 };
 

@@ -147,6 +147,70 @@
       "note": "- Додаткові примітки: {{note}}"
     }
   },
+  "plans": {
+    "title": "Мої плани",
+    "create": "Створити план тренувань",
+    "createNew": "Створити новий план тренувань",
+    "frequency_one": "{{count, number}} раз на тиждень",
+    "frequency_few": "{{count, number}} рази на тиждень",
+    "frequency_many": "{{count, number}} разів на тиждень",
+    "frequency_other": "{{count, number}} раза на тиждень",
+    "manage": "Керувати",
+    "activate": {
+      "action": "Активувати план",
+      "title": "Активувати план",
+      "message": "Ваш поточний план буде деактивовано",
+      "confirm": "Активувати",
+      "failed": "Не вдалося активувати план"
+    },
+    "archive": {
+      "action": "Архівувати",
+      "title": "Архівувати план",
+      "activePlan": "Активний план не можна архівувати. У вас завжди має бути принаймні один активний план.",
+      "message": "Справді архівувати цей план?",
+      "confirm": "Архівувати",
+      "failed": "Не вдалося архівувати план"
+    },
+    "errors": {
+      "notFound": "Цього плану більше немає.",
+      "network": "Перевірте з’єднання й спробуйте ще раз.",
+      "rateLimited": "Забагато запитів: спробуйте ще раз через {{seconds, number}} с."
+    }
+  },
+  "plannedWorkout": {
+    "stats": {
+      "duration": "Тривалість",
+      "exercises": "Вправи",
+      "sets": "Підходи"
+    },
+    "durationMinutes": "{{minutes, number}} хв",
+    "noExercises": "У цьому тренуванні ще немає вправ.",
+    "gone": "Цього тренування більше немає",
+    "goBack": "Назад",
+    "loadError": "Не вдалося завантажити тренування. Перевірте з’єднання й спробуйте ще раз.",
+    "exerciseDetailsHint": "Відкриває опис вправи"
+  },
+  "startWorkout": {
+    "start": "Почати тренування",
+    "continue": "Продовжити тренування",
+    "continueNamed": "Продовжити «{{name}}»",
+    "finishFirst": "Спершу завершіть поточне тренування",
+    "finishFirstNamed": "Спершу завершіть «{{name}}»",
+    "failed": {
+      "title": "Не вдалося почати тренування",
+      "network": "Перевірте з’єднання й спробуйте ще раз.",
+      "rateLimited": "Забагато запитів: спробуйте ще раз через {{seconds, number}} с."
+    }
+  },
+  "workoutCard": {
+    "exercises_one": "{{count, number}} вправа",
+    "exercises_few": "{{count, number}} вправи",
+    "exercises_many": "{{count, number}} вправ",
+    "exercises_other": "{{count, number}} вправи",
+    "toWorkout": "До тренування",
+    "openHint": "Відкриває тренування",
+    "openInProgressHint": "Відкриває тренування, що триває"
+  },
   "choices": {
     "experienceLevel": {
       "beginner": "Початківець",

@@ -1,4 +1,5 @@
 import { Link } from "expo-router";
+import { useTranslation } from "react-i18next";
 import { Pressable } from "react-native";
 import { usePlansQuery } from "~/hooks/queries/plans";
 import { useIsProQuery } from "~/hooks/revenueCat";
@@ -9,6 +10,7 @@ import { VStack } from "../ui/vstack";
 export default function PlansListView() {
   const { data: plans } = usePlansQuery();
   const { data: _isPro } = useIsProQuery();
+  const { t } = useTranslation();
 
   return (
     <VStack className="items-stretch">
@@ -22,7 +24,7 @@ export default function PlansListView() {
         </Link>
       ))}
       <Link asChild href="/planner">
-        <Button label="Create New Workout Plan" />
+        <Button label={t("plans.createNew")} />
       </Link>
     </VStack>
   );

@@ -1,3 +1,4 @@
+import { useTranslation } from "react-i18next";
 import { View } from "react-native";
 import { Button } from "~/components/ui/button";
 import { Text } from "~/components/ui/text";
@@ -28,24 +29,29 @@ export function BlockedStart({
   size = "default",
   variant = "default",
 }: BlockedStartProps) {
+  const { t } = useTranslation();
   const name = blockedBy.workoutName;
   return (
     <View className="gap-xs">
       <Button
         disabled
-        label="Start Workout"
+        label={t("startWorkout.start")}
         size={size}
         testID="start-workout-button"
       />
       <Text className="text-center text-footnote text-muted-foreground">
         {name
-          ? `Finish ${name} first`
-          : "Finish your workout in progress first"}
+          ? t("startWorkout.finishFirstNamed", { name })
+          : t("startWorkout.finishFirst")}
       </Text>
       <Button
         icon="arrow.right"
         iconPosition="trailing"
-        label={name ? `Continue ${name}` : "Continue Workout"}
+        label={
+          name
+            ? t("startWorkout.continueNamed", { name })
+            : t("startWorkout.continue")
+        }
         onPress={onContinue}
         size={size}
         variant={variant}

@@ -1,6 +1,8 @@
 import { useQueryClient } from "@tanstack/react-query";
 import { Stack, useLocalSearchParams, useRouter } from "expo-router";
+import type { TFunction } from "i18next";
 import { useCallback } from "react";
+import { useTranslation } from "react-i18next";
 import { Alert, RefreshControl, ScrollView } from "react-native";
 import { VStack } from "~/components/ui/vstack";
 import WorkoutList from "~/components/views/workout-list";
@@ -16,20 +18,21 @@ import { ApiError, rateLimitedFor } from "~/lib/api/client";
  * or a 429 doesn't prove nothing changed (the answer can be lost after the
  * write commits), so it never says either way.
  */
-const failureMessage = (error: unknown) => {
+const failureMessage = (t: TFunction, error: unknown) => {
   if (error instanceof ApiError && error.code === "not_found") {
-    return "This plan no longer exists.";
+    return t("plans.errors.notFound");
   }
   const waitSeconds = rateLimitedFor(error);
   return waitSeconds === null
-    ? "Please check your connection and try again."
-    : `Too many requests: please try again in ${waitSeconds} s.`;
+    ? t("plans.errors.network")
+    : t("plans.errors.rateLimited", { seconds: waitSeconds });
 };
 
 export default function PlanScreen() {
   const { planId } = useLocalSearchParams();
   const queryClient = useQueryClient();
   const router = useRouter();
+  const { t } = useTranslation();
 
   // A failed call doesn't prove nothing changed, so the Plans are read again
   // either way.
@@ -40,7 +43,7 @@ export default function PlanScreen() {
 
   const { mutate: activatePlan } = useActivatePlanMutation({
     onError: (error) => {
-      Alert.alert("Couldn't Activate Plan", failureMessage(error));
+      Alert.alert(t("plans.activate.failed"), failureMessage(t, error));
     },
     onSettled: refreshPlans,
     onSuccess: () => {
@@ -50,7 +53,7 @@ export default function PlanScreen() {
 
   const { mutate: deletePlan } = useDeletePlanMutation({
     onError: (error) => {
-      Alert.alert("Couldn't Archive Plan", failureMessage(error));
+      Alert.alert(t("plans.archive.failed"), failureMessage(t, error));
     },
     onSettled: refreshPlans,
     onSuccess: () => {
@@ -90,7 +93,7 @@ export default function PlanScreen() {
                 name: "ellipsis",
                 type: "sfSymbol",
               },
-              label: "Manage",
+              label: t("plans.manage"),
               menu: {
                 items: [
                   {
@@ -98,17 +101,17 @@ export default function PlanScreen() {
                       name: "bolt",
                       type: "sfSymbol",
                     },
-                    label: "Activate Plan",
+                    label: t("plans.activate.action"),
                     onPress: () => {
                       Alert.alert(
-                        "Activate Plan",
-                        "This will deactivate your current plan",
+                        t("plans.activate.title"),
+                        t("plans.activate.message"),
                         [
-                          { style: "cancel", text: "Cancel" },
+                          { style: "cancel", text: t("common.cancel") },
                           {
                             onPress: () =>
                               activatePlan({ id: planId as string }),
-                            text: "Activate",
+                            text: t("plans.activate.confirm"),
                           },
                         ]
                       );
@@ -121,24 +124,24 @@ export default function PlanScreen() {
                       name: "trash",
                       type: "sfSymbol",
                     },
-                    label: "Archive",
+                    label: t("plans.archive.action"),
                     onPress: () => {
                       if (plan?.is_active) {
                         Alert.alert(
-                          "Archive Plan",
-                          "You cannot archive an active plan. You should have at least one active plan at all times."
+                          t("plans.archive.title"),
+                          t("plans.archive.activePlan")
                         );
                       } else {
                         Alert.alert(
-                          "Archive Plan",
-                          "Are you sure you want to archive this plan?",
+                          t("plans.archive.title"),
+                          t("plans.archive.message"),
                           [
-                            { style: "cancel", text: "Cancel" },
+                            { style: "cancel", text: t("common.cancel") },
                             {
                               onPress: () =>
                                 deletePlan({ id: planId as string }),
                               style: "destructive",
-                              text: "Archive",
+                              text: t("plans.archive.confirm"),
                             },
                           ]
                         );
