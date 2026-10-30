@@ -19,6 +19,9 @@ on:
         required: true
         type: string
 
+permissions:
+  contents: read
+
 jobs:
   build:
     if: github.ref == 'refs/heads/main'
