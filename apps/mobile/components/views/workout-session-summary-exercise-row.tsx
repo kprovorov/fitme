@@ -1,5 +1,7 @@
 import type { WorkoutSessionExercise } from "@fitme/core";
+import { formatCount } from "@fitme/i18n";
 import { useRouter } from "expo-router";
+import { useTranslation } from "react-i18next";
 import { Pressable } from "react-native";
 import ExerciseImage from "~/components/exercises/exercise-image";
 import { SymbolImage } from "~/components/symbol-image";
@@ -7,6 +9,7 @@ import { HStack } from "~/components/ui/hstack";
 import { Text } from "~/components/ui/text";
 import { useExerciseHistoryQuery } from "~/hooks/queries/exercises";
 import { type ShownExercise, shownExercise } from "~/hooks/queries/library";
+import { useI18n } from "~/lib/i18n";
 
 interface WorkoutSessionSummaryExerciseRowProps {
   /** The Exercise as resolved by `useExercises`. */
@@ -25,6 +28,8 @@ export default function WorkoutSessionSummaryExerciseRow({
   workoutSessionExercise,
 }: WorkoutSessionSummaryExerciseRowProps) {
   const router = useRouter();
+  const i18n = useI18n();
+  const { t } = useTranslation();
   const exercise =
     resolved ?? shownExercise(workoutSessionExercise.exercise_slug, null);
   const { data: history } = useExerciseHistoryQuery({
@@ -57,7 +62,15 @@ export default function WorkoutSessionSummaryExerciseRow({
   };
 
   return (
-    <Pressable className="active:opacity-80" onPress={handlePress}>
+    <Pressable
+      accessibilityLabel={t("workoutSummary.exercise", {
+        name: exercise.name,
+        sets: formatCount(i18n, "sets", setsLogged),
+      })}
+      accessibilityRole="button"
+      className="active:opacity-80"
+      onPress={handlePress}
+    >
       <HStack className="w-full items-center gap-2 px-md">
         <ExerciseImage exercise={exercise} size={32} />
         <Text className="text-body-emphasized text-primary">{setsLogged}</Text>

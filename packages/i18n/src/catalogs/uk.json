@@ -634,12 +634,10 @@
   "workoutSummary": {
     "title": "Тренування завершено!",
     "stats": {
-      "duration": "Тривалість",
-      "volume": "Обсяг",
-      "exercises": "Вправи",
-      "sets": "Підходи"
+      "exercises": "Вправи"
     },
     "statLabel": "{{title}}: {{value}}",
-    "continue": "Продовжити"
+    "continue": "Продовжити",
+    "exercise": "{{name}}, {{sets}}"
   }
 }

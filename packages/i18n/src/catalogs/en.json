@@ -580,12 +580,10 @@
   "workoutSummary": {
     "title": "Workout Complete!",
     "stats": {
-      "duration": "Duration",
-      "volume": "Volume",
-      "exercises": "Exercises",
-      "sets": "Sets"
+      "exercises": "Exercises"
     },
     "statLabel": "{{title}}: {{value}}",
-    "continue": "Continue"
+    "continue": "Continue",
+    "exercise": "{{name}}, {{sets}}"
   }
 }

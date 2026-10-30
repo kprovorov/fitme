@@ -179,9 +179,9 @@ const shortSession = session("session-2", new Date(2026, 9, 19, 9, 0), 42, [
   exercise("squat", 1, [[5, 100]]),
 ]);
 
-// `1 370 кг`, with Ukrainian's no-break space between thousands.
+// `1 370 кг` (spoken `1 370 кілограмів`), with Ukrainian's no-break space between thousands.
 const LONG_SESSION_TOTALS = /^3 вправи · 5 підходів · 1\s370 кг$/;
-const LONG_SESSION_VOLUME = /^Обсяг: 1\s370 кг$/;
+const LONG_SESSION_VOLUME = /^Обсяг: 1\s370 кілограмів$/;
 
 let queryClient = createTestQueryClient();
 
@@ -226,7 +226,7 @@ describe("The History tab in Ukrainian", () => {
     // 1 Exercise and 1 set (`one`).
     expect(screen.getByText("1 вправа · 1 підхід · 500 кг")).toBeTruthy();
     expect(screen.getAllByText("Тренування")).toHaveLength(2);
-    expect(screen.getByLabelText("Тривалість 1:05:00")).toBeTruthy();
+    expect(screen.getByLabelText("Тривалість 1 год 5 хв")).toBeTruthy();
   });
 
   it("shows the empty state", async () => {
@@ -262,6 +262,7 @@ describe("The Workout Summary in Ukrainian", () => {
     expect(screen.getByLabelText("Підходи: 5 підходів")).toBeTruthy();
     // The Exercise rows name their Exercises in the App language.
     expect(screen.getByText("Жим лежачи")).toBeTruthy();
+    expect(screen.getByLabelText("Жим лежачи, 2 підходи")).toBeTruthy();
     expect(screen.getByText("Продовжити")).toBeTruthy();
   });
 });

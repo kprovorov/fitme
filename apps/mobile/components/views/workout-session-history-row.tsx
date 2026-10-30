@@ -5,7 +5,13 @@ import {
   sessionVolume,
   type WorkoutSession,
 } from "@fitme/core";
-import { formatCount, formatDate, formatTime, formatWeight } from "@fitme/i18n";
+import {
+  formatCount,
+  formatDate,
+  formatTime,
+  formatWeight,
+  formatWorkoutDuration,
+} from "@fitme/i18n";
 import { useTranslation } from "react-i18next";
 import { View } from "react-native";
 import { SymbolImage } from "~/components/symbol-image";
@@ -54,7 +60,13 @@ export default function WorkoutSessionHistoryRow({
         <Text className="text-footnote text-muted-foreground">{totals}</Text>
       </View>
       <View
-        accessibilityLabel={t("history.duration", { duration })}
+        accessibilityLabel={t("history.duration", {
+          duration: formatWorkoutDuration(
+            i18n,
+            workoutSession.started_at,
+            workoutSession.finished_at
+          ),
+        })}
         accessible
         className="rounded-lg border-continuous bg-foreground/10 px-2 py-0.5"
       >

@@ -5,6 +5,8 @@ import {
   formatNumber,
   formatWeight,
   formatWorkoutDuration,
+  spokenUnit,
+  weightUnitOf,
 } from "@fitme/i18n";
 import { Fragment, useMemo } from "react";
 import { useTranslation } from "react-i18next";
@@ -82,7 +84,7 @@ export default function WorkoutSessionSummaryView({
         <VStack className="items-start gap-4">
           <WorkoutSessionSummaryStat
             icon="clock"
-            title={t("workoutSummary.stats.duration")}
+            title={t("workoutSession.stats.duration")}
             value={
               workoutSession.finished_at
                 ? formatWorkoutDuration(
@@ -95,7 +97,12 @@ export default function WorkoutSessionSummaryView({
           />
           <WorkoutSessionSummaryStat
             icon="scalemass.fill"
-            title={t("workoutSummary.stats.volume")}
+            spokenValue={spokenUnit(
+              i18n,
+              Math.round(volume),
+              weightUnitOf(measurementSystem)
+            )}
+            title={t("workoutSession.stats.volume")}
             value={formatWeight(i18n, Math.round(volume), measurementSystem)}
           />
           <WorkoutSessionSummaryStat
@@ -107,7 +114,7 @@ export default function WorkoutSessionSummaryView({
           <WorkoutSessionSummaryStat
             icon="bolt.fill"
             spokenValue={formatCount(i18n, "sets", setsLogged)}
-            title={t("workoutSummary.stats.sets")}
+            title={t("workoutSession.stats.sets")}
             value={formatNumber(i18n, setsLogged)}
           />
         </VStack>
