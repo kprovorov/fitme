@@ -12,6 +12,7 @@ import { useWindowDimensions, View } from "react-native";
 import { Text } from "~/components/ui/text";
 import { useProfileQuery } from "~/hooks/queries/profiles";
 import { useNow } from "~/hooks/use-now";
+import { useI18n } from "~/lib/i18n";
 import { cn } from "~/lib/utils";
 
 interface WorkoutSessionStatsProps {
@@ -78,7 +79,8 @@ export function StatRow({
 export default function WorkoutSessionStats({
   workoutSession,
 }: WorkoutSessionStatsProps) {
-  const { i18n, t } = useTranslation();
+  const { t } = useTranslation();
+  const i18n = useI18n();
   const { data: profile } = useProfileQuery();
   const isFinished = !!workoutSession.finished_at;
   // Ticks only while the session screen is on top, not under an exercise.

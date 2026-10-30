@@ -499,7 +499,7 @@
       "libraryUnavailable": "The exercise library is unavailable right now. Please try again.",
       "sessionFinished": "This workout is already finished.",
       "rateLimited": "Too many requests: please try again in {{seconds, number}} s.",
-      "network": "Please check your connection and try again."
+      "generic": "Please check your connection and try again."
     }
   },
   "workoutSessionExercise": {

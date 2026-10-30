@@ -32,7 +32,7 @@ const sessionEditFailureMessage = (t: TFunction, error: unknown) => {
   }
   const waitSeconds = rateLimitedFor(error);
   return waitSeconds === null
-    ? t("workoutSession.editFailed.network")
+    ? t("workoutSession.editFailed.generic")
     : t("workoutSession.editFailed.rateLimited", { seconds: waitSeconds });
 };
 
