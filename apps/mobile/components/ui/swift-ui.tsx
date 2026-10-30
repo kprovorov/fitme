@@ -72,6 +72,19 @@ export function useSwiftUITheme() {
  * size SwiftUI's `font` modifier wants, so native controls use the same type
  * scale as the rest of the app (`@fitme/design-tokens`).
  */
+/**
+ * The color a color class (`text-primary`) resolves to, or `undefined`
+ * without one. `useResolveClassNames("")` keeps answering the last class it
+ * resolved, so a control that drops its color class would keep the old color:
+ * it's only read while there's a class.
+ */
+export function useClassColor(className: string | undefined) {
+  const resolved = useResolveClassNames(className ?? "").color as
+    | string
+    | undefined;
+  return className ? resolved : undefined;
+}
+
 export function useSwiftUIFont(className: string) {
   const style = useResolveClassNames(className);
 

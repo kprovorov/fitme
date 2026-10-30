@@ -12,8 +12,6 @@ export default function PlanMenu() {
   return (
     <DropdownMenu
       accessibilityLabel={t("home.planMenu")}
-      // Keeps its hit target beside a heading that wraps at large text sizes.
-      className="shrink-0"
       iconColorClassName="text-primary"
       items={[
         {

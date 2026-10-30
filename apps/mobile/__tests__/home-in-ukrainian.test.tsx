@@ -203,18 +203,19 @@ describe("Home in Ukrainian", () => {
     expect(screen.getByText("Чудова робота! Усе готово!")).toBeTruthy();
   });
 
-  it("asks the User to create a Plan when none is active", async () => {
+  it("asks the User to activate or create a Plan when none is active", async () => {
     backend.seedPlan({ id: "plan-1", name: "Сила", workouts: [] });
     await mount();
 
     expect(screen.getByText("Немає активного плану")).toBeTruthy();
     expect(
-      screen.getByText(
-        "У вас немає активного плану тренувань. Створіть його, щоб почати."
-      )
+      screen.getByText("Активуйте один зі своїх планів або створіть новий.")
     ).toBeTruthy();
     expect(
       screen.getByRole("button", { name: "Створити план тренувань" })
+    ).toBeTruthy();
+    expect(
+      screen.getByRole("button", { name: "Керувати планами" })
     ).toBeTruthy();
   });
 

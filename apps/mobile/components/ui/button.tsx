@@ -39,6 +39,7 @@ import {
   isStretchClassName,
   NATIVE_CIRCLE_ENABLED,
   SwiftUIHost,
+  useClassColor,
   useSwiftUIFont,
   useSwiftUITheme,
 } from "~/components/ui/swift-ui";
@@ -220,13 +221,9 @@ function useContentColor(
   colorClassName: string | undefined
 ): string {
   const theme = useSwiftUITheme();
-  const resolved = useResolveClassNames(colorClassName ?? "").color as
-    | string
-    | undefined;
-  // `useResolveClassNames("")` keeps answering the last class it resolved,
-  // so a Button that drops its color class (a set row's muted pencil turning
-  // into its ✓) would keep the old color: only read it while there's a class.
-  const override = colorClassName ? resolved : undefined;
+  // A Button can drop its color class (a set row's muted pencil turning into
+  // its ✓), so this answers nothing once it has none.
+  const override = useClassColor(colorClassName);
   return (
     override ??
     {

@@ -21,17 +21,23 @@ export default function HomeView({ plan }: HomeViewProps) {
   return (
     <VStack className="items-stretch gap-lg">
       <PlanHeader plan={plan} />
-      <View className="flex-row items-center gap-sm">
-        <H3 className="flex-1">{t("home.workouts")}</H3>
-        <PlanMenu />
-      </View>
-      <VStack className="items-stretch">
-        <H4>{t("home.nextWorkout")}</H4>
-        {nextWorkout ? (
-          <WorkoutCard state="upcoming" workout={nextWorkout} />
-        ) : (
-          <H3 className="text-center text-primary">{t("home.allSet")}</H3>
-        )}
+      <VStack className="items-stretch gap-sm">
+        {/* Wraps at large text sizes, so the heading keeps whole words and
+            the sliders button drops under it. */}
+        <View className="flex-row flex-wrap items-center">
+          <H3 className="shrink">{t("home.workouts")}</H3>
+          <View className="ml-auto">
+            <PlanMenu />
+          </View>
+        </View>
+        <VStack className="items-stretch">
+          <H4>{t("home.nextWorkout")}</H4>
+          {nextWorkout ? (
+            <WorkoutCard state="upcoming" workout={nextWorkout} />
+          ) : (
+            <H3 className="text-center text-primary">{t("home.allSet")}</H3>
+          )}
+        </VStack>
       </VStack>
       {upcomingWorkouts.length > 0 && (
         <VStack className="items-stretch">

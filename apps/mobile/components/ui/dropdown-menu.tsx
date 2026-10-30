@@ -15,8 +15,11 @@ import {
 } from "@expo/ui/swift-ui/modifiers";
 import type * as React from "react";
 import type { SFSymbol } from "sf-symbols-typescript";
-import { useResolveClassNames } from "uniwind";
-import { SwiftUIHost, useSwiftUITheme } from "~/components/ui/swift-ui";
+import {
+  SwiftUIHost,
+  useClassColor,
+  useSwiftUITheme,
+} from "~/components/ui/swift-ui";
 
 interface DropdownMenuItem {
   destructive?: boolean;
@@ -65,9 +68,7 @@ const DropdownMenu = ({
   testID,
 }: DropdownMenuProps) => {
   const theme = useSwiftUITheme();
-  const iconColor = useResolveClassNames(iconColorClassName ?? "").color as
-    | string
-    | undefined;
+  const iconColor = useClassColor(iconColorClassName);
 
   // SwiftUI's `Menu` only honours `systemImage` alongside a text label, so an
   // icon-only menu has to supply its button as a label view instead. A text
@@ -91,9 +92,7 @@ const DropdownMenu = ({
     }
     return (
       <SwiftUIImage
-        // `useResolveClassNames("")` keeps answering the last class it
-        // resolved, so it's only read while there's a class.
-        color={(iconColorClassName && iconColor) || theme.foreground}
+        color={iconColor ?? theme.foreground}
         modifiers={[
           frame({ height: MIN_HIT_TARGET_SIZE, width: MIN_HIT_TARGET_SIZE }),
           contentShape(shapes.rectangle()),

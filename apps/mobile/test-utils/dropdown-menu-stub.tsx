@@ -7,20 +7,10 @@
  */
 import { useCallback, useState } from "react";
 import { Pressable, View } from "react-native";
-
-interface DropdownMenuItem {
-  label: string;
-  onPress?: () => void;
-  systemImage?: string;
-}
-
-interface DropdownMenuProps {
-  accessibilityLabel?: string;
-  items: DropdownMenuItem[];
-  label?: string;
-  systemImage?: string;
-  testID?: string;
-}
+import type {
+  DropdownMenuItem,
+  DropdownMenuProps,
+} from "~/components/ui/dropdown-menu";
 
 const MenuItem = ({
   item,

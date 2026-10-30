@@ -159,7 +159,11 @@ export default function HomeScreen() {
         ) : (
           <VStack className="flex-1 py-md">
             <H1 className="text-center">{t("home.empty.title")}</H1>
-            <Text className="text-center">{t("home.empty.message")}</Text>
+            <Text className="text-center">
+              {plans && plans.length > 0
+                ? t("home.empty.inactiveMessage")
+                : t("home.empty.message")}
+            </Text>
             <Button
               className="w-full"
               label={t("home.empty.action")}

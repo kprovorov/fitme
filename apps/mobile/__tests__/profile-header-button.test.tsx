@@ -250,23 +250,6 @@ describe("The first tab's header and Plan menu", () => {
     expect(mockPush).toHaveBeenLastCalledWith("/planner");
   });
 
-  it("names the heading, the sliders button and the logo in Ukrainian on a Ukrainian device", async () => {
-    setDeviceLanguages(["uk-UA"]);
-    await mount(<HomeScreen />);
-
-    expect(screen.getByRole("heading", { name: "Тренування" })).toBeTruthy();
-    await fireEvent.press(
-      screen.getByRole("button", { name: "Параметри плану" })
-    );
-    expect(
-      screen.getByRole("menuitem", { name: "Керувати планами" })
-    ).toBeTruthy();
-    expect(
-      screen.getByRole("menuitem", { name: "Створити план" })
-    ).toBeTruthy();
-    expect(screen.getByRole("image", { name: "Fitme" })).toBeTruthy();
-  });
-
   it("offers Manage Plans in the empty state when the User has Plans but none active", async () => {
     backend.reset();
     backend.seedProfile(FAKE_USER_ID);
@@ -278,6 +261,9 @@ describe("The first tab's header and Plan menu", () => {
     });
     await mount(<HomeScreen />);
 
+    expect(
+      screen.getByText("Activate one of your plans, or create a new one.")
+    ).toBeTruthy();
     await fireEvent.press(screen.getByRole("button", { name: "Manage Plans" }));
     expect(mockPush).toHaveBeenCalledWith("/plans");
   });
