@@ -8,9 +8,7 @@ import { useHeaderSearch } from "~/hooks/header-search";
 
 export default function LibraryScreen() {
   const { t } = useTranslation();
-  const { onSearchChange, search, searchBarOptions } = useHeaderSearch(
-    t("library.search")
-  );
+  const { onSearchChange, search, searchBarOptions } = useHeaderSearch();
 
   const onExercisePress = useCallback((exercise: ExerciseSummary) => {
     router.push(`/exercises/${exercise.slug}`);

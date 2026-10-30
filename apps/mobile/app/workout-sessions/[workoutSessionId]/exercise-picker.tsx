@@ -46,9 +46,9 @@ export default function ExercisePickerScreen() {
   const { t } = useTranslation();
   const router = useRouter();
   const queryClient = useQueryClient();
-  const { onSearchChange, search, searchBarOptions } = useHeaderSearch(
-    t("library.search")
-  );
+  const { onSearchChange, search, searchBarOptions } = useHeaderSearch({
+    inSheet: true,
+  });
   const {
     muscleGroup,
     replaceExerciseId: replacingId,

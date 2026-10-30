@@ -53,6 +53,7 @@ jest.mock("expo-router", () => {
     Link: ({ children, href }: { children: ReactNode; href: string }) => (
       <View testID={`link:${href}`}>{children}</View>
     ),
+    router: { push: jest.fn() },
     // A screen's title shows as text, its header search bar as a field.
     Stack: {
       Screen: ({

@@ -2,7 +2,8 @@
  * Stand-ins for expo-router's stack under Jest: the screen a test renders,
  * with the routes it pushes mounted over it (a pushed route the test names
  * in `<PushedRoutes>`; any other push is only recorded), and a header showing
- * each screen's title, right items and search bar (`stack-screen-stub`'s). Wire it up in the test's mock:
+ * each screen's title, right items and search bar (`stack-screen-stub`'s).
+ * Wire it up in the test's mock:
  *
  *   jest.mock("expo-router", () => {
  *     const stub = jest.requireActual<typeof import("~/test-utils/router-stub")>(

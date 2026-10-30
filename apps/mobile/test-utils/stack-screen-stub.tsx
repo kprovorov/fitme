@@ -5,8 +5,8 @@
  * placeholder. Typing calls the options' `onChangeText` with the native
  * event's shape, a button labelled `Cancel` calls `onCancelButtonPress`
  * after clearing the text (as iOS does, with no `onChangeText`), and its
- * `ref` answers `clearText` / `setText` like the native bar. Use it as `Stack.Screen` in a `jest.mock("expo-router", …)`
- * factory through `jest.requireActual("~/test-utils/stack-screen-stub")`.
+ * `ref` answers `clearText` / `setText` like the native bar. Use it as
+ * `Stack.Screen` in a `jest.mock("expo-router", …)` factory through `jest.requireActual("~/test-utils/stack-screen-stub")`.
  */
 import { type Ref, useImperativeHandle, useState } from "react";
 import { Pressable, Text, TextInput } from "react-native";
