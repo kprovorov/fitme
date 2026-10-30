@@ -12,6 +12,7 @@
   "include": [
     "src",
     "integration",
+    "scripts",
     "tsdown.config.ts",
     "vitest.config.ts",
     "vitest.integration.config.ts"
