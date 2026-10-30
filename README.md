@@ -84,7 +84,7 @@ run `eas metadata:push --profile production --non-interactive`. CI stamps
 `apple.version` from the tag into the working copy so the listing targets that
 release's draft. PRs never push metadata. The push does not submit the version
 for App Review; inspect the draft in App Store Connect before submitting it.
-An older release tag without the store config cannot use this workflow.
+Rebuilding an older tag without the store config skips metadata sync.
 
 Authentication reuses the App Store Connect API key stored in EAS for production
 submissions, through the GitHub `production` environment's `EXPO_TOKEN`
