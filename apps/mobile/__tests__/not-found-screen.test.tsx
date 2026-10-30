@@ -37,7 +37,7 @@ describe("NotFoundScreen", () => {
     expect(screen.getByText("Oops!")).toBeTruthy();
     expect(screen.getByText("This screen doesn't exist.")).toBeTruthy();
     expect(
-      screen.getByRole("button", { name: "Go to home screen!" })
+      screen.getByRole("button", { name: "Go to home screen" })
     ).toBeTruthy();
   });
 

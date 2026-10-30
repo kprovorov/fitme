@@ -468,6 +468,6 @@
   "notFound": {
     "title": "Oops!",
     "description": "This screen doesn't exist.",
-    "goHome": "Go to home screen!"
+    "goHome": "Go to home screen"
   }
 }
