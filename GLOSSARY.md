@@ -29,6 +29,7 @@ A multi-workout training programme owned by one User. At most one Plan is active
 
 **Workout**:
 A single training day inside a Plan: an ordered list of exercises with target sets.
+_Avoid_: Routine
 
 **Workout Session**:
 One occurrence of a User performing a Workout, with the sets actually completed. At most one Workout Session per User can be open at a time: another Workout can't be started until it's finished.
@@ -45,10 +46,14 @@ A named movement from the Library, independent of any User, identified by its Ex
 The permanent, readable identifier of an Exercise (`bench-press`): lowercase letters and digits joined by single hyphens. It never changes, even when the Exercise's name does.
 _Avoid_: Exercise id, exercise uuid
 
+**Cover**:
+A photo from the Library that a Workout's card shows behind its content, tagged with the muscle groups it suits. Each Workout gets one when it's created, matched to the muscle group its Exercises train most, and no two Workouts of a Plan share one. Identified by a permanent id that never changes.
+_Avoid_: Thumbnail, background, workout image
+
 ### Library
 
 **Library**:
-Everything Fitme offers to every User, independent of any one User: today every Exercise (names, muscle groups, descriptions, instructions, thumbnails and videos), written in English and translated into other App languages. Owned by the private `fitme-exercises` repository and not stored in Postgres. Content is added, never removed.
+Everything Fitme offers to every User, independent of any one User: today every Exercise (names, muscle groups, descriptions, instructions, thumbnails and videos) and every Cover, written in English and translated into other App languages. Owned by the private `fitme-exercises` repository and not stored in Postgres. Content is added, never removed.
 _Avoid_: Exercise Library, exercise catalog, exercise database, exercises table
 
 **Library API**:
