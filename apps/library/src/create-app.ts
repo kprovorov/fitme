@@ -11,6 +11,7 @@ import {
 } from "./auth";
 import { deviceCache } from "./cache";
 import { type RateLimiter, rateLimitUsers } from "./rate-limit";
+import { coverRoutes } from "./routes/covers";
 import { exerciseRoutes } from "./routes/exercises";
 import type { ServedLibrary } from "./served-library";
 
@@ -82,10 +83,13 @@ export const createApp = ({
   // Counted before anything is served, a 304 included.
   app.use(rateLimitUsers({ limiter: rateLimiter, reportError }));
 
-  // Every content route, current and future, lives under /exercises. After
-  // auth, so a 304 only ever goes to a caller.
-  app.use("/exercises/*", deviceCache(library.hash));
+  // Every content route, current and future, lives under /exercises or is
+  // /covers. After auth, so a 304 only ever goes to a caller.
+  const cache = deviceCache(library.hash);
+  app.use("/exercises/*", cache);
+  app.use("/covers", cache);
   app.route("/", exerciseRoutes(library));
+  app.route("/", coverRoutes(library));
 
   app.notFound((c) =>
     c.json({ error: { code: "not_found", message: "Route not found" } }, 404)

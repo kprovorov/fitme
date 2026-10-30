@@ -202,6 +202,49 @@
           "description",
           "instructions"
         ]
+      },
+      "CoverList": {
+        "type": "object",
+        "properties": {
+          "data": {
+            "type": "array",
+            "items": {
+              "$ref": "#/components/schemas/Cover"
+            },
+            "description": "Every Cover in the Library, unpaged."
+          }
+        },
+        "required": [
+          "data"
+        ]
+      },
+      "Cover": {
+        "type": "object",
+        "properties": {
+          "id": {
+            "type": "string",
+            "format": "uuid",
+            "description": "The Cover's permanent id, which a Workout stores.",
+            "example": "3f2b8a4e-6c1d-4e5f-9a7b-1c2d3e4f5a6b"
+          },
+          "image_url": {
+            "type": "string",
+            "format": "uri",
+            "description": "The photo through Supabase's image transformation endpoint: append `width` and/or `height` query parameters."
+          },
+          "muscle_groups": {
+            "type": "array",
+            "items": {
+              "$ref": "#/components/schemas/MuscleGroup"
+            },
+            "description": "The muscle groups the Cover suits."
+          }
+        },
+        "required": [
+          "id",
+          "image_url",
+          "muscle_groups"
+        ]
       }
     },
     "parameters": {}
@@ -444,6 +487,59 @@
           },
           "404": {
             "description": "No Exercise has this Exercise slug",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Error"
+                }
+              }
+            }
+          },
+          "429": {
+            "description": "Too many requests from this User; retry after `Retry-After`",
+            "headers": {
+              "Retry-After": {
+                "schema": {
+                  "type": "string",
+                  "description": "Seconds until the limit resets",
+                  "example": "30"
+                },
+                "required": true,
+                "description": "Seconds until the limit resets"
+              }
+            },
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Error"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/covers": {
+      "get": {
+        "security": [
+          {
+            "bearerAuth": []
+          }
+        ],
+        "summary": "List every Cover",
+        "responses": {
+          "200": {
+            "description": "Every Cover, in the Library's order. Covers have no text, so there is no `language`.",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/CoverList"
+                }
+              }
+            }
+          },
+          "401": {
+            "description": "No valid Clerk session token or server secret",
             "content": {
               "application/json": {
                 "schema": {
