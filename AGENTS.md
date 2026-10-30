@@ -93,6 +93,15 @@ A jest "worker process has failed to exit" or "asynchronous operations that were
 
 ### apps/mobile — Expo app
 
+The App Store listing is public text in `apps/mobile/store.config.json` (`en-US`
+and `uk`), referenced by `submit.production.ios.metadataPath` in `eas.json`.
+Change it through PRs; update both locales' release notes for each release.
+Release CI waits for EAS auto-submit before pushing metadata to the tag's draft
+version, using the existing EAS App Store Connect submission key. Never push
+metadata from PRs. `eas metadata:pull` also exports private review details and
+assets: retain only public listing text before staging. See README's App Store
+listing section for commands, credentials and draft verification.
+
 React Native / Expo app using **file-based routing** via `expo-router`:
 
 - `app/` — Expo Router routes (file-based navigation)

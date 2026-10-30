@@ -1,6 +1,6 @@
 {
   "cli": {
-    "version": ">= 14.5.0",
+    "version": ">= 27.2.0",
     "appVersionSource": "remote"
   },
   "build": {
@@ -50,6 +50,7 @@
       "ios": {
         "appleTeamId": "X75M2KSBQL",
         "ascAppId": "6741153628",
+        "metadataPath": "./store.config.json",
         "bundleIdentifier": "com.fitmeproject.ios"
       }
     }

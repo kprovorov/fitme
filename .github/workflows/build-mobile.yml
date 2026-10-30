@@ -3,6 +3,7 @@ name: Build Mobile
 # Production EAS build for a release tag. The tag is the app version: it is
 # stamped into app.json here (never committed) and EAS uploads the working
 # tree, so the build carries it. Runs after Release, or by hand to rebuild.
+# Waits for auto-submit before syncing the listing to the same draft version.
 
 on:
   workflow_call:
@@ -18,11 +19,15 @@ on:
         required: true
         type: string
 
+permissions:
+  contents: read
+
 jobs:
   build:
+    if: github.ref == 'refs/heads/main'
     runs-on: ubuntu-24.04
-    # eas build --no-wait only queues the build, so the job is short.
-    timeout-minutes: 15
+    # Includes the EAS queue, build and App Store upload.
+    timeout-minutes: 120
     environment: production
     steps:
       - name: Validate tag
@@ -37,6 +42,10 @@ jobs:
       - uses: actions/checkout@v7
         with:
           ref: refs/tags/${{ inputs.tag }}
+          fetch-depth: 0
+
+      - name: Require a release from main
+        run: git merge-base --is-ancestor HEAD origin/main
 
       - uses: pnpm/action-setup@v6
 
@@ -50,18 +59,31 @@ jobs:
 
       - uses: expo/expo-github-action@v9
         with:
-          eas-version: latest
+          # Metadata supports the stored EAS submit API key in this version.
+          eas-version: 27.2.0
           token: ${{ secrets.EXPO_TOKEN }}
 
       - name: Stamp version from tag
+        id: stamp
         working-directory: apps/mobile
         env:
           TAG: ${{ inputs.tag }}
         run: |
           jq --arg version "${TAG#v}" '.expo.version = $version' app.json > app.json.tmp
           mv app.json.tmp app.json
+          # Older release tags predate metadata as code; keep their rebuilds working.
+          if [ -f store.config.json ]; then
+            jq --arg version "${TAG#v}" '.apple.version = $version' store.config.json > store.config.json.tmp
+            mv store.config.json.tmp store.config.json
+            echo "metadata=true" >> "$GITHUB_OUTPUT"
+          fi
           echo "app.json version: $(jq -r '.expo.version' app.json)"
 
-      - name: Start EAS build and submit
+      - name: Build and submit to App Store Connect
         working-directory: apps/mobile
-        run: eas build --platform ios --profile production --auto-submit --non-interactive --no-wait
+        run: eas build --platform ios --profile production --auto-submit --non-interactive --wait
+
+      - name: Push App Store listing to the release draft
+        if: steps.stamp.outputs.metadata == 'true'
+        working-directory: apps/mobile
+        run: eas metadata:push --profile production --non-interactive

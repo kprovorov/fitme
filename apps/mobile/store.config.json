@@ -1,0 +1,48 @@
+{
+  "configVersion": 0,
+  "apple": {
+    "info": {
+      "en-US": {
+        "title": "Fitme AI Gym Workout Tracker",
+        "subtitle": "Your Personal Fitness Coach",
+        "description": "Stop following generic workout plans. Start getting real results.\n\nFitme is your AI-powered fitness coach that creates personalized workout plans based on your goals and experience.\n\nHow it works:\nEnter your details → Get your custom plan → Track your workouts → Choose whether to apply your workout changes to your plan.\n\nWhat makes Fitme different:\n- AI-generated plans and plan updates you choose to apply after a workout\n- Professional exercise library with step-by-step video guides\n- Lightning-fast progress tracking (log workouts in seconds)\n- Personalized routines for muscle building, fat loss, or general fitness\n\nReady to see what AI-powered training can do for your body? Download Fitme and start your transformation today.\n\nTerms of Service: https://www.apple.com/legal/internet-services/itunes/dev/stdeula/",
+        "keywords": [
+          "exercise",
+          "strength",
+          "training",
+          "muscle",
+          "progress",
+          "weightlifting",
+          "cardio",
+          "bodybuilding",
+          "sport"
+        ],
+        "releaseNotes": "Smarter plans: when you finish a workout, Fitme spots what you changed (swapped exercises, extra sets, new weights and reps) and asks if you want to update your plan. One tap and your next session picks up where you left off.\n\nRedesigned workout screen: log your sets right from the session in a cleaner table, with a new exercise screen that keeps everything you need in view.\n\nFinish from Home: wrap up a workout straight from its card. If you still have sets you haven't logged, Fitme asks before finishing, and skipped exercises no longer clutter your summary or History.\n\nFaster Exercise Library: search is quicker, and exercises you've already seen load instantly, even offline.\n\nFresh new look: a refined dark design with native iOS controls, SF Symbols and Liquid Glass buttons.\n\nFixes and polish: reps and weight are checked before you log them, and you'll see a clear error if a set fails to save. Home now lists all your upcoming workouts. Profile and unit settings got fixes, and VoiceOver support is better.",
+        "marketingUrl": "https://fitmeproject.com",
+        "supportUrl": "https://fitmeproject.com/support",
+        "privacyPolicyUrl": "https://fitmeproject.com/privacy-policy"
+      },
+      "uk": {
+        "title": "Fitme AI Gym Workout Tracker",
+        "subtitle": "Ваш персональний фітнес-тренер",
+        "description": "Досить типових планів тренувань. Почніть тренуватися для реальних результатів.\n\nFitme — ваш фітнес-тренер зі штучним інтелектом, який створює персональні плани тренувань відповідно до ваших цілей і досвіду.\n\nЯк це працює:\nВкажіть свої дані → Отримайте персональний план → Записуйте тренування → Вирішуйте, чи застосовувати зміни з тренування до свого плану.\n\nЩо вирізняє Fitme:\n- Плани, створені ШІ, та оновлення плану, які ви можете застосувати після тренування\n- Бібліотека вправ із покроковими відеоінструкціями\n- Швидкий запис тренувань для відстеження прогресу\n- Персональні програми для набору м’язів, схуднення або підтримки фізичної форми\n\nГотові дізнатися, як тренування зі штучним інтелектом можуть допомогти вам? Завантажте Fitme та почніть сьогодні.\n\nУмови використання: https://www.apple.com/legal/internet-services/itunes/dev/stdeula/",
+        "keywords": [
+          "вправи",
+          "сила",
+          "тренування",
+          "м’язи",
+          "прогрес",
+          "важка атлетика",
+          "кардіо",
+          "бодибілдинг",
+          "спорт"
+        ],
+        "releaseNotes": "Розумніші плани: після тренування Fitme помічає зміни — замінені вправи, додані підходи, нову вагу та повторення — і пропонує оновити план. Один дотик, і наступне тренування врахує ці зміни.\n\nОновлений екран тренування: записуйте підходи в зручній таблиці та переглядайте все потрібне на новому екрані вправи.\n\nЗавершення з головного екрана: завершуйте тренування просто з його картки. Якщо залишилися незаписані підходи, Fitme попросить підтвердження. Пропущені вправи більше не захаращують підсумок та історію.\n\nШвидша бібліотека вправ: пошук став швидшим, а вже переглянуті вправи завантажуються миттєво, навіть без інтернету.\n\nСвіжий вигляд: оновлений темний дизайн із нативними елементами iOS, SF Symbols і кнопками Liquid Glass.\n\nВиправлення та покращення: перевірка ваги й повторень перед записом, зрозумілі помилки збереження підходів, усі майбутні тренування на головному екрані, виправлення профілю й одиниць вимірювання та краща підтримка VoiceOver.",
+        "marketingUrl": "https://fitmeproject.com",
+        "supportUrl": "https://fitmeproject.com/support",
+        "privacyPolicyUrl": "https://fitmeproject.com/privacy-policy"
+      }
+    },
+    "copyright": "2025 Kyrylo Provorov"
+  }
+}
