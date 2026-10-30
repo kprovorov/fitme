@@ -158,6 +158,17 @@ What it leaves alone, and why:
 
 **Allowlist.** `ALLOWLIST` in `literal-check.ts` exempts a whole file, with a reason each. It is empty: every literal found when the check landed moved to a token (FIT-202), the syntax theme of `components/markdown/code-block.tsx` is imported from `react-syntax-highlighter` rather than written out, and the brand sign is the only brand artwork with a fill. An entry is for a color or size that genuinely can't be a token (third-party artwork with its own colors, a vendored syntax theme), never for a value that just hasn't moved yet. An entry whose file has no literal left fails the check, so the list can't go stale.
 
+## The text check
+
+No mobile screen hardcodes text: everything the User reads or hears comes from the catalogs in `@fitme/i18n` through `t()` (`i18n.t` outside React). `pnpm text-check` (`packages/i18n/src/text-check.ts`, run in the `checks` job of `.github/workflows/unit-tests.yml` next to the literal check) reads every `.ts` and `.tsx` under `apps/mobile` through TypeScript's parser and fails on text holding a letter (any script), printing `file:line:column  text`:
+
+- JSX text (`<Text>Save</Text>`);
+- a string literal, or a template literal's static part, shown as a JSX child (`{"Save"}`, `{done ? "Done" : "Save"}`), as the value of a text prop (`title`, `subtitle`, `label`, `placeholder`, `description`, `message`, `hint`, `text`, `accessibilityLabel`, `accessibilityHint`, `aria-label`, `alt`, `headerTitle`, `headerBackTitle`, `tabBarLabel`, …: `TEXT_PROPS`), as an object property of one of those names (`options={{ title: "Settings" }}`, an alert button's `text`), or as `Alert.alert` / `Alert.prompt`'s title or message.
+
+A literal counts when it is the value or part of it (parentheses, either branch of a `? :`, `+`, `&&`, `||`, `??`, a template, `as`, `satisfies`), so a catalog key (`t("home.title")`), a condition (`kind === "plan" ? …`) and any other function's argument never count. Ignored: tests (`__tests__/`, `*.test.ts(x)`, `test-utils/`, `e2e/`), comments, empty or whitespace-only text, text without a letter (`·`, `—`, `+`, `100%`), and every prop or property not in `TEXT_PROPS` (`testID`, `nativeID`, `href`, `className`, route names, analytics event names). Text that isn't language (an email address, a URL) goes in a named constant (`SUPPORT_EMAIL` in `app/support/index.tsx`), and a class list never goes in a property named like a text prop (Badge's variants use `labelClass`, not `text`). It's a TypeScript-AST check like the literal check rather than `i18next-cli`'s lint: no new tool next to Biome, and the same allowlist and output.
+
+**Allowlist.** `ALLOWLIST` in `text-check.ts` exempts a whole file, with a reason each. It is empty: every screen took its text from the catalogs when the check landed (FIT-409). An entry is for text that genuinely isn't the app's to translate (a developer-only screen, a brand name drawn as artwork), never for text that just hasn't moved yet. An entry whose file has no hardcoded text left fails the check, so the list can't go stale.
+
 ## Spacing and layout
 
 - Screen gutters and gaps between sections use the spacing Tokens: `xs` 8, `sm` 16, `md` 24, `lg` 32 (`px-md`, `gap-md`, `p-md`).

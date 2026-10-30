@@ -17,8 +17,10 @@ import { i18n } from "~/lib/i18n";
  */
 const LOGO_TARGET_CLASS = "w-11 items-start";
 
-const openSupportEmail = () =>
-  Linking.openURL("mailto:support@fitmeproject.com");
+// An address, not text: the same in every App language
+const SUPPORT_EMAIL = "support@fitmeproject.com";
+
+const openSupportEmail = () => Linking.openURL(`mailto:${SUPPORT_EMAIL}`);
 const openX = () => Linking.openURL("https://x.com/fitmeproject");
 const openInstagram = () =>
   Linking.openURL("https://www.instagram.com/fitmeprojectcom");
@@ -52,18 +54,22 @@ export default function SupportScreen() {
           <P>{t("support.contact")}</P>
           <Button
             contentColorClassName="text-primary"
-            label="support@fitmeproject.com"
+            label={SUPPORT_EMAIL}
             onPress={openSupportEmail}
             variant="ghost"
           />
           <HStack className="gap-0">
-            <Button accessibilityLabel="X" onPress={openX} variant="ghost">
+            <Button
+              accessibilityLabel={t("support.social.x")}
+              onPress={openX}
+              variant="ghost"
+            >
               <View className={LOGO_TARGET_CLASS}>
                 <X fill={primary} height={16} width={16} />
               </View>
             </Button>
             <Button
-              accessibilityLabel="Instagram"
+              accessibilityLabel={t("support.social.instagram")}
               onPress={openInstagram}
               variant="ghost"
             >
@@ -72,7 +78,7 @@ export default function SupportScreen() {
               </View>
             </Button>
             <Button
-              accessibilityLabel="Threads"
+              accessibilityLabel={t("support.social.threads")}
               onPress={openThreads}
               variant="ghost"
             >
