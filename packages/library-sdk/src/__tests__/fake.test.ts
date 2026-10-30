@@ -9,7 +9,7 @@ import {
   type ListExercisesParams,
 } from "..";
 import { createFakeLibrary } from "../fake";
-import { exercise, stubApi } from "./stub-api";
+import { cover, exercise, stubApi } from "./stub-api";
 
 /** A made-up Ukrainian translation of `name`. */
 const uk = (name: string) => ({
@@ -57,12 +57,20 @@ const exercises = [
   ),
 ];
 
+const covers = [
+  cover("3f2b8a4e-6c1d-4e5f-9a7b-1c2d3e4f5a6b", {
+    muscle_groups: ["quadriceps", "glutes"],
+  }),
+  cover("0a1b2c3d-4e5f-6a7b-8c9d-0e1f2a3b4c5d", { muscle_groups: ["back"] }),
+  cover("ffffffff-0000-4000-8000-000000000000"),
+];
+
 const real = createLibrary({
-  fetch: stubApi(exercises).fetch,
+  fetch: stubApi(exercises, undefined, covers).fetch,
   token: () => Promise.resolve("secret"),
   url: "https://exercises.test",
 });
-const fake = createFakeLibrary(exercises);
+const fake = createFakeLibrary(exercises, { covers });
 
 describe.each<[string, AppLanguage | undefined]>([
   ["no language", undefined],
@@ -151,6 +159,36 @@ describe.each<[string, AppLanguage | undefined]>([
   });
 });
 
+describe("covers", () => {
+  it("answers every Cover like the real client, in the order given", async () => {
+    const answer = await fake.covers();
+
+    expect(answer).toEqual(await real.covers());
+    expect(answer.map((c) => c.id)).toEqual(covers.map((c) => c.id));
+  });
+
+  it("answers an empty list like the real client without Covers", async () => {
+    const empty = createLibrary({
+      fetch: stubApi(exercises).fetch,
+      token: () => Promise.resolve("secret"),
+      url: "https://exercises.test",
+    });
+
+    expect(await createFakeLibrary(exercises).covers()).toEqual(
+      await empty.covers()
+    );
+    expect(await createFakeLibrary(exercises).covers()).toEqual([]);
+  });
+
+  it("answers copies, so a caller changing one leaves the fake alone", async () => {
+    const library = createFakeLibrary([], { covers });
+    const [first] = await library.covers();
+    first?.muscle_groups.push("abs");
+
+    expect(await library.covers()).toEqual(covers);
+  });
+});
+
 describe("language", () => {
   it("answers a translated Exercise in the language, an untranslated one wholly in English", async () => {
     expect(await fake.get("squat", { language: "uk" })).toMatchObject({
@@ -184,17 +222,19 @@ describe("failing", () => {
     new LibraryRateLimitedError(30),
     new LibraryUnavailableError(),
   ])("fails every call with $name until told to stop", async (error) => {
-    const library = createFakeLibrary(exercises);
+    const library = createFakeLibrary(exercises, { covers });
 
     library.failWith(error);
 
     await expect(library.list()).rejects.toBe(error);
     await expect(library.lookup(["squat"])).rejects.toBe(error);
     await expect(library.get("squat")).rejects.toBe(error);
+    await expect(library.covers()).rejects.toBe(error);
 
     library.failWith(null);
 
     expect((await library.lookup(["squat"])).data).toHaveLength(1);
+    expect(await library.covers()).toEqual(covers);
   });
 
   it("answers get with empty texts for an Exercise given as a summary", async () => {

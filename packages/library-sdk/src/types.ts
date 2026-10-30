@@ -38,6 +38,18 @@ export interface ExerciseBatch {
 }
 
 /**
+ * A Cover (`GET /covers`): a photo a Workout's card shows, tagged with the
+ * muscle groups it suits (ADR 0014). No text, so no language.
+ */
+export interface Cover {
+  /** The Cover's permanent id, which a Workout stores. */
+  id: string;
+  /** Supabase's image transformation endpoint: append `width` / `height`. */
+  image_url: string;
+  muscle_groups: MuscleGroup[];
+}
+
+/**
  * Which App language to answer in. Sent only when given, so without it the
  * API answers in its default, English. An Exercise without a translation in
  * it is answered wholly in English.
@@ -68,6 +80,8 @@ export interface ListExercisesParams extends LanguageOption {
 
 /** What Arnold, MCP and the mobile app read the Library through. */
 export interface Library {
+  /** Every Cover in the Library, in its order; empty when it has none. */
+  covers: () => Promise<Cover[]>;
   /** One Exercise in full, or `null` when no Exercise has that slug. */
   get: (slug: string, options?: LanguageOption) => Promise<Exercise | null>;
   /**

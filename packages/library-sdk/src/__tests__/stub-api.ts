@@ -3,7 +3,7 @@ import {
   type MuscleGroup,
   muscleGroups,
 } from "@fitme/core/models";
-import type { Exercise } from "..";
+import type { Cover, Exercise } from "..";
 
 /** An Exercise's text in another App language, as the bundle carries it. */
 type Translation = Pick<Exercise, "description" | "instructions" | "name">;
@@ -28,6 +28,14 @@ export const exercise = (
   slug,
   thumbnail_url: `https://media.test/${slug}.jpg`,
   video_url: `https://media.test/${slug}.mp4`,
+  ...overrides,
+});
+
+/** A made-up Cover; the image URL is made from the id. */
+export const cover = (id: string, overrides: Partial<Cover> = {}): Cover => ({
+  id,
+  image_url: `https://media.test/covers/${id}.jpg`,
+  muscle_groups: ["chest"] as MuscleGroup[],
   ...overrides,
 });
 
@@ -71,6 +79,8 @@ export interface StubRequest {
   /** `muscle_groups` split on its commas, as sent; null when not sent. */
   muscleGroups: string[] | null;
   offset: string | null;
+  /** The URL's path, e.g. `/covers`. */
+  path: string;
   search: string | null;
   slugs: string[] | null;
   url: URL;
@@ -104,15 +114,20 @@ const serveIn = (exercises: StubExercise[], language: string) => {
  * A stubbed `fetch` answering `GET /exercises` the way `apps/library` does
  * (batch lookup with `slugs`, otherwise a page) and `GET /exercises/:slug`
  * (one Exercise in full, or 404), each in its `language` (default `en`),
- * recording every request. `respond` replaces the answer, to stub failures.
+ * and `GET /covers` (every Cover, in the order given), recording every
+ * request. `respond` replaces the answer, to stub failures.
  */
 export const stubApi = (
   exercises: StubExercise[],
-  respond?: (request: StubRequest) => Response | Promise<Response>
+  respond?: (request: StubRequest) => Response | Promise<Response>,
+  covers: Cover[] = []
 ) => {
   const requests: StubRequest[] = [];
 
   const answer = (request: StubRequest) => {
+    if (request.path === "/covers") {
+      return Response.json({ data: covers });
+    }
     const sorted = serveIn(exercises, request.language ?? "en");
     const bySlug = new Map(
       sorted.map(({ exercise: e }) => [e.slug, summary(e)])
@@ -175,6 +190,7 @@ export const stubApi = (
         ? (params.get("muscle_groups") ?? "").split(",")
         : null,
       offset: params.get("offset"),
+      path: url.pathname,
       search: params.get("search"),
       slugs: params.has("slugs")
         ? (params.get("slugs") ?? "").split(",")
