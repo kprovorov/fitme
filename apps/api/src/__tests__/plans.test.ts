@@ -24,12 +24,14 @@ const summary = {
   ...planColumns,
   workouts: [
     {
+      cover: "0b6f2a54-3c1d-4e8f-9a7b-2d5c6e1f8a90",
       exercise_count: 2,
       id: "a1d6c0b2-7e3f-4f0a-9c1d-3b5e7a9c1d20",
       name: "Day B",
       order: 1,
     },
     {
+      cover: null,
       exercise_count: 1,
       id: "b2e7d1c3-8f40-4a1b-8d2e-4c6f8b0d2e30",
       name: "Day A",
@@ -114,6 +116,7 @@ const detail = {
   ...planColumns,
   workouts: [
     {
+      cover: "0b6f2a54-3c1d-4e8f-9a7b-2d5c6e1f8a90",
       description: "Legs and pulls",
       exercises: [
         {

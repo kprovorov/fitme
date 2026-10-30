@@ -380,6 +380,7 @@ export const workoutSessions = pgTable(
 export const workouts = pgTable(
   "workouts",
   {
+    cover: text(),
     createdAt: timestamp("created_at", {
       mode: "string",
       withTimezone: true,

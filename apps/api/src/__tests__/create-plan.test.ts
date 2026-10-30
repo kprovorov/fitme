@@ -80,6 +80,7 @@ const created = {
   workout_duration: 60,
   workouts: [
     {
+      cover: null,
       description: "Squats then deadlifts",
       exercises: [
         {
@@ -361,6 +362,14 @@ describe("POST /v1/plans", () => {
       invalid((payload) => {
         Object.assign(payload.workouts[0].exercises[0], {
           exercise_id: "f6c1b5a7-2d84-4e5f-8b6c-8a0d2f4b6c70",
+        });
+      }),
+    ],
+    [
+      "a Workout's cover (the server assigns it)",
+      invalid((payload) => {
+        Object.assign(payload.workouts[0], {
+          cover: "0b6f2a54-3c1d-4e8f-9a7b-2d5c6e1f8a90",
         });
       }),
     ],

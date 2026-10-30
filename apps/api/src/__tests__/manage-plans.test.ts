@@ -22,6 +22,7 @@ const detail = {
   workout_duration: 60,
   workouts: [
     {
+      cover: null,
       description: "Legs and pulls",
       exercises: [
         {
