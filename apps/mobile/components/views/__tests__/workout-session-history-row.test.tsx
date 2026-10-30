@@ -58,8 +58,8 @@ const session: WorkoutSession = {
 // ICU may put a narrow no-break space before `PM`.
 const TWELVE_HOUR = /^Wed, Oct 21 · 6:05\sPM$/;
 const ENGLISH_VOLUME = /12,505 kg/;
-// `12 505 kg`, with Ukrainian's no-break space between thousands.
-const UKRAINIAN_VOLUME = /12\s505 kg/;
+// `12 505 кг`, with Ukrainian's no-break space between thousands.
+const UKRAINIAN_VOLUME = /12\s505 кг/;
 
 // The language sync leaves the App language and region where a test put them.
 afterEach(async () => {

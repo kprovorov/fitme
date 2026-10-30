@@ -1,7 +1,15 @@
 import type { MuscleGroup, WorkoutSession } from "@fitme/core";
 import { loggedExercises } from "@fitme/core";
-import { formatWeight, formatWorkoutDuration } from "@fitme/i18n";
+import {
+  formatCount,
+  formatNumber,
+  formatWeight,
+  formatWorkoutDuration,
+  spokenUnit,
+  weightUnitOf,
+} from "@fitme/i18n";
 import { Fragment, useMemo } from "react";
+import { useTranslation } from "react-i18next";
 import { Button } from "~/components/ui/button";
 import { HStack } from "~/components/ui/hstack";
 import { Separator } from "~/components/ui/separator";
@@ -27,6 +35,7 @@ export default function WorkoutSessionSummaryView({
   onContinue,
 }: WorkoutSessionSummaryViewProps) {
   const i18n = useI18n();
+  const { t } = useTranslation();
   const { data: profile } = useProfileQuery();
   const measurementSystem = profile?.measurement_system ?? "metric";
 
@@ -68,14 +77,14 @@ export default function WorkoutSessionSummaryView({
   return (
     <VStack className="w-full items-stretch gap-md">
       <Text className="text-center text-primary text-title-1-emphasized">
-        Workout Complete!
+        {t("workoutSummary.title")}
       </Text>
 
       <HStack className="items-start justify-between px-md">
         <VStack className="items-start gap-4">
           <WorkoutSessionSummaryStat
             icon="clock"
-            title="Duration"
+            title={t("workoutSession.stats.duration")}
             value={
               workoutSession.finished_at
                 ? formatWorkoutDuration(
@@ -88,18 +97,25 @@ export default function WorkoutSessionSummaryView({
           />
           <WorkoutSessionSummaryStat
             icon="scalemass.fill"
-            title="Volume"
+            spokenValue={spokenUnit(
+              i18n,
+              Math.round(volume),
+              weightUnitOf(measurementSystem)
+            )}
+            title={t("workoutSession.stats.volume")}
             value={formatWeight(i18n, Math.round(volume), measurementSystem)}
           />
           <WorkoutSessionSummaryStat
             icon="dumbbell.fill"
-            title="Exercises"
-            value={String(exercises.length)}
+            spokenValue={formatCount(i18n, "exercises", exercises.length)}
+            title={t("workoutSummary.stats.exercises")}
+            value={formatNumber(i18n, exercises.length)}
           />
           <WorkoutSessionSummaryStat
             icon="bolt.fill"
-            title="Sets"
-            value={String(setsLogged)}
+            spokenValue={formatCount(i18n, "sets", setsLogged)}
+            title={t("workoutSession.stats.sets")}
+            value={formatNumber(i18n, setsLogged)}
           />
         </VStack>
 
@@ -133,7 +149,7 @@ export default function WorkoutSessionSummaryView({
           className="w-full"
           icon="arrow.right"
           iconPosition="trailing"
-          label="Continue"
+          label={t("workoutSummary.continue")}
           onPress={onContinue}
         />
       </VStack>
