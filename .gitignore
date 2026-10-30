@@ -8,6 +8,8 @@ node_modules/
 dist/
 web-build/
 expo-env.d.ts
+# EAS metadata:pull downloads store media; only public listing text is versioned.
+apps/mobile/store/
 ios/
 android/
 
