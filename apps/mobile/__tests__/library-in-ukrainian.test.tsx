@@ -1,9 +1,10 @@
 /**
  * The Library tab, an Exercise's screen and its guide on a Ukrainian device:
  * the real screens under the root layout's language sync, on the fake
- * Library. The header is rendered as its title, and the SwiftUI-backed
- * primitives are swapped for plain stand-ins (the picker's options are
- * buttons labelled `<label> <option>`).
+ * Library. The header is rendered as its title and search bar
+ * (`stack-screen-stub`), and the SwiftUI-backed primitives are swapped for
+ * plain stand-ins (the picker's options are buttons labelled
+ * `<label> <option>`).
  */
 import { LibraryUnavailableError } from "@fitme/library-sdk";
 import type { FakeLibrary } from "@fitme/library-sdk/fake";
@@ -12,7 +13,6 @@ import { type QueryClient, QueryClientProvider } from "@tanstack/react-query";
 import { fireEvent, render, screen } from "@testing-library/react-native";
 import { router } from "expo-router";
 import type { ComponentType } from "react";
-import { Text } from "react-native";
 import LibraryScreen from "~/app/(tabs)/library/index";
 import ExerciseGuideScreen from "~/app/exercises/[exerciseSlug]/guide";
 import ExerciseScreen from "~/app/exercises/[exerciseSlug]/index";
@@ -20,22 +20,20 @@ import { storage } from "~/lib/mmkv";
 import { setDeviceLanguages } from "~/test-utils/device-locales";
 import { libraryExercise, serveLibrary } from "~/test-utils/fake-library";
 import { InAppLanguage } from "~/test-utils/in-app-language";
-import { createTestQueryClient, settle } from "~/test-utils/query-client";
+import {
+  createTestQueryClient,
+  settle,
+  until,
+} from "~/test-utils/query-client";
 
 const mockSlug = { current: "bench-press" };
-
-// The header as its title. Top-level (and `mock`-prefixed, so the factory may
-// use it) because the React Compiler rewrites components declared inside a
-// `jest.mock` factory.
-const MockHeader = ({ options }: { options: { title?: string } }) =>
-  options.title ? <Text>{options.title}</Text> : null;
 
 jest.mock("expo-router", () => ({
   router: { push: jest.fn() },
   Stack: {
-    Screen: (props: { options: { title?: string } }) => (
-      <MockHeader {...props} />
-    ),
+    Screen: jest.requireActual<typeof import("~/test-utils/stack-screen-stub")>(
+      "~/test-utils/stack-screen-stub"
+    ).StackScreenStub,
   },
   useLocalSearchParams: () => ({ exerciseSlug: mockSlug.current }),
 }));
@@ -73,6 +71,10 @@ beforeEach(() => {
       muscle_groups: ["chest", "triceps"],
       translations: { uk: { name: "Жим лежачи" } },
     }),
+    libraryExercise("deadlift", {
+      muscle_groups: ["back"],
+      translations: { uk: { name: "Станова тяга" } },
+    }),
   ]);
   setDeviceLanguages(["uk-UA"]);
 });
@@ -82,17 +84,38 @@ describe("the Library tab in Ukrainian", () => {
     await renderInUkrainian(LibraryScreen);
 
     expect(screen.getByText("Бібліотека")).toBeTruthy();
-    expect(screen.getByPlaceholderText("Пошук вправ")).toBeTruthy();
-    expect(screen.getByLabelText("Пошук вправ")).toBeTruthy();
+    // The header's search bar: the list has no field of its own.
+    expect(screen.getAllByPlaceholderText("Пошук вправ")).toHaveLength(1);
+    expect(screen.getByTestId("header-search-bar").props.placeholder).toBe(
+      "Пошук вправ"
+    );
     expect(screen.getByLabelText("Група м’язів Усі")).toBeTruthy();
     expect(screen.getByLabelText("Група м’язів Груди")).toBeTruthy();
     expect(screen.getByText("Жим лежачи")).toBeTruthy();
   });
 
+  it.each([
+    ["its Ukrainian name", "стан"],
+    ["its English name", "dead"],
+  ])(
+    "finds an Exercise by %s from the header search, named in Ukrainian",
+    async (_how, text) => {
+      await renderInUkrainian(LibraryScreen);
+
+      await fireEvent.changeText(screen.getByLabelText("Пошук вправ"), text);
+      await until(() => screen.queryByText("Жим лежачи") === null);
+      await settle(client);
+
+      expect(screen.getByText("Станова тяга")).toBeTruthy();
+      expect(screen.queryByText("Deadlift")).toBeNull();
+    }
+  );
+
   it("names each row's Muscle groups in Ukrainian", async () => {
     await renderInUkrainian(LibraryScreen);
 
     expect(screen.getByText("Груди, Трицепс")).toBeTruthy();
+    expect(screen.getByText("Спина")).toBeTruthy();
   });
 
   it("opens the Exercise's screen from its row", async () => {
@@ -119,6 +142,22 @@ describe("the Library tab in Ukrainian", () => {
     await fireEvent.press(screen.getByText("Показати всі вправи"));
     await settle(client);
     expect(screen.getByText("Жим лежачи")).toBeTruthy();
+  });
+
+  it("clears the header search from the empty state", async () => {
+    await renderInUkrainian(LibraryScreen);
+
+    await fireEvent.changeText(screen.getByLabelText("Пошук вправ"), "жодна");
+    await until(() => screen.queryByText("Вправ не знайдено") !== null);
+
+    await fireEvent.press(screen.getByText("Показати всі вправи"));
+    // The cleared search goes out after the debounce.
+    await until(() => screen.queryByText("Вправ не знайдено") === null);
+    await settle(client);
+
+    expect(screen.getByLabelText("Пошук вправ").props.value).toBe("");
+    expect(screen.getByText("Жим лежачи")).toBeTruthy();
+    expect(screen.getByText("Станова тяга")).toBeTruthy();
   });
 
   it("says the Library couldn't load, in Ukrainian", async () => {
