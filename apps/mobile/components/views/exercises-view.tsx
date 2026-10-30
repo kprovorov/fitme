@@ -93,13 +93,13 @@ const ExercisesView = ({
     if (isError) {
       return (
         <VStack className="items-center gap-sm pt-lg">
-          <H3 className="text-center">Couldn't Load Exercises</H3>
+          <H3 className="text-center">{t("library.loadErrorTitle")}</H3>
           <Text className="text-center text-muted-foreground">
-            Couldn't load exercises. Check your connection and try again.
+            {t("library.loadError")}
           </Text>
           <Button
             fill={false}
-            label="Try Again"
+            label={t("common.tryAgain")}
             onPress={retry}
             variant="secondary"
           />
@@ -116,13 +116,13 @@ const ExercisesView = ({
           />
           {isLoadMoreError ? (
             <ErrorMessage className="text-center">
-              Couldn't load more exercises. Check your connection and try again.
+              {t("library.loadMoreError")}
             </ErrorMessage>
           ) : null}
           {hasMore ? (
             <Button
               isLoading={isLoadingMore}
-              label="Load More"
+              label={t("library.loadMore")}
               onPress={handleLoadMore}
               variant="secondary"
             />
@@ -133,11 +133,11 @@ const ExercisesView = ({
     if (exercises) {
       return (
         <VStack className="items-center gap-sm pt-lg">
-          <H3 className="text-center">No Exercises Found</H3>
+          <H3 className="text-center">{t("library.emptyTitle")}</H3>
           <Text className="text-center text-muted-foreground">
-            No exercises match. Try another name or muscle group.
+            {t("library.empty")}
           </Text>
-          <Button fill={false} label="Show All Exercises" onPress={showAll} />
+          <Button fill={false} label={t("library.showAll")} onPress={showAll} />
         </VStack>
       );
     }
@@ -151,18 +151,18 @@ const ExercisesView = ({
   return (
     <VStack className="flex-1 items-stretch">
       <Input
-        accessibilityLabel="Search exercises"
+        accessibilityLabel={t("library.search")}
         autoCapitalize="none"
         autoCorrect={false}
         clearButtonMode="while-editing"
         onChangeText={setSearch}
-        placeholder="Search exercises"
+        placeholder={t("library.search")}
         returnKeyType="search"
         value={search}
       />
 
       <Picker
-        label="Muscle group"
+        label={t("library.muscleGroup")}
         onValueChange={setMuscleGroup}
         options={filterOptions}
         value={muscleGroup}

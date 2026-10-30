@@ -1,11 +1,17 @@
-import {
-  getWeightLabel,
-  type WorkoutSessionExercise,
-  type WorkoutSessionExerciseSet,
+import type {
+  WorkoutSessionExercise,
+  WorkoutSessionExerciseSet,
 } from "@fitme/core";
-import { formatDate } from "@fitme/i18n";
+import {
+  formatCount,
+  formatDate,
+  formatNumber,
+  unitName,
+  weightUnitOf,
+} from "@fitme/i18n";
 import { isThisYear } from "date-fns";
 import { type ReactNode, useCallback, useState } from "react";
+import { useTranslation } from "react-i18next";
 import { View } from "react-native";
 import { useExerciseHistoryQuery } from "~/hooks/queries/exercises";
 import { useProfileQuery } from "~/hooks/queries/profiles";
@@ -95,8 +101,9 @@ function SessionTable({
   weightLabel,
 }: {
   entry: WorkoutSessionExercise;
-  weightLabel: string | undefined;
+  weightLabel: string;
 }) {
+  const { t } = useTranslation();
   const i18n = useI18n();
   const logged = entry.sets.filter(isLogged).sort((a, b) => a.order - b.order);
   const date = new Date(entry.created_at);
@@ -116,10 +123,10 @@ function SessionTable({
               #
             </Cell>
             <Cell className={SET_TARGET_COLUMN_CLASS} header>
-              target
+              {t("sets.columns.target")}
             </Cell>
             <Cell className="flex-1" header>
-              reps
+              {t("sets.columns.reps")}
             </Cell>
             <Cell className="flex-1" header>
               {weightLabel}
@@ -134,17 +141,23 @@ function SessionTable({
               ? null
               : formatSetWeight(set.weight_completed);
           const loggedText = [
-            `${set.reps_completed} reps`,
-            weight === null ? null : `${weight} ${weightLabel ?? ""}`.trim(),
+            formatCount(i18n, "reps", set.reps_completed ?? 0),
+            // Spoken in the App language's decimals: "50.5" / "50,5".
+            set.weight_completed === null
+              ? null
+              : `${formatNumber(i18n, set.weight_completed)} ${weightLabel}`,
           ]
             .filter(Boolean)
             .join(", ");
           return (
             <Row
               accessibilityLabel={[
-                `Set ${set.order}: ${loggedText}`,
+                t("exerciseHistory.set", {
+                  logged: loggedText,
+                  order: set.order,
+                }),
                 // A set added during the session had no target.
-                target === "–" ? null : `Target ${target}`,
+                target === "–" ? null : t("exerciseHistory.target", { target }),
               ]
                 .filter(Boolean)
                 .join(". ")}
@@ -173,8 +186,13 @@ export default function ExerciseHistoryView({
   const { data: items } = useExerciseHistoryQuery({
     variables: { exerciseSlug },
   });
+  const { t } = useTranslation();
+  const i18n = useI18n();
   const { data: profile } = useProfileQuery();
-  const weightLabel = getWeightLabel(profile?.measurement_system ?? "metric");
+  const weightLabel = unitName(
+    i18n,
+    weightUnitOf(profile?.measurement_system ?? "metric")
+  );
   const [shown, setShown] = useState(SESSIONS_PAGE);
   const showMore = useCallback(
     () => setShown((count) => count + SESSIONS_PAGE),
@@ -190,7 +208,7 @@ export default function ExerciseHistoryView({
 
   return (
     <Card className="gap-sm" variant="ghost">
-      <CardTitle>Progress</CardTitle>
+      <CardTitle>{t("exerciseHistory.title")}</CardTitle>
       {entries.slice(0, shown).map((entry) => (
         <SessionTable entry={entry} key={entry.id} weightLabel={weightLabel} />
       ))}
@@ -200,7 +218,7 @@ export default function ExerciseHistoryView({
           fill
           icon="chevron.down"
           iconPosition="trailing"
-          label="Load more"
+          label={t("exerciseHistory.loadMore")}
           onPress={showMore}
           variant="ghost"
         />

@@ -94,7 +94,8 @@ const renderView = async (props: Parameters<typeof ExercisesView>[0] = {}) => {
 };
 
 const type = async (text: string) => {
-  const input = screen.getByLabelText("Search exercises");
+  // Labelled in the App language.
+  const input = screen.getByLabelText(i18n.t("library.search"));
   for (const end of text.split("").keys()) {
     // biome-ignore lint/performance/noAwaitInLoops: keystrokes come one after another
     await fireEvent.changeText(input, text.slice(0, end + 1));

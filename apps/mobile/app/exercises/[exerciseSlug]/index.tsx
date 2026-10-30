@@ -1,5 +1,6 @@
 import { Stack, useLocalSearchParams } from "expo-router";
 import { useCallback } from "react";
+import { useTranslation } from "react-i18next";
 import { ActivityIndicator, ScrollView, View } from "react-native";
 import ExerciseVideo from "~/components/exercises/exercise-video";
 import { Button } from "~/components/ui/button";
@@ -9,6 +10,7 @@ import { VStack } from "~/components/ui/vstack";
 import { useExercise, useExerciseDetailQuery } from "~/hooks/queries/library";
 
 export default function ExerciseScreen() {
+  const { t } = useTranslation();
   const { exerciseSlug } = useLocalSearchParams<{ exerciseSlug: string }>();
 
   const {
@@ -39,7 +41,7 @@ export default function ExerciseScreen() {
     if (exercise === null) {
       return (
         <Text className="pt-lg text-center text-muted-foreground">
-          This exercise isn't in the library any more.
+          {t("exercise.gone")}
         </Text>
       );
     }
@@ -47,11 +49,11 @@ export default function ExerciseScreen() {
       return (
         <View className="items-center gap-sm pt-lg">
           <Text className="text-center text-muted-foreground">
-            Couldn't load this exercise. Check your connection and try again.
+            {t("exercise.loadError")}
           </Text>
           <Button
             fill={false}
-            label="Try Again"
+            label={t("common.tryAgain")}
             onPress={retry}
             variant="secondary"
           />
