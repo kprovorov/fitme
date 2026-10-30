@@ -1,6 +1,6 @@
 /**
  * The not-found screen, in English and on a Ukrainian device, under the root
- * layout's language sync, with the native header title shown as text.
+ * layout's language sync.
  */
 import { afterEach, describe, expect, it, jest } from "@jest/globals";
 import { render, screen } from "@testing-library/react-native";
@@ -10,18 +10,9 @@ import { i18n } from "~/lib/i18n";
 import { setDeviceLanguages } from "~/test-utils/device-locales";
 import { InAppLanguage } from "~/test-utils/in-app-language";
 
-// The Screen's title, as the native header shows it.
-jest.mock("expo-router", () => {
-  const { Text: MockText } =
-    jest.requireActual<typeof import("react-native")>("react-native");
-  return {
-    Link: ({ children }: { children: ReactNode }) => children,
-    Stack: {
-      Screen: ({ options }: { options?: { title?: string } }) =>
-        options?.title ? <MockText>{options.title}</MockText> : null,
-    },
-  };
-});
+jest.mock("expo-router", () => ({
+  Link: ({ children }: { children: ReactNode }) => children,
+}));
 
 jest.mock("~/components/ui/button", () =>
   jest.requireActual("~/test-utils/button-stub")
