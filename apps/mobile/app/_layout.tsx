@@ -120,6 +120,13 @@ function RootLayout() {
             }}
           />
           <Stack.Screen
+            name="workout-sessions/[workoutSessionId]/exercise-picker"
+            options={{
+              headerShown: true,
+              presentation: "pageSheet",
+            }}
+          />
+          <Stack.Screen
             name="exercises/[exerciseSlug]/guide"
             options={{
               presentation: "formSheet",

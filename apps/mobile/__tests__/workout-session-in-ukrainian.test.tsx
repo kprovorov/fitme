@@ -20,6 +20,7 @@ import { type QueryClient, QueryClientProvider } from "@tanstack/react-query";
 import { act, fireEvent, render, screen } from "@testing-library/react-native";
 import { Alert } from "react-native";
 import HistorySessionScreen from "~/app/workout-sessions/[workoutSessionId]";
+import ExercisePickerScreen from "~/app/workout-sessions/[workoutSessionId]/exercise-picker";
 import { i18n } from "~/lib/i18n";
 import { storage } from "~/lib/mmkv";
 import { setDeviceLanguages } from "~/test-utils/device-locales";
@@ -31,20 +32,21 @@ import {
   createTestQueryClient,
   settle as settleQueries,
 } from "~/test-utils/query-client";
+import { PushedRoutes, resetStubRouter } from "~/test-utils/router-stub";
 
-jest.mock("expo-router", () => ({
-  Link: ({ children }: { children: unknown }) => children,
-  Stack: { Screen: () => null },
-  useIsFocused: () => true,
-  useLocalSearchParams: () => ({ workoutSessionId: "s1" }),
-  useNavigation: () => ({ getState: () => ({ index: 0, routes: [{}] }) }),
-  useRouter: () => ({
-    dismiss: jest.fn(),
-    dismissTo: jest.fn(),
-    push: jest.fn(),
-    replace: jest.fn(),
-  }),
-}));
+jest.mock("expo-router", () => {
+  const stub = jest.requireActual<typeof import("~/test-utils/router-stub")>(
+    "~/test-utils/router-stub"
+  );
+  return {
+    Link: ({ children }: { children: unknown }) => children,
+    Stack: { Screen: stub.StackScreenStub },
+    useIsFocused: () => true,
+    useLocalSearchParams: () => stub.useStubParams({ workoutSessionId: "s1" }),
+    useNavigation: () => ({ getState: () => ({ index: 0, routes: [{}] }) }),
+    useRouter: () => stub.stubRouter,
+  };
+});
 
 jest.mock("~/lib/supabase", () => ({
   supabase: jest.requireActual<
@@ -135,6 +137,12 @@ const renderSession = async () => {
     <QueryClientProvider client={queryClient}>
       <InAppLanguage>
         <HistorySessionScreen />
+        <PushedRoutes
+          screens={{
+            "/workout-sessions/[workoutSessionId]/exercise-picker":
+              ExercisePickerScreen,
+          }}
+        />
       </InAppLanguage>
     </QueryClientProvider>
   );
@@ -160,6 +168,7 @@ jest.setTimeout(30_000);
 
 beforeEach(() => {
   jest.clearAllMocks();
+  resetStubRouter();
   backend.reset();
   storage.clearAll();
   serveLibrary([
@@ -236,7 +245,9 @@ describe("an open Workout Session in Ukrainian", () => {
       // The picker stays open after a failure, so the User can try again.
       await fireEvent.press(screen.getByLabelText("Закрити"));
 
-      await fireEvent.press(screen.getByText("Додати вправу"));
+      await fireEvent.press(
+        screen.getByRole("button", { name: "Додати вправу" })
+      );
       fakePublicApi.failNext(ADD_EXERCISE, failure);
       await pressAndSettle(await firstOf(screen.findAllByText("Додати")));
       expect(Alert.alert).toHaveBeenLastCalledWith(

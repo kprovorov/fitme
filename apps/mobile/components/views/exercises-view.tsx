@@ -1,6 +1,5 @@
 import { type MuscleGroup, muscleGroups } from "@fitme/core";
 import type { ExerciseSummary } from "@fitme/library-sdk";
-import type React from "react";
 import { useCallback, useMemo, useState } from "react";
 import { useTranslation } from "react-i18next";
 import {
@@ -56,7 +55,6 @@ const ExercisesView = ({
   },
   trailing,
   initialMuscleGroup = "all",
-  header,
   refreshable = false,
   contentContainerClassName,
   search: headerSearch,
@@ -66,8 +64,6 @@ const ExercisesView = ({
   // What ends each row: the Library's chevron, or the picker's CTA.
   trailing?: ExerciseRowTrailing;
   initialMuscleGroup?: MuscleGroupFilter;
-  // Scrolls with the list, above the search field (the picker's Close).
-  header?: React.ReactNode;
   // Pull to refresh (the Library tab).
   refreshable?: boolean;
   contentContainerClassName?: string;
@@ -236,7 +232,6 @@ const ExercisesView = ({
       ListFooterComponent={renderFooter() ?? undefined}
       ListHeaderComponent={
         <VStack className="items-stretch pb-md">
-          {header}
           {inHeader ? null : (
             <Input
               accessibilityLabel={t("library.search")}

@@ -642,7 +642,9 @@
     "picker": {
       "add": "Додати",
       "replace": "Замінити",
-      "close": "Закрити"
+      "close": "Закрити",
+      "addTitle": "Додати вправу",
+      "replaceTitle": "Замінити вправу"
     },
     "exercise": {
       "openHint": "Відкриває вправу",
