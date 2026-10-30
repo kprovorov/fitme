@@ -43,6 +43,13 @@ describe("PlanHeader", () => {
     expect(screen.queryByRole("button")).toBeNull();
   });
 
+  it("leaves out a blank description", async () => {
+    await render(<PlanHeader plan={{ ...plan, description: "  " }} />);
+
+    expect(screen.getByText("Hypertrophy Builder")).toBeTruthy();
+    expect(screen.queryByText("  ", { normalizer: (text) => text })).toBeNull();
+  });
+
   it("writes its badges in Ukrainian on a Ukrainian device", async () => {
     setDeviceLanguages(["uk-UA"]);
     await renderHeader();

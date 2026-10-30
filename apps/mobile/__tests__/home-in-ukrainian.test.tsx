@@ -158,7 +158,7 @@ describe("Home in Ukrainian", () => {
 
     // The Plan header: its name, its badges (3 a week, a `few` form) and its
     // description, with no experience level as the old Plan card had.
-    expect(screen.getByRole("header", { name: "Сила" })).toBeTruthy();
+    expect(screen.getByRole("heading", { name: "Сила" })).toBeTruthy();
     expect(screen.getByText("3 рази на тиждень")).toBeTruthy();
     expect(screen.getByText("Сила та результативність")).toBeTruthy();
     expect(screen.getByText("Спортзал")).toBeTruthy();
