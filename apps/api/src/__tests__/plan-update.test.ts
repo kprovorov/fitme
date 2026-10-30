@@ -31,7 +31,11 @@ const planUpdate: PlanUpdate = {
   ],
   plan: { id: "0b9e1a52-7c1d-4f3e-8a2b-5d6c7e8f9a01", name: "Strength" },
   weight_unit: "lbs",
-  workout: { id: "1c2d3e4f-5a6b-4c7d-8e9f-0a1b2c3d4e5f", name: "Push" },
+  workout: {
+    cover: "0b6f2a54-3c1d-4e8f-9a7b-2d5c6e1f8a90",
+    id: "1c2d3e4f-5a6b-4c7d-8e9f-0a1b2c3d4e5f",
+    name: "Push",
+  },
 };
 
 const noPlanUpdate: PlanUpdate = {

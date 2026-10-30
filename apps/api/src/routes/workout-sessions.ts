@@ -15,6 +15,7 @@ import {
   timestamp,
   unauthorizedResponse,
   WeightUnit,
+  WorkoutCover,
   WorkoutSessionExercise,
   WorkoutSessionExerciseResponse,
 } from "../schemas.js";
@@ -368,10 +369,13 @@ const PlanUpdate = z
         "The Plan it updates, `null` when the Workout is gone or its Plan deleted",
     }),
     weight_unit: WeightUnit,
-    workout: z.object({ id: Id, name: z.string() }).nullable().openapi({
-      description:
-        "The Workout it updates, `null` when it's gone or its Plan deleted",
-    }),
+    workout: z
+      .object({ cover: WorkoutCover, id: Id, name: z.string() })
+      .nullable()
+      .openapi({
+        description:
+          "The Workout it updates, `null` when it's gone or its Plan deleted",
+      }),
   })
   .openapi("PlanUpdate");
 

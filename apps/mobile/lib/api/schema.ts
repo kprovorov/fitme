@@ -2337,6 +2337,11 @@ export interface components {
       workouts: components["schemas"]["WorkoutSummary"][];
     };
     WorkoutSummary: {
+      /**
+       * @description The id of the Workout's Cover, a photo from the Library API; `null` until one is assigned
+       * @example 0b6f2a54-3c1d-4e8f-9a7b-2d5c6e1f8a90
+       */
+      cover: string | null;
       /** @example 5 */
       exercise_count: number;
       /** Format: uuid */
@@ -2401,6 +2406,11 @@ export interface components {
      */
     WeightUnit: "kg" | "lbs";
     PlanWorkout: {
+      /**
+       * @description The id of the Workout's Cover, a photo from the Library API; `null` until one is assigned
+       * @example 0b6f2a54-3c1d-4e8f-9a7b-2d5c6e1f8a90
+       */
+      cover: string | null;
       /** @example Legs and pulls */
       description: string;
       /** @description In order */
@@ -2723,6 +2733,11 @@ export interface components {
       weight_unit: components["schemas"]["WeightUnit"];
       /** @description The Workout it updates, `null` when it's gone or its Plan deleted */
       workout: {
+        /**
+         * @description The id of the Workout's Cover, a photo from the Library API; `null` until one is assigned
+         * @example 0b6f2a54-3c1d-4e8f-9a7b-2d5c6e1f8a90
+         */
+        cover: string | null;
         /**
          * Format: uuid
          * @example 6f1c0c9e-2b7a-4c1e-9a55-3c2d1e0f4a11

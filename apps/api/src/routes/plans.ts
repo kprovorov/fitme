@@ -25,6 +25,7 @@ import {
   unauthorizedResponse,
   WEIGHT_STEP,
   WeightUnit,
+  WorkoutCover,
 } from "../schemas.js";
 import type { Weighed } from "../services.js";
 
@@ -72,6 +73,7 @@ const rotationOrder = z.number().int().openapi({
 
 const WorkoutSummary = z
   .object({
+    cover: WorkoutCover,
     exercise_count: z.number().int().openapi({ example: 5 }),
     id: z.uuid(),
     name: z.string().openapi({ example: "Day A" }),
@@ -141,6 +143,7 @@ const PlanExercise = z
 
 const PlanWorkout = z
   .object({
+    cover: WorkoutCover,
     description: z.string().openapi({ example: "Legs and pulls" }),
     exercises: z.array(PlanExercise).openapi({ description: "In order" }),
     id: z.uuid(),

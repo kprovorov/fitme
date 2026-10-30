@@ -46,6 +46,10 @@ const INSUFFICIENT_PRIVILEGE = "42501";
 // PostgREST's JSON timestamp encoding, which the MCP tools returned
 const JSON_TIMESTAMP = /^\d{4}-\d\d-\d\dT\d\d:\d\d:\d\d(\.\d+)?\+00:00$/;
 
+// A Cover is the id of a Library photo (ADR 0014); any string is stored
+const dayACover = randomUUID();
+const pushCover = randomUUID();
+
 const benchSlug = `test-bench-${runId}`;
 const squatSlug = `test-squat-${runId}`;
 
@@ -79,7 +83,13 @@ const seedPlan = (
       .insert(workouts)
       .values([
         { description: "Rest-ish", name: "Day B", order: 2, planId: plan.id },
-        { description: "Legs", name: "Day A", order: 1, planId: plan.id },
+        {
+          cover: dayACover,
+          description: "Legs",
+          name: "Day A",
+          order: 1,
+          planId: plan.id,
+        },
       ])
       .returning({ id: workouts.id });
     const [squat, bench] = await tx
@@ -179,6 +189,7 @@ describe("getPlan", () => {
       workout_duration: 60,
       workouts: [
         {
+          cover: dayACover,
           description: "Legs",
           exercises: [
             {
@@ -222,6 +233,7 @@ describe("getPlan", () => {
           order: 1,
         },
         {
+          cover: null,
           description: "Rest-ish",
           exercises: [],
           id: older.dayB,
@@ -259,8 +271,20 @@ describe("listPlans", () => {
       id: older.id,
       name: "Older plan",
       workouts: [
-        { exercise_count: 2, id: older.dayA, name: "Day A", order: 1 },
-        { exercise_count: 0, id: older.dayB, name: "Day B", order: 2 },
+        {
+          cover: dayACover,
+          exercise_count: 2,
+          id: older.dayA,
+          name: "Day A",
+          order: 1,
+        },
+        {
+          cover: null,
+          exercise_count: 0,
+          id: older.dayB,
+          name: "Day B",
+          order: 2,
+        },
       ],
     });
     expect(listed[1]).not.toHaveProperty("deleted_at");
@@ -425,8 +449,20 @@ describe("activatePlan", () => {
       updated_at: expect.stringMatching(JSON_TIMESTAMP),
       workout_duration: 60,
       workouts: [
-        { exercise_count: 2, id: second.dayA, name: "Day A", order: 1 },
-        { exercise_count: 0, id: second.dayB, name: "Day B", order: 2 },
+        {
+          cover: dayACover,
+          exercise_count: 2,
+          id: second.dayA,
+          name: "Day A",
+          order: 1,
+        },
+        {
+          cover: null,
+          exercise_count: 0,
+          id: second.dayB,
+          name: "Day B",
+          order: 2,
+        },
       ],
     });
     expect(await activePlans(activator)).toEqual([second.id]);
@@ -515,6 +551,7 @@ const newPlan = (name: string): NewPlan => ({
   workout_duration: 45,
   workouts: [
     {
+      cover: pushCover,
       description: "Chest first",
       exercises: [
         {
@@ -592,6 +629,7 @@ describe("createPlan", () => {
       workout_duration: 45,
       workouts: [
         {
+          cover: pushCover,
           description: "Chest first",
           exercises: [
             {
@@ -635,6 +673,7 @@ describe("createPlan", () => {
           order: 1,
         },
         {
+          cover: null,
           description: "Legs only",
           exercises: [
             {
@@ -817,6 +856,7 @@ describe("updatePlan", () => {
       updated?.workouts.map((workout) => [
         workout.order,
         workout.name,
+        workout.cover,
         workout.exercises.map((exercise) => [
           exercise.order,
           exercise.exercise_slug,
@@ -824,10 +864,11 @@ describe("updatePlan", () => {
         ]),
       ])
     ).toEqual([
-      [1, "Legs", [[1, squatSlug, [[1, 10]]]]],
+      [1, "Legs", null, [[1, squatSlug, [[1, 10]]]]],
       [
         2,
         "Push",
+        pushCover,
         [
           [
             1,

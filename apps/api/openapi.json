@@ -260,6 +260,12 @@
       "WorkoutSummary": {
         "type": "object",
         "properties": {
+          "cover": {
+            "type": "string",
+            "nullable": true,
+            "description": "The id of the Workout's Cover, a photo from the Library API; `null` until one is assigned",
+            "example": "0b6f2a54-3c1d-4e8f-9a7b-2d5c6e1f8a90"
+          },
           "exercise_count": {
             "type": "integer",
             "example": 5
@@ -279,6 +285,7 @@
           }
         },
         "required": [
+          "cover",
           "exercise_count",
           "id",
           "name",
@@ -385,6 +392,12 @@
       "PlanWorkout": {
         "type": "object",
         "properties": {
+          "cover": {
+            "type": "string",
+            "nullable": true,
+            "description": "The id of the Workout's Cover, a photo from the Library API; `null` until one is assigned",
+            "example": "0b6f2a54-3c1d-4e8f-9a7b-2d5c6e1f8a90"
+          },
           "description": {
             "type": "string",
             "example": "Legs and pulls"
@@ -411,6 +424,7 @@
           }
         },
         "required": [
+          "cover",
           "description",
           "exercises",
           "id",
@@ -1105,6 +1119,12 @@
             "type": "object",
             "nullable": true,
             "properties": {
+              "cover": {
+                "type": "string",
+                "nullable": true,
+                "description": "The id of the Workout's Cover, a photo from the Library API; `null` until one is assigned",
+                "example": "0b6f2a54-3c1d-4e8f-9a7b-2d5c6e1f8a90"
+              },
               "id": {
                 "type": "string",
                 "format": "uuid",
@@ -1115,6 +1135,7 @@
               }
             },
             "required": [
+              "cover",
               "id",
               "name"
             ],

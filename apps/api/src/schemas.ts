@@ -20,6 +20,17 @@ export const Id = z.guid().openapi({
   format: "uuid",
 });
 
+/**
+ * A Workout's Cover (ADR 0014): the id of a Library photo, assigned by the
+ * server. Only in responses: a request carrying it is refused as an unknown
+ * field.
+ */
+export const WorkoutCover = z.string().nullable().openapi({
+  description:
+    "The id of the Workout's Cover, a photo from the Library API; `null` until one is assigned",
+  example: "0b6f2a54-3c1d-4e8f-9a7b-2d5c6e1f8a90",
+});
+
 /** Lowercase letters and digits, words joined by single hyphens (apps/library's rule). */
 const EXERCISE_SLUG = /^[a-z0-9]+(-[a-z0-9]+)*$/;
 

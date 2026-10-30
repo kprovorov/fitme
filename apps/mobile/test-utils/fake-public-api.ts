@@ -920,7 +920,7 @@ const planUpdate =
         ),
         plan: { id: plan.id, name: plan.name },
         weight_unit: weightUnit(),
-        workout: { id: workout.id, name: workout.name },
+        workout: { cover: null, id: workout.id, name: workout.name },
       },
     });
   };

@@ -63,6 +63,7 @@ const replaced = {
   workout_duration: 60,
   workouts: [
     {
+      cover: null,
       description: "Squats",
       exercises: [
         {
@@ -300,6 +301,14 @@ describe("PUT /v1/plans/{id}/workouts", () => {
       invalid((payload) => {
         Object.assign(payload.workouts[0], {
           id: "a1d6c0b2-7e3f-4f0a-9c1d-3b5e7a9c1d20",
+        });
+      }),
+    ],
+    [
+      "a Workout's cover (the server assigns it)",
+      invalid((payload) => {
+        Object.assign(payload.workouts[0], {
+          cover: "0b6f2a54-3c1d-4e8f-9a7b-2d5c6e1f8a90",
         });
       }),
     ],

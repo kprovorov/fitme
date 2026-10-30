@@ -37,7 +37,10 @@ const noPlans = testUserId("noplans");
 const converting = testUserId("converting");
 const users = [metric, imperial, noProfile, noPlans, converting];
 
-/** A Plan of two Workouts. */
+/** Day A's Cover, as the Public API's create will assign one (ADR 0014). */
+const dayACover = randomUUID();
+
+/** A Plan of two Workouts: Day A with a Cover, Day B without. */
 const newPlan = (name: string): NewPlan => ({
   description: `${name} description`,
   experience_level: "intermediate",
@@ -48,6 +51,7 @@ const newPlan = (name: string): NewPlan => ({
   workout_duration: 60,
   workouts: [
     {
+      cover: dayACover,
       description: "Squats then deadlifts",
       exercises: [
         {
@@ -194,12 +198,14 @@ describe("GET /v1/plans against the local stack", () => {
     ]);
     expect(body.data[0].workouts).toEqual([
       {
+        cover: dayACover,
         exercise_count: 2,
         id: active.workouts[0]?.id,
         name: "Day A",
         order: 1,
       },
       {
+        cover: null,
         exercise_count: 1,
         id: active.workouts[1]?.id,
         name: "Day B",
@@ -235,6 +241,11 @@ describe("GET /v1/plans/{id} against the local stack", () => {
       ["barbell-back-squat", [1, 2]],
       ["barbell-deadlift", [1]],
     ]);
+    expect(
+      body.data.workouts.map(
+        (workout: { cover: string | null }) => workout.cover
+      )
+    ).toEqual([dayACover, null]);
     expect(JSON.stringify(body)).not.toMatch(LEGACY_OR_INTERNAL_FIELD);
   });
 

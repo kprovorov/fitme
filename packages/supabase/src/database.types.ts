@@ -342,6 +342,7 @@ export interface Database {
       };
       workouts: {
         Row: {
+          cover: string | null;
           created_at: string | null;
           description: string;
           id: string;
@@ -352,6 +353,7 @@ export interface Database {
         };
         ComputedFields: never;
         Insert: {
+          cover?: string | null;
           created_at?: string | null;
           description: string;
           id?: string;
@@ -361,6 +363,7 @@ export interface Database {
           updated_at?: string | null;
         };
         Update: {
+          cover?: string | null;
           created_at?: string | null;
           description?: string;
           id?: string;

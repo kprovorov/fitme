@@ -66,8 +66,8 @@ const planSummary = {
   is_active: true,
   updated_at: "2026-10-02T10:00:00+00:00",
   workouts: [
-    { exercise_count: 2, id: "w1", name: "Day A", order: 1 },
-    { exercise_count: 0, id: "w2", name: "Day B", order: 2 },
+    { cover: null, exercise_count: 2, id: "w1", name: "Day A", order: 1 },
+    { cover: null, exercise_count: 0, id: "w2", name: "Day B", order: 2 },
   ],
 };
 
@@ -84,6 +84,7 @@ const servicePlanWith = (slug: string) => ({
   ...planSummary,
   workouts: [
     {
+      cover: null,
       description: "Chest",
       exercises: [
         {
@@ -109,6 +110,7 @@ const toolPlanWith = (exercise: {
   ...planSummary,
   workouts: [
     {
+      cover: null,
       description: "Chest",
       exercises: [{ ...exercise, id: "we1", order: 1, sets: [planSet] }],
       id: "w1",

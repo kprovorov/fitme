@@ -37,6 +37,11 @@ interface NamedRef {
   name: string | null;
 }
 
+/** The Workout a Plan Update changes, with its Cover id (ADR 0014). */
+interface WorkoutRef extends NamedRef {
+  cover: string | null;
+}
+
 /** A set the Plan gets, its targets taken from what the User logged. */
 export interface PlanUpdateSet {
   reps: number;
@@ -64,7 +69,7 @@ export interface PlanUpdate {
   changes: PlanUpdateChange[];
   plan: NamedRef | null;
   weight_unit: ProfileUnits["weight"];
-  workout: NamedRef | null;
+  workout: WorkoutRef | null;
 }
 
 /** A set with its rest, which the apply writes and the answer leaves out. */
@@ -526,7 +531,13 @@ const planUpdate = async (
   }
 
   let workout:
-    | { id: string; name: string; planId: string; planName: string | null }
+    | {
+        cover: string | null;
+        id: string;
+        name: string;
+        planId: string;
+        planName: string | null;
+      }
     | undefined;
   if (sessionWorkout.workoutId) {
     await tx
@@ -547,6 +558,7 @@ const planUpdate = async (
       .for("no key update");
     [workout] = await tx
       .select({
+        cover: workouts.cover,
         id: workouts.id,
         name: workouts.name,
         planId: plans.id,
@@ -608,7 +620,7 @@ const planUpdate = async (
     changes: changes.map(toAnswer),
     plan: { id: workout.planId, name: workout.planName },
     weight_unit: weightUnit,
-    workout: { id: workout.id, name: workout.name },
+    workout: { cover: workout.cover, id: workout.id, name: workout.name },
   };
 };
 

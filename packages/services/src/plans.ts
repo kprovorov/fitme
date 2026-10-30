@@ -33,8 +33,15 @@ export interface PlanRow {
   workout_duration: number;
 }
 
+/**
+ * A Workout's Cover: the id of a Library photo (ADR 0014), `null` until one is
+ * assigned. Stored as given, never checked.
+ */
+type Cover = string | null;
+
 /** A Workout in a Plan summary: its Exercises are only counted. */
 export interface WorkoutSummary {
+  cover: Cover;
   exercise_count: number;
   id: string;
   name: string;
@@ -67,6 +74,7 @@ export interface PlanExercise {
 }
 
 export interface PlanWorkout {
+  cover: Cover;
   description: string;
   exercises: PlanExercise[];
   id: string;
@@ -150,7 +158,7 @@ const findPlanSummaries = async (
     where: planId ? livePlanOf(userId, planId) : livePlansOf(userId),
     with: {
       workouts: {
-        columns: { id: true, name: true, order: true },
+        columns: { cover: true, id: true, name: true, order: true },
         orderBy: (workout, { asc }) => [asc(workout.order), asc(workout.id)],
         with: { workoutExercises: { columns: { id: true } } },
       },
@@ -186,7 +194,13 @@ const findPlanDetail = async (
     where,
     with: {
       workouts: {
-        columns: { description: true, id: true, name: true, order: true },
+        columns: {
+          cover: true,
+          description: true,
+          id: true,
+          name: true,
+          order: true,
+        },
         orderBy: (workout, { asc }) => [asc(workout.order), asc(workout.id)],
         with: {
           workoutExercises: {
@@ -378,6 +392,11 @@ export interface PlanExerciseInput {
 }
 
 export interface PlanWorkoutInput {
+  /**
+   * The Workout's Cover id, chosen by the caller (services never choose one);
+   * none stores `null`.
+   */
+  cover?: string | null;
   description: string;
   /** In the order they are performed. */
   exercises: PlanExerciseInput[];
@@ -459,6 +478,7 @@ const insertWorkouts = async (
     .insert(workoutsTable)
     .values(
       planWorkouts.map((workout, index) => ({
+        cover: workout.cover ?? null,
         description: workout.description,
         name: workout.name,
         order: index + 1,

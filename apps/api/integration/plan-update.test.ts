@@ -199,7 +199,7 @@ describe("the Plan Update", () => {
           changes: [],
           plan: { id: planId, name: "Plan Update" },
           weight_unit: "kg",
-          workout: { id: workoutId, name: "Day A" },
+          workout: { cover: null, id: workoutId, name: "Day A" },
         },
       },
       status: 200,
@@ -217,7 +217,7 @@ describe("the Plan Update", () => {
       changes: expectedChanges,
       plan: { id: planId, name: "Plan Update" },
       weight_unit: "kg",
-      workout: { id: workoutId, name: "Day A" },
+      workout: { cover: null, id: workoutId, name: "Day A" },
     });
     expect(await workoutOf(planId)).toEqual(before);
 

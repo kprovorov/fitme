@@ -416,7 +416,7 @@ describe("Plan Update: previewing and applying", () => {
       changes: mainChanges,
       plan: { id: seeded.planId, name: "PPL" },
       weight_unit: "lbs",
-      workout: { id: seeded.workoutId, name: "Push Day" },
+      workout: { cover: null, id: seeded.workoutId, name: "Push Day" },
     });
     expect(rows[0]).toEqual(before);
 
