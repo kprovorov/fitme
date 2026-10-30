@@ -634,8 +634,13 @@
   "history": {
     "empty": {
       "title": "No workouts yet",
-      "body": "Finished workouts show up here, with how long they took and what you lifted.",
-      "start": "Start a Workout"
+      "body": "Finish your first session and it shows up here with time, sets, volume and PRs.",
+      "start": "Start {{name}}",
+      "nextUp": "Next up in {{plan}} · {{exercises}}",
+      "resume": "Resume Workout",
+      "resumeNamed": "Resume {{name}}",
+      "inProgress": "You have a workout in progress.",
+      "createPlan": "Create a Plan"
     },
     "loadError": "Couldn't load your workouts. Check your connection and try again.",
     "untitledWorkout": "Workout",
