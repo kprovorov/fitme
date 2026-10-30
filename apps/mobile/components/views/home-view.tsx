@@ -21,8 +21,8 @@ export default function HomeView({ plan }: HomeViewProps) {
   return (
     <VStack className="items-stretch gap-lg">
       <PlanHeader plan={plan} />
-      <View className="flex-row items-center justify-between">
-        <H3>{t("home.workouts")}</H3>
+      <View className="flex-row items-center gap-sm">
+        <H3 className="flex-1">{t("home.workouts")}</H3>
         <PlanMenu />
       </View>
       <VStack className="items-stretch">

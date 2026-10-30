@@ -5,7 +5,6 @@ import { useCallback, useEffect, useState } from "react";
 import { useTranslation } from "react-i18next";
 import {
   ActivityIndicator,
-  Image,
   Platform,
   Pressable,
   RefreshControl,
@@ -13,6 +12,7 @@ import {
   View,
 } from "react-native";
 import Purchases from "react-native-purchases";
+import Logo from "~/components/brand/logo";
 import { Button } from "~/components/ui/button";
 import { Text } from "~/components/ui/text";
 import { H1 } from "~/components/ui/typography";
@@ -23,10 +23,6 @@ import { useOpenWorkoutSessionQuery } from "~/hooks/queries/workout-sessions";
 import { storage } from "~/lib/mmkv";
 
 const IS_E2E = process.env.EXPO_PUBLIC_E2E_ENABLED === "true";
-
-// Figma's `Logo` (Dashboard frame), at 1x, 2x and 3x. Metro resolves an
-// image through `require`, which also picks the device's scale.
-const LOGO = require("~/assets/images/logo.png");
 
 import HomeView from "~/components/views/home-view";
 
@@ -108,12 +104,13 @@ export default function HomeScreen() {
           // The Fitme logo in the title's place; `title` still names the tab
           // for the back button of the screens pushed over it.
           headerTitle: () => (
-            <Image
+            <View
               accessibilityLabel={t("home.logo")}
               accessibilityRole="image"
               accessible
-              source={LOGO}
-            />
+            >
+              <Logo />
+            </View>
           ),
           headerTransparent: true,
           title: t("tabs.workout"),
