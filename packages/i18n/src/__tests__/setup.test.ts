@@ -5,7 +5,7 @@ describe("createI18n", () => {
   it("translates in English", () => {
     const i18n = createI18n("en");
     expect(i18n.language).toBe("en");
-    expect(i18n.t("tabs.home")).toBe("Home");
+    expect(i18n.t("tabs.workout")).toBe("Workout");
     expect(i18n.t("counts.sets", { count: 1 })).toBe("1 set");
     expect(i18n.t("counts.sets", { count: 3 })).toBe("3 sets");
   });
@@ -13,7 +13,7 @@ describe("createI18n", () => {
   it("translates in Ukrainian, with every plural form", () => {
     const i18n = createI18n("uk");
     expect(i18n.language).toBe("uk");
-    expect(i18n.t("tabs.home")).toBe("Головна");
+    expect(i18n.t("tabs.workout")).toBe("Тренування");
     expect(i18n.t("counts.sets", { count: 1 })).toBe("1 підхід");
     expect(i18n.t("counts.sets", { count: 21 })).toBe("21 підхід");
     expect(i18n.t("counts.sets", { count: 3 })).toBe("3 підходи");
@@ -29,13 +29,13 @@ describe("createI18n", () => {
   it("falls back to English for a key missing in Ukrainian, never the raw key", () => {
     const i18n = createI18n("uk");
     i18n.addResource("en", "translation", "onlyInEnglish", "Only in English");
-    expect(i18n.t("onlyInEnglish" as "tabs.home")).toBe("Only in English");
+    expect(i18n.t("onlyInEnglish" as "tabs.workout")).toBe("Only in English");
   });
 
   it("keeps each instance's language its own", () => {
     const en = createI18n("en");
     createI18n("uk");
-    expect(en.t("tabs.home")).toBe("Home");
+    expect(en.t("tabs.workout")).toBe("Workout");
   });
 
   it("types its keys", () => {

@@ -32,7 +32,7 @@ appId: com.fitmeproject.ios
 # Trust). Test mode accepts 424242 for +clerk_test addresses.
 - extendedWaitUntil:
     visible:
-      text: "Check your email|Home|Get Started|Not Now"
+      text: "Check your email|Workout|Get Started|Not Now"
     timeout: 30000
 
 - runFlow:
@@ -50,7 +50,7 @@ appId: com.fitmeproject.ios
 # the screen behind it
 - extendedWaitUntil:
     visible:
-      text: "Home|Get Started|Not Now"
+      text: "Workout|Get Started|Not Now"
     timeout: 30000
 
 - tapOn:

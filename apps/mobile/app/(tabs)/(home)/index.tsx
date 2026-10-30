@@ -104,7 +104,7 @@ export default function HomeScreen() {
             fontWeight: "bold",
           },
           headerTransparent: true,
-          title: t("tabs.home"),
+          title: t("tabs.workout"),
           unstable_headerRightItems: () => [
             {
               icon: {

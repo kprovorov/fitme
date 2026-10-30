@@ -115,7 +115,7 @@ env:
 - waitForAnimationToEnd
 
 - assertVisible:
-    text: "Home"
+    text: "Workout"
     enabled: true
 
 # ===== SESSION SURVIVES A RESTART =====
@@ -126,7 +126,7 @@ env:
 
 - extendedWaitUntil:
     visible:
-      text: "Home"
+      text: "Workout"
     timeout: 30000
 
 - assertNotVisible:
@@ -191,9 +191,9 @@ env:
 
 - extendedWaitUntil:
     visible:
-      text: "Home"
+      text: "Workout"
     timeout: 30000
 
 - assertVisible:
-    text: "Home"
+    text: "Workout"
     enabled: true

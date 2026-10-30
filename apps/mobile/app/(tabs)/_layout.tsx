@@ -3,7 +3,7 @@ import { ThemeProvider } from "expo-router/react-navigation";
 import { useTranslation } from "react-i18next";
 import Authenticated from "~/components/authenticated";
 import { useNavigationTheme } from "~/hooks/navigation-theme";
-import { TAB_TITLE_KEYS } from "~/lib/tabs";
+import { getTabSymbol, TAB_TITLE_KEYS } from "~/lib/tabs";
 
 export default function TabLayout() {
   const navigationTheme = useNavigationTheme();
@@ -18,45 +18,28 @@ export default function TabLayout() {
         >
           {/* A group, so its index is the app's "/" route. */}
           <NativeTabs.Trigger name="(home)">
-            <NativeTabs.Trigger.Icon
-              sf={{ default: "dumbbell", selected: "dumbbell.fill" }}
-            />
+            <NativeTabs.Trigger.Icon sf={getTabSymbol("(home)")} />
             <NativeTabs.Trigger.Label>
               {t(TAB_TITLE_KEYS["(home)"])}
             </NativeTabs.Trigger.Label>
           </NativeTabs.Trigger>
 
           <NativeTabs.Trigger name="history">
-            <NativeTabs.Trigger.Icon
-              sf={{
-                default: "list.clipboard",
-                selected: "list.clipboard.fill",
-              }}
-            />
+            <NativeTabs.Trigger.Icon sf={getTabSymbol("history")} />
             <NativeTabs.Trigger.Label>
               {t(TAB_TITLE_KEYS.history)}
             </NativeTabs.Trigger.Label>
           </NativeTabs.Trigger>
 
           <NativeTabs.Trigger name="arnold">
-            <NativeTabs.Trigger.Icon
-              sf={{
-                default: "bubble.left.and.bubble.right",
-                selected: "bubble.left.and.bubble.right.fill",
-              }}
-            />
+            <NativeTabs.Trigger.Icon sf={getTabSymbol("arnold")} />
             <NativeTabs.Trigger.Label>
               {t(TAB_TITLE_KEYS.arnold)}
             </NativeTabs.Trigger.Label>
           </NativeTabs.Trigger>
 
           <NativeTabs.Trigger name="library">
-            <NativeTabs.Trigger.Icon
-              sf={{
-                default: "books.vertical",
-                selected: "books.vertical.fill",
-              }}
-            />
+            <NativeTabs.Trigger.Icon sf={getTabSymbol("library")} />
             <NativeTabs.Trigger.Label>
               {t(TAB_TITLE_KEYS.library)}
             </NativeTabs.Trigger.Label>
