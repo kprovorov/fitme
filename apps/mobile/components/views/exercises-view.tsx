@@ -1,9 +1,16 @@
 import { type MuscleGroup, muscleGroups } from "@fitme/core";
 import type { ExerciseSummary } from "@fitme/library-sdk";
 import type React from "react";
-import { useCallback, useEffect, useMemo, useRef, useState } from "react";
+import { useCallback, useMemo, useState } from "react";
 import { useTranslation } from "react-i18next";
-import { ActivityIndicator, FlatList, View } from "react-native";
+import {
+  ActivityIndicator,
+  FlatList,
+  type NativeScrollEvent,
+  type NativeSyntheticEvent,
+  RefreshControl,
+  View,
+} from "react-native";
 import {
   ExerciseRow,
   ExerciseRowSeparator,
@@ -87,30 +94,37 @@ const ExercisesView = ({
     search,
   });
 
-  // After a failed next page the list only asks again once the User scrolls
-  // to its end again: the message changing the list's length would
-  // otherwise call `onEndReached` straight away, over and over.
-  const scrolledSinceLoadMoreError = useRef(true);
-  useEffect(() => {
-    if (isLoadMoreError) {
-      scrolledSinceLoadMoreError.current = false;
-    }
-  }, [isLoadMoreError]);
-
-  const onScrollBeginDrag = useCallback(() => {
-    scrolledSinceLoadMoreError.current = true;
-  }, []);
-
-  const onEndReached = useCallback(() => {
-    if (!hasMore || isLoadingMore) {
-      return;
-    }
-    if (isLoadMoreError && !scrolledSinceLoadMoreError.current) {
-      return;
-    }
+  const loadNextPage = useCallback(() => {
     // A request in flight is never sent again.
     loadMore({ cancelRefetch: false });
-  }, [hasMore, isLoadMoreError, isLoadingMore, loadMore]);
+  }, [loadMore]);
+
+  const onEndReached = useCallback(() => {
+    // After a failed next page only the User's own scroll asks again: the
+    // message lengthening the list would otherwise reach its end at once.
+    if (hasMore && !isLoadingMore && !isLoadMoreError) {
+      loadNextPage();
+    }
+  }, [hasMore, isLoadMoreError, isLoadingMore, loadNextPage]);
+
+  // `onEndReached` fires once per list length, and the failed page's message
+  // was that length: a drag ending near the end is what retries.
+  const onScrollEndDrag = useCallback(
+    ({ nativeEvent }: NativeSyntheticEvent<NativeScrollEvent>) => {
+      const { contentOffset, contentSize, layoutMeasurement } = nativeEvent;
+      const fromEnd =
+        contentSize.height - contentOffset.y - layoutMeasurement.height;
+      if (
+        isLoadMoreError &&
+        hasMore &&
+        !isLoadingMore &&
+        fromEnd <= END_REACHED_THRESHOLD * layoutMeasurement.height
+      ) {
+        loadNextPage();
+      }
+    },
+    [hasMore, isLoadMoreError, isLoadingMore, loadNextPage]
+  );
 
   const onRefresh = useCallback(() => {
     setRefreshing(true);
@@ -231,9 +245,12 @@ const ExercisesView = ({
       }
       onEndReached={onEndReached}
       onEndReachedThreshold={END_REACHED_THRESHOLD}
-      onRefresh={refreshable ? onRefresh : undefined}
-      onScrollBeginDrag={onScrollBeginDrag}
-      refreshing={refreshable ? refreshing : undefined}
+      onScrollEndDrag={onScrollEndDrag}
+      refreshControl={
+        refreshable ? (
+          <RefreshControl onRefresh={onRefresh} refreshing={refreshing} />
+        ) : undefined
+      }
       renderItem={renderItem}
       showsVerticalScrollIndicator={false}
       testID="exercises-list"

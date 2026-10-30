@@ -81,7 +81,8 @@ const isListed = (slug: string) =>
 
 /** The User pulls the list down to refresh it. */
 const pullToRefresh = async () => {
-  await fireEvent(screen.getByTestId("exercises-list"), "refresh");
+  const { refreshControl } = screen.getByTestId("exercises-list").props;
+  await act(() => refreshControl.props.onRefresh());
   await advance(0);
 };
 
@@ -113,10 +114,19 @@ const renderView = async (props: Parameters<typeof ExercisesView>[0] = {}) => {
   await advance(0);
 };
 
-/** The User scrolls to the end of the list. */
+/** A drag let go at `fromEnd` points above the end of a list two screens long. */
+const dragEnd = (fromEnd: number) => ({
+  nativeEvent: {
+    contentOffset: { x: 0, y: 1600 - 800 - fromEnd },
+    contentSize: { height: 1600, width: 400 },
+    layoutMeasurement: { height: 800, width: 400 },
+  },
+});
+
+/** The User scrolls to the end of the list: the drag ends there, and the list says so. */
 const reachEnd = async () => {
   const results = screen.getByTestId("exercises-list");
-  await fireEvent(results, "scrollBeginDrag");
+  await fireEvent(results, "scrollEndDrag", dragEnd(0));
   await fireEvent(results, "endReached");
 };
 
@@ -450,10 +460,22 @@ describe("a failed next page", () => {
     // The message lengthening the list reaches its end with no scroll.
     await fireEvent(screen.getByTestId("exercises-list"), "endReached");
     await advance(0);
+    // A drag ending far from the end leaves it alone.
+    await fireEvent(
+      screen.getByTestId("exercises-list"),
+      "scrollEndDrag",
+      dragEnd(1200)
+    );
+    await advance(0);
     expect(list).not.toHaveBeenCalled();
     expect(screen.getByText(LOAD_MORE_ERROR)).toBeTruthy();
 
-    await reachEnd();
+    // Dragged at the end again: the list reports no new end, the drag retries.
+    await fireEvent(
+      screen.getByTestId("exercises-list"),
+      "scrollEndDrag",
+      dragEnd(0)
+    );
     await advance(0);
     expect(list).toHaveBeenLastCalledWith({ limit: 20, offset: 20 });
     expect(screen.queryByText(LOAD_MORE_ERROR)).toBeNull();
