@@ -1,37 +1,109 @@
 import type { TextRef, ViewRef } from "@rn-primitives/types";
-import type * as React from "react";
+import * as React from "react";
 import { Text, type TextProps, View, type ViewProps } from "react-native";
 import { TextClassContext } from "~/components/ui/text";
 import { cn } from "~/lib/utils";
 
 const cardVariants = {
-  default: "bg-card",
-  ghost: "bg-transparent",
+  default: "border border-border bg-card",
+  ghost: "border border-border bg-transparent",
+  primary: "border-0 bg-primary",
 } as const;
 
+const cardPadding = {
+  default: "p-sm",
+  none: "p-0",
+} as const;
+
+type CardVariant = keyof typeof cardVariants;
+
+/**
+ * The text colors on each variant's fill, for `CardTitle`,
+ * `CardDescription` and `CardContent`: on the lime `primary` fill both turn
+ * `primary-foreground`, since lime or white text wouldn't read there. A primary Card
+ * also sets it on any `Text` right inside it.
+ */
+const textOnCard = {
+  contentClass: "text-card-foreground",
+  descriptionClass: "text-muted-foreground",
+  titleClass: "text-primary",
+} as const;
+
+const cardText = {
+  default: textOnCard,
+  ghost: textOnCard,
+  primary: {
+    contentClass: "text-primary-foreground",
+    descriptionClass: "text-primary-foreground",
+    titleClass: "text-primary-foreground",
+  },
+} as const satisfies Record<
+  CardVariant,
+  { contentClass: string; descriptionClass: string; titleClass: string }
+>;
+
+const CardVariantContext = React.createContext<CardVariant>("default");
+
 type CardProps = Omit<ViewProps, "style"> & {
+  /**
+   * Drawn behind the content, filling the card and clipped to its radius
+   * (the Workout card's Cover). It isn't padded, whatever `padding` is.
+   */
+  background?: React.ReactNode;
+  padding?: keyof typeof cardPadding;
   ref?: React.RefObject<ViewRef | null>;
-  variant?: keyof typeof cardVariants;
+  variant?: CardVariant;
 };
 
 /**
- * The surface every card in the app sits on: a flat `card` fill with the
- * `card` radius and `sm` padding, no glass, border or shadow. `ghost` keeps
- * the radius and padding with no fill, for grouped content that shouldn't
- * read as a surface. Card owns its look: `className` only lays it out (flex,
- * gap). Card's own classes are merged after it, so a caller's background,
- * radius or padding is dropped, and there's no `style` to get around that.
+ * The surface every card in the app sits on, after Figma's Card: the `card`
+ * radius and, by default, `sm` padding, with no glass or shadow. `default` is
+ * the `card` fill with a 1 px `border` stroke, `ghost` the same stroke with no
+ * fill (grouped content that shouldn't read as a surface), `primary` the lime
+ * fill with no stroke. `padding="none"` drops the padding, for content that
+ * runs to the edges. `background` sits behind the content, clipped to the
+ * radius. Card owns its look: `className` only lays it out (flex, gap). Card's
+ * own classes are merged after it, so a caller's background, border, radius
+ * or padding is dropped, and there's no `style` to get around that.
  */
-const Card = ({ className, ref, variant = "default", ...props }: CardProps) => (
-  <View
-    className={cn(
-      className,
-      "rounded-card border-continuous p-sm",
-      cardVariants[variant]
-    )}
-    ref={ref}
-    {...props}
-  />
+const Card = ({
+  background,
+  children,
+  className,
+  padding = "default",
+  ref,
+  variant = "default",
+  ...props
+}: CardProps) => (
+  <CardVariantContext.Provider value={variant}>
+    <TextClassContext.Provider
+      // Only on primary: elsewhere a Text keeps its own variant's color.
+      value={variant === "primary" ? cardText.primary.contentClass : undefined}
+    >
+      <View
+        className={cn(
+          className,
+          "rounded-card border-continuous",
+          background ? "overflow-hidden" : undefined,
+          cardPadding[padding],
+          cardVariants[variant]
+        )}
+        ref={ref}
+        {...props}
+      >
+        {background ? (
+          <View
+            aria-hidden
+            className="pointer-events-none absolute inset-0"
+            importantForAccessibility="no-hide-descendants"
+          >
+            {background}
+          </View>
+        ) : null}
+        {children}
+      </View>
+    </TextClassContext.Provider>
+  </CardVariantContext.Provider>
 );
 Card.displayName = "Card";
 
@@ -55,7 +127,11 @@ const CardTitle = ({
 }: TextProps & { ref?: React.RefObject<TextRef | null> }) => (
   <Text
     aria-level={3}
-    className={cn("text-primary text-title-2-emphasized", className)}
+    className={cn(
+      cardText[React.use(CardVariantContext)].titleClass,
+      "text-title-2-emphasized",
+      className
+    )}
     ref={ref}
     role="heading"
     {...props}
@@ -69,7 +145,11 @@ const CardDescription = ({
   ...props
 }: TextProps & { ref?: React.RefObject<TextRef | null> }) => (
   <Text
-    className={cn("text-muted-foreground text-subhead", className)}
+    className={cn(
+      cardText[React.use(CardVariantContext)].descriptionClass,
+      "text-subhead",
+      className
+    )}
     ref={ref}
     {...props}
   />
@@ -81,7 +161,9 @@ const CardContent = ({
   ref,
   ...props
 }: ViewProps & { ref?: React.RefObject<ViewRef | null> }) => (
-  <TextClassContext.Provider value="text-card-foreground">
+  <TextClassContext.Provider
+    value={cardText[React.use(CardVariantContext)].contentClass}
+  >
     <View className={className} ref={ref} {...props} />
   </TextClassContext.Provider>
 );
