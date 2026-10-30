@@ -1,4 +1,5 @@
-import type { ExerciseSummary } from "@fitme/library-sdk";
+import type { MuscleGroup } from "@fitme/core/models";
+import type { Cover, ExerciseSummary } from "@fitme/library-sdk";
 import { createFakeLibrary } from "@fitme/library-sdk/fake";
 import { memoryRateLimiter } from "@fitme/rate-limit";
 import { type AppDeps, createApp } from "../create-app.js";
@@ -30,13 +31,26 @@ export const fakeServices = (faked: Partial<UserServices>): UserServices =>
       }),
   });
 
-/** An Exercise the fake Library knows, by slug. */
-export const libraryExercise = (slug: string): ExerciseSummary => ({
-  muscle_groups: ["quadriceps"],
+/** An Exercise the fake Library knows, by slug (quadriceps unless told otherwise). */
+export const libraryExercise = (
+  slug: string,
+  muscleGroups: MuscleGroup[] = ["quadriceps"]
+): ExerciseSummary => ({
+  muscle_groups: muscleGroups,
   name: slug,
   slug,
   thumbnail_url: `https://media.example/${slug}.png`,
   video_url: `https://media.example/${slug}.mp4`,
+});
+
+/** A Cover the fake Library has, by id, tagged with `muscleGroups`. */
+export const libraryCover = (
+  id: string,
+  muscleGroups: MuscleGroup[]
+): Cover => ({
+  id,
+  image_url: `https://media.example/covers/${id}.jpg`,
+  muscle_groups: muscleGroups,
 });
 
 /** The Exercises the test app's Library knows by default. */
@@ -44,13 +58,17 @@ export const KNOWN_SLUGS = ["barbell-back-squat", "barbell-deadlift"];
 
 /**
  * The app over fake services and a fake Library knowing
- * `KNOWN_SLUGS` (`library.failWith` for an outage), trusting `clerk`, with a
+ * `KNOWN_SLUGS` and no Covers unless given (`library.failWith` for an outage), trusting `clerk`, with a
  * recording reporter and Sentry user. `servicesFor` records the User id each facade was built for.
  */
 export const testApp = (
   options: {
     /** Explicitly `undefined` for an API without CLERK_JWT_KEY. */
     clerkJwtKey?: string;
+    /** The Library's Covers; none by default. */
+    covers?: Cover[];
+    /** The Library's Exercises; `KNOWN_SLUGS` by default. */
+    exercises?: ExerciseSummary[];
     /** Counts requests; by default one no test reaches (in memory, unlimited in practice). */
     rateLimiter?: RateLimiter;
     /** `null` for an API without the Library configured. */
@@ -58,7 +76,10 @@ export const testApp = (
     services?: UserServices | null;
   } = {}
 ) => {
-  const library = createFakeLibrary(KNOWN_SLUGS.map(libraryExercise));
+  const library = createFakeLibrary(
+    options.exercises ?? KNOWN_SLUGS.map((slug) => libraryExercise(slug)),
+    { covers: options.covers }
+  );
   const clerkJwtKey =
     "clerkJwtKey" in options ? options.clerkJwtKey : clerk.jwtKey;
   const services =

@@ -8,14 +8,32 @@ import { eq } from "drizzle-orm";
 import { afterAll, beforeAll, beforeEach, describe, expect, it } from "vitest";
 import { createApp } from "../src/create-app.js";
 import { createServicesFromEnv } from "../src/services.js";
-import { clerk, libraryExercise, signedInAs } from "../src/test/harness.js";
+import {
+  clerk,
+  libraryCover,
+  libraryExercise,
+  signedInAs,
+} from "../src/test/harness.js";
+
+/** A Cover for leg days and one for hinge days, so each Workout's pick is certain. */
+const LEGS_COVER = "5b1e7c2a-8d4f-4a6b-9c3e-1f2a3b4c5d6e";
+const HINGE_COVER = "9e8d7c6b-5a4f-4e3d-8c2b-1a0f9e8d7c6b";
 
 /**
  * POST /v1/plans with the real services facade, through `asUser` on the local
  * stack's pooler, and the fake Library.
  */
 const library: FakeLibrary = createFakeLibrary(
-  ["barbell-back-squat", "barbell-deadlift"].map(libraryExercise)
+  [
+    libraryExercise("barbell-back-squat", ["quadriceps"]),
+    libraryExercise("barbell-deadlift", ["hamstrings"]),
+  ],
+  {
+    covers: [
+      libraryCover(LEGS_COVER, ["quadriceps"]),
+      libraryCover(HINGE_COVER, ["hamstrings"]),
+    ],
+  }
 );
 const reported: unknown[] = [];
 const app = createApp({
@@ -145,7 +163,7 @@ afterAll(async () => {
 });
 
 describe("POST /v1/plans against the local stack", () => {
-  it("creates the Plan in full, active, in the User's weight unit, and reads it back the same", async () => {
+  it("creates the Plan in full, active, in the User's weight unit, with a Cover per Workout, and reads it back the same", async () => {
     const { body, status } = await post(creator, newPlan("Created"));
 
     expect(status).toBe(201);
@@ -194,6 +212,12 @@ describe("POST /v1/plans against the local stack", () => {
       ],
       [2, "Day B", [[1, "barbell-deadlift", [[1, 0]]]]],
     ]);
+    // Day A ties quadriceps and hamstrings, so its first-met group wins.
+    expect(
+      body.data.workouts.map(
+        (workout: { cover: string | null }) => workout.cover
+      )
+    ).toEqual([LEGS_COVER, HINGE_COVER]);
     expect(await get(`/v1/plans/${body.data.id}`, creator)).toEqual({
       body,
       status: 200,

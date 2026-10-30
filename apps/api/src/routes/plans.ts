@@ -15,7 +15,7 @@ import {
 import type { PlanDetail } from "@fitme/services/plans";
 import { createRoute, OpenAPIHono, z } from "@hono/zod-openapi";
 import { type ApiEnv, bearerSecurity, requires } from "../auth.js";
-import { checkExerciseSlugs, slugRefusal } from "../library.js";
+import { checkSlugsAndPickCovers, refusalOf } from "../library.js";
 import {
   ExerciseSlug,
   errorResponse,
@@ -328,7 +328,7 @@ const NewPlanBody = z
 
 const createPlanRoute = createRoute({
   description:
-    "Creates the Plan with its Workouts, Exercises and sets in one transaction: nothing is saved unless all of it is. Every Exercise slug is checked against the Library first. By default the new Plan becomes the User's active one and every other Plan goes inactive. Not idempotent: a retried request can create a second Plan.",
+    "Creates the Plan with its Workouts, Exercises and sets in one transaction: nothing is saved unless all of it is. Every Exercise slug is checked against the Library first. The server gives each Workout its `cover`, a Library Cover suiting the muscle group its Exercises train most, different for each Workout while the Library has enough (`null` when it has none); a request can't choose one. By default the new Plan becomes the User's active one and every other Plan goes inactive. Not idempotent: a retried request can create a second Plan.",
   method: "post",
   middleware: [requires("write")] as const,
   path: "/",
@@ -350,7 +350,7 @@ const createPlanRoute = createRoute({
     415: errorResponse("The body isn't `application/json`"),
     429: rateLimitedResponse,
     503: errorResponse(
-      "`library_unavailable`: the Exercise slugs couldn't be checked; nothing was saved, try again"
+      "`library_unavailable`: the Exercise slugs couldn't be checked or the Covers couldn't be read; nothing was saved, try again"
     ),
   },
   security: bearerSecurity,
@@ -363,7 +363,7 @@ const ReplaceWorkoutsBody = z
 
 const replaceWorkoutsRoute = createRoute({
   description:
-    "Replaces every Workout of the Plan with the sent list, in one transaction: nothing changes unless all of it is saved. **Every Workout gets a new id**, the old ones are gone: past Workout Sessions keep their logged sets but lose the link to their old Workout. The Plan's details and whether it's active don't change (only its `updated_at` moves). Every Exercise slug is checked against the Library first.",
+    "Replaces every Workout of the Plan with the sent list, in one transaction: nothing changes unless all of it is saved. **Every Workout gets a new id**, the old ones are gone: past Workout Sessions keep their logged sets but lose the link to their old Workout. The Plan's details and whether it's active don't change (only its `updated_at` moves). Every Exercise slug is checked against the Library first. The server gives each new Workout a fresh `cover`, as creating a Plan does; a request can't choose one.",
   method: "put",
   middleware: [requires("write")] as const,
   path: "/{id}/workouts",
@@ -389,7 +389,7 @@ const replaceWorkoutsRoute = createRoute({
     415: errorResponse("The body isn't `application/json`"),
     429: rateLimitedResponse,
     503: errorResponse(
-      "`library_unavailable`: the Exercise slugs couldn't be checked; nothing was changed, try again"
+      "`library_unavailable`: the Exercise slugs couldn't be checked or the Covers couldn't be read; nothing was changed, try again"
     ),
   },
   security: bearerSecurity,
@@ -487,14 +487,11 @@ const deletePlanRoute = createRoute({
   summary: "Delete a Plan",
 });
 
-/** Every Exercise slug of a Plan's Workouts, each once. */
-const workoutSlugs = (workouts: z.infer<typeof NewPlanWorkout>[]) => [
-  ...new Set(
-    workouts.flatMap((workout) =>
-      workout.exercises.map((exercise) => exercise.exercise_slug)
-    )
-  ),
-];
+/** The sent Workouts, each with the Cover picked for it (same order). */
+const withCovers = (
+  workouts: z.infer<typeof NewPlanWorkout>[],
+  covers: Array<string | null>
+) => workouts.map((workout, index) => ({ ...workout, cover: covers[index] }));
 
 export const plans = new OpenAPIHono<ApiEnv>({
   defaultHook: invalidRequest,
@@ -506,17 +503,21 @@ export const plans = new OpenAPIHono<ApiEnv>({
   })
   .openapi(createPlanRoute, async (c) => {
     const { activate, ...plan } = c.req.valid("json");
-    const refusal = slugRefusal(
-      await checkExerciseSlugs({
-        library: c.var.getLibrary(),
-        reportError: c.var.reportError,
-        slugs: workoutSlugs(plan.workouts),
-      })
-    );
-    if (refusal) {
+    const check = await checkSlugsAndPickCovers({
+      library: c.var.getLibrary(),
+      reportError: c.var.reportError,
+      workouts: plan.workouts,
+    });
+    if (check.status !== "known") {
+      const refusal = refusalOf(check);
       return c.json(refusal.body, refusal.status);
     }
-    const created = await c.var.getServices().createPlan(plan, { activate });
+    const created = await c.var
+      .getServices()
+      .createPlan(
+        { ...plan, workouts: withCovers(plan.workouts, check.covers) },
+        { activate }
+      );
     return c.json(PlanResponse.parse({ data: planData(created) }), 201);
   })
   // Before `/{id}`, which would otherwise answer "active" as a malformed id.
@@ -536,19 +537,22 @@ export const plans = new OpenAPIHono<ApiEnv>({
   })
   .openapi(replaceWorkoutsRoute, async (c) => {
     const { workouts } = c.req.valid("json");
-    const refusal = slugRefusal(
-      await checkExerciseSlugs({
-        library: c.var.getLibrary(),
-        reportError: c.var.reportError,
-        slugs: workoutSlugs(workouts),
-      })
-    );
-    if (refusal) {
+    // Every Workout is replaced, so none of the Plan's Covers stays in use.
+    const check = await checkSlugsAndPickCovers({
+      library: c.var.getLibrary(),
+      reportError: c.var.reportError,
+      workouts,
+    });
+    if (check.status !== "known") {
+      const refusal = refusalOf(check);
       return c.json(refusal.body, refusal.status);
     }
     const replaced = await c.var
       .getServices()
-      .replaceWorkouts(c.req.valid("param").id, workouts);
+      .replaceWorkouts(
+        c.req.valid("param").id,
+        withCovers(workouts, check.covers)
+      );
     if (!replaced) {
       return c.json(PLAN_NOT_FOUND, 404);
     }

@@ -14,7 +14,9 @@ import { clerk, libraryExercise, signedInAs } from "../src/test/harness.js";
  * end, applied once however often it's asked.
  */
 const library = createFakeLibrary(
-  ["barbell-back-squat", "barbell-deadlift"].map(libraryExercise)
+  ["barbell-back-squat", "barbell-deadlift"].map((slug) =>
+    libraryExercise(slug)
+  )
 );
 const app = createApp({
   clerkJwtKey: clerk.jwtKey,

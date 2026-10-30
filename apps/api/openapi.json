@@ -1637,7 +1637,7 @@
         }
       },
       "post": {
-        "description": "Creates the Plan with its Workouts, Exercises and sets in one transaction: nothing is saved unless all of it is. Every Exercise slug is checked against the Library first. By default the new Plan becomes the User's active one and every other Plan goes inactive. Not idempotent: a retried request can create a second Plan.",
+        "description": "Creates the Plan with its Workouts, Exercises and sets in one transaction: nothing is saved unless all of it is. Every Exercise slug is checked against the Library first. The server gives each Workout its `cover`, a Library Cover suiting the muscle group its Exercises train most, different for each Workout while the Library has enough (`null` when it has none); a request can't choose one. By default the new Plan becomes the User's active one and every other Plan goes inactive. Not idempotent: a retried request can create a second Plan.",
         "security": [
           {
             "bearerAuth": []
@@ -1725,7 +1725,7 @@
             }
           },
           "503": {
-            "description": "`library_unavailable`: the Exercise slugs couldn't be checked; nothing was saved, try again",
+            "description": "`library_unavailable`: the Exercise slugs couldn't be checked or the Covers couldn't be read; nothing was saved, try again",
             "content": {
               "application/json": {
                 "schema": {
@@ -2169,7 +2169,7 @@
     },
     "/v1/plans/{id}/workouts": {
       "put": {
-        "description": "Replaces every Workout of the Plan with the sent list, in one transaction: nothing changes unless all of it is saved. **Every Workout gets a new id**, the old ones are gone: past Workout Sessions keep their logged sets but lose the link to their old Workout. The Plan's details and whether it's active don't change (only its `updated_at` moves). Every Exercise slug is checked against the Library first.",
+        "description": "Replaces every Workout of the Plan with the sent list, in one transaction: nothing changes unless all of it is saved. **Every Workout gets a new id**, the old ones are gone: past Workout Sessions keep their logged sets but lose the link to their old Workout. The Plan's details and whether it's active don't change (only its `updated_at` moves). Every Exercise slug is checked against the Library first. The server gives each new Workout a fresh `cover`, as creating a Plan does; a request can't choose one.",
         "security": [
           {
             "bearerAuth": []
@@ -2278,7 +2278,7 @@
             }
           },
           "503": {
-            "description": "`library_unavailable`: the Exercise slugs couldn't be checked; nothing was changed, try again",
+            "description": "`library_unavailable`: the Exercise slugs couldn't be checked or the Covers couldn't be read; nothing was changed, try again",
             "content": {
               "application/json": {
                 "schema": {

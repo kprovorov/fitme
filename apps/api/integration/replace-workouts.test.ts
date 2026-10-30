@@ -12,14 +12,32 @@ import {
 import { afterAll, beforeEach, describe, expect, it } from "vitest";
 import { createApp } from "../src/create-app.js";
 import { createServicesFromEnv } from "../src/services.js";
-import { clerk, libraryExercise, signedInAs } from "../src/test/harness.js";
+import {
+  clerk,
+  libraryCover,
+  libraryExercise,
+  signedInAs,
+} from "../src/test/harness.js";
+
+/** A Cover for leg days and one for hinge days, so each Workout's pick is certain. */
+const LEGS_COVER = "5b1e7c2a-8d4f-4a6b-9c3e-1f2a3b4c5d6e";
+const HINGE_COVER = "9e8d7c6b-5a4f-4e3d-8c2b-1a0f9e8d7c6b";
 
 /**
  * PUT /v1/plans/{id}/workouts with the real services facade, through
  * `asUser` on the local stack's pooler, and the fake Library.
  */
 const library: FakeLibrary = createFakeLibrary(
-  ["barbell-back-squat", "barbell-deadlift"].map(libraryExercise)
+  [
+    libraryExercise("barbell-back-squat", ["quadriceps"]),
+    libraryExercise("barbell-deadlift", ["hamstrings"]),
+  ],
+  {
+    covers: [
+      libraryCover(LEGS_COVER, ["quadriceps"]),
+      libraryCover(HINGE_COVER, ["hamstrings"]),
+    ],
+  }
 );
 const reported: unknown[] = [];
 const app = createApp({
@@ -111,7 +129,7 @@ afterAll(async () => {
 });
 
 describe("PUT /v1/plans/{id}/workouts against the local stack", () => {
-  it("replaces the Workouts with new ids, keeps the metadata and active state, and reads back the same", async () => {
+  it("replaces the Workouts with new ids and fresh Covers, keeps the metadata and active state, and reads back the same", async () => {
     const plan = await asUser(owner, (tx) =>
       createPlan(tx, owner, newPlan("Replaced"), { activate: false })
     );
@@ -171,6 +189,8 @@ describe("PUT /v1/plans/{id}/workouts against the local stack", () => {
       ],
     ]);
     expect(oldWorkoutIds).not.toContain(body.data.workouts[0].id);
+    // Day C ties hamstrings and quadriceps, so its first-met group wins.
+    expect(body.data.workouts[0].cover).toBe(HINGE_COVER);
     expect(await get(`/v1/plans/${plan.id}`, owner)).toEqual({
       body,
       status: 200,
