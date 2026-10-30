@@ -49,7 +49,14 @@ export interface LanguageOption {
 export interface ListExercisesParams extends LanguageOption {
   /** Page size, 1–50; the API's default is 20. */
   limit?: number;
+  /** Only Exercises with this muscle group. Not combined with `muscleGroups`. */
   muscleGroup?: MuscleGroup;
+  /**
+   * Only Exercises with any of these muscle groups (a repeated one counts
+   * once), sent as `muscle_groups`; an empty list filters nothing. Not
+   * combined with `muscleGroup`.
+   */
+  muscleGroups?: readonly MuscleGroup[];
   /** How many matches to skip; the API's default is 0. */
   offset?: number;
   /**
@@ -65,7 +72,7 @@ export interface Library {
   get: (slug: string, options?: LanguageOption) => Promise<Exercise | null>;
   /**
    * Exercises listed by name in `language` (with its collation), filtered by
-   * `search` and `muscleGroup`.
+   * `search` and `muscleGroup` or `muscleGroups`.
    */
   list: (params?: ListExercisesParams) => Promise<ExercisePage>;
   /**

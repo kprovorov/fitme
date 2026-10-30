@@ -220,9 +220,25 @@ export const createLibrary = ({
             { allowNotFound: true }
           ),
 
-    list: ({ language, limit, muscleGroup, offset, search } = {}) =>
+    list: ({
+      language,
+      limit,
+      muscleGroup,
+      muscleGroups,
+      offset,
+      search,
+    } = {}) =>
       getExercises(
-        { language, limit, muscle_group: muscleGroup, offset, search },
+        {
+          language,
+          limit,
+          muscle_group: muscleGroup,
+          muscle_groups: muscleGroups?.length
+            ? muscleGroups.join(",")
+            : undefined,
+          offset,
+          search,
+        },
         isPage
       ),
 

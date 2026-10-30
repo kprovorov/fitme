@@ -1,4 +1,8 @@
-import type { AppLanguage, MuscleGroup } from "@fitme/core/models";
+import {
+  type AppLanguage,
+  type MuscleGroup,
+  muscleGroups,
+} from "@fitme/core/models";
 import type { Exercise } from "..";
 
 /** An Exercise's text in another App language, as the bundle carries it. */
@@ -31,6 +35,32 @@ const summary = ({ description, instructions, ...rest }: Exercise) => rest;
 
 const EXERCISE_PATH = /^\/exercises\/([^/]+)$/;
 
+const invalidRequest = (message: string) =>
+  Response.json(
+    { error: { code: "invalid_request", message } },
+    { status: 400 }
+  );
+
+/**
+ * The API's 400 for a `muscle_groups` it refuses: an unknown group, an empty
+ * item (an empty value included) or `muscle_group` as well; `null` for one it
+ * takes.
+ */
+const muscleGroupsRefusal = ({
+  muscleGroup,
+  muscleGroups: groups,
+}: StubRequest) => {
+  if (groups === null) {
+    return null;
+  }
+  if (muscleGroup !== null) {
+    return invalidRequest("muscle_groups: can't be combined with muscle_group");
+  }
+  return groups.every((group) => muscleGroups.includes(group as MuscleGroup))
+    ? null
+    : invalidRequest("muscle_groups: invalid muscle group");
+};
+
 export interface StubRequest {
   authorization: string | null;
   /** `GET /exercises/:slug`'s slug, decoded; null for `GET /exercises`. */
@@ -38,6 +68,8 @@ export interface StubRequest {
   language: string | null;
   limit: string | null;
   muscleGroup: string | null;
+  /** `muscle_groups` split on its commas, as sent; null when not sent. */
+  muscleGroups: string[] | null;
   offset: string | null;
   search: string | null;
   slugs: string[] | null;
@@ -102,14 +134,22 @@ export const stubApi = (
         missing: slugs.filter((slug) => !bySlug.has(slug)),
       });
     }
+    const refusal = muscleGroupsRefusal(request);
+    if (refusal) {
+      return refusal;
+    }
+    const groups =
+      request.muscleGroups ?? (request.muscleGroup && [request.muscleGroup]);
     const limit = Number(request.limit ?? 20);
     const offset = Number(request.offset ?? 0);
     const term = request.search?.trim().toLowerCase();
     const matches = sorted.filter(
       ({ exercise: e, names }) =>
         (!term || names.some((name) => name.includes(term))) &&
-        (!request.muscleGroup ||
-          e.muscle_groups.includes(request.muscleGroup as MuscleGroup))
+        (!groups ||
+          groups.some((group) =>
+            e.muscle_groups.includes(group as MuscleGroup)
+          ))
     );
     const data = matches
       .slice(offset, offset + limit)
@@ -131,6 +171,9 @@ export const stubApi = (
       language: params.get("language"),
       limit: params.get("limit"),
       muscleGroup: params.get("muscle_group"),
+      muscleGroups: params.has("muscle_groups")
+        ? (params.get("muscle_groups") ?? "").split(",")
+        : null,
       offset: params.get("offset"),
       search: params.get("search"),
       slugs: params.has("slugs")

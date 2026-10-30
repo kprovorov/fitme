@@ -2,6 +2,8 @@ import {
   type AppLanguage,
   appLanguages,
   defaultAppLanguage,
+  muscleGroups as knownMuscleGroups,
+  type MuscleGroup,
 } from "@fitme/core/models";
 import { type LibraryError, LibraryInvalidRequestError } from "./errors";
 import type {
@@ -61,6 +63,34 @@ const toSummary = ({
   thumbnail_url,
   video_url,
 });
+
+const isMuscleGroup = (group: string): group is MuscleGroup =>
+  (knownMuscleGroups as readonly string[]).includes(group);
+
+/**
+ * The muscle groups `muscleGroups` filters by, read as the API reads the
+ * `muscle_groups` the client sends (joined with commas, so an empty list
+ * isn't sent): `undefined` for none, the API's 400 for an unknown group, an
+ * empty item or `muscleGroup` as well.
+ */
+const parseMuscleGroups = ({
+  muscleGroup,
+  muscleGroups,
+}: ListExercisesParams): MuscleGroup[] | undefined => {
+  if (!muscleGroups?.length) {
+    return;
+  }
+  if (muscleGroup !== undefined) {
+    throw new LibraryInvalidRequestError(
+      "muscle_groups: can't be combined with muscle_group"
+    );
+  }
+  const groups = muscleGroups.join(",").split(",");
+  if (!groups.every(isMuscleGroup)) {
+    throw new LibraryInvalidRequestError("muscle_groups: invalid muscle group");
+  }
+  return groups;
+};
 
 const validate = ({ limit, offset, search }: ListExercisesParams) => {
   if (
@@ -125,7 +155,7 @@ const serveIn = (
 
 /**
  * An in-memory Library for consumers' tests: the same answers as
- * the real client over the same Exercises (search, muscle group filter,
+ * the real client over the same Exercises (search, the muscle group filters,
  * paging, lookup with `missing`, `get`, each in the `language` asked for),
  * and it can be told to fail. An Exercise given as a summary answers `get`
  * with empty description and instructions. An Exercise can carry
@@ -165,19 +195,17 @@ export const createFakeLibrary = (
     list: (params = {}) =>
       orFail((): ExercisePage => {
         validate(params);
-        const {
-          language,
-          limit = DEFAULT_LIMIT,
-          muscleGroup,
-          offset = 0,
-          search,
-        } = params;
+        const groups =
+          parseMuscleGroups(params) ??
+          (params.muscleGroup && [params.muscleGroup]);
+        const { language, limit = DEFAULT_LIMIT, offset = 0, search } = params;
         const { searchNames, sorted } = inLanguage(language);
         const term = search?.trim().toLowerCase();
         const matches = sorted.filter(
           (summary, i) =>
             (!term || searchNames[i]?.some((name) => name.includes(term))) &&
-            (!muscleGroup || summary.muscle_groups.includes(muscleGroup))
+            (!groups ||
+              groups.some((group) => summary.muscle_groups.includes(group)))
         );
         const data = matches.slice(offset, offset + limit);
         return {
