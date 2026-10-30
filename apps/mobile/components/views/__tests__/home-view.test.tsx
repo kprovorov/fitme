@@ -3,7 +3,7 @@ import { describe, expect, it, jest } from "@jest/globals";
 import { render, screen } from "@testing-library/react-native";
 import HomeView from "../home-view";
 
-jest.mock("../active-plan-view", () => () => null);
+jest.mock("../../plans/plan-header", () => () => null);
 
 // Renders each card as its Workout's name and state; the card has its own data hooks.
 jest.mock("../workout-card", () => {

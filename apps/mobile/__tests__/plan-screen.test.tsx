@@ -12,8 +12,8 @@ import { fireEvent, render, screen } from "@testing-library/react-native";
 import type { ReactNode } from "react";
 import { Alert, type AlertButton, Pressable, Text } from "react-native";
 import PlanScreen from "~/app/plans/[planId]/index";
-import ActivePlanView from "~/components/views/active-plan-view";
 import PlansListView from "~/components/views/plan-list-view";
+import { usePlansQuery } from "~/hooks/queries/plans";
 import { segmentClient } from "~/lib/segment";
 import { fakePublicApi } from "~/test-utils/fake-public-api";
 import { backend } from "~/test-utils/fake-workout-backend";
@@ -93,6 +93,13 @@ const track = segmentClient.track as unknown as jest.Mock;
 
 let queryClient = createTestQueryClient();
 
+// The active Plan's name, as the Workout tab's Plan header reads it.
+const ActivePlanName = () => {
+  const { data: plans } = usePlansQuery();
+  const activePlan = plans?.find((plan) => plan.is_active);
+  return activePlan ? <Text>{activePlan.name}</Text> : null;
+};
+
 const mount = async (list: ReactNode) => {
   queryClient = createTestQueryClient();
   await render(
@@ -138,7 +145,7 @@ beforeEach(() => {
 
 describe("Activating a Plan", () => {
   it("makes it the active Plan through the API, every other one inactive", async () => {
-    await mount(<ActivePlanView />);
+    await mount(<ActivePlanName />);
     expect(screen.getByText("Hypertrophy")).toBeTruthy();
 
     await choose("Activate Plan", "Activate");
@@ -159,7 +166,7 @@ describe("Activating a Plan", () => {
   it("shows the error for a missing Plan and changes nothing", async () => {
     mockPlanId.current = "plan-1";
     fakePublicApi.failNext(ACTIVATE, { code: "not_found", status: 404 });
-    await mount(<ActivePlanView />);
+    await mount(<ActivePlanName />);
 
     await choose("Activate Plan", "Activate");
 
@@ -175,7 +182,7 @@ describe("Activating a Plan", () => {
 
   it("tells the User how long to wait when rate limited", async () => {
     fakePublicApi.failNext(ACTIVATE, { retryAfterSeconds: 12, status: 429 });
-    await mount(<ActivePlanView />);
+    await mount(<ActivePlanName />);
 
     await choose("Activate Plan", "Activate");
 

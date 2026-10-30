@@ -156,10 +156,14 @@ describe("Home in Ukrainian", () => {
     seedActivePlan();
     await mount();
 
-    // The Plan card: its name and its options (3 a week, a `few` form).
-    expect(screen.getByText("Сила")).toBeTruthy();
+    // The Plan header: its name, its badges (3 a week, a `few` form) and its
+    // description, with no experience level as the old Plan card had.
+    expect(screen.getByRole("heading", { name: "Сила" })).toBeTruthy();
     expect(screen.getByText("3 рази на тиждень")).toBeTruthy();
+    expect(screen.getByText("Сила та результативність")).toBeTruthy();
     expect(screen.getByText("Спортзал")).toBeTruthy();
+    expect(screen.getByText("About Сила")).toBeTruthy();
+    expect(screen.queryByText("Середній рівень")).toBeNull();
 
     expect(screen.getByText("Наступне тренування")).toBeTruthy();
     expect(screen.getByText("Наступні")).toBeTruthy();
