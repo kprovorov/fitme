@@ -59,10 +59,40 @@ export const ExerciseBatch = z
   })
   .openapi("ExerciseBatch");
 
+/** A Cover: a photo a Workout's card shows, tagged with the muscle groups it suits (ADR 0014). */
+export const Cover = z
+  .object({
+    // the bundle allows any lowercase 8-4-4-4-12 hex id, which z.uuid()'s
+    // RFC version and variant checks would refuse
+    id: z.string().openapi({
+      description: "The Cover's permanent id, which a Workout stores.",
+      example: "3f2b8a4e-6c1d-4e5f-9a7b-1c2d3e4f5a6b",
+      format: "uuid",
+    }),
+    image_url: z.url().openapi({
+      description:
+        "The photo through Supabase's image transformation endpoint: append `width` and/or `height` query parameters.",
+    }),
+    muscle_groups: z.array(MuscleGroup).openapi({
+      description: "The muscle groups the Cover suits.",
+    }),
+  })
+  .openapi("Cover");
+
+export const CoverList = z
+  .object({
+    data: z.array(Cover).openapi({
+      description: "Every Cover in the Library, unpaged.",
+    }),
+  })
+  .openapi("CoverList");
+
 export type ExerciseSummary = z.infer<typeof ExerciseSummary>;
 export type Exercise = z.infer<typeof Exercise>;
 export type ExercisePage = z.infer<typeof ExercisePage>;
 export type ExerciseBatch = z.infer<typeof ExerciseBatch>;
+export type Cover = z.infer<typeof Cover>;
+export type CoverList = z.infer<typeof CoverList>;
 
 export const ErrorResponse = z
   .object({

@@ -3,9 +3,7 @@ import {
   appLanguages,
   defaultAppLanguage,
 } from "@fitme/core/models";
-import { createRoute, type Hook, OpenAPIHono, z } from "@hono/zod-openapi";
-import type { Env } from "hono";
-import { BEARER_AUTH } from "../auth";
+import { createRoute, OpenAPIHono, z } from "@hono/zod-openapi";
 import {
   ErrorResponse,
   Exercise,
@@ -16,6 +14,7 @@ import {
   MuscleGroup,
 } from "../schemas";
 import type { ServedLanguage, ServedLibrary } from "../served-library";
+import { invalidRequest, rateLimited, security, unauthorized } from "./shared";
 
 const DEFAULT_LIMIT = 20;
 const MAX_LIMIT = 50;
@@ -29,24 +28,6 @@ const LIST_PARAMETERS = [
   "search",
 ] as const;
 
-/** Every content route answers 401 without a caller (`requireCaller`). */
-const unauthorized = {
-  content: { "application/json": { schema: ErrorResponse } },
-  description: "No valid Clerk session token or server secret",
-};
-
-/** A User over their limit (`rateLimitUsers`). */
-const rateLimited = {
-  content: { "application/json": { schema: ErrorResponse } },
-  description: "Too many requests from this User; retry after `Retry-After`",
-  headers: z.object({
-    "Retry-After": z.string().openapi({
-      description: "Seconds until the limit resets",
-      example: "30",
-    }),
-  }),
-};
-
 /** Optional on every content route; without it, English. */
 const languageParameter = Language.optional().openapi({
   param: {
@@ -54,9 +35,6 @@ const languageParameter = Language.optional().openapi({
       "The App language to answer in (default `en`). An Exercise without a translation in it is answered wholly in English.",
   },
 });
-
-/** A Clerk session token or a server secret, as `Authorization: Bearer`. */
-const security = [{ [BEARER_AUTH]: [] }];
 
 const listExercises = createRoute({
   method: "get",
@@ -203,16 +181,6 @@ const getExercise = createRoute({
   security,
   summary: "Get one Exercise by Exercise slug",
 });
-
-/** Answers a request that fails validation with 400 in the error shape. */
-const invalidRequest: Hook<unknown, Env, string, unknown> = (result, c) => {
-  if (!result.success) {
-    const message = result.error.issues
-      .map((issue) => `${issue.path.join(".")}: ${issue.message}`)
-      .join("; ");
-    return c.json({ error: { code: "invalid_request", message } }, 400);
-  }
-};
 
 /** What the routes look Exercises up by, in one language. */
 const indexLanguage = (served: ServedLanguage) => {

@@ -14,10 +14,15 @@ import {
   USER_LIMIT,
   USER_REQUESTS_PER_WINDOW,
 } from "./rate-limit";
-import type { ExerciseBatch, ExercisePage } from "./schemas";
+import type { CoverList, ExerciseBatch, ExercisePage } from "./schemas";
 import { serveLibrary } from "./served-library";
 import { clerkInstance, clerkToken } from "./test/clerk";
-import { fakeOid, inUkrainian, libraryExercise } from "./test/fixtures";
+import {
+  fakeOid,
+  inUkrainian,
+  libraryCover,
+  libraryExercise,
+} from "./test/fixtures";
 
 const SUPABASE_URL = "https://project.supabase.co";
 
@@ -403,6 +408,7 @@ describe("OpenAPI spec", () => {
     expect(spec.paths["/exercises/{slug}"]?.get?.security).toEqual([
       { bearerAuth: [] },
     ]);
+    expect(spec.paths["/covers"]?.get?.security).toEqual([{ bearerAuth: [] }]);
     expect(spec.paths["/health"]?.get?.security).toBeUndefined();
   });
 });
@@ -1605,5 +1611,154 @@ describe("rateLimiterFromEnv", () => {
         UPSTASH_REDIS_REST_URL: "https://example.upstash.io",
       })
     ).not.toThrow();
+  });
+});
+
+const CHEST_COVER = "3f2b8a4e-6c1d-4e5f-9a7b-1c2d3e4f5a6b";
+const LEGS_COVER = "c6e5d4b3-2a1f-4e8d-9c7b-3f4a5b6c7d8e";
+
+/** An app serving two Exercises and two Covers, limited by `rateLimiter`. */
+const coversApp = (rateLimiter: RateLimiter = unlimited) =>
+  createApp({
+    ...base,
+    library: serveLibrary(
+      {
+        covers: [
+          libraryCover(LEGS_COVER, ["quadriceps", "glutes"]),
+          libraryCover(CHEST_COVER, ["chest"]),
+        ],
+        exercises: [
+          libraryExercise("bench-press", "Bench Press"),
+          libraryExercise("squat", "Squat"),
+        ],
+      },
+      SUPABASE_URL
+    ),
+    rateLimiter,
+  });
+
+describe("GET /covers", () => {
+  it("answers every Cover in bundle order, its image on the render endpoint", async () => {
+    const response = await coversApp().request("/covers", asUser);
+
+    expect(response.status).toBe(200);
+    expect((await response.json()) as CoverList).toEqual({
+      data: [
+        {
+          id: LEGS_COVER,
+          image_url: `${SUPABASE_URL}/storage/v1/render/image/public/exercise-media/covers/${LEGS_COVER}/${fakeOid("c")}.jpg`,
+          muscle_groups: ["quadriceps", "glutes"],
+        },
+        {
+          id: CHEST_COVER,
+          image_url: `${SUPABASE_URL}/storage/v1/render/image/public/exercise-media/covers/${CHEST_COVER}/${fakeOid("c")}.jpg`,
+          muscle_groups: ["chest"],
+        },
+      ],
+    });
+  });
+
+  it("serves any id the bundle accepts, not only RFC uuids", async () => {
+    const id = "12345678-1234-1234-1234-123456789abc";
+    const served = createApp({
+      ...base,
+      library: serveLibrary(
+        { covers: [libraryCover(id)], exercises: [] },
+        SUPABASE_URL
+      ),
+    });
+
+    const response = await served.request("/covers", asUser);
+
+    expect(response.status).toBe(200);
+    expect(await response.json()).toMatchObject({ data: [{ id }] });
+  });
+
+  it("answers an empty list for a Library without Covers", async () => {
+    const response = await app.request("/covers", asUser);
+
+    expect(response.status).toBe(200);
+    expect(await response.json()).toEqual({ data: [] });
+  });
+
+  it("answers the same whatever language is asked", async () => {
+    const english = await coversApp().request("/covers", asUser);
+    const ukrainian = await coversApp().request("/covers?language=uk", asUser);
+
+    expect(ukrainian.status).toBe(200);
+    expect(await ukrainian.json()).toEqual(await english.json());
+  });
+
+  it("answers without a token with 401", async () => {
+    const response = await coversApp().request("/covers");
+
+    expect(response.status).toBe(401);
+    expect(await response.json()).toEqual(unauthorized);
+  });
+
+  it.each(SERVER_SECRETS)("serves the %s server caller", async (_, secret) => {
+    const response = await coversApp().request("/covers", bearer(secret));
+
+    expect(response.status).toBe(200);
+  });
+
+  it("counts a User's requests, answering 429 past the limit", async () => {
+    const clock = fakeClock();
+    const limited = coversApp(
+      memoryRateLimiter({ limit: TEST_LIMIT, now: clock.now })
+    );
+    const statuses: number[] = [];
+    for (let i = 0; i <= TEST_LIMIT; i += 1) {
+      // biome-ignore lint/performance/noAwaitInLoops: one at a time, so the statuses come back in the order they were counted
+      statuses.push((await limited.request("/covers", asUser)).status);
+    }
+
+    expect(statuses).toEqual([...new Array(TEST_LIMIT).fill(200), 429]);
+  });
+
+  it("lets devices cache it for an hour, tagged with the library hash /exercises carries", async () => {
+    const served = coversApp();
+    const response = await served.request("/covers", asUser);
+    const exercise = await served.request("/exercises/squat", asUser);
+
+    expect(response.headers.get("Cache-Control")).toBe("private, max-age=3600");
+    expect(response.headers.get("ETag")).toMatch(LIBRARY_ETAG);
+    expect(response.headers.get("ETag")).toBe(exercise.headers.get("ETag"));
+  });
+
+  it("answers 304 with no body when If-None-Match holds the current ETag", async () => {
+    const served = coversApp();
+    const etag = (await served.request("/covers", asUser)).headers.get("ETag");
+
+    const response = await served.request("/covers", {
+      headers: { ...asUser.headers, "If-None-Match": etag ?? "" },
+    });
+
+    expect(response.status).toBe(304);
+    expect(await response.text()).toBe("");
+    expect(response.headers.get("ETag")).toBe(etag);
+  });
+
+  it("answers normally when If-None-Match holds another ETag", async () => {
+    const response = await coversApp().request("/covers", {
+      headers: { ...asUser.headers, "If-None-Match": `"${"0".repeat(64)}"` },
+    });
+
+    expect(response.status).toBe(200);
+  });
+
+  it("changes the ETag when a Cover changes", async () => {
+    const etagOf = async (covers: Parameters<typeof libraryCover>[1]) =>
+      (
+        await createApp({
+          ...base,
+          library: serveLibrary(
+            { covers: [libraryCover(CHEST_COVER, covers)], exercises: [] },
+            SUPABASE_URL
+          ),
+        }).request("/covers", asUser)
+      ).headers.get("ETag");
+
+    expect(await etagOf(["chest"])).not.toBe(await etagOf(["back"]));
   });
 });
