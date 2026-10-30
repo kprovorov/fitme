@@ -58,7 +58,7 @@ const buttonVariants = cva(
       shape: { circle: "p-0", pill: "" },
       size: {
         default: "text-body-emphasized",
-        lg: "text-title-3-emphasized",
+        lg: "text-body-emphasized",
         sm: "text-subhead-emphasized",
       },
       variant: {
