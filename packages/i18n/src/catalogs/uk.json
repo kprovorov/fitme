@@ -517,5 +517,44 @@
     "title": "Отакої!",
     "description": "Такого екрана не існує.",
     "goHome": "На головний екран"
+  },
+  "workoutSession": {
+    "finish": "Завершити",
+    "loadError": "Не вдалося завантажити тренування. Перевірте з’єднання і спробуйте ще раз.",
+    "stats": {
+      "duration": "Тривалість",
+      "volume": "Обсяг",
+      "sets": "Підходи",
+      "exercisesDone_one": "Виконано {{done, number}} з {{count, number}} вправи",
+      "exercisesDone_few": "Виконано {{done, number}} з {{count, number}} вправ",
+      "exercisesDone_many": "Виконано {{done, number}} з {{count, number}} вправ",
+      "exercisesDone_other": "Виконано {{done, number}} з {{count, number}} вправи"
+    },
+    "addExercise": "Додати вправу",
+    "picker": {
+      "add": "Додати",
+      "replace": "Замінити",
+      "close": "Закрити"
+    },
+    "exercise": {
+      "openHint": "Відкриває вправу",
+      "moreOptions": "Інші дії для «{{name}}»",
+      "replace": "Замінити",
+      "delete": "Видалити"
+    },
+    "editFailed": {
+      "addTitle": "Не вдалося додати вправу",
+      "replaceTitle": "Не вдалося замінити вправу",
+      "deleteTitle": "Не вдалося видалити вправу",
+      "libraryUnavailable": "Бібліотека вправ зараз недоступна. Спробуйте ще раз.",
+      "sessionFinished": "Це тренування вже завершено.",
+      "rateLimited": "Забагато запитів: спробуйте ще раз через {{seconds, number}} с.",
+      "generic": "Перевірте з’єднання і спробуйте ще раз."
+    }
+  },
+  "workoutSessionExercise": {
+    "loadError": "Не вдалося завантажити вправу. Перевірте з’єднання і спробуйте ще раз.",
+    "howTo": "Як виконувати?",
+    "guideHint": "Відкриває інструкцію до вправи"
   }
 }

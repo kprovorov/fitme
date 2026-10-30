@@ -1,5 +1,6 @@
 import { Stack, useLocalSearchParams, useRouter } from "expo-router";
 import { useCallback, useState } from "react";
+import { useTranslation } from "react-i18next";
 import { ActivityIndicator, type LayoutChangeEvent, View } from "react-native";
 import { KeyboardAwareScrollView } from "react-native-keyboard-controller";
 import { useSafeAreaInsets } from "react-native-safe-area-context";
@@ -20,6 +21,7 @@ import { useWorkoutSessionQuery } from "~/hooks/queries/workout-sessions";
 const REST_TIMER_GAP = 16;
 
 export default function WorkoutSessionExerciseScreen() {
+  const { t } = useTranslation();
   const router = useRouter();
   const insets = useSafeAreaInsets();
 
@@ -130,11 +132,11 @@ export default function WorkoutSessionExerciseScreen() {
       return (
         <View className="items-center gap-sm pt-lg">
           <Text className="text-center text-muted-foreground">
-            Couldn't load this exercise. Check your connection and try again.
+            {t("workoutSessionExercise.loadError")}
           </Text>
           <Button
             fill={false}
-            label="Try Again"
+            label={t("common.tryAgain")}
             onPress={retry}
             variant="secondary"
           />

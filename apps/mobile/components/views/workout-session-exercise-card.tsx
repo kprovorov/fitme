@@ -1,5 +1,6 @@
 import type { WorkoutSessionExercise } from "@fitme/core";
 import { useRouter } from "expo-router";
+import { useTranslation } from "react-i18next";
 import { Card } from "~/components/ui/card";
 import { DropdownMenu } from "~/components/ui/dropdown-menu";
 import { type ShownExercise, shownExercise } from "~/hooks/queries/library";
@@ -33,6 +34,7 @@ export default function WorkoutSessionExerciseCard({
   workoutId,
   sessionId,
 }: WorkoutSessionExerciseCardProps) {
+  const { t } = useTranslation();
   const router = useRouter();
   const exercise =
     resolved ?? shownExercise(workoutSessionExercise.exercise_slug, null);
@@ -49,7 +51,7 @@ export default function WorkoutSessionExerciseCard({
     ...(onReplace
       ? [
           {
-            label: "Replace",
+            label: t("workoutSession.exercise.replace"),
             onPress: onReplace,
             systemImage: "arrow.triangle.2.circlepath" as const,
           },
@@ -59,7 +61,7 @@ export default function WorkoutSessionExerciseCard({
       ? [
           {
             destructive: true,
-            label: "Delete",
+            label: t("workoutSession.exercise.delete"),
             onPress: onDelete,
             systemImage: "trash" as const,
           },
@@ -70,13 +72,15 @@ export default function WorkoutSessionExerciseCard({
   return (
     <Card className="gap-sm">
       <ExerciseCardHeader
-        accessibilityHint="Opens the exercise"
+        accessibilityHint={t("workoutSession.exercise.openHint")}
         exercise={exercise}
         onPress={canOpen ? handlePress : undefined}
         trailing={
           menuItems.length > 0 ? (
             <DropdownMenu
-              accessibilityLabel={`More options for ${exercise.name}`}
+              accessibilityLabel={t("workoutSession.exercise.moreOptions", {
+                name: exercise.name,
+              })}
               items={menuItems}
               systemImage="ellipsis"
             />
