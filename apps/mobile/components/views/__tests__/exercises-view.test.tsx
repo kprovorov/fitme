@@ -3,7 +3,8 @@
  * (FIT-242): search waits 300 ms after the last keystroke, the muscle group
  * filter and paging go through `list`, a 429 keeps the last results with no
  * error, and every result is seeded into its row query and MMKV. In the App
- * language (FIT-408) it searches and lists in that language.
+ * language (FIT-408) it searches and lists in that language. The list is
+ * virtualised and loads the next page as the User nears its end (FIT-431).
  *
  * Mounts the real view on the fake Library; the SwiftUI-backed
  * primitives are swapped for plain stand-ins.
@@ -61,12 +62,29 @@ const EXERCISES = [
 ];
 
 const COULD_NOT_LOAD = /Couldn't load/;
+const LOAD_MORE = /load more$/i;
+const LOAD_MORE_ERROR =
+  "Couldn't load more exercises. Check your connection and try again.";
 /** Any row's subtitle: Muscle groups, one or joined with ", ". */
 const MUSCLE_GROUP_SUBTITLE = /, |^(Triceps|Chest)$/;
 
 let fake: FakeLibrary;
 let list: jest.SpiedFunction<FakeLibrary["list"]>;
 let queryClient: QueryClient;
+
+/**
+ * Whether the list holds the Exercise, rendered or not yet (it's
+ * virtualised): every listed Exercise is seeded into its row query.
+ */
+const isListed = (slug: string) =>
+  queryClient.getQueryData(["exercise-summary", "en", slug]) !== undefined;
+
+/** The User pulls the list down to refresh it. */
+const pullToRefresh = async () => {
+  const { refreshControl } = screen.getByTestId("exercises-list").props;
+  await act(() => refreshControl.props.onRefresh());
+  await advance(0);
+};
 
 /** Moves the clock `ms` (plus a few ms), letting the debounce, the fake's answer and react-query's batching run. */
 const tick = async () => {
@@ -94,6 +112,22 @@ const renderView = async (props: Parameters<typeof ExercisesView>[0] = {}) => {
     </QueryClientProvider>
   );
   await advance(0);
+};
+
+/** A drag let go at `fromEnd` points above the end of a list two screens long. */
+const dragEnd = (fromEnd: number) => ({
+  nativeEvent: {
+    contentOffset: { x: 0, y: 1600 - 800 - fromEnd },
+    contentSize: { height: 1600, width: 400 },
+    layoutMeasurement: { height: 800, width: 400 },
+  },
+});
+
+/** The User scrolls to the end of the list: the drag ends there, and the list says so. */
+const reachEnd = async () => {
+  const results = screen.getByTestId("exercises-list");
+  await fireEvent(results, "scrollEndDrag", dragEnd(0));
+  await fireEvent(results, "endReached");
 };
 
 const type = async (text: string) => {
@@ -238,7 +272,7 @@ describe("filtering and paging", () => {
     await renderView({ initialMuscleGroup: "chest" });
     list.mockClear();
 
-    await fireEvent.press(screen.getByText("Load More"));
+    await reachEnd();
     await advance(0);
 
     expect(list).toHaveBeenLastCalledWith({
@@ -246,7 +280,6 @@ describe("filtering and paging", () => {
       muscleGroup: "chest",
       offset: 20,
     });
-    expect(screen.queryByText("Load More")).toBeNull();
   });
 
   it("sends a new muscle group at once, with the search being typed", async () => {
@@ -276,13 +309,13 @@ describe("filtering and paging", () => {
     });
   });
 
-  it("loads the next page, and stops when there are no more", async () => {
+  it("loads the next page at the end of the list, and stops when there are no more", async () => {
     await renderView({});
     await type("bench");
     await advance(300);
     list.mockClear();
 
-    await fireEvent.press(screen.getByText("Load More"));
+    await reachEnd();
     await advance(0);
 
     expect(list).toHaveBeenCalledTimes(1);
@@ -291,8 +324,54 @@ describe("filtering and paging", () => {
       offset: 20,
       search: "bench",
     });
-    expect(screen.getByText("Bench Press 25")).toBeTruthy();
+    expect(isListed("bench-press-25")).toBe(true);
+
+    await reachEnd();
+    await advance(0);
+    expect(list).toHaveBeenCalledTimes(1);
+  });
+
+  it("has no Load More button", async () => {
+    await renderView();
+
     expect(screen.queryByText("Load More")).toBeNull();
+    expect(screen.queryByText(LOAD_MORE)).toBeNull();
+  });
+
+  it("shows a loading indicator at the bottom while the next page loads", async () => {
+    await renderView();
+    fake.failWith(new LibraryRateLimitedError(30));
+    await reachEnd();
+    await advance(0);
+    fake.failWith(null);
+
+    // Held back by the 429, the next page is on its way.
+    await reachEnd();
+    await advance(0);
+
+    expect(screen.getByText("Bench Press 01")).toBeTruthy();
+    expect(screen.getByTestId("exercises-loading-more")).toBeTruthy();
+
+    await advance(30_000);
+    expect(screen.queryByTestId("exercises-loading-more")).toBeNull();
+    expect(isListed("squat")).toBe(true);
+  });
+
+  it("never asks again for a page already on its way", async () => {
+    await renderView();
+    fake.failWith(new LibraryRateLimitedError(30));
+    await reachEnd();
+    await advance(0);
+    fake.failWith(null);
+    list.mockClear();
+
+    await reachEnd();
+    await reachEnd();
+    await reachEnd();
+    await advance(30_000);
+
+    expect(list).toHaveBeenCalledTimes(1);
+    expect(list).toHaveBeenLastCalledWith({ limit: 20, offset: 20 });
   });
 });
 
@@ -300,42 +379,49 @@ describe("after a 429", () => {
   it("holds loading the next page back until Retry-After has passed", async () => {
     await renderView();
     fake.failWith(new LibraryRateLimitedError(30));
-    await fireEvent.press(screen.getByText("Load More"));
+    await reachEnd();
     await advance(0);
     expect(screen.getByText("Bench Press 01")).toBeTruthy();
     expect(screen.queryByText(COULD_NOT_LOAD)).toBeNull();
     fake.failWith(null);
     list.mockClear();
 
-    await fireEvent.press(screen.getByText("Load More"));
+    await reachEnd();
     await advance(10_000);
     expect(list).not.toHaveBeenCalled();
 
     await advance(20_000);
     expect(list).toHaveBeenLastCalledWith({ limit: 20, offset: 20 });
-    expect(screen.getByText("Bench Press 25")).toBeTruthy();
+    expect(isListed("squat")).toBe(true);
   });
 });
 
 describe("a failed refresh", () => {
   it("shows the error state over the results it had", async () => {
-    let refresh: (() => Promise<void>) | undefined;
-    await renderView({
-      ref: (handle) => {
-        refresh = handle?.refresh;
-      },
-    });
+    await renderView({ refreshable: true });
     fake.failWith(new LibraryUnavailableError());
 
-    await act(async () => {
-      const refreshing = refresh?.();
-      await jest.advanceTimersByTimeAsync(1000);
-      await refreshing;
-    });
-    await advance(0);
+    await pullToRefresh();
+    await advance(1000);
 
     expect(screen.getByText("Couldn't Load Exercises")).toBeTruthy();
     expect(screen.queryByText("Bench Press 01")).toBeNull();
+  });
+
+  it("never pages past the error state when the shortened list reaches its end", async () => {
+    await renderView({ refreshable: true });
+    fake.failWith(new LibraryUnavailableError());
+    await pullToRefresh();
+    await advance(1000);
+    fake.failWith(null);
+    list.mockClear();
+
+    await reachEnd();
+    await advance(0);
+
+    expect(list).not.toHaveBeenCalled();
+    expect(screen.getByText("Couldn't Load Exercises")).toBeTruthy();
+    expect(screen.getByText("Try Again")).toBeTruthy();
   });
 });
 
@@ -372,16 +458,54 @@ describe("a failed next page", () => {
     await renderView();
     fake.failWith(new LibraryUnavailableError());
 
-    await fireEvent.press(screen.getByText("Load More"));
+    await reachEnd();
     await advance(1000);
 
     expect(screen.getByText("Bench Press 01")).toBeTruthy();
-    expect(
-      screen.getByText(
-        "Couldn't load more exercises. Check your connection and try again."
-      )
-    ).toBeTruthy();
-    expect(screen.getByText("Load More")).toBeTruthy();
+    expect(screen.getByText(LOAD_MORE_ERROR)).toBeTruthy();
+  });
+
+  it("asks again only once the User scrolls to the end again", async () => {
+    await renderView();
+    fake.failWith(new LibraryUnavailableError());
+    await reachEnd();
+    await advance(1000);
+    fake.failWith(null);
+    list.mockClear();
+
+    // The message lengthening the list reaches its end with no scroll.
+    await fireEvent(screen.getByTestId("exercises-list"), "endReached");
+    await advance(0);
+    // A drag ending far from the end leaves it alone.
+    await fireEvent(
+      screen.getByTestId("exercises-list"),
+      "scrollEndDrag",
+      dragEnd(1200)
+    );
+    await advance(0);
+    expect(list).not.toHaveBeenCalled();
+    expect(screen.getByText(LOAD_MORE_ERROR)).toBeTruthy();
+
+    // Dragged at the end again: the list reports no new end, the drag retries.
+    await fireEvent(
+      screen.getByTestId("exercises-list"),
+      "scrollEndDrag",
+      dragEnd(0)
+    );
+    await advance(0);
+    expect(list).toHaveBeenLastCalledWith({ limit: 20, offset: 20 });
+    expect(screen.queryByText(LOAD_MORE_ERROR)).toBeNull();
+    expect(isListed("squat")).toBe(true);
+  });
+
+  it("keeps pull to refresh on the Library tab", async () => {
+    await renderView({ refreshable: true });
+    list.mockClear();
+
+    await pullToRefresh();
+
+    expect(list).toHaveBeenLastCalledWith({ limit: 20, offset: 0 });
+    expect(screen.getByText("Bench Press 01")).toBeTruthy();
   });
 });
 

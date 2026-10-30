@@ -1,24 +1,12 @@
 import type { ExerciseSummary } from "@fitme/library-sdk";
 import { router, Stack } from "expo-router";
-import { useCallback, useRef, useState } from "react";
+import { useCallback } from "react";
 import { useTranslation } from "react-i18next";
-import { RefreshControl, ScrollView } from "react-native";
-import { ExerciseRowChevron } from "~/components/exercises/exercises-list";
-import ExercisesView, {
-  type ExercisesViewHandle,
-} from "~/components/views/exercises-view";
+import { ExerciseRowChevron } from "~/components/exercises/exercise-row";
+import ExercisesView from "~/components/views/exercises-view";
 
 export default function LibraryScreen() {
   const { t } = useTranslation();
-  const [refreshing, setRefreshing] = useState(false);
-  const exercisesViewRef = useRef<ExercisesViewHandle | null>(null);
-
-  const onRefresh = useCallback(async () => {
-    setRefreshing(true);
-    await exercisesViewRef.current?.refresh();
-
-    setRefreshing(false);
-  }, []);
 
   const onExercisePress = useCallback((exercise: ExerciseSummary) => {
     router.push(`/exercises/${exercise.slug}`);
@@ -37,22 +25,12 @@ export default function LibraryScreen() {
           title: t("tabs.library"),
         }}
       />
-      <ScrollView
-        className="px-6"
-        contentInsetAdjustmentBehavior="automatic"
-        // A result is tapped with the search keyboard still up.
-        keyboardShouldPersistTaps="handled"
-        refreshControl={
-          <RefreshControl onRefresh={onRefresh} refreshing={refreshing} />
-        }
-        showsVerticalScrollIndicator={false}
-      >
-        <ExercisesView
-          onExercisePress={onExercisePress}
-          ref={exercisesViewRef}
-          trailing={<ExerciseRowChevron />}
-        />
-      </ScrollView>
+      <ExercisesView
+        contentContainerClassName="px-6"
+        onExercisePress={onExercisePress}
+        refreshable
+        trailing={<ExerciseRowChevron />}
+      />
     </>
   );
 }
