@@ -566,5 +566,26 @@
     "loadError": "Couldn't load this exercise. Check your connection and try again.",
     "howTo": "How to?",
     "guideHint": "Opens the exercise guide"
+  },
+  "history": {
+    "empty": {
+      "title": "No workouts yet",
+      "body": "Finished workouts show up here, with how long they took and what you lifted.",
+      "start": "Start a Workout"
+    },
+    "loadError": "Couldn't load your workouts. Check your connection and try again.",
+    "untitledWorkout": "Workout",
+    "duration": "Duration {{duration}}"
+  },
+  "workoutSummary": {
+    "title": "Workout Complete!",
+    "stats": {
+      "duration": "Duration",
+      "volume": "Volume",
+      "exercises": "Exercises",
+      "sets": "Sets"
+    },
+    "statLabel": "{{title}}: {{value}}",
+    "continue": "Continue"
   }
 }

@@ -1,8 +1,9 @@
 import type { WorkoutSession } from "@fitme/core";
-import { formatDate, type Translator } from "@fitme/i18n";
+import { formatCount, formatDate, type Translator } from "@fitme/i18n";
 import { LegendList } from "@legendapp/list/react-native";
 import { Link, Stack, useRouter } from "expo-router";
 import { useCallback, useState } from "react";
+import { useTranslation } from "react-i18next";
 import {
   ActivityIndicator,
   Pressable,
@@ -62,6 +63,7 @@ const renderMonth = ({ item }: { item: Month }) => (
 );
 
 function MonthSection({ month }: { month: Month }) {
+  const i18n = useI18n();
   return (
     <View className="gap-xs pb-md">
       <View className="flex-row items-baseline gap-2 px-1">
@@ -72,9 +74,7 @@ function MonthSection({ month }: { month: Month }) {
           {month.title}
         </Text>
         <Text className="text-footnote text-muted-foreground">
-          {month.sessions.length === 1
-            ? "1 workout"
-            : `${month.sessions.length} workouts`}
+          {formatCount(i18n, "workouts", month.sessions.length)}
         </Text>
       </View>
       <MenuList>
@@ -100,19 +100,20 @@ function MonthSection({ month }: { month: Month }) {
 function EmptyHistory() {
   const router = useRouter();
   const goHome = useCallback(() => router.navigate("/"), [router]);
+  const { t } = useTranslation();
   return (
     <View className="flex-1 items-center justify-center gap-sm px-md pt-lg">
-      <H1 className="text-center">No workouts yet</H1>
+      <H1 className="text-center">{t("history.empty.title")}</H1>
       <Text className="text-center text-muted-foreground">
-        Finished workouts show up here, with how long they took and what you
-        lifted.
+        {t("history.empty.body")}
       </Text>
-      <Button fill={false} label="Start a Workout" onPress={goHome} />
+      <Button fill={false} label={t("history.empty.start")} onPress={goHome} />
     </View>
   );
 }
 
 export default function HistoryScreen() {
+  const { t } = useTranslation();
   const [refreshing, setRefreshing] = useState(false);
   // LegendList takes no class names: resolve the spacing tokens to a style.
   const contentContainerStyle = useResolveClassNames("px-sm pt-xs pb-lg");
@@ -148,11 +149,11 @@ export default function HistoryScreen() {
       return (
         <View className="items-center gap-sm px-md pt-lg">
           <Text className="text-center text-muted-foreground">
-            Couldn't load your workouts. Check your connection and try again.
+            {t("history.loadError")}
           </Text>
           <Button
             fill={false}
-            label="Try Again"
+            label={t("common.tryAgain")}
             onPress={retry}
             variant="secondary"
           />
@@ -180,7 +181,7 @@ export default function HistoryScreen() {
             fontWeight: "bold",
           },
           headerTransparent: true,
-          title: "History",
+          title: t("tabs.history"),
         }}
       />
 
