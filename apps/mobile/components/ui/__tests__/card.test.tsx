@@ -1,7 +1,8 @@
 import { describe, expect, it } from "@jest/globals";
 import { render, screen } from "@testing-library/react-native";
 import { Text } from "react-native";
-import { Card, CardTitle } from "../card";
+import { Card, CardContent, CardDescription, CardTitle } from "../card";
+import { Text as UIText } from "../text";
 
 describe("Card", () => {
   it("renders its children with no styling props", async () => {
@@ -42,7 +43,7 @@ describe("Card", () => {
     const classes = screen.getByTestId("card").props.className.split(" ");
     expect(classes).toEqual(expect.arrayContaining([...expected, "p-sm"]));
     if (variant === "primary") {
-      expect(classes).not.toContain("border");
+      expect(classes).not.toContain("border-border");
     }
   });
 
@@ -78,8 +79,7 @@ describe("Card", () => {
     // the card out of VoiceOver's and touches' way.
     expect(backgroundLayer).toMatchObject({
       props: expect.objectContaining({
-        className: "absolute inset-0",
-        pointerEvents: "none",
+        className: "pointer-events-none absolute inset-0",
       }),
     });
     expect(screen.getByText("Push Day")).toBe(content);
@@ -88,16 +88,44 @@ describe("Card", () => {
     ).toBeNull();
   });
 
-  it("sets its title and content in primary-foreground on primary", async () => {
+  it("sets every text in primary-foreground on primary", async () => {
     await render(
       <Card variant="primary">
         <CardTitle>Pro</CardTitle>
+        <CardDescription>Every model</CardDescription>
+        <CardContent>
+          <UIText>Inside content</UIText>
+        </CardContent>
+        <UIText>Right inside</UIText>
       </Card>
     );
 
-    expect(
-      screen.getByRole("heading", { name: "Pro" }).props.className
-    ).toContain("text-primary-foreground");
+    for (const text of [
+      screen.getByRole("heading", { name: "Pro" }),
+      screen.getByText("Every model"),
+      screen.getByText("Inside content"),
+      screen.getByText("Right inside"),
+    ]) {
+      expect(text.props.className.split(" ")).toContain(
+        "text-primary-foreground"
+      );
+    }
+  });
+
+  it("drops a caller's border on primary", async () => {
+    await render(
+      <Card
+        className="border-2 border-destructive"
+        testID="card"
+        variant="primary"
+      >
+        <UIText>Pro</UIText>
+      </Card>
+    );
+
+    const classes = screen.getByTestId("card").props.className.split(" ");
+    expect(classes).toContain("border-0");
+    expect(classes).not.toContain("border-2");
   });
 
   it.each(["default", "ghost", "primary"] as const)(
