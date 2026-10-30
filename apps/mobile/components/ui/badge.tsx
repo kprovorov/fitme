@@ -17,27 +17,27 @@ const badgeVariants = {
   default: {
     badge: "bg-primary",
     icon: "text-primary-foreground",
-    text: "text-primary-foreground",
+    labelClass: "text-primary-foreground",
   },
   destructive: {
     badge: "bg-secondary",
     icon: "text-destructive",
-    text: "text-destructive",
+    labelClass: "text-destructive",
   },
   ghost: {
     badge: "",
     icon: "text-foreground",
-    text: "text-muted-foreground",
+    labelClass: "text-muted-foreground",
   },
   muted: {
     badge: "bg-muted",
     icon: "text-muted-foreground",
-    text: "text-muted-foreground",
+    labelClass: "text-muted-foreground",
   },
   secondary: {
     badge: "bg-secondary",
     icon: "text-secondary-foreground",
-    text: "text-secondary-foreground",
+    labelClass: "text-secondary-foreground",
   },
 } as const;
 
@@ -106,7 +106,7 @@ function Badge({
   );
   return (
     <TextClassContext.Provider
-      value={cn(LABEL_FONT_CLASS, badgeVariants[variant].text)}
+      value={cn(LABEL_FONT_CLASS, badgeVariants[variant].labelClass)}
     >
       <Component
         className={cn(

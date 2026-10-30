@@ -514,7 +514,12 @@
   },
   "support": {
     "title": "Support",
-    "contact": "Feel free to contact us at any time if you have any questions or feedback"
+    "contact": "Feel free to contact us at any time if you have any questions or feedback",
+    "social": {
+      "x": "Fitme on X",
+      "instagram": "Fitme on Instagram",
+      "threads": "Fitme on Threads"
+    }
   },
   "verifyCode": {
     "screenTitle": "Verify Code",

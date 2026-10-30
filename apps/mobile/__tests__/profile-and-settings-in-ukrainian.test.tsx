@@ -215,5 +215,8 @@ describe("Profile and Settings on a Ukrainian device", () => {
       screen.getByText("Пишіть нам будь-коли, якщо маєте запитання чи відгуки")
     ).toBeTruthy();
     expect(screen.getByText("support@fitmeproject.com")).toBeTruthy();
+    for (const label of ["Fitme в X", "Fitme в Instagram", "Fitme в Threads"]) {
+      expect(screen.getByLabelText(label)).toBeTruthy();
+    }
   });
 });

@@ -64,6 +64,9 @@ jobs:
       - name: No color literals or arbitrary sizes (design tokens)
         run: pnpm literal-check
 
+      - name: No hardcoded text in the mobile app (translations)
+        run: pnpm text-check
+
       # `expo start` writes this (gitignored) file on every developer machine,
       # and expo/types widens ViewStyle with web props: typecheck that state.
       - name: Write the expo-env.d.ts Metro generates

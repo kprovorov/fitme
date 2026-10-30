@@ -564,7 +564,12 @@
   },
   "support": {
     "title": "Підтримка",
-    "contact": "Пишіть нам будь-коли, якщо маєте запитання чи відгуки"
+    "contact": "Пишіть нам будь-коли, якщо маєте запитання чи відгуки",
+    "social": {
+      "x": "Fitme в X",
+      "instagram": "Fitme в Instagram",
+      "threads": "Fitme в Threads"
+    }
   },
   "verifyCode": {
     "screenTitle": "Підтвердження коду",
