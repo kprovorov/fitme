@@ -63,7 +63,7 @@ Responses are JSON. Successful responses wrap the payload in `data`; failures re
 
 ## Cover backfill
 
-A one-off script giving every Workout of a live Plan without a Cover one (ADR 0014; Postgres can't call the Library, so it isn't a migration). It fetches the Library's Covers (and refuses to run, exit 1, when there are none), lists the live Plans with an uncovered Workout through `withService`, looks those Workouts' Exercise slugs up in one batch, then per Plan, one transaction each, runs `@fitme/core`'s `pickCovers` for its uncovered Workouts, keeping the Plan's existing Covers as used, and writes the ids. A Workout with a Cover is never changed, so a second run writes nothing. A Library failure stops it before anything is written; a failure on one Plan stops it after the Plans already committed, and a rerun picks up the rest.
+A one-off script giving every Workout of a live Plan without a Cover one (ADR 0014; Postgres can't call the Library, so it isn't a migration). It fetches the Library's Covers (and refuses to run, exit 1, when there are none), lists the live Plans with an uncovered Workout through `withService`, looks those Workouts' Exercise slugs up in one batch, then per Plan, one transaction each, runs `@fitme/core`'s `pickCovers` for its uncovered Workouts, keeping the Plan's existing Covers as used, and writes the ids. A Workout with a Cover is never changed, so a second run writes nothing. Each Plan's transaction locks the Plan row, then its Workouts, like `updatePlan` and finishing a Workout Session. A Workout that got an Exercise since the lookup sends its Plan back for one more lookup and retry, then it's skipped (logged; a rerun covers it). A Library failure up front stops it before anything is written; a failure later stops it after the Plans already committed, and a rerun picks up the rest. The process ends about 10 s after its last line (the pool's idle clients), exiting 1 on any failure.
 
 Environment (read from the process, no file is loaded):
 
@@ -74,7 +74,7 @@ Environment (read from the process, no file is loaded):
 | `LIBRARY_PUBLIC_API_SECRET` | the Public API's bearer for it (the same secret `apps/api` uses) |
 
 ```bash
-pnpm api backfill:covers --dry-run          # counts per Plan, writes nothing, takes no locks
+pnpm api backfill:covers --dry-run          # counts per Plan; no Library lookup, no write, no lock
 pnpm api backfill:covers --plan <id>        # one Plan (repeat --plan for more), e.g. a smoke run
 pnpm api backfill:covers                    # every live Plan
 ```

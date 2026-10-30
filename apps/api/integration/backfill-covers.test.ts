@@ -1,11 +1,12 @@
 import { randomBytes } from "node:crypto";
 import type { MuscleGroup } from "@fitme/core";
 import { asUser } from "@fitme/db";
-import type { Cover, ExerciseSummary } from "@fitme/library-sdk";
+import type { Cover, ExerciseSummary, Library } from "@fitme/library-sdk";
 import { LibraryUnavailableError } from "@fitme/library-sdk";
 import { createFakeLibrary } from "@fitme/library-sdk/fake";
 import { deleteTestUsers } from "@fitme/services/delete-test-users";
 import { createPlan, deletePlan, getPlan } from "@fitme/services/plans";
+import { addExerciseToWorkout } from "@fitme/services/workout-edits";
 import { afterAll, describe, expect, it } from "vitest";
 import { backfillCovers, NoCoversError } from "../src/backfill-covers.js";
 
@@ -201,6 +202,43 @@ describe("backfillCovers", () => {
 
     const [only] = await coversOf(planId);
     expect(COVERS.map((c) => c.id)).toContain(only);
+  });
+
+  it("looks up an Exercise added to a Workout during the run", async () => {
+    const planId = await seedPlan([workout("barbell-back-squat")]);
+    const plan = await asUser(owner, (tx) => getPlan(tx, owner, planId));
+    const workoutId = plan?.workouts[0]?.id ?? "";
+    // Two chest Exercises arrive between the listing and the Plan's
+    // transaction: chest becomes the Workout's most-trained muscle group
+    const changing: Library = {
+      ...library,
+      lookup: async (slugs, options) => {
+        const answer = await library.lookup(slugs, options);
+        if (!slugs.includes("barbell-bench-press")) {
+          for (const _ of [1, 2]) {
+            // biome-ignore lint/performance/noAwaitInLoops: one after the other, on purpose
+            await asUser(owner, (tx) =>
+              addExerciseToWorkout(tx, owner, {
+                exerciseSlug: "barbell-bench-press",
+                sets: [
+                  {
+                    reps_recommended: 8,
+                    rest_recommended: 90,
+                    weight_recommended: 40,
+                  },
+                ],
+                workoutId,
+              })
+            );
+          }
+        }
+        return answer;
+      },
+    };
+
+    await backfillCovers({ library: changing, log: silent, planIds: [planId] });
+
+    expect(await coversOf(planId)).toEqual([CHEST]);
   });
 
   it("refuses to run when the Library has no Covers", async () => {

@@ -64,28 +64,45 @@ const listPending = async (tx: Transaction, planIds?: readonly string[]) => {
   return { planIds: ids, slugs };
 };
 
+/** Each looked-up slug's muscle groups; one the Library doesn't know has none. */
+type MuscleGroupsBySlug = Map<string, readonly MuscleGroup[]>;
+
 interface CoverPlanOptions {
   covers: Parameters<typeof pickCovers>[0]["covers"];
   dryRun: boolean;
-  muscleGroupsOf: (slug: string) => readonly MuscleGroup[];
+  known: MuscleGroupsBySlug;
   random?: () => number;
 }
 
 /**
+ * How one Plan went: Workouts covered (or, on a dry run, to cover), or the
+ * slugs its Workouts got since they were looked up, with nothing written.
+ */
+type CoverPlanResult = { covered: number } | { unknownSlugs: string[] };
+
+/**
  * Picks a Cover for each of the live Plan's Workouts without one, keeping the
  * Covers its other Workouts have as used, and writes them unless it's a dry
- * run. Answers how many Workouts it covered (or would cover).
+ * run.
  */
 const coverPlan = async (
   tx: Transaction,
   planId: string,
-  { covers, dryRun, muscleGroupsOf, random }: CoverPlanOptions
-) => {
+  { covers, dryRun, known, random }: CoverPlanOptions
+): Promise<CoverPlanResult> => {
   if (!dryRun) {
     // Workout edits' first lock, so this queues behind an account deletion
-    // like they do; the row locks below then hold off a concurrent edit or
-    // replacement of the Plan's Workouts until the Covers are written
+    // like they do; then the Plan row before its Workouts' rows, the order
+    // updatePlan and finishWorkoutSession lock in, so neither deadlocks with it
     await tx.execute(sql`lock table ${workouts} in row exclusive mode`);
+    const [plan] = await tx
+      .select({ id: plans.id })
+      .from(plans)
+      .where(and(eq(plans.id, planId), isNull(plans.deletedAt)))
+      .for("no key update");
+    if (!plan) {
+      return { covered: 0 };
+    }
   }
   const select = tx
     .select({ cover: workouts.cover, id: workouts.id })
@@ -98,8 +115,8 @@ const coverPlan = async (
     : await select.for("no key update", { of: workouts });
 
   const toCover = planWorkouts.filter((workout) => workout.cover === null);
-  if (toCover.length === 0) {
-    return 0;
+  if (dryRun || toCover.length === 0) {
+    return { covered: toCover.length };
   }
   const exercises = await tx
     .select({
@@ -114,6 +131,16 @@ const coverPlan = async (
       )
     )
     .orderBy(asc(workoutExercises.order), asc(workoutExercises.id));
+  const unknownSlugs = [
+    ...new Set(
+      exercises
+        .map((exercise) => exercise.slug)
+        .filter((slug) => !known.has(slug))
+    ),
+  ];
+  if (unknownSlugs.length > 0) {
+    return { unknownSlugs };
+  }
 
   const picks = pickCovers({
     covers,
@@ -124,14 +151,11 @@ const coverPlan = async (
     workouts: toCover.map((workout) => ({
       exercises: exercises
         .filter((exercise) => exercise.workoutId === workout.id)
-        .map((exercise) => ({ muscleGroups: muscleGroupsOf(exercise.slug) })),
+        .map((exercise) => ({ muscleGroups: known.get(exercise.slug) ?? [] })),
     })),
   });
-  if (dryRun) {
-    return toCover.length;
-  }
 
-  let written = 0;
+  let covered = 0;
   for (const [index, workout] of toCover.entries()) {
     const cover = picks[index];
     if (!cover) {
@@ -144,9 +168,29 @@ const coverPlan = async (
       .set({ cover })
       .where(and(eq(workouts.id, workout.id), isNull(workouts.cover)))
       .returning({ id: workouts.id });
-    written += updated.length;
+    covered += updated.length;
   }
-  return written;
+  return { covered };
+};
+
+/** Looks `slugs` up in one batch and adds their muscle groups to `known`. */
+const learnSlugs = async (
+  library: Library,
+  known: MuscleGroupsBySlug,
+  slugs: string[]
+) => {
+  if (slugs.length === 0) {
+    return;
+  }
+  const { data, missing } = await library.lookup(slugs);
+  for (const exercise of data) {
+    known.set(exercise.slug, exercise.muscle_groups);
+  }
+  // A slug the Library doesn't know trains nothing: the picker falls back to
+  // any Cover for it
+  for (const slug of missing) {
+    known.set(slug, []);
+  }
 };
 
 /**
@@ -155,10 +199,13 @@ const coverPlan = async (
  * Covers and the pending Workouts' Exercises, then covers one Plan per
  * transaction through `withService`, with `@fitme/core`'s picker, keeping the
  * Plan's existing Covers as used. A Workout with a Cover is never changed, so
- * a second run writes nothing.
+ * a second run writes nothing. A Plan whose Workouts got an Exercise since
+ * the lookup is looked up again and retried once, then skipped (a rerun
+ * covers it).
  *
  * Throws `NoCoversError` when the Library has no Covers, and any Library
- * failure as it is, before anything is written.
+ * failure as it is: before anything is written, or after the Plans already
+ * covered.
  */
 export const backfillCovers = async ({
   dryRun = false,
@@ -177,39 +224,40 @@ export const backfillCovers = async ({
   }));
 
   const pending = await withService((tx) => listPending(tx, planIds));
-  const { data } =
-    pending.slugs.length > 0
-      ? await library.lookup(pending.slugs)
-      : { data: [] };
-  // A slug the Library doesn't know trains nothing: the picker falls back to
-  // any Cover for it
-  const muscleGroups = new Map(
-    data.map((exercise) => [exercise.slug, exercise.muscle_groups])
-  );
-  const muscleGroupsOf = (slug: string) => muscleGroups.get(slug) ?? [];
-
-  const report: BackfillReport = { plans: [], written: 0 };
-  for (const planId of pending.planIds) {
-    // biome-ignore lint/performance/noAwaitInLoops: one Plan at a time keeps the load on production small
-    const covered = await withService((tx) =>
-      coverPlan(tx, planId, { covers, dryRun, muscleGroupsOf, random })
-    );
-    if (covered === 0) {
-      continue;
-    }
-    report.plans.push({ covered, planId });
-    if (!dryRun) {
-      report.written += covered;
-    }
-    log(`plan ${planId}: ${covered} ${dryRun ? "to cover" : "covered"}`);
+  const known: MuscleGroupsBySlug = new Map();
+  if (!dryRun) {
+    await learnSlugs(library, known, pending.slugs);
   }
 
-  const workoutCount = report.plans.reduce(
-    (sum, plan) => sum + plan.covered,
-    0
-  );
+  const report: BackfillReport = { plans: [], written: 0 };
+  const coverOnce = (planId: string) =>
+    withService((tx) =>
+      coverPlan(tx, planId, { covers, dryRun, known, random })
+    );
+  for (const planId of pending.planIds) {
+    // biome-ignore lint/performance/noAwaitInLoops: one Plan at a time keeps the load on production small
+    let result = await coverOnce(planId);
+    if ("unknownSlugs" in result) {
+      await learnSlugs(library, known, result.unknownSlugs);
+      result = await coverOnce(planId);
+    }
+    if ("unknownSlugs" in result) {
+      log(`plan ${planId}: skipped, its Exercises changed during the run`);
+      continue;
+    }
+    if (result.covered === 0) {
+      continue;
+    }
+    report.plans.push({ covered: result.covered, planId });
+    if (!dryRun) {
+      report.written += result.covered;
+    }
+    log(`plan ${planId}: ${result.covered} ${dryRun ? "to cover" : "covered"}`);
+  }
+
+  const total = report.plans.reduce((sum, plan) => sum + plan.covered, 0);
   log(
-    `${dryRun ? "Dry run: would cover" : "Covered"} ${workoutCount} Workouts in ${report.plans.length} Plans`
+    `${dryRun ? "Dry run: would cover" : "Covered"} ${total} Workouts in ${report.plans.length} Plans`
   );
   return report;
 };
