@@ -4,20 +4,47 @@ import en from "./catalogs/en.json";
 import uk from "./catalogs/uk.json";
 
 export { type Catalog, checkCatalogs, pluralForms } from "./check";
+
+import { numberFormat, regionOf, withRegion } from "./format";
+
 export {
   type CountKind,
+  type DateStyle,
+  type DeviceConventions,
   formatCount,
+  formatDate,
   formatHeight,
+  formatLocale,
   formatNumber,
+  formatTime,
   formatUnit,
   formatWeight,
   formatWorkoutDuration,
+  setDeviceConventions,
   spokenUnit,
   type Translator,
   type Unit,
   unitName,
   weightUnitOf,
 } from "./format";
+
+// The `number(…)` options the catalogs may set. i18next hands a formatter
+// every option of the `t` call too (`count`, `lng`…), which aren't Intl's.
+const NUMBER_FORMAT_OPTIONS = [
+  "maximumFractionDigits",
+  "minimumFractionDigits",
+  "useGrouping",
+] as const;
+
+const numberFormatOptions = (
+  options: Record<string, unknown> = {}
+): Intl.NumberFormatOptions =>
+  Object.fromEntries(
+    NUMBER_FORMAT_OPTIONS.filter((key) => key in options).map((key) => [
+      key,
+      options[key],
+    ])
+  );
 
 /** The one namespace: every key lives in `translation`. */
 export const defaultNamespace = "translation";
@@ -58,5 +85,13 @@ export function createI18n(language: AppLanguage): i18n {
     returnNull: false,
     supportedLngs: Object.keys(catalogs),
   });
+  // The catalogs' `{{…, number}}` placeholders take the device region too,
+  // so `62.5 kg` reads like every other number (`formatNumber`).
+  instance.services.formatter?.add("number", (value, lng, options) =>
+    numberFormat(
+      withRegion(lng ?? instance.language, regionOf(instance)),
+      numberFormatOptions(options)
+    ).format(value)
+  );
   return instance;
 }

@@ -1,13 +1,16 @@
+import { formatDate } from "@fitme/i18n";
 import { Stack, useLocalSearchParams, useRouter } from "expo-router";
 import { useCallback } from "react";
 import { ScrollView } from "react-native";
 import { useSafeAreaInsets } from "react-native-safe-area-context";
 import WorkoutSessionSummaryView from "~/components/views/workout-session-summary-view";
 import { useWorkoutSessionQuery } from "~/hooks/queries/workout-sessions";
+import { useI18n } from "~/lib/i18n";
 
 export default function WorkoutSessionSummaryScreen() {
   const { workoutSessionId } = useLocalSearchParams();
   const router = useRouter();
+  const i18n = useI18n();
 
   const { data: workoutSession } = useWorkoutSessionQuery({
     variables: {
@@ -31,14 +34,10 @@ export default function WorkoutSessionSummaryScreen() {
           },
           headerTransparent: true,
           title: workoutSession
-            ? new Date(workoutSession.started_at).toLocaleDateString(
-                undefined,
-                {
-                  day: "numeric",
-                  month: "short",
-                  weekday: "short",
-                  year: "numeric",
-                }
+            ? formatDate(
+                i18n,
+                new Date(workoutSession.started_at),
+                "weekdayDayMonthYear"
               )
             : "",
         }}

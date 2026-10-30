@@ -2,14 +2,22 @@ import type {
   WorkoutSessionExercise,
   WorkoutSessionExerciseSet,
 } from "@fitme/core";
-import { describe, expect, it, jest } from "@jest/globals";
-import { fireEvent, render, screen } from "@testing-library/react-native";
+import { setDeviceConventions } from "@fitme/i18n";
+import { afterEach, describe, expect, it, jest } from "@jest/globals";
+import { act, fireEvent, render, screen } from "@testing-library/react-native";
+import { i18n } from "~/lib/i18n";
+import {
+  setDevice24HourClock,
+  setDeviceLanguages,
+} from "~/test-utils/device-locales";
+import { InAppLanguage } from "~/test-utils/in-app-language";
 import ExerciseHistoryView from "../exercise-history-view";
 
 // A row's set number cell, and a session's date.
 const SET_NUMBER = /^#\d$/;
-// A date shows its year once it is not this one.
-const SESSION_DATE = /^\d+ October( \d{4})?$/;
+// A date shows its year once it is not this one. An American device puts the
+// month first.
+const SESSION_DATE = /^October \d+(, \d{4})?$/;
 
 const mockHistory: { current: WorkoutSessionExercise[] } = { current: [] };
 
@@ -55,6 +63,12 @@ const entry = (
   workout_session_id: `session-${id}`,
 });
 
+// The language sync leaves the App language and region where a test put them.
+afterEach(async () => {
+  await i18n.changeLanguage("en");
+  setDeviceConventions(i18n, { region: "US", uses24hourClock: false });
+});
+
 describe("ExerciseHistoryView", () => {
   it("shows each past session as a table of its sets under Progress", async () => {
     mockHistory.current = [
@@ -89,6 +103,56 @@ describe("ExerciseHistoryView", () => {
   it("names the year of a session from an earlier year", async () => {
     mockHistory.current = [entry("old", "2020-03-02T10:00:00Z", [set(1, {})])];
     await render(<ExerciseHistoryView exerciseSlug="shoulder-press" />);
+
+    expect(screen.getByText("March 2, 2020")).toBeTruthy();
+  });
+
+  it("writes the date in the App language and the device region's order", async () => {
+    mockHistory.current = [entry("old", "2020-03-02T10:00:00Z", [set(1, {})])];
+    setDeviceLanguages(["uk-UA"]);
+    await render(
+      <InAppLanguage>
+        <ExerciseHistoryView exerciseSlug="shoulder-press" />
+      </InAppLanguage>
+    );
+
+    expect(screen.getByText("2 березня 2020 р.")).toBeTruthy();
+  });
+
+  it("switches the date when the device's language changes", async () => {
+    mockHistory.current = [entry("old", "2020-03-02T10:00:00Z", [set(1, {})])];
+    await render(
+      <InAppLanguage>
+        <ExerciseHistoryView exerciseSlug="shoulder-press" />
+      </InAppLanguage>
+    );
+    expect(screen.getByText("March 2, 2020")).toBeTruthy();
+
+    await act(() => {
+      setDeviceLanguages(["uk-UA"]);
+    });
+    expect(screen.getByText("2 березня 2020 р.")).toBeTruthy();
+
+    // Only the region changes: the words stay English, the order is British.
+    await act(() => {
+      setDeviceLanguages(["en-GB"]);
+    });
+    expect(screen.getByText("2 March 2020")).toBeTruthy();
+    // A clock change re-renders too, with nothing else changed.
+    await act(() => {
+      setDevice24HourClock(true);
+    });
+    expect(screen.getByText("2 March 2020")).toBeTruthy();
+  });
+
+  it("writes an English date day first on a British device", async () => {
+    mockHistory.current = [entry("old", "2020-03-02T10:00:00Z", [set(1, {})])];
+    setDeviceLanguages(["en-GB"]);
+    await render(
+      <InAppLanguage>
+        <ExerciseHistoryView exerciseSlug="shoulder-press" />
+      </InAppLanguage>
+    );
 
     expect(screen.getByText("2 March 2020")).toBeTruthy();
   });
