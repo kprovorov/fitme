@@ -8,7 +8,7 @@ import { beforeEach, describe, expect, it, jest } from "@jest/globals";
 import { QueryClientProvider } from "@tanstack/react-query";
 import { fireEvent, render, screen } from "@testing-library/react-native";
 import type { ReactNode } from "react";
-import { Pressable, Text } from "react-native";
+import { Platform, Pressable, Text } from "react-native";
 import HomeScreen from "~/app/(tabs)/(home)/index";
 import ProfileScreen from "~/app/profile";
 import { setDeviceLanguages } from "~/test-utils/device-locales";
@@ -27,6 +27,7 @@ interface MockHeaderItem {
 
 interface MockHeaderOptions {
   headerBackButtonDisplayMode?: string;
+  headerRight?: () => ReactNode;
   headerShown?: boolean;
   title?: string;
   unstable_headerRightItems?: () => MockHeaderItem[];
@@ -41,6 +42,7 @@ const MockHeader = ({ options }: { options: MockHeaderOptions }) => (
     {options.title ? <Text>{options.title}</Text> : null}
     {options.headerShown ? <Text>header shown</Text> : null}
     {options.headerBackButtonDisplayMode ? <Text>back button</Text> : null}
+    {options.headerRight?.()}
     {(options.unstable_headerRightItems?.() ?? [])
       .filter((item) => item.type === "button")
       .map((item) => (
@@ -156,6 +158,25 @@ describe("Profile from the first tab's header", () => {
     fireEvent.press(button);
 
     expect(mockPush).toHaveBeenCalledWith("/profile");
+  });
+
+  it("offers a Profile text button on Android, which has no header items", async () => {
+    const os = Platform.OS;
+    Platform.OS = "android";
+    try {
+      await mount(<HomeScreen />);
+
+      const buttons = screen.getAllByRole("button", { name: "Profile" });
+      // The text button, beside the iOS-only item the stand-in also draws.
+      const textButton = buttons.find(
+        (button) => button.props.testID !== "header-person.fill"
+      );
+      expect(textButton).toBeDefined();
+      fireEvent.press(textButton as NonNullable<typeof textButton>);
+      expect(mockPush).toHaveBeenCalledWith("/profile");
+    } finally {
+      Platform.OS = os;
+    }
   });
 
   it("names the button in Ukrainian on a Ukrainian device", async () => {
