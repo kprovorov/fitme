@@ -98,7 +98,7 @@ jest.mock("@expo/ui/swift-ui", () => {
     ),
     ProgressView: () => <View testID="spinner" />,
     RNHostView: container,
-    // The label's color, for the tests that check it
+    // The label's color and font, for the tests that check them
     Text: ({
       children,
       modifiers,
@@ -106,7 +106,12 @@ jest.mock("@expo/ui/swift-ui", () => {
       children?: React.ReactNode;
       modifiers?: Modifier[];
     }) => (
-      <Text {...{ color: argOf(modifiers, "foregroundStyle") }}>
+      <Text
+        {...{
+          color: argOf(modifiers, "foregroundStyle"),
+          font: argOf(modifiers, "font"),
+        }}
+      >
         {children}
       </Text>
     ),
@@ -121,6 +126,7 @@ jest.mock("@expo/ui/swift-ui", () => {
 // resolved (FIT-251).
 const mockColorClass = /^text-(primary|secondary|destructive|foreground)/;
 let mockLastColorClass: string | undefined;
+const mockTextStyleClass = /^text-[a-z0-9-]+-emphasized$/;
 
 jest.mock("uniwind", () => {
   const actual = jest.requireActual<typeof import("uniwind")>("uniwind");
@@ -130,6 +136,11 @@ jest.mock("uniwind", () => {
       const resolved = actual.useResolveClassNames(className);
       if (className.startsWith("size-button-")) {
         return { height: 47, width: 47 };
+      }
+      // A text style answers its own name as the family, so a label's font
+      // names the style it was set in.
+      if (mockTextStyleClass.test(className)) {
+        return { fontFamily: className, fontSize: 1 };
       }
       if (mockColorClass.test(className)) {
         mockLastColorClass = className;
@@ -272,6 +283,20 @@ describe("Button", () => {
     }
   );
 
+  // Figma's Button: Subhead, Body, Body, all Emphasized (FIT-439)
+  it.each([
+    ["sm", "text-subhead-emphasized"],
+    ["default", "text-body-emphasized"],
+    ["lg", "text-body-emphasized"],
+  ] as const)("sets a size %s label in %s", async (size, textStyle) => {
+    await render(<Button label="Save" size={size} />);
+
+    expect(screen.getByText("Save").props.font).toEqual({
+      family: textStyle,
+      size: 1,
+    });
+  });
+
   // The iOS kit's Small, Medium and Large (FIT-366), with or without glass
   it.each([
     ["sm", "small", true],
@@ -413,7 +438,7 @@ describe("Button", () => {
   const LABEL_OVERHANG = [
     ["sm", 4 / 3],
     ["default", 5 / 3],
-    ["lg", 11 / 3],
+    ["lg", 5 / 3],
   ] as const;
 
   it.each(

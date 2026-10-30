@@ -96,7 +96,7 @@ const SWIFT_UI_CONTROL_SIZE: Record<
  */
 const LABEL_FONT_CLASS: Record<ButtonSize, string> = {
   default: "text-body-emphasized",
-  lg: "text-title-3-emphasized",
+  lg: "text-body-emphasized",
   sm: "text-subhead-emphasized",
 };
 
@@ -139,7 +139,7 @@ const NATIVE_PADDING: Record<ButtonSize, number> = {
  */
 const LABEL_OVERHANG: Record<ButtonSize, number> = {
   default: 5 / 3,
-  lg: 11 / 3,
+  lg: 5 / 3,
   sm: 4 / 3,
 };
 
