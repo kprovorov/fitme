@@ -15,6 +15,7 @@ import {
   namedPlan,
   namePlan,
   requireKnownSlugs,
+  withCovers,
   workoutSlugs,
 } from "./library.js";
 import {
@@ -85,7 +86,10 @@ function registerPlanWriteTools(server: McpServer, ctx: ToolContext) {
     },
     withServices(ctx, async (plan, services) => {
       const known = await requireKnownSlugs(ctx, workoutSlugs(plan.workouts));
-      return asJson(namePlan(await services.createPlan(plan), known));
+      const workouts = await withCovers(ctx, plan.workouts, known);
+      return asJson(
+        namePlan(await services.createPlan({ ...plan, workouts }), known)
+      );
     })
   );
 
@@ -126,11 +130,13 @@ function registerPlanWriteTools(server: McpServer, ctx: ToolContext) {
       const checked = workouts
         ? await requireKnownSlugs(ctx, workoutSlugs(workouts))
         : undefined;
+      // without workouts, the Workouts and their Covers stay as they are
+      const changes =
+        workouts && checked
+          ? { ...metadata, workouts: await withCovers(ctx, workouts, checked) }
+          : metadata;
       const updated = requireFound(
-        await services.updatePlan(
-          planId,
-          workouts ? { ...metadata, workouts } : metadata
-        ),
+        await services.updatePlan(planId, changes),
         planNotFound(planId)
       );
       // without workouts, the Plan keeps Exercises nothing has looked up yet
