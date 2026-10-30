@@ -28,6 +28,7 @@ import ExerciseGuideScreen from "~/app/exercises/[exerciseSlug]/guide";
 import ExerciseScreen from "~/app/exercises/[exerciseSlug]/index";
 import WorkoutScreen from "~/app/plans/[planId]/workouts/[workoutId]/index";
 import HistorySessionScreen from "~/app/workout-sessions/[workoutSessionId]";
+import ExercisePickerScreen from "~/app/workout-sessions/[workoutSessionId]/exercise-picker";
 import ExercisesView from "~/components/views/exercises-view";
 import { i18n, useAppLanguageSync } from "~/lib/i18n";
 import { storage } from "~/lib/mmkv";
@@ -58,6 +59,7 @@ jest.mock("expo-router", () => {
     useLocalSearchParams: () => mockParams.current,
     useNavigation: () => ({ getState: () => ({ index: 0, routes: [{}] }) }),
     useRouter: () => ({
+      back: jest.fn(),
       dismiss: jest.fn(),
       dismissTo: jest.fn(),
       push: jest.fn(),
@@ -323,9 +325,8 @@ const search = async (term: string) => {
 describe("searching the Library", () => {
   it("adds the Exercise found by its Ukrainian name to a Workout Session by slug", async () => {
     backend.seed({ exercises: [{ name: "Lunge", sets: [12] }], id: "s1" });
-    await renderScreen(HistorySessionScreen, { workoutSessionId: "s1" });
-    await fireEvent.press(await screen.findByText("Додати вправу"));
-    await settle();
+    await renderScreen(ExercisePickerScreen, { workoutSessionId: "s1" });
+    expect(screen.getByTestId("title")).toHaveTextContent("Додати вправу");
 
     await search("прис");
     const [addFirst, ...others] = await screen.findAllByText("Додати");
@@ -339,7 +340,6 @@ describe("searching the Library", () => {
       exercise_slug: "squat",
       workout_session_id: "s1",
     });
-    expect(await screen.findByText("Присідання")).toBeTruthy();
   });
 
   it("opens a found Exercise's detail screen with its Ukrainian name at once", async () => {
