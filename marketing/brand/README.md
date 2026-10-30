@@ -2,11 +2,11 @@
 
 Source: the [Logo page in Figma](https://www.figma.com/design/8RPWsghaJBjkkjGzPypuH0/Fitme?node-id=0-1), exported on 2026-10-30.
 
-Each variant is available as SVG and PNG. The SVGs come from Figma exports with `contentsOnly: true` and outlined text, so they need no fonts and exclude the canvas background and component-set borders. The PNGs are rasterized from those SVGs at their native export dimensions using Sharp. Artwork, colors, gradients, and icon backgrounds are preserved.
+Each variant is available as SVG and PNG. The SVGs come from Figma exports with `contentsOnly: true` and outlined text, so they need no fonts and exclude the canvas background and component-set borders. They are formatted to the repo's standards and include accessible titles; their vector paths and paint attributes are preserved. The PNGs are rasterized from those SVGs at their native export dimensions using Sharp. Artwork, colors, gradients, and icon backgrounds are preserved.
 
 The combined logos share the same geometry in Figma and here: `logo-black.svg` differs from `logo-white.svg` only in the wordmark fill color. The black variant's mark instance in Figma was aligned to the white variant, correcting its original 3.891 px vertical offset while retaining the linked components.
 
-Verified against Figma on 2026-10-30: all 10 SVGs are byte-identical to fresh content-only exports, and all 10 PNGs are pixel-identical to Sharp renderings of those fresh SVGs.
+Verified against Figma on 2026-10-30: all 10 SVGs match fresh content-only exports after accounting for formatting and added titles, and all 10 PNGs are pixel-identical to Sharp renderings of those fresh SVGs.
 
 | Asset | SVG | PNG | Dimensions | Figma source |
 | --- | --- | --- | --- | --- |
