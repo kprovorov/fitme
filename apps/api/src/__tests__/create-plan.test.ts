@@ -1,9 +1,25 @@
 import { LibraryUnavailableError } from "@fitme/library-sdk";
 import type { CreatePlanOptions, NewPlan } from "@fitme/services/plans";
 import { describe, expect, it } from "vitest";
-import { fakeServices, signedInAs, testApp } from "../test/harness.js";
+import {
+  fakeServices,
+  libraryCover,
+  libraryExercise,
+  signedInAs,
+  testApp,
+} from "../test/harness.js";
 
 const planId = "6f0c1d7e-3b1a-4d7e-9a43-2f6b0c1e5a10";
+
+/** The test Library's Exercises, a squat and a hinge. */
+const exercises = [
+  libraryExercise("barbell-back-squat", ["quadriceps"]),
+  libraryExercise("barbell-deadlift", ["hamstrings"]),
+];
+
+const LEGS_COVER = "5b1e7c2a-8d4f-4a6b-9c3e-1f2a3b4c5d6e";
+const HINGE_COVER = "9e8d7c6b-5a4f-4e3d-8c2b-1a0f9e8d7c6b";
+const CHEST_COVER = "3c4d5e6f-7a8b-4c9d-8e0f-1a2b3c4d5e6f";
 
 /** A field of the services' answer the contract never shows. */
 const LEGACY_OR_INTERNAL_FIELD =
@@ -143,7 +159,7 @@ const post = (
   });
 
 describe("POST /v1/plans", () => {
-  it("creates the Plan, active by default, and answers it in full with its weight unit", async () => {
+  it("creates the Plan, active by default, with no Covers from a Library without any, and answers it in full with its weight unit", async () => {
     const { calls, services } = recordingServices();
     const { app, reported, servicesFor } = testApp({ services });
 
@@ -155,10 +171,74 @@ describe("POST /v1/plans", () => {
     });
     const { workouts, ...metadata } = body();
     expect(calls).toEqual([
-      { options: { activate: true }, plan: { ...metadata, workouts } },
+      {
+        options: { activate: true },
+        // The Library has no Covers, so no Workout gets one.
+        plan: {
+          ...metadata,
+          workouts: workouts.map((workout) => ({ ...workout, cover: null })),
+        },
+      },
     ]);
     expect(servicesFor).toEqual(["user_alice"]);
     expect(reported).toEqual([]);
+  });
+
+  it("gives each Workout the Cover of the muscle group it trains most", async () => {
+    const { calls, services } = recordingServices();
+    const { app, reported } = testApp({
+      covers: [
+        libraryCover(CHEST_COVER, ["chest"]),
+        libraryCover(HINGE_COVER, ["hamstrings"]),
+        libraryCover(LEGS_COVER, ["quadriceps"]),
+      ],
+      exercises,
+      services,
+    });
+
+    const response = await post(app, body());
+
+    expect(response.status).toBe(201);
+    // Day A ties quadriceps and hamstrings, so its first-met group wins.
+    expect(calls[0].plan.workouts.map((workout) => workout.cover)).toEqual([
+      LEGS_COVER,
+      HINGE_COVER,
+    ]);
+    expect(reported).toEqual([]);
+  });
+
+  it("gives no two Workouts the same Cover while the Library has enough", async () => {
+    const { calls, services } = recordingServices();
+    const { app } = testApp({
+      covers: [
+        libraryCover(LEGS_COVER, ["quadriceps"]),
+        libraryCover(CHEST_COVER, ["chest"]),
+      ],
+      exercises,
+      services,
+    });
+    const payload = body();
+    // Both Workouts train quadriceps most, and only one Cover suits them.
+    payload.workouts[1].exercises[0].exercise_slug = "barbell-back-squat";
+
+    await post(app, payload);
+
+    expect(calls[0].plan.workouts.map((workout) => workout.cover)).toEqual([
+      LEGS_COVER,
+      CHEST_COVER,
+    ]);
+  });
+
+  it("answers a reported 503 library_unavailable when the Covers can't be read, writing nothing", async () => {
+    const { app, library, reported } = testApp({ services: fakeServices({}) });
+    const outage = new LibraryUnavailableError();
+    library.covers = () => Promise.reject(outage);
+
+    const response = await post(app, body());
+
+    expect(response.status).toBe(503);
+    expect((await response.json()).error.code).toBe("library_unavailable");
+    expect(reported).toEqual([outage]);
   });
 
   it("passes activate: false on, to keep the active Plan", async () => {

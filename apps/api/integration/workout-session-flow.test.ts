@@ -16,7 +16,9 @@ import { clerk, libraryExercise, signedInAs } from "../src/test/harness.js";
  * User's Workouts, Workout Sessions or sets.
  */
 const library = createFakeLibrary(
-  ["barbell-back-squat", "barbell-deadlift"].map(libraryExercise)
+  ["barbell-back-squat", "barbell-deadlift"].map((slug) =>
+    libraryExercise(slug)
+  )
 );
 const reported: unknown[] = [];
 const app = createApp({

@@ -11,8 +11,8 @@ import { clerk, libraryExercise, signedInAs } from "../src/test/harness.js";
  * real services facade, through `asUser` on the local stack's pooler.
  */
 const library = createFakeLibrary(
-  ["barbell-back-squat", "barbell-deadlift", "walking-lunge"].map(
-    libraryExercise
+  ["barbell-back-squat", "barbell-deadlift", "walking-lunge"].map((slug) =>
+    libraryExercise(slug)
   )
 );
 const app = createApp({
