@@ -168,6 +168,22 @@
     "loadError": "Couldn't load this workout. Check your connection and try again.",
     "exerciseDetailsHint": "Opens the exercise's details"
   },
+  "home": {
+    "managePlans": "Manage Plans",
+    "createPlan": "Create Plan",
+    "nextWorkout": "Next Workout",
+    "upcoming": "Upcoming",
+    "allSet": "Nice job! You're all set!",
+    "empty": {
+      "title": "No active plan",
+      "message": "You don't have an active workout plan. Create one to get started.",
+      "action": "Create Workout Plan"
+    },
+    "loadError": {
+      "title": "Couldn't load your plan",
+      "message": "Check your connection and try again."
+    }
+  },
   "startWorkout": {
     "start": "Start Workout",
     "continue": "Continue Workout",
@@ -185,7 +201,8 @@
     "exercises_other": "{{count, number}} Exercises",
     "toWorkout": "To Workout",
     "openHint": "Opens the workout",
-    "openInProgressHint": "Opens the workout in progress"
+    "openInProgressHint": "Opens the workout in progress",
+    "finish": "Finish Workout"
   },
   "choices": {
     "experienceLevel": {

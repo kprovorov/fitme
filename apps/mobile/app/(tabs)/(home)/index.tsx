@@ -2,6 +2,7 @@ import { useUser } from "@clerk/expo";
 import type { Plan } from "@fitme/core";
 import { Stack, useRouter } from "expo-router";
 import { useCallback, useEffect, useState } from "react";
+import { useTranslation } from "react-i18next";
 import {
   ActivityIndicator,
   RefreshControl,
@@ -23,6 +24,7 @@ const IS_E2E = process.env.EXPO_PUBLIC_E2E_ENABLED === "true";
 import HomeView from "~/components/views/home-view";
 
 export default function HomeScreen() {
+  const { t } = useTranslation();
   const { user } = useUser();
   const { data: profile } = useProfileQuery();
   const [activePlan, setActivePlan] = useState<Plan | null>(null);
@@ -31,6 +33,7 @@ export default function HomeScreen() {
   const {
     data: plans,
     refetch: refetchWorkoutPlans,
+    isError: isPlansError,
     isLoading: isLoadingPlans,
   } = usePlansQuery({
     refetchInterval: 1000 * 60, // 1 minute
@@ -68,6 +71,9 @@ export default function HomeScreen() {
   }, [profile, user, router]);
 
   const handleCreatePlan = useCallback(() => router.push("/planner"), [router]);
+  const retryPlans = useCallback(() => {
+    refetchWorkoutPlans();
+  }, [refetchWorkoutPlans]);
 
   return (
     <>
@@ -79,14 +85,14 @@ export default function HomeScreen() {
             fontWeight: "bold",
           },
           headerTransparent: true,
-          title: "Home",
+          title: t("tabs.home"),
           unstable_headerRightItems: () => [
             {
               icon: {
                 name: "ellipsis",
                 type: "sfSymbol",
               },
-              label: "Manage Plans",
+              label: t("home.managePlans"),
               menu: {
                 items: [
                   {
@@ -94,7 +100,7 @@ export default function HomeScreen() {
                       name: "slider.horizontal.3",
                       type: "sfSymbol",
                     },
-                    label: "Manage Plans",
+                    label: t("home.managePlans"),
                     onPress: () => {
                       router.push("/plans");
                     },
@@ -105,7 +111,7 @@ export default function HomeScreen() {
                       name: "plus",
                       type: "sfSymbol",
                     },
-                    label: "Create Plan",
+                    label: t("home.createPlan"),
                     onPress: () => {
                       router.push("/planner");
                     },
@@ -136,16 +142,23 @@ export default function HomeScreen() {
               size="large"
             />
           </View>
-        ) : (
+        ) : isPlansError && !plans ? (
           <VStack className="flex-1 py-md">
-            <H1 className="text-center">No active plan</H1>
-            <Text className="text-center">
-              You don&apos;t have an active workout plan. Create one to get
-              started.
-            </Text>
+            <H1 className="text-center">{t("home.loadError.title")}</H1>
+            <Text className="text-center">{t("home.loadError.message")}</Text>
             <Button
               className="w-full"
-              label="Create Workout Plan"
+              label={t("common.tryAgain")}
+              onPress={retryPlans}
+            />
+          </VStack>
+        ) : (
+          <VStack className="flex-1 py-md">
+            <H1 className="text-center">{t("home.empty.title")}</H1>
+            <Text className="text-center">{t("home.empty.message")}</Text>
+            <Button
+              className="w-full"
+              label={t("home.empty.action")}
               onPress={handleCreatePlan}
             />
           </VStack>

@@ -27,13 +27,14 @@ import { BlockedStart } from "../workout-sessions/blocked-start";
  * (see `useFinishWorkoutSession`), then opens its Summary over Home.
  */
 function FinishWorkoutButton({ sessionId }: { sessionId: string }) {
+  const { t } = useTranslation();
   const { confirmFinish, isFinishing } = useFinishWorkoutSession(sessionId, {
     outsideSession: true,
   });
   return (
     <Button
       isLoading={isFinishing}
-      label="Finish Workout"
+      label={t("workoutCard.finish")}
       onPress={confirmFinish}
       variant="secondary"
     />
@@ -211,7 +212,7 @@ export default function WorkoutCard({
                 icon="arrow.right"
                 iconPosition="trailing"
                 isLoading={isStarting}
-                label="Start Workout"
+                label={t("startWorkout.start")}
                 onPress={startWorkout}
                 testID="start-workout-button"
               />
