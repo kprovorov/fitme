@@ -94,6 +94,10 @@ const ExercisesView = ({
     search,
   });
 
+  // A failed search or refresh shows the error state, with no rows: the
+  // shortened list reaching its end must not page past it.
+  const canLoadMore = hasMore && !isLoadingMore && !isError;
+
   const loadNextPage = useCallback(() => {
     // A request in flight is never sent again.
     loadMore({ cancelRefetch: false });
@@ -102,10 +106,10 @@ const ExercisesView = ({
   const onEndReached = useCallback(() => {
     // After a failed next page only the User's own scroll asks again: the
     // message lengthening the list would otherwise reach its end at once.
-    if (hasMore && !isLoadingMore && !isLoadMoreError) {
+    if (canLoadMore && !isLoadMoreError) {
       loadNextPage();
     }
-  }, [hasMore, isLoadMoreError, isLoadingMore, loadNextPage]);
+  }, [canLoadMore, isLoadMoreError, loadNextPage]);
 
   // `onEndReached` fires once per list length, and the failed page's message
   // was that length: a drag ending near the end is what retries.
@@ -115,15 +119,14 @@ const ExercisesView = ({
       const fromEnd =
         contentSize.height - contentOffset.y - layoutMeasurement.height;
       if (
+        canLoadMore &&
         isLoadMoreError &&
-        hasMore &&
-        !isLoadingMore &&
         fromEnd <= END_REACHED_THRESHOLD * layoutMeasurement.height
       ) {
         loadNextPage();
       }
     },
-    [hasMore, isLoadMoreError, isLoadingMore, loadNextPage]
+    [canLoadMore, isLoadMoreError, loadNextPage]
   );
 
   const onRefresh = useCallback(() => {

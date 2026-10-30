@@ -407,6 +407,22 @@ describe("a failed refresh", () => {
     expect(screen.getByText("Couldn't Load Exercises")).toBeTruthy();
     expect(screen.queryByText("Bench Press 01")).toBeNull();
   });
+
+  it("never pages past the error state when the shortened list reaches its end", async () => {
+    await renderView({ refreshable: true });
+    fake.failWith(new LibraryUnavailableError());
+    await pullToRefresh();
+    await advance(1000);
+    fake.failWith(null);
+    list.mockClear();
+
+    await reachEnd();
+    await advance(0);
+
+    expect(list).not.toHaveBeenCalled();
+    expect(screen.getByText("Couldn't Load Exercises")).toBeTruthy();
+    expect(screen.getByText("Try Again")).toBeTruthy();
+  });
 });
 
 describe("the Retry-After hold", () => {
