@@ -147,7 +147,7 @@ describe("Home in Ukrainian", () => {
     seedActivePlan();
     await mount();
 
-    expect(screen.getByText("Головна")).toBeTruthy();
+    expect(screen.getByText("Тренування")).toBeTruthy();
     expect(screen.getAllByText("Керувати планами")).toHaveLength(2);
     expect(screen.getByText("Створити план")).toBeTruthy();
   });

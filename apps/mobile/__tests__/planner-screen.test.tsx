@@ -61,7 +61,7 @@ describe("PlannerScreen", () => {
 
     // The pathname is the Arnold tab: its route and its tab bar title.
     const tab = target.pathname.split("/").at(-1) ?? "";
-    expect(getTabTitle(tab)).toBe("Arnold");
+    expect(getTabTitle(tab)).toBe("Arnold AI");
     expect(
       // Jest runs from apps/mobile.
       existsSync(resolve(`app/(tabs)/${tab}/index.tsx`))

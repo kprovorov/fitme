@@ -16,47 +16,31 @@ export default function TabLayout() {
           minimizeBehavior="onScrollDown"
           tintColor={navigationTheme.colors.primary}
         >
+          {/* Each tab has Figma's one symbol for both its states. */}
           {/* A group, so its index is the app's "/" route. */}
           <NativeTabs.Trigger name="(home)">
-            <NativeTabs.Trigger.Icon
-              sf={{ default: "dumbbell", selected: "dumbbell.fill" }}
-            />
+            <NativeTabs.Trigger.Icon sf="dumbbell.fill" />
             <NativeTabs.Trigger.Label>
               {t(TAB_TITLE_KEYS["(home)"])}
             </NativeTabs.Trigger.Label>
           </NativeTabs.Trigger>
 
           <NativeTabs.Trigger name="history">
-            <NativeTabs.Trigger.Icon
-              sf={{
-                default: "list.clipboard",
-                selected: "list.clipboard.fill",
-              }}
-            />
+            <NativeTabs.Trigger.Icon sf="book.pages" />
             <NativeTabs.Trigger.Label>
               {t(TAB_TITLE_KEYS.history)}
             </NativeTabs.Trigger.Label>
           </NativeTabs.Trigger>
 
           <NativeTabs.Trigger name="arnold">
-            <NativeTabs.Trigger.Icon
-              sf={{
-                default: "bubble.left.and.bubble.right",
-                selected: "bubble.left.and.bubble.right.fill",
-              }}
-            />
+            <NativeTabs.Trigger.Icon sf="sparkles.2" />
             <NativeTabs.Trigger.Label>
               {t(TAB_TITLE_KEYS.arnold)}
             </NativeTabs.Trigger.Label>
           </NativeTabs.Trigger>
 
           <NativeTabs.Trigger name="library">
-            <NativeTabs.Trigger.Icon
-              sf={{
-                default: "books.vertical",
-                selected: "books.vertical.fill",
-              }}
-            />
+            <NativeTabs.Trigger.Icon sf="book" />
             <NativeTabs.Trigger.Label>
               {t(TAB_TITLE_KEYS.library)}
             </NativeTabs.Trigger.Label>

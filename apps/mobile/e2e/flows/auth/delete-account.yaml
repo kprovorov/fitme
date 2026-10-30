@@ -98,4 +98,4 @@ env:
     timeout: 10000
 
 - assertNotVisible:
-    text: "Home"
+    text: "Workout"
