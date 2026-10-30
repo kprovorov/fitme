@@ -44,6 +44,6 @@ describe("createI18n", () => {
     i18n.t("tabs.hmoe");
     // @ts-expect-error: a plural is asked for by its key, never by a typo of it
     i18n.t("counts.set", { count: 1 });
-    expect(i18n.t("tabs.profile")).toBe("Profile");
+    expect(i18n.t("profile.title")).toBe("Profile");
   });
 });

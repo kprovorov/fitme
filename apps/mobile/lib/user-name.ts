@@ -18,7 +18,7 @@ export interface ProfileHeader {
   title: string;
 }
 
-/** The Profile tab header for a User: their name, or their email when they have none. */
+/** The Profile screen header for a User: their name, or their email when they have none. */
 export const getProfileHeader = ({
   email,
   fullName,

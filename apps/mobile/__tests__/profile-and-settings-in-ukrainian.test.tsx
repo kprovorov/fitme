@@ -1,5 +1,5 @@
 /**
- * The Profile tab, Settings, Legal and Support on a Ukrainian device: the real
+ * The Profile screen, Settings, Legal and Support on a Ukrainian device: the real
  * screens under the root layout's language sync, with Supabase swapped for the
  * in-memory backend, Clerk for a signed-in User, RevenueCat for a free plan
  * and the SwiftUI-backed primitives for stand-ins.
@@ -135,7 +135,7 @@ describe("Profile and Settings on a Ukrainian device", () => {
     backend.reset();
   });
 
-  it("shows the Profile tab in Ukrainian", async () => {
+  it("shows the Profile screen in Ukrainian", async () => {
     await mount(<ProfileView />);
 
     expect(screen.getByText("Тарас Шевченко")).toBeTruthy();

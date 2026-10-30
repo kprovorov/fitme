@@ -29,22 +29,22 @@ describe("tab bar", () => {
   it("is in English on an English device", async () => {
     await render(<App />);
 
-    for (const label of ["Home", "History", "Arnold", "Library", "Profile"]) {
+    for (const label of ["Home", "History", "Arnold", "Library"]) {
       expect(screen.getByText(label)).toBeTruthy();
     }
+  });
+
+  it("has no Profile tab: Profile is the first tab's header button", async () => {
+    await render(<App />);
+
+    expect(screen.queryByText("Profile")).toBeNull();
   });
 
   it("is in Ukrainian on a Ukrainian device", async () => {
     setDeviceLanguages(["uk-UA"]);
     await render(<App />);
 
-    for (const label of [
-      "Головна",
-      "Історія",
-      "Arnold",
-      "Бібліотека",
-      "Профіль",
-    ]) {
+    for (const label of ["Головна", "Історія", "Arnold", "Бібліотека"]) {
       expect(screen.getByText(label)).toBeTruthy();
     }
     expect(screen.queryByText("Home")).toBeNull();
@@ -67,17 +67,17 @@ describe("tab bar", () => {
 
   it("switches language when the device's language changes", async () => {
     await render(<App />);
-    expect(screen.getByText("Profile")).toBeTruthy();
+    expect(screen.getByText("Library")).toBeTruthy();
 
     await act(() => {
       setDeviceLanguages(["uk"]);
     });
-    expect(screen.getByText("Профіль")).toBeTruthy();
-    expect(screen.queryByText("Profile")).toBeNull();
+    expect(screen.getByText("Бібліотека")).toBeTruthy();
+    expect(screen.queryByText("Library")).toBeNull();
 
     await act(() => {
       setDeviceLanguages(["de-DE"]);
     });
-    expect(screen.getByText("Profile")).toBeTruthy();
+    expect(screen.getByText("Library")).toBeTruthy();
   });
 });

@@ -3,8 +3,7 @@
     "home": "Головна",
     "history": "Історія",
     "arnold": "Arnold",
-    "library": "Бібліотека",
-    "profile": "Профіль"
+    "library": "Бібліотека"
   },
   "library": {
     "allMuscleGroups": "Усі",
@@ -498,6 +497,7 @@
     "genericError": "Щось пішло не так. Спробуйте пізніше."
   },
   "profile": {
+    "title": "Профіль",
     "pro": {
       "title": "У вас Pro!",
       "description": "Вам доступні всі наші функції. Скасувати підписку можна будь-коли.",

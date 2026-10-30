@@ -3,7 +3,6 @@ import { getTabTitle } from "../tabs";
 
 describe("getTabTitle", () => {
   it("names the focused tab", () => {
-    expect(getTabTitle("profile")).toBe("Profile");
     expect(getTabTitle("history")).toBe("History");
     expect(getTabTitle("(home)")).toBe("Home");
   });

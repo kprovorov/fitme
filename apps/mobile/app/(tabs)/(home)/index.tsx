@@ -121,6 +121,20 @@ export default function HomeScreen() {
               },
               type: "menu",
             },
+            {
+              accessibilityLabel: t("profile.title"),
+              icon: {
+                name: "person.fill",
+                type: "sfSymbol",
+              },
+              label: t("profile.title"),
+              onPress: () => {
+                router.push("/profile");
+              },
+              // Its own circle of glass, apart from the menu's.
+              sharesBackground: false,
+              type: "button",
+            },
           ],
         }}
       />
