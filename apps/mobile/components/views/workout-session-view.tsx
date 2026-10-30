@@ -1,7 +1,9 @@
 import type { MuscleGroup, WorkoutSession } from "@fitme/core";
 import type { ExerciseSummary } from "@fitme/library-sdk";
 import { useQueryClient } from "@tanstack/react-query";
+import type { TFunction } from "i18next";
 import { useCallback, useState } from "react";
+import { useTranslation } from "react-i18next";
 import { Alert, Modal, ScrollView } from "react-native";
 import { useExercises } from "~/hooks/queries/library";
 import {
@@ -19,19 +21,19 @@ import ExercisesView from "./exercises-view";
 import WorkoutSessionExerciseCard from "./workout-session-exercise-card";
 
 /** What to tell the User after a failed edit of the Workout Session's Exercises. */
-const sessionEditFailureMessage = (error: unknown) => {
+const sessionEditFailureMessage = (t: TFunction, error: unknown) => {
   if (error instanceof ApiError) {
     if (error.code === "library_unavailable") {
-      return "The exercise library is unavailable right now. Please try again.";
+      return t("workoutSession.editFailed.libraryUnavailable");
     }
     if (error.code === "session_finished") {
-      return "This workout is already finished.";
+      return t("workoutSession.editFailed.sessionFinished");
     }
   }
   const waitSeconds = rateLimitedFor(error);
   return waitSeconds === null
-    ? "Please check your connection and try again."
-    : `Too many requests: please try again in ${waitSeconds} s.`;
+    ? t("workoutSession.editFailed.network")
+    : t("workoutSession.editFailed.rateLimited", { seconds: waitSeconds });
 };
 
 interface WorkoutSessionViewProps {
@@ -59,6 +61,7 @@ export default function WorkoutSessionView({
   workoutSession,
   sessionId,
 }: WorkoutSessionViewProps) {
+  const { t } = useTranslation();
   const queryClient = useQueryClient();
   const shownBySlug = useExercises(
     workoutSession.exercises.map(({ exercise_slug }) => exercise_slug)
@@ -102,8 +105,8 @@ export default function WorkoutSessionView({
         } catch (error) {
           // The picker stays open, so the User can try again.
           Alert.alert(
-            "Couldn't add exercise",
-            sessionEditFailureMessage(error)
+            t("workoutSession.editFailed.addTitle"),
+            sessionEditFailureMessage(t, error)
           );
           return;
         }
@@ -124,8 +127,8 @@ export default function WorkoutSessionView({
         } catch (error) {
           // The picker stays open, so the User can try again.
           Alert.alert(
-            "Couldn't replace exercise",
-            sessionEditFailureMessage(error)
+            t("workoutSession.editFailed.replaceTitle"),
+            sessionEditFailureMessage(t, error)
           );
           return;
         }
@@ -140,7 +143,7 @@ export default function WorkoutSessionView({
       }
       setShowModal(false);
     },
-    [mutateAsync, replaceExercise, replacingExerciseId, sessionId]
+    [mutateAsync, replaceExercise, replacingExerciseId, sessionId, t]
   );
 
   const handleRequestClose = useCallback(() => {
@@ -161,11 +164,15 @@ export default function WorkoutSessionView({
     (exercise: ExerciseSummary) => (
       <ExerciseCtaButton
         exercise={exercise}
-        label={replacingExerciseId === null ? "Add" : "Replace"}
+        label={
+          replacingExerciseId === null
+            ? t("workoutSession.picker.add")
+            : t("workoutSession.picker.replace")
+        }
         onPress={onExercisePress}
       />
     ),
-    [onExercisePress, replacingExerciseId]
+    [onExercisePress, replacingExerciseId, t]
   );
 
   const handleDeleteExercise = async (exerciseId: string) => {
@@ -174,7 +181,10 @@ export default function WorkoutSessionView({
         exerciseId,
       });
     } catch (error) {
-      Alert.alert("Couldn't delete exercise", sessionEditFailureMessage(error));
+      Alert.alert(
+        t("workoutSession.editFailed.deleteTitle"),
+        sessionEditFailureMessage(t, error)
+      );
       return;
     }
     if (!IS_E2E) {
@@ -213,7 +223,7 @@ export default function WorkoutSessionView({
           <VStack className="flex-1 items-stretch bg-background p-md">
             <HStack className="justify-end">
               <Button
-                accessibilityLabel="Close"
+                accessibilityLabel={t("workoutSession.picker.close")}
                 icon="xmark"
                 onPress={handleCloseModal}
                 shape="circle"
@@ -256,7 +266,7 @@ export default function WorkoutSessionView({
         {!workoutSession.finished_at && (
           <Button
             icon="plus"
-            label="Add Exercise"
+            label={t("workoutSession.addExercise")}
             onPress={openModal}
             variant="secondary"
           />

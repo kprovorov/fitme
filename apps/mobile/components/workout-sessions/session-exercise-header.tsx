@@ -1,4 +1,5 @@
 import { Image } from "expo-image";
+import { useTranslation } from "react-i18next";
 import { Pressable, StyleSheet, useWindowDimensions, View } from "react-native";
 import ExerciseVideo, {
   CLIP_ASPECT_RATIO,
@@ -68,6 +69,7 @@ export default function SessionExerciseHeader({
   exercise,
   onOpenGuide,
 }: SessionExerciseHeaderProps) {
+  const { t } = useTranslation();
   const { fontScale } = useWindowDimensions();
   const hasMedia =
     exercise.isResolved || !!exercise.video_url || !!exercise.thumbnail_url;
@@ -78,7 +80,7 @@ export default function SessionExerciseHeader({
     <>
       {description && onOpenGuide ? (
         <Pressable
-          accessibilityHint="Opens the exercise guide"
+          accessibilityHint={t("workoutSessionExercise.guideHint")}
           accessibilityRole="button"
           className="px-sm active:opacity-60"
           onPress={onOpenGuide}
@@ -111,9 +113,9 @@ export default function SessionExerciseHeader({
             <View className="flex-row justify-end" pointerEvents="box-none">
               {onOpenGuide ? (
                 <Button
-                  accessibilityHint="Opens the exercise guide"
+                  accessibilityHint={t("workoutSessionExercise.guideHint")}
                   fill={false}
-                  label="How to?"
+                  label={t("workoutSessionExercise.howTo")}
                   onPress={onOpenGuide}
                   size="sm"
                 />

@@ -323,11 +323,11 @@ describe("searching the Library", () => {
   it("adds the Exercise found by its Ukrainian name to a Workout Session by slug", async () => {
     backend.seed({ exercises: [{ name: "Lunge", sets: [12] }], id: "s1" });
     await renderScreen(HistorySessionScreen, { workoutSessionId: "s1" });
-    await fireEvent.press(await screen.findByText("Add Exercise"));
+    await fireEvent.press(await screen.findByText("Додати вправу"));
     await settle();
 
     await search("прис");
-    const [addFirst, ...others] = await screen.findAllByText("Add");
+    const [addFirst, ...others] = await screen.findAllByText("Додати");
     expect(others).toHaveLength(0);
     await act(async () => {
       await fireEvent.press(addFirst as NonNullable<typeof addFirst>);

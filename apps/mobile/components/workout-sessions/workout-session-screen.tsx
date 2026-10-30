@@ -1,5 +1,6 @@
 import { Stack } from "expo-router";
 import { useCallback } from "react";
+import { useTranslation } from "react-i18next";
 import { ActivityIndicator, useWindowDimensions, View } from "react-native";
 import { KeyboardAwareScrollView } from "react-native-keyboard-controller";
 import { useSafeAreaInsets } from "react-native-safe-area-context";
@@ -32,6 +33,7 @@ interface WorkoutSessionScreenProps {
 export default function WorkoutSessionScreen({
   sessionId,
 }: WorkoutSessionScreenProps) {
+  const { t } = useTranslation();
   const insets = useSafeAreaInsets();
   const { fontScale } = useWindowDimensions();
   const stacked = fontScale > STACKED_FONT_SCALE;
@@ -66,7 +68,7 @@ export default function WorkoutSessionScreen({
                 <Button
                   fill={false}
                   isLoading={isFinishing}
-                  label="Finish"
+                  label={t("workoutSession.finish")}
                   onPress={confirmFinish}
                   size="sm"
                   testID="finish-workout-button"
@@ -86,11 +88,11 @@ export default function WorkoutSessionScreen({
       return (
         <View className="items-center gap-sm pt-lg">
           <Text className="text-center text-muted-foreground">
-            Couldn't load this workout. Check your connection and try again.
+            {t("workoutSession.loadError")}
           </Text>
           <Button
             fill={false}
-            label="Try Again"
+            label={t("common.tryAgain")}
             onPress={retry}
             variant="secondary"
           />
