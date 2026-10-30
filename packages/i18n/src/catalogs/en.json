@@ -149,8 +149,8 @@
     "title": "My Plans",
     "create": "Create workout plan",
     "createNew": "Create New Workout Plan",
-    "frequency_one": "{{count, number}}x per week",
-    "frequency_other": "{{count, number}}x per week",
+    "frequency_one": "{{count, number}}× per week",
+    "frequency_other": "{{count, number}}× per week",
     "manage": "Manage",
     "activate": {
       "action": "Activate Plan",
