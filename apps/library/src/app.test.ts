@@ -23,6 +23,8 @@ const SUPABASE_URL = "https://project.supabase.co";
 
 /** An invalid request message naming the `language` field. */
 const LANGUAGE_PROBLEM = /^language: /;
+/** An invalid request message naming the `muscle_groups` field (or one of its items). */
+const MUSCLE_GROUPS_PROBLEM = /^muscle_groups[.:]/;
 
 /** The library hash, a sha256, quoted. */
 const LIBRARY_ETAG = /^"[0-9a-f]{64}"$/;
@@ -547,6 +549,97 @@ describe("GET /exercises muscle group filter", () => {
   });
 });
 
+describe("GET /exercises several muscle groups", () => {
+  it("lists only Exercises with that muscle group, given one", async () => {
+    const { body } = await list("?muscle_groups=quadriceps");
+
+    expect(names(body)).toEqual(["Back Squat", "squat (front)"]);
+    expect(body).toMatchObject({ hasMore: false, total: 2 });
+  });
+
+  it("lists Exercises with any of them, alphabetically, each once", async () => {
+    const { body } = await list("?muscle_groups=quadriceps,chest,triceps");
+
+    expect(names(body)).toEqual(["Back Squat", "Bench Press", "squat (front)"]);
+    expect(body).toMatchObject({ hasMore: false, total: 3 });
+  });
+
+  it("counts a repeated muscle group once", async () => {
+    const { body } = await list("?muscle_groups=quadriceps,quadriceps");
+
+    expect(names(body)).toEqual(["Back Squat", "squat (front)"]);
+    expect(body.total).toBe(2);
+  });
+
+  it("combines with search", async () => {
+    const { body } = await list("?muscle_groups=chest,quadriceps&search=back");
+
+    expect(names(body)).toEqual(["Back Squat"]);
+    expect(body.total).toBe(1);
+  });
+
+  it("pages with limit and offset, with total and hasMore across pages", async () => {
+    const first = await list("?muscle_groups=chest,quadriceps&limit=2");
+    const second = await list(
+      "?muscle_groups=chest,quadriceps&limit=2&offset=2"
+    );
+
+    expect(first.body).toMatchObject({ hasMore: true, total: 3 });
+    expect(names(first.body)).toEqual(["Back Squat", "Bench Press"]);
+    expect(second.body).toMatchObject({ hasMore: false, total: 3 });
+    expect(names(second.body)).toEqual(["squat (front)"]);
+  });
+
+  it("answers a known muscle group no Exercise has with an empty page", async () => {
+    expect((await list("?muscle_groups=calves,forearms")).body).toEqual({
+      data: [],
+      hasMore: false,
+      total: 0,
+    });
+  });
+
+  it.each([
+    ["an unknown muscle group", "?muscle_groups=chest,neck"],
+    ["an empty item", "?muscle_groups=chest,,triceps"],
+    ["a trailing comma", "?muscle_groups=chest,"],
+    ["an empty value", "?muscle_groups="],
+    ["muscle_group as well", "?muscle_group=chest&muscle_groups=triceps"],
+  ])("answers %s with 400 naming the field", async (_, query) => {
+    const { body, status } = await list(query);
+
+    expect(status).toBe(400);
+    expect(body).toEqual({
+      error: {
+        code: "invalid_request",
+        message: expect.stringMatching(MUSCLE_GROUPS_PROBLEM),
+      },
+    });
+  });
+
+  it("leaves muscle_group on its own as it was", async () => {
+    const { body } = await list("?muscle_group=chest");
+
+    expect(names(body)).toEqual(["Bench Press"]);
+    expect(body.total).toBe(1);
+  });
+
+  it("is an optional comma-separated string in the OpenAPI definition", () => {
+    const document = listApp.getOpenAPIDocument({
+      info: { title: "Library API", version: "1" },
+      openapi: "3.1.0",
+    });
+    const parameter = document.paths["/exercises"]?.get?.parameters?.find(
+      (p) => "name" in p && p.name === "muscle_groups"
+    );
+
+    expect(parameter).toMatchObject({
+      in: "query",
+      required: false,
+      schema: { type: "string" },
+    });
+  });
+});
+
 describe("GET /exercises pagination", () => {
   it("pages with limit and offset, with total and hasMore across pages", async () => {
     const first = await list("?limit=2");
@@ -666,6 +759,7 @@ describe("GET /exercises?slugs (batch lookup)", () => {
     "&search=squat",
     "&search=",
     "&muscle_group=quadriceps",
+    "&muscle_groups=quadriceps,chest",
     "&limit=20",
     "&offset=0",
   ])(
@@ -920,6 +1014,26 @@ describe("language=uk", () => {
       data: [expect.objectContaining({ name: "Приклад тяги" })],
       hasMore: false,
       total: 1,
+    });
+  });
+
+  it("combines with several muscle groups and paging", async () => {
+    const first = await request(
+      "/exercises?language=uk&muscle_groups=back,chest&limit=1"
+    );
+    const second = await request(
+      "/exercises?language=uk&muscle_groups=back,chest&limit=1&offset=1"
+    );
+
+    expect(first.body).toEqual({
+      data: [expect.objectContaining({ name: "Приклад жиму" })],
+      hasMore: true,
+      total: 2,
+    });
+    expect(second.body).toEqual({
+      data: [expect.objectContaining({ name: "Приклад тяги" })],
+      hasMore: false,
+      total: 2,
     });
   });
 
