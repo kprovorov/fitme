@@ -66,6 +66,21 @@ describe("checkSource", () => {
     ]);
   });
 
+  it("fails a custom component's text prop and a destructured default", () => {
+    const source = [
+      '<Dialog confirmLabel="Delete" emptyTitle={"No plans"} errorMessage="Oops" />',
+      'function Row({ title = "Untitled", label: shown = "Set" }) {}',
+    ].join("\n");
+
+    expect(texts(source)).toEqual([
+      "Delete",
+      "No plans",
+      "Oops",
+      "Untitled",
+      "Set",
+    ]);
+  });
+
   it("fails a text property in an options object", () => {
     const source = [
       '<Stack.Screen options={{ title: "Settings", headerBackTitle: "Back" }} />',
@@ -118,6 +133,7 @@ describe("checkSource", () => {
       '  <Text>{" "}</Text>',
       '  <Button title="" label="  " accessibilityLabel="…" />',
       "  <Text>100%</Text>",
+      "  <Text>&nbsp;&middot;&#8212;</Text>",
       "</View>",
     ].join("\n");
 
@@ -133,6 +149,8 @@ describe("checkSource", () => {
       'track("Plan Saved", { source: "Arnold" });',
       'const variants = { primary: { labelClass: "text-primary-foreground" } };',
       'useQuery({ queryKey: ["open-workout-session"] });',
+      'function Row({ variant = "ghost", size = "sm" }) {}',
+      '<Button labelClassName="text-primary" titleStyle={{ fontFamily: "Nunito" }} />',
       'Alert.alert(t("errors.title"), t("errors.message"), [{ style: "destructive", text: t("common.ok") }]);',
     ].join("\n");
 

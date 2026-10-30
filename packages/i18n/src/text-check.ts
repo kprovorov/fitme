@@ -12,10 +12,11 @@ import ts from "typescript";
  * - JSX text (`<Text>Save</Text>`);
  * - a string literal (or a template literal's static part) shown as a JSX
  *   child (`{"Save"}`, `{done ? "Done" : "Save"}`), as the value of a
- *   text-bearing prop (`title="Save"`, `accessibilityLabel={…}`) or of an
- *   object property of the same name (`options={{ title: "Save" }}`, an alert
- *   button's `text`), or as an alert's title or message
- *   (`Alert.alert("Oops", "Try again")`).
+ *   text-bearing prop (`title="Save"`, `accessibilityLabel={…}`,
+ *   `confirmLabel`: `isTextProp`), of an object property of such a name
+ *   (`options={{ title: "Save" }}`, an alert button's `text`) or a
+ *   destructured default (`({ title = "Save" }) =>`), or as an alert's title
+ *   or message (`Alert.alert("Oops", "Try again")`).
  *
  * A literal counts when it is the value itself or part of it: inside
  * parentheses, either branch of a `? :`, `+`, `&&`, `||`, `??`, a template
@@ -24,9 +25,14 @@ import ts from "typescript";
  * comparison and a function's argument never count.
  *
  * Ignored: comments, empty or whitespace-only text, text with no letter
- * (punctuation, symbols, numbers: `·`, `—`, `+`, `0`), and every prop or
- * property not in `TEXT_PROPS` (`testID`, `nativeID`, `href`, `className`,
- * analytics event names, route names).
+ * (punctuation, symbols, numbers, HTML entities: `·`, `—`, `+`, `0`,
+ * `&nbsp;`), and every other prop or property (`testID`, `nativeID`, `href`,
+ * `className`, analytics event names, route names).
+ *
+ * Not seen: text that reaches the screen through a variable
+ * (`const label = "Save"; <Text>{label}</Text>`), any other function
+ * (`setError("…")`, a zod message), or `Alert` under another name. Review
+ * catches those; the check guards the common shapes.
  */
 
 /** One piece of hardcoded text. */
@@ -82,6 +88,16 @@ export const TEXT_PROPS: ReadonlySet<string> = new Set([
   "title",
 ]);
 
+/**
+ * A custom component's text props follow these names (`confirmLabel`,
+ * `emptyTitle`, `buttonText`, `errorMessage`), so they count too.
+ */
+const TEXT_PROP_SUFFIX = /(?:Hint|Label|Message|Placeholder|Text|Title)$/;
+
+/** Whether a prop or property of this name holds shown text. */
+export const isTextProp = (name: string | null) =>
+  name !== null && (TEXT_PROPS.has(name) || TEXT_PROP_SUFFIX.test(name));
+
 /** `Alert`'s methods whose first two arguments are its title and message. */
 const ALERT_METHODS = new Set(["alert", "prompt"]);
 
@@ -103,6 +119,8 @@ const SOURCE_FILE = /\.tsx?$/;
 const SKIPPED_FILE = /(?:\.(?:test|spec)\.tsx?|\.d\.ts)$/;
 
 const LETTER = /\p{L}/u;
+// `&nbsp;`, `&middot;`, `&#8212;`: JSX text keeps entities as written
+const HTML_ENTITY = /&(?:#\d+|#x[\da-f]+|\w+);/gi;
 const NON_SPACE = /\S/;
 const WHITESPACE = /\s+/g;
 
@@ -177,10 +195,20 @@ const isShown = (node: ts.Node) => {
   // `title="Save"`, `title={"Save"}`: the expression's parent is the attribute
   const attribute = ts.isJsxExpression(parent) ? parent.parent : parent;
   if (ts.isJsxAttribute(attribute)) {
-    return TEXT_PROPS.has(propertyName(attribute.name) ?? "");
+    return isTextProp(propertyName(attribute.name));
   }
-  if (ts.isPropertyAssignment(parent) && child === parent.initializer) {
-    return TEXT_PROPS.has(propertyName(parent.name) ?? "");
+  // `{ title: "Save" }`, and a default: `({ title = "Save" }) =>`
+  if (
+    (ts.isPropertyAssignment(parent) ||
+      ts.isBindingElement(parent) ||
+      ts.isParameter(parent)) &&
+    child === parent.initializer
+  ) {
+    const name =
+      ts.isBindingElement(parent) && parent.propertyName
+        ? parent.propertyName
+        : parent.name;
+    return isTextProp(propertyName(name));
   }
   if (ts.isCallExpression(parent) && isAlertCall(parent)) {
     const index = parent.arguments.indexOf(child as ts.Expression);
@@ -229,7 +257,7 @@ export function checkSource(path: string, source: string): Finding[] {
 
   const visit = (node: ts.Node) => {
     if (ts.isJsxText(node)) {
-      if (LETTER.test(node.text)) {
+      if (LETTER.test(node.text.replace(HTML_ENTITY, ""))) {
         // Point at the text itself, not the whitespace before it
         report(node.pos + node.text.search(NON_SPACE), node.text);
       }
