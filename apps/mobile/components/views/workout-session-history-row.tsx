@@ -6,11 +6,12 @@ import {
   sessionVolume,
   type WorkoutSession,
 } from "@fitme/core";
-import { format } from "date-fns";
+import { formatDate, formatNumber, formatTime } from "@fitme/i18n";
 import { View } from "react-native";
 import { SymbolImage } from "~/components/symbol-image";
 import { Text } from "~/components/ui/text";
 import { useProfileQuery } from "~/hooks/queries/profiles";
+import { useI18n } from "~/lib/i18n";
 
 interface WorkoutSessionHistoryRowProps {
   workoutSession: WorkoutSession;
@@ -24,6 +25,8 @@ export default function WorkoutSessionHistoryRow({
   workoutSession,
 }: WorkoutSessionHistoryRowProps) {
   const { data: profile } = useProfileQuery();
+  const i18n = useI18n();
+  const startedAt = new Date(workoutSession.started_at);
   // Skipped exercises (no set logged) aren't part of the session's history.
   const exercises = loggedExercises(workoutSession.exercises);
   const volume = sessionVolume(exercises);
@@ -31,7 +34,7 @@ export default function WorkoutSessionHistoryRow({
     plural(exercises.length, "exercise"),
     plural(countLoggedSets(workoutSession), "set"),
     volume > 0
-      ? `${volume.toLocaleString()} ${getWeightLabel(profile?.measurement_system ?? "metric")}`
+      ? `${formatNumber(i18n, volume)} ${getWeightLabel(profile?.measurement_system ?? "metric")}`
       : null,
   ]
     .filter(Boolean)
@@ -48,7 +51,7 @@ export default function WorkoutSessionHistoryRow({
           {workoutSession.workout?.name ?? "Workout"}
         </Text>
         <Text className="text-muted-foreground text-subhead">
-          {format(new Date(workoutSession.started_at), "EEE, MMM d · h:mm a")}
+          {`${formatDate(i18n, startedAt, "weekdayDayMonth")} · ${formatTime(i18n, startedAt)}`}
         </Text>
         <Text className="text-footnote text-muted-foreground">{totals}</Text>
       </View>

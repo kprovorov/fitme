@@ -8,9 +8,12 @@
  *
  * `useLocales()` re-renders with the new languages, as it does when the
  * device's (or Android's per-app) language changes while the app is open.
- * `after-each.ts` puts the device back to English after every test.
+ * The device's region is each language tag's (`UA` for `uk-UA`), and its
+ * clock is the 12-hour one of an American device until a test sets it with
+ * `setDevice24HourClock(true)`. `after-each.ts` puts the device back to
+ * English on a 12-hour clock after every test.
  */
-import type { Locale } from "expo-localization";
+import type { Calendar, Locale } from "expo-localization";
 import { useSyncExternalStore } from "react";
 
 const ENGLISH_DEVICE = ["en-US"];
@@ -37,6 +40,10 @@ const toLocale = (languageTag: string): Locale => {
 };
 
 let locales: Locale[] = ENGLISH_DEVICE.map(toLocale);
+let uses24hourClock = false;
+let calendars: [Calendar, ...Calendar[]] = [
+  { calendar: null, firstWeekday: 1, timeZone: "UTC", uses24hourClock },
+];
 const listeners = new Set<() => void>();
 
 const subscribe = (listener: () => void) => {
@@ -58,15 +65,31 @@ export function setDeviceLanguages(languageTags: readonly string[]): void {
   }
 }
 
-/** Back to the English device every test starts on. */
+/**
+ * Sets the device's clock (`true` for 24-hour) and tells every mounted
+ * `useCalendars()`. Wrap a change during a test in `act`.
+ */
+export function setDevice24HourClock(enabled: boolean): void {
+  uses24hourClock = enabled;
+  calendars = [{ ...calendars[0], uses24hourClock }];
+  for (const listener of listeners) {
+    listener();
+  }
+}
+
+/** Back to the English device on a 12-hour clock every test starts on. */
 export function resetDeviceLanguages(): void {
   setDeviceLanguages(ENGLISH_DEVICE);
+  setDevice24HourClock(false);
 }
 
 const getLocales = (): Locale[] => locales;
+const getCalendars = (): [Calendar, ...Calendar[]] => calendars;
 
 /** The `expo-localization` module the tests see. */
 export const localizationModule = {
+  getCalendars,
   getLocales,
+  useCalendars: () => useSyncExternalStore(subscribe, getCalendars),
   useLocales: () => useSyncExternalStore(subscribe, getLocales),
 };

@@ -1,8 +1,8 @@
 import type { WorkoutSession } from "@fitme/core";
+import { formatDate, type Translator } from "@fitme/i18n";
 import { LegendList } from "@legendapp/list/react-native";
-import { format } from "date-fns";
 import { Link, Stack, useRouter } from "expo-router";
-import { useCallback, useMemo, useState } from "react";
+import { useCallback, useState } from "react";
 import {
   ActivityIndicator,
   Pressable,
@@ -18,6 +18,7 @@ import { Text } from "~/components/ui/text";
 import { H1 } from "~/components/ui/typography";
 import WorkoutSessionHistoryRow from "~/components/views/workout-session-history-row";
 import { useWorkoutSessionHistoryQuery } from "~/hooks/queries/workout-sessions";
+import { useI18n } from "~/lib/i18n";
 
 interface Month {
   key: string;
@@ -26,7 +27,10 @@ interface Month {
 }
 
 /** Sessions grouped by the month they started in, newest first. */
-function groupByMonth(sessions: WorkoutSession[]): Month[] {
+function groupByMonth(
+  sessions: WorkoutSession[],
+  translator: Translator
+): Month[] {
   // Sorted by start, the date grouped on: the query orders by finish, and a
   // long session finished late would otherwise split its month in two.
   const byStart = [...sessions].sort(
@@ -36,7 +40,7 @@ function groupByMonth(sessions: WorkoutSession[]): Month[] {
   const months: Month[] = [];
   for (const session of byStart) {
     const startedAt = new Date(session.started_at);
-    const key = format(startedAt, "yyyy-MM");
+    const key = `${startedAt.getFullYear()}-${startedAt.getMonth() + 1}`;
     const last = months.at(-1);
     if (last?.key === key) {
       last.sessions.push(session);
@@ -44,7 +48,7 @@ function groupByMonth(sessions: WorkoutSession[]): Month[] {
       months.push({
         key,
         sessions: [session],
-        title: format(startedAt, "LLLL yyyy"),
+        title: formatDate(translator, startedAt, "monthYear"),
       });
     }
   }
@@ -119,10 +123,11 @@ export default function HistoryScreen() {
     refetch: refetchWorkoutSessions,
   } = useWorkoutSessionHistoryQuery();
 
-  const months = useMemo(
-    () => groupByMonth(workoutSessions ?? []),
-    [workoutSessions]
-  );
+  // Grouped on every render, not memoized: `useI18n()` re-renders the screen
+  // when the App language (or the device's region) changes, and the month
+  // titles follow it.
+  const i18n = useI18n();
+  const months = groupByMonth(workoutSessions ?? [], i18n);
 
   const retry = useCallback(() => {
     refetchWorkoutSessions();

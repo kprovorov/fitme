@@ -3,11 +3,13 @@ import {
   type WorkoutSessionExercise,
   type WorkoutSessionExerciseSet,
 } from "@fitme/core";
-import { format, isThisYear } from "date-fns";
+import { formatDate } from "@fitme/i18n";
+import { isThisYear } from "date-fns";
 import { type ReactNode, useCallback, useState } from "react";
 import { View } from "react-native";
 import { useExerciseHistoryQuery } from "~/hooks/queries/exercises";
 import { useProfileQuery } from "~/hooks/queries/profiles";
+import { useI18n } from "~/lib/i18n";
 import { formatSetTarget, formatSetWeight } from "~/lib/set-inputs";
 import { cn } from "~/lib/utils";
 import {
@@ -29,10 +31,6 @@ interface ExerciseHistoryViewProps {
 
 /** How many past sessions the card lists at first, and adds on Load more. */
 const SESSIONS_PAGE = 3;
-
-/** `21 October`, with the year once it's not this one. */
-const sessionDate = (date: Date) =>
-  format(date, isThisYear(date) ? "d MMMM" : "d MMMM yyyy");
 
 const isLogged = (set: WorkoutSessionExerciseSet) =>
   set.reps_completed !== null;
@@ -99,11 +97,14 @@ function SessionTable({
   entry: WorkoutSessionExercise;
   weightLabel: string | undefined;
 }) {
+  const i18n = useI18n();
   const logged = entry.sets.filter(isLogged).sort((a, b) => a.order - b.order);
+  const date = new Date(entry.created_at);
   return (
     <View>
       <Text className="text-muted-foreground text-subhead">
-        {sessionDate(new Date(entry.created_at))}
+        {/* `21 October`, with the year once it's not this one. */}
+        {formatDate(i18n, date, isThisYear(date) ? "dayMonth" : "dayMonthYear")}
       </Text>
       <View className="gap-sm">
         <View
