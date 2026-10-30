@@ -2,7 +2,13 @@ import type {
   WorkoutSessionExercise,
   WorkoutSessionExerciseSet,
 } from "@fitme/core";
-import { formatCount, formatDate, unitName, weightUnitOf } from "@fitme/i18n";
+import {
+  formatCount,
+  formatDate,
+  formatNumber,
+  unitName,
+  weightUnitOf,
+} from "@fitme/i18n";
 import { isThisYear } from "date-fns";
 import { type ReactNode, useCallback, useState } from "react";
 import { useTranslation } from "react-i18next";
@@ -95,7 +101,7 @@ function SessionTable({
   weightLabel,
 }: {
   entry: WorkoutSessionExercise;
-  weightLabel: string | undefined;
+  weightLabel: string;
 }) {
   const { t } = useTranslation();
   const i18n = useI18n();
@@ -136,7 +142,10 @@ function SessionTable({
               : formatSetWeight(set.weight_completed);
           const loggedText = [
             formatCount(i18n, "reps", set.reps_completed ?? 0),
-            weight === null ? null : `${weight} ${weightLabel ?? ""}`.trim(),
+            // Spoken in the App language's decimals: "50.5" / "50,5".
+            set.weight_completed === null
+              ? null
+              : `${formatNumber(i18n, set.weight_completed)} ${weightLabel}`,
           ]
             .filter(Boolean)
             .join(", ");
@@ -177,7 +186,8 @@ export default function ExerciseHistoryView({
   const { data: items } = useExerciseHistoryQuery({
     variables: { exerciseSlug },
   });
-  const { i18n, t } = useTranslation();
+  const { t } = useTranslation();
+  const i18n = useI18n();
   const { data: profile } = useProfileQuery();
   const weightLabel = unitName(
     i18n,
