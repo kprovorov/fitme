@@ -68,5 +68,31 @@
         "extension": "mp4"
       }
     }
+  ],
+  "covers": [
+    {
+      "id": "3f2b8a4e-6c1d-4e5f-9a7b-1c2d3e4f5a6b",
+      "muscle_groups": ["chest", "triceps"],
+      "image": {
+        "oid": "83de1cefe72b05491a53b96922334e68cb220b1db6e6d5475e0eeb40d49e4275",
+        "extension": "jpg"
+      }
+    },
+    {
+      "id": "8d4c2e1a-7b3f-4a9e-8c5d-2e3f4a5b6c7d",
+      "muscle_groups": ["back", "biceps"],
+      "image": {
+        "oid": "0b614aecc01ca0829f1c370c1379367ae7e1de3a96ac978b8ef2dae9b2f8dbb8",
+        "extension": "webp"
+      }
+    },
+    {
+      "id": "c6e5d4b3-2a1f-4e8d-9c7b-3f4a5b6c7d8e",
+      "muscle_groups": ["quadriceps", "glutes", "hamstrings"],
+      "image": {
+        "oid": "2bae5f0107ccd10bb8b32e33a98972e15b1d345526e7883496dfe5cdfb5fe1a7",
+        "extension": "png"
+      }
+    }
   ]
 }

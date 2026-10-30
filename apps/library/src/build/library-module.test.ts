@@ -7,6 +7,7 @@ import {
   fakeOid,
   inUkrainian,
   libraryBundle,
+  libraryCover,
   libraryExercise,
 } from "../test/fixtures";
 import {
@@ -80,6 +81,16 @@ const PRODUCTION: LibraryEnv = {
 /** A version 1 bundle whose Exercises can be anything, to break the format. */
 const bundleOf = (exercises: unknown[]) => ({ exercises, version: 1 });
 
+const COVER_ID = "0f8fad5b-d9cb-469f-a165-70867728950e";
+const OTHER_COVER_ID = "7c9e6679-7425-40de-944b-e07fc1f90ae7";
+
+/** A version 1 bundle whose Covers can be anything, to break the format. */
+const bundleWithCovers = (covers: unknown[]) => ({
+  covers,
+  exercises: [libraryExercise("squat", "Squat")],
+  version: 1,
+});
+
 describe("generateLibraryModule", () => {
   it("generates a module holding every Exercise with its media URLs and the search index", async () => {
     const result = await generate({
@@ -100,6 +111,7 @@ describe("generateLibraryModule", () => {
     };
     // untranslated, so wholly English in Ukrainian too
     expect(library).toEqual({
+      covers: [],
       hash: expect.stringMatching(/^[0-9a-f]{64}$/),
       languages: {
         en: { exercises: [squat], searchNames: [["squat"]] },
@@ -155,6 +167,65 @@ describe("generateLibraryModule", () => {
     expect(await hashOf("Присідання")).not.toBe(await hashOf("Присід"));
   });
 
+  it("serves every Cover with its image on the render endpoint under covers/<id>/", async () => {
+    const result = await generate({
+      LIBRARY_BUNDLE: await writeBundle(
+        libraryBundle(
+          [libraryExercise("squat", "Squat")],
+          [
+            libraryCover(COVER_ID, ["quadriceps", "glutes"]),
+            {
+              ...libraryCover(OTHER_COVER_ID, ["chest"]),
+              image: { extension: "webp", oid: fakeOid("d") },
+            },
+          ]
+        )
+      ),
+      SUPABASE_URL,
+    });
+
+    expect(result).toMatchObject({ covers: 2, ok: true });
+    const { library } = await importModule(result.ok ? result.source : "");
+    expect(library.covers).toEqual([
+      {
+        id: COVER_ID,
+        image_url: `${SUPABASE_URL}/storage/v1/render/image/public/exercise-media/covers/${COVER_ID}/${fakeOid("c")}.jpg`,
+        muscle_groups: ["quadriceps", "glutes"],
+      },
+      {
+        id: OTHER_COVER_ID,
+        image_url: `${SUPABASE_URL}/storage/v1/render/image/public/exercise-media/covers/${OTHER_COVER_ID}/${fakeOid("d")}.webp`,
+        muscle_groups: ["chest"],
+      },
+    ]);
+  });
+
+  it.each([
+    ["adding a Cover", undefined, [libraryCover(COVER_ID)]],
+    [
+      "changing a Cover's muscle groups",
+      [libraryCover(COVER_ID, ["chest"])],
+      [libraryCover(COVER_ID, ["back"])],
+    ],
+    [
+      "changing a Cover's image",
+      [libraryCover(COVER_ID)],
+      [{ ...libraryCover(COVER_ID), image: { extension: "jpg" as const, oid: fakeOid("e") } }],
+    ],
+  ])("changes the library hash when %s", async (_, before, after) => {
+    const hashOf = async (covers?: ReturnType<typeof libraryCover>[]) => {
+      const result = await generate({
+        LIBRARY_BUNDLE: await writeBundle(
+          libraryBundle([libraryExercise("squat", "Squat")], covers)
+        ),
+        SUPABASE_URL,
+      });
+      return result.ok ? result.hash : "";
+    };
+
+    expect(await hashOf(before)).not.toBe(await hashOf(after));
+  });
+
   it("accepts the committed fixture bundle", async () => {
     const result = await generate({ SUPABASE_URL });
 
@@ -166,6 +237,7 @@ describe("generateLibraryModule", () => {
     expect(
       library.languages.uk.exercises.map(({ name }: { name: string }) => name)
     ).toEqual(["Приклад жиму", "Приклад тяги", "Example Squat"]);
+    expect(library.covers).not.toHaveLength(0);
   });
 
   it.each([
@@ -252,6 +324,63 @@ describe("generateLibraryModule", () => {
       "a field the format doesn't have",
       bundleOf([{ ...libraryExercise("squat", "Squat"), url: "x" }]),
       /: exercises\.0: Unrecognized key: "url"$/,
+    ],
+    [
+      "a Cover id that isn't a uuid",
+      bundleWithCovers([libraryCover("legs-1")]),
+      /: covers\.0\.id: must be a lowercase uuid/,
+    ],
+    [
+      "an uppercase Cover id",
+      bundleWithCovers([libraryCover(COVER_ID.toUpperCase())]),
+      /: covers\.0\.id: must be a lowercase uuid/,
+    ],
+    [
+      "a repeated Cover id",
+      bundleWithCovers([libraryCover(COVER_ID), libraryCover(COVER_ID)]),
+      new RegExp(`: covers\\.1\\.id: Cover id "${COVER_ID}" repeats$`),
+    ],
+    [
+      "a Cover without muscle groups",
+      bundleWithCovers([libraryCover(COVER_ID, [] as never)]),
+      /: covers\.0\.muscle_groups: /,
+    ],
+    [
+      "a Cover with an unknown muscle group",
+      bundleWithCovers([libraryCover(COVER_ID, ["neck"] as never)]),
+      /: covers\.0\.muscle_groups\.0: unknown muscle group "neck" \(known: chest, /,
+    ],
+    [
+      "a Cover with a repeated muscle group",
+      bundleWithCovers([libraryCover(COVER_ID, ["chest", "chest"])]),
+      /: covers\.0\.muscle_groups: muscle groups must not repeat$/,
+    ],
+    [
+      "a Cover with a bad oid",
+      bundleWithCovers([
+        { ...libraryCover(COVER_ID), image: { extension: "jpg", oid: "abc" } },
+      ]),
+      /: covers\.0\.image\.oid: must be a Git LFS object id/,
+    ],
+    [
+      "a Cover image that isn't jpg, png or webp",
+      bundleWithCovers([
+        {
+          ...libraryCover(COVER_ID),
+          image: { extension: "gif", oid: fakeOid("c") },
+        },
+      ]),
+      /: covers\.0\.image\.extension: /,
+    ],
+    [
+      "a Cover with a field the format doesn't have",
+      bundleWithCovers([{ ...libraryCover(COVER_ID), alt: "A squat" }]),
+      /: covers\.0: Unrecognized key: "alt"$/,
+    ],
+    [
+      "Covers that aren't a list",
+      { ...bundleWithCovers([]), covers: {} },
+      /: covers: /,
     ],
   ])("fails on %s, naming the field", async (_, bundle, problem) => {
     const bundlePath = await writeBundle(bundle);
@@ -441,6 +570,7 @@ describe("generateLibraryModule outside production", () => {
     expect(blob.calls).toEqual([]);
     expect(result).toMatchObject({
       bundle: resolve(APP_ROOT, "fixtures/library.json"),
+      covers: 3,
       exercises: 3,
       ok: true,
     });

@@ -55,6 +55,8 @@ export type GenerateResult =
       ok: true;
       /** Which bundle the module was built from, for the build log. */
       bundle: string;
+      /** How many Covers it holds. */
+      covers: number;
       /** How many Exercises it holds. */
       exercises: number;
       /** The library hash (the `ETag`), so a deployment's content can be told apart. */
@@ -143,8 +145,8 @@ const parseBundle = (name: string, text: string): ReadResult => {
 
 /**
  * Reads and validates the `library.json` bundle and turns it into the source
- * of a TypeScript module the API imports: every Exercise in every App
- * language with its media URLs resolved on the Supabase project at
+ * of a TypeScript module the API imports: every Cover, and every Exercise in
+ * every App language, with media URLs resolved on the Supabase project at
  * SUPABASE_URL, and each language's order and search index. Which bundle:
  *
  * - a production build (`VERCEL_ENV=production`) fetches `library.json` from
@@ -202,6 +204,7 @@ export const library: ServedLibrary = ${JSON.stringify(library, null, 2)};
 `;
   return {
     bundle: bundleName,
+    covers: library.covers.length,
     exercises: result.bundle.exercises.length,
     hash: library.hash,
     ok: true,

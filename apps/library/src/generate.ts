@@ -26,8 +26,9 @@ if (result.ok) {
   // The build log names the deployment's content: its source, size and hash.
   const exercises =
     result.exercises === 1 ? "1 Exercise" : `${result.exercises} Exercises`;
+  const covers = result.covers === 1 ? "1 Cover" : `${result.covers} Covers`;
   console.log(
-    `generated ${out} from ${result.bundle}: ${exercises}, library hash ${result.hash}`
+    `generated ${out} from ${result.bundle}: ${exercises}, ${covers}, library hash ${result.hash}`
   );
 } else {
   const count = result.problems.length;
