@@ -5,7 +5,14 @@
  * from `test-utils/`), Clerk for a signed-in User, and the SwiftUI-backed
  * primitives for stand-ins.
  */
-import { beforeEach, describe, expect, it, jest } from "@jest/globals";
+import {
+  afterEach,
+  beforeEach,
+  describe,
+  expect,
+  it,
+  jest,
+} from "@jest/globals";
 import * as Sentry from "@sentry/react-native";
 import { QueryClientProvider } from "@tanstack/react-query";
 import { fireEvent, render, screen } from "@testing-library/react-native";
@@ -13,6 +20,7 @@ import { router } from "expo-router";
 import { useCallback } from "react";
 import { Pressable, Text } from "react-native";
 import EditProfileScreen from "~/app/settings/edit-profile";
+import { i18n } from "~/lib/i18n";
 import { setDeviceLanguages } from "~/test-utils/device-locales";
 import {
   FAKE_SESSION_TOKEN,
@@ -20,6 +28,7 @@ import {
   fakePublicApi,
 } from "~/test-utils/fake-public-api";
 import { backend } from "~/test-utils/fake-workout-backend";
+import { InAppLanguage } from "~/test-utils/in-app-language";
 import { createTestQueryClient, settle } from "~/test-utils/query-client";
 
 jest.mock("expo-router", () => ({
@@ -362,5 +371,94 @@ describe("EditProfileScreen", () => {
     expect(screen.getByTestId("wheel-10")).toBeTruthy();
     expect(screen.getByTestId("wheel-120")).toBeTruthy();
     expect(screen.queryByTestId("wheel-121")).toBeNull();
+  });
+});
+
+describe("EditProfileScreen on a Ukrainian device", () => {
+  beforeEach(() => {
+    setDeviceLanguages(["uk-UA"]);
+    jest.clearAllMocks();
+    mockUser.fullName = "Тарас Шевченко";
+    backend.reset();
+  });
+
+  afterEach(async () => {
+    // The next English test renders without the sync.
+    await i18n.changeLanguage("en");
+  });
+
+  const mountInUkrainian = async () => {
+    queryClient = createTestQueryClient();
+    await render(
+      <QueryClientProvider client={queryClient}>
+        <InAppLanguage>
+          <EditProfileScreen />
+        </InAppLanguage>
+      </QueryClientProvider>
+    );
+    await settle(queryClient);
+  };
+
+  it("shows the Profile's values with their units", async () => {
+    backend.seedProfile(FAKE_USER_ID, {
+      age: 32,
+      gender: "female",
+      height: 170.5,
+      measurement_system: "metric",
+      weight: 62.5,
+    });
+    await mountInUkrainian();
+
+    for (const text of [
+      "Ім’я",
+      "Стать",
+      "Особисті параметри",
+      "Вік",
+      "32 роки",
+      "Вага",
+      "62,5 кг",
+      "Зріст",
+      "170,5 см",
+      "Зберегти",
+    ]) {
+      expect(screen.getByText(text)).toBeTruthy();
+    }
+    expect(screen.getByLabelText("Жінка")).toBeTruthy();
+  });
+
+  it("names a missing value in Ukrainian and writes nothing", async () => {
+    await mountInUkrainian();
+
+    expect(screen.getAllByText("Не вказано")).toHaveLength(3);
+    await save();
+
+    for (const text of [
+      "Вкажіть стать",
+      "Вкажіть вік",
+      "Вкажіть вагу",
+      "Вкажіть зріст",
+    ]) {
+      expect(screen.getByText(text)).toBeTruthy();
+    }
+    expect(fakePublicApi.requests).toEqual([]);
+  });
+
+  it("says in Ukrainian how long to wait when there were too many requests", async () => {
+    backend.seedProfile(FAKE_USER_ID);
+    await mountInUkrainian();
+    fakePublicApi.failNext(PROFILE_PATCH, {
+      retryAfterSeconds: 42,
+      status: 429,
+    });
+
+    await pick("Вік", 31);
+    await save();
+
+    expect(
+      screen.getByText(
+        "Не вдалося зберегти профіль. Забагато запитів: спробуйте ще раз через 42 с."
+      )
+    ).toBeTruthy();
+    expect(router.back).not.toHaveBeenCalled();
   });
 });

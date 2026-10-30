@@ -17,10 +17,11 @@ import { VStack } from "~/components/ui/vstack";
 import { useUpdateProfileMutation } from "~/hooks/mutations/profiles";
 import { useProfileQuery } from "~/hooks/queries/profiles";
 import { rateLimitedFor } from "~/lib/api/client";
+import { i18n } from "~/lib/i18n";
 
 export default function EditProfileScreen() {
   const queryClient = useQueryClient();
-  const { t } = useTranslation();
+  const { t } = useTranslation(undefined, { i18n });
 
   const { isLoaded: isUserLoaded, user } = useUser();
   const {
@@ -96,7 +97,7 @@ export default function EditProfileScreen() {
             fontWeight: "bold",
           },
           headerTransparent: true,
-          title: "Edit Profile",
+          title: t("editProfile.title"),
         }}
       />
       {isPendingLoad && !isLoadError ? (
@@ -107,10 +108,13 @@ export default function EditProfileScreen() {
       {isLoadError ? (
         <VStack className="flex-1 items-stretch justify-center gap-4 p-6">
           <ErrorMessage className="text-center">
-            Couldn't load your profile. Please check your connection and try
-            again.
+            {t("editProfile.loadError")}
           </ErrorMessage>
-          <Button label="Try Again" onPress={handleRetry} variant="secondary" />
+          <Button
+            label={t("common.tryAgain")}
+            onPress={handleRetry}
+            variant="secondary"
+          />
         </VStack>
       ) : null}
       {!!user && profile !== undefined && (
@@ -131,7 +135,7 @@ export default function EditProfileScreen() {
           measurementSystem={measurementSystem}
           onSubmit={handleSubmit}
           showName
-          submitLabel="Save"
+          submitLabel={t("editProfile.save")}
           submitTestID="edit-profile-save-button"
         />
       )}

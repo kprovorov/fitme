@@ -5,6 +5,7 @@ import { createMutation } from "react-query-kit";
 import { clearSavedArnoldConversation } from "~/lib/arnold-chat";
 import { getClerk, getClerkErrorMessage } from "~/lib/clerk";
 import { IS_E2E } from "~/lib/constants";
+import { i18n } from "~/lib/i18n";
 import { segmentClient } from "~/lib/segment";
 
 export const useLogoutMutation = createMutation<void, void>({
@@ -39,7 +40,7 @@ export const useDeleteUserMutation = createMutation<void, void>({
     }
   },
   onError: (error) => {
-    Alert.alert("Couldn't delete your account", getClerkErrorMessage(error));
+    Alert.alert(i18n.t("settings.deleteFailed"), getClerkErrorMessage(error));
   },
   onSuccess: () => {
     router.replace("/auth/login");

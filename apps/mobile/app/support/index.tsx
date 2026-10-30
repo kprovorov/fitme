@@ -1,4 +1,5 @@
 import { Stack } from "expo-router";
+import { useTranslation } from "react-i18next";
 import { Linking, ScrollView, View } from "react-native";
 import { useCSSVariable } from "uniwind";
 import Instagram from "~/components/icons/social/instagram";
@@ -8,6 +9,7 @@ import { Button } from "~/components/ui/button";
 import { HStack } from "~/components/ui/hstack";
 import { P } from "~/components/ui/typography";
 import { VStack } from "~/components/ui/vstack";
+import { i18n } from "~/lib/i18n";
 
 /**
  * A 16 pt logo in a 44 pt-wide tap target (the ghost Button gives the
@@ -25,6 +27,7 @@ const openThreads = () =>
 
 export default function SupportScreen() {
   const primary = useCSSVariable("--color-primary") as string;
+  const { t } = useTranslation(undefined, { i18n });
 
   return (
     <>
@@ -37,7 +40,7 @@ export default function SupportScreen() {
             fontWeight: "bold",
           },
           headerTransparent: true,
-          title: "Support",
+          title: t("support.title"),
         }}
       />
       <ScrollView
@@ -46,10 +49,7 @@ export default function SupportScreen() {
         showsVerticalScrollIndicator={false}
       >
         <VStack className="items-start gap-0">
-          <P>
-            Feel free to contact us at any time if you have any questions or
-            feedback
-          </P>
+          <P>{t("support.contact")}</P>
           <Button
             contentColorClassName="text-primary"
             label="support@fitmeproject.com"
