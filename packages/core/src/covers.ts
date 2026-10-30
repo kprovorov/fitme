@@ -37,9 +37,13 @@ const rankMuscleGroups = (workout: CoverWorkout): MuscleGroup[] => {
     .map(([group]) => group);
 };
 
+/** `items` must not be empty; a `random` outside [0, 1) is clamped into it. */
 const pickAtRandom = <T>(items: readonly T[], random: () => number): T => {
-  const index = Math.min(Math.floor(random() * items.length), items.length - 1);
-  return items[Math.max(index, 0)] as T;
+  const index = Math.floor(random() * items.length);
+  const inRange = Number.isNaN(index)
+    ? 0
+    : Math.min(Math.max(index, 0), items.length - 1);
+  return items[inRange] as T;
 };
 
 /**
@@ -58,10 +62,14 @@ export function pickCovers({
   usedCoverIds = [],
   workouts,
 }: PickCoversInput): Array<string | null> {
-  if (covers.length === 0) {
+  // A repeated id counts once, so it's never likelier to be picked.
+  const options = [
+    ...new Map(covers.map((option) => [option.id, option])).values(),
+  ];
+  if (options.length === 0) {
     return workouts.map(() => null);
   }
-  const uses = new Map(covers.map((option) => [option.id, 0]));
+  const uses = new Map(options.map((option) => [option.id, 0]));
   for (const id of usedCoverIds) {
     const count = uses.get(id);
     if (count !== undefined) {
@@ -71,8 +79,11 @@ export function pickCovers({
   const usesOf = (option: CoverOption) => uses.get(option.id) ?? 0;
 
   return workouts.map((workout) => {
-    const fewestUses = Math.min(...covers.map(usesOf));
-    const leastUsed = covers.filter((option) => usesOf(option) === fewestUses);
+    const fewestUses = options.reduce(
+      (fewest, option) => Math.min(fewest, usesOf(option)),
+      Number.POSITIVE_INFINITY
+    );
+    const leastUsed = options.filter((option) => usesOf(option) === fewestUses);
     const tiers = [
       ...rankMuscleGroups(workout).map((group) =>
         leastUsed.filter((option) => option.muscleGroups.includes(group))

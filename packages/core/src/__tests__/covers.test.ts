@@ -178,4 +178,26 @@ describe("pickCovers", () => {
       })
     ).toEqual(["chest-1", "chest-1"]);
   });
+
+  it("keeps a random source outside [0, 1) on a candidate", () => {
+    const covers = [cover("chest-1", "chest"), cover("chest-2", "chest")];
+    const pick = (random: () => number) =>
+      pickCovers({ covers, random, workouts: [workout(["chest"])] });
+
+    expect(pick(() => 1)).toEqual(["chest-2"]);
+    expect(pick(() => -1)).toEqual(["chest-1"]);
+    expect(pick(() => Number.NaN)).toEqual(["chest-1"]);
+  });
+
+  it("counts a Cover listed twice as one", () => {
+    const covers = [
+      cover("chest-1", "chest"),
+      cover("chest-1", "chest"),
+      cover("chest-2", "chest"),
+    ];
+
+    expect(
+      pickCovers({ covers, random: () => 0.6, workouts: [workout(["chest"])] })
+    ).toEqual(["chest-2"]);
+  });
 });
