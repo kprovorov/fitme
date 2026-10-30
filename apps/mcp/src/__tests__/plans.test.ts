@@ -1,4 +1,6 @@
-import { LibraryUnavailableError } from "@fitme/library-sdk";
+import { type Cover, LibraryUnavailableError } from "@fitme/library-sdk";
+import { createFakeLibrary } from "@fitme/library-sdk/fake";
+import type { NewPlan } from "@fitme/services/plans";
 import { describe, expect, it, vi } from "vitest";
 import {
   BENCH,
@@ -58,6 +60,10 @@ const workoutsInput = [
     name: "Day A",
   },
 ];
+
+/** The Workouts as the tools pass them on: with no Covers, each `cover: null`. */
+const uncovered = <W extends object>(workouts: W[]) =>
+  workouts.map((workout) => ({ ...workout, cover: null }));
 
 const planSummary = {
   ...metadata,
@@ -255,7 +261,10 @@ describe("create_plan", () => {
 
     expect(result.isError).toBe(false);
     expect(result.json).toEqual(toolPlan);
-    expect(createPlan).toHaveBeenCalledWith(plan);
+    expect(createPlan).toHaveBeenCalledWith({
+      ...plan,
+      workouts: uncovered(workoutsInput),
+    });
   });
 
   it("rejects unknown Exercise slugs, naming them, before calling the service", async () => {
@@ -397,7 +406,7 @@ describe("update_plan", () => {
     expect(result.json).toEqual(toolPlan);
     expect(updatePlan).toHaveBeenCalledWith(PLAN_ID, {
       frequency: 4,
-      workouts: workoutsInput,
+      workouts: uncovered(workoutsInput),
     });
   });
 
@@ -664,7 +673,7 @@ describe("Workout covers", () => {
     expect(result.json).toEqual(coveredToolPlan);
     expect(createPlan).toHaveBeenCalledWith({
       ...metadata,
-      workouts: workoutsInput,
+      workouts: uncovered(workoutsInput),
     });
   });
 
@@ -680,7 +689,7 @@ describe("Workout covers", () => {
     expect(result.isError).toBe(false);
     expect(result.json).toEqual(coveredToolPlan);
     expect(updatePlan).toHaveBeenCalledWith(PLAN_ID, {
-      workouts: workoutsInput,
+      workouts: uncovered(workoutsInput),
     });
   });
 
@@ -692,5 +701,139 @@ describe("Workout covers", () => {
     const result = await call(client, "activate_plan", { planId: PLAN_ID });
 
     expect(result.json).toEqual({ activated: true, plan: coveredSummary });
+  });
+});
+
+describe("Cover assignment", () => {
+  const cover = (id: string, muscleGroups: Cover["muscle_groups"]): Cover => ({
+    id,
+    image_url: `https://media.test/covers/${id}.jpg`,
+    muscle_groups: muscleGroups,
+  });
+  const CHEST_A = cover("c0000000-0000-4000-8000-00000000000a", ["chest"]);
+  const CHEST_B = cover("c0000000-0000-4000-8000-00000000000b", ["chest"]);
+  const LEGS = cover("c0000000-0000-4000-8000-00000000000c", [
+    "quadriceps",
+    "glutes",
+  ]);
+
+  const [dayA] = workoutsInput;
+  const [benchEntry, squatEntry] = dayA.exercises;
+  const chestDay = { ...dayA, exercises: [benchEntry], name: "Chest day" };
+  const legDay = { ...dayA, exercises: [squatEntry], name: "Leg day" };
+
+  const libraryWith = (covers: Cover[]) =>
+    createFakeLibrary([BENCH, SQUAT], { covers });
+
+  it("create_plan gives each Workout a Cover of its most-trained muscle group", async () => {
+    const createPlan = vi.fn(() => Promise.resolve(servicePlan));
+    const client = await connectWithServices(
+      { createPlan },
+      ignoreReports,
+      libraryWith([LEGS, CHEST_A])
+    );
+
+    const result = await call(client, "create_plan", {
+      ...metadata,
+      workouts: [chestDay, legDay],
+    });
+
+    expect(result.isError).toBe(false);
+    expect(createPlan).toHaveBeenCalledWith({
+      ...metadata,
+      workouts: [
+        { ...chestDay, cover: CHEST_A.id },
+        { ...legDay, cover: LEGS.id },
+      ],
+    });
+  });
+
+  it("create_plan keeps the Covers distinct within the Plan", async () => {
+    const passed: unknown[] = [];
+    const createPlan = vi.fn((plan: NewPlan) => {
+      passed.push(...plan.workouts.map((workout) => workout.cover));
+      return Promise.resolve(servicePlan);
+    });
+    const client = await connectWithServices(
+      { createPlan },
+      ignoreReports,
+      libraryWith([CHEST_A, CHEST_B, LEGS])
+    );
+
+    await call(client, "create_plan", {
+      ...metadata,
+      workouts: [chestDay, chestDay],
+    });
+
+    expect(passed.sort()).toEqual([CHEST_A.id, CHEST_B.id].sort());
+  });
+
+  it("update_plan with workouts gives each new Workout a Cover", async () => {
+    const updatePlan = vi.fn(() => Promise.resolve(servicePlan));
+    const client = await connectWithServices(
+      { updatePlan },
+      ignoreReports,
+      libraryWith([CHEST_A, LEGS])
+    );
+
+    const result = await call(client, "update_plan", {
+      planId: PLAN_ID,
+      workouts: [legDay, chestDay],
+    });
+
+    expect(result.isError).toBe(false);
+    expect(updatePlan).toHaveBeenCalledWith(PLAN_ID, {
+      workouts: [
+        { ...legDay, cover: LEGS.id },
+        { ...chestDay, cover: CHEST_A.id },
+      ],
+    });
+  });
+
+  it("a metadata-only update_plan leaves the Covers alone", async () => {
+    const updatePlan = vi.fn(() => Promise.resolve(servicePlan));
+    const library = libraryWith([CHEST_A]);
+    const covers = vi.spyOn(library, "covers");
+    const client = await connectWithServices(
+      { updatePlan },
+      ignoreReports,
+      library
+    );
+
+    await call(client, "update_plan", { name: "Renamed", planId: PLAN_ID });
+
+    expect(updatePlan).toHaveBeenCalledWith(PLAN_ID, { name: "Renamed" });
+    expect(covers).not.toHaveBeenCalled();
+  });
+
+  it("covers() failing is the Library tool error, reported, with nothing written", async () => {
+    const createPlan = vi.fn(() => Promise.resolve(servicePlan));
+    const updatePlan = vi.fn(() => Promise.resolve(servicePlan));
+    const failure = new LibraryUnavailableError({ status: 503 });
+    const library = libraryWith([CHEST_A]);
+    vi.spyOn(library, "covers").mockRejectedValue(failure);
+    const { reportError, reported } = recordingReporter();
+    const client = await connectWithServices(
+      { createPlan, updatePlan },
+      reportError,
+      library
+    );
+
+    const created = await call(client, "create_plan", {
+      ...metadata,
+      workouts: [chestDay],
+    });
+    const updated = await call(client, "update_plan", {
+      planId: PLAN_ID,
+      workouts: [chestDay],
+    });
+
+    for (const result of [created, updated]) {
+      expect(result.isError).toBe(true);
+      expect(result.text).toBe(UNAVAILABLE);
+    }
+    expect(createPlan).not.toHaveBeenCalled();
+    expect(updatePlan).not.toHaveBeenCalled();
+    expect(reported).toEqual([failure, failure]);
   });
 });

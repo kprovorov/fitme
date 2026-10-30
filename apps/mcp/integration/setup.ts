@@ -1,11 +1,11 @@
 import { randomBytes } from "node:crypto";
-import type { Exercise } from "@fitme/library-sdk";
+import type { Cover, Exercise } from "@fitme/library-sdk";
+import { createFakeLibrary } from "@fitme/library-sdk/fake";
 import type { Client } from "@modelcontextprotocol/sdk/client/index.js";
 import {
   call,
   connect,
   contextFor,
-  fakeLibrary,
   ignoreReports,
 } from "../src/__tests__/harness.js";
 import { createServicesFromEnv } from "../src/services.js";
@@ -46,8 +46,31 @@ export const INTEGRATION_EXERCISES = [
   exercise("barbell-deadlift", "Barbell Deadlift", ["back", "hamstrings"]),
 ];
 
-/** A fresh fake Library over INTEGRATION_EXERCISES. */
-export const integrationLibrary = () => fakeLibrary(INTEGRATION_EXERCISES);
+const cover = (id: string, muscleGroups: Cover["muscle_groups"]): Cover => ({
+  id,
+  image_url: `https://media.test/covers/${id}.jpg`,
+  muscle_groups: muscleGroups,
+});
+
+/**
+ * The Covers the fake Library has: one per most-trained muscle group of
+ * planInput's Workouts (the squat's quadriceps, the deadlift's back), and
+ * one neither trains, so each Workout's Cover is known in advance.
+ */
+export const INTEGRATION_COVERS = {
+  back: cover("1a6f0c2e-3b8d-4e51-9c47-0d2b6e8f1a01", ["back", "hamstrings"]),
+  chest: cover("1a6f0c2e-3b8d-4e51-9c47-0d2b6e8f1a02", ["chest"]),
+  quadriceps: cover("1a6f0c2e-3b8d-4e51-9c47-0d2b6e8f1a03", [
+    "quadriceps",
+    "glutes",
+  ]),
+};
+
+/** A fresh fake Library over INTEGRATION_EXERCISES and INTEGRATION_COVERS. */
+export const integrationLibrary = () =>
+  createFakeLibrary(INTEGRATION_EXERCISES, {
+    covers: Object.values(INTEGRATION_COVERS),
+  });
 
 /** A made-up id in Clerk's `user_…` format, unique per run. */
 const clerkStyleUserId = (label: string) =>
@@ -130,6 +153,7 @@ export interface PlanSet {
 }
 
 export interface PlanWorkout {
+  cover: string | null;
   exercises: {
     exercise_slug: string;
     id: string;

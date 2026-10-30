@@ -1,3 +1,4 @@
+import { pickCovers } from "@fitme/core/covers";
 import {
   type ExerciseSummary,
   exerciseNameFromSlug,
@@ -64,6 +65,37 @@ export async function requireKnownSlugs(
     );
   }
   return bySlug(data);
+}
+
+/**
+ * Gives each Workout a write creates its Cover (ADR 0014): one `covers()`
+ * call, then the picker, by the muscle groups `known` (the write's slug
+ * check) has for its Exercises, distinct within the Plan while there are
+ * enough. Before the services' transaction, so a failing library is the
+ * Library tool error with nothing written; no Covers gives every Workout
+ * `null`.
+ */
+export async function withCovers<W extends { exercises: WithSlug[] }>(
+  ctx: ToolContext,
+  workouts: W[],
+  known: KnownExercises
+): Promise<Array<W & { cover: string | null }>> {
+  const covers = await fromLibrary(ctx, (library) => library.covers());
+  const picked = pickCovers({
+    covers: covers.map((cover) => ({
+      id: cover.id,
+      muscleGroups: cover.muscle_groups,
+    })),
+    workouts: workouts.map((workout) => ({
+      exercises: workout.exercises.map((exercise) => ({
+        muscleGroups: known.get(exercise.exercise_slug)?.muscle_groups ?? [],
+      })),
+    })),
+  });
+  return workouts.map((workout, index) => ({
+    ...workout,
+    cover: picked[index] ?? null,
+  }));
 }
 
 /**

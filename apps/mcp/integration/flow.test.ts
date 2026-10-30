@@ -9,6 +9,7 @@ import {
   createTestUser,
   type ExercisePage,
   type ExerciseRow,
+  INTEGRATION_COVERS,
   type PlanDetail,
   type PlanSummary,
   pickExercises,
@@ -133,6 +134,18 @@ describe("plan and workout flow against the local stack", () => {
     expect(dayA.exercises[0]?.sets.map((set) => set.reps_recommended)).toEqual([
       8, 6,
     ]);
+  });
+
+  it("stores a Cover for each Workout, by its most-trained muscle group", async () => {
+    const stored = await callOk<PlanDetail>(client, "get_plan", {
+      planId: plan.id,
+    });
+    expect(stored.workouts.map(({ cover, name }) => ({ cover, name }))).toEqual(
+      [
+        { cover: INTEGRATION_COVERS.quadriceps.id, name: "Day A" },
+        { cover: INTEGRATION_COVERS.back.id, name: "Day B" },
+      ]
+    );
   });
 
   it("rejects unknown Exercise slugs without creating a plan", async () => {
@@ -385,6 +398,15 @@ describe("plan and workout flow against the local stack", () => {
     for (const workout of replaced.workouts) {
       expect(oldIds.has(workout.id)).toBe(false);
     }
+    const stored = await callOk<PlanDetail>(client, "get_plan", {
+      planId: plan.id,
+    });
+    expect(stored.workouts.map(({ cover, name }) => ({ cover, name }))).toEqual(
+      [
+        { cover: INTEGRATION_COVERS.back.id, name: "Day B" },
+        { cover: INTEGRATION_COVERS.quadriceps.id, name: "Day A" },
+      ]
+    );
     plan = replaced;
 
     const past = await callOk<SessionDetail>(client, "get_workout_session", {
