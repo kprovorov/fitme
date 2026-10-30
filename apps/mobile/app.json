@@ -22,7 +22,7 @@
     "android": {
       "adaptiveIcon": {
         "foregroundImage": "./assets/images/adaptive-icon.png",
-        "backgroundColor": "#ffffff"
+        "backgroundColor": "#c0ff38"
       },
       "package": "com.fitmeproject.ios"
     },
@@ -49,9 +49,9 @@
         "expo-splash-screen",
         {
           "image": "./assets/images/splash-icon.png",
-          "imageWidth": 200,
+          "imageWidth": 128,
           "resizeMode": "contain",
-          "backgroundColor": "#000000"
+          "backgroundColor": "#c0ff38"
         }
       ],
       "expo-secure-store",
