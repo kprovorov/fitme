@@ -10,6 +10,7 @@ import type { FakeLibrary } from "@fitme/library-sdk/fake";
 import { beforeEach, describe, expect, it, jest } from "@jest/globals";
 import { type QueryClient, QueryClientProvider } from "@tanstack/react-query";
 import { fireEvent, render, screen } from "@testing-library/react-native";
+import { router } from "expo-router";
 import type { ComponentType } from "react";
 import { Text } from "react-native";
 import LibraryScreen from "~/app/(tabs)/library/index";
@@ -69,6 +70,7 @@ beforeEach(() => {
   mockSlug.current = "bench-press";
   fake = serveLibrary([
     libraryExercise("bench-press", {
+      muscle_groups: ["chest", "triceps"],
       translations: { uk: { name: "Жим лежачи" } },
     }),
   ]);
@@ -85,6 +87,20 @@ describe("the Library tab in Ukrainian", () => {
     expect(screen.getByLabelText("Група м’язів Усі")).toBeTruthy();
     expect(screen.getByLabelText("Група м’язів Груди")).toBeTruthy();
     expect(screen.getByText("Жим лежачи")).toBeTruthy();
+  });
+
+  it("names each row's Muscle groups in Ukrainian", async () => {
+    await renderInUkrainian(LibraryScreen);
+
+    expect(screen.getByText("Груди, Трицепс")).toBeTruthy();
+  });
+
+  it("opens the Exercise's screen from its row", async () => {
+    await renderInUkrainian(LibraryScreen);
+
+    await fireEvent.press(screen.getByText("Жим лежачи"));
+
+    expect(router.push).toHaveBeenCalledWith("/exercises/bench-press");
   });
 
   it("says no Exercise matches, and offers them all, in Ukrainian", async () => {

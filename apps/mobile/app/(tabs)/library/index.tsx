@@ -3,6 +3,7 @@ import { router, Stack } from "expo-router";
 import { useCallback, useRef, useState } from "react";
 import { useTranslation } from "react-i18next";
 import { RefreshControl, ScrollView } from "react-native";
+import { ExerciseRowChevron } from "~/components/exercises/exercises-list";
 import ExercisesView, {
   type ExercisesViewHandle,
 } from "~/components/views/exercises-view";
@@ -49,6 +50,7 @@ export default function LibraryScreen() {
         <ExercisesView
           onExercisePress={onExercisePress}
           ref={exercisesViewRef}
+          trailing={<ExerciseRowChevron />}
         />
       </ScrollView>
     </>
