@@ -21,7 +21,13 @@ const DEFAULT_LIMIT = 20;
 const MAX_LIMIT = 50;
 const MAX_SEARCH = 100;
 const MAX_SLUGS = 40;
-const LIST_PARAMETERS = ["limit", "muscle_group", "offset", "search"] as const;
+const LIST_PARAMETERS = [
+  "limit",
+  "muscle_group",
+  "muscle_groups",
+  "offset",
+  "search",
+] as const;
 
 /** Every content route answers 401 without a caller (`requireCaller`). */
 const unauthorized = {
@@ -73,8 +79,25 @@ const listExercises = createRoute({
             example: DEFAULT_LIMIT,
           }),
         muscle_group: MuscleGroup.optional().openapi({
-          param: { description: "Only Exercises with this muscle group." },
+          param: {
+            description:
+              "Only Exercises with this muscle group. Not combined with `muscle_groups`.",
+          },
         }),
+        muscle_groups: z
+          .string()
+          .transform((groups) => groups.split(","))
+          .pipe(z.array(MuscleGroup).min(1))
+          .transform((groups) => [...new Set(groups)])
+          .optional()
+          // the generator would describe the parsed array: the parameter is
+          // the comma-separated string
+          .openapi({
+            description:
+              "Comma-separated muscle groups: only Exercises with any of them (a repeated one counts once). Not combined with `muscle_group`.",
+            example: "chest,triceps",
+            type: "string",
+          }),
         offset: z.coerce
           .number()
           .int()
@@ -103,12 +126,22 @@ const listExercises = createRoute({
           // the generator would describe the parsed array: the parameter is
           // the comma-separated string
           .openapi({
-            description: `Comma-separated Exercise slugs to look up instead of listing: at most ${MAX_SLUGS} (a repeated one is answered once), not combined with \`search\`, \`muscle_group\`, \`limit\` or \`offset\`.`,
+            description: `Comma-separated Exercise slugs to look up instead of listing: at most ${MAX_SLUGS} (a repeated one is answered once), not combined with \`search\`, \`muscle_group\`, \`muscle_groups\`, \`limit\` or \`offset\`.`,
             example: "bench-press,squat",
             type: "string",
           }),
       })
       .superRefine((query, ctx) => {
+        if (
+          query.muscle_group !== undefined &&
+          query.muscle_groups !== undefined
+        ) {
+          ctx.addIssue({
+            code: "custom",
+            message: "can't be combined with muscle_group",
+            path: ["muscle_groups"],
+          });
+        }
         if (query.slugs === undefined) {
           return;
         }
@@ -210,6 +243,7 @@ export const exerciseRoutes = (library: ServedLibrary) => {
         language: asked = defaultAppLanguage,
         limit = DEFAULT_LIMIT,
         muscle_group,
+        muscle_groups = muscle_group && [muscle_group],
         offset = 0,
         search,
         slugs,
@@ -224,7 +258,10 @@ export const exerciseRoutes = (library: ServedLibrary) => {
       const matches = summaries.filter(
         (summary, i) =>
           (!term || searchNames[i]?.some((name) => name.includes(term))) &&
-          (!muscle_group || summary.muscle_groups.includes(muscle_group))
+          (!muscle_groups ||
+            muscle_groups.some((group) =>
+              summary.muscle_groups.includes(group)
+            ))
       );
       const data = matches.slice(offset, offset + limit);
       const total = matches.length;
