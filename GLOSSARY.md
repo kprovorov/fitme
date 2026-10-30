@@ -46,6 +46,10 @@ A named movement from the Library, independent of any User, identified by its Ex
 The permanent, readable identifier of an Exercise (`bench-press`): lowercase letters and digits joined by single hyphens. It never changes, even when the Exercise's name does.
 _Avoid_: Exercise id, exercise uuid
 
+**Muscle group**:
+A body area an Exercise works, one of a fixed list. An Exercise works one or more Muscle groups.
+_Avoid_: Muscle, body part, target
+
 **Cover**:
 A photo from the Library that a Workout's card shows behind its content, tagged with the muscle groups it suits. Each Workout gets one when it's created, matched to the muscle group its Exercises train most, and no two Workouts of a Plan share one. Identified by a permanent id that never changes.
 _Avoid_: Thumbnail, background, workout image
