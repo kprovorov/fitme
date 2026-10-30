@@ -4,7 +4,7 @@ import { useQueryClient } from "@tanstack/react-query";
 import type { TFunction } from "i18next";
 import { useCallback, useState } from "react";
 import { useTranslation } from "react-i18next";
-import { Alert, Modal, ScrollView } from "react-native";
+import { Alert, Modal } from "react-native";
 import { useExercises } from "~/hooks/queries/library";
 import {
   useCreateWorkoutSessionExerciseMutation,
@@ -214,13 +214,10 @@ export default function WorkoutSessionView({
         presentationStyle="pageSheet"
         visible={showModal}
       >
-        <ScrollView
-          contentInsetAdjustmentBehavior="automatic"
-          // A result is tapped with the search keyboard still up.
-          keyboardShouldPersistTaps="handled"
-          showsVerticalScrollIndicator={false}
-        >
-          <VStack className="flex-1 items-stretch bg-background p-md">
+        {/* The list is the sheet's scroll container: no ScrollView around it. */}
+        <ExercisesView
+          contentContainerClassName="p-md"
+          header={
             <HStack className="justify-end">
               <Button
                 accessibilityLabel={t("workoutSession.picker.close")}
@@ -231,12 +228,10 @@ export default function WorkoutSessionView({
                 variant="ghost"
               />
             </HStack>
-            <ExercisesView
-              initialMuscleGroup={initialMuscleGroup}
-              trailing={renderExerciseCta}
-            />
-          </VStack>
-        </ScrollView>
+          }
+          initialMuscleGroup={initialMuscleGroup}
+          trailing={renderExerciseCta}
+        />
       </Modal>
 
       <VStack className="items-stretch justify-stretch gap-sm">

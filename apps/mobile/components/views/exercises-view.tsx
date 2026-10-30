@@ -1,12 +1,14 @@
 import { type MuscleGroup, muscleGroups } from "@fitme/core";
 import type { ExerciseSummary } from "@fitme/library-sdk";
 import type React from "react";
-import { useCallback, useImperativeHandle, useMemo, useState } from "react";
+import { useCallback, useEffect, useMemo, useRef, useState } from "react";
 import { useTranslation } from "react-i18next";
-import { ActivityIndicator, View } from "react-native";
-import ExercisesList, {
+import { ActivityIndicator, FlatList, View } from "react-native";
+import {
+  ExerciseRow,
+  ExerciseRowSeparator,
   type ExerciseRowTrailing,
-} from "~/components/exercises/exercises-list";
+} from "~/components/exercises/exercise-row";
 import { Button } from "~/components/ui/button";
 import { ErrorMessage } from "~/components/ui/error-message";
 import { Input } from "~/components/ui/input";
@@ -18,11 +20,10 @@ import { useExerciseSearch } from "~/hooks/queries/library";
 import { type ChoiceLabels, useChoiceLabels } from "~/lib/choices";
 import { i18n } from "~/lib/i18n";
 
-export interface ExercisesViewHandle {
-  refresh: () => Promise<void>;
-}
-
 type MuscleGroupFilter = MuscleGroup | "all";
+
+/** How close to the end, in visible lengths, the next page starts loading. */
+const END_REACHED_THRESHOLD = 0.5;
 
 const muscleGroupOptions = (
   labels: ChoiceLabels,
@@ -35,20 +36,32 @@ const muscleGroupOptions = (
     .map((group) => ({ label: labels.muscleGroup(group), value: group })),
 ];
 
-/** The Library, searched and filtered by muscle group: the Library tab and the Exercise picker. */
+const exerciseKey = (exercise: ExerciseSummary) => exercise.slug;
+
+/**
+ * The Library, searched and filtered by muscle group: the Library tab and the
+ * Exercise picker. It is the screen's scroll container, a virtualised list
+ * loading the next page as the User nears its end.
+ */
 const ExercisesView = ({
   onExercisePress = () => {
     /* noop */
   },
   trailing,
   initialMuscleGroup = "all",
-  ref,
+  header,
+  refreshable = false,
+  contentContainerClassName,
 }: {
   onExercisePress?: (exercise: ExerciseSummary) => void;
   // What ends each row: the Library's chevron, or the picker's CTA.
   trailing?: ExerciseRowTrailing;
   initialMuscleGroup?: MuscleGroupFilter;
-  ref?: React.Ref<ExercisesViewHandle>;
+  // Scrolls with the list, above the search field (the picker's Close).
+  header?: React.ReactNode;
+  // Pull to refresh (the Library tab).
+  refreshable?: boolean;
+  contentContainerClassName?: string;
 }) => {
   const { t } = useTranslation(undefined, { i18n });
   const labels = useChoiceLabels();
@@ -59,6 +72,7 @@ const ExercisesView = ({
   const [search, setSearch] = useState("");
   const [muscleGroup, setMuscleGroup] =
     useState<MuscleGroupFilter>(initialMuscleGroup);
+  const [refreshing, setRefreshing] = useState(false);
 
   const {
     exercises,
@@ -73,15 +87,36 @@ const ExercisesView = ({
     search,
   });
 
-  const refresh = useCallback(async () => {
-    await refetch();
+  // After a failed next page the list only asks again once the User scrolls
+  // to its end again: the message changing the list's length would
+  // otherwise call `onEndReached` straight away, over and over.
+  const scrolledSinceLoadMoreError = useRef(true);
+  useEffect(() => {
+    if (isLoadMoreError) {
+      scrolledSinceLoadMoreError.current = false;
+    }
+  }, [isLoadMoreError]);
+
+  const onScrollBeginDrag = useCallback(() => {
+    scrolledSinceLoadMoreError.current = true;
+  }, []);
+
+  const onEndReached = useCallback(() => {
+    if (!hasMore || isLoadingMore) {
+      return;
+    }
+    if (isLoadMoreError && !scrolledSinceLoadMoreError.current) {
+      return;
+    }
+    // A request in flight is never sent again.
+    loadMore({ cancelRefetch: false });
+  }, [hasMore, isLoadMoreError, isLoadingMore, loadMore]);
+
+  const onRefresh = useCallback(() => {
+    setRefreshing(true);
+    // A refetch never rejects: a failure is the query's error state.
+    refetch().then(() => setRefreshing(false));
   }, [refetch]);
-
-  useImperativeHandle(ref, () => ({ refresh }), [refresh]);
-
-  const handleLoadMore = useCallback(() => {
-    loadMore();
-  }, [loadMore]);
 
   const retry = useCallback(() => {
     refetch();
@@ -92,7 +127,23 @@ const ExercisesView = ({
     setMuscleGroup("all");
   }, []);
 
-  const renderResults = () => {
+  const shown = isError ? [] : (exercises ?? []);
+  const lastIndex = shown.length - 1;
+
+  const renderItem = useCallback(
+    ({ item, index }: { item: ExerciseSummary; index: number }) => (
+      <ExerciseRow
+        exercise={item}
+        isFirst={index === 0}
+        isLast={index === lastIndex}
+        onExercisePress={onExercisePress}
+        trailing={trailing}
+      />
+    ),
+    [lastIndex, onExercisePress, trailing]
+  );
+
+  const renderEmpty = () => {
     if (isError) {
       return (
         <VStack className="items-center gap-sm pt-lg">
@@ -107,30 +158,6 @@ const ExercisesView = ({
             variant="secondary"
           />
         </VStack>
-      );
-    }
-    if (exercises?.length) {
-      return (
-        <>
-          <ExercisesList
-            exercises={exercises}
-            onExercisePress={onExercisePress}
-            trailing={trailing}
-          />
-          {isLoadMoreError ? (
-            <ErrorMessage className="text-center">
-              {t("library.loadMoreError")}
-            </ErrorMessage>
-          ) : null}
-          {hasMore ? (
-            <Button
-              isLoading={isLoadingMore}
-              label={t("library.loadMore")}
-              onPress={handleLoadMore}
-              variant="secondary"
-            />
-          ) : null}
-        </>
       );
     }
     if (exercises) {
@@ -151,29 +178,66 @@ const ExercisesView = ({
     );
   };
 
+  const renderFooter = () => {
+    if (isLoadingMore) {
+      return (
+        <View className="items-center pt-md" testID="exercises-loading-more">
+          <ActivityIndicator colorClassName="accent-foreground" />
+        </View>
+      );
+    }
+    if (isLoadMoreError) {
+      return (
+        <ErrorMessage className="pt-md text-center">
+          {t("library.loadMoreError")}
+        </ErrorMessage>
+      );
+    }
+    return null;
+  };
+
   return (
-    <VStack className="flex-1 items-stretch">
-      <Input
-        accessibilityLabel={t("library.search")}
-        autoCapitalize="none"
-        autoCorrect={false}
-        clearButtonMode="while-editing"
-        onChangeText={setSearch}
-        placeholder={t("library.search")}
-        returnKeyType="search"
-        value={search}
-      />
-
-      <Picker
-        label={t("library.muscleGroup")}
-        onValueChange={setMuscleGroup}
-        options={filterOptions}
-        value={muscleGroup}
-        variant="menu"
-      />
-
-      {renderResults()}
-    </VStack>
+    <FlatList
+      contentContainerClassName={contentContainerClassName}
+      contentInsetAdjustmentBehavior="automatic"
+      data={shown}
+      ItemSeparatorComponent={ExerciseRowSeparator}
+      // A result is tapped with the search keyboard still up.
+      keyboardShouldPersistTaps="handled"
+      keyExtractor={exerciseKey}
+      ListEmptyComponent={renderEmpty()}
+      ListFooterComponent={renderFooter() ?? undefined}
+      ListHeaderComponent={
+        <VStack className="items-stretch pb-md">
+          {header}
+          <Input
+            accessibilityLabel={t("library.search")}
+            autoCapitalize="none"
+            autoCorrect={false}
+            clearButtonMode="while-editing"
+            onChangeText={setSearch}
+            placeholder={t("library.search")}
+            returnKeyType="search"
+            value={search}
+          />
+          <Picker
+            label={t("library.muscleGroup")}
+            onValueChange={setMuscleGroup}
+            options={filterOptions}
+            value={muscleGroup}
+            variant="menu"
+          />
+        </VStack>
+      }
+      onEndReached={onEndReached}
+      onEndReachedThreshold={END_REACHED_THRESHOLD}
+      onRefresh={refreshable ? onRefresh : undefined}
+      onScrollBeginDrag={onScrollBeginDrag}
+      refreshing={refreshable ? refreshing : undefined}
+      renderItem={renderItem}
+      showsVerticalScrollIndicator={false}
+      testID="exercises-list"
+    />
   );
 };
 ExercisesView.displayName = "ExercisesView";

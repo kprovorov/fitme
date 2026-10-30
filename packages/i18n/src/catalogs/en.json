@@ -11,7 +11,6 @@
     "muscleGroup": "Muscle group",
     "loadErrorTitle": "Couldn't Load Exercises",
     "loadError": "Couldn't load exercises. Check your connection and try again.",
-    "loadMore": "Load More",
     "loadMoreError": "Couldn't load more exercises. Check your connection and try again.",
     "emptyTitle": "No Exercises Found",
     "empty": "No exercises match. Try another name or muscle group.",
