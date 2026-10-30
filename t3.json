@@ -35,6 +35,11 @@
       "icon": "build"
     },
     {
+      "name": "Preview iOS (local)",
+      "command": "./scripts/preview-ios-local.sh",
+      "icon": "build"
+    },
+    {
       "name": "Run web",
       "command": "pnpm dev:web",
       "icon": "play",

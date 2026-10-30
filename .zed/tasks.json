@@ -35,6 +35,10 @@
     "command": "./scripts/release-ios-local.sh"
   },
   {
+    "label": "Preview iOS (local)",
+    "command": "./scripts/preview-ios-local.sh"
+  },
+  {
     "label": "Run web",
     "command": "pnpm",
     "args": ["dev:web"],
