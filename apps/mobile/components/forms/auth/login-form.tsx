@@ -1,5 +1,6 @@
 import { zodResolver } from "@hookform/resolvers/zod";
-import { useCallback } from "react";
+import type { TFunction } from "i18next";
+import { useCallback, useMemo } from "react";
 import {
   Controller,
   type ControllerFieldState,
@@ -7,6 +8,7 @@ import {
   type FieldErrors,
   useForm,
 } from "react-hook-form";
+import { useTranslation } from "react-i18next";
 import { z } from "zod";
 import { Button } from "~/components/ui/button";
 import { Input } from "~/components/ui/input";
@@ -14,19 +16,25 @@ import { VStack } from "~/components/ui/vstack";
 
 interface LoginFormProps {
   errors?: FieldErrors<LoginFormValues>;
-  onSubmit: (values: z.infer<typeof formSchema>) => Promise<void>;
+  onSubmit: (values: LoginFormValues) => Promise<void>;
 }
 
-export type LoginFormValues = z.infer<typeof formSchema>;
+/** The form's schema, its messages in the App language. */
+const loginFormSchema = (t: TFunction) =>
+  z.object({
+    email: z.email({ error: t("auth.validation.invalidEmail") }),
+    // Clerk checks the password; existing Users may have one shorter than
+    // Clerk's minimum for new passwords.
+    password: z
+      .string()
+      .min(1, { error: t("auth.validation.passwordRequired") }),
+  });
 
-const formSchema = z.object({
-  email: z.email({ error: "Invalid email" }),
-  // Clerk checks the password; existing Users may have one shorter than
-  // Clerk's minimum for new passwords.
-  password: z.string().min(1, { error: "Enter your password." }),
-});
+export type LoginFormValues = z.infer<ReturnType<typeof loginFormSchema>>;
 
 export default function LoginForm({ onSubmit, errors }: LoginFormProps) {
+  const { t } = useTranslation();
+  const formSchema = useMemo(() => loginFormSchema(t), [t]);
   const form = useForm<LoginFormValues>({
     defaultValues: {
       email: "",
@@ -55,13 +63,13 @@ export default function LoginForm({ onSubmit, errors }: LoginFormProps) {
         keyboardType="email-address"
         onBlur={onBlur}
         onChangeText={onChange}
-        placeholder="Email"
+        placeholder={t("auth.fields.email")}
         spellCheck={false}
         testID="login-email-input"
         value={value}
       />
     ),
-    [isSubmitting]
+    [isSubmitting, t]
   );
 
   const renderPasswordField = useCallback(
@@ -77,13 +85,13 @@ export default function LoginForm({ onSubmit, errors }: LoginFormProps) {
         error={error?.message}
         onBlur={onBlur}
         onChangeText={onChange}
-        placeholder="Password"
+        placeholder={t("auth.fields.passwordPlaceholder")}
         secureTextEntry
         testID="login-password-input"
         value={value}
       />
     ),
-    [isSubmitting]
+    [isSubmitting, t]
   );
 
   return (
@@ -102,7 +110,7 @@ export default function LoginForm({ onSubmit, errors }: LoginFormProps) {
         icon="arrow.right"
         iconPosition="trailing"
         isLoading={isSubmitting}
-        label="Continue"
+        label={t("auth.login.continue")}
         onPress={form.handleSubmit(onSubmit)}
         testID="login-button"
       />

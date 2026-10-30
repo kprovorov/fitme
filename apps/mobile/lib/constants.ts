@@ -10,6 +10,9 @@ export const SCROLL_EDGE_EFFECTS = { bottom: "soft", top: "soft" } as const;
 // register form can reject a short password before calling Clerk.
 export const PASSWORD_MIN_LENGTH = 15;
 
+// The register form's shortest name.
+export const NAME_MIN_LENGTH = 2;
+
 /**
  * Whether to sync React Query and storage to the desktop devtools app
  * (`react-query-external-sync`). Development builds only, and only when opted

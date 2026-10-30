@@ -1,5 +1,6 @@
 import { Stack } from "expo-router";
 import { useCallback, useEffect, useState } from "react";
+import { useTranslation } from "react-i18next";
 import { Keyboard, KeyboardAvoidingView, Platform, View } from "react-native";
 import { useSafeAreaInsets } from "react-native-safe-area-context";
 import Sign from "~/components/brand/sign";
@@ -7,6 +8,7 @@ import { VStack } from "~/components/ui/vstack";
 import RegisterView from "~/components/views/register-view";
 
 export default function RegisterScreen() {
+  const { t } = useTranslation();
   const insets = useSafeAreaInsets();
   const [isKeyboardVisible, setIsKeyboardVisible] = useState(false);
 
@@ -37,7 +39,7 @@ export default function RegisterScreen() {
     <>
       <Stack.Screen
         options={{
-          title: "Sign Up",
+          title: t("auth.register.title"),
         }}
       />
       <View style={{ flex: 1, paddingTop: insets.top }}>

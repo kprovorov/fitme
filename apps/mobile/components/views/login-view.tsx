@@ -1,6 +1,7 @@
 import { useAuth, useSignIn } from "@clerk/expo";
 import { Link, router } from "expo-router";
 import { useCallback, useEffect, useState } from "react";
+import { useTranslation } from "react-i18next";
 import LoginForm, {
   type LoginFormValues,
 } from "@/components/forms/auth/login-form";
@@ -15,6 +16,7 @@ import { H3 } from "../ui/typography";
 import { VStack } from "../ui/vstack";
 
 export default function LoginView() {
+  const { t } = useTranslation();
   const { signIn, fetchStatus } = useSignIn();
 
   const [errorMessage, setErrorMessage] = useState<string | undefined>();
@@ -79,9 +81,9 @@ export default function LoginView() {
         return;
       }
 
-      setErrorMessage("This account can't sign in here yet.");
+      setErrorMessage(t("auth.login.cantSignInHere"));
     },
-    [finish, signIn]
+    [finish, signIn, t]
   );
 
   const handleVerifyCode = useCallback(async () => {
@@ -115,9 +117,9 @@ export default function LoginView() {
     return (
       <VStack className="w-full">
         <VStack className="gap-0">
-          <H3>Check your email</H3>
+          <H3>{t("auth.deviceCode.title")}</H3>
           <Text className="text-muted-foreground text-subhead-emphasized">
-            Enter the code we sent you to confirm it&apos;s you on this device
+            {t("auth.deviceCode.subtitle")}
           </Text>
         </VStack>
         {errorMessage ? <ErrorMessage>{errorMessage}</ErrorMessage> : null}
@@ -127,7 +129,7 @@ export default function LoginView() {
             editable={!isFetching}
             keyboardType="number-pad"
             onChangeText={setCode}
-            placeholder="Code"
+            placeholder={t("auth.fields.code")}
             testID="login-code-input"
             textContentType="oneTimeCode"
             value={code}
@@ -137,21 +139,21 @@ export default function LoginView() {
             icon="arrow.right"
             iconPosition="trailing"
             isLoading={isFetching}
-            label="Verify"
+            label={t("auth.deviceCode.verify")}
             onPress={handleVerifyCode}
             testID="login-code-button"
           />
           <Button
             disabled={isFetching}
             fill
-            label="Send a new code"
+            label={t("auth.deviceCode.resend")}
             onPress={handleResendCode}
             variant="ghost"
           />
           <Button
             disabled={isFetching}
             fill
-            label="Use a different account"
+            label={t("auth.deviceCode.differentAccount")}
             onPress={handleStartOver}
             variant="ghost"
           />
@@ -163,9 +165,9 @@ export default function LoginView() {
   return (
     <VStack className="w-full">
       <VStack className="gap-0">
-        <H3>Welcome to Fitme!</H3>
+        <H3>{t("auth.welcome")}</H3>
         <Text className="text-muted-foreground text-subhead-emphasized">
-          Log in to your account to access your workouts
+          {t("auth.login.subtitle")}
         </Text>
       </VStack>
       {errorMessage ? (
@@ -179,15 +181,15 @@ export default function LoginView() {
         href="/auth/forgot-password"
         testID="forgot-password-link"
       >
-        Forgot password?
+        {t("auth.login.forgotPasswordLink")}
       </Link>
       <Text className="text-subhead-emphasized">
-        Don&apos;t have an account?{" "}
+        {t("auth.login.noAccount")}{" "}
         <Link
           className="text-primary text-subhead-emphasized"
           href="/auth/register"
         >
-          Register here
+          {t("auth.login.registerLink")}
         </Link>
       </Text>
     </VStack>
