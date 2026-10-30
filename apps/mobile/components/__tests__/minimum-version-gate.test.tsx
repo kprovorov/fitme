@@ -1,8 +1,18 @@
-import { beforeEach, describe, expect, it, jest } from "@jest/globals";
+import {
+  afterEach,
+  beforeEach,
+  describe,
+  expect,
+  it,
+  jest,
+} from "@jest/globals";
 import { QueryClientProvider } from "@tanstack/react-query";
 import { act, fireEvent, render, screen } from "@testing-library/react-native";
 import { AppState, type AppStateStatus, Linking, Text } from "react-native";
 import { useClientConfigQuery } from "~/hooks/queries/client-config";
+import { i18n } from "~/lib/i18n";
+import { setDeviceLanguages } from "~/test-utils/device-locales";
+import { InAppLanguage } from "~/test-utils/in-app-language";
 import { createTestQueryClient, settle } from "~/test-utils/query-client";
 import MinimumVersionGate from "../minimum-version-gate";
 
@@ -41,9 +51,11 @@ const renderGate = async () => {
   const queryClient = createTestQueryClient();
   await render(
     <QueryClientProvider client={queryClient}>
-      <MinimumVersionGate>
-        <Text>Home</Text>
-      </MinimumVersionGate>
+      <InAppLanguage>
+        <MinimumVersionGate>
+          <Text>Home</Text>
+        </MinimumVersionGate>
+      </InAppLanguage>
     </QueryClientProvider>
   );
   await settle(queryClient);
@@ -136,5 +148,34 @@ describe("MinimumVersionGate", () => {
 
     expect(await screen.findByText("Home")).toBeTruthy();
     expect(screen.queryByText("Update required")).toBeNull();
+  });
+});
+
+describe("MinimumVersionGate on a Ukrainian device", () => {
+  beforeEach(() => {
+    setDeviceLanguages(["uk-UA"]);
+  });
+
+  afterEach(async () => {
+    // The next English test renders without the sync.
+    await i18n.changeLanguage("en");
+  });
+
+  it("asks for the update in Ukrainian and links to the store", async () => {
+    serveMinimumIosVersion("1.5.0");
+
+    await renderGate();
+
+    expect(await screen.findByText("Потрібне оновлення")).toBeTruthy();
+    expect(
+      screen.getByText(
+        "Ця версія Fitme більше не підтримується. Оновіть застосунок, щоб і далі тренуватися."
+      )
+    ).toBeTruthy();
+    expect(screen.queryByText("Update required")).toBeNull();
+
+    await fireEvent.press(screen.getByRole("button", { name: "Оновити" }));
+
+    expect(openURL).toHaveBeenCalledWith(APP_STORE_URL);
   });
 });

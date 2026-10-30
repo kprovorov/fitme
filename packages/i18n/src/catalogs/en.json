@@ -459,5 +459,15 @@
     "passwordsDontMatch": "Passwords do not match.",
     "submit": "Update Password",
     "passwordChanged": "Your password was changed. Log in with your new password."
+  },
+  "updateRequired": {
+    "title": "Update required",
+    "description": "This version of Fitme is no longer supported. Update the app to keep training.",
+    "update": "Update"
+  },
+  "notFound": {
+    "title": "Oops!",
+    "description": "This screen doesn't exist.",
+    "goHome": "Go to home screen!"
   }
 }
