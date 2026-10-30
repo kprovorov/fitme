@@ -1,4 +1,4 @@
-import type { BundleExercise, LibraryBundle } from "../bundle";
+import type { BundleCover, BundleExercise, LibraryBundle } from "../bundle";
 
 export const fakeOid = (char: string) => char.repeat(64);
 
@@ -37,8 +37,22 @@ export const inUkrainian = (
   },
 });
 
-/** A version 1 `library.json` holding `exercises`. */
-export const libraryBundle = (exercises: BundleExercise[]): LibraryBundle => ({
+/** A Cover as `library.json` holds it. */
+export const libraryCover = (
+  id: string,
+  muscleGroups: BundleCover["muscle_groups"] = ["chest"]
+): BundleCover => ({
+  id,
+  image: { extension: "jpg", oid: fakeOid("c") },
+  muscle_groups: muscleGroups,
+});
+
+/** A version 1 `library.json` holding `exercises` and, when given, `covers`. */
+export const libraryBundle = (
+  exercises: BundleExercise[],
+  covers?: BundleCover[]
+): LibraryBundle => ({
+  ...(covers && { covers }),
   exercises,
   version: 1,
 });

@@ -1,7 +1,19 @@
 import { createHash } from "node:crypto";
-import { type AppLanguage, appLanguages } from "@fitme/core/models";
+import {
+  type AppLanguage,
+  appLanguages,
+  type MuscleGroup,
+} from "@fitme/core/models";
 import type { BundleMedia, LibraryBundle } from "./bundle";
 import type { Exercise } from "./schemas";
+
+/** A Cover as the API serves it: the same in every App language. */
+export interface ServedCover {
+  id: string;
+  /** On the render endpoint, so clients append `width`/`height`. */
+  image_url: string;
+  muscle_groups: MuscleGroup[];
+}
 
 /** The public Supabase Storage bucket the Library's media is uploaded to. */
 export const MEDIA_BUCKET = "exercise-media";
@@ -34,11 +46,14 @@ export interface ServedLanguage {
  * in every App language, media URLs resolved. Built once, at build time.
  */
 export interface ServedLibrary {
+  /** Every Cover, in bundle order (none for a bundle without Covers). */
+  covers: ServedCover[];
   /**
-   * The sha256 of every language's Exercises as served (text, muscle groups
-   * and media URLs, which carry the LFS oids): changes whenever any Exercise
-   * or translation does. Devices revalidate with it as the `ETag`, which
-   * stays valid per URL since the language is part of the URL.
+   * The sha256 of every Cover and every language's Exercises as served
+   * (text, muscle groups and media URLs, which carry the LFS oids): changes
+   * whenever any Exercise, translation or Cover does. Devices revalidate with
+   * it as the `ETag`, which stays valid per URL since the language is part of
+   * the URL.
    */
   hash: string;
   languages: Record<AppLanguage, ServedLanguage>;
@@ -51,15 +66,20 @@ export interface ServedLibrary {
 export const mediaObjectPath = (slug: string, media: BundleMedia) =>
   `${slug}/${media.oid}.${media.extension}`;
 
+/** A Cover's image path in the bucket, apart from Exercise media: `covers/<id>/<lfs-oid>.<ext>`. */
+export const coverObjectPath = (id: string, image: BundleMedia) =>
+  `covers/${id}/${image.oid}.${image.extension}`;
+
 /**
  * Serves a validated bundle's Exercises in every App language, each
- * language's order and search index worked out here, once. Media URLs are
- * resolved on the Supabase project at `supabaseUrl`: thumbnails through the image transformation
- * (render) endpoint, so clients only append `width`/`height`; videos at their
- * public object URL.
+ * language's order and search index worked out here, once, and its Covers.
+ * Media URLs are resolved on the Supabase project at `supabaseUrl`:
+ * thumbnails and Cover images through the image transformation (render)
+ * endpoint, so clients only append `width`/`height`; videos at their public
+ * object URL.
  */
 export const serveLibrary = (
-  bundle: Pick<LibraryBundle, "exercises">,
+  bundle: Pick<LibraryBundle, "covers" | "exercises">,
   supabaseUrl: string
 ): ServedLibrary => {
   const storage = `${supabaseUrl.replace(TRAILING_SLASHES, "")}/storage/v1`;
@@ -97,8 +117,18 @@ export const serveLibrary = (
   const languages = Object.fromEntries(
     appLanguages.map((language) => [language, serveIn(language)])
   ) as ServedLibrary["languages"];
+  const covers = (bundle.covers ?? []).map(
+    (cover): ServedCover => ({
+      id: cover.id,
+      image_url: `${storage}/render/image/public/${MEDIA_BUCKET}/${coverObjectPath(cover.id, cover.image)}`,
+      muscle_groups: cover.muscle_groups,
+    })
+  );
   return {
-    hash: createHash("sha256").update(JSON.stringify(languages)).digest("hex"),
+    covers,
+    hash: createHash("sha256")
+      .update(JSON.stringify({ covers, languages }))
+      .digest("hex"),
     languages,
   };
 };
