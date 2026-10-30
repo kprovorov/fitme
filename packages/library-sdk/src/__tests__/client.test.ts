@@ -148,6 +148,108 @@ describe("list", () => {
   });
 });
 
+describe("list by several muscle groups", () => {
+  const exercises = [
+    exercise("bench-press"),
+    exercise("bench-dip", { muscle_groups: ["triceps"] }),
+    exercise("deadlift", {
+      muscle_groups: ["back"],
+      translations: { uk: { description: "", instructions: "", name: "Тяга" } },
+    }),
+    exercise("pushdown", { muscle_groups: ["triceps"] }),
+    exercise("squat", {
+      muscle_groups: ["quadriceps", "glutes"],
+      translations: {
+        uk: { description: "", instructions: "", name: "Присід" },
+      },
+    }),
+  ];
+  const libraryOver = () => {
+    const api = stubApi(exercises);
+    return {
+      api,
+      library: createLibrary({ fetch: api.fetch, token, url: URL }),
+    };
+  };
+
+  it("sends them comma-separated as muscle_groups and answers Exercises with any of them", async () => {
+    const { api, library } = libraryOver();
+
+    const page = await library.list({
+      muscleGroups: ["triceps", "quadriceps"],
+    });
+
+    expect(api.requests[0]?.url.searchParams.get("muscle_groups")).toBe(
+      "triceps,quadriceps"
+    );
+    expect(api.requests[0]?.url.searchParams.has("muscle_group")).toBe(false);
+    expect(page.data.map((e) => e.slug)).toEqual([
+      "bench-dip",
+      "pushdown",
+      "squat",
+    ]);
+  });
+
+  it("sends them with language, search and paging", async () => {
+    const { api, library } = libraryOver();
+
+    const page = await library.list({
+      language: "uk",
+      limit: 1,
+      muscleGroups: ["back", "glutes"],
+      offset: 1,
+      search: "a",
+    });
+
+    expect(api.requests[0]).toMatchObject({
+      language: "uk",
+      limit: "1",
+      muscleGroups: ["back", "glutes"],
+      offset: "1",
+      search: "a",
+    });
+    expect(page).toEqual({
+      data: [expect.objectContaining({ name: "Тяга" })],
+      hasMore: false,
+      total: 2,
+    });
+  });
+
+  it.each<[string, { muscleGroups?: [] }]>([
+    ["not given", {}],
+    ["empty", { muscleGroups: [] }],
+  ])("is never sent when %s", async (_, params) => {
+    const { api, library } = libraryOver();
+
+    const page = await library.list(params);
+
+    expect(api.requests[0]?.url.searchParams.has("muscle_groups")).toBe(false);
+    expect(page.total).toBe(exercises.length);
+  });
+
+  it("keeps muscleGroup as muscle_group", async () => {
+    const { api, library } = libraryOver();
+
+    await library.list({ muscleGroup: "back" });
+
+    expect(api.requests[0]?.muscleGroup).toBe("back");
+    expect(api.requests[0]?.muscleGroups).toBeNull();
+  });
+
+  it("surfaces the API's 400 for a value it refuses as invalid request", async () => {
+    const { library } = libraryOver();
+
+    const error = await library
+      .list({ muscleGroup: "back", muscleGroups: ["chest"] })
+      .catch((e: unknown) => e);
+
+    expect(error).toBeInstanceOf(LibraryInvalidRequestError);
+    expect(error).toMatchObject({
+      message: "muscle_groups: can't be combined with muscle_group",
+    });
+  });
+});
+
 describe("get", () => {
   it("answers one Exercise in full, description and instructions included", async () => {
     const squat = exercise("barbell-back-squat");

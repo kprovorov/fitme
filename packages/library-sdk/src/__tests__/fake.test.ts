@@ -2,6 +2,7 @@ import type { AppLanguage } from "@fitme/core/models";
 import { describe, expect, it } from "vitest";
 import {
   createLibrary,
+  LibraryInvalidRequestError,
   LibraryRateLimitedError,
   LibraryUnauthorizedError,
   LibraryUnavailableError,
@@ -82,10 +83,37 @@ describe.each<[string, AppLanguage | undefined]>([
     ["a search for a Ukrainian name", { search: "жим" }],
     ["a search for an English name", { search: "bench" }],
     ["a search with Ukrainian letters", { search: "Ґ" }],
+    ["several muscle groups", { muscleGroups: ["glutes", "abs", "triceps"] }],
+    ["a repeated muscle group", { muscleGroups: ["glutes", "glutes"] }],
+    ["no muscle groups", { muscleGroups: [] }],
+    ["muscle groups nothing has", { muscleGroups: ["calves", "forearms"] }],
+    [
+      "muscle groups, a search and a page",
+      { limit: 2, muscleGroups: ["glutes", "back"], offset: 1, search: "r" },
+    ],
+    [
+      "muscle groups and the last page",
+      { limit: 10, muscleGroups: ["cardio", "abs"], offset: 40 },
+    ],
   ])("list with %s", async (_, params) => {
     const asked = language ? { ...params, language } : params;
 
     expect(await fake.list(asked)).toEqual(await real.list(asked));
+  });
+
+  it.each<[string, ListExercisesParams]>([
+    ["an unknown muscle group", { muscleGroups: ["chest", "neck" as "chest"] }],
+    ["an empty muscle group", { muscleGroups: ["chest", "" as "chest"] }],
+    [
+      "muscleGroup and muscleGroups together",
+      { muscleGroup: "chest", muscleGroups: ["triceps"] },
+    ],
+  ])("list refusing %s", async (_, params) => {
+    const asked = language ? { ...params, language } : params;
+    const fakeError = await fake.list(asked).catch((e: unknown) => e);
+
+    expect(fakeError).toBeInstanceOf(LibraryInvalidRequestError);
+    expect(fakeError).toEqual(await real.list(asked).catch((e: unknown) => e));
   });
 
   it("lookup across chunks, with repeats and missing slugs", async () => {
