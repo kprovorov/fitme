@@ -15,7 +15,11 @@ import {
 } from "@expo/ui/swift-ui/modifiers";
 import type * as React from "react";
 import type { SFSymbol } from "sf-symbols-typescript";
-import { SwiftUIHost, useSwiftUITheme } from "~/components/ui/swift-ui";
+import {
+  SwiftUIHost,
+  useClassColor,
+  useSwiftUITheme,
+} from "~/components/ui/swift-ui";
 
 interface DropdownMenuItem {
   destructive?: boolean;
@@ -35,6 +39,11 @@ interface DropdownMenuProps {
    */
   children?: React.ReactNode;
   className?: string;
+  /**
+   * The icon-only button's color class (`text-primary`); `foreground` without
+   * one. Only the button: the items stay the system's.
+   */
+  iconColorClassName?: string;
   items: DropdownMenuItem[];
   /** Text label for the button that opens the menu. */
   label?: string;
@@ -49,6 +58,7 @@ const MIN_HIT_TARGET_SIZE = 44;
 
 const DropdownMenu = ({
   accessibilityLabel,
+  iconColorClassName,
   items,
   label,
   systemImage,
@@ -58,6 +68,7 @@ const DropdownMenu = ({
   testID,
 }: DropdownMenuProps) => {
   const theme = useSwiftUITheme();
+  const iconColor = useClassColor(iconColorClassName);
 
   // SwiftUI's `Menu` only honours `systemImage` alongside a text label, so an
   // icon-only menu has to supply its button as a label view instead. A text
@@ -81,7 +92,7 @@ const DropdownMenu = ({
     }
     return (
       <SwiftUIImage
-        color={theme.foreground}
+        color={iconColor ?? theme.foreground}
         modifiers={[
           frame({ height: MIN_HIT_TARGET_SIZE, width: MIN_HIT_TARGET_SIZE }),
           contentShape(shapes.rectangle()),

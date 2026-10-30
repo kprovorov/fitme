@@ -264,4 +264,18 @@ describe("native controls", () => {
     );
     expect(argsOf("Menu", "accessibilityLabel")).toEqual(["More"]);
   });
+
+  it("draws an icon-only dropdown button in the color class it's given", async () => {
+    await render(
+      <DropdownMenu
+        accessibilityLabel="Plan options"
+        iconColorClassName="text-primary"
+        items={[{ label: "Manage Plans" }]}
+        systemImage="slider.horizontal.3"
+      />
+    );
+
+    expect(screen.getByTestId("native-Image").props.color).toBe("text-primary");
+    expect(argsOf("Menu", "tint")).toEqual([]);
+  });
 });

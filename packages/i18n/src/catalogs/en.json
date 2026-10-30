@@ -188,12 +188,16 @@
   "home": {
     "managePlans": "Manage Plans",
     "createPlan": "Create Plan",
+    "workouts": "Workouts",
+    "planMenu": "Plan options",
+    "logo": "Fitme",
     "nextWorkout": "Next Workout",
     "upcoming": "Upcoming",
     "allSet": "Nice job! You're all set!",
     "empty": {
       "title": "No active plan",
       "message": "You don't have an active workout plan. Create one to get started.",
+      "inactiveMessage": "Activate one of your plans, or create a new one.",
       "action": "Create Workout Plan"
     },
     "loadError": {

@@ -1,8 +1,11 @@
 /**
- * Profile is reached from the first tab's header, not a tab: the real Home
- * screen's header button pushes the Profile route, which is a stack screen
- * over the tabs with a back button. The header is rendered as plain buttons
- * named by their spoken label, with Supabase swapped for the in-memory backend.
+ * The first tab's header and Plan menu. Profile is reached from the header,
+ * not a tab: the real Home screen's header button pushes the Profile route,
+ * which is a stack screen over the tabs with a back button. The title is the
+ * Fitme logo, and Manage Plans and Create Plan sit behind the sliders button
+ * next to the Workouts heading, not in a header menu. The header is rendered
+ * as plain buttons named by their spoken label, the menu as the dropdown
+ * stand-in, with Supabase swapped for the in-memory backend.
  */
 import { beforeEach, describe, expect, it, jest } from "@jest/globals";
 import { QueryClientProvider } from "@tanstack/react-query";
@@ -29,6 +32,7 @@ interface MockHeaderOptions {
   headerBackButtonDisplayMode?: string;
   headerRight?: () => ReactNode;
   headerShown?: boolean;
+  headerTitle?: () => ReactNode;
   title?: string;
   unstable_headerRightItems?: () => MockHeaderItem[];
 }
@@ -39,10 +43,19 @@ interface MockHeaderOptions {
 // rewrites components declared inside a `jest.mock` factory.
 const MockHeader = ({ options }: { options: MockHeaderOptions }) => (
   <>
-    {options.title ? <Text>{options.title}</Text> : null}
+    {options.headerTitle ? (
+      options.headerTitle()
+    ) : options.title ? (
+      <Text>{options.title}</Text>
+    ) : null}
     {options.headerShown ? <Text>header shown</Text> : null}
     {options.headerBackButtonDisplayMode ? <Text>back button</Text> : null}
     {options.headerRight?.()}
+    {(options.unstable_headerRightItems?.() ?? []).some(
+      (item) => item.type === "menu"
+    ) ? (
+      <Text>header menu</Text>
+    ) : null}
     {(options.unstable_headerRightItems?.() ?? [])
       .filter((item) => item.type === "button")
       .map((item) => (
@@ -125,6 +138,9 @@ jest.mock("~/components/symbol-image", () => ({ SymbolImage: () => null }));
 jest.mock("~/components/ui/button", () =>
   jest.requireActual("~/test-utils/button-stub")
 );
+jest.mock("~/components/ui/dropdown-menu", () =>
+  jest.requireActual("~/test-utils/dropdown-menu-stub")
+);
 
 const mount = async (element: ReactNode) => {
   const client = createTestQueryClient();
@@ -196,5 +212,59 @@ describe("Profile from the first tab's header", () => {
     // Its contents are the Profile view's, unchanged.
     expect(screen.getByText("Tony Stark")).toBeTruthy();
     expect(screen.getByTestId("edit-profile-link")).toBeTruthy();
+  });
+});
+
+describe("The first tab's header and Plan menu", () => {
+  it("shows the Fitme logo as the title, with a spoken label", async () => {
+    await mount(<HomeScreen />);
+
+    expect(screen.getByRole("image", { name: "Fitme" })).toBeTruthy();
+  });
+
+  it("has no menu in the header", async () => {
+    await mount(<HomeScreen />);
+
+    expect(screen.queryByText("header menu")).toBeNull();
+  });
+
+  it("opens Manage Plans and Create Plan from the sliders button by the Workouts heading", async () => {
+    await mount(<HomeScreen />);
+
+    expect(screen.getByRole("heading", { name: "Workouts" })).toBeTruthy();
+    expect(screen.queryByRole("menuitem")).toBeNull();
+
+    const sliders = screen.getByRole("button", { name: "Plan options" });
+    expect(sliders.props.testID).toBe("menu-slider.horizontal.3");
+
+    await fireEvent.press(sliders);
+    await fireEvent.press(
+      screen.getByRole("menuitem", { name: "Manage Plans" })
+    );
+    expect(mockPush).toHaveBeenLastCalledWith("/plans");
+
+    await fireEvent.press(sliders);
+    await fireEvent.press(
+      screen.getByRole("menuitem", { name: "Create Plan" })
+    );
+    expect(mockPush).toHaveBeenLastCalledWith("/planner");
+  });
+
+  it("offers Manage Plans in the empty state when the User has Plans but none active", async () => {
+    backend.reset();
+    backend.seedProfile(FAKE_USER_ID);
+    backend.seedPlan({
+      id: "plan-1",
+      is_active: false,
+      name: "Strength",
+      workouts: [],
+    });
+    await mount(<HomeScreen />);
+
+    expect(
+      screen.getByText("Activate one of your plans, or create a new one.")
+    ).toBeTruthy();
+    await fireEvent.press(screen.getByRole("button", { name: "Manage Plans" }));
+    expect(mockPush).toHaveBeenCalledWith("/plans");
   });
 });

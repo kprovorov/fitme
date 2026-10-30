@@ -12,6 +12,7 @@ import {
   View,
 } from "react-native";
 import Purchases from "react-native-purchases";
+import Logo from "~/components/brand/logo";
 import { Button } from "~/components/ui/button";
 import { Text } from "~/components/ui/text";
 import { H1 } from "~/components/ui/typography";
@@ -73,6 +74,7 @@ export default function HomeScreen() {
   }, [profile, user, router]);
 
   const handleCreatePlan = useCallback(() => router.push("/planner"), [router]);
+  const handleManagePlans = useCallback(() => router.push("/plans"), [router]);
   const openProfile = useCallback(() => router.push("/profile"), [router]);
   const retryPlans = useCallback(() => {
     refetchWorkoutPlans();
@@ -99,47 +101,20 @@ export default function HomeScreen() {
                   </Pressable>
                 )
               : undefined,
-          headerTitleStyle: {
-            fontFamily: "NunitoSans12pt-Bold",
-            fontWeight: "bold",
-          },
+          // The Fitme logo in the title's place; `title` still names the tab
+          // for the back button of the screens pushed over it.
+          headerTitle: () => (
+            <View
+              accessibilityLabel={t("home.logo")}
+              accessibilityRole="image"
+              accessible
+            >
+              <Logo />
+            </View>
+          ),
           headerTransparent: true,
           title: t("tabs.workout"),
           unstable_headerRightItems: () => [
-            {
-              icon: {
-                name: "ellipsis",
-                type: "sfSymbol",
-              },
-              label: t("home.managePlans"),
-              menu: {
-                items: [
-                  {
-                    icon: {
-                      name: "slider.horizontal.3",
-                      type: "sfSymbol",
-                    },
-                    label: t("home.managePlans"),
-                    onPress: () => {
-                      router.push("/plans");
-                    },
-                    type: "action",
-                  },
-                  {
-                    icon: {
-                      name: "plus",
-                      type: "sfSymbol",
-                    },
-                    label: t("home.createPlan"),
-                    onPress: () => {
-                      router.push("/planner");
-                    },
-                    type: "action",
-                  },
-                ],
-              },
-              type: "menu",
-            },
             {
               accessibilityLabel: t("profile.title"),
               icon: {
@@ -148,8 +123,6 @@ export default function HomeScreen() {
               },
               label: t("profile.title"),
               onPress: openProfile,
-              // Its own circle of glass, apart from the menu's.
-              sharesBackground: false,
               type: "button",
             },
           ],
@@ -186,12 +159,26 @@ export default function HomeScreen() {
         ) : (
           <VStack className="flex-1 py-md">
             <H1 className="text-center">{t("home.empty.title")}</H1>
-            <Text className="text-center">{t("home.empty.message")}</Text>
+            <Text className="text-center">
+              {plans && plans.length > 0
+                ? t("home.empty.inactiveMessage")
+                : t("home.empty.message")}
+            </Text>
             <Button
               className="w-full"
               label={t("home.empty.action")}
               onPress={handleCreatePlan}
             />
+            {/* The Plan menu sits above the active Plan's Workouts, so with
+                Plans but none active this is the way to the Plans list. */}
+            {plans && plans.length > 0 ? (
+              <Button
+                className="w-full"
+                label={t("home.managePlans")}
+                onPress={handleManagePlans}
+                variant="secondary"
+              />
+            ) : null}
           </VStack>
         )}
       </ScrollView>

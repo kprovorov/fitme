@@ -4,6 +4,8 @@ import { render, screen } from "@testing-library/react-native";
 import HomeView from "../home-view";
 
 jest.mock("../../plans/plan-header", () => () => null);
+// The Plan menu reads the router; the Home screen's tests open it.
+jest.mock("../../plans/plan-menu", () => () => null);
 
 // Renders each card as its Workout's name and state; the card has its own data hooks.
 jest.mock("../workout-card", () => {
@@ -26,6 +28,12 @@ const upcomingNames = () =>
     .map((card) => card.children.join(""));
 
 describe("HomeView", () => {
+  it("heads the Workouts with a Workouts heading", async () => {
+    await renderHome([workoutNamed("Day A", 1)]);
+
+    expect(screen.getByRole("heading", { name: "Workouts" })).toBeTruthy();
+  });
+
   it("shows the first Workout by order as Next Workout and the rest under Upcoming, in rotation order", async () => {
     await renderHome([
       workoutNamed("Day C", 3),
