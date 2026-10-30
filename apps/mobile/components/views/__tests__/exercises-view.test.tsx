@@ -60,6 +60,8 @@ const EXERCISES = [
 ];
 
 const COULD_NOT_LOAD = /Couldn't load/;
+// The search field, labelled in the App language.
+const SEARCH_FIELD = /^(Search exercises|Пошук вправ)$/;
 
 let fake: FakeLibrary;
 let list: jest.SpiedFunction<FakeLibrary["list"]>;
@@ -94,7 +96,7 @@ const renderView = async (props: Parameters<typeof ExercisesView>[0] = {}) => {
 };
 
 const type = async (text: string) => {
-  const input = screen.getByLabelText("Search exercises");
+  const input = screen.getByLabelText(SEARCH_FIELD);
   for (const end of text.split("").keys()) {
     // biome-ignore lint/performance/noAwaitInLoops: keystrokes come one after another
     await fireEvent.changeText(input, text.slice(0, end + 1));

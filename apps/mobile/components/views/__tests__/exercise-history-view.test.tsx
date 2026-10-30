@@ -119,6 +119,39 @@ describe("ExerciseHistoryView", () => {
     expect(screen.getByText("2 березня 2020 р.")).toBeTruthy();
   });
 
+  it("writes the table and its rows in Ukrainian", async () => {
+    mockHistory.current = [
+      entry("old", "2020-03-02T10:00:00Z", [
+        set(1, {}),
+        set(2, { reps_completed: 10, weight_completed: 50 }),
+        set(3, {}),
+        set(4, {}),
+      ]),
+      entry("e2", "2020-03-01T10:00:00Z", [set(1, {})]),
+      entry("e3", "2020-02-28T10:00:00Z", [set(1, {})]),
+      entry("e4", "2020-02-27T10:00:00Z", [set(1, {})]),
+    ];
+    setDeviceLanguages(["uk-UA"]);
+    await render(
+      <InAppLanguage>
+        <ExerciseHistoryView exerciseSlug="shoulder-press" />
+      </InAppLanguage>
+    );
+
+    expect(screen.getByRole("heading", { name: "Прогрес" })).toBeTruthy();
+    expect(screen.getByText("2 березня 2020 р.")).toBeTruthy();
+    for (const header of ["ціль", "повтори", "кг"]) {
+      expect(
+        screen.getAllByText(header, { includeHiddenElements: true }).length
+      ).toBeGreaterThan(0);
+    }
+    expect(screen.getAllByText("12×45кг").length).toBeGreaterThan(0);
+    expect(
+      screen.getByLabelText("Підхід 2: 10 повторень, 50 кг. Ціль 12×45кг")
+    ).toBeTruthy();
+    expect(screen.getByRole("button", { name: "Показати ще" })).toBeTruthy();
+  });
+
   it("switches the date when the device's language changes", async () => {
     mockHistory.current = [entry("old", "2020-03-02T10:00:00Z", [set(1, {})])];
     await render(

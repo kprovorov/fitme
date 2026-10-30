@@ -312,7 +312,8 @@ describe("an Exercise's guide", () => {
  */
 const search = async (term: string) => {
   const list = jest.spyOn(fake, "list");
-  await fireEvent.changeText(screen.getByLabelText("Search exercises"), term);
+  // Labelled in the App language.
+  await fireEvent.changeText(screen.getByLabelText("Пошук вправ"), term);
   await until(() =>
     list.mock.calls.some(([params]) => params?.search === term)
   );

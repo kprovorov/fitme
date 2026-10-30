@@ -7,7 +7,26 @@
     "profile": "Profile"
   },
   "library": {
-    "allMuscleGroups": "All"
+    "allMuscleGroups": "All",
+    "search": "Search exercises",
+    "muscleGroup": "Muscle group",
+    "loadErrorTitle": "Couldn't Load Exercises",
+    "loadError": "Couldn't load exercises. Check your connection and try again.",
+    "loadMore": "Load More",
+    "loadMoreError": "Couldn't load more exercises. Check your connection and try again.",
+    "emptyTitle": "No Exercises Found",
+    "empty": "No exercises match. Try another name or muscle group.",
+    "showAll": "Show All Exercises"
+  },
+  "exercise": {
+    "gone": "This exercise isn't in the library any more.",
+    "loadError": "Couldn't load this exercise. Check your connection and try again."
+  },
+  "exerciseHistory": {
+    "title": "Progress",
+    "loadMore": "Load more",
+    "set": "Set {{order, number}}: {{logged}}",
+    "target": "Target {{target}}"
   },
   "counts": {
     "exercises_one": "{{count, number}} exercise",

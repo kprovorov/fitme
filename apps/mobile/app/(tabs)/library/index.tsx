@@ -1,12 +1,14 @@
 import type { ExerciseSummary } from "@fitme/library-sdk";
 import { router, Stack } from "expo-router";
 import { useCallback, useRef, useState } from "react";
+import { useTranslation } from "react-i18next";
 import { RefreshControl, ScrollView } from "react-native";
 import ExercisesView, {
   type ExercisesViewHandle,
 } from "~/components/views/exercises-view";
 
 export default function LibraryScreen() {
+  const { t } = useTranslation();
   const [refreshing, setRefreshing] = useState(false);
   const exercisesViewRef = useRef<ExercisesViewHandle | null>(null);
 
@@ -31,7 +33,7 @@ export default function LibraryScreen() {
             fontWeight: "bold",
           },
           headerTransparent: true,
-          title: "Library",
+          title: t("tabs.library"),
         }}
       />
       <ScrollView
