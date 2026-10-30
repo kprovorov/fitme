@@ -22,7 +22,8 @@
     },
     "preview": {
       "extends": "base",
-      "distribution": "internal"
+      "distribution": "internal",
+      "environment": "preview"
     },
     "production": {
       "extends": "base",
