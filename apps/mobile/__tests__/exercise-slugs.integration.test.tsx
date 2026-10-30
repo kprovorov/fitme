@@ -16,6 +16,7 @@ import PlanScreen from "~/app/plans/[planId]/index";
 import WorkoutScreen from "~/app/plans/[planId]/workouts/[workoutId]/index";
 import PlanSessionExerciseScreen from "~/app/plans/[planId]/workouts/[workoutId]/sessions/[sessionId]/exercises/[exerciseId]/index";
 import HistorySessionScreen from "~/app/workout-sessions/[workoutSessionId]";
+import ExercisePickerScreen from "~/app/workout-sessions/[workoutSessionId]/exercise-picker";
 import SummaryScreen from "~/app/workout-sessions/[workoutSessionId]/summary";
 import { storage } from "~/lib/mmkv";
 import { serveLibrary } from "~/test-utils/fake-library";
@@ -27,6 +28,7 @@ import {
   createTestQueryClient,
   settle as settleQueries,
 } from "~/test-utils/query-client";
+import { PushedRoutes, resetStubRouter } from "~/test-utils/router-stub";
 
 const mockParams: { current: Record<string, string> } = { current: {} };
 const mockPush = jest.fn();
@@ -34,6 +36,9 @@ const mockPush = jest.fn();
 jest.mock("expo-router", () => {
   const { View } =
     jest.requireActual<typeof import("react-native")>("react-native");
+  const stub = jest.requireActual<typeof import("~/test-utils/router-stub")>(
+    "~/test-utils/router-stub"
+  );
   return {
     // A link shows as a view naming where it goes.
     Link: ({ children, href }: { children: ReactNode; href: string }) => (
@@ -41,13 +46,14 @@ jest.mock("expo-router", () => {
     ),
     Stack: { Screen: () => null },
     useIsFocused: () => true,
-    useLocalSearchParams: () => mockParams.current,
+    useLocalSearchParams: () => stub.useStubParams(mockParams.current),
     useNavigation: () => ({ getState: () => ({ index: 0, routes: [{}] }) }),
     useRouter: () => ({
-      dismiss: jest.fn(),
-      dismissTo: jest.fn(),
-      push: mockPush,
-      replace: jest.fn(),
+      ...stub.stubRouter,
+      push: (href: Parameters<typeof stub.stubRouter.push>[0]) => {
+        mockPush(href);
+        stub.stubRouter.push(href);
+      },
     }),
   };
 });
@@ -129,10 +135,17 @@ const renderScreen = async (
   params: Record<string, string>
 ) => {
   mockParams.current = params;
+  resetStubRouter();
   queryClient = createTestQueryClient();
   await render(
     <QueryClientProvider client={queryClient}>
       <Screen />
+      <PushedRoutes
+        screens={{
+          "/workout-sessions/[workoutSessionId]/exercise-picker":
+            ExercisePickerScreen,
+        }}
+      />
     </QueryClientProvider>
   );
   await settle();

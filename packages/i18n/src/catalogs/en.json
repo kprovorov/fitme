@@ -588,7 +588,9 @@
     "picker": {
       "add": "Add",
       "replace": "Replace",
-      "close": "Close"
+      "close": "Close",
+      "addTitle": "Add Exercise",
+      "replaceTitle": "Replace Exercise"
     },
     "exercise": {
       "openHint": "Opens the exercise",

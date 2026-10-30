@@ -35,6 +35,7 @@ import WorkoutScreen from "~/app/plans/[planId]/workouts/[workoutId]/index";
 import PlanSessionExerciseScreen from "~/app/plans/[planId]/workouts/[workoutId]/sessions/[sessionId]/exercises/[exerciseId]/index";
 import PlanSessionScreen from "~/app/plans/[planId]/workouts/[workoutId]/sessions/[sessionId]/index";
 import HistorySessionScreen from "~/app/workout-sessions/[workoutSessionId]";
+import ExercisePickerScreen from "~/app/workout-sessions/[workoutSessionId]/exercise-picker";
 import HomeView from "~/components/views/home-view";
 import { PlanUpdateSheetHost } from "~/components/workout-sessions/plan-update-sheet";
 import { closePlanUpdatePrompt } from "~/hooks/plan-update-prompt";
@@ -61,6 +62,7 @@ import {
 
 type RouteName =
   | "exercise"
+  | "exercise-picker"
   | "history-session"
   | "home"
   | "plan-session"
@@ -84,6 +86,10 @@ const PATHS: [RouteName, RegExp][] = [
     /^\/plans\/(?<planId>[^/]+)\/workouts\/(?<workoutId>[^/]+)\/sessions\/(?<sessionId>[^/]+)$/,
   ],
   ["workout", /^\/plans\/(?<planId>[^/]+)\/workouts\/(?<workoutId>[^/]+)$/],
+  [
+    "exercise-picker",
+    /^\/workout-sessions\/(?<workoutSessionId>[^/]+)\/exercise-picker$/,
+  ],
   ["summary", /^\/workout-sessions\/(?<workoutSessionId>[^/]+)\/summary$/],
   ["history-session", /^\/workout-sessions\/(?<workoutSessionId>[^/]+)$/],
   ["home", /^\/$/],
@@ -91,18 +97,37 @@ const PATHS: [RouteName, RegExp][] = [
 
 let routeKey = 0;
 
-const toRoute = (path: string): Route => {
+type Href = string | { params?: Record<string, string>; pathname: string };
+
+const toRoute = (href: Href): Route => {
+  // `{ pathname: "/a/[id]", params: { id, … } }`: the path with its params
+  // filled in, the rest kept as search params.
+  const { params = {}, pathname } =
+    typeof href === "string" ? { pathname: href } : href;
+  const search = { ...params };
+  const path = pathname.replace(/\[(\w+)\]/g, (_, name: string) => {
+    const value = search[name] ?? "";
+    delete search[name];
+    return value;
+  });
   for (const [name, pattern] of PATHS) {
     const matched = path.match(pattern);
     if (matched) {
       routeKey += 1;
-      return { key: `route-${routeKey}`, name, params: { ...matched.groups } };
+      return {
+        key: `route-${routeKey}`,
+        name,
+        params: { ...search, ...matched.groups },
+      };
     }
   }
   throw new Error(`Unknown route ${path}`);
 };
 
 const mockNavigator = {
+  back() {
+    mockNavigator.dismiss();
+  },
   dismiss(count = 1) {
     mockNavigator.set(mockNavigator.routes.slice(0, -count));
   },
@@ -111,11 +136,11 @@ const mockNavigator = {
     routes: mockNavigator.routes,
   }),
   listeners: new Set<() => void>(),
-  push(path: string) {
-    mockNavigator.set([...mockNavigator.routes, toRoute(path)]);
+  push(href: Href) {
+    mockNavigator.set([...mockNavigator.routes, toRoute(href)]);
   },
-  replace(path: string) {
-    mockNavigator.set([...mockNavigator.routes.slice(0, -1), toRoute(path)]);
+  replace(href: Href) {
+    mockNavigator.set([...mockNavigator.routes.slice(0, -1), toRoute(href)]);
   },
   routes: [] as Route[],
   set(routes: Route[]) {
@@ -146,6 +171,7 @@ jest.mock("expo-router", () => {
     useLocalSearchParams: () => useContext(mockRouteContext).params,
     useNavigation: () => ({ getState: mockNavigator.getState }),
     useRouter: () => ({
+      back: mockNavigator.back,
       dismiss: mockNavigator.dismiss,
       push: mockNavigator.push,
       replace: mockNavigator.replace,
@@ -300,6 +326,7 @@ function HomeScreen() {
 
 const SCREENS: Record<RouteName, () => ReactNode> = {
   exercise: PlanSessionExerciseScreen,
+  "exercise-picker": ExercisePickerScreen,
   "history-session": HistorySessionScreen,
   home: HomeScreen,
   "plan-session": PlanSessionScreen,
@@ -463,14 +490,14 @@ describe.each(ENTRY_ROUTES)(
     /** Adds the picker's exercise from the focused session screen. */
     const addExercise = async () => {
       await fireEvent.press(focused().getByText("Add Exercise"));
-      // Picking an exercise awaits its save and then closes the picker; keep
-      // that whole update inside `act`.
+      // The picker opens over the session; picking an exercise awaits its
+      // save and then closes it. Keep that whole update inside `act`.
       const add = focused().getByText("Add");
       await act(async () => {
         await fireEvent.press(add);
       });
       await settle();
-      expect(focused().queryByText("Add")).toBeNull();
+      expect(screen.queryByText("Add")).toBeNull();
     };
 
     const keepTraining = async () => {

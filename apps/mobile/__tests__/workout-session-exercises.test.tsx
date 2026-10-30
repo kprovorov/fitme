@@ -4,51 +4,64 @@
  * `/v1/workout-sessions/{id}/exercises` (FIT-310), removing and replacing one
  * deletes and puts `/v1/workout-session-exercises/{id}` (FIT-312), never
  * writing through Supabase, and a failed edit says what went wrong in an
- * alert.
+ * alert. Adding and replacing go through the Exercise picker, its own route
+ * over the Workout Session (FIT-432).
  *
  * Mounts the real screen on the fake Public API and the in-memory Supabase
- * backend over the same rows, and the fake Library; expo-router and
- * the SwiftUI-backed primitives are swapped for plain stand-ins.
+ * backend over the same rows, and the fake Library, with the picker route
+ * mounted over it once pushed (`test-utils/router-stub.tsx`); the
+ * SwiftUI-backed primitives are swapped for plain stand-ins.
  */
-import { beforeEach, describe, expect, it, jest } from "@jest/globals";
+import {
+  afterEach,
+  beforeEach,
+  describe,
+  expect,
+  it,
+  jest,
+} from "@jest/globals";
 import { type QueryClient, QueryClientProvider } from "@tanstack/react-query";
 import { act, fireEvent, render, screen } from "@testing-library/react-native";
 import type { ReactNode } from "react";
 import { Alert } from "react-native";
 import HistorySessionScreen from "~/app/workout-sessions/[workoutSessionId]";
+import ExercisePickerScreen from "~/app/workout-sessions/[workoutSessionId]/exercise-picker";
+import { i18n } from "~/lib/i18n";
 import { storage } from "~/lib/mmkv";
 import { segmentClient } from "~/lib/segment";
-import { serveLibrary } from "~/test-utils/fake-library";
+import { setDeviceLanguages } from "~/test-utils/device-locales";
+import { libraryExercise, serveLibrary } from "~/test-utils/fake-library";
 import { type Failure, fakePublicApi } from "~/test-utils/fake-public-api";
-import {
-  backend,
-  libraryExerciseNamed,
-} from "~/test-utils/fake-workout-backend";
+import { backend } from "~/test-utils/fake-workout-backend";
+import { InAppLanguage } from "~/test-utils/in-app-language";
 import {
   createTestQueryClient,
   settle as settleQueries,
 } from "~/test-utils/query-client";
+import {
+  PushedRoutes,
+  pushedRoutes,
+  resetStubRouter,
+} from "~/test-utils/router-stub";
 
 const mockParams: { current: Record<string, string> } = { current: {} };
 
 jest.mock("expo-router", () => {
   const { View } =
     jest.requireActual<typeof import("react-native")>("react-native");
+  const stub = jest.requireActual<typeof import("~/test-utils/router-stub")>(
+    "~/test-utils/router-stub"
+  );
   return {
     // A link shows as a view naming where it goes.
     Link: ({ children, href }: { children: ReactNode; href: string }) => (
       <View testID={`link:${href}`}>{children}</View>
     ),
-    Stack: { Screen: () => null },
+    Stack: { Screen: stub.StackScreenStub },
     useIsFocused: () => true,
-    useLocalSearchParams: () => mockParams.current,
+    useLocalSearchParams: () => stub.useStubParams(mockParams.current),
     useNavigation: () => ({ getState: () => ({ index: 0, routes: [{}] }) }),
-    useRouter: () => ({
-      dismiss: jest.fn(),
-      dismissTo: jest.fn(),
-      push: jest.fn(),
-      replace: jest.fn(),
-    }),
+    useRouter: () => stub.stubRouter,
   };
 });
 
@@ -118,6 +131,7 @@ jest.mock("~/components/ui/picker", () => ({ Picker: () => null }));
 const ADD_EXERCISE = "POST /v1/workout-sessions/{id}/exercises";
 const REMOVE_EXERCISE = "DELETE /v1/workout-session-exercises/{id}";
 const REPLACE_EXERCISE = "PUT /v1/workout-session-exercises/{id}";
+const PICKER = "/workout-sessions/[workoutSessionId]/exercise-picker";
 
 let queryClient: QueryClient;
 
@@ -126,7 +140,10 @@ const renderSession = async () => {
   queryClient = createTestQueryClient();
   await render(
     <QueryClientProvider client={queryClient}>
-      <HistorySessionScreen />
+      <InAppLanguage>
+        <HistorySessionScreen />
+        <PushedRoutes screens={{ [PICKER]: ExercisePickerScreen }} />
+      </InAppLanguage>
     </QueryClientProvider>
   );
   await settle();
@@ -135,9 +152,15 @@ const renderSession = async () => {
 /** Waits until every request, query and mutation is done. */
 const settle = () => settleQueries(queryClient, () => backend.inFlight === 0);
 
+/** Whether the Exercise picker is open over the Workout Session. */
+const pickerOpen = () =>
+  pushedRoutes().some(({ pathname }) => pathname === PICKER);
+
 /** Opens the picker and adds its first Exercise (Lunge: it lists by name). */
 const addLunge = async () => {
-  await fireEvent.press(await screen.findByText("Add Exercise"));
+  await fireEvent.press(
+    await screen.findByRole("button", { name: "Add Exercise" })
+  );
   const [addFirst] = await screen.findAllByText("Add");
   // Picking an Exercise awaits its save and then closes the picker; keep
   // that whole update inside `act`.
@@ -211,11 +234,103 @@ beforeEach(() => {
   jest.clearAllMocks();
   backend.reset();
   storage.clearAll();
-  serveLibrary(["Squat", "Lunge"].map((name) => libraryExerciseNamed(name)));
+  resetStubRouter();
+  // Replacing Squat starts on quadriceps, which Push-up doesn't train.
+  serveLibrary([
+    libraryExercise("squat", { muscle_groups: ["quadriceps"] }),
+    libraryExercise("lunge", { muscle_groups: ["quadriceps", "glutes"] }),
+    libraryExercise("push-up", { muscle_groups: ["chest"] }),
+  ]);
   jest.spyOn(Alert, "alert").mockImplementation(() => undefined);
   backend.seed({
     exercises: [{ name: "Squat", sets: [10, 8] }],
     id: "s1",
+  });
+});
+
+// The i18n instance outlives a test; the device goes back to English on its own.
+afterEach(async () => {
+  await i18n.changeLanguage("en");
+});
+
+describe("the Exercise picker", () => {
+  it("opens over the Workout Session as Add Exercise, unfiltered", async () => {
+    await renderSession();
+
+    await fireEvent.press(screen.getByRole("button", { name: "Add Exercise" }));
+
+    expect(pushedRoutes()).toEqual([
+      expect.objectContaining({
+        params: { workoutSessionId: "s1" },
+        pathname: PICKER,
+      }),
+    ]);
+    expect(
+      await screen.findByRole("header", { name: "Add Exercise" })
+    ).toBeTruthy();
+    expect(await screen.findByText("Push Up")).toBeTruthy();
+    expect(screen.getAllByText("Add")).toHaveLength(3);
+  });
+
+  it("opens as Replace Exercise on the replaced one's first muscle group", async () => {
+    await renderSession();
+
+    const [replaceItem] = await screen.findAllByLabelText("Replace");
+    await fireEvent.press(replaceItem as NonNullable<typeof replaceItem>);
+    await settle();
+
+    expect(pushedRoutes()).toEqual([
+      expect.objectContaining({
+        params: {
+          muscleGroup: "quadriceps",
+          replace: "s1-e1",
+          workoutSessionId: "s1",
+        },
+        pathname: PICKER,
+      }),
+    ]);
+    expect(
+      screen.getByRole("header", { name: "Replace Exercise" })
+    ).toBeTruthy();
+    // Squat and Lunge train quadriceps; Push-up doesn't.
+    expect(screen.getAllByText("Replace")).toHaveLength(2);
+    expect(screen.queryByText("Push Up")).toBeNull();
+  });
+
+  it("starts unfiltered again when adding after a replace", async () => {
+    await renderSession();
+    const [replaceItem] = await screen.findAllByLabelText("Replace");
+    await fireEvent.press(replaceItem as NonNullable<typeof replaceItem>);
+    await settle();
+
+    await fireEvent.press(screen.getByLabelText("Close"));
+    expect(pickerOpen()).toBe(false);
+    await fireEvent.press(screen.getByRole("button", { name: "Add Exercise" }));
+    await settle();
+
+    expect(screen.getByRole("header", { name: "Add Exercise" })).toBeTruthy();
+    expect(screen.getByText("Push Up")).toBeTruthy();
+    expect(screen.getAllByText("Add")).toHaveLength(3);
+  });
+
+  it("reads its titles and Close in Ukrainian", async () => {
+    setDeviceLanguages(["uk-UA"]);
+    await renderSession();
+
+    await fireEvent.press(
+      screen.getByRole("button", { name: "Додати вправу" })
+    );
+    await settle();
+    expect(screen.getByRole("header", { name: "Додати вправу" })).toBeTruthy();
+    await fireEvent.press(screen.getByLabelText("Закрити"));
+    expect(pickerOpen()).toBe(false);
+
+    const [replaceItem] = await screen.findAllByLabelText("Замінити");
+    await fireEvent.press(replaceItem as NonNullable<typeof replaceItem>);
+    await settle();
+    expect(
+      screen.getByRole("header", { name: "Замінити вправу" })
+    ).toBeTruthy();
   });
 });
 
@@ -237,6 +352,7 @@ describe("adding an Exercise to a Workout Session", () => {
       workout_session_id: "s1",
     });
     expect(await screen.findByText("Lunge")).toBeTruthy();
+    expect(pickerOpen()).toBe(false);
     expect(screen.queryByText("Add")).toBeNull();
     expect(Alert.alert).not.toHaveBeenCalled();
     expect(track).toHaveBeenCalledWith("Exercise Added", {
@@ -261,6 +377,7 @@ describe("adding an Exercise to a Workout Session", () => {
       expect(backend.count("workout_session_exercises", "insert")).toBe(0);
       expect(backend.exercises).toHaveLength(1);
       // The picker stays open, so the User can try again.
+      expect(pickerOpen()).toBe(true);
       expect(screen.queryAllByText("Add")).not.toHaveLength(0);
       expect(track).not.toHaveBeenCalledWith(
         "Exercise Added",
@@ -280,6 +397,7 @@ describe("adding an Exercise to a Workout Session", () => {
       "Please check your connection and try again."
     );
     await fireEvent.press(screen.getByLabelText("Close"));
+    expect(pickerOpen()).toBe(false);
     expect(await screen.findByText("Lunge")).toBeTruthy();
     expect(backend.count("workout_session_exercises", "insert")).toBe(0);
   });
@@ -385,6 +503,7 @@ describe("replacing an Exercise in a Workout Session", () => {
       { reps_completed: 8, reps_recommended: 0 },
     ]);
     expect(await screen.findByText("Lunge")).toBeTruthy();
+    expect(pickerOpen()).toBe(false);
     expect(screen.queryByText("Squat")).toBeNull();
     expect(Alert.alert).not.toHaveBeenCalled();
     expect(track).toHaveBeenCalledWith("Exercise Replaced", {
@@ -413,6 +532,7 @@ describe("replacing an Exercise in a Workout Session", () => {
         backend.sets.map(({ reps_recommended }) => reps_recommended)
       ).toEqual([10, 10]);
       // The picker stays open, so the User can try again.
+      expect(pickerOpen()).toBe(true);
       expect(screen.queryAllByText("Replace")).not.toHaveLength(0);
       expect(track).not.toHaveBeenCalledWith(
         "Exercise Replaced",
