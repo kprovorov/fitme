@@ -62,9 +62,12 @@ export const ExerciseBatch = z
 /** A Cover: a photo a Workout's card shows, tagged with the muscle groups it suits (ADR 0014). */
 export const Cover = z
   .object({
-    id: z.uuid().openapi({
+    // the bundle allows any lowercase 8-4-4-4-12 hex id, which z.uuid()'s
+    // RFC version and variant checks would refuse
+    id: z.string().openapi({
       description: "The Cover's permanent id, which a Workout stores.",
       example: "3f2b8a4e-6c1d-4e5f-9a7b-1c2d3e4f5a6b",
+      format: "uuid",
     }),
     image_url: z.url().openapi({
       description:

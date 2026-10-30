@@ -1658,6 +1658,22 @@ describe("GET /covers", () => {
     });
   });
 
+  it("serves any id the bundle accepts, not only RFC uuids", async () => {
+    const id = "12345678-1234-1234-1234-123456789abc";
+    const served = createApp({
+      ...base,
+      library: serveLibrary(
+        { covers: [libraryCover(id)], exercises: [] },
+        SUPABASE_URL
+      ),
+    });
+
+    const response = await served.request("/covers", asUser);
+
+    expect(response.status).toBe(200);
+    expect(await response.json()).toMatchObject({ data: [{ id }] });
+  });
+
   it("answers an empty list for a Library without Covers", async () => {
     const response = await app.request("/covers", asUser);
 
