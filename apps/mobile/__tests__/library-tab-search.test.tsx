@@ -2,8 +2,8 @@
  * The Library tab searches from the native header search bar (FIT-433): the
  * real screen on the fake Library, with the header rendered as its title and
  * search bar (`stack-screen-stub`, typing calls the options' `onChangeText`).
- * The list has no search field of its own; the Exercise picker keeps its own
- * (`components/views/__tests__/exercises-view.test.tsx`).
+ * The list has no search field of its own; the Exercise picker searches from
+ * its own header the same way (`__tests__/workout-session-exercises.test.tsx`).
  */
 import { LibraryRateLimitedError } from "@fitme/library-sdk";
 import type { FakeLibrary } from "@fitme/library-sdk/fake";

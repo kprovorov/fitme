@@ -37,12 +37,14 @@ import { InAppLanguage } from "~/test-utils/in-app-language";
 import {
   createTestQueryClient,
   settle as settleQueries,
+  until,
 } from "~/test-utils/query-client";
 import {
   PushedRoutes,
   pushedRoutes,
   resetStubRouter,
 } from "~/test-utils/router-stub";
+import { SEARCH_BAR_TEST_ID } from "~/test-utils/stack-screen-stub";
 
 const mockParams: { current: Record<string, string> } = { current: {} };
 
@@ -331,6 +333,93 @@ describe("the Exercise picker", () => {
     expect(
       screen.getByRole("header", { name: "Замінити вправу" })
     ).toBeTruthy();
+  });
+});
+
+/** The picker's rows: each one's "Add" (or "Replace") button. */
+const pickerRows = (cta: string) => screen.queryAllByText(cta).length;
+
+/**
+ * The User types in the picker's header search bar; waits past the debounce
+ * until the list shows `rows` results.
+ */
+const searchPicker = async (text: string, rows: number, cta = "Add") => {
+  await fireEvent.changeText(screen.getByTestId(SEARCH_BAR_TEST_ID), text);
+  await until(() => pickerRows(cta) === rows);
+  await settle();
+};
+
+describe("searching in the Exercise picker", () => {
+  it("lists what matches the header search", async () => {
+    await renderSession();
+    await fireEvent.press(screen.getByRole("button", { name: "Add Exercise" }));
+    await settle();
+    expect(pickerRows("Add")).toBe(3);
+
+    await searchPicker("push", 1);
+
+    expect(screen.getByText("Push Up")).toBeTruthy();
+    expect(screen.queryByText("Lunge")).toBeNull();
+  });
+
+  it("searches within the replaced one's muscle group", async () => {
+    await renderSession();
+    const [replaceItem] = await screen.findAllByLabelText("Replace");
+    await fireEvent.press(replaceItem as NonNullable<typeof replaceItem>);
+    await settle();
+    expect(pickerRows("Replace")).toBe(2);
+
+    await searchPicker("lun", 1, "Replace");
+
+    expect(screen.getByText("Lunge")).toBeTruthy();
+  });
+
+  it("adds the Exercise picked from a search", async () => {
+    await renderSession();
+    await fireEvent.press(screen.getByRole("button", { name: "Add Exercise" }));
+    await settle();
+    await searchPicker("push", 1);
+
+    // A result is tapped with the search keyboard still up.
+    await act(async () => {
+      await fireEvent.press(screen.getByText("Add"));
+    });
+    await settle();
+
+    expect(fakePublicApi.requests.at(-1)).toMatchObject({
+      body: { exercise_slug: "push-up" },
+      route: ADD_EXERCISE,
+    });
+    expect(pickerOpen()).toBe(false);
+    expect(await screen.findByText("Push Up")).toBeTruthy();
+  });
+
+  it("clears the search from the empty state", async () => {
+    await renderSession();
+    await fireEvent.press(screen.getByRole("button", { name: "Add Exercise" }));
+    await settle();
+    await searchPicker("zzz", 0);
+    expect(await screen.findByText("No Exercises Found")).toBeTruthy();
+
+    await fireEvent.press(screen.getByText("Show All Exercises"));
+    await until(() => pickerRows("Add") === 3);
+
+    expect(screen.getByTestId(SEARCH_BAR_TEST_ID).props.value).toBe("");
+  });
+
+  it("starts with an empty search on every open", async () => {
+    await renderSession();
+    await fireEvent.press(screen.getByRole("button", { name: "Add Exercise" }));
+    await settle();
+    await searchPicker("push", 1);
+    await fireEvent.press(screen.getByLabelText("Close"));
+    expect(pickerOpen()).toBe(false);
+
+    await fireEvent.press(screen.getByRole("button", { name: "Add Exercise" }));
+    await settle();
+
+    expect(screen.getByTestId(SEARCH_BAR_TEST_ID).props.value).toBe("");
+    expect(pickerRows("Add")).toBe(3);
   });
 });
 

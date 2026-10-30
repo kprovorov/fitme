@@ -17,7 +17,6 @@ import {
 } from "~/components/exercises/exercise-row";
 import { Button } from "~/components/ui/button";
 import { ErrorMessage } from "~/components/ui/error-message";
-import { Input } from "~/components/ui/input";
 import { Picker } from "~/components/ui/picker";
 import { Text } from "~/components/ui/text";
 import { H3 } from "~/components/ui/typography";
@@ -57,7 +56,7 @@ const ExercisesView = ({
   initialMuscleGroup = "all",
   refreshable = false,
   contentContainerClassName,
-  search: headerSearch,
+  search,
   onSearchChange,
 }: {
   onExercisePress?: (exercise: ExerciseSummary) => void;
@@ -67,11 +66,10 @@ const ExercisesView = ({
   // Pull to refresh (the Library tab).
   refreshable?: boolean;
   contentContainerClassName?: string;
-  // The search text, when the screen's header search bar holds it (the
-  // Library tab): the in-list field then doesn't show. "Show All Exercises"
-  // hands back "" to clear it.
-  search?: string;
-  onSearchChange?: (search: string) => void;
+  // The search text, held by the screen's native header search bar
+  // (`useHeaderSearch`). "Show All Exercises" hands back "" to clear it.
+  search: string;
+  onSearchChange: (search: string) => void;
 }) => {
   const { t } = useTranslation(undefined, { i18n });
   const labels = useChoiceLabels();
@@ -79,9 +77,6 @@ const ExercisesView = ({
     () => muscleGroupOptions(labels, t("library.allMuscleGroups")),
     [labels, t]
   );
-  const [ownSearch, setOwnSearch] = useState("");
-  const inHeader = headerSearch !== undefined;
-  const search = inHeader ? headerSearch : ownSearch;
   const [muscleGroup, setMuscleGroup] =
     useState<MuscleGroupFilter>(initialMuscleGroup);
   const [refreshing, setRefreshing] = useState(false);
@@ -145,8 +140,7 @@ const ExercisesView = ({
   }, [refetch]);
 
   const showAll = useCallback(() => {
-    setOwnSearch("");
-    onSearchChange?.("");
+    onSearchChange("");
     setMuscleGroup("all");
   }, [onSearchChange]);
 
@@ -232,18 +226,6 @@ const ExercisesView = ({
       ListFooterComponent={renderFooter() ?? undefined}
       ListHeaderComponent={
         <VStack className="items-stretch pb-md">
-          {inHeader ? null : (
-            <Input
-              accessibilityLabel={t("library.search")}
-              autoCapitalize="none"
-              autoCorrect={false}
-              clearButtonMode="while-editing"
-              onChangeText={setOwnSearch}
-              placeholder={t("library.search")}
-              returnKeyType="search"
-              value={search}
-            />
-          )}
           <Picker
             label={t("library.muscleGroup")}
             onValueChange={setMuscleGroup}

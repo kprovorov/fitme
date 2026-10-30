@@ -24,12 +24,12 @@ import {
 import { type QueryClient, QueryClientProvider } from "@tanstack/react-query";
 import { act, fireEvent, render, screen } from "@testing-library/react-native";
 import type { ReactNode } from "react";
+import LibraryScreen from "~/app/(tabs)/library/index";
 import ExerciseGuideScreen from "~/app/exercises/[exerciseSlug]/guide";
 import ExerciseScreen from "~/app/exercises/[exerciseSlug]/index";
 import WorkoutScreen from "~/app/plans/[planId]/workouts/[workoutId]/index";
 import HistorySessionScreen from "~/app/workout-sessions/[workoutSessionId]";
 import ExercisePickerScreen from "~/app/workout-sessions/[workoutSessionId]/exercise-picker";
-import ExercisesView from "~/components/views/exercises-view";
 import { i18n, useAppLanguageSync } from "~/lib/i18n";
 import { storage } from "~/lib/mmkv";
 import { setDeviceLanguages } from "~/test-utils/device-locales";
@@ -46,14 +46,30 @@ const mockParams: { current: Record<string, string> } = { current: {} };
 jest.mock("expo-router", () => {
   const { Text, View } =
     jest.requireActual<typeof import("react-native")>("react-native");
+  const { SearchBar } = jest.requireActual<
+    typeof import("~/test-utils/stack-screen-stub")
+  >("~/test-utils/stack-screen-stub");
   return {
     Link: ({ children, href }: { children: ReactNode; href: string }) => (
       <View testID={`link:${href}`}>{children}</View>
     ),
-    // A screen's title shows as text.
+    // A screen's title shows as text, its header search bar as a field.
     Stack: {
-      Screen: ({ options }: { options?: { title?: string } }) =>
-        options?.title ? <Text testID="title">{options.title}</Text> : null,
+      Screen: ({
+        options,
+      }: {
+        options?: {
+          headerSearchBarOptions?: import("react-native-screens").SearchBarProps;
+          title?: string;
+        };
+      }) => (
+        <>
+          {options?.title ? <Text testID="title">{options.title}</Text> : null}
+          {options?.headerSearchBarOptions ? (
+            <SearchBar options={options.headerSearchBarOptions} />
+          ) : null}
+        </>
+      ),
     },
     useIsFocused: () => true,
     useLocalSearchParams: () => mockParams.current,
@@ -309,7 +325,7 @@ describe("an Exercise's guide", () => {
 });
 
 /**
- * Types a search into the open Library view and waits until the Library has
+ * Types a search into the open screen's header search bar and waits until the Library has
  * answered it, past the debounce.
  */
 const search = async (term: string) => {
@@ -343,7 +359,7 @@ describe("searching the Library", () => {
   });
 
   it("opens a found Exercise's detail screen with its Ukrainian name at once", async () => {
-    await renderScreen(() => <ExercisesView />, {});
+    await renderScreen(LibraryScreen, {});
     await search("squat");
     expect(screen.getByText("Присідання")).toBeTruthy();
 
