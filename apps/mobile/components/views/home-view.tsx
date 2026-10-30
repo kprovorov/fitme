@@ -1,6 +1,8 @@
 import type { Plan, Workout } from "@fitme/core";
 import { useTranslation } from "react-i18next";
+import { View } from "react-native";
 import PlanHeader from "../plans/plan-header";
+import PlanMenu from "../plans/plan-menu";
 import { H3, H4 } from "../ui/typography";
 import { VStack } from "../ui/vstack";
 import WorkoutCard from "./workout-card";
@@ -19,6 +21,10 @@ export default function HomeView({ plan }: HomeViewProps) {
   return (
     <VStack className="items-stretch gap-lg">
       <PlanHeader plan={plan} />
+      <View className="flex-row items-center justify-between">
+        <H3>{t("home.workouts")}</H3>
+        <PlanMenu />
+      </View>
       <VStack className="items-stretch">
         <H4>{t("home.nextWorkout")}</H4>
         {nextWorkout ? (

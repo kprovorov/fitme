@@ -2,7 +2,7 @@
  * The Home tab on a Ukrainian device: the real screen under the root layout's
  * language sync, with Supabase swapped for the in-memory backend (from
  * `test-utils/`). The header is rendered as its title and plain buttons, the
- * menus' items flattened.
+ * Plan menu as the dropdown stand-in.
  */
 import { beforeEach, describe, expect, it, jest } from "@jest/globals";
 import { QueryClientProvider } from "@tanstack/react-query";
@@ -18,7 +18,6 @@ import { createTestQueryClient, settle } from "~/test-utils/query-client";
 
 interface MockHeaderItem {
   label: string;
-  menu?: { items: MockHeaderItem[] };
   onPress?: () => void;
 }
 
@@ -27,29 +26,19 @@ interface MockHeaderOptions {
   unstable_headerRightItems?: () => MockHeaderItem[];
 }
 
-// The header's title and items as buttons, the menus' items flattened, with
-// the menu's own label first. Top-level (and `mock`-prefixed, so the factory
-// may use it) because the React Compiler rewrites components declared inside
-// a `jest.mock` factory.
-const MockHeader = ({ options }: { options: MockHeaderOptions }) => {
-  const items = (options.unstable_headerRightItems?.() ?? []).flatMap((item) =>
-    item.menu ? [item, ...item.menu.items] : [item]
-  );
-  return (
-    <>
-      {options.title ? <Text>{options.title}</Text> : null}
-      {items.map((item) => (
-        // The menu and its first item share a label.
-        <Pressable
-          key={`${item.menu ? "menu" : "item"}-${item.label}`}
-          onPress={item.onPress}
-        >
-          <Text>{item.label}</Text>
-        </Pressable>
-      ))}
-    </>
-  );
-};
+// The header's title and items as buttons. Top-level (and `mock`-prefixed,
+// so the factory may use it) because the React Compiler rewrites components
+// declared inside a `jest.mock` factory.
+const MockHeader = ({ options }: { options: MockHeaderOptions }) => (
+  <>
+    {options.title ? <Text>{options.title}</Text> : null}
+    {(options.unstable_headerRightItems?.() ?? []).map((item) => (
+      <Pressable key={item.label} onPress={item.onPress}>
+        <Text>{item.label}</Text>
+      </Pressable>
+    ))}
+  </>
+);
 
 jest.mock("expo-router", () => ({
   Link: ({ children }: { children: ReactNode }) => children,
@@ -98,6 +87,9 @@ jest.mock("~/hooks/revenueCat", () => ({
 }));
 jest.mock("~/components/exercises/exercise-image", () => () => null);
 jest.mock("~/components/symbol-image", () => ({ SymbolImage: () => null }));
+jest.mock("~/components/ui/dropdown-menu", () =>
+  jest.requireActual("~/test-utils/dropdown-menu-stub")
+);
 jest.mock("~/components/ui/button", () =>
   jest.requireActual("~/test-utils/button-stub")
 );
@@ -143,13 +135,22 @@ const seedActivePlan = () =>
   });
 
 describe("Home in Ukrainian", () => {
-  it("shows its title and the Plan actions in the menu", async () => {
+  it("shows its tab title and the Plan actions behind the sliders button", async () => {
     seedActivePlan();
     await mount();
 
-    expect(screen.getByText("Тренування")).toBeTruthy();
-    expect(screen.getAllByText("Керувати планами")).toHaveLength(2);
-    expect(screen.getByText("Створити план")).toBeTruthy();
+    // The tab's title and the Workouts heading read the same in Ukrainian.
+    expect(screen.getAllByText("Тренування")).toHaveLength(2);
+    expect(screen.getByRole("heading", { name: "Тренування" })).toBeTruthy();
+    await fireEvent.press(
+      screen.getByRole("button", { name: "Параметри плану" })
+    );
+    expect(
+      screen.getByRole("menuitem", { name: "Керувати планами" })
+    ).toBeTruthy();
+    expect(
+      screen.getByRole("menuitem", { name: "Створити план" })
+    ).toBeTruthy();
   });
 
   it("shows the active Plan and each Workout card's count with its plural form", async () => {

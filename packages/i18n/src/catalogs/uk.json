@@ -210,6 +210,9 @@
   "home": {
     "managePlans": "Керувати планами",
     "createPlan": "Створити план",
+    "workouts": "Тренування",
+    "planMenu": "Параметри плану",
+    "logo": "Fitme",
     "nextWorkout": "Наступне тренування",
     "upcoming": "Наступні",
     "allSet": "Чудова робота! Усе готово!",

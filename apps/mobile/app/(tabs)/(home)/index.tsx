@@ -5,6 +5,7 @@ import { useCallback, useEffect, useState } from "react";
 import { useTranslation } from "react-i18next";
 import {
   ActivityIndicator,
+  Image,
   Platform,
   Pressable,
   RefreshControl,
@@ -22,6 +23,10 @@ import { useOpenWorkoutSessionQuery } from "~/hooks/queries/workout-sessions";
 import { storage } from "~/lib/mmkv";
 
 const IS_E2E = process.env.EXPO_PUBLIC_E2E_ENABLED === "true";
+
+// Figma's `Logo` (Dashboard frame), at 1x, 2x and 3x. Metro resolves an
+// image through `require`, which also picks the device's scale.
+const LOGO = require("~/assets/images/logo.png");
 
 import HomeView from "~/components/views/home-view";
 
@@ -73,6 +78,7 @@ export default function HomeScreen() {
   }, [profile, user, router]);
 
   const handleCreatePlan = useCallback(() => router.push("/planner"), [router]);
+  const handleManagePlans = useCallback(() => router.push("/plans"), [router]);
   const openProfile = useCallback(() => router.push("/profile"), [router]);
   const retryPlans = useCallback(() => {
     refetchWorkoutPlans();
@@ -99,47 +105,19 @@ export default function HomeScreen() {
                   </Pressable>
                 )
               : undefined,
-          headerTitleStyle: {
-            fontFamily: "NunitoSans12pt-Bold",
-            fontWeight: "bold",
-          },
+          // The Fitme logo in the title's place; `title` still names the tab
+          // for the back button of the screens pushed over it.
+          headerTitle: () => (
+            <Image
+              accessibilityLabel={t("home.logo")}
+              accessibilityRole="image"
+              accessible
+              source={LOGO}
+            />
+          ),
           headerTransparent: true,
           title: t("tabs.workout"),
           unstable_headerRightItems: () => [
-            {
-              icon: {
-                name: "ellipsis",
-                type: "sfSymbol",
-              },
-              label: t("home.managePlans"),
-              menu: {
-                items: [
-                  {
-                    icon: {
-                      name: "slider.horizontal.3",
-                      type: "sfSymbol",
-                    },
-                    label: t("home.managePlans"),
-                    onPress: () => {
-                      router.push("/plans");
-                    },
-                    type: "action",
-                  },
-                  {
-                    icon: {
-                      name: "plus",
-                      type: "sfSymbol",
-                    },
-                    label: t("home.createPlan"),
-                    onPress: () => {
-                      router.push("/planner");
-                    },
-                    type: "action",
-                  },
-                ],
-              },
-              type: "menu",
-            },
             {
               accessibilityLabel: t("profile.title"),
               icon: {
@@ -148,8 +126,6 @@ export default function HomeScreen() {
               },
               label: t("profile.title"),
               onPress: openProfile,
-              // Its own circle of glass, apart from the menu's.
-              sharesBackground: false,
               type: "button",
             },
           ],
@@ -192,6 +168,16 @@ export default function HomeScreen() {
               label={t("home.empty.action")}
               onPress={handleCreatePlan}
             />
+            {/* The Plan menu sits above the active Plan's Workouts, so with
+                Plans but none active this is the way to the Plans list. */}
+            {plans && plans.length > 0 ? (
+              <Button
+                className="w-full"
+                label={t("home.managePlans")}
+                onPress={handleManagePlans}
+                variant="secondary"
+              />
+            ) : null}
           </VStack>
         )}
       </ScrollView>

@@ -188,6 +188,9 @@
   "home": {
     "managePlans": "Manage Plans",
     "createPlan": "Create Plan",
+    "workouts": "Workouts",
+    "planMenu": "Plan options",
+    "logo": "Fitme",
     "nextWorkout": "Next Workout",
     "upcoming": "Upcoming",
     "allSet": "Nice job! You're all set!",
