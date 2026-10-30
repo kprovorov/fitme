@@ -621,5 +621,45 @@
     "statLabel": "{{title}}: {{value}}",
     "continue": "Continue",
     "exercise": "{{name}}, {{sets}}"
+  },
+  "auth": {
+    "welcome": "Welcome to Fitme!",
+    "fields": {
+      "email": "Email",
+      "passwordPlaceholder": "Password",
+      "name": "Name",
+      "code": "Code"
+    },
+    "validation": {
+      "invalidEmail": "Invalid email",
+      "passwordRequired": "Enter your password.",
+      "nameTooShort_one": "Name must be at least {{count}} character.",
+      "nameTooShort_other": "Name must be at least {{count}} characters.",
+      "passwordTooShort_one": "Password must be at least {{count}} character.",
+      "passwordTooShort_other": "Password must be at least {{count}} characters."
+    },
+    "login": {
+      "title": "Login",
+      "subtitle": "Log in to your account to access your workouts",
+      "continue": "Continue",
+      "forgotPasswordLink": "Forgot password?",
+      "noAccount": "Don't have an account?",
+      "registerLink": "Register here",
+      "cantSignInHere": "This account can't sign in here yet."
+    },
+    "deviceCode": {
+      "title": "Check your email",
+      "subtitle": "Enter the code we sent you to confirm it's you on this device",
+      "verify": "Verify",
+      "resend": "Send a new code",
+      "differentAccount": "Use a different account"
+    },
+    "register": {
+      "title": "Sign Up",
+      "subtitle": "Create an account to get started",
+      "submit": "Sign Up",
+      "haveAccount": "Already have an account?",
+      "loginLink": "Login here"
+    }
   }
 }

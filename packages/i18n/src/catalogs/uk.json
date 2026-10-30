@@ -675,5 +675,49 @@
     "statLabel": "{{title}}: {{value}}",
     "continue": "Продовжити",
     "exercise": "{{name}}, {{sets}}"
+  },
+  "auth": {
+    "welcome": "Вітаємо у Fitme!",
+    "fields": {
+      "email": "Ел. пошта",
+      "passwordPlaceholder": "Пароль",
+      "name": "Ім’я",
+      "code": "Код"
+    },
+    "validation": {
+      "invalidEmail": "Неправильна адреса ел. пошти",
+      "passwordRequired": "Введіть пароль.",
+      "nameTooShort_one": "Ім’я має містити щонайменше {{count}} символ.",
+      "nameTooShort_few": "Ім’я має містити щонайменше {{count}} символи.",
+      "nameTooShort_many": "Ім’я має містити щонайменше {{count}} символів.",
+      "nameTooShort_other": "Ім’я має містити щонайменше {{count}} символу.",
+      "passwordTooShort_one": "Пароль має містити щонайменше {{count}} символ.",
+      "passwordTooShort_few": "Пароль має містити щонайменше {{count}} символи.",
+      "passwordTooShort_many": "Пароль має містити щонайменше {{count}} символів.",
+      "passwordTooShort_other": "Пароль має містити щонайменше {{count}} символу."
+    },
+    "login": {
+      "title": "Вхід",
+      "subtitle": "Увійдіть в акаунт, щоб відкрити свої тренування",
+      "continue": "Продовжити",
+      "forgotPasswordLink": "Забули пароль?",
+      "noAccount": "Немає акаунта?",
+      "registerLink": "Зареєструватися",
+      "cantSignInHere": "Цей акаунт поки не може тут увійти."
+    },
+    "deviceCode": {
+      "title": "Перевірте пошту",
+      "subtitle": "Введіть код, який ми надіслали, щоб підтвердити, що це ви на цьому пристрої",
+      "verify": "Підтвердити",
+      "resend": "Надіслати новий код",
+      "differentAccount": "Увійти в інший акаунт"
+    },
+    "register": {
+      "title": "Реєстрація",
+      "subtitle": "Створіть акаунт, щоб почати",
+      "submit": "Зареєструватися",
+      "haveAccount": "Вже маєте акаунт?",
+      "loginLink": "Увійти"
+    }
   }
 }
