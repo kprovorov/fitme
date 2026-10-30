@@ -1,15 +1,29 @@
 import type { ExerciseSummary } from "@fitme/library-sdk";
 import { router, Stack } from "expo-router";
-import { useCallback } from "react";
+import { useCallback, useRef, useState } from "react";
 import { useTranslation } from "react-i18next";
+import type { SearchBarCommands } from "react-native-screens";
 import { ExerciseRowChevron } from "~/components/exercises/exercise-row";
 import ExercisesView from "~/components/views/exercises-view";
 
 export default function LibraryScreen() {
   const { t } = useTranslation();
+  // The native header search bar holds the text; the view searches with it.
+  const searchBar = useRef<SearchBarCommands | null>(null);
+  const [search, setSearch] = useState("");
 
   const onExercisePress = useCallback((exercise: ExerciseSummary) => {
     router.push(`/exercises/${exercise.slug}`);
+  }, []);
+
+  const clearSearch = useCallback(() => setSearch(""), []);
+
+  // "Show All Exercises" clears the header's text too.
+  const onSearchChange = useCallback((text: string) => {
+    setSearch(text);
+    if (text === "") {
+      searchBar.current?.clearText();
+    }
   }, []);
 
   return (
@@ -17,6 +31,17 @@ export default function LibraryScreen() {
       <Stack.Screen
         options={{
           headerBackButtonDisplayMode: "minimal",
+          headerSearchBarOptions: {
+            autoCapitalize: "none",
+            // Hidden until the User pulls the list down.
+            hideWhenScrolling: true,
+            onCancelButtonPress: clearSearch,
+            onChangeText: ({ nativeEvent }) => setSearch(nativeEvent.text),
+            onClose: clearSearch,
+            placeholder: t("library.search"),
+            placement: "stacked",
+            ref: searchBar,
+          },
           headerTitleStyle: {
             fontFamily: "NunitoSans12pt-Bold",
             fontWeight: "bold",
@@ -28,7 +53,9 @@ export default function LibraryScreen() {
       <ExercisesView
         contentContainerClassName="px-6"
         onExercisePress={onExercisePress}
+        onSearchChange={onSearchChange}
         refreshable
+        search={search}
         trailing={<ExerciseRowChevron />}
       />
     </>

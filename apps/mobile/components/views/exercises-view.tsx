@@ -59,6 +59,8 @@ const ExercisesView = ({
   header,
   refreshable = false,
   contentContainerClassName,
+  search: headerSearch,
+  onSearchChange,
 }: {
   onExercisePress?: (exercise: ExerciseSummary) => void;
   // What ends each row: the Library's chevron, or the picker's CTA.
@@ -69,6 +71,11 @@ const ExercisesView = ({
   // Pull to refresh (the Library tab).
   refreshable?: boolean;
   contentContainerClassName?: string;
+  // The search text, when the screen's header search bar holds it (the
+  // Library tab): the in-list field then doesn't show. "Show All Exercises"
+  // hands back "" to clear it.
+  search?: string;
+  onSearchChange?: (search: string) => void;
 }) => {
   const { t } = useTranslation(undefined, { i18n });
   const labels = useChoiceLabels();
@@ -76,7 +83,9 @@ const ExercisesView = ({
     () => muscleGroupOptions(labels, t("library.allMuscleGroups")),
     [labels, t]
   );
-  const [search, setSearch] = useState("");
+  const [ownSearch, setOwnSearch] = useState("");
+  const inHeader = headerSearch !== undefined;
+  const search = inHeader ? headerSearch : ownSearch;
   const [muscleGroup, setMuscleGroup] =
     useState<MuscleGroupFilter>(initialMuscleGroup);
   const [refreshing, setRefreshing] = useState(false);
@@ -140,9 +149,10 @@ const ExercisesView = ({
   }, [refetch]);
 
   const showAll = useCallback(() => {
-    setSearch("");
+    setOwnSearch("");
+    onSearchChange?.("");
     setMuscleGroup("all");
-  }, []);
+  }, [onSearchChange]);
 
   const shown = isError ? [] : (exercises ?? []);
   const lastIndex = shown.length - 1;
@@ -227,16 +237,18 @@ const ExercisesView = ({
       ListHeaderComponent={
         <VStack className="items-stretch pb-md">
           {header}
-          <Input
-            accessibilityLabel={t("library.search")}
-            autoCapitalize="none"
-            autoCorrect={false}
-            clearButtonMode="while-editing"
-            onChangeText={setSearch}
-            placeholder={t("library.search")}
-            returnKeyType="search"
-            value={search}
-          />
+          {inHeader ? null : (
+            <Input
+              accessibilityLabel={t("library.search")}
+              autoCapitalize="none"
+              autoCorrect={false}
+              clearButtonMode="while-editing"
+              onChangeText={setOwnSearch}
+              placeholder={t("library.search")}
+              returnKeyType="search"
+              value={search}
+            />
+          )}
           <Picker
             label={t("library.muscleGroup")}
             onValueChange={setMuscleGroup}
