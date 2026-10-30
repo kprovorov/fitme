@@ -1,6 +1,8 @@
 import type { Workout } from "@fitme/core";
+import { formatNumber } from "@fitme/i18n";
 import { Stack, useLocalSearchParams, useRouter } from "expo-router";
 import { useCallback, useState } from "react";
+import { useTranslation } from "react-i18next";
 import {
   ActivityIndicator,
   type LayoutChangeEvent,
@@ -24,6 +26,7 @@ import {
   useStartWorkout,
   workoutSessionPath,
 } from "~/hooks/start-workout";
+import { useI18n } from "~/lib/i18n";
 import { cn } from "~/lib/utils";
 
 /** Space between the content's end (or the pinned action) and the bottom. */
@@ -45,6 +48,7 @@ function WorkoutAction({
 }) {
   const insets = useSafeAreaInsets();
   const router = useRouter();
+  const { t } = useTranslation();
   const openSession = useCallback(
     (sessionId: string) => {
       router.replace(
@@ -75,7 +79,7 @@ function WorkoutAction({
         <Button
           icon="arrow.right"
           iconPosition="trailing"
-          label="Continue Workout"
+          label={t("startWorkout.continue")}
           onPress={continueWorkout}
           size="lg"
         />
@@ -95,7 +99,7 @@ function WorkoutAction({
         icon="arrow.right"
         iconPosition="trailing"
         isLoading={isStarting}
-        label="Start Workout"
+        label={t("startWorkout.start")}
         onPress={startWorkout}
         size="lg"
         testID="start-workout-button"
@@ -124,6 +128,8 @@ function WorkoutAction({
 
 /** The Workout's name and planned stats, then a planned card per Exercise. */
 function WorkoutContent({ workout }: { workout: Workout }) {
+  const { t } = useTranslation();
+  const i18n = useI18n();
   const exercises = [...workout.exercises].sort((a, b) => a.order - b.order);
   const shownBySlug = useExercises(
     exercises.map(({ exercise_slug }) => exercise_slug)
@@ -140,11 +146,19 @@ function WorkoutContent({ workout }: { workout: Workout }) {
         <StatRow
           stats={[
             {
-              label: "Duration",
-              value: `${workout.plan.workout_duration} min`,
+              label: t("plannedWorkout.stats.duration"),
+              value: t("plannedWorkout.durationMinutes", {
+                minutes: workout.plan.workout_duration,
+              }),
             },
-            { label: "Exercises", value: `${exercises.length}` },
-            { label: "Sets", value: `${setCount}` },
+            {
+              label: t("plannedWorkout.stats.exercises"),
+              value: formatNumber(i18n, exercises.length),
+            },
+            {
+              label: t("plannedWorkout.stats.sets"),
+              value: formatNumber(i18n, setCount),
+            },
           ]}
         />
       </Card>
@@ -158,7 +172,7 @@ function WorkoutContent({ workout }: { workout: Workout }) {
         ))
       ) : (
         <Text className="px-sm text-center text-muted-foreground">
-          This workout has no exercises yet.
+          {t("plannedWorkout.noExercises")}
         </Text>
       )}
     </>
@@ -172,6 +186,7 @@ function WorkoutContent({ workout }: { workout: Workout }) {
 export default function WorkoutScreen() {
   const insets = useSafeAreaInsets();
   const router = useRouter();
+  const { t } = useTranslation();
   const { workoutId } = useLocalSearchParams<{ workoutId: string }>();
   const {
     data: workout,
@@ -206,11 +221,11 @@ export default function WorkoutScreen() {
       return (
         <View className="items-center gap-sm pt-lg">
           <Text className="text-center text-muted-foreground">
-            This workout no longer exists
+            {t("plannedWorkout.gone")}
           </Text>
           <Button
             fill={false}
-            label="Go Back"
+            label={t("plannedWorkout.goBack")}
             onPress={goBack}
             variant="secondary"
           />
@@ -221,11 +236,11 @@ export default function WorkoutScreen() {
       return (
         <View className="items-center gap-sm pt-lg">
           <Text className="text-center text-muted-foreground">
-            Couldn't load this workout. Check your connection and try again.
+            {t("plannedWorkout.loadError")}
           </Text>
           <Button
             fill={false}
-            label="Try Again"
+            label={t("common.tryAgain")}
             onPress={retry}
             variant="secondary"
           />

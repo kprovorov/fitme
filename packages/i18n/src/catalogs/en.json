@@ -127,6 +127,66 @@
       "note": "- Additional notes: {{note}}"
     }
   },
+  "plans": {
+    "title": "My Plans",
+    "create": "Create workout plan",
+    "createNew": "Create New Workout Plan",
+    "frequency_one": "{{count, number}}x per week",
+    "frequency_other": "{{count, number}}x per week",
+    "manage": "Manage",
+    "activate": {
+      "action": "Activate Plan",
+      "title": "Activate Plan",
+      "message": "This will deactivate your current plan",
+      "confirm": "Activate",
+      "failed": "Couldn't Activate Plan"
+    },
+    "archive": {
+      "action": "Archive",
+      "title": "Archive Plan",
+      "activePlan": "You cannot archive an active plan. You should have at least one active plan at all times.",
+      "message": "Are you sure you want to archive this plan?",
+      "confirm": "Archive",
+      "failed": "Couldn't Archive Plan"
+    },
+    "errors": {
+      "notFound": "This plan no longer exists.",
+      "network": "Please check your connection and try again.",
+      "rateLimited": "Too many requests: please try again in {{seconds, number}} s."
+    }
+  },
+  "plannedWorkout": {
+    "stats": {
+      "duration": "Duration",
+      "exercises": "Exercises",
+      "sets": "Sets"
+    },
+    "durationMinutes": "{{minutes, number}} min",
+    "noExercises": "This workout has no exercises yet.",
+    "gone": "This workout no longer exists",
+    "goBack": "Go Back",
+    "loadError": "Couldn't load this workout. Check your connection and try again.",
+    "exerciseDetailsHint": "Opens the exercise's details"
+  },
+  "startWorkout": {
+    "start": "Start Workout",
+    "continue": "Continue Workout",
+    "continueNamed": "Continue {{name}}",
+    "finishFirst": "Finish your workout in progress first",
+    "finishFirstNamed": "Finish {{name}} first",
+    "failed": {
+      "title": "Couldn't start workout",
+      "network": "Check your connection and try again.",
+      "rateLimited": "Too many requests: please try again in {{seconds, number}} s."
+    }
+  },
+  "workoutCard": {
+    "exercises_one": "{{count, number}} Exercise",
+    "exercises_other": "{{count, number}} Exercises",
+    "toWorkout": "To Workout",
+    "openHint": "Opens the workout",
+    "openInProgressHint": "Opens the workout in progress"
+  },
   "choices": {
     "experienceLevel": {
       "beginner": "Beginner",
