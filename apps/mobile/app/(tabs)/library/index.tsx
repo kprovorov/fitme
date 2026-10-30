@@ -16,6 +16,8 @@ export default function LibraryScreen() {
     router.push(`/exercises/${exercise.slug}`);
   }, []);
 
+  const clearSearch = useCallback(() => setSearch(""), []);
+
   // "Show All Exercises" clears the header's text too.
   const onSearchChange = useCallback((text: string) => {
     setSearch(text);
@@ -33,9 +35,9 @@ export default function LibraryScreen() {
             autoCapitalize: "none",
             // Hidden until the User pulls the list down.
             hideWhenScrolling: true,
-            onCancelButtonPress: () => setSearch(""),
-            onClose: () => setSearch(""),
+            onCancelButtonPress: clearSearch,
             onChangeText: ({ nativeEvent }) => setSearch(nativeEvent.text),
+            onClose: clearSearch,
             placeholder: t("library.search"),
             placement: "stacked",
             ref: searchBar,

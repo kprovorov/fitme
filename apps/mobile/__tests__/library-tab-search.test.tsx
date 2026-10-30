@@ -19,6 +19,7 @@ import {
   settle,
   until,
 } from "~/test-utils/query-client";
+import { SEARCH_BAR_TEST_ID } from "~/test-utils/stack-screen-stub";
 
 jest.mock("expo-router", () => ({
   router: { push: jest.fn() },
@@ -93,7 +94,7 @@ describe("the Library tab's header search", () => {
     await renderLibrary();
 
     expect(screen.getAllByPlaceholderText("Search exercises")).toHaveLength(1);
-    expect(screen.getByTestId("header-search-bar")).toBeTruthy();
+    expect(screen.getByTestId(SEARCH_BAR_TEST_ID)).toBeTruthy();
     expect(screen.getByText("Bench Press")).toBeTruthy();
     expect(screen.getByText("Squat")).toBeTruthy();
   });
@@ -122,6 +123,18 @@ describe("the Library tab's header search", () => {
 
     await search("", "Bench Press", "No Exercises Found");
 
+    expect(screen.getByText("Squat")).toBeTruthy();
+  });
+
+  it("shows the full list again on Cancel", async () => {
+    await renderLibrary();
+    await search("squ", "Squat", "Bench Press");
+
+    await fireEvent.press(screen.getByLabelText("Cancel"));
+    await until(() => screen.queryByText("Bench Press") !== null);
+    await settle(client);
+
+    expect(searchBar().props.value).toBe("");
     expect(screen.getByText("Squat")).toBeTruthy();
   });
 

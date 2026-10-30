@@ -25,6 +25,7 @@ import {
   settle,
   until,
 } from "~/test-utils/query-client";
+import { SEARCH_BAR_TEST_ID } from "~/test-utils/stack-screen-stub";
 
 const mockSlug = { current: "bench-press" };
 
@@ -86,7 +87,7 @@ describe("the Library tab in Ukrainian", () => {
     expect(screen.getByText("Бібліотека")).toBeTruthy();
     // The header's search bar: the list has no field of its own.
     expect(screen.getAllByPlaceholderText("Пошук вправ")).toHaveLength(1);
-    expect(screen.getByTestId("header-search-bar").props.placeholder).toBe(
+    expect(screen.getByTestId(SEARCH_BAR_TEST_ID).props.placeholder).toBe(
       "Пошук вправ"
     );
     expect(screen.getByLabelText("Група м’язів Усі")).toBeTruthy();
