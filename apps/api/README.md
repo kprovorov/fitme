@@ -49,6 +49,7 @@ Responses are JSON. Successful responses wrap the payload in `data`; failures re
 - `src/library.ts` — the Library API client (`LIBRARY_URL`, `LIBRARY_PUBLIC_API_SECRET`; `https://library.fitmeproject.com` deployed) and `checkExerciseSlugs`, the one batch lookup a write runs before its transaction
 - `src/schemas.ts` — shared schemas (`ErrorResponse`, `Id`, `MuscleGroup`, `WeightUnit`, the documented 400 and 401 responses) and `invalidRequest`, every router's validation hook
 - `src/openapi.ts` — writes `openapi.json` (`pnpm api openapi`)
+- `src/backfill-covers.ts` / `scripts/backfill-covers.ts` — the one-off Cover backfill and its command (see Cover backfill)
 
 ## Tests
 
@@ -57,3 +58,25 @@ Responses are JSON. Successful responses wrap the payload in `data`; failures re
 ## Integration tests
 
 `integration/` runs the same seam against a real Supabase stack (`pnpm db start`): the real services facade through `asUser` on the stack's Supavisor pooler (the vitest config reads its URL from `supabase status`; `FITME_DATABASE_URL` overrides it), as made-up Clerk-style `user_…` ids with test-signed tokens, and the fake Library. CI runs it in `.github/workflows/integration-tests.yml`.
+
+`integration/backfill-covers.test.ts` runs the Cover backfill there too, scoped to its own Plans (`planIds`), since other files write Plans on the same stack at once.
+
+## Cover backfill
+
+A one-off script giving every Workout of a live Plan without a Cover one (ADR 0014; Postgres can't call the Library, so it isn't a migration). It fetches the Library's Covers (and refuses to run, exit 1, when there are none), lists the live Plans with an uncovered Workout through `withService`, looks those Workouts' Exercise slugs up in one batch, then per Plan, one transaction each, runs `@fitme/core`'s `pickCovers` for its uncovered Workouts, keeping the Plan's existing Covers as used, and writes the ids. A Workout with a Cover is never changed, so a second run writes nothing. A Library failure stops it before anything is written; a failure on one Plan stops it after the Plans already committed, and a rerun picks up the rest.
+
+Environment (read from the process, no file is loaded):
+
+| Variable | Value |
+| --- | --- |
+| `FITME_DATABASE_URL` | the `fitme` login's transaction-pooler URL with `?application_name=backfill` |
+| `LIBRARY_URL` | the Library API (`https://library.fitmeproject.com` for production) |
+| `LIBRARY_PUBLIC_API_SECRET` | the Public API's bearer for it (the same secret `apps/api` uses) |
+
+```bash
+pnpm api backfill:covers --dry-run          # counts per Plan, writes nothing, takes no locks
+pnpm api backfill:covers --plan <id>        # one Plan (repeat --plan for more), e.g. a smoke run
+pnpm api backfill:covers                    # every live Plan
+```
+
+It prints one line per Plan (`plan <id>: <n> covered`, or `to cover` on a dry run) and a total: Plan ids and counts only, no other User data. Errors go through `sanitizeError`, so no SQL, parameter or Postgres message is printed.

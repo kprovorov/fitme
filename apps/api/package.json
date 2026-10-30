@@ -4,6 +4,7 @@
   "private": true,
   "type": "module",
   "scripts": {
+    "backfill:covers": "tsx scripts/backfill-covers.ts",
     "build": "tsdown",
     "dev": "tsx watch src/index.ts",
     "openapi": "tsx src/openapi.ts",
