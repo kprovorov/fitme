@@ -71,8 +71,12 @@ describe("tab bar", () => {
     setDeviceLanguages(["ru-RU"]);
     await render(<App />);
 
-    expect(screen.getByText("Workout")).toBeTruthy();
-    expect(screen.getByText("Library")).toBeTruthy();
+    expect(shownTabs().map(({ label }) => label)).toEqual([
+      "Workout",
+      "History",
+      "Arnold AI",
+      "Library",
+    ]);
   });
 
   it("takes the first device language the app speaks", async () => {
