@@ -28,7 +28,79 @@ describe("Card", () => {
     expect(screen.getByText("Grouped content")).toBeTruthy();
   });
 
-  it.each(["default", "ghost"] as const)(
+  it.each([
+    ["default", ["border", "border-border", "bg-card"]],
+    ["ghost", ["border", "border-border", "bg-transparent"]],
+    ["primary", ["bg-primary"]],
+  ] as const)("draws the %s surface", async (variant, expected) => {
+    await render(
+      <Card testID="card" variant={variant}>
+        <Text>Day A</Text>
+      </Card>
+    );
+
+    const classes = screen.getByTestId("card").props.className.split(" ");
+    expect(classes).toEqual(expect.arrayContaining([...expected, "p-sm"]));
+    if (variant === "primary") {
+      expect(classes).not.toContain("border");
+    }
+  });
+
+  it("drops its padding with padding none", async () => {
+    await render(
+      <Card padding="none" testID="card">
+        <Text>Edge to edge</Text>
+      </Card>
+    );
+
+    const classes = screen.getByTestId("card").props.className.split(" ");
+    expect(classes).toContain("p-0");
+    expect(classes).not.toContain("p-sm");
+  });
+
+  it("draws its background behind the content, clipped to its radius", async () => {
+    await render(
+      <Card
+        background={<Text testID="cover">Cover</Text>}
+        padding="none"
+        testID="card"
+      >
+        <Text>Push Day</Text>
+      </Card>
+    );
+
+    const card = screen.getByTestId("card");
+    expect(card.props.className.split(" ")).toEqual(
+      expect.arrayContaining(["overflow-hidden", "rounded-card"])
+    );
+    const [backgroundLayer, content] = card.children;
+    // The background comes first, so the content draws over it, and it fills
+    // the card out of VoiceOver's and touches' way.
+    expect(backgroundLayer).toMatchObject({
+      props: expect.objectContaining({
+        className: "absolute inset-0",
+        pointerEvents: "none",
+      }),
+    });
+    expect(screen.getByText("Push Day")).toBe(content);
+    expect(
+      screen.queryByTestId("cover", { includeHiddenElements: false })
+    ).toBeNull();
+  });
+
+  it("sets its title and content in primary-foreground on primary", async () => {
+    await render(
+      <Card variant="primary">
+        <CardTitle>Pro</CardTitle>
+      </Card>
+    );
+
+    expect(
+      screen.getByRole("heading", { name: "Pro" }).props.className
+    ).toContain("text-primary-foreground");
+  });
+
+  it.each(["default", "ghost", "primary"] as const)(
     "draws no glass or highlight layers over its children (%s)",
     async (variant) => {
       const { toJSON } = await render(
@@ -46,17 +118,31 @@ describe("Card", () => {
 
   it("keeps its own surface when a caller passes surface classes", async () => {
     await render(
-      <Card className="gap-3 rounded-none bg-destructive p-0" testID="card">
+      <Card
+        className="gap-3 rounded-none border-0 bg-destructive p-0"
+        testID="card"
+      >
         <Text>Day A</Text>
       </Card>
     );
 
     const classes = screen.getByTestId("card").props.className.split(" ");
-    // Layout classes apply; the caller's fill, radius and padding don't.
+    // Layout classes apply; the caller's fill, border, radius and padding don't.
     expect(classes).toEqual(
-      expect.arrayContaining(["gap-3", "bg-card", "rounded-card", "p-sm"])
+      expect.arrayContaining([
+        "gap-3",
+        "bg-card",
+        "border",
+        "rounded-card",
+        "p-sm",
+      ])
     );
-    for (const dropped of ["bg-destructive", "rounded-none", "p-0"]) {
+    for (const dropped of [
+      "bg-destructive",
+      "border-0",
+      "rounded-none",
+      "p-0",
+    ]) {
       expect(classes).not.toContain(dropped);
     }
   });
@@ -71,7 +157,7 @@ describe("Card", () => {
     expect(screen.getByLabelText("Next workout")).toBeTruthy();
   });
 
-  it("takes only the default and ghost variants", () => {
+  it("takes only the default, ghost and primary variants", () => {
     // Type-level: `variant` is Card's only styling prop. These fail typecheck
     // if Card grows glass props back, accepts another variant or takes a style.
     // @ts-expect-error not a Card variant
@@ -80,6 +166,8 @@ describe("Card", () => {
     const tinted = <Card tintColor="#c0ff38" />;
     // @ts-expect-error Card takes no inline style
     const styled = <Card style={{ padding: 0 }} />;
-    expect([glass, tinted, styled]).toHaveLength(3);
+    // @ts-expect-error not a Card padding
+    const padded = <Card padding="lg" />;
+    expect([glass, tinted, styled, padded]).toHaveLength(4);
   });
 });
