@@ -1,6 +1,7 @@
 import type { Workout } from "@fitme/core";
 import { Link, useRouter } from "expo-router";
 import { useCallback, useEffect, useState } from "react";
+import { useTranslation } from "react-i18next";
 import { Pressable, ScrollView } from "react-native";
 import { HStack } from "@/components/ui/hstack";
 import { Text } from "@/components/ui/text";
@@ -55,6 +56,7 @@ export default function WorkoutCard({
   state = "default",
 }: WorkoutCardProps) {
   const router = useRouter();
+  const { t } = useTranslation();
   const { blockedBy, startWorkout, isStarting } = useStartWorkout(
     workout.id,
     (sessionId) => {
@@ -100,9 +102,9 @@ export default function WorkoutCard({
     workout.exercises.map(({ exercise_slug }) => exercise_slug)
   );
 
-  const exerciseCount = `${workout.exercises.length} ${
-    workout.exercises.length === 1 ? "Exercise" : "Exercises"
-  }`;
+  const exerciseCount = t("workoutCard.exercises", {
+    count: workout.exercises.length,
+  });
   const openWorkout = () => {
     router.push(
       activeSession
@@ -132,7 +134,7 @@ export default function WorkoutCard({
 
               <HStack className="gap-1">
                 <Text className="text-primary-foreground text-subhead-emphasized">
-                  To Workout
+                  {t("workoutCard.toWorkout")}
                 </Text>
                 <SymbolImage
                   className="text-primary-foreground text-subhead-emphasized"
@@ -145,8 +147,8 @@ export default function WorkoutCard({
         <Pressable
           accessibilityHint={
             activeSession
-              ? "Opens the workout in progress"
-              : "Opens the workout"
+              ? t("workoutCard.openInProgressHint")
+              : t("workoutCard.openHint")
           }
           accessibilityLabel={`${workout.name}, ${exerciseCount}`}
           accessibilityRole="button"

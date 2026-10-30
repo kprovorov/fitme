@@ -1,4 +1,5 @@
 import type { Plan } from "@fitme/core";
+import { useTranslation } from "react-i18next";
 import { SymbolImage } from "~/components/symbol-image";
 import { useChoiceLabels } from "~/lib/choices";
 import {
@@ -11,7 +12,12 @@ import {
 import { HStack } from "../ui/hstack";
 import { Text } from "../ui/text";
 import { P } from "../ui/typography";
-import { COUNT_SYMBOL, goalSymbol, placeSymbol } from "./plan-symbols";
+import {
+  COUNT_SYMBOL,
+  goalSymbol,
+  LEVEL_SYMBOL,
+  placeSymbol,
+} from "./plan-symbols";
 
 interface PlanCardProps {
   plan: Plan;
@@ -19,6 +25,7 @@ interface PlanCardProps {
 
 export default function PlanCard({ plan }: PlanCardProps) {
   const labels = useChoiceLabels();
+  const { t } = useTranslation();
   return (
     <Card className="flex-1 gap-sm">
       <CardHeader>
@@ -36,9 +43,14 @@ export default function PlanCard({ plan }: PlanCardProps) {
                 label: labels.goal(plan.goal),
               },
               {
+                icon: LEVEL_SYMBOL,
+                key: "level",
+                label: labels.experienceLevel(plan.experience_level),
+              },
+              {
                 icon: COUNT_SYMBOL,
                 key: "frequency",
-                label: `${plan.frequency}x per week`,
+                label: t("plans.frequency", { count: plan.frequency }),
               },
               {
                 icon: placeSymbol(plan.place),

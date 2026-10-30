@@ -1,5 +1,6 @@
 import type { WorkoutExercise } from "@fitme/core";
 import { useRouter } from "expo-router";
+import { useTranslation } from "react-i18next";
 import { Card } from "~/components/ui/card";
 import { type ShownExercise, shownExercise } from "~/hooks/queries/library";
 import ExerciseCardHeader, { OpenChevron } from "./exercise-card-header";
@@ -21,13 +22,14 @@ export default function PlannedWorkoutExerciseCard({
   workoutExercise,
 }: PlannedWorkoutExerciseCardProps) {
   const router = useRouter();
+  const { t } = useTranslation();
   const exercise =
     resolved ?? shownExercise(workoutExercise.exercise_slug, null);
 
   return (
     <Card className="gap-sm">
       <ExerciseCardHeader
-        accessibilityHint="Opens the exercise's details"
+        accessibilityHint={t("plannedWorkout.exerciseDetailsHint")}
         exercise={exercise}
         onPress={
           exercise.isResolved

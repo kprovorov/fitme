@@ -1,5 +1,6 @@
 import { Stack, useRouter } from "expo-router";
 import { useCallback } from "react";
+import { useTranslation } from "react-i18next";
 import { RefreshControl, ScrollView } from "react-native";
 import PlansListView from "~/components/views/plan-list-view";
 import { usePlansQuery } from "~/hooks/queries/plans";
@@ -7,6 +8,7 @@ import { usePlansQuery } from "~/hooks/queries/plans";
 export default function PlansScreen() {
   const { refetch, isLoading } = usePlansQuery();
   const router = useRouter();
+  const { t } = useTranslation();
   const onRefresh = useCallback(async () => {
     await refetch();
   }, [refetch]);
@@ -22,14 +24,14 @@ export default function PlansScreen() {
             fontWeight: "bold",
           },
           headerTransparent: true,
-          title: "My Plans",
+          title: t("plans.title"),
           unstable_headerRightItems: () => [
             {
               icon: {
                 name: "plus",
                 type: "sfSymbol",
               },
-              label: "Create workout plan",
+              label: t("plans.create"),
               onPress: () => {
                 router.push("/planner");
               },
