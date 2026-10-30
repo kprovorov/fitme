@@ -12,6 +12,7 @@ const notConfigured = () =>
 
 /** Answers every call unavailable, with no request: no URL to send it to. */
 const unconfigured: Library = {
+  covers: () => Promise.reject(notConfigured()),
   get: () => Promise.reject(notConfigured()),
   list: () => Promise.reject(notConfigured()),
   lookup: () => Promise.reject(notConfigured()),

@@ -6,6 +6,7 @@ import {
 
 /** Answers every call unavailable: `LIBRARY_URL` isn't set. */
 const unconfigured: Library = {
+  covers: () => Promise.reject(notConfigured()),
   get: () => Promise.reject(notConfigured()),
   list: () => Promise.reject(notConfigured()),
   lookup: () => Promise.reject(notConfigured()),

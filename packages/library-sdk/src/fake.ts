@@ -7,6 +7,7 @@ import {
 } from "@fitme/core/models";
 import { type LibraryError, LibraryInvalidRequestError } from "./errors";
 import type {
+  Cover,
   Exercise,
   ExercisePage,
   ExerciseSummary,
@@ -39,6 +40,11 @@ export interface FakeTranslation {
 export type FakeExercise = (Exercise | ExerciseSummary) & {
   translations?: Partial<Record<AppLanguage, FakeTranslation>>;
 };
+
+export interface FakeLibraryOptions {
+  /** The Library's Covers, answered by `covers()` in this order. */
+  covers?: readonly Cover[];
+}
 
 /** The fake's Library in one App language, the way `apps/library` serves it. */
 interface FakeLanguage {
@@ -161,10 +167,11 @@ const serveIn = (
  * with empty description and instructions. An Exercise can carry
  * `translations`: without one in the language asked for, it answers wholly
  * in English, and search matches its name in that language or its English
- * one, as the API does.
+ * one, as the API does. `covers()` answers the Covers given, none by default.
  */
 export const createFakeLibrary = (
-  exercises: readonly FakeExercise[]
+  exercises: readonly FakeExercise[],
+  { covers = [] }: FakeLibraryOptions = {}
 ): FakeLibrary => {
   const languages = Object.fromEntries(
     appLanguages.map((language) => [language, serveIn(exercises, language)])
@@ -185,6 +192,16 @@ export const createFakeLibrary = (
   };
 
   return {
+    // copies, as the client answers fresh objects on every call
+    covers: () =>
+      orFail(() =>
+        covers.map(({ id, image_url, muscle_groups }) => ({
+          id,
+          image_url,
+          muscle_groups: [...muscle_groups],
+        }))
+      ),
+
     failWith: (error) => {
       failure = error;
     },

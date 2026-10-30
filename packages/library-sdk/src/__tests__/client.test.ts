@@ -7,7 +7,7 @@ import {
   LibraryUnauthorizedError,
   LibraryUnavailableError,
 } from "..";
-import { exercise, stubApi } from "./stub-api";
+import { cover, exercise, stubApi } from "./stub-api";
 
 const URL = "https://exercises.test";
 const token = () => Promise.resolve("secret-token");
@@ -631,6 +631,165 @@ describe("errors", () => {
 
     await expect(library.lookup(slugs)).rejects.toBeInstanceOf(
       LibraryRateLimitedError
+    );
+  });
+});
+
+describe("covers", () => {
+  const coversLibrary = (
+    respond?: Parameters<typeof stubApi>[1],
+    covers = [
+      cover("3f2b8a4e-6c1d-4e5f-9a7b-1c2d3e4f5a6b", {
+        muscle_groups: ["quadriceps", "glutes"],
+      }),
+      cover("0a1b2c3d-4e5f-6a7b-8c9d-0e1f2a3b4c5d"),
+    ]
+  ) => {
+    const api = stubApi([], respond, covers);
+    return {
+      api,
+      covers,
+      library: createLibrary({ fetch: api.fetch, token, url: URL }),
+    };
+  };
+
+  it("answers every Cover from GET /covers, in the API's order, with the bearer", async () => {
+    const { api, covers, library } = coversLibrary();
+
+    expect(await library.covers()).toEqual(covers);
+    expect(api.requests).toHaveLength(1);
+    expect(api.requests[0]?.path).toBe("/covers");
+    expect(api.requests[0]?.url.search).toBe("");
+    expect(api.requests[0]?.authorization).toBe("Bearer secret-token");
+  });
+
+  it("answers an empty list for a Library without Covers", async () => {
+    const { library } = coversLibrary(undefined, []);
+
+    expect(await library.covers()).toEqual([]);
+  });
+
+  it("takes a muscle group it doesn't know, so a new one never breaks it", async () => {
+    const fresh = cover("0a1b2c3d-4e5f-6a7b-8c9d-0e1f2a3b4c5d", {
+      muscle_groups: ["neck" as "chest"],
+    });
+    const { library } = coversLibrary(undefined, [fresh]);
+
+    expect(await library.covers()).toEqual([fresh]);
+  });
+
+  it("maps 401 to unauthorized", async () => {
+    const { library } = coversLibrary(() =>
+      Response.json(errorBody("unauthorized"), { status: 401 })
+    );
+
+    await expect(library.covers()).rejects.toBeInstanceOf(
+      LibraryUnauthorizedError
+    );
+  });
+
+  it("maps 429 to rate limited, carrying Retry-After seconds", async () => {
+    const { library } = coversLibrary(() =>
+      Response.json(errorBody("rate_limited"), {
+        headers: { "Retry-After": "9" },
+        status: 429,
+      })
+    );
+
+    const error = await library.covers().catch((e: unknown) => e);
+
+    expect(error).toBeInstanceOf(LibraryRateLimitedError);
+    expect(error).toMatchObject({ retryAfterSeconds: 9 });
+  });
+
+  it("maps a 5xx to unavailable", async () => {
+    const { library } = coversLibrary(
+      () => new Response("oops", { status: 503 })
+    );
+
+    await expect(library.covers()).rejects.toMatchObject({
+      code: "unavailable",
+      status: 503,
+    });
+  });
+
+  it("maps a network failure to unavailable, keeping the cause", async () => {
+    const cause = new TypeError("Network request failed");
+    const { library } = coversLibrary(() => Promise.reject(cause));
+
+    await expect(library.covers()).rejects.toMatchObject({
+      cause,
+      code: "unavailable",
+    });
+  });
+
+  it("maps a timeout to unavailable", async () => {
+    const hanging = (_input: RequestInfo | URL, init?: RequestInit) =>
+      new Promise<Response>((_resolve, reject) => {
+        init?.signal?.addEventListener("abort", () =>
+          reject(new DOMException("aborted", "AbortError"))
+        );
+      });
+    const library = createLibrary({
+      fetch: hanging,
+      timeoutMs: 5,
+      token,
+      url: URL,
+    });
+
+    await expect(library.covers()).rejects.toBeInstanceOf(
+      LibraryUnavailableError
+    );
+  });
+
+  it("fails unauthorized without a request when there's no token", async () => {
+    const api = stubApi([]);
+    const library = createLibrary({
+      fetch: api.fetch,
+      token: () => Promise.resolve(null),
+      url: URL,
+    });
+
+    await expect(library.covers()).rejects.toBeInstanceOf(
+      LibraryUnauthorizedError
+    );
+    expect(api.requests).toHaveLength(0);
+  });
+
+  it.each([
+    ["an unreadable body", () => new Response("<html>", { status: 200 })],
+    ["no data", () => Response.json({})],
+    ["data that isn't a list", () => Response.json({ data: {} })],
+    ["an entry that isn't an object", () => Response.json({ data: [null] })],
+    [
+      "an entry without an id",
+      () =>
+        Response.json({
+          data: [{ image_url: "https://media.test/c.jpg", muscle_groups: [] }],
+        }),
+    ],
+    [
+      "an entry without an image_url",
+      () => Response.json({ data: [{ id: "c", muscle_groups: ["chest"] }] }),
+    ],
+    [
+      "an entry whose muscle groups aren't strings",
+      () =>
+        Response.json({
+          data: [
+            {
+              id: "c",
+              image_url: "https://media.test/c.jpg",
+              muscle_groups: [1],
+            },
+          ],
+        }),
+    ],
+  ])("maps a 200 answer with %s to unavailable", async (_, respond) => {
+    const { library } = coversLibrary(respond);
+
+    await expect(library.covers()).rejects.toBeInstanceOf(
+      LibraryUnavailableError
     );
   });
 });

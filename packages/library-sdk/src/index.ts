@@ -13,6 +13,7 @@ export {
 } from "./errors";
 export { exerciseNameFromSlug } from "./name";
 export type {
+  Cover,
   Exercise,
   ExerciseBatch,
   ExercisePage,

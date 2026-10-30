@@ -6,6 +6,7 @@ import {
   LibraryUnavailableError,
 } from "./errors";
 import type {
+  Cover,
   Exercise,
   ExerciseBatch,
   ExercisePage,
@@ -117,6 +118,16 @@ const isExercise = (value: unknown): value is Exercise =>
   typeof value.instructions === "string" &&
   isSummary(value);
 
+/** A Cover's muscle groups, like an Exercise's, are only checked to be strings. */
+const isCover = (value: unknown): value is Cover =>
+  isRecord(value) &&
+  typeof value.id === "string" &&
+  typeof value.image_url === "string" &&
+  isStringArray(value.muscle_groups);
+
+const isCoverList = (value: unknown): value is { data: Cover[] } =>
+  isRecord(value) && Array.isArray(value.data) && value.data.every(isCover);
+
 /** `GET /exercises/:slug` answers 404 for a slug no Exercise has. */
 const NOT_FOUND = 404;
 
@@ -210,6 +221,13 @@ export const createLibrary = ({
   ) => (await request("/exercises", params, isAnswer)) as T;
 
   return {
+    covers: async () => {
+      const list = (await request("/covers", {}, isCoverList)) as {
+        data: Cover[];
+      };
+      return list.data;
+    },
+
     get: (slug, { language } = {}) =>
       slug === ""
         ? Promise.resolve(null)
