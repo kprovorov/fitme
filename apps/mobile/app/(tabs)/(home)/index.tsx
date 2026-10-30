@@ -71,6 +71,9 @@ export default function HomeScreen() {
   }, [profile, user, router]);
 
   const handleCreatePlan = useCallback(() => router.push("/planner"), [router]);
+  const retryPlans = useCallback(() => {
+    refetchWorkoutPlans();
+  }, [refetchWorkoutPlans]);
 
   return (
     <>
@@ -146,7 +149,7 @@ export default function HomeScreen() {
             <Button
               className="w-full"
               label={t("common.tryAgain")}
-              onPress={onRefresh}
+              onPress={retryPlans}
             />
           </VStack>
         ) : (
