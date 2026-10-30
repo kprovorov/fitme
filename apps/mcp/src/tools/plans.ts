@@ -25,6 +25,10 @@ import {
 
 const planIdSchema = z.guid().describe("Plan id (plans.id).");
 
+/** What a Workout's `cover` is, for every tool showing Workouts. */
+const COVER_NOTE =
+  "Each workout's `cover` is the id of its Library Cover photo, or null while it has none; it's set by Fitme, never by tool input.";
+
 const planNotFound = (planId: string) =>
   `Plan ${planId} not found (it may have been deleted or belong to another user).`;
 
@@ -33,8 +37,7 @@ function registerPlanReadTools(server: McpServer, ctx: ToolContext) {
     "list_plans",
     {
       annotations: READ_ONLY,
-      description:
-        "Lists the authenticated user's training plans, newest first, with a summary of each plan's workouts (id, name, order, exercise count). Workouts are in rotation order: the first one is up next. `is_active` marks the plan the app is following. Use get_plan for exercises and sets.",
+      description: `Lists the authenticated user's training plans, newest first, with a summary of each plan's workouts (id, name, order, exercise count, cover). Workouts are in rotation order: the first one is up next. \`is_active\` marks the plan the app is following. Use get_plan for exercises and sets. ${COVER_NOTE}`,
       inputSchema: {},
       title: "List plans",
     },
@@ -47,7 +50,7 @@ function registerPlanReadTools(server: McpServer, ctx: ToolContext) {
     "get_plan",
     {
       annotations: READ_ONLY,
-      description: `Returns one of the user's plans in full: workouts in rotation order (first = next up), each with its exercises (workout_exercises.id, the Exercise's \`exercise_slug\`, \`name\` and \`muscle_groups\` from the Library) and recommended sets. Workout ids are what start_workout_session needs. ${WEIGHT_UNIT_NOTE}`,
+      description: `Returns one of the user's plans in full: workouts in rotation order (first = next up), each with its exercises (workout_exercises.id, the Exercise's \`exercise_slug\`, \`name\` and \`muscle_groups\` from the Library) and recommended sets. Workout ids are what start_workout_session needs. ${COVER_NOTE} ${WEIGHT_UNIT_NOTE}`,
       inputSchema: { planId: planIdSchema },
       title: "Get plan",
     },

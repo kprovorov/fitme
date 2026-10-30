@@ -596,3 +596,101 @@ describe("activate_plan", () => {
     expect(result.text).toBe("deadlock detected");
   });
 });
+
+describe("Workout covers", () => {
+  const COVER = "0b3c9a52-6e4f-4f1d-9a7e-2c8d5b1e7f40";
+
+  /** One Workout with a Cover, the other still without one. */
+  const coveredSummary = {
+    ...planSummary,
+    workouts: [
+      { ...planSummary.workouts[0], cover: COVER },
+      planSummary.workouts[1],
+    ],
+  };
+
+  const coveredServicePlan = {
+    ...servicePlan,
+    workouts: [
+      { ...servicePlan.workouts[0], cover: COVER },
+      { ...servicePlan.workouts[0], cover: null, id: "w2", order: 2 },
+    ],
+  };
+
+  const coveredToolPlan = {
+    ...toolPlan,
+    workouts: [
+      { ...toolPlan.workouts[0], cover: COVER },
+      { ...toolPlan.workouts[0], cover: null, id: "w2", order: 2 },
+    ],
+  };
+
+  /** The Workouts as a client might send them, a cover on each. */
+  const workoutsWithCover = workoutsInput.map((workout) => ({
+    ...workout,
+    cover: COVER,
+  }));
+
+  it("list_plans shows each Workout's cover, set or null", async () => {
+    const client = await connectWithServices({
+      listPlans: () => Promise.resolve([coveredSummary]),
+    });
+
+    const result = await call(client, "list_plans");
+
+    expect(JSON.parse(result.text)).toEqual([coveredSummary]);
+  });
+
+  it("get_plan shows each Workout's cover, set or null", async () => {
+    const client = await connectWithServices({
+      getPlan: () => Promise.resolve(coveredServicePlan),
+    });
+
+    const result = await call(client, "get_plan", { planId: PLAN_ID });
+
+    expect(result.json).toEqual(coveredToolPlan);
+  });
+
+  it("create_plan shows each Workout's cover and never passes one on from the input", async () => {
+    const createPlan = vi.fn(() => Promise.resolve(coveredServicePlan));
+    const client = await connectWithServices({ createPlan });
+
+    const result = await call(client, "create_plan", {
+      ...metadata,
+      workouts: workoutsWithCover,
+    });
+
+    expect(result.isError).toBe(false);
+    expect(result.json).toEqual(coveredToolPlan);
+    expect(createPlan).toHaveBeenCalledWith({
+      ...metadata,
+      workouts: workoutsInput,
+    });
+  });
+
+  it("update_plan shows each Workout's cover and never passes one on from the input", async () => {
+    const updatePlan = vi.fn(() => Promise.resolve(coveredServicePlan));
+    const client = await connectWithServices({ updatePlan });
+
+    const result = await call(client, "update_plan", {
+      planId: PLAN_ID,
+      workouts: workoutsWithCover,
+    });
+
+    expect(result.isError).toBe(false);
+    expect(result.json).toEqual(coveredToolPlan);
+    expect(updatePlan).toHaveBeenCalledWith(PLAN_ID, {
+      workouts: workoutsInput,
+    });
+  });
+
+  it("activate_plan shows each Workout's cover, set or null", async () => {
+    const client = await connectWithServices({
+      activatePlan: () => Promise.resolve(coveredSummary),
+    });
+
+    const result = await call(client, "activate_plan", { planId: PLAN_ID });
+
+    expect(result.json).toEqual({ activated: true, plan: coveredSummary });
+  });
+});
