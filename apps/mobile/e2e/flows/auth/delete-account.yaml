@@ -36,6 +36,7 @@ env:
 - waitForAnimationToEnd
 
 # ===== DELETE ACCOUNT =====
+# The first tab's header button
 - tapOn:
     text: "Profile"
 

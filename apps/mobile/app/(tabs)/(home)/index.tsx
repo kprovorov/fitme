@@ -5,6 +5,8 @@ import { useCallback, useEffect, useState } from "react";
 import { useTranslation } from "react-i18next";
 import {
   ActivityIndicator,
+  Platform,
+  Pressable,
   RefreshControl,
   ScrollView,
   View,
@@ -71,6 +73,7 @@ export default function HomeScreen() {
   }, [profile, user, router]);
 
   const handleCreatePlan = useCallback(() => router.push("/planner"), [router]);
+  const openProfile = useCallback(() => router.push("/profile"), [router]);
   const retryPlans = useCallback(() => {
     refetchWorkoutPlans();
   }, [refetchWorkoutPlans]);
@@ -80,6 +83,22 @@ export default function HomeScreen() {
       <Stack.Screen
         options={{
           headerBackButtonDisplayMode: "minimal",
+          // Android's native stack has no header items, so Profile is a text
+          // button there; iOS shows the items below and ignores this.
+          headerRight:
+            Platform.OS === "android"
+              ? () => (
+                  <Pressable
+                    accessibilityRole="button"
+                    hitSlop={8}
+                    onPress={openProfile}
+                  >
+                    <Text className="text-body-emphasized text-primary">
+                      {t("profile.title")}
+                    </Text>
+                  </Pressable>
+                )
+              : undefined,
           headerTitleStyle: {
             fontFamily: "NunitoSans12pt-Bold",
             fontWeight: "bold",
@@ -120,6 +139,18 @@ export default function HomeScreen() {
                 ],
               },
               type: "menu",
+            },
+            {
+              accessibilityLabel: t("profile.title"),
+              icon: {
+                name: "person.fill",
+                type: "sfSymbol",
+              },
+              label: t("profile.title"),
+              onPress: openProfile,
+              // Its own circle of glass, apart from the menu's.
+              sharesBackground: false,
+              type: "button",
             },
           ],
         }}

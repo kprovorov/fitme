@@ -61,15 +61,6 @@ export default function TabLayout() {
               {t(TAB_TITLE_KEYS.library)}
             </NativeTabs.Trigger.Label>
           </NativeTabs.Trigger>
-
-          <NativeTabs.Trigger name="profile">
-            <NativeTabs.Trigger.Icon
-              sf={{ default: "person", selected: "person.fill" }}
-            />
-            <NativeTabs.Trigger.Label>
-              {t(TAB_TITLE_KEYS.profile)}
-            </NativeTabs.Trigger.Label>
-          </NativeTabs.Trigger>
         </NativeTabs>
       </ThemeProvider>
     </Authenticated>

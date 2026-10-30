@@ -37,6 +37,7 @@ appId: com.fitmeproject.ios
 - waitForAnimationToEnd
 
 # ===== EDIT PROFILE =====
+# Profile is the first tab's header button (its spoken label), not a tab
 - tapOn:
     text: "Profile"
 
@@ -98,7 +99,7 @@ appId: com.fitmeproject.ios
 
 - waitForAnimationToEnd
 
-# Back on the Profile tab with the new name
+# Back on the Profile screen with the new name
 - assertVisible:
     id: "edit-profile-link"
 - assertVisible:

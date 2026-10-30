@@ -3,8 +3,7 @@
     "home": "Home",
     "history": "History",
     "arnold": "Arnold",
-    "library": "Library",
-    "profile": "Profile"
+    "library": "Library"
   },
   "library": {
     "allMuscleGroups": "All",
@@ -448,6 +447,7 @@
     "genericError": "Something went wrong. Please try again later."
   },
   "profile": {
+    "title": "Profile",
     "pro": {
       "title": "You're Pro!",
       "description": "You have access to all of our features. You can cancel your subscription at any time.",

@@ -6,7 +6,6 @@ export const TAB_TITLE_KEYS = {
   arnold: "tabs.arnold",
   history: "tabs.history",
   library: "tabs.library",
-  profile: "tabs.profile",
 } as const;
 
 type TabRouteName = keyof typeof TAB_TITLE_KEYS;

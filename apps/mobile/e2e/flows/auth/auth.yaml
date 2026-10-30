@@ -133,6 +133,7 @@ env:
     text: "Welcome to Fitme!"
 
 # ===== LOGOUT =====
+# The first tab's header button
 - tapOn:
     text: "Profile"
 
