@@ -34,6 +34,7 @@ export default function LibraryScreen() {
             // Hidden until the User pulls the list down.
             hideWhenScrolling: true,
             onCancelButtonPress: () => setSearch(""),
+            onClose: () => setSearch(""),
             onChangeText: ({ nativeEvent }) => setSearch(nativeEvent.text),
             placeholder: t("library.search"),
             placement: "stacked",
