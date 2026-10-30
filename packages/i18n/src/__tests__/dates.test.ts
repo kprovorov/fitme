@@ -92,6 +92,20 @@ describe("formatTime", () => {
     );
   });
 
+  it("follows the device into another time zone while the app stays open", () => {
+    const zone = process.env.TZ;
+    const instance = on("en", "GB", true);
+    const noonUtc = new Date(Date.UTC(2026, 9, 21, 12, 0));
+    try {
+      process.env.TZ = "UTC";
+      expect(formatTime(instance, noonUtc)).toBe("12:00");
+      process.env.TZ = "Asia/Tokyo";
+      expect(formatTime(instance, noonUtc)).toBe("21:00");
+    } finally {
+      process.env.TZ = zone;
+    }
+  });
+
   it("takes the locale's own clock when the device doesn't say", () => {
     expect(formatTime(on("en", "US"), evening)).toBe("6:05 PM");
     expect(formatTime(on("uk", "UA"), evening)).toBe("18:05");

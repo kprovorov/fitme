@@ -94,9 +94,8 @@ export const withRegion = (language: string, region: string | null): string =>
 export const formatLocale = (translator: Translator): string =>
   withRegion(translator.language, regionOf(translator));
 
-// Intl formatters are costly to build, and the app formats in lists.
+// Intl number formatters are costly to build, and the app formats in lists.
 const numberFormats = new Map<string, Intl.NumberFormat>();
-const dateFormats = new Map<string, Intl.DateTimeFormat>();
 
 /** A cached `Intl.NumberFormat` for a locale and its options. */
 export const numberFormat = (
@@ -112,18 +111,12 @@ export const numberFormat = (
   return format;
 };
 
+// Never cached: a date formatter keeps the time zone it was built in, and
+// the device may move to another one while the app stays open.
 const dateFormat = (
   locale: string,
   options: Intl.DateTimeFormatOptions
-): Intl.DateTimeFormat => {
-  const key = `${locale}|${JSON.stringify(options)}`;
-  let format = dateFormats.get(key);
-  if (!format) {
-    format = new Intl.DateTimeFormat(locale, options);
-    dateFormats.set(key, format);
-  }
-  return format;
-};
+): Intl.DateTimeFormat => new Intl.DateTimeFormat(locale, options);
 
 /**
  * A number as the App language and device region write it: `62.5` / `62,5`,
