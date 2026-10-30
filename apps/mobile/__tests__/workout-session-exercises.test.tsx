@@ -283,7 +283,7 @@ describe("the Exercise picker", () => {
       expect.objectContaining({
         params: {
           muscleGroup: "quadriceps",
-          replace: "s1-e1",
+          replaceExerciseId: "s1-e1",
           workoutSessionId: "s1",
         },
         pathname: PICKER,

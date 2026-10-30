@@ -2,7 +2,7 @@ import { type MuscleGroup, muscleGroups } from "@fitme/core";
 import type { ExerciseSummary } from "@fitme/library-sdk";
 import { useQueryClient } from "@tanstack/react-query";
 import { Stack, useLocalSearchParams, useRouter } from "expo-router";
-import { useCallback } from "react";
+import { useCallback, useEffect, useRef } from "react";
 import { useTranslation } from "react-i18next";
 import { Alert } from "react-native";
 import { Button } from "~/components/ui/button";
@@ -36,7 +36,7 @@ function ExerciseCtaButton({
 
 /**
  * The Exercise picker, a page sheet over an open Workout Session: adds the
- * picked Exercise, or, given `replace` (a Workout Session Exercise id),
+ * picked Exercise, or, given `replaceExerciseId` (a Workout Session Exercise),
  * swaps it in place, starting on `muscleGroup` (the replaced one's first).
  * It closes once saved; a failure says so in an alert and keeps it open.
  */
@@ -46,11 +46,11 @@ export default function ExercisePickerScreen() {
   const queryClient = useQueryClient();
   const {
     muscleGroup,
-    replace: replacingId,
+    replaceExerciseId: replacingId,
     workoutSessionId: sessionId,
   } = useLocalSearchParams<{
     muscleGroup?: string;
-    replace?: string;
+    replaceExerciseId?: string;
     workoutSessionId: string;
   }>();
 
@@ -69,9 +69,25 @@ export default function ExercisePickerScreen() {
   const { mutateAsync: replaceExercise } =
     useReplaceWorkoutSessionExerciseMutation({ onSettled: rereadSession });
 
-  const close = useCallback(() => router.back(), [router]);
+  // Closing pops this route: never twice (a save landing after Close or a
+  // swipe down, or a second tap's save), which would pop the session too.
+  const left = useRef<boolean>(false);
+  const saving = useRef<boolean>(false);
+  useEffect(
+    () => () => {
+      left.current = true;
+    },
+    []
+  );
+  const close = useCallback(() => {
+    if (left.current) {
+      return;
+    }
+    left.current = true;
+    router.back();
+  }, [router]);
 
-  const onExercisePress = useCallback(
+  const save = useCallback(
     async (exercise: ExerciseSummary) => {
       if (replacingId) {
         try {
@@ -119,6 +135,22 @@ export default function ExercisePickerScreen() {
     [addExercise, close, replaceExercise, replacingId, sessionId, t]
   );
 
+  // One save at a time, so a double tap adds the Exercise once.
+  const onExercisePress = useCallback(
+    async (exercise: ExerciseSummary) => {
+      if (saving.current) {
+        return;
+      }
+      saving.current = true;
+      try {
+        await save(exercise);
+      } finally {
+        saving.current = false;
+      }
+    },
+    [save]
+  );
+
   const ctaLabel = replacingId
     ? t("workoutSession.picker.replace")
     : t("workoutSession.picker.add");
@@ -161,7 +193,7 @@ export default function ExercisePickerScreen() {
       />
       {/* The list is the sheet's scroll container: no ScrollView around it. */}
       <ExercisesView
-        contentContainerClassName="px-6"
+        contentContainerClassName="px-md"
         initialMuscleGroup={isMuscleGroup(muscleGroup) ? muscleGroup : "all"}
         trailing={renderExerciseCta}
       />

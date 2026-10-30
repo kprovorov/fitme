@@ -33,7 +33,7 @@ iOS first. Android renders but is second: SF Symbols draw nothing there (their b
 - Headers are native. The Screen's title is `Stack.Screen`'s `title`, never an `H1` at the top of the content. Options are `headerTransparent: true` and `headerBackButtonDisplayMode: "minimal"`, with actions as SF Symbol items or menus through `unstable_headerRightItems` (the Profile button in `app/(tabs)/(home)/index.tsx`) or `Stack.Toolbar`. The one title that isn't text is the first tab's: `headerTitle` draws the Fitme logo (`components/brand/logo.tsx`, Figma's `Logo` in the `foreground` and `primary` tokens) with an `accessibilityLabel`, and `title` still names the tab for the back buttons. No hand-built header rows.
 - Content Screens scroll in a `ScrollView` with `contentInsetAdjustmentBehavior="automatic"`, so content sits under the transparent header and above the tab bar. Gutters and gaps go on `contentContainerClassName`, not `className`.
 - List Screens (anything that maps rows of data) use `LegendList` from `@legendapp/list`, as the Arnold Conversation does, with the same `contentInsetAdjustmentBehavior` and a `refreshControl`.
-- Secondary flows are sheets: a route with `presentation: "formSheet"` or `"modal"`. A `Modal` with `presentationStyle="pageSheet"` is for a picker that belongs to one Screen (the exercise picker in `workout-session-view.tsx`).
+- Secondary flows are sheets: a route with `presentation: "formSheet"`, `"pageSheet"` (a full-height sheet with its own native header, such as the Exercise picker, `app/workout-sessions/[workoutSessionId]/exercise-picker.tsx`) or `"modal"`, never an in-screen `Modal`.
 - Liquid Glass comes from `Button`, switched on `GLASS_ENABLED` with a fallback for older iOS. Cards are flat, not glass. Never build your own glass or blur surface.
 
 ## Tokens
@@ -237,7 +237,8 @@ Load `animate-expo` for anything that moves; it holds the springs, curves and re
 Copy patterns from these:
 
 - `components/views/workout-session-summary-view.tsx`: spacing tokens, stretched stacks, `Separator` between rows, a pill call to action with an SF Symbol.
-- `components/views/workout-session-view.tsx`: a `Card` per exercise (each holds its own sets table, so they aren't rows of one list), a `pageSheet` picker.
+- `components/views/workout-session-view.tsx`: a `Card` per exercise (each holds its own sets table, so they aren't rows of one list).
+- `app/workout-sessions/[workoutSessionId]/exercise-picker.tsx`: a `pageSheet` route with a native header title and a close item.
 - `app/(tabs)/(home)/index.tsx`: a native header with the logo as its title and an SF Symbol button, pull to refresh, the empty state. Its `<Text>` button child is the older form.
 - `components/chat/conversation.tsx`: a `LegendList`.
 

@@ -74,7 +74,7 @@ export default function WorkoutSessionView({
       : undefined;
     router.push({
       params: {
-        replace: exerciseId,
+        replaceExerciseId: exerciseId,
         workoutSessionId: sessionId,
         ...(muscleGroup ? { muscleGroup } : {}),
       },
