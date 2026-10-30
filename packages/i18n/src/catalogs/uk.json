@@ -194,7 +194,7 @@
     "managePlans": "Керувати планами",
     "createPlan": "Створити план",
     "nextWorkout": "Наступне тренування",
-    "upcoming": "Далі",
+    "upcoming": "Наступні",
     "allSet": "Чудова робота! Усе готово!",
     "empty": {
       "title": "Немає активного плану",
@@ -223,7 +223,7 @@
     "exercises_few": "{{count, number}} вправи",
     "exercises_many": "{{count, number}} вправ",
     "exercises_other": "{{count, number}} вправи",
-    "toWorkout": "До тренування",
+    "toWorkout": "Перейти до тренування",
     "openHint": "Відкриває тренування",
     "openInProgressHint": "Відкриває тренування, що триває",
     "finish": "Завершити тренування"

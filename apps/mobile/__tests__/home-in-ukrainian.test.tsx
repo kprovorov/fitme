@@ -162,7 +162,7 @@ describe("Home in Ukrainian", () => {
     expect(screen.getByText("Спортзал")).toBeTruthy();
 
     expect(screen.getByText("Наступне тренування")).toBeTruthy();
-    expect(screen.getByText("Далі")).toBeTruthy();
+    expect(screen.getByText("Наступні")).toBeTruthy();
     expect(screen.getByText("1 вправа")).toBeTruthy();
     expect(screen.getByText("3 вправи")).toBeTruthy();
     expect(screen.getByText("5 вправ")).toBeTruthy();
@@ -177,7 +177,7 @@ describe("Home in Ukrainian", () => {
     backend.seed({ exercises: [], id: "s1" });
     await mount();
 
-    expect(screen.getByText("До тренування")).toBeTruthy();
+    expect(screen.getByText("Перейти до тренування")).toBeTruthy();
     expect(
       screen.getByRole("button", { name: "Завершити тренування" })
     ).toBeTruthy();
