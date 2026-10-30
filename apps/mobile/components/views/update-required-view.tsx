@@ -1,5 +1,6 @@
 import * as Sentry from "@sentry/react-native";
 import Constants from "expo-constants";
+import { useTranslation } from "react-i18next";
 import { Linking, Platform } from "react-native";
 import { Button } from "~/components/ui/button";
 import { Text } from "~/components/ui/text";
@@ -27,18 +28,18 @@ const openStore = () => {
 
 /** Blocking screen for a build older than the minimum supported version. */
 export default function UpdateRequiredView() {
+  const { t } = useTranslation();
   return (
     <VStack className="flex-1 items-center justify-center gap-4 bg-background p-lg">
-      <H3 className="text-center">Update required</H3>
+      <H3 className="text-center">{t("updateRequired.title")}</H3>
       <Text className="text-center text-body-emphasized text-muted-foreground">
-        This version of Fitme is no longer supported. Update the app to keep
-        training.
+        {t("updateRequired.description")}
       </Text>
       {STORE_URL ? (
         <Button
           icon="arrow.down.app"
           iconPosition="trailing"
-          label="Update"
+          label={t("updateRequired.update")}
           onPress={openStore}
         />
       ) : null}

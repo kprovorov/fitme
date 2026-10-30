@@ -1,18 +1,21 @@
-import { Link, Stack } from "expo-router";
+import { Link } from "expo-router";
+import { useTranslation } from "react-i18next";
 import { Button } from "~/components/ui/button";
-import { H1 } from "~/components/ui/typography";
+import { Text } from "~/components/ui/text";
+import { H3 } from "~/components/ui/typography";
 import { VStack } from "~/components/ui/vstack";
 
 export default function NotFoundScreen() {
+  const { t } = useTranslation();
   return (
-    <>
-      <Stack.Screen options={{ title: "Oops!" }} />
-      <VStack>
-        <H1>This screen doesn't exist.</H1>
-        <Link asChild href="/">
-          <Button label="Go to home screen!" />
-        </Link>
-      </VStack>
-    </>
+    <VStack className="flex-1 items-center justify-center gap-4 bg-background p-lg">
+      <H3 className="text-center">{t("notFound.title")}</H3>
+      <Text className="text-center text-body-emphasized text-muted-foreground">
+        {t("notFound.description")}
+      </Text>
+      <Link asChild href="/">
+        <Button label={t("notFound.goHome")} />
+      </Link>
+    </VStack>
   );
 }
