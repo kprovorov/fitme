@@ -233,7 +233,7 @@ export default function WorkoutSessionView({
             </HStack>
             <ExercisesView
               initialMuscleGroup={initialMuscleGroup}
-              itemCta={renderExerciseCta}
+              trailing={renderExerciseCta}
             />
           </VStack>
         </ScrollView>

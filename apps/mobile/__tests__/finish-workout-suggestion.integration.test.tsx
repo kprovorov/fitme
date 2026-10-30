@@ -193,8 +193,8 @@ jest.mock("~/components/workout-sessions/rest-timer", () => () => null);
 // The exercise picker offers a single exercise to add.
 jest.mock("~/components/views/exercises-view", () => ({
   __esModule: true,
-  default: ({ itemCta }: { itemCta: (exercise: object) => ReactNode }) =>
-    itemCta({ muscle_groups: ["quadriceps"], name: "Lunge", slug: "lunge" }),
+  default: ({ trailing }: { trailing: (exercise: object) => ReactNode }) =>
+    trailing({ muscle_groups: ["quadriceps"], name: "Lunge", slug: "lunge" }),
 }));
 
 jest.mock("~/components/ui/button", () => {

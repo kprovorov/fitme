@@ -1,43 +1,56 @@
 import type { ExerciseSummary } from "@fitme/library-sdk";
 import type React from "react";
-import { useCallback } from "react";
+import { Fragment, useCallback } from "react";
+import { View } from "react-native";
 import ExerciseImage from "~/components/exercises/exercise-image";
+import { SymbolImage } from "~/components/symbol-image";
 import { MenuList, MenuListItem } from "~/components/ui/menu-list";
+import { Separator } from "~/components/ui/separator";
 import { Text } from "~/components/ui/text";
-import { cn } from "~/lib/utils";
+import { useChoiceLabels } from "~/lib/choices";
 
-type ItemCta =
+/** What ends each row: the same for every row, or chosen per Exercise. */
+export type ExerciseRowTrailing =
   | React.ReactNode
   | ((exercise: ExerciseSummary) => React.ReactNode);
 
 interface ExercisesListProps {
   exercises: ExerciseSummary[];
-  itemCta?: ItemCta;
-  itemIcon?: "chevron-right" | "square-arrow-out-up-right";
   onExercisePress?: (exercise: ExerciseSummary) => void;
+  trailing?: ExerciseRowTrailing;
 }
 
 const noop = () => {
   /* noop */
 };
 
+/** The accent chevron ending a row that opens the Exercise. */
+export function ExerciseRowChevron() {
+  return (
+    <SymbolImage
+      className="shrink-0 text-body-emphasized text-primary"
+      name="chevron.right"
+    />
+  );
+}
+
+/** Exercises as an inset grouped list: thumbnail, name and Muscle groups. */
 export default function ExercisesList({
   exercises,
-  itemIcon,
-  itemCta,
+  trailing,
   onExercisePress = noop,
 }: ExercisesListProps) {
   return (
     <MenuList className="w-full">
       {exercises.map((exercise: ExerciseSummary, index: number) => (
-        <ExercisesListItem
-          exercise={exercise}
-          isFirst={index === 0}
-          itemCta={itemCta}
-          itemIcon={itemIcon}
-          key={exercise.slug}
-          onExercisePress={onExercisePress}
-        />
+        <Fragment key={exercise.slug}>
+          {index > 0 && <Separator className="mx-sm w-auto" />}
+          <ExercisesListItem
+            exercise={exercise}
+            onExercisePress={onExercisePress}
+            trailing={trailing}
+          />
+        </Fragment>
       ))}
     </MenuList>
   );
@@ -45,36 +58,35 @@ export default function ExercisesList({
 
 interface ExercisesListItemProps {
   exercise: ExerciseSummary;
-  isFirst: boolean;
-  itemCta?: ItemCta;
-  itemIcon?: ExercisesListProps["itemIcon"];
   onExercisePress: (exercise: ExerciseSummary) => void;
+  trailing?: ExerciseRowTrailing;
 }
 
 function ExercisesListItem({
   exercise,
-  isFirst,
-  itemCta,
-  itemIcon,
   onExercisePress,
+  trailing,
 }: ExercisesListItemProps) {
+  const labels = useChoiceLabels();
   const handlePress = useCallback(
     () => onExercisePress(exercise),
     [exercise, onExercisePress]
   );
-  const cta = typeof itemCta === "function" ? itemCta(exercise) : itemCta;
+  const shownTrailing =
+    typeof trailing === "function" ? trailing(exercise) : trailing;
 
   return (
-    <MenuListItem
-      className={cn("flex-1", {
-        "border-border border-t": !isFirst,
-      })}
-      icon={itemIcon}
-      onPress={handlePress}
-    >
-      <ExerciseImage exercise={exercise} />
-      <Text className="flex-1">{exercise.name}</Text>
-      {cta}
+    <MenuListItem className="gap-sm p-sm" onPress={handlePress}>
+      <ExerciseImage exercise={exercise} radius={10} size={50} />
+      <View className="flex-1">
+        <Text className="text-body-emphasized">{exercise.name}</Text>
+        {exercise.muscle_groups.length > 0 && (
+          <Text className="text-footnote text-muted-foreground">
+            {exercise.muscle_groups.map(labels.muscleGroup).join(", ")}
+          </Text>
+        )}
+      </View>
+      {shownTrailing}
     </MenuListItem>
   );
 }

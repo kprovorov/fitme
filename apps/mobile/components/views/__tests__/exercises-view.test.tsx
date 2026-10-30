@@ -26,6 +26,7 @@ import {
 import { type QueryClient, QueryClientProvider } from "@tanstack/react-query";
 import { act, fireEvent, render, screen } from "@testing-library/react-native";
 import type { ReactNode } from "react";
+import { Text } from "react-native";
 import ExercisesView from "~/components/views/exercises-view";
 import { i18n, useAppLanguageSync } from "~/lib/i18n";
 import { readCachedSummary } from "~/lib/library-cache";
@@ -60,6 +61,8 @@ const EXERCISES = [
 ];
 
 const COULD_NOT_LOAD = /Couldn't load/;
+/** Any row's subtitle: Muscle groups, one or joined with ", ". */
+const MUSCLE_GROUP_SUBTITLE = /, |^(Triceps|Chest)$/;
 
 let fake: FakeLibrary;
 let list: jest.SpiedFunction<FakeLibrary["list"]>;
@@ -412,6 +415,37 @@ describe("what it lists", () => {
     await fireEvent.press(screen.getByText("Bench Press 02"));
 
     expect(pressed).toEqual(["bench-press-02"]);
+  });
+});
+
+describe("each row", () => {
+  beforeEach(() => {
+    fake = serveLibrary([
+      libraryExercise("dip", { muscle_groups: ["triceps", "chest"] }),
+      libraryExercise("mystery", { muscle_groups: [] }),
+    ]);
+  });
+
+  it("names the Exercise's Muscle groups in the Library's order", async () => {
+    await renderView();
+
+    expect(screen.getByText("Dip")).toBeTruthy();
+    expect(screen.getByText("Triceps, Chest")).toBeTruthy();
+  });
+
+  it("shows no subtitle for an Exercise without Muscle groups", async () => {
+    await renderView();
+
+    expect(screen.getByText("Mystery")).toBeTruthy();
+    // The only subtitle is the dip's.
+    expect(screen.getAllByText(MUSCLE_GROUP_SUBTITLE)).toHaveLength(1);
+  });
+
+  it("ends with the trailing element its screen chose for that Exercise", async () => {
+    await renderView({ trailing: ({ slug }) => <Text>{`Pick ${slug}`}</Text> });
+
+    expect(screen.getByText("Pick dip")).toBeTruthy();
+    expect(screen.getByText("Pick mystery")).toBeTruthy();
   });
 });
 

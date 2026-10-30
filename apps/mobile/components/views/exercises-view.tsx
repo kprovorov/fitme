@@ -4,7 +4,9 @@ import type React from "react";
 import { useCallback, useImperativeHandle, useMemo, useState } from "react";
 import { useTranslation } from "react-i18next";
 import { ActivityIndicator, View } from "react-native";
-import ExercisesList from "~/components/exercises/exercises-list";
+import ExercisesList, {
+  type ExerciseRowTrailing,
+} from "~/components/exercises/exercises-list";
 import { Button } from "~/components/ui/button";
 import { ErrorMessage } from "~/components/ui/error-message";
 import { Input } from "~/components/ui/input";
@@ -38,12 +40,13 @@ const ExercisesView = ({
   onExercisePress = () => {
     /* noop */
   },
-  itemCta,
+  trailing,
   initialMuscleGroup = "all",
   ref,
 }: {
   onExercisePress?: (exercise: ExerciseSummary) => void;
-  itemCta?: React.ReactNode | ((exercise: ExerciseSummary) => React.ReactNode);
+  // What ends each row: the Library's chevron, or the picker's CTA.
+  trailing?: ExerciseRowTrailing;
   initialMuscleGroup?: MuscleGroupFilter;
   ref?: React.Ref<ExercisesViewHandle>;
 }) => {
@@ -111,8 +114,8 @@ const ExercisesView = ({
         <>
           <ExercisesList
             exercises={exercises}
-            itemCta={itemCta}
             onExercisePress={onExercisePress}
+            trailing={trailing}
           />
           {isLoadMoreError ? (
             <ErrorMessage className="text-center">
