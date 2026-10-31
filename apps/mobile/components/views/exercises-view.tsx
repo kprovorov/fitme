@@ -43,6 +43,7 @@ const ExercisesView = ({
   rowAccessibilityLabel,
   trailing,
   muscleChoiceKey,
+  musclesDisabled = false,
   refreshable = false,
   contentContainerClassName,
   search,
@@ -57,6 +58,8 @@ const ExercisesView = ({
   // Where the screen's Muscle group choice is kept: one key per screen, so
   // the Library tab and the picker never share a choice.
   muscleChoiceKey: string;
+  // The Muscles pill can't open the sheet (the picker, while saving).
+  musclesDisabled?: boolean;
   // Pull to refresh (the Library tab).
   refreshable?: boolean;
   contentContainerClassName?: string;
@@ -222,6 +225,7 @@ const ExercisesView = ({
         <VStack className="items-stretch pb-md">
           <Button
             className="self-start"
+            disabled={musclesDisabled}
             fill={false}
             icon="chevron.down"
             iconPosition="trailing"

@@ -50,7 +50,8 @@ jest.mock(
 jest.mock("~/components/ui/button", () =>
   jest.requireActual("~/test-utils/button-stub")
 );
-jest.mock("expo-router", () => ({ useRouter: () => ({ push: jest.fn() }) }));
+const mockPush = jest.fn();
+jest.mock("expo-router", () => ({ useRouter: () => ({ push: mockPush }) }));
 // A thumbnail shows as nothing.
 jest.mock("~/components/exercises/exercise-image", () => () => null);
 jest.mock("~/components/symbol-image", () => ({ SymbolImage: () => null }));
@@ -326,6 +327,29 @@ describe("filtering and paging", () => {
 
     expect(list).not.toHaveBeenCalled();
     expect(screen.getByText("Bench Press 01")).toBeTruthy();
+  });
+
+  it("opens the Muscles sheet on the view's own choice", async () => {
+    await renderView();
+    mockPush.mockClear();
+
+    await fireEvent.press(screen.getByRole("button", { name: "Muscles" }));
+
+    expect(mockPush).toHaveBeenCalledWith({
+      params: { choice: CHOICE },
+      pathname: "/muscles",
+    });
+  });
+
+  it("keeps the Muscles sheet shut while the screen says so (the picker saving)", async () => {
+    await renderView({ musclesDisabled: true });
+    mockPush.mockClear();
+
+    const pill = screen.getByRole("button", { name: "Muscles" });
+    expect(pill.props.accessibilityState).toMatchObject({ disabled: true });
+    await fireEvent.press(pill);
+
+    expect(mockPush).not.toHaveBeenCalled();
   });
 
   it("pages a Muscle group with its filter", async () => {

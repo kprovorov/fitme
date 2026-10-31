@@ -74,6 +74,9 @@ export default function ExercisePickerScreen() {
   // swipe down, or a second tap's save), which would pop the session too.
   const left = useRef<boolean>(false);
   const saving = useRef<boolean>(false);
+  // While a save is in flight the Muscles sheet stays shut: closing on save
+  // pops the top route, which must be the picker.
+  const [isSaving, setIsSaving] = useState(false);
   useEffect(
     () => () => {
       left.current = true;
@@ -144,10 +147,12 @@ export default function ExercisePickerScreen() {
         return;
       }
       saving.current = true;
+      setIsSaving(true);
       try {
         await save(exercise);
       } finally {
         saving.current = false;
+        setIsSaving(false);
       }
     },
     [save]
@@ -194,6 +199,7 @@ export default function ExercisePickerScreen() {
         contentContainerClassName="px-md"
         muscleChoiceKey={muscleChoiceKey}
         onExercisePress={onExercisePress}
+        musclesDisabled={isSaving}
         onSearchChange={onSearchChange}
         rowAccessibilityLabel={rowAccessibilityLabel}
         search={search}
