@@ -7,8 +7,8 @@
 import { beforeEach, describe, expect, it, jest } from "@jest/globals";
 import { QueryClientProvider } from "@tanstack/react-query";
 import { act, fireEvent, render, screen } from "@testing-library/react-native";
-import type { ReactNode } from "react";
-import { Alert } from "react-native";
+import type { ReactElement, ReactNode } from "react";
+import { Alert, type RefreshControlProps } from "react-native";
 import HistoryScreen from "~/app/(tabs)/history/index";
 import { setDeviceLanguages } from "~/test-utils/device-locales";
 import { FAKE_USER_ID, fakePublicApi } from "~/test-utils/fake-public-api";
@@ -31,19 +31,30 @@ jest.mock("@legendapp/list/react-native", () => ({
     data,
     keyExtractor,
     ListEmptyComponent,
+    refreshControl,
     renderItem,
   }: {
     data: T[];
     keyExtractor: (item: T) => string;
     ListEmptyComponent: ReactNode;
+    refreshControl: ReactElement<RefreshControlProps>;
     renderItem: (info: { item: T }) => ReactNode;
   }) => {
     const { Fragment } = jest.requireActual<typeof import("react")>("react");
-    return data.length === 0
-      ? ListEmptyComponent
-      : data.map((item) => (
-          <Fragment key={keyExtractor(item)}>{renderItem({ item })}</Fragment>
-        ));
+    const { ScrollView } =
+      jest.requireActual<typeof import("react-native")>("react-native");
+    // The list's pull to refresh, kept on its view for the test to pull.
+    return (
+      <ScrollView refreshControl={refreshControl} testID="history-list">
+        {data.length === 0
+          ? ListEmptyComponent
+          : data.map((item) => (
+              <Fragment key={keyExtractor(item)}>
+                {renderItem({ item })}
+              </Fragment>
+            ))}
+      </ScrollView>
+    );
   },
 }));
 
@@ -360,6 +371,33 @@ describe("The empty History's reads", () => {
       expect(button("Start Upper A")).toBeTruthy();
     }
   );
+});
+
+/** Pulls the History list down, as the User would to refresh it. */
+const pullToRefresh = async () => {
+  const { refreshControl } = screen.getByTestId("history-list").props;
+  await act(() => refreshControl.props.onRefresh());
+};
+
+describe("Refreshing the empty History", () => {
+  it("reads the open Workout Session and the Plans again, so the action follows them", async () => {
+    await mount();
+    expect(button("Create a Plan")).toBeTruthy();
+
+    // A Plan made elsewhere (Arnold, MCP) since History was read.
+    backend.seedPlan(structuredClone(PLAN));
+    await pullToRefresh();
+    await settle(queryClient);
+
+    expect(button("Start Upper A")).toBeTruthy();
+
+    // And a Workout started elsewhere since.
+    seedOpenSession("workout-2", "Lower A");
+    await pullToRefresh();
+    await settle(queryClient);
+
+    expect(button("Resume Lower A")).toBeTruthy();
+  });
 });
 
 describe("The empty History on a Ukrainian device", () => {

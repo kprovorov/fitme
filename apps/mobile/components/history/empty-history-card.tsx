@@ -10,6 +10,7 @@ import { Card, CardDescription } from "~/components/ui/card";
 import { Text } from "~/components/ui/text";
 import type { OpenWorkoutSession } from "~/hooks/queries/workout-sessions";
 import {
+  nextWorkoutOf,
   openSessionPath,
   useStartWorkout,
   workoutSessionPath,
@@ -18,11 +19,6 @@ import { useI18n } from "~/lib/i18n";
 
 /** The point size of the card's dumbbell, Figma's 18 pt. */
 const ICON_SIZE = 18;
-
-/** The next Workout of a Plan's rotation, if it has one. */
-const nextWorkoutOf = (plan: Plan): Workout | undefined =>
-  // A copy: plan.workouts is the query cache's array, never sorted in place.
-  [...plan.workouts].sort((a, b) => a.order - b.order)[0];
 
 function StartAction({ plan, workout }: { plan: Plan; workout: Workout }) {
   const router = useRouter();
