@@ -1,7 +1,26 @@
-import { QueryClient } from "@tanstack/react-query";
+import {
+  defaultScheduler,
+  notifyManager,
+  QueryClient,
+} from "@tanstack/react-query";
 import { act } from "@testing-library/react-native";
 
 const clients = new Set<QueryClient>();
+
+// A completed fetch can still have a queued observer notification. That
+// notification renders its data and can mount the next dependent query.
+const pendingNotifications = new Set<object>();
+notifyManager.setScheduler((callback) => {
+  const notification = {};
+  pendingNotifications.add(notification);
+  defaultScheduler(() => {
+    try {
+      callback();
+    } finally {
+      pendingNotifications.delete(notification);
+    }
+  });
+});
 
 /**
  * A QueryClient for one test: no retries (a query's own `retry` still
@@ -25,6 +44,8 @@ export const clearTestQueryClients = () => {
     client.clear();
   }
   clients.clear();
+  // Fake-timer tests can discard a notification when returning to real timers.
+  pendingNotifications.clear();
 };
 
 /** More than any test needs: hitting it means something never settles. */
@@ -52,8 +73,8 @@ export const until = async (condition: () => boolean) => {
 };
 
 /**
- * Waits until nothing is fetching or mutating and `isIdle` holds, one
- * macrotask at a time inside `act`. Idle has to hold on two ticks in a row:
+ * Waits until nothing is fetching, mutating or queued to notify observers and
+ * `isIdle` holds, one macrotask at a time inside `act`. Idle has to hold on two ticks in a row:
  * react-query renders a response a tick after it lands, and that render can
  * start the next query (a row's Exercise lookup once a session's rows arrive).
  *
@@ -70,7 +91,10 @@ export const settle = async (
     // biome-ignore lint/performance/noAwaitInLoops: each tick lets the app reach its next timer
     await nextMacrotask();
     const idle =
-      client.isFetching() === 0 && client.isMutating() === 0 && isIdle();
+      client.isFetching() === 0 &&
+      client.isMutating() === 0 &&
+      pendingNotifications.size === 0 &&
+      isIdle();
     idleTicks = idle ? idleTicks + 1 : 0;
     if (idleTicks === 2) {
       return;
