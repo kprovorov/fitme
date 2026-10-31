@@ -10,7 +10,8 @@
  * So far: `PUT` (201 created, 200 replaced, converting to a new system) and
  * `PATCH /v1/profile`, `POST /v1/plans`, activating
  * (`POST /v1/plans/{id}/activate`) and deleting (`DELETE /v1/plans/{id}`) a
- * Plan, listing (`GET /v1/workout-sessions`), starting, finishing and
+ * Plan, the seeded Weekly goal changes (`GET /v1/weekly-goals`), listing
+ * (`GET /v1/workout-sessions`), starting, finishing and
  * logging a set of a Workout Session, adding,
  * removing (`DELETE /v1/workout-session-exercises/{id}`) and replacing
  * (`PUT /v1/workout-session-exercises/{id}`) an Exercise of one, and the
@@ -1102,6 +1103,9 @@ const addSessionSet = (body: unknown, exerciseId: string): Response => {
   return json(201, { data: { ...setBody(added), weight_unit: weightUnit() } });
 };
 
+/** The seeded Weekly goal changes, oldest first. */
+const listWeeklyGoals = () => json(200, { data: backend.weeklyGoalChanges });
+
 /** `apps/api`'s answer, from the same list in `@fitme/core`. */
 const listArnoldModels = () =>
   json(200, {
@@ -1159,6 +1163,11 @@ const ROUTES: Array<{
     handler: deletePlan,
     path: /^\/v1\/plans\/(?<id>[^/]+)$/,
     route: "DELETE /v1/plans/{id}",
+  },
+  {
+    handler: listWeeklyGoals,
+    path: /^\/v1\/weekly-goals$/,
+    route: "GET /v1/weekly-goals",
   },
   {
     handler: listSessions,

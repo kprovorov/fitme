@@ -23,6 +23,7 @@ import {
   sql,
 } from "drizzle-orm";
 import type { AnyPgColumn } from "drizzle-orm/pg-core";
+import { recordWeeklyGoal } from "./weekly-goals";
 
 /**
  * A timestamp as PostgREST rendered it (`2026-10-01T10:00:00.123456+00:00`),
@@ -1039,7 +1040,7 @@ export const finishWorkoutSession = async (
   // in (Plan, then Workouts, then sessions via ON DELETE SET NULL), so a
   // finish racing a Plan edit waits instead of deadlocking
   const [owned] = await tx
-    .select({ planId: workoutSessions.planId })
+    .select({ planId: workoutSessions.planId, userId: workoutSessions.userId })
     .from(workoutSessions)
     .where(eq(workoutSessions.id, sessionId));
   if (!owned) {
@@ -1065,6 +1066,11 @@ export const finishWorkoutSession = async (
   const rotated = claimed?.workoutId
     ? await rotateWorkout(tx, claimed.workoutId)
     : false;
+  if (claimed) {
+    // Starts tracking the Weekly goal for a User whose Plan no service
+    // write has recorded yet; a no-op otherwise
+    await recordWeeklyGoal(tx, owned.userId);
+  }
   // An already finished session isn't locked, so it may have been deleted
   // since the claim (READ COMMITTED)
   const session = await getWorkoutSession(tx, sessionId);

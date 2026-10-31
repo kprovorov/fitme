@@ -11,6 +11,7 @@ import {
   pgPolicy,
   pgSchema,
   pgTable,
+  smallint,
   text,
   timestamp,
   unique,
@@ -130,6 +131,37 @@ export const retiredUserIdsInPrivate = privateSchema.table("retired_user_ids", {
     .notNull(),
   userId: text("user_id").primaryKey().notNull(),
 });
+
+export const weeklyGoalChanges = pgTable(
+  "weekly_goal_changes",
+  {
+    id: uuid().defaultRandom().primaryKey().notNull(),
+    recordedAt: timestamp("recorded_at", { mode: "string", withTimezone: true })
+      .defaultNow()
+      .notNull(),
+    target: smallint(),
+    userId: text("user_id").notNull(),
+  },
+  (table) => [
+    index("weekly_goal_changes_user_id_recorded_at_idx").using(
+      "btree",
+      table.userId.asc().nullsLast().op("text_ops"),
+      table.recordedAt.asc().nullsLast().op("text_ops")
+    ),
+    pgPolicy("weekly_goal_changes_insert", {
+      as: "permissive",
+      for: "insert",
+      to: ["authenticated"],
+      withCheck: sql`(user_id = ( SELECT current_user_id() AS current_user_id))`,
+    }),
+    pgPolicy("weekly_goal_changes_select", {
+      as: "permissive",
+      for: "select",
+      to: ["authenticated"],
+    }),
+    check("weekly_goal_changes_target_check", sql`target > 0`),
+  ]
+);
 
 export const workoutExerciseSets = pgTable(
   "workout_exercise_sets",

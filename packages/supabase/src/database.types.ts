@@ -117,6 +117,28 @@ export interface Database {
         };
         Relationships: [];
       };
+      weekly_goal_changes: {
+        Row: {
+          id: string;
+          recorded_at: string;
+          target: number | null;
+          user_id: string;
+        };
+        ComputedFields: never;
+        Insert: {
+          id?: string;
+          recorded_at?: string;
+          target?: number | null;
+          user_id: string;
+        };
+        Update: {
+          id?: string;
+          recorded_at?: string;
+          target?: number | null;
+          user_id?: string;
+        };
+        Relationships: [];
+      };
       workout_exercise_sets: {
         Row: {
           created_at: string | null;

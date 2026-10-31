@@ -1,6 +1,7 @@
 import type { Plan } from "@fitme/core";
 import { createMutation, createQuery } from "react-query-kit";
 import { supabase } from "@/lib/supabase";
+import { WEEKLY_GOALS_QUERY_KEY } from "~/hooks/queries/weekly-goals";
 import { ApiError } from "~/lib/api/client";
 import { IS_E2E } from "~/lib/constants";
 import type { NewPlan } from "~/lib/plan-card";
@@ -75,8 +76,11 @@ export const useCreatePlanMutation = createMutation<string, NewPlan>({
     return id;
   },
   // On the mutation, not the call: it still runs once the card is gone.
-  onSuccess: (_id, _plan, _result, { client }) =>
-    client.invalidateQueries({ queryKey: ["plans"] }),
+  onSuccess: async (_id, _plan, _result, { client }) => {
+    await client.invalidateQueries({ queryKey: ["plans"] });
+    // The new active Plan's frequency is the Weekly goal
+    await client.invalidateQueries({ queryKey: WEEKLY_GOALS_QUERY_KEY });
+  },
 });
 
 /**

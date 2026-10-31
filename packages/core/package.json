@@ -14,6 +14,7 @@
     "./training-progress": "./src/training-progress.ts",
     "./formatters": "./src/formatters.ts",
     "./types": "./src/types.ts",
+    "./weekly-goals": "./src/weekly-goals.ts",
     "./utils": "./src/utils.ts",
     "./workout-sessions": "./src/workout-sessions.ts",
     "./finish-suggestion": "./src/finish-suggestion.ts"

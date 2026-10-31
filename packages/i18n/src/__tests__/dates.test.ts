@@ -61,11 +61,14 @@ describe("formatDate", () => {
     expect(formatDate(uk, evening, "dayMonth")).toBe("21 жовтня");
     expect(formatDate(uk, evening, "dayMonthYear")).toBe("21 жовтня 2026 р.");
     expect(formatDate(uk, evening, "monthYear")).toBe("жовтень 2026 р.");
+    expect(formatDate(uk, evening, "shortDayMonth")).toBe("21 жовт.");
   });
 
   it("orders an English date the device region's way", () => {
     expect(formatDate(on("en", "US"), evening, "dayMonth")).toBe("October 21");
     expect(formatDate(on("en", "GB"), evening, "dayMonth")).toBe("21 October");
+    expect(formatDate(on("en", "US"), evening, "shortDayMonth")).toBe("Oct 21");
+    expect(formatDate(on("en", "GB"), evening, "shortDayMonth")).toBe("21 Oct");
     expect(formatDate(on("en", "US"), evening, "weekdayDayMonthYear")).toBe(
       "Wed, Oct 21, 2026"
     );

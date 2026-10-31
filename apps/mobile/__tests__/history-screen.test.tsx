@@ -15,6 +15,7 @@ import {
 } from "@jest/globals";
 import { QueryClientProvider } from "@tanstack/react-query";
 import {
+  act,
   fireEvent,
   render,
   screen,
@@ -98,6 +99,8 @@ const MINUTE_MS = 60_000;
 const ROW_NAMES = /^(Push Day|Workout|Pull Day)$/;
 // `1 370 кг`, with Ukrainian's no-break space between thousands.
 const UKRAINIAN_PUSH_DAY = /^1 год 5 хв · 5 підходів · 1\s370 кг$/;
+const WEEKLY_GOAL = /Weekly goal/;
+const WEEKS_HIT = /weeks? hit/;
 
 interface Entry {
   id: string;
@@ -327,8 +330,9 @@ describe("The History tab", () => {
       </QueryClientProvider>
     );
     await waitFor(() => expect(fakePublicApi.count(route)).toBe(1));
-    // A macrotask, so the first request is waiting on the first pause.
-    await new Promise((resolve) => setTimeout(resolve, 10));
+    // A macrotask, so the first request is waiting on the first pause (in
+    // act: the Weekly goal's answer renders meanwhile).
+    await act(() => new Promise((resolve) => setTimeout(resolve, 10)));
     resumeFirstPage();
     await waitFor(() => expect(fakePublicApi.count(route)).toBe(2));
     // The newest session goes after the first page: the second would skip one.
@@ -424,5 +428,191 @@ describe("The History tab in Ukrainian", () => {
     expect(screen.getByText(UKRAINIAN_PUSH_DAY)).toBeTruthy();
     // The Workouts stat's caption and the gone Workout's name.
     expect(screen.getAllByText("Тренування")).toHaveLength(2);
+  });
+});
+
+describe("The History tab's Weekly goal", () => {
+  // Wednesday 28 October 2026, noon in Kyiv, where the clocks went back on
+  // Sunday 25 October: the week of 19 October is 169 hours long.
+  const NOW = new Date("2026-10-28T12:00:00+02:00");
+  const originalTimeZone = process.env.TZ;
+
+  /** A local Kyiv time (EEST until 25 October, then EET). */
+  const kyiv = (local: string) =>
+    new Date(`${local}${local < "2026-10-25T04" ? "+03:00" : "+02:00"}`);
+
+  let seeded = 0;
+  /** A qualifying Workout Session started at a local Kyiv time. */
+  const workoutAt = (
+    local: string,
+    sets: [number, number | null][] = [[8, 40]]
+  ) => {
+    seeded += 1;
+    seedEntry({
+      id: `session-goal-${seeded}`,
+      minutes: 45,
+      sets,
+      start: kyiv(local),
+      workout: "Full Body",
+    });
+  };
+
+  const goalChange = (local: string, target: number | null) => {
+    backend.weeklyGoalChanges.push({
+      recorded_at: kyiv(local).toISOString(),
+      target,
+    });
+  };
+
+  const week = (label: string) => screen.getByLabelText(label);
+
+  beforeEach(() => {
+    process.env.TZ = "Europe/Kyiv";
+    // Only the clock: settle() needs real timers.
+    jest.useFakeTimers({
+      doNotFake: [
+        "hrtime",
+        "nextTick",
+        "performance",
+        "queueMicrotask",
+        "requestAnimationFrame",
+        "cancelAnimationFrame",
+        "requestIdleCallback",
+        "cancelIdleCallback",
+        "setImmediate",
+        "clearImmediate",
+        "setInterval",
+        "clearInterval",
+        "setTimeout",
+        "clearTimeout",
+      ],
+      now: NOW,
+    });
+  });
+
+  afterEach(() => {
+    jest.useRealTimers();
+    if (originalTimeZone === undefined) {
+      delete process.env.TZ;
+    } else {
+      process.env.TZ = originalTimeZone;
+    }
+  });
+
+  it("charts eight weeks against each week's own goal", async () => {
+    goalChange("2026-08-03T10:00", 3);
+    // Wednesday of the week of 12 October: 4 a week from 19 October on
+    goalChange("2026-10-14T10:00", 4);
+    // 12 October: 1 of 3, missed
+    workoutAt("2026-10-13T19:00");
+    // 19 October: 5 of 4, one of them on the 25th's extra hour; an empty
+    // completion earns nothing
+    workoutAt("2026-10-19T07:00");
+    workoutAt("2026-10-20T19:00");
+    workoutAt("2026-10-22T19:00");
+    workoutAt("2026-10-24T10:00");
+    workoutAt("2026-10-25T23:30");
+    workoutAt("2026-10-21T19:00", [[0, 40]]);
+    // This week: 1 of 4 so far
+    workoutAt("2026-10-27T19:00");
+    await mount();
+
+    expect(screen.getByText("Weekly goal · 4 workouts")).toBeTruthy();
+    // 7 September to 19 October, all tracked; only 19 October hit
+    expect(screen.getByText("1 of 7 weeks hit")).toBeTruthy();
+    expect(
+      week("Week of October 12: 1 of 3 workouts, goal missed")
+    ).toBeTruthy();
+    expect(
+      week("Week of October 19: 4 of 4 workouts, 1 over the goal, goal met")
+    ).toBeTruthy();
+    expect(week("This week: 1 of 4 workouts, in progress")).toBeTruthy();
+    expect(screen.getByText("+1")).toBeTruthy();
+    expect(screen.getByText("Now")).toBeTruthy();
+    expect(screen.getByText("Oct 19")).toBeTruthy();
+    expect(screen.getByText("Sep 7")).toBeTruthy();
+  });
+
+  it("judges no week before tracking and spares the first partial week", async () => {
+    workoutAt("2026-09-08T19:00");
+    workoutAt("2026-09-09T19:00");
+    // Tracking starts on Wednesday 14 October
+    goalChange("2026-10-14T10:00", 3);
+    workoutAt("2026-10-20T19:00");
+    workoutAt("2026-10-21T19:00");
+    workoutAt("2026-10-22T19:00");
+    await mount();
+
+    expect(
+      week("Week of September 7: 2 workouts, no goal recorded")
+    ).toBeTruthy();
+    expect(
+      week("Week of October 12: 0 of 3 workouts, first tracked week")
+    ).toBeTruthy();
+    expect(week("Week of October 19: 3 of 3 workouts, goal met")).toBeTruthy();
+    // Only 19 October counts toward the weeks hit
+    expect(screen.getByText("1 of 1 week hit")).toBeTruthy();
+  });
+
+  it("hides the weeks hit until a full week was tracked", async () => {
+    goalChange("2026-10-26T08:00", 2);
+    workoutAt("2026-10-27T19:00");
+    await mount();
+
+    expect(screen.getByText("Weekly goal · 2 workouts")).toBeTruthy();
+    expect(week("This week: 1 of 2 workouts, in progress")).toBeTruthy();
+    expect(screen.queryByText(WEEKS_HIT)).toBeNull();
+  });
+
+  it("hides the Weekly goal without an active Plan, keeping the month and list", async () => {
+    goalChange("2026-08-03T10:00", 3);
+    goalChange("2026-10-20T10:00", null);
+    workoutAt("2026-10-27T19:00");
+    await mount();
+
+    expect(screen.getByText("This month")).toBeTruthy();
+    expect(screen.getByText("Full Body")).toBeTruthy();
+    expect(screen.queryByText(WEEKLY_GOAL)).toBeNull();
+  });
+
+  it("hides the Weekly goal before tracking ever started", async () => {
+    workoutAt("2026-10-27T19:00");
+    await mount();
+
+    expect(screen.getByText("Full Body")).toBeTruthy();
+    expect(screen.queryByText(WEEKLY_GOAL)).toBeNull();
+  });
+
+  it("keeps History when the Weekly goal can't be read, and shows it on refresh", async () => {
+    goalChange("2026-08-03T10:00", 3);
+    workoutAt("2026-10-27T19:00");
+    fakePublicApi.failNext("GET /v1/weekly-goals", { status: 500 });
+    await mount();
+
+    expect(screen.getByText("Full Body")).toBeTruthy();
+    expect(screen.queryByText(WEEKLY_GOAL)).toBeNull();
+
+    await queryClient.refetchQueries();
+    await settle(queryClient);
+
+    expect(screen.getByText("Weekly goal · 3 workouts")).toBeTruthy();
+  });
+
+  it("reads the Weekly goal in Ukrainian", async () => {
+    setDeviceLanguages(["uk-UA"]);
+    goalChange("2026-08-03T10:00", 4);
+    workoutAt("2026-10-19T19:00");
+    workoutAt("2026-10-27T19:00");
+    await mount();
+
+    expect(screen.getByText("Ціль на тиждень · 4 тренування")).toBeTruthy();
+    // Seven weeks: the `many` form, after "з"
+    expect(screen.getByText("Виконано 0 з 7 тижнів")).toBeTruthy();
+    expect(
+      week("Тиждень з 19 жовтня: 1 з 4 тренувань, ціль не досягнуто")
+    ).toBeTruthy();
+    expect(week("Цей тиждень: 1 з 4 тренувань, триває")).toBeTruthy();
+    expect(screen.getByText("Зараз")).toBeTruthy();
+    expect(screen.getByText("19 жовт.")).toBeTruthy();
   });
 });

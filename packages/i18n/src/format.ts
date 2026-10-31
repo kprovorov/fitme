@@ -137,6 +137,8 @@ const DATE_STYLES = {
   dayOfMonth: { day: "numeric" },
   /** A month heading: `October 2026`, `жовтень 2026 р.`. */
   monthYear: { month: "long", year: "numeric" },
+  /** A chart column's week: `Oct 21`, `21 Oct`, `21 жовт.`. */
+  shortDayMonth: { day: "numeric", month: "short" },
   /** A date tile's weekday: `Wed`, `ср`. */
   weekday: { weekday: "short" },
   /** `Wed, Oct 21`, `ср, 21 жовт.`. */

@@ -3,6 +3,7 @@ import {
   plans,
   profiles,
   type Transaction,
+  weeklyGoalChanges,
   workoutExerciseSets,
   workoutExercises,
   workoutSessionExerciseSets,
@@ -42,6 +43,10 @@ import {
   type WholeProfile,
 } from "@fitme/services/profile";
 import {
+  listWeeklyGoalChanges,
+  type WeeklyGoalChange,
+} from "@fitme/services/weekly-goals";
+import {
   type AddExerciseToWorkoutSessionInput,
   type AddExerciseToWorkoutSessionResult,
   type AddSetToWorkoutSessionExerciseInput,
@@ -71,7 +76,8 @@ import { sql } from "drizzle-orm";
 
 /**
  * The User tables a write may touch, in deleteUserData's lock order (its
- * LOCKED_TABLES, without arnold_sessions).
+ * LOCKED_TABLES, without arnold_sessions): a Plan write or a finish records
+ * the Weekly goal last.
  */
 const USER_TABLES = sql.join(
   [
@@ -83,6 +89,7 @@ const USER_TABLES = sql.join(
     workoutExerciseSets,
     workoutSessionExercises,
     workoutSessionExerciseSets,
+    weeklyGoalChanges,
   ],
   sql`, `
 );
@@ -164,6 +171,8 @@ export interface UserServices {
     sessionId: string
   ) => Promise<Weighed<WorkoutSessionDetail> | null>;
   listPlans: () => Promise<PlanSummary[]>;
+  /** Every change of the User's Weekly goal, oldest first. */
+  listWeeklyGoalChanges: () => Promise<WeeklyGoalChange[]>;
   /** A page of the User's Workout Sessions, their volumes in the User's unit. */
   listWorkoutSessions: (
     options: ListWorkoutSessionsOptions
@@ -301,6 +310,8 @@ export const createServicesFromEnv: ServicesFactory = (userId) => {
     getWorkoutSession: (sessionId) =>
       weighed((tx) => getWorkoutSession(tx, sessionId)),
     listPlans: () => asUser(userId, (tx) => listPlans(tx, userId)),
+    listWeeklyGoalChanges: () =>
+      asUser(userId, (tx) => listWeeklyGoalChanges(tx, userId)),
     listWorkoutSessions: (options) =>
       inUnits((tx) => listWorkoutSessions(tx, options)),
     logSet: (input) => inUnits((tx) => logSet(tx, input), write),
