@@ -410,15 +410,6 @@ class FakeQuery {
     return this;
   }
 
-  /** Only `.not(column, "is", null)`, kept as the filter `not.<column>`. */
-  not(column: string, operator: string, value: unknown) {
-    if (operator !== "is" || value !== null) {
-      throw new Error(`Fake backend: unsupported not(${column}, ${operator})`);
-    }
-    this.filters[`not.${column}`] = null;
-    return this;
-  }
-
   order() {
     return this;
   }
@@ -462,40 +453,6 @@ class FakeQuery {
     return this.single().then(onFulfilled, onRejected);
   }
 
-  /** A Workout Session by id, the open one, or History's finished ones. */
-  private selectSessions(): unknown {
-    if (this.filters.id === undefined && "not.finished_at" in this.filters) {
-      // History: every finished Workout Session, last finished first.
-      return backend.sessions
-        .filter(({ finished_at }) => finished_at !== null)
-        .sort((a, b) =>
-          (b.finished_at ?? "").localeCompare(a.finished_at ?? "")
-        )
-        .map((row) => backend.nestedSession(row));
-    }
-    if (this.filters.id === undefined) {
-      // The User's open Workout Session (`.is("finished_at", null)`,
-      // newest first, `maybeSingle()`).
-      if (this.filters.finished_at !== null) {
-        throw new Error("Fake backend: only the open session is listed");
-      }
-      const [open] = backend.sessions
-        .filter(({ finished_at }) => finished_at === null)
-        .sort((a, b) => b.started_at.localeCompare(a.started_at));
-      return open
-        ? {
-            id: open.id,
-            plan_id: open.plan_id,
-            workout: open.workout_id ? { name: open.workoutName } : null,
-            workout_id: open.workout_id,
-          }
-        : null;
-    }
-    return backend.nestedSession(
-      requireRow(backend.session(this.filters.id as string), "session")
-    );
-  }
-
   private run(): unknown {
     const key = `${this.table}.${this.operation}`;
     switch (key) {
@@ -528,7 +485,27 @@ class FakeQuery {
         // `null` (PGRST116 through `single()`) once it's gone.
         return backend.nestedWorkout(this.filters.id as string);
       case "workout_sessions.select":
-        return this.selectSessions();
+        if (this.filters.id === undefined) {
+          // The User's open Workout Session (`.is("finished_at", null)`,
+          // newest first, `maybeSingle()`).
+          if (this.filters.finished_at !== null) {
+            throw new Error("Fake backend: only the open session is listed");
+          }
+          const [open] = backend.sessions
+            .filter(({ finished_at }) => finished_at === null)
+            .sort((a, b) => b.started_at.localeCompare(a.started_at));
+          return open
+            ? {
+                id: open.id,
+                plan_id: open.plan_id,
+                workout: open.workout_id ? { name: open.workoutName } : null,
+                workout_id: open.workout_id,
+              }
+            : null;
+        }
+        return backend.nestedSession(
+          requireRow(backend.session(this.filters.id as string), "session")
+        );
       case "workout_session_exercises.select":
         if (this.filters.exercise_slug) {
           // An Exercise's history, its session nested as the app selects it.

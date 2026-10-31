@@ -83,6 +83,8 @@ jest.mock("~/lib/supabase", () => ({
     typeof import("~/test-utils/fake-workout-backend")
   >("~/test-utils/fake-workout-backend").fakeSupabase,
 }));
+jest.mock("~/lib/segment", () => ({ segmentClient: { track: jest.fn() } }));
+
 jest.mock("react-native-purchases", () => ({
   __esModule: true,
   default: { invalidateCustomerInfoCache: jest.fn() },

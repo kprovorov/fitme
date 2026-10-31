@@ -1,8 +1,9 @@
 /**
  * The History tab with no finished Workout Session, on the mounted-screen
- * seam: the real route and its reads (History, the open Workout Session, the
- * Plans) over the in-memory Supabase backend, and Start through the fake
- * Public API, so the card's action follows what those reads answered.
+ * seam: the real route and its reads (History through the fake Public API,
+ * the open Workout Session and the Plans over the in-memory Supabase backend,
+ * both over the same rows) and Start through the fake Public API, so the
+ * card's action follows what those reads answered.
  */
 import { beforeEach, describe, expect, it, jest } from "@jest/globals";
 import { QueryClientProvider } from "@tanstack/react-query";
@@ -86,6 +87,7 @@ jest.mock("~/components/ui/button", () =>
 );
 
 const START = "POST /v1/workout-sessions";
+const HISTORY = "GET /v1/workout-sessions";
 
 const PLAN: SeedPlan = {
   id: "plan-1",
@@ -317,18 +319,34 @@ describe("Starting from the empty History", () => {
   });
 });
 
+/** Each read the empty History waits on, held or failed on its own. */
+const READS = [
+  {
+    fail: () => fakePublicApi.failNext(HISTORY, { status: 500 }),
+    name: "History",
+    pause: () => fakePublicApi.pause(HISTORY),
+  },
+  {
+    fail: () => backend.failNext("workout_sessions", "select"),
+    name: "the open Workout Session",
+    pause: () => backend.pause("workout_sessions", "select"),
+  },
+  {
+    fail: () => backend.failNext("plans", "select"),
+    name: "the Plans",
+    pause: () => backend.pause("plans", "select"),
+  },
+];
+
 describe("The empty History's reads", () => {
   beforeEach(() => {
     backend.seedPlan(structuredClone(PLAN));
   });
 
-  it.each([
-    ["History or the open Workout Session", "workout_sessions"],
-    ["the Plans", "plans"],
-  ] as const)(
-    "show a spinner and no action while %s loads",
-    async (_, table) => {
-      const resume = backend.pause(table, "select");
+  it.each(READS)(
+    "show a spinner and no action while $name loads",
+    async ({ pause }) => {
+      const resume = pause();
       queryClient = createTestQueryClient();
       await render(
         <QueryClientProvider client={queryClient}>
@@ -348,13 +366,10 @@ describe("The empty History's reads", () => {
     }
   );
 
-  it.each([
-    ["History or the open Workout Session", "workout_sessions"],
-    ["the Plans", "plans"],
-  ] as const)(
-    "show the error with Try Again, and no action, when %s fails",
-    async (_, table) => {
-      backend.failNext(table, "select");
+  it.each(READS)(
+    "show the error with Try Again, and no action, when $name fails",
+    async ({ fail }) => {
+      fail();
       await mount();
 
       expect(
