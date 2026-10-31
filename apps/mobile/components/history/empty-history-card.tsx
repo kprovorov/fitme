@@ -21,6 +21,13 @@ import { useI18n } from "~/lib/i18n";
 /** The point size of the card's dumbbell, Figma's 18 pt. */
 const ICON_SIZE = 18;
 
+/**
+ * How far the title grows with Dynamic Type: at the accessibility sizes Title
+ * 2 outgrows the card on a small iPhone and breaks inside a word
+ * ("workout/s"); at twice its size every word still fits.
+ */
+const TITLE_MAX_FONT_SCALE = 2;
+
 function StartAction({ plan, workout }: { plan: Plan; workout: Workout }) {
   const router = useRouter();
   const { t } = useTranslation();
@@ -146,7 +153,12 @@ export function EmptyHistoryCard({
           />
         </View>
         <View className="w-full items-center gap-xs">
-          <H3 className="text-center">{t("history.empty.title")}</H3>
+          <H3
+            className="text-center"
+            maxFontSizeMultiplier={TITLE_MAX_FONT_SCALE}
+          >
+            {t("history.empty.title")}
+          </H3>
           <CardDescription className="text-center">
             {t("history.empty.body")}
           </CardDescription>
