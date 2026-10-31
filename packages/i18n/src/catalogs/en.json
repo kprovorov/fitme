@@ -674,7 +674,13 @@
       "firstWeek": "first tracked week",
       "noGoal": "no goal recorded",
       "weekLabel": "{{week}}: {{details}}"
-    }
+    },
+    "personalRecord": "PR",
+    "entryWithRecords": "{{entry}}. {{records}}",
+    "personalRecords_one": "Personal record: {{records}}",
+    "personalRecords_other": "Personal records: {{records}}",
+    "recordResult": "{{exercise}}, {{weight}} × {{reps}}",
+    "bodyweightRecordResult": "{{exercise}}, bodyweight × {{reps}}"
   },
   "workoutSummary": {
     "title": "Workout Complete!",

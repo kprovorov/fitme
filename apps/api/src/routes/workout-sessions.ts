@@ -56,6 +56,28 @@ const sessionFields = {
     }),
 };
 
+const PersonalRecord = z
+  .object({
+    exercise_slug: z.string().openapi({
+      description: "The Exercise slug as stored, including legacy values",
+      example: "barbell-bench-press",
+    }),
+    kind: z.enum(["weight", "reps"]).openapi({
+      description:
+        "`weight`: a higher weight than any earlier result of the Exercise; `reps`: more reps at the earlier highest weight",
+    }),
+    reps: z.int().openapi({ example: 5 }),
+    weight: z.number().openapi({
+      description:
+        "In the page's `weight_unit`; 0 is a bodyweight record. Converted with every other weight when the measurement system changes",
+      example: 102.5,
+    }),
+  })
+  .openapi("PersonalRecord", {
+    description:
+      "A Personal record a Workout Session earned when it was finished: its best set of the Exercise beat the User's results in earlier finished Workout Sessions. Retained from then on",
+  });
+
 const WorkoutSessionSummary = z
   .object({
     ...sessionFields,
@@ -68,6 +90,10 @@ const WorkoutSessionSummary = z
     logged_set_count: z.int().openapi({
       description: "Sets with a logged result",
       example: 8,
+    }),
+    personal_records: z.array(PersonalRecord).openapi({
+      description:
+        "The Personal records it earned when it was finished, one per Exercise at most, by Exercise slug; empty for none",
     }),
     set_count: z.int().openapi({ example: 15 }),
     volume: z.number().openapi({

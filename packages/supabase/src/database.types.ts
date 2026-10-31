@@ -28,6 +28,48 @@ export interface Database {
         };
         Relationships: [];
       };
+      personal_records: {
+        Row: {
+          created_at: string;
+          exercise_slug: string;
+          id: string;
+          kind: string;
+          reps: number;
+          user_id: string;
+          weight: number;
+          workout_session_id: string;
+        };
+        ComputedFields: never;
+        Insert: {
+          created_at?: string;
+          exercise_slug: string;
+          id?: string;
+          kind: string;
+          reps: number;
+          user_id: string;
+          weight: number;
+          workout_session_id: string;
+        };
+        Update: {
+          created_at?: string;
+          exercise_slug?: string;
+          id?: string;
+          kind?: string;
+          reps?: number;
+          user_id?: string;
+          weight?: number;
+          workout_session_id?: string;
+        };
+        Relationships: [
+          {
+            foreignKeyName: "personal_records_workout_session_id_fkey";
+            columns: ["workout_session_id"];
+            isOneToOne: false;
+            referencedRelation: "workout_sessions";
+            referencedColumns: ["id"];
+          },
+        ];
+      };
       plans: {
         Row: {
           created_at: string | null;

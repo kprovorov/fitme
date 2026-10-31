@@ -15,6 +15,7 @@ const summary: WorkoutSessionSummary = {
   finished_at: null,
   id: SESSION_ID,
   logged_set_count: 1,
+  personal_records: [],
   plan: { id: "0b9e1a52-7c1d-4f3e-8a2b-5d6c7e8f9a01", name: "Strength" },
   set_count: 5,
   started_at: "2026-10-01T10:00:00.123456+00:00",
@@ -27,6 +28,15 @@ const finishedSummary: WorkoutSessionSummary = {
   ...summary,
   finished_at: "2026-09-30T11:00:00+00:00",
   id: "7a8b9c0d-1e2f-4a3b-8c4d-5e6f7a8b9c0d",
+  personal_records: [
+    {
+      exercise_slug: "barbell-bench-press",
+      kind: "weight",
+      reps: 3,
+      weight: 225,
+    },
+    { exercise_slug: "pull-up", kind: "reps", reps: 12, weight: 0 },
+  ],
   plan: null,
   started_at: "2026-09-30T10:00:00+00:00",
   status: "finished",
@@ -99,6 +109,24 @@ describe("GET /v1/workout-sessions", () => {
     expect(calls).toEqual([{ limit: 1, offset: 1, status: "in_progress" }]);
   });
 
+  it("returns Personal records with legacy stored Exercise slugs unchanged", async () => {
+    const record = {
+      exercise_slug: "Legacy_Squat",
+      kind: "weight" as const,
+      reps: 5,
+      weight: 110,
+    };
+    const session = { ...finishedSummary, personal_records: [record] };
+    const { services } = listing({ sessions: [session], total: 1 });
+    const { app, reported } = testApp({ services });
+
+    const response = await get(app, "/v1/workout-sessions");
+
+    expect(response.status).toBe(200);
+    expect((await response.json()).data[0].personal_records).toEqual([record]);
+    expect(reported).toEqual([]);
+  });
+
   it("answers an empty page with the total past the end", async () => {
     const { services } = listing({ sessions: [], total: 3 });
     const { app } = testApp({ services });
@@ -167,6 +195,37 @@ describe("GET /v1/workout-sessions", () => {
       data: [expect.objectContaining({ completed_rep_count: 8, volume: 644 })],
       hasMore: false,
       total: 1,
+      weight_unit: "lbs",
+    });
+  });
+
+  it("answers the Personal records each session earned, in the User's weight unit", async () => {
+    const { services } = listing(
+      { sessions: [summary, finishedSummary], total: 2 },
+      "lbs"
+    );
+    const { app } = testApp({ services });
+
+    const response = await get(app, "/v1/workout-sessions");
+
+    expect(await response.json()).toEqual({
+      data: [
+        expect.objectContaining({ id: summary.id, personal_records: [] }),
+        expect.objectContaining({
+          id: finishedSummary.id,
+          personal_records: [
+            {
+              exercise_slug: "barbell-bench-press",
+              kind: "weight",
+              reps: 3,
+              weight: 225,
+            },
+            { exercise_slug: "pull-up", kind: "reps", reps: 12, weight: 0 },
+          ],
+        }),
+      ],
+      hasMore: false,
+      total: 2,
       weight_unit: "lbs",
     });
   });

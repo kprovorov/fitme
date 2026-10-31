@@ -173,6 +173,7 @@ describe("GET /v1/workout-sessions against the local stack", () => {
     finished_at: null,
     id: seeded.openId,
     logged_set_count: 1,
+    personal_records: [],
     plan: { id: seeded.planId, name: "Sessions plan" },
     set_count: 3,
     started_at: "2026-10-02T10:00:00.123456+00:00",
@@ -186,6 +187,7 @@ describe("GET /v1/workout-sessions against the local stack", () => {
     finished_at: "2026-10-01T11:00:00+00:00",
     id: seeded.finishedId,
     logged_set_count: 1,
+    personal_records: [],
     plan: { id: seeded.planId, name: "Sessions plan" },
     set_count: 1,
     started_at: "2026-10-01T10:00:00+00:00",
@@ -361,5 +363,43 @@ describe("Workout Session reads across Users", () => {
     expect(body.data.map((session: { id: string }) => session.id)).toEqual([
       seeded.intruderId,
     ]);
+  });
+});
+
+describe("Personal records through the API against the local stack", () => {
+  it("finishing awards the records the session earned, listed in the User's unit and never to another User", async () => {
+    // The open session benched 135.5 lbs × 8 after 130 lbs × 8 last time
+    const finished = await app.request(
+      `/v1/workout-sessions/${seeded.openId}/finish`,
+      { headers: signedInAs(owner), method: "POST" }
+    );
+    expect(finished.status).toBe(200);
+    // A repeat awards nothing more
+    await app.request(`/v1/workout-sessions/${seeded.openId}/finish`, {
+      headers: signedInAs(owner),
+      method: "POST",
+    });
+
+    const { body } = await getAs(owner, "/v1/workout-sessions");
+    expect(body.weight_unit).toBe("lbs");
+    expect(
+      body.data.map((session: { id: string; personal_records: unknown[] }) => [
+        session.id,
+        session.personal_records,
+      ])
+    ).toEqual([
+      [
+        seeded.openId,
+        [{ exercise_slug: benchSlug, kind: "weight", reps: 8, weight: 135.5 }],
+      ],
+      [seeded.finishedId, []],
+    ]);
+
+    const other = await getAs(intruder, "/v1/workout-sessions");
+    expect(
+      other.body.data.map(
+        (session: { personal_records: unknown[] }) => session.personal_records
+      )
+    ).toEqual([[]]);
   });
 });

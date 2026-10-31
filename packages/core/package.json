@@ -11,6 +11,7 @@
     "./labels": "./src/labels.ts",
     "./limits": "./src/limits.ts",
     "./names": "./src/names.ts",
+    "./personal-records": "./src/personal-records.ts",
     "./training-progress": "./src/training-progress.ts",
     "./formatters": "./src/formatters.ts",
     "./types": "./src/types.ts",

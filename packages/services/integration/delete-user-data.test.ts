@@ -2,6 +2,7 @@ import { randomUUID } from "node:crypto";
 import {
   arnoldSessions,
   asUser,
+  personalRecords,
   plans,
   profiles,
   retiredUserIdsInPrivate,
@@ -38,6 +39,7 @@ const chainC = `user_svcChainC${runId}`;
 const REFUSED = "42501";
 
 interface OwnedRows {
+  personalRecord: string;
   plan: string;
   profile: string;
   session: string;
@@ -101,8 +103,20 @@ const seedUser = (userId: string): Promise<OwnedRows> =>
       .insert(workoutSessionExerciseSets)
       .values({ order: 1, workoutSessionExerciseId: sessionExercise.id })
       .returning({ id: workoutSessionExerciseSets.id });
+    const [personalRecord] = await tx
+      .insert(personalRecords)
+      .values({
+        exerciseSlug,
+        kind: "weight",
+        reps: 5,
+        userId,
+        weight: "100",
+        workoutSessionId: session.id,
+      })
+      .returning({ id: personalRecords.id });
 
     return {
+      personalRecord: personalRecord.id,
       plan: plan.id,
       profile: profile.id,
       session: session.id,
@@ -117,6 +131,7 @@ const seedUser = (userId: string): Promise<OwnedRows> =>
 const count = async (
   tx: Transaction,
   table:
+    | typeof personalRecords
     | typeof plans
     | typeof profiles
     | typeof workoutExerciseSets
@@ -131,6 +146,7 @@ const count = async (
 /** How many of the seeded rows still exist, per table. */
 const remaining = (rows: OwnedRows) =>
   withService(async (tx) => ({
+    personalRecord: await count(tx, personalRecords, rows.personalRecord),
     plan: await count(tx, plans, rows.plan),
     profile: await count(tx, profiles, rows.profile),
     session: await count(tx, workoutSessions, rows.session),
@@ -146,6 +162,7 @@ const remaining = (rows: OwnedRows) =>
   }));
 
 const allRows = (present: 0 | 1) => ({
+  personalRecord: present,
   plan: present,
   profile: present,
   session: present,

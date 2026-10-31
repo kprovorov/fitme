@@ -5,6 +5,7 @@ import {
   measurementSystems,
 } from "@fitme/core/models";
 import {
+  personalRecords,
   plans,
   profiles,
   type Transaction,
@@ -136,7 +137,7 @@ const converted = (column: AnyPgColumn, factor: SQL) =>
 /**
  * Converts the User's stored weights to another measurement system, in `tx`:
  * their Plans' set targets and their Workout Sessions' recommended and
- * completed weights. It finds Workout Sessions by their own `user_id`, so a
+ * completed weights, and the weights of their Personal records. It finds Workout Sessions by their own `user_id`, so a
  * session whose Workout is gone (its Plan's Workouts replaced) is converted
  * too.
  */
@@ -195,6 +196,12 @@ const convertStoredWeights = async (
         )
       )
     );
+  // Earned Personal records keep their meaning in the new unit: converted
+  // like the weights they were earned with, never added or removed (ADR 0015)
+  await tx
+    .update(personalRecords)
+    .set({ weight: converted(personalRecords.weight, weightFactor) })
+    .where(eq(personalRecords.userId, userId));
 };
 
 /**

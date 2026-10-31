@@ -1,5 +1,6 @@
 import {
   arnoldSessions,
+  personalRecords,
   plans,
   profiles,
   retiredUserIdsInPrivate,
@@ -33,6 +34,7 @@ export const USER_DATA_TABLES = [
   workoutExerciseSets,
   workoutSessionExercises,
   workoutSessionExerciseSets,
+  personalRecords,
   arnoldSessions,
   weeklyGoalChanges,
 ];

@@ -5,6 +5,7 @@ export * from "./labels";
 export * from "./limits";
 export * from "./models";
 export * from "./names";
+export * from "./personal-records";
 export * from "./training-progress";
 export * from "./types";
 export * from "./utils";
