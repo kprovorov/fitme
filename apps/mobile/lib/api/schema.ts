@@ -2964,8 +2964,8 @@ export interface components {
     /** @description A Personal record a Workout Session earned when it was finished: its best set of the Exercise beat the User's results in earlier finished Workout Sessions. Retained from then on */
     PersonalRecord: {
       /**
-       * @description An Exercise slug from the Library API; every one is checked before anything is written
-       * @example barbell-back-squat
+       * @description The Exercise slug as stored, including legacy values
+       * @example barbell-bench-press
        */
       exercise_slug: string;
       /**

@@ -1470,10 +1470,8 @@
         "properties": {
           "exercise_slug": {
             "type": "string",
-            "maxLength": 100,
-            "pattern": "^[a-z0-9]+(-[a-z0-9]+)*$",
-            "description": "An Exercise slug from the Library API; every one is checked before anything is written",
-            "example": "barbell-back-squat"
+            "description": "The Exercise slug as stored, including legacy values",
+            "example": "barbell-bench-press"
           },
           "kind": {
             "type": "string",

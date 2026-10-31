@@ -109,6 +109,24 @@ describe("GET /v1/workout-sessions", () => {
     expect(calls).toEqual([{ limit: 1, offset: 1, status: "in_progress" }]);
   });
 
+  it("returns Personal records with legacy stored Exercise slugs unchanged", async () => {
+    const record = {
+      exercise_slug: "Legacy_Squat",
+      kind: "weight" as const,
+      reps: 5,
+      weight: 110,
+    };
+    const session = { ...finishedSummary, personal_records: [record] };
+    const { services } = listing({ sessions: [session], total: 1 });
+    const { app, reported } = testApp({ services });
+
+    const response = await get(app, "/v1/workout-sessions");
+
+    expect(response.status).toBe(200);
+    expect((await response.json()).data[0].personal_records).toEqual([record]);
+    expect(reported).toEqual([]);
+  });
+
   it("answers an empty page with the total past the end", async () => {
     const { services } = listing({ sessions: [], total: 3 });
     const { app } = testApp({ services });

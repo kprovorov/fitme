@@ -58,7 +58,10 @@ const sessionFields = {
 
 const PersonalRecord = z
   .object({
-    exercise_slug: ExerciseSlug,
+    exercise_slug: z.string().openapi({
+      description: "The Exercise slug as stored, including legacy values",
+      example: "barbell-bench-press",
+    }),
     kind: z.enum(["weight", "reps"]).openapi({
       description:
         "`weight`: a higher weight than any earlier result of the Exercise; `reps`: more reps at the earlier highest weight",
