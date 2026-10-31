@@ -1316,12 +1316,16 @@
           "total": {
             "type": "integer",
             "description": "How many Workout Sessions match, across every page"
+          },
+          "weight_unit": {
+            "$ref": "#/components/schemas/WeightUnit"
           }
         },
         "required": [
           "data",
           "hasMore",
-          "total"
+          "total",
+          "weight_unit"
         ]
       },
       "WorkoutSessionSummary": {
@@ -1392,6 +1396,11 @@
             ],
             "description": "The Workout it was started from, `null` once that Workout is gone (its Plan's Workouts replaced)"
           },
+          "completed_rep_count": {
+            "type": "integer",
+            "description": "Reps completed across its logged sets; above 0 once any set has reps",
+            "example": 64
+          },
           "exercise_count": {
             "type": "integer",
             "example": 5
@@ -1404,6 +1413,11 @@
           "set_count": {
             "type": "integer",
             "example": 15
+          },
+          "volume": {
+            "type": "number",
+            "description": "Weight × reps over its logged sets, in the page's `weight_unit`; a set without a weight adds 0",
+            "example": 4250
           }
         },
         "required": [
@@ -1413,9 +1427,11 @@
           "started_at",
           "status",
           "workout",
+          "completed_rep_count",
           "exercise_count",
           "logged_set_count",
-          "set_count"
+          "set_count",
+          "volume"
         ]
       }
     },

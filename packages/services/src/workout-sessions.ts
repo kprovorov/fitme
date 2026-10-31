@@ -86,6 +86,8 @@ export interface WorkoutSessionDetail {
 }
 
 export interface WorkoutSessionSummary {
+  /** Reps completed across its logged sets; above zero once a set has reps. */
+  completed_rep_count: number;
   exercise_count: number;
   finished_at: string | null;
   id: string;
@@ -94,6 +96,11 @@ export interface WorkoutSessionSummary {
   set_count: number;
   started_at: string;
   status: WorkoutSessionStatus;
+  /**
+   * Weight × reps over its logged sets, in the User's unit; a set without a
+   * weight adds nothing.
+   */
+  volume: number;
   workout: NamedRef | null;
 }
 
@@ -206,6 +213,10 @@ export const listWorkoutSessions = async (
   const rows = await tx
     .select({
       ...sessionColumns,
+      // An unlogged set has no reps, so it adds to neither.
+      completedRepCount: countOf(
+        sql`select coalesce(sum(${workoutSessionExerciseSets.repsCompleted}), 0) from ${workoutSessionExerciseSets} where ${workoutSessionExerciseSets.workoutSessionExerciseId} in (${sessionExerciseIds})`
+      ),
       exerciseCount: countOf(
         sql`select count(*) from ${workoutSessionExercises} where ${workoutSessionExercises.workoutSessionId} = ${workoutSessions.id}`
       ),
@@ -217,6 +228,10 @@ export const listWorkoutSessions = async (
       ),
       // counted in the page's own statement, so it matches the rows
       total: sql<number>`(count(*) over ())::int`.mapWith(Number),
+      volume:
+        sql<number>`(select coalesce(sum(coalesce(${workoutSessionExerciseSets.weightCompleted}, 0) * ${workoutSessionExerciseSets.repsCompleted}), 0) from ${workoutSessionExerciseSets} where ${workoutSessionExerciseSets.workoutSessionExerciseId} in (${sessionExerciseIds}))::float8`.mapWith(
+          Number
+        ),
     })
     .from(workoutSessions)
     .leftJoin(workouts, eq(workouts.id, workoutSessions.workoutId))
@@ -232,6 +247,7 @@ export const listWorkoutSessions = async (
 
   return {
     sessions: rows.map((row) => ({
+      completed_rep_count: row.completedRepCount,
       exercise_count: row.exerciseCount,
       finished_at: row.finishedAt,
       id: row.id,
@@ -239,6 +255,7 @@ export const listWorkoutSessions = async (
       set_count: row.setCount,
       started_at: row.startedAt,
       status: statusOf(row.finishedAt),
+      volume: row.volume,
       ...refsOf(row),
     })),
     total,

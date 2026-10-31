@@ -2819,6 +2819,7 @@ export interface components {
       hasMore: boolean;
       /** @description How many Workout Sessions match, across every page */
       total: number;
+      weight_unit: components["schemas"]["WeightUnit"];
     };
     WorkoutSessionSummary: {
       /**
@@ -2861,6 +2862,11 @@ export interface components {
         id: string;
         name: string;
       } | null;
+      /**
+       * @description Reps completed across its logged sets; above 0 once any set has reps
+       * @example 64
+       */
+      completed_rep_count: number;
       /** @example 5 */
       exercise_count: number;
       /**
@@ -2870,6 +2876,11 @@ export interface components {
       logged_set_count: number;
       /** @example 15 */
       set_count: number;
+      /**
+       * @description Weight × reps over its logged sets, in the page's `weight_unit`; a set without a weight adds 0
+       * @example 4250
+       */
+      volume: number;
     };
   };
 }

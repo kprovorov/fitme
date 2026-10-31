@@ -1,8 +1,8 @@
 /**
- * The History tab and the Workout Summary on a Ukrainian device: the real
- * screens under the root layout's language sync, with the Workout Session
- * reads answering seeded sessions and the fake Library naming the Exercises.
- * The header is rendered as its title.
+ * The Workout Summary on a Ukrainian device: the real screen under the root
+ * layout's language sync, with the Workout Session read answering a seeded
+ * session and the fake Library naming the Exercises. The History tab's
+ * Ukrainian coverage is in `history-screen.test.tsx`.
  */
 import type { WorkoutSession, WorkoutSessionExercise } from "@fitme/core";
 import { setDeviceConventions } from "@fitme/i18n";
@@ -17,7 +17,6 @@ import {
 import { QueryClientProvider } from "@tanstack/react-query";
 import { render, screen } from "@testing-library/react-native";
 import type { ReactNode } from "react";
-import HistoryScreen from "~/app/(tabs)/history/index";
 import WorkoutSessionSummaryScreen from "~/app/workout-sessions/[workoutSessionId]/summary";
 import { i18n } from "~/lib/i18n";
 import {
@@ -28,10 +27,7 @@ import { libraryExercise, serveLibrary } from "~/test-utils/fake-library";
 import { InAppLanguage } from "~/test-utils/in-app-language";
 import { createTestQueryClient, settle } from "~/test-utils/query-client";
 
-const mockSessions: { current: WorkoutSession[]; isError: boolean } = {
-  current: [],
-  isError: false,
-};
+const mockSessions: { current: WorkoutSession[] } = { current: [] };
 
 jest.mock("expo-router", () => ({
   Link: ({ children }: { children: ReactNode }) => children,
@@ -50,35 +46,7 @@ jest.mock("expo-router", () => ({
   }),
 }));
 
-// LegendList lays its items out on measure, which Jest never does: render
-// every item (or the empty component) in a plain view instead.
-jest.mock("@legendapp/list/react-native", () => ({
-  LegendList: <T,>({
-    data,
-    keyExtractor,
-    ListEmptyComponent,
-    renderItem,
-  }: {
-    data: T[];
-    keyExtractor: (item: T) => string;
-    ListEmptyComponent: ReactNode;
-    renderItem: (info: { item: T }) => ReactNode;
-  }) => {
-    const { Fragment } = jest.requireActual<typeof import("react")>("react");
-    return data.length === 0
-      ? ListEmptyComponent
-      : data.map((item) => (
-          <Fragment key={keyExtractor(item)}>{renderItem({ item })}</Fragment>
-        ));
-  },
-}));
-
 jest.mock("~/hooks/queries/workout-sessions", () => ({
-  useWorkoutSessionHistoryQuery: () => ({
-    data: mockSessions.isError ? undefined : mockSessions.current,
-    isError: mockSessions.isError,
-    refetch: jest.fn(),
-  }),
   useWorkoutSessionQuery: () => ({ data: mockSessions.current[0] }),
 }));
 
@@ -88,11 +56,6 @@ jest.mock("~/hooks/queries/profiles", () => ({
 
 jest.mock("~/hooks/queries/exercises", () => ({
   useExerciseHistoryQuery: () => ({ data: [] }),
-}));
-
-jest.mock("react-native-purchases", () => ({
-  __esModule: true,
-  default: { invalidateCustomerInfoCache: jest.fn() },
 }));
 
 jest.mock("react-native-safe-area-context", () => ({
@@ -174,14 +137,12 @@ const longSession = session("session-1", startedAt, 65, [
   exercise("dip", 3, [[5, 10]]),
 ]);
 
-// The same month, two days earlier: 1 Exercise and 1 set, for 42 min.
-const shortSession = session("session-2", new Date(2026, 9, 19, 9, 0), 42, [
-  exercise("squat", 1, [[5, 100]]),
-]);
-
-// `1 370 кг` (spoken `1 370 кілограмів`), with Ukrainian's no-break space between thousands.
-const LONG_SESSION_TOTALS = /^3 вправи · 5 підходів · 1\s370 кг$/;
+// `1 370 кілограмів`, with Ukrainian's no-break space between thousands.
 const LONG_SESSION_VOLUME = /^Обсяг: 1\s370 кілограмів$/;
+
+// The Summary's first render loads its whole module graph, which can take
+// more than Jest's default 5 s on a busy machine.
+jest.setTimeout(30_000);
 
 let queryClient = createTestQueryClient();
 
@@ -196,8 +157,7 @@ const mount = async (children: ReactNode) => {
 };
 
 beforeEach(() => {
-  mockSessions.current = [longSession, shortSession];
-  mockSessions.isError = false;
+  mockSessions.current = [longSession];
   serveLibrary([
     libraryExercise("bench-press", {
       translations: { uk: { name: "Жим лежачи" } },
@@ -211,43 +171,6 @@ beforeEach(() => {
 afterEach(async () => {
   await i18n.changeLanguage("en");
   setDeviceConventions(i18n, { region: "US", uses24hourClock: false });
-});
-
-describe("The History tab in Ukrainian", () => {
-  it("shows each row's date, counts and volume, and each month's count", async () => {
-    await mount(<HistoryScreen />);
-
-    expect(screen.getByText("Історія")).toBeTruthy();
-    // Two sessions in October: the `few` form.
-    expect(screen.getByText("2 тренування")).toBeTruthy();
-    expect(screen.getByText("ср, 21 жовт. · 18:05")).toBeTruthy();
-    // 3 Exercises (`few`), 5 sets (`many`), the volume in кг.
-    expect(screen.getByText(LONG_SESSION_TOTALS)).toBeTruthy();
-    // 1 Exercise and 1 set (`one`).
-    expect(screen.getByText("1 вправа · 1 підхід · 500 кг")).toBeTruthy();
-    expect(screen.getAllByText("Тренування")).toHaveLength(2);
-    expect(screen.getByLabelText("Тривалість 1 год 5 хв")).toBeTruthy();
-  });
-
-  it("shows the empty state", async () => {
-    mockSessions.current = [];
-    await mount(<HistoryScreen />);
-
-    expect(screen.getByText("Ще немає тренувань")).toBeTruthy();
-    expect(screen.getByText("Почати тренування")).toBeTruthy();
-  });
-
-  it("shows the load error", async () => {
-    mockSessions.isError = true;
-    await mount(<HistoryScreen />);
-
-    expect(
-      screen.getByText(
-        "Не вдалося завантажити тренування. Перевірте з’єднання і спробуйте ще раз."
-      )
-    ).toBeTruthy();
-    expect(screen.getByText("Спробувати ще раз")).toBeTruthy();
-  });
 });
 
 describe("The Workout Summary in Ukrainian", () => {

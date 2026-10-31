@@ -164,9 +164,10 @@ export interface UserServices {
     sessionId: string
   ) => Promise<Weighed<WorkoutSessionDetail> | null>;
   listPlans: () => Promise<PlanSummary[]>;
+  /** A page of the User's Workout Sessions, their volumes in the User's unit. */
   listWorkoutSessions: (
     options: ListWorkoutSessionsOptions
-  ) => Promise<WorkoutSessionPage>;
+  ) => Promise<Weighed<WorkoutSessionPage>>;
   /** Logs one set of the User's open Workout Session, its weight in the User's unit. */
   logSet: (input: LogSetInput) => Promise<Weighed<LogSetResult>>;
   /**
@@ -301,7 +302,7 @@ export const createServicesFromEnv: ServicesFactory = (userId) => {
       weighed((tx) => getWorkoutSession(tx, sessionId)),
     listPlans: () => asUser(userId, (tx) => listPlans(tx, userId)),
     listWorkoutSessions: (options) =>
-      asUser(userId, (tx) => listWorkoutSessions(tx, options)),
+      inUnits((tx) => listWorkoutSessions(tx, options)),
     logSet: (input) => inUnits((tx) => logSet(tx, input), write),
     previewPlanUpdate: (sessionId) =>
       asUser(userId, (tx) => previewPlanUpdate(tx, userId, sessionId)),

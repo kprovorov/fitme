@@ -12,6 +12,7 @@ export type Unit = "cm" | "in" | "kg" | "lbs";
 
 /** Everything the app counts, each a plural in the catalogs (`counts.<kind>`). */
 export type CountKind =
+  | "entries"
   | "exercises"
   | "minutes"
   | "reps"
@@ -132,8 +133,12 @@ const DATE_STYLES = {
   dayMonth: { day: "numeric", month: "long" },
   /** `October 21, 2026`, `21 жовтня 2026 р.`. */
   dayMonthYear: { day: "numeric", month: "long", year: "numeric" },
+  /** A date tile's day: `21`. */
+  dayOfMonth: { day: "numeric" },
   /** A month heading: `October 2026`, `жовтень 2026 р.`. */
   monthYear: { month: "long", year: "numeric" },
+  /** A date tile's weekday: `Wed`, `ср`. */
+  weekday: { weekday: "short" },
   /** `Wed, Oct 21`, `ср, 21 жовт.`. */
   weekdayDayMonth: { day: "numeric", month: "short", weekday: "short" },
   /** `Wed, Oct 21, 2026`, `ср, 21 жовт. 2026 р.`. */
@@ -216,22 +221,70 @@ export const formatHeight = (
 
 const MINUTE_MS = 60_000;
 
-/** A finished workout's length: `42min`, `1h 5min` (`42 хв`, `1 год 5 хв`). */
-export const formatWorkoutDuration = (
+/** A length of time in hours and minutes: `42min`, `12h 5min` (`12 год 5 хв`). */
+export const formatDuration = (
   translator: Translator,
-  startedAt: string,
-  finishedAt: string
+  durationMs: number
 ): string => {
-  const totalMinutes = Math.max(
-    0,
-    Math.round(
-      (new Date(finishedAt).getTime() - new Date(startedAt).getTime()) /
-        MINUTE_MS
-    )
-  );
+  const totalMinutes = Math.max(0, Math.round(durationMs / MINUTE_MS));
   const hours = Math.floor(totalMinutes / 60);
   const minutes = totalMinutes % 60;
   return hours > 0
     ? translator.t("duration.hoursMinutes", { hours, minutes })
     : translator.t("duration.minutes", { minutes });
+};
+
+/** A finished workout's length: `42min`, `1h 5min` (`42 хв`, `1 год 5 хв`). */
+export const formatWorkoutDuration = (
+  translator: Translator,
+  startedAt: string,
+  finishedAt: string
+): string =>
+  formatDuration(
+    translator,
+    new Date(finishedAt).getTime() - new Date(startedAt).getTime()
+  );
+
+const THOUSAND = 1000;
+
+/**
+ * A large volume, compact: whole kilograms or pounds below a thousand, then
+ * tonnes (`kg`) or thousands of pounds (`lbs`) to one decimal.
+ */
+const compactVolume = (volume: number, unit: "kg" | "lbs") => {
+  const whole = Math.round(volume);
+  if (whole < THOUSAND) {
+    return { kind: unit, value: whole } as const;
+  }
+  return {
+    kind: unit === "kg" ? "t" : "thousandLbs",
+    value: Math.round(volume / (THOUSAND / 10)) / 10,
+  } as const;
+};
+
+/**
+ * A total volume, compact, in its unit: `850 kg`, `136.2 t`, `300.4K lbs`
+ * (`136,2 т`, `300,4 тис. фунт`). Zero is `0 kg`.
+ */
+export const formatCompactVolume = (
+  translator: Translator,
+  volume: number,
+  unit: "kg" | "lbs"
+): string => {
+  const { kind, value } = compactVolume(volume, unit);
+  return kind === "kg" || kind === "lbs"
+    ? formatUnit(translator, value, kind)
+    : translator.t(`compactUnits.${kind}`, { value });
+};
+
+/** `formatCompactVolume` spelled out for VoiceOver: `136.2 tonnes`. */
+export const spokenCompactVolume = (
+  translator: Translator,
+  volume: number,
+  unit: "kg" | "lbs"
+): string => {
+  const { kind, value } = compactVolume(volume, unit);
+  return kind === "kg" || kind === "lbs"
+    ? spokenUnit(translator, value, kind)
+    : translator.t(`spokenCompactUnits.${kind}`, { count: value });
 };

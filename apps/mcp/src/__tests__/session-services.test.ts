@@ -142,6 +142,7 @@ describe("get_workout_session", () => {
 
 describe("list_workout_sessions", () => {
   const summary = {
+    completed_rep_count: 16,
     exercise_count: 2,
     finished_at: null,
     id: SESSION_ID,
@@ -150,6 +151,7 @@ describe("list_workout_sessions", () => {
     set_count: 3,
     started_at: "2026-10-01T10:00:00+00:00",
     status: "in_progress" as const,
+    volume: 1280,
     workout: null,
   };
 

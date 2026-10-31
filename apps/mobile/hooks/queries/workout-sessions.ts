@@ -2,6 +2,7 @@ import type { WorkoutSession } from "@fitme/core";
 import { createMutation, createQuery } from "react-query-kit";
 import { supabase } from "@/lib/supabase";
 import { ApiError } from "~/lib/api/client";
+import type { components } from "~/lib/api/schema";
 import type { PlanUpdate } from "~/lib/plan-changes";
 import { publicApi } from "~/lib/public-api";
 
@@ -200,20 +201,71 @@ export const useApplyPlanUpdateMutation = createMutation<
   },
 });
 
+/** A finished Workout Session as History lists it, from the Public API. */
+export type WorkoutSessionHistoryEntry =
+  components["schemas"]["WorkoutSessionSummary"];
+
+/** Every finished Workout Session of the User, and the unit their volumes are in. */
+export interface WorkoutSessionHistory {
+  sessions: WorkoutSessionHistoryEntry[];
+  weightUnit: components["schemas"]["WeightUnit"];
+}
+
+/** The Public API's largest page of Workout Sessions. */
+const HISTORY_PAGE_SIZE = 50;
+
+/**
+ * Every finished Workout Session, newest start first, read through
+ * `GET /v1/workout-sessions` page after page until none follow: month counts
+ * and monthly totals need all of them, so no page size may cut them short.
+ * A session that moves between pages while they're read (one finished
+ * meanwhile) is kept once, and a page in another unit (the measurement
+ * system changed meanwhile) starts the read over, so every volume is in the
+ * unit answered. Rejects with an `ApiError`.
+ */
+export const fetchWorkoutSessionHistory =
+  async (): Promise<WorkoutSessionHistory> => {
+    const sessions = new Map<string, WorkoutSessionHistoryEntry>();
+    let weightUnit: WorkoutSessionHistory["weightUnit"] | null = null;
+    let offset = 0;
+    for (;;) {
+      // biome-ignore lint/performance/noAwaitInLoops: each page's offset follows from the last one's
+      const { data } = await publicApi().GET("/v1/workout-sessions", {
+        params: {
+          query: { limit: HISTORY_PAGE_SIZE, offset, status: "finished" },
+        },
+      });
+      if (!data) {
+        throw new ApiError("Public API answered without Workout Sessions");
+      }
+      if (weightUnit !== null && data.weight_unit !== weightUnit) {
+        sessions.clear();
+        weightUnit = data.weight_unit;
+        offset = 0;
+        continue;
+      }
+      weightUnit = data.weight_unit;
+      for (const session of data.data) {
+        sessions.set(session.id, session);
+      }
+      if (!data.hasMore || data.data.length === 0) {
+        break;
+      }
+      offset += data.data.length;
+    }
+    return {
+      sessions: [...sessions.values()].sort(
+        (a, b) =>
+          new Date(b.started_at).getTime() - new Date(a.started_at).getTime()
+      ),
+      weightUnit: weightUnit ?? "kg",
+    };
+  };
+
 export const useWorkoutSessionHistoryQuery = createQuery<
-  WorkoutSession[],
+  WorkoutSessionHistory,
   void
 >({
-  fetcher: async () => {
-    const { data, error } = await supabase
-      .from("workout_sessions")
-      .select(SESSION_SELECT)
-      .not("finished_at", "is", null)
-      .order("finished_at", { ascending: false });
-    if (error) {
-      throw error;
-    }
-    return (data ?? []) as unknown as WorkoutSession[];
-  },
+  fetcher: fetchWorkoutSessionHistory,
   queryKey: ["workout-sessions-history"],
 });

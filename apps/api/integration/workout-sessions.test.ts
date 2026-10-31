@@ -168,6 +168,7 @@ afterAll(async () => {
 
 describe("GET /v1/workout-sessions against the local stack", () => {
   const openSummary = () => ({
+    completed_rep_count: 8,
     exercise_count: 2,
     finished_at: null,
     id: seeded.openId,
@@ -176,9 +177,11 @@ describe("GET /v1/workout-sessions against the local stack", () => {
     set_count: 3,
     started_at: "2026-10-02T10:00:00.123456+00:00",
     status: "in_progress",
+    volume: 1084,
     workout: { id: seeded.workoutId, name: "Day A" },
   });
   const finishedSummary = () => ({
+    completed_rep_count: 8,
     exercise_count: 1,
     finished_at: "2026-10-01T11:00:00+00:00",
     id: seeded.finishedId,
@@ -187,6 +190,7 @@ describe("GET /v1/workout-sessions against the local stack", () => {
     set_count: 1,
     started_at: "2026-10-01T10:00:00+00:00",
     status: "finished",
+    volume: 1040,
     workout: { id: seeded.workoutId, name: "Day A" },
   });
 
@@ -196,6 +200,7 @@ describe("GET /v1/workout-sessions against the local stack", () => {
         data: [openSummary(), finishedSummary()],
         hasMore: false,
         total: 2,
+        weight_unit: "lbs",
       },
       status: 200,
     });
@@ -212,11 +217,13 @@ describe("GET /v1/workout-sessions against the local stack", () => {
       data: [openSummary()],
       hasMore: false,
       total: 1,
+      weight_unit: "lbs",
     });
     expect(finished.body).toEqual({
       data: [finishedSummary()],
       hasMore: false,
       total: 1,
+      weight_unit: "lbs",
     });
   });
 
@@ -225,14 +232,21 @@ describe("GET /v1/workout-sessions against the local stack", () => {
       data: [openSummary()],
       hasMore: true,
       total: 2,
+      weight_unit: "lbs",
     });
     expect(
       (await getAs(owner, "/v1/workout-sessions?limit=1&offset=1")).body
-    ).toEqual({ data: [finishedSummary()], hasMore: false, total: 2 });
+    ).toEqual({
+      data: [finishedSummary()],
+      hasMore: false,
+      total: 2,
+      weight_unit: "lbs",
+    });
     expect((await getAs(owner, "/v1/workout-sessions?offset=5")).body).toEqual({
       data: [],
       hasMore: false,
       total: 2,
+      weight_unit: "lbs",
     });
   });
 });
@@ -342,6 +356,8 @@ describe("Workout Session reads across Users", () => {
     const { body } = await getAs(intruder, "/v1/workout-sessions");
 
     expect(body.total).toBe(1);
+    // No Profile: kg.
+    expect(body.weight_unit).toBe("kg");
     expect(body.data.map((session: { id: string }) => session.id)).toEqual([
       seeded.intruderId,
     ]);
