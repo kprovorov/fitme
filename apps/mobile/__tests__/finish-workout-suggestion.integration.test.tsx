@@ -263,6 +263,7 @@ jest.mock("~/components/ui/button", () => {
     jest.requireActual<typeof import("react-native")>("react-native");
   return {
     Button: ({
+      accessibilityLabel,
       disabled,
       isLoading,
       label,
@@ -270,6 +271,7 @@ jest.mock("~/components/ui/button", () => {
       systemImage,
       testID,
     }: {
+      accessibilityLabel?: string;
       disabled?: boolean;
       isLoading?: boolean;
       label?: string;
@@ -278,7 +280,7 @@ jest.mock("~/components/ui/button", () => {
       testID?: string;
     }) => (
       <Pressable
-        accessibilityLabel={label ?? systemImage}
+        accessibilityLabel={accessibilityLabel ?? label ?? systemImage}
         accessibilityRole="button"
         accessibilityState={{ busy: !!isLoading, disabled: !!disabled }}
         disabled={disabled}
@@ -1265,8 +1267,19 @@ describe("starting a Workout from Home", () => {
     await settle();
   };
 
+  /** Start on Leg Day's card, the carousel's first. */
   const startWorkout = async () => {
-    await fireEvent.press(await focused().findByText("Start Workout"));
+    await fireEvent.press(
+      await focused().findByRole("button", { name: "Start Leg Day" })
+    );
+    await settle();
+  };
+
+  /** Presses a button of the last alert. */
+  const pressAlertButton = async (text: string) => {
+    const buttons = jest.mocked(Alert.alert).mock.calls.at(-1)?.[2];
+    const button = buttons?.find((candidate) => candidate.text === text);
+    await act(() => button?.onPress?.());
     await settle();
   };
 
@@ -1323,20 +1336,23 @@ describe("starting a Workout from Home", () => {
     });
   };
 
+  /** The Workout screen's Start, disabled under "Finish Push Day first". */
   const isStartBlocked = () =>
     focused().getByRole("button", { name: "Start Workout" }).props
       .accessibilityState.disabled === true &&
     focused().queryByText("Finish Push Day first") !== null;
 
-  it("blocks the Next card's Start while another Workout is in progress, and continues it", async () => {
+  it("says to finish the other Workout first on a card's Start, and continues it", async () => {
     seedPushDayOpen();
     await startApp();
 
-    expect(isStartBlocked()).toBe(true);
-    await fireEvent.press(
-      focused().getByRole("button", { name: "Continue Push Day" })
+    await startWorkout();
+    expect(Alert.alert).toHaveBeenCalledWith(
+      "Couldn't start workout",
+      "Finish Push Day first",
+      expect.anything()
     );
-    await settle();
+    await pressAlertButton("Continue Push Day");
 
     expect(mockNavigator.routes.at(-1)).toMatchObject({
       name: "plan-session",
@@ -1345,7 +1361,7 @@ describe("starting a Workout from Home", () => {
     expect(fakePublicApi.count(START)).toBe(0);
   });
 
-  it("turns a 409 from Start into the blocked state, without the alert", async () => {
+  it("says to finish the other Workout first on a 409 from Start", async () => {
     await startApp();
     // Another Workout started elsewhere (MCP, another device) after Home was read.
     seedPushDayOpen();
@@ -1353,8 +1369,11 @@ describe("starting a Workout from Home", () => {
     await startWorkout();
 
     expect(fakePublicApi.count(START)).toBe(1);
-    expect(Alert.alert).not.toHaveBeenCalled();
-    expect(isStartBlocked()).toBe(true);
+    expect(Alert.alert).toHaveBeenCalledWith(
+      "Couldn't start workout",
+      "Finish Push Day first",
+      expect.anything()
+    );
     expect(sessionsOf("w1")).toEqual([]);
     expect(mockNavigator.routes.map(({ name }) => name)).toEqual(["home"]);
   });
@@ -1364,7 +1383,7 @@ describe("starting a Workout from Home", () => {
     await startApp();
 
     await fireEvent.press(
-      focused().getByRole("button", { name: "Leg Day, 1 Exercise" })
+      focused().getByRole("button", { name: "Preview Leg Day" })
     );
     await settle();
     expect(mockNavigator.routes.at(-1)?.name).toBe("workout");
@@ -1393,18 +1412,11 @@ describe("starting a Workout from Home", () => {
       "summary",
     ]);
 
-    // Back on Home: the Next card starts again.
+    // Back on Home, Leg Day's Workout screen starts again.
     await act(() => mockNavigator.dismiss());
     await settle();
-    expect(focused().queryByText("Finish Push Day first")).toBeNull();
-    expect(
-      focused().getByRole("button", { name: "Start Workout" }).props
-        .accessibilityState.disabled
-    ).toBe(false);
-
-    // And so does Leg Day's Workout screen.
     await fireEvent.press(
-      focused().getByRole("button", { name: "Leg Day, 1 Exercise" })
+      focused().getByRole("button", { name: "Preview Leg Day" })
     );
     await settle();
     expect(focused().queryByText("Finish Push Day first")).toBeNull();
@@ -1517,7 +1529,7 @@ describe("starting a Workout from Home", () => {
   });
 });
 
-describe("the Plan Update after finishing from Home", () => {
+describe("the Plan Update after finishing a Workout Session opened from Home", () => {
   const PLAN = {
     id: "plan-1",
     is_active: true,
@@ -1627,8 +1639,15 @@ describe("the Plan Update after finishing from Home", () => {
     await settle();
   };
 
-  const finishFromHome = async () => {
-    await fireEvent.press(await focused().findByText("Finish Workout"));
+  /** Opens the Workout Session over Home (the tab has no Finish) and finishes it. */
+  const finishFromSession = async () => {
+    await act(() =>
+      mockNavigator.push(`/plans/plan-1/workouts/w1/sessions/${SESSION}`)
+    );
+    await settle();
+    await fireEvent.press(
+      await focused().findByRole("button", { name: "Finish" })
+    );
     await settle();
   };
 
@@ -1647,7 +1666,7 @@ describe("the Plan Update after finishing from Home", () => {
   it("goes straight to the Summary when the Workout Session changed nothing", async () => {
     await startApp({ changed: false });
 
-    await finishFromHome();
+    await finishFromSession();
 
     expect(fakePublicApi.count(PREVIEW)).toBe(1);
     expect(isSheetShown()).toBe(false);
@@ -1661,7 +1680,7 @@ describe("the Plan Update after finishing from Home", () => {
   it("asks with every change, Exercises by their Library names, after the finish", async () => {
     await startApp();
 
-    await finishFromHome();
+    await finishFromSession();
 
     expect(backend.session(SESSION)?.finished_at).not.toBeNull();
     expect(
@@ -1670,8 +1689,11 @@ describe("the Plan Update after finishing from Home", () => {
     for (const line of [ADDED_SET_LINE, ADDED_EXERCISE_LINE, UNRESOLVED_LINE]) {
       expect(screen.getByText(line)).toBeTruthy();
     }
-    // Asked, not answered: still on Home under the sheet.
-    expect(mockNavigator.routes.map(({ name }) => name)).toEqual(["home"]);
+    // Asked, not answered: still on the session under the sheet.
+    expect(mockNavigator.routes.map(({ name }) => name)).toEqual([
+      "home",
+      "plan-session",
+    ]);
     expect(track()).toHaveBeenCalledWith("Plan Update Suggested", {
       add_exercise: 2,
       add_sets: 1,
@@ -1703,7 +1725,7 @@ describe("the Plan Update after finishing from Home", () => {
     await act(() => mockNavigator.dismiss());
     await settle();
 
-    await finishFromHome();
+    await finishFromSession();
 
     expect(screen.getByText(ADDED_SET_LINE)).toBeTruthy();
   });
@@ -1712,14 +1734,14 @@ describe("the Plan Update after finishing from Home", () => {
     backend.seedProfile(FAKE_USER_ID, { measurement_system: "us" });
     await startApp();
 
-    await finishFromHome();
+    await finishFromSession();
 
     expect(screen.getByText("Add 1 set to Squat · 5×100 lbs")).toBeTruthy();
   });
 
   it("applies the changes and opens the Summary on Update plan", async () => {
     await startApp();
-    await finishFromHome();
+    await finishFromSession();
 
     await fireEvent.press(screen.getByRole("button", UPDATE));
     await settle();
@@ -1768,7 +1790,7 @@ describe("the Plan Update after finishing from Home", () => {
 
   it("leaves the Plan as it was on Keep plan as is", async () => {
     await startApp();
-    await finishFromHome();
+    await finishFromSession();
     const before = structuredClone(legDay());
 
     await fireEvent.press(screen.getByRole("button", KEEP));
@@ -1792,7 +1814,7 @@ describe("the Plan Update after finishing from Home", () => {
 
   it("keeps the sheet with Retry when the apply fails, and applies once on Retry", async () => {
     await startApp();
-    await finishFromHome();
+    await finishFromSession();
     const before = structuredClone(legDay());
 
     fakePublicApi.failNext(APPLY, { status: 500 });
@@ -1801,7 +1823,10 @@ describe("the Plan Update after finishing from Home", () => {
 
     expect(screen.getByText(APPLY_ERROR)).toBeTruthy();
     expect(legDay()).toEqual(before);
-    expect(mockNavigator.routes.map(({ name }) => name)).toEqual(["home"]);
+    expect(mockNavigator.routes.map(({ name }) => name)).toEqual([
+      "home",
+      "plan-session",
+    ]);
     expect(track()).not.toHaveBeenCalledWith(
       "Plan Update Accepted",
       expect.anything()
@@ -1828,7 +1853,7 @@ describe("the Plan Update after finishing from Home", () => {
 
   it("says how long to wait when the apply is rate limited, unreported", async () => {
     await startApp();
-    await finishFromHome();
+    await finishFromSession();
 
     fakePublicApi.failNext(APPLY, { retryAfterSeconds: 8, status: 429 });
     await fireEvent.press(screen.getByRole("button", UPDATE));
@@ -1840,12 +1865,15 @@ describe("the Plan Update after finishing from Home", () => {
     expect(screen.queryByText(APPLY_ERROR)).toBeNull();
     expect(captureException).not.toHaveBeenCalled();
     expect(screen.getByRole("button", RETRY)).toBeTruthy();
-    expect(mockNavigator.routes.map(({ name }) => name)).toEqual(["home"]);
+    expect(mockNavigator.routes.map(({ name }) => name)).toEqual([
+      "home",
+      "plan-session",
+    ]);
   });
 
   it("applies once when the first apply's answer was lost", async () => {
     await startApp();
-    await finishFromHome();
+    await finishFromSession();
 
     fakePublicApi.failNext(APPLY, "lost");
     await fireEvent.press(screen.getByRole("button", UPDATE));
@@ -1866,7 +1894,7 @@ describe("the Plan Update after finishing from Home", () => {
     await startApp();
 
     fakePublicApi.failNext(PREVIEW, "network");
-    await finishFromHome();
+    await finishFromSession();
 
     expect(isSheetShown()).toBe(false);
     expect(captureException).toHaveBeenCalled();
