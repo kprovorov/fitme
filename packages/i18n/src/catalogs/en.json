@@ -6,9 +6,10 @@
     "library": "Library"
   },
   "library": {
-    "allMuscleGroups": "All",
     "search": "Search exercises",
-    "muscleGroup": "Muscle group",
+    "muscles": "Muscles",
+    "reset": "Reset",
+    "confirm": "Done",
     "loadErrorTitle": "Couldn't Load Exercises",
     "loadError": "Couldn't load exercises. Check your connection and try again.",
     "loadMoreError": "Couldn't load more exercises. Check your connection and try again.",

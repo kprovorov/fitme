@@ -2,12 +2,16 @@ import { type MuscleGroup, muscleGroups } from "@fitme/core";
 import type { ExerciseSummary } from "@fitme/library-sdk";
 import { useQueryClient } from "@tanstack/react-query";
 import { Stack, useLocalSearchParams, useRouter } from "expo-router";
-import { useCallback, useEffect, useRef } from "react";
+import { useCallback, useEffect, useRef, useState } from "react";
 import { useTranslation } from "react-i18next";
 import { Alert } from "react-native";
 import { ExerciseRowSymbol } from "~/components/exercises/exercise-row";
 import ExercisesView from "~/components/views/exercises-view";
 import { useHeaderSearch } from "~/hooks/header-search";
+import {
+  newMuscleChoiceKey,
+  useMuscleChoiceOpening,
+} from "~/hooks/muscle-choice";
 import {
   useCreateWorkoutSessionExerciseMutation,
   useReplaceWorkoutSessionExerciseMutation,
@@ -43,6 +47,14 @@ export default function ExercisePickerScreen() {
     workoutSessionId: string;
   }>();
 
+  // Each opening starts over: the replaced Exercise's first Muscle group, or
+  // none, and forgotten once closed.
+  const [muscleChoiceKey] = useState(newMuscleChoiceKey);
+  useMuscleChoiceOpening(
+    muscleChoiceKey,
+    isMuscleGroup(muscleGroup) ? [muscleGroup] : []
+  );
+
   // A failed edit may still have been saved (a lost answer): read again
   // either way.
   const rereadSession = useCallback(() => {
@@ -62,6 +74,9 @@ export default function ExercisePickerScreen() {
   // swipe down, or a second tap's save), which would pop the session too.
   const left = useRef<boolean>(false);
   const saving = useRef<boolean>(false);
+  // While a save is in flight the Muscles sheet stays shut: closing on save
+  // pops the top route, which must be the picker.
+  const [isSaving, setIsSaving] = useState(false);
   useEffect(
     () => () => {
       left.current = true;
@@ -132,10 +147,12 @@ export default function ExercisePickerScreen() {
         return;
       }
       saving.current = true;
+      setIsSaving(true);
       try {
         await save(exercise);
       } finally {
         saving.current = false;
+        setIsSaving(false);
       }
     },
     [save]
@@ -180,7 +197,8 @@ export default function ExercisePickerScreen() {
       {/* The list is the sheet's scroll container: no ScrollView around it. */}
       <ExercisesView
         contentContainerClassName="px-md"
-        initialMuscleGroup={isMuscleGroup(muscleGroup) ? muscleGroup : "all"}
+        muscleChoiceKey={muscleChoiceKey}
+        musclesDisabled={isSaving}
         onExercisePress={onExercisePress}
         onSearchChange={onSearchChange}
         rowAccessibilityLabel={rowAccessibilityLabel}

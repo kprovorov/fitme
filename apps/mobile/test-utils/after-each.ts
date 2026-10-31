@@ -3,6 +3,7 @@
  * (`jest.setupFilesAfterEnv` in package.json).
  */
 import { afterEach } from "@jest/globals";
+import { resetMuscleChoices } from "~/hooks/muscle-choice";
 import { resetDeviceLanguages } from "~/test-utils/device-locales";
 import { fakePublicApi } from "~/test-utils/fake-public-api";
 import { clearTestQueryClients } from "~/test-utils/query-client";
@@ -29,4 +30,10 @@ afterEach(() => {
 // Every test starts on an English device, whatever the last one set.
 afterEach(() => {
   resetDeviceLanguages();
+});
+
+// Every test starts with no Muscle group chosen, as the app does: the Library
+// tab's choice lives in memory, outliving its screen.
+afterEach(() => {
+  resetMuscleChoices();
 });

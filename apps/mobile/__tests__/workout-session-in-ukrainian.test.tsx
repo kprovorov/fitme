@@ -105,8 +105,6 @@ jest.mock("~/components/ui/dropdown-menu", () => {
       )),
   };
 });
-// The Exercise picker's muscle group menu (SwiftUI) shows nothing.
-jest.mock("~/components/ui/picker", () => ({ Picker: () => null }));
 
 const ADD_EXERCISE = "POST /v1/workout-sessions/{id}/exercises";
 const REMOVE_EXERCISE = "DELETE /v1/workout-session-exercises/{id}";

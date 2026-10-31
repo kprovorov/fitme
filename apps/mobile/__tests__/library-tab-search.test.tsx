@@ -28,12 +28,10 @@ jest.mock("expo-router", () => ({
       "~/test-utils/stack-screen-stub"
     ).StackScreenStub,
   },
+  useRouter: () => ({ push: jest.fn() }),
 }));
 jest.mock("~/components/ui/button", () =>
   jest.requireActual("~/test-utils/button-stub")
-);
-jest.mock("~/components/ui/picker", () =>
-  jest.requireActual("~/test-utils/picker-stub")
 );
 // A thumbnail shows as nothing.
 jest.mock("~/components/exercises/exercise-image", () => () => null);

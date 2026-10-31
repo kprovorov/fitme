@@ -2,8 +2,8 @@
  * Stand-ins for expo-router's stack under Jest: the screen a test renders,
  * with the routes it pushes mounted over it (a pushed route the test names
  * in `<PushedRoutes>`; any other push is only recorded), and a header showing
- * each screen's title, right items and search bar (`stack-screen-stub`'s).
- * Wire it up in the test's mock:
+ * each screen's title, its left and right items, and its search bar
+ * (`stack-screen-stub.tsx`'s). Wire it up in the test's mock:
  *
  *   jest.mock("expo-router", () => {
  *     const stub = jest.requireActual<typeof import("~/test-utils/router-stub")>(
@@ -22,11 +22,12 @@
 import {
   type ComponentType,
   createContext,
+  type Ref,
   useContext,
   useSyncExternalStore,
 } from "react";
 import { Pressable, Text } from "react-native";
-import type { SearchBarProps } from "react-native-screens";
+import type { SearchBarCommands, SearchBarProps } from "react-native-screens";
 import { SearchBar } from "~/test-utils/stack-screen-stub";
 
 type Params = Record<string, string>;
@@ -115,31 +116,38 @@ interface HeaderItem {
   onPress?: () => void;
 }
 
+const HeaderButton = ({ item }: { item: HeaderItem }) => (
+  <Pressable
+    accessibilityLabel={item.accessibilityLabel ?? item.label}
+    accessibilityRole="button"
+    onPress={item.onPress}
+  />
+);
+
 /**
- * `<Stack.Screen>`: its title as a header, its right items as buttons, and
- * its search bar as a text field labelled with its placeholder.
+ * `<Stack.Screen>`: its title as a header, its left and right items as
+ * buttons, and its search bar.
  */
 export function StackScreenStub({
   options,
 }: {
   options?: {
-    headerSearchBarOptions?: SearchBarProps;
+    headerSearchBarOptions?: SearchBarProps & { ref?: Ref<SearchBarCommands> };
     title?: string;
+    unstable_headerLeftItems?: () => HeaderItem[];
     unstable_headerRightItems?: () => HeaderItem[];
   };
 }) {
   return (
     <>
+      {options?.unstable_headerLeftItems?.().map((item) => (
+        <HeaderButton item={item} key={item.label} />
+      ))}
       {options?.title ? (
         <Text accessibilityRole="header">{options.title}</Text>
       ) : null}
       {options?.unstable_headerRightItems?.().map((item) => (
-        <Pressable
-          accessibilityLabel={item.accessibilityLabel ?? item.label}
-          accessibilityRole="button"
-          key={item.label}
-          onPress={item.onPress}
-        />
+        <HeaderButton item={item} key={item.label} />
       ))}
       {options?.headerSearchBarOptions ? (
         <SearchBar options={options.headerSearchBarOptions} />
