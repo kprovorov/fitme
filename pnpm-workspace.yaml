@@ -50,6 +50,9 @@ ignoredBuiltDependencies:
 # lacks RN 0.88's AssetRegistry: expo-asset reads it, so fonts never load and
 # the splash never hides. Drop the patch once uniwind exports it (FIT-170).
 patchedDependencies:
+  # Drizzle 0.31.11 drops expressions from later policies during pull. Keep
+  # every condition and order policies by name so generated schema is stable.
+  drizzle-kit@0.31.11: patches/drizzle-kit@0.31.11.patch
   uniwind@1.12.2: patches/uniwind@1.12.2.patch
 
 # Advisories accepted for `pnpm audit`, each with its reason. Drop each line

@@ -45,6 +45,7 @@ export const arnoldSessions = pgTable(
       as: "permissive",
       for: "select",
       to: ["authenticated"],
+      using: sql`(user_id = ( SELECT current_user_id() AS current_user_id))`,
     }),
   ]
 );
@@ -158,6 +159,7 @@ export const weeklyGoalChanges = pgTable(
       as: "permissive",
       for: "select",
       to: ["authenticated"],
+      using: sql`(user_id = ( SELECT current_user_id() AS current_user_id))`,
     }),
     check("weekly_goal_changes_target_check", sql`target > 0`),
   ]
