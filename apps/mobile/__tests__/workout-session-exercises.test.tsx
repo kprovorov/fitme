@@ -389,15 +389,21 @@ describe("the Exercise picker", () => {
 });
 
 /** The picker's rows: each one's "Add" (or "Replace") button. */
-const pickerRows = (cta: string) => screen.queryAllByText(cta).length;
+/** How many picker rows end in the add ("plus") or replace ("swap") icon. */
+const pickerRows = (mode: "add" | "replace") =>
+  screen.queryAllByTestId(mode === "add" ? ADD_ICON : REPLACE_ICON).length;
 
 /**
  * The User types in the picker's header search bar; waits past the debounce
  * until the list shows `rows` results.
  */
-const searchPicker = async (text: string, rows: number, cta = "Add") => {
+const searchPicker = async (
+  text: string,
+  rows: number,
+  mode: "add" | "replace" = "add"
+) => {
   await fireEvent.changeText(screen.getByTestId(SEARCH_BAR_TEST_ID), text);
-  await until(() => pickerRows(cta) === rows);
+  await until(() => pickerRows(mode) === rows);
   await settle();
 };
 
@@ -406,7 +412,7 @@ describe("searching in the Exercise picker", () => {
     await renderSession();
     await fireEvent.press(screen.getByRole("button", { name: "Add Exercise" }));
     await settle();
-    expect(pickerRows("Add")).toBe(3);
+    expect(pickerRows("add")).toBe(3);
 
     await searchPicker("push", 1);
 
@@ -419,9 +425,9 @@ describe("searching in the Exercise picker", () => {
     const [replaceItem] = await screen.findAllByLabelText("Replace");
     await fireEvent.press(replaceItem as NonNullable<typeof replaceItem>);
     await settle();
-    expect(pickerRows("Replace")).toBe(2);
+    expect(pickerRows("replace")).toBe(2);
 
-    await searchPicker("lun", 1, "Replace");
+    await searchPicker("lun", 1, "replace");
 
     expect(screen.getByText("Lunge")).toBeTruthy();
   });
@@ -434,7 +440,9 @@ describe("searching in the Exercise picker", () => {
 
     // A result is tapped with the search keyboard still up.
     await act(async () => {
-      await fireEvent.press(screen.getByText("Add"));
+      await fireEvent.press(
+        screen.getByRole("button", { name: "Add Push Up" })
+      );
     });
     await settle();
 
@@ -454,7 +462,7 @@ describe("searching in the Exercise picker", () => {
     expect(await screen.findByText("No Exercises Found")).toBeTruthy();
 
     await fireEvent.press(screen.getByText("Show All Exercises"));
-    await until(() => pickerRows("Add") === 3);
+    await until(() => pickerRows("add") === 3);
 
     expect(screen.getByTestId(SEARCH_BAR_TEST_ID).props.value).toBe("");
   });
@@ -471,7 +479,7 @@ describe("searching in the Exercise picker", () => {
     await settle();
 
     expect(screen.getByTestId(SEARCH_BAR_TEST_ID).props.value).toBe("");
-    expect(pickerRows("Add")).toBe(3);
+    expect(pickerRows("add")).toBe(3);
   });
 });
 
