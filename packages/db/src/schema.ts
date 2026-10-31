@@ -35,12 +35,6 @@ export const arnoldSessions = pgTable(
       "btree",
       table.userId.asc().nullsLast().op("text_ops")
     ),
-    pgPolicy("arnold_sessions_insert", {
-      as: "permissive",
-      for: "insert",
-      to: ["authenticated"],
-      withCheck: sql`(user_id = ( SELECT current_user_id() AS current_user_id))`,
-    }),
     pgPolicy("arnold_sessions_select", {
       as: "permissive",
       for: "select",
@@ -78,14 +72,16 @@ export const personalRecords = pgTable(
       table.workoutSessionId,
       table.exerciseSlug
     ),
-    pgPolicy("personal_records_all", {
+    pgPolicy("personal_records_select", {
+      as: "permissive",
+      for: "select",
+      to: ["authenticated"],
+      using: sql`(user_id = ( SELECT current_user_id() AS current_user_id))`,
+    }),
+    pgPolicy("personal_records_backend", {
       as: "permissive",
       for: "all",
-      to: ["public"],
-      using: sql`(user_id = ( SELECT current_user_id() AS current_user_id))`,
-      withCheck: sql`((user_id = ( SELECT current_user_id() AS current_user_id)) AND (EXISTS ( SELECT 1
-   FROM workout_sessions ws
-  WHERE ((ws.id = personal_records.workout_session_id) AND (ws.user_id = ( SELECT current_user_id() AS current_user_id))))))`,
+      to: ["authenticated"],
     }),
     check(
       "personal_records_kind_check",

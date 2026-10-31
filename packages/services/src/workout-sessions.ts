@@ -428,22 +428,43 @@ export type LogSetResult =
  * the User can't see is `not_found`; a set of a finished Workout Session is
  * left as it was.
  *
- * The write comes first and checks the session is open itself, so the only
- * lock it takes is the sets table's, the same one deleteUserData takes; no
- * row lock is held while waiting for it, so they can't deadlock.
+ * Lock the session before writing, like structural edits do. A concurrent
+ * finish either includes this log or commits first and rejects the edit.
  */
 export const logSet = async (
   tx: Transaction,
   { repsCompleted, setId, weightCompleted }: LogSetInput
 ): Promise<LogSetResult> => {
-  const openSessionExerciseIds = tx
-    .select({ id: workoutSessionExercises.id })
-    .from(workoutSessionExercises)
+  await lockSessionTables(tx);
+  const [session] = await tx
+    .select({
+      finishedAt: timestampText<string | null>(workoutSessions.finishedAt),
+      sessionId: workoutSessions.id,
+    })
+    .from(workoutSessions)
     .innerJoin(
-      workoutSessions,
+      workoutSessionExercises,
       eq(workoutSessions.id, workoutSessionExercises.workoutSessionId)
     )
-    .where(isNull(workoutSessions.finishedAt));
+    .innerJoin(
+      workoutSessionExerciseSets,
+      eq(
+        workoutSessionExercises.id,
+        workoutSessionExerciseSets.workoutSessionExerciseId
+      )
+    )
+    .where(eq(workoutSessionExerciseSets.id, setId))
+    .for("no key update", { of: workoutSessions });
+  if (!session) {
+    return { status: "not_found" };
+  }
+  if (session.finishedAt) {
+    return {
+      ...session,
+      finishedAt: session.finishedAt,
+      status: "session_finished",
+    };
+  }
   const [set] = await tx
     .update(workoutSessionExerciseSets)
     .set({
@@ -451,46 +472,13 @@ export const logSet = async (
       repsCompleted,
       weightCompleted: String(weightCompleted),
     })
-    // set rows carry no user id; RLS scopes the update to the User
-    .where(
-      and(
-        eq(workoutSessionExerciseSets.id, setId),
-        inArray(
-          workoutSessionExerciseSets.workoutSessionExerciseId,
-          openSessionExerciseIds
-        )
-      )
-    )
+    // Set rows carry no User id; RLS scopes the update to the User.
+    .where(eq(workoutSessionExerciseSets.id, setId))
     .returning(setColumns);
   if (set) {
     return { set: toSet(set), status: "logged" };
   }
 
-  const [finished] = await tx
-    .select({
-      finishedAt: timestampText<string | null>(workoutSessions.finishedAt),
-      sessionId: workoutSessions.id,
-    })
-    .from(workoutSessionExerciseSets)
-    .innerJoin(
-      workoutSessionExercises,
-      eq(
-        workoutSessionExercises.id,
-        workoutSessionExerciseSets.workoutSessionExerciseId
-      )
-    )
-    .innerJoin(
-      workoutSessions,
-      eq(workoutSessions.id, workoutSessionExercises.workoutSessionId)
-    )
-    .where(eq(workoutSessionExerciseSets.id, setId));
-  if (finished?.finishedAt) {
-    return {
-      finishedAt: finished.finishedAt,
-      sessionId: finished.sessionId,
-      status: "session_finished",
-    };
-  }
   return { status: "not_found" };
 };
 

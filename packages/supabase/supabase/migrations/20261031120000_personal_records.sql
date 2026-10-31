@@ -28,21 +28,29 @@ CREATE INDEX personal_records_user_id_idx ON public.personal_records(user_id);
 
 ALTER TABLE public.personal_records ENABLE ROW LEVEL SECURITY;
 
--- Own rows only, and only for the caller's own Workout Session.
-CREATE POLICY "personal_records_all" ON public.personal_records
-  FOR ALL USING (user_id = (SELECT public.current_user_id()))
+-- Clients can read their retained evidence. Writes come from the backend's
+-- fitme login through asUser, never directly from the Data API authenticator.
+CREATE POLICY "personal_records_select" ON public.personal_records
+  FOR SELECT TO authenticated
+  USING (user_id = (SELECT public.current_user_id()));
+
+CREATE POLICY "personal_records_backend" ON public.personal_records
+  FOR ALL TO authenticated
+  USING (session_user = 'fitme' AND user_id = (SELECT public.current_user_id()))
   WITH CHECK (
-    user_id = (SELECT public.current_user_id())
+    session_user = 'fitme'
+    AND user_id = (SELECT public.current_user_id())
     AND EXISTS (
       SELECT 1 FROM public.workout_sessions ws
       WHERE ws.id = personal_records.workout_session_id
         AND ws.user_id = (SELECT public.current_user_id())
+        AND ws.finished_at IS NOT NULL
     )
   );
 
--- The app tables' grants (20261016120000_explicit_table_grants.sql); RLS
--- decides the rows.
-GRANT ALL ON TABLE public.personal_records TO anon, authenticated, service_role;
+REVOKE ALL ON TABLE public.personal_records FROM anon, authenticated;
+GRANT SELECT, INSERT, UPDATE, DELETE ON TABLE public.personal_records TO authenticated;
+GRANT ALL ON TABLE public.personal_records TO service_role;
 
 CREATE TRIGGER reject_retired_user_id
   BEFORE INSERT OR UPDATE OF user_id ON public.personal_records

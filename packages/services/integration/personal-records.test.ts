@@ -16,6 +16,7 @@ import { updateProfile } from "../src/profile";
 import {
   finishWorkoutSession,
   listWorkoutSessions,
+  logSet,
 } from "../src/workout-sessions";
 import { deleteTestUsers, withUserTablesLocked } from "./delete-test-users";
 
@@ -427,5 +428,93 @@ describe("finishWorkoutSession's Personal records", () => {
     await withUserTablesLocked((tx) => deleteUserData(tx, owner));
 
     expect(await countRecords()).toBe(0);
+  });
+
+  it("includes a log that is committing while the Workout Session finishes", async () => {
+    await seedSession({ exercises: { [SQUAT]: [[100, 5]] } });
+    const sessionId = await seedSession({
+      exercises: { [SQUAT]: [[90, 5]] },
+      finished: false,
+    });
+    const [set] = await asUser(owner, (tx) =>
+      tx
+        .select({ id: workoutSessionExerciseSets.id })
+        .from(workoutSessionExerciseSets)
+        .innerJoin(
+          workoutSessionExercises,
+          eq(
+            workoutSessionExercises.id,
+            workoutSessionExerciseSets.workoutSessionExerciseId
+          )
+        )
+        .where(eq(workoutSessionExercises.workoutSessionId, sessionId))
+    );
+    let release: () => void = () => undefined;
+    let logged: () => void = () => undefined;
+    const gate = new Promise<void>((resolve) => {
+      release = resolve;
+    });
+    const ready = new Promise<void>((resolve) => {
+      logged = resolve;
+    });
+    const logging = asUser(owner, async (tx) => {
+      const result = await logSet(tx, {
+        repsCompleted: 5,
+        setId: set.id,
+        weightCompleted: 110,
+      });
+      logged();
+      await gate;
+      return result;
+    });
+    await ready;
+    const finishing = finish(sessionId);
+    try {
+      // Give a finish that does not serialize with the log time to read the
+      // previously committed set. Correct finishes wait for the log's commit.
+      await Promise.race([
+        finishing,
+        new Promise((resolve) => setTimeout(resolve, 250)),
+      ]);
+    } finally {
+      release();
+    }
+    expect((await logging).status).toBe("logged");
+    expect((await finishing).status).toBe("finished");
+    expect(await recordsOf(sessionId)).toEqual([
+      { exercise_slug: SQUAT, kind: "weight", reps: 5, weight: 110 },
+    ]);
+  });
+
+  it("does not turn an imperial tie into a weight record after a unit round trip", async () => {
+    await withService((tx) =>
+      tx.insert(profiles).values({
+        age: 30,
+        gender: "male",
+        height: "70",
+        measurementSystem: "us",
+        userId: owner,
+        weight: "180",
+      })
+    );
+    await seedSession({ exercises: { [SQUAT]: [[185, 7]] } });
+    await asUser(owner, (tx) =>
+      updateProfile(tx, owner, { measurement_system: "metric" })
+    );
+    await asUser(owner, (tx) =>
+      updateProfile(tx, owner, { measurement_system: "us" })
+    );
+
+    expect(
+      (await finishWith({ exercises: { [SQUAT]: [[185, 5]] } })).records
+    ).toEqual([]);
+    // The converted baseline's higher rep count still applies even once an
+    // unconverted tie at 185 lb is in History.
+    expect(
+      (await finishWith({ exercises: { [SQUAT]: [[185, 6]] } })).records
+    ).toEqual([]);
+    expect(
+      (await finishWith({ exercises: { [SQUAT]: [[185, 8]] } })).records
+    ).toEqual([{ exercise_slug: SQUAT, kind: "reps", reps: 8, weight: 185 }]);
   });
 });

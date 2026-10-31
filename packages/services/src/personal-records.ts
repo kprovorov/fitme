@@ -1,6 +1,7 @@
 import {
   type PersonalRecordKind,
   personalRecordFor,
+  RECORD_WEIGHT_TOLERANCE,
   type RecordSet,
 } from "@fitme/core/personal-records";
 import {
@@ -98,10 +99,16 @@ export const awardPersonalRecords = async (
   }
 
   // Per Exercise, the highest usable weight with the most reps at it, over
-  // the User's other finished Workout Sessions
-  const earlier = await tx
-    .selectDistinctOn([workoutSessionExercises.exerciseSlug], {
+  // the User's other finished Workout Sessions. Loads within the conversion
+  // rounding step share their highest rep count; retain the absolute maximum
+  // weight as the comparison anchor so the tolerance never accumulates.
+  const earlierResults = tx
+    .select({
       exerciseSlug: workoutSessionExercises.exerciseSlug,
+      highestWeight:
+        sql<string>`max(${workoutSessionExerciseSets.weightCompleted}) over (partition by ${workoutSessionExercises.exerciseSlug})`.as(
+          "highest_weight"
+        ),
       reps: workoutSessionExerciseSets.repsCompleted,
       weight: workoutSessionExerciseSets.weightCompleted,
     })
@@ -127,10 +134,20 @@ export const awardPersonalRecords = async (
         isNotNull(workoutSessionExerciseSets.weightCompleted)
       )
     )
+    .as("earlier_results");
+  const earlier = await tx
+    .selectDistinctOn([earlierResults.exerciseSlug], {
+      exerciseSlug: earlierResults.exerciseSlug,
+      reps: earlierResults.reps,
+      weight: earlierResults.highestWeight,
+    })
+    .from(earlierResults)
+    .where(sql`${earlierResults.highestWeight} - ${earlierResults.weight} < ${RECORD_WEIGHT_TOLERANCE}
+      and (${earlierResults.highestWeight} = 0) = (${earlierResults.weight} = 0)`)
     .orderBy(
-      asc(workoutSessionExercises.exerciseSlug),
-      desc(workoutSessionExerciseSets.weightCompleted),
-      desc(workoutSessionExerciseSets.repsCompleted)
+      asc(earlierResults.exerciseSlug),
+      desc(earlierResults.reps),
+      desc(earlierResults.weight)
     );
   const earlierBySlug = new Map(
     earlier.map(({ exerciseSlug, reps, weight }) => [

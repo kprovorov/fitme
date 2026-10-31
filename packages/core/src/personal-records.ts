@@ -24,9 +24,16 @@ export interface PersonalRecord extends RecordResult {
   kind: PersonalRecordKind;
 }
 
-/** Whether `a` beats `b`: a higher weight, or more reps at the same weight. */
+/** A two-decimal kg/lb round trip can move a stored weight by 0.01. */
+export const RECORD_WEIGHT_TOLERANCE = 0.011;
+
+/** Bodyweight stays distinct from every positive load. */
+const sameWeight = (a: number, b: number) =>
+  (a === 0) === (b === 0) && Math.abs(a - b) < RECORD_WEIGHT_TOLERANCE;
+
+/** Whether `a` beats `b`, allowing for conversion rounding. */
 const beats = (a: RecordResult, b: RecordResult) =>
-  a.weight > b.weight || (a.weight === b.weight && a.reps > b.reps);
+  sameWeight(a.weight, b.weight) ? a.reps > b.reps : a.weight > b.weight;
 
 /**
  * The best usable result among `sets`: the highest weight, with the most
@@ -36,13 +43,22 @@ const beats = (a: RecordResult, b: RecordResult) =>
 export const recordResult = (
   sets: readonly RecordSet[]
 ): RecordResult | null => {
+  const usable = sets.flatMap(
+    ({ reps_completed: reps, weight_completed: weight }) =>
+      reps !== null && reps > 0 && weight !== null ? [{ reps, weight }] : []
+  );
+  const highestWeight = usable.reduce(
+    (highest, result) => Math.max(highest, result.weight),
+    0
+  );
   let best: RecordResult | null = null;
-  for (const { reps_completed: reps, weight_completed: weight } of sets) {
-    if (reps === null || reps <= 0 || weight === null) {
-      continue;
-    }
-    const result = { reps, weight };
-    if (best === null || beats(result, best)) {
+  for (const result of usable) {
+    if (
+      sameWeight(result.weight, highestWeight) &&
+      (best === null ||
+        result.reps > best.reps ||
+        (result.reps === best.reps && result.weight > best.weight))
+    ) {
       best = result;
     }
   }
@@ -61,12 +77,23 @@ export const personalRecordFor = (
   earlier: RecordResult | null,
   sets: readonly RecordSet[]
 ): PersonalRecord | null => {
-  const best = recordResult(sets);
-  if (earlier === null || best === null || !beats(best, earlier)) {
+  if (earlier === null) {
+    return null;
+  }
+  const best = recordResult(
+    sets.filter(
+      ({ reps_completed: reps, weight_completed: weight }) =>
+        reps !== null &&
+        reps > 0 &&
+        weight !== null &&
+        beats({ reps, weight }, earlier)
+    )
+  );
+  if (best === null) {
     return null;
   }
   return {
     ...best,
-    kind: best.weight > earlier.weight ? "weight" : "reps",
+    kind: sameWeight(best.weight, earlier.weight) ? "reps" : "weight",
   };
 };
