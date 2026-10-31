@@ -1,8 +1,4 @@
-import {
-  monthlyTotals,
-  type WeeklyGoalChange,
-  weeklyGoalOverview,
-} from "@fitme/core";
+import { monthlyTotals, weeklyGoalOverview } from "@fitme/core";
 import {
   formatCompactVolume,
   formatCount,
@@ -12,10 +8,12 @@ import {
 } from "@fitme/i18n";
 import { useTranslation } from "react-i18next";
 import { View } from "react-native";
+import { Badge } from "~/components/ui/badge";
 import { Separator } from "~/components/ui/separator";
 import { Text } from "~/components/ui/text";
 import { H4 } from "~/components/ui/typography";
 import HistoryWeeklyGoal from "~/components/views/history-weekly-goal";
+import type { WeeklyGoals } from "~/hooks/queries/weekly-goals";
 import type { WorkoutSessionHistory } from "~/hooks/queries/workout-sessions";
 import { useStackedLayout } from "~/hooks/stacked-layout";
 import { useI18n } from "~/lib/i18n";
@@ -71,7 +69,7 @@ export default function HistoryMonthOverview({
   weeklyGoals,
 }: {
   history: WorkoutSessionHistory;
-  weeklyGoals: WeeklyGoalChange[] | undefined;
+  weeklyGoals: WeeklyGoals | undefined;
 }) {
   const i18n = useI18n();
   const { t } = useTranslation();
@@ -79,12 +77,34 @@ export default function HistoryMonthOverview({
   const time = formatDuration(i18n, totals.elapsedMs);
   const stacked = useStackedLayout();
   const goalOverview = weeklyGoals
-    ? weeklyGoalOverview(weeklyGoals, history.sessions)
+    ? weeklyGoalOverview(weeklyGoals.changes, history.sessions)
     : null;
 
   return (
     <View className="gap-sm px-1 pb-lg">
-      <H4>{t("history.thisMonth")}</H4>
+      <View
+        className={
+          stacked
+            ? "items-start gap-xs"
+            : "flex-row flex-wrap items-center justify-between gap-xs"
+        }
+      >
+        <H4>{t("history.thisMonth")}</H4>
+        {goalOverview && (weeklyGoals?.streak ?? 0) > 0 ? (
+          <Badge
+            accessibilityLabel={t("history.streak.spoken", {
+              count: weeklyGoals?.streak,
+            })}
+            accessible
+            className="max-w-full"
+            icon="flame.fill"
+          >
+            <Text className="shrink">
+              {t("history.streak.badge", { count: weeklyGoals?.streak })}
+            </Text>
+          </Badge>
+        ) : null}
+      </View>
       <View className={stacked ? "gap-sm" : "flex-row gap-sm"}>
         <Stat
           accent

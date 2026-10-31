@@ -12,7 +12,7 @@ describe("GET /v1/weekly-goals", () => {
   it("answers the signed-in User's Weekly goal changes, oldest first", async () => {
     const { app, servicesFor } = testApp({
       services: fakeServices({
-        listWeeklyGoalChanges: () => Promise.resolve(changes),
+        getWeeklyGoals: () => Promise.resolve({ changes, streak: 11 }),
       }),
     });
 
@@ -21,14 +21,14 @@ describe("GET /v1/weekly-goals", () => {
     });
 
     expect(response.status).toBe(200);
-    expect(await response.json()).toEqual({ data: changes });
+    expect(await response.json()).toEqual({ data: changes, streak: 11 });
     expect(servicesFor).toEqual(["user_alice"]);
   });
 
   it("answers an empty list before tracking started", async () => {
     const { app } = testApp({
       services: fakeServices({
-        listWeeklyGoalChanges: () => Promise.resolve([]),
+        getWeeklyGoals: () => Promise.resolve({ changes: [], streak: 0 }),
       }),
     });
 
@@ -36,16 +36,20 @@ describe("GET /v1/weekly-goals", () => {
       headers: signedInAs("user_alice"),
     });
 
-    expect(await response.json()).toEqual({ data: [] });
+    expect(await response.json()).toEqual({ data: [], streak: 0 });
   });
 
   it("never shows fields beyond the contract", async () => {
     const { app } = testApp({
       services: fakeServices({
-        listWeeklyGoalChanges: () =>
-          Promise.resolve(
-            changes.map((change) => ({ ...change, user_id: "user_alice" }))
-          ),
+        getWeeklyGoals: () =>
+          Promise.resolve({
+            changes: changes.map((change) => ({
+              ...change,
+              user_id: "user_alice",
+            })),
+            streak: 11,
+          }),
       }),
     });
 
@@ -53,7 +57,37 @@ describe("GET /v1/weekly-goals", () => {
       headers: signedInAs("user_alice"),
     });
 
-    expect(await response.json()).toEqual({ data: changes });
+    expect(await response.json()).toEqual({ data: changes, streak: 11 });
+  });
+
+  it("passes the device timezone through and defaults old clients to UTC", async () => {
+    const zones: string[] = [];
+    const { app } = testApp({
+      services: fakeServices({
+        getWeeklyGoals: (zone) => {
+          zones.push(zone);
+          return Promise.resolve({ changes: [], streak: 0 });
+        },
+      }),
+    });
+    for (const path of [
+      "/v1/weekly-goals?time_zone=Europe%2FKyiv",
+      "/v1/weekly-goals",
+    ]) {
+      expect(
+        // biome-ignore lint/performance/noAwaitInLoops: ordered timezone requests
+        (await app.request(path, { headers: signedInAs("user_alice") })).status
+      ).toBe(200);
+    }
+    expect(zones).toEqual(["Europe/Kyiv", "UTC"]);
+    const invalid = await Promise.all(
+      ["invalid", "%2B02%3A00", ""].map((zone) =>
+        app.request(`/v1/weekly-goals?time_zone=${zone}`, {
+          headers: signedInAs("user_alice"),
+        })
+      )
+    );
+    expect(invalid.map((response) => response.status)).toEqual([400, 400, 400]);
   });
 
   it("refuses a request without a session token", async () => {
@@ -73,7 +107,7 @@ describe("GET /v1/weekly-goals", () => {
         windowMs: 60_000,
       }),
       services: fakeServices({
-        listWeeklyGoalChanges: () => Promise.resolve([]),
+        getWeeklyGoals: () => Promise.resolve({ changes: [], streak: 0 }),
       }),
     });
 
