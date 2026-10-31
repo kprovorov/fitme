@@ -5,7 +5,7 @@ import { Stack, useLocalSearchParams, useRouter } from "expo-router";
 import { useCallback, useEffect, useRef } from "react";
 import { useTranslation } from "react-i18next";
 import { Alert } from "react-native";
-import { Button } from "~/components/ui/button";
+import { ExerciseRowSymbol } from "~/components/exercises/exercise-row";
 import ExercisesView from "~/components/views/exercises-view";
 import { useHeaderSearch } from "~/hooks/header-search";
 import {
@@ -18,22 +18,6 @@ import { sessionEditFailureMessage } from "~/lib/session-edit-failure";
 
 const isMuscleGroup = (value: string | undefined): value is MuscleGroup =>
   (muscleGroups as readonly string[]).includes(value ?? "");
-
-interface ExerciseCtaButtonProps {
-  exercise: ExerciseSummary;
-  label: string;
-  onPress: (exercise: ExerciseSummary) => void;
-}
-
-function ExerciseCtaButton({
-  exercise,
-  label,
-  onPress,
-}: ExerciseCtaButtonProps) {
-  const handlePress = useCallback(() => onPress(exercise), [exercise, onPress]);
-
-  return <Button fill={false} label={label} onPress={handlePress} size="sm" />;
-}
 
 /**
  * The Exercise picker, a page sheet over an open Workout Session: adds the
@@ -140,10 +124,11 @@ export default function ExercisePickerScreen() {
     [addExercise, close, replaceExercise, replacingId, sessionId, t]
   );
 
-  // One save at a time, so a double tap adds the Exercise once.
+  // One save at a time, so a double tap adds the Exercise once, and none
+  // once saved: a tap while the sheet slides away must not add another.
   const onExercisePress = useCallback(
     async (exercise: ExerciseSummary) => {
-      if (saving.current) {
+      if (saving.current || left.current) {
         return;
       }
       saving.current = true;
@@ -156,18 +141,13 @@ export default function ExercisePickerScreen() {
     [save]
   );
 
-  const ctaLabel = replacingId
-    ? t("workoutSession.picker.replace")
-    : t("workoutSession.picker.add");
-  const renderExerciseCta = useCallback(
-    (exercise: ExerciseSummary) => (
-      <ExerciseCtaButton
-        exercise={exercise}
-        label={ctaLabel}
-        onPress={onExercisePress}
-      />
-    ),
-    [ctaLabel, onExercisePress]
+  // The whole row picks the Exercise; VoiceOver names what tapping it does.
+  const rowAccessibilityLabel = useCallback(
+    ({ name }: ExerciseSummary) =>
+      replacingId
+        ? t("workoutSession.picker.replaceWith", { name })
+        : t("workoutSession.picker.addExercise", { name }),
+    [replacingId, t]
   );
 
   return (
@@ -201,9 +181,15 @@ export default function ExercisePickerScreen() {
       <ExercisesView
         contentContainerClassName="px-md"
         initialMuscleGroup={isMuscleGroup(muscleGroup) ? muscleGroup : "all"}
+        onExercisePress={onExercisePress}
         onSearchChange={onSearchChange}
+        rowAccessibilityLabel={rowAccessibilityLabel}
         search={search}
-        trailing={renderExerciseCta}
+        trailing={
+          <ExerciseRowSymbol
+            name={replacingId ? "arrow.left.arrow.right" : "plus"}
+          />
+        }
       />
     </>
   );

@@ -2,6 +2,7 @@ import type { ExerciseSummary } from "@fitme/library-sdk";
 import type React from "react";
 import { useCallback } from "react";
 import { View } from "react-native";
+import type { SFSymbol } from "sf-symbols-typescript";
 import ExerciseImage from "~/components/exercises/exercise-image";
 import { SymbolImage } from "~/components/symbol-image";
 import { MenuListItem } from "~/components/ui/menu-list";
@@ -10,19 +11,22 @@ import { Text } from "~/components/ui/text";
 import { useChoiceLabels } from "~/lib/choices";
 import { cn } from "~/lib/utils";
 
-/** What ends each row: the same for every row, or chosen per Exercise. */
-export type ExerciseRowTrailing =
-  | React.ReactNode
-  | ((exercise: ExerciseSummary) => React.ReactNode);
-
-/** The accent chevron ending a row that opens the Exercise. */
-export function ExerciseRowChevron() {
+/**
+ * The accent symbol ending a row, saying what tapping it does: the chevron
+ * opening the Exercise, the picker's "+" or swap.
+ */
+export function ExerciseRowSymbol({ name }: { name: SFSymbol }) {
   return (
     <SymbolImage
       className="shrink-0 text-body-emphasized text-primary"
-      name="chevron.right"
+      name={name}
     />
   );
+}
+
+/** The accent chevron ending a row that opens the Exercise. */
+export function ExerciseRowChevron() {
+  return <ExerciseRowSymbol name="chevron.right" />;
 }
 
 /** The line between two rows, inset like a `MenuList`'s, on the rows' card surface. */
@@ -35,11 +39,14 @@ export function ExerciseRowSeparator() {
 }
 
 interface ExerciseRowProps {
+  // What VoiceOver reads for the row instead of its text ("Add Bench Press").
+  accessibilityLabel?: string;
   exercise: ExerciseSummary;
   isFirst: boolean;
   isLast: boolean;
   onExercisePress: (exercise: ExerciseSummary) => void;
-  trailing?: ExerciseRowTrailing;
+  // What ends the row: the Library's chevron, the picker's "+" or swap.
+  trailing?: React.ReactNode;
 }
 
 /**
@@ -48,6 +55,7 @@ interface ExerciseRowProps {
  * the group's top corners, the last its bottom ones, as a `MenuList` would.
  */
 export function ExerciseRow({
+  accessibilityLabel,
   exercise,
   isFirst,
   isLast,
@@ -55,12 +63,10 @@ export function ExerciseRow({
   trailing,
 }: ExerciseRowProps) {
   const labels = useChoiceLabels();
-  const handlePress = useCallback(
-    () => onExercisePress(exercise),
-    [exercise, onExercisePress]
-  );
-  const shownTrailing =
-    typeof trailing === "function" ? trailing(exercise) : trailing;
+  // The press never waits on what picking does (the picker's save).
+  const handlePress = useCallback(() => {
+    onExercisePress(exercise);
+  }, [exercise, onExercisePress]);
 
   return (
     <View
@@ -70,7 +76,11 @@ export function ExerciseRow({
         isLast && "rounded-b-card"
       )}
     >
-      <MenuListItem className="gap-sm p-sm" onPress={handlePress}>
+      <MenuListItem
+        accessibilityLabel={accessibilityLabel}
+        className="gap-sm p-sm"
+        onPress={handlePress}
+      >
         <ExerciseImage exercise={exercise} radius={10} size={50} />
         <View className="flex-1">
           <Text className="text-body-emphasized">{exercise.name}</Text>
@@ -80,7 +90,7 @@ export function ExerciseRow({
             </Text>
           )}
         </View>
-        {shownTrailing}
+        {trailing}
       </MenuListItem>
     </View>
   );

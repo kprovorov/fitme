@@ -100,7 +100,16 @@ jest.mock("~/components/exercises/exercise-image", () => {
     <View testID={`thumbnail:${exercise.thumbnail_url ?? "none"}`} />
   );
 });
-jest.mock("~/components/symbol-image", () => ({ SymbolImage: () => null }));
+// A symbol shows as a view naming it: the picker rows' "+" or swap.
+jest.mock("~/components/symbol-image", () => {
+  const { View } =
+    jest.requireActual<typeof import("react-native")>("react-native");
+  return {
+    SymbolImage: ({ name }: { name: string }) => (
+      <View testID={`symbol:${name}`} />
+    ),
+  };
+});
 jest.mock("~/components/workout-sessions/rest-timer", () => () => null);
 jest.mock("~/components/ui/button", () =>
   jest.requireActual("~/test-utils/button-stub")
@@ -149,6 +158,9 @@ const renderSession = async () => {
     </QueryClientProvider>
   );
   await settle();
+  // Replacing starts on the Exercise's muscle group, which the Library gives:
+  // wait until it has answered for the seeded Squat.
+  await screen.findByTestId("thumbnail:https://media.test/render/squat.jpg");
 };
 
 /** Waits until every request, query and mutation is done. */
@@ -158,16 +170,19 @@ const settle = () => settleQueries(queryClient, () => backend.inFlight === 0);
 const pickerOpen = () =>
   pushedRoutes().some(({ pathname }) => pathname === PICKER);
 
-/** Opens the picker and adds its first Exercise (Lunge: it lists by name). */
+const ADD_ICON = "symbol:plus";
+const REPLACE_ICON = "symbol:arrow.left.arrow.right";
+
+/** Opens the picker and taps Lunge's row, which adds it. */
 const addLunge = async () => {
   await fireEvent.press(
     await screen.findByRole("button", { name: "Add Exercise" })
   );
-  const [addFirst] = await screen.findAllByText("Add");
+  const lunge = await screen.findByRole("button", { name: "Add Lunge" });
   // Picking an Exercise awaits its save and then closes the picker; keep
   // that whole update inside `act`.
   await act(async () => {
-    await fireEvent.press(addFirst as NonNullable<typeof addFirst>);
+    await fireEvent.press(lunge);
   });
   await settle();
 };
@@ -181,13 +196,21 @@ const deleteFirst = async () => {
   await settle();
 };
 
-/** Replaces the first Exercise with the picker's first one (Lunge). */
-const replaceFirstWithLunge = async () => {
+/** Opens the picker replacing the first Exercise. */
+const openReplacePicker = async () => {
   const [replaceItem] = await screen.findAllByLabelText("Replace");
   await fireEvent.press(replaceItem as NonNullable<typeof replaceItem>);
-  const [replaceFirst] = await screen.findAllByText("Replace");
+  await settle();
+};
+
+/** Replaces the first Exercise by tapping Lunge's row in the picker. */
+const replaceFirstWithLunge = async () => {
+  await openReplacePicker();
+  const lunge = await screen.findByRole("button", {
+    name: "Replace with Lunge",
+  });
   await act(async () => {
-    await fireEvent.press(replaceFirst as NonNullable<typeof replaceFirst>);
+    await fireEvent.press(lunge);
   });
   await settle();
 };
@@ -271,7 +294,13 @@ describe("the Exercise picker", () => {
       await screen.findByRole("header", { name: "Add Exercise" })
     ).toBeTruthy();
     expect(await screen.findByText("Push Up")).toBeTruthy();
-    expect(screen.getAllByText("Add")).toHaveLength(3);
+    // Each whole row adds its Exercise, ending in a "+", with no button.
+    for (const name of ["Lunge", "Push Up", "Squat"]) {
+      expect(screen.getByRole("button", { name: `Add ${name}` })).toBeTruthy();
+    }
+    expect(screen.getAllByTestId(ADD_ICON)).toHaveLength(3);
+    expect(screen.queryByTestId(REPLACE_ICON)).toBeNull();
+    expect(screen.queryByText("Add")).toBeNull();
   });
 
   it("opens as Replace Exercise on the replaced one's first muscle group", async () => {
@@ -294,8 +323,17 @@ describe("the Exercise picker", () => {
     expect(
       screen.getByRole("header", { name: "Replace Exercise" })
     ).toBeTruthy();
-    // Squat and Lunge train quadriceps; Push-up doesn't.
-    expect(screen.getAllByText("Replace")).toHaveLength(2);
+    // Squat and Lunge train quadriceps; Push-up doesn't. Each whole row
+    // replaces with its Exercise, ending in a swap icon, with no button.
+    expect(
+      screen.getByRole("button", { name: "Replace with Lunge" })
+    ).toBeTruthy();
+    expect(
+      screen.getByRole("button", { name: "Replace with Squat" })
+    ).toBeTruthy();
+    expect(screen.getAllByTestId(REPLACE_ICON)).toHaveLength(2);
+    expect(screen.queryByTestId(ADD_ICON)).toBeNull();
+    expect(screen.queryByText("Replace")).toBeNull();
     expect(screen.queryByText("Push Up")).toBeNull();
   });
 
@@ -312,10 +350,21 @@ describe("the Exercise picker", () => {
 
     expect(screen.getByRole("header", { name: "Add Exercise" })).toBeTruthy();
     expect(screen.getByText("Push Up")).toBeTruthy();
-    expect(screen.getAllByText("Add")).toHaveLength(3);
+    expect(screen.getAllByTestId(ADD_ICON)).toHaveLength(3);
+    expect(screen.queryByTestId(REPLACE_ICON)).toBeNull();
   });
 
-  it("reads its titles and Close in Ukrainian", async () => {
+  it("reads its titles, rows and Close in Ukrainian", async () => {
+    serveLibrary([
+      libraryExercise("squat", {
+        muscle_groups: ["quadriceps"],
+        translations: { uk: { name: "Присідання" } },
+      }),
+      libraryExercise("lunge", {
+        muscle_groups: ["quadriceps", "glutes"],
+        translations: { uk: { name: "Випади" } },
+      }),
+    ]);
     setDeviceLanguages(["uk-UA"]);
     await renderSession();
 
@@ -324,6 +373,9 @@ describe("the Exercise picker", () => {
     );
     await settle();
     expect(screen.getByRole("header", { name: "Додати вправу" })).toBeTruthy();
+    expect(
+      screen.getByRole("button", { name: "Додати вправу «Випади»" })
+    ).toBeTruthy();
     await fireEvent.press(screen.getByLabelText("Закрити"));
     expect(pickerOpen()).toBe(false);
 
@@ -333,19 +385,28 @@ describe("the Exercise picker", () => {
     expect(
       screen.getByRole("header", { name: "Замінити вправу" })
     ).toBeTruthy();
+    expect(
+      screen.getByRole("button", { name: "Замінити на «Випади»" })
+    ).toBeTruthy();
   });
 });
 
 /** The picker's rows: each one's "Add" (or "Replace") button. */
-const pickerRows = (cta: string) => screen.queryAllByText(cta).length;
+/** How many picker rows end in the add ("plus") or replace ("swap") icon. */
+const pickerRows = (mode: "add" | "replace") =>
+  screen.queryAllByTestId(mode === "add" ? ADD_ICON : REPLACE_ICON).length;
 
 /**
  * The User types in the picker's header search bar; waits past the debounce
  * until the list shows `rows` results.
  */
-const searchPicker = async (text: string, rows: number, cta = "Add") => {
+const searchPicker = async (
+  text: string,
+  rows: number,
+  mode: "add" | "replace" = "add"
+) => {
   await fireEvent.changeText(screen.getByTestId(SEARCH_BAR_TEST_ID), text);
-  await until(() => pickerRows(cta) === rows);
+  await until(() => pickerRows(mode) === rows);
   await settle();
 };
 
@@ -354,7 +415,7 @@ describe("searching in the Exercise picker", () => {
     await renderSession();
     await fireEvent.press(screen.getByRole("button", { name: "Add Exercise" }));
     await settle();
-    expect(pickerRows("Add")).toBe(3);
+    expect(pickerRows("add")).toBe(3);
 
     await searchPicker("push", 1);
 
@@ -367,9 +428,9 @@ describe("searching in the Exercise picker", () => {
     const [replaceItem] = await screen.findAllByLabelText("Replace");
     await fireEvent.press(replaceItem as NonNullable<typeof replaceItem>);
     await settle();
-    expect(pickerRows("Replace")).toBe(2);
+    expect(pickerRows("replace")).toBe(2);
 
-    await searchPicker("lun", 1, "Replace");
+    await searchPicker("lun", 1, "replace");
 
     expect(screen.getByText("Lunge")).toBeTruthy();
   });
@@ -382,7 +443,9 @@ describe("searching in the Exercise picker", () => {
 
     // A result is tapped with the search keyboard still up.
     await act(async () => {
-      await fireEvent.press(screen.getByText("Add"));
+      await fireEvent.press(
+        screen.getByRole("button", { name: "Add Push Up" })
+      );
     });
     await settle();
 
@@ -402,7 +465,7 @@ describe("searching in the Exercise picker", () => {
     expect(await screen.findByText("No Exercises Found")).toBeTruthy();
 
     await fireEvent.press(screen.getByText("Show All Exercises"));
-    await until(() => pickerRows("Add") === 3);
+    await until(() => pickerRows("add") === 3);
 
     expect(screen.getByTestId(SEARCH_BAR_TEST_ID).props.value).toBe("");
   });
@@ -419,7 +482,7 @@ describe("searching in the Exercise picker", () => {
     await settle();
 
     expect(screen.getByTestId(SEARCH_BAR_TEST_ID).props.value).toBe("");
-    expect(pickerRows("Add")).toBe(3);
+    expect(pickerRows("add")).toBe(3);
   });
 });
 
@@ -442,7 +505,7 @@ describe("adding an Exercise to a Workout Session", () => {
     });
     expect(await screen.findByText("Lunge")).toBeTruthy();
     expect(pickerOpen()).toBe(false);
-    expect(screen.queryByText("Add")).toBeNull();
+    expect(screen.queryByRole("button", { name: "Add Lunge" })).toBeNull();
     expect(Alert.alert).not.toHaveBeenCalled();
     expect(track).toHaveBeenCalledWith("Exercise Added", {
       exercise_slug: "lunge",
@@ -467,13 +530,30 @@ describe("adding an Exercise to a Workout Session", () => {
       expect(backend.exercises).toHaveLength(1);
       // The picker stays open, so the User can try again.
       expect(pickerOpen()).toBe(true);
-      expect(screen.queryAllByText("Add")).not.toHaveLength(0);
+      expect(screen.getByRole("button", { name: "Add Lunge" })).toBeTruthy();
       expect(track).not.toHaveBeenCalledWith(
         "Exercise Added",
         expect.anything()
       );
     }
   );
+
+  it("adds it once when its row is tapped twice", async () => {
+    await renderSession();
+    await fireEvent.press(screen.getByRole("button", { name: "Add Exercise" }));
+    const lunge = await screen.findByRole("button", { name: "Add Lunge" });
+    const resume = fakePublicApi.pause(ADD_EXERCISE);
+
+    await fireEvent.press(lunge);
+    await fireEvent.press(lunge);
+    await act(() => resume());
+    await settle();
+
+    expect(fakePublicApi.count(ADD_EXERCISE)).toBe(1);
+    expect(backend.exercises).toHaveLength(2);
+    expect(pickerOpen()).toBe(false);
+    expect(track).toHaveBeenCalledTimes(1);
+  });
 
   it("shows an Exercise saved before the answer was lost", async () => {
     await renderSession();
@@ -601,6 +681,27 @@ describe("replacing an Exercise in a Workout Session", () => {
     });
   });
 
+  it("replaces it once when its row is tapped twice", async () => {
+    await renderSession();
+    await openReplacePicker();
+    const lunge = await screen.findByRole("button", {
+      name: "Replace with Lunge",
+    });
+    const resume = fakePublicApi.pause(REPLACE_EXERCISE);
+
+    await fireEvent.press(lunge);
+    await fireEvent.press(lunge);
+    await act(() => resume());
+    await settle();
+
+    expect(fakePublicApi.count(REPLACE_EXERCISE)).toBe(1);
+    expect(backend.exercises).toEqual([
+      expect.objectContaining({ exercise_slug: "lunge", id: "s1-e1" }),
+    ]);
+    expect(pickerOpen()).toBe(false);
+    expect(track).toHaveBeenCalledTimes(1);
+  });
+
   it.each(failures)(
     "says so in an alert when %s, replacing nothing",
     async (_, failure, message) => {
@@ -622,7 +723,9 @@ describe("replacing an Exercise in a Workout Session", () => {
       ).toEqual([10, 10]);
       // The picker stays open, so the User can try again.
       expect(pickerOpen()).toBe(true);
-      expect(screen.queryAllByText("Replace")).not.toHaveLength(0);
+      expect(
+        screen.getByRole("button", { name: "Replace with Lunge" })
+      ).toBeTruthy();
       expect(track).not.toHaveBeenCalledWith(
         "Exercise Replaced",
         expect.anything()

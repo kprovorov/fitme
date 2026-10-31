@@ -586,8 +586,8 @@
     },
     "addExercise": "Add Exercise",
     "picker": {
-      "add": "Add",
-      "replace": "Replace",
+      "addExercise": "Add {{name}}",
+      "replaceWith": "Replace with {{name}}",
       "close": "Close",
       "addTitle": "Add Exercise",
       "replaceTitle": "Replace Exercise"

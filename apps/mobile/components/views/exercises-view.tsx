@@ -1,5 +1,6 @@
 import { type MuscleGroup, muscleGroups } from "@fitme/core";
 import type { ExerciseSummary } from "@fitme/library-sdk";
+import type React from "react";
 import { useCallback, useMemo, useState } from "react";
 import { useTranslation } from "react-i18next";
 import {
@@ -13,7 +14,6 @@ import {
 import {
   ExerciseRow,
   ExerciseRowSeparator,
-  type ExerciseRowTrailing,
 } from "~/components/exercises/exercise-row";
 import { Button } from "~/components/ui/button";
 import { ErrorMessage } from "~/components/ui/error-message";
@@ -52,6 +52,7 @@ const ExercisesView = ({
   onExercisePress = () => {
     /* noop */
   },
+  rowAccessibilityLabel,
   trailing,
   initialMuscleGroup = "all",
   refreshable = false,
@@ -60,8 +61,11 @@ const ExercisesView = ({
   onSearchChange,
 }: {
   onExercisePress?: (exercise: ExerciseSummary) => void;
-  // What ends each row: the Library's chevron, or the picker's CTA.
-  trailing?: ExerciseRowTrailing;
+  // What VoiceOver reads for a row, when its text doesn't say what tapping
+  // it does (the picker's "Add Bench Press").
+  rowAccessibilityLabel?: (exercise: ExerciseSummary) => string;
+  // What ends each row: the Library's chevron, or the picker's "+" or swap.
+  trailing?: React.ReactNode;
   initialMuscleGroup?: MuscleGroupFilter;
   // Pull to refresh (the Library tab).
   refreshable?: boolean;
@@ -150,6 +154,7 @@ const ExercisesView = ({
   const renderItem = useCallback(
     ({ item, index }: { item: ExerciseSummary; index: number }) => (
       <ExerciseRow
+        accessibilityLabel={rowAccessibilityLabel?.(item)}
         exercise={item}
         isFirst={index === 0}
         isLast={index === lastIndex}
@@ -157,7 +162,7 @@ const ExercisesView = ({
         trailing={trailing}
       />
     ),
-    [lastIndex, onExercisePress, trailing]
+    [lastIndex, onExercisePress, rowAccessibilityLabel, trailing]
   );
 
   const renderEmpty = () => {

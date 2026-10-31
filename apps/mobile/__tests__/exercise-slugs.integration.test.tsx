@@ -266,10 +266,10 @@ describe("a Workout Session", () => {
     await renderScreen(HistorySessionScreen, { workoutSessionId: "s1" });
 
     await fireEvent.press(await screen.findByText("Add Exercise"));
-    // The picker lists the library by name: Lunge, then Squat.
-    const [addLunge] = await screen.findAllByText("Add");
+    // Tapping Lunge's row in the picker adds it.
+    const addLunge = await screen.findByRole("button", { name: "Add Lunge" });
     await act(async () => {
-      await fireEvent.press(addLunge as NonNullable<typeof addLunge>);
+      await fireEvent.press(addLunge);
     });
     await settle();
 
@@ -287,11 +287,11 @@ describe("a Workout Session", () => {
 
     const [replaceSquat] = await screen.findAllByLabelText("Replace");
     await fireEvent.press(replaceSquat as NonNullable<typeof replaceSquat>);
-    const [replaceWithLunge] = await screen.findAllByText("Replace");
+    const replaceWithLunge = await screen.findByRole("button", {
+      name: "Replace with Lunge",
+    });
     await act(async () => {
-      await fireEvent.press(
-        replaceWithLunge as NonNullable<typeof replaceWithLunge>
-      );
+      await fireEvent.press(replaceWithLunge);
     });
     await settle();
 
