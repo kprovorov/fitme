@@ -245,8 +245,7 @@ interface ExerciseSearchParams {
 }
 
 /** One spelling per choice, in core's order, so it reuses its cache entry. */
-const choiceKey = (groups: readonly MuscleGroup[]) =>
-  inCoreOrder(groups).join(",");
+const choiceKey = (groups: readonly MuscleGroup[]) => groups.join(",");
 
 /**
  * When the User may call `list` again after a 429, kept in the query client
@@ -288,22 +287,29 @@ export const useExerciseSearch = ({
   const queryClient = useQueryClient();
   const language = useAppLanguage();
   const term = search.trim();
-  const groups = choiceKey(muscleGroups);
-  const [sent, setSent] = useState({ groups, search: term });
+  const groupsKey = choiceKey(inCoreOrder(muscleGroups));
+  const [sent, setSent] = useState(() => ({
+    groups: inCoreOrder(muscleGroups),
+    search: term,
+  }));
+  const sameGroups = choiceKey(sent.groups) === groupsKey;
   const [lastPages, setLastPages] = useState<
     { language: AppLanguage; pages: ExercisePage[] } | undefined
   >(undefined);
 
   useEffect(() => {
-    if (sent.search === term && sent.groups === groups) {
+    if (sent.search === term && sameGroups) {
       return;
     }
     // A new Muscle group choice is one tap: it goes out at once, with any
     // typed search.
-    const debounce = sent.groups === groups ? EXERCISE_SEARCH_DEBOUNCE_MS : 0;
-    const timer = setTimeout(() => setSent({ groups, search: term }), debounce);
+    const debounce = sameGroups ? EXERCISE_SEARCH_DEBOUNCE_MS : 0;
+    const timer = setTimeout(
+      () => setSent({ groups: inCoreOrder(muscleGroups), search: term }),
+      debounce
+    );
     return () => clearTimeout(timer);
-  }, [groups, sent, term]);
+  }, [muscleGroups, sameGroups, sent, term]);
 
   const query = useInfiniteQuery({
     getNextPageParam: (lastPage: ExercisePage, _pages, lastOffset: number) =>
@@ -329,9 +335,7 @@ export const useExerciseSearch = ({
           // English is the API's default.
           ...(language === defaultAppLanguage ? {} : { language }),
           ...(sent.search ? { search: sent.search } : {}),
-          ...(sent.groups
-            ? { muscleGroups: sent.groups.split(",") as MuscleGroup[] }
-            : {}),
+          ...(sent.groups.length > 0 ? { muscleGroups: [...sent.groups] } : {}),
         });
       } catch (error) {
         if (error instanceof LibraryRateLimitedError) {

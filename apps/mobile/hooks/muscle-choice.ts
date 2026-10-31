@@ -1,5 +1,5 @@
 import { type MuscleGroup, muscleGroups } from "@fitme/core";
-import { useSyncExternalStore } from "react";
+import { useEffect, useSyncExternalStore } from "react";
 
 /**
  * The Muscle groups a User can choose, in core's order: full-body and cardio
@@ -8,11 +8,14 @@ import { useSyncExternalStore } from "react";
 export const choosableMuscleGroups: readonly MuscleGroup[] =
   muscleGroups.filter((group) => group !== "full-body" && group !== "cardio");
 
-/** The groups in core's order, each once, so a choice has one spelling. */
+/**
+ * The choosable groups among `groups`, in core's order, each once, so a
+ * choice has one spelling (and never a group the sheet can't untick).
+ */
 export const inCoreOrder = (
   groups: readonly MuscleGroup[]
 ): readonly MuscleGroup[] =>
-  muscleGroups.filter((group) => groups.includes(group));
+  choosableMuscleGroups.filter((group) => groups.includes(group));
 
 const NONE: readonly MuscleGroup[] = [];
 
@@ -23,6 +26,12 @@ const NONE: readonly MuscleGroup[] = [];
  */
 const choices = new Map<string, readonly MuscleGroup[]>();
 const listeners = new Set<() => void>();
+
+const emit = () => {
+  for (const listener of listeners) {
+    listener();
+  }
+};
 
 const subscribe = (listener: () => void) => {
   listeners.add(listener);
@@ -40,32 +49,52 @@ export function setMuscleChoice(
   groups: readonly MuscleGroup[]
 ): void {
   choices.set(key, inCoreOrder(groups));
-  for (const listener of listeners) {
-    listener();
-  }
+  emit();
 }
 
 /** Forgets a screen's choice (the picker, once closed). */
 export function forgetMuscleChoice(key: string): void {
   choices.delete(key);
+  emit();
 }
 
 /** Forgets every choice: the app's start, for tests. */
 export function resetMuscleChoices(): void {
   choices.clear();
+  emit();
 }
 
 let pickers = 0;
 
 /**
  * A fresh key for one opening of a screen whose choice starts over each time
- * (the Exercise picker), starting on `initial`.
+ * (the Exercise picker): hold it with `useMuscleChoiceOpening`.
  */
-export function openMuscleChoice(initial: readonly MuscleGroup[]): string {
+export function newMuscleChoiceKey(): string {
   pickers += 1;
-  const key = `picker-${pickers}`;
-  choices.set(key, inCoreOrder(initial));
-  return key;
+  return `picker-${pickers}`;
+}
+
+/**
+ * Starts `key` on `initial` while the screen is mounted and forgets it once
+ * it closes. An effect torn down and set up again (Fast Refresh) seeds it
+ * anew rather than losing it.
+ */
+export function useMuscleChoiceOpening(
+  key: string,
+  initial: readonly MuscleGroup[]
+): void {
+  if (!choices.has(key)) {
+    // Before the first render reads it, so the first search is the seeded one.
+    choices.set(key, inCoreOrder(initial));
+  }
+  // biome-ignore lint/correctness/useExhaustiveDependencies: seeded once per key; `initial` is only the opening's start
+  useEffect(() => {
+    if (!choices.has(key)) {
+      setMuscleChoice(key, initial);
+    }
+    return () => forgetMuscleChoice(key);
+  }, [key]);
 }
 
 /** The screen's confirmed choice, re-rendering when it changes. */

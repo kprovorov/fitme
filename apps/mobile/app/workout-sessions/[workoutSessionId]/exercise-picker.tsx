@@ -8,7 +8,10 @@ import { Alert } from "react-native";
 import { ExerciseRowSymbol } from "~/components/exercises/exercise-row";
 import ExercisesView from "~/components/views/exercises-view";
 import { useHeaderSearch } from "~/hooks/header-search";
-import { forgetMuscleChoice, openMuscleChoice } from "~/hooks/muscle-choice";
+import {
+  newMuscleChoiceKey,
+  useMuscleChoiceOpening,
+} from "~/hooks/muscle-choice";
 import {
   useCreateWorkoutSessionExerciseMutation,
   useReplaceWorkoutSessionExerciseMutation,
@@ -46,10 +49,11 @@ export default function ExercisePickerScreen() {
 
   // Each opening starts over: the replaced Exercise's first Muscle group, or
   // none, and forgotten once closed.
-  const [muscleChoiceKey] = useState(() =>
-    openMuscleChoice(isMuscleGroup(muscleGroup) ? [muscleGroup] : [])
+  const [muscleChoiceKey] = useState(newMuscleChoiceKey);
+  useMuscleChoiceOpening(
+    muscleChoiceKey,
+    isMuscleGroup(muscleGroup) ? [muscleGroup] : []
   );
-  useEffect(() => () => forgetMuscleChoice(muscleChoiceKey), [muscleChoiceKey]);
 
   // A failed edit may still have been saved (a lost answer): read again
   // either way.
