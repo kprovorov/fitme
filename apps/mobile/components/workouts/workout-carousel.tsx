@@ -7,6 +7,7 @@ import {
   useWindowDimensions,
   View,
 } from "react-native";
+import { findOpenSession } from "~/hooks/start-workout";
 import { cn } from "~/lib/utils";
 import WorkoutCarouselCard from "./workout-carousel-card";
 
@@ -21,7 +22,8 @@ interface WorkoutCarouselProps {
 
 /**
  * The Plan's Workouts as cards paged one at a time (Figma `Routines`), the
- * Next Workout first, then the rest in rotation order. It runs edge to edge,
+ * Next Workout first, then the rest in rotation order; a Workout with an open
+ * Workout Session (at most one, ADR 0013) goes ahead of them all. It runs edge to edge,
  * out of the Workout tab's gutters, each card `sm` from the screen's edges
  * with the next one peeking, and dots under it mark the page.
  */
@@ -29,8 +31,12 @@ export default function WorkoutCarousel({ plan }: WorkoutCarouselProps) {
   const { width } = useWindowDimensions();
   const [page, setPage] = useState(0);
   // A copy: plan.workouts is the query cache's array, never sorted in place.
-  // The rotation's first Workout is the Next one.
-  const workouts = [...plan.workouts].sort((a, b) => a.order - b.order);
+  // The rotation's first Workout is the Next one, after the open session's.
+  const workouts = [...plan.workouts].sort(
+    (a, b) =>
+      Number(Boolean(findOpenSession(b))) -
+        Number(Boolean(findOpenSession(a))) || a.order - b.order
+  );
   // The page scrolled to, kept in range when the Plan's Workouts change.
   const shownPage = Math.min(page, workouts.length - 1);
   const cardWidth = width - 2 * CARD_INSET;

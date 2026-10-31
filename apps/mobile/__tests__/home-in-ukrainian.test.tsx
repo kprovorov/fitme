@@ -181,6 +181,18 @@ describe("Home in Ukrainian", () => {
     expect(screen.getAllByText("Почати")).toHaveLength(3);
   });
 
+  it("reads Continue on the card of the open Workout Session", async () => {
+    seedActivePlan();
+    backend.seed({ exercises: [], id: "s1" });
+    await mount();
+
+    expect(
+      screen.getByRole("button", { name: "Продовжити: Ноги" })
+    ).toBeTruthy();
+    expect(screen.getByText("Продовжити")).toBeTruthy();
+    expect(screen.getAllByText("Почати")).toHaveLength(2);
+  });
+
   it("names the muscle groups in Ukrainian, with the rest counted in their plural form", async () => {
     serveLibrary([
       libraryExercise("pull-1", {

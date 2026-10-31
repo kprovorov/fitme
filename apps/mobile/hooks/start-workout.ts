@@ -53,25 +53,13 @@ const alertStartFailed = (waitSeconds: number | null) => {
   );
 };
 
-/** "Finish <Workout> first", with a way into that Workout Session. */
-const alertFinishFirst = (
-  open: OpenWorkoutSession,
-  onContinue: (open: OpenWorkoutSession) => void
-) => {
+/** "Finish <Workout> first": another Workout's session is open. */
+const alertFinishFirst = (open: OpenWorkoutSession) => {
   Alert.alert(
     i18n.t("startWorkout.failed.title"),
     open.workoutName
       ? i18n.t("startWorkout.finishFirstNamed", { name: open.workoutName })
-      : i18n.t("startWorkout.finishFirst"),
-    [
-      { style: "cancel", text: i18n.t("common.cancel") },
-      {
-        onPress: () => onContinue(open),
-        text: open.workoutName
-          ? i18n.t("startWorkout.continueNamed", { name: open.workoutName })
-          : i18n.t("startWorkout.continue"),
-      },
-    ]
+      : i18n.t("startWorkout.finishFirst")
   );
 };
 
@@ -80,7 +68,7 @@ const isSessionInProgress = (error: unknown) =>
 
 /**
  * Starts a Workout (or resumes its open Workout Session) through the Public
- * API, the way the Home card and the Workout screen both do: the Workout,
+ * API, the way the Workout tab's cards and the Workout screen both do: the Workout,
  * Plan and open Workout Session reads are invalidated, then `onStarted`
  * opens the session. A failure is the "Couldn't start workout" alert (the
  * wait on a 429), except a 409 `session_in_progress` (another Workout's
@@ -91,17 +79,14 @@ const isSessionInProgress = (error: unknown) =>
  * on (a User has at most one, ADR 0013); `null` while it's unknown, so a
  * failed read never blocks: the API still refuses.
  *
- * `onContinueBlocking` is for a Start that stays pressable while blocked
- * (the Workout tab's cards): pressing it then alerts "Finish <Workout>
- * first" instead of asking the API, and a 409 alerts the same, its Continue
- * button handing the blocking session to `onContinueBlocking`.
+ * `alertsInProgress` is for a Start that stays pressable while blocked (the
+ * Workout tab's cards, whose open session's own card reads Continue): it
+ * still asks the API, and the 409 alerts "Finish <Workout> first".
  */
 export function useStartWorkout(
   workoutId: string,
   onStarted: (sessionId: string) => void,
-  {
-    onContinueBlocking,
-  }: { onContinueBlocking?: (open: OpenWorkoutSession) => void } = {}
+  { alertsInProgress = false }: { alertsInProgress?: boolean } = {}
 ) {
   const queryClient = useQueryClient();
   const { data: openSession } = useOpenWorkoutSessionQuery();
@@ -117,8 +102,8 @@ export function useStartWorkout(
         // The blocked state shows it; otherwise (finished meanwhile, or the
         // re-read failed) the press still gets an answer.
         if (open && open.workoutId !== workoutId) {
-          if (onContinueBlocking) {
-            alertFinishFirst(open, onContinueBlocking);
+          if (alertsInProgress) {
+            alertFinishFirst(open);
           }
           return;
         }
@@ -140,12 +125,6 @@ export function useStartWorkout(
   return {
     blockedBy,
     isStarting: isPending,
-    startWorkout: () => {
-      if (onContinueBlocking && blockedBy) {
-        alertFinishFirst(blockedBy, onContinueBlocking);
-        return;
-      }
-      mutate({ workoutId });
-    },
+    startWorkout: () => mutate({ workoutId }),
   };
 }

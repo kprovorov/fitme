@@ -6,7 +6,7 @@ import { useTranslation } from "react-i18next";
 import { useWindowDimensions, View } from "react-native";
 import { useExercises } from "~/hooks/queries/library";
 import {
-  openSessionPath,
+  findOpenSession,
   useStartWorkout,
   workoutSessionPath,
 } from "~/hooks/start-workout";
@@ -35,8 +35,8 @@ interface WorkoutCarouselCardProps {
  * A Workout on the Workout tab's carousel (Figma `WorkoutCard`): its muscle
  * groups as badges at the top right, then at the bottom its name, Exercise
  * count and the Plan's duration, Preview (its Workout screen) and Start (a
- * new Workout Session, or its open one, through `useStartWorkout`). The card
- * itself isn't a tap target.
+ * new Workout Session through `useStartWorkout`), or Continue (its open
+ * Workout Session) when it has one. The card itself isn't a tap target.
  */
 export default function WorkoutCarouselCard({
   durationMinutes,
@@ -48,15 +48,22 @@ export default function WorkoutCarouselCard({
   const labels = useChoiceLabels();
   const { fontScale } = useWindowDimensions();
   const stacked = fontScale > STACKED_FONT_SCALE;
+  const openSession = (sessionId: string) => {
+    router.push(workoutSessionPath(workout.plan_id, workout.id, sessionId));
+  };
+  // Another Workout's open session still lets Start ask the API, whose 409
+  // alerts "Finish <Workout> first": that session's own card reads Continue.
   const { isStarting, startWorkout } = useStartWorkout(
     workout.id,
-    (sessionId) => {
-      router.push(workoutSessionPath(workout.plan_id, workout.id, sessionId));
-    },
-    // Until the open session's own card leads to it (FIT-453), the alert
-    // does.
-    { onContinueBlocking: (open) => router.push(openSessionPath(open)) }
+    openSession,
+    { alertsInProgress: true }
   );
+  const ownOpenSession = findOpenSession(workout);
+  const continueWorkout = () => {
+    if (ownOpenSession) {
+      openSession(ownOpenSession.id);
+    }
+  };
 
   const exercises = [...workout.exercises].sort((a, b) => a.order - b.order);
   const shownBySlug = useExercises(
@@ -153,17 +160,30 @@ export default function WorkoutCarouselCard({
               />
             </View>
             <View className={stacked ? undefined : "flex-1"}>
-              <Button
-                accessibilityLabel={t("home.card.startNamed", {
-                  name: workout.name,
-                })}
-                icon="play.circle.fill"
-                iconPosition="trailing"
-                isLoading={isStarting}
-                label={t("home.card.start")}
-                onPress={startWorkout}
-                size="lg"
-              />
+              {ownOpenSession ? (
+                <Button
+                  accessibilityLabel={t("home.card.continueNamed", {
+                    name: workout.name,
+                  })}
+                  icon="play.circle.fill"
+                  iconPosition="trailing"
+                  label={t("home.card.continue")}
+                  onPress={continueWorkout}
+                  size="lg"
+                />
+              ) : (
+                <Button
+                  accessibilityLabel={t("home.card.startNamed", {
+                    name: workout.name,
+                  })}
+                  icon="play.circle.fill"
+                  iconPosition="trailing"
+                  isLoading={isStarting}
+                  label={t("home.card.start")}
+                  onPress={startWorkout}
+                  size="lg"
+                />
+              )}
             </View>
           </View>
         </View>
