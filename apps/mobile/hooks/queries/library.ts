@@ -4,6 +4,7 @@ import {
   type MuscleGroup,
 } from "@fitme/core";
 import {
+  type Cover,
   type Exercise,
   type ExercisePage,
   type ExerciseSummary,
@@ -26,9 +27,11 @@ import { inCoreOrder } from "~/hooks/muscle-choice";
 import { useAppLanguage } from "~/lib/i18n";
 import { getLibrary } from "~/lib/library";
 import {
+  readCachedCovers,
   readCachedExercise,
   readCachedSummary,
   removeCachedExercise,
+  writeCachedCovers,
   writeCachedExercise,
   writeCachedSummary,
 } from "~/lib/library-cache";
@@ -230,6 +233,35 @@ export const useExerciseDetailQuery = (slug: string) => {
     retry: retryOnce,
     staleTime: EXERCISE_STALE_TIME_MS,
   });
+};
+
+const NO_COVERS: ReadonlyMap<string, Cover> = new Map();
+
+const coversById = (covers: Cover[]): ReadonlyMap<string, Cover> =>
+  new Map(covers.map((cover) => [cover.id, cover]));
+
+/**
+ * The Library's Covers, by id: every Cover a Workout card can show. Starts
+ * from the copy kept in MMKV (offline too, and right after a restart) and is
+ * refreshed once stale. Never waits: until the list arrives, and when it
+ * never does, no Cover is known. A failed refresh (a 429 included) keeps the
+ * last list.
+ */
+export const useCovers = (): ReadonlyMap<string, Cover> => {
+  const { data } = useQuery({
+    initialData: () => readCachedCovers()?.value,
+    initialDataUpdatedAt: () => readCachedCovers()?.savedAt,
+    queryFn: async (): Promise<Cover[]> => {
+      const covers = await getLibrary().covers();
+      writeCachedCovers(covers);
+      return covers;
+    },
+    queryKey: ["covers"],
+    retry: retryOnce,
+    select: coversById,
+    staleTime: EXERCISE_STALE_TIME_MS,
+  });
+  return data ?? NO_COVERS;
 };
 
 /** Results per page of the Library tab and the Exercise picker. */

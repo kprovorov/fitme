@@ -83,6 +83,8 @@ export interface SeedPlan {
   is_active?: boolean;
   name: string;
   workouts: Array<{
+    /** Its Library Cover's id; `null` (the default) without one. */
+    cover?: string | null;
     /** A number of sets at 10 reps, 90 s rest and no weight, or each set. */
     exercises: Array<{ sets: number | SeedPlanSet[]; slug: string }>;
     id: string;
@@ -308,6 +310,7 @@ class FakeWorkoutBackend {
       place: "gym",
       workout_duration: 60,
       workouts: workouts.map((workout, workoutIndex) => ({
+        cover: workout.cover ?? null,
         exercises: workout.exercises.map(({ sets, slug }, exerciseIndex) => ({
           exercise_slug: slug,
           id: `${workout.id}-e${exerciseIndex + 1}`,
