@@ -31,6 +31,8 @@ export default function WorkoutCarousel({ plan }: WorkoutCarouselProps) {
   // A copy: plan.workouts is the query cache's array, never sorted in place.
   // The rotation's first Workout is the Next one.
   const workouts = [...plan.workouts].sort((a, b) => a.order - b.order);
+  // The page scrolled to, kept in range when the Plan's Workouts change.
+  const shownPage = Math.min(page, workouts.length - 1);
   const cardWidth = width - 2 * CARD_INSET;
   const pageWidth = cardWidth + CARD_GAP;
 
@@ -72,7 +74,7 @@ export default function WorkoutCarousel({ plan }: WorkoutCarouselProps) {
             <View
               className={cn(
                 "size-2 rounded-full",
-                index === page ? "bg-foreground" : "bg-muted-foreground/40"
+                index === shownPage ? "bg-foreground" : "bg-muted-foreground/40"
               )}
               key={workout.id}
             />

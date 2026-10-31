@@ -22,9 +22,10 @@ export interface PickCoversInput {
 
 /**
  * The Workout's muscle groups, most-trained first: each counts once per
- * Exercise training it, and a tie goes to the group met first.
+ * Exercise training it, and a tie goes to the group met first. The Cover
+ * picker matches on it, and the Workout tab's cards badge it.
  */
-const rankMuscleGroups = (workout: CoverWorkout): MuscleGroup[] => {
+export const rankMuscleGroups = (workout: CoverWorkout): MuscleGroup[] => {
   const counts = new Map<MuscleGroup, number>();
   for (const exercise of workout.exercises) {
     for (const group of new Set(exercise.muscleGroups)) {

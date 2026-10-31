@@ -1,10 +1,15 @@
-import type { MuscleGroup, Workout } from "@fitme/core";
+import type { Workout } from "@fitme/core";
+import { rankMuscleGroups } from "@fitme/core/covers";
 import { formatCount } from "@fitme/i18n";
 import { useRouter } from "expo-router";
 import { useTranslation } from "react-i18next";
 import { View } from "react-native";
-import { type ShownExercise, useExercises } from "~/hooks/queries/library";
-import { useStartWorkout, workoutSessionPath } from "~/hooks/start-workout";
+import { useExercises } from "~/hooks/queries/library";
+import {
+  openSessionPath,
+  useStartWorkout,
+  workoutSessionPath,
+} from "~/hooks/start-workout";
 import { useChoiceLabels } from "~/lib/choices";
 import { useI18n } from "~/lib/i18n";
 import { SymbolImage } from "../symbol-image";
@@ -16,29 +21,6 @@ import { H4 } from "../ui/typography";
 
 /** How many muscle-group badges a card shows before "+N". */
 export const SHOWN_MUSCLE_GROUPS = 3;
-
-/**
- * The muscle groups a Workout's Exercises train, the most trained first
- * (counted once per Exercise), ties in the order they're first met. Only
- * Exercises the Library has answered for count, so none show before it has.
- */
-export const workoutMuscleGroups = (
-  exercises: readonly ShownExercise[]
-): MuscleGroup[] => {
-  const counts = new Map<MuscleGroup, number>();
-  for (const exercise of exercises) {
-    if (!exercise.isResolved) {
-      continue;
-    }
-    for (const group of new Set(exercise.muscle_groups)) {
-      counts.set(group, (counts.get(group) ?? 0) + 1);
-    }
-  }
-  // Map keeps insertion order and `sort` is stable, so ties stay first met.
-  return [...counts.entries()]
-    .sort(([, a], [, b]) => b - a)
-    .map(([group]) => group);
-};
 
 interface WorkoutCarouselCardProps {
   /** The Plan's Workout duration, in minutes. */
@@ -66,16 +48,23 @@ export default function WorkoutCarouselCard({
     (sessionId) => {
       router.push(workoutSessionPath(workout.plan_id, workout.id, sessionId));
     },
-    { alertWhenBlocked: true }
+    // Until the open session's own card leads to it (FIT-453), the alert
+    // does.
+    { onContinueBlocking: (open) => router.push(openSessionPath(open)) }
   );
 
   const exercises = [...workout.exercises].sort((a, b) => a.order - b.order);
   const shownBySlug = useExercises(
     exercises.map(({ exercise_slug }) => exercise_slug)
   );
-  const muscleGroups = workoutMuscleGroups(
-    exercises.flatMap(({ exercise_slug }) => shownBySlug[exercise_slug] ?? [])
-  );
+  // Ranked like the Cover picker ranks them; only Exercises the Library has
+  // answered for count, so no badges show before it has.
+  const muscleGroups = rankMuscleGroups({
+    exercises: exercises.flatMap(({ exercise_slug }) => {
+      const shown = shownBySlug[exercise_slug];
+      return shown?.isResolved ? [{ muscleGroups: shown.muscle_groups }] : [];
+    }),
+  });
   const hiddenGroups = muscleGroups.length - SHOWN_MUSCLE_GROUPS;
 
   const openPreview = () => {

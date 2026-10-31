@@ -8,6 +8,7 @@ import type { MuscleGroup } from "@fitme/core";
 import { beforeEach, describe, expect, it, jest } from "@jest/globals";
 import { QueryClientProvider } from "@tanstack/react-query";
 import {
+  act,
   fireEvent,
   render,
   screen,
@@ -78,6 +79,15 @@ const LEGS_SESSION_PATH =
   /^\/plans\/plan-1\/workouts\/workout-legs\/sessions\/.+/;
 
 let queryClient = createTestQueryClient();
+
+type AlertButtons = Parameters<typeof Alert.alert>[2];
+const pressAlertButton = async (text: string) => {
+  const buttons = jest.mocked(Alert.alert).mock.calls[0]?.[2] as
+    | AlertButtons
+    | undefined;
+  const button = buttons?.find((candidate) => candidate.text === text);
+  await act(() => button?.onPress?.());
+};
 
 const mount = async () => {
   queryClient = createTestQueryClient();
@@ -262,9 +272,15 @@ describe("The Workout tab's carousel", () => {
     expect(fakePublicApi.count(START)).toBe(0);
     expect(Alert.alert).toHaveBeenCalledWith(
       "Couldn't start workout",
-      "Finish Workout s1 first"
+      "Finish Workout s1 first",
+      expect.anything()
     );
     expect(mockPush).not.toHaveBeenCalled();
+
+    await pressAlertButton("Continue Workout s1");
+    expect(mockPush).toHaveBeenCalledWith(
+      "/plans/plan-1/workouts/workout-of-s1/sessions/s1"
+    );
   });
 
   it("says the same when Start finds a session opened elsewhere", async () => {
@@ -278,8 +294,14 @@ describe("The Workout tab's carousel", () => {
 
     expect(Alert.alert).toHaveBeenCalledWith(
       "Couldn't start workout",
-      "Finish Workout s1 first"
+      "Finish Workout s1 first",
+      expect.anything()
     );
     expect(mockPush).not.toHaveBeenCalled();
+
+    await pressAlertButton("Continue Workout s1");
+    expect(mockPush).toHaveBeenCalledWith(
+      "/plans/plan-1/workouts/workout-of-s1/sessions/s1"
+    );
   });
 });
