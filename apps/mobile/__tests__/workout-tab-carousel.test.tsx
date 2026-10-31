@@ -14,7 +14,7 @@ import {
   screen,
   within,
 } from "@testing-library/react-native";
-import { Alert } from "react-native";
+import { Alert, ScrollView } from "react-native";
 import HomeScreen from "~/app/(tabs)/(home)/index";
 import { libraryExercise, serveLibrary } from "~/test-utils/fake-library";
 import { FAKE_USER_ID, fakePublicApi } from "~/test-utils/fake-public-api";
@@ -71,6 +71,10 @@ jest.mock("~/components/ui/button", () =>
 
 const START = "POST /v1/workout-sessions";
 
+// Any Finish button, and an elapsed time like 12:34.
+const FINISH = /^Finish/;
+const ELAPSED_TIME = /\d+:\d\d/;
+
 // The "+N" badge, whatever N is.
 const MORE_BADGE = /^\+/;
 
@@ -82,7 +86,7 @@ let queryClient = createTestQueryClient();
 
 type AlertButtons = Parameters<typeof Alert.alert>[2];
 const pressAlertButton = async (text: string) => {
-  const buttons = jest.mocked(Alert.alert).mock.calls[0]?.[2] as
+  const buttons = jest.mocked(Alert.alert).mock.calls.at(-1)?.[2] as
     | AlertButtons
     | undefined;
   const button = buttons?.find((candidate) => candidate.text === text);
@@ -107,6 +111,16 @@ const cardNames = () =>
   within(screen.getByTestId("workout-carousel"))
     .getAllByRole("heading")
     .map((heading) => heading.props.children);
+
+/** Opens Workout Session `s1` of the Plan's Workout `workoutId`. */
+const openSessionOf = (workoutId: string, workoutName: string) => {
+  backend.seed({ exercises: [], id: "s1" });
+  const session = backend.sessions.find(({ id }) => id === "s1");
+  if (session) {
+    session.workout_id = workoutId;
+    session.workoutName = workoutName;
+  }
+};
 
 const cardOf = (workoutId: string) =>
   screen.getByTestId(`workout-card-${workoutId}`);
@@ -261,47 +275,101 @@ describe("The Workout tab's carousel", () => {
     expect(mockPush).not.toHaveBeenCalled();
   });
 
-  it("says which Workout to finish first while another is in progress", async () => {
-    // A session of `workout-of-s1`, named "Workout s1".
-    backend.seed({ exercises: [], id: "s1" });
+  it("puts the open session's Workout first, reading Continue", async () => {
+    openSessionOf("workout-legs", "Legs");
+    await mount();
+
+    expect(cardNames()).toEqual(["Legs", "Push", "Pull"]);
+    expect(
+      within(cardOf("workout-legs")).queryByRole("button", {
+        name: "Start Legs",
+      })
+    ).toBeNull();
+    expect(screen.getByRole("button", { name: "Start Push" })).toBeTruthy();
+
+    await fireEvent.press(
+      screen.getByRole("button", { name: "Continue Legs" })
+    );
+
+    expect(within(cardOf("workout-legs")).getByText("Continue")).toBeTruthy();
+    expect(mockPush).toHaveBeenCalledWith(
+      "/plans/plan-1/workouts/workout-legs/sessions/s1"
+    );
+    expect(fakePublicApi.count(START)).toBe(0);
+  });
+
+  it("scrolls back to the front when a later card's Start promotes it", async () => {
+    await mount();
+    const scrollTo = jest.spyOn(ScrollView.prototype, "scrollTo");
+    // Swiped to Legs, the third page.
+    await fireEvent.scroll(screen.getByTestId("workout-carousel"), {
+      nativeEvent: { contentOffset: { x: 10_000, y: 0 } },
+    });
+
+    await fireEvent.press(screen.getByRole("button", { name: "Start Legs" }));
+    await settle(queryClient);
+
+    expect(cardNames()).toEqual(["Legs", "Push", "Pull"]);
+    expect(scrollTo).toHaveBeenLastCalledWith({ animated: false, x: 0 });
+  });
+
+  it("asks the API on another card's Start and alerts its 409", async () => {
+    openSessionOf("workout-legs", "Legs");
     await mount();
 
     await fireEvent.press(screen.getByRole("button", { name: "Start Push" }));
     await settle(queryClient);
 
-    expect(fakePublicApi.count(START)).toBe(0);
+    expect(fakePublicApi.count(START)).toBe(1);
     expect(Alert.alert).toHaveBeenCalledWith(
       "Couldn't start workout",
-      "Finish Workout s1 first",
+      "Finish Legs first",
       expect.anything()
     );
+    expect(backend.sessions.map(({ id }) => id)).toEqual(["s1"]);
     expect(mockPush).not.toHaveBeenCalled();
-
-    await pressAlertButton("Continue Workout s1");
+    await pressAlertButton("Continue Legs");
     expect(mockPush).toHaveBeenCalledWith(
-      "/plans/plan-1/workouts/workout-of-s1/sessions/s1"
+      "/plans/plan-1/workouts/workout-legs/sessions/s1"
     );
   });
 
-  it("says the same when Start finds a session opened elsewhere", async () => {
+  it("alerts the same when Start finds a session opened elsewhere", async () => {
     await mount();
     // Opened elsewhere (MCP, another device) after the tab was read.
-    backend.seed({ exercises: [], id: "s1" });
-    fakePublicApi.failNext(START, { code: "session_in_progress", status: 409 });
+    openSessionOf("workout-legs", "Legs");
+
+    await fireEvent.press(screen.getByRole("button", { name: "Start Push" }));
+    await settle(queryClient);
+
+    expect(fakePublicApi.count(START)).toBe(1);
+    expect(Alert.alert).toHaveBeenCalledWith(
+      "Couldn't start workout",
+      "Finish Legs first",
+      expect.anything()
+    );
+    expect(mockPush).not.toHaveBeenCalled();
+  });
+
+  it("alerts the wait when Start is rate limited", async () => {
+    await mount();
+    fakePublicApi.failNext(START, { retryAfterSeconds: 12, status: 429 });
 
     await fireEvent.press(screen.getByRole("button", { name: "Start Push" }));
     await settle(queryClient);
 
     expect(Alert.alert).toHaveBeenCalledWith(
       "Couldn't start workout",
-      "Finish Workout s1 first",
-      expect.anything()
+      "Too many requests: please try again in 12 s."
     );
     expect(mockPush).not.toHaveBeenCalled();
+  });
 
-    await pressAlertButton("Continue Workout s1");
-    expect(mockPush).toHaveBeenCalledWith(
-      "/plans/plan-1/workouts/workout-of-s1/sessions/s1"
-    );
+  it("has no Finish button or timer", async () => {
+    openSessionOf("workout-legs", "Legs");
+    await mount();
+
+    expect(screen.queryByRole("button", { name: FINISH })).toBeNull();
+    expect(screen.queryByText(ELAPSED_TIME)).toBeNull();
   });
 });

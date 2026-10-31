@@ -1275,14 +1275,6 @@ describe("starting a Workout from Home", () => {
     await settle();
   };
 
-  /** Presses a button of the last alert. */
-  const pressAlertButton = async (text: string) => {
-    const buttons = jest.mocked(Alert.alert).mock.calls.at(-1)?.[2];
-    const button = buttons?.find((candidate) => candidate.text === text);
-    await act(() => button?.onPress?.());
-    await settle();
-  };
-
   const sessionsOf = (workoutId: string) =>
     backend.sessions.filter((session) => session.workout_id === workoutId);
 
@@ -1342,23 +1334,28 @@ describe("starting a Workout from Home", () => {
       .accessibilityState.disabled === true &&
     focused().queryByText("Finish Push Day first") !== null;
 
-  it("says to finish the other Workout first on a card's Start, and continues it", async () => {
+  it("asks the API on another card's Start, alerts its 409, and continues from the open card", async () => {
     seedPushDayOpen();
     await startApp();
 
     await startWorkout();
+    expect(fakePublicApi.count(START)).toBe(1);
     expect(Alert.alert).toHaveBeenCalledWith(
       "Couldn't start workout",
       "Finish Push Day first",
       expect.anything()
     );
-    await pressAlertButton("Continue Push Day");
+    expect(sessionsOf("w1")).toEqual([]);
+
+    await fireEvent.press(
+      focused().getByRole("button", { name: "Continue Push Day" })
+    );
+    await settle();
 
     expect(mockNavigator.routes.at(-1)).toMatchObject({
       name: "plan-session",
       params: { sessionId: "open-2", workoutId: "w2" },
     });
-    expect(fakePublicApi.count(START)).toBe(0);
   });
 
   it("says to finish the other Workout first on a 409 from Start", async () => {

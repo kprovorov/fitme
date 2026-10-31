@@ -80,7 +80,7 @@ const isSessionInProgress = (error: unknown) =>
 
 /**
  * Starts a Workout (or resumes its open Workout Session) through the Public
- * API, the way the Home card and the Workout screen both do: the Workout,
+ * API, the way the Workout tab's cards and the Workout screen both do: the Workout,
  * Plan and open Workout Session reads are invalidated, then `onStarted`
  * opens the session. A failure is the "Couldn't start workout" alert (the
  * wait on a 429), except a 409 `session_in_progress` (another Workout's
@@ -92,9 +92,9 @@ const isSessionInProgress = (error: unknown) =>
  * failed read never blocks: the API still refuses.
  *
  * `onContinueBlocking` is for a Start that stays pressable while blocked
- * (the Workout tab's cards): pressing it then alerts "Finish <Workout>
- * first" instead of asking the API, and a 409 alerts the same, its Continue
- * button handing the blocking session to `onContinueBlocking`.
+ * (the Workout tab's cards, whose open session's own card reads Continue):
+ * it still asks the API, and the 409 alerts "Finish <Workout> first", its
+ * Continue button handing the blocking session to `onContinueBlocking`.
  */
 export function useStartWorkout(
   workoutId: string,
@@ -140,12 +140,6 @@ export function useStartWorkout(
   return {
     blockedBy,
     isStarting: isPending,
-    startWorkout: () => {
-      if (onContinueBlocking && blockedBy) {
-        alertFinishFirst(blockedBy, onContinueBlocking);
-        return;
-      }
-      mutate({ workoutId });
-    },
+    startWorkout: () => mutate({ workoutId }),
   };
 }

@@ -224,6 +224,8 @@
       "previewNamed": "Огляд: {{name}}",
       "start": "Почати",
       "startNamed": "Почати: {{name}}",
+      "continue": "Продовжити",
+      "continueNamed": "Продовжити: {{name}}",
       "moreMuscleGroups": "+{{count, number}}",
       "moreMuscleGroupsSpoken_one": "і ще {{count, number}} група м’язів",
       "moreMuscleGroupsSpoken_few": "і ще {{count, number}} групи м’язів",

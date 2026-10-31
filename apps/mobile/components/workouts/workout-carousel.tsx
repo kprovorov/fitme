@@ -1,12 +1,14 @@
 import type { Plan } from "@fitme/core";
-import { useState } from "react";
+import { useEffect, useRef, useState } from "react";
 import {
   type NativeScrollEvent,
   type NativeSyntheticEvent,
   ScrollView,
+  type ScrollViewInstance,
   useWindowDimensions,
   View,
 } from "react-native";
+import { findOpenSession } from "~/hooks/start-workout";
 import { cn } from "~/lib/utils";
 import WorkoutCarouselCard from "./workout-carousel-card";
 
@@ -21,16 +23,31 @@ interface WorkoutCarouselProps {
 
 /**
  * The Plan's Workouts as cards paged one at a time (Figma `Routines`), the
- * Next Workout first, then the rest in rotation order. It runs edge to edge,
+ * Next Workout first, then the rest in rotation order; a Workout with an open
+ * Workout Session (at most one, ADR 0013) goes ahead of them all. It runs edge to edge,
  * out of the Workout tab's gutters, each card `sm` from the screen's edges
  * with the next one peeking, and dots under it mark the page.
  */
 export default function WorkoutCarousel({ plan }: WorkoutCarouselProps) {
   const { width } = useWindowDimensions();
   const [page, setPage] = useState(0);
+  const scrollView = useRef<ScrollViewInstance>(null);
   // A copy: plan.workouts is the query cache's array, never sorted in place.
-  // The rotation's first Workout is the Next one.
-  const workouts = [...plan.workouts].sort((a, b) => a.order - b.order);
+  // The rotation's first Workout is the Next one, after the open session's.
+  const workouts = [...plan.workouts].sort(
+    (a, b) =>
+      Number(Boolean(findOpenSession(b))) -
+        Number(Boolean(findOpenSession(a))) || a.order - b.order
+  );
+  // A session opened from a later card moves that card to the front: scroll
+  // back to it, or the card now at the old offset shows instead.
+  const openWorkoutId = workouts.find(findOpenSession)?.id ?? null;
+  useEffect(() => {
+    if (openWorkoutId) {
+      scrollView.current?.scrollTo({ animated: false, x: 0 });
+      setPage(0);
+    }
+  }, [openWorkoutId]);
   // The page scrolled to, kept in range when the Plan's Workouts change.
   const shownPage = Math.min(page, workouts.length - 1);
   const cardWidth = width - 2 * CARD_INSET;
@@ -50,6 +67,7 @@ export default function WorkoutCarousel({ plan }: WorkoutCarouselProps) {
         disableIntervalMomentum
         horizontal
         onScroll={onScroll}
+        ref={scrollView}
         scrollEventThrottle={16}
         showsHorizontalScrollIndicator={false}
         snapToInterval={pageWidth}

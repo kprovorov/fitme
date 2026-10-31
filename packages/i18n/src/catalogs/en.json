@@ -200,6 +200,8 @@
       "previewNamed": "Preview {{name}}",
       "start": "Start",
       "startNamed": "Start {{name}}",
+      "continue": "Continue",
+      "continueNamed": "Continue {{name}}",
       "moreMuscleGroups": "+{{count, number}}",
       "moreMuscleGroupsSpoken_one": "and {{count, number}} more muscle group",
       "moreMuscleGroupsSpoken_other": "and {{count, number}} more muscle groups"
