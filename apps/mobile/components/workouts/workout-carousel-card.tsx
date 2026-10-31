@@ -3,7 +3,7 @@ import { rankMuscleGroups } from "@fitme/core/covers";
 import { formatCount } from "@fitme/i18n";
 import { useRouter } from "expo-router";
 import { useTranslation } from "react-i18next";
-import { View } from "react-native";
+import { useWindowDimensions, View } from "react-native";
 import { useExercises } from "~/hooks/queries/library";
 import {
   openSessionPath,
@@ -18,6 +18,9 @@ import { Button } from "../ui/button";
 import { Card } from "../ui/card";
 import { Text } from "../ui/text";
 import { H4 } from "../ui/typography";
+
+/** Past this text scale Preview and Start stack, or their labels break mid-word. */
+const STACKED_FONT_SCALE = 1.4;
 
 /** How many muscle-group badges a card shows before "+N". */
 export const SHOWN_MUSCLE_GROUPS = 3;
@@ -43,6 +46,8 @@ export default function WorkoutCarouselCard({
   const { t } = useTranslation();
   const i18n = useI18n();
   const labels = useChoiceLabels();
+  const { fontScale } = useWindowDimensions();
+  const stacked = fontScale > STACKED_FONT_SCALE;
   const { isStarting, startWorkout } = useStartWorkout(
     workout.id,
     (sessionId) => {
@@ -107,7 +112,7 @@ export default function WorkoutCarouselCard({
         <View className="flex-1 justify-end gap-xs">
           <H4 className="text-primary">{workout.name}</H4>
           <View className="flex-row flex-wrap gap-x-sm">
-            <View className="flex-row items-center gap-1">
+            <View accessible className="flex-row items-center gap-1">
               <SymbolImage
                 className="text-footnote-emphasized text-muted-foreground"
                 name="bolt.fill"
@@ -132,8 +137,11 @@ export default function WorkoutCarouselCard({
               </Text>
             </View>
           </View>
-          <View className="flex-row gap-sm">
-            <View className="flex-1">
+          {/* Stacked, Start (the main action) goes on top. */}
+          <View
+            className={stacked ? "flex-col-reverse gap-xs" : "flex-row gap-sm"}
+          >
+            <View className={stacked ? undefined : "flex-1"}>
               <Button
                 accessibilityLabel={t("home.card.previewNamed", {
                   name: workout.name,
@@ -144,7 +152,7 @@ export default function WorkoutCarouselCard({
                 variant="secondary"
               />
             </View>
-            <View className="flex-1">
+            <View className={stacked ? undefined : "flex-1"}>
               <Button
                 accessibilityLabel={t("home.card.startNamed", {
                   name: workout.name,
