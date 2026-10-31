@@ -1,4 +1,4 @@
-import type { Workout } from "@fitme/core";
+import type { Plan, Workout } from "@fitme/core";
 import { useQueryClient } from "@tanstack/react-query";
 import { Alert } from "react-native";
 import {
@@ -29,6 +29,14 @@ export const openSessionPath = ({
   planId && workoutId
     ? workoutSessionPath(planId, workoutId, id)
     : (`/workout-sessions/${id}` as const);
+
+/**
+ * The Plan's next Workout: the first of its rotation (finishing one moves it
+ * to the end), if it has any.
+ */
+export const nextWorkoutOf = (plan: Plan): Workout | undefined =>
+  // A copy: plan.workouts is the query cache's array, never sorted in place.
+  [...plan.workouts].sort((a, b) => a.order - b.order)[0];
 
 /** The Workout's own open Workout Session, if it has one. */
 export const findOpenSession = (workout: Workout) =>

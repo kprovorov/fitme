@@ -1,19 +1,22 @@
 import { formatCount, formatDate, type Translator } from "@fitme/i18n";
 import { LegendList } from "@legendapp/list/react-native";
-import { Stack, useRouter } from "expo-router";
+import { Stack } from "expo-router";
 import { Fragment, useCallback, useState } from "react";
 import { useTranslation } from "react-i18next";
 import { ActivityIndicator, RefreshControl, View } from "react-native";
 import Purchases from "react-native-purchases";
 import { useResolveClassNames } from "uniwind";
+import { EmptyHistoryCard } from "~/components/history/empty-history-card";
 import { Button } from "~/components/ui/button";
 import { Card } from "~/components/ui/card";
 import { Separator } from "~/components/ui/separator";
 import { Text } from "~/components/ui/text";
-import { H1, H4 } from "~/components/ui/typography";
+import { H4 } from "~/components/ui/typography";
 import HistoryMonthOverview from "~/components/views/history-month-overview";
 import WorkoutSessionHistoryRow from "~/components/views/workout-session-history-row";
+import { usePlansQuery } from "~/hooks/queries/plans";
 import {
+  useOpenWorkoutSessionQuery,
   useWorkoutSessionHistoryQuery,
   type WorkoutSessionHistory,
   type WorkoutSessionHistoryEntry,
@@ -95,21 +98,6 @@ function MonthSection({ month }: { month: Month }) {
   );
 }
 
-function EmptyHistory() {
-  const router = useRouter();
-  const goHome = useCallback(() => router.navigate("/"), [router]);
-  const { t } = useTranslation();
-  return (
-    <View className="flex-1 items-center justify-center gap-sm px-md pt-lg">
-      <H1 className="text-center">{t("history.empty.title")}</H1>
-      <Text className="text-center text-muted-foreground">
-        {t("history.empty.body")}
-      </Text>
-      <Button fill={false} label={t("history.empty.start")} onPress={goHome} />
-    </View>
-  );
-}
-
 export default function HistoryScreen() {
   const { t } = useTranslation();
   const [refreshing, setRefreshing] = useState(false);
@@ -121,6 +109,18 @@ export default function HistoryScreen() {
     isError,
     refetch: refetchWorkoutSessions,
   } = useWorkoutSessionHistoryQuery();
+  // What the empty History offers to do next: read alongside it, so the card
+  // never shows an action guessed from a read that hasn't answered.
+  const {
+    data: openSession,
+    isError: isOpenSessionError,
+    refetch: refetchOpenSession,
+  } = useOpenWorkoutSessionQuery();
+  const {
+    data: plans,
+    isError: isPlansError,
+    refetch: refetchPlans,
+  } = usePlansQuery();
 
   // Grouped on every render, not memoized: `useI18n()` re-renders the screen
   // when the App language (or the device's region) changes, and the month
@@ -128,22 +128,39 @@ export default function HistoryScreen() {
   const i18n = useI18n();
   const months = history ? groupByMonth(history, i18n) : [];
 
+  const refetchAll = useCallback(
+    () =>
+      Promise.all([
+        refetchWorkoutSessions(),
+        refetchOpenSession(),
+        refetchPlans(),
+      ]),
+    [refetchWorkoutSessions, refetchOpenSession, refetchPlans]
+  );
+
   const retry = useCallback(() => {
-    refetchWorkoutSessions();
-  }, [refetchWorkoutSessions]);
+    refetchAll();
+  }, [refetchAll]);
 
   const onRefresh = useCallback(async () => {
     setRefreshing(true);
     try {
       await Purchases.invalidateCustomerInfoCache();
-      await refetchWorkoutSessions();
+      await refetchAll();
     } finally {
       setRefreshing(false);
     }
-  }, [refetchWorkoutSessions]);
+  }, [refetchAll]);
 
   const renderEmpty = () => {
-    if (isError) {
+    // With no History, the card's action rests on the open Workout Session
+    // and the Plans as well: any of them failing is the error, any of them
+    // pending the spinner, never an empty History with a guessed action.
+    const failed =
+      (isError && !history) ||
+      (isOpenSessionError && openSession === undefined) ||
+      (isPlansError && !plans);
+    if (failed) {
       return (
         <View className="items-center gap-sm px-md pt-lg">
           <Text className="text-center text-muted-foreground">
@@ -158,14 +175,19 @@ export default function HistoryScreen() {
         </View>
       );
     }
-    if (!history) {
+    if (!history || openSession === undefined || !plans) {
       return (
         <View className="items-center pt-lg">
           <ActivityIndicator colorClassName="accent-foreground" />
         </View>
       );
     }
-    return <EmptyHistory />;
+    return (
+      <EmptyHistoryCard
+        activePlan={plans.find((plan) => plan.is_active) ?? null}
+        openSession={openSession}
+      />
+    );
   };
 
   return (
