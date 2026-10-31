@@ -1,91 +1,123 @@
-import { useAuth, useSignIn } from "@clerk/expo";
+import { useSignIn } from "@clerk/expo";
 import { router } from "expo-router";
-import { useCallback, useEffect, useState } from "react";
 import { useTranslation } from "react-i18next";
+import { View } from "react-native";
+import { AuthHeader } from "~/components/auth/auth-header";
+import { AuthSwitch } from "~/components/auth/auth-links";
+import { type AuthFormParts, AuthScreen } from "~/components/auth/auth-screen";
+import { getAuthErrorMessage } from "~/components/auth/error";
+import { useAuthOperation } from "~/components/auth/operation";
+import { supportsEmailChallenge } from "~/components/auth/verification";
 import ResetPasswordForm, {
   type ResetPasswordFormValues,
 } from "~/components/forms/auth/reset-password-form";
+import { Button } from "~/components/ui/button";
 import { ErrorMessage } from "~/components/ui/error-message";
-import { Text } from "~/components/ui/text";
-import { H3 } from "~/components/ui/typography";
-import { VStack } from "~/components/ui/vstack";
-import type { CodePurpose } from "~/components/views/verify-code-view";
-import { getClerkErrorMessage } from "~/lib/clerk";
-
-/** Sets a new password once the emailed reset code checked out. */
 export default function ResetPasswordView() {
-  const { signIn } = useSignIn();
-  const { t } = useTranslation();
-
-  const [errorMessage, setErrorMessage] = useState<string | undefined>();
-
-  const { isSignedIn } = useAuth();
-  useEffect(() => {
-    if (isSignedIn) {
-      router.replace("/");
+  const startOver = () =>
+    router.replace(operation.error ? "/auth/login" : "/auth/forgot-password");
+  const finishPassword = async () => {
+    const { error: finalizeError } = await signIn.finalize();
+    if (finalizeError) {
+      return getAuthErrorMessage(finalizeError);
     }
-  }, [isSignedIn]);
-
-  // Device Trust: on a new device the password alone doesn't sign the User in,
-  // so the shared code screen finishes the sign-in with an emailed code.
-  const confirmDevice = useCallback(async () => {
-    const canUseEmailCode = signIn.supportedSecondFactors.some(
-      (factor) => factor.strategy === "email_code"
-    );
-    if (
-      !(
-        (signIn.status === "needs_client_trust" ||
-          signIn.status === "needs_second_factor") &&
-        canUseEmailCode
-      )
-    ) {
-      setErrorMessage(t("resetPassword.passwordChanged"));
+  };
+  const sendDeviceCode = async (current: () => boolean) => {
+    const { error: sendError } = await signIn.mfa.sendEmailCode();
+    if (!current()) {
       return;
     }
-    const { error } = await signIn.mfa.sendEmailCode();
-    if (error) {
-      setErrorMessage(getClerkErrorMessage(error));
-      return;
+    if (sendError) {
+      return getAuthErrorMessage(sendError);
     }
     router.push({
-      params: { purpose: "sign-in" satisfies CodePurpose },
+      params: { purpose: "sign-in", source: "reset-password" },
       pathname: "/auth/verify-code",
     });
-  }, [signIn, t]);
-
-  const handleSubmit = useCallback(
-    async ({ password }: ResetPasswordFormValues) => {
-      setErrorMessage(undefined);
+  };
+  const submitPassword = ({ password }: ResetPasswordFormValues) =>
+    operation.run("email", async (current) => {
       const { error } = await signIn.resetPasswordEmailCode.submitPassword({
         password,
       });
+      if (!current()) {
+        return;
+      }
       if (error) {
-        setErrorMessage(getClerkErrorMessage(error));
-        return;
+        return getAuthErrorMessage(error);
       }
-      if (signIn.status !== "complete") {
-        await confirmDevice();
-        return;
+      if (signIn.status === "complete") {
+        return finishPassword();
       }
-      const { error: finalizeError } = await signIn.finalize();
-      if (finalizeError) {
-        setErrorMessage(getClerkErrorMessage(finalizeError));
+      if (
+        supportsEmailChallenge(signIn.status, signIn.supportedSecondFactors)
+      ) {
+        return sendDeviceCode(current);
       }
-      // The isSignedIn effect takes the User Home.
-    },
-    [confirmDevice, signIn]
+      return t("resetPassword.passwordChanged");
+    });
+  const renderForm = ({ action, fields }: AuthFormParts) => (
+    <AuthScreen
+      action={
+        <View className="gap-xs">
+          {operation.error ? (
+            <ErrorMessage>{operation.error}</ErrorMessage>
+          ) : null}
+          {action}
+        </View>
+      }
+      footer={
+        <AuthSwitch
+          disabled={operation.pending !== null}
+          href="/auth/login"
+          label={t("resetPassword.backToLogin")}
+          prompt={t("resetPassword.changedMind")}
+        />
+      }
+    >
+      <AuthHeader
+        description={t("resetPassword.description")}
+        title={t("resetPassword.title")}
+      />
+      {fields}
+    </AuthScreen>
   );
-
+  const { signIn } = useSignIn();
+  const { t } = useTranslation();
+  const operation = useAuthOperation();
+  if (
+    signIn.status !== "needs_new_password" &&
+    signIn.status !== "complete" &&
+    operation.pending === null
+  ) {
+    return (
+      <AuthScreen
+        action={
+          <Button
+            label={
+              operation.error
+                ? t("resetPassword.backToLogin")
+                : t("verifyCode.startOver")
+            }
+            onPress={startOver}
+            size="lg"
+          />
+        }
+      >
+        <AuthHeader
+          description={operation.error ?? t("verifyCode.expired")}
+          title={t("resetPassword.title")}
+        />
+      </AuthScreen>
+    );
+  }
   return (
-    <VStack className="w-full gap-4">
-      <VStack className="gap-0">
-        <H3>{t("resetPassword.title")}</H3>
-        <Text className="text-muted-foreground text-subhead-emphasized">
-          {t("resetPassword.description")}
-        </Text>
-      </VStack>
-      {errorMessage ? <ErrorMessage>{errorMessage}</ErrorMessage> : null}
-      <ResetPasswordForm onSubmit={handleSubmit} />
-    </VStack>
+    <ResetPasswordForm
+      disabled={operation.pending !== null}
+      onEdit={operation.clearError}
+      onSubmit={submitPassword}
+    >
+      {renderForm}
+    </ResetPasswordForm>
   );
 }

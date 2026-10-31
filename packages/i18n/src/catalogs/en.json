@@ -561,30 +561,42 @@
       "resetIncomplete": "We couldn't verify the code. Please try again.",
       "signInIncomplete": "We couldn't sign you in. Please try again."
     },
-    "resendButton": "Send a new code",
-    "resentNotice": "We sent you a new code."
+    "resendButton": "Resend code",
+    "resentNotice": "We sent you a new code.",
+    "destination": "Enter the 6-digit code we sent to {{email}}",
+    "didntGet": "Didn’t get it?",
+    "resendIn": "Resend in {{time}}",
+    "wrongEmail": "Wrong email?",
+    "changeEmail": "Change it",
+    "loading": "Verifying",
+    "expired": "This verification has expired. Start again to get a new code.",
+    "startOver": "Start again"
   },
   "forgotPassword": {
     "screenTitle": "Forgot Password",
-    "title": "Forgot password?",
-    "description": "Enter your email and we'll send you a code to reset it.",
+    "title": "Forgot your password?",
+    "description": "Enter the email you signed up with and we’ll send you a 6-digit code.",
     "emailPlaceholder": "Email",
     "invalidEmail": "Invalid email",
-    "submit": "Send Code",
-    "remember": "Remember your password?",
-    "login": "Login here"
+    "submit": "Send code",
+    "remember": "Remembered it?",
+    "login": "Log in",
+    "loading": "Sending code"
   },
   "resetPassword": {
     "screenTitle": "Reset Password",
-    "title": "Set new password",
-    "description": "Choose a new password for your account.",
-    "newPasswordPlaceholder": "New Password",
-    "confirmPasswordPlaceholder": "Confirm Password",
+    "title": "Set a new password",
+    "description": "Choose a password you don’t use for other accounts.",
+    "newPasswordPlaceholder": "New password",
+    "confirmPasswordPlaceholder": "Confirm new password",
     "passwordTooShort_one": "Password must be at least {{count}} character.",
     "passwordTooShort_other": "Password must be at least {{count}} characters.",
     "passwordsDontMatch": "Passwords do not match.",
-    "submit": "Update Password",
-    "passwordChanged": "Your password was changed. Log in with your new password."
+    "submit": "Update password",
+    "passwordChanged": "Your password was changed. Log in with your new password.",
+    "loading": "Updating password",
+    "changedMind": "Changed your mind?",
+    "backToLogin": "Back to log in"
   },
   "updateRequired": {
     "title": "Update required",
@@ -702,13 +714,15 @@
       "passwordTooShort_other": "Password must be at least {{count}} characters."
     },
     "login": {
-      "title": "Login",
+      "title": "Log in",
       "subtitle": "Log in to your account to access your workouts",
-      "continue": "Continue",
+      "continue": "Log In",
       "forgotPasswordLink": "Forgot password?",
-      "noAccount": "Don't have an account?",
-      "registerLink": "Register here",
-      "cantSignInHere": "This account can't sign in here yet."
+      "noAccount": "New to Fitme?",
+      "registerLink": "Create an account",
+      "cantSignInHere": "This account can't sign in here yet.",
+      "heading": "Welcome back",
+      "loading": "Logging in"
     },
     "deviceCode": {
       "title": "Check your email",
@@ -718,11 +732,43 @@
       "differentAccount": "Use a different account"
     },
     "register": {
-      "title": "Sign Up",
+      "title": "Sign up",
       "subtitle": "Create an account to get started",
-      "submit": "Sign Up",
+      "submit": "Create Account",
       "haveAccount": "Already have an account?",
-      "loginLink": "Login here"
+      "loginLink": "Log in",
+      "heading": "Create your account",
+      "loading": "Creating account"
+    },
+    "intro": {
+      "heading": "Train smarter,\nnot longer.",
+      "description": "Fitme is your AI personal trainer. It builds your plan and logs every set.",
+      "plans": "A plan built for you",
+      "logging": "Every set and rep logged",
+      "guides": "Exercise guides with video",
+      "email": "Continue with Email"
+    },
+    "social": {
+      "apple": "Continue with Apple",
+      "google": "Continue with Google",
+      "connectingGoogle": "Connecting to Google",
+      "incomplete": "We couldn’t finish signing you in. Try again or continue with email."
+    },
+    "password": {
+      "show": "Show password",
+      "hide": "Hide password",
+      "minimum": "At least {{count}} characters"
+    },
+    "legal": {
+      "prefix": "By continuing, you agree to Fitme’s",
+      "terms": "Terms of Service",
+      "and": "and",
+      "privacy": "Privacy Policy"
+    },
+    "or": "or",
+    "errors": {
+      "credentials": "Email or password is incorrect. Try again.",
+      "connection": "Check your connection and try again."
     }
   }
 }

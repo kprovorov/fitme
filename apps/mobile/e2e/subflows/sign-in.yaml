@@ -38,13 +38,13 @@ appId: com.fitmeproject.ios
 - runFlow:
     when:
       visible:
-        id: "login-code-input"
+        id: "verify-code-input"
     commands:
       - tapOn:
-          id: "login-code-input"
+          id: "verify-code-input"
       - inputText: "424242"
       - tapOn:
-          id: "login-code-button"
+          id: "verify-code-button"
 
 # iOS may offer to save the password once the form is gone; its sheet hides
 # the screen behind it

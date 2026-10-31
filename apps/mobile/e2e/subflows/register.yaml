@@ -1,8 +1,16 @@
-# Registers a new User from the register screen and enters the emailed code.
+# Registers a new User from Welcome or registration and enters the emailed code.
 # Needs NAME, EMAIL (a +clerk_test address, so Clerk's test mode accepts the
 # fixed code 424242 and sends no email) and PASSWORD (runFlow env).
 appId: com.fitmeproject.ios
 ---
+- runFlow:
+    when:
+      visible:
+        id: "continue-email-button"
+    commands:
+      - tapOn:
+          id: "continue-email-button"
+
 - tapOn:
     id: "name-input"
 - waitForAnimationToEnd

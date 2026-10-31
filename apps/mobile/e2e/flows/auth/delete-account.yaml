@@ -59,7 +59,7 @@ env:
 # Signed out and back on the welcome screen
 - extendedWaitUntil:
     visible:
-      text: "Welcome to Fitme!"
+      id: "continue-email-button"
     timeout: 30000
 
 # ===== OLD CREDENTIALS NO LONGER SIGN IN =====
@@ -70,7 +70,7 @@ env:
 - waitForAnimationToEnd
 
 - assertVisible:
-    text: "Welcome to Fitme!"
+    id: "continue-email-button"
 
 - tapOn:
     id: "login-here-link"

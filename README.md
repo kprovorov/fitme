@@ -60,6 +60,9 @@ Each app has an `.env.example`. Copy it to `.env` for `apps/mobile` and
 `apps/arnold`; `apps/api`, `apps/mcp` and `apps/webhooks` read the process
 environment instead. AGENTS.md lists what each variable does.
 
+Native Apple and Google sign-in also need provider registrations and public build
+configuration. See [Enable native sign-in on mobile](docs/agents/mobile-auth.md).
+
 ## Checks
 
 ```bash

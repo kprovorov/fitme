@@ -18,7 +18,7 @@ export default function Authenticated({ children }: AuthenticatedProps) {
   }
 
   if (!isSignedIn) {
-    return <Redirect href="/auth/register" />;
+    return <Redirect href="/auth" />;
   }
 
   return children;

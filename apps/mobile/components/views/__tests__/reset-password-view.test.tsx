@@ -1,9 +1,10 @@
+import "~/test-utils/auth-ui";
 import { beforeEach, describe, expect, it, jest } from "@jest/globals";
 import { fireEvent, render, screen } from "@testing-library/react-native";
 import { router } from "expo-router";
 import ResetPasswordView from "../reset-password-view";
 
-const NEW_PASSWORD = "a-long-new-password";
+const NEW_PASSWORD = "eight888";
 const BREACHED_PASSWORD = "password-found-in-a-breach";
 
 /** What Clerk wants after the new password; a new device needs a code. */
@@ -57,15 +58,15 @@ jest.mock("~/components/ui/button", () =>
 
 const submitNewPassword = async (password: string) => {
   await fireEvent.changeText(
-    screen.getByPlaceholderText("New Password"),
+    screen.getByPlaceholderText("New password"),
     password
   );
   await fireEvent.changeText(
-    screen.getByPlaceholderText("Confirm Password"),
+    screen.getByPlaceholderText("Confirm new password"),
     password
   );
   await fireEvent.press(
-    screen.getByRole("button", { name: "Update Password" })
+    screen.getByRole("button", { name: "Update password" })
   );
 };
 
@@ -90,10 +91,10 @@ describe("ResetPasswordView", () => {
   it("rejects a password shorter than Clerk's minimum before calling Clerk", async () => {
     await render(<ResetPasswordView />);
 
-    await submitNewPassword("short");
+    await submitNewPassword("seven77");
 
     expect(
-      screen.getByText("Password must be at least 15 characters.")
+      screen.getByText("Password must be at least 8 characters.")
     ).toBeTruthy();
     expect(
       mockSignIn.resetPasswordEmailCode.submitPassword
@@ -129,7 +130,7 @@ describe("ResetPasswordView on a device Clerk doesn't trust yet", () => {
     expect(mockSignIn.mfa.sendEmailCode).toHaveBeenCalledTimes(1);
     expect(mockSignIn.finalize).not.toHaveBeenCalled();
     expect(router.push).toHaveBeenCalledWith({
-      params: { purpose: "sign-in" },
+      params: { purpose: "sign-in", source: "reset-password" },
       pathname: "/auth/verify-code",
     });
   });

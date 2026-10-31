@@ -1,62 +1,13 @@
 import { Stack } from "expo-router";
-import { useEffect, useState } from "react";
 import { useTranslation } from "react-i18next";
-import {
-  Keyboard,
-  KeyboardAvoidingView,
-  Platform,
-  TouchableWithoutFeedback,
-  View,
-} from "react-native";
-import { useSafeAreaInsets } from "react-native-safe-area-context";
-import Sign from "~/components/brand/sign";
-import { VStack } from "~/components/ui/vstack";
 import ResetPasswordView from "~/components/views/reset-password-view";
 
-export default function ResetPasswordScreen() {
+export default function Screen() {
   const { t } = useTranslation();
-  const [isKeyboardVisible, setIsKeyboardVisible] = useState(false);
-
-  useEffect(() => {
-    const showSubscription = Keyboard.addListener("keyboardWillShow", () =>
-      setIsKeyboardVisible(true)
-    );
-    const hideSubscription = Keyboard.addListener("keyboardWillHide", () =>
-      setIsKeyboardVisible(false)
-    );
-
-    return () => {
-      showSubscription.remove();
-      hideSubscription.remove();
-    };
-  }, []);
-
-  const insets = useSafeAreaInsets();
-
   return (
     <>
-      <Stack.Screen options={{ title: t("resetPassword.screenTitle") }} />
-
-      <View style={{ flex: 1, paddingTop: insets.top }}>
-        <KeyboardAvoidingView
-          behavior={Platform.OS === "ios" ? "padding" : "height"}
-          style={{ flex: 1 }}
-        >
-          {/* Tap-outside-to-dismiss only; keep the fields individually accessible */}
-          <TouchableWithoutFeedback
-            accessible={false}
-            onPress={Keyboard.dismiss}
-          >
-            <VStack className="h-full p-6">
-              <Sign
-                height={isKeyboardVisible ? 35 : 70}
-                width={isKeyboardVisible ? 35 : 70}
-              />
-              <ResetPasswordView />
-            </VStack>
-          </TouchableWithoutFeedback>
-        </KeyboardAvoidingView>
-      </View>
+      <Stack.Screen options={{ title: t("resetPassword.title") }} />
+      <ResetPasswordView />
     </>
   );
 }

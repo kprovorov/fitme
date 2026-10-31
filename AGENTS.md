@@ -461,6 +461,8 @@ Env files live next to each app. Every value comes from Infisical (project Fitme
 - `EXPO_PUBLIC_SUPABASE_URL`
 - `EXPO_PUBLIC_SUPABASE_ANON_KEY`
 - `EXPO_PUBLIC_CLERK_PUBLISHABLE_KEY`
+- `EXPO_PUBLIC_AUTH_APPLE_ENABLED` / `EXPO_PUBLIC_AUTH_GOOGLE_ENABLED` — `true` exposes the configured native provider on supported platforms; unset or `false` uses email auth. Enable only after completing `docs/agents/mobile-auth.md`
+- `EXPO_PUBLIC_CLERK_GOOGLE_WEB_CLIENT_ID`, `EXPO_PUBLIC_CLERK_GOOGLE_IOS_CLIENT_ID`, `EXPO_PUBLIC_CLERK_GOOGLE_IOS_URL_SCHEME` — public native Google configuration, copied into Expo `extra` by `app.config.ts`; the callback scheme is consumed at prebuild. The client secret stays in Clerk, never in a public env variable
 - `EXPO_PUBLIC_SENTRY_DSN` — the `fitme-mobile` Sentry project; ignored in `__DEV__` builds, which send nothing
 - `EXPO_PUBLIC_REVENUECAT_IOS_API_KEY`
 - `EXPO_PUBLIC_REVENUECAT_ANDROID_API_KEY`

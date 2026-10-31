@@ -1,11 +1,19 @@
+import "~/test-utils/auth-ui";
 /**
  * The emailed-code screen (every purpose) and the forgot and reset password
  * screens on a Ukrainian device: every string the app writes is Ukrainian.
  * Clerk's own error text stays as Clerk sends it. Each render goes through
  * the root layout's language sync, so the App language follows the device.
  */
-import { beforeEach, describe, expect, it, jest } from "@jest/globals";
-import { fireEvent, render, screen } from "@testing-library/react-native";
+import {
+  afterEach,
+  beforeEach,
+  describe,
+  expect,
+  it,
+  jest,
+} from "@jest/globals";
+import { act, fireEvent, render, screen } from "@testing-library/react-native";
 import type { ReactNode } from "react";
 import ForgotPasswordView from "~/components/views/forgot-password-view";
 import ResetPasswordView from "~/components/views/reset-password-view";
@@ -15,8 +23,12 @@ import { InAppLanguage } from "~/test-utils/in-app-language";
 
 /** Clerk's resources, each answering just enough for the screens' copy. */
 const mockSignUp = {
+  emailAddress: "tony@example.com",
   finalize: jest.fn(() => Promise.resolve({ error: null })),
+  id: "sua_uk",
+  reset: jest.fn(() => Promise.resolve({ error: null })),
   status: "missing_requirements",
+  unverifiedFields: ["email_address"],
   verifications: {
     sendEmailCode: jest.fn(() => Promise.resolve({ error: null })),
     // Clerk accepts the code, but the sign-up still misses a requirement.
@@ -29,16 +41,20 @@ const mockSignIn = {
     (): Promise<{ error: unknown }> => Promise.resolve({ error: null })
   ),
   finalize: jest.fn(() => Promise.resolve({ error: null })),
+  id: "sia_uk",
+  identifier: "tony@example.com",
   mfa: {
     sendEmailCode: jest.fn(() => Promise.resolve({ error: null })),
     verifyEmailCode: jest.fn(() => Promise.resolve({ error: null })),
   },
+  reset: jest.fn(() => Promise.resolve({ error: null })),
   resetPasswordEmailCode: {
     sendCode: jest.fn(() => Promise.resolve({ error: null })),
     submitPassword: jest.fn(() => Promise.resolve({ error: null })),
     verifyCode: jest.fn(() => Promise.resolve({ error: null })),
   },
   status: "needs_first_factor",
+  supportedFirstFactors: [{ strategy: "reset_password_email_code" }],
   supportedSecondFactors: [] as { strategy: string }[],
 };
 
@@ -78,10 +94,15 @@ const enterCode = async (code: string) => {
 };
 
 beforeEach(() => {
+  jest.useFakeTimers();
   jest.clearAllMocks();
   mockSignUp.status = "missing_requirements";
   mockSignIn.status = "needs_first_factor";
   mockSignIn.supportedSecondFactors = [];
+});
+
+afterEach(() => {
+  jest.useRealTimers();
 });
 
 describe("the emailed-code screen in Ukrainian", () => {
@@ -91,7 +112,7 @@ describe("the emailed-code screen in Ukrainian", () => {
     expect(screen.getByText("Перевірте пошту")).toBeTruthy();
     expect(
       screen.getByText(
-        "Введіть код, який ми надіслали на вашу пошту, щоб активувати акаунт"
+        "Введи 6-значний код, який ми надіслали на tony@example.com"
       )
     ).toBeTruthy();
 
@@ -109,7 +130,7 @@ describe("the emailed-code screen in Ukrainian", () => {
 
     expect(
       screen.getByText(
-        "Введіть код, який ми надіслали на вашу пошту, щоб скинути пароль"
+        "Введи 6-значний код, який ми надіслали на tony@example.com"
       )
     ).toBeTruthy();
 
@@ -121,11 +142,13 @@ describe("the emailed-code screen in Ukrainian", () => {
   });
 
   it("asks for the new-device code and says when it can't sign in", async () => {
+    mockSignIn.status = "needs_client_trust";
+    mockSignIn.supportedSecondFactors = [{ strategy: "email_code" }];
     await renderInUkrainian(<VerifyCodeView purpose="sign-in" />);
 
     expect(
       screen.getByText(
-        "Введіть код, який ми надіслали на вашу пошту, щоб підтвердити, що це ви на цьому пристрої"
+        "Введи 6-значний код, який ми надіслали на tony@example.com"
       )
     ).toBeTruthy();
 
@@ -139,8 +162,11 @@ describe("the emailed-code screen in Ukrainian", () => {
   it("sends a new code and says so", async () => {
     await renderInUkrainian(<VerifyCodeView purpose="sign-up" />);
 
+    await act(() => {
+      jest.advanceTimersByTime(60_000);
+    });
     await fireEvent.press(
-      screen.getByRole("button", { name: "Надіслати новий код" })
+      screen.getByRole("button", { name: "Надіслати код ще раз" })
     );
 
     expect(screen.getByText("Ми надіслали вам новий код.")).toBeTruthy();
@@ -151,13 +177,14 @@ describe("the forgot password screen in Ukrainian", () => {
   it("explains itself and rejects an invalid email", async () => {
     await renderInUkrainian(<ForgotPasswordView />);
 
-    expect(screen.getByText("Забули пароль?")).toBeTruthy();
+    expect(screen.getByText("Забув пароль?")).toBeTruthy();
     expect(
       screen.getByText(
-        "Введіть свою електронну пошту, і ми надішлемо вам код для скидання пароля."
+        "Введи ел. пошту, з якою зареєструвався. Ми надішлемо 6-значний код."
       )
     ).toBeTruthy();
-    expect(screen.getByText("Пам’ятаєте пароль? Увійдіть тут")).toBeTruthy();
+    expect(screen.getByText("Згадав пароль?")).toBeTruthy();
+    expect(screen.getByRole("link", { name: "Увійдіть тут" })).toBeTruthy();
 
     await fireEvent.changeText(
       screen.getByPlaceholderText("Електронна пошта"),
@@ -186,12 +213,15 @@ describe("the forgot password screen in Ukrainian", () => {
     );
 
     expect(
-      screen.getByText("Щось пішло не так. Спробуйте пізніше.")
+      screen.getByText("Перевір з’єднання та спробуй ще раз.")
     ).toBeTruthy();
   });
 });
 
 describe("the reset password screen in Ukrainian", () => {
+  beforeEach(() => {
+    mockSignIn.status = "needs_new_password";
+  });
   const submitPasswords = async (password: string, confirmation: string) => {
     await fireEvent.changeText(
       screen.getByPlaceholderText("Новий пароль"),
@@ -211,10 +241,10 @@ describe("the reset password screen in Ukrainian", () => {
 
     expect(screen.getByText("Встановіть новий пароль")).toBeTruthy();
 
-    await submitPasswords("short", "short");
+    await submitPasswords("seven77", "seven77");
 
     expect(
-      screen.getByText("Пароль має містити щонайменше 15 символів.")
+      screen.getByText("Пароль має містити щонайменше 8 символів.")
     ).toBeTruthy();
     expect(
       mockSignIn.resetPasswordEmailCode.submitPassword
@@ -238,7 +268,7 @@ describe("the reset password screen in Ukrainian", () => {
     );
     await renderInUkrainian(<ResetPasswordView />);
 
-    await submitPasswords("a-long-new-password", "a-long-new-password");
+    await submitPasswords("eight888", "eight888");
 
     expect(
       screen.getByText("Пароль змінено. Увійдіть з новим паролем.")
