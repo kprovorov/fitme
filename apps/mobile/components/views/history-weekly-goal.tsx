@@ -72,30 +72,27 @@ function WeekColumn({ pips, week }: { pips: number; week: GoalWeek }) {
       accessible
       className="min-w-9 items-center gap-xs"
     >
-      <View className="w-9 flex-1 justify-end gap-1">
-        {extra > 0 && (
-          <Text
+      <Text
+        className={cn(
+          "text-center text-caption-2-emphasized",
+          week.goal === null ? "text-muted-foreground" : "text-primary"
+        )}
+      >
+        {extra > 0 ? t("history.weeklyGoal.extra", { count: extra }) : "\u00a0"}
+      </Text>
+      <View className="w-9 gap-1">
+        {Array.from({ length: pips }, (_, index) => pips - index).map((pip) => (
+          <View
             className={cn(
-              "text-center text-caption-2-emphasized",
-              week.goal === null ? "text-muted-foreground" : "text-primary"
+              "h-2 rounded-full",
+              pip > slots && "opacity-0",
+              week.goal === null && "bg-muted-foreground",
+              week.goal !== null &&
+                (pip <= filled ? "bg-primary" : "bg-secondary")
             )}
-          >
-            {t("history.weeklyGoal.extra", { count: extra })}
-          </Text>
-        )}
-        {Array.from({ length: slots }, (_, index) => slots - index).map(
-          (pip) => (
-            <View
-              className={cn(
-                "h-2 rounded-full",
-                week.goal === null && "bg-muted-foreground",
-                week.goal !== null &&
-                  (pip <= filled ? "bg-primary" : "bg-secondary")
-              )}
-              key={pip}
-            />
-          )
-        )}
+            key={pip}
+          />
+        ))}
       </View>
       <Text className="text-caption-2 text-muted-foreground">
         {week.current
@@ -126,7 +123,9 @@ export default function HistoryWeeklyGoal({
     <View className="gap-sm">
       <View
         className={
-          stacked ? "gap-1" : "flex-row items-center justify-between gap-sm"
+          stacked
+            ? "gap-1"
+            : "flex-row flex-wrap items-center justify-between gap-x-sm gap-y-1"
         }
       >
         <Text className="text-footnote text-muted-foreground">

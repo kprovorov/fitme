@@ -83,10 +83,13 @@ const goalOfWeek = (
   if (!first || first.at >= end) {
     return { goal: null, kind: "unknown" };
   }
-  if (first.at > start) {
+  if (first.at >= start) {
     return first.target === null
       ? { goal: null, kind: "unknown" }
-      : { goal: first.target, kind: "firstPartial" };
+      : {
+          goal: first.target,
+          kind: first.at === start ? "tracked" : "firstPartial",
+        };
   }
   // Every later change takes effect the Monday after it, so the goal is the
   // last one recorded before the week began.

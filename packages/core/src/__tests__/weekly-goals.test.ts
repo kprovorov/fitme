@@ -78,6 +78,26 @@ describe("startOfGoalWeek", () => {
 });
 
 describe("weeklyGoalOverview", () => {
+  it("fully tracks the first week when tracking starts exactly Monday midnight", () => {
+    const result = overview(
+      [change("2026-10-19T00:00", 3)],
+      [
+        workout("2026-10-20T10:00"),
+        workout("2026-10-21T10:00"),
+        workout("2026-10-22T10:00"),
+      ]
+    );
+
+    expect(result.weeks.at(-2)).toMatchObject({
+      count: 3,
+      goal: 3,
+      hit: true,
+      kind: "tracked",
+    });
+    expect(result.eligibleWeeks).toBe(1);
+    expect(result.hitWeeks).toBe(1);
+  });
+
   it("has nothing to show without an active Plan", () => {
     expect(weeklyGoalOverview([], [], NOW)).toBeNull();
     expect(
