@@ -23,6 +23,12 @@ import {
   sql,
 } from "drizzle-orm";
 import type { AnyPgColumn } from "drizzle-orm/pg-core";
+import {
+  awardPersonalRecords,
+  personalRecordsOfSession,
+  type WorkoutSessionPersonalRecord,
+} from "./personal-records";
+import { lockProfileUnits } from "./profile";
 import { recordWeeklyGoal } from "./weekly-goals";
 
 /**
@@ -93,6 +99,11 @@ export interface WorkoutSessionSummary {
   finished_at: string | null;
   id: string;
   logged_set_count: number;
+  /**
+   * The Personal records it earned when it was finished, by Exercise slug,
+   * weights in the User's unit; empty for none.
+   */
+  personal_records: WorkoutSessionPersonalRecord[];
   plan: PlanRef | null;
   set_count: number;
   started_at: string;
@@ -224,6 +235,7 @@ export const listWorkoutSessions = async (
       loggedSetCount: countOf(
         sql`select count(*) from ${workoutSessionExerciseSets} where ${workoutSessionExerciseSets.workoutSessionExerciseId} in (${sessionExerciseIds}) and ${workoutSessionExerciseSets.loggedAt} is not null`
       ),
+      personalRecords: personalRecordsOfSession,
       setCount: countOf(
         sql`select count(*) from ${workoutSessionExerciseSets} where ${workoutSessionExerciseSets.workoutSessionExerciseId} in (${sessionExerciseIds})`
       ),
@@ -253,6 +265,7 @@ export const listWorkoutSessions = async (
       finished_at: row.finishedAt,
       id: row.id,
       logged_set_count: row.loggedSetCount,
+      personal_records: row.personalRecords,
       set_count: row.setCount,
       started_at: row.startedAt,
       status: statusOf(row.finishedAt),
@@ -1023,8 +1036,10 @@ const rotateWorkout = async (tx: Transaction, workoutId: string) => {
  * Finishes one of the User's Workout Sessions, in `tx` (from `asUser`), and
  * moves its Workout to the end of its Plan (`rotated`). A session
  * whose Workout was removed (e.g. `updatePlan` replaced the Workouts) is only
- * finished. Finishing an already finished session changes nothing
- * (`alreadyFinished`); one the User can't see is `not_found`.
+ * finished. The finish that claims the session awards the Personal records
+ * it earned (`awardPersonalRecords`), retained from then on. Finishing an
+ * already finished session changes nothing (`alreadyFinished`); one the User
+ * can't see is `not_found`.
  */
 export const finishWorkoutSession = async (
   tx: Transaction,
@@ -1046,6 +1061,10 @@ export const finishWorkoutSession = async (
   if (!owned) {
     return { status: "not_found" };
   }
+  // Share-lock the Profile before the Plan (the Plan Update's order): the
+  // Personal records below copy weights, so no measurement-system conversion
+  // may commit between reading them and writing the records
+  await lockProfileUnits(tx, owned.userId);
   if (owned.planId) {
     await tx
       .select({ id: plans.id })
@@ -1063,6 +1082,11 @@ export const finishWorkoutSession = async (
     )
     .returning({ workoutId: workoutSessions.workoutId });
 
+  // Only the finish that claimed the session awards its records, so a
+  // repeated or concurrent finish never awards twice
+  if (claimed) {
+    await awardPersonalRecords(tx, owned.userId, sessionId);
+  }
   const rotated = claimed?.workoutId
     ? await rotateWorkout(tx, claimed.workoutId)
     : false;

@@ -2951,6 +2951,8 @@ export interface components {
        * @example 8
        */
       logged_set_count: number;
+      /** @description The Personal records it earned when it was finished, one per Exercise at most, by Exercise slug; empty for none */
+      personal_records: components["schemas"]["PersonalRecord"][];
       /** @example 15 */
       set_count: number;
       /**
@@ -2958,6 +2960,26 @@ export interface components {
        * @example 4250
        */
       volume: number;
+    };
+    /** @description A Personal record a Workout Session earned when it was finished: its best set of the Exercise beat the User's results in earlier finished Workout Sessions. Retained from then on */
+    PersonalRecord: {
+      /**
+       * @description An Exercise slug from the Library API; every one is checked before anything is written
+       * @example barbell-back-squat
+       */
+      exercise_slug: string;
+      /**
+       * @description `weight`: a higher weight than any earlier result of the Exercise; `reps`: more reps at the earlier highest weight
+       * @enum {string}
+       */
+      kind: "weight" | "reps";
+      /** @example 5 */
+      reps: number;
+      /**
+       * @description In the page's `weight_unit`; 0 is a bodyweight record. Converted with every other weight when the measurement system changes
+       * @example 102.5
+       */
+      weight: number;
     };
   };
 }

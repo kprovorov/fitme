@@ -25,6 +25,7 @@ import {
 import type { ReactNode } from "react";
 import HistoryScreen from "~/app/(tabs)/history/index";
 import { i18n } from "~/lib/i18n";
+import { publicApi } from "~/lib/public-api";
 import {
   setDevice24HourClock,
   setDeviceLanguages,
@@ -97,6 +98,9 @@ jest.mock("~/components/ui/button", () =>
 
 const MINUTE_MS = 60_000;
 const ROW_NAMES = /^(Push Day|Workout|Pull Day)$/;
+// The Personal record VoiceOver reads after the rest of the row.
+const UKRAINIAN_RECORD =
+  /\. Особистий рекорд: Bench press, 105 кілограмів × 3 повторення$/;
 // `1 370 кг`, with Ukrainian's no-break space between thousands.
 const UKRAINIAN_PUSH_DAY = /^1 год 5 хв · 5 підходів · 1\s370 кг$/;
 const WEEKLY_GOAL = /Weekly goal/;
@@ -198,6 +202,26 @@ const acrossMonths: Entry = {
   workout: "Legs",
 };
 
+/**
+ * Push Day, opened after the gone Workout's 100 kg × 5 bench and finished
+ * through the Public API with 105 kg × 3: a weight record.
+ */
+const finishHeavierPushDay = async () => {
+  seedEntry(goneWorkout);
+  seedEntry({ ...pushDay, sets: [[3, 105]] });
+  const session = backend.session(pushDay.id);
+  if (!session) {
+    throw new Error("Push Day wasn't seeded");
+  }
+  const finishedAt = session.finished_at;
+  session.finished_at = null;
+  await publicApi().POST("/v1/workout-sessions/{id}/finish", {
+    params: { path: { id: pushDay.id } },
+  });
+  // Its seeded 1 h 5 min, not the fake's finishing time
+  session.finished_at = finishedAt;
+};
+
 const monthTitle = (date: Date) => formatDate(i18n, date, "monthYear");
 const dayTitle = (date: Date) => formatDate(i18n, date, "weekdayDayMonth");
 
@@ -266,6 +290,23 @@ describe("The History tab", () => {
       name: `Push Day, ${dayTitle(pushDay.start)}, 1h 5min, 5 sets, 1,370 kilograms`,
     });
     expect(within(row).getByText(String(pushDay.start.getDate()))).toBeTruthy();
+  });
+
+  it("badges the Workout Session that earned a Personal record, reading its Exercise and result", async () => {
+    await finishHeavierPushDay();
+    await mount();
+
+    // Only Push Day beat an earlier result; the gone Workout set the baseline.
+    expect(screen.getAllByText("PR")).toHaveLength(1);
+    const row = screen.getByRole("button", {
+      name: `Push Day, ${dayTitle(pushDay.start)}, 1h 5min, 1 set, 315 kilograms. Personal record: Bench press, 105 kilograms × 3 reps`,
+    });
+    expect(within(row).getByText("PR")).toBeTruthy();
+    expect(
+      screen.getByRole("button", {
+        name: `Workout, ${dayTitle(goneWorkout.start)}, 25min, 2 sets, 500 kilograms`,
+      })
+    ).toBeTruthy();
   });
 
   it("lists newest start first within a month", async () => {
@@ -428,6 +469,18 @@ describe("The History tab in Ukrainian", () => {
     expect(screen.getByText(UKRAINIAN_PUSH_DAY)).toBeTruthy();
     // The Workouts stat's caption and the gone Workout's name.
     expect(screen.getAllByText("Тренування")).toHaveLength(2);
+  });
+
+  it("badges and reads a Personal record in Ukrainian", async () => {
+    await finishHeavierPushDay();
+    await mount();
+
+    expect(screen.getAllByText("Рекорд")).toHaveLength(1);
+    expect(
+      screen.getByRole("button", {
+        name: UKRAINIAN_RECORD,
+      })
+    ).toBeTruthy();
   });
 });
 

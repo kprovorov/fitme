@@ -50,6 +50,52 @@ export const arnoldSessions = pgTable(
   ]
 );
 
+export const personalRecords = pgTable(
+  "personal_records",
+  {
+    createdAt: timestamp("created_at", { mode: "string", withTimezone: true })
+      .defaultNow()
+      .notNull(),
+    exerciseSlug: text("exercise_slug").notNull(),
+    id: uuid().defaultRandom().primaryKey().notNull(),
+    kind: text().notNull(),
+    reps: integer().notNull(),
+    userId: text("user_id").notNull(),
+    weight: numeric({ precision: 8, scale: 2 }).notNull(),
+    workoutSessionId: uuid("workout_session_id").notNull(),
+  },
+  (table) => [
+    index("personal_records_user_id_idx").using(
+      "btree",
+      table.userId.asc().nullsLast().op("text_ops")
+    ),
+    foreignKey({
+      columns: [table.workoutSessionId],
+      foreignColumns: [workoutSessions.id],
+      name: "personal_records_workout_session_id_fkey",
+    }).onDelete("cascade"),
+    unique("personal_records_session_exercise_key").on(
+      table.workoutSessionId,
+      table.exerciseSlug
+    ),
+    pgPolicy("personal_records_all", {
+      as: "permissive",
+      for: "all",
+      to: ["public"],
+      using: sql`(user_id = ( SELECT current_user_id() AS current_user_id))`,
+      withCheck: sql`((user_id = ( SELECT current_user_id() AS current_user_id)) AND (EXISTS ( SELECT 1
+   FROM workout_sessions ws
+  WHERE ((ws.id = personal_records.workout_session_id) AND (ws.user_id = ( SELECT current_user_id() AS current_user_id))))))`,
+    }),
+    check(
+      "personal_records_kind_check",
+      sql`kind = ANY (ARRAY['weight'::text, 'reps'::text])`
+    ),
+    check("personal_records_weight_check", sql`weight >= (0)::numeric`),
+    check("personal_records_reps_check", sql`reps > 0`),
+  ]
+);
+
 export const plans = pgTable(
   "plans",
   {

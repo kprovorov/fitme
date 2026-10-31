@@ -740,7 +740,15 @@
       "firstWeek": "перший відстежений тиждень",
       "noGoal": "ціль не записана",
       "weekLabel": "{{week}}: {{details}}"
-    }
+    },
+    "personalRecord": "Рекорд",
+    "entryWithRecords": "{{entry}}. {{records}}",
+    "personalRecords_one": "Особистий рекорд: {{records}}",
+    "personalRecords_few": "Особисті рекорди: {{records}}",
+    "personalRecords_many": "Особисті рекорди: {{records}}",
+    "personalRecords_other": "Особисті рекорди: {{records}}",
+    "recordResult": "{{exercise}}, {{weight}} × {{reps}}",
+    "bodyweightRecordResult": "{{exercise}}, власна вага × {{reps}}"
   },
   "workoutSummary": {
     "title": "Тренування завершено!",

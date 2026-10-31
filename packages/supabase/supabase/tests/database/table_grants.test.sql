@@ -21,6 +21,7 @@ select is(
   ),
   array[
     'arnold_sessions',
+    'personal_records',
     'plans',
     'profiles',
     'weekly_goal_changes',
