@@ -339,8 +339,8 @@ const search = async (term: string) => {
   await settle();
 };
 
-// A picker row adding its Exercise ("Додати Присідання").
-const ADD_ROW = /^Додати /;
+// A picker row adding its Exercise ("Додати вправу «Присідання»").
+const ADD_ROW = /^Додати вправу «/;
 
 describe("searching the Library", () => {
   it("adds the Exercise found by its Ukrainian name to a Workout Session by slug", async () => {

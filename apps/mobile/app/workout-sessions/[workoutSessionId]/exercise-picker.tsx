@@ -124,10 +124,11 @@ export default function ExercisePickerScreen() {
     [addExercise, close, replaceExercise, replacingId, sessionId, t]
   );
 
-  // One save at a time, so a double tap adds the Exercise once.
+  // One save at a time, so a double tap adds the Exercise once, and none
+  // once saved: a tap while the sheet slides away must not add another.
   const onExercisePress = useCallback(
     async (exercise: ExerciseSummary) => {
-      if (saving.current) {
+      if (saving.current || left.current) {
         return;
       }
       saving.current = true;

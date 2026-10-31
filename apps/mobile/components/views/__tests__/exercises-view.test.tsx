@@ -567,11 +567,24 @@ describe("each row", () => {
     expect(screen.getAllByText(MUSCLE_GROUP_SUBTITLE)).toHaveLength(1);
   });
 
-  it("ends with the trailing element its screen chose for that Exercise", async () => {
-    await renderView({ trailing: ({ slug }) => <Text>{`Pick ${slug}`}</Text> });
+  it("ends with the trailing element its screen chose", async () => {
+    await renderView({ trailing: <Text>Pick</Text> });
 
-    expect(screen.getByText("Pick dip")).toBeTruthy();
-    expect(screen.getByText("Pick mystery")).toBeTruthy();
+    expect(screen.getAllByText("Pick")).toHaveLength(2);
+  });
+
+  it("is a button named as its screen says, picking that Exercise", async () => {
+    const picked: string[] = [];
+    await renderView({
+      onExercisePress: ({ slug }) => {
+        picked.push(slug);
+      },
+      rowAccessibilityLabel: ({ name }) => `Add ${name}`,
+    });
+
+    await fireEvent.press(screen.getByRole("button", { name: "Add Dip" }));
+    expect(picked).toEqual(["dip"]);
+    expect(screen.getByRole("button", { name: "Add Mystery" })).toBeTruthy();
   });
 });
 

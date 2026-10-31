@@ -11,11 +11,6 @@ import { Text } from "~/components/ui/text";
 import { useChoiceLabels } from "~/lib/choices";
 import { cn } from "~/lib/utils";
 
-/** What ends each row: the same for every row, or chosen per Exercise. */
-export type ExerciseRowTrailing =
-  | React.ReactNode
-  | ((exercise: ExerciseSummary) => React.ReactNode);
-
 /**
  * The accent symbol ending a row, saying what tapping it does: the chevron
  * opening the Exercise, the picker's "+" or swap.
@@ -50,7 +45,8 @@ interface ExerciseRowProps {
   isFirst: boolean;
   isLast: boolean;
   onExercisePress: (exercise: ExerciseSummary) => void;
-  trailing?: ExerciseRowTrailing;
+  // What ends the row: the Library's chevron, the picker's "+" or swap.
+  trailing?: React.ReactNode;
 }
 
 /**
@@ -71,8 +67,6 @@ export function ExerciseRow({
   const handlePress = useCallback(() => {
     onExercisePress(exercise);
   }, [exercise, onExercisePress]);
-  const shownTrailing =
-    typeof trailing === "function" ? trailing(exercise) : trailing;
 
   return (
     <View
@@ -96,7 +90,7 @@ export function ExerciseRow({
             </Text>
           )}
         </View>
-        {shownTrailing}
+        {trailing}
       </MenuListItem>
     </View>
   );

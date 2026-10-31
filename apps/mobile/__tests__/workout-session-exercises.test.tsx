@@ -370,7 +370,9 @@ describe("the Exercise picker", () => {
     );
     await settle();
     expect(screen.getByRole("header", { name: "Додати вправу" })).toBeTruthy();
-    expect(screen.getByRole("button", { name: "Додати Випади" })).toBeTruthy();
+    expect(
+      screen.getByRole("button", { name: "Додати вправу «Випади»" })
+    ).toBeTruthy();
     await fireEvent.press(screen.getByLabelText("Закрити"));
     expect(pickerOpen()).toBe(false);
 
@@ -381,7 +383,7 @@ describe("the Exercise picker", () => {
       screen.getByRole("header", { name: "Замінити вправу" })
     ).toBeTruthy();
     expect(
-      screen.getByRole("button", { name: "Замінити на Випади" })
+      screen.getByRole("button", { name: "Замінити на «Випади»" })
     ).toBeTruthy();
   });
 });

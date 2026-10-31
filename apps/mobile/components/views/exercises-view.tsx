@@ -1,5 +1,6 @@
 import { type MuscleGroup, muscleGroups } from "@fitme/core";
 import type { ExerciseSummary } from "@fitme/library-sdk";
+import type React from "react";
 import { useCallback, useMemo, useState } from "react";
 import { useTranslation } from "react-i18next";
 import {
@@ -13,7 +14,6 @@ import {
 import {
   ExerciseRow,
   ExerciseRowSeparator,
-  type ExerciseRowTrailing,
 } from "~/components/exercises/exercise-row";
 import { Button } from "~/components/ui/button";
 import { ErrorMessage } from "~/components/ui/error-message";
@@ -65,7 +65,7 @@ const ExercisesView = ({
   // it does (the picker's "Add Bench Press").
   rowAccessibilityLabel?: (exercise: ExerciseSummary) => string;
   // What ends each row: the Library's chevron, or the picker's "+" or swap.
-  trailing?: ExerciseRowTrailing;
+  trailing?: React.ReactNode;
   initialMuscleGroup?: MuscleGroupFilter;
   // Pull to refresh (the Library tab).
   refreshable?: boolean;
