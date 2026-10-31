@@ -11,6 +11,7 @@ import type { ReactNode } from "react";
 import { Pressable, Text } from "react-native";
 import HomeScreen from "~/app/(tabs)/(home)/index";
 import { setDeviceLanguages } from "~/test-utils/device-locales";
+import { libraryExercise, serveLibrary } from "~/test-utils/fake-library";
 import { FAKE_USER_ID } from "~/test-utils/fake-public-api";
 import { backend } from "~/test-utils/fake-workout-backend";
 import { InAppLanguage } from "~/test-utils/in-app-language";
@@ -166,29 +167,31 @@ describe("Home in Ukrainian", () => {
     expect(screen.getByText("About Сила")).toBeTruthy();
     expect(screen.queryByText("Середній рівень")).toBeNull();
 
-    expect(screen.getByText("Наступне тренування")).toBeTruthy();
-    expect(screen.getByText("Наступні")).toBeTruthy();
+    // Each card's count with its plural form, the Plan's duration, its
+    // name and both buttons, as VoiceOver reads them.
     expect(screen.getByText("1 вправа")).toBeTruthy();
     expect(screen.getByText("3 вправи")).toBeTruthy();
     expect(screen.getByText("5 вправ")).toBeTruthy();
-    expect(screen.getByRole("button", { name: "Ноги, 1 вправа" })).toBeTruthy();
-    expect(
-      screen.getByRole("button", { name: "Почати тренування" })
-    ).toBeTruthy();
+    expect(screen.getAllByText("60 хв")).toHaveLength(3);
+    expect(screen.getAllByLabelText("60 хвилин")).toHaveLength(3);
+    expect(screen.getByRole("heading", { name: "Ноги" })).toBeTruthy();
+    expect(screen.getByRole("button", { name: "Огляд: Ноги" })).toBeTruthy();
+    expect(screen.getByRole("button", { name: "Почати: Ноги" })).toBeTruthy();
+    expect(screen.getAllByText("Огляд")).toHaveLength(3);
+    expect(screen.getAllByText("Почати")).toHaveLength(3);
   });
 
-  it("offers to finish the Next Workout while it's in progress", async () => {
+  it("names the muscle groups in Ukrainian, with the rest counted in their plural form", async () => {
+    serveLibrary([
+      libraryExercise("pull-1", {
+        muscle_groups: ["back", "lats", "biceps", "forearms", "traps"],
+      }),
+    ]);
     seedActivePlan();
-    backend.seed({ exercises: [], id: "s1" });
     await mount();
 
-    expect(screen.getByText("Перейти до тренування")).toBeTruthy();
-    expect(
-      screen.getByRole("button", { name: "Завершити тренування" })
-    ).toBeTruthy();
-    expect(
-      screen.queryByRole("button", { name: "Почати тренування" })
-    ).toBeNull();
+    expect(screen.getByText("+2")).toBeTruthy();
+    expect(screen.getByLabelText("і ще 2 групи м’язів")).toBeTruthy();
   });
 
   it("says the User is all set when the Plan has no Workouts", async () => {
@@ -235,6 +238,6 @@ describe("Home in Ukrainian", () => {
     );
     await settle(queryClient);
 
-    expect(screen.getByText("Наступне тренування")).toBeTruthy();
+    expect(screen.getByRole("heading", { name: "Ноги" })).toBeTruthy();
   });
 });

@@ -191,8 +191,15 @@
     "workouts": "Workouts",
     "planMenu": "Plan options",
     "logo": "Fitme",
-    "nextWorkout": "Next Workout",
-    "upcoming": "Upcoming",
+    "card": {
+      "preview": "Preview",
+      "previewNamed": "Preview {{name}}",
+      "start": "Start",
+      "startNamed": "Start {{name}}",
+      "moreMuscleGroups": "+{{count, number}}",
+      "moreMuscleGroupsSpoken_one": "and {{count, number}} more muscle group",
+      "moreMuscleGroupsSpoken_other": "and {{count, number}} more muscle groups"
+    },
     "allSet": "Nice job! You're all set!",
     "empty": {
       "title": "No active plan",
@@ -222,8 +229,7 @@
     "exercises_other": "{{count, number}} Exercises",
     "toWorkout": "To Workout",
     "openHint": "Opens the workout",
-    "openInProgressHint": "Opens the workout in progress",
-    "finish": "Finish Workout"
+    "openInProgressHint": "Opens the workout in progress"
   },
   "choices": {
     "experienceLevel": {

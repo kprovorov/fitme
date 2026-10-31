@@ -1,76 +1,33 @@
 import type { Workout } from "@fitme/core";
 import { Link, useRouter } from "expo-router";
-import { useCallback, useEffect, useState } from "react";
+import { useEffect, useState } from "react";
 import { useTranslation } from "react-i18next";
 import { Pressable, ScrollView } from "react-native";
 import { HStack } from "@/components/ui/hstack";
 import { Text } from "@/components/ui/text";
 import { H4 } from "@/components/ui/typography";
 import { VStack } from "@/components/ui/vstack";
-import { useFinishWorkoutSession } from "~/hooks/finish-workout-session";
 import { shownExercise, useExercises } from "~/hooks/queries/library";
-import {
-  findOpenSession,
-  openSessionPath,
-  useStartWorkout,
-  workoutSessionPath,
-} from "~/hooks/start-workout";
+import { findOpenSession } from "~/hooks/start-workout";
 import ExerciseImage from "../exercises/exercise-image";
 import { COUNT_SYMBOL } from "../plans/plan-symbols";
 import { SymbolImage } from "../symbol-image";
-import { Button } from "../ui/button";
 import { Card } from "../ui/card";
-import { BlockedStart } from "../workout-sessions/blocked-start";
-
-/**
- * Finishes the Workout's active session the way the session screen does
- * (see `useFinishWorkoutSession`), then opens its Summary over Home.
- */
-function FinishWorkoutButton({ sessionId }: { sessionId: string }) {
-  const { t } = useTranslation();
-  const { confirmFinish, isFinishing } = useFinishWorkoutSession(sessionId, {
-    outsideSession: true,
-  });
-  return (
-    <Button
-      isLoading={isFinishing}
-      label={t("workoutCard.finish")}
-      onPress={confirmFinish}
-      variant="secondary"
-    />
-  );
-}
 
 interface WorkoutCardProps {
-  state?: "upcoming" | "finished" | "default";
   workout: Workout;
 }
 
 /**
  * A Workout, compact: its name, Exercise count and thumbnails. Pressing it
  * opens its open Workout Session if it has one, otherwise its Workout
- * screen. The Next Workout (`upcoming`) also gets Start or Finish, Start
- * blocked while another Workout is in progress.
+ * screen. On the Plan screen; the Workout tab has its own cards
+ * (`components/workouts/workout-carousel-card.tsx`).
  */
-export default function WorkoutCard({
-  workout,
-  state = "default",
-}: WorkoutCardProps) {
+export default function WorkoutCard({ workout }: WorkoutCardProps) {
   const router = useRouter();
   const { t } = useTranslation();
-  const { blockedBy, startWorkout, isStarting } = useStartWorkout(
-    workout.id,
-    (sessionId) => {
-      router.push(workoutSessionPath(workout.plan_id, workout.id, sessionId));
-    }
-  );
-
   const activeSession = findOpenSession(workout);
-  const continueBlocking = useCallback(() => {
-    if (blockedBy) {
-      router.push(openSessionPath(blockedBy));
-    }
-  }, [router, blockedBy]);
 
   const [elapsedTime, setElapsedTime] = useState<string>("");
 
@@ -194,31 +151,6 @@ export default function WorkoutCard({
             )}
           </VStack>
         </Pressable>
-        {state === "upcoming" && (
-          <VStack className="items-stretch">
-            {activeSession && (
-              <FinishWorkoutButton sessionId={activeSession.id} />
-            )}
-            {!activeSession && blockedBy && (
-              <BlockedStart
-                blockedBy={blockedBy}
-                onContinue={continueBlocking}
-                // The in-progress card's timer is Home's lime way in.
-                variant="secondary"
-              />
-            )}
-            {!(activeSession || blockedBy) && (
-              <Button
-                icon="arrow.right"
-                iconPosition="trailing"
-                isLoading={isStarting}
-                label={t("startWorkout.start")}
-                onPress={startWorkout}
-                testID="start-workout-button"
-              />
-            )}
-          </VStack>
-        )}
       </VStack>
     </Card>
   );
