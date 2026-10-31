@@ -60,17 +60,18 @@ function WorkoutCover({
   const covers = useCovers();
   const [failedUrl, setFailedUrl] = useState<string>();
   const imageUrl = coverId ? covers.get(coverId)?.image_url : undefined;
-  const onError = useCallback(() => setFailedUrl(imageUrl), [imageUrl]);
-  if (!imageUrl || failedUrl === imageUrl) {
+  const uri = imageUrl
+    ? sizedThumbnailUrl(imageUrl, Math.round(width), CARD_HEIGHT)
+    : undefined;
+  const onError = useCallback(() => setFailedUrl(uri), [uri]);
+  if (!uri || failedUrl === uri) {
     return null;
   }
   return (
     <Image
       contentFit="cover"
       onError={onError}
-      source={{
-        uri: sizedThumbnailUrl(imageUrl, Math.round(width), CARD_HEIGHT),
-      }}
+      source={{ uri }}
       style={coverStyle}
       testID={testID}
     />
