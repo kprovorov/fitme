@@ -15,6 +15,7 @@ import { H4 } from "~/components/ui/typography";
 import HistoryMonthOverview from "~/components/views/history-month-overview";
 import WorkoutSessionHistoryRow from "~/components/views/workout-session-history-row";
 import { usePlansQuery } from "~/hooks/queries/plans";
+import { useWeeklyGoalsQuery } from "~/hooks/queries/weekly-goals";
 import {
   useOpenWorkoutSessionQuery,
   useWorkoutSessionHistoryQuery,
@@ -121,6 +122,9 @@ export default function HistoryScreen() {
     isError: isPlansError,
     refetch: refetchPlans,
   } = usePlansQuery();
+  // A failed read only hides the Weekly goal; the list still shows.
+  const { data: weeklyGoals, refetch: refetchWeeklyGoals } =
+    useWeeklyGoalsQuery();
 
   // Grouped on every render, not memoized: `useI18n()` re-renders the screen
   // when the App language (or the device's region) changes, and the month
@@ -134,8 +138,14 @@ export default function HistoryScreen() {
         refetchWorkoutSessions(),
         refetchOpenSession(),
         refetchPlans(),
+        refetchWeeklyGoals(),
       ]),
-    [refetchWorkoutSessions, refetchOpenSession, refetchPlans]
+    [
+      refetchWorkoutSessions,
+      refetchOpenSession,
+      refetchPlans,
+      refetchWeeklyGoals,
+    ]
   );
 
   const retry = useCallback(() => {
@@ -213,7 +223,7 @@ export default function HistoryScreen() {
         ListEmptyComponent={renderEmpty()}
         ListHeaderComponent={
           history && history.sessions.length > 0 ? (
-            <HistoryMonthOverview history={history} />
+            <HistoryMonthOverview history={history} weeklyGoals={weeklyGoals} />
           ) : null
         }
         recycleItems={false}

@@ -16,6 +16,7 @@ import {
   sql,
 } from "drizzle-orm";
 import { jsonTimestamp } from "./json-timestamp";
+import { recordWeeklyGoal } from "./weekly-goals";
 
 /** A Plan's own columns, without its Workouts. */
 export interface PlanRow {
@@ -300,6 +301,8 @@ export const deletePlan = async (
     .where(livePlanOf(userId, planId))
     .returning({ id: plans.id, name: plans.name });
   if (deleted) {
+    // The active Plan gone, the Weekly goal is too
+    await recordWeeklyGoal(tx, userId);
     return { alreadyDeleted: false, deleted: true, plan: deleted };
   }
   const [existing] = await tx
@@ -369,6 +372,7 @@ export const activatePlan = async (
         or(eq(plans.isActive, true), eq(plans.id, planId))
       )
     );
+  await recordWeeklyGoal(tx, userId);
   const [activated] = await findPlanSummaries(tx, userId, planId);
   return activated ?? null;
 };
@@ -607,6 +611,10 @@ export const updatePlan = async (
     .returning({ id: plans.id });
   if (!updated) {
     return null;
+  }
+  if (metadata.frequency !== undefined) {
+    // A no-op unless it's the active Plan's frequency that changed
+    await recordWeeklyGoal(tx, userId);
   }
   if (newWorkouts) {
     await tx.delete(workoutsTable).where(eq(workoutsTable.planId, planId));

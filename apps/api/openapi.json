@@ -846,6 +846,29 @@
         ],
         "additionalProperties": false
       },
+      "WeeklyGoalChange": {
+        "type": "object",
+        "properties": {
+          "recorded_at": {
+            "type": "string",
+            "format": "date-time",
+            "description": "When the Weekly goal changed (ISO 8601)",
+            "example": "2026-10-01T10:00:00.123456+00:00"
+          },
+          "target": {
+            "type": "integer",
+            "nullable": true,
+            "minimum": 1,
+            "maximum": 7,
+            "description": "Qualifying Workout Sessions a week, the active Plan's training frequency; `null` once no Plan is active",
+            "example": 4
+          }
+        },
+        "required": [
+          "recorded_at",
+          "target"
+        ]
+      },
       "WorkoutSessionSet": {
         "type": "object",
         "properties": {
@@ -2851,6 +2874,72 @@
           },
           "415": {
             "description": "The body isn't `application/json`",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Error"
+                }
+              }
+            }
+          },
+          "429": {
+            "description": "Too many requests from this User; retry after `Retry-After`",
+            "headers": {
+              "Retry-After": {
+                "schema": {
+                  "type": "string",
+                  "description": "Seconds until the limit resets",
+                  "example": "30"
+                },
+                "required": true,
+                "description": "Seconds until the limit resets"
+              }
+            },
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Error"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/v1/weekly-goals": {
+      "get": {
+        "description": "Every change of the User's Weekly goal (ADR 0015), oldest first, unpaged. The goal is the active Plan's training frequency, recorded whenever a Plan write or a finished Workout Session finds it changed; recorded changes are never rewritten.\n\nWeeks run Monday to Sunday on the client's own clock. The first change started tracking and sets the goal of the week it falls in (the first tracked, partial week); every later change takes effect the Monday after it, so a week's goal is the one in effect when it began. Weeks before the first change, or that began with `target: null`, have no known goal.",
+        "security": [
+          {
+            "bearerAuth": []
+          }
+        ],
+        "summary": "List the User's Weekly goal changes",
+        "responses": {
+          "200": {
+            "description": "The User's Weekly goal changes",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object",
+                  "properties": {
+                    "data": {
+                      "type": "array",
+                      "items": {
+                        "$ref": "#/components/schemas/WeeklyGoalChange"
+                      },
+                      "description": "Every change, oldest first; empty before tracking started"
+                    }
+                  },
+                  "required": [
+                    "data"
+                  ]
+                }
+              }
+            }
+          },
+          "401": {
+            "description": "No valid Clerk session token",
             "content": {
               "application/json": {
                 "schema": {

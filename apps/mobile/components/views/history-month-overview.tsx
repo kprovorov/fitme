@@ -1,4 +1,8 @@
-import { monthlyTotals } from "@fitme/core";
+import {
+  monthlyTotals,
+  type WeeklyGoalChange,
+  weeklyGoalOverview,
+} from "@fitme/core";
 import {
   formatCompactVolume,
   formatCount,
@@ -8,8 +12,10 @@ import {
 } from "@fitme/i18n";
 import { useTranslation } from "react-i18next";
 import { View } from "react-native";
+import { Separator } from "~/components/ui/separator";
 import { Text } from "~/components/ui/text";
 import { H4 } from "~/components/ui/typography";
+import HistoryWeeklyGoal from "~/components/views/history-weekly-goal";
 import type { WorkoutSessionHistory } from "~/hooks/queries/workout-sessions";
 import { useStackedLayout } from "~/hooks/stacked-layout";
 import { useI18n } from "~/lib/i18n";
@@ -56,18 +62,25 @@ function Stat({
 /**
  * The current calendar month's training, above History's list: qualifying
  * Workout Sessions, their full elapsed time and their volume. Always this
- * month, whatever the list shows, and zeros when it has none.
+ * month, whatever the list shows, and zeros when it has none. Under it the
+ * Weekly goal chart, with an active Plan only (`weeklyGoals` unread or
+ * failed: none).
  */
 export default function HistoryMonthOverview({
   history,
+  weeklyGoals,
 }: {
   history: WorkoutSessionHistory;
+  weeklyGoals: WeeklyGoalChange[] | undefined;
 }) {
   const i18n = useI18n();
   const { t } = useTranslation();
   const totals = monthlyTotals(history.sessions);
   const time = formatDuration(i18n, totals.elapsedMs);
   const stacked = useStackedLayout();
+  const goalOverview = weeklyGoals
+    ? weeklyGoalOverview(weeklyGoals, history.sessions)
+    : null;
 
   return (
     <View className="gap-sm px-1 pb-lg">
@@ -97,6 +110,12 @@ export default function HistoryMonthOverview({
           value={formatCompactVolume(i18n, totals.volume, history.weightUnit)}
         />
       </View>
+      {goalOverview ? (
+        <>
+          <Separator />
+          <HistoryWeeklyGoal overview={goalOverview} />
+        </>
+      ) : null}
     </View>
   );
 }

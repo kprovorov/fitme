@@ -1188,6 +1188,70 @@ export interface paths {
     };
     trace?: never;
   };
+  "/v1/weekly-goals": {
+    parameters: {
+      query?: never;
+      header?: never;
+      path?: never;
+      cookie?: never;
+    };
+    /**
+     * List the User's Weekly goal changes
+     * @description Every change of the User's Weekly goal (ADR 0015), oldest first, unpaged. The goal is the active Plan's training frequency, recorded whenever a Plan write or a finished Workout Session finds it changed; recorded changes are never rewritten.
+     *
+     *     Weeks run Monday to Sunday on the client's own clock. The first change started tracking and sets the goal of the week it falls in (the first tracked, partial week); every later change takes effect the Monday after it, so a week's goal is the one in effect when it began. Weeks before the first change, or that began with `target: null`, have no known goal.
+     */
+    get: {
+      parameters: {
+        query?: never;
+        header?: never;
+        path?: never;
+        cookie?: never;
+      };
+      requestBody?: never;
+      responses: {
+        /** @description The User's Weekly goal changes */
+        200: {
+          headers: {
+            [name: string]: unknown;
+          };
+          content: {
+            "application/json": {
+              /** @description Every change, oldest first; empty before tracking started */
+              data: components["schemas"]["WeeklyGoalChange"][];
+            };
+          };
+        };
+        /** @description No valid Clerk session token */
+        401: {
+          headers: {
+            [name: string]: unknown;
+          };
+          content: {
+            "application/json": components["schemas"]["Error"];
+          };
+        };
+        /** @description Too many requests from this User; retry after `Retry-After` */
+        429: {
+          headers: {
+            /** @description Seconds until the limit resets */
+            "Retry-After": string;
+            [name: string]: unknown;
+          };
+          content: {
+            "application/json": components["schemas"]["Error"];
+          };
+        };
+      };
+    };
+    put?: never;
+    post?: never;
+    delete?: never;
+    options?: never;
+    head?: never;
+    patch?: never;
+    trace?: never;
+  };
   "/v1/workout-session-exercises/{id}": {
     parameters: {
       query?: never;
@@ -2595,6 +2659,19 @@ export interface components {
        * @example 61.5
        */
       weight: number;
+    };
+    WeeklyGoalChange: {
+      /**
+       * Format: date-time
+       * @description When the Weekly goal changed (ISO 8601)
+       * @example 2026-10-01T10:00:00.123456+00:00
+       */
+      recorded_at: string;
+      /**
+       * @description Qualifying Workout Sessions a week, the active Plan's training frequency; `null` once no Plan is active
+       * @example 4
+       */
+      target: number | null;
     };
     WorkoutSessionSet: {
       /**

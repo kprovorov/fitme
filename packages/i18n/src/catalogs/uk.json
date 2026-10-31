@@ -718,7 +718,29 @@
       "volume": "Обсяг"
     },
     "statLabel": "{{title}}: {{value}}",
-    "entry": "{{name}}, {{date}}, {{duration}}, {{sets}}, {{volume}}"
+    "entry": "{{name}}, {{date}}, {{duration}}, {{sets}}, {{volume}}",
+    "weeklyGoal": {
+      "title": "Ціль на тиждень · {{workouts}}",
+      "weeksHit_one": "Виконано {{hit, number}} з {{count, number}} тижня",
+      "weeksHit_few": "Виконано {{hit, number}} з {{count, number}} тижнів",
+      "weeksHit_many": "Виконано {{hit, number}} з {{count, number}} тижнів",
+      "weeksHit_other": "Виконано {{hit, number}} з {{count, number}} тижня",
+      "now": "Зараз",
+      "extra": "+{{count, number}}",
+      "thisWeek": "Цей тиждень",
+      "weekOf": "Тиждень з {{date}}",
+      "progress_one": "{{done, number}} з {{count, number}} тренування",
+      "progress_few": "{{done, number}} з {{count, number}} тренувань",
+      "progress_many": "{{done, number}} з {{count, number}} тренувань",
+      "progress_other": "{{done, number}} з {{count, number}} тренування",
+      "overGoal": "понад ціль: {{count, number}}",
+      "goalMet": "ціль досягнуто",
+      "goalMissed": "ціль не досягнуто",
+      "inProgress": "триває",
+      "firstWeek": "перший відстежений тиждень",
+      "noGoal": "ціль не записана",
+      "weekLabel": "{{week}}: {{details}}"
+    }
   },
   "workoutSummary": {
     "title": "Тренування завершено!",

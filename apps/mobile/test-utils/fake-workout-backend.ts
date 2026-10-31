@@ -121,6 +121,12 @@ class FakeWorkoutBackend {
   sessions: SessionRow[] = [];
   exercises: ExerciseRow[] = [];
   sets: SetRow[] = [];
+  /**
+   * The User's Weekly goal changes, oldest first, as `GET /v1/weekly-goals`
+   * answers them: seeded by the test (the fake's Plan writes don't record
+   * them; the services do, and their integration tests cover it).
+   */
+  weeklyGoalChanges: Array<{ recorded_at: string; target: number | null }> = [];
   /** Every request received, in order. */
   requests: Request[] = [];
   /** Queries the fake cannot answer; a test bug, checked after each test. */
@@ -136,6 +142,7 @@ class FakeWorkoutBackend {
     this.sessions = [];
     this.exercises = [];
     this.sets = [];
+    this.weeklyGoalChanges = [];
     this.requests = [];
     this.unsupported = [];
     this.inFlight = 0;

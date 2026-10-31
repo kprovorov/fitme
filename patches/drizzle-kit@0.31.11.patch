@@ -1,0 +1,66 @@
+diff --git a/api.js b/api.js
+index f4ecb91959f62fc938416a0585458c0a710af161..db7e732393ca3c97dbcf0a8223e3f79d4f6e9471 100644
+--- a/api.js
++++ b/api.js
+@@ -23125,7 +23125,7 @@ WHERE
+       const schemasForLinkedPoliciesInSchema = Object.values(tsSchema?.policies ?? {}).map((it) => it.schema);
+       const wherePolicies = [...schemaFilters, ...schemasForLinkedPoliciesInSchema].map((t6) => `schemaname = '${t6}'`).join(" or ");
+       const policiesByTable = {};
+-      const allPolicies = await db.query(`SELECT schemaname, tablename, policyname as name, permissive as "as", roles as to, cmd as for, qual as using, with_check as "withCheck" FROM pg_policies${wherePolicies === "" ? "" : ` WHERE ${wherePolicies}`};`);
++      const allPolicies = await db.query(`SELECT schemaname, tablename, policyname as name, permissive as "as", roles as to, cmd as for, qual as using, with_check as "withCheck" FROM pg_policies${wherePolicies === "" ? "" : ` WHERE ${wherePolicies}`} ORDER BY schemaname, tablename, policyname;`);
+       for (const dbPolicy of allPolicies) {
+         const { tablename, schemaname, to, withCheck, using, ...rest } = dbPolicy;
+         const tableForPolicy = policiesByTable[`${schemaname}.${tablename}`];
+@@ -23133,7 +23133,7 @@ WHERE
+         const parsedWithCheck = withCheck === null ? void 0 : withCheck;
+         const parsedUsing = using === null ? void 0 : using;
+         if (tableForPolicy) {
+-          tableForPolicy[dbPolicy.name] = { ...rest, to: parsedTo };
++          tableForPolicy[dbPolicy.name] = { ...rest, to: parsedTo, withCheck: parsedWithCheck, using: parsedUsing };
+         } else {
+           policiesByTable[`${schemaname}.${tablename}`] = {
+             [dbPolicy.name]: { ...rest, to: parsedTo, withCheck: parsedWithCheck, using: parsedUsing }
+diff --git a/api.mjs b/api.mjs
+index a940272dfb05accf57a472c46c52652ec9ad0080..1fd941f0f4cae4ad57dd3187f0736a0dda6bd890 100644
+--- a/api.mjs
++++ b/api.mjs
+@@ -23141,7 +23141,7 @@ WHERE
+       const schemasForLinkedPoliciesInSchema = Object.values(tsSchema?.policies ?? {}).map((it) => it.schema);
+       const wherePolicies = [...schemaFilters, ...schemasForLinkedPoliciesInSchema].map((t6) => `schemaname = '${t6}'`).join(" or ");
+       const policiesByTable = {};
+-      const allPolicies = await db.query(`SELECT schemaname, tablename, policyname as name, permissive as "as", roles as to, cmd as for, qual as using, with_check as "withCheck" FROM pg_policies${wherePolicies === "" ? "" : ` WHERE ${wherePolicies}`};`);
++      const allPolicies = await db.query(`SELECT schemaname, tablename, policyname as name, permissive as "as", roles as to, cmd as for, qual as using, with_check as "withCheck" FROM pg_policies${wherePolicies === "" ? "" : ` WHERE ${wherePolicies}`} ORDER BY schemaname, tablename, policyname;`);
+       for (const dbPolicy of allPolicies) {
+         const { tablename, schemaname, to, withCheck, using, ...rest } = dbPolicy;
+         const tableForPolicy = policiesByTable[`${schemaname}.${tablename}`];
+@@ -23149,7 +23149,7 @@ WHERE
+         const parsedWithCheck = withCheck === null ? void 0 : withCheck;
+         const parsedUsing = using === null ? void 0 : using;
+         if (tableForPolicy) {
+-          tableForPolicy[dbPolicy.name] = { ...rest, to: parsedTo };
++          tableForPolicy[dbPolicy.name] = { ...rest, to: parsedTo, withCheck: parsedWithCheck, using: parsedUsing };
+         } else {
+           policiesByTable[`${schemaname}.${tablename}`] = {
+             [dbPolicy.name]: { ...rest, to: parsedTo, withCheck: parsedWithCheck, using: parsedUsing }
+diff --git a/bin.cjs b/bin.cjs
+index c28f3e4732f0d911237dc1eb1bc466cefaa1b976..5dfe6cfbf23e751e28beb615c0829291255859f3 100755
+--- a/bin.cjs
++++ b/bin.cjs
+@@ -17682,7 +17682,7 @@ WHERE
+       const schemasForLinkedPoliciesInSchema = Object.values((tsSchema == null ? void 0 : tsSchema.policies) ?? {}).map((it) => it.schema);
+       const wherePolicies = [...schemaFilters, ...schemasForLinkedPoliciesInSchema].map((t4) => `schemaname = '${t4}'`).join(" or ");
+       const policiesByTable = {};
+-      const allPolicies = await db.query(`SELECT schemaname, tablename, policyname as name, permissive as "as", roles as to, cmd as for, qual as using, with_check as "withCheck" FROM pg_policies${wherePolicies === "" ? "" : ` WHERE ${wherePolicies}`};`);
++      const allPolicies = await db.query(`SELECT schemaname, tablename, policyname as name, permissive as "as", roles as to, cmd as for, qual as using, with_check as "withCheck" FROM pg_policies${wherePolicies === "" ? "" : ` WHERE ${wherePolicies}`} ORDER BY schemaname, tablename, policyname;`);
+       for (const dbPolicy of allPolicies) {
+         const { tablename, schemaname, to, withCheck, using, ...rest } = dbPolicy;
+         const tableForPolicy = policiesByTable[`${schemaname}.${tablename}`];
+@@ -17690,7 +17690,7 @@ WHERE
+         const parsedWithCheck = withCheck === null ? void 0 : withCheck;
+         const parsedUsing = using === null ? void 0 : using;
+         if (tableForPolicy) {
+-          tableForPolicy[dbPolicy.name] = { ...rest, to: parsedTo };
++          tableForPolicy[dbPolicy.name] = { ...rest, to: parsedTo, withCheck: parsedWithCheck, using: parsedUsing };
+         } else {
+           policiesByTable[`${schemaname}.${tablename}`] = {
+             [dbPolicy.name]: { ...rest, to: parsedTo, withCheck: parsedWithCheck, using: parsedUsing }

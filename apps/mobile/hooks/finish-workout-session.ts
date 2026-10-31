@@ -10,6 +10,7 @@ import { useNavigation, useRouter } from "expo-router";
 import { useCallback, useMemo } from "react";
 import { Alert } from "react-native";
 import { showPlanUpdatePrompt } from "~/hooks/plan-update-prompt";
+import { WEEKLY_GOALS_QUERY_KEY } from "~/hooks/queries/weekly-goals";
 import {
   FINISH_WORKOUT_SESSION_MUTATION_KEY,
   type FinishWorkoutSessionVariables,
@@ -197,6 +198,14 @@ export function useFinishWorkoutSession(
       await queryClient.invalidateQueries({ queryKey: ["workout-session"] });
       await queryClient.invalidateQueries({ queryKey: ["plans"] });
       await queryClient.invalidateQueries({ queryKey: ["exercise-history"] });
+      // History's months and Weekly goal chart count it now (a finish may
+      // also start goal tracking)
+      await queryClient.invalidateQueries({
+        queryKey: ["workout-sessions-history"],
+      });
+      await queryClient.invalidateQueries({
+        queryKey: WEEKLY_GOALS_QUERY_KEY,
+      });
       // Start is no longer blocked on it.
       await queryClient.invalidateQueries({
         queryKey: OPEN_WORKOUT_SESSION_QUERY_KEY,

@@ -656,7 +656,25 @@
       "volume": "Volume"
     },
     "statLabel": "{{title}}: {{value}}",
-    "entry": "{{name}}, {{date}}, {{duration}}, {{sets}}, {{volume}}"
+    "entry": "{{name}}, {{date}}, {{duration}}, {{sets}}, {{volume}}",
+    "weeklyGoal": {
+      "title": "Weekly goal · {{workouts}}",
+      "weeksHit_one": "{{hit, number}} of {{count, number}} week hit",
+      "weeksHit_other": "{{hit, number}} of {{count, number}} weeks hit",
+      "now": "Now",
+      "extra": "+{{count, number}}",
+      "thisWeek": "This week",
+      "weekOf": "Week of {{date}}",
+      "progress_one": "{{done, number}} of {{count, number}} workout",
+      "progress_other": "{{done, number}} of {{count, number}} workouts",
+      "overGoal": "{{count, number}} over the goal",
+      "goalMet": "goal met",
+      "goalMissed": "goal missed",
+      "inProgress": "in progress",
+      "firstWeek": "first tracked week",
+      "noGoal": "no goal recorded",
+      "weekLabel": "{{week}}: {{details}}"
+    }
   },
   "workoutSummary": {
     "title": "Workout Complete!",

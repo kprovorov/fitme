@@ -11,6 +11,7 @@ import {
   useDeletePlanMutation,
   usePlanQuery,
 } from "~/hooks/queries/plans";
+import { WEEKLY_GOALS_QUERY_KEY } from "~/hooks/queries/weekly-goals";
 import { ApiError, rateLimitedFor } from "~/lib/api/client";
 
 /**
@@ -39,6 +40,8 @@ export default function PlanScreen() {
   const refreshPlans = useCallback(() => {
     queryClient.invalidateQueries({ queryKey: ["plans"] });
     queryClient.invalidateQueries({ queryKey: ["plan"] });
+    // Activating or deleting the active Plan changes the Weekly goal
+    queryClient.invalidateQueries({ queryKey: WEEKLY_GOALS_QUERY_KEY });
   }, [queryClient]);
 
   const { mutate: activatePlan } = useActivatePlanMutation({

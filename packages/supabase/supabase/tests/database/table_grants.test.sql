@@ -7,7 +7,7 @@
 -- Run with `pnpm db test:db` (supabase test db).
 begin;
 
-select plan(6);
+select plan(9);
 
 -- A new table grants what it needs in its own migration, then gets a line
 -- here (and in the checks below if it doesn't take the app tables' grants).
@@ -23,6 +23,7 @@ select is(
     'arnold_sessions',
     'plans',
     'profiles',
+    'weekly_goal_changes',
     'workout_exercise_sets',
     'workout_exercises',
     'workout_session_exercise_sets',
@@ -42,7 +43,8 @@ select is_empty(
   'anon, authenticated and service_role can use the public schema'
 );
 
--- Every table but arnold_sessions, which narrows its own grants.
+-- Every table but arnold_sessions and weekly_goal_changes, which narrow
+-- their own grants.
 select is_empty(
   $$
     select c.relname, r.role, p.privilege
@@ -53,7 +55,7 @@ select is_empty(
     ]) as p(privilege)
     where c.relnamespace = 'public'::regnamespace
       and c.relkind in ('r', 'p')
-      and c.relname <> 'arnold_sessions'
+      and c.relname not in ('arnold_sessions', 'weekly_goal_changes')
       and not has_table_privilege(r.role, c.oid, p.privilege)
   $$,
   'anon, authenticated and service_role hold every privilege on the app tables'
@@ -95,6 +97,43 @@ select is_empty(
     where not has_table_privilege('service_role', 'public.arnold_sessions', p.privilege)
   $$,
   'service_role holds every privilege on arnold_sessions'
+);
+
+-- weekly_goal_changes (20261031120000_weekly_goal_changes.sql): an
+-- append-only log a User reads and records their own goals in, anon nothing.
+select is_empty(
+  $$
+    select acl.privilege_type
+    from pg_catalog.pg_class c
+    cross join lateral aclexplode(c.relacl) acl
+    where c.oid = 'public.weekly_goal_changes'::regclass
+      and acl.grantee = 'anon'::regrole
+  $$,
+  'anon has no grants on weekly_goal_changes'
+);
+
+select is(
+  array(
+    select acl.privilege_type::text
+    from pg_catalog.pg_class c
+    cross join lateral aclexplode(c.relacl) acl
+    where c.oid = 'public.weekly_goal_changes'::regclass
+      and acl.grantee = 'authenticated'::regrole
+    order by 1
+  ),
+  array['INSERT', 'SELECT'],
+  'authenticated can only read and insert weekly_goal_changes'
+);
+
+select is_empty(
+  $$
+    select p.privilege
+    from unnest(array[
+      'select', 'insert', 'update', 'delete', 'truncate', 'references', 'trigger'
+    ]) as p(privilege)
+    where not has_table_privilege('service_role', 'public.weekly_goal_changes', p.privilege)
+  $$,
+  'service_role holds every privilege on weekly_goal_changes'
 );
 
 select * from finish();
