@@ -147,6 +147,7 @@ describe("list_workout_sessions", () => {
     finished_at: null,
     id: SESSION_ID,
     logged_set_count: 2,
+    personal_records: [],
     plan: null,
     set_count: 3,
     started_at: "2026-10-01T10:00:00+00:00",

@@ -1433,6 +1433,13 @@
             "description": "Sets with a logged result",
             "example": 8
           },
+          "personal_records": {
+            "type": "array",
+            "items": {
+              "$ref": "#/components/schemas/PersonalRecord"
+            },
+            "description": "The Personal records it earned when it was finished, one per Exercise at most, by Exercise slug; empty for none"
+          },
           "set_count": {
             "type": "integer",
             "example": 15
@@ -1453,9 +1460,44 @@
           "completed_rep_count",
           "exercise_count",
           "logged_set_count",
+          "personal_records",
           "set_count",
           "volume"
         ]
+      },
+      "PersonalRecord": {
+        "type": "object",
+        "properties": {
+          "exercise_slug": {
+            "type": "string",
+            "description": "The Exercise slug as stored, including legacy values",
+            "example": "barbell-bench-press"
+          },
+          "kind": {
+            "type": "string",
+            "enum": [
+              "weight",
+              "reps"
+            ],
+            "description": "`weight`: a higher weight than any earlier result of the Exercise; `reps`: more reps at the earlier highest weight"
+          },
+          "reps": {
+            "type": "integer",
+            "example": 5
+          },
+          "weight": {
+            "type": "number",
+            "description": "In the page's `weight_unit`; 0 is a bodyweight record. Converted with every other weight when the measurement system changes",
+            "example": 102.5
+          }
+        },
+        "required": [
+          "exercise_slug",
+          "kind",
+          "reps",
+          "weight"
+        ],
+        "description": "A Personal record a Workout Session earned when it was finished: its best set of the Exercise beat the User's results in earlier finished Workout Sessions. Retained from then on"
       }
     },
     "parameters": {}

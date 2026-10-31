@@ -1,5 +1,6 @@
 import {
   asUser,
+  personalRecords,
   plans,
   profiles,
   type Transaction,
@@ -89,6 +90,7 @@ const USER_TABLES = sql.join(
     workoutExerciseSets,
     workoutSessionExercises,
     workoutSessionExerciseSets,
+    personalRecords,
     weeklyGoalChanges,
   ],
   sql`, `

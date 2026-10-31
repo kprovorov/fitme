@@ -23,6 +23,12 @@ import {
   sql,
 } from "drizzle-orm";
 import type { AnyPgColumn } from "drizzle-orm/pg-core";
+import {
+  awardPersonalRecords,
+  personalRecordsOfSession,
+  type WorkoutSessionPersonalRecord,
+} from "./personal-records";
+import { lockProfileUnits } from "./profile";
 import { recordWeeklyGoal } from "./weekly-goals";
 
 /**
@@ -93,6 +99,11 @@ export interface WorkoutSessionSummary {
   finished_at: string | null;
   id: string;
   logged_set_count: number;
+  /**
+   * The Personal records it earned when it was finished, by Exercise slug,
+   * weights in the User's unit; empty for none.
+   */
+  personal_records: WorkoutSessionPersonalRecord[];
   plan: PlanRef | null;
   set_count: number;
   started_at: string;
@@ -224,6 +235,7 @@ export const listWorkoutSessions = async (
       loggedSetCount: countOf(
         sql`select count(*) from ${workoutSessionExerciseSets} where ${workoutSessionExerciseSets.workoutSessionExerciseId} in (${sessionExerciseIds}) and ${workoutSessionExerciseSets.loggedAt} is not null`
       ),
+      personalRecords: personalRecordsOfSession,
       setCount: countOf(
         sql`select count(*) from ${workoutSessionExerciseSets} where ${workoutSessionExerciseSets.workoutSessionExerciseId} in (${sessionExerciseIds})`
       ),
@@ -253,6 +265,7 @@ export const listWorkoutSessions = async (
       finished_at: row.finishedAt,
       id: row.id,
       logged_set_count: row.loggedSetCount,
+      personal_records: row.personalRecords,
       set_count: row.setCount,
       started_at: row.startedAt,
       status: statusOf(row.finishedAt),
@@ -415,22 +428,43 @@ export type LogSetResult =
  * the User can't see is `not_found`; a set of a finished Workout Session is
  * left as it was.
  *
- * The write comes first and checks the session is open itself, so the only
- * lock it takes is the sets table's, the same one deleteUserData takes; no
- * row lock is held while waiting for it, so they can't deadlock.
+ * Lock the session before writing, like structural edits do. A concurrent
+ * finish either includes this log or commits first and rejects the edit.
  */
 export const logSet = async (
   tx: Transaction,
   { repsCompleted, setId, weightCompleted }: LogSetInput
 ): Promise<LogSetResult> => {
-  const openSessionExerciseIds = tx
-    .select({ id: workoutSessionExercises.id })
-    .from(workoutSessionExercises)
+  await lockSessionTables(tx);
+  const [session] = await tx
+    .select({
+      finishedAt: timestampText<string | null>(workoutSessions.finishedAt),
+      sessionId: workoutSessions.id,
+    })
+    .from(workoutSessions)
     .innerJoin(
-      workoutSessions,
+      workoutSessionExercises,
       eq(workoutSessions.id, workoutSessionExercises.workoutSessionId)
     )
-    .where(isNull(workoutSessions.finishedAt));
+    .innerJoin(
+      workoutSessionExerciseSets,
+      eq(
+        workoutSessionExercises.id,
+        workoutSessionExerciseSets.workoutSessionExerciseId
+      )
+    )
+    .where(eq(workoutSessionExerciseSets.id, setId))
+    .for("no key update", { of: workoutSessions });
+  if (!session) {
+    return { status: "not_found" };
+  }
+  if (session.finishedAt) {
+    return {
+      ...session,
+      finishedAt: session.finishedAt,
+      status: "session_finished",
+    };
+  }
   const [set] = await tx
     .update(workoutSessionExerciseSets)
     .set({
@@ -438,46 +472,13 @@ export const logSet = async (
       repsCompleted,
       weightCompleted: String(weightCompleted),
     })
-    // set rows carry no user id; RLS scopes the update to the User
-    .where(
-      and(
-        eq(workoutSessionExerciseSets.id, setId),
-        inArray(
-          workoutSessionExerciseSets.workoutSessionExerciseId,
-          openSessionExerciseIds
-        )
-      )
-    )
+    // Set rows carry no User id; RLS scopes the update to the User.
+    .where(eq(workoutSessionExerciseSets.id, setId))
     .returning(setColumns);
   if (set) {
     return { set: toSet(set), status: "logged" };
   }
 
-  const [finished] = await tx
-    .select({
-      finishedAt: timestampText<string | null>(workoutSessions.finishedAt),
-      sessionId: workoutSessions.id,
-    })
-    .from(workoutSessionExerciseSets)
-    .innerJoin(
-      workoutSessionExercises,
-      eq(
-        workoutSessionExercises.id,
-        workoutSessionExerciseSets.workoutSessionExerciseId
-      )
-    )
-    .innerJoin(
-      workoutSessions,
-      eq(workoutSessions.id, workoutSessionExercises.workoutSessionId)
-    )
-    .where(eq(workoutSessionExerciseSets.id, setId));
-  if (finished?.finishedAt) {
-    return {
-      finishedAt: finished.finishedAt,
-      sessionId: finished.sessionId,
-      status: "session_finished",
-    };
-  }
   return { status: "not_found" };
 };
 
@@ -1023,8 +1024,10 @@ const rotateWorkout = async (tx: Transaction, workoutId: string) => {
  * Finishes one of the User's Workout Sessions, in `tx` (from `asUser`), and
  * moves its Workout to the end of its Plan (`rotated`). A session
  * whose Workout was removed (e.g. `updatePlan` replaced the Workouts) is only
- * finished. Finishing an already finished session changes nothing
- * (`alreadyFinished`); one the User can't see is `not_found`.
+ * finished. The finish that claims the session awards the Personal records
+ * it earned (`awardPersonalRecords`), retained from then on. Finishing an
+ * already finished session changes nothing (`alreadyFinished`); one the User
+ * can't see is `not_found`.
  */
 export const finishWorkoutSession = async (
   tx: Transaction,
@@ -1046,6 +1049,10 @@ export const finishWorkoutSession = async (
   if (!owned) {
     return { status: "not_found" };
   }
+  // Share-lock the Profile before the Plan (the Plan Update's order): the
+  // Personal records below copy weights, so no measurement-system conversion
+  // may commit between reading them and writing the records
+  await lockProfileUnits(tx, owned.userId);
   if (owned.planId) {
     await tx
       .select({ id: plans.id })
@@ -1063,6 +1070,11 @@ export const finishWorkoutSession = async (
     )
     .returning({ workoutId: workoutSessions.workoutId });
 
+  // Only the finish that claimed the session awards its records, so a
+  // repeated or concurrent finish never awards twice
+  if (claimed) {
+    await awardPersonalRecords(tx, owned.userId, sessionId);
+  }
   const rotated = claimed?.workoutId
     ? await rotateWorkout(tx, claimed.workoutId)
     : false;

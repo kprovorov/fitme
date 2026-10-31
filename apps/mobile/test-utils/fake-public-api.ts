@@ -45,7 +45,9 @@ import {
   MIN_AGE,
   MIN_FREQUENCY,
   measurementSystems,
+  personalRecordFor,
   places,
+  recordResult,
 } from "@fitme/core";
 import type { PublicApiFetch } from "~/lib/api/client";
 import { library } from "./fake-library";
@@ -141,6 +143,9 @@ const convert = (profile: ProfileRow, to: MeasurementSystem) => {
     if (set.weight_recommended !== null) {
       set.weight_recommended = round2(set.weight_recommended * weight);
     }
+  }
+  for (const record of backend.personalRecords) {
+    record.weight = round2(record.weight * weight);
   }
 };
 
@@ -528,6 +533,10 @@ const listSessions = (
       ),
       exercise_count: exercises.length,
       logged_set_count: sets.filter((set) => set.logged_at !== null).length,
+      personal_records: backend.personalRecords
+        .filter((record) => record.workout_session_id === session.id)
+        .map(({ workout_session_id: _session, ...record }) => record)
+        .sort((a, b) => a.exercise_slug.localeCompare(b.exercise_slug)),
       set_count: sets.length,
       volume: round2(
         sets.reduce(
@@ -626,9 +635,52 @@ const startSession = (body: unknown): Response => {
   return json(201, { data: sessionBody(session) });
 };
 
+/** The logged sets of a Workout Session's Exercises, by Exercise slug. */
+const setsBySlug = (sessionId: string) => {
+  const bySlug = new Map<string, SetRow[]>();
+  for (const exercise of backend.exercises) {
+    if (exercise.workout_session_id !== sessionId) {
+      continue;
+    }
+    bySlug.set(exercise.exercise_slug, [
+      ...(bySlug.get(exercise.exercise_slug) ?? []),
+      ...backend.sets.filter(
+        (set) => set.workout_session_exercise_id === exercise.id
+      ),
+    ]);
+  }
+  return bySlug;
+};
+
 /**
- * `finishWorkoutSession`: finishes the Workout Session and moves its Workout
- * to the end of its Plan's rotation; a repeat changes nothing.
+ * `awardPersonalRecords`: per Exercise, `@fitme/core`'s rule against the best
+ * result in every other finished Workout Session.
+ */
+const awardPersonalRecords = (sessionId: string) => {
+  const earlier = backend.sessions.filter(
+    (other) => other.id !== sessionId && other.finished_at !== null
+  );
+  for (const [slug, sets] of setsBySlug(sessionId)) {
+    const record = personalRecordFor(
+      recordResult(
+        earlier.flatMap((other) => setsBySlug(other.id).get(slug) ?? [])
+      ),
+      sets
+    );
+    if (record) {
+      backend.personalRecords.push({
+        ...record,
+        exercise_slug: slug,
+        workout_session_id: sessionId,
+      });
+    }
+  }
+};
+
+/**
+ * `finishWorkoutSession`: finishes the Workout Session, awards the Personal
+ * records it earned and moves its Workout to the end of its Plan's rotation;
+ * a repeat changes nothing.
  */
 const finishSession = (_body: unknown, sessionId: string): Response => {
   const session = backend.session(sessionId);
@@ -638,6 +690,7 @@ const finishSession = (_body: unknown, sessionId: string): Response => {
   if (session.finished_at !== null) {
     return json(200, { already_finished: true, data: sessionBody(session) });
   }
+  awardPersonalRecords(sessionId);
   session.finished_at = FINISHED_AT;
   const found = session.workout_id ? findWorkout(session.workout_id) : null;
   if (found) {

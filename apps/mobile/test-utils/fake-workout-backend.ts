@@ -27,6 +27,15 @@ export interface ProfileRow {
   weight: number;
 }
 
+/** A Personal record a finished Workout Session earned, weight in the Profile's unit. */
+export interface PersonalRecordRow {
+  exercise_slug: string;
+  kind: "reps" | "weight";
+  reps: number;
+  weight: number;
+  workout_session_id: string;
+}
+
 interface ExerciseRow {
   exercise_slug: string;
   id: string;
@@ -127,6 +136,7 @@ class FakeWorkoutBackend {
    * them; the services do, and their integration tests cover it).
    */
   weeklyGoalChanges: Array<{ recorded_at: string; target: number | null }> = [];
+  personalRecords: PersonalRecordRow[] = [];
   /** Every request received, in order. */
   requests: Request[] = [];
   /** Queries the fake cannot answer; a test bug, checked after each test. */
@@ -143,6 +153,7 @@ class FakeWorkoutBackend {
     this.exercises = [];
     this.sets = [];
     this.weeklyGoalChanges = [];
+    this.personalRecords = [];
     this.requests = [];
     this.unsupported = [];
     this.inFlight = 0;
