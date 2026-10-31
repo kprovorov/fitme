@@ -15,6 +15,7 @@ The property is **at most one committed open Workout Session per User**, includi
 | Unmodified source rerun after both scratch mutations | PASS |
 | `/statechart` interpretation of all six final configurations | Matches TLC; both mutated indexes have the same two-step shortest failure |
 | JavaScript syntax checks and isolated Biome check using the repository preset | PASS |
+| Inherited libpq host-address and service-file isolation regressions | Both failed before environment sanitization and passed after stripping `PG*` from every Postgres subprocess |
 
 Each model has three insertions and at most one preexisting session. It includes uncommitted key reservations, insertion commit/rollback, committed finish/deletion, and orphaning. Finish/deletion are abstracted to the commit that releases the key. This is not an unbounded proof, a full migration replay, a deployed-database audit, or a proof of authentication, API responses, template copying, or Plan rotation. SQL replay installs the extracted real index on a minimal table rather than running the full application.
 
@@ -61,6 +62,7 @@ The chart draws only the shortest bug path because the full state graph exceeds 
 ```sh
 node .agents/skills/verify-workout-session-exclusivity/scripts/verify.mjs
 node .agents/skills/verify-workout-session-exclusivity/scripts/mutation-check.mjs
+node --test .agents/skills/verify-workout-session-exclusivity/scripts/replay.test.mjs
 ```
 
 Follow `SKILL.md` to read fresh outputs with `/statechart`, review source/model correspondence, and interpret failures. For later drift, use `/maintain-formal-verification-skill`.

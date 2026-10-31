@@ -21,7 +21,7 @@ node .agents/skills/verify-workout-session-exclusivity/scripts/verify.mjs
 
 Requirements: Node 24+, Java 11+, and PostgreSQL 17's `initdb`, `pg_ctl`, and `psql` on PATH. Set `PG_BIN` to their directory if needed. On macOS with Homebrew, install with `brew install postgresql@17` and follow its PATH instructions. Never use a hosted or existing project database for this check.
 
-The runner downloads TLC 1.7.4 to the OS temporary directory on first use and verifies SHA-256 `936a262061c914694dfd669a543be24573c45d5aa0ff20a8b96b23d01e050e88`. `TLA2TOOLS` may point to an existing copy of that exact jar; `JAVA` may select the Java binary. Local execution needs permission to create sockets. The SQL replay creates a fresh Postgres cluster in the output directory, listens only on its private Unix socket, and stops the cluster in `finally`. It never reads project environment files or connection URLs.
+The runner downloads TLC 1.7.4 to the OS temporary directory on first use and verifies SHA-256 `936a262061c914694dfd669a543be24573c45d5aa0ff20a8b96b23d01e050e88`. `TLA2TOOLS` may point to an existing copy of that exact jar; `JAVA` may select the Java binary. Local execution needs permission to create sockets. The SQL replay creates a fresh Postgres cluster in the output directory, listens only on its private Unix socket, and stops the cluster in `finally`. It strips inherited `PG*` environment settings from every Postgres subprocess so libpq cannot redirect the explicit socket connection through `PGHOSTADDR` or `PGSERVICE`. `PG_BIN` is resolved by the runner before that filtering. It never reads project environment files or connection URLs.
 
 Output goes to a new `fitme-session-proof-*` directory in the OS temp directory. The printed path contains:
 
@@ -74,7 +74,13 @@ After changing this verification or its covered index declaration, run:
 node .agents/skills/verify-workout-session-exclusivity/scripts/mutation-check.mjs
 ```
 
-It copies the real migration sources into temporary scratch folders, removes `UNIQUE` in one copy, and changes `(user_id)` to `(workout_id)` in another. Each scratch checkout must fail `OneOpenPerUser` in TLC and reproduce two committed open sessions in Postgres. It then reruns the unmodified repository and requires a pass. Repository product code is never mutated. If either mutation is missed, or a tool cannot run, repair the verification before handing it off.
+After changing the SQL runner's process or connection setup, also run its real-Postgres isolation regressions:
+
+```sh
+node --test .agents/skills/verify-workout-session-exclusivity/scripts/replay.test.mjs
+```
+
+The mutation checker copies the real migration sources into temporary scratch folders, removes `UNIQUE` in one copy, and changes `(user_id)` to `(workout_id)` in another. Each scratch checkout must fail `OneOpenPerUser` in TLC and reproduce two committed open sessions in Postgres. It then reruns the unmodified repository and requires a pass. Repository product code is never mutated. If either mutation is missed, or a tool cannot run, repair the verification before handing it off.
 
 The SQL replay installs the exact extracted index declaration on a minimal `workout_sessions` table. It repeats empty preflight reads followed by competing committed inserts, checks NULL Workout references, then checks rollback, finish, and independent User behavior. It replays a violating schedule; it is not a full database migration or a concurrent service integration suite.
 

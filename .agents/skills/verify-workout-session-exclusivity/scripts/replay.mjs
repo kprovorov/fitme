@@ -7,6 +7,11 @@ import { join } from "node:path";
 export function replay(indexSql, out) {
 	const bin = process.env.PG_BIN;
 	const command = (name) => (bin ? join(bin, name) : name);
+	// libpq can prefer PGHOSTADDR over an explicit -h socket, and PGSERVICE
+	// can load connection settings. No inherited PG* settings reach a child.
+	const postgresEnv = Object.fromEntries(
+		Object.entries(process.env).filter(([name]) => !name.startsWith("PG")),
+	);
 	const data = join(out, "postgres");
 	const socket = join(out, "socket");
 	mkdirSync(socket, { mode: 0o700 });
@@ -15,6 +20,7 @@ export function replay(indexSql, out) {
 			encoding: "utf8",
 			timeout: 15000,
 			stdio: "pipe",
+			env: postgresEnv,
 			...options,
 		});
 	run("initdb", [
