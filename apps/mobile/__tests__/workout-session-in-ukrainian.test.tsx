@@ -237,7 +237,9 @@ describe("an open Workout Session in Ukrainian", () => {
         await firstOf(screen.findAllByLabelText("Замінити"))
       );
       fakePublicApi.failNext(REPLACE_EXERCISE, failure);
-      await pressAndSettle(await firstOf(screen.findAllByText("Замінити")));
+      await pressAndSettle(
+        await screen.findByRole("button", { name: "Замінити на Випади" })
+      );
       expect(Alert.alert).toHaveBeenLastCalledWith(
         "Не вдалося замінити вправу",
         message
@@ -249,7 +251,9 @@ describe("an open Workout Session in Ukrainian", () => {
         screen.getByRole("button", { name: "Додати вправу" })
       );
       fakePublicApi.failNext(ADD_EXERCISE, failure);
-      await pressAndSettle(await firstOf(screen.findAllByText("Додати")));
+      await pressAndSettle(
+        await screen.findByRole("button", { name: "Додати Випади" })
+      );
       expect(Alert.alert).toHaveBeenLastCalledWith(
         "Не вдалося додати вправу",
         message

@@ -52,6 +52,7 @@ const ExercisesView = ({
   onExercisePress = () => {
     /* noop */
   },
+  rowAccessibilityLabel,
   trailing,
   initialMuscleGroup = "all",
   refreshable = false,
@@ -60,7 +61,10 @@ const ExercisesView = ({
   onSearchChange,
 }: {
   onExercisePress?: (exercise: ExerciseSummary) => void;
-  // What ends each row: the Library's chevron, or the picker's CTA.
+  // What VoiceOver reads for a row, when its text doesn't say what tapping
+  // it does (the picker's "Add Bench Press").
+  rowAccessibilityLabel?: (exercise: ExerciseSummary) => string;
+  // What ends each row: the Library's chevron, or the picker's "+" or swap.
   trailing?: ExerciseRowTrailing;
   initialMuscleGroup?: MuscleGroupFilter;
   // Pull to refresh (the Library tab).
@@ -150,6 +154,7 @@ const ExercisesView = ({
   const renderItem = useCallback(
     ({ item, index }: { item: ExerciseSummary; index: number }) => (
       <ExerciseRow
+        accessibilityLabel={rowAccessibilityLabel?.(item)}
         exercise={item}
         isFirst={index === 0}
         isLast={index === lastIndex}
@@ -157,7 +162,7 @@ const ExercisesView = ({
         trailing={trailing}
       />
     ),
-    [lastIndex, onExercisePress, trailing]
+    [lastIndex, onExercisePress, rowAccessibilityLabel, trailing]
   );
 
   const renderEmpty = () => {

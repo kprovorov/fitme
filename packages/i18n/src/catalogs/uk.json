@@ -640,8 +640,8 @@
     },
     "addExercise": "Додати вправу",
     "picker": {
-      "add": "Додати",
-      "replace": "Замінити",
+      "addExercise": "Додати {{name}}",
+      "replaceWith": "Замінити на {{name}}",
       "close": "Закрити",
       "addTitle": "Додати вправу",
       "replaceTitle": "Замінити вправу"

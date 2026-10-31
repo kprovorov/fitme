@@ -29,8 +29,18 @@ import {
   screen,
   within,
 } from "@testing-library/react-native";
-import { createContext, type ReactNode, useSyncExternalStore } from "react";
-import { AccessibilityInfo, Alert, View } from "react-native";
+import {
+  createContext,
+  type ReactNode,
+  useCallback,
+  useSyncExternalStore,
+} from "react";
+import {
+  AccessibilityInfo,
+  Alert,
+  Pressable as RowPressable,
+  View,
+} from "react-native";
 import WorkoutScreen from "~/app/plans/[planId]/workouts/[workoutId]/index";
 import PlanSessionExerciseScreen from "~/app/plans/[planId]/workouts/[workoutId]/sessions/[sessionId]/exercises/[exerciseId]/index";
 import PlanSessionScreen from "~/app/plans/[planId]/workouts/[workoutId]/sessions/[sessionId]/index";
@@ -216,11 +226,36 @@ jest.mock("~/components/exercises/exercise-video", () => () => null);
 jest.mock("~/components/views/exercise-history-view", () => () => null);
 // Reanimated can't load under Jest; seeded sets have no rest, so it never shows.
 jest.mock("~/components/workout-sessions/rest-timer", () => () => null);
-// The exercise picker offers a single exercise to add.
+// The exercise picker offers a single exercise to add, as a row to tap.
+const mockLunge = {
+  muscle_groups: ["quadriceps"],
+  name: "Lunge",
+  slug: "lunge",
+};
+function MockExercisesView({
+  onExercisePress,
+  rowAccessibilityLabel,
+}: {
+  onExercisePress: (exercise: typeof mockLunge) => void;
+  rowAccessibilityLabel: (exercise: typeof mockLunge) => string;
+}) {
+  const pick = useCallback(() => {
+    onExercisePress(mockLunge);
+  }, [onExercisePress]);
+  return (
+    <RowPressable
+      accessibilityLabel={rowAccessibilityLabel(mockLunge)}
+      accessibilityRole="button"
+      onPress={pick}
+    />
+  );
+}
 jest.mock("~/components/views/exercises-view", () => ({
   __esModule: true,
-  default: ({ trailing }: { trailing: (exercise: object) => ReactNode }) =>
-    trailing({ muscle_groups: ["quadriceps"], name: "Lunge", slug: "lunge" }),
+  // Read lazily: the mock is hoisted above the stub's definition.
+  get default() {
+    return MockExercisesView;
+  },
 }));
 
 jest.mock("~/components/ui/button", () => {
@@ -492,12 +527,12 @@ describe.each(ENTRY_ROUTES)(
       await fireEvent.press(focused().getByText("Add Exercise"));
       // The picker opens over the session; picking an exercise awaits its
       // save and then closes it. Keep that whole update inside `act`.
-      const add = focused().getByText("Add");
+      const add = focused().getByRole("button", { name: "Add Lunge" });
       await act(async () => {
         await fireEvent.press(add);
       });
       await settle();
-      expect(screen.queryByText("Add")).toBeNull();
+      expect(screen.queryByRole("button", { name: "Add Lunge" })).toBeNull();
     };
 
     const keepTraining = async () => {
