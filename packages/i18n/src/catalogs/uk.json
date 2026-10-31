@@ -213,8 +213,17 @@
     "workouts": "Тренування",
     "planMenu": "Параметри плану",
     "logo": "Fitme",
-    "nextWorkout": "Наступне тренування",
-    "upcoming": "Наступні",
+    "card": {
+      "preview": "Огляд",
+      "previewNamed": "Огляд: {{name}}",
+      "start": "Почати",
+      "startNamed": "Почати: {{name}}",
+      "moreMuscleGroups": "+{{count, number}}",
+      "moreMuscleGroupsSpoken_one": "і ще {{count, number}} група м’язів",
+      "moreMuscleGroupsSpoken_few": "і ще {{count, number}} групи м’язів",
+      "moreMuscleGroupsSpoken_many": "і ще {{count, number}} груп м’язів",
+      "moreMuscleGroupsSpoken_other": "і ще {{count, number}} групи м’язів"
+    },
     "allSet": "Чудова робота! Усе готово!",
     "empty": {
       "title": "Немає активного плану",
@@ -246,8 +255,7 @@
     "exercises_other": "{{count, number}} вправи",
     "toWorkout": "Перейти до тренування",
     "openHint": "Відкриває тренування",
-    "openInProgressHint": "Відкриває тренування, що триває",
-    "finish": "Завершити тренування"
+    "openInProgressHint": "Відкриває тренування, що триває"
   },
   "choices": {
     "experienceLevel": {

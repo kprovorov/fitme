@@ -87,6 +87,8 @@ export interface SeedPlan {
     exercises: Array<{ sets: number | SeedPlanSet[]; slug: string }>;
     id: string;
     name: string;
+    /** Its place in the rotation; its position in `workouts` (from 1) unless given. */
+    order?: number;
   }>;
 }
 
@@ -322,7 +324,7 @@ class FakeWorkoutBackend {
         })),
         id: workout.id,
         name: workout.name,
-        order: workoutIndex + 1,
+        order: workout.order ?? workoutIndex + 1,
         plan_id: id,
         sessions: this.sessions
           .filter((session) => session.workout_id === workout.id)

@@ -147,8 +147,8 @@ async function confirmFinishWorkout(
  * Summary opens once the User has answered it. If those changes can't be
  * read, it's reported and the Summary opens without asking: finishing never
  * fails because of it. Shared by every way of
- * finishing a session (the header's Finish button, the finish suggestion and
- * the Workout card), so they behave the same. `isFinishing` covers finishes
+ * finishing a session (the header's Finish button and the finish
+ * suggestion), so they behave the same. `isFinishing` covers finishes
  * started from any screen, and `finish` does nothing while one is pending,
  * so the session is never finished twice. A failed finish shows an alert and
  * leaves the session active, so the user can try again.
@@ -159,22 +159,14 @@ async function confirmFinishWorkout(
  * replaces it, so finishing from anywhere leaves the same stack as finishing
  * from the session screen.
  *
- * `outsideSession` is for callers that aren't one of the session's screens
- * (the Workout card on Home): Summary is pushed over the caller instead of
- * replacing it, so the stack ends the same as finishing from the session
- * screen.
- *
- * `confirmFinish` is for the header's Finish button and the Workout card: it
+ * `confirmFinish` is for the header's Finish button: it
  * asks first when some planned sets aren't logged (see
  * `confirmFinishWorkout`). `finish` never asks, for the finish suggestion,
  * which only opens once every set is logged.
  */
 export function useFinishWorkoutSession(
   sessionId: string,
-  {
-    outsideSession = false,
-    screensAboveSession = 0,
-  }: { outsideSession?: boolean; screensAboveSession?: number } = {}
+  { screensAboveSession = 0 }: { screensAboveSession?: number } = {}
 ): {
   confirmFinish: () => void;
   finish: () => void;
@@ -211,10 +203,6 @@ export function useFinishWorkoutSession(
       });
       const openSummary = () => {
         const summary = `/workout-sessions/${sessionId}/summary` as const;
-        if (outsideSession) {
-          router.push(summary);
-          return;
-        }
         if (
           isSessionScreenBelow(
             navigation.getState(),
