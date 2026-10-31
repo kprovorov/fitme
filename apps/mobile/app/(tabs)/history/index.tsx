@@ -3,7 +3,12 @@ import { LegendList } from "@legendapp/list/react-native";
 import { Stack, useRouter } from "expo-router";
 import { Fragment, useCallback, useState } from "react";
 import { useTranslation } from "react-i18next";
-import { ActivityIndicator, RefreshControl, View } from "react-native";
+import {
+  ActivityIndicator,
+  RefreshControl,
+  useWindowDimensions,
+  View,
+} from "react-native";
 import Purchases from "react-native-purchases";
 import { useResolveClassNames } from "uniwind";
 import { Button } from "~/components/ui/button";
@@ -54,6 +59,9 @@ function groupByMonth(
   return months;
 }
 
+/** Past this text scale a month's count goes under its heading, not beside it. */
+const STACKED_FONT_SCALE = 1.4;
+
 const keyExtractor = (month: Month) => month.key;
 
 const renderMonth = ({ item }: { item: Month }) => (
@@ -66,10 +74,16 @@ const renderMonth = ({ item }: { item: Month }) => (
  */
 function MonthSection({ month }: { month: Month }) {
   const i18n = useI18n();
+  const { fontScale } = useWindowDimensions();
+  const stacked = fontScale > STACKED_FONT_SCALE;
   return (
     <View className="gap-xs pb-lg">
-      <View className="flex-row items-baseline gap-2 px-1">
-        <H4 className="flex-1">{month.title}</H4>
+      <View
+        className={
+          stacked ? "gap-1 px-1" : "flex-row items-baseline gap-2 px-1"
+        }
+      >
+        <H4 className={stacked ? undefined : "flex-1"}>{month.title}</H4>
         <Text className="text-footnote text-muted-foreground">
           {formatCount(i18n, "entries", month.entries.length)}
         </Text>

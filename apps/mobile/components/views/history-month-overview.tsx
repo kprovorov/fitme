@@ -7,29 +7,40 @@ import {
   spokenCompactVolume,
 } from "@fitme/i18n";
 import { useTranslation } from "react-i18next";
-import { View } from "react-native";
+import { useWindowDimensions, View } from "react-native";
 import { Text } from "~/components/ui/text";
 import { H4 } from "~/components/ui/typography";
 import type { WorkoutSessionHistory } from "~/hooks/queries/workout-sessions";
 import { useI18n } from "~/lib/i18n";
 import { cn } from "~/lib/utils";
 
+/** Past this text scale the stats stack: three columns can't hold their words. */
+const STACKED_FONT_SCALE = 1.4;
+
 interface StatProps {
   accent?: boolean;
   /** What VoiceOver reads for the value: `3 workouts`, `136.2 tonnes`. */
   spokenValue: string;
+  /** One under another (large text) rather than side by side. */
+  stacked: boolean;
   title: string;
   value: string;
 }
 
 /** One summary figure: a large value over its caption (Figma's StatItem). */
-function Stat({ accent = false, spokenValue, title, value }: StatProps) {
+function Stat({
+  accent = false,
+  spokenValue,
+  stacked,
+  title,
+  value,
+}: StatProps) {
   const { t } = useTranslation();
   return (
     <View
       accessibilityLabel={t("history.statLabel", { title, value: spokenValue })}
       accessible
-      className="flex-1 gap-0.5"
+      className={stacked ? "gap-0.5" : "flex-1 gap-0.5"}
     >
       <Text
         className={cn(
@@ -58,24 +69,33 @@ export default function HistoryMonthOverview({
   const { t } = useTranslation();
   const totals = monthlyTotals(history.sessions);
   const time = formatDuration(i18n, totals.elapsedMs);
+  const { fontScale } = useWindowDimensions();
+  const stacked = fontScale > STACKED_FONT_SCALE;
 
   return (
     <View className="gap-sm px-1 pb-lg">
       <H4>{t("history.thisMonth")}</H4>
-      <View className="flex-row gap-sm">
+      <View className={stacked ? "gap-sm" : "flex-row gap-sm"}>
         <Stat
           accent
           spokenValue={formatCount(i18n, "workouts", totals.workouts)}
+          stacked={stacked}
           title={t("history.stats.workouts")}
           value={formatNumber(i18n, totals.workouts)}
         />
-        <Stat spokenValue={time} title={t("history.stats.time")} value={time} />
+        <Stat
+          spokenValue={time}
+          stacked={stacked}
+          title={t("history.stats.time")}
+          value={time}
+        />
         <Stat
           spokenValue={spokenCompactVolume(
             i18n,
             totals.volume,
             history.weightUnit
           )}
+          stacked={stacked}
           title={t("history.stats.volume")}
           value={formatCompactVolume(i18n, totals.volume, history.weightUnit)}
         />
