@@ -14,7 +14,7 @@ import {
   screen,
   within,
 } from "@testing-library/react-native";
-import { Alert } from "react-native";
+import { Alert, ScrollView } from "react-native";
 import HomeScreen from "~/app/(tabs)/(home)/index";
 import { libraryExercise, serveLibrary } from "~/test-utils/fake-library";
 import { FAKE_USER_ID, fakePublicApi } from "~/test-utils/fake-public-api";
@@ -296,6 +296,21 @@ describe("The Workout tab's carousel", () => {
       "/plans/plan-1/workouts/workout-legs/sessions/s1"
     );
     expect(fakePublicApi.count(START)).toBe(0);
+  });
+
+  it("scrolls back to the front when a later card's Start promotes it", async () => {
+    await mount();
+    const scrollTo = jest.spyOn(ScrollView.prototype, "scrollTo");
+    // Swiped to Legs, the third page.
+    await fireEvent.scroll(screen.getByTestId("workout-carousel"), {
+      nativeEvent: { contentOffset: { x: 10_000, y: 0 } },
+    });
+
+    await fireEvent.press(screen.getByRole("button", { name: "Start Legs" }));
+    await settle(queryClient);
+
+    expect(cardNames()).toEqual(["Legs", "Push", "Pull"]);
+    expect(scrollTo).toHaveBeenLastCalledWith({ animated: false, x: 0 });
   });
 
   it("asks the API on another card's Start and alerts its 409", async () => {

@@ -1,9 +1,10 @@
 import type { Plan } from "@fitme/core";
-import { useState } from "react";
+import { useEffect, useRef, useState } from "react";
 import {
   type NativeScrollEvent,
   type NativeSyntheticEvent,
   ScrollView,
+  type ScrollViewInstance,
   useWindowDimensions,
   View,
 } from "react-native";
@@ -30,6 +31,7 @@ interface WorkoutCarouselProps {
 export default function WorkoutCarousel({ plan }: WorkoutCarouselProps) {
   const { width } = useWindowDimensions();
   const [page, setPage] = useState(0);
+  const scrollView = useRef<ScrollViewInstance>(null);
   // A copy: plan.workouts is the query cache's array, never sorted in place.
   // The rotation's first Workout is the Next one, after the open session's.
   const workouts = [...plan.workouts].sort(
@@ -37,6 +39,15 @@ export default function WorkoutCarousel({ plan }: WorkoutCarouselProps) {
       Number(Boolean(findOpenSession(b))) -
         Number(Boolean(findOpenSession(a))) || a.order - b.order
   );
+  // A session opened from a later card moves that card to the front: scroll
+  // back to it, or the card now at the old offset shows instead.
+  const openWorkoutId = workouts.find(findOpenSession)?.id ?? null;
+  useEffect(() => {
+    if (openWorkoutId) {
+      scrollView.current?.scrollTo({ animated: false, x: 0 });
+      setPage(0);
+    }
+  }, [openWorkoutId]);
   // The page scrolled to, kept in range when the Plan's Workouts change.
   const shownPage = Math.min(page, workouts.length - 1);
   const cardWidth = width - 2 * CARD_INSET;
@@ -56,6 +67,7 @@ export default function WorkoutCarousel({ plan }: WorkoutCarouselProps) {
         disableIntervalMomentum
         horizontal
         onScroll={onScroll}
+        ref={scrollView}
         scrollEventThrottle={16}
         showsHorizontalScrollIndicator={false}
         snapToInterval={pageWidth}
