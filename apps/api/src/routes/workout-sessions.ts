@@ -59,12 +59,22 @@ const sessionFields = {
 const WorkoutSessionSummary = z
   .object({
     ...sessionFields,
+    completed_rep_count: z.int().openapi({
+      description:
+        "Reps completed across its logged sets; above 0 once any set has reps",
+      example: 64,
+    }),
     exercise_count: z.int().openapi({ example: 5 }),
     logged_set_count: z.int().openapi({
       description: "Sets with a logged result",
       example: 8,
     }),
     set_count: z.int().openapi({ example: 15 }),
+    volume: z.number().openapi({
+      description:
+        "Weight × reps over its logged sets, in the page's `weight_unit`; a set without a weight adds 0",
+      example: 4250,
+    }),
   })
   .openapi("WorkoutSessionSummary");
 
@@ -79,6 +89,7 @@ const WorkoutSessionPage = z
     total: z.int().openapi({
       description: "How many Workout Sessions match, across every page",
     }),
+    weight_unit: WeightUnit,
   })
   .openapi("WorkoutSessionPage");
 
@@ -544,15 +555,17 @@ export const workoutSessions = new OpenAPIHono<ApiEnv>({
   })
   .openapi(listWorkoutSessions, async (c) => {
     const options = c.req.valid("query");
-    const { sessions, total } = await c.var
-      .getServices()
-      .listWorkoutSessions(options);
+    const {
+      value: { sessions, total },
+      weightUnit,
+    } = await c.var.getServices().listWorkoutSessions(options);
     // Parsed through the contract, so fields beyond it never go out.
     return c.json(
       WorkoutSessionPage.parse({
         data: sessions,
         hasMore: options.offset + sessions.length < total,
         total,
+        weight_unit: weightUnit,
       }),
       200
     );

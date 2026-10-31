@@ -29,6 +29,7 @@ import { deleteTestUsers } from "./delete-test-users";
 const runId = randomUUID().replaceAll("-", "").slice(0, 12);
 const owner = `user_svcSessOwner${runId}`;
 const intruder = `user_svcSessIntruder${runId}`;
+const lifter = `user_svcSessLifter${runId}`;
 
 /** How PostgREST rendered timestamps, e.g. 2026-10-01T10:00:00.123+00:00. */
 const POSTGREST_TIMESTAMP = /^\d{4}-\d\d-\d\dT\d\d:\d\d:\d\d(\.\d+)?\+00:00$/;
@@ -185,7 +186,7 @@ beforeAll(async () => {
 });
 
 afterAll(async () => {
-  await deleteTestUsers([owner, intruder]);
+  await deleteTestUsers([owner, intruder, lifter]);
 });
 
 describe("listWorkoutSessions", () => {
@@ -197,6 +198,7 @@ describe("listWorkoutSessions", () => {
     expect(page.total).toBe(2);
     expect(page.sessions).toEqual([
       {
+        completed_rep_count: 0,
         exercise_count: 2,
         finished_at: null,
         id: seeded.openSessionId,
@@ -205,9 +207,11 @@ describe("listWorkoutSessions", () => {
         set_count: 3,
         started_at: expect.stringMatching(POSTGREST_TIMESTAMP),
         status: "in_progress",
+        volume: 0,
         workout: { id: seeded.workoutId, name: "Day A" },
       },
       {
+        completed_rep_count: 8,
         exercise_count: 1,
         finished_at: "2026-10-01T11:00:00+00:00",
         id: seeded.finishedSessionId,
@@ -216,6 +220,7 @@ describe("listWorkoutSessions", () => {
         set_count: 1,
         started_at: "2026-10-01T10:00:00+00:00",
         status: "finished",
+        volume: 480,
         workout: { id: seeded.workoutId, name: "Day A" },
       },
     ]);
@@ -256,6 +261,96 @@ describe("listWorkoutSessions", () => {
     ]);
     expect(second.total).toBe(2);
     expect(pastEnd).toEqual({ sessions: [], total: 2 });
+  });
+
+  it("totals each session's logged reps and weight × reps", async () => {
+    const [lifted, empty] = await withService(async (tx) => {
+      const sessions = await tx
+        .insert(workoutSessions)
+        .values([
+          {
+            finishedAt: "2026-10-05T11:00:00Z",
+            startedAt: "2026-10-05T10:00:00Z",
+            userId: lifter,
+          },
+          {
+            finishedAt: "2026-10-04T10:05:00Z",
+            startedAt: "2026-10-04T10:00:00Z",
+            userId: lifter,
+          },
+        ])
+        .returning({ id: workoutSessions.id });
+      const exercises = await tx
+        .insert(workoutSessionExercises)
+        .values(
+          sessions.map(({ id }) => ({
+            exerciseSlug: benchSlug,
+            order: 1,
+            workoutSessionId: id,
+          }))
+        )
+        .returning({ id: workoutSessionExercises.id });
+      const logged = "2026-10-05T10:30:00Z";
+      await tx.insert(workoutSessionExerciseSets).values([
+        // No weight: reps count, volume doesn't.
+        {
+          loggedAt: logged,
+          order: 1,
+          repsCompleted: 10,
+          workoutSessionExerciseId: exercises[0].id,
+        },
+        // Zero reps at a weight: no volume.
+        {
+          loggedAt: logged,
+          order: 2,
+          repsCompleted: 0,
+          weightCompleted: "50.00",
+          workoutSessionExerciseId: exercises[0].id,
+        },
+        {
+          loggedAt: logged,
+          order: 3,
+          repsCompleted: 5,
+          weightCompleted: "20.50",
+          workoutSessionExerciseId: exercises[0].id,
+        },
+        // Never logged: a target only.
+        {
+          order: 4,
+          repsRecommended: 8,
+          weightRecommended: "60.00",
+          workoutSessionExerciseId: exercises[0].id,
+        },
+        // An empty completion: its one set logged at zero reps.
+        {
+          loggedAt: logged,
+          order: 1,
+          repsCompleted: 0,
+          weightCompleted: "40.00",
+          workoutSessionExerciseId: exercises[1].id,
+        },
+      ]);
+      return sessions;
+    });
+
+    const page = await asUser(lifter, (tx) =>
+      listWorkoutSessions(tx, { limit: 20, offset: 0, status: "finished" })
+    );
+
+    expect(page.sessions).toEqual([
+      expect.objectContaining({
+        completed_rep_count: 15,
+        id: lifted.id,
+        logged_set_count: 3,
+        volume: 102.5,
+      }),
+      expect.objectContaining({
+        completed_rep_count: 0,
+        id: empty.id,
+        logged_set_count: 1,
+        volume: 0,
+      }),
+    ]);
   });
 
   it("never lists another User's sessions", async () => {

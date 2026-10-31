@@ -27,6 +27,10 @@
     "target": "Ціль {{target}}"
   },
   "counts": {
+    "entries_one": "{{count, number}} запис",
+    "entries_few": "{{count, number}} записи",
+    "entries_many": "{{count, number}} записів",
+    "entries_other": "{{count, number}} запису",
     "exercises_one": "{{count, number}} вправа",
     "exercises_few": "{{count, number}} вправи",
     "exercises_many": "{{count, number}} вправ",
@@ -342,6 +346,20 @@
     "lbs_few": "{{count, number}} фунти",
     "lbs_many": "{{count, number}} фунтів",
     "lbs_other": "{{count, number}} фунта"
+  },
+  "compactUnits": {
+    "t": "{{value, number}} т",
+    "thousandLbs": "{{value, number}} тис. фунт"
+  },
+  "spokenCompactUnits": {
+    "t_one": "{{count, number}} тонна",
+    "t_few": "{{count, number}} тонни",
+    "t_many": "{{count, number}} тонн",
+    "t_other": "{{count, number}} тонни",
+    "thousandLbs_one": "{{count, number}} тисяча фунтів",
+    "thousandLbs_few": "{{count, number}} тисячі фунтів",
+    "thousandLbs_many": "{{count, number}} тисяч фунтів",
+    "thousandLbs_other": "{{count, number}} тисячі фунтів"
   },
   "duration": {
     "hoursMinutes": "{{hours, number}} год {{minutes, number}} хв",
@@ -683,7 +701,15 @@
     },
     "loadError": "Не вдалося завантажити тренування. Перевірте з’єднання і спробуйте ще раз.",
     "untitledWorkout": "Тренування",
-    "duration": "Тривалість {{duration}}"
+    "duration": "Тривалість {{duration}}",
+    "thisMonth": "Цей місяць",
+    "stats": {
+      "workouts": "Тренування",
+      "time": "Час",
+      "volume": "Обсяг"
+    },
+    "statLabel": "{{title}}: {{value}}",
+    "entry": "{{name}}, {{date}}, {{duration}}, {{sets}}, {{volume}}"
   },
   "workoutSummary": {
     "title": "Тренування завершено!",

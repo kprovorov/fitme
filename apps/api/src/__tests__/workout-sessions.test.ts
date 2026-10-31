@@ -10,6 +10,7 @@ const SESSION_ID = "6f1c0c9e-2b7a-4c1e-9a55-3c2d1e0f4a11";
 const WORKOUT_ID = "1c2d3e4f-5a6b-4c7d-8e9f-0a1b2c3d4e5f";
 
 const summary: WorkoutSessionSummary = {
+  completed_rep_count: 8,
   exercise_count: 2,
   finished_at: null,
   id: SESSION_ID,
@@ -18,6 +19,7 @@ const summary: WorkoutSessionSummary = {
   set_count: 5,
   started_at: "2026-10-01T10:00:00.123456+00:00",
   status: "in_progress",
+  volume: 644,
   workout: { id: WORKOUT_ID, name: "Push" },
 };
 
@@ -33,15 +35,23 @@ const finishedSummary: WorkoutSessionSummary = {
 
 type ListOptions = Parameters<UserServices["listWorkoutSessions"]>[0];
 
-/** A facade whose list answers `page` and records the options it got. */
+type ListPage = Awaited<
+  ReturnType<UserServices["listWorkoutSessions"]>
+>["value"];
+
+/**
+ * A facade whose list answers `page` in `weightUnit` and records the options
+ * it got.
+ */
 const listing = (
-  page: Awaited<ReturnType<UserServices["listWorkoutSessions"]>>
+  page: ListPage,
+  weightUnit: Weighed<ListPage>["weightUnit"] = "kg"
 ) => {
   const calls: ListOptions[] = [];
   const services = fakeServices({
     listWorkoutSessions: (options) => {
       calls.push(options);
-      return Promise.resolve(page);
+      return Promise.resolve({ value: page, weightUnit });
     },
   });
   return { calls, services };
@@ -65,6 +75,7 @@ describe("GET /v1/workout-sessions", () => {
       data: [summary, finishedSummary],
       hasMore: false,
       total: 2,
+      weight_unit: "kg",
     });
     expect(calls).toEqual([{ limit: 20, offset: 0, status: "all" }]);
     expect(servicesFor).toEqual(["user_alice"]);
@@ -83,6 +94,7 @@ describe("GET /v1/workout-sessions", () => {
       data: [summary],
       hasMore: true,
       total: 3,
+      weight_unit: "kg",
     });
     expect(calls).toEqual([{ limit: 1, offset: 1, status: "in_progress" }]);
   });
@@ -98,6 +110,7 @@ describe("GET /v1/workout-sessions", () => {
       data: [],
       hasMore: false,
       total: 3,
+      weight_unit: "kg",
     });
   });
 
@@ -140,6 +153,21 @@ describe("GET /v1/workout-sessions", () => {
       data: [summary],
       hasMore: false,
       total: 1,
+      weight_unit: "kg",
+    });
+  });
+
+  it("answers each session's volume in the User's weight unit", async () => {
+    const { services } = listing({ sessions: [summary], total: 1 }, "lbs");
+    const { app } = testApp({ services });
+
+    const response = await get(app, "/v1/workout-sessions?status=finished");
+
+    expect(await response.json()).toEqual({
+      data: [expect.objectContaining({ completed_rep_count: 8, volume: 644 })],
+      hasMore: false,
+      total: 1,
+      weight_unit: "lbs",
     });
   });
 

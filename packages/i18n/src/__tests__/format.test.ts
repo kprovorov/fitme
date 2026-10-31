@@ -2,12 +2,15 @@ import { describe, expect, it } from "vitest";
 import { createI18n } from "..";
 import {
   type CountKind,
+  formatCompactVolume,
   formatCount,
+  formatDuration,
   formatHeight,
   formatNumber,
   formatUnit,
   formatWeight,
   formatWorkoutDuration,
+  spokenCompactVolume,
   spokenUnit,
   type Unit,
   unitName,
@@ -72,6 +75,17 @@ describe("formatCount", () => {
       ],
     ],
     [
+      "entries",
+      [
+        "1 запис",
+        "2 записи",
+        "5 записів",
+        "11 записів",
+        "21 запис",
+        "22 записи",
+      ],
+    ],
+    [
       "minutes",
       [
         "1 хвилина",
@@ -95,6 +109,7 @@ describe("formatCount", () => {
     ["workouts", "workout", "workouts"],
     ["workoutSessions", "workout session", "workout sessions"],
     ["minutes", "minute", "minutes"],
+    ["entries", "entry", "entries"],
   ])("counts %s in English", (kind, one, other) => {
     expect(counts.map((count) => formatCount(en, kind, count))).toEqual([
       `1 ${one}`,
@@ -194,5 +209,55 @@ describe("formatWorkoutDuration", () => {
     expect(formatWorkoutDuration(en, start, "2026-10-29T09:00:00.000Z")).toBe(
       "0min"
     );
+  });
+});
+
+describe("formatDuration", () => {
+  const MINUTE_MS = 60_000;
+
+  it("shows hours and minutes, rounded to the minute", () => {
+    expect(formatDuration(en, 0)).toBe("0min");
+    expect(formatDuration(en, 42 * MINUTE_MS + 20_000)).toBe("42min");
+    expect(formatDuration(en, 12 * 60 * MINUTE_MS + 5 * MINUTE_MS)).toBe(
+      "12h 5min"
+    );
+    expect(formatDuration(uk, 125 * MINUTE_MS)).toBe("2 год 5 хв");
+  });
+
+  it("reads a negative span as no time at all", () => {
+    expect(formatDuration(en, -MINUTE_MS)).toBe("0min");
+  });
+});
+
+describe("formatCompactVolume", () => {
+  it("shows kilograms below a tonne, then tonnes to one decimal", () => {
+    expect(formatCompactVolume(en, 0, "kg")).toBe("0 kg");
+    expect(formatCompactVolume(en, 999.4, "kg")).toBe("999 kg");
+    expect(formatCompactVolume(en, 999.6, "kg")).toBe("1 t");
+    expect(formatCompactVolume(en, 1000, "kg")).toBe("1 t");
+    expect(formatCompactVolume(en, 136_249, "kg")).toBe("136.2 t");
+    expect(formatCompactVolume(uk, 136_249, "kg")).toBe("136,2 т");
+    expect(formatCompactVolume(uk, 850, "kg")).toBe("850 кг");
+    expect(formatCompactVolume(en, 1_250_000, "kg")).toBe("1,250 t");
+  });
+
+  it("shows pounds below a thousand, then thousands of pounds", () => {
+    expect(formatCompactVolume(en, 0, "lbs")).toBe("0 lbs");
+    expect(formatCompactVolume(en, 940, "lbs")).toBe("940 lbs");
+    expect(formatCompactVolume(en, 300_420, "lbs")).toBe("300.4K lbs");
+    expect(formatCompactVolume(uk, 300_420, "lbs")).toBe("300,4 тис. фунт");
+  });
+
+  it("spells the compact volume out for VoiceOver", () => {
+    expect(spokenCompactVolume(en, 0, "kg")).toBe("0 kilograms");
+    expect(spokenCompactVolume(en, 850, "kg")).toBe("850 kilograms");
+    expect(spokenCompactVolume(en, 1000, "kg")).toBe("1 tonne");
+    expect(spokenCompactVolume(en, 136_249, "kg")).toBe("136.2 tonnes");
+    expect(spokenCompactVolume(uk, 5000, "kg")).toBe("5 тонн");
+    expect(spokenCompactVolume(uk, 136_249, "kg")).toBe("136,2 тонни");
+    expect(spokenCompactVolume(en, 300_420, "lbs")).toBe(
+      "300.4 thousand pounds"
+    );
+    expect(spokenCompactVolume(uk, 2000, "lbs")).toBe("2 тисячі фунтів");
   });
 });

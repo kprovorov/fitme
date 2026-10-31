@@ -27,6 +27,8 @@
     "target": "Target {{target}}"
   },
   "counts": {
+    "entries_one": "{{count, number}} entry",
+    "entries_other": "{{count, number}} entries",
     "exercises_one": "{{count, number}} exercise",
     "exercises_other": "{{count, number}} exercises",
     "minutes_one": "{{count, number}} minute",
@@ -308,6 +310,16 @@
     "kg_other": "{{count, number}} kilograms",
     "lbs_one": "{{count, number}} pound",
     "lbs_other": "{{count, number}} pounds"
+  },
+  "compactUnits": {
+    "t": "{{value, number}} t",
+    "thousandLbs": "{{value, number}}K lbs"
+  },
+  "spokenCompactUnits": {
+    "t_one": "{{count, number}} tonne",
+    "t_other": "{{count, number}} tonnes",
+    "thousandLbs_one": "{{count, number}} thousand pounds",
+    "thousandLbs_other": "{{count, number}} thousand pounds"
   },
   "duration": {
     "hoursMinutes": "{{hours, number}}h {{minutes, number}}min",
@@ -627,7 +639,15 @@
     },
     "loadError": "Couldn't load your workouts. Check your connection and try again.",
     "untitledWorkout": "Workout",
-    "duration": "Duration {{duration}}"
+    "duration": "Duration {{duration}}",
+    "thisMonth": "This month",
+    "stats": {
+      "workouts": "Workouts",
+      "time": "Time",
+      "volume": "Volume"
+    },
+    "statLabel": "{{title}}: {{value}}",
+    "entry": "{{name}}, {{date}}, {{duration}}, {{sets}}, {{volume}}"
   },
   "workoutSummary": {
     "title": "Workout Complete!",

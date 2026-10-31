@@ -10,7 +10,8 @@
  * So far: `PUT` (201 created, 200 replaced, converting to a new system) and
  * `PATCH /v1/profile`, `POST /v1/plans`, activating
  * (`POST /v1/plans/{id}/activate`) and deleting (`DELETE /v1/plans/{id}`) a
- * Plan, starting, finishing and logging a set of a Workout Session, adding,
+ * Plan, listing (`GET /v1/workout-sessions`), starting, finishing and
+ * logging a set of a Workout Session, adding,
  * removing (`DELETE /v1/workout-session-exercises/{id}`) and replacing
  * (`PUT /v1/workout-session-exercises/{id}`) an Exercise of one, and the
  * public `GET /v1/arnold/models` (answered whatever the bearer, like the
@@ -475,6 +476,73 @@ const sessionBody = (session: SessionRow) => {
       ? { id: session.workout_id, name: session.workoutName }
       : null,
   };
+};
+
+const SUMMARY_LIMITS = { default: 20, max: 50 } as const;
+
+/**
+ * `listWorkoutSessions`: a page of the User's Workout Sessions, newest start
+ * first, each with its counts, completed reps and volume (weight × reps over
+ * its logged sets), in the Profile's unit. `limit` (1–50, default 20),
+ * `offset` and `status` (`all`, `in_progress`, `finished`) as the API reads
+ * them; an offset past the end is an empty page.
+ */
+const listSessions = (
+  _body: unknown,
+  _id: string,
+  query: URLSearchParams
+): Response => {
+  const limit = Number(query.get("limit") ?? SUMMARY_LIMITS.default);
+  const offset = Number(query.get("offset") ?? 0);
+  const status = query.get("status") ?? "all";
+  if (
+    !Number.isInteger(limit) ||
+    limit < 1 ||
+    limit > SUMMARY_LIMITS.max ||
+    !Number.isInteger(offset) ||
+    offset < 0 ||
+    !["all", "finished", "in_progress"].includes(status)
+  ) {
+    return error(400, "invalid_request", "limit, offset or status: Invalid");
+  }
+  const matching = backend.sessions
+    .filter(
+      (session) =>
+        status === "all" ||
+        (status === "finished") === (session.finished_at !== null)
+    )
+    .sort(
+      (a, b) =>
+        b.started_at.localeCompare(a.started_at) || a.id.localeCompare(b.id)
+    );
+  const page = matching.slice(offset, offset + limit).map((session) => {
+    const { exercises, ...body } = sessionBody(session);
+    const sets = exercises.flatMap((exercise) => exercise.sets);
+    const { weight_unit: _unit, ...summary } = body;
+    return {
+      ...summary,
+      completed_rep_count: sets.reduce(
+        (total, set) => total + (set.reps_completed ?? 0),
+        0
+      ),
+      exercise_count: exercises.length,
+      logged_set_count: sets.filter((set) => set.logged_at !== null).length,
+      set_count: sets.length,
+      volume: round2(
+        sets.reduce(
+          (total, set) =>
+            total + (set.weight_completed ?? 0) * (set.reps_completed ?? 0),
+          0
+        )
+      ),
+    };
+  });
+  return json(200, {
+    data: page,
+    hasMore: offset + page.length < matching.length,
+    total: matching.length,
+    weight_unit: weightUnit(),
+  });
 };
 
 const findWorkout = (workoutId: string) => {
@@ -1047,7 +1115,11 @@ const listArnoldModels = () =>
     },
   });
 
-type Handler = (body: unknown, id: string) => Promise<Response> | Response;
+type Handler = (
+  body: unknown,
+  id: string,
+  query: URLSearchParams
+) => Promise<Response> | Response;
 
 /** Every route the fake answers, each path parameter as `(?<id>…)`. */
 const ROUTES: Array<{
@@ -1087,6 +1159,11 @@ const ROUTES: Array<{
     handler: deletePlan,
     path: /^\/v1\/plans\/(?<id>[^/]+)$/,
     route: "DELETE /v1/plans/{id}",
+  },
+  {
+    handler: listSessions,
+    path: /^\/v1\/workout-sessions$/,
+    route: "GET /v1/workout-sessions",
   },
   {
     handler: startSession,
@@ -1202,7 +1279,7 @@ class FakePublicApi {
   }
 
   fetch: PublicApiFetch = async (url, init) => {
-    const { pathname } = new URL(url);
+    const { pathname, searchParams } = new URL(url);
     const matched = match(init.method ?? "GET", pathname);
     const { route } = matched;
     const authorization = new Headers(init.headers).get("Authorization");
@@ -1221,7 +1298,7 @@ class FakePublicApi {
       this.failures = this.failures.filter((other) => other !== queued);
       const { failure } = queued;
       if (failure === "lost") {
-        await this.answer(matched, authorization, body);
+        await this.answer(matched, authorization, body, searchParams);
         throw new TypeError("Network request failed");
       }
       if (failure === "network") {
@@ -1239,13 +1316,14 @@ class FakePublicApi {
           );
     }
 
-    return this.answer(matched, authorization, body);
+    return this.answer(matched, authorization, body, searchParams);
   };
 
   private answer(
     { handler, id, isPublic, route }: ReturnType<typeof match>,
     authorization: string | null,
-    body: unknown
+    body: unknown,
+    query: URLSearchParams
   ) {
     if (!handler) {
       this.unhandled.push(route);
@@ -1254,7 +1332,7 @@ class FakePublicApi {
     if (!isPublic && authorization !== `Bearer ${FAKE_SESSION_TOKEN}`) {
       return error(401, "unauthorized", "Unauthorized");
     }
-    return handler(body, id);
+    return handler(body, id, query);
   }
 }
 

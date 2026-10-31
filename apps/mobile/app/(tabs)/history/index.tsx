@@ -1,55 +1,54 @@
-import type { WorkoutSession } from "@fitme/core";
 import { formatCount, formatDate, type Translator } from "@fitme/i18n";
 import { LegendList } from "@legendapp/list/react-native";
-import { Link, Stack, useRouter } from "expo-router";
-import { useCallback, useState } from "react";
+import { Stack, useRouter } from "expo-router";
+import { Fragment, useCallback, useState } from "react";
 import { useTranslation } from "react-i18next";
-import {
-  ActivityIndicator,
-  Pressable,
-  RefreshControl,
-  View,
-} from "react-native";
+import { ActivityIndicator, RefreshControl, View } from "react-native";
 import Purchases from "react-native-purchases";
 import { useResolveClassNames } from "uniwind";
 import { Button } from "~/components/ui/button";
-import { MenuList } from "~/components/ui/menu-list";
+import { Card } from "~/components/ui/card";
 import { Separator } from "~/components/ui/separator";
 import { Text } from "~/components/ui/text";
-import { H1 } from "~/components/ui/typography";
+import { H1, H4 } from "~/components/ui/typography";
+import HistoryMonthOverview from "~/components/views/history-month-overview";
 import WorkoutSessionHistoryRow from "~/components/views/workout-session-history-row";
-import { useWorkoutSessionHistoryQuery } from "~/hooks/queries/workout-sessions";
+import {
+  useWorkoutSessionHistoryQuery,
+  type WorkoutSessionHistory,
+  type WorkoutSessionHistoryEntry,
+} from "~/hooks/queries/workout-sessions";
+import { useStackedLayout } from "~/hooks/stacked-layout";
 import { useI18n } from "~/lib/i18n";
 
 interface Month {
+  entries: WorkoutSessionHistoryEntry[];
   key: string;
-  sessions: WorkoutSession[];
   title: string;
+  weightUnit: WorkoutSessionHistory["weightUnit"];
 }
 
-/** Sessions grouped by the month they started in, newest first. */
+/**
+ * Entries grouped by the month they started in on the device's clock,
+ * newest first (the query sorts them by start).
+ */
 function groupByMonth(
-  sessions: WorkoutSession[],
+  { sessions, weightUnit }: WorkoutSessionHistory,
   translator: Translator
 ): Month[] {
-  // Sorted by start, the date grouped on: the query orders by finish, and a
-  // long session finished late would otherwise split its month in two.
-  const byStart = [...sessions].sort(
-    (a, b) =>
-      new Date(b.started_at).getTime() - new Date(a.started_at).getTime()
-  );
   const months: Month[] = [];
-  for (const session of byStart) {
-    const startedAt = new Date(session.started_at);
+  for (const entry of sessions) {
+    const startedAt = new Date(entry.started_at);
     const key = `${startedAt.getFullYear()}-${startedAt.getMonth() + 1}`;
     const last = months.at(-1);
     if (last?.key === key) {
-      last.sessions.push(session);
+      last.entries.push(entry);
     } else {
       months.push({
+        entries: [entry],
         key,
-        sessions: [session],
         title: formatDate(translator, startedAt, "monthYear"),
+        weightUnit,
       });
     }
   }
@@ -62,37 +61,36 @@ const renderMonth = ({ item }: { item: Month }) => (
   <MonthSection month={item} />
 );
 
+/**
+ * A month of History: its heading, counting every finished entry (empty
+ * completions too, unlike the overview's workouts), over a card of rows.
+ */
 function MonthSection({ month }: { month: Month }) {
   const i18n = useI18n();
+  const stacked = useStackedLayout();
   return (
-    <View className="gap-xs pb-md">
-      <View className="flex-row items-baseline gap-2 px-1">
-        <Text
-          accessibilityRole="header"
-          className="flex-1 text-subhead-emphasized"
-        >
-          {month.title}
-        </Text>
+    <View className="gap-xs pb-lg">
+      <View
+        className={
+          stacked ? "gap-1 px-1" : "flex-row items-baseline gap-2 px-1"
+        }
+      >
+        <H4 className={stacked ? undefined : "flex-1"}>{month.title}</H4>
         <Text className="text-footnote text-muted-foreground">
-          {formatCount(i18n, "workouts", month.sessions.length)}
+          {formatCount(i18n, "entries", month.entries.length)}
         </Text>
       </View>
-      <MenuList>
-        {month.sessions.map((session, index) => (
-          <View key={session.id}>
-            {index > 0 && <Separator className="ml-sm" />}
-            {/* `asChild` keeps the row out of the Text wrapper Link renders by default. */}
-            <Link asChild href={`/workout-sessions/${session.id}/summary`}>
-              <Pressable
-                accessibilityRole="button"
-                className="active:opacity-80"
-              >
-                <WorkoutSessionHistoryRow workoutSession={session} />
-              </Pressable>
-            </Link>
-          </View>
+      <Card className="gap-sm">
+        {month.entries.map((entry, index) => (
+          <Fragment key={entry.id}>
+            {index > 0 && <Separator />}
+            <WorkoutSessionHistoryRow
+              entry={entry}
+              weightUnit={month.weightUnit}
+            />
+          </Fragment>
         ))}
-      </MenuList>
+      </Card>
     </View>
   );
 }
@@ -116,10 +114,10 @@ export default function HistoryScreen() {
   const { t } = useTranslation();
   const [refreshing, setRefreshing] = useState(false);
   // LegendList takes no class names: resolve the spacing tokens to a style.
-  const contentContainerStyle = useResolveClassNames("px-sm pt-xs pb-lg");
+  const contentContainerStyle = useResolveClassNames("px-sm pt-sm pb-lg");
 
   const {
-    data: workoutSessions,
+    data: history,
     isError,
     refetch: refetchWorkoutSessions,
   } = useWorkoutSessionHistoryQuery();
@@ -128,7 +126,7 @@ export default function HistoryScreen() {
   // when the App language (or the device's region) changes, and the month
   // titles follow it.
   const i18n = useI18n();
-  const months = groupByMonth(workoutSessions ?? [], i18n);
+  const months = history ? groupByMonth(history, i18n) : [];
 
   const retry = useCallback(() => {
     refetchWorkoutSessions();
@@ -160,7 +158,7 @@ export default function HistoryScreen() {
         </View>
       );
     }
-    if (!workoutSessions) {
+    if (!history) {
       return (
         <View className="items-center pt-lg">
           <ActivityIndicator colorClassName="accent-foreground" />
@@ -191,6 +189,11 @@ export default function HistoryScreen() {
         data={months}
         keyExtractor={keyExtractor}
         ListEmptyComponent={renderEmpty()}
+        ListHeaderComponent={
+          history && history.sessions.length > 0 ? (
+            <HistoryMonthOverview history={history} />
+          ) : null
+        }
         recycleItems={false}
         refreshControl={
           <RefreshControl onRefresh={onRefresh} refreshing={refreshing} />
