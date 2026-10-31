@@ -1,16 +1,19 @@
 import type { Workout } from "@fitme/core";
 import { rankMuscleGroups } from "@fitme/core/covers";
 import { formatCount } from "@fitme/i18n";
+import { Image } from "expo-image";
 import { useRouter } from "expo-router";
+import { useCallback, useState } from "react";
 import { useTranslation } from "react-i18next";
-import { useWindowDimensions, View } from "react-native";
-import { useExercises } from "~/hooks/queries/library";
+import { StyleSheet, useWindowDimensions, View } from "react-native";
+import { useCovers, useExercises } from "~/hooks/queries/library";
 import {
   openSessionPath,
   useStartWorkout,
   workoutSessionPath,
 } from "~/hooks/start-workout";
 import { useChoiceLabels } from "~/lib/choices";
+import { sizedThumbnailUrl } from "~/lib/exercise-media";
 import { useI18n } from "~/lib/i18n";
 import { SymbolImage } from "../symbol-image";
 import { Badge } from "../ui/badge";
@@ -25,10 +28,54 @@ const STACKED_FONT_SCALE = 1.4;
 /** How many muscle-group badges a card shows before "+N". */
 export const SHOWN_MUSCLE_GROUPS = 3;
 
+/** The card's height (`min-h-100`), which its Cover is sized for. */
+const CARD_HEIGHT = 400;
+
+/** The Cover at 80% opacity, filling the card (Figma's background slot). */
+const coverStyle = { ...StyleSheet.absoluteFill, opacity: 0.8 };
+
 interface WorkoutCarouselCardProps {
   /** The Plan's Workout duration, in minutes. */
   durationMinutes: number;
+  /** The card's width, in points, which its Cover is sized for. */
+  width: number;
   workout: Workout;
+}
+
+/**
+ * The Workout's Cover, from the Library's list, at the card's size in device
+ * pixels. None (so the card stays black) for a Workout without one, an id
+ * the list doesn't have, no list yet or at all, or an image that fails to
+ * load.
+ */
+function WorkoutCover({
+  coverId,
+  testID,
+  width,
+}: {
+  coverId: string | null;
+  testID: string;
+  width: number;
+}) {
+  const covers = useCovers();
+  const [failedUrl, setFailedUrl] = useState<string>();
+  const imageUrl = coverId ? covers.get(coverId)?.image_url : undefined;
+  const uri = imageUrl
+    ? sizedThumbnailUrl(imageUrl, Math.round(width), CARD_HEIGHT)
+    : undefined;
+  const onError = useCallback(() => setFailedUrl(uri), [uri]);
+  if (!uri || failedUrl === uri) {
+    return null;
+  }
+  return (
+    <Image
+      contentFit="cover"
+      onError={onError}
+      source={{ uri }}
+      style={coverStyle}
+      testID={testID}
+    />
+  );
 }
 
 /**
@@ -40,6 +87,7 @@ interface WorkoutCarouselCardProps {
  */
 export default function WorkoutCarouselCard({
   durationMinutes,
+  width,
   workout,
 }: WorkoutCarouselCardProps) {
   const router = useRouter();
@@ -78,11 +126,18 @@ export default function WorkoutCarouselCard({
 
   return (
     <Card
-      // The spec's readability scrim over the Cover (FIT-456), not decoration:
-      // the bottom half darkens to the card fill, solid from three quarters
-      // down, under the name and buttons.
+      // The Cover, then the readability scrim over it, not decoration: the
+      // bottom half darkens to the card fill, solid from three quarters down,
+      // under the name and buttons.
       background={
-        <View className="absolute inset-x-0 top-1/2 bottom-0 bg-linear-to-b from-transparent to-50% to-card/90" />
+        <>
+          <WorkoutCover
+            coverId={workout.cover}
+            testID={`workout-cover-${workout.id}`}
+            width={width}
+          />
+          <View className="absolute inset-x-0 top-1/2 bottom-0 bg-linear-to-b from-transparent to-50% to-card/90" />
+        </>
       }
       className="min-h-100 flex-1"
       padding="none"

@@ -59,6 +59,7 @@ export default function WorkoutCarousel({ plan }: WorkoutCarouselProps) {
           <View key={workout.id} style={{ width: cardWidth }}>
             <WorkoutCarouselCard
               durationMinutes={plan.workout_duration}
+              width={cardWidth}
               workout={workout}
             />
           </View>

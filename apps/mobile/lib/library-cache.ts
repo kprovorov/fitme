@@ -1,5 +1,5 @@
 import { type AppLanguage, appLanguages } from "@fitme/core";
-import type { Exercise, ExerciseSummary } from "@fitme/library-sdk";
+import type { Cover, Exercise, ExerciseSummary } from "@fitme/library-sdk";
 import { storage } from "~/lib/mmkv";
 
 // The Exercises the app has resolved, kept in MMKV so they show offline and
@@ -7,12 +7,14 @@ import { storage } from "~/lib/mmkv";
 // isn't kept per User, but it is kept per App language
 // (`library.<language>.exercise-summary.<slug>`), so each language shows its
 // own copy. Each entry carries when it was saved, so a query starting from it
-// knows whether it's stale.
+// knows whether it's stale. The Covers are one list under one key
+// (`library.covers`): they have no text, so no language.
 
 const summaryStorageKey = (language: AppLanguage, slug: string) =>
   `library.${language}.exercise-summary.${slug}`;
 const exerciseStorageKey = (language: AppLanguage, slug: string) =>
   `library.${language}.exercise.${slug}`;
+const COVERS_STORAGE_KEY = "library.covers";
 
 // Builds before the App language kept English copies under
 // `library.exercise-summary.*` / `library.exercise.*`. Those are deleted once
@@ -54,6 +56,16 @@ const isExercise = (value: unknown): value is Exercise =>
   isRecord(value) &&
   typeof value.description === "string" &&
   typeof value.instructions === "string";
+
+const isCover = (value: unknown): value is Cover =>
+  isRecord(value) &&
+  typeof value.id === "string" &&
+  typeof value.image_url === "string" &&
+  Array.isArray(value.muscle_groups) &&
+  value.muscle_groups.every((group) => typeof group === "string");
+
+const isCoverList = (value: unknown): value is Cover[] =>
+  Array.isArray(value) && value.every(isCover);
 
 /** The entry under `key`; an unreadable or malformed value counts as none. */
 const read = <T>(
@@ -119,3 +131,19 @@ export const removeCachedExercise = (slug: string) => {
     storage.remove(exerciseStorageKey(language, slug));
   }
 };
+
+export const readCachedCovers = () => read(COVERS_STORAGE_KEY, isCoverList);
+
+export const writeCachedCovers = (
+  covers: readonly Cover[],
+  savedAt = Date.now()
+) =>
+  write(
+    COVERS_STORAGE_KEY,
+    covers.map(({ id, image_url, muscle_groups }) => ({
+      id,
+      image_url,
+      muscle_groups,
+    })),
+    savedAt
+  );

@@ -1,5 +1,5 @@
 import type { MuscleGroup } from "@fitme/core";
-import type { Exercise, Library } from "@fitme/library-sdk";
+import type { Cover, Exercise, Library } from "@fitme/library-sdk";
 import {
   createFakeLibrary,
   type FakeExercise,
@@ -46,11 +46,12 @@ export const libraryModule = {
   getLibrary: (): Library => library.current,
 };
 
-/** Makes a fake over these Exercises the one the app reads. */
+/** Makes a fake over these Exercises (and Covers, none by default) the one the app reads. */
 export const serveLibrary = (
-  exercises: readonly FakeExercise[]
+  exercises: readonly FakeExercise[],
+  options: { covers?: readonly Cover[] } = {}
 ): FakeLibrary => {
-  const fake = createFakeLibrary(exercises);
+  const fake = createFakeLibrary(exercises, options);
   library.current = fake;
   return fake;
 };
