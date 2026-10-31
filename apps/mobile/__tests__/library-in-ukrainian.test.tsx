@@ -9,7 +9,13 @@ import { LibraryUnavailableError } from "@fitme/library-sdk";
 import type { FakeLibrary } from "@fitme/library-sdk/fake";
 import { beforeEach, describe, expect, it, jest } from "@jest/globals";
 import { type QueryClient, QueryClientProvider } from "@tanstack/react-query";
-import { act, fireEvent, render, screen } from "@testing-library/react-native";
+import {
+  act,
+  fireEvent,
+  render,
+  screen,
+  within,
+} from "@testing-library/react-native";
 import { router } from "expo-router";
 import type { ComponentType } from "react";
 import LibraryScreen from "~/app/(tabs)/library/index";
@@ -89,7 +95,21 @@ describe("the Library tab in Ukrainian", () => {
       "Пошук вправ"
     );
     expect(screen.getByRole("button", { name: "М’язи" })).toBeTruthy();
+    expect(screen.queryByTestId("muscle-group-chips")).toBeNull();
     expect(screen.getByText("Жим лежачи")).toBeTruthy();
+  });
+
+  it("names each chosen Muscle group's chip in Ukrainian, in core's order", async () => {
+    await renderInUkrainian(LibraryScreen);
+
+    await act(() => setMuscleChoice("library", ["triceps", "chest"]));
+    await settle(client);
+
+    expect(
+      within(screen.getByTestId("muscle-group-chips"))
+        .getAllByRole("button")
+        .map((chip) => chip.props.accessibilityLabel)
+    ).toEqual(["Видалити Груди", "Видалити Трицепс"]);
   });
 
   it.each([

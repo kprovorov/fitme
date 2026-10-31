@@ -8,6 +8,7 @@
   "library": {
     "search": "Search exercises",
     "muscles": "Muscles",
+    "removeMuscleGroup": "Remove {{muscleGroup}}",
     "reset": "Reset",
     "confirm": "Done",
     "loadErrorTitle": "Couldn't Load Exercises",

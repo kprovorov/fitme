@@ -303,6 +303,7 @@ describe("the Exercise picker", () => {
     expect(screen.getAllByTestId(ADD_ICON)).toHaveLength(3);
     expect(screen.queryByTestId(REPLACE_ICON)).toBeNull();
     expect(screen.queryByText("Add")).toBeNull();
+    expect(screen.queryByTestId("muscle-group-chips")).toBeNull();
   });
 
   it("opens as Replace Exercise on the replaced one's first muscle group", async () => {
@@ -337,6 +338,10 @@ describe("the Exercise picker", () => {
     expect(screen.queryByTestId(ADD_ICON)).toBeNull();
     expect(screen.queryByText("Replace")).toBeNull();
     expect(screen.queryByText("Push Up")).toBeNull();
+    // Replace starts with that Muscle group as a chip the User can remove.
+    expect(
+      screen.getByRole("button", { name: "Remove Quadriceps" })
+    ).toBeTruthy();
 
     // The Muscles sheet over the picker starts from that choice.
     await fireEvent.press(screen.getByRole("button", { name: "Muscles" }));
@@ -353,6 +358,27 @@ describe("the Exercise picker", () => {
     expect(screen.getAllByTestId(REPLACE_ICON)).toHaveLength(3);
     // The picker's choice is its own: the Library tab's is untouched.
     expect(getMuscleChoice("library")).toEqual([]);
+  });
+
+  it("removes Replace's preselected Muscle group from its chip", async () => {
+    await renderSession();
+    const [replaceItem] = await screen.findAllByLabelText("Replace");
+    await fireEvent.press(replaceItem as NonNullable<typeof replaceItem>);
+    await settle();
+
+    expect(
+      screen.getByRole("button", { name: "Remove Quadriceps" })
+    ).toBeTruthy();
+    expect(screen.queryByText("Push Up")).toBeNull();
+
+    await fireEvent.press(
+      screen.getByRole("button", { name: "Remove Quadriceps" })
+    );
+    await settle();
+
+    expect(screen.queryByTestId("muscle-group-chips")).toBeNull();
+    // Push Up trains chest, so it was hidden while Quadriceps was chosen.
+    expect(screen.getByText("Push Up")).toBeTruthy();
   });
 
   it("starts unfiltered again when adding after a replace", async () => {

@@ -8,6 +8,7 @@
   "library": {
     "search": "Пошук вправ",
     "muscles": "М’язи",
+    "removeMuscleGroup": "Видалити {{muscleGroup}}",
     "reset": "Скинути",
     "confirm": "Готово",
     "loadErrorTitle": "Не вдалося завантажити вправи",
