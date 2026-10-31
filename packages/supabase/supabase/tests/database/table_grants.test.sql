@@ -7,7 +7,7 @@
 -- Run with `pnpm db test:db` (supabase test db).
 begin;
 
-select plan(11);
+select plan(13);
 
 -- A new table grants what it needs in its own migration, then gets a line
 -- here (and in the checks below if it doesn't take the app tables' grants).
@@ -21,6 +21,7 @@ select is(
   ),
   array[
     'arnold_sessions',
+    'personal_record_initializations',
     'personal_records',
     'plans',
     'profiles',
@@ -55,7 +56,7 @@ select is_empty(
     ]) as p(privilege)
     where c.relnamespace = 'public'::regnamespace
       and c.relkind in ('r', 'p')
-      and c.relname not in ('arnold_sessions', 'personal_records', 'weekly_goal_changes')
+      and c.relname not in ('arnold_sessions', 'personal_record_initializations', 'personal_records', 'weekly_goal_changes')
       and not has_table_privilege(r.role, c.oid, p.privilege)
   $$,
   'anon, authenticated and service_role hold every privilege on the app tables'
@@ -151,5 +152,18 @@ select ok(
   'anon cannot read or write personal_records'
 );
 
+select is(
+  array(select acl.privilege_type::text from pg_catalog.pg_class c
+    cross join lateral aclexplode(c.relacl) acl
+    where c.oid = 'public.personal_record_initializations'::regclass
+      and acl.grantee = 'authenticated'::regrole order by 1),
+  array['INSERT', 'SELECT'],
+  'authenticated can only read and insert initialization completion'
+);
+select ok(
+  not has_table_privilege('anon', 'public.personal_record_initializations', 'select')
+  and not has_table_privilege('anon', 'public.personal_record_initializations', 'insert'),
+  'anon cannot read or write initialization completion'
+);
 select * from finish();
 rollback;

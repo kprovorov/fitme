@@ -103,6 +103,14 @@ const UKRAINIAN_RECORD =
   /\. Особистий рекорд: Bench press, 105 кілограмів × 3 повторення$/;
 // `1 370 кг`, with Ukrainian's no-break space between thousands.
 const UKRAINIAN_PUSH_DAY = /^1 год 5 хв · 5 підходів · 1\s370 кг$/;
+const HISTORICAL_EN_METRIC =
+  /Personal record: Bench press, 110 kilograms × 3 reps$/;
+const HISTORICAL_EN_IMPERIAL =
+  /Personal record: Bench press, 242.51 pounds × 3 reps$/;
+const HISTORICAL_UK_METRIC =
+  /Особистий рекорд: Bench press, 110 кілограмів × 3 повторення$/;
+const HISTORICAL_UK_IMPERIAL =
+  /Особистий рекорд: Bench press, 242,51 фунта × 3 повторення$/;
 const WEEKLY_GOAL = /Weekly goal/;
 const WEEKS_HIT = /weeks? hit/;
 
@@ -253,6 +261,78 @@ afterEach(async () => {
 });
 
 describe("The History tab", () => {
+  it.each([
+    {
+      badge: "PR",
+      language: "en-US",
+      result: HISTORICAL_EN_METRIC,
+      system: "metric",
+      weight: 110,
+    },
+    {
+      badge: "PR",
+      language: "en-US",
+      result: HISTORICAL_EN_IMPERIAL,
+      system: "us",
+      weight: 242.51,
+    },
+    {
+      badge: "Рекорд",
+      language: "uk-UA",
+      result: HISTORICAL_UK_METRIC,
+      system: "metric",
+      weight: 110,
+    },
+    {
+      badge: "Рекорд",
+      language: "uk-UA",
+      result: HISTORICAL_UK_IMPERIAL,
+      system: "us",
+      weight: 242.51,
+    },
+  ])(
+    "shows retained historical evidence in $language / $system, outside the month and chart window",
+    async ({ language, system, weight, badge, result }) => {
+      setDeviceLanguages([language]);
+      backend.seedProfile(FAKE_USER_ID, { measurement_system: system });
+      // Retained resource evidence produced by service initialization. The
+      // Screen consumes it unchanged; it never replays or infers PR rules.
+      const older = {
+        ...goneWorkout,
+        id: "historical-baseline",
+        sets: [[5, system === "metric" ? 100 : 220.46]] as [number, number][],
+        start: new Date(2024, 0, 1, 10),
+        workout: "Old Plan · Baseline",
+      };
+      const improved = {
+        ...pushDay,
+        id: "historical-award",
+        sets: [[3, weight]] as [number, number][],
+        start: new Date(2024, 3, 3, 10),
+        workout: "New Plan · Improved",
+      };
+      seedEntry(older);
+      seedEntry(improved);
+      backend.personalRecords.push({
+        exercise_slug: "bench-press",
+        kind: "weight",
+        reps: 3,
+        weight,
+        workout_session_id: improved.id,
+      });
+      await mount();
+      expect(screen.getAllByText(badge)).toHaveLength(1);
+      expect(
+        within(screen.getByRole("button", { name: result })).getByText(badge)
+      ).toBeTruthy();
+      expect(screen.getByText(older.workout)).toBeTruthy();
+      expect(screen.getByText(monthTitle(improved.start))).toBeTruthy();
+      await queryClient.refetchQueries();
+      await settle(queryClient);
+      expect(screen.getAllByText(badge)).toHaveLength(1);
+    }
+  );
+
   it("totals this month's qualifying workouts above every listed entry", async () => {
     for (const entry of [pushDay, goneWorkout, emptyCompletion, acrossMonths]) {
       seedEntry(entry);

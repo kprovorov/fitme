@@ -1,6 +1,7 @@
 import { randomUUID } from "node:crypto";
 import {
   asUser,
+  personalRecordInitializations,
   personalRecords,
   plans,
   profiles,
@@ -9,9 +10,10 @@ import {
   workoutSessionExercises,
   workoutSessions,
 } from "@fitme/db";
-import { eq } from "drizzle-orm";
+import { eq, sql } from "drizzle-orm";
 import { afterAll, beforeEach, describe, expect, it } from "vitest";
 import { deleteUserData } from "../src/delete-user-data";
+import { initializePersonalRecords } from "../src/personal-records";
 import { updateProfile } from "../src/profile";
 import {
   finishWorkoutSession,
@@ -123,6 +125,369 @@ const finishWith = async (seed: SessionSeed) => {
   await finish(sessionId, seed.userId);
   return { records: await recordsOf(sessionId, seed.userId), sessionId };
 };
+
+const initialize = (userId = owner) =>
+  asUser(userId, (tx) => initializePersonalRecords(tx, userId));
+
+const deferred = () => {
+  let resolve: () => void = () => undefined;
+  const promise = new Promise<void>((done) => {
+    resolve = done;
+  });
+  return { promise, resolve };
+};
+
+describe("historical Personal record initialization", () => {
+  it("initializes evidence older than a 50-session resource page", async () => {
+    await seedSession({
+      exercises: { [SQUAT]: [[100, 5]] },
+      startedAt: "2024-01-01T10:00:00Z",
+    });
+    for (let index = 0; index < 55; index += 1) {
+      // biome-ignore lint/performance/noAwaitInLoops: fixture dates define the replay order
+      await seedSession({
+        exercises: { [SQUAT]: [[110, 5]] },
+        startedAt: new Date(Date.UTC(2024, 1, 1, 10, index)).toISOString(),
+      });
+    }
+    await initialize();
+    const olderPage = await asUser(owner, (tx) =>
+      listWorkoutSessions(tx, { limit: 50, offset: 50, status: "finished" })
+    );
+    expect(olderPage.total).toBe(56);
+    expect(
+      olderPage.sessions.flatMap((session) => session.personal_records)
+    ).toEqual([{ exercise_slug: SQUAT, kind: "weight", reps: 5, weight: 110 }]);
+  });
+
+  it("evaluates all History in finish order across Plans, retaining first baselines and ties", async () => {
+    const [planA, planB] = await withService((tx) =>
+      tx
+        .insert(plans)
+        .values(
+          ["A", "B"].map((name) => ({
+            frequency: 3,
+            goal: "strength",
+            name,
+            place: "gym",
+            userId: owner,
+          }))
+        )
+        .returning({ id: plans.id })
+    );
+    // Seed out of order, all well outside the current month/chart window.
+    const heavier = await seedSession({
+      exercises: { [SQUAT]: [[110, 3]] },
+      planId: planB.id,
+      startedAt: "2025-04-03T10:00:00Z",
+    });
+    const baseline = await seedSession({
+      exercises: {
+        [SQUAT]: [
+          [100, 5],
+          [100, 6],
+        ],
+      },
+      planId: planA.id,
+      startedAt: "2025-01-01T10:00:00Z",
+    });
+    const reps = await seedSession({
+      exercises: { [SQUAT]: [[100, 7]] },
+      planId: planB.id,
+      startedAt: "2025-03-02T10:00:00Z",
+    });
+    const tie = await seedSession({
+      exercises: { [SQUAT]: [[110, 3]] },
+      startedAt: "2025-05-04T10:00:00Z",
+    });
+    await initialize();
+    expect(await recordsOf(baseline)).toEqual([]);
+    expect(await recordsOf(reps)).toEqual([
+      { exercise_slug: SQUAT, kind: "reps", reps: 7, weight: 100 },
+    ]);
+    expect(await recordsOf(heavier)).toEqual([
+      { exercise_slug: SQUAT, kind: "weight", reps: 3, weight: 110 },
+    ]);
+    expect(await recordsOf(tie)).toEqual([]);
+    expect(await initialize()).toEqual({ alreadyInitialized: true });
+  });
+
+  it("handles missing results, bodyweight reps and weighted transitions without using open sessions", async () => {
+    const missing = await seedSession({
+      exercises: {
+        [PULL_UP]: [
+          [null, 50],
+          [20, 0],
+          [30, null],
+        ],
+      },
+    });
+    const baseline = await seedSession({
+      exercises: {
+        [PULL_UP]: [
+          [0, 8],
+          [0, 10],
+        ],
+      },
+      startedAt: "2026-10-02T10:00:00Z",
+    });
+    const reps = await seedSession({
+      exercises: { [PULL_UP]: [[0, 11]] },
+      startedAt: "2026-10-03T10:00:00Z",
+    });
+    const weighted = await seedSession({
+      exercises: { [PULL_UP]: [[0.01, 1]] },
+      startedAt: "2026-10-04T10:00:00Z",
+    });
+    const bodyweight = await seedSession({
+      exercises: { [PULL_UP]: [[0, 100]] },
+      startedAt: "2026-10-05T10:00:00Z",
+    });
+    const open = await seedSession({
+      exercises: { [PULL_UP]: [[100, 10]] },
+      finished: false,
+    });
+    await initialize();
+    expect(
+      await Promise.all(
+        [missing, baseline, bodyweight, open].map((id) => recordsOf(id))
+      )
+    ).toEqual([[], [], [], []]);
+    expect(await recordsOf(reps)).toEqual([
+      { exercise_slug: PULL_UP, kind: "reps", reps: 11, weight: 0 },
+    ]);
+    expect(await recordsOf(weighted)).toEqual([
+      { exercise_slug: PULL_UP, kind: "weight", reps: 1, weight: 0.01 },
+    ]);
+  });
+
+  it("uses finish chronology at database precision, rather than insertion or start order", async () => {
+    const baseline = await seedSession({
+      exercises: { [SQUAT]: [[100, 5]] },
+      startedAt: "2026-01-03T10:00:00Z",
+    });
+    const later = await seedSession({
+      exercises: { [SQUAT]: [[110, 3]] },
+      startedAt: "2026-01-01T10:00:00Z",
+    });
+    await withService(async (tx) => {
+      await tx
+        .update(workoutSessions)
+        .set({ finishedAt: sql`'2026-01-04T10:00:00.000001Z'::timestamptz` })
+        .where(eq(workoutSessions.id, baseline));
+      await tx
+        .update(workoutSessions)
+        .set({ finishedAt: sql`'2026-01-04T10:00:00.000002Z'::timestamptz` })
+        .where(eq(workoutSessions.id, later));
+    });
+    await initialize();
+    expect(await recordsOf(baseline)).toEqual([]);
+    expect(await recordsOf(later)).toEqual([
+      { exercise_slug: SQUAT, kind: "weight", reps: 3, weight: 110 },
+    ]);
+  });
+
+  it("rolls an interrupted transaction back and retries all History without partial awards", async () => {
+    await seedSession({ exercises: { [SQUAT]: [[100, 5]] } });
+    const improved = await seedSession({
+      exercises: { [SQUAT]: [[110, 5]] },
+      startedAt: "2026-10-02T10:00:00Z",
+    });
+    await expect(
+      asUser(owner, async (tx) => {
+        await initializePersonalRecords(tx, owner);
+        throw new Error("interrupted before commit");
+      })
+    ).rejects.toThrow("interrupted before commit");
+    expect(await recordsOf(improved)).toEqual([]);
+    expect(await initialize()).toEqual({ alreadyInitialized: false });
+    expect(await recordsOf(improved)).toEqual([
+      { exercise_slug: SQUAT, kind: "weight", reps: 5, weight: 110 },
+    ]);
+  });
+
+  it("preserves existing new awards and does not reinterpret baselines after a session is deleted", async () => {
+    const baseline = await seedSession({ exercises: { [SQUAT]: [[100, 5]] } });
+    const historical = await seedSession({
+      exercises: { [SQUAT]: [[110, 5]] },
+      startedAt: "2026-10-02T10:00:00Z",
+    });
+    const { sessionId } = await finishWith({
+      exercises: { [SQUAT]: [[120, 3]] },
+    });
+    const retained = await withService((tx) =>
+      tx
+        .select()
+        .from(personalRecords)
+        .where(eq(personalRecords.workoutSessionId, sessionId))
+    );
+    const runs = await Promise.all([initialize(), initialize()]);
+    expect(runs).toEqual(
+      expect.arrayContaining([
+        { alreadyInitialized: false },
+        { alreadyInitialized: true },
+      ])
+    );
+    expect(
+      await withService((tx) =>
+        tx
+          .select()
+          .from(personalRecords)
+          .where(eq(personalRecords.workoutSessionId, sessionId))
+      )
+    ).toEqual(retained);
+    await asUser(owner, (tx) =>
+      tx.delete(workoutSessions).where(eq(workoutSessions.id, baseline))
+    );
+    await initialize();
+    expect(await recordsOf(historical)).toEqual([
+      { exercise_slug: SQUAT, kind: "weight", reps: 5, weight: 110 },
+    ]);
+    // Even if every original session disappears, the completion stays.
+    await asUser(owner, (tx) => tx.delete(workoutSessions));
+    expect(await initialize()).toEqual({ alreadyInitialized: true });
+    expect(
+      (await finishWith({ exercises: { [SQUAT]: [[100, 5]] } })).records
+    ).toEqual([]);
+  });
+
+  it("isolates Users, removes completion with account data, and refuses a retired identity", async () => {
+    const other = newUser("Other");
+    await seedSession({ exercises: { [SQUAT]: [[300, 10]] }, userId: other });
+    await seedSession({ exercises: { [SQUAT]: [[100, 5]] } });
+    const improved = await seedSession({
+      exercises: { [SQUAT]: [[110, 5]] },
+      startedAt: "2026-10-02T10:00:00Z",
+    });
+    await initialize();
+    expect(await recordsOf(improved)).toHaveLength(1);
+    expect(
+      await asUser(other, (tx) =>
+        tx.select().from(personalRecordInitializations)
+      )
+    ).toEqual([]);
+    expect(await initialize(other)).toEqual({ alreadyInitialized: false });
+    await withUserTablesLocked((tx) => deleteUserData(tx, owner));
+    expect(
+      await withService((tx) =>
+        tx.$count(
+          personalRecordInitializations,
+          eq(personalRecordInitializations.userId, owner)
+        )
+      )
+    ).toBe(0);
+    await expect(initialize()).rejects.toThrow();
+  });
+
+  it("retains initialized awards through conversion and never turns rounding or a retry into a PR", async () => {
+    await withService((tx) =>
+      tx.insert(profiles).values({
+        age: 30,
+        gender: "male",
+        height: "70",
+        measurementSystem: "us",
+        userId: owner,
+        weight: "180",
+      })
+    );
+    await seedSession({ exercises: { [SQUAT]: [[185, 7]] } });
+    const tie = await seedSession({
+      exercises: { [SQUAT]: [[185, 6]] },
+      startedAt: "2026-10-02T10:00:00Z",
+    });
+    const improved = await seedSession({
+      exercises: { [SQUAT]: [[185, 8]] },
+      startedAt: "2026-10-03T10:00:00Z",
+    });
+    // Existing data may already have been converted: use what remains today.
+    await asUser(owner, (tx) =>
+      updateProfile(tx, owner, { measurement_system: "metric" })
+    );
+    await initialize();
+    expect(await recordsOf(tie)).toEqual([]);
+    expect(await recordsOf(improved)).toEqual([
+      { exercise_slug: SQUAT, kind: "reps", reps: 8, weight: 83.91 },
+    ]);
+    await asUser(owner, (tx) =>
+      updateProfile(tx, owner, { measurement_system: "us" })
+    );
+    await initialize();
+    expect(await recordsOf(tie)).toEqual([]);
+    expect(await recordsOf(improved)).toEqual([
+      { exercise_slug: SQUAT, kind: "reps", reps: 8, weight: 184.99 },
+    ]);
+    expect(
+      (await finishWith({ exercises: { [SQUAT]: [[185, 8]] } })).records
+    ).toEqual([]);
+  });
+
+  it.each(["finish", "conversion"] as const)(
+    "serializes initialization with a concurrent %s",
+    async (operation) => {
+      await withService((tx) =>
+        tx.insert(profiles).values({
+          age: 30,
+          gender: "male",
+          height: "180",
+          measurementSystem: "metric",
+          userId: owner,
+          weight: "80",
+        })
+      );
+      await seedSession({ exercises: { [SQUAT]: [[100, 5]] } });
+      const historical = await seedSession({
+        exercises: { [SQUAT]: [[110, 5]] },
+        startedAt: "2026-10-02T10:00:00Z",
+      });
+      const open = await seedSession({
+        exercises: { [SQUAT]: [[120, 3]] },
+        finished: false,
+        startedAt: "2026-10-20T10:00:00Z",
+      });
+      const ready = deferred();
+      const gate = deferred();
+      const initializing = asUser(owner, async (tx) => {
+        await initializePersonalRecords(tx, owner);
+        ready.resolve();
+        await gate.promise;
+      });
+      await ready.promise;
+      let completed = false;
+      const competing = (
+        operation === "finish"
+          ? finish(open)
+          : asUser(owner, (tx) =>
+              updateProfile(tx, owner, { measurement_system: "us" })
+            )
+      ).then((result) => {
+        completed = true;
+        return result;
+      });
+      try {
+        await new Promise((resolve) => setTimeout(resolve, 150));
+        expect(completed).toBe(false);
+      } finally {
+        gate.resolve();
+        await initializing;
+        await competing;
+      }
+      expect(await recordsOf(historical)).toEqual([
+        {
+          exercise_slug: SQUAT,
+          kind: "weight",
+          reps: 5,
+          weight: operation === "conversion" ? 242.51 : 110,
+        },
+      ]);
+      expect(await recordsOf(open)).toEqual(
+        operation === "finish"
+          ? [{ exercise_slug: SQUAT, kind: "weight", reps: 3, weight: 120 }]
+          : []
+      );
+      expect(await initialize()).toEqual({ alreadyInitialized: true });
+    }
+  );
+});
 
 describe("finishWorkoutSession's Personal records", () => {
   it("sets a baseline with the first usable results, earning none even for competing sets", async () => {

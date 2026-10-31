@@ -25,6 +25,7 @@ import {
 import type { AnyPgColumn } from "drizzle-orm/pg-core";
 import {
   awardPersonalRecords,
+  lockPersonalRecordHistory,
   personalRecordsOfSession,
   type WorkoutSessionPersonalRecord,
 } from "./personal-records";
@@ -1053,6 +1054,7 @@ export const finishWorkoutSession = async (
   // Personal records below copy weights, so no measurement-system conversion
   // may commit between reading them and writing the records
   await lockProfileUnits(tx, owned.userId);
+  await lockPersonalRecordHistory(tx, owned.userId);
   if (owned.planId) {
     await tx
       .select({ id: plans.id })

@@ -28,6 +28,22 @@ export interface Database {
         };
         Relationships: [];
       };
+      personal_record_initializations: {
+        Row: {
+          completed_at: string;
+          user_id: string;
+        };
+        ComputedFields: never;
+        Insert: {
+          completed_at?: string;
+          user_id: string;
+        };
+        Update: {
+          completed_at?: string;
+          user_id?: string;
+        };
+        Relationships: [];
+      };
       personal_records: {
         Row: {
           created_at: string;
