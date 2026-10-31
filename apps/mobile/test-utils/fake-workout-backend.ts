@@ -127,6 +127,8 @@ class FakeWorkoutBackend {
    * them; the services do, and their integration tests cover it).
    */
   weeklyGoalChanges: Array<{ recorded_at: string; target: number | null }> = [];
+  /** Server-calculated result; the real calculation is covered at the service seam. */
+  weeklyStreak = 0;
   /** Every request received, in order. */
   requests: Request[] = [];
   /** Queries the fake cannot answer; a test bug, checked after each test. */
@@ -143,6 +145,7 @@ class FakeWorkoutBackend {
     this.exercises = [];
     this.sets = [];
     this.weeklyGoalChanges = [];
+    this.weeklyStreak = 0;
     this.requests = [];
     this.unsupported = [];
     this.inFlight = 0;

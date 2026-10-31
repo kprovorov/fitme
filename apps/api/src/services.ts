@@ -42,10 +42,7 @@ import {
   updateProfile,
   type WholeProfile,
 } from "@fitme/services/profile";
-import {
-  listWeeklyGoalChanges,
-  type WeeklyGoalChange,
-} from "@fitme/services/weekly-goals";
+import { getWeeklyGoals, type WeeklyGoals } from "@fitme/services/weekly-goals";
 import {
   type AddExerciseToWorkoutSessionInput,
   type AddExerciseToWorkoutSessionResult,
@@ -166,13 +163,13 @@ export interface UserServices {
   /** A live Plan of the User in full, or `null` (missing, deleted, foreign). */
   getPlan: (planId: string) => Promise<Weighed<PlanDetail> | null>;
   getProfile: () => Promise<ProfileWithUnits | null>;
+  /** Retained Weekly goals, oldest first, and the lifetime streak in the device timezone. */
+  getWeeklyGoals: (timeZone: string) => Promise<WeeklyGoals>;
   /** One of the User's Workout Sessions in full, or `null` (missing, foreign). */
   getWorkoutSession: (
     sessionId: string
   ) => Promise<Weighed<WorkoutSessionDetail> | null>;
   listPlans: () => Promise<PlanSummary[]>;
-  /** Every change of the User's Weekly goal, oldest first. */
-  listWeeklyGoalChanges: () => Promise<WeeklyGoalChange[]>;
   /** A page of the User's Workout Sessions, their volumes in the User's unit. */
   listWorkoutSessions: (
     options: ListWorkoutSessionsOptions
@@ -307,11 +304,11 @@ export const createServicesFromEnv: ServicesFactory = (userId) => {
     getActivePlan: () => weighed((tx) => getActivePlan(tx, userId)),
     getPlan: (planId) => weighed((tx) => getPlan(tx, userId, planId)),
     getProfile: () => asUser(userId, (tx) => getProfile(tx, userId)),
+    getWeeklyGoals: (timeZone) =>
+      asUser(userId, (tx) => getWeeklyGoals(tx, userId, timeZone)),
     getWorkoutSession: (sessionId) =>
       weighed((tx) => getWorkoutSession(tx, sessionId)),
     listPlans: () => asUser(userId, (tx) => listPlans(tx, userId)),
-    listWeeklyGoalChanges: () =>
-      asUser(userId, (tx) => listWeeklyGoalChanges(tx, userId)),
     listWorkoutSessions: (options) =>
       inUnits((tx) => listWorkoutSessions(tx, options)),
     logSet: (input) => inUnits((tx) => logSet(tx, input), write),
