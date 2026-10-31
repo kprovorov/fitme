@@ -8,6 +8,7 @@ import {
   workoutSessionExercises,
   workoutSessions,
 } from "@fitme/db";
+import { sql } from "drizzle-orm";
 import { afterAll, describe, expect, it } from "vitest";
 import { getWeeklyGoals } from "../src/weekly-goals";
 import { deleteTestUsers } from "./delete-test-users";
@@ -91,6 +92,33 @@ const read = (userId: string, now: string, timeZone = "Europe/Kyiv") =>
   asUser(userId, (tx) => getWeeklyGoals(tx, userId, timeZone, new Date(now)));
 
 describe("Weekly streaks from retained goals and finished training", () => {
+  it.each(["0001-01-01T00:00:00Z", "-infinity"])(
+    "bounds reads by recorded training with a caller-chosen %s goal timestamp",
+    async (recordedAt) => {
+      const user = await seed(
+        [["2026-10-01T10:00:00Z", 1]],
+        [{ start: "2026-10-20T10:00:00Z" }]
+      );
+      // The exposed Data API's authenticated INSERT permission permits this.
+      await asUser(user, (tx) =>
+        tx
+          .insert(weeklyGoalChanges)
+          .values({ recordedAt, target: 1, userId: user })
+      );
+      const result = await asUser(user, async (tx) => {
+        // Keep this regression safe even against the old range-expanding query.
+        await tx.execute(sql`set local statement_timeout = '1s'`);
+        return getWeeklyGoals(
+          tx,
+          user,
+          "Europe/Kyiv",
+          new Date("2026-10-28T12:00:00Z")
+        );
+      });
+      expect(result.streak).toBe(1);
+    }
+  );
+
   it("reads a streak longer than the chart, preserves it through Sunday and resets next Monday", async () => {
     const starts = Array.from({ length: 11 }, (_, index) => {
       const date = new Date("2026-08-11T10:00:00Z");
