@@ -7,6 +7,7 @@ import { useWindowDimensions, View } from "react-native";
 import { useExercises } from "~/hooks/queries/library";
 import {
   findOpenSession,
+  openSessionPath,
   useStartWorkout,
   workoutSessionPath,
 } from "~/hooks/start-workout";
@@ -52,11 +53,12 @@ export default function WorkoutCarouselCard({
     router.push(workoutSessionPath(workout.plan_id, workout.id, sessionId));
   };
   // Another Workout's open session still lets Start ask the API, whose 409
-  // alerts "Finish <Workout> first": that session's own card reads Continue.
+  // alerts "Finish <Workout> first" with a way into it (that session's own
+  // card reads Continue).
   const { isStarting, startWorkout } = useStartWorkout(
     workout.id,
     openSession,
-    { alertsInProgress: true }
+    { onContinueBlocking: (open) => router.push(openSessionPath(open)) }
   );
   const ownOpenSession = findOpenSession(workout);
   const continueWorkout = () => {

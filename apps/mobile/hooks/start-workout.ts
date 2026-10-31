@@ -53,13 +53,25 @@ const alertStartFailed = (waitSeconds: number | null) => {
   );
 };
 
-/** "Finish <Workout> first": another Workout's session is open. */
-const alertFinishFirst = (open: OpenWorkoutSession) => {
+/** "Finish <Workout> first", with a way into that Workout Session. */
+const alertFinishFirst = (
+  open: OpenWorkoutSession,
+  onContinue: (open: OpenWorkoutSession) => void
+) => {
   Alert.alert(
     i18n.t("startWorkout.failed.title"),
     open.workoutName
       ? i18n.t("startWorkout.finishFirstNamed", { name: open.workoutName })
-      : i18n.t("startWorkout.finishFirst")
+      : i18n.t("startWorkout.finishFirst"),
+    [
+      { style: "cancel", text: i18n.t("common.cancel") },
+      {
+        onPress: () => onContinue(open),
+        text: open.workoutName
+          ? i18n.t("startWorkout.continueNamed", { name: open.workoutName })
+          : i18n.t("startWorkout.continue"),
+      },
+    ]
   );
 };
 
@@ -79,14 +91,17 @@ const isSessionInProgress = (error: unknown) =>
  * on (a User has at most one, ADR 0013); `null` while it's unknown, so a
  * failed read never blocks: the API still refuses.
  *
- * `alertsInProgress` is for a Start that stays pressable while blocked (the
- * Workout tab's cards, whose open session's own card reads Continue): it
- * still asks the API, and the 409 alerts "Finish <Workout> first".
+ * `onContinueBlocking` is for a Start that stays pressable while blocked
+ * (the Workout tab's cards, whose open session's own card reads Continue):
+ * it still asks the API, and the 409 alerts "Finish <Workout> first", its
+ * Continue button handing the blocking session to `onContinueBlocking`.
  */
 export function useStartWorkout(
   workoutId: string,
   onStarted: (sessionId: string) => void,
-  { alertsInProgress = false }: { alertsInProgress?: boolean } = {}
+  {
+    onContinueBlocking,
+  }: { onContinueBlocking?: (open: OpenWorkoutSession) => void } = {}
 ) {
   const queryClient = useQueryClient();
   const { data: openSession } = useOpenWorkoutSessionQuery();
@@ -102,8 +117,8 @@ export function useStartWorkout(
         // The blocked state shows it; otherwise (finished meanwhile, or the
         // re-read failed) the press still gets an answer.
         if (open && open.workoutId !== workoutId) {
-          if (alertsInProgress) {
-            alertFinishFirst(open);
+          if (onContinueBlocking) {
+            alertFinishFirst(open, onContinueBlocking);
           }
           return;
         }

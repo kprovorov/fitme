@@ -1342,7 +1342,8 @@ describe("starting a Workout from Home", () => {
     expect(fakePublicApi.count(START)).toBe(1);
     expect(Alert.alert).toHaveBeenCalledWith(
       "Couldn't start workout",
-      "Finish Push Day first"
+      "Finish Push Day first",
+      expect.anything()
     );
     expect(sessionsOf("w1")).toEqual([]);
 
@@ -1367,7 +1368,8 @@ describe("starting a Workout from Home", () => {
     expect(fakePublicApi.count(START)).toBe(1);
     expect(Alert.alert).toHaveBeenCalledWith(
       "Couldn't start workout",
-      "Finish Push Day first"
+      "Finish Push Day first",
+      expect.anything()
     );
     expect(sessionsOf("w1")).toEqual([]);
     expect(mockNavigator.routes.map(({ name }) => name)).toEqual(["home"]);
