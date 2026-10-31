@@ -198,8 +198,8 @@ export default function ExercisePickerScreen() {
       <ExercisesView
         contentContainerClassName="px-md"
         muscleChoiceKey={muscleChoiceKey}
-        onExercisePress={onExercisePress}
         musclesDisabled={isSaving}
+        onExercisePress={onExercisePress}
         onSearchChange={onSearchChange}
         rowAccessibilityLabel={rowAccessibilityLabel}
         search={search}
