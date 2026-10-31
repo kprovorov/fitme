@@ -8,6 +8,7 @@ import { SymbolImage } from "~/components/symbol-image";
 import { Button } from "~/components/ui/button";
 import { Card, CardDescription } from "~/components/ui/card";
 import { Text } from "~/components/ui/text";
+import { H3 } from "~/components/ui/typography";
 import type { OpenWorkoutSession } from "~/hooks/queries/workout-sessions";
 import {
   nextWorkoutOf,
@@ -145,12 +146,7 @@ export function EmptyHistoryCard({
           />
         </View>
         <View className="w-full items-center gap-xs">
-          <Text
-            accessibilityRole="header"
-            className="text-center text-foreground text-title-2-emphasized"
-          >
-            {t("history.empty.title")}
-          </Text>
+          <H3 className="text-center">{t("history.empty.title")}</H3>
           <CardDescription className="text-center">
             {t("history.empty.body")}
           </CardDescription>
