@@ -158,6 +158,9 @@ const renderSession = async () => {
     </QueryClientProvider>
   );
   await settle();
+  // Replacing starts on the Exercise's muscle group, which the Library gives:
+  // wait until it has answered for the seeded Squat.
+  await screen.findByTestId("thumbnail:https://media.test/render/squat.jpg");
 };
 
 /** Waits until every request, query and mutation is done. */
