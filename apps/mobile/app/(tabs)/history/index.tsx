@@ -3,12 +3,7 @@ import { LegendList } from "@legendapp/list/react-native";
 import { Stack, useRouter } from "expo-router";
 import { Fragment, useCallback, useState } from "react";
 import { useTranslation } from "react-i18next";
-import {
-  ActivityIndicator,
-  RefreshControl,
-  useWindowDimensions,
-  View,
-} from "react-native";
+import { ActivityIndicator, RefreshControl, View } from "react-native";
 import Purchases from "react-native-purchases";
 import { useResolveClassNames } from "uniwind";
 import { Button } from "~/components/ui/button";
@@ -23,6 +18,7 @@ import {
   type WorkoutSessionHistory,
   type WorkoutSessionHistoryEntry,
 } from "~/hooks/queries/workout-sessions";
+import { useStackedLayout } from "~/hooks/stacked-layout";
 import { useI18n } from "~/lib/i18n";
 
 interface Month {
@@ -59,9 +55,6 @@ function groupByMonth(
   return months;
 }
 
-/** Past this text scale a month's count goes under its heading, not beside it. */
-const STACKED_FONT_SCALE = 1.4;
-
 const keyExtractor = (month: Month) => month.key;
 
 const renderMonth = ({ item }: { item: Month }) => (
@@ -74,8 +67,7 @@ const renderMonth = ({ item }: { item: Month }) => (
  */
 function MonthSection({ month }: { month: Month }) {
   const i18n = useI18n();
-  const { fontScale } = useWindowDimensions();
-  const stacked = fontScale > STACKED_FONT_SCALE;
+  const stacked = useStackedLayout();
   return (
     <View className="gap-xs pb-lg">
       <View

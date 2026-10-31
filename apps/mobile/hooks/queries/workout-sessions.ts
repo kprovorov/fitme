@@ -214,52 +214,70 @@ export interface WorkoutSessionHistory {
 /** The Public API's largest page of Workout Sessions. */
 const HISTORY_PAGE_SIZE = 50;
 
+/** Reads of every page tried before keeping one that changed while it was read. */
+const HISTORY_READ_ATTEMPTS = 3;
+
+/** One read of every page, and whether nothing changed while it was read. */
+const readHistoryPages = async (): Promise<
+  WorkoutSessionHistory & { consistent: boolean }
+> => {
+  const sessions = new Map<string, WorkoutSessionHistoryEntry>();
+  let weightUnit: WorkoutSessionHistory["weightUnit"] | null = null;
+  let consistent = true;
+  let total: number | null = null;
+  let offset = 0;
+  for (;;) {
+    // biome-ignore lint/performance/noAwaitInLoops: each page's offset follows from the last one's
+    const { data } = await publicApi().GET("/v1/workout-sessions", {
+      params: {
+        query: { limit: HISTORY_PAGE_SIZE, offset, status: "finished" },
+      },
+    });
+    if (!data) {
+      throw new ApiError("Public API answered without Workout Sessions");
+    }
+    // Another unit or total: the measurement system changed, or a session
+    // was finished or deleted (shifting the rest by one), between two pages.
+    consistent &&=
+      (weightUnit === null || data.weight_unit === weightUnit) &&
+      (total === null || data.total === total);
+    weightUnit = data.weight_unit;
+    ({ total } = data);
+    for (const session of data.data) {
+      sessions.set(session.id, session);
+    }
+    if (!data.hasMore || data.data.length === 0) {
+      break;
+    }
+    offset += data.data.length;
+  }
+  return {
+    consistent: consistent && sessions.size === total,
+    sessions: [...sessions.values()].sort(
+      (a, b) =>
+        new Date(b.started_at).getTime() - new Date(a.started_at).getTime()
+    ),
+    weightUnit: weightUnit ?? "kg",
+  };
+};
+
 /**
  * Every finished Workout Session, newest start first, read through
  * `GET /v1/workout-sessions` page after page until none follow: month counts
  * and monthly totals need all of them, so no page size may cut them short.
- * A session that moves between pages while they're read (one finished
- * meanwhile) is kept once, and a page in another unit (the measurement
- * system changed meanwhile) starts the read over, so every volume is in the
- * unit answered. Rejects with an `ApiError`.
+ * A read that changed while it ran (a session finished or deleted between
+ * two pages, or the measurement system changed) is read again, up to
+ * `HISTORY_READ_ATTEMPTS` times, then kept. Rejects with an `ApiError`.
  */
 export const fetchWorkoutSessionHistory =
   async (): Promise<WorkoutSessionHistory> => {
-    const sessions = new Map<string, WorkoutSessionHistoryEntry>();
-    let weightUnit: WorkoutSessionHistory["weightUnit"] | null = null;
-    let offset = 0;
-    for (;;) {
-      // biome-ignore lint/performance/noAwaitInLoops: each page's offset follows from the last one's
-      const { data } = await publicApi().GET("/v1/workout-sessions", {
-        params: {
-          query: { limit: HISTORY_PAGE_SIZE, offset, status: "finished" },
-        },
-      });
-      if (!data) {
-        throw new ApiError("Public API answered without Workout Sessions");
+    for (let attempt = 1; ; attempt += 1) {
+      // biome-ignore lint/performance/noAwaitInLoops: a read is retried only after the last one changed
+      const { consistent, ...history } = await readHistoryPages();
+      if (consistent || attempt === HISTORY_READ_ATTEMPTS) {
+        return history;
       }
-      if (weightUnit !== null && data.weight_unit !== weightUnit) {
-        sessions.clear();
-        weightUnit = data.weight_unit;
-        offset = 0;
-        continue;
-      }
-      weightUnit = data.weight_unit;
-      for (const session of data.data) {
-        sessions.set(session.id, session);
-      }
-      if (!data.hasMore || data.data.length === 0) {
-        break;
-      }
-      offset += data.data.length;
     }
-    return {
-      sessions: [...sessions.values()].sort(
-        (a, b) =>
-          new Date(b.started_at).getTime() - new Date(a.started_at).getTime()
-      ),
-      weightUnit: weightUnit ?? "kg",
-    };
   };
 
 export const useWorkoutSessionHistoryQuery = createQuery<

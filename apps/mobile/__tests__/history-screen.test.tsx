@@ -18,6 +18,7 @@ import {
   fireEvent,
   render,
   screen,
+  waitFor,
   within,
 } from "@testing-library/react-native";
 import type { ReactNode } from "react";
@@ -302,6 +303,43 @@ describe("The History tab", () => {
     expect(stat("Workouts: 55 workouts")).toBeTruthy();
     expect(stat("Time: 55min")).toBeTruthy();
     expect(stat("Volume: 550 kilograms")).toBeTruthy();
+  });
+
+  it("reads every page again when a session goes between two of them", async () => {
+    for (let index = 0; index < 55; index += 1) {
+      seedEntry({
+        id: `session-${index}`,
+        minutes: 1,
+        sets: [[1, 10]],
+        start: new Date(thisMonth(1).getTime() + index * MINUTE_MS),
+        workout: `Workout ${index}`,
+      });
+    }
+    const route = "GET /v1/workout-sessions";
+    const resumeFirstPage = fakePublicApi.pause(route);
+    const resumeSecondPage = fakePublicApi.pause(route);
+    queryClient = createTestQueryClient();
+    await render(
+      <QueryClientProvider client={queryClient}>
+        <HistoryScreen />
+      </QueryClientProvider>
+    );
+    await waitFor(() => expect(fakePublicApi.count(route)).toBe(1));
+    // A macrotask, so the first request is waiting on the first pause.
+    await new Promise((resolve) => setTimeout(resolve, 10));
+    resumeFirstPage();
+    await waitFor(() => expect(fakePublicApi.count(route)).toBe(2));
+    // The newest session goes after the first page: the second would skip one.
+    backend.sessions = backend.sessions.filter(
+      (session) => session.id !== "session-54"
+    );
+    resumeSecondPage();
+    await settle(queryClient);
+
+    expect(fakePublicApi.count(route)).toBe(4);
+    expect(screen.getByText("54 entries")).toBeTruthy();
+    expect(screen.queryByText("Workout 54")).toBeNull();
+    expect(screen.getByText("Workout 4")).toBeTruthy();
   });
 
   it("shows imperial volumes in pounds, compact in the overview", async () => {

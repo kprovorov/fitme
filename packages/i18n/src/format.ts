@@ -247,18 +247,23 @@ export const formatWorkoutDuration = (
 
 const THOUSAND = 1000;
 
+/** The units weights are stored in. */
+type WeightUnit = Extract<Unit, "kg" | "lbs">;
+
 /**
  * A large volume, compact: whole kilograms or pounds below a thousand, then
  * tonnes (`kg`) or thousands of pounds (`lbs`) to one decimal.
  */
-const compactVolume = (volume: number, unit: "kg" | "lbs") => {
+const compactVolume = (volume: number, unit: WeightUnit) => {
   const whole = Math.round(volume);
   if (whole < THOUSAND) {
-    return { kind: unit, value: whole } as const;
+    return { compact: null, unit, value: whole } as const;
   }
+  const thousandsToOneDecimal = Math.round((volume / THOUSAND) * 10) / 10;
   return {
-    kind: unit === "kg" ? "t" : "thousandLbs",
-    value: Math.round(volume / (THOUSAND / 10)) / 10,
+    compact: unit === "kg" ? "t" : "thousandLbs",
+    unit,
+    value: thousandsToOneDecimal,
   } as const;
 };
 
@@ -269,22 +274,22 @@ const compactVolume = (volume: number, unit: "kg" | "lbs") => {
 export const formatCompactVolume = (
   translator: Translator,
   volume: number,
-  unit: "kg" | "lbs"
+  unit: WeightUnit
 ): string => {
-  const { kind, value } = compactVolume(volume, unit);
-  return kind === "kg" || kind === "lbs"
-    ? formatUnit(translator, value, kind)
-    : translator.t(`compactUnits.${kind}`, { value });
+  const { compact, value } = compactVolume(volume, unit);
+  return compact === null
+    ? formatUnit(translator, value, unit)
+    : translator.t(`compactUnits.${compact}`, { value });
 };
 
 /** `formatCompactVolume` spelled out for VoiceOver: `136.2 tonnes`. */
 export const spokenCompactVolume = (
   translator: Translator,
   volume: number,
-  unit: "kg" | "lbs"
+  unit: WeightUnit
 ): string => {
-  const { kind, value } = compactVolume(volume, unit);
-  return kind === "kg" || kind === "lbs"
-    ? spokenUnit(translator, value, kind)
-    : translator.t(`spokenCompactUnits.${kind}`, { count: value });
+  const { compact, value } = compactVolume(volume, unit);
+  return compact === null
+    ? spokenUnit(translator, value, unit)
+    : translator.t(`spokenCompactUnits.${compact}`, { count: value });
 };

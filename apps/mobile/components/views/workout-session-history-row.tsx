@@ -7,17 +7,23 @@ import {
 } from "@fitme/i18n";
 import { Link } from "expo-router";
 import { useTranslation } from "react-i18next";
-import { Pressable, useWindowDimensions, View } from "react-native";
+import { Pressable, View } from "react-native";
 import { SymbolImage } from "~/components/symbol-image";
 import { Text } from "~/components/ui/text";
 import type {
   WorkoutSessionHistory,
   WorkoutSessionHistoryEntry,
 } from "~/hooks/queries/workout-sessions";
+import { useStackedLayout } from "~/hooks/stacked-layout";
 import { useI18n } from "~/lib/i18n";
 
-/** Past this text scale the date tile sits above the text, which gets the width. */
-const STACKED_FONT_SCALE = 1.4;
+/** The row's disclosure indicator. */
+const Chevron = () => (
+  <SymbolImage
+    className="text-body-emphasized text-primary"
+    name="chevron.right"
+  />
+);
 
 interface WorkoutSessionHistoryRowProps {
   entry: WorkoutSessionHistoryEntry;
@@ -35,8 +41,7 @@ export default function WorkoutSessionHistoryRow({
 }: WorkoutSessionHistoryRowProps) {
   const i18n = useI18n();
   const { t } = useTranslation();
-  const { fontScale } = useWindowDimensions();
-  const stacked = fontScale > STACKED_FONT_SCALE;
+  const stacked = useStackedLayout();
   const startedAt = new Date(entry.started_at);
   const name = entry.workout?.name ?? t("history.untitledWorkout");
   const duration = entry.finished_at
@@ -59,12 +64,6 @@ export default function WorkoutSessionHistoryRow({
       </Text>
     </View>
   );
-  const chevron = (
-    <SymbolImage
-      className="text-body-emphasized text-primary"
-      name="chevron.right"
-    />
-  );
 
   return (
     <Link asChild href={`/workout-sessions/${entry.id}/summary`}>
@@ -86,7 +85,7 @@ export default function WorkoutSessionHistoryRow({
         {stacked ? (
           <View className="flex-row items-center justify-between gap-sm">
             {dateTile}
-            {chevron}
+            <Chevron />
           </View>
         ) : (
           dateTile
@@ -97,12 +96,7 @@ export default function WorkoutSessionHistoryRow({
             {details.join(" · ")}
           </Text>
         </View>
-        {stacked ? null : (
-          <SymbolImage
-            className="text-body-emphasized text-primary"
-            name="chevron.right"
-          />
-        )}
+        {stacked ? null : <Chevron />}
       </Pressable>
     </Link>
   );

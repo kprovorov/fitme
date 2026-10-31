@@ -46,6 +46,7 @@ export function monthlyTotals(
   let workouts = 0;
   for (const session of sessions) {
     const startedAt = new Date(session.started_at);
+    // `finished_at` again only for the type: a qualifying session has one.
     if (
       session.finished_at === null ||
       !qualifiesForProgress(session) ||
