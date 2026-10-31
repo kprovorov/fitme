@@ -350,7 +350,7 @@ describe("the Exercise picker", () => {
     await settle();
 
     expect(screen.getByText("Push Up")).toBeTruthy();
-    expect(screen.getAllByText("Replace")).toHaveLength(3);
+    expect(screen.getAllByTestId(REPLACE_ICON)).toHaveLength(3);
     // The picker's choice is its own: the Library tab's is untouched.
     expect(getMuscleChoice("library")).toEqual([]);
   });
