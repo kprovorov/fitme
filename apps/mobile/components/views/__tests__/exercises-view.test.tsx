@@ -28,13 +28,13 @@ import { type QueryClient, QueryClientProvider } from "@tanstack/react-query";
 import { act, fireEvent, render, screen } from "@testing-library/react-native";
 import type { ReactNode } from "react";
 import { Text } from "react-native";
-import ExercisesView from "~/components/views/exercises-view";
 import { i18n, useAppLanguageSync } from "~/lib/i18n";
 import { readCachedSummary } from "~/lib/library-cache";
 import { storage } from "~/lib/mmkv";
 import { setDeviceLanguages } from "~/test-utils/device-locales";
 import { libraryExercise, serveLibrary } from "~/test-utils/fake-library";
 import { createTestQueryClient } from "~/test-utils/query-client";
+import { SearchedExercisesView } from "~/test-utils/searched-exercises-view";
 
 jest.mock(
   "~/lib/library",
@@ -104,11 +104,13 @@ const advance = async (ms: number) => {
   await tick();
 };
 
-const renderView = async (props: Parameters<typeof ExercisesView>[0] = {}) => {
+const renderView = async (
+  props: Parameters<typeof SearchedExercisesView>[0] = {}
+) => {
   queryClient = createTestQueryClient();
   await render(
     <QueryClientProvider client={queryClient}>
-      <ExercisesView {...props} />
+      <SearchedExercisesView {...props} />
     </QueryClientProvider>
   );
   await advance(0);
@@ -437,7 +439,7 @@ describe("the Retry-After hold", () => {
     // The picker opens in the same app (same query client) for a squat.
     await screen.rerender(
       <QueryClientProvider client={queryClient}>
-        <ExercisesView initialMuscleGroup="quadriceps" key="picker" />
+        <SearchedExercisesView initialMuscleGroup="quadriceps" key="picker" />
       </QueryClientProvider>
     );
     await advance(10_000);
@@ -595,7 +597,7 @@ const renderInAppLanguage = async () => {
   await render(
     <QueryClientProvider client={queryClient}>
       <InAppLanguage>
-        <ExercisesView />
+        <SearchedExercisesView />
       </InAppLanguage>
     </QueryClientProvider>
   );

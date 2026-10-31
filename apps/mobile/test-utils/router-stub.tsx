@@ -2,7 +2,8 @@
  * Stand-ins for expo-router's stack under Jest: the screen a test renders,
  * with the routes it pushes mounted over it (a pushed route the test names
  * in `<PushedRoutes>`; any other push is only recorded), and a header showing
- * each screen's title and right items. Wire it up in the test's mock:
+ * each screen's title, right items and search bar (`stack-screen-stub`'s).
+ * Wire it up in the test's mock:
  *
  *   jest.mock("expo-router", () => {
  *     const stub = jest.requireActual<typeof import("~/test-utils/router-stub")>(
@@ -25,6 +26,8 @@ import {
   useSyncExternalStore,
 } from "react";
 import { Pressable, Text } from "react-native";
+import type { SearchBarProps } from "react-native-screens";
+import { SearchBar } from "~/test-utils/stack-screen-stub";
 
 type Params = Record<string, string>;
 
@@ -112,11 +115,15 @@ interface HeaderItem {
   onPress?: () => void;
 }
 
-/** `<Stack.Screen>`: its title as a header, its right items as buttons. */
+/**
+ * `<Stack.Screen>`: its title as a header, its right items as buttons, and
+ * its search bar as a text field labelled with its placeholder.
+ */
 export function StackScreenStub({
   options,
 }: {
   options?: {
+    headerSearchBarOptions?: SearchBarProps;
     title?: string;
     unstable_headerRightItems?: () => HeaderItem[];
   };
@@ -134,6 +141,9 @@ export function StackScreenStub({
           onPress={item.onPress}
         />
       ))}
+      {options?.headerSearchBarOptions ? (
+        <SearchBar options={options.headerSearchBarOptions} />
+      ) : null}
     </>
   );
 }

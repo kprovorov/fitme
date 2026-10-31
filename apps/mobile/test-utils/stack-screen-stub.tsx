@@ -4,9 +4,9 @@
  * `headerSearchBarOptions`, its search bar as a text field labelled with its
  * placeholder. Typing calls the options' `onChangeText` with the native
  * event's shape, a button labelled `Cancel` calls `onCancelButtonPress`
- * after clearing the text (as iOS does, with no `onChangeText`), and its `ref` answers `clearText` / `setText` like the
- * native bar. Use it as `Stack.Screen` in a `jest.mock("expo-router", …)`
- * factory through `jest.requireActual("~/test-utils/stack-screen-stub")`.
+ * after clearing the text (as iOS does, with no `onChangeText`), and its
+ * `ref` answers `clearText` / `setText` like the native bar. Use it as
+ * `Stack.Screen` in a `jest.mock("expo-router", …)` factory through `jest.requireActual("~/test-utils/stack-screen-stub")`.
  */
 import { type Ref, useImperativeHandle, useState } from "react";
 import { Pressable, Text, TextInput } from "react-native";
@@ -15,7 +15,8 @@ import type { SearchBarCommands, SearchBarProps } from "react-native-screens";
 /** The stand-in search bar's testID. */
 export const SEARCH_BAR_TEST_ID = "header-search-bar";
 
-const SearchBar = ({
+/** The header's search bar, for `router-stub`'s header too. */
+export const SearchBar = ({
   options,
 }: {
   options: SearchBarProps & { ref?: Ref<SearchBarCommands> };

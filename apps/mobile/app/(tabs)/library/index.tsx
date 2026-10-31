@@ -1,29 +1,17 @@
 import type { ExerciseSummary } from "@fitme/library-sdk";
 import { router, Stack } from "expo-router";
-import { useCallback, useRef, useState } from "react";
+import { useCallback } from "react";
 import { useTranslation } from "react-i18next";
-import type { SearchBarCommands } from "react-native-screens";
 import { ExerciseRowChevron } from "~/components/exercises/exercise-row";
 import ExercisesView from "~/components/views/exercises-view";
+import { useHeaderSearch } from "~/hooks/header-search";
 
 export default function LibraryScreen() {
   const { t } = useTranslation();
-  // The native header search bar holds the text; the view searches with it.
-  const searchBar = useRef<SearchBarCommands | null>(null);
-  const [search, setSearch] = useState("");
+  const { onSearchChange, search, searchBarOptions } = useHeaderSearch();
 
   const onExercisePress = useCallback((exercise: ExerciseSummary) => {
     router.push(`/exercises/${exercise.slug}`);
-  }, []);
-
-  const clearSearch = useCallback(() => setSearch(""), []);
-
-  // "Show All Exercises" clears the header's text too.
-  const onSearchChange = useCallback((text: string) => {
-    setSearch(text);
-    if (text === "") {
-      searchBar.current?.clearText();
-    }
   }, []);
 
   return (
@@ -31,17 +19,7 @@ export default function LibraryScreen() {
       <Stack.Screen
         options={{
           headerBackButtonDisplayMode: "minimal",
-          headerSearchBarOptions: {
-            autoCapitalize: "none",
-            // Hidden until the User pulls the list down.
-            hideWhenScrolling: true,
-            onCancelButtonPress: clearSearch,
-            onChangeText: ({ nativeEvent }) => setSearch(nativeEvent.text),
-            onClose: clearSearch,
-            placeholder: t("library.search"),
-            placement: "stacked",
-            ref: searchBar,
-          },
+          headerSearchBarOptions: searchBarOptions,
           headerTitleStyle: {
             fontFamily: "NunitoSans12pt-Bold",
             fontWeight: "bold",

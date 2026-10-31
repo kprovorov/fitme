@@ -7,6 +7,7 @@ import { useTranslation } from "react-i18next";
 import { Alert } from "react-native";
 import { Button } from "~/components/ui/button";
 import ExercisesView from "~/components/views/exercises-view";
+import { useHeaderSearch } from "~/hooks/header-search";
 import {
   useCreateWorkoutSessionExerciseMutation,
   useReplaceWorkoutSessionExerciseMutation,
@@ -38,12 +39,16 @@ function ExerciseCtaButton({
  * The Exercise picker, a page sheet over an open Workout Session: adds the
  * picked Exercise, or, given `replaceExerciseId` (a Workout Session Exercise),
  * swaps it in place, starting on `muscleGroup` (the replaced one's first).
+ * It searches from the native header search bar, empty on every open.
  * It closes once saved; a failure says so in an alert and keeps it open.
  */
 export default function ExercisePickerScreen() {
   const { t } = useTranslation();
   const router = useRouter();
   const queryClient = useQueryClient();
+  const { onSearchChange, search, searchBarOptions } = useHeaderSearch({
+    inSheet: true,
+  });
   const {
     muscleGroup,
     replaceExerciseId: replacingId,
@@ -169,6 +174,7 @@ export default function ExercisePickerScreen() {
     <>
       <Stack.Screen
         options={{
+          headerSearchBarOptions: searchBarOptions,
           headerTitleStyle: {
             fontFamily: "NunitoSans12pt-Bold",
             fontWeight: "bold",
@@ -195,6 +201,8 @@ export default function ExercisePickerScreen() {
       <ExercisesView
         contentContainerClassName="px-md"
         initialMuscleGroup={isMuscleGroup(muscleGroup) ? muscleGroup : "all"}
+        onSearchChange={onSearchChange}
+        search={search}
         trailing={renderExerciseCta}
       />
     </>
