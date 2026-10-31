@@ -40,9 +40,7 @@ const beats = (a: RecordResult, b: RecordResult) =>
  * reps done at it. A set counts only with positive reps and a weight (zero
  * included); `null` when none does.
  */
-export const recordResult = (
-  sets: readonly RecordSet[]
-): RecordResult | null => {
+const rankedResults = (sets: readonly RecordSet[]) => {
   const usable = sets.flatMap(
     ({ reps_completed: reps, weight_completed: weight }) =>
       reps !== null && reps > 0 && weight !== null ? [{ reps, weight }] : []
@@ -62,7 +60,15 @@ export const recordResult = (
       best = result;
     }
   }
-  return best;
+  return { best, highestWeight };
+};
+
+/** The comparison baseline: highest load and the best reps within rounding. */
+export const recordResult = (
+  sets: readonly RecordSet[]
+): RecordResult | null => {
+  const { best, highestWeight } = rankedResults(sets);
+  return best ? { reps: best.reps, weight: highestWeight } : null;
 };
 
 /**
@@ -80,7 +86,7 @@ export const personalRecordFor = (
   if (earlier === null) {
     return null;
   }
-  const best = recordResult(
+  const { best } = rankedResults(
     sets.filter(
       ({ reps_completed: reps, weight_completed: weight }) =>
         reps !== null &&
