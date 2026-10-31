@@ -1,5 +1,6 @@
 import { formatCount, formatDate, type Translator } from "@fitme/i18n";
 import { LegendList } from "@legendapp/list/react-native";
+import { useCalendars } from "expo-localization";
 import { Stack } from "expo-router";
 import { Fragment, useCallback, useState } from "react";
 import { useTranslation } from "react-i18next";
@@ -123,8 +124,10 @@ export default function HistoryScreen() {
     refetch: refetchPlans,
   } = usePlansQuery();
   // A failed read only hides the Weekly goal; the list still shows.
+  const calendars = useCalendars();
+  const timeZone = calendars[0]?.timeZone ?? "UTC";
   const { data: weeklyGoals, refetch: refetchWeeklyGoals } =
-    useWeeklyGoalsQuery();
+    useWeeklyGoalsQuery({ refetchInterval: 60_000, variables: { timeZone } });
 
   // Grouped on every render, not memoized: `useI18n()` re-renders the screen
   // when the App language (or the device's region) changes, and the month

@@ -1,4 +1,11 @@
-import { plans, type Transaction, weeklyGoalChanges } from "@fitme/db";
+import {
+  plans,
+  type Transaction,
+  weeklyGoalChanges,
+  workoutSessionExerciseSets,
+  workoutSessionExercises,
+  workoutSessions,
+} from "@fitme/db";
 import { asc, eq, type SQL, sql } from "drizzle-orm";
 import { jsonTimestamp } from "./json-timestamp";
 
@@ -84,3 +91,100 @@ export const listWeeklyGoalChanges = (
     .from(weeklyGoalChanges)
     .where(eq(weeklyGoalChanges.userId, userId))
     .orderBy(asc(weeklyGoalChanges.recordedAt), asc(weeklyGoalChanges.id));
+
+export interface WeeklyGoals {
+  changes: WeeklyGoalChange[];
+  streak: number;
+}
+
+/**
+ * Retained goals and the lifetime Weekly streak, in the caller's timezone.
+ * Reads all qualifying training across Plans, independently of History's
+ * paging and eight chart columns. No saved counter: a fresh read derives the
+ * same achievement from durable goals and logged training. Only occupied
+ * training weeks are scanned: missing weeks break the run without generating
+ * a calendar range from caller-writable goal timestamps. `now` is injectable
+ * for Sunday/Monday verification; public callers never supply it.
+ */
+export async function getWeeklyGoals(
+  tx: Transaction,
+  userId: string,
+  timeZone: string,
+  now = new Date()
+): Promise<WeeklyGoals> {
+  const changes = await listWeeklyGoalChanges(tx, userId);
+  if ((changes.at(-1)?.target ?? null) === null) {
+    return { changes, streak: 0 };
+  }
+  const result = await tx.execute<{
+    consecutive: boolean | null;
+    current: boolean;
+    count: number;
+    target: number | null;
+  }>(sql`
+    with first_goal as (
+      select recorded_at at time zone ${timeZone} as at, target
+      from ${weeklyGoalChanges}
+      where user_id = ${userId}
+      order by recorded_at, id limit 1
+    ), bounds as (
+      select date_trunc('week', ${now.toISOString()}::timestamptz at time zone ${timeZone}) as current_week
+    ), counts as (
+      select date_trunc('week', ${workoutSessions.startedAt} at time zone ${timeZone}) as start,
+        count(*)::int as count
+      from ${workoutSessions}
+      where ${workoutSessions.userId} = ${userId}
+        and ${workoutSessions.finishedAt} is not null
+        and ${workoutSessions.finishedAt} <= ${now.toISOString()}::timestamptz
+        and exists (
+          select 1 from ${workoutSessionExercises}
+          join ${workoutSessionExerciseSets}
+            on ${workoutSessionExerciseSets.workoutSessionExerciseId} = ${workoutSessionExercises.id}
+          where ${workoutSessionExercises.workoutSessionId} = ${workoutSessions.id}
+            and ${workoutSessionExerciseSets.repsCompleted} > 0
+        )
+      group by 1
+    ), weeks as (
+      select counts.start from counts cross join first_goal cross join bounds
+      where counts.start >= date_trunc('week', first_goal.at)
+        and counts.start <= bounds.current_week
+      union
+      select current_week from bounds
+    )
+    select weeks.start = bounds.current_week as current,
+      weeks.start + interval '1 week' = lag(weeks.start) over (order by weeks.start desc) as consecutive,
+      coalesce(counts.count, 0)::int as count,
+      case when first_goal.at >= weeks.start + interval '1 week' then null
+        when first_goal.at >= weeks.start
+        then first_goal.target else previous.target end as target
+    from weeks cross join bounds cross join first_goal
+    left join counts on counts.start = weeks.start
+    left join lateral (
+      select target from ${weeklyGoalChanges}
+      where user_id = ${userId}
+        and recorded_at < weeks.start at time zone ${timeZone}
+      order by recorded_at desc, id desc limit 1
+    ) as previous on true
+    order by weeks.start desc
+  `);
+  let streak = 0;
+  for (const week of result.rows) {
+    // Only occupied training weeks and the current week are read. A missing
+    // week breaks the run without expanding caller-controlled date ranges.
+    if (!(week.current || week.consecutive)) {
+      break;
+    }
+    const hit = week.target !== null && week.count >= week.target;
+    // An unfinished current week is pending, including one with no known goal.
+    if (week.current && !hit) {
+      continue;
+    }
+    // A missed completed week or an unknown goal ends the run. At the first
+    // partial week this simply stops at the tracking boundary, with no penalty.
+    if (!hit) {
+      break;
+    }
+    streak += 1;
+  }
+  return { changes, streak };
+}

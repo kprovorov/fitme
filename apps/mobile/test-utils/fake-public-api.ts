@@ -1104,7 +1104,8 @@ const addSessionSet = (body: unknown, exerciseId: string): Response => {
 };
 
 /** The seeded Weekly goal changes, oldest first. */
-const listWeeklyGoals = () => json(200, { data: backend.weeklyGoalChanges });
+const listWeeklyGoals = () =>
+  json(200, { data: backend.weeklyGoalChanges, streak: backend.weeklyStreak });
 
 /** `apps/api`'s answer, from the same list in `@fitme/core`. */
 const listArnoldModels = () =>
