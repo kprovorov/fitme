@@ -28,7 +28,13 @@ import {
   jest,
 } from "@jest/globals";
 import { type QueryClient, QueryClientProvider } from "@tanstack/react-query";
-import { act, fireEvent, render, screen } from "@testing-library/react-native";
+import {
+  act,
+  fireEvent,
+  render,
+  screen,
+  within,
+} from "@testing-library/react-native";
 import type { ReactNode } from "react";
 import { Text } from "react-native";
 import { getMuscleChoice, setMuscleChoice } from "~/hooks/muscle-choice";
@@ -279,6 +285,47 @@ describe("searching the Library", () => {
 });
 
 describe("filtering and paging", () => {
+  it("has no chip row when nothing is chosen", async () => {
+    await renderView();
+
+    expect(screen.queryByTestId("muscle-group-chips")).toBeNull();
+  });
+
+  it("removes a Muscle group from its chip at once, and the last chip leaves no row", async () => {
+    await chooseMuscleGroups("quadriceps", "chest");
+    await renderView();
+    list.mockClear();
+
+    const chips = screen.getByTestId("muscle-group-chips");
+    expect(chips.props.className).toContain("flex-wrap");
+    expect(
+      within(chips)
+        .getAllByRole("button")
+        .map((chip) => chip.props.accessibilityLabel)
+    ).toEqual(["Remove Chest", "Remove Quadriceps"]);
+
+    await fireEvent.press(screen.getByRole("button", { name: "Remove Chest" }));
+    await advance(0);
+
+    expect(list).toHaveBeenCalledTimes(1);
+    expect(list).toHaveBeenLastCalledWith({
+      limit: 20,
+      muscleGroups: ["quadriceps"],
+      offset: 0,
+    });
+    expect(screen.getByText("Squat")).toBeTruthy();
+    expect(screen.queryByText("Bench Press 01")).toBeNull();
+
+    await fireEvent.press(
+      screen.getByRole("button", { name: "Remove Quadriceps" })
+    );
+    await advance(0);
+
+    expect(list).toHaveBeenLastCalledWith({ limit: 20, offset: 0 });
+    expect(screen.queryByTestId("muscle-group-chips")).toBeNull();
+    expect(screen.getByText("Bench Press 01")).toBeTruthy();
+  });
+
   it("filters by the chosen Muscle groups at once", async () => {
     await renderView();
     list.mockClear();

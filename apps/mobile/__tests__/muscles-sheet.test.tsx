@@ -11,7 +11,13 @@
 import type { FakeLibrary } from "@fitme/library-sdk/fake";
 import { beforeEach, describe, expect, it, jest } from "@jest/globals";
 import { type QueryClient, QueryClientProvider } from "@tanstack/react-query";
-import { act, fireEvent, render, screen } from "@testing-library/react-native";
+import {
+  act,
+  fireEvent,
+  render,
+  screen,
+  within,
+} from "@testing-library/react-native";
 import LibraryScreen from "~/app/(tabs)/library/index";
 import MusclesSheet from "~/app/muscles";
 import { getMuscleChoice } from "~/hooks/muscle-choice";
@@ -156,6 +162,31 @@ describe("the Muscles sheet over the Library tab", () => {
     expect(screen.queryByText("Pull Up")).toBeNull();
     // The pill still just reads "Muscles".
     expect(screen.getByRole("button", { name: "Muscles" })).toBeTruthy();
+    // Chips follow the confirmed choice, in core's order, not tap order.
+    expect(
+      within(screen.getByTestId("muscle-group-chips"))
+        .getAllByRole("button")
+        .map((chip) => chip.props.accessibilityLabel)
+    ).toEqual(["Remove Chest", "Remove Quadriceps"]);
+  });
+
+  it("opens the sheet on the chips' choice, and a chip's × widens the list", async () => {
+    await renderLibrary();
+    await openSheet();
+    await tick("Chest");
+    await tick("Back");
+    await confirm();
+
+    await fireEvent.press(screen.getByRole("button", { name: "Remove Chest" }));
+    await settle(client);
+
+    expect(screen.queryByText("Bench Press")).toBeNull();
+    expect(screen.getByText("Pull Up")).toBeTruthy();
+    expect(screen.queryByText("Squat")).toBeNull();
+
+    await openSheet();
+    expect(isChecked("Chest")).toBe(false);
+    expect(isChecked("Back")).toBe(true);
   });
 
   it("opens on the confirmed choice, and Reset then ✓ shows every Exercise", async () => {
@@ -235,5 +266,6 @@ describe("the Muscles sheet over the Library tab", () => {
     await confirm("Готово");
 
     expect(getMuscleChoice("library")).toEqual(["back"]);
+    expect(screen.getByRole("button", { name: "Видалити Спина" })).toBeTruthy();
   });
 });

@@ -1,3 +1,4 @@
+import type { MuscleGroup } from "@fitme/core";
 import type { ExerciseSummary } from "@fitme/library-sdk";
 import { useRouter } from "expo-router";
 import type React from "react";
@@ -15,12 +16,17 @@ import {
   ExerciseRow,
   ExerciseRowSeparator,
 } from "~/components/exercises/exercise-row";
+import { MuscleGroupChips } from "~/components/exercises/muscle-group-chips";
 import { Button } from "~/components/ui/button";
 import { ErrorMessage } from "~/components/ui/error-message";
 import { Text } from "~/components/ui/text";
 import { H3 } from "~/components/ui/typography";
 import { VStack } from "~/components/ui/vstack";
-import { setMuscleChoice, useMuscleChoice } from "~/hooks/muscle-choice";
+import {
+  getMuscleChoice,
+  setMuscleChoice,
+  useMuscleChoice,
+} from "~/hooks/muscle-choice";
 import { useExerciseSearch } from "~/hooks/queries/library";
 import { i18n } from "~/lib/i18n";
 
@@ -34,7 +40,8 @@ const exerciseKey = (exercise: ExerciseSummary) => exercise.slug;
  * Exercise picker. It is the screen's scroll container, a virtualised list
  * loading the next page as the User nears its end. The Muscles pill opens the
  * Muscles sheet over the screen, which hands the confirmed choice back under
- * `muscleChoiceKey` (`hooks/muscle-choice.ts`), the screen's own.
+ * `muscleChoiceKey` (`hooks/muscle-choice.ts`), the screen's own. Each chosen
+ * group shows as a chip under the pill; its × removes that group at once.
  */
 const ExercisesView = ({
   onExercisePress = () => {
@@ -140,6 +147,16 @@ const ExercisesView = ({
     });
   }, [muscleChoiceKey, router]);
 
+  const removeMuscleGroup = useCallback(
+    (group: MuscleGroup) => {
+      setMuscleChoice(
+        muscleChoiceKey,
+        getMuscleChoice(muscleChoiceKey).filter((chosen) => chosen !== group)
+      );
+    },
+    [muscleChoiceKey]
+  );
+
   const shown = isError ? [] : (exercises ?? []);
   const lastIndex = shown.length - 1;
 
@@ -233,6 +250,10 @@ const ExercisesView = ({
             onPress={openMuscles}
             size="sm"
             variant="secondary"
+          />
+          <MuscleGroupChips
+            groups={muscleGroups}
+            onRemove={removeMuscleGroup}
           />
         </VStack>
       }
