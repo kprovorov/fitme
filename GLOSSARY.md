@@ -121,5 +121,5 @@ A language a Store listing is published in, named by that store's own code (on t
 _Avoid_: Locale, store language, `uk-UA`
 
 **Screenshot set**:
-The one to ten screenshots a Store listing shows for one Listing locale, in display order.
+The one to ten screenshots a Store listing shows for one Listing locale on one device size, in display order.
 _Avoid_: Screenshots folder, gallery

@@ -46,7 +46,8 @@ pnpm build               # turbo run build
 pnpm test                # turbo run test (jest in mobile, vitest in core, design-tokens, i18n, library-sdk, observability, rate-limit, mcp, api, webhooks, arnold, library and web)
 pnpm typecheck           # turbo run typecheck
 pnpm check / pnpm fix    # ultracite (Biome) over the whole repo
-pnpm test:scripts        # node:test for the Node helpers of scripts/*.sh (scripts/*.test.mjs)
+pnpm test:scripts        # node:test for the Node scripts in scripts/ (scripts/*.test.mjs)
+node scripts/app-store-screenshots.mjs check # the App Store Screenshot sets in marketing/screenshots/app-store (layout and rules in its README)
 pnpm literal-check       # no color literal or arbitrary size in the .tsx of mobile, web and site (alias for pnpm --filter @fitme/design-tokens literal-check)
 pnpm text-check          # no hardcoded visible text in the mobile app's .ts / .tsx: it comes from the catalogs (alias for pnpm --filter @fitme/i18n text-check)
 pnpm knip                # unused files, exports, dependencies and binaries across the workspace (knip.jsonc: every ignore names its reason; not in CI)
