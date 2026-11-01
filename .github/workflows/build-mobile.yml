@@ -56,6 +56,16 @@ jobs:
           node-version: "24"
           cache: "pnpm"
 
+      # Bad App Store screenshots fail the release before a build is spent.
+      # Older release tags predate the check; they rebuild as before.
+      - name: Check App Store screenshots
+        run: |
+          if [ -f scripts/app-store-screenshots.mjs ]; then
+            node scripts/app-store-screenshots.mjs check
+          else
+            echo "::notice::This tag predates the App Store screenshot check; skipping it."
+          fi
+
       - name: Install dependencies
         run: pnpm install --frozen-lockfile
 

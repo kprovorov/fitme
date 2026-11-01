@@ -8,8 +8,9 @@ definition of each set; nobody writes screenshot paths into
 The [App Store screenshots shipped from the repo](https://linear.app/provorov/project/app-store-screenshots-shipped-from-the-repo-b89e8a9bd811)
 project holds the full spec. So far the check below is built: each Screenshot
 set on its own, the folders against the listing config, and, against a base
-Git ref, deleted Screenshot sets. The pull request and release checks and
-staging the images for upload come in its later issues; until then the
+Git ref, deleted Screenshot sets. It runs on pull requests and before release
+builds (see [Where the check runs](#where-the-check-runs)). Staging the images
+for upload comes in a later issue; until then the
 screenshots are still uploaded by hand in App Store Connect.
 
 The bare and framed captures in `../iphone/` and `../framed/` are source
@@ -122,6 +123,23 @@ Its tests (`scripts/app-store-screenshots.test.mjs`, run by
 `pnpm test:scripts`) run the script on PNGs they generate, with a temporary
 listing config (one test reads the repo's own), and the deleted set rule in
 temporary Git repos.
+
+### Where the check runs
+
+- **Locally**, with the command above.
+- **On pull requests** touching this directory, `apps/mobile/store.config.json`
+  or the script and its tests: the App Store Screenshots workflow
+  (`.github/workflows/app-store-screenshots.yml`) runs
+  `check --base <the pull request's base commit>`, so the deleted set rule runs
+  there (the workflow fetches the whole history for it). It needs no secrets and
+  contacts no Apple service. Its tests run in the Shell Scripts workflow.
+- **Before every release build**: the Build Mobile workflow's `build` job runs
+  `check` (no base, so no deleted set rule) on the tagged checkout before
+  `eas build` starts, so bad screenshots fail the release before a build is
+  spent. A tag that predates the script skips the check and rebuilds as before.
+
+Both run the script as it is in the checkout, so a rule added to it later runs
+there with no workflow change.
 
 ## How EAS CLI 27.2.0 uploads screenshots
 
