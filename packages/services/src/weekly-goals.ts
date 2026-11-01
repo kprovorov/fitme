@@ -3,9 +3,7 @@ import {
   plans,
   type Transaction,
   weeklyGoalChanges,
-  workoutSessionExerciseSets,
-  workoutSessionExercises,
-  workoutSessions,
+  workoutSessionProgress,
 } from "@fitme/db";
 import { asc, eq, type SQL, sql } from "drizzle-orm";
 import { jsonTimestamp } from "./json-timestamp";
@@ -106,10 +104,11 @@ export interface WeeklyGoals {
 /**
  * Retained goals and the lifetime Weekly streak, in the caller's timezone.
  * Reads all qualifying training across Plans, independently of History's
- * paging and eight chart columns. No saved counter: a fresh read derives the
- * same achievement from durable goals and logged training. Walks backwards
+ * paging and eight chart columns. No saved streak counter: a fresh read
+ * derives the same achievement from durable goals and logged training. Walks backwards
  * from this week, stopping in SQL at the first completed miss/unknown week.
- * Each week's indexed read stops once its goal is met. The tracking release
+ * Each week's indexed qualification-cache read stops once its goal is met,
+ * without scanning rejected Sessions or their children. The tracking release
  * bounds the total walk without truncating any legitimate retained history.
  * `now` and `trackingStartedAt` are clock seams for historical fixtures;
  * public callers never supply either one.
@@ -141,20 +140,14 @@ export async function getWeeklyGoals(
     )
     select case when goal.target is null then false else (
       select count(*) >= goal.target from (
-        select 1 from ${workoutSessions}
-        where ${workoutSessions.userId} = ${userId}
-          and ${workoutSessions.startedAt} >= week_bounds.utc_start
-          and ${workoutSessions.startedAt} < week_bounds.utc_end
-          and ${workoutSessions.finishedAt} is not null
-          and ${workoutSessions.finishedAt} <= ${now.toISOString()}::timestamptz
-          and exists (
-            select 1 from ${workoutSessionExercises}
-            join ${workoutSessionExerciseSets}
-              on ${workoutSessionExerciseSets.workoutSessionExerciseId} = ${workoutSessionExercises.id}
-            where ${workoutSessionExercises.workoutSessionId} = ${workoutSessions.id}
-              and ${workoutSessionExerciseSets.repsCompleted} > 0
-          )
-        order by ${workoutSessions.startedAt}
+        select 1 from ${workoutSessionProgress}
+        where ${workoutSessionProgress.userId} = ${userId}
+          and ${workoutSessionProgress.startedAt} >= week_bounds.utc_start
+          and ${workoutSessionProgress.startedAt} < week_bounds.utc_end
+          and ${workoutSessionProgress.finishedAt} is not null
+          and ${workoutSessionProgress.finishedAt} <= ${now.toISOString()}::timestamptz
+          and ${workoutSessionProgress.completedSetCount} > 0
+        order by ${workoutSessionProgress.startedAt}
         limit goal.target
       ) as qualifying
     ) end

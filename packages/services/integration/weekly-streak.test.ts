@@ -114,6 +114,75 @@ const planNodes = (node: PlanNode): PlanNode[] => [
 ];
 
 describe("Weekly streaks from retained goals and finished training", () => {
+  it("skips bulk childless, zero-rep and future-finished sessions through the qualification index", async () => {
+    const user = await seed(
+      [["2026-10-31T08:00:00Z", 1]],
+      [{ start: "2026-10-31T10:00:00Z" }]
+    );
+    await withService((tx) =>
+      tx.execute(sql`
+      with sessions as (
+        insert into ${workoutSessions} (user_id, started_at, finished_at)
+        select ${user}, '2026-10-30T10:00:00Z'::timestamptz,
+          case when i >= 2000 then '2030-01-01T00:00:00Z'::timestamptz
+            else '2026-10-30T11:00:00Z'::timestamptz end
+        from generate_series(0, 2999) as i returning id, finished_at
+      ), exercises as (
+        insert into ${workoutSessionExercises} (workout_session_id, exercise_slug, "order")
+        select id, 'empty-progress', 1 from sessions
+        where finished_at > '2029-01-01T00:00:00Z'::timestamptz
+        union all
+        select id, 'empty-progress', 1 from (select id from sessions limit 1000) as empty_sessions
+        returning id, workout_session_id
+      )
+      insert into ${workoutSessionExerciseSets} (workout_session_exercise_id, "order", reps_completed)
+      select e.id, 1, case when ws.finished_at > '2029-01-01T00:00:00Z'::timestamptz then 8 else 0 end
+      from exercises e join sessions ws on ws.id = e.workout_session_id
+    `)
+    );
+    await asUser(user, async (tx) => {
+      const execute = vi.spyOn(tx, "execute");
+      expect(
+        (
+          await getWeeklyGoals(
+            tx,
+            user,
+            "UTC",
+            new Date("2026-11-01T12:00:00Z")
+          )
+        ).streak
+      ).toBe(1);
+      const [[query]] = execute.mock.calls;
+      execute.mockRestore();
+      const explained = await tx.execute<{
+        "QUERY PLAN": { Plan: PlanNode }[];
+      }>(sql`explain (analyze, format json) ${query}`);
+      const nodes = planNodes(explained.rows[0]["QUERY PLAN"][0].Plan);
+      expect(
+        nodes.filter((node) =>
+          [
+            "workout_sessions",
+            "workout_session_exercises",
+            "workout_session_exercise_sets",
+          ].includes(node["Relation Name"] ?? "")
+        )
+      ).toEqual([]);
+      const scans = nodes.filter(
+        (node) => node["Relation Name"] === "workout_session_progress"
+      );
+      expect(scans.length).toBeGreaterThan(0);
+      expect(
+        scans.reduce(
+          (total, node) =>
+            total +
+            (node["Actual Rows"] + (node["Rows Removed by Filter"] ?? 0)) *
+              node["Actual Loops"],
+          0
+        ),
+        JSON.stringify(scans)
+      ).toBeLessThanOrEqual(2);
+    });
+  });
   it("keeps every legitimate tracked week as the release boundary ages", async () => {
     const starts = Array.from({ length: 11 }, (_, index) => ({
       start: new Date(
@@ -200,7 +269,7 @@ describe("Weekly streaks from retained goals and finished training", () => {
       }>(sql`explain (analyze, format json) ${query}`);
       const nodes = planNodes(explained.rows[0]["QUERY PLAN"][0].Plan);
       const sessionReads = nodes.filter(
-        (node) => node["Relation Name"] === "workout_sessions"
+        (node) => node["Relation Name"] === "workout_session_progress"
       );
       expect(sessionReads.length).toBeGreaterThan(0);
       expect(

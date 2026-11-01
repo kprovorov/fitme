@@ -30,6 +30,7 @@ select is(
     'workout_exercises',
     'workout_session_exercise_sets',
     'workout_session_exercises',
+    'workout_session_progress',
     'workout_sessions',
     'workouts'
   ],
@@ -56,7 +57,7 @@ select is_empty(
     ]) as p(privilege)
     where c.relnamespace = 'public'::regnamespace
       and c.relkind in ('r', 'p')
-      and c.relname not in ('arnold_sessions', 'personal_record_initializations', 'personal_records', 'weekly_goal_changes')
+      and c.relname not in ('arnold_sessions', 'personal_record_initializations', 'personal_records', 'weekly_goal_changes', 'workout_session_progress')
       and not has_table_privilege(r.role, c.oid, p.privilege)
   $$,
   'anon, authenticated and service_role hold every privilege on the app tables'
