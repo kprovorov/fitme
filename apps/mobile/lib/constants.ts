@@ -6,9 +6,7 @@ export const IS_E2E = process.env.EXPO_PUBLIC_E2E_ENABLED === "true";
 // (dimmed band + dividing line); pin it to the progressive blur we had on 26.
 export const SCROLL_EDGE_EFFECTS = { bottom: "soft", top: "soft" } as const;
 
-// Mirrors the minimum password length set on both Clerk instances, so the
-// register form can reject a short password before calling Clerk.
-export const PASSWORD_MIN_LENGTH = 15;
+export const PASSWORD_MIN_LENGTH = 8;
 
 // The register form's shortest name.
 export const NAME_MIN_LENGTH = 2;

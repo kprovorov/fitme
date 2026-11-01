@@ -43,6 +43,6 @@ export const useDeleteUserMutation = createMutation<void, void>({
     Alert.alert(i18n.t("settings.deleteFailed"), getClerkErrorMessage(error));
   },
   onSuccess: () => {
-    router.replace("/auth/login");
+    router.replace("/auth");
   },
 });

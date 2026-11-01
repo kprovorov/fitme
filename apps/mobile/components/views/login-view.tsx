@@ -1,197 +1,126 @@
-import { useAuth, useSignIn } from "@clerk/expo";
-import { Link, router } from "expo-router";
-import { useCallback, useEffect, useState } from "react";
+import { useSignIn } from "@clerk/expo";
+import { router } from "expo-router";
 import { useTranslation } from "react-i18next";
+import { Pressable, View } from "react-native";
+import { AuthHeader } from "~/components/auth/auth-header";
+import { AuthLegal, AuthSwitch } from "~/components/auth/auth-links";
+import { type AuthFormParts, AuthScreen } from "~/components/auth/auth-screen";
+import { getAuthErrorMessage } from "~/components/auth/error";
+import { useAuthOperation } from "~/components/auth/operation";
+import { SocialAuthButtons } from "~/components/auth/social-auth-buttons";
+import { supportsEmailChallenge } from "~/components/auth/verification";
 import LoginForm, {
   type LoginFormValues,
-} from "@/components/forms/auth/login-form";
+} from "~/components/forms/auth/login-form";
 import { ErrorMessage } from "~/components/ui/error-message";
-import { getClerkErrorMessage } from "~/lib/clerk";
+import { Text } from "~/components/ui/text";
+import { useAvailableSocialProviders } from "~/hooks/native-social-auth";
 import { IS_E2E } from "~/lib/constants";
 import { segmentClient } from "~/lib/segment";
-import { Button } from "../ui/button";
-import { Input } from "../ui/input";
-import { Text } from "../ui/text";
-import { H3 } from "../ui/typography";
-import { VStack } from "../ui/vstack";
-
 export default function LoginView() {
-  const { t } = useTranslation();
-  const { signIn, fetchStatus } = useSignIn();
-
-  const [errorMessage, setErrorMessage] = useState<string | undefined>();
-  const [code, setCode] = useState("");
-
-  // Device Trust: a password sign-in from a new device also needs a code
-  // emailed to the User.
-  const [isAwaitingCode, setIsAwaitingCode] = useState(false);
-
-  const isFetching = fetchStatus === "fetching";
-
-  const { isSignedIn } = useAuth();
-  useEffect(() => {
-    if (isSignedIn) {
-      router.replace("/");
-    }
-  }, [isSignedIn]);
-
-  const finish = useCallback(async () => {
-    const { error } = await signIn.finalize();
-    if (error) {
-      setErrorMessage(getClerkErrorMessage(error));
-      return;
+  const finishPassword = async () => {
+    const { error: finalizeError } = await signIn.finalize();
+    if (finalizeError) {
+      return getAuthErrorMessage(finalizeError);
     }
     if (!IS_E2E) {
       segmentClient.track("User Logged In");
     }
-    // The isSignedIn effect takes the User Home.
-  }, [signIn]);
-
-  const handleSubmit = useCallback(
-    async ({ email, password }: LoginFormValues) => {
-      setErrorMessage(undefined);
-      const { error } = await signIn.password({
-        emailAddress: email,
-        password,
-      });
-      if (error) {
-        setErrorMessage(getClerkErrorMessage(error));
-        return;
-      }
-
-      if (signIn.status === "complete") {
-        await finish();
-        return;
-      }
-
-      const canUseEmailCode = signIn.supportedSecondFactors.some(
-        (factor) => factor.strategy === "email_code"
-      );
-      if (
-        (signIn.status === "needs_client_trust" ||
-          signIn.status === "needs_second_factor") &&
-        canUseEmailCode
-      ) {
-        const { error: sendError } = await signIn.mfa.sendEmailCode();
-        if (sendError) {
-          setErrorMessage(getClerkErrorMessage(sendError));
-          return;
-        }
-        setIsAwaitingCode(true);
-        return;
-      }
-
-      setErrorMessage(t("auth.login.cantSignInHere"));
-    },
-    [finish, signIn, t]
-  );
-
-  const handleVerifyCode = useCallback(async () => {
-    setErrorMessage(undefined);
-    const { error } = await signIn.mfa.verifyEmailCode({ code });
-    if (error) {
-      setErrorMessage(getClerkErrorMessage(error));
+  };
+  const sendDeviceCode = async (current: () => boolean) => {
+    const { error: sendError } = await signIn.mfa.sendEmailCode();
+    if (!current()) {
       return;
     }
-    if (signIn.status === "complete") {
-      await finish();
+    if (sendError) {
+      return getAuthErrorMessage(sendError);
     }
-  }, [code, finish, signIn]);
-
-  const handleResendCode = useCallback(async () => {
-    setErrorMessage(undefined);
-    const { error } = await signIn.mfa.sendEmailCode();
-    if (error) {
-      setErrorMessage(getClerkErrorMessage(error));
-    }
-  }, [signIn]);
-
-  const handleStartOver = useCallback(async () => {
-    setErrorMessage(undefined);
-    setCode("");
-    setIsAwaitingCode(false);
-    await signIn.reset();
-  }, [signIn]);
-
-  if (isAwaitingCode) {
+    router.push({
+      params: { purpose: "sign-in", source: "login" },
+      pathname: "/auth/verify-code",
+    });
+  };
+  const submitEmail = (values: LoginFormValues) =>
+    operation.run("email", async (current) => {
+      const { error } = await signIn.password({
+        emailAddress: values.email,
+        password: values.password,
+      });
+      if (!current()) {
+        return;
+      }
+      if (error) {
+        return getAuthErrorMessage(error);
+      }
+      if (signIn.status === "complete") {
+        return finishPassword();
+      }
+      if (
+        supportsEmailChallenge(signIn.status, signIn.supportedSecondFactors)
+      ) {
+        return sendDeviceCode(current);
+      }
+      return t("auth.login.cantSignInHere");
+    });
+  const renderForm = ({ fields, action }: AuthFormParts) => {
+    const openRecovery = () => router.push("/auth/forgot-password");
     return (
-      <VStack className="w-full">
-        <VStack className="gap-0">
-          <H3>{t("auth.deviceCode.title")}</H3>
-          <Text className="text-muted-foreground text-subhead-emphasized">
-            {t("auth.deviceCode.subtitle")}
-          </Text>
-        </VStack>
-        {errorMessage ? <ErrorMessage>{errorMessage}</ErrorMessage> : null}
-        <VStack className="w-full items-stretch gap-4">
-          <Input
-            autoComplete="one-time-code"
-            editable={!isFetching}
-            keyboardType="number-pad"
-            onChangeText={setCode}
-            placeholder={t("auth.fields.code")}
-            testID="login-code-input"
-            textContentType="oneTimeCode"
-            value={code}
-          />
-          <Button
-            disabled={!code}
-            icon="arrow.right"
-            iconPosition="trailing"
-            isLoading={isFetching}
-            label={t("auth.deviceCode.verify")}
-            onPress={handleVerifyCode}
-            testID="login-code-button"
-          />
-          <Button
-            disabled={isFetching}
-            fill
-            label={t("auth.deviceCode.resend")}
-            onPress={handleResendCode}
-            variant="ghost"
-          />
-          <Button
-            disabled={isFetching}
-            fill
-            label={t("auth.deviceCode.differentAccount")}
-            onPress={handleStartOver}
-            variant="ghost"
-          />
-        </VStack>
-      </VStack>
-    );
-  }
-
-  return (
-    <VStack className="w-full">
-      <VStack className="gap-0">
-        <H3>{t("auth.welcome")}</H3>
-        <Text className="text-muted-foreground text-subhead-emphasized">
-          {t("auth.login.subtitle")}
-        </Text>
-      </VStack>
-      {errorMessage ? (
-        <ErrorMessage testID="login-error">{errorMessage}</ErrorMessage>
-      ) : null}
-      <LoginForm onSubmit={handleSubmit} />
-      {/* Not nested in a Text: iOS merges nested Text into one element and
-          drops the link's testID */}
-      <Link
-        className="text-primary text-subhead-emphasized"
-        href="/auth/forgot-password"
-        testID="forgot-password-link"
+      <AuthScreen
+        action={
+          <View className="gap-xs">
+            {operation.error ? (
+              <ErrorMessage testID="login-error">
+                {operation.error}
+              </ErrorMessage>
+            ) : null}
+            {action}
+          </View>
+        }
+        footer={
+          <>
+            <AuthLegal disabled={busy} />
+            <AuthSwitch
+              disabled={busy}
+              href="/auth/register"
+              label={t("auth.login.registerLink")}
+              prompt={t("auth.login.noAccount")}
+            />
+          </>
+        }
       >
-        {t("auth.login.forgotPasswordLink")}
-      </Link>
-      <Text className="text-subhead-emphasized">
-        {t("auth.login.noAccount")}{" "}
-        <Link
-          className="text-primary text-subhead-emphasized"
-          href="/auth/register"
+        <AuthHeader title={t("auth.login.heading")} />
+        <SocialAuthButtons
+          divider
+          operation={operation}
+          providers={providers}
+        />
+        {fields}
+        <Pressable
+          accessibilityRole="link"
+          className="min-h-11 items-end justify-center"
+          disabled={busy}
+          onPress={openRecovery}
+          testID="forgot-password-link"
         >
-          {t("auth.login.registerLink")}
-        </Link>
-      </Text>
-    </VStack>
+          <Text className="text-footnote-emphasized text-primary">
+            {t("auth.login.forgotPasswordLink")}
+          </Text>
+        </Pressable>
+      </AuthScreen>
+    );
+  };
+  const { t } = useTranslation();
+  const { signIn } = useSignIn();
+  const operation = useAuthOperation();
+  const providers = useAvailableSocialProviders();
+  const busy = operation.pending !== null;
+  return (
+    <LoginForm
+      disabled={busy}
+      onEdit={operation.clearError}
+      onSubmit={submitEmail}
+    >
+      {renderForm}
+    </LoginForm>
   );
 }

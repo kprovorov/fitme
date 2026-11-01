@@ -1,3 +1,4 @@
+import "~/test-utils/auth-ui";
 import { beforeEach, describe, expect, it, jest } from "@jest/globals";
 import { fireEvent, render, screen } from "@testing-library/react-native";
 import { router } from "expo-router";
@@ -42,7 +43,7 @@ jest.mock("~/components/ui/button", () =>
 
 const requestReset = async (email: string) => {
   await fireEvent.changeText(screen.getByPlaceholderText("Email"), email);
-  await fireEvent.press(screen.getByRole("button", { name: "Send Code" }));
+  await fireEvent.press(screen.getByRole("button", { name: "Send code" }));
 };
 
 beforeEach(() => {

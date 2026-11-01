@@ -1,65 +1,75 @@
 import { useSignIn } from "@clerk/expo";
-import { Link, router } from "expo-router";
-import { useCallback, useState } from "react";
+import { router } from "expo-router";
 import { useTranslation } from "react-i18next";
+import { View } from "react-native";
+import { AuthHeader } from "~/components/auth/auth-header";
+import { AuthSwitch } from "~/components/auth/auth-links";
+import { type AuthFormParts, AuthScreen } from "~/components/auth/auth-screen";
+import { getAuthErrorMessage } from "~/components/auth/error";
+import { useAuthOperation } from "~/components/auth/operation";
 import ForgotPasswordForm, {
   type ForgotPasswordFormValues,
 } from "~/components/forms/auth/forgot-password-form";
 import { ErrorMessage } from "~/components/ui/error-message";
-import { Text } from "~/components/ui/text";
-import { H3 } from "~/components/ui/typography";
-import { VStack } from "~/components/ui/vstack";
-import type { CodePurpose } from "~/components/views/verify-code-view";
-import { getClerkErrorMessage } from "~/lib/clerk";
-
 export default function ForgotPasswordView() {
-  const { signIn } = useSignIn();
-  const { t } = useTranslation();
-
-  const [errorMessage, setErrorMessage] = useState<string | undefined>();
-
-  const handleSubmit = useCallback(
-    async ({ email }: ForgotPasswordFormValues) => {
-      setErrorMessage(undefined);
+  const requestCode = ({ email }: ForgotPasswordFormValues) =>
+    operation.run("email", async (current) => {
       const { error } = await signIn.create({ identifier: email });
-      if (error) {
-        setErrorMessage(getClerkErrorMessage(error));
+      if (!current()) {
         return;
       }
-
+      if (error) {
+        return getAuthErrorMessage(error);
+      }
       const { error: sendError } =
         await signIn.resetPasswordEmailCode.sendCode();
-      if (sendError) {
-        setErrorMessage(getClerkErrorMessage(sendError));
+      if (!current()) {
         return;
       }
+      if (sendError) {
+        return getAuthErrorMessage(sendError);
+      }
       router.push({
-        params: { purpose: "reset-password" satisfies CodePurpose },
+        params: { purpose: "reset-password" },
         pathname: "/auth/verify-code",
       });
-    },
-    [signIn]
-  );
-
-  return (
-    <VStack className="w-full gap-4">
-      <VStack className="gap-0">
-        <H3>{t("forgotPassword.title")}</H3>
-        <Text className="text-muted-foreground text-subhead-emphasized">
-          {t("forgotPassword.description")}
-        </Text>
-      </VStack>
-      {errorMessage ? <ErrorMessage>{errorMessage}</ErrorMessage> : null}
-      <ForgotPasswordForm onSubmit={handleSubmit} />
-      <Text className="text-subhead-emphasized">
-        {t("forgotPassword.remember")}{" "}
-        <Link
-          className="text-primary text-subhead-emphasized"
+    });
+  const renderForm = ({ action, fields }: AuthFormParts) => (
+    <AuthScreen
+      action={
+        <View className="gap-xs">
+          {operation.error ? (
+            <ErrorMessage>{operation.error}</ErrorMessage>
+          ) : null}
+          {action}
+        </View>
+      }
+      footer={
+        <AuthSwitch
+          disabled={operation.pending !== null}
           href="/auth/login"
-        >
-          {t("forgotPassword.login")}
-        </Link>
-      </Text>
-    </VStack>
+          label={t("forgotPassword.login")}
+          prompt={t("forgotPassword.remember")}
+        />
+      }
+    >
+      <AuthHeader
+        description={t("forgotPassword.description")}
+        title={t("forgotPassword.title")}
+      />
+      {fields}
+    </AuthScreen>
+  );
+  const { signIn } = useSignIn();
+  const { t } = useTranslation();
+  const operation = useAuthOperation();
+  return (
+    <ForgotPasswordForm
+      disabled={operation.pending !== null}
+      onEdit={operation.clearError}
+      onSubmit={requestCode}
+    >
+      {renderForm}
+    </ForgotPasswordForm>
   );
 }

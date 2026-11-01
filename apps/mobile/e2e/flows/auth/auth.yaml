@@ -1,7 +1,6 @@
 appId: com.fitmeproject.ios
 env:
   NAME: "Tony Stark"
-  # At least Clerk's minimum length (15) and not a known breached password
   PASSWORD: "fitme-e2e-kettlebell-swing"
 ---
 # A fresh +clerk_test User per run: Clerk's test mode sends no email and
@@ -15,9 +14,11 @@ env:
 
 - waitForAnimationToEnd
 
-# Signed out, the protected Home tab redirects to the register screen
+# Signed out, the protected Home tab opens Welcome
 - assertVisible:
-    text: "Welcome to Fitme!"
+    id: "continue-email-button"
+- tapOn:
+    id: "continue-email-button"
 
 # ===== PASSWORD TOO SHORT =====
 - tapOn:
@@ -33,13 +34,13 @@ env:
 - tapOn:
     id: "password-input"
 - waitForAnimationToEnd
-- inputText: "too-short"
+- inputText: "seven77"
 
 - tapOn:
     id: "register-button"
 
 - assertVisible:
-    text: "Password must be at least 15 characters."
+    text: "Password must be at least 8 characters."
 
 # ===== REGISTER =====
 - tapOn:
@@ -81,6 +82,11 @@ env:
     timeout: 10000
 
 - runFlow: ../../subflows/dismiss-save-password.yaml
+- extendedWaitUntil:
+    visible:
+      id: "verify-code-resend-button"
+      enabled: true
+    timeout: 65000
 - tapOn:
     id: "verify-code-resend-button"
 
@@ -130,7 +136,7 @@ env:
     timeout: 30000
 
 - assertNotVisible:
-    text: "Welcome to Fitme!"
+    id: "continue-email-button"
 
 # ===== LOGOUT =====
 # The first tab's header button
@@ -145,7 +151,7 @@ env:
 - waitForAnimationToEnd
 
 - assertVisible:
-    text: "Welcome to Fitme!"
+    id: "continue-email-button"
 
 # ===== WRONG PASSWORD =====
 - tapOn:
@@ -168,7 +174,7 @@ env:
 
 - extendedWaitUntil:
     visible:
-      text: "Password is incorrect.*"
+      text: "Email or password is incorrect. Try again."
     timeout: 10000
 
 # ===== LOGIN AGAIN =====

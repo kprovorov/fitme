@@ -1,3 +1,4 @@
+import "~/test-utils/auth-ui";
 /**
  * The sign-in and register screens in the App language: the real screens,
  * under the root layout's language sync, with Clerk's sign-in and sign-up
@@ -6,6 +7,7 @@
  */
 import { beforeEach, describe, expect, it, jest } from "@jest/globals";
 import { fireEvent, render, screen } from "@testing-library/react-native";
+import { router } from "expo-router";
 import type { ComponentType } from "react";
 import LoginScreen from "~/app/auth/login";
 import RegisterScreen from "~/app/auth/register";
@@ -92,15 +94,12 @@ describe("login screen in Ukrainian", () => {
     await renderInApp(LoginScreen);
 
     expect(screen.getByTestId("screen-title")).toHaveTextContent("Вхід");
-    expect(screen.getByText("Вітаємо у Fitme!")).toBeTruthy();
-    expect(
-      screen.getByText("Увійдіть в акаунт, щоб відкрити свої тренування")
-    ).toBeTruthy();
+    expect(screen.getByText("З поверненням")).toBeTruthy();
     expect(screen.getByPlaceholderText("Ел. пошта")).toBeTruthy();
     expect(screen.getByPlaceholderText("Пароль")).toBeTruthy();
-    expect(screen.getByRole("button", { name: "Продовжити" })).toBeTruthy();
+    expect(screen.getByRole("button", { name: "Увійти" })).toBeTruthy();
     expect(screen.getByText("Забули пароль?")).toBeTruthy();
-    expect(screen.getByText("Зареєструватися")).toBeTruthy();
+    expect(screen.getByText("Створити акаунт")).toBeTruthy();
     expect(screen.queryByText("Welcome to Fitme!")).toBeNull();
   });
 
@@ -108,7 +107,7 @@ describe("login screen in Ukrainian", () => {
     await renderInApp(LoginScreen);
 
     await fillIn({ "Ел. пошта": "not-an-email" });
-    await fireEvent.press(screen.getByRole("button", { name: "Продовжити" }));
+    await fireEvent.press(screen.getByRole("button", { name: "Увійти" }));
 
     expect(
       await screen.findByText("Неправильна адреса ел. пошти")
@@ -122,7 +121,7 @@ describe("login screen in Ukrainian", () => {
     await renderInApp(LoginScreen);
 
     await fillIn({ "Ел. пошта": "tony@example.com", Пароль: "a-password" });
-    await fireEvent.press(screen.getByRole("button", { name: "Продовжити" }));
+    await fireEvent.press(screen.getByRole("button", { name: "Увійти" }));
 
     expect(
       await screen.findByText("Цей акаунт поки не може тут увійти.")
@@ -136,7 +135,7 @@ describe("login screen in Ukrainian", () => {
     await renderInApp(LoginScreen);
 
     await fillIn({ "Ел. пошта": "tony@example.com", Пароль: "a-password" });
-    await fireEvent.press(screen.getByRole("button", { name: "Продовжити" }));
+    await fireEvent.press(screen.getByRole("button", { name: "Увійти" }));
 
     expect(
       await screen.findByText("Щось пішло не так. Спробуйте пізніше.")
@@ -149,17 +148,13 @@ describe("login screen in Ukrainian", () => {
     await renderInApp(LoginScreen);
 
     await fillIn({ "Ел. пошта": "tony@example.com", Пароль: "a-password" });
-    await fireEvent.press(screen.getByRole("button", { name: "Продовжити" }));
+    await fireEvent.press(screen.getByRole("button", { name: "Увійти" }));
 
-    expect(await screen.findByText("Перевірте пошту")).toBeTruthy();
-    expect(screen.getByPlaceholderText("Код")).toBeTruthy();
-    expect(screen.getByRole("button", { name: "Підтвердити" })).toBeTruthy();
-    expect(
-      screen.getByRole("button", { name: "Надіслати новий код" })
-    ).toBeTruthy();
-    expect(
-      screen.getByRole("button", { name: "Увійти в інший акаунт" })
-    ).toBeTruthy();
+    expect(mockSignIn.mfa.sendEmailCode).toHaveBeenCalledTimes(1);
+    expect(router.push).toHaveBeenCalledWith({
+      params: { purpose: "sign-in", source: "login" },
+      pathname: "/auth/verify-code",
+    });
   });
 });
 
@@ -172,13 +167,12 @@ describe("register screen in Ukrainian", () => {
     await renderInApp(RegisterScreen);
 
     expect(screen.getByTestId("screen-title")).toHaveTextContent("Реєстрація");
-    expect(screen.getByText("Вітаємо у Fitme!")).toBeTruthy();
-    expect(screen.getByText("Створіть акаунт, щоб почати")).toBeTruthy();
+    expect(screen.getByText("Створи свій акаунт")).toBeTruthy();
     expect(screen.getByPlaceholderText("Ім’я")).toBeTruthy();
     expect(screen.getByPlaceholderText("Ел. пошта")).toBeTruthy();
     expect(screen.getByPlaceholderText("Пароль")).toBeTruthy();
     expect(
-      screen.getByRole("button", { name: "Зареєструватися" })
+      screen.getByRole("button", { name: "Створити акаунт" })
     ).toBeTruthy();
     expect(screen.getByText("Увійти")).toBeTruthy();
   });
@@ -189,14 +183,14 @@ describe("register screen in Ukrainian", () => {
     await fillIn({
       "Ім’я": "T",
       "Ел. пошта": "tony@example.com",
-      Пароль: "short-password",
+      Пароль: "seven77",
     });
     await fireEvent.press(
-      screen.getByRole("button", { name: "Зареєструватися" })
+      screen.getByRole("button", { name: "Створити акаунт" })
     );
 
     expect(
-      await screen.findByText("Пароль має містити щонайменше 15 символів.")
+      await screen.findByText("Пароль має містити щонайменше 8 символів.")
     ).toBeTruthy();
     expect(
       screen.getByText("Ім’я має містити щонайменше 2 символи.")
@@ -209,8 +203,8 @@ describe("in English", () => {
   it("shows the login screen in English on an English device", async () => {
     await renderInApp(LoginScreen);
 
-    expect(screen.getByTestId("screen-title")).toHaveTextContent("Login");
-    expect(screen.getByText("Welcome to Fitme!")).toBeTruthy();
+    expect(screen.getByTestId("screen-title")).toHaveTextContent("Log in");
+    expect(screen.getByText("Welcome back")).toBeTruthy();
     expect(screen.getByText("Forgot password?")).toBeTruthy();
   });
 
@@ -218,10 +212,12 @@ describe("in English", () => {
     await renderInApp(RegisterScreen);
 
     await fillIn({ Email: "tony@example.com", Name: "T", Password: "short" });
-    await fireEvent.press(screen.getByRole("button", { name: "Sign Up" }));
+    await fireEvent.press(
+      screen.getByRole("button", { name: "Create Account" })
+    );
 
     expect(
-      await screen.findByText("Password must be at least 15 characters.")
+      await screen.findByText("Password must be at least 8 characters.")
     ).toBeTruthy();
     expect(
       screen.getByText("Name must be at least 2 characters.")

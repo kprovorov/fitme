@@ -1,227 +1,353 @@
-import { useAuth, useSignIn, useSignUp } from "@clerk/expo";
+import { useSignIn, useSignUp } from "@clerk/expo";
 import { router } from "expo-router";
 import { useCallback, useEffect, useState } from "react";
 import { useTranslation } from "react-i18next";
+import { AppState, View } from "react-native";
+import { AuthHeader } from "~/components/auth/auth-header";
+import { AuthSwitch } from "~/components/auth/auth-links";
+import { AuthScreen } from "~/components/auth/auth-screen";
+import { CodeInput } from "~/components/auth/code-input";
+import { getAuthErrorMessage } from "~/components/auth/error";
+import { useAuthOperation } from "~/components/auth/operation";
+import type {
+  CodePurpose,
+  VerificationSource,
+} from "~/components/auth/verification";
+import { Button } from "~/components/ui/button";
 import { ErrorMessage } from "~/components/ui/error-message";
-import { getClerkErrorMessage } from "~/lib/clerk";
+import { Text } from "~/components/ui/text";
 import { IS_E2E } from "~/lib/constants";
 import { segmentClient } from "~/lib/segment";
-import { Button } from "../ui/button";
-import { Input } from "../ui/input";
-import { Text } from "../ui/text";
-import { H3, P } from "../ui/typography";
-import { VStack } from "../ui/vstack";
 
-/** What the emailed code proves; each purpose drives its own Clerk flow. */
-export const codePurposes = ["sign-up", "reset-password", "sign-in"] as const;
-export type CodePurpose = (typeof codePurposes)[number];
-
-export const isCodePurpose = (value: unknown): value is CodePurpose =>
-  codePurposes.some((purpose) => purpose === value);
-
-/** The Clerk flow behind one purpose; both return an error message or none. */
+const RESEND_DELAY = 60_000;
 interface CodeVerification {
-  isFetching: boolean;
+  available: boolean;
+  email: string | null;
+  id: string | null;
   resend: () => Promise<string | undefined>;
-  verify: (code: string) => Promise<string | undefined>;
+  reset: () => Promise<{
+    error: unknown;
+  }>;
+  verify: (code: string, current: () => boolean) => Promise<string | undefined>;
 }
-
-const useSignUpVerification = (): CodeVerification => {
-  const { signUp, fetchStatus } = useSignUp();
+function useSignUpVerification(): CodeVerification {
+  const { signUp } = useSignUp();
   const { t } = useTranslation();
-
-  const resend = useCallback(async () => {
-    const { error } = await signUp.verifications.sendEmailCode();
-    return error ? getClerkErrorMessage(error) : undefined;
-  }, [signUp]);
-
-  const verify = useCallback(
-    async (code: string) => {
+  return {
+    available:
+      !!signUp.id &&
+      !!signUp.emailAddress &&
+      (signUp.status === "complete" ||
+        (signUp.status === "missing_requirements" &&
+          signUp.unverifiedFields.includes("email_address"))),
+    email: signUp.emailAddress,
+    id: signUp.id ?? null,
+    resend: async () => {
+      const { error } = await signUp.verifications.sendEmailCode();
+      return error ? getAuthErrorMessage(error) : undefined;
+    },
+    reset: () => signUp.reset(),
+    verify: async (code, current) => {
       const { error } = await signUp.verifications.verifyEmailCode({ code });
+      if (!current()) {
+        return;
+      }
       if (error) {
-        return getClerkErrorMessage(error);
+        return getAuthErrorMessage(error);
       }
       if (signUp.status !== "complete") {
         return t("verifyCode.errors.signUpIncomplete");
       }
       const { error: finalizeError } = await signUp.finalize();
       if (finalizeError) {
-        return getClerkErrorMessage(finalizeError);
+        return getAuthErrorMessage(finalizeError);
       }
       if (!IS_E2E) {
         segmentClient.track("User Registered");
       }
     },
-    [signUp, t]
-  );
-
-  return { isFetching: fetchStatus === "fetching", resend, verify };
-};
-
-const useResetPasswordVerification = (): CodeVerification => {
-  const { signIn, fetchStatus } = useSignIn();
+  };
+}
+function useResetPasswordVerification(): CodeVerification {
+  const { signIn } = useSignIn();
   const { t } = useTranslation();
-
-  const resend = useCallback(async () => {
-    const { error } = await signIn.resetPasswordEmailCode.sendCode();
-    return error ? getClerkErrorMessage(error) : undefined;
-  }, [signIn]);
-
-  const verify = useCallback(
-    async (code: string) => {
+  return {
+    available:
+      !!signIn.id &&
+      !!signIn.identifier &&
+      (signIn.status === "needs_new_password" ||
+        (signIn.status === "needs_first_factor" &&
+          signIn.supportedFirstFactors.some(
+            (factor) => factor.strategy === "reset_password_email_code"
+          ))),
+    email: signIn.identifier,
+    id: signIn.id ?? null,
+    resend: async () => {
+      const { error } = await signIn.resetPasswordEmailCode.sendCode();
+      return error ? getAuthErrorMessage(error) : undefined;
+    },
+    reset: () => signIn.reset(),
+    verify: async (code, current) => {
       const { error } = await signIn.resetPasswordEmailCode.verifyCode({
         code,
       });
+      if (!current()) {
+        return;
+      }
       if (error) {
-        return getClerkErrorMessage(error);
+        return getAuthErrorMessage(error);
       }
       if (signIn.status !== "needs_new_password") {
         return t("verifyCode.errors.resetIncomplete");
       }
       router.replace("/auth/reset-password");
     },
-    [signIn, t]
-  );
-
-  return { isFetching: fetchStatus === "fetching", resend, verify };
-};
-
-/** Device Trust: a sign-in on a new device also needs an emailed code. */
-const useSignInVerification = (): CodeVerification => {
-  const { signIn, fetchStatus } = useSignIn();
+  };
+}
+function useSignInVerification(source: VerificationSource): CodeVerification {
+  const { signIn } = useSignIn();
   const { t } = useTranslation();
-
-  const resend = useCallback(async () => {
-    const { error } = await signIn.mfa.sendEmailCode();
-    return error ? getClerkErrorMessage(error) : undefined;
-  }, [signIn]);
-
-  const verify = useCallback(
-    async (code: string) => {
+  return {
+    available:
+      !!signIn.id &&
+      !!signIn.identifier &&
+      (signIn.status === "complete" ||
+        ((signIn.status === "needs_client_trust" ||
+          signIn.status === "needs_second_factor") &&
+          signIn.supportedSecondFactors.some(
+            (factor) => factor.strategy === "email_code"
+          ))),
+    email: signIn.identifier,
+    id: signIn.id ?? null,
+    resend: async () => {
+      const { error } = await signIn.mfa.sendEmailCode();
+      return error ? getAuthErrorMessage(error) : undefined;
+    },
+    reset: () => signIn.reset(),
+    verify: async (code, current) => {
       const { error } = await signIn.mfa.verifyEmailCode({ code });
+      if (!current()) {
+        return;
+      }
       if (error) {
-        return getClerkErrorMessage(error);
+        return getAuthErrorMessage(error);
       }
       if (signIn.status !== "complete") {
         return t("verifyCode.errors.signInIncomplete");
       }
       const { error: finalizeError } = await signIn.finalize();
       if (finalizeError) {
-        return getClerkErrorMessage(finalizeError);
+        return getAuthErrorMessage(finalizeError);
+      }
+      if (source !== "reset-password" && !IS_E2E) {
+        segmentClient.track("User Logged In");
       }
     },
-    [signIn, t]
-  );
-
-  return { isFetching: fetchStatus === "fetching", resend, verify };
-};
-
-/**
- * The catalog key of what the code screen asks for, per purpose. A switch,
- * not a record: a `"reset-password": "…"` literal trips the pre-commit
- * secret scan's password rule.
- */
-const descriptionKey = (purpose: CodePurpose) => {
-  switch (purpose) {
-    case "reset-password":
-      return "verifyCode.description.reset";
-    case "sign-in":
-      return "verifyCode.description.signIn";
-    case "sign-up":
-      return "verifyCode.description.signUp";
-    default:
-      return purpose satisfies never;
-  }
-};
-
-interface VerifyCodeViewProps {
-  /** Picks the Clerk flow the code completes. */
-  purpose: CodePurpose;
+  };
 }
-
-export default function VerifyCodeView({ purpose }: VerifyCodeViewProps) {
-  // Every flow's hook runs on every render, called by name: the React
-  // Compiler memoizes a hook picked at runtime (`hooks[purpose]()`) as a plain
-  // call, skipping Clerk's hooks on re-renders and breaking the hook order.
+export default function VerifyCodeView({
+  purpose,
+  source = "reset-password",
+}: {
+  purpose: CodePurpose;
+  source?: VerificationSource;
+}) {
+  // Named calls keep React Compiler from memoizing a selected hook as a plain function.
   const verifications: Record<CodePurpose, CodeVerification> = {
     "reset-password": useResetPasswordVerification(),
-    "sign-in": useSignInVerification(),
+    "sign-in": useSignInVerification(source),
     "sign-up": useSignUpVerification(),
   };
-  const { isFetching, resend, verify } = verifications[purpose];
+  const flow = verifications[purpose];
+  return (
+    <CodeVerificationContent
+      flow={flow}
+      key={`${purpose}:${flow.id}`}
+      purpose={purpose}
+    />
+  );
+}
+
+function CodeVerificationContent({
+  flow,
+  purpose,
+}: {
+  flow: CodeVerification;
+  purpose: CodePurpose;
+}) {
   const { t } = useTranslation();
-
+  const operation = useAuthOperation();
   const [code, setCode] = useState("");
-  const [errorMessage, setErrorMessage] = useState<string | undefined>();
-  const [notice, setNotice] = useState<string | undefined>();
-
-  const { isSignedIn } = useAuth();
+  const [notice, setNotice] = useState<string>();
+  const [resendAt, setResendAt] = useState(() => Date.now() + RESEND_DELAY);
+  const [now, setNow] = useState(Date.now);
+  const remaining = Math.max(0, Math.ceil((resendAt - now) / 1000));
+  const coolingDown = remaining > 0;
   useEffect(() => {
-    if (isSignedIn) {
-      router.replace("/");
-    }
-  }, [isSignedIn]);
-
-  const handleVerify = useCallback(async () => {
-    setErrorMessage(undefined);
-    setNotice(undefined);
-    // Sign-up and sign-in end signed in, and the isSignedIn effect takes the
-    // User on; a reset moves on to the new-password screen itself.
-    setErrorMessage(await verify(code));
-  }, [code, verify]);
-
-  const handleResend = useCallback(async () => {
-    setErrorMessage(undefined);
-    setNotice(undefined);
-    const error = await resend();
-    if (error) {
-      setErrorMessage(error);
+    if (!(flow.available && coolingDown)) {
       return;
     }
-    setNotice(t("verifyCode.resentNotice"));
-  }, [resend, t]);
-
+    const update = () => setNow(Date.now());
+    const timer = setInterval(update, 1000);
+    const subscription = AppState.addEventListener("change", update);
+    return () => {
+      clearInterval(timer);
+      subscription.remove();
+    };
+  }, [flow.available, coolingDown]);
+  const restartHref =
+    purpose === "sign-up"
+      ? "/auth/register"
+      : purpose === "sign-in"
+        ? "/auth/login"
+        : "/auth/forgot-password";
+  const restart = useCallback(
+    () =>
+      operation.run("restart", async (current) => {
+        const { error } = await flow.reset();
+        if (!current()) {
+          return;
+        }
+        if (error) {
+          return getAuthErrorMessage(error);
+        }
+        router.replace(restartHref);
+      }),
+    [flow, operation, restartHref]
+  );
+  const handleVerify = useCallback(
+    () =>
+      operation.run("verify", (current) => {
+        setNotice(undefined);
+        return flow.verify(code, current);
+      }),
+    [code, flow, operation]
+  );
+  const changeCode = useCallback(
+    (value: string) => {
+      setCode(value);
+      setNotice(undefined);
+      operation.clearError();
+    },
+    [operation]
+  );
+  const resendCode = useCallback(
+    () =>
+      operation.run("resend", async (current) => {
+        setNotice(undefined);
+        const error = await flow.resend();
+        if (!current()) {
+          return;
+        }
+        if (error) {
+          return error;
+        }
+        setCode("");
+        setResendAt(Date.now() + RESEND_DELAY);
+        setNow(Date.now());
+        setNotice(t("verifyCode.resentNotice"));
+      }),
+    [flow, operation, t]
+  );
+  if (!flow.available) {
+    return (
+      <AuthScreen
+        action={
+          <Button
+            disabled={operation.pending !== null}
+            isLoading={operation.pending === "restart"}
+            label={t("verifyCode.startOver")}
+            onPress={restart}
+            size="lg"
+          />
+        }
+      >
+        <AuthHeader
+          description={t("verifyCode.expired")}
+          title={t("verifyCode.title")}
+        />
+        {operation.error ? (
+          <ErrorMessage>{operation.error}</ErrorMessage>
+        ) : null}
+      </AuthScreen>
+    );
+  }
   return (
-    <VStack className="w-full">
-      <VStack className="gap-0">
-        <H3>{t("verifyCode.title")}</H3>
-        <Text className="text-muted-foreground text-subhead-emphasized">
-          {t(descriptionKey(purpose))}
-        </Text>
-      </VStack>
-      {errorMessage ? (
-        <ErrorMessage testID="verify-code-error">{errorMessage}</ErrorMessage>
-      ) : null}
-      {notice ? <P className="text-muted-foreground">{notice}</P> : null}
-      <VStack className="w-full items-stretch gap-4">
-        <Input
-          autoComplete="one-time-code"
-          editable={!isFetching}
-          keyboardType="number-pad"
-          onChangeText={setCode}
-          placeholder={t("verifyCode.codePlaceholder")}
-          testID="verify-code-input"
-          textContentType="oneTimeCode"
+    <AuthScreen
+      action={
+        <View className="gap-xs">
+          {operation.error ? (
+            <ErrorMessage testID="verify-code-error">
+              {operation.error}
+            </ErrorMessage>
+          ) : null}
+          <Button
+            accessibilityLabel={t(
+              operation.pending === "verify"
+                ? "verifyCode.loading"
+                : "verifyCode.verify"
+            )}
+            disabled={code.length !== 6 || operation.pending !== null}
+            isLoading={operation.pending === "verify"}
+            label={t("verifyCode.verify")}
+            onPress={handleVerify}
+            size="lg"
+            testID="verify-code-button"
+          />
+        </View>
+      }
+      footer={
+        <AuthSwitch
+          disabled={operation.pending !== null}
+          href={restartHref}
+          label={t("verifyCode.changeEmail")}
+          onPress={restart}
+          prompt={t("verifyCode.wrongEmail")}
+        />
+      }
+    >
+      <AuthHeader
+        description={t("verifyCode.destination", { email: flow.email })}
+        title={t("verifyCode.title")}
+      />
+      <View className="gap-sm">
+        <CodeInput
+          disabled={operation.pending !== null}
+          error={!!operation.error}
+          label={t("verifyCode.codePlaceholder")}
+          onChange={changeCode}
           value={code}
         />
-        <Button
-          disabled={!code}
-          icon="arrow.right"
-          iconPosition="trailing"
-          isLoading={isFetching}
-          label={t("verifyCode.verify")}
-          onPress={handleVerify}
-          testID="verify-code-button"
-        />
-        <Button
-          disabled={isFetching}
-          fill
-          label={t("verifyCode.resendButton")}
-          onPress={handleResend}
-          testID="verify-code-resend-button"
-          variant="ghost"
-        />
-      </VStack>
-    </VStack>
+        <View className="flex-row flex-wrap items-center gap-x-1">
+          <Text className="text-footnote text-muted-foreground">
+            {t("verifyCode.didntGet")}
+          </Text>
+          <Button
+            contentColorClassName="text-muted-foreground"
+            disabled={remaining > 0 || operation.pending !== null}
+            isLoading={operation.pending === "resend"}
+            label={
+              remaining > 0
+                ? t("verifyCode.resendIn", {
+                    time: `${Math.floor(remaining / 60)}:${String(remaining % 60).padStart(2, "0")}`,
+                  })
+                : t("verifyCode.resendButton")
+            }
+            onPress={resendCode}
+            size="lg"
+            testID="verify-code-resend-button"
+            variant="ghost"
+          />
+        </View>
+        {notice ? (
+          <Text
+            accessibilityLiveRegion="polite"
+            className="text-footnote text-muted-foreground"
+          >
+            {notice}
+          </Text>
+        ) : null}
+      </View>
+    </AuthScreen>
   );
 }

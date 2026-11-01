@@ -119,7 +119,11 @@ const Field = ({
  * with an optional `error`.
  */
 const Input = ({ className, ...props }: FieldProps) => (
-  <Field className={cn("min-h-12", className)} {...props} />
+  <Field
+    className={cn("min-h-12", className)}
+    lineBreakModeIOS="tail"
+    {...props}
+  />
 );
 Input.displayName = "Input";
 

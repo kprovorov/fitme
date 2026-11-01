@@ -1,87 +1,92 @@
 import { zodResolver } from "@hookform/resolvers/zod";
 import type { TFunction } from "i18next";
 import { useCallback, useMemo } from "react";
-import {
-  Controller,
-  type ControllerFieldState,
-  type ControllerRenderProps,
-  useForm,
-} from "react-hook-form";
+import { type FieldErrors, useController, useForm } from "react-hook-form";
 import { useTranslation } from "react-i18next";
 import { z } from "zod";
+import type { AuthFormLayout } from "~/components/auth/auth-screen";
 import { Button } from "~/components/ui/button";
 import { Input } from "~/components/ui/input";
 import { VStack } from "~/components/ui/vstack";
 
-interface ForgotPasswordFormProps {
-  onSubmit: (values: ForgotPasswordFormValues) => Promise<void>;
-}
-
+const createFormSchema = (t: TFunction) =>
+  z.object({ email: z.email({ error: t("forgotPassword.invalidEmail") }) });
 export type ForgotPasswordFormValues = z.infer<
   ReturnType<typeof createFormSchema>
 >;
 
-/** The form's rules, their messages in the App language. */
-const createFormSchema = (t: TFunction) =>
-  z.object({
-    email: z.email({ error: t("forgotPassword.invalidEmail") }),
-  });
-
+interface ForgotPasswordFormProps extends AuthFormLayout {
+  errors?: FieldErrors<ForgotPasswordFormValues>;
+  onSubmit: (values: ForgotPasswordFormValues) => Promise<void>;
+}
 export default function ForgotPasswordForm({
+  children,
+  disabled,
+  onEdit,
   onSubmit,
+  errors,
 }: ForgotPasswordFormProps) {
   const { t } = useTranslation();
-  const formSchema = useMemo(() => createFormSchema(t), [t]);
-  const form = useForm<ForgotPasswordFormValues>({
-    defaultValues: {
-      email: "",
-    },
-    resolver: zodResolver(formSchema),
-  });
-
-  const { isSubmitting } = form.formState;
-
-  const renderEmailField = useCallback(
-    ({
-      field: { onChange, onBlur, value },
-      fieldState: { error },
-    }: {
-      field: ControllerRenderProps<ForgotPasswordFormValues, "email">;
-      fieldState: ControllerFieldState;
-    }) => (
-      <Input
-        autoCapitalize="none"
-        autoComplete="email"
-        autoCorrect={false}
-        editable={!isSubmitting}
-        error={error?.message}
-        keyboardType="email-address"
-        onBlur={onBlur}
-        onChangeText={onChange}
-        placeholder={t("forgotPassword.emailPlaceholder")}
-        spellCheck={false}
-        testID="forgot-password-email-input"
-        value={value}
-      />
-    ),
-    [isSubmitting, t]
+  const schema = useMemo(() => createFormSchema(t), [t]);
+  const { control, handleSubmit, formState } =
+    useForm<ForgotPasswordFormValues>({
+      defaultValues: { email: "" },
+      errors,
+      resolver: zodResolver(schema),
+    });
+  const busy = !!disabled || formState.isSubmitting;
+  const submit = useCallback(
+    () => handleSubmit(onSubmit)(),
+    [handleSubmit, onSubmit]
   );
-
-  return (
-    <VStack className="w-full items-stretch gap-4">
-      <Controller
-        control={form.control}
-        name="email"
-        render={renderEmailField}
-      />
+  const { field: email, fieldState: emailState } = useController({
+    control,
+    name: "email",
+  });
+  const changeEmail = useCallback(
+    (value: string) => {
+      email.onChange(value);
+      onEdit?.();
+    },
+    [email, onEdit]
+  );
+  return children({
+    action: (
       <Button
-        icon="arrow.right"
-        iconPosition="trailing"
-        isLoading={isSubmitting}
+        accessibilityLabel={t(
+          formState.isSubmitting
+            ? "forgotPassword.loading"
+            : "forgotPassword.submit"
+        )}
+        disabled={!!disabled}
+        isLoading={formState.isSubmitting}
         label={t("forgotPassword.submit")}
-        onPress={form.handleSubmit(onSubmit)}
+        onPress={submit}
+        size="lg"
         testID="forgot-password-button"
       />
-    </VStack>
-  );
+    ),
+    fields: (
+      <VStack className="items-stretch gap-sm">
+        <Input
+          accessibilityLabel={t("forgotPassword.emailPlaceholder")}
+          autoCapitalize="none"
+          autoComplete="email"
+          autoCorrect={false}
+          editable={!busy}
+          error={emailState.error?.message}
+          keyboardType="email-address"
+          onBlur={email.onBlur}
+          onChangeText={changeEmail}
+          onSubmitEditing={submit}
+          placeholder={t("forgotPassword.emailPlaceholder")}
+          returnKeyType="go"
+          spellCheck={false}
+          testID="forgot-password-email-input"
+          textContentType="emailAddress"
+          value={email.value}
+        />
+      </VStack>
+    ),
+  });
 }
