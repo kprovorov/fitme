@@ -613,10 +613,230 @@ describe("the command line", () => {
     assert.ok(result.lines[0].startsWith("Usage:"));
   });
 
+  test("refuses an unknown option", () => {
+    const result = run("check", "--bsae", "main");
+    assert.equal(result.status, 2);
+    assert.ok(result.lines[0].startsWith("Usage:"));
+  });
+
   test("fails on a directory that isn't there", () => {
     const missing = path.join(makeTree({}), "nope");
     const result = check(missing);
     assert.equal(result.status, 1);
     assert.deepEqual(result.lines, [`${missing}: no such directory`]);
+  });
+});
+
+// A temporary Git repo with the Screenshot sets under a subfolder (as in the
+// real repo) and a listing config, committed once: its HEAD is the base.
+// Git runs with no global or system config, so a developer's signing or hooks
+// never touch the fixture.
+const GIT_ENV = {
+  ...process.env,
+  GIT_AUTHOR_EMAIL: "test@example.com",
+  GIT_AUTHOR_NAME: "Test",
+  GIT_COMMITTER_EMAIL: "test@example.com",
+  GIT_COMMITTER_NAME: "Test",
+  GIT_CONFIG_GLOBAL: "/dev/null",
+  GIT_CONFIG_NOSYSTEM: "1",
+};
+
+const git = (cwd, ...args) => {
+  const child = spawnSync("git", args, {
+    cwd,
+    encoding: "utf8",
+    env: GIT_ENV,
+  });
+  if (child.status !== 0) {
+    throw new Error(`git ${args.join(" ")} failed: ${child.stderr}`);
+  }
+  return child.stdout;
+};
+
+const SCREENSHOTS = "marketing/app-store";
+
+const DELETED_UK =
+  /^iphone-6\.9 \/ uk: Screenshot set deleted since HEAD, but uk is still a Listing locale in \S*store\.config\.json; .*would stay online as they are\. Replace the images instead, or remove uk from the listing config deliberately$/;
+
+const configJson = (locales) =>
+  JSON.stringify({
+    apple: {
+      info: Object.fromEntries(locales.map((locale) => [locale, {}])),
+    },
+    configVersion: 0,
+  });
+
+const makeRepo = (tree, locales = ["en-US", "uk"]) => {
+  const repo = makeTree({
+    ...Object.fromEntries(
+      Object.entries(tree).map(([name, content]) => [
+        `${SCREENSHOTS}/${name}`,
+        content,
+      ])
+    ),
+    "store.config.json": configJson(locales),
+  });
+  git(repo, "init", "-q", "-b", "main");
+  git(repo, "add", "-A");
+  git(repo, "commit", "-q", "-m", "base");
+  return {
+    config: path.join(repo, "store.config.json"),
+    dir: path.join(repo, SCREENSHOTS),
+    repo,
+  };
+};
+
+const checkAgainst = ({ config, dir }, base = "HEAD") =>
+  run("check", dir, "--base", base, "--config", config);
+
+describe("check against a base ref", () => {
+  test("rejects a deleted Screenshot set whose Listing locale is still listed", () => {
+    const repo = makeRepo({ ...images(EN, 2), ...images(UK, 2) });
+    fs.rmSync(path.join(repo.dir, UK), { recursive: true });
+    const result = checkAgainst(repo);
+    assert.equal(result.status, 1, result.stdout);
+    assert.equal(result.lines.length, 1, result.lines.join("\n"));
+    assert.match(result.lines[0], DELETED_UK);
+  });
+
+  test("rejects a deleted Screenshot set even once committed", () => {
+    const repo = makeRepo({ ...images(EN, 1), ...images(UK, 1) });
+    fs.rmSync(path.join(repo.dir, UK), { recursive: true });
+    git(repo.repo, "commit", "-q", "-am", "delete uk");
+    const result = checkAgainst(repo, "HEAD~1");
+    assert.equal(result.status, 1, result.stdout);
+    assert.deepEqual(
+      unreported(result, [
+        "iphone-6.9 / uk: Screenshot set deleted since HEAD~1",
+      ]),
+      []
+    );
+  });
+
+  test("rejects a renamed Listing locale folder", () => {
+    const repo = makeRepo({ ...images(EN, 1), ...images(UK, 1) });
+    fs.renameSync(
+      path.join(repo.dir, UK),
+      path.join(repo.dir, "iphone-6.9/uk-UA")
+    );
+    const result = checkAgainst(repo);
+    assert.equal(result.status, 1, result.stdout);
+    assert.deepEqual(
+      unreported(result, [
+        "iphone-6.9 / uk: Screenshot set deleted since HEAD",
+      ]),
+      []
+    );
+  });
+
+  test("accepts a deleted Screenshot set whose Listing locale left the config", () => {
+    const repo = makeRepo({ ...images(EN, 1), ...images(UK, 1) });
+    fs.rmSync(path.join(repo.dir, UK), { recursive: true });
+    fs.writeFileSync(repo.config, configJson(["en-US"]));
+    const result = checkAgainst(repo);
+    assert.equal(result.status, 0, result.lines.join("\n"));
+    assert.deepEqual(result.lines, []);
+  });
+
+  test("accepts added and changed images", () => {
+    const repo = makeRepo({ ...images(EN, 2), ...images(UK, 1) });
+    fs.writeFileSync(
+      path.join(repo.dir, EN, "01.png"),
+      png({ colorType: 3, palette: Buffer.from([1, 2, 3]) })
+    );
+    fs.writeFileSync(path.join(repo.dir, EN, "03.png"), png());
+    fs.writeFileSync(path.join(repo.dir, UK, "02.png"), png());
+    const result = checkAgainst(repo);
+    assert.equal(result.status, 0, result.lines.join("\n"));
+    assert.ok(result.stdout.startsWith("2 Screenshot sets, 5 images"));
+  });
+
+  test("accepts a Screenshot set added since the base", () => {
+    const repo = makeRepo(images(EN, 1));
+    for (const [name, bytes] of Object.entries(images(UK, 1))) {
+      fs.mkdirSync(path.join(repo.dir, path.dirname(name)), {
+        recursive: true,
+      });
+      fs.writeFileSync(path.join(repo.dir, name), bytes);
+    }
+    const result = checkAgainst(repo);
+    assert.equal(result.status, 0, result.lines.join("\n"));
+  });
+
+  test("still runs every other rule", () => {
+    const repo = makeRepo({ ...images(EN, 1), ...images(UK, 1) });
+    fs.rmSync(path.join(repo.dir, UK), { recursive: true });
+    fs.writeFileSync(path.join(repo.dir, EN, "01.png"), png({ width: 1 }));
+    const result = checkAgainst(repo);
+    assert.equal(result.status, 1, result.stdout);
+    assert.deepEqual(
+      unreported(result, [
+        "iphone-6.9 / en-US / 01.png: 1×2868",
+        "iphone-6.9 / uk: Screenshot set deleted",
+      ]),
+      [],
+      result.lines.join("\n")
+    );
+  });
+
+  test("fails on a ref that isn't there, never passing silently", () => {
+    const repo = makeRepo({ ...images(EN, 1), ...images(UK, 1) });
+    fs.rmSync(path.join(repo.dir, UK), { recursive: true });
+    const result = checkAgainst(repo, "origin/main");
+    assert.equal(result.status, 1, result.stdout);
+    assert.equal(result.lines.length, 1, result.lines.join("\n"));
+    assert.ok(
+      result.lines[0].startsWith(
+        "--base origin/main: can't read the Screenshot sets at it ("
+      ),
+      result.lines[0]
+    );
+  });
+
+  test("fails outside a Git repo", () => {
+    const dir = makeTree(images(EN, 1));
+    const result = run(
+      "check",
+      dir,
+      "--base",
+      "HEAD",
+      "--config",
+      DEFAULT_CONFIG
+    );
+    assert.equal(result.status, 1, result.stdout);
+    assert.ok(
+      result.lines[0].startsWith("--base HEAD: can't read the Screenshot sets"),
+      result.lines.join("\n")
+    );
+  });
+
+  test("refuses a ref that would read as a Git option", () => {
+    const { config, dir } = makeRepo(images(EN, 1));
+    const result = run("check", dir, "--base=--output=x", "--config", config);
+    assert.equal(result.status, 1, result.stdout);
+    assert.deepEqual(result.lines, ["--base --output=x: not a Git ref"]);
+  });
+
+  test("leaves a listing config it can't read to the config rule", () => {
+    const repo = makeRepo({ ...images(EN, 1), ...images(UK, 1) });
+    fs.rmSync(path.join(repo.dir, UK), { recursive: true });
+    fs.writeFileSync(repo.config, "{");
+    const result = checkAgainst(repo);
+    assert.equal(result.status, 1, result.stdout);
+    assert.equal(result.lines.length, 1, result.lines.join("\n"));
+    assert.ok(
+      result.lines[0].startsWith(`${repo.config}: not valid JSON`),
+      result.lines[0]
+    );
+  });
+});
+
+describe("check without a base ref", () => {
+  test("doesn't run the deleted Screenshot set rule", () => {
+    const repo = makeRepo({ ...images(EN, 1), ...images(UK, 1) });
+    fs.rmSync(path.join(repo.dir, UK), { recursive: true });
+    const result = run("check", repo.dir, "--config", repo.config);
+    assert.equal(result.status, 0, result.lines.join("\n"));
+    assert.deepEqual(result.lines, []);
   });
 });

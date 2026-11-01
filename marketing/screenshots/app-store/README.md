@@ -7,9 +7,10 @@ definition of each set; nobody writes screenshot paths into
 
 The [App Store screenshots shipped from the repo](https://linear.app/provorov/project/app-store-screenshots-shipped-from-the-repo-b89e8a9bd811)
 project holds the full spec. So far the check below is built: each Screenshot
-set on its own, and the folders against the listing config. The pull request
-and release checks and staging the images for upload come in its later issues;
-until then the screenshots are still uploaded by hand in App Store Connect.
+set on its own, the folders against the listing config, and, against a base
+Git ref, deleted Screenshot sets. The pull request and release checks and
+staging the images for upload come in its later issues; until then the
+screenshots are still uploaded by hand in App Store Connect.
 
 The bare and framed captures in `../iphone/` and `../framed/` are source
 material, not approved App Store exports; see [their README](../README.md).
@@ -48,6 +49,10 @@ app-store/
 Overwrite the file, keeping its name. Add an image by giving it the next
 number; to remove or reorder, renumber the rest so the numbering stays
 `01.png` upward with no gaps.
+
+Never delete a Screenshot set's folder to take its screenshots down: the
+upload never clears a remote set, so they would stay online (see
+[Deleted Screenshot sets](#deleted-screenshot-sets)).
 
 Repo files keep their `NN.png` names even when their contents change: the
 release staging (a later issue) uploads each image under a name derived from
@@ -90,9 +95,33 @@ rule; any problem exits 1. The rules:
   chunk, which an RGB or palette PNG can carry without an alpha channel).
   Export the images flattened.
 
+### Deleted Screenshot sets
+
+```sh
+node scripts/app-store-screenshots.mjs check --base origin/main
+```
+
+Given a base Git ref (`--base`, a pull request's base), the check also fails
+for every Screenshot set folder that is in the base but gone now (deleted, or
+renamed: `uk` to `uk-UA` deletes `uk`) while its Listing locale is still a key
+in the listing config (`apps/mobile/store.config.json`, or the file given with
+`--config`), naming the device and Listing locale. The pinned EAS CLI skips a
+set with no entries instead of clearing it, so the screenshots already
+uploaded for it would stay online as they are. Instead:
+
+- to change what the set shows, replace its images (it must keep at least one);
+- to stop managing that Listing locale's screenshots, remove the Listing locale
+  from the listing config in the same pull request, deliberately: its listing
+  text then stops being pushed too.
+
+A base ref the check can't read (unknown, not fetched, or the directory isn't
+in a Git work tree) fails the check, never skips the rule. Without `--base`
+(local runs, release) the rule doesn't run.
+
 Its tests (`scripts/app-store-screenshots.test.mjs`, run by
 `pnpm test:scripts`) run the script on PNGs they generate, with a temporary
-listing config (one test reads the repo's own).
+listing config (one test reads the repo's own), and the deleted set rule in
+temporary Git repos.
 
 ## How EAS CLI 27.2.0 uploads screenshots
 
