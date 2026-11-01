@@ -1,4 +1,4 @@
-"""Wrap a 1320x2868 screenshot in an iPhone Pro-style frame (transparent PNG).
+"""Wrap a simulator screenshot in a drawn iPhone Pro-style frame.
 
 Usage: python3 marketing/screenshots/frame.py <in.png> <out.png>
 """
@@ -9,11 +9,11 @@ from PIL import Image, ImageDraw, ImageFilter
 
 SS = 4  # supersampling factor for anti-aliased edges
 
-SCREEN_W, SCREEN_H = 1320, 2868
-SCREEN_RADIUS = 186
-BEZEL = 34  # black glass border around the display
-BAND = 22  # metal band
-BUTTON_DEPTH = 9  # how far the buttons stick out
+SCREEN_W, SCREEN_H = 1206, 2622
+SCREEN_RADIUS = 170
+BEZEL = 31  # black glass border around the display
+BAND = 20  # metal band
+BUTTON_DEPTH = 8  # how far the buttons stick out
 MARGIN = BUTTON_DEPTH + 4
 
 BODY_W = SCREEN_W + 2 * (BEZEL + BAND)
@@ -21,16 +21,16 @@ BODY_H = SCREEN_H + 2 * (BEZEL + BAND)
 CANVAS_W = BODY_W + 2 * MARGIN
 CANVAS_H = BODY_H + 2 * MARGIN
 
-ISLAND_W, ISLAND_H, ISLAND_TOP = 372, 108, 34
+ISLAND_W, ISLAND_H, ISLAND_TOP = 340, 99, 31
 
-# Graphite band: light rim fading to dark inside, then a thin highlight.
+# Black band with restrained highlights for separation from the black glass.
 BAND_RINGS = [
-    (0, (58, 60, 64)),
-    (2, (120, 123, 128)),
-    (5, (88, 90, 95)),
-    (10, (64, 66, 70)),
-    (16, (44, 45, 48)),
-    (20, (98, 100, 104)),
+    (0, (24, 24, 26)),
+    (2, (57, 57, 60)),
+    (5, (37, 37, 40)),
+    (10, (23, 23, 25)),
+    (15, (14, 14, 16)),
+    (18, (39, 39, 42)),
 ]
 
 
@@ -60,14 +60,14 @@ def main(src, dst):
     body_radius = SCREEN_RADIUS + BEZEL + BAND
 
     # Side buttons (drawn first, the body covers their inner half).
-    left = [(560, 640), (770, 940), (990, 1160)]  # action, volume up, volume down
-    right = [(860, 1120), (2060, 2240)]  # side button, camera control
+    left = [(512, 585), (704, 859), (905, 1060)]  # action, volume up, volume down
+    right = [(786, 1023), (1882, 2047)]  # side button, camera control
     for y0, y1 in left:
         box = (bx0 - BUTTON_DEPTH, by0 + y0, bx0 + 10, by0 + y1)
-        fill(canvas, rrect_mask(size, box, 5), (72, 74, 78))
+        fill(canvas, rrect_mask(size, box, 5), (36, 36, 39))
     for y0, y1 in right:
         box = (bx1 - 10, by0 + y0, bx1 + BUTTON_DEPTH, by0 + y1)
-        fill(canvas, rrect_mask(size, box, 5), (72, 74, 78))
+        fill(canvas, rrect_mask(size, box, 5), (36, 36, 39))
 
     # Metal band as concentric rings.
     for inset, color in BAND_RINGS:
