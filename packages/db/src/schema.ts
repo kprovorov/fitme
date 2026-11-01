@@ -50,6 +50,33 @@ export const arnoldSessions = pgTable(
   ]
 );
 
+export const personalRecordInitializations = pgTable(
+  "personal_record_initializations",
+  {
+    completedAt: timestamp("completed_at", {
+      mode: "string",
+      withTimezone: true,
+    })
+      .defaultNow()
+      .notNull(),
+    userId: text("user_id").primaryKey().notNull(),
+  },
+  (_table) => [
+    pgPolicy("personal_record_initializations_backend_insert", {
+      as: "permissive",
+      for: "insert",
+      to: ["authenticated"],
+      withCheck: sql`((SESSION_USER = 'fitme'::name) AND (user_id = ( SELECT current_user_id() AS current_user_id)))`,
+    }),
+    pgPolicy("personal_record_initializations_select", {
+      as: "permissive",
+      for: "select",
+      to: ["authenticated"],
+      using: sql`(user_id = ( SELECT current_user_id() AS current_user_id))`,
+    }),
+  ]
+);
+
 export const personalRecords = pgTable(
   "personal_records",
   {

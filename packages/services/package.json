@@ -9,6 +9,7 @@
     "./delete-test-users": "./integration/delete-test-users.ts",
     "./delete-user-data": "./src/delete-user-data.ts",
     "./exercises": "./src/exercises.ts",
+    "./personal-records": "./src/personal-records.ts",
     "./plan-update": "./src/plan-update.ts",
     "./plans": "./src/plans.ts",
     "./profile": "./src/profile.ts",
