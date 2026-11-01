@@ -89,7 +89,15 @@ const seed = async (
 };
 
 const read = (userId: string, now: string, timeZone = "Europe/Kyiv") =>
-  asUser(userId, (tx) => getWeeklyGoals(tx, userId, timeZone, new Date(now)));
+  asUser(userId, (tx) =>
+    getWeeklyGoals(
+      tx,
+      userId,
+      timeZone,
+      new Date(now),
+      new Date("2026-01-01T00:00:00Z")
+    )
+  );
 
 interface PlanNode {
   "Actual Loops": number;
@@ -106,6 +114,40 @@ const planNodes = (node: PlanNode): PlanNode[] => [
 ];
 
 describe("Weekly streaks from retained goals and finished training", () => {
+  it("keeps every legitimate tracked week as the release boundary ages", async () => {
+    const starts = Array.from({ length: 11 }, (_, index) => ({
+      start: new Date(
+        Date.parse("2026-11-03T12:00:00Z") + index * 7 * 86_400_000
+      ).toISOString(),
+    }));
+    const user = await seed([["2026-10-31T12:00:00Z", 1]], starts);
+    expect(
+      (
+        await asUser(user, (tx) =>
+          getWeeklyGoals(tx, user, "UTC", new Date("2027-01-13T12:00:00Z"))
+        )
+      ).streak
+    ).toBe(11);
+  });
+  it("bounds a forged gap-free history by the server-owned tracking release", async () => {
+    const starts = Array.from({ length: 1000 }, (_, index) => ({
+      start: new Date(
+        Date.parse("2026-10-27T12:00:00Z") - index * 7 * 86_400_000
+      ).toISOString(),
+    }));
+    const user = await seed([["1800-01-01T00:00:00Z", 1]], starts);
+    // Use the real production boundary, not the historical fixture clock.
+    await asUser(user, async (tx) => {
+      await tx.execute(sql`set local statement_timeout = '1s'`);
+      const result = await getWeeklyGoals(
+        tx,
+        user,
+        "UTC",
+        new Date("2026-11-01T12:00:00Z")
+      );
+      expect(result.streak).toBe(1);
+    });
+  });
   it.each([
     ["GMT+1", "2026-11-01T23:00:00Z"],
     ["GMT+05:30", "2026-11-01T18:30:00Z"],
@@ -146,7 +188,8 @@ describe("Weekly streaks from retained goals and finished training", () => {
             tx,
             user,
             "UTC",
-            new Date("2026-10-28T12:00:00Z")
+            new Date("2026-10-28T12:00:00Z"),
+            new Date("1800-01-01T00:00:00Z")
           )
         ).streak
       ).toBe(0);
@@ -177,7 +220,7 @@ describe("Weekly streaks from retained goals and finished training", () => {
     async (recordedAt) => {
       const user = await seed(
         [["2026-10-01T10:00:00Z", 1]],
-        [{ start: "2026-10-20T10:00:00Z" }]
+        [{ start: "2026-10-27T10:00:00Z" }]
       );
       // The exposed Data API's authenticated INSERT permission permits this.
       await asUser(user, (tx) =>

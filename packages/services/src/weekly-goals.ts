@@ -10,6 +10,11 @@ import {
 import { asc, eq, type SQL, sql } from "drizzle-orm";
 import { jsonTimestamp } from "./json-timestamp";
 
+// The Weekly goal log was introduced by migration 20261031120000. No
+// service-recorded goal predates its release; caller-chosen log timestamps
+// must never move this trusted tracking boundary backwards.
+const TRACKING_RELEASED_AT = "2026-10-31T00:00:00Z";
+
 /**
  * One change of the User's Weekly goal (ADR 0015): the active Plan's training
  * frequency from `recorded_at` on, or `null` once no Plan is active.
@@ -104,14 +109,17 @@ export interface WeeklyGoals {
  * paging and eight chart columns. No saved counter: a fresh read derives the
  * same achievement from durable goals and logged training. Walks backwards
  * from this week, stopping in SQL at the first completed miss/unknown week.
- * Each week's indexed read stops once its goal is met. `now` is injectable
- * for Sunday/Monday verification; public callers never supply it.
+ * Each week's indexed read stops once its goal is met. The tracking release
+ * bounds the total walk without truncating any legitimate retained history.
+ * `now` and `trackingStartedAt` are clock seams for historical fixtures;
+ * public callers never supply either one.
  */
 export async function getWeeklyGoals(
   tx: Transaction,
   userId: string,
   timeZone: string,
-  now = new Date()
+  now = new Date(),
+  trackingStartedAt = new Date(TRACKING_RELEASED_AT)
 ): Promise<WeeklyGoals> {
   const changes = await listWeeklyGoalChanges(tx, userId);
   if ((changes.at(-1)?.target ?? null) === null) {
@@ -170,15 +178,18 @@ export async function getWeeklyGoals(
       where user_id = ${userId}
       order by recorded_at, id limit 1
     ), bounds as (
-      select date_trunc('week', ${now.toISOString()}::timestamptz at time zone ${zone}) as current_week
+      select date_trunc('week', ${now.toISOString()}::timestamptz at time zone ${zone}) as current_week,
+        date_trunc('week', ${trackingStartedAt.toISOString()}::timestamptz at time zone ${zone}) as tracking_week
     ), walk as (
       select current_week as start, ${weekHit(sql`bounds.current_week`)} as hit
       from bounds
+      where current_week >= tracking_week
       union all
       select walk.start - interval '1 week', ${weekHit(sql`(walk.start - interval '1 week')`)}
       from walk cross join bounds cross join first_goal
       where (walk.hit or walk.start = bounds.current_week)
         and walk.start - interval '1 week' >= date_trunc('week', first_goal.at)
+        and walk.start - interval '1 week' >= bounds.tracking_week
     )
     select count(*) filter (where hit)::int as streak from walk
   `);
