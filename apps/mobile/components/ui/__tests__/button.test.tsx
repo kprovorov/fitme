@@ -483,7 +483,7 @@ describe("Button", () => {
     }
   );
 
-  it("frames a native pill's hosted views at the token minus the native padding", async () => {
+  it("fills a native pill with hosted views while keeping its token height", async () => {
     await render(
       <Button variant="secondary">
         <HostedView testID="logo" />
@@ -491,7 +491,10 @@ describe("Button", () => {
     );
 
     expect(screen.getByTestId("logo")).toBeTruthy();
-    expect(modifierArgs("frame")).toEqual([[{ height: 33 }]]);
+    expect(modifierArgs("frame")).toEqual([
+      [{ maxWidth: 10_000 }],
+      [{ height: 33 }],
+    ]);
     expect(modifierArgs("padding")).toEqual([]);
   });
 
