@@ -9,9 +9,11 @@ The [App Store screenshots shipped from the repo](https://linear.app/provorov/pr
 project holds the full spec. So far the check below is built (each Screenshot
 set on its own, the folders against the listing config, and, against a base
 Git ref, deleted Screenshot sets) and `prepare`, which stages the sets for
-upload. The pull request and release checks and the release calling `prepare`
-come in its later issues; until then the screenshots are still uploaded by hand
-in App Store Connect.
+upload. The local release fallback (`scripts/release-ios-local.sh`) runs both
+and pushes the listing (see [Local release](#local-release)); the pull request
+and release CI checks and release CI calling `prepare` come in its later
+issues, and until then a CI release still leaves the screenshots to be
+uploaded by hand in App Store Connect.
 
 The bare and framed captures in `../iphone/` and `../framed/` are source
 material, not approved App Store exports; see [their README](../README.md).
@@ -130,8 +132,9 @@ temporary Git repos.
 node scripts/app-store-screenshots.mjs prepare <staging dir> [dir] [--config <file>]
 ```
 
-Release runs this before `eas metadata:push` (wired into release CI and the
-local release script in later issues). It runs the check above without a base
+Release runs this before `eas metadata:push` (the local release script does
+already, see [Local release](#local-release); release CI in a later issue). It
+runs the check above without a base
 ref (the deleted set rule is the pull request's; `prepare` takes no `--base`),
 and also refuses a Listing locale with a Screenshot set whose listing text in
 the config isn't an object, since there'd be nowhere to put its entry. On any
@@ -156,6 +159,29 @@ text only. It rewrites the config in place, so the check (and a second
 config back with `git checkout apps/mobile/store.config.json`, and never commit
 the entries. Same images, same names: a re-run from a fresh checkout stages
 exactly what the last one did.
+
+## Local release
+
+When the EAS build quota is used up, `scripts/release-ios-local.sh [vX.Y.Z]`
+releases from a Mac (see AGENTS.md, CI/CD), from a tag on `origin/main` only.
+On the checked-out tag it runs the tag's own copy of this script, as release CI
+does:
+
+- `check` before `pnpm install` and the local build, so bad screenshots fail
+  the release before a build is spent;
+- after `eas submit`, it stamps the tag's version into `app.json` and the
+  listing config's `apple.version`, runs `prepare` into a temporary directory
+  outside the repo, and runs `eas metadata:push --profile production
+  --non-interactive` through the pinned CLI (`npx eas-cli@27.2.0`, whatever
+  global `eas` the Mac has), pushing the listing text and the Screenshot sets
+  to the submitted version's draft.
+
+A tag without the listing config skips the push; a tag without this script
+pushes the listing text only. A failed push leaves the submitted build alone
+and prints how to retry just the push:
+`scripts/release-ios-local.sh --listing-only vX.Y.Z` (no build or submit).
+Either way the script deletes the staging directory and puts the stamped files
+and the branch back, so the checkout is clean afterwards.
 
 ## How EAS CLI 27.2.0 uploads screenshots
 

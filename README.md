@@ -111,9 +111,11 @@ or the downloaded `apps/mobile/store/` assets. Restore both locales and review t
 diff, since a pull overwrites the local file. To retry a failed metadata push,
 re-run only the failed `listing` job of that Build Mobile run ("Re-run failed
 jobs"): it pushes the tag's listing again and starts no EAS build or submission.
-Without CI, use the release tag's listing with `apple.version` set to the tag's
-version, then run the same `eas metadata:push` command from `apps/mobile` with
-the maintainer's EAS login. Confirm the version's draft, locale text and release
+Without CI, `scripts/release-ios-local.sh --listing-only <tag>` does the same
+from a Mac with the maintainer's EAS login. The local release fallback
+(`scripts/release-ios-local.sh <tag>`, for a month whose EAS build quota is
+used up) pushes the listing that way after its submit, Screenshot sets
+included (see `marketing/screenshots/app-store/README.md`). Confirm the version's draft, locale text and release
 notes afterward.
 
 ## Contributing and security
