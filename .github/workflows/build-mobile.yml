@@ -3,7 +3,9 @@ name: Build Mobile
 # Production EAS build for a release tag. The tag is the app version: it is
 # stamped into app.json here (never committed) and EAS uploads the working
 # tree, so the build carries it. Runs after Release, or by hand to rebuild.
-# Waits for auto-submit before syncing the listing to the same draft version.
+# The build job waits for auto-submit; the listing job then pushes the tag's
+# Store listing to the same draft version. It's its own job so a failed push
+# can be retried with "Re-run failed jobs" without a new EAS build.
 
 on:
   workflow_call:
@@ -64,26 +66,80 @@ jobs:
           token: ${{ secrets.EXPO_TOKEN }}
 
       - name: Stamp version from tag
-        id: stamp
         working-directory: apps/mobile
         env:
           TAG: ${{ inputs.tag }}
         run: |
           jq --arg version "${TAG#v}" '.expo.version = $version' app.json > app.json.tmp
           mv app.json.tmp app.json
-          # Older release tags predate metadata as code; keep their rebuilds working.
-          if [ -f store.config.json ]; then
-            jq --arg version "${TAG#v}" '.apple.version = $version' store.config.json > store.config.json.tmp
-            mv store.config.json.tmp store.config.json
-            echo "metadata=true" >> "$GITHUB_OUTPUT"
-          fi
           echo "app.json version: $(jq -r '.expo.version' app.json)"
 
       - name: Build and submit to App Store Connect
         working-directory: apps/mobile
         run: eas build --platform ios --profile production --auto-submit --non-interactive --wait
 
+  # Re-running this job alone retries the push: it runs no EAS build or
+  # submission. It only starts once the build job succeeded, so the draft
+  # version exists.
+  listing:
+    needs: build
+    runs-on: ubuntu-24.04
+    timeout-minutes: 30
+    environment: production
+    steps:
+      - uses: actions/checkout@v7
+        with:
+          ref: refs/tags/${{ inputs.tag }}
+          fetch-depth: 0
+
+      - name: Require a release from main
+        run: git merge-base --is-ancestor HEAD origin/main
+
+      # Older release tags predate metadata as code; keep their rebuilds working.
+      - name: Find the tag's listing config
+        id: listing
+        env:
+          TAG: ${{ inputs.tag }}
+        run: |
+          if [ -f apps/mobile/store.config.json ]; then
+            echo "present=true" >> "$GITHUB_OUTPUT"
+          else
+            echo "::notice::$TAG has no apps/mobile/store.config.json; skipping the listing push."
+          fi
+
+      - if: steps.listing.outputs.present == 'true'
+        uses: pnpm/action-setup@v6
+
+      - if: steps.listing.outputs.present == 'true'
+        uses: actions/setup-node@v7
+        with:
+          node-version: "24"
+          cache: "pnpm"
+
+      - name: Install dependencies
+        if: steps.listing.outputs.present == 'true'
+        run: pnpm install --frozen-lockfile
+
+      - if: steps.listing.outputs.present == 'true'
+        uses: expo/expo-github-action@v9
+        with:
+          # Metadata supports the stored EAS submit API key in this version.
+          eas-version: 27.2.0
+          token: ${{ secrets.EXPO_TOKEN }}
+
+      - name: Stamp version from tag
+        if: steps.listing.outputs.present == 'true'
+        working-directory: apps/mobile
+        env:
+          TAG: ${{ inputs.tag }}
+        run: |
+          jq --arg version "${TAG#v}" '.expo.version = $version' app.json > app.json.tmp
+          mv app.json.tmp app.json
+          jq --arg version "${TAG#v}" '.apple.version = $version' store.config.json > store.config.json.tmp
+          mv store.config.json.tmp store.config.json
+          echo "Listing version: $(jq -r '.apple.version' store.config.json)"
+
       - name: Push App Store listing to the release draft
-        if: steps.stamp.outputs.metadata == 'true'
+        if: steps.listing.outputs.present == 'true'
         working-directory: apps/mobile
         run: eas metadata:push --profile production --non-interactive
