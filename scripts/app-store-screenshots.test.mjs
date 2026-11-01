@@ -124,7 +124,25 @@ const run = (...args) => {
   };
 };
 
-const check = (dir) => run("check", dir);
+// A listing config shaped like apps/mobile/store.config.json: listing text
+// per Listing locale under apple.info, plus whatever `apple` adds.
+const listingConfig = (locales = ["en-US", "uk"], apple = {}) => {
+  const dir = makeTree({});
+  const file = path.join(dir, "store.config.json");
+  const info = Object.fromEntries(
+    locales.map((locale) => [locale, { title: `Fitme (${locale})` }])
+  );
+  fs.writeFileSync(
+    file,
+    JSON.stringify({ apple: { ...apple, info }, configVersion: 0 })
+  );
+  return file;
+};
+
+const DEFAULT_CONFIG = listingConfig();
+
+const check = (dir, config = DEFAULT_CONFIG) =>
+  run("check", dir, "--config", config);
 
 // The expected texts that start no line of stderr: [] when each is reported.
 const unreported = ({ lines }, expected) =>
@@ -409,7 +427,8 @@ describe("check rejects (images)", () => {
           png({ colorType: 3, palette: Buffer.alloc(4) }),
           "iphone-6.9/de-DE"
         ),
-      })
+      }),
+      listingConfig(["en-US", "uk", "de-DE"])
     );
     assert.equal(result.status, 1, result.stdout);
     assert.deepEqual(
@@ -475,6 +494,112 @@ describe("check rejects (images)", () => {
       result.lines.join("\n")
     );
     assert.equal(result.lines.length, 4, result.lines.join("\n"));
+  });
+});
+
+describe("check against the listing config", () => {
+  test("accepts a Listing locale in the config without a folder", () => {
+    const result = check(
+      makeTree(images(EN, 1)),
+      listingConfig(["en-US", "uk", "de-DE"])
+    );
+    assert.equal(result.status, 0, result.lines.join("\n"));
+    assert.deepEqual(result.lines, []);
+  });
+
+  test("accepts the repo's own listing config with its current locales", () => {
+    const result = run(
+      "check",
+      makeTree({ ...images(EN, 1), ...images(UK, 1) })
+    );
+    assert.equal(result.status, 0, result.lines.join("\n"));
+    assert.deepEqual(result.lines, []);
+  });
+
+  test("rejects a Listing locale folder the config doesn't list", () => {
+    const config = listingConfig(["en-US", "uk"]);
+    const result = check(
+      makeTree({
+        ...images(EN, 1),
+        ...images("iphone-6.9/uk-UA", 1),
+        ...images("iphone-6.9/de-DE", 1),
+      }),
+      config
+    );
+    assert.equal(result.status, 1, result.stdout);
+    assert.deepEqual(
+      unreported(result, [
+        `iphone-6.9 / de-DE: Listing locale not in the listing config (${config} lists en-US, uk)`,
+        `iphone-6.9 / uk-UA: Listing locale not in the listing config (${config} lists en-US, uk)`,
+      ]),
+      [],
+      result.lines.join("\n")
+    );
+    assert.equal(result.lines.length, 2, result.lines.join("\n"));
+  });
+
+  test("rejects a device folder without an en-US Screenshot set", () => {
+    const result = check(makeTree(images(UK, 2)));
+    assert.equal(result.status, 1, result.stdout);
+    assert.deepEqual(result.lines, [
+      "iphone-6.9 / en-US: missing (every device folder needs an en-US Screenshot set)",
+    ]);
+  });
+
+  test("rejects a screenshots entry anywhere in the config", () => {
+    const dir = makeTree({});
+    const config = path.join(dir, "store.config.json");
+    fs.writeFileSync(
+      config,
+      JSON.stringify({
+        apple: {
+          info: {
+            "en-US": {
+              screenshots: { APP_IPHONE_67: ["shot.png"] },
+              title: "Fitme",
+            },
+            uk: { title: "Fitme" },
+          },
+          screenshots: {},
+        },
+        configVersion: 0,
+      })
+    );
+    const result = check(makeTree(images(EN, 1)), config);
+    assert.equal(result.status, 1, result.stdout);
+    assert.deepEqual(
+      unreported(result, [
+        `${config}: apple.info.en-US.screenshots: a hand-written screenshots entry`,
+        `${config}: apple.screenshots: a hand-written screenshots entry`,
+      ]),
+      [],
+      result.lines.join("\n")
+    );
+    assert.equal(result.lines.length, 2, result.lines.join("\n"));
+  });
+
+  test("rejects a listing config that isn't there or isn't JSON", () => {
+    const dir = makeTree({ "broken.json": "{ not json" });
+    const missing = path.join(dir, "nope.json");
+    const broken = path.join(dir, "broken.json");
+    const tree = makeTree(images(EN, 1));
+    assert.deepEqual(check(tree, missing).lines, [
+      `${missing}: no such listing config`,
+    ]);
+    const result = check(tree, broken);
+    assert.equal(result.status, 1);
+    assert.equal(result.lines.length, 1, result.lines.join("\n"));
+    assert.ok(result.lines[0].startsWith(`${broken}: not valid JSON`));
+  });
+
+  test("rejects a listing config without apple.info", () => {
+    const dir = makeTree({ "store.config.json": '{"configVersion":0}' });
+    const config = path.join(dir, "store.config.json");
+    const result = check(makeTree(images(EN, 1)), config);
+    assert.equal(result.status, 1);
+    assert.deepEqual(result.lines, [
+      `${config}: no apple.info object (the listing text per Listing locale)`,
+    ]);
   });
 });
 

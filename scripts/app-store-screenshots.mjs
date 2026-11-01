@@ -1,21 +1,35 @@
 // The App Store screenshots: checks the Screenshot sets committed under
 // marketing/screenshots/app-store/, laid out as <device>/<Listing locale>/NN.png
-// (see that directory's README). No network, no secrets; nothing is ever
-// resized or repaired.
+// (see that directory's README), and that they agree with the Store listing
+// config. No network, no secrets; nothing is ever resized or repaired.
 //
-// Usage: node scripts/app-store-screenshots.mjs check [dir]
-//        (default marketing/screenshots/app-store)
+// Usage: node scripts/app-store-screenshots.mjs check [dir] [--config file]
+//        (default marketing/screenshots/app-store and
+//        apps/mobile/store.config.json)
 import { constants as bufferConstants } from "node:buffer";
 import fs from "node:fs";
 import path from "node:path";
 import { fileURLToPath } from "node:url";
+import { parseArgs } from "node:util";
 import zlib from "node:zlib";
 
 const DEFAULT_DIR = fileURLToPath(
   new URL("../marketing/screenshots/app-store", import.meta.url)
 );
 
-const USAGE = "Usage: node scripts/app-store-screenshots.mjs check [dir]";
+// Shown as the repo-relative path in messages, read through the absolute one.
+const DEFAULT_CONFIG = "apps/mobile/store.config.json";
+const DEFAULT_CONFIG_FILE = fileURLToPath(
+  new URL(`../${DEFAULT_CONFIG}`, import.meta.url)
+);
+
+const USAGE =
+  "Usage: node scripts/app-store-screenshots.mjs check [dir] [--config file]";
+
+// The primary Listing locale: every device folder needs its Screenshot set.
+// Apple shows it for a Listing locale without screenshots of its own, which
+// is why every other one is optional.
+const PRIMARY_LOCALE = "en-US";
 
 // Device folder → Apple display type and the one size its images have, in
 // portrait. A new device size is a new entry, once the pinned EAS CLI's Apple
@@ -333,10 +347,98 @@ const checkSet = ({ device, dir, label, problems }) => {
   return numbers.length;
 };
 
-const checkScreenshots = (dir) => {
+// Every key named `screenshots`, as a dotted path: the folders are the only
+// definition of the Screenshot sets, and release writes these entries.
+const screenshotEntries = (value, at = []) => {
+  if (value === null || typeof value !== "object") {
+    return [];
+  }
+  return Object.entries(value).flatMap(([key, child]) => [
+    ...(key === "screenshots" ? [[...at, key].join(".")] : []),
+    ...screenshotEntries(child, [...at, key]),
+  ]);
+};
+
+// The Store listing config: answers its Listing locales (the keys of
+// apple.info, App Store Connect's own codes), or null when it can't say.
+const readListingConfig = ({ file, label, problems }) => {
+  let text;
+  try {
+    text = fs.readFileSync(file, "utf8");
+  } catch (error) {
+    if (error.code !== "ENOENT") {
+      throw error;
+    }
+    problems.push(`${label}: no such listing config`);
+    return null;
+  }
+  let config;
+  try {
+    config = JSON.parse(text);
+  } catch (error) {
+    problems.push(`${label}: not valid JSON (${error.message})`);
+    return null;
+  }
+  for (const entry of screenshotEntries(config)) {
+    problems.push(
+      `${label}: ${entry}: a hand-written screenshots entry (the Screenshot set folders are the only definition; release writes these entries)`
+    );
+  }
+  const info = config?.apple?.info;
+  if (info === null || typeof info !== "object" || Array.isArray(info)) {
+    problems.push(
+      `${label}: no apple.info object (the listing text per Listing locale)`
+    );
+    return null;
+  }
+  return new Set(Object.keys(info));
+};
+
+// One device folder: its Listing locale folders, each one checked against the
+// listing config's Listing locales (null when the config can't say) and as a
+// Screenshot set, plus the required en-US one. Answers its set and image counts.
+const checkDevice = ({ dir, listing, name, problems }) => {
+  let sets = 0;
+  let imageCount = 0;
+  let hasPrimary = false;
+  for (const locale of entries(dir)) {
+    const label = `${name} / ${locale.name}`;
+    if (!locale.isDirectory()) {
+      problems.push(
+        `${label}: not a Listing locale folder (a device folder holds one folder per Listing locale)`
+      );
+      continue;
+    }
+    hasPrimary ||= locale.name === PRIMARY_LOCALE;
+    if (listing.locales && !listing.locales.has(locale.name)) {
+      problems.push(
+        `${label}: Listing locale not in the listing config (${listing.label} lists ${[...listing.locales].join(", ") || "none"})`
+      );
+    }
+    sets += 1;
+    imageCount += checkSet({
+      device: DEVICES[name],
+      dir: path.join(dir, locale.name),
+      label,
+      problems,
+    });
+  }
+  if (!hasPrimary) {
+    problems.push(
+      `${name} / ${PRIMARY_LOCALE}: missing (every device folder needs an ${PRIMARY_LOCALE} Screenshot set)`
+    );
+  }
+  return { imageCount, sets };
+};
+
+const checkScreenshots = ({ config, dir }) => {
   const problems = [];
   let sets = 0;
   let imageCount = 0;
+  const listing = {
+    label: config.label,
+    locales: readListingConfig({ ...config, problems }),
+  };
   if (!fs.statSync(dir, { throwIfNoEntry: false })?.isDirectory()) {
     problems.push(`${dir}: no such directory`);
     return { imageCount, problems, sets };
@@ -352,33 +454,42 @@ const checkScreenshots = (dir) => {
       problems.push(`${device.name}: unknown device folder (${KNOWN_DEVICES})`);
       continue;
     }
-    const deviceDir = path.join(dir, device.name);
-    for (const locale of entries(deviceDir)) {
-      if (!locale.isDirectory()) {
-        problems.push(
-          `${device.name} / ${locale.name}: not a Listing locale folder (a device folder holds one folder per Listing locale)`
-        );
-        continue;
-      }
-      sets += 1;
-      imageCount += checkSet({
-        device: DEVICES[device.name],
-        dir: path.join(deviceDir, locale.name),
-        label: `${device.name} / ${locale.name}`,
-        problems,
-      });
-    }
+    const counts = checkDevice({
+      dir: path.join(dir, device.name),
+      listing,
+      name: device.name,
+      problems,
+    });
+    sets += counts.sets;
+    imageCount += counts.imageCount;
   }
   return { imageCount, problems, sets };
 };
 
+const parse = (args) => {
+  try {
+    return parseArgs({
+      allowPositionals: true,
+      args,
+      options: { config: { type: "string" } },
+    });
+  } catch {
+    return null;
+  }
+};
+
 const main = (args) => {
-  const [command, dir = DEFAULT_DIR, ...rest] = args;
+  const parsed = parse(args);
+  const [command, dir = DEFAULT_DIR, ...rest] = parsed?.positionals ?? [];
   if (command !== "check" || rest.length > 0) {
     console.error(USAGE);
     return 2;
   }
-  const { imageCount, problems, sets } = checkScreenshots(dir);
+  const configArg = parsed.values.config;
+  const config = configArg
+    ? { file: configArg, label: configArg }
+    : { file: DEFAULT_CONFIG_FILE, label: DEFAULT_CONFIG };
+  const { imageCount, problems, sets } = checkScreenshots({ config, dir });
   for (const problem of problems) {
     console.error(problem);
   }

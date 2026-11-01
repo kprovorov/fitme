@@ -6,11 +6,10 @@ definition of each set; nobody writes screenshot paths into
 `apps/mobile/store.config.json` by hand.
 
 The [App Store screenshots shipped from the repo](https://linear.app/provorov/project/app-store-screenshots-shipped-from-the-repo-b89e8a9bd811)
-project holds the full spec. So far the check below is built, for each
-Screenshot set on its own. Checking the folders against the listing config, the
-pull request and release checks, and staging the images for upload come in its
-later issues; until then the screenshots are still uploaded by hand in App
-Store Connect.
+project holds the full spec. So far the check below is built: each Screenshot
+set on its own, and the folders against the listing config. The pull request
+and release checks and staging the images for upload come in its later issues;
+until then the screenshots are still uploaded by hand in App Store Connect.
 
 The bare and framed captures in `../iphone/` and `../framed/` are source
 material, not approved App Store exports; see [their README](../README.md).
@@ -37,7 +36,9 @@ app-store/
   its display type.
 - **Listing locale folders** use App Store Connect's codes, the same keys as
   the listing config (`en-US`, `uk`, never `uk-UA`). There is no mapping
-  between folder names and Apple's names.
+  between folder names and Apple's names. Every device folder needs an `en-US`
+  Screenshot set; every other Listing locale's folder is optional, since Apple
+  shows the primary language's screenshots for a localization without its own.
 - **Images** are named `01.png`, `02.png`, … with no gaps: the number is the
   display order. A Screenshot set holds one to ten images, and Listing locales
   may hold different numbers.
@@ -60,13 +61,23 @@ node scripts/app-store-screenshots.mjs check
 ```
 
 It checks every Screenshot set under this directory (or the directory given
-after `check`), with no network and no secrets, and never resizes or repairs
-anything. Every problem is reported, not just the first, each naming the
+after `check`) against the Store listing config `apps/mobile/store.config.json`
+(or the file given with `--config`), with no network and no secrets, and never
+resizes or repairs anything. Every problem is reported, not just the first, each naming the
 device, Listing locale, file and the broken rule; any problem exits 1. The
 rules:
 
 - Every folder here is a device folder in the device table (this README aside),
   and every entry in a device folder is a Listing locale folder.
+- Every Listing locale folder is a Listing locale of the listing config (a key
+  of its `apple.info`). A folder for a locale the config doesn't list fails,
+  `uk-UA` included; a locale the config lists without a folder is fine.
+- Every device folder has an `en-US` Screenshot set.
+- The listing config carries no `screenshots` entry anywhere: the folders are
+  the only definition of the Screenshot sets, and release writes those entries
+  into its own copy. A hand-written one fails, named by its key
+  (`apple.info.en-US.screenshots`). A listing config that's missing, isn't
+  JSON or has no `apple.info` object fails too.
 - A Screenshot set holds only images named `01.png` upward with no gaps
   (`1.png`, `03a.png`, `03.PNG`, a text file or a subfolder fail), one to ten
   of them; an empty set fails. Finder's `.DS_Store` files are ignored (Git
@@ -80,7 +91,8 @@ rules:
   Export the images flattened.
 
 Its tests (`scripts/app-store-screenshots.test.mjs`, run by
-`pnpm test:scripts`) run the script on PNGs they generate.
+`pnpm test:scripts`) run the script on PNGs they generate, with a temporary
+listing config (one test reads the repo's own).
 
 ## How EAS CLI 27.2.0 uploads screenshots
 
