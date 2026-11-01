@@ -32,16 +32,24 @@ const chunk = (type, data = Buffer.alloc(0)) => {
   return Buffer.concat([length, body, crc]);
 };
 
-const CHANNELS = { 0: 1, 2: 3, 4: 2, 6: 4 };
+const CHANNELS = { 0: 1, 2: 3, 3: 1, 4: 2, 6: 4 };
 const pngCache = new Map();
 
 const png = ({
   width = WIDTH,
   height = HEIGHT,
   colorType = 2,
+  // A palette image's PLTE data: a black entry by default.
+  palette = Buffer.alloc(3),
   transparency = false,
 } = {}) => {
-  const key = JSON.stringify({ colorType, height, transparency, width });
+  const key = JSON.stringify({
+    colorType,
+    height,
+    palette: palette.toString("hex"),
+    transparency,
+    width,
+  });
   const cached = pngCache.get(key);
   if (cached) {
     return cached;
@@ -68,6 +76,9 @@ const png = ({
     Buffer.from([0x89, 0x50, 0x4e, 0x47, 0x0d, 0x0a, 0x1a, 0x0a]),
     chunk("IHDR", ihdr),
   ];
+  if (colorType === 3) {
+    parts.push(chunk("PLTE", palette));
+  }
   if (transparency) {
     // RGB colour key: black is transparent.
     parts.push(chunk("tRNS", Buffer.alloc(6)));
@@ -135,6 +146,12 @@ describe("check accepts (numbering)", () => {
     const result = check(makeTree(images(EN, 10)));
     assert.equal(result.status, 0, result.lines.join("\n"));
     assert.ok(result.stdout.startsWith("1 Screenshot set, 10 images"));
+  });
+
+  test("a palette image", () => {
+    const result = check(makeTree(images(EN, 1, png({ colorType: 3 }))));
+    assert.equal(result.status, 0, result.lines.join("\n"));
+    assert.deepEqual(result.lines, []);
   });
 
   test("Listing locales with different counts", () => {
@@ -381,6 +398,30 @@ describe("check rejects (images)", () => {
       [],
       result.lines.join("\n")
     );
+  });
+
+  test("a broken palette", () => {
+    const result = check(
+      makeTree({
+        ...withImage(png({ colorType: 3, palette: Buffer.alloc(0) })),
+        ...withImage(png({ colorType: 3, palette: Buffer.alloc(257 * 3) }), UK),
+        ...withImage(
+          png({ colorType: 3, palette: Buffer.alloc(4) }),
+          "iphone-6.9/de-DE"
+        ),
+      })
+    );
+    assert.equal(result.status, 1, result.stdout);
+    assert.deepEqual(
+      unreported(result, [
+        "iphone-6.9 / en-US / 02.png: doesn't decode as a PNG",
+        "iphone-6.9 / uk / 02.png: doesn't decode as a PNG",
+        "iphone-6.9 / de-DE / 02.png: doesn't decode as a PNG",
+      ]),
+      [],
+      result.lines.join("\n")
+    );
+    assert.equal(result.lines.length, 3, result.lines.join("\n"));
   });
 
   test("an alpha channel, even when fully opaque", () => {

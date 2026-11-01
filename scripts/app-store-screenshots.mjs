@@ -202,6 +202,36 @@ const decodeImageData = (chunks, header) => {
   }
 };
 
+// A palette image needs exactly one PLTE chunk before its image data, of 1 to
+// 2^bitDepth RGB entries; greyscale images may not carry one.
+const checkPalette = (chunks, { bitDepth, colorType }) => {
+  const palettes = chunks.filter(({ type }) => type === "PLTE");
+  if (palettes.length === 0) {
+    if (colorType === 3) {
+      throw new PngError("a palette image without a PLTE chunk");
+    }
+    return;
+  }
+  if (colorType === 0 || colorType === 4) {
+    throw new PngError("a greyscale image with a PLTE chunk");
+  }
+  if (palettes.length > 1) {
+    throw new PngError("more than one PLTE chunk");
+  }
+  const [palette] = palettes;
+  const firstImageData = chunks.findIndex(({ type }) => type === "IDAT");
+  if (firstImageData !== -1 && chunks.indexOf(palette) > firstImageData) {
+    throw new PngError("its PLTE chunk comes after its image data");
+  }
+  const entries = palette.data.length / 3;
+  const maxEntries = Math.min(256, 2 ** bitDepth);
+  if (!Number.isInteger(entries) || entries < 1 || entries > maxEntries) {
+    throw new PngError(
+      `its PLTE chunk isn't 1 to ${maxEntries} RGB entries (${palette.data.length} bytes)`
+    );
+  }
+};
+
 // Decodes a PNG fully; answers its size and whether it has an alpha channel
 // or a transparency chunk, or throws a PngError saying why it doesn't decode.
 const readPng = (bytes) => {
@@ -210,9 +240,7 @@ const readPng = (bytes) => {
   }
   const chunks = readChunks(bytes);
   const header = readHeader(chunks);
-  if (header.colorType === 3 && !chunks.some((c) => c.type === "PLTE")) {
-    throw new PngError("a palette image without a PLTE chunk");
-  }
+  checkPalette(chunks, header);
   decodeImageData(chunks, header);
   return {
     alpha: ALPHA_COLOR_TYPES.has(header.colorType),
