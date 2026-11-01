@@ -1,91 +1,92 @@
 # App Store screenshots
 
-Design agreed during the screenshot release discussion. The image set, validation
-command and release integration have not been implemented yet.
+The approved App Store screenshots: one Screenshot set per device size and
+Listing locale, committed as plain numbered PNGs. The folders are the only
+definition of each set; nobody writes screenshot paths into
+`apps/mobile/store.config.json` by hand.
 
-The [App Store screenshots as code project](https://linear.app/provorov/project/app-store-screenshots-as-code-a432c611ca4b)
-holds the full spec, approved testing approach and implementation tickets.
+The [App Store screenshots shipped from the repo](https://linear.app/provorov/project/app-store-screenshots-shipped-from-the-repo-b89e8a9bd811)
+project holds the full spec. So far the check below is built, for each
+Screenshot set on its own. Checking the folders against the listing config, the
+pull request and release checks, and staging the images for upload come in its
+later issues; until then the screenshots are still uploaded by hand in App
+Store Connect.
 
-## Scope
+The bare and framed captures in `../iphone/` and `../framed/` are source
+material, not approved App Store exports; see [their README](../README.md).
 
-The agreed implementation covers the App Store directory and naming contract,
-asset validation on pull requests and before release builds, and screenshot
-upload and verification through the existing EAS Metadata release pipeline.
-Capture, localization, framing, design approval and reorganizing other marketing
-screenshots belong to a separate agent task. The broader marketing directory
-should use the [same locale grouping](../README.md#locale-grouping) when that
-work happens.
-
-## Files
-
-Approved App Store images belong in `marketing/screenshots/app-store/`, alongside
-the bare captures in `../iphone/` and framed images in `../framed/`:
+## Layout
 
 ```text
 app-store/
-  en-US/
-    01_20261101T143000Z.png
-    02_20261101T143000Z.png
-    ...
-  uk-UA/
-    01_20261101T143000Z.png
-    02_20261101T143000Z.png
-    ...
+  iphone-6.9/        device folder
+    en-US/           Listing locale, App Store Connect's own code
+      01.png
+      02.png
+      ...
+    uk/
+      01.png
+      ...
 ```
 
-Use `NN_YYYYMMDDTHHMMSSZ.png`: a two-digit position (`01` through `10`) and the
-image revision's UTC timestamp, including seconds. The example timestamps above
-are illustrative. Both languages use the same positions, with 1–10 images per
-language; their revision timestamps can differ.
-
-Folder names use full locale tags (`en-US`, `uk-UA`). In `store.config.json`,
-Apple's locale keys remain `en-US` and `uk`: the `uk` entry lists paths into
-`marketing/screenshots/app-store/uk-UA/`. Validate that mapping explicitly.
-
-Commit the approved PNGs directly to Git so a release tag contains its complete
-screenshot set. Capture and design happen before release; release CI uploads
-those approved files.
-
-The repository defines the images and their order for each managed App Store
-set, including removal of images no longer listed. Release CI targets the tagged
-version's draft and does not submit it for App Review.
-
-## Validation
-
-The planned check runs on pull requests and before a release build or any
-screenshot upload. It must reject:
-
-- Missing or unreadable files, including PNGs that cannot be fully decoded.
-- Files that are not portrait **1320×2868 PNGs**, or include an alpha channel
-  or transparency. This is the chosen iPhone export size, within
-  [Apple's accepted dimensions](https://developer.apple.com/help/app-store-connect/reference/app-information/screenshot-specifications/).
-- Filenames outside `NN_YYYYMMDDTHHMMSSZ.png`, invalid UTC timestamps, positions
-  outside `01`–`10`, gaps, duplicate positions or extra images. Positions start
-  at `01` and stay consecutive; only one revision per position is present.
-- Different positions between the `en-US` and `uk-UA` folders, missing languages,
-  incorrect metadata locale mapping (`en-US` → `en-US/`, `uk` → `uk-UA/`), or
-  unsupported display types (only `APP_IPHONE_67` is planned).
-- Empty sets or more than 10 images per language.
-- Config paths or order that disagree with the approved files. Order by the
-  numeric position prefix, independent of timestamps.
-- In pull requests, changed image bytes at an existing filename relative to the
-  PR base. Replacing an image requires a new revision timestamp and filename.
-
-Invalid assets, upload failures or failed upload verification must fail the
-workflow. A successful CLI exit alone is insufficient evidence of a complete,
-correctly ordered upload.
+- **Device folders** map to an Apple display type and one exact size, through
+  the device table in [`scripts/app-store-screenshots.mjs`](../../../scripts/app-store-screenshots.mjs).
+  It has one entry: `iphone-6.9` → `APP_IPHONE_67`, 1320×2868 portrait. Any
+  other folder name fails. A new device size (another iPhone, an iPad) is a new
+  table entry and a new folder, once the pinned EAS CLI's Apple utilities know
+  its display type.
+- **Listing locale folders** use App Store Connect's codes, the same keys as
+  the listing config (`en-US`, `uk`, never `uk-UA`). There is no mapping
+  between folder names and Apple's names.
+- **Images** are named `01.png`, `02.png`, … with no gaps: the number is the
+  display order. A Screenshot set holds one to ten images, and Listing locales
+  may hold different numbers.
 
 ## Replacing an image
 
-When an image changes, keep its position prefix, use a fresh UTC timestamp,
-remove the old revision and update its config path. Unchanged images retain
-their names across releases; the timestamp belongs to the image revision, not
-the release or upload run.
+Overwrite the file, keeping its name. Add an image by giving it the next
+number; to remove or reorder, renumber the rest so the numbering stays
+`01.png` upward with no gaps.
 
-EAS CLI 27.2.0 retains completed remote images by basename and byte size, without
-comparing their contents. A new revision filename ensures that a replacement is
-uploaded even when its byte size happens to match the old image. The repository
-filenames are also the upload filenames.
+Repo files keep their `NN.png` names even when their contents change: the
+release staging (a later issue) uploads each image under a name derived from
+its contents, so a replaced image always replaces the remote one, even at the
+same byte size, and an unchanged one is left alone.
 
-See the [EAS investigation](../README.md#app-store-upload)
-for the pinned CLI behavior and authentication details.
+## The check
+
+```sh
+node scripts/app-store-screenshots.mjs check
+```
+
+It checks every Screenshot set under this directory (or the directory given
+after `check`), with no network and no secrets, and never resizes or repairs
+anything. Every problem is reported, not just the first, each naming the
+device, Listing locale, file and the broken rule; any problem exits 1. The
+rules:
+
+- Every folder here is a device folder in the device table (this README aside),
+  and every entry in a device folder is a Listing locale folder.
+- A Screenshot set holds only images named `01.png` upward with no gaps
+  (`1.png`, `03a.png`, `03.PNG`, a text file or a subfolder fail), one to ten
+  of them; an empty set fails. Finder's `.DS_Store` files are ignored (Git
+  ignores them too).
+- Each image fully decodes as a PNG: the right signature, every chunk's CRC,
+  and all of its image data, so a renamed JPEG or a truncated file fails.
+- Each image is exactly its device's size in portrait (1320×2868 for
+  `iphone-6.9`); a landscape image is named as such.
+- No alpha channel, even a fully opaque one, and no transparency (a `tRNS`
+  chunk, which an RGB or palette PNG can carry without an alpha channel).
+  Export the images flattened.
+
+Its tests (`scripts/app-store-screenshots.test.mjs`, run by
+`pnpm test:scripts`) run the script on PNGs they generate.
+
+## How EAS CLI 27.2.0 uploads screenshots
+
+The design above is built around the pinned CLI's screenshot behaviour, found
+in FIT-500: it keeps a remote image whose basename and byte size match, deletes
+the rest of a configured set, uploads, reorders, skips a missing file with a
+warning after deleting, and never clears a set from an empty or absent entry.
+The details, sources and authentication are in the marketing screenshots
+README's [App Store upload](../README.md#app-store-upload) section.

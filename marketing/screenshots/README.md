@@ -40,18 +40,16 @@ The new 1206×2622 captures above are source material. They are not the
 1320×2868 large-display exports discussed below; prepare and validate an
 appropriate App Store set separately before configuring an upload.
 
-Approved App Store exports will live separately in
-[`marketing/screenshots/app-store/`](app-store/README.md),
-under `en-US/` and `uk-UA/`, named `01_20261101T143000Z.png`,
-`02_20261101T143000Z.png` and so on in display order. Each image replacement gets
-a fresh UTC timestamp; unchanged images keep their filenames across releases.
-That directory's README records the release and validation design; the assets
-and checks are not implemented yet. The captures and frames above are source
-material, not the approved App Store set.
+Approved App Store exports live separately in
+[`marketing/screenshots/app-store/`](app-store/README.md), one Screenshot set
+per device and Listing locale (`iphone-6.9/en-US/01.png`, …), checked by
+`node scripts/app-store-screenshots.mjs check`. That directory's README holds
+the layout, naming and check rules; the findings below on how the pinned EAS
+CLI uploads screenshots are what that design is built around.
 
 **Yes: EAS CLI 27.2.0 supports screenshot uploads from `apps/mobile/store.config.json`.** Verified 2026-11-01 for FIT-500 against the tagged source. Support and non-interactive ASC API-key auth arrived in [18.5.0](https://github.com/expo/eas-cli/blob/v27.2.0/CHANGELOG.md#1850---2026-04-02); [18.6.0](https://github.com/expo/eas-cli/blob/v27.2.0/CHANGELOG.md#1860---2026-04-10) fixed asset uploads stuck in `AWAITING_UPLOAD`. Use 18.6.0 or later for that fix; this investigation verifies 27.2.0 specifically. Release CI pins **27.2.0** in [`build-mobile.yml`](../../.github/workflows/build-mobile.yml); `eas.json`'s `>= 27.2.0` is only a minimum. The [web schema reference](https://docs.expo.dev/eas/metadata/schema/) currently omits screenshots; the [27.2.0 schema](https://github.com/expo/eas-cli/blob/v27.2.0/packages/eas-cli/schema/metadata-0.json#L319-L328) includes them, and [`createAppleTasks`](https://github.com/expo/eas-cli/blob/v27.2.0/packages/eas-cli/src/metadata/apple/tasks/index.ts) registers `ScreenshotsTask` for the [upload pipeline](https://github.com/expo/eas-cli/blob/v27.2.0/packages/eas-cli/src/metadata/upload.ts).
 
-Merge these `screenshots` fields into the existing locale objects, preserving all listing text (the paths below are examples, not approved assets):
+The config shape the CLI reads, merged into the existing locale objects (the paths below are examples, not approved assets; the release staging will write these entries from the folders, never by hand):
 
 ```json
 {
@@ -61,14 +59,14 @@ Merge these `screenshots` fields into the existing locale objects, preserving al
       "en-US": {
         "screenshots": {
           "APP_IPHONE_67": [
-            "../../marketing/screenshots/app-store/en-US/01_20261101T143000Z.png"
+            "../../marketing/screenshots/app-store/iphone-6.9/en-US/01.png"
           ]
         }
       },
       "uk": {
         "screenshots": {
           "APP_IPHONE_67": [
-            "../../marketing/screenshots/app-store/uk-UA/01_20261101T143000Z.png"
+            "../../marketing/screenshots/app-store/iphone-6.9/uk/01.png"
           ]
         }
       }
@@ -77,7 +75,7 @@ Merge these `screenshots` fields into the existing locale objects, preserving al
 }
 ```
 
-Paths resolve from **`apps/mobile/`**, not the config file's directory. Thus the English example resolves to `marketing/screenshots/app-store/en-US/01_20261101T143000Z.png` at the repo root. EAS `metadata:pull` instead writes images under `apps/mobile/store/apple/screenshot/<locale>/<display-type>/`; that private export directory stays gitignored. Commit approved exports in the separate App Store directory so the release checkout contains them; never stage a whole pull export.
+Paths resolve from **`apps/mobile/`**, not the config file's directory. Thus the English example resolves to `marketing/screenshots/app-store/iphone-6.9/en-US/01.png` at the repo root. EAS `metadata:pull` instead writes images under `apps/mobile/store/apple/screenshot/<locale>/<display-type>/`; that private export directory stays gitignored. Commit approved exports in the separate App Store directory so the release checkout contains them; never stage a whole pull export.
 
 Use **`APP_IPHONE_67`** for the 1320×2868 iPhone screenshots. CLI 27.2.0 [pins `@expo/apple-utils` 2.2.1](https://github.com/expo/eas-cli/blob/v27.2.0/packages/eas-cli/package.json#L47), whose [display-type enum](https://unpkg.com/@expo/apple-utils@2.2.1/ts-declarations/expo__app-store/app-store.d.ts) includes `APP_IPHONE_67` and no `APP_IPHONE_69`. [Apple's specifications](https://developer.apple.com/help/app-store-connect/reference/app-information/screenshot-specifications/) accept 1320×2868 for this large iPhone display group and allow **1–10 images per device size and locale**, in PNG/JPG/JPEG format. The EAS schema accepts arbitrary display-type keys and string arrays: it does **not** validate the display type, count, file existence, dimensions or filename pattern. The screenshot task has no additional filename rule; it uses the basename, so keep basenames unique within each set and use numbered names to make the intended order clear.
 
@@ -90,7 +88,7 @@ The [27.2.0 screenshot task](https://github.com/expo/eas-cli/blob/v27.2.0/packag
 
 [`metadata:push`](https://github.com/expo/eas-cli/blob/v27.2.0/packages/eas-cli/src/commands/metadata/push.ts) passes `--non-interactive` through to [metadata authentication](https://github.com/expo/eas-cli/blob/v27.2.0/packages/eas-cli/src/metadata/auth.ts), which can retrieve the existing submission API key from EAS credentials. Screenshots use the same authenticated app context; no separate screenshot credential is required. Apple still requires metadata permissions: its [asset-management roles](https://developer.apple.com/help/app-store-connect/manage-app-information/manage-your-app-store-assets) are Account Holder, Admin, App Manager or Marketing. A Developer key that can upload builds alone is not proof of screenshot permission. This investigation does not inspect the stored key's role or test screenshot uploads against ASC.
 
-**Release tags:** [Release run 41300472511](https://github.com/kprovorov/fitme/actions/runs/41300472511/job/124830211269) checked out `v2.4.1` (`87d55cd28c9c16da2ca6d568e8558b858158087d`); its listing push succeeded at **2026-11-01 11:19:03 UTC / 12:19:03 Madrid**. [The workflow checks out the release tag](https://github.com/kprovorov/fitme/blob/v2.4.1/.github/workflows/build-mobile.yml#L42-L45), so later screenshot commits cannot reach that version through its release CI, including a rebuild of the same tag. The [current screenshot project](https://linear.app/provorov/project/app-store-screenshots-as-code-a432c611ca4b) defines the reusable contract; the approved image set and its intended release are supplied separately.
+**Release tags:** [Release run 41300472511](https://github.com/kprovorov/fitme/actions/runs/41300472511/job/124830211269) checked out `v2.4.1` (`87d55cd28c9c16da2ca6d568e8558b858158087d`); its listing push succeeded at **2026-11-01 11:19:03 UTC / 12:19:03 Madrid**. [The workflow checks out the release tag](https://github.com/kprovorov/fitme/blob/v2.4.1/.github/workflows/build-mobile.yml#L42-L45), so later screenshot commits cannot reach that version through its release CI, including a rebuild of the same tag. The [App Store screenshots shipped from the repo](https://linear.app/provorov/project/app-store-screenshots-shipped-from-the-repo-b89e8a9bd811) project defines the reusable contract; the approved image set and its intended release are supplied separately.
 
 Verification: a scratch copy of the current listing with both blocks above passed AJV against the pinned schema; a non-string path was rejected. This proves the config shape only. [`metadata:lint`](https://github.com/expo/eas-cli/blob/v27.2.0/packages/eas-cli/src/commands/metadata/lint.ts) has no login context and is designed to avoid service calls, but no metadata command was run, per FIT-500's scope. No credentials or App Store Connect calls were used.
 
