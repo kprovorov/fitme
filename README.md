@@ -82,12 +82,14 @@ a translation, with the same correction to the unshipped weekly adaptation claim
 ASO changes are separate. Omitted fields, such as an unset `promoText`, stay
 managed in App Store Connect.
 
-Release runs from `main` build the release tag, wait for EAS auto-submit, then
-run `eas metadata:push --profile production --non-interactive`. CI stamps
-`apple.version` from the tag into the working copy so the listing targets that
-release's draft. PRs never push metadata. The push does not submit the version
-for App Review; inspect the draft in App Store Connect before submitting it.
-Rebuilding an older tag without the store config skips metadata sync.
+Release runs from `main` build the release tag and wait for EAS auto-submit in
+the Build Mobile workflow's `build` job. Once it succeeds, the separate `listing`
+job checks out the same tag, stamps `apple.version` from the tag into the
+working copy so the listing targets that release's draft, and runs
+`eas metadata:push --profile production --non-interactive`. PRs never push
+metadata. The push does not submit the version for App Review; inspect the
+draft in App Store Connect before submitting it. Rebuilding an older tag
+without the store config skips metadata sync.
 
 Authentication reuses the App Store Connect API key stored in EAS for production
 submissions, through the GitHub `production` environment's `EXPO_TOKEN`
@@ -106,10 +108,13 @@ demo credentials, screenshots and release settings. Keep only `configVersion`,
 the public `apple.copyright`, and `apple.info`'s public text fields before staging;
 do not commit `apple.review`
 or the downloaded `apps/mobile/store/` assets. Restore both locales and review the
-diff, since a pull overwrites the local file. To retry a failed metadata step,
-use the release tag's listing with `apple.version` set to the tag's version, then
-run the same `eas metadata:push` command from `apps/mobile` with the maintainer's
-EAS login. Confirm the version's draft, locale text and release notes afterward.
+diff, since a pull overwrites the local file. To retry a failed metadata push,
+re-run only the failed `listing` job of that Build Mobile run ("Re-run failed
+jobs"): it pushes the tag's listing again and starts no EAS build or submission.
+Without CI, use the release tag's listing with `apple.version` set to the tag's
+version, then run the same `eas metadata:push` command from `apps/mobile` with
+the maintainer's EAS login. Confirm the version's draft, locale text and release
+notes afterward.
 
 ## Contributing and security
 
