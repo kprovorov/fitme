@@ -16,22 +16,32 @@
 # so it comes from Infisical `prod` /Mobile.
 set -euo pipefail
 
+USAGE="Usage: scripts/release-ios-local.sh [--listing-only] [vX.Y.Z]"
+
 # Release CI's pinned EAS CLI: the one whose metadata:push uses the stored EAS
 # submit API key and uploads the Screenshot sets as the screenshots README says.
+# Build and submit keep the Mac's own `eas`.
 EAS_METADATA_CLI="eas-cli@27.2.0"
 
 # Globals, so cleanup can still see them when the EXIT trap fires after main.
 repo=""
 prev=""
 staging=""
+# Set once a push is due (after the submit, or at once with --listing-only)
+# and cleared when it succeeded: whatever fails in between prints it.
+retry=""
 
 # Puts the checkout back as it was: no staged screenshots, no stamped file, the
 # branch checked out again. Each step runs whatever the one before it did.
 cleanup() {
+  if [[ -n "$retry" ]]; then
+    echo "$retry" >&2
+  fi
   if [[ -n "$staging" ]]; then
     rm -rf "$staging" || true
   fi
   if [[ -n "$prev" ]]; then
+    rm -f "$repo/apps/mobile/app.json.tmp" "$repo/apps/mobile/store.config.json.tmp" || true
     # A directory pathspec: restores app.json and store.config.json, and
     # doesn't fail at an old tag without the listing config.
     git -C "$repo" checkout -q -- apps/mobile/ || true
@@ -47,19 +57,20 @@ stamp() {
   mv "$file.tmp" "$file"
 }
 
-# Pushes the tag's Store listing to the submitted version's draft, as the
-# listing job of build-mobile.yml does, skipping the same tags it skips.
+# Pushes the tag's Store listing to the version's draft, as the listing job of
+# build-mobile.yml does, skipping the same tags it skips. app.json is already
+# stamped.
 push_listing() {
-  local tag="$1" version="${1#v}"
+  local tag="$1"
 
   # Older release tags predate metadata as code; they release as before.
   if [[ ! -f "$repo/apps/mobile/store.config.json" ]]; then
     echo "$tag has no apps/mobile/store.config.json; skipping the listing push."
+    retry=""
     return
   fi
 
-  stamp "$repo/apps/mobile/app.json" .expo.version "$version"
-  stamp "$repo/apps/mobile/store.config.json" .apple.version "$version"
+  stamp "$repo/apps/mobile/store.config.json" .apple.version "${tag#v}"
   echo "Listing version: $(jq -r '.apple.version' "$repo/apps/mobile/store.config.json")"
 
   # Writes the screenshots entries into the stamped config from the tag's
@@ -71,29 +82,45 @@ push_listing() {
     echo "$tag predates the App Store screenshot script; pushing listing text only."
   fi
 
-  if ! (cd "$repo/apps/mobile" &&
-    npx --yes "$EAS_METADATA_CLI" metadata:push --profile production --non-interactive); then
-    echo "The listing push failed; the build was submitted. Retry just the push with:" >&2
-    echo "  scripts/release-ios-local.sh --listing-only $tag" >&2
-    exit 1
-  fi
+  (cd "$repo/apps/mobile" &&
+    npx --yes "$EAS_METADATA_CLI" metadata:push --profile production --non-interactive)
+  retry=""
 }
 
 # Everything runs from main, which bash reads in full first: checking out an
 # older tag can change or remove this file while it runs.
 main() {
-  local listing_only=false tag ipa
-  if [[ "${1:-}" == "--listing-only" ]]; then
-    listing_only=true
-    shift
-  fi
+  local listing_only=false tag="" ipa arg
+  for arg in "$@"; do
+    case "$arg" in
+      --listing-only) listing_only=true ;;
+      -*)
+        echo "$USAGE" >&2
+        exit 2
+        ;;
+      *)
+        if [[ -n "$tag" ]]; then
+          echo "$USAGE" >&2
+          exit 2
+        fi
+        tag="$arg"
+        ;;
+    esac
+  done
 
   repo="$(git rev-parse --show-toplevel)"
   git -C "$repo" fetch -q --tags origin
 
-  tag="${1:-$(git -C "$repo" tag -l 'v*' --sort=-v:refname | head -1)}"
+  if [[ -z "$tag" ]]; then
+    tag="$(git -C "$repo" tag -l 'v*' --sort=-v:refname | head -1)"
+  fi
   if [[ ! "$tag" =~ ^v[0-9]+\.[0-9]+\.[0-9]+$ ]]; then
     echo "Tag must look like v1.2.3, got '$tag'" >&2
+    exit 1
+  fi
+  # Like build-mobile.yml: only a release from main goes to the App Store.
+  if ! git -C "$repo" merge-base --is-ancestor "$tag" origin/main; then
+    echo "$tag isn't on origin/main" >&2
     exit 1
   fi
   if [[ "$listing_only" == true ]]; then
@@ -108,8 +135,14 @@ main() {
     echo "Working tree isn't clean" >&2
     exit 1
   fi
-  if ! eas whoami >/dev/null; then
+  # The build and submit run the Mac's `eas`, the listing push the pinned one;
+  # both share the `eas login` session.
+  if [[ "$listing_only" == false ]] && ! eas whoami >/dev/null; then
     echo "Run eas login first" >&2
+    exit 1
+  fi
+  if ! npx --yes "$EAS_METADATA_CLI" whoami >/dev/null; then
+    echo "Run eas login first (checked with $EAS_METADATA_CLI)" >&2
     exit 1
   fi
 
@@ -128,15 +161,22 @@ main() {
   # The listing push needs it too: EAS reads the app config (app.config.ts).
   pnpm --dir "$repo" install --frozen-lockfile
 
-  if [[ "$listing_only" == false ]]; then
-    stamp "$repo/apps/mobile/app.json" .expo.version "${tag#v}"
+  # Stamp the version from the tag (app.json is committed as 0.0.0).
+  stamp "$repo/apps/mobile/app.json" .expo.version "${tag#v}"
 
+  if [[ "$listing_only" == false ]]; then
     (cd "$repo/apps/mobile" &&
       infisical run --env=prod --path=/Mobile -- \
         eas build --platform ios --profile production --local --output "$ipa")
 
     (cd "$repo/apps/mobile" &&
       eas submit --platform ios --profile production --path "$ipa")
+
+    retry="The build was submitted, but the listing push failed. Retry just the push with:
+  scripts/release-ios-local.sh --listing-only $tag"
+  else
+    retry="The listing push failed. Retry it with:
+  scripts/release-ios-local.sh --listing-only $tag"
   fi
 
   push_listing "$tag"
