@@ -114,6 +114,37 @@ const planNodes = (node: PlanNode): PlanNode[] => [
 ];
 
 describe("Weekly streaks from retained goals and finished training", () => {
+  it("caps each week's qualifying result at seven Sessions for the maximum valid goal", async () => {
+    const user = await seed(
+      [["2026-10-31T08:00:00Z", 7]],
+      Array.from({ length: 20 }, () => ({ start: "2026-10-31T10:00:00Z" }))
+    );
+    await asUser(user, async (tx) => {
+      const execute = vi.spyOn(tx, "execute");
+      expect(
+        (
+          await getWeeklyGoals(
+            tx,
+            user,
+            "UTC",
+            new Date("2026-11-01T12:00:00Z")
+          )
+        ).streak
+      ).toBe(1);
+      const [[query]] = execute.mock.calls;
+      execute.mockRestore();
+      const explained = await tx.execute<{
+        "QUERY PLAN": { Plan: PlanNode }[];
+      }>(sql`explain (analyze, format json) ${query}`);
+      const limits = planNodes(explained.rows[0]["QUERY PLAN"][0].Plan).filter(
+        (node) => node["Node Type"] === "Limit"
+      );
+      // PostgreSQL may prefer a sequential scan on a tiny fixture table;
+      // assert the executed LIMIT's cardinality independently of that choice.
+      expect(limits.some((node) => node["Actual Rows"] === 7)).toBe(true);
+      expect(limits.every((node) => node["Actual Rows"] <= 7)).toBe(true);
+    });
+  });
   it("skips bulk childless, zero-rep and future-finished sessions through the qualification index", async () => {
     const user = await seed(
       [["2026-10-31T08:00:00Z", 1]],

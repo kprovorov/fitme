@@ -1,3 +1,4 @@
+import { MAX_FREQUENCY, MIN_FREQUENCY } from "@fitme/core/limits";
 import { calendarOffsetMinutes } from "@fitme/core/weekly-goals";
 import {
   plans,
@@ -12,6 +13,12 @@ import { jsonTimestamp } from "./json-timestamp";
 // service-recorded goal predates its release; caller-chosen log timestamps
 // must never move this trusted tracking boundary backwards.
 const TRACKING_RELEASED_AT = "2026-10-31T00:00:00Z";
+
+// Older direct Data API writes could record a target outside the domain.
+// Keep that evidence as an unknown goal, never as a query limit or a 500.
+const knownTarget = sql<number | null>`case
+  when ${weeklyGoalChanges.target} between ${MIN_FREQUENCY} and ${MAX_FREQUENCY}
+  then ${weeklyGoalChanges.target} else null end`;
 
 /**
  * One change of the User's Weekly goal (ADR 0015): the active Plan's training
@@ -90,7 +97,7 @@ export const listWeeklyGoalChanges = (
     .select({
       // NOT NULL, so never `null`
       recorded_at: jsonTimestamp(weeklyGoalChanges.recordedAt) as SQL<string>,
-      target: weeklyGoalChanges.target,
+      target: knownTarget,
     })
     .from(weeklyGoalChanges)
     .where(eq(weeklyGoalChanges.userId, userId))
@@ -148,7 +155,7 @@ export async function getWeeklyGoals(
           and ${workoutSessionProgress.finishedAt} <= ${now.toISOString()}::timestamptz
           and ${workoutSessionProgress.completedSetCount} > 0
         order by ${workoutSessionProgress.startedAt}
-        limit goal.target
+        limit least(goal.target, ${MAX_FREQUENCY})
       ) as qualifying
     ) end
     from week_bounds cross join lateral (
@@ -157,7 +164,7 @@ export async function getWeeklyGoals(
         else previous.target end as target
       from first_goal
       left join lateral (
-        select target from ${weeklyGoalChanges}
+        select ${knownTarget} as target from ${weeklyGoalChanges}
         where user_id = ${userId}
           and recorded_at < week_bounds.utc_start
         order by recorded_at desc, id desc limit 1
@@ -166,7 +173,7 @@ export async function getWeeklyGoals(
   )`;
   const result = await tx.execute<{ streak: number }>(sql`
     with recursive first_goal as (
-      select recorded_at at time zone ${zone} as at, target
+      select recorded_at at time zone ${zone} as at, ${knownTarget} as target
       from ${weeklyGoalChanges}
       where user_id = ${userId}
       order by recorded_at, id limit 1

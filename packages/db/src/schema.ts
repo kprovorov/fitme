@@ -242,6 +242,10 @@ export const weeklyGoalChanges = pgTable(
       using: sql`(user_id = ( SELECT current_user_id() AS current_user_id))`,
     }),
     check("weekly_goal_changes_target_check", sql`target > 0`),
+    check(
+      "weekly_goal_changes_target_range",
+      sql`(target >= 1) AND (target <= 7)`
+    ),
   ]
 );
 
