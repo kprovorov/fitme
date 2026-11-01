@@ -5,6 +5,7 @@
 //
 // Usage: node scripts/app-store-screenshots.mjs check [dir]
 //        (default marketing/screenshots/app-store)
+import { constants as bufferConstants } from "node:buffer";
 import fs from "node:fs";
 import path from "node:path";
 import { fileURLToPath } from "node:url";
@@ -22,6 +23,8 @@ const USAGE = "Usage: node scripts/app-store-screenshots.mjs check [dir]";
 const DEVICES = {
   "iphone-6.9": { displayType: "APP_IPHONE_67", height: 2868, width: 1320 },
 };
+
+const KNOWN_DEVICES = `known: ${Object.keys(DEVICES).join(", ")}`;
 
 const MAX_IMAGES = 10;
 const IMAGE_NAME = /^(\d{2})\.png$/;
@@ -50,6 +53,12 @@ const COLOR_TYPES = {
 };
 const ALPHA_COLOR_TYPES = new Set([4, 6]);
 const MAX_FILTER_TYPE = 4;
+// The PNG spec's limit on width and height.
+const MAX_DIMENSION = 2 ** 31 - 1;
+// The chunks a decoder must understand; any other critical one (its type
+// starting with a capital) means the image can't be decoded.
+const CRITICAL_CHUNKS = new Set(["IHDR", "PLTE", "IDAT", "IEND"]);
+const isCritical = (type) => type[0] === type[0].toUpperCase();
 
 // Adam7: each pass's first column and row, and its column and row step.
 const ADAM7 = [
@@ -97,6 +106,22 @@ const readChunks = (bytes) => {
     });
     offset = end;
   }
+  if (offset !== bytes.length) {
+    throw new PngError("it has data after its IEND chunk");
+  }
+  const unknown = chunks.find(
+    ({ type }) => isCritical(type) && !CRITICAL_CHUNKS.has(type)
+  );
+  if (unknown) {
+    throw new PngError(`an unknown critical chunk (${unknown.type})`);
+  }
+  if (chunks.filter(({ type }) => type === "IHDR").length > 1) {
+    throw new PngError("more than one IHDR chunk");
+  }
+  const idat = chunks.flatMap(({ type }, i) => (type === "IDAT" ? [i] : []));
+  if (idat.some((index, i) => i > 0 && index !== idat[i - 1] + 1)) {
+    throw new PngError("its IDAT chunks aren't consecutive");
+  }
   return chunks;
 };
 
@@ -120,7 +145,9 @@ const readHeader = (chunks) => {
     data[11] !== 0 ||
     header.interlace > 1 ||
     header.width === 0 ||
-    header.height === 0
+    header.height === 0 ||
+    header.width > MAX_DIMENSION ||
+    header.height > MAX_DIMENSION
   ) {
     throw new PngError("its IHDR chunk is invalid");
   }
@@ -131,15 +158,17 @@ const readHeader = (chunks) => {
 // cut short, run long or carry an unknown filter type fails, not just one
 // whose chunks are broken.
 const decodeImageData = (chunks, header) => {
-  const rows = passes(header).flatMap(({ height, width }) => {
-    if (width === 0) {
-      return [];
-    }
-    const bytes =
-      1 + Math.ceil((width * header.channels * header.bitDepth) / 8);
-    return Array.from({ length: height }, () => bytes);
-  });
-  const expected = rows.reduce((sum, bytes) => sum + bytes, 0);
+  // Each sub-image's scanlines: a filter-type byte, then the packed pixels.
+  const scanlines = passes(header)
+    .filter(({ width }) => width > 0)
+    .map(({ height, width }) => ({
+      count: height,
+      length: 1 + Math.ceil((width * header.channels * header.bitDepth) / 8),
+    }));
+  const expected = scanlines.reduce(
+    (sum, { count, length }) => sum + count * length,
+    0
+  );
   const data = Buffer.concat(
     chunks.filter((c) => c.type === "IDAT").map((c) => c.data)
   );
@@ -148,8 +177,13 @@ const decodeImageData = (chunks, header) => {
   }
   let raw;
   try {
-    raw = zlib.inflateSync(data, { maxOutputLength: expected + 1 });
+    raw = zlib.inflateSync(data, {
+      maxOutputLength: Math.min(expected + 1, bufferConstants.MAX_LENGTH),
+    });
   } catch (error) {
+    if (error.code === "ERR_BUFFER_TOO_LARGE") {
+      throw new PngError("its image data is too long", { cause: error });
+    }
     throw new PngError("its image data doesn't inflate", { cause: error });
   }
   if (raw.length !== expected) {
@@ -158,11 +192,13 @@ const decodeImageData = (chunks, header) => {
     );
   }
   let offset = 0;
-  for (const bytes of rows) {
-    if (raw[offset] > MAX_FILTER_TYPE) {
-      throw new PngError("a scanline has an unknown filter type");
+  for (const { count, length } of scanlines) {
+    for (let row = 0; row < count; row += 1) {
+      if (raw[offset] > MAX_FILTER_TYPE) {
+        throw new PngError("a scanline has an unknown filter type");
+      }
+      offset += length;
     }
-    offset += bytes;
   }
 };
 
@@ -201,7 +237,7 @@ const checkImage = ({ device, file, label, problems }) => {
     );
     return;
   }
-  const { height, width } = DEVICES[device];
+  const { height, width } = device;
   if (image.width !== width || image.height !== height) {
     problems.push(
       image.width === height && image.height === width
@@ -223,7 +259,8 @@ const checkImage = ({ device, file, label, problems }) => {
 
 const imageName = (number) => `${String(number).padStart(2, "0")}.png`;
 
-// One Screenshot set: its names and numbering, then each image.
+// One Screenshot set: its names and numbering, then each image against its
+// device's size (a DEVICES entry).
 const checkSet = ({ device, dir, label, problems }) => {
   const numbers = [];
   for (const entry of entries(dir)) {
@@ -275,16 +312,12 @@ const checkScreenshots = (dir) => {
   for (const device of entries(dir)) {
     if (!device.isDirectory()) {
       if (!ROOT_FILES.has(device.name)) {
-        problems.push(
-          `${device.name}: not a device folder (known: ${Object.keys(DEVICES).join(", ")})`
-        );
+        problems.push(`${device.name}: not a device folder (${KNOWN_DEVICES})`);
       }
       continue;
     }
     if (!Object.hasOwn(DEVICES, device.name)) {
-      problems.push(
-        `${device.name}: unknown device folder (known: ${Object.keys(DEVICES).join(", ")})`
-      );
+      problems.push(`${device.name}: unknown device folder (${KNOWN_DEVICES})`);
       continue;
     }
     const deviceDir = path.join(dir, device.name);
@@ -297,7 +330,7 @@ const checkScreenshots = (dir) => {
       }
       sets += 1;
       imageCount += checkSet({
-        device: device.name,
+        device: DEVICES[device.name],
         dir: path.join(deviceDir, locale.name),
         label: `${device.name} / ${locale.name}`,
         problems,

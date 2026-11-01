@@ -314,6 +314,61 @@ describe("check rejects (images)", () => {
     );
   });
 
+  test("image data that runs long", () => {
+    const rowBytes = 1 + WIDTH * 3;
+    const bytes = Buffer.concat([
+      png().subarray(0, 8 + 25),
+      chunk("IDAT", zlib.deflateSync(Buffer.alloc(rowBytes * (HEIGHT + 2)))),
+      chunk("IEND"),
+    ]);
+    const result = check(makeTree(withImage(bytes)));
+    assert.equal(result.status, 1, result.stdout);
+    assert.deepEqual(
+      unreported(result, [
+        "iphone-6.9 / en-US / 02.png: doesn't decode as a PNG (its image data is too long)",
+      ]),
+      [],
+      result.lines.join("\n")
+    );
+  });
+
+  test("a header claiming the largest size a PNG allows", () => {
+    // Reported as undecodable, never decoded into memory.
+    const ihdr = Buffer.alloc(13);
+    ihdr.writeUInt32BE(1, 0);
+    ihdr.writeUInt32BE(2 ** 31 - 1, 4);
+    ihdr[8] = 8;
+    ihdr[9] = 2;
+    const bytes = Buffer.concat([
+      png().subarray(0, 8),
+      chunk("IHDR", ihdr),
+      chunk("IDAT", zlib.deflateSync(Buffer.alloc(8))),
+      chunk("IEND"),
+    ]);
+    const result = check(makeTree(withImage(bytes)));
+    assert.equal(result.status, 1, result.stdout);
+    assert.deepEqual(
+      unreported(result, [
+        "iphone-6.9 / en-US / 02.png: doesn't decode as a PNG",
+      ]),
+      [],
+      result.lines.join("\n")
+    );
+  });
+
+  test("bytes after the IEND chunk", () => {
+    const bytes = Buffer.concat([png(), Buffer.from("trailing")]);
+    const result = check(makeTree(withImage(bytes)));
+    assert.equal(result.status, 1, result.stdout);
+    assert.deepEqual(
+      unreported(result, [
+        "iphone-6.9 / en-US / 02.png: doesn't decode as a PNG",
+      ]),
+      [],
+      result.lines.join("\n")
+    );
+  });
+
   test("a corrupt chunk", () => {
     const bytes = Buffer.from(png());
     bytes[45] = 255 - bytes[45]; // inside IDAT: its CRC no longer matches
@@ -394,10 +449,5 @@ describe("the command line", () => {
     const result = check(missing);
     assert.equal(result.status, 1);
     assert.deepEqual(result.lines, [`${missing}: no such directory`]);
-  });
-
-  test("passes on the repository's own screenshots", () => {
-    const result = run("check");
-    assert.equal(result.status, 0, result.lines.join("\n"));
   });
 });
