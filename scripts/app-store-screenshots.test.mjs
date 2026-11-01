@@ -1,5 +1,6 @@
 import assert from "node:assert/strict";
 import { spawnSync } from "node:child_process";
+import crypto from "node:crypto";
 import fs from "node:fs";
 import os from "node:os";
 import path from "node:path";
@@ -838,5 +839,297 @@ describe("check without a base ref", () => {
     const result = run("check", repo.dir, "--config", repo.config);
     assert.equal(result.status, 0, result.lines.join("\n"));
     assert.deepEqual(result.lines, []);
+  });
+});
+
+// prepare: a listing config like apps/mobile/store.config.json, in a
+// directory of its own (EAS resolves screenshot paths from the mobile app's
+// directory, the config's), and a fresh staging directory beside it. Every
+// prepare test passes --config, so none ever writes the repo's own config.
+const LISTING = {
+  apple: {
+    copyright: "2025 Fitme",
+    info: {
+      "en-US": { keywords: ["plan"], title: "Fitme" },
+      uk: { keywords: ["план"], title: "Fitme UA" },
+    },
+  },
+  configVersion: 0,
+};
+
+const listing = (content = LISTING) => {
+  const dir = makeTree({});
+  const config = path.join(dir, "apps", "mobile", "store.config.json");
+  fs.mkdirSync(path.dirname(config), { recursive: true });
+  fs.writeFileSync(config, `${JSON.stringify(content, null, 2)}\n`);
+  return { config, staging: path.join(dir, "staging") };
+};
+
+const prepare = (dir, { config, staging }) =>
+  run("prepare", staging, dir, "--config", config);
+
+const readConfig = (config) => JSON.parse(fs.readFileSync(config, "utf8"));
+
+const sha8 = (bytes) =>
+  crypto.createHash("sha256").update(bytes).digest("hex").slice(0, 8);
+
+// The same PNG with a fixed-length comment: valid, the same byte size as
+// every other variant, different bytes (and so a different sha256).
+const variant = (n, base = png()) => {
+  const iend = base.length - 12;
+  return Buffer.concat([
+    base.subarray(0, iend),
+    chunk("tEXt", Buffer.from(`Comment\0${String(n).padStart(4, "0")}`)),
+    base.subarray(iend),
+  ]);
+};
+
+// A Screenshot set whose images all differ: position i holds variant(seed + i).
+const distinctImages = (set, count, seed = 0) =>
+  Object.fromEntries(
+    Array.from({ length: count }, (_, i) => [
+      `${set}/${String(i + 1).padStart(2, "0")}.png`,
+      variant(seed + i),
+    ])
+  );
+
+// The staged files a config entry names, resolved as EAS resolves them.
+const staged = (config, paths) =>
+  paths.map((p) => path.resolve(path.dirname(config), p));
+
+const STAGED_NAME = /^(\d{2})-([0-9a-f]{8})\.png$/;
+
+describe("prepare", () => {
+  test("writes one entry per Screenshot set, staged under content names", () => {
+    const tree = {
+      ...distinctImages(EN, 2),
+      ...distinctImages(UK, 1, 100),
+    };
+    const dir = makeTree(tree);
+    const target = listing();
+    const result = prepare(dir, target);
+    assert.equal(result.status, 0, result.lines.join("\n"));
+
+    const written = readConfig(target.config);
+    const en = written.apple.info["en-US"].screenshots;
+    const uk = written.apple.info.uk.screenshots;
+    assert.deepEqual(Object.keys(en), ["APP_IPHONE_67"]);
+    assert.deepEqual(Object.keys(uk), ["APP_IPHONE_67"]);
+    for (const [set, paths] of [
+      [EN, en.APP_IPHONE_67],
+      [UK, uk.APP_IPHONE_67],
+    ]) {
+      const files = staged(target.config, paths);
+      assert.equal(
+        files.length,
+        Object.keys(tree).filter((name) => name.startsWith(`${set}/`)).length
+      );
+      for (const [i, file] of files.entries()) {
+        const number = String(i + 1).padStart(2, "0");
+        const source = tree[`${set}/${number}.png`];
+        assert.equal(path.basename(file), `${number}-${sha8(source)}.png`);
+        assert.ok(fs.readFileSync(file).equals(source), file);
+        assert.ok(file.startsWith(`${target.staging}${path.sep}`), file);
+      }
+    }
+
+    // Everything but the screenshots entries is as it was.
+    const { screenshots: _en, ...enText } = written.apple.info["en-US"];
+    const { screenshots: _uk, ...ukText } = written.apple.info.uk;
+    assert.deepEqual(
+      {
+        ...written,
+        apple: { ...written.apple, info: { "en-US": enText, uk: ukText } },
+      },
+      LISTING
+    );
+  });
+});
+
+const names = (config, locale = "en-US") =>
+  readConfig(config).apple.info[locale].screenshots.APP_IPHONE_67.map((p) =>
+    path.basename(p)
+  );
+
+// Every file under a directory, relative to it; [] when it isn't there.
+const filesUnder = (dir) =>
+  fs.existsSync(dir)
+    ? fs
+        .readdirSync(dir, { recursive: true, withFileTypes: true })
+        .filter((entry) => entry.isFile())
+        .map((entry) => path.join(entry.parentPath, entry.name))
+    : [];
+
+describe("prepare (names and order)", () => {
+  test("orders a set numerically, through 10", () => {
+    const tree = distinctImages(EN, 10);
+    const target = listing();
+    const result = prepare(makeTree(tree), target);
+    assert.equal(result.status, 0, result.lines.join("\n"));
+    assert.deepEqual(
+      names(target.config).map((name) => STAGED_NAME.exec(name)?.[1]),
+      ["01", "02", "03", "04", "05", "06", "07", "08", "09", "10"]
+    );
+    const files = staged(
+      target.config,
+      readConfig(target.config).apple.info["en-US"].screenshots.APP_IPHONE_67
+    );
+    for (const [i, file] of files.entries()) {
+      const source = tree[`${EN}/${String(i + 1).padStart(2, "0")}.png`];
+      assert.ok(fs.readFileSync(file).equals(source), file);
+    }
+    // uk is in the config but has no folder: no entry, its text as it was.
+    assert.deepEqual(
+      readConfig(target.config).apple.info.uk,
+      LISTING.apple.info.uk
+    );
+  });
+
+  test("gives unchanged images the same names, a same-size replacement a new one", () => {
+    const tree = distinctImages(EN, 3);
+    const first = listing();
+    assert.equal(prepare(makeTree(tree), first).status, 0);
+    const again = listing();
+    assert.equal(prepare(makeTree(tree), again).status, 0);
+    assert.deepEqual(names(again.config), names(first.config));
+
+    const replacement = variant(999);
+    assert.equal(replacement.length, tree[`${EN}/02.png`].length);
+    const replaced = listing();
+    const result = prepare(
+      makeTree({ ...tree, [`${EN}/02.png`]: replacement }),
+      replaced
+    );
+    assert.equal(result.status, 0, result.lines.join("\n"));
+    const [one, two, three] = names(first.config);
+    assert.deepEqual(names(replaced.config), [
+      one,
+      `02-${sha8(replacement)}.png`,
+      three,
+    ]);
+    assert.notEqual(names(replaced.config)[1], two);
+  });
+});
+
+describe("prepare writes nothing", () => {
+  // What prepare left: the config's text and the staged files.
+  const leftover = (target) => ({
+    config: fs.readFileSync(target.config, "utf8"),
+    staged: filesUnder(target.staging),
+  });
+
+  test("for an invalid tree", () => {
+    const target = listing();
+    const before = fs.readFileSync(target.config, "utf8");
+    const result = prepare(
+      makeTree({
+        ...distinctImages(EN, 2),
+        [`${UK}/01.png`]: png({ width: 1290 }),
+      }),
+      target
+    );
+    assert.equal(result.status, 1, result.stdout);
+    assert.deepEqual(result.lines, [
+      "iphone-6.9 / uk / 01.png: 1290×2868, needs exactly 1320×2868 (portrait)",
+    ]);
+    assert.deepEqual(leftover(target), { config: before, staged: [] });
+  });
+
+  test("for a Listing locale folder the config doesn't list", () => {
+    const target = listing();
+    const before = fs.readFileSync(target.config, "utf8");
+    const result = prepare(
+      makeTree({
+        ...distinctImages(EN, 1),
+        ...distinctImages("iphone-6.9/uk-UA", 1),
+      }),
+      target
+    );
+    assert.equal(result.status, 1, result.stdout);
+    assert.deepEqual(result.lines, [
+      `iphone-6.9 / uk-UA: Listing locale not in the listing config (${target.config} lists en-US, uk)`,
+    ]);
+    assert.deepEqual(leftover(target), { config: before, staged: [] });
+  });
+
+  test("for a Listing locale whose listing isn't an object", () => {
+    const target = listing({
+      ...LISTING,
+      apple: { ...LISTING.apple, info: { ...LISTING.apple.info, uk: "Fitme" } },
+    });
+    const before = fs.readFileSync(target.config, "utf8");
+    const result = prepare(
+      makeTree({ ...distinctImages(EN, 1), ...distinctImages(UK, 1) }),
+      target
+    );
+    assert.equal(result.status, 1, result.stdout);
+    assert.deepEqual(result.lines, [
+      `${target.config}: apple.info.uk: not an object of listing text`,
+    ]);
+    assert.deepEqual(leftover(target), { config: before, staged: [] });
+  });
+
+  test("for a config prepare already wrote, like check", () => {
+    const tree = makeTree(distinctImages(EN, 1));
+    const target = listing();
+    assert.equal(prepare(tree, target).status, 0);
+    const before = fs.readFileSync(target.config, "utf8");
+    const again = { ...target, staging: `${target.staging}-again` };
+    const result = prepare(tree, again);
+    assert.equal(result.status, 1, result.stdout);
+    assert.deepEqual(result.lines, [
+      `${target.config}: apple.info.en-US.screenshots: a hand-written screenshots entry (the Screenshot set folders are the only definition; release writes these entries)`,
+    ]);
+    assert.deepEqual(leftover(again), { config: before, staged: [] });
+  });
+
+  test("for a listing config that isn't JSON", () => {
+    const target = listing();
+    fs.writeFileSync(target.config, "{ not json");
+    const result = prepare(makeTree(distinctImages(EN, 1)), target);
+    assert.equal(result.status, 1, result.stdout);
+    assert.equal(result.lines.length, 1, result.lines.join("\n"));
+    assert.ok(
+      result.lines[0].startsWith(`${target.config}: not valid JSON`),
+      result.lines[0]
+    );
+    assert.deepEqual(leftover(target), { config: "{ not json", staged: [] });
+  });
+
+  test("but succeeds without any Screenshot sets, the config text only", () => {
+    const target = listing();
+    const before = fs.readFileSync(target.config, "utf8");
+    const result = prepare(makeTree({ "README.md": "# App Store" }), target);
+    assert.equal(result.status, 0, result.lines.join("\n"));
+    assert.deepEqual(leftover(target), { config: before, staged: [] });
+    assert.equal(fs.existsSync(target.staging), false);
+  });
+});
+
+describe("the command line (prepare)", () => {
+  test("takes no base ref", () => {
+    const { staging } = listing();
+    const result = run(
+      "prepare",
+      staging,
+      makeTree(images(EN, 1)),
+      "--base",
+      "HEAD"
+    );
+    assert.equal(result.status, 2);
+    assert.ok(result.lines[0].startsWith("Usage:"));
+  });
+
+  test("needs a staging directory", () => {
+    const result = run("prepare");
+    assert.equal(result.status, 2);
+    assert.ok(result.lines[0].startsWith("Usage:"));
+  });
+
+  test("refuses an unknown option", () => {
+    const { staging } = listing();
+    const result = run("prepare", staging, makeTree(images(EN, 1)), "--nope");
+    assert.equal(result.status, 2);
+    assert.ok(result.lines[0].startsWith("Usage:"));
   });
 });
