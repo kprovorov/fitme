@@ -1,16 +1,20 @@
 // The App Store screenshots: checks the Screenshot sets committed under
 // marketing/screenshots/app-store/, laid out as <device>/<Listing locale>/NN.png
 // (see that directory's README), and that they agree with the Store listing
-// config. No network, no secrets; nothing is ever resized or repaired.
+// config, and stages them for upload. No network, no secrets; nothing is ever
+// resized or repaired.
 //
 // Usage: node scripts/app-store-screenshots.mjs check [dir] [--config file]
 //        [--base ref]
+//        node scripts/app-store-screenshots.mjs prepare <staging dir> [dir]
+//        [--config file]
 //        (default marketing/screenshots/app-store and
 //        apps/mobile/store.config.json; --base, a pull request's base, also
 //        fails a Screenshot set deleted since then, and without it that rule
 //        doesn't run)
 import { constants as bufferConstants } from "node:buffer";
 import { spawnSync } from "node:child_process";
+import crypto from "node:crypto";
 import fs from "node:fs";
 import path from "node:path";
 import { fileURLToPath } from "node:url";
@@ -27,8 +31,10 @@ const DEFAULT_CONFIG_FILE = fileURLToPath(
   new URL(`../${DEFAULT_CONFIG}`, import.meta.url)
 );
 
-const USAGE =
-  "Usage: node scripts/app-store-screenshots.mjs check [dir] [--config file] [--base ref]";
+const USAGE = [
+  "Usage: node scripts/app-store-screenshots.mjs check [dir] [--config file] [--base ref]",
+  "       node scripts/app-store-screenshots.mjs prepare <staging dir> [dir] [--config file]",
+].join("\n");
 
 // The primary Listing locale: every device folder needs its Screenshot set.
 // Apple shows it for a Listing locale without screenshots of its own, which
@@ -310,7 +316,7 @@ const checkImage = ({ device, file, label, problems }) => {
 const imageName = (number) => `${String(number).padStart(2, "0")}.png`;
 
 // One Screenshot set: its names and numbering, then each image against its
-// device's size (a DEVICES entry).
+// device's size (a DEVICES entry). Answers the image numbers it found.
 const checkSet = ({ device, dir, label, problems }) => {
   const numbers = [];
   for (const entry of entries(dir)) {
@@ -334,7 +340,7 @@ const checkSet = ({ device, dir, label, problems }) => {
     problems.push(
       `${label}: empty Screenshot set (it needs 1 to ${MAX_IMAGES} images)`
     );
-    return 0;
+    return numbers;
   }
   if (numbers.length > MAX_IMAGES) {
     problems.push(`${label}: ${numbers.length} images, at most ${MAX_IMAGES}`);
@@ -348,7 +354,7 @@ const checkSet = ({ device, dir, label, problems }) => {
       );
     }
   }
-  return numbers.length;
+  return numbers;
 };
 
 // Every key named `screenshots`, as a dotted path: the folders are the only
@@ -363,8 +369,9 @@ const screenshotEntries = (value, at = []) => {
   ]);
 };
 
-// The Store listing config: answers its Listing locales (the keys of
-// apple.info, App Store Connect's own codes), or null when it can't say.
+// The Store listing config: answers it parsed, with its Listing locales (the
+// keys of apple.info, App Store Connect's own codes), or null when it can't
+// say.
 const readListingConfig = ({ file, label, problems }) => {
   let text;
   try {
@@ -395,15 +402,15 @@ const readListingConfig = ({ file, label, problems }) => {
     );
     return null;
   }
-  return new Set(Object.keys(info));
+  return { config, locales: new Set(Object.keys(info)) };
 };
 
 // One device folder: its Listing locale folders, each one checked against the
 // listing config's Listing locales (`listing` null when the config can't say)
-// and as a Screenshot set, plus the required en-US one. Answers its set and image counts.
+// and as a Screenshot set, plus the required en-US one. Answers its Screenshot
+// sets ({ device, locale, dir, numbers }, its image numbers ascending).
 const checkDevice = ({ dir, listing, name, problems }) => {
-  let sets = 0;
-  let imageCount = 0;
+  const sets = [];
   let hasPrimary = false;
   for (const locale of entries(dir)) {
     const label = `${name} / ${locale.name}`;
@@ -419,20 +426,21 @@ const checkDevice = ({ dir, listing, name, problems }) => {
         `${label}: Listing locale not in the listing config (${listing.listed})`
       );
     }
-    sets += 1;
-    imageCount += checkSet({
+    const setDir = path.join(dir, locale.name);
+    const numbers = checkSet({
       device: DEVICES[name],
-      dir: path.join(dir, locale.name),
+      dir: setDir,
       label,
       problems,
-    });
+    }).sort((a, b) => a - b);
+    sets.push({ device: name, dir: setDir, locale: locale.name, numbers });
   }
   if (!hasPrimary) {
     problems.push(
       `${name} / ${PRIMARY_LOCALE}: missing (every device folder needs an ${PRIMARY_LOCALE} Screenshot set)`
     );
   }
-  return { imageCount, sets };
+  return sets;
 };
 
 const git = (cwd, args) => {
@@ -503,18 +511,26 @@ const checkDeletedSets = ({ base, configLabel, dir, locales, problems }) => {
   }
 };
 
+// Every Screenshot set on disk (checkDevice's, in folder order), the parsed
+// listing config (null when it can't be read), and the problems found.
 const checkScreenshots = ({ base, config, dir }) => {
   const problems = [];
-  let sets = 0;
-  let imageCount = 0;
-  const locales = readListingConfig({ ...config, problems });
-  const listing = locales && {
+  const sets = [];
+  const read = readListingConfig({ ...config, problems });
+  const locales = read?.locales;
+  const listing = read && {
     listed: `${config.label} lists ${[...locales].join(", ") || "none"}`,
     locales,
   };
+  const result = () => ({
+    imageCount: sets.reduce((sum, set) => sum + set.numbers.length, 0),
+    listing: read?.config ?? null,
+    problems,
+    sets,
+  });
   if (!fs.statSync(dir, { throwIfNoEntry: false })?.isDirectory()) {
     problems.push(`${dir}: no such directory`);
-    return { imageCount, problems, sets };
+    return result();
   }
   for (const device of entries(dir)) {
     if (!device.isDirectory()) {
@@ -527,14 +543,14 @@ const checkScreenshots = ({ base, config, dir }) => {
       problems.push(`${device.name}: unknown device folder (${KNOWN_DEVICES})`);
       continue;
     }
-    const counts = checkDevice({
-      dir: path.join(dir, device.name),
-      listing,
-      name: device.name,
-      problems,
-    });
-    sets += counts.sets;
-    imageCount += counts.imageCount;
+    sets.push(
+      ...checkDevice({
+        dir: path.join(dir, device.name),
+        listing,
+        name: device.name,
+        problems,
+      })
+    );
   }
   // Without the config's Listing locales the rule can't tell; the config's own
   // problem already fails the check.
@@ -547,7 +563,7 @@ const checkScreenshots = ({ base, config, dir }) => {
       problems,
     });
   }
-  return { imageCount, problems, sets };
+  return result();
 };
 
 const parse = (args) => {
@@ -562,37 +578,130 @@ const parse = (args) => {
   }
 };
 
+const plural = (n, noun) => `${n} ${n === 1 ? noun : `${noun}s`}`;
+
+const report = (problems) => {
+  for (const problem of problems) {
+    console.error(problem);
+  }
+  return problems.length > 0 ? 1 : 0;
+};
+
+const check = ({ base, config, dir }) => {
+  const { imageCount, problems, sets } = checkScreenshots({
+    base,
+    config,
+    dir,
+  });
+  if (report(problems)) {
+    return 1;
+  }
+  console.log(
+    `${plural(sets.length, "Screenshot set")}, ${plural(imageCount, "image")}: all pass.`
+  );
+  return 0;
+};
+
+const isObject = (value) =>
+  typeof value === "object" && value !== null && !Array.isArray(value);
+
+// The upload name's hash part: the first 8 hex of the image's sha256.
+const HASH_LENGTH = 8;
+
+// Copies one Screenshot set into <staging>/<device>/<Listing locale>/ as
+// NN-<hash>.png and answers the staged paths in display order, relative to
+// appDir, which EAS resolves them from.
+const stageSet = ({ appDir, set, staging }) => {
+  const target = path.join(staging, set.device, set.locale);
+  fs.mkdirSync(target, { recursive: true });
+  return set.numbers.map((number) => {
+    const name = imageName(number);
+    const bytes = fs.readFileSync(path.join(set.dir, name));
+    const hash = crypto.createHash("sha256").update(bytes).digest("hex");
+    const file = path.join(
+      target,
+      `${path.basename(name, ".png")}-${hash.slice(0, HASH_LENGTH)}.png`
+    );
+    fs.writeFileSync(file, bytes);
+    return path.relative(appDir, path.resolve(file)).split(path.sep).join("/");
+  });
+};
+
+// Validates like check (no base ref), then stages each Screenshot set
+// (stageSet) and writes the listing config's screenshots entries from the
+// folders, last. The content-derived name is the upload identity: EAS keeps a
+// remote screenshot whose basename and byte size match, so a replaced image
+// must get a new basename. Nothing is written when a problem is found, and
+// nothing at all without Screenshot sets.
+const prepare = ({ config, dir, staging }) => {
+  const { imageCount, listing, problems, sets } = checkScreenshots({
+    config,
+    dir,
+  });
+  const info = listing?.apple.info;
+  // check accepts any listing text; prepare needs an object to add to.
+  for (const { locale } of sets) {
+    if (info && Object.hasOwn(info, locale) && !isObject(info[locale])) {
+      problems.push(
+        `${config.label}: apple.info.${locale}: not an object of listing text`
+      );
+    }
+  }
+  if (report(problems)) {
+    return 1;
+  }
+  if (sets.length === 0) {
+    console.log(
+      "No Screenshot sets: nothing staged, the listing config is as it was."
+    );
+    return 0;
+  }
+  // EAS resolves screenshot paths from the mobile app's directory, the one
+  // holding the listing config.
+  const appDir = path.dirname(path.resolve(config.file));
+  const screenshots = {};
+  for (const set of sets) {
+    screenshots[set.locale] ??= {};
+    screenshots[set.locale][DEVICES[set.device].displayType] = stageSet({
+      appDir,
+      set,
+      staging,
+    });
+  }
+  for (const [locale, entry] of Object.entries(screenshots)) {
+    info[locale].screenshots = entry;
+  }
+  fs.writeFileSync(config.file, `${JSON.stringify(listing, null, 2)}\n`);
+  console.log(
+    `${plural(sets.length, "Screenshot set")}, ${plural(imageCount, "image")}: staged in ${staging}, entries written to ${config.label}.`
+  );
+  return 0;
+};
+
 const main = (args) => {
   const parsed = parse(args);
-  const [command, dir = DEFAULT_DIR, ...rest] = parsed?.positionals ?? [];
-  if (command !== "check" || rest.length > 0) {
-    console.error(USAGE);
-    return 2;
-  }
-  const configArg = parsed.values.config;
-  if (configArg === "") {
-    console.error(USAGE);
-    return 2;
-  }
+  const [command, ...rest] = parsed?.positionals ?? [];
+  const { base, config: configArg } = parsed?.values ?? {};
   const config =
     configArg === undefined
       ? { file: DEFAULT_CONFIG_FILE, label: DEFAULT_CONFIG }
       : { file: configArg, label: configArg };
-  const { imageCount, problems, sets } = checkScreenshots({
-    base: parsed.values.base,
-    config,
-    dir,
-  });
-  for (const problem of problems) {
-    console.error(problem);
+  if (configArg === "") {
+    // falls through to the usage below
+  } else if (command === "check" && rest.length <= 1) {
+    return check({ base, config, dir: rest[0] ?? DEFAULT_DIR });
+  } else if (
+    command === "prepare" &&
+    base === undefined &&
+    rest.length >= 1 &&
+    rest.length <= 2
+  ) {
+    // No base ref: the deleted set rule is the pull request's.
+    const [staging, dir = DEFAULT_DIR] = rest;
+    return prepare({ config, dir, staging });
   }
-  if (problems.length > 0) {
-    return 1;
-  }
-  console.log(
-    `${sets} Screenshot ${sets === 1 ? "set" : "sets"}, ${imageCount} ${imageCount === 1 ? "image" : "images"}: all pass.`
-  );
-  return 0;
+  console.error(USAGE);
+  return 2;
 };
 
 if (process.argv[1] === fileURLToPath(import.meta.url)) {

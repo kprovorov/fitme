@@ -48,6 +48,7 @@ pnpm typecheck           # turbo run typecheck
 pnpm check / pnpm fix    # ultracite (Biome) over the whole repo
 pnpm test:scripts        # node:test for the Node scripts in scripts/ (scripts/*.test.mjs)
 node scripts/app-store-screenshots.mjs check [--base <ref>] # the App Store Screenshot sets in marketing/screenshots/app-store, against apps/mobile/store.config.json (layout and rules in its README; `--base` also fails a deleted set whose Listing locale is still listed)
+node scripts/app-store-screenshots.mjs prepare <staging dir> # stage them under content-derived names and write the listing config's screenshots entries (release only; rewrites apps/mobile/store.config.json in place)
 pnpm literal-check       # no color literal or arbitrary size in the .tsx of mobile, web and site (alias for pnpm --filter @fitme/design-tokens literal-check)
 pnpm text-check          # no hardcoded visible text in the mobile app's .ts / .tsx: it comes from the catalogs (alias for pnpm --filter @fitme/i18n text-check)
 pnpm knip                # unused files, exports, dependencies and binaries across the workspace (knip.jsonc: every ignore names its reason; not in CI)

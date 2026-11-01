@@ -6,11 +6,12 @@ definition of each set; nobody writes screenshot paths into
 `apps/mobile/store.config.json` by hand.
 
 The [App Store screenshots shipped from the repo](https://linear.app/provorov/project/app-store-screenshots-shipped-from-the-repo-b89e8a9bd811)
-project holds the full spec. So far the check below is built: each Screenshot
+project holds the full spec. So far the check below is built (each Screenshot
 set on its own, the folders against the listing config, and, against a base
-Git ref, deleted Screenshot sets. The pull request and release checks and
-staging the images for upload come in its later issues; until then the
-screenshots are still uploaded by hand in App Store Connect.
+Git ref, deleted Screenshot sets) and `prepare`, which stages the sets for
+upload. The pull request and release checks and the release calling `prepare`
+come in its later issues; until then the screenshots are still uploaded by hand
+in App Store Connect.
 
 The bare and framed captures in `../iphone/` and `../framed/` are source
 material, not approved App Store exports; see [their README](../README.md).
@@ -54,8 +55,8 @@ Never delete a Screenshot set's folder to take its screenshots down: the
 upload never clears a remote set, so they would stay online (see
 [Deleted Screenshot sets](#deleted-screenshot-sets)).
 
-Repo files keep their `NN.png` names even when their contents change: the
-release staging (a later issue) uploads each image under a name derived from
+Repo files keep their `NN.png` names even when their contents change:
+[`prepare`](#staging-for-upload) uploads each image under a name derived from
 its contents, so a replaced image always replaces the remote one, even at the
 same byte size, and an unchanged one is left alone.
 
@@ -122,6 +123,39 @@ Its tests (`scripts/app-store-screenshots.test.mjs`, run by
 `pnpm test:scripts`) run the script on PNGs they generate, with a temporary
 listing config (one test reads the repo's own), and the deleted set rule in
 temporary Git repos.
+
+## Staging for upload
+
+```sh
+node scripts/app-store-screenshots.mjs prepare <staging dir> [dir] [--config <file>]
+```
+
+Release runs this before `eas metadata:push` (wired into release CI and the
+local release script in later issues). It runs the check above without a base
+ref (the deleted set rule is the pull request's; `prepare` takes no `--base`),
+and also refuses a Listing locale with a Screenshot set whose listing text in
+the config isn't an object, since there'd be nowhere to put its entry. On any
+problem it exits 1 and writes nothing: no staged file, the config untouched.
+Otherwise it:
+
+- copies each image to `<staging dir>/<device>/<Listing locale>/NN-<first 8
+  hex of its sha256>.png`. That basename is the upload identity: EAS keeps a
+  remote screenshot whose basename and byte size match, so an unchanged image
+  keeps its name (and stays online, not re-uploaded), and a replaced one gets
+  a new name and replaces the remote one, even at the same byte size;
+- then writes the listing config's `screenshots` entries from the folders: for
+  each Listing locale with a Screenshot set, the device table's display type
+  mapped to the staged paths in numeric order, relative to the config's
+  directory (the mobile app's, which EAS resolves them from). Listing locales
+  and devices without a folder get no entry, so EAS leaves their remote
+  screenshots alone. Everything else in the config stays as it was.
+
+Without any Screenshot sets it stages nothing and leaves the config as it is,
+text only. It rewrites the config in place, so the check (and a second
+`prepare`) then refuses its entries as hand-written: after a local run, put the
+config back with `git checkout apps/mobile/store.config.json`, and never commit
+the entries. Same images, same names: a re-run from a fresh checkout stages
+exactly what the last one did.
 
 ## How EAS CLI 27.2.0 uploads screenshots
 
