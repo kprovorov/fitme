@@ -125,17 +125,14 @@ const run = (...args) => {
 };
 
 // A listing config shaped like apps/mobile/store.config.json: listing text
-// per Listing locale under apple.info, plus whatever `apple` adds.
-const listingConfig = (locales = ["en-US", "uk"], apple = {}) => {
+// per Listing locale under apple.info.
+const listingConfig = (locales = ["en-US", "uk"]) => {
   const dir = makeTree({});
   const file = path.join(dir, "store.config.json");
   const info = Object.fromEntries(
     locales.map((locale) => [locale, { title: `Fitme (${locale})` }])
   );
-  fs.writeFileSync(
-    file,
-    JSON.stringify({ apple: { ...apple, info }, configVersion: 0 })
-  );
+  fs.writeFileSync(file, JSON.stringify({ apple: { info }, configVersion: 0 }));
   return file;
 };
 
@@ -606,6 +603,12 @@ describe("check against the listing config", () => {
 describe("the command line", () => {
   test("refuses an unknown command", () => {
     const result = run("push");
+    assert.equal(result.status, 2);
+    assert.ok(result.lines[0].startsWith("Usage:"));
+  });
+
+  test("refuses an empty --config", () => {
+    const result = run("check", makeTree(images(EN, 1)), "--config=");
     assert.equal(result.status, 2);
     assert.ok(result.lines[0].startsWith("Usage:"));
   });

@@ -63,9 +63,9 @@ node scripts/app-store-screenshots.mjs check
 It checks every Screenshot set under this directory (or the directory given
 after `check`) against the Store listing config `apps/mobile/store.config.json`
 (or the file given with `--config`), with no network and no secrets, and never
-resizes or repairs anything. Every problem is reported, not just the first, each naming the
-device, Listing locale, file and the broken rule; any problem exits 1. The
-rules:
+resizes or repairs anything. Every problem is reported, not just the first,
+each naming the device, Listing locale, file or config key and the broken
+rule; any problem exits 1. The rules:
 
 - Every folder here is a device folder in the device table (this README aside),
   and every entry in a device folder is a Listing locale folder.

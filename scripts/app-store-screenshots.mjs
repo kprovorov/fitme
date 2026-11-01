@@ -395,8 +395,8 @@ const readListingConfig = ({ file, label, problems }) => {
 };
 
 // One device folder: its Listing locale folders, each one checked against the
-// listing config's Listing locales (null when the config can't say) and as a
-// Screenshot set, plus the required en-US one. Answers its set and image counts.
+// listing config's Listing locales (`listing` null when the config can't say)
+// and as a Screenshot set, plus the required en-US one. Answers its set and image counts.
 const checkDevice = ({ dir, listing, name, problems }) => {
   let sets = 0;
   let imageCount = 0;
@@ -410,9 +410,9 @@ const checkDevice = ({ dir, listing, name, problems }) => {
       continue;
     }
     hasPrimary ||= locale.name === PRIMARY_LOCALE;
-    if (listing.locales && !listing.locales.has(locale.name)) {
+    if (listing && !listing.locales.has(locale.name)) {
       problems.push(
-        `${label}: Listing locale not in the listing config (${listing.label} lists ${[...listing.locales].join(", ") || "none"})`
+        `${label}: Listing locale not in the listing config (${listing.listed})`
       );
     }
     sets += 1;
@@ -435,9 +435,10 @@ const checkScreenshots = ({ config, dir }) => {
   const problems = [];
   let sets = 0;
   let imageCount = 0;
-  const listing = {
-    label: config.label,
-    locales: readListingConfig({ ...config, problems }),
+  const locales = readListingConfig({ ...config, problems });
+  const listing = locales && {
+    listed: `${config.label} lists ${[...locales].join(", ") || "none"}`,
+    locales,
   };
   if (!fs.statSync(dir, { throwIfNoEntry: false })?.isDirectory()) {
     problems.push(`${dir}: no such directory`);
@@ -486,9 +487,14 @@ const main = (args) => {
     return 2;
   }
   const configArg = parsed.values.config;
-  const config = configArg
-    ? { file: configArg, label: configArg }
-    : { file: DEFAULT_CONFIG_FILE, label: DEFAULT_CONFIG };
+  if (configArg === "") {
+    console.error(USAGE);
+    return 2;
+  }
+  const config =
+    configArg === undefined
+      ? { file: DEFAULT_CONFIG_FILE, label: DEFAULT_CONFIG }
+      : { file: configArg, label: configArg };
   const { imageCount, problems, sets } = checkScreenshots({ config, dir });
   for (const problem of problems) {
     console.error(problem);
