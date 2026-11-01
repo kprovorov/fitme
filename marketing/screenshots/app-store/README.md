@@ -163,7 +163,8 @@ exactly what the last one did.
 ## Local release
 
 When the EAS build quota is used up, `scripts/release-ios-local.sh [vX.Y.Z]`
-releases from a Mac (see AGENTS.md, CI/CD). On the checked-out tag it runs the
+releases from a Mac (see AGENTS.md, CI/CD), from a tag on `origin/main` only.
+On the checked-out tag it runs the
 tag's own copy of this script, as release CI does:
 
 - `check` before `pnpm install` and the local build, so bad screenshots fail
