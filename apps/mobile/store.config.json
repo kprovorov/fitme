@@ -6,7 +6,7 @@
         "title": "Fitme: AI Workout Planner",
         "subtitle": "Gym Log, Routine & PR Tracker",
         "promoText": "Tell Arnold your goal and get a gym plan built around your schedule. Log every set, celebrate every PR, and ask Arnold to swap an exercise or adjust weights anytime.",
-        "description": "Fitme is an AI workout planner and gym log in one. Tell Arnold, your AI fitness coach, your goal, experience and schedule, and get a multi-day gym plan with exercises, sets, reps and rest.\n\nLog every set in a tap, see which muscles you hit, and earn a trophy for every new PR. Want a change? Ask Arnold to swap an exercise, add a set or adjust weights. After each workout, Fitme spots what you changed and offers to update your plan.\n\nWhat you get:\n• AI-generated workout plans tailored to your goal\n• Fast set logging with session summaries and PR trophies\n• Per-exercise history so you can watch the numbers climb\n• 77 exercises with 3D video demos and form tips\n• Arnold chat (Fitme Pro) to edit or rewrite your plan anytime\n\nWorkout logging, history and the exercise library are free. Fitme Pro (Arnold) is an optional App Store subscription you can cancel anytime.\n\nTerms of Service: https://www.apple.com/legal/internet-services/itunes/dev/stdeula/",
+        "description": "Fitme is an AI workout planner and gym log in one. Tell Arnold, Fitme's AI, your goal, experience and schedule, and get a multi-day gym plan with exercises, sets, reps and rest.\n\nLog every set in a tap, see which muscles you hit, and earn a trophy for every new PR. Want a change? Ask Arnold to swap an exercise, add a set or adjust weights. After each workout, Fitme spots what you changed and offers to update your plan.\n\nWhat you get:\n• AI-generated workout plans tailored to your goal\n• Fast set logging with session summaries and PR trophies\n• Per-exercise history so you can watch the numbers climb\n• 77 exercises with 3D video demos and form tips\n• Arnold chat (Fitme Pro) to edit or rewrite your plan anytime\n\nWorkout logging, history and the exercise library are free. Fitme Pro (Arnold) is an optional App Store subscription you can cancel anytime.\n\nTerms of Service: https://www.apple.com/legal/internet-services/itunes/dev/stdeula/",
         "keywords": [
           "plan",
           "lifting",
@@ -27,10 +27,10 @@
         "privacyPolicyUrl": "https://fitmeproject.com/privacy-policy"
       },
       "uk": {
-        "title": "Fitme: план тренувань з ШІ",
+        "title": "Fitme: AI-план тренувань",
         "subtitle": "Щоденник підходів і рекордів",
         "promoText": "Розкажіть Arnold про свою ціль і отримайте план тренувань у залі під ваш графік. Записуйте кожен підхід, святкуйте рекорди й просіть Arnold змінити вправу чи вагу.",
-        "description": "Fitme — це ШІ-планувальник тренувань і журнал підходів в одному застосунку. Розкажіть Arnold, вашому ШІ-тренеру, про ціль, досвід і графік, і отримайте план тренувань у залі з вправами, підходами, повтореннями й відпочинком.\n\nЗаписуйте кожен підхід одним дотиком, дивіться, які м’язи пропрацювали, і отримуйте трофей за кожен новий рекорд. Хочете змін? Попросіть Arnold замінити вправу, додати підхід чи змінити вагу. Після кожного тренування Fitme помічає, що ви змінили, і пропонує оновити план.\n\nЩо ви отримуєте:\n• Плани тренувань від ШІ під вашу ціль\n• Швидкий запис підходів із підсумком сесії та трофеями за рекорди\n• Історія по кожній вправі, щоб бачити прогрес\n• 77 вправ із 3D-відео та порадами з техніки\n• Чат з Arnold (Fitme Pro), щоб змінювати чи переписувати план\n\nЗапис тренувань, історія та бібліотека вправ — безкоштовні. Fitme Pro (Arnold) — додаткова підписка через App Store, яку можна скасувати будь-коли.\n\nУмови використання: https://www.apple.com/legal/internet-services/itunes/dev/stdeula/",
+        "description": "Fitme — це AI-планувальник тренувань і журнал підходів в одному застосунку. Розкажіть Arnold, AI у Fitme, про ціль, досвід і графік, і отримайте план тренувань у залі з вправами, підходами, повтореннями й відпочинком.\n\nЗаписуйте кожен підхід одним дотиком, дивіться, які м’язи пропрацювали, і отримуйте трофей за кожен новий рекорд. Хочете змін? Попросіть Arnold замінити вправу, додати підхід чи змінити вагу. Після кожного тренування Fitme помічає, що ви змінили, і пропонує оновити план.\n\nЩо ви отримуєте:\n• Плани тренувань від AI під вашу ціль\n• Швидкий запис підходів із підсумком сесії та трофеями за рекорди\n• Історія по кожній вправі, щоб бачити прогрес\n• 77 вправ із 3D-відео та порадами з техніки\n• Чат з Arnold (Fitme Pro), щоб змінювати чи переписувати план\n\nЗапис тренувань, історія та бібліотека вправ — безкоштовні. Fitme Pro (Arnold) — додаткова підписка через App Store, яку можна скасувати будь-коли.\n\nУмови використання: https://www.apple.com/legal/internet-services/itunes/dev/stdeula/",
         "keywords": [
           "тренер",
           "фітнес",
@@ -45,7 +45,7 @@
           "спортзал",
           "gym",
           "workout",
-          "ai"
+          "ші"
         ],
         "releaseNotes": "Розумніші плани: після тренування Fitme помічає зміни — замінені вправи, додані підходи, нову вагу та повторення — і пропонує оновити план. Один дотик, і наступне тренування врахує ці зміни.\n\nОновлений екран тренування: записуйте підходи в зручній таблиці та переглядайте все потрібне на новому екрані вправи.\n\nЗавершення з головного екрана: завершуйте тренування просто з його картки. Якщо залишилися незаписані підходи, Fitme попросить підтвердження. Пропущені вправи більше не захаращують підсумок та історію.\n\nШвидша бібліотека вправ: пошук став швидшим, а вже переглянуті вправи завантажуються миттєво, навіть без інтернету.\n\nСвіжий вигляд: оновлений темний дизайн із нативними елементами iOS, SF Symbols і кнопками Liquid Glass.\n\nВиправлення та покращення: перевірка ваги й повторень перед записом, зрозумілі помилки збереження підходів, усі майбутні тренування на головному екрані, виправлення профілю й одиниць вимірювання та краща підтримка VoiceOver.",
         "marketingUrl": "https://fitmeproject.com",
