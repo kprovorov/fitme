@@ -113,6 +113,7 @@ const HISTORICAL_UK_IMPERIAL =
   /Особистий рекорд: Bench press, 242,51 фунта × 3 повторення$/;
 const WEEKLY_GOAL = /Weekly goal/;
 const WEEKS_HIT = /weeks? hit/;
+const STREAK = /week streak!/;
 
 interface Entry {
   id: string;
@@ -730,6 +731,56 @@ describe("The History tab's Weekly goal", () => {
 
     expect(screen.getByText("Weekly goal · 3 workouts")).toBeTruthy();
   });
+
+  it.each([1, 11])(
+    "shows the API's %i-week streak after a fresh Screen read",
+    async (count) => {
+      goalChange("2026-08-03T10:00", 3);
+      workoutAt("2026-10-27T19:00");
+      // A server result beyond the eight chart columns, independent of view state.
+      backend.weeklyStreak = count;
+      await mount();
+      expect(screen.getByText(`${count}-week streak!`)).toBeTruthy();
+      expect(
+        screen.getByLabelText(
+          `Weekly streak: ${count} ${count === 1 ? "week" : "weeks"}`
+        )
+      ).toBeTruthy();
+    }
+  );
+
+  it("hides a zero streak and removes a positive badge when goals are unavailable", async () => {
+    goalChange("2026-08-03T10:00", 3);
+    workoutAt("2026-10-27T19:00");
+    await mount();
+    expect(screen.queryByText(STREAK)).toBeNull();
+    backend.weeklyStreak = 3;
+    await queryClient.refetchQueries();
+    await settle(queryClient);
+    expect(screen.getByText("3-week streak!")).toBeTruthy();
+    goalChange("2026-10-28T10:00", null);
+    await queryClient.refetchQueries();
+    await settle(queryClient);
+    expect(screen.queryByText(STREAK)).toBeNull();
+    expect(screen.queryByText(WEEKLY_GOAL)).toBeNull();
+  });
+
+  it.each([
+    [1, "Серія: 1 тиждень!", "Серія тренувань: 1 тиждень"],
+    [3, "Серія: 3 тижні!", "Серія тренувань: 3 тижні"],
+    [11, "Серія: 11 тижнів!", "Серія тренувань: 11 тижнів"],
+  ])(
+    "speaks the Ukrainian %i-week streak with its plural form",
+    async (count, label, spoken) => {
+      setDeviceLanguages(["uk-UA"]);
+      goalChange("2026-08-03T10:00", 3);
+      workoutAt("2026-10-27T19:00");
+      backend.weeklyStreak = count;
+      await mount();
+      expect(screen.getByText(label)).toBeTruthy();
+      expect(screen.getByLabelText(spoken)).toBeTruthy();
+    }
+  );
 
   it("reads the Weekly goal in Ukrainian", async () => {
     setDeviceLanguages(["uk-UA"]);

@@ -1,11 +1,30 @@
 import { afterAll, beforeAll, describe, expect, it } from "vitest";
 import type { ProgressSession } from "../training-progress";
 import {
+  calendarOffsetMinutes,
   type GoalWeek,
   startOfGoalWeek,
   type WeeklyGoalChange,
   weeklyGoalOverview,
 } from "../weekly-goals";
+
+describe("Calendar fixed offsets", () => {
+  it.each([
+    ["GMT+1", 60],
+    ["GMT+05:30", 330],
+    ["GMT+0530", 330],
+    ["GMT-03:30", -210],
+    ["UTC+12:45", 765],
+    ["GMT-00:00", -0],
+    ["Etc/GMT+1", null],
+    ["Europe/Kyiv", null],
+    ["GMT+24", null],
+    ["GMT+01:60", null],
+    ["GMT+1DST", null],
+  ])("parses %s with the device's offset sign", (zone, offset) => {
+    expect(calendarOffsetMinutes(zone)).toBe(offset);
+  });
+});
 
 // Kyiv moves its clocks back on Sunday 25 October 2026 (04:00 → 03:00): the
 // week of 19 October is 169 hours long. Node reads TZ again when it changes.

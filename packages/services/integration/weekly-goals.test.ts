@@ -77,6 +77,18 @@ const create = (userId: string, frequency: number, activate = true) =>
 const JSON_TIMESTAMP = /^\d{4}-\d\d-\d\dT\d\d:\d\d:\d\d(\.\d+)?\+00:00$/;
 
 describe("the Weekly goal log", () => {
+  it.each([8, 32_767])(
+    "rejects direct oversized goal writes (%s)",
+    async (target) => {
+      const userId = newUser(`OutOfRange${target}`);
+      await expect(
+        asUser(userId, (tx) =>
+          tx.insert(weeklyGoalChanges).values({ target, userId })
+        )
+      ).rejects.toMatchObject({ cause: { code: "23514" } });
+      expect(await targets(userId)).toEqual([]);
+    }
+  );
   it("starts with the first active Plan's frequency and ignores repeats", async () => {
     const userId = newUser("First");
     expect(await targets(userId)).toEqual([]);

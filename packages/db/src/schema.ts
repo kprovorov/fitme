@@ -2,6 +2,7 @@
 
 import { sql } from "drizzle-orm";
 import {
+  bigint,
   boolean,
   check,
   foreignKey,
@@ -124,8 +125,8 @@ export const personalRecords = pgTable(
       "personal_records_kind_check",
       sql`kind = ANY (ARRAY['weight'::text, 'reps'::text])`
     ),
-    check("personal_records_weight_check", sql`weight >= (0)::numeric`),
     check("personal_records_reps_check", sql`reps > 0`),
+    check("personal_records_weight_check", sql`weight >= (0)::numeric`),
   ]
 );
 
@@ -241,6 +242,10 @@ export const weeklyGoalChanges = pgTable(
       using: sql`(user_id = ( SELECT current_user_id() AS current_user_id))`,
     }),
     check("weekly_goal_changes_target_check", sql`target > 0`),
+    check(
+      "weekly_goal_changes_target_range",
+      sql`(target >= 1) AND (target <= 7)`
+    ),
   ]
 );
 
@@ -336,6 +341,40 @@ export const workoutExercises = pgTable(
   ]
 );
 
+export const workoutSessionExerciseProgressInPrivate = privateSchema.table(
+  "workout_session_exercise_progress",
+  {
+    // You can use { mode: "bigint" } if numbers are exceeding js number limitations
+    completedSetCount: bigint("completed_set_count", { mode: "number" })
+      .default(0)
+      .notNull(),
+    workoutSessionExerciseId: uuid("workout_session_exercise_id")
+      .primaryKey()
+      .notNull(),
+    workoutSessionId: uuid("workout_session_id").notNull(),
+  },
+  (table) => [
+    index("workout_session_exercise_progress_session_idx").using(
+      "btree",
+      table.workoutSessionId.asc().nullsLast().op("uuid_ops")
+    ),
+    foreignKey({
+      columns: [table.workoutSessionExerciseId],
+      foreignColumns: [workoutSessionExercises.id],
+      name: "workout_session_exercise_progr_workout_session_exercise_id_fkey",
+    }).onDelete("cascade"),
+    foreignKey({
+      columns: [table.workoutSessionId],
+      foreignColumns: [workoutSessions.id],
+      name: "workout_session_exercise_progress_workout_session_id_fkey",
+    }).onDelete("cascade"),
+    check(
+      "workout_session_exercise_progress_completed_set_count_check",
+      sql`completed_set_count >= 0`
+    ),
+  ]
+);
+
 export const workoutSessionExerciseSets = pgTable(
   "workout_session_exercise_sets",
   {
@@ -418,6 +457,51 @@ export const workoutSessionExercises = pgTable(
   WHERE ((ws.id = workout_session_exercises.workout_session_id) AND (ws.user_id = ( SELECT current_user_id() AS current_user_id)))))`,
     }),
     check("workout_session_exercises_order_positive", sql`"order" >= 1`),
+  ]
+);
+
+export const workoutSessionProgress = pgTable(
+  "workout_session_progress",
+  {
+    // You can use { mode: "bigint" } if numbers are exceeding js number limitations
+    completedSetCount: bigint("completed_set_count", { mode: "number" })
+      .default(0)
+      .notNull(),
+    finishedAt: timestamp("finished_at", {
+      mode: "string",
+      withTimezone: true,
+    }),
+    startedAt: timestamp("started_at", {
+      mode: "string",
+      withTimezone: true,
+    }).notNull(),
+    userId: text("user_id").notNull(),
+    workoutSessionId: uuid("workout_session_id").primaryKey().notNull(),
+  },
+  (table) => [
+    index("workout_session_progress_qualifying_idx")
+      .using(
+        "btree",
+        table.userId.asc().nullsLast().op("text_ops"),
+        table.startedAt.asc().nullsLast().op("text_ops"),
+        table.finishedAt.asc().nullsLast().op("text_ops")
+      )
+      .where(sql`((finished_at IS NOT NULL) AND (completed_set_count > 0))`),
+    foreignKey({
+      columns: [table.workoutSessionId],
+      foreignColumns: [workoutSessions.id],
+      name: "workout_session_progress_workout_session_id_fkey",
+    }).onDelete("cascade"),
+    pgPolicy("workout_session_progress_select", {
+      as: "permissive",
+      for: "select",
+      to: ["authenticated"],
+      using: sql`(user_id = ( SELECT current_user_id() AS current_user_id))`,
+    }),
+    check(
+      "workout_session_progress_completed_set_count_check",
+      sql`completed_set_count >= 0`
+    ),
   ]
 );
 

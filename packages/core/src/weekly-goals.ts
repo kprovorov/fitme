@@ -3,6 +3,22 @@ import {
   qualifiesForProgress,
 } from "./training-progress";
 
+const CALENDAR_OFFSET = /^(?:GMT|UTC)([+-])(\d{1,2})(?::?(\d{2}))?$/;
+
+/** Expo's fixed-offset calendar IDs use the ISO sign: GMT+1 is east of UTC. */
+export function calendarOffsetMinutes(timeZone: string): number | null {
+  const match = CALENDAR_OFFSET.exec(timeZone);
+  if (!match) {
+    return null;
+  }
+  const hours = Number(match[2]);
+  const minutes = Number(match[3] ?? 0);
+  if (hours > 23 || minutes > 59) {
+    return null;
+  }
+  return (match[1] === "-" ? -1 : 1) * (hours * 60 + minutes);
+}
+
 /**
  * One change of the User's Weekly goal (ADR 0015), as the Public API answers
  * it: the active Plan's training frequency from `recorded_at` on, `null` once

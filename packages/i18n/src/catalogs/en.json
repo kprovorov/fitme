@@ -669,6 +669,12 @@
     },
     "statLabel": "{{title}}: {{value}}",
     "entry": "{{name}}, {{date}}, {{duration}}, {{sets}}, {{volume}}",
+    "streak": {
+      "badge_one": "{{count, number}}-week streak!",
+      "badge_other": "{{count, number}}-week streak!",
+      "spoken_one": "Weekly streak: {{count, number}} week",
+      "spoken_other": "Weekly streak: {{count, number}} weeks"
+    },
     "weeklyGoal": {
       "title": "Weekly goal · {{workouts}}",
       "weeksHit_one": "{{hit, number}} of {{count, number}} week hit",

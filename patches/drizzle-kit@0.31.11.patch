@@ -20,6 +20,21 @@ index f4ecb91959f62fc938416a0585458c0a710af161..db7e732393ca3c97dbcf0a8223e3f79d
          } else {
            policiesByTable[`${schemaname}.${tablename}`] = {
              [dbPolicy.name]: { ...rest, to: parsedTo, withCheck: parsedWithCheck, using: parsedUsing }
+@@ -23206,4 +23206,4 @@ WHERE
+-						AND con.contype = 'c';`);
++						AND con.contype = 'c' ORDER BY tc.constraint_name;`);
+             columnsCount += tableResponse.length;
+             if (progressCallback) {
+               progressCallback("columns", columnsCount, "fetching");
+@@ -23298,7 +23298,7 @@ WHERE
+               progressCallback("checks", checksCount, "fetching");
+             }
+             for (const checks of tableChecks) {
+-              let checkValue = checks.constraint_definition;
++              let checkValue = checks.constraint_definition.replace(/\s+NOT VALID$/, "");
+               const constraintName = checks.constraint_name;
+               checkValue = checkValue.replace(/^CHECK\s*\(\(/, "").replace(/\)\)\s*$/, "");
+               checkConstraints[constraintName] = {
 diff --git a/api.mjs b/api.mjs
 index a940272dfb05accf57a472c46c52652ec9ad0080..1fd941f0f4cae4ad57dd3187f0736a0dda6bd890 100644
 --- a/api.mjs
@@ -42,6 +57,21 @@ index a940272dfb05accf57a472c46c52652ec9ad0080..1fd941f0f4cae4ad57dd3187f0736a0d
          } else {
            policiesByTable[`${schemaname}.${tablename}`] = {
              [dbPolicy.name]: { ...rest, to: parsedTo, withCheck: parsedWithCheck, using: parsedUsing }
+@@ -23222,4 +23222,4 @@ WHERE
+-						AND con.contype = 'c';`);
++						AND con.contype = 'c' ORDER BY tc.constraint_name;`);
+             columnsCount += tableResponse.length;
+             if (progressCallback) {
+               progressCallback("columns", columnsCount, "fetching");
+@@ -23314,7 +23314,7 @@ WHERE
+               progressCallback("checks", checksCount, "fetching");
+             }
+             for (const checks of tableChecks) {
+-              let checkValue = checks.constraint_definition;
++              let checkValue = checks.constraint_definition.replace(/\s+NOT VALID$/, "");
+               const constraintName = checks.constraint_name;
+               checkValue = checkValue.replace(/^CHECK\s*\(\(/, "").replace(/\)\)\s*$/, "");
+               checkConstraints[constraintName] = {
 diff --git a/bin.cjs b/bin.cjs
 index c28f3e4732f0d911237dc1eb1bc466cefaa1b976..5dfe6cfbf23e751e28beb615c0829291255859f3 100755
 --- a/bin.cjs
@@ -64,3 +94,18 @@ index c28f3e4732f0d911237dc1eb1bc466cefaa1b976..5dfe6cfbf23e751e28beb615c0829291
          } else {
            policiesByTable[`${schemaname}.${tablename}`] = {
              [dbPolicy.name]: { ...rest, to: parsedTo, withCheck: parsedWithCheck, using: parsedUsing }
+@@ -17764,4 +17764,4 @@ WHERE
+-						AND con.contype = 'c';`);
++						AND con.contype = 'c' ORDER BY tc.constraint_name;`);
+             columnsCount += tableResponse.length;
+             if (progressCallback) {
+               progressCallback("columns", columnsCount, "fetching");
+@@ -17856,7 +17856,7 @@ WHERE
+               progressCallback("checks", checksCount, "fetching");
+             }
+             for (const checks of tableChecks) {
+-              let checkValue = checks.constraint_definition;
++              let checkValue = checks.constraint_definition.replace(/\s+NOT VALID$/, "");
+               const constraintName = checks.constraint_name;
+               checkValue = checkValue.replace(/^CHECK\s*\(\(/, "").replace(/\)\)\s*$/, "");
+               checkConstraints[constraintName] = {

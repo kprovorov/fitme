@@ -6,8 +6,10 @@ import {
   plans,
   workoutExerciseSets,
   workoutExercises,
+  workoutSessionExerciseProgressInPrivate,
   workoutSessionExerciseSets,
   workoutSessionExercises,
+  workoutSessionProgress,
   workoutSessions,
   workouts,
 } from "./schema";
@@ -48,6 +50,22 @@ export const workoutExercisesRelations = relations(
   })
 );
 
+export const workoutSessionExerciseProgressInPrivateRelations = relations(
+  workoutSessionExerciseProgressInPrivate,
+  ({ one }) => ({
+    workoutSession: one(workoutSessions, {
+      fields: [workoutSessionExerciseProgressInPrivate.workoutSessionId],
+      references: [workoutSessions.id],
+    }),
+    workoutSessionExercise: one(workoutSessionExercises, {
+      fields: [
+        workoutSessionExerciseProgressInPrivate.workoutSessionExerciseId,
+      ],
+      references: [workoutSessionExercises.id],
+    }),
+  })
+);
+
 export const workoutSessionExerciseSetsRelations = relations(
   workoutSessionExerciseSets,
   ({ one }) => ({
@@ -65,7 +83,20 @@ export const workoutSessionExercisesRelations = relations(
       fields: [workoutSessionExercises.workoutSessionId],
       references: [workoutSessions.id],
     }),
+    workoutSessionExerciseProgressInPrivates: many(
+      workoutSessionExerciseProgressInPrivate
+    ),
     workoutSessionExerciseSets: many(workoutSessionExerciseSets),
+  })
+);
+
+export const workoutSessionProgressRelations = relations(
+  workoutSessionProgress,
+  ({ one }) => ({
+    workoutSession: one(workoutSessions, {
+      fields: [workoutSessionProgress.workoutSessionId],
+      references: [workoutSessions.id],
+    }),
   })
 );
 
@@ -81,7 +112,11 @@ export const workoutSessionsRelations = relations(
       fields: [workoutSessions.workoutId],
       references: [workouts.id],
     }),
+    workoutSessionExerciseProgressInPrivates: many(
+      workoutSessionExerciseProgressInPrivate
+    ),
     workoutSessionExercises: many(workoutSessionExercises),
+    workoutSessionProgresses: many(workoutSessionProgress),
   })
 );
 

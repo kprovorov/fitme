@@ -731,6 +731,16 @@
     },
     "statLabel": "{{title}}: {{value}}",
     "entry": "{{name}}, {{date}}, {{duration}}, {{sets}}, {{volume}}",
+    "streak": {
+      "badge_one": "Серія: {{count, number}} тиждень!",
+      "badge_few": "Серія: {{count, number}} тижні!",
+      "badge_many": "Серія: {{count, number}} тижнів!",
+      "badge_other": "Серія: {{count, number}} тижня!",
+      "spoken_one": "Серія тренувань: {{count, number}} тиждень",
+      "spoken_few": "Серія тренувань: {{count, number}} тижні",
+      "spoken_many": "Серія тренувань: {{count, number}} тижнів",
+      "spoken_other": "Серія тренувань: {{count, number}} тижня"
+    },
     "weeklyGoal": {
       "title": "Ціль на тиждень · {{workouts}}",
       "weeksHit_one": "Виконано {{hit, number}} з {{count, number}} тижня",

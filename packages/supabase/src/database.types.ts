@@ -368,6 +368,39 @@ export interface Database {
           },
         ];
       };
+      workout_session_progress: {
+        Row: {
+          completed_set_count: number;
+          finished_at: string | null;
+          started_at: string;
+          user_id: string;
+          workout_session_id: string;
+        };
+        ComputedFields: never;
+        Insert: {
+          completed_set_count?: number;
+          finished_at?: string | null;
+          started_at: string;
+          user_id: string;
+          workout_session_id: string;
+        };
+        Update: {
+          completed_set_count?: number;
+          finished_at?: string | null;
+          started_at?: string;
+          user_id?: string;
+          workout_session_id?: string;
+        };
+        Relationships: [
+          {
+            foreignKeyName: "workout_session_progress_workout_session_id_fkey";
+            columns: ["workout_session_id"];
+            isOneToOne: true;
+            referencedRelation: "workout_sessions";
+            referencedColumns: ["id"];
+          },
+        ];
+      };
       workout_sessions: {
         Row: {
           created_at: string | null;

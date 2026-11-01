@@ -1,5 +1,11 @@
 import { randomBytes } from "node:crypto";
-import { asUser } from "@fitme/db";
+import {
+  asUser,
+  withService,
+  workoutSessionExerciseSets,
+  workoutSessionExercises,
+  workoutSessions,
+} from "@fitme/db";
 import { deleteTestUsers } from "@fitme/services/delete-test-users";
 import { createPlan, type NewPlan } from "@fitme/services/plans";
 import { afterAll, describe, expect, it } from "vitest";
@@ -25,9 +31,10 @@ const testUserId = (label: string) =>
 
 const owner = testUserId("goalOwner");
 const intruder = testUserId("goalIntruder");
+const streakOwner = testUserId("streakOwner");
 
 afterAll(async () => {
-  await deleteTestUsers([owner, intruder]);
+  await deleteTestUsers([owner, intruder, streakOwner]);
 });
 
 const newPlan = (frequency: number): NewPlan => ({
@@ -94,6 +101,57 @@ const targets = async (userId: string) => {
 };
 
 describe("GET /v1/weekly-goals", () => {
+  it("reads a current-week streak through the real facade and keeps it User-owned", async () => {
+    const created = await asUser(streakOwner, (tx) =>
+      createPlan(tx, streakOwner, newPlan(1))
+    );
+    await withService(async (tx) => {
+      const completedAt = new Date().toISOString();
+      const [session] = await tx
+        .insert(workoutSessions)
+        .values({
+          finishedAt: completedAt,
+          planId: created.id,
+          startedAt: completedAt,
+          userId: streakOwner,
+        })
+        .returning();
+      const [exercise] = await tx
+        .insert(workoutSessionExercises)
+        .values({
+          exerciseSlug: "test-streak",
+          order: 1,
+          workoutSessionId: session.id,
+        })
+        .returning();
+      await tx.insert(workoutSessionExerciseSets).values({
+        order: 1,
+        repsCompleted: 8,
+        workoutSessionExerciseId: exercise.id,
+      });
+    });
+    for (const zone of [
+      "Europe/Kyiv",
+      "GMT+1",
+      "GMT+05:30",
+      "GMT-03:30",
+      "UTC+12:45",
+    ]) {
+      // biome-ignore lint/performance/noAwaitInLoops: verify sequential fresh reads
+      const { body, status } = await send(
+        streakOwner,
+        "GET",
+        `/v1/weekly-goals?time_zone=${encodeURIComponent(zone)}`
+      );
+      expect(status).toBe(200);
+      expect(body).toMatchObject({ data: [{ target: 1 }], streak: 1 });
+    }
+    expect(
+      (await send(intruder, "GET", "/v1/weekly-goals?time_zone=Europe%2FKyiv"))
+        .body
+    ).toEqual({ data: [], streak: 0 });
+  });
+
   it("follows the Plan writes the API serves, for their own User only", async () => {
     expect(await targets(owner)).toEqual({ status: 200, targets: [] });
 
