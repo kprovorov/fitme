@@ -9,7 +9,7 @@ import {
   workoutSessions,
 } from "@fitme/db";
 import { sql } from "drizzle-orm";
-import { afterAll, describe, expect, it } from "vitest";
+import { afterAll, describe, expect, it, vi } from "vitest";
 import { getWeeklyGoals } from "../src/weekly-goals";
 import { deleteTestUsers } from "./delete-test-users";
 
@@ -91,7 +91,87 @@ const seed = async (
 const read = (userId: string, now: string, timeZone = "Europe/Kyiv") =>
   asUser(userId, (tx) => getWeeklyGoals(tx, userId, timeZone, new Date(now)));
 
+interface PlanNode {
+  "Actual Loops": number;
+  "Actual Rows": number;
+  "Node Type": string;
+  Plans?: PlanNode[];
+  "Relation Name"?: string;
+  "Rows Removed by Filter"?: number;
+}
+
+const planNodes = (node: PlanNode): PlanNode[] => [
+  node,
+  ...(node.Plans ?? []).flatMap(planNodes),
+];
+
 describe("Weekly streaks from retained goals and finished training", () => {
+  it.each([
+    ["GMT+1", "2026-11-01T23:00:00Z"],
+    ["GMT+05:30", "2026-11-01T18:30:00Z"],
+    ["GMT-03:30", "2026-11-02T03:30:00Z"],
+    ["UTC+12:45", "2026-11-01T11:15:00Z"],
+  ])("keeps the local Monday boundary for %s", async (zone, monday) => {
+    const user = await seed(
+      [["2026-10-19T12:00:00Z", 1]],
+      [{ start: "2026-10-20T12:00:00Z" }]
+    );
+    const beforeMonday = new Date(Date.parse(monday) - 1).toISOString();
+    expect((await read(user, beforeMonday, zone)).streak).toBe(1);
+    expect((await read(user, monday, zone)).streak).toBe(0);
+  });
+
+  it("stops in SQL at the first missed week without reading distant occupied weeks", async () => {
+    const user = await seed([["1800-01-01T10:00:00Z", 1]], []);
+    await withService((tx) =>
+      tx.execute(sql`
+      with sessions as (
+        insert into ${workoutSessions} (user_id, started_at, finished_at)
+        select ${user}, '1900-01-02T12:00:00Z'::timestamptz + i * interval '1 week',
+          '1900-01-02T13:00:00Z'::timestamptz + i * interval '1 week'
+        from generate_series(0, 999) as i returning id
+      ), exercises as (
+        insert into ${workoutSessionExercises} (workout_session_id, exercise_slug, "order")
+        select id, 'test-streak', 1 from sessions returning id
+      )
+      insert into ${workoutSessionExerciseSets} (workout_session_exercise_id, "order", reps_completed)
+      select id, 1, 8 from exercises
+    `)
+    );
+    await asUser(user, async (tx) => {
+      const execute = vi.spyOn(tx, "execute");
+      expect(
+        (
+          await getWeeklyGoals(
+            tx,
+            user,
+            "UTC",
+            new Date("2026-10-28T12:00:00Z")
+          )
+        ).streak
+      ).toBe(0);
+      const [[query]] = execute.mock.calls;
+      execute.mockRestore();
+      const explained = await tx.execute<{
+        "QUERY PLAN": { Plan: PlanNode }[];
+      }>(sql`explain (analyze, format json) ${query}`);
+      const nodes = planNodes(explained.rows[0]["QUERY PLAN"][0].Plan);
+      const sessionReads = nodes.filter(
+        (node) => node["Relation Name"] === "workout_sessions"
+      );
+      expect(sessionReads.length).toBeGreaterThan(0);
+      expect(
+        sessionReads.reduce(
+          (total, node) =>
+            total +
+            (node["Actual Rows"] + (node["Rows Removed by Filter"] ?? 0)) *
+              node["Actual Loops"],
+          0
+        ),
+        JSON.stringify(sessionReads)
+      ).toBeLessThanOrEqual(2);
+    });
+  });
   it.each(["0001-01-01T00:00:00Z", "-infinity"])(
     "bounds reads by recorded training with a caller-chosen %s goal timestamp",
     async (recordedAt) => {

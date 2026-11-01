@@ -1,4 +1,5 @@
 import { MAX_FREQUENCY, MIN_FREQUENCY } from "@fitme/core/limits";
+import { calendarOffsetMinutes } from "@fitme/core/weekly-goals";
 import { createRoute, OpenAPIHono, z } from "@hono/zod-openapi";
 import { type ApiEnv, bearerSecurity, requires } from "../auth.js";
 import {
@@ -8,6 +9,8 @@ import {
   timestamp,
   unauthorizedResponse,
 } from "../schemas.js";
+
+const IANA_TIME_ZONE = /^[A-Za-z_]+(?:\/[A-Za-z0-9_+-]+)*$/;
 
 const WeeklyGoalChange = z
   .object({
@@ -41,7 +44,7 @@ const listWeeklyGoals = createRoute({
   description: [
     "Every change of the User's Weekly goal (ADR 0015), oldest first, unpaged. The goal is the active Plan's training frequency, recorded whenever a Plan write or a finished Workout Session finds it changed; recorded changes are never rewritten.",
     "",
-    "The additive `streak` counts consecutive goal-hit weeks across all retained history, including the current week once met. An unmet current week preserves the preceding run; a completed miss or unknown goal breaks it. Zero without an active goal. Supply the device IANA `time_zone` for local boundaries (UTC when omitted).",
+    "The additive `streak` counts consecutive goal-hit weeks across all retained history, including the current week once met. An unmet current week preserves the preceding run; a completed miss or unknown goal breaks it. Zero without an active goal. Supply the device IANA or fixed-offset calendar `time_zone` (such as GMT+1 or GMT-03:30) for local boundaries (UTC when omitted).",
     "",
     "Weeks run Monday to Sunday on the client's own clock. The first change started tracking and sets the goal of the week it falls in (the first tracked, partial week); every later change takes effect the Monday after it, so a week's goal is the one in effect when it began. Weeks before the first change, or that began with `target: null`, have no known goal.",
   ].join("\n"),
@@ -53,8 +56,13 @@ const listWeeklyGoals = createRoute({
       time_zone: z
         .string()
         .max(100)
-        .regex(/^[A-Za-z_]+(?:\/[A-Za-z0-9_+-]+)*$/)
         .refine((value) => {
+          if (calendarOffsetMinutes(value) !== null) {
+            return true;
+          }
+          if (!IANA_TIME_ZONE.test(value)) {
+            return false;
+          }
           try {
             new Intl.DateTimeFormat("en", {
               timeZone: value,
@@ -63,11 +71,11 @@ const listWeeklyGoals = createRoute({
           } catch {
             return false;
           }
-        }, "Expected an IANA timezone")
+        }, "Expected an IANA or fixed-offset calendar timezone")
         .default("UTC")
         .openapi({
           description:
-            "Device timezone for Monday–Sunday boundaries; UTC when omitted",
+            "Device IANA timezone or fixed-offset calendar ID (GMT+1, GMT-03:30); UTC when omitted",
           example: "Europe/Kyiv",
         }),
     }),

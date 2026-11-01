@@ -1,3 +1,4 @@
+import { calendarOffsetMinutes } from "@fitme/core/weekly-goals";
 import {
   plans,
   type Transaction,
@@ -101,9 +102,9 @@ export interface WeeklyGoals {
  * Retained goals and the lifetime Weekly streak, in the caller's timezone.
  * Reads all qualifying training across Plans, independently of History's
  * paging and eight chart columns. No saved counter: a fresh read derives the
- * same achievement from durable goals and logged training. Only occupied
- * training weeks are scanned: missing weeks break the run without generating
- * a calendar range from caller-writable goal timestamps. `now` is injectable
+ * same achievement from durable goals and logged training. Walks backwards
+ * from this week, stopping in SQL at the first completed miss/unknown week.
+ * Each week's indexed read stops once its goal is met. `now` is injectable
  * for Sunday/Monday verification; public callers never supply it.
  */
 export async function getWeeklyGoals(
@@ -116,75 +117,70 @@ export async function getWeeklyGoals(
   if ((changes.at(-1)?.target ?? null) === null) {
     return { changes, streak: 0 };
   }
-  const result = await tx.execute<{
-    consecutive: boolean | null;
-    current: boolean;
-    count: number;
-    target: number | null;
-  }>(sql`
-    with first_goal as (
-      select recorded_at at time zone ${timeZone} as at, target
+  const offset = calendarOffsetMinutes(timeZone);
+  // A numeric interval keeps Expo's ISO sign; PostgreSQL timezone strings
+  // such as GMT+1 instead use POSIX's reversed sign. IANA zones retain DST.
+  const zone =
+    offset === null
+      ? sql`${timeZone}::text`
+      : sql`make_interval(mins => ${offset}::int)`;
+  const weekHit = (start: SQL) => sql`(
+    -- Keep timezone functions outside the RLS-protected range predicates:
+    -- plain bound values let PostgreSQL use the (User, start) index.
+    with week_bounds as materialized (
+      select (${start}) at time zone ${zone} as utc_start,
+        (${start} + interval '1 week') at time zone ${zone} as utc_end
+    )
+    select case when goal.target is null then false else (
+      select count(*) >= goal.target from (
+        select 1 from ${workoutSessions}
+        where ${workoutSessions.userId} = ${userId}
+          and ${workoutSessions.startedAt} >= week_bounds.utc_start
+          and ${workoutSessions.startedAt} < week_bounds.utc_end
+          and ${workoutSessions.finishedAt} is not null
+          and ${workoutSessions.finishedAt} <= ${now.toISOString()}::timestamptz
+          and exists (
+            select 1 from ${workoutSessionExercises}
+            join ${workoutSessionExerciseSets}
+              on ${workoutSessionExerciseSets.workoutSessionExerciseId} = ${workoutSessionExercises.id}
+            where ${workoutSessionExercises.workoutSessionId} = ${workoutSessions.id}
+              and ${workoutSessionExerciseSets.repsCompleted} > 0
+          )
+        order by ${workoutSessions.startedAt}
+        limit goal.target
+      ) as qualifying
+    ) end
+    from week_bounds cross join lateral (
+      select case when first_goal.at >= ${start} + interval '1 week' then null
+        when first_goal.at >= ${start} then first_goal.target
+        else previous.target end as target
+      from first_goal
+      left join lateral (
+        select target from ${weeklyGoalChanges}
+        where user_id = ${userId}
+          and recorded_at < week_bounds.utc_start
+        order by recorded_at desc, id desc limit 1
+      ) as previous on true
+    ) as goal
+  )`;
+  const result = await tx.execute<{ streak: number }>(sql`
+    with recursive first_goal as (
+      select recorded_at at time zone ${zone} as at, target
       from ${weeklyGoalChanges}
       where user_id = ${userId}
       order by recorded_at, id limit 1
     ), bounds as (
-      select date_trunc('week', ${now.toISOString()}::timestamptz at time zone ${timeZone}) as current_week
-    ), counts as (
-      select date_trunc('week', ${workoutSessions.startedAt} at time zone ${timeZone}) as start,
-        count(*)::int as count
-      from ${workoutSessions}
-      where ${workoutSessions.userId} = ${userId}
-        and ${workoutSessions.finishedAt} is not null
-        and ${workoutSessions.finishedAt} <= ${now.toISOString()}::timestamptz
-        and exists (
-          select 1 from ${workoutSessionExercises}
-          join ${workoutSessionExerciseSets}
-            on ${workoutSessionExerciseSets.workoutSessionExerciseId} = ${workoutSessionExercises.id}
-          where ${workoutSessionExercises.workoutSessionId} = ${workoutSessions.id}
-            and ${workoutSessionExerciseSets.repsCompleted} > 0
-        )
-      group by 1
-    ), weeks as (
-      select counts.start from counts cross join first_goal cross join bounds
-      where counts.start >= date_trunc('week', first_goal.at)
-        and counts.start <= bounds.current_week
-      union
-      select current_week from bounds
+      select date_trunc('week', ${now.toISOString()}::timestamptz at time zone ${zone}) as current_week
+    ), walk as (
+      select current_week as start, ${weekHit(sql`bounds.current_week`)} as hit
+      from bounds
+      union all
+      select walk.start - interval '1 week', ${weekHit(sql`(walk.start - interval '1 week')`)}
+      from walk cross join bounds cross join first_goal
+      where (walk.hit or walk.start = bounds.current_week)
+        and walk.start - interval '1 week' >= date_trunc('week', first_goal.at)
     )
-    select weeks.start = bounds.current_week as current,
-      weeks.start + interval '1 week' = lag(weeks.start) over (order by weeks.start desc) as consecutive,
-      coalesce(counts.count, 0)::int as count,
-      case when first_goal.at >= weeks.start + interval '1 week' then null
-        when first_goal.at >= weeks.start
-        then first_goal.target else previous.target end as target
-    from weeks cross join bounds cross join first_goal
-    left join counts on counts.start = weeks.start
-    left join lateral (
-      select target from ${weeklyGoalChanges}
-      where user_id = ${userId}
-        and recorded_at < weeks.start at time zone ${timeZone}
-      order by recorded_at desc, id desc limit 1
-    ) as previous on true
-    order by weeks.start desc
+    select count(*) filter (where hit)::int as streak from walk
   `);
-  let streak = 0;
-  for (const week of result.rows) {
-    // Only occupied training weeks and the current week are read. A missing
-    // week breaks the run without expanding caller-controlled date ranges.
-    if (!(week.current || week.consecutive)) {
-      break;
-    }
-    const hit = week.target !== null && week.count >= week.target;
-    // An unfinished current week is pending, including one with no known goal.
-    if (week.current && !hit) {
-      continue;
-    }
-    // A missed completed week or an unknown goal ends the run. At the first
-    // partial week this simply stops at the tracking boundary, with no penalty.
-    if (!hit) {
-      break;
-    }
-    streak += 1;
-  }
-  return { changes, streak };
+  return { changes, streak: result.rows[0]?.streak ?? 0 };
 }

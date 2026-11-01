@@ -99,6 +99,41 @@ describe("GET /v1/weekly-goals", () => {
     expect(servicesFor).toEqual([]);
   });
 
+  it.each(["GMT+1", "GMT+05:30", "GMT-03:30", "UTC+12:45"])(
+    "accepts the fixed-offset calendar timezone %s without losing goal data",
+    async (zone) => {
+      const zones: string[] = [];
+      const { app } = testApp({
+        services: fakeServices({
+          getWeeklyGoals: (timeZone) => {
+            zones.push(timeZone);
+            return Promise.resolve({ changes, streak: 2 });
+          },
+        }),
+      });
+      const response = await app.request(
+        `/v1/weekly-goals?time_zone=${encodeURIComponent(zone)}`,
+        { headers: signedInAs("user_alice") }
+      );
+      expect(response.status).toBe(200);
+      expect(await response.json()).toEqual({ data: changes, streak: 2 });
+      expect(zones).toEqual([zone]);
+    }
+  );
+
+  it.each(["GMT+24", "GMT-03:60", "GMT+1DST", "GMT+9999"])(
+    "rejects the malformed fixed-offset timezone %s",
+    async (zone) => {
+      const { app, servicesFor } = testApp({});
+      const response = await app.request(
+        `/v1/weekly-goals?time_zone=${encodeURIComponent(zone)}`,
+        { headers: signedInAs("user_alice") }
+      );
+      expect(response.status).toBe(400);
+      expect(servicesFor).toEqual([]);
+    }
+  );
+
   it("counts toward the caller's rate limit", async () => {
     const { app } = testApp({
       rateLimiter: memoryRateLimiter({

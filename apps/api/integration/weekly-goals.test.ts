@@ -130,12 +130,18 @@ describe("GET /v1/weekly-goals", () => {
         workoutSessionExerciseId: exercise.id,
       });
     });
-    for (let attempt = 0; attempt < 2; attempt += 1) {
+    for (const zone of [
+      "Europe/Kyiv",
+      "GMT+1",
+      "GMT+05:30",
+      "GMT-03:30",
+      "UTC+12:45",
+    ]) {
       // biome-ignore lint/performance/noAwaitInLoops: verify sequential fresh reads
       const { body, status } = await send(
         streakOwner,
         "GET",
-        "/v1/weekly-goals?time_zone=Europe%2FKyiv"
+        `/v1/weekly-goals?time_zone=${encodeURIComponent(zone)}`
       );
       expect(status).toBe(200);
       expect(body).toMatchObject({ data: [{ target: 1 }], streak: 1 });

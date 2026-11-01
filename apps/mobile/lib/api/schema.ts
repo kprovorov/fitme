@@ -1199,14 +1199,14 @@ export interface paths {
      * List the User's Weekly goal changes
      * @description Every change of the User's Weekly goal (ADR 0015), oldest first, unpaged. The goal is the active Plan's training frequency, recorded whenever a Plan write or a finished Workout Session finds it changed; recorded changes are never rewritten.
      *
-     *     The additive `streak` counts consecutive goal-hit weeks across all retained history, including the current week once met. An unmet current week preserves the preceding run; a completed miss or unknown goal breaks it. Zero without an active goal. Supply the device IANA `time_zone` for local boundaries (UTC when omitted).
+     *     The additive `streak` counts consecutive goal-hit weeks across all retained history, including the current week once met. An unmet current week preserves the preceding run; a completed miss or unknown goal breaks it. Zero without an active goal. Supply the device IANA or fixed-offset calendar `time_zone` (such as GMT+1 or GMT-03:30) for local boundaries (UTC when omitted).
      *
      *     Weeks run Monday to Sunday on the client's own clock. The first change started tracking and sets the goal of the week it falls in (the first tracked, partial week); every later change takes effect the Monday after it, so a week's goal is the one in effect when it began. Weeks before the first change, or that began with `target: null`, have no known goal.
      */
     get: {
       parameters: {
         query?: {
-          /** @description Device timezone for Monday–Sunday boundaries; UTC when omitted */
+          /** @description Device IANA timezone or fixed-offset calendar ID (GMT+1, GMT-03:30); UTC when omitted */
           time_zone?: string;
         };
         header?: never;
