@@ -11,9 +11,9 @@ set on its own, the folders against the listing config, and, against a base
 Git ref, deleted Screenshot sets), `prepare`, which stages the sets for upload,
 and both releases pushing them to the tagged version's draft: release CI (see
 [Release](#release)) and the local release fallback
-(`scripts/release-ios-local.sh`, see [Local release](#local-release)). Running
-the check on pull requests and before release CI's build comes in its later
-issue.
+(`scripts/release-ios-local.sh`, see [Local release](#local-release)). The
+check runs on pull requests and before every release build (see
+[Where the check runs](#where-the-check-runs)).
 
 The bare and framed captures in `../iphone/` and `../framed/` are source
 material, not approved App Store exports; see [their README](../README.md).
@@ -125,6 +125,25 @@ Its tests (`scripts/app-store-screenshots.test.mjs`, run by
 `pnpm test:scripts`) run the script on PNGs they generate, with a temporary
 listing config (one test reads the repo's own), and the deleted set rule in
 temporary Git repos.
+
+### Where the check runs
+
+- **Locally**, with the command above.
+- **On pull requests** touching this directory, `apps/mobile/store.config.json`
+  or the script and its tests: the App Store Screenshots workflow
+  (`.github/workflows/app-store-screenshots.yml`) runs
+  `check --base <the pull request's base commit>`, so the deleted set rule runs
+  there (the workflow fetches the whole history for it). It needs no secrets and
+  contacts no Apple service. Its tests run in the Shell Scripts workflow.
+- **Before every release build**: the Build Mobile workflow's `build` job runs
+  `check` (no base, so no deleted set rule) on the tagged checkout before
+  `eas build` starts, so bad screenshots fail the release before a build is
+  spent. A tag that predates the script skips the check and rebuilds as before.
+- **In the local release fallback**, the same way before it builds (see
+  [Local release](#local-release)).
+
+Both run the script as it is in the checkout, so a rule added to it later runs
+there with no workflow change.
 
 ## Staging for upload
 
