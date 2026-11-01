@@ -144,18 +144,18 @@ Metric and imperial units. Dark mode.
 
 ## Screenshots
 
-Ready-made iPhone 6.9" screenshots (raw and framed) are in [`screenshots/`](screenshots/README.md). Suggested App Store order:
+Ready-made iPhone simulator screenshots (raw and framed) are in [`screenshots/`](screenshots/README.md). Suggested App Store order:
 
-1. `12-planner.png`: "Tell us your goal. Get your plan."
-2. `01-home.png`: "Your plan, your next workout, always ready."
-3. `05-session-logging.png`: "Log every set in a tap."
-4. `06-session-summary.png`: "See what you worked. Celebrate every PR."
-5. `11-exercise-progress.png`: "Watch the numbers climb."
-6. `10-exercise-detail.png`: "3D demos and form cues for every move."
-7. `13-arnold.png` / `14-arnold-models.png`: "Meet Arnold, an AI that knows your training."
-8. `07-history.png`: "Every workout, saved."
-
-Missing: an Arnold Conversation with a plan card, and the planner's result. Both need a Pro test account to capture.
+1. `arnold-generated-plan.png`: "Tell Arnold your goal. Get a plan."
+2. `workout-log-set.png`: "Log every set."
+3. `workout-summary-prs.png`: "See what you worked. Celebrate every PR."
+4. `arnold-plan-change.png`: "Ask Arnold to adjust your plan."
+5. `exercise-progress.png`: "Watch the numbers climb."
+6. `next-workout.png`: "Your next workout, ready to go."
+7. `update-plan.png`: "Keep your plan in sync with your workout."
+8. `exercise-video.png`: "Watch a demo and follow form tips."
+9. `history.png`: "See your streak and training history."
+10. `arnold-model-picker.png`: "Choose your Arnold model."
 
 ## Not yet (don't claim)
 
