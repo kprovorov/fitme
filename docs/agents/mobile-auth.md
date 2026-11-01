@@ -13,7 +13,7 @@ Use separate development and production instance registrations. The existing App
 
 ## Configure Apple
 
-1. Enable Sign in with Apple for the app identifier in Apple Developer.
+1. Keep `ios.usesAppleSignIn: true` and the `expo-apple-authentication` plugin in `apps/mobile/app.json`. On the next EAS iOS build, capability syncing enables Sign in with Apple for the app identifier in Apple Developer. Builds outside EAS require enabling the capability and updating provisioning profiles manually.
 2. Enable Apple for sign-up and sign-in in the matching Clerk instance.
 3. Configure Apple Private Relay email sources if Users can hide their email.
 
