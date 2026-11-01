@@ -109,3 +109,17 @@ _Avoid_: Integration, partner, client, OAuth app
 **API key**:
 A secret a User creates to call the Public API as themselves, for their own scripts and tools.
 _Avoid_: Token, personal access token, secret key
+
+### Store
+
+**Store listing**:
+Fitme's public page in an app store: its text and screenshots, in each Listing locale.
+_Avoid_: Metadata, store page, App Store page
+
+**Listing locale**:
+A language a Store listing is published in, named by that store's own code (on the App Store: `en-US`, `uk`). Not an App language: the stores offer different languages from the app, under different names.
+_Avoid_: Locale, store language, `uk-UA`
+
+**Screenshot set**:
+The one to ten screenshots a Store listing shows for one Listing locale, in display order.
+_Avoid_: Screenshots folder, gallery
