@@ -4,9 +4,13 @@
 // config. No network, no secrets; nothing is ever resized or repaired.
 //
 // Usage: node scripts/app-store-screenshots.mjs check [dir] [--config file]
+//        [--base ref]
 //        (default marketing/screenshots/app-store and
-//        apps/mobile/store.config.json)
+//        apps/mobile/store.config.json; --base, a pull request's base, also
+//        fails a Screenshot set deleted since then, and without it that rule
+//        doesn't run)
 import { constants as bufferConstants } from "node:buffer";
+import { spawnSync } from "node:child_process";
 import fs from "node:fs";
 import path from "node:path";
 import { fileURLToPath } from "node:url";
@@ -24,7 +28,7 @@ const DEFAULT_CONFIG_FILE = fileURLToPath(
 );
 
 const USAGE =
-  "Usage: node scripts/app-store-screenshots.mjs check [dir] [--config file]";
+  "Usage: node scripts/app-store-screenshots.mjs check [dir] [--config file] [--base ref]";
 
 // The primary Listing locale: every device folder needs its Screenshot set.
 // Apple shows it for a Listing locale without screenshots of its own, which
@@ -431,7 +435,75 @@ const checkDevice = ({ dir, listing, name, problems }) => {
   return { imageCount, sets };
 };
 
-const checkScreenshots = ({ config, dir }) => {
+const git = (cwd, args) => {
+  const child = spawnSync("git", args, { cwd, encoding: "utf8" });
+  if (child.error) {
+    throw new Error(`git didn't run (${child.error.message})`, {
+      cause: child.error,
+    });
+  }
+  if (child.status !== 0) {
+    throw new Error(child.stderr.trim() || `git exited ${child.status}`);
+  }
+  return child.stdout;
+};
+
+// The Screenshot sets committed at ref, as "<device>/<Listing locale>" (only
+// known devices: no other folder was ever uploaded). Git tracks no empty
+// folders, so a set there holds at least one file.
+const setsAt = (dir, ref) => {
+  const prefix = git(dir, ["rev-parse", "--show-prefix"]).trim();
+  const top = git(dir, ["rev-parse", "--show-toplevel"]).trim();
+  git(top, ["rev-parse", "--verify", `${ref}^{commit}`]);
+  const files = git(top, [
+    "ls-tree",
+    "-r",
+    "-z",
+    "--name-only",
+    `${ref}^{commit}`,
+    "--",
+    prefix || ".",
+  ]);
+  const sets = new Set();
+  for (const file of files.split("\0")) {
+    const parts = file.slice(prefix.length).split("/");
+    if (parts.length >= 3 && Object.hasOwn(DEVICES, parts[0])) {
+      sets.add(`${parts[0]}/${parts[1]}`);
+    }
+  }
+  return sets;
+};
+
+// The pinned EAS CLI never clears a remote Screenshot set (a set with no
+// entries is skipped), so deleting a set's folder while its Listing locale is
+// still pushed would leave its screenshots online. A base it can't read fails,
+// never skips the rule.
+const checkDeletedSets = ({ base, configLabel, dir, locales, problems }) => {
+  if (base.startsWith("-")) {
+    problems.push(`--base ${base}: not a Git ref`);
+    return;
+  }
+  let sets;
+  try {
+    sets = setsAt(dir, base);
+  } catch (error) {
+    problems.push(
+      `--base ${base}: can't read the Screenshot sets at it (${error.message})`
+    );
+    return;
+  }
+  for (const set of [...sets].sort()) {
+    const [device, locale] = set.split("/");
+    const gone = !fs.statSync(path.join(dir, set), { throwIfNoEntry: false });
+    if (gone && locales.has(locale)) {
+      problems.push(
+        `${device} / ${locale}: Screenshot set deleted since ${base}, but ${locale} is still a Listing locale in ${configLabel}; the upload never clears a remote set, so its screenshots would stay online as they are. Replace the images instead, or remove ${locale} from the listing config deliberately`
+      );
+    }
+  }
+};
+
+const checkScreenshots = ({ base, config, dir }) => {
   const problems = [];
   let sets = 0;
   let imageCount = 0;
@@ -464,6 +536,17 @@ const checkScreenshots = ({ config, dir }) => {
     sets += counts.sets;
     imageCount += counts.imageCount;
   }
+  // Without the config's Listing locales the rule can't tell; the config's own
+  // problem already fails the check.
+  if (base !== undefined && locales) {
+    checkDeletedSets({
+      base,
+      configLabel: config.label,
+      dir,
+      locales,
+      problems,
+    });
+  }
   return { imageCount, problems, sets };
 };
 
@@ -472,7 +555,7 @@ const parse = (args) => {
     return parseArgs({
       allowPositionals: true,
       args,
-      options: { config: { type: "string" } },
+      options: { base: { type: "string" }, config: { type: "string" } },
     });
   } catch {
     return null;
@@ -495,7 +578,11 @@ const main = (args) => {
     configArg === undefined
       ? { file: DEFAULT_CONFIG_FILE, label: DEFAULT_CONFIG }
       : { file: configArg, label: configArg };
-  const { imageCount, problems, sets } = checkScreenshots({ config, dir });
+  const { imageCount, problems, sets } = checkScreenshots({
+    base: parsed.values.base,
+    config,
+    dir,
+  });
   for (const problem of problems) {
     console.error(problem);
   }
