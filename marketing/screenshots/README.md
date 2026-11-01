@@ -1,5 +1,40 @@
 # Fitme iOS marketing screenshots
 
+## Locale grouping
+
+New screenshots should be grouped by language within each image type:
+
+```text
+marketing/screenshots/
+  iphone/
+    en-US/
+    uk-UA/
+  framed/
+    en-US/
+    uk-UA/
+  app-store/
+    en-US/
+    uk-UA/
+```
+
+`iphone/` contains bare app captures, `framed/` contains framed marketing
+versions, and `app-store/` contains approved App Store exports. This layout is
+the agreed destination for future screenshot work; the existing captures and
+site references below have not been moved or changed. Creating, localizing and
+reorganizing the captures and framed images belong to a separate agent task.
+Bare and framed screenshots use semantic filenames such as `home.png`,
+`history.png` and `profile.png`, without numeric prefixes or timestamps. Use
+descriptive hyphenated names for distinct states, such as
+`workout-session-active.png`. The timestamped naming contract applies to the App
+Store exports.
+
+Directory names use full locale tags: `en-US` and `uk-UA`. App Store Connect's
+metadata keys remain `en-US` and `uk`, its supported locale codes. The `uk`
+metadata entry points to files in `uk-UA/`; folder names and metadata keys do not
+need to be identical.
+
+## Existing captures
+
 Real app (Release build, no dev overlays) against a local Supabase stack seeded with a believable account. Captured 2026-10-16 from commit `44e3fb5`, except the shots with a tab bar, which still said Coach: `13-arnold.png` and `14-arnold-models.png` were recaptured 2026-10-25 on the Arnold tab (from a dev client with its tools hidden), and `01-home.png`, `07-history.png`, `08-library-muscle-groups.png`, `09-library-chest.png` and `15-profile.png` 2026-10-25 from commit `77e6808` (Release build, `fitme-exercises` at `1ec0972`). iPhone 17 Pro Max simulator (iOS 26.5, 6.9", 1320×2868), dark mode, status bar overridden to 9:41 / full Wi-Fi and signal / charged battery.
 
 | File | Shows |
@@ -39,6 +74,15 @@ python3 -c "from PIL import Image; Image.open('marketing/screenshots/framed/01-h
 
 ## App Store upload
 
+Approved App Store exports will live separately in
+[`marketing/screenshots/app-store/`](app-store/README.md),
+under `en-US/` and `uk-UA/`, named `01_20261101T143000Z.png`,
+`02_20261101T143000Z.png` and so on in display order. Each image replacement gets
+a fresh UTC timestamp; unchanged images keep their filenames across releases.
+That directory's README records the release and validation design; the assets
+and checks are not implemented yet. The captures and frames above are source
+material, not the approved App Store set.
+
 **Yes: EAS CLI 27.2.0 supports screenshot uploads from `apps/mobile/store.config.json`.** Verified 2026-11-01 for FIT-500 against the tagged source. Support and non-interactive ASC API-key auth arrived in [18.5.0](https://github.com/expo/eas-cli/blob/v27.2.0/CHANGELOG.md#1850---2026-04-02); [18.6.0](https://github.com/expo/eas-cli/blob/v27.2.0/CHANGELOG.md#1860---2026-04-10) fixed asset uploads stuck in `AWAITING_UPLOAD`. Use 18.6.0 or later for that fix; this investigation verifies 27.2.0 specifically. Release CI pins **27.2.0** in [`build-mobile.yml`](../../.github/workflows/build-mobile.yml); `eas.json`'s `>= 27.2.0` is only a minimum. The [web schema reference](https://docs.expo.dev/eas/metadata/schema/) currently omits screenshots; the [27.2.0 schema](https://github.com/expo/eas-cli/blob/v27.2.0/packages/eas-cli/schema/metadata-0.json#L319-L328) includes them, and [`createAppleTasks`](https://github.com/expo/eas-cli/blob/v27.2.0/packages/eas-cli/src/metadata/apple/tasks/index.ts) registers `ScreenshotsTask` for the [upload pipeline](https://github.com/expo/eas-cli/blob/v27.2.0/packages/eas-cli/src/metadata/upload.ts).
 
 Merge these `screenshots` fields into the existing locale objects, preserving all listing text (the paths below are examples, not approved assets):
@@ -51,14 +95,14 @@ Merge these `screenshots` fields into the existing locale objects, preserving al
       "en-US": {
         "screenshots": {
           "APP_IPHONE_67": [
-            "store/apple/screenshot/en-US/APP_IPHONE_67/01-en.png"
+            "../../marketing/screenshots/app-store/en-US/01_20261101T143000Z.png"
           ]
         }
       },
       "uk": {
         "screenshots": {
           "APP_IPHONE_67": [
-            "store/apple/screenshot/uk/APP_IPHONE_67/01-uk.png"
+            "../../marketing/screenshots/app-store/uk-UA/01_20261101T143000Z.png"
           ]
         }
       }
@@ -67,7 +111,7 @@ Merge these `screenshots` fields into the existing locale objects, preserving al
 }
 ```
 
-Paths resolve from **`apps/mobile/`**, not the config file's directory. Thus the English example is `apps/mobile/store/apple/screenshot/en-US/APP_IPHONE_67/01-en.png`; this is also the layout `metadata:pull` produces. `apps/mobile/store/` is currently gitignored: the follow-up must explicitly track only the approved images so release checkout contains them; never stage a whole pull export.
+Paths resolve from **`apps/mobile/`**, not the config file's directory. Thus the English example resolves to `marketing/screenshots/app-store/en-US/01_20261101T143000Z.png` at the repo root. EAS `metadata:pull` instead writes images under `apps/mobile/store/apple/screenshot/<locale>/<display-type>/`; that private export directory stays gitignored. Commit approved exports in the separate App Store directory so the release checkout contains them; never stage a whole pull export.
 
 Use **`APP_IPHONE_67`** for the 1320×2868 iPhone screenshots. CLI 27.2.0 [pins `@expo/apple-utils` 2.2.1](https://github.com/expo/eas-cli/blob/v27.2.0/packages/eas-cli/package.json#L47), whose [display-type enum](https://unpkg.com/@expo/apple-utils@2.2.1/ts-declarations/expo__app-store/app-store.d.ts) includes `APP_IPHONE_67` and no `APP_IPHONE_69`. [Apple's specifications](https://developer.apple.com/help/app-store-connect/reference/app-information/screenshot-specifications/) accept 1320×2868 for this large iPhone display group and allow **1–10 images per device size and locale**, in PNG/JPG/JPEG format. The EAS schema accepts arbitrary display-type keys and string arrays: it does **not** validate the display type, count, file existence, dimensions or filename pattern. The screenshot task has no additional filename rule; it uses the basename, so keep basenames unique within each set and use numbered names to make the intended order clear.
 
@@ -80,7 +124,7 @@ The [27.2.0 screenshot task](https://github.com/expo/eas-cli/blob/v27.2.0/packag
 
 [`metadata:push`](https://github.com/expo/eas-cli/blob/v27.2.0/packages/eas-cli/src/commands/metadata/push.ts) passes `--non-interactive` through to [metadata authentication](https://github.com/expo/eas-cli/blob/v27.2.0/packages/eas-cli/src/metadata/auth.ts), which can retrieve the existing submission API key from EAS credentials. Screenshots use the same authenticated app context; no separate screenshot credential is required. Apple still requires metadata permissions: its [asset-management roles](https://developer.apple.com/help/app-store-connect/manage-app-information/manage-your-app-store-assets) are Account Holder, Admin, App Manager or Marketing. A Developer key that can upload builds alone is not proof of screenshot permission. This investigation does not inspect the stored key's role or test screenshot uploads against ASC.
 
-**2.4.1 timing:** [Release run 41300472511](https://github.com/kprovorov/fitme/actions/runs/41300472511/job/124830211269) checked out `v2.4.1` (`87d55cd28c9c16da2ca6d568e8558b858158087d`); its listing push succeeded at **2026-11-01 11:19:03 UTC / 12:19:03 Madrid**. [The workflow checks out the release tag](https://github.com/kprovorov/fitme/blob/v2.4.1/.github/workflows/build-mobile.yml#L42-L45), so later screenshot commits cannot reach 2.4.1 through that release's CI, including a rebuild of the same tag. [FIT-491's current decision](https://linear.app/provorov/issue/FIT-491/app-store-screenshots-v241) skips 2.4.1 screenshots and targets **2.4.2** through release CI; the earlier manual-upload fallback (FIT-504) is canceled.
+**Release tags:** [Release run 41300472511](https://github.com/kprovorov/fitme/actions/runs/41300472511/job/124830211269) checked out `v2.4.1` (`87d55cd28c9c16da2ca6d568e8558b858158087d`); its listing push succeeded at **2026-11-01 11:19:03 UTC / 12:19:03 Madrid**. [The workflow checks out the release tag](https://github.com/kprovorov/fitme/blob/v2.4.1/.github/workflows/build-mobile.yml#L42-L45), so later screenshot commits cannot reach that version through its release CI, including a rebuild of the same tag. The [current screenshot project](https://linear.app/provorov/project/app-store-screenshots-as-code-a432c611ca4b) defines the reusable contract; the approved image set and its intended release are supplied separately.
 
 Verification: a scratch copy of the current listing with both blocks above passed AJV against the pinned schema; a non-string path was rejected. This proves the config shape only. [`metadata:lint`](https://github.com/expo/eas-cli/blob/v27.2.0/packages/eas-cli/src/commands/metadata/lint.ts) has no login context and is designed to avoid service calls, but no metadata command was run, per FIT-500's scope. No credentials or App Store Connect calls were used.
 
