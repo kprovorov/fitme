@@ -223,9 +223,13 @@ const checkPalette = (chunks, { bitDepth, colorType }) => {
   if (firstImageData !== -1 && chunks.indexOf(palette) > firstImageData) {
     throw new PngError("its PLTE chunk comes after its image data");
   }
-  const entries = palette.data.length / 3;
+  const paletteEntries = palette.data.length / 3;
   const maxEntries = Math.min(256, 2 ** bitDepth);
-  if (!Number.isInteger(entries) || entries < 1 || entries > maxEntries) {
+  if (
+    !Number.isInteger(paletteEntries) ||
+    paletteEntries < 1 ||
+    paletteEntries > maxEntries
+  ) {
     throw new PngError(
       `its PLTE chunk isn't 1 to ${maxEntries} RGB entries (${palette.data.length} bytes)`
     );
