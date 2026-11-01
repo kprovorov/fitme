@@ -49,6 +49,11 @@ cleanup() {
   fi
 }
 
+# Runs a command in the mobile workspace (apps/mobile), where EAS has to run.
+mobile() {
+  pnpm --dir "$repo" --filter @fitme/mobile exec "$@"
+}
+
 # Stamps the version from the tag into a JSON file (committed as a
 # placeholder): .expo.version in app.json, .apple.version in the listing config.
 stamp() {
@@ -82,8 +87,7 @@ push_listing() {
     echo "$tag predates the App Store screenshot script; pushing listing text only."
   fi
 
-  (cd "$repo/apps/mobile" &&
-    npx --yes "$EAS_METADATA_CLI" metadata:push --profile production --non-interactive)
+  mobile npx --yes "$EAS_METADATA_CLI" metadata:push --profile production --non-interactive
   retry=""
 }
 
@@ -165,12 +169,10 @@ main() {
   stamp "$repo/apps/mobile/app.json" .expo.version "${tag#v}"
 
   if [[ "$listing_only" == false ]]; then
-    (cd "$repo/apps/mobile" &&
-      infisical run --env=prod --path=/Mobile -- \
-        eas build --platform ios --profile production --local --output "$ipa")
+    mobile infisical run --env=prod --path=/Mobile -- \
+      eas build --platform ios --profile production --local --output "$ipa"
 
-    (cd "$repo/apps/mobile" &&
-      eas submit --platform ios --profile production --path "$ipa")
+    mobile eas submit --platform ios --profile production --path "$ipa"
 
     retry="The build was submitted, but the listing push failed. Retry just the push with:
   scripts/release-ios-local.sh --listing-only $tag"
