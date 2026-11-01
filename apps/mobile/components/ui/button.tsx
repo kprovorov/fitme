@@ -459,15 +459,12 @@ const Button = (props: ButtonProps) => {
     }
 
     if (children) {
-      const hosted = (
-        <RNHostView matchContents>
-          <View className="flex-row items-center gap-2">{children}</View>
-        </RNHostView>
-      );
-      return sizeFrame.length > 0 ? (
-        <HStack modifiers={sizeFrame}>{hosted}</HStack>
-      ) : (
-        hosted
+      return (
+        <HStack modifiers={[...contentFrame, ...sizeFrame]}>
+          <RNHostView matchContents>
+            <View className="flex-row items-center gap-2">{children}</View>
+          </RNHostView>
+        </HStack>
       );
     }
 
