@@ -142,7 +142,7 @@ temporary Git repos.
 - **In the local release fallback**, the same way before it builds (see
   [Local release](#local-release)).
 
-Both run the script as it is in the checkout, so a rule added to it later runs
+Each runs the script as it is in the checkout, so a rule added to it later runs
 there with no workflow change.
 
 ## Staging for upload
