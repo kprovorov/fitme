@@ -475,12 +475,12 @@
     "title": "Profile",
     "pro": {
       "title": "You're Pro!",
-      "description": "You have access to all of our features. You can cancel your subscription at any time.",
+      "description": "You have Arnold AI and AI-built plans. Cancel anytime.",
       "manage": "Manage Subscription"
     },
     "free": {
       "title": "You're on a free plan",
-      "description": "Subscribe to Fitme Pro to get unlimited access to all of our features",
+      "description": "Pro unlocks Arnold AI and AI-built plans",
       "upgrade": "Upgrade to Pro"
     },
     "editProfile": "Edit Profile",

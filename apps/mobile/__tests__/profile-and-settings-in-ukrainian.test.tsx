@@ -1,7 +1,7 @@
 /**
  * The Profile screen, Settings, Legal and Support on a Ukrainian device: the real
  * screens under the root layout's language sync, with Supabase swapped for the
- * in-memory backend, Clerk for a signed-in User, RevenueCat for a free plan
+ * in-memory backend, Clerk for a signed-in User, RevenueCat for the plan
  * and the SwiftUI-backed primitives for stand-ins.
  */
 import { beforeEach, describe, expect, it, jest } from "@jest/globals";
@@ -70,9 +70,11 @@ jest.mock("react-native-purchases-ui", () => ({
   default: { presentPaywall: jest.fn() },
 }));
 
+let mockIsPro = false;
+
 jest.mock("~/hooks/revenueCat", () => ({
   useCustomerInfoQuery: () => ({ data: undefined }),
-  useIsProQuery: () => ({ data: false }),
+  useIsProQuery: () => ({ data: mockIsPro }),
 }));
 
 jest.mock("~/components/ui/button", () =>
@@ -132,6 +134,7 @@ describe("Profile and Settings on a Ukrainian device", () => {
   beforeEach(() => {
     setDeviceLanguages(["uk-UA"]);
     jest.clearAllMocks();
+    mockIsPro = false;
     backend.reset();
   });
 
@@ -140,6 +143,9 @@ describe("Profile and Settings on a Ukrainian device", () => {
 
     expect(screen.getByText("Тарас Шевченко")).toBeTruthy();
     expect(screen.getByText("У вас безкоштовний план")).toBeTruthy();
+    expect(
+      screen.getByText("Pro відкриває Arnold AI і плани, складені AI")
+    ).toBeTruthy();
     expect(screen.getByText("Перейти на Pro")).toBeTruthy();
     for (const item of [
       "Редагувати профіль",
@@ -153,6 +159,18 @@ describe("Profile and Settings on a Ukrainian device", () => {
       expect(screen.getByText(item)).toBeTruthy();
     }
     expect(screen.queryByText("Settings")).toBeNull();
+  });
+
+  it("shows the Pro card's description in Ukrainian", async () => {
+    mockIsPro = true;
+    await mount(<ProfileView />);
+
+    expect(
+      screen.getByText(
+        "Вам доступні Arnold AI і плани, складені AI. Скасувати можна будь-коли."
+      )
+    ).toBeTruthy();
+    expect(screen.queryByText("Перейти на Pro")).toBeNull();
   });
 
   it("shows Settings and the account-deletion confirmation in Ukrainian", async () => {
