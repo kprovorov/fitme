@@ -1,6 +1,6 @@
 import { Stack } from "expo-router";
 import { useTranslation } from "react-i18next";
-import { Linking, ScrollView, View } from "react-native";
+import { ScrollView, View } from "react-native";
 import { useCSSVariable } from "uniwind";
 import Instagram from "~/components/icons/social/instagram";
 import Threads from "~/components/icons/social/threads";
@@ -9,6 +9,7 @@ import { Button } from "~/components/ui/button";
 import { HStack } from "~/components/ui/hstack";
 import { P } from "~/components/ui/typography";
 import { VStack } from "~/components/ui/vstack";
+import { openUrl } from "~/lib/external-links";
 import { i18n } from "~/lib/i18n";
 
 /**
@@ -20,12 +21,11 @@ const LOGO_TARGET_CLASS = "w-11 items-start";
 // An address, not text: the same in every App language
 const SUPPORT_EMAIL = "support@fitmeproject.com";
 
-const openSupportEmail = () => Linking.openURL(`mailto:${SUPPORT_EMAIL}`);
-const openX = () => Linking.openURL("https://x.com/fitmeproject");
+const openSupportEmail = () => openUrl(`mailto:${SUPPORT_EMAIL}`);
+const openX = () => openUrl("https://x.com/fitmeproject");
 const openInstagram = () =>
-  Linking.openURL("https://www.instagram.com/fitmeprojectcom");
-const openThreads = () =>
-  Linking.openURL("https://www.threads.net/@fitmeprojectcom");
+  openUrl("https://www.instagram.com/fitmeprojectcom");
+const openThreads = () => openUrl("https://www.threads.net/@fitmeprojectcom");
 
 export default function SupportScreen() {
   const primary = useCSSVariable("--color-primary") as string;

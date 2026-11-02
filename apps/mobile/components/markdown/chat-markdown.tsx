@@ -1,8 +1,8 @@
-import * as WebBrowser from "expo-web-browser";
-import { Linking, Text, View } from "react-native";
+import { Text, View } from "react-native";
 import { useCSSVariable, useResolveClassNames } from "uniwind";
 import { Table, TableCell, TableHead, TableRow } from "~/components/ui/table";
 import { Text as StyledText } from "~/components/ui/text";
+import { openWebPage } from "~/lib/external-links";
 import { cn } from "~/lib/utils";
 import Markdown from "./markdown";
 
@@ -22,16 +22,6 @@ function preserveNewlines(md: string): string {
   return md.replace(/(```[\s\S]*?```)|(\n)/g, (match, codeBlock) =>
     codeBlock ? match : "  \n"
   );
-}
-
-function openLink(url: string) {
-  if (process.env.EXPO_OS === "web") {
-    Linking.openURL(url);
-  } else {
-    WebBrowser.openBrowserAsync(url, {
-      presentationStyle: WebBrowser.WebBrowserPresentationStyle.AUTOMATIC,
-    });
-  }
 }
 
 export function ChatMarkdown({ children }: { children: string }) {
@@ -104,7 +94,7 @@ export function ChatMarkdown({ children }: { children: string }) {
   return (
     <Markdown
       markdown={preserveNewlines(children)}
-      onLinkPress={openLink}
+      onLinkPress={openWebPage}
       renderRules={{
         listItem: ({ node, styles, children: itemChildren, extras }) => (
           // biome-ignore lint/suspicious/noExplicitAny: StyleMap values are NamedStyle which requires cast for View/Text style props

@@ -2,13 +2,13 @@ import { useUser } from "@clerk/expo";
 import { Link, router } from "expo-router";
 import { useCallback } from "react";
 import { useTranslation } from "react-i18next";
-import { Linking } from "react-native";
 import RevenueCatUI from "react-native-purchases-ui";
 import { SymbolImage } from "~/components/symbol-image";
 import { Button } from "~/components/ui/button";
 import { Text } from "~/components/ui/text";
 import { useLogoutMutation } from "~/hooks/mutations/auth";
 import { useCustomerInfoQuery, useIsProQuery } from "~/hooks/revenueCat";
+import { openUrl } from "~/lib/external-links";
 import { i18n } from "~/lib/i18n";
 import { getProfileHeader } from "~/lib/user-name";
 import { Avatar, AvatarFallback } from "../ui/avatar";
@@ -24,7 +24,7 @@ const APP_STORE_REVIEW_URL =
 
 const presentPaywall = () => RevenueCatUI.presentPaywall();
 
-const openAppStoreReview = () => Linking.openURL(APP_STORE_REVIEW_URL);
+const openAppStoreReview = () => openUrl(APP_STORE_REVIEW_URL);
 
 export default function ProfileView() {
   const { user } = useUser();
@@ -49,7 +49,7 @@ export default function ProfileView() {
 
   const openManagementURL = useCallback(() => {
     if (managementURL) {
-      Linking.openURL(managementURL);
+      openUrl(managementURL);
     }
   }, [managementURL]);
 
