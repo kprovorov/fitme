@@ -6,12 +6,14 @@ import { MenuList, MenuListItem } from "~/components/ui/menu-list";
 import { Separator } from "~/components/ui/separator";
 import { Text } from "~/components/ui/text";
 import { useDeleteUserMutation } from "~/hooks/mutations/auth";
-import { openWebPage } from "~/lib/external-links";
+import {
+  openWebPage,
+  PRIVACY_POLICY_URL,
+  TERMS_URL,
+} from "~/lib/external-links";
 import { i18n } from "~/lib/i18n";
 
-const PRIVACY_URL = "https://fitmeproject.com/privacy-policy";
-const TERMS_URL = "https://fitmeproject.com/terms";
-const openPrivacy = () => openWebPage(PRIVACY_URL);
+const openPrivacy = () => openWebPage(PRIVACY_POLICY_URL);
 const openTerms = () => openWebPage(TERMS_URL);
 
 export default function LegalScreen() {
@@ -40,17 +42,17 @@ export default function LegalScreen() {
       >
         <MenuList>
           <MenuListItem
-            accessibilityRole="link"
             icon="square-arrow-out-up-right"
             onPress={openPrivacy}
+            role="link"
           >
             <Text>{t("legal.privacyPolicy")}</Text>
           </MenuListItem>
           <Separator />
           <MenuListItem
-            accessibilityRole="link"
             icon="square-arrow-out-up-right"
             onPress={openTerms}
+            role="link"
           >
             <Text>{t("legal.terms")}</Text>
           </MenuListItem>

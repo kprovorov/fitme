@@ -2,14 +2,13 @@ import { beforeEach, describe, expect, it, jest } from "@jest/globals";
 import * as Sentry from "@sentry/react-native";
 import * as WebBrowser from "expo-web-browser";
 import { Linking } from "react-native";
-import { openUrl, openWebPage } from "../external-links";
+import { openUrl, openWebPage, TERMS_URL } from "../external-links";
 
 jest.mock("expo-web-browser", () => ({
   openBrowserAsync: jest.fn(),
   WebBrowserPresentationStyle: { AUTOMATIC: "automatic" },
 }));
 
-const TERMS_URL = "https://fitmeproject.com/terms";
 const openBrowserAsync = jest.mocked(WebBrowser.openBrowserAsync);
 const captureException = jest.mocked(Sentry.captureException);
 const openURL = jest.spyOn(Linking, "openURL");
@@ -35,8 +34,8 @@ describe("openWebPage", () => {
     expect(captureException).not.toHaveBeenCalled();
   });
 
-  it("falls back to the system when the in-app browser fails", async () => {
-    openBrowserAsync.mockRejectedValue(new Error("Another browser is open"));
+  it("falls back to the system when the in-app browser throws", async () => {
+    openBrowserAsync.mockRejectedValue(new Error("Native failure"));
     openURL.mockResolvedValue(undefined);
 
     await openWebPage(TERMS_URL);
@@ -47,7 +46,7 @@ describe("openWebPage", () => {
 
   it("reports, never rejects, when nothing can open the page", async () => {
     const failure = new Error(`Unable to open URL: ${TERMS_URL}`);
-    openBrowserAsync.mockRejectedValue(new Error("Another browser is open"));
+    openBrowserAsync.mockRejectedValue(new Error("Native failure"));
     openURL.mockRejectedValue(failure);
 
     await expect(openWebPage(TERMS_URL)).resolves.toBeUndefined();

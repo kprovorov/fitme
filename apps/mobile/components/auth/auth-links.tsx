@@ -2,12 +2,14 @@ import { type Href, router } from "expo-router";
 import { useTranslation } from "react-i18next";
 import { Pressable, View } from "react-native";
 import { Text } from "~/components/ui/text";
-import { openWebPage } from "~/lib/external-links";
+import {
+  openWebPage,
+  PRIVACY_POLICY_URL,
+  TERMS_URL,
+} from "~/lib/external-links";
 
-const TERMS_URL = "https://fitmeproject.com/terms";
-const PRIVACY_URL = "https://fitmeproject.com/privacy-policy";
 const openTerms = () => openWebPage(TERMS_URL);
-const openPrivacy = () => openWebPage(PRIVACY_URL);
+const openPrivacy = () => openWebPage(PRIVACY_POLICY_URL);
 export function AuthLegal({ disabled }: { disabled?: boolean }) {
   const { t } = useTranslation();
   return (

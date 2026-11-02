@@ -1,11 +1,11 @@
-import * as Sentry from "@sentry/react-native";
 import Constants from "expo-constants";
 import { useTranslation } from "react-i18next";
-import { Linking, Platform } from "react-native";
+import { Platform } from "react-native";
 import { Button } from "~/components/ui/button";
 import { Text } from "~/components/ui/text";
 import { H3 } from "~/components/ui/typography";
 import { VStack } from "~/components/ui/vstack";
+import { openUrl } from "~/lib/external-links";
 
 /** The app's App Store or Play Store listing, if the platform has one. */
 const getStoreUrl = () => {
@@ -22,7 +22,7 @@ const STORE_URL = getStoreUrl();
 
 const openStore = () => {
   if (STORE_URL) {
-    Linking.openURL(STORE_URL).catch(Sentry.captureException);
+    openUrl(STORE_URL);
   }
 };
 
