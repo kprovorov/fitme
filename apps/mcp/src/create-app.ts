@@ -70,9 +70,15 @@ export function createApp({
     })
   );
 
-  // Public: liveness and OAuth discovery.
+  // Public: liveness, OAuth discovery and OpenAI's domain verification.
   app.get("/health", (c) => c.json({ ok: true }));
   app.get(PROTECTED_RESOURCE_METADATA_PATH, protectedResourceMetadata);
+  // OpenAI's Apps SDK domain verification token (public), from the env; 404
+  // while it's unset.
+  app.get("/.well-known/openai-apps-challenge", (c) => {
+    const challenge = process.env.OPENAI_APPS_CHALLENGE?.trim();
+    return challenge ? c.text(challenge) : c.notFound();
+  });
 
   // The MCP endpoint lives at the root so the server is reachable directly at
   // https://mcp.fitmeproject.com. Every method needs a Clerk OAuth token.
