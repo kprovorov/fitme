@@ -1,0 +1,113 @@
+name: Update App Store Screenshots
+
+# Pushes main's App Store Screenshot sets (marketing/screenshots/app-store) to
+# a release's App Store Connect draft without a new build: run it by hand
+# after merging new screenshots, while that version is still editable. The
+# release (tag) defaults to the latest v* tag, the pending one.
+#
+# Only the screenshots come from main: the listing text is the tag's own
+# store.config.json, so the draft's text stays what the release's listing job
+# pushed. Same staging and push as Build Mobile's listing job (see the
+# screenshots README, "Updating a pending release").
+#
+# Run it only while the tag's version is still an editable draft in App Store
+# Connect (Prepare for Submission, or rejected). EAS looks the version up by
+# its number: with no editable version of that number it renames whatever
+# draft exists to it, or tries to create it (refused for a live version). So
+# never run it for a tag whose version is live while a newer draft exists.
+
+on:
+  workflow_dispatch:
+    inputs:
+      tag:
+        description: Release tag whose draft to update, e.g. v1.23.0 (empty = the latest v* tag). Only while that version is still an editable draft in App Store Connect
+        required: false
+        type: string
+
+permissions:
+  contents: read
+
+# Two pushes to the same draft would race: queue them, never cancel one
+# half-way through an upload.
+concurrency:
+  group: update-app-store-screenshots
+  cancel-in-progress: false
+
+jobs:
+  push:
+    if: github.ref == 'refs/heads/main'
+    runs-on: ubuntu-24.04
+    timeout-minutes: 30
+    environment: production
+    steps:
+      - uses: actions/checkout@v7
+        with:
+          # Tags and history, to find the release and check it's on main.
+          fetch-depth: 0
+
+      - name: Resolve the release tag
+        id: tag
+        env:
+          INPUT_TAG: ${{ inputs.tag }}
+        run: |
+          tag="$INPUT_TAG"
+          if [ -z "$tag" ]; then
+            tag=$(git tag --list 'v*' --sort=-version:refname | grep -E '^v[0-9]+\.[0-9]+\.[0-9]+$' | head -n 1)
+          fi
+          if ! echo "$tag" | grep -qE '^v[0-9]+\.[0-9]+\.[0-9]+$'; then
+            echo "::error::Tag must look like v1.2.3, got '$tag'."
+            exit 1
+          fi
+          if ! git rev-parse -q --verify "refs/tags/$tag" > /dev/null; then
+            echo "::error::No tag $tag."
+            exit 1
+          fi
+          if ! git merge-base --is-ancestor "refs/tags/$tag" HEAD; then
+            echo "::error::$tag isn't on main."
+            exit 1
+          fi
+          if ! git cat-file -e "refs/tags/${tag}:apps/mobile/store.config.json" 2> /dev/null; then
+            echo "::error::$tag has no apps/mobile/store.config.json, so its listing isn't managed from the repo."
+            exit 1
+          fi
+          echo "tag=$tag" >> "$GITHUB_OUTPUT"
+          echo "Updating the App Store draft of $tag ($(git rev-parse --short HEAD) screenshots)."
+
+      # The tag's listing text, stamped with its version, so the push changes
+      # nothing but the screenshots.
+      - name: Use the tag's listing config
+        env:
+          TAG: ${{ steps.tag.outputs.tag }}
+        run: |
+          git show "refs/tags/${TAG}:apps/mobile/store.config.json" \
+            | jq --arg version "${TAG#v}" '.apple.version = $version' > apps/mobile/store.config.json
+          jq --arg version "${TAG#v}" '.expo.version = $version' apps/mobile/app.json > apps/mobile/app.json.tmp
+          mv apps/mobile/app.json.tmp apps/mobile/app.json
+          echo "Listing version: $(jq -r '.apple.version' apps/mobile/store.config.json)"
+
+      - uses: pnpm/action-setup@v6
+
+      - uses: actions/setup-node@v7
+        with:
+          node-version: "24"
+          cache: "pnpm"
+
+      # Checks main's Screenshot sets against the tag's listing config, stages
+      # each image under a name derived from its contents in the runner's temp
+      # directory (never committed or uploaded as an artifact) and writes the
+      # config's screenshots entries. A problem fails the job before the push.
+      - name: Stage the Screenshot sets
+        run: node scripts/app-store-screenshots.mjs prepare "$RUNNER_TEMP/app-store-screenshots"
+
+      - name: Install dependencies
+        run: pnpm install --frozen-lockfile
+
+      - uses: expo/expo-github-action@v9
+        with:
+          # Metadata supports the stored EAS submit API key in this version.
+          eas-version: 27.2.0
+          token: ${{ secrets.EXPO_TOKEN }}
+
+      - name: Push the screenshots to the release draft
+        working-directory: apps/mobile
+        run: eas metadata:push --profile production --non-interactive
