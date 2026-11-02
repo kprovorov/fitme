@@ -1,0 +1,45 @@
+name: App Store Screenshots
+
+# Checks the App Store Screenshot sets (marketing/screenshots/app-store, see its
+# README) on pull requests touching them, the Store listing config or the
+# check itself. No secrets, no Apple service: the check only reads the files.
+# Its tests run in Shell Scripts, with the other scripts/ helpers.
+on:
+  pull_request:
+    paths:
+      - marketing/screenshots/app-store/**
+      - apps/mobile/store.config.json
+      - scripts/app-store-screenshots.mjs
+      - scripts/app-store-screenshots.test.mjs
+      - .github/workflows/app-store-screenshots.yml
+
+permissions:
+  contents: read
+
+# A new push cancels the pull request's run still in progress.
+concurrency:
+  group: app-store-screenshots-${{ github.event.pull_request.number || github.run_id }}
+  cancel-in-progress: true
+
+jobs:
+  check:
+    runs-on: ubuntu-24.04
+    timeout-minutes: 5
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v7
+        with:
+          # The whole history, so rules comparing against the pull request's
+          # base can read it.
+          fetch-depth: 0
+
+      - name: Setup Node.js
+        uses: actions/setup-node@v7
+        with:
+          node-version: "24"
+
+      # Node built-ins only, so no install.
+      - name: Check the Screenshot sets
+        env:
+          BASE: ${{ github.event.pull_request.base.sha }}
+        run: node scripts/app-store-screenshots.mjs check --base "$BASE"
