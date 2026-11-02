@@ -98,7 +98,7 @@ function AvailableSocialButtons({
         </Button>
       ) : null}
       {divider ? (
-        <View className="my-sm flex-row items-center gap-sm">
+        <View className="mt-xs flex-row items-center gap-sm">
           <Separator className="flex-1" />
           <Text className="text-footnote text-muted-foreground">
             {t("auth.or")}

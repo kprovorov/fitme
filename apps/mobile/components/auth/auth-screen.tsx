@@ -23,17 +23,30 @@ export interface AuthFormLayout {
   onEdit?: () => void;
 }
 
+/**
+ * Each auth Screen's rhythm, as Figma spaces it: `md` (24) on the welcome,
+ * log in and sign up Screens, `lg` (32) on the single-field ones (verify
+ * code, forgot and reset password), from the header down and between the
+ * header, the form and the actions.
+ */
+const SPACING = {
+  lg: { className: "grow items-stretch gap-lg", top: 32 },
+  md: { className: "grow items-stretch gap-md", top: 24 },
+} as const;
+
 export function AuthScreen({
   action,
   children,
   footer,
   bottomAction = true,
+  spacing = "md",
   welcome = false,
 }: {
   action: ReactElement;
   children: ReactNode;
   footer?: ReactNode;
   bottomAction?: boolean;
+  spacing?: keyof typeof SPACING;
   welcome?: boolean;
 }) {
   const insets = useSafeAreaInsets();
@@ -52,8 +65,9 @@ export function AuthScreen({
             0,
             height - (welcome ? 0 : headerHeight + insets.bottom)
           ),
-          paddingBottom: welcome ? insets.bottom + 8 : 8,
-          paddingTop: welcome ? insets.top + 32 : 24,
+          // Figma ends the actions right at the home indicator.
+          paddingBottom: welcome ? insets.bottom : 0,
+          paddingTop: welcome ? insets.top + 32 : SPACING[spacing].top,
         }}
         contentInsetAdjustmentBehavior={welcome ? "never" : "automatic"}
         extraKeyboardSpace={sticky ? 82 : 0}
@@ -62,7 +76,7 @@ export function AuthScreen({
         showsVerticalScrollIndicator={false}
       >
         <TouchableWithoutFeedback accessible={false} onPress={Keyboard.dismiss}>
-          <View className="grow items-stretch gap-md">
+          <View className={SPACING[spacing].className}>
             {children}
             {bottomAction ? <View className="grow" /> : null}
             <View className="gap-xs">

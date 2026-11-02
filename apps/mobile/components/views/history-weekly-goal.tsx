@@ -55,15 +55,29 @@ const weekLabel = (t: TFunction, i18n: Translator, week: GoalWeek) => {
   });
 };
 
+/** The pips a week fills: its goal, or its count capped at `pips` without one. */
+const weekSlots = (week: GoalWeek, pips: number) =>
+  week.goal ?? Math.min(week.count, pips);
+
 /**
  * One week's column (Figma's ConsistencyWeek): a pip per workout of its goal,
- * filled bottom up and capped at the goal, `+N` above for the extras. A week
- * without a known goal shows its count in neutral pips, nothing to fill.
+ * filled bottom up and capped at the goal. A week without a known goal shows
+ * its count in neutral pips, nothing to fill. When any week on show went past
+ * its goal, every column gets a line above for `+N` extras (Figma has none,
+ * so a chart without extras stays its height).
  */
-function WeekColumn({ pips, week }: { pips: number; week: GoalWeek }) {
+function WeekColumn({
+  pips,
+  showExtras,
+  week,
+}: {
+  pips: number;
+  showExtras: boolean;
+  week: GoalWeek;
+}) {
   const { t } = useTranslation();
   const i18n = useI18n();
-  const slots = week.goal ?? Math.min(week.count, pips);
+  const slots = weekSlots(week, pips);
   const filled = Math.min(week.count, slots);
   const extra = week.count - slots;
   return (
@@ -72,14 +86,18 @@ function WeekColumn({ pips, week }: { pips: number; week: GoalWeek }) {
       accessible
       className="min-w-9 items-center gap-xs"
     >
-      <Text
-        className={cn(
-          "text-center text-caption-2-emphasized",
-          week.goal === null ? "text-muted-foreground" : "text-primary"
-        )}
-      >
-        {extra > 0 ? t("history.weeklyGoal.extra", { count: extra }) : "\u00a0"}
-      </Text>
+      {showExtras ? (
+        <Text
+          className={cn(
+            "text-center text-caption-2-emphasized",
+            week.goal === null ? "text-muted-foreground" : "text-primary"
+          )}
+        >
+          {extra > 0
+            ? t("history.weeklyGoal.extra", { count: extra })
+            : "\u00a0"}
+        </Text>
+      ) : null}
       <View className="w-9 gap-1">
         {Array.from({ length: pips }, (_, index) => pips - index).map((pip) => (
           <View
@@ -118,6 +136,9 @@ export default function HistoryWeeklyGoal({
   const stacked = useStackedLayout();
   // Columns as tall as the biggest goal on show, so every pip is one size.
   const pips = Math.max(...overview.weeks.map((week) => week.goal ?? 0), 1);
+  const showExtras = overview.weeks.some(
+    (week) => week.count > weekSlots(week, pips)
+  );
 
   return (
     <View className="gap-sm">
@@ -150,7 +171,12 @@ export default function HistoryWeeklyGoal({
         }
       >
         {overview.weeks.map((week) => (
-          <WeekColumn key={week.start.toISOString()} pips={pips} week={week} />
+          <WeekColumn
+            key={week.start.toISOString()}
+            pips={pips}
+            showExtras={showExtras}
+            week={week}
+          />
         ))}
       </View>
     </View>

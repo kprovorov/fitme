@@ -60,7 +60,7 @@ export default function WorkoutCarousel({ plan }: WorkoutCarouselProps) {
   };
 
   return (
-    <View className="-mx-md gap-sm">
+    <View className="-mx-sm gap-sm">
       <ScrollView
         contentContainerClassName="gap-xs px-sm"
         decelerationRate="fast"

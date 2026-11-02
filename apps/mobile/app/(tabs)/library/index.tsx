@@ -32,7 +32,7 @@ export default function LibraryScreen() {
         }}
       />
       <ExercisesView
-        contentContainerClassName="px-6"
+        contentContainerClassName="px-sm pt-2.5"
         muscleChoiceKey={MUSCLE_CHOICE_KEY}
         onExercisePress={onExercisePress}
         onSearchChange={onSearchChange}

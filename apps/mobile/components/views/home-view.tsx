@@ -15,14 +15,16 @@ export default function HomeView({ plan }: HomeViewProps) {
   const { t } = useTranslation();
 
   return (
-    <VStack className="items-stretch gap-lg">
+    <VStack className="items-stretch gap-sm">
       <PlanHeader plan={plan} />
       <VStack className="items-stretch gap-sm">
         {/* Wraps at large text sizes, so the heading keeps whole words and
             the sliders button drops under it. */}
         <View className="flex-row flex-wrap items-center">
           <H3 className="shrink">{t("home.workouts")}</H3>
-          <View className="ml-auto">
+          {/* The row is Figma's 34 pt (the ghost circle's height); the
+              button keeps its 44 pt tap target over it. */}
+          <View className="-my-1.25 ml-auto">
             <PlanMenu />
           </View>
         </View>

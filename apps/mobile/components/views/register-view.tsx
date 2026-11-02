@@ -68,8 +68,12 @@ export default function RegisterView() {
     >
       <AuthHeader title={t("auth.register.heading")} />
       <SocialAuthButtons divider operation={operation} providers={providers} />
-      {fields}
-      <View nativeID="clerk-captcha" />
+      {/* The captcha holder sits with the fields: on its own it would add
+          a gap of the stack above the actions. */}
+      <View>
+        {fields}
+        <View nativeID="clerk-captcha" />
+      </View>
     </AuthScreen>
   );
   const { t } = useTranslation();

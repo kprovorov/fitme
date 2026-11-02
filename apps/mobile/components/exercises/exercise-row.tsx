@@ -29,10 +29,13 @@ export function ExerciseRowChevron() {
   return <ExerciseRowSymbol name="chevron.right" />;
 }
 
-/** The line between two rows, inset like a `MenuList`'s, on the rows' card surface. */
+/**
+ * The line between two rows, inset like a `MenuList`'s, on the rows' card
+ * surface, carrying the group's side stroke through.
+ */
 export function ExerciseRowSeparator() {
   return (
-    <View className="bg-card">
+    <View className="border-border border-x bg-card">
       <Separator className="mx-sm w-auto" />
     </View>
   );
@@ -51,8 +54,9 @@ interface ExerciseRowProps {
 
 /**
  * One Exercise of an inset grouped list (thumbnail, name and Muscle groups),
- * drawn on its own so a virtualised list can render it: the first row rounds
- * the group's top corners, the last its bottom ones, as a `MenuList` would.
+ * drawn on its own so a virtualised list can render it. The rows together
+ * draw a `Card`: its fill and its `border` stroke, the first row rounding the
+ * group's top corners and the last its bottom ones.
  */
 export function ExerciseRow({
   accessibilityLabel,
@@ -71,9 +75,9 @@ export function ExerciseRow({
   return (
     <View
       className={cn(
-        "overflow-hidden border-continuous bg-card",
-        isFirst && "rounded-t-card",
-        isLast && "rounded-b-card"
+        "overflow-hidden border-border border-continuous border-x bg-card",
+        isFirst && "rounded-t-card border-t",
+        isLast && "rounded-b-card border-b"
       )}
     >
       <MenuListItem
@@ -81,7 +85,7 @@ export function ExerciseRow({
         className="gap-sm p-sm"
         onPress={handlePress}
       >
-        <ExerciseImage exercise={exercise} radius={10} size={50} />
+        <ExerciseImage exercise={exercise} radius={8} size={50} />
         <View className="flex-1">
           <Text className="text-body-emphasized">{exercise.name}</Text>
           {exercise.muscle_groups.length > 0 && (

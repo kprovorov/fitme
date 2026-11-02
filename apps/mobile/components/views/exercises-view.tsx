@@ -239,7 +239,7 @@ const ExercisesView = ({
       ListEmptyComponent={renderEmpty()}
       ListFooterComponent={renderFooter() ?? undefined}
       ListHeaderComponent={
-        <VStack className="items-stretch pb-md">
+        <VStack className="items-stretch pb-sm">
           <Button
             className="self-start"
             disabled={musclesDisabled}
