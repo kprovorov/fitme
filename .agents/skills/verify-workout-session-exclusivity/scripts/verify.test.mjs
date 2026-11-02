@@ -20,15 +20,20 @@ const userKey = /Index key: user/;
 const unreviewedMigration =
   /touches workout_sessions after the covered migration/;
 
-for (const scenario of ["reviewed", "edited", "new"]) {
+for (const scenario of ["reviewed", "edited-records", "edited-progress", "new"]) {
   test(`migration guard: ${scenario} session reference`, () => {
     const scratch = mkdtempSync(join(tmpdir(), "fitme-migration-guard-"));
     let out;
     try {
       const target = join(scratch, migrations);
       cpSync(join(root, migrations), target, { recursive: true });
-      if (scenario === "edited") {
-        const file = join(target, "20261031130000_personal_records.sql");
+      if (scenario.startsWith("edited-")) {
+        const file = join(
+          target,
+          scenario === "edited-records"
+            ? "20261031130000_personal_records.sql"
+            : "20261101100000_workout_session_progress.sql"
+        );
         writeFileSync(
           file,
           `${readFileSync(file, "utf8")}\nDROP INDEX public.workout_sessions_one_open_per_user_idx;\n`
