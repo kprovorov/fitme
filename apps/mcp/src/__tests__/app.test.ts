@@ -16,6 +16,7 @@ vi.mock("@clerk/hono", () => ({
 const mockedGetAuth = vi.mocked(getAuth);
 
 const SSE_DATA_LINE = /^data: (.*)$/m;
+const PLAIN_TEXT = /^text\/plain/;
 const CLERK_FRONTEND_API = "fitme-test.clerk.accounts.dev";
 const PUBLISHABLE_KEY = `pk_test_${btoa(`${CLERK_FRONTEND_API}$`)}`;
 const METADATA_URL = "http://localhost/.well-known/oauth-protected-resource";
@@ -284,6 +285,30 @@ describe("public routes", () => {
     expect(response.status).toBe(200);
     expect(await response.json()).toEqual({ ok: true });
   });
+
+  it("serves the OpenAI Apps challenge from the env without a token or config", async () => {
+    vi.stubEnv("CLERK_SECRET_KEY", "");
+    vi.stubEnv("OPENAI_APPS_CHALLENGE", "challenge-token");
+    const { app } = createTestApp();
+
+    const response = await app.request("/.well-known/openai-apps-challenge");
+
+    expect(response.status).toBe(200);
+    expect(response.headers.get("content-type")).toMatch(PLAIN_TEXT);
+    expect(await response.text()).toBe("challenge-token");
+  });
+
+  it.each(["", "   "])(
+    "answers 404 for the OpenAI Apps challenge while its env is %j",
+    async (value) => {
+      vi.stubEnv("OPENAI_APPS_CHALLENGE", value);
+      const { app } = createTestApp();
+
+      const response = await app.request("/.well-known/openai-apps-challenge");
+
+      expect(response.status).toBe(404);
+    }
+  );
 
   it("names the Clerk instance as the authorization server", async () => {
     const { app } = createTestApp();
