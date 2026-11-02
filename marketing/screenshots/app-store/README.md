@@ -181,8 +181,9 @@ exactly what the last one did.
 
 ## Release
 
-Screenshots only change through a release, and only to the release's own tag:
-a later commit never reaches an earlier version. Release CI
+Screenshots change through a release, to the release's own tag, or through
+[Updating a pending release](#updating-a-pending-release), which pushes main's
+sets to a release's draft without a new build. Release CI
 ([`build-mobile.yml`](../../../.github/workflows/build-mobile.yml)) uploads them
 in its `listing` job, which starts once the `build` job's EAS build has been
 submitted to App Store Connect, so the tagged version's draft exists. On the
@@ -219,6 +220,36 @@ again and runs no EAS build or submission, so no build quota or build number is
 spent. That's safe after a half-done upload: unchanged images keep their upload
 names, so the screenshots that already arrived are kept and only the rest are
 uploaded.
+
+## Updating a pending release
+
+To fix the screenshots of a release that's already tagged and submitted but not
+yet reviewed, merge the new images to `main`, then run the **Update App Store
+Screenshots** workflow
+([`update-app-store-screenshots.yml`](../../../.github/workflows/update-app-store-screenshots.yml))
+by hand from `main` (Actions → Update App Store Screenshots → Run workflow). No
+build, no submission, no build quota. Its one input, `tag`, defaults to the
+latest `v*` tag, the pending release. It:
+
+1. refuses a tag that isn't `vX.Y.Z`, isn't on `main` or has no
+   `apps/mobile/store.config.json`;
+2. takes the **tag's** listing config, stamped with its version, so the draft's
+   listing text stays what the release pushed and only the screenshots change;
+3. runs `prepare` on **main's** Screenshot sets into the runner's temp
+   directory (the check runs first, against the tag's config), and
+4. runs `eas metadata:push`, as the `listing` job does, with the same key.
+
+Each Screenshot set on `main` then replaces that Listing locale's set in the
+draft, exactly as in [Release](#release); unchanged images keep their upload
+names and stay. The same caveats apply: look at the draft afterwards.
+
+**Only while the version is an editable draft** (Prepare for Submission, or
+rejected). EAS finds the version by number among the editable ones; without a
+match it renames whatever editable draft exists to that number, or tries to
+create the version, which App Store Connect refuses for one already live. So
+never run it for a released tag while a newer draft exists. Runs queue rather
+than overlap, but nothing stops one from racing a release's own `listing` job:
+don't run it while a release is building.
 
 ## Local release
 
