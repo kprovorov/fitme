@@ -11,6 +11,18 @@ Where a skill says otherwise, this file wins for this repo: [When a skill disagr
 - **Primitive**: a component in `components/ui/`. Screens and Views are built from Primitives, never from bare `react-native` controls when a Primitive exists. _Avoid_: atom, base component.
 - **Token**: a semantic design value (color, type size, spacing, radius, size, font role), or a text style built on them, defined once in `@fitme/design-tokens` (`packages/design-tokens/src/tokens.css`) and imported by every app. _Avoid_: magic number, hard-coded value.
 
+## The Figma file
+
+Every UI design lives in one Figma file, `Fitme` (file key `8RPWsghaJBjkkjGzPypuH0`): https://www.figma.com/design/8RPWsghaJBjkkjGzPypuH0. Read it through the Figma MCP before building or changing a Screen, and match what it shows; nobody has to link it per task. Its pages:
+
+- **Foundations** (`1037:38`): the variables and text styles mirroring the Tokens (see [Tokens](#tokens)).
+- **Components** (`1027:4187`): the Primitives' sets (`Button`, `Card`, …) and the `Native` section with an iOS 27 kit instance per native wrapper.
+- **UI** (`63:2`): the mobile Screens (Splash, Auth, Dashboard, Library, History, Profile, Workout Session, Summary, …) and the screen parts they share.
+
+The other pages (Logo, Banners, Blog, AppStore Screenshots, Archive and the dated ones) aren't app UI.
+
+A Screen that isn't in the file yet is built from the Tokens and Primitives below; say so in the pull request.
+
 ## See it before you ship it
 
 Code that compiles isn't done. Every UI change is looked at, by you and then by someone who didn't write it:
