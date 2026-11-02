@@ -85,7 +85,11 @@ managed in App Store Connect.
 Release runs from `main` build the release tag and wait for EAS auto-submit in
 the Build Mobile workflow's `build` job. Once it succeeds, the separate `listing`
 job checks out the same tag, stamps `apple.version` from the tag into the
-working copy so the listing targets that release's draft, and runs
+working copy so the listing targets that release's draft, stages the tag's
+App Store Screenshot sets into the listing config with
+`node scripts/app-store-screenshots.mjs prepare` (see
+[their README](marketing/screenshots/app-store/README.md#release); a problem
+fails the job before the push), and runs
 `eas metadata:push --profile production --non-interactive`. PRs never push
 metadata. The push does not submit the version for App Review; inspect the
 draft in App Store Connect before submitting it. Rebuilding an older tag

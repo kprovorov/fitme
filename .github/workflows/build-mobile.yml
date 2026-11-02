@@ -4,8 +4,9 @@ name: Build Mobile
 # stamped into app.json here (never committed) and EAS uploads the working
 # tree, so the build carries it. Runs after Release, or by hand to rebuild.
 # The build job waits for auto-submit; the listing job then pushes the tag's
-# Store listing to the same draft version. It's its own job so a failed push
-# can be retried with "Re-run failed jobs" without a new EAS build.
+# Store listing, with its Screenshot sets, to the same draft version (never
+# submitted for review). It's its own job so a failed push can be retried with
+# "Re-run failed jobs" without a new EAS build.
 
 on:
   workflow_call:
@@ -138,6 +139,23 @@ jobs:
           jq --arg version "${TAG#v}" '.apple.version = $version' store.config.json > store.config.json.tmp
           mv store.config.json.tmp store.config.json
           echo "Listing version: $(jq -r '.apple.version' store.config.json)"
+
+      # Validates the tag's Screenshot sets, stages each image under a name
+      # derived from its contents, in the runner's temp directory (outside the
+      # checkout; never committed or uploaded as an artifact), and writes the
+      # listing config's screenshots entries from the folders. A problem fails
+      # the job before the push. Without Screenshot sets it changes nothing, and
+      # a tag that predates the script pushes text only, as before.
+      - name: Stage the Screenshot sets
+        if: steps.listing.outputs.present == 'true'
+        env:
+          TAG: ${{ inputs.tag }}
+        run: |
+          if [ -f scripts/app-store-screenshots.mjs ]; then
+            node scripts/app-store-screenshots.mjs prepare "$RUNNER_TEMP/app-store-screenshots"
+          else
+            echo "::notice::$TAG has no scripts/app-store-screenshots.mjs; pushing the listing text only."
+          fi
 
       - name: Push App Store listing to the release draft
         if: steps.listing.outputs.present == 'true'

@@ -6,14 +6,14 @@ definition of each set; nobody writes screenshot paths into
 `apps/mobile/store.config.json` by hand.
 
 The [App Store screenshots shipped from the repo](https://linear.app/provorov/project/app-store-screenshots-shipped-from-the-repo-b89e8a9bd811)
-project holds the full spec. So far the check below is built (each Screenshot
+project holds the full spec. Built so far: the check below (each Screenshot
 set on its own, the folders against the listing config, and, against a base
-Git ref, deleted Screenshot sets) and `prepare`, which stages the sets for
-upload. The local release fallback (`scripts/release-ios-local.sh`) runs both
-and pushes the listing (see [Local release](#local-release)); the pull request
-and release CI checks and release CI calling `prepare` come in its later
-issues, and until then a CI release still leaves the screenshots to be
-uploaded by hand in App Store Connect.
+Git ref, deleted Screenshot sets), `prepare`, which stages the sets for upload,
+and both releases pushing them to the tagged version's draft: release CI (see
+[Release](#release)) and the local release fallback
+(`scripts/release-ios-local.sh`, see [Local release](#local-release)). Running
+the check on pull requests and before release CI's build comes in its later
+issue.
 
 The bare and framed captures in `../iphone/` and `../framed/` are source
 material, not approved App Store exports; see [their README](../README.md).
@@ -132,9 +132,9 @@ temporary Git repos.
 node scripts/app-store-screenshots.mjs prepare <staging dir> [dir] [--config <file>]
 ```
 
-Release runs this before `eas metadata:push` (the local release script does
-already, see [Local release](#local-release); release CI in a later issue). It
-runs the check above without a base
+Release runs this before `eas metadata:push`, in CI (see [Release](#release))
+and in the local release script (see [Local release](#local-release)). It runs
+the check above without a base
 ref (the deleted set rule is the pull request's; `prepare` takes no `--base`),
 and also refuses a Listing locale with a Screenshot set whose listing text in
 the config isn't an object, since there'd be nowhere to put its entry. On any
@@ -159,6 +159,47 @@ text only. It rewrites the config in place, so the check (and a second
 config back with `git checkout apps/mobile/store.config.json`, and never commit
 the entries. Same images, same names: a re-run from a fresh checkout stages
 exactly what the last one did.
+
+## Release
+
+Screenshots only change through a release, and only to the release's own tag:
+a later commit never reaches an earlier version. Release CI
+([`build-mobile.yml`](../../../.github/workflows/build-mobile.yml)) uploads them
+in its `listing` job, which starts once the `build` job's EAS build has been
+submitted to App Store Connect, so the tagged version's draft exists. On the
+tag's checkout it:
+
+1. stamps the tag's version into the listing config (`apple.version`);
+2. runs `prepare` into the runner's temp directory, outside the checkout. Any
+   problem fails the job there, before anything is pushed. The staged files
+   and the written `screenshots` entries live only on that runner: never
+   committed, never uploaded as a workflow artifact;
+3. runs `eas metadata:push --profile production --non-interactive` with the
+   App Store Connect submission key stored in EAS, the same key that pushes the
+   listing text (no other credential).
+
+Each Screenshot set in the tag is then authoritative for its Listing locale and
+device in the draft: images added, replaced (a new upload name), removed and
+reordered to match the folder. Listing locales and devices without a folder get
+no entry, so their remote screenshots stay as they are. Nothing is submitted
+for App Review. A tag without Screenshot sets pushes its listing text only, and
+one that predates this script (no `scripts/app-store-screenshots.mjs`) pushes
+exactly what it pushed before.
+
+**A successful run** means the sets passed the check before the upload and
+`metadata:push` exited 0. Nothing reads the draft back from App Store Connect,
+and EAS warns rather than fails on an image it skipped, so look at the draft
+(every configured Listing locale: image count, images and order) before
+submitting the version for review. If the push is refused for permissions, the
+stored key needs an Account Holder, Admin, App Manager or Marketing role (App
+Store Connect → Users and Access → Integrations).
+
+**To retry** a failed push, open the release's Build Mobile run and use "Re-run
+failed jobs" (or re-run the `listing` job alone). It checks the same tag out
+again and runs no EAS build or submission, so no build quota or build number is
+spent. That's safe after a half-done upload: unchanged images keep their upload
+names, so the screenshots that already arrived are kept and only the rest are
+uploaded.
 
 ## Local release
 
