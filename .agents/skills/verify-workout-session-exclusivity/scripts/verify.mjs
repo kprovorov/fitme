@@ -19,13 +19,17 @@ const migrationName = "20261029120000_one_open_session_per_user.sql";
 const migrationDir = "packages/supabase/supabase/migrations";
 const checksum =
   "936a262061c914694dfd669a543be24573c45d5aa0ff20a8b96b23d01e050e88";
-// Reviewed at 2ecea816: the child FK and policy only reference sessions.
-// They cannot change ownership, open/finished state, or the unique index.
+// Reviewed child tables, policies, and progress-cache triggers only read
+// sessions or follow their changes; they never write the parent or its index.
 // Pin the complete file so an edit to this migration requires review again.
 const reviewedMigrations = new Map([
   [
     "20261031130000_personal_records.sql",
     "bd431d7748c13666b728072e463a35b5c063329902a7a58a58440c736eb39c69",
+  ],
+  [
+    "20261101100000_workout_session_progress.sql",
+    "7b1a09093747e2e7ac00da82a4acaa40fefcf15dcf35ffc21cbc13ca45ae8653",
   ],
 ]);
 const { values } = parseArgs({

@@ -1,4 +1,80 @@
-# Validation, 2026-11-01
+# Validation, 2026-11-02
+
+## Maintenance against current main
+
+**Outcome: updated verification; model and promise in sync; no current-code exclusivity violation found within the stated bounds.**
+
+Initial audited source: `ef73f921c2d16f8ccfa17919d508fd8601fa635d`. Checkout HEAD and `origin/main` both resolved to it, and `git ls-remote origin refs/heads/main` independently confirmed remote main on 2026-11-02. Shipping fetched newer main and audited it below; the final sync is `aec8c67dcc21f6df6b0b4be43706264ae1edabf1`. The local `main` ref was older and was not used. The previous sync was `6c7bd6cb90f6a0d0cddeae770e1e200eef64c4d3`. No checkout switch, product edit, migration edit, property change, or bound reduction was made.
+
+Tools: Node 26.13.0, TLC 1.7.4 (TLC2 2.19; pinned SHA-256 unchanged), OpenJDK Temurin 27, PostgreSQL 17.11. TLC initially failed in the sandbox with `java.net.SocketException: Operation not permitted`; the same command completed with local socket permission. This was an environmental failure, not a counterexample. Every SQL replay used a new temporary cluster; no project database or environment file was used.
+
+### Baseline and correspondence audit
+
+Before editing anything, the unchanged verifier exited 1 at its migration guard: `20261101100000_workout_session_progress.sql touches workout_sessions after the covered migration. Review its effect and update this guard.` No TLC or SQL ran in that baseline. This was verification drift detected correctly by the fail-closed guard, not a product bug or a stale passing proof.
+
+Read the commit messages and complete changes to covered production source between the old sync and checked main. The relevant commits were:
+
+| Commit | Change and correspondence decision |
+| --- | --- |
+| `e96b68ae068ae17267e3801658334cb649a44c36` — maintain exclusivity proof, PR #438 | Previous maintenance changed only verification and its records. Re-read model, runner, replay, view, mutations, and guard regressions. No product transition changed. |
+| `1bc3f254f242a1380edc8b148237b4f0fd5c468b` — Weekly streaks, PR #435 | The progress migration reads/backfills from sessions under table locks, adds two cache tables with cascading child FKs, and four triggers. All trigger INSERT/UPDATE targets are the cache tables; none writes parent ownership, open/finished state, or the exclusivity index. They execute inside the source transaction, so an error rolls back the source write. A start still reserves its unique key before commit; a finish/delete retains it until commit. The new `getWeeklyGoals` query reads caches and goals, and the API facade still uses one `asUser` transaction. Generated schemas/relations/types add only cache storage. The separate goal-bounds migration touches only `weekly_goal_changes`. No model or promise change. |
+| `b1462f0139aa3879aaba8f40668243ad7f38c1c5` — Store glossary, PR #447 | Added Store listing terminology only. The Workout Session promise is unchanged. |
+| `40fd9dfdcad098393e634101d0eda5e0fdd2656e` — Screenshot checks, PR #449 | Changed only the Screenshot set glossary wording among covered files. No modeled effect. |
+
+The other commits in the interval (`52f6edd3`, `87d55cd2`, `a5901182`, `6ad13a10`, `ab9a2ea6`, `ccbed96c`, `854425ac`, `f608e295`, `73106049`, `d606b9fc`, `c2e63374`, `ef73f921`) concern auth, marketing, Store listing, or release tooling and do not change covered source.
+
+Re-read start/resume/preflight/insert, finish, delete, `asUser`/`withService`, the exact index declaration, the NULL-Workout FK, ADR 0013, and the glossary promise. Searched production session writers and checked Plan replacement/orphaning, account deletion, Plan Update timestamp writes, Profile/Personal record helpers, and API/MCP transaction facades. Start/finish/delete, their transaction wrapper, and these adjacent write paths are byte-unchanged since the previous sync. No moved function, new production session insertion, reopening, or ownership-reassignment path was found. The new progress integration fixture does reopen/rekey via direct SQL; those transitions remain explicitly excluded from the finite model.
+
+### Verification changes
+
+Pinned the complete progress migration at SHA-256 `7b1a09093747e2e7ac00da82a4acaa40fefcf15dcf35ffc21cbc13ca45ae8653`. The old exact-content exception for Personal records remains. The guard still rejects edits to either reviewed migration and any new migration mentioning sessions or their index. Extended its scratch-source regressions from three to four scenarios to cover an index drop appended to each reviewed file separately. Updated the skill's source correspondence, assumptions/limits, commands, and sync record. The model, `OneOpenPerUser`, view, replay, and bounds required no changes.
+
+### Results
+
+| Check | Outcome and result |
+| --- | --- |
+| One User, three insertion transactions, optional initial orphan | In sync: PASS, 2,360 distinct / 9,401 generated states, queue exhausted |
+| Two Users, three insertion transactions, optional initial orphan | In sync: PASS, 2,770 distinct / 12,045 generated states, queue exhausted |
+| Extracted actual index, isolated PostgreSQL replay | In sync: PASS; competing insert rejected, orphan retains key, rollback/finish release it, independent User permitted |
+| Scratch migration with `UNIQUE` removed | Expected failure in both TLC configs and SQL; two committed open rows, including the orphan path |
+| Scratch migration indexed by `workout_id` | Expected failure in both TLC configs and SQL; two committed open rows, including the orphan path |
+| Unmodified source after both scratch mutations | PASS in both TLC configs and SQL |
+| Migration-guard regressions | Updated: PASS 4/4; current reviewed contents accepted, edits to either reviewed file and a new index-drop migration rejected |
+| Inherited libpq isolation regressions | In sync: PASS 2/2, host-address and service-file cases |
+| Installed `/statechart` interpretation | All ten completed configurations interpreted, including the final documented rerun; normal proofs hold `OneOpenPerUser` and model `NoDeadlock`; all four mutant configs yield the same two-step shortest violation |
+| JavaScript syntax, isolated repository-preset lint, diff whitespace | PASS; lint checked both touched scripts with formatting disabled to preserve their existing style |
+
+Both deliberate failures follow path 0 → 1 → 2: an existing orphan is open; another session is inserted uncommitted; that insertion commits, leaving two open sessions for the same User. SQL reproduced both that path and two empty preflight reads followed by two committed starts. Current source rejected both violations. These are injected faults, not findings about current product code. The unchanged Mermaid chart in the initial validation below is identical to all four charts from this run.
+
+Passing graphs exceed the 500-state chart budget and produce reports without charts. Mutant statechart reports explored 3,729 / 3,810 states (nonunique, one/two Users) and 3,573 / 3,810 (per-Workout); their charts show only the shortest three-state path and omit all other schedules. This chart budget does not limit the complete baseline proof. Model `NoDeadlock` does not prove real database transactions free of lock deadlocks.
+
+### Evidence and reproduction
+
+Local temporary evidence (not permanent fixtures):
+
+- Post-review proof: `/var/folders/44/gp14q5mn7zv0w9yvnpbxsymc0000gn/T/fitme-session-proof-HenWjv`.
+- Mutation logs and scratch migrations: `/var/folders/44/gp14q5mn7zv0w9yvnpbxsymc0000gn/T/fitme-session-mutations-Di8HJs`.
+- Mutant proofs and SQL replays: sibling directories `fitme-session-proof-43EoFl` (nonunique) and `fitme-session-proof-ngWpRi` (per-Workout).
+- Restored-source proof: sibling directory `fitme-session-proof-RuVwg9`.
+- Statechart reports, charts, command script, and isolated lint inputs: `/private/tmp/fitme-exclusivity-maintenance-20261102/`.
+
+Run the documented commands in `SKILL.md`. For each generated proof directory, run the installed statechart skill with `WorkoutSessions.tla`, each generated config, and `view.mjs`, using a fresh output directory. The previous validation's reproduction command still applies with new proof/output paths. `run-statecharts.mjs` in this run's temporary evidence records the exact eight invocations and requires the expected exit codes (0 for current source, 1 for mutants).
+
+After updating the skill and records, followed its main command again as the next agent would: both complete TLC checks and SQL passed in sibling proof directory `fitme-session-proof-E2Gspz`. Interpreted those two configs with the installed statechart command into `final-same-user` and `final-two-users` under the statechart evidence directory: both rules hold, with the same 2,360 / 2,770 states. Guard regressions passed 4/4 again, and the final diff whitespace check passed. The sync commit records only the source audited above.
+
+### Remaining limits
+
+The three-insertion, one/two-User model remains unchanged. It does not prove arbitrary histories, full TypeScript/service behavior, migration application, deployed schema, RLS/authentication, rekey/reopen transitions, multi-insert transactions, or real trigger/FK/table-lock ordering and liveness. The new progress-cache backfill/counting/permission behavior and Weekly streak calculation are not formally verified here; their existing integration and pgTAP tests were inspected but not run. The SQL replay installs the actual extracted index on a minimal table and does not install the progress migration or its triggers. This audit establishes that their source preserves the modeled safety transitions; it does not prove those new features correct.
+
+### Shipping rebase audit
+
+Fetched and rebased onto `aec8c67dcc21f6df6b0b4be43706264ae1edabf1` (PR #454). Read its complete commit message and changed AGENTS.md guidance. Its four changed files concern staging tagged Store screenshots during release; no covered source, migration, model, property, or verification runner changed. The model/source correspondence and bounds remain unchanged.
+
+Rebased validation caught both index mutations in TLC and SQL and then passed the unmodified source again with 2,360 / 2,770 distinct states. Guard regressions passed 4/4. Evidence: mutation directory `fitme-session-mutations-twUgVd` and restored proof `fitme-session-proof-yBIyXr` beside the earlier proof directories. The six configurations were interpreted with the installed statechart skill into `ship-*` folders under `/private/tmp/fitme-exclusivity-maintenance-20261102/`, with unchanged rule outcomes and shortest mutation paths. The script `ship-statecharts.mjs` records the exact inputs and expected exit codes.
+
+The required changed-workspace Turbo test/typecheck command selected zero tasks; repository Ultracite selected zero files because `.agents/skills` is excluded. Neither is an application-test or formatting pass. The isolated repository-preset lint and focused verification checks above supply the actual local validation. The commit hook's staged secret scan found no leaks. `git diff --check` passed.
+
+## Previous validation, 2026-11-01
 
 ## Maintenance against current main
 
