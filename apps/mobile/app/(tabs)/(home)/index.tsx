@@ -129,7 +129,7 @@ export default function HomeScreen() {
         }}
       />
       <ScrollView
-        contentContainerClassName="grow px-md pb-md"
+        contentContainerClassName="grow px-sm pt-2.5 pb-md"
         contentInsetAdjustmentBehavior="automatic"
         refreshControl={
           <RefreshControl onRefresh={onRefresh} refreshing={refreshing} />

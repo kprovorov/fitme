@@ -52,6 +52,7 @@ export default function ForgotPasswordView() {
           prompt={t("forgotPassword.remember")}
         />
       }
+      spacing="lg"
     >
       <AuthHeader
         description={t("forgotPassword.description")}

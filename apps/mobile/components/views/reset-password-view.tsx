@@ -74,6 +74,7 @@ export default function ResetPasswordView() {
           prompt={t("resetPassword.changedMind")}
         />
       }
+      spacing="lg"
     >
       <AuthHeader
         description={t("resetPassword.description")}
@@ -103,6 +104,7 @@ export default function ResetPasswordView() {
             size="lg"
           />
         }
+        spacing="lg"
       >
         <AuthHeader
           description={operation.error ?? t("verifyCode.expired")}

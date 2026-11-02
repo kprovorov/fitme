@@ -14,7 +14,7 @@ const openPrivacy = () => {
 export function AuthLegal({ disabled }: { disabled?: boolean }) {
   const { t } = useTranslation();
   return (
-    <View className="min-h-11 flex-row flex-wrap content-center items-center justify-center gap-x-1 py-3.5">
+    <View className="min-h-11 flex-row flex-wrap content-center items-center justify-center gap-x-1 py-1">
       <Text className="text-center text-footnote text-muted-foreground">
         {t("auth.legal.prefix")}
       </Text>

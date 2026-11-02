@@ -104,7 +104,7 @@ export default function HistoryScreen() {
   const { t } = useTranslation();
   const [refreshing, setRefreshing] = useState(false);
   // LegendList takes no class names: resolve the spacing tokens to a style.
-  const contentContainerStyle = useResolveClassNames("px-sm pt-sm pb-lg");
+  const contentContainerStyle = useResolveClassNames("px-sm pt-2.5 pb-lg");
 
   const {
     data: history,
@@ -207,8 +207,7 @@ export default function HistoryScreen() {
     <>
       <Stack.Screen
         options={{
-          headerLargeTitle: true,
-          headerLargeTitleStyle: { fontFamily: "NunitoSans12pt-Bold" },
+          // Inline, as Figma has it (and as the Library tab's is).
           headerTitleStyle: {
             fontFamily: "NunitoSans12pt-Bold",
             fontWeight: "bold",

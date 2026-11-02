@@ -2,7 +2,7 @@ import { useSignIn, useSignUp } from "@clerk/expo";
 import { router } from "expo-router";
 import { useCallback, useEffect, useState } from "react";
 import { useTranslation } from "react-i18next";
-import { AppState, View } from "react-native";
+import { ActivityIndicator, AppState, Pressable, View } from "react-native";
 import { AuthHeader } from "~/components/auth/auth-header";
 import { AuthSwitch } from "~/components/auth/auth-links";
 import { AuthScreen } from "~/components/auth/auth-screen";
@@ -261,6 +261,7 @@ function CodeVerificationContent({
             size="lg"
           />
         }
+        spacing="lg"
       >
         <AuthHeader
           description={t("verifyCode.expired")}
@@ -272,6 +273,14 @@ function CodeVerificationContent({
       </AuthScreen>
     );
   }
+  const resending = operation.pending === "resend";
+  const resendDisabled = remaining > 0 || operation.pending !== null;
+  const resendLabel =
+    remaining > 0
+      ? t("verifyCode.resendIn", {
+          time: `${Math.floor(remaining / 60)}:${String(remaining % 60).padStart(2, "0")}`,
+        })
+      : t("verifyCode.resendButton");
   return (
     <AuthScreen
       action={
@@ -305,6 +314,7 @@ function CodeVerificationContent({
           prompt={t("verifyCode.wrongEmail")}
         />
       }
+      spacing="lg"
     >
       <AuthHeader
         description={t("verifyCode.destination", { email: flow.email })}
@@ -322,22 +332,24 @@ function CodeVerificationContent({
           <Text className="text-footnote text-muted-foreground">
             {t("verifyCode.didntGet")}
           </Text>
-          <Button
-            contentColorClassName="text-muted-foreground"
-            disabled={remaining > 0 || operation.pending !== null}
-            isLoading={operation.pending === "resend"}
-            label={
-              remaining > 0
-                ? t("verifyCode.resendIn", {
-                    time: `${Math.floor(remaining / 60)}:${String(remaining % 60).padStart(2, "0")}`,
-                  })
-                : t("verifyCode.resendButton")
-            }
+          {/* Figma's Resend: a Footnote Emphasized text link in a 44 pt row. */}
+          <Pressable
+            accessibilityLabel={resendLabel}
+            accessibilityRole="button"
+            accessibilityState={{ busy: resending, disabled: resendDisabled }}
+            className="min-h-11 justify-center"
+            disabled={resendDisabled}
             onPress={resendCode}
-            size="lg"
             testID="verify-code-resend-button"
-            variant="ghost"
-          />
+          >
+            {resending ? (
+              <ActivityIndicator colorClassName="accent-muted-foreground" />
+            ) : (
+              <Text className="text-footnote-emphasized text-muted-foreground">
+                {resendLabel}
+              </Text>
+            )}
+          </Pressable>
         </View>
         {notice ? (
           <Text

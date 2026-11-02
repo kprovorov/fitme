@@ -94,18 +94,20 @@ export default function LoginView() {
           operation={operation}
           providers={providers}
         />
-        {fields}
-        <Pressable
-          accessibilityRole="link"
-          className="min-h-11 items-end justify-center"
-          disabled={busy}
-          onPress={openRecovery}
-          testID="forgot-password-link"
-        >
-          <Text className="text-footnote-emphasized text-primary">
-            {t("auth.login.forgotPasswordLink")}
-          </Text>
-        </Pressable>
+        <View className="gap-sm">
+          {fields}
+          <Pressable
+            accessibilityRole="link"
+            className="min-h-11 items-end justify-center"
+            disabled={busy}
+            onPress={openRecovery}
+            testID="forgot-password-link"
+          >
+            <Text className="text-footnote-emphasized text-primary">
+              {t("auth.login.forgotPasswordLink")}
+            </Text>
+          </Pressable>
+        </View>
       </AuthScreen>
     );
   };

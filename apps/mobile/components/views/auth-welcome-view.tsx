@@ -1,6 +1,6 @@
 import { router } from "expo-router";
 import { useTranslation } from "react-i18next";
-import { View } from "react-native";
+import { Pressable, View } from "react-native";
 import { AuthHeader } from "~/components/auth/auth-header";
 import { AuthLegal, AuthSwitch } from "~/components/auth/auth-links";
 import { AuthScreen } from "~/components/auth/auth-screen";
@@ -33,15 +33,30 @@ export default function AuthWelcomeView() {
             <ErrorMessage>{operation.error}</ErrorMessage>
           ) : null}
           <SocialAuthButtons operation={operation} providers={providers} />
-          <Button
-            disabled={busy}
-            fill
-            label={t("auth.intro.email")}
-            onPress={continueWithEmail}
-            size="lg"
-            testID="continue-email-button"
-            variant={hasSocial ? "ghost" : "default"}
-          />
+          {hasSocial ? (
+            // Under Apple and Google, email is Figma's 44 pt text link.
+            <Pressable
+              accessibilityRole="button"
+              accessibilityState={{ disabled: busy }}
+              className="min-h-11 items-center justify-center"
+              disabled={busy}
+              onPress={continueWithEmail}
+              testID="continue-email-button"
+            >
+              <Text className="text-body-emphasized">
+                {t("auth.intro.email")}
+              </Text>
+            </Pressable>
+          ) : (
+            <Button
+              disabled={busy}
+              fill
+              label={t("auth.intro.email")}
+              onPress={continueWithEmail}
+              size="lg"
+              testID="continue-email-button"
+            />
+          )}
         </View>
       }
       footer={

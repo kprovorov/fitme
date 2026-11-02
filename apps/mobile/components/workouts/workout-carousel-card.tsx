@@ -176,9 +176,9 @@ export default function WorkoutCarouselCard({
         <View className="flex-1 justify-end gap-xs">
           <H4 className="text-primary">{workout.name}</H4>
           <View className="flex-row flex-wrap gap-x-sm">
-            <View accessible className="flex-row items-center gap-1">
+            <View accessible className="flex-row items-center gap-1 py-0.5">
               <SymbolImage
-                className="text-footnote-emphasized text-muted-foreground"
+                className="text-footnote-emphasized text-foreground"
                 name="bolt.fill"
               />
               <Text className="text-footnote-emphasized text-muted-foreground">
@@ -188,10 +188,10 @@ export default function WorkoutCarouselCard({
             <View
               accessibilityLabel={formatCount(i18n, "minutes", durationMinutes)}
               accessible
-              className="flex-row items-center gap-1"
+              className="flex-row items-center gap-1 py-0.5"
             >
               <SymbolImage
-                className="text-footnote-emphasized text-muted-foreground"
+                className="text-footnote-emphasized text-foreground"
                 name="timer"
               />
               <Text className="text-footnote-emphasized text-muted-foreground">
