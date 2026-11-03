@@ -1,18 +1,27 @@
+import { readRequestBody } from "@modelcontextprotocol/sdk/server/requestBody.js";
 import {
   isInitializeRequest,
   SUPPORTED_PROTOCOL_VERSIONS,
 } from "@modelcontextprotocol/sdk/types.js";
 import type { MiddlewareHandler } from "hono";
 
-/** A body holding an `initialize` request (alone or in a batch). */
-const isInitialization = async (request: Request): Promise<boolean> => {
+/**
+ * Whether the request is one to leave to the transport: a body holding an
+ * `initialize` request (alone or in a batch), or one it answers itself. The
+ * body is read within the transport's own size limit: one over it is the
+ * transport's 413, and anything that isn't JSON its parse error.
+ */
+const isForTransport = async (request: Request): Promise<boolean> => {
   try {
-    const body: unknown = await request.clone().json();
+    const read = await readRequestBody(request.clone());
+    if (read.tooLarge) {
+      return true;
+    }
+    const body: unknown = JSON.parse(read.text);
     const messages = Array.isArray(body) ? body : [body];
     return messages.some((message) => isInitializeRequest(message));
   } catch {
-    // Not JSON: the transport answers its own parse error
-    return false;
+    return true;
   }
 };
 
@@ -34,7 +43,7 @@ export const answerUnsupportedProtocolVersion: MiddlewareHandler = async (
     version !== undefined && !SUPPORTED_PROTOCOL_VERSIONS.includes(version);
   if (
     !unsupported ||
-    (c.req.method === "POST" && (await isInitialization(c.req.raw)))
+    (c.req.method === "POST" && (await isForTransport(c.req.raw)))
   ) {
     await next();
     return;

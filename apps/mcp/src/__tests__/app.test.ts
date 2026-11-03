@@ -1,5 +1,6 @@
 import { getAuth } from "@clerk/hono";
 import { McpServer } from "@modelcontextprotocol/sdk/server/mcp.js";
+import { DEFAULT_MAX_REQUEST_BODY_SIZE } from "@modelcontextprotocol/sdk/server/requestBody.js";
 import { WebStandardStreamableHTTPServerTransport } from "@modelcontextprotocol/sdk/server/webStandardStreamableHttp.js";
 import {
   LATEST_PROTOCOL_VERSION,
@@ -511,6 +512,33 @@ describe("protocol version", () => {
     // Sentry's MCP integration reports every error the transport raises
     expect(handleRequest).not.toHaveBeenCalled();
     expect(reported).toEqual([]);
+  });
+
+  it("leaves a body over the transport's size limit to the transport", async () => {
+    signInAs("user_alice");
+    const { app } = createTestApp();
+    const oversized = (version: string) =>
+      new Request("http://localhost/", {
+        body: JSON.stringify({
+          id: 1,
+          jsonrpc: "2.0",
+          method: "tools/list",
+          params: { padding: "x".repeat(DEFAULT_MAX_REQUEST_BODY_SIZE) },
+        }),
+        headers: {
+          Accept: "application/json, text/event-stream",
+          Authorization: `Bearer ${clerkToken("user_alice")}`,
+          "Content-Type": "application/json",
+          "Mcp-Protocol-Version": version,
+        },
+        method: "POST",
+      });
+    const expected = await transportAnswer(oversized(UNSUPPORTED_VERSION));
+
+    const response = await app.request(oversized(UNSUPPORTED_VERSION));
+
+    expect(response.status).toBe(413);
+    expect(await response.json()).toEqual(await expected.json());
   });
 
   it.each([
