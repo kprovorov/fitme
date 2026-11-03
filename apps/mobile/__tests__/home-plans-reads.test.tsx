@@ -7,7 +7,7 @@
 
 import type { Cover } from "@fitme/library-sdk";
 import { beforeEach, describe, expect, it, jest } from "@jest/globals";
-import { QueryClientProvider } from "@tanstack/react-query";
+import { QueryClient, QueryClientProvider } from "@tanstack/react-query";
 import {
   act,
   fireEvent,
@@ -118,8 +118,24 @@ const STRENGTH: SeedPlan = {
 
 let queryClient = createTestQueryClient();
 
-const renderScreen = async () => {
-  queryClient = createTestQueryClient();
+/**
+ * A QueryClient with the app's defaults (`components/providers.tsx`: three
+ * retries a second or more apart), unlike `createTestQueryClient`'s none;
+ * only garbage collection is off, so no timer outlives the test.
+ */
+const createAppQueryClient = () =>
+  new QueryClient({
+    defaultOptions: { queries: { gcTime: Number.POSITIVE_INFINITY } },
+  });
+
+/** Lets `ms` of real time pass, inside `act`. */
+const wait = (ms: number) =>
+  act(async () => {
+    await new Promise((resolve) => setTimeout(resolve, ms));
+  });
+
+const renderScreen = async (client = createTestQueryClient()) => {
+  queryClient = client;
   await render(
     <QueryClientProvider client={queryClient}>
       <HomeScreen />
@@ -385,5 +401,34 @@ describe("The Workout tab's Plans", () => {
 
     expect(fakePublicApi.count(ACTIVE_PLAN)).toBe(2);
     expect(supabasePlanReads()).toBe(0);
+  });
+});
+
+describe("The Workout tab's Plans, with the app's retries", () => {
+  // Longer than react-query's first retry delay (a second).
+  const RETRY_DELAY_PASSED_MS = 1500;
+
+  it("gives the active Plan's 429 wait at once and asks again only when told to", async () => {
+    backend.seedPlan(STRENGTH);
+    fakePublicApi.failNext(ACTIVE_PLAN, { retryAfterSeconds: 12, status: 429 });
+    await renderScreen(createAppQueryClient());
+    await settle(queryClient);
+
+    expect(screen.getByText(RATE_LIMITED_12)).toBeTruthy();
+    await wait(RETRY_DELAY_PASSED_MS);
+    expect(fakePublicApi.count(ACTIVE_PLAN)).toBe(1);
+    expect(screen.getByText(RATE_LIMITED_12)).toBeTruthy();
+    queryClient.clear();
+  });
+
+  it("gives the Plans' 429 wait at once without an active Plan, with no retry", async () => {
+    fakePublicApi.failNext(LIST_PLANS, { retryAfterSeconds: 12, status: 429 });
+    await renderScreen(createAppQueryClient());
+    await settle(queryClient);
+
+    expect(screen.getByText(RATE_LIMITED_12)).toBeTruthy();
+    await wait(RETRY_DELAY_PASSED_MS);
+    expect(fakePublicApi.count(LIST_PLANS)).toBe(1);
+    queryClient.clear();
   });
 });

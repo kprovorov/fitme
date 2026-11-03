@@ -90,6 +90,8 @@ export const useActivePlanQuery = createQuery<FullPlan | null>({
     return data.data;
   },
   queryKey: [...PLANS_QUERY_KEY, "active"],
+  // Never retried, like the summaries.
+  retry: false,
 });
 
 export interface PlanQueryVariables {
