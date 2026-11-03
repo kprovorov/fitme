@@ -869,6 +869,133 @@
           "target"
         ]
       },
+      "ExerciseHistoryPage": {
+        "type": "object",
+        "properties": {
+          "data": {
+            "type": "array",
+            "items": {
+              "$ref": "#/components/schemas/ExerciseHistoryEntry"
+            },
+            "description": "The page, newest Workout Session first"
+          },
+          "hasMore": {
+            "type": "boolean",
+            "description": "Whether more entries follow"
+          },
+          "total": {
+            "type": "integer",
+            "description": "How many entries match, across every page"
+          },
+          "weight_unit": {
+            "$ref": "#/components/schemas/WeightUnit"
+          }
+        },
+        "required": [
+          "data",
+          "hasMore",
+          "total",
+          "weight_unit"
+        ]
+      },
+      "ExerciseHistoryEntry": {
+        "type": "object",
+        "properties": {
+          "id": {
+            "type": "string",
+            "format": "uuid",
+            "example": "6f1c0c9e-2b7a-4c1e-9a55-3c2d1e0f4a11",
+            "description": "The Workout Session Exercise's id"
+          },
+          "session": {
+            "type": "object",
+            "properties": {
+              "finished_at": {
+                "type": "string",
+                "nullable": true,
+                "format": "date-time",
+                "description": "When the Workout Session was finished (ISO 8601)",
+                "example": "2026-10-01T10:00:00.123456+00:00"
+              },
+              "id": {
+                "type": "string",
+                "format": "uuid",
+                "example": "6f1c0c9e-2b7a-4c1e-9a55-3c2d1e0f4a11"
+              },
+              "started_at": {
+                "type": "string",
+                "nullable": true,
+                "format": "date-time",
+                "description": "When the Workout Session was started (ISO 8601)",
+                "example": "2026-10-01T10:00:00.123456+00:00"
+              }
+            },
+            "required": [
+              "finished_at",
+              "id",
+              "started_at"
+            ]
+          },
+          "sets": {
+            "type": "array",
+            "items": {
+              "$ref": "#/components/schemas/ExerciseHistorySet"
+            },
+            "description": "Its logged sets, in order"
+          }
+        },
+        "required": [
+          "id",
+          "session",
+          "sets"
+        ],
+        "description": "One time the Exercise appeared in one of the User's Workout Sessions (normally once per Workout Session; twice when it was added to the same one again)"
+      },
+      "ExerciseHistorySet": {
+        "type": "object",
+        "properties": {
+          "id": {
+            "type": "string",
+            "format": "uuid",
+            "example": "6f1c0c9e-2b7a-4c1e-9a55-3c2d1e0f4a11"
+          },
+          "order": {
+            "type": "integer",
+            "example": 1
+          },
+          "reps_completed": {
+            "type": "integer",
+            "description": "Repetitions done; every set here has them logged",
+            "example": 8
+          },
+          "reps_recommended": {
+            "type": "integer",
+            "nullable": true,
+            "description": "The target, `null` for a set added during the session",
+            "example": 8
+          },
+          "weight_completed": {
+            "type": "number",
+            "nullable": true,
+            "description": "In `weight_unit`, `null` for a bodyweight set, which logs no weight",
+            "example": 80.5
+          },
+          "weight_recommended": {
+            "type": "number",
+            "nullable": true,
+            "description": "The target, in `weight_unit`",
+            "example": 80
+          }
+        },
+        "required": [
+          "id",
+          "order",
+          "reps_completed",
+          "reps_recommended",
+          "weight_completed",
+          "weight_recommended"
+        ]
+      },
       "WorkoutSessionSet": {
         "type": "object",
         "properties": {
@@ -2998,6 +3125,111 @@
                     "data",
                     "streak"
                   ]
+                }
+              }
+            }
+          },
+          "400": {
+            "description": "`invalid_request`: the input fails its schema",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Error"
+                }
+              }
+            }
+          },
+          "401": {
+            "description": "No valid Clerk session token",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Error"
+                }
+              }
+            }
+          },
+          "429": {
+            "description": "Too many requests from this User; retry after `Retry-After`",
+            "headers": {
+              "Retry-After": {
+                "schema": {
+                  "type": "string",
+                  "description": "Seconds until the limit resets",
+                  "example": "30"
+                },
+                "required": true,
+                "description": "Seconds until the limit resets"
+              }
+            },
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Error"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/v1/workout-session-exercises": {
+      "get": {
+        "description": "A page of the User's history for one Exercise: every time it appeared in one of their Workout Sessions, newest Workout Session first (by the Workout Session's `started_at`; an Exercise added to the same Workout Session twice keeps its place in it). A set counts once its reps are logged, and a bodyweight set, which logs no weight (`weight_completed` is `null`), counts too; a set that was never logged is left out, and an entry left with no set is left out of the page and of `total`. Weights are as stored, in `weight_unit`. An Exercise the User never did, an Exercise slug the Library doesn't have, and an offset past the end each answer an empty page.",
+        "security": [
+          {
+            "bearerAuth": []
+          }
+        ],
+        "summary": "List the User's history for one Exercise",
+        "parameters": [
+          {
+            "schema": {
+              "type": "string",
+              "maxLength": 100,
+              "pattern": "^[a-z0-9]+(-[a-z0-9]+)*$",
+              "description": "The Exercise, by its Exercise slug from the Library API; one the Library doesn't have answers an empty page",
+              "example": "barbell-back-squat"
+            },
+            "required": true,
+            "description": "The Exercise, by its Exercise slug from the Library API; one the Library doesn't have answers an empty page",
+            "name": "exercise_slug",
+            "in": "query"
+          },
+          {
+            "schema": {
+              "type": "integer",
+              "minimum": 1,
+              "maximum": 50,
+              "default": 20,
+              "description": "Page size",
+              "example": 20
+            },
+            "required": false,
+            "description": "Page size",
+            "name": "limit",
+            "in": "query"
+          },
+          {
+            "schema": {
+              "type": "integer",
+              "description": "How many entries to skip",
+              "example": 0,
+              "minimum": 0
+            },
+            "required": false,
+            "description": "How many entries to skip",
+            "name": "offset",
+            "in": "query"
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "A page of the User's history for the Exercise; an offset past the end is an empty page",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ExerciseHistoryPage"
                 }
               }
             }

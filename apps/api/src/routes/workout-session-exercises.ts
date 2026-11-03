@@ -11,14 +11,129 @@ import {
   rateLimitedResponse,
   sessionFinished,
   sessionFinishedResponse,
+  timestamp,
   unauthorizedResponse,
+  WeightUnit,
   WorkoutSessionExerciseResponse,
   WorkoutSessionSetResponse,
 } from "../schemas.js";
 
+const DEFAULT_LIMIT = 20;
+const MAX_LIMIT = 50;
+
 const exerciseNotFound = {
   error: { code: "not_found", message: "Workout Session Exercise not found" },
 } as const;
+
+/** One logged set of an Exercise history entry, with the targets it was given. */
+const ExerciseHistorySet = z
+  .object({
+    id: Id,
+    order: z.int().openapi({ example: 1 }),
+    reps_completed: z.int().openapi({
+      description: "Repetitions done; every set here has them logged",
+      example: 8,
+    }),
+    reps_recommended: z.int().nullable().openapi({
+      description: "The target, `null` for a set added during the session",
+      example: 8,
+    }),
+    weight_completed: z.number().nullable().openapi({
+      description:
+        "In `weight_unit`, `null` for a bodyweight set, which logs no weight",
+      example: 80.5,
+    }),
+    weight_recommended: z.number().nullable().openapi({
+      description: "The target, in `weight_unit`",
+      example: 80,
+    }),
+  })
+  .openapi("ExerciseHistorySet");
+
+// The Workout Session is inline rather than a named component: its timestamps
+// come straight from the Workout Session it belongs to.
+const ExerciseHistoryEntry = z
+  .object({
+    id: Id.openapi({ description: "The Workout Session Exercise's id" }),
+    session: z.object({
+      finished_at: timestamp(
+        "When the Workout Session was finished"
+      ).nullable(),
+      id: Id,
+      started_at: timestamp("When the Workout Session was started").nullable(),
+    }),
+    sets: z
+      .array(ExerciseHistorySet)
+      .openapi({ description: "Its logged sets, in order" }),
+  })
+  .openapi("ExerciseHistoryEntry", {
+    description:
+      "One time the Exercise appeared in one of the User's Workout Sessions (normally once per Workout Session; twice when it was added to the same one again)",
+  });
+
+const ExerciseHistoryPage = z
+  .object({
+    data: z.array(ExerciseHistoryEntry).openapi({
+      description: "The page, newest Workout Session first",
+    }),
+    hasMore: z
+      .boolean()
+      .openapi({ description: "Whether more entries follow" }),
+    total: z.int().openapi({
+      description: "How many entries match, across every page",
+    }),
+    weight_unit: WeightUnit,
+  })
+  .openapi("ExerciseHistoryPage");
+
+const listExerciseHistoryRoute = createRoute({
+  description:
+    "A page of the User's history for one Exercise: every time it appeared in one of their Workout Sessions, newest Workout Session first (by the Workout Session's `started_at`; an Exercise added to the same Workout Session twice keeps its place in it). A set counts once its reps are logged, and a bodyweight set, which logs no weight (`weight_completed` is `null`), counts too; a set that was never logged is left out, and an entry left with no set is left out of the page and of `total`. Weights are as stored, in `weight_unit`. An Exercise the User never did, an Exercise slug the Library doesn't have, and an offset past the end each answer an empty page.",
+  method: "get",
+  middleware: [requires("read")] as const,
+  path: "/",
+  request: {
+    query: z.object({
+      exercise_slug: ExerciseSlug.openapi({
+        description:
+          "The Exercise, by its Exercise slug from the Library API; one the Library doesn't have answers an empty page",
+        example: "barbell-back-squat",
+      }),
+      limit: z.coerce
+        .number()
+        .int()
+        .min(1)
+        .max(MAX_LIMIT)
+        .default(DEFAULT_LIMIT)
+        .openapi({ description: "Page size", example: DEFAULT_LIMIT }),
+      offset: z.coerce
+        .number()
+        .int()
+        .min(0)
+        .default(0)
+        // coercion turns null into 0, which the generator reads as nullable:
+        // a query parameter is never null, so the type is given explicitly
+        .openapi({
+          description: "How many entries to skip",
+          example: 0,
+          minimum: 0,
+          type: "integer",
+        }),
+    }),
+  },
+  responses: {
+    200: {
+      content: { "application/json": { schema: ExerciseHistoryPage } },
+      description:
+        "A page of the User's history for the Exercise; an offset past the end is an empty page",
+    },
+    400: invalidRequestResponse,
+    401: unauthorizedResponse,
+    429: rateLimitedResponse,
+  },
+  security: bearerSecurity,
+  summary: "List the User's history for one Exercise",
+});
 
 const removeExerciseRoute = createRoute({
   description:
@@ -118,6 +233,35 @@ const addSetRoute = createRoute({
 export const workoutSessionExercises = new OpenAPIHono<ApiEnv>({
   defaultHook: invalidRequest,
 })
+  .openapi(listExerciseHistoryRoute, async (c) => {
+    const { exercise_slug, limit, offset } = c.req.valid("query");
+    const {
+      value: { entries, total },
+      weightUnit,
+    } = await c.var.getServices().getExerciseHistory({
+      exerciseSlug: exercise_slug,
+      limit,
+      offset,
+    });
+    // Parsed through the contract, so fields beyond it never go out.
+    return c.json(
+      ExerciseHistoryPage.parse({
+        data: entries.map((entry) => ({
+          id: entry.session_exercise_id,
+          session: {
+            finished_at: entry.finished_at,
+            id: entry.session_id,
+            started_at: entry.started_at,
+          },
+          sets: entry.sets,
+        })),
+        hasMore: offset + entries.length < total,
+        total,
+        weight_unit: weightUnit,
+      }),
+      200
+    );
+  })
   .openapi(removeExerciseRoute, async (c) => {
     const result = await c.var
       .getServices()

@@ -1,6 +1,7 @@
 import { asUser } from "@fitme/db";
 import {
-  type ExerciseHistoryEntry,
+  type ExerciseHistoryPage,
+  type ExerciseHistoryQuery,
   getExerciseHistory,
 } from "@fitme/services/exercises";
 import {
@@ -46,10 +47,9 @@ export interface UserServices {
   finishWorkoutSession: (
     sessionId: string
   ) => Promise<FinishWorkoutSessionResult>;
-  getExerciseHistory: (query: {
-    exerciseSlug: string;
-    limit: number;
-  }) => Promise<ExerciseHistoryEntry[]>;
+  getExerciseHistory: (
+    query: ExerciseHistoryQuery
+  ) => Promise<ExerciseHistoryPage>;
   getPlan: (planId: string) => Promise<PlanDetail | null>;
   getProfile: () => Promise<ProfileWithUnits | null>;
   getWorkoutSession: (
