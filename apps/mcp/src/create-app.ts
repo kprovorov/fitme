@@ -19,6 +19,7 @@ import {
 } from "./auth.js";
 import { createToolContext, type ReportError } from "./context.js";
 import type { LibraryFactory } from "./library.js";
+import { answerUnsupportedProtocolVersion } from "./protocol-version.js";
 import { createMcpServer } from "./server.js";
 import type { ServicesFactory } from "./services.js";
 
@@ -91,7 +92,8 @@ export function createApp({
     async (c, next) => {
       identifyUser(c.get("clerkUser").userId);
       await next();
-    }
+    },
+    answerUnsupportedProtocolVersion
   );
 
   // Stateless streamable HTTP: a fresh server + transport per request, so the
