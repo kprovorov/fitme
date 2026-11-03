@@ -20,12 +20,12 @@
     "stop": "supabase stop",
     "test:db": "supabase test db",
     "typecheck": "tsc --noEmit",
-    "types:generate": "supabase gen types typescript --local --schema public > src/database.types.ts && biome check --write --unsafe src/database.types.ts"
+    "types:generate": "supabase gen types typescript --schema public > src/database.types.ts && biome check --write --unsafe src/database.types.ts"
   },
   "devDependencies": {
     "@fitme/typescript-config": "workspace:*",
     "@types/node": "^22.15.0",
-    "supabase": "^2.121.0",
+    "supabase": "^3.0.0",
     "tsx": "^4.23.15",
     "typescript": "~5.9.2"
   }

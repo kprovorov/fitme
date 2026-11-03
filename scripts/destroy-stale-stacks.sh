@@ -33,14 +33,29 @@ fi
 # so this file stays parseable by the bash 3.2 macOS ships).
 ids="$(node "$here/scripts/stale-stacks.mjs" "$stacks" "$checkout")"
 
-if [[ -z "$ids" ]]; then
+# Stacks Supabase CLI v2 started, which v3 can neither list nor destroy
+# (scripts/v2-stacks.mjs): only v2 can stop and remove them. Transitional
+# (FIT-536): drop this once no v2 stack is left.
+v2_ids="$(node "$here/scripts/v2-stacks.mjs" "$HOME/.supabase/stacks" "$checkout")"
+
+if [[ -z "$ids" && -z "$v2_ids" ]]; then
   echo "No stale Supabase stacks"
   exit 0
 fi
 
-args=()
-while read -r id; do
-  args+=(--stack-id "$id")
-done <<<"$ids"
+if [[ -n "$ids" ]]; then
+  args=()
+  while read -r id; do
+    args+=(--stack-id "$id")
+  done <<<"$ids"
+  pnpm exec supabase stack destroy "${args[@]}" --yes
+fi
 
-pnpm exec supabase stack destroy "${args[@]}" --yes
+if [[ -n "$v2_ids" ]]; then
+  args=()
+  while read -r id; do
+    args+=(--stack-id "$id")
+  done <<<"$v2_ids"
+  pnpm dlx supabase@2.121.0 stack destroy "${args[@]}" --yes ||
+    echo "warning: couldn't destroy the Supabase CLI v2 stacks" >&2
+fi
