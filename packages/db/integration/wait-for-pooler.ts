@@ -1,5 +1,7 @@
 import pg from "pg";
 import type { TestProject } from "vitest/node";
+import { checkMigrationsApplied } from "./check-migrations";
+import { localAdminDatabaseUrl } from "./local-database-url";
 
 /**
  * Warms the local Supavisor pooler before an integration suite starts. A cold
@@ -86,7 +88,9 @@ export const waitForPooler = async (url: string): Promise<void> => {
 
 /**
  * Vitest `globalSetup`: warms the pooler at the suite's FITME_DATABASE_URL
- * (from the config's `test.env`) before any test file starts.
+ * (from the config's `test.env`) before any test file starts, then, when that
+ * URL is the local stack's (no FITME_DATABASE_URL override), checks every
+ * migration in this checkout is applied there.
  */
 export default async function setup(project: TestProject): Promise<void> {
   const url =
@@ -95,4 +99,7 @@ export default async function setup(project: TestProject): Promise<void> {
     throw new Error("No FITME_DATABASE_URL for the integration suite");
   }
   await waitForPooler(url);
+  if (!process.env.FITME_DATABASE_URL) {
+    await checkMigrationsApplied(localAdminDatabaseUrl());
+  }
 }
