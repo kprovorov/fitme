@@ -498,7 +498,8 @@
     "cancel": "Cancelar",
     "confirm": "Confirmar",
     "tryAgain": "Intentar de nuevo",
-    "genericError": "Algo ha ido mal. Inténtalo de nuevo más tarde."
+    "genericError": "Algo ha ido mal. Inténtalo de nuevo más tarde.",
+    "rateLimited": "Demasiadas solicitudes: inténtalo de nuevo en {{seconds, number}} s."
   },
   "profile": {
     "title": "Perfil",

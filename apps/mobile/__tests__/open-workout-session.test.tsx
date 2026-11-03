@@ -7,7 +7,13 @@
  */
 import { beforeEach, describe, expect, it, jest } from "@jest/globals";
 import { QueryClientProvider } from "@tanstack/react-query";
-import { act, render, screen, within } from "@testing-library/react-native";
+import {
+  act,
+  fireEvent,
+  render,
+  screen,
+  within,
+} from "@testing-library/react-native";
 import type { ReactElement, ReactNode } from "react";
 import type { RefreshControlProps } from "react-native";
 import HomeScreen from "~/app/(tabs)/(home)/index";
@@ -17,6 +23,8 @@ import { OPEN_WORKOUT_SESSION_QUERY_KEY } from "~/hooks/queries/workout-sessions
 import { FAKE_USER_ID, fakePublicApi } from "~/test-utils/fake-public-api";
 import { backend } from "~/test-utils/fake-workout-backend";
 import { createTestQueryClient, settle } from "~/test-utils/query-client";
+
+const mockPush = jest.fn();
 
 jest.mock("expo-router", () => ({
   Link: ({ children }: { children: unknown }) => children,
@@ -28,7 +36,7 @@ jest.mock("expo-router", () => ({
     canGoBack: () => true,
     dismiss: jest.fn(),
     navigate: jest.fn(),
-    push: jest.fn(),
+    push: mockPush,
     replace: jest.fn(),
   }),
 }));
@@ -119,6 +127,7 @@ const cardOf = (workoutId: string) =>
   screen.getByTestId(`workout-card-${workoutId}`);
 
 beforeEach(() => {
+  jest.clearAllMocks();
   backend.reset();
   backend.seedProfile(FAKE_USER_ID);
   backend.seedPlan({
@@ -207,5 +216,60 @@ describe("The Open Workout Session", () => {
         name: "Start Push",
       })
     ).toBeTruthy();
+  });
+});
+
+describe("The Open Workout Session's failed reads", () => {
+  it("keep the last answer on every screen when a refresh fails", async () => {
+    await mountAll();
+    fakePublicApi.failNext(LIST, { status: 500 }, IN_PROGRESS);
+
+    await act(() =>
+      queryClient.invalidateQueries({
+        queryKey: OPEN_WORKOUT_SESSION_QUERY_KEY,
+      })
+    );
+    await settle(queryClient);
+
+    expect(cardNames()).toEqual(["Legs", "Push"]);
+    expect(
+      within(cardOf("workout-legs")).getByRole("button", {
+        name: "Continue Legs",
+      })
+    ).toBeTruthy();
+    expect(
+      screen.getByRole("button", { name: "Start Workout" })
+    ).toBeDisabled();
+    expect(screen.getByText("Finish Legs first")).toBeTruthy();
+    expect(
+      within(screen.getByTestId("history-empty")).getByRole("button", {
+        name: "Resume Legs",
+      })
+    ).toBeTruthy();
+  });
+
+  it("leave the Workout tab's Start, which resumes the open session through the API, when the first one fails", async () => {
+    // Each screen mounting after a failure reads again: fail them all.
+    for (const _screen of ["Workout tab", "Workout screen", "History"]) {
+      fakePublicApi.failNext(LIST, { status: 500 }, IN_PROGRESS);
+    }
+    await mountAll();
+
+    // The Workout screen and History don't guess: their load errors.
+    expect(screen.queryByRole("button", { name: "Start Workout" })).toBeNull();
+    expect(screen.queryByTestId("history-empty")).toBeNull();
+    // The Workout tab keeps its cards in rotation order.
+    expect(cardNames()).toEqual(["Push", "Legs"]);
+
+    await act(() =>
+      fireEvent.press(screen.getByRole("button", { name: "Start Legs" }))
+    );
+    await settle(queryClient);
+
+    // The API resumed Legs' open session instead of starting another.
+    expect(mockPush).toHaveBeenCalledWith(
+      "/plans/plan-1/workouts/workout-legs/sessions/open-session"
+    );
+    expect(backend.sessions).toHaveLength(1);
   });
 });

@@ -392,6 +392,27 @@ describe("The empty History's reads", () => {
   );
 });
 
+describe("The empty History's reads, rate limited", () => {
+  it.each([
+    ["History", FINISHED],
+    ["the open Workout Session", IN_PROGRESS],
+  ])("give the wait when %s is rate limited", async (_, query) => {
+    backend.seedPlan(structuredClone(PLAN));
+    fakePublicApi.failNext(LIST, { retryAfterSeconds: 12, status: 429 }, query);
+    await mount();
+
+    expect(
+      screen.getByText("Too many requests: please try again in 12 s.")
+    ).toBeTruthy();
+    expect(screen.queryByRole("button", { name: ACTION })).toBeNull();
+
+    await fireEvent.press(button("Try Again"));
+    await settle(queryClient);
+
+    expect(button("Start Upper A")).toBeTruthy();
+  });
+});
+
 /** Pulls the History list down, as the User would to refresh it. */
 const pullToRefresh = async () => {
   const { refreshControl } = screen.getByTestId("history-list").props;

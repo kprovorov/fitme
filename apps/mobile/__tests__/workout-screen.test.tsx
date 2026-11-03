@@ -14,7 +14,11 @@ import {
 } from "~/hooks/queries/workout-sessions";
 import { FAKE_USER_ID, fakePublicApi } from "~/test-utils/fake-public-api";
 import { backend, type SeedPlan } from "~/test-utils/fake-workout-backend";
-import { createTestQueryClient, settle } from "~/test-utils/query-client";
+import {
+  createTestQueryClient,
+  settle,
+  until,
+} from "~/test-utils/query-client";
 
 const mockBack = jest.fn();
 const mockPush = jest.fn();
@@ -561,5 +565,80 @@ describe("Starting while another Workout is in progress", () => {
     } finally {
       jest.useRealTimers();
     }
+  });
+});
+
+describe("The open Workout Session's read on the Workout screen", () => {
+  it("shows Start loading until it has answered, never Start as if nothing were open", async () => {
+    seedOpenSession("workout-1");
+    mockWorkoutId.current = "workout-2";
+    const resume = fakePublicApi.pause(LIST, IN_PROGRESS);
+    queryClient = createTestQueryClient();
+    await render(
+      <QueryClientProvider client={queryClient}>
+        <WorkoutScreen />
+      </QueryClientProvider>
+    );
+    await until(() => screen.queryByText("Rest Day Mobility") !== null);
+
+    expect(
+      screen.getByRole("button", { name: "Start Workout" })
+    ).toBeDisabled();
+    expect(fakePublicApi.count(START)).toBe(0);
+
+    resume();
+    await settle(queryClient);
+    expect(screen.getByText("Finish Leg Day first")).toBeTruthy();
+  });
+
+  it("shows the load error and no Start when it fails with nothing read yet", async () => {
+    seedOpenSession("workout-1");
+    mockWorkoutId.current = "workout-2";
+    fakePublicApi.failNext(LIST, { status: 500 }, IN_PROGRESS);
+    await mount();
+
+    expect(screen.getByText(LOAD_ERROR)).toBeTruthy();
+    expect(screen.queryByRole("button", { name: "Start Workout" })).toBeNull();
+    expect(screen.queryByText("Rest Day Mobility")).toBeNull();
+
+    await fireEvent.press(screen.getByRole("button", { name: "Try Again" }));
+    await settle(queryClient);
+
+    expect(screen.getByText("Rest Day Mobility")).toBeTruthy();
+    expect(screen.getByText("Finish Leg Day first")).toBeTruthy();
+  });
+
+  it("gives the wait when it's rate limited with nothing read yet", async () => {
+    fakePublicApi.failNext(
+      LIST,
+      { retryAfterSeconds: 12, status: 429 },
+      IN_PROGRESS
+    );
+    await mount();
+
+    expect(
+      screen.getByText("Too many requests: please try again in 12 s.")
+    ).toBeTruthy();
+    expect(screen.queryByRole("button", { name: "Start Workout" })).toBeNull();
+  });
+
+  it("keeps the blocked Start when a later read fails", async () => {
+    seedOpenSession("workout-1");
+    mockWorkoutId.current = "workout-2";
+    await mount();
+    fakePublicApi.failNext(LIST, { status: 500 }, IN_PROGRESS);
+
+    await act(() =>
+      queryClient.invalidateQueries({
+        queryKey: OPEN_WORKOUT_SESSION_QUERY_KEY,
+      })
+    );
+    await settle(queryClient);
+
+    expect(
+      screen.getByRole("button", { name: "Start Workout" })
+    ).toBeDisabled();
+    expect(screen.getByText("Finish Leg Day first")).toBeTruthy();
+    expect(screen.queryByText(LOAD_ERROR)).toBeNull();
   });
 });

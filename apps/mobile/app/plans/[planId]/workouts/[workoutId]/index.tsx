@@ -1,3 +1,4 @@
+import { rateLimitedFor } from "@fitme/api-client";
 import type { Workout } from "@fitme/core";
 import { formatNumber } from "@fitme/i18n";
 import { Stack, useLocalSearchParams, useRouter } from "expo-router";
@@ -39,12 +40,16 @@ const BOTTOM_GAP = 16;
  * scrolling under it: Continue Workout when the Workout already has an open
  * Workout Session, the blocked Start while another Workout's is open,
  * otherwise Start Workout. Each replaces this screen with the Workout
- * Session screen, so Back goes wherever the User came from.
+ * Session screen, so Back goes wherever the User came from. Until the open
+ * Workout Session has been read (`isOpenSessionKnown`), Start shows loading:
+ * it never claims nothing is open before the read has said so.
  */
 function WorkoutAction({
+  isOpenSessionKnown,
   onLayout,
   workout,
 }: {
+  isOpenSessionKnown: boolean;
   onLayout: (event: LayoutChangeEvent) => void;
   workout: Workout;
 }) {
@@ -100,7 +105,7 @@ function WorkoutAction({
       <Button
         icon="arrow.right"
         iconPosition="trailing"
-        isLoading={isStarting}
+        isLoading={isStarting || !isOpenSessionKnown}
         label={t("startWorkout.start")}
         onPress={startWorkout}
         size="lg"
@@ -196,7 +201,16 @@ export default function WorkoutScreen() {
     refetch,
   } = useWorkoutQuery({ variables: { id: workoutId } });
   // Read alongside the Workout, so Start shows blocked from the first frame.
-  useOpenWorkoutSessionQuery();
+  // Once answered, a failed refresh keeps that answer; with no answer at all
+  // the screen can't say whether Start is blocked, so it's the load error.
+  const {
+    data: openSession,
+    error: openSessionError,
+    isError: isOpenSessionError,
+    refetch: refetchOpenSession,
+  } = useOpenWorkoutSessionQuery();
+  const isOpenSessionKnown = openSession !== undefined;
+  const openSessionFailed = isOpenSessionError && !isOpenSessionKnown;
   // The pinned action's height, safe area included: the content ends above it.
   const [actionHeight, setActionHeight] = useState(0);
   const measureAction = useCallback((event: LayoutChangeEvent) => {
@@ -205,7 +219,8 @@ export default function WorkoutScreen() {
 
   const retry = useCallback(() => {
     refetch();
-  }, [refetch]);
+    refetchOpenSession();
+  }, [refetch, refetchOpenSession]);
   const goBack = useCallback(() => {
     if (router.canGoBack()) {
       router.back();
@@ -214,9 +229,13 @@ export default function WorkoutScreen() {
     }
   }, [router]);
 
+  // The Workout the pinned action is for: none while it, or whether Start is
+  // blocked, can't be shown.
+  const actionWorkout = workout && !openSessionFailed ? workout : null;
+
   const renderContent = () => {
-    if (workout) {
-      return <WorkoutContent workout={workout} />;
+    if (actionWorkout) {
+      return <WorkoutContent workout={actionWorkout} />;
     }
     // Replaced by a Plan edit, or its Plan deleted.
     if (workout === null) {
@@ -234,11 +253,16 @@ export default function WorkoutScreen() {
         </View>
       );
     }
-    if (isError) {
+    if (isError || openSessionFailed) {
+      const waitSeconds = openSessionFailed
+        ? rateLimitedFor(openSessionError)
+        : null;
       return (
         <View className="items-center gap-sm pt-lg">
           <Text className="text-center text-muted-foreground">
-            {t("plannedWorkout.loadError")}
+            {waitSeconds === null
+              ? t("plannedWorkout.loadError")
+              : t("common.rateLimited", { seconds: waitSeconds })}
           </Text>
           <Button
             fill={false}
@@ -270,7 +294,7 @@ export default function WorkoutScreen() {
       <ScrollView
         contentContainerClassName="gap-sm px-sm pt-xs"
         contentContainerStyle={{
-          paddingBottom: workout
+          paddingBottom: actionWorkout
             ? actionHeight + BOTTOM_GAP
             : insets.bottom + BOTTOM_GAP,
         }}
@@ -279,8 +303,12 @@ export default function WorkoutScreen() {
       >
         {renderContent()}
       </ScrollView>
-      {workout ? (
-        <WorkoutAction onLayout={measureAction} workout={workout} />
+      {actionWorkout ? (
+        <WorkoutAction
+          isOpenSessionKnown={isOpenSessionKnown}
+          onLayout={measureAction}
+          workout={actionWorkout}
+        />
       ) : null}
     </>
   );
