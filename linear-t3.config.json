@@ -1,0 +1,16 @@
+{
+  "team": "FIT",
+  "status": "Todo",
+  "filter": {
+    "hasBlockedByRelations": {
+      "eq": false
+    },
+    "labels": {
+      "every": {
+        "name": {
+          "neqIgnoreCase": "exercises"
+        }
+      }
+    }
+  }
+}
