@@ -1,16 +1,25 @@
-import type {
-  WorkoutSessionExercise,
-  WorkoutSessionExerciseSet,
-} from "@fitme/core";
 import { setDeviceConventions } from "@fitme/i18n";
-import { afterEach, describe, expect, it, jest } from "@jest/globals";
-import { act, fireEvent, render, screen } from "@testing-library/react-native";
+import {
+  afterEach,
+  beforeEach,
+  describe,
+  expect,
+  it,
+  jest,
+} from "@jest/globals";
+import { type QueryClient, QueryClientProvider } from "@tanstack/react-query";
+import { act, render, screen } from "@testing-library/react-native";
+import type { ReactNode } from "react";
 import { i18n } from "~/lib/i18n";
+import { storage } from "~/lib/mmkv";
 import {
   setDevice24HourClock,
   setDeviceLanguages,
 } from "~/test-utils/device-locales";
+import { FAKE_USER_ID } from "~/test-utils/fake-public-api";
+import { backend } from "~/test-utils/fake-workout-backend";
 import { InAppLanguage } from "~/test-utils/in-app-language";
+import { createTestQueryClient, settle } from "~/test-utils/query-client";
 import ExerciseHistoryView from "../exercise-history-view";
 
 // A row's set number cell, and a session's date.
@@ -19,48 +28,58 @@ const SET_NUMBER = /^#\d$/;
 // month first.
 const SESSION_DATE = /^October \d+(, \d{4})?$/;
 
-const mockHistory: { current: WorkoutSessionExercise[] } = { current: [] };
-
-jest.mock("~/hooks/queries/exercises", () => ({
-  useExerciseHistoryQuery: () => ({ data: mockHistory.current }),
-}));
-jest.mock("~/hooks/queries/profiles", () => ({
-  useProfileQuery: () => ({ data: { measurement_system: "metric" } }),
+// The real Clerk SDK opens a MessagePort at import that keeps Jest alive.
+jest.mock("~/lib/clerk", () => ({
+  getCurrentUserId: jest.requireActual<
+    typeof import("~/test-utils/signed-in-user")
+  >("~/test-utils/signed-in-user").getCurrentUserId,
 }));
 jest.mock("~/components/ui/button", () =>
   jest.requireActual("~/test-utils/button-stub")
 );
 
-const set = (
-  order: number,
-  values: Partial<WorkoutSessionExerciseSet>
-): WorkoutSessionExerciseSet => ({
-  created_at: "2026-10-21T10:00:00Z",
-  id: `set-${order}`,
-  logged_at: "2026-10-21T10:00:00Z",
-  order,
-  reps_completed: 12,
-  reps_recommended: 12,
-  rest_recommended: 60,
-  updated_at: "2026-10-21T10:00:00Z",
-  weight_completed: 45,
-  weight_recommended: 45,
-  workout_session_exercise_id: "wse",
-  ...values,
-});
+let queryClient: QueryClient;
 
-const entry = (
+const mount = async (children: ReactNode) => {
+  queryClient = createTestQueryClient();
+  await render(
+    <QueryClientProvider client={queryClient}>{children}</QueryClientProvider>
+  );
+  await settle(queryClient);
+};
+
+/**
+ * A past Workout Session of one Shoulder Press, its sets' logged reps given
+ * and every one of them at 45 kg with the same target, unless `weights` says
+ * otherwise.
+ */
+const seedSession = (
   id: string,
-  createdAt: string,
-  sets: WorkoutSessionExerciseSet[]
-): WorkoutSessionExercise => ({
-  created_at: createdAt,
-  exercise_slug: "shoulder-press",
-  id,
-  order: 1,
-  sets,
-  updated_at: "2026-10-21T10:00:00Z",
-  workout_session_id: `session-${id}`,
+  startedAt: string,
+  sets: Array<{ reps: number; weight?: number | null }>
+) => {
+  backend.seed({
+    exercises: [{ name: "Shoulder Press", sets: sets.map(({ reps }) => reps) }],
+    finished: true,
+    id,
+    startedAt,
+  });
+  sets.forEach(({ weight = 45 }, index) => {
+    const set = backend.sets.find(
+      (candidate) => candidate.id === `${id}-e1-s${index + 1}`
+    );
+    Object.assign(set ?? {}, {
+      reps_recommended: 12,
+      weight_completed: weight,
+      weight_recommended: 45,
+    });
+  });
+};
+
+beforeEach(() => {
+  backend.reset();
+  storage.clearAll();
+  backend.seedProfile(FAKE_USER_ID);
 });
 
 // The language sync leaves the App language and region where a test put them.
@@ -71,13 +90,11 @@ afterEach(async () => {
 
 describe("ExerciseHistoryView", () => {
   it("shows each past session as a table of its sets under Progress", async () => {
-    mockHistory.current = [
-      entry("e1", "2026-10-21T10:00:00Z", [
-        set(2, { reps_completed: 10, weight_completed: 50 }),
-        set(1, {}),
-      ]),
-    ];
-    await render(<ExerciseHistoryView exerciseSlug="shoulder-press" />);
+    seedSession("e1", "2026-10-21T10:00:00.000Z", [
+      { reps: 12 },
+      { reps: 10, weight: 50 },
+    ]);
+    await mount(<ExerciseHistoryView exerciseSlug="shoulder-press" />);
 
     expect(screen.getByRole("heading", { name: "Progress" })).toBeTruthy();
     expect(screen.queryByText("History")).toBeNull();
@@ -101,16 +118,16 @@ describe("ExerciseHistoryView", () => {
   });
 
   it("names the year of a session from an earlier year", async () => {
-    mockHistory.current = [entry("old", "2020-03-02T10:00:00Z", [set(1, {})])];
-    await render(<ExerciseHistoryView exerciseSlug="shoulder-press" />);
+    seedSession("old", "2020-03-02T10:00:00.000Z", [{ reps: 12 }]);
+    await mount(<ExerciseHistoryView exerciseSlug="shoulder-press" />);
 
     expect(screen.getByText("March 2, 2020")).toBeTruthy();
   });
 
   it("writes the date in the App language and the device region's order", async () => {
-    mockHistory.current = [entry("old", "2020-03-02T10:00:00Z", [set(1, {})])];
+    seedSession("old", "2020-03-02T10:00:00.000Z", [{ reps: 12 }]);
     setDeviceLanguages(["uk-UA"]);
-    await render(
+    await mount(
       <InAppLanguage>
         <ExerciseHistoryView exerciseSlug="shoulder-press" />
       </InAppLanguage>
@@ -120,19 +137,15 @@ describe("ExerciseHistoryView", () => {
   });
 
   it("writes the table and its rows in Ukrainian", async () => {
-    mockHistory.current = [
-      entry("old", "2020-03-02T10:00:00Z", [
-        set(1, {}),
-        set(2, { reps_completed: 10, weight_completed: 50 }),
-        set(3, {}),
-        set(4, {}),
-      ]),
-      entry("e2", "2020-03-01T10:00:00Z", [set(1, {})]),
-      entry("e3", "2020-02-28T10:00:00Z", [set(1, {})]),
-      entry("e4", "2020-02-27T10:00:00Z", [set(1, {})]),
-    ];
+    seedSession("old", "2020-03-02T10:00:00.000Z", [
+      { reps: 12 },
+      { reps: 10, weight: 50 },
+      { reps: 12 },
+      { reps: 12 },
+    ]);
+    seedSession("e2", "2020-03-01T10:00:00.000Z", [{ reps: 12 }]);
     setDeviceLanguages(["uk-UA"]);
-    await render(
+    await mount(
       <InAppLanguage>
         <ExerciseHistoryView exerciseSlug="shoulder-press" />
       </InAppLanguage>
@@ -149,12 +162,11 @@ describe("ExerciseHistoryView", () => {
     expect(
       screen.getByLabelText("Підхід 2: 10 повторень, 50 кг. Ціль 12×45кг")
     ).toBeTruthy();
-    expect(screen.getByRole("button", { name: "Показати ще" })).toBeTruthy();
   });
 
   it("switches the date when the device's language changes", async () => {
-    mockHistory.current = [entry("old", "2020-03-02T10:00:00Z", [set(1, {})])];
-    await render(
+    seedSession("old", "2020-03-02T10:00:00.000Z", [{ reps: 12 }]);
+    await mount(
       <InAppLanguage>
         <ExerciseHistoryView exerciseSlug="shoulder-press" />
       </InAppLanguage>
@@ -179,9 +191,9 @@ describe("ExerciseHistoryView", () => {
   });
 
   it("writes an English date day first on a British device", async () => {
-    mockHistory.current = [entry("old", "2020-03-02T10:00:00Z", [set(1, {})])];
+    seedSession("old", "2020-03-02T10:00:00.000Z", [{ reps: 12 }]);
     setDeviceLanguages(["en-GB"]);
-    await render(
+    await mount(
       <InAppLanguage>
         <ExerciseHistoryView exerciseSlug="shoulder-press" />
       </InAppLanguage>
@@ -190,33 +202,27 @@ describe("ExerciseHistoryView", () => {
     expect(screen.getByText("2 March 2020")).toBeTruthy();
   });
 
-  it("leaves out the session being logged and sessions with no logged set", async () => {
-    mockHistory.current = [
-      entry("current", "2026-10-27T10:00:00Z", [set(1, {})]),
-      entry("skipped", "2026-10-25T10:00:00Z", [
-        set(1, { reps_completed: null, weight_completed: null }),
-      ]),
-    ];
-    await render(
-      <ExerciseHistoryView excludeId="current" exerciseSlug="shoulder-press" />
+  it("shows nothing when the session being logged is the only entry", async () => {
+    seedSession("current", "2026-10-27T10:00:00.000Z", [{ reps: 12 }]);
+    await mount(
+      <ExerciseHistoryView
+        excludeId="current-e1"
+        exerciseSlug="shoulder-press"
+      />
     );
 
     expect(screen.queryByText("Progress")).toBeNull();
   });
 
-  it("shows three sessions, then three more on each Load more", async () => {
-    mockHistory.current = Array.from({ length: 7 }, (_, index) =>
-      entry(`e${index}`, `2026-10-${String(20 - index)}T10:00:00Z`, [
-        set(1, {}),
-      ])
-    );
-    await render(<ExerciseHistoryView exerciseSlug="shoulder-press" />);
+  it("leaves out a session with no logged set, which the API never answers", async () => {
+    backend.seed({
+      exercises: [{ name: "Shoulder Press", sets: [null] }],
+      finished: true,
+      id: "skipped",
+      startedAt: "2026-10-25T10:00:00.000Z",
+    });
+    await mount(<ExerciseHistoryView exerciseSlug="shoulder-press" />);
 
-    expect(screen.getAllByText(SESSION_DATE)).toHaveLength(3);
-    await fireEvent.press(screen.getByRole("button", { name: "Load more" }));
-    expect(screen.getAllByText(SESSION_DATE)).toHaveLength(6);
-    await fireEvent.press(screen.getByRole("button", { name: "Load more" }));
-    expect(screen.getAllByText(SESSION_DATE)).toHaveLength(7);
-    expect(screen.queryByRole("button", { name: "Load more" })).toBeNull();
+    expect(screen.queryByText("Progress")).toBeNull();
   });
 });

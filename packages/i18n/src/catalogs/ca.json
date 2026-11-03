@@ -24,7 +24,7 @@
   },
   "exerciseHistory": {
     "title": "Progrés",
-    "loadMore": "Carrega'n més",
+    "loadError": "No s'ha pogut carregar l'historial d'aquest exercici. Comprova la connexió i torna-ho a provar.",
     "set": "Sèrie {{order, number}}: {{logged}}",
     "target": "Objectiu {{target}}"
   },

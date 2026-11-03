@@ -24,7 +24,7 @@
   },
   "exerciseHistory": {
     "title": "Progress",
-    "loadMore": "Load more",
+    "loadError": "Couldn't load this exercise's history. Check your connection and try again.",
     "set": "Set {{order, number}}: {{logged}}",
     "target": "Target {{target}}"
   },

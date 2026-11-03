@@ -24,7 +24,7 @@
   },
   "exerciseHistory": {
     "title": "Progreso",
-    "loadMore": "Cargar más",
+    "loadError": "No se pudo cargar el historial de este ejercicio. Comprueba tu conexión e inténtalo de nuevo.",
     "set": "Serie {{order, number}}: {{logged}}",
     "target": "Objetivo {{target}}"
   },

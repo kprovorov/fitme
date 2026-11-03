@@ -54,7 +54,7 @@ jest.mock("~/hooks/queries/workout-sessions", () => ({
 }));
 
 jest.mock("~/hooks/queries/exercises", () => ({
-  useExerciseHistoryQuery: () => ({ data: [] }),
+  useExerciseHistoryQuery: () => ({ data: { pageParams: [], pages: [] } }),
 }));
 
 jest.mock("react-native-safe-area-context", () => ({

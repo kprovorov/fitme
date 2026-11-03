@@ -1,11 +1,19 @@
 import { Stack, useLocalSearchParams, useRouter } from "expo-router";
-import { useCallback, useState } from "react";
+import { useCallback, useRef, useState } from "react";
 import { useTranslation } from "react-i18next";
-import { ActivityIndicator, type LayoutChangeEvent, View } from "react-native";
+import {
+  ActivityIndicator,
+  type LayoutChangeEvent,
+  type NativeScrollEvent,
+  type NativeSyntheticEvent,
+  View,
+} from "react-native";
 import { KeyboardAwareScrollView } from "react-native-keyboard-controller";
 import { useSafeAreaInsets } from "react-native-safe-area-context";
 import { Card } from "~/components/ui/card";
-import ExerciseHistoryView from "~/components/views/exercise-history-view";
+import ExerciseHistoryView, {
+  type ExerciseHistoryHandle,
+} from "~/components/views/exercise-history-view";
 import WorkoutSessionExerciseSetsTableView from "~/components/views/workout-session-exercise-sets-table-view";
 import RestTimer, { type Rest } from "~/components/workout-sessions/rest-timer";
 import SessionExerciseHeader from "~/components/workout-sessions/session-exercise-header";
@@ -17,6 +25,15 @@ import { useWorkoutSessionQuery } from "~/hooks/queries/workout-sessions";
 
 /** Gap between the end of the content and the floating rest timer. */
 const REST_TIMER_GAP = 16;
+
+/**
+ * How close to the end of the screen, in screens, the next page of the
+ * Exercise's history is read at.
+ */
+const HISTORY_NEAR_END_THRESHOLD = 0.5;
+
+/** How often scrolling reports its position, in milliseconds. */
+const SCROLL_EVENT_THROTTLE_MS = 16;
 
 export default function WorkoutSessionExerciseScreen() {
   const { t } = useTranslation();
@@ -101,6 +118,21 @@ export default function WorkoutSessionExerciseScreen() {
     refetch();
   }, [refetch]);
 
+  // The history is a card inside this screen's scroll view, so the screen is
+  // what notices its end coming: each page is read as the User scrolls there.
+  const history = useRef<ExerciseHistoryHandle | null>(null);
+  const onScroll = useCallback(
+    ({ nativeEvent }: NativeSyntheticEvent<NativeScrollEvent>) => {
+      const { contentOffset, contentSize, layoutMeasurement } = nativeEvent;
+      const fromEnd =
+        contentSize.height - contentOffset.y - layoutMeasurement.height;
+      if (fromEnd <= HISTORY_NEAR_END_THRESHOLD * layoutMeasurement.height) {
+        history.current?.loadMore();
+      }
+    },
+    []
+  );
+
   const renderContent = () => {
     if (workoutSession && workoutSessionExercise) {
       return (
@@ -123,6 +155,7 @@ export default function WorkoutSessionExerciseScreen() {
           <ExerciseHistoryView
             excludeId={exerciseId as string}
             exerciseSlug={workoutSessionExercise.exercise_slug}
+            ref={history}
           />
         </>
       );
@@ -166,7 +199,10 @@ export default function WorkoutSessionExerciseScreen() {
         }}
         contentInsetAdjustmentBehavior="automatic"
         keyboardShouldPersistTaps="handled"
+        onScroll={onScroll}
+        scrollEventThrottle={SCROLL_EVENT_THROTTLE_MS}
         showsVerticalScrollIndicator={false}
+        testID="workout-session-exercise-scroll"
       >
         {renderContent()}
       </KeyboardAwareScrollView>

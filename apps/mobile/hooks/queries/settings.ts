@@ -7,7 +7,7 @@ import {
 } from "@tanstack/react-query";
 import { createMutation } from "react-query-kit";
 import { rememberProfileWrite } from "~/hooks/mutations/profiles";
-import { useExerciseHistoryQuery } from "~/hooks/queries/exercises";
+import { EXERCISE_HISTORY_QUERY_KEY } from "~/hooks/queries/exercises";
 import { usePlanQuery, usePlansQuery } from "~/hooks/queries/plans";
 import { type Profile, useProfileQuery } from "~/hooks/queries/profiles";
 import {
@@ -38,7 +38,7 @@ const WEIGHED_QUERY_KEYS: QueryKey[] = [
   // No weight of its own yet, but it answers from a Workout Session summary.
   OPEN_WORKOUT_SESSION_QUERY_KEY,
   useWorkoutSessionHistoryQuery.getKey(),
-  useExerciseHistoryQuery.getKey(),
+  EXERCISE_HISTORY_QUERY_KEY,
 ];
 
 /**
