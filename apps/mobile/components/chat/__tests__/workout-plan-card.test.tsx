@@ -11,7 +11,7 @@ import { beforeEach, describe, expect, it, jest } from "@jest/globals";
 import { QueryClientProvider } from "@tanstack/react-query";
 import { fireEvent, render, screen } from "@testing-library/react-native";
 import { Text } from "react-native";
-import { usePlansQuery } from "~/hooks/queries/plans";
+import { usePlanQuery, usePlansQuery } from "~/hooks/queries/plans";
 import { useAppLanguageSync } from "~/lib/i18n";
 import { storage } from "~/lib/mmkv";
 import { segmentClient } from "~/lib/segment";
@@ -212,6 +212,24 @@ describe("WorkoutPlanCard", () => {
       ["Plan Saved", { plan_id: created?.id }],
       ["Plan Activated", { plan_id: created?.id }],
     ]);
+  });
+
+  it("holds the saved Plan from the answer, so its screen needs no read", async () => {
+    const client = await renderCard();
+
+    await save(client);
+
+    const [created] = backend.plans;
+    expect(
+      client.getQueryData(usePlanQuery.getKey({ id: created?.id ?? "" }))
+    ).toMatchObject({
+      id: created?.id,
+      is_active: true,
+      name: "Strength Plan",
+      weight_unit: "kg",
+      workouts: [{ exercises: [{ exercise_slug: "bench-press" }, {}] }],
+    });
+    expect(fakePublicApi.count("GET /v1/plans/{id}")).toBe(0);
   });
 
   it("fits an out-of-bounds card into the Public API's bounds", async () => {

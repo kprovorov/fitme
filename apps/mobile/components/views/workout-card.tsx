@@ -1,4 +1,3 @@
-import type { Workout } from "@fitme/core";
 import { Link, useRouter } from "expo-router";
 import { useEffect, useState } from "react";
 import { useTranslation } from "react-i18next";
@@ -8,6 +7,7 @@ import { Text } from "@/components/ui/text";
 import { H4 } from "@/components/ui/typography";
 import { VStack } from "@/components/ui/vstack";
 import { shownExercise, useExercises } from "~/hooks/queries/library";
+import type { PlanWorkout } from "~/hooks/queries/plans";
 import { useOwnOpenWorkoutSession } from "~/hooks/queries/workout-sessions";
 import ExerciseImage from "../exercises/exercise-image";
 import { COUNT_SYMBOL } from "../plans/plan-symbols";
@@ -15,7 +15,9 @@ import { SymbolImage } from "../symbol-image";
 import { Card } from "../ui/card";
 
 interface WorkoutCardProps {
-  workout: Workout;
+  /** The Plan it's in. */
+  planId: string;
+  workout: PlanWorkout;
 }
 
 /**
@@ -25,7 +27,7 @@ interface WorkoutCardProps {
  * screen; the Workout tab has its own cards
  * (`components/workouts/workout-carousel-card.tsx`).
  */
-export default function WorkoutCard({ workout }: WorkoutCardProps) {
+export default function WorkoutCard({ planId, workout }: WorkoutCardProps) {
   const router = useRouter();
   const { t } = useTranslation();
   const activeSession = useOwnOpenWorkoutSession(workout.id);
@@ -67,8 +69,8 @@ export default function WorkoutCard({ workout }: WorkoutCardProps) {
   const openWorkout = () => {
     router.push(
       activeSession
-        ? `/plans/${workout.plan_id}/workouts/${workout.id}/sessions/${activeSession.id}`
-        : `/plans/${workout.plan_id}/workouts/${workout.id}`
+        ? `/plans/${planId}/workouts/${workout.id}/sessions/${activeSession.id}`
+        : `/plans/${planId}/workouts/${workout.id}`
     );
   };
 
@@ -78,7 +80,7 @@ export default function WorkoutCard({ workout }: WorkoutCardProps) {
         {activeSession && (
           <Link
             asChild
-            href={`/plans/${workout.plan_id}/workouts/${workout.id}/sessions/${activeSession.id}`}
+            href={`/plans/${planId}/workouts/${workout.id}/sessions/${activeSession.id}`}
           >
             <Pressable className="flex-row items-center justify-between rounded-xl border-continuous bg-primary px-3 py-2 active:opacity-80">
               <HStack className="flex-1 justify-start gap-1">

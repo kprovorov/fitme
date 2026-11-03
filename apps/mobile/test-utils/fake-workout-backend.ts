@@ -91,6 +91,11 @@ export interface SeedPlan {
   /** Whether it's the User's active Plan; `false` unless given. */
   is_active?: boolean;
   name: string;
+  /**
+   * Its owner's Clerk id; the fake Public API's User (`FAKE_USER_ID`) unless
+   * given, so another id is another User's Plan, which the API never shows.
+   */
+  user_id?: string;
   workouts: Array<{
     /** Its Library Cover's id; `null` (the default) without one. */
     cover?: string | null;
