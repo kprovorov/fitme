@@ -81,6 +81,8 @@ export const usePlanSummariesQuery = createQuery<PlanSummary[]>({
     return data.data;
   },
   queryKey: [...PLANS_QUERY_KEY, "summaries"],
+  // A 429 is the User's to wait out; the screens offer Try Again.
+  retry: false,
 });
 
 export interface PlanQueryVariables {
@@ -110,6 +112,8 @@ export const usePlanQuery = createQuery<FullPlan | null, PlanQueryVariables>({
     }
   },
   queryKey: ["plan"],
+  // A 429 is the User's to wait out; the screens offer Try Again.
+  retry: false,
 });
 
 /**
