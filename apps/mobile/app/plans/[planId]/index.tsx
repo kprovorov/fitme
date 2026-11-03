@@ -13,6 +13,7 @@ import {
   usePlanQuery,
 } from "~/hooks/queries/plans";
 import { WEEKLY_GOALS_QUERY_KEY } from "~/hooks/queries/weekly-goals";
+import { OPEN_WORKOUT_SESSION_QUERY_KEY } from "~/hooks/queries/workout-sessions";
 
 /**
  * What to tell the User after a failed Plan write. A failure other than a 404
@@ -74,9 +75,16 @@ export default function PlanScreen() {
     },
   });
 
+  // Each Workout card's open session (and its timer) comes from the open
+  // Workout Session's own read, which a pull refreshes too (when a card reads
+  // it): with none open it isn't polled, so a session started elsewhere, or
+  // a first read that failed, shows only once read again.
   const onRefresh = useCallback(async () => {
-    await refetch();
-  }, [refetch]);
+    await Promise.all([
+      refetch(),
+      queryClient.refetchQueries({ queryKey: OPEN_WORKOUT_SESSION_QUERY_KEY }),
+    ]);
+  }, [refetch, queryClient]);
 
   return (
     <>
@@ -165,6 +173,7 @@ export default function PlanScreen() {
         refreshControl={
           <RefreshControl onRefresh={onRefresh} refreshing={isLoading} />
         }
+        testID="plan-screen"
       >
         {plan ? (
           <VStack className="flex-1 items-stretch">
