@@ -13,6 +13,11 @@ import {
   workouts,
 } from "@fitme/db";
 import {
+  type ExerciseHistoryPage,
+  type ExerciseHistoryQuery,
+  getExerciseHistory,
+} from "@fitme/services/exercises";
+import {
   applyPlanUpdate,
   type PlanUpdate,
   previewPlanUpdate,
@@ -162,6 +167,13 @@ export interface UserServices {
   ) => Promise<Weighed<FinishWorkoutSessionResult>>;
   /** The active Plan in full, or `null` with none. */
   getActivePlan: () => Promise<Weighed<PlanDetail> | null>;
+  /**
+   * A page of the User's logged sets for one Exercise, newest Workout Session
+   * first, their weights in the User's unit; an unknown slug is an empty page.
+   */
+  getExerciseHistory: (
+    query: ExerciseHistoryQuery
+  ) => Promise<Weighed<ExerciseHistoryPage>>;
   /** A live Plan of the User in full, or `null` (missing, deleted, foreign). */
   getPlan: (planId: string) => Promise<Weighed<PlanDetail> | null>;
   getProfile: () => Promise<ProfileWithUnits | null>;
@@ -304,6 +316,8 @@ export const createServicesFromEnv: ServicesFactory = (userId) => {
     finishWorkoutSession: (sessionId) =>
       inUnits((tx) => finishWorkoutSession(tx, sessionId), write),
     getActivePlan: () => weighed((tx) => getActivePlan(tx, userId)),
+    getExerciseHistory: (query) =>
+      inUnits((tx) => getExerciseHistory(tx, userId, query)),
     getPlan: (planId) => weighed((tx) => getPlan(tx, userId, planId)),
     getProfile: () => asUser(userId, (tx) => getProfile(tx, userId)),
     getWeeklyGoals: (timeZone) =>

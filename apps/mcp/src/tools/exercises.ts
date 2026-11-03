@@ -106,7 +106,7 @@ export function registerExerciseTools(server: McpServer, ctx: ToolContext) {
     "get_exercise_history",
     {
       annotations: READ_ONLY,
-      description: `Returns the authenticated user's logged sets for one exercise (by its Exercise slug), newest first. There is one entry per time the exercise appeared in a workout session (normally one per session; more if it was added to the same session twice), each with the session, workout and plan it belongs to. Only sets with a logged weight are included, and entries without any are skipped. \`limit\` counts entries. ${WEIGHT_UNIT_NOTE}`,
+      description: `Returns the authenticated user's logged sets for one exercise (by its Exercise slug), newest workout session first. There is one entry per time the exercise appeared in a workout session (normally one per session; more if it was added to the same session twice), each with the session, workout and plan it belongs to. A set is included once its reps are logged, bodyweight sets included (those log no weight, so \`weight_completed\` is null); a set that was never logged is left out, and an entry left with no set is skipped. Each set also carries the targets it was given (\`reps_recommended\`, \`weight_recommended\`), both null for a set added during the session. \`limit\` counts entries, and \`total\` is how many the user has. ${WEIGHT_UNIT_NOTE}`,
       inputSchema: {
         exerciseSlug: exerciseSlugSchema,
         limit: z
@@ -121,11 +121,13 @@ export function registerExerciseTools(server: McpServer, ctx: ToolContext) {
       },
       title: "Get exercise history",
     },
-    withServices(ctx, async ({ exerciseSlug, limit }, services) =>
-      asJson({
-        entries: await services.getExerciseHistory({ exerciseSlug, limit }),
+    withServices(ctx, async ({ exerciseSlug, limit }, services) => {
+      const { entries, total } = await services.getExerciseHistory({
         exerciseSlug,
-      })
-    )
+        limit,
+        offset: 0,
+      });
+      return asJson({ entries, exerciseSlug, total });
+    })
   );
 }

@@ -279,22 +279,45 @@ describe("get_exercise_history", () => {
         logged_at: null,
         order: 1,
         reps_completed: 8,
+        reps_recommended: 8,
         weight_completed: 75,
+        weight_recommended: 70,
       },
       {
         id: "s2",
         logged_at: null,
         order: 2,
         reps_completed: 6,
+        reps_recommended: 6,
         weight_completed: 80,
+        weight_recommended: 75,
       },
     ],
     started_at: "2026-10-01T10:00:00+00:00",
     workout: { id: "workout", name: "Day A" },
   };
 
-  it("returns the service's entries for the Exercise slug", async () => {
-    const getExerciseHistory = vi.fn().mockResolvedValue([entry]);
+  /** A pull-up session: logged reps, no weight, and no targets. */
+  const bodyweightEntry = {
+    ...entry,
+    session_exercise_id: "wse-2",
+    sets: [
+      {
+        id: "s3",
+        logged_at: "2026-10-02T10:05:00+00:00",
+        order: 1,
+        reps_completed: 12,
+        reps_recommended: null,
+        weight_completed: null,
+        weight_recommended: null,
+      },
+    ],
+  };
+
+  it("returns the service's entries for the Exercise slug, with the total", async () => {
+    const getExerciseHistory = vi
+      .fn()
+      .mockResolvedValue({ entries: [entry], total: 1 });
     const client = await connectWithServices({ getExerciseHistory });
 
     const result = await call(client, "get_exercise_history", {
@@ -305,22 +328,48 @@ describe("get_exercise_history", () => {
     expect(getExerciseHistory).toHaveBeenCalledWith({
       exerciseSlug: BENCH.slug,
       limit: 3,
+      offset: 0,
     });
     expect(result.isError).toBe(false);
-    expect(result.json).toEqual({ entries: [entry], exerciseSlug: BENCH.slug });
+    expect(result.json).toEqual({
+      entries: [entry],
+      exerciseSlug: BENCH.slug,
+      total: 1,
+    });
+  });
+
+  it("returns a bodyweight set, with no weight and its set targets", async () => {
+    const getExerciseHistory = vi
+      .fn()
+      .mockResolvedValue({ entries: [bodyweightEntry, entry], total: 2 });
+    const client = await connectWithServices({ getExerciseHistory });
+
+    const result = await call(client, "get_exercise_history", {
+      exerciseSlug: BENCH.slug,
+    });
+
+    // the bodyweight set is there with no weight, and every set its targets
+    expect(result.json).toEqual({
+      entries: [bodyweightEntry, entry],
+      exerciseSlug: BENCH.slug,
+      total: 2,
+    });
   });
 
   it("asks for 10 entries by default and rejects more than 50", async () => {
-    const getExerciseHistory = vi.fn().mockResolvedValue([]);
+    const getExerciseHistory = vi
+      .fn()
+      .mockResolvedValue({ entries: [], total: 0 });
     const client = await connectWithServices({ getExerciseHistory });
 
     expect(
       (await call(client, "get_exercise_history", { exerciseSlug: BENCH.slug }))
         .json
-    ).toEqual({ entries: [], exerciseSlug: BENCH.slug });
+    ).toEqual({ entries: [], exerciseSlug: BENCH.slug, total: 0 });
     expect(getExerciseHistory).toHaveBeenCalledWith({
       exerciseSlug: BENCH.slug,
       limit: 10,
+      offset: 0,
     });
 
     const tooMany = await call(client, "get_exercise_history", {

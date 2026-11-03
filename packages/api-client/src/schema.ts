@@ -1271,6 +1271,81 @@ export interface paths {
     patch?: never;
     trace?: never;
   };
+  "/v1/workout-session-exercises": {
+    parameters: {
+      query?: never;
+      header?: never;
+      path?: never;
+      cookie?: never;
+    };
+    /**
+     * List the User's history for one Exercise
+     * @description A page of the User's history for one Exercise: every time it appeared in one of their Workout Sessions, newest Workout Session first (by the Workout Session's `started_at`; an Exercise added to the same Workout Session twice keeps its place in it). A set counts once its reps are logged, and a bodyweight set, which logs no weight (`weight_completed` is `null`), counts too; a set that was never logged is left out, and an entry left with no set is left out of the page and of `total`. Weights are as stored, in `weight_unit`. An Exercise the User never did, an Exercise slug the Library doesn't have, and an offset past the end each answer an empty page.
+     */
+    get: {
+      parameters: {
+        query: {
+          /** @description The Exercise, by its Exercise slug from the Library API; one the Library doesn't have answers an empty page */
+          exercise_slug: string;
+          /** @description Page size */
+          limit?: number;
+          /** @description How many entries to skip */
+          offset?: number;
+        };
+        header?: never;
+        path?: never;
+        cookie?: never;
+      };
+      requestBody?: never;
+      responses: {
+        /** @description A page of the User's history for the Exercise; an offset past the end is an empty page */
+        200: {
+          headers: {
+            [name: string]: unknown;
+          };
+          content: {
+            "application/json": components["schemas"]["ExerciseHistoryPage"];
+          };
+        };
+        /** @description `invalid_request`: the input fails its schema */
+        400: {
+          headers: {
+            [name: string]: unknown;
+          };
+          content: {
+            "application/json": components["schemas"]["Error"];
+          };
+        };
+        /** @description No valid Clerk session token */
+        401: {
+          headers: {
+            [name: string]: unknown;
+          };
+          content: {
+            "application/json": components["schemas"]["Error"];
+          };
+        };
+        /** @description Too many requests from this User; retry after `Retry-After` */
+        429: {
+          headers: {
+            /** @description Seconds until the limit resets */
+            "Retry-After": string;
+            [name: string]: unknown;
+          };
+          content: {
+            "application/json": components["schemas"]["Error"];
+          };
+        };
+      };
+    };
+    put?: never;
+    post?: never;
+    delete?: never;
+    options?: never;
+    head?: never;
+    patch?: never;
+    trace?: never;
+  };
   "/v1/workout-session-exercises/{id}": {
     parameters: {
       query?: never;
@@ -2691,6 +2766,74 @@ export interface components {
        * @example 4
        */
       target: number | null;
+    };
+    ExerciseHistoryPage: {
+      /** @description The page, newest Workout Session first */
+      data: components["schemas"]["ExerciseHistoryEntry"][];
+      /** @description Whether more entries follow */
+      hasMore: boolean;
+      /** @description How many entries match, across every page */
+      total: number;
+      weight_unit: components["schemas"]["WeightUnit"];
+    };
+    /** @description One time the Exercise appeared in one of the User's Workout Sessions (normally once per Workout Session; twice when it was added to the same one again) */
+    ExerciseHistoryEntry: {
+      /**
+       * Format: uuid
+       * @description The Workout Session Exercise's id
+       * @example 6f1c0c9e-2b7a-4c1e-9a55-3c2d1e0f4a11
+       */
+      id: string;
+      session: {
+        /**
+         * Format: date-time
+         * @description When the Workout Session was finished (ISO 8601)
+         * @example 2026-10-01T10:00:00.123456+00:00
+         */
+        finished_at: string | null;
+        /**
+         * Format: uuid
+         * @example 6f1c0c9e-2b7a-4c1e-9a55-3c2d1e0f4a11
+         */
+        id: string;
+        /**
+         * Format: date-time
+         * @description When the Workout Session was started (ISO 8601)
+         * @example 2026-10-01T10:00:00.123456+00:00
+         */
+        started_at: string;
+      };
+      /** @description Its logged sets, in order */
+      sets: components["schemas"]["ExerciseHistorySet"][];
+    };
+    ExerciseHistorySet: {
+      /**
+       * Format: uuid
+       * @example 6f1c0c9e-2b7a-4c1e-9a55-3c2d1e0f4a11
+       */
+      id: string;
+      /** @example 1 */
+      order: number;
+      /**
+       * @description Repetitions done; every set here has them logged
+       * @example 8
+       */
+      reps_completed: number;
+      /**
+       * @description The target, `null` for a set added during the session
+       * @example 8
+       */
+      reps_recommended: number | null;
+      /**
+       * @description In `weight_unit`, `null` for a bodyweight set, which logs no weight
+       * @example 80.5
+       */
+      weight_completed: number | null;
+      /**
+       * @description The target, in `weight_unit`
+       * @example 80
+       */
+      weight_recommended: number | null;
     };
     WorkoutSessionSet: {
       /**
