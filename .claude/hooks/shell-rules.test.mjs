@@ -612,6 +612,23 @@ describe("gitleaks scanning a whole worktree or printing secrets", () => {
     "gitleaks dir packages/i18n/src/catalogs apps/mobile --config .gitleaks.toml -v --redact=0 | grep Secret",
     "pnpm exec gitleaks dir . --redact",
     "npx gitleaks dir . --redact",
+    // pflag reads `--redact`'s value with Go's base 0, so `0100` is octal 64
+    // and `1e2` no number at all: only the bare flag and `=100` are full.
+    "gitleaks dir apps/mobile --redact=0100 -v",
+    "gitleaks dir apps/mobile --redact=0x64 -v",
+    "gitleaks dir apps/mobile --redact=1e2 -v",
+    "gitleaks dir apps/mobile --redact=no -v",
+    // `--` ends the flags; every word after it is another path.
+    "gitleaks dir apps/mobile --redact -- apps/arnold",
+    "gitleaks dir --redact -- .",
+    "gitleaks dir -- apps/mobile --redact",
+    // A later value wins, so the scan does run.
+    "gitleaks dir apps/mobile --help --help=false -v",
+    "gitleaks dir apps/mobile -h=false -v",
+    "gitleaks dir apps/mobile --help=0 -v",
+    // `--no-git` with an explicit value is still a directory scan.
+    "gitleaks detect --no-git=true --redact",
+    "gitleaks detect --no-git=1 --redact",
   ]) {
     test(`refuses ${JSON.stringify(command)}`, () => {
       assert.deepEqual(rulesBroken(command), ["gitleaks"]);
@@ -633,6 +650,12 @@ describe("gitleaks scanning a whole worktree or printing secrets", () => {
     "gitleaks git --redact .",
     "gitleaks detect --redact",
     "gitleaks detect --no-git --source apps/arnold --redact",
+    "gitleaks dir apps/mobile --redact -- ",
+    "gitleaks dir apps/mobile --help",
+    "gitleaks dir apps/mobile --help=true",
+    "gitleaks dir apps/mobile --help=false --redact",
+    // `--no-git=false` leaves `detect` scanning git history.
+    "gitleaks detect --no-git=false --redact",
     "gitleaks version",
     "gitleaks dir --help",
     "gitleaks help dir",

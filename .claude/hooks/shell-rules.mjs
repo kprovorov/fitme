@@ -1037,17 +1037,33 @@ const GITLEAKS_VALUE_OPTIONS = new Set([
 ]);
 // Subcommands that scan nothing, so they print no secret.
 const GITLEAKS_HARMLESS = new Set(["completion", "help", "version"]);
-const GITLEAKS_HELP = new Set(["-h", "--help"]);
-// `--redact` on its own masks the whole secret; a lower percentage prints the
-// rest of it (`--redact=50` shows a key's first half).
-const FULL_REDACTION = 100;
+const GITLEAKS_HELP_FLAGS = new Set(["-h", "--help"]);
+// pflag's boolean values. A flag given one of these is off; bare, it's on.
+const PFLAG_FALSE = new Set(["0", "F", "FALSE", "False", "f", "false"]);
+const PFLAG_TRUE = new Set(["1", "T", "TRUE", "True", "t", "true"]);
 
-// How much of each secret `--redact`'s word masks: 100 for the bare flag,
-// its value for `--redact=<n>`, NaN for a value that isn't a number (read as
-// masking nothing, so such a word is refused).
-const redactionPercent = (word) => {
+// Whether `--redact`'s word masks the whole of each secret. pflag reads its
+// value with Go's `ParseUint(s, 0, 64)`, so the base comes from the prefix:
+// `--redact=0100` is octal 64, masking only 64% and printing the rest. Rather
+// than reproduce Go's number syntax, only the two unambiguous forms count:
+// the bare flag (its 100 default) and `--redact=100`.
+const redactsFully = (word) => {
   const [, value] = word.split(FIRST_EQUALS);
-  return value === undefined ? FULL_REDACTION : Number(value);
+  return value === undefined || value === "100";
+};
+
+// A pflag boolean's effective value, read to fail closed in `whenUnreadable`:
+// `--help` has to be certainly on before it excuses a scan, and `--no-git`
+// certainly off before a `detect` counts as reading git history.
+const booleanFlag = (word, whenUnreadable) => {
+  const [, value] = word.split(FIRST_EQUALS);
+  if (value === undefined) {
+    return true;
+  }
+  if (PFLAG_TRUE.has(value)) {
+    return true;
+  }
+  return PFLAG_FALSE.has(value) ? false : whenUnreadable;
 };
 
 // Paths standing for the whole checkout. `gitleaks dir` with no path scans
@@ -1069,33 +1085,44 @@ const WHOLE_CHECKOUT_PATHS = new Set([
 // The subcommands that walk a directory, gitignored files included.
 const GITLEAKS_DIR_SUBCOMMANDS = new Set(["dir", "directory", "file"]);
 
-// What a `gitleaks …` command scans and how much of each secret it masks.
+// What a `gitleaks …` command scans and whether it masks every secret whole.
+// gitleaks wraps no command of its own, so `--` only ends its flags (pflag):
+// every word after it is another path, never dropped. A repeated flag keeps
+// its last value, as pflag does.
 const gitleaksScan = (args) => {
-  const words = beforeDoubleDash(args);
   const positionals = [];
   let help = false;
   let noGit = false;
-  let redaction = 0;
+  let redacted = false;
   let source;
-  for (let index = 0; index < words.length; index += 1) {
-    const word = words[index];
+  let flagsEnded = false;
+  for (let index = 0; index < args.length; index += 1) {
+    const word = args[index];
+    if (flagsEnded || !word.startsWith("-")) {
+      positionals.push(word);
+      continue;
+    }
+    if (word === "--") {
+      flagsEnded = true;
+      continue;
+    }
     const [flag, value] = word.split(FIRST_EQUALS);
-    help ||= GITLEAKS_HELP.has(word);
-    noGit ||= word === "--no-git";
+    if (GITLEAKS_HELP_FLAGS.has(flag)) {
+      help = booleanFlag(word, false);
+    }
+    if (flag === "--no-git") {
+      noGit = booleanFlag(word, true);
+    }
     if (flag === "--redact") {
-      redaction = redactionPercent(word);
+      redacted = redactsFully(word);
     }
     if (flag === "--source" || flag === "-s") {
-      source = value ?? words[index + 1];
+      source = value ?? args[index + 1];
     }
-    if (word.startsWith("-")) {
-      index += GITLEAKS_VALUE_OPTIONS.has(word) ? 1 : 0;
-    } else {
-      positionals.push(word);
-    }
+    index += GITLEAKS_VALUE_OPTIONS.has(word) ? 1 : 0;
   }
   const [subcommand, ...paths] = positionals;
-  return { help, noGit, paths, redaction, source, subcommand };
+  return { help, noGit, paths, redacted, source, subcommand };
 };
 
 // Whether `gitleaks …` walks the whole checkout instead of one named path.
@@ -1118,11 +1145,11 @@ const scansWholeCheckout = ({ noGit, paths, source, subcommand }) => {
 // the whole of each one, or one that walks the whole checkout.
 const leaksLocalSecrets = (args) => {
   const scan = gitleaksScan(args);
-  const { help, redaction, subcommand } = scan;
+  const { help, redacted, subcommand } = scan;
   if (help || subcommand === undefined || GITLEAKS_HARMLESS.has(subcommand)) {
     return false;
   }
-  return !(redaction >= FULL_REDACTION) || scansWholeCheckout(scan);
+  return !redacted || scansWholeCheckout(scan);
 };
 
 // A `.env`, `.env.local`, `apps/api/.env.production` … but not the
@@ -1303,7 +1330,7 @@ const CHECKS = [
     breaks: ({ name, words }) =>
       leaksLocalSecrets(toolArguments(name, words, "gitleaks") ?? []),
     reason:
-      'AGENTS.md Shell: gitleaks masks nothing without `--redact` (and `--redact=<n>` below 100 prints the rest of each secret), and `gitleaks dir` / `detect --no-git` read gitignored files, so a scan of the working directory prints the local `.env*` values: no path, `.`, or more than one path, which `gitleaks dir` ignores to scan the working directory instead. Reproduce the scan that fired: `gitleaks git --pre-commit --staged --redact -v` (pre-commit hook) or `gitleaks git --log-opts="--diff-merges=first-parent origin/main..HEAD" --redact -v .` (CI), and `gitleaks dir <one path> --redact -v` for untracked files.',
+      'AGENTS.md Shell: gitleaks masks nothing without `--redact` (pass the bare flag or `--redact=100`; a lower percentage prints the rest of each secret, and pflag reads the value in base 0, so `--redact=0100` is octal 64), and `gitleaks dir` / `detect --no-git` read gitignored files, so a scan of the working directory prints the local `.env*` values: no path, `.`, or more than one path, which `gitleaks dir` ignores to scan the working directory instead. Reproduce the scan that fired: `gitleaks git --pre-commit --staged --redact -v` (pre-commit hook) or `gitleaks git --log-opts="--diff-merges=first-parent origin/main..HEAD" --redact -v .` (CI), and `gitleaks dir <one path> --redact -v` for untracked files.',
     rule: "gitleaks",
   },
   {
