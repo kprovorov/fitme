@@ -1283,7 +1283,9 @@ describe("starting a Workout from Home", () => {
 
     await startWorkout();
 
-    expect(fakePublicApi.requests.at(-1)).toMatchObject({
+    expect(
+      fakePublicApi.requests.findLast(({ route }) => route === START)
+    ).toMatchObject({
       body: { workout_id: "w1" },
       route: START,
     });

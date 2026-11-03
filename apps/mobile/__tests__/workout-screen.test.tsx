@@ -5,17 +5,20 @@
  */
 import { beforeEach, describe, expect, it, jest } from "@jest/globals";
 import { QueryClientProvider } from "@tanstack/react-query";
-import { fireEvent, render, screen } from "@testing-library/react-native";
+import { act, fireEvent, render, screen } from "@testing-library/react-native";
 import { Alert } from "react-native";
 import WorkoutScreen from "~/app/plans/[planId]/workouts/[workoutId]/index";
 import {
   OPEN_WORKOUT_SESSION_POLL_MS,
   OPEN_WORKOUT_SESSION_QUERY_KEY,
-  openWorkoutSessionRefetchInterval,
 } from "~/hooks/queries/workout-sessions";
 import { FAKE_USER_ID, fakePublicApi } from "~/test-utils/fake-public-api";
 import { backend, type SeedPlan } from "~/test-utils/fake-workout-backend";
-import { createTestQueryClient, settle } from "~/test-utils/query-client";
+import {
+  createTestQueryClient,
+  settle,
+  until,
+} from "~/test-utils/query-client";
 
 const mockBack = jest.fn();
 const mockPush = jest.fn();
@@ -225,6 +228,9 @@ describe("The Workout screen", () => {
 });
 
 const START = "POST /v1/workout-sessions";
+const LIST = "GET /v1/workout-sessions";
+/** The open Workout Session's read of the list. */
+const IN_PROGRESS = { limit: "1", status: "in_progress" };
 
 /** An open Workout Session of `workoutId`, as left by an earlier Start. */
 const seedOpenSession = (workoutId: string) => {
@@ -267,16 +273,16 @@ describe("Starting a Workout from its screen", () => {
     }
   );
 
-  it("reads the Workout again once started", async () => {
+  it("reads the open Workout Session again once started, through the Public API", async () => {
     await mount();
-    const reads = backend.count("workouts", "select");
+    const reads = fakePublicApi.count(LIST, IN_PROGRESS);
 
     await fireEvent.press(
       screen.getByRole("button", { name: "Start Workout" })
     );
     await settle(queryClient);
 
-    expect(backend.count("workouts", "select")).toBeGreaterThan(reads);
+    expect(fakePublicApi.count(LIST, IN_PROGRESS)).toBeGreaterThan(reads);
   });
 
   it("alerts on a failed Start and stays on the Workout screen", async () => {
@@ -460,9 +466,11 @@ describe("Starting while another Workout is in progress", () => {
     if (open) {
       open.finished_at = "2026-10-29T10:00:00.000Z";
     }
-    await queryClient.invalidateQueries({
-      queryKey: OPEN_WORKOUT_SESSION_QUERY_KEY,
-    });
+    await act(() =>
+      queryClient.invalidateQueries({
+        queryKey: OPEN_WORKOUT_SESSION_QUERY_KEY,
+      })
+    );
     await settle(queryClient);
 
     expect(screen.queryByText("Finish Leg Day first")).toBeNull();
@@ -475,18 +483,162 @@ describe("Starting while another Workout is in progress", () => {
     );
   });
 
-  it("re-reads the blocking session while it's open, so one finished elsewhere unblocks Start", () => {
-    // The interval itself is react-query's; the screen stays mounted meanwhile.
+  it("re-reads the blocking session while it's open, so one finished elsewhere unblocks Start", async () => {
+    // Only the poll's interval: settle() needs real timeouts.
+    jest.useFakeTimers({
+      doNotFake: [
+        "Date",
+        "hrtime",
+        "nextTick",
+        "performance",
+        "queueMicrotask",
+        "requestAnimationFrame",
+        "cancelAnimationFrame",
+        "requestIdleCallback",
+        "cancelIdleCallback",
+        "setImmediate",
+        "clearImmediate",
+        "setTimeout",
+        "clearTimeout",
+      ],
+    });
+    try {
+      seedLegDayOpen();
+      mockWorkoutId.current = "workout-2";
+      await mount();
+      expect(screen.getByText("Finish Leg Day first")).toBeTruthy();
+
+      // Finished elsewhere (MCP, another device): nothing invalidates it here.
+      const open = backend.session("open-session");
+      if (open) {
+        open.finished_at = "2026-10-29T10:00:00.000Z";
+      }
+      await act(() => {
+        jest.advanceTimersByTime(OPEN_WORKOUT_SESSION_POLL_MS - 1);
+      });
+      await settle(queryClient);
+      expect(screen.getByText("Finish Leg Day first")).toBeTruthy();
+
+      await act(() => {
+        jest.advanceTimersByTime(1);
+      });
+      await settle(queryClient);
+
+      expect(screen.queryByText("Finish Leg Day first")).toBeNull();
+      expect(
+        screen.getByRole("button", { name: "Start Workout" })
+      ).toBeEnabled();
+    } finally {
+      jest.useRealTimers();
+    }
+  });
+
+  it("stops re-reading once nothing is open", async () => {
+    jest.useFakeTimers({
+      doNotFake: [
+        "Date",
+        "hrtime",
+        "nextTick",
+        "performance",
+        "queueMicrotask",
+        "requestAnimationFrame",
+        "cancelAnimationFrame",
+        "requestIdleCallback",
+        "cancelIdleCallback",
+        "setImmediate",
+        "clearImmediate",
+        "setTimeout",
+        "clearTimeout",
+      ],
+    });
+    try {
+      await mount();
+      const reads = fakePublicApi.count(LIST, IN_PROGRESS);
+
+      await act(() => {
+        jest.advanceTimersByTime(3 * OPEN_WORKOUT_SESSION_POLL_MS);
+      });
+      await settle(queryClient);
+
+      // A session opened elsewhere meanwhile comes back as Start's 409.
+      expect(fakePublicApi.count(LIST, IN_PROGRESS)).toBe(reads);
+    } finally {
+      jest.useRealTimers();
+    }
+  });
+});
+
+describe("The open Workout Session's read on the Workout screen", () => {
+  it("shows Start loading until it has answered, never Start as if nothing were open", async () => {
+    seedOpenSession("workout-1");
+    mockWorkoutId.current = "workout-2";
+    const resume = fakePublicApi.pause(LIST, IN_PROGRESS);
+    queryClient = createTestQueryClient();
+    await render(
+      <QueryClientProvider client={queryClient}>
+        <WorkoutScreen />
+      </QueryClientProvider>
+    );
+    await until(() => screen.queryByText("Rest Day Mobility") !== null);
+
     expect(
-      openWorkoutSessionRefetchInterval({
-        id: "open-session",
-        planId: "plan-1",
-        workoutId: "workout-1",
-        workoutName: "Leg Day",
+      screen.getByRole("button", { name: "Start Workout" })
+    ).toBeDisabled();
+    expect(fakePublicApi.count(START)).toBe(0);
+
+    resume();
+    await settle(queryClient);
+    expect(screen.getByText("Finish Leg Day first")).toBeTruthy();
+  });
+
+  it("shows the load error and no Start when it fails with nothing read yet", async () => {
+    seedOpenSession("workout-1");
+    mockWorkoutId.current = "workout-2";
+    fakePublicApi.failNext(LIST, { status: 500 }, IN_PROGRESS);
+    await mount();
+
+    expect(screen.getByText(LOAD_ERROR)).toBeTruthy();
+    expect(screen.queryByRole("button", { name: "Start Workout" })).toBeNull();
+    expect(screen.queryByText("Rest Day Mobility")).toBeNull();
+
+    await fireEvent.press(screen.getByRole("button", { name: "Try Again" }));
+    await settle(queryClient);
+
+    expect(screen.getByText("Rest Day Mobility")).toBeTruthy();
+    expect(screen.getByText("Finish Leg Day first")).toBeTruthy();
+  });
+
+  it("gives the wait when it's rate limited with nothing read yet", async () => {
+    fakePublicApi.failNext(
+      LIST,
+      { retryAfterSeconds: 12, status: 429 },
+      IN_PROGRESS
+    );
+    await mount();
+
+    expect(
+      screen.getByText("Too many requests: please try again in 12 s.")
+    ).toBeTruthy();
+    expect(screen.queryByRole("button", { name: "Start Workout" })).toBeNull();
+  });
+
+  it("keeps the blocked Start when a later read fails", async () => {
+    seedOpenSession("workout-1");
+    mockWorkoutId.current = "workout-2";
+    await mount();
+    fakePublicApi.failNext(LIST, { status: 500 }, IN_PROGRESS);
+
+    await act(() =>
+      queryClient.invalidateQueries({
+        queryKey: OPEN_WORKOUT_SESSION_QUERY_KEY,
       })
-    ).toBe(OPEN_WORKOUT_SESSION_POLL_MS);
-    // Nothing open: a session opened elsewhere comes back as Start's 409.
-    expect(openWorkoutSessionRefetchInterval(null)).toBe(false);
-    expect(openWorkoutSessionRefetchInterval(undefined)).toBe(false);
+    );
+    await settle(queryClient);
+
+    expect(
+      screen.getByRole("button", { name: "Start Workout" })
+    ).toBeDisabled();
+    expect(screen.getByText("Finish Leg Day first")).toBeTruthy();
+    expect(screen.queryByText(LOAD_ERROR)).toBeNull();
   });
 });

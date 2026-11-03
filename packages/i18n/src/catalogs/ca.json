@@ -498,7 +498,8 @@
     "cancel": "Cancel·la",
     "confirm": "Confirma",
     "tryAgain": "Torna-ho a provar",
-    "genericError": "S'ha produït un error. Torna-ho a provar més tard."
+    "genericError": "S'ha produït un error. Torna-ho a provar més tard.",
+    "rateLimited": "Massa sol·licituds: torna-ho a provar d'aquí a {{seconds, number}} s."
   },
   "profile": {
     "title": "Perfil",

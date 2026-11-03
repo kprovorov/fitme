@@ -183,6 +183,7 @@ describe("Onboarding ProfileScreen", () => {
           weight: 80,
         },
         path: "/v1/profile",
+        query: {},
         route: PROFILE_PUT,
       },
     ]);
@@ -220,6 +221,7 @@ describe("Onboarding ProfileScreen", () => {
         authorization: `Bearer ${FAKE_SESSION_TOKEN}`,
         body: { age: 28, gender: "male", weight: 80 },
         path: "/v1/profile",
+        query: {},
         route: PROFILE_PATCH,
       },
     ]);

@@ -8,7 +8,7 @@ import { Text } from "@/components/ui/text";
 import { H4 } from "@/components/ui/typography";
 import { VStack } from "@/components/ui/vstack";
 import { shownExercise, useExercises } from "~/hooks/queries/library";
-import { findOpenSession } from "~/hooks/start-workout";
+import { useOwnOpenWorkoutSession } from "~/hooks/queries/workout-sessions";
 import ExerciseImage from "../exercises/exercise-image";
 import { COUNT_SYMBOL } from "../plans/plan-symbols";
 import { SymbolImage } from "../symbol-image";
@@ -20,14 +20,15 @@ interface WorkoutCardProps {
 
 /**
  * A Workout, compact: its name, Exercise count and thumbnails. Pressing it
- * opens its open Workout Session if it has one, otherwise its Workout
- * screen. On the Plan screen; the Workout tab has its own cards
+ * opens its open Workout Session if it has one (with a timer counting from
+ * that session's `started_at`), otherwise its Workout screen. On the Plan
+ * screen; the Workout tab has its own cards
  * (`components/workouts/workout-carousel-card.tsx`).
  */
 export default function WorkoutCard({ workout }: WorkoutCardProps) {
   const router = useRouter();
   const { t } = useTranslation();
-  const activeSession = findOpenSession(workout);
+  const activeSession = useOwnOpenWorkoutSession(workout.id);
 
   const [elapsedTime, setElapsedTime] = useState<string>("");
 

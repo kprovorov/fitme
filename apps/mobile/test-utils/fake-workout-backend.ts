@@ -350,9 +350,6 @@ class FakeWorkoutBackend {
         name: workout.name,
         order: workout.order ?? workoutIndex + 1,
         plan_id: id,
-        sessions: this.sessions
-          .filter((session) => session.workout_id === workout.id)
-          .map(({ workoutName: _name, ...session }) => session),
       })),
     };
   }
@@ -510,22 +507,10 @@ class FakeQuery {
         return backend.nestedWorkout(this.filters.id as string);
       case "workout_sessions.select":
         if (this.filters.id === undefined) {
-          // The User's open Workout Session (`.is("finished_at", null)`,
-          // newest first, `maybeSingle()`).
-          if (this.filters.finished_at !== null) {
-            throw new Error("Fake backend: only the open session is listed");
-          }
-          const [open] = backend.sessions
-            .filter(({ finished_at }) => finished_at === null)
-            .sort((a, b) => b.started_at.localeCompare(a.started_at));
-          return open
-            ? {
-                id: open.id,
-                plan_id: open.plan_id,
-                workout: open.workout_id ? { name: open.workoutName } : null,
-                workout_id: open.workout_id,
-              }
-            : null;
+          // The open Workout Session is read through the Public API.
+          throw new Error(
+            "Fake backend: the open Workout Session is read through the API"
+          );
         }
         return backend.nestedSession(
           requireRow(backend.session(this.filters.id as string), "session")

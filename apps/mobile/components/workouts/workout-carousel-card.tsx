@@ -7,8 +7,8 @@ import { useCallback, useState } from "react";
 import { useTranslation } from "react-i18next";
 import { StyleSheet, useWindowDimensions, View } from "react-native";
 import { useCovers, useExercises } from "~/hooks/queries/library";
+import { useOwnOpenWorkoutSession } from "~/hooks/queries/workout-sessions";
 import {
-  findOpenSession,
   openSessionPath,
   useStartWorkout,
   workoutSessionPath,
@@ -108,7 +108,7 @@ export default function WorkoutCarouselCard({
     openSession,
     { onContinueBlocking: (open) => router.push(openSessionPath(open)) }
   );
-  const ownOpenSession = findOpenSession(workout);
+  const ownOpenSession = useOwnOpenWorkoutSession(workout.id);
   const continueWorkout = () => {
     if (ownOpenSession) {
       openSession(ownOpenSession.id);

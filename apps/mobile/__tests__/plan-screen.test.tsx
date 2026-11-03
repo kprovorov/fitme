@@ -8,7 +8,7 @@
  */
 import { beforeEach, describe, expect, it, jest } from "@jest/globals";
 import { QueryClientProvider } from "@tanstack/react-query";
-import { fireEvent, render, screen } from "@testing-library/react-native";
+import { act, fireEvent, render, screen } from "@testing-library/react-native";
 import type { ReactNode } from "react";
 import { Alert, type AlertButton, Pressable, Text } from "react-native";
 import PlanScreen from "~/app/plans/[planId]/index";
@@ -276,5 +276,70 @@ describe("Deleting a Plan", () => {
     expect(alerts().at(-1)?.[0]).toBe("Archive Plan");
     expect(alerts().at(-1)?.[2]).toBeUndefined();
     expect(fakePublicApi.requests).toEqual([]);
+  });
+});
+
+describe("Pulling the Plan screen to refresh", () => {
+  const LIST = "GET /v1/workout-sessions";
+  /** The open Workout Session's read of the list. */
+  const IN_PROGRESS = { limit: "1", status: "in_progress" };
+  const IN_PROGRESS_HINT = "Opens the workout in progress";
+
+  beforeEach(() => {
+    mockPlanId.current = "plan-3";
+    backend.seedPlan({
+      id: "plan-3",
+      name: "Push Pull",
+      workouts: [
+        {
+          exercises: [{ sets: 3, slug: "dips" }],
+          id: "workout-a",
+          name: "Push Day",
+        },
+      ],
+    });
+  });
+
+  /** Push Day's Workout Session, opened elsewhere (MCP, another device). */
+  const openPushDayElsewhere = () => {
+    backend.sessions.push({
+      finished_at: null,
+      id: "open-session",
+      plan_id: "plan-3",
+      started_at: new Date(Date.now() - 60_000).toISOString(),
+      workout_id: "workout-a",
+      workoutName: "Push Day",
+    });
+  };
+
+  const pullToRefresh = async () => {
+    const { refreshControl } = screen.getByTestId("plan-screen").props;
+    await act(() => refreshControl.props.onRefresh());
+    await settle(queryClient);
+  };
+
+  it("shows a Workout Session started elsewhere on its Workout's card", async () => {
+    await mount(null);
+    expect(screen.queryByText("To Workout")).toBeNull();
+
+    openPushDayElsewhere();
+    await pullToRefresh();
+
+    expect(screen.getByText("To Workout")).toBeTruthy();
+    expect(
+      screen.getByRole("button", { name: "Push Day, 1 Exercise" }).props
+        .accessibilityHint
+    ).toBe(IN_PROGRESS_HINT);
+  });
+
+  it("recovers from a failed first read of the open Workout Session", async () => {
+    openPushDayElsewhere();
+    fakePublicApi.failNext(LIST, { status: 500 }, IN_PROGRESS);
+    await mount(null);
+    expect(screen.queryByText("To Workout")).toBeNull();
+
+    await pullToRefresh();
+
+    expect(screen.getByText("To Workout")).toBeTruthy();
   });
 });

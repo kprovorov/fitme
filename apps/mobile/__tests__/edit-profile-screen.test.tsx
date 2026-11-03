@@ -188,6 +188,7 @@ describe("EditProfileScreen", () => {
         authorization: `Bearer ${FAKE_SESSION_TOKEN}`,
         body: { age: 31, gender: "male" },
         path: "/v1/profile",
+        query: {},
         route: PROFILE_PATCH,
       },
     ]);
@@ -270,6 +271,7 @@ describe("EditProfileScreen", () => {
           weight: 62,
         },
         path: "/v1/profile",
+        query: {},
         route: PROFILE_PUT,
       },
     ]);

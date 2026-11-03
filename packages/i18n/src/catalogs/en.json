@@ -469,7 +469,8 @@
     "cancel": "Cancel",
     "confirm": "Confirm",
     "tryAgain": "Try Again",
-    "genericError": "Something went wrong. Please try again later."
+    "genericError": "Something went wrong. Please try again later.",
+    "rateLimited": "Too many requests: please try again in {{seconds, number}} s."
   },
   "profile": {
     "title": "Profile",

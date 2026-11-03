@@ -30,7 +30,7 @@ export function BlockedStart({
   variant = "default",
 }: BlockedStartProps) {
   const { t } = useTranslation();
-  const name = blockedBy.workoutName;
+  const name = blockedBy.workout?.name;
   return (
     <View className="gap-xs">
       <Button

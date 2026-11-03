@@ -97,6 +97,8 @@ jest.mock("~/components/ui/button", () =>
 );
 
 const MINUTE_MS = 60_000;
+/** History's reads of the list; the open Workout Session reads it too. */
+const FINISHED = { status: "finished" };
 const ROW_NAMES = /^(Push Day|Workout|Pull Day)$/;
 // The Personal record VoiceOver reads after the rest of the row.
 const UKRAINIAN_RECORD =
@@ -425,7 +427,7 @@ describe("The History tab", () => {
     }
     await mount();
 
-    expect(fakePublicApi.count("GET /v1/workout-sessions")).toBe(2);
+    expect(fakePublicApi.count("GET /v1/workout-sessions", FINISHED)).toBe(2);
     expect(screen.getByText("55 entries")).toBeTruthy();
     expect(stat("Workouts: 55 workouts")).toBeTruthy();
     expect(stat("Time: 55min")).toBeTruthy();
@@ -443,20 +445,20 @@ describe("The History tab", () => {
       });
     }
     const route = "GET /v1/workout-sessions";
-    const resumeFirstPage = fakePublicApi.pause(route);
-    const resumeSecondPage = fakePublicApi.pause(route);
+    const resumeFirstPage = fakePublicApi.pause(route, FINISHED);
+    const resumeSecondPage = fakePublicApi.pause(route, FINISHED);
     queryClient = createTestQueryClient();
     await render(
       <QueryClientProvider client={queryClient}>
         <HistoryScreen />
       </QueryClientProvider>
     );
-    await waitFor(() => expect(fakePublicApi.count(route)).toBe(1));
+    await waitFor(() => expect(fakePublicApi.count(route, FINISHED)).toBe(1));
     // A macrotask, so the first request is waiting on the first pause (in
     // act: the Weekly goal's answer renders meanwhile).
     await act(() => new Promise((resolve) => setTimeout(resolve, 10)));
     resumeFirstPage();
-    await waitFor(() => expect(fakePublicApi.count(route)).toBe(2));
+    await waitFor(() => expect(fakePublicApi.count(route, FINISHED)).toBe(2));
     // The newest session goes after the first page: the second would skip one.
     backend.sessions = backend.sessions.filter(
       (session) => session.id !== "session-54"
@@ -464,7 +466,7 @@ describe("The History tab", () => {
     resumeSecondPage();
     await settle(queryClient);
 
-    expect(fakePublicApi.count(route)).toBe(4);
+    expect(fakePublicApi.count(route, FINISHED)).toBe(4);
     expect(screen.getByText("54 entries")).toBeTruthy();
     expect(screen.queryByText("Workout 54")).toBeNull();
     expect(screen.getByText("Workout 4")).toBeTruthy();
@@ -485,7 +487,11 @@ describe("The History tab", () => {
 
   it("shows a load failure with a retry, then the History", async () => {
     seedEntry(pushDay);
-    fakePublicApi.failNext("GET /v1/workout-sessions", { status: 500 });
+    fakePublicApi.failNext(
+      "GET /v1/workout-sessions",
+      { status: 500 },
+      FINISHED
+    );
     await mount();
 
     expect(
@@ -503,7 +509,7 @@ describe("The History tab", () => {
   });
 
   it("shows the loading state, never an empty History, while it loads", async () => {
-    const resume = fakePublicApi.pause("GET /v1/workout-sessions");
+    const resume = fakePublicApi.pause("GET /v1/workout-sessions", FINISHED);
     queryClient = createTestQueryClient();
     await render(
       <QueryClientProvider client={queryClient}>

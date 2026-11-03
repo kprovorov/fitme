@@ -1,3 +1,4 @@
+import { rateLimitedFor } from "@fitme/api-client";
 import { formatCount, formatDate, type Translator } from "@fitme/i18n";
 import { LegendList } from "@legendapp/list/react-native";
 import { useCalendars } from "expo-localization";
@@ -108,6 +109,7 @@ export default function HistoryScreen() {
 
   const {
     data: history,
+    error,
     isError,
     refetch: refetchWorkoutSessions,
   } = useWorkoutSessionHistoryQuery();
@@ -115,6 +117,7 @@ export default function HistoryScreen() {
   // never shows an action guessed from a read that hasn't answered.
   const {
     data: openSession,
+    error: openSessionError,
     isError: isOpenSessionError,
     refetch: refetchOpenSession,
   } = useOpenWorkoutSessionQuery();
@@ -169,15 +172,19 @@ export default function HistoryScreen() {
     // With no History, the card's action rests on the open Workout Session
     // and the Plans as well: any of them failing is the error, any of them
     // pending the spinner, never an empty History with a guessed action.
-    const failed =
-      (isError && !history) ||
-      (isOpenSessionError && openSession === undefined) ||
-      (isPlansError && !plans);
-    if (failed) {
+    const historyFailed = isError && !history;
+    const openSessionFailed = isOpenSessionError && openSession === undefined;
+    if (historyFailed || openSessionFailed || (isPlansError && !plans)) {
+      // A Public API read refused for its rate limit gives the wait.
+      const waitSeconds =
+        (historyFailed ? rateLimitedFor(error) : null) ??
+        (openSessionFailed ? rateLimitedFor(openSessionError) : null);
       return (
         <View className="items-center gap-sm px-md pt-lg">
           <Text className="text-center text-muted-foreground">
-            {t("history.loadError")}
+            {waitSeconds === null
+              ? t("history.loadError")
+              : t("common.rateLimited", { seconds: waitSeconds })}
           </Text>
           <Button
             fill={false}
