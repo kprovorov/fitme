@@ -1,3 +1,4 @@
+import { rateLimitedFor } from "@fitme/api-client";
 import {
   feetAndInchesToInches,
   genders,
@@ -59,7 +60,6 @@ import { Separator } from "~/components/ui/separator";
 import { Text } from "~/components/ui/text";
 import { H4 } from "~/components/ui/typography";
 import { VStack } from "~/components/ui/vstack";
-import { rateLimitedFor } from "~/lib/api/client";
 import { numberInRange } from "~/lib/form-schemas";
 import { i18n as appI18n, useI18n } from "~/lib/i18n";
 

@@ -1,6 +1,6 @@
+import { ApiError } from "@fitme/api-client";
 import type { WorkoutSessionExerciseSet } from "@fitme/core";
 import { createMutation } from "react-query-kit";
-import { ApiError } from "~/lib/api/client";
 import { publicApi } from "~/lib/public-api";
 
 export interface UpdateWorkoutSessionExerciseSetParams {

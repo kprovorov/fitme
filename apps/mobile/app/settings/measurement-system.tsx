@@ -1,3 +1,4 @@
+import { rateLimitedFor } from "@fitme/api-client";
 import { type MeasurementSystem, measurementSystems } from "@fitme/core";
 import * as Sentry from "@sentry/react-native";
 import { useQueryClient } from "@tanstack/react-query";
@@ -15,7 +16,6 @@ import {
   invalidateWeighedQueries,
   useUpdateMeasurementSystemMutation,
 } from "~/hooks/queries/settings";
-import { rateLimitedFor } from "~/lib/api/client";
 import { useChoiceLabels } from "~/lib/choices";
 import { i18n } from "~/lib/i18n";
 

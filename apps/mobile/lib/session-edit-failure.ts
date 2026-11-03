@@ -1,5 +1,5 @@
+import { ApiError, rateLimitedFor } from "@fitme/api-client";
 import type { TFunction } from "i18next";
-import { ApiError, rateLimitedFor } from "~/lib/api/client";
 
 /** What to tell the User after a failed edit of the Workout Session's Exercises. */
 export const sessionEditFailureMessage = (t: TFunction, error: unknown) => {

@@ -1,4 +1,4 @@
-import { createPublicApi } from "~/lib/api/client";
+import { createPublicApi } from "@fitme/api-client";
 import { getClerk } from "~/lib/clerk";
 import { getApiUrl } from "~/lib/constants";
 

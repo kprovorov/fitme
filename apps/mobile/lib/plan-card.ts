@@ -1,3 +1,4 @@
+import type { components } from "@fitme/api-client";
 import {
   type ExperienceLevel,
   type Goal,
@@ -12,7 +13,6 @@ import {
   MAX_WORKOUTS_PER_PLAN,
   MIN_FREQUENCY,
 } from "@fitme/core";
-import type { components } from "~/lib/api/schema";
 
 /**
  * An Exercise of `display_workout_plan`'s result, by Exercise slug. A card

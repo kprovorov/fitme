@@ -1,13 +1,13 @@
 import createClient, { type Client } from "openapi-fetch";
-import type { paths } from "~/lib/api/schema";
+import type { paths } from "./schema";
 
 /** Seconds to wait after a 429 whose `Retry-After` can't be read. */
 const DEFAULT_RETRY_AFTER_SECONDS = 60;
 
 /**
  * Every failed Public API call: a non-2xx answer (`status`, the API's `code`
- * and `message`), a network failure or an unset `EXPO_PUBLIC_API_URL`
- * (`status` and `code` `null`). A 429 also carries `retryAfterSeconds`.
+ * and `message`), a network failure or an unset base URL (`status` and `code`
+ * `null`). A 429 also carries `retryAfterSeconds`.
  */
 export class ApiError extends Error {
   readonly status: number | null;
@@ -80,7 +80,10 @@ export type PublicApiFetch = (
 ) => Promise<Response>;
 
 export interface PublicApiOptions {
-  /** `apps/api`'s base URL without a trailing slash, read on every call. */
+  /**
+   * `apps/api`'s base URL without a trailing slash, read on every call; an
+   * empty string stands for one the caller's environment doesn't set.
+   */
   baseUrl: () => string;
   /** Defaults to the global `fetch`, looked up per request. */
   fetch?: PublicApiFetch;
@@ -134,7 +137,7 @@ export const createPublicApi = ({
   return () => {
     const url = baseUrl();
     if (!url) {
-      throw new ApiError("EXPO_PUBLIC_API_URL is not set");
+      throw new ApiError("The Public API base URL is not set");
     }
     if (current?.url !== url) {
       current = {

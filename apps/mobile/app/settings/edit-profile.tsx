@@ -1,4 +1,5 @@
 import { useUser } from "@clerk/expo";
+import { rateLimitedFor } from "@fitme/api-client";
 import type { MeasurementSystem } from "@fitme/core";
 import * as Sentry from "@sentry/react-native";
 import { useQueryClient } from "@tanstack/react-query";
@@ -16,7 +17,6 @@ import { ErrorMessage } from "~/components/ui/error-message";
 import { VStack } from "~/components/ui/vstack";
 import { useUpdateProfileMutation } from "~/hooks/mutations/profiles";
 import { useProfileQuery } from "~/hooks/queries/profiles";
-import { rateLimitedFor } from "~/lib/api/client";
 import { i18n } from "~/lib/i18n";
 
 export default function EditProfileScreen() {

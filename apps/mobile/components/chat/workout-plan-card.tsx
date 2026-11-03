@@ -1,3 +1,4 @@
+import { ApiError, rateLimitedFor } from "@fitme/api-client";
 import { formatCount, formatNumber } from "@fitme/i18n";
 import { router } from "expo-router";
 import type { TFunction } from "i18next";
@@ -12,7 +13,6 @@ import { ErrorMessage } from "@/components/ui/error-message";
 import { Text as UIText } from "@/components/ui/text";
 import { type ShownExercise, useExercises } from "@/hooks/queries/library";
 import { useCreatePlanMutation } from "@/hooks/queries/plans";
-import { ApiError, rateLimitedFor } from "~/lib/api/client";
 import { useChoiceLabels } from "~/lib/choices";
 import { i18n, useI18n } from "~/lib/i18n";
 import {

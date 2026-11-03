@@ -1,6 +1,6 @@
+import { ApiError } from "@fitme/api-client";
 import type { WeeklyGoalChange } from "@fitme/core";
 import { createQuery } from "react-query-kit";
-import { ApiError } from "~/lib/api/client";
 import { publicApi } from "~/lib/public-api";
 
 export const WEEKLY_GOALS_QUERY_KEY = ["weekly-goals"];

@@ -1,8 +1,8 @@
+import type { components } from "@fitme/api-client";
+import { ApiError } from "@fitme/api-client";
 import type { WorkoutSession } from "@fitme/core";
 import { createMutation, createQuery } from "react-query-kit";
 import { supabase } from "@/lib/supabase";
-import { ApiError } from "~/lib/api/client";
-import type { components } from "~/lib/api/schema";
 import type { PlanUpdate } from "~/lib/plan-changes";
 import { publicApi } from "~/lib/public-api";
 

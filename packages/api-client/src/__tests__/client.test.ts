@@ -1,15 +1,15 @@
-import { describe, expect, it, jest } from "@jest/globals";
+import { describe, expect, it, vi } from "vitest";
 import {
   ApiError,
   createPublicApi,
   type PublicApiFetch,
   rateLimitedFor,
-} from "../api/client";
+} from "../client";
 
 const BASE_URL = "https://api.test";
 
 const answering = (response: () => Response) => {
-  const fetch = jest.fn<PublicApiFetch>(async () => response());
+  const fetch = vi.fn<PublicApiFetch>(async () => response());
   return fetch;
 };
 
@@ -26,14 +26,17 @@ const clientWith = (
 const patchProfile = (api: ReturnType<typeof clientWith>) =>
   api().PATCH("/v1/profile", { body: { measurement_system: "us" } });
 
+/** The `ApiError` `promise` rejects with; anything else fails the test. */
 const rejection = async (promise: Promise<unknown>): Promise<ApiError> => {
   try {
     await promise;
   } catch (error) {
-    expect(error).toBeInstanceOf(ApiError);
-    return error as ApiError;
+    if (error instanceof ApiError) {
+      return error;
+    }
+    throw error;
   }
-  throw new Error("Expected the call to reject");
+  throw new Error("Expected the call to reject with an ApiError");
 };
 
 const errorResponse = (
@@ -119,7 +122,7 @@ describe("createPublicApi", () => {
 
   it("throws for a network failure, with no status or code", async () => {
     const cause = new TypeError("Network request failed");
-    const fetch = jest.fn<PublicApiFetch>(() => Promise.reject(cause));
+    const fetch = vi.fn<PublicApiFetch>(() => Promise.reject(cause));
 
     const error = await rejection(patchProfile(clientWith(fetch)));
 
