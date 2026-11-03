@@ -41,6 +41,10 @@ sections App Store · v2.4.1 · EN / UK) show these framed PNGs: each frame's
 phone is an image layer named after its source (`iPhone ·
 framed/<locale>/<scene>.png`), 962 px wide. To refresh one, reframe the capture,
 replace that layer's image, then export the frame at 1× and flatten it to RGB.
+Never redraw a phone around a bare `iphone/` capture: that shipped misaligned
+once. The full build-and-review rules, including checking each export's edges
+with `crop-edges.py`, are in
+[Making a Screenshot set](app-store/README.md#making-a-screenshot-set).
 
 The new 1206×2622 captures above are source material. They are not the
 1320×2868 large-display exports discussed below; prepare and validate an

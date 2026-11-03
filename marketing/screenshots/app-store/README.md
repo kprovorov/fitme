@@ -18,6 +18,58 @@ check runs on pull requests and before every release build (see
 The bare and framed captures in `../iphone/` and `../framed/` are source
 material, not approved App Store exports; see [their README](../README.md).
 
+## Making a Screenshot set
+
+A set's images are exported from the App Store frames in the Fitme Figma file
+(page AppStore Screenshots, the `App Store · <version> · EN / UK` sections).
+Three rules, each one a thing that has gone wrong:
+
+1. **Each frame's phone is a framed capture, not a drawn one.** The phone is an
+   image layer holding the matching `../framed/<locale>/<scene>.png`, which
+   already has the bezel drawn around the capture at the right place. Never draw
+   a phone in Figma and never put a bare `../iphone/` capture inside one: the
+   first sets shipped that way (#458) and their screens sat off-centre, spilling
+   past the phone's right and bottom edges. See the marketing README's
+   [App Store upload](../README.md#app-store-upload) section for the layer name
+   and the export steps (1×, then flattened to RGB). The framed PNGs are source
+   material and never committed here as they are: they're 1332×2748 with
+   transparency, and a set's images are 1320×2868 flattened RGB. Their locale
+   tags differ too (`framed/uk-UA/` feeds the `uk` Listing locale folder).
+2. **Look at every exported PNG before committing it, edges included.** The
+   [check](#the-check) proves the size, the numbering, that each file decodes as
+   a PNG and that it carries no transparency. It cannot see a screen sitting
+   outside its bezel, so a green check is not a visual pass. Open each image
+   itself — the PNG in this repo, never a Figma section screenshot or a
+   scaled-down `node.screenshot`, which is what missed #458 — to judge what it
+   shows. Reading the whole 1320×2868 file still shrinks it too far to judge the
+   framing, so cut the edges as well:
+
+   ```sh
+   python3 marketing/screenshots/crop-edges.py \
+     marketing/screenshots/app-store/iphone-6.9/en-US/*.png
+   ```
+
+   [`crop-edges.py`](../crop-edges.py) cuts a band along each of the four edges
+   (400 px deep by default, enough to cross the background, the bezel and the
+   outer strip of screen; the phone is inset by about 180 px) and splits every
+   band into tiles of at most 1000 px, so a reader magnifies each one instead
+   of shrinking it — a 1320×2868 export read whole is exactly the downscale
+   that let #458 through. It writes them to a temporary directory as
+   `<device>-<locale>-<NN>-<edge>-<n>.png` and prints their paths; `--out`
+   picks another directory, `--band` and `--tile` change the two sizes.
+
+   Read every tile, the four that end at a corner first
+   (`-left-1`, `-left-3`, `-right-1`, `-right-3`): an off-centre screen shows
+   there soonest. What you're looking for is the margin between the content and
+   the bezel going uneven, or to nothing, on one side — which is what the #458
+   sets did on the right and bottom.
+
+3. **Say in the pull request description that you looked at every image and at
+   its edge tiles.** A set reviewed from a thumbnail is not reviewed.
+
+Everything after this point is how the committed images are checked, staged and
+uploaded; none of it looks at what an image shows.
+
 ## Layout
 
 ```text
