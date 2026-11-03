@@ -1005,6 +1005,126 @@ const readsProdSecrets = (args) => {
   return prod && reads;
 };
 
+// gitleaks options taking the next word as their value. `--redact` is not one:
+// cobra gives it an optional value, so only `--redact=<n>` carries one and
+// `gitleaks dir --redact 50 apps/x` reads `50` as a path.
+const GITLEAKS_VALUE_OPTIONS = new Set([
+  "--baseline-path",
+  "--config",
+  "--diagnostics",
+  "--diagnostics-dir",
+  "--enable-rule",
+  "--exit-code",
+  "--gitleaks-ignore-path",
+  "--log-level",
+  "--log-opts",
+  "--max-archive-depth",
+  "--max-decode-depth",
+  "--max-target-megabytes",
+  "--platform",
+  "--report-format",
+  "--report-path",
+  "--report-template",
+  "--source",
+  "--timeout",
+  "-b",
+  "-c",
+  "-f",
+  "-i",
+  "-l",
+  "-r",
+  "-s",
+]);
+// Subcommands that scan nothing, so they print no secret.
+const GITLEAKS_HARMLESS = new Set(["completion", "help", "version"]);
+const GITLEAKS_HELP = new Set(["-h", "--help"]);
+// `--redact` on its own masks the whole secret; a lower percentage prints the
+// rest of it (`--redact=50` shows a key's first half).
+const FULL_REDACTION = 100;
+
+// How much of each secret `--redact`'s word masks: 100 for the bare flag,
+// its value for `--redact=<n>`, NaN for a value that isn't a number (read as
+// masking nothing, so such a word is refused).
+const redactionPercent = (word) => {
+  const [, value] = word.split(FIRST_EQUALS);
+  return value === undefined ? FULL_REDACTION : Number(value);
+};
+
+// Paths standing for the whole checkout. `gitleaks dir` with no path scans
+// the working directory, and so does `detect --no-git` without `--source`.
+const WHOLE_CHECKOUT_PATHS = new Set([
+  "$(pwd)",
+  // biome-ignore lint/suspicious/noTemplateCurlyInString: shell text, not a template.
+  "${PWD}",
+  "$PWD",
+  ".",
+  "..",
+  "../",
+  "./",
+  "/",
+  "`pwd`",
+  "~",
+  "~/",
+]);
+// The subcommands that walk a directory, gitignored files included.
+const GITLEAKS_DIR_SUBCOMMANDS = new Set(["dir", "directory", "file"]);
+
+// What a `gitleaks …` command scans and how much of each secret it masks.
+const gitleaksScan = (args) => {
+  const words = beforeDoubleDash(args);
+  const positionals = [];
+  let help = false;
+  let noGit = false;
+  let redaction = 0;
+  let source;
+  for (let index = 0; index < words.length; index += 1) {
+    const word = words[index];
+    const [flag, value] = word.split(FIRST_EQUALS);
+    help ||= GITLEAKS_HELP.has(word);
+    noGit ||= word === "--no-git";
+    if (flag === "--redact") {
+      redaction = redactionPercent(word);
+    }
+    if (flag === "--source" || flag === "-s") {
+      source = value ?? words[index + 1];
+    }
+    if (word.startsWith("-")) {
+      index += GITLEAKS_VALUE_OPTIONS.has(word) ? 1 : 0;
+    } else {
+      positionals.push(word);
+    }
+  }
+  const [subcommand, ...paths] = positionals;
+  return { help, noGit, paths, redaction, source, subcommand };
+};
+
+// Whether `gitleaks …` walks the whole checkout instead of one named path.
+// Only the directory scans do: git history holds no gitignored `.env*` file,
+// so `gitleaks git` over the whole repo is safe. Given more than one path,
+// `gitleaks dir` ignores every one of them and scans the working directory
+// (gitleaks 8.30.1), which is how FIT-476 read the local env files.
+const scansWholeCheckout = ({ noGit, paths, source, subcommand }) => {
+  if (GITLEAKS_DIR_SUBCOMMANDS.has(subcommand)) {
+    return paths.length !== 1 || WHOLE_CHECKOUT_PATHS.has(paths[0]);
+  }
+  return (
+    subcommand === "detect" &&
+    noGit &&
+    (source === undefined || WHOLE_CHECKOUT_PATHS.has(source))
+  );
+};
+
+// Whether `gitleaks …` can print a local secret: a scan that masks less than
+// the whole of each one, or one that walks the whole checkout.
+const leaksLocalSecrets = (args) => {
+  const scan = gitleaksScan(args);
+  const { help, redaction, subcommand } = scan;
+  if (help || subcommand === undefined || GITLEAKS_HARMLESS.has(subcommand)) {
+    return false;
+  }
+  return !(redaction >= FULL_REDACTION) || scansWholeCheckout(scan);
+};
+
 // A `.env`, `.env.local`, `apps/api/.env.production` … but not the
 // committed `.env.example` files, which hold no secret.
 const ENV_FILE = /(^|\/)\.env(\.[^/]+)?$/;
@@ -1178,6 +1298,13 @@ const CHECKS = [
     reason:
       "AGENTS.md Shell: `prod` secret values never enter a local shell, file or command line (`infisical secrets get|export|run --env=prod`; docs/agents/secrets.md, Handling values): smoke-test a deployment through `/health`, a development-instance Clerk token or the Vercel MCP and logs, and ask the human when a prod credential is truly needed.",
     rule: "infisical-prod",
+  },
+  {
+    breaks: ({ name, words }) =>
+      leaksLocalSecrets(toolArguments(name, words, "gitleaks") ?? []),
+    reason:
+      'AGENTS.md Shell: gitleaks masks nothing without `--redact` (and `--redact=<n>` below 100 prints the rest of each secret), and `gitleaks dir` / `detect --no-git` read gitignored files, so a scan of the working directory prints the local `.env*` values: no path, `.`, or more than one path, which `gitleaks dir` ignores to scan the working directory instead. Reproduce the scan that fired: `gitleaks git --pre-commit --staged --redact -v` (pre-commit hook) or `gitleaks git --log-opts="--diff-merges=first-parent origin/main..HEAD" --redact -v .` (CI), and `gitleaks dir <one path> --redact -v` for untracked files.',
+    rule: "gitleaks",
   },
   {
     // A reader is fine when it, or a command after it, strips the values.

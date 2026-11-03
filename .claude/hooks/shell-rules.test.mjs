@@ -9,6 +9,7 @@ const TIMEOUT_REASON = /macOS has neither `timeout` nor `gtimeout`/;
 const WORD_SPLIT_REASON = /zsh doesn't word-split/;
 const ZSH_PATH_REASON = /zsh ties the lowercase `path` array to `PATH`/;
 const OUTPUT_FORMAT_REASON = /--output-format json/;
+const GITLEAKS_REASON = /gitleaks masks nothing without `--redact`/;
 
 const rulesBroken = (command, options) =>
   findShellRuleViolations(command, options).map((violation) => violation.rule);
@@ -584,4 +585,67 @@ describe("commands inside substitutions", () => {
       assert.deepEqual(rulesBroken(command), rules);
     });
   }
+});
+
+describe("gitleaks scanning a whole worktree or printing secrets", () => {
+  for (const command of [
+    // Unredacted: gitleaks masks nothing unless asked.
+    "gitleaks dir apps/mobile",
+    "gitleaks dir apps/mobile --redact=0",
+    "gitleaks dir apps/mobile --redact=50",
+    "gitleaks git --log-opts='origin/main..HEAD' -v",
+    "gitleaks detect --no-git --source apps/arnold",
+    // Pointed at the working directory, gitignored `.env*` files included.
+    "gitleaks dir --redact",
+    "gitleaks dir . --redact",
+    "gitleaks dir ./ --redact",
+    "gitleaks dir $PWD --redact",
+    "gitleaks dir --redact --config .gitleaks.toml",
+    "gitleaks detect --no-git --redact",
+    "gitleaks detect --no-git -s=. --redact",
+    "gitleaks detect --no-git --source . --redact",
+    // More than one path: gitleaks ignores both and scans the working
+    // directory, which is how FIT-476 printed the local env files.
+    "gitleaks dir packages/i18n/src/catalogs apps/mobile --redact",
+    "gitleaks dir packages/i18n/src/catalogs apps/mobile --config .gitleaks.toml --redact -v",
+    // The FIT-476 command itself.
+    "gitleaks dir packages/i18n/src/catalogs apps/mobile --config .gitleaks.toml -v --redact=0 | grep Secret",
+    "pnpm exec gitleaks dir . --redact",
+    "npx gitleaks dir . --redact",
+  ]) {
+    test(`refuses ${JSON.stringify(command)}`, () => {
+      assert.deepEqual(rulesBroken(command), ["gitleaks"]);
+    });
+  }
+
+  for (const command of [
+    "gitleaks dir apps/mobile --redact",
+    "gitleaks dir apps/mobile --redact=100",
+    "gitleaks dir apps/arnold/.env.local --redact -v",
+    "gitleaks dir packages/i18n/src/catalogs --config .gitleaks.toml --redact -v",
+    "gitleaks dir apps/mobile --redact --exit-code 0",
+    "gitleaks dir /Users/me/fitme/apps/mobile --redact",
+    // `--redact` takes no following word, so `apps/mobile` is still the path.
+    "gitleaks dir --redact apps/mobile",
+    // Git history holds no gitignored env file, so the whole repo is fine.
+    "gitleaks git --log-opts='origin/main..HEAD' --redact -v",
+    "gitleaks git --pre-commit --staged --redact -v",
+    "gitleaks git --redact .",
+    "gitleaks detect --redact",
+    "gitleaks detect --no-git --source apps/arnold --redact",
+    "gitleaks version",
+    "gitleaks dir --help",
+    "gitleaks help dir",
+    'echo "gitleaks dir . --redact=0"',
+  ]) {
+    test(`allows ${JSON.stringify(command)}`, () => {
+      assert.deepEqual(rulesBroken(command), []);
+    });
+  }
+
+  test("points at a single path and --redact", () => {
+    const [violation] = findShellRuleViolations("gitleaks dir . --redact=0");
+    assert.match(violation.reason, REASON);
+    assert.match(violation.reason, GITLEAKS_REASON);
+  });
 });
