@@ -1,6 +1,6 @@
 # PR Risk
 
-Every pull request to `main` carries exactly one risk label so the maintainer knows how closely to review it. The label is a signal for review attention only: nothing merges, blocks or gates on it.
+Every pull request carries exactly one risk label so the maintainer knows how closely to review it. The label is a signal for review attention only: nothing merges, blocks or gates on it.
 
 ## Terms
 
@@ -17,7 +17,7 @@ Every pull request to `main` carries exactly one risk label so the maintainer kn
 
 ## How the label is set
 
-`.github/workflows/pr-risk.yml` runs on every pull request to `main` (opened, pushed to, reopened, retargeted to `main`; drafts included). One `actions/github-script` step lists the changed files and labels the pull request:
+`.github/workflows/pr-risk.yml` runs on every pull request, to `main` or stacked on another pull request's branch (opened, pushed to, reopened, retargeted; drafts included). One `actions/github-script` step lists the changed files (against the pull request's own base, so a stacked pull request is judged by its own diff) and labels the pull request:
 
 - `risk:high` when any changed file matches a high Risk Path glob,
 - otherwise `risk:medium` when any changed file matches a medium Risk Path glob,
@@ -27,4 +27,4 @@ The highest tier wins, so tiers may overlap: medium uses broad globs (`packages/
 
 The workflow owns all three labels: it adds the winning one and removes the other two in the same run, and never touches any other label. A risk label set or removed by hand is overwritten on the next push, so to disagree with it, change the Risk Path list (itself a high Risk Path, under `.github`). A failed run (an API error) shows a red check and leaves the labels as they were.
 
-The workflow runs on `pull_request_target`, so it always comes from `main`, and it reads the Risk Path list from the pull request's base commit: a pull request that changes either is labeled by the version on `main`, not its own. It never checks out or runs pull request code (both the list and the changed files come through the API), which is what makes fork pull requests safe.
+The workflow runs on `pull_request_target`, so it comes from the pull request's base branch (`main`, or the branch a stacked pull request sits on), and it reads the Risk Path list from `main`: a pull request that changes either is labeled by the workflow on its base branch and the list on `main`, not its own. A stacked pull request is relabeled when GitHub retargets it to `main` after the one below it merges. GitHub reads the trigger from the base branch's copy of the workflow too, so a stack whose base branch predates stacked labeling gets no label until that branch is rebased onto `main`. It never checks out or runs pull request code (both the list and the changed files come through the API), which is what makes fork pull requests safe.
