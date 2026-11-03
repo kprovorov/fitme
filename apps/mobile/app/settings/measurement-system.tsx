@@ -11,7 +11,10 @@ import { ErrorMessage } from "~/components/ui/error-message";
 import { RadioGroup } from "~/components/ui/radio-group";
 import { VStack } from "~/components/ui/vstack";
 import { useProfileQuery } from "~/hooks/queries/profiles";
-import { useUpdateMeasurementSystemMutation } from "~/hooks/queries/settings";
+import {
+  invalidateWeighedQueries,
+  useUpdateMeasurementSystemMutation,
+} from "~/hooks/queries/settings";
 import { rateLimitedFor } from "~/lib/api/client";
 import { useChoiceLabels } from "~/lib/choices";
 import { i18n } from "~/lib/i18n";
@@ -87,6 +90,13 @@ export default function MeasurementSystemScreen() {
           // Dropped, not just marked stale, so no Screen keeps showing or
           // submitting a height and weight that may be in the old units.
           queryClient.resetQueries({ queryKey: useProfileQuery.getKey() });
+        }
+        // A lost answer can hide a conversion that committed, and the
+        // mutation's own refresh only runs on a success: when the Profile
+        // says the new system is saved, every stored weight is in it, so the
+        // weighed queries are read again as they are after a success.
+        if (error && saved === system) {
+          await invalidateWeighedQueries(queryClient);
         }
         setSwitchingTo(null);
 

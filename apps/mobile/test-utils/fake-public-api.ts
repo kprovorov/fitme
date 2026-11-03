@@ -126,6 +126,23 @@ const profileBody = (profile: ProfileRow) => {
   return { ...fields, units: unitsOf(profile.measurement_system) };
 };
 
+/** Every Plan's own set targets: stored weights too. */
+const convertPlanSets = (factor: number) => {
+  for (const plan of backend.plans) {
+    for (const workout of plan.workouts) {
+      for (const exercise of workout.exercises) {
+        if (typeof exercise.sets === "number") {
+          // The shorthand's sets have no weight to convert.
+          continue;
+        }
+        for (const set of exercise.sets) {
+          set.weight_recommended = round2(set.weight_recommended * factor);
+        }
+      }
+    }
+  }
+};
+
 /** Every stored height and weight of the User, as the API converts them. */
 const convert = (profile: ProfileRow, to: MeasurementSystem) => {
   if (isImperial(profile.measurement_system) === isImperial(to)) {
@@ -147,6 +164,7 @@ const convert = (profile: ProfileRow, to: MeasurementSystem) => {
   for (const record of backend.personalRecords) {
     record.weight = round2(record.weight * weight);
   }
+  convertPlanSets(weight);
 };
 
 const hasAtMostBodyDecimals = (value: number) => {

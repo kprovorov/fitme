@@ -37,6 +37,10 @@ jest.mock("expo-router", () => ({ Stack: { Screen: () => null } }));
 
 jest.mock("@sentry/react-native", () => ({ captureException: jest.fn() }));
 
+// Reached through the queries the switch reads again; its real client's
+// `uuid` is ESM, which Jest can't require.
+jest.mock("~/lib/segment", () => ({ segmentClient: { track: jest.fn() } }));
+
 jest.mock("~/lib/supabase", () => ({
   supabase: jest.requireActual<
     typeof import("~/test-utils/fake-workout-backend")
