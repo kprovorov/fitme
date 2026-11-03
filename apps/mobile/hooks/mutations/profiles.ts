@@ -84,16 +84,25 @@ const saveProfile = async ({
 };
 
 /**
- * The Profile query shows a write's answer as is: no second read. Only for
- * `starter`, the User who started the write, and only while nothing newer
- * (a unit switch finished meanwhile) has landed in it; otherwise it's read
- * again (`seedWriteAnswer`).
+ * The Profile query shows a write's answer as is: no second read, unless
+ * something newer landed in it since the write started (a unit switch that
+ * finished meanwhile), when it's read again instead (`seedWriteAnswer`).
  */
 export const seedProfile = (
   client: QueryClient,
   profile: Profile,
   starter: WriteStarter | undefined
-) => seedWriteAnswer(client, starter, useProfileQuery.getKey(), profile);
+) =>
+  seedWriteAnswer(client, starter, {
+    answer: profile,
+    queryKey: useProfileQuery.getKey(),
+  });
+
+/** A Profile write's `onMutate`: the starter `seedProfile` checks against. */
+export const rememberProfileWrite = (
+  _variables: unknown,
+  { client }: { client: QueryClient }
+) => rememberWriteStarter(client, [useProfileQuery.getKey()]);
 
 /**
  * Onboarding's save: `saveProfile`, whose answer then shows as the Profile.
@@ -107,7 +116,7 @@ export const useStoreProfileMutation = createMutation<
   WriteStarter
 >({
   mutationFn: saveProfile,
-  onMutate: rememberWriteStarter,
+  onMutate: rememberProfileWrite,
   onSuccess: async (profile, _variables, starter, { client }) => {
     await seedProfile(client, profile, starter);
   },
@@ -151,7 +160,7 @@ export const useUpdateProfileMutation = createMutation<
     }
     return saved;
   },
-  onMutate: rememberWriteStarter,
+  onMutate: rememberProfileWrite,
   onSuccess: async (profile, _variables, starter, { client }) => {
     await seedProfile(client, profile, starter);
   },

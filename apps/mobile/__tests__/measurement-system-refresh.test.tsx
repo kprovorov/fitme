@@ -8,7 +8,7 @@
  */
 import { beforeEach, describe, expect, it, jest } from "@jest/globals";
 import { QueryClientProvider } from "@tanstack/react-query";
-import { fireEvent, render, screen } from "@testing-library/react-native";
+import { act, fireEvent, render, screen } from "@testing-library/react-native";
 import { type ReactNode, useCallback } from "react";
 import { Alert, Pressable } from "react-native";
 import HistoryScreen from "~/app/(tabs)/history/index";
@@ -20,7 +20,11 @@ import {
   fakePublicApi,
 } from "~/test-utils/fake-public-api";
 import { backend, type SeedPlan } from "~/test-utils/fake-workout-backend";
-import { createTestQueryClient, settle } from "~/test-utils/query-client";
+import {
+  createTestQueryClient,
+  settle,
+  until,
+} from "~/test-utils/query-client";
 
 jest.mock("expo-router", () => ({
   Link: ({ children }: { children: ReactNode }) => children,
@@ -188,6 +192,8 @@ jest.mock("~/components/ui/alert-dialog", () => {
 });
 
 const PROFILE_PATCH = "PATCH /v1/profile";
+/** History's volume once converted to pounds. */
+const CONVERTED_VOLUME = /440\.92/;
 const MINUTE_MS = 60_000;
 
 /** A Plan whose Leg Day has one 5 × 100 kg set. */
@@ -362,6 +368,38 @@ describe("Switching the measurement system", () => {
     expect(screen.queryByTestId("picker-value")).toBeNull();
     expect(historyRow("200 kg")).toBeTruthy();
     expect(plannedSet("100 kg")).toBeTruthy();
+  });
+
+  it("leaves them alone when a newer Profile superseded the answer and can't be read back", async () => {
+    await mount();
+    const resumeSwitch = fakePublicApi.pause(PROFILE_PATCH);
+    await fireEvent.press(screen.getByTestId("option-us"));
+    await fireEvent.press(screen.getByTestId("dialog-Confirm"));
+    await until(() => fakePublicApi.count(PROFILE_PATCH) === 1);
+    // A refresh of the Profile lands while the switch waits for its answer,
+    // so the answer can't be shown as is; then every read of it is refused.
+    await act(() => queryClient.refetchQueries({ queryKey: ["profile"] }));
+    for (let read = 0; read < 4; read += 1) {
+      fakePublicApi.failNext("GET /v1/profile", {
+        retryAfterSeconds: 42,
+        status: 429,
+      });
+    }
+    const weighedReads = fakePublicApi.count("GET /v1/workout-sessions");
+
+    resumeSwitch();
+    await settle(queryClient);
+
+    // The saved system can't be confirmed, so nothing is read again into
+    // units the Screens couldn't name.
+    expect(Alert.alert).toHaveBeenCalledWith(
+      "Couldn't Check Your Units",
+      expect.any(String)
+    );
+    expect(fakePublicApi.count("GET /v1/workout-sessions")).toBe(weighedReads);
+    expect(historyRow("200 kg")).toBeTruthy();
+    expect(plannedSet("100 kg")).toBeTruthy();
+    expect(screen.queryByText(CONVERTED_VOLUME)).toBeNull();
   });
 
   it("refreshes them when the answer is lost but the switch went through", async () => {

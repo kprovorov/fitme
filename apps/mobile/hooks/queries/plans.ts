@@ -9,7 +9,6 @@ import type { NewPlan } from "~/lib/plan-card";
 import { publicApi } from "~/lib/public-api";
 import { segmentClient } from "~/lib/segment";
 import {
-  isStillWriteStarter,
   rememberWriteStarter,
   seedWriteAnswer,
   type WriteStarter,
@@ -113,33 +112,27 @@ export const usePlanQuery = createQuery<FullPlan | null, PlanQueryVariables>({
  * something newer landed in it since the write started, when it's read again
  * (`seedWriteAnswer`). Every other Plan read (the lists, the active Plan, the
  * other Plans, whose `is_active` may have changed) and the Weekly goal (the
- * active Plan's frequency) are read again. Only for `starter`, the User who
- * started the write: for anyone else nothing is touched.
+ * active Plan's frequency) are read again, all only while the User who
+ * started the write is still signed in.
  */
-const seedPlan = async (
+const seedPlan = (
   client: QueryClient,
   plan: FullPlan,
   starter: WriteStarter | undefined
-) => {
-  if (!isStillWriteStarter(starter)) {
-    return;
-  }
-  await seedWriteAnswer(
-    client,
-    starter,
-    usePlanQuery.getKey({ id: plan.id }),
-    plan
-  );
-  await Promise.all([
-    client.invalidateQueries({ queryKey: PLANS_QUERY_KEY }),
-    client.invalidateQueries({
-      predicate: ({ queryKey }) =>
-        queryKey[0] === "plan" &&
-        (queryKey[1] as PlanQueryVariables | undefined)?.id !== plan.id,
-    }),
-    client.invalidateQueries({ queryKey: WEEKLY_GOALS_QUERY_KEY }),
-  ]);
-};
+) =>
+  seedWriteAnswer(client, starter, {
+    alsoInvalidate: [
+      { queryKey: PLANS_QUERY_KEY },
+      {
+        predicate: ({ queryKey }) =>
+          queryKey[0] === "plan" &&
+          (queryKey[1] as PlanQueryVariables | undefined)?.id !== plan.id,
+      },
+      { queryKey: WEEKLY_GOALS_QUERY_KEY },
+    ],
+    answer: plan,
+    queryKey: usePlanQuery.getKey({ id: plan.id }),
+  });
 
 /**
  * Saves a Plan through `POST /v1/plans` and makes it the active one, in one
@@ -168,8 +161,9 @@ export const useCreatePlanMutation = createMutation<
     }
     return data.data;
   },
-  // On the mutation, not the call: it still runs once the card is gone.
-  onMutate: rememberWriteStarter,
+  // On the mutation, not the call: it still runs once the card is gone. The
+  // new Plan has no query yet, so there's no revision to remember.
+  onMutate: (_plan, { client }) => rememberWriteStarter(client, []),
   onSuccess: async (plan, _variables, starter, { client }) => {
     await seedPlan(client, plan, starter);
   },
@@ -201,7 +195,8 @@ export const useActivatePlanMutation = createMutation<
     return data.data;
   },
   // On the mutation, not the call: it still runs once the screen is gone.
-  onMutate: rememberWriteStarter,
+  onMutate: ({ id }, { client }) =>
+    rememberWriteStarter(client, [usePlanQuery.getKey({ id })]),
   onSuccess: async (plan, _variables, starter, { client }) => {
     await seedPlan(client, plan, starter);
   },

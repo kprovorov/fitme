@@ -20,11 +20,10 @@ import { router } from "expo-router";
 import { useCallback } from "react";
 import { Pressable, Text } from "react-native";
 import EditProfileScreen from "~/app/settings/edit-profile";
-import { seedProfile } from "~/hooks/mutations/profiles";
+import { rememberProfileWrite, seedProfile } from "~/hooks/mutations/profiles";
 import { useProfileQuery } from "~/hooks/queries/profiles";
 import { useUpdateMeasurementSystemMutation } from "~/hooks/queries/settings";
 import { i18n } from "~/lib/i18n";
-import { rememberWriteStarter } from "~/lib/write-answers";
 import { setDeviceLanguages } from "~/test-utils/device-locales";
 import {
   FAKE_SESSION_TOKEN,
@@ -373,10 +372,15 @@ describe("EditProfileScreen", () => {
     });
   });
 
-  it("keeps a unit switch that finished while the name was still saving", async () => {
+  /**
+   * Saves an Age and a new name with Clerk holding the name, so the Profile's
+   * answer waits; the clock stands still from then on, so whatever lands
+   * meanwhile lands in the same millisecond as the save started.
+   */
+  const saveWithNameHeld = async () => {
     backend.seedProfile(FAKE_USER_ID, { age: 30, height: 170, weight: 60 });
     await mount();
-    // The Profile saves, then Clerk holds the name.
+    const clock = jest.spyOn(Date, "now").mockReturnValue(Date.now());
     let releaseName: () => void = () => {
       // Replaced once Clerk is asked.
     };
@@ -394,20 +398,53 @@ describe("EditProfileScreen", () => {
     await fireEvent.press(screen.getByTestId("edit-profile-save-button"));
     await until(() => mockUser.update.mock.calls.length === 1);
     const [saving] = queryClient.getMutationCache().getAll();
+    return {
+      finish: async () => {
+        releaseName();
+        await until(() => saving?.state.status === "success");
+        await settle(queryClient);
+        clock.mockRestore();
+      },
+    };
+  };
 
+  it("reads the Profile again when a read landed while the name was still saving", async () => {
+    const { finish } = await saveWithNameHeld();
+    // Another device changes the weight, and a refresh reads it.
+    const saved = backend.profile(FAKE_USER_ID);
+    if (saved) {
+      saved.weight = 65;
+    }
+    await act(() =>
+      queryClient.refetchQueries({ queryKey: useProfileQuery.getKey() })
+    );
+    const reads = fakePublicApi.count(PROFILE_GET);
+
+    await finish();
+
+    // The edit's answer (weight 60) is older than what landed: read again.
+    expect(fakePublicApi.count(PROFILE_GET)).toBe(reads + 1);
+    expect(queryClient.getQueryData(useProfileQuery.getKey())).toMatchObject({
+      age: 31,
+      weight: 65,
+    });
+  });
+
+  it("keeps a unit switch that finished while the name was still saving", async () => {
+    const { finish } = await saveWithNameHeld();
     // Meanwhile the measurement system screen switches to US units, and shows
     // the converted Profile from its answer.
     await act(async () => {
-      const switchStarter = rememberWriteStarter();
+      const switchStarter = rememberProfileWrite(undefined, {
+        client: queryClient,
+      });
       const converted =
         await useUpdateMeasurementSystemMutation.mutationFn("us");
       await seedProfile(queryClient, converted, switchStarter);
     });
     const reads = fakePublicApi.count(PROFILE_GET);
 
-    releaseName();
-    await until(() => saving?.state.status === "success");
-    await settle(queryClient);
+    await finish();
 
     // The edit's older answer doesn't replace the converted Profile: it's
     // read again instead.

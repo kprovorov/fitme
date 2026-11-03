@@ -23,28 +23,32 @@ import { measurementSystemOf } from "~/lib/profile";
 import { isStillWriteStarter, type WriteStarter } from "~/lib/write-answers";
 
 /**
- * The system a switch left saved: the answer's, which then shows as the
- * Profile, or without one (a failed call, whose conversion may still have
- * committed) the Profile's read back; `saved` is `undefined` when that read
- * fails, the Profile then dropped, not just marked stale, so no Screen keeps
- * showing or submitting a height and weight that may be in the old units.
- * `null` once another User has signed in, checked again after every await:
- * nothing is theirs to read, seed or reset (signing out cancels the read
- * back, and a reset would cancel the next User's read).
+ * The system a switch left saved, decided only from a Profile it has: the
+ * answer, once it shows as the Profile, or else (no answer, a failed call
+ * whose conversion may still have committed; or a newer Profile landed
+ * meanwhile, superseding it) the Profile read back. `saved` is `undefined`
+ * when that read fails: the Profile is then dropped, not just marked stale,
+ * so no Screen keeps showing or submitting a height and weight that may be
+ * in the old units. `null` once another User has signed in, checked again
+ * after every await: nothing is theirs to read, seed or reset (signing out
+ * cancels the read back, and a reset would cancel the next User's read).
  */
 const readSavedSystem = async (
   queryClient: QueryClient,
   answer: Profile | undefined,
   starter: WriteStarter | undefined
 ): Promise<{ saved: MeasurementSystem | undefined } | null> => {
+  if (answer) {
+    const seeded = await seedProfile(queryClient, answer, starter);
+    if (seeded === "signed-out") {
+      return null;
+    }
+    if (seeded === "seeded") {
+      return { saved: measurementSystemOf(answer) };
+    }
+  }
   if (!isStillWriteStarter(starter)) {
     return null;
-  }
-  if (answer) {
-    await seedProfile(queryClient, answer, starter);
-    return isStillWriteStarter(starter)
-      ? { saved: measurementSystemOf(answer) }
-      : null;
   }
   try {
     const fresh = await queryClient.fetchQuery({

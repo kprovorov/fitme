@@ -2,6 +2,7 @@ import { ApiError } from "@fitme/api-client";
 import type { MeasurementSystem } from "@fitme/core";
 import type { QueryClient, QueryKey } from "@tanstack/react-query";
 import { createMutation } from "react-query-kit";
+import { rememberProfileWrite } from "~/hooks/mutations/profiles";
 import { useExerciseHistoryQuery } from "~/hooks/queries/exercises";
 import { usePlanQuery, usePlansQuery } from "~/hooks/queries/plans";
 import type { Profile } from "~/hooks/queries/profiles";
@@ -13,7 +14,7 @@ import {
 } from "~/hooks/queries/workout-sessions";
 import { useWorkoutQuery } from "~/hooks/queries/workouts";
 import { publicApi } from "~/lib/public-api";
-import { rememberWriteStarter, type WriteStarter } from "~/lib/write-answers";
+import type { WriteStarter } from "~/lib/write-answers";
 
 /**
  * Every query whose answer carries a weight. Switching the measurement system
@@ -73,5 +74,5 @@ export const useUpdateMeasurementSystemMutation = createMutation<
     }
     return data.data;
   },
-  onMutate: rememberWriteStarter,
+  onMutate: rememberProfileWrite,
 });
