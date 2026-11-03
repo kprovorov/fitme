@@ -9,7 +9,14 @@
  * naming the Exercises and Exercise history still on the in-memory Supabase
  * backend; the SwiftUI-backed primitives are swapped for plain stand-ins.
  */
-import { beforeEach, describe, expect, it, jest } from "@jest/globals";
+import {
+  afterEach,
+  beforeEach,
+  describe,
+  expect,
+  it,
+  jest,
+} from "@jest/globals";
 import { type QueryClient, QueryClientProvider } from "@tanstack/react-query";
 import {
   act,
@@ -24,6 +31,10 @@ import WorkoutScreen from "~/app/plans/[planId]/workouts/[workoutId]/index";
 import WorkoutSessionExerciseScreen from "~/app/plans/[planId]/workouts/[workoutId]/sessions/[sessionId]/exercises/[exerciseId]/index";
 import WorkoutSessionSummaryScreen from "~/app/workout-sessions/[workoutSessionId]/summary";
 import WorkoutSessionScreen from "~/components/workout-sessions/workout-session-screen";
+import {
+  closePlanUpdatePrompt,
+  showPlanUpdatePrompt,
+} from "~/hooks/plan-update-prompt";
 import { useWorkoutSessionQuery } from "~/hooks/queries/workout-sessions";
 import { storage } from "~/lib/mmkv";
 import { libraryExercise, serveLibrary } from "~/test-utils/fake-library";
@@ -91,6 +102,16 @@ jest.mock("~/components/views/workout-session-summary-body", () => ({
   WorkoutSessionSummaryBodyFront: () => null,
 }));
 jest.mock("~/components/workout-sessions/rest-timer", () => () => null);
+// The real prompt store, its question recorded.
+jest.mock("~/hooks/plan-update-prompt", () => {
+  const actual = jest.requireActual<
+    typeof import("~/hooks/plan-update-prompt")
+  >("~/hooks/plan-update-prompt");
+  return {
+    ...actual,
+    showPlanUpdatePrompt: jest.fn(actual.showPlanUpdatePrompt),
+  };
+});
 jest.mock("~/components/ui/button", () =>
   jest.requireActual("~/test-utils/button-stub")
 );
@@ -156,6 +177,7 @@ const mountSummary = () => {
 const setSet = (
   id: string,
   values: {
+    logged_at?: string | null;
     reps_completed?: number | null;
     reps_recommended?: number | null;
     weight_completed?: number | null;
@@ -725,4 +747,184 @@ describe("A late Start or Finish answer", () => {
       "/workout-sessions/s1/summary",
     ]);
   });
+
+  describe("a resumed Start whose session is already read", () => {
+    /** The Workout screen, then the session resumed: read, then a set logged elsewhere. */
+    const mountWithCachedSession = async () => {
+      await mountLegDay();
+      backend.seed({
+        exercises: [{ name: "Squat", sets: [8, null] }],
+        id: "resumed",
+        workoutId: "workout-1",
+      });
+      await act(async () => {
+        await queryClient.fetchQuery(
+          useWorkoutSessionQuery.getFetchOptions({ sessionId: "resumed" })
+        );
+      });
+      setSet("resumed-e1-s2", {
+        logged_at: "2026-10-08T10:40:00.000Z",
+        reps_completed: 6,
+      });
+    };
+
+    const shownSecondSet = () =>
+      queryClient.getQueryData(
+        useWorkoutSessionQuery.getKey({ sessionId: "resumed" })
+      )?.exercises[0]?.sets[1]?.reps_completed;
+
+    it("shows Start's answer over the read it started from, with no second read", async () => {
+      await mountWithCachedSession();
+      expect(fakePublicApi.count(READ)).toBe(1);
+
+      await fireEvent.press(
+        screen.getByRole("button", { name: "Start Workout" })
+      );
+      await settle(queryClient);
+
+      expect(fakePublicApi.count(START)).toBe(1);
+      expect(fakePublicApi.count(READ)).toBe(1);
+      expect(shownSecondSet()).toBe(6);
+      expect(pushedRoutes().map(({ pathname }) => pathname)).toEqual([
+        "/plans/plan-1/workouts/workout-1/sessions/resumed",
+      ]);
+    });
+
+    it("reads it again instead when a newer read landed before Start's answer", async () => {
+      await mountWithCachedSession();
+      const resume = fakePublicApi.pause(START);
+      await fireEvent.press(
+        screen.getByRole("button", { name: "Start Workout" })
+      );
+      await until(() => fakePublicApi.count(START) === 1);
+
+      await act(async () => {
+        await queryClient.refetchQueries({
+          queryKey: useWorkoutSessionQuery.getKey({ sessionId: "resumed" }),
+        });
+      });
+      expect(fakePublicApi.count(READ)).toBe(2);
+
+      resume();
+      await settle(queryClient);
+
+      // Not put over the newer read: marked to be read again, which the
+      // session screen the Start opens does as it mounts.
+      expect(
+        queryClient.getQueryState(
+          useWorkoutSessionQuery.getKey({ sessionId: "resumed" })
+        )?.isInvalidated
+      ).toBe(true);
+      expect(pushedRoutes().map(({ pathname }) => pathname)).toEqual([
+        "/plans/plan-1/workouts/workout-1/sessions/resumed",
+      ]);
+      await render(
+        <QueryClientProvider client={queryClient}>
+          <WorkoutSessionScreen sessionId="resumed" />
+        </QueryClientProvider>
+      );
+      await settle(queryClient);
+      expect(fakePublicApi.count(READ)).toBe(3);
+      expect(shownSecondSet()).toBe(6);
+    });
+  });
+
+  describe("a Finish whose Plan Update is still being previewed", () => {
+    const PROMPT = showPlanUpdatePrompt as unknown as jest.Mock;
+
+    /** Squat logged where the Plan has Bench Press: a Plan Update to ask about. */
+    const mountChangedSession = async () => {
+      backend.seedPlan({
+        id: "plan-1",
+        is_active: true,
+        name: "Strength",
+        workouts: [
+          {
+            exercises: [{ sets: 1, slug: "bench-press" }],
+            id: "workout-1",
+            name: "Leg Day",
+          },
+        ],
+      });
+      backend.seed({
+        exercises: [{ name: "Squat", sets: [8] }],
+        id: "s1",
+        workoutId: "workout-1",
+      });
+      await mountSession();
+    };
+
+    afterEach(() => {
+      closePlanUpdatePrompt("s1");
+    });
+
+    it("asks about it once previewed", async () => {
+      await mountChangedSession();
+
+      await fireEvent.press(screen.getByTestId("finish-workout-button"));
+      await settle(queryClient);
+
+      expect(PROMPT).toHaveBeenCalledTimes(1);
+      expect(pushedRoutes()).toEqual([]);
+    });
+
+    it.each([
+      ["nobody", null],
+      ["another User", "user_next"],
+    ])(
+      "never asks, nor opens the Summary, once %s is signed in",
+      async (_, next) => {
+        await mountChangedSession();
+        const resume = fakePublicApi.pause(PLAN_UPDATE);
+        await fireEvent.press(screen.getByTestId("finish-workout-button"));
+        await until(() => fakePublicApi.count(PLAN_UPDATE) === 1);
+
+        await signOutDuringWrite(next);
+        const reads = fakePublicApi.requests.length;
+        resume();
+        await settle(queryClient);
+
+        expect(PROMPT).not.toHaveBeenCalled();
+        expect(pushedRoutes()).toEqual([]);
+        expect(Alert.alert).not.toHaveBeenCalled();
+        // Nothing read, or put in the cache, for whoever is signed in now.
+        expect(fakePublicApi.requests.length).toBe(reads);
+        expect(queryClient.getQueryCache().getAll()).toEqual([]);
+      }
+    );
+  });
+
+  it.each([
+    ["nobody", null],
+    ["another User", "user_next"],
+  ])(
+    "never alerts nor opens anything when %s is signed in during a 409's re-read",
+    async (_, next) => {
+      await mountLegDay();
+      // Another Workout's session, opened elsewhere after the screen read none.
+      backend.seed({
+        exercises: [{ name: "Squat", sets: [null] }],
+        id: "elsewhere",
+        workoutId: "workout-other",
+      });
+      const reads = fakePublicApi.count(LIST, IN_PROGRESS);
+      const resume = fakePublicApi.pause(LIST, IN_PROGRESS);
+      await fireEvent.press(
+        screen.getByRole("button", { name: "Start Workout" })
+      );
+      await until(() => fakePublicApi.count(LIST, IN_PROGRESS) === reads + 1);
+      expect(fakePublicApi.count(START)).toBe(1);
+
+      await signOutDuringWrite(next);
+      resume();
+      await settle(queryClient);
+
+      expect(Alert.alert).not.toHaveBeenCalled();
+      expect(pushedRoutes()).toEqual([]);
+      expect(fakePublicApi.count(LIST, IN_PROGRESS)).toBe(reads + 1);
+      expect(
+        queryClient.getQueryData(["open-workout-session"])
+      ).toBeUndefined();
+    }
+  );
 });
