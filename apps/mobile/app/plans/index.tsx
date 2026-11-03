@@ -3,10 +3,10 @@ import { useCallback } from "react";
 import { useTranslation } from "react-i18next";
 import { RefreshControl, ScrollView } from "react-native";
 import PlansListView from "~/components/views/plan-list-view";
-import { usePlansQuery } from "~/hooks/queries/plans";
+import { usePlanSummariesQuery } from "~/hooks/queries/plans";
 
 export default function PlansScreen() {
-  const { refetch, isLoading } = usePlansQuery();
+  const { refetch, isLoading } = usePlanSummariesQuery();
   const router = useRouter();
   const { t } = useTranslation();
   const onRefresh = useCallback(async () => {
@@ -47,6 +47,7 @@ export default function PlansScreen() {
         refreshControl={
           <RefreshControl onRefresh={onRefresh} refreshing={isLoading} />
         }
+        testID="plans-screen"
       >
         <PlansListView />
       </ScrollView>

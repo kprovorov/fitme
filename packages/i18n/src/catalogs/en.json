@@ -155,6 +155,9 @@
     "frequency_one": "{{count, number}}× per week",
     "frequency_other": "{{count, number}}× per week",
     "manage": "Manage",
+    "goBack": "Go Back",
+    "loadError": "Couldn't load this plan. Check your connection and try again.",
+    "listLoadError": "Couldn't load your plans. Check your connection and try again.",
     "activate": {
       "action": "Activate Plan",
       "title": "Activate Plan",

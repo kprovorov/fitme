@@ -1,6 +1,7 @@
-import type { Plan } from "@fitme/core";
+import type { ExperienceLevel, Goal, Place } from "@fitme/core";
 import { useTranslation } from "react-i18next";
 import { SymbolImage } from "~/components/symbol-image";
+import type { PlanSummary } from "~/hooks/queries/plans";
 import { useChoiceLabels } from "~/lib/choices";
 import {
   Card,
@@ -20,12 +21,18 @@ import {
 } from "./plan-symbols";
 
 interface PlanCardProps {
-  plan: Plan;
+  plan: PlanSummary;
 }
 
+/** A Plan on the Plans list: its name, goal, level, frequency and place. */
 export default function PlanCard({ plan }: PlanCardProps) {
   const labels = useChoiceLabels();
   const { t } = useTranslation();
+  // The API answers these as the columns' text: an id this build doesn't
+  // know shows as itself (`useChoiceLabels`) with the default symbol.
+  const goal = plan.goal as Goal;
+  const level = plan.experience_level as ExperienceLevel;
+  const place = plan.place as Place;
   return (
     <Card className="flex-1 gap-sm">
       <CardHeader>
@@ -38,14 +45,14 @@ export default function PlanCard({ plan }: PlanCardProps) {
           <HStack className="flex-wrap justify-start">
             {[
               {
-                icon: goalSymbol(plan.goal),
+                icon: goalSymbol(goal),
                 key: "goal",
-                label: labels.goal(plan.goal),
+                label: labels.goal(goal),
               },
               {
                 icon: LEVEL_SYMBOL,
                 key: "level",
-                label: labels.experienceLevel(plan.experience_level),
+                label: labels.experienceLevel(level),
               },
               {
                 icon: COUNT_SYMBOL,
@@ -53,9 +60,9 @@ export default function PlanCard({ plan }: PlanCardProps) {
                 label: t("plans.frequency", { count: plan.frequency }),
               },
               {
-                icon: placeSymbol(plan.place),
+                icon: placeSymbol(place),
                 key: "place",
-                label: labels.place(plan.place),
+                label: labels.place(place),
               },
             ].map((item) => (
               <HStack className="gap-1" key={item.key}>
@@ -70,7 +77,7 @@ export default function PlanCard({ plan }: PlanCardProps) {
         </CardDescription>
       </CardHeader>
       <CardContent>
-        <P className="text-muted-foreground">{plan.description}</P>
+        <P className="text-muted-foreground">{plan.description ?? ""}</P>
       </CardContent>
     </Card>
   );

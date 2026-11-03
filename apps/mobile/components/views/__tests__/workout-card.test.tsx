@@ -1,7 +1,7 @@
-import type { Workout } from "@fitme/core";
 import { beforeEach, describe, expect, it, jest } from "@jest/globals";
 import { QueryClientProvider } from "@tanstack/react-query";
 import { fireEvent, render, screen } from "@testing-library/react-native";
+import type { PlanWorkout } from "~/hooks/queries/plans";
 import { fakePublicApi } from "~/test-utils/fake-public-api";
 import { backend } from "~/test-utils/fake-workout-backend";
 import { createTestQueryClient, settle } from "~/test-utils/query-client";
@@ -26,17 +26,35 @@ jest.mock("~/lib/clerk", () => ({ getCurrentUserId: () => "user_test" }));
 jest.mock("~/components/exercises/exercise-image", () => () => null);
 jest.mock("~/components/symbol-image", () => ({ SymbolImage: () => null }));
 
-const pushDay = {
+const SET = {
+  reps_recommended: 10,
+  rest_recommended: 90,
+  weight_recommended: 0,
+};
+
+const pushDay: PlanWorkout = {
+  cover: null,
+  description: "",
   exercises: [],
   id: "workout-1",
   name: "Push Day",
-  plan_id: "plan-1",
-} as unknown as Workout;
+  order: 1,
+};
 
-const withExercise = {
+const withExercise: PlanWorkout = {
   ...pushDay,
-  exercises: [{ exercise_slug: "dips", id: "we-1", order: 1, sets: [{}, {}] }],
-} as unknown as Workout;
+  exercises: [
+    {
+      exercise_slug: "dips",
+      id: "we-1",
+      order: 1,
+      sets: [
+        { ...SET, id: "we-1-s1", order: 1 },
+        { ...SET, id: "we-1-s2", order: 2 },
+      ],
+    },
+  ],
+};
 
 const HOUR_MS = 3_600_000;
 const ELAPSED = /^01:0[23]:\d\d$/;
@@ -53,11 +71,11 @@ const seedOpenSession = (workoutId: string | null, ago = 0) => {
   });
 };
 
-const renderCard = async (shown: Workout) => {
+const renderCard = async (shown: PlanWorkout) => {
   const client = createTestQueryClient();
   await render(
     <QueryClientProvider client={client}>
-      <WorkoutCard workout={shown} />
+      <WorkoutCard planId="plan-1" workout={shown} />
     </QueryClientProvider>
   );
   await settle(client);

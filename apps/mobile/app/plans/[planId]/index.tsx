@@ -4,10 +4,19 @@ import { Stack, useLocalSearchParams, useRouter } from "expo-router";
 import type { TFunction } from "i18next";
 import { useCallback } from "react";
 import { useTranslation } from "react-i18next";
-import { Alert, RefreshControl, ScrollView } from "react-native";
+import {
+  ActivityIndicator,
+  Alert,
+  RefreshControl,
+  ScrollView,
+  View,
+} from "react-native";
+import { Button } from "~/components/ui/button";
+import { Text } from "~/components/ui/text";
 import { VStack } from "~/components/ui/vstack";
 import WorkoutList from "~/components/views/workout-list";
 import {
+  PLANS_QUERY_KEY,
   useActivatePlanMutation,
   useDeletePlanMutation,
   usePlanQuery,
@@ -31,29 +40,39 @@ const failureMessage = (t: TFunction, error: unknown) => {
 };
 
 export default function PlanScreen() {
-  const { planId } = useLocalSearchParams();
+  const { planId: planIdParam } = useLocalSearchParams();
+  const planId = planIdParam as string;
   const queryClient = useQueryClient();
   const router = useRouter();
   const { t } = useTranslation();
 
   // A failed call doesn't prove nothing changed, so the Plans are read again
-  // either way.
+  // (a successful activation shows its answer: the mutation does that).
   const refreshPlans = useCallback(() => {
-    queryClient.invalidateQueries({ queryKey: ["plans"] });
+    queryClient.invalidateQueries({ queryKey: PLANS_QUERY_KEY });
     queryClient.invalidateQueries({ queryKey: ["plan"] });
     // Activating or deleting the active Plan changes the Weekly goal
     queryClient.invalidateQueries({ queryKey: WEEKLY_GOALS_QUERY_KEY });
   }, [queryClient]);
 
+  // No hook-level `onSuccess`: it would replace the mutation's own, which
+  // shows the activated Plan from the answer.
   const { mutate: activatePlan } = useActivatePlanMutation({
     onError: (error) => {
       Alert.alert(t("plans.activate.failed"), failureMessage(t, error));
-    },
-    onSettled: refreshPlans,
-    onSuccess: () => {
-      router.dismissTo("/");
+      refreshPlans();
     },
   });
+  const activate = useCallback(() => {
+    activatePlan(
+      { id: planId },
+      {
+        onSuccess: () => {
+          router.dismissTo("/");
+        },
+      }
+    );
+  }, [activatePlan, planId, router]);
 
   const { mutate: deletePlan } = useDeletePlanMutation({
     onError: (error) => {
@@ -65,15 +84,15 @@ export default function PlanScreen() {
     },
   });
 
+  // `null` once the Plan is gone (deleted, or never the User's). A failed
+  // refresh keeps the Plan read last.
   const {
     data: plan,
+    error: readError,
+    isError,
     isLoading,
     refetch,
-  } = usePlanQuery({
-    variables: {
-      id: planId as string,
-    },
-  });
+  } = usePlanQuery({ variables: { id: planId } });
 
   // Each Workout card's open session (and its timer) comes from the open
   // Workout Session's own read, which a pull refreshes too (when a card reads
@@ -85,6 +104,65 @@ export default function PlanScreen() {
       queryClient.refetchQueries({ queryKey: OPEN_WORKOUT_SESSION_QUERY_KEY }),
     ]);
   }, [refetch, queryClient]);
+
+  const retry = useCallback(() => {
+    refetch();
+  }, [refetch]);
+  const goBack = useCallback(() => {
+    if (router.canGoBack()) {
+      router.back();
+    } else {
+      router.dismissTo("/");
+    }
+  }, [router]);
+
+  const renderContent = () => {
+    if (plan) {
+      return (
+        <VStack className="flex-1 items-stretch">
+          <WorkoutList planId={plan.id} workouts={plan.workouts} />
+        </VStack>
+      );
+    }
+    if (plan === null) {
+      return (
+        <View className="items-center gap-sm pt-lg">
+          <Text className="text-center text-muted-foreground">
+            {t("plans.errors.notFound")}
+          </Text>
+          <Button
+            fill={false}
+            label={t("plans.goBack")}
+            onPress={goBack}
+            variant="secondary"
+          />
+        </View>
+      );
+    }
+    if (isError) {
+      const waitSeconds = rateLimitedFor(readError);
+      return (
+        <View className="items-center gap-sm pt-lg">
+          <Text className="text-center text-muted-foreground">
+            {waitSeconds === null
+              ? t("plans.loadError")
+              : t("common.rateLimited", { seconds: waitSeconds })}
+          </Text>
+          <Button
+            fill={false}
+            label={t("common.tryAgain")}
+            onPress={retry}
+            variant="secondary"
+          />
+        </View>
+      );
+    }
+    return (
+      <View className="items-center pt-lg" testID="plan-loading">
+        <ActivityIndicator colorClassName="accent-foreground" />
+      </View>
+    );
+  };
 
   return (
     <>
@@ -98,73 +176,75 @@ export default function PlanScreen() {
           },
           headerTransparent: true,
           title: plan?.name ?? "",
-          unstable_headerRightItems: () => [
-            {
-              icon: {
-                name: "ellipsis",
-                type: "sfSymbol",
-              },
-              label: t("plans.manage"),
-              menu: {
-                items: [
+          // Its actions need the Plan: whether it's active decides Archive.
+          unstable_headerRightItems: () =>
+            plan
+              ? [
                   {
                     icon: {
-                      name: "bolt",
+                      name: "ellipsis",
                       type: "sfSymbol",
                     },
-                    label: t("plans.activate.action"),
-                    onPress: () => {
-                      Alert.alert(
-                        t("plans.activate.title"),
-                        t("plans.activate.message"),
-                        [
-                          { style: "cancel", text: t("common.cancel") },
-                          {
-                            onPress: () =>
-                              activatePlan({ id: planId as string }),
-                            text: t("plans.activate.confirm"),
+                    label: t("plans.manage"),
+                    menu: {
+                      items: [
+                        {
+                          icon: {
+                            name: "bolt",
+                            type: "sfSymbol",
                           },
-                        ]
-                      );
+                          label: t("plans.activate.action"),
+                          onPress: () => {
+                            Alert.alert(
+                              t("plans.activate.title"),
+                              t("plans.activate.message"),
+                              [
+                                { style: "cancel", text: t("common.cancel") },
+                                {
+                                  onPress: activate,
+                                  text: t("plans.activate.confirm"),
+                                },
+                              ]
+                            );
+                          },
+                          type: "action",
+                        },
+                        {
+                          destructive: true,
+                          icon: {
+                            name: "trash",
+                            type: "sfSymbol",
+                          },
+                          label: t("plans.archive.action"),
+                          onPress: () => {
+                            if (plan.is_active) {
+                              Alert.alert(
+                                t("plans.archive.title"),
+                                t("plans.archive.activePlan")
+                              );
+                            } else {
+                              Alert.alert(
+                                t("plans.archive.title"),
+                                t("plans.archive.message"),
+                                [
+                                  { style: "cancel", text: t("common.cancel") },
+                                  {
+                                    onPress: () => deletePlan({ id: planId }),
+                                    style: "destructive",
+                                    text: t("plans.archive.confirm"),
+                                  },
+                                ]
+                              );
+                            }
+                          },
+                          type: "action",
+                        },
+                      ],
                     },
-                    type: "action",
+                    type: "menu",
                   },
-                  {
-                    destructive: true,
-                    icon: {
-                      name: "trash",
-                      type: "sfSymbol",
-                    },
-                    label: t("plans.archive.action"),
-                    onPress: () => {
-                      if (plan?.is_active) {
-                        Alert.alert(
-                          t("plans.archive.title"),
-                          t("plans.archive.activePlan")
-                        );
-                      } else {
-                        Alert.alert(
-                          t("plans.archive.title"),
-                          t("plans.archive.message"),
-                          [
-                            { style: "cancel", text: t("common.cancel") },
-                            {
-                              onPress: () =>
-                                deletePlan({ id: planId as string }),
-                              style: "destructive",
-                              text: t("plans.archive.confirm"),
-                            },
-                          ]
-                        );
-                      }
-                    },
-                    type: "action",
-                  },
-                ],
-              },
-              type: "menu",
-            },
-          ],
+                ]
+              : [],
         }}
       />
       <ScrollView
@@ -175,11 +255,7 @@ export default function PlanScreen() {
         }
         testID="plan-screen"
       >
-        {plan ? (
-          <VStack className="flex-1 items-stretch">
-            <WorkoutList workouts={plan.workouts} />
-          </VStack>
-        ) : null}
+        {renderContent()}
       </ScrollView>
     </>
   );

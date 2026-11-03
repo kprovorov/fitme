@@ -8,7 +8,8 @@
  * User.
  *
  * So far: `PUT` (201 created, 200 replaced, converting to a new system) and
- * `PATCH /v1/profile`, `POST /v1/plans`, activating
+ * `PATCH /v1/profile`, listing (`GET /v1/plans`), reading
+ * (`GET /v1/plans/{id}`), creating (`POST /v1/plans`), activating
  * (`POST /v1/plans/{id}/activate`) and deleting (`DELETE /v1/plans/{id}`) a
  * Plan, the seeded Weekly goal changes (`GET /v1/weekly-goals`), listing
  * (`GET /v1/workout-sessions`, the open Workout Session's
@@ -397,6 +398,77 @@ const isNewPlan = (
   isList(body.workouts, MAX_WORKOUTS_PER_PLAN) &&
   body.workouts.every(isPlanWorkout);
 
+const PLAN_CREATED_AT = "2026-10-01T09:00:00.000Z";
+
+const isOwn = (plan: SeedPlan) =>
+  (plan.user_id ?? FAKE_USER_ID) === FAKE_USER_ID;
+
+/** The User's Plan with that id, live or deleted; never another User's. */
+const ownPlan = (planId: string) =>
+  backend.plans.find((plan) => plan.id === planId && isOwn(plan));
+
+/**
+ * A Plan in full, as `GET /v1/plans/{id}` answers it: Workouts in rotation
+ * order, each with its Cover id, Exercises and sets in order, and the User's
+ * `weight_unit` (weights as stored).
+ */
+const planBody = (plan: SeedPlan) => {
+  const {
+    deleted_at: _deleted,
+    workouts,
+    ...fields
+  } = backend.nestedPlan(plan);
+  return {
+    ...fields,
+    created_at: PLAN_CREATED_AT,
+    note: null,
+    updated_at: PLAN_CREATED_AT,
+    weight_unit: weightUnit(),
+    workouts: workouts
+      .sort((a, b) => a.order - b.order)
+      .map(({ exercises, plan_id: _plan, ...workout }) => ({
+        ...workout,
+        description: "",
+        exercises: exercises.map(
+          ({ workout_id: _workout, ...exercise }) => exercise
+        ),
+      })),
+  };
+};
+
+/** A Plan as `GET /v1/plans` lists it: its Workouts summarised, no unit. */
+const planSummaryBody = (plan: SeedPlan) => {
+  const { weight_unit: _unit, workouts, ...fields } = planBody(plan);
+  return {
+    ...fields,
+    workouts: workouts.map(({ cover, exercises, id, name, order }) => ({
+      cover,
+      exercise_count: exercises.length,
+      id,
+      name,
+      order,
+    })),
+  };
+};
+
+/** The User's live Plans, newest (last seeded) first. */
+const listPlans = (): Response =>
+  json(200, {
+    data: backend.plans
+      .filter((plan) => isOwn(plan) && !plan.deleted_at)
+      .reverse()
+      .map(planSummaryBody),
+  });
+
+/** A live Plan of the User's in full; 404 for a missing, deleted or another User's. */
+const getPlan = (_body: unknown, planId: string): Response => {
+  const plan = ownPlan(planId);
+  if (!plan || plan.deleted_at) {
+    return notFound("Plan");
+  }
+  return json(200, { data: planBody(plan) });
+};
+
 /**
  * Checks every slug against the fake Library (`serveLibrary`, its
  * `failWith` for an outage), then saves the Plan into the fake backend's
@@ -446,30 +518,24 @@ const createPlan = async (body: unknown): Promise<Response> => {
     })),
   };
   backend.seedPlan(plan);
-  return json(201, {
-    data: { ...backend.nestedPlan(plan), weight_unit: "kg" },
-  });
+  return json(201, { data: planBody(plan) });
 };
 
 /** The Plan becomes active, every other one of the User inactive. */
 const activatePlan = (_body: unknown, planId: string): Response => {
-  const plan = backend.plans.find(
-    ({ deleted_at, id }) => id === planId && !deleted_at
-  );
-  if (!plan) {
+  const plan = ownPlan(planId);
+  if (!plan || plan.deleted_at) {
     return error(404, "not_found", "Plan not found");
   }
-  for (const other of backend.plans) {
+  for (const other of backend.plans.filter(isOwn)) {
     other.is_active = other === plan;
   }
-  return json(200, {
-    data: { ...backend.nestedPlan(plan), weight_unit: "kg" },
-  });
+  return json(200, { data: planBody(plan) });
 };
 
 /** A soft delete; a Plan already deleted answers 204 again. */
 const deletePlan = (_body: unknown, planId: string): Response => {
-  const plan = backend.plans.find(({ id }) => id === planId);
+  const plan = ownPlan(planId);
   if (!plan) {
     return error(404, "not_found", "Plan not found");
   }
@@ -1240,6 +1306,11 @@ const ROUTES: Array<{
     route: "PUT /v1/profile",
   },
   {
+    handler: listPlans,
+    path: /^\/v1\/plans$/,
+    route: "GET /v1/plans",
+  },
+  {
     handler: createPlan,
     path: /^\/v1\/plans$/,
     route: "POST /v1/plans",
@@ -1253,6 +1324,11 @@ const ROUTES: Array<{
     handler: deletePlan,
     path: /^\/v1\/plans\/(?<id>[^/]+)$/,
     route: "DELETE /v1/plans/{id}",
+  },
+  {
+    handler: getPlan,
+    path: /^\/v1\/plans\/(?<id>[^/]+)$/,
+    route: "GET /v1/plans/{id}",
   },
   {
     handler: listWeeklyGoals,

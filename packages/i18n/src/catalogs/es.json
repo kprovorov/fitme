@@ -167,6 +167,9 @@
     "frequency_other": "{{count, number}}× por semana",
     "frequency_many": "{{count, number}}× por semana",
     "manage": "Gestionar",
+    "goBack": "Volver",
+    "loadError": "No se ha podido cargar este plan. Comprueba tu conexión e inténtalo de nuevo.",
+    "listLoadError": "No se han podido cargar tus planes. Comprueba tu conexión e inténtalo de nuevo.",
     "activate": {
       "action": "Activar plan",
       "title": "Activar plan",

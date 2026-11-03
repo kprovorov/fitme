@@ -178,6 +178,20 @@ describe("The Plan list in Ukrainian", () => {
     expect(screen.getAllByText("Спортзал")).toHaveLength(2);
     expect(screen.getByText("Створити новий план тренувань")).toBeTruthy();
   });
+
+  it("says when the Plans can't load", async () => {
+    fakePublicApi.failNext("GET /v1/plans", "network");
+    await mount(<PlansScreen />);
+
+    expect(
+      screen.getByText(
+        "Не вдалося завантажити ваші плани. Перевірте з’єднання й спробуйте ще раз."
+      )
+    ).toBeTruthy();
+    expect(
+      screen.getByRole("button", { name: "Спробувати ще раз" })
+    ).toBeTruthy();
+  });
 });
 
 describe("A Plan's screen in Ukrainian", () => {
@@ -189,6 +203,25 @@ describe("A Plan's screen in Ukrainian", () => {
     expect(screen.getByText("3 вправи")).toBeTruthy();
     expect(screen.getByText("5 вправ")).toBeTruthy();
     expect(screen.getByRole("button", { name: "Ноги, 1 вправа" })).toBeTruthy();
+  });
+
+  it("says a deleted Plan no longer exists", async () => {
+    backend.plans[0].deleted_at = "2026-10-20T09:00:00.000Z";
+    await mount(<PlanScreen />);
+
+    expect(screen.getByText("Цього плану більше немає.")).toBeTruthy();
+    expect(screen.getByRole("button", { name: "Назад" })).toBeTruthy();
+  });
+
+  it("says when the Plan can't load", async () => {
+    fakePublicApi.failNext("GET /v1/plans/{id}", "network");
+    await mount(<PlanScreen />);
+
+    expect(
+      screen.getByText(
+        "Не вдалося завантажити план. Перевірте з’єднання й спробуйте ще раз."
+      )
+    ).toBeTruthy();
   });
 
   it("offers its actions in the menu", async () => {

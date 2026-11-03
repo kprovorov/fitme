@@ -167,6 +167,9 @@
     "frequency_other": "{{count, number}}× per setmana",
     "frequency_many": "{{count, number}}× per setmana",
     "manage": "Gestiona",
+    "goBack": "Torna enrere",
+    "loadError": "No s'ha pogut carregar aquest pla. Comprova la connexió i torna-ho a provar.",
+    "listLoadError": "No s'han pogut carregar els teus plans. Comprova la connexió i torna-ho a provar.",
     "activate": {
       "action": "Activa el pla",
       "title": "Activa el pla",
