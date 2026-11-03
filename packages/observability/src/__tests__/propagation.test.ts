@@ -31,6 +31,7 @@ describe("tracePropagationTargets", () => {
     "https://api.clerk.com/v1/users",
     "https://api.revenuecat.com/v1/subscribers/user_1",
     "https://abcdefgh.supabase.co/rest/v1/plans",
+    "https://api.segment.io/v1/batch",
     "https://api.fitmeproject.com.evil.example/",
     "https://arnold.fitmeproject.com.evil.example/",
     "https://arnoldfitmeproject.com/",
