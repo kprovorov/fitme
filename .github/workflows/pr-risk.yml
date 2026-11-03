@@ -1,21 +1,27 @@
 name: PR Risk
 
-# Gives every pull request to main exactly one PR Risk label from the Risk
-# Path list (.github/risk-paths.yml, docs/agents/pr-risk.md): `risk:high` when
-# a changed file matches a high Risk Path, otherwise `risk:medium` when one
-# matches a medium Risk Path, otherwise `risk:low`. The workflow owns those
+# Gives every pull request, to main or stacked on another branch, exactly one
+# PR Risk label from the Risk Path list (.github/risk-paths.yml,
+# docs/agents/pr-risk.md): `risk:high` when a changed file matches a high Risk
+# Path, otherwise `risk:medium` when one matches a medium Risk Path, otherwise
+# `risk:low`. The workflow owns those
 # three labels and never touches any other.
 #
-# pull_request_target runs this workflow from `main`, and gives fork pull
+# pull_request_target runs this workflow from the base branch (`main`, or a
+# stacked pull request's base branch, itself one of ours), and gives fork pull
 # requests a token that can write labels. That is safe only because the job
 # never checks out or runs pull request code: it reads the Risk Path list
-# from the base commit and the changed file list through the API. Never add a
-# checkout of the pull request head here.
+# from the default branch and the changed file list through the API. Never add
+# a checkout of the pull request head here.
+#
+# No `branches` filter: a stacked pull request (based on another pull
+# request's branch) is labeled by its own diff, and relabeled against main
+# once GitHub retargets it there.
 on:
   pull_request_target:
-    # edited: a pull request retargeted to main (other edits are skipped below)
+    # edited: a pull request retargeted to another base (other edits are
+    # skipped below)
     types: [opened, synchronize, reopened, edited]
-    branches: [main]
 
 permissions:
   contents: read
@@ -45,13 +51,15 @@ jobs:
             const pr = context.payload.pull_request;
             const { owner, repo } = context.repo;
 
-            // The Risk Path list from the base commit, never the pull request
-            // head, so a pull request can't relabel itself by editing it.
+            // The Risk Path list from the default branch, never the pull
+            // request head or a stacked pull request's base branch, so no
+            // pull request (or the one below it) can relabel itself by
+            // editing it.
             const { data: riskPathsYaml } = await github.rest.repos.getContent({
               owner,
               repo,
               path: RISK_PATHS,
-              ref: pr.base.sha,
+              ref: context.payload.repository.default_branch,
               mediaType: { format: "raw" },
             });
 
