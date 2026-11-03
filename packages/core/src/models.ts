@@ -99,7 +99,8 @@ export type Profile = Model & {
 export type Plan = Model & {
   user_id: string; // User id (JWT sub claim)
   name: string;
-  description: string;
+  /** `plans.description` is nullable, so a Plan can carry `null`. */
+  description: string | null;
   goal: Goal;
   place: Place;
   frequency: number;
