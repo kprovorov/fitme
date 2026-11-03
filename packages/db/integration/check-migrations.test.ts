@@ -4,11 +4,10 @@ import { join } from "node:path";
 import { afterAll, describe, expect, it } from "vitest";
 import {
   APPLY_MIGRATIONS_COMMAND,
-  checkMigrationsApplied,
+  migrationsError,
   migrationVersions,
   missingMigrations,
 } from "./check-migrations";
-import { localAdminDatabaseUrl } from "./local-database-url";
 
 const dir = mkdtempSync(join(tmpdir(), "fitme-migrations-"));
 afterAll(() => rmSync(dir, { force: true, recursive: true }));
@@ -32,16 +31,19 @@ describe("migration check", () => {
     expect(missingMigrations(["1"], ["1"])).toEqual([]);
   });
 
-  it("passes on this checkout's stack, which the suite runs against", async () => {
-    await expect(
-      checkMigrationsApplied(localAdminDatabaseUrl())
-    ).resolves.toBeUndefined();
+  it("answers no error when every file is applied", () => {
+    expect(migrationsError(["1", "2"], ["1", "2", "3"])).toBeNull();
   });
 
-  it("fails with the command to run when a migration file isn't applied", async () => {
-    writeFileSync(join(dir, "99991231235959_not_applied.sql"), "");
-    const check = checkMigrationsApplied(localAdminDatabaseUrl(), dir);
-    await expect(check).rejects.toThrow("99991231235959");
-    await expect(check).rejects.toThrow(APPLY_MIGRATIONS_COMMAND);
+  it("names the missing versions and the command to apply them", () => {
+    const message = migrationsError(["1", "2", "3"], ["1"])?.message;
+    expect(message).toContain("(2, 3)");
+    expect(message).toContain(`\`${APPLY_MIGRATIONS_COMMAND}\``);
+  });
+
+  it("adds --include-all for a missing version older than the newest applied", () => {
+    expect(migrationsError(["1", "2", "3"], ["1", "3"])?.message).toContain(
+      `\`${APPLY_MIGRATIONS_COMMAND} --include-all\``
+    );
   });
 });

@@ -53,6 +53,32 @@ const appliedVersions = async (adminUrl: string): Promise<string[]> => {
 };
 
 /**
+ * The error for migration files the stack hasn't applied, or `null` with none
+ * missing. A missing version older than the newest applied one (a rebase
+ * brought in an out-of-order migration) needs `--include-all`, or the CLI
+ * refuses to insert it before the last applied one.
+ */
+export const migrationsError = (
+  files: readonly string[],
+  applied: readonly string[]
+): Error | null => {
+  const missing = missingMigrations(files, applied);
+  if (missing.length === 0) {
+    return null;
+  }
+  const newestApplied = [...applied].sort().at(-1);
+  const outOfOrder =
+    newestApplied !== undefined &&
+    missing.some((version) => version < newestApplied);
+  const command = outOfOrder
+    ? `${APPLY_MIGRATIONS_COMMAND} --include-all`
+    : APPLY_MIGRATIONS_COMMAND;
+  return new Error(
+    `the local Supabase stack is missing ${missing.length} migration(s) from this checkout (${missing.join(", ")}); run \`${command}\``
+  );
+};
+
+/**
  * Throws when a migration file in this checkout isn't applied on the local
  * stack at `adminUrl` (its superuser's direct URL: the fitme login can't read
  * `supabase_migrations`), naming the missing versions and the command to run.
@@ -61,13 +87,11 @@ export const checkMigrationsApplied = async (
   adminUrl: string,
   dir = MIGRATIONS_DIR
 ): Promise<void> => {
-  const missing = missingMigrations(
+  const error = migrationsError(
     migrationVersions(dir),
     await appliedVersions(adminUrl)
   );
-  if (missing.length > 0) {
-    throw new Error(
-      `the local Supabase stack is missing ${missing.length} migration(s) from this checkout (${missing.join(", ")}); run \`${APPLY_MIGRATIONS_COMMAND}\``
-    );
+  if (error) {
+    throw error;
   }
 };
