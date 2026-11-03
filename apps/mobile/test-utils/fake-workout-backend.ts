@@ -1,10 +1,11 @@
 import { libraryExercise } from "./fake-library";
 
 /**
- * In-memory stand-in for the Supabase client, covering the Plan and Workout
- * reads and the workout session queries and mutations the session screens
- * make. The fake Public API (`fake-public-api.ts`) answers over the same rows,
- * so a write through it shows in the next Supabase read. Rows live in plain
+ * In-memory stand-in for the Supabase client, covering the Plan, Workout
+ * and Exercise history reads still made through it; it refuses the reads and
+ * writes that moved to the Public API (a Workout Session's among them). The
+ * fake Public API (`fake-public-api.ts`) answers over the same rows, so a
+ * write through it shows in the next read. Rows live in plain
  * arrays and every request resolves asynchronously, like the network would,
  * so screens refetch, race and fail the way they do against a real backend.
  */
