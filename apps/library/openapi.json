@@ -154,7 +154,9 @@
         "type": "string",
         "enum": [
           "en",
-          "uk"
+          "uk",
+          "es",
+          "ca"
         ]
       },
       "Exercise": {

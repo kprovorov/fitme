@@ -13,7 +13,9 @@ type PluralForm = "zero" | "one" | "two" | "few" | "many" | "other";
  */
 export const pluralForms: Readonly<Record<AppLanguage, readonly PluralForm[]>> =
   {
+    ca: ["one", "many", "other"],
     en: ["one", "other"],
+    es: ["one", "many", "other"],
     uk: ["one", "few", "many", "other"],
   };
 
@@ -172,15 +174,18 @@ function sameKeyProblems(keys: Map<AppLanguage, Map<string, Key>>): string[] {
  * The translation check (CI, through this package's tests): every catalog
  * has the same keys with the same `{{placeholders}}`, every plural key has
  * exactly the forms its language needs, and every value is a non-empty
- * string. Answers one line per problem, none when the catalogs are fine.
+ * string. English is required as the source; smaller sets can be checked in
+ * isolation. Catalog completeness is checked separately against appLanguages.
+ * Answers one line per problem, none when the catalogs are fine.
  */
 export function checkCatalogs(
-  catalogs: Readonly<Record<AppLanguage, Catalog>>
+  catalogs: Readonly<Partial<Record<AppLanguage, Catalog>> & { en: Catalog }>
 ): string[] {
   const problems: string[] = [];
   const keys = new Map<AppLanguage, Map<string, Key>>();
-  for (const language of Object.keys(catalogs) as AppLanguage[]) {
-    const entries = flatten(catalogs[language]);
+  for (const [name, catalog] of Object.entries(catalogs)) {
+    const language = name as AppLanguage;
+    const entries = flatten(catalog);
     problems.push(...valueProblems(language, entries));
     const languageKeys = keysOf(language, entries, problems);
     problems.push(...pluralProblems(language, languageKeys));

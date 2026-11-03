@@ -92,6 +92,11 @@ describe("arnoldRunConfig", () => {
     });
   });
 
+  it.each(["es", "ca"])("sends %s as the App language", async (language) => {
+    await i18n.changeLanguage(language);
+    expect(arnoldRunConfig()).toEqual({ custom: { language } });
+  });
+
   it("sends English when the language isn't an App language", async () => {
     await i18n.changeLanguage("de");
 

@@ -32,6 +32,18 @@ describe("App language at startup", () => {
     expect(languageAtStartup(["uk-UA"])).toBe("uk");
   });
 
+  it.each([
+    ["es-ES", "es"],
+    ["es-MX", "es"],
+    ["ca-ES", "ca"],
+  ])("is %s at startup", (tag, language) => {
+    expect(languageAtStartup([tag])).toBe(language);
+  });
+
+  it("uses Catalan before Spanish when preferred", () => {
+    expect(languageAtStartup(["fr-FR", "ca-ES", "es-ES"])).toBe("ca");
+  });
+
   it("is the first device language the app speaks", () => {
     expect(languageAtStartup(["ru-RU", "uk-UA"])).toBe("uk");
   });

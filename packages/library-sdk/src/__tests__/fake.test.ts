@@ -76,6 +76,8 @@ describe.each<[string, AppLanguage | undefined]>([
   ["no language", undefined],
   ["English", "en"],
   ["Ukrainian", "uk"],
+  ["Spanish", "es"],
+  ["Catalan", "ca"],
 ])("the fake answers like the real client, in %s", (_label, language) => {
   it.each<[string, ListExercisesParams]>([
     ["no parameters", {}],
