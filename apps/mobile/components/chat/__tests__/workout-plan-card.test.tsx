@@ -3,7 +3,7 @@
  * Public API client, with Supabase swapped for the in-memory backend and the
  * client's `fetch` for the fake Public API over the same rows (both from
  * `test-utils/`). A Plan list next to the card reads the Plans back through
- * Supabase, as the app's lists do.
+ * the fake Public API, as the app's lists do.
  */
 
 import { LibraryUnavailableError } from "@fitme/library-sdk";
@@ -11,7 +11,7 @@ import { beforeEach, describe, expect, it, jest } from "@jest/globals";
 import { QueryClientProvider } from "@tanstack/react-query";
 import { fireEvent, render, screen } from "@testing-library/react-native";
 import { Text } from "react-native";
-import { usePlanQuery, usePlansQuery } from "~/hooks/queries/plans";
+import { usePlanQuery, usePlanSummariesQuery } from "~/hooks/queries/plans";
 import { useAppLanguageSync } from "~/lib/i18n";
 import { storage } from "~/lib/mmkv";
 import { segmentClient } from "~/lib/segment";
@@ -92,9 +92,9 @@ function LanguageSync() {
   return null;
 }
 
-/** The Plans as the app's lists read them, through Supabase. */
+/** The Plans as the app's lists read them, through `GET /v1/plans`. */
 function PlanList() {
-  const { data: plans } = usePlansQuery();
+  const { data: plans } = usePlanSummariesQuery();
   return (
     <>
       {plans?.map((saved) => (
@@ -166,9 +166,12 @@ describe("WorkoutPlanCard", () => {
 
     await save(client);
 
-    expect(fakePublicApi.requests.map(({ route }) => route)).toEqual([
-      PLAN_ROUTE,
-    ]);
+    // One write; the Plan list beside the card only reads the Plans back.
+    expect(
+      fakePublicApi.requests
+        .map(({ route }) => route)
+        .filter((route) => !route.startsWith("GET "))
+    ).toEqual([PLAN_ROUTE]);
     expect(planRequests()[0]?.body).toEqual({
       activate: true,
       description: "Three days a week",

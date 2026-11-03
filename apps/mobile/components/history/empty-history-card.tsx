@@ -1,4 +1,3 @@
-import type { Plan, Workout } from "@fitme/core";
 import { formatCount } from "@fitme/i18n";
 import { useRouter } from "expo-router";
 import { type ReactNode, useCallback } from "react";
@@ -9,6 +8,7 @@ import { Button } from "~/components/ui/button";
 import { Card, CardDescription } from "~/components/ui/card";
 import { Text } from "~/components/ui/text";
 import { H3 } from "~/components/ui/typography";
+import type { FullPlan, PlanWorkout } from "~/hooks/queries/plans";
 import type { OpenWorkoutSession } from "~/hooks/queries/workout-sessions";
 import {
   nextWorkoutOf,
@@ -28,7 +28,13 @@ const ICON_SIZE = 18;
  */
 const TITLE_MAX_FONT_SCALE = 2;
 
-function StartAction({ plan, workout }: { plan: Plan; workout: Workout }) {
+function StartAction({
+  plan,
+  workout,
+}: {
+  plan: FullPlan;
+  workout: PlanWorkout;
+}) {
   const router = useRouter();
   const { t } = useTranslation();
   const i18n = useI18n();
@@ -53,7 +59,7 @@ function StartAction({ plan, workout }: { plan: Plan; workout: Workout }) {
       <Text className="text-center text-footnote text-muted-foreground">
         {t("history.empty.nextUp", {
           exercises: formatCount(i18n, "exercises", workout.exercises.length),
-          plan: plan.name,
+          plan: plan.name ?? "",
         })}
       </Text>
     </>
@@ -102,8 +108,11 @@ function CreatePlanAction() {
 }
 
 interface EmptyHistoryCardProps {
-  /** The active Plan, `null` with none (both read, never guessed). */
-  activePlan: Plan | null;
+  /**
+   * The active Plan, as `GET /v1/plans/active` answers it, `null` with none
+   * (both read, never guessed).
+   */
+  activePlan: FullPlan | null;
   /** The User's open Workout Session, `null` with none. */
   openSession: OpenWorkoutSession | null;
 }

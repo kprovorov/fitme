@@ -1,9 +1,9 @@
 /**
  * The History tab with no finished Workout Session, on the mounted-screen
- * seam: the real route and its reads (History and the open Workout Session
- * through the fake Public API, the Plans over the in-memory Supabase backend,
- * both over the same rows) and Start through the fake Public API, so the
- * card's action follows what those reads answered.
+ * seam: the real route and its reads (History, the open Workout Session and
+ * the active Plan, all through the fake Public API over the in-memory rows)
+ * and Start through it, so the card's action follows what those reads
+ * answered. No Plan is read from Supabase.
  */
 import { beforeEach, describe, expect, it, jest } from "@jest/globals";
 import { QueryClientProvider } from "@tanstack/react-query";
@@ -87,6 +87,7 @@ jest.mock("~/components/ui/button", () =>
 );
 
 const START = "POST /v1/workout-sessions";
+const ACTIVE_PLAN = "GET /v1/plans/active";
 const LIST = "GET /v1/workout-sessions";
 /** History's own reads of the list. */
 const FINISHED = { status: "finished" };
@@ -140,6 +141,9 @@ const mount = async (wrap: (node: ReactNode) => ReactNode = (n) => n) => {
 
 const button = (name: string | RegExp) => screen.getByRole("button", { name });
 
+/** Plans read from Supabase: none, every Plan read goes through the API. */
+const supabasePlanReads = () => backend.count("plans", "select");
+
 /** A Start button, whichever Workout it names. */
 const START_LABEL = /^Start /;
 
@@ -181,6 +185,8 @@ describe("The empty History", () => {
       `/plans/plan-1/workouts/workout-1/sessions/${started?.id}`
     );
     expect(Alert.alert).not.toHaveBeenCalled();
+    expect(fakePublicApi.count(ACTIVE_PLAN)).toBeGreaterThan(0);
+    expect(supabasePlanReads()).toBe(0);
   });
 
   it("starts whichever Workout is next in the rotation, with its own Exercise count", async () => {
@@ -238,6 +244,7 @@ describe("The empty History", () => {
     await fireEvent.press(button("Create a Plan"));
 
     expect(mockPush).toHaveBeenCalledWith("/planner");
+    expect(supabasePlanReads()).toBe(0);
   });
 
   it("isn't shown once a Workout Session is finished, even one with nothing logged", async () => {
@@ -336,9 +343,9 @@ const READS = [
     pause: () => fakePublicApi.pause(LIST, IN_PROGRESS),
   },
   {
-    fail: () => backend.failNext("plans", "select"),
-    name: "the Plans",
-    pause: () => backend.pause("plans", "select"),
+    fail: () => fakePublicApi.failNext(ACTIVE_PLAN, { status: 500 }),
+    name: "the active Plan",
+    pause: () => fakePublicApi.pause(ACTIVE_PLAN),
   },
 ];
 
@@ -394,11 +401,35 @@ describe("The empty History's reads", () => {
 
 describe("The empty History's reads, rate limited", () => {
   it.each([
-    ["History", FINISHED],
-    ["the open Workout Session", IN_PROGRESS],
-  ])("give the wait when %s is rate limited", async (_, query) => {
+    [
+      "History",
+      () =>
+        fakePublicApi.failNext(
+          LIST,
+          { retryAfterSeconds: 12, status: 429 },
+          FINISHED
+        ),
+    ],
+    [
+      "the open Workout Session",
+      () =>
+        fakePublicApi.failNext(
+          LIST,
+          { retryAfterSeconds: 12, status: 429 },
+          IN_PROGRESS
+        ),
+    ],
+    [
+      "the active Plan",
+      () =>
+        fakePublicApi.failNext(ACTIVE_PLAN, {
+          retryAfterSeconds: 12,
+          status: 429,
+        }),
+    ],
+  ])("give the wait when %s is rate limited", async (_, fail) => {
     backend.seedPlan(structuredClone(PLAN));
-    fakePublicApi.failNext(LIST, { retryAfterSeconds: 12, status: 429 }, query);
+    fail();
     await mount();
 
     expect(
@@ -420,6 +451,23 @@ const pullToRefresh = async () => {
 };
 
 describe("Refreshing the empty History", () => {
+  it("keeps the action it read when the active Plan's refresh fails", async () => {
+    backend.seedPlan(structuredClone(PLAN));
+    await mount();
+    fakePublicApi.failNext(ACTIVE_PLAN, { status: 500 });
+
+    await pullToRefresh();
+    await settle(queryClient);
+
+    expect(fakePublicApi.count(ACTIVE_PLAN)).toBe(2);
+    expect(button("Start Upper A")).toBeTruthy();
+    expect(
+      screen.queryByText(
+        "Couldn't load your workouts. Check your connection and try again."
+      )
+    ).toBeNull();
+  });
+
   it("reads the open Workout Session and the Plans again, so the action follows them", async () => {
     await mount();
     expect(button("Create a Plan")).toBeTruthy();

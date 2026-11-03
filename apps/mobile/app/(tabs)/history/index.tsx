@@ -16,7 +16,7 @@ import { Text } from "~/components/ui/text";
 import { H4 } from "~/components/ui/typography";
 import HistoryMonthOverview from "~/components/views/history-month-overview";
 import WorkoutSessionHistoryRow from "~/components/views/workout-session-history-row";
-import { usePlansQuery } from "~/hooks/queries/plans";
+import { useActivePlanQuery } from "~/hooks/queries/plans";
 import { useWeeklyGoalsQuery } from "~/hooks/queries/weekly-goals";
 import {
   useOpenWorkoutSessionQuery,
@@ -101,6 +101,22 @@ function MonthSection({ month }: { month: Month }) {
   );
 }
 
+/**
+ * Whether any of the reads failed with nothing read, and, when one of those
+ * was refused for its rate limit, the wait it gave; `null` when none failed.
+ */
+const failedRead = (
+  reads: Array<{ error: unknown; failed: boolean }>
+): { waitSeconds: number | null } | null => {
+  const failed = reads.filter((read) => read.failed);
+  if (failed.length === 0) {
+    return null;
+  }
+  // A Public API read refused for its rate limit gives the wait.
+  const waits = failed.map((read) => rateLimitedFor(read.error));
+  return { waitSeconds: waits.find((wait) => wait !== null) ?? null };
+};
+
 export default function HistoryScreen() {
   const { t } = useTranslation();
   const [refreshing, setRefreshing] = useState(false);
@@ -121,11 +137,14 @@ export default function HistoryScreen() {
     isError: isOpenSessionError,
     refetch: refetchOpenSession,
   } = useOpenWorkoutSessionQuery();
+  // The active Plan, whose next Workout the empty card starts (`null` with
+  // none, which the card answers with Create a Plan).
   const {
-    data: plans,
-    isError: isPlansError,
-    refetch: refetchPlans,
-  } = usePlansQuery();
+    data: activePlan,
+    error: activePlanError,
+    isError: isActivePlanError,
+    refetch: refetchActivePlan,
+  } = useActivePlanQuery();
   // A failed read only hides the Weekly goal; the list still shows.
   const calendars = useCalendars();
   const timeZone = calendars[0]?.timeZone ?? "UTC";
@@ -143,13 +162,13 @@ export default function HistoryScreen() {
       Promise.all([
         refetchWorkoutSessions(),
         refetchOpenSession(),
-        refetchPlans(),
+        refetchActivePlan(),
         refetchWeeklyGoals(),
       ]),
     [
       refetchWorkoutSessions,
       refetchOpenSession,
-      refetchPlans,
+      refetchActivePlan,
       refetchWeeklyGoals,
     ]
   );
@@ -170,15 +189,21 @@ export default function HistoryScreen() {
 
   const renderEmpty = () => {
     // With no History, the card's action rests on the open Workout Session
-    // and the Plans as well: any of them failing is the error, any of them
-    // pending the spinner, never an empty History with a guessed action.
-    const historyFailed = isError && !history;
-    const openSessionFailed = isOpenSessionError && openSession === undefined;
-    if (historyFailed || openSessionFailed || (isPlansError && !plans)) {
-      // A Public API read refused for its rate limit gives the wait.
-      const waitSeconds =
-        (historyFailed ? rateLimitedFor(error) : null) ??
-        (openSessionFailed ? rateLimitedFor(openSessionError) : null);
+    // and the active Plan as well: any of them failing is the error, any of
+    // them pending the spinner, never an empty History with a guessed action.
+    const failure = failedRead([
+      { error, failed: isError && !history },
+      {
+        error: openSessionError,
+        failed: isOpenSessionError && openSession === undefined,
+      },
+      {
+        error: activePlanError,
+        failed: isActivePlanError && activePlan === undefined,
+      },
+    ]);
+    if (failure) {
+      const { waitSeconds } = failure;
       return (
         <View className="items-center gap-sm px-md pt-lg">
           <Text className="text-center text-muted-foreground">
@@ -195,7 +220,7 @@ export default function HistoryScreen() {
         </View>
       );
     }
-    if (!history || openSession === undefined || !plans) {
+    if (!history || openSession === undefined || activePlan === undefined) {
       return (
         <View className="items-center pt-lg">
           <ActivityIndicator colorClassName="accent-foreground" />
@@ -203,10 +228,7 @@ export default function HistoryScreen() {
       );
     }
     return (
-      <EmptyHistoryCard
-        activePlan={plans.find((plan) => plan.is_active) ?? null}
-        openSession={openSession}
-      />
+      <EmptyHistoryCard activePlan={activePlan} openSession={openSession} />
     );
   };
 

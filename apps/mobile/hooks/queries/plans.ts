@@ -1,8 +1,6 @@
 import { ApiError, type components } from "@fitme/api-client";
-import type { Plan } from "@fitme/core";
 import type { QueryClient } from "@tanstack/react-query";
 import { createMutation, createQuery } from "react-query-kit";
-import { supabase } from "@/lib/supabase";
 import { WEEKLY_GOALS_QUERY_KEY } from "~/hooks/queries/weekly-goals";
 import { IS_E2E } from "~/lib/constants";
 import type { NewPlan } from "~/lib/plan-card";
@@ -57,40 +55,10 @@ export type PlanSet = components["schemas"]["PlanSet"];
 /** Every query reading Plans, the lists' and each Plan's alike. */
 export const PLANS_QUERY_KEY = ["plans"];
 
-const PLAN_SELECT = `
-  *,
-  workouts (
-    *,
-    exercises:workout_exercises (
-      *,
-      sets:workout_exercise_sets (*)
-    )
-  )
-`;
-
-/**
- * The User's live Plans in full, newest first, read through Supabase:
- * History's empty card still reads them this way. Under
- * `PLANS_QUERY_KEY`, so every write invalidating the Plans reaches it.
- */
-export const usePlansQuery = createQuery<Plan[]>({
-  fetcher: async (): Promise<Plan[]> => {
-    const { data, error } = await supabase
-      .from("plans")
-      .select(PLAN_SELECT)
-      .is("deleted_at", null)
-      .order("created_at", { ascending: false });
-    if (error) {
-      throw error;
-    }
-    return data as unknown as Plan[];
-  },
-  queryKey: PLANS_QUERY_KEY,
-});
-
 /**
  * The User's live Plans, newest first, each with its Workouts summarised,
- * through `GET /v1/plans` (not paged): the Plans list. Under
+ * through `GET /v1/plans` (not paged): the Plans list, and whether Home has
+ * any Plan to show. Under
  * `PLANS_QUERY_KEY`, so every write invalidating the Plans reaches it.
  * Rejects with an `ApiError`.
  */
