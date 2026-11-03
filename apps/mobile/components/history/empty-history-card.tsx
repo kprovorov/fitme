@@ -63,7 +63,7 @@ function StartAction({ plan, workout }: { plan: Plan; workout: Workout }) {
 function ResumeAction({ openSession }: { openSession: OpenWorkoutSession }) {
   const router = useRouter();
   const { t } = useTranslation();
-  const name = openSession.workoutName;
+  const name = openSession.workout?.name;
   const resume = useCallback(
     () => router.push(openSessionPath(openSession)),
     [router, openSession]

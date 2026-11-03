@@ -1,7 +1,7 @@
 /**
  * The History tab with no finished Workout Session, on the mounted-screen
- * seam: the real route and its reads (History through the fake Public API,
- * the open Workout Session and the Plans over the in-memory Supabase backend,
+ * seam: the real route and its reads (History and the open Workout Session
+ * through the fake Public API, the Plans over the in-memory Supabase backend,
  * both over the same rows) and Start through the fake Public API, so the
  * card's action follows what those reads answered.
  */
@@ -87,7 +87,11 @@ jest.mock("~/components/ui/button", () =>
 );
 
 const START = "POST /v1/workout-sessions";
-const HISTORY = "GET /v1/workout-sessions";
+const LIST = "GET /v1/workout-sessions";
+/** History's own reads of the list. */
+const FINISHED = { status: "finished" };
+/** The open Workout Session's read of the list. */
+const IN_PROGRESS = { limit: "1", status: "in_progress" };
 
 const PLAN: SeedPlan = {
   id: "plan-1",
@@ -322,14 +326,14 @@ describe("Starting from the empty History", () => {
 /** Each read the empty History waits on, held or failed on its own. */
 const READS = [
   {
-    fail: () => fakePublicApi.failNext(HISTORY, { status: 500 }),
+    fail: () => fakePublicApi.failNext(LIST, { status: 500 }, FINISHED),
     name: "History",
-    pause: () => fakePublicApi.pause(HISTORY),
+    pause: () => fakePublicApi.pause(LIST, FINISHED),
   },
   {
-    fail: () => backend.failNext("workout_sessions", "select"),
+    fail: () => fakePublicApi.failNext(LIST, { status: 500 }, IN_PROGRESS),
     name: "the open Workout Session",
-    pause: () => backend.pause("workout_sessions", "select"),
+    pause: () => fakePublicApi.pause(LIST, IN_PROGRESS),
   },
   {
     fail: () => backend.failNext("plans", "select"),

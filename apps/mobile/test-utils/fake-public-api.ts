@@ -11,7 +11,8 @@
  * `PATCH /v1/profile`, `POST /v1/plans`, activating
  * (`POST /v1/plans/{id}/activate`) and deleting (`DELETE /v1/plans/{id}`) a
  * Plan, the seeded Weekly goal changes (`GET /v1/weekly-goals`), listing
- * (`GET /v1/workout-sessions`), starting, finishing and
+ * (`GET /v1/workout-sessions`, the open Workout Session's
+ * `status=in_progress&limit=1` included), starting, finishing and
  * logging a set of a Workout Session, adding,
  * removing (`DELETE /v1/workout-session-exercises/{id}`) and replacing
  * (`PUT /v1/workout-session-exercises/{id}`) an Exercise of one, and the
@@ -19,7 +20,8 @@
  * API's). Routes are named as templates (`Route`), each request keeping its
  * `path`. A route it doesn't implement answers 501 and fails the
  * test after it (`test-utils/after-each.ts`). `failNext` fails a route on
- * demand.
+ * demand, `pause` holds it, and both (and `count`) can narrow to requests
+ * carrying given query parameters.
  */
 
 import type { PublicApiFetch } from "@fitme/api-client";
@@ -80,11 +82,26 @@ export type Failure =
   /** An error answer; a 429 gets `Retry-After: retryAfterSeconds` (30). */
   | { code?: string; retryAfterSeconds?: number; status: number };
 
+/**
+ * Query parameters a request must carry to match, e.g.
+ * `{ status: "in_progress" }` for the open Workout Session's read of
+ * `GET /v1/workout-sessions`; every request to the route without one.
+ */
+export type QueryMatch = Record<string, string>;
+
+const matchesQuery = (
+  query: Record<string, string>,
+  wanted: QueryMatch | undefined
+) =>
+  Object.entries(wanted ?? {}).every(([name, value]) => query[name] === value);
+
 export interface ReceivedRequest {
   authorization: string | null;
   body: unknown;
   /** The path as sent, e.g. `/v1/workout-sessions/s1/finish`. */
   path: string;
+  /** The query string's parameters, e.g. `{ status: "in_progress" }`. */
+  query: Record<string, string>;
   /** The route it matched, path parameters as `{id}`. */
   route: string;
 }
@@ -1322,8 +1339,16 @@ class FakePublicApi {
   requests: ReceivedRequest[] = [];
   /** Routes the fake doesn't implement; a test bug, checked after each test. */
   unhandled: string[] = [];
-  private failures: Array<{ failure: Failure; route: string }> = [];
-  private pauses: Array<{ resumed: Promise<void>; route: string }> = [];
+  private failures: Array<{
+    failure: Failure;
+    query?: QueryMatch;
+    route: string;
+  }> = [];
+  private pauses: Array<{
+    query?: QueryMatch;
+    resumed: Promise<void>;
+    route: string;
+  }> = [];
 
   reset() {
     appliedPlanUpdates.clear();
@@ -1335,15 +1360,15 @@ class FakePublicApi {
   }
 
   /**
-   * Holds requests to `route` unanswered until the returned function is
-   * called, like a slow connection.
+   * Holds requests to `route` (carrying `query`, when given) unanswered until
+   * the returned function is called, like a slow connection.
    */
-  pause(route: Route) {
+  pause(route: Route, query?: QueryMatch) {
     let resume!: () => void;
     const resumed = new Promise<void>((resolve) => {
       resume = resolve;
     });
-    const pause = { resumed, route };
+    const pause = { query, resumed, route };
     this.pauses.push(pause);
     return () => {
       this.pauses = this.pauses.filter((other) => other !== pause);
@@ -1351,13 +1376,16 @@ class FakePublicApi {
     };
   }
 
-  /** Makes the next request to `route` fail. */
-  failNext(route: Route, failure: Failure) {
-    this.failures.push({ failure, route });
+  /** Makes the next request to `route` (carrying `query`, when given) fail. */
+  failNext(route: Route, failure: Failure, query?: QueryMatch) {
+    this.failures.push({ failure, query, route });
   }
 
-  count(route: Route) {
-    return this.requests.filter((request) => request.route === route).length;
+  /** Requests to `route` so far (carrying `query`, when given). */
+  count(route: Route, query?: QueryMatch) {
+    return this.requests.filter(
+      (request) => request.route === route && matchesQuery(request.query, query)
+    ).length;
   }
 
   fetch: PublicApiFetch = async (url, init) => {
@@ -1369,13 +1397,16 @@ class FakePublicApi {
       typeof init.body === "string" && init.body !== ""
         ? (JSON.parse(init.body) as unknown)
         : undefined;
-    this.requests.push({ authorization, body, path: pathname, route });
+    const query = Object.fromEntries(searchParams);
+    this.requests.push({ authorization, body, path: pathname, query, route });
+    const matches = (held: { query?: QueryMatch; route: string }) =>
+      held.route === route && matchesQuery(query, held.query);
 
     // Answers on a later macrotask, like a network response.
     await new Promise((resolve) => setTimeout(resolve, 0));
-    await this.pauses.find((pause) => pause.route === route)?.resumed;
+    await this.pauses.find(matches)?.resumed;
 
-    const queued = this.failures.find((failure) => failure.route === route);
+    const queued = this.failures.find(matches);
     if (queued) {
       this.failures = this.failures.filter((other) => other !== queued);
       const { failure } = queued;

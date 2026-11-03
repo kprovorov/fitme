@@ -252,7 +252,9 @@ describe("The Workout tab's carousel", () => {
     await settle(queryClient);
 
     expect(fakePublicApi.count(START)).toBe(1);
-    expect(fakePublicApi.requests.at(-1)?.body).toEqual({
+    expect(
+      fakePublicApi.requests.findLast(({ route }) => route === START)?.body
+    ).toEqual({
       workout_id: "workout-legs",
     });
     expect(mockPush).toHaveBeenCalledWith(

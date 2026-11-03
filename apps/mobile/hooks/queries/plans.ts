@@ -12,7 +12,6 @@ const PLAN_SELECT = `
   *,
   workouts (
     *,
-    sessions:workout_sessions (*),
     exercises:workout_exercises (
       *,
       sets:workout_exercise_sets (*)

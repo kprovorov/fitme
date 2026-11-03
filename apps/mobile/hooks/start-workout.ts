@@ -21,13 +21,9 @@ export const workoutSessionPath = (
  * The screen of the User's open Workout Session: under its Workout, or on its
  * own once the Workout is gone.
  */
-export const openSessionPath = ({
-  id,
-  planId,
-  workoutId,
-}: OpenWorkoutSession) =>
-  planId && workoutId
-    ? workoutSessionPath(planId, workoutId, id)
+export const openSessionPath = ({ id, plan, workout }: OpenWorkoutSession) =>
+  plan && workout
+    ? workoutSessionPath(plan.id, workout.id, id)
     : (`/workout-sessions/${id}` as const);
 
 /**
@@ -37,12 +33,6 @@ export const openSessionPath = ({
 export const nextWorkoutOf = (plan: Plan): Workout | undefined =>
   // A copy: plan.workouts is the query cache's array, never sorted in place.
   [...plan.workouts].sort((a, b) => a.order - b.order)[0];
-
-/** The Workout's own open Workout Session, if it has one. */
-export const findOpenSession = (workout: Workout) =>
-  workout.sessions.find(
-    (session) => session.started_at && !session.finished_at
-  );
 
 const alertStartFailed = (waitSeconds: number | null) => {
   Alert.alert(
@@ -58,17 +48,18 @@ const alertFinishFirst = (
   open: OpenWorkoutSession,
   onContinue: (open: OpenWorkoutSession) => void
 ) => {
+  const name = open.workout?.name;
   Alert.alert(
     i18n.t("startWorkout.failed.title"),
-    open.workoutName
-      ? i18n.t("startWorkout.finishFirstNamed", { name: open.workoutName })
+    name
+      ? i18n.t("startWorkout.finishFirstNamed", { name })
       : i18n.t("startWorkout.finishFirst"),
     [
       { style: "cancel", text: i18n.t("common.cancel") },
       {
         onPress: () => onContinue(open),
-        text: open.workoutName
-          ? i18n.t("startWorkout.continueNamed", { name: open.workoutName })
+        text: name
+          ? i18n.t("startWorkout.continueNamed", { name })
           : i18n.t("startWorkout.continue"),
       },
     ]
@@ -80,9 +71,9 @@ const isSessionInProgress = (error: unknown) =>
 
 /**
  * Starts a Workout (or resumes its open Workout Session) through the Public
- * API, the way the Workout tab's cards and the Workout screen both do: the Workout,
- * Plan and open Workout Session reads are invalidated, then `onStarted`
- * opens the session. A failure is the "Couldn't start workout" alert (the
+ * API, the way the Workout tab's cards and the Workout screen both do: the
+ * open Workout Session read is invalidated, then `onStarted` opens the
+ * session. A failure is the "Couldn't start workout" alert (the
  * wait on a 429), except a 409 `session_in_progress` (another Workout's
  * session opened meanwhile), which re-reads the open Workout Session so
  * `blockedBy` shows it instead (still the alert if the re-read shows none).
@@ -116,7 +107,7 @@ export function useStartWorkout(
         );
         // The blocked state shows it; otherwise (finished meanwhile, or the
         // re-read failed) the press still gets an answer.
-        if (open && open.workoutId !== workoutId) {
+        if (open && open.workout?.id !== workoutId) {
           if (onContinueBlocking) {
             alertFinishFirst(open, onContinueBlocking);
           }
@@ -126,8 +117,6 @@ export function useStartWorkout(
       alertStartFailed(rateLimitedFor(error));
     },
     onSuccess: (workoutSession) => {
-      queryClient.invalidateQueries({ queryKey: ["workout"] });
-      queryClient.invalidateQueries({ queryKey: ["plans"] });
       queryClient.invalidateQueries({
         queryKey: OPEN_WORKOUT_SESSION_QUERY_KEY,
       });
@@ -136,7 +125,7 @@ export function useStartWorkout(
   });
 
   const blockedBy =
-    openSession && openSession.workoutId !== workoutId ? openSession : null;
+    openSession && openSession.workout?.id !== workoutId ? openSession : null;
   return {
     blockedBy,
     isStarting: isPending,

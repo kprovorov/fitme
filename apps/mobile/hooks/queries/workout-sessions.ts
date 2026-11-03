@@ -71,14 +71,12 @@ export const useWorkoutSessionQuery = createQuery<
   queryKey: ["workout-session"],
 });
 
-/** The User's one open Workout Session (ADR 0013), as Start needs it. */
-export interface OpenWorkoutSession {
-  id: string;
-  planId: string | null;
-  workoutId: string | null;
-  /** `null` once its Workout is gone. */
-  workoutName: string | null;
-}
+/**
+ * The User's one open Workout Session (ADR 0013), as `GET
+ * /v1/workout-sessions` summarises it: its `started_at`, and its `plan` and
+ * `workout` (`null` once that Workout is gone).
+ */
+export type OpenWorkoutSession = components["schemas"]["WorkoutSessionSummary"];
 
 export const OPEN_WORKOUT_SESSION_QUERY_KEY = ["open-workout-session"];
 
@@ -96,39 +94,45 @@ export const openWorkoutSessionRefetchInterval = (
 ): number | false => (openSession ? OPEN_WORKOUT_SESSION_POLL_MS : false);
 
 /**
- * The User's open Workout Session, or `null` with none: a User has at most
- * one, so it blocks starting any other Workout.
+ * The User's open Workout Session, or `null` with none, read through `GET
+ * /v1/workout-sessions?status=in_progress&limit=1`: a User has at most one
+ * (ADR 0013), so the first is the only one. It is the app's one answer to
+ * "is this Workout's session open?" (the Workout tab's carousel, the Plan
+ * screen's cards, the Workout screen's Start and History's empty card), and
+ * it blocks starting any other Workout. Rejects with an `ApiError`.
  */
+export const fetchOpenWorkoutSession =
+  async (): Promise<OpenWorkoutSession | null> => {
+    const { data } = await publicApi().GET("/v1/workout-sessions", {
+      params: { query: { limit: 1, status: "in_progress" } },
+    });
+    if (!data) {
+      throw new ApiError("Public API answered without Workout Sessions");
+    }
+    return data.data[0] ?? null;
+  };
+
 export const useOpenWorkoutSessionQuery =
   createQuery<OpenWorkoutSession | null>({
-    fetcher: async (): Promise<OpenWorkoutSession | null> => {
-      const { data, error } = await supabase
-        .from("workout_sessions")
-        .select("id, plan_id, workout_id, workout:workouts (name)")
-        .is("finished_at", null)
-        .order("started_at", { ascending: false })
-        .limit(1)
-        .maybeSingle();
-      if (error) {
-        throw error;
-      }
-      if (!data) {
-        return null;
-      }
-      // A to-one embed: PostgREST answers an object (or `null` once the
-      // Workout is gone), whatever the generated types say.
-      const workout = data.workout as unknown as { name: string } | null;
-      return {
-        id: data.id,
-        planId: data.plan_id,
-        workoutId: data.workout_id,
-        workoutName: workout?.name ?? null,
-      };
-    },
+    fetcher: fetchOpenWorkoutSession,
     queryKey: OPEN_WORKOUT_SESSION_QUERY_KEY,
     refetchInterval: (query) =>
       openWorkoutSessionRefetchInterval(query.state.data),
   });
+
+/**
+ * The Workout's own open Workout Session, or `null` while it has none (or
+ * the open Workout Session hasn't been read): from
+ * `useOpenWorkoutSessionQuery`, so every screen asking agrees.
+ */
+export const useOwnOpenWorkoutSession = (
+  workoutId: string
+): OpenWorkoutSession | null => {
+  const { data: openSession } = useOpenWorkoutSessionQuery();
+  return openSession && openSession.workout?.id === workoutId
+    ? openSession
+    : null;
+};
 
 export interface FinishWorkoutSessionVariables {
   sessionId: string;

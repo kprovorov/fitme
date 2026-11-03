@@ -10,7 +10,7 @@ export interface WorkoutQueryVariables {
 const NO_ROW = "PGRST116";
 
 /**
- * A Workout with its Plan, Exercises, sets and sessions, or `null` once it's
+ * A Workout with its Plan, Exercises and sets, or `null` once it's
  * gone: replaced by a Plan edit (no row), or its Plan soft-deleted (RLS still
  * returns those). Nested rows come unordered.
  */
@@ -28,8 +28,7 @@ export const useWorkoutQuery = createQuery<
         exercises:workout_exercises (
           *,
           sets:workout_exercise_sets (*)
-        ),
-        sessions:workout_sessions (*)
+        )
       `
       )
       .eq("id", id)

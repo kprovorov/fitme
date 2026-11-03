@@ -119,7 +119,6 @@ export type Workout = Model & {
   /** Its Library Cover's id (ADR 0014), `null` until one is assigned. */
   cover: string | null;
   exercises: WorkoutExercise[];
-  sessions: WorkoutSession[];
 };
 
 export type WorkoutExercise = Model & {

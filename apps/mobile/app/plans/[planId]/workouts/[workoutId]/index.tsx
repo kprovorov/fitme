@@ -18,10 +18,12 @@ import PlannedWorkoutExerciseCard from "~/components/views/planned-workout-exerc
 import { BlockedStart } from "~/components/workout-sessions/blocked-start";
 import { StatRow } from "~/components/workout-sessions/workout-session-stats";
 import { useExercises } from "~/hooks/queries/library";
-import { useOpenWorkoutSessionQuery } from "~/hooks/queries/workout-sessions";
+import {
+  useOpenWorkoutSessionQuery,
+  useOwnOpenWorkoutSession,
+} from "~/hooks/queries/workout-sessions";
 import { useWorkoutQuery } from "~/hooks/queries/workouts";
 import {
-  findOpenSession,
   openSessionPath,
   useStartWorkout,
   workoutSessionPath,
@@ -61,7 +63,7 @@ function WorkoutAction({
     workout.id,
     openSession
   );
-  const ownOpenSession = findOpenSession(workout);
+  const ownOpenSession = useOwnOpenWorkoutSession(workout.id);
   const continueWorkout = useCallback(() => {
     if (ownOpenSession) {
       openSession(ownOpenSession.id);
