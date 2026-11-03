@@ -2,11 +2,14 @@ name: Shell Scripts
 
 # The worktree scripts (scripts/*.sh: T3's setup and settle among them) and the
 # Node helpers they call. Only on pull requests touching them, since the parse
-# check needs a macOS runner.
+# check needs a macOS runner. The project skills too: scripts/skills-links.test.mjs
+# checks every .agents/skills/<name> has its .claude/skills/<name> symlink.
 on:
   pull_request:
     paths:
       - scripts/**
+      - .agents/skills/**
+      - .claude/skills/**
       - .github/workflows/shell-scripts.yml
 
 permissions:
