@@ -26,7 +26,11 @@ import { usePlanQuery, usePlanSummariesQuery } from "~/hooks/queries/plans";
 import { segmentClient } from "~/lib/segment";
 import { fakePublicApi } from "~/test-utils/fake-public-api";
 import { backend } from "~/test-utils/fake-workout-backend";
-import { createTestQueryClient, settle } from "~/test-utils/query-client";
+import {
+  createTestQueryClient,
+  settle,
+  until,
+} from "~/test-utils/query-client";
 
 const mockBack = jest.fn();
 const mockDismissTo = jest.fn();
@@ -416,6 +420,44 @@ describe("Activating a Plan", () => {
       queryClient.getQueryData(usePlanQuery.getKey({ id: "plan-1" }))
     ).toMatchObject({ id: "plan-1", is_active: true, weight_unit: "kg" });
     // The screen holds the answer: the active Plan can't be archived.
+    await fireEvent.press(screen.getByText("Archive"));
+    expect(alerts().at(-1)?.slice(0, 2)).toEqual([
+      "Archive Plan",
+      "You cannot archive an active plan. You should have at least one active plan at all times.",
+    ]);
+  });
+
+  it("keeps the activated Plan when an older read of it lands afterwards", async () => {
+    await mount(null);
+    // A pull to refresh whose answer, given before the activation committed,
+    // is still on its way.
+    const resume = fakePublicApi.pause(GET_PLAN);
+    const { refreshControl } = screen.getByTestId("plan-screen").props;
+    let refreshed: Promise<unknown> = Promise.resolve();
+    await act(() => {
+      refreshed = refreshControl.props.onRefresh();
+    });
+    await until(() => fakePublicApi.count(GET_PLAN) === 2);
+
+    await fireEvent.press(screen.getByText("Activate Plan"));
+    alerts()
+      .at(-1)?.[2]
+      ?.find(({ text }) => text === "Activate")
+      ?.onPress?.();
+    await until(
+      () =>
+        fakePublicApi.count(ACTIVATE) === 1 && queryClient.isMutating() === 0
+    );
+    // The held read answers as the Plan was before activation.
+    backend.plans[0].is_active = false;
+    resume();
+    await act(() => refreshed);
+    await settle(queryClient);
+    backend.plans[0].is_active = true;
+
+    expect(
+      queryClient.getQueryData(usePlanQuery.getKey({ id: "plan-1" }))
+    ).toMatchObject({ id: "plan-1", is_active: true });
     await fireEvent.press(screen.getByText("Archive"));
     expect(alerts().at(-1)?.slice(0, 2)).toEqual([
       "Archive Plan",

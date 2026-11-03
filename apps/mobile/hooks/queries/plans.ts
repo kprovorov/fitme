@@ -103,12 +103,15 @@ export const usePlanQuery = createQuery<FullPlan | null, PlanQueryVariables>({
 
 /**
  * After a write answering the Plan in full: that Plan's query shows the
- * answer as is (no re-read), every other Plan read (the lists, the active
+ * answer as is (no re-read, and a read in flight is cancelled), every other Plan read (the lists, the active
  * Plan, the other Plans, whose `is_active` may have changed) and the Weekly
  * goal (the active Plan's frequency) are read again.
  */
 const seedPlan = async (client: QueryClient, plan: FullPlan) => {
   const planKey = usePlanQuery.getKey({ id: plan.id });
+  // A read of it still in flight (a pull to refresh) was answered before the
+  // write and would land on top of the answer: it's dropped.
+  await client.cancelQueries({ exact: true, queryKey: planKey });
   client.setQueryData(planKey, plan);
   await Promise.all([
     client.invalidateQueries({ queryKey: PLANS_QUERY_KEY }),
