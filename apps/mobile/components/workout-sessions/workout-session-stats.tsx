@@ -13,6 +13,7 @@ import { Text } from "~/components/ui/text";
 import { useProfileQuery } from "~/hooks/queries/profiles";
 import { useNow } from "~/hooks/use-now";
 import { useI18n } from "~/lib/i18n";
+import { measurementSystemOf } from "~/lib/profile";
 import { cn } from "~/lib/utils";
 
 interface WorkoutSessionStatsProps {
@@ -115,11 +116,7 @@ export default function WorkoutSessionStats({
           },
           {
             label: t("workoutSession.stats.volume"),
-            value: formatWeight(
-              i18n,
-              volume,
-              profile?.measurement_system ?? "metric"
-            ),
+            value: formatWeight(i18n, volume, measurementSystemOf(profile)),
           },
           {
             label: t("workoutSession.stats.sets"),

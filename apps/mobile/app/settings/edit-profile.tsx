@@ -18,6 +18,7 @@ import { VStack } from "~/components/ui/vstack";
 import { useUpdateProfileMutation } from "~/hooks/mutations/profiles";
 import { useProfileQuery } from "~/hooks/queries/profiles";
 import { i18n } from "~/lib/i18n";
+import { genderOf, measurementSystemOf } from "~/lib/profile";
 
 export default function EditProfileScreen() {
   const queryClient = useQueryClient();
@@ -26,13 +27,17 @@ export default function EditProfileScreen() {
   const { isLoaded: isUserLoaded, user } = useUser();
   const {
     data: profile,
+    error: profileError,
     isPending: isProfilePending,
     isError: isProfileError,
     refetch: refetchProfile,
   } = useProfileQuery();
 
   const isPendingLoad = !isUserLoaded || isProfilePending;
-  const isLoadError = isProfileError;
+  // A failed refresh keeps the Profile already read; only a failed first read
+  // is an error, a 429 giving the wait.
+  const isLoadError = isProfileError && profile === undefined;
+  const loadWaitSeconds = rateLimitedFor(profileError);
   const name = user?.fullName ?? "";
 
   // Stored values are in the profile's system; the device locale only matters
@@ -40,26 +45,25 @@ export default function EditProfileScreen() {
   const locales = useLocales();
   const deviceMeasurementSystem = (locales[0]?.measurementSystem ??
     "metric") as MeasurementSystem;
-  const measurementSystem: MeasurementSystem =
-    profile?.measurement_system ?? deviceMeasurementSystem;
+  const measurementSystem: MeasurementSystem = profile
+    ? measurementSystemOf(profile)
+    : deviceMeasurementSystem;
 
   const {
     mutate: updateProfile,
     isPending,
     error,
   } = useUpdateProfileMutation({
+    // A success shows the answer as the Profile (the mutation seeds it). A
+    // failure doesn't prove nothing was saved: the Profile may be saved even
+    // if the name is not, or the answer was lost after the save, so it's
+    // read again. Clerk's user hook picks up the new name by itself.
     onError: (e) => {
       // Too many requests is the User's to wait out, not a bug.
       if (rateLimitedFor(e) === null) {
         Sentry.captureException(e);
       }
-    },
-    // Also after a failure: the Profile may be saved even if the name is not,
-    // or the answer was lost after the save. Clerk's user hook picks up the new name by itself.
-    onSettled: () =>
-      queryClient.invalidateQueries({ queryKey: useProfileQuery.getKey() }),
-    onSuccess: () => {
-      router.back();
+      queryClient.invalidateQueries({ queryKey: useProfileQuery.getKey() });
     },
   });
 
@@ -73,15 +77,20 @@ export default function EditProfileScreen() {
       if (!user) {
         return;
       }
-      updateProfile({
-        age,
-        gender,
-        height,
-        measurementSystem,
-        name: formName ?? name,
-        profile: profile ?? null,
-        weight,
-      });
+      // On the call, not the hook: a hook-level `onSuccess` would replace the
+      // mutation's own, which shows the saved Profile.
+      updateProfile(
+        {
+          age,
+          gender,
+          height,
+          measurementSystem,
+          name: formName ?? name,
+          profile: profile ?? null,
+          weight,
+        },
+        { onSuccess: () => router.back() }
+      );
     },
     [measurementSystem, name, profile, updateProfile, user]
   );
@@ -108,7 +117,9 @@ export default function EditProfileScreen() {
       {isLoadError ? (
         <VStack className="flex-1 items-stretch justify-center gap-4 p-6">
           <ErrorMessage className="text-center">
-            {t("editProfile.loadError")}
+            {loadWaitSeconds === null
+              ? t("editProfile.loadError")
+              : t("common.rateLimited", { seconds: loadWaitSeconds })}
           </ErrorMessage>
           <Button
             label={t("common.tryAgain")}
@@ -121,7 +132,7 @@ export default function EditProfileScreen() {
         <ProfileForm
           defaultValues={{
             age: profile?.age ?? undefined,
-            gender: profile?.gender,
+            gender: genderOf(profile),
             height: profile?.height ?? undefined,
             name,
             weight: profile?.weight ?? undefined,

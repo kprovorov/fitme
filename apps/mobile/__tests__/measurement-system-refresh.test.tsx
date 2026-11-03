@@ -73,7 +73,7 @@ jest.mock("~/lib/supabase", () => ({
   >("~/test-utils/fake-workout-backend").fakeSupabase,
 }));
 
-// The real Clerk SDK (reached through the Profile read) opens a MessagePort
+// The real Clerk SDK (reached through the Supabase reads) opens a MessagePort
 // at import that keeps Jest alive.
 jest.mock("~/lib/clerk", () => ({
   getCurrentUserId: () =>
@@ -344,13 +344,14 @@ describe("Switching the measurement system", () => {
     }
   );
 
-  it("leaves them alone when the saved system can't be read back", async () => {
+  it("leaves them alone when the answer is lost and the saved system can't be read back", async () => {
     await mount();
+    fakePublicApi.failNext(PROFILE_PATCH, "lost");
     // Offline: the read after the switch fails, and so does the one the
     // dropped Profile starts. Without it there is no unit to show a
     // converted number in, so nothing is read again.
-    backend.failNext("profiles", "select");
-    backend.failNext("profiles", "select");
+    fakePublicApi.failNext("GET /v1/profile", "network");
+    fakePublicApi.failNext("GET /v1/profile", "network");
 
     await switchTo("us");
 

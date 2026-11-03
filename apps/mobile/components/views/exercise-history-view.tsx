@@ -16,6 +16,7 @@ import { View } from "react-native";
 import { useExerciseHistoryQuery } from "~/hooks/queries/exercises";
 import { useProfileQuery } from "~/hooks/queries/profiles";
 import { useI18n } from "~/lib/i18n";
+import { measurementSystemOf } from "~/lib/profile";
 import { formatSetTarget, formatSetWeight } from "~/lib/set-inputs";
 import { cn } from "~/lib/utils";
 import {
@@ -191,7 +192,7 @@ export default function ExerciseHistoryView({
   const { data: profile } = useProfileQuery();
   const weightLabel = unitName(
     i18n,
-    weightUnitOf(profile?.measurement_system ?? "metric")
+    weightUnitOf(measurementSystemOf(profile))
   );
   const [shown, setShown] = useState(SESSIONS_PAGE);
   const showMore = useCallback(

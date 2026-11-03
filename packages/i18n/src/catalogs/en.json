@@ -439,7 +439,8 @@
     "profile": {
       "title": "Let's get to know you",
       "description": "We'll use this information to personalize your experience.",
-      "next": "Next"
+      "next": "Next",
+      "loadError": "Couldn't load your profile. Please check your connection and try again."
     }
   },
   "profileForm": {

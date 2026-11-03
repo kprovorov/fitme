@@ -3,12 +3,12 @@
  * in every test file (`test-utils/setup.ts`). It answers like the `/v1` routes
  * over the fake Supabase backend's rows (`backend`), so a write through it
  * shows in the next Supabase read, and as the User `FAKE_USER_ID` when the
- * bearer is `FAKE_SESSION_TOKEN` (anything else is a 401). Point the app's
- * `getCurrentUserId` at `FAKE_USER_ID` so its Supabase reads see the same
- * User.
+ * bearer is `FAKE_SESSION_TOKEN` (anything else is a 401); seed that User's
+ * rows (`backend.seedProfile(FAKE_USER_ID)`, a Plan's `user_id`) for it.
  *
- * So far: `PUT` (201 created, 200 replaced, converting to a new system) and
- * `PATCH /v1/profile`, listing (`GET /v1/plans`), reading
+ * So far: reading (`GET`, `{ data: null }` without one), `PUT` (201 created,
+ * 200 replaced, converting to a new system) and `PATCH /v1/profile`, listing
+ * (`GET /v1/plans`), reading
  * (`GET /v1/plans/{id}`), creating (`POST /v1/plans`), activating
  * (`POST /v1/plans/{id}/activate`) and deleting (`DELETE /v1/plans/{id}`) a
  * Plan, the seeded Weekly goal changes (`GET /v1/weekly-goals`), listing
@@ -248,6 +248,12 @@ const applyProfileChanges = (
     convert(profile, changes.measurement_system as MeasurementSystem);
   }
   Object.assign(profile, changes);
+};
+
+/** `GET /v1/profile`: the Profile, or `{ data: null }` before onboarding. */
+const getProfile = (): Response => {
+  const profile = backend.profile(FAKE_USER_ID);
+  return json(200, { data: profile ? profileBody(profile) : null });
 };
 
 const patchProfile = (body: unknown): Response => {
@@ -1294,6 +1300,11 @@ const ROUTES: Array<{
     isPublic: true,
     path: /^\/v1\/arnold\/models$/,
     route: "GET /v1/arnold/models",
+  },
+  {
+    handler: getProfile,
+    path: /^\/v1\/profile$/,
+    route: "GET /v1/profile",
   },
   {
     handler: patchProfile,

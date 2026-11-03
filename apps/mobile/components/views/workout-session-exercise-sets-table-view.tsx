@@ -5,6 +5,7 @@ import { useTranslation } from "react-i18next";
 import { View } from "react-native";
 import { useProfileQuery } from "~/hooks/queries/profiles";
 import type { SavedWorkoutSessionExerciseSet } from "~/hooks/queries/workout-session-exercise-sets";
+import { measurementSystemOf } from "~/lib/profile";
 import { cn } from "~/lib/utils";
 import {
   SET_CHECK_COLUMN_CLASS,
@@ -67,7 +68,7 @@ export default function WorkoutSessionExerciseSetsTableView({
   const { i18n, t } = useTranslation();
   const weightLabel = unitName(
     i18n,
-    weightUnitOf(profile?.measurement_system ?? "metric")
+    weightUnitOf(measurementSystemOf(profile))
   );
   const [localSets, setLocalSets] = useState<LocalSet[]>([]);
 

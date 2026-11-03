@@ -22,7 +22,11 @@ import {
   fakePublicApi,
 } from "~/test-utils/fake-public-api";
 import { backend } from "~/test-utils/fake-workout-backend";
-import { createTestQueryClient, settle } from "~/test-utils/query-client";
+import {
+  createTestQueryClient,
+  settle,
+  until,
+} from "~/test-utils/query-client";
 
 jest.mock("expo-router", () => ({
   router: { dismissTo: jest.fn() },
@@ -121,8 +125,15 @@ jest.mock("~/components/ui/picker", () => {
 // The stand-in `jest.mock("~/lib/segment")` installs.
 const track = segmentClient.track as unknown as jest.Mock;
 
+const PROFILE_GET = "GET /v1/profile";
 const PROFILE_PATCH = "PATCH /v1/profile";
 const PROFILE_PUT = "PUT /v1/profile";
+const LOAD_ERROR =
+  "Couldn't load your profile. Please check your connection and try again.";
+
+/** Every request but the Profile's reads. */
+const writes = () =>
+  fakePublicApi.requests.filter(({ route }) => route !== PROFILE_GET);
 const SAVE_ERROR =
   "Couldn't save your profile. Please check your connection and try again.";
 
@@ -167,12 +178,100 @@ describe("Onboarding ProfileScreen", () => {
     backend.reset();
   });
 
+  it("starts from an empty form without a Profile", async () => {
+    await mount();
+
+    // `GET /v1/profile` answered `{ data: null }`.
+    expect(fakePublicApi.count(PROFILE_GET)).toBe(1);
+    expect(backend.count("profiles", "select")).toBe(0);
+    expect(screen.getAllByText("Not Set")).toHaveLength(3);
+    expect(screen.getByLabelText("Male")).not.toBeChecked();
+    expect(screen.getByLabelText("Female")).not.toBeChecked();
+    expect(screen.queryByText(LOAD_ERROR)).toBeNull();
+  });
+
+  it("starts from the saved Profile when onboarding runs again", async () => {
+    backend.seedProfile(FAKE_USER_ID, {
+      age: 40,
+      gender: "female",
+      height: 165,
+      weight: 58.5,
+    });
+    await mount();
+
+    for (const text of ["40 y.o.", "58.5 kg", "165 cm"]) {
+      expect(screen.getByText(text)).toBeTruthy();
+    }
+    expect(screen.getByLabelText("Female")).toBeChecked();
+  });
+
+  it("shows its error state instead of the form when the Profile can't be read", async () => {
+    backend.seedProfile(FAKE_USER_ID, { age: 40 });
+    fakePublicApi.failNext(PROFILE_GET, { status: 503 });
+    await mount();
+
+    // Without knowing whether a Profile is saved, no form to replace it.
+    expect(screen.getByText(LOAD_ERROR)).toBeTruthy();
+    expect(screen.queryByText("Next")).toBeNull();
+    expect(backend.count("profiles", "select")).toBe(0);
+
+    await fireEvent.press(screen.getByText("Try Again"));
+    await settle(queryClient);
+
+    expect(screen.queryByText(LOAD_ERROR)).toBeNull();
+    expect(screen.getByText("40 y.o.")).toBeTruthy();
+    expect(screen.getByText("Next")).toBeTruthy();
+  });
+
+  it("says how long to wait when reading the Profile was rate limited", async () => {
+    fakePublicApi.failNext(PROFILE_GET, { retryAfterSeconds: 42, status: 429 });
+    await mount();
+
+    expect(
+      screen.getByText("Too many requests: please try again in 42 s.")
+    ).toBeTruthy();
+    expect(screen.getByText("Try Again")).toBeTruthy();
+    expect(screen.queryByText("Next")).toBeNull();
+  });
+
+  it("keeps the cached Profile when reading it again fails", async () => {
+    backend.seedProfile(FAKE_USER_ID, { age: 40 });
+    await mount();
+    fakePublicApi.failNext(PROFILE_GET, "network");
+
+    await queryClient.refetchQueries({ queryKey: ["profile"] });
+    await settle(queryClient);
+
+    expect(fakePublicApi.count(PROFILE_GET)).toBe(2);
+    expect(screen.queryByText(LOAD_ERROR)).toBeNull();
+    expect(screen.getByText("40 y.o.")).toBeTruthy();
+    expect(screen.getByText("Next")).toBeTruthy();
+  });
+
+  it("moves on only once the Profile is saved", async () => {
+    await mount();
+    const resume = fakePublicApi.pause(PROFILE_PUT);
+
+    await fireEvent.press(screen.getByLabelText("Male"));
+    await pick("Age", 28);
+    await pick("Weight", 80);
+    await pick("Height", 182);
+    await fireEvent.press(screen.getByText("Next"));
+    await until(() => fakePublicApi.count(PROFILE_PUT) === 1);
+
+    expect(router.dismissTo).not.toHaveBeenCalled();
+
+    resume();
+    await settle(queryClient);
+    expect(router.dismissTo).toHaveBeenCalledWith("/planner");
+  });
+
   it("creates the Profile through the Public API, then moves on to the planner", async () => {
     await mount();
 
     await fillAndSubmit();
 
-    expect(fakePublicApi.requests).toEqual([
+    expect(writes()).toEqual([
       {
         authorization: `Bearer ${FAKE_SESSION_TOKEN}`,
         body: {
@@ -195,8 +294,17 @@ describe("Onboarding ProfileScreen", () => {
       user_id: FAKE_USER_ID,
       weight: 80,
     });
-    // The Profile is read again, so Edit Profile starts from the saved one.
-    expect(backend.count("profiles", "select")).toBe(2);
+    // The answer shows as the Profile, so Edit Profile starts from the saved
+    // one, with no second read.
+    expect(fakePublicApi.count(PROFILE_GET)).toBe(1);
+    expect(queryClient.getQueryData(["profile"])).toEqual({
+      age: 28,
+      gender: "male",
+      height: 182,
+      measurement_system: "metric",
+      units: { height: "cm", weight: "kg" },
+      weight: 80,
+    });
     expect(track).toHaveBeenCalledWith("Profile Filled", {
       age: 28,
       gender: "male",
@@ -216,7 +324,7 @@ describe("Onboarding ProfileScreen", () => {
 
     await fillAndSubmit();
 
-    expect(fakePublicApi.requests).toEqual([
+    expect(writes()).toEqual([
       {
         authorization: `Bearer ${FAKE_SESSION_TOKEN}`,
         body: { age: 28, gender: "male", weight: 80 },
@@ -246,9 +354,7 @@ describe("Onboarding ProfileScreen", () => {
     await fireEvent.press(screen.getByText("Next"));
     await settle(queryClient);
 
-    expect(fakePublicApi.requests.map(({ body }) => body)).toEqual([
-      { gender: "male" },
-    ]);
+    expect(writes().map(({ body }) => body)).toEqual([{ gender: "male" }]);
     expect(backend.profile(FAKE_USER_ID)).toMatchObject({
       age: 4,
       gender: "male",
@@ -301,6 +407,19 @@ describe("Onboarding ProfileScreen in Ukrainian", () => {
   beforeEach(() => {
     jest.clearAllMocks();
     backend.reset();
+  });
+
+  it("says in Ukrainian it couldn't load the Profile", async () => {
+    setDeviceLanguages(["uk-UA"]);
+    fakePublicApi.failNext(PROFILE_GET, { status: 503 });
+    await mount();
+
+    expect(
+      screen.getByText(
+        "Не вдалося завантажити профіль. Перевірте з’єднання й спробуйте ще раз."
+      )
+    ).toBeTruthy();
+    expect(screen.getByText("Спробувати ще раз")).toBeTruthy();
   });
 
   it("shows the form, its choices and units in Ukrainian on a metric device", async () => {

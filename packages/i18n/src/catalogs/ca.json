@@ -465,7 +465,8 @@
     "profile": {
       "title": "Coneixem-nos",
       "description": "Farem servir aquesta informació per personalitzar la teva experiència.",
-      "next": "Següent"
+      "next": "Següent",
+      "loadError": "No s'ha pogut carregar el perfil. Comprova la connexió i torna-ho a provar."
     }
   },
   "profileForm": {

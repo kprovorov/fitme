@@ -18,6 +18,7 @@ import { VStack } from "~/components/ui/vstack";
 import { useExercises } from "~/hooks/queries/library";
 import { useProfileQuery } from "~/hooks/queries/profiles";
 import { useI18n } from "~/lib/i18n";
+import { measurementSystemOf } from "~/lib/profile";
 import {
   WorkoutSessionSummaryBodyBack,
   WorkoutSessionSummaryBodyFront,
@@ -37,7 +38,7 @@ export default function WorkoutSessionSummaryView({
   const i18n = useI18n();
   const { t } = useTranslation();
   const { data: profile } = useProfileQuery();
-  const measurementSystem = profile?.measurement_system ?? "metric";
+  const measurementSystem = measurementSystemOf(profile);
 
   // Skipped exercises (no set logged) don't count toward the summary.
   const exercises = useMemo(

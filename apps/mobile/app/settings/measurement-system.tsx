@@ -11,6 +11,7 @@ import { Button } from "~/components/ui/button";
 import { ErrorMessage } from "~/components/ui/error-message";
 import { RadioGroup } from "~/components/ui/radio-group";
 import { VStack } from "~/components/ui/vstack";
+import { seedProfile } from "~/hooks/mutations/profiles";
 import { useProfileQuery } from "~/hooks/queries/profiles";
 import {
   invalidateWeighedQueries,
@@ -18,6 +19,7 @@ import {
 } from "~/hooks/queries/settings";
 import { useChoiceLabels } from "~/lib/choices";
 import { i18n } from "~/lib/i18n";
+import { measurementSystemOf } from "~/lib/profile";
 
 export default function MeasurementSystemScreen() {
   const queryClient = useQueryClient();
@@ -32,7 +34,12 @@ export default function MeasurementSystemScreen() {
     [labels]
   );
 
-  const { data: profile, isError: isProfileError, refetch } = useProfileQuery();
+  const {
+    data: profile,
+    error: profileError,
+    isError: isProfileError,
+    refetch,
+  } = useProfileQuery();
 
   // A switch can finish after the User has gone back; its alerts would then
   // show over another Screen.
@@ -46,9 +53,7 @@ export default function MeasurementSystemScreen() {
 
   /** The saved system, or `undefined` until the Profile has loaded. */
   const savedSystem: MeasurementSystem | undefined =
-    profile === undefined
-      ? undefined
-      : (profile?.measurement_system ?? "metric");
+    profile === undefined ? undefined : measurementSystemOf(profile);
 
   /** The option awaiting confirmation, or `null` when nothing is pending. */
   const [pendingSystem, setPendingSystem] = useState<MeasurementSystem | null>(
@@ -73,23 +78,31 @@ export default function MeasurementSystemScreen() {
           Sentry.captureException(error);
         }
       },
-      // A failed call doesn't prove nothing changed (the response can be lost
-      // after the conversion commits), and the cached Profile's height and
-      // weight are in the old units either way, so the Profile is read again
-      // and the picker stays on the new system until it has been.
-      onSettled: async (_data, error, system) => {
+      // The answer is the converted Profile, which shows as is. A failed call
+      // doesn't prove nothing changed (the response can be lost after the
+      // conversion commits), and the cached Profile's height and weight are
+      // in the old units either way, so the Profile is then read again, and
+      // the picker stays on the new system until it has been.
+      onSettled: async (answer, error, system) => {
         let saved: MeasurementSystem | undefined;
-        try {
-          const fresh = await queryClient.fetchQuery({
-            ...useProfileQuery.getFetchOptions(),
-            staleTime: 0,
-          });
-          saved = fresh?.measurement_system ?? "metric";
-        } catch (fetchError) {
-          Sentry.captureException(fetchError);
-          // Dropped, not just marked stale, so no Screen keeps showing or
-          // submitting a height and weight that may be in the old units.
-          queryClient.resetQueries({ queryKey: useProfileQuery.getKey() });
+        if (answer) {
+          await seedProfile(queryClient, answer);
+          saved = measurementSystemOf(answer);
+        } else {
+          try {
+            const fresh = await queryClient.fetchQuery({
+              ...useProfileQuery.getFetchOptions(),
+              staleTime: 0,
+            });
+            saved = measurementSystemOf(fresh);
+          } catch (fetchError) {
+            if (rateLimitedFor(fetchError) === null) {
+              Sentry.captureException(fetchError);
+            }
+            // Dropped, not just marked stale, so no Screen keeps showing or
+            // submitting a height and weight that may be in the old units.
+            queryClient.resetQueries({ queryKey: useProfileQuery.getKey() });
+          }
         }
         // Once the Profile says the new system is saved, every stored weight
         // is in it, so every Screen showing one is read again (FIT-539). It
@@ -128,6 +141,8 @@ export default function MeasurementSystemScreen() {
     });
 
   const isLoaded = savedSystem !== undefined;
+  // A failed first read: too many requests gives the wait.
+  const loadWaitSeconds = rateLimitedFor(profileError);
   const isSwitching = switchingTo !== null;
 
   // The native picker keeps whatever was tapped until its `value` changes, so
@@ -180,7 +195,9 @@ export default function MeasurementSystemScreen() {
       {!isLoaded && isProfileError && (
         <VStack className="flex-1 items-stretch justify-center gap-4 p-6">
           <ErrorMessage className="text-center">
-            {t("measurementSystem.loadError")}
+            {loadWaitSeconds === null
+              ? t("measurementSystem.loadError")
+              : t("common.rateLimited", { seconds: loadWaitSeconds })}
           </ErrorMessage>
           <Button
             label={t("common.tryAgain")}
