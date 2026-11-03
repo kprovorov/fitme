@@ -50,12 +50,17 @@ describe("PlanHeader", () => {
     expect(screen.queryByText("  ", { normalizer: (text) => text })).toBeNull();
   });
 
-  it("leaves out a missing description", async () => {
+  it("leaves out a missing description, and shows the rest", async () => {
     await render(
-      <PlanHeader plan={{ ...plan, description: null } as unknown as Plan} />
+      <InAppLanguage>
+        <PlanHeader plan={{ ...plan, description: null }} />
+      </InAppLanguage>
     );
 
     expect(screen.getByText("Hypertrophy Builder")).toBeTruthy();
+    expect(screen.getByText("4× per week")).toBeTruthy();
+    expect(screen.getByText("Gain Muscle")).toBeTruthy();
+    expect(screen.getByText("Gym")).toBeTruthy();
   });
 
   it("writes its badges in Ukrainian on a Ukrainian device", async () => {

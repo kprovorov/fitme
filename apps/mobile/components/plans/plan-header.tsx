@@ -19,8 +19,6 @@ interface PlanHeaderProps {
 export default function PlanHeader({ plan }: PlanHeaderProps) {
   const labels = useChoiceLabels();
   const { t } = useTranslation();
-  // `plans.description` is nullable in Postgres, whatever `Plan` says.
-  const description: string | null = plan.description;
   return (
     <View className="items-start gap-xs py-sm">
       {/* Title 1 Emphasized in white, as Figma has it, not H2's lime. */}
@@ -36,9 +34,9 @@ export default function PlanHeader({ plan }: PlanHeaderProps) {
           <Text>{labels.place(plan.place)}</Text>
         </Badge>
       </View>
-      {description?.trim() ? (
+      {plan.description?.trim() ? (
         <Text className="text-muted-foreground text-subhead">
-          {description}
+          {plan.description}
         </Text>
       ) : null}
     </View>
