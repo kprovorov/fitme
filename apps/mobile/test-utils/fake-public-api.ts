@@ -76,6 +76,11 @@ export type Route =
   `${"DELETE" | "GET" | "PATCH" | "POST" | "PUT"} /v1/${string}`;
 
 export type Failure =
+  /**
+   * The request is answered as usual: queued before another failure, it
+   * lets one request through and fails the next.
+   */
+  | "pass"
   /** The connection fails before any answer. */
   | "network"
   /** The request is applied, then the connection fails before the answer. */
@@ -1499,6 +1504,9 @@ class FakePublicApi {
     if (queued) {
       this.failures = this.failures.filter((other) => other !== queued);
       const { failure } = queued;
+      if (failure === "pass") {
+        return this.answer(matched, authorization, body, searchParams);
+      }
       if (failure === "lost") {
         await this.answer(matched, authorization, body, searchParams);
         throw new TypeError("Network request failed");

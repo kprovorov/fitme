@@ -378,6 +378,11 @@ describe("Switching the measurement system", () => {
     await until(() => fakePublicApi.count(PROFILE_PATCH) === 1);
     // A refresh of the Profile lands while the switch waits for its answer,
     // so the answer can't be shown as is; then every read of it is refused.
+    const profile = backend.profile(FAKE_USER_ID);
+    if (profile) {
+      // Another device changed the age.
+      profile.age = 41;
+    }
     await act(() => queryClient.refetchQueries({ queryKey: ["profile"] }));
     for (let read = 0; read < 4; read += 1) {
       fakePublicApi.failNext("GET /v1/profile", {
@@ -400,6 +405,37 @@ describe("Switching the measurement system", () => {
     expect(historyRow("200 kg")).toBeTruthy();
     expect(plannedSet("100 kg")).toBeTruthy();
     expect(screen.queryByText(CONVERTED_VOLUME)).toBeNull();
+  });
+
+  it("refreshes them from the Profile read again when a newer one superseded the answer", async () => {
+    await mount();
+    const resumeSwitch = fakePublicApi.pause(PROFILE_PATCH);
+    await fireEvent.press(screen.getByTestId("option-us"));
+    await fireEvent.press(screen.getByTestId("dialog-Confirm"));
+    await until(() => fakePublicApi.count(PROFILE_PATCH) === 1);
+    // A refresh of the Profile lands while the switch waits for its answer,
+    // so the answer can't be shown as is and the Profile is read again. That
+    // read succeeds; any further one would be refused.
+    const profile = backend.profile(FAKE_USER_ID);
+    if (profile) {
+      // Another device changed the age.
+      profile.age = 41;
+    }
+    await act(() => queryClient.refetchQueries({ queryKey: ["profile"] }));
+    fakePublicApi.failNext("GET /v1/profile", "pass");
+    fakePublicApi.failNext("GET /v1/profile", {
+      retryAfterSeconds: 42,
+      status: 429,
+    });
+
+    resumeSwitch();
+    await settle(queryClient);
+
+    // The read confirmed the switch: no further read, no alert, and every
+    // weight is read again in pounds.
+    expect(Alert.alert).not.toHaveBeenCalled();
+    expect(historyRow("440.92 lbs")).toBeTruthy();
+    expect(plannedSet("220.46 lbs")).toBeTruthy();
   });
 
   it("refreshes them when the answer is lost but the switch went through", async () => {

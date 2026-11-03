@@ -24,9 +24,10 @@ import { isStillWriteStarter, type WriteStarter } from "~/lib/write-answers";
 
 /**
  * The system a switch left saved, decided only from a Profile it has: the
- * answer, once it shows as the Profile, or else (no answer, a failed call
- * whose conversion may still have committed; or a newer Profile landed
- * meanwhile, superseding it) the Profile read back. `saved` is `undefined`
+ * answer, once it shows as the Profile; the Profile read again when a newer
+ * one had landed meanwhile and that read succeeded; or else (no answer, a
+ * failed call whose conversion may still have committed, or that read
+ * failed) the Profile read back. `saved` is `undefined`
  * when that read fails: the Profile is then dropped, not just marked stale,
  * so no Screen keeps showing or submitting a height and weight that may be
  * in the old units. `null` once another User has signed in, checked again
@@ -45,6 +46,15 @@ const readSavedSystem = async (
     }
     if (seeded === "seeded") {
       return { saved: measurementSystemOf(answer) };
+    }
+    // Superseded: the helper has read the Profile again. Once that read
+    // landed (a read that lands clears `isInvalidated`, a failed one leaves
+    // it set), it already shows the system saved after the switch.
+    const reconciled = queryClient.getQueryState(useProfileQuery.getKey());
+    if (reconciled?.status === "success" && !reconciled.isInvalidated) {
+      return {
+        saved: measurementSystemOf(reconciled.data as Profile | null),
+      };
     }
   }
   if (!isStillWriteStarter(starter)) {

@@ -6,6 +6,7 @@
 import { afterEach, describe, expect, it, jest } from "@jest/globals";
 import { QueryObserver } from "@tanstack/react-query";
 import { rememberWriteStarter, seedWriteAnswer } from "~/lib/write-answers";
+import { FAKE_USER_ID } from "~/test-utils/fake-public-api";
 import { createTestQueryClient } from "~/test-utils/query-client";
 import { signInAs } from "~/test-utils/signed-in-user";
 
@@ -22,7 +23,7 @@ const OTHER = ["plans"];
 const watched = (
   client: ReturnType<typeof createTestQueryClient>,
   queryKey: string[],
-  answer: () => Promise<string>
+  answer: () => Promise<unknown>
 ) => {
   const counter = { reads: 0 };
   const observer = new QueryObserver(client, {
@@ -46,7 +47,7 @@ afterEach(() => {
 });
 
 /** Two watched queries, both read once. */
-const setUp = async (seededAnswer: () => Promise<string>) => {
+const setUp = async (seededAnswer: () => Promise<unknown>) => {
   const client = createTestQueryClient();
   const seeded = watched(client, SEEDED, seededAnswer);
   const other = watched(client, OTHER, () => Promise.resolve("other"));
@@ -109,6 +110,49 @@ describe("seedWriteAnswer", () => {
 
     expect(result).toBe("superseded");
     expect(client.getQueryData(SEEDED)).not.toBe("earlier");
+  });
+
+  it("reads the query again after a reset, even when the reload equals what it showed", async () => {
+    // A reset starts the query's count of data over, so the reload's count
+    // matches the one the write started from: only its data is another.
+    const { client, seeded } = await setUp(() =>
+      Promise.resolve({ system: "metric" })
+    );
+    const starter = rememberWriteStarter(client, [SEEDED]);
+    await client.resetQueries({ queryKey: SEEDED });
+    await flush();
+
+    const result = await seedWriteAnswer(client, starter, {
+      answer: { system: "older answer" },
+      queryKey: SEEDED,
+    });
+
+    expect(result).toBe("superseded");
+    expect(client.getQueryData(SEEDED)).toEqual({ system: "metric" });
+    expect(seeded.reads).toBe(3);
+  });
+
+  it("reads the query again when the same User signed out and back in meanwhile", async () => {
+    const { client } = await setUp(() => Promise.resolve({ weight: 60 }));
+    const starter = rememberWriteStarter(client, [SEEDED]);
+    // Signing out clears the cache; back in, the Screen reads the Profile.
+    client.clear();
+    signInAs(null);
+    signInAs(FAKE_USER_ID);
+    const again = watched(client, SEEDED, () =>
+      Promise.resolve({ weight: 65 })
+    );
+    unsubscribers.push(again.unsubscribe);
+    await flush();
+
+    const result = await seedWriteAnswer(client, starter, {
+      answer: { weight: 61 },
+      queryKey: SEEDED,
+    });
+
+    expect(result).toBe("superseded");
+    expect(client.getQueryData(SEEDED)).toEqual({ weight: 65 });
+    expect(again.counter.reads).toBe(2);
   });
 
   it("touches nothing once another User has signed in", async () => {
