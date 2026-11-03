@@ -51,10 +51,19 @@ export const sessionToken = async (): Promise<string> => {
 /**
  * `apps/api` at `EXPO_PUBLIC_API_URL`, as the signed-in User (their Clerk
  * session token, resolved per request so Clerk's refreshes apply, and only
- * once Clerk has loaded: `sessionToken`). Tests get the same client over the
- * fake Public API (`test-utils/setup.ts`).
+ * once Clerk has loaded: `sessionToken`), for every User-data route. Tests
+ * get the same client over the fake Public API (`test-utils/setup.ts`).
  */
 export const publicApi = createPublicApi({
   baseUrl: getApiUrl,
   token: sessionToken,
+});
+
+/**
+ * `apps/api`'s global routes, which need no User (`GET /v1/arnold/models`):
+ * sent at once with no bearer, signed in or not, never waiting for Clerk.
+ */
+export const globalApi = createPublicApi({
+  baseUrl: getApiUrl,
+  token: async () => null,
 });

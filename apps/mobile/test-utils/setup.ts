@@ -6,8 +6,9 @@
  * `~/lib/library` would otherwise send real requests and keep Jest
  * from exiting. A test points the fake at its Exercises with `serveLibrary`.
  *
- * The Public API client (`~/lib/public-api`) is the real one
- * (`@fitme/api-client`, without the Clerk token getter), its `fetch` the
+ * The Public API clients (`~/lib/public-api`: `publicApi`, and `globalApi`,
+ * sending no bearer) are the real one (`@fitme/api-client`, without the
+ * Clerk token getter), their `fetch` the
  * fake Public API (`fake-public-api.ts`), which answers over the fake Supabase
  * backend's rows and fails any route it doesn't implement, so no write reaches
  * the network either. Its base URL is the fake's `baseUrl`.
@@ -46,6 +47,11 @@ jest.mock("~/lib/public-api", () => {
     typeof import("~/test-utils/fake-public-api")
   >("~/test-utils/fake-public-api");
   return {
+    globalApi: createPublicApi({
+      baseUrl: () => fakePublicApi.baseUrl,
+      fetch: fakePublicApi.fetch,
+      token: async () => null,
+    }),
     publicApi: createPublicApi({
       baseUrl: () => fakePublicApi.baseUrl,
       fetch: fakePublicApi.fetch,

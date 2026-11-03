@@ -1,11 +1,11 @@
 /**
- * The Public API client's bearer (`sessionToken`): the real token getter over
- * a stand-in Clerk that loads when the test says so, sending through the fake
- * Public API, as a screen outside the tabs (a deep link) asks before Clerk
- * has loaded.
+ * The real Public API clients (`lib/public-api.ts`; `test-utils/setup.ts`'s
+ * stand-in is lifted here) over the fake Public API, with a stand-in Clerk
+ * that loads when the test says so, as a screen outside the tabs (a deep
+ * link) asks before Clerk has loaded.
  */
 
-import { ApiError, createPublicApi } from "@fitme/api-client";
+import { ApiError } from "@fitme/api-client";
 import {
   afterEach,
   beforeEach,
@@ -14,53 +14,73 @@ import {
   it,
   jest,
 } from "@jest/globals";
+import { useArnoldModelsQuery } from "~/hooks/queries/arnold-models";
+import { CLERK_LOAD_TIMEOUT_MS, publicApi } from "~/lib/public-api";
 import {
+  FAKE_PUBLIC_API_URL,
   FAKE_SESSION_TOKEN,
   fakePublicApi,
 } from "~/test-utils/fake-public-api";
 import { backend } from "~/test-utils/fake-workout-backend";
+import { createTestQueryClient } from "~/test-utils/query-client";
+
+jest.unmock("~/lib/public-api");
 
 type Status = "loading" | "ready" | "degraded" | "error";
+type Session = { getToken: () => Promise<string | null> } | null;
 
-// The Clerk instance `getClerk()` answers: not loaded until `load()`.
+// The Clerk instance `getClerk()` answers: loading until the test emits a
+// status, which `on(…, { notify: true })` replays to a later listener.
 const mockClerk = {
-  handlers: new Set<(status: Status) => void>(),
-  load(session: { getToken: () => Promise<string | null> } | null) {
-    this.loaded = true;
+  emit(status: Status, session: Session) {
+    this.status = status;
+    this.loaded = status === "ready" || status === "degraded";
     this.session = session;
-    this.status = "ready" as Status;
-    for (const handler of this.handlers) {
-      handler("ready");
+    this.emitted = status;
+    for (const handler of [...this.handlers]) {
+      handler(status);
     }
   },
+  emitted: null as Status | null,
+  handlers: new Set<(status: Status) => void>(),
   loaded: false,
   off(_event: "status", handler: (status: Status) => void) {
     this.handlers.delete(handler);
   },
-  on(_event: "status", handler: (status: Status) => void) {
+  on(
+    _event: "status",
+    handler: (status: Status) => void,
+    options?: { notify: boolean }
+  ) {
     this.handlers.add(handler);
+    if (options?.notify && this.emitted) {
+      handler(this.emitted);
+    }
   },
-  session: null as { getToken: () => Promise<string | null> } | null,
+  session: null as Session,
   status: "loading" as Status,
 };
 
 jest.mock("~/lib/clerk", () => ({ getClerk: () => mockClerk }));
 
-const { CLERK_LOAD_TIMEOUT_MS, sessionToken } =
-  jest.requireActual<typeof import("~/lib/public-api")>("~/lib/public-api");
-
-// `lib/public-api.ts`'s client, sending through the fake Public API.
-const api = createPublicApi({
-  baseUrl: () => fakePublicApi.baseUrl,
-  fetch: fakePublicApi.fetch,
-  token: sessionToken,
-});
+const signedIn: Session = { getToken: async () => FAKE_SESSION_TOKEN };
 
 const flush = () => new Promise((resolve) => setTimeout(resolve, 0));
 
+/** A User-data read, as every screen's query sends it. */
+const readProfile = () => publicApi().GET("/v1/profile");
+
+const realFetch = globalThis.fetch;
+const realApiUrl = process.env.EXPO_PUBLIC_API_URL;
+
 beforeEach(() => {
   backend.reset();
+  process.env.EXPO_PUBLIC_API_URL = FAKE_PUBLIC_API_URL;
+  // Neither client is given a `fetch`: they use the global one.
+  globalThis.fetch = ((url: string, init: RequestInit) =>
+    fakePublicApi.fetch(url, init)) as typeof fetch;
   mockClerk.handlers.clear();
+  mockClerk.emitted = null;
   mockClerk.loaded = false;
   mockClerk.session = null;
   mockClerk.status = "loading";
@@ -68,16 +88,22 @@ beforeEach(() => {
 
 afterEach(() => {
   jest.useRealTimers();
+  globalThis.fetch = realFetch;
+  if (realApiUrl === undefined) {
+    Reflect.deleteProperty(process.env, "EXPO_PUBLIC_API_URL");
+  } else {
+    process.env.EXPO_PUBLIC_API_URL = realApiUrl;
+  }
 });
 
-describe("sessionToken", () => {
+describe("publicApi", () => {
   it("holds a request until Clerk has loaded, then sends it with the session token", async () => {
-    const read = api().GET("/v1/profile");
+    const read = readProfile();
     await flush();
     // Nothing goes out without a bearer.
     expect(fakePublicApi.requests).toEqual([]);
 
-    mockClerk.load({ getToken: async () => FAKE_SESSION_TOKEN });
+    mockClerk.emit("ready", signedIn);
 
     await expect(read).resolves.toMatchObject({ data: { data: null } });
     expect(
@@ -86,27 +112,64 @@ describe("sessionToken", () => {
   });
 
   it("sends at once once Clerk has loaded", async () => {
-    mockClerk.load({ getToken: async () => FAKE_SESSION_TOKEN });
+    mockClerk.emit("ready", signedIn);
 
-    await expect(api().GET("/v1/profile")).resolves.toMatchObject({
+    await expect(readProfile()).resolves.toMatchObject({
       data: { data: null },
     });
     expect(fakePublicApi.count("GET /v1/profile")).toBe(1);
   });
 
-  it("fails unsent when nobody is signed in", async () => {
-    mockClerk.load(null);
+  it("sends once Clerk loads degraded, which still serves the session", async () => {
+    const read = readProfile();
+    await flush();
 
-    const read = api().GET("/v1/profile");
+    mockClerk.emit("degraded", signedIn);
+
+    await expect(read).resolves.toMatchObject({ data: { data: null } });
+    expect(fakePublicApi.requests[0]?.authorization).toBe(
+      `Bearer ${FAKE_SESSION_TOKEN}`
+    );
+  });
+
+  it("stops waiting, and its timer, once Clerk has loaded", async () => {
+    jest.useFakeTimers();
+    const read = readProfile();
+    await jest.advanceTimersByTimeAsync(0);
+    expect(mockClerk.handlers.size).toBe(1);
+
+    mockClerk.emit("ready", signedIn);
+    // The fake Public API answers on its next tick.
+    await jest.advanceTimersByTimeAsync(0);
+
+    await expect(read).resolves.toMatchObject({ data: { data: null } });
+    expect(mockClerk.handlers.size).toBe(0);
+    expect(jest.getTimerCount()).toBe(0);
+  });
+
+  it("fails unsent when nobody is signed in", async () => {
+    mockClerk.emit("ready", null);
+
+    const read = readProfile();
 
     await expect(read).rejects.toBeInstanceOf(ApiError);
     await expect(read).rejects.toMatchObject({ code: null, status: null });
     expect(fakePublicApi.requests).toEqual([]);
   });
 
+  it("fails unsent when Clerk loads signed out while the request waits", async () => {
+    const read = readProfile();
+    await flush();
+
+    mockClerk.emit("ready", null);
+
+    await expect(read).rejects.toMatchObject({ code: null, status: null });
+    expect(fakePublicApi.requests).toEqual([]);
+  });
+
   it("fails unsent when Clerk doesn't load in time", async () => {
     jest.useFakeTimers();
-    const read = api().GET("/v1/profile");
+    const read = readProfile();
     const failed = expect(read).rejects.toMatchObject({ status: null });
 
     await jest.advanceTimersByTimeAsync(CLERK_LOAD_TIMEOUT_MS);
@@ -114,5 +177,32 @@ describe("sessionToken", () => {
     await failed;
     expect(fakePublicApi.requests).toEqual([]);
     expect(mockClerk.handlers.size).toBe(0);
+  });
+});
+
+describe("Arnold's model list, a global route", () => {
+  const fetchModels = () =>
+    createTestQueryClient().fetchQuery(useArnoldModelsQuery.getFetchOptions());
+
+  it("is read at once with no bearer while Clerk is still loading", async () => {
+    // Clerk never loads in this test.
+    await expect(fetchModels()).resolves.toMatchObject({
+      models: expect.any(Array),
+    });
+    expect(fakePublicApi.requests).toEqual([
+      expect.objectContaining({
+        authorization: null,
+        route: "GET /v1/arnold/models",
+      }),
+    ]);
+  });
+
+  it("is read with no bearer when nobody is signed in", async () => {
+    mockClerk.emit("ready", null);
+
+    await expect(fetchModels()).resolves.toMatchObject({
+      models: expect.any(Array),
+    });
+    expect(fakePublicApi.requests[0]?.authorization).toBeNull();
   });
 });
