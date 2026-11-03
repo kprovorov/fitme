@@ -11,7 +11,10 @@ import { ErrorMessage } from "~/components/ui/error-message";
 import { RadioGroup } from "~/components/ui/radio-group";
 import { VStack } from "~/components/ui/vstack";
 import { useProfileQuery } from "~/hooks/queries/profiles";
-import { useUpdateMeasurementSystemMutation } from "~/hooks/queries/settings";
+import {
+  invalidateWeighedQueries,
+  useUpdateMeasurementSystemMutation,
+} from "~/hooks/queries/settings";
 import { rateLimitedFor } from "~/lib/api/client";
 import { useChoiceLabels } from "~/lib/choices";
 import { i18n } from "~/lib/i18n";
@@ -87,6 +90,18 @@ export default function MeasurementSystemScreen() {
           // Dropped, not just marked stale, so no Screen keeps showing or
           // submitting a height and weight that may be in the old units.
           queryClient.resetQueries({ queryKey: useProfileQuery.getKey() });
+        }
+        // Once the Profile says the new system is saved, every stored weight
+        // is in it, so every Screen showing one is read again (FIT-539). It
+        // waits for the Profile, the unit those Screens show: a Profile that
+        // can't be read back then leaves their old numbers under their old
+        // unit, rather than converted ones under a unit that fell back to
+        // metric. A lost answer can hide a conversion that committed, so the
+        // error is no reason to skip it; a switch that didn't land re-reads
+        // nothing. Not awaited: nothing below needs it, and History's paged
+        // read would hold the picker disabled for the whole thing.
+        if (saved === system) {
+          invalidateWeighedQueries(queryClient);
         }
         setSwitchingTo(null);
 
