@@ -92,13 +92,16 @@ export default function MeasurementSystemScreen() {
           queryClient.resetQueries({ queryKey: useProfileQuery.getKey() });
         }
         // Once the Profile says the new system is saved, every stored weight
-        // is in it, so every Screen showing one is read again (FIT-539) —
-        // after the Profile, which is where those Screens take the unit from,
-        // so none of them pairs a converted number with the old unit. A lost
-        // answer can hide a conversion that committed, so the error is no
-        // reason to skip it; a switch that didn't land re-reads nothing.
+        // is in it, so every Screen showing one is read again (FIT-539). It
+        // waits for the Profile, the unit those Screens show: a Profile that
+        // can't be read back then leaves their old numbers under their old
+        // unit, rather than converted ones under a unit that fell back to
+        // metric. A lost answer can hide a conversion that committed, so the
+        // error is no reason to skip it; a switch that didn't land re-reads
+        // nothing. Not awaited: nothing below needs it, and History's paged
+        // read would hold the picker disabled for the whole thing.
         if (saved === system) {
-          await invalidateWeighedQueries(queryClient);
+          invalidateWeighedQueries(queryClient);
         }
         setSwitchingTo(null);
 
