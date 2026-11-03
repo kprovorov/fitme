@@ -37,7 +37,9 @@ jobs:
   push:
     if: github.ref == 'refs/heads/main'
     runs-on: ubuntu-24.04
-    timeout-minutes: 30
+    # Uploads the same ~20 screenshots as Build Mobile's listing job, so it
+    # gets the same room for Apple's per-image processing (FIT-534).
+    timeout-minutes: 90
     environment: production
     steps:
       - uses: actions/checkout@v7
