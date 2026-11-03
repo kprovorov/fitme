@@ -57,6 +57,12 @@ jest.mock("~/components/ui/button", () =>
   jest.requireActual("~/test-utils/button-stub")
 );
 jest.mock("~/components/symbol-image", () => ({ SymbolImage: () => null }));
+// The Plan queries' module still holds Supabase reads (Home's).
+jest.mock("~/lib/supabase", () => ({
+  supabase: jest.requireActual<
+    typeof import("~/test-utils/fake-workout-backend")
+  >("~/test-utils/fake-workout-backend").fakeSupabase,
+}));
 // Keeps the real mutation key and react-query wiring, swapping only the
 // network call.
 jest.mock("~/hooks/queries/workout-sessions", () => {
@@ -68,6 +74,15 @@ jest.mock("~/hooks/queries/workout-sessions", () => {
     fetchPlanUpdate: (sessionId: string) =>
       mockPlanUpdate(sessionId, { apply: false }),
     OPEN_WORKOUT_SESSION_QUERY_KEY: ["open-workout-session"],
+    seedWorkoutSession: (
+      client: import("@tanstack/react-query").QueryClient,
+      session: { id: string }
+    ) => {
+      client.setQueryData(
+        ["workout-session", { sessionId: session.id }],
+        session
+      );
+    },
     useApplyPlanUpdateMutation: createMutation({
       mutationFn: ({ sessionId }: { sessionId: string }) =>
         mockPlanUpdate(sessionId, { apply: true }),

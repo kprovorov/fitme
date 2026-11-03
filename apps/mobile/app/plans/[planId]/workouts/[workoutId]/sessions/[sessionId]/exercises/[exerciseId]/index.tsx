@@ -4,17 +4,15 @@ import { useTranslation } from "react-i18next";
 import { ActivityIndicator, type LayoutChangeEvent, View } from "react-native";
 import { KeyboardAwareScrollView } from "react-native-keyboard-controller";
 import { useSafeAreaInsets } from "react-native-safe-area-context";
-import { Button } from "~/components/ui/button";
 import { Card } from "~/components/ui/card";
-import { Text } from "~/components/ui/text";
 import ExerciseHistoryView from "~/components/views/exercise-history-view";
 import WorkoutSessionExerciseSetsTableView from "~/components/views/workout-session-exercise-sets-table-view";
 import RestTimer, { type Rest } from "~/components/workout-sessions/rest-timer";
 import SessionExerciseHeader from "~/components/workout-sessions/session-exercise-header";
+import SessionLoadError from "~/components/workout-sessions/session-load-error";
 import { WorkoutSessionFinishSuggestion } from "~/components/workout-sessions/workout-session-finish-suggestion";
 import { useExercise, useExerciseDetailQuery } from "~/hooks/queries/library";
 import type { SavedWorkoutSessionExerciseSet } from "~/hooks/queries/workout-session-exercise-sets";
-import { useWorkoutSessionExerciseQuery } from "~/hooks/queries/workout-session-exercises";
 import { useWorkoutSessionQuery } from "~/hooks/queries/workout-sessions";
 
 /** Gap between the end of the content and the floating rest timer. */
@@ -32,20 +30,20 @@ export default function WorkoutSessionExerciseScreen() {
     exerciseId,
   } = useLocalSearchParams();
 
+  // The Exercise comes from its Workout Session's read: a failed refresh
+  // keeps it on screen, and with none read yet it's the load error. One the
+  // session no longer has (removed elsewhere) is the load error too.
   const {
-    data: workoutSessionExercise,
+    data: workoutSession,
+    error,
     isError,
     refetch,
-  } = useWorkoutSessionExerciseQuery({
-    variables: {
-      exerciseId: exerciseId as string,
-      sessionId: sessionId as string,
-    },
-  });
-
-  const { data: workoutSession } = useWorkoutSessionQuery({
+  } = useWorkoutSessionQuery({
     variables: { sessionId: sessionId as string },
   });
+  const workoutSessionExercise = workoutSession?.exercises.find(
+    ({ id }) => id === exerciseId
+  );
 
   const isFinished = !!workoutSession?.finished_at;
   const [rest, setRest] = useState<Rest | null>(null);
@@ -104,7 +102,7 @@ export default function WorkoutSessionExerciseScreen() {
   }, [refetch]);
 
   const renderContent = () => {
-    if (workoutSessionExercise) {
+    if (workoutSession && workoutSessionExercise) {
       return (
         <>
           <SessionExerciseHeader
@@ -118,6 +116,7 @@ export default function WorkoutSessionExerciseScreen() {
               onSetLogged={handleSetLogged}
               readOnly={isFinished}
               sessionId={sessionId as string}
+              weightUnit={workoutSession.weight_unit}
               workoutSessionExerciseSets={workoutSessionExercise.sets}
             />
           </Card>
@@ -128,19 +127,13 @@ export default function WorkoutSessionExerciseScreen() {
         </>
       );
     }
-    if (isError) {
+    if (isError || workoutSession) {
       return (
-        <View className="items-center gap-sm pt-lg">
-          <Text className="text-center text-muted-foreground">
-            {t("workoutSessionExercise.loadError")}
-          </Text>
-          <Button
-            fill={false}
-            label={t("common.tryAgain")}
-            onPress={retry}
-            variant="secondary"
-          />
-        </View>
+        <SessionLoadError
+          error={error}
+          message={t("workoutSessionExercise.loadError")}
+          onRetry={retry}
+        />
       );
     }
     return (

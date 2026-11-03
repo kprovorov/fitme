@@ -14,6 +14,12 @@ export interface SessionRow {
   id: string;
   plan_id: string | null;
   started_at: string;
+  /**
+   * Its owner's Clerk id; the fake Public API's User (`FAKE_USER_ID`) unless
+   * given, so another id is another User's Workout Session, which the API
+   * never shows.
+   */
+  user_id?: string;
   workout_id: string | null;
   workoutName: string;
 }
@@ -118,6 +124,15 @@ export interface SeedSession {
   exercises: SeedExercise[];
   finished?: boolean;
   id: string;
+  /** Its Plan's id; `plan-1` unless given, `null` for none. */
+  planId?: string | null;
+  /** Its owner's Clerk id (see `SessionRow`). */
+  userId?: string;
+  /**
+   * Its Workout's id; `workout-of-<id>` unless given, `null` once the Workout
+   * is gone.
+   */
+  workoutId?: string | null;
 }
 
 const clone = <T>(value: T): T => JSON.parse(JSON.stringify(value)) as T;
@@ -177,16 +192,25 @@ class FakeWorkoutBackend {
   }
 
   /**
-   * Adds a session of plan `plan-1`; its exercises get ids `<session>-e<n>`
-   * and their sets ids `<session>-e<n>-s<m>`, both counted from 1.
+   * Adds a session (of plan `plan-1`, unless `planId` says otherwise); its
+   * exercises get ids `<session>-e<n>` and their sets ids
+   * `<session>-e<n>-s<m>`, both counted from 1.
    */
-  seed({ exercises, finished = false, id }: SeedSession) {
+  seed({
+    exercises,
+    finished = false,
+    id,
+    planId = "plan-1",
+    userId,
+    workoutId = `workout-of-${id}`,
+  }: SeedSession) {
     this.sessions.push({
       finished_at: finished ? "2026-10-08T11:00:00.000Z" : null,
       id,
-      plan_id: "plan-1",
+      plan_id: planId,
       started_at: "2026-10-08T10:00:00.000Z",
-      workout_id: `workout-of-${id}`,
+      ...(userId ? { user_id: userId } : {}),
+      workout_id: workoutId,
       workoutName: `Workout ${id}`,
     });
     exercises.forEach(({ name, sets, slug }, exerciseIndex) => {
@@ -367,17 +391,6 @@ class FakeWorkoutBackend {
       ),
     };
   }
-
-  nestedSession(row: SessionRow) {
-    const { workoutName, ...session } = row;
-    return {
-      ...session,
-      exercises: this.exercises
-        .filter((exercise) => exercise.workout_session_id === row.id)
-        .map((exercise) => this.nestedExercise(exercise)),
-      workout: { id: row.workout_id, name: workoutName },
-    };
-  }
 }
 
 export const backend = new FakeWorkoutBackend();
@@ -512,14 +525,10 @@ class FakeQuery {
         // `null` (PGRST116 through `single()`) once it's gone.
         return backend.nestedWorkout(this.filters.id as string);
       case "workout_sessions.select":
-        if (this.filters.id === undefined) {
-          // The open Workout Session is read through the Public API.
-          throw new Error(
-            "Fake backend: the open Workout Session is read through the API"
-          );
-        }
-        return backend.nestedSession(
-          requireRow(backend.session(this.filters.id as string), "session")
+        // The open Workout Session and a Workout Session are read through
+        // the Public API.
+        throw new Error(
+          "Fake backend: a Workout Session is read through the API"
         );
       case "workout_session_exercises.select":
         if (this.filters.exercise_slug) {
@@ -537,11 +546,10 @@ class FakeQuery {
               ),
             }));
         }
-        return backend.nestedExercise(
-          requireRow(
-            backend.exercises.find(({ id }) => id === this.filters.id),
-            "exercise"
-          )
+        // A Workout Session Exercise is read from its Workout Session,
+        // through the Public API.
+        throw new Error(
+          "Fake backend: a Workout Session Exercise is read through the API"
         );
       case "workout_session_exercises.insert":
         // Adding an Exercise goes through the Public API.

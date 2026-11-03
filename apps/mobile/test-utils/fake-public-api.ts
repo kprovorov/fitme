@@ -13,7 +13,9 @@
  * (`POST /v1/plans/{id}/activate`) and deleting (`DELETE /v1/plans/{id}`) a
  * Plan, the seeded Weekly goal changes (`GET /v1/weekly-goals`), listing
  * (`GET /v1/workout-sessions`, the open Workout Session's
- * `status=in_progress&limit=1` included), starting, finishing and
+ * `status=in_progress&limit=1` included), reading
+ * (`GET /v1/workout-sessions/{id}`, 404 for another User's), starting,
+ * finishing and
  * logging a set of a Workout Session, adding,
  * removing (`DELETE /v1/workout-session-exercises/{id}`) and replacing
  * (`PUT /v1/workout-session-exercises/{id}`) an Exercise of one, and the
@@ -563,6 +565,14 @@ const STARTED_AT = "2026-10-08T10:00:00.000Z";
 
 const notFound = (what: string) => error(404, "not_found", `${what} not found`);
 
+/** The User's Workout Session with that id; never another User's. */
+const ownSession = (sessionId: string) => {
+  const session = backend.session(sessionId);
+  return session && (session.user_id ?? FAKE_USER_ID) === FAKE_USER_ID
+    ? session
+    : undefined;
+};
+
 const weightUnit = () =>
   unitsOf(backend.profile(FAKE_USER_ID)?.measurement_system ?? "metric").weight;
 
@@ -668,6 +678,17 @@ const listSessions = (
     total: matching.length,
     weight_unit: weightUnit(),
   });
+};
+
+/**
+ * `getWorkoutSession`: the User's Workout Session in full; 404 for a missing
+ * or another User's.
+ */
+const getSession = (_body: unknown, sessionId: string): Response => {
+  const session = ownSession(sessionId);
+  return session
+    ? json(200, { data: sessionBody(session) })
+    : notFound("Workout Session");
 };
 
 const findWorkout = (workoutId: string) => {
@@ -1362,6 +1383,11 @@ const ROUTES: Array<{
     handler: startSession,
     path: /^\/v1\/workout-sessions$/,
     route: "POST /v1/workout-sessions",
+  },
+  {
+    handler: getSession,
+    path: /^\/v1\/workout-sessions\/(?<id>[^/]+)$/,
+    route: "GET /v1/workout-sessions/{id}",
   },
   {
     handler: finishSession,

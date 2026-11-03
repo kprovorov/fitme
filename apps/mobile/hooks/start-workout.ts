@@ -5,6 +5,7 @@ import { Alert } from "react-native";
 import {
   OPEN_WORKOUT_SESSION_QUERY_KEY,
   type OpenWorkoutSession,
+  seedWorkoutSession,
   useCreateWorkoutSessionMutation,
   useOpenWorkoutSessionQuery,
 } from "~/hooks/queries/workout-sessions";
@@ -72,8 +73,9 @@ const isSessionInProgress = (error: unknown) =>
 /**
  * Starts a Workout (or resumes its open Workout Session) through the Public
  * API, the way the Workout tab's cards and the Workout screen both do: the
- * open Workout Session read is invalidated, then `onStarted` opens the
- * session. A failure is the "Couldn't start workout" alert (the
+ * answer is shown as the session's read (so its screen opens without reading
+ * it again), the open Workout Session read is invalidated, then `onStarted`
+ * opens the session. A failure is the "Couldn't start workout" alert (the
  * wait on a 429), except a 409 `session_in_progress` (another Workout's
  * session opened meanwhile), which re-reads the open Workout Session so
  * `blockedBy` shows it instead (still the alert if the re-read shows none).
@@ -116,7 +118,8 @@ export function useStartWorkout(
       }
       alertStartFailed(rateLimitedFor(error));
     },
-    onSuccess: (workoutSession) => {
+    onSuccess: async (workoutSession) => {
+      await seedWorkoutSession(queryClient, workoutSession);
       queryClient.invalidateQueries({
         queryKey: OPEN_WORKOUT_SESSION_QUERY_KEY,
       });

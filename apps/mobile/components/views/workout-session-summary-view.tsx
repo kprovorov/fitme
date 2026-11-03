@@ -1,12 +1,11 @@
-import type { MuscleGroup, WorkoutSession } from "@fitme/core";
+import type { MuscleGroup } from "@fitme/core";
 import { loggedExercises } from "@fitme/core";
 import {
   formatCount,
   formatNumber,
-  formatWeight,
+  formatUnit,
   formatWorkoutDuration,
   spokenUnit,
-  weightUnitOf,
 } from "@fitme/i18n";
 import { Fragment, useMemo } from "react";
 import { useTranslation } from "react-i18next";
@@ -16,9 +15,8 @@ import { Separator } from "~/components/ui/separator";
 import { Text } from "~/components/ui/text";
 import { VStack } from "~/components/ui/vstack";
 import { useExercises } from "~/hooks/queries/library";
-import { useProfileQuery } from "~/hooks/queries/profiles";
+import type { WorkoutSession } from "~/hooks/queries/workout-sessions";
 import { useI18n } from "~/lib/i18n";
-import { measurementSystemOf } from "~/lib/profile";
 import {
   WorkoutSessionSummaryBodyBack,
   WorkoutSessionSummaryBodyFront,
@@ -37,8 +35,8 @@ export default function WorkoutSessionSummaryView({
 }: WorkoutSessionSummaryViewProps) {
   const i18n = useI18n();
   const { t } = useTranslation();
-  const { data: profile } = useProfileQuery();
-  const measurementSystem = measurementSystemOf(profile);
+  // Weights are in the session's own unit, the User's when it was read.
+  const weightUnit = workoutSession.weight_unit;
 
   // Skipped exercises (no set logged) don't count toward the summary.
   const exercises = useMemo(
@@ -98,13 +96,9 @@ export default function WorkoutSessionSummaryView({
           />
           <WorkoutSessionSummaryStat
             icon="scalemass.fill"
-            spokenValue={spokenUnit(
-              i18n,
-              Math.round(volume),
-              weightUnitOf(measurementSystem)
-            )}
+            spokenValue={spokenUnit(i18n, Math.round(volume), weightUnit)}
             title={t("workoutSession.stats.volume")}
-            value={formatWeight(i18n, Math.round(volume), measurementSystem)}
+            value={formatUnit(i18n, Math.round(volume), weightUnit)}
           />
           <WorkoutSessionSummaryStat
             icon="dumbbell.fill"
@@ -134,9 +128,9 @@ export default function WorkoutSessionSummaryView({
             {index > 0 && <Separator />}
             <WorkoutSessionSummaryExerciseRow
               exercise={shownBySlug[exercise.exercise_slug]}
-              planId={workoutSession.plan_id}
+              planId={workoutSession.plan?.id ?? null}
               sessionId={workoutSession.id}
-              workoutId={workoutSession.workout_id}
+              workoutId={workoutSession.workout?.id ?? null}
               workoutSessionExercise={exercise}
             />
           </Fragment>

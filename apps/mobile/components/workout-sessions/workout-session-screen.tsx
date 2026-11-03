@@ -6,9 +6,9 @@ import { KeyboardAwareScrollView } from "react-native-keyboard-controller";
 import { useSafeAreaInsets } from "react-native-safe-area-context";
 import { Button } from "~/components/ui/button";
 import { Card } from "~/components/ui/card";
-import { Text } from "~/components/ui/text";
 import { H4 } from "~/components/ui/typography";
 import WorkoutSessionView from "~/components/views/workout-session-view";
+import SessionLoadError from "~/components/workout-sessions/session-load-error";
 import { WorkoutSessionFinishSuggestion } from "~/components/workout-sessions/workout-session-finish-suggestion";
 import WorkoutSessionStats from "~/components/workout-sessions/workout-session-stats";
 import { useFinishWorkoutSession } from "~/hooks/finish-workout-session";
@@ -37,8 +37,11 @@ export default function WorkoutSessionScreen({
   const insets = useSafeAreaInsets();
   const { fontScale } = useWindowDimensions();
   const stacked = fontScale > STACKED_FONT_SCALE;
+  // A failed refresh keeps the session on screen; with none read yet it's
+  // the load error.
   const {
     data: workoutSession,
+    error,
     isError,
     refetch,
   } = useWorkoutSessionQuery({
@@ -86,17 +89,11 @@ export default function WorkoutSessionScreen({
     }
     if (isError) {
       return (
-        <View className="items-center gap-sm pt-lg">
-          <Text className="text-center text-muted-foreground">
-            {t("workoutSession.loadError")}
-          </Text>
-          <Button
-            fill={false}
-            label={t("common.tryAgain")}
-            onPress={retry}
-            variant="secondary"
-          />
-        </View>
+        <SessionLoadError
+          error={error}
+          message={t("workoutSession.loadError")}
+          onRetry={retry}
+        />
       );
     }
     return (

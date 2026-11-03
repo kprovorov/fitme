@@ -1,12 +1,12 @@
-import type {
-  WorkoutSessionExercise,
-  WorkoutSessionExerciseSet,
-} from "@fitme/core";
 import { beforeEach, describe, expect, it, jest } from "@jest/globals";
 import { QueryClientProvider } from "@tanstack/react-query";
 import { fireEvent, render, screen } from "@testing-library/react-native";
 import type { ReactElement } from "react";
 import type { ShownExercise } from "~/hooks/queries/library";
+import type {
+  WorkoutSessionExercise,
+  WorkoutSessionSet,
+} from "~/hooks/queries/workout-sessions";
 import { createTestQueryClient } from "~/test-utils/query-client";
 import WorkoutSessionExerciseCard from "../workout-session-exercise-card";
 
@@ -19,12 +19,6 @@ jest.mock("~/lib/supabase", () => ({
   supabase: jest.requireActual<
     typeof import("~/test-utils/fake-workout-backend")
   >("~/test-utils/fake-workout-backend").fakeSupabase,
-}));
-jest.mock("~/hooks/queries/profiles", () => ({
-  useProfileQuery: () => ({
-    data: { measurement_system: "metric" },
-    isPending: false,
-  }),
 }));
 jest.mock("~/lib/segment", () => ({ segmentClient: { track: jest.fn() } }));
 jest.mock("~/components/exercises/exercise-image", () => () => null);
@@ -61,28 +55,22 @@ const BENCH: ShownExercise = {
 const BENCH_PRESS = /^Bench Press/;
 const MENU = /^More options/;
 
-const set = (order: number): WorkoutSessionExerciseSet => ({
-  created_at: "2026-10-29T10:00:00Z",
+const set = (order: number): WorkoutSessionSet => ({
   id: `set-${order}`,
   logged_at: null,
   order,
   reps_completed: null,
   reps_recommended: 12,
   rest_recommended: 90,
-  updated_at: "2026-10-29T10:00:00Z",
   weight_completed: null,
   weight_recommended: 45,
-  workout_session_exercise_id: "wse-1",
 });
 
 const SESSION_EXERCISE: WorkoutSessionExercise = {
-  created_at: "2026-10-29T10:00:00Z",
   exercise_slug: "bench-press",
   id: "wse-1",
   order: 1,
   sets: [set(1), set(2)],
-  updated_at: "2026-10-29T10:00:00Z",
-  workout_session_id: "session-1",
 };
 
 const renderCard = (element: ReactElement) =>
@@ -106,6 +94,7 @@ describe("WorkoutSessionExerciseCard", () => {
         planId="plan-1"
         readOnly={false}
         sessionId="session-1"
+        weightUnit="kg"
         workoutId="workout-1"
         workoutSessionExercise={SESSION_EXERCISE}
       />
@@ -131,6 +120,7 @@ describe("WorkoutSessionExerciseCard", () => {
         planId={null}
         readOnly
         sessionId="session-1"
+        weightUnit="kg"
         workoutId={null}
         workoutSessionExercise={SESSION_EXERCISE}
       />

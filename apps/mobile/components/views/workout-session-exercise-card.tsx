@@ -1,9 +1,12 @@
-import type { WorkoutSessionExercise } from "@fitme/core";
 import { useRouter } from "expo-router";
 import { useTranslation } from "react-i18next";
 import { Card } from "~/components/ui/card";
 import { DropdownMenu } from "~/components/ui/dropdown-menu";
 import { type ShownExercise, shownExercise } from "~/hooks/queries/library";
+import type {
+  WorkoutSession,
+  WorkoutSessionExercise,
+} from "~/hooks/queries/workout-sessions";
 import ExerciseCardHeader, { OpenChevron } from "./exercise-card-header";
 import WorkoutSessionExerciseSetsTableView from "./workout-session-exercise-sets-table-view";
 
@@ -16,6 +19,8 @@ interface WorkoutSessionExerciseCardProps {
   /** A finished session: no sets can be added. */
   readOnly: boolean;
   sessionId: string;
+  /** The unit its Workout Session's weights are in. */
+  weightUnit: WorkoutSession["weight_unit"];
   workoutId: string | null;
   workoutSessionExercise: WorkoutSessionExercise;
 }
@@ -31,6 +36,7 @@ export default function WorkoutSessionExerciseCard({
   onReplace,
   planId,
   readOnly,
+  weightUnit,
   workoutId,
   sessionId,
 }: WorkoutSessionExerciseCardProps) {
@@ -93,6 +99,7 @@ export default function WorkoutSessionExerciseCard({
         exerciseId={workoutSessionExercise.id}
         readOnly={readOnly}
         sessionId={sessionId}
+        weightUnit={weightUnit}
         workoutSessionExerciseSets={workoutSessionExercise.sets}
       />
     </Card>

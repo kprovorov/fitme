@@ -1,5 +1,5 @@
 import { rateLimitedFor } from "@fitme/api-client";
-import { countUnloggedSets, type WorkoutSession } from "@fitme/core";
+import { countUnloggedSets } from "@fitme/core";
 import * as Sentry from "@sentry/react-native";
 import {
   type MutationFilters,
@@ -11,14 +11,17 @@ import { useNavigation, useRouter } from "expo-router";
 import { useCallback, useMemo } from "react";
 import { Alert } from "react-native";
 import { showPlanUpdatePrompt } from "~/hooks/plan-update-prompt";
+import { PLANS_QUERY_KEY, usePlanQuery } from "~/hooks/queries/plans";
 import { WEEKLY_GOALS_QUERY_KEY } from "~/hooks/queries/weekly-goals";
 import {
   FINISH_WORKOUT_SESSION_MUTATION_KEY,
   type FinishWorkoutSessionVariables,
   fetchPlanUpdate,
   OPEN_WORKOUT_SESSION_QUERY_KEY,
+  seedWorkoutSession,
   useFinishWorkoutSessionMutation,
   useWorkoutSessionQuery,
+  type WorkoutSession,
 } from "~/hooks/queries/workout-sessions";
 import { i18n } from "~/lib/i18n";
 import {
@@ -189,14 +192,12 @@ export function useFinishWorkoutSession(
       alertFinishFailed(waitSeconds);
     },
     onSuccess: async (session) => {
-      // Every screen sees the session finished right away, even if a refetch
-      // below fails.
-      queryClient.setQueryData(
-        useWorkoutSessionQuery.getKey({ sessionId }),
-        session
-      );
-      await queryClient.invalidateQueries({ queryKey: ["workout-session"] });
-      await queryClient.invalidateQueries({ queryKey: ["plans"] });
+      // Every screen of it (the Summary included) shows the answer, with no
+      // re-read; the reads it changed are read again.
+      await seedWorkoutSession(queryClient, session);
+      // Its Workout moved to the end of the rotation.
+      await queryClient.invalidateQueries({ queryKey: PLANS_QUERY_KEY });
+      await queryClient.invalidateQueries({ queryKey: usePlanQuery.getKey() });
       await queryClient.invalidateQueries({ queryKey: ["exercise-history"] });
       // History's months and Weekly goal chart count it now (a finish may
       // also start goal tracking)
