@@ -1,6 +1,8 @@
 import { type AppLanguage, defaultAppLanguage } from "@fitme/core";
 import i18next, { type i18n } from "i18next";
+import ca from "./catalogs/ca.json";
 import en from "./catalogs/en.json";
+import es from "./catalogs/es.json";
 import uk from "./catalogs/uk.json";
 
 export { type Catalog, checkCatalogs, pluralForms } from "./check";
@@ -53,7 +55,10 @@ const numberFormatOptions = (
 export const defaultNamespace = "translation";
 
 /** Every App language's catalog. English is the source and the fallback. */
-export const catalogs = { en, uk } satisfies Record<AppLanguage, object>;
+export const catalogs = { ca, en, es, uk } satisfies Record<
+  AppLanguage,
+  object
+>;
 
 declare module "i18next" {
   interface CustomTypeOptions {

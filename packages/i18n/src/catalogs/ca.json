@@ -1,0 +1,824 @@
+{
+  "tabs": {
+    "workout": "Entrenament",
+    "history": "Historial",
+    "arnold": "Arnold AI",
+    "library": "Biblioteca"
+  },
+  "library": {
+    "search": "Cerca exercicis",
+    "muscles": "Músculs",
+    "removeMuscleGroup": "Elimina {{muscleGroup}}",
+    "reset": "Restableix",
+    "confirm": "Fet",
+    "loadErrorTitle": "No s'han pogut carregar els exercicis",
+    "loadError": "No s'han pogut carregar els exercicis. Comprova la connexió i torna-ho a provar.",
+    "loadMoreError": "No s'han pogut carregar més exercicis. Comprova la connexió i torna-ho a provar.",
+    "emptyTitle": "No s'han trobat exercicis",
+    "empty": "No hi ha exercicis que coincideixin. Prova un altre nom o grup muscular.",
+    "showAll": "Mostra tots els exercicis"
+  },
+  "exercise": {
+    "gone": "Aquest exercici ja no és a la biblioteca.",
+    "loadError": "No s'ha pogut carregar aquest exercici. Comprova la connexió i torna-ho a provar."
+  },
+  "exerciseHistory": {
+    "title": "Progrés",
+    "loadMore": "Carrega'n més",
+    "set": "Sèrie {{order, number}}: {{logged}}",
+    "target": "Objectiu {{target}}"
+  },
+  "counts": {
+    "entries_one": "{{count, number}} entrada",
+    "entries_other": "{{count, number}} entrades",
+    "entries_many": "{{count, number}} entrades",
+    "exercises_one": "{{count, number}} exercici",
+    "exercises_other": "{{count, number}} exercicis",
+    "exercises_many": "{{count, number}} exercicis",
+    "minutes_one": "{{count, number}} minut",
+    "minutes_other": "{{count, number}} minuts",
+    "minutes_many": "{{count, number}} minuts",
+    "reps_one": "{{count, number}} repetició",
+    "reps_other": "{{count, number}} repeticions",
+    "reps_many": "{{count, number}} repeticions",
+    "sets_one": "{{count, number}} sèrie",
+    "sets_other": "{{count, number}} sèries",
+    "sets_many": "{{count, number}} sèries",
+    "workoutSessions_one": "{{count, number}} sessió d'entrenament",
+    "workoutSessions_other": "{{count, number}} sessions d'entrenament",
+    "workoutSessions_many": "{{count, number}} sessions d'entrenament",
+    "workouts_one": "{{count, number}} entrenament",
+    "workouts_other": "{{count, number}} entrenaments",
+    "workouts_many": "{{count, number}} entrenaments"
+  },
+  "arnold": {
+    "title": "Arnold",
+    "chat": "Xat",
+    "model": "Model",
+    "newConversation": "Conversa nova",
+    "scrollToLatest": "Ves als últims missatges",
+    "emptyState": {
+      "title": "Pregunta a l'Arnold",
+      "description": "Sobre l'entrenament, els plans i les rutines"
+    },
+    "composer": {
+      "placeholder": "Escriu a l'Arnold",
+      "send": "Envia el missatge",
+      "addToChat": "Afegeix al xat"
+    },
+    "attachments": {
+      "title": "Afegeix al xat",
+      "camera": "Càmera",
+      "photos": "Fotos",
+      "files": "Fitxers",
+      "research": "Recerca",
+      "webSearch": "Cerca web",
+      "beta": "Beta",
+      "addToProject": "Afegeix al projecte",
+      "none": "Cap",
+      "chooseStyle": "Tria l'estil",
+      "normal": "Normal",
+      "toolAccess": "Accés a les eines",
+      "auto": "Automàtic"
+    },
+    "errors": {
+      "proCheckUnavailable": "No s'ha pogut comprovar la subscripció a Fitme Pro. Torna-ho a provar d'aquí a un moment.",
+      "network": "No s'ha pogut connectar amb l'Arnold. Comprova la connexió i torna-ho a provar.",
+      "generic": "S'ha produït un error. Torna-ho a provar."
+    },
+    "modelPicker": {
+      "appliesToNextMessage": "S'aplica al missatge següent",
+      "loading": "S'estan carregant els models",
+      "unavailable": "Els models no estan disponibles ara mateix. Els teus missatges fan servir el model predeterminat de l'Arnold."
+    },
+    "planCard": {
+      "frequency_one": "{{count, number}}× / setmana",
+      "frequency_other": "{{count, number}}× / setmana",
+      "frequency_many": "{{count, number}}× / setmana",
+      "setCount": "{{count, number}}×",
+      "save": "Desa el pla",
+      "saved": "Pla desat",
+      "unmatchedExercises": "Alguns exercicis no s'han trobat a la biblioteca i no es poden desar. Torna a generar el pla.",
+      "errors": {
+        "unknownExercises": "Aquest pla conté exercicis que no coneixem i no es pot desar. Demana un altre pla a l'Arnold.",
+        "libraryUnavailable": "No s'han pogut comprovar els exercicis d'aquest pla. Torna-ho a provar.",
+        "rateLimited": "Massa sol·licituds. Torna-ho a provar d'aquí a {{seconds, number}} s.",
+        "generic": "No s'ha pogut desar el pla. Torna-ho a provar."
+      }
+    }
+  },
+  "planner": {
+    "title": "Crea un pla d'entrenament",
+    "goal": {
+      "title": "Objectiu",
+      "question": "Quin és el teu objectiu?",
+      "options": {
+        "fat-loss": "Perdre pes",
+        "muscle-gain": "Guanyar múscul",
+        "general-health-fitness": "Millorar la salut"
+      }
+    },
+    "experience": {
+      "title": "Experiència",
+      "question": "Quanta experiència tens?"
+    },
+    "duration": {
+      "title": "Durada de l'entrenament",
+      "question": "Quant de temps vols entrenar?",
+      "minutes_one": "{{count}} minut",
+      "minutes_other": "{{count}} minuts",
+      "minutes_many": "{{count}} minuts"
+    },
+    "place": {
+      "title": "Lloc",
+      "question": "Tria on vols entrenar",
+      "soon": "Aviat"
+    },
+    "frequency": {
+      "title": "Freqüència",
+      "question": "Quantes vegades per setmana vols entrenar?"
+    },
+    "note": {
+      "title": "Nota personal",
+      "question": "Afegeix una nota al pla",
+      "placeholder": "p. ex., vull treballar més els abdominals"
+    },
+    "submit": "Crea el meu pla",
+    "required": "Obligatori",
+    "message": {
+      "intro": "Crea'm un pla d'entrenament amb aquests detalls:",
+      "goal": "- Objectiu: {{goal}}",
+      "experience": "- Experiència: {{experience}}",
+      "duration_one": "- Durada de l'entrenament: {{count}} minut",
+      "duration_other": "- Durada de l'entrenament: {{count}} minuts",
+      "duration_many": "- Durada de l'entrenament: {{count}} minuts",
+      "place": "- Lloc: {{place}}",
+      "frequency_one": "- Freqüència: {{count}} dia per setmana",
+      "frequency_other": "- Freqüència: {{count}} dies per setmana",
+      "frequency_many": "- Freqüència: {{count}} dies per setmana",
+      "note": "- Notes addicionals: {{note}}"
+    }
+  },
+  "plans": {
+    "title": "Els meus plans",
+    "create": "Crea un pla d'entrenament",
+    "createNew": "Crea un pla d'entrenament nou",
+    "frequency_one": "{{count, number}}× per setmana",
+    "frequency_other": "{{count, number}}× per setmana",
+    "frequency_many": "{{count, number}}× per setmana",
+    "manage": "Gestiona",
+    "activate": {
+      "action": "Activa el pla",
+      "title": "Activa el pla",
+      "message": "Això desactivarà el pla actual",
+      "confirm": "Activa",
+      "failed": "No s'ha pogut activar el pla"
+    },
+    "archive": {
+      "action": "Arxiva",
+      "title": "Arxiva el pla",
+      "activePlan": "No pots arxivar un pla actiu. Has de tenir com a mínim un pla actiu en tot moment.",
+      "message": "Vols arxivar aquest pla?",
+      "confirm": "Arxiva",
+      "failed": "No s'ha pogut arxivar el pla"
+    },
+    "errors": {
+      "notFound": "Aquest pla ja no existeix.",
+      "network": "Comprova la connexió i torna-ho a provar.",
+      "rateLimited": "Massa sol·licituds: torna-ho a provar d'aquí a {{seconds, number}} s."
+    }
+  },
+  "plannedWorkout": {
+    "stats": {
+      "duration": "Durada",
+      "exercises": "Exercicis",
+      "sets": "Sèries"
+    },
+    "durationMinutes": "{{minutes, number}} min",
+    "noExercises": "Aquest entrenament encara no té exercicis.",
+    "gone": "Aquest entrenament ja no existeix",
+    "goBack": "Torna enrere",
+    "loadError": "No s'ha pogut carregar aquest entrenament. Comprova la connexió i torna-ho a provar.",
+    "exerciseDetailsHint": "Obre els detalls de l'exercici"
+  },
+  "home": {
+    "managePlans": "Gestiona els plans",
+    "createPlan": "Crea un pla",
+    "workouts": "Entrenaments",
+    "planMenu": "Opcions del pla",
+    "logo": "Fitme",
+    "card": {
+      "preview": "Previsualitza",
+      "previewNamed": "Previsualitza {{name}}",
+      "start": "Comença",
+      "startNamed": "Comença {{name}}",
+      "continue": "Continua",
+      "continueNamed": "Continua {{name}}",
+      "moreMuscleGroups": "+{{count, number}}",
+      "moreMuscleGroupsSpoken_one": "i {{count, number}} grup muscular més",
+      "moreMuscleGroupsSpoken_other": "i {{count, number}} grups musculars més",
+      "moreMuscleGroupsSpoken_many": "i {{count, number}} grups musculars més"
+    },
+    "allSet": "Bona feina! Tot a punt!",
+    "empty": {
+      "title": "Cap pla actiu",
+      "message": "No tens cap pla d'entrenament actiu. Crea'n un per començar.",
+      "inactiveMessage": "Activa un dels teus plans o crea'n un de nou.",
+      "action": "Crea un pla d'entrenament"
+    },
+    "loadError": {
+      "title": "No s'ha pogut carregar el pla",
+      "message": "Comprova la connexió i torna-ho a provar."
+    }
+  },
+  "startWorkout": {
+    "start": "Comença l'entrenament",
+    "continue": "Continua l'entrenament",
+    "continueNamed": "Continua {{name}}",
+    "finishFirst": "Acaba primer l'entrenament en curs",
+    "finishFirstNamed": "Acaba primer {{name}}",
+    "failed": {
+      "title": "No s'ha pogut començar l'entrenament",
+      "network": "Comprova la connexió i torna-ho a provar.",
+      "rateLimited": "Massa sol·licituds: torna-ho a provar d'aquí a {{seconds, number}} s."
+    }
+  },
+  "workoutCard": {
+    "exercises_one": "{{count, number}} exercici",
+    "exercises_other": "{{count, number}} exercicis",
+    "exercises_many": "{{count, number}} exercicis",
+    "toWorkout": "Ves a l'entrenament",
+    "openHint": "Obre l'entrenament",
+    "openInProgressHint": "Obre l'entrenament en curs"
+  },
+  "choices": {
+    "experienceLevel": {
+      "beginner": "Principiant",
+      "intermediate": "Intermedi",
+      "advanced": "Avançat"
+    },
+    "experienceLevelDescription": {
+      "beginner": "De 0 a 6 mesos d'experiència",
+      "intermediate": "De 6 mesos a 3 anys d'experiència",
+      "advanced": "Més de 3 anys d'experiència"
+    },
+    "gender": {
+      "male": "Home",
+      "female": "Dona"
+    },
+    "goal": {
+      "muscle-gain": "Guanyar múscul",
+      "fat-loss": "Perdre pes",
+      "recomposition": "Recomposició",
+      "strength-performance": "Força i rendiment",
+      "general-health-fitness": "Salut i forma física"
+    },
+    "measurementSystem": {
+      "metric": "Mètric",
+      "us": "EUA",
+      "uk": "Regne Unit"
+    },
+    "measurementSystemDescription": {
+      "metric": "Centímetres i quilograms",
+      "us": "Peus, polzades i lliures",
+      "uk": "Peus, polzades i lliures"
+    },
+    "muscleGroup": {
+      "chest": "Pit",
+      "back": "Esquena",
+      "shoulders": "Espatlles",
+      "biceps": "Bíceps",
+      "triceps": "Tríceps",
+      "forearms": "Avantbraços",
+      "abs": "Abdominals",
+      "obliques": "Oblics",
+      "quadriceps": "Quàdriceps",
+      "hamstrings": "Isquiotibials",
+      "glutes": "Glutis",
+      "calves": "Bessons",
+      "traps": "Trapezis",
+      "lats": "Dorsals",
+      "lower-back": "Zona lumbar",
+      "cardio": "Càrdio",
+      "full-body": "Cos sencer"
+    },
+    "place": {
+      "gym": "Gimnàs",
+      "home": "Casa"
+    }
+  },
+  "unitNames": {
+    "cm": "cm",
+    "in": "in",
+    "kg": "kg",
+    "lbs": "lb"
+  },
+  "units": {
+    "cm": "{{value, number}} cm",
+    "in": "{{value, number}} in",
+    "kg": "{{value, number}} kg",
+    "lbs": "{{value, number}} lb"
+  },
+  "spokenUnits": {
+    "cm_one": "{{count, number}} centímetre",
+    "cm_other": "{{count, number}} centímetres",
+    "cm_many": "{{count, number}} centímetres",
+    "in_one": "{{count, number}} polzada",
+    "in_other": "{{count, number}} polzades",
+    "in_many": "{{count, number}} polzades",
+    "kg_one": "{{count, number}} quilogram",
+    "kg_other": "{{count, number}} quilograms",
+    "kg_many": "{{count, number}} quilograms",
+    "lbs_one": "{{count, number}} lliura",
+    "lbs_other": "{{count, number}} lliures",
+    "lbs_many": "{{count, number}} lliures"
+  },
+  "compactUnits": {
+    "t": "{{value, number}} t",
+    "thousandLbs": "{{value, number}} mil lb"
+  },
+  "spokenCompactUnits": {
+    "t_one": "{{count, number}} tona",
+    "t_other": "{{count, number}} tones",
+    "t_many": "{{count, number}} tones",
+    "thousandLbs_one": "{{count, number}} mil lliures",
+    "thousandLbs_other": "{{count, number}} mil lliures",
+    "thousandLbs_many": "{{count, number}} mil lliures"
+  },
+  "duration": {
+    "hoursMinutes": "{{hours, number}} h {{minutes, number}} min",
+    "minutes": "{{minutes, number}} min"
+  },
+  "finishWorkout": {
+    "confirm": {
+      "title": "Vols acabar l'entrenament?",
+      "unloggedSets_one": "Falta registrar {{count, number}} sèrie planificada.",
+      "unloggedSets_other": "Falten per registrar {{count, number}} sèries planificades.",
+      "unloggedSets_many": "Falten per registrar {{count, number}} sèries planificades.",
+      "cancel": "Cancel·la",
+      "finish": "Acaba"
+    },
+    "failed": {
+      "title": "No s'ha pogut acabar l'entrenament",
+      "network": "Comprova la connexió i torna-ho a provar.",
+      "rateLimited": "Massa sol·licituds: torna-ho a provar d'aquí a {{seconds, number}} s."
+    },
+    "suggestion": {
+      "title": "Entrenament completat!",
+      "description": "Has registrat totes les sèries planificades.",
+      "close": "Tanca",
+      "keepTrainingHint": "Tanca aquest suggeriment i manté l'entrenament en curs",
+      "finish": "Acaba l'entrenament",
+      "finishHint": "Acaba aquesta sessió d'entrenament",
+      "keepTraining": "Continua entrenant"
+    }
+  },
+  "planUpdate": {
+    "title": "Vols actualitzar el pla?",
+    "description": "Desa els canvis d'avui a {{workout}} del pla {{plan}}.",
+    "failed": "No s'ha pogut actualitzar el pla. Comprova la connexió i torna-ho a provar.",
+    "rateLimited": "Massa sol·licituds. Torna-ho a provar d'aquí a {{seconds, number}} s.",
+    "update": "Actualitza el pla",
+    "updateHint": "Desa aquests canvis al pla i mostra el resum de l'entrenament",
+    "retry": "Torna-ho a provar",
+    "keep": "Mantén el pla",
+    "keepHint": "Manté el pla sense canvis i mostra el resum de l'entrenament",
+    "changes": {
+      "replace": "Substitueix {{replaced}} per {{exercise}}",
+      "add": "Afegeix {{exercise}}",
+      "remove": "Elimina {{exercise}}",
+      "addSets_one": "Afegeix {{count, number}} sèrie a {{exercise}}",
+      "addSets_other": "Afegeix {{count, number}} sèries a {{exercise}}",
+      "addSets_many": "Afegeix {{count, number}} sèries a {{exercise}}",
+      "line": "{{change}} · {{sets}}",
+      "spokenLine": "{{change}}: {{sets}}",
+      "spokenSet": "{{reps}} amb {{weight}}"
+    }
+  },
+  "sets": {
+    "columns": {
+      "target": "objectiu",
+      "reps": "reps",
+      "rest": "descans"
+    },
+    "addSet": "Afegeix una sèrie",
+    "noTarget": "sense objectiu",
+    "repsAtWeight": "{{reps}} amb {{weight}}",
+    "plannedSet": "Sèrie {{order, number}}: {{target}}, {{rest}}",
+    "restSeconds_one": "descans de {{count, number}} segon",
+    "restSeconds_other": "descans de {{count, number}} segons",
+    "restSeconds_many": "descans de {{count, number}} segons",
+    "noRest": "sense descans",
+    "row": {
+      "repsInput": "Repeticions de la sèrie {{order, number}}",
+      "weightInput": "Pes de la sèrie {{order, number}}",
+      "log": "Registra la sèrie {{order, number}}",
+      "edit": "Edita la sèrie {{order, number}}",
+      "editHint": "Obre la sèrie per editar-la",
+      "logged": "Sèrie {{order, number}}, registrada"
+    },
+    "errors": {
+      "save": "No s'ha pogut desar aquesta sèrie. Torna-ho a provar.",
+      "rateLimited": "Massa sol·licituds. Torna-ho a provar d'aquí a {{seconds, number}} s."
+    },
+    "form": {
+      "weightNotNumber": "El pes ha de ser un nombre",
+      "weightNegative": "El pes no pot ser negatiu",
+      "weightTooHigh": "El pes no pot superar {{max}}",
+      "weightDecimals_one": "El pes pot tenir com a màxim {{count, number}} decimal",
+      "weightDecimals_other": "El pes pot tenir com a màxim {{count, number}} decimals",
+      "weightDecimals_many": "El pes pot tenir com a màxim {{count, number}} decimals",
+      "repsNotNumber": "Les repeticions han de ser un nombre",
+      "repsNegative": "Les repeticions no poden ser negatives",
+      "repsTooHigh": "Les repeticions no poden superar {{max}}",
+      "repsNotWhole": "Les repeticions han de ser un nombre enter"
+    },
+    "rest": {
+      "title": "Descans",
+      "thenSet": "Descans · després, sèrie {{order, number}}",
+      "left": "Descans, queden {{clock}}",
+      "less_one": "{{count, number}} segon menys",
+      "less_other": "{{count, number}} segons menys",
+      "less_many": "{{count, number}} segons menys",
+      "more_one": "{{count, number}} segon més",
+      "more_other": "{{count, number}} segons més",
+      "more_many": "{{count, number}} segons més",
+      "skip": "Omet",
+      "skipRest": "Omet el descans",
+      "over": "Descans acabat"
+    }
+  },
+  "forms": {
+    "numberMin": "El nombre ha de ser igual o superior a {{min, number(useGrouping: false)}}",
+    "numberMax": "El nombre ha de ser igual o inferior a {{max, number(useGrouping: false)}}"
+  },
+  "onboarding": {
+    "welcome": {
+      "title": "Et donem la benvinguda a Fitme!",
+      "description": "El teu entrenador personal d'IA t'espera. Comencem!",
+      "getStarted": "Comença",
+      "skip": "Omet"
+    },
+    "profile": {
+      "title": "Coneixem-nos",
+      "description": "Farem servir aquesta informació per personalitzar la teva experiència.",
+      "next": "Següent"
+    }
+  },
+  "profileForm": {
+    "name": "Nom",
+    "gender": "Gènere",
+    "parameters": "Dades personals",
+    "age": "Edat",
+    "weight": "Pes",
+    "height": "Alçada",
+    "notSet": "Sense definir",
+    "done": "Fet",
+    "ageValue_one": "{{count, number}} any",
+    "ageValue_other": "{{count, number}} anys",
+    "ageValue_many": "{{count, number}} anys",
+    "feet_one": "{{count, number}} ft",
+    "feet_other": "{{count, number}} ft",
+    "feet_many": "{{count, number}} ft",
+    "inches_one": "{{count, number}} in",
+    "inches_other": "{{count, number}} in",
+    "inches_many": "{{count, number}} in",
+    "errors": {
+      "ageRequired": "L'edat és obligatòria",
+      "genderRequired": "El gènere és obligatori",
+      "heightRequired": "L'alçada és obligatòria",
+      "weightRequired": "El pes és obligatori",
+      "nameTooLong": "El nom pot tenir com a màxim {{max, number(useGrouping: false)}} caràcters",
+      "tooManyDecimals": "El nombre pot tenir com a màxim {{max, number(useGrouping: false)}} decimals",
+      "saveFailed": "No s'ha pogut desar el perfil. Comprova la connexió i torna-ho a provar.",
+      "saveRateLimited": "No s'ha pogut desar el perfil. Massa sol·licituds: torna-ho a provar d'aquí a {{seconds, number}} s."
+    }
+  },
+  "common": {
+    "cancel": "Cancel·la",
+    "confirm": "Confirma",
+    "tryAgain": "Torna-ho a provar",
+    "genericError": "S'ha produït un error. Torna-ho a provar més tard."
+  },
+  "profile": {
+    "title": "Perfil",
+    "pro": {
+      "title": "Tens Pro!",
+      "description": "Tens accés a totes les funcions. Pots cancel·lar la subscripció en qualsevol moment.",
+      "manage": "Gestiona la subscripció"
+    },
+    "free": {
+      "title": "Tens un pla gratuït",
+      "description": "Subscriu-te a Fitme Pro per accedir sense límits a totes les funcions",
+      "upgrade": "Passa a Pro"
+    },
+    "editProfile": "Edita el perfil",
+    "settings": "Configuració",
+    "support": "Ajuda",
+    "legal": "Informació legal",
+    "logout": "Tanca la sessió",
+    "rate": {
+      "title": "T'agrada l'app?",
+      "action": "Valora-la a l'App Store!"
+    }
+  },
+  "editProfile": {
+    "title": "Edita el perfil",
+    "loadError": "No s'ha pogut carregar el perfil. Comprova la connexió i torna-ho a provar.",
+    "save": "Desa"
+  },
+  "settings": {
+    "title": "Configuració",
+    "measurementSystem": "Sistema d'unitats",
+    "deleteAccount": "Elimina el compte",
+    "deleteConfirm": {
+      "title": "Elimina el compte",
+      "message": "Això eliminarà permanentment el compte i totes les dades associades. Aquesta acció no es pot desfer.",
+      "confirm": "Elimina"
+    },
+    "deleteFailed": "No s'ha pogut eliminar el compte"
+  },
+  "measurementSystem": {
+    "title": "Sistema d'unitats",
+    "loadError": "No s'ha pogut carregar el sistema d'unitats. Comprova la connexió i torna-ho a provar.",
+    "confirm": {
+      "title": "Vols continuar?",
+      "message": "Canviar el sistema d'unitats afectarà totes les mesures. Les dades del perfil i l'historial d'entrenaments es convertiran al sistema nou."
+    },
+    "checkFailed": {
+      "title": "No s'han pogut comprovar les unitats",
+      "message": "Comprova la connexió i torna-ho a provar per veure quin sistema hi ha desat."
+    },
+    "changeFailed": {
+      "title": "No s'han pogut canviar les unitats",
+      "message": "Les mesures no han canviat. Torna-ho a provar.",
+      "rateLimited": "Les mesures no han canviat. Massa sol·licituds: torna-ho a provar d'aquí a {{seconds, number}} s."
+    }
+  },
+  "legal": {
+    "title": "Informació legal",
+    "privacyPolicy": "Política de privacitat",
+    "terms": "Condicions del servei",
+    "deleteAccount": "Elimina el compte",
+    "deleteConfirm": {
+      "title": "Vols eliminar el compte?",
+      "message": "Aquesta acció no es pot desfer. S'eliminarà permanentment el compte i les teves dades s'esborraran dels nostres servidors.",
+      "confirm": "Sí, elimina el meu compte"
+    }
+  },
+  "support": {
+    "title": "Ajuda",
+    "contact": "Pots contactar amb nosaltres en qualsevol moment si tens preguntes o comentaris",
+    "social": {
+      "x": "Fitme a X",
+      "instagram": "Fitme a Instagram",
+      "threads": "Fitme a Threads"
+    }
+  },
+  "verifyCode": {
+    "screenTitle": "Verifica el codi",
+    "title": "Revisa el correu",
+    "description": {
+      "signUp": "Introdueix el codi que t'hem enviat per correu per activar el compte",
+      "reset": "Introdueix el codi que t'hem enviat per correu per restablir la contrasenya",
+      "signIn": "Introdueix el codi que t'hem enviat per confirmar la teva identitat en aquest dispositiu"
+    },
+    "codePlaceholder": "Codi",
+    "verify": "Verifica",
+    "errors": {
+      "signUpIncomplete": "No s'ha pogut acabar de crear el compte. Torna-ho a provar.",
+      "resetIncomplete": "No s'ha pogut verificar el codi. Torna-ho a provar.",
+      "signInIncomplete": "No s'ha pogut iniciar la sessió. Torna-ho a provar."
+    },
+    "resendButton": "Torna a enviar el codi",
+    "resentNotice": "T'hem enviat un codi nou.",
+    "destination": "Introdueix el codi de 6 dígits que hem enviat a {{email}}",
+    "didntGet": "No l'has rebut?",
+    "resendIn": "Torna'l a enviar d'aquí a {{time}}",
+    "wrongEmail": "El correu no és correcte?",
+    "changeEmail": "Canvia'l",
+    "loading": "S'està verificant",
+    "expired": "Aquesta verificació ha caducat. Torna a començar per obtenir un altre codi.",
+    "startOver": "Torna a començar"
+  },
+  "forgotPassword": {
+    "screenTitle": "Contrasenya oblidada",
+    "title": "Has oblidat la contrasenya?",
+    "description": "Introdueix el correu amb què et vas registrar i t'enviarem un codi de 6 dígits.",
+    "emailPlaceholder": "Correu electrònic",
+    "invalidEmail": "Correu electrònic no vàlid",
+    "submit": "Envia el codi",
+    "remember": "Ja la recordes?",
+    "login": "Inicia la sessió",
+    "loading": "S'està enviant el codi"
+  },
+  "resetPassword": {
+    "screenTitle": "Restableix la contrasenya",
+    "title": "Tria una contrasenya nova",
+    "description": "Tria una contrasenya que no facis servir en altres comptes.",
+    "newPasswordPlaceholder": "Contrasenya nova",
+    "confirmPasswordPlaceholder": "Confirma la contrasenya nova",
+    "passwordTooShort_one": "La contrasenya ha de tenir com a mínim {{count}} caràcter.",
+    "passwordTooShort_other": "La contrasenya ha de tenir com a mínim {{count}} caràcters.",
+    "passwordTooShort_many": "La contrasenya ha de tenir com a mínim {{count}} caràcters.",
+    "passwordsDontMatch": "Les contrasenyes no coincideixen.",
+    "submit": "Actualitza la contrasenya",
+    "passwordChanged": "La contrasenya ha canviat. Inicia la sessió amb la contrasenya nova.",
+    "loading": "S'està actualitzant la contrasenya",
+    "changedMind": "Has canviat d'idea?",
+    "backToLogin": "Torna a iniciar la sessió"
+  },
+  "updateRequired": {
+    "title": "Cal actualitzar l'app",
+    "description": "Aquesta versió de Fitme ja no és compatible. Actualitza l'app per continuar entrenant.",
+    "update": "Actualitza"
+  },
+  "notFound": {
+    "title": "Vaja",
+    "description": "Aquesta pantalla no existeix.",
+    "goHome": "Ves a la pantalla d'inici"
+  },
+  "workoutSession": {
+    "finish": "Acaba",
+    "loadError": "No s'ha pogut carregar aquest entrenament. Comprova la connexió i torna-ho a provar.",
+    "stats": {
+      "duration": "Durada",
+      "volume": "Volum",
+      "sets": "Sèries",
+      "exercisesDone_one": "{{done, number}} d’{{count, number}} exercici completat",
+      "exercisesDone_other": "{{done, number}} de {{count, number}} exercicis completats",
+      "exercisesDone_many": "{{done, number}} de {{count, number}} exercicis completats"
+    },
+    "addExercise": "Afegeix un exercici",
+    "picker": {
+      "addExercise": "Afegeix {{name}}",
+      "replaceWith": "Substitueix per {{name}}",
+      "close": "Tanca",
+      "addTitle": "Afegeix un exercici",
+      "replaceTitle": "Substitueix l'exercici"
+    },
+    "exercise": {
+      "openHint": "Obre l'exercici",
+      "moreOptions": "Més opcions per a {{name}}",
+      "replace": "Substitueix",
+      "delete": "Elimina"
+    },
+    "editFailed": {
+      "addTitle": "No s'ha pogut afegir l'exercici",
+      "replaceTitle": "No s'ha pogut substituir l'exercici",
+      "deleteTitle": "No s'ha pogut eliminar l'exercici",
+      "libraryUnavailable": "La biblioteca d'exercicis no està disponible ara mateix. Torna-ho a provar.",
+      "sessionFinished": "Aquest entrenament ja ha acabat.",
+      "rateLimited": "Massa sol·licituds: torna-ho a provar d'aquí a {{seconds, number}} s.",
+      "generic": "Comprova la connexió i torna-ho a provar."
+    }
+  },
+  "workoutSessionExercise": {
+    "loadError": "No s'ha pogut carregar aquest exercici. Comprova la connexió i torna-ho a provar.",
+    "howTo": "Com es fa?",
+    "guideHint": "Obre la guia de l'exercici"
+  },
+  "history": {
+    "empty": {
+      "title": "Encara no hi ha entrenaments",
+      "body": "Acaba la primera sessió i apareixerà aquí amb el temps, les sèries, el volum i els rècords personals.",
+      "start": "Comença {{name}}",
+      "nextUp": "A continuació a {{plan}} · {{exercises}}",
+      "resume": "Reprèn l'entrenament",
+      "resumeNamed": "Reprèn {{name}}",
+      "inProgress": "Tens un entrenament en curs.",
+      "createPlan": "Crea un pla"
+    },
+    "loadError": "No s'han pogut carregar els entrenaments. Comprova la connexió i torna-ho a provar.",
+    "untitledWorkout": "Entrenament",
+    "duration": "Durada {{duration}}",
+    "thisMonth": "Aquest mes",
+    "stats": {
+      "workouts": "Entrenaments",
+      "time": "Temps",
+      "volume": "Volum"
+    },
+    "statLabel": "{{title}}: {{value}}",
+    "entry": "{{name}}, {{date}}, {{duration}}, {{sets}}, {{volume}}",
+    "streak": {
+      "badge_one": "Ratxa d'{{count, number}} setmana!",
+      "badge_other": "Ratxa de {{count, number}} setmanes!",
+      "badge_many": "Ratxa de {{count, number}} setmanes!",
+      "spoken_one": "Ratxa setmanal: {{count, number}} setmana",
+      "spoken_other": "Ratxa setmanal: {{count, number}} setmanes",
+      "spoken_many": "Ratxa setmanal: {{count, number}} setmanes"
+    },
+    "weeklyGoal": {
+      "title": "Objectiu setmanal · {{workouts}}",
+      "weeksHit_one": "Objectiu assolit en {{hit, number}} d'{{count, number}} setmana",
+      "weeksHit_other": "Objectiu assolit en {{hit, number}} de {{count, number}} setmanes",
+      "weeksHit_many": "Objectiu assolit en {{hit, number}} de {{count, number}} setmanes",
+      "now": "Ara",
+      "extra": "+{{count, number}}",
+      "thisWeek": "Aquesta setmana",
+      "weekOf": "Setmana del {{date}}",
+      "progress_one": "{{done, number}} d'{{count, number}} entrenament",
+      "progress_other": "{{done, number}} de {{count, number}} entrenaments",
+      "progress_many": "{{done, number}} de {{count, number}} entrenaments",
+      "overGoal": "{{count, number}} per sobre de l'objectiu",
+      "goalMet": "objectiu assolit",
+      "goalMissed": "objectiu no assolit",
+      "inProgress": "en curs",
+      "firstWeek": "primera setmana registrada",
+      "noGoal": "sense objectiu registrat",
+      "weekLabel": "{{week}}: {{details}}"
+    },
+    "personalRecord": "RP",
+    "entryWithRecords": "{{entry}}. {{records}}",
+    "personalRecords_one": "Rècord personal: {{records}}",
+    "personalRecords_other": "Rècords personals: {{records}}",
+    "personalRecords_many": "Rècords personals: {{records}}",
+    "recordResult": "{{exercise}}, {{weight}} × {{reps}}",
+    "bodyweightRecordResult": "{{exercise}}, pes corporal × {{reps}}"
+  },
+  "workoutSummary": {
+    "title": "Entrenament completat!",
+    "stats": {
+      "exercises": "Exercicis"
+    },
+    "statLabel": "{{title}}: {{value}}",
+    "continue": "Continua",
+    "exercise": "{{name}}, {{sets}}"
+  },
+  "auth": {
+    "welcome": "Et donem la benvinguda a Fitme!",
+    "fields": {
+      "email": "Correu electrònic",
+      "passwordPlaceholder": "Contrasenya",
+      "name": "Nom",
+      "code": "Codi"
+    },
+    "validation": {
+      "invalidEmail": "Correu electrònic no vàlid",
+      "passwordRequired": "Introdueix la contrasenya.",
+      "nameTooShort_one": "El nom ha de tenir com a mínim {{count}} caràcter.",
+      "nameTooShort_other": "El nom ha de tenir com a mínim {{count}} caràcters.",
+      "nameTooShort_many": "El nom ha de tenir com a mínim {{count}} caràcters.",
+      "passwordTooShort_one": "La contrasenya ha de tenir com a mínim {{count}} caràcter.",
+      "passwordTooShort_other": "La contrasenya ha de tenir com a mínim {{count}} caràcters.",
+      "passwordTooShort_many": "La contrasenya ha de tenir com a mínim {{count}} caràcters."
+    },
+    "login": {
+      "title": "Inicia la sessió",
+      "subtitle": "Inicia la sessió al compte per accedir als entrenaments",
+      "continue": "Inicia la sessió",
+      "forgotPasswordLink": "Has oblidat la contrasenya?",
+      "noAccount": "És el primer cop que fas servir Fitme?",
+      "registerLink": "Crea un compte",
+      "cantSignInHere": "Aquest compte encara no pot iniciar la sessió aquí.",
+      "heading": "Et donem la benvinguda de nou",
+      "loading": "S'està iniciant la sessió"
+    },
+    "deviceCode": {
+      "title": "Revisa el correu",
+      "subtitle": "Introdueix el codi que t'hem enviat per confirmar la teva identitat en aquest dispositiu",
+      "verify": "Verifica",
+      "resend": "Envia un codi nou",
+      "differentAccount": "Fes servir un altre compte"
+    },
+    "register": {
+      "title": "Registra't",
+      "subtitle": "Crea un compte per començar",
+      "submit": "Crea un compte",
+      "haveAccount": "Ja tens un compte?",
+      "loginLink": "Inicia la sessió",
+      "heading": "Crea el teu compte",
+      "loading": "S'està creant el compte"
+    },
+    "intro": {
+      "heading": "Entrena millor,\nno més temps.",
+      "description": "Fitme és el teu entrenador personal d'IA. Crea el teu pla i registra cada sèrie.",
+      "plans": "Un pla fet per a tu",
+      "logging": "Cada sèrie i repetició registrada",
+      "guides": "Guies d'exercicis amb vídeo",
+      "email": "Continua amb el correu electrònic"
+    },
+    "social": {
+      "apple": "Continua amb Apple",
+      "google": "Continua amb Google",
+      "connectingGoogle": "S'està connectant amb Google",
+      "incomplete": "No s'ha pogut completar l'inici de sessió. Torna-ho a provar o continua amb el correu electrònic."
+    },
+    "password": {
+      "show": "Mostra la contrasenya",
+      "hide": "Amaga la contrasenya",
+      "minimum": "Com a mínim {{count}} caràcters"
+    },
+    "legal": {
+      "prefix": "En continuar, acceptes els documents següents de Fitme:",
+      "terms": "Condicions del servei",
+      "and": "i",
+      "privacy": "Política de privacitat"
+    },
+    "or": "o",
+    "errors": {
+      "credentials": "El correu o la contrasenya no són correctes. Torna-ho a provar.",
+      "connection": "Comprova la connexió i torna-ho a provar."
+    }
+  }
+}

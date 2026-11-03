@@ -1,6 +1,10 @@
 import type { ModelMessage } from "ai";
 import { describe, expect, it } from "vitest";
-import { appLanguage, latestClientContext } from "../agent/lib/client-context";
+import {
+  appLanguage,
+  latestClientContext,
+  libraryLanguage,
+} from "../agent/lib/client-context";
 
 // How eve hands a turn's `clientContext` object to the model and to tools: a
 // user-role framework message holding "Client context:" and the JSON object.
@@ -41,6 +45,8 @@ describe("appLanguage", () => {
       appLanguage([clientContext({ language: "uk" }), userSays("hi")])
     ).toBe("uk");
     expect(appLanguage([clientContext({ language: "en" })])).toBe("en");
+    expect(appLanguage([clientContext({ language: "es" })])).toBe("es");
+    expect(appLanguage([clientContext({ language: "ca" })])).toBe("ca");
   });
 
   it("is English without a client context, without a language, or with one that isn't an App language", () => {
@@ -51,5 +57,11 @@ describe("appLanguage", () => {
     expect(appLanguage([clientContext({ language: "de" })])).toBe("en");
     expect(appLanguage([clientContext({ language: "uk-UA" })])).toBe("en");
     expect(appLanguage([clientContext({ language: 1 })])).toBe("en");
+  });
+});
+
+describe("Library language", () => {
+  it.each(["es", "ca"])("passes %s to the Library", (language) => {
+    expect(libraryLanguage([clientContext({ language })])).toBe(language);
   });
 });

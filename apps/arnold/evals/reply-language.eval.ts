@@ -24,7 +24,7 @@ const isEnglish = (message: string | undefined) => {
 
 export default defineEval({
   description:
-    "Arnold replies in the language of the User's message, whatever the App language in the client context.",
+    "Arnold follows the User's message language, or the App language for an ambiguous message.",
   async test(t) {
     // The App language is English, so only the message can make it Ukrainian.
     const ukrainianSession = await t.session({ stubs: readToolStubs });
@@ -49,6 +49,35 @@ export default defineEval({
     english.notCalledTool("display_workout_plan");
     t.check(english.message, satisfies(isEnglish, "answered in English")).label(
       "English message, Ukrainian app: English answer"
+    );
+
+    await Promise.all(
+      [
+        {
+          appLanguage: "ca",
+          language: "Spanish",
+          message: "¿Cuánto debo descansar entre series para ganar fuerza?",
+        },
+        {
+          appLanguage: "es",
+          language: "Catalan",
+          message: "Quant he de descansar entre sèries per guanyar força?",
+        },
+        { appLanguage: "es", language: "Spanish", message: "💪" },
+        { appLanguage: "ca", language: "Catalan", message: "💪" },
+      ].map(async ({ appLanguage, language, message }) => {
+        const session = await t.session({ stubs: readToolStubs });
+        const turn = await session.send(message, {
+          clientContext: { language: appLanguage },
+        });
+        turn.succeeded();
+        t.judge(
+          `The assistant's response is written in ${language}. Proper names and exercise names may stay in English.`,
+          { on: turn.message }
+        )
+          .label(`${language} response to ${message}`)
+          .gate(0.9);
+      })
     );
 
     t.succeeded();

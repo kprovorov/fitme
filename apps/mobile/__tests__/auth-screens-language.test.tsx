@@ -224,3 +224,42 @@ describe("in English", () => {
     ).toBeTruthy();
   });
 });
+
+describe.each([
+  {
+    email: "Correo electrónico",
+    heading: "Te damos la bienvenida de nuevo",
+    invalid: "Correo electrónico no válido",
+    language: "es-ES",
+    login: "Iniciar sesión",
+    password: "Contraseña",
+    required: "Introduce tu contraseña.",
+  },
+  {
+    email: "Correu electrònic",
+    heading: "Et donem la benvinguda de nou",
+    invalid: "Correu electrònic no vàlid",
+    language: "ca-ES",
+    login: "Inicia la sessió",
+    password: "Contrasenya",
+    required: "Introdueix la contrasenya.",
+  },
+])(
+  "login screen in $language",
+  ({ language, email, password, login, heading, invalid, required }) => {
+    it("renders the localized form and validates in the device language", async () => {
+      setDeviceLanguages([language]);
+      await renderInApp(LoginScreen);
+
+      expect(screen.getByTestId("screen-title")).toHaveTextContent(login);
+      expect(screen.getByText(heading)).toBeTruthy();
+      expect(screen.getByPlaceholderText(email)).toBeTruthy();
+      expect(screen.getByPlaceholderText(password)).toBeTruthy();
+      await fillIn({ [email]: "not-an-email" });
+      await fireEvent.press(screen.getByRole("button", { name: login }));
+      expect(await screen.findByText(invalid)).toBeTruthy();
+      expect(screen.getByText(required)).toBeTruthy();
+      expect(mockSignIn.password).not.toHaveBeenCalled();
+    });
+  }
+);

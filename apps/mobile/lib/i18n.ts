@@ -8,6 +8,8 @@
 import "@formatjs/intl-pluralrules/polyfill-force.js";
 import "@formatjs/intl-pluralrules/locale-data/en.js";
 import "@formatjs/intl-pluralrules/locale-data/uk.js";
+import "@formatjs/intl-pluralrules/locale-data/es.js";
+import "@formatjs/intl-pluralrules/locale-data/ca.js";
 import {
   type AppLanguage,
   defaultAppLanguage,

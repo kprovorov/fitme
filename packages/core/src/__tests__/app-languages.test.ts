@@ -7,8 +7,8 @@ import {
 } from "../models";
 
 describe("appLanguages", () => {
-  it("lists English and Ukrainian, English the default", () => {
-    expect(appLanguages).toEqual(["en", "uk"]);
+  it("lists every supported language, English the default", () => {
+    expect(appLanguages).toEqual(["en", "uk", "es", "ca"]);
     expect(defaultAppLanguage).toBe("en");
   });
 });
@@ -17,6 +17,8 @@ describe("isAppLanguage", () => {
   it("accepts an App language", () => {
     expect(isAppLanguage("en")).toBe(true);
     expect(isAppLanguage("uk")).toBe(true);
+    expect(isAppLanguage("es")).toBe(true);
+    expect(isAppLanguage("ca")).toBe(true);
   });
 
   it("refuses anything else", () => {
@@ -31,6 +33,24 @@ describe("resolveAppLanguage", () => {
   it("picks Ukrainian with or without a region", () => {
     expect(resolveAppLanguage(["uk"])).toBe("uk");
     expect(resolveAppLanguage(["uk-UA"])).toBe("uk");
+  });
+
+  it.each([
+    ["es", "es"],
+    ["es-ES", "es"],
+    ["es-MX", "es"],
+    ["es-419", "es"],
+    ["ca", "ca"],
+    ["ca-ES", "ca"],
+    ["ca-ES-valencia", "ca"],
+    ["CA_es", "ca"],
+  ])("resolves %s to %s", (tag, language) => {
+    expect(resolveAppLanguage([tag])).toBe(language);
+  });
+
+  it("respects Spanish and Catalan device preference order", () => {
+    expect(resolveAppLanguage(["fr-FR", "ca-ES", "es-ES"])).toBe("ca");
+    expect(resolveAppLanguage(["es-MX", "ca-ES", "en"])).toBe("es");
   });
 
   it("picks English with a region", () => {

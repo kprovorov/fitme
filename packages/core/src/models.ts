@@ -45,7 +45,7 @@ export const muscleGroups = [
 export type MuscleGroup = (typeof muscleGroups)[number];
 
 /** The languages Fitme speaks to a User in (GLOSSARY.md: App language). */
-export const appLanguages = ["en", "uk"] as const;
+export const appLanguages = ["en", "uk", "es", "ca"] as const;
 export type AppLanguage = (typeof appLanguages)[number];
 
 /** The App language for every device language Fitme doesn't support. */

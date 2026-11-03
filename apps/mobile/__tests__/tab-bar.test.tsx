@@ -67,6 +67,30 @@ describe("tab bar", () => {
     ]);
   });
 
+  it.each([
+    ["es-ES", ["Entrenamiento", "Historial", "Arnold AI", "Biblioteca"]],
+    ["ca-ES", ["Entrenament", "Historial", "Arnold AI", "Biblioteca"]],
+  ])("is localized on a %s device", async (language, labels) => {
+    setDeviceLanguages([language]);
+    await render(<App />);
+
+    expect(shownTabs().map(({ label }) => label)).toEqual(labels);
+  });
+
+  it("switches between Spanish and Catalan while open", async () => {
+    setDeviceLanguages(["es-ES"]);
+    await render(<App />);
+    expect(screen.getByText("Entrenamiento")).toBeTruthy();
+
+    await act(() => setDeviceLanguages(["ca-ES"]));
+    expect(screen.getByText("Entrenament")).toBeTruthy();
+    expect(screen.queryByText("Entrenamiento")).toBeNull();
+
+    await act(() => setDeviceLanguages(["es-MX"]));
+    expect(screen.getByText("Entrenamiento")).toBeTruthy();
+    expect(screen.queryByText("Entrenament")).toBeNull();
+  });
+
   it("is in English on a device in a language the app doesn't speak", async () => {
     setDeviceLanguages(["ru-RU"]);
     await render(<App />);

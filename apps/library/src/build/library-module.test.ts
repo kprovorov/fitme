@@ -109,13 +109,15 @@ describe("generateLibraryModule", () => {
       thumbnail_url: `${SUPABASE_URL}/storage/v1/render/image/public/exercise-media/squat/${fakeOid("a")}.png`,
       video_url: `${SUPABASE_URL}/storage/v1/object/public/exercise-media/squat/${fakeOid("b")}.mp4`,
     };
-    // untranslated, so wholly English in Ukrainian too
+    // Untranslated, so wholly English in every App language.
     expect(library).toEqual({
       covers: [],
       hash: expect.stringMatching(/^[0-9a-f]{64}$/),
       languages: {
         en: { exercises: [squat], searchNames: [["squat"]] },
         uk: { exercises: [squat], searchNames: [["squat"]] },
+        es: { exercises: [squat], searchNames: [["squat"]] },
+        ca: { exercises: [squat], searchNames: [["squat"]] },
       },
     });
   });
@@ -150,6 +152,54 @@ describe("generateLibraryModule", () => {
       library.languages.en.exercises.map(({ name }: { name: string }) => name)
     ).toEqual(["Lunge", "Squat"]);
   });
+
+  it.each([
+    {
+      description: "Ejercicio de prueba.",
+      instructions: "Flexiona las rodillas.",
+      language: "es" as const,
+      name: "Sentadilla",
+    },
+    {
+      description: "Exercici de prova.",
+      instructions: "Flexiona els genolls.",
+      language: "ca" as const,
+      name: "Esquat",
+    },
+  ])(
+    "serves translated text and English fallback in $language",
+    async ({ language, name, description, instructions }) => {
+      const squat = libraryExercise("squat", "Squat");
+      squat.locales[language] = { name, description, instructions };
+      const result = await generate({
+        LIBRARY_BUNDLE: await writeBundle(
+          libraryBundle([squat, libraryExercise("lunge", "Lunge")])
+        ),
+        SUPABASE_URL,
+      });
+      expect(result.ok).toBe(true);
+      const { library } = await importModule(result.ok ? result.source : "");
+      expect(library.languages[language].exercises).toEqual(
+        expect.arrayContaining([
+          expect.objectContaining({
+            description,
+            instructions,
+            name,
+            slug: "squat",
+          }),
+          expect.objectContaining({
+            description: "Lunge is a compound pushing movement.\n",
+            name: "Lunge",
+            slug: "lunge",
+          }),
+        ])
+      );
+      expect(library.languages[language].searchNames).toContainEqual([
+        name.toLowerCase(),
+        "squat",
+      ]);
+    }
+  );
 
   it("changes the library hash when only a translation changes", async () => {
     const hashOf = async (ukrainianName: string) => {
@@ -287,7 +337,7 @@ describe("generateLibraryModule", () => {
           },
         },
       ]),
-      /: exercises\.0\.locales: unknown locale "de" \(known: en, uk\)$/,
+      /: exercises\.0\.locales: unknown locale "de" \(known: en, uk, es, ca\)$/,
     ],
     [
       "a Ukrainian translation missing a field",
