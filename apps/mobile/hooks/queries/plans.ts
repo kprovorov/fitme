@@ -69,8 +69,8 @@ const PLAN_SELECT = `
 `;
 
 /**
- * The User's live Plans in full, newest first, read through Supabase: Home
- * and History's empty card still read them this way (FIT-547). Under
+ * The User's live Plans in full, newest first, read through Supabase:
+ * History's empty card still reads them this way. Under
  * `PLANS_QUERY_KEY`, so every write invalidating the Plans reaches it.
  */
 export const usePlansQuery = createQuery<Plan[]>({
@@ -105,6 +105,23 @@ export const usePlanSummariesQuery = createQuery<PlanSummary[]>({
   queryKey: [...PLANS_QUERY_KEY, "summaries"],
   // A 429 is the User's to wait out; the screens offer Try Again.
   retry: false,
+});
+
+/**
+ * The User's active Plan in full through `GET /v1/plans/active`, or `null`
+ * without one: Home's Workout cards. Under `PLANS_QUERY_KEY`, so every write
+ * invalidating the Plans (activating, creating, deleting one, a finish, a
+ * measurement system switch) reaches it. Rejects with an `ApiError`.
+ */
+export const useActivePlanQuery = createQuery<FullPlan | null>({
+  fetcher: async (): Promise<FullPlan | null> => {
+    const { data } = await publicApi().GET("/v1/plans/active");
+    if (!data) {
+      throw new ApiError("Public API answered no active Plan");
+    }
+    return data.data;
+  },
+  queryKey: [...PLANS_QUERY_KEY, "active"],
 });
 
 export interface PlanQueryVariables {

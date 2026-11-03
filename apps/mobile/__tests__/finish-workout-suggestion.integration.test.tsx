@@ -49,7 +49,7 @@ import ExercisePickerScreen from "~/app/workout-sessions/[workoutSessionId]/exer
 import HomeView from "~/components/views/home-view";
 import { PlanUpdateSheetHost } from "~/components/workout-sessions/plan-update-sheet";
 import { closePlanUpdatePrompt } from "~/hooks/plan-update-prompt";
-import { usePlansQuery } from "~/hooks/queries/plans";
+import { useActivePlanQuery } from "~/hooks/queries/plans";
 import { useOpenWorkoutSessionQuery } from "~/hooks/queries/workout-sessions";
 import { storage } from "~/lib/mmkv";
 import { segmentClient } from "~/lib/segment";
@@ -362,9 +362,8 @@ jest.mock("~/components/ui/dialog", () => {
  * the open Workout Session read alongside.
  */
 function HomeScreen() {
-  const { data: plans } = usePlansQuery();
+  const { data: plan } = useActivePlanQuery();
   useOpenWorkoutSessionQuery();
-  const plan = plans?.find(({ is_active }) => is_active);
   return plan ? <HomeView plan={plan} /> : null;
 }
 

@@ -1,7 +1,7 @@
 /**
  * The Home tab on a Ukrainian device: the real screen under the root layout's
- * language sync, with Supabase swapped for the in-memory backend (from
- * `test-utils/`). The header is rendered as its title and plain buttons, the
+ * language sync, reading its Plans through the fake Public API over the
+ * in-memory backend (from `test-utils/`). The header is rendered as its title and plain buttons, the
  * Plan menu as the dropdown stand-in.
  */
 import { beforeEach, describe, expect, it, jest } from "@jest/globals";
@@ -12,7 +12,7 @@ import { Pressable, Text } from "react-native";
 import HomeScreen from "~/app/(tabs)/(home)/index";
 import { setDeviceLanguages } from "~/test-utils/device-locales";
 import { libraryExercise, serveLibrary } from "~/test-utils/fake-library";
-import { FAKE_USER_ID } from "~/test-utils/fake-public-api";
+import { FAKE_USER_ID, fakePublicApi } from "~/test-utils/fake-public-api";
 import { backend } from "~/test-utils/fake-workout-backend";
 import { InAppLanguage } from "~/test-utils/in-app-language";
 import { createTestQueryClient, settle } from "~/test-utils/query-client";
@@ -108,6 +108,9 @@ const mount = async () => {
   );
   await settle(queryClient);
 };
+
+// `common.rateLimited` for a 12 s wait.
+const RATE_LIMITED_12 = "Забагато запитів: спробуйте ще раз через 12 с.";
 
 /** `count` Exercises of 3 sets each, named after `prefix`. */
 const exercises = (prefix: string, count: number) =>
@@ -236,7 +239,7 @@ describe("Home in Ukrainian", () => {
 
   it("says the Plans couldn't load, and loads them again on Try Again", async () => {
     seedActivePlan();
-    backend.failNext("plans", "select");
+    fakePublicApi.failNext("GET /v1/plans/active", { status: 500 });
     await mount();
 
     expect(screen.getByText("Не вдалося завантажити план")).toBeTruthy();
@@ -251,5 +254,17 @@ describe("Home in Ukrainian", () => {
     await settle(queryClient);
 
     expect(screen.getByRole("heading", { name: "Ноги" })).toBeTruthy();
+  });
+
+  it("gives the wait in Ukrainian when the Plans' read is rate limited", async () => {
+    seedActivePlan();
+    fakePublicApi.failNext("GET /v1/plans/active", {
+      retryAfterSeconds: 12,
+      status: 429,
+    });
+    await mount();
+
+    expect(screen.getByText("Не вдалося завантажити план")).toBeTruthy();
+    expect(screen.getByText(RATE_LIMITED_12)).toBeTruthy();
   });
 });

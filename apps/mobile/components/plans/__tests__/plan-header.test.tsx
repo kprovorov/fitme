@@ -1,6 +1,6 @@
-import type { Plan } from "@fitme/core";
 import { describe, expect, it } from "@jest/globals";
 import { render, screen } from "@testing-library/react-native";
+import type { FullPlan } from "~/hooks/queries/plans";
 import { setDeviceLanguages } from "~/test-utils/device-locales";
 import { InAppLanguage } from "~/test-utils/in-app-language";
 import PlanHeader from "../plan-header";
@@ -12,7 +12,7 @@ const plan = {
   goal: "muscle-gain",
   name: "Hypertrophy Builder",
   place: "gym",
-} as Plan;
+} as FullPlan;
 
 const renderHeader = () =>
   render(
