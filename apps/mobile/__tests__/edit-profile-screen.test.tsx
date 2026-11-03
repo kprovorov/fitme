@@ -15,13 +15,16 @@ import {
 } from "@jest/globals";
 import * as Sentry from "@sentry/react-native";
 import { QueryClientProvider } from "@tanstack/react-query";
-import { fireEvent, render, screen } from "@testing-library/react-native";
+import { act, fireEvent, render, screen } from "@testing-library/react-native";
 import { router } from "expo-router";
 import { useCallback } from "react";
 import { Pressable, Text } from "react-native";
 import EditProfileScreen from "~/app/settings/edit-profile";
+import { seedProfile } from "~/hooks/mutations/profiles";
 import { useProfileQuery } from "~/hooks/queries/profiles";
+import { useUpdateMeasurementSystemMutation } from "~/hooks/queries/settings";
 import { i18n } from "~/lib/i18n";
+import { rememberWriteStarter } from "~/lib/write-answers";
 import { setDeviceLanguages } from "~/test-utils/device-locales";
 import {
   FAKE_SESSION_TOKEN,
@@ -43,6 +46,7 @@ jest.mock("expo-router", () => ({
 }));
 
 jest.mock("@sentry/react-native", () => ({ captureException: jest.fn() }));
+jest.mock("~/lib/segment", () => ({ segmentClient: { track: jest.fn() } }));
 
 jest.mock("~/lib/supabase", () => ({
   supabase: jest.requireActual<
@@ -50,10 +54,18 @@ jest.mock("~/lib/supabase", () => ({
   >("~/test-utils/fake-workout-backend").fakeSupabase,
 }));
 
-// The signed-in Clerk User, shared by `useUser` and `getClerk`.
+// The Clerk User whose screen this is (`useUser`), signed in until a test
+// signs `mockNextUser` in (`signInAs`), which `getClerk` follows.
 const mockUser = {
   fullName: "Tony Stark" as string | null,
   id: "user_test",
+  update: jest.fn(async (_name: { firstName: string; lastName: string }) => {
+    // Clerk's answer isn't read.
+  }),
+};
+const mockNextUser = {
+  fullName: "Pepper Potts" as string | null,
+  id: "user_next",
   update: jest.fn(async (_name: { firstName: string; lastName: string }) => {
     // Clerk's answer isn't read.
   }),
@@ -63,12 +75,20 @@ jest.mock("@clerk/expo", () => ({
   useUser: () => ({ isLoaded: true, user: mockUser }),
 }));
 
-jest.mock("~/lib/clerk", () => ({
-  getClerk: () => ({ user: mockUser }),
-  getCurrentUserId: jest.requireActual<
+jest.mock("~/lib/clerk", () => {
+  const signedIn = jest.requireActual<
     typeof import("~/test-utils/signed-in-user")
-  >("~/test-utils/signed-in-user").getCurrentUserId,
-}));
+  >("~/test-utils/signed-in-user");
+  return {
+    getClerk: () => ({
+      user:
+        [mockUser, mockNextUser].find(
+          ({ id }) => id === signedIn.signedInUserId()
+        ) ?? null,
+    }),
+    getCurrentUserId: signedIn.getCurrentUserId,
+  };
+});
 
 jest.mock("react-native-safe-area-context", () => ({
   useSafeAreaInsets: () => ({ bottom: 0, left: 0, right: 0, top: 0 }),
@@ -327,7 +347,7 @@ describe("EditProfileScreen", () => {
     // User signs in, whose Profile read is on its way.
     await screen.unmount();
     queryClient.clear();
-    signInAs("user_next");
+    signInAs(mockNextUser.id);
     const resumeRead = fakePublicApi.pause(PROFILE_GET);
     const nextUsersRead = queryClient.fetchQuery(
       useProfileQuery.getFetchOptions()
@@ -351,6 +371,80 @@ describe("EditProfileScreen", () => {
     expect(queryClient.getQueryData(useProfileQuery.getKey())).toMatchObject({
       age: 45,
     });
+  });
+
+  it("keeps a unit switch that finished while the name was still saving", async () => {
+    backend.seedProfile(FAKE_USER_ID, { age: 30, height: 170, weight: 60 });
+    await mount();
+    // The Profile saves, then Clerk holds the name.
+    let releaseName: () => void = () => {
+      // Replaced once Clerk is asked.
+    };
+    mockUser.update.mockImplementationOnce(
+      () =>
+        new Promise<void>((resolve) => {
+          releaseName = resolve;
+        })
+    );
+    await fireEvent.changeText(
+      screen.getByTestId("edit-profile-name-input"),
+      "Tony Edward Stark"
+    );
+    await pick("Age", 31);
+    await fireEvent.press(screen.getByTestId("edit-profile-save-button"));
+    await until(() => mockUser.update.mock.calls.length === 1);
+    const [saving] = queryClient.getMutationCache().getAll();
+
+    // Meanwhile the measurement system screen switches to US units, and shows
+    // the converted Profile from its answer.
+    await act(async () => {
+      const switchStarter = rememberWriteStarter();
+      const converted =
+        await useUpdateMeasurementSystemMutation.mutationFn("us");
+      await seedProfile(queryClient, converted, switchStarter);
+    });
+    const reads = fakePublicApi.count(PROFILE_GET);
+
+    releaseName();
+    await until(() => saving?.state.status === "success");
+    await settle(queryClient);
+
+    // The edit's older answer doesn't replace the converted Profile: it's
+    // read again instead.
+    expect(fakePublicApi.count(PROFILE_GET)).toBe(reads + 1);
+    expect(queryClient.getQueryData(useProfileQuery.getKey())).toEqual({
+      age: 31,
+      gender: "female",
+      height: 66.93,
+      measurement_system: "us",
+      units: { height: "in", weight: "lbs" },
+      weight: 132.28,
+    });
+  });
+
+  it("never writes the form's name onto the next User who signs in", async () => {
+    backend.seedProfile(FAKE_USER_ID);
+    await mount();
+    const resumeSave = fakePublicApi.pause(PROFILE_PATCH);
+    await fireEvent.changeText(
+      screen.getByTestId("edit-profile-name-input"),
+      "Tony Edward Stark"
+    );
+    await pick("Age", 31);
+    await fireEvent.press(screen.getByTestId("edit-profile-save-button"));
+    await until(() => fakePublicApi.count(PROFILE_PATCH) === 1);
+    const [saving] = queryClient.getMutationCache().getAll();
+
+    // Signed out while the Profile saves, and another User signs in.
+    await screen.unmount();
+    queryClient.clear();
+    signInAs(mockNextUser.id);
+
+    resumeSave();
+    await until(() => saving?.state.status === "success");
+
+    expect(mockUser.update).not.toHaveBeenCalled();
+    expect(mockNextUser.update).not.toHaveBeenCalled();
   });
 
   it("keeps an unchanged stored value out of the request", async () => {

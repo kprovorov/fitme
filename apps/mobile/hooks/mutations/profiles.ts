@@ -84,21 +84,16 @@ const saveProfile = async ({
 };
 
 /**
- * The Profile query shows a write's answer as is: no second read. A read of
- * it still in flight was answered before the write, so it's dropped first.
- * Only while `starter`, the User who started the write, is still signed in
- * (`seedWriteAnswer`).
+ * The Profile query shows a write's answer as is: no second read. Only for
+ * `starter`, the User who started the write, and only while nothing newer
+ * (a unit switch finished meanwhile) has landed in it; otherwise it's read
+ * again (`seedWriteAnswer`).
  */
 export const seedProfile = (
   client: QueryClient,
   profile: Profile,
   starter: WriteStarter | undefined
-) =>
-  seedWriteAnswer(starter, async () => {
-    const queryKey = useProfileQuery.getKey();
-    await client.cancelQueries({ exact: true, queryKey });
-    client.setQueryData(queryKey, profile);
-  });
+) => seedWriteAnswer(client, starter, useProfileQuery.getKey(), profile);
 
 /**
  * Onboarding's save: `saveProfile`, whose answer then shows as the Profile.
@@ -123,7 +118,8 @@ export interface UpdateProfileData extends StoreProfileData {
 }
 
 /**
- * Edit-profile's save: `saveProfile`, then the name to Clerk; the Profile's
+ * Edit-profile's save: `saveProfile`, then the name to Clerk (only while the
+ * User who submitted the form is still signed in); the Profile's
  * answer then shows as the Profile. If the name fails after the Profile was
  * saved, nothing is seeded: the screen reads the Profile again. Seeded in the
  * mutation's own `onMutate` and `onSuccess`, so a screen passes its
@@ -139,11 +135,18 @@ export const useUpdateProfileMutation = createMutation<
     name,
     ...data
   }: UpdateProfileData): Promise<Profile> => {
+    // The User whose form this is: the name is only ever theirs.
+    const { user } = getClerk();
     const saved = await saveProfile(data);
 
-    // The name lives in Clerk, not in the Profile
-    const { user } = getClerk();
-    if (user && name !== (user.fullName ?? "")) {
+    // The name lives in Clerk, not in the Profile. Signed out (or another
+    // User signed in) while the Profile saved: the form's name isn't the
+    // current User's, so it's left alone.
+    if (
+      user &&
+      getClerk().user?.id === user.id &&
+      name !== (user.fullName ?? "")
+    ) {
       await user.update(splitFullName(name));
     }
     return saved;

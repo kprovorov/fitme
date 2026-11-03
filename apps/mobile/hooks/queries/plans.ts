@@ -9,6 +9,7 @@ import type { NewPlan } from "~/lib/plan-card";
 import { publicApi } from "~/lib/public-api";
 import { segmentClient } from "~/lib/segment";
 import {
+  isStillWriteStarter,
   rememberWriteStarter,
   seedWriteAnswer,
   type WriteStarter,
@@ -108,33 +109,37 @@ export const usePlanQuery = createQuery<FullPlan | null, PlanQueryVariables>({
 
 /**
  * After a write answering the Plan in full: that Plan's query shows the
- * answer as is (no re-read, and a read in flight is cancelled), every other
- * Plan read (the lists, the active Plan, the other Plans, whose `is_active`
- * may have changed) and the Weekly goal (the active Plan's frequency) are
- * read again. Only while `starter`, the User who started the write, is still
- * signed in (`seedWriteAnswer`).
+ * answer as is (no re-read; a read of it in flight is cancelled), unless
+ * something newer landed in it since the write started, when it's read again
+ * (`seedWriteAnswer`). Every other Plan read (the lists, the active Plan, the
+ * other Plans, whose `is_active` may have changed) and the Weekly goal (the
+ * active Plan's frequency) are read again. Only for `starter`, the User who
+ * started the write: for anyone else nothing is touched.
  */
-const seedPlan = (
+const seedPlan = async (
   client: QueryClient,
   plan: FullPlan,
   starter: WriteStarter | undefined
-) =>
-  seedWriteAnswer(starter, async () => {
-    const planKey = usePlanQuery.getKey({ id: plan.id });
-    // A read of it still in flight (a pull to refresh) was answered before
-    // the write and would land on top of the answer: it's dropped.
-    await client.cancelQueries({ exact: true, queryKey: planKey });
-    client.setQueryData(planKey, plan);
-    await Promise.all([
-      client.invalidateQueries({ queryKey: PLANS_QUERY_KEY }),
-      client.invalidateQueries({
-        predicate: ({ queryKey }) =>
-          queryKey[0] === "plan" &&
-          (queryKey[1] as PlanQueryVariables | undefined)?.id !== plan.id,
-      }),
-      client.invalidateQueries({ queryKey: WEEKLY_GOALS_QUERY_KEY }),
-    ]);
-  });
+) => {
+  if (!isStillWriteStarter(starter)) {
+    return;
+  }
+  await seedWriteAnswer(
+    client,
+    starter,
+    usePlanQuery.getKey({ id: plan.id }),
+    plan
+  );
+  await Promise.all([
+    client.invalidateQueries({ queryKey: PLANS_QUERY_KEY }),
+    client.invalidateQueries({
+      predicate: ({ queryKey }) =>
+        queryKey[0] === "plan" &&
+        (queryKey[1] as PlanQueryVariables | undefined)?.id !== plan.id,
+    }),
+    client.invalidateQueries({ queryKey: WEEKLY_GOALS_QUERY_KEY }),
+  ]);
+};
 
 /**
  * Saves a Plan through `POST /v1/plans` and makes it the active one, in one

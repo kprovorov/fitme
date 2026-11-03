@@ -504,6 +504,42 @@ describe("MeasurementSystemScreen", () => {
     expect(Alert.alert).not.toHaveBeenCalled();
   });
 
+  it("leaves the next User's Profile read alone when signing out ends the read back", async () => {
+    const { unmount } = await mount();
+    // No answer, so the Profile is read back, and that read is held.
+    fakePublicApi.failNext(PROFILE_PATCH, "lost");
+    const resumeReads = fakePublicApi.pause(PROFILE_GET);
+    await fireEvent.press(screen.getByTestId("option-us"));
+    await fireEvent.press(screen.getByText("Confirm"));
+    await until(() => fakePublicApi.count(PROFILE_GET) === 2);
+    const [switching] = queryClient.getMutationCache().getAll();
+
+    // Signing out clears the cache, which ends the read back, and another
+    // User signs in, whose Profile read is on its way.
+    await unmount();
+    queryClient.clear();
+    signInAs("user_next");
+    const nextUsersRead = queryClient.fetchQuery(
+      useProfileQuery.getFetchOptions()
+    );
+    await until(() => fakePublicApi.count(PROFILE_GET) === 3);
+    await until(() => switching?.state.status === "error");
+
+    // The one fake account stands for the next User's here.
+    backend.profiles = [];
+    backend.seedProfile(FAKE_USER_ID, { measurement_system: "uk" });
+    resumeReads();
+    // Their read isn't cancelled (no reset of their Profile).
+    await expect(nextUsersRead).resolves.toMatchObject({
+      measurement_system: "uk",
+    });
+    expect(queryClient.getQueryData(useProfileQuery.getKey())).toMatchObject({
+      measurement_system: "uk",
+    });
+    expect(fakePublicApi.count("GET /v1/workout-sessions")).toBe(0);
+    expect(Alert.alert).not.toHaveBeenCalled();
+  });
+
   it("shows no alert when the switch finishes after the Screen is gone", async () => {
     const { unmount } = await mount();
     const resume = fakePublicApi.pause(PROFILE_PATCH);
