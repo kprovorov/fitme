@@ -19,7 +19,7 @@ Every UI design lives in one Figma file, `Fitme` (file key `8RPWsghaJBjkkjGzPypu
 - **Components** (`1027:4187`): the Primitives' sets (`Button`, `Card`, …) and the `Native` section with an iOS 27 kit instance per native wrapper.
 - **UI** (`63:2`): the mobile Screens (Splash, Auth, Dashboard, Library, History, Profile, Workout Session, Summary, …) and the screen parts they share.
 
-The other pages (Logo, Banners, Blog, AppStore Screenshots, Archive and the dated ones) aren't app UI.
+The other pages (Logo, Banners, Blog, AppStore Screenshots, Archive and the dated ones) aren't app UI, so the loop below doesn't cover them. AppStore Screenshots has its own: how an App Store frame is built from a framed capture, and how every exported image and its edges are reviewed before it's committed, is [Making a Screenshot set](../../marketing/screenshots/app-store/README.md#making-a-screenshot-set).
 
 A Screen that isn't in the file yet is built from the Tokens and Primitives below; say so in the pull request.
 
