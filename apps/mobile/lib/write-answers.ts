@@ -14,14 +14,15 @@ import { getCurrentUserId } from "~/lib/clerk";
  */
 export interface WriteStarter {
   /**
-   * Each query the write will seed, by its hash: the data it showed when the
-   * write started, kept by reference. Any data put into the query since is
-   * another object (react-query's structural sharing keeps a reference only
-   * for data deep-equal to it), and a cleared or reset query loses it, so
-   * comparing references tells whether anything else has been shown there,
-   * where `dataUpdateCount` (which a reset or a new query starts over) can't.
+   * Each query the write will seed, by its hash, as it was when the write
+   * started: its data, kept by reference, and its `dataUpdateCount`. Each
+   * covers what the other can't. Data put into the query since is another
+   * object unless it's deep-equal (react-query's structural sharing keeps the
+   * reference then), but even a deep-equal read bumps the count. A reset or a
+   * query recreated after a sign-out starts the count over, but it loses the
+   * data, and anything loaded into it after is another object.
    */
-  shownAtStart: Record<string, unknown>;
+  shownAtStart: Record<string, { count: number; data: unknown }>;
   /** The Clerk User signed in when the write started, `null` for nobody. */
   userId: string | null;
 }
@@ -35,20 +36,23 @@ const signedInUserId = (): string | null => {
   }
 };
 
+/** A query's data, by reference, and how many times data was put into it. */
+const shownIn = (client: QueryClient, queryKey: QueryKey) => ({
+  count: client.getQueryState(queryKey)?.dataUpdateCount ?? 0,
+  data: client.getQueryData(queryKey),
+});
+
 /**
  * A seeding mutation's `onMutate`: remembers who started the write, and what
  * each query (`queryKeys`) its answer will go into showed. A query the write
- * creates (a new Plan's) shows nothing yet (`undefined`).
+ * creates (a new Plan's) shows nothing yet (`undefined`, a count of 0).
  */
 export const rememberWriteStarter = (
   client: QueryClient,
   queryKeys: QueryKey[]
 ): WriteStarter => ({
   shownAtStart: Object.fromEntries(
-    queryKeys.map((queryKey) => [
-      hashKey(queryKey),
-      client.getQueryData(queryKey),
-    ])
+    queryKeys.map((queryKey) => [hashKey(queryKey), shownIn(client, queryKey)])
   ),
   userId: signedInUserId(),
 });
@@ -76,10 +80,11 @@ export type SeedResult = "seeded" | "superseded" | "signed-out";
  * answer, so a write started by another User touches nothing. A read of the
  * query still in flight was asked before the answer and is cancelled (which
  * puts back the data it would have replaced). The answer is only shown while
- * the query still shows the very data it showed when the write started:
- * anything else (a read or another write's answer that landed since, or no
- * data after a sign-out or a reset) may be newer than the answer, so the
- * query is read again instead, which is always safe.
+ * the query still shows the very data it showed when the write started, with
+ * nothing put into it since (the same reference and the same count): anything
+ * else (a read, even of deep-equal data, or another write's answer that
+ * landed since, or no data after a sign-out or a reset) may be newer than the
+ * answer, so the query is read again instead, which is always safe.
  */
 export const seedWriteAnswer = async (
   client: QueryClient,
@@ -102,9 +107,12 @@ export const seedWriteAnswer = async (
     return "signed-out";
   }
   let result: SeedResult = "seeded";
-  if (
-    client.getQueryData(queryKey) === starter.shownAtStart[hashKey(queryKey)]
-  ) {
+  const now = shownIn(client, queryKey);
+  const atStart = starter.shownAtStart[hashKey(queryKey)] ?? {
+    count: 0,
+    data: undefined,
+  };
+  if (now.data === atStart.data && now.count === atStart.count) {
     client.setQueryData(queryKey, answer);
   } else {
     result = "superseded";

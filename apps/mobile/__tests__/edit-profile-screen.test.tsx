@@ -430,6 +430,31 @@ describe("EditProfileScreen", () => {
     });
   });
 
+  it("reads the Profile again when a read of the original Profile landed while the name was still saving", async () => {
+    const { finish } = await saveWithNameHeld();
+    const before = queryClient.getQueryData(useProfileQuery.getKey());
+    // Another device puts the age back to 30, and a refresh reads it: the
+    // Profile it reads is deep-equal to the one shown before the save, so
+    // react-query keeps that very object.
+    const saved = backend.profile(FAKE_USER_ID);
+    if (saved) {
+      saved.age = 30;
+    }
+    await act(() =>
+      queryClient.refetchQueries({ queryKey: useProfileQuery.getKey() })
+    );
+    expect(queryClient.getQueryData(useProfileQuery.getKey())).toBe(before);
+    const reads = fakePublicApi.count(PROFILE_GET);
+
+    await finish();
+
+    // The edit's answer (age 31) is older than the read: read again.
+    expect(fakePublicApi.count(PROFILE_GET)).toBe(reads + 1);
+    expect(queryClient.getQueryData(useProfileQuery.getKey())).toMatchObject({
+      age: 30,
+    });
+  });
+
   it("keeps a unit switch that finished while the name was still saving", async () => {
     const { finish } = await saveWithNameHeld();
     // Meanwhile the measurement system screen switches to US units, and shows
