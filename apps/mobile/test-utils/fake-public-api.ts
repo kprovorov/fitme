@@ -122,8 +122,10 @@ const round2 = (value: number) => Math.round(value * 100) / 100;
 
 const isImperial = (system: string) => system !== "metric";
 
+// `getProfile`'s units (`packages/services/src/profile.ts`): us and uk are
+// inches and pounds, anything else, an unknown system included, metric.
 const unitsOf = (system: string) =>
-  isImperial(system)
+  system === "us" || system === "uk"
     ? { height: "in", weight: "lbs" }
     : { height: "cm", weight: "kg" };
 

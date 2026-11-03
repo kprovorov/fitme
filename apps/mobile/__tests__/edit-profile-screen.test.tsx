@@ -206,6 +206,23 @@ describe("EditProfileScreen", () => {
     );
   });
 
+  it("shows a Profile with a system the app doesn't know in metric units, as the API answers it", async () => {
+    backend.seedProfile(FAKE_USER_ID, {
+      height: 180.5,
+      measurement_system: "imperial",
+      weight: 82.5,
+    });
+    await mount();
+
+    expect(queryClient.getQueryData(["profile"])).toMatchObject({
+      measurement_system: "imperial",
+      units: { height: "cm", weight: "kg" },
+    });
+    for (const text of ["82.5 kg", "180.5 cm"]) {
+      expect(screen.getByText(text)).toBeTruthy();
+    }
+  });
+
   it("shows its error state when the Profile can't be read, and reads it again on Try Again", async () => {
     backend.seedProfile(FAKE_USER_ID, { age: 32 });
     fakePublicApi.failNext(PROFILE_GET, { status: 503 });
