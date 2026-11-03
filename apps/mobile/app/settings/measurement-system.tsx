@@ -15,6 +15,7 @@ import { seedProfile } from "~/hooks/mutations/profiles";
 import { type Profile, useProfileQuery } from "~/hooks/queries/profiles";
 import {
   invalidateWeighedQueries,
+  rememberPendingWeighedRefresh,
   useUpdateMeasurementSystemMutation,
 } from "~/hooks/queries/settings";
 import { useChoiceLabels } from "~/lib/choices";
@@ -30,12 +31,14 @@ import { isStillWriteStarter, type WriteStarter } from "~/lib/write-answers";
  * failed) the Profile read back. `saved` is `undefined`
  * when that read fails: the Profile is then dropped, not just marked stale,
  * so no Screen keeps showing or submitting a height and weight that may be
- * in the old units. `null` once another User has signed in, checked again
+ * in the old units, and the switch to `system` is remembered so the next
+ * Profile read that lands can confirm it and refresh every weight. `null` once another User has signed in, checked again
  * after every await: nothing is theirs to read, seed or reset (signing out
  * cancels the read back, and a reset would cancel the next User's read).
  */
 const readSavedSystem = async (
   queryClient: QueryClient,
+  system: MeasurementSystem,
   answer: Profile | undefined,
   starter: WriteStarter | undefined
 ): Promise<{ saved: MeasurementSystem | undefined } | null> => {
@@ -76,6 +79,11 @@ const readSavedSystem = async (
     if (rateLimitedFor(fetchError) === null) {
       Sentry.captureException(fetchError);
     }
+    // The conversion may well have committed, so the weighed queries are
+    // left in their old unit with their old numbers, and the next Profile
+    // read that lands says whether it did (FIT-553). Remembered before the
+    // Profile is dropped, so the read that dropping it starts already counts.
+    rememberPendingWeighedRefresh(queryClient, system, starter);
     queryClient.resetQueries({ queryKey: useProfileQuery.getKey() });
     return { saved: undefined };
   }
@@ -168,7 +176,12 @@ export default function MeasurementSystemScreen() {
       // in the old units either way, so the Profile is then read again, and
       // the picker stays on the new system until it has been.
       onSettled: async (answer, error, system, starter) => {
-        const result = await readSavedSystem(queryClient, answer, starter);
+        const result = await readSavedSystem(
+          queryClient,
+          system,
+          answer,
+          starter
+        );
         setSwitchingTo(null);
         // Another User signed in meanwhile: nothing here is theirs to
         // re-read, and no alert is theirs either.
