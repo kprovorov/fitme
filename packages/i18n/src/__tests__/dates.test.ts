@@ -105,7 +105,14 @@ describe("formatTime", () => {
       process.env.TZ = "Asia/Tokyo";
       expect(formatTime(instance, noonUtc)).toBe("21:00");
     } finally {
-      process.env.TZ = zone;
+      // Node stringifies an env value, so assigning an unset `zone` back would
+      // set TZ to the string "undefined": an invalid zone that formats as UTC
+      // and skews every later test on a device that isn't in UTC (FIT-475).
+      if (zone === undefined) {
+        delete process.env.TZ;
+      } else {
+        process.env.TZ = zone;
+      }
     }
   });
 
