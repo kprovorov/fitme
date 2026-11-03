@@ -29,13 +29,11 @@ import {
 } from "~/lib/plan-changes";
 import { segmentClient } from "~/lib/segment";
 
-/** Every query that reads a Plan's Workouts, refetched once changes apply. */
-const PLAN_QUERY_KEYS = [
-  ["plans"],
-  ["plan"],
-  ["workout"],
-  ["workout-exercise"],
-];
+/**
+ * Every query that reads a Plan's Workouts, refetched once changes apply: the
+ * Plan lists, and each Plan in full, which the Workout screen reads too.
+ */
+const PLAN_QUERY_KEYS = [["plans"], ["plan"]];
 
 const CHANGE_SYMBOL: Record<PlanUpdateChangeKind, SFSymbol> = {
   add_exercise: "plus.circle",

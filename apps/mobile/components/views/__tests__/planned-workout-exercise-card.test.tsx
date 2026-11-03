@@ -1,19 +1,13 @@
-import type { WorkoutExercise, WorkoutExerciseSet } from "@fitme/core";
 import { beforeEach, describe, expect, it, jest } from "@jest/globals";
 import { fireEvent, render, screen } from "@testing-library/react-native";
 import type { ShownExercise } from "~/hooks/queries/library";
+import type { PlanExercise, PlanSet } from "~/hooks/queries/plans";
 import PlannedWorkoutExerciseCard from "../planned-workout-exercise-card";
 
 const mockPush = jest.fn();
-const mockProfile: { current: { measurement_system: string } | null } = {
-  current: { measurement_system: "metric" },
-};
 
 jest.mock("expo-router", () => ({
   useRouter: () => ({ push: mockPush }),
-}));
-jest.mock("~/hooks/queries/profiles", () => ({
-  useProfileQuery: () => ({ data: mockProfile.current, isPending: false }),
 }));
 jest.mock("~/components/exercises/exercise-image", () => () => null);
 jest.mock("~/components/symbol-image", () => ({ SymbolImage: () => null }));
@@ -30,34 +24,24 @@ const BENCH: ShownExercise = {
   video_url: null,
 };
 
-const set = (
-  order: number,
-  values: Partial<WorkoutExerciseSet> = {}
-): WorkoutExerciseSet => ({
-  created_at: "2026-10-29T10:00:00Z",
+const set = (order: number, values: Partial<PlanSet> = {}): PlanSet => ({
   id: `set-${order}`,
   order,
   reps_recommended: 12,
   rest_recommended: 90,
-  updated_at: "2026-10-29T10:00:00Z",
   weight_recommended: 45,
-  workout_exercise_id: "we-1",
   ...values,
 });
 
 const workoutExercise = (
-  sets: WorkoutExerciseSet[],
+  sets: PlanSet[],
   slug = "bench-press"
-): WorkoutExercise =>
-  ({
-    created_at: "2026-10-29T10:00:00Z",
-    exercise_slug: slug,
-    id: "we-1",
-    order: 1,
-    sets,
-    updated_at: "2026-10-29T10:00:00Z",
-    workout_id: "workout-1",
-  }) as WorkoutExercise;
+): PlanExercise => ({
+  exercise_slug: slug,
+  id: "we-1",
+  order: 1,
+  sets,
+});
 
 // A row's set number cell.
 const SET_NUMBER = /^#\d$/;
@@ -67,7 +51,6 @@ const BENCH_PRESS = /^Bench Press/;
 
 beforeEach(() => {
   mockPush.mockClear();
-  mockProfile.current = { measurement_system: "metric" };
 });
 
 describe("PlannedWorkoutExerciseCard", () => {
@@ -75,6 +58,7 @@ describe("PlannedWorkoutExerciseCard", () => {
     await render(
       <PlannedWorkoutExerciseCard
         exercise={BENCH}
+        weightUnit="kg"
         workoutExercise={workoutExercise([
           set(3, { reps_recommended: 8, rest_recommended: 0 }),
           set(1),
@@ -111,11 +95,11 @@ describe("PlannedWorkoutExerciseCard", () => {
     ).toBeTruthy();
   });
 
-  it("shows weights in the Profile's unit", async () => {
-    mockProfile.current = { measurement_system: "us" };
+  it("shows weights in the unit the Plan was read in", async () => {
     await render(
       <PlannedWorkoutExerciseCard
         exercise={BENCH}
+        weightUnit="lbs"
         workoutExercise={workoutExercise([set(1, { weight_recommended: 100 })])}
       />
     );
@@ -130,6 +114,7 @@ describe("PlannedWorkoutExerciseCard", () => {
     await render(
       <PlannedWorkoutExerciseCard
         exercise={BENCH}
+        weightUnit="kg"
         workoutExercise={workoutExercise([set(1), set(2)])}
       />
     );
@@ -145,6 +130,7 @@ describe("PlannedWorkoutExerciseCard", () => {
     await render(
       <PlannedWorkoutExerciseCard
         exercise={BENCH}
+        weightUnit="kg"
         workoutExercise={workoutExercise([set(1)])}
       />
     );
@@ -157,6 +143,7 @@ describe("PlannedWorkoutExerciseCard", () => {
     await render(
       <PlannedWorkoutExerciseCard
         exercise={undefined}
+        weightUnit="kg"
         workoutExercise={workoutExercise([set(1)], "barbell-back-squat")}
       />
     );

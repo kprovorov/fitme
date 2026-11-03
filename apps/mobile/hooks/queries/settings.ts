@@ -11,7 +11,6 @@ import {
   useWorkoutSessionHistoryQuery,
   useWorkoutSessionQuery,
 } from "~/hooks/queries/workout-sessions";
-import { useWorkoutQuery } from "~/hooks/queries/workouts";
 import { publicApi } from "~/lib/public-api";
 import type { WriteStarter } from "~/lib/write-answers";
 
@@ -20,14 +19,15 @@ import type { WriteStarter } from "~/lib/write-answers";
  * converts every stored height and weight on the server, so each of these is
  * in the old unit until it has been read again. Each key is a base key, which
  * matches every one of that query's variables, so a Plan or Workout Session of
- * any id is covered. The Profile is not here: it holds the unit those Screens
- * show, so the switch shows it first (the PATCH answer, or the Profile read
- * again when there was none), before asking for these.
+ * any id is covered. The Profile is not here: it holds the unit the Screens
+ * taking their unit from it show, so the switch shows it first (the PATCH
+ * answer, or the Profile read again when there was none), before asking for
+ * these.
  */
 const WEIGHED_QUERY_KEYS: QueryKey[] = [
   usePlansQuery.getKey(),
+  // A Plan's screen and the Workout screen, which picks its Workout from it.
   usePlanQuery.getKey(),
-  useWorkoutQuery.getKey(),
   // The Workout Session screens, the Exercise screen and the Summary alike.
   useWorkoutSessionQuery.getKey(),
   // No weight of its own yet, but it answers from a Workout Session summary.
