@@ -344,6 +344,25 @@ describe("Switching the measurement system", () => {
     }
   );
 
+  it("leaves them alone when the saved system can't be read back", async () => {
+    await mount();
+    // Offline: the read after the switch fails, and so does the one the
+    // dropped Profile starts. Without it there is no unit to show a
+    // converted number in, so nothing is read again.
+    backend.failNext("profiles", "select");
+    backend.failNext("profiles", "select");
+
+    await switchTo("us");
+
+    expect(Alert.alert).toHaveBeenCalledWith(
+      "Couldn't Check Your Units",
+      expect.any(String)
+    );
+    expect(screen.queryByTestId("picker-value")).toBeNull();
+    expect(historyRow("200 kg")).toBeTruthy();
+    expect(plannedSet("100 kg")).toBeTruthy();
+  });
+
   it("refreshes them when the answer is lost but the switch went through", async () => {
     await mount();
     fakePublicApi.failNext(PROFILE_PATCH, "lost");

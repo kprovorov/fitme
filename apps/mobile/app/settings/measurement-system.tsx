@@ -91,11 +91,13 @@ export default function MeasurementSystemScreen() {
           // submitting a height and weight that may be in the old units.
           queryClient.resetQueries({ queryKey: useProfileQuery.getKey() });
         }
-        // A lost answer can hide a conversion that committed, and the
-        // mutation's own refresh only runs on a success: when the Profile
-        // says the new system is saved, every stored weight is in it, so the
-        // weighed queries are read again as they are after a success.
-        if (error && saved === system) {
+        // Once the Profile says the new system is saved, every stored weight
+        // is in it, so every Screen showing one is read again (FIT-539) —
+        // after the Profile, which is where those Screens take the unit from,
+        // so none of them pairs a converted number with the old unit. A lost
+        // answer can hide a conversion that committed, so the error is no
+        // reason to skip it; a switch that didn't land re-reads nothing.
+        if (saved === system) {
           await invalidateWeighedQueries(queryClient);
         }
         setSwitchingTo(null);

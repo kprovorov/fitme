@@ -17,8 +17,8 @@ import { publicApi } from "~/lib/public-api";
  * converts every stored height and weight on the server, so each of these is
  * in the old unit until it has been read again. Each key is a base key, which
  * matches every one of that query's variables, so a Plan or Workout Session of
- * any id is covered. The Profile is not here: its reader switches the system
- * and reads it again itself.
+ * any id is covered. The Profile is not here: it holds the unit those Screens
+ * show, so its reader reads it first, before asking for these.
  */
 const WEIGHED_QUERY_KEYS: QueryKey[] = [
   usePlansQuery.getKey(),
@@ -34,8 +34,9 @@ const WEIGHED_QUERY_KEYS: QueryKey[] = [
 
 /**
  * Re-reads every mounted Screen showing a weight, so none keeps an old unit's
- * number (FIT-539). Resolves once they have, whether or not each read
- * succeeded: a failed one leaves its Screen on its own error state.
+ * number (FIT-539). Call it with the Profile already read in the new system.
+ * Resolves once they have, whether or not each read succeeded: a failed one
+ * leaves its Screen on its own error state.
  */
 export const invalidateWeighedQueries = async (
   client: QueryClient
@@ -57,10 +58,5 @@ export const useUpdateMeasurementSystemMutation = createMutation<
     await publicApi().PATCH("/v1/profile", {
       body: { measurement_system: measurementSystem },
     });
-  },
-  // On the mutation, not the call: the weights are stale wherever the User
-  // goes next, even if they leave the Screen before the switch lands.
-  onSuccess: async (_data, _system, _result, { client }) => {
-    await invalidateWeighedQueries(client);
   },
 });
