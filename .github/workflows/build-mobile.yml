@@ -95,7 +95,11 @@ jobs:
   listing:
     needs: build
     runs-on: ubuntu-24.04
-    timeout-minutes: 30
+    # The push uploads ~20 screenshots (both Listing locales) one after
+    # another, and Apple's processing takes anywhere from seconds to minutes
+    # per image: a slow run is already ~30 minutes. 30 cancelled v2.4.3's push
+    # half-way through (FIT-534).
+    timeout-minutes: 90
     environment: production
     steps:
       - uses: actions/checkout@v7
