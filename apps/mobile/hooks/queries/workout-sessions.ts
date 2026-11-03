@@ -1,8 +1,17 @@
 import { ApiError, type components } from "@fitme/api-client";
-import type { QueryClient } from "@tanstack/react-query";
+import type {
+  InvalidateQueryFilters,
+  QueryClient,
+} from "@tanstack/react-query";
 import { createMutation, createQuery } from "react-query-kit";
 import type { PlanUpdate } from "~/lib/plan-changes";
 import { publicApi } from "~/lib/public-api";
+import {
+  rememberWriteStarter,
+  type SeedResult,
+  seedWriteAnswer,
+  type WriteStarter,
+} from "~/lib/write-answers";
 
 /**
  * A Workout Session in full, as `GET /v1/workout-sessions/{id}` answers it:
@@ -63,18 +72,24 @@ export const useWorkoutSessionQuery = createQuery<
 });
 
 /**
- * Shows a write's answer as the Workout Session's read, with no re-read: a
- * read of it still in flight was answered before the write and would land
- * on top of the answer, so it's dropped first.
+ * Shows a write's answer (Start's, Finish's) as the Workout Session's read,
+ * so its screens open with no re-read, then invalidates `alsoInvalidate`,
+ * through `seedWriteAnswer`: only while `starter`, the User who started the
+ * write, is still signed in (`signed-out` otherwise, nothing touched), and
+ * only over what the read showed when the write started (`superseded`
+ * otherwise: it's read again instead).
  */
-export const seedWorkoutSession = async (
+export const seedWorkoutSession = (
   client: QueryClient,
-  session: WorkoutSession
-) => {
-  const key = useWorkoutSessionQuery.getKey({ sessionId: session.id });
-  await client.cancelQueries({ exact: true, queryKey: key });
-  client.setQueryData(key, session);
-};
+  starter: WriteStarter | undefined,
+  session: WorkoutSession,
+  alsoInvalidate: InvalidateQueryFilters[] = []
+): Promise<SeedResult> =>
+  seedWriteAnswer(client, starter, {
+    alsoInvalidate,
+    answer: session,
+    queryKey: useWorkoutSessionQuery.getKey({ sessionId: session.id }),
+  });
 
 export interface CreateWorkoutSessionVariables {
   workoutId: string;
@@ -84,11 +99,14 @@ export interface CreateWorkoutSessionVariables {
  * Starts a Workout through `POST /v1/workout-sessions`, or resumes the
  * Workout Session already open for it (the API answers 200 instead of 201,
  * handled alike), and answers the session in full; `useStartWorkout` shows
- * it as the session's read. Rejects with an `ApiError`.
+ * it as the session's read, for the User who started it (its own `onMutate`
+ * remembers them, so a caller passes none). Rejects with an `ApiError`.
  */
 export const useCreateWorkoutSessionMutation = createMutation<
   WorkoutSession,
-  CreateWorkoutSessionVariables
+  CreateWorkoutSessionVariables,
+  Error,
+  WriteStarter
 >({
   mutationFn: async ({
     workoutId,
@@ -101,6 +119,16 @@ export const useCreateWorkoutSessionMutation = createMutation<
     }
     return data.data;
   },
+  // Which session it answers isn't known yet: every Workout Session read
+  // shown now is remembered, so a resumed one seeds only over what it showed.
+  onMutate: (_variables, { client }) =>
+    rememberWriteStarter(
+      client,
+      client
+        .getQueryCache()
+        .findAll({ queryKey: WORKOUT_SESSION_QUERY_KEY })
+        .map(({ queryKey }) => queryKey)
+    ),
 });
 
 /**
@@ -182,12 +210,15 @@ export const FINISH_WORKOUT_SESSION_MUTATION_KEY = ["finish-workout-session"];
  * Finishes a Workout Session through `POST /v1/workout-sessions/{id}/finish`,
  * which moves its Workout to the end of the Plan's rotation, and answers the
  * finished session in full; `useFinishWorkoutSession` shows it as the
- * session's read. An already finished one (a retry, a double tap) is a
- * success. Rejects with an `ApiError`.
+ * session's read, for the User who started it (its own `onMutate` remembers
+ * them, so a caller passes none). An already finished one (a retry, a double
+ * tap) is a success. Rejects with an `ApiError`.
  */
 export const useFinishWorkoutSessionMutation = createMutation<
   WorkoutSession,
-  FinishWorkoutSessionVariables
+  FinishWorkoutSessionVariables,
+  Error,
+  WriteStarter
 >({
   mutationFn: async ({
     sessionId,
@@ -202,6 +233,10 @@ export const useFinishWorkoutSessionMutation = createMutation<
     return data.data;
   },
   mutationKey: FINISH_WORKOUT_SESSION_MUTATION_KEY,
+  onMutate: ({ sessionId }, { client }) =>
+    rememberWriteStarter(client, [
+      useWorkoutSessionQuery.getKey({ sessionId }),
+    ]),
 });
 
 const planUpdateOf = (answer: { data: PlanUpdate } | undefined): PlanUpdate => {

@@ -24,12 +24,18 @@ import WorkoutScreen from "~/app/plans/[planId]/workouts/[workoutId]/index";
 import WorkoutSessionExerciseScreen from "~/app/plans/[planId]/workouts/[workoutId]/sessions/[sessionId]/exercises/[exerciseId]/index";
 import WorkoutSessionSummaryScreen from "~/app/workout-sessions/[workoutSessionId]/summary";
 import WorkoutSessionScreen from "~/components/workout-sessions/workout-session-screen";
+import { useWorkoutSessionQuery } from "~/hooks/queries/workout-sessions";
 import { storage } from "~/lib/mmkv";
 import { libraryExercise, serveLibrary } from "~/test-utils/fake-library";
 import { FAKE_USER_ID, fakePublicApi } from "~/test-utils/fake-public-api";
 import { backend } from "~/test-utils/fake-workout-backend";
-import { createTestQueryClient, settle } from "~/test-utils/query-client";
+import {
+  createTestQueryClient,
+  settle,
+  until,
+} from "~/test-utils/query-client";
 import { pushedRoutes, resetStubRouter } from "~/test-utils/router-stub";
+import { signInAs } from "~/test-utils/signed-in-user";
 
 const mockParams: { current: Record<string, string> } = { current: {} };
 
@@ -54,10 +60,9 @@ jest.mock("~/lib/supabase", () => ({
 }));
 // The real Clerk SDK opens a MessagePort at import that keeps Jest alive.
 jest.mock("~/lib/clerk", () => ({
-  getCurrentUserId: () =>
-    jest.requireActual<typeof import("~/test-utils/fake-public-api")>(
-      "~/test-utils/fake-public-api"
-    ).FAKE_USER_ID,
+  getCurrentUserId: jest.requireActual<
+    typeof import("~/test-utils/signed-in-user")
+  >("~/test-utils/signed-in-user").getCurrentUserId,
 }));
 jest.mock("@sentry/react-native", () => ({ captureException: jest.fn() }));
 jest.mock("~/lib/segment", () => ({ segmentClient: { track: jest.fn() } }));
@@ -97,6 +102,11 @@ jest.mock("~/components/ui/dropdown-menu", () => ({
 }));
 
 const READ = "GET /v1/workout-sessions/{id}";
+const START = "POST /v1/workout-sessions";
+const FINISH = "POST /v1/workout-sessions/{id}/finish";
+const PLAN_UPDATE = "GET /v1/workout-sessions/{id}/plan-update";
+const LIST = "GET /v1/workout-sessions";
+const IN_PROGRESS = { status: "in_progress" };
 const SESSION_LOAD_ERROR =
   "Couldn't load this workout. Check your connection and try again.";
 const EXERCISE_LOAD_ERROR =
@@ -461,25 +471,49 @@ describe("The Workout Summary", () => {
   });
 });
 
+/** Seeds Plan `plan-1` with its Workout `workout-1`, Leg Day, and opens its screen. */
+const mountLegDay = async () => {
+  backend.seedPlan({
+    id: "plan-1",
+    is_active: true,
+    name: "Strength",
+    workouts: [
+      {
+        exercises: [
+          { sets: 2, slug: "squat" },
+          { sets: 1, slug: "bench-press" },
+        ],
+        id: "workout-1",
+        name: "Leg Day",
+      },
+    ],
+  });
+  mockParams.current = { planId: "plan-1", workoutId: "workout-1" };
+  await mount(<WorkoutScreen />);
+};
+
+/** The mutation the test just started, kept past `queryClient.clear()`. */
+const pendingMutation = () => {
+  const [mutation] = queryClient.getMutationCache().getAll();
+  if (!mutation) {
+    throw new Error("No mutation started");
+  }
+  return mutation;
+};
+
+/**
+ * Signs the User out before a write's answer, as AuthSync does (the screen
+ * gone, the cache cleared), and signs `next` in (`null`: nobody).
+ */
+const signOutDuringWrite = async (next: string | null) => {
+  await screen.unmount();
+  queryClient.clear();
+  signInAs(next);
+};
+
 describe("Start and Finish", () => {
   it("opens the Workout Session on Start's answer, with no second read", async () => {
-    backend.seedPlan({
-      id: "plan-1",
-      is_active: true,
-      name: "Strength",
-      workouts: [
-        {
-          exercises: [
-            { sets: 2, slug: "squat" },
-            { sets: 1, slug: "bench-press" },
-          ],
-          id: "workout-1",
-          name: "Leg Day",
-        },
-      ],
-    });
-    mockParams.current = { planId: "plan-1", workoutId: "workout-1" };
-    await mount(<WorkoutScreen />);
+    await mountLegDay();
 
     await fireEvent.press(
       screen.getByRole("button", { name: "Start Workout" })
@@ -539,5 +573,156 @@ describe("Start and Finish", () => {
     expect(screen.getByLabelText("Sets: 1 set")).toBeTruthy();
     expect(fakePublicApi.count(READ)).toBe(1);
     readNothingThroughSupabase();
+  });
+
+  it("opens a resumed Workout Session on Start's answer, its logged sets included, with no read", async () => {
+    await mountLegDay();
+    // Started on another device after the Workout screen read none open.
+    backend.seed({
+      exercises: [{ name: "Squat", sets: [8, null] }],
+      id: "resumed",
+      workoutId: "workout-1",
+    });
+    setSet("resumed-e1-s1", { weight_completed: 100 });
+
+    await fireEvent.press(
+      screen.getByRole("button", { name: "Start Workout" })
+    );
+    await settle(queryClient);
+    expect(fakePublicApi.count(START)).toBe(1);
+    expect(backend.sessions).toHaveLength(1);
+    expect(pushedRoutes().map(({ pathname }) => pathname)).toEqual([
+      "/plans/plan-1/workouts/workout-1/sessions/resumed",
+    ]);
+
+    await render(
+      <QueryClientProvider client={queryClient}>
+        <WorkoutSessionScreen sessionId="resumed" />
+      </QueryClientProvider>
+    );
+    await settle(queryClient);
+
+    expect(screen.getByText("1/2")).toBeTruthy();
+    expect(screen.getByLabelText("Edit set 1")).toBeTruthy();
+    expect(screen.getByText("800 kg")).toBeTruthy();
+    expect(fakePublicApi.count(READ)).toBe(0);
+  });
+});
+
+describe("A late Start or Finish answer", () => {
+  it.each([
+    ["nobody", null],
+    ["another User", "user_next"],
+  ])(
+    "never shows or opens a Start's answer once %s is signed in",
+    async (_, next) => {
+      await mountLegDay();
+      const resume = fakePublicApi.pause(START);
+      await fireEvent.press(
+        screen.getByRole("button", { name: "Start Workout" })
+      );
+      await until(() => fakePublicApi.count(START) === 1);
+      const starting = pendingMutation();
+
+      await signOutDuringWrite(next);
+      const openReads = fakePublicApi.count(LIST, IN_PROGRESS);
+      resume();
+      await until(() => starting.state.status === "success");
+      await settle(queryClient);
+
+      expect(
+        queryClient.getQueriesData({ queryKey: ["workout-session"] })
+      ).toEqual([]);
+      expect(fakePublicApi.count(LIST, IN_PROGRESS)).toBe(openReads);
+      expect(pushedRoutes()).toEqual([]);
+      expect(Alert.alert).not.toHaveBeenCalled();
+    }
+  );
+
+  it.each([
+    ["nobody", null],
+    ["another User", "user_next"],
+  ])(
+    "never shows a Finish's answer or its Summary once %s is signed in",
+    async (_, next) => {
+      backend.seed({
+        exercises: [{ name: "Squat", sets: [8] }],
+        id: "s1",
+        workoutId: "workout-1",
+      });
+      await mountSession();
+      const resume = fakePublicApi.pause(FINISH);
+      await fireEvent.press(screen.getByTestId("finish-workout-button"));
+      await until(() => fakePublicApi.count(FINISH) === 1);
+      const finishing = pendingMutation();
+
+      await signOutDuringWrite(next);
+      // The next User's own read of that key is on its way.
+      const reads = fakePublicApi.count(READ);
+      const resumeRead = fakePublicApi.pause(READ);
+      const nextUsersRead = next
+        ? queryClient.fetchQuery(
+            useWorkoutSessionQuery.getFetchOptions({ sessionId: "s1" })
+          )
+        : null;
+      if (next) {
+        await until(() => fakePublicApi.count(READ) === reads + 1);
+      }
+      const openReads = fakePublicApi.count(LIST, IN_PROGRESS);
+
+      resume();
+      await until(() => finishing.state.status === "success");
+
+      // Not shown, not read again, and the next User's read not cancelled.
+      expect(
+        queryClient.getQueryData(
+          useWorkoutSessionQuery.getKey({ sessionId: "s1" })
+        )
+      ).toBeUndefined();
+      expect(fakePublicApi.count(LIST, IN_PROGRESS)).toBe(openReads);
+      expect(fakePublicApi.count(PLAN_UPDATE)).toBe(0);
+      expect(pushedRoutes()).toEqual([]);
+      resumeRead();
+      if (nextUsersRead) {
+        await expect(nextUsersRead).resolves.toMatchObject({ id: "s1" });
+      }
+      await settle(queryClient);
+      expect(fakePublicApi.count(READ)).toBe(reads + (next ? 1 : 0));
+      expect(pushedRoutes()).toEqual([]);
+    }
+  );
+
+  it("reads the session again instead when a newer read landed before Finish's answer", async () => {
+    backend.seed({
+      exercises: [{ name: "Squat", sets: [8] }],
+      id: "s1",
+      workoutId: "workout-1",
+    });
+    await mountSession();
+    const resume = fakePublicApi.pause(FINISH);
+    await fireEvent.press(screen.getByTestId("finish-workout-button"));
+    await until(() => fakePublicApi.count(FINISH) === 1);
+
+    // A read asked after the finish started lands first (a pull to refresh).
+    await act(async () => {
+      await queryClient.refetchQueries({
+        queryKey: useWorkoutSessionQuery.getKey({ sessionId: "s1" }),
+      });
+    });
+    const reads = fakePublicApi.count(READ);
+
+    resume();
+    await settle(queryClient);
+
+    // The answer isn't put over it: the session is read again, finished.
+    expect(fakePublicApi.count(READ)).toBe(reads + 1);
+    expect(
+      queryClient.getQueryData(
+        useWorkoutSessionQuery.getKey({ sessionId: "s1" })
+      )
+    ).toMatchObject({ finished_at: expect.any(String), id: "s1" });
+    expect(pushedRoutes().map(({ pathname }) => pathname)).toEqual([
+      "/workout-sessions/s1/summary",
+    ]);
   });
 });

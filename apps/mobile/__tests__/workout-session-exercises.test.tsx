@@ -50,6 +50,13 @@ import { SEARCH_BAR_TEST_ID } from "~/test-utils/stack-screen-stub";
 
 const mockParams: { current: Record<string, string> } = { current: {} };
 
+// The real Clerk SDK (reached through the Workout Session's writes) opens a
+// MessagePort at import that keeps Jest alive.
+jest.mock("~/lib/clerk", () => ({
+  getCurrentUserId: jest.requireActual<
+    typeof import("~/test-utils/signed-in-user")
+  >("~/test-utils/signed-in-user").getCurrentUserId,
+}));
 jest.mock("expo-router", () => {
   const { View } =
     jest.requireActual<typeof import("react-native")>("react-native");

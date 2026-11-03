@@ -34,6 +34,13 @@ import {
 } from "~/test-utils/query-client";
 import { PushedRoutes, resetStubRouter } from "~/test-utils/router-stub";
 
+// The real Clerk SDK (reached through the Workout Session's writes) opens a
+// MessagePort at import that keeps Jest alive.
+jest.mock("~/lib/clerk", () => ({
+  getCurrentUserId: jest.requireActual<
+    typeof import("~/test-utils/signed-in-user")
+  >("~/test-utils/signed-in-user").getCurrentUserId,
+}));
 jest.mock("expo-router", () => {
   const stub = jest.requireActual<typeof import("~/test-utils/router-stub")>(
     "~/test-utils/router-stub"

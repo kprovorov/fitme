@@ -30,6 +30,7 @@ import {
   planUpdateProperties,
 } from "~/lib/plan-changes";
 import { segmentClient } from "~/lib/segment";
+import { isStillWriteStarter } from "~/lib/write-answers";
 
 const finishingFilters = (sessionId: string): MutationFilters => ({
   mutationKey: FINISH_WORKOUT_SESSION_MUTATION_KEY,
@@ -183,35 +184,43 @@ export function useFinishWorkoutSession(
   const isFinishing = useIsMutating(filters) > 0;
 
   const { mutate } = useFinishWorkoutSessionMutation({
-    onError: (error) => {
+    onError: (error, _variables, starter) => {
       const waitSeconds = rateLimitedFor(error);
       // Too many requests is the User's to wait out, not a bug.
       if (waitSeconds === null) {
         Sentry.captureException(error);
       }
-      alertFinishFailed(waitSeconds);
+      // Never alert the next User about the previous one's finish.
+      if (isStillWriteStarter(starter)) {
+        alertFinishFailed(waitSeconds);
+      }
     },
-    onSuccess: async (session) => {
+    // Signed out (or another User signed in) before the answer, or at any
+    // step after it: the rest is the previous User's, so it neither shows,
+    // nor reads, nor opens anything.
+    onSuccess: async (session, _variables, starter) => {
       // Every screen of it (the Summary included) shows the answer, with no
-      // re-read; the reads it changed are read again.
-      await seedWorkoutSession(queryClient, session);
-      // Its Workout moved to the end of the rotation.
-      await queryClient.invalidateQueries({ queryKey: PLANS_QUERY_KEY });
-      await queryClient.invalidateQueries({ queryKey: usePlanQuery.getKey() });
-      await queryClient.invalidateQueries({ queryKey: ["exercise-history"] });
-      // History's months and Weekly goal chart count it now (a finish may
-      // also start goal tracking)
-      await queryClient.invalidateQueries({
-        queryKey: ["workout-sessions-history"],
-      });
-      await queryClient.invalidateQueries({
-        queryKey: WEEKLY_GOALS_QUERY_KEY,
-      });
-      // Start is no longer blocked on it.
-      await queryClient.invalidateQueries({
-        queryKey: OPEN_WORKOUT_SESSION_QUERY_KEY,
-      });
+      // re-read (or reads it again, when a newer read landed meanwhile), and
+      // the reads it changed are read again.
+      const seeded = await seedWorkoutSession(queryClient, starter, session, [
+        // Its Workout moved to the end of the rotation.
+        { queryKey: PLANS_QUERY_KEY },
+        { queryKey: usePlanQuery.getKey() },
+        { queryKey: ["exercise-history"] },
+        // History's months and Weekly goal chart count it now (a finish may
+        // also start goal tracking)
+        { queryKey: ["workout-sessions-history"] },
+        { queryKey: WEEKLY_GOALS_QUERY_KEY },
+        // Start is no longer blocked on it.
+        { queryKey: OPEN_WORKOUT_SESSION_QUERY_KEY },
+      ]);
+      if (seeded === "signed-out") {
+        return;
+      }
       const openSummary = () => {
+        if (!isStillWriteStarter(starter)) {
+          return;
+        }
         const summary = `/workout-sessions/${sessionId}/summary` as const;
         if (
           isSessionScreenBelow(
@@ -234,6 +243,9 @@ export function useFinishWorkoutSession(
       }
       if (!preview) {
         openSummary();
+        return;
+      }
+      if (!isStillWriteStarter(starter)) {
         return;
       }
       segmentClient.track("Plan Update Suggested", {

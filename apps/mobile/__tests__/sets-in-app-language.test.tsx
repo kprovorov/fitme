@@ -35,6 +35,13 @@ import {
   settle as settleQueries,
 } from "~/test-utils/query-client";
 
+// The real Clerk SDK (reached through the Workout Session's writes) opens a
+// MessagePort at import that keeps Jest alive.
+jest.mock("~/lib/clerk", () => ({
+  getCurrentUserId: jest.requireActual<
+    typeof import("~/test-utils/signed-in-user")
+  >("~/test-utils/signed-in-user").getCurrentUserId,
+}));
 jest.mock("expo-router", () => ({
   Link: ({ children }: { children: ReactNode }) => children,
   Stack: { Screen: () => null },

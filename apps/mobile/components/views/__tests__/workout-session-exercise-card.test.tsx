@@ -20,6 +20,13 @@ jest.mock("~/lib/supabase", () => ({
     typeof import("~/test-utils/fake-workout-backend")
   >("~/test-utils/fake-workout-backend").fakeSupabase,
 }));
+// The real Clerk SDK (reached through the set rows' saves) opens a
+// MessagePort at import that keeps Jest alive.
+jest.mock("~/lib/clerk", () => ({
+  getCurrentUserId: jest.requireActual<
+    typeof import("~/test-utils/signed-in-user")
+  >("~/test-utils/signed-in-user").getCurrentUserId,
+}));
 jest.mock("~/lib/segment", () => ({ segmentClient: { track: jest.fn() } }));
 jest.mock("~/components/exercises/exercise-image", () => () => null);
 jest.mock("~/components/symbol-image", () => ({ SymbolImage: () => null }));
