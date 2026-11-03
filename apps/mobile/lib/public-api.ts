@@ -7,29 +7,51 @@ export const CLERK_LOAD_TIMEOUT_MS = 10_000;
 
 type Clerk = ReturnType<typeof getClerk>;
 
+/** The one wait for Clerk to load, shared by every request asking meanwhile. */
+let clerkLoading: Promise<void> | null = null;
+
 /**
- * Resolves once Clerk has loaded (`ready`, or `degraded`, which still serves
- * its session), or rejects after `CLERK_LOAD_TIMEOUT_MS`.
+ * Waits for Clerk to load (`ready`, or `degraded`, which still serves its
+ * session), at most `CLERK_LOAD_TIMEOUT_MS`. Every request asking while it
+ * loads shares one wait, so one listener: Clerk's event bus dispatches over
+ * its live list of listeners, and a listener removing itself during that
+ * dispatch would make it skip the next. The listener is removed after the
+ * dispatch, the timer cleared, and the wait forgotten once settled, so a
+ * later load (after a sign-out, or a timeout) starts a fresh one.
  */
-const clerkLoaded = (clerk: Clerk): Promise<void> =>
-  new Promise((resolve, reject) => {
-    if (clerk.loaded) {
-      resolve();
-      return;
-    }
+const clerkLoaded = (clerk: Clerk): Promise<void> => {
+  if (clerk.loaded) {
+    return Promise.resolve();
+  }
+  if (clerkLoading) {
+    return clerkLoading;
+  }
+  const loading = new Promise<void>((resolve, reject) => {
+    const settle = (done: () => void) => {
+      clearTimeout(timer);
+      queueMicrotask(() => clerk.off("status", onStatus));
+      done();
+    };
     const onStatus = (status: Clerk["status"]) => {
       if (status === "ready" || status === "degraded") {
-        clearTimeout(timer);
-        clerk.off("status", onStatus);
-        resolve();
+        settle(resolve);
       }
     };
-    const timer = setTimeout(() => {
-      clerk.off("status", onStatus);
-      reject(new Error("Clerk didn't load"));
-    }, CLERK_LOAD_TIMEOUT_MS);
+    const timer = setTimeout(
+      () => settle(() => reject(new Error("Clerk didn't load"))),
+      CLERK_LOAD_TIMEOUT_MS
+    );
     clerk.on("status", onStatus, { notify: true });
   });
+  clerkLoading = loading;
+  const forget = () => {
+    if (clerkLoading === loading) {
+      clerkLoading = null;
+    }
+  };
+  loading.then(forget, forget);
+  return loading;
+};
 
 /**
  * The signed-in User's Clerk session token, once Clerk has loaded: a screen

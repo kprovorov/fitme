@@ -30,29 +30,36 @@ type Status = "loading" | "ready" | "degraded" | "error";
 type Session = { getToken: () => Promise<string | null> } | null;
 
 // The Clerk instance `getClerk()` answers: loading until the test emits a
-// status, which `on(…, { notify: true })` replays to a later listener.
+// status. Like Clerk's own event bus, it dispatches over its live list of
+// listeners, which `off()` splices (so a listener removing itself during a
+// dispatch makes it skip the next), and `on(…, { notify: true })` replays the
+// last status to a later listener.
 const mockClerk = {
   emit(status: Status, session: Session) {
     this.status = status;
     this.loaded = status === "ready" || status === "degraded";
     this.session = session;
     this.emitted = status;
-    for (const handler of [...this.handlers]) {
-      handler(status);
+    // biome-ignore lint/style/useForOf: indexes the live list, as Clerk's bus does
+    for (let index = 0; index < this.handlers.length; index += 1) {
+      this.handlers[index]?.(status);
     }
   },
   emitted: null as Status | null,
-  handlers: new Set<(status: Status) => void>(),
+  handlers: [] as Array<(status: Status) => void>,
   loaded: false,
   off(_event: "status", handler: (status: Status) => void) {
-    this.handlers.delete(handler);
+    const index = this.handlers.indexOf(handler);
+    if (index !== -1) {
+      this.handlers.splice(index, 1);
+    }
   },
   on(
     _event: "status",
     handler: (status: Status) => void,
     options?: { notify: boolean }
   ) {
-    this.handlers.add(handler);
+    this.handlers.push(handler);
     if (options?.notify && this.emitted) {
       handler(this.emitted);
     }
@@ -79,7 +86,7 @@ beforeEach(() => {
   // Neither client is given a `fetch`: they use the global one.
   globalThis.fetch = ((url: string, init: RequestInit) =>
     fakePublicApi.fetch(url, init)) as typeof fetch;
-  mockClerk.handlers.clear();
+  mockClerk.handlers = [];
   mockClerk.emitted = null;
   mockClerk.loaded = false;
   mockClerk.session = null;
@@ -136,14 +143,33 @@ describe("publicApi", () => {
     jest.useFakeTimers();
     const read = readProfile();
     await jest.advanceTimersByTimeAsync(0);
-    expect(mockClerk.handlers.size).toBe(1);
+    expect(mockClerk.handlers.length).toBe(1);
 
     mockClerk.emit("ready", signedIn);
     // The fake Public API answers on its next tick.
     await jest.advanceTimersByTimeAsync(0);
 
     await expect(read).resolves.toMatchObject({ data: { data: null } });
-    expect(mockClerk.handlers.size).toBe(0);
+    expect(mockClerk.handlers.length).toBe(0);
+    expect(jest.getTimerCount()).toBe(0);
+  });
+
+  it("sends every request that waited, with the session token, once Clerk has loaded", async () => {
+    jest.useFakeTimers();
+    const profile = readProfile();
+    const plans = publicApi().GET("/v1/plans");
+    await jest.advanceTimersByTimeAsync(0);
+    expect(fakePublicApi.requests).toEqual([]);
+
+    mockClerk.emit("ready", signedIn);
+    await jest.advanceTimersByTimeAsync(0);
+
+    await expect(profile).resolves.toMatchObject({ data: { data: null } });
+    await expect(plans).resolves.toMatchObject({ data: { data: [] } });
+    expect(
+      fakePublicApi.requests.map(({ authorization }) => authorization)
+    ).toEqual([`Bearer ${FAKE_SESSION_TOKEN}`, `Bearer ${FAKE_SESSION_TOKEN}`]);
+    expect(mockClerk.handlers).toHaveLength(0);
     expect(jest.getTimerCount()).toBe(0);
   });
 
@@ -176,7 +202,17 @@ describe("publicApi", () => {
 
     await failed;
     expect(fakePublicApi.requests).toEqual([]);
-    expect(mockClerk.handlers.size).toBe(0);
+    await jest.advanceTimersByTimeAsync(0);
+    expect(mockClerk.handlers).toHaveLength(0);
+
+    // The wait that timed out is forgotten: a later request waits afresh and
+    // is sent once Clerk loads.
+    const later = readProfile();
+    await jest.advanceTimersByTimeAsync(0);
+    mockClerk.emit("ready", signedIn);
+    await jest.advanceTimersByTimeAsync(0);
+    await expect(later).resolves.toMatchObject({ data: { data: null } });
+    expect(fakePublicApi.count("GET /v1/profile")).toBe(1);
   });
 });
 
