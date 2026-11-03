@@ -10,6 +10,7 @@ import { useDeleteUserMutation } from "~/hooks/mutations/auth";
 import { useProfileQuery } from "~/hooks/queries/profiles";
 import { useChoiceLabels } from "~/lib/choices";
 import { i18n } from "~/lib/i18n";
+import { measurementSystemOf } from "~/lib/profile";
 
 export default function SettingsScreen() {
   const { user } = useUser();
@@ -46,9 +47,11 @@ export default function SettingsScreen() {
                   <HStack className="flex-1 justify-between">
                     <Text>{t("settings.measurementSystem")}</Text>
                     <Text className="text-footnote text-muted-foreground">
-                      {labels.measurementSystem(
-                        profile?.measurement_system ?? "metric"
-                      )}
+                      {profile === undefined
+                        ? null
+                        : labels.measurementSystem(
+                            measurementSystemOf(profile)
+                          )}
                     </Text>
                   </HStack>
                 </MenuListItem>

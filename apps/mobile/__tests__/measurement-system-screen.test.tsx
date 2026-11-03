@@ -18,6 +18,7 @@ import { fireEvent, render, screen } from "@testing-library/react-native";
 import { useCallback } from "react";
 import { Alert, Pressable, Text } from "react-native";
 import MeasurementSystemScreen from "~/app/settings/measurement-system";
+import { useProfileQuery } from "~/hooks/queries/profiles";
 import { i18n } from "~/lib/i18n";
 import { setDeviceLanguages } from "~/test-utils/device-locales";
 import {
@@ -32,6 +33,7 @@ import {
   settle,
   until,
 } from "~/test-utils/query-client";
+import { signInAs } from "~/test-utils/signed-in-user";
 
 jest.mock("expo-router", () => ({ Stack: { Screen: () => null } }));
 
@@ -48,10 +50,9 @@ jest.mock("~/lib/supabase", () => ({
 }));
 
 jest.mock("~/lib/clerk", () => ({
-  getCurrentUserId: () =>
-    jest.requireActual<typeof import("~/test-utils/fake-public-api")>(
-      "~/test-utils/fake-public-api"
-    ).FAKE_USER_ID,
+  getCurrentUserId: jest.requireActual<
+    typeof import("~/test-utils/signed-in-user")
+  >("~/test-utils/signed-in-user").getCurrentUserId,
 }));
 
 // Buttons of the stand-ins below. Top-level (and `mock`-prefixed, so the
@@ -185,7 +186,12 @@ jest.mock("~/components/ui/alert-dialog", () => {
   };
 });
 
+const PROFILE_GET = "GET /v1/profile";
 const PROFILE_PATCH = "PATCH /v1/profile";
+
+/** Every request but the Profile's reads. */
+const writes = () =>
+  fakePublicApi.requests.filter(({ route }) => route !== PROFILE_GET);
 
 const alerts = () =>
   (Alert.alert as jest.Mock).mock.calls as [string, string][];
@@ -230,7 +236,7 @@ describe("MeasurementSystemScreen", () => {
 
     await switchTo("us");
 
-    expect(fakePublicApi.requests).toEqual([
+    expect(writes()).toEqual([
       {
         authorization: `Bearer ${FAKE_SESSION_TOKEN}`,
         body: { measurement_system: "us" },
@@ -245,8 +251,8 @@ describe("MeasurementSystemScreen", () => {
       weight: 176.37,
     });
     expect(backend.sets[0]?.weight_completed).toBe(220.46);
-    // The Profile is read again, and the picker shows what it says.
-    expect(backend.count("profiles", "select")).toBe(2);
+    // The answer shows as the Profile, with no second read.
+    expect(fakePublicApi.count(PROFILE_GET)).toBe(1);
     expect(shown()).toHaveTextContent("us");
     expect(screen.getByTestId("picker")).not.toBeDisabled();
     expect(Alert.alert).not.toHaveBeenCalled();
@@ -286,7 +292,7 @@ describe("MeasurementSystemScreen", () => {
 
     await fireEvent.press(screen.getByTestId("option-us"));
     expect(screen.getByTestId("confirm-dialog")).toBeTruthy();
-    expect(fakePublicApi.requests).toEqual([]);
+    expect(writes()).toEqual([]);
   });
 
   it("does nothing when the saved system is picked", async () => {
@@ -296,7 +302,7 @@ describe("MeasurementSystemScreen", () => {
 
     expect(screen.queryByTestId("confirm-dialog")).toBeNull();
     expect(shown()).toHaveTextContent("metric");
-    expect(fakePublicApi.requests).toEqual([]);
+    expect(writes()).toEqual([]);
   });
 
   it.each([
@@ -321,6 +327,8 @@ describe("MeasurementSystemScreen", () => {
         height: 180,
         measurement_system: "metric",
       });
+      // No answer: the Profile is read again to learn what was saved.
+      expect(fakePublicApi.count(PROFILE_GET)).toBe(2);
       expect(shown()).toHaveTextContent("metric");
       expect(screen.getByTestId("picker")).not.toBeDisabled();
 
@@ -354,10 +362,15 @@ describe("MeasurementSystemScreen", () => {
 
     await switchTo("us");
 
-    expect(alerts().map(([title]) => title)).toEqual(["Couldn't Change Units"]);
-    expect(fakePublicApi.requests).toEqual([]);
+    // Neither the switch nor the Profile's read back can be sent.
+    expect(alerts().map(([title]) => title)).toEqual([
+      "Couldn't Check Your Units",
+    ]);
+    expect(writes()).toEqual([]);
+    expect(fakePublicApi.count(PROFILE_GET)).toBe(1);
+    expect(backend.count("profiles", "select")).toBe(0);
     expect(backend.profile(FAKE_USER_ID)?.measurement_system).toBe("metric");
-    expect(shown()).toHaveTextContent("metric");
+    expect(screen.getByText("Try Again")).toBeTruthy();
   });
 
   it("shows no error when the answer is lost but the switch went through", async () => {
@@ -371,12 +384,13 @@ describe("MeasurementSystemScreen", () => {
     expect(Alert.alert).not.toHaveBeenCalled();
   });
 
-  it("says it couldn't check when the switch succeeds but the Profile can't be read", async () => {
+  it("says it couldn't check when the answer is lost and the Profile can't be read", async () => {
     await mount();
+    fakePublicApi.failNext(PROFILE_PATCH, "lost");
     // Offline: the read after the switch fails, and so does the one the
     // dropped Profile starts.
-    backend.failNext("profiles", "select");
-    backend.failNext("profiles", "select");
+    fakePublicApi.failNext(PROFILE_GET, "network");
+    fakePublicApi.failNext(PROFILE_GET, "network");
 
     await switchTo("us");
 
@@ -391,7 +405,7 @@ describe("MeasurementSystemScreen", () => {
   it("shows a loading state until the saved system has loaded", async () => {
     backend.profiles = [];
     backend.seedProfile(FAKE_USER_ID, { measurement_system: "us" });
-    const resume = backend.pause("profiles", "select");
+    const resume = fakePublicApi.pause(PROFILE_GET);
     queryClient = createTestQueryClient();
     await render(
       <QueryClientProvider client={queryClient}>
@@ -411,13 +425,119 @@ describe("MeasurementSystemScreen", () => {
   });
 
   it("offers a retry when the saved system can't be loaded", async () => {
-    backend.failNext("profiles", "select");
+    fakePublicApi.failNext(PROFILE_GET, { status: 503 });
     await mount();
+
+    expect(
+      screen.getByText(
+        "Couldn't load your measurement system. Please check your connection and try again."
+      )
+    ).toBeTruthy();
+    expect(screen.queryByTestId("picker")).toBeNull();
+    // Never through Supabase.
+    expect(backend.count("profiles", "select")).toBe(0);
 
     await fireEvent.press(screen.getByText("Try Again"));
     await settle(queryClient);
 
     expect(shown()).toHaveTextContent("metric");
+  });
+
+  it("says how long to wait when loading the saved system was rate limited", async () => {
+    fakePublicApi.failNext(PROFILE_GET, { retryAfterSeconds: 42, status: 429 });
+    await mount();
+
+    expect(
+      screen.getByText("Too many requests: please try again in 42 s.")
+    ).toBeTruthy();
+    expect(screen.getByText("Try Again")).toBeTruthy();
+    expect(screen.queryByTestId("picker")).toBeNull();
+  });
+
+  it("keeps the saved system shown when reading it again fails", async () => {
+    await mount();
+    fakePublicApi.failNext(PROFILE_GET, { status: 503 });
+
+    await queryClient.refetchQueries({ queryKey: ["profile"] });
+    await settle(queryClient);
+
+    expect(fakePublicApi.count(PROFILE_GET)).toBe(2);
+    expect(shown()).toHaveTextContent("metric");
+    expect(screen.queryByText("Try Again")).toBeNull();
+  });
+
+  it("never shows a switch's late answer to the next User who signs in", async () => {
+    const { unmount } = await mount();
+    const resumeSwitch = fakePublicApi.pause(PROFILE_PATCH);
+    await fireEvent.press(screen.getByTestId("option-us"));
+    await fireEvent.press(screen.getByText("Confirm"));
+    await until(() => fakePublicApi.count(PROFILE_PATCH) === 1);
+    // Clearing the cache drops the switch from it, not its callbacks.
+    const [switching] = queryClient.getMutationCache().getAll();
+
+    // Signed out before the answer (AuthSync clears the cache), and another
+    // User signs in, whose Profile read is on its way.
+    await unmount();
+    queryClient.clear();
+    signInAs("user_next");
+    const resumeRead = fakePublicApi.pause(PROFILE_GET);
+    const nextUsersRead = queryClient.fetchQuery(
+      useProfileQuery.getFetchOptions()
+    );
+    await until(() => fakePublicApi.count(PROFILE_GET) === 2);
+
+    resumeSwitch();
+    await until(() => switching?.state.status === "success");
+
+    // Neither shown nor read again for the next User.
+    expect(queryClient.getQueryData(useProfileQuery.getKey())).toBeUndefined();
+    expect(fakePublicApi.count(PROFILE_GET)).toBe(2);
+    expect(fakePublicApi.count("GET /v1/workout-sessions")).toBe(0);
+    // The one fake account stands for the next User's here.
+    backend.profiles = [];
+    backend.seedProfile(FAKE_USER_ID, { measurement_system: "uk" });
+    resumeRead();
+    // Their read isn't cancelled.
+    await expect(nextUsersRead).resolves.toMatchObject({
+      measurement_system: "uk",
+    });
+    expect(Alert.alert).not.toHaveBeenCalled();
+  });
+
+  it("leaves the next User's Profile read alone when signing out ends the read back", async () => {
+    const { unmount } = await mount();
+    // No answer, so the Profile is read back, and that read is held.
+    fakePublicApi.failNext(PROFILE_PATCH, "lost");
+    const resumeReads = fakePublicApi.pause(PROFILE_GET);
+    await fireEvent.press(screen.getByTestId("option-us"));
+    await fireEvent.press(screen.getByText("Confirm"));
+    await until(() => fakePublicApi.count(PROFILE_GET) === 2);
+    const [switching] = queryClient.getMutationCache().getAll();
+
+    // Signing out clears the cache, which ends the read back, and another
+    // User signs in, whose Profile read is on its way.
+    await unmount();
+    queryClient.clear();
+    signInAs("user_next");
+    const nextUsersRead = queryClient.fetchQuery(
+      useProfileQuery.getFetchOptions()
+    );
+    await until(() => fakePublicApi.count(PROFILE_GET) === 3);
+    await until(() => switching?.state.status === "error");
+
+    // The one fake account stands for the next User's here.
+    backend.profiles = [];
+    backend.seedProfile(FAKE_USER_ID, { measurement_system: "uk" });
+    resumeReads();
+    // Their read isn't cancelled (no reset of their Profile).
+    await expect(nextUsersRead).resolves.toMatchObject({
+      measurement_system: "uk",
+    });
+    expect(queryClient.getQueryData(useProfileQuery.getKey())).toMatchObject({
+      measurement_system: "uk",
+    });
+    expect(fakePublicApi.count("GET /v1/workout-sessions")).toBe(0);
+    expect(Alert.alert).not.toHaveBeenCalled();
   });
 
   it("shows no alert when the switch finishes after the Screen is gone", async () => {
@@ -432,7 +552,7 @@ describe("MeasurementSystemScreen", () => {
     resume();
     await settle(queryClient);
 
-    expect(backend.count("profiles", "select")).toBe(2);
+    expect(fakePublicApi.count(PROFILE_GET)).toBe(2);
     expect(Alert.alert).not.toHaveBeenCalled();
   });
 });

@@ -7,6 +7,7 @@ import { resetMuscleChoices } from "~/hooks/muscle-choice";
 import { resetDeviceLanguages } from "~/test-utils/device-locales";
 import { fakePublicApi } from "~/test-utils/fake-public-api";
 import { clearTestQueryClients } from "~/test-utils/query-client";
+import { resetSignedInUser } from "~/test-utils/signed-in-user";
 
 // Drops each test's queries and mutations, with any timer they hold. Runs
 // after @testing-library/react-native's own cleanup (registered when
@@ -36,4 +37,10 @@ afterEach(() => {
 // tab's choice lives in memory, outliving its screen.
 afterEach(() => {
   resetMuscleChoices();
+});
+
+// Every test starts with the fake Public API's User signed in, whoever the
+// last one signed in (`signInAs`).
+afterEach(() => {
+  resetSignedInUser();
 });

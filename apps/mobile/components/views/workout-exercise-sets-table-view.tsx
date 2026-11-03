@@ -5,6 +5,7 @@ import type { ReactNode } from "react";
 import { useTranslation } from "react-i18next";
 import { View } from "react-native";
 import { useProfileQuery } from "~/hooks/queries/profiles";
+import { measurementSystemOf } from "~/lib/profile";
 import { describeSetTarget, formatSetTarget } from "~/lib/set-inputs";
 import { cn } from "~/lib/utils";
 import {
@@ -76,7 +77,7 @@ export default function WorkoutExerciseSetsTableView({
   const { i18n, t } = useTranslation();
   const weightLabel = unitName(
     i18n,
-    weightUnitOf(profile?.measurement_system ?? "metric")
+    weightUnitOf(measurementSystemOf(profile))
   );
 
   return (

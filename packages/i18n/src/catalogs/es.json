@@ -465,7 +465,8 @@
     "profile": {
       "title": "Vamos a conocerte",
       "description": "Usaremos esta información para personalizar tu experiencia.",
-      "next": "Siguiente"
+      "next": "Siguiente",
+      "loadError": "No se ha podido cargar tu perfil. Comprueba tu conexión e inténtalo de nuevo."
     }
   },
   "profileForm": {

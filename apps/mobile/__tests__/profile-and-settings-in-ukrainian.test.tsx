@@ -1,7 +1,7 @@
 /**
  * The Profile screen, Settings, Legal and Support on a Ukrainian device: the real
  * screens under the root layout's language sync, with Supabase swapped for the
- * in-memory backend, Clerk for a signed-in User, RevenueCat for a free plan
+ * in-memory backend and the Public API's `fetch` for its fake, Clerk for a signed-in User, RevenueCat for a free plan
  * and the SwiftUI-backed primitives for stand-ins.
  */
 import { beforeEach, describe, expect, it, jest } from "@jest/globals";
@@ -14,7 +14,7 @@ import SettingsScreen from "~/app/settings";
 import SupportScreen from "~/app/support";
 import ProfileView from "~/components/views/profile-view";
 import { setDeviceLanguages } from "~/test-utils/device-locales";
-import { FAKE_USER_ID } from "~/test-utils/fake-public-api";
+import { FAKE_USER_ID, fakePublicApi } from "~/test-utils/fake-public-api";
 import { backend } from "~/test-utils/fake-workout-backend";
 import { InAppLanguage } from "~/test-utils/in-app-language";
 import { createTestQueryClient, settle } from "~/test-utils/query-client";
@@ -161,7 +161,10 @@ describe("Profile and Settings on a Ukrainian device", () => {
 
     expect(screen.getByText("Налаштування")).toBeTruthy();
     expect(screen.getByText("Система вимірювання")).toBeTruthy();
+    // The saved system, read through the Public API.
     expect(screen.getByText("США")).toBeTruthy();
+    expect(fakePublicApi.count("GET /v1/profile")).toBe(1);
+    expect(backend.count("profiles", "select")).toBe(0);
     // The menu item, then the confirmation's title.
     expect(screen.getAllByText("Видалити акаунт")).toHaveLength(2);
     expect(

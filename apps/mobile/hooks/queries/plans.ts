@@ -8,6 +8,11 @@ import { IS_E2E } from "~/lib/constants";
 import type { NewPlan } from "~/lib/plan-card";
 import { publicApi } from "~/lib/public-api";
 import { segmentClient } from "~/lib/segment";
+import {
+  rememberWriteStarter,
+  seedWriteAnswer,
+  type WriteStarter,
+} from "~/lib/write-answers";
 
 /** A Plan as `GET /v1/plans` lists it: its Workouts summarised. */
 export type PlanSummary = components["schemas"]["PlanSummary"];
@@ -103,26 +108,31 @@ export const usePlanQuery = createQuery<FullPlan | null, PlanQueryVariables>({
 
 /**
  * After a write answering the Plan in full: that Plan's query shows the
- * answer as is (no re-read, and a read in flight is cancelled), every other Plan read (the lists, the active
- * Plan, the other Plans, whose `is_active` may have changed) and the Weekly
- * goal (the active Plan's frequency) are read again.
+ * answer as is (no re-read; a read of it in flight is cancelled), unless
+ * something newer landed in it since the write started, when it's read again
+ * (`seedWriteAnswer`). Every other Plan read (the lists, the active Plan, the
+ * other Plans, whose `is_active` may have changed) and the Weekly goal (the
+ * active Plan's frequency) are read again, all only while the User who
+ * started the write is still signed in.
  */
-const seedPlan = async (client: QueryClient, plan: FullPlan) => {
-  const planKey = usePlanQuery.getKey({ id: plan.id });
-  // A read of it still in flight (a pull to refresh) was answered before the
-  // write and would land on top of the answer: it's dropped.
-  await client.cancelQueries({ exact: true, queryKey: planKey });
-  client.setQueryData(planKey, plan);
-  await Promise.all([
-    client.invalidateQueries({ queryKey: PLANS_QUERY_KEY }),
-    client.invalidateQueries({
-      predicate: ({ queryKey }) =>
-        queryKey[0] === "plan" &&
-        (queryKey[1] as PlanQueryVariables | undefined)?.id !== plan.id,
-    }),
-    client.invalidateQueries({ queryKey: WEEKLY_GOALS_QUERY_KEY }),
-  ]);
-};
+const seedPlan = (
+  client: QueryClient,
+  plan: FullPlan,
+  starter: WriteStarter | undefined
+) =>
+  seedWriteAnswer(client, starter, {
+    alsoInvalidate: [
+      { queryKey: PLANS_QUERY_KEY },
+      {
+        predicate: ({ queryKey }) =>
+          queryKey[0] === "plan" &&
+          (queryKey[1] as PlanQueryVariables | undefined)?.id !== plan.id,
+      },
+      { queryKey: WEEKLY_GOALS_QUERY_KEY },
+    ],
+    answer: plan,
+    queryKey: usePlanQuery.getKey({ id: plan.id }),
+  });
 
 /**
  * Saves a Plan through `POST /v1/plans` and makes it the active one, in one
@@ -131,7 +141,12 @@ const seedPlan = async (client: QueryClient, plan: FullPlan) => {
  * the Plan lists again. Answers the new Plan; rejects with an `ApiError`
  * (`unknown_exercises`, `library_unavailable`, …).
  */
-export const useCreatePlanMutation = createMutation<FullPlan, NewPlan>({
+export const useCreatePlanMutation = createMutation<
+  FullPlan,
+  NewPlan,
+  Error,
+  WriteStarter
+>({
   mutationFn: async (plan: NewPlan): Promise<FullPlan> => {
     const { data } = await publicApi().POST("/v1/plans", {
       body: { ...plan, activate: true },
@@ -146,9 +161,11 @@ export const useCreatePlanMutation = createMutation<FullPlan, NewPlan>({
     }
     return data.data;
   },
-  // On the mutation, not the call: it still runs once the card is gone.
-  onSuccess: async (plan, _variables, _result, { client }) => {
-    await seedPlan(client, plan);
+  // On the mutation, not the call: it still runs once the card is gone. The
+  // new Plan has no query yet, so there's no revision to remember.
+  onMutate: (_plan, { client }) => rememberWriteStarter(client, []),
+  onSuccess: async (plan, _variables, starter, { client }) => {
+    await seedPlan(client, plan, starter);
   },
 });
 
@@ -156,29 +173,34 @@ export const useCreatePlanMutation = createMutation<FullPlan, NewPlan>({
  * Makes the Plan the User's active one through
  * `POST /v1/plans/{id}/activate`; every other Plan of theirs goes inactive.
  * Shows the Plan from the answer and reads every other Plan read again; a
- * caller passing its own `onSuccess` to the hook replaces that, so pass it
- * to `mutate` instead. Rejects with an `ApiError`.
+ * caller passing its own `onMutate` or `onSuccess` to the hook replaces
+ * that, so pass `onSuccess` to `mutate` instead. Rejects with an `ApiError`.
  */
-export const useActivatePlanMutation = createMutation<FullPlan, { id: string }>(
-  {
-    mutationFn: async ({ id }: { id: string }): Promise<FullPlan> => {
-      const { data } = await publicApi().POST("/v1/plans/{id}/activate", {
-        params: { path: { id } },
-      });
-      if (!data) {
-        throw new ApiError("Public API answered no Plan");
-      }
-      if (!IS_E2E) {
-        segmentClient.track("Plan Activated", { plan_id: id });
-      }
-      return data.data;
-    },
-    // On the mutation, not the call: it still runs once the screen is gone.
-    onSuccess: async (plan, _variables, _result, { client }) => {
-      await seedPlan(client, plan);
-    },
-  }
-);
+export const useActivatePlanMutation = createMutation<
+  FullPlan,
+  { id: string },
+  Error,
+  WriteStarter
+>({
+  mutationFn: async ({ id }: { id: string }): Promise<FullPlan> => {
+    const { data } = await publicApi().POST("/v1/plans/{id}/activate", {
+      params: { path: { id } },
+    });
+    if (!data) {
+      throw new ApiError("Public API answered no Plan");
+    }
+    if (!IS_E2E) {
+      segmentClient.track("Plan Activated", { plan_id: id });
+    }
+    return data.data;
+  },
+  // On the mutation, not the call: it still runs once the screen is gone.
+  onMutate: ({ id }, { client }) =>
+    rememberWriteStarter(client, [usePlanQuery.getKey({ id })]),
+  onSuccess: async (plan, _variables, starter, { client }) => {
+    await seedPlan(client, plan, starter);
+  },
+});
 
 /**
  * Soft-deletes the Plan through `DELETE /v1/plans/{id}` (its Workout Sessions

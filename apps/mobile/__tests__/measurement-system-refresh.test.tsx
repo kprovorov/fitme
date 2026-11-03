@@ -8,7 +8,7 @@
  */
 import { beforeEach, describe, expect, it, jest } from "@jest/globals";
 import { QueryClientProvider } from "@tanstack/react-query";
-import { fireEvent, render, screen } from "@testing-library/react-native";
+import { act, fireEvent, render, screen } from "@testing-library/react-native";
 import { type ReactNode, useCallback } from "react";
 import { Alert, Pressable } from "react-native";
 import HistoryScreen from "~/app/(tabs)/history/index";
@@ -20,7 +20,11 @@ import {
   fakePublicApi,
 } from "~/test-utils/fake-public-api";
 import { backend, type SeedPlan } from "~/test-utils/fake-workout-backend";
-import { createTestQueryClient, settle } from "~/test-utils/query-client";
+import {
+  createTestQueryClient,
+  settle,
+  until,
+} from "~/test-utils/query-client";
 
 jest.mock("expo-router", () => ({
   Link: ({ children }: { children: ReactNode }) => children,
@@ -73,7 +77,7 @@ jest.mock("~/lib/supabase", () => ({
   >("~/test-utils/fake-workout-backend").fakeSupabase,
 }));
 
-// The real Clerk SDK (reached through the Profile read) opens a MessagePort
+// The real Clerk SDK (reached through the Supabase reads) opens a MessagePort
 // at import that keeps Jest alive.
 jest.mock("~/lib/clerk", () => ({
   getCurrentUserId: () =>
@@ -188,6 +192,8 @@ jest.mock("~/components/ui/alert-dialog", () => {
 });
 
 const PROFILE_PATCH = "PATCH /v1/profile";
+/** History's volume once converted to pounds. */
+const CONVERTED_VOLUME = /440\.92/;
 const MINUTE_MS = 60_000;
 
 /** A Plan whose Leg Day has one 5 × 100 kg set. */
@@ -344,13 +350,14 @@ describe("Switching the measurement system", () => {
     }
   );
 
-  it("leaves them alone when the saved system can't be read back", async () => {
+  it("leaves them alone when the answer is lost and the saved system can't be read back", async () => {
     await mount();
+    fakePublicApi.failNext(PROFILE_PATCH, "lost");
     // Offline: the read after the switch fails, and so does the one the
     // dropped Profile starts. Without it there is no unit to show a
     // converted number in, so nothing is read again.
-    backend.failNext("profiles", "select");
-    backend.failNext("profiles", "select");
+    fakePublicApi.failNext("GET /v1/profile", "network");
+    fakePublicApi.failNext("GET /v1/profile", "network");
 
     await switchTo("us");
 
@@ -361,6 +368,74 @@ describe("Switching the measurement system", () => {
     expect(screen.queryByTestId("picker-value")).toBeNull();
     expect(historyRow("200 kg")).toBeTruthy();
     expect(plannedSet("100 kg")).toBeTruthy();
+  });
+
+  it("leaves them alone when a newer Profile superseded the answer and can't be read back", async () => {
+    await mount();
+    const resumeSwitch = fakePublicApi.pause(PROFILE_PATCH);
+    await fireEvent.press(screen.getByTestId("option-us"));
+    await fireEvent.press(screen.getByTestId("dialog-Confirm"));
+    await until(() => fakePublicApi.count(PROFILE_PATCH) === 1);
+    // A refresh of the Profile lands while the switch waits for its answer,
+    // so the answer can't be shown as is; then every read of it is refused.
+    const profile = backend.profile(FAKE_USER_ID);
+    if (profile) {
+      // Another device changed the age.
+      profile.age = 41;
+    }
+    await act(() => queryClient.refetchQueries({ queryKey: ["profile"] }));
+    for (let read = 0; read < 4; read += 1) {
+      fakePublicApi.failNext("GET /v1/profile", {
+        retryAfterSeconds: 42,
+        status: 429,
+      });
+    }
+    const weighedReads = fakePublicApi.count("GET /v1/workout-sessions");
+
+    resumeSwitch();
+    await settle(queryClient);
+
+    // The saved system can't be confirmed, so nothing is read again into
+    // units the Screens couldn't name.
+    expect(Alert.alert).toHaveBeenCalledWith(
+      "Couldn't Check Your Units",
+      expect.any(String)
+    );
+    expect(fakePublicApi.count("GET /v1/workout-sessions")).toBe(weighedReads);
+    expect(historyRow("200 kg")).toBeTruthy();
+    expect(plannedSet("100 kg")).toBeTruthy();
+    expect(screen.queryByText(CONVERTED_VOLUME)).toBeNull();
+  });
+
+  it("refreshes them from the Profile read again when a newer one superseded the answer", async () => {
+    await mount();
+    const resumeSwitch = fakePublicApi.pause(PROFILE_PATCH);
+    await fireEvent.press(screen.getByTestId("option-us"));
+    await fireEvent.press(screen.getByTestId("dialog-Confirm"));
+    await until(() => fakePublicApi.count(PROFILE_PATCH) === 1);
+    // A refresh of the Profile lands while the switch waits for its answer,
+    // so the answer can't be shown as is and the Profile is read again. That
+    // read succeeds; any further one would be refused.
+    const profile = backend.profile(FAKE_USER_ID);
+    if (profile) {
+      // Another device changed the age.
+      profile.age = 41;
+    }
+    await act(() => queryClient.refetchQueries({ queryKey: ["profile"] }));
+    fakePublicApi.failNext("GET /v1/profile", "pass");
+    fakePublicApi.failNext("GET /v1/profile", {
+      retryAfterSeconds: 42,
+      status: 429,
+    });
+
+    resumeSwitch();
+    await settle(queryClient);
+
+    // The read confirmed the switch: no further read, no alert, and every
+    // weight is read again in pounds.
+    expect(Alert.alert).not.toHaveBeenCalled();
+    expect(historyRow("440.92 lbs")).toBeTruthy();
+    expect(plannedSet("220.46 lbs")).toBeTruthy();
   });
 
   it("refreshes them when the answer is lost but the switch went through", async () => {

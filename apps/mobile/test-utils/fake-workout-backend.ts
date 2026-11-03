@@ -1,8 +1,8 @@
 import { libraryExercise } from "./fake-library";
 
 /**
- * In-memory stand-in for the Supabase client, covering the Profile, Plan and
- * Workout reads and the workout session queries and mutations the session screens
+ * In-memory stand-in for the Supabase client, covering the Plan and Workout
+ * reads and the workout session queries and mutations the session screens
  * make. The fake Public API (`fake-public-api.ts`) answers over the same rows,
  * so a write through it shows in the next Supabase read. Rows live in plain
  * arrays and every request resolves asynchronously, like the network would,
@@ -483,7 +483,8 @@ class FakeQuery {
     const key = `${this.table}.${this.operation}`;
     switch (key) {
       case "profiles.select":
-        return backend.profile(this.filters.user_id as string) ?? null;
+        // The Profile is read through the Public API (`GET /v1/profile`).
+        throw new Error("Fake backend: the Profile is read through the API");
       case "profiles.insert":
       case "profiles.upsert":
         // Creating and editing a Profile go through the Public API.

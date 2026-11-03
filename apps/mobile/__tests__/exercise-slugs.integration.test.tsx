@@ -33,6 +33,13 @@ import { PushedRoutes, resetStubRouter } from "~/test-utils/router-stub";
 const mockParams: { current: Record<string, string> } = { current: {} };
 const mockPush = jest.fn();
 
+// The User a write is made for (the real Clerk SDK keeps Jest alive).
+jest.mock("~/lib/clerk", () => ({
+  getCurrentUserId: jest.requireActual<
+    typeof import("~/test-utils/signed-in-user")
+  >("~/test-utils/signed-in-user").getCurrentUserId,
+}));
+
 jest.mock("expo-router", () => {
   const { View } =
     jest.requireActual<typeof import("react-native")>("react-native");

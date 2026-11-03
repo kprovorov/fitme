@@ -86,6 +86,12 @@ jest.mock("~/lib/supabase", () => ({
   >("~/test-utils/fake-workout-backend").fakeSupabase,
 }));
 jest.mock("~/lib/segment", () => ({ segmentClient: { track: jest.fn() } }));
+// The User a Plan write is made for (the real Clerk SDK keeps Jest alive).
+jest.mock("~/lib/clerk", () => ({
+  getCurrentUserId: jest.requireActual<
+    typeof import("~/test-utils/signed-in-user")
+  >("~/test-utils/signed-in-user").getCurrentUserId,
+}));
 
 jest.mock("react-native-purchases", () => ({
   __esModule: true,

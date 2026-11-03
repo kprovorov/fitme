@@ -1,8 +1,11 @@
+import { ApiError } from "@fitme/api-client";
 import type { MeasurementSystem } from "@fitme/core";
 import type { QueryClient, QueryKey } from "@tanstack/react-query";
 import { createMutation } from "react-query-kit";
+import { rememberProfileWrite } from "~/hooks/mutations/profiles";
 import { useExerciseHistoryQuery } from "~/hooks/queries/exercises";
 import { usePlanQuery, usePlansQuery } from "~/hooks/queries/plans";
+import type { Profile } from "~/hooks/queries/profiles";
 import { useWorkoutSessionExerciseQuery } from "~/hooks/queries/workout-session-exercises";
 import {
   OPEN_WORKOUT_SESSION_QUERY_KEY,
@@ -11,6 +14,7 @@ import {
 } from "~/hooks/queries/workout-sessions";
 import { useWorkoutQuery } from "~/hooks/queries/workouts";
 import { publicApi } from "~/lib/public-api";
+import type { WriteStarter } from "~/lib/write-answers";
 
 /**
  * Every query whose answer carries a weight. Switching the measurement system
@@ -18,7 +22,8 @@ import { publicApi } from "~/lib/public-api";
  * in the old unit until it has been read again. Each key is a base key, which
  * matches every one of that query's variables, so a Plan or Workout Session of
  * any id is covered. The Profile is not here: it holds the unit those Screens
- * show, so its reader reads it first, before asking for these.
+ * show, so the switch shows it first (the PATCH answer, or the Profile read
+ * again when there was none), before asking for these.
  */
 const WEIGHED_QUERY_KEYS: QueryKey[] = [
   usePlansQuery.getKey(),
@@ -34,7 +39,7 @@ const WEIGHED_QUERY_KEYS: QueryKey[] = [
 
 /**
  * Re-reads every mounted Screen showing a weight, so none keeps an old unit's
- * number (FIT-539). Call it with the Profile already read in the new system.
+ * number (FIT-539). Call it with the Profile already in the new system.
  * Resolves once they have, whether or not each read succeeded: a failed one
  * leaves its Screen on its own error state.
  */
@@ -48,15 +53,26 @@ export const invalidateWeighedQueries = async (
 
 /**
  * Switches the User's measurement system through `PATCH /v1/profile`, which
- * converts every stored height and weight. Rejects with an `ApiError`.
+ * converts every stored height and weight. Answers the converted Profile,
+ * which the caller shows as the Profile (`seedProfile`) with the
+ * `WriteStarter` its `onSettled` gets; rejects with an `ApiError`.
  */
 export const useUpdateMeasurementSystemMutation = createMutation<
-  void,
-  MeasurementSystem
+  Profile,
+  MeasurementSystem,
+  Error,
+  WriteStarter
 >({
-  mutationFn: async (measurementSystem: MeasurementSystem): Promise<void> => {
-    await publicApi().PATCH("/v1/profile", {
+  mutationFn: async (
+    measurementSystem: MeasurementSystem
+  ): Promise<Profile> => {
+    const { data } = await publicApi().PATCH("/v1/profile", {
       body: { measurement_system: measurementSystem },
     });
+    if (!data) {
+      throw new ApiError("Public API answered no Profile");
+    }
+    return data.data;
   },
+  onMutate: rememberProfileWrite,
 });

@@ -1,7 +1,7 @@
 import { rateLimitedFor } from "@fitme/api-client";
 import { type MeasurementSystem, measurementSystems } from "@fitme/core";
 import * as Sentry from "@sentry/react-native";
-import { useQueryClient } from "@tanstack/react-query";
+import { type QueryClient, useQueryClient } from "@tanstack/react-query";
 import { Stack } from "expo-router";
 import { useCallback, useEffect, useMemo, useRef, useState } from "react";
 import { useTranslation } from "react-i18next";
@@ -11,13 +11,99 @@ import { Button } from "~/components/ui/button";
 import { ErrorMessage } from "~/components/ui/error-message";
 import { RadioGroup } from "~/components/ui/radio-group";
 import { VStack } from "~/components/ui/vstack";
-import { useProfileQuery } from "~/hooks/queries/profiles";
+import { seedProfile } from "~/hooks/mutations/profiles";
+import { type Profile, useProfileQuery } from "~/hooks/queries/profiles";
 import {
   invalidateWeighedQueries,
   useUpdateMeasurementSystemMutation,
 } from "~/hooks/queries/settings";
 import { useChoiceLabels } from "~/lib/choices";
 import { i18n } from "~/lib/i18n";
+import { measurementSystemOf } from "~/lib/profile";
+import { isStillWriteStarter, type WriteStarter } from "~/lib/write-answers";
+
+/**
+ * The system a switch left saved, decided only from a Profile it has: the
+ * answer, once it shows as the Profile; the Profile read again when a newer
+ * one had landed meanwhile and that read succeeded; or else (no answer, a
+ * failed call whose conversion may still have committed, or that read
+ * failed) the Profile read back. `saved` is `undefined`
+ * when that read fails: the Profile is then dropped, not just marked stale,
+ * so no Screen keeps showing or submitting a height and weight that may be
+ * in the old units. `null` once another User has signed in, checked again
+ * after every await: nothing is theirs to read, seed or reset (signing out
+ * cancels the read back, and a reset would cancel the next User's read).
+ */
+const readSavedSystem = async (
+  queryClient: QueryClient,
+  answer: Profile | undefined,
+  starter: WriteStarter | undefined
+): Promise<{ saved: MeasurementSystem | undefined } | null> => {
+  if (answer) {
+    const seeded = await seedProfile(queryClient, answer, starter);
+    if (seeded === "signed-out") {
+      return null;
+    }
+    if (seeded === "seeded") {
+      return { saved: measurementSystemOf(answer) };
+    }
+    // Superseded: the helper has read the Profile again. Once that read
+    // landed (a read that lands clears `isInvalidated`, a failed one leaves
+    // it set), it already shows the system saved after the switch.
+    const reconciled = queryClient.getQueryState(useProfileQuery.getKey());
+    if (reconciled?.status === "success" && !reconciled.isInvalidated) {
+      return {
+        saved: measurementSystemOf(reconciled.data as Profile | null),
+      };
+    }
+  }
+  if (!isStillWriteStarter(starter)) {
+    return null;
+  }
+  try {
+    const fresh = await queryClient.fetchQuery({
+      ...useProfileQuery.getFetchOptions(),
+      staleTime: 0,
+    });
+    return isStillWriteStarter(starter)
+      ? { saved: measurementSystemOf(fresh) }
+      : null;
+  } catch (fetchError) {
+    if (!isStillWriteStarter(starter)) {
+      return null;
+    }
+    // Too many requests is the User's to wait out, not a bug.
+    if (rateLimitedFor(fetchError) === null) {
+      Sentry.captureException(fetchError);
+    }
+    queryClient.resetQueries({ queryKey: useProfileQuery.getKey() });
+    return { saved: undefined };
+  }
+};
+
+/** Tells the User a switch couldn't be checked, or didn't land. */
+const alertSwitchResult = (
+  saved: MeasurementSystem | undefined,
+  error: Error | null,
+  system: MeasurementSystem
+) => {
+  if (saved === undefined) {
+    Alert.alert(
+      i18n.t("measurementSystem.checkFailed.title"),
+      i18n.t("measurementSystem.checkFailed.message")
+    );
+  } else if (error && saved !== system) {
+    const waitSeconds = rateLimitedFor(error);
+    Alert.alert(
+      i18n.t("measurementSystem.changeFailed.title"),
+      waitSeconds === null
+        ? i18n.t("measurementSystem.changeFailed.message")
+        : i18n.t("measurementSystem.changeFailed.rateLimited", {
+            seconds: waitSeconds,
+          })
+    );
+  }
+};
 
 export default function MeasurementSystemScreen() {
   const queryClient = useQueryClient();
@@ -32,7 +118,12 @@ export default function MeasurementSystemScreen() {
     [labels]
   );
 
-  const { data: profile, isError: isProfileError, refetch } = useProfileQuery();
+  const {
+    data: profile,
+    error: profileError,
+    isError: isProfileError,
+    refetch,
+  } = useProfileQuery();
 
   // A switch can finish after the User has gone back; its alerts would then
   // show over another Screen.
@@ -46,9 +137,7 @@ export default function MeasurementSystemScreen() {
 
   /** The saved system, or `undefined` until the Profile has loaded. */
   const savedSystem: MeasurementSystem | undefined =
-    profile === undefined
-      ? undefined
-      : (profile?.measurement_system ?? "metric");
+    profile === undefined ? undefined : measurementSystemOf(profile);
 
   /** The option awaiting confirmation, or `null` when nothing is pending. */
   const [pendingSystem, setPendingSystem] = useState<MeasurementSystem | null>(
@@ -73,24 +162,20 @@ export default function MeasurementSystemScreen() {
           Sentry.captureException(error);
         }
       },
-      // A failed call doesn't prove nothing changed (the response can be lost
-      // after the conversion commits), and the cached Profile's height and
-      // weight are in the old units either way, so the Profile is read again
-      // and the picker stays on the new system until it has been.
-      onSettled: async (_data, error, system) => {
-        let saved: MeasurementSystem | undefined;
-        try {
-          const fresh = await queryClient.fetchQuery({
-            ...useProfileQuery.getFetchOptions(),
-            staleTime: 0,
-          });
-          saved = fresh?.measurement_system ?? "metric";
-        } catch (fetchError) {
-          Sentry.captureException(fetchError);
-          // Dropped, not just marked stale, so no Screen keeps showing or
-          // submitting a height and weight that may be in the old units.
-          queryClient.resetQueries({ queryKey: useProfileQuery.getKey() });
+      // The answer is the converted Profile, which shows as is. A failed call
+      // doesn't prove nothing changed (the response can be lost after the
+      // conversion commits), and the cached Profile's height and weight are
+      // in the old units either way, so the Profile is then read again, and
+      // the picker stays on the new system until it has been.
+      onSettled: async (answer, error, system, starter) => {
+        const result = await readSavedSystem(queryClient, answer, starter);
+        setSwitchingTo(null);
+        // Another User signed in meanwhile: nothing here is theirs to
+        // re-read, and no alert is theirs either.
+        if (result === null) {
+          return;
         }
+        const { saved } = result;
         // Once the Profile says the new system is saved, every stored weight
         // is in it, so every Screen showing one is read again (FIT-539). It
         // waits for the Profile, the unit those Screens show: a Profile that
@@ -103,31 +188,15 @@ export default function MeasurementSystemScreen() {
         if (saved === system) {
           invalidateWeighedQueries(queryClient);
         }
-        setSwitchingTo(null);
-
-        if (!isMounted.current) {
-          return;
-        }
-        if (saved === undefined) {
-          Alert.alert(
-            i18n.t("measurementSystem.checkFailed.title"),
-            i18n.t("measurementSystem.checkFailed.message")
-          );
-        } else if (error && saved !== system) {
-          const waitSeconds = rateLimitedFor(error);
-          Alert.alert(
-            i18n.t("measurementSystem.changeFailed.title"),
-            waitSeconds === null
-              ? i18n.t("measurementSystem.changeFailed.message")
-              : i18n.t("measurementSystem.changeFailed.rateLimited", {
-                  seconds: waitSeconds,
-                })
-          );
+        if (isMounted.current) {
+          alertSwitchResult(saved, error, system);
         }
       },
     });
 
   const isLoaded = savedSystem !== undefined;
+  // A failed first read: too many requests gives the wait.
+  const loadWaitSeconds = rateLimitedFor(profileError);
   const isSwitching = switchingTo !== null;
 
   // The native picker keeps whatever was tapped until its `value` changes, so
@@ -180,7 +249,9 @@ export default function MeasurementSystemScreen() {
       {!isLoaded && isProfileError && (
         <VStack className="flex-1 items-stretch justify-center gap-4 p-6">
           <ErrorMessage className="text-center">
-            {t("measurementSystem.loadError")}
+            {loadWaitSeconds === null
+              ? t("measurementSystem.loadError")
+              : t("common.rateLimited", { seconds: loadWaitSeconds })}
           </ErrorMessage>
           <Button
             label={t("common.tryAgain")}
