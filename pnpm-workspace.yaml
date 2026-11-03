@@ -42,9 +42,17 @@ onlyBuiltDependencies:
 
 ignoredBuiltDependencies:
   - "@mongodb-js/zstd"
+  # Both come with Jest 30 (jest-haste-map and jest-resolve, since the Expo SDK
+  # 58 upgrade) and ship their native code as optional per-platform packages
+  # the lockfile already pins (@parcel/watcher-* and @unrs/resolver-binding-*),
+  # so neither install script has anything to do: @parcel/watcher's only runs
+  # node-gyp when npm_config_build_from_source is set, and unrs-resolver's is
+  # napi-postinstall's fallback for a package manager that skipped the binding.
+  - "@parcel/watcher"
   - browser-tabs-lock
   - core-js
   - node-liblzma
+  - unrs-resolver
 
 # uniwind's Metro resolver swaps `react-native` for its own export list, which
 # lacks RN 0.88's AssetRegistry: expo-asset reads it, so fonts never load and
