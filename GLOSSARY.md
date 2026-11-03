@@ -98,6 +98,10 @@ _Avoid_: Trainer, PT, personal trainer
 The one HTTP contract (`apps/api`, `/v1`) every caller uses to read and write a User's data: Fitme's own apps and anyone else's alike. There is no separate internal API; a route may be restricted to First-party apps, but it is still part of the same contract.
 _Avoid_: REST API, internal API, BFF, backend
 
+**Data API**:
+Supabase's generated REST API over Postgres. No app reads or writes a User's data through it; that goes through the Public API only.
+_Avoid_: Supabase API, PostgREST
+
 **First-party app**:
 Fitme's own mobile or web app, calling the Public API with the User's Clerk session.
 _Avoid_: Client, frontend, internal caller
