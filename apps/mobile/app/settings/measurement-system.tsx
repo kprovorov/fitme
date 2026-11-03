@@ -20,6 +20,7 @@ import {
 import { useChoiceLabels } from "~/lib/choices";
 import { i18n } from "~/lib/i18n";
 import { measurementSystemOf } from "~/lib/profile";
+import { isStillWriteStarter } from "~/lib/write-answers";
 
 export default function MeasurementSystemScreen() {
   const queryClient = useQueryClient();
@@ -83,10 +84,16 @@ export default function MeasurementSystemScreen() {
       // conversion commits), and the cached Profile's height and weight are
       // in the old units either way, so the Profile is then read again, and
       // the picker stays on the new system until it has been.
-      onSettled: async (answer, error, system) => {
+      onSettled: async (answer, error, system, starter) => {
+        // Another User signed in meanwhile: nothing here is theirs to read,
+        // seed or re-read.
+        if (!isStillWriteStarter(starter)) {
+          setSwitchingTo(null);
+          return;
+        }
         let saved: MeasurementSystem | undefined;
         if (answer) {
-          await seedProfile(queryClient, answer);
+          await seedProfile(queryClient, answer, starter);
           saved = measurementSystemOf(answer);
         } else {
           try {

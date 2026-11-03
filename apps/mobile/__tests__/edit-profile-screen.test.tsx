@@ -20,6 +20,7 @@ import { router } from "expo-router";
 import { useCallback } from "react";
 import { Pressable, Text } from "react-native";
 import EditProfileScreen from "~/app/settings/edit-profile";
+import { useProfileQuery } from "~/hooks/queries/profiles";
 import { i18n } from "~/lib/i18n";
 import { setDeviceLanguages } from "~/test-utils/device-locales";
 import {
@@ -29,7 +30,12 @@ import {
 } from "~/test-utils/fake-public-api";
 import { backend } from "~/test-utils/fake-workout-backend";
 import { InAppLanguage } from "~/test-utils/in-app-language";
-import { createTestQueryClient, settle } from "~/test-utils/query-client";
+import {
+  createTestQueryClient,
+  settle,
+  until,
+} from "~/test-utils/query-client";
+import { signInAs } from "~/test-utils/signed-in-user";
 
 jest.mock("expo-router", () => ({
   router: { back: jest.fn() },
@@ -59,10 +65,9 @@ jest.mock("@clerk/expo", () => ({
 
 jest.mock("~/lib/clerk", () => ({
   getClerk: () => ({ user: mockUser }),
-  getCurrentUserId: () =>
-    jest.requireActual<typeof import("~/test-utils/fake-public-api")>(
-      "~/test-utils/fake-public-api"
-    ).FAKE_USER_ID,
+  getCurrentUserId: jest.requireActual<
+    typeof import("~/test-utils/signed-in-user")
+  >("~/test-utils/signed-in-user").getCurrentUserId,
 }));
 
 jest.mock("react-native-safe-area-context", () => ({
@@ -306,6 +311,46 @@ describe("EditProfileScreen", () => {
     });
     expect(mockUser.update).not.toHaveBeenCalled();
     expect(router.back).toHaveBeenCalledTimes(1);
+  });
+
+  it("never shows a save's late answer to the next User who signs in", async () => {
+    backend.seedProfile(FAKE_USER_ID, { age: 30, gender: "female" });
+    await mount();
+    const resumeSave = fakePublicApi.pause(PROFILE_PATCH);
+    await pick("Age", 31);
+    await fireEvent.press(screen.getByTestId("edit-profile-save-button"));
+    await until(() => fakePublicApi.count(PROFILE_PATCH) === 1);
+    // Clearing the cache drops the save from it, not its callbacks.
+    const [saving] = queryClient.getMutationCache().getAll();
+
+    // Signed out before the answer (AuthSync clears the cache), and another
+    // User signs in, whose Profile read is on its way.
+    await screen.unmount();
+    queryClient.clear();
+    signInAs("user_next");
+    const resumeRead = fakePublicApi.pause(PROFILE_GET);
+    const nextUsersRead = queryClient.fetchQuery(
+      useProfileQuery.getFetchOptions()
+    );
+    await until(() => fakePublicApi.count(PROFILE_GET) === 2);
+
+    resumeSave();
+    await until(() => saving?.state.status === "success");
+    // The previous User's answer isn't shown to the next one.
+    expect(queryClient.getQueryData(useProfileQuery.getKey())).toBeUndefined();
+
+    // The one fake account stands for the next User's here.
+    backend.profiles = [];
+    backend.seedProfile(FAKE_USER_ID, { age: 45, gender: "male" });
+    resumeRead();
+    // Their read isn't cancelled: it answers their own Profile.
+    await expect(nextUsersRead).resolves.toMatchObject({
+      age: 45,
+      gender: "male",
+    });
+    expect(queryClient.getQueryData(useProfileQuery.getKey())).toMatchObject({
+      age: 45,
+    });
   });
 
   it("keeps an unchanged stored value out of the request", async () => {

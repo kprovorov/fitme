@@ -10,6 +10,11 @@ import { type Profile, useProfileQuery } from "~/hooks/queries/profiles";
 import { getClerk } from "~/lib/clerk";
 import { publicApi } from "~/lib/public-api";
 import { splitFullName } from "~/lib/user-name";
+import {
+  rememberWriteStarter,
+  seedWriteAnswer,
+  type WriteStarter,
+} from "~/lib/write-answers";
 
 const EDITABLE_FIELDS = ["age", "gender", "height", "weight"] as const;
 
@@ -81,25 +86,35 @@ const saveProfile = async ({
 /**
  * The Profile query shows a write's answer as is: no second read. A read of
  * it still in flight was answered before the write, so it's dropped first.
+ * Only while `starter`, the User who started the write, is still signed in
+ * (`seedWriteAnswer`).
  */
-export const seedProfile = async (client: QueryClient, profile: Profile) => {
-  const queryKey = useProfileQuery.getKey();
-  await client.cancelQueries({ exact: true, queryKey });
-  client.setQueryData(queryKey, profile);
-};
+export const seedProfile = (
+  client: QueryClient,
+  profile: Profile,
+  starter: WriteStarter | undefined
+) =>
+  seedWriteAnswer(starter, async () => {
+    const queryKey = useProfileQuery.getKey();
+    await client.cancelQueries({ exact: true, queryKey });
+    client.setQueryData(queryKey, profile);
+  });
 
 /**
  * Onboarding's save: `saveProfile`, whose answer then shows as the Profile.
- * Seeded in the mutation's own `onSuccess` (a hook-level `onSuccess` would
- * replace it), so a screen passes its own to `mutate`.
+ * Seeded in the mutation's own `onMutate` and `onSuccess` (a hook-level one
+ * would replace it), so a screen passes its `onSuccess` to `mutate`.
  */
 export const useStoreProfileMutation = createMutation<
   Profile,
-  StoreProfileData
+  StoreProfileData,
+  Error,
+  WriteStarter
 >({
   mutationFn: saveProfile,
-  onSuccess: async (profile, _variables, _result, { client }) => {
-    await seedProfile(client, profile);
+  onMutate: rememberWriteStarter,
+  onSuccess: async (profile, _variables, starter, { client }) => {
+    await seedProfile(client, profile, starter);
   },
 });
 
@@ -111,11 +126,14 @@ export interface UpdateProfileData extends StoreProfileData {
  * Edit-profile's save: `saveProfile`, then the name to Clerk; the Profile's
  * answer then shows as the Profile. If the name fails after the Profile was
  * saved, nothing is seeded: the screen reads the Profile again. Seeded in the
- * mutation's own `onSuccess`, so a screen passes its own to `mutate`.
+ * mutation's own `onMutate` and `onSuccess`, so a screen passes its
+ * `onSuccess` to `mutate`.
  */
 export const useUpdateProfileMutation = createMutation<
   Profile,
-  UpdateProfileData
+  UpdateProfileData,
+  Error,
+  WriteStarter
 >({
   mutationFn: async ({
     name,
@@ -130,7 +148,8 @@ export const useUpdateProfileMutation = createMutation<
     }
     return saved;
   },
-  onSuccess: async (profile, _variables, _result, { client }) => {
-    await seedProfile(client, profile);
+  onMutate: rememberWriteStarter,
+  onSuccess: async (profile, _variables, starter, { client }) => {
+    await seedProfile(client, profile, starter);
   },
 });

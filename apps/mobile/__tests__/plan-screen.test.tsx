@@ -31,6 +31,7 @@ import {
   settle,
   until,
 } from "~/test-utils/query-client";
+import { signInAs } from "~/test-utils/signed-in-user";
 
 const mockBack = jest.fn();
 const mockDismissTo = jest.fn();
@@ -93,10 +94,9 @@ jest.mock("~/lib/supabase", () => ({
 // The real Clerk SDK (reached through the Workout cards) opens a MessagePort
 // at import that keeps Jest alive.
 jest.mock("~/lib/clerk", () => ({
-  getCurrentUserId: () =>
-    jest.requireActual<typeof import("~/test-utils/fake-public-api")>(
-      "~/test-utils/fake-public-api"
-    ).FAKE_USER_ID,
+  getCurrentUserId: jest.requireActual<
+    typeof import("~/test-utils/signed-in-user")
+  >("~/test-utils/signed-in-user").getCurrentUserId,
 }));
 
 jest.mock("~/lib/segment", () => ({ segmentClient: { track: jest.fn() } }));
@@ -463,6 +463,45 @@ describe("Activating a Plan", () => {
       "Archive Plan",
       "You cannot archive an active plan. You should have at least one active plan at all times.",
     ]);
+  });
+
+  it("never shows an activation's late answer to the next User who signs in", async () => {
+    await mount(null);
+    const resumeActivate = fakePublicApi.pause(ACTIVATE);
+    await fireEvent.press(screen.getByText("Activate Plan"));
+    alerts()
+      .at(-1)?.[2]
+      ?.find(({ text }) => text === "Activate")
+      ?.onPress?.();
+    await until(() => fakePublicApi.count(ACTIVATE) === 1);
+    // Clearing the cache drops the activation from it, not its callbacks.
+    const [activating] = queryClient.getMutationCache().getAll();
+
+    // Signed out before the answer (AuthSync clears the cache), and another
+    // User signs in, whose read of that Plan is on its way.
+    await screen.unmount();
+    queryClient.clear();
+    signInAs("user_next");
+    const planReads = fakePublicApi.count(GET_PLAN);
+    const resumeRead = fakePublicApi.pause(GET_PLAN);
+    const nextUsersRead = queryClient.fetchQuery(
+      usePlanQuery.getFetchOptions({ id: "plan-1" })
+    );
+    await until(() => fakePublicApi.count(GET_PLAN) === planReads + 1);
+    const listReads = fakePublicApi.count(LIST_PLANS);
+
+    resumeActivate();
+    await until(() => activating?.state.status === "success");
+
+    // The previous User's answer isn't shown, nor read again, for the next.
+    expect(
+      queryClient.getQueryData(usePlanQuery.getKey({ id: "plan-1" }))
+    ).toBeUndefined();
+    expect(fakePublicApi.count(LIST_PLANS)).toBe(listReads);
+    // Their read isn't cancelled.
+    resumeRead();
+    await expect(nextUsersRead).resolves.toMatchObject({ id: "plan-1" });
+    expect(fakePublicApi.count(GET_PLAN)).toBe(planReads + 1);
   });
 
   it("reads the Plan that stopped being active again", async () => {

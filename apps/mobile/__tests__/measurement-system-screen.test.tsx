@@ -18,6 +18,7 @@ import { fireEvent, render, screen } from "@testing-library/react-native";
 import { useCallback } from "react";
 import { Alert, Pressable, Text } from "react-native";
 import MeasurementSystemScreen from "~/app/settings/measurement-system";
+import { useProfileQuery } from "~/hooks/queries/profiles";
 import { i18n } from "~/lib/i18n";
 import { setDeviceLanguages } from "~/test-utils/device-locales";
 import {
@@ -32,6 +33,7 @@ import {
   settle,
   until,
 } from "~/test-utils/query-client";
+import { signInAs } from "~/test-utils/signed-in-user";
 
 jest.mock("expo-router", () => ({ Stack: { Screen: () => null } }));
 
@@ -48,10 +50,9 @@ jest.mock("~/lib/supabase", () => ({
 }));
 
 jest.mock("~/lib/clerk", () => ({
-  getCurrentUserId: () =>
-    jest.requireActual<typeof import("~/test-utils/fake-public-api")>(
-      "~/test-utils/fake-public-api"
-    ).FAKE_USER_ID,
+  getCurrentUserId: jest.requireActual<
+    typeof import("~/test-utils/signed-in-user")
+  >("~/test-utils/signed-in-user").getCurrentUserId,
 }));
 
 // Buttons of the stand-ins below. Top-level (and `mock`-prefixed, so the
@@ -463,6 +464,44 @@ describe("MeasurementSystemScreen", () => {
     expect(fakePublicApi.count(PROFILE_GET)).toBe(2);
     expect(shown()).toHaveTextContent("metric");
     expect(screen.queryByText("Try Again")).toBeNull();
+  });
+
+  it("never shows a switch's late answer to the next User who signs in", async () => {
+    const { unmount } = await mount();
+    const resumeSwitch = fakePublicApi.pause(PROFILE_PATCH);
+    await fireEvent.press(screen.getByTestId("option-us"));
+    await fireEvent.press(screen.getByText("Confirm"));
+    await until(() => fakePublicApi.count(PROFILE_PATCH) === 1);
+    // Clearing the cache drops the switch from it, not its callbacks.
+    const [switching] = queryClient.getMutationCache().getAll();
+
+    // Signed out before the answer (AuthSync clears the cache), and another
+    // User signs in, whose Profile read is on its way.
+    await unmount();
+    queryClient.clear();
+    signInAs("user_next");
+    const resumeRead = fakePublicApi.pause(PROFILE_GET);
+    const nextUsersRead = queryClient.fetchQuery(
+      useProfileQuery.getFetchOptions()
+    );
+    await until(() => fakePublicApi.count(PROFILE_GET) === 2);
+
+    resumeSwitch();
+    await until(() => switching?.state.status === "success");
+
+    // Neither shown nor read again for the next User.
+    expect(queryClient.getQueryData(useProfileQuery.getKey())).toBeUndefined();
+    expect(fakePublicApi.count(PROFILE_GET)).toBe(2);
+    expect(fakePublicApi.count("GET /v1/workout-sessions")).toBe(0);
+    // The one fake account stands for the next User's here.
+    backend.profiles = [];
+    backend.seedProfile(FAKE_USER_ID, { measurement_system: "uk" });
+    resumeRead();
+    // Their read isn't cancelled.
+    await expect(nextUsersRead).resolves.toMatchObject({
+      measurement_system: "uk",
+    });
+    expect(Alert.alert).not.toHaveBeenCalled();
   });
 
   it("shows no alert when the switch finishes after the Screen is gone", async () => {

@@ -13,6 +13,7 @@ import {
 } from "~/hooks/queries/workout-sessions";
 import { useWorkoutQuery } from "~/hooks/queries/workouts";
 import { publicApi } from "~/lib/public-api";
+import { rememberWriteStarter, type WriteStarter } from "~/lib/write-answers";
 
 /**
  * Every query whose answer carries a weight. Switching the measurement system
@@ -52,12 +53,14 @@ export const invalidateWeighedQueries = async (
 /**
  * Switches the User's measurement system through `PATCH /v1/profile`, which
  * converts every stored height and weight. Answers the converted Profile,
- * which the caller shows as the Profile (`seedProfile`); rejects with an
- * `ApiError`.
+ * which the caller shows as the Profile (`seedProfile`) with the
+ * `WriteStarter` its `onSettled` gets; rejects with an `ApiError`.
  */
 export const useUpdateMeasurementSystemMutation = createMutation<
   Profile,
-  MeasurementSystem
+  MeasurementSystem,
+  Error,
+  WriteStarter
 >({
   mutationFn: async (
     measurementSystem: MeasurementSystem
@@ -70,4 +73,5 @@ export const useUpdateMeasurementSystemMutation = createMutation<
     }
     return data.data;
   },
+  onMutate: rememberWriteStarter,
 });

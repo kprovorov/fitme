@@ -172,6 +172,13 @@ const mockRouteContext = createContext<{
   params: Record<string, string>;
 }>({ focused: false, params: {} });
 
+// The User a write is made for (the real Clerk SDK keeps Jest alive).
+jest.mock("~/lib/clerk", () => ({
+  getCurrentUserId: jest.requireActual<
+    typeof import("~/test-utils/signed-in-user")
+  >("~/test-utils/signed-in-user").getCurrentUserId,
+}));
+
 jest.mock("expo-router", () => {
   const { useContext } = jest.requireActual<typeof import("react")>("react");
   return {
