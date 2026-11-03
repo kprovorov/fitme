@@ -2801,7 +2801,7 @@ export interface components {
          * @description When the Workout Session was started (ISO 8601)
          * @example 2026-10-01T10:00:00.123456+00:00
          */
-        started_at: string | null;
+        started_at: string;
       };
       /** @description Its logged sets, in order */
       sets: components["schemas"]["ExerciseHistorySet"][];

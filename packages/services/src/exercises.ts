@@ -38,7 +38,7 @@ export interface ExerciseHistoryEntry {
   session_id: string;
   /** Only sets with logged reps, by `order`. */
   sets: ExerciseHistorySet[];
-  started_at: string | null;
+  started_at: string;
   workout: { id: string; name: string } | null;
 }
 
@@ -141,7 +141,7 @@ export const getExerciseHistory = async (
         finished_at: jsonTimestamp(workoutSessions.finishedAt),
         session_exercise_id: workoutSessionExercises.id,
         session_id: workoutSessions.id,
-        started_at: jsonTimestamp(workoutSessions.startedAt),
+        started_at: jsonTimestamp(workoutSessions.startedAt) as SQL<string>,
       },
       plan: { id: plans.id, name: plans.name },
       set: {

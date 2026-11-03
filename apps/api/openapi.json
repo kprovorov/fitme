@@ -924,7 +924,6 @@
               },
               "started_at": {
                 "type": "string",
-                "nullable": true,
                 "format": "date-time",
                 "description": "When the Workout Session was started (ISO 8601)",
                 "example": "2026-10-01T10:00:00.123456+00:00"

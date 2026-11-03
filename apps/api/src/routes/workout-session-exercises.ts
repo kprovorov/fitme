@@ -60,7 +60,7 @@ const ExerciseHistoryEntry = z
         "When the Workout Session was finished"
       ).nullable(),
       id: Id,
-      started_at: timestamp("When the Workout Session was started").nullable(),
+      started_at: timestamp("When the Workout Session was started"),
     }),
     sets: z
       .array(ExerciseHistorySet)
