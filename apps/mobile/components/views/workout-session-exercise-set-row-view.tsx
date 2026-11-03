@@ -1,3 +1,4 @@
+import { rateLimitedFor } from "@fitme/api-client";
 import type { WorkoutSessionExerciseSet } from "@fitme/core";
 import { useQueryClient } from "@tanstack/react-query";
 import * as Haptics from "expo-haptics";
@@ -11,7 +12,6 @@ import {
   useCreateWorkoutSessionExerciseSetMutation,
   useUpdateWorkoutSessionExerciseSetMutation,
 } from "~/hooks/queries/workout-session-exercise-sets";
-import { rateLimitedFor } from "~/lib/api/client";
 import { IS_E2E } from "~/lib/constants";
 import { segmentClient } from "~/lib/segment";
 import { formatSetTarget, formatSetWeight } from "~/lib/set-inputs";

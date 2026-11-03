@@ -1,8 +1,8 @@
+import { ApiError } from "@fitme/api-client";
 import type { Plan } from "@fitme/core";
 import { createMutation, createQuery } from "react-query-kit";
 import { supabase } from "@/lib/supabase";
 import { WEEKLY_GOALS_QUERY_KEY } from "~/hooks/queries/weekly-goals";
-import { ApiError } from "~/lib/api/client";
 import { IS_E2E } from "~/lib/constants";
 import type { NewPlan } from "~/lib/plan-card";
 import { publicApi } from "~/lib/public-api";

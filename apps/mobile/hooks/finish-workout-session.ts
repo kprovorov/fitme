@@ -1,3 +1,4 @@
+import { rateLimitedFor } from "@fitme/api-client";
 import { countUnloggedSets, type WorkoutSession } from "@fitme/core";
 import * as Sentry from "@sentry/react-native";
 import {
@@ -19,7 +20,6 @@ import {
   useFinishWorkoutSessionMutation,
   useWorkoutSessionQuery,
 } from "~/hooks/queries/workout-sessions";
-import { rateLimitedFor } from "~/lib/api/client";
 import { i18n } from "~/lib/i18n";
 import {
   countPlanChanges,

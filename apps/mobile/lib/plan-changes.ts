@@ -1,3 +1,4 @@
+import type { components } from "@fitme/api-client";
 import {
   formatCount,
   formatNumber,
@@ -5,7 +6,6 @@ import {
   type Translator,
   unitName,
 } from "@fitme/i18n";
-import type { components } from "~/lib/api/schema";
 
 /**
  * The Public API's Plan Update (`GET /v1/workout-sessions/{id}/plan-update`):

@@ -1,3 +1,4 @@
+import { ApiError } from "@fitme/api-client";
 import {
   afterEach,
   beforeEach,
@@ -19,7 +20,6 @@ import type * as React from "react";
 import { Alert } from "react-native";
 import { PlanUpdateSheetHost } from "~/components/workout-sessions/plan-update-sheet";
 import { closePlanUpdatePrompt } from "~/hooks/plan-update-prompt";
-import { ApiError } from "~/lib/api/client";
 import { i18n } from "~/lib/i18n";
 import { setDeviceLanguages } from "~/test-utils/device-locales";
 import { libraryExercise, serveLibrary } from "~/test-utils/fake-library";

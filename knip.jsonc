@@ -75,10 +75,6 @@
         // docs/agents/ui.md keeps the Accordion Primitive with no call site yet.
         "components/ui/accordion.tsx"
       ],
-      "ignore": [
-        // Generated from apps/api/openapi.json (pnpm mobile api:types).
-        "lib/api/schema.ts"
-      ],
       "ignoreIssues": {
         // Primitives and their Props types are the design system's API
         // (docs/agents/ui.md), exported whether or not a screen uses them yet.
@@ -124,6 +120,12 @@
         // Runtime dep of @fitme/db, which tsdown keeps external: AGENTS.md
         // requires it in the app's dependencies.
         "@vercel/functions"
+      ]
+    },
+    "packages/api-client": {
+      "ignore": [
+        // Generated from apps/api/openapi.json (pnpm api-client generate).
+        "src/schema.ts"
       ]
     },
     "packages/db": {

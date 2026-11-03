@@ -5,6 +5,7 @@
   "scripts": {
     "android": "pnpm --filter @fitme/mobile android",
     "api": "pnpm --filter @fitme/api",
+    "api-client": "pnpm --filter @fitme/api-client",
     "arnold": "pnpm --filter @fitme/arnold",
     "build": "turbo run build",
     "check": "ultracite check",

@@ -1,3 +1,4 @@
+import { ApiError, rateLimitedFor } from "@fitme/api-client";
 import type { Plan, Workout } from "@fitme/core";
 import { useQueryClient } from "@tanstack/react-query";
 import { Alert } from "react-native";
@@ -7,7 +8,6 @@ import {
   useCreateWorkoutSessionMutation,
   useOpenWorkoutSessionQuery,
 } from "~/hooks/queries/workout-sessions";
-import { ApiError, rateLimitedFor } from "~/lib/api/client";
 import { i18n } from "~/lib/i18n";
 
 /** The Workout Session screen of a Workout of a Plan. */

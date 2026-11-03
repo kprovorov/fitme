@@ -1,3 +1,4 @@
+import { ApiError, rateLimitedFor } from "@fitme/api-client";
 import { useQueryClient } from "@tanstack/react-query";
 import { Stack, useLocalSearchParams, useRouter } from "expo-router";
 import type { TFunction } from "i18next";
@@ -12,7 +13,6 @@ import {
   usePlanQuery,
 } from "~/hooks/queries/plans";
 import { WEEKLY_GOALS_QUERY_KEY } from "~/hooks/queries/weekly-goals";
-import { ApiError, rateLimitedFor } from "~/lib/api/client";
 
 /**
  * What to tell the User after a failed Plan write. A failure other than a 404

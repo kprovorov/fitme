@@ -7,7 +7,7 @@
  * from exiting. A test points the fake at its Exercises with `serveLibrary`.
  *
  * The Public API client (`~/lib/public-api`) is the real one
- * (`~/lib/api/client`, without the Clerk token getter), its `fetch` the
+ * (`@fitme/api-client`, without the Clerk token getter), its `fetch` the
  * fake Public API (`fake-public-api.ts`), which answers over the fake Supabase
  * backend's rows and fails any route it doesn't implement, so no write reaches
  * the network either. Its base URL is the fake's `baseUrl`.
@@ -41,7 +41,7 @@ jest.mock(
 );
 jest.mock("~/lib/public-api", () => {
   const { createPublicApi } =
-    jest.requireActual<typeof import("~/lib/api/client")>("~/lib/api/client");
+    jest.requireActual<typeof import("@fitme/api-client")>("@fitme/api-client");
   const { FAKE_SESSION_TOKEN, fakePublicApi } = jest.requireActual<
     typeof import("~/test-utils/fake-public-api")
   >("~/test-utils/fake-public-api");

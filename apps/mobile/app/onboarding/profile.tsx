@@ -1,4 +1,5 @@
 import { useUser } from "@clerk/expo";
+import { rateLimitedFor } from "@fitme/api-client";
 import type { MeasurementSystem } from "@fitme/core";
 import * as Sentry from "@sentry/react-native";
 import { useQueryClient } from "@tanstack/react-query";
@@ -16,7 +17,6 @@ import { ErrorMessage } from "~/components/ui/error-message";
 import { Text } from "~/components/ui/text";
 import { useStoreProfileMutation } from "~/hooks/mutations/profiles";
 import { useProfileQuery } from "~/hooks/queries/profiles";
-import { rateLimitedFor } from "~/lib/api/client";
 import { IS_E2E } from "~/lib/constants";
 import { storage } from "~/lib/mmkv";
 import { segmentClient } from "~/lib/segment";

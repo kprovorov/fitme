@@ -11,9 +11,8 @@ on:
       - packages/core/**
       - .github/oasdiff/**
       - .github/workflows/public-api.yml
-      # The mobile app's types generated from openapi.json.
-      - apps/mobile/lib/api/**
-      - apps/mobile/package.json
+      # The shared client's types generated from openapi.json.
+      - packages/api-client/**
       - pnpm-lock.yaml
 
 permissions:
@@ -57,12 +56,12 @@ jobs:
             exit 1
           fi
 
-      - name: Check the mobile app's API types are up to date
+      - name: Check the shared client's API types are up to date
         run: |
-          pnpm --filter @fitme/mobile api:types
-          if [ -n "$(git status --porcelain -- apps/mobile/lib/api)" ]; then
-            git diff -- apps/mobile/lib/api
-            echo "::error file=apps/mobile/lib/api/schema.ts::schema.ts is stale: run pnpm mobile api:types and commit it"
+          pnpm --filter @fitme/api-client generate
+          if [ -n "$(git status --porcelain -- packages/api-client/src/schema.ts)" ]; then
+            git diff -- packages/api-client/src/schema.ts
+            echo "::error file=packages/api-client/src/schema.ts::schema.ts is stale: run pnpm api-client generate and commit it"
             exit 1
           fi
 

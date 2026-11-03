@@ -21,6 +21,8 @@
  * test after it (`test-utils/after-each.ts`). `failNext` fails a route on
  * demand.
  */
+
+import type { PublicApiFetch } from "@fitme/api-client";
 import {
   arnoldModels,
   defaultArnoldModelId,
@@ -49,7 +51,6 @@ import {
   places,
   recordResult,
 } from "@fitme/core";
-import type { PublicApiFetch } from "~/lib/api/client";
 import { library } from "./fake-library";
 import {
   backend,
