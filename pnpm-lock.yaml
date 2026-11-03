@@ -245,8 +245,8 @@ importers:
         specifier: ^0.1.90
         version: 0.1.90(hono@4.13.13)(react-dom@19.3.0(react@19.3.0))(react@19.3.0)
       '@clerk/mcp-tools':
-        specifier: ^0.6.0
-        version: 0.6.0(@clerk/hono@0.1.90(hono@4.13.13)(react-dom@19.3.0(react@19.3.0))(react@19.3.0))(@clerk/nextjs@7.9.16(next@16.4.2(@babel/core@7.29.7)(@opentelemetry/api@1.9.1)(@types/node@22.15.21)(babel-plugin-react-compiler@1.0.0)(react-dom@19.3.0(react@19.3.0))(react@19.3.0))(react-dom@19.3.0(react@19.3.0))(react@19.3.0))(express@5.2.1)(hono@4.13.13)(next@16.4.2(@babel/core@7.29.7)(@opentelemetry/api@1.9.1)(@types/node@22.15.21)(babel-plugin-react-compiler@1.0.0)(react-dom@19.3.0(react@19.3.0))(react@19.3.0))(pg@8.23.1)(zod@4.6.7)
+        specifier: ^0.8.0
+        version: 0.8.0(@clerk/hono@0.1.90(hono@4.13.13)(react-dom@19.3.0(react@19.3.0))(react@19.3.0))(@clerk/nextjs@7.9.16(next@16.4.2(@babel/core@7.29.7)(@opentelemetry/api@1.9.1)(@types/node@22.15.21)(babel-plugin-react-compiler@1.0.0)(react-dom@19.3.0(react@19.3.0))(react@19.3.0))(react-dom@19.3.0(react@19.3.0))(react@19.3.0))(express@5.2.1)(hono@4.13.13)(next@16.4.2(@babel/core@7.29.7)(@opentelemetry/api@1.9.1)(@types/node@22.15.21)(babel-plugin-react-compiler@1.0.0)(react-dom@19.3.0(react@19.3.0))(react@19.3.0))(pg@8.23.1)(zod@4.6.7)
       '@fitme/core':
         specifier: workspace:*
         version: link:../../packages/core
@@ -1722,8 +1722,8 @@ packages:
     peerDependencies:
       hono: '>=4'
 
-  '@clerk/mcp-tools@0.6.0':
-    resolution: {integrity: sha512-YXGZujj6oxD5T4XOi08UsLbPiWYD88Fe1uOwqZQekak8i2vitOgugRw7guwat3GuzQearRGdsW1P5AweQ043Sg==}
+  '@clerk/mcp-tools@0.8.0':
+    resolution: {integrity: sha512-u8tQpK5ay4jLqOrZEZRFgGNCGYrPAUjJaJjMA9ggK0IxMb3bSyx76gaKaCd4yDEbdHaco0kW7UHw9FefAKT5gw==}
     peerDependencies:
       '@clerk/express': ^2.1.5
       '@clerk/hono': ^0.1.0
@@ -1734,6 +1734,7 @@ packages:
       next: ^15.2.8 || ^15.3.8 || ^15.4.10 || ^15.5.9 || ^15.6.0-0 || ^16.0.10 || ^16.1.0-0
       pg: ^8.11.0
       redis: ^4.0.0
+      zod: ^3.25 || ^4.0
     peerDependenciesMeta:
       '@clerk/express':
         optional: true
@@ -12034,9 +12035,10 @@ snapshots:
       - react
       - react-dom
 
-  '@clerk/mcp-tools@0.6.0(@clerk/hono@0.1.90(hono@4.13.13)(react-dom@19.3.0(react@19.3.0))(react@19.3.0))(@clerk/nextjs@7.9.16(next@16.4.2(@babel/core@7.29.7)(@opentelemetry/api@1.9.1)(@types/node@22.15.21)(babel-plugin-react-compiler@1.0.0)(react-dom@19.3.0(react@19.3.0))(react@19.3.0))(react-dom@19.3.0(react@19.3.0))(react@19.3.0))(express@5.2.1)(hono@4.13.13)(next@16.4.2(@babel/core@7.29.7)(@opentelemetry/api@1.9.1)(@types/node@22.15.21)(babel-plugin-react-compiler@1.0.0)(react-dom@19.3.0(react@19.3.0))(react@19.3.0))(pg@8.23.1)(zod@4.6.7)':
+  '@clerk/mcp-tools@0.8.0(@clerk/hono@0.1.90(hono@4.13.13)(react-dom@19.3.0(react@19.3.0))(react@19.3.0))(@clerk/nextjs@7.9.16(next@16.4.2(@babel/core@7.29.7)(@opentelemetry/api@1.9.1)(@types/node@22.15.21)(babel-plugin-react-compiler@1.0.0)(react-dom@19.3.0(react@19.3.0))(react@19.3.0))(react-dom@19.3.0(react@19.3.0))(react@19.3.0))(express@5.2.1)(hono@4.13.13)(next@16.4.2(@babel/core@7.29.7)(@opentelemetry/api@1.9.1)(@types/node@22.15.21)(babel-plugin-react-compiler@1.0.0)(react-dom@19.3.0(react@19.3.0))(react@19.3.0))(pg@8.23.1)(zod@4.6.7)':
     dependencies:
       '@modelcontextprotocol/sdk': 1.32.1(zod@4.6.7)
+      zod: 4.6.7
     optionalDependencies:
       '@clerk/hono': 0.1.90(hono@4.13.13)(react-dom@19.3.0(react@19.3.0))(react@19.3.0)
       '@clerk/nextjs': 7.9.16(next@16.4.2(@babel/core@7.29.7)(@opentelemetry/api@1.9.1)(@types/node@22.15.21)(babel-plugin-react-compiler@1.0.0)(react-dom@19.3.0(react@19.3.0))(react@19.3.0))(react-dom@19.3.0(react@19.3.0))(react@19.3.0)
@@ -12047,7 +12049,6 @@ snapshots:
     transitivePeerDependencies:
       - '@cfworker/json-schema'
       - supports-color
-      - zod
 
   '@clerk/nextjs@7.9.16(next@16.4.2(@babel/core@7.29.7)(@opentelemetry/api@1.9.1)(@types/node@22.15.21)(babel-plugin-react-compiler@1.0.0)(react-dom@19.3.0(react@19.3.0))(react@19.3.0))(react-dom@19.3.0(react@19.3.0))(react@19.3.0)':
     dependencies:
@@ -13375,7 +13376,7 @@ snapshots:
       pkce-challenge: 5.0.1
       raw-body: 3.0.2
       zod: 4.6.7
-      zod-to-json-schema: 3.25.2(zod@3.25.76)
+      zod-to-json-schema: 3.25.2(zod@4.6.7)
     transitivePeerDependencies:
       - supports-color
 
@@ -21858,6 +21859,10 @@ snapshots:
   zod-to-json-schema@3.25.2(zod@3.25.76):
     dependencies:
       zod: 3.25.76
+
+  zod-to-json-schema@3.25.2(zod@4.6.7):
+    dependencies:
+      zod: 4.6.7
 
   zod@3.25.76: {}
 

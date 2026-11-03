@@ -14,7 +14,7 @@
   },
   "dependencies": {
     "@clerk/hono": "^0.1.90",
-    "@clerk/mcp-tools": "^0.6.0",
+    "@clerk/mcp-tools": "^0.8.0",
     "@fitme/core": "workspace:*",
     "@fitme/db": "workspace:*",
     "@fitme/library-sdk": "workspace:*",
