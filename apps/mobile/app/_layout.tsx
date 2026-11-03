@@ -27,6 +27,7 @@ import { Stack } from "expo-router";
 import { getFocusedRouteNameFromRoute } from "expo-router/react-navigation";
 import { SCROLL_EDGE_EFFECTS } from "~/lib/constants";
 import { useAppLanguageSync } from "~/lib/i18n";
+import { isTracedRequestUrl, templateRequestSpans } from "~/lib/request-spans";
 import { getTabTitle } from "~/lib/tabs";
 
 // Back buttons over the tabs name the focused tab (see `getTabTitle`).
@@ -45,15 +46,30 @@ const IS_E2E = process.env.EXPO_PUBLIC_E2E_ENABLED === "true";
 
 Sentry.init({
   beforeSend: scrubEvent,
-  beforeSendTransaction: scrubEvent,
+  // The route templates first, then the shared scrubber, which stays the
+  // `beforeSendTransaction` (so it also backstops what a span carries).
+  beforeSendTransaction: (event) => scrubEvent(templateRequestSpans(event)),
   dsn: process.env.EXPO_PUBLIC_SENTRY_DSN,
   // Development builds (simulator, Expo Go, dev clients) send nothing.
   enabled: !__DEV__,
+  integrations: [
+    // Replaces the default `ReactNativeTracing` by name, to record an
+    // `http.client` span per request (the phone-side latency of the Public API
+    // and the Library API). `traceFetch` is the SDK's own default here
+    // (expo/fetch bypasses XHR), set so a change of that default can't
+    // silently stop the spans; `shouldCreateSpanForRequest` keeps the spans to
+    // the hosts we send trace headers to, so a span and its request always
+    // share a trace and Clerk, RevenueCat, Supabase and Segment get neither.
+    Sentry.reactNativeTracingIntegration({
+      shouldCreateSpanForRequest: isTracedRequestUrl,
+      traceFetch: true,
+    }),
+  ],
   // Relative to tracesSampleRate: half of the traced sessions are profiled.
   profilesSampleRate: 0.5,
   sendDefaultPii: false,
-  // Trace headers go to our own services only (api, arnold, exercises, mcp…),
-  // never to Clerk, RevenueCat, Supabase or Segment.
+  // Trace headers go to our own services only (api, app, arnold, library, mcp,
+  // webhooks), never to Clerk, RevenueCat, Supabase or Segment.
   tracePropagationTargets,
   tracesSampleRate: 0.1,
 });
