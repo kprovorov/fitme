@@ -1,4 +1,10 @@
 import { getAuth } from "@clerk/hono";
+import { McpServer } from "@modelcontextprotocol/sdk/server/mcp.js";
+import { WebStandardStreamableHTTPServerTransport } from "@modelcontextprotocol/sdk/server/webStandardStreamableHttp.js";
+import {
+  LATEST_PROTOCOL_VERSION,
+  SUPPORTED_PROTOCOL_VERSIONS,
+} from "@modelcontextprotocol/sdk/types.js";
 import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
 import { createApp } from "../create-app.js";
 import type { ServicesFactory } from "../services.js";
@@ -447,6 +453,115 @@ describe("with a valid Clerk token", () => {
       "This MCP server is not configured for the Library (LIBRARY_URL or LIBRARY_MCP_SECRET is missing)."
     );
   });
+});
+
+describe("protocol version", () => {
+  // A revision no SDK will ever support (a client on 2026-07-28 today)
+  const UNSUPPORTED_VERSION = "9999-12-31";
+
+  const toolsListOn = (version: string) =>
+    new Request("http://localhost/", {
+      body: JSON.stringify({ id: 1, jsonrpc: "2.0", method: "tools/list" }),
+      headers: {
+        Accept: "application/json, text/event-stream",
+        Authorization: `Bearer ${clerkToken("user_alice")}`,
+        "Content-Type": "application/json",
+        "Mcp-Protocol-Version": version,
+      },
+      method: "POST",
+    });
+
+  /** What the SDK's own transport answers the request. */
+  const transportAnswer = async (request: Request) => {
+    const transport = new WebStandardStreamableHTTPServerTransport({
+      sessionIdGenerator: undefined,
+    });
+    await new McpServer({ name: "sdk", version: "0.0.0" }).connect(transport);
+    try {
+      return await transport.handleRequest(request);
+    } finally {
+      await transport.close();
+    }
+  };
+
+  afterEach(() => {
+    vi.restoreAllMocks();
+  });
+
+  it("answers an unsupported version as the transport would, never reaching it", async () => {
+    signInAs("user_alice");
+    const { app, reported } = createTestApp();
+    const expected = await transportAnswer(toolsListOn(UNSUPPORTED_VERSION));
+    const handleRequest = vi.spyOn(
+      WebStandardStreamableHTTPServerTransport.prototype,
+      "handleRequest"
+    );
+
+    const response = await app.request(toolsListOn(UNSUPPORTED_VERSION));
+
+    expect(response.status).toBe(400);
+    expect(response.headers.get("Content-Type")).toBe(
+      expected.headers.get("Content-Type")
+    );
+    const body = await response.json();
+    expect(body).toEqual(await expected.json());
+    expect(body.error.message).toContain(
+      `Unsupported protocol version: ${UNSUPPORTED_VERSION}`
+    );
+    // Sentry's MCP integration reports every error the transport raises
+    expect(handleRequest).not.toHaveBeenCalled();
+    expect(reported).toEqual([]);
+  });
+
+  it.each([
+    ["alone", (request: Record<string, unknown>) => request],
+    ["in a batch", (request: Record<string, unknown>) => [request]],
+  ])(
+    "lets the SDK negotiate an initialize request %s, whatever the header says",
+    async (_, wrap) => {
+      signInAs("user_alice");
+      const { app } = createTestApp();
+
+      const response = await app.request("/", {
+        body: JSON.stringify(
+          wrap({
+            id: 1,
+            jsonrpc: "2.0",
+            method: "initialize",
+            params: {
+              capabilities: {},
+              clientInfo: { name: "test", version: "0.0.0" },
+              protocolVersion: UNSUPPORTED_VERSION,
+            },
+          })
+        ),
+        headers: {
+          Accept: "application/json, text/event-stream",
+          Authorization: `Bearer ${clerkToken("user_alice")}`,
+          "Content-Type": "application/json",
+          "Mcp-Protocol-Version": UNSUPPORTED_VERSION,
+        },
+        method: "POST",
+      });
+
+      expect(response.status).toBe(200);
+      expect(await response.text()).toContain(
+        `"protocolVersion":"${LATEST_PROTOCOL_VERSION}"`
+      );
+    }
+  );
+
+  it.each(SUPPORTED_PROTOCOL_VERSIONS)(
+    "serves a request on %s",
+    async (version) => {
+      signInAs("user_alice");
+      const { app } = createTestApp();
+
+      const response = await app.request(toolsListOn(version));
+
+      expect(response.status).toBe(200);
+    }
+  );
 });
 
 describe("observability", () => {
