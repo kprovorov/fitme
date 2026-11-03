@@ -11,6 +11,7 @@
   },
   "dependencies": {
     "@clerk/nextjs": "^7.9.16",
+    "@fitme/api-client": "workspace:*",
     "@fitme/core": "workspace:*",
     "@fitme/design-tokens": "workspace:*",
     "@fitme/observability": "workspace:*",
