@@ -1,6 +1,6 @@
 # Fitme
 
-A personal workout planner: a person signs up, fills in a fitness profile, gets AI-generated workout plans and logs workout sessions against them.
+A personal workout planner: a person signs up, fills in a fitness profile, builds workout plans by hand or with Arnold, and logs workout sessions against them.
 
 ## Language
 
@@ -25,7 +25,7 @@ _Avoid_: UUID, auth uid, sub
 ### Training
 
 **Plan**:
-A multi-workout training programme owned by one User. At most one Plan is active per User at a time.
+A multi-workout training programme owned by one User, built by the User or by Arnold; a Plan doesn't record which. It always has a name and a training frequency; its goal, place, experience level and workout duration may be left unset. At most one Plan is active per User at a time.
 
 **Workout**:
 A single training day inside a Plan: an ordered list of exercises with target sets.
