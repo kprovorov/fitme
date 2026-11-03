@@ -1,5 +1,5 @@
 import { rateLimitedFor } from "@fitme/api-client";
-import { countUnloggedSets, type WorkoutSession } from "@fitme/core";
+import { countUnloggedSets } from "@fitme/core";
 import * as Sentry from "@sentry/react-native";
 import {
   type MutationFilters,
@@ -11,14 +11,17 @@ import { useNavigation, useRouter } from "expo-router";
 import { useCallback, useMemo } from "react";
 import { Alert } from "react-native";
 import { showPlanUpdatePrompt } from "~/hooks/plan-update-prompt";
+import { PLANS_QUERY_KEY, usePlanQuery } from "~/hooks/queries/plans";
 import { WEEKLY_GOALS_QUERY_KEY } from "~/hooks/queries/weekly-goals";
 import {
   FINISH_WORKOUT_SESSION_MUTATION_KEY,
   type FinishWorkoutSessionVariables,
   fetchPlanUpdate,
   OPEN_WORKOUT_SESSION_QUERY_KEY,
+  seedWorkoutSession,
   useFinishWorkoutSessionMutation,
   useWorkoutSessionQuery,
+  type WorkoutSession,
 } from "~/hooks/queries/workout-sessions";
 import { i18n } from "~/lib/i18n";
 import {
@@ -27,6 +30,7 @@ import {
   planUpdateProperties,
 } from "~/lib/plan-changes";
 import { segmentClient } from "~/lib/segment";
+import { isStillWriteStarter } from "~/lib/write-answers";
 
 const finishingFilters = (sessionId: string): MutationFilters => ({
   mutationKey: FINISH_WORKOUT_SESSION_MUTATION_KEY,
@@ -180,37 +184,43 @@ export function useFinishWorkoutSession(
   const isFinishing = useIsMutating(filters) > 0;
 
   const { mutate } = useFinishWorkoutSessionMutation({
-    onError: (error) => {
+    onError: (error, _variables, starter) => {
       const waitSeconds = rateLimitedFor(error);
       // Too many requests is the User's to wait out, not a bug.
       if (waitSeconds === null) {
         Sentry.captureException(error);
       }
-      alertFinishFailed(waitSeconds);
+      // Never alert the next User about the previous one's finish.
+      if (isStillWriteStarter(starter)) {
+        alertFinishFailed(waitSeconds);
+      }
     },
-    onSuccess: async (session) => {
-      // Every screen sees the session finished right away, even if a refetch
-      // below fails.
-      queryClient.setQueryData(
-        useWorkoutSessionQuery.getKey({ sessionId }),
-        session
-      );
-      await queryClient.invalidateQueries({ queryKey: ["workout-session"] });
-      await queryClient.invalidateQueries({ queryKey: ["plans"] });
-      await queryClient.invalidateQueries({ queryKey: ["exercise-history"] });
-      // History's months and Weekly goal chart count it now (a finish may
-      // also start goal tracking)
-      await queryClient.invalidateQueries({
-        queryKey: ["workout-sessions-history"],
-      });
-      await queryClient.invalidateQueries({
-        queryKey: WEEKLY_GOALS_QUERY_KEY,
-      });
-      // Start is no longer blocked on it.
-      await queryClient.invalidateQueries({
-        queryKey: OPEN_WORKOUT_SESSION_QUERY_KEY,
-      });
+    // Signed out (or another User signed in) before the answer, or at any
+    // step after it: the rest is the previous User's, so it neither shows,
+    // nor reads, nor opens anything.
+    onSuccess: async (session, _variables, starter) => {
+      // Every screen of it (the Summary included) shows the answer, with no
+      // re-read (or reads it again, when a newer read landed meanwhile), and
+      // the reads it changed are read again.
+      const seeded = await seedWorkoutSession(queryClient, starter, session, [
+        // Its Workout moved to the end of the rotation.
+        { queryKey: PLANS_QUERY_KEY },
+        { queryKey: usePlanQuery.getKey() },
+        { queryKey: ["exercise-history"] },
+        // History's months and Weekly goal chart count it now (a finish may
+        // also start goal tracking)
+        { queryKey: ["workout-sessions-history"] },
+        { queryKey: WEEKLY_GOALS_QUERY_KEY },
+        // Start is no longer blocked on it.
+        { queryKey: OPEN_WORKOUT_SESSION_QUERY_KEY },
+      ]);
+      if (seeded === "signed-out") {
+        return;
+      }
       const openSummary = () => {
+        if (!isStillWriteStarter(starter)) {
+          return;
+        }
         const summary = `/workout-sessions/${sessionId}/summary` as const;
         if (
           isSessionScreenBelow(
@@ -233,6 +243,9 @@ export function useFinishWorkoutSession(
       }
       if (!preview) {
         openSummary();
+        return;
+      }
+      if (!isStillWriteStarter(starter)) {
         return;
       }
       segmentClient.track("Plan Update Suggested", {

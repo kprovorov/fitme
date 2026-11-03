@@ -6,7 +6,6 @@ import { rememberProfileWrite } from "~/hooks/mutations/profiles";
 import { useExerciseHistoryQuery } from "~/hooks/queries/exercises";
 import { usePlanQuery, usePlansQuery } from "~/hooks/queries/plans";
 import type { Profile } from "~/hooks/queries/profiles";
-import { useWorkoutSessionExerciseQuery } from "~/hooks/queries/workout-session-exercises";
 import {
   OPEN_WORKOUT_SESSION_QUERY_KEY,
   useWorkoutSessionHistoryQuery,
@@ -29,8 +28,8 @@ const WEIGHED_QUERY_KEYS: QueryKey[] = [
   usePlansQuery.getKey(),
   usePlanQuery.getKey(),
   useWorkoutQuery.getKey(),
+  // The Workout Session screens, the Exercise screen and the Summary alike.
   useWorkoutSessionQuery.getKey(),
-  useWorkoutSessionExerciseQuery.getKey(),
   // No weight of its own yet, but it answers from a Workout Session summary.
   OPEN_WORKOUT_SESSION_QUERY_KEY,
   useWorkoutSessionHistoryQuery.getKey(),

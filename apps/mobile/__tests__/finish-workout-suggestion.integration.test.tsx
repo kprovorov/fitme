@@ -446,6 +446,7 @@ const START = "POST /v1/workout-sessions";
 const LOG_SET = "PATCH /v1/workout-session-sets/{id}";
 const ADD_SET = "POST /v1/workout-session-exercises/{id}/sets";
 const FINISH = "POST /v1/workout-sessions/{id}/finish";
+const READ_SESSION = "GET /v1/workout-sessions/{id}";
 
 /** What a set row shows when its save fails. */
 const SET_SAVE_ERROR = "Couldn't save this set. Try again.";
@@ -793,7 +794,8 @@ describe.each(ENTRY_ROUTES)(
       });
       await openExercise("Squat");
 
-      backend.failNext("workout_sessions", "select");
+      // The check reads the session before the screens re-read it.
+      fakePublicApi.failNext(READ_SESSION, { status: 500 });
       await trackSet(1);
 
       expect(isSuggestionShown()).toBe(false);

@@ -1,22 +1,95 @@
-import type { components } from "@fitme/api-client";
-import { ApiError } from "@fitme/api-client";
-import type { WorkoutSession } from "@fitme/core";
+import { ApiError, type components } from "@fitme/api-client";
+import type {
+  InvalidateQueryFilters,
+  QueryClient,
+} from "@tanstack/react-query";
 import { createMutation, createQuery } from "react-query-kit";
-import { supabase } from "@/lib/supabase";
 import type { PlanUpdate } from "~/lib/plan-changes";
 import { publicApi } from "~/lib/public-api";
+import {
+  rememberWriteStarter,
+  type SeedResult,
+  seedWriteAnswer,
+  type WriteStarter,
+} from "~/lib/write-answers";
 
-const SESSION_SELECT = `
-  *,
-  workout:workouts (
-    *,
-    plan:plans (*)
-  ),
-  exercises:workout_session_exercises (
-    *,
-    sets:workout_session_exercise_sets (*)
-  )
-`;
+/**
+ * A Workout Session in full, as `GET /v1/workout-sessions/{id}` answers it:
+ * its `plan` and `workout` (`null` once gone), its Exercises and their sets
+ * in order (each with `logged_at`), and the `weight_unit` its weights are in.
+ */
+export type WorkoutSession = components["schemas"]["WorkoutSession"];
+
+/** One Exercise of a `WorkoutSession`, by Exercise slug, with its sets. */
+export type WorkoutSessionExercise =
+  components["schemas"]["WorkoutSessionExercise"];
+
+/** One set of a `WorkoutSessionExercise`, weights in the session's unit. */
+export type WorkoutSessionSet = components["schemas"]["WorkoutSessionSet"];
+
+/** Every query reading a Workout Session, each under its id. */
+export const WORKOUT_SESSION_QUERY_KEY = ["workout-session"];
+
+/**
+ * How long a Workout Session read (or a write's answer) is shown without
+ * reading it again when another screen of it mounts: the session screen
+ * opening after Start, the Exercise screen and the Summary all show the
+ * answer they're handed. Every edit re-reads it whatever its age.
+ */
+export const WORKOUT_SESSION_STALE_TIME_MS = 30_000;
+
+export interface GetWorkoutSessionVariables {
+  sessionId: string;
+}
+
+/**
+ * The User's Workout Session through `GET /v1/workout-sessions/{id}`. A
+ * missing or another User's one is the API's 404; like any other failure it
+ * rejects with an `ApiError`.
+ */
+export const fetchWorkoutSession = async (
+  sessionId: string
+): Promise<WorkoutSession> => {
+  const { data } = await publicApi().GET("/v1/workout-sessions/{id}", {
+    params: { path: { id: sessionId } },
+  });
+  if (!data) {
+    throw new ApiError("Public API answered without a Workout Session");
+  }
+  return data.data;
+};
+
+export const useWorkoutSessionQuery = createQuery<
+  WorkoutSession,
+  GetWorkoutSessionVariables
+>({
+  fetcher: ({ sessionId }: GetWorkoutSessionVariables) =>
+    fetchWorkoutSession(sessionId),
+  queryKey: WORKOUT_SESSION_QUERY_KEY,
+  // A 429 is the User's to wait out; the screens offer Try again.
+  retry: false,
+  staleTime: WORKOUT_SESSION_STALE_TIME_MS,
+});
+
+/**
+ * Shows a write's answer (Start's, Finish's) as the Workout Session's read,
+ * so its screens open with no re-read, then invalidates `alsoInvalidate`,
+ * through `seedWriteAnswer`: only while `starter`, the User who started the
+ * write, is still signed in (`signed-out` otherwise, nothing touched), and
+ * only over what the read showed when the write started (`superseded`
+ * otherwise: it's read again instead).
+ */
+export const seedWorkoutSession = (
+  client: QueryClient,
+  starter: WriteStarter | undefined,
+  session: WorkoutSession,
+  alsoInvalidate: InvalidateQueryFilters[] = []
+): Promise<SeedResult> =>
+  seedWriteAnswer(client, starter, {
+    alsoInvalidate,
+    answer: session,
+    queryKey: useWorkoutSessionQuery.getKey({ sessionId: session.id }),
+  });
 
 export interface CreateWorkoutSessionVariables {
   workoutId: string;
@@ -25,11 +98,15 @@ export interface CreateWorkoutSessionVariables {
 /**
  * Starts a Workout through `POST /v1/workout-sessions`, or resumes the
  * Workout Session already open for it (the API answers 200 instead of 201,
- * handled alike), then reads it through Supabase. Rejects with an `ApiError`.
+ * handled alike), and answers the session in full; `useStartWorkout` shows
+ * it as the session's read, for the User who started it (its own `onMutate`
+ * remembers them, so a caller passes none). Rejects with an `ApiError`.
  */
 export const useCreateWorkoutSessionMutation = createMutation<
   WorkoutSession,
-  CreateWorkoutSessionVariables
+  CreateWorkoutSessionVariables,
+  Error,
+  WriteStarter
 >({
   mutationFn: async ({
     workoutId,
@@ -40,35 +117,18 @@ export const useCreateWorkoutSessionMutation = createMutation<
     if (!data) {
       throw new ApiError("Public API answered without a Workout Session");
     }
-    return fetchWorkoutSession(data.data.id);
+    return data.data;
   },
-});
-
-export interface GetWorkoutSessionVariables {
-  sessionId: string;
-}
-
-export const fetchWorkoutSession = async (
-  sessionId: string
-): Promise<WorkoutSession> => {
-  const { data, error } = await supabase
-    .from("workout_sessions")
-    .select(SESSION_SELECT)
-    .eq("id", sessionId)
-    .single();
-  if (error) {
-    throw error;
-  }
-  return data as unknown as WorkoutSession;
-};
-
-export const useWorkoutSessionQuery = createQuery<
-  WorkoutSession,
-  GetWorkoutSessionVariables
->({
-  fetcher: ({ sessionId }: GetWorkoutSessionVariables) =>
-    fetchWorkoutSession(sessionId),
-  queryKey: ["workout-session"],
+  // Which session it answers isn't known yet: every Workout Session read
+  // shown now is remembered, so a resumed one seeds only over what it showed.
+  onMutate: (_variables, { client }) =>
+    rememberWriteStarter(
+      client,
+      client
+        .getQueryCache()
+        .findAll({ queryKey: WORKOUT_SESSION_QUERY_KEY })
+        .map(({ queryKey }) => queryKey)
+    ),
 });
 
 /**
@@ -148,21 +208,35 @@ export const FINISH_WORKOUT_SESSION_MUTATION_KEY = ["finish-workout-session"];
 
 /**
  * Finishes a Workout Session through `POST /v1/workout-sessions/{id}/finish`,
- * which moves its Workout to the end of the Plan's rotation, then reads it
- * through Supabase. An already finished one (a retry, a double tap) is a
- * success. Rejects with an `ApiError`.
+ * which moves its Workout to the end of the Plan's rotation, and answers the
+ * finished session in full; `useFinishWorkoutSession` shows it as the
+ * session's read, for the User who started it (its own `onMutate` remembers
+ * them, so a caller passes none). An already finished one (a retry, a double
+ * tap) is a success. Rejects with an `ApiError`.
  */
 export const useFinishWorkoutSessionMutation = createMutation<
   WorkoutSession,
-  FinishWorkoutSessionVariables
+  FinishWorkoutSessionVariables,
+  Error,
+  WriteStarter
 >({
-  mutationFn: async ({ sessionId }: FinishWorkoutSessionVariables) => {
-    await publicApi().POST("/v1/workout-sessions/{id}/finish", {
-      params: { path: { id: sessionId } },
-    });
-    return fetchWorkoutSession(sessionId);
+  mutationFn: async ({
+    sessionId,
+  }: FinishWorkoutSessionVariables): Promise<WorkoutSession> => {
+    const { data } = await publicApi().POST(
+      "/v1/workout-sessions/{id}/finish",
+      { params: { path: { id: sessionId } } }
+    );
+    if (!data) {
+      throw new ApiError("Public API answered without a Workout Session");
+    }
+    return data.data;
   },
   mutationKey: FINISH_WORKOUT_SESSION_MUTATION_KEY,
+  onMutate: ({ sessionId }, { client }) =>
+    rememberWriteStarter(client, [
+      useWorkoutSessionQuery.getKey({ sessionId }),
+    ]),
 });
 
 const planUpdateOf = (answer: { data: PlanUpdate } | undefined): PlanUpdate => {

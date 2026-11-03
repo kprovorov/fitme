@@ -4,7 +4,6 @@
  * session and the fake Library naming the Exercises. The History tab's
  * Ukrainian coverage is in `history-screen.test.tsx`.
  */
-import type { WorkoutSession, WorkoutSessionExercise } from "@fitme/core";
 import { setDeviceConventions } from "@fitme/i18n";
 import {
   afterEach,
@@ -18,6 +17,10 @@ import { QueryClientProvider } from "@tanstack/react-query";
 import { render, screen } from "@testing-library/react-native";
 import type { ReactNode } from "react";
 import WorkoutSessionSummaryScreen from "~/app/workout-sessions/[workoutSessionId]/summary";
+import type {
+  WorkoutSession,
+  WorkoutSessionExercise,
+} from "~/hooks/queries/workout-sessions";
 import { i18n } from "~/lib/i18n";
 import {
   setDevice24HourClock,
@@ -50,10 +53,6 @@ jest.mock("~/hooks/queries/workout-sessions", () => ({
   useWorkoutSessionQuery: () => ({ data: mockSessions.current[0] }),
 }));
 
-jest.mock("~/hooks/queries/profiles", () => ({
-  useProfileQuery: () => ({ data: { measurement_system: "metric" } }),
-}));
-
 jest.mock("~/hooks/queries/exercises", () => ({
   useExerciseHistoryQuery: () => ({ data: [] }),
 }));
@@ -82,25 +81,19 @@ const exercise = (
   order: number,
   sets: [number, number][]
 ): WorkoutSessionExercise => ({
-  created_at: startedAt.toISOString(),
   exercise_slug: slug,
   id: `wse-${slug}`,
   order,
   sets: sets.map(([reps, weight], index) => ({
-    created_at: startedAt.toISOString(),
     id: `set-${slug}-${index}`,
     logged_at: startedAt.toISOString(),
     order: index + 1,
     reps_completed: reps,
     reps_recommended: reps,
     rest_recommended: 60,
-    updated_at: startedAt.toISOString(),
     weight_completed: weight,
     weight_recommended: weight,
-    workout_session_exercise_id: `wse-${slug}`,
   })),
-  updated_at: startedAt.toISOString(),
-  workout_session_id: "session-1",
 });
 
 const session = (
@@ -111,16 +104,14 @@ const session = (
 ): WorkoutSession => {
   const finishedAt = new Date(start.getTime() + minutes * 60_000);
   return {
-    created_at: start.toISOString(),
     exercises,
     finished_at: finishedAt.toISOString(),
     id,
-    plan_id: null,
+    plan: null,
     started_at: start.toISOString(),
-    updated_at: finishedAt.toISOString(),
-    user_id: "user_1",
+    status: "finished",
+    weight_unit: "kg",
     workout: null,
-    workout_id: null,
   };
 };
 

@@ -3,17 +3,15 @@ import {
   exerciseProgress,
   formatElapsed,
   sessionVolume,
-  type WorkoutSession,
 } from "@fitme/core";
-import { formatNumber, formatWeight } from "@fitme/i18n";
+import { formatNumber, formatUnit } from "@fitme/i18n";
 import { useIsFocused } from "expo-router";
 import { useTranslation } from "react-i18next";
 import { useWindowDimensions, View } from "react-native";
 import { Text } from "~/components/ui/text";
-import { useProfileQuery } from "~/hooks/queries/profiles";
+import type { WorkoutSession } from "~/hooks/queries/workout-sessions";
 import { useNow } from "~/hooks/use-now";
 import { useI18n } from "~/lib/i18n";
-import { measurementSystemOf } from "~/lib/profile";
 import { cn } from "~/lib/utils";
 
 interface WorkoutSessionStatsProps {
@@ -82,14 +80,13 @@ export default function WorkoutSessionStats({
 }: WorkoutSessionStatsProps) {
   const { t } = useTranslation();
   const i18n = useI18n();
-  const { data: profile } = useProfileQuery();
   const isFinished = !!workoutSession.finished_at;
   // Ticks only while the session screen is on top, not under an exercise.
   const isFocused = useIsFocused();
   const now = useNow(!isFinished && isFocused);
 
   const startedAt = new Date(workoutSession.started_at).getTime();
-  const endedAt = isFinished
+  const endedAt = workoutSession.finished_at
     ? new Date(workoutSession.finished_at).getTime()
     : now;
   const totalSets = workoutSession.exercises.reduce(
@@ -116,7 +113,7 @@ export default function WorkoutSessionStats({
           },
           {
             label: t("workoutSession.stats.volume"),
-            value: formatWeight(i18n, volume, measurementSystemOf(profile)),
+            value: formatUnit(i18n, volume, workoutSession.weight_unit),
           },
           {
             label: t("workoutSession.stats.sets"),

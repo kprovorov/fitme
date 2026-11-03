@@ -1,5 +1,4 @@
 import { rateLimitedFor } from "@fitme/api-client";
-import type { WorkoutSessionExerciseSet } from "@fitme/core";
 import { useQueryClient } from "@tanstack/react-query";
 import * as Haptics from "expo-haptics";
 import { useRef, useState } from "react";
@@ -12,6 +11,10 @@ import {
   useCreateWorkoutSessionExerciseSetMutation,
   useUpdateWorkoutSessionExerciseSetMutation,
 } from "~/hooks/queries/workout-session-exercise-sets";
+import {
+  WORKOUT_SESSION_QUERY_KEY,
+  type WorkoutSessionSet,
+} from "~/hooks/queries/workout-sessions";
 import { IS_E2E } from "~/lib/constants";
 import { segmentClient } from "~/lib/segment";
 import { formatSetTarget, formatSetWeight } from "~/lib/set-inputs";
@@ -35,7 +38,7 @@ interface WorkoutSessionExerciseSetRowViewProps {
   sessionId: string;
   /** The User's weight unit, for the target cell. */
   weightLabel: string | undefined;
-  workoutSessionExerciseSet: WorkoutSessionExerciseSet | null;
+  workoutSessionExerciseSet: WorkoutSessionSet | null;
 }
 
 export default function WorkoutSessionExerciseSetRowView({
@@ -112,10 +115,7 @@ export default function WorkoutSessionExerciseSetRowView({
     setJustLogged(true);
     trackSetCompleted();
     queryClient.invalidateQueries({
-      queryKey: ["workout-session-exercise"],
-    });
-    queryClient.invalidateQueries({
-      queryKey: ["workout-session"],
+      queryKey: WORKOUT_SESSION_QUERY_KEY,
     });
     queryClient.invalidateQueries({
       queryKey: ["exercise-history"],

@@ -1,39 +1,9 @@
-import type { WorkoutSessionExercise } from "@fitme/core";
-import { createMutation, createQuery } from "react-query-kit";
-import { supabase } from "@/lib/supabase";
+import { createMutation } from "react-query-kit";
 import { publicApi } from "~/lib/public-api";
-
-const SESSION_EXERCISE_SELECT = `
-  *,
-  sets:workout_session_exercise_sets (*)
-`;
-
-export interface WorkoutSessionExercisesVariables {
-  exerciseId: string;
-  sessionId: string;
-}
 
 export interface StoreWorkoutSessionExerciseData {
   exercise_slug: string;
 }
-
-export const useWorkoutSessionExerciseQuery = createQuery<
-  WorkoutSessionExercise,
-  WorkoutSessionExercisesVariables
->({
-  fetcher: async ({ exerciseId }: WorkoutSessionExercisesVariables) => {
-    const { data, error } = await supabase
-      .from("workout_session_exercises")
-      .select(SESSION_EXERCISE_SELECT)
-      .eq("id", exerciseId)
-      .single();
-    if (error) {
-      throw error;
-    }
-    return data as unknown as WorkoutSessionExercise;
-  },
-  queryKey: ["workout-session-exercise"],
-});
 
 export interface CreateWorkoutSessionExercisesVariables {
   data: StoreWorkoutSessionExerciseData;

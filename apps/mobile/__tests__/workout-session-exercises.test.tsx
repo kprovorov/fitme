@@ -50,6 +50,13 @@ import { SEARCH_BAR_TEST_ID } from "~/test-utils/stack-screen-stub";
 
 const mockParams: { current: Record<string, string> } = { current: {} };
 
+// The real Clerk SDK (reached through the Workout Session's writes) opens a
+// MessagePort at import that keeps Jest alive.
+jest.mock("~/lib/clerk", () => ({
+  getCurrentUserId: jest.requireActual<
+    typeof import("~/test-utils/signed-in-user")
+  >("~/test-utils/signed-in-user").getCurrentUserId,
+}));
 jest.mock("expo-router", () => {
   const { View } =
     jest.requireActual<typeof import("react-native")>("react-native");
@@ -143,6 +150,10 @@ const ADD_EXERCISE = "POST /v1/workout-sessions/{id}/exercises";
 const REMOVE_EXERCISE = "DELETE /v1/workout-session-exercises/{id}";
 const REPLACE_EXERCISE = "PUT /v1/workout-session-exercises/{id}";
 const PICKER = "/workout-sessions/[workoutSessionId]/exercise-picker";
+
+/** The last request to `route`: the session's re-read follows every edit. */
+const lastRequestTo = (route: string) =>
+  fakePublicApi.requests.filter((request) => request.route === route).at(-1);
 
 let queryClient: QueryClient;
 
@@ -493,7 +504,7 @@ describe("searching in the Exercise picker", () => {
     });
     await settle();
 
-    expect(fakePublicApi.requests.at(-1)).toMatchObject({
+    expect(lastRequestTo(ADD_EXERCISE)).toMatchObject({
       body: { exercise_slug: "push-up" },
       route: ADD_EXERCISE,
     });
@@ -536,7 +547,7 @@ describe("adding an Exercise to a Workout Session", () => {
 
     await addLunge();
 
-    expect(fakePublicApi.requests.at(-1)).toMatchObject({
+    expect(lastRequestTo(ADD_EXERCISE)).toMatchObject({
       body: { exercise_slug: "lunge" },
       path: "/v1/workout-sessions/s1/exercises",
       route: ADD_EXERCISE,
@@ -633,7 +644,7 @@ describe("removing an Exercise from a Workout Session", () => {
 
     await deleteFirst();
 
-    expect(fakePublicApi.requests.at(-1)).toMatchObject({
+    expect(lastRequestTo(REMOVE_EXERCISE)).toMatchObject({
       path: "/v1/workout-session-exercises/s1-e1",
       route: REMOVE_EXERCISE,
     });
@@ -692,7 +703,7 @@ describe("replacing an Exercise in a Workout Session", () => {
 
     await replaceFirstWithLunge();
 
-    expect(fakePublicApi.requests.at(-1)).toMatchObject({
+    expect(lastRequestTo(REPLACE_EXERCISE)).toMatchObject({
       body: { exercise_slug: "lunge" },
       path: "/v1/workout-session-exercises/s1-e1",
       route: REPLACE_EXERCISE,

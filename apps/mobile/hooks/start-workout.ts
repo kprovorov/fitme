@@ -5,10 +5,12 @@ import { Alert } from "react-native";
 import {
   OPEN_WORKOUT_SESSION_QUERY_KEY,
   type OpenWorkoutSession,
+  seedWorkoutSession,
   useCreateWorkoutSessionMutation,
   useOpenWorkoutSessionQuery,
 } from "~/hooks/queries/workout-sessions";
 import { i18n } from "~/lib/i18n";
+import { isStillWriteStarter } from "~/lib/write-answers";
 
 /** The Workout Session screen of a Workout of a Plan. */
 export const workoutSessionPath = (
@@ -72,8 +74,10 @@ const isSessionInProgress = (error: unknown) =>
 /**
  * Starts a Workout (or resumes its open Workout Session) through the Public
  * API, the way the Workout tab's cards and the Workout screen both do: the
- * open Workout Session read is invalidated, then `onStarted` opens the
- * session. A failure is the "Couldn't start workout" alert (the
+ * answer is shown as the session's read (so its screen opens without reading
+ * it again, unless a newer read landed meanwhile), the open Workout Session
+ * read is invalidated, then `onStarted` opens the session; all of it only
+ * while the User who pressed Start is still signed in. A failure is the "Couldn't start workout" alert (the
  * wait on a 429), except a 409 `session_in_progress` (another Workout's
  * session opened meanwhile), which re-reads the open Workout Session so
  * `blockedBy` shows it instead (still the alert if the re-read shows none).
@@ -97,11 +101,19 @@ export function useStartWorkout(
   const queryClient = useQueryClient();
   const { data: openSession } = useOpenWorkoutSessionQuery();
   const { mutate, isPending } = useCreateWorkoutSessionMutation({
-    onError: async (error) => {
+    // Signed out (or another User signed in) before the answer: it's the
+    // previous User's, so it neither shows, nor reads, nor opens anything.
+    onError: async (error, _variables, starter) => {
+      if (!isStillWriteStarter(starter)) {
+        return;
+      }
       if (isSessionInProgress(error)) {
         await queryClient.invalidateQueries({
           queryKey: OPEN_WORKOUT_SESSION_QUERY_KEY,
         });
+        if (!isStillWriteStarter(starter)) {
+          return;
+        }
         const open = queryClient.getQueryData<OpenWorkoutSession | null>(
           OPEN_WORKOUT_SESSION_QUERY_KEY
         );
@@ -116,10 +128,18 @@ export function useStartWorkout(
       }
       alertStartFailed(rateLimitedFor(error));
     },
-    onSuccess: (workoutSession) => {
-      queryClient.invalidateQueries({
-        queryKey: OPEN_WORKOUT_SESSION_QUERY_KEY,
-      });
+    onSuccess: async (workoutSession, _variables, starter) => {
+      // Shown, or read again when a newer read landed meanwhile: either way
+      // it opens. Signed out meanwhile, it was the previous User's.
+      const seeded = await seedWorkoutSession(
+        queryClient,
+        starter,
+        workoutSession,
+        [{ queryKey: OPEN_WORKOUT_SESSION_QUERY_KEY }]
+      );
+      if (seeded === "signed-out") {
+        return;
+      }
       onStarted(workoutSession.id);
     },
   });

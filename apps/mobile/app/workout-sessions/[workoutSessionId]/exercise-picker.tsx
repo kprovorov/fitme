@@ -16,6 +16,7 @@ import {
   useCreateWorkoutSessionExerciseMutation,
   useReplaceWorkoutSessionExerciseMutation,
 } from "~/hooks/queries/workout-session-exercises";
+import { WORKOUT_SESSION_QUERY_KEY } from "~/hooks/queries/workout-sessions";
 import { IS_E2E } from "~/lib/constants";
 import { segmentClient } from "~/lib/segment";
 import { sessionEditFailureMessage } from "~/lib/session-edit-failure";
@@ -59,7 +60,7 @@ export default function ExercisePickerScreen() {
   // either way.
   const rereadSession = useCallback(() => {
     queryClient.invalidateQueries({
-      queryKey: ["workout-session"],
+      queryKey: WORKOUT_SESSION_QUERY_KEY,
     });
   }, [queryClient]);
 

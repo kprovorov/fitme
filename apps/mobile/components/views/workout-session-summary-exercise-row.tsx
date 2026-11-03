@@ -1,4 +1,3 @@
-import type { WorkoutSessionExercise } from "@fitme/core";
 import { formatCount } from "@fitme/i18n";
 import { useRouter } from "expo-router";
 import { useTranslation } from "react-i18next";
@@ -9,6 +8,7 @@ import { HStack } from "~/components/ui/hstack";
 import { Text } from "~/components/ui/text";
 import { useExerciseHistoryQuery } from "~/hooks/queries/exercises";
 import { type ShownExercise, shownExercise } from "~/hooks/queries/library";
+import type { WorkoutSessionExercise } from "~/hooks/queries/workout-sessions";
 import { useI18n } from "~/lib/i18n";
 
 interface WorkoutSessionSummaryExerciseRowProps {
@@ -52,10 +52,11 @@ export default function WorkoutSessionSummaryExerciseRow({
   );
   const isNewRecord = sessionMaxWeight > 0 && sessionMaxWeight > priorMaxWeight;
 
+  // The Exercise's screen lives under the session's Plan and Workout: none
+  // once either is gone.
+  const canOpen = !!(planId && workoutId);
+
   const handlePress = () => {
-    if (!(planId && workoutId)) {
-      return;
-    }
     router.push(
       `/plans/${planId}/workouts/${workoutId}/sessions/${sessionId}/exercises/${workoutSessionExercise.id}`
     );
@@ -67,8 +68,9 @@ export default function WorkoutSessionSummaryExerciseRow({
         name: exercise.name,
         sets: formatCount(i18n, "sets", setsLogged),
       })}
-      accessibilityRole="button"
+      accessibilityRole={canOpen ? "button" : undefined}
       className="active:opacity-80"
+      disabled={!canOpen}
       onPress={handlePress}
     >
       <HStack className="w-full items-center gap-2 px-md">
@@ -90,10 +92,12 @@ export default function WorkoutSessionSummaryExerciseRow({
             name="trophy.fill"
           />
         ) : null}
-        <SymbolImage
-          className="text-body-emphasized text-foreground"
-          name="chevron.right"
-        />
+        {canOpen ? (
+          <SymbolImage
+            className="text-body-emphasized text-foreground"
+            name="chevron.right"
+          />
+        ) : null}
       </HStack>
     </Pressable>
   );

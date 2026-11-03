@@ -57,17 +57,44 @@ jest.mock("~/components/ui/button", () =>
   jest.requireActual("~/test-utils/button-stub")
 );
 jest.mock("~/components/symbol-image", () => ({ SymbolImage: () => null }));
-// Keeps the real mutation key and react-query wiring, swapping only the
-// network call.
+// The Plan queries' module still holds Supabase reads (Home's).
+jest.mock("~/lib/supabase", () => ({
+  supabase: jest.requireActual<
+    typeof import("~/test-utils/fake-workout-backend")
+  >("~/test-utils/fake-workout-backend").fakeSupabase,
+}));
+// Who started a finish: the fake Public API's User unless a test signs
+// someone else in.
+jest.mock("~/lib/clerk", () => ({
+  getCurrentUserId: jest.requireActual<
+    typeof import("~/test-utils/signed-in-user")
+  >("~/test-utils/signed-in-user").getCurrentUserId,
+}));
+// Keeps the real mutation key, react-query wiring and seeding, swapping only
+// the network call.
 jest.mock("~/hooks/queries/workout-sessions", () => {
   const { createMutation, createQuery } =
     jest.requireActual<typeof import("react-query-kit")>("react-query-kit");
+  const { rememberWriteStarter, seedWriteAnswer } = jest.requireActual<
+    typeof import("~/lib/write-answers")
+  >("~/lib/write-answers");
   const FINISH_WORKOUT_SESSION_MUTATION_KEY = ["finish-workout-session"];
   return {
     FINISH_WORKOUT_SESSION_MUTATION_KEY,
     fetchPlanUpdate: (sessionId: string) =>
       mockPlanUpdate(sessionId, { apply: false }),
     OPEN_WORKOUT_SESSION_QUERY_KEY: ["open-workout-session"],
+    seedWorkoutSession: (
+      client: import("@tanstack/react-query").QueryClient,
+      starter: import("~/lib/write-answers").WriteStarter | undefined,
+      session: { id: string },
+      alsoInvalidate: import("@tanstack/react-query").InvalidateQueryFilters[]
+    ) =>
+      seedWriteAnswer(client, starter, {
+        alsoInvalidate,
+        answer: session,
+        queryKey: ["workout-session", { sessionId: session.id }],
+      }),
     useApplyPlanUpdateMutation: createMutation({
       mutationFn: ({ sessionId }: { sessionId: string }) =>
         mockPlanUpdate(sessionId, { apply: true }),
@@ -76,6 +103,10 @@ jest.mock("~/hooks/queries/workout-sessions", () => {
       mutationFn: (variables: { sessionId: string }) =>
         mockFinishRpc(variables),
       mutationKey: FINISH_WORKOUT_SESSION_MUTATION_KEY,
+      onMutate: (
+        { sessionId }: { sessionId: string },
+        { client }: { client: import("@tanstack/react-query").QueryClient }
+      ) => rememberWriteStarter(client, [["workout-session", { sessionId }]]),
     }),
     useWorkoutSessionQuery: createQuery({
       fetcher: () => mockFetchSession(),

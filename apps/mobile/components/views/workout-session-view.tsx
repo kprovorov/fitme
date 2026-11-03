@@ -1,4 +1,3 @@
-import type { WorkoutSession } from "@fitme/core";
 import { useQueryClient } from "@tanstack/react-query";
 import { useRouter } from "expo-router";
 import { useCallback } from "react";
@@ -6,6 +5,10 @@ import { useTranslation } from "react-i18next";
 import { Alert } from "react-native";
 import { useExercises } from "~/hooks/queries/library";
 import { useDeleteWorkoutSessionExerciseMutation } from "~/hooks/queries/workout-session-exercises";
+import {
+  WORKOUT_SESSION_QUERY_KEY,
+  type WorkoutSession,
+} from "~/hooks/queries/workout-sessions";
 import { IS_E2E } from "~/lib/constants";
 import { segmentClient } from "~/lib/segment";
 import { sessionEditFailureMessage } from "~/lib/session-edit-failure";
@@ -33,7 +36,7 @@ export default function WorkoutSessionView({
   // either way.
   const rereadSession = useCallback(() => {
     queryClient.invalidateQueries({
-      queryKey: ["workout-session"],
+      queryKey: WORKOUT_SESSION_QUERY_KEY,
     });
   }, [queryClient]);
 
@@ -100,10 +103,11 @@ export default function WorkoutSessionView({
                 ? undefined
                 : () => handleReplaceExercise(exercise.id)
             }
-            planId={workoutSession.plan_id}
+            planId={workoutSession.plan?.id ?? null}
             readOnly={!!workoutSession.finished_at}
             sessionId={workoutSession.id}
-            workoutId={workoutSession.workout_id}
+            weightUnit={workoutSession.weight_unit}
+            workoutId={workoutSession.workout?.id ?? null}
             workoutSessionExercise={exercise}
           />
         ))}
