@@ -5,6 +5,7 @@ import { clerkSession } from "../lib/clerk-auth";
 import { evalRunner } from "../lib/eval-runner";
 import { createProCheck } from "../lib/pro-access";
 import { accountDeletionReset } from "../lib/reset-auth";
+import { attachmentUploadPolicy } from "../lib/upload-policy";
 
 // Clerk session tokens of Pro Users, plus apps/webhooks' reset secret (reset
 // routes only, for account deletion). No localDev() or vercelOidc() fallback,
@@ -21,4 +22,5 @@ export default eveChannel({
     }),
     evalRunner(),
   ],
+  uploadPolicy: attachmentUploadPolicy,
 });
