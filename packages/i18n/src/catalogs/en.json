@@ -286,6 +286,17 @@
     "openInProgressHint": "Opens the workout in progress"
   },
   "choices": {
+    "equipment": {
+      "barbell": "Barbell",
+      "dumbbell": "Dumbbell",
+      "cable": "Cable",
+      "machine": "Machine",
+      "smith_machine": "Smith machine",
+      "bench": "Bench",
+      "pull_up_bar": "Pull-up bar",
+      "landmine": "Landmine",
+      "bodyweight": "Bodyweight"
+    },
     "experienceLevel": {
       "beginner": "Beginner",
       "intermediate": "Intermediate",

@@ -318,6 +318,17 @@
     "openInProgressHint": "Відкриває тренування, що триває"
   },
   "choices": {
+    "equipment": {
+      "barbell": "Штанга",
+      "dumbbell": "Гантель",
+      "cable": "Блок",
+      "machine": "Тренажер",
+      "smith_machine": "Машина Сміта",
+      "bench": "Лава",
+      "pull_up_bar": "Турнік",
+      "landmine": "Лендмайн",
+      "bodyweight": "Власна вага"
+    },
     "experienceLevel": {
       "beginner": "Початківець",
       "intermediate": "Середній рівень",

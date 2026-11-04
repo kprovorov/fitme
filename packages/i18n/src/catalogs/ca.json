@@ -302,6 +302,17 @@
     "openInProgressHint": "Obre l'entrenament en curs"
   },
   "choices": {
+    "equipment": {
+      "barbell": "Barra",
+      "dumbbell": "Manuella",
+      "cable": "Politja",
+      "machine": "Màquina",
+      "smith_machine": "Màquina Smith",
+      "bench": "Banc",
+      "pull_up_bar": "Barra de dominades",
+      "landmine": "Landmine",
+      "bodyweight": "Pes corporal"
+    },
     "experienceLevel": {
       "beginner": "Principiant",
       "intermediate": "Intermedi",
