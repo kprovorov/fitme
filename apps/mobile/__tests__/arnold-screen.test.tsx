@@ -1,40 +1,35 @@
 /**
- * The Arnold screen's own text in the App language: the real screen and chat
- * components, with eve's runtime stood in for (no Arnold to talk to), so a
- * test sets the error eve reports and reads what the User sees. The header's
- * options render as text through the `Stack.Screen` stub.
+ * The Arnold screen over the fake Arnold (`test-utils/fake-arnold.ts`): the
+ * real screen, chat components and `@assistant-ui/eve` runtime, talking to a
+ * stand-in for `apps/arnold` through the global `fetch`, so a test reads the
+ * parts a send put on the wire and the answer the User sees, and makes a send
+ * be refused or fail to see the screen's error states. Its own text is
+ * checked in each device language. The header's options render as text through
+ * the `Stack.Screen` stub.
  */
 import { beforeEach, describe, expect, it, jest } from "@jest/globals";
-import { act, render, screen } from "@testing-library/react-native";
+import {
+  act,
+  render,
+  screen,
+  userEvent,
+  waitFor,
+} from "@testing-library/react-native";
 import type { ReactNode } from "react";
 import ArnoldScreen from "~/app/(tabs)/arnold/index";
 import { useAppLanguageSync } from "~/lib/i18n";
+import { storage } from "~/lib/mmkv";
 import { setDeviceLanguages } from "~/test-utils/device-locales";
+import { FAKE_ARNOLD_REPLY, fakeArnold } from "~/test-utils/fake-arnold";
 
-const mockEve = {
-  error: undefined as Error | undefined,
-  reset: jest.fn(),
-};
 const mockPresentPaywall = jest.fn();
 
-// What the stand-in server errors say: never shown to the User.
+/** What the fake's refusals say: never shown to the User. */
 const SERVER_MESSAGE = /Arnold says no/;
 
-jest.mock("@assistant-ui/eve", () => ({
-  useEveAgentRuntime: () => ({}),
-  useEveError: () => mockEve.error,
-  useEveReset: () => mockEve.reset,
-}));
-
-jest.mock("@assistant-ui/react-native", () => ({
-  AssistantRuntimeProvider: ({ children }: { children: ReactNode }) => children,
-  useAui: () => ({ thread: () => ({ append: jest.fn() }) }),
-  useAuiState: (
-    select: (state: {
-      thread: { isLoading: boolean; isRunning: boolean; messages: [] };
-    }) => unknown
-  ) => select({ thread: { isLoading: false, isRunning: false, messages: [] } }),
-}));
+/** The composer's placeholder and Send button, in either device language. */
+const COMPOSER = /Message Arnold|Повідомлення для Arnold/;
+const SEND = /Send message|Надіслати повідомлення/;
 
 jest.mock("react-native-keyboard-controller", () =>
   jest.requireActual("react-native-keyboard-controller/jest")
@@ -67,11 +62,24 @@ jest.mock("@legendapp/list/react-native", () => {
   const { View } =
     jest.requireActual<typeof import("react-native")>("react-native");
   return {
-    LegendList: ({
+    LegendList: <T,>({
+      data,
+      keyExtractor,
       ListFooterComponent,
+      renderItem,
     }: {
+      data: readonly T[];
+      keyExtractor: (item: T) => string;
       ListFooterComponent: ReactNode;
-    }) => <View>{ListFooterComponent}</View>,
+      renderItem: (info: { item: T }) => ReactNode;
+    }) => (
+      <View>
+        {data.map((item) => (
+          <View key={keyExtractor(item)}>{renderItem({ item })}</View>
+        ))}
+        {ListFooterComponent}
+      </View>
+    ),
   };
 });
 
@@ -89,12 +97,29 @@ jest.mock("@/components/touchable-glass", () => {
 jest.mock("@/components/chat/workout-plan-card", () => ({
   WorkoutPlanCard: () => null,
 }));
-jest.mock("@/components/markdown", () => ({ ChatMarkdown: () => null }));
+
+// Markdown has its own tests; here an answer is read as the text it is.
+jest.mock("@/components/markdown", () => {
+  const { Text } =
+    jest.requireActual<typeof import("react-native")>("react-native");
+  return {
+    ChatMarkdown: ({ children }: { children: string }) => (
+      <Text>{children}</Text>
+    ),
+  };
+});
 
 jest.mock("@/components/symbol-image", () => ({ SymbolImage: () => null }));
 
 jest.mock("@clerk/expo", () => ({
   useUser: () => ({ user: { id: "user_arnold_screen" } }),
+}));
+
+// The bearer every eve request carries, resolved per request in the app.
+jest.mock("~/lib/clerk", () => ({
+  getClerk: () => ({
+    session: { getToken: () => Promise.resolve("fake-arnold-token") },
+  }),
 }));
 
 let mockAttachmentsEnabled = false;
@@ -159,15 +184,6 @@ jest.mock("expo-router", () => {
   };
 });
 
-/** eve's `ClientError` for a request Arnold refused. */
-function clientError(status: number, code?: string) {
-  return Object.assign(new Error(`Arnold says no (${code ?? status})`), {
-    body: JSON.stringify({ code, ok: false }),
-    code,
-    status,
-  });
-}
-
 /** The screen under the root layout's language sync. */
 function App() {
   useAppLanguageSync();
@@ -178,11 +194,21 @@ async function renderArnold() {
   await render(<App />);
 }
 
+/** Types `text` into the composer and presses Send, as the User does. */
+async function send(text: string) {
+  const user = userEvent.setup();
+  await user.type(screen.getByPlaceholderText(COMPOSER), text);
+  // Queried after the typing: the composer re-renders with the new text, and
+  // the Send button of the render before it would send an empty message.
+  await user.press(screen.getByLabelText(SEND));
+}
+
 beforeEach(() => {
   mockAttachmentsEnabled = false;
-  mockEve.error = undefined;
-  mockEve.reset.mockClear();
   mockPresentPaywall.mockClear();
+  storage.clearAll();
+  fakeArnold.install();
+  process.env.EXPO_PUBLIC_ARNOLD_URL = fakeArnold.baseUrl;
 });
 
 describe("Arnold screen", () => {
@@ -213,51 +239,95 @@ describe("Arnold screen", () => {
     expect(screen.queryByText("Ask Arnold")).toBeNull();
   });
 
+  describe("sending a message", () => {
+    it("puts the text on the wire and shows Arnold's answer", async () => {
+      await renderArnold();
+      await send("How heavy should I squat?");
+
+      await waitFor(() =>
+        expect(screen.getByText(FAKE_ARNOLD_REPLY)).toBeTruthy()
+      );
+      expect(fakeArnold.sent).toHaveLength(1);
+      const [sent] = fakeArnold.sent;
+      expect(sent?.parts).toEqual([
+        { text: "How heavy should I squat?", type: "text" },
+      ]);
+      // No model list on the device, so Arnold picks its own default model.
+      expect(sent?.clientContext).toEqual({ language: "en" });
+      expect(screen.getByText("How heavy should I squat?")).toBeTruthy();
+      expect(screen.queryByText("Ask Arnold")).toBeNull();
+    });
+
+    it("sends a second message in the same Conversation", async () => {
+      await renderArnold();
+      await send("First");
+      await waitFor(() => expect(fakeArnold.sent).toHaveLength(1));
+      await send("Second");
+
+      await waitFor(() => expect(fakeArnold.sent).toHaveLength(2));
+      expect(fakeArnold.sent.map((message) => message.text)).toEqual([
+        "First",
+        "Second",
+      ]);
+      expect(new Set(fakeArnold.sent.map((m) => m.sessionId)).size).toBe(1);
+    });
+  });
+
   describe("on a Ukrainian device", () => {
     beforeEach(() => {
       setDeviceLanguages(["uk-UA"]);
     });
 
     it("says in Ukrainian that the Pro check is unavailable", async () => {
-      mockEve.error = clientError(503, "arnold_pro_check_unavailable");
+      fakeArnold.failNextSend("pro-check-unavailable");
       await renderArnold();
+      await send("Привіт");
 
-      expect(
-        screen.getByText(
-          "Не вдалося перевірити підписку Fitme Pro. Спробуйте трохи згодом."
-        )
-      ).toBeTruthy();
+      await waitFor(() =>
+        expect(
+          screen.getByText(
+            "Не вдалося перевірити підписку Fitme Pro. Спробуйте трохи згодом."
+          )
+        ).toBeTruthy()
+      );
       expect(screen.queryByText(SERVER_MESSAGE)).toBeNull();
       expect(mockPresentPaywall).not.toHaveBeenCalled();
     });
 
     it("says in Ukrainian that a send failed to reach Arnold", async () => {
-      mockEve.error = new TypeError("Network request failed");
+      fakeArnold.failNextSend("network");
       await renderArnold();
+      await send("Привіт");
 
-      expect(
-        screen.getByText(
-          "Не вдалося зв’язатися з Arnold. Перевірте з’єднання й спробуйте ще раз."
-        )
-      ).toBeTruthy();
+      await waitFor(() =>
+        expect(
+          screen.getByText(
+            "Не вдалося зв’язатися з Arnold. Перевірте з’єднання й спробуйте ще раз."
+          )
+        ).toBeTruthy()
+      );
       expect(screen.queryByText("Network request failed")).toBeNull();
     });
 
     it("shows the generic error in Ukrainian, never the server's message", async () => {
-      mockEve.error = clientError(500);
+      fakeArnold.failNextSend({ status: 500 });
       await renderArnold();
+      await send("Привіт");
 
-      expect(
-        screen.getByText("Щось пішло не так. Спробуйте ще раз.")
-      ).toBeTruthy();
+      await waitFor(() =>
+        expect(
+          screen.getByText("Щось пішло не так. Спробуйте ще раз.")
+        ).toBeTruthy()
+      );
       expect(screen.queryByText(SERVER_MESSAGE)).toBeNull();
     });
 
     it("opens the paywall for the Pro refusal, with no error text", async () => {
-      mockEve.error = clientError(403, "arnold_pro_required");
+      fakeArnold.failNextSend("pro-required");
       await renderArnold();
+      await send("Привіт");
 
-      expect(mockPresentPaywall).toHaveBeenCalledTimes(1);
+      await waitFor(() => expect(mockPresentPaywall).toHaveBeenCalledTimes(1));
       expect(screen.queryByText(SERVER_MESSAGE)).toBeNull();
       expect(
         screen.queryByText("Щось пішло не так. Спробуйте ще раз.")
@@ -266,23 +336,30 @@ describe("Arnold screen", () => {
     });
 
     it("starts a new Conversation when the session has ended, with no error text", async () => {
-      mockEve.error = clientError(409, "session_not_active");
       await renderArnold();
+      await send("Перше");
+      await waitFor(() => expect(fakeArnold.sent).toHaveLength(1));
+      fakeArnold.failNextSend({ code: "session_not_active", status: 409 });
+      await send("Друге");
 
-      expect(mockEve.reset).toHaveBeenCalledTimes(1);
+      await waitFor(() =>
+        expect(screen.getByText("Запитайте Arnold")).toBeTruthy()
+      );
       expect(screen.queryByText(SERVER_MESSAGE)).toBeNull();
       expect(
         screen.queryByText("Щось пішло не так. Спробуйте ще раз.")
       ).toBeNull();
-      expect(screen.getByText("Запитайте Arnold")).toBeTruthy();
     });
 
     it("switches the error text when the device's language changes", async () => {
-      mockEve.error = clientError(500);
+      fakeArnold.failNextSend({ status: 500 });
       await renderArnold();
-      expect(
-        screen.getByText("Щось пішло не так. Спробуйте ще раз.")
-      ).toBeTruthy();
+      await send("Привіт");
+      await waitFor(() =>
+        expect(
+          screen.getByText("Щось пішло не так. Спробуйте ще раз.")
+        ).toBeTruthy()
+      );
 
       await act(() => {
         setDeviceLanguages(["en-US"]);
