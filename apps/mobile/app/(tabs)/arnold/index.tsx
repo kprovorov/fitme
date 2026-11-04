@@ -35,6 +35,11 @@ import {
   PromptInputTextarea,
 } from "@/components/chat";
 import { SymbolImage } from "@/components/symbol-image";
+import {
+  removeArnoldAttachment,
+  useArnoldAttachments,
+  useArnoldAttachmentsOwner,
+} from "~/hooks/arnold-attachments";
 import { useSelectedArnoldModel } from "~/hooks/arnold-model";
 import { useIsProQuery } from "~/hooks/revenueCat";
 import { ATTACHMENTS_ENABLED } from "~/lib/arnold-attachments";
@@ -236,6 +241,10 @@ function ArnoldChat({
   userId: string;
 }) {
   const chat = useArnoldChat(userId, composer);
+  // The Attachments picked for the next message live outside this screen:
+  // the "+" sheet, a screen away, picks them. They are this User's alone.
+  useArnoldAttachmentsOwner(userId);
+  const attachments = useArnoldAttachments();
   const { t } = useTranslation();
   const { model } = useSelectedArnoldModel();
   const { initialMessage } = useLocalSearchParams<{
@@ -312,7 +321,14 @@ function ArnoldChat({
           ],
         }}
       />
-      <ChatProvider value={{ ...chat, onSend: handleSend }}>
+      <ChatProvider
+        value={{
+          ...chat,
+          attachments,
+          onRemoveAttachment: removeArnoldAttachment,
+          onSend: handleSend,
+        }}
+      >
         <Conversation
           emptyState={
             <ConversationEmptyState

@@ -4,7 +4,7 @@ import {
   GlassView,
   isLiquidGlassAvailable,
 } from "expo-glass-effect";
-import { type ReactNode, useEffect, useRef } from "react";
+import { type ReactNode, useCallback, useEffect, useRef } from "react";
 import { useTranslation } from "react-i18next";
 import {
   ActivityIndicator,
@@ -21,8 +21,9 @@ import Animated, { FadeIn, FadeOut } from "react-native-reanimated";
 import { useCSSVariable } from "uniwind";
 import { SymbolImage } from "@/components/symbol-image";
 import { TouchableGlass } from "@/components/touchable-glass";
+import { Image } from "@/components/tw";
 import { cn } from "~/lib/utils";
-import { useChatContext } from "./chat-context";
+import { type ChatAttachment, useChatContext } from "./chat-context";
 import { useConversationContext } from "./conversation";
 
 const AnimatedGlassContainer = Animated.createAnimatedComponent(GlassContainer);
@@ -42,6 +43,7 @@ export function PromptInput({ children }: { children: ReactNode }) {
       style={[{ left: 0, position: "absolute", right: 0 }, promptInputStyle]}
     >
       {errorMessage ? <PromptInputError message={errorMessage} /> : null}
+      <PromptInputAttachments />
       <AnimatedGlassContainer
         spacing={8}
         style={{
@@ -74,6 +76,78 @@ function PromptInputError({ message }: { message: string }) {
         </Text>
       </View>
     </Animated.View>
+  );
+}
+
+/**
+ * One picked Attachment: its thumbnail, read from the file on this device,
+ * with an × on its corner. The × is a button of its own, so VoiceOver reads
+ * the photo and then the way to drop it.
+ */
+function PickedAttachment({
+  attachment,
+  onRemove,
+  position,
+  total,
+}: {
+  attachment: ChatAttachment;
+  onRemove?: (id: string) => void;
+  position: number;
+  total: number;
+}) {
+  const { t } = useTranslation();
+  const remove = useCallback(
+    () => onRemove?.(attachment.id),
+    [attachment.id, onRemove]
+  );
+
+  return (
+    <View>
+      <Image
+        accessibilityLabel={t("arnold.attachments.pickedPhoto", {
+          position,
+          total,
+        })}
+        className="h-16 w-16 rounded-xl border-continuous bg-secondary"
+        contentFit="cover"
+        source={{ uri: attachment.uri }}
+      />
+      <Pressable
+        accessibilityLabel={t("arnold.attachments.removePhoto")}
+        accessibilityRole="button"
+        className="absolute -top-1.5 -right-1.5 h-6 w-6 items-center justify-center rounded-full bg-background active:opacity-70"
+        hitSlop={10}
+        onPress={remove}
+      >
+        <SymbolImage className="text-caption-1 text-foreground" name="xmark" />
+      </Pressable>
+    </View>
+  );
+}
+
+/**
+ * The Attachments picked for the next message, in a row above the text
+ * field, oldest first (ADR 0018). Nothing picked renders nothing, so the
+ * composer keeps its own height.
+ */
+export function PromptInputAttachments() {
+  const { attachments, onRemoveAttachment } = useChatContext();
+  if (!attachments?.length) {
+    return null;
+  }
+
+  return (
+    <View className="flex-row gap-3 px-3 pb-2">
+      {attachments.map((attachment, index) => (
+        <PickedAttachment
+          attachment={attachment}
+          key={attachment.id}
+          onRemove={onRemoveAttachment}
+          position={index + 1}
+          total={attachments.length}
+        />
+      ))}
+    </View>
   );
 }
 
