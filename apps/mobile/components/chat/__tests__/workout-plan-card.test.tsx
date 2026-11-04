@@ -1,8 +1,7 @@
 /**
  * Arnold's plan card on the mounted-screen seam: the real card, hooks and
- * Public API client, with Supabase swapped for the in-memory backend and the
- * client's `fetch` for the fake Public API over the same rows (both from
- * `test-utils/`). A Plan list next to the card reads the Plans back through
+ * Public API client, with the client's `fetch` swapped for the fake Public
+ * API (`test-utils/`). A Plan list next to the card reads the Plans back through
  * the fake Public API, as the app's lists do.
  */
 
@@ -17,8 +16,7 @@ import { storage } from "~/lib/mmkv";
 import { segmentClient } from "~/lib/segment";
 import { setDeviceLanguages } from "~/test-utils/device-locales";
 import { libraryExercise, serveLibrary } from "~/test-utils/fake-library";
-import { fakePublicApi } from "~/test-utils/fake-public-api";
-import { backend } from "~/test-utils/fake-workout-backend";
+import { backend, fakePublicApi } from "~/test-utils/fake-public-api";
 import { createTestQueryClient, settle } from "~/test-utils/query-client";
 import { type WorkoutPlan, WorkoutPlanCard } from "../workout-plan-card";
 
@@ -26,11 +24,6 @@ const mockPush = jest.fn();
 
 jest.mock("expo-router", () => ({
   router: { push: (path: string) => mockPush(path) },
-}));
-jest.mock("~/lib/supabase", () => ({
-  supabase: jest.requireActual<
-    typeof import("~/test-utils/fake-workout-backend")
-  >("~/test-utils/fake-workout-backend").fakeSupabase,
 }));
 jest.mock("~/lib/segment", () => ({ segmentClient: { track: jest.fn() } }));
 // The User the save is made for (the real Clerk SDK keeps Jest alive).
@@ -379,23 +372,17 @@ describe("WorkoutPlanCard", () => {
   it.each([
     ["a network failure", "network" as const],
     ["a server error", { status: 500 }],
-  ])(
-    "shows the error state on %s, never falling back to Supabase",
-    async (_, failure) => {
-      fakePublicApi.failNext(PLAN_ROUTE, failure);
-      const client = await renderCard();
+  ])("shows the error state on %s", async (_, failure) => {
+    fakePublicApi.failNext(PLAN_ROUTE, failure);
+    const client = await renderCard();
 
-      await save(client);
+    await save(client);
 
-      expect(
-        screen.getByText("Couldn't save the plan. Try again.")
-      ).toBeTruthy();
-      expect(screen.getByText("Save Plan")).toBeEnabled();
-      expect(backend.plans).toEqual([]);
-      expect(backend.count("plans", "insert")).toBe(0);
-      expect(tracked()).toEqual([]);
-    }
-  );
+    expect(screen.getByText("Couldn't save the plan. Try again.")).toBeTruthy();
+    expect(screen.getByText("Save Plan")).toBeEnabled();
+    expect(backend.plans).toEqual([]);
+    expect(tracked()).toEqual([]);
+  });
 
   it("shows the error state when the Public API isn't configured", async () => {
     fakePublicApi.baseUrl = "";

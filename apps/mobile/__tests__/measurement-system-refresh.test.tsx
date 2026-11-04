@@ -2,9 +2,9 @@
  * Switching the measurement system refreshes every weight on screen
  * (FIT-539): the measurement system screen, History and a Workout screen
  * mounted together on one query cache, so a switch has to re-read both the
- * Public API's History and the Plan's planned sets. Supabase is the in-memory
- * backend and the Public API client's `fetch` the fake over the same rows
- * (both from `test-utils/`), which converts them as the API does.
+ * Public API's History and the Plan's planned sets. The Public API client's
+ * `fetch` is the fake (`test-utils/`), which converts its rows as the API
+ * does.
  */
 import { beforeEach, describe, expect, it, jest } from "@jest/globals";
 import { QueryClientProvider } from "@tanstack/react-query";
@@ -15,11 +15,12 @@ import HistoryScreen from "~/app/(tabs)/history/index";
 import WorkoutScreen from "~/app/plans/[planId]/workouts/[workoutId]/index";
 import MeasurementSystemScreen from "~/app/settings/measurement-system";
 import {
+  backend,
   FAKE_USER_ID,
   type Failure,
   fakePublicApi,
+  type SeedPlan,
 } from "~/test-utils/fake-public-api";
-import { backend, type SeedPlan } from "~/test-utils/fake-workout-backend";
 import {
   createTestQueryClient,
   settle,
@@ -72,14 +73,8 @@ jest.mock("@legendapp/list/react-native", () => ({
   },
 }));
 
-jest.mock("~/lib/supabase", () => ({
-  supabase: jest.requireActual<
-    typeof import("~/test-utils/fake-workout-backend")
-  >("~/test-utils/fake-workout-backend").fakeSupabase,
-}));
-
-// The real Clerk SDK (reached through the Supabase reads) opens a MessagePort
-// at import that keeps Jest alive.
+// The real Clerk SDK (reached through the writes' signed-in User check) opens
+// a MessagePort at import that keeps Jest alive.
 jest.mock("~/lib/clerk", () => ({
   getCurrentUserId: jest.requireActual<
     typeof import("~/test-utils/signed-in-user")

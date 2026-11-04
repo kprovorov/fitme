@@ -19,8 +19,8 @@ on the route's own session screen instead.
 `apps/mobile/__tests__/finish-workout-suggestion.integration.test.tsx` runs
 every scenario below once per route (`pnpm --filter @fitme/mobile exec jest
 __tests__/finish-workout-suggestion`). It mounts the real screens, set rows,
-suggestion controller and finish flow. Only these edges are faked: Supabase
-(the in-memory `test-utils/fake-workout-backend.ts`), expo-router (a stack
+suggestion controller and finish flow. Only these edges are faked: the Public
+API (the in-memory `test-utils/fake-public-api.ts`), expo-router (a stack
 that keeps lower screens mounted and focuses the top one), and the SwiftUI
 primitives (Button, Dialog, DropdownMenu, Card).
 
@@ -63,9 +63,9 @@ simulator (checklist below):
   event.
 - **Real navigation**: expo-router's native stack, focus changes, back
   gestures and the unwinding to Summary. The tests use a simplified stack.
-- **Real backend**: Supabase, RLS and network latency. The tests use an
-  in-memory backend that answers asynchronously and can delay or fail
-  requests.
+- **Real backend**: the Public API, its database and network latency. The
+  tests use an in-memory fake that answers asynchronously and can delay or
+  fail requests.
 - **App restart mid-session**: the "already suggested" flag is stored in
   MMKV. Persistence is covered at controller level, but there is no
   end-to-end test of a cold start.

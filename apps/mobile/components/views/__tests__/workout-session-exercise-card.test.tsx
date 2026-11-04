@@ -15,11 +15,6 @@ const mockPush = jest.fn();
 jest.mock("expo-router", () => ({
   useRouter: () => ({ push: mockPush }),
 }));
-jest.mock("~/lib/supabase", () => ({
-  supabase: jest.requireActual<
-    typeof import("~/test-utils/fake-workout-backend")
-  >("~/test-utils/fake-workout-backend").fakeSupabase,
-}));
 // The real Clerk SDK (reached through the set rows' saves) opens a
 // MessagePort at import that keeps Jest alive.
 jest.mock("~/lib/clerk", () => ({

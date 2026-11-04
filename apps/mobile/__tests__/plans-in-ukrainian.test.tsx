@@ -1,9 +1,8 @@
 /**
  * The Plan list, a Plan's screen and its Workout screen on a Ukrainian
- * device: the real screens under the root layout's language sync, with
- * Supabase swapped for the in-memory backend and the Public API client's
- * `fetch` for the fake Public API over the same rows (both from
- * `test-utils/`). The header is rendered as its title and plain buttons, the
+ * device: the real screens under the root layout's language sync, with the
+ * Public API client's `fetch` swapped for the fake Public API
+ * (`test-utils/`). The header is rendered as its title and plain buttons, the
  * menus' items flattened, and `Alert.alert` is answered by pressing one of
  * its buttons, as the User would.
  */
@@ -16,8 +15,11 @@ import PlanScreen from "~/app/plans/[planId]/index";
 import WorkoutScreen from "~/app/plans/[planId]/workouts/[workoutId]/index";
 import PlansScreen from "~/app/plans/index";
 import { setDeviceLanguages } from "~/test-utils/device-locales";
-import { FAKE_USER_ID, fakePublicApi } from "~/test-utils/fake-public-api";
-import { backend } from "~/test-utils/fake-workout-backend";
+import {
+  backend,
+  FAKE_USER_ID,
+  fakePublicApi,
+} from "~/test-utils/fake-public-api";
 import { InAppLanguage } from "~/test-utils/in-app-language";
 import { createTestQueryClient, settle } from "~/test-utils/query-client";
 
@@ -77,12 +79,6 @@ jest.mock("expo-router", () => ({
 
 jest.mock("react-native-safe-area-context", () => ({
   useSafeAreaInsets: () => ({ bottom: 0, left: 0, right: 0, top: 0 }),
-}));
-
-jest.mock("~/lib/supabase", () => ({
-  supabase: jest.requireActual<
-    typeof import("~/test-utils/fake-workout-backend")
-  >("~/test-utils/fake-workout-backend").fakeSupabase,
 }));
 
 // The real Clerk SDK (reached through the Workout cards) opens a MessagePort

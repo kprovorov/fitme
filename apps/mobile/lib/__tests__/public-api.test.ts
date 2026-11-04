@@ -17,11 +17,11 @@ import {
 import { useArnoldModelsQuery } from "~/hooks/queries/arnold-models";
 import { CLERK_LOAD_TIMEOUT_MS, publicApi } from "~/lib/public-api";
 import {
+  backend,
   FAKE_PUBLIC_API_URL,
   FAKE_SESSION_TOKEN,
   fakePublicApi,
 } from "~/test-utils/fake-public-api";
-import { backend } from "~/test-utils/fake-workout-backend";
 import { createTestQueryClient } from "~/test-utils/query-client";
 
 jest.unmock("~/lib/public-api");

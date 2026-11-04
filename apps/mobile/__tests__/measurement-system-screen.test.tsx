@@ -1,8 +1,7 @@
 /**
  * The measurement system screen on the mounted-screen seam: the real screen,
- * hooks and Public API client, with Supabase swapped for the in-memory backend
- * and the client's `fetch` for the fake Public API over the same rows (both
- * from `test-utils/`), and the SwiftUI-backed primitives for stand-ins.
+ * hooks and Public API client, with the client's `fetch` swapped for the fake
+ * Public API (`test-utils/`), and the SwiftUI-backed primitives for stand-ins.
  */
 import {
   afterEach,
@@ -22,11 +21,11 @@ import { useProfileQuery } from "~/hooks/queries/profiles";
 import { i18n } from "~/lib/i18n";
 import { setDeviceLanguages } from "~/test-utils/device-locales";
 import {
+  backend,
   FAKE_SESSION_TOKEN,
   FAKE_USER_ID,
   fakePublicApi,
 } from "~/test-utils/fake-public-api";
-import { backend } from "~/test-utils/fake-workout-backend";
 import { InAppLanguage } from "~/test-utils/in-app-language";
 import {
   createTestQueryClient,
@@ -42,12 +41,6 @@ jest.mock("@sentry/react-native", () => ({ captureException: jest.fn() }));
 // Reached through the queries the switch reads again; its real client's
 // `uuid` is ESM, which Jest can't require.
 jest.mock("~/lib/segment", () => ({ segmentClient: { track: jest.fn() } }));
-
-jest.mock("~/lib/supabase", () => ({
-  supabase: jest.requireActual<
-    typeof import("~/test-utils/fake-workout-backend")
-  >("~/test-utils/fake-workout-backend").fakeSupabase,
-}));
 
 jest.mock("~/lib/clerk", () => ({
   getCurrentUserId: jest.requireActual<
@@ -356,7 +349,7 @@ describe("MeasurementSystemScreen", () => {
     expect(shown()).toHaveTextContent("metric");
   });
 
-  it("fails with the error state, never through Supabase, when the API URL is unset", async () => {
+  it("fails with the error state when the API URL is unset", async () => {
     await mount();
     fakePublicApi.baseUrl = "";
 
@@ -368,7 +361,6 @@ describe("MeasurementSystemScreen", () => {
     ]);
     expect(writes()).toEqual([]);
     expect(fakePublicApi.count(PROFILE_GET)).toBe(1);
-    expect(backend.count("profiles", "select")).toBe(0);
     expect(backend.profile(FAKE_USER_ID)?.measurement_system).toBe("metric");
     expect(screen.getByText("Try Again")).toBeTruthy();
   });
@@ -434,8 +426,6 @@ describe("MeasurementSystemScreen", () => {
       )
     ).toBeTruthy();
     expect(screen.queryByTestId("picker")).toBeNull();
-    // Never through Supabase.
-    expect(backend.count("profiles", "select")).toBe(0);
 
     await fireEvent.press(screen.getByText("Try Again"));
     await settle(queryClient);

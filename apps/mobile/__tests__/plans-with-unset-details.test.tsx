@@ -2,10 +2,9 @@
  * A Plan whose goal, place, experience level or Workout duration is unset
  * (ADR 0017) on every Screen that shows those details: the Workout tab, the
  * Plan list, a Plan's screen and its Workout screen, in English and
- * Ukrainian. The real Screens, with Supabase swapped for the in-memory
- * backend, the Public API for its fake over the same rows and the Library
- * for its fake (all from `test-utils/`). An unset detail isn't shown at all:
- * no badge, no "Not set", no `null`, and nothing reported.
+ * Ukrainian. The real Screens, with the Public API swapped for its fake and
+ * the Library for its fake (both from `test-utils/`). An unset detail isn't
+ * shown at all: no badge, no "Not set", no `null`, and nothing reported.
  */
 import {
   afterEach,
@@ -25,8 +24,7 @@ import WorkoutScreen from "~/app/plans/[planId]/workouts/[workoutId]/index";
 import PlansScreen from "~/app/plans/index";
 import { setDeviceLanguages } from "~/test-utils/device-locales";
 import { libraryExercise, serveLibrary } from "~/test-utils/fake-library";
-import { FAKE_USER_ID } from "~/test-utils/fake-public-api";
-import { backend } from "~/test-utils/fake-workout-backend";
+import { backend, FAKE_USER_ID } from "~/test-utils/fake-public-api";
 import { InAppLanguage } from "~/test-utils/in-app-language";
 import { createTestQueryClient, settle } from "~/test-utils/query-client";
 
@@ -71,12 +69,6 @@ jest.mock("@clerk/expo", () => ({
 jest.mock("react-native-purchases", () => ({
   __esModule: true,
   default: { invalidateCustomerInfoCache: () => Promise.resolve() },
-}));
-
-jest.mock("~/lib/supabase", () => ({
-  supabase: jest.requireActual<
-    typeof import("~/test-utils/fake-workout-backend")
-  >("~/test-utils/fake-workout-backend").fakeSupabase,
 }));
 
 // The real Clerk SDK (reached through the Workout cards) opens a MessagePort

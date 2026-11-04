@@ -1,13 +1,12 @@
 /**
  * The Workout Session screen, the Workout Session Exercise screen and the
  * Workout Summary read the Workout Session through the Public API
- * (`GET /v1/workout-sessions/{id}`, FIT-543), never Supabase: what each shows,
+ * (`GET /v1/workout-sessions/{id}`, FIT-543): what each shows,
  * where each links, the answers of Start and Finish shown with no second
  * read, and a failed read with and without one already shown.
  *
  * Mounts the real screens on the fake Public API, with the fake Library
- * naming the Exercises and Exercise history still on the in-memory Supabase
- * backend; the SwiftUI-backed primitives are swapped for plain stand-ins.
+ * naming the Exercises; the SwiftUI-backed primitives are swapped for plain stand-ins.
  */
 import {
   afterEach,
@@ -38,8 +37,11 @@ import {
 import { useWorkoutSessionQuery } from "~/hooks/queries/workout-sessions";
 import { storage } from "~/lib/mmkv";
 import { libraryExercise, serveLibrary } from "~/test-utils/fake-library";
-import { FAKE_USER_ID, fakePublicApi } from "~/test-utils/fake-public-api";
-import { backend } from "~/test-utils/fake-workout-backend";
+import {
+  backend,
+  FAKE_USER_ID,
+  fakePublicApi,
+} from "~/test-utils/fake-public-api";
 import {
   createTestQueryClient,
   settle,
@@ -63,12 +65,6 @@ jest.mock("expo-router", () => {
   };
 });
 
-// Exercise history is still read through Supabase.
-jest.mock("~/lib/supabase", () => ({
-  supabase: jest.requireActual<
-    typeof import("~/test-utils/fake-workout-backend")
-  >("~/test-utils/fake-workout-backend").fakeSupabase,
-}));
 // The real Clerk SDK opens a MessagePort at import that keeps Jest alive.
 jest.mock("~/lib/clerk", () => ({
   getCurrentUserId: jest.requireActual<
@@ -191,15 +187,6 @@ const setSet = (
   Object.assign(set, values);
 };
 
-/**
- * No Workout Session was read through Supabase (the fake backend refuses a
- * Workout Session Exercise read by id outright, failing the test).
- */
-const readNothingThroughSupabase = () =>
-  expect(
-    backend.requests.filter(({ table }) => table === "workout_sessions")
-  ).toEqual([]);
-
 beforeEach(() => {
   jest.clearAllMocks();
   jest.spyOn(Alert, "alert").mockImplementation(() => undefined);
@@ -245,7 +232,6 @@ describe("The Workout Session screen", () => {
     // The logged set: 8 × 100 kg.
     expect(screen.getByText("800 kg")).toBeTruthy();
     expect(fakePublicApi.count(READ)).toBe(1);
-    readNothingThroughSupabase();
   });
 
   it("shows weights in the unit the session answers with", async () => {
@@ -354,7 +340,6 @@ describe("The Workout Session Exercise screen", () => {
     // The other Exercise's sets aren't here.
     expect(screen.queryByText(SQUAT)).toBeNull();
     expect(fakePublicApi.count(READ)).toBe(1);
-    readNothingThroughSupabase();
   });
 
   it("shows the load error for an Exercise the session no longer has", async () => {
@@ -439,7 +424,6 @@ describe("The Workout Summary", () => {
     expect(screen.getByLabelText("Squat, 1 set")).toBeTruthy();
     expect(screen.queryByText("Dip")).toBeNull();
     expect(fakePublicApi.count(READ)).toBe(1);
-    readNothingThroughSupabase();
   });
 
   it("marks the Exercises whose weight is a Personal record", async () => {
@@ -559,7 +543,6 @@ describe("Start and Finish", () => {
     expect(screen.getByRole("button", { name: BENCH_PRESS })).toBeTruthy();
     expect(screen.getByText("0/3")).toBeTruthy();
     expect(fakePublicApi.count(READ)).toBe(0);
-    readNothingThroughSupabase();
   });
 
   it("opens the Summary on Finish's answer, with no second read", async () => {
@@ -594,7 +577,6 @@ describe("Start and Finish", () => {
     expect(screen.getByText("Workout Complete!")).toBeTruthy();
     expect(screen.getByLabelText("Sets: 1 set")).toBeTruthy();
     expect(fakePublicApi.count(READ)).toBe(1);
-    readNothingThroughSupabase();
   });
 
   it("opens a resumed Workout Session on Start's answer, its logged sets included, with no read", async () => {

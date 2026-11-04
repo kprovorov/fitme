@@ -57,12 +57,6 @@ jest.mock("~/components/ui/button", () =>
   jest.requireActual("~/test-utils/button-stub")
 );
 jest.mock("~/components/symbol-image", () => ({ SymbolImage: () => null }));
-// The Plan queries' module still holds Supabase reads (Home's).
-jest.mock("~/lib/supabase", () => ({
-  supabase: jest.requireActual<
-    typeof import("~/test-utils/fake-workout-backend")
-  >("~/test-utils/fake-workout-backend").fakeSupabase,
-}));
 // Who started a finish: the fake Public API's User unless a test signs
 // someone else in.
 jest.mock("~/lib/clerk", () => ({

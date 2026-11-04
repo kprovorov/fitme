@@ -2,9 +2,7 @@
  * The Plans list and a Plan's screen, read through the Public API, and
  * activating and deleting a Plan from it, on the mounted-screen seam: the
  * real screens, Plan lists, hooks and Public API client, with the client's
- * `fetch` swapped for the fake Public API and Supabase for the in-memory
- * backend under it (both from `test-utils/`), so a Plan read from Supabase
- * shows in `backend.count("plans", "select")`. The header is rendered as its
+ * `fetch` swapped for the fake Public API (`test-utils/`). The header is rendered as its
  * title and plain buttons and `Alert.alert` is answered by pressing one of
  * its buttons, as the User would.
  */
@@ -24,8 +22,7 @@ import PlansScreen from "~/app/plans/index";
 import PlansListView from "~/components/views/plan-list-view";
 import { usePlanQuery, usePlanSummariesQuery } from "~/hooks/queries/plans";
 import { segmentClient } from "~/lib/segment";
-import { fakePublicApi } from "~/test-utils/fake-public-api";
-import { backend } from "~/test-utils/fake-workout-backend";
+import { backend, fakePublicApi } from "~/test-utils/fake-public-api";
 import {
   createTestQueryClient,
   settle,
@@ -83,12 +80,6 @@ jest.mock("expo-router", () => ({
     dismissTo: mockDismissTo,
     push: jest.fn(),
   }),
-}));
-
-jest.mock("~/lib/supabase", () => ({
-  supabase: jest.requireActual<
-    typeof import("~/test-utils/fake-workout-backend")
-  >("~/test-utils/fake-workout-backend").fakeSupabase,
 }));
 
 // The real Clerk SDK (reached through the Workout cards) opens a MessagePort
@@ -159,9 +150,6 @@ const writes = () =>
     .filter(({ route }) => !route.startsWith("GET "))
     .map(({ path }) => path);
 
-/** Plans read from Supabase: none, every Plan read goes through the API. */
-const supabasePlanReads = () => backend.count("plans", "select");
-
 const pullToRefresh = async (testID: string) => {
   const { refreshControl } = screen.getByTestId(testID).props;
   await act(() => refreshControl.props.onRefresh());
@@ -182,9 +170,6 @@ const choose = async (item: string, button: string) => {
   pressed.onPress();
   await settle(queryClient);
 };
-
-/** The supabase write the old path made; it may not happen any more. */
-const supabaseWrites = () => backend.count("plans", "update");
 
 beforeEach(() => {
   jest.clearAllMocks();
@@ -238,7 +223,6 @@ describe("The Plans list", () => {
     expect(screen.queryByText("Someone Else's")).toBeNull();
     expect(screen.getByText("Create New Workout Plan")).toBeTruthy();
     expect(fakePublicApi.count(LIST_PLANS)).toBe(1);
-    expect(supabasePlanReads()).toBe(0);
   });
 
   it("keeps the Plans shown when a refresh fails", async () => {
@@ -267,7 +251,6 @@ describe("The Plans list", () => {
     await settle(queryClient);
 
     expect(screen.getByText("Strength")).toBeTruthy();
-    expect(supabasePlanReads()).toBe(0);
   });
 
   it("tells the User how long to wait when rate limited", async () => {
@@ -319,7 +302,6 @@ describe("A Plan's screen", () => {
     expect(fakePublicApi.requests.map(({ path }) => path)).toContain(
       "/v1/plans/plan-3"
     );
-    expect(supabasePlanReads()).toBe(0);
   });
 
   it("says a deleted Plan no longer exists, with no actions", async () => {
@@ -402,7 +384,6 @@ describe("Activating a Plan", () => {
     expect(beside().getByText("Strength")).toBeTruthy();
     expect(beside().queryByText("Hypertrophy")).toBeNull();
     expect(backend.plans.map((plan) => plan.is_active)).toEqual([true, false]);
-    expect(supabasePlanReads()).toBe(0);
     expect(mockDismissTo).toHaveBeenCalledWith("/");
     expect(track).toHaveBeenCalledWith("Plan Activated", {
       plan_id: "plan-1",
@@ -524,7 +505,6 @@ describe("Activating a Plan", () => {
       "This plan no longer exists.",
     ]);
     expect(beside().getByText("Hypertrophy")).toBeTruthy();
-    expect(supabasePlanReads()).toBe(0);
     expect(mockDismissTo).not.toHaveBeenCalled();
     expect(track).not.toHaveBeenCalled();
   });
@@ -553,7 +533,6 @@ describe("Deleting a Plan", () => {
     expect(writes()).toEqual(["/v1/plans/plan-1"]);
     expect(beside().queryByText("Strength")).toBeNull();
     expect(beside().getByText("Hypertrophy")).toBeTruthy();
-    expect(supabasePlanReads()).toBe(0);
     expect(mockDismissTo).toHaveBeenCalledWith("/");
     expect(track).toHaveBeenCalledWith("Plan Deleted", {
       plan_id: "plan-1",
@@ -580,7 +559,6 @@ describe("Deleting a Plan", () => {
       "Please check your connection and try again.",
     ]);
     expect(beside().getByText("Strength")).toBeTruthy();
-    expect(supabaseWrites()).toBe(0);
     expect(mockDismissTo).not.toHaveBeenCalled();
     expect(track).not.toHaveBeenCalled();
   });
@@ -595,7 +573,6 @@ describe("Deleting a Plan", () => {
       "Couldn't Archive Plan",
       "This plan no longer exists.",
     ]);
-    expect(supabaseWrites()).toBe(0);
     expect(mockDismissTo).not.toHaveBeenCalled();
     expect(track).not.toHaveBeenCalled();
   });

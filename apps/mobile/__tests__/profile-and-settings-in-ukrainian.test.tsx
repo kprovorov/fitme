@@ -1,7 +1,7 @@
 /**
  * The Profile screen, Settings, Legal and Support on a Ukrainian device: the real
- * screens under the root layout's language sync, with Supabase swapped for the
- * in-memory backend and the Public API's `fetch` for its fake, Clerk for a signed-in User, RevenueCat for a free plan
+ * screens under the root layout's language sync, with the Public API's `fetch`
+ * swapped for its fake, Clerk for a signed-in User, RevenueCat for a free plan
  * and the SwiftUI-backed primitives for stand-ins.
  */
 import { beforeEach, describe, expect, it, jest } from "@jest/globals";
@@ -14,8 +14,11 @@ import SettingsScreen from "~/app/settings";
 import SupportScreen from "~/app/support";
 import ProfileView from "~/components/views/profile-view";
 import { setDeviceLanguages } from "~/test-utils/device-locales";
-import { FAKE_USER_ID, fakePublicApi } from "~/test-utils/fake-public-api";
-import { backend } from "~/test-utils/fake-workout-backend";
+import {
+  backend,
+  FAKE_USER_ID,
+  fakePublicApi,
+} from "~/test-utils/fake-public-api";
 import { InAppLanguage } from "~/test-utils/in-app-language";
 import { createTestQueryClient, settle } from "~/test-utils/query-client";
 
@@ -32,12 +35,6 @@ jest.mock("expo-router", () => {
     },
   };
 });
-
-jest.mock("~/lib/supabase", () => ({
-  supabase: jest.requireActual<
-    typeof import("~/test-utils/fake-workout-backend")
-  >("~/test-utils/fake-workout-backend").fakeSupabase,
-}));
 
 // The signed-in Clerk User; deleting the account fails without a Clerk error.
 const mockUser = {
@@ -164,7 +161,6 @@ describe("Profile and Settings on a Ukrainian device", () => {
     // The saved system, read through the Public API.
     expect(screen.getByText("США")).toBeTruthy();
     expect(fakePublicApi.count("GET /v1/profile")).toBe(1);
-    expect(backend.count("profiles", "select")).toBe(0);
     // The menu item, then the confirmation's title.
     expect(screen.getAllByText("Видалити акаунт")).toHaveLength(2);
     expect(

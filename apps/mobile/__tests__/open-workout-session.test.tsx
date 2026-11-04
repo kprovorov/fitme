@@ -1,9 +1,8 @@
 /**
  * The Open Workout Session across the screens asking "is it open?": the
  * Workout tab, the Workout screen and the empty History, mounted together
- * over one QueryClient, with the open Workout Session read through the fake
- * Public API and the Plans over the in-memory Supabase backend (both over the
- * same rows). One query answers for all three, so they never disagree.
+ * over one QueryClient, with the open Workout Session and the Plans read
+ * through the fake Public API. One query answers for all three, so they never disagree.
  */
 import { beforeEach, describe, expect, it, jest } from "@jest/globals";
 import { QueryClientProvider } from "@tanstack/react-query";
@@ -20,8 +19,11 @@ import HomeScreen from "~/app/(tabs)/(home)/index";
 import HistoryScreen from "~/app/(tabs)/history/index";
 import WorkoutScreen from "~/app/plans/[planId]/workouts/[workoutId]/index";
 import { OPEN_WORKOUT_SESSION_QUERY_KEY } from "~/hooks/queries/workout-sessions";
-import { FAKE_USER_ID, fakePublicApi } from "~/test-utils/fake-public-api";
-import { backend } from "~/test-utils/fake-workout-backend";
+import {
+  backend,
+  FAKE_USER_ID,
+  fakePublicApi,
+} from "~/test-utils/fake-public-api";
 import { createTestQueryClient, settle } from "~/test-utils/query-client";
 
 const mockPush = jest.fn();
@@ -72,12 +74,6 @@ jest.mock("react-native-purchases", () => ({
 
 jest.mock("react-native-safe-area-context", () => ({
   useSafeAreaInsets: () => ({ bottom: 0, left: 0, right: 0, top: 0 }),
-}));
-
-jest.mock("~/lib/supabase", () => ({
-  supabase: jest.requireActual<
-    typeof import("~/test-utils/fake-workout-backend")
-  >("~/test-utils/fake-workout-backend").fakeSupabase,
 }));
 
 // The real Clerk SDK opens a MessagePort at import that keeps Jest alive.
@@ -179,15 +175,13 @@ describe("The Open Workout Session", () => {
         name: "Resume Legs",
       })
     ).toBeTruthy();
-    // One query answered all three, read through the Public API: the fake
-    // Supabase backend refuses the old read of open Workout Sessions.
+    // One query answered all three, read through the Public API.
     expect(
       queryClient
         .getQueryCache()
         .findAll({ queryKey: OPEN_WORKOUT_SESSION_QUERY_KEY })
     ).toHaveLength(1);
     expect(fakePublicApi.count(LIST, IN_PROGRESS)).toBeGreaterThan(0);
-    expect(backend.unsupported).toEqual([]);
   });
 
   it("changes on all of them at once when it's finished elsewhere", async () => {

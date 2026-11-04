@@ -3,7 +3,7 @@
  * seam: the real route and its reads (History, the open Workout Session and
  * the active Plan, all through the fake Public API over the in-memory rows)
  * and Start through it, so the card's action follows what those reads
- * answered. No Plan is read from Supabase.
+ * answered.
  */
 import { beforeEach, describe, expect, it, jest } from "@jest/globals";
 import { QueryClientProvider } from "@tanstack/react-query";
@@ -12,8 +12,12 @@ import type { ReactElement, ReactNode } from "react";
 import { Alert, type RefreshControlProps } from "react-native";
 import HistoryScreen from "~/app/(tabs)/history/index";
 import { setDeviceLanguages } from "~/test-utils/device-locales";
-import { FAKE_USER_ID, fakePublicApi } from "~/test-utils/fake-public-api";
-import { backend, type SeedPlan } from "~/test-utils/fake-workout-backend";
+import {
+  backend,
+  FAKE_USER_ID,
+  fakePublicApi,
+  type SeedPlan,
+} from "~/test-utils/fake-public-api";
 import { InAppLanguage } from "~/test-utils/in-app-language";
 import { createTestQueryClient, settle } from "~/test-utils/query-client";
 
@@ -57,12 +61,6 @@ jest.mock("@legendapp/list/react-native", () => ({
       </ScrollView>
     );
   },
-}));
-
-jest.mock("~/lib/supabase", () => ({
-  supabase: jest.requireActual<
-    typeof import("~/test-utils/fake-workout-backend")
-  >("~/test-utils/fake-workout-backend").fakeSupabase,
 }));
 
 // The real Clerk SDK (reached through the Profile read) opens a MessagePort
@@ -141,9 +139,6 @@ const mount = async (wrap: (node: ReactNode) => ReactNode = (n) => n) => {
 
 const button = (name: string | RegExp) => screen.getByRole("button", { name });
 
-/** Plans read from Supabase: none, every Plan read goes through the API. */
-const supabasePlanReads = () => backend.count("plans", "select");
-
 /** A Start button, whichever Workout it names. */
 const START_LABEL = /^Start /;
 
@@ -186,7 +181,6 @@ describe("The empty History", () => {
     );
     expect(Alert.alert).not.toHaveBeenCalled();
     expect(fakePublicApi.count(ACTIVE_PLAN)).toBeGreaterThan(0);
-    expect(supabasePlanReads()).toBe(0);
   });
 
   it("starts whichever Workout is next in the rotation, with its own Exercise count", async () => {
@@ -244,7 +238,6 @@ describe("The empty History", () => {
     await fireEvent.press(button("Create a Plan"));
 
     expect(mockPush).toHaveBeenCalledWith("/planner");
-    expect(supabasePlanReads()).toBe(0);
   });
 
   it("isn't shown once a Workout Session is finished, even one with nothing logged", async () => {

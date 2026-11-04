@@ -30,8 +30,11 @@ import {
   setDevice24HourClock,
   setDeviceLanguages,
 } from "~/test-utils/device-locales";
-import { FAKE_USER_ID, fakePublicApi } from "~/test-utils/fake-public-api";
-import { backend } from "~/test-utils/fake-workout-backend";
+import {
+  backend,
+  FAKE_USER_ID,
+  fakePublicApi,
+} from "~/test-utils/fake-public-api";
 import { InAppLanguage } from "~/test-utils/in-app-language";
 import { createTestQueryClient, settle } from "~/test-utils/query-client";
 
@@ -79,12 +82,6 @@ jest.mock("@legendapp/list/react-native", () => ({
   },
 }));
 
-// History reads through the Public API alone; the module still loads.
-jest.mock("~/lib/supabase", () => ({
-  supabase: jest.requireActual<
-    typeof import("~/test-utils/fake-workout-backend")
-  >("~/test-utils/fake-workout-backend").fakeSupabase,
-}));
 jest.mock("~/lib/segment", () => ({ segmentClient: { track: jest.fn() } }));
 // The User a Plan write is made for (the real Clerk SDK keeps Jest alive).
 jest.mock("~/lib/clerk", () => ({

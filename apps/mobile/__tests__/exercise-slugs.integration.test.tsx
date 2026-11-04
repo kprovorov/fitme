@@ -1,11 +1,10 @@
 /**
  * Plans, Workout Sessions and their summary refer to Exercises by Exercise
- * slug (FIT-241): rows come from Supabase with `exercise_slug` only, and
+ * slug (FIT-241): rows come from the Public API with `exercise_slug` only, and
  * names, muscle groups and thumbnails from the Library. A slug the
  * library doesn't know shows a name made from it, no thumbnail and no link.
  *
- * Mounts the real screens on the in-memory Supabase backend and the fake
- * Library; expo-router and the SwiftUI-backed primitives are
+ * Mounts the real screens on the fake Public API and the fake Library; expo-router and the SwiftUI-backed primitives are
  * swapped for plain stand-ins.
  */
 import { beforeEach, describe, expect, it, jest } from "@jest/globals";
@@ -22,8 +21,9 @@ import { storage } from "~/lib/mmkv";
 import { serveLibrary } from "~/test-utils/fake-library";
 import {
   backend,
+  fakePublicApi,
   libraryExerciseNamed,
-} from "~/test-utils/fake-workout-backend";
+} from "~/test-utils/fake-public-api";
 import {
   createTestQueryClient,
   settle as settleQueries,
@@ -65,11 +65,6 @@ jest.mock("expo-router", () => {
   };
 });
 
-jest.mock("~/lib/supabase", () => ({
-  supabase: jest.requireActual<
-    typeof import("~/test-utils/fake-workout-backend")
-  >("~/test-utils/fake-workout-backend").fakeSupabase,
-}));
 jest.mock(
   "~/lib/library",
   () =>
@@ -157,7 +152,8 @@ const renderScreen = async (
 };
 
 /** Waits until every request, query and mutation is done. */
-const settle = () => settleQueries(queryClient, () => backend.inFlight === 0);
+const settle = () =>
+  settleQueries(queryClient, () => fakePublicApi.inFlight === 0);
 
 const seedSession = (finished = false) =>
   backend.seed({

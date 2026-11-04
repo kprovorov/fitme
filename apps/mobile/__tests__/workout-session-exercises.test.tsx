@@ -2,14 +2,13 @@
  * Editing an open Workout Session's Exercises from its screen goes through
  * the Public API: adding an Exercise posts to
  * `/v1/workout-sessions/{id}/exercises` (FIT-310), removing and replacing one
- * deletes and puts `/v1/workout-session-exercises/{id}` (FIT-312), never
- * writing through Supabase, and a failed edit says what went wrong in an
- * alert. Adding and replacing go through the Exercise picker, its own route
- * over the Workout Session (FIT-432).
+ * deletes and puts `/v1/workout-session-exercises/{id}` (FIT-312), and a
+ * failed edit says what went wrong in an alert. Adding and replacing go
+ * through the Exercise picker, its own route over the Workout Session
+ * (FIT-432).
  *
- * Mounts the real screen on the fake Public API and the in-memory Supabase
- * backend over the same rows, and the fake Library, with the picker route
- * mounted over it once pushed (`test-utils/router-stub.tsx`); the
+ * Mounts the real screen on the fake Public API and the fake Library, with
+ * the picker route mounted over it once pushed (`test-utils/router-stub.tsx`); the
  * SwiftUI-backed primitives are swapped for plain stand-ins.
  */
 import {
@@ -33,8 +32,11 @@ import { storage } from "~/lib/mmkv";
 import { segmentClient } from "~/lib/segment";
 import { setDeviceLanguages } from "~/test-utils/device-locales";
 import { libraryExercise, serveLibrary } from "~/test-utils/fake-library";
-import { type Failure, fakePublicApi } from "~/test-utils/fake-public-api";
-import { backend } from "~/test-utils/fake-workout-backend";
+import {
+  backend,
+  type Failure,
+  fakePublicApi,
+} from "~/test-utils/fake-public-api";
 import { InAppLanguage } from "~/test-utils/in-app-language";
 import {
   createTestQueryClient,
@@ -76,11 +78,6 @@ jest.mock("expo-router", () => {
   };
 });
 
-jest.mock("~/lib/supabase", () => ({
-  supabase: jest.requireActual<
-    typeof import("~/test-utils/fake-workout-backend")
-  >("~/test-utils/fake-workout-backend").fakeSupabase,
-}));
 jest.mock(
   "~/lib/library",
   () =>
@@ -177,7 +174,8 @@ const renderSession = async () => {
 };
 
 /** Waits until every request, query and mutation is done. */
-const settle = () => settleQueries(queryClient, () => backend.inFlight === 0);
+const settle = () =>
+  settleQueries(queryClient, () => fakePublicApi.inFlight === 0);
 
 /** Whether the Exercise picker is open over the Workout Session. */
 const pickerOpen = () =>
@@ -552,7 +550,6 @@ describe("adding an Exercise to a Workout Session", () => {
       path: "/v1/workout-sessions/s1/exercises",
       route: ADD_EXERCISE,
     });
-    expect(backend.count("workout_session_exercises", "insert")).toBe(0);
     expect(backend.exercises.at(-1)).toMatchObject({
       exercise_slug: "lunge",
       order: 2,
@@ -581,7 +578,6 @@ describe("adding an Exercise to a Workout Session", () => {
         message
       );
       expect(fakePublicApi.count(ADD_EXERCISE)).toBe(1);
-      expect(backend.count("workout_session_exercises", "insert")).toBe(0);
       expect(backend.exercises).toHaveLength(1);
       // The picker stays open, so the User can try again.
       expect(pickerOpen()).toBe(true);
@@ -623,7 +619,6 @@ describe("adding an Exercise to a Workout Session", () => {
     await fireEvent.press(screen.getByLabelText("Close"));
     expect(pickerOpen()).toBe(false);
     expect(await screen.findByText("Lunge")).toBeTruthy();
-    expect(backend.count("workout_session_exercises", "insert")).toBe(0);
   });
 });
 
@@ -648,7 +643,6 @@ describe("removing an Exercise from a Workout Session", () => {
       path: "/v1/workout-session-exercises/s1-e1",
       route: REMOVE_EXERCISE,
     });
-    expect(backend.count("workout_session_exercises", "delete")).toBe(0);
     expect(backend.exercises).toEqual([
       expect.objectContaining({ exercise_slug: "lunge", order: 2 }),
     ]);
@@ -708,8 +702,6 @@ describe("replacing an Exercise in a Workout Session", () => {
       path: "/v1/workout-session-exercises/s1-e1",
       route: REPLACE_EXERCISE,
     });
-    expect(backend.count("workout_session_exercises", "update")).toBe(0);
-    expect(backend.count("workout_session_exercise_sets", "update")).toBe(0);
     expect(backend.exercises).toEqual([
       expect.objectContaining({
         exercise_slug: "lunge",

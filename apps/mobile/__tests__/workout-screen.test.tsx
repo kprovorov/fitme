@@ -2,8 +2,7 @@
  * The Workout screen on the mounted-screen seam: the real route, its Plan
  * read (`GET /v1/plans/{id}`, the Workout picked from the answer) and the
  * planned Exercise cards, with the Public API client's `fetch` swapped for
- * the fake Public API, Supabase for the in-memory backend under it (so a
- * read falling back to it fails) and the Library for its fake (all from
+ * the fake Public API and the Library for its fake (both from
  * `test-utils/`).
  */
 import { beforeEach, describe, expect, it, jest } from "@jest/globals";
@@ -15,8 +14,12 @@ import {
   OPEN_WORKOUT_SESSION_POLL_MS,
   OPEN_WORKOUT_SESSION_QUERY_KEY,
 } from "~/hooks/queries/workout-sessions";
-import { FAKE_USER_ID, fakePublicApi } from "~/test-utils/fake-public-api";
-import { backend, type SeedPlan } from "~/test-utils/fake-workout-backend";
+import {
+  backend,
+  FAKE_USER_ID,
+  fakePublicApi,
+  type SeedPlan,
+} from "~/test-utils/fake-public-api";
 import {
   createTestQueryClient,
   settle,
@@ -44,12 +47,6 @@ jest.mock("expo-router", () => ({
 
 jest.mock("react-native-safe-area-context", () => ({
   useSafeAreaInsets: () => ({ bottom: 0, left: 0, right: 0, top: 0 }),
-}));
-
-jest.mock("~/lib/supabase", () => ({
-  supabase: jest.requireActual<
-    typeof import("~/test-utils/fake-workout-backend")
-  >("~/test-utils/fake-workout-backend").fakeSupabase,
 }));
 
 // The real Clerk SDK (reached through the Profile read) opens a MessagePort

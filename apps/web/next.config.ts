@@ -27,7 +27,6 @@ const nextConfig: NextConfig = {
     "@fitme/api-client",
     "@fitme/core",
     "@fitme/observability",
-    "@fitme/supabase",
   ],
 };
 

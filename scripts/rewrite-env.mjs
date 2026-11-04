@@ -1,7 +1,8 @@
-// Points a checkout's env files at its own local Supabase stack: the local
-// Supabase URL and key, and the pooler port of a local FITME_DATABASE_URL. A
-// remote value is left alone, and so is a dir without a package.json (a renamed
-// app's leftover env file). Run by scripts/setup.sh after `supabase start`.
+// Points a checkout's env files at its own local Supabase stack: the pooler
+// port of a local FITME_DATABASE_URL. A remote value is left alone, and so is a
+// dir without a package.json (a renamed app's leftover env file). Run by
+// scripts/setup.sh after `supabase start`. No app reads the Data API's URL or
+// key any more (FIT-549), so those are left as they are.
 //
 // Usage: node scripts/rewrite-env.mjs <checkout> <supabase start --output-format json output>
 // Prints the stack's MCP URL on stdout, and each file it changed on stderr.
@@ -9,17 +10,8 @@ import fs from "node:fs";
 import path from "node:path";
 import { fileURLToPath } from "node:url";
 
-const LOCAL_URL = /^(https?:\/\/(127\.0\.0\.1|localhost)(:\d+)?\/?)?$/;
-const URL_KEY_PAIRS = [
-  ["EXPO_PUBLIC_SUPABASE_URL", "EXPO_PUBLIC_SUPABASE_ANON_KEY"],
-  ["NEXT_PUBLIC_SUPABASE_URL", "NEXT_PUBLIC_SUPABASE_ANON_KEY"],
-];
 const LOCAL_POOLER_URL =
   /^(FITME_DATABASE_URL=["']?postgres(?:ql)?:\/\/[^@\s]*@(?:127\.0\.0\.1|localhost):)[^/\n]+/m;
-const QUOTED = /^(["'])(.*)\1$/;
-
-// Values may be quoted: `infisical export` (scripts/pull-env.sh) writes KEY='value'.
-const unquote = (value) => value.trim().replace(QUOTED, "$2");
 
 // The CLI prints progress lines before the JSON, which is on one line.
 export const parseStackOutput = (output) => {
@@ -32,34 +24,14 @@ export const parseStackOutput = (output) => {
   }
   const stack = JSON.parse(json);
   return {
-    apiUrl: stack.env.API_URL,
     mcpUrl: stack.env.MCP_URL,
     poolerPort: stack.endpoints["pooler.sql"].port,
-    publishableKey: stack.env.PUBLISHABLE_KEY,
   };
 };
 
-export const rewriteEnvText = (
-  text,
-  { apiUrl, publishableKey, poolerPort }
-) => {
-  let result = text;
-  for (const [urlKey, anonKey] of URL_KEY_PAIRS) {
-    const current = result.match(new RegExp(`^${urlKey}=(.*)$`, "m"));
-    if (!(current && LOCAL_URL.test(unquote(current[1])))) {
-      continue;
-    }
-    result = result.replace(
-      new RegExp(`^${urlKey}=.*$`, "m"),
-      `${urlKey}=${apiUrl}`
-    );
-    result = result.replace(
-      new RegExp(`^${anonKey}=.*$`, "m"),
-      `${anonKey}=${publishableKey}`
-    );
-  }
-  return result.replace(LOCAL_POOLER_URL, `$1${poolerPort}`);
-};
+// Values may be quoted: `infisical export` (scripts/pull-env.sh) writes KEY='value'.
+export const rewriteEnvText = (text, { poolerPort }) =>
+  text.replace(LOCAL_POOLER_URL, `$1${poolerPort}`);
 
 const envFiles = function* (checkout) {
   for (const parent of ["apps", "packages"]) {

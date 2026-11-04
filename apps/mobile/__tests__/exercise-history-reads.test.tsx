@@ -1,7 +1,7 @@
 /**
  * The Exercise history card on the Workout Session Exercise screen reads
- * `GET /v1/workout-session-exercises` through the Public API (FIT-546), never
- * Supabase: the entries and their sets (a bodyweight set and a set's target
+ * `GET /v1/workout-session-exercises` through the Public API (FIT-546): the
+ * entries and their sets (a bodyweight set and a set's target
  * among them), the next page read as the screen scrolls near its end, and a
  * failed read with and without a page already read.
  *
@@ -16,8 +16,11 @@ import type { ReactNode } from "react";
 import WorkoutSessionExerciseScreen from "~/app/plans/[planId]/workouts/[workoutId]/sessions/[sessionId]/exercises/[exerciseId]/index";
 import { storage } from "~/lib/mmkv";
 import { libraryExercise, serveLibrary } from "~/test-utils/fake-library";
-import { FAKE_USER_ID, fakePublicApi } from "~/test-utils/fake-public-api";
-import { backend } from "~/test-utils/fake-workout-backend";
+import {
+  backend,
+  FAKE_USER_ID,
+  fakePublicApi,
+} from "~/test-utils/fake-public-api";
 import { createTestQueryClient, settle } from "~/test-utils/query-client";
 import { resetStubRouter } from "~/test-utils/router-stub";
 
@@ -35,12 +38,6 @@ jest.mock("expo-router", () => {
     useRouter: () => ({ ...stub.stubRouter, canGoBack: () => true }),
   };
 });
-// No read may fall back to Supabase: the fake backend refuses this one.
-jest.mock("~/lib/supabase", () => ({
-  supabase: jest.requireActual<
-    typeof import("~/test-utils/fake-workout-backend")
-  >("~/test-utils/fake-workout-backend").fakeSupabase,
-}));
 // The real Clerk SDK opens a MessagePort at import that keeps Jest alive.
 jest.mock("~/lib/clerk", () => ({
   getCurrentUserId: jest.requireActual<
