@@ -222,6 +222,38 @@
     "moveUp": "Mover «{{name}}» hacia arriba",
     "moveDown": "Mover «{{name}}» hacia abajo",
     "remove": "Eliminar «{{name}}»",
+    "addWorkout": "Añadir entrenamiento",
+    "newWorkoutName": "Entrenamiento {{letter}}",
+    "openWorkout": "Editar «{{name}}»",
+    "workoutNeedsExercise": "Necesita al menos un ejercicio",
+    "workoutNeedsFixing": "Revisa el nombre y las series de este entrenamiento",
+    "workout": {
+      "title": "Editar entrenamiento",
+      "name": "Nombre",
+      "namePlaceholder": "Nombre del entrenamiento",
+      "exercises": "Ejercicios",
+      "exercisesHint": "En el orden en que los haces.",
+      "noExercises": "Añade un ejercicio a este entrenamiento.",
+      "addExercise": "Añadir ejercicio",
+      "exerciseActions": "Acciones para «{{name}}»",
+      "moveUp": "Mover «{{name}}» hacia arriba",
+      "moveDown": "Mover «{{name}}» hacia abajo",
+      "replace": "Sustituir «{{name}}»",
+      "remove": "Eliminar «{{name}}»",
+      "removeSet": "Eliminar la serie {{order, number}}",
+      "errors": {
+        "nameRequired": "Escribe un nombre para el entrenamiento",
+        "repsRange": "Las repeticiones deben ser un número entero de {{min, number(useGrouping: false)}} a {{max, number(useGrouping: false)}}",
+        "weightRange": "El peso debe ser un número de {{min, number(useGrouping: false)}} a {{max, number(useGrouping: false)}}",
+        "restRange": "El descanso debe ser un número entero de segundos de {{min, number(useGrouping: false)}} a {{max, number(useGrouping: false)}}"
+      }
+    },
+    "picker": {
+      "addTitle": "Añadir ejercicio",
+      "replaceTitle": "Sustituir ejercicio",
+      "addExercise": "Añadir «{{name}}»",
+      "replaceWith": "Sustituir por «{{name}}»"
+    },
     "discard": {
       "title": "¿Descartar los cambios?",
       "message": "Se perderán los cambios que has hecho en este plan.",
@@ -235,7 +267,10 @@
       "durationRange": "La duración del entrenamiento debe ser un número entero de minutos, como máximo {{max, number(useGrouping: false)}}",
       "choiceRequired": "Elige una opción",
       "saveFailed": "No se ha podido guardar tu plan. Comprueba tu conexión e inténtalo de nuevo.",
-      "saveRateLimited": "No se ha podido guardar tu plan. Demasiadas solicitudes: inténtalo de nuevo en {{seconds, number}} s."
+      "saveRateLimited": "No se ha podido guardar tu plan. Demasiadas solicitudes: inténtalo de nuevo en {{seconds, number}} s.",
+      "unknownExercises": "Este plan tiene ejercicios que no conocemos, así que no se puede guardar. Sustitúyelos e inténtalo de nuevo.",
+      "libraryUnavailable": "No se han podido comprobar los ejercicios de este plan. Inténtalo de nuevo.",
+      "unitsChanged": "Tus unidades de peso han cambiado en otro dispositivo, así que estos objetivos están en las antiguas. Cierra el editor y vuelve a abrirlo."
     }
   },
   "plannedWorkout": {
@@ -248,6 +283,7 @@
     "noExercises": "Este entrenamiento aún no tiene ejercicios.",
     "gone": "Este entrenamiento ya no existe",
     "goBack": "Volver",
+    "edit": "Editar entrenamiento",
     "loadError": "No se ha podido cargar este entrenamiento. Comprueba tu conexión e inténtalo de nuevo.",
     "exerciseDetailsHint": "Abre los detalles del ejercicio"
   },
@@ -473,6 +509,7 @@
     "row": {
       "repsInput": "Repeticiones de la serie {{order, number}}",
       "weightInput": "Peso de la serie {{order, number}}",
+      "restInput": "Descanso de la serie {{order, number}}",
       "log": "Registrar serie {{order, number}}",
       "edit": "Editar serie {{order, number}}",
       "editHint": "Abre la serie para editarla",

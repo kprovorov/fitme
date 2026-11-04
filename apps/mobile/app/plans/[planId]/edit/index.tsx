@@ -2,11 +2,12 @@ import { ApiError, rateLimitedFor } from "@fitme/api-client";
 import {
   Stack,
   useLocalSearchParams,
+  useNavigation,
   usePreventRemove,
   useRouter,
 } from "expo-router";
 import type { TFunction } from "i18next";
-import { useCallback, useEffect, useState } from "react";
+import { useCallback, useEffect, useRef, useState } from "react";
 import { useTranslation } from "react-i18next";
 import { ActivityIndicator, Alert, ScrollView, View } from "react-native";
 import { KeyboardAwareScrollView } from "react-native-keyboard-controller";
@@ -25,10 +26,15 @@ import {
 } from "~/hooks/plan-draft";
 import { usePlanQuery } from "~/hooks/queries/plans";
 import {
+  addDraftWorkout,
+  adoptSavedIds,
+  canAddDraftWorkout,
   isSavablePlanDraft,
+  nextWorkoutName,
   type PlanDraft,
   planDraftChanged,
   planDraftFrom,
+  planUnitsChanged,
   savePlanBody,
 } from "~/lib/plan-draft";
 
@@ -38,13 +44,21 @@ import {
  * generic error — never the API's own message.
  */
 const saveFailureMessage = (t: TFunction, error: unknown) => {
-  if (error instanceof ApiError && error.code === "not_found") {
+  const code = error instanceof ApiError ? error.code : null;
+  if (code === "not_found") {
     return t("plans.errors.notFound");
   }
   const seconds = rateLimitedFor(error);
-  return seconds === null
-    ? t("planEditor.errors.saveFailed")
-    : t("planEditor.errors.saveRateLimited", { seconds });
+  if (seconds !== null) {
+    return t("planEditor.errors.saveRateLimited", { seconds });
+  }
+  if (code === "unknown_exercises") {
+    return t("planEditor.errors.unknownExercises");
+  }
+  if (code === "library_unavailable") {
+    return t("planEditor.errors.libraryUnavailable");
+  }
+  return t("planEditor.errors.saveFailed");
 };
 
 /**
@@ -53,6 +67,10 @@ const saveFailureMessage = (t: TFunction, error: unknown) => {
  * `PUT /v1/plans/{id}`, including every field it doesn't show (the note, the
  * Workouts' descriptions, their Exercises and sets) as it was loaded.
  *
+ * Its Workouts open the Workout editor, pushed over it inside the same
+ * modal and working on the same draft; given a `workoutId`, it opens that
+ * Workout's editor at once ("Edit Workout" on the Workout screen).
+ *
  * Save and Cancel are the native header's items; Save is disabled while the
  * draft can't be saved. Leaving with unsaved changes — Cancel or a swipe —
  * asks first, and the draft is thrown away with the Screen. A failed save
@@ -60,9 +78,13 @@ const saveFailureMessage = (t: TFunction, error: unknown) => {
  * over while it was in flight keeps the editor open on what they typed.
  */
 export default function PlanEditorScreen() {
-  const { planId: planIdParam } = useLocalSearchParams();
-  const planId = planIdParam as string;
+  const { planId, workoutId } = useLocalSearchParams<{
+    planId: string;
+    /** A Workout to open at once: "Edit Workout" on the Workout screen. */
+    workoutId?: string;
+  }>();
   const router = useRouter();
+  const navigation = useNavigation();
   const { t } = useTranslation();
 
   // One draft per opening, thrown away with the Screen.
@@ -90,6 +112,45 @@ export default function PlanEditorScreen() {
       updatePlanDraft(draftKey, update),
     [draftKey]
   );
+
+  const openWorkout = useCallback(
+    (workoutKey: string) => {
+      router.push({
+        params: { draft: draftKey, planId, workoutKey },
+        pathname: "/plans/[planId]/edit/workouts/[workoutKey]",
+      });
+    },
+    [draftKey, planId, router]
+  );
+
+  const addWorkout = useCallback(() => {
+    const current = getPlanDraft(draftKey)?.draft;
+    if (!(current && canAddDraftWorkout(current))) {
+      return;
+    }
+    const added = addDraftWorkout(
+      current,
+      nextWorkoutName(current.workouts, (letter) =>
+        t("planEditor.newWorkoutName", { letter })
+      )
+    );
+    updatePlanDraft(draftKey, () => added.draft);
+    openWorkout(added.key);
+  }, [draftKey, openWorkout, t]);
+
+  // "Edit Workout" opens the editor at that Workout: once, whether the Plan
+  // still has it or not, so going back doesn't push it again.
+  const openedWorkout = useRef<boolean>(false);
+  useEffect(() => {
+    if (openedWorkout.current || !(entry && workoutId)) {
+      return;
+    }
+    openedWorkout.current = true;
+    const workout = entry.draft.workouts.find(({ id }) => id === workoutId);
+    if (workout) {
+      openWorkout(workout.key);
+    }
+  }, [entry, openWorkout, workoutId]);
 
   const [saveError, setSaveError] = useState<string | null>(null);
   const { isPending: isSaving, mutate: savePlan } = useSavePlanMutation();
@@ -152,10 +213,17 @@ export default function PlanEditorScreen() {
   }, [close, hasChanges, t]);
 
   const draft = entry?.draft;
-  const isSavable = draft !== undefined && isSavablePlanDraft(draft);
+  // The User's measurement system was switched somewhere else while the
+  // editor was open, so the API converted every stored weight and the
+  // draft's targets are in the unit before it. Saving them would write
+  // 60 kg as 60 lbs, so Save is off until the editor is reopened.
+  const staleUnits =
+    draft !== undefined && plan && planUnitsChanged(draft, plan);
+  const isSavable =
+    draft !== undefined && !staleUnits && isSavablePlanDraft(draft);
 
   const save = useCallback(() => {
-    if (!(draft && isSavablePlanDraft(draft))) {
+    if (!(draft && !staleUnits && isSavablePlanDraft(draft))) {
       return;
     }
     setSaveError(null);
@@ -169,19 +237,28 @@ export default function PlanEditorScreen() {
         onError: (error) => {
           setSaveError(saveFailureMessage(t, error));
         },
-        onSuccess: () => {
+        onSuccess: (saved) => {
           const current = getPlanDraft(draftKey)?.draft;
-          if (current && planDraftChanged(sent, current)) {
-            // What's saved is `sent`, so only the edits made since are
-            // unsaved: leaving now asks about those alone.
-            rebasePlanDraft(draftKey, sent);
+          // Closing while the Workout editor or the picker sits over this
+          // Screen would take the modal out from under the User, so the
+          // editor stays open and they close it themselves.
+          const movedOn = current && planDraftChanged(sent, current);
+          if (movedOn || !navigation.isFocused()) {
+            // The rows this save created now have ids: the draft takes them
+            // on, so saving again updates those rows instead of replacing
+            // them. What's saved is `sent` with the same ids, so only the
+            // edits made since are unsaved and leaving asks about those.
+            updatePlanDraft(draftKey, (held) =>
+              adoptSavedIds(held, sent, saved)
+            );
+            rebasePlanDraft(draftKey, adoptSavedIds(sent, sent, saved));
             return;
           }
           close();
         },
       }
     );
-  }, [close, draft, draftKey, planId, savePlan, t]);
+  }, [close, draft, draftKey, navigation, planId, savePlan, staleUnits, t]);
 
   const retry = useCallback(() => {
     refetch();
@@ -229,8 +306,12 @@ export default function PlanEditorScreen() {
         >
           <PlanEditorView
             draft={draft}
+            onAddWorkout={addWorkout}
             onChange={change}
-            saveError={saveError}
+            onOpenWorkout={openWorkout}
+            saveError={
+              staleUnits ? t("planEditor.errors.unitsChanged") : saveError
+            }
           />
         </KeyboardAwareScrollView>
       </>

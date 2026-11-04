@@ -208,6 +208,38 @@
     "moveUp": "Move {{name}} up",
     "moveDown": "Move {{name}} down",
     "remove": "Remove {{name}}",
+    "addWorkout": "Add Workout",
+    "newWorkoutName": "Workout {{letter}}",
+    "openWorkout": "Edit {{name}}",
+    "workoutNeedsExercise": "Needs at least one exercise",
+    "workoutNeedsFixing": "Check this workout's name and sets",
+    "workout": {
+      "title": "Edit Workout",
+      "name": "Name",
+      "namePlaceholder": "Workout name",
+      "exercises": "Exercises",
+      "exercisesHint": "In the order you do them.",
+      "noExercises": "Add an exercise to this workout.",
+      "addExercise": "Add Exercise",
+      "exerciseActions": "Actions for {{name}}",
+      "moveUp": "Move {{name}} up",
+      "moveDown": "Move {{name}} down",
+      "replace": "Replace {{name}}",
+      "remove": "Remove {{name}}",
+      "removeSet": "Remove set {{order, number}}",
+      "errors": {
+        "nameRequired": "Enter a workout name",
+        "repsRange": "Reps must be a whole number from {{min, number(useGrouping: false)}} to {{max, number(useGrouping: false)}}",
+        "weightRange": "Weight must be a number from {{min, number(useGrouping: false)}} to {{max, number(useGrouping: false)}}",
+        "restRange": "Rest must be a whole number of seconds from {{min, number(useGrouping: false)}} to {{max, number(useGrouping: false)}}"
+      }
+    },
+    "picker": {
+      "addTitle": "Add Exercise",
+      "replaceTitle": "Replace Exercise",
+      "addExercise": "Add {{name}}",
+      "replaceWith": "Replace with {{name}}"
+    },
     "discard": {
       "title": "Discard changes?",
       "message": "Your changes to this plan will be lost.",
@@ -221,7 +253,10 @@
       "durationRange": "Workout duration must be a whole number of minutes, at most {{max, number(useGrouping: false)}}",
       "choiceRequired": "Choose one",
       "saveFailed": "Couldn't save your plan. Please check your connection and try again.",
-      "saveRateLimited": "Couldn't save your plan. Too many requests: please try again in {{seconds, number}} s."
+      "saveRateLimited": "Couldn't save your plan. Too many requests: please try again in {{seconds, number}} s.",
+      "unknownExercises": "This plan has exercises we don't know, so it can't be saved. Replace them and try again.",
+      "libraryUnavailable": "Couldn't check this plan's exercises. Try again.",
+      "unitsChanged": "Your weight units changed on another device, so these targets are in the old one. Close the editor and open it again."
     }
   },
   "plannedWorkout": {
@@ -234,6 +269,7 @@
     "noExercises": "This workout has no exercises yet.",
     "gone": "This workout no longer exists",
     "goBack": "Go Back",
+    "edit": "Edit Workout",
     "loadError": "Couldn't load this workout. Check your connection and try again.",
     "exerciseDetailsHint": "Opens the exercise's details"
   },
@@ -448,6 +484,7 @@
     "row": {
       "repsInput": "Set {{order, number}} reps",
       "weightInput": "Set {{order, number}} weight",
+      "restInput": "Set {{order, number}} rest",
       "log": "Log set {{order, number}}",
       "edit": "Edit set {{order, number}}",
       "editHint": "Opens the set for editing",

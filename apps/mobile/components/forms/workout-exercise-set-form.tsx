@@ -98,9 +98,10 @@ const CHECK_HIT_SLOP = 10;
  * The check column's button with a 44 pt tap target around the small circle:
  * an invisible Pressable behind it takes the taps that miss the circle. It's
  * the button's sibling, not its parent, so a tap on the circle fires once.
- * VoiceOver skips it and reads the button.
+ * VoiceOver skips it and reads the button. The Plan editor's set rows end in
+ * the same column, so its remove button has the same target.
  */
-function SetCheckCell({
+export function SetCheckCell({
   children,
   onPress,
 }: {

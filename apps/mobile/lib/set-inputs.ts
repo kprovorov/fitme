@@ -62,7 +62,9 @@ const rangeIssue = (
   return null;
 };
 
-const decimalsOf = (text: string) => text.split(SEPARATOR)[1]?.length ?? 0;
+/** How many decimals `text` holds, for a field naming the rule it broke. */
+export const decimalsOf = (text: string) =>
+  text.split(SEPARATOR)[1]?.length ?? 0;
 
 /**
  * The weight field (in the User's unit): 0 to `MAX_WEIGHT`, at most 2
@@ -91,6 +93,31 @@ export const setRepsField = setNumberField(
   MAX_REPS,
   (value) => (Number.isInteger(value) ? null : i18n.t("sets.form.repsNotWhole"))
 );
+
+/**
+ * A planned target's field value: the number `text` holds, from `min` to
+ * `max` with at most `decimals` decimals, or `null` for anything the
+ * whole-Plan save can't take (an empty field, a word, a value out of bounds,
+ * too many decimals). The Plan editor keeps what the User typed and the
+ * draft keeps this, so `null` is what disables Save (`isSavableSet`).
+ *
+ * It reads a number exactly as the set inputs above do, `,` or `.` as the
+ * separator and nothing else (never `1e3`, `0x10` or `Infinity`).
+ */
+export const planTargetValue = (
+  text: string,
+  { decimals = 0, max, min }: { decimals?: number; max: number; min: number }
+): number | null => {
+  const trimmed = text.trim();
+  if (!DECIMAL_NUMBER.test(trimmed) || decimalsOf(trimmed) > decimals) {
+    return null;
+  }
+  const value = Number(trimmed.replace(",", "."));
+  if (!Number.isFinite(value) || value < min || value > max) {
+    return null;
+  }
+  return decimals === 0 && !Number.isInteger(value) ? null : value;
+};
 
 /** A stored weight as the weight field shows it: `,` separator, no trailing zeros. */
 export const formatSetWeight = (weight: number) =>
