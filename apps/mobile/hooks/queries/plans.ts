@@ -26,6 +26,12 @@ export type FullPlan = components["schemas"]["Plan"];
 /** One Workout of a `FullPlan`, with its Exercises and sets. */
 export type PlanWorkout = components["schemas"]["PlanWorkout"];
 
+/** One Exercise of a `PlanWorkout`, by its Exercise slug, with its sets. */
+export type PlanExercise = components["schemas"]["PlanExercise"];
+
+/** One planned set of a `PlanExercise`: its targets and rest. */
+export type PlanSet = components["schemas"]["PlanSet"];
+
 /** Every query reading Plans, the lists' and each Plan's alike. */
 export const PLANS_QUERY_KEY = ["plans"];
 
@@ -75,6 +81,8 @@ export const usePlanSummariesQuery = createQuery<PlanSummary[]>({
     return data.data;
   },
   queryKey: [...PLANS_QUERY_KEY, "summaries"],
+  // A 429 is the User's to wait out; the screens offer Try Again.
+  retry: false,
 });
 
 export interface PlanQueryVariables {
@@ -104,6 +112,8 @@ export const usePlanQuery = createQuery<FullPlan | null, PlanQueryVariables>({
     }
   },
   queryKey: ["plan"],
+  // A 429 is the User's to wait out; the screens offer Try Again.
+  retry: false,
 });
 
 /**

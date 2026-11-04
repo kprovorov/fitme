@@ -1,15 +1,17 @@
-import type { WorkoutExercise } from "@fitme/core";
 import { useRouter } from "expo-router";
 import { useTranslation } from "react-i18next";
 import { Card } from "~/components/ui/card";
 import { type ShownExercise, shownExercise } from "~/hooks/queries/library";
+import type { FullPlan, PlanExercise } from "~/hooks/queries/plans";
 import ExerciseCardHeader, { OpenChevron } from "./exercise-card-header";
 import WorkoutExerciseSetsTableView from "./workout-exercise-sets-table-view";
 
 interface PlannedWorkoutExerciseCardProps {
   /** The Exercise as resolved by `useExercises`. */
   exercise: ShownExercise | undefined;
-  workoutExercise: WorkoutExercise;
+  /** The unit its sets' weights are in, from the Plan's own read. */
+  weightUnit: FullPlan["weight_unit"];
+  workoutExercise: PlanExercise;
 }
 
 /**
@@ -19,6 +21,7 @@ interface PlannedWorkoutExerciseCardProps {
  */
 export default function PlannedWorkoutExerciseCard({
   exercise: resolved,
+  weightUnit,
   workoutExercise,
 }: PlannedWorkoutExerciseCardProps) {
   const router = useRouter();
@@ -38,7 +41,10 @@ export default function PlannedWorkoutExerciseCard({
         }
         trailing={exercise.isResolved && <OpenChevron />}
       />
-      <WorkoutExerciseSetsTableView sets={workoutExercise.sets} />
+      <WorkoutExerciseSetsTableView
+        sets={workoutExercise.sets}
+        weightUnit={weightUnit}
+      />
     </Card>
   );
 }

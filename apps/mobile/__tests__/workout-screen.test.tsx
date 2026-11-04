@@ -1,7 +1,10 @@
 /**
- * The Workout screen on the mounted-screen seam: the real route, its Workout
- * read and the planned Exercise cards, with Supabase swapped for the
- * in-memory backend and the Library for its fake (both from `test-utils/`).
+ * The Workout screen on the mounted-screen seam: the real route, its Plan
+ * read (`GET /v1/plans/{id}`, the Workout picked from the answer) and the
+ * planned Exercise cards, with the Public API client's `fetch` swapped for
+ * the fake Public API, Supabase for the in-memory backend under it (so a
+ * read falling back to it fails) and the Library for its fake (all from
+ * `test-utils/`).
  */
 import { beforeEach, describe, expect, it, jest } from "@jest/globals";
 import { QueryClientProvider } from "@tanstack/react-query";
@@ -58,6 +61,9 @@ jest.mock("~/lib/clerk", () => ({
     ).FAKE_USER_ID,
 }));
 
+// The real Segment client is ESM-only and is created at import.
+jest.mock("~/lib/segment", () => ({ segmentClient: { track: jest.fn() } }));
+
 jest.mock("~/components/exercises/exercise-image", () => () => null);
 jest.mock("~/components/symbol-image", () => ({ SymbolImage: () => null }));
 jest.mock("~/components/ui/button", () =>
@@ -94,6 +100,9 @@ const PLAN: SeedPlan = {
     { exercises: [], id: "workout-2", name: "Rest Day Mobility" },
   ],
 };
+
+/** The Workout screen's read: the Plan in full, its Workout picked from it. */
+const GET_PLAN = "GET /v1/plans/{id}";
 
 const LOAD_ERROR = /^Couldn't load this workout/;
 
@@ -161,7 +170,7 @@ describe("The Workout screen", () => {
   });
 
   it("shows a spinner while the Workout loads", async () => {
-    const resume = backend.pause("workouts", "select");
+    const resume = fakePublicApi.pause(GET_PLAN);
     queryClient = createTestQueryClient();
     await render(
       <QueryClientProvider client={queryClient}>
@@ -178,7 +187,7 @@ describe("The Workout screen", () => {
   });
 
   it("shows an error with Try Again, which reads the Workout again", async () => {
-    backend.failNext("workouts", "select");
+    fakePublicApi.failNext(GET_PLAN, "network");
     await mount();
 
     expect(
@@ -191,6 +200,28 @@ describe("The Workout screen", () => {
     await settle(queryClient);
 
     expect(screen.getByText("Leg Day")).toBeTruthy();
+  });
+
+  it("gives the wait when the read is rate limited with nothing read yet", async () => {
+    fakePublicApi.failNext(GET_PLAN, { retryAfterSeconds: 12, status: 429 });
+    await mount();
+
+    expect(
+      screen.getByText("Too many requests: please try again in 12 s.")
+    ).toBeTruthy();
+    expect(screen.queryByText(LOAD_ERROR)).toBeNull();
+  });
+
+  it("keeps the Workout it read when a later read fails", async () => {
+    await mount();
+    fakePublicApi.failNext(GET_PLAN, { status: 500 });
+
+    await act(() => queryClient.invalidateQueries({ queryKey: ["plan"] }));
+    await settle(queryClient);
+
+    expect(screen.getByText("Leg Day")).toBeTruthy();
+    expect(screen.getAllByLabelText(SET_ROW)).toHaveLength(5);
+    expect(screen.queryByText(LOAD_ERROR)).toBeNull();
   });
 
   it("says a Workout replaced by a Plan edit no longer exists, with a way back", async () => {
@@ -338,7 +369,7 @@ describe("Starting a Workout from its screen", () => {
   });
 
   it("has no Start while the Workout loads, fails or is gone", async () => {
-    const resume = backend.pause("workouts", "select");
+    const resume = fakePublicApi.pause(GET_PLAN);
     queryClient = createTestQueryClient();
     await render(
       <QueryClientProvider client={queryClient}>
@@ -350,7 +381,7 @@ describe("Starting a Workout from its screen", () => {
     resume();
     await settle(queryClient);
 
-    backend.failNext("workouts", "select");
+    fakePublicApi.failNext(GET_PLAN, "network");
     await mount();
     expect(screen.getByText(LOAD_ERROR)).toBeTruthy();
     expect(screen.queryByRole("button", { name: "Start Workout" })).toBeNull();

@@ -1,9 +1,10 @@
 import { libraryExercise } from "./fake-library";
 
 /**
- * In-memory stand-in for the Supabase client, covering the Plan, Workout
- * and Exercise history reads still made through it; it refuses the reads and
- * writes that moved to the Public API (a Workout Session's among them). The
+ * In-memory stand-in for the Supabase client, covering the Plans list and
+ * Exercise history reads still made through it; it refuses the reads and
+ * writes that moved to the Public API (a Workout's and a Workout Session's
+ * among them). The
  * fake Public API (`fake-public-api.ts`) answers over the same rows, so a
  * write through it shows in the next read. Rows live in plain
  * arrays and every request resolves asynchronously, like the network would,
@@ -296,21 +297,6 @@ class FakeWorkoutBackend {
     return this.sessions.find((session) => session.id === id);
   }
 
-  /**
-   * A seeded Workout as the Workout read selects it: its Exercises, sets and
-   * sessions, and its Plan (soft-deleted ones too, as RLS lets them through).
-   */
-  nestedWorkout(id: string) {
-    for (const plan of this.plans) {
-      const { workouts, ...nested } = this.nestedPlan(plan);
-      const workout = workouts.find((candidate) => candidate.id === id);
-      if (workout) {
-        return { ...workout, plan: nested };
-      }
-    }
-    return null;
-  }
-
   async execute<T>(
     request: Request,
     handler: () => T
@@ -523,8 +509,9 @@ class FakeQuery {
           )
         );
       case "workouts.select":
-        // `null` (PGRST116 through `single()`) once it's gone.
-        return backend.nestedWorkout(this.filters.id as string);
+        // The Workout screen picks its Workout out of its Plan, read through
+        // the Public API (`GET /v1/plans/{id}`).
+        throw new Error("Fake backend: a Workout is read through the API");
       case "workout_sessions.select":
         // The open Workout Session and a Workout Session are read through
         // the Public API.

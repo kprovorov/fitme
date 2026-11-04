@@ -387,7 +387,7 @@ describe("A Plan's Workout screen in Ukrainian", () => {
   });
 
   it("offers to try again when the Workout can't load", async () => {
-    backend.failNext("workouts", "select");
+    fakePublicApi.failNext("GET /v1/plans/{id}", "network");
     await mount(<WorkoutScreen />);
 
     expect(

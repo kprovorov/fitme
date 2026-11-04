@@ -1,5 +1,4 @@
 import { rateLimitedFor } from "@fitme/api-client";
-import type { Workout } from "@fitme/core";
 import { formatNumber } from "@fitme/i18n";
 import { Stack, useLocalSearchParams, useRouter } from "expo-router";
 import { useCallback, useState } from "react";
@@ -20,10 +19,14 @@ import { BlockedStart } from "~/components/workout-sessions/blocked-start";
 import { StatRow } from "~/components/workout-sessions/workout-session-stats";
 import { useExercises } from "~/hooks/queries/library";
 import {
+  type FullPlan,
+  type PlanWorkout,
+  usePlanQuery,
+} from "~/hooks/queries/plans";
+import {
   useOpenWorkoutSessionQuery,
   useOwnOpenWorkoutSession,
 } from "~/hooks/queries/workout-sessions";
-import { useWorkoutQuery } from "~/hooks/queries/workouts";
 import {
   openSessionPath,
   useStartWorkout,
@@ -47,28 +50,28 @@ const BOTTOM_GAP = 16;
 function WorkoutAction({
   isOpenSessionKnown,
   onLayout,
-  workout,
+  planId,
+  workoutId,
 }: {
   isOpenSessionKnown: boolean;
   onLayout: (event: LayoutChangeEvent) => void;
-  workout: Workout;
+  planId: string;
+  workoutId: string;
 }) {
   const insets = useSafeAreaInsets();
   const router = useRouter();
   const { t } = useTranslation();
   const openSession = useCallback(
     (sessionId: string) => {
-      router.replace(
-        workoutSessionPath(workout.plan_id, workout.id, sessionId)
-      );
+      router.replace(workoutSessionPath(planId, workoutId, sessionId));
     },
-    [router, workout.plan_id, workout.id]
+    [router, planId, workoutId]
   );
   const { blockedBy, startWorkout, isStarting } = useStartWorkout(
-    workout.id,
+    workoutId,
     openSession
   );
-  const ownOpenSession = useOwnOpenWorkoutSession(workout.id);
+  const ownOpenSession = useOwnOpenWorkoutSession(workoutId);
   const continueWorkout = useCallback(() => {
     if (ownOpenSession) {
       openSession(ownOpenSession.id);
@@ -133,8 +136,17 @@ function WorkoutAction({
   );
 }
 
-/** The Workout's name and planned stats, then a planned card per Exercise. */
-function WorkoutContent({ workout }: { workout: Workout }) {
+/**
+ * The Workout's name and planned stats, then a planned card per Exercise.
+ * The planned Workout duration and the weights' unit are the Plan's.
+ */
+function WorkoutContent({
+  plan,
+  workout,
+}: {
+  plan: FullPlan;
+  workout: PlanWorkout;
+}) {
   const { t } = useTranslation();
   const i18n = useI18n();
   const exercises = [...workout.exercises].sort((a, b) => a.order - b.order);
@@ -155,7 +167,7 @@ function WorkoutContent({ workout }: { workout: Workout }) {
             {
               label: t("plannedWorkout.stats.duration"),
               value: t("plannedWorkout.durationMinutes", {
-                minutes: workout.plan.workout_duration,
+                minutes: plan.workout_duration,
               }),
             },
             {
@@ -174,6 +186,7 @@ function WorkoutContent({ workout }: { workout: Workout }) {
           <PlannedWorkoutExerciseCard
             exercise={shownBySlug[workoutExercise.exercise_slug]}
             key={workoutExercise.id}
+            weightUnit={plan.weight_unit}
             workoutExercise={workoutExercise}
           />
         ))
@@ -188,18 +201,31 @@ function WorkoutContent({ workout }: { workout: Workout }) {
 
 /**
  * A Workout of a Plan, read-only: the Workout Session screen's layout with
- * the Workout's targets instead of logged sets.
+ * the Workout's targets instead of logged sets. It reads its Plan in full
+ * (`GET /v1/plans/{id}`, the route's `planId`) and picks the Workout out of
+ * it: there is no per-Workout route.
  */
 export default function WorkoutScreen() {
   const insets = useSafeAreaInsets();
   const router = useRouter();
   const { t } = useTranslation();
-  const { workoutId } = useLocalSearchParams<{ workoutId: string }>();
+  const { planId, workoutId } = useLocalSearchParams<{
+    planId: string;
+    workoutId: string;
+  }>();
+  // `null` once the Plan is gone (deleted, missing or never the User's); a
+  // failed refresh keeps the Plan read last.
   const {
-    data: workout,
+    data: plan,
+    error: planError,
     isError,
     refetch,
-  } = useWorkoutQuery({ variables: { id: workoutId } });
+  } = usePlanQuery({ variables: { id: planId } });
+  // `null` once the Workout is gone too: replaced by a Plan edit, so the
+  // Plan no longer lists it.
+  const workout = plan
+    ? (plan.workouts.find(({ id }) => id === workoutId) ?? null)
+    : plan;
   // Read alongside the Workout, so Start shows blocked from the first frame.
   // Once answered, a failed refresh keeps that answer; with no answer at all
   // the screen can't say whether Start is blocked, so it's the load error.
@@ -231,11 +257,11 @@ export default function WorkoutScreen() {
 
   // The Workout the pinned action is for: none while it, or whether Start is
   // blocked, can't be shown.
-  const actionWorkout = workout && !openSessionFailed ? workout : null;
+  const shownWorkout = plan && workout && !openSessionFailed ? workout : null;
 
   const renderContent = () => {
-    if (actionWorkout) {
-      return <WorkoutContent workout={actionWorkout} />;
+    if (plan && shownWorkout) {
+      return <WorkoutContent plan={plan} workout={shownWorkout} />;
     }
     // Replaced by a Plan edit, or its Plan deleted.
     if (workout === null) {
@@ -254,9 +280,9 @@ export default function WorkoutScreen() {
       );
     }
     if (isError || openSessionFailed) {
-      const waitSeconds = openSessionFailed
-        ? rateLimitedFor(openSessionError)
-        : null;
+      const waitSeconds =
+        rateLimitedFor(isError ? planError : null) ??
+        (openSessionFailed ? rateLimitedFor(openSessionError) : null);
       return (
         <View className="items-center gap-sm pt-lg">
           <Text className="text-center text-muted-foreground">
@@ -294,7 +320,7 @@ export default function WorkoutScreen() {
       <ScrollView
         contentContainerClassName="gap-sm px-sm pt-xs"
         contentContainerStyle={{
-          paddingBottom: actionWorkout
+          paddingBottom: shownWorkout
             ? actionHeight + BOTTOM_GAP
             : insets.bottom + BOTTOM_GAP,
         }}
@@ -303,11 +329,12 @@ export default function WorkoutScreen() {
       >
         {renderContent()}
       </ScrollView>
-      {actionWorkout ? (
+      {shownWorkout ? (
         <WorkoutAction
           isOpenSessionKnown={isOpenSessionKnown}
           onLayout={measureAction}
-          workout={actionWorkout}
+          planId={planId}
+          workoutId={shownWorkout.id}
         />
       ) : null}
     </>
