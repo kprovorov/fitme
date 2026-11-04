@@ -25,11 +25,7 @@ after(() => {
   }
 });
 
-const stack = {
-  apiUrl: "http://127.0.0.1:55321",
-  poolerPort: 55_329,
-  publishableKey: "sb_publishable_new",
-};
+const stack = { poolerPort: 55_329 };
 
 const stackOutput = (mcpUrl = "http://127.0.0.1:55321/mcp") =>
   [
@@ -37,9 +33,9 @@ const stackOutput = (mcpUrl = "http://127.0.0.1:55321/mcp") =>
     JSON.stringify({
       endpoints: { "pooler.sql": { port: stack.poolerPort } },
       env: {
-        API_URL: stack.apiUrl,
+        API_URL: "http://127.0.0.1:55321",
         MCP_URL: mcpUrl,
-        PUBLISHABLE_KEY: stack.publishableKey,
+        PUBLISHABLE_KEY: "sb_publishable_new",
       },
     }),
     "",
@@ -59,36 +55,9 @@ describe("parseStackOutput", () => {
 });
 
 describe("rewriteEnvText", () => {
-  test("points a local Supabase URL and its key at the stack", () => {
+  test("leaves the Data API's URL and key alone", () => {
     const before =
       "EXPO_PUBLIC_SUPABASE_URL=http://127.0.0.1:54321\nEXPO_PUBLIC_SUPABASE_ANON_KEY=old\nOTHER=1\n";
-    assert.equal(
-      rewriteEnvText(before, stack),
-      "EXPO_PUBLIC_SUPABASE_URL=http://127.0.0.1:55321\nEXPO_PUBLIC_SUPABASE_ANON_KEY=sb_publishable_new\nOTHER=1\n"
-    );
-  });
-
-  test("reads values quoted the way `infisical export` writes them", () => {
-    const before =
-      "NEXT_PUBLIC_SUPABASE_URL='http://localhost:54321'\nNEXT_PUBLIC_SUPABASE_ANON_KEY='old'\n";
-    assert.equal(
-      rewriteEnvText(before, stack),
-      "NEXT_PUBLIC_SUPABASE_URL=http://127.0.0.1:55321\nNEXT_PUBLIC_SUPABASE_ANON_KEY=sb_publishable_new\n"
-    );
-  });
-
-  test("rewrites an empty URL (a placeholder) too", () => {
-    const before =
-      'EXPO_PUBLIC_SUPABASE_URL=""\nEXPO_PUBLIC_SUPABASE_ANON_KEY=\n';
-    assert.equal(
-      rewriteEnvText(before, stack),
-      "EXPO_PUBLIC_SUPABASE_URL=http://127.0.0.1:55321\nEXPO_PUBLIC_SUPABASE_ANON_KEY=sb_publishable_new\n"
-    );
-  });
-
-  test("leaves a remote Supabase URL and its key alone", () => {
-    const before =
-      "EXPO_PUBLIC_SUPABASE_URL=https://abc.supabase.co\nEXPO_PUBLIC_SUPABASE_ANON_KEY=remote\n";
     assert.equal(rewriteEnvText(before, stack), before);
   });
 
@@ -119,9 +88,12 @@ describe("the CLI", () => {
     write("apps/mobile/package.json", "{}");
     write(
       "apps/mobile/.env",
-      "EXPO_PUBLIC_SUPABASE_URL=http://127.0.0.1:54321\nEXPO_PUBLIC_SUPABASE_ANON_KEY=old\n"
+      "FITME_DATABASE_URL=postgresql://u:p@127.0.0.1:54329/postgres\n"
     );
-    write("apps/mobile/.env.example", "EXPO_PUBLIC_SUPABASE_URL=\n");
+    write(
+      "apps/mobile/.env.example",
+      "FITME_DATABASE_URL=postgresql://u:p@127.0.0.1:54329/postgres\n"
+    );
     write("packages/db/package.json", "{}");
     write(
       "packages/db/.env",
@@ -130,7 +102,7 @@ describe("the CLI", () => {
     // An orphan: a renamed app's leftover env file, no package.json.
     write(
       "apps/retired/.env",
-      "EXPO_PUBLIC_SUPABASE_URL=http://127.0.0.1:54321\n"
+      "FITME_DATABASE_URL=postgresql://u:p@127.0.0.1:54329/postgres\n"
     );
     return root;
   };
@@ -147,7 +119,7 @@ describe("the CLI", () => {
     assert.equal(run.stdout, "http://127.0.0.1:55321/mcp\n");
     assert.equal(
       read(root, "apps/mobile/.env"),
-      "EXPO_PUBLIC_SUPABASE_URL=http://127.0.0.1:55321\nEXPO_PUBLIC_SUPABASE_ANON_KEY=sb_publishable_new\n"
+      "FITME_DATABASE_URL=postgresql://u:p@127.0.0.1:55329/postgres\n"
     );
     assert.equal(
       read(root, "packages/db/.env"),
@@ -155,11 +127,11 @@ describe("the CLI", () => {
     );
     assert.equal(
       read(root, "apps/mobile/.env.example"),
-      "EXPO_PUBLIC_SUPABASE_URL=\n"
+      "FITME_DATABASE_URL=postgresql://u:p@127.0.0.1:54329/postgres\n"
     );
     assert.equal(
       read(root, "apps/retired/.env"),
-      "EXPO_PUBLIC_SUPABASE_URL=http://127.0.0.1:54321\n"
+      "FITME_DATABASE_URL=postgresql://u:p@127.0.0.1:54329/postgres\n"
     );
     assert.match(run.stderr, POINTED_MOBILE);
   });

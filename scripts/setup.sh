@@ -74,8 +74,8 @@ log "stale Supabase stacks"
 scripts/destroy-stale-stacks.sh || warn "couldn't destroy stale Supabase stacks"
 
 # The copied env files point at another checkout's stack (or at placeholders),
-# so start this checkout's own and rewrite the local Supabase URL and key and
-# the pooler port. A remote value is left alone. Not fatal: without Docker the
+# so start this checkout's own and rewrite the pooler port. A remote value is
+# left alone. Not fatal: without Docker the
 # install above still stands, the env files just keep their old values.
 log "supabase start"
 if ! stack="$(cd packages/supabase && pnpm exec supabase start --output-format json)"; then

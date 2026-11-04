@@ -3,8 +3,8 @@
  * (ADR 0017) on every Screen that shows those details: the Workout tab, the
  * Plan list, a Plan's screen and its Workout screen, in English and
  * Ukrainian. The real Screens, with the Public API swapped for its fake and
- * the Library for its fake (all from `test-utils/`). An unset detail isn't shown at all:
- * no badge, no "Not set", no `null`, and nothing reported.
+ * the Library for its fake (both from `test-utils/`). An unset detail isn't
+ * shown at all: no badge, no "Not set", no `null`, and nothing reported.
  */
 import {
   afterEach,

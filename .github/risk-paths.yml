@@ -27,7 +27,6 @@ high:
   - apps/mobile/eas.json
   - apps/mobile/plugins/**
   - apps/mobile/lib/clerk.ts
-  - apps/mobile/lib/supabase.ts
   - apps/mobile/components/authenticated.tsx
   - apps/mobile/components/auth-sync.tsx
   - apps/mobile/components/providers.tsx
@@ -52,7 +51,6 @@ high:
   - apps/webhooks/src/arnold.ts
   # Web: where User tokens are sent
   - apps/web/lib/env.ts
-  - apps/web/lib/supabase/**
   # Any env file, anywhere
   - "**/.env*"
 

@@ -3,12 +3,12 @@
  * the Public API: adding an Exercise posts to
  * `/v1/workout-sessions/{id}/exercises` (FIT-310), removing and replacing one
  * deletes and puts `/v1/workout-session-exercises/{id}` (FIT-312), and a
- * failed edit says what went wrong in an
- * alert. Adding and replacing go through the Exercise picker, its own route
- * over the Workout Session (FIT-432).
+ * failed edit says what went wrong in an alert. Adding and replacing go
+ * through the Exercise picker, its own route over the Workout Session
+ * (FIT-432).
  *
- * Mounts the real screen on the fake Public API and the fake Library, with the picker route
- * mounted over it once pushed (`test-utils/router-stub.tsx`); the
+ * Mounts the real screen on the fake Public API and the fake Library, with
+ * the picker route mounted over it once pushed (`test-utils/router-stub.tsx`); the
  * SwiftUI-backed primitives are swapped for plain stand-ins.
  */
 import {

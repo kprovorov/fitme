@@ -1,8 +1,8 @@
 /**
  * The edit-profile screen on the mounted-screen seam: the real screen, form,
  * hooks and Public API client, with the client's `fetch` swapped for the fake
- * Public API (`test-utils/`), Clerk for a signed-in User, and the SwiftUI-backed
- * primitives for stand-ins.
+ * Public API (`test-utils/`), Clerk for a signed-in User, and the
+ * SwiftUI-backed primitives for stand-ins.
  */
 import {
   afterEach,

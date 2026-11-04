@@ -1,6 +1,7 @@
 /**
  * The Workout tab's carousel on the mounted-screen seam: the real tab screen
- * with the Public API swapped for its fake and the Library for its fake (all from `test-utils/`).
+ * with the Public API swapped for its fake and the Library for its fake
+ * (both from `test-utils/`).
  */
 
 import type { MuscleGroup } from "@fitme/core";

@@ -1,7 +1,7 @@
 /**
  * The Workout cards' Covers on the mounted-screen seam: the real Workout tab
  * with the Public API swapped for its fake and the Library for its fake,
- * which serves Covers (all from `test-utils/`).
+ * which serves Covers (both from `test-utils/`).
  */
 
 import type { Cover } from "@fitme/library-sdk";
