@@ -2,7 +2,7 @@
  * The Plan editor, on the mounted-screen seam: the real Plan screen, editor,
  * draft, hooks and Public API client, with the client's `fetch` swapped for
  * the fake Public API (`test-utils/`), so what a save writes is read back off
- * the fake's rows. The header is rendered as its title and its items as
+ * its rows. The header is rendered as its title and its items as
  * buttons (a disabled one can't be pressed) and its menus' items, and
  * `Alert.alert` is answered by pressing one of its buttons, as the User would.
  */
@@ -22,12 +22,12 @@ import PlanScreen from "~/app/plans/[planId]/index";
 import { segmentClient } from "~/lib/segment";
 import { setDeviceLanguages } from "~/test-utils/device-locales";
 import { serveLibrary } from "~/test-utils/fake-library";
-import { fakePublicApi } from "~/test-utils/fake-public-api";
 import {
   backend,
+  fakePublicApi,
   libraryExerciseNamed,
   type SeedPlan,
-} from "~/test-utils/fake-workout-backend";
+} from "~/test-utils/fake-public-api";
 import { InAppLanguage } from "~/test-utils/in-app-language";
 import { createTestQueryClient, settle } from "~/test-utils/query-client";
 import {
@@ -53,11 +53,6 @@ jest.mock("expo-router", () => {
   };
 });
 
-jest.mock("~/lib/supabase", () => ({
-  supabase: jest.requireActual<
-    typeof import("~/test-utils/fake-workout-backend")
-  >("~/test-utils/fake-workout-backend").fakeSupabase,
-}));
 jest.mock("react-native-keyboard-controller", () => ({
   KeyboardAwareScrollView:
     jest.requireActual<typeof import("react-native")>("react-native")
