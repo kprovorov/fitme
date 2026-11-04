@@ -40,6 +40,31 @@ A spec (e.g. from `/to-spec`) is a Linear **project**, not an issue: `save_proje
 
 Projects carry no labels: never pass `labels` / `addLabels` to `save_project`, and ignore a skill's instruction to label the spec (e.g. `/to-spec`'s `ready-for-agent`). Triage labels go on the project's issues only.
 
+## Splitting a spec into tickets
+
+Every spec is broken into tickets the same way (`/to-tickets` and any hand-made breakdown alike):
+
+- **One app or package per ticket.** Each ticket changes a single app (`apps/mobile`, `apps/arnold`, …) or a single package (`packages/i18n`, `packages/core`, …), and says which one in its description ("This changes only `apps/mobile`"). Work that spans several becomes one ticket per app or package, joined by `blockedBy` relations. For example:
+  - catalog strings land in `packages/i18n` before the screen that shows them;
+  - an API route lands before the app that calls it;
+  - removing what's no longer used comes after the last ticket that used it (expand, then contract).
+
+  Root docs (`GLOSSARY.md`, ADRs, `AGENTS.md`) written during the spec's design session are committed with it, not ticketed.
+- **Small tickets.** Each one is a narrow slice a fresh agent can finish and verify in one session: one behaviour, its tests and its docs. Prefer more, smaller tickets with clear blockers over a few big ones. A test seam the later tickets need is its own first ticket.
+- **Hidden until done.** When the User-facing feature needs several tickets, keep it behind a flag that tests can switch on. The last ticket removes the flag, blocked by every ticket the feature needs.
+- **Labels.** Each ticket gets the area label of the app it changes. A package without a label of its own takes the label of the apps whose behaviour it affects (see **Area labels**). Add `mac` where it applies.
+
+### The dependency diagram
+
+Every spec project's description starts with a **Tickets and their dependencies** section holding a diagram of its tickets: one card per ticket (its `FIT-<n>`, a short title, coloured by the app or package it changes) and an arrow from each blocker to the ticket it blocks, with the tickets that can start now in the top row. Mermaid renders poorly in Linear, and Linear shows no HTML, so the diagram is a PNG:
+
+1. Copy `docs/agents/ticket-dependencies.html` to your scratchpad and fill in its `TICKETS` list with each ticket's id, title, app or package, and blockers. The layout and arrows follow from that list.
+2. Render it to a PNG at its own width (760 px): T3's `html_preview` (the screenshot it saves), or any headless browser.
+3. Upload it with `prepare_file_upload`, then `PUT` the bytes with the signed headers verbatim, within 60 seconds.
+4. Put the returned markdown at the top of the project description, under `## Tickets and their dependencies`, with one line saying an arrow points from a blocker to the ticket it blocks. Use `save_project` with `patch`, so the spec below stays untouched.
+
+When tickets or their blockers change, re-render and replace the image.
+
 ## Tasks for humans
 
 An issue labelled `ready-for-human` (manual setup, dashboard config, secrets, deploys) is done by a person without the agent's context, so its description must be a complete guide they can follow without guessing:
