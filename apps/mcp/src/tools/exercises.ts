@@ -1,4 +1,4 @@
-import { muscleGroups } from "@fitme/core";
+import { equipment as equipmentIds, muscleGroups } from "@fitme/core";
 import type { ExercisePage } from "@fitme/library-sdk";
 import type { McpServer } from "@modelcontextprotocol/sdk/server/mcp.js";
 import { z } from "zod";
@@ -26,8 +26,15 @@ export function registerExerciseTools(server: McpServer, ctx: ToolContext) {
     {
       annotations: READ_ONLY,
       description:
-        "Searches the Fitme Library (alphabetical, paginated). Use an Exercise's `slug` as `exercise_slug` when building plans with create_plan / update_plan. Returns compact rows (slug, name, muscle groups, thumbnail and video URLs) plus `total` and `hasMore`; an offset past the end returns an empty page. Call get_exercise for the description and instructions.",
+        "Searches the Fitme Library (alphabetical, paginated). Use an Exercise's `slug` as `exercise_slug` when building plans with create_plan / update_plan. Returns compact rows (slug, name, muscle groups, the Equipment it needs, thumbnail and video URLs) plus `total` and `hasMore`; an offset past the end returns an empty page. `equipment` narrows the list to exercises using **any** of the given Equipment (so pass every piece the user has, `bodyweight` included), and `search`, `muscleGroup` and `equipment` narrow it together. Call get_exercise for the description and instructions.",
       inputSchema: {
+        equipment: z
+          .array(z.enum(equipmentIds))
+          .max(equipmentIds.length)
+          .optional()
+          .describe(
+            "Only exercises that use any of this Equipment; an empty list narrows nothing. `bodyweight` means an exercise needs no gear."
+          ),
         limit: z
           .number()
           .int()
@@ -57,30 +64,35 @@ export function registerExerciseTools(server: McpServer, ctx: ToolContext) {
       },
       title: "List exercises",
     },
-    withToolErrors(ctx, async ({ limit, muscleGroup, offset, search }) => {
-      // the API pages by at most 50, so a bigger page is read in parts
-      const parts = Array.from(
-        { length: Math.ceil(limit / LIBRARY_PAGE_SIZE) },
-        (_, i) => ({
-          limit: Math.min(LIBRARY_PAGE_SIZE, limit - i * LIBRARY_PAGE_SIZE),
-          offset: offset + i * LIBRARY_PAGE_SIZE,
-        })
-      );
-      const pages = await fromLibrary(ctx, (library) =>
-        Promise.all(
-          parts.map((part) => library.list({ ...part, muscleGroup, search }))
-        )
-      );
-      const exercises = pages.flatMap((page) => page.data);
-      const [{ total }] = pages as [ExercisePage, ...ExercisePage[]];
-      return asJson({
-        exercises,
-        hasMore: offset + exercises.length < total,
-        limit,
-        offset,
-        total,
-      });
-    })
+    withToolErrors(
+      ctx,
+      async ({ equipment, limit, muscleGroup, offset, search }) => {
+        // the API pages by at most 50, so a bigger page is read in parts
+        const parts = Array.from(
+          { length: Math.ceil(limit / LIBRARY_PAGE_SIZE) },
+          (_, i) => ({
+            limit: Math.min(LIBRARY_PAGE_SIZE, limit - i * LIBRARY_PAGE_SIZE),
+            offset: offset + i * LIBRARY_PAGE_SIZE,
+          })
+        );
+        const pages = await fromLibrary(ctx, (library) =>
+          Promise.all(
+            parts.map((part) =>
+              library.list({ ...part, equipment, muscleGroup, search })
+            )
+          )
+        );
+        const exercises = pages.flatMap((page) => page.data);
+        const [{ total }] = pages as [ExercisePage, ...ExercisePage[]];
+        return asJson({
+          exercises,
+          hasMore: offset + exercises.length < total,
+          limit,
+          offset,
+          total,
+        });
+      }
+    )
   );
 
   server.registerTool(
