@@ -1,3 +1,4 @@
+import { rateLimitedFor } from "@fitme/api-client";
 import { formatCount, formatDate, formatNumber, unitName } from "@fitme/i18n";
 import { isThisYear } from "date-fns";
 import {
@@ -26,11 +27,25 @@ import { Card, CardTitle } from "../ui/card";
 import { Text } from "../ui/text";
 import SessionLoadError from "../workout-sessions/session-load-error";
 
+/** How the screen's scroll asked for the next page. */
+export type ExerciseHistoryTrigger =
+  /** Scrolling near the end: every 16 ms while the User moves. */
+  | "scroll"
+  /** A drag ending near the end: one deliberate gesture. */
+  | "drag-end";
+
 /** What a screen scrolling near its end asks the card for. */
 export interface ExerciseHistoryHandle {
-  /** Reads the next page, unless none follows or one is already in flight. */
-  loadMore: () => void;
+  /**
+   * Reads the next page, unless none follows or one is already in flight.
+   * Once a page has failed only a `drag-end` asks again, and a 429 not
+   * before its wait has passed.
+   */
+  loadMore: (trigger: ExerciseHistoryTrigger) => void;
 }
+
+/** `Retry-After` is in seconds; the query records when its error landed. */
+const MS_PER_SECOND = 1000;
 
 interface ExerciseHistoryViewProps {
   /** The session exercise being logged, left out of its own history. */
@@ -174,10 +189,11 @@ function SessionTable({
 /**
  * Progress: the Exercise's past Workout Sessions read through `GET
  * /v1/workout-session-exercises`, newest first, each a table of its logged
- * sets, in the answer's `weight_unit`. A page is read at a time, the next one
- * once the screen scrolls near its end (`loadMore` through the card's `ref`).
- * A failed refresh keeps the pages already read; with none read it shows its
- * load error, a 429 the wait, and Try again reads it again.
+ * sets in its own page's `weight_unit` (a conversion between two page reads
+ * leaves the pages in different units). A page is read at a time, the next
+ * one once the screen scrolls near its end (`loadMore` through the card's
+ * `ref`). A failed refresh keeps the pages already read; with none read it
+ * shows its load error, a 429 the wait, and Try again reads it again.
  */
 export default function ExerciseHistoryView({
   exerciseSlug,
@@ -187,6 +203,7 @@ export default function ExerciseHistoryView({
   const {
     data,
     error,
+    errorUpdatedAt,
     fetchNextPage,
     hasNextPage,
     isError,
@@ -196,12 +213,40 @@ export default function ExerciseHistoryView({
   const { t } = useTranslation();
   const i18n = useI18n();
 
-  const loadMore = useCallback(() => {
-    if (hasNextPage && !isFetchingNextPage) {
-      // A request in flight is never sent again.
+  const pages = data?.pages ?? [];
+  // A page failed with some read already shown: the entries stay, and asking
+  // again on each scroll event (one every 16 ms) would hammer the API right
+  // through a 429's wait, which `retry: false` doesn't hold back either.
+  const loadMoreFailed = isError && pages.length > 0;
+  const waitSeconds = loadMoreFailed ? rateLimitedFor(error) : null;
+
+  const loadMore = useCallback(
+    (trigger: ExerciseHistoryTrigger) => {
+      if (!hasNextPage || isFetchingNextPage) {
+        // A request in flight is never sent again.
+        return;
+      }
+      if (loadMoreFailed) {
+        // Only the User's own gesture asks again, and a rate-limited one not
+        // before `Retry-After` has passed.
+        const waited =
+          waitSeconds === null ||
+          Date.now() >= errorUpdatedAt + waitSeconds * MS_PER_SECOND;
+        if (trigger !== "drag-end" || !waited) {
+          return;
+        }
+      }
       fetchNextPage({ cancelRefetch: false });
-    }
-  }, [fetchNextPage, hasNextPage, isFetchingNextPage]);
+    },
+    [
+      errorUpdatedAt,
+      fetchNextPage,
+      hasNextPage,
+      isFetchingNextPage,
+      loadMoreFailed,
+      waitSeconds,
+    ]
+  );
 
   useImperativeHandle(ref, () => ({ loadMore }), [loadMore]);
 
@@ -209,12 +254,14 @@ export default function ExerciseHistoryView({
     refetch();
   }, [refetch]);
 
-  const pages = data?.pages ?? [];
-  // Every page answers the same unit; the first read is the one on screen.
-  const weightLabel = unitName(i18n, pages[0]?.weight_unit ?? "kg");
-  const entries = pages
-    .flatMap((page) => page.data)
-    .filter((entry) => entry.id !== excludeId);
+  // Each entry keeps its own page's unit: a measurement system switched
+  // elsewhere (Arnold, MCP, another device) between two page reads converts
+  // every stored weight, so a later page comes back in the other unit.
+  const entries = pages.flatMap((page) =>
+    page.data
+      .filter((entry) => entry.id !== excludeId)
+      .map((entry) => ({ entry, weightUnit: page.weight_unit }))
+  );
 
   if (pages.length === 0) {
     // Nothing read: the load error, or nothing at all while it's in flight.
@@ -236,8 +283,12 @@ export default function ExerciseHistoryView({
   return (
     <Card className="gap-sm" variant="ghost">
       <CardTitle>{t("exerciseHistory.title")}</CardTitle>
-      {entries.map((entry) => (
-        <SessionTable entry={entry} key={entry.id} weightLabel={weightLabel} />
+      {entries.map(({ entry, weightUnit }) => (
+        <SessionTable
+          entry={entry}
+          key={entry.id}
+          weightLabel={unitName(i18n, weightUnit)}
+        />
       ))}
       {isFetchingNextPage ? (
         <ActivityIndicator colorClassName="accent-foreground" />

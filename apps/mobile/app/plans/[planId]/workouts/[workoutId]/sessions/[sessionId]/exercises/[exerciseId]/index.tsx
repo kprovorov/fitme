@@ -13,6 +13,7 @@ import { useSafeAreaInsets } from "react-native-safe-area-context";
 import { Card } from "~/components/ui/card";
 import ExerciseHistoryView, {
   type ExerciseHistoryHandle,
+  type ExerciseHistoryTrigger,
 } from "~/components/views/exercise-history-view";
 import WorkoutSessionExerciseSetsTableView from "~/components/views/workout-session-exercise-sets-table-view";
 import RestTimer, { type Rest } from "~/components/workout-sessions/rest-timer";
@@ -120,17 +121,32 @@ export default function WorkoutSessionExerciseScreen() {
 
   // The history is a card inside this screen's scroll view, so the screen is
   // what notices its end coming: each page is read as the User scrolls there.
+  // A drag ending there is told apart, since after a failed page only the
+  // User's own gesture asks again (see `ExerciseHistoryHandle`).
   const history = useRef<ExerciseHistoryHandle | null>(null);
-  const onScroll = useCallback(
-    ({ nativeEvent }: NativeSyntheticEvent<NativeScrollEvent>) => {
+  const askForHistory = useCallback(
+    (
+      { nativeEvent }: NativeSyntheticEvent<NativeScrollEvent>,
+      trigger: ExerciseHistoryTrigger
+    ) => {
       const { contentOffset, contentSize, layoutMeasurement } = nativeEvent;
       const fromEnd =
         contentSize.height - contentOffset.y - layoutMeasurement.height;
       if (fromEnd <= HISTORY_NEAR_END_THRESHOLD * layoutMeasurement.height) {
-        history.current?.loadMore();
+        history.current?.loadMore(trigger);
       }
     },
     []
+  );
+  const onScroll = useCallback(
+    (event: NativeSyntheticEvent<NativeScrollEvent>) =>
+      askForHistory(event, "scroll"),
+    [askForHistory]
+  );
+  const onScrollEndDrag = useCallback(
+    (event: NativeSyntheticEvent<NativeScrollEvent>) =>
+      askForHistory(event, "drag-end"),
+    [askForHistory]
   );
 
   const renderContent = () => {
@@ -200,6 +216,7 @@ export default function WorkoutSessionExerciseScreen() {
         contentInsetAdjustmentBehavior="automatic"
         keyboardShouldPersistTaps="handled"
         onScroll={onScroll}
+        onScrollEndDrag={onScrollEndDrag}
         scrollEventThrottle={SCROLL_EVENT_THROTTLE_MS}
         showsVerticalScrollIndicator={false}
         testID="workout-session-exercise-scroll"

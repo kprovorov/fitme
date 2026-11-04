@@ -128,15 +128,27 @@ const seedPast = (id: string, startedAt: string, sets: Array<number | null>) =>
     startedAt,
   });
 
+const scrollEvent = (offset: number) => ({
+  nativeEvent: {
+    contentOffset: { x: 0, y: offset },
+    contentSize: { height: 10_000, width: 400 },
+    layoutMeasurement: { height: 800, width: 400 },
+  },
+});
+
 /** Scrolls the screen to `offset`, on a 800 pt screen of 10,000 pt content. */
 const scrollTo = async (offset: number) => {
-  await fireEvent.scroll(screen.getByTestId(SCROLL_VIEW), {
-    nativeEvent: {
-      contentOffset: { x: 0, y: offset },
-      contentSize: { height: 10_000, width: 400 },
-      layoutMeasurement: { height: 800, width: 400 },
-    },
-  });
+  await fireEvent.scroll(screen.getByTestId(SCROLL_VIEW), scrollEvent(offset));
+  await settle(queryClient);
+};
+
+/** Ends a drag at `offset`, the User's own gesture. */
+const dragEndAt = async (offset: number) => {
+  await fireEvent(
+    screen.getByTestId(SCROLL_VIEW),
+    "scrollEndDrag",
+    scrollEvent(offset)
+  );
   await settle(queryClient);
 };
 
@@ -220,13 +232,15 @@ describe("The Exercise history card", () => {
 
 describe("The Exercise history card's pages", () => {
   beforeEach(() => {
-    // 21 past sessions: a first page of 20, then one more.
+    // 21 past sessions: a first page of 20, then one more. Each set carries a
+    // weight target, so its own entry's unit shows inline (`10×95kg`).
     for (let index = 0; index < 21; index += 1) {
       seedPast(
         `past-${index}`,
         `2026-01-${String(21 - index).padStart(2, "0")}T10:00:00.000Z`,
         [8]
       );
+      setSet(`past-${index}-e1-s1`, { weight_recommended: 95 });
     }
   });
 
@@ -259,6 +273,58 @@ describe("The Exercise history card's pages", () => {
     await scrollTo(100);
 
     expect(fakePublicApi.count(HISTORY)).toBe(1);
+  });
+
+  it("stops asking on scroll once a page has failed, and a drag asks again", async () => {
+    await mountExerciseScreen();
+    fakePublicApi.failNext(HISTORY, { status: 500 });
+    await scrollTo(9000);
+
+    // The failed page left the first one's entries on screen.
+    expect(screen.getAllByText(SESSION_DATE)).toHaveLength(20);
+    expect(fakePublicApi.count(HISTORY)).toBe(2);
+
+    // Scrolling on, however much, never asks again: it would hammer the API.
+    await scrollTo(9100);
+    await scrollTo(9200);
+    expect(fakePublicApi.count(HISTORY)).toBe(2);
+
+    // The User's own gesture does.
+    await dragEndAt(9200);
+
+    expect(fakePublicApi.count(HISTORY)).toBe(3);
+    expect(screen.getAllByText(SESSION_DATE)).toHaveLength(21);
+  });
+
+  it("waits out a rate-limited page before even a drag asks again", async () => {
+    await mountExerciseScreen();
+    fakePublicApi.failNext(HISTORY, { retryAfterSeconds: 12, status: 429 });
+    await scrollTo(9000);
+    expect(fakePublicApi.count(HISTORY)).toBe(2);
+
+    await dragEndAt(9000);
+    expect(fakePublicApi.count(HISTORY)).toBe(2);
+
+    // Once `Retry-After` has passed, a drag asks again.
+    jest.spyOn(Date, "now").mockReturnValue(Date.now() + 13_000);
+    await dragEndAt(9000);
+
+    expect(fakePublicApi.count(HISTORY)).toBe(3);
+  });
+
+  it("shows each page's entries in that page's own unit", async () => {
+    await mountExerciseScreen();
+    expect(screen.getAllByText("10×95kg")).toHaveLength(20);
+
+    // The measurement system is switched elsewhere (Arnold, MCP, another
+    // device) between the two reads, so the API answers the next page in the
+    // other unit.
+    backend.profiles[0].measurement_system = "us";
+    await scrollTo(9000);
+
+    // The pages already read keep their own unit; only the new one is lbs.
+    expect(screen.getAllByText("10×95kg")).toHaveLength(20);
+    expect(screen.getAllByText("10×95lbs")).toHaveLength(1);
   });
 });
 
