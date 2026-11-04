@@ -11,6 +11,15 @@ import { InAppLanguage } from "~/test-utils/in-app-language";
 
 jest.mock("@/components/symbol-image", () => ({ SymbolImage: () => null }));
 jest.mock("expo-router/react-navigation", () => ({ useHeaderHeight: () => 0 }));
+
+// expo-router's own module can't load under Jest (an ESM dependency), and
+// the sheet only needs the pop that follows a pick.
+jest.mock("expo-router", () => {
+  const stub = jest.requireActual<typeof import("~/test-utils/router-stub")>(
+    "~/test-utils/router-stub"
+  );
+  return { useRouter: () => stub.stubRouter };
+});
 jest.mock("react-native-safe-area-context", () => ({
   useSafeAreaInsets: () => ({ bottom: 0, left: 0, right: 0, top: 0 }),
 }));

@@ -5,7 +5,9 @@
  * parts a send put on the wire and the answer the User sees, and makes a send
  * be refused or fail to see the screen's error states. Its own text is
  * checked in each device language. The header's options render as text through
- * the `Stack.Screen` stub.
+ * the `Stack.Screen` stub, and the "+" sheet is mounted over the screen when
+ * the composer pushes it, as the stack presents it, with the photo picker and
+ * the re-encoder behind it stood in at their module.
  */
 import { beforeEach, describe, expect, it, jest } from "@jest/globals";
 import {
@@ -16,11 +18,15 @@ import {
   waitFor,
 } from "@testing-library/react-native";
 import type { ReactNode } from "react";
+import AddToChatSheet from "~/app/(tabs)/arnold/attachments";
 import ArnoldScreen from "~/app/(tabs)/arnold/index";
+import { clearArnoldAttachments } from "~/hooks/arnold-attachments";
+import type { PickedImage, PickedPhotos } from "~/lib/arnold-attachment-picker";
 import { useAppLanguageSync } from "~/lib/i18n";
 import { storage } from "~/lib/mmkv";
 import { setDeviceLanguages } from "~/test-utils/device-locales";
 import { FAKE_ARNOLD_REPLY, fakeArnold } from "~/test-utils/fake-arnold";
+import { PushedRoutes, resetStubRouter } from "~/test-utils/router-stub";
 
 const mockPresentPaywall = jest.fn();
 
@@ -30,6 +36,12 @@ const SERVER_MESSAGE = /Arnold says no/;
 /** The composer's placeholder and Send button, in either device language. */
 const COMPOSER = /Message Arnold|Повідомлення для Arnold/;
 const SEND = /Send message|Надіслати повідомлення/;
+
+/** The Attachments controls, in either device language. */
+const ADD_TO_CHAT = /Add to chat|Додати до чату/;
+const PHOTOS = /^(Photos|Фото)$/;
+const REMOVE_PHOTO = /^(Remove photo|Видалити фото) \d+ (of|з) \d+$/;
+const THUMBNAIL = /^(Photo \d+ of \d+|Фото \d+ з \d+)$/;
 
 jest.mock("react-native-keyboard-controller", () =>
   jest.requireActual("react-native-keyboard-controller/jest")
@@ -122,6 +134,19 @@ jest.mock("~/lib/clerk", () => ({
   }),
 }));
 
+/** What the system picker answers; `null` is the User cancelling it. */
+const mockPickLibraryPhotos =
+  jest.fn<(limit: number) => Promise<PickedPhotos | null>>();
+
+// The one module importing `expo-image-picker` and `expo-image-manipulator`
+// (its own test covers what they are asked for), so no native picker and no
+// re-encoding under Jest: a picked photo is a file uri the composer shows.
+jest.mock("~/lib/arnold-attachment-picker", () => ({
+  pickLibraryPhotos: (limit: number) => mockPickLibraryPhotos(limit),
+}));
+
+jest.mock("expo-router/react-navigation", () => ({ useHeaderHeight: () => 0 }));
+
 let mockAttachmentsEnabled = false;
 
 // Attachments are off, as they ship, unless a test turns them on. A getter
@@ -160,8 +185,11 @@ interface HeaderItem {
 jest.mock("expo-router", () => {
   const { Text: RNText, View } =
     jest.requireActual<typeof import("react-native")>("react-native");
+  const stub = jest.requireActual<typeof import("~/test-utils/router-stub")>(
+    "~/test-utils/router-stub"
+  );
   return {
-    Link: ({ children }: { children: ReactNode }) => children,
+    Link: stub.LinkStub,
     Stack: {
       Screen: ({
         options,
@@ -180,14 +208,22 @@ jest.mock("expo-router", () => {
       ),
     },
     useLocalSearchParams: () => ({}),
-    useRouter: () => ({ push: jest.fn(), setParams: jest.fn() }),
+    useRouter: () => ({ ...stub.stubRouter, setParams: jest.fn() }),
   };
 });
 
-/** The screen under the root layout's language sync. */
+/** The routes the Arnold screen pushes that a test follows. */
+const ARNOLD_ROUTES = { "/arnold/attachments": AddToChatSheet };
+
+/** The screen under the root layout's language sync, with its stack. */
 function App() {
   useAppLanguageSync();
-  return <ArnoldScreen />;
+  return (
+    <>
+      <ArnoldScreen />
+      <PushedRoutes screens={ARNOLD_ROUTES} />
+    </>
+  );
 }
 
 async function renderArnold() {
@@ -205,6 +241,9 @@ async function send(text: string) {
 
 beforeEach(() => {
   mockAttachmentsEnabled = false;
+  mockPickLibraryPhotos.mockReset();
+  clearArnoldAttachments();
+  resetStubRouter();
   mockPresentPaywall.mockClear();
   storage.clearAll();
   fakeArnold.install();
@@ -370,6 +409,38 @@ describe("Arnold screen", () => {
   });
 
   describe("Attachments", () => {
+    /** A re-encoded JPEG on this device, as the picker answers one. */
+    const photo = (name: string): PickedImage => ({
+      height: 1200,
+      uri: `file:///photos/${name}.jpg`,
+      width: 1600,
+    });
+
+    /** Opens the "+" sheet, as the User does. */
+    const openSheet = async () => {
+      await userEvent.setup().press(screen.getByLabelText(ADD_TO_CHAT));
+    };
+
+    /** Opens the sheet and presses Photos. */
+    const pickPhotos = async () => {
+      await openSheet();
+      await userEvent
+        .setup()
+        .press(screen.getByRole("button", { name: PHOTOS }));
+    };
+
+    /**
+     * The file behind each thumbnail in the composer, in the order it was
+     * picked (expo-image normalises `source` to a list).
+     */
+    const thumbnails = () =>
+      screen
+        .queryAllByLabelText(THUMBNAIL)
+        .map(
+          (image) =>
+            (image.props as { source: { uri: string }[] }).source[0]?.uri
+        );
+
     it("offers no way to add one while they are off", async () => {
       await renderArnold();
 
@@ -391,6 +462,129 @@ describe("Arnold screen", () => {
 
       expect(screen.getByLabelText("Додати до чату")).toBeTruthy();
       expect(screen.queryByLabelText("Add to chat")).toBeNull();
+    });
+
+    it("shows the picked photos above the text field, named for VoiceOver", async () => {
+      mockAttachmentsEnabled = true;
+      mockPickLibraryPhotos.mockResolvedValue({
+        failed: 0,
+        images: [photo("gym"), photo("plan")],
+      });
+      await renderArnold();
+      await pickPhotos();
+
+      expect(screen.getByLabelText("Photo 1 of 2")).toBeTruthy();
+      expect(screen.getByLabelText("Photo 2 of 2")).toBeTruthy();
+      // Each thumbnail is a stop of its own for VoiceOver: expo-image is
+      // not one without `accessible`, label or no label.
+      for (const thumbnail of screen.getAllByLabelText(THUMBNAIL)) {
+        expect((thumbnail.props as { accessible?: boolean }).accessible).toBe(
+          true
+        );
+      }
+      expect(thumbnails()).toEqual([
+        "file:///photos/gym.jpg",
+        "file:///photos/plan.jpg",
+      ]);
+      // A whole message's worth of slots, and the sheet is gone once there
+      // is something to look at.
+      expect(mockPickLibraryPhotos).toHaveBeenCalledWith(4);
+      expect(screen.queryByRole("button", { name: PHOTOS })).toBeNull();
+    });
+
+    it("drops the photo whose × the User presses", async () => {
+      mockAttachmentsEnabled = true;
+      mockPickLibraryPhotos.mockResolvedValue({
+        failed: 0,
+        images: [photo("gym"), photo("plan")],
+      });
+      await renderArnold();
+      await pickPhotos();
+
+      expect(screen.getByLabelText("Remove photo 2 of 2")).toBeTruthy();
+      const [first] = screen.getAllByLabelText(REMOVE_PHOTO);
+      await userEvent.setup().press(first as NonNullable<typeof first>);
+
+      expect(thumbnails()).toEqual(["file:///photos/plan.jpg"]);
+      expect(screen.getByLabelText("Photo 1 of 1")).toBeTruthy();
+    });
+
+    it("asks only for the slots left, then says when the message is full", async () => {
+      mockAttachmentsEnabled = true;
+      mockPickLibraryPhotos.mockResolvedValue({
+        failed: 0,
+        images: [photo("a"), photo("b")],
+      });
+      await renderArnold();
+      await pickPhotos();
+      mockPickLibraryPhotos.mockResolvedValue({
+        failed: 0,
+        images: [photo("c"), photo("d")],
+      });
+      await pickPhotos();
+
+      expect(mockPickLibraryPhotos).toHaveBeenLastCalledWith(2);
+      expect(thumbnails()).toHaveLength(4);
+
+      // A fifth wouldn't fit the request body Arnold takes, so the sheet
+      // says so and Photos opens no picker that could take nothing.
+      await openSheet();
+
+      expect(
+        screen.getByText("You can add up to 4 photos to a message.")
+      ).toBeTruthy();
+      await userEvent
+        .setup()
+        .press(screen.getByRole("button", { name: PHOTOS }));
+      expect(mockPickLibraryPhotos).toHaveBeenCalledTimes(2);
+      expect(thumbnails()).toHaveLength(4);
+    });
+
+    it("says so, and keeps the sheet open, when no photo could be read", async () => {
+      mockAttachmentsEnabled = true;
+      // A RAW or a broken file: the picker gave it, the re-encoder couldn't.
+      mockPickLibraryPhotos.mockResolvedValue({ failed: 1, images: [] });
+      await renderArnold();
+      await pickPhotos();
+
+      expect(
+        screen.getByText("Couldn't add that photo. Try another one.")
+      ).toBeTruthy();
+      expect(thumbnails()).toEqual([]);
+      expect(screen.getByRole("button", { name: PHOTOS })).toBeTruthy();
+    });
+
+    it("changes nothing when the User cancels the picker", async () => {
+      mockAttachmentsEnabled = true;
+      mockPickLibraryPhotos.mockResolvedValue(null);
+      await renderArnold();
+      await pickPhotos();
+
+      expect(thumbnails()).toEqual([]);
+      // Still the sheet: nothing was picked, so nothing closed it.
+      expect(screen.getByRole("button", { name: PHOTOS })).toBeTruthy();
+    });
+
+    it("picks photos and says the message is full in Ukrainian", async () => {
+      mockAttachmentsEnabled = true;
+      setDeviceLanguages(["uk-UA"]);
+      mockPickLibraryPhotos.mockResolvedValue({
+        failed: 0,
+        images: [photo("a"), photo("b"), photo("c"), photo("d")],
+      });
+      await renderArnold();
+      await pickPhotos();
+
+      expect(screen.getByLabelText("Фото 1 з 4")).toBeTruthy();
+      expect(screen.getByLabelText("Видалити фото 1 з 4")).toBeTruthy();
+      expect(screen.getAllByLabelText(REMOVE_PHOTO)).toHaveLength(4);
+      expect(screen.queryByLabelText("Photo 1 of 4")).toBeNull();
+
+      await openSheet();
+
+      expect(
+        screen.getByText("В одне повідомлення можна додати не більше 4 фото.")
+      ).toBeTruthy();
     });
   });
 });

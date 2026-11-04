@@ -22,7 +22,9 @@
  */
 import {
   type ComponentType,
+  cloneElement,
   createContext,
+  type ReactElement,
   type Ref,
   useContext,
   useSyncExternalStore,
@@ -88,6 +90,22 @@ const subscribe = (listener: () => void) => {
     listeners.delete(listener);
   };
 };
+
+/**
+ * `<Link asChild href=…>`: the child it wraps, pressing it pushing that
+ * route, as the real one does. A route the test names in `<PushedRoutes>`
+ * is then mounted over the screen.
+ */
+export function LinkStub({
+  children,
+  href,
+}: {
+  asChild?: boolean;
+  children: ReactElement<{ onPress?: () => void }>;
+  href: Href;
+}) {
+  return cloneElement(children, { onPress: () => stubRouter.push(href) });
+}
 
 const RouteParams = createContext<Params | null>(null);
 

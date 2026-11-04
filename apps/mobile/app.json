@@ -76,6 +76,12 @@
       ],
       "@sentry/react-native",
       "expo-image",
+      [
+        "expo-image-picker",
+        {
+          "microphonePermission": false
+        }
+      ],
       "expo-web-browser",
       "expo-status-bar",
       "./plugins/with-ios-min-deployment-target.js"
