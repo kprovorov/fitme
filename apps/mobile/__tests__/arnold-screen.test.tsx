@@ -97,6 +97,18 @@ jest.mock("@clerk/expo", () => ({
   useUser: () => ({ user: { id: "user_arnold_screen" } }),
 }));
 
+let mockAttachmentsEnabled = false;
+
+// Attachments are off, as they ship, unless a test turns them on. A getter
+// defined in place (a spread would copy the flag's value once, when the
+// factory runs).
+jest.mock("~/lib/arnold-attachments", () =>
+  Object.defineProperties(
+    {},
+    { ATTACHMENTS_ENABLED: { get: () => mockAttachmentsEnabled } }
+  )
+);
+
 jest.mock("~/hooks/revenueCat", () => ({
   useIsProQuery: () => ({ data: true, isPending: false }),
 }));
@@ -167,6 +179,7 @@ async function renderArnold() {
 }
 
 beforeEach(() => {
+  mockAttachmentsEnabled = false;
   mockEve.error = undefined;
   mockEve.reset.mockClear();
   mockPresentPaywall.mockClear();
@@ -276,6 +289,31 @@ describe("Arnold screen", () => {
       });
       expect(screen.getByText("Something went wrong. Try again.")).toBeTruthy();
       expect(screen.getByText("Ask Arnold")).toBeTruthy();
+    });
+  });
+
+  describe("Attachments", () => {
+    it("offers no way to add one while they are off", async () => {
+      await renderArnold();
+
+      expect(screen.queryByLabelText("Add to chat")).toBeNull();
+      expect(screen.getByPlaceholderText("Message Arnold")).toBeTruthy();
+    });
+
+    it('offers the composer\'s "+" once they are on', async () => {
+      mockAttachmentsEnabled = true;
+      await renderArnold();
+
+      expect(screen.getByLabelText("Add to chat")).toBeTruthy();
+    });
+
+    it('names the composer\'s "+" in Ukrainian on a Ukrainian device', async () => {
+      mockAttachmentsEnabled = true;
+      setDeviceLanguages(["uk-UA"]);
+      await renderArnold();
+
+      expect(screen.getByLabelText("Додати до чату")).toBeTruthy();
+      expect(screen.queryByLabelText("Add to chat")).toBeNull();
     });
   });
 });

@@ -43,7 +43,7 @@ export default function StackLayout() {
           headerLargeTitleShadowVisible: false,
           headerTransparent: GLASS,
           presentation: "formSheet",
-          sheetAllowedDetents: [0.55],
+          sheetAllowedDetents: "fitToContents",
           // following https://m3.material.io/components/bottom-sheets/specs
           sheetCornerRadius: IS_ANDROID ? 28 : undefined,
           sheetGrabberVisible: true,
