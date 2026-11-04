@@ -62,6 +62,10 @@ _Avoid_: Exercise id, exercise uuid
 A body area an Exercise works, one of a fixed list. An Exercise works one or more Muscle groups.
 _Avoid_: Muscle, body part, target
 
+**Equipment**:
+The gear an Exercise needs, from a fixed list (barbell, dumbbell, cable, machine, Smith machine, bench, pull-up bar, landmine, bodyweight). An Exercise lists all the Equipment it needs, at least one; an Exercise needing no gear is bodyweight.
+_Avoid_: Gear, implement, apparatus, tools
+
 **Cover**:
 A photo from the Library that a Workout's card shows behind its content, tagged with the muscle groups it suits. Each Workout gets one when it's created, matched to the muscle group its Exercises train most, and no two Workouts of a Plan share one. Identified by a permanent id that never changes.
 _Avoid_: Thumbnail, background, workout image
@@ -69,7 +73,7 @@ _Avoid_: Thumbnail, background, workout image
 ### Library
 
 **Library**:
-Everything Fitme offers to every User, independent of any one User: today every Exercise (names, muscle groups, descriptions, instructions, thumbnails and videos) and every Cover, written in English and translated into other App languages. Owned by the private `fitme-exercises` repository and not stored in Postgres. Content is added, never removed.
+Everything Fitme offers to every User, independent of any one User: today every Exercise (names, muscle groups, Equipment, descriptions, instructions, thumbnails and videos) and every Cover, written in English and translated into other App languages. Owned by the private `fitme-exercises` repository and not stored in Postgres. Content is added, never removed.
 _Avoid_: Exercise Library, exercise catalog, exercise database, exercises table
 
 **Library API**:
