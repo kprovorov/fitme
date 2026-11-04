@@ -302,6 +302,17 @@
     "openInProgressHint": "Abre el entrenamiento en curso"
   },
   "choices": {
+    "equipment": {
+      "barbell": "Barra",
+      "dumbbell": "Mancuerna",
+      "cable": "Polea",
+      "machine": "Máquina",
+      "smith_machine": "Máquina Smith",
+      "bench": "Banco",
+      "pull_up_bar": "Barra de dominadas",
+      "landmine": "Landmine",
+      "bodyweight": "Peso corporal"
+    },
     "experienceLevel": {
       "beginner": "Principiante",
       "intermediate": "Intermedio",

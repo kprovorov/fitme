@@ -1,5 +1,6 @@
 import {
   appLanguages,
+  equipment,
   experienceLevels,
   genders,
   goals,
@@ -13,6 +14,7 @@ import { catalogs } from "..";
 // Every fixed choice the app shows, by its `choices` section: each section
 // holds exactly core's ids, so a new enum value can't ship untranslated.
 const choiceSections = {
+  equipment,
   experienceLevel: experienceLevels,
   experienceLevelDescription: experienceLevels,
   gender: genders,
