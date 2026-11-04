@@ -15,7 +15,9 @@ import { Button } from "~/components/ui/button";
 import { Text } from "~/components/ui/text";
 import { useSavePlanMutation } from "~/hooks/mutations/plans";
 import {
+  getPlanDraft,
   newPlanDraftKey,
+  rebasePlanDraft,
   startPlanDraft,
   updatePlanDraft,
   usePlanDraft,
@@ -54,7 +56,8 @@ const saveFailureMessage = (t: TFunction, error: unknown) => {
  * Save and Cancel are the native header's items; Save is disabled while the
  * draft can't be saved. Leaving with unsaved changes — Cancel or a swipe —
  * asks first, and the draft is thrown away with the Screen. A failed save
- * keeps it, with what went wrong above the form.
+ * keeps it, with what went wrong above the form, and a save the User typed
+ * over while it was in flight keeps the editor open on what they typed.
  */
 export default function PlanEditorScreen() {
   const { planId: planIdParam } = useLocalSearchParams();
@@ -156,16 +159,29 @@ export default function PlanEditorScreen() {
       return;
     }
     setSaveError(null);
+    // The draft as it was sent. Only Save is disabled while the call is in
+    // flight, so the User can keep editing; what they typed meanwhile is
+    // theirs to keep, and the editor stays open with it.
+    const sent = draft;
     savePlan(
-      { body: savePlanBody(draft), id: planId },
+      { body: savePlanBody(sent), id: planId },
       {
         onError: (error) => {
           setSaveError(saveFailureMessage(t, error));
         },
-        onSuccess: close,
+        onSuccess: () => {
+          const current = getPlanDraft(draftKey)?.draft;
+          if (current && planDraftChanged(sent, current)) {
+            // What's saved is `sent`, so only the edits made since are
+            // unsaved: leaving now asks about those alone.
+            rebasePlanDraft(draftKey, sent);
+            return;
+          }
+          close();
+        },
       }
     );
-  }, [close, draft, planId, savePlan, t]);
+  }, [close, draft, draftKey, planId, savePlan, t]);
 
   const retry = useCallback(() => {
     refetch();

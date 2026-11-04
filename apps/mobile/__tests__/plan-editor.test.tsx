@@ -29,7 +29,11 @@ import {
   type SeedPlan,
 } from "~/test-utils/fake-public-api";
 import { InAppLanguage } from "~/test-utils/in-app-language";
-import { createTestQueryClient, settle } from "~/test-utils/query-client";
+import {
+  createTestQueryClient,
+  settle,
+  until,
+} from "~/test-utils/query-client";
 import {
   PushedRoutes,
   pushedRoutes,
@@ -337,6 +341,34 @@ describe("saving", () => {
   });
 });
 
+describe("saving while the User keeps editing", () => {
+  it("keeps what they typed, and asks about only that on the way out", async () => {
+    await openEditor();
+    await type("plan-name", "Push pull legs");
+
+    const resume = fakePublicApi.pause(SAVE);
+    await press("Save");
+    await until(() => fakePublicApi.count(SAVE) === 1);
+    // Only Save is disabled while the call is in flight.
+    await type("plan-description", "Typed while saving");
+    resume();
+    await settle(client);
+
+    // The editor stays open on what they typed, and the save still landed.
+    expect(savedPlan().name).toBe("Push pull legs");
+    expect(savedPlan().description).toBe("Three full-body days");
+    expect(screen.getByTestId("plan-description").props.value).toBe(
+      "Typed while saving"
+    );
+
+    // Leaving asks about the edit made since, not about the saved name.
+    await press("Cancel");
+    expect(alerts().at(-1)?.[0]).toBe("Discard changes?");
+    await pressAlertButton("Discard");
+    expect(pushedRoutes()).toEqual([]);
+  });
+});
+
 describe("Save is disabled", () => {
   const expectNothingSaved = async () => {
     await save();
@@ -448,6 +480,21 @@ describe("a failed save", () => {
 
     expect(screen.getByText("This plan no longer exists.")).toBeTruthy();
     expect(segmentClient.track).not.toHaveBeenCalled();
+  });
+
+  it("reads the Screens behind it again, since the save may have landed", async () => {
+    await renderPlanScreen();
+    await press("Edit Plan");
+    await settle(client);
+
+    await type("plan-name", "Push pull legs");
+    // The save commits and its answer is lost on the way back.
+    fakePublicApi.failNext(SAVE, "lost");
+    await save();
+
+    expect(screen.getByTestId("plan-name").props.value).toBe("Push pull legs");
+    expect(fakePublicApi.count("GET /v1/plans/{id}")).toBeGreaterThan(1);
+    expect(screen.getByRole("header", { name: "Push pull legs" })).toBeTruthy();
   });
 
   it("shows how long to wait when it was rate limited", async () => {

@@ -21,8 +21,9 @@ export interface SavePlanVariables {
  * carries a weight or a Plan (`invalidateWeighedQueries`: the Plan lists, the
  * active Plan, each Plan, the Workout Sessions, the open one, History and
  * each Exercise history), plus the Weekly goal, which follows the active
- * Plan's frequency. Nothing is seeded, so what a screen shows next is what
- * the server answers. Rejects with an `ApiError`.
+ * Plan's frequency, whether or not the call answered: a lost answer can
+ * still have committed. Nothing is seeded, so what a screen shows next is
+ * what the server answers. Rejects with an `ApiError`.
  */
 export const useSavePlanMutation = createMutation<FullPlan, SavePlanVariables>({
   mutationFn: async ({ body, id }: SavePlanVariables): Promise<FullPlan> => {
@@ -38,10 +39,13 @@ export const useSavePlanMutation = createMutation<FullPlan, SavePlanVariables>({
     }
     return data.data;
   },
-  // Not awaited: the reads it starts can take a while (History is paged),
-  // and the caller's `onSuccess`, which closes the editor, runs after this
-  // one settles. What each Screen shows next is still the server's answer.
-  onSuccess: (_plan, _variables, _context, { client }) => {
+  // On settlement, not only on success: a failed call doesn't prove nothing
+  // was saved (the answer can be lost after the write commits), so the
+  // Screens behind the editor are read again either way, as the other Plan
+  // writes do. Not awaited: the reads it starts can take a while (History is
+  // paged), and the caller's own `onSuccess`, which closes the editor, runs
+  // after this one settles.
+  onSettled: (_plan, _error, _variables, _context, { client }) => {
     invalidateWeighedQueries(client);
     client.invalidateQueries({ queryKey: WEEKLY_GOALS_QUERY_KEY });
   },

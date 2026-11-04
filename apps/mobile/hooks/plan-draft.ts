@@ -68,6 +68,20 @@ export const updatePlanDraft = (
   emit();
 };
 
+/**
+ * Makes `loaded` what the opening compares against from now on: the draft a
+ * save has just written, so edits made while it was in flight are still
+ * unsaved changes and everything before them isn't.
+ */
+export const rebasePlanDraft = (key: string, loaded: PlanDraft): void => {
+  const entry = drafts.get(key);
+  if (!entry) {
+    return;
+  }
+  drafts.set(key, { ...entry, loaded });
+  emit();
+};
+
 /** Throws the opening's draft away (the editor closing). */
 export const forgetPlanDraft = (key: string): void => {
   if (drafts.delete(key)) {
