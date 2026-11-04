@@ -5,7 +5,7 @@ import {
   observeHono,
   reportError as reportToObservability,
 } from "@fitme/observability/node";
-import { Hono } from "hono";
+import { Hono, type MiddlewareHandler } from "hono";
 import { cors } from "hono/cors";
 import { HTTPException } from "hono/http-exception";
 import { logger } from "hono/logger";
@@ -42,6 +42,34 @@ export interface CreateAppOptions {
    */
   reportError: ReportError;
 }
+
+/**
+ * Answers every method but POST with 405 and `Allow: POST`. The endpoint is
+ * stateless (`sessionIdGenerator: undefined`), so there is no server-initiated
+ * SSE stream for a GET to open and no session for a DELETE to terminate; the
+ * SDK transport would answer a GET with a keep-alive stream nothing ever
+ * closes, which held the Vercel function open until its 300 s timeout
+ * (FIT-469). It answers directly rather than throwing an `HTTPException`,
+ * which would lose the `Allow` header in `onError`, and runs before
+ * `answerUnsupportedProtocolVersion`, so a client on a newer revision gets the
+ * 405 the spec tells it to expect for the stream rather than a version error.
+ */
+const refuseNonPost: MiddlewareHandler = async (c, next) => {
+  if (c.req.method === "POST") {
+    await next();
+    return;
+  }
+  return c.json(
+    {
+      error: {
+        code: "method_not_allowed",
+        message: "The MCP endpoint accepts POST only.",
+      },
+    },
+    405,
+    { Allow: "POST" }
+  );
+};
 
 export function createApp({
   createLibrary,
@@ -93,12 +121,13 @@ export function createApp({
       identifyUser(c.get("clerkUser").userId);
       await next();
     },
+    refuseNonPost,
     answerUnsupportedProtocolVersion
   );
 
   // Stateless streamable HTTP: a fresh server + transport per request, so the
   // process can scale without sticky sessions.
-  app.all("/", (c) => {
+  app.post("/", (c) => {
     const context = createToolContext({
       createLibrary,
       createServices,
