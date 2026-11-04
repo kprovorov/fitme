@@ -90,6 +90,10 @@ _Avoid_: Coach, AI coach, agent, AI agent, assistant, chatbot
 One thread of messages between a User and Arnold. A User works in one current Conversation at a time; past ones are not kept beyond a limited retention period and are wiped when the User deletes their account. Never a thread with a human Coach.
 _Avoid_: Chat, thread, session
 
+**Attachment**:
+An image a User adds to a message to Arnold. It belongs to the Conversation it was sent in and lives exactly as long as that Conversation.
+_Avoid_: Upload, file, media, photo
+
 ### Coaching
 
 **Coach**:
