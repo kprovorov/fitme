@@ -3,6 +3,7 @@
   "exercises": [
     {
       "slug": "example-press",
+      "equipment": ["bench", "barbell"],
       "muscle_groups": ["chest", "triceps"],
       "locales": {
         "en": {
@@ -27,6 +28,7 @@
     },
     {
       "slug": "example-row",
+      "equipment": ["cable"],
       "muscle_groups": ["back", "biceps"],
       "locales": {
         "en": {
@@ -51,6 +53,7 @@
     },
     {
       "slug": "example-squat",
+      "equipment": ["bodyweight"],
       "muscle_groups": ["quadriceps", "glutes"],
       "locales": {
         "en": {

@@ -41,24 +41,25 @@ oasdiff breaking "$tmp/base.json" "$spec" \
   --warn-ignore .github/oasdiff/allowed-breaking-changes.txt \
   >"$tmp/changes.json"
 
-# Errors and warnings (level 3 and 2) both fail. The one exception: a new
-# muscle group, a new enum value of a response property that is a muscle
-# group. Clients must tolerate muscle groups they don't know; any other
-# response enum stays closed. The property path is the last backticked one in
-# the message. apps/library: `muscle_groups/items/` on the single lookup,
-# prefixed with the union branch on the list
+# Errors and warnings (level 3 and 2) both fail. The exceptions are the two
+# growing lists in @fitme/core: a new muscle group and a new piece of
+# Equipment, each a new enum value of a response property that is one of them.
+# Clients must tolerate a muscle group or an Equipment they don't know; any
+# other response enum stays closed. The property path is backticked in the
+# message. apps/library: `muscle_groups/items/` and `equipment/items/` on the
+# single lookup, prefixed with the union branch on the list
 # (`anyOf[…]/data/items/muscle_groups/items/`). apps/api: the muscle group's
 # `id` on /v1/muscle-groups (`data/items/id`) and /v1/muscle-groups/{…}
-# (`data/id`).
+# (`data/id`); it serves no Equipment.
 jq -r '
-  def new_muscle_group:
+  def growing_core_list:
     .id == "response-property-enum-value-added"
-    and ((.text | test("`([^`]*/)?muscle_groups/items/`"))
+    and ((.text | test("`([^`]*/)?(muscle_groups|equipment)/items/`"))
       or ((.path | startswith("/v1/muscle-groups"))
         and (.text | test("`data/(items/)?id`"))));
   .[]
   | select(.level >= 2)
-  | select(new_muscle_group | not)
+  | select(growing_core_list | not)
   | "\(.operation) \(.path) \(.text)  [\(.id)]"
 ' "$tmp/changes.json" >"$tmp/breaking.txt"
 

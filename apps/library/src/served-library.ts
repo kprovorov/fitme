@@ -2,9 +2,10 @@ import { createHash } from "node:crypto";
 import {
   type AppLanguage,
   appLanguages,
+  equipment,
   type MuscleGroup,
 } from "@fitme/core/models";
-import type { BundleMedia, LibraryBundle } from "./bundle";
+import type { BundleExercise, BundleMedia, LibraryBundle } from "./bundle";
 import type { Exercise } from "./schemas";
 
 /** A Cover as the API serves it: the same in every App language. */
@@ -50,10 +51,10 @@ export interface ServedLibrary {
   covers: ServedCover[];
   /**
    * The sha256 of every Cover and every language's Exercises as served
-   * (text, muscle groups and media URLs, which carry the LFS oids): changes
-   * whenever any Exercise, translation or Cover does. Devices revalidate with
-   * it as the `ETag`, which stays valid per URL since the language is part of
-   * the URL.
+   * (text, muscle groups, Equipment and media URLs, which carry the LFS
+   * oids): changes whenever any Exercise, translation or Cover does. Devices
+   * revalidate with it as the `ETag`, which stays valid per URL since the
+   * language is part of the URL.
    */
   hash: string;
   languages: Record<AppLanguage, ServedLanguage>;
@@ -69,6 +70,13 @@ export const mediaObjectPath = (slug: string, media: BundleMedia) =>
 /** A Cover's image path in the bucket, apart from Exercise media: `covers/<id>/<lfs-oid>.<ext>`. */
 export const coverObjectPath = (id: string, image: BundleMedia) =>
   `covers/${id}/${image.oid}.${image.extension}`;
+
+/**
+ * An Exercise's Equipment in `@fitme/core`'s order, whatever order the bundle
+ * wrote it in, and none at all for an Exercise the content hasn't tagged.
+ */
+const servedEquipment = (needed: BundleExercise["equipment"] = []) =>
+  equipment.filter((item) => needed.includes(item));
 
 /**
  * Serves a validated bundle's Exercises in every App language, each
@@ -94,6 +102,7 @@ export const serveLibrary = (
       return {
         exercise: {
           description,
+          equipment: servedEquipment(exercise.equipment),
           instructions,
           muscle_groups: exercise.muscle_groups,
           name,

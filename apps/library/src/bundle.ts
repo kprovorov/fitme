@@ -2,6 +2,7 @@ import {
   type AppLanguage,
   appLanguages,
   defaultAppLanguage,
+  equipment,
   muscleGroups,
 } from "@fitme/core/models";
 import { z } from "zod";
@@ -27,6 +28,11 @@ const COVER_ID =
 const KnownMuscleGroup = z.enum(muscleGroups, {
   error: (issue) =>
     `unknown muscle group ${JSON.stringify(issue.input)} (known: ${muscleGroups.join(", ")})`,
+});
+
+const KnownEquipment = z.enum(equipment, {
+  error: (issue) =>
+    `unknown Equipment ${JSON.stringify(issue.input)} (known: ${equipment.join(", ")})`,
 });
 
 const media = <const Extension extends string>(
@@ -82,9 +88,22 @@ const MuscleGroups = z
     error: "muscle groups must not repeat",
   });
 
+/**
+ * The Equipment an Exercise needs, from `@fitme/core`, none repeated. It's
+ * optional while `fitme-exercises` tags its content: an untagged Exercise is
+ * served with no Equipment at all. Once every Exercise is tagged it becomes
+ * required with at least one value.
+ */
+const EquipmentList = z
+  .array(KnownEquipment)
+  .refine((needed) => new Set(needed).size === needed.length, {
+    error: "Equipment must not repeat",
+  });
+
 const image = media(["jpg", "png", "webp"]);
 
 export const BundleExercise = z.strictObject({
+  equipment: EquipmentList.optional(),
   locales: Locales,
   muscle_groups: MuscleGroups,
   slug: z
