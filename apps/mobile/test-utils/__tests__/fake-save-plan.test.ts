@@ -1,15 +1,14 @@
 /**
  * The fake Public API's `PUT /v1/plans/{id}`, through the real client, as the
  * Plan builder's edit saves will reach it: the services' semantics (ADR 0016)
- * over the fake backend's rows.
+ * over its in-memory rows.
  */
 
 import { ApiError } from "@fitme/api-client";
 import { beforeEach, describe, expect, it } from "@jest/globals";
 import { publicApi } from "~/lib/public-api";
 import { libraryExercise, serveLibrary } from "~/test-utils/fake-library";
-import { fakePublicApi } from "~/test-utils/fake-public-api";
-import { backend } from "~/test-utils/fake-workout-backend";
+import { backend, fakePublicApi } from "~/test-utils/fake-public-api";
 
 const COVER = "5b1e7c2a-8d4f-4a6b-9c3e-1f2a3b4c5d6e";
 
