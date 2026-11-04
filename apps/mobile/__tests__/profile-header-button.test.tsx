@@ -5,7 +5,7 @@
  * Fitme logo, and Manage Plans and Create Plan sit behind the sliders button
  * next to the Workouts heading, not in a header menu. The header is rendered
  * as plain buttons named by their spoken label, the menu as the dropdown
- * stand-in, with Supabase swapped for the in-memory backend.
+ * stand-in, with the Public API swapped for its fake.
  */
 import { beforeEach, describe, expect, it, jest } from "@jest/globals";
 import { QueryClientProvider } from "@tanstack/react-query";
@@ -15,8 +15,7 @@ import { Platform, Pressable, Text } from "react-native";
 import HomeScreen from "~/app/(tabs)/(home)/index";
 import ProfileScreen from "~/app/profile";
 import { setDeviceLanguages } from "~/test-utils/device-locales";
-import { FAKE_USER_ID } from "~/test-utils/fake-public-api";
-import { backend } from "~/test-utils/fake-workout-backend";
+import { backend, FAKE_USER_ID } from "~/test-utils/fake-public-api";
 import { InAppLanguage } from "~/test-utils/in-app-language";
 import { createTestQueryClient, settle } from "~/test-utils/query-client";
 
@@ -109,12 +108,6 @@ jest.mock("react-native-purchases", () => ({
 jest.mock("react-native-purchases-ui", () => ({
   __esModule: true,
   default: { presentPaywall: jest.fn() },
-}));
-
-jest.mock("~/lib/supabase", () => ({
-  supabase: jest.requireActual<
-    typeof import("~/test-utils/fake-workout-backend")
-  >("~/test-utils/fake-workout-backend").fakeSupabase,
 }));
 
 // The real Clerk SDK opens a MessagePort at import that keeps Jest alive.

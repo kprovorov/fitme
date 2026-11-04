@@ -204,8 +204,6 @@ jobs:
         run: pnpm --filter @fitme/mobile exec expo prebuild --platform ios --clean
         env:
           EXPO_PUBLIC_E2E_ENABLED: "true"
-          EXPO_PUBLIC_SUPABASE_URL: ${{ steps.branch-details.outputs.api_url }}
-          EXPO_PUBLIC_SUPABASE_ANON_KEY: ${{ steps.branch-details.outputs.anon_key }}
           EXPO_PUBLIC_CLERK_PUBLISHABLE_KEY: ${{ vars.CLERK_DEV_PUBLISHABLE_KEY }}
           # Production's Library API, which accepts development-instance
           # Clerk tokens, so E2E needs no deployment of its own.
@@ -243,8 +241,6 @@ jobs:
             SENTRY_DISABLE_AUTO_UPLOAD=true | tee xcodebuild.log | xcpretty
         env:
           EXPO_PUBLIC_E2E_ENABLED: "true"
-          EXPO_PUBLIC_SUPABASE_URL: ${{ steps.branch-details.outputs.api_url }}
-          EXPO_PUBLIC_SUPABASE_ANON_KEY: ${{ steps.branch-details.outputs.anon_key }}
           EXPO_PUBLIC_CLERK_PUBLISHABLE_KEY: ${{ vars.CLERK_DEV_PUBLISHABLE_KEY }}
           # Production's Library API, which accepts development-instance
           # Clerk tokens, so E2E needs no deployment of its own.

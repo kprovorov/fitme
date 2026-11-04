@@ -5,8 +5,7 @@
  * wholly English, and a new App language refetches them. A Library search
  * (FIT-408) finds one by its Ukrainian name and seeds that name.
  *
- * Mounts the real screens on the in-memory Supabase backend and the fake
- * Library holding translated Exercises, under the root layout's
+ * Mounts the real screens on the fake Public API and the fake Library holding translated Exercises, under the root layout's
  * language sync; the device language comes from the mocked
  * `expo-localization` (`test-utils/device-locales.ts`).
  */
@@ -34,7 +33,7 @@ import { i18n, useAppLanguageSync } from "~/lib/i18n";
 import { storage } from "~/lib/mmkv";
 import { setDeviceLanguages } from "~/test-utils/device-locales";
 import { libraryExercise, serveLibrary } from "~/test-utils/fake-library";
-import { backend } from "~/test-utils/fake-workout-backend";
+import { backend, fakePublicApi } from "~/test-utils/fake-public-api";
 import {
   createTestQueryClient,
   settle as settleQueries,
@@ -92,11 +91,6 @@ jest.mock("expo-router", () => {
   };
 });
 
-jest.mock("~/lib/supabase", () => ({
-  supabase: jest.requireActual<
-    typeof import("~/test-utils/fake-workout-backend")
-  >("~/test-utils/fake-workout-backend").fakeSupabase,
-}));
 jest.mock(
   "~/lib/library",
   () =>
@@ -200,7 +194,8 @@ const renderScreen = async (
 };
 
 /** Waits until every request, query and mutation is done. */
-const settle = () => settleQueries(queryClient, () => backend.inFlight === 0);
+const settle = () =>
+  settleQueries(queryClient, () => fakePublicApi.inFlight === 0);
 
 /** The device (and so the App language) switches while the screen is open. */
 const switchDeviceTo = async (languageTag: string) => {

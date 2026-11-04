@@ -1,8 +1,7 @@
 /**
  * The edit-profile screen on the mounted-screen seam: the real screen, form,
- * hooks and Public API client, with Supabase swapped for the in-memory backend
- * and the client's `fetch` for the fake Public API over the same rows (both
- * from `test-utils/`), Clerk for a signed-in User, and the SwiftUI-backed
+ * hooks and Public API client, with the client's `fetch` swapped for the fake
+ * Public API (`test-utils/`), Clerk for a signed-in User, and the SwiftUI-backed
  * primitives for stand-ins.
  */
 import {
@@ -26,11 +25,11 @@ import { useUpdateMeasurementSystemMutation } from "~/hooks/queries/settings";
 import { i18n } from "~/lib/i18n";
 import { setDeviceLanguages } from "~/test-utils/device-locales";
 import {
+  backend,
   FAKE_SESSION_TOKEN,
   FAKE_USER_ID,
   fakePublicApi,
 } from "~/test-utils/fake-public-api";
-import { backend } from "~/test-utils/fake-workout-backend";
 import { InAppLanguage } from "~/test-utils/in-app-language";
 import {
   createTestQueryClient,
@@ -46,12 +45,6 @@ jest.mock("expo-router", () => ({
 
 jest.mock("@sentry/react-native", () => ({ captureException: jest.fn() }));
 jest.mock("~/lib/segment", () => ({ segmentClient: { track: jest.fn() } }));
-
-jest.mock("~/lib/supabase", () => ({
-  supabase: jest.requireActual<
-    typeof import("~/test-utils/fake-workout-backend")
-  >("~/test-utils/fake-workout-backend").fakeSupabase,
-}));
 
 // The Clerk User whose screen this is (`useUser`), signed in until a test
 // signs `mockNextUser` in (`signInAs`), which `getClerk` follows.
@@ -219,7 +212,6 @@ describe("EditProfileScreen", () => {
         route: PROFILE_GET,
       },
     ]);
-    expect(backend.count("profiles", "select")).toBe(0);
     for (const text of ["32 y.o.", "82.5 kg", "180.5 cm"]) {
       expect(screen.getByText(text)).toBeTruthy();
     }
@@ -261,7 +253,6 @@ describe("EditProfileScreen", () => {
     expect(screen.queryByText(LOAD_ERROR)).toBeNull();
     expect(screen.getByText("32 y.o.")).toBeTruthy();
     expect(fakePublicApi.count(PROFILE_GET)).toBe(2);
-    expect(backend.count("profiles", "select")).toBe(0);
   });
 
   it("says how long to wait when reading the Profile was rate limited", async () => {
@@ -600,29 +591,24 @@ describe("EditProfileScreen", () => {
   it.each([
     ["a 5xx", { status: 503 }],
     ["a network failure", "network"],
-  ] as const)(
-    "shows the error state on %s and never falls back to Supabase",
-    async (_name, failure) => {
-      backend.seedProfile(FAKE_USER_ID, { age: 30 });
-      await mount();
-      fakePublicApi.failNext(PROFILE_PATCH, failure);
+  ] as const)("shows the error state on %s", async (_name, failure) => {
+    backend.seedProfile(FAKE_USER_ID, { age: 30 });
+    await mount();
+    fakePublicApi.failNext(PROFILE_PATCH, failure);
 
-      await pick("Age", 31);
-      await save();
+    await pick("Age", 31);
+    await save();
 
-      expect(screen.getByText(SAVE_ERROR)).toBeTruthy();
-      expect(Sentry.captureException).toHaveBeenCalledTimes(1);
-      expect(backend.count("profiles", "insert")).toBe(0);
-      expect(backend.count("profiles", "update")).toBe(0);
-      expect(backend.profile(FAKE_USER_ID)?.age).toBe(30);
-      // The save may have landed without an answer, so the Profile is read
-      // again.
-      expect(fakePublicApi.count(PROFILE_GET)).toBe(2);
-      expect(router.back).not.toHaveBeenCalled();
-    }
-  );
+    expect(screen.getByText(SAVE_ERROR)).toBeTruthy();
+    expect(Sentry.captureException).toHaveBeenCalledTimes(1);
+    expect(backend.profile(FAKE_USER_ID)?.age).toBe(30);
+    // The save may have landed without an answer, so the Profile is read
+    // again.
+    expect(fakePublicApi.count(PROFILE_GET)).toBe(2);
+    expect(router.back).not.toHaveBeenCalled();
+  });
 
-  it("shows the error state when creating the Profile fails, writing nothing through Supabase", async () => {
+  it("shows the error state when creating the Profile fails", async () => {
     await mount();
     fakePublicApi.failNext(PROFILE_PUT, { status: 503 });
 
@@ -634,8 +620,6 @@ describe("EditProfileScreen", () => {
 
     expect(screen.getByText(SAVE_ERROR)).toBeTruthy();
     expect(Sentry.captureException).toHaveBeenCalledTimes(1);
-    expect(backend.count("profiles", "insert")).toBe(0);
-    expect(backend.count("profiles", "upsert")).toBe(0);
     expect(backend.profile(FAKE_USER_ID)).toBeUndefined();
     expect(router.back).not.toHaveBeenCalled();
   });

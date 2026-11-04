@@ -1,7 +1,7 @@
 /**
  * The Workout cards' Covers on the mounted-screen seam: the real Workout tab
- * with Supabase swapped for the in-memory backend and the Library for its
- * fake, which serves Covers (all from `test-utils/`).
+ * with the Public API swapped for its fake and the Library for its fake,
+ * which serves Covers (all from `test-utils/`).
  */
 
 import type { Cover } from "@fitme/library-sdk";
@@ -18,8 +18,7 @@ import {
   libraryExercise,
   serveLibrary,
 } from "~/test-utils/fake-library";
-import { FAKE_USER_ID } from "~/test-utils/fake-public-api";
-import { backend } from "~/test-utils/fake-workout-backend";
+import { backend, FAKE_USER_ID } from "~/test-utils/fake-public-api";
 import {
   createTestQueryClient,
   settle,
@@ -46,12 +45,6 @@ jest.mock("@clerk/expo", () => ({
 jest.mock("react-native-purchases", () => ({
   __esModule: true,
   default: { invalidateCustomerInfoCache: () => Promise.resolve() },
-}));
-
-jest.mock("~/lib/supabase", () => ({
-  supabase: jest.requireActual<
-    typeof import("~/test-utils/fake-workout-backend")
-  >("~/test-utils/fake-workout-backend").fakeSupabase,
 }));
 
 // The real Clerk SDK (reached through the Workout cards) opens a MessagePort

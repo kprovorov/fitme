@@ -1,8 +1,7 @@
 /**
  * The Workout tab's Plans, read through the Public API: the real tab screen
  * with the client's `fetch` swapped for the fake Public API and the Library
- * for its fake (both from `test-utils/`). Supabase is the in-memory backend
- * under the fake API, so a Plan read from Supabase would show in its count.
+ * for its fake (both from `test-utils/`).
  */
 
 import type { Cover } from "@fitme/library-sdk";
@@ -20,8 +19,12 @@ import { PLANS_QUERY_KEY } from "~/hooks/queries/plans";
 import { invalidateWeighedQueries } from "~/hooks/queries/settings";
 import { storage } from "~/lib/mmkv";
 import { libraryExercise, serveLibrary } from "~/test-utils/fake-library";
-import { FAKE_USER_ID, fakePublicApi } from "~/test-utils/fake-public-api";
-import { backend, type SeedPlan } from "~/test-utils/fake-workout-backend";
+import {
+  backend,
+  FAKE_USER_ID,
+  fakePublicApi,
+  type SeedPlan,
+} from "~/test-utils/fake-public-api";
 import {
   createTestQueryClient,
   settle,
@@ -50,12 +53,6 @@ jest.mock("@clerk/expo", () => ({
 jest.mock("react-native-purchases", () => ({
   __esModule: true,
   default: { invalidateCustomerInfoCache: () => Promise.resolve() },
-}));
-
-jest.mock("~/lib/supabase", () => ({
-  supabase: jest.requireActual<
-    typeof import("~/test-utils/fake-workout-backend")
-  >("~/test-utils/fake-workout-backend").fakeSupabase,
 }));
 
 // The real Clerk SDK (reached through the Workout cards) opens a MessagePort
@@ -155,9 +152,6 @@ const pullToRefresh = async () => {
   await settle(queryClient);
 };
 
-/** Plans read from Supabase: none, every Plan read goes through the API. */
-const supabasePlanReads = () => backend.count("plans", "select");
-
 const cardOf = (workoutId: string) =>
   within(screen.getByTestId(`workout-card-${workoutId}`));
 
@@ -187,7 +181,7 @@ beforeEach(() => {
 });
 
 describe("The Workout tab's Plans", () => {
-  it("shows the active Plan's Workouts from the API, none read from Supabase", async () => {
+  it("shows the active Plan's Workouts from the API", async () => {
     backend.seedPlan(STRENGTH);
     await mount();
 
@@ -213,7 +207,6 @@ describe("The Workout tab's Plans", () => {
         includeHiddenElements: true,
       })
     ).toBeNull();
-    expect(supabasePlanReads()).toBe(0);
   });
 
   it("opens a card's Workout screen in the active Plan", async () => {
@@ -253,7 +246,6 @@ describe("The Workout tab's Plans", () => {
     expect(screen.queryByTestId("workout-carousel")).toBeNull();
     await fireEvent.press(screen.getByRole("button", { name: "Manage Plans" }));
     expect(mockPush).toHaveBeenCalledWith("/plans");
-    expect(supabasePlanReads()).toBe(0);
   });
 
   it("offers to create a Plan, with no Manage Plans, when there's none", async () => {
@@ -400,7 +392,6 @@ describe("The Workout tab's Plans", () => {
     await settle(queryClient);
 
     expect(fakePublicApi.count(ACTIVE_PLAN)).toBe(2);
-    expect(supabasePlanReads()).toBe(0);
   });
 });
 

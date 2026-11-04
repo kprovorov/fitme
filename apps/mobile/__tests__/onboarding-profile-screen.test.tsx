@@ -1,8 +1,7 @@
 /**
  * The onboarding Profile screen on the mounted-screen seam: the real screen,
- * form, hooks and Public API client, with Supabase swapped for the in-memory
- * backend and the client's `fetch` for the fake Public API over the same rows
- * (both from `test-utils/`), Clerk for a signed-in User, and the
+ * form, hooks and Public API client, with the client's `fetch` swapped for the
+ * fake Public API (`test-utils/`), Clerk for a signed-in User, and the
  * SwiftUI-backed primitives for stand-ins.
  */
 import { beforeEach, describe, expect, it, jest } from "@jest/globals";
@@ -17,11 +16,11 @@ import { useAppLanguageSync } from "~/lib/i18n";
 import { segmentClient } from "~/lib/segment";
 import { setDeviceLanguages } from "~/test-utils/device-locales";
 import {
+  backend,
   FAKE_SESSION_TOKEN,
   FAKE_USER_ID,
   fakePublicApi,
 } from "~/test-utils/fake-public-api";
-import { backend } from "~/test-utils/fake-workout-backend";
 import {
   createTestQueryClient,
   settle,
@@ -36,12 +35,6 @@ jest.mock("expo-router", () => ({
 jest.mock("@sentry/react-native", () => ({ captureException: jest.fn() }));
 
 jest.mock("~/lib/segment", () => ({ segmentClient: { track: jest.fn() } }));
-
-jest.mock("~/lib/supabase", () => ({
-  supabase: jest.requireActual<
-    typeof import("~/test-utils/fake-workout-backend")
-  >("~/test-utils/fake-workout-backend").fakeSupabase,
-}));
 
 jest.mock("@clerk/expo", () => ({
   useUser: () => ({ isLoaded: true, user: { id: "user_test" } }),
@@ -183,7 +176,6 @@ describe("Onboarding ProfileScreen", () => {
 
     // `GET /v1/profile` answered `{ data: null }`.
     expect(fakePublicApi.count(PROFILE_GET)).toBe(1);
-    expect(backend.count("profiles", "select")).toBe(0);
     expect(screen.getAllByText("Not Set")).toHaveLength(3);
     expect(screen.getByLabelText("Male")).not.toBeChecked();
     expect(screen.getByLabelText("Female")).not.toBeChecked();
@@ -213,7 +205,6 @@ describe("Onboarding ProfileScreen", () => {
     // Without knowing whether a Profile is saved, no form to replace it.
     expect(screen.getByText(LOAD_ERROR)).toBeTruthy();
     expect(screen.queryByText("Next")).toBeNull();
-    expect(backend.count("profiles", "select")).toBe(0);
 
     await fireEvent.press(screen.getByText("Try Again"));
     await settle(queryClient);
@@ -385,7 +376,7 @@ describe("Onboarding ProfileScreen", () => {
     ["a 5xx", { status: 503 }],
     ["a network failure", "network"],
   ] as const)(
-    "shows the error state on %s, writing nothing through Supabase",
+    "shows the error state on %s, writing nothing",
     async (_name, failure) => {
       await mount();
       fakePublicApi.failNext(PROFILE_PUT, failure);
@@ -394,8 +385,6 @@ describe("Onboarding ProfileScreen", () => {
 
       expect(screen.getByText(SAVE_ERROR)).toBeTruthy();
       expect(Sentry.captureException).toHaveBeenCalledTimes(1);
-      expect(backend.count("profiles", "insert")).toBe(0);
-      expect(backend.count("profiles", "upsert")).toBe(0);
       expect(backend.profile(FAKE_USER_ID)).toBeUndefined();
       expect(track).not.toHaveBeenCalled();
       expect(router.dismissTo).not.toHaveBeenCalled();

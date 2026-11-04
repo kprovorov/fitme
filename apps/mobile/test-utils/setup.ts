@@ -8,10 +8,10 @@
  *
  * The Public API clients (`~/lib/public-api`: `publicApi`, and `globalApi`,
  * sending no bearer) are the real one (`@fitme/api-client`, without the
- * Clerk token getter), their `fetch` the
- * fake Public API (`fake-public-api.ts`), which answers over the fake Supabase
- * backend's rows and fails any route it doesn't implement, so no write reaches
- * the network either. Its base URL is the fake's `baseUrl`.
+ * Clerk token getter), their `fetch` the fake Public API
+ * (`fake-public-api.ts`), which answers over its own in-memory rows and fails
+ * any route it doesn't implement, so no read or write reaches the network
+ * either. Its base URL is the fake's `baseUrl`.
  *
  * `@sentry/react-native` is a stand-in too: importing the real SDK starts a
  * cleanup `setInterval` (`AsyncExpiringMap` in `timeToDisplayFallback`) that

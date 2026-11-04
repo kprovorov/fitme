@@ -4,9 +4,10 @@
  * Mounts the real workout session screens, exercise screen, set rows, finish
  * suggestion controller and finish flow, for both workout session routes
  * (opened from a plan and from `/workout-sessions/:id`), the Workout card
- * that starts and finishes a session, and the "Update your plan?" sheet. Only the edges are swapped out: Supabase for an
- * in-memory backend, the Public API for a fake over the same rows (starting,
- * logging a set, finishing and the Plan Update go through it), expo-router for a small
+ * that starts and finishes a session, and the "Update your plan?" sheet. Only
+ * the edges are swapped out: the Public API for a fake over in-memory rows
+ * (every read, starting, logging a set, finishing and the Plan Update go
+ * through it), expo-router for a small
  * stack navigator that keeps lower screens mounted like the native stack, and
  * the SwiftUI-backed primitives (Button, Dialog, menus) for plain
  * React Native stand-ins. See `e2e/manual/finish-workout-suggestion.md` for
@@ -54,12 +55,13 @@ import { useOpenWorkoutSessionQuery } from "~/hooks/queries/workout-sessions";
 import { storage } from "~/lib/mmkv";
 import { segmentClient } from "~/lib/segment";
 import { libraryExercise, serveLibrary } from "~/test-utils/fake-library";
-import { FAKE_USER_ID, fakePublicApi } from "~/test-utils/fake-public-api";
 import {
   backend,
+  FAKE_USER_ID,
+  fakePublicApi,
   libraryExerciseNamed,
   type SeedSession,
-} from "~/test-utils/fake-workout-backend";
+} from "~/test-utils/fake-public-api";
 import {
   createTestQueryClient,
   settle as settleQueries,
@@ -199,12 +201,6 @@ jest.mock("expo-router", () => {
 // ---------------------------------------------------------------------------
 // Backend and native edges.
 // ---------------------------------------------------------------------------
-
-jest.mock("~/lib/supabase", () => ({
-  supabase: jest.requireActual<
-    typeof import("~/test-utils/fake-workout-backend")
-  >("~/test-utils/fake-workout-backend").fakeSupabase,
-}));
 
 jest.mock(
   "~/lib/library",
@@ -415,7 +411,8 @@ const renderApp = async () => {
  * Waits until every request, query, mutation and suggestion check is done (the
  * check resolves a tick after the last response, within `settle`'s idle ticks).
  */
-const settle = () => settleQueries(queryClient, () => backend.inFlight === 0);
+const settle = () =>
+  settleQueries(queryClient, () => fakePublicApi.inFlight === 0);
 
 const focused = () => within(screen.getByTestId("focused-screen"));
 
@@ -474,10 +471,6 @@ beforeEach(() => {
   jest
     .spyOn(AccessibilityInfo, "announceForAccessibility")
     .mockImplementation(() => undefined);
-});
-
-afterEach(() => {
-  expect(backend.unsupported).toEqual([]);
 });
 
 describe.each(ENTRY_ROUTES)(
@@ -729,7 +722,6 @@ describe.each(ENTRY_ROUTES)(
         body: { reps_completed: 6, weight_completed: 42.5 },
         path: "/v1/workout-session-exercises/s1-e1/sets",
       });
-      expect(backend.count("workout_session_exercise_sets", "insert")).toBe(0);
       expect(
         backend.sets.filter(
           (set) => set.workout_session_exercise_id === "s1-e1"

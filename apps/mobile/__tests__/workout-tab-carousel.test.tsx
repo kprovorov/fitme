@@ -1,7 +1,6 @@
 /**
  * The Workout tab's carousel on the mounted-screen seam: the real tab screen
- * with Supabase swapped for the in-memory backend, the Public API for its
- * fake and the Library for its fake (all from `test-utils/`).
+ * with the Public API swapped for its fake and the Library for its fake (all from `test-utils/`).
  */
 
 import type { MuscleGroup } from "@fitme/core";
@@ -17,8 +16,11 @@ import {
 import { Alert, ScrollView } from "react-native";
 import HomeScreen from "~/app/(tabs)/(home)/index";
 import { libraryExercise, serveLibrary } from "~/test-utils/fake-library";
-import { FAKE_USER_ID, fakePublicApi } from "~/test-utils/fake-public-api";
-import { backend } from "~/test-utils/fake-workout-backend";
+import {
+  backend,
+  FAKE_USER_ID,
+  fakePublicApi,
+} from "~/test-utils/fake-public-api";
 import { createTestQueryClient, settle } from "~/test-utils/query-client";
 
 const mockPush = jest.fn();
@@ -43,12 +45,6 @@ jest.mock("@clerk/expo", () => ({
 jest.mock("react-native-purchases", () => ({
   __esModule: true,
   default: { invalidateCustomerInfoCache: () => Promise.resolve() },
-}));
-
-jest.mock("~/lib/supabase", () => ({
-  supabase: jest.requireActual<
-    typeof import("~/test-utils/fake-workout-backend")
-  >("~/test-utils/fake-workout-backend").fakeSupabase,
 }));
 
 // The real Clerk SDK (reached through the Workout cards) opens a MessagePort

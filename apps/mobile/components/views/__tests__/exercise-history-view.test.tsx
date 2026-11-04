@@ -16,8 +16,7 @@ import {
   setDevice24HourClock,
   setDeviceLanguages,
 } from "~/test-utils/device-locales";
-import { FAKE_USER_ID } from "~/test-utils/fake-public-api";
-import { backend } from "~/test-utils/fake-workout-backend";
+import { backend, FAKE_USER_ID } from "~/test-utils/fake-public-api";
 import { InAppLanguage } from "~/test-utils/in-app-language";
 import { createTestQueryClient, settle } from "~/test-utils/query-client";
 import ExerciseHistoryView from "../exercise-history-view";

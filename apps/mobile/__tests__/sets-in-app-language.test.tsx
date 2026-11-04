@@ -4,8 +4,7 @@
  * the set form's bounds messages, a failed set save and the rest timer read
  * in Ukrainian.
  *
- * Mounts the real Exercise screen on the in-memory Supabase backend and the
- * fake Public API, under the root layout's language sync; the device language
+ * Mounts the real Exercise screen on the fake Public API, under the root layout's language sync; the device language
  * comes from the mocked `expo-localization` (`test-utils/device-locales.ts`).
  */
 import {
@@ -25,11 +24,11 @@ import { i18n, useAppLanguageSync } from "~/lib/i18n";
 import { storage } from "~/lib/mmkv";
 import { setDeviceLanguages } from "~/test-utils/device-locales";
 import { serveLibrary } from "~/test-utils/fake-library";
-import { fakePublicApi } from "~/test-utils/fake-public-api";
 import {
   backend,
+  fakePublicApi,
   libraryExerciseNamed,
-} from "~/test-utils/fake-workout-backend";
+} from "~/test-utils/fake-public-api";
 import {
   createTestQueryClient,
   settle as settleQueries,
@@ -60,11 +59,6 @@ jest.mock("expo-router", () => ({
   }),
 }));
 
-jest.mock("~/lib/supabase", () => ({
-  supabase: jest.requireActual<
-    typeof import("~/test-utils/fake-workout-backend")
-  >("~/test-utils/fake-workout-backend").fakeSupabase,
-}));
 jest.mock(
   "~/lib/library",
   () =>
@@ -123,7 +117,8 @@ function InAppLanguage({ children }: { children: ReactNode }) {
 }
 
 /** Waits until every request, query and mutation is done. */
-const settle = () => settleQueries(queryClient, () => backend.inFlight === 0);
+const settle = () =>
+  settleQueries(queryClient, () => fakePublicApi.inFlight === 0);
 
 /**
  * Opens the Squat of Workout Session `s1`: set 1 of 12×45 kg with 90 s of
@@ -178,7 +173,6 @@ beforeEach(() => {
 // The i18n instance outlives a test; the device goes back to English on its own.
 afterEach(async () => {
   await i18n.changeLanguage("en");
-  expect(backend.unsupported).toEqual([]);
 });
 
 describe("the sets table in Ukrainian", () => {

@@ -1,10 +1,10 @@
 /**
  * A fetch-level stand-in for `apps/api`, the `fetch` of the Public API client
  * in every test file (`test-utils/setup.ts`). It answers like the `/v1` routes
- * over the fake Supabase backend's rows (`backend`), so a write through it
- * shows in the next Supabase read, and as the User `FAKE_USER_ID` when the
- * bearer is `FAKE_SESSION_TOKEN` (anything else is a 401); seed that User's
- * rows (`backend.seedProfile(FAKE_USER_ID)`, a Plan's `user_id`) for it.
+ * over its own in-memory rows (`backend`, below), so a write through it shows
+ * in the next read, and as the User `FAKE_USER_ID` when the bearer is
+ * `FAKE_SESSION_TOKEN` (anything else is a 401); seed that User's rows
+ * (`backend.seedProfile(FAKE_USER_ID)`, a Plan's `user_id`) for it.
  *
  * So far: reading (`GET`, `{ data: null }` without one), `PUT` (201 created,
  * 200 replaced, converting to a new system) and `PATCH /v1/profile`, listing
@@ -32,7 +32,9 @@ import type { PublicApiFetch } from "@fitme/api-client";
 import {
   arnoldModels,
   defaultArnoldModelId,
+  type ExperienceLevel,
   experienceLevels,
+  type Goal,
   genders,
   goals,
   MAX_AGE,
@@ -53,19 +55,330 @@ import {
   MIN_AGE,
   MIN_FREQUENCY,
   measurementSystems,
+  type Place,
   personalRecordFor,
   places,
   recordResult,
 } from "@fitme/core";
-import { library } from "./fake-library";
-import {
-  backend,
-  type ProfileRow,
-  type SeedPlan,
-  type SeedPlanSet,
-  type SessionRow,
-  type SetRow,
-} from "./fake-workout-backend";
+import { library, libraryExercise } from "./fake-library";
+
+/*
+ * The in-memory rows every route answers over (`backend`), and their seeding
+ * helpers: a write through one route shows in the next read of another.
+ */
+
+export interface SessionRow {
+  finished_at: string | null;
+  id: string;
+  plan_id: string | null;
+  started_at: string;
+  /**
+   * Its owner's Clerk id; the fake Public API's User (`FAKE_USER_ID`) unless
+   * given, so another id is another User's Workout Session, which the API
+   * never shows.
+   */
+  user_id?: string;
+  workout_id: string | null;
+  workoutName: string;
+}
+
+export interface ProfileRow {
+  age: number;
+  gender: string;
+  height: number;
+  measurement_system: string;
+  user_id: string;
+  weight: number;
+}
+
+/** A Personal record a finished Workout Session earned, weight in the Profile's unit. */
+export interface PersonalRecordRow {
+  exercise_slug: string;
+  kind: "reps" | "weight";
+  reps: number;
+  weight: number;
+  workout_session_id: string;
+}
+
+interface ExerciseRow {
+  exercise_slug: string;
+  id: string;
+  order: number;
+  workout_session_id: string;
+}
+
+export interface SetRow {
+  id: string;
+  logged_at: string | null;
+  order: number;
+  reps_completed: number | null;
+  reps_recommended: number | null;
+  rest_recommended: number | null;
+  weight_completed: number | null;
+  weight_recommended: number | null;
+  workout_session_exercise_id: string;
+}
+
+/**
+ * Sets of an exercise, as `reps_completed` values (`null` = untracked). The
+ * Exercise is stored by slug: `slug`, or one made from `name` ("Bench Press"
+ * → `bench-press`), which `libraryExerciseNamed` serves under that name.
+ */
+export interface SeedExercise {
+  name: string;
+  sets: Array<number | null>;
+  slug?: string;
+}
+
+/** A Workout Exercise set's targets. */
+export interface SeedPlanSet {
+  /** Its id; `<workout>-e<n>-s<n>` from its position unless given. */
+  id?: string;
+  reps_recommended: number;
+  rest_recommended: number;
+  weight_recommended: number;
+}
+
+export interface SeedPlan {
+  /** When it was soft-deleted; `null` (the default) while it's live. */
+  deleted_at?: string | null;
+  /** Its description; `About <name>` unless given, `null` for none. */
+  description?: string | null;
+  /**
+   * Its experience level; `intermediate` unless given, `null` for a Plan
+   * that leaves it unset (ADR 0017).
+   */
+  experience_level?: ExperienceLevel | null;
+  /** Its Workouts a week; 3 unless given. */
+  frequency?: number;
+  /** Its goal; `strength-performance` unless given, `null` for unset. */
+  goal?: Goal | null;
+  id: string;
+  /** Whether it's the User's active Plan; `false` unless given. */
+  is_active?: boolean;
+  name: string;
+  /** Where it's trained; `gym` unless given, `null` for unset. */
+  place?: Place | null;
+  /**
+   * Its owner's Clerk id; the fake Public API's User (`FAKE_USER_ID`) unless
+   * given, so another id is another User's Plan, which the API never shows.
+   */
+  user_id?: string;
+  /** Its Workout duration in minutes; 60 unless given, `null` for unset. */
+  workout_duration?: number | null;
+  workouts: Array<{
+    /** Its Library Cover's id; `null` (the default) without one. */
+    cover?: string | null;
+    /** A number of sets at 10 reps, 90 s rest and no weight, or each set. */
+    exercises: Array<{
+      /** Its id; `<workout>-e<n>` from its position unless given. */
+      id?: string;
+      sets: number | SeedPlanSet[];
+      slug: string;
+    }>;
+    id: string;
+    name: string;
+    /** Its place in the rotation; its position in `workouts` (from 1) unless given. */
+    order?: number;
+  }>;
+}
+
+const DEFAULT_PLAN_SET: SeedPlanSet = {
+  reps_recommended: 10,
+  rest_recommended: 90,
+  weight_recommended: 0,
+};
+
+export interface SeedSession {
+  exercises: SeedExercise[];
+  finished?: boolean;
+  id: string;
+  /** Its Plan's id; `plan-1` unless given, `null` for none. */
+  planId?: string | null;
+  /** When it was started; one fixed instant unless given. */
+  startedAt?: string;
+  /** Its owner's Clerk id (see `SessionRow`). */
+  userId?: string;
+  /**
+   * Its Workout's id; `workout-of-<id>` unless given, `null` once the Workout
+   * is gone.
+   */
+  workoutId?: string | null;
+}
+
+/** The Exercise slug a seeded Exercise named `name` is stored by. */
+export const slugOf = (name: string) => name.toLowerCase().replaceAll(" ", "-");
+
+/** The Library's Exercise for a seeded name, for the fake library. */
+export const libraryExerciseNamed = (name: string) =>
+  libraryExercise(slugOf(name), { name });
+
+class FakeRows {
+  profiles: ProfileRow[] = [];
+  plans: SeedPlan[] = [];
+  sessions: SessionRow[] = [];
+  exercises: ExerciseRow[] = [];
+  sets: SetRow[] = [];
+  /**
+   * The User's Weekly goal changes, oldest first, as `GET /v1/weekly-goals`
+   * answers them: seeded by the test (the fake's Plan writes don't record
+   * them; the services do, and their integration tests cover it).
+   */
+  weeklyGoalChanges: Array<{ recorded_at: string; target: number | null }> = [];
+  personalRecords: PersonalRecordRow[] = [];
+  /** Server-calculated result; the real calculation is covered at the service seam. */
+  weeklyStreak = 0;
+  private nextId = 1;
+
+  reset() {
+    this.profiles = [];
+    this.plans = [];
+    this.sessions = [];
+    this.exercises = [];
+    this.sets = [];
+    this.weeklyGoalChanges = [];
+    this.personalRecords = [];
+    this.weeklyStreak = 0;
+    this.nextId = 1;
+  }
+
+  id(prefix: string) {
+    const id = `${prefix}-${this.nextId}`;
+    this.nextId += 1;
+    return id;
+  }
+
+  /**
+   * Adds a session (of plan `plan-1`, unless `planId` says otherwise); its
+   * exercises get ids `<session>-e<n>` and their sets ids
+   * `<session>-e<n>-s<m>`, both counted from 1.
+   */
+  seed({
+    exercises,
+    finished = false,
+    id,
+    planId = "plan-1",
+    startedAt = "2026-10-08T10:00:00.000Z",
+    userId,
+    workoutId = `workout-of-${id}`,
+  }: SeedSession) {
+    this.sessions.push({
+      finished_at: finished ? "2026-10-08T11:00:00.000Z" : null,
+      id,
+      plan_id: planId,
+      started_at: startedAt,
+      ...(userId ? { user_id: userId } : {}),
+      workout_id: workoutId,
+      workoutName: `Workout ${id}`,
+    });
+    exercises.forEach(({ name, sets, slug }, exerciseIndex) => {
+      const exerciseId = `${id}-e${exerciseIndex + 1}`;
+      this.exercises.push({
+        exercise_slug: slug ?? slugOf(name),
+        id: exerciseId,
+        order: exerciseIndex + 1,
+        workout_session_id: id,
+      });
+      sets.forEach((reps, setIndex) => {
+        this.sets.push({
+          id: `${exerciseId}-s${setIndex + 1}`,
+          logged_at: reps === null ? null : "2026-10-08T10:30:00.000Z",
+          order: setIndex + 1,
+          reps_completed: reps,
+          reps_recommended: 10,
+          rest_recommended: null,
+          weight_completed: null,
+          weight_recommended: null,
+          workout_session_exercise_id: exerciseId,
+        });
+      });
+    });
+  }
+
+  /** Adds a Profile (metric, unless `overrides` say otherwise). */
+  seedProfile(userId: string, overrides: Partial<ProfileRow> = {}) {
+    this.profiles.push({
+      age: 30,
+      gender: "female",
+      height: 170,
+      measurement_system: "metric",
+      user_id: userId,
+      weight: 60,
+      ...overrides,
+    });
+  }
+
+  profile(userId: string) {
+    return this.profiles.find((profile) => profile.user_id === userId);
+  }
+
+  /** Adds a Plan; its Workout Exercises get ids `<workout>-e<n>`. */
+  seedPlan(plan: SeedPlan) {
+    this.plans.push(plan);
+  }
+
+  session(id: string) {
+    return this.sessions.find((session) => session.id === id);
+  }
+
+  nestedPlan({
+    deleted_at = null,
+    description,
+    // An explicit `null` is a detail this Plan leaves unset (ADR 0017); a
+    // default only fills in a field the test left out.
+    experience_level = "intermediate",
+    frequency = 3,
+    goal = "strength-performance",
+    id,
+    is_active = false,
+    name,
+    place = "gym",
+    workout_duration = 60,
+    workouts,
+  }: SeedPlan) {
+    return {
+      deleted_at,
+      description: description === undefined ? `About ${name}` : description,
+      experience_level,
+      frequency,
+      goal,
+      id,
+      is_active,
+      name,
+      place,
+      workout_duration,
+      workouts: workouts.map((workout, workoutIndex) => ({
+        cover: workout.cover ?? null,
+        exercises: workout.exercises.map((exercise, exerciseIndex) => {
+          const exerciseId =
+            exercise.id ?? `${workout.id}-e${exerciseIndex + 1}`;
+          return {
+            exercise_slug: exercise.slug,
+            id: exerciseId,
+            order: exerciseIndex + 1,
+            sets: (typeof exercise.sets === "number"
+              ? Array.from({ length: exercise.sets }, () => DEFAULT_PLAN_SET)
+              : exercise.sets
+            ).map((set: SeedPlanSet, setIndex) => ({
+              ...set,
+              id:
+                set.id ??
+                `${workout.id}-e${exerciseIndex + 1}-s${setIndex + 1}`,
+              order: setIndex + 1,
+            })),
+            workout_id: workout.id,
+          };
+        }),
+        id: workout.id,
+        name: workout.name,
+        order: workout.order ?? workoutIndex + 1,
+        plan_id: id,
+      })),
+    };
+  }
+}
+
+export const backend = new FakeRows();
 
 export const FAKE_PUBLIC_API_URL = "https://api.test";
 export const FAKE_SESSION_TOKEN = "test-session-token";
@@ -1752,6 +2065,8 @@ class FakePublicApi {
   requests: ReceivedRequest[] = [];
   /** Routes the fake doesn't implement; a test bug, checked after each test. */
   unhandled: string[] = [];
+  /** Requests sent and not yet answered (or failed). */
+  inFlight = 0;
   private failures: Array<{
     failure: Failure;
     query?: QueryMatch;
@@ -1768,6 +2083,7 @@ class FakePublicApi {
     this.baseUrl = FAKE_PUBLIC_API_URL;
     this.requests = [];
     this.unhandled = [];
+    this.inFlight = 0;
     this.failures = [];
     this.pauses = [];
   }
@@ -1802,6 +2118,15 @@ class FakePublicApi {
   }
 
   fetch: PublicApiFetch = async (url, init) => {
+    this.inFlight += 1;
+    try {
+      return await this.respond(url, init);
+    } finally {
+      this.inFlight -= 1;
+    }
+  };
+
+  private async respond(...[url, init]: Parameters<PublicApiFetch>) {
     const { pathname, searchParams } = new URL(url);
     const matched = match(init.method ?? "GET", pathname);
     const { route } = matched;
@@ -1846,7 +2171,7 @@ class FakePublicApi {
     }
 
     return this.answer(matched, authorization, body, searchParams);
-  };
+  }
 
   private answer(
     { handler, id, isPublic, route }: ReturnType<typeof match>,
