@@ -131,6 +131,19 @@ describe("fake Arnold", () => {
     expect((refused as ClientError).code).toBe("session_not_active");
   });
 
+  it("records nothing from a request still in flight when it is reset", async () => {
+    const inFlight = fakeArnold.fetch(`${fakeArnold.baseUrl}/eve/v1/session`, {
+      body: JSON.stringify({ message: "From the test before" }),
+      method: "POST",
+    });
+    // What `after-each.ts` does while that request is still on its way.
+    fakeArnold.reset();
+
+    expect((await inFlight).status).toBe(409);
+    expect(fakeArnold.sent).toEqual([]);
+    expect(fakeArnold.sessionIds).toEqual([]);
+  });
+
   it("fails the test when a request reaches another host", async () => {
     await expect(
       fakeArnold.fetch("http://example.test/eve/v1/health")

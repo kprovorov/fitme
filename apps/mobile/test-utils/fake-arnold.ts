@@ -152,6 +152,8 @@ class FakeArnold {
   unhandled: string[] = [];
 
   private readonly sessions = new Map<string, FakeSession>();
+  /** Bumped by `reset()`, so a request in flight then answers nothing. */
+  private epoch = 0;
   private failures: ArnoldFailure[] = [];
   private sessionCount = 0;
   private deliveryCount = 0;
@@ -171,6 +173,7 @@ class FakeArnold {
   }
 
   reset() {
+    this.epoch += 1;
     if (this.realFetch) {
       globalThis.fetch = this.realFetch;
       this.realFetch = undefined;
@@ -208,8 +211,18 @@ class FakeArnold {
         `Fake Arnold: a test reached ${url.origin}, which is not Arnold. Stand that host in for the test.`
       );
     }
+    const { epoch } = this;
     // Answers on a later macrotask, like a network response.
     await new Promise((resolve) => setTimeout(resolve, 0));
+    // The test that sent it is over (`reset()`), so it records nothing and
+    // creates nothing: its session is gone, as it is after a real reset.
+    if (epoch !== this.epoch) {
+      return errorResponse(
+        409,
+        "session_not_active",
+        "The session is no longer active."
+      );
+    }
     return this.respond(url, init);
   };
 
