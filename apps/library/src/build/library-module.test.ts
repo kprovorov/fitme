@@ -102,6 +102,8 @@ describe("generateLibraryModule", () => {
     const { library } = await importModule(result.ok ? result.source : "");
     const squat = {
       description: "Squat is a compound pushing movement.\n",
+      // untagged in the bundle, so no Equipment
+      equipment: [],
       instructions: "1. Lie on the bench.\n2. Press.\n",
       muscle_groups: ["chest", "triceps"],
       name: "Squat",
@@ -120,6 +122,36 @@ describe("generateLibraryModule", () => {
         ca: { exercises: [squat], searchNames: [["squat"]] },
       },
     });
+  });
+
+  it("serves each Exercise's Equipment in core's order, and an untagged one none", async () => {
+    const result = await generate({
+      LIBRARY_BUNDLE: await writeBundle(
+        libraryBundle([
+          // written the other way round, so the order can only come from core
+          libraryExercise("squat", "Squat", ["quadriceps"], [
+            "bench",
+            "barbell",
+          ]),
+          libraryExercise("lunge", "Lunge"),
+        ])
+      ),
+      SUPABASE_URL,
+    });
+
+    expect(result.ok).toBe(true);
+    const { library } = await importModule(result.ok ? result.source : "");
+    expect(
+      library.languages.en.exercises.map(
+        (exercise: { slug: string; equipment: string[] }) => [
+          exercise.slug,
+          exercise.equipment,
+        ]
+      )
+    ).toEqual([
+      ["lunge", []],
+      ["squat", ["barbell", "bench"]],
+    ]);
   });
 
   it("keeps the Ukrainian content of the Exercises that have it", async () => {
@@ -288,6 +320,19 @@ describe("generateLibraryModule", () => {
       library.languages.uk.exercises.map(({ name }: { name: string }) => name)
     ).toEqual(["Приклад жиму", "Приклад тяги", "Example Squat"]);
     expect(library.covers).not.toHaveLength(0);
+    // every made-up Exercise is tagged, each list in core's order
+    expect(
+      library.languages.en.exercises.map(
+        (exercise: { slug: string; equipment: string[] }) => [
+          exercise.slug,
+          exercise.equipment,
+        ]
+      )
+    ).toEqual([
+      ["example-press", ["barbell", "bench"]],
+      ["example-row", ["cable"]],
+      ["example-squat", ["bodyweight"]],
+    ]);
   });
 
   it.each([
@@ -297,6 +342,23 @@ describe("generateLibraryModule", () => {
         { ...libraryExercise("squat", "Squat"), muscle_groups: ["neck"] },
       ]),
       /: exercises\.0\.muscle_groups\.0: unknown muscle group "neck" \(known: chest, /,
+    ],
+    [
+      "an unknown Equipment value",
+      bundleOf([
+        { ...libraryExercise("squat", "Squat"), equipment: ["kettlebell"] },
+      ]),
+      /: exercises\.0\.equipment\.0: unknown Equipment "kettlebell" \(known: barbell, /,
+    ],
+    [
+      "a repeated Equipment value",
+      bundleOf([
+        {
+          ...libraryExercise("squat", "Squat"),
+          equipment: ["barbell", "bench", "barbell"],
+        },
+      ]),
+      /: exercises\.0\.equipment: Equipment must not repeat$/,
     ],
     [
       "a wrong version",

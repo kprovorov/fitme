@@ -1,5 +1,8 @@
-import { appLanguages, muscleGroups } from "@fitme/core/models";
+import { appLanguages, equipment, muscleGroups } from "@fitme/core/models";
 import { z } from "@hono/zod-openapi";
+
+/** The Equipment enum, one named schema wherever it appears. */
+export const Equipment = z.enum(equipment).openapi("Equipment");
 
 /** The muscle group enum, one named schema wherever it appears. */
 export const MuscleGroup = z.enum(muscleGroups).openapi("MuscleGroup");
@@ -13,6 +16,10 @@ export const Language = z.enum(appLanguages).openapi("Language");
  * fields, so adding a field is one change here.
  */
 const summaryFields = {
+  equipment: z.array(Equipment).openapi({
+    description:
+      "Every piece of Equipment the Exercise needs, in a fixed order. Empty for an Exercise the Library hasn't tagged yet.",
+  }),
   muscle_groups: z.array(MuscleGroup),
   name: z.string().openapi({ example: "Bench Press" }),
   slug: z.string().openapi({ example: "bench-press" }),

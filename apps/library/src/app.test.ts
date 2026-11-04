@@ -1,5 +1,5 @@
 import { readFileSync } from "node:fs";
-import { appLanguages, muscleGroups } from "@fitme/core/models";
+import { appLanguages, equipment, muscleGroups } from "@fitme/core/models";
 import { describe, expect, it, vi } from "vitest";
 import { serverSecretsFromEnv } from "./auth";
 import {
@@ -428,6 +428,8 @@ describe("GET /exercises", () => {
     expect(body.total).toBe(5);
     expect(body.hasMore).toBe(false);
     expect(body.data[0]).toEqual({
+      // untagged in the bundle, so no Equipment
+      equipment: [],
       muscle_groups: ["quadriceps", "glutes"],
       name: "Back Squat",
       slug: "squat",
@@ -722,6 +724,8 @@ describe("GET /exercises?slugs (batch lookup)", () => {
     ]);
     expect(body.missing).toEqual(["nope", "gone"]);
     expect(body.data[0]).toEqual({
+      // untagged in the bundle, so no Equipment
+      equipment: [],
       muscle_groups: ["quadriceps", "glutes"],
       name: "Back Squat",
       slug: "squat",
@@ -832,6 +836,8 @@ describe("GET /exercises/:slug", () => {
     expect(response.status).toBe(200);
     expect(await response.json()).toEqual({
       description: "Bench Press is a compound pushing movement.\n",
+      // untagged in the bundle, so no Equipment
+      equipment: [],
       instructions: "1. Lie on the bench.\n2. Press.\n",
       muscle_groups: ["chest", "triceps"],
       name: "Bench Press",
@@ -847,6 +853,101 @@ describe("GET /exercises/:slug", () => {
     expect(response.status).toBe(404);
     expect(await response.json()).toEqual({
       error: { code: "not_found", message: "Exercise not found" },
+    });
+  });
+});
+
+describe("Exercise Equipment", () => {
+  const equippedApp = createApp({
+    ...base,
+    library: serveLibrary(
+      {
+        exercises: [
+          // written the other way round, so the order can only come from core
+          inUkrainian(
+            libraryExercise(
+              "bench-press",
+              "Bench Press",
+              ["chest", "triceps"],
+              ["bench", "barbell"]
+            ),
+            "Жим лежачи"
+          ),
+          libraryExercise("pull-up", "Pull-Up", ["lats"], ["pull_up_bar"]),
+          libraryExercise("sit-up", "Sit-Up", ["abs"]),
+        ],
+      },
+      SUPABASE_URL
+    ),
+  });
+
+  const equipmentBySlug = async (path: string) => {
+    const response = await equippedApp.request(path, asUser);
+    const body = (await response.json()) as ExercisePage | ExerciseBatch;
+    return Object.fromEntries(
+      body.data.map((exercise) => [exercise.slug, exercise.equipment])
+    );
+  };
+
+  it("lists it in core's order, and none for an untagged Exercise", async () => {
+    expect(await equipmentBySlug("/exercises")).toEqual({
+      "bench-press": ["barbell", "bench"],
+      "pull-up": ["pull_up_bar"],
+      "sit-up": [],
+    });
+  });
+
+  it("answers it on a batch lookup", async () => {
+    expect(
+      await equipmentBySlug("/exercises?slugs=sit-up,bench-press")
+    ).toEqual({
+      "bench-press": ["barbell", "bench"],
+      "sit-up": [],
+    });
+  });
+
+  it.each(appLanguages)(
+    "answers it on one Exercise in %s",
+    async (language) => {
+      const response = await equippedApp.request(
+        `/exercises/bench-press?language=${language}`,
+        asUser
+      );
+
+      expect(response.status).toBe(200);
+      expect(await response.json()).toMatchObject({
+        equipment: ["barbell", "bench"],
+        name: language === "uk" ? "Жим лежачи" : "Bench Press",
+      });
+    }
+  );
+
+  it.each(appLanguages)("lists it in %s", async (language) => {
+    expect(await equipmentBySlug(`/exercises?language=${language}`)).toEqual({
+      "bench-press": ["barbell", "bench"],
+      "pull-up": ["pull_up_bar"],
+      "sit-up": [],
+    });
+  });
+
+  it("is an enum of every Equipment in the OpenAPI definition", () => {
+    const document = equippedApp.getOpenAPIDocument({
+      info: { title: "Library API", version: "1" },
+      openapi: "3.1.0",
+    });
+
+    expect(document.components?.schemas?.Equipment).toEqual({
+      enum: [...equipment],
+      type: "string",
+    });
+    expect(document.components?.schemas?.ExerciseSummary).toMatchObject({
+      properties: {
+        equipment: {
+          items: { $ref: "#/components/schemas/Equipment" },
+          type: "array",
+        },
+      },
+      required: expect.arrayContaining(["equipment"]),
     });
   });
 });
@@ -1253,6 +1354,13 @@ describe("device caching", () => {
       (exercise: LibraryExercise) => ({
         ...exercise,
         muscle_groups: ["chest" as const],
+      }),
+    ],
+    [
+      "Equipment",
+      (exercise: LibraryExercise) => ({
+        ...exercise,
+        equipment: ["barbell" as const],
       }),
     ],
     [

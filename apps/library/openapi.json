@@ -45,6 +45,13 @@
       "ExerciseSummary": {
         "type": "object",
         "properties": {
+          "equipment": {
+            "type": "array",
+            "items": {
+              "$ref": "#/components/schemas/Equipment"
+            },
+            "description": "Every piece of Equipment the Exercise needs, in a fixed order. Empty for an Exercise the Library hasn't tagged yet."
+          },
           "muscle_groups": {
             "type": "array",
             "items": {
@@ -71,11 +78,26 @@
           }
         },
         "required": [
+          "equipment",
           "muscle_groups",
           "name",
           "slug",
           "thumbnail_url",
           "video_url"
+        ]
+      },
+      "Equipment": {
+        "type": "string",
+        "enum": [
+          "barbell",
+          "dumbbell",
+          "cable",
+          "machine",
+          "smith_machine",
+          "bench",
+          "pull_up_bar",
+          "landmine",
+          "bodyweight"
         ]
       },
       "MuscleGroup": {
@@ -162,6 +184,13 @@
       "Exercise": {
         "type": "object",
         "properties": {
+          "equipment": {
+            "type": "array",
+            "items": {
+              "$ref": "#/components/schemas/Equipment"
+            },
+            "description": "Every piece of Equipment the Exercise needs, in a fixed order. Empty for an Exercise the Library hasn't tagged yet."
+          },
           "muscle_groups": {
             "type": "array",
             "items": {
@@ -196,6 +225,7 @@
           }
         },
         "required": [
+          "equipment",
           "muscle_groups",
           "name",
           "slug",

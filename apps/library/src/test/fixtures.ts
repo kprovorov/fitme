@@ -2,12 +2,17 @@ import type { BundleCover, BundleExercise, LibraryBundle } from "../bundle";
 
 export const fakeOid = (char: string) => char.repeat(64);
 
-/** An Exercise as `library.json` holds it. */
+/**
+ * An Exercise as `library.json` holds it. Without `equipment` it carries no
+ * such field, as an Exercise the content hasn't tagged yet.
+ */
 export const libraryExercise = (
   slug: string,
   name: string,
-  muscleGroups: BundleExercise["muscle_groups"] = ["chest", "triceps"]
+  muscleGroups: BundleExercise["muscle_groups"] = ["chest", "triceps"],
+  equipment?: BundleExercise["equipment"]
 ): BundleExercise => ({
+  ...(equipment && { equipment }),
   locales: {
     en: {
       description: `${name} is a compound pushing movement.\n`,
