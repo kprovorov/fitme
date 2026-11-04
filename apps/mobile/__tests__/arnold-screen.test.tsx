@@ -475,6 +475,13 @@ describe("Arnold screen", () => {
 
       expect(screen.getByLabelText("Photo 1 of 2")).toBeTruthy();
       expect(screen.getByLabelText("Photo 2 of 2")).toBeTruthy();
+      // Each thumbnail is a stop of its own for VoiceOver: expo-image is
+      // not one without `accessible`, label or no label.
+      for (const thumbnail of screen.getAllByLabelText(THUMBNAIL)) {
+        expect((thumbnail.props as { accessible?: boolean }).accessible).toBe(
+          true
+        );
+      }
       expect(thumbnails()).toEqual([
         "file:///photos/gym.jpg",
         "file:///photos/plan.jpg",

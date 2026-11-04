@@ -11,6 +11,7 @@ import { SymbolImage } from "@/components/symbol-image";
 import { GLASS_ENABLED } from "~/components/ui/swift-ui";
 import {
   addArnoldAttachments,
+  arnoldAttachmentsOwner,
   MAX_ATTACHMENTS_PER_MESSAGE,
   useRemainingAttachmentSlots,
 } from "~/hooks/arnold-attachments";
@@ -81,6 +82,9 @@ export default function AddToChatSheet() {
     }
     setIsPicking(true);
     setHasFailed(false);
+    // Read before the await: the picker and the re-encoding take a while,
+    // and the store drops what comes back for a User who has signed out.
+    const startedFor = arnoldAttachmentsOwner();
     try {
       const picked = await pickLibraryPhotos(remaining);
       // Cancelled: nothing picked, nothing to show, the sheet stays open.
@@ -88,7 +92,7 @@ export default function AddToChatSheet() {
         return;
       }
       if (picked.images.length > 0) {
-        addArnoldAttachments(picked.images);
+        addArnoldAttachments(picked.images, startedFor);
         router.back();
         return;
       }

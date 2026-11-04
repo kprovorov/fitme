@@ -49,11 +49,27 @@ export const remainingAttachmentSlots = (): number =>
   MAX_ATTACHMENTS_PER_MESSAGE - picked.length;
 
 /**
+ * Who the picks belong to: read before awaiting a picker, and handed back to
+ * `addArnoldAttachments` so a pick that outlives its User is dropped.
+ */
+export const arnoldAttachmentsOwner = (): string | null => owner;
+
+/**
  * Adds the picked images, as many as the message still takes: the picker is
  * asked for no more than that, and this holds the cap even if it answers
  * more.
+ *
+ * `startedFor` is the owner when the pick began: picking takes a while, and
+ * a User who signs out meanwhile must not hand their photos to whoever
+ * signs in next, so a pick that comes back for anyone else is dropped.
  */
-export function addArnoldAttachments(images: readonly PickedImage[]): void {
+export function addArnoldAttachments(
+  images: readonly PickedImage[],
+  startedFor: string | null
+): void {
+  if (startedFor !== owner) {
+    return;
+  }
   const room = images.slice(0, remainingAttachmentSlots());
   if (room.length === 0) {
     return;

@@ -108,6 +108,10 @@ function PickedAttachment({
           position,
           total,
         })}
+        // `accessible`, or the label is set on a view VoiceOver never stops
+        // at: expo-image's `isAccessibilityElement` is `accessible ?? false`,
+        // which would leave the User only the × buttons.
+        accessible
         className="h-16 w-16 rounded-xl border-continuous bg-secondary"
         contentFit="cover"
         source={{ uri: attachment.uri }}

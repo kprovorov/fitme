@@ -6,6 +6,7 @@
 import { beforeEach, describe, expect, it } from "@jest/globals";
 import {
   addArnoldAttachments,
+  arnoldAttachmentsOwner,
   clearArnoldAttachments,
   MAX_ATTACHMENTS_PER_MESSAGE,
   pickedArnoldAttachments,
@@ -31,8 +32,8 @@ beforeEach(() => {
 
 describe("the picked Attachments", () => {
   it("keeps them in the order they were picked", () => {
-    addArnoldAttachments([photo("a"), photo("b")]);
-    addArnoldAttachments([photo("c")]);
+    addArnoldAttachments([photo("a"), photo("b")], "user_one");
+    addArnoldAttachments([photo("c")], "user_one");
 
     expect(uris()).toEqual([
       "file:///photos/a.jpg",
@@ -43,7 +44,7 @@ describe("the picked Attachments", () => {
   });
 
   it("gives each its own id, so two of the same file are told apart", () => {
-    addArnoldAttachments([photo("same"), photo("same")]);
+    addArnoldAttachments([photo("same"), photo("same")], "user_one");
 
     const [first, second] = pickedArnoldAttachments();
     expect(first?.id).not.toBe(second?.id);
@@ -55,8 +56,8 @@ describe("the picked Attachments", () => {
   });
 
   it("takes no more than a message holds, however many it is handed", () => {
-    addArnoldAttachments([photo("a"), photo("b"), photo("c")]);
-    addArnoldAttachments([photo("d"), photo("e"), photo("f")]);
+    addArnoldAttachments([photo("a"), photo("b"), photo("c")], "user_one");
+    addArnoldAttachments([photo("d"), photo("e"), photo("f")], "user_one");
 
     expect(pickedArnoldAttachments()).toHaveLength(MAX_ATTACHMENTS_PER_MESSAGE);
     expect(uris().at(-1)).toBe("file:///photos/d.jpg");
@@ -64,15 +65,26 @@ describe("the picked Attachments", () => {
   });
 
   it("ignores a remove for an id it doesn't have", () => {
-    addArnoldAttachments([photo("a")]);
+    addArnoldAttachments([photo("a")], "user_one");
 
     removeArnoldAttachment("attachment-nobody");
 
     expect(pickedArnoldAttachments()).toHaveLength(1);
   });
 
+  it("drops a pick that comes back after its User signed out", () => {
+    // The picker and the re-encoding outlive a sign-out: the sheet read the
+    // owner before awaiting, and by now someone else is signed in.
+    const startedFor = arnoldAttachmentsOwner();
+    useArnoldAttachmentsOwner("user_two");
+
+    addArnoldAttachments([photo("theirs")], startedFor);
+
+    expect(pickedArnoldAttachments()).toEqual([]);
+  });
+
   it("drops another User's picks when they sign in on the same phone", () => {
-    addArnoldAttachments([photo("theirs")]);
+    addArnoldAttachments([photo("theirs")], "user_one");
 
     useArnoldAttachmentsOwner("user_two");
 
@@ -81,7 +93,7 @@ describe("the picked Attachments", () => {
   });
 
   it("keeps the picks of the User who is still signed in", () => {
-    addArnoldAttachments([photo("mine")]);
+    addArnoldAttachments([photo("mine")], "user_one");
 
     useArnoldAttachmentsOwner("user_one");
 
