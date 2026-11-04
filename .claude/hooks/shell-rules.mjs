@@ -1005,6 +1005,212 @@ const readsProdSecrets = (args) => {
   return prod && reads;
 };
 
+// gitleaks' own flags, by the shape they take on the command line. Anything
+// else, a grouped or attached shorthand (`-vh`, `-s.`) or a boolean with an
+// explicit value (`--help=false`) included, is a word this rule won't read:
+// pflag accepts those, and each one hides which scan really runs, so the
+// command is refused rather than guessed at. gitleaks refuses an unknown flag
+// itself, so refusing one here costs nothing either.
+const GITLEAKS_BOOLEAN_FLAGS = new Set([
+  "--follow-symlinks",
+  "--help",
+  "--ignore-gitleaks-allow",
+  "--no-banner",
+  "--no-color",
+  "--no-git",
+  "--pipe",
+  "--pre-commit",
+  "--staged",
+  "--verbose",
+  "--version",
+]);
+const GITLEAKS_VALUE_FLAGS = new Set([
+  "--baseline-path",
+  "--config",
+  "--diagnostics",
+  "--diagnostics-dir",
+  "--enable-rule",
+  "--exit-code",
+  "--gitleaks-ignore-path",
+  "--log-level",
+  "--log-opts",
+  "--max-archive-depth",
+  "--max-decode-depth",
+  "--max-target-megabytes",
+  "--platform",
+  "--report-format",
+  "--report-path",
+  "--report-template",
+  "--source",
+  "--timeout",
+]);
+const GITLEAKS_BOOLEAN_SHORTHANDS = new Map([
+  ["-h", "--help"],
+  ["-v", "--verbose"],
+]);
+const GITLEAKS_VALUE_SHORTHANDS = new Map([
+  ["-b", "--baseline-path"],
+  ["-c", "--config"],
+  ["-f", "--report-format"],
+  ["-i", "--gitleaks-ignore-path"],
+  ["-l", "--log-level"],
+  ["-r", "--report-path"],
+  ["-s", "--source"],
+]);
+// Subcommands that scan nothing, so they print no secret.
+const GITLEAKS_HARMLESS = new Set(["completion", "help", "version"]);
+// The subcommands that walk a directory, gitignored files included.
+const GITLEAKS_DIR_SUBCOMMANDS = new Set(["dir", "directory", "file"]);
+// The ones that read git history, which holds no gitignored file. `detect`
+// only does so without `--no-git`.
+const GITLEAKS_HISTORY_SUBCOMMANDS = new Set(["detect", "git", "stdin"]);
+
+// One flag word of a `gitleaks …` command as the flag it sets, the value it
+// sets it to and how many following words it takes, or null for a word this
+// rule won't read.
+const readGitleaksFlag = (word, next) => {
+  const [name, value] = word.split(FIRST_EQUALS);
+  // pflag reads `--redact`'s value with Go's `ParseUint(s, 0, 64)`, so the
+  // base comes from the prefix and `--redact=0100` is octal 64, masking 64%
+  // and printing the rest. Only its two unambiguous full forms count.
+  if (name === "--redact") {
+    const full = value === undefined || value === "100";
+    return full ? { name, taken: 0, value: true } : null;
+  }
+  if (GITLEAKS_BOOLEAN_FLAGS.has(name)) {
+    return value === undefined ? { name, taken: 0, value: true } : null;
+  }
+  const booleanShorthand = GITLEAKS_BOOLEAN_SHORTHANDS.get(word);
+  if (booleanShorthand !== undefined) {
+    return { name: booleanShorthand, taken: 0, value: true };
+  }
+  const valueShorthand = GITLEAKS_VALUE_SHORTHANDS.get(word);
+  if (valueShorthand === undefined && !GITLEAKS_VALUE_FLAGS.has(name)) {
+    return null;
+  }
+  const given = value ?? next;
+  if (given === undefined) {
+    return null;
+  }
+  const taken = value === undefined ? 1 : 0;
+  return { name: valueShorthand ?? name, taken, value: given };
+};
+
+// Every word of a `gitleaks …` command as its flags and its positionals, or
+// null for a command holding a word this rule won't read. `--` only ends the
+// flags (gitleaks wraps no command of its own), so every word after it is a
+// positional. A repeated flag keeps its last value, as pflag does.
+const readGitleaks = (args) => {
+  const flags = new Map();
+  const positionals = [];
+  let flagsEnded = false;
+  for (let index = 0; index < args.length; index += 1) {
+    const word = args[index];
+    if (word === "--" && !flagsEnded) {
+      flagsEnded = true;
+    } else if (flagsEnded || !word.startsWith("-")) {
+      positionals.push(word);
+    } else {
+      const flag = readGitleaksFlag(word, args[index + 1]);
+      if (flag === null) {
+        return null;
+      }
+      flags.set(flag.name, flag.value);
+      index += flag.taken;
+    }
+  }
+  return { flags, positionals };
+};
+
+// A path written plainly enough to read: no glob (`apps/*` is one word here
+// and several arguments to gitleaks, which then scans the working directory),
+// no variable, no substitution, no `~`.
+const PLAIN_PATH = /^\/?[\w.-]+(\/[\w.-]+)*\/?$/;
+
+// `path`'s components with its `.` and `..` segments resolved, or null when
+// it isn't plain enough to read or climbs above its own root.
+const pathComponents = (path) => {
+  if (!PLAIN_PATH.test(path)) {
+    return null;
+  }
+  const components = [];
+  for (const segment of path.split("/")) {
+    if (segment === "" || segment === ".") {
+      continue;
+    }
+    if (segment !== "..") {
+      components.push(segment);
+    } else if (components.pop() === undefined) {
+      return null;
+    }
+  }
+  return components;
+};
+
+// Whether `path` is an absolute path holding the project directory: that
+// directory itself or one above it, so scanning it walks the whole checkout.
+// `projectDir` is `CLAUDE_PROJECT_DIR` (.claude/settings.json).
+const holdsProjectDir = (path, projectDir) => {
+  if (projectDir === undefined || !path.startsWith("/")) {
+    return false;
+  }
+  const target = pathComponents(path);
+  const project = pathComponents(projectDir);
+  return (
+    target !== null &&
+    project !== null &&
+    target.length <= project.length &&
+    target.every((part, index) => part === project[index])
+  );
+};
+
+// Whether `path` certainly names one place inside the checkout. An empty
+// path (gitleaks reads it as `.`), `.`, `./.`, `apps/mobile/..`, `..` and `/`
+// all resolve to no component at all, so each is the whole checkout.
+const namesOnePlace = (path, projectDir) => {
+  const components = pathComponents(path);
+  return (
+    components !== null &&
+    components.length > 0 &&
+    !holdsProjectDir(path, projectDir)
+  );
+};
+
+// Whether `gitleaks …` can print a local secret. Rather than enumerate the
+// unsafe ways to write a scan, every command is refused unless this rule can
+// read all of it and sees a scan that masks each secret whole and walks one
+// named place: FIT-476 showed that the ways to spell "the working directory"
+// (an extra path, `./.`, a glob, an attached shorthand) outnumber the ones
+// worth listing.
+const leaksLocalSecrets = (args, projectDir) => {
+  const read = readGitleaks(args);
+  if (read === null) {
+    return true;
+  }
+  const { flags, positionals } = read;
+  const [subcommand, ...paths] = positionals;
+  if (subcommand === undefined || GITLEAKS_HARMLESS.has(subcommand)) {
+    return false;
+  }
+  if (flags.has("--help") || flags.has("--version")) {
+    return false;
+  }
+  if (!flags.has("--redact")) {
+    return true;
+  }
+  if (GITLEAKS_DIR_SUBCOMMANDS.has(subcommand)) {
+    return paths.length !== 1 || !namesOnePlace(paths[0], projectDir);
+  }
+  if (!GITLEAKS_HISTORY_SUBCOMMANDS.has(subcommand)) {
+    return true;
+  }
+  if (subcommand === "detect" && flags.has("--no-git")) {
+    const source = flags.get("--source");
+    return source === undefined || !namesOnePlace(source, projectDir);
+  }
+  return false;
+};
+
 // A `.env`, `.env.local`, `apps/api/.env.production` … but not the
 // committed `.env.example` files, which hold no secret.
 const ENV_FILE = /(^|\/)\.env(\.[^/]+)?$/;
@@ -1180,6 +1386,16 @@ const CHECKS = [
     rule: "infisical-prod",
   },
   {
+    breaks: ({ name, projectDir, words }) =>
+      leaksLocalSecrets(
+        toolArguments(name, words, "gitleaks") ?? [],
+        projectDir
+      ),
+    reason:
+      'AGENTS.md Shell: gitleaks masks nothing without `--redact`, and `gitleaks dir` / `detect --no-git` read gitignored files, so a scan of the working directory prints the local `.env*` values. Pass `--redact` (or `--redact=100`) and name exactly one plain path inside the checkout, in long-form flags: this rule refuses every gitleaks word it cannot read, a glob, a grouped or attached shorthand (`-vh`, `-s.`) and a boolean with a value (`--help=false`) included, since each hides which scan really runs. Reproduce the scan that fired: `gitleaks git --pre-commit --staged --redact -v` (pre-commit hook) or `gitleaks git --log-opts="--diff-merges=first-parent origin/main..HEAD" --redact -v .` (CI), and `gitleaks dir <one path> --redact -v` for untracked files.',
+    rule: "gitleaks",
+  },
+  {
     // A reader is fine when it, or a command after it, strips the values.
     breaks: (pipeline) =>
       pipeline.some(
@@ -1226,6 +1442,7 @@ const brokenRules = (command, options) => {
             background: simple.background || options.background === true,
             line: command,
             name: commandName(words[0]),
+            projectDir: options.projectDir,
             words,
           },
         ];
@@ -1255,8 +1472,11 @@ const brokenRules = (command, options) => {
  * refuse it anyway.
  *
  * @param {string} command
- * @param {{ background?: boolean }} [options] `background`: the Bash tool runs
- *   the whole command in the background (`run_in_background`).
+ * @param {{ background?: boolean, projectDir?: string }} [options]
+ *   `background`: the Bash tool runs the whole command in the background
+ *   (`run_in_background`). `projectDir`: the checkout the hook runs in
+ *   (`CLAUDE_PROJECT_DIR`), so an absolute path holding it is read as the
+ *   whole checkout.
  * @returns {{ rule: string, reason: string }[]}
  */
 export const findShellRuleViolations = (command, options = {}) => {

@@ -9,6 +9,7 @@ const TIMEOUT_REASON = /macOS has neither `timeout` nor `gtimeout`/;
 const WORD_SPLIT_REASON = /zsh doesn't word-split/;
 const ZSH_PATH_REASON = /zsh ties the lowercase `path` array to `PATH`/;
 const OUTPUT_FORMAT_REASON = /--output-format json/;
+const GITLEAKS_REASON = /gitleaks masks nothing without `--redact`/;
 
 const rulesBroken = (command, options) =>
   findShellRuleViolations(command, options).map((violation) => violation.rule);
@@ -177,12 +178,13 @@ describe("text that isn't a command", () => {
 });
 
 describe("the PreToolUse hook", () => {
-  const runHook = (input) =>
+  const runHook = (input, env) =>
     spawnSync(
       process.execPath,
       [fileURLToPath(new URL("check-shell-command.mjs", import.meta.url))],
       {
         encoding: "utf8",
+        env: { ...process.env, ...env },
         input: JSON.stringify(input),
       }
     );
@@ -211,6 +213,16 @@ describe("the PreToolUse hook", () => {
       tool_name: "Bash",
     });
     assert.equal(result.status, 0);
+  });
+
+  test("reads the project directory from CLAUDE_PROJECT_DIR", () => {
+    const scan = (command) =>
+      runHook(
+        { tool_input: { command }, tool_name: "Bash" },
+        { CLAUDE_PROJECT_DIR: "/Users/me/fitme" }
+      ).status;
+    assert.equal(scan("gitleaks dir /Users/me/fitme --redact"), 2);
+    assert.equal(scan("gitleaks dir /Users/me/fitme/apps/mobile --redact"), 0);
   });
 });
 
@@ -584,4 +596,142 @@ describe("commands inside substitutions", () => {
       assert.deepEqual(rulesBroken(command), rules);
     });
   }
+});
+
+describe("gitleaks scanning a whole worktree or printing secrets", () => {
+  for (const command of [
+    // Unredacted: gitleaks masks nothing unless asked.
+    "gitleaks dir apps/mobile",
+    "gitleaks dir apps/mobile --redact=0",
+    "gitleaks dir apps/mobile --redact=50",
+    "gitleaks git --log-opts='origin/main..HEAD' -v",
+    "gitleaks detect --no-git --source apps/arnold",
+    // pflag reads `--redact`'s value in base 0, so `0100` is octal 64. Only
+    // the bare flag and `--redact=100` are read as masking the whole secret.
+    "gitleaks dir apps/mobile --redact=0100 -v",
+    "gitleaks dir apps/mobile --redact=0x64 -v",
+    "gitleaks dir apps/mobile --redact=1e2 -v",
+    "gitleaks dir apps/mobile --redact=no -v",
+    // Pointed at the working directory, gitignored `.env*` files included.
+    "gitleaks dir --redact",
+    "gitleaks dir . --redact",
+    "gitleaks dir ./ --redact",
+    "gitleaks dir $PWD --redact",
+    "gitleaks dir --redact --config .gitleaks.toml",
+    "gitleaks detect --no-git --redact",
+    "gitleaks detect --no-git --source . --redact",
+    // The same directory under another name: gitleaks reads an empty path as
+    // `.`, and `./.` and `sub/..` resolve to it.
+    "gitleaks dir '' --redact -v",
+    "gitleaks dir ./. --redact -v",
+    "gitleaks dir apps/.. --redact -v",
+    "gitleaks dir .. --redact -v",
+    "gitleaks dir / --redact -v",
+    "gitleaks detect --no-git --source ./. --redact",
+    // A glob is one word here and several arguments to gitleaks, which then
+    // scans the working directory.
+    "gitleaks dir apps/* --redact",
+    "gitleaks dir 'apps/**/*.ts' --redact",
+    // More than one path: gitleaks ignores every one of them and scans the
+    // working directory, which is how FIT-476 printed the local env files.
+    "gitleaks dir packages/i18n/src/catalogs apps/mobile --redact",
+    "gitleaks dir packages/i18n/src/catalogs apps/mobile --config .gitleaks.toml --redact -v",
+    // The FIT-476 command itself.
+    "gitleaks dir packages/i18n/src/catalogs apps/mobile --config .gitleaks.toml -v --redact=0 | grep Secret",
+    "pnpm exec gitleaks dir . --redact",
+    "npx gitleaks dir . --redact",
+    // `--` ends the flags; every word after it is another path.
+    "gitleaks dir apps/mobile --redact -- apps/arnold",
+    "gitleaks dir --redact -- .",
+    "gitleaks dir -- apps/mobile --redact",
+    // Words the rule can't read, so what really runs can't be known: a
+    // boolean with an explicit value, and a grouped or attached shorthand.
+    "gitleaks dir apps/mobile --help --help=false -v",
+    "gitleaks dir apps/mobile --help=true",
+    "gitleaks dir apps/mobile --help=false --redact",
+    "gitleaks dir apps/mobile --help -vh=false --redact",
+    "gitleaks dir apps/mobile -h=false -v",
+    "gitleaks dir apps/mobile -vv --redact",
+    "gitleaks detect --no-git=true --redact",
+    "gitleaks detect --no-git=false --redact",
+    "gitleaks detect --no-git --source apps/arnold -s. --redact",
+    "gitleaks dir apps/mobile -capps/x --redact",
+    // An unknown flag or subcommand: gitleaks refuses these itself.
+    "gitleaks dir apps/mobile --bogus --redact",
+    "gitleaks protect --staged --redact",
+    "gitleaks dir apps/mobile --config",
+  ]) {
+    test(`refuses ${JSON.stringify(command)}`, () => {
+      assert.deepEqual(rulesBroken(command), ["gitleaks"]);
+    });
+  }
+
+  for (const command of [
+    "gitleaks dir apps/mobile --redact",
+    "gitleaks dir apps/mobile --redact=100",
+    "gitleaks dir apps/arnold/.env.local --redact -v",
+    "gitleaks dir packages/i18n/src/catalogs --config .gitleaks.toml --redact -v",
+    "gitleaks dir apps/mobile --redact --exit-code 0",
+    "gitleaks dir apps/mobile --redact -r - -f json",
+    "gitleaks dir /Users/me/fitme/apps/mobile --redact",
+    "gitleaks dir apps/mobile/ --redact",
+    "gitleaks dir ./apps/mobile --redact",
+    "gitleaks dir apps/web/../mobile --redact",
+    "gitleaks dir apps/mobile/.. --redact",
+    "gitleaks file apps/mobile --redact",
+    "gitleaks dir apps/mobile --redact -- ",
+    // `--redact` takes no following word, so `apps/mobile` is still the path.
+    "gitleaks dir --redact apps/mobile",
+    // Git history holds no gitignored env file, so the whole repo is fine.
+    "gitleaks git --log-opts='origin/main..HEAD' --redact -v",
+    "gitleaks git --pre-commit --staged --redact -v",
+    "gitleaks git --redact .",
+    "gitleaks detect --redact",
+    "gitleaks detect --no-git --source apps/arnold --redact",
+    "gitleaks detect --no-git -s apps/arnold --redact",
+    "gitleaks stdin --redact",
+    "gitleaks dir apps/mobile --help",
+    "gitleaks version",
+    "gitleaks --version",
+    "gitleaks dir --help",
+    "gitleaks help dir",
+    "gitleaks",
+    'echo "gitleaks dir . --redact=0"',
+  ]) {
+    test(`allows ${JSON.stringify(command)}`, () => {
+      assert.deepEqual(rulesBroken(command), []);
+    });
+  }
+
+  // The hook knows the project directory, so an absolute path covering it is
+  // the whole checkout under another name.
+  const PROJECT_DIR = "/Users/me/fitme";
+  for (const [command, rules] of [
+    ["gitleaks dir /Users/me/fitme --redact", ["gitleaks"]],
+    ["gitleaks dir /Users/me/fitme/ --redact", ["gitleaks"]],
+    ["gitleaks dir /Users/me/fitme/apps/.. --redact", ["gitleaks"]],
+    ["gitleaks dir /Users/me --redact", ["gitleaks"]],
+    ["gitleaks dir / --redact", ["gitleaks"]],
+    [
+      "gitleaks detect --no-git --source /Users/me/fitme --redact",
+      ["gitleaks"],
+    ],
+    ["gitleaks dir /Users/me/fitme/apps/mobile --redact", []],
+    ["gitleaks dir /Users/me/fitme-next --redact", []],
+    ["gitleaks dir /elsewhere --redact", []],
+    ["gitleaks dir apps/mobile --redact", []],
+  ]) {
+    test(`${JSON.stringify(command)} under ${PROJECT_DIR} breaks ${JSON.stringify(rules)}`, () => {
+      assert.deepEqual(
+        rulesBroken(command, { projectDir: PROJECT_DIR }),
+        rules
+      );
+    });
+  }
+
+  test("points at a single path and --redact", () => {
+    const [violation] = findShellRuleViolations("gitleaks dir . --redact=0");
+    assert.match(violation.reason, REASON);
+    assert.match(violation.reason, GITLEAKS_REASON);
+  });
 });

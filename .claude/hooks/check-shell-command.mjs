@@ -18,6 +18,7 @@ const command = input?.tool_input?.command;
 if (input?.tool_name === "Bash" && typeof command === "string") {
   const violations = findShellRuleViolations(command, {
     background: input.tool_input.run_in_background === true,
+    projectDir: process.env.CLAUDE_PROJECT_DIR,
   });
   if (violations.length > 0) {
     process.stderr.write(
