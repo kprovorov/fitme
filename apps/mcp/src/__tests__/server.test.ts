@@ -19,6 +19,7 @@ describe("tool registry", () => {
       "get_plan",
       "get_profile",
       "get_workout_session",
+      "list_equipment",
       "list_exercises",
       "list_muscle_groups",
       "list_plan_options",
@@ -85,5 +86,24 @@ describe("catalog tools", () => {
       muscleGroup: "lower-back",
     });
     expect(group.json).toEqual({ id: "lower-back", name: "Lower Back" });
+  });
+
+  it("lists every Equipment in core's order with its English name", async () => {
+    const client = await connect();
+
+    const result = await call(client, "list_equipment");
+
+    expect(result.isError).toBe(false);
+    expect(result.json).toEqual([
+      { id: "barbell", name: "Barbell" },
+      { id: "dumbbell", name: "Dumbbell" },
+      { id: "cable", name: "Cable" },
+      { id: "machine", name: "Machine" },
+      { id: "smith_machine", name: "Smith machine" },
+      { id: "bench", name: "Bench" },
+      { id: "pull_up_bar", name: "Pull-up bar" },
+      { id: "landmine", name: "Landmine" },
+      { id: "bodyweight", name: "Bodyweight" },
+    ]);
   });
 });

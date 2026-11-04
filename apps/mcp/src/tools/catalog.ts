@@ -1,4 +1,6 @@
 import {
+  equipment,
+  equipmentToName,
   experienceLevels,
   getExperienceLevelLabel,
   getGoalLabel,
@@ -40,6 +42,18 @@ export function registerCatalogTools(server: McpServer, info: ServerInfo) {
     },
     () =>
       asJson(muscleGroups.map((id) => ({ id, name: muscleGroupToName(id) })))
+  );
+
+  server.registerTool(
+    "list_equipment",
+    {
+      annotations: READ_ONLY,
+      description:
+        "Lists every piece of Equipment a Fitme Exercise can need; `bodyweight` means it needs none. These ids are the ones an Exercise's `equipment` carries.",
+      inputSchema: {},
+      title: "List equipment",
+    },
+    () => asJson(equipment.map((id) => ({ id, name: equipmentToName(id) })))
   );
 
   server.registerTool(

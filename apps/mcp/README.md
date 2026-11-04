@@ -70,11 +70,12 @@ Weights are stored and returned in the user's unit (kg for the `metric` measurem
 | ------------------------ | ------------------------------------------------------------------------------------------------ |
 | `ping`                   | Server name and version.                                                                         |
 | `list_muscle_groups`     | Muscle group ids and names.                                                                      |
+| `list_equipment`         | Equipment ids and names (`bodyweight` means an Exercise needs no gear).                          |
 | `list_plan_options`      | Valid goals, places and experience levels.                                                       |
 | `describe_muscle_group`  | Display name for a muscle group id.                                                              |
 | `get_profile`            | Gender, age, height, weight, measurement system and units.                                       |
 | `list_exercises`         | Search the Library by name / muscle group (paginated); each row's `slug` is the `exercise_slug` plans take. |
-| `get_exercise`           | Full Exercise details by slug (description, instructions, media).                                |
+| `get_exercise`           | Full Exercise details by slug (description, instructions, media, `equipment` ids).               |
 | `get_exercise_history`   | The user's logged sets for an Exercise slug, one entry per session-exercise row.                 |
 | `list_plans`             | The user's plans with a workout summary.                                                         |
 | `get_plan`               | Full plan: workouts → exercises → sets, in order.                                                |
