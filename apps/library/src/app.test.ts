@@ -30,6 +30,8 @@ const SUPABASE_URL = "https://project.supabase.co";
 const LANGUAGE_PROBLEM = /^language: /;
 /** An invalid request message naming the `muscle_groups` field (or one of its items). */
 const MUSCLE_GROUPS_PROBLEM = /^muscle_groups[.:]/;
+/** An invalid request message naming the `equipment` field (or one of its items). */
+const EQUIPMENT_PROBLEM = /^equipment[.:]/;
 
 /** The library hash, a sha256, quoted. */
 const LIBRARY_ETAG = /^"[0-9a-f]{64}"$/;
@@ -648,6 +650,169 @@ describe("GET /exercises several muscle groups", () => {
   });
 });
 
+/** A Library whose Exercises are tagged with Equipment, one left untagged. */
+const taggedApp = createApp({
+  ...base,
+  library: serveLibrary(
+    {
+      // sorted by Exercise slug, as the bundle lists them
+      exercises: [
+        libraryExercise(
+          "bench-press",
+          "Bench Press",
+          ["chest", "triceps"],
+          ["barbell", "bench"]
+        ),
+        libraryExercise(
+          "deadlift",
+          "Deadlift",
+          ["back", "hamstrings"],
+          ["barbell"]
+        ),
+        libraryExercise(
+          "goblet-squat",
+          "Goblet Squat",
+          ["quadriceps"],
+          ["dumbbell"]
+        ),
+        libraryExercise("pull-up", "Pull-Up", ["lats"], ["pull_up_bar"]),
+        libraryExercise("sit-up", "Sit-Up", ["abs"]),
+      ],
+    },
+    SUPABASE_URL
+  ),
+});
+
+const tagged = async (query = "") => {
+  const response = await taggedApp.request(`/exercises${query}`, asUser);
+  // an error body (400) is asserted with toEqual, which takes any shape
+  const body = (await response.json()) as ExercisePage;
+  return { body, status: response.status };
+};
+
+describe("GET /exercises Equipment filter", () => {
+  it("lists only Exercises with that Equipment", async () => {
+    const { body } = await tagged("?equipment=barbell");
+
+    expect(names(body)).toEqual(["Bench Press", "Deadlift"]);
+    expect(body).toMatchObject({ hasMore: false, total: 2 });
+  });
+
+  it("lists Exercises needing any of them, alphabetically, each once", async () => {
+    const { body } = await tagged("?equipment=dumbbell,bench,pull_up_bar");
+
+    expect(names(body)).toEqual(["Bench Press", "Goblet Squat", "Pull-Up"]);
+    expect(body).toMatchObject({ hasMore: false, total: 3 });
+  });
+
+  it("counts a repeated Equipment once", async () => {
+    const { body } = await tagged("?equipment=barbell,barbell");
+
+    expect(names(body)).toEqual(["Bench Press", "Deadlift"]);
+    expect(body.total).toBe(2);
+  });
+
+  it("combines with several muscle groups", async () => {
+    const { body } = await tagged("?equipment=barbell&muscle_groups=chest,abs");
+
+    expect(names(body)).toEqual(["Bench Press"]);
+    expect(body.total).toBe(1);
+  });
+
+  it("combines with one muscle group", async () => {
+    const { body } = await tagged("?equipment=barbell&muscle_group=back");
+
+    expect(names(body)).toEqual(["Deadlift"]);
+    expect(body.total).toBe(1);
+  });
+
+  it("combines with search", async () => {
+    const { body } = await tagged("?equipment=barbell,dumbbell&search=squat");
+
+    expect(names(body)).toEqual(["Goblet Squat"]);
+    expect(body.total).toBe(1);
+  });
+
+  it("leaves search matching names only, never Equipment", async () => {
+    expect((await tagged("?search=barbell")).body).toMatchObject({
+      data: [],
+      total: 0,
+    });
+  });
+
+  it("pages with limit and offset, with total and hasMore across pages", async () => {
+    const first = await tagged("?equipment=barbell,dumbbell&limit=2");
+    const second = await tagged("?equipment=barbell,dumbbell&limit=2&offset=2");
+
+    expect(first.body).toMatchObject({ hasMore: true, total: 3 });
+    expect(names(first.body)).toEqual(["Bench Press", "Deadlift"]);
+    expect(second.body).toMatchObject({ hasMore: false, total: 3 });
+    expect(names(second.body)).toEqual(["Goblet Squat"]);
+  });
+
+  it("never matches an Exercise the Library hasn't tagged", async () => {
+    const { body } = await tagged(`?equipment=${equipment.join(",")}`);
+
+    expect(names(body)).toEqual([
+      "Bench Press",
+      "Deadlift",
+      "Goblet Squat",
+      "Pull-Up",
+    ]);
+    expect(body.total).toBe(4);
+  });
+
+  it("answers a known Equipment no Exercise needs with an empty page", async () => {
+    expect((await tagged("?equipment=cable,landmine")).body).toEqual({
+      data: [],
+      hasMore: false,
+      total: 0,
+    });
+  });
+
+  it.each(appLanguages)("filters in %s", async (language) => {
+    const { body } = await tagged(
+      `?equipment=pull_up_bar&language=${language}`
+    );
+
+    expect(names(body)).toEqual(["Pull-Up"]);
+    expect(body.total).toBe(1);
+  });
+
+  it.each([
+    ["an unknown Equipment", "?equipment=barbell,kettlebell"],
+    ["an empty item", "?equipment=barbell,,bench"],
+    ["a trailing comma", "?equipment=barbell,"],
+    ["an empty value", "?equipment="],
+  ])("answers %s with 400 naming the field", async (_, query) => {
+    const { body, status } = await tagged(query);
+
+    expect(status).toBe(400);
+    expect(body).toEqual({
+      error: {
+        code: "invalid_request",
+        message: expect.stringMatching(EQUIPMENT_PROBLEM),
+      },
+    });
+  });
+
+  it("is an optional comma-separated string in the OpenAPI definition", () => {
+    const document = taggedApp.getOpenAPIDocument({
+      info: { title: "Library API", version: "1" },
+      openapi: "3.1.0",
+    });
+    const parameter = document.paths["/exercises"]?.get?.parameters?.find(
+      (p) => "name" in p && p.name === "equipment"
+    );
+
+    expect(parameter).toMatchObject({
+      in: "query",
+      required: false,
+      schema: { type: "string" },
+    });
+  });
+});
+
 describe("GET /exercises pagination", () => {
   it("pages with limit and offset, with total and hasMore across pages", async () => {
     const first = await list("?limit=2");
@@ -770,6 +935,7 @@ describe("GET /exercises?slugs (batch lookup)", () => {
     "&search=",
     "&muscle_group=quadriceps",
     "&muscle_groups=quadriceps,chest",
+    "&equipment=barbell",
     "&limit=20",
     "&offset=0",
   ])(

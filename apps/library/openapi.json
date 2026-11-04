@@ -318,6 +318,17 @@
         "parameters": [
           {
             "schema": {
+              "type": "string",
+              "description": "Comma-separated Equipment: only Exercises that need any of it (a repeated one counts once). An Exercise the Library hasn't tagged matches none.",
+              "example": "dumbbell,bench"
+            },
+            "required": false,
+            "description": "Comma-separated Equipment: only Exercises that need any of it (a repeated one counts once). An Exercise the Library hasn't tagged matches none.",
+            "name": "equipment",
+            "in": "query"
+          },
+          {
+            "schema": {
               "$ref": "#/components/schemas/Language"
             },
             "required": false,
@@ -387,11 +398,11 @@
           {
             "schema": {
               "type": "string",
-              "description": "Comma-separated Exercise slugs to look up instead of listing: at most 40 (a repeated one is answered once), not combined with `search`, `muscle_group`, `muscle_groups`, `limit` or `offset`.",
+              "description": "Comma-separated Exercise slugs to look up instead of listing: at most 40 (a repeated one is answered once), not combined with `search`, `muscle_group`, `muscle_groups`, `equipment`, `limit` or `offset`.",
               "example": "bench-press,squat"
             },
             "required": false,
-            "description": "Comma-separated Exercise slugs to look up instead of listing: at most 40 (a repeated one is answered once), not combined with `search`, `muscle_group`, `muscle_groups`, `limit` or `offset`.",
+            "description": "Comma-separated Exercise slugs to look up instead of listing: at most 40 (a repeated one is answered once), not combined with `search`, `muscle_group`, `muscle_groups`, `equipment`, `limit` or `offset`.",
             "name": "slugs",
             "in": "query"
           }

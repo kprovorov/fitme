@@ -5,6 +5,7 @@ import {
 } from "@fitme/core/models";
 import { createRoute, OpenAPIHono, z } from "@hono/zod-openapi";
 import {
+  Equipment,
   ErrorResponse,
   Exercise,
   ExerciseBatch,
@@ -21,6 +22,7 @@ const MAX_LIMIT = 50;
 const MAX_SEARCH = 100;
 const MAX_SLUGS = 40;
 const LIST_PARAMETERS = [
+  "equipment",
   "limit",
   "muscle_group",
   "muscle_groups",
@@ -44,6 +46,20 @@ const listExercises = createRoute({
     // absent one from one that was sent: the list applies the defaults
     query: z
       .object({
+        equipment: z
+          .string()
+          .transform((items) => items.split(","))
+          .pipe(z.array(Equipment).min(1))
+          .transform((items) => [...new Set(items)])
+          .optional()
+          // the generator would describe the parsed array: the parameter is
+          // the comma-separated string
+          .openapi({
+            description:
+              "Comma-separated Equipment: only Exercises that need any of it (a repeated one counts once). An Exercise the Library hasn't tagged matches none.",
+            example: "dumbbell,bench",
+            type: "string",
+          }),
         language: languageParameter,
         limit: z.coerce
           .number()
@@ -104,7 +120,7 @@ const listExercises = createRoute({
           // the generator would describe the parsed array: the parameter is
           // the comma-separated string
           .openapi({
-            description: `Comma-separated Exercise slugs to look up instead of listing: at most ${MAX_SLUGS} (a repeated one is answered once), not combined with \`search\`, \`muscle_group\`, \`muscle_groups\`, \`limit\` or \`offset\`.`,
+            description: `Comma-separated Exercise slugs to look up instead of listing: at most ${MAX_SLUGS} (a repeated one is answered once), not combined with \`search\`, \`muscle_group\`, \`muscle_groups\`, \`equipment\`, \`limit\` or \`offset\`.`,
             example: "bench-press,squat",
             type: "string",
           }),
@@ -208,6 +224,7 @@ export const exerciseRoutes = (library: ServedLibrary) => {
   return new OpenAPIHono({ defaultHook: invalidRequest })
     .openapi(listExercises, (c) => {
       const {
+        equipment,
         language: asked = defaultAppLanguage,
         limit = DEFAULT_LIMIT,
         muscle_group,
@@ -229,7 +246,9 @@ export const exerciseRoutes = (library: ServedLibrary) => {
           (!muscle_groups ||
             muscle_groups.some((group) =>
               summary.muscle_groups.includes(group)
-            ))
+            )) &&
+          (!equipment ||
+            equipment.some((item) => summary.equipment.includes(item)))
       );
       const data = matches.slice(offset, offset + limit);
       const total = matches.length;
