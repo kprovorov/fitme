@@ -312,27 +312,32 @@ export default function PlanEditorView({
           unit={t("planEditor.durationUnit")}
           value={draft.workoutDuration}
         />
-        <Select
-          label={t("planEditor.goal")}
-          onValueChange={setGoal}
-          options={goalOptions}
-          testID="plan-goal"
-          value={draft.goal ?? undefined}
-        />
-        <Select
-          label={t("planEditor.experience")}
-          onValueChange={setExperienceLevel}
-          options={levelOptions}
-          testID="plan-experience"
-          value={draft.experienceLevel ?? undefined}
-        />
-        <Select
-          label={t("planEditor.place")}
-          onValueChange={setPlace}
-          options={placeOptions}
-          testID="plan-place"
-          value={draft.place ?? undefined}
-        />
+        {/* A menu `Picker` only draws its own label inside a Form, so each
+            one gets the same label above it as the fields have. */}
+        <Field label={t("planEditor.goal")}>
+          <Select
+            onValueChange={setGoal}
+            options={goalOptions}
+            testID="plan-goal"
+            value={draft.goal ?? undefined}
+          />
+        </Field>
+        <Field label={t("planEditor.experience")}>
+          <Select
+            onValueChange={setExperienceLevel}
+            options={levelOptions}
+            testID="plan-experience"
+            value={draft.experienceLevel ?? undefined}
+          />
+        </Field>
+        <Field label={t("planEditor.place")}>
+          <Select
+            onValueChange={setPlace}
+            options={placeOptions}
+            testID="plan-place"
+            value={draft.place ?? undefined}
+          />
+        </Field>
       </VStack>
 
       <VStack className="items-stretch gap-sm">
