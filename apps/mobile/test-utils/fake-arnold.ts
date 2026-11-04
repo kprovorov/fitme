@@ -417,24 +417,55 @@ class FakeArnold {
     const follow = url.searchParams.get("follow") !== "false";
     const tailIndex = session.events.length - 1;
     let index = asked < 0 ? Math.max(0, session.events.length + asked) : asked;
+    // eve's reader drops the stream at a turn boundary, which closes the
+    // controller under a `pull` that is waiting for the next event: serving
+    // one then throws, and the throw lands on the turn eve is running. So a
+    // dropped stream is left alone, and closing or enqueueing is guarded for
+    // the races a cancel callback can't see.
+    let dropped = false;
+    const serve = (
+      controller: ReadableStreamDefaultController<Uint8Array>,
+      chunk?: Uint8Array
+    ) => {
+      try {
+        if (chunk) {
+          controller.enqueue(chunk);
+        } else {
+          dropped = true;
+          controller.close();
+        }
+      } catch {
+        dropped = true;
+      }
+    };
     const body = new ReadableStream<Uint8Array>({
+      cancel() {
+        dropped = true;
+      },
       async pull(controller) {
+        if (dropped) {
+          return;
+        }
         // Caught up: wait for the next turn's events and be pulled again,
         // which is how eve's own stream stays open between turns.
         if (index >= session.events.length) {
           if (follow && !session.closed) {
             await session.appended();
           } else {
-            controller.close();
+            serve(controller);
           }
           return;
         }
-        controller.enqueue(
+        serve(
+          controller,
           encoder.encode(`${JSON.stringify(session.events[index])}\n`)
         );
+        if (dropped) {
+          return;
+        }
         index += 1;
         if (!follow && index > tailIndex) {
-          controller.close();
+          serve(controller);
         }
       },
     });
