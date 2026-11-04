@@ -52,8 +52,9 @@ export default function PlanExercisePickerScreen() {
     isMuscleGroup(muscleGroup) ? [muscleGroup] : []
   );
 
-  // Closing pops this route: never twice (a second tap while it slides
-  // away), which would pop the Workout editor too.
+  // Picking pops this route: never twice (a second tap while it slides
+  // away), which would pop the Workout editor too. Dismissing it is the
+  // stack's own back button, so the Screen has no Close of its own.
   const left = useRef<boolean>(false);
 
   const onExercisePress = useCallback(
@@ -71,14 +72,6 @@ export default function PlanExercisePickerScreen() {
     },
     [draftKey, replaceExerciseKey, router, workoutKey]
   );
-
-  const close = useCallback(() => {
-    if (left.current) {
-      return;
-    }
-    left.current = true;
-    router.back();
-  }, [router]);
 
   // The whole row picks the Exercise; VoiceOver names what tapping it does.
   const rowAccessibilityLabel = useCallback(
@@ -98,15 +91,6 @@ export default function PlanExercisePickerScreen() {
           title: replaceExerciseKey
             ? t("planEditor.picker.replaceTitle")
             : t("planEditor.picker.addTitle"),
-          unstable_headerRightItems: () => [
-            {
-              accessibilityLabel: t("planEditor.picker.close"),
-              icon: { name: "xmark", type: "sfSymbol" },
-              label: t("planEditor.picker.close"),
-              onPress: close,
-              type: "button",
-            },
-          ],
         }}
       />
       {/* The list is the screen's scroll container: no ScrollView around it. */}

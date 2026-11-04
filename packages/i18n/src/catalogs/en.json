@@ -246,7 +246,6 @@
     "picker": {
       "addTitle": "Add Exercise",
       "replaceTitle": "Replace Exercise",
-      "close": "Close",
       "addExercise": "Add {{name}}",
       "replaceWith": "Replace with {{name}}"
     },

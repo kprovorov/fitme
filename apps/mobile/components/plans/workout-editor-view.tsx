@@ -256,9 +256,11 @@ export default function WorkoutEditorView({
 
       <VStack className="items-stretch gap-sm">
         <H4>{t("planEditor.workout.exercises")}</H4>
-        <Text className="text-muted-foreground text-subhead">
-          {t("planEditor.workout.exercisesHint")}
-        </Text>
+        {workout.exercises.length > 0 ? (
+          <Text className="text-muted-foreground text-subhead">
+            {t("planEditor.workout.exercisesHint")}
+          </Text>
+        ) : null}
         {workout.exercises.length > 0 ? (
           workout.exercises.map((exercise, index) => (
             <DraftExerciseCard

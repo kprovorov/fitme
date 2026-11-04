@@ -260,7 +260,6 @@
     "picker": {
       "addTitle": "Añadir ejercicio",
       "replaceTitle": "Sustituir ejercicio",
-      "close": "Cerrar",
       "addExercise": "Añadir «{{name}}»",
       "replaceWith": "Sustituir por «{{name}}»"
     },

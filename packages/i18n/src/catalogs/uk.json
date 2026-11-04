@@ -274,7 +274,6 @@
     "picker": {
       "addTitle": "Додати вправу",
       "replaceTitle": "Замінити вправу",
-      "close": "Закрити",
       "addExercise": "Додати «{{name}}»",
       "replaceWith": "Замінити на «{{name}}»"
     },

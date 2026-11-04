@@ -11,6 +11,7 @@ import {
   SET_CHECK_COLUMN_CLASS,
   SET_NUMBER_COLUMN_CLASS,
   SET_TABLE_MAX_FONT_SCALE,
+  SetCheckCell,
 } from "~/components/forms/workout-exercise-set-form";
 import { Button } from "~/components/ui/button";
 import { ErrorMessage } from "~/components/ui/error-message";
@@ -162,6 +163,7 @@ export default function DraftSetRow({
     <View className="gap-1">
       <View className="flex-row items-center gap-sm">
         <Text
+          adjustsFontSizeToFit
           className={cn(
             SET_NUMBER_COLUMN_CLASS,
             "text-center text-mono-body text-muted-foreground"
@@ -192,8 +194,8 @@ export default function DraftSetRow({
           testID={`draft-set-rest-${order}`}
           value={set.rest}
         />
-        <View className={SET_CHECK_COLUMN_CLASS}>
-          {canRemove ? (
+        {canRemove ? (
+          <SetCheckCell onPress={remove}>
             <Button
               accessibilityLabel={t("planEditor.workout.removeSet", { order })}
               contentColorClassName="text-muted-foreground"
@@ -204,8 +206,10 @@ export default function DraftSetRow({
               testID={`remove-draft-set-${order}`}
               variant="ghost"
             />
-          ) : null}
-        </View>
+          </SetCheckCell>
+        ) : (
+          <View className={SET_CHECK_COLUMN_CLASS} />
+        )}
       </View>
       {messages.map((message) => (
         <ErrorMessage key={message}>{message}</ErrorMessage>

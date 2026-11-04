@@ -260,7 +260,6 @@
     "picker": {
       "addTitle": "Afegeix un exercici",
       "replaceTitle": "Substitueix l'exercici",
-      "close": "Tanca",
       "addExercise": "Afegeix «{{name}}»",
       "replaceWith": "Substitueix per «{{name}}»"
     },
