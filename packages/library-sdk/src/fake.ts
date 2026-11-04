@@ -3,6 +3,8 @@ import {
   appLanguages,
   defaultAppLanguage,
   type Equipment,
+  isEquipment,
+  equipment as knownEquipment,
   muscleGroups as knownMuscleGroups,
   type MuscleGroup,
 } from "@fitme/core/models";
@@ -39,7 +41,8 @@ export interface FakeTranslation {
 
 /**
  * An Exercise for the fake, in English, with its translations, if any.
- * `equipment` is optional: an Exercise given without it needs none.
+ * `equipment` is optional: an Exercise given without it needs none. It's
+ * answered in `@fitme/core`'s order, whatever order it's given in.
  */
 export type FakeExercise = (
   | Omit<Exercise, "equipment">
@@ -80,6 +83,14 @@ const toSummary = ({
   video_url,
 });
 
+/**
+ * The Exercise's Equipment in `@fitme/core`'s order, as the API serves it
+ * (`servedEquipment` in `apps/library`): a repeat counted once, empty for an
+ * Exercise given without any.
+ */
+const servedEquipment = (needed: readonly Equipment[] = []) =>
+  knownEquipment.filter((item) => needed.includes(item));
+
 const isMuscleGroup = (group: string): group is MuscleGroup =>
   (knownMuscleGroups as readonly string[]).includes(group);
 
@@ -106,6 +117,24 @@ const parseMuscleGroups = ({
     throw new LibraryInvalidRequestError("muscle_groups: invalid muscle group");
   }
   return groups;
+};
+
+/**
+ * The Equipment `equipment` filters by, read as the API reads the `equipment`
+ * the client sends (joined with commas, so an empty list isn't sent):
+ * `undefined` for none, the API's 400 for an unknown value or an empty item.
+ */
+const parseEquipment = ({
+  equipment,
+}: ListExercisesParams): Equipment[] | undefined => {
+  if (!equipment?.length) {
+    return;
+  }
+  const needed = equipment.join(",").split(",");
+  if (!needed.every(isEquipment)) {
+    throw new LibraryInvalidRequestError("equipment: invalid equipment");
+  }
+  return needed;
 };
 
 const validate = ({ limit, offset, search }: ListExercisesParams) => {
@@ -146,7 +175,7 @@ const serveIn = (
         description: "",
         instructions: "",
         ...english,
-        equipment: [...(english.equipment ?? [])],
+        equipment: servedEquipment(english.equipment),
         ...(translation && {
           description: translation.description ?? "",
           instructions: translation.instructions ?? "",
@@ -172,8 +201,9 @@ const serveIn = (
 
 /**
  * An in-memory Library for consumers' tests: the same answers as
- * the real client over the same Exercises (search, the muscle group filters,
- * paging, lookup with `missing`, `get`, each in the `language` asked for),
+ * the real client over the same Exercises (search, the muscle group and
+ * Equipment filters, which narrow each other, paging, lookup with `missing`,
+ * `get`, each in the `language` asked for),
  * and it can be told to fail. An Exercise given as a summary answers `get`
  * with empty description and instructions. An Exercise can carry
  * `translations`: without one in the language asked for, it answers wholly
@@ -226,6 +256,7 @@ export const createFakeLibrary = (
         const groups =
           parseMuscleGroups(params) ??
           (params.muscleGroup && [params.muscleGroup]);
+        const needed = parseEquipment(params);
         const { language, limit = DEFAULT_LIMIT, offset = 0, search } = params;
         const { searchNames, sorted } = inLanguage(language);
         const term = search?.trim().toLowerCase();
@@ -233,7 +264,8 @@ export const createFakeLibrary = (
           (summary, i) =>
             (!term || searchNames[i]?.some((name) => name.includes(term))) &&
             (!groups ||
-              groups.some((group) => summary.muscle_groups.includes(group)))
+              groups.some((group) => summary.muscle_groups.includes(group))) &&
+            (!needed || needed.some((item) => summary.equipment.includes(item)))
         );
         const data = matches.slice(offset, offset + limit);
         return {

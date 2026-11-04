@@ -1,4 +1,4 @@
-import type { AppLanguage } from "@fitme/core/models";
+import type { AppLanguage, Equipment } from "@fitme/core/models";
 import { describe, expect, it } from "vitest";
 import {
   createLibrary,
@@ -11,6 +11,9 @@ import {
 import { createFakeLibrary } from "../fake";
 import { cover, exercise, stubApi } from "./stub-api";
 
+/** The Equipment the drills rotate through; the third needs none. */
+const DRILL_EQUIPMENT: Equipment[][] = [["dumbbell"], ["machine"], []];
+
 /** A made-up Ukrainian translation of `name`. */
 const uk = (name: string) => ({
   translations: {
@@ -20,17 +23,26 @@ const uk = (name: string) => ({
 
 // Some translated, some not (answered wholly in English): Ukrainian order
 // puts Ґ after Г, Є after Е and І, Ї after И, which English collation doesn't.
+// Equipment is given in `@fitme/core`'s order, which is how the API answers
+// it, so the stubbed API (which answers what it's given) and the fake agree.
+// Some Exercises carry none, as an untagged one does while the field is
+// optional in the bundle.
 const exercises = [
   exercise("squat", {
     muscle_groups: ["quadriceps", "glutes"],
     ...uk("Присід"),
   }),
-  exercise("bench-press", uk("Жим лежачи")),
+  exercise("bench-press", {
+    equipment: ["barbell", "bench"],
+    ...uk("Жим лежачи"),
+  }),
   exercise("incline-bench-press", {
+    equipment: ["barbell", "bench"],
     muscle_groups: ["chest", "shoulders"],
     ...uk("Жим на похилій лаві"),
   }),
   exercise("bench-dip", {
+    equipment: ["bench", "bodyweight"],
     muscle_groups: ["triceps"],
     ...uk("Ґак-віджимання"),
   }),
@@ -39,19 +51,45 @@ const exercises = [
     muscle_groups: ["quadriceps"],
     ...uk("Їжак присід"),
   }),
-  exercise("hip-thrust", { muscle_groups: ["glutes"], ...uk("Ехо міст") }),
-  exercise("lunge", { muscle_groups: ["glutes"], ...uk("Єдиний випад") }),
-  exercise("plank", { muscle_groups: ["abs"], ...uk("Іспит планка") }),
-  exercise("crunch", { muscle_groups: ["abs"], ...uk("Ирій скручування") }),
+  exercise("hip-thrust", {
+    equipment: ["barbell", "bench"],
+    muscle_groups: ["glutes"],
+    ...uk("Ехо міст"),
+  }),
+  exercise("lunge", {
+    equipment: ["dumbbell"],
+    muscle_groups: ["glutes"],
+    ...uk("Єдиний випад"),
+  }),
+  exercise("plank", {
+    equipment: ["bodyweight"],
+    muscle_groups: ["abs"],
+    ...uk("Іспит планка"),
+  }),
+  exercise("crunch", {
+    equipment: ["bodyweight"],
+    muscle_groups: ["abs"],
+    ...uk("Ирій скручування"),
+  }),
   exercise("100-percent_curl", {
+    equipment: ["dumbbell", "cable"],
     muscle_groups: ["biceps"],
     name: "100% Curl_",
   }),
   // two with the same name: ties go by slug
-  exercise("row-b", { muscle_groups: ["back"], name: "Row" }),
-  exercise("row-a", { muscle_groups: ["back"], name: "Row" }),
+  exercise("row-b", {
+    equipment: ["cable"],
+    muscle_groups: ["back"],
+    name: "Row",
+  }),
+  exercise("row-a", {
+    equipment: ["dumbbell"],
+    muscle_groups: ["back"],
+    name: "Row",
+  }),
   ...Array.from({ length: 45 }, (_, i) =>
     exercise(`drill-${String(i).padStart(2, "0")}`, {
+      equipment: DRILL_EQUIPMENT[i % 3] ?? [],
       muscle_groups: ["cardio"],
     })
   ),
@@ -105,6 +143,43 @@ describe.each<[string, AppLanguage | undefined]>([
       "muscle groups and the last page",
       { limit: 10, muscleGroups: ["cardio", "abs"], offset: 40 },
     ],
+    ["one piece of Equipment", { equipment: ["dumbbell"] }],
+    ["several pieces of Equipment", { equipment: ["cable", "bench"] }],
+    ["a repeated piece of Equipment", { equipment: ["bench", "bench"] }],
+    ["no Equipment", { equipment: [] }],
+    ["Equipment nothing needs", { equipment: ["landmine", "pull_up_bar"] }],
+    ["bodyweight", { equipment: ["bodyweight"] }],
+    [
+      "Equipment and a muscle group",
+      { equipment: ["bench"], muscleGroup: "chest" },
+    ],
+    [
+      "Equipment and muscle groups",
+      { equipment: ["dumbbell", "cable"], muscleGroups: ["back", "biceps"] },
+    ],
+    [
+      "Equipment and a search",
+      { equipment: ["barbell", "bench"], search: "bench" },
+    ],
+    [
+      "Equipment, muscle groups and a search nothing matches together",
+      { equipment: ["bodyweight"], muscleGroups: ["chest"], search: "press" },
+    ],
+    ["Equipment and a page", { equipment: ["machine"], limit: 5, offset: 3 }],
+    [
+      "Equipment and the last page",
+      { equipment: ["machine"], limit: 10, offset: 10 },
+    ],
+    [
+      "Equipment, muscle groups, a search and a page",
+      {
+        equipment: ["dumbbell", "bodyweight"],
+        limit: 4,
+        muscleGroups: ["cardio", "abs"],
+        offset: 3,
+        search: "drill",
+      },
+    ],
   ])("list with %s", async (_, params) => {
     const asked = language ? { ...params, language } : params;
 
@@ -117,6 +192,14 @@ describe.each<[string, AppLanguage | undefined]>([
     [
       "muscleGroup and muscleGroups together",
       { muscleGroup: "chest", muscleGroups: ["triceps"] },
+    ],
+    [
+      "an unknown piece of Equipment",
+      { equipment: ["dumbbell", "kettlebell" as "dumbbell"] },
+    ],
+    [
+      "an empty piece of Equipment",
+      { equipment: ["dumbbell", "" as "dumbbell"] },
     ],
   ])("list refusing %s", async (_, params) => {
     const asked = language ? { ...params, language } : params;
@@ -190,6 +273,46 @@ describe("covers", () => {
 
     expect(await library.covers()).toEqual(covers);
   });
+});
+
+describe("Equipment", () => {
+  // the API answers Equipment in core's order whatever order the bundle wrote
+  // it in, so the fake does too
+  const outOfOrder = createFakeLibrary([
+    exercise("pull-up", {
+      equipment: ["bodyweight", "bench", "pull_up_bar", "bench"],
+      ...uk("Підтягування"),
+    }),
+  ]);
+
+  it("answers none for an Exercise given without any", async () => {
+    const { equipment: _, ...untagged } = exercise("sit-up");
+    const library = createFakeLibrary([untagged]);
+
+    expect(await library.get("sit-up")).toMatchObject({ equipment: [] });
+    expect((await library.lookup(["sit-up"])).data[0]?.equipment).toEqual([]);
+    expect((await library.list()).data[0]?.equipment).toEqual([]);
+    expect(await library.list({ equipment: ["bodyweight"] })).toMatchObject({
+      total: 0,
+    });
+  });
+
+  it.each<AppLanguage | undefined>([undefined, "en", "uk"])(
+    "answers it in core's order on get, lookup and list, in %s",
+    async (language) => {
+      const inCoreOrder = ["bench", "pull_up_bar", "bodyweight"];
+
+      expect(
+        (await outOfOrder.get("pull-up", { language }))?.equipment
+      ).toEqual(inCoreOrder);
+      expect(
+        (await outOfOrder.lookup(["pull-up"], { language })).data[0]?.equipment
+      ).toEqual(inCoreOrder);
+      expect((await outOfOrder.list({ language })).data[0]?.equipment).toEqual(
+        inCoreOrder
+      );
+    }
+  );
 });
 
 describe("language", () => {
