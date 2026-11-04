@@ -96,6 +96,26 @@ const initialize = (app: TestApp, token?: string) =>
 const listTools = (app: TestApp, token?: string) =>
   rpc(app, { method: "tools/list" }, token);
 
+/** A bodiless request to the MCP endpoint with some other method. */
+const requestMethod = (
+  app: TestApp,
+  method: string,
+  token?: string,
+  extraHeaders: Record<string, string> = {}
+): Promise<Response> =>
+  // `app.request` answers a `Response | Promise<Response>`, as `rpc` above.
+  Promise.resolve(
+    app.request("/", {
+      headers: {
+        // The standalone SSE stream a GET would open.
+        Accept: "text/event-stream",
+        ...(token ? { Authorization: `Bearer ${token}` } : {}),
+        ...extraHeaders,
+      },
+      method,
+    })
+  );
+
 const callTool = (
   app: TestApp,
   name: string,
@@ -206,6 +226,17 @@ describe("without a token", () => {
 
     expect(response.status).toBe(401);
     expect(response.headers.get("WWW-Authenticate")).not.toContain("error=");
+  });
+
+  it("answers GET with 401 before deciding the method is unsupported", async () => {
+    const { app } = createTestApp();
+
+    const response = await requestMethod(app, "GET");
+
+    expect(response.status).toBe(401);
+    expect(response.headers.get("WWW-Authenticate")).toBe(
+      `Bearer resource_metadata="${METADATA_URL}"`
+    );
   });
 
   it("exposes the challenge header to browser clients", async () => {
@@ -456,6 +487,50 @@ describe("with a valid Clerk token", () => {
     expect(result.text).toBe(
       "This MCP server is not configured for the Library (LIBRARY_URL or LIBRARY_MCP_SECRET is missing)."
     );
+  });
+
+  // Stateless: there is no server-initiated SSE stream to open and no session
+  // to terminate, so every method but POST is refused at once. Letting the SDK
+  // handle a GET left the stream (and the Vercel function) open until the
+  // 300 s timeout (FIT-469).
+  it.each(["GET", "DELETE", "PUT", "PATCH"])(
+    "answers %s with 405 and Allow: POST",
+    async (method) => {
+      signInAs("user_alice");
+      const { app, reported } = createTestApp();
+
+      const response = await requestMethod(
+        app,
+        method,
+        clerkToken("user_alice")
+      );
+
+      // The status first: before the fix a GET answered 200 with an SSE stream
+      // that never ends, so reading the body would hang the test.
+      expect(response.status).toBe(405);
+      expect(response.headers.get("Allow")).toBe("POST");
+      expect(await response.json()).toMatchObject({
+        error: { code: "method_not_allowed" },
+      });
+      expect(reported).toEqual([]);
+    }
+  );
+
+  // `refuseNonPost` runs before `answerUnsupportedProtocolVersion` (FIT-561):
+  // the client that opened these streams is the one negotiating a newer
+  // revision, and the spec tells it to expect a 405 for the stream, not a
+  // version error.
+  it("answers GET with 405 even on an unsupported protocol version", async () => {
+    signInAs("user_alice");
+    const { app, reported } = createTestApp();
+
+    const response = await requestMethod(app, "GET", clerkToken("user_alice"), {
+      "Mcp-Protocol-Version": "2026-07-28",
+    });
+
+    expect(response.status).toBe(405);
+    expect(response.headers.get("Allow")).toBe("POST");
+    expect(reported).toEqual([]);
   });
 });
 

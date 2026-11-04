@@ -10,7 +10,7 @@ pnpm mcp test           # vitest (in-memory MCP client + Hono app, fake services
 pnpm mcp test:integration  # vitest against a running Supabase stack (see below)
 ```
 
-The MCP endpoint is the root path: `POST|GET|DELETE /` (stateless, no session ids). `GET /health` for liveness, `GET /.well-known/oauth-protected-resource` for OAuth discovery; those two are the only public routes.
+The MCP endpoint is the root path: `POST /` (stateless, no session ids). Every other method answers 405 with `Allow: POST`: with no server-initiated SSE stream and no sessions there is nothing for a `GET` or `DELETE` to do, and the SDK's `GET` stream never ended (FIT-469). `GET /health` for liveness, `GET /.well-known/oauth-protected-resource` for OAuth discovery; those two are the only public routes.
 
 ## Integration tests
 
