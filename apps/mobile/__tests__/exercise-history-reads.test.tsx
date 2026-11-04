@@ -187,9 +187,8 @@ describe("The Exercise history card", () => {
     expect(screen.getByText("105")).toBeTruthy();
     // Its first set's target, in the answer's unit.
     expect(screen.getByText("10×95kg")).toBeTruthy();
-    expect(
-      fakePublicApi.count(HISTORY, { exercise_slug: "squat" })
-    ).toBeGreaterThan(0);
+    // One read, for the Exercise on screen.
+    expect(fakePublicApi.count(HISTORY, { exercise_slug: "squat" })).toBe(1);
   });
 
   it("shows a bodyweight set, which logs no weight, with no target", async () => {

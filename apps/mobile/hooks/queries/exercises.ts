@@ -65,8 +65,11 @@ export const useExerciseHistoryQuery = createInfiniteQuery<
 >({
   fetcher: ({ exerciseSlug }: ExerciseHistoryVariables, { pageParam }) =>
     fetchExerciseHistory(exerciseSlug, pageParam),
+  // An empty page ends the paging whatever it says: its offset would repeat.
   getNextPageParam: (lastPage, _pages, lastOffset) =>
-    lastPage.hasMore ? lastOffset + lastPage.data.length : undefined,
+    lastPage.hasMore && lastPage.data.length > 0
+      ? lastOffset + lastPage.data.length
+      : undefined,
   initialPageParam: 0,
   queryKey: EXERCISE_HISTORY_QUERY_KEY,
   // A 429 is the User's to wait out; the view offers Try again.
