@@ -88,6 +88,8 @@ export interface SeedExercise {
 
 /** A Workout Exercise set's targets. */
 export interface SeedPlanSet {
+  /** Its id; `<workout>-e<n>-s<n>` from its position unless given. */
+  id?: string;
   reps_recommended: number;
   rest_recommended: number;
   weight_recommended: number;
@@ -103,6 +105,8 @@ export interface SeedPlan {
    * that leaves it unset (ADR 0017).
    */
   experience_level?: ExperienceLevel | null;
+  /** Its Workouts a week; 3 unless given. */
+  frequency?: number;
   /** Its goal; `strength-performance` unless given, `null` for unset. */
   goal?: Goal | null;
   id: string;
@@ -122,7 +126,12 @@ export interface SeedPlan {
     /** Its Library Cover's id; `null` (the default) without one. */
     cover?: string | null;
     /** A number of sets at 10 reps, 90 s rest and no weight, or each set. */
-    exercises: Array<{ sets: number | SeedPlanSet[]; slug: string }>;
+    exercises: Array<{
+      /** Its id; `<workout>-e<n>` from its position unless given. */
+      id?: string;
+      sets: number | SeedPlanSet[];
+      slug: string;
+    }>;
     id: string;
     name: string;
     /** Its place in the rotation; its position in `workouts` (from 1) unless given. */
@@ -351,6 +360,7 @@ class FakeWorkoutBackend {
     // An explicit `null` is a detail this Plan leaves unset (ADR 0017); a
     // default only fills in a field the test left out.
     experience_level = "intermediate",
+    frequency = 3,
     goal = "strength-performance",
     id,
     is_active = false,
@@ -363,7 +373,7 @@ class FakeWorkoutBackend {
       deleted_at,
       description: description === undefined ? `About ${name}` : description,
       experience_level,
-      frequency: 3,
+      frequency,
       goal,
       id,
       is_active,
@@ -372,20 +382,26 @@ class FakeWorkoutBackend {
       workout_duration,
       workouts: workouts.map((workout, workoutIndex) => ({
         cover: workout.cover ?? null,
-        exercises: workout.exercises.map(({ sets, slug }, exerciseIndex) => ({
-          exercise_slug: slug,
-          id: `${workout.id}-e${exerciseIndex + 1}`,
-          order: exerciseIndex + 1,
-          sets: (typeof sets === "number"
-            ? Array.from({ length: sets }, () => DEFAULT_PLAN_SET)
-            : sets
-          ).map((set, setIndex) => ({
-            ...set,
-            id: `${workout.id}-e${exerciseIndex + 1}-s${setIndex + 1}`,
-            order: setIndex + 1,
-          })),
-          workout_id: workout.id,
-        })),
+        exercises: workout.exercises.map((exercise, exerciseIndex) => {
+          const exerciseId =
+            exercise.id ?? `${workout.id}-e${exerciseIndex + 1}`;
+          return {
+            exercise_slug: exercise.slug,
+            id: exerciseId,
+            order: exerciseIndex + 1,
+            sets: (typeof exercise.sets === "number"
+              ? Array.from({ length: exercise.sets }, () => DEFAULT_PLAN_SET)
+              : exercise.sets
+            ).map((set: SeedPlanSet, setIndex) => ({
+              ...set,
+              id:
+                set.id ??
+                `${workout.id}-e${exerciseIndex + 1}-s${setIndex + 1}`,
+              order: setIndex + 1,
+            })),
+            workout_id: workout.id,
+          };
+        }),
         id: workout.id,
         name: workout.name,
         order: workout.order ?? workoutIndex + 1,

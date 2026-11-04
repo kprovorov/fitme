@@ -83,24 +83,40 @@ interface WorkoutToCover {
 }
 
 /**
- * Checks every slug of a Plan write's new Workouts (`checkExerciseSlugs`),
- * then picks each Workout a Cover (ADR 0014) from one `covers()` call and the
- * muscle groups the lookup answered: no Cover counts as used, since a write
- * replaces every Workout of its Plan. `covers()` failing is reported and
- * answers `covers_unavailable`, so a Workout is never created without its
- * Cover. A Library without Covers answers `null` for each.
+ * Picks a Cover for each of `workouts` (ADR 0014), in order, counting
+ * `usedCoverIds` (the Covers the Plan's other Workouts hold) as used.
  */
-export const checkSlugsAndPickCovers = async ({
+export type CoverPicker = (
+  workouts: readonly WorkoutToCover[],
+  usedCoverIds: readonly string[]
+) => Array<string | null>;
+
+/** What a Plan write needs from the Library: its slugs checked, then the Covers to pick from. */
+export type CoverPickerCheck =
+  | RefusedCheck
+  | { pickCovers: CoverPicker; status: "known" };
+
+/**
+ * Checks every slug a Plan write's Workouts carry (`checkExerciseSlugs`),
+ * then reads the Covers with one `covers()` call (only when `readCovers`,
+ * since a write creating no Workout needs none), and answers a picker over
+ * them and the muscle groups the lookup answered. `covers()` failing is
+ * reported and answers `covers_unavailable`, so a Workout is never created
+ * without its Cover. A Library without Covers picks `null` for each.
+ */
+export const checkSlugsForCovers = async ({
   library,
   random,
+  readCovers = true,
   reportError,
   workouts,
 }: {
   library: Library | null;
   random?: () => number;
+  readCovers?: boolean;
   reportError: (error: unknown) => Promise<void>;
   workouts: readonly WorkoutToCover[];
-}): Promise<CoveredCheck> => {
+}): Promise<CoverPickerCheck> => {
   const check = await checkExerciseSlugs({
     library,
     reportError,
@@ -115,32 +131,50 @@ export const checkSlugsAndPickCovers = async ({
   if (check.status !== "known") {
     return check;
   }
-  let covers: Cover[];
-  try {
-    // A known check had a library to look the slugs up in.
-    covers = await (library as Library).covers();
-  } catch (error) {
-    await reportError(error);
-    return { status: "covers_unavailable" };
+  let covers: Cover[] = [];
+  if (readCovers) {
+    try {
+      // A known check had a library to look the slugs up in.
+      covers = await (library as Library).covers();
+    } catch (error) {
+      await reportError(error);
+      return { status: "covers_unavailable" };
+    }
   }
   const muscleGroups = new Map<string, readonly MuscleGroup[]>(
     check.exercises.map((exercise) => [exercise.slug, exercise.muscle_groups])
   );
   return {
-    covers: pickCovers({
-      covers: covers.map((cover) => ({
-        id: cover.id,
-        muscleGroups: cover.muscle_groups,
-      })),
-      random,
-      workouts: workouts.map((workout) => ({
-        exercises: workout.exercises.map((exercise) => ({
-          muscleGroups: muscleGroups.get(exercise.exercise_slug) ?? [],
+    pickCovers: (toCover, usedCoverIds) =>
+      pickCovers({
+        covers: covers.map((cover) => ({
+          id: cover.id,
+          muscleGroups: cover.muscle_groups,
         })),
-      })),
-    }),
+        random,
+        usedCoverIds,
+        workouts: toCover.map((workout) => ({
+          exercises: workout.exercises.map((exercise) => ({
+            muscleGroups: muscleGroups.get(exercise.exercise_slug) ?? [],
+          })),
+        })),
+      }),
     status: "known",
   };
+};
+
+/**
+ * `checkSlugsForCovers`, then a Cover for each of a write's Workouts: no
+ * Cover counts as used, since the write creates or replaces every Workout of
+ * its Plan.
+ */
+export const checkSlugsAndPickCovers = async (
+  options: Parameters<typeof checkSlugsForCovers>[0]
+): Promise<CoveredCheck> => {
+  const check = await checkSlugsForCovers(options);
+  return check.status === "known"
+    ? { covers: check.pickCovers(options.workouts, []), status: "known" }
+    : check;
 };
 
 /** The 503 a write answers when the Library can't be read. */

@@ -408,7 +408,94 @@ export interface paths {
         };
       };
     };
-    put?: never;
+    /**
+     * Save a whole Plan
+     * @description Saves the whole Plan in one transaction: nothing changes unless all of it is saved. Send every detail and every Workout, Exercise and set the Plan should have, in order. **A row sent with its `id` keeps it** and is updated in place, a row sent without one is created, and a row of the Plan the body leaves out is deleted; an optional field left out is cleared. So past Workout Sessions stay linked to the Workouts kept (a deleted Workout's Workout Sessions keep their logged sets but lose the link, and an open one keeps running), and a kept Workout keeps its `cover`: only new Workouts get one, picked as creating a Plan does, among the Covers the kept ones don't hold. An `id` must be one of this Plan's rows, under the same parent it was read under: a row can't move to another Workout or Exercise. Every Exercise slug is checked against the Library first. Whether the Plan is active doesn't change. The last save wins: there's no version check, so a change made since the Plan was read is overwritten. A repeat is harmless.
+     */
+    put: {
+      parameters: {
+        query?: never;
+        header?: never;
+        path: {
+          id: string;
+        };
+        cookie?: never;
+      };
+      requestBody: {
+        content: {
+          "application/json": components["schemas"]["SavedPlan"];
+        };
+      };
+      responses: {
+        /** @description The saved Plan in full */
+        200: {
+          headers: {
+            [name: string]: unknown;
+          };
+          content: {
+            "application/json": {
+              data: components["schemas"]["Plan"];
+            };
+          };
+        };
+        /** @description `invalid_request`: the id isn't a uuid, the Plan isn't valid, or an `id` isn't one of this Plan's rows under the parent it's sent under (or is sent twice); `unknown_exercises`: the Library has no Exercise for the slugs the message names. Nothing was changed */
+        400: {
+          headers: {
+            [name: string]: unknown;
+          };
+          content: {
+            "application/json": components["schemas"]["Error"];
+          };
+        };
+        /** @description No valid Clerk session token */
+        401: {
+          headers: {
+            [name: string]: unknown;
+          };
+          content: {
+            "application/json": components["schemas"]["Error"];
+          };
+        };
+        /** @description `not_found`: no such Plan, it was deleted, or it isn't the User's */
+        404: {
+          headers: {
+            [name: string]: unknown;
+          };
+          content: {
+            "application/json": components["schemas"]["Error"];
+          };
+        };
+        /** @description The body isn't `application/json` */
+        415: {
+          headers: {
+            [name: string]: unknown;
+          };
+          content: {
+            "application/json": components["schemas"]["Error"];
+          };
+        };
+        /** @description Too many requests from this User; retry after `Retry-After` */
+        429: {
+          headers: {
+            /** @description Seconds until the limit resets */
+            "Retry-After": string;
+            [name: string]: unknown;
+          };
+          content: {
+            "application/json": components["schemas"]["Error"];
+          };
+        };
+        /** @description `library_unavailable`: the Exercise slugs couldn't be checked or the Covers couldn't be read; nothing was changed, try again */
+        503: {
+          headers: {
+            [name: string]: unknown;
+          };
+          content: {
+            "application/json": components["schemas"]["Error"];
+          };
+        };
+      };
+    };
     post?: never;
     /**
      * Delete a Plan
@@ -2683,6 +2770,92 @@ export interface components {
     ReplacePlanWorkouts: {
       /** @description Every Workout of the Plan, in rotation order: the first is up next. Every `order` comes from the array positions */
       workouts: components["schemas"]["NewPlanWorkout"][];
+    };
+    SavedPlan: {
+      /**
+       * @description Left out, the Plan has none
+       * @example Three full-body days
+       */
+      description?: string;
+      /** @enum {string} */
+      experience_level: "beginner" | "intermediate" | "advanced";
+      /**
+       * @description Workouts a week
+       * @example 3
+       */
+      frequency: number;
+      /** @enum {string} */
+      goal:
+        | "muscle-gain"
+        | "fat-loss"
+        | "recomposition"
+        | "strength-performance"
+        | "general-health-fitness";
+      /** @example Full body */
+      name: string;
+      /** @description Left out (or `null`), the Plan has none */
+      note?: string | null;
+      /** @enum {string} */
+      place: "gym" | "home";
+      /**
+       * @description Minutes
+       * @example 60
+       */
+      workout_duration: number;
+      /** @description Every Workout of the Plan, in rotation order: the first is up next. Every `order` comes from the array positions */
+      workouts: components["schemas"]["SavedPlanWorkout"][];
+    };
+    SavedPlanWorkout: {
+      /**
+       * @description Left out, the Workout has none
+       * @example Legs and pulls
+       */
+      description?: string;
+      /** @description In the order they are performed */
+      exercises: components["schemas"]["SavedPlanExercise"][];
+      /**
+       * Format: uuid
+       * @description The Workout's id as `GET /v1/plans/{id}` shows it, to keep the Workout; leave it out for a new one
+       * @example 6f1c0c9e-2b7a-4c1e-9a55-3c2d1e0f4a11
+       */
+      id?: string;
+      /** @example Day A */
+      name: string;
+    };
+    SavedPlanExercise: {
+      /**
+       * @description An Exercise slug from the Library API; every one is checked before anything is written
+       * @example barbell-back-squat
+       */
+      exercise_slug: string;
+      /**
+       * Format: uuid
+       * @description The Workout Exercise's id as `GET /v1/plans/{id}` shows it, to keep the Workout Exercise; leave it out for a new one
+       * @example 6f1c0c9e-2b7a-4c1e-9a55-3c2d1e0f4a11
+       */
+      id?: string;
+      /** @description In the order they are performed */
+      sets: components["schemas"]["SavedPlanSet"][];
+    };
+    SavedPlanSet: {
+      /** @example 8 */
+      reps_recommended: number;
+      /**
+       * @description Seconds
+       * @example 120
+       */
+      rest_recommended: number;
+      /**
+       * @description In the User's weight unit (`kg` for metric, `lbs` for us and uk), as stored; at most 2 decimals. 0 for bodyweight
+       * @example 80.5
+       */
+      weight_recommended: number;
+      /**
+       * Format: uuid
+       * @description The set's id as `GET /v1/plans/{id}` shows it, to keep the set; leave it out for a new one
+       * @example 6f1c0c9e-2b7a-4c1e-9a55-3c2d1e0f4a11
+       */
+      id?: string;
     };
     PlanChanges: {
       /** @example Three full-body days */
