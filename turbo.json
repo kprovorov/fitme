@@ -14,16 +14,30 @@
       "inputs": ["$TURBO_DEFAULT$", ".env*"],
       "outputs": [".next/**", "!.next/cache/**", "dist/**", ".output/**"],
       "env": ["NEXT_PUBLIC_*", "EXPO_PUBLIC_*", "SUPABASE_*", "LIBRARY_BUNDLE"],
+      // Every variable set on a Vercel project goes here, or its build warns
+      // it is "missing from turbo.json" (FIT-137, regressed as FIT-566).
+      // Pass-through, never `env`, so the cache keys don't change.
       "passThroughEnv": [
         "SENTRY_*",
         "FITME_DATABASE_URL",
         "CLERK_*",
         "ARNOLD_RESET_SECRET",
         "ARNOLD_URL",
+        "LIBRARY_URL",
+        "LIBRARY_PUBLIC_API_SECRET",
+        "LIBRARY_ARNOLD_SECRET",
+        "LIBRARY_MCP_SECRET",
         "REVENUECAT_SECRET_KEY",
         "MIN_APP_VERSION",
         "MIN_APP_VERSION_*",
         "MCP_PUBLIC_URL",
+        "OPENAI_APPS_CHALLENGE",
+        "UPSTASH_*",
+        // Nothing reads it: the Upstash integration sets it on `fitme-api`,
+        // and a Secret Sync never deletes a key it doesn't own. It's here
+        // only to clear the warning; removing it from the Vercel project
+        // (and then from this list) is a dashboard action.
+        "REDIS_URL",
         "VERCEL",
         "VERCEL_GIT_COMMIT_SHA"
       ]
