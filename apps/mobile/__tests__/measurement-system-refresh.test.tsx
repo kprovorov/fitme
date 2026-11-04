@@ -25,6 +25,7 @@ import {
   settle,
   until,
 } from "~/test-utils/query-client";
+import { signInAs } from "~/test-utils/signed-in-user";
 
 jest.mock("expo-router", () => ({
   Link: ({ children }: { children: ReactNode }) => children,
@@ -80,10 +81,9 @@ jest.mock("~/lib/supabase", () => ({
 // The real Clerk SDK (reached through the Supabase reads) opens a MessagePort
 // at import that keeps Jest alive.
 jest.mock("~/lib/clerk", () => ({
-  getCurrentUserId: () =>
-    jest.requireActual<typeof import("~/test-utils/fake-public-api")>(
-      "~/test-utils/fake-public-api"
-    ).FAKE_USER_ID,
+  getCurrentUserId: jest.requireActual<
+    typeof import("~/test-utils/signed-in-user")
+  >("~/test-utils/signed-in-user").getCurrentUserId,
 }));
 
 jest.mock("@sentry/react-native", () => ({ captureException: jest.fn() }));
@@ -277,6 +277,12 @@ const switchTo = async (system: string) => {
 const historyRow = (volume: string) =>
   screen.getByText(`30min · 1 set · ${volume}`);
 
+/** Presses the Profile's Try Again, then waits for the read to settle. */
+const retryProfileRead = async () => {
+  await fireEvent.press(screen.getByRole("button", { name: "Try Again" }));
+  await settle(queryClient);
+};
+
 /** The planned set, as VoiceOver reads it on the Workout screen. */
 const plannedSet = (weight: string) =>
   screen.getByLabelText(`Set 1: 5 reps at ${weight}, rest 180 seconds`);
@@ -436,6 +442,87 @@ describe("Switching the measurement system", () => {
     expect(Alert.alert).not.toHaveBeenCalled();
     expect(historyRow("440.92 lbs")).toBeTruthy();
     expect(plannedSet("220.46 lbs")).toBeTruthy();
+  });
+
+  describe("whose answer couldn't be checked", () => {
+    const RATE_LIMITED: Failure = { retryAfterSeconds: 42, status: 429 };
+
+    /**
+     * Switches to pounds with the answer lost and both reads of the Profile
+     * refused, so the saved system can't be checked and the Profile is
+     * dropped. `landed` says whether the conversion committed server-side.
+     */
+    const switchUnchecked = async ({ landed }: { landed: boolean }) => {
+      await mount();
+      // A lost answer hides a conversion that committed; a 503 changes
+      // nothing.
+      fakePublicApi.failNext(PROFILE_PATCH, landed ? "lost" : { status: 503 });
+      // The read after the switch, then the one the dropped Profile starts.
+      fakePublicApi.failNext("GET /v1/profile", RATE_LIMITED);
+      fakePublicApi.failNext("GET /v1/profile", RATE_LIMITED);
+
+      await switchTo("us");
+
+      expect(Alert.alert).toHaveBeenCalledWith(
+        "Couldn't Check Your Units",
+        expect.any(String)
+      );
+      expect(historyRow("200 kg")).toBeTruthy();
+      expect(plannedSet("100 kg")).toBeTruthy();
+    };
+
+    it("refreshes them once a later Profile read confirms the new system", async () => {
+      await switchUnchecked({ landed: true });
+
+      await retryProfileRead();
+
+      // The Profile now says pounds, so every weight is read again in them.
+      expect(screen.getByTestId("picker-value")).toHaveTextContent("us");
+      expect(historyRow("440.92 lbs")).toBeTruthy();
+      expect(plannedSet("220.46 lbs")).toBeTruthy();
+    });
+
+    it("refreshes them only once, however often the Profile is read", async () => {
+      await switchUnchecked({ landed: true });
+
+      await retryProfileRead();
+      const weighedReads = fakePublicApi.count("GET /v1/workout-sessions");
+      await act(() => queryClient.refetchQueries({ queryKey: ["profile"] }));
+      await settle(queryClient);
+
+      expect(fakePublicApi.count("GET /v1/workout-sessions")).toBe(
+        weighedReads
+      );
+    });
+
+    it("refreshes nothing when a later Profile read shows the old system", async () => {
+      await switchUnchecked({ landed: false });
+      const weighedReads = fakePublicApi.count("GET /v1/workout-sessions");
+
+      await retryProfileRead();
+
+      // The switch never landed, so nothing was converted to read again.
+      expect(screen.getByTestId("picker-value")).toHaveTextContent("metric");
+      expect(fakePublicApi.count("GET /v1/workout-sessions")).toBe(
+        weighedReads
+      );
+      expect(historyRow("200 kg")).toBeTruthy();
+      expect(plannedSet("100 kg")).toBeTruthy();
+    });
+
+    it("refreshes nothing for another User signed in since", async () => {
+      await switchUnchecked({ landed: true });
+      const weighedReads = fakePublicApi.count("GET /v1/workout-sessions");
+      signInAs("user_someone_else");
+
+      await retryProfileRead();
+
+      // Nothing cached is theirs to re-read.
+      expect(fakePublicApi.count("GET /v1/workout-sessions")).toBe(
+        weighedReads
+      );
+      expect(historyRow("200 kg")).toBeTruthy();
+    });
   });
 
   it("refreshes them when the answer is lost but the switch went through", async () => {
