@@ -110,9 +110,16 @@
     "apps/web": {
       // Compile-only Button type cases, checked by tsc and the Next build.
       "entry": ["components/ui/*.typecheck.tsx"],
+      // The dashboard reads through the Public API (FIT-545), so nothing in
+      // the app goes through the Supabase client any more. It and its two
+      // env values stay until FIT-549 removes supabase-js from mobile and web.
+      "ignore": ["lib/supabase/server.ts"],
+      "ignoreDependencies": ["@fitme/supabase", "@supabase/supabase-js"],
       "ignoreIssues": {
         // Primitives are the design system's API (docs/agents/ui.md).
-        "components/ui/**": ["exports", "types"]
+        "components/ui/**": ["exports", "types"],
+        // supabaseUrl / supabaseAnonKey: read only by the ignored client above.
+        "lib/env.ts": ["exports"]
       }
     },
     "apps/webhooks": {

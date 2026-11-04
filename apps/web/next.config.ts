@@ -23,7 +23,12 @@ const nextConfig: NextConfig = {
   },
   reactStrictMode: true,
   // Workspace packages ship TypeScript source, so Next compiles them in place.
-  transpilePackages: ["@fitme/core", "@fitme/observability", "@fitme/supabase"],
+  transpilePackages: [
+    "@fitme/api-client",
+    "@fitme/core",
+    "@fitme/observability",
+    "@fitme/supabase",
+  ],
 };
 
 // Uploads the build's source maps to SENTRY_ORG / SENTRY_PROJECT for the
