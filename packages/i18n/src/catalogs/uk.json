@@ -179,6 +179,7 @@
     "frequency_many": "{{count, number}} разів на тиждень",
     "frequency_other": "{{count, number}} раза на тиждень",
     "manage": "Керувати",
+    "edit": "Редагувати план",
     "goBack": "Назад",
     "loadError": "Не вдалося завантажити план. Перевірте з’єднання й спробуйте ще раз.",
     "listLoadError": "Не вдалося завантажити ваші плани. Перевірте з’єднання й спробуйте ще раз.",
@@ -201,6 +202,41 @@
       "notFound": "Цього плану більше немає.",
       "network": "Перевірте з’єднання й спробуйте ще раз.",
       "rateLimited": "Забагато запитів: спробуйте ще раз через {{seconds, number}} с."
+    }
+  },
+  "planEditor": {
+    "title": "Редагувати план",
+    "save": "Зберегти",
+    "details": "Деталі",
+    "name": "Назва",
+    "namePlaceholder": "Назва плану",
+    "description": "Опис",
+    "descriptionPlaceholder": "Для чого цей план",
+    "frequency": "Тренувань на тиждень",
+    "duration": "Тривалість тренування",
+    "durationUnit": "хвилин",
+    "goal": "Мета",
+    "experience": "Рівень підготовки",
+    "place": "Місце",
+    "workouts": "Тренування",
+    "workoutsHint": "У порядку ротації: перше — наступне.",
+    "noWorkouts": "У плані має бути хоча б одне тренування.",
+    "workoutActions": "Дії для «{{name}}»",
+    "moveUp": "Перемістити «{{name}}» вище",
+    "moveDown": "Перемістити «{{name}}» нижче",
+    "remove": "Видалити «{{name}}»",
+    "discard": {
+      "title": "Скасувати зміни?",
+      "message": "Ваші зміни в цьому плані буде втрачено.",
+      "confirm": "Скасувати зміни"
+    },
+    "errors": {
+      "nameRequired": "Вкажіть назву плану",
+      "nameTooLong": "Назва має містити не більше ніж {{max, number(useGrouping: false)}} символів",
+      "frequencyRange": "Тренувань на тиждень має бути цілим числом від {{min, number(useGrouping: false)}} до {{max, number(useGrouping: false)}}",
+      "durationRange": "Тривалість тренування має бути цілим числом хвилин, не більше ніж {{max, number(useGrouping: false)}}",
+      "saveFailed": "Не вдалося зберегти план. Перевірте з’єднання й спробуйте ще раз.",
+      "saveRateLimited": "Не вдалося зберегти план. Забагато запитів: спробуйте ще раз через {{seconds, number}} с."
     }
   },
   "plannedWorkout": {

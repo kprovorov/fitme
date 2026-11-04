@@ -167,6 +167,7 @@
     "frequency_other": "{{count, number}}× per setmana",
     "frequency_many": "{{count, number}}× per setmana",
     "manage": "Gestiona",
+    "edit": "Edita el pla",
     "goBack": "Torna enrere",
     "loadError": "No s'ha pogut carregar aquest pla. Comprova la connexió i torna-ho a provar.",
     "listLoadError": "No s'han pogut carregar els teus plans. Comprova la connexió i torna-ho a provar.",
@@ -189,6 +190,41 @@
       "notFound": "Aquest pla ja no existeix.",
       "network": "Comprova la connexió i torna-ho a provar.",
       "rateLimited": "Massa sol·licituds: torna-ho a provar d'aquí a {{seconds, number}} s."
+    }
+  },
+  "planEditor": {
+    "title": "Edita el pla",
+    "save": "Desa",
+    "details": "Detalls",
+    "name": "Nom",
+    "namePlaceholder": "Nom del pla",
+    "description": "Descripció",
+    "descriptionPlaceholder": "Per a què és aquest pla",
+    "frequency": "Entrenaments per setmana",
+    "duration": "Durada de l'entrenament",
+    "durationUnit": "minuts",
+    "goal": "Objectiu",
+    "experience": "Nivell d'experiència",
+    "place": "Lloc",
+    "workouts": "Entrenaments",
+    "workoutsHint": "En ordre de rotació: el primer és el següent.",
+    "noWorkouts": "Un pla necessita com a mínim un entrenament.",
+    "workoutActions": "Accions per a «{{name}}»",
+    "moveUp": "Mou «{{name}}» amunt",
+    "moveDown": "Mou «{{name}}» avall",
+    "remove": "Elimina «{{name}}»",
+    "discard": {
+      "title": "Vols descartar els canvis?",
+      "message": "Es perdran els canvis que has fet en aquest pla.",
+      "confirm": "Descarta"
+    },
+    "errors": {
+      "nameRequired": "Escriu un nom per al pla",
+      "nameTooLong": "El nom pot tenir com a màxim {{max, number(useGrouping: false)}} caràcters",
+      "frequencyRange": "Els entrenaments per setmana han de ser un nombre enter d'{{min, number(useGrouping: false)}} a {{max, number(useGrouping: false)}}",
+      "durationRange": "La durada de l'entrenament ha de ser un nombre enter de minuts, com a màxim {{max, number(useGrouping: false)}}",
+      "saveFailed": "No s'ha pogut desar el pla. Comprova la connexió i torna-ho a provar.",
+      "saveRateLimited": "No s'ha pogut desar el pla. Massa sol·licituds: torna-ho a provar en {{seconds, number}} s."
     }
   },
   "plannedWorkout": {

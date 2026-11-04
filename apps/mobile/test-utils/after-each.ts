@@ -4,6 +4,7 @@
  */
 import { afterEach } from "@jest/globals";
 import { resetMuscleChoices } from "~/hooks/muscle-choice";
+import { resetPlanDrafts } from "~/hooks/plan-draft";
 import { resetDeviceLanguages } from "~/test-utils/device-locales";
 import { fakePublicApi } from "~/test-utils/fake-public-api";
 import { clearTestQueryClients } from "~/test-utils/query-client";
@@ -37,6 +38,12 @@ afterEach(() => {
 // tab's choice lives in memory, outliving its screen.
 afterEach(() => {
   resetMuscleChoices();
+});
+
+// Every test starts with no Plan editor draft, as the app does: a draft
+// lives in memory, outliving the editor that made it.
+afterEach(() => {
+  resetPlanDrafts();
 });
 
 // Every test starts with the fake Public API's User signed in, whoever the

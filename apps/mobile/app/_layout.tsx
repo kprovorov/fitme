@@ -136,6 +136,12 @@ function RootLayout() {
             }}
           />
           <Stack.Screen
+            name="plans/[planId]/edit"
+            options={{
+              presentation: "modal",
+            }}
+          />
+          <Stack.Screen
             name="workout-sessions/[workoutSessionId]/exercise-picker"
             options={{
               headerShown: true,

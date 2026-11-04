@@ -190,6 +190,20 @@ export default function PlanScreen() {
                       items: [
                         {
                           icon: {
+                            name: "square.and.pencil",
+                            type: "sfSymbol",
+                          },
+                          label: t("plans.edit"),
+                          onPress: () => {
+                            router.push({
+                              params: { planId },
+                              pathname: "/plans/[planId]/edit",
+                            });
+                          },
+                          type: "action",
+                        },
+                        {
+                          icon: {
                             name: "bolt",
                             type: "sfSymbol",
                           },
