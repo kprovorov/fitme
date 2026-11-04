@@ -13,8 +13,8 @@ interface PlanHeaderProps {
 
 /**
  * The active Plan at the top of the Workout tab, as plain content (Figma
- * `PlanOverview`): its name, its frequency, goal and place as lime badges,
- * and its description. Not tappable.
+ * `PlanOverview`): its name, its frequency and whichever of its goal and
+ * place is set (ADR 0017) as lime badges, and its description. Not tappable.
  */
 export default function PlanHeader({ plan }: PlanHeaderProps) {
   const labels = useChoiceLabels();
@@ -27,12 +27,16 @@ export default function PlanHeader({ plan }: PlanHeaderProps) {
         <Badge icon={COUNT_SYMBOL}>
           <Text>{t("plans.frequency", { count: plan.frequency })}</Text>
         </Badge>
-        <Badge icon={goalSymbol(plan.goal)}>
-          <Text>{labels.goal(plan.goal)}</Text>
-        </Badge>
-        <Badge icon={placeSymbol(plan.place)}>
-          <Text>{labels.place(plan.place)}</Text>
-        </Badge>
+        {plan.goal ? (
+          <Badge icon={goalSymbol(plan.goal)}>
+            <Text>{labels.goal(plan.goal)}</Text>
+          </Badge>
+        ) : null}
+        {plan.place ? (
+          <Badge icon={placeSymbol(plan.place)}>
+            <Text>{labels.place(plan.place)}</Text>
+          </Badge>
+        ) : null}
       </View>
       {plan.description?.trim() ? (
         <Text className="text-muted-foreground text-subhead">

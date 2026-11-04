@@ -426,7 +426,8 @@ const ownPlan = (planId: string) =>
 /**
  * A Plan in full, as `GET /v1/plans/{id}` answers it: Workouts in rotation
  * order, each with its Cover id, Exercises and sets in order, and the User's
- * `weight_unit` (weights as stored).
+ * `weight_unit` (weights as stored). A detail the seed left unset (ADR 0017)
+ * is answered as `null`.
  */
 const planBody = (plan: SeedPlan) => {
   const {

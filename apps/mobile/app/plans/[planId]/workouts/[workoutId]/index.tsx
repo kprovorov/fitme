@@ -157,6 +157,8 @@ function WorkoutContent({
     (total, exercise) => total + exercise.sets.length,
     0
   );
+  // The Plan's Workout duration, left out while it's unset (ADR 0017).
+  const duration = plan.workout_duration;
 
   return (
     <>
@@ -164,12 +166,16 @@ function WorkoutContent({
         <H4 className="text-primary">{workout.name}</H4>
         <StatRow
           stats={[
-            {
-              label: t("plannedWorkout.stats.duration"),
-              value: t("plannedWorkout.durationMinutes", {
-                minutes: plan.workout_duration,
-              }),
-            },
+            ...(duration === null
+              ? []
+              : [
+                  {
+                    label: t("plannedWorkout.stats.duration"),
+                    value: t("plannedWorkout.durationMinutes", {
+                      minutes: duration,
+                    }),
+                  },
+                ]),
             {
               label: t("plannedWorkout.stats.exercises"),
               value: formatNumber(i18n, exercises.length),

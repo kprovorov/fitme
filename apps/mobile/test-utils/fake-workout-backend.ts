@@ -1,3 +1,4 @@
+import type { ExperienceLevel, Goal, Place } from "@fitme/core";
 import { libraryExercise } from "./fake-library";
 
 /**
@@ -95,15 +96,28 @@ export interface SeedPlanSet {
 export interface SeedPlan {
   /** When it was soft-deleted; `null` (the default) while it's live. */
   deleted_at?: string | null;
+  /** Its description; `About <name>` unless given, `null` for none. */
+  description?: string | null;
+  /**
+   * Its experience level; `intermediate` unless given, `null` for a Plan
+   * that leaves it unset (ADR 0017).
+   */
+  experience_level?: ExperienceLevel | null;
+  /** Its goal; `strength-performance` unless given, `null` for unset. */
+  goal?: Goal | null;
   id: string;
   /** Whether it's the User's active Plan; `false` unless given. */
   is_active?: boolean;
   name: string;
+  /** Where it's trained; `gym` unless given, `null` for unset. */
+  place?: Place | null;
   /**
    * Its owner's Clerk id; the fake Public API's User (`FAKE_USER_ID`) unless
    * given, so another id is another User's Plan, which the API never shows.
    */
   user_id?: string;
+  /** Its Workout duration in minutes; 60 unless given, `null` for unset. */
+  workout_duration?: number | null;
   workouts: Array<{
     /** Its Library Cover's id; `null` (the default) without one. */
     cover?: string | null;
@@ -333,22 +347,29 @@ class FakeWorkoutBackend {
 
   nestedPlan({
     deleted_at = null,
+    description,
+    // An explicit `null` is a detail this Plan leaves unset (ADR 0017); a
+    // default only fills in a field the test left out.
+    experience_level = "intermediate",
+    goal = "strength-performance",
     id,
     is_active = false,
     name,
+    place = "gym",
+    workout_duration = 60,
     workouts,
   }: SeedPlan) {
     return {
       deleted_at,
-      description: `About ${name}`,
-      experience_level: "intermediate",
+      description: description === undefined ? `About ${name}` : description,
+      experience_level,
       frequency: 3,
-      goal: "strength-performance",
+      goal,
       id,
       is_active,
       name,
-      place: "gym",
-      workout_duration: 60,
+      place,
+      workout_duration,
       workouts: workouts.map((workout, workoutIndex) => ({
         cover: workout.cover ?? null,
         exercises: workout.exercises.map(({ sets, slug }, exerciseIndex) => ({
