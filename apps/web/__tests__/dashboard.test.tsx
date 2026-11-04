@@ -1,8 +1,12 @@
-import type { PublicApiFetch } from "@fitme/api-client";
+import { ApiError, type PublicApiFetch } from "@fitme/api-client";
 import { renderToStaticMarkup } from "react-dom/server";
 import { describe, expect, it, vi } from "vitest";
 import { DashboardView } from "~/components/dashboard/dashboard-view";
-import { type DashboardData, loadDashboard } from "~/lib/dashboard";
+import {
+  type DashboardData,
+  isUnexpectedFailure,
+  loadDashboard,
+} from "~/lib/dashboard";
 
 const API_URL = "https://api.test";
 const SESSION_TOKEN = "clerk-session-token";
@@ -99,9 +103,7 @@ describe("loadDashboard", () => {
     }
     const paths = fetch.mock.calls.map(([url]) => url);
     expect(paths).toContain(`${API_URL}/v1/plans`);
-    expect(
-      paths.some((url) => url.startsWith(`${API_URL}/v1/workout-sessions?`))
-    ).toBe(true);
+    expect(paths).toContain(`${API_URL}/v1/workout-sessions?limit=10`);
   });
 
   it("shows the active Plan first, then the newest", async () => {
@@ -160,6 +162,31 @@ describe("loadDashboard", () => {
     }
     expect(result.error.code).toBe("rate_limited");
     expect(result.error.retryAfterSeconds).toBe(30);
+  });
+
+  it("fails instead of crashing on a 200 that isn't the API's JSON", async () => {
+    const result = await load(
+      api({
+        "/v1/plans": () =>
+          new Response("<!doctype html><title>Sign in</title>", {
+            headers: { "Content-Type": "text/html" },
+          }),
+        "/v1/workout-sessions": () => Response.json({ data: [] }),
+      })
+    );
+
+    expect(result.ok).toBe(false);
+  });
+
+  it("fails instead of crashing on a 200 without the answer's data", async () => {
+    const result = await load(
+      api({
+        "/v1/plans": () => Response.json({}),
+        "/v1/workout-sessions": () => Response.json({ data: [] }),
+      })
+    );
+
+    expect(result.ok).toBe(false);
   });
 
   it("fails without sending a request when the API URL is unset", async () => {
@@ -229,5 +256,30 @@ describe("DashboardView", () => {
     const markup = renderToStaticMarkup(<DashboardView error={result.error} />);
 
     expect(markup).toContain("30 seconds");
+  });
+});
+
+describe("isUnexpectedFailure", () => {
+  it("is every failure nothing else reports", () => {
+    for (const error of [
+      new ApiError("Network request failed"),
+      new ApiError("Unauthorized", { code: "unauthorized", status: 401 }),
+      new ApiError("Boom", { code: "internal_error", status: 500 }),
+    ]) {
+      expect(isUnexpectedFailure(error)).toBe(true);
+    }
+  });
+
+  it("is not the limits and refusals the dashboard shows on purpose", () => {
+    for (const error of [
+      new ApiError("Too many", {
+        code: "rate_limited",
+        retryAfterSeconds: 30,
+        status: 429,
+      }),
+      new ApiError("Nope", { code: "invalid_request", status: 400 }),
+    ]) {
+      expect(isUnexpectedFailure(error)).toBe(false);
+    }
   });
 });

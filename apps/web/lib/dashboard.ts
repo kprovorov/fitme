@@ -21,6 +21,24 @@ export type DashboardResult =
 
 export type LoadDashboardOptions = PublicApiForOptions;
 
+/** A 2xx body that isn't the list the contract promises is unusable. */
+const listOf = <T>(value: T[] | undefined, what: string): T[] => {
+  if (!Array.isArray(value)) {
+    throw new ApiError(`The Public API answered without ${what}`);
+  }
+  return value;
+};
+
+/**
+ * Whether a failed read is one nothing else reports: a network failure, an
+ * unset `PUBLIC_API_URL`, a refused or broken answer. The page reports those
+ * to Sentry itself, since it renders the error state instead of throwing and
+ * `onRequestError` never sees them. The limits and refusals the dashboard
+ * shows on purpose (a 429, any other 4xx) aren't worth an event.
+ */
+export const isUnexpectedFailure = ({ status }: ApiError): boolean =>
+  status === null || status === 401 || status >= 500;
+
 /**
  * The active Plan first, then the newest, as the dashboard has always shown
  * them (`GET /v1/plans` answers newest first). A stable sort, so Plans with
@@ -54,22 +72,26 @@ export const loadDashboard = async ({
         params: { query: { limit: RECENT_SESSIONS_LIMIT } },
       }),
     ]);
-    if (!plans.data) {
-      throw new ApiError("Public API answered no Plans");
-    }
-    if (!sessions.data) {
-      throw new ApiError("Public API answered without Workout Sessions");
-    }
     return {
       data: {
-        plans: activeFirst(plans.data.data),
-        sessions: sessions.data.data,
+        plans: activeFirst(listOf(plans.data?.data, "Plans")),
+        sessions: listOf(sessions.data?.data, "Workout Sessions"),
       },
       ok: true,
     };
   } catch (error) {
     if (error instanceof ApiError) {
       return { error, ok: false };
+    }
+    // openapi-fetch parses the body itself, so a 200 that isn't the API's JSON
+    // (a sign-in page from a misconfigured `PUBLIC_API_URL`) surfaces here.
+    if (error instanceof SyntaxError) {
+      return {
+        error: new ApiError("The Public API answered something unreadable", {
+          cause: error,
+        }),
+        ok: false,
+      };
     }
     throw error;
   }
