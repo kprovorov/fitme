@@ -27,6 +27,7 @@ import {
 import { usePlanQuery } from "~/hooks/queries/plans";
 import {
   addDraftWorkout,
+  adoptSavedIds,
   canAddDraftWorkout,
   isSavablePlanDraft,
   nextWorkoutName,
@@ -228,16 +229,21 @@ export default function PlanEditorScreen() {
         onError: (error) => {
           setSaveError(saveFailureMessage(t, error));
         },
-        onSuccess: () => {
+        onSuccess: (saved) => {
           const current = getPlanDraft(draftKey)?.draft;
           // Closing while the Workout editor or the picker sits over this
           // Screen would take the modal out from under the User, so the
           // editor stays open and they close it themselves.
           const movedOn = current && planDraftChanged(sent, current);
           if (movedOn || !navigation.isFocused()) {
-            // What's saved is `sent`, so only the edits made since are
-            // unsaved: leaving now asks about those alone.
-            rebasePlanDraft(draftKey, sent);
+            // The rows this save created now have ids: the draft takes them
+            // on, so saving again updates those rows instead of replacing
+            // them. What's saved is `sent` with the same ids, so only the
+            // edits made since are unsaved and leaving asks about those.
+            updatePlanDraft(draftKey, (held) =>
+              adoptSavedIds(held, sent, saved)
+            );
+            rebasePlanDraft(draftKey, adoptSavedIds(sent, sent, saved));
             return;
           }
           close();

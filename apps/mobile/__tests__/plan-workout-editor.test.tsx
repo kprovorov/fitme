@@ -31,10 +31,12 @@ import PlanEditorScreen from "~/app/plans/[planId]/edit/index";
 import WorkoutEditorScreen from "~/app/plans/[planId]/edit/workouts/[workoutKey]";
 import WorkoutScreen from "~/app/plans/[planId]/workouts/[workoutId]/index";
 import { EXERCISE_SEARCH_PAGE_SIZE } from "~/hooks/queries/library";
+import { NEW_EXERCISE_SET_COUNT } from "~/lib/plan-draft";
 import { setDeviceLanguages } from "~/test-utils/device-locales";
 import { libraryExercise, serveLibrary } from "~/test-utils/fake-library";
 import {
   backend,
+  fakePublicApi,
   libraryExerciseNamed,
   type SeedPlan,
   slugOf,
@@ -112,6 +114,8 @@ const EDITOR_ROUTES = {
   "/plans/[planId]/edit/workouts/[workoutKey]": WorkoutEditorScreen,
 };
 
+const SAVE = "PUT /v1/plans/{id}" as const;
+
 const PLAN: SeedPlan = {
   frequency: 3,
   id: "plan-1",
@@ -138,17 +142,17 @@ const PLAN: SeedPlan = {
         },
         { sets: 1, slug: "bench-press" },
       ],
-      id: "workout-1",
+      id: "day-a",
       name: "Day A",
     },
     {
       exercises: [{ sets: 1, slug: "deadlift" }],
-      id: "workout-2",
+      id: "day-b",
       name: "Day B",
     },
     {
       exercises: [{ sets: 1, slug: "pull-up" }],
-      id: "workout-3",
+      id: "day-c",
       name: "Day C",
     },
   ],
@@ -186,7 +190,7 @@ const openEditor = async (language = "en-US") => {
 /** The Workout screen, with the Plan editor mounted once it pushes it. */
 const openWorkoutScreen = async () => {
   client = createTestQueryClient();
-  mockParams.current = { planId: "plan-1", workoutId: "workout-1" };
+  mockParams.current = { planId: "plan-1", workoutId: "day-a" };
   await render(
     <QueryClientProvider client={client}>
       <InAppLanguage>
@@ -315,7 +319,7 @@ describe("opening a Workout", () => {
       workouts: [
         {
           exercises: [{ sets: 1, slug: "sled-push" }],
-          id: "workout-1",
+          id: "day-a",
           name: "Day A",
         },
       ],
@@ -337,7 +341,7 @@ describe("renaming a Workout", () => {
     await save();
 
     expect(savedWorkout(0).name).toBe("Push");
-    expect(savedWorkout(0).id).toBe("workout-1");
+    expect(savedWorkout(0).id).toBe("day-a");
   });
 
   it("disables Save while the Workout has no name", async () => {
@@ -396,14 +400,14 @@ describe("the Exercises of a Workout", () => {
     await save();
 
     expect(savedExercises(0)).toEqual(["overhead-press", "bench-press"]);
-    expect(savedWorkout(0).exercises[0].id).toBe("workout-1-e1");
+    expect(savedWorkout(0).exercises[0].id).toBe("day-a-e1");
     expect(savedSets(0, 0)).toEqual([
       expect.objectContaining({
-        id: "workout-1-e1-s1",
+        id: "day-a-e1-s1",
         reps_recommended: 8,
         weight_recommended: 60,
       }),
-      expect.objectContaining({ id: "workout-1-e1-s2" }),
+      expect.objectContaining({ id: "day-a-e1-s2" }),
     ]);
   });
 
@@ -425,7 +429,7 @@ describe("the Exercises of a Workout", () => {
     await save();
 
     expect(savedExercises(0)).toEqual(["bench-press", "barbell-back-squat"]);
-    expect(savedWorkout(0).exercises[0].id).toBe("workout-1-e2");
+    expect(savedWorkout(0).exercises[0].id).toBe("day-a-e2");
   });
 
   it("disables Save while a Workout has no Exercise", async () => {
@@ -489,7 +493,7 @@ describe("the sets of an Exercise", () => {
     await save();
 
     expect(savedSets(0, 0)).toHaveLength(1);
-    expect(savedSets(0, 0)[0].id).toBe("workout-1-e1-s1");
+    expect(savedSets(0, 0)[0].id).toBe("day-a-e1-s1");
   });
 
   it("disables Save for a target out of bounds, saying what's allowed", async () => {
@@ -537,7 +541,7 @@ describe("the sets of an Exercise", () => {
               slug: "bench-press",
             },
           ],
-          id: "workout-1",
+          id: "day-a",
           name: "Day A",
         },
       ],
@@ -593,7 +597,7 @@ describe("the limits", () => {
       workouts: [
         {
           exercises: [{ sets: MAX_SETS_PER_EXERCISE, slug: "bench-press" }],
-          id: "workout-1",
+          id: "day-a",
           name: "Day A",
         },
       ],
@@ -614,7 +618,7 @@ describe("the limits", () => {
             sets: 1,
             slug: "bench-press",
           })),
-          id: "workout-1",
+          id: "day-a",
           name: "Day A",
         },
       ],
@@ -668,7 +672,7 @@ describe("adding a Workout", () => {
       workouts: [
         {
           exercises: [{ sets: 1, slug: "bench-press" }],
-          id: "workout-1",
+          id: "day-a",
           name: "Workout A",
         },
       ],
@@ -711,6 +715,39 @@ describe("a save that lands while a Screen sits over the editor", () => {
   });
 });
 
+describe("saving twice with the editor still open", () => {
+  it("updates the rows the first save created instead of replacing them", async () => {
+    await openEditor();
+    await pressButton("Add Workout");
+    await pressButton("Add Exercise");
+    await pick("Add Overhead press");
+    // The Workout editor is on top when the first answer arrives.
+    isEditorFocused.current = false;
+
+    await save();
+
+    const added = savedWorkout(3);
+    expect(added.name).toBe("Workout D");
+    const setIds = (
+      typeof added.exercises[0].sets === "number" ? [] : added.exercises[0].sets
+    ).map((set) => set.id);
+    expect(setIds).toHaveLength(NEW_EXERCISE_SET_COUNT);
+
+    // A second Save must keep that Workout, its Cover and its ids: sending
+    // it with no id again would delete and recreate it.
+    await typeSet("draft-set-reps-1", "12");
+    await save();
+
+    expect(fakePublicApi.count(SAVE)).toBe(2);
+    expect(savedPlan().workouts).toHaveLength(4);
+    expect(savedWorkout(3).id).toBe(added.id);
+    expect(savedWorkout(3).cover).toBe(added.cover);
+    expect(savedWorkout(3).exercises[0].id).toBe(added.exercises[0].id);
+    expect(savedSets(3, 0).map((set) => set.id)).toEqual(setIds);
+    expect(savedSets(3, 0)[0].reps_recommended).toBe(12);
+  });
+});
+
 describe("a failed save", () => {
   it("says the Library doesn't know an Exercise, keeping the draft", async () => {
     backend.reset();
@@ -719,7 +756,7 @@ describe("a failed save", () => {
       workouts: [
         {
           exercises: [{ sets: 1, slug: "sled-push" }],
-          id: "workout-1",
+          id: "day-a",
           name: "Day A",
         },
       ],

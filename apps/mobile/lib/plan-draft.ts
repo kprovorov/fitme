@@ -325,6 +325,82 @@ export const savePlanBody = (draft: SavablePlanDraft): SavedPlanBody => ({
   })),
 });
 
+/**
+ * The id the save gave each row it created, by the key that row was sent
+ * under. The answer carries the Plan exactly as the body sent it — Workouts
+ * in rotation order, each one's Exercises and sets in theirs — so the two
+ * are walked in lockstep; a list the answer doesn't match is left alone
+ * rather than guessed at.
+ */
+const savedIdsByKey = (
+  sent: PlanDraft,
+  saved: FullPlan
+): Map<string, string> => {
+  const ids = new Map<string, string>();
+  if (saved.workouts.length !== sent.workouts.length) {
+    return ids;
+  }
+  sent.workouts.forEach((workout, at) => {
+    const savedWorkout = saved.workouts[at];
+    ids.set(workout.key, savedWorkout.id);
+    if (savedWorkout.exercises.length !== workout.exercises.length) {
+      return;
+    }
+    workout.exercises.forEach((exercise, index) => {
+      const savedExercise = savedWorkout.exercises[index];
+      ids.set(exercise.key, savedExercise.id);
+      if (savedExercise.sets.length !== exercise.sets.length) {
+        return;
+      }
+      exercise.sets.forEach((set, position) => {
+        ids.set(set.key, savedExercise.sets[position].id);
+      });
+    });
+  });
+  return ids;
+};
+
+/** That row with the id the save gave it, or as it is when it had one. */
+const withSavedId = <TRow extends { id?: string; key: string }>(
+  row: TRow,
+  ids: Map<string, string>
+): TRow => {
+  const id = row.id ?? ids.get(row.key);
+  return id === row.id ? row : { ...row, id };
+};
+
+/**
+ * The draft with the ids the save gave the rows it created, so the next Save
+ * updates those rows in place instead of sending them with no id again —
+ * which the whole-Plan save reads as "deleted, and a new one added",
+ * replacing a Workout's Cover and cutting its Workout Sessions loose.
+ *
+ * It matches by the draft's own `key`, not by position, so edits made while
+ * the save was in flight (a reorder, a removal, another new row) keep what
+ * they are: a row the draft no longer has is dropped, and one added since
+ * stays new.
+ */
+export const adoptSavedIds = (
+  draft: PlanDraft,
+  sent: PlanDraft,
+  saved: FullPlan
+): PlanDraft => {
+  const ids = savedIdsByKey(sent, saved);
+  if (ids.size === 0) {
+    return draft;
+  }
+  return {
+    ...draft,
+    workouts: draft.workouts.map((workout) => ({
+      ...withSavedId(workout, ids),
+      exercises: workout.exercises.map((exercise) => ({
+        ...withSavedId(exercise, ids),
+        sets: exercise.sets.map((set) => withSavedId(set, ids)),
+      })),
+    })),
+  };
+};
+
 /** The draft with the Workout at `index` moved by `by` (-1 up, 1 down). */
 export const moveDraftWorkout = (
   draft: PlanDraft,
