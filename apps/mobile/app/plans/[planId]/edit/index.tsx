@@ -2,6 +2,7 @@ import { ApiError, rateLimitedFor } from "@fitme/api-client";
 import {
   Stack,
   useLocalSearchParams,
+  useNavigation,
   usePreventRemove,
   useRouter,
 } from "expo-router";
@@ -81,6 +82,7 @@ export default function PlanEditorScreen() {
     workoutId?: string;
   }>();
   const router = useRouter();
+  const navigation = useNavigation();
   const { t } = useTranslation();
 
   // One draft per opening, thrown away with the Screen.
@@ -228,7 +230,11 @@ export default function PlanEditorScreen() {
         },
         onSuccess: () => {
           const current = getPlanDraft(draftKey)?.draft;
-          if (current && planDraftChanged(sent, current)) {
+          // Closing while the Workout editor or the picker sits over this
+          // Screen would take the modal out from under the User, so the
+          // editor stays open and they close it themselves.
+          const movedOn = current && planDraftChanged(sent, current);
+          if (movedOn || !navigation.isFocused()) {
             // What's saved is `sent`, so only the edits made since are
             // unsaved: leaving now asks about those alone.
             rebasePlanDraft(draftKey, sent);
@@ -238,7 +244,7 @@ export default function PlanEditorScreen() {
         },
       }
     );
-  }, [close, draft, draftKey, planId, savePlan, t]);
+  }, [close, draft, draftKey, navigation, planId, savePlan, t]);
 
   const retry = useCallback(() => {
     refetch();

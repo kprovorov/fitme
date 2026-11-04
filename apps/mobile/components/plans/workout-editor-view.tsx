@@ -181,16 +181,18 @@ function DraftExerciseCard({
         />
       ))}
       <Separator />
+      {/* The Workout Session's Add Set, so the same control reads the same
+          one Screen away. */}
       <Button
-        className="self-start"
+        contentColorClassName="text-primary"
         disabled={!canAddDraftSet(exercise)}
-        fill={false}
+        fill
         icon="plus"
         label={t("sets.addSet")}
         onPress={addSet}
         size="sm"
         testID={`add-draft-set-${index + 1}`}
-        variant="secondary"
+        variant="ghost"
       />
     </Card>
   );

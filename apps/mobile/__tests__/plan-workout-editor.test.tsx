@@ -49,11 +49,14 @@ import {
   PushedRoutes,
   pushedRoutes,
   resetStubRouter,
+  stubRouter,
 } from "~/test-utils/router-stub";
 
 const mockParams: { current: Record<string, string> } = {
   current: { planId: "plan-1" },
 };
+
+const isEditorFocused = { current: true };
 
 jest.mock("expo-router", () => {
   const stub = jest.requireActual<typeof import("~/test-utils/router-stub")>(
@@ -64,6 +67,9 @@ jest.mock("expo-router", () => {
     router: stub.stubRouter,
     Stack: { Screen: stub.StackScreenStub },
     useLocalSearchParams: () => stub.useStubParams(mockParams.current),
+    // The Plan editor is the Screen the test drives, so it is the focused
+    // one unless a test says otherwise.
+    useNavigation: () => ({ isFocused: () => isEditorFocused.current }),
     // The guard blocks the swipe away, which Jest can't make; Cancel asks
     // through `Alert` either way.
     usePreventRemove: () => () => undefined,
@@ -208,6 +214,14 @@ const openWorkout = async (name: string, label = "Edit") => {
   await press(`${label} ${name}`);
 };
 
+/** Leaves the Workout editor, as its native back button does. */
+const goBack = async () => {
+  await act(() => {
+    stubRouter.back();
+  });
+  await settle(client);
+};
+
 /** The Workout editor's subtree, the only place its fields are looked for. */
 const editor = () => within(screen.getByTestId("workout-editor"));
 
@@ -272,6 +286,7 @@ beforeEach(() => {
   resetStubRouter();
   setDeviceLanguages(["en-US"]);
   mockParams.current = { planId: "plan-1" };
+  isEditorFocused.current = true;
 });
 
 describe("opening a Workout", () => {
@@ -493,13 +508,73 @@ describe("the sets of an Exercise", () => {
     expect(screen.getByLabelText("Save")).not.toBeDisabled();
   });
 
-  it("disables Save for a weight with too many decimals", async () => {
+  it("names the decimals rule for a weight that breaks it, not the range", async () => {
     await openEditor();
     await openWorkout("Day A");
 
     await typeSet("draft-set-weight-1", "60,555");
 
+    expect(card().getByText("Weight can have at most 2 decimals")).toBeTruthy();
     expect(screen.getByLabelText("Save")).toBeDisabled();
+  });
+
+  it("says why Save is off for a target the Plan was loaded with", async () => {
+    // The Plan Update writes a 0 reps target for a set logged with 0 reps.
+    backend.reset();
+    backend.seedPlan({
+      ...structuredClone(PLAN),
+      workouts: [
+        {
+          exercises: [
+            {
+              sets: [
+                {
+                  reps_recommended: 0,
+                  rest_recommended: 90,
+                  weight_recommended: 40,
+                },
+              ],
+              slug: "bench-press",
+            },
+          ],
+          id: "workout-1",
+          name: "Day A",
+        },
+      ],
+    });
+    await openEditor();
+    await openWorkout("Day A");
+
+    expect(
+      card().getByText("Reps must be a whole number from 1 to 1000")
+    ).toBeTruthy();
+    expect(screen.getByLabelText("Save")).toBeDisabled();
+  });
+});
+
+describe("what the Plan editor's row says", () => {
+  it("names a Workout whose set the save can't take, not just an empty one", async () => {
+    await openEditor();
+    await openWorkout("Day A");
+
+    await typeSet("draft-set-reps-1", "0");
+    await goBack();
+
+    const plan = within(screen.getByTestId("plan-editor"));
+    expect(plan.getByText("Check this workout's name and sets")).toBeTruthy();
+    expect(screen.getByLabelText("Save")).toBeDisabled();
+  });
+
+  it("says an empty Workout needs an Exercise", async () => {
+    await openEditor();
+    await openWorkout("Day A");
+
+    await exerciseAction("Barbell back squat", "Remove Barbell back squat");
+    await exerciseAction("Bench press", "Remove Bench press");
+    await goBack();
+
+    const plan = within(screen.getByTestId("plan-editor"));
+    expect(plan.getByText("Needs at least one exercise")).toBeTruthy();
   });
 });
 
@@ -617,6 +692,22 @@ describe("Edit Workout on the Workout screen", () => {
       "/plans/[planId]/edit/workouts/[workoutKey]",
     ]);
     expect(editor().getByTestId("workout-name").props.value).toBe("Day A");
+  });
+});
+
+describe("a save that lands while a Screen sits over the editor", () => {
+  it("keeps the editor open instead of closing the modal under it", async () => {
+    await openEditor();
+    await openWorkout("Day A");
+    await type("workout-name", "Push");
+    // The Workout editor is on top when the answer arrives.
+    isEditorFocused.current = false;
+
+    await save();
+
+    expect(savedWorkout(0).name).toBe("Push");
+    expect(screen.getByTestId("workout-editor")).toBeTruthy();
+    expect(screen.getByTestId("plan-editor")).toBeTruthy();
   });
 });
 

@@ -250,6 +250,7 @@
     "newWorkoutName": "Тренування {{letter}}",
     "openWorkout": "Редагувати «{{name}}»",
     "workoutNeedsExercise": "Потрібна хоча б одна вправа",
+    "workoutNeedsFixing": "Перевірте назву та підходи цього тренування",
     "workout": {
       "title": "Редагувати тренування",
       "name": "Назва",

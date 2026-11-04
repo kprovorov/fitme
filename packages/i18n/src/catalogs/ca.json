@@ -236,6 +236,7 @@
     "newWorkoutName": "Entrenament {{letter}}",
     "openWorkout": "Edita «{{name}}»",
     "workoutNeedsExercise": "Necessita com a mínim un exercici",
+    "workoutNeedsFixing": "Revisa el nom i les sèries d'aquest entrenament",
     "workout": {
       "title": "Edita l'entrenament",
       "name": "Nom",

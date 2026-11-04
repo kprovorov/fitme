@@ -35,6 +35,7 @@ import {
   canAddDraftWorkout,
   type DraftChange,
   type DraftWorkout,
+  isSavableWorkout,
   moveDraftWorkout,
   type PlanDraft,
   removeDraftWorkout,
@@ -188,6 +189,15 @@ function WorkoutRow({
 
   const open = useCallback(() => onOpen(workout.key), [onOpen, workout.key]);
 
+  // Why Save is off, for a Workout whose own editor would have to show it:
+  // no Exercise, or a name or a set target the whole-Plan save can't take.
+  let problem: string | undefined;
+  if (workout.exercises.length === 0) {
+    problem = t("planEditor.workoutNeedsExercise");
+  } else if (!isSavableWorkout(workout)) {
+    problem = t("planEditor.workoutNeedsFixing");
+  }
+
   // The menu is the row's sibling, not inside its Pressable, so a tap on it
   // opens the menu instead of the Workout.
   return (
@@ -205,10 +215,8 @@ function WorkoutRow({
           <Text className="text-muted-foreground text-subhead">
             {formatCount(i18n, "exercises", workout.exercises.length)}
           </Text>
-          {workout.exercises.length === 0 ? (
-            <Text className="text-destructive text-subhead">
-              {t("planEditor.workoutNeedsExercise")}
-            </Text>
+          {problem ? (
+            <Text className="text-destructive text-subhead">{problem}</Text>
           ) : null}
         </VStack>
         <SymbolImage

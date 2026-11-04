@@ -1,9 +1,4 @@
-import {
-  MAX_REPS,
-  MAX_REST_SECONDS,
-  MAX_WEIGHT,
-  MAX_WEIGHT_DECIMALS,
-} from "@fitme/core";
+import { MAX_WEIGHT_DECIMALS } from "@fitme/core";
 import { useCallback, useState } from "react";
 import { useTranslation } from "react-i18next";
 import { View } from "react-native";
@@ -21,10 +16,12 @@ import {
   type DraftChange,
   type DraftSet,
   type DraftSetTarget,
+  isSavableTarget,
   removeDraftSet,
+  SET_TARGET_BOUNDS,
   updateDraftSet,
 } from "~/lib/plan-draft";
-import { formatSetWeight, planTargetValue } from "~/lib/set-inputs";
+import { decimalsOf, formatSetWeight, planTargetValue } from "~/lib/set-inputs";
 import { cn } from "~/lib/utils";
 
 /** A target cell: the three share the width the other columns leave. */
@@ -32,12 +29,7 @@ const CELL_CLASS = "h-10 flex-1";
 /** A cell's input: the set table's number styling. */
 const INPUT_CLASS = "min-h-10 px-1 text-center text-mono-body";
 
-/** The write's bounds for each target, which `planTargetValue` holds it to. */
-const BOUNDS = {
-  reps: { max: MAX_REPS, min: 1 },
-  rest: { max: MAX_REST_SECONDS, min: 0 },
-  weight: { decimals: MAX_WEIGHT_DECIMALS, max: MAX_WEIGHT, min: 0 },
-} as const;
+const TARGETS = ["reps", "weight", "rest"] as const;
 
 /** A target as its field shows it: the weight with its own separator. */
 const targetText = (value: number | null, target: DraftSetTarget) => {
@@ -47,47 +39,38 @@ const targetText = (value: number | null, target: DraftSetTarget) => {
   return target === "weight" ? formatSetWeight(value) : String(value);
 };
 
-interface DraftSetFieldProps {
-  accessibilityLabel: string;
-  onChangeValue: (value: number | null) => void;
-  target: DraftSetTarget;
-  testID: string;
-  value: number | null;
-}
-
-/**
- * One target of a set: what the User typed stays as typed, and the draft
- * keeps the number it reads, `null` for anything the write can't take, which
- * marks the field and disables Save.
- */
-function DraftSetField({
+/** One target's field: the row owns its text, this owns its press handler. */
+function TargetField({
   accessibilityLabel,
-  onChangeValue,
+  isValid,
+  onChangeTarget,
+  order,
   target,
-  testID,
-  value,
-}: DraftSetFieldProps) {
-  const [text, setText] = useState(() => targetText(value, target));
+  text,
+}: {
+  accessibilityLabel: string;
+  isValid: boolean;
+  onChangeTarget: (target: DraftSetTarget, text: string) => void;
+  order: number;
+  target: DraftSetTarget;
+  text: string;
+}) {
   const change = useCallback(
-    (typed: string) => {
-      setText(typed);
-      onChangeValue(planTargetValue(typed, BOUNDS[target]));
-    },
-    [onChangeValue, target]
+    (typed: string) => onChangeTarget(target, typed),
+    [onChangeTarget, target]
   );
-
   return (
     <Input
       accessibilityLabel={accessibilityLabel}
       autoCapitalize="none"
       className={INPUT_CLASS}
       containerClassName={CELL_CLASS}
-      error={value === null}
+      error={!isValid}
       keyboardType={target === "weight" ? "decimal-pad" : "number-pad"}
       maxFontSizeMultiplier={SET_TABLE_MAX_FONT_SCALE}
       onChangeText={change}
       selectTextOnFocus
-      testID={testID}
+      testID={`draft-set-${target}-${order}`}
       value={text}
     />
   );
@@ -107,8 +90,13 @@ interface DraftSetRowProps {
 /**
  * A planned set as the Workout editor edits it: its number, then reps,
  * weight (in the Plan's unit, 0 for bodyweight) and rest in seconds, and the
- * button that removes it. Every keystroke goes into the draft, and a target
- * the write can't take is marked with the bound it broke under the row.
+ * button that removes it.
+ *
+ * Each field keeps what the User typed while the draft keeps the number
+ * `planTargetValue` reads from it, `null` for text that isn't one. A target
+ * the write can't take — typed, or loaded that way — marks its field and
+ * names the rule it broke under the row, so Save is never off with nothing
+ * said.
  */
 export default function DraftSetRow({
   canRemove,
@@ -119,25 +107,28 @@ export default function DraftSetRow({
   workoutKey,
 }: DraftSetRowProps) {
   const { t } = useTranslation();
+  // What the User typed, so a half-typed number isn't rewritten under them.
+  const [typed, setTyped] = useState(() => ({
+    reps: targetText(set.reps, "reps"),
+    rest: targetText(set.rest, "rest"),
+    weight: targetText(set.weight, "weight"),
+  }));
 
-  const changeTarget = useCallback(
-    (target: DraftSetTarget, value: number | null) =>
+  const change = useCallback(
+    (target: DraftSetTarget, text: string) => {
+      setTyped((current) => ({ ...current, [target]: text }));
       onChange((draft) =>
-        updateDraftSet(draft, workoutKey, exerciseKey, set.key, target, value)
-      ),
+        updateDraftSet(
+          draft,
+          workoutKey,
+          exerciseKey,
+          set.key,
+          target,
+          planTargetValue(text, SET_TARGET_BOUNDS[target])
+        )
+      );
+    },
     [exerciseKey, onChange, set.key, workoutKey]
-  );
-  const changeReps = useCallback(
-    (value: number | null) => changeTarget("reps", value),
-    [changeTarget]
-  );
-  const changeWeight = useCallback(
-    (value: number | null) => changeTarget("weight", value),
-    [changeTarget]
-  );
-  const changeRest = useCallback(
-    (value: number | null) => changeTarget("rest", value),
-    [changeTarget]
   );
   const remove = useCallback(
     () =>
@@ -147,17 +138,29 @@ export default function DraftSetRow({
     [exerciseKey, onChange, set.key, workoutKey]
   );
 
-  const messages = [
-    set.reps === null
-      ? t("planEditor.workout.errors.repsRange", BOUNDS.reps)
-      : null,
-    set.weight === null
-      ? t("planEditor.workout.errors.weightRange", BOUNDS.weight)
-      : null,
-    set.rest === null
-      ? t("planEditor.workout.errors.restRange", BOUNDS.rest)
-      : null,
-  ].filter((message): message is string => message !== null);
+  /** What's wrong with that target, or `null` while the write can take it. */
+  const messageFor = (target: DraftSetTarget) => {
+    if (isSavableTarget(target, set[target])) {
+      return null;
+    }
+    // Its own rule first: a range message would name bounds `60,555` meets.
+    if (target === "weight" && decimalsOf(typed.weight) > MAX_WEIGHT_DECIMALS) {
+      return t("sets.form.weightDecimals", { count: MAX_WEIGHT_DECIMALS });
+    }
+    return t(`planEditor.workout.errors.${target}Range`, {
+      max: SET_TARGET_BOUNDS[target].max,
+      min: SET_TARGET_BOUNDS[target].min,
+    });
+  };
+
+  const labels: Record<DraftSetTarget, string> = {
+    reps: t("sets.row.repsInput", { order }),
+    rest: t("sets.row.restInput", { order }),
+    weight: t("sets.row.weightInput", { order }),
+  };
+  const messages = TARGETS.map(messageFor).filter(
+    (message): message is string => message !== null
+  );
 
   return (
     <View className="gap-1">
@@ -173,33 +176,23 @@ export default function DraftSetRow({
         >
           {`#${order}`}
         </Text>
-        <DraftSetField
-          accessibilityLabel={t("sets.row.repsInput", { order })}
-          onChangeValue={changeReps}
-          target="reps"
-          testID={`draft-set-reps-${order}`}
-          value={set.reps}
-        />
-        <DraftSetField
-          accessibilityLabel={t("sets.row.weightInput", { order })}
-          onChangeValue={changeWeight}
-          target="weight"
-          testID={`draft-set-weight-${order}`}
-          value={set.weight}
-        />
-        <DraftSetField
-          accessibilityLabel={t("sets.row.restInput", { order })}
-          onChangeValue={changeRest}
-          target="rest"
-          testID={`draft-set-rest-${order}`}
-          value={set.rest}
-        />
+        {TARGETS.map((target) => (
+          <TargetField
+            accessibilityLabel={labels[target]}
+            isValid={isSavableTarget(target, set[target])}
+            key={target}
+            onChangeTarget={change}
+            order={order}
+            target={target}
+            text={typed[target]}
+          />
+        ))}
         {canRemove ? (
           <SetCheckCell onPress={remove}>
             <Button
               accessibilityLabel={t("planEditor.workout.removeSet", { order })}
               contentColorClassName="text-muted-foreground"
-              icon="minus"
+              icon="minus.circle"
               onPress={remove}
               shape="circle"
               size="sm"

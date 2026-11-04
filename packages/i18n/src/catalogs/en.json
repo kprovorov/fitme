@@ -222,6 +222,7 @@
     "newWorkoutName": "Workout {{letter}}",
     "openWorkout": "Edit {{name}}",
     "workoutNeedsExercise": "Needs at least one exercise",
+    "workoutNeedsFixing": "Check this workout's name and sets",
     "workout": {
       "title": "Edit Workout",
       "name": "Name",

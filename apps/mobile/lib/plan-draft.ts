@@ -12,6 +12,7 @@ import {
   MAX_REST_SECONDS,
   MAX_SETS_PER_EXERCISE,
   MAX_WEIGHT,
+  MAX_WEIGHT_DECIMALS,
   MAX_WORKOUT_DURATION_MINUTES,
   MAX_WORKOUTS_PER_PLAN,
   MIN_FREQUENCY,
@@ -27,6 +28,19 @@ import type { FullPlan, PlanWorkout } from "~/hooks/queries/plans";
  * (empty, not a number, out of bounds), so Save can be disabled for it;
  * `isSavablePlanDraft` is what decides.
  */
+/** One target of a set: what its field writes into the draft. */
+export type DraftSetTarget = "reps" | "rest" | "weight";
+
+/**
+ * Each target's bounds, as `PUT /v1/plans/{id}` takes them: what a field
+ * holds the User to, and what it names when they break it.
+ */
+export const SET_TARGET_BOUNDS = {
+  reps: { max: MAX_REPS, min: 1 },
+  rest: { max: MAX_REST_SECONDS, min: 0 },
+  weight: { decimals: MAX_WEIGHT_DECIMALS, max: MAX_WEIGHT, min: 0 },
+} as const;
+
 export interface DraftSet {
   id?: string;
   /**
@@ -211,11 +225,28 @@ const isSavableName = (name: string) => {
   return trimmed.length >= 1 && trimmed.length <= MAX_PLAN_NAME_LENGTH;
 };
 
+/**
+ * Whether one target is one the write can take: what marks its field and,
+ * when it can't, what disables Save. A value loaded out of bounds (a reps
+ * target of 0, which the Plan Update can write) fails it like a typed one,
+ * so the row always says why Save is off.
+ */
+export const isSavableTarget = (
+  target: DraftSetTarget,
+  value: number | null
+): value is number => {
+  if (target === "weight") {
+    return isStorableWeight(value);
+  }
+  const { max, min } = SET_TARGET_BOUNDS[target];
+  return isWholeNumberIn(value, min, max);
+};
+
 /** Whether a set's three targets are all in the write's bounds. */
 export const isSavableSet = (set: DraftSet): set is SavableDraftSet =>
-  isWholeNumberIn(set.reps, 1, MAX_REPS) &&
-  isWholeNumberIn(set.rest, 0, MAX_REST_SECONDS) &&
-  isStorableWeight(set.weight);
+  isSavableTarget("reps", set.reps) &&
+  isSavableTarget("rest", set.rest) &&
+  isSavableTarget("weight", set.weight);
 
 /** Whether an Exercise has at least one set and every set is savable. */
 const isSavableExercise = (
@@ -524,9 +555,6 @@ export const removeDraftSet = (
     ...exercise,
     sets: exercise.sets.filter((set) => set.key !== setKey),
   }));
-
-/** One target of a set: what its field writes into the draft. */
-export type DraftSetTarget = "reps" | "rest" | "weight";
 
 /** The draft with one of that set's targets changed. */
 export const updateDraftSet = (

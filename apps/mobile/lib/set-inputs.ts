@@ -62,7 +62,9 @@ const rangeIssue = (
   return null;
 };
 
-const decimalsOf = (text: string) => text.split(SEPARATOR)[1]?.length ?? 0;
+/** How many decimals `text` holds, for a field naming the rule it broke. */
+export const decimalsOf = (text: string) =>
+  text.split(SEPARATOR)[1]?.length ?? 0;
 
 /**
  * The weight field (in the User's unit): 0 to `MAX_WEIGHT`, at most 2

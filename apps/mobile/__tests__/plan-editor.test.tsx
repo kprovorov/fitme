@@ -42,6 +42,8 @@ import {
 
 const mockParams = { current: { planId: "plan-1" } };
 
+const isEditorFocused = { current: true };
+
 jest.mock("expo-router", () => {
   const stub = jest.requireActual<typeof import("~/test-utils/router-stub")>(
     "~/test-utils/router-stub"
@@ -50,6 +52,9 @@ jest.mock("expo-router", () => {
     Link: ({ children }: { children: ReactNode }) => children,
     Stack: { Screen: stub.StackScreenStub },
     useLocalSearchParams: () => stub.useStubParams(mockParams.current),
+    // The Plan editor is the Screen the test drives, so it is the focused
+    // one unless a test says otherwise.
+    useNavigation: () => ({ isFocused: () => isEditorFocused.current }),
     // The guard blocks the swipe away, which Jest can't make; the simulator
     // check covers it. Cancel asks through `Alert` either way.
     usePreventRemove: () => () => undefined,

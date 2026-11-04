@@ -236,6 +236,7 @@
     "newWorkoutName": "Entrenamiento {{letter}}",
     "openWorkout": "Editar «{{name}}»",
     "workoutNeedsExercise": "Necesita al menos un ejercicio",
+    "workoutNeedsFixing": "Revisa el nombre y las series de este entrenamiento",
     "workout": {
       "title": "Editar entrenamiento",
       "name": "Nombre",
