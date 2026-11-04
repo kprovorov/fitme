@@ -13,6 +13,7 @@ import {
   loadSavedArnoldConversation,
   saveArnoldConversation,
   saveArnoldSession,
+  shownUserMessage,
 } from "../arnold-chat";
 import {
   MODELS_KEY,
@@ -280,5 +281,129 @@ describe("isRefusedSend", () => {
         role: "assistant",
       } as Parameters<typeof isRefusedSend>[0])
     ).toBe(false);
+  });
+});
+
+describe("shownUserMessage", () => {
+  type UserMessage = Parameters<typeof shownUserMessage>[0];
+
+  /** A user message as eve projects it, by its metadata and its text. */
+  const message = (
+    custom: UserMessage["metadata"]["custom"],
+    text: string
+  ): UserMessage => ({
+    attachments: [],
+    content: [{ text, type: "text" }],
+    createdAt: new Date("2026-11-07T00:00:00Z"),
+    id: "user-message",
+    metadata: { custom },
+    role: "user",
+  });
+
+  /** eve's optimistic message: its text summary, placeholders included. */
+  const optimistic = (text: string) =>
+    message({ optimistic: true, status: "submitted" }, text);
+
+  /** Arnold's echo of a message: the turn it belongs to, and clean text. */
+  const echoed = (text: string, turnId = "turn_0") =>
+    message({ status: "complete", turnId }, text);
+
+  /** A `message.received` echo of `attachments` files, with its text. */
+  const received = (
+    attachments: number,
+    text: string,
+    turnId = "turn_0"
+  ): MessageStreamEvent =>
+    // oxlint-disable-next-line anti-slop/no-chained-type-assertions -- This echo fixture deliberately omits Eve transport fields.
+    ({
+      data: {
+        message: text,
+        // eve's echo carries a file's metadata only, never its bytes.
+        parts: [
+          ...(text ? [{ text, type: "text" }] : []),
+          ...Array.from({ length: attachments }, () => ({
+            mediaType: "image/jpeg",
+            size: 1024,
+            type: "file",
+          })),
+        ],
+        sequence: 1,
+        turnId,
+      },
+      meta: { at: "2026-11-04T00:00:00.000Z", id: "evt_received" },
+      type: "message.received",
+    }) as unknown as MessageStreamEvent;
+
+  it("counts the Attachments eve's own optimistic message stands for", () => {
+    expect(
+      shownUserMessage(
+        optimistic("What is this machine?\n[file]\n[file]"),
+        "What is this machine?\n[file]\n[file]",
+        []
+      )
+    ).toEqual({ attachmentCount: 2, text: "What is this machine?" });
+  });
+
+  it("reads a photo sent with no text as a message with no text", () => {
+    expect(shownUserMessage(optimistic("[file]"), "[file]", [])).toEqual({
+      attachmentCount: 1,
+      text: "",
+    });
+  });
+
+  it("drops a placeholder eve named the file in", () => {
+    const text = "Look\n[file: photo.jpg]";
+
+    expect(shownUserMessage(optimistic(text), text, [])).toEqual({
+      attachmentCount: 1,
+      text: "Look",
+    });
+  });
+
+  it("counts the files of the echo of its turn", () => {
+    const echo = echoed("What is this machine?");
+
+    expect(
+      shownUserMessage(echo, "What is this machine?", [
+        received(2, "What is this machine?"),
+      ])
+    ).toEqual({ attachmentCount: 2, text: "What is this machine?" });
+  });
+
+  it("counts none for a message sent without Attachments", () => {
+    const echo = echoed("How heavy should I squat?");
+
+    expect(
+      shownUserMessage(echo, "How heavy should I squat?", [
+        received(0, "How heavy should I squat?"),
+      ])
+    ).toEqual({ attachmentCount: 0, text: "How heavy should I squat?" });
+  });
+
+  it("counts only its own turn's files", () => {
+    const echo = echoed("Second", "turn_1");
+
+    expect(
+      shownUserMessage(echo, "Second", [
+        received(2, "First", "turn_0"),
+        received(1, "Second", "turn_1"),
+      ])
+    ).toEqual({ attachmentCount: 1, text: "Second" });
+  });
+
+  it("keeps text of the User's own that looks like a placeholder", () => {
+    const echo = echoed("[file]");
+
+    expect(shownUserMessage(echo, "[file]", [received(0, "[file]")])).toEqual({
+      attachmentCount: 0,
+      text: "[file]",
+    });
+  });
+
+  it("counts none for an echo the saved events don't reach", () => {
+    expect(shownUserMessage(echoed("Older"), "Older", [])).toEqual({
+      attachmentCount: 0,
+      text: "Older",
+    });
   });
 });

@@ -1,6 +1,8 @@
 import type { ThreadMessage } from "@assistant-ui/react-native";
 import { createContext, use } from "react";
 
+import type { ShownUserMessage } from "~/lib/arnold-chat";
+
 import type { StreamingStore } from "./streaming-store";
 
 /** An Attachment picked for the next message, as the composer shows it. */
@@ -25,6 +27,13 @@ export interface ChatContextValue {
   onSend: () => void;
   setInput: (value: string) => void;
   streamingStore: StreamingStore;
+  /**
+   * What a message of the User's shows: its own text, and how many
+   * Attachments it carried. Neither is simply read off the message (see
+   * `shownUserMessage`); without it a bubble shows its text parts and no
+   * Attachment.
+   */
+  userMessage?: (message: ThreadMessage) => ShownUserMessage;
 }
 
 const ChatContext = createContext<ChatContextValue | null>(null);

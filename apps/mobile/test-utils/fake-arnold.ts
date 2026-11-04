@@ -151,6 +151,21 @@ const meta = (deliveryId?: string): MessageStreamEventMeta => {
   return eventMeta;
 };
 
+/**
+ * How eve summarizes a sent message in its echo's `message` field: the text
+ * parts, and a placeholder for every file part, never its bytes. The app
+ * reads the echo's `parts`, so this is the fallback eve sends along; it is
+ * written out here so a test sees the placeholder a bubble must not show.
+ */
+const summarizeSentParts = (parts: readonly SentPart[]): string =>
+  parts
+    .map((part) =>
+      part.type === "text"
+        ? part.text
+        : `[file: ${part.filename ?? part.mediaType} (${part.mediaType})]`
+    )
+    .join("\n");
+
 /** The bytes a `data:…;base64,…` URL carries, 0 for anything else. */
 const dataUrlByteLength = (data: string): number => {
   const base64 = data.startsWith("data:") ? data.split(",")[1] : undefined;
@@ -266,6 +281,7 @@ class FakeArnold {
   /** Bumped by `reset()`, so a request in flight then answers nothing. */
   private epoch = 0;
   private failures: ArnoldFailure[] = [];
+  private holds: Promise<void>[] = [];
   private sessionCount = 0;
   private deliveryCount = 0;
   private realFetch: typeof globalThis.fetch | undefined;
@@ -301,6 +317,7 @@ class FakeArnold {
     this.sent = [];
     this.unhandled = [];
     this.failures = [];
+    this.holds = [];
     this.reply = FAKE_ARNOLD_REPLY;
     this.sessionCount = 0;
     this.deliveryCount = 0;
@@ -309,6 +326,25 @@ class FakeArnold {
   /** Makes the next send fail, as Arnold refuses or fails one. */
   failNextSend(failure: ArnoldFailure) {
     this.failures.push(failure);
+  }
+
+  /**
+   * Holds the next send's answer until the returned function is called, so a
+   * test sees the Conversation while eve's own optimistic message stands for
+   * the one Arnold hasn't echoed yet.
+   */
+  holdNextSend(): () => void {
+    let release = () => {
+      // Replaced below; a hold released before it is taken is a no-op.
+    };
+
+    this.holds.push(
+      new Promise<void>((resolve) => {
+        release = resolve;
+      })
+    );
+
+    return () => release();
   }
 
   /** The sessions the app created, oldest first. */
@@ -384,8 +420,12 @@ class FakeArnold {
     return errorResponse(501, "not_implemented", `Fake Arnold: no ${route}`);
   }
 
-  private createSession(init: RequestInit) {
+  private async createSession(init: RequestInit) {
     const body = readBody(init);
+
+    if (body?.message !== undefined) {
+      await this.takeHold();
+    }
 
     // A refused or failed first send never creates the session, as the
     // channel refuses the request before eve starts one.
@@ -415,7 +455,8 @@ class FakeArnold {
     return json(accepted, 202, { "x-eve-session-id": sessionId });
   }
 
-  private send(sessionId: string, init: RequestInit) {
+  private async send(sessionId: string, init: RequestInit) {
+    await this.takeHold();
     const session = this.sessions.get(sessionId);
 
     if (!session) {
@@ -436,6 +477,11 @@ class FakeArnold {
     const deliveryId = this.runTurn(session, body ?? {});
 
     return json({ deliveryId, ok: true, sessionId, status: "accepted" }, 202);
+  }
+
+  /** Waits for the hold a test put on this send, if there is one. */
+  private takeHold() {
+    return this.holds.shift();
   }
 
   /** The queued failure for this send, if any; `network` never answers. */
@@ -521,7 +567,7 @@ class FakeArnold {
     });
     append({
       data: {
-        message: text,
+        message: summarizeSentParts(parts),
         parts: parts.map(receivedPart),
         sequence: 1,
         turnId,

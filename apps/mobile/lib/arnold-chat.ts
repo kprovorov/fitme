@@ -128,6 +128,64 @@ export const arnoldErrorKind = z
 export const isRefusedSend = (message: ThreadMessage): boolean =>
   message.role === "user" && message.metadata.custom.status === "failed";
 
+/**
+ * eve's own placeholder for a part it can't write out as text, one per line
+ * of the summary it shows while a send is on its way (`[file]`, or
+ * `[file: <name>]` for a file it was given a name for).
+ */
+const FILE_PLACEHOLDER_LINE = /^\[file(?::[^\]]*)?\]$/u;
+
+/** What the User's bubble shows for a message of theirs. */
+export interface ShownUserMessage {
+  /** How many Attachments it carried, so the bubble stands one tile per one. */
+  attachmentCount: number;
+  /** Its own text, with nothing of eve's in it. */
+  text: string;
+}
+
+/**
+ * What to show for a user message: its text, and how many Attachments it
+ * carried (ADR 0018). Neither is simply read off the message, since eve
+ * writes a sent Attachment two different ways:
+ *
+ * - until Arnold echoes it, the message is eve's own summary of what was
+ *   sent, one `[file]` line per Attachment and no file part at all, so the
+ *   lines are counted and taken out: the User wrote neither;
+ * - once echoed, the text is the User's alone and the file parts carry
+ *   metadata only (eve never sends an Attachment's bytes back), which
+ *   `@assistant-ui/eve` drops for want of a URL — so they are counted off
+ *   the turn's `message.received` event instead, which the saved Conversation
+ *   keeps, so a reopened screen counts them too.
+ *
+ * `text` is the message's own text parts joined, which the caller has.
+ */
+export const shownUserMessage = (
+  message: ThreadMessage,
+  text: string,
+  events: readonly MessageStreamEvent[]
+): ShownUserMessage => {
+  if (message.metadata.custom.optimistic === true) {
+    const lines = text.split("\n");
+    const own = lines.filter((line) => !FILE_PLACEHOLDER_LINE.test(line));
+
+    return { attachmentCount: lines.length - own.length, text: own.join("\n") };
+  }
+
+  const { turnId } = message.metadata.custom;
+
+  const echo = events.find(
+    (event) => event.type === "message.received" && event.data.turnId === turnId
+  );
+
+  const parts =
+    echo?.type === "message.received" ? (echo.data.parts ?? []) : [];
+
+  return {
+    attachmentCount: parts.filter((part) => part.type === "file").length,
+    text,
+  };
+};
+
 /** The User's current Conversation, enough for eve to resume it. */
 export interface SavedArnoldConversation {
   /** An ordered prefix of the session's stream, to render before resuming. */

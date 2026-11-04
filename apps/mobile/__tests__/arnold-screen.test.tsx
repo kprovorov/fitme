@@ -10,21 +10,25 @@
  * the re-encoder behind it stood in at their module.
  */
 import { beforeEach, describe, expect, it, jest } from "@jest/globals";
+import { captureException } from "@sentry/react-native";
 import {
   act,
   render,
   screen,
   userEvent,
   waitFor,
+  within,
 } from "@testing-library/react-native";
 import type { ReactNode } from "react";
 
+import { ATTACHMENT_TRAY } from "@/components/chat";
 import AddToChatSheet from "~/app/(tabs)/arnold/attachments";
 import ArnoldScreen from "~/app/(tabs)/arnold/index";
 import { clearArnoldAttachments } from "~/hooks/arnold-attachments";
 import type { PickedImage, PickedPhotos } from "~/lib/arnold-attachment-picker";
 import { useAppLanguageSync } from "~/lib/i18n";
 import { storage } from "~/lib/mmkv";
+import { segmentClient } from "~/lib/segment";
 import { setDeviceLanguages } from "~/test-utils/device-locales";
 import { FAKE_ARNOLD_REPLY, fakeArnold } from "~/test-utils/fake-arnold";
 import { PushedRoutes, resetStubRouter } from "~/test-utils/router-stub";
@@ -43,6 +47,12 @@ const ADD_TO_CHAT = /Add to chat|Додати до чату/u;
 const PHOTOS = /^(Photos|Фото)$/u;
 const REMOVE_PHOTO = /^(Remove photo|Видалити фото) \d+ (of|з) \d+$/u;
 const THUMBNAIL = /^(Photo \d+ of \d+|Фото \d+ з \d+)$/u;
+
+/** A sent Attachment's tile in the User's bubble, in either language. */
+const SENT_PHOTO = /^(Photo \d+ of \d+|Фото \d+ з \d+)$/u;
+
+/** eve's own placeholder for a file it can't show: never on screen. */
+const FILE_PLACEHOLDER = /\[file/u;
 
 jest.mock("react-native-keyboard-controller", () =>
   jest.requireActual("react-native-keyboard-controller/jest")
@@ -149,11 +159,22 @@ jest.mock("~/lib/clerk", () => ({
 const mockPickLibraryPhotos =
   jest.fn<(limit: number) => Promise<PickedPhotos | null>>();
 
+/**
+ * The bytes a picked photo is sent as: its file read as a `data:` URL. The
+ * stand-in encodes the file's own uri, so a test names the photo a part
+ * carries without holding an image.
+ */
+const dataUrlFor = (uri: string) =>
+  `data:image/jpeg;base64,${Buffer.from(uri).toString("base64")}`;
+
+const mockReadAttachmentDataUrl = jest.fn<(uri: string) => Promise<string>>();
+
 // The one module importing `expo-image-picker` and `expo-image-manipulator`
 // (its own test covers what they are asked for), so no native picker and no
 // re-encoding under Jest: a picked photo is a file uri the composer shows.
 jest.mock("~/lib/arnold-attachment-picker", () => ({
   pickLibraryPhotos: (limit: number) => mockPickLibraryPhotos(limit),
+  readAttachmentDataUrl: (uri: string) => mockReadAttachmentDataUrl(uri),
 }));
 
 jest.mock("expo-router/react-navigation", () => ({ useHeaderHeight: () => 0 }));
@@ -182,6 +203,8 @@ jest.mock("react-native-purchases-ui", () => ({
   __esModule: true,
   default: { presentPaywall: () => mockPresentPaywall() },
 }));
+
+jest.mock("~/lib/segment", () => ({ segmentClient: { track: jest.fn() } }));
 
 jest.mock("expo-haptics", () => ({
   ImpactFeedbackStyle: { Light: "light" },
@@ -256,9 +279,15 @@ async function send(text: string) {
 beforeEach(() => {
   mockAttachmentsEnabled = false;
   mockPickLibraryPhotos.mockReset();
+  mockReadAttachmentDataUrl.mockReset();
+  mockReadAttachmentDataUrl.mockImplementation((uri) =>
+    Promise.resolve(dataUrlFor(uri))
+  );
+  jest.mocked(captureException).mockClear();
   clearArnoldAttachments();
   resetStubRouter();
   mockPresentPaywall.mockClear();
+  jest.mocked(segmentClient.track).mockClear();
   storage.clearAll();
   fakeArnold.install();
   process.env.EXPO_PUBLIC_ARNOLD_URL = fakeArnold.baseUrl;
@@ -445,15 +474,22 @@ describe("arnold screen", () => {
 
     /**
      * The file behind each thumbnail in the composer, in the order it was
-     * picked (expo-image normalises `source` to a list).
+     * picked (expo-image normalises `source` to a list). Read inside the
+     * composer's own tray: a sent Attachment's tile is named the same way,
+     * in its own place in the Conversation.
      */
-    const thumbnails = () =>
-      screen
-        .queryAllByLabelText(THUMBNAIL)
-        .map(
-          (image) =>
-            (image.props as { source: { uri: string }[] }).source[0]?.uri
-        );
+    const thumbnails = () => {
+      const tray = screen.queryByTestId(ATTACHMENT_TRAY);
+
+      return tray
+        ? within(tray)
+            .queryAllByLabelText(THUMBNAIL)
+            .map(
+              (image) =>
+                (image.props as { source: { uri: string }[] }).source[0]?.uri
+            )
+        : [];
+    };
 
     it("offers no way to add one while they are off", async () => {
       await renderArnold();
@@ -581,6 +617,146 @@ describe("arnold screen", () => {
       expect(screen.getByRole("button", { name: PHOTOS })).toBeTruthy();
     });
 
+    it("sends them as JPEG data URLs after the text, in pick order", async () => {
+      mockAttachmentsEnabled = true;
+      mockPickLibraryPhotos.mockResolvedValue({
+        failed: 0,
+        images: [photo("gym"), photo("plan")],
+      });
+      await renderArnold();
+      await pickPhotos();
+      await send("What is this machine?");
+
+      await waitFor(() => expect(fakeArnold.sent).toHaveLength(1));
+      expect(fakeArnold.sent[0]?.parts).toEqual([
+        { text: "What is this machine?", type: "text" },
+        {
+          data: dataUrlFor("file:///photos/gym.jpg"),
+          mediaType: "image/jpeg",
+          type: "file",
+        },
+        {
+          data: dataUrlFor("file:///photos/plan.jpg"),
+          mediaType: "image/jpeg",
+          type: "file",
+        },
+      ]);
+    });
+
+    it("sends a photo with no text at all", async () => {
+      mockAttachmentsEnabled = true;
+      mockPickLibraryPhotos.mockResolvedValue({
+        failed: 0,
+        images: [photo("gym")],
+      });
+      await renderArnold();
+      await pickPhotos();
+      await userEvent.setup().press(screen.getByLabelText(SEND));
+
+      await waitFor(() => expect(fakeArnold.sent).toHaveLength(1));
+      expect(fakeArnold.sent[0]?.parts).toEqual([
+        {
+          data: dataUrlFor("file:///photos/gym.jpg"),
+          mediaType: "image/jpeg",
+          type: "file",
+        },
+      ]);
+      // Sent, so the composer is empty again, text and thumbnails alike.
+      expect(thumbnails()).toEqual([]);
+      await waitFor(() =>
+        expect(screen.getByText(FAKE_ARNOLD_REPLY)).toBeTruthy()
+      );
+    });
+
+    it("shows a Photo tile per Attachment, before and after the echo", async () => {
+      mockAttachmentsEnabled = true;
+      mockPickLibraryPhotos.mockResolvedValue({
+        failed: 0,
+        images: [photo("gym"), photo("plan")],
+      });
+      await renderArnold();
+      await pickPhotos();
+      // Held, so the bubble on screen is eve's own optimistic message, the
+      // one whose summary carries the `[file: …]` placeholders.
+      const release = fakeArnold.holdNextSend();
+      await send("What is this machine?");
+
+      expect(screen.getByText("What is this machine?")).toBeTruthy();
+      expect(screen.getAllByLabelText(SENT_PHOTO)).toHaveLength(2);
+      expect(screen.queryByText(FILE_PLACEHOLDER)).toBeNull();
+
+      release();
+      await waitFor(() =>
+        expect(screen.getByText(FAKE_ARNOLD_REPLY)).toBeTruthy()
+      );
+
+      // Arnold's echo replaces that message, and carries the files as
+      // metadata only, so the tiles stand for them there too.
+      expect(screen.getByText("What is this machine?")).toBeTruthy();
+      expect(screen.getAllByLabelText(SENT_PHOTO)).toHaveLength(2);
+      expect(screen.queryByText(FILE_PLACEHOLDER)).toBeNull();
+    });
+
+    it("shows no tile on a message sent without one", async () => {
+      mockAttachmentsEnabled = true;
+      await renderArnold();
+      await send("How heavy should I squat?");
+
+      await waitFor(() =>
+        expect(screen.getByText(FAKE_ARNOLD_REPLY)).toBeTruthy()
+      );
+      expect(screen.queryAllByLabelText(SENT_PHOTO)).toEqual([]);
+    });
+
+    it("tells Segment how many went, and nothing about them", async () => {
+      mockAttachmentsEnabled = true;
+      mockPickLibraryPhotos.mockResolvedValue({
+        failed: 0,
+        images: [photo("gym"), photo("plan")],
+      });
+      await renderArnold();
+      await pickPhotos();
+      await send("What is this machine?");
+
+      await waitFor(() => expect(fakeArnold.sent).toHaveLength(1));
+      expect(jest.mocked(segmentClient.track).mock.calls).toEqual([
+        ["Arnold Attachment Sent", { count: 2 }],
+      ]);
+    });
+
+    it("tells Segment nothing about a message sent without one", async () => {
+      mockAttachmentsEnabled = true;
+      await renderArnold();
+      await send("How heavy should I squat?");
+
+      await waitFor(() => expect(fakeArnold.sent).toHaveLength(1));
+      expect(segmentClient.track).not.toHaveBeenCalled();
+    });
+
+    it("gives a message back when a photo can't be read off the device", async () => {
+      mockAttachmentsEnabled = true;
+      mockPickLibraryPhotos.mockResolvedValue({
+        failed: 0,
+        images: [photo("gym"), photo("plan")],
+      });
+      // The cache the re-encoder wrote to can be purged under memory
+      // pressure, so the file a send reads may be gone by then.
+      mockReadAttachmentDataUrl.mockRejectedValue(new Error("No such file"));
+      await renderArnold();
+      await pickPhotos();
+      await send("What is this machine?");
+
+      await waitFor(() => expect(captureException).toHaveBeenCalled());
+      // Nothing went out, and the message is in the composer to send again,
+      // photos and all, rather than quietly lost.
+      expect(fakeArnold.sent).toEqual([]);
+      expect(screen.getByDisplayValue("What is this machine?")).toBeTruthy();
+      expect(thumbnails()).toEqual([
+        "file:///photos/gym.jpg",
+        "file:///photos/plan.jpg",
+      ]);
+    });
+
     it("picks photos and says the message is full in Ukrainian", async () => {
       mockAttachmentsEnabled = true;
       setDeviceLanguages(["uk-UA"]);
@@ -601,6 +777,26 @@ describe("arnold screen", () => {
       expect(
         screen.getByText("В одне повідомлення можна додати не більше 4 фото.")
       ).toBeTruthy();
+    });
+
+    it("names a sent photo's tile in Ukrainian", async () => {
+      mockAttachmentsEnabled = true;
+      setDeviceLanguages(["uk-UA"]);
+      mockPickLibraryPhotos.mockResolvedValue({
+        failed: 0,
+        images: [photo("gym"), photo("plan")],
+      });
+      await renderArnold();
+      await pickPhotos();
+      await send("Що це за тренажер?");
+
+      await waitFor(() =>
+        expect(screen.getByText(FAKE_ARNOLD_REPLY)).toBeTruthy()
+      );
+      expect(screen.getByLabelText("Фото 1 з 2")).toBeTruthy();
+      expect(screen.getByLabelText("Фото 2 з 2")).toBeTruthy();
+      expect(screen.getAllByText("Фото")).toHaveLength(2);
+      expect(screen.queryByLabelText("Photo 1 of 2")).toBeNull();
     });
   });
 });

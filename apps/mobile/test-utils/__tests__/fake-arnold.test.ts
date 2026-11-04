@@ -63,9 +63,10 @@ describe("fake Arnold", () => {
       "session.waiting",
     ]);
     const received = events.find((event) => event.type === "message.received");
-    // The echo carries a file's metadata only: never its bytes or a URL.
+    // The echo carries a file's metadata only: never its bytes or a URL, and
+    // its `message` summary names the file the way eve's own does.
     expect(received?.data).toEqual({
-      message: "What is this?",
+      message: "What is this?\n[file: gym.jpg (image/jpeg)]",
       parts: [
         { text: "What is this?", type: "text" },
         {
