@@ -6,7 +6,7 @@ import {
   useRouter,
 } from "expo-router";
 import type { TFunction } from "i18next";
-import { useCallback, useEffect, useState } from "react";
+import { useCallback, useEffect, useRef, useState } from "react";
 import { useTranslation } from "react-i18next";
 import { ActivityIndicator, Alert, ScrollView, View } from "react-native";
 import { KeyboardAwareScrollView } from "react-native-keyboard-controller";
@@ -25,7 +25,10 @@ import {
 } from "~/hooks/plan-draft";
 import { usePlanQuery } from "~/hooks/queries/plans";
 import {
+  addDraftWorkout,
+  canAddDraftWorkout,
   isSavablePlanDraft,
+  nextWorkoutName,
   type PlanDraft,
   planDraftChanged,
   planDraftFrom,
@@ -38,13 +41,21 @@ import {
  * generic error — never the API's own message.
  */
 const saveFailureMessage = (t: TFunction, error: unknown) => {
-  if (error instanceof ApiError && error.code === "not_found") {
+  const code = error instanceof ApiError ? error.code : null;
+  if (code === "not_found") {
     return t("plans.errors.notFound");
   }
   const seconds = rateLimitedFor(error);
-  return seconds === null
-    ? t("planEditor.errors.saveFailed")
-    : t("planEditor.errors.saveRateLimited", { seconds });
+  if (seconds !== null) {
+    return t("planEditor.errors.saveRateLimited", { seconds });
+  }
+  if (code === "unknown_exercises") {
+    return t("planEditor.errors.unknownExercises");
+  }
+  if (code === "library_unavailable") {
+    return t("planEditor.errors.libraryUnavailable");
+  }
+  return t("planEditor.errors.saveFailed");
 };
 
 /**
@@ -53,6 +64,10 @@ const saveFailureMessage = (t: TFunction, error: unknown) => {
  * `PUT /v1/plans/{id}`, including every field it doesn't show (the note, the
  * Workouts' descriptions, their Exercises and sets) as it was loaded.
  *
+ * Its Workouts open the Workout editor, pushed over it inside the same
+ * modal and working on the same draft; given a `workoutId`, it opens that
+ * Workout's editor at once ("Edit Workout" on the Workout screen).
+ *
  * Save and Cancel are the native header's items; Save is disabled while the
  * draft can't be saved. Leaving with unsaved changes — Cancel or a swipe —
  * asks first, and the draft is thrown away with the Screen. A failed save
@@ -60,8 +75,11 @@ const saveFailureMessage = (t: TFunction, error: unknown) => {
  * over while it was in flight keeps the editor open on what they typed.
  */
 export default function PlanEditorScreen() {
-  const { planId: planIdParam } = useLocalSearchParams();
-  const planId = planIdParam as string;
+  const { planId, workoutId } = useLocalSearchParams<{
+    planId: string;
+    /** A Workout to open at once: "Edit Workout" on the Workout screen. */
+    workoutId?: string;
+  }>();
   const router = useRouter();
   const { t } = useTranslation();
 
@@ -90,6 +108,45 @@ export default function PlanEditorScreen() {
       updatePlanDraft(draftKey, update),
     [draftKey]
   );
+
+  const openWorkout = useCallback(
+    (workoutKey: string) => {
+      router.push({
+        params: { draft: draftKey, planId, workoutKey },
+        pathname: "/plans/[planId]/edit/workouts/[workoutKey]",
+      });
+    },
+    [draftKey, planId, router]
+  );
+
+  const addWorkout = useCallback(() => {
+    const current = getPlanDraft(draftKey)?.draft;
+    if (!(current && canAddDraftWorkout(current))) {
+      return;
+    }
+    const added = addDraftWorkout(
+      current,
+      nextWorkoutName(current.workouts, (letter) =>
+        t("planEditor.newWorkoutName", { letter })
+      )
+    );
+    updatePlanDraft(draftKey, () => added.draft);
+    openWorkout(added.key);
+  }, [draftKey, openWorkout, t]);
+
+  // "Edit Workout" opens the editor at that Workout: once, whether the Plan
+  // still has it or not, so going back doesn't push it again.
+  const openedWorkout = useRef<boolean>(false);
+  useEffect(() => {
+    if (openedWorkout.current || !(entry && workoutId)) {
+      return;
+    }
+    openedWorkout.current = true;
+    const workout = entry.draft.workouts.find(({ id }) => id === workoutId);
+    if (workout) {
+      openWorkout(workout.key);
+    }
+  }, [entry, openWorkout, workoutId]);
 
   const [saveError, setSaveError] = useState<string | null>(null);
   const { isPending: isSaving, mutate: savePlan } = useSavePlanMutation();
@@ -229,7 +286,9 @@ export default function PlanEditorScreen() {
         >
           <PlanEditorView
             draft={draft}
+            onAddWorkout={addWorkout}
             onChange={change}
+            onOpenWorkout={openWorkout}
             saveError={saveError}
           />
         </KeyboardAwareScrollView>

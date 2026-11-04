@@ -4,28 +4,50 @@ import {
   experienceLevels,
   type Goal,
   goals,
+  MAX_EXERCISES_PER_WORKOUT,
   MAX_FREQUENCY,
   MAX_PLAN_NAME_LENGTH,
   MAX_PLAN_TEXT_LENGTH,
+  MAX_REPS,
+  MAX_REST_SECONDS,
+  MAX_SETS_PER_EXERCISE,
+  MAX_WEIGHT,
   MAX_WORKOUT_DURATION_MINUTES,
+  MAX_WORKOUTS_PER_PLAN,
   MIN_FREQUENCY,
   type Place,
   places,
 } from "@fitme/core";
 import type { FullPlan, PlanWorkout } from "~/hooks/queries/plans";
 
-/** One planned set of the draft, with the id it was loaded under. */
+/**
+ * One planned set of the draft, with the id it was loaded under.
+ *
+ * Each target is `null` while its field holds something the write can't take
+ * (empty, not a number, out of bounds), so Save can be disabled for it;
+ * `isSavablePlanDraft` is what decides.
+ */
 export interface DraftSet {
   id?: string;
-  reps: number;
-  rest: number;
-  weight: number;
+  /**
+   * Its identity in the draft, for its React key: the id it was loaded
+   * under, or a fresh one for a new set. Never sent.
+   */
+  key: string;
+  reps: number | null;
+  rest: number | null;
+  weight: number | null;
 }
 
 /** One Exercise of a draft Workout, by its Exercise slug. */
 export interface DraftExercise {
   exerciseSlug: string;
   id?: string;
+  /**
+   * Its identity in the draft: its React key, and what the picker replaces.
+   * The id it was loaded under, or a fresh one for a new Exercise.
+   */
+  key: string;
   sets: DraftSet[];
 }
 
@@ -35,6 +57,11 @@ export interface DraftWorkout {
   description: string;
   exercises: DraftExercise[];
   id?: string;
+  /**
+   * Its identity in the draft: its React key, and the Workout editor's route
+   * param. The id it was loaded under, or a fresh one for a new Workout.
+   */
+  key: string;
   name: string;
 }
 
@@ -44,9 +71,10 @@ export interface DraftWorkout {
  * one editor opening and never persisted (`hooks/plan-draft.ts`).
  *
  * A row's `id` is the one the Plan was read under, which the whole-Plan save
- * keeps (ADR 0016); a row without one is new. The four details are nullable,
- * because a Plan may leave them unset (ADR 0017), and the note is carried
- * through unseen.
+ * keeps (ADR 0016); a row without one is new. Its `key` is the draft's own
+ * identity for it, which a new row has too, so a React key and a route
+ * param survive a reorder. The four details are nullable, because a Plan may
+ * leave them unset (ADR 0017), and the note is carried through unseen.
  *
  * `frequency` and `workoutDuration` hold what the User typed, out of bounds
  * included, so the editor can say what's wrong; `isSavablePlanDraft` is what
@@ -64,20 +92,62 @@ export interface PlanDraft {
   workouts: DraftWorkout[];
 }
 
+/** A change to the draft, as the editor's store takes it. */
+export type DraftChange = (change: (draft: PlanDraft) => PlanDraft) => void;
+
+/** A set every target of which the whole-Plan save can take. */
+export type SavableDraftSet = DraftSet & {
+  reps: number;
+  rest: number;
+  weight: number;
+};
+
+/**
+ * An Exercise with at least one savable set, as the write requires. The
+ * narrowed list replaces the draft's rather than intersecting it: `.map`
+ * over an intersection of two array types reads the first one's element.
+ */
+export type SavableDraftExercise = Omit<DraftExercise, "sets"> & {
+  sets: SavableDraftSet[];
+};
+
+/** A Workout with at least one savable Exercise, as the write requires. */
+export type SavableDraftWorkout = Omit<DraftWorkout, "exercises"> & {
+  exercises: SavableDraftExercise[];
+};
+
 /**
  * A draft every required field of which is in bounds: what `savePlanBody`
- * takes, so a body never goes out with a detail the write can't express.
+ * takes, so a body never goes out with a detail or a target the write can't
+ * express.
  */
-export type SavablePlanDraft = PlanDraft & {
+export type SavablePlanDraft = Omit<PlanDraft, "workouts"> & {
   experienceLevel: ExperienceLevel;
   frequency: number;
   goal: Goal;
   place: Place;
   workoutDuration: number;
+  workouts: SavableDraftWorkout[];
 };
 
 /** `PUT /v1/plans/{id}`'s body: the whole Plan, each row with its id. */
 export type SavedPlanBody = components["schemas"]["SavedPlan"];
+
+/** What a new Exercise's sets start at: 3 × 10 reps, bodyweight, 90 s rest. */
+export const NEW_EXERCISE_SET_COUNT = 3;
+const NEW_SET = { reps: 10, rest: 90, weight: 0 } as const;
+
+let keys = 0;
+
+/**
+ * A fresh identity for a row the draft is adding. A loaded row takes its own
+ * id instead, so building a draft from the same Plan twice gives the same
+ * keys and `planDraftChanged` compares the two by value.
+ */
+const newDraftKey = (): string => {
+  keys += 1;
+  return `new-${keys}`;
+};
 
 /** One of `choices`, or `null` for a value the Plan doesn't have. */
 const choice = <TChoice extends string>(
@@ -91,14 +161,17 @@ const draftWorkout = (workout: PlanWorkout): DraftWorkout => ({
   exercises: workout.exercises.map((exercise) => ({
     exerciseSlug: exercise.exercise_slug,
     id: exercise.id,
+    key: exercise.id,
     sets: exercise.sets.map((set) => ({
       id: set.id,
+      key: set.id,
       reps: set.reps_recommended,
       rest: set.rest_recommended,
       weight: set.weight_recommended,
     })),
   })),
   id: workout.id,
+  key: workout.id,
   name: workout.name,
 });
 
@@ -126,17 +199,48 @@ const isWholeNumberIn = (
 ): value is number =>
   value !== null && Number.isInteger(value) && value >= min && value <= max;
 
+/** Within 0.01 of a whole cent: a weight the write's numeric(8,2) can hold. */
+const isStorableWeight = (value: number | null): value is number =>
+  value !== null &&
+  value >= 0 &&
+  value <= MAX_WEIGHT &&
+  Math.abs(value * 100 - Math.round(value * 100)) < 1e-6;
+
 const isSavableName = (name: string) => {
   const trimmed = name.trim();
   return trimmed.length >= 1 && trimmed.length <= MAX_PLAN_NAME_LENGTH;
 };
 
+/** Whether a set's three targets are all in the write's bounds. */
+export const isSavableSet = (set: DraftSet): set is SavableDraftSet =>
+  isWholeNumberIn(set.reps, 1, MAX_REPS) &&
+  isWholeNumberIn(set.rest, 0, MAX_REST_SECONDS) &&
+  isStorableWeight(set.weight);
+
+/** Whether an Exercise has at least one set and every set is savable. */
+const isSavableExercise = (
+  exercise: DraftExercise
+): exercise is SavableDraftExercise =>
+  exercise.sets.length >= 1 && exercise.sets.every(isSavableSet);
+
+/**
+ * Whether a Workout can be saved: a name, at least one Exercise, and every
+ * Exercise with savable sets. It's what the Plan editor's row says is wrong.
+ */
+export const isSavableWorkout = (
+  workout: DraftWorkout
+): workout is SavableDraftWorkout =>
+  isSavableName(workout.name) &&
+  workout.exercises.length >= 1 &&
+  workout.exercises.every(isSavableExercise);
+
 /**
  * Whether the draft can be saved: a name and a frequency within
  * `@fitme/core`'s bounds, a Workout duration within its own, at least one
- * Workout, every Workout with at least one Exercise, and each of the four
- * details set, since the whole-Plan save still requires them (clearing one
- * comes with the migration, ADR 0017). It's what Save is enabled by.
+ * Workout, every Workout savable (a name, an Exercise, and every set's
+ * targets in bounds), and each of the four details set, since the whole-Plan
+ * save still requires them (clearing one comes with the migration, ADR
+ * 0017). It's what Save is enabled by.
  */
 export const isSavablePlanDraft = (
   draft: PlanDraft
@@ -149,10 +253,7 @@ export const isSavablePlanDraft = (
   draft.place !== null &&
   draft.experienceLevel !== null &&
   draft.workouts.length >= 1 &&
-  draft.workouts.every(
-    (workout) =>
-      workout.name.trim().length >= 1 && workout.exercises.length >= 1
-  );
+  draft.workouts.every(isSavableWorkout);
 
 /** A text field the write leaves out when there's nothing in it. */
 const textOrNothing = (value: string) => {
@@ -163,8 +264,9 @@ const textOrNothing = (value: string) => {
 /**
  * The body `PUT /v1/plans/{id}` takes, field by field: the write's schema is
  * strict, so nothing the read carries along (`order`, `cover`, `plan_id`,
- * the timestamps) may go back. Every row sent with its id keeps it, and an
- * empty description is left out, which clears it.
+ * the timestamps) and nothing the draft holds for itself (`key`) may go
+ * back. Every row sent with its id keeps it, and an empty description is
+ * left out, which clears it.
  */
 export const savePlanBody = (draft: SavablePlanDraft): SavedPlanBody => ({
   ...textOrNothing(draft.description),
@@ -216,6 +318,231 @@ export const removeDraftWorkout = (
   ...draft,
   workouts: draft.workouts.filter((_workout, at) => at !== index),
 });
+
+const LETTERS = "ABCDEFGHIJKLMNOPQRSTUVWXYZ";
+
+/**
+ * What a Workout added now is called: the letter of its place in the
+ * rotation (the fourth is "Workout D"), moved on to the next letter while a
+ * Workout of the draft already goes by that name, so no two read the same.
+ * `nameFor` is the catalog's name for a letter, so this reads in the App
+ * language.
+ */
+export const nextWorkoutName = (
+  workouts: readonly DraftWorkout[],
+  nameFor: (letter: string) => string
+): string => {
+  const taken = new Set(workouts.map((workout) => workout.name.trim()));
+  const from = workouts.length % LETTERS.length;
+  const letters = Array.from(
+    { length: LETTERS.length },
+    (_letter, at) => LETTERS[(from + at) % LETTERS.length]
+  );
+  const free = letters.find((letter) => !taken.has(nameFor(letter)));
+  return nameFor(free ?? LETTERS[from]);
+};
+
+/** Whether another Workout fits the Plan (`@fitme/core`'s cap). */
+export const canAddDraftWorkout = (draft: PlanDraft) =>
+  draft.workouts.length < MAX_WORKOUTS_PER_PLAN;
+
+/**
+ * The draft with a new, empty Workout named `name` at the end of the
+ * rotation, and its key, so the caller can open it. The Plan's cap is the
+ * caller's to check (`canAddDraftWorkout` disables Add).
+ */
+export const addDraftWorkout = (
+  draft: PlanDraft,
+  name: string
+): { draft: PlanDraft; key: string } => {
+  const workout: DraftWorkout = {
+    description: "",
+    exercises: [],
+    key: newDraftKey(),
+    name,
+  };
+  return {
+    draft: { ...draft, workouts: [...draft.workouts, workout] },
+    key: workout.key,
+  };
+};
+
+/** The Workout of the draft with that key, or `undefined` once it's gone. */
+export const draftWorkoutByKey = (
+  draft: PlanDraft,
+  key: string
+): DraftWorkout | undefined =>
+  draft.workouts.find((workout) => workout.key === key);
+
+/** The draft with `change` applied to the Workout with that key. */
+const changeWorkout = (
+  draft: PlanDraft,
+  key: string,
+  change: (workout: DraftWorkout) => DraftWorkout
+): PlanDraft => ({
+  ...draft,
+  workouts: draft.workouts.map((workout) =>
+    workout.key === key ? change(workout) : workout
+  ),
+});
+
+/** The draft with the Workout renamed. */
+export const renameDraftWorkout = (
+  draft: PlanDraft,
+  key: string,
+  name: string
+): PlanDraft => changeWorkout(draft, key, (workout) => ({ ...workout, name }));
+
+/** Whether another Exercise fits the Workout (`@fitme/core`'s cap). */
+export const canAddDraftExercise = (workout: DraftWorkout) =>
+  workout.exercises.length < MAX_EXERCISES_PER_WORKOUT;
+
+const newSet = (): DraftSet => ({ ...NEW_SET, key: newDraftKey() });
+
+/**
+ * The draft with the Exercise appended to the Workout, at
+ * `NEW_EXERCISE_SET_COUNT` sets of 10 reps, no weight and 90 s rest, so only
+ * what the User wants different is theirs to change.
+ */
+export const addDraftExercise = (
+  draft: PlanDraft,
+  workoutKey: string,
+  exerciseSlug: string
+): PlanDraft =>
+  changeWorkout(draft, workoutKey, (workout) => ({
+    ...workout,
+    exercises: [
+      ...workout.exercises,
+      {
+        exerciseSlug,
+        key: newDraftKey(),
+        sets: Array.from({ length: NEW_EXERCISE_SET_COUNT }, newSet),
+      },
+    ],
+  }));
+
+/**
+ * The draft with the Exercise swapped for another in place: the row, its id
+ * and its set rows stay, so swapping a movement doesn't mean retyping the
+ * sets.
+ */
+export const replaceDraftExercise = (
+  draft: PlanDraft,
+  workoutKey: string,
+  exerciseKey: string,
+  exerciseSlug: string
+): PlanDraft =>
+  changeWorkout(draft, workoutKey, (workout) => ({
+    ...workout,
+    exercises: workout.exercises.map((exercise) =>
+      exercise.key === exerciseKey ? { ...exercise, exerciseSlug } : exercise
+    ),
+  }));
+
+/** The draft without that Exercise, its sets with it. */
+export const removeDraftExercise = (
+  draft: PlanDraft,
+  workoutKey: string,
+  exerciseKey: string
+): PlanDraft =>
+  changeWorkout(draft, workoutKey, (workout) => ({
+    ...workout,
+    exercises: workout.exercises.filter(
+      (exercise) => exercise.key !== exerciseKey
+    ),
+  }));
+
+/** The draft with that Exercise moved by `by` (-1 up, 1 down). */
+export const moveDraftExercise = (
+  draft: PlanDraft,
+  workoutKey: string,
+  exerciseKey: string,
+  by: -1 | 1
+): PlanDraft =>
+  changeWorkout(draft, workoutKey, (workout) => {
+    const index = workout.exercises.findIndex(
+      (exercise) => exercise.key === exerciseKey
+    );
+    const to = index + by;
+    if (index < 0 || to < 0 || to >= workout.exercises.length) {
+      return workout;
+    }
+    const exercises = [...workout.exercises];
+    const [moved] = exercises.splice(index, 1);
+    exercises.splice(to, 0, moved);
+    return { ...workout, exercises };
+  });
+
+/** Whether another set fits the Exercise (`@fitme/core`'s cap). */
+export const canAddDraftSet = (exercise: DraftExercise) =>
+  exercise.sets.length < MAX_SETS_PER_EXERCISE;
+
+/** The draft with `change` applied to that Exercise. */
+const changeExercise = (
+  draft: PlanDraft,
+  workoutKey: string,
+  exerciseKey: string,
+  change: (exercise: DraftExercise) => DraftExercise
+): PlanDraft =>
+  changeWorkout(draft, workoutKey, (workout) => ({
+    ...workout,
+    exercises: workout.exercises.map((exercise) =>
+      exercise.key === exerciseKey ? change(exercise) : exercise
+    ),
+  }));
+
+/**
+ * The draft with a set appended to that Exercise, copying the one before it
+ * (its id left behind, so it's a new set), or the defaults when it has none.
+ */
+export const addDraftSet = (
+  draft: PlanDraft,
+  workoutKey: string,
+  exerciseKey: string
+): PlanDraft =>
+  changeExercise(draft, workoutKey, exerciseKey, (exercise) => {
+    const previous = exercise.sets.at(-1);
+    const added: DraftSet = previous
+      ? {
+          key: newDraftKey(),
+          reps: previous.reps,
+          rest: previous.rest,
+          weight: previous.weight,
+        }
+      : newSet();
+    return { ...exercise, sets: [...exercise.sets, added] };
+  });
+
+/** The draft without that set. */
+export const removeDraftSet = (
+  draft: PlanDraft,
+  workoutKey: string,
+  exerciseKey: string,
+  setKey: string
+): PlanDraft =>
+  changeExercise(draft, workoutKey, exerciseKey, (exercise) => ({
+    ...exercise,
+    sets: exercise.sets.filter((set) => set.key !== setKey),
+  }));
+
+/** One target of a set: what its field writes into the draft. */
+export type DraftSetTarget = "reps" | "rest" | "weight";
+
+/** The draft with one of that set's targets changed. */
+export const updateDraftSet = (
+  draft: PlanDraft,
+  workoutKey: string,
+  exerciseKey: string,
+  setKey: string,
+  target: DraftSetTarget,
+  value: number | null
+): PlanDraft =>
+  changeExercise(draft, workoutKey, exerciseKey, (exercise) => ({
+    ...exercise,
+    sets: exercise.sets.map((set) =>
+      set.key === setKey ? { ...set, [target]: value } : set
+    ),
+  }));
 
 /**
  * Whether the draft differs from the one the editor opened on: what decides

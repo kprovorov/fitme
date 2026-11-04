@@ -232,6 +232,38 @@
     "moveUp": "Mou «{{name}}» amunt",
     "moveDown": "Mou «{{name}}» avall",
     "remove": "Elimina «{{name}}»",
+    "addWorkout": "Afegeix un entrenament",
+    "newWorkoutName": "Entrenament {{letter}}",
+    "openWorkout": "Edita «{{name}}»",
+    "workoutNeedsExercise": "Necessita com a mínim un exercici",
+    "workout": {
+      "title": "Edita l'entrenament",
+      "name": "Nom",
+      "namePlaceholder": "Nom de l'entrenament",
+      "exercises": "Exercicis",
+      "exercisesHint": "En l'ordre en què els fas.",
+      "noExercises": "Afegeix un exercici a aquest entrenament.",
+      "addExercise": "Afegeix un exercici",
+      "exerciseActions": "Accions per a «{{name}}»",
+      "moveUp": "Mou «{{name}}» amunt",
+      "moveDown": "Mou «{{name}}» avall",
+      "replace": "Substitueix «{{name}}»",
+      "remove": "Elimina «{{name}}»",
+      "removeSet": "Elimina la sèrie {{order, number}}",
+      "errors": {
+        "nameRequired": "Escriu un nom per a l'entrenament",
+        "repsRange": "Les repeticions han de ser un nombre enter de {{min, number(useGrouping: false)}} a {{max, number(useGrouping: false)}}",
+        "weightRange": "El pes ha de ser un nombre de {{min, number(useGrouping: false)}} a {{max, number(useGrouping: false)}}",
+        "restRange": "El descans ha de ser un nombre enter de segons de {{min, number(useGrouping: false)}} a {{max, number(useGrouping: false)}}"
+      }
+    },
+    "picker": {
+      "addTitle": "Afegeix un exercici",
+      "replaceTitle": "Substitueix l'exercici",
+      "close": "Tanca",
+      "addExercise": "Afegeix «{{name}}»",
+      "replaceWith": "Substitueix per «{{name}}»"
+    },
     "discard": {
       "title": "Vols descartar els canvis?",
       "message": "Es perdran els canvis que has fet en aquest pla.",
@@ -245,7 +277,9 @@
       "durationRange": "La durada de l'entrenament ha de ser un nombre enter de minuts, com a màxim {{max, number(useGrouping: false)}}",
       "choiceRequired": "Tria una opció",
       "saveFailed": "No s'ha pogut desar el pla. Comprova la connexió i torna-ho a provar.",
-      "saveRateLimited": "No s'ha pogut desar el pla. Massa sol·licituds: torna-ho a provar en {{seconds, number}} s."
+      "saveRateLimited": "No s'ha pogut desar el pla. Massa sol·licituds: torna-ho a provar en {{seconds, number}} s.",
+      "unknownExercises": "Aquest pla té exercicis que no coneixem, així que no es pot desar. Substitueix-los i torna-ho a provar.",
+      "libraryUnavailable": "No s'han pogut comprovar els exercicis d'aquest pla. Torna-ho a provar."
     }
   },
   "plannedWorkout": {
@@ -258,6 +292,7 @@
     "noExercises": "Aquest entrenament encara no té exercicis.",
     "gone": "Aquest entrenament ja no existeix",
     "goBack": "Torna enrere",
+    "edit": "Edita l'entrenament",
     "loadError": "No s'ha pogut carregar aquest entrenament. Comprova la connexió i torna-ho a provar.",
     "exerciseDetailsHint": "Obre els detalls de l'exercici"
   },
@@ -472,6 +507,7 @@
     "row": {
       "repsInput": "Repeticions de la sèrie {{order, number}}",
       "weightInput": "Pes de la sèrie {{order, number}}",
+      "restInput": "Descans de la sèrie {{order, number}}",
       "log": "Registra la sèrie {{order, number}}",
       "edit": "Edita la sèrie {{order, number}}",
       "editHint": "Obre la sèrie per editar-la",

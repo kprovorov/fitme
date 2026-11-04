@@ -246,6 +246,38 @@
     "moveUp": "Перемістити «{{name}}» вище",
     "moveDown": "Перемістити «{{name}}» нижче",
     "remove": "Видалити «{{name}}»",
+    "addWorkout": "Додати тренування",
+    "newWorkoutName": "Тренування {{letter}}",
+    "openWorkout": "Редагувати «{{name}}»",
+    "workoutNeedsExercise": "Потрібна хоча б одна вправа",
+    "workout": {
+      "title": "Редагувати тренування",
+      "name": "Назва",
+      "namePlaceholder": "Назва тренування",
+      "exercises": "Вправи",
+      "exercisesHint": "У порядку виконання.",
+      "noExercises": "Додайте вправу до цього тренування.",
+      "addExercise": "Додати вправу",
+      "exerciseActions": "Дії для «{{name}}»",
+      "moveUp": "Перемістити «{{name}}» вище",
+      "moveDown": "Перемістити «{{name}}» нижче",
+      "replace": "Замінити «{{name}}»",
+      "remove": "Видалити «{{name}}»",
+      "removeSet": "Видалити підхід {{order, number}}",
+      "errors": {
+        "nameRequired": "Вкажіть назву тренування",
+        "repsRange": "Повторень має бути цілим числом від {{min, number(useGrouping: false)}} до {{max, number(useGrouping: false)}}",
+        "weightRange": "Вага має бути числом від {{min, number(useGrouping: false)}} до {{max, number(useGrouping: false)}}",
+        "restRange": "Відпочинок має бути цілим числом секунд від {{min, number(useGrouping: false)}} до {{max, number(useGrouping: false)}}"
+      }
+    },
+    "picker": {
+      "addTitle": "Додати вправу",
+      "replaceTitle": "Замінити вправу",
+      "close": "Закрити",
+      "addExercise": "Додати «{{name}}»",
+      "replaceWith": "Замінити на «{{name}}»"
+    },
     "discard": {
       "title": "Скасувати зміни?",
       "message": "Ваші зміни в цьому плані буде втрачено.",
@@ -259,7 +291,9 @@
       "durationRange": "Тривалість тренування має бути цілим числом хвилин, не більше ніж {{max, number(useGrouping: false)}}",
       "choiceRequired": "Виберіть один варіант",
       "saveFailed": "Не вдалося зберегти план. Перевірте з’єднання й спробуйте ще раз.",
-      "saveRateLimited": "Не вдалося зберегти план. Забагато запитів: спробуйте ще раз через {{seconds, number}} с."
+      "saveRateLimited": "Не вдалося зберегти план. Забагато запитів: спробуйте ще раз через {{seconds, number}} с.",
+      "unknownExercises": "У цьому плані є невідомі нам вправи, тому його не можна зберегти. Замініть їх і спробуйте ще раз.",
+      "libraryUnavailable": "Не вдалося перевірити вправи цього плану. Спробуйте ще раз."
     }
   },
   "plannedWorkout": {
@@ -272,6 +306,7 @@
     "noExercises": "У цьому тренуванні ще немає вправ.",
     "gone": "Цього тренування більше немає",
     "goBack": "Назад",
+    "edit": "Редагувати тренування",
     "loadError": "Не вдалося завантажити тренування. Перевірте з’єднання й спробуйте ще раз.",
     "exerciseDetailsHint": "Відкриває опис вправи"
   },
@@ -497,6 +532,7 @@
     "row": {
       "repsInput": "Підхід {{order, number}}, повторення",
       "weightInput": "Підхід {{order, number}}, вага",
+      "restInput": "Підхід {{order, number}}, відпочинок",
       "log": "Записати підхід {{order, number}}",
       "edit": "Редагувати підхід {{order, number}}",
       "editHint": "Відкриває підхід для редагування",

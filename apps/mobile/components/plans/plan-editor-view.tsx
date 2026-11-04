@@ -14,7 +14,9 @@ import {
 import { formatCount } from "@fitme/i18n";
 import { type ReactNode, useCallback, useMemo, useState } from "react";
 import { useTranslation } from "react-i18next";
-import { View } from "react-native";
+import { Pressable, View } from "react-native";
+import { SymbolImage } from "~/components/symbol-image";
+import { Button } from "~/components/ui/button";
 import { DropdownMenu } from "~/components/ui/dropdown-menu";
 import { ErrorMessage } from "~/components/ui/error-message";
 import { HStack } from "~/components/ui/hstack";
@@ -30,18 +32,21 @@ import { VStack } from "~/components/ui/vstack";
 import { useChoiceLabels } from "~/lib/choices";
 import { useI18n } from "~/lib/i18n";
 import {
+  canAddDraftWorkout,
+  type DraftChange,
   type DraftWorkout,
   moveDraftWorkout,
   type PlanDraft,
   removeDraftWorkout,
 } from "~/lib/plan-draft";
 
-/** A change to the draft, as the editor's store takes it. */
-type DraftChange = (change: (draft: PlanDraft) => PlanDraft) => void;
-
 interface PlanEditorViewProps {
   draft: PlanDraft;
+  /** Adds a Workout at the end of the rotation and opens its editor. */
+  onAddWorkout: () => void;
   onChange: DraftChange;
+  /** Opens that Workout's editor, pushed over this Screen. */
+  onOpenWorkout: (workoutKey: string) => void;
   /** What a failed save said, shown above the form until the next try. */
   saveError?: string | null;
 }
@@ -139,11 +144,13 @@ function NumberField({
 function WorkoutRow({
   index,
   onChange,
+  onOpen,
   total,
   workout,
 }: {
   index: number;
   onChange: DraftChange;
+  onOpen: (workoutKey: string) => void;
   total: number;
   workout: DraftWorkout;
 }) {
@@ -179,16 +186,36 @@ function WorkoutRow({
     return actions;
   }, [index, onChange, t, total, workout.name]);
 
-  // Not a `MenuListItem`: the row isn't pressable yet (the Workout editor
-  // comes next), and a disabled item would read as dimmed.
+  const open = useCallback(() => onOpen(workout.key), [onOpen, workout.key]);
+
+  // The menu is the row's sibling, not inside its Pressable, so a tap on it
+  // opens the menu instead of the Workout.
   return (
-    <HStack className="items-center justify-between gap-2 p-4">
-      <VStack className="flex-1 items-start gap-0">
-        <Text className="text-body-emphasized">{workout.name}</Text>
-        <Text className="text-muted-foreground text-subhead">
-          {formatCount(i18n, "exercises", workout.exercises.length)}
-        </Text>
-      </VStack>
+    <HStack className="items-center justify-between gap-2 pr-4">
+      <Pressable
+        accessibilityLabel={t("planEditor.openWorkout", {
+          name: workout.name,
+        })}
+        accessibilityRole="button"
+        className="flex-1 flex-row items-center gap-2 py-4 pl-4 active:opacity-80"
+        onPress={open}
+      >
+        <VStack className="flex-1 items-start gap-0">
+          <Text className="text-body-emphasized">{workout.name}</Text>
+          <Text className="text-muted-foreground text-subhead">
+            {formatCount(i18n, "exercises", workout.exercises.length)}
+          </Text>
+          {workout.exercises.length === 0 ? (
+            <Text className="text-destructive text-subhead">
+              {t("planEditor.workoutNeedsExercise")}
+            </Text>
+          ) : null}
+        </VStack>
+        <SymbolImage
+          className="shrink-0 text-body text-muted-foreground"
+          name="chevron.right"
+        />
+      </Pressable>
       <DropdownMenu
         accessibilityLabel={t("planEditor.workoutActions", {
           name: workout.name,
@@ -208,7 +235,9 @@ function WorkoutRow({
  */
 export default function PlanEditorView({
   draft,
+  onAddWorkout,
   onChange,
+  onOpenWorkout,
   saveError,
 }: PlanEditorViewProps) {
   const { t } = useTranslation();
@@ -377,11 +406,12 @@ export default function PlanEditorView({
         {draft.workouts.length > 0 ? (
           <MenuList>
             {draft.workouts.map((workout, index) => (
-              <View key={workout.id ?? `new-${index}`}>
+              <View key={workout.key}>
                 {index > 0 ? <Separator /> : null}
                 <WorkoutRow
                   index={index}
                   onChange={onChange}
+                  onOpen={onOpenWorkout}
                   total={draft.workouts.length}
                   workout={workout}
                 />
@@ -393,6 +423,16 @@ export default function PlanEditorView({
             {t("planEditor.noWorkouts")}
           </Text>
         )}
+        <Button
+          className="self-start"
+          disabled={!canAddDraftWorkout(draft)}
+          fill={false}
+          icon="plus"
+          label={t("planEditor.addWorkout")}
+          onPress={onAddWorkout}
+          testID="add-draft-workout"
+          variant="secondary"
+        />
       </VStack>
     </VStack>
   );

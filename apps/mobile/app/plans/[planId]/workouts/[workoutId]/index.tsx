@@ -260,6 +260,13 @@ export default function WorkoutScreen() {
       router.replace("/");
     }
   }, [router]);
+  // The Plan editor, opened with this Workout's editor already pushed.
+  const editWorkout = useCallback(() => {
+    router.push({
+      params: { planId, workoutId },
+      pathname: "/plans/[planId]/edit",
+    });
+  }, [planId, router, workoutId]);
 
   // The Workout the pinned action is for: none while it, or whether Start is
   // blocked, can't be shown.
@@ -321,6 +328,16 @@ export default function WorkoutScreen() {
           headerShown: true,
           headerTransparent: true,
           title: "",
+          unstable_headerRightItems: shownWorkout
+            ? () => [
+                {
+                  icon: { name: "square.and.pencil", type: "sfSymbol" },
+                  label: t("plannedWorkout.edit"),
+                  onPress: editWorkout,
+                  type: "button",
+                },
+              ]
+            : undefined,
         }}
       />
       <ScrollView
