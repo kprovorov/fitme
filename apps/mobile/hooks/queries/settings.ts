@@ -8,7 +8,7 @@ import {
 import { createMutation } from "react-query-kit";
 import { rememberProfileWrite } from "~/hooks/mutations/profiles";
 import { EXERCISE_HISTORY_QUERY_KEY } from "~/hooks/queries/exercises";
-import { usePlanQuery, usePlansQuery } from "~/hooks/queries/plans";
+import { PLANS_QUERY_KEY, usePlanQuery } from "~/hooks/queries/plans";
 import { type Profile, useProfileQuery } from "~/hooks/queries/profiles";
 import {
   OPEN_WORKOUT_SESSION_QUERY_KEY,
@@ -30,7 +30,8 @@ import { isStillWriteStarter, type WriteStarter } from "~/lib/write-answers";
  * these.
  */
 const WEIGHED_QUERY_KEYS: QueryKey[] = [
-  usePlansQuery.getKey(),
+  // Every Plan read under it: the lists, the summaries and the active Plan.
+  PLANS_QUERY_KEY,
   // A Plan's screen and the Workout screen, which picks its Workout from it.
   usePlanQuery.getKey(),
   // The Workout Session screens, the Exercise screen and the Summary alike.

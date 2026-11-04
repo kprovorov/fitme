@@ -1,6 +1,7 @@
-import type { Plan } from "@fitme/core";
+import type { Goal, Place } from "@fitme/core";
 import { useTranslation } from "react-i18next";
 import { View } from "react-native";
+import type { FullPlan } from "~/hooks/queries/plans";
 import { useChoiceLabels } from "~/lib/choices";
 import { Badge } from "../ui/badge";
 import { Text } from "../ui/text";
@@ -8,7 +9,7 @@ import { H2 } from "../ui/typography";
 import { COUNT_SYMBOL, goalSymbol, placeSymbol } from "./plan-symbols";
 
 interface PlanHeaderProps {
-  plan: Plan;
+  plan: Pick<FullPlan, "description" | "frequency" | "goal" | "name" | "place">;
 }
 
 /**
@@ -19,6 +20,10 @@ interface PlanHeaderProps {
 export default function PlanHeader({ plan }: PlanHeaderProps) {
   const labels = useChoiceLabels();
   const { t } = useTranslation();
+  // The API answers these as the columns' text: an id this build doesn't
+  // know shows as itself (`useChoiceLabels`) with the default symbol.
+  const goal = plan.goal as Goal | null;
+  const place = plan.place as Place | null;
   return (
     <View className="items-start gap-xs py-sm">
       {/* Title 1 Emphasized in white, as Figma has it, not H2's lime. */}
@@ -27,14 +32,14 @@ export default function PlanHeader({ plan }: PlanHeaderProps) {
         <Badge icon={COUNT_SYMBOL}>
           <Text>{t("plans.frequency", { count: plan.frequency })}</Text>
         </Badge>
-        {plan.goal ? (
-          <Badge icon={goalSymbol(plan.goal)}>
-            <Text>{labels.goal(plan.goal)}</Text>
+        {goal ? (
+          <Badge icon={goalSymbol(goal)}>
+            <Text>{labels.goal(goal)}</Text>
           </Badge>
         ) : null}
-        {plan.place ? (
-          <Badge icon={placeSymbol(plan.place)}>
-            <Text>{labels.place(plan.place)}</Text>
+        {place ? (
+          <Badge icon={placeSymbol(place)}>
+            <Text>{labels.place(place)}</Text>
           </Badge>
         ) : null}
       </View>

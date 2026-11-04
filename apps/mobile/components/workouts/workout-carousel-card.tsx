@@ -1,4 +1,3 @@
-import type { Workout } from "@fitme/core";
 import { rankMuscleGroups } from "@fitme/core/covers";
 import { formatCount } from "@fitme/i18n";
 import { Image } from "expo-image";
@@ -7,6 +6,7 @@ import { useCallback, useState } from "react";
 import { useTranslation } from "react-i18next";
 import { StyleSheet, useWindowDimensions, View } from "react-native";
 import { useCovers, useExercises } from "~/hooks/queries/library";
+import type { PlanWorkout } from "~/hooks/queries/plans";
 import { useOwnOpenWorkoutSession } from "~/hooks/queries/workout-sessions";
 import {
   openSessionPath,
@@ -38,9 +38,11 @@ const coverStyle = { ...StyleSheet.absoluteFill, opacity: 0.8 };
 interface WorkoutCarouselCardProps {
   /** The Plan's Workout duration in minutes, `null` when it's unset. */
   durationMinutes: number | null;
+  /** The Plan the Workout is in. */
+  planId: string;
   /** The card's width, in points, which its Cover is sized for. */
   width: number;
-  workout: Workout;
+  workout: PlanWorkout;
 }
 
 /**
@@ -89,6 +91,7 @@ function WorkoutCover({
  */
 export default function WorkoutCarouselCard({
   durationMinutes,
+  planId,
   width,
   workout,
 }: WorkoutCarouselCardProps) {
@@ -99,7 +102,7 @@ export default function WorkoutCarouselCard({
   const { fontScale } = useWindowDimensions();
   const stacked = fontScale > STACKED_FONT_SCALE;
   const openSession = (sessionId: string) => {
-    router.push(workoutSessionPath(workout.plan_id, workout.id, sessionId));
+    router.push(workoutSessionPath(planId, workout.id, sessionId));
   };
   // Another Workout's open session still lets Start ask the API, whose 409
   // alerts "Finish <Workout> first" with a way into it (that session's own
@@ -131,7 +134,7 @@ export default function WorkoutCarouselCard({
   const hiddenGroups = muscleGroups.length - SHOWN_MUSCLE_GROUPS;
 
   const openPreview = () => {
-    router.push(`/plans/${workout.plan_id}/workouts/${workout.id}`);
+    router.push(`/plans/${planId}/workouts/${workout.id}`);
   };
 
   return (

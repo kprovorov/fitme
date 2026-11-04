@@ -1,5 +1,5 @@
 import { useUser } from "@clerk/expo";
-import type { Plan } from "@fitme/core";
+import { rateLimitedFor } from "@fitme/api-client";
 import { Stack, useRouter } from "expo-router";
 import { useCallback, useEffect, useState } from "react";
 import { useTranslation } from "react-i18next";
@@ -17,12 +17,18 @@ import { Button } from "~/components/ui/button";
 import { Text } from "~/components/ui/text";
 import { H1 } from "~/components/ui/typography";
 import { VStack } from "~/components/ui/vstack";
-import { usePlansQuery } from "~/hooks/queries/plans";
+import {
+  useActivePlanQuery,
+  usePlanSummariesQuery,
+} from "~/hooks/queries/plans";
 import { useProfileQuery } from "~/hooks/queries/profiles";
 import { useOpenWorkoutSessionQuery } from "~/hooks/queries/workout-sessions";
 import { storage } from "~/lib/mmkv";
 
 const IS_E2E = process.env.EXPO_PUBLIC_E2E_ENABLED === "true";
+
+/** How often the tab reads its Plans again while it's open: every minute. */
+const REFRESH_INTERVAL_MS = 60_000;
 
 import HomeView from "~/components/views/home-view";
 
@@ -30,35 +36,43 @@ export default function HomeScreen() {
   const { t } = useTranslation();
   const { user } = useUser();
   const { data: profile } = useProfileQuery();
-  const [activePlan, setActivePlan] = useState<Plan | null>(null);
   const [refreshing, setRefreshing] = useState(false);
 
+  // Two reads in parallel, each refreshed every minute: the active Plan in
+  // full for its Workout cards, and the Plans' summaries for whether the User
+  // has any Plan at all (the empty state's text and Manage Plans).
+  const {
+    data: activePlan,
+    error: activePlanError,
+    isError: isActivePlanError,
+    refetch: refetchActivePlan,
+  } = useActivePlanQuery({ refetchInterval: REFRESH_INTERVAL_MS });
   const {
     data: plans,
-    refetch: refetchWorkoutPlans,
+    error: plansError,
     isError: isPlansError,
-    isLoading: isLoadingPlans,
-  } = usePlansQuery({
-    refetchInterval: 1000 * 60, // 1 minute
-  });
+    refetch: refetchPlans,
+  } = usePlanSummariesQuery({ refetchInterval: REFRESH_INTERVAL_MS });
   // Read alongside the Plans, so the Next card's Start shows blocked from the
   // first frame while another Workout is in progress.
   const { refetch: refetchOpenSession } = useOpenWorkoutSessionQuery();
 
-  useEffect(() => {
-    if (plans) {
-      setActivePlan(plans.find((plan) => plan.is_active) || null);
-    }
-  }, [plans]);
+  const refetchPlanReads = useCallback(
+    () => Promise.all([refetchActivePlan(), refetchPlans()]),
+    [refetchActivePlan, refetchPlans]
+  );
 
   const onRefresh = useCallback(async () => {
     setRefreshing(true);
-    if (!IS_E2E) {
-      await Purchases.invalidateCustomerInfoCache();
+    try {
+      if (!IS_E2E) {
+        await Purchases.invalidateCustomerInfoCache();
+      }
+      await Promise.all([refetchPlanReads(), refetchOpenSession()]);
+    } finally {
+      setRefreshing(false);
     }
-    await Promise.all([refetchWorkoutPlans(), refetchOpenSession()]);
-    setRefreshing(false);
-  }, [refetchWorkoutPlans, refetchOpenSession]);
+  }, [refetchPlanReads, refetchOpenSession]);
 
   const router = useRouter();
 
@@ -77,8 +91,76 @@ export default function HomeScreen() {
   const handleManagePlans = useCallback(() => router.push("/plans"), [router]);
   const openProfile = useCallback(() => router.push("/profile"), [router]);
   const retryPlans = useCallback(() => {
-    refetchWorkoutPlans();
-  }, [refetchWorkoutPlans]);
+    refetchPlanReads();
+  }, [refetchPlanReads]);
+
+  // What the tab shows, from what has been read: a failed refresh keeps the
+  // last answer. The active Plan's cards need only its read; without one the
+  // empty state needs the summaries too, to say whether any Plan exists.
+  const activePlanFailed = isActivePlanError && activePlan === undefined;
+  const plansFailed = activePlan === null && isPlansError && !plans;
+  // A Public API read refused for its rate limit gives the wait.
+  const waitSeconds =
+    (activePlanFailed ? rateLimitedFor(activePlanError) : null) ??
+    (plansFailed ? rateLimitedFor(plansError) : null);
+
+  const renderContent = () => {
+    if (activePlan) {
+      return <HomeView plan={activePlan} />;
+    }
+    if (activePlanFailed || plansFailed) {
+      return (
+        <VStack className="flex-1 py-md">
+          <H1 className="text-center">{t("home.loadError.title")}</H1>
+          <Text className="text-center">
+            {waitSeconds === null
+              ? t("home.loadError.message")
+              : t("common.rateLimited", { seconds: waitSeconds })}
+          </Text>
+          <Button
+            className="w-full"
+            label={t("common.tryAgain")}
+            onPress={retryPlans}
+          />
+        </VStack>
+      );
+    }
+    if (activePlan === undefined || !plans) {
+      return (
+        <View
+          className="flex-1 items-center justify-center"
+          testID="home-loading"
+        >
+          <ActivityIndicator colorClassName="accent-foreground" size="large" />
+        </View>
+      );
+    }
+    return (
+      <VStack className="flex-1 py-md">
+        <H1 className="text-center">{t("home.empty.title")}</H1>
+        <Text className="text-center">
+          {plans.length > 0
+            ? t("home.empty.inactiveMessage")
+            : t("home.empty.message")}
+        </Text>
+        <Button
+          className="w-full"
+          label={t("home.empty.action")}
+          onPress={handleCreatePlan}
+        />
+        {/* The Plan menu sits above the active Plan's Workouts, so with
+            Plans but none active this is the way to the Plans list. */}
+        {plans.length > 0 ? (
+          <Button
+            className="w-full"
+            label={t("home.managePlans")}
+            onPress={handleManagePlans}
+            variant="secondary"
+          />
+        ) : null}
+      </VStack>
+    );
+  };
 
   return (
     <>
@@ -135,52 +217,9 @@ export default function HomeScreen() {
           <RefreshControl onRefresh={onRefresh} refreshing={refreshing} />
         }
         showsVerticalScrollIndicator={false}
+        testID="home-screen"
       >
-        {activePlan ? (
-          <HomeView plan={activePlan} />
-        ) : // biome-ignore lint/suspicious/noUnnecessaryConditions: false positive, Biome resolves react-query-kit's initialData overload, where isLoading is always false
-        isLoadingPlans ? (
-          <View className="flex-1 items-center justify-center">
-            <ActivityIndicator
-              colorClassName="accent-foreground"
-              size="large"
-            />
-          </View>
-        ) : isPlansError && !plans ? (
-          <VStack className="flex-1 py-md">
-            <H1 className="text-center">{t("home.loadError.title")}</H1>
-            <Text className="text-center">{t("home.loadError.message")}</Text>
-            <Button
-              className="w-full"
-              label={t("common.tryAgain")}
-              onPress={retryPlans}
-            />
-          </VStack>
-        ) : (
-          <VStack className="flex-1 py-md">
-            <H1 className="text-center">{t("home.empty.title")}</H1>
-            <Text className="text-center">
-              {plans && plans.length > 0
-                ? t("home.empty.inactiveMessage")
-                : t("home.empty.message")}
-            </Text>
-            <Button
-              className="w-full"
-              label={t("home.empty.action")}
-              onPress={handleCreatePlan}
-            />
-            {/* The Plan menu sits above the active Plan's Workouts, so with
-                Plans but none active this is the way to the Plans list. */}
-            {plans && plans.length > 0 ? (
-              <Button
-                className="w-full"
-                label={t("home.managePlans")}
-                onPress={handleManagePlans}
-                variant="secondary"
-              />
-            ) : null}
-          </VStack>
-        )}
+        {renderContent()}
       </ScrollView>
     </>
   );

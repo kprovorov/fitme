@@ -1,4 +1,3 @@
-import type { Plan } from "@fitme/core";
 import { useEffect, useRef, useState } from "react";
 import {
   type NativeScrollEvent,
@@ -8,6 +7,7 @@ import {
   useWindowDimensions,
   View,
 } from "react-native";
+import type { FullPlan } from "~/hooks/queries/plans";
 import { useOpenWorkoutSessionQuery } from "~/hooks/queries/workout-sessions";
 import { cn } from "~/lib/utils";
 import WorkoutCarouselCard from "./workout-carousel-card";
@@ -18,7 +18,7 @@ const CARD_INSET = 16;
 const CARD_GAP = 8;
 
 interface WorkoutCarouselProps {
-  plan: Plan;
+  plan: FullPlan;
 }
 
 /**
@@ -79,6 +79,7 @@ export default function WorkoutCarousel({ plan }: WorkoutCarouselProps) {
           <View key={workout.id} style={{ width: cardWidth }}>
             <WorkoutCarouselCard
               durationMinutes={plan.workout_duration}
+              planId={plan.id}
               width={cardWidth}
               workout={workout}
             />

@@ -1,6 +1,6 @@
-import type { Plan } from "@fitme/core";
 import { useTranslation } from "react-i18next";
 import { View } from "react-native";
+import type { FullPlan } from "~/hooks/queries/plans";
 import PlanHeader from "../plans/plan-header";
 import PlanMenu from "../plans/plan-menu";
 import { H3 } from "../ui/typography";
@@ -8,7 +8,8 @@ import { VStack } from "../ui/vstack";
 import WorkoutCarousel from "../workouts/workout-carousel";
 
 interface HomeViewProps {
-  plan: Plan;
+  /** The active Plan, as `GET /v1/plans/active` answers it. */
+  plan: FullPlan;
 }
 
 export default function HomeView({ plan }: HomeViewProps) {

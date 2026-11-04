@@ -1,5 +1,4 @@
 import { ApiError, rateLimitedFor } from "@fitme/api-client";
-import type { Plan, Workout } from "@fitme/core";
 import { useQueryClient } from "@tanstack/react-query";
 import { Alert } from "react-native";
 import {
@@ -32,7 +31,9 @@ export const openSessionPath = ({ id, plan, workout }: OpenWorkoutSession) =>
  * The Plan's next Workout: the first of its rotation (finishing one moves it
  * to the end), if it has any.
  */
-export const nextWorkoutOf = (plan: Plan): Workout | undefined =>
+export const nextWorkoutOf = <W extends { order: number }>(plan: {
+  workouts: W[];
+}): W | undefined =>
   // A copy: plan.workouts is the query cache's array, never sorted in place.
   [...plan.workouts].sort((a, b) => a.order - b.order)[0];
 

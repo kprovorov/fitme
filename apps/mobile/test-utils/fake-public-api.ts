@@ -8,8 +8,8 @@
  *
  * So far: reading (`GET`, `{ data: null }` without one), `PUT` (201 created,
  * 200 replaced, converting to a new system) and `PATCH /v1/profile`, listing
- * (`GET /v1/plans`), reading
- * (`GET /v1/plans/{id}`), creating (`POST /v1/plans`), activating
+ * (`GET /v1/plans`), reading the active Plan (`GET /v1/plans/active`,
+ * `{ data: null }` without one) and a Plan (`GET /v1/plans/{id}`), creating (`POST /v1/plans`), activating
  * (`POST /v1/plans/{id}/activate`) and deleting (`DELETE /v1/plans/{id}`) a
  * Plan, the seeded Weekly goal changes (`GET /v1/weekly-goals`), listing
  * (`GET /v1/workout-sessions`, the open Workout Session's
@@ -476,6 +476,18 @@ const listPlans = (): Response =>
       .reverse()
       .map(planSummaryBody),
   });
+
+/**
+ * The User's active Plan in full, as `GET /v1/plans/active` answers it, or
+ * `{ data: null }` without one (a deleted Plan is never active).
+ */
+const getActivePlan = (): Response => {
+  const plan = backend.plans.find(
+    (candidate) =>
+      isOwn(candidate) && !candidate.deleted_at && candidate.is_active
+  );
+  return json(200, { data: plan ? planBody(plan) : null });
+};
 
 /** A live Plan of the User's in full; 404 for a missing, deleted or another User's. */
 const getPlan = (_body: unknown, planId: string): Response => {
@@ -1434,6 +1446,11 @@ const ROUTES: Array<{
     handler: createPlan,
     path: /^\/v1\/plans$/,
     route: "POST /v1/plans",
+  },
+  {
+    handler: getActivePlan,
+    path: /^\/v1\/plans\/active$/,
+    route: "GET /v1/plans/active",
   },
   {
     handler: activatePlan,

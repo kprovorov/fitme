@@ -1,8 +1,6 @@
 import { ApiError, type components } from "@fitme/api-client";
-import type { Plan } from "@fitme/core";
 import type { QueryClient } from "@tanstack/react-query";
 import { createMutation, createQuery } from "react-query-kit";
-import { supabase } from "@/lib/supabase";
 import { WEEKLY_GOALS_QUERY_KEY } from "~/hooks/queries/weekly-goals";
 import { IS_E2E } from "~/lib/constants";
 import type { NewPlan } from "~/lib/plan-card";
@@ -57,40 +55,10 @@ export type PlanSet = components["schemas"]["PlanSet"];
 /** Every query reading Plans, the lists' and each Plan's alike. */
 export const PLANS_QUERY_KEY = ["plans"];
 
-const PLAN_SELECT = `
-  *,
-  workouts (
-    *,
-    exercises:workout_exercises (
-      *,
-      sets:workout_exercise_sets (*)
-    )
-  )
-`;
-
-/**
- * The User's live Plans in full, newest first, read through Supabase: Home
- * and History's empty card still read them this way (FIT-547). Under
- * `PLANS_QUERY_KEY`, so every write invalidating the Plans reaches it.
- */
-export const usePlansQuery = createQuery<Plan[]>({
-  fetcher: async (): Promise<Plan[]> => {
-    const { data, error } = await supabase
-      .from("plans")
-      .select(PLAN_SELECT)
-      .is("deleted_at", null)
-      .order("created_at", { ascending: false });
-    if (error) {
-      throw error;
-    }
-    return data as unknown as Plan[];
-  },
-  queryKey: PLANS_QUERY_KEY,
-});
-
 /**
  * The User's live Plans, newest first, each with its Workouts summarised,
- * through `GET /v1/plans` (not paged): the Plans list. Under
+ * through `GET /v1/plans` (not paged): the Plans list, and whether Home has
+ * any Plan to show. Under
  * `PLANS_QUERY_KEY`, so every write invalidating the Plans reaches it.
  * Rejects with an `ApiError`.
  */
@@ -104,6 +72,25 @@ export const usePlanSummariesQuery = createQuery<PlanSummary[]>({
   },
   queryKey: [...PLANS_QUERY_KEY, "summaries"],
   // A 429 is the User's to wait out; the screens offer Try Again.
+  retry: false,
+});
+
+/**
+ * The User's active Plan in full through `GET /v1/plans/active`, or `null`
+ * without one: Home's Workout cards. Under `PLANS_QUERY_KEY`, so every write
+ * invalidating the Plans (activating, creating, deleting one, a finish, a
+ * measurement system switch) reaches it. Rejects with an `ApiError`.
+ */
+export const useActivePlanQuery = createQuery<FullPlan | null>({
+  fetcher: async (): Promise<FullPlan | null> => {
+    const { data } = await publicApi().GET("/v1/plans/active");
+    if (!data) {
+      throw new ApiError("Public API answered no active Plan");
+    }
+    return data.data;
+  },
+  queryKey: [...PLANS_QUERY_KEY, "active"],
+  // Never retried, like the summaries.
   retry: false,
 });
 
