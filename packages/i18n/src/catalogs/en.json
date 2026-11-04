@@ -172,6 +172,7 @@
     "frequency_one": "{{count, number}}× per week",
     "frequency_other": "{{count, number}}× per week",
     "manage": "Manage",
+    "edit": "Edit Plan",
     "goBack": "Go Back",
     "loadError": "Couldn't load this plan. Check your connection and try again.",
     "listLoadError": "Couldn't load your plans. Check your connection and try again.",
@@ -194,6 +195,43 @@
       "notFound": "This plan no longer exists.",
       "network": "Please check your connection and try again.",
       "rateLimited": "Too many requests: please try again in {{seconds, number}} s."
+    }
+  },
+  "planEditor": {
+    "title": "Edit Plan",
+    "save": "Save",
+    "details": "Details",
+    "name": "Name",
+    "namePlaceholder": "Plan name",
+    "description": "Description",
+    "descriptionPlaceholder": "What this plan is for",
+    "frequency": "Workouts a week",
+    "duration": "Workout duration",
+    "durationUnit": "minutes",
+    "goal": "Goal",
+    "experience": "Experience level",
+    "place": "Place",
+    "workouts": "Workouts",
+    "workoutsHint": "In rotation order: the first one is up next.",
+    "noWorkouts": "A plan needs at least one workout.",
+    "workoutActions": "Actions for {{name}}",
+    "moveUp": "Move {{name}} up",
+    "moveDown": "Move {{name}} down",
+    "remove": "Remove {{name}}",
+    "discard": {
+      "title": "Discard changes?",
+      "message": "Your changes to this plan will be lost.",
+      "confirm": "Discard"
+    },
+    "errors": {
+      "nameRequired": "Enter a plan name",
+      "nameTooLong": "Name must be at most {{max, number(useGrouping: false)}} characters",
+      "descriptionTooLong": "Description must be at most {{max, number(useGrouping: false)}} characters",
+      "frequencyRange": "Workouts a week must be a whole number from {{min, number(useGrouping: false)}} to {{max, number(useGrouping: false)}}",
+      "durationRange": "Workout duration must be a whole number of minutes, at most {{max, number(useGrouping: false)}}",
+      "choiceRequired": "Choose one",
+      "saveFailed": "Couldn't save your plan. Please check your connection and try again.",
+      "saveRateLimited": "Couldn't save your plan. Too many requests: please try again in {{seconds, number}} s."
     }
   },
   "plannedWorkout": {

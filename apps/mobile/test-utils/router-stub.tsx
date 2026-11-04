@@ -2,7 +2,8 @@
  * Stand-ins for expo-router's stack under Jest: the screen a test renders,
  * with the routes it pushes mounted over it (a pushed route the test names
  * in `<PushedRoutes>`; any other push is only recorded), and a header showing
- * each screen's title, its left and right items, and its search bar
+ * each screen's title, its left and right items (a menu as its own button
+ * plus each of its items as a `menuitem`), and its search bar
  * (`stack-screen-stub.tsx`'s). Wire it up in the test's mock:
  *
  *   jest.mock("expo-router", () => {
@@ -112,17 +113,51 @@ export function PushedRoutes({
 
 interface HeaderItem {
   accessibilityLabel?: string;
+  /** A disabled item is rendered disabled, so pressing it does nothing. */
+  disabled?: boolean;
   label: string;
+  /** A menu item: its own button opens the menu, as the native one does. */
+  menu?: { items: HeaderItem[] };
   onPress?: () => void;
 }
 
-const HeaderButton = ({ item }: { item: HeaderItem }) => (
+const HeaderButton = ({
+  item,
+  role = "button",
+}: {
+  item: HeaderItem;
+  role?: "button" | "menuitem";
+}) => (
   <Pressable
     accessibilityLabel={item.accessibilityLabel ?? item.label}
-    accessibilityRole="button"
+    accessibilityRole={role}
+    disabled={item.disabled}
     onPress={item.onPress}
   />
 );
+
+/**
+ * A header menu: its own button, named by its label, and each of its items
+ * as a `menuitem` named by its label, as the native menu shows them once
+ * it's open. A test presses the item it wants.
+ */
+const HeaderMenu = ({ item }: { item: HeaderItem }) => (
+  <>
+    <HeaderButton item={{ ...item, onPress: undefined }} />
+    {item.menu?.items.map((entry) => (
+      <HeaderButton item={entry} key={entry.label} role="menuitem" />
+    ))}
+  </>
+);
+
+const HeaderItems = ({ items }: { items: HeaderItem[] }) =>
+  items.map((item) =>
+    item.menu ? (
+      <HeaderMenu item={item} key={item.label} />
+    ) : (
+      <HeaderButton item={item} key={item.label} />
+    )
+  );
 
 /**
  * `<Stack.Screen>`: its title as a header, its left and right items as
@@ -140,15 +175,11 @@ export function StackScreenStub({
 }) {
   return (
     <>
-      {options?.unstable_headerLeftItems?.().map((item) => (
-        <HeaderButton item={item} key={item.label} />
-      ))}
+      <HeaderItems items={options?.unstable_headerLeftItems?.() ?? []} />
       {options?.title ? (
         <Text accessibilityRole="header">{options.title}</Text>
       ) : null}
-      {options?.unstable_headerRightItems?.().map((item) => (
-        <HeaderButton item={item} key={item.label} />
-      ))}
+      <HeaderItems items={options?.unstable_headerRightItems?.() ?? []} />
       {options?.headerSearchBarOptions ? (
         <SearchBar options={options.headerSearchBarOptions} />
       ) : null}

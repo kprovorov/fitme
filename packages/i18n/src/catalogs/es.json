@@ -186,6 +186,7 @@
     "frequency_other": "{{count, number}}× por semana",
     "frequency_many": "{{count, number}}× por semana",
     "manage": "Gestionar",
+    "edit": "Editar plan",
     "goBack": "Volver",
     "loadError": "No se ha podido cargar este plan. Comprueba tu conexión e inténtalo de nuevo.",
     "listLoadError": "No se han podido cargar tus planes. Comprueba tu conexión e inténtalo de nuevo.",
@@ -208,6 +209,43 @@
       "notFound": "Este plan ya no existe.",
       "network": "Comprueba tu conexión e inténtalo de nuevo.",
       "rateLimited": "Demasiadas solicitudes: inténtalo de nuevo en {{seconds, number}} s."
+    }
+  },
+  "planEditor": {
+    "title": "Editar plan",
+    "save": "Guardar",
+    "details": "Detalles",
+    "name": "Nombre",
+    "namePlaceholder": "Nombre del plan",
+    "description": "Descripción",
+    "descriptionPlaceholder": "Para qué es este plan",
+    "frequency": "Entrenamientos por semana",
+    "duration": "Duración del entrenamiento",
+    "durationUnit": "minutos",
+    "goal": "Objetivo",
+    "experience": "Nivel de experiencia",
+    "place": "Lugar",
+    "workouts": "Entrenamientos",
+    "workoutsHint": "En orden de rotación: el primero es el siguiente.",
+    "noWorkouts": "Un plan necesita al menos un entrenamiento.",
+    "workoutActions": "Acciones para «{{name}}»",
+    "moveUp": "Mover «{{name}}» hacia arriba",
+    "moveDown": "Mover «{{name}}» hacia abajo",
+    "remove": "Eliminar «{{name}}»",
+    "discard": {
+      "title": "¿Descartar los cambios?",
+      "message": "Se perderán los cambios que has hecho en este plan.",
+      "confirm": "Descartar"
+    },
+    "errors": {
+      "nameRequired": "Escribe un nombre para el plan",
+      "nameTooLong": "El nombre puede tener como máximo {{max, number(useGrouping: false)}} caracteres",
+      "descriptionTooLong": "La descripción puede tener como máximo {{max, number(useGrouping: false)}} caracteres",
+      "frequencyRange": "Los entrenamientos por semana deben ser un número entero de {{min, number(useGrouping: false)}} a {{max, number(useGrouping: false)}}",
+      "durationRange": "La duración del entrenamiento debe ser un número entero de minutos, como máximo {{max, number(useGrouping: false)}}",
+      "choiceRequired": "Elige una opción",
+      "saveFailed": "No se ha podido guardar tu plan. Comprueba tu conexión e inténtalo de nuevo.",
+      "saveRateLimited": "No se ha podido guardar tu plan. Demasiadas solicitudes: inténtalo de nuevo en {{seconds, number}} s."
     }
   },
   "plannedWorkout": {
