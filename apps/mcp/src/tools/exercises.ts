@@ -88,7 +88,7 @@ export function registerExerciseTools(server: McpServer, ctx: ToolContext) {
     {
       annotations: READ_ONLY,
       description:
-        "Returns one Exercise from the Library by its slug, with its full details (description and instructions in markdown, video and thumbnail URLs, muscle groups).",
+        "Returns one Exercise from the Library by its slug, with its full details (description and instructions in markdown, video and thumbnail URLs, muscle groups, and the Equipment it needs as ids; call list_equipment for their names).",
       inputSchema: { exerciseSlug: exerciseSlugSchema },
       title: "Get exercise",
     },

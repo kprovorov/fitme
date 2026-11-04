@@ -230,6 +230,21 @@ describe("get_exercise", () => {
     expect(result.json).toEqual(BENCH);
   });
 
+  it("carries the Exercise's Equipment as ids", async () => {
+    const client = await connectWithServices(
+      {},
+      undefined,
+      fakeLibrary([{ ...BENCH, equipment: ["barbell", "bench"] }])
+    );
+
+    const result = await call(client, "get_exercise", {
+      exerciseSlug: BENCH.slug,
+    });
+
+    expect(result.isError).toBe(false);
+    expect(result.json).toMatchObject({ equipment: ["barbell", "bench"] });
+  });
+
   it("errors when no Exercise has the slug", async () => {
     const client = await connectWithServices({});
 
