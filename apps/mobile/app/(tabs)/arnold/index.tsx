@@ -37,6 +37,7 @@ import {
 import { SymbolImage } from "@/components/symbol-image";
 import { useSelectedArnoldModel } from "~/hooks/arnold-model";
 import { useIsProQuery } from "~/hooks/revenueCat";
+import { ATTACHMENTS_ENABLED } from "~/lib/arnold-attachments";
 import {
   type ArnoldErrorKind,
   arnoldErrorAction,
@@ -50,8 +51,6 @@ import {
   saveArnoldSession,
 } from "~/lib/arnold-chat";
 import { getClerk } from "~/lib/clerk";
-
-const ATTACHMENTS_ENABLED: boolean = false;
 
 const getArnoldToken = async () => (await getClerk().session?.getToken()) ?? "";
 
@@ -324,7 +323,7 @@ function ArnoldChat({
         >
           <ConversationScrollButton />
           <PromptInput>
-            {ATTACHMENTS_ENABLED && (
+            {ATTACHMENTS_ENABLED ? (
               <Link asChild href="/arnold/attachments">
                 <PromptInputAction
                   accessibilityLabel={t("arnold.composer.addToChat")}
@@ -335,7 +334,7 @@ function ArnoldChat({
                   />
                 </PromptInputAction>
               </Link>
-            )}
+            ) : null}
             <PromptInputBody>
               <PromptInputTextarea
                 placeholder={t("arnold.composer.placeholder")}
