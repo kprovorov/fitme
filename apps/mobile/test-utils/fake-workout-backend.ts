@@ -96,6 +96,8 @@ export interface SeedPlanSet {
 export interface SeedPlan {
   /** When it was soft-deleted; `null` (the default) while it's live. */
   deleted_at?: string | null;
+  /** Its description; `About <name>` unless given, `null` for none. */
+  description?: string | null;
   /**
    * Its experience level; `intermediate` unless given, `null` for a Plan
    * that leaves it unset (ADR 0017).
@@ -345,6 +347,7 @@ class FakeWorkoutBackend {
 
   nestedPlan({
     deleted_at = null,
+    description,
     // An explicit `null` is a detail this Plan leaves unset (ADR 0017); a
     // default only fills in a field the test left out.
     experience_level = "intermediate",
@@ -358,7 +361,7 @@ class FakeWorkoutBackend {
   }: SeedPlan) {
     return {
       deleted_at,
-      description: `About ${name}`,
+      description: description === undefined ? `About ${name}` : description,
       experience_level,
       frequency: 3,
       goal,

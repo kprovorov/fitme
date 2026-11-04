@@ -221,6 +221,18 @@ describe("A Plan with unset details on the Plan list", () => {
     expect(screen.getByText("Gain Muscle")).toBeTruthy();
     expectNothingBroken();
   });
+
+  it("leaves out a Plan's description when it has none", async () => {
+    backend.plans[0].description = null;
+    await mount(<PlansScreen />);
+
+    // The card shows no empty line under its details, as the Plan header
+    // on the Workout tab doesn't either.
+    expect(screen.getByText("Barebones")).toBeTruthy();
+    expect(screen.queryByText("About Barebones")).toBeNull();
+    expect(screen.getByText("About Half filled")).toBeTruthy();
+    expectNothingBroken();
+  });
 });
 
 describe("A Plan with unset details on its own screens", () => {

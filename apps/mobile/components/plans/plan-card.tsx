@@ -81,9 +81,11 @@ export default function PlanCard({ plan }: PlanCardProps) {
           </HStack>
         </CardDescription>
       </CardHeader>
-      <CardContent>
-        <P className="text-muted-foreground">{plan.description ?? ""}</P>
-      </CardContent>
+      {plan.description?.trim() ? (
+        <CardContent>
+          <P className="text-muted-foreground">{plan.description}</P>
+        </CardContent>
+      ) : null}
     </Card>
   );
 }
