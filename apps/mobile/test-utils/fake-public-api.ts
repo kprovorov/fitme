@@ -16,7 +16,8 @@
  * `status=in_progress&limit=1` included), reading
  * (`GET /v1/workout-sessions/{id}`, 404 for another User's), starting,
  * finishing and
- * logging a set of a Workout Session, adding,
+ * logging a set of a Workout Session, an Exercise's history
+ * (`GET /v1/workout-session-exercises`), adding,
  * removing (`DELETE /v1/workout-session-exercises/{id}`) and replacing
  * (`PUT /v1/workout-session-exercises/{id}`) an Exercise of one, and the
  * public `GET /v1/arnold/models` (answered whatever the bearer, like the
@@ -1183,6 +1184,85 @@ const planUpdate =
     });
   };
 
+const HISTORY_LIMITS = { default: 20, max: 50 } as const;
+
+/**
+ * `getExerciseHistory`: a page of the User's history for one Exercise, newest
+ * Workout Session first (by `started_at`; an Exercise added to the same one
+ * twice keeps its place in it), each entry its Workout Session Exercise id,
+ * its Workout Session's timestamps and its logged sets in order. A set counts
+ * once its reps are logged, a bodyweight set (no weight) included; an entry
+ * left with no counted set is out of the page and of `total`. `exercise_slug`
+ * is required and never checked against the Library (an unknown one answers an
+ * empty page); `limit` (1–50, default 20) and `offset` as the API reads them.
+ */
+const listExerciseHistory = (
+  _body: unknown,
+  _id: string,
+  query: URLSearchParams
+): Response => {
+  const exerciseSlug = query.get("exercise_slug");
+  const limit = Number(query.get("limit") ?? HISTORY_LIMITS.default);
+  const offset = Number(query.get("offset") ?? 0);
+  if (!exerciseSlug) {
+    return error(400, "invalid_request", "exercise_slug: Required");
+  }
+  if (
+    !Number.isInteger(limit) ||
+    limit < 1 ||
+    limit > HISTORY_LIMITS.max ||
+    !Number.isInteger(offset) ||
+    offset < 0
+  ) {
+    return error(400, "invalid_request", "limit or offset: Invalid");
+  }
+  const matching = backend.exercises
+    .filter((exercise) => exercise.exercise_slug === exerciseSlug)
+    .flatMap((exercise) => {
+      const session = ownSession(exercise.workout_session_id);
+      const sets = backend.sets
+        .filter(
+          (set) =>
+            set.workout_session_exercise_id === exercise.id &&
+            set.reps_completed !== null
+        )
+        .sort((a, b) => a.order - b.order || a.id.localeCompare(b.id));
+      // An entry with no logged set never shows, nor counts in `total`.
+      return session && sets.length > 0 ? [{ exercise, session, sets }] : [];
+    })
+    .sort(
+      (a, b) =>
+        b.session.started_at.localeCompare(a.session.started_at) ||
+        b.session.id.localeCompare(a.session.id) ||
+        a.exercise.order - b.exercise.order ||
+        a.exercise.id.localeCompare(b.exercise.id)
+    );
+  const page = matching
+    .slice(offset, offset + limit)
+    .map(({ exercise, session, sets }) => ({
+      id: exercise.id,
+      session: {
+        finished_at: session.finished_at,
+        id: session.id,
+        started_at: session.started_at,
+      },
+      sets: sets.map(({ id, order, ...set }) => ({
+        id,
+        order,
+        reps_completed: set.reps_completed,
+        reps_recommended: set.reps_recommended,
+        weight_completed: set.weight_completed,
+        weight_recommended: set.weight_recommended,
+      })),
+    }));
+  return json(200, {
+    data: page,
+    hasMore: offset + page.length < matching.length,
+    total: matching.length,
+    weight_unit: weightUnit(),
+  });
+};
+
 /**
  * `removeExerciseFromWorkoutSession`: deletes the Exercise and its sets,
  * leaving the others' `order` (the gap stays); 204 whether or not it matched.
@@ -1408,6 +1488,11 @@ const ROUTES: Array<{
     handler: planUpdate(true),
     path: /^\/v1\/workout-sessions\/(?<id>[^/]+)\/plan-update$/,
     route: "POST /v1/workout-sessions/{id}/plan-update",
+  },
+  {
+    handler: listExerciseHistory,
+    path: /^\/v1\/workout-session-exercises$/,
+    route: "GET /v1/workout-session-exercises",
   },
   {
     handler: removeSessionExercise,

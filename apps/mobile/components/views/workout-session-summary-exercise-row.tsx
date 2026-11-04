@@ -44,10 +44,15 @@ export default function WorkoutSessionSummaryExerciseRow({
     0,
     ...workoutSessionExercise.sets.map((set) => set.weight_completed ?? 0)
   );
+  // The best before this session, over the history pages read so far: the
+  // first page is 20 Workout Sessions, so an Exercise with a longer history
+  // is compared against its most recent ones (the record itself is the
+  // server's, and lands on an entry later).
   const priorMaxWeight = Math.max(
     0,
-    ...(history ?? [])
-      .filter((entry) => entry.workout_session_id !== sessionId)
+    ...(history?.pages ?? [])
+      .flatMap((page) => page.data)
+      .filter((entry) => entry.session.id !== sessionId)
       .flatMap((entry) => entry.sets.map((set) => set.weight_completed ?? 0))
   );
   const isNewRecord = sessionMaxWeight > 0 && sessionMaxWeight > priorMaxWeight;

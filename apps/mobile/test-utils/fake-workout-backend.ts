@@ -1,9 +1,9 @@
 import { libraryExercise } from "./fake-library";
 
 /**
- * In-memory stand-in for the Supabase client, covering the Plans list and
- * Exercise history reads still made through it; it refuses the reads and
- * writes that moved to the Public API (a Workout's and a Workout Session's
+ * In-memory stand-in for the Supabase client, covering the Plans list read
+ * still made through it; it refuses the reads and writes that moved to the
+ * Public API (a Workout's, a Workout Session's and an Exercise history's
  * among them). The
  * fake Public API (`fake-public-api.ts`) answers over the same rows, so a
  * write through it shows in the next read. Rows live in plain
@@ -128,6 +128,8 @@ export interface SeedSession {
   id: string;
   /** Its Plan's id; `plan-1` unless given, `null` for none. */
   planId?: string | null;
+  /** When it was started; one fixed instant unless given. */
+  startedAt?: string;
   /** Its owner's Clerk id (see `SessionRow`). */
   userId?: string;
   /**
@@ -203,6 +205,7 @@ class FakeWorkoutBackend {
     finished = false,
     id,
     planId = "plan-1",
+    startedAt = "2026-10-08T10:00:00.000Z",
     userId,
     workoutId = `workout-of-${id}`,
   }: SeedSession) {
@@ -210,7 +213,7 @@ class FakeWorkoutBackend {
       finished_at: finished ? "2026-10-08T11:00:00.000Z" : null,
       id,
       plan_id: planId,
-      started_at: "2026-10-08T10:00:00.000Z",
+      started_at: startedAt,
       ...(userId ? { user_id: userId } : {}),
       workout_id: workoutId,
       workoutName: `Workout ${id}`,
@@ -369,15 +372,6 @@ class FakeWorkoutBackend {
       })),
     };
   }
-
-  nestedExercise(row: ExerciseRow) {
-    return {
-      ...row,
-      sets: this.sets.filter(
-        (set) => set.workout_session_exercise_id === row.id
-      ),
-    };
-  }
 }
 
 export const backend = new FakeWorkoutBackend();
@@ -519,23 +513,9 @@ class FakeQuery {
           "Fake backend: a Workout Session is read through the API"
         );
       case "workout_session_exercises.select":
-        if (this.filters.exercise_slug) {
-          // An Exercise's history, its session nested as the app selects it.
-          return backend.exercises
-            .filter(
-              ({ exercise_slug }) =>
-                exercise_slug === this.filters.exercise_slug
-            )
-            .map((row) => ({
-              ...backend.nestedExercise(row),
-              session: requireRow(
-                backend.session(row.workout_session_id),
-                "session"
-              ),
-            }));
-        }
-        // A Workout Session Exercise is read from its Workout Session,
-        // through the Public API.
+        // An Exercise's history goes through the Public API
+        // (`GET /v1/workout-session-exercises`), and a Workout Session
+        // Exercise is read from its Workout Session's own read.
         throw new Error(
           "Fake backend: a Workout Session Exercise is read through the API"
         );
