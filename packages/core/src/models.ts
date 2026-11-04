@@ -44,6 +44,29 @@ export const muscleGroups = [
 ] as const;
 export type MuscleGroup = (typeof muscleGroups)[number];
 
+/**
+ * The gear an Exercise needs (GLOSSARY.md: Equipment). The only list of
+ * Equipment in the codebase: the Library, the SDK, MCP, Arnold, i18n and the
+ * app all read it from here, so a new value goes in here first and into the
+ * content after. `bodyweight` means an Exercise needs no gear.
+ */
+export const equipment = [
+  "barbell",
+  "dumbbell",
+  "cable",
+  "machine",
+  "smith_machine",
+  "bench",
+  "pull_up_bar",
+  "landmine",
+  "bodyweight",
+] as const;
+export type Equipment = (typeof equipment)[number];
+
+export function isEquipment(value: unknown): value is Equipment {
+  return equipment.some((item) => item === value);
+}
+
 /** The languages Fitme speaks to a User in (GLOSSARY.md: App language). */
 export const appLanguages = ["en", "uk", "es", "ca"] as const;
 export type AppLanguage = (typeof appLanguages)[number];

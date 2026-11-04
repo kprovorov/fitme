@@ -1,4 +1,4 @@
-import type { MuscleGroup } from "./models";
+import type { Equipment, MuscleGroup } from "./models";
 
 export function handleSupabaseError(
   error: Error | { message?: string } | unknown,
@@ -75,5 +75,31 @@ export function muscleGroupToName(muscleGroup: MuscleGroup): string {
       return "Full Body";
     default:
       return muscleGroup;
+  }
+}
+
+/** The English name of a piece of Equipment, for the servers (MCP, Arnold). */
+export function equipmentToName(item: Equipment): string {
+  switch (item) {
+    case "barbell":
+      return "Barbell";
+    case "dumbbell":
+      return "Dumbbell";
+    case "cable":
+      return "Cable";
+    case "machine":
+      return "Machine";
+    case "smith_machine":
+      return "Smith machine";
+    case "bench":
+      return "Bench";
+    case "pull_up_bar":
+      return "Pull-up bar";
+    case "landmine":
+      return "Landmine";
+    case "bodyweight":
+      return "Bodyweight";
+    default:
+      return item;
   }
 }
