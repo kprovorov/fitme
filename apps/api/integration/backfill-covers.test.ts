@@ -27,6 +27,7 @@ const exercise = (
   slug: string,
   muscleGroups: MuscleGroup[]
 ): ExerciseSummary => ({
+  equipment: [],
   muscle_groups: muscleGroups,
   name: slug,
   slug,

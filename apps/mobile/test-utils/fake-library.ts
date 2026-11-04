@@ -1,4 +1,4 @@
-import type { MuscleGroup } from "@fitme/core";
+import type { Equipment, MuscleGroup } from "@fitme/core";
 import type { Cover, Exercise, Library } from "@fitme/library-sdk";
 import {
   createFakeLibrary,
@@ -16,6 +16,7 @@ export const libraryExercise = (
   overrides: Partial<FakeExercise & Exercise> = {}
 ): Exercise & FakeExercise => ({
   description: `About ${slug}.`,
+  equipment: [] as Equipment[],
   instructions: `- Do ${slug}.`,
   muscle_groups: ["chest"] as MuscleGroup[],
   name: slug

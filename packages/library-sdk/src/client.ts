@@ -91,11 +91,15 @@ const isRecord = (value: unknown): value is Record<string, unknown> =>
 const isStringArray = (value: unknown): value is string[] =>
   Array.isArray(value) && value.every((item) => typeof item === "string");
 
-/** Muscle groups are only checked to be strings, so a new one never fails an old client. */
+/**
+ * Muscle groups and Equipment are only checked to be strings, so a new value
+ * of either never fails an old client.
+ */
 const isSummary = (value: unknown): value is ExerciseSummary =>
   isRecord(value) &&
   typeof value.slug === "string" &&
   typeof value.name === "string" &&
+  isStringArray(value.equipment) &&
   isStringArray(value.muscle_groups) &&
   typeof value.thumbnail_url === "string" &&
   typeof value.video_url === "string";
@@ -239,6 +243,7 @@ export const createLibrary = ({
           ),
 
     list: ({
+      equipment,
       language,
       limit,
       muscleGroup,
@@ -248,6 +253,7 @@ export const createLibrary = ({
     } = {}) =>
       getExercises(
         {
+          equipment: equipment?.length ? equipment.join(",") : undefined,
           language,
           limit,
           muscle_group: muscleGroup,
