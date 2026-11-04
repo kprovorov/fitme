@@ -3,12 +3,14 @@ import * as Sentry from "@sentry/react-native";
 import { useQueryClient } from "@tanstack/react-query";
 import { useEffect, useRef } from "react";
 import Purchases from "react-native-purchases";
+import { clearArnoldAttachments } from "~/hooks/arnold-attachments";
 import { IS_E2E } from "~/lib/constants";
 import { segmentClient } from "~/lib/segment";
 
 /**
  * Keys Sentry, RevenueCat and Segment on the signed-in Clerk User, and on
- * sign-out clears the query cache and logs out of RevenueCat.
+ * sign-out clears the query cache and the Attachments picked for Arnold, and
+ * logs out of RevenueCat.
  */
 export default function AuthSync() {
   const queryClient = useQueryClient();
@@ -29,6 +31,9 @@ export default function AuthSync() {
         signedInUserId.current = null;
         Sentry.setUser(null);
         queryClient.clear();
+        // Photos picked but never sent are a draft of theirs, like the
+        // query cache: whoever signs in next never meets them.
+        clearArnoldAttachments();
         if (!IS_E2E) {
           Purchases.logOut().catch(Sentry.captureException);
         }

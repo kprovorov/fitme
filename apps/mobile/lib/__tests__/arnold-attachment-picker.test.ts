@@ -27,6 +27,8 @@ interface Size {
  * module factory to reach.
  */
 const mockDecoded = new Map<string, { height: number; width: number }>();
+/** The sources the stood-in decoder refuses, as a RAW or a broken file. */
+const mockFailFor = new Set<string>();
 const mockManipulated: { options: unknown; uri: string }[] = [];
 const mockResizes: Size[] = [];
 const mockSaves: SaveOptions[] = [];
@@ -48,6 +50,9 @@ jest.mock("expo-image-manipulator", () => ({
   ImageManipulator: {
     manipulate: (uri: string, options: unknown) => {
       mockManipulated.push({ options, uri });
+      if (mockFailFor.has(uri)) {
+        throw new Error("Could not decode the image");
+      }
       const size = mockDecoded.get(uri) ?? { height: 1200, width: 1600 };
       return {
         renderAsync: () => Promise.resolve(mockRender(uri, size)),
@@ -77,6 +82,12 @@ jest.mock("expo-image-manipulator", () => ({
 const mockLaunchImageLibrary =
   jest.fn<(options: unknown) => Promise<unknown>>();
 
+const mockCaptureException = jest.fn();
+
+jest.mock("@sentry/react-native", () => ({
+  captureException: (error: unknown) => mockCaptureException(error),
+}));
+
 jest.mock("expo-image-picker", () => ({
   launchImageLibraryAsync: (options: unknown) =>
     mockLaunchImageLibrary(options),
@@ -96,6 +107,8 @@ const DECODE_BOUNDS = {
 
 beforeEach(() => {
   mockDecoded.clear();
+  mockFailFor.clear();
+  mockCaptureException.mockClear();
   mockManipulated.length = 0;
   mockResizes.length = 0;
   mockSaves.length = 0;
@@ -124,13 +137,14 @@ describe("pickLibraryPhotos", () => {
 
     const picked = await pickLibraryPhotos(4);
 
-    expect(picked?.map((image) => image.uri)).toEqual([
+    expect(picked?.failed).toBe(0);
+    expect(picked?.images.map((image) => image.uri)).toEqual([
       "file:///first.heic.jpg",
       "file:///second.png.jpg",
     ]);
     expect(mockSaves).toEqual([
-      { compress: 0.8, format: "jpeg" },
-      { compress: 0.8, format: "jpeg" },
+      { compress: 0.7, format: "jpeg" },
+      { compress: 0.7, format: "jpeg" },
     ]);
     // Each decoded within the bounds, so no full-resolution photo is ever
     // held in memory.
@@ -145,6 +159,24 @@ describe("pickLibraryPhotos", () => {
 
     expect(await pickLibraryPhotos(4)).toBeNull();
     expect(mockManipulated).toEqual([]);
+  });
+
+  it("keeps the photos it could read when one of them fails", async () => {
+    mockLaunchImageLibrary.mockResolvedValue(
+      picks("file:///good.jpg", "file:///raw.dng", "file:///other.jpg")
+    );
+    mockFailFor.add("file:///raw.dng");
+
+    const picked = await pickLibraryPhotos(4);
+
+    expect(picked?.images.map((image) => image.uri)).toEqual([
+      "file:///good.jpg.jpg",
+      "file:///other.jpg.jpg",
+    ]);
+    expect(picked?.failed).toBe(1);
+    // Reported, so a format that always fails shows up rather than being
+    // silently dropped.
+    expect(mockCaptureException).toHaveBeenCalledTimes(1);
   });
 });
 

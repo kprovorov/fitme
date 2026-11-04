@@ -113,22 +113,76 @@ function PickedAttachment({
         source={{ uri: attachment.uri }}
       />
       <Pressable
-        accessibilityLabel={t("arnold.attachments.removePhoto")}
+        // Named with its photo's place, so the four buttons are told apart
+        // in the VoiceOver rotor, where the thumbnails aren't read with them.
+        accessibilityLabel={t("arnold.attachments.removePhoto", {
+          position,
+          total,
+        })}
         accessibilityRole="button"
-        className="absolute -top-1.5 -right-1.5 h-6 w-6 items-center justify-center rounded-full bg-background active:opacity-70"
+        // `secondary` with a hairline, not `background`: the badge has to
+        // read both on a photo and on the Conversation behind the composer,
+        // which is black.
+        className="absolute top-1 right-1 h-6 w-6 items-center justify-center rounded-full border border-border bg-secondary active:opacity-70"
         hitSlop={10}
         onPress={remove}
       >
-        <SymbolImage className="text-caption-1 text-foreground" name="xmark" />
+        <SymbolImage
+          className="text-caption-1-emphasized text-foreground"
+          name="xmark"
+        />
       </Pressable>
     </View>
   );
 }
 
+/** The material the composer is made of: glass, or a blur where there's none. */
+function ComposerSurface({
+  children,
+  isInteractive,
+  style,
+}: {
+  children: ReactNode;
+  isInteractive?: boolean;
+  style: ViewStyle;
+}) {
+  if (isLiquidGlassAvailable()) {
+    return (
+      <GlassView
+        glassEffectStyle="regular"
+        isInteractive={isInteractive}
+        style={style}
+      >
+        {children}
+      </GlassView>
+    );
+  }
+
+  // The blur needs clipping to keep inside the rounded corners; the glass
+  // view draws its own.
+  return (
+    <BlurView
+      style={{ ...style, overflow: "hidden" }}
+      tint="systemChromeMaterial"
+    >
+      {children}
+    </BlurView>
+  );
+}
+
+const attachmentTrayStyle = {
+  borderCurve: "continuous",
+  borderRadius: 22,
+  flexDirection: "row",
+  gap: 8,
+  padding: 6,
+} as const satisfies ViewStyle;
+
 /**
  * The Attachments picked for the next message, in a row above the text
- * field, oldest first (ADR 0018). Nothing picked renders nothing, so the
- * composer keeps its own height.
+ * field, oldest first (ADR 0018). The tray hugs them, so one photo doesn't
+ * draw a bar across the Conversation, and nothing picked renders nothing, so
+ * the composer keeps its own height.
  */
 export function PromptInputAttachments() {
   const { attachments, onRemoveAttachment } = useChatContext();
@@ -137,17 +191,25 @@ export function PromptInputAttachments() {
   }
 
   return (
-    <View className="flex-row gap-3 px-3 pb-2">
-      {attachments.map((attachment, index) => (
-        <PickedAttachment
-          attachment={attachment}
-          key={attachment.id}
-          onRemove={onRemoveAttachment}
-          position={index + 1}
-          total={attachments.length}
-        />
-      ))}
-    </View>
+    <Animated.View
+      className="mx-3 mb-2 self-start"
+      entering={FadeIn.duration(200)}
+      exiting={FadeOut.duration(150)}
+    >
+      {/* The composer's own material, so a message scrolling past behind
+          the thumbnails is blurred rather than showing through the gaps. */}
+      <ComposerSurface style={attachmentTrayStyle}>
+        {attachments.map((attachment, index) => (
+          <PickedAttachment
+            attachment={attachment}
+            key={attachment.id}
+            onRemove={onRemoveAttachment}
+            position={index + 1}
+            total={attachments.length}
+          />
+        ))}
+      </ComposerSurface>
+    </Animated.View>
   );
 }
 
@@ -180,40 +242,19 @@ export function PromptInputAction(props: {
  * Glass-wrapped container for the textarea and submit button.
  */
 export function PromptInputBody({ children }: { children: ReactNode }) {
-  if (isLiquidGlassAvailable()) {
-    return (
-      <GlassView
-        glassEffectStyle="regular"
-        isInteractive
-        style={{
-          borderCurve: "continuous",
-
-          borderRadius: 22,
-          flex: 1,
-          flexDirection: "row",
-        }}
-      >
-        {children}
-      </GlassView>
-    );
-  }
-
   return (
-    <BlurView
-      style={{
-        borderCurve: "continuous",
-        borderRadius: 22,
-        flex: 1,
-        flexDirection: "row",
-
-        overflow: "hidden",
-      }}
-      tint="systemChromeMaterial"
-    >
+    <ComposerSurface isInteractive style={promptInputBodyStyle}>
       {children}
-    </BlurView>
+    </ComposerSurface>
   );
 }
+
+const promptInputBodyStyle = {
+  borderCurve: "continuous",
+  borderRadius: 22,
+  flex: 1,
+  flexDirection: "row",
+} as const satisfies ViewStyle;
 
 /**
  * Auto-growing text input for composing messages. Reads/writes the current

@@ -21,7 +21,7 @@ import type { ReactNode } from "react";
 import AddToChatSheet from "~/app/(tabs)/arnold/attachments";
 import ArnoldScreen from "~/app/(tabs)/arnold/index";
 import { clearArnoldAttachments } from "~/hooks/arnold-attachments";
-import type { PickedImage } from "~/lib/arnold-attachment-picker";
+import type { PickedImage, PickedPhotos } from "~/lib/arnold-attachment-picker";
 import { useAppLanguageSync } from "~/lib/i18n";
 import { storage } from "~/lib/mmkv";
 import { setDeviceLanguages } from "~/test-utils/device-locales";
@@ -40,7 +40,7 @@ const SEND = /Send message|Надіслати повідомлення/;
 /** The Attachments controls, in either device language. */
 const ADD_TO_CHAT = /Add to chat|Додати до чату/;
 const PHOTOS = /^(Photos|Фото)$/;
-const REMOVE_PHOTO = /Remove photo|Видалити фото/;
+const REMOVE_PHOTO = /^(Remove photo|Видалити фото) \d+ (of|з) \d+$/;
 const THUMBNAIL = /^(Photo \d+ of \d+|Фото \d+ з \d+)$/;
 
 jest.mock("react-native-keyboard-controller", () =>
@@ -136,7 +136,7 @@ jest.mock("~/lib/clerk", () => ({
 
 /** What the system picker answers; `null` is the User cancelling it. */
 const mockPickLibraryPhotos =
-  jest.fn<(limit: number) => Promise<readonly PickedImage[] | null>>();
+  jest.fn<(limit: number) => Promise<PickedPhotos | null>>();
 
 // The one module importing `expo-image-picker` and `expo-image-manipulator`
 // (its own test covers what they are asked for), so no native picker and no
@@ -416,11 +416,17 @@ describe("Arnold screen", () => {
       width: 1600,
     });
 
-    /** Opens the "+" sheet and presses Photos, as the User does. */
+    /** Opens the "+" sheet, as the User does. */
+    const openSheet = async () => {
+      await userEvent.setup().press(screen.getByLabelText(ADD_TO_CHAT));
+    };
+
+    /** Opens the sheet and presses Photos. */
     const pickPhotos = async () => {
-      const user = userEvent.setup();
-      await user.press(screen.getByLabelText(ADD_TO_CHAT));
-      await user.press(screen.getByRole("button", { name: PHOTOS }));
+      await openSheet();
+      await userEvent
+        .setup()
+        .press(screen.getByRole("button", { name: PHOTOS }));
     };
 
     /**
@@ -460,7 +466,10 @@ describe("Arnold screen", () => {
 
     it("shows the picked photos above the text field, named for VoiceOver", async () => {
       mockAttachmentsEnabled = true;
-      mockPickLibraryPhotos.mockResolvedValue([photo("gym"), photo("plan")]);
+      mockPickLibraryPhotos.mockResolvedValue({
+        failed: 0,
+        images: [photo("gym"), photo("plan")],
+      });
       await renderArnold();
       await pickPhotos();
 
@@ -478,10 +487,14 @@ describe("Arnold screen", () => {
 
     it("drops the photo whose × the User presses", async () => {
       mockAttachmentsEnabled = true;
-      mockPickLibraryPhotos.mockResolvedValue([photo("gym"), photo("plan")]);
+      mockPickLibraryPhotos.mockResolvedValue({
+        failed: 0,
+        images: [photo("gym"), photo("plan")],
+      });
       await renderArnold();
       await pickPhotos();
 
+      expect(screen.getByLabelText("Remove photo 2 of 2")).toBeTruthy();
       const [first] = screen.getAllByLabelText(REMOVE_PHOTO);
       await userEvent.setup().press(first as NonNullable<typeof first>);
 
@@ -491,24 +504,47 @@ describe("Arnold screen", () => {
 
     it("asks only for the slots left, then says when the message is full", async () => {
       mockAttachmentsEnabled = true;
-      mockPickLibraryPhotos.mockResolvedValue([photo("a"), photo("b")]);
+      mockPickLibraryPhotos.mockResolvedValue({
+        failed: 0,
+        images: [photo("a"), photo("b")],
+      });
       await renderArnold();
       await pickPhotos();
-      mockPickLibraryPhotos.mockResolvedValue([photo("c"), photo("d")]);
+      mockPickLibraryPhotos.mockResolvedValue({
+        failed: 0,
+        images: [photo("c"), photo("d")],
+      });
       await pickPhotos();
 
       expect(mockPickLibraryPhotos).toHaveBeenLastCalledWith(2);
       expect(thumbnails()).toHaveLength(4);
 
       // A fifth wouldn't fit the request body Arnold takes, so the sheet
-      // says so rather than opening a picker that can take nothing.
-      await pickPhotos();
+      // says so and Photos opens no picker that could take nothing.
+      await openSheet();
 
       expect(
         screen.getByText("You can add up to 4 photos to a message.")
       ).toBeTruthy();
+      await userEvent
+        .setup()
+        .press(screen.getByRole("button", { name: PHOTOS }));
       expect(mockPickLibraryPhotos).toHaveBeenCalledTimes(2);
       expect(thumbnails()).toHaveLength(4);
+    });
+
+    it("says so, and keeps the sheet open, when no photo could be read", async () => {
+      mockAttachmentsEnabled = true;
+      // A RAW or a broken file: the picker gave it, the re-encoder couldn't.
+      mockPickLibraryPhotos.mockResolvedValue({ failed: 1, images: [] });
+      await renderArnold();
+      await pickPhotos();
+
+      expect(
+        screen.getByText("Couldn't add that photo. Try another one.")
+      ).toBeTruthy();
+      expect(thumbnails()).toEqual([]);
+      expect(screen.getByRole("button", { name: PHOTOS })).toBeTruthy();
     });
 
     it("changes nothing when the User cancels the picker", async () => {
@@ -525,20 +561,19 @@ describe("Arnold screen", () => {
     it("picks photos and says the message is full in Ukrainian", async () => {
       mockAttachmentsEnabled = true;
       setDeviceLanguages(["uk-UA"]);
-      mockPickLibraryPhotos.mockResolvedValue([
-        photo("a"),
-        photo("b"),
-        photo("c"),
-        photo("d"),
-      ]);
+      mockPickLibraryPhotos.mockResolvedValue({
+        failed: 0,
+        images: [photo("a"), photo("b"), photo("c"), photo("d")],
+      });
       await renderArnold();
       await pickPhotos();
 
       expect(screen.getByLabelText("Фото 1 з 4")).toBeTruthy();
-      expect(screen.getAllByLabelText("Видалити фото")).toHaveLength(4);
+      expect(screen.getByLabelText("Видалити фото 1 з 4")).toBeTruthy();
+      expect(screen.getAllByLabelText(REMOVE_PHOTO)).toHaveLength(4);
       expect(screen.queryByLabelText("Photo 1 of 4")).toBeNull();
 
-      await pickPhotos();
+      await openSheet();
 
       expect(
         screen.getByText("В одне повідомлення можна додати не більше 4 фото.")

@@ -4,6 +4,7 @@
  * module importing `expo-image-picker` and `expo-image-manipulator`, so a
  * screen test stands this one module in and never touches a native module.
  */
+import { captureException } from "@sentry/react-native";
 import { ImageManipulator, SaveFormat } from "expo-image-manipulator";
 import * as ImagePicker from "expo-image-picker";
 
@@ -11,11 +12,13 @@ import * as ImagePicker from "expo-image-picker";
 export const MAX_ATTACHMENT_EDGE = 1600;
 
 /**
- * The JPEG quality every Attachment is saved at: roughly 300–500 KB at
- * `MAX_ATTACHMENT_EDGE`, so four of them stay well under both eve's 3 MiB
- * per image and Vercel's 4.5 MB request body.
+ * The JPEG quality every Attachment is saved at: measured on the simulator,
+ * a detailed photo lands at about 400 KB at `MAX_ATTACHMENT_EDGE` (the
+ * 300–500 KB ADR 0018 asks for), so four of them are about 2 MB of base64,
+ * well under both eve's 3 MiB per image and Vercel's 4.5 MB request body.
+ * 0.8 put that same photo at 879 KB, which four of would overrun the body.
  */
-const JPEG_QUALITY = 0.8;
+const JPEG_QUALITY = 0.7;
 
 /** An image on this device, ready to show and (later) to send. */
 export interface PickedImage {
@@ -57,6 +60,14 @@ export async function shrinkToJpeg(uri: string): Promise<PickedImage> {
   return { height: saved.height, uri: saved.uri, width: saved.width };
 }
 
+/** What the picker came back with. */
+export interface PickedPhotos {
+  /** How many the picker gave that couldn't be re-encoded. */
+  failed: number;
+  /** The re-encoded JPEGs, in the order the User picked them. */
+  images: readonly PickedImage[];
+}
+
 /**
  * The system photo picker, for at most `limit` images, each answered as a
  * re-encoded JPEG in the order the User picked it; `null` when they
@@ -69,7 +80,7 @@ export async function shrinkToJpeg(uri: string): Promise<PickedImage> {
  */
 export async function pickLibraryPhotos(
   limit: number
-): Promise<readonly PickedImage[] | null> {
+): Promise<PickedPhotos | null> {
   const result = await ImagePicker.launchImageLibraryAsync({
     allowsMultipleSelection: true,
     // Never the EXIF: re-encoding drops it, and nothing here reads it.
@@ -81,12 +92,20 @@ export async function pickLibraryPhotos(
   if (result.canceled) {
     return null;
   }
-  const picked: PickedImage[] = [];
+  const images: PickedImage[] = [];
+  let failed = 0;
   // One at a time, never `Promise.all`: four full-resolution photos decoded
   // at once can run a phone out of memory.
   for (const asset of result.assets) {
-    // biome-ignore lint/performance/noAwaitInLoops: one photo at a time, on purpose
-    picked.push(await shrinkToJpeg(asset.uri));
+    try {
+      // biome-ignore lint/performance/noAwaitInLoops: one photo at a time, on purpose
+      images.push(await shrinkToJpeg(asset.uri));
+    } catch (error) {
+      // One photo the decoder can't read (a RAW, a broken file) never costs
+      // the User the others they picked; it is reported and left out.
+      failed += 1;
+      captureException(error);
+    }
   }
-  return picked;
+  return { failed, images };
 }

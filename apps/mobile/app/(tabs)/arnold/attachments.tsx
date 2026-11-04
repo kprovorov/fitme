@@ -1,3 +1,4 @@
+import { captureException } from "@sentry/react-native";
 import { useRouter } from "expo-router";
 import { useHeaderHeight } from "expo-router/react-navigation";
 import { useCallback, useState } from "react";
@@ -14,6 +15,7 @@ import {
   useRemainingAttachmentSlots,
 } from "~/hooks/arnold-attachments";
 import { pickLibraryPhotos } from "~/lib/arnold-attachment-picker";
+import { cn } from "~/lib/utils";
 
 function AttachmentButton({
   disabled,
@@ -33,7 +35,10 @@ function AttachmentButton({
     // to the edge reads better than a broken one.
     <Pressable
       accessibilityRole="button"
-      className="flex-1 items-center gap-2 rounded-xl border-continuous bg-secondary py-3 active:opacity-80"
+      className={cn(
+        "flex-1 items-center gap-2 rounded-xl border-continuous bg-secondary py-3 active:opacity-80",
+        disabled && "opacity-50"
+      )}
       disabled={disabled}
       onPress={onPress}
     >
@@ -58,27 +63,40 @@ export default function AddToChatSheet() {
   const router = useRouter();
   const { t } = useTranslation();
   const remaining = useRemainingAttachmentSlots();
-  // Shown once the User asks for a photo the message has no room for, so
-  // they learn the cap where they met it rather than when the send fails.
-  const [isFull, setIsFull] = useState(false);
+  // The message takes no more: Photos is disabled and says why, so the cap
+  // is met here rather than when the send fails, and no tap goes nowhere.
+  const isFull = remaining <= 0;
   // While the system picker is up and the photos are being re-encoded: the
   // picker covers the sheet, but a second tap landing either side of it
   // would open a second one.
   const [isPicking, setIsPicking] = useState(false);
+  // Shown when nothing the User picked could be read: the sheet stays open,
+  // so they can try another photo rather than wonder what happened.
+  const [hasFailed, setHasFailed] = useState(false);
 
   const pickPhotos = useCallback(async () => {
+    // The picker reads 0 as "no limit", so it is never opened without room.
     if (remaining <= 0) {
-      setIsFull(true);
       return;
     }
     setIsPicking(true);
+    setHasFailed(false);
     try {
       const picked = await pickLibraryPhotos(remaining);
       // Cancelled: nothing picked, nothing to show, the sheet stays open.
-      if (picked) {
-        addArnoldAttachments(picked);
-        router.back();
+      if (!picked) {
+        return;
       }
+      if (picked.images.length > 0) {
+        addArnoldAttachments(picked.images);
+        router.back();
+        return;
+      }
+      setHasFailed(picked.failed > 0);
+    } catch (error) {
+      // The picker itself failed, which is rarer than a photo failing.
+      captureException(error);
+      setHasFailed(true);
     } finally {
       setIsPicking(false);
     }
@@ -94,25 +112,29 @@ export default function AddToChatSheet() {
       }}
     >
       <AndroidGrabber />
-      <View className="gap-2 px-5 pt-2 pb-4">
+      <View className="gap-3 px-md pt-2 pb-md">
         <View className="flex-row gap-3">
           <AttachmentButton
             icon="camera"
             label={t("arnold.attachments.camera")}
           />
           <AttachmentButton
-            disabled={isPicking}
+            disabled={isPicking || isFull}
             icon="photo"
             label={t("arnold.attachments.photos")}
             onPress={pickPhotos}
           />
         </View>
-        {isFull ? (
-          <Text className="text-footnote text-muted-foreground">
-            {t("arnold.attachments.perMessageLimit", {
-              count: MAX_ATTACHMENTS_PER_MESSAGE,
-            })}
-          </Text>
+        {isFull || hasFailed ? (
+          <View className="rounded-xl border-continuous bg-card px-3 py-2.5">
+            <Text className="text-footnote text-muted-foreground">
+              {isFull
+                ? t("arnold.attachments.perMessageLimit", {
+                    count: MAX_ATTACHMENTS_PER_MESSAGE,
+                  })
+                : t("arnold.attachments.pickFailed")}
+            </Text>
+          </View>
         ) : null}
       </View>
     </View>

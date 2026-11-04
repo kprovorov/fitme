@@ -3,7 +3,8 @@ import type { PickedImage } from "~/lib/arnold-attachment-picker";
 
 /**
  * At most 4 Attachments per message (ADR 0018): four shrunk JPEGs are about
- * 3.3 MB of base64, which still fits Vercel's 4.5 MB request body.
+ * 2 MB of base64 (see `MAX_ATTACHMENT_EDGE` and the JPEG quality in
+ * `lib/arnold-attachment-picker.ts`), inside Vercel's 4.5 MB request body.
  */
 export const MAX_ATTACHMENTS_PER_MESSAGE = 4;
 
@@ -77,7 +78,7 @@ export function removeArnoldAttachment(id: string): void {
   emit();
 }
 
-/** Drops every one of them: a sign-out, and tests. */
+/** Drops every one of them: a sign-out (`components/auth-sync.tsx`), and tests. */
 export function clearArnoldAttachments(): void {
   if (picked.length === 0) {
     return;
