@@ -139,8 +139,14 @@ export const workoutHistory = [
 ];
 
 export const chestExercises = [
-  { exercise_slug: BENCH, muscle_groups: ["chest"], name: "Bench Press" },
   {
+    equipment: ["barbell", "bench"],
+    exercise_slug: BENCH,
+    muscle_groups: ["chest"],
+    name: "Bench Press",
+  },
+  {
+    equipment: ["dumbbell", "bench"],
     exercise_slug: INCLINE,
     muscle_groups: ["chest"],
     name: "Incline Dumbbell Press",
@@ -149,8 +155,18 @@ export const chestExercises = [
 
 const libraryExercises = [
   ...chestExercises,
-  { exercise_slug: SQUAT, muscle_groups: ["quadriceps"], name: "Back Squat" },
-  { exercise_slug: ROW, muscle_groups: ["back"], name: "Barbell Row" },
+  {
+    equipment: ["barbell"],
+    exercise_slug: SQUAT,
+    muscle_groups: ["quadriceps"],
+    name: "Back Squat",
+  },
+  {
+    equipment: ["barbell"],
+    exercise_slug: ROW,
+    muscle_groups: ["back"],
+    name: "Barbell Row",
+  },
 ];
 
 /**
