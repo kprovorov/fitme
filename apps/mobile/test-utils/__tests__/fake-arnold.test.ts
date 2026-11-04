@@ -131,20 +131,17 @@ describe("fake Arnold", () => {
     expect((refused as ClientError).code).toBe("session_not_active");
   });
 
-  it("stops serving a stream whose reader dropped it while it waited", async () => {
+  it("stops serving a stream whose reader dropped it", async () => {
     const { session } = await client().sessions.create({});
     const answer = await fakeArnold.fetch(
       `${fakeArnold.baseUrl}/eve/v1/session/${session.state.sessionId}/stream`
     );
-    const reader = (answer.body as ReadableStream<Uint8Array>).getReader();
-    // Nothing has happened in the session yet, so the stream is waiting for
-    // the next event when eve's own reader drops it at a turn boundary.
-    const waiting = reader.read();
-    await reader.cancel();
-    expect(await waiting).toEqual({ done: true, value: undefined });
+    // eve's own reader drops the stream at a turn boundary, leaving the
+    // session's later events with nobody to serve them.
+    await (answer.body as ReadableStream<Uint8Array>).cancel();
 
-    // The turn's events reach a stream nobody reads, which must not throw
-    // into it: serving a closed stream fails the turn eve is running.
+    // Serving a dropped stream throws into the turn eve is running, so this
+    // send must go through untouched.
     await session.send("Hi");
 
     expect(fakeArnold.sent).toHaveLength(1);

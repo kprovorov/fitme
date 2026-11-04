@@ -73,11 +73,12 @@ const failureResponses = {
 } as const;
 
 interface FakeSession {
-  /** Resolves on the next appended event, or once the session is closed. */
-  appended: () => Promise<void>;
   closed: boolean;
   events: MessageStreamEvent[];
+  /** Tells every open stream of the session to serve what it hasn't yet. */
   notify: () => void;
+  /** Each open stream's own `flush`, called by `notify`. */
+  readers: Set<() => void>;
   sessionId: string;
   turns: number;
 }
@@ -133,6 +134,31 @@ function json(body: unknown, status: number, headers?: HeadersInit) {
     headers: { "content-type": "application/json", ...headers },
     status,
   });
+}
+
+/**
+ * The session stream's answer, with the fake's own stream as its body.
+ *
+ * Not a `Response`: `new Response(stream)` hands the body to Node's own
+ * wrapper, which pumps it into a byte stream of its own, and a chunk the
+ * wrapper reads after eve's reader dropped it throws out of Node
+ * ("Invalid state: ReadableStream is already closed", a `pull` or a close
+ * the fake can't guard). The fake is the whole network here, so eve reads
+ * the stream directly: `openStreamBody` takes `ok`, `body`, `headers`,
+ * `status` and `text()` off it and nothing else.
+ */
+function streamResponse(
+  body: ReadableStream<Uint8Array>,
+  headers: Record<string, string>
+): Response {
+  return {
+    body,
+    headers: new Headers(headers),
+    ok: true,
+    status: 200,
+    statusText: "OK",
+    text: () => Promise.resolve(""),
+  } as unknown as Response;
 }
 
 function errorResponse(status: number, code: string, message: string) {
@@ -417,56 +443,45 @@ class FakeArnold {
     const follow = url.searchParams.get("follow") !== "false";
     const tailIndex = session.events.length - 1;
     let index = asked < 0 ? Math.max(0, session.events.length + asked) : asked;
-    // eve's reader drops the stream at a turn boundary, which closes the
-    // controller under a `pull` that is waiting for the next event: serving
-    // one then throws, and the throw lands on the turn eve is running. So a
-    // dropped stream is left alone, and closing or enqueueing is guarded for
-    // the races a cancel callback can't see.
-    let dropped = false;
-    const serve = (
-      controller: ReadableStreamDefaultController<Uint8Array>,
-      chunk?: Uint8Array
-    ) => {
-      try {
-        if (chunk) {
-          controller.enqueue(chunk);
-        } else {
-          dropped = true;
-          controller.close();
-        }
-      } catch {
-        dropped = true;
-      }
-    };
+    const last = follow ? Number.POSITIVE_INFINITY : tailIndex;
+    // Pushed from the appending side rather than pulled, so the stream holds
+    // no `pull` waiting for the next event when eve's reader drops it at a
+    // turn boundary; serving a dropped stream is guarded on top of that.
+    let ended = false;
+    let flush: (() => void) | undefined;
     const body = new ReadableStream<Uint8Array>({
       cancel() {
-        dropped = true;
+        ended = true;
+        if (flush) {
+          session.readers.delete(flush);
+        }
       },
-      async pull(controller) {
-        if (dropped) {
-          return;
-        }
-        // Caught up: wait for the next turn's events and be pulled again,
-        // which is how eve's own stream stays open between turns.
-        if (index >= session.events.length) {
-          if (follow && !session.closed) {
-            await session.appended();
-          } else {
-            serve(controller);
+      start(controller) {
+        flush = () => {
+          if (ended) {
+            return;
           }
-          return;
-        }
-        serve(
-          controller,
-          encoder.encode(`${JSON.stringify(session.events[index])}\n`)
-        );
-        if (dropped) {
-          return;
-        }
-        index += 1;
-        if (!follow && index > tailIndex) {
-          serve(controller);
-        }
+          try {
+            while (index <= last && index < session.events.length) {
+              controller.enqueue(
+                encoder.encode(`${JSON.stringify(session.events[index])}\n`)
+              );
+              index += 1;
+            }
+            if (index > last || session.closed) {
+              ended = true;
+              controller.close();
+            }
+          } catch {
+            // The reader dropped the stream between two events.
+            ended = true;
+          }
+          if (ended && flush) {
+            session.readers.delete(flush);
+          }
+        };
+        session.readers.add(flush);
+        flush();
       },
     });
     const headers: Record<string, string> = {
@@ -476,24 +491,24 @@ class FakeArnold {
     if (url.searchParams.get("includeTailIndex") === "1") {
       headers["x-eve-stream-tail-index"] = String(tailIndex);
     }
-    return new Response(body, { headers, status: 200 });
+    return streamResponse(body, headers);
   }
 }
 
 function newSession(sessionId: string): FakeSession {
-  let waiting = Promise.withResolvers<void>();
-  const session: FakeSession = {
-    appended: () => waiting.promise,
+  const readers = new Set<() => void>();
+  return {
     closed: false,
     events: [],
     notify: () => {
-      waiting.resolve();
-      waiting = Promise.withResolvers();
+      for (const flush of [...readers]) {
+        flush();
+      }
     },
+    readers,
     sessionId,
     turns: 0,
   };
-  return session;
 }
 
 function isRecord(value: unknown): value is Record<string, unknown> {
