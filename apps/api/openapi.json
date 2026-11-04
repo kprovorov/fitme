@@ -688,6 +688,193 @@
         ],
         "additionalProperties": false
       },
+      "SavedPlan": {
+        "type": "object",
+        "properties": {
+          "description": {
+            "type": "string",
+            "maxLength": 2000,
+            "example": "Three full-body days",
+            "description": "Left out, the Plan has none"
+          },
+          "experience_level": {
+            "type": "string",
+            "enum": [
+              "beginner",
+              "intermediate",
+              "advanced"
+            ]
+          },
+          "frequency": {
+            "type": "integer",
+            "minimum": 1,
+            "maximum": 7,
+            "description": "Workouts a week",
+            "example": 3
+          },
+          "goal": {
+            "type": "string",
+            "enum": [
+              "muscle-gain",
+              "fat-loss",
+              "recomposition",
+              "strength-performance",
+              "general-health-fitness"
+            ]
+          },
+          "name": {
+            "type": "string",
+            "minLength": 1,
+            "maxLength": 200,
+            "example": "Full body"
+          },
+          "note": {
+            "type": "string",
+            "nullable": true,
+            "maxLength": 2000,
+            "description": "Left out (or `null`), the Plan has none"
+          },
+          "place": {
+            "type": "string",
+            "enum": [
+              "gym",
+              "home"
+            ]
+          },
+          "workout_duration": {
+            "type": "integer",
+            "minimum": 1,
+            "maximum": 600,
+            "description": "Minutes",
+            "example": 60
+          },
+          "workouts": {
+            "type": "array",
+            "items": {
+              "$ref": "#/components/schemas/SavedPlanWorkout"
+            },
+            "minItems": 1,
+            "maxItems": 14,
+            "description": "Every Workout of the Plan, in rotation order: the first is up next. Every `order` comes from the array positions"
+          }
+        },
+        "required": [
+          "experience_level",
+          "frequency",
+          "goal",
+          "name",
+          "place",
+          "workout_duration",
+          "workouts"
+        ],
+        "additionalProperties": false
+      },
+      "SavedPlanWorkout": {
+        "type": "object",
+        "properties": {
+          "description": {
+            "type": "string",
+            "maxLength": 2000,
+            "example": "Legs and pulls",
+            "description": "Left out, the Workout has none"
+          },
+          "exercises": {
+            "type": "array",
+            "items": {
+              "$ref": "#/components/schemas/SavedPlanExercise"
+            },
+            "minItems": 1,
+            "maxItems": 30,
+            "description": "In the order they are performed"
+          },
+          "id": {
+            "type": "string",
+            "format": "uuid",
+            "example": "6f1c0c9e-2b7a-4c1e-9a55-3c2d1e0f4a11",
+            "description": "The Workout's id as `GET /v1/plans/{id}` shows it, to keep the Workout; leave it out for a new one"
+          },
+          "name": {
+            "type": "string",
+            "minLength": 1,
+            "maxLength": 200,
+            "example": "Day A"
+          }
+        },
+        "required": [
+          "exercises",
+          "name"
+        ],
+        "additionalProperties": false
+      },
+      "SavedPlanExercise": {
+        "type": "object",
+        "properties": {
+          "exercise_slug": {
+            "type": "string",
+            "maxLength": 100,
+            "pattern": "^[a-z0-9]+(-[a-z0-9]+)*$",
+            "description": "An Exercise slug from the Library API; every one is checked before anything is written",
+            "example": "barbell-back-squat"
+          },
+          "id": {
+            "type": "string",
+            "format": "uuid",
+            "example": "6f1c0c9e-2b7a-4c1e-9a55-3c2d1e0f4a11",
+            "description": "The Workout Exercise's id as `GET /v1/plans/{id}` shows it, to keep the Workout Exercise; leave it out for a new one"
+          },
+          "sets": {
+            "type": "array",
+            "items": {
+              "$ref": "#/components/schemas/SavedPlanSet"
+            },
+            "minItems": 1,
+            "maxItems": 20,
+            "description": "In the order they are performed"
+          }
+        },
+        "required": [
+          "exercise_slug",
+          "sets"
+        ],
+        "additionalProperties": false
+      },
+      "SavedPlanSet": {
+        "type": "object",
+        "properties": {
+          "reps_recommended": {
+            "type": "integer",
+            "minimum": 1,
+            "maximum": 1000,
+            "example": 8
+          },
+          "rest_recommended": {
+            "type": "integer",
+            "minimum": 0,
+            "maximum": 3600,
+            "description": "Seconds",
+            "example": 120
+          },
+          "weight_recommended": {
+            "type": "number",
+            "minimum": 0,
+            "maximum": 10000,
+            "description": "In the User's weight unit (`kg` for metric, `lbs` for us and uk), as stored; at most 2 decimals. 0 for bodyweight",
+            "example": 80.5
+          },
+          "id": {
+            "type": "string",
+            "format": "uuid",
+            "example": "6f1c0c9e-2b7a-4c1e-9a55-3c2d1e0f4a11",
+            "description": "The set's id as `GET /v1/plans/{id}` shows it, to keep the set; leave it out for a new one"
+          }
+        },
+        "required": [
+          "reps_recommended",
+          "rest_recommended",
+          "weight_recommended"
+        ],
+        "additionalProperties": false
+      },
       "PlanChanges": {
         "type": "object",
         "properties": {
@@ -2174,6 +2361,128 @@
                 "description": "Seconds until the limit resets"
               }
             },
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Error"
+                }
+              }
+            }
+          }
+        }
+      },
+      "put": {
+        "description": "Saves the whole Plan in one transaction: nothing changes unless all of it is saved. Send every detail and every Workout, Exercise and set the Plan should have, in order. **A row sent with its `id` keeps it** and is updated in place, a row sent without one is created, and a row of the Plan the body leaves out is deleted; an optional field left out is cleared. So past Workout Sessions stay linked to the Workouts kept (a deleted Workout's Workout Sessions keep their logged sets but lose the link, and an open one keeps running), and a kept Workout keeps its `cover`: only new Workouts get one, picked as creating a Plan does, among the Covers the kept ones don't hold. An `id` must be one of this Plan's rows, under the same parent it was read under: a row can't move to another Workout or Exercise. Every Exercise slug is checked against the Library first. Whether the Plan is active doesn't change. The last save wins: there's no version check, so a change made since the Plan was read is overwritten. A repeat is harmless.",
+        "security": [
+          {
+            "bearerAuth": []
+          }
+        ],
+        "summary": "Save a whole Plan",
+        "parameters": [
+          {
+            "schema": {
+              "type": "string",
+              "format": "uuid",
+              "example": "6f1c0c9e-2b7a-4c1e-9a55-3c2d1e0f4a11"
+            },
+            "required": true,
+            "name": "id",
+            "in": "path"
+          }
+        ],
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/SavedPlan"
+              }
+            }
+          }
+        },
+        "responses": {
+          "200": {
+            "description": "The saved Plan in full",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object",
+                  "properties": {
+                    "data": {
+                      "$ref": "#/components/schemas/Plan"
+                    }
+                  },
+                  "required": [
+                    "data"
+                  ]
+                }
+              }
+            }
+          },
+          "400": {
+            "description": "`invalid_request`: the id isn't a uuid, the Plan isn't valid, or an `id` isn't one of this Plan's rows under the parent it's sent under (or is sent twice); `unknown_exercises`: the Library has no Exercise for the slugs the message names. Nothing was changed",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Error"
+                }
+              }
+            }
+          },
+          "401": {
+            "description": "No valid Clerk session token",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Error"
+                }
+              }
+            }
+          },
+          "404": {
+            "description": "`not_found`: no such Plan, it was deleted, or it isn't the User's",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Error"
+                }
+              }
+            }
+          },
+          "415": {
+            "description": "The body isn't `application/json`",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Error"
+                }
+              }
+            }
+          },
+          "429": {
+            "description": "Too many requests from this User; retry after `Retry-After`",
+            "headers": {
+              "Retry-After": {
+                "schema": {
+                  "type": "string",
+                  "description": "Seconds until the limit resets",
+                  "example": "30"
+                },
+                "required": true,
+                "description": "Seconds until the limit resets"
+              }
+            },
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Error"
+                }
+              }
+            }
+          },
+          "503": {
+            "description": "`library_unavailable`: the Exercise slugs couldn't be checked or the Covers couldn't be read; nothing was changed, try again",
             "content": {
               "application/json": {
                 "schema": {

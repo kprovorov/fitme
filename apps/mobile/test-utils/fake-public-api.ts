@@ -390,6 +390,18 @@ const PLAN_FIELDS = [
   "workouts",
 ] as const;
 
+/** A Plan's details as its writes take them, but its description. */
+const hasPlanDetails = (body: Body) =>
+  (experienceLevels as readonly unknown[]).includes(body.experience_level) &&
+  isInteger(body.frequency, MIN_FREQUENCY, MAX_FREQUENCY) &&
+  (goals as readonly unknown[]).includes(body.goal) &&
+  isText(body.name, MAX_PLAN_NAME_LENGTH, 1) &&
+  (body.note === undefined ||
+    body.note === null ||
+    isText(body.note, MAX_PLAN_TEXT_LENGTH)) &&
+  (places as readonly unknown[]).includes(body.place) &&
+  isInteger(body.workout_duration, 1, MAX_WORKOUT_DURATION_MINUTES);
+
 /** `POST /v1/plans`'s schema (`apps/api/src/routes/plans.ts`), the bounds included. */
 const isNewPlan = (
   body: unknown
@@ -402,17 +414,76 @@ const isNewPlan = (
   unknownFields(body, PLAN_FIELDS).length === 0 &&
   (body.activate === undefined || typeof body.activate === "boolean") &&
   isText(body.description, MAX_PLAN_TEXT_LENGTH) &&
-  (experienceLevels as readonly unknown[]).includes(body.experience_level) &&
-  isInteger(body.frequency, MIN_FREQUENCY, MAX_FREQUENCY) &&
-  (goals as readonly unknown[]).includes(body.goal) &&
-  isText(body.name, MAX_PLAN_NAME_LENGTH, 1) &&
-  (body.note === undefined ||
-    body.note === null ||
-    isText(body.note, MAX_PLAN_TEXT_LENGTH)) &&
-  (places as readonly unknown[]).includes(body.place) &&
-  isInteger(body.workout_duration, 1, MAX_WORKOUT_DURATION_MINUTES) &&
+  hasPlanDetails(body) &&
   isList(body.workouts, MAX_WORKOUTS_PER_PLAN) &&
   body.workouts.every(isPlanWorkout);
+
+/** An optional id, as `PUT /v1/plans/{id}`'s body sends a kept row's. */
+const isOptionalId = (id: unknown) =>
+  id === undefined || (typeof id === "string" && id !== "");
+
+/** A row's fields without its `id`, for the checks the create shares. */
+const withoutId = ({ id: _id, ...fields }: Body) => fields;
+
+interface SavedPlanSet extends SeedPlanSet {
+  id?: string;
+}
+
+interface SavedPlanExercise {
+  exercise_slug: string;
+  id?: string;
+  sets: SavedPlanSet[];
+}
+
+interface SavedPlanWorkout {
+  description?: string;
+  exercises: SavedPlanExercise[];
+  id?: string;
+  name: string;
+}
+
+const isSavedPlanExercise = (exercise: unknown) =>
+  isObject(exercise) &&
+  isOptionalId(exercise.id) &&
+  unknownFields(exercise, ["exercise_slug", "id", "sets"]).length === 0 &&
+  typeof exercise.exercise_slug === "string" &&
+  exercise.exercise_slug !== "" &&
+  isList(exercise.sets, MAX_SETS_PER_EXERCISE) &&
+  exercise.sets.every(
+    (set) => isObject(set) && isOptionalId(set.id) && isPlanSet(withoutId(set))
+  );
+
+const isSavedPlanWorkout = (workout: unknown) =>
+  isObject(workout) &&
+  isOptionalId(workout.id) &&
+  unknownFields(workout, ["description", "exercises", "id", "name"]).length ===
+    0 &&
+  (workout.description === undefined ||
+    isText(workout.description, MAX_PLAN_TEXT_LENGTH)) &&
+  isText(workout.name, MAX_PLAN_NAME_LENGTH, 1) &&
+  isList(workout.exercises, MAX_EXERCISES_PER_WORKOUT) &&
+  workout.exercises.every(isSavedPlanExercise);
+
+/**
+ * `PUT /v1/plans/{id}`'s schema: `POST /v1/plans`' without `activate`, each
+ * row with an optional id, the descriptions optional.
+ */
+const isSavedPlan = (
+  body: unknown
+): body is Body & {
+  description?: string;
+  frequency: number;
+  name: string;
+  workouts: SavedPlanWorkout[];
+} =>
+  isObject(body) &&
+  unknownFields(body, PLAN_FIELDS).length === 0 &&
+  body.activate === undefined &&
+  (body.description === undefined ||
+    isText(body.description, MAX_PLAN_TEXT_LENGTH)) &&
+  hasPlanDetails(body) &&
+  isList(body.workouts, MAX_WORKOUTS_PER_PLAN) &&
+  body.workouts.every(isSavedPlanWorkout);
 
 const PLAN_CREATED_AT = "2026-10-01T09:00:00.000Z";
 
@@ -548,6 +619,120 @@ const createPlan = async (body: unknown): Promise<Response> => {
   };
   backend.seedPlan(plan);
   return json(201, { data: planBody(plan) });
+};
+
+/**
+ * The sent ids the save can't keep, as the services find them: one that
+ * isn't the Plan's, sits under another parent than it's sent under, or is
+ * sent twice.
+ */
+const invalidPlanIds = (plan: SeedPlan, workouts: SavedPlanWorkout[]) => {
+  const tree = backend.nestedPlan(plan).workouts;
+  const parentOf = new Map<string, string | null>([
+    ...tree.map((workout) => [workout.id, null] as const),
+    ...tree.flatMap((workout) =>
+      workout.exercises.flatMap((exercise) => [
+        [exercise.id, workout.id] as const,
+        ...exercise.sets.map((set) => [set.id, exercise.id] as const),
+      ])
+    ),
+  ]);
+  const seen = new Set<string>();
+  const invalid = new Set<string>();
+  const check = (id: string | undefined, parent: string | null | undefined) => {
+    if (id === undefined) {
+      return;
+    }
+    if (seen.has(id) || !parentOf.has(id) || parentOf.get(id) !== parent) {
+      invalid.add(id);
+    }
+    seen.add(id);
+  };
+  for (const workout of workouts) {
+    check(workout.id, null);
+    for (const exercise of workout.exercises) {
+      check(exercise.id, workout.id);
+      for (const set of exercise.sets) {
+        check(set.id, exercise.id);
+      }
+    }
+  }
+  return [...invalid];
+};
+
+/**
+ * Checks every slug against the fake Library like `createPlan`, then saves
+ * the whole Plan over its rows as the services do (ADR 0016): a row sent with
+ * its id keeps it (a Workout its Cover), one sent without gets a new one, and
+ * one left out is gone. New Workouts get no Cover, as the fake's creates
+ * don't; whether it's active doesn't change.
+ */
+const savePlan = async (body: unknown, planId: string): Promise<Response> => {
+  if (!isSavedPlan(body)) {
+    return error(400, "invalid_request", "Invalid plan");
+  }
+  const slugs = body.workouts.flatMap((workout) =>
+    workout.exercises.map((exercise) => exercise.exercise_slug)
+  );
+  let missing: string[];
+  try {
+    ({ missing } = await library.current.lookup(slugs));
+  } catch {
+    return error(
+      503,
+      "library_unavailable",
+      "The Library is unavailable, try again"
+    );
+  }
+  if (missing.length > 0) {
+    return error(
+      400,
+      "unknown_exercises",
+      `Unknown Exercises: ${missing.join(", ")}`
+    );
+  }
+  const plan = ownPlan(planId);
+  if (!plan || plan.deleted_at) {
+    return notFound("Plan");
+  }
+  const invalid = invalidPlanIds(plan, body.workouts);
+  if (invalid.length > 0) {
+    return error(
+      400,
+      "invalid_request",
+      `Not this Plan's, or not under the parent sent: ${invalid.join(", ")}`
+    );
+  }
+  const covers = new Map(
+    plan.workouts.map((workout) => [workout.id, workout.cover ?? null])
+  );
+  Object.assign(plan, {
+    description: body.description ?? null,
+    experience_level: body.experience_level,
+    frequency: body.frequency,
+    goal: body.goal,
+    name: body.name,
+    place: body.place,
+    workout_duration: body.workout_duration,
+    workouts: body.workouts.map((workout, index) => {
+      const workoutId = workout.id ?? backend.id("workout");
+      return {
+        cover: covers.get(workoutId) ?? null,
+        exercises: workout.exercises.map((exercise) => ({
+          id: exercise.id ?? backend.id("workout-exercise"),
+          sets: exercise.sets.map((set) => ({
+            ...set,
+            id: set.id ?? backend.id("workout-exercise-set"),
+          })),
+          slug: exercise.exercise_slug,
+        })),
+        id: workoutId,
+        name: workout.name,
+        order: index + 1,
+      };
+    }),
+  });
+  return json(200, { data: planBody(plan) });
 };
 
 /** The Plan becomes active, every other one of the User inactive. */
@@ -1466,6 +1651,11 @@ const ROUTES: Array<{
     handler: getPlan,
     path: /^\/v1\/plans\/(?<id>[^/]+)$/,
     route: "GET /v1/plans/{id}",
+  },
+  {
+    handler: savePlan,
+    path: /^\/v1\/plans\/(?<id>[^/]+)$/,
+    route: "PUT /v1/plans/{id}",
   },
   {
     handler: listWeeklyGoals,

@@ -36,6 +36,10 @@ import {
   type PlanMetadata,
   type PlanSummary,
   type PlanWorkoutInput,
+  type SavedPlan,
+  type SavePlanOptions,
+  type SavePlanResult,
+  savePlan,
   updatePlan,
 } from "@fitme/services/plans";
 import {
@@ -228,6 +232,18 @@ export interface UserServices {
     workouts: PlanWorkoutInput[]
   ) => Promise<Weighed<PlanDetail> | null>;
   /**
+   * Saves a whole live Plan of the User, keeping the ids it's sent with
+   * (ADR 0016): kept rows are updated in place, new ones created, left-out
+   * ones deleted; the Plan in full, or `not_found` / `invalid_ids` with
+   * nothing changed. Its Exercise slugs are checked before, not here
+   * (ADR 0010); `coverNewWorkouts` picks the new Workouts' Covers.
+   */
+  savePlan: (
+    planId: string,
+    plan: SavedPlan,
+    options: SavePlanOptions
+  ) => Promise<Weighed<SavePlanResult>>;
+  /**
    * Starts a Workout Session for one of the User's Workouts (of a live Plan),
    * or resumes the one already open for it (`resumed`).
    */
@@ -347,6 +363,8 @@ export const createServicesFromEnv: ServicesFactory = (userId) => {
         (tx) => updatePlan(tx, userId, planId, { workouts: replacement }),
         write
       ),
+    savePlan: (planId, plan, options) =>
+      inUnits((tx) => savePlan(tx, userId, planId, plan, options), write),
     startWorkoutSession: (workoutId) =>
       inUnits((tx) => startWorkoutSession(tx, workoutId), write),
     // Metadata only: never `workouts`, so Workout ids stay.

@@ -15,7 +15,11 @@ import {
 import type { PlanDetail } from "@fitme/services/plans";
 import { createRoute, OpenAPIHono, z } from "@hono/zod-openapi";
 import { type ApiEnv, bearerSecurity, requires } from "../auth.js";
-import { checkSlugsAndPickCovers, refusalOf } from "../library.js";
+import {
+  checkSlugsAndPickCovers,
+  checkSlugsForCovers,
+  refusalOf,
+} from "../library.js";
 import {
   ExerciseSlug,
   errorResponse,
@@ -224,56 +228,68 @@ const getPlan = createRoute({
   summary: "Get one of the User's Plans",
 });
 
-const NewPlanSet = z
-  .strictObject({
-    reps_recommended: z.number().int().min(1).max(MAX_REPS).openapi({
-      example: 8,
+/** A set's targets, as a Plan write takes them. */
+const planSetFields = {
+  reps_recommended: z.number().int().min(1).max(MAX_REPS).openapi({
+    example: 8,
+  }),
+  rest_recommended: z.number().int().min(0).max(MAX_REST_SECONDS).openapi({
+    description: "Seconds",
+    example: 120,
+  }),
+  weight_recommended: z
+    .number()
+    .min(0)
+    .max(MAX_WEIGHT)
+    .multipleOf(WEIGHT_STEP)
+    .openapi({
+      description:
+        "In the User's weight unit (`kg` for metric, `lbs` for us and uk), as stored; at most 2 decimals. 0 for bodyweight",
+      example: 80.5,
     }),
-    rest_recommended: z.number().int().min(0).max(MAX_REST_SECONDS).openapi({
-      description: "Seconds",
-      example: 120,
-    }),
-    weight_recommended: z
-      .number()
-      .min(0)
-      .max(MAX_WEIGHT)
-      .multipleOf(WEIGHT_STEP)
-      .openapi({
-        description:
-          "In the User's weight unit (`kg` for metric, `lbs` for us and uk), as stored; at most 2 decimals. 0 for bodyweight",
-        example: 80.5,
-      }),
-  })
-  .openapi("NewPlanSet");
+};
+
+const NewPlanSet = z.strictObject(planSetFields).openapi("NewPlanSet");
+
+/** A Plan write's sets, in the order they are performed. */
+const setsOf = <T extends z.ZodType>(set: T) =>
+  z
+    .array(set)
+    .min(1)
+    .max(MAX_SETS_PER_EXERCISE)
+    .openapi({ description: "In the order they are performed" });
 
 const NewPlanExercise = z
-  .strictObject({
-    exercise_slug: ExerciseSlug,
-    sets: z
-      .array(NewPlanSet)
-      .min(1)
-      .max(MAX_SETS_PER_EXERCISE)
-      .openapi({ description: "In the order they are performed" }),
-  })
+  .strictObject({ exercise_slug: ExerciseSlug, sets: setsOf(NewPlanSet) })
   .openapi("NewPlanExercise");
+
+/** A Workout's description, as a Plan write takes it. */
+const workoutDescription = z
+  .string()
+  .max(MAX_PLAN_TEXT_LENGTH)
+  .openapi({ example: "Legs and pulls" });
+
+/** A Workout's name, as a Plan write takes it. */
+const workoutName = z
+  .string()
+  .trim()
+  .min(1)
+  .max(MAX_PLAN_NAME_LENGTH)
+  .openapi({ example: "Day A" });
+
+/** A Workout's Exercises, in the order they are performed. */
+const exercisesOf = <T extends z.ZodType>(exercise: T) =>
+  z
+    .array(exercise)
+    .min(1)
+    .max(MAX_EXERCISES_PER_WORKOUT)
+    .openapi({ description: "In the order they are performed" });
 
 const NewPlanWorkout = z
   .strictObject({
-    description: z
-      .string()
-      .max(MAX_PLAN_TEXT_LENGTH)
-      .openapi({ example: "Legs and pulls" }),
-    exercises: z
-      .array(NewPlanExercise)
-      .min(1)
-      .max(MAX_EXERCISES_PER_WORKOUT)
-      .openapi({ description: "In the order they are performed" }),
-    name: z
-      .string()
-      .trim()
-      .min(1)
-      .max(MAX_PLAN_NAME_LENGTH)
-      .openapi({ example: "Day A" }),
+    description: workoutDescription,
+    exercises: exercisesOf(NewPlanExercise),
+    name: workoutName,
   })
   .openapi("NewPlanWorkout");
 
@@ -398,6 +414,88 @@ const replaceWorkoutsRoute = createRoute({
 
 /** The Plan a route addresses, by id. */
 const PlanParams = z.object({ id: Id });
+
+/** The id a kept row was read with; a row sent without one is new. */
+const keptId = (row: string) =>
+  Id.optional().openapi({
+    description: `The ${row}'s id as \`GET /v1/plans/{id}\` shows it, to keep the ${row}; leave it out for a new one`,
+  });
+
+const SavedPlanSet = z
+  .strictObject({ ...planSetFields, id: keptId("set") })
+  .openapi("SavedPlanSet");
+
+const SavedPlanExercise = z
+  .strictObject({
+    exercise_slug: ExerciseSlug,
+    id: keptId("Workout Exercise"),
+    sets: setsOf(SavedPlanSet),
+  })
+  .openapi("SavedPlanExercise");
+
+const SavedPlanWorkout = z
+  .strictObject({
+    description: workoutDescription.optional().openapi({
+      description: "Left out, the Workout has none",
+    }),
+    exercises: exercisesOf(SavedPlanExercise),
+    id: keptId("Workout"),
+    name: workoutName,
+  })
+  .openapi("SavedPlanWorkout");
+
+const SavedPlanBody = z
+  .strictObject({
+    ...planMetadataFields,
+    description: planMetadataFields.description.optional().openapi({
+      description: "Left out, the Plan has none",
+    }),
+    note: planMetadataFields.note.openapi({
+      description: "Left out (or `null`), the Plan has none",
+    }),
+    workouts: z
+      .array(SavedPlanWorkout)
+      .min(1)
+      .max(MAX_WORKOUTS_PER_PLAN)
+      .openapi({
+        description:
+          "Every Workout of the Plan, in rotation order: the first is up next. Every `order` comes from the array positions",
+      }),
+  })
+  .openapi("SavedPlan");
+
+const savePlanRoute = createRoute({
+  description:
+    "Saves the whole Plan in one transaction: nothing changes unless all of it is saved. Send every detail and every Workout, Exercise and set the Plan should have, in order. **A row sent with its `id` keeps it** and is updated in place, a row sent without one is created, and a row of the Plan the body leaves out is deleted; an optional field left out is cleared. So past Workout Sessions stay linked to the Workouts kept (a deleted Workout's Workout Sessions keep their logged sets but lose the link, and an open one keeps running), and a kept Workout keeps its `cover`: only new Workouts get one, picked as creating a Plan does, among the Covers the kept ones don't hold. An `id` must be one of this Plan's rows, under the same parent it was read under: a row can't move to another Workout or Exercise. Every Exercise slug is checked against the Library first. Whether the Plan is active doesn't change. The last save wins: there's no version check, so a change made since the Plan was read is overwritten. A repeat is harmless.",
+  method: "put",
+  middleware: [requires("write")] as const,
+  path: "/{id}",
+  request: {
+    body: {
+      content: { "application/json": { schema: SavedPlanBody } },
+      required: true,
+    },
+    params: PlanParams,
+  },
+  responses: {
+    200: {
+      content: { "application/json": { schema: PlanResponse } },
+      description: "The saved Plan in full",
+    },
+    400: errorResponse(
+      "`invalid_request`: the id isn't a uuid, the Plan isn't valid, or an `id` isn't one of this Plan's rows under the parent it's sent under (or is sent twice); `unknown_exercises`: the Library has no Exercise for the slugs the message names. Nothing was changed"
+    ),
+    401: unauthorizedResponse,
+    404: planNotFoundResponse,
+    415: errorResponse("The body isn't `application/json`"),
+    429: rateLimitedResponse,
+    503: errorResponse(
+      "`library_unavailable`: the Exercise slugs couldn't be checked or the Covers couldn't be read; nothing was changed, try again"
+    ),
+  },
+  security: bearerSecurity,
+  summary: "Save a whole Plan",
+});
 
 const PlanChangesBody = z
   // Strict, so `workouts` (and any other field) is refused: this route never
@@ -557,6 +655,47 @@ export const plans = new OpenAPIHono<ApiEnv>({
       return c.json(PLAN_NOT_FOUND, 404);
     }
     return c.json(PlanResponse.parse({ data: planData(replaced) }), 200);
+  })
+  .openapi(savePlanRoute, async (c) => {
+    const plan = c.req.valid("json");
+    const check = await checkSlugsForCovers({
+      library: c.var.getLibrary(),
+      // Only a new Workout needs a Cover
+      readCovers: plan.workouts.some((workout) => workout.id === undefined),
+      reportError: c.var.reportError,
+      workouts: plan.workouts,
+    });
+    if (check.status !== "known") {
+      const refusal = refusalOf(check);
+      return c.json(refusal.body, refusal.status);
+    }
+    const { value, weightUnit } = await c.var
+      .getServices()
+      .savePlan(c.req.valid("param").id, plan, {
+        // In the save's transaction, given the Covers the kept Workouts hold
+        coverNewWorkouts: check.pickCovers,
+      });
+    switch (value.status) {
+      case "not_found":
+        return c.json(PLAN_NOT_FOUND, 404);
+      case "invalid_ids":
+        return c.json(
+          {
+            error: {
+              code: "invalid_request",
+              message: `Not this Plan's, or not under the parent sent: ${value.ids.join(", ")}`,
+            },
+          },
+          400
+        );
+      default:
+        return c.json(
+          PlanResponse.parse({
+            data: planData({ value: value.plan, weightUnit }),
+          }),
+          200
+        );
+    }
   })
   .openapi(updatePlanRoute, async (c) => {
     const updated = await c.var
