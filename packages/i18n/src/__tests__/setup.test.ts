@@ -93,3 +93,53 @@ describe("createI18n", () => {
     expect(i18n.t("profile.title")).toBe("Profile");
   });
 });
+
+// The Attachment strings (FIT-576): a photo's spoken label carries its
+// position, never a `count`, so i18next's plural handling leaves it alone;
+// the two limit messages are plurals, and each language picks its own form.
+describe("the Attachment strings", () => {
+  it.each([
+    {
+      conversationFull:
+        "This conversation has reached 10 photos. Start a new conversation to send more.",
+      language: "en" as const,
+      perMessageLimit: "You can add up to 4 photos to a message.",
+      pickedPhoto: "Photo 2 of 3",
+    },
+    {
+      conversationFull:
+        "У цій розмові вже 10 фото. Почніть нову розмову, щоб надіслати більше.",
+      language: "uk" as const,
+      perMessageLimit: "В одне повідомлення можна додати не більше 4 фото.",
+      pickedPhoto: "Фото 2 з 3",
+    },
+    {
+      conversationFull:
+        "Esta conversación ya tiene 10 fotos. Empieza una nueva conversación para enviar más.",
+      language: "es" as const,
+      perMessageLimit: "Puedes añadir hasta 4 fotos a un mensaje.",
+      pickedPhoto: "Foto 2 de 3",
+    },
+    {
+      conversationFull:
+        "Aquesta conversa ja té 10 fotos. Comença una conversa nova per enviar-ne més.",
+      language: "ca" as const,
+      perMessageLimit: "Pots afegir fins a 4 fotos a un missatge.",
+      pickedPhoto: "Foto 2 de 3",
+    },
+  ])(
+    "reads in $language",
+    ({ language, pickedPhoto, perMessageLimit, conversationFull }) => {
+      const i18n = createI18n(language);
+      expect(
+        i18n.t("arnold.attachments.pickedPhoto", { position: 2, total: 3 })
+      ).toBe(pickedPhoto);
+      expect(i18n.t("arnold.attachments.perMessageLimit", { count: 4 })).toBe(
+        perMessageLimit
+      );
+      expect(i18n.t("arnold.attachments.conversationFull", { count: 10 })).toBe(
+        conversationFull
+      );
+    }
+  );
+});

@@ -79,7 +79,26 @@
       "chooseStyle": "Elegir estilo",
       "normal": "Normal",
       "toolAccess": "Acceso a herramientas",
-      "auto": "Automático"
+      "auto": "Automático",
+      "pickedPhoto": "Foto {{position, number}} de {{total, number}}",
+      "removePhoto": "Quitar foto",
+      "perMessageLimit_one": "Puedes añadir hasta {{count, number}} foto a un mensaje.",
+      "perMessageLimit_many": "Puedes añadir hasta {{count, number}} fotos a un mensaje.",
+      "perMessageLimit_other": "Puedes añadir hasta {{count, number}} fotos a un mensaje.",
+      "conversationFull_one": "Esta conversación ya tiene {{count, number}} foto. Empieza una nueva conversación para enviar más.",
+      "conversationFull_many": "Esta conversación ya tiene {{count, number}} fotos. Empieza una nueva conversación para enviar más.",
+      "conversationFull_other": "Esta conversación ya tiene {{count, number}} fotos. Empieza una nueva conversación para enviar más.",
+      "photo": "Foto",
+      "sentPhoto": "Foto {{position, number}} de {{total, number}}",
+      "cameraDenied": {
+        "title": "Se necesita acceso a la cámara",
+        "message": "Fitme necesita acceso a la cámara para hacer fotos para Arnold. Puedes activarlo en Ajustes.",
+        "openSettings": "Abrir Ajustes"
+      },
+      "viewer": {
+        "close": "Cerrar",
+        "image": "Foto"
+      }
     },
     "errors": {
       "proCheckUnavailable": "No se ha podido comprobar tu suscripción a Fitme Pro. Inténtalo de nuevo en un momento.",

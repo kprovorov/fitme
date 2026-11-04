@@ -86,7 +86,28 @@
       "chooseStyle": "Вибрати стиль",
       "normal": "Звичайний",
       "toolAccess": "Доступ до інструментів",
-      "auto": "Авто"
+      "auto": "Авто",
+      "pickedPhoto": "Фото {{position, number}} з {{total, number}}",
+      "removePhoto": "Видалити фото",
+      "perMessageLimit_one": "В одне повідомлення можна додати не більше {{count, number}} фото.",
+      "perMessageLimit_few": "В одне повідомлення можна додати не більше {{count, number}} фото.",
+      "perMessageLimit_many": "В одне повідомлення можна додати не більше {{count, number}} фото.",
+      "perMessageLimit_other": "В одне повідомлення можна додати не більше {{count, number}} фото.",
+      "conversationFull_one": "У цій розмові вже {{count, number}} фото. Почніть нову розмову, щоб надіслати більше.",
+      "conversationFull_few": "У цій розмові вже {{count, number}} фото. Почніть нову розмову, щоб надіслати більше.",
+      "conversationFull_many": "У цій розмові вже {{count, number}} фото. Почніть нову розмову, щоб надіслати більше.",
+      "conversationFull_other": "У цій розмові вже {{count, number}} фото. Почніть нову розмову, щоб надіслати більше.",
+      "photo": "Фото",
+      "sentPhoto": "Фото {{position, number}} з {{total, number}}",
+      "cameraDenied": {
+        "title": "Потрібен доступ до камери",
+        "message": "Застосунку Fitme потрібен доступ до камери, щоб робити фото для Arnold. Увімкніть його в Параметрах.",
+        "openSettings": "Відкрити Параметри"
+      },
+      "viewer": {
+        "close": "Закрити",
+        "image": "Фото"
+      }
     },
     "errors": {
       "proCheckUnavailable": "Не вдалося перевірити підписку Fitme Pro. Спробуйте трохи згодом.",

@@ -79,7 +79,26 @@
       "chooseStyle": "Tria l'estil",
       "normal": "Normal",
       "toolAccess": "Accés a les eines",
-      "auto": "Automàtic"
+      "auto": "Automàtic",
+      "pickedPhoto": "Foto {{position, number}} de {{total, number}}",
+      "removePhoto": "Elimina la foto",
+      "perMessageLimit_one": "Pots afegir fins a {{count, number}} foto a un missatge.",
+      "perMessageLimit_many": "Pots afegir fins a {{count, number}} fotos a un missatge.",
+      "perMessageLimit_other": "Pots afegir fins a {{count, number}} fotos a un missatge.",
+      "conversationFull_one": "Aquesta conversa ja té {{count, number}} foto. Comença una conversa nova per enviar-ne més.",
+      "conversationFull_many": "Aquesta conversa ja té {{count, number}} fotos. Comença una conversa nova per enviar-ne més.",
+      "conversationFull_other": "Aquesta conversa ja té {{count, number}} fotos. Comença una conversa nova per enviar-ne més.",
+      "photo": "Foto",
+      "sentPhoto": "Foto {{position, number}} de {{total, number}}",
+      "cameraDenied": {
+        "title": "Cal accés a la càmera",
+        "message": "Fitme necessita accés a la càmera per fer fotos per a l'Arnold. El pots activar a Configuració.",
+        "openSettings": "Obre Configuració"
+      },
+      "viewer": {
+        "close": "Tanca",
+        "image": "Foto"
+      }
     },
     "errors": {
       "proCheckUnavailable": "No s'ha pogut comprovar la subscripció a Fitme Pro. Torna-ho a provar d'aquí a un moment.",
