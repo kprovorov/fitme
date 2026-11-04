@@ -14,14 +14,36 @@ import {
   type WriteStarter,
 } from "~/lib/write-answers";
 
+/**
+ * The Plan details a Plan built by hand leaves unset (ADR 0017): the app
+ * shows each only when it's set. The committed OpenAPI document still types
+ * them as always present, because the API answers them as nullable only
+ * after the migration (rollout step 3), so the app widens them itself and
+ * handles a `null` today.
+ */
+interface OptionalPlanDetails {
+  experience_level: string | null;
+  goal: string | null;
+  place: string | null;
+  workout_duration: number | null;
+}
+
 /** A Plan as `GET /v1/plans` lists it: its Workouts summarised. */
-export type PlanSummary = components["schemas"]["PlanSummary"];
+export type PlanSummary = Omit<
+  components["schemas"]["PlanSummary"],
+  keyof OptionalPlanDetails
+> &
+  OptionalPlanDetails;
 
 /**
  * A Plan in full, as `GET /v1/plans/{id}` answers it: its Workouts in
  * rotation order, their Exercises and sets in order, and `weight_unit`.
  */
-export type FullPlan = components["schemas"]["Plan"];
+export type FullPlan = Omit<
+  components["schemas"]["Plan"],
+  keyof OptionalPlanDetails
+> &
+  OptionalPlanDetails;
 
 /** One Workout of a `FullPlan`, with its Exercises and sets. */
 export type PlanWorkout = components["schemas"]["PlanWorkout"];

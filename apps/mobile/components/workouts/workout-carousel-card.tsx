@@ -36,8 +36,8 @@ const CARD_HEIGHT = 400;
 const coverStyle = { ...StyleSheet.absoluteFill, opacity: 0.8 };
 
 interface WorkoutCarouselCardProps {
-  /** The Plan's Workout duration, in minutes. */
-  durationMinutes: number;
+  /** The Plan's Workout duration in minutes, `null` when it's unset. */
+  durationMinutes: number | null;
   /** The card's width, in points, which its Cover is sized for. */
   width: number;
   workout: Workout;
@@ -82,9 +82,10 @@ function WorkoutCover({
 /**
  * A Workout on the Workout tab's carousel (Figma `WorkoutCard`): its muscle
  * groups as badges at the top right, then at the bottom its name, Exercise
- * count and the Plan's duration, Preview (its Workout screen) and Start (a
- * new Workout Session through `useStartWorkout`), or Continue (its open
- * Workout Session) when it has one. The card itself isn't a tap target.
+ * count and the Plan's duration (hidden while that's unset, ADR 0017),
+ * Preview (its Workout screen) and Start (a new Workout Session through
+ * `useStartWorkout`), or Continue (its open Workout Session) when it has
+ * one. The card itself isn't a tap target.
  */
 export default function WorkoutCarouselCard({
   durationMinutes,
@@ -185,21 +186,27 @@ export default function WorkoutCarouselCard({
                 {formatCount(i18n, "exercises", workout.exercises.length)}
               </Text>
             </View>
-            <View
-              accessibilityLabel={formatCount(i18n, "minutes", durationMinutes)}
-              accessible
-              className="flex-row items-center gap-1 py-0.5"
-            >
-              <SymbolImage
-                className="text-footnote-emphasized text-foreground"
-                name="timer"
-              />
-              <Text className="text-footnote-emphasized text-muted-foreground">
-                {t("plannedWorkout.durationMinutes", {
-                  minutes: durationMinutes,
-                })}
-              </Text>
-            </View>
+            {durationMinutes === null ? null : (
+              <View
+                accessibilityLabel={formatCount(
+                  i18n,
+                  "minutes",
+                  durationMinutes
+                )}
+                accessible
+                className="flex-row items-center gap-1 py-0.5"
+              >
+                <SymbolImage
+                  className="text-footnote-emphasized text-foreground"
+                  name="timer"
+                />
+                <Text className="text-footnote-emphasized text-muted-foreground">
+                  {t("plannedWorkout.durationMinutes", {
+                    minutes: durationMinutes,
+                  })}
+                </Text>
+              </View>
+            )}
           </View>
           {/* Stacked, Start (the main action) goes on top. */}
           <View

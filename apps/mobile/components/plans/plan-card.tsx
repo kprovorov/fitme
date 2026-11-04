@@ -24,15 +24,41 @@ interface PlanCardProps {
   plan: PlanSummary;
 }
 
-/** A Plan on the Plans list: its name, goal, level, frequency and place. */
+/**
+ * A Plan on the Plans list: its name, its frequency, and whichever of its
+ * goal, level and place is set (ADR 0017).
+ */
 export default function PlanCard({ plan }: PlanCardProps) {
   const labels = useChoiceLabels();
   const { t } = useTranslation();
   // The API answers these as the columns' text: an id this build doesn't
-  // know shows as itself (`useChoiceLabels`) with the default symbol.
-  const goal = plan.goal as Goal;
-  const level = plan.experience_level as ExperienceLevel;
-  const place = plan.place as Place;
+  // know shows as itself (`useChoiceLabels`) with the default symbol. An
+  // unset one (ADR 0017) isn't shown at all.
+  const goal = plan.goal as Goal | null;
+  const level = plan.experience_level as ExperienceLevel | null;
+  const place = plan.place as Place | null;
+  const details = [
+    ...(goal
+      ? [{ icon: goalSymbol(goal), key: "goal", label: labels.goal(goal) }]
+      : []),
+    ...(level
+      ? [
+          {
+            icon: LEVEL_SYMBOL,
+            key: "level",
+            label: labels.experienceLevel(level),
+          },
+        ]
+      : []),
+    {
+      icon: COUNT_SYMBOL,
+      key: "frequency",
+      label: t("plans.frequency", { count: plan.frequency }),
+    },
+    ...(place
+      ? [{ icon: placeSymbol(place), key: "place", label: labels.place(place) }]
+      : []),
+  ];
   return (
     <Card className="flex-1 gap-sm">
       <CardHeader>
@@ -43,28 +69,7 @@ export default function PlanCard({ plan }: PlanCardProps) {
         </CardTitle>
         <CardDescription>
           <HStack className="flex-wrap justify-start">
-            {[
-              {
-                icon: goalSymbol(goal),
-                key: "goal",
-                label: labels.goal(goal),
-              },
-              {
-                icon: LEVEL_SYMBOL,
-                key: "level",
-                label: labels.experienceLevel(level),
-              },
-              {
-                icon: COUNT_SYMBOL,
-                key: "frequency",
-                label: t("plans.frequency", { count: plan.frequency }),
-              },
-              {
-                icon: placeSymbol(place),
-                key: "place",
-                label: labels.place(place),
-              },
-            ].map((item) => (
+            {details.map((item) => (
               <HStack className="gap-1" key={item.key}>
                 <SymbolImage
                   className="text-muted-foreground text-subhead-emphasized"

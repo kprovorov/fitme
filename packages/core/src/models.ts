@@ -101,11 +101,15 @@ export type Plan = Model & {
   name: string;
   /** `plans.description` is nullable, so a Plan can carry `null`. */
   description: string | null;
-  goal: Goal;
-  place: Place;
+  /** Unset on a Plan built by hand (ADR 0017): it isn't shown. */
+  goal: Goal | null;
+  /** Unset on a Plan built by hand (ADR 0017): it isn't shown. */
+  place: Place | null;
   frequency: number;
-  experience_level: ExperienceLevel;
-  workout_duration: number;
+  /** Unset on a Plan built by hand (ADR 0017): it isn't shown. */
+  experience_level: ExperienceLevel | null;
+  /** Minutes, unset on a Plan built by hand (ADR 0017): it isn't shown. */
+  workout_duration: number | null;
   note?: string;
   is_active: boolean;
   workouts: Workout[];
