@@ -34,6 +34,7 @@ import {
   type PlanDraft,
   planDraftChanged,
   planDraftFrom,
+  planUnitsChanged,
   savePlanBody,
 } from "~/lib/plan-draft";
 
@@ -212,10 +213,17 @@ export default function PlanEditorScreen() {
   }, [close, hasChanges, t]);
 
   const draft = entry?.draft;
-  const isSavable = draft !== undefined && isSavablePlanDraft(draft);
+  // The User's measurement system was switched somewhere else while the
+  // editor was open, so the API converted every stored weight and the
+  // draft's targets are in the unit before it. Saving them would write
+  // 60 kg as 60 lbs, so Save is off until the editor is reopened.
+  const staleUnits =
+    draft !== undefined && plan && planUnitsChanged(draft, plan);
+  const isSavable =
+    draft !== undefined && !staleUnits && isSavablePlanDraft(draft);
 
   const save = useCallback(() => {
-    if (!(draft && isSavablePlanDraft(draft))) {
+    if (!(draft && !staleUnits && isSavablePlanDraft(draft))) {
       return;
     }
     setSaveError(null);
@@ -250,7 +258,7 @@ export default function PlanEditorScreen() {
         },
       }
     );
-  }, [close, draft, draftKey, navigation, planId, savePlan, t]);
+  }, [close, draft, draftKey, navigation, planId, savePlan, staleUnits, t]);
 
   const retry = useCallback(() => {
     refetch();
@@ -301,7 +309,9 @@ export default function PlanEditorScreen() {
             onAddWorkout={addWorkout}
             onChange={change}
             onOpenWorkout={openWorkout}
-            saveError={saveError}
+            saveError={
+              staleUnits ? t("planEditor.errors.unitsChanged") : saveError
+            }
           />
         </KeyboardAwareScrollView>
       </>

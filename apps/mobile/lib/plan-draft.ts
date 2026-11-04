@@ -102,6 +102,13 @@ export interface PlanDraft {
   name: string;
   note: string | null;
   place: Place | null;
+  /**
+   * The unit every weight in the draft is in, taken with them from the read.
+   * It is never edited: it's held so the set rows label the numbers they
+   * actually show, and so the editor can tell that the User's unit changed
+   * underneath it (`planUnitsChanged`).
+   */
+  weightUnit: FullPlan["weight_unit"];
   workoutDuration: number | null;
   workouts: DraftWorkout[];
 }
@@ -202,9 +209,21 @@ export const planDraftFrom = (plan: FullPlan): PlanDraft => ({
   name: plan.name ?? "",
   note: plan.note,
   place: choice(places, plan.place),
+  weightUnit: plan.weight_unit,
   workoutDuration: plan.workout_duration,
   workouts: plan.workouts.map(draftWorkout),
 });
+
+/**
+ * Whether the Plan now reads in another unit than the draft's weights are
+ * in: the User's measurement system was switched somewhere else (another
+ * device, Arnold, MCP) while the editor was open, and the API converted
+ * every stored weight. The draft keeps what the User typed, so saving it
+ * now would write those numbers as the new unit — 60 kg as 60 lbs. The
+ * editor refuses to save until the draft is reopened on the new unit.
+ */
+export const planUnitsChanged = (draft: PlanDraft, plan: FullPlan) =>
+  draft.weightUnit !== plan.weight_unit;
 
 const isWholeNumberIn = (
   value: number | null,

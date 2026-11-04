@@ -279,7 +279,8 @@
       "saveFailed": "No se ha podido guardar tu plan. Comprueba tu conexión e inténtalo de nuevo.",
       "saveRateLimited": "No se ha podido guardar tu plan. Demasiadas solicitudes: inténtalo de nuevo en {{seconds, number}} s.",
       "unknownExercises": "Este plan tiene ejercicios que no conocemos, así que no se puede guardar. Sustitúyelos e inténtalo de nuevo.",
-      "libraryUnavailable": "No se han podido comprobar los ejercicios de este plan. Inténtalo de nuevo."
+      "libraryUnavailable": "No se han podido comprobar los ejercicios de este plan. Inténtalo de nuevo.",
+      "unitsChanged": "Tus unidades de peso han cambiado en otro dispositivo, así que estos objetivos están en las antiguas. Cierra el editor y vuelve a abrirlo."
     }
   },
   "plannedWorkout": {

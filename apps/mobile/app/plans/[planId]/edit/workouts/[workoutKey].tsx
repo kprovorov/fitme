@@ -7,7 +7,6 @@ import WorkoutEditorView from "~/components/plans/workout-editor-view";
 import { Button } from "~/components/ui/button";
 import { Text } from "~/components/ui/text";
 import { updatePlanDraft, usePlanDraft } from "~/hooks/plan-draft";
-import { usePlanQuery } from "~/hooks/queries/plans";
 import { draftWorkoutByKey, type PlanDraft } from "~/lib/plan-draft";
 
 /**
@@ -33,12 +32,8 @@ export default function WorkoutEditorScreen() {
   const { t } = useTranslation();
 
   const entry = usePlanDraft(draftKey);
-  const workout = entry
-    ? draftWorkoutByKey(entry.draft, workoutKey)
-    : undefined;
-
-  // Cached by the Plan editor's own read: the unit its sets' weights are in.
-  const { data: plan } = usePlanQuery({ variables: { id: planId } });
+  const draft = entry?.draft;
+  const workout = draft ? draftWorkoutByKey(draft, workoutKey) : undefined;
 
   const change = useCallback(
     (update: (current: PlanDraft) => PlanDraft) =>
@@ -69,7 +64,7 @@ export default function WorkoutEditorScreen() {
 
   // The draft is gone (the modal closed) or the Workout was removed from the
   // Plan editor underneath: nothing left to edit.
-  if (!workout) {
+  if (!(draft && workout)) {
     return (
       <>
         {screen}
@@ -108,7 +103,7 @@ export default function WorkoutEditorScreen() {
           onAddExercise={addExercise}
           onChange={change}
           onReplaceExercise={openPicker}
-          weightUnit={plan?.weight_unit ?? "kg"}
+          weightUnit={draft.weightUnit}
           workout={workout}
         />
       </KeyboardAwareScrollView>

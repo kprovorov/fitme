@@ -265,7 +265,8 @@
       "saveFailed": "Couldn't save your plan. Please check your connection and try again.",
       "saveRateLimited": "Couldn't save your plan. Too many requests: please try again in {{seconds, number}} s.",
       "unknownExercises": "This plan has exercises we don't know, so it can't be saved. Replace them and try again.",
-      "libraryUnavailable": "Couldn't check this plan's exercises. Try again."
+      "libraryUnavailable": "Couldn't check this plan's exercises. Try again.",
+      "unitsChanged": "Your weight units changed on another device, so these targets are in the old one. Close the editor and open it again."
     }
   },
   "plannedWorkout": {

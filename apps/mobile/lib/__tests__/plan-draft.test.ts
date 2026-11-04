@@ -97,6 +97,9 @@ describe("planDraftFrom", () => {
       name: "Full body",
       note: "Keep the bar close",
       place: "gym",
+      // Held with the weights it describes, so the set rows never label a
+      // kg target `lbs` after a switch made elsewhere.
+      weightUnit: "kg",
       workoutDuration: 60,
       workouts: [
         expect.objectContaining({ id: "workout-1", name: "Day A" }),

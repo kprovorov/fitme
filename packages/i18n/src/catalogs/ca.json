@@ -279,7 +279,8 @@
       "saveFailed": "No s'ha pogut desar el pla. Comprova la connexió i torna-ho a provar.",
       "saveRateLimited": "No s'ha pogut desar el pla. Massa sol·licituds: torna-ho a provar en {{seconds, number}} s.",
       "unknownExercises": "Aquest pla té exercicis que no coneixem, així que no es pot desar. Substitueix-los i torna-ho a provar.",
-      "libraryUnavailable": "No s'han pogut comprovar els exercicis d'aquest pla. Torna-ho a provar."
+      "libraryUnavailable": "No s'han pogut comprovar els exercicis d'aquest pla. Torna-ho a provar.",
+      "unitsChanged": "Les teves unitats de pes han canviat en un altre dispositiu, així que aquests objectius són en les antigues. Tanca l'editor i torna'l a obrir."
     }
   },
   "plannedWorkout": {

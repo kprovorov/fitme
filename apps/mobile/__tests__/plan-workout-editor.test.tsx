@@ -36,6 +36,7 @@ import { setDeviceLanguages } from "~/test-utils/device-locales";
 import { libraryExercise, serveLibrary } from "~/test-utils/fake-library";
 import {
   backend,
+  FAKE_USER_ID,
   fakePublicApi,
   libraryExerciseNamed,
   type SeedPlan,
@@ -228,6 +229,10 @@ const goBack = async () => {
 
 /** The Workout editor's subtree, the only place its fields are looked for. */
 const editor = () => within(screen.getByTestId("workout-editor"));
+
+/** How many set tables head their weight column `kg` (hidden from VoiceOver). */
+const weightColumns = () =>
+  editor().queryAllByText("kg", { includeHiddenElements: true }).length;
 
 /** One Exercise card of the Workout editor, by its 1-based place. */
 const card = (index = 1) =>
@@ -745,6 +750,47 @@ describe("saving twice with the editor still open", () => {
     expect(savedWorkout(3).exercises[0].id).toBe(added.exercises[0].id);
     expect(savedSets(3, 0).map((set) => set.id)).toEqual(setIds);
     expect(savedSets(3, 0)[0].reps_recommended).toBe(12);
+  });
+});
+
+describe("the weight unit", () => {
+  it("labels the set rows with the unit the draft's weights are in", async () => {
+    await openEditor();
+    await openWorkout("Day A");
+
+    expect(weightColumns()).toBeGreaterThan(0);
+    expect(
+      editor().queryByText("lbs", { includeHiddenElements: true })
+    ).toBeNull();
+  });
+
+  it("refuses to save targets in the unit before a switch made elsewhere", async () => {
+    backend.seedProfile(FAKE_USER_ID);
+    await openEditor();
+    await openWorkout("Day A");
+    await typeSet("draft-set-reps-1", "12");
+
+    // Another device switches the measurement system: the API converts
+    // every stored weight, and the next read of the Plan is in `lbs`.
+    backend.profiles[0].measurement_system = "us";
+    await act(() => {
+      client.invalidateQueries({ queryKey: ["plan"] });
+    });
+    await settle(client);
+
+    // The draft still reads in `kg`, so its 60 is still 60 kg.
+    expect(weightColumns()).toBeGreaterThan(0);
+    expect(
+      within(screen.getByTestId("plan-editor")).getByText(
+        "Your weight units changed on another device, so these targets are in the old one. Close the editor and open it again."
+      )
+    ).toBeTruthy();
+    expect(screen.getByLabelText("Save")).toBeDisabled();
+
+    await save();
+
+    expect(fakePublicApi.count(SAVE)).toBe(0);
+    expect(savedSets(0, 0)[0].reps_recommended).toBe(8);
   });
 });
 
