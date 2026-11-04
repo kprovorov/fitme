@@ -8,21 +8,13 @@
  */
 import { beforeEach, describe, expect, it, jest } from "@jest/globals";
 import { QueryClient } from "@tanstack/react-query";
-import { usePlansQuery } from "~/hooks/queries/plans";
+import { useActivePlanQuery } from "~/hooks/queries/plans";
 import type { Profile } from "~/hooks/queries/profiles";
 import { useProfileQuery } from "~/hooks/queries/profiles";
 import { rememberWriteStarter } from "~/lib/write-answers";
 import { FAKE_USER_ID } from "~/test-utils/fake-public-api";
 import { signInAs } from "~/test-utils/signed-in-user";
 import { rememberPendingWeighedRefresh } from "../settings";
-
-// `hooks/queries/plans.ts` still reads the Plans in full through Supabase
-// (Home and History), and the real client needs a URL at import.
-jest.mock("~/lib/supabase", () => ({
-  supabase: jest.requireActual<
-    typeof import("~/test-utils/fake-workout-backend")
-  >("~/test-utils/fake-workout-backend").fakeSupabase,
-}));
 
 jest.mock("~/lib/segment", () => ({ segmentClient: { track: jest.fn() } }));
 
@@ -50,12 +42,12 @@ const rememberSwitchToPounds = () => {
 
 /** A weighed query holding numbers from before the switch. */
 const seedWeighedQuery = () => {
-  client.setQueryData(usePlansQuery.getKey(), []);
+  client.setQueryData(useActivePlanQuery.getKey(), null);
 };
 
 /** Whether the weighed query has been marked for re-reading. */
 const isWeighedQueryStale = () =>
-  client.getQueryState(usePlansQuery.getKey())?.isInvalidated === true;
+  client.getQueryState(useActivePlanQuery.getKey())?.isInvalidated === true;
 
 /** A Profile read landing in the cache. */
 const profileRead = (system: string) => {
