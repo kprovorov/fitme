@@ -152,6 +152,7 @@ describe.each<[string, AppLanguage | undefined]>([
     const { data } = await fake.lookup(["squat"], { language });
 
     expect(Object.keys(data[0] ?? {}).sort()).toEqual([
+      "equipment",
       "muscle_groups",
       "name",
       "slug",

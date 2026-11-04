@@ -14,6 +14,7 @@ export const WORKOUT_ID = "44444444-4444-4444-8444-444444444444";
 /** The Exercises the default fake Library knows. */
 export const BENCH: Exercise = {
   description: "Lie on a flat bench and press the bar.",
+  equipment: [],
   instructions: "1. Unrack. 2. Lower to the chest. 3. Press.",
   muscle_groups: ["chest", "triceps"],
   name: "Bench Press",
@@ -23,6 +24,7 @@ export const BENCH: Exercise = {
 };
 export const SQUAT: Exercise = {
   description: "A squat with the bar on the upper back.",
+  equipment: [],
   instructions: "1. Unrack. 2. Squat. 3. Stand up.",
   muscle_groups: ["quadriceps", "glutes"],
   name: "Barbell Back Squat",

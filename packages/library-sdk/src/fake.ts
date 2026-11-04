@@ -2,6 +2,7 @@ import {
   type AppLanguage,
   appLanguages,
   defaultAppLanguage,
+  type Equipment,
   muscleGroups as knownMuscleGroups,
   type MuscleGroup,
 } from "@fitme/core/models";
@@ -36,8 +37,15 @@ export interface FakeTranslation {
   name: string;
 }
 
-/** An Exercise for the fake, in English, with its translations, if any. */
-export type FakeExercise = (Exercise | ExerciseSummary) & {
+/**
+ * An Exercise for the fake, in English, with its translations, if any.
+ * `equipment` is optional: an Exercise given without it needs none.
+ */
+export type FakeExercise = (
+  | Omit<Exercise, "equipment">
+  | Omit<ExerciseSummary, "equipment">
+) & {
+  equipment?: readonly Equipment[];
   translations?: Partial<Record<AppLanguage, FakeTranslation>>;
 };
 
@@ -57,12 +65,14 @@ interface FakeLanguage {
 
 /** Just the summary fields: an `Exercise`'s description and instructions dropped. */
 const toSummary = ({
+  equipment,
   muscle_groups,
   name,
   slug,
   thumbnail_url,
   video_url,
 }: ExerciseSummary): ExerciseSummary => ({
+  equipment,
   muscle_groups,
   name,
   slug,
@@ -136,6 +146,7 @@ const serveIn = (
         description: "",
         instructions: "",
         ...english,
+        equipment: [...(english.equipment ?? [])],
         ...(translation && {
           description: translation.description ?? "",
           instructions: translation.instructions ?? "",

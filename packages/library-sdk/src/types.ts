@@ -1,10 +1,16 @@
-import type { AppLanguage, MuscleGroup } from "@fitme/core/models";
+import type { AppLanguage, Equipment, MuscleGroup } from "@fitme/core/models";
 
 // The Library API's response shapes, mirroring `apps/library`'s
 // zod schemas (src/schemas.ts): change both together.
 
 /** An Exercise in a list or a batch lookup. */
 export interface ExerciseSummary {
+  /**
+   * The gear the Exercise needs (GLOSSARY.md: Equipment), in `@fitme/core`'s
+   * order; `bodyweight` means it needs none. Always answered, and never
+   * translated: Equipment has no text.
+   */
+  equipment: Equipment[];
   muscle_groups: MuscleGroup[];
   name: string;
   slug: string;
@@ -59,6 +65,11 @@ export interface LanguageOption {
 }
 
 export interface ListExercisesParams extends LanguageOption {
+  /**
+   * Only Exercises with any of these pieces of Equipment (a repeated one
+   * counts once), sent as `equipment`; an empty list filters nothing.
+   */
+  equipment?: readonly Equipment[];
   /** Page size, 1–50; the API's default is 20. */
   limit?: number;
   /** Only Exercises with this muscle group. Not combined with `muscleGroups`. */
@@ -86,7 +97,8 @@ export interface Library {
   get: (slug: string, options?: LanguageOption) => Promise<Exercise | null>;
   /**
    * Exercises listed by name in `language` (with its collation), filtered by
-   * `search` and `muscleGroup` or `muscleGroups`.
+   * `search`, `equipment` and `muscleGroup` or `muscleGroups`. Each filter
+   * narrows the list further, matching any of its own values.
    */
   list: (params?: ListExercisesParams) => Promise<ExercisePage>;
   /**

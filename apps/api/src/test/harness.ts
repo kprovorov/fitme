@@ -36,6 +36,7 @@ export const libraryExercise = (
   slug: string,
   muscleGroups: MuscleGroup[] = ["quadriceps"]
 ): ExerciseSummary => ({
+  equipment: [],
   muscle_groups: muscleGroups,
   name: slug,
   slug,

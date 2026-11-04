@@ -26,6 +26,7 @@ const exercise = (
   muscleGroups: Exercise["muscle_groups"]
 ): Exercise => ({
   description: `About ${name}.`,
+  equipment: [],
   instructions: `How to do ${name}.`,
   muscle_groups: muscleGroups,
   name,

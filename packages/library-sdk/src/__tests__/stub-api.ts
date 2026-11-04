@@ -1,5 +1,7 @@
 import {
   type AppLanguage,
+  type Equipment,
+  equipment as knownEquipment,
   type MuscleGroup,
   muscleGroups,
 } from "@fitme/core/models";
@@ -19,6 +21,7 @@ export const exercise = (
   overrides: Partial<StubExercise> = {}
 ): StubExercise => ({
   description: `About ${slug}.`,
+  equipment: ["barbell"] as Equipment[],
   instructions: `Do ${slug}.`,
   muscle_groups: ["chest"] as MuscleGroup[],
   name: slug
@@ -69,8 +72,23 @@ const muscleGroupsRefusal = ({
     : invalidRequest("muscle_groups: invalid muscle group");
 };
 
+/**
+ * The API's 400 for an `equipment` it refuses: an unknown value or an empty
+ * item (an empty value included); `null` for one it takes.
+ */
+const equipmentRefusal = ({ equipment }: StubRequest) => {
+  if (equipment === null) {
+    return null;
+  }
+  return equipment.every((item) => knownEquipment.includes(item as Equipment))
+    ? null
+    : invalidRequest("equipment: invalid equipment");
+};
+
 export interface StubRequest {
   authorization: string | null;
+  /** `equipment` split on its commas, as sent; null when not sent. */
+  equipment: string[] | null;
   /** `GET /exercises/:slug`'s slug, decoded; null for `GET /exercises`. */
   exerciseSlug: string | null;
   language: string | null;
@@ -149,7 +167,7 @@ export const stubApi = (
         missing: slugs.filter((slug) => !bySlug.has(slug)),
       });
     }
-    const refusal = muscleGroupsRefusal(request);
+    const refusal = muscleGroupsRefusal(request) ?? equipmentRefusal(request);
     if (refusal) {
       return refusal;
     }
@@ -164,6 +182,10 @@ export const stubApi = (
         (!groups ||
           groups.some((group) =>
             e.muscle_groups.includes(group as MuscleGroup)
+          )) &&
+        (!request.equipment ||
+          request.equipment.some((item) =>
+            e.equipment.includes(item as Equipment)
           ))
     );
     const data = matches
@@ -182,6 +204,9 @@ export const stubApi = (
     const [, slug] = EXERCISE_PATH.exec(url.pathname) ?? [];
     const request: StubRequest = {
       authorization: new Headers(init?.headers).get("authorization"),
+      equipment: params.has("equipment")
+        ? (params.get("equipment") ?? "").split(",")
+        : null,
       exerciseSlug: slug === undefined ? null : decodeURIComponent(slug),
       language: params.get("language"),
       limit: params.get("limit"),

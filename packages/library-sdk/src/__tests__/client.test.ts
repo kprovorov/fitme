@@ -250,6 +250,113 @@ describe("list by several muscle groups", () => {
   });
 });
 
+describe("equipment", () => {
+  const exercises = [
+    exercise("bench-press", { equipment: ["barbell", "bench"] }),
+    exercise("dumbbell-fly", { equipment: ["dumbbell", "bench"] }),
+    exercise("push-up", {
+      equipment: ["bodyweight"],
+      translations: {
+        uk: { description: "", instructions: "", name: "Віджимання" },
+      },
+    }),
+    exercise("pull-up", {
+      equipment: ["pull_up_bar", "bodyweight"],
+      muscle_groups: ["back"],
+    }),
+  ];
+  const libraryOver = (over: typeof exercises = exercises) => {
+    const api = stubApi(over);
+    return {
+      api,
+      library: createLibrary({ fetch: api.fetch, token, url: URL }),
+    };
+  };
+
+  it("answers each Exercise's Equipment on list, lookup and get", async () => {
+    const { library } = libraryOver();
+
+    const page = await library.list();
+    const batch = await library.lookup(["pull-up", "push-up"]);
+    const one = await library.get("bench-press");
+
+    expect(page.data.map(({ equipment, slug }) => [slug, equipment])).toEqual([
+      ["bench-press", ["barbell", "bench"]],
+      ["dumbbell-fly", ["dumbbell", "bench"]],
+      ["pull-up", ["pull_up_bar", "bodyweight"]],
+      ["push-up", ["bodyweight"]],
+    ]);
+    expect(batch.data.map((e) => e.equipment)).toEqual([
+      ["pull_up_bar", "bodyweight"],
+      ["bodyweight"],
+    ]);
+    expect(one?.equipment).toEqual(["barbell", "bench"]);
+  });
+
+  it("takes a piece of Equipment it doesn't know, so a new one never breaks it", async () => {
+    const fresh = exercise("kettlebell-swing", {
+      equipment: ["kettlebell" as "barbell"],
+    });
+    const { library } = libraryOver([fresh]);
+
+    expect(await library.get("kettlebell-swing")).toEqual(fresh);
+    expect((await library.list()).data[0]?.equipment).toEqual(["kettlebell"]);
+  });
+
+  it("sends it comma-separated as equipment and answers Exercises with any of it", async () => {
+    const { api, library } = libraryOver();
+
+    const page = await library.list({ equipment: ["dumbbell", "pull_up_bar"] });
+
+    expect(api.requests[0]?.url.searchParams.get("equipment")).toBe(
+      "dumbbell,pull_up_bar"
+    );
+    expect(page.data.map((e) => e.slug)).toEqual(["dumbbell-fly", "pull-up"]);
+  });
+
+  it("narrows together with the muscle groups, the search and the language", async () => {
+    const { api, library } = libraryOver();
+
+    const page = await library.list({
+      equipment: ["bodyweight"],
+      language: "uk",
+      muscleGroups: ["chest", "back"],
+      search: "ж",
+    });
+
+    expect(api.requests[0]).toMatchObject({
+      equipment: ["bodyweight"],
+      language: "uk",
+      muscleGroups: ["chest", "back"],
+      search: "ж",
+    });
+    expect(page.data.map((e) => e.name)).toEqual(["Віджимання"]);
+  });
+
+  it.each<[string, { equipment?: [] }]>([
+    ["not given", {}],
+    ["empty", { equipment: [] }],
+  ])("is never sent when %s", async (_, params) => {
+    const { api, library } = libraryOver();
+
+    const page = await library.list(params);
+
+    expect(api.requests[0]?.url.searchParams.has("equipment")).toBe(false);
+    expect(page.total).toBe(exercises.length);
+  });
+
+  it("surfaces the API's 400 for a value it refuses as invalid request", async () => {
+    const { library } = libraryOver();
+
+    const error = await library
+      .list({ equipment: ["kettlebell" as "barbell"] })
+      .catch((e: unknown) => e);
+
+    expect(error).toBeInstanceOf(LibraryInvalidRequestError);
+    expect(error).toMatchObject({ message: "equipment: invalid equipment" });
+  });
+});
+
 describe("get", () => {
   it("answers one Exercise in full, description and instructions included", async () => {
     const squat = exercise("barbell-back-squat");
@@ -304,6 +411,19 @@ describe("get", () => {
     const { description: _, ...withoutDescription } = exercise("squat");
     const library = createLibrary({
       fetch: stubApi([], () => Response.json(withoutDescription)).fetch,
+      token,
+      url: URL,
+    });
+
+    await expect(library.get("squat")).rejects.toBeInstanceOf(
+      LibraryUnavailableError
+    );
+  });
+
+  it("maps an answer without equipment to unavailable", async () => {
+    const { equipment: _, ...withoutEquipment } = exercise("squat");
+    const library = createLibrary({
+      fetch: stubApi([], () => Response.json(withoutEquipment)).fetch,
       token,
       url: URL,
     });
@@ -474,6 +594,7 @@ describe("auth", () => {
 });
 
 describe("errors", () => {
+  const { equipment: _equipment, ...withoutEquipment } = exercise("squat");
   const failing = (respond: () => Response | Promise<Response>) =>
     createLibrary({
       fetch: stubApi([], respond).fetch,
@@ -577,6 +698,18 @@ describe("errors", () => {
       "an entry without a slug",
       { data: [{ name: "Squat" }], hasMore: false, total: 1 },
     ],
+    [
+      "an entry without equipment",
+      { data: [withoutEquipment], hasMore: false, total: 1 },
+    ],
+    [
+      "an entry whose equipment isn't strings",
+      {
+        data: [{ ...exercise("squat"), equipment: [1] }],
+        hasMore: false,
+        total: 1,
+      },
+    ],
   ])("maps a 200 list answer with %s to unavailable", async (_, body) => {
     const library = failing(() => Response.json(body));
 
@@ -590,6 +723,14 @@ describe("errors", () => {
     ["with an entry that isn't an object", { data: [null], missing: [] }],
     ["with an empty entry", { data: [{}], missing: [] }],
     ["with a missing slug that isn't a string", { data: [], missing: [1] }],
+    [
+      "with an entry without equipment",
+      { data: [withoutEquipment], missing: [] },
+    ],
+    [
+      "with an entry whose equipment isn't strings",
+      { data: [{ ...exercise("squat"), equipment: [1] }], missing: [] },
+    ],
   ])("maps a 200 lookup answer %s to unavailable", async (_, body) => {
     const library = failing(() => Response.json(body));
 
