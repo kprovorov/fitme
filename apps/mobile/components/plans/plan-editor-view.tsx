@@ -5,6 +5,7 @@ import {
   goals,
   MAX_FREQUENCY,
   MAX_PLAN_NAME_LENGTH,
+  MAX_PLAN_TEXT_LENGTH,
   MAX_WORKOUT_DURATION_MINUTES,
   MIN_FREQUENCY,
   type Place,
@@ -61,11 +62,23 @@ const isOutside = (value: number | null, min: number, max: number) =>
   value === null || value < min || value > max;
 
 /** A field with its label above it, as every field of the editor has. */
-function Field({ children, label }: { children: ReactNode; label: string }) {
+function Field({
+  children,
+  error,
+  label,
+}: {
+  children: ReactNode;
+  /** Shown under the field, for one that can't show its own message. */
+  error?: string;
+  label: string;
+}) {
   return (
     <VStack className="items-stretch gap-2">
       <Label>{label}</Label>
       {children}
+      {error ? (
+        <Text className="text-destructive text-subhead">{error}</Text>
+      ) : null}
     </VStack>
   );
 }
@@ -251,6 +264,12 @@ export default function PlanEditorView({
     [labels]
   );
 
+  const choiceRequired = t("planEditor.errors.choiceRequired");
+  const descriptionError =
+    draft.description.trim().length > MAX_PLAN_TEXT_LENGTH
+      ? t("planEditor.errors.descriptionTooLong", { max: MAX_PLAN_TEXT_LENGTH })
+      : undefined;
+
   const trimmedName = draft.name.trim();
   let nameError: string | undefined;
   if (trimmedName === "") {
@@ -278,6 +297,7 @@ export default function PlanEditorView({
         </Field>
         <Field label={t("planEditor.description")}>
           <Textarea
+            error={descriptionError}
             onChangeText={setDescription}
             placeholder={t("planEditor.descriptionPlaceholder")}
             testID="plan-description"
@@ -314,7 +334,10 @@ export default function PlanEditorView({
         />
         {/* A menu `Picker` only draws its own label inside a Form, so each
             one gets the same label above it as the fields have. */}
-        <Field label={t("planEditor.goal")}>
+        <Field
+          error={draft.goal === null ? choiceRequired : undefined}
+          label={t("planEditor.goal")}
+        >
           <Select
             onValueChange={setGoal}
             options={goalOptions}
@@ -322,7 +345,10 @@ export default function PlanEditorView({
             value={draft.goal ?? undefined}
           />
         </Field>
-        <Field label={t("planEditor.experience")}>
+        <Field
+          error={draft.experienceLevel === null ? choiceRequired : undefined}
+          label={t("planEditor.experience")}
+        >
           <Select
             onValueChange={setExperienceLevel}
             options={levelOptions}
@@ -330,7 +356,10 @@ export default function PlanEditorView({
             value={draft.experienceLevel ?? undefined}
           />
         </Field>
-        <Field label={t("planEditor.place")}>
+        <Field
+          error={draft.place === null ? choiceRequired : undefined}
+          label={t("planEditor.place")}
+        >
           <Select
             onValueChange={setPlace}
             options={placeOptions}

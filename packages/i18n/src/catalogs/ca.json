@@ -221,8 +221,10 @@
     "errors": {
       "nameRequired": "Escriu un nom per al pla",
       "nameTooLong": "El nom pot tenir com a màxim {{max, number(useGrouping: false)}} caràcters",
+      "descriptionTooLong": "La descripció pot tenir com a màxim {{max, number(useGrouping: false)}} caràcters",
       "frequencyRange": "Els entrenaments per setmana han de ser un nombre enter d'{{min, number(useGrouping: false)}} a {{max, number(useGrouping: false)}}",
       "durationRange": "La durada de l'entrenament ha de ser un nombre enter de minuts, com a màxim {{max, number(useGrouping: false)}}",
+      "choiceRequired": "Tria una opció",
       "saveFailed": "No s'ha pogut desar el pla. Comprova la connexió i torna-ho a provar.",
       "saveRateLimited": "No s'ha pogut desar el pla. Massa sol·licituds: torna-ho a provar en {{seconds, number}} s."
     }

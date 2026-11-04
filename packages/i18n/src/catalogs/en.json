@@ -209,8 +209,10 @@
     "errors": {
       "nameRequired": "Enter a plan name",
       "nameTooLong": "Name must be at most {{max, number(useGrouping: false)}} characters",
+      "descriptionTooLong": "Description must be at most {{max, number(useGrouping: false)}} characters",
       "frequencyRange": "Workouts a week must be a whole number from {{min, number(useGrouping: false)}} to {{max, number(useGrouping: false)}}",
       "durationRange": "Workout duration must be a whole number of minutes, at most {{max, number(useGrouping: false)}}",
+      "choiceRequired": "Choose one",
       "saveFailed": "Couldn't save your plan. Please check your connection and try again.",
       "saveRateLimited": "Couldn't save your plan. Too many requests: please try again in {{seconds, number}} s."
     }

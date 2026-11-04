@@ -233,8 +233,10 @@
     "errors": {
       "nameRequired": "Вкажіть назву плану",
       "nameTooLong": "Назва має містити не більше ніж {{max, number(useGrouping: false)}} символів",
+      "descriptionTooLong": "Опис має містити не більше ніж {{max, number(useGrouping: false)}} символів",
       "frequencyRange": "Тренувань на тиждень має бути цілим числом від {{min, number(useGrouping: false)}} до {{max, number(useGrouping: false)}}",
       "durationRange": "Тривалість тренування має бути цілим числом хвилин, не більше ніж {{max, number(useGrouping: false)}}",
+      "choiceRequired": "Виберіть один варіант",
       "saveFailed": "Не вдалося зберегти план. Перевірте з’єднання й спробуйте ще раз.",
       "saveRateLimited": "Не вдалося зберегти план. Забагато запитів: спробуйте ще раз через {{seconds, number}} с."
     }

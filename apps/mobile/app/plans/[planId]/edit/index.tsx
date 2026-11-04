@@ -1,10 +1,11 @@
-import { rateLimitedFor } from "@fitme/api-client";
+import { ApiError, rateLimitedFor } from "@fitme/api-client";
 import {
   Stack,
   useLocalSearchParams,
   usePreventRemove,
   useRouter,
 } from "expo-router";
+import type { TFunction } from "i18next";
 import { useCallback, useEffect, useState } from "react";
 import { useTranslation } from "react-i18next";
 import { ActivityIndicator, Alert, ScrollView, View } from "react-native";
@@ -28,6 +29,21 @@ import {
   planDraftFrom,
   savePlanBody,
 } from "~/lib/plan-draft";
+
+/**
+ * What a failed save shows, in the App language: a Plan that's gone says so
+ * (as every other Plan write does), a 429 the wait, and anything else the
+ * generic error — never the API's own message.
+ */
+const saveFailureMessage = (t: TFunction, error: unknown) => {
+  if (error instanceof ApiError && error.code === "not_found") {
+    return t("plans.errors.notFound");
+  }
+  const seconds = rateLimitedFor(error);
+  return seconds === null
+    ? t("planEditor.errors.saveFailed")
+    : t("planEditor.errors.saveRateLimited", { seconds });
+};
 
 /**
  * The Plan editor: it opens on a draft of the Plan in full, ids included
@@ -144,12 +160,7 @@ export default function PlanEditorScreen() {
       { body: savePlanBody(draft), id: planId },
       {
         onError: (error) => {
-          const seconds = rateLimitedFor(error);
-          setSaveError(
-            seconds === null
-              ? t("planEditor.errors.saveFailed")
-              : t("planEditor.errors.saveRateLimited", { seconds })
-          );
+          setSaveError(saveFailureMessage(t, error));
         },
         onSuccess: close,
       }

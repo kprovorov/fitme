@@ -6,7 +6,7 @@
  * buttons (a disabled one can't be pressed) and its menus' items, and
  * `Alert.alert` is answered by pressing one of its buttons, as the User would.
  */
-import { MAX_FREQUENCY } from "@fitme/core";
+import { MAX_FREQUENCY, MAX_PLAN_TEXT_LENGTH } from "@fitme/core";
 import { beforeEach, describe, expect, it, jest } from "@jest/globals";
 import { type QueryClient, QueryClientProvider } from "@tanstack/react-query";
 import {
@@ -370,6 +370,19 @@ describe("Save is disabled", () => {
     await expectNothingSaved();
   });
 
+  it("while the description is past its length", async () => {
+    await openEditor();
+    await type("plan-description", "a".repeat(MAX_PLAN_TEXT_LENGTH + 1));
+
+    expect(screen.getByLabelText("Save")).toBeDisabled();
+    expect(
+      screen.getByText(
+        `Description must be at most ${MAX_PLAN_TEXT_LENGTH} characters`
+      )
+    ).toBeTruthy();
+    await expectNothingSaved();
+  });
+
   it("while no Workout is left", async () => {
     await openEditor();
     await removeWorkout("Day A");
@@ -431,6 +444,15 @@ describe("a failed save", () => {
     await save();
 
     expect(savedPlan().name).toBe("Push pull legs");
+  });
+
+  it("says the Plan is gone when the API no longer has it", async () => {
+    await openEditor();
+    fakePublicApi.failNext(SAVE, { code: "not_found", status: 404 });
+    await save();
+
+    expect(screen.getByText("This plan no longer exists.")).toBeTruthy();
+    expect(segmentClient.track).not.toHaveBeenCalled();
   });
 
   it("shows how long to wait when it was rate limited", async () => {

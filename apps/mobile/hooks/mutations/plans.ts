@@ -38,10 +38,11 @@ export const useSavePlanMutation = createMutation<FullPlan, SavePlanVariables>({
     }
     return data.data;
   },
-  onSuccess: async (_plan, _variables, _context, { client }) => {
-    await Promise.all([
-      invalidateWeighedQueries(client),
-      client.invalidateQueries({ queryKey: WEEKLY_GOALS_QUERY_KEY }),
-    ]);
+  // Not awaited: the reads it starts can take a while (History is paged),
+  // and the caller's `onSuccess`, which closes the editor, runs after this
+  // one settles. What each Screen shows next is still the server's answer.
+  onSuccess: (_plan, _variables, _context, { client }) => {
+    invalidateWeighedQueries(client);
+    client.invalidateQueries({ queryKey: WEEKLY_GOALS_QUERY_KEY });
   },
 });
