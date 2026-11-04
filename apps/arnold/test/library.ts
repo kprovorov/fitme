@@ -9,9 +9,11 @@ const media = (slug: string) => ({
 /**
  * The Exercises the tool tests' fake library holds, in English; Bench Press
  * and Back Squat are translated into Ukrainian, Incline Dumbbell Press isn't.
+ * Their Equipment overlaps on purpose, so an any-of filter tells them apart.
  */
 export const libraryExercises: FakeExercise[] = [
   {
+    equipment: ["barbell", "bench"],
     muscle_groups: ["chest", "triceps"],
     name: "Bench Press",
     slug: "bench-press",
@@ -19,12 +21,14 @@ export const libraryExercises: FakeExercise[] = [
     ...media("bench-press"),
   },
   {
+    equipment: ["dumbbell", "bench"],
     muscle_groups: ["chest"],
     name: "Incline Dumbbell Press",
     slug: "incline-dumbbell-press",
     ...media("incline-dumbbell-press"),
   },
   {
+    equipment: ["barbell"],
     muscle_groups: ["quadriceps", "glutes"],
     name: "Back Squat",
     slug: "back-squat",

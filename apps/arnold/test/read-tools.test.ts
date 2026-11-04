@@ -91,7 +91,10 @@ const { default: displayWorkoutPlan } =
 
 const tx = { fake: "transaction" };
 
-type ModelInput = Record<string, string | number | readonly object[]>;
+type ModelInput = Record<
+  string,
+  string | number | readonly object[] | readonly string[]
+>;
 
 /** What eve hands `execute` after validating the model's input. */
 const parseInput = <Input>(tool: TestedTool<Input>, input: ModelInput) =>
@@ -384,11 +387,13 @@ describe("search_exercises", () => {
 
     await expect(searchExercises.execute(input, alice)).resolves.toStrictEqual([
       {
+        equipment: ["barbell", "bench"],
         exercise_slug: "bench-press",
         muscle_groups: ["chest", "triceps"],
         name: "Bench Press",
       },
       {
+        equipment: ["dumbbell", "bench"],
         exercise_slug: "incline-dumbbell-press",
         muscle_groups: ["chest"],
         name: "Incline Dumbbell Press",
@@ -403,6 +408,7 @@ describe("search_exercises", () => {
     await searchExercises.execute({ query: "squat" }, alice);
 
     expect(list).toHaveBeenCalledWith({
+      equipment: undefined,
       limit: 8,
       muscleGroup: undefined,
       search: "squat",
@@ -412,6 +418,55 @@ describe("search_exercises", () => {
   it("only takes a known muscle group", () => {
     expect(() =>
       parseInput(searchExercises, { muscle_group: "wings" })
+    ).toThrow("Invalid option");
+  });
+
+  it("narrows the search to exercises using any of the given equipment", async () => {
+    const input = parseInput(searchExercises, { equipment: ["dumbbell"] });
+
+    await expect(searchExercises.execute(input, alice)).resolves.toStrictEqual([
+      expect.objectContaining({ exercise_slug: "incline-dumbbell-press" }),
+    ]);
+  });
+
+  it("matches an exercise using any one of several pieces of equipment", async () => {
+    const input = parseInput(searchExercises, {
+      equipment: ["barbell", "dumbbell"],
+      muscle_group: "chest",
+    });
+
+    await expect(searchExercises.execute(input, alice)).resolves.toStrictEqual([
+      expect.objectContaining({ exercise_slug: "bench-press" }),
+      expect.objectContaining({ exercise_slug: "incline-dumbbell-press" }),
+    ]);
+  });
+
+  it("combines equipment with the muscle group and the query", async () => {
+    const input = parseInput(searchExercises, {
+      equipment: ["bench"],
+      muscle_group: "chest",
+      query: "bench",
+    });
+
+    await expect(searchExercises.execute(input, alice)).resolves.toStrictEqual([
+      expect.objectContaining({ exercise_slug: "bench-press" }),
+    ]);
+  });
+
+  it("asks the library for the equipment it was given", async () => {
+    const list = vi.spyOn(fakeLibrary, "list");
+    const input = parseInput(searchExercises, { equipment: ["barbell"] });
+
+    await searchExercises.execute(input, alice);
+
+    expect(list).toHaveBeenCalledWith(
+      expect.objectContaining({ equipment: ["barbell"] })
+    );
+  });
+
+  it("only takes known equipment", () => {
+    expect(() =>
+      parseInput(searchExercises, { equipment: ["kettlebell"] })
     ).toThrow("Invalid option");
   });
 
@@ -563,11 +618,28 @@ describe("the App language", () => {
     await searchExercises.execute({ query: "жим" }, inUkrainian);
 
     expect(list).toHaveBeenCalledWith({
+      equipment: undefined,
       language: "uk",
       limit: 8,
       muscleGroup: undefined,
       search: "жим",
     });
+  });
+
+  it("answers an equipment-filtered search in the App language", async () => {
+    const found = z
+      .array(shownExerciseSchema)
+      .parse(
+        await searchExercises.execute(
+          { equipment: ["dumbbell", "bench"] },
+          inUkrainian
+        )
+      );
+
+    expect(found.map(({ name }) => name)).toStrictEqual([
+      "Жим лежачи",
+      "Incline Dumbbell Press",
+    ]);
   });
 });
 
