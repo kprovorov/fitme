@@ -17,7 +17,7 @@
         "hooks": [
           {
             "type": "command",
-            "command": "npm run fix -- --skip=correctness/noUnusedImports"
+            "command": "pnpm exec ultracite fix --hook"
           }
         ]
       }
