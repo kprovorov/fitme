@@ -85,7 +85,7 @@ describe("accountDeletionReset's secret from the environment", () => {
   });
 
   const resetWith = async (secret: string) =>
-    routeAuth(
+    await routeAuth(
       request(`Bearer ${secret}`, "/eve/v1/session/wrun_alice/reset"),
       accountDeletionReset()
     );

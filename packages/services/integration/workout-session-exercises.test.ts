@@ -51,7 +51,7 @@ const insertSession = async (
   userId: string,
   { finished = false }: { finished?: boolean } = {}
 ) =>
-  withService(async (tx) => {
+  await withService(async (tx) => {
     const [session] = await tx
       .insert(workoutSessions)
       .values({
@@ -66,7 +66,7 @@ const insertSession = async (
 
 /** Exercises at 1 and 3: a remove left a gap at 2. Their ids, in order. */
 const insertExercises = async (sessionId: string) =>
-  withService(async (tx) => {
+  await withService(async (tx) => {
     const inserted = await tx
       .insert(workoutSessionExercises)
       .values([
@@ -80,7 +80,7 @@ const insertExercises = async (sessionId: string) =>
 
 /** Two sets with targets on a Workout Session Exercise, the first one logged. */
 const insertSets = async (sessionExerciseId: string) =>
-  withService((tx) =>
+  await withService((tx) =>
     tx.insert(workoutSessionExerciseSets).values([
       {
         loggedAt: "2026-10-01T10:05:00Z",
@@ -103,7 +103,7 @@ const insertSets = async (sessionExerciseId: string) =>
   );
 
 const setsOf = async (sessionExerciseId: string) =>
-  withService((tx) =>
+  await withService((tx) =>
     tx
       .select({
         order: workoutSessionExerciseSets.order,
@@ -124,7 +124,7 @@ const setsOf = async (sessionExerciseId: string) =>
   );
 
 const exercisesOf = async (sessionId: string) =>
-  withService((tx) =>
+  await withService((tx) =>
     tx
       .select({
         exerciseSlug: workoutSessionExercises.exerciseSlug,
@@ -144,11 +144,13 @@ describe(addExerciseToWorkoutSession, () => {
     const sessionId = await insertSession(owner);
     await insertExercises(sessionId);
 
-    const result = await asUser(owner, async (tx) =>
-      addExerciseToWorkoutSession(tx, owner, {
-        exerciseSlug: lungeSlug,
-        sessionId,
-      })
+    const result = await asUser(
+      owner,
+      async (tx) =>
+        await addExerciseToWorkoutSession(tx, owner, {
+          exerciseSlug: lungeSlug,
+          sessionId,
+        })
     );
 
     expect(result).toEqual({
@@ -170,11 +172,13 @@ describe(addExerciseToWorkoutSession, () => {
   it("starts at 1 in a Workout Session without Exercises", async () => {
     const sessionId = await insertSession(owner);
 
-    const result = await asUser(owner, async (tx) =>
-      addExerciseToWorkoutSession(tx, owner, {
-        exerciseSlug: lungeSlug,
-        sessionId,
-      })
+    const result = await asUser(
+      owner,
+      async (tx) =>
+        await addExerciseToWorkoutSession(tx, owner, {
+          exerciseSlug: lungeSlug,
+          sessionId,
+        })
     );
 
     expect(result).toMatchObject({ exercise: { order: 1 }, status: "added" });
@@ -184,11 +188,13 @@ describe(addExerciseToWorkoutSession, () => {
     const sessionId = await insertSession(owner, { finished: true });
     await insertExercises(sessionId);
 
-    const result = await asUser(owner, async (tx) =>
-      addExerciseToWorkoutSession(tx, owner, {
-        exerciseSlug: lungeSlug,
-        sessionId,
-      })
+    const result = await asUser(
+      owner,
+      async (tx) =>
+        await addExerciseToWorkoutSession(tx, owner, {
+          exerciseSlug: lungeSlug,
+          sessionId,
+        })
     );
 
     expect(result).toEqual({
@@ -205,13 +211,16 @@ describe(addExerciseToWorkoutSession, () => {
     const intruderSessionId = await insertSession(intruder);
 
     const results = await Promise.all(
-      [intruderSessionId, randomUUID()].map(async (sessionId) =>
-        asUser(owner, async (tx) =>
-          addExerciseToWorkoutSession(tx, owner, {
-            exerciseSlug: lungeSlug,
-            sessionId,
-          })
-        )
+      [intruderSessionId, randomUUID()].map(
+        async (sessionId) =>
+          await asUser(
+            owner,
+            async (tx) =>
+              await addExerciseToWorkoutSession(tx, owner, {
+                exerciseSlug: lungeSlug,
+                sessionId,
+              })
+          )
       )
     );
 
@@ -224,13 +233,17 @@ describe(addExerciseToWorkoutSession, () => {
     await insertExercises(sessionId);
 
     const results = await Promise.all(
-      Array.from({ length: 5 }, async () =>
-        asUser(owner, async (tx) =>
-          addExerciseToWorkoutSession(tx, owner, {
-            exerciseSlug: lungeSlug,
-            sessionId,
-          })
-        )
+      Array.from(
+        { length: 5 },
+        async () =>
+          await asUser(
+            owner,
+            async (tx) =>
+              await addExerciseToWorkoutSession(tx, owner, {
+                exerciseSlug: lungeSlug,
+                sessionId,
+              })
+          )
       )
     );
 
@@ -249,8 +262,9 @@ describe(removeExerciseFromWorkoutSession, () => {
     await insertSets(benchId);
     await insertSets(squatId);
 
-    const result = await asUser(owner, async (tx) =>
-      removeExerciseFromWorkoutSession(tx, owner, benchId)
+    const result = await asUser(
+      owner,
+      async (tx) => await removeExerciseFromWorkoutSession(tx, owner, benchId)
     );
 
     expect(result).toEqual({ status: "removed" });
@@ -261,11 +275,13 @@ describe(removeExerciseFromWorkoutSession, () => {
     await expect(setsOf(squatId)).resolves.toHaveLength(2);
 
     // Adding after the remove appends after the highest order: the gap stays.
-    await asUser(owner, async (tx) =>
-      addExerciseToWorkoutSession(tx, owner, {
-        exerciseSlug: lungeSlug,
-        sessionId,
-      })
+    await asUser(
+      owner,
+      async (tx) =>
+        await addExerciseToWorkoutSession(tx, owner, {
+          exerciseSlug: lungeSlug,
+          sessionId,
+        })
     );
     await expect(exercisesOf(sessionId)).resolves.toEqual([
       { exerciseSlug: squatSlug, order: 3 },
@@ -276,12 +292,14 @@ describe(removeExerciseFromWorkoutSession, () => {
   it("finds nothing on a repeat", async () => {
     const sessionId = await insertSession(owner);
     const [benchId] = await insertExercises(sessionId);
-    await asUser(owner, async (tx) =>
-      removeExerciseFromWorkoutSession(tx, owner, benchId)
+    await asUser(
+      owner,
+      async (tx) => await removeExerciseFromWorkoutSession(tx, owner, benchId)
     );
 
-    const repeat = await asUser(owner, async (tx) =>
-      removeExerciseFromWorkoutSession(tx, owner, benchId)
+    const repeat = await asUser(
+      owner,
+      async (tx) => await removeExerciseFromWorkoutSession(tx, owner, benchId)
     );
 
     expect(repeat).toEqual({ status: "not_found" });
@@ -291,8 +309,9 @@ describe(removeExerciseFromWorkoutSession, () => {
     const sessionId = await insertSession(owner, { finished: true });
     const [benchId] = await insertExercises(sessionId);
 
-    const result = await asUser(owner, async (tx) =>
-      removeExerciseFromWorkoutSession(tx, owner, benchId)
+    const result = await asUser(
+      owner,
+      async (tx) => await removeExerciseFromWorkoutSession(tx, owner, benchId)
     );
 
     expect(result).toEqual({
@@ -308,10 +327,12 @@ describe(removeExerciseFromWorkoutSession, () => {
     const [benchId] = await insertExercises(sessionId);
 
     const results = await Promise.all(
-      [benchId, randomUUID()].map(async (id) =>
-        asUser(owner, async (tx) =>
-          removeExerciseFromWorkoutSession(tx, owner, id)
-        )
+      [benchId, randomUUID()].map(
+        async (id) =>
+          await asUser(
+            owner,
+            async (tx) => await removeExerciseFromWorkoutSession(tx, owner, id)
+          )
       )
     );
 
@@ -326,11 +347,13 @@ describe(replaceExerciseInWorkoutSession, () => {
     const [benchId] = await insertExercises(sessionId);
     await insertSets(benchId);
 
-    const result = await asUser(owner, async (tx) =>
-      replaceExerciseInWorkoutSession(tx, owner, {
-        exerciseSlug: lungeSlug,
-        sessionExerciseId: benchId,
-      })
+    const result = await asUser(
+      owner,
+      async (tx) =>
+        await replaceExerciseInWorkoutSession(tx, owner, {
+          exerciseSlug: lungeSlug,
+          sessionExerciseId: benchId,
+        })
     );
 
     expect(result).toEqual({
@@ -392,11 +415,13 @@ describe(replaceExerciseInWorkoutSession, () => {
     const [benchId] = await insertExercises(sessionId);
     await insertSets(benchId);
 
-    const result = await asUser(owner, async (tx) =>
-      replaceExerciseInWorkoutSession(tx, owner, {
-        exerciseSlug: lungeSlug,
-        sessionExerciseId: benchId,
-      })
+    const result = await asUser(
+      owner,
+      async (tx) =>
+        await replaceExerciseInWorkoutSession(tx, owner, {
+          exerciseSlug: lungeSlug,
+          sessionExerciseId: benchId,
+        })
     );
 
     expect(result).toMatchObject({ sessionId, status: "session_finished" });
@@ -414,13 +439,16 @@ describe(replaceExerciseInWorkoutSession, () => {
     const [benchId] = await insertExercises(sessionId);
 
     const results = await Promise.all(
-      [benchId, randomUUID()].map(async (sessionExerciseId) =>
-        asUser(owner, async (tx) =>
-          replaceExerciseInWorkoutSession(tx, owner, {
-            exerciseSlug: lungeSlug,
-            sessionExerciseId,
-          })
-        )
+      [benchId, randomUUID()].map(
+        async (sessionExerciseId) =>
+          await asUser(
+            owner,
+            async (tx) =>
+              await replaceExerciseInWorkoutSession(tx, owner, {
+                exerciseSlug: lungeSlug,
+                sessionExerciseId,
+              })
+          )
       )
     );
 
@@ -440,11 +468,13 @@ describe(addSetToWorkoutSessionExercise, () => {
     const [benchId] = await insertExercises(sessionId);
     await insertSets(benchId);
 
-    const result = await asUser(owner, async (tx) =>
-      addSetToWorkoutSessionExercise(tx, owner, {
-        ...logged,
-        sessionExerciseId: benchId,
-      })
+    const result = await asUser(
+      owner,
+      async (tx) =>
+        await addSetToWorkoutSessionExercise(tx, owner, {
+          ...logged,
+          sessionExerciseId: benchId,
+        })
     );
 
     expect(result).toEqual({
@@ -474,11 +504,13 @@ describe(addSetToWorkoutSessionExercise, () => {
     const sessionId = await insertSession(owner);
     const [benchId] = await insertExercises(sessionId);
 
-    const result = await asUser(owner, async (tx) =>
-      addSetToWorkoutSessionExercise(tx, owner, {
-        ...logged,
-        sessionExerciseId: benchId,
-      })
+    const result = await asUser(
+      owner,
+      async (tx) =>
+        await addSetToWorkoutSessionExercise(tx, owner, {
+          ...logged,
+          sessionExerciseId: benchId,
+        })
     );
 
     expect(result).toMatchObject({ set: { order: 1 }, status: "added" });
@@ -489,11 +521,13 @@ describe(addSetToWorkoutSessionExercise, () => {
     const [benchId] = await insertExercises(sessionId);
     await insertSets(benchId);
 
-    const result = await asUser(owner, async (tx) =>
-      addSetToWorkoutSessionExercise(tx, owner, {
-        ...logged,
-        sessionExerciseId: benchId,
-      })
+    const result = await asUser(
+      owner,
+      async (tx) =>
+        await addSetToWorkoutSessionExercise(tx, owner, {
+          ...logged,
+          sessionExerciseId: benchId,
+        })
     );
 
     expect(result).toEqual({
@@ -509,13 +543,16 @@ describe(addSetToWorkoutSessionExercise, () => {
     const [benchId] = await insertExercises(sessionId);
 
     const results = await Promise.all(
-      [benchId, randomUUID()].map(async (sessionExerciseId) =>
-        asUser(owner, async (tx) =>
-          addSetToWorkoutSessionExercise(tx, owner, {
-            ...logged,
-            sessionExerciseId,
-          })
-        )
+      [benchId, randomUUID()].map(
+        async (sessionExerciseId) =>
+          await asUser(
+            owner,
+            async (tx) =>
+              await addSetToWorkoutSessionExercise(tx, owner, {
+                ...logged,
+                sessionExerciseId,
+              })
+          )
       )
     );
 
@@ -529,13 +566,17 @@ describe(addSetToWorkoutSessionExercise, () => {
     await insertSets(benchId);
 
     const results = await Promise.all(
-      Array.from({ length: 5 }, async () =>
-        asUser(owner, async (tx) =>
-          addSetToWorkoutSessionExercise(tx, owner, {
-            ...logged,
-            sessionExerciseId: benchId,
-          })
-        )
+      Array.from(
+        { length: 5 },
+        async () =>
+          await asUser(
+            owner,
+            async (tx) =>
+              await addSetToWorkoutSessionExercise(tx, owner, {
+                ...logged,
+                sessionExerciseId: benchId,
+              })
+          )
       )
     );
 

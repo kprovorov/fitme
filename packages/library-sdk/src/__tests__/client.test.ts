@@ -11,7 +11,7 @@ import {
 import { cover, exercise, stubApi } from "./stub-api";
 
 const URL = "https://exercises.test";
-const token = async () => Promise.resolve("secret-token");
+const token = async () => "secret-token";
 
 describe("lookup", () => {
   it("asks for 85 slugs in 3 requests of at most 40, in asked order, missing merged", async () => {
@@ -557,7 +557,7 @@ describe("auth", () => {
     const rotating = async () => {
       calls += 1;
 
-      return Promise.resolve(`token-${calls}`);
+      return `token-${calls}`;
     };
 
     const slugs = Array.from({ length: 85 }, (_, i) => `ex-${i}`);
@@ -585,7 +585,7 @@ describe("auth", () => {
 
     const library = createLibrary({
       fetch: api.fetch,
-      token: async () => Promise.resolve(null),
+      token: async () => null,
       url: URL,
     });
 
@@ -601,7 +601,9 @@ describe("auth", () => {
 
     const library = createLibrary({
       fetch: api.fetch,
-      token: async () => Promise.reject(cause),
+      token: async () => {
+        throw cause;
+      },
       url: URL,
     });
 
@@ -691,7 +693,10 @@ describe("errors", () => {
 
   it("maps a network failure to unavailable, keeping the cause", async () => {
     const cause = new TypeError("Network request failed");
-    const library = failing(async () => Promise.reject(cause));
+
+    const library = failing(async () => {
+      throw cause;
+    });
 
     await expect(library.lookup(["squat"])).rejects.toMatchObject({
       cause,
@@ -701,7 +706,7 @@ describe("errors", () => {
 
   it("maps a timeout to unavailable", async () => {
     const hanging = async (_input: RequestInfo | URL, init?: RequestInit) =>
-      new Promise<Response>((_resolve, reject) => {
+      await new Promise<Response>((_resolve, reject) => {
         init?.signal?.addEventListener("abort", () => {
           reject(new DOMException("aborted", "AbortError"));
         });
@@ -903,7 +908,10 @@ describe("covers", () => {
 
   it("maps a network failure to unavailable, keeping the cause", async () => {
     const cause = new TypeError("Network request failed");
-    const { library } = coversLibrary(async () => Promise.reject(cause));
+
+    const { library } = coversLibrary(async () => {
+      throw cause;
+    });
 
     await expect(library.covers()).rejects.toMatchObject({
       cause,
@@ -913,7 +921,7 @@ describe("covers", () => {
 
   it("maps a timeout to unavailable", async () => {
     const hanging = async (_input: RequestInfo | URL, init?: RequestInit) =>
-      new Promise<Response>((_resolve, reject) => {
+      await new Promise<Response>((_resolve, reject) => {
         init?.signal?.addEventListener("abort", () => {
           reject(new DOMException("aborted", "AbortError"));
         });
@@ -936,7 +944,7 @@ describe("covers", () => {
 
     const library = createLibrary({
       fetch: api.fetch,
-      token: async () => Promise.resolve(null),
+      token: async () => null,
       url: URL,
     });
 

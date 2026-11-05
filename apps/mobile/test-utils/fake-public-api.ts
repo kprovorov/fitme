@@ -173,12 +173,12 @@ export interface SeedPlan {
     /** Its Library Cover's id; `null` (the default) without one. */
     cover?: string | null;
     /** A number of sets at 10 reps, 90 s rest and no weight, or each set. */
-    exercises: Array<{
+    exercises: {
       /** Its id; `<workout>-e<n>` from its position unless given. */
       id?: string;
       sets: number | SeedPlanSet[];
       slug: string;
-    }>;
+    }[];
     id: string;
     name: string;
     /** Its place in the rotation; its position in `workouts` (from 1) unless given. */

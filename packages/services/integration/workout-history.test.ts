@@ -43,7 +43,7 @@ let seeded: Seeded;
 let intruderSessionId: string;
 
 const seedOwner = async (): Promise<Seeded> =>
-  withService(async (tx) => {
+  await withService(async (tx) => {
     const [plan] = await tx
       .insert(plans)
       .values({
@@ -163,8 +163,9 @@ afterAll(async () => {
 
 describe(listWorkoutHistory, () => {
   it("returns finished sessions, last finished first, with exercises and sets in order", async () => {
-    const history = await asUser(owner, async (tx) =>
-      listWorkoutHistory(tx, { limit: 10 })
+    const history = await asUser(
+      owner,
+      async (tx) => await listWorkoutHistory(tx, { limit: 10 })
     );
 
     expect(history.map((session) => session.id)).toEqual([
@@ -222,8 +223,9 @@ describe(listWorkoutHistory, () => {
   });
 
   it("returns at most `limit` sessions, the latest ones", async () => {
-    const history = await asUser(owner, async (tx) =>
-      listWorkoutHistory(tx, { limit: 2 })
+    const history = await asUser(
+      owner,
+      async (tx) => await listWorkoutHistory(tx, { limit: 2 })
     );
 
     expect(history.map((session) => session.id)).toEqual([
@@ -233,12 +235,14 @@ describe(listWorkoutHistory, () => {
   });
 
   it("never returns another User's sessions", async () => {
-    const ownHistory = await asUser(owner, async (tx) =>
-      listWorkoutHistory(tx, { limit: 20 })
+    const ownHistory = await asUser(
+      owner,
+      async (tx) => await listWorkoutHistory(tx, { limit: 20 })
     );
 
-    const intruderHistory = await asUser(intruder, async (tx) =>
-      listWorkoutHistory(tx, { limit: 20 })
+    const intruderHistory = await asUser(
+      intruder,
+      async (tx) => await listWorkoutHistory(tx, { limit: 20 })
     );
 
     expect(ownHistory.map((session) => session.id)).not.toContain(
@@ -255,8 +259,9 @@ describe(listWorkoutHistory, () => {
   });
 
   it("leaves out sessions still in progress", async () => {
-    const history = await asUser(owner, async (tx) =>
-      listWorkoutHistory(tx, { limit: 20 })
+    const history = await asUser(
+      owner,
+      async (tx) => await listWorkoutHistory(tx, { limit: 20 })
     );
 
     expect(history.map((session) => session.id)).not.toContain(seeded.openId);

@@ -53,14 +53,12 @@ export const memoryRateLimiter = ({
 
       window.count += 1;
 
-      return Promise.resolve(
-        window.count <= limit
-          ? { allowed: true }
-          : {
-              allowed: false,
-              retryAfterSeconds: secondsUntil(window.resetAt, time),
-            }
-      );
+      return window.count <= limit
+        ? { allowed: true }
+        : {
+            allowed: false,
+            retryAfterSeconds: secondsUntil(window.resetAt, time),
+          };
     },
   };
 };

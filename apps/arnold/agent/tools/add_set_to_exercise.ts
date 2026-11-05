@@ -16,12 +16,14 @@ export default defineTool({
     const { workout_exercise_id, ...set } = input;
 
     return await reportingEditErrors(async () => {
-      const added = await asUser(userId, async (tx) =>
-        addSetToExercise(tx, userId, {
-          requestKey: requestKey(ctx, input),
-          set,
-          workoutExerciseId: workout_exercise_id,
-        })
+      const added = await asUser(
+        userId,
+        async (tx) =>
+          await addSetToExercise(tx, userId, {
+            requestKey: requestKey(ctx, input),
+            set,
+            workoutExerciseId: workout_exercise_id,
+          })
       );
 
       return added

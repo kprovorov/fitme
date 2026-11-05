@@ -52,7 +52,7 @@ const unknownSlug = `not-in-any-library-${runId}`;
  * (5×100).
  */
 const seedPlan = async (userId: string) =>
-  withService(async (tx) => {
+  await withService(async (tx) => {
     const [plan] = await tx
       .insert(plans)
       .values({
@@ -120,7 +120,9 @@ type SeededPlan = Awaited<ReturnType<typeof seedPlan>>;
 
 /** Day A of the seeded Plan as the owner sees it. */
 const dayAOf = async (plan: SeededPlan, userId = owner) => {
-  const detail = await withService(async (tx) => getPlan(tx, userId, plan.id));
+  const detail = await withService(
+    async (tx) => await getPlan(tx, userId, plan.id)
+  );
 
   return detail?.workouts[0];
 };
@@ -170,11 +172,13 @@ describe(addSetToExercise, () => {
   it("appends the set after the Exercise's last set", async () => {
     const plan = await seedPlan(owner);
 
-    const added = await asUser(owner, async (tx) =>
-      addSetToExercise(tx, owner, {
-        set: newSet,
-        workoutExerciseId: plan.bench,
-      })
+    const added = await asUser(
+      owner,
+      async (tx) =>
+        await addSetToExercise(tx, owner, {
+          set: newSet,
+          workoutExerciseId: plan.bench,
+        })
     );
 
     expect(added).toEqual({ id: expect.any(String), order: 3 });
@@ -192,12 +196,14 @@ describe(addSetToExercise, () => {
     const requestKey = newKey();
 
     const add = async () =>
-      asUser(owner, async (tx) =>
-        addSetToExercise(tx, owner, {
-          requestKey,
-          set: newSet,
-          workoutExerciseId: plan.bench,
-        })
+      await asUser(
+        owner,
+        async (tx) =>
+          await addSetToExercise(tx, owner, {
+            requestKey,
+            set: newSet,
+            workoutExerciseId: plan.bench,
+          })
       );
 
     const first = await add();
@@ -211,13 +217,16 @@ describe(addSetToExercise, () => {
     const plan = await seedPlan(owner);
 
     await Promise.all(
-      [1, 2, 3].map(async () =>
-        asUser(owner, async (tx) =>
-          addSetToExercise(tx, owner, {
-            set: newSet,
-            workoutExerciseId: plan.squat,
-          })
-        )
+      [1, 2, 3].map(
+        async () =>
+          await asUser(
+            owner,
+            async (tx) =>
+              await addSetToExercise(tx, owner, {
+                set: newSet,
+                workoutExerciseId: plan.squat,
+              })
+          )
       )
     );
 
@@ -231,17 +240,19 @@ describe(addSetToExercise, () => {
     const requestKey = newKey();
 
     const add = async (key?: string) =>
-      asUser(owner, async (tx) =>
-        addSetToExercise(tx, owner, {
-          requestKey: key,
-          set: newSet,
-          workoutExerciseId: plan.squat,
-        })
+      await asUser(
+        owner,
+        async (tx) =>
+          await addSetToExercise(tx, owner, {
+            requestKey: key,
+            set: newSet,
+            workoutExerciseId: plan.squat,
+          })
       );
 
     // The squat starts with one set; fill it up to one short of the limit
     await Promise.all(
-      Array.from({ length: MAX_SETS_PER_EXERCISE - 2 }, async () => add())
+      Array.from({ length: MAX_SETS_PER_EXERCISE - 2 }, async () => await add())
     );
     const last = await add(requestKey);
 
@@ -255,11 +266,13 @@ describe(addSetToExercise, () => {
   it("can't add to another User's Exercise", async () => {
     const plan = await seedPlan(owner);
 
-    const added = await asUser(intruder, async (tx) =>
-      addSetToExercise(tx, intruder, {
-        set: newSet,
-        workoutExerciseId: plan.bench,
-      })
+    const added = await asUser(
+      intruder,
+      async (tx) =>
+        await addSetToExercise(tx, intruder, {
+          set: newSet,
+          workoutExerciseId: plan.bench,
+        })
     );
 
     expect(added).toBeNull();
@@ -270,11 +283,13 @@ describe(addSetToExercise, () => {
     const plan = await seedPlan(owner);
 
     await expect(
-      asUser(owner, async (tx) =>
-        addSetToExercise(tx, owner, {
-          set: { ...newSet, reps_recommended: OUT_OF_RANGE_REPS },
-          workoutExerciseId: plan.bench,
-        })
+      asUser(
+        owner,
+        async (tx) =>
+          await addSetToExercise(tx, owner, {
+            set: { ...newSet, reps_recommended: OUT_OF_RANGE_REPS },
+            workoutExerciseId: plan.bench,
+          })
       )
     ).rejects.toMatchObject({ cause: { code: NUMERIC_OUT_OF_RANGE } });
     await expect(shapeOf(plan)).resolves.toEqual(seededShape);
@@ -282,13 +297,15 @@ describe(addSetToExercise, () => {
 
   it("edits a Workout of a soft-deleted Plan, as ai-agent did", async () => {
     const plan = await seedPlan(owner);
-    await asUser(owner, async (tx) => deletePlan(tx, owner, plan.id));
+    await asUser(owner, async (tx) => await deletePlan(tx, owner, plan.id));
 
-    const added = await asUser(owner, async (tx) =>
-      addSetToExercise(tx, owner, {
-        set: newSet,
-        workoutExerciseId: plan.bench,
-      })
+    const added = await asUser(
+      owner,
+      async (tx) =>
+        await addSetToExercise(tx, owner, {
+          set: newSet,
+          workoutExerciseId: plan.bench,
+        })
     );
 
     expect(added).toEqual({ id: expect.any(String), order: 3 });
@@ -304,12 +321,14 @@ describe(addExerciseToWorkout, () => {
   it("appends the Exercise with its sets in order after the last one", async () => {
     const plan = await seedPlan(owner);
 
-    const added = await asUser(owner, async (tx) =>
-      addExerciseToWorkout(tx, owner, {
-        exerciseSlug: rowSlug,
-        sets,
-        workoutId: plan.dayA,
-      })
+    const added = await asUser(
+      owner,
+      async (tx) =>
+        await addExerciseToWorkout(tx, owner, {
+          exerciseSlug: rowSlug,
+          sets,
+          workoutId: plan.dayA,
+        })
     );
 
     expect(added).toEqual({ id: expect.any(String), order: 3, setsAdded: 2 });
@@ -329,12 +348,14 @@ describe(addExerciseToWorkout, () => {
   it("stores any Exercise slug as given, unchecked", async () => {
     const plan = await seedPlan(owner);
 
-    await asUser(owner, async (tx) =>
-      addExerciseToWorkout(tx, owner, {
-        exerciseSlug: unknownSlug,
-        sets,
-        workoutId: plan.dayA,
-      })
+    await asUser(
+      owner,
+      async (tx) =>
+        await addExerciseToWorkout(tx, owner, {
+          exerciseSlug: unknownSlug,
+          sets,
+          workoutId: plan.dayA,
+        })
     );
 
     expect((await dayAOf(plan))?.exercises[2]).toMatchObject({
@@ -348,13 +369,15 @@ describe(addExerciseToWorkout, () => {
     const requestKey = newKey();
 
     const add = async () =>
-      asUser(owner, async (tx) =>
-        addExerciseToWorkout(tx, owner, {
-          exerciseSlug: rowSlug,
-          requestKey,
-          sets,
-          workoutId: plan.dayA,
-        })
+      await asUser(
+        owner,
+        async (tx) =>
+          await addExerciseToWorkout(tx, owner, {
+            exerciseSlug: rowSlug,
+            requestKey,
+            sets,
+            workoutId: plan.dayA,
+          })
       );
 
     const first = await add();
@@ -368,12 +391,14 @@ describe(addExerciseToWorkout, () => {
   it("can't add to another User's Workout", async () => {
     const plan = await seedPlan(owner);
 
-    const added = await asUser(intruder, async (tx) =>
-      addExerciseToWorkout(tx, intruder, {
-        exerciseSlug: rowSlug,
-        sets,
-        workoutId: plan.dayA,
-      })
+    const added = await asUser(
+      intruder,
+      async (tx) =>
+        await addExerciseToWorkout(tx, intruder, {
+          exerciseSlug: rowSlug,
+          sets,
+          workoutId: plan.dayA,
+        })
     );
 
     expect(added).toBeNull();
@@ -384,12 +409,17 @@ describe(addExerciseToWorkout, () => {
     const plan = await seedPlan(owner);
 
     await expect(
-      asUser(owner, async (tx) =>
-        addExerciseToWorkout(tx, owner, {
-          exerciseSlug: rowSlug,
-          sets: [sets[0], { ...sets[1], reps_recommended: OUT_OF_RANGE_REPS }],
-          workoutId: plan.dayA,
-        })
+      asUser(
+        owner,
+        async (tx) =>
+          await addExerciseToWorkout(tx, owner, {
+            exerciseSlug: rowSlug,
+            sets: [
+              sets[0],
+              { ...sets[1], reps_recommended: OUT_OF_RANGE_REPS },
+            ],
+            workoutId: plan.dayA,
+          })
       )
     ).rejects.toMatchObject({ cause: { code: NUMERIC_OUT_OF_RANGE } });
     await expect(shapeOf(plan)).resolves.toEqual(seededShape);
@@ -400,8 +430,9 @@ describe(removeExerciseFromWorkout, () => {
   it("removes the Exercise with its sets and renumbers the rest from 1", async () => {
     const plan = await seedPlan(owner);
 
-    const removed = await asUser(owner, async (tx) =>
-      removeExerciseFromWorkout(tx, owner, plan.bench)
+    const removed = await asUser(
+      owner,
+      async (tx) => await removeExerciseFromWorkout(tx, owner, plan.bench)
     );
 
     expect(removed).toBe(true);
@@ -425,8 +456,9 @@ describe(removeExerciseFromWorkout, () => {
     const plan = await seedPlan(owner);
 
     const remove = async () =>
-      asUser(owner, async (tx) =>
-        removeExerciseFromWorkout(tx, owner, plan.bench)
+      await asUser(
+        owner,
+        async (tx) => await removeExerciseFromWorkout(tx, owner, plan.bench)
       );
 
     await remove();
@@ -441,8 +473,9 @@ describe(removeExerciseFromWorkout, () => {
   it("can't remove from another User's Workout", async () => {
     const plan = await seedPlan(owner);
 
-    const removed = await asUser(intruder, async (tx) =>
-      removeExerciseFromWorkout(tx, intruder, plan.bench)
+    const removed = await asUser(
+      intruder,
+      async (tx) => await removeExerciseFromWorkout(tx, intruder, plan.bench)
     );
 
     expect(removed).toBe(false);
@@ -463,12 +496,14 @@ describe(replaceExerciseInWorkout, () => {
   it("swaps the Exercise in place and replaces its sets", async () => {
     const plan = await seedPlan(owner);
 
-    const replaced = await asUser(owner, async (tx) =>
-      replaceExerciseInWorkout(tx, owner, {
-        newExerciseSlug: rowSlug,
-        sets,
-        workoutExerciseId: plan.bench,
-      })
+    const replaced = await asUser(
+      owner,
+      async (tx) =>
+        await replaceExerciseInWorkout(tx, owner, {
+          newExerciseSlug: rowSlug,
+          sets,
+          workoutExerciseId: plan.bench,
+        })
     );
 
     expect(replaced).toBe(true);
@@ -480,12 +515,14 @@ describe(replaceExerciseInWorkout, () => {
     const plan = await seedPlan(owner);
 
     const replace = async () =>
-      asUser(owner, async (tx) =>
-        replaceExerciseInWorkout(tx, owner, {
-          newExerciseSlug: rowSlug,
-          sets,
-          workoutExerciseId: plan.bench,
-        })
+      await asUser(
+        owner,
+        async (tx) =>
+          await replaceExerciseInWorkout(tx, owner, {
+            newExerciseSlug: rowSlug,
+            sets,
+            workoutExerciseId: plan.bench,
+          })
       );
 
     await replace();
@@ -501,12 +538,14 @@ describe(replaceExerciseInWorkout, () => {
     const roundingBoundary = [{ ...sets[0], weight_recommended: 1.005 }];
 
     const replace = async () =>
-      asUser(owner, async (tx) =>
-        replaceExerciseInWorkout(tx, owner, {
-          newExerciseSlug: rowSlug,
-          sets: roundingBoundary,
-          workoutExerciseId: plan.bench,
-        })
+      await asUser(
+        owner,
+        async (tx) =>
+          await replaceExerciseInWorkout(tx, owner, {
+            newExerciseSlug: rowSlug,
+            sets: roundingBoundary,
+            workoutExerciseId: plan.bench,
+          })
       );
 
     const setIds = async () =>
@@ -522,12 +561,14 @@ describe(replaceExerciseInWorkout, () => {
   it("can't replace in another User's Workout", async () => {
     const plan = await seedPlan(owner);
 
-    const replaced = await asUser(intruder, async (tx) =>
-      replaceExerciseInWorkout(tx, intruder, {
-        newExerciseSlug: rowSlug,
-        sets,
-        workoutExerciseId: plan.bench,
-      })
+    const replaced = await asUser(
+      intruder,
+      async (tx) =>
+        await replaceExerciseInWorkout(tx, intruder, {
+          newExerciseSlug: rowSlug,
+          sets,
+          workoutExerciseId: plan.bench,
+        })
     );
 
     expect(replaced).toBe(false);
@@ -537,12 +578,14 @@ describe(replaceExerciseInWorkout, () => {
   it("swaps in any Exercise slug as given, unchecked", async () => {
     const plan = await seedPlan(owner);
 
-    const replaced = await asUser(owner, async (tx) =>
-      replaceExerciseInWorkout(tx, owner, {
-        newExerciseSlug: unknownSlug,
-        sets,
-        workoutExerciseId: plan.bench,
-      })
+    const replaced = await asUser(
+      owner,
+      async (tx) =>
+        await replaceExerciseInWorkout(tx, owner, {
+          newExerciseSlug: unknownSlug,
+          sets,
+          workoutExerciseId: plan.bench,
+        })
     );
 
     expect(replaced).toBe(true);
@@ -556,12 +599,14 @@ describe(replaceExerciseInWorkout, () => {
     const plan = await seedPlan(owner);
 
     await expect(
-      asUser(owner, async (tx) =>
-        replaceExerciseInWorkout(tx, owner, {
-          newExerciseSlug: rowSlug,
-          sets: [{ ...sets[0], reps_recommended: OUT_OF_RANGE_REPS }],
-          workoutExerciseId: plan.bench,
-        })
+      asUser(
+        owner,
+        async (tx) =>
+          await replaceExerciseInWorkout(tx, owner, {
+            newExerciseSlug: rowSlug,
+            sets: [{ ...sets[0], reps_recommended: OUT_OF_RANGE_REPS }],
+            workoutExerciseId: plan.bench,
+          })
       )
     ).rejects.toMatchObject({ cause: { code: NUMERIC_OUT_OF_RANGE } });
     await expect(shapeOf(plan)).resolves.toEqual(seededShape);
@@ -577,8 +622,9 @@ describe(removeSetFromExercise, () => {
   it("removes the set and renumbers the Exercise's other sets from 1", async () => {
     const plan = await seedPlan(owner);
 
-    const removed = await asUser(owner, async (tx) =>
-      removeSetFromExercise(tx, owner, plan.benchSet1)
+    const removed = await asUser(
+      owner,
+      async (tx) => await removeSetFromExercise(tx, owner, plan.benchSet1)
     );
 
     expect(removed).toBe(true);
@@ -589,8 +635,9 @@ describe(removeSetFromExercise, () => {
     const plan = await seedPlan(owner);
 
     const remove = async () =>
-      asUser(owner, async (tx) =>
-        removeSetFromExercise(tx, owner, plan.benchSet1)
+      await asUser(
+        owner,
+        async (tx) => await removeSetFromExercise(tx, owner, plan.benchSet1)
       );
 
     await remove();
@@ -603,8 +650,9 @@ describe(removeSetFromExercise, () => {
   it("can't remove another User's set", async () => {
     const plan = await seedPlan(owner);
 
-    const removed = await asUser(intruder, async (tx) =>
-      removeSetFromExercise(tx, intruder, plan.benchSet1)
+    const removed = await asUser(
+      intruder,
+      async (tx) => await removeSetFromExercise(tx, intruder, plan.benchSet1)
     );
 
     expect(removed).toBe(false);
@@ -627,10 +675,12 @@ describe(updateSetRecommendations, () => {
   it("changes only the given targets and returns the set", async () => {
     const plan = await seedPlan(owner);
 
-    const updated = await asUser(owner, async (tx) =>
-      updateSetRecommendations(tx, owner, plan.benchSet1, {
-        weight_recommended: 65,
-      })
+    const updated = await asUser(
+      owner,
+      async (tx) =>
+        await updateSetRecommendations(tx, owner, plan.benchSet1, {
+          weight_recommended: 65,
+        })
     );
 
     expect(updated).toEqual({
@@ -647,10 +697,12 @@ describe(updateSetRecommendations, () => {
     const plan = await seedPlan(owner);
 
     const update = async () =>
-      asUser(owner, async (tx) =>
-        updateSetRecommendations(tx, owner, plan.benchSet1, {
-          weight_recommended: 65,
-        })
+      await asUser(
+        owner,
+        async (tx) =>
+          await updateSetRecommendations(tx, owner, plan.benchSet1, {
+            weight_recommended: 65,
+          })
       );
 
     const first = await update();
@@ -663,10 +715,12 @@ describe(updateSetRecommendations, () => {
   it("can't update another User's set", async () => {
     const plan = await seedPlan(owner);
 
-    const updated = await asUser(intruder, async (tx) =>
-      updateSetRecommendations(tx, intruder, plan.benchSet1, {
-        reps_recommended: 1,
-      })
+    const updated = await asUser(
+      intruder,
+      async (tx) =>
+        await updateSetRecommendations(tx, intruder, plan.benchSet1, {
+          reps_recommended: 1,
+        })
     );
 
     expect(updated).toBeNull();
@@ -675,12 +729,14 @@ describe(updateSetRecommendations, () => {
 
   it("edits a set in a soft-deleted Plan, as ai-agent did", async () => {
     const plan = await seedPlan(owner);
-    await asUser(owner, async (tx) => deletePlan(tx, owner, plan.id));
+    await asUser(owner, async (tx) => await deletePlan(tx, owner, plan.id));
 
-    const updated = await asUser(owner, async (tx) =>
-      updateSetRecommendations(tx, owner, plan.benchSet1, {
-        rest_recommended: 30,
-      })
+    const updated = await asUser(
+      owner,
+      async (tx) =>
+        await updateSetRecommendations(tx, owner, plan.benchSet1, {
+          rest_recommended: 30,
+        })
     );
 
     expect(updated).toMatchObject({ id: plan.benchSet1, rest_recommended: 30 });
@@ -690,11 +746,13 @@ describe(updateSetRecommendations, () => {
     const plan = await seedPlan(owner);
 
     await expect(
-      asUser(owner, async (tx) =>
-        updateSetRecommendations(tx, owner, plan.benchSet1, {
-          reps_recommended: OUT_OF_RANGE_REPS,
-          weight_recommended: 65,
-        })
+      asUser(
+        owner,
+        async (tx) =>
+          await updateSetRecommendations(tx, owner, plan.benchSet1, {
+            reps_recommended: OUT_OF_RANGE_REPS,
+            weight_recommended: 65,
+          })
       )
     ).rejects.toMatchObject({ cause: { code: NUMERIC_OUT_OF_RANGE } });
     await expect(shapeOf(plan)).resolves.toEqual(seededShape);
@@ -712,11 +770,13 @@ describe("edits during account deletion", () => {
     // exclusive, in its order, taken without waiting so a transaction from a
     // test file running alongside can't deadlock with it
     await withUserTablesLocked(async (tx) => {
-      edit = asUser(leaver, async (editTx) =>
-        addSetToExercise(editTx, leaver, {
-          set: newSet,
-          workoutExerciseId: plan.bench,
-        })
+      edit = asUser(
+        leaver,
+        async (editTx) =>
+          await addSetToExercise(editTx, leaver, {
+            set: newSet,
+            workoutExerciseId: plan.bench,
+          })
       );
       // Let the edit get as far as it can before the cascade needs its rows
       await new Promise((resolve) =>

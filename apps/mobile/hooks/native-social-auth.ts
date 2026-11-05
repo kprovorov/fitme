@@ -92,6 +92,7 @@ async function nativeResult(
     ) {
       return { createdSessionId: null };
     }
+
     throw error;
   }
 }

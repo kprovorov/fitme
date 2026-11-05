@@ -34,7 +34,7 @@ const inRoleTransaction = async <T>(
 ): Promise<T> => {
   const { applicationName, db } = getConnection();
 
-  return db.transaction(async (tx) => {
+  return await db.transaction(async (tx) => {
     // role is one of two constants, never input
     await tx.execute(sql.raw(`set local role ${claims.role}`));
     await tx.execute(

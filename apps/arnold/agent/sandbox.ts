@@ -6,4 +6,4 @@ import { JustBashSandbox } from "eve/sandbox/just-bash";
 // container, VM or Vercel Sandbox snapshot to build or pay for.
 export const environment = JustBashSandbox.environment({ autoInstall: false });
 
-export default defineSandbox(async () => environment.open());
+export default defineSandbox(async () => await environment.open());

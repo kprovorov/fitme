@@ -1,5 +1,6 @@
 import { appLanguages } from "@fitme/core";
-import { expect, it } from "vitest";
+import { test } from "@jest/globals";
+import { expect, it, test } from "vitest";
 
 import { catalogs, checkCatalogs } from "..";
 

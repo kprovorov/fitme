@@ -56,11 +56,11 @@ const sendMessage = async (message: unknown) => {
       send: async (payload: unknown) => {
         sent.push(payload);
 
-        return Promise.resolve({
+        return {
           deliveryId: "del_1",
           sessionId: SESSION_ID,
           status: "accepted" as const,
-        });
+        };
       },
     }),
     params: { sessionId: SESSION_ID },

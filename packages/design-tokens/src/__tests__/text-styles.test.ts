@@ -190,11 +190,11 @@ async function build(classes: string[]) {
                 }
               );
 
-        return Promise.resolve({
+        return {
           base: dirname(path),
           content: readFileSync(path, "utf-8"),
           path,
-        });
+        };
       },
     }
   );

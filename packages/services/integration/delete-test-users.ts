@@ -65,10 +65,11 @@ export const withUserTablesLocked = async <T>(
  * Deletes the test Users' rows through deleteUserData, in one transaction
  * that already holds its locks, so its own lock statement never waits.
  */
-export const deleteTestUsers = async (userIds: string[]): Promise<void> =>
-  withUserTablesLocked(async (tx) => {
+export const deleteTestUsers = async (userIds: string[]): Promise<void> => {
+  await withUserTablesLocked(async (tx) => {
     for (const userId of userIds) {
       // biome-ignore lint/performance/noAwaitInLoops: one statement at a time on tx
       await deleteUserData(tx, userId);
     }
   });
+};

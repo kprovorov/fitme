@@ -15,13 +15,15 @@ import { deleteTestUsers } from "./delete-test-users";
 
 const users: string[] = [];
 
-afterAll(async () => deleteTestUsers(users));
+afterAll(async () => {
+  await deleteTestUsers(users);
+});
 
 const seed = async () => {
   const user = `user_progress${randomUUID().replaceAll("-", "")}`;
   users.push(user);
 
-  return withService(async (tx) => {
+  return await withService(async (tx) => {
     const sessions = await tx
       .insert(workoutSessions)
       .values(
@@ -49,10 +51,10 @@ const seed = async () => {
 };
 
 const progress = async (user: string) =>
-  asUser(user, (tx) => tx.select().from(workoutSessionProgress));
+  await asUser(user, (tx) => tx.select().from(workoutSessionProgress));
 
 const addSet = async (user: string, exercise: string, reps: number | null) =>
-  asUser(user, async (tx) => {
+  await asUser(user, async (tx) => {
     const [set] = await tx
       .insert(workoutSessionExerciseSets)
       .values({
@@ -222,7 +224,10 @@ describe("server-maintained Workout Session qualification", () => {
   it("serializes concurrent Set increments and an Exercise move without losing counts", async () => {
     const { user, sessions, exercises } = await seed();
     await Promise.all(
-      Array.from({ length: 8 }, async () => addSet(user, exercises[0].id, 8))
+      Array.from(
+        { length: 8 },
+        async () => await addSet(user, exercises[0].id, 8)
+      )
     );
     await expect(counts(user)).resolves.toEqual({
       [sessions[0].id]: 8,

@@ -56,7 +56,7 @@ const exerciseSlug = `test-squat-${runId}`;
 
 /** One row in every User-owned table and child table, all linked. */
 const seedUser = async (userId: string): Promise<OwnedRows> =>
-  withService(async (tx) => {
+  await withService(async (tx) => {
     const [profile] = await tx
       .insert(profiles)
       .values({ age: 30, gender: "male", height: "180", userId, weight: "80" })
@@ -155,7 +155,7 @@ const count = async (
 
 /** How many of the seeded rows still exist, per table. */
 const remaining = async (rows: OwnedRows) =>
-  withService(async (tx) => ({
+  await withService(async (tx) => ({
     personalRecord: await count(tx, personalRecords, rows.personalRecord),
     plan: await count(tx, plans, rows.plan),
     profile: await count(tx, profiles, rows.profile),
@@ -211,14 +211,14 @@ const rekey = async (tx: Transaction, oldId: string, newId: string) => {
 const arnoldSessionId = (userId: string) => `wrun_${userId}`;
 
 const recordArnoldSessionFor = async (userId: string) =>
-  withService((tx) =>
+  await withService((tx) =>
     tx
       .insert(arnoldSessions)
       .values({ sessionId: arnoldSessionId(userId), userId })
   );
 
 const arnoldSessionsLeft = async (userId: string) =>
-  withService((tx) =>
+  await withService((tx) =>
     tx.$count(
       arnoldSessions,
       eq(arnoldSessions.sessionId, arnoldSessionId(userId))
@@ -226,7 +226,7 @@ const arnoldSessionsLeft = async (userId: string) =>
   );
 
 const retirement = async (userId: string) =>
-  withService((tx) =>
+  await withService((tx) =>
     tx
       .select()
       .from(retiredUserIdsInPrivate)
@@ -257,7 +257,9 @@ describe(deleteUserData, () => {
   it("removes every row the User owns, children included", async () => {
     await expect(remaining(deletedRows)).resolves.toEqual(allRows(1));
 
-    await withUserTablesLocked(async (tx) => deleteUserData(tx, deleted));
+    await withUserTablesLocked(async (tx) => {
+      await deleteUserData(tx, deleted);
+    });
 
     await expect(remaining(deletedRows)).resolves.toEqual(allRows(0));
   });
@@ -303,7 +305,9 @@ describe(deleteUserData, () => {
   it("is a no-op when run again for the same User", async () => {
     const before = await retirement(deleted);
 
-    await withUserTablesLocked(async (tx) => deleteUserData(tx, deleted));
+    await withUserTablesLocked(async (tx) => {
+      await deleteUserData(tx, deleted);
+    });
 
     await expect(retirement(deleted)).resolves.toEqual(before);
     await expect(remaining(deletedRows)).resolves.toEqual(allRows(0));
@@ -312,11 +316,13 @@ describe(deleteUserData, () => {
 
   it("refuses an id that was rekeyed away, changing nothing", async () => {
     const legacyRows = await seedUser(legacy);
-    await withService(async (tx) => rekey(tx, legacy, rekeyed));
+    await withService(async (tx) => {
+      await rekey(tx, legacy, rekeyed);
+    });
 
-    const attempt = withUserTablesLocked(async (tx) =>
-      deleteUserData(tx, legacy)
-    );
+    const attempt = withUserTablesLocked(async (tx) => {
+      await deleteUserData(tx, legacy);
+    });
 
     await expect(attempt).rejects.toBeInstanceOf(UserRekeyedError);
     await expect(attempt).rejects.toMatchObject({
@@ -345,14 +351,20 @@ describe(deleteUserData, () => {
     });
 
     await expect(
-      withUserTablesLocked(async (tx) => deleteUserData(tx, chainA))
+      withUserTablesLocked(async (tx) => {
+        await deleteUserData(tx, chainA);
+      })
     ).rejects.toMatchObject({ code: "55000", userId: chainA });
     await expect(
-      withUserTablesLocked(async (tx) => deleteUserData(tx, chainB))
+      withUserTablesLocked(async (tx) => {
+        await deleteUserData(tx, chainB);
+      })
     ).rejects.toMatchObject({ code: "55000", userId: chainB });
     await expect(remaining(chainRows)).resolves.toEqual(allRows(1));
 
-    await withUserTablesLocked(async (tx) => deleteUserData(tx, chainC));
+    await withUserTablesLocked(async (tx) => {
+      await deleteUserData(tx, chainC);
+    });
 
     await expect(remaining(chainRows)).resolves.toEqual(allRows(0));
     await expect(remaining(bystanderRows)).resolves.toEqual(allRows(1));
@@ -360,7 +372,9 @@ describe(deleteUserData, () => {
 
   it("rejects an empty id", async () => {
     await expect(
-      withUserTablesLocked(async (tx) => deleteUserData(tx, ""))
+      withUserTablesLocked(async (tx) => {
+        await deleteUserData(tx, "");
+      })
     ).rejects.toThrow("deleteUserData needs a User id");
   });
 });

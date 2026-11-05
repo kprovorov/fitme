@@ -38,12 +38,12 @@ export const accountDeletionReset = ({
       const token = extractBearerToken(request.headers.get("authorization"));
 
       if (!(expected && expected.length >= MIN_SECRET_LENGTH && token)) {
-        return Promise.resolve(null);
+        return null;
       }
 
       // Compared as digests: equal length, constant time
       if (!timingSafeEqual(digest(token), digest(expected))) {
-        return Promise.resolve(null);
+        return null;
       }
 
       const { pathname } = new URL(request.url);
@@ -54,12 +54,12 @@ export const accountDeletionReset = ({
         });
       }
 
-      return Promise.resolve({
+      return {
         attributes: {},
         authenticator: "account-deletion",
         principalId: "account-deletion",
         principalType: "service",
-      });
+      };
     },
     [{ scheme: "Bearer" }]
   );

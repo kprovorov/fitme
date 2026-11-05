@@ -73,7 +73,7 @@ const times = <T>(n: number, make: (i: number) => T) =>
   Array.from({ length: n }, (_, i) => make(i + 1));
 
 const seed = async (fixture: Fixture): Promise<Seeded> =>
-  withService(async (tx) => {
+  await withService(async (tx) => {
     const userId = fixture.userId ?? owner;
 
     const [plan] = await tx
@@ -158,13 +158,15 @@ const seed = async (fixture: Fixture): Promise<Seeded> =>
   });
 
 const viaService = async (sessionId: string, apply: boolean, userId = owner) =>
-  asUser(userId, async (tx) =>
-    (apply ? applyPlanUpdate : previewPlanUpdate)(tx, userId, sessionId)
+  await asUser(
+    userId,
+    async (tx) =>
+      await (apply ? applyPlanUpdate : previewPlanUpdate)(tx, userId, sessionId)
   );
 
 /** A seeded Workout's Workout Exercise ids, by `order`. */
 const exerciseIdsOf = async (seeded: Seeded) =>
-  withService(async (tx) => {
+  await withService(async (tx) => {
     const rows = await tx
       .select({ id: workoutExercises.id, order: workoutExercises.order })
       .from(workoutExercises)
@@ -175,7 +177,7 @@ const exerciseIdsOf = async (seeded: Seeded) =>
 
 /** A seeded Workout's rows and whether its Workout Session is stamped. */
 const rowsOf = async (seeded: Seeded) =>
-  withService(async (tx) => {
+  await withService(async (tx) => {
     const exercises = await tx
       .select({
         id: workoutExercises.id,

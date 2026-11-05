@@ -148,14 +148,17 @@ const failure = async (response: Response) => {
         (await errorMessage(response)) ?? "Invalid Library request"
       );
     }
+
     case 401: {
       return new LibraryUnauthorizedError({ status: 401 });
     }
+
     case 429: {
       return new LibraryRateLimitedError(
         retryAfterSeconds(response.headers.get("retry-after"))
       );
     }
+
     default: {
       return new LibraryUnavailableError({ status: response.status });
     }
@@ -201,9 +204,11 @@ export const createLibrary = ({
   ): Promise<T | null> => {
     const authorization = `Bearer ${await bearer()}`;
     const controller = new AbortController();
+
     const timeout = setTimeout(() => {
       controller.abort();
     }, timeoutMs);
+
     let response: Response;
     let body: unknown;
 
@@ -254,8 +259,8 @@ export const createLibrary = ({
 
     get: async (slug, { language } = {}) =>
       slug === ""
-        ? Promise.resolve(null)
-        : request(
+        ? await Promise.resolve(null)
+        : await request(
             `/exercises/${encodeURIComponent(slug)}`,
             { language },
             isExercise,
@@ -271,7 +276,7 @@ export const createLibrary = ({
       offset,
       search,
     } = {}) =>
-      getExercises(
+      await getExercises(
         {
           equipment: equipment?.length ? equipment.join(",") : undefined,
           language,
@@ -291,8 +296,9 @@ export const createLibrary = ({
       const asked = unique.filter((slug) => !isUnaskable(slug));
 
       const batches = await Promise.all(
-        chunk(asked, MAX_LOOKUP_SLUGS).map(async (batch) =>
-          getExercises({ language, slugs: batch.join(",") }, isBatch)
+        chunk(asked, MAX_LOOKUP_SLUGS).map(
+          async (batch) =>
+            await getExercises({ language, slugs: batch.join(",") }, isBatch)
         )
       );
 

@@ -186,7 +186,7 @@ const findPlanSummaries = async (
 export const listPlans = async (
   tx: Transaction,
   userId: string
-): Promise<PlanSummary[]> => findPlanSummaries(tx, userId);
+): Promise<PlanSummary[]> => await findPlanSummaries(tx, userId);
 
 /** The first Plan matching `where` in full, in one statement. */
 const findPlanDetail = async (
@@ -268,7 +268,8 @@ export const getPlan = async (
   tx: Transaction,
   userId: string,
   planId: string
-): Promise<PlanDetail | null> => findPlanDetail(tx, livePlanOf(userId, planId));
+): Promise<PlanDetail | null> =>
+  await findPlanDetail(tx, livePlanOf(userId, planId));
 
 /**
  * The User's active Plan in full, or `null` when none is active. A
@@ -280,7 +281,7 @@ export const getActivePlan = async (
   tx: Transaction,
   userId: string
 ): Promise<PlanDetail | null> =>
-  findPlanDetail(tx, and(livePlansOf(userId), eq(plans.isActive, true)));
+  await findPlanDetail(tx, and(livePlansOf(userId), eq(plans.isActive, true)));
 
 export interface DeletedPlan {
   /** True when the Plan was already soft-deleted, so nothing changed. */

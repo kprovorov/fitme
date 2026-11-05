@@ -65,13 +65,14 @@ const plan = (frequency: number): NewPlan => ({
 });
 
 const targets = async (userId: string) =>
-  (await asUser(userId, async (tx) => listWeeklyGoalChanges(tx, userId))).map(
-    (change) => change.target
-  );
+  (
+    await asUser(userId, async (tx) => await listWeeklyGoalChanges(tx, userId))
+  ).map((change) => change.target);
 
 const create = async (userId: string, frequency: number, activate = true) =>
-  asUser(userId, async (tx) =>
-    createPlan(tx, userId, plan(frequency), { activate })
+  await asUser(
+    userId,
+    async (tx) => await createPlan(tx, userId, plan(frequency), { activate })
   );
 
 // PostgREST's JSON timestamp encoding
@@ -96,11 +97,17 @@ describe("the Weekly goal log", () => {
     await expect(targets(userId)).resolves.toEqual([]);
 
     const created = await create(userId, 3);
-    await asUser(userId, async (tx) => activatePlan(tx, userId, created.id));
-    await asUser(userId, async (tx) => recordWeeklyGoal(tx, userId));
+    await asUser(
+      userId,
+      async (tx) => await activatePlan(tx, userId, created.id)
+    );
+    await asUser(userId, async (tx) => {
+      await recordWeeklyGoal(tx, userId);
+    });
 
-    const changes = await asUser(userId, async (tx) =>
-      listWeeklyGoalChanges(tx, userId)
+    const changes = await asUser(
+      userId,
+      async (tx) => await listWeeklyGoalChanges(tx, userId)
     );
 
     expect(changes).toEqual([
@@ -110,7 +117,9 @@ describe("the Weekly goal log", () => {
 
   it("records nothing before any Plan is active", async () => {
     const userId = newUser("NoPlan");
-    await asUser(userId, async (tx) => recordWeeklyGoal(tx, userId));
+    await asUser(userId, async (tx) => {
+      await recordWeeklyGoal(tx, userId);
+    });
     await create(userId, 4, false);
 
     await expect(targets(userId)).resolves.toEqual([]);
@@ -120,20 +129,25 @@ describe("the Weekly goal log", () => {
     const userId = newUser("Frequency");
     const created = await create(userId, 3);
 
-    const first = await asUser(userId, async (tx) =>
-      listWeeklyGoalChanges(tx, userId)
+    const first = await asUser(
+      userId,
+      async (tx) => await listWeeklyGoalChanges(tx, userId)
     );
 
-    await asUser(userId, async (tx) =>
-      updatePlan(tx, userId, created.id, { frequency: 5 })
+    await asUser(
+      userId,
+      async (tx) => await updatePlan(tx, userId, created.id, { frequency: 5 })
     );
     // Only metadata other than the frequency: nothing to record
-    await asUser(userId, async (tx) =>
-      updatePlan(tx, userId, created.id, { name: "Renamed" })
+    await asUser(
+      userId,
+      async (tx) =>
+        await updatePlan(tx, userId, created.id, { name: "Renamed" })
     );
 
-    const changes = await asUser(userId, async (tx) =>
-      listWeeklyGoalChanges(tx, userId)
+    const changes = await asUser(
+      userId,
+      async (tx) => await listWeeklyGoalChanges(tx, userId)
     );
 
     expect(changes.map((change) => change.target)).toEqual([3, 5]);
@@ -149,8 +163,9 @@ describe("the Weekly goal log", () => {
     await create(userId, 3);
     const spare = await create(userId, 2, false);
 
-    await asUser(userId, async (tx) =>
-      updatePlan(tx, userId, spare.id, { frequency: 6 })
+    await asUser(
+      userId,
+      async (tx) => await updatePlan(tx, userId, spare.id, { frequency: 6 })
     );
 
     await expect(targets(userId)).resolves.toEqual([3]);
@@ -162,11 +177,20 @@ describe("the Weekly goal log", () => {
     const sameGoal = await create(userId, 3, false);
     const otherGoal = await create(userId, 4, false);
 
-    await asUser(userId, async (tx) => activatePlan(tx, userId, sameGoal.id));
+    await asUser(
+      userId,
+      async (tx) => await activatePlan(tx, userId, sameGoal.id)
+    );
     await expect(targets(userId)).resolves.toEqual([3]);
 
-    await asUser(userId, async (tx) => activatePlan(tx, userId, otherGoal.id));
-    await asUser(userId, async (tx) => activatePlan(tx, userId, first.id));
+    await asUser(
+      userId,
+      async (tx) => await activatePlan(tx, userId, otherGoal.id)
+    );
+    await asUser(
+      userId,
+      async (tx) => await activatePlan(tx, userId, first.id)
+    );
     // Created and activated in one go
     await create(userId, 2);
 
@@ -178,12 +202,12 @@ describe("the Weekly goal log", () => {
     const active = await create(userId, 3);
     const spare = await create(userId, 5, false);
 
-    await asUser(userId, async (tx) => deletePlan(tx, userId, spare.id));
+    await asUser(userId, async (tx) => await deletePlan(tx, userId, spare.id));
     await expect(targets(userId)).resolves.toEqual([3]);
 
-    await asUser(userId, async (tx) => deletePlan(tx, userId, active.id));
+    await asUser(userId, async (tx) => await deletePlan(tx, userId, active.id));
     // A repeat deletes nothing more and records nothing more
-    await asUser(userId, async (tx) => deletePlan(tx, userId, active.id));
+    await asUser(userId, async (tx) => await deletePlan(tx, userId, active.id));
     await expect(targets(userId)).resolves.toEqual([3, null]);
 
     await create(userId, 2);
@@ -211,28 +235,34 @@ describe("the Weekly goal log", () => {
       return row.id;
     });
 
-    const created = await asUser(userId, async (tx) =>
-      updatePlan(tx, userId, workoutId, {
-        workouts: plan(4).workouts,
-      })
+    const created = await asUser(
+      userId,
+      async (tx) =>
+        await updatePlan(tx, userId, workoutId, {
+          workouts: plan(4).workouts,
+        })
     );
 
     await expect(targets(userId)).resolves.toEqual([]);
 
-    const started = await asUser(userId, async (tx) =>
-      startWorkoutSession(tx, created?.workouts[0]?.id ?? "")
+    const started = await asUser(
+      userId,
+      async (tx) =>
+        await startWorkoutSession(tx, created?.workouts[0]?.id ?? "")
     );
 
     if (started.status !== "started") {
       throw new Error(`Expected a started session, got ${started.status}`);
     }
 
-    await asUser(userId, async (tx) =>
-      finishWorkoutSession(tx, started.session.id)
+    await asUser(
+      userId,
+      async (tx) => await finishWorkoutSession(tx, started.session.id)
     );
     // A repeated finish changes nothing, and records nothing more
-    await asUser(userId, async (tx) =>
-      finishWorkoutSession(tx, started.session.id)
+    await asUser(
+      userId,
+      async (tx) => await finishWorkoutSession(tx, started.session.id)
     );
 
     await expect(targets(userId)).resolves.toEqual([4]);
@@ -244,7 +274,7 @@ describe("the Weekly goal log", () => {
     await create(owner, 3);
 
     await expect(
-      asUser(intruder, async (tx) => listWeeklyGoalChanges(tx, owner))
+      asUser(intruder, async (tx) => await listWeeklyGoalChanges(tx, owner))
     ).resolves.toEqual([]);
     await expect(
       asUser(intruder, (tx) =>
@@ -266,7 +296,9 @@ describe("the Weekly goal log", () => {
     const userId = newUser("Deleted");
     await create(userId, 3);
 
-    await withUserTablesLocked(async (tx) => deleteUserData(tx, userId));
+    await withUserTablesLocked(async (tx) => {
+      await deleteUserData(tx, userId);
+    });
 
     const left = await withService((tx) =>
       tx

@@ -23,8 +23,8 @@ const pro = (expiresAt: number | null = NOW + HOUR_MS) => ({
 const setup = (respond: () => Response | Promise<Response>) => {
   let now = NOW;
 
-  const fetch = vi.fn(async (_url: string, _init?: RequestInit) =>
-    Promise.resolve(respond())
+  const fetch = vi.fn(
+    async (_url: string, _init?: RequestInit) => await respond()
   );
 
   const check = createProCheck({
@@ -116,7 +116,7 @@ describe(createProCheck, () => {
 
   it("gives up on a RevenueCat request that stalls", async () => {
     const stalled = async (_url: string, init: RequestInit) =>
-      new Promise<Response>((_resolve, reject) => {
+      await new Promise<Response>((_resolve, reject) => {
         init.signal?.addEventListener("abort", () => {
           reject(init.signal?.reason);
         });

@@ -47,9 +47,11 @@ export default class ASTRenderer {
       case "disc": {
         return "\u2022";
       }
+
       case "dash": {
         return "-";
       }
+
       default: {
         return "\u2022";
       }

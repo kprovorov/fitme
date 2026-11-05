@@ -91,7 +91,7 @@ export const listWeeklyGoalChanges = async (
   tx: Transaction,
   userId: string
 ): Promise<WeeklyGoalChange[]> =>
-  tx
+  await tx
     .select({
       // NOT NULL, so never `null`
       recorded_at: jsonTimestamp(weeklyGoalChanges.recordedAt) as SQL<string>,

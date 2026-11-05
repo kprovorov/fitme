@@ -27,7 +27,9 @@ const variants = {
 
 for (const [name, mutate] of Object.entries(variants)) {
   const target = path.join(scratch, name);
-  cpSync(path.join(root, migrations), path.join(target, migrations), { recursive: true });
+  cpSync(path.join(root, migrations), path.join(target, migrations), {
+    recursive: true,
+  });
   const original = readFileSync(path.join(target, migrations, file), "utf-8");
   const broken = mutate(original);
 
@@ -65,10 +67,14 @@ for (const [name, mutate] of Object.entries(variants)) {
   console.log(`${name}: detected by TLC and Postgres. ${scratch}/${name}.out`);
 }
 
-const baseline = spawnSync(process.execPath, [path.join(scripts, "verify.mjs")], {
-  stdio: "inherit",
-  timeout: 90_000,
-});
+const baseline = spawnSync(
+  process.execPath,
+  [path.join(scripts, "verify.mjs")],
+  {
+    stdio: "inherit",
+    timeout: 90_000,
+  }
+);
 
 if (baseline.error) {
   throw baseline.error;

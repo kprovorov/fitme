@@ -241,7 +241,7 @@ export const stubApi = (
 
     requests.push(request);
 
-    return Promise.resolve(respond ? respond(request) : answer(request));
+    return respond ? await respond(request) : answer(request);
   };
 
   return { fetch, requests };

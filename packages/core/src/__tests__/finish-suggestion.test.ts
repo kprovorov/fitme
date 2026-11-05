@@ -170,9 +170,10 @@ describe(createFinishSuggestionController, () => {
 
   it("does not suggest when the session cannot be loaded, and recovers on the next save", async () => {
     const error = new Error("network");
-    const { controller, load, onError } = setup(async () =>
-      Promise.reject(error)
-    );
+
+    const { controller, load, onError } = setup(async () => {
+      throw error;
+    });
 
     await controller.reportSetTracked(tracked("s1-0"));
 
@@ -187,7 +188,10 @@ describe(createFinishSuggestionController, () => {
 
   it("coalesces quick repeated saves into a single suggestion", async () => {
     const first = deferred<ReconcilableWorkoutSession>();
-    const { controller, listener, load } = setup(async () => first.promise);
+
+    const { controller, listener, load } = setup(
+      async () => await first.promise
+    );
 
     const saves = [
       controller.reportSetTracked(tracked("s1-0")),
@@ -207,7 +211,7 @@ describe(createFinishSuggestionController, () => {
 
   it("re-checks with fresh data when a save lands during a check", async () => {
     const first = deferred<ReconcilableWorkoutSession>();
-    const { controller, load } = setup(async () => first.promise);
+    const { controller, load } = setup(async () => await first.promise);
 
     const firstSave = controller.reportSetTracked(tracked("s0-0"));
     const secondSave = controller.reportSetTracked(tracked("s1-0"));
@@ -237,7 +241,10 @@ describe(createFinishSuggestionController, () => {
 
   it("re-checks a save that arrived while a failing read was in flight", async () => {
     const first = deferred<ReconcilableWorkoutSession>();
-    const { controller, load, onError } = setup(async () => first.promise);
+
+    const { controller, load, onError } = setup(
+      async () => await first.promise
+    );
 
     const firstSave = controller.reportSetTracked(tracked("s0-0"));
     const secondSave = controller.reportSetTracked(tracked("s1-0"));
@@ -329,7 +336,7 @@ describe(createFinishSuggestionController, () => {
 
   it("does not suggest when the session's screens are gone before the check ends", async () => {
     const read = deferred<ReconcilableWorkoutSession>();
-    const { controller, load, unwatch } = setup(async () => read.promise);
+    const { controller, load, unwatch } = setup(async () => await read.promise);
 
     const save = controller.reportSetTracked(tracked("s1-0"));
     unwatch();
@@ -368,7 +375,7 @@ describe(createFinishSuggestionController, () => {
 
   it("does not suggest on a screen reopened while a check was in flight", async () => {
     const read = deferred<ReconcilableWorkoutSession>();
-    const { controller, unwatch } = setup(async () => read.promise);
+    const { controller, unwatch } = setup(async () => await read.promise);
 
     const save = controller.reportSetTracked(tracked("s1-0"));
     unwatch();
@@ -381,7 +388,7 @@ describe(createFinishSuggestionController, () => {
 
   it("does not suggest from a save reported while no screen was open", async () => {
     const read = deferred<ReconcilableWorkoutSession>();
-    const { controller, unwatch } = setup(async () => read.promise);
+    const { controller, unwatch } = setup(async () => await read.promise);
 
     unwatch();
     const save = controller.reportSetTracked(tracked("s1-0"));

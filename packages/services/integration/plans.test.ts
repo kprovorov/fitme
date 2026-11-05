@@ -67,7 +67,7 @@ const seedPlan = async (
   createdAt: string,
   isActive = false
 ) =>
-  withService(async (tx) => {
+  await withService(async (tx) => {
     const [plan] = await tx
       .insert(plans)
       .values({
@@ -179,8 +179,9 @@ afterAll(async () => {
 
 describe(getPlan, () => {
   it("returns the Plan with Workouts, Exercises and sets in order", async () => {
-    const plan = await asUser(owner, async (tx) =>
-      getPlan(tx, owner, older.id)
+    const plan = await asUser(
+      owner,
+      async (tx) => await getPlan(tx, owner, older.id)
     );
 
     expect(plan).toEqual({
@@ -255,24 +256,27 @@ describe(getPlan, () => {
 
   it("never returns another User's Plan", async () => {
     await expect(
-      asUser(owner, async (tx) => getPlan(tx, owner, intruderPlan.id))
+      asUser(owner, async (tx) => await getPlan(tx, owner, intruderPlan.id))
     ).resolves.toBeNull();
     // asking with the owner's id doesn't get past RLS either
     await expect(
-      asUser(intruder, async (tx) => getPlan(tx, owner, older.id))
+      asUser(intruder, async (tx) => await getPlan(tx, owner, older.id))
     ).resolves.toBeNull();
   });
 
   it("returns null for an unknown Plan", async () => {
     await expect(
-      asUser(owner, async (tx) => getPlan(tx, owner, randomUUID()))
+      asUser(owner, async (tx) => await getPlan(tx, owner, randomUUID()))
     ).resolves.toBeNull();
   });
 });
 
 describe(listPlans, () => {
   it("lists the User's Plans newest first with Workout summaries", async () => {
-    const listed = await asUser(owner, async (tx) => listPlans(tx, owner));
+    const listed = await asUser(
+      owner,
+      async (tx) => await listPlans(tx, owner)
+    );
 
     expect(listed.map((plan) => plan.id)).toEqual([newer.id, older.id]);
     expect(listed[1]).toMatchObject({
@@ -300,21 +304,28 @@ describe(listPlans, () => {
   });
 
   it("never lists another User's Plans", async () => {
-    const listed = await asUser(intruder, async (tx) =>
-      listPlans(tx, intruder)
+    const listed = await asUser(
+      intruder,
+      async (tx) => await listPlans(tx, intruder)
     );
+
     expect(listed.map((plan) => plan.id)).toEqual([intruderPlan.id]);
     await expect(
-      asUser(intruder, async (tx) => listPlans(tx, owner))
+      asUser(intruder, async (tx) => await listPlans(tx, owner))
     ).resolves.toEqual([]);
   });
 });
 
 describe(getActivePlan, () => {
   it("returns the User's active Plan in full", async () => {
-    const active = await asUser(owner, async (tx) => getActivePlan(tx, owner));
-    const plan = await asUser(owner, async (tx) =>
-      getPlan(tx, owner, newer.id)
+    const active = await asUser(
+      owner,
+      async (tx) => await getActivePlan(tx, owner)
+    );
+
+    const plan = await asUser(
+      owner,
+      async (tx) => await getPlan(tx, owner, newer.id)
     );
 
     expect(active).toEqual(plan);
@@ -327,14 +338,14 @@ describe(getActivePlan, () => {
 
   it("returns null when the User has no active Plan", async () => {
     await expect(
-      asUser(intruder, async (tx) => getActivePlan(tx, intruder))
+      asUser(intruder, async (tx) => await getActivePlan(tx, intruder))
     ).resolves.toBeNull();
   });
 
   it("never returns another User's active Plan", async () => {
     // asking with the owner's id doesn't get past RLS
     await expect(
-      asUser(intruder, async (tx) => getActivePlan(tx, owner))
+      asUser(intruder, async (tx) => await getActivePlan(tx, owner))
     ).resolves.toBeNull();
   });
 });
@@ -342,10 +353,10 @@ describe(getActivePlan, () => {
 describe(deletePlan, () => {
   it("never deletes another User's Plan", async () => {
     await expect(
-      asUser(intruder, async (tx) => deletePlan(tx, intruder, older.id))
+      asUser(intruder, async (tx) => await deletePlan(tx, intruder, older.id))
     ).resolves.toBeNull();
     await expect(
-      asUser(intruder, async (tx) => deletePlan(tx, owner, older.id))
+      asUser(intruder, async (tx) => await deletePlan(tx, owner, older.id))
     ).resolves.toBeNull();
 
     const [row] = await withService((tx) =>
@@ -359,8 +370,9 @@ describe(deletePlan, () => {
   });
 
   it("soft-deletes the active Plan, leaving no active Plan", async () => {
-    const result = await asUser(owner, async (tx) =>
-      deletePlan(tx, owner, newer.id)
+    const result = await asUser(
+      owner,
+      async (tx) => await deletePlan(tx, owner, newer.id)
     );
 
     expect(result).toEqual({
@@ -389,23 +401,27 @@ describe(deletePlan, () => {
 
     expect(remaining).toHaveLength(2);
     await expect(
-      asUser(owner, async (tx) => getActivePlan(tx, owner))
+      asUser(owner, async (tx) => await getActivePlan(tx, owner))
     ).resolves.toBeNull();
   });
 
   it("hides the deleted Plan from listPlans and getPlan", async () => {
-    const listed = await asUser(owner, async (tx) => listPlans(tx, owner));
+    const listed = await asUser(
+      owner,
+      async (tx) => await listPlans(tx, owner)
+    );
+
     expect(listed.map((plan) => [plan.id, plan.is_active])).toEqual([
       [older.id, false],
     ]);
     await expect(
-      asUser(owner, async (tx) => getPlan(tx, owner, newer.id))
+      asUser(owner, async (tx) => await getPlan(tx, owner, newer.id))
     ).resolves.toBeNull();
   });
 
   it("is a no-op for an already deleted Plan", async () => {
     await expect(
-      asUser(owner, async (tx) => deletePlan(tx, owner, newer.id))
+      asUser(owner, async (tx) => await deletePlan(tx, owner, newer.id))
     ).resolves.toEqual({
       alreadyDeleted: true,
       deleted: true,
@@ -415,7 +431,7 @@ describe(deletePlan, () => {
 
   it("returns null for an unknown Plan", async () => {
     await expect(
-      asUser(owner, async (tx) => deletePlan(tx, owner, randomUUID()))
+      asUser(owner, async (tx) => await deletePlan(tx, owner, randomUUID()))
     ).resolves.toBeNull();
   });
 });
@@ -429,7 +445,7 @@ describe(activatePlan, () => {
 
   /** Every Plan of `userId` that is active, by id. */
   const activePlans = async (userId: string) =>
-    withService(async (tx) =>
+    await withService(async (tx) =>
       (
         await tx
           .select({ id: plans.id })
@@ -458,8 +474,9 @@ describe(activatePlan, () => {
   });
 
   it("activates the Plan, deactivates the others and returns its summary", async () => {
-    const activated = await asUser(activator, async (tx) =>
-      activatePlan(tx, activator, second.id)
+    const activated = await asUser(
+      activator,
+      async (tx) => await activatePlan(tx, activator, second.id)
     );
 
     expect(activated).toEqual({
@@ -500,8 +517,9 @@ describe(activatePlan, () => {
   });
 
   it("keeps the active Plan active when activated again", async () => {
-    const activated = await asUser(activator, async (tx) =>
-      activatePlan(tx, activator, second.id)
+    const activated = await asUser(
+      activator,
+      async (tx) => await activatePlan(tx, activator, second.id)
     );
 
     expect(activated?.is_active).toBe(true);
@@ -510,25 +528,33 @@ describe(activatePlan, () => {
 
   it("refuses a soft-deleted Plan without changing anything", async () => {
     await expect(
-      asUser(activator, async (tx) => activatePlan(tx, activator, deleted.id))
+      asUser(
+        activator,
+        async (tx) => await activatePlan(tx, activator, deleted.id)
+      )
     ).resolves.toBeNull();
     await expect(activePlans(activator)).resolves.toEqual([second.id]);
   });
 
   it("refuses another User's Plan without changing anything", async () => {
     await expect(
-      asUser(activator, async (tx) =>
-        activatePlan(tx, activator, bystanderPlan.id)
+      asUser(
+        activator,
+        async (tx) => await activatePlan(tx, activator, bystanderPlan.id)
       )
     ).resolves.toBeNull();
     // asking with the owner's id doesn't get past RLS either
     await expect(
-      asUser(activator, async (tx) =>
-        activatePlan(tx, bystander, bystanderPlan.id)
+      asUser(
+        activator,
+        async (tx) => await activatePlan(tx, bystander, bystanderPlan.id)
       )
     ).resolves.toBeNull();
     await expect(
-      asUser(bystander, async (tx) => activatePlan(tx, activator, first.id))
+      asUser(
+        bystander,
+        async (tx) => await activatePlan(tx, activator, first.id)
+      )
     ).resolves.toBeNull();
     await expect(activePlans(activator)).resolves.toEqual([second.id]);
     await expect(activePlans(bystander)).resolves.toEqual([bystanderPlan.id]);
@@ -536,7 +562,10 @@ describe(activatePlan, () => {
 
   it("returns null for an unknown Plan", async () => {
     await expect(
-      asUser(activator, async (tx) => activatePlan(tx, activator, randomUUID()))
+      asUser(
+        activator,
+        async (tx) => await activatePlan(tx, activator, randomUUID())
+      )
     ).resolves.toBeNull();
     await expect(activePlans(activator)).resolves.toEqual([second.id]);
   });
@@ -545,8 +574,12 @@ describe(activatePlan, () => {
     const targets = [first.id, second.id, third.id];
 
     const results = await Promise.all(
-      [...targets, ...targets, ...targets, ...targets].map(async (planId) =>
-        asUser(activator, async (tx) => activatePlan(tx, activator, planId))
+      [...targets, ...targets, ...targets, ...targets].map(
+        async (planId) =>
+          await asUser(
+            activator,
+            async (tx) => await activatePlan(tx, activator, planId)
+          )
       )
     );
 
@@ -560,7 +593,7 @@ describe(activatePlan, () => {
 
 /** Every Plan of `userId`, oldest first, with its active flag. */
 const plansOf = async (userId: string) =>
-  withService((tx) =>
+  await withService((tx) =>
     tx
       .select({ id: plans.id, isActive: plans.isActive, name: plans.name })
       .from(plans)
@@ -639,8 +672,9 @@ describe(createPlan, () => {
       true
     );
 
-    const created = await asUser(creator, async (tx) =>
-      createPlan(tx, creator, newPlan("Created"))
+    const created = await asUser(
+      creator,
+      async (tx) => await createPlan(tx, creator, newPlan("Created"))
     );
 
     expect(created).toEqual({
@@ -727,7 +761,7 @@ describe(createPlan, () => {
       ],
     });
     await expect(
-      asUser(creator, async (tx) => getPlan(tx, creator, created.id))
+      asUser(creator, async (tx) => await getPlan(tx, creator, created.id))
     ).resolves.toEqual(created);
     await expect(plansOf(creator)).resolves.toEqual([
       { id: existing.id, isActive: false, name: "Existing" },
@@ -743,8 +777,12 @@ describe(createPlan, () => {
       true
     );
 
-    const created = await asUser(keeper, async (tx) =>
-      createPlan(tx, keeper, newPlan("Not activated"), { activate: false })
+    const created = await asUser(
+      keeper,
+      async (tx) =>
+        await createPlan(tx, keeper, newPlan("Not activated"), {
+          activate: false,
+        })
     );
 
     expect(created).toMatchObject({ is_active: false, name: "Not activated" });
@@ -763,8 +801,9 @@ describe(createPlan, () => {
     const anySlug = `not-in-any-library-${runId}`;
     plan.workouts[1].exercises[0].exercise_slug = anySlug;
 
-    const created = await asUser(creator, async (tx) =>
-      createPlan(tx, creator, plan)
+    const created = await asUser(
+      creator,
+      async (tx) => await createPlan(tx, creator, plan)
     );
 
     expect(
@@ -780,7 +819,7 @@ describe(createPlan, () => {
     plan.workouts[1].exercises[0].sets[0].reps_recommended = OUT_OF_RANGE_REPS;
 
     await expect(
-      asUser(creator, async (tx) => createPlan(tx, creator, plan))
+      asUser(creator, async (tx) => await createPlan(tx, creator, plan))
     ).rejects.toMatchObject({ cause: { code: NUMERIC_OUT_OF_RANGE } });
 
     await expect(plansOf(creator)).resolves.toEqual(before);
@@ -798,8 +837,9 @@ describe(createPlan, () => {
 
   it("never creates a Plan for another User", async () => {
     await expect(
-      asUser(intruder, async (tx) =>
-        createPlan(tx, creator, newPlan("Planted"))
+      asUser(
+        intruder,
+        async (tx) => await createPlan(tx, creator, newPlan("Planted"))
       )
     ).rejects.toMatchObject({ cause: { code: INSUFFICIENT_PRIVILEGE } });
     expect((await plansOf(creator)).map((plan) => plan.name)).not.toContain(
@@ -813,7 +853,10 @@ describe(createPlan, () => {
     );
 
     await expect(
-      asUser(retired, async (tx) => createPlan(tx, retired, newPlan("Ghost")))
+      asUser(
+        retired,
+        async (tx) => await createPlan(tx, retired, newPlan("Ghost"))
+      )
     ).rejects.toMatchObject({ cause: { code: INSUFFICIENT_PRIVILEGE } });
     await expect(plansOf(retired)).resolves.toEqual([]);
   });
@@ -826,7 +869,7 @@ describe(updatePlan, () => {
 
   /** The Plan as the User sees it, read in its own transaction. */
   const read = async (userId: string, planId: string) =>
-    asUser(userId, async (tx) => getPlan(tx, userId, planId));
+    await asUser(userId, async (tx) => await getPlan(tx, userId, planId));
 
   beforeAll(async () => {
     plan = await seedPlan(updater, "To update", "2026-01-01T00:00:00Z");
@@ -847,12 +890,14 @@ describe(updatePlan, () => {
   it("updates only the given metadata and keeps the Workouts and their ids", async () => {
     const before = await read(updater, plan.id);
 
-    const updated = await asUser(updater, async (tx) =>
-      updatePlan(tx, updater, plan.id, {
-        frequency: 4,
-        name: "Renamed",
-        note: null,
-      })
+    const updated = await asUser(
+      updater,
+      async (tx) =>
+        await updatePlan(tx, updater, plan.id, {
+          frequency: 4,
+          name: "Renamed",
+          note: null,
+        })
     );
 
     expect(updated).toEqual({
@@ -871,11 +916,13 @@ describe(updatePlan, () => {
     const oldIds = new Set(before?.workouts.map((workout) => workout.id));
     const { workouts: replacement } = newPlan("Replacement");
 
-    const updated = await asUser(updater, async (tx) =>
-      updatePlan(tx, updater, plan.id, {
-        goal: "muscle-gain",
-        workouts: [...replacement].reverse(),
-      })
+    const updated = await asUser(
+      updater,
+      async (tx) =>
+        await updatePlan(tx, updater, plan.id, {
+          goal: "muscle-gain",
+          workouts: [...replacement].reverse(),
+        })
     );
 
     expect(updated).toMatchObject({
@@ -935,17 +982,21 @@ describe(updatePlan, () => {
     const before = await read(bystander, bystanderPlan.id);
 
     await expect(
-      asUser(updater, async (tx) =>
-        updatePlan(tx, updater, bystanderPlan.id, { name: "Hijacked" })
+      asUser(
+        updater,
+        async (tx) =>
+          await updatePlan(tx, updater, bystanderPlan.id, { name: "Hijacked" })
       )
     ).resolves.toBeNull();
     // asking with the owner's id doesn't get past RLS either
     await expect(
-      asUser(updater, async (tx) =>
-        updatePlan(tx, bystander, bystanderPlan.id, {
-          name: "Hijacked",
-          workouts: newPlan("Hijacked").workouts,
-        })
+      asUser(
+        updater,
+        async (tx) =>
+          await updatePlan(tx, bystander, bystanderPlan.id, {
+            name: "Hijacked",
+            workouts: newPlan("Hijacked").workouts,
+          })
       )
     ).resolves.toBeNull();
     await expect(read(bystander, bystanderPlan.id)).resolves.toEqual(before);
@@ -953,8 +1004,10 @@ describe(updatePlan, () => {
 
   it("refuses a soft-deleted Plan without changing it", async () => {
     await expect(
-      asUser(updater, async (tx) =>
-        updatePlan(tx, updater, deleted.id, { name: "Revived" })
+      asUser(
+        updater,
+        async (tx) =>
+          await updatePlan(tx, updater, deleted.id, { name: "Revived" })
       )
     ).resolves.toBeNull();
 
@@ -970,8 +1023,10 @@ describe(updatePlan, () => {
 
   it("returns null for an unknown Plan", async () => {
     await expect(
-      asUser(updater, async (tx) =>
-        updatePlan(tx, updater, randomUUID(), { name: "Nobody" })
+      asUser(
+        updater,
+        async (tx) =>
+          await updatePlan(tx, updater, randomUUID(), { name: "Nobody" })
       )
     ).resolves.toBeNull();
   });
@@ -982,11 +1037,13 @@ describe(updatePlan, () => {
     replacement[1].exercises[0].sets[0].reps_recommended = OUT_OF_RANGE_REPS;
 
     await expect(
-      asUser(updater, async (tx) =>
-        updatePlan(tx, updater, plan.id, {
-          name: "Not saved",
-          workouts: replacement,
-        })
+      asUser(
+        updater,
+        async (tx) =>
+          await updatePlan(tx, updater, plan.id, {
+            name: "Not saved",
+            workouts: replacement,
+          })
       )
     ).rejects.toMatchObject({ cause: { code: NUMERIC_OUT_OF_RANGE } });
 
@@ -1003,11 +1060,13 @@ describe(updatePlan, () => {
     );
 
     await expect(
-      asUser(updater, async (tx) =>
-        updatePlan(tx, updater, plan.id, {
-          name: "Ghost",
-          workouts: newPlan("Ghost").workouts,
-        })
+      asUser(
+        updater,
+        async (tx) =>
+          await updatePlan(tx, updater, plan.id, {
+            name: "Ghost",
+            workouts: newPlan("Ghost").workouts,
+          })
       )
     ).resolves.toBeNull();
 

@@ -191,7 +191,7 @@ describe(checkRateLimit, () => {
       reportError: async (error: unknown) => {
         reported.push(error);
 
-        return Promise.resolve();
+        return;
       },
       reported,
     };
@@ -200,9 +200,10 @@ describe(checkRateLimit, () => {
   it("answers the limiter's result for the key", async () => {
     const { reportError, reported } = recorder();
 
-    const limit = vi.fn<RateLimiter["limit"]>(async () =>
-      Promise.resolve({ allowed: false, retryAfterSeconds: 30 })
-    );
+    const limit = vi.fn<RateLimiter["limit"]>(async () => ({
+      allowed: false,
+      retryAfterSeconds: 30,
+    }));
 
     const result = await checkRateLimit({
       key: "user_alice",
@@ -221,7 +222,11 @@ describe(checkRateLimit, () => {
 
     const result = await checkRateLimit({
       key: "user_alice",
-      limiter: { limit: async () => Promise.reject(outage) },
+      limiter: {
+        limit: async () => {
+          throw outage;
+        },
+      },
       reportError,
     });
 
@@ -239,7 +244,7 @@ describe(checkRateLimit, () => {
 
     const pending = checkRateLimit({
       key: "user_alice",
-      limiter: { limit: async () => new Promise(() => {}) },
+      limiter: { limit: async () => await new Promise(() => {}) },
       reportError,
     });
 
@@ -260,7 +265,7 @@ describe(checkRateLimit, () => {
 
     const pending = checkRateLimit({
       key: "user_alice",
-      limiter: { limit: async () => new Promise(() => {}) },
+      limiter: { limit: async () => await new Promise(() => {}) },
       reportError,
       timeoutMs: 50,
     });

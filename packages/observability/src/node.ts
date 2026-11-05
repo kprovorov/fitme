@@ -130,7 +130,7 @@ export const reportMissingEnv = async (
         ? `${name} (or ${fallbacks.join(", ")})`
         : name;
 
-      return report(
+      await report(
         new MissingEnvError(`Missing ${label} environment variable`),
         { env_var: name }
       );

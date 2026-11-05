@@ -60,7 +60,7 @@ afterAll(async () => {
 describe(getProfile, () => {
   it("returns the User's own Profile with metric units", async () => {
     await expect(
-      asUser(metric, async (tx) => getProfile(tx, metric))
+      asUser(metric, async (tx) => await getProfile(tx, metric))
     ).resolves.toEqual({
       age: 30,
       gender: "female",
@@ -73,7 +73,7 @@ describe(getProfile, () => {
 
   it("returns imperial units for the us measurement system", async () => {
     await expect(
-      asUser(imperial, async (tx) => getProfile(tx, imperial))
+      asUser(imperial, async (tx) => await getProfile(tx, imperial))
     ).resolves.toEqual({
       age: 41,
       gender: "male",
@@ -86,13 +86,13 @@ describe(getProfile, () => {
 
   it("never shows another User's Profile", async () => {
     await expect(
-      asUser(metric, async (tx) => getProfile(tx, imperial))
+      asUser(metric, async (tx) => await getProfile(tx, imperial))
     ).resolves.toBeNull();
   });
 
   it("returns null when the User has no Profile yet", async () => {
     await expect(
-      asUser(noProfile, async (tx) => getProfile(tx, noProfile))
+      asUser(noProfile, async (tx) => await getProfile(tx, noProfile))
     ).resolves.toBeNull();
   });
 });
@@ -135,8 +135,8 @@ const seedUser = async (
     system,
     weight = "100",
   }: SeedOptions
-) =>
-  withService(async (tx) => {
+) => {
+  await withService(async (tx) => {
     await tx.insert(profiles).values({
       age: 30,
       gender: "male",
@@ -218,10 +218,11 @@ const seedUser = async (
       ])
     );
   });
+};
 
 /** Every stored height and weight of the User, read past RLS. */
 const storedValues = async (userId: string) =>
-  withService(async (tx) => {
+  await withService(async (tx) => {
     const [profile] = await tx
       .select({
         age: profiles.age,
@@ -337,7 +338,8 @@ const storedAs = (system: MeasurementSystem, values: Stored) => {
 const update = async (
   userId: string,
   changes: Parameters<typeof updateProfile>[2]
-) => asUser(userId, async (tx) => updateProfile(tx, userId, changes));
+) =>
+  await asUser(userId, async (tx) => await updateProfile(tx, userId, changes));
 
 afterAll(async () => {
   await withService(async (tx) => {
@@ -571,8 +573,13 @@ describe(updateProfile, () => {
 
     // Even when handed another User's id, RLS keeps the caller to their own rows
     await expect(
-      asUser(userId, async (tx) =>
-        updateProfile(tx, other, { measurement_system: "us", weight: 1 })
+      asUser(
+        userId,
+        async (tx) =>
+          await updateProfile(tx, other, {
+            measurement_system: "us",
+            weight: 1,
+          })
       )
     ).resolves.toBeNull();
     await update(userId, { measurement_system: "us" });
@@ -616,25 +623,25 @@ const signal = () => {
 const lockedWeightUnit = async (
   tx: Parameters<typeof lockProfileUnits>[0],
   userId: string
-) => lockProfileUnits(tx, userId).then((units) => units?.weight ?? null);
+) => await lockProfileUnits(tx, userId).then((units) => units?.weight ?? null);
 
 describe(lockProfileUnits, () => {
   it("answers the units of the User's measurement system, null without a Profile", async () => {
     await expect(
-      asUser(metric, async (tx) => lockProfileUnits(tx, metric))
+      asUser(metric, async (tx) => await lockProfileUnits(tx, metric))
     ).resolves.toEqual({
       height: "cm",
       weight: "kg",
     });
     await expect(
-      asUser(imperial, async (tx) => lockProfileUnits(tx, imperial))
+      asUser(imperial, async (tx) => await lockProfileUnits(tx, imperial))
     ).resolves.toEqual({ height: "in", weight: "lbs" });
     await expect(
-      asUser(noProfile, async (tx) => lockProfileUnits(tx, noProfile))
+      asUser(noProfile, async (tx) => await lockProfileUnits(tx, noProfile))
     ).resolves.toBeNull();
     // RLS hides another User's Profile
     await expect(
-      asUser(metric, async (tx) => lockProfileUnits(tx, imperial))
+      asUser(metric, async (tx) => await lockProfileUnits(tx, imperial))
     ).resolves.toBeNull();
   });
 
@@ -676,7 +683,10 @@ describe(lockProfileUnits, () => {
 
     await converted.promise;
 
-    const reading = asUser(userId, async (tx) => lockedWeightUnit(tx, userId));
+    const reading = asUser(
+      userId,
+      async (tx) => await lockedWeightUnit(tx, userId)
+    );
 
     await expect(staysPending(reading)).resolves.toBe(true);
     release.resolve();

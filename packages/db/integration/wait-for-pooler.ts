@@ -91,7 +91,9 @@ export const waitForPooler = async (url: string): Promise<void> => {
 
       await new Promise((resolve) => setTimeout(resolve, RETRY_DELAY_MS));
 
-      return await attempt();
+      await attempt();
+
+      return;
     }
   };
 

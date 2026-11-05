@@ -3,10 +3,18 @@ import type { Library } from "@fitme/library-sdk";
 
 /** Answers every call unavailable: `LIBRARY_URL` isn't set. */
 const unconfigured: Library = {
-  covers: async () => Promise.reject(notConfigured()),
-  get: async () => Promise.reject(notConfigured()),
-  list: async () => Promise.reject(notConfigured()),
-  lookup: async () => Promise.reject(notConfigured()),
+  covers: async () => {
+    throw notConfigured();
+  },
+  get: async () => {
+    throw notConfigured();
+  },
+  list: async () => {
+    throw notConfigured();
+  },
+  lookup: async () => {
+    throw notConfigured();
+  },
 };
 
 const notConfigured = () =>
@@ -26,7 +34,7 @@ export const getLibrary = (): Library => {
     const url = process.env.LIBRARY_URL;
     library = url
       ? createLibrary({
-          token: async () => Promise.resolve(process.env.LIBRARY_ARNOLD_SECRET),
+          token: async () => process.env.LIBRARY_ARNOLD_SECRET,
           url,
         })
       : unconfigured;

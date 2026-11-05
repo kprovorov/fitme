@@ -10,8 +10,9 @@ export default defineTool({
   async execute({ plan_id }, ctx) {
     const userId = requireConversationOwner(ctx.session.auth);
 
-    const plan = await asUser(userId, async (tx) =>
-      activatePlan(tx, userId, plan_id)
+    const plan = await asUser(
+      userId,
+      async (tx) => await activatePlan(tx, userId, plan_id)
     );
 
     return plan ? { plan_id, success: true } : { error: "Plan not found" };

@@ -153,6 +153,7 @@ function DraftExerciseCard({
         systemImage: "trash",
       }
     );
+
     return actions;
   }, [exercise.key, index, name, onChange, onReplace, t, total, workoutKey]);
 

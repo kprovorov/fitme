@@ -11,8 +11,10 @@ export default defineTool({
   async execute({ workout_exercise_id }, ctx) {
     const userId = requireConversationOwner(ctx.session.auth);
 
-    const removed = await asUser(userId, async (tx) =>
-      removeExerciseFromWorkout(tx, userId, workout_exercise_id)
+    const removed = await asUser(
+      userId,
+      async (tx) =>
+        await removeExerciseFromWorkout(tx, userId, workout_exercise_id)
     );
 
     // A re-run step repeats a removal that already committed

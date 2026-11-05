@@ -106,7 +106,7 @@ const covers = [
 
 const real = createLibrary({
   fetch: stubApi(exercises, undefined, covers).fetch,
-  token: async () => Promise.resolve("secret"),
+  token: async () => "secret",
   url: "https://exercises.test",
 });
 
@@ -260,7 +260,7 @@ describe("covers", () => {
   it("answers an empty list like the real client without Covers", async () => {
     const empty = createLibrary({
       fetch: stubApi(exercises).fetch,
-      token: async () => Promise.resolve("secret"),
+      token: async () => "secret",
       url: "https://exercises.test",
     });
 

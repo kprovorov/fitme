@@ -11,7 +11,7 @@ export default defineTool({
   async execute(_input, ctx) {
     const userId = requireConversationOwner(ctx.session.auth);
 
-    return await asUser(userId, async (tx) => listPlans(tx, userId));
+    return await asUser(userId, async (tx) => await listPlans(tx, userId));
   },
   inputSchema: z.object({}),
 });

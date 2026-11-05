@@ -44,54 +44,71 @@ export function muscleGroupToName(muscleGroup: MuscleGroup): string {
     case "chest": {
       return "Chest";
     }
+
     case "back": {
       return "Back";
     }
+
     case "shoulders": {
       return "Shoulders";
     }
+
     case "biceps": {
       return "Biceps";
     }
+
     case "triceps": {
       return "Triceps";
     }
+
     case "forearms": {
       return "Forearms";
     }
+
     case "abs": {
       return "Abs";
     }
+
     case "obliques": {
       return "Obliques";
     }
+
     case "quadriceps": {
       return "Quadriceps";
     }
+
     case "hamstrings": {
       return "Hamstrings";
     }
+
     case "glutes": {
       return "Glutes";
     }
+
     case "calves": {
       return "Calves";
     }
+
     case "traps": {
       return "Traps";
     }
+
     case "lats": {
       return "Lats";
     }
+
     case "lower-back": {
       return "Lower Back";
     }
+
     case "cardio": {
       return "Cardio";
     }
+
     case "full-body": {
       return "Full Body";
     }
+
     default: {
       return muscleGroup;
     }
@@ -104,30 +121,39 @@ export function equipmentToName(item: Equipment): string {
     case "barbell": {
       return "Barbell";
     }
+
     case "dumbbell": {
       return "Dumbbell";
     }
+
     case "cable": {
       return "Cable";
     }
+
     case "machine": {
       return "Machine";
     }
+
     case "smith_machine": {
       return "Smith machine";
     }
+
     case "bench": {
       return "Bench";
     }
+
     case "pull_up_bar": {
       return "Pull-up bar";
     }
+
     case "landmine": {
       return "Landmine";
     }
+
     case "bodyweight": {
       return "Bodyweight";
     }
+
     default: {
       return item;
     }

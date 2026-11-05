@@ -422,9 +422,11 @@ export const listWorkoutHistory = async (
     .orderBy(desc(workoutSessions.finishedAt), asc(workoutSessions.id))
     .limit(limit);
 
-  return findSessionDetails(tx, inArray(workoutSessions.id, latestFinished), [
-    desc(workoutSessions.finishedAt),
-  ]);
+  return await findSessionDetails(
+    tx,
+    inArray(workoutSessions.id, latestFinished),
+    [desc(workoutSessions.finishedAt)]
+  );
 };
 
 export interface LogSetInput {

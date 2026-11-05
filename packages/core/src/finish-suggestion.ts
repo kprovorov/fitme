@@ -178,7 +178,7 @@ export function createFinishSuggestionController({
       onError?.(error);
     }
 
-    return await check(sessionId, pending);
+    await check(sessionId, pending);
   };
 
   const reportSetTracked = async ({
@@ -190,7 +190,7 @@ export function createFinishSuggestionController({
       !hasReps(previousRepsCompleted) && hasReps(set.reps_completed);
 
     if (!isNewlyTracked || suggestedSessions.has(sessionId)) {
-      return Promise.resolve();
+      return;
     }
 
     const existing = pendingChecks.get(sessionId);
@@ -200,7 +200,8 @@ export function createFinishSuggestionController({
       existing.dirty = true;
       existing.generation = generationOf(sessionId);
 
-      return existing.promise;
+      await existing.promise;
+      return;
     }
 
     const pending: PendingCheck = {
@@ -213,7 +214,7 @@ export function createFinishSuggestionController({
     pendingChecks.set(sessionId, pending);
     pending.promise = check(sessionId, pending);
 
-    return pending.promise;
+    await pending.promise;
   };
 
   const dismiss = (sessionId: string) => {

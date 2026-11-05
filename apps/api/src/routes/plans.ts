@@ -701,6 +701,7 @@ export const plans = new OpenAPIHono<ApiEnv>({
       case "not_found": {
         return c.json(PLAN_NOT_FOUND, 404);
       }
+
       case "invalid_ids": {
         return c.json(
           {
@@ -712,6 +713,7 @@ export const plans = new OpenAPIHono<ApiEnv>({
           400
         );
       }
+
       default: {
         return c.json(
           PlanResponse.parse({

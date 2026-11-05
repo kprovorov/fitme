@@ -93,6 +93,7 @@ export function replay(indexSql, out) {
         ) {
           throw error;
         }
+
         return "rejected by unique index";
       }
     })();

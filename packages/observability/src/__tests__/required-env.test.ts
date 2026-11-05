@@ -3,9 +3,7 @@ import { describe, expect, it, vi } from "vitest";
 import { reportMissingEnv } from "../node";
 
 const recorder = () =>
-  vi.fn(async (_error: unknown, _tags?: Record<string, string>) =>
-    Promise.resolve()
-  );
+  vi.fn(async (_error: unknown, _tags?: Record<string, string>) => {});
 
 const production = { VERCEL_ENV: "production" };
 

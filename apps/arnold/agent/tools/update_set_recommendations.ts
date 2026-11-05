@@ -22,8 +22,9 @@ export default defineTool({
       };
     }
 
-    const updated = await asUser(userId, async (tx) =>
-      updateSetRecommendations(tx, userId, set_id, changes)
+    const updated = await asUser(
+      userId,
+      async (tx) => await updateSetRecommendations(tx, userId, set_id, changes)
     );
 
     return updated

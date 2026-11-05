@@ -48,7 +48,7 @@ const seedSession = async (
   startedAt: string,
   sets: SeedSet[]
 ): Promise<SeededSession> =>
-  withService(async (tx) => {
+  await withService(async (tx) => {
     const [plan] = await tx
       .insert(plans)
       .values({
@@ -152,12 +152,14 @@ afterAll(async () => {
 
 describe(getExerciseHistory, () => {
   const history = async (userId: string, limit = 10, offset = 0) =>
-    asUser(userId, async (tx) =>
-      getExerciseHistory(tx, userId, {
-        exerciseSlug: alphaSlug,
-        limit,
-        offset,
-      })
+    await asUser(
+      userId,
+      async (tx) =>
+        await getExerciseHistory(tx, userId, {
+          exerciseSlug: alphaSlug,
+          limit,
+          offset,
+        })
     );
 
   it("returns the User's entries newest first, with their logged sets in order and their targets", async () => {
@@ -250,12 +252,14 @@ describe(getExerciseHistory, () => {
 
   it("answers an empty page for an Exercise the User never did", async () => {
     await expect(
-      asUser(owner, async (tx) =>
-        getExerciseHistory(tx, owner, {
-          exerciseSlug: `unknown-${runId}`,
-          limit: 10,
-          offset: 0,
-        })
+      asUser(
+        owner,
+        async (tx) =>
+          await getExerciseHistory(tx, owner, {
+            exerciseSlug: `unknown-${runId}`,
+            limit: 10,
+            offset: 0,
+          })
       )
     ).resolves.toEqual({ entries: [], total: 0 });
   });
@@ -266,12 +270,14 @@ describe(getExerciseHistory, () => {
       intruders.sessionId,
     ]);
     await expect(
-      asUser(owner, async (tx) =>
-        getExerciseHistory(tx, intruder, {
-          exerciseSlug: alphaSlug,
-          limit: 10,
-          offset: 0,
-        })
+      asUser(
+        owner,
+        async (tx) =>
+          await getExerciseHistory(tx, intruder, {
+            exerciseSlug: alphaSlug,
+            limit: 10,
+            offset: 0,
+          })
       )
     ).resolves.toEqual({ entries: [], total: 0 });
   });

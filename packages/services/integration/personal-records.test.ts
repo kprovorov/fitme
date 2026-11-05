@@ -73,7 +73,7 @@ const seedSession = async ({
   startedAt = "2026-10-01T10:00:00Z",
   userId = owner,
 }: SessionSeed) =>
-  withService(async (tx) => {
+  await withService(async (tx) => {
     const started = new Date(startedAt);
 
     const [session] = await tx
@@ -116,12 +116,14 @@ const seedSession = async ({
   });
 
 const finish = async (sessionId: string, userId = owner) =>
-  asUser(userId, async (tx) => finishWorkoutSession(tx, sessionId));
+  await asUser(userId, async (tx) => await finishWorkoutSession(tx, sessionId));
 
 /** The records History shows for a Workout Session of the User. */
 const recordsOf = async (sessionId: string, userId = owner) => {
-  const page = await asUser(userId, async (tx) =>
-    listWorkoutSessions(tx, { limit: 50, offset: 0, status: "all" })
+  const page = await asUser(
+    userId,
+    async (tx) =>
+      await listWorkoutSessions(tx, { limit: 50, offset: 0, status: "all" })
   );
 
   return page.sessions.find(({ id }) => id === sessionId)?.personal_records;
@@ -141,7 +143,10 @@ const finishWith = async (seed: SessionSeed) => {
 };
 
 const initialize = async (userId = owner) =>
-  asUser(userId, async (tx) => initializePersonalRecords(tx, userId));
+  await asUser(
+    userId,
+    async (tx) => await initializePersonalRecords(tx, userId)
+  );
 
 const deferred = () => {
   let resolve: () => void = () => {};
@@ -170,8 +175,14 @@ describe("historical Personal record initialization", () => {
 
     await initialize();
 
-    const olderPage = await asUser(owner, async (tx) =>
-      listWorkoutSessions(tx, { limit: 50, offset: 50, status: "finished" })
+    const olderPage = await asUser(
+      owner,
+      async (tx) =>
+        await listWorkoutSessions(tx, {
+          limit: 50,
+          offset: 50,
+          status: "finished",
+        })
     );
 
     expect(olderPage.total).toBe(56);
@@ -281,7 +292,9 @@ describe("historical Personal record initialization", () => {
     await initialize();
     await expect(
       Promise.all(
-        [missing, baseline, bodyweight, open].map(async (id) => recordsOf(id))
+        [missing, baseline, bodyweight, open].map(
+          async (id) => await recordsOf(id)
+        )
       )
     ).resolves.toEqual([[], [], [], []]);
     await expect(recordsOf(reps)).resolves.toEqual([
@@ -408,7 +421,9 @@ describe("historical Personal record initialization", () => {
     await expect(initialize(other)).resolves.toEqual({
       alreadyInitialized: false,
     });
-    await withUserTablesLocked(async (tx) => deleteUserData(tx, owner));
+    await withUserTablesLocked(async (tx) => {
+      await deleteUserData(tx, owner);
+    });
     await expect(
       withService((tx) =>
         tx.$count(
@@ -444,16 +459,19 @@ describe("historical Personal record initialization", () => {
     });
 
     // Existing data may already have been converted: use what remains today.
-    await asUser(owner, async (tx) =>
-      updateProfile(tx, owner, { measurement_system: "metric" })
+    await asUser(
+      owner,
+      async (tx) =>
+        await updateProfile(tx, owner, { measurement_system: "metric" })
     );
     await initialize();
     await expect(recordsOf(tie)).resolves.toEqual([]);
     await expect(recordsOf(improved)).resolves.toEqual([
       { exercise_slug: SQUAT, kind: "reps", reps: 8, weight: 83.91 },
     ]);
-    await asUser(owner, async (tx) =>
-      updateProfile(tx, owner, { measurement_system: "us" })
+    await asUser(
+      owner,
+      async (tx) => await updateProfile(tx, owner, { measurement_system: "us" })
     );
     await initialize();
     await expect(recordsOf(tie)).resolves.toEqual([]);
@@ -506,8 +524,10 @@ describe("historical Personal record initialization", () => {
       const competing = (
         operation === "finish"
           ? finish(open)
-          : asUser(owner, async (tx) =>
-              updateProfile(tx, owner, { measurement_system: "us" })
+          : asUser(
+              owner,
+              async (tx) =>
+                await updateProfile(tx, owner, { measurement_system: "us" })
             )
       ).then((result) => {
         completed = true;
@@ -809,16 +829,19 @@ describe("finishWorkoutSession's Personal records", () => {
       exercises: { [SQUAT]: [[100.5, 5]] },
     });
 
-    await asUser(owner, async (tx) =>
-      updateProfile(tx, owner, { measurement_system: "us" })
+    await asUser(
+      owner,
+      async (tx) => await updateProfile(tx, owner, { measurement_system: "us" })
     );
     // 100.5 kg × 2.20462, rounded to 2 decimals
     await expect(recordsOf(sessionId)).resolves.toEqual([
       { exercise_slug: SQUAT, kind: "weight", reps: 5, weight: 221.56 },
     ]);
 
-    await asUser(owner, async (tx) =>
-      updateProfile(tx, owner, { measurement_system: "metric" })
+    await asUser(
+      owner,
+      async (tx) =>
+        await updateProfile(tx, owner, { measurement_system: "metric" })
     );
     await expect(recordsOf(sessionId)).resolves.toEqual([
       { exercise_slug: SQUAT, kind: "weight", reps: 5, weight: 100.5 },
@@ -845,13 +868,15 @@ describe("finishWorkoutSession's Personal records", () => {
     await finishWith({ exercises: { [SQUAT]: [[105, 5]] } });
 
     const countRecords = async () =>
-      withService((tx) =>
+      await withService((tx) =>
         tx.$count(personalRecords, eq(personalRecords.userId, owner))
       );
 
     await expect(countRecords()).resolves.toBe(1);
 
-    await withUserTablesLocked(async (tx) => deleteUserData(tx, owner));
+    await withUserTablesLocked(async (tx) => {
+      await deleteUserData(tx, owner);
+    });
 
     await expect(countRecords()).resolves.toBe(0);
   });
@@ -935,11 +960,14 @@ describe("finishWorkoutSession's Personal records", () => {
       })
     );
     await seedSession({ exercises: { [SQUAT]: [[185, 7]] } });
-    await asUser(owner, async (tx) =>
-      updateProfile(tx, owner, { measurement_system: "metric" })
+    await asUser(
+      owner,
+      async (tx) =>
+        await updateProfile(tx, owner, { measurement_system: "metric" })
     );
-    await asUser(owner, async (tx) =>
-      updateProfile(tx, owner, { measurement_system: "us" })
+    await asUser(
+      owner,
+      async (tx) => await updateProfile(tx, owner, { measurement_system: "us" })
     );
 
     expect(

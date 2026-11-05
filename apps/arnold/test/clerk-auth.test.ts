@@ -54,25 +54,28 @@ const fakeOwners = () => {
       owners.set(sessionId, userId);
     }
 
-    return Promise.resolve(owners.get(sessionId) ?? null);
+    return owners.get(sessionId) ?? null;
   });
 };
 
 let claimSession = fakeOwners();
-let checkPro = vi.fn(async (_userId: string) => Promise.resolve(true));
-let report = vi.fn(async (_error: unknown, _tags: object) => Promise.resolve());
+let checkPro = vi.fn(async (_userId: string) => true);
+let report = vi.fn(async (_error: unknown, _tags: object) => {});
 
 const auth = clerkSession({
-  checkPro: async (userId) => checkPro(userId),
-  claimSession: async (sessionId, userId) => claimSession(sessionId, userId),
+  checkPro: async (userId) => await checkPro(userId),
+  claimSession: async (sessionId, userId) =>
+    await claimSession(sessionId, userId),
   jwtKey: () => jwtKey,
-  report: async (error, tags) => report(error, tags),
+  report: async (error, tags) => {
+    await report(error, tags);
+  },
 });
 
 beforeEach(() => {
   claimSession = fakeOwners();
-  checkPro = vi.fn(async (_userId: string) => Promise.resolve(true));
-  report = vi.fn(async (_error: unknown, _tags: object) => Promise.resolve());
+  checkPro = vi.fn(async (_userId: string) => true);
+  report = vi.fn(async (_error: unknown, _tags: object) => {});
 });
 
 describe(clerkSession, () => {
@@ -157,7 +160,7 @@ describe(clerkSession, () => {
     });
 
     const send = async () =>
-      routeAuth(
+      await routeAuth(
         request(`Bearer ${clerkToken({ sub: "user_alice" })}`),
         unconfigured
       );

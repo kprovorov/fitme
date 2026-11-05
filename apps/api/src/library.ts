@@ -200,11 +200,13 @@ export const refusalOf = (check: RefusedCheck) => {
         "The Library is unavailable, so the Exercises couldn't be checked; try again"
       );
     }
+
     case "covers_unavailable": {
       return libraryUnavailable(
         "The Library is unavailable, so the Workouts' Covers couldn't be picked; try again"
       );
     }
+
     default: {
       return {
         body: {

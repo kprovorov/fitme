@@ -90,6 +90,7 @@ interface PlanFieldProps<TName extends keyof PlanFormValues> {
 
 function GoalOptions({ field: { onChange, value } }: PlanFieldProps<"goal">) {
   const { t } = useTranslation();
+
   return (
     <View className="flex flex-row items-stretch justify-stretch gap-4">
       {goalOptions.map((option) => (
@@ -111,6 +112,7 @@ function ExperienceLevelOptions({
   field: { onChange, value },
 }: PlanFieldProps<"experience_level">) {
   const labels = useChoiceLabels();
+
   return (
     <View className="flex flex-col items-stretch justify-stretch gap-4">
       {experienceLevels.map((option) => (
@@ -146,6 +148,7 @@ function renderWorkoutDurationField({
 function PlaceOptions({ field: { onChange, value } }: PlanFieldProps<"place">) {
   const { t } = useTranslation();
   const labels = useChoiceLabels();
+
   return (
     <View className="flex flex-row items-stretch justify-stretch gap-4">
       {places.map((option) => {

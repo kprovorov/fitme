@@ -54,7 +54,7 @@ let seeded: Seeded;
 let intruderSessionId: string;
 
 const seedOwner = async (): Promise<Seeded> =>
-  withService(async (tx) => {
+  await withService(async (tx) => {
     const [plan] = await tx
       .insert(plans)
       .values({
@@ -164,7 +164,7 @@ const seedOwner = async (): Promise<Seeded> =>
   });
 
 const setRow = async (setId: string) =>
-  withService(async (tx) => {
+  await withService(async (tx) => {
     const [row] = await tx
       .select()
       .from(workoutSessionExerciseSets)
@@ -174,7 +174,7 @@ const setRow = async (setId: string) =>
   });
 
 const sessionExists = async (sessionId: string) =>
-  withService(async (tx) => {
+  await withService(async (tx) => {
     const rows = await tx
       .select({ id: workoutSessions.id })
       .from(workoutSessions)
@@ -199,8 +199,10 @@ afterAll(async () => {
 
 describe(listWorkoutSessions, () => {
   it("lists the User's sessions newest first with set counts", async () => {
-    const page = await asUser(owner, async (tx) =>
-      listWorkoutSessions(tx, { limit: 20, offset: 0, status: "all" })
+    const page = await asUser(
+      owner,
+      async (tx) =>
+        await listWorkoutSessions(tx, { limit: 20, offset: 0, status: "all" })
     );
 
     expect(page.total).toBe(2);
@@ -346,8 +348,14 @@ describe(listWorkoutSessions, () => {
       return sessions;
     });
 
-    const page = await asUser(lifter, async (tx) =>
-      listWorkoutSessions(tx, { limit: 20, offset: 0, status: "finished" })
+    const page = await asUser(
+      lifter,
+      async (tx) =>
+        await listWorkoutSessions(tx, {
+          limit: 20,
+          offset: 0,
+          status: "finished",
+        })
     );
 
     expect(page.sessions).toEqual([
@@ -367,8 +375,10 @@ describe(listWorkoutSessions, () => {
   });
 
   it("never lists another User's sessions", async () => {
-    const page = await asUser(intruder, async (tx) =>
-      listWorkoutSessions(tx, { limit: 20, offset: 0, status: "all" })
+    const page = await asUser(
+      intruder,
+      async (tx) =>
+        await listWorkoutSessions(tx, { limit: 20, offset: 0, status: "all" })
     );
 
     expect(page).toEqual({
@@ -386,8 +396,9 @@ describe(listWorkoutSessions, () => {
 
 describe(getWorkoutSession, () => {
   it("returns the session with its exercises and sets in order", async () => {
-    const session = await asUser(owner, async (tx) =>
-      getWorkoutSession(tx, seeded.openSessionId)
+    const session = await asUser(
+      owner,
+      async (tx) => await getWorkoutSession(tx, seeded.openSessionId)
     );
 
     expect(session).toEqual({
@@ -432,8 +443,9 @@ describe(getWorkoutSession, () => {
   });
 
   it("returns a finished session with its logged sets", async () => {
-    const session = await asUser(owner, async (tx) =>
-      getWorkoutSession(tx, seeded.finishedSessionId)
+    const session = await asUser(
+      owner,
+      async (tx) => await getWorkoutSession(tx, seeded.finishedSessionId)
     );
 
     expect(session).toMatchObject({
@@ -463,12 +475,16 @@ describe(getWorkoutSession, () => {
 describe(logSet, () => {
   it("logs a set in the User's open session and overwrites it when logged again", async () => {
     const [setId] = seeded.openSetIds;
-    await asUser(owner, async (tx) =>
-      logSet(tx, { repsCompleted: 5, setId, weightCompleted: 50 })
+    await asUser(
+      owner,
+      async (tx) =>
+        await logSet(tx, { repsCompleted: 5, setId, weightCompleted: 50 })
     );
 
-    const result = await asUser(owner, async (tx) =>
-      logSet(tx, { repsCompleted: 7, setId, weightCompleted: 62.5 })
+    const result = await asUser(
+      owner,
+      async (tx) =>
+        await logSet(tx, { repsCompleted: 7, setId, weightCompleted: 62.5 })
     );
 
     expect(result).toEqual({
@@ -491,12 +507,14 @@ describe(logSet, () => {
   });
 
   it("leaves a set of a finished session as it was", async () => {
-    const result = await asUser(owner, async (tx) =>
-      logSet(tx, {
-        repsCompleted: 1,
-        setId: seeded.finishedSetId,
-        weightCompleted: 1,
-      })
+    const result = await asUser(
+      owner,
+      async (tx) =>
+        await logSet(tx, {
+          repsCompleted: 1,
+          setId: seeded.finishedSetId,
+          weightCompleted: 1,
+        })
     );
 
     expect(result).toEqual({
@@ -531,8 +549,10 @@ describe(logSet, () => {
   it("never writes another User's set", async () => {
     const [, setId] = seeded.openSetIds;
 
-    const result = await asUser(intruder, async (tx) =>
-      logSet(tx, { repsCompleted: 99, setId, weightCompleted: 999 })
+    const result = await asUser(
+      intruder,
+      async (tx) =>
+        await logSet(tx, { repsCompleted: 99, setId, weightCompleted: 999 })
     );
 
     expect(result).toEqual({ status: "not_found" });
@@ -547,8 +567,9 @@ describe(logSet, () => {
 describe(deleteWorkoutSession, () => {
   it("never deletes another User's session", async () => {
     await expect(
-      asUser(intruder, async (tx) =>
-        deleteWorkoutSession(tx, seeded.finishedSessionId)
+      asUser(
+        intruder,
+        async (tx) => await deleteWorkoutSession(tx, seeded.finishedSessionId)
       )
     ).resolves.toBe(false);
     await expect(sessionExists(seeded.finishedSessionId)).resolves.toBe(true);
@@ -556,16 +577,18 @@ describe(deleteWorkoutSession, () => {
 
   it("deletes the User's session with its sets, then finds nothing", async () => {
     await expect(
-      asUser(owner, async (tx) =>
-        deleteWorkoutSession(tx, seeded.finishedSessionId)
+      asUser(
+        owner,
+        async (tx) => await deleteWorkoutSession(tx, seeded.finishedSessionId)
       )
     ).resolves.toBe(true);
     await expect(sessionExists(seeded.finishedSessionId)).resolves.toBe(false);
     await expect(setRow(seeded.finishedSetId)).resolves.toBeUndefined();
 
     await expect(
-      asUser(owner, async (tx) =>
-        deleteWorkoutSession(tx, seeded.finishedSessionId)
+      asUser(
+        owner,
+        async (tx) => await deleteWorkoutSession(tx, seeded.finishedSessionId)
       )
     ).resolves.toBe(false);
   });

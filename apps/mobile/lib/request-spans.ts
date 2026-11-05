@@ -35,19 +35,19 @@ const URL_ATTRIBUTES = new Set(["http.url", "url", "url.full"]);
  * The attributes that are only a query string or a fragment: dropped whole,
  * since the Library's `?search=` is what the User typed.
  */
-const QUERY_ATTRIBUTES = [
+const QUERY_ATTRIBUTES = new Set([
   "http.fragment",
   "http.query",
   "url.fragment",
   "url.query",
-];
+]);
 
 /** The route a URL belongs to: its row ids, slugs and session ids templated. */
 const templated = (url: string): string =>
   url
-    .replace(ROW_ID, "/{id}")
-    .replace(EXERCISE_SLUG, "/exercises/{slug}")
-    .replace(EVE_SESSION, "/session/{id}");
+    .replaceAll(ROW_ID, "/{id}")
+    .replaceAll(EXERCISE_SLUG, "/exercises/{slug}")
+    .replaceAll(EVE_SESSION, "/session/{id}");
 
 /** Everything after the path: a query string, a fragment, or both. */
 const QUERY_AND_FRAGMENT = /[?#].*$/;
@@ -66,9 +66,10 @@ type RequestSpan = NonNullable<SpannedEvent["spans"]>[number];
 const templateRequestSpan = (span: RequestSpan) => {
   const data = Object.fromEntries(
     Object.entries(span.data ?? {}).flatMap(([name, value]) => {
-      if (QUERY_ATTRIBUTES.includes(name)) {
+      if (QUERY_ATTRIBUTES.has(name)) {
         return [];
       }
+
       return [
         [
           name,

@@ -82,10 +82,12 @@ export function formatPlanChange(
       });
       break;
     }
+
     case "add_exercise": {
       title = translator.t("planUpdate.changes.add", { exercise });
       break;
     }
+
     case "remove_exercise": {
       const text = translator.t("planUpdate.changes.remove", { exercise });
 
@@ -99,6 +101,7 @@ export function formatPlanChange(
       });
       break;
     }
+
     default: {
       const unknown: never = change;
       throw new Error(`Unknown plan change ${JSON.stringify(unknown)}`);

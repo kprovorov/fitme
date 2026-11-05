@@ -51,7 +51,7 @@ const seedPlan = async (
   orders: Record<string, number>,
   { deleted = false, userId = owner } = {}
 ) =>
-  withService(async (tx) => {
+  await withService(async (tx) => {
     const [plan] = await tx
       .insert(plans)
       .values({
@@ -85,7 +85,7 @@ const seedPlan = async (
 
 /** Gives a Workout two exercises: squat with 2 sets, press with 1. */
 const seedTemplate = async (workoutId: string) =>
-  withService(async (tx) => {
+  await withService(async (tx) => {
     templates += 1;
     const squatSlug = `test-life-squat-${runId}-${templates}`;
     const pressSlug = `test-life-press-${runId}-${templates}`;
@@ -126,7 +126,7 @@ const seedTemplate = async (workoutId: string) =>
   });
 
 const sessionsOf = async (workoutId: string) =>
-  withService((tx) =>
+  await withService((tx) =>
     tx
       .select({
         finishedAt: workoutSessions.finishedAt,
@@ -138,7 +138,7 @@ const sessionsOf = async (workoutId: string) =>
   );
 
 const start = async (workoutId: string, userId = owner) =>
-  asUser(userId, async (tx) => startWorkoutSession(tx, workoutId));
+  await asUser(userId, async (tx) => await startWorkoutSession(tx, workoutId));
 
 const startedSessionId = async (workoutId: string, userId = owner) => {
   const result = await start(workoutId, userId);
@@ -151,7 +151,7 @@ const startedSessionId = async (workoutId: string, userId = owner) => {
 };
 
 const closeDirectly = async (sessionId: string) =>
-  withService((tx) =>
+  await withService((tx) =>
     tx
       .update(workoutSessions)
       .set({ finishedAt: "2026-10-01T12:00:00Z" })
@@ -394,7 +394,7 @@ describe(startWorkoutSession, () => {
 });
 
 const openSessionsOf = async (userId: string) =>
-  withService((tx) =>
+  await withService((tx) =>
     tx
       .select({ id: workoutSessions.id, workoutId: workoutSessions.workoutId })
       .from(workoutSessions)
@@ -438,7 +438,7 @@ describe("startWorkoutSession, one open Workout Session per User", () => {
   it("starts another Workout once the open one is finished", async () => {
     const { workoutIds } = await seedPlan({ "Day A": 1, "Day B": 2 });
     const first = await startedSessionId(workoutIds["Day A"]);
-    await asUser(owner, async (tx) => finishWorkoutSession(tx, first));
+    await asUser(owner, async (tx) => await finishWorkoutSession(tx, first));
 
     const result = await start(workoutIds["Day B"]);
 
@@ -475,7 +475,7 @@ describe("startWorkoutSession, one open Workout Session per User", () => {
     }
 
     const results = await Promise.all(
-      names.map(async (name) => start(workoutIds[name]))
+      names.map(async (name) => await start(workoutIds[name]))
     );
 
     const open = await openSessionsOf(owner);
@@ -536,10 +536,10 @@ describe("startWorkoutSession, one open Workout Session per User", () => {
 });
 
 const finish = async (sessionId: string, userId = owner) =>
-  asUser(userId, async (tx) => finishWorkoutSession(tx, sessionId));
+  await asUser(userId, async (tx) => await finishWorkoutSession(tx, sessionId));
 
 const workoutOrders = async (planId: string) =>
-  withService(async (tx) => {
+  await withService(async (tx) => {
     const rows = await tx
       .select({ name: workouts.name, order: workouts.order })
       .from(workouts)
@@ -550,7 +550,7 @@ const workoutOrders = async (planId: string) =>
   });
 
 const sessionTimes = async (sessionId: string) =>
-  withService(async (tx) => {
+  await withService(async (tx) => {
     const [row] = await tx
       .select({
         finishedAt: workoutSessions.finishedAt,
@@ -564,7 +564,7 @@ const sessionTimes = async (sessionId: string) =>
 
 /** An open session of the owner on `workoutId` (or none), started an hour ago. */
 const seedOpenSession = async (planId: string, workoutId: string | null) =>
-  withService(async (tx) => {
+  await withService(async (tx) => {
     const [session] = await tx
       .insert(workoutSessions)
       .values({

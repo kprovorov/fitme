@@ -22,12 +22,14 @@ export default defineTool({
     }
 
     return await reportingEditErrors(async () => {
-      const replaced = await asUser(userId, async (tx) =>
-        replaceExerciseInWorkout(tx, userId, {
-          newExerciseSlug: new_exercise_slug,
-          sets,
-          workoutExerciseId: workout_exercise_id,
-        })
+      const replaced = await asUser(
+        userId,
+        async (tx) =>
+          await replaceExerciseInWorkout(tx, userId, {
+            newExerciseSlug: new_exercise_slug,
+            sets,
+            workoutExerciseId: workout_exercise_id,
+          })
       );
 
       return replaced

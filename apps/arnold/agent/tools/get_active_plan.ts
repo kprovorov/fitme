@@ -12,7 +12,11 @@ export default defineTool({
     "Get the user's currently active workout plan with all workouts and exercises",
   async execute(_input, ctx) {
     const userId = requireConversationOwner(ctx.session.auth);
-    const plan = await asUser(userId, async (tx) => getActivePlan(tx, userId));
+
+    const plan = await asUser(
+      userId,
+      async (tx) => await getActivePlan(tx, userId)
+    );
 
     if (!plan) {
       return { error: "No active plan found" };

@@ -12,9 +12,11 @@ import type { ClaimSession } from "./clerk-auth";
  * it isn't theirs, RLS would hide the row).
  */
 export const claimSession: ClaimSession = async (sessionId, userId) => {
-  await asUser(userId, async (tx) =>
-    recordArnoldSession(tx, userId, sessionId)
-  );
+  await asUser(userId, async (tx) => {
+    await recordArnoldSession(tx, userId, sessionId);
+  });
 
-  return await withService(async (tx) => getArnoldSessionOwner(tx, sessionId));
+  return await withService(
+    async (tx) => await getArnoldSessionOwner(tx, sessionId)
+  );
 };

@@ -17,7 +17,9 @@ import { deleteTestUsers } from "./delete-test-users";
 
 const users: string[] = [];
 
-afterAll(async () => deleteTestUsers(users));
+afterAll(async () => {
+  await deleteTestUsers(users);
+});
 
 const seed = async (
   changes: [string, number | null][],
@@ -99,14 +101,16 @@ const seed = async (
 };
 
 const read = async (userId: string, now: string, timeZone = "Europe/Kyiv") =>
-  asUser(userId, async (tx) =>
-    getWeeklyGoals(
-      tx,
-      userId,
-      timeZone,
-      new Date(now),
-      new Date("2026-01-01T00:00:00Z")
-    )
+  await asUser(
+    userId,
+    async (tx) =>
+      await getWeeklyGoals(
+        tx,
+        userId,
+        timeZone,
+        new Date(now),
+        new Date("2026-01-01T00:00:00Z")
+      )
   );
 
 interface PlanNode {
@@ -245,8 +249,15 @@ describe("weekly streaks from retained goals and finished training", () => {
     const user = await seed([["2026-10-31T12:00:00Z", 1]], starts);
     expect(
       (
-        await asUser(user, async (tx) =>
-          getWeeklyGoals(tx, user, "UTC", new Date("2027-01-13T12:00:00Z"))
+        await asUser(
+          user,
+          async (tx) =>
+            await getWeeklyGoals(
+              tx,
+              user,
+              "UTC",
+              new Date("2027-01-13T12:00:00Z")
+            )
         )
       ).streak
     ).toBe(11);
@@ -480,13 +491,15 @@ describe("weekly streaks from retained goals and finished training", () => {
     expect((await read(user, "2026-10-29T12:00:00Z")).streak).toBe(0);
     const intruder = await seed([], []);
     await expect(
-      asUser(intruder, async (tx) =>
-        getWeeklyGoals(
-          tx,
-          user,
-          "Europe/Kyiv",
-          new Date("2026-10-29T12:00:00Z")
-        )
+      asUser(
+        intruder,
+        async (tx) =>
+          await getWeeklyGoals(
+            tx,
+            user,
+            "Europe/Kyiv",
+            new Date("2026-10-29T12:00:00Z")
+          )
       )
     ).resolves.toEqual({ changes: [], streak: 0 });
   });

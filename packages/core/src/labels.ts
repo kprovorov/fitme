@@ -13,12 +13,15 @@ export const getMeasurementSystemLabel = (
     case "metric": {
       return "Metric";
     }
+
     case "us": {
       return "US";
     }
+
     case "uk": {
       return "UK";
     }
+
     default: {
       return measurementSystem;
     }
@@ -32,12 +35,15 @@ export const getMeasurementSystemDisclaimer = (
     case "metric": {
       return "Centimeters and Kilograms";
     }
+
     case "us": {
       return "Feet, Inches and Pounds";
     }
+
     case "uk": {
       return "Feet, Inches and Pounds";
     }
+
     default: {
       return;
     }
@@ -49,12 +55,15 @@ export const getWeightLabel = (measurementSystem: MeasurementSystem) => {
     case "metric": {
       return "kg";
     }
+
     case "us": {
       return "lbs";
     }
+
     case "uk": {
       return "lbs";
     }
+
     default: {
       return;
     }
@@ -66,12 +75,15 @@ export const getHeightLabel = (measurementSystem: MeasurementSystem) => {
     case "metric": {
       return "cm";
     }
+
     case "us": {
       return "ft";
     }
+
     case "uk": {
       return "ft";
     }
+
     default: {
       return;
     }
@@ -83,9 +95,11 @@ export const getGenderLabel = (gender: Gender) => {
     case "male": {
       return "Male";
     }
+
     case "female": {
       return "Female";
     }
+
     default: {
       return gender;
     }
@@ -97,18 +111,23 @@ export const getGoalLabel = (goal: Goal) => {
     case "fat-loss": {
       return "Lose Weight";
     }
+
     case "muscle-gain": {
       return "Gain Muscle";
     }
+
     case "recomposition": {
       return "Recomposition";
     }
+
     case "strength-performance": {
       return "Strength & Performance";
     }
+
     case "general-health-fitness": {
       return "General Health & Fitness";
     }
+
     default: {
       return;
     }
@@ -120,9 +139,11 @@ export const getPlaceLabel = (place: Place) => {
     case "gym": {
       return "Gym";
     }
+
     case "home": {
       return "Home";
     }
+
     default: {
       return;
     }
@@ -134,12 +155,15 @@ export const getExperienceLevelLabel = (experienceLevel: ExperienceLevel) => {
     case "beginner": {
       return "Beginner";
     }
+
     case "intermediate": {
       return "Intermediate";
     }
+
     case "advanced": {
       return "Advanced";
     }
+
     default: {
       return;
     }
@@ -153,12 +177,15 @@ export const getExperienceLevelDisclaimer = (
     case "beginner": {
       return "0-6 mo experience";
     }
+
     case "intermediate": {
       return "6 mo - 3 yrs experience";
     }
+
     case "advanced": {
       return "3+ yrs experience";
     }
+
     default: {
       return;
     }

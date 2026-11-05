@@ -9,6 +9,7 @@ import { irBlack } from "react-syntax-highlighter/dist/esm/styles/hljs";
 import { useCSSVariable } from "uniwind";
 
 type HighlighterStyleSheet = Record<string, TextStyle>;
+
 type ReactStyle = Record<string, CSSProperties>;
 
 interface RendererNode {

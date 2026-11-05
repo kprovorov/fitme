@@ -12,8 +12,9 @@ export default defineTool({
   async execute(changes, ctx) {
     const userId = requireConversationOwner(ctx.session.auth);
 
-    const profile = await asUser(userId, async (tx) =>
-      updateProfile(tx, userId, changes)
+    const profile = await asUser(
+      userId,
+      async (tx) => await updateProfile(tx, userId, changes)
     );
 
     return profile

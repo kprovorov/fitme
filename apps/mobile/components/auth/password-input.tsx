@@ -5,6 +5,7 @@ import { Pressable, View } from "react-native";
 import { SymbolImage } from "~/components/symbol-image";
 import { Input } from "~/components/ui/input";
 import type { InputProps } from "~/components/ui/input";
+
 export function PasswordInput({ className, ...props }: InputProps) {
   const { t } = useTranslation();
   const [visible, setVisible] = useState(false);

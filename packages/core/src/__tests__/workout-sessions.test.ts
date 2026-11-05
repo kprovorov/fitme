@@ -8,7 +8,7 @@ import {
 import type { TrackableWorkoutSession } from "../workout-sessions";
 
 const session = (
-  exercises: Array<number | null>[],
+  exercises: (number | null)[][],
   finished_at: string | null = null
 ): TrackableWorkoutSession => ({
   exercises: exercises.map((reps) => ({

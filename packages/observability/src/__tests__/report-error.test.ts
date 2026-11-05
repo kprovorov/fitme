@@ -2,7 +2,7 @@ import { afterEach, describe, expect, it, vi } from "vitest";
 
 const sentry = vi.hoisted(() => ({
   captureException: vi.fn(),
-  flush: vi.fn(async () => Promise.resolve(true)),
+  flush: vi.fn(async () => true),
 }));
 
 vi.mock<typeof import("@sentry/node")>(import("@sentry/node"), () => sentry);

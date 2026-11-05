@@ -517,9 +517,11 @@ const toAnswer = (change: PlannedChange): PlanUpdateChange => {
         sets: sets(change.sets),
       };
     }
+
     case "remove_exercise": {
       return { exercise_slug: change.exerciseSlug, kind: change.kind };
     }
+
     default: {
       return {
         exercise_slug: change.exerciseSlug,
@@ -677,7 +679,7 @@ export const previewPlanUpdate = async (
   tx: Transaction,
   userId: string,
   sessionId: string
-) => planUpdate(tx, userId, sessionId, { apply: false });
+) => await planUpdate(tx, userId, sessionId, { apply: false });
 
 /**
  * Applies the Plan Update of one of the User's Workout Sessions and answers
@@ -688,4 +690,4 @@ export const applyPlanUpdate = async (
   tx: Transaction,
   userId: string,
   sessionId: string
-) => planUpdate(tx, userId, sessionId, { apply: true });
+) => await planUpdate(tx, userId, sessionId, { apply: true });

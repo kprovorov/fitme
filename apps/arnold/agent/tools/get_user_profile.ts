@@ -10,7 +10,11 @@ export default defineTool({
     "Get the user's profile including age, gender, height, weight, and preferred measurement system",
   async execute(_input, ctx) {
     const userId = requireConversationOwner(ctx.session.auth);
-    const profile = await asUser(userId, async (tx) => getProfile(tx, userId));
+
+    const profile = await asUser(
+      userId,
+      async (tx) => await getProfile(tx, userId)
+    );
 
     return profile ?? { error: "Profile not found" };
   },

@@ -82,7 +82,7 @@ describe(asUser, () => {
 
   it("limits reads to the User's rows", async () => {
     await expect(
-      asUser(userA, async (tx) => profileOwners(tx, [userA, userB]))
+      asUser(userA, async (tx) => await profileOwners(tx, [userA, userB]))
     ).resolves.toEqual([userA]);
   });
 
@@ -99,7 +99,7 @@ describe(asUser, () => {
 
     expect(updated).toBe(1);
     await expect(
-      withService(async (tx) => profileOwners(tx, [writer]))
+      withService(async (tx) => await profileOwners(tx, [writer]))
     ).resolves.toEqual([writer]);
   });
 
@@ -125,7 +125,7 @@ describe(asUser, () => {
 
     expect(changed).toEqual([0, 0]);
     await expect(
-      withService(async (tx) => profileOwners(tx, [userB]))
+      withService(async (tx) => await profileOwners(tx, [userB]))
     ).resolves.toEqual([userB]);
   });
 
@@ -140,7 +140,7 @@ describe(asUser, () => {
     ).rejects.toThrow("abort");
 
     await expect(
-      withService(async (tx) => profileOwners(tx, [rolledBack]))
+      withService(async (tx) => await profileOwners(tx, [rolledBack]))
     ).resolves.toEqual([]);
   });
 
@@ -161,8 +161,8 @@ describe(withService, () => {
   });
 
   it("sees every User's rows", async () => {
-    const owners = await withService(async (tx) =>
-      profileOwners(tx, [userA, userB])
+    const owners = await withService(
+      async (tx) => await profileOwners(tx, [userA, userB])
     );
 
     expect(new Set(owners)).toEqual(new Set([userA, userB]));
@@ -202,7 +202,7 @@ describe("on the pooler", () => {
       Array.from({ length: CONCURRENT_TRANSACTIONS }, async (_, index) => {
         const userId = concurrentUsers[index % concurrentUsers.length];
 
-        return asUser(userId, async (tx) => {
+        return await asUser(userId, async (tx) => {
           const { rows } = await tx.execute<{
             after: string | null;
             before: string | null;

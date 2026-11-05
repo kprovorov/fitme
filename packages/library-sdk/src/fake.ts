@@ -240,20 +240,20 @@ export const createFakeLibrary = (
 
   const orFail = async <T>(compute: () => T): Promise<T> => {
     if (failure) {
-      return Promise.reject(failure);
+      throw failure;
     }
 
     try {
-      return Promise.resolve(compute());
+      return compute();
     } catch (error) {
-      return Promise.reject(error);
+      return await Promise.reject(error);
     }
   };
 
   return {
     // copies, as the client answers fresh objects on every call
     covers: async () =>
-      orFail(() =>
+      await orFail(() =>
         covers.map(({ id, image_url, muscle_groups }) => ({
           id,
           image_url,
@@ -266,10 +266,10 @@ export const createFakeLibrary = (
     },
 
     get: async (slug, { language } = {}) =>
-      orFail(() => inLanguage(language).full.get(slug) ?? null),
+      await orFail(() => inLanguage(language).full.get(slug) ?? null),
 
     list: async (params = {}) =>
-      orFail((): ExercisePage => {
+      await orFail((): ExercisePage => {
         validate(params);
 
         const groups =
@@ -299,7 +299,7 @@ export const createFakeLibrary = (
       }),
 
     lookup: async (slugs, { language } = {}) =>
-      orFail(() => {
+      await orFail(() => {
         const { bySlug } = inLanguage(language);
         const unique = [...new Set(slugs)];
 

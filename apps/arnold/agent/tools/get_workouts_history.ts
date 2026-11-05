@@ -13,8 +13,9 @@ export default defineTool({
   async execute({ limit }, ctx) {
     const userId = requireConversationOwner(ctx.session.auth);
 
-    const history = await asUser(userId, async (tx) =>
-      listWorkoutHistory(tx, { limit })
+    const history = await asUser(
+      userId,
+      async (tx) => await listWorkoutHistory(tx, { limit })
     );
 
     const named = await withExerciseDetails(

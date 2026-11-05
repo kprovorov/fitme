@@ -22,7 +22,7 @@ const clientWith = (
   });
 
 const patchProfile = async (api: ReturnType<typeof clientWith>) =>
-  api().PATCH("/v1/profile", { body: { measurement_system: "us" } });
+  await api().PATCH("/v1/profile", { body: { measurement_system: "us" } });
 
 /** The `ApiError` `promise` rejects with; anything else fails the test. */
 const rejection = async (promise: Promise<unknown>): Promise<ApiError> => {
@@ -122,7 +122,10 @@ describe(createPublicApi, () => {
 
   it("throws for a network failure, with no status or code", async () => {
     const cause = new TypeError("Network request failed");
-    const fetch = vi.fn<PublicApiFetch>(async () => Promise.reject(cause));
+
+    const fetch = vi.fn<PublicApiFetch>(async () => {
+      throw cause;
+    });
 
     const error = await rejection(patchProfile(clientWith(fetch)));
 
@@ -136,7 +139,9 @@ describe(createPublicApi, () => {
     const api = createPublicApi({
       baseUrl: () => BASE_URL,
       fetch,
-      token: async () => Promise.reject(new Error("offline")),
+      token: async () => {
+        throw new Error("offline");
+      },
     });
 
     const error = await rejection(patchProfile(api));
