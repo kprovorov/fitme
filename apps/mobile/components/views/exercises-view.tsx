@@ -186,6 +186,7 @@ const ExercisesView = ({
             fill={false}
             label={t("common.tryAgain")}
             onPress={retry}
+            size="lg"
             variant="secondary"
           />
         </VStack>
@@ -198,7 +199,12 @@ const ExercisesView = ({
           <Text className="text-center text-muted-foreground">
             {t("library.empty")}
           </Text>
-          <Button fill={false} label={t("library.showAll")} onPress={showAll} />
+          <Button
+            fill={false}
+            label={t("library.showAll")}
+            onPress={showAll}
+            size="lg"
+          />
         </VStack>
       );
     }

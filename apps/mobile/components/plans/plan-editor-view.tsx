@@ -438,6 +438,7 @@ export default function PlanEditorView({
           icon="plus"
           label={t("planEditor.addWorkout")}
           onPress={onAddWorkout}
+          size="lg"
           testID="add-draft-workout"
           variant="secondary"
         />

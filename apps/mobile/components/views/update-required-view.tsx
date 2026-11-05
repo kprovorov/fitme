@@ -41,6 +41,7 @@ export default function UpdateRequiredView() {
           iconPosition="trailing"
           label={t("updateRequired.update")}
           onPress={openStore}
+          size="lg"
         />
       ) : null}
     </VStack>

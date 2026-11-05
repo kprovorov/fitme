@@ -146,6 +146,7 @@ export default function WorkoutSessionSummaryView({
           iconPosition="trailing"
           label={t("workoutSummary.continue")}
           onPress={onContinue}
+          size="lg"
         />
       </VStack>
     </VStack>

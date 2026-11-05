@@ -160,6 +160,7 @@ const FinishWorkoutSuggestionDialog = ({
           isLoading={finishBusy}
           label={i18n.t("finishWorkout.suggestion.finish")}
           onPress={handleFinish}
+          size="lg"
           testID="finish-workout-suggestion-finish"
         />
         <Button
@@ -170,6 +171,7 @@ const FinishWorkoutSuggestionDialog = ({
           disabled={finishBusy}
           label={i18n.t("finishWorkout.suggestion.keepTraining")}
           onPress={handleKeepTraining}
+          size="lg"
           testID="finish-workout-suggestion-keep-training"
           variant="secondary"
         />

@@ -287,6 +287,7 @@ export default function WorkoutScreen() {
             fill={false}
             label={t("plannedWorkout.goBack")}
             onPress={goBack}
+            size="lg"
             variant="secondary"
           />
         </View>
@@ -307,6 +308,7 @@ export default function WorkoutScreen() {
             fill={false}
             label={t("common.tryAgain")}
             onPress={retry}
+            size="lg"
             variant="secondary"
           />
         </View>

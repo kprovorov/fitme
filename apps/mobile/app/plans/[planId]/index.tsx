@@ -134,6 +134,7 @@ export default function PlanScreen() {
             fill={false}
             label={t("plans.goBack")}
             onPress={goBack}
+            size="lg"
             variant="secondary"
           />
         </View>
@@ -152,6 +153,7 @@ export default function PlanScreen() {
             fill={false}
             label={t("common.tryAgain")}
             onPress={retry}
+            size="lg"
             variant="secondary"
           />
         </View>

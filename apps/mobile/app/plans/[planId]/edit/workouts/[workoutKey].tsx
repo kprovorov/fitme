@@ -80,6 +80,7 @@ export default function WorkoutEditorScreen() {
               fill={false}
               label={t("plannedWorkout.goBack")}
               onPress={goBack}
+              size="lg"
               variant="secondary"
             />
           </View>

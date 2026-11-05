@@ -46,6 +46,7 @@ export default function PlansListView() {
             fill={false}
             label={t("common.tryAgain")}
             onPress={retry}
+            size="lg"
             variant="secondary"
           />
         </View>
@@ -62,7 +63,7 @@ export default function PlansListView() {
     <VStack className="items-stretch">
       {renderPlans()}
       <Link asChild href="/planner">
-        <Button label={t("plans.createNew")} />
+        <Button label={t("plans.createNew")} size="lg" />
       </Link>
     </VStack>
   );

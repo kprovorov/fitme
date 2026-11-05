@@ -371,6 +371,7 @@ export default function PlannerScreen() {
                     pathname: "/(tabs)/arnold",
                   });
                 })}
+                size="lg"
               />
             </VStack>
           </VStack>
