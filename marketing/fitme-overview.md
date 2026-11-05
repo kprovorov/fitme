@@ -113,30 +113,23 @@ Arnold is a common first name, not a reference to anyone. No copy, imagery or ca
 
 ## Draft App Store copy
 
-**Name:** Fitme: AI Workout Planner
-**Subtitle (30):** AI Fitness Coach & Gym Tracker
+**Name:** Fitme: AI Workout Planner **Subtitle (30):** AI Fitness Coach & Gym Tracker
 
-**Promotional text (170):**
-Get a workout plan built for you, log every set, and chat with Arnold, an AI that knows your training and can update your plan in seconds.
+**Promotional text (170):** Get a workout plan built for you, log every set, and chat with Arnold, an AI that knows your training and can update your plan in seconds.
 
 **Description:**
 
 Fitme is your AI workout planner and workout log in one.
 
-TELL US YOUR GOAL, GET YOUR PLAN
-Pick your goal, experience, schedule and session length. Arnold, Fitme's AI, builds a multi-day plan with exercises, sets, reps and rest, tailored to you.
+TELL US YOUR GOAL, GET YOUR PLAN Pick your goal, experience, schedule and session length. Arnold, Fitme's AI, builds a multi-day plan with exercises, sets, reps and rest, tailored to you.
 
-TRACK EVERY SET
-Start today's workout, log reps and weight as you go, and keep the timer running. Fitme queues up your next workout automatically.
+TRACK EVERY SET Start today's workout, log reps and weight as you go, and keep the timer running. Fitme queues up your next workout automatically.
 
-SEE YOUR PROGRESS
-Every session ends with a summary: duration, volume, sets, the muscles you worked and a trophy for every new personal record. Each exercise keeps its full history.
+SEE YOUR PROGRESS Every session ends with a summary: duration, volume, sets, the muscles you worked and a trophy for every new personal record. Each exercise keeps its full history.
 
-LEARN EVERY MOVE
-77 exercises with 3D video demonstrations and step-by-step form instructions, organized by muscle group.
+LEARN EVERY MOVE 77 exercises with 3D video demonstrations and step-by-step form instructions, organized by muscle group.
 
-MEET ARNOLD, YOUR AI FITNESS COACH (FITME PRO)
-Ask Arnold anything about your training. It reads your plan and history and can swap exercises, add sets, adjust weights or write a whole new plan. Choose the AI model behind it: GPT or Claude.
+MEET ARNOLD, YOUR AI FITNESS COACH (FITME PRO) Ask Arnold anything about your training. It reads your plan and history and can swap exercises, add sets, adjust weights or write a whole new plan. Choose the AI model behind it: GPT or Claude.
 
 Metric and imperial units. Dark mode.
 
@@ -144,7 +137,7 @@ Metric and imperial units. Dark mode.
 
 ## Screenshots
 
-Ready-made iPhone simulator screenshots (raw and framed) are in [`screenshots/`](screenshots/README.md). Suggested App Store order:
+Ready-made iPhone simulator screenshots (raw, framed and App Store exports) in English, Ukrainian, Spanish and Catalan are in [`screenshots/`](screenshots/README.md). Suggested App Store order:
 
 1. `arnold-generated-plan.png`: "Tell Arnold your goal. Get a plan."
 2. `workout-log-set.png`: "Log every set."
