@@ -6,7 +6,7 @@ import { join } from "node:path";
  * Regenerates src/schema.ts and src/relations.ts from the running local stack
  * with `drizzle-kit pull` (see drizzle.config.ts), then normalizes them so a
  * rerun against the same migrations is byte-identical: declarations sorted by
- * name (pull lists tables in catalog order) and Biome formatting. The Database
+ * name (pull lists tables in catalog order) and Oxfmt formatting. The Database
  * Types workflow fails when the committed files differ from the output.
  */
 
@@ -59,9 +59,4 @@ try {
 } finally {
   rmSync(PULL_DIR, { force: true, recursive: true });
 }
-pnpmExec("biome", [
-  "check",
-  "--write",
-  "--unsafe",
-  ...GENERATED.map((file) => join("src", file)),
-]);
+pnpmExec("oxfmt", ["--write", ...GENERATED.map((file) => join("src", file))]);

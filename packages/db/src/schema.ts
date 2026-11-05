@@ -2,22 +2,22 @@
 
 import { sql } from "drizzle-orm";
 import {
-  bigint,
-  boolean,
-  check,
-  foreignKey,
-  index,
-  integer,
-  numeric,
-  pgPolicy,
-  pgSchema,
   pgTable,
-  smallint,
-  text,
-  timestamp,
-  unique,
-  uniqueIndex,
+  index,
+  pgPolicy,
   uuid,
+  timestamp,
+  text,
+  integer,
+  boolean,
+  unique,
+  numeric,
+  uniqueIndex,
+  foreignKey,
+  check,
+  pgSchema,
+  smallint,
+  bigint,
 } from "drizzle-orm/pg-core";
 
 export const privateSchema = pgSchema("private");
@@ -25,11 +25,11 @@ export const privateSchema = pgSchema("private");
 export const arnoldSessions = pgTable(
   "arnold_sessions",
   {
-    createdAt: timestamp("created_at", { mode: "string", withTimezone: true })
-      .defaultNow()
-      .notNull(),
     sessionId: text("session_id").primaryKey().notNull(),
     userId: text("user_id").notNull(),
+    createdAt: timestamp("created_at", { withTimezone: true, mode: "string" })
+      .defaultNow()
+      .notNull(),
   },
   (table) => [
     index("arnold_sessions_user_id_idx").using(
@@ -54,15 +54,15 @@ export const arnoldSessions = pgTable(
 export const personalRecordInitializations = pgTable(
   "personal_record_initializations",
   {
+    userId: text("user_id").primaryKey().notNull(),
     completedAt: timestamp("completed_at", {
-      mode: "string",
       withTimezone: true,
+      mode: "string",
     })
       .defaultNow()
       .notNull(),
-    userId: text("user_id").primaryKey().notNull(),
   },
-  (_table) => [
+  (table) => [
     pgPolicy("personal_record_initializations_backend_insert", {
       as: "permissive",
       for: "insert",
@@ -81,16 +81,16 @@ export const personalRecordInitializations = pgTable(
 export const personalRecords = pgTable(
   "personal_records",
   {
-    createdAt: timestamp("created_at", { mode: "string", withTimezone: true })
+    id: uuid().defaultRandom().primaryKey().notNull(),
+    userId: text("user_id").notNull(),
+    workoutSessionId: uuid("workout_session_id").notNull(),
+    exerciseSlug: text("exercise_slug").notNull(),
+    kind: text().notNull(),
+    weight: numeric({ precision: 8, scale: 2 }).notNull(),
+    reps: integer().notNull(),
+    createdAt: timestamp("created_at", { withTimezone: true, mode: "string" })
       .defaultNow()
       .notNull(),
-    exerciseSlug: text("exercise_slug").notNull(),
-    id: uuid().defaultRandom().primaryKey().notNull(),
-    kind: text().notNull(),
-    reps: integer().notNull(),
-    userId: text("user_id").notNull(),
-    weight: numeric({ precision: 8, scale: 2 }).notNull(),
-    workoutSessionId: uuid("workout_session_id").notNull(),
   },
   (table) => [
     index("personal_records_user_id_idx").using(
@@ -133,26 +133,26 @@ export const personalRecords = pgTable(
 export const plans = pgTable(
   "plans",
   {
-    createdAt: timestamp("created_at", {
-      mode: "string",
-      withTimezone: true,
-    }).defaultNow(),
-    deletedAt: timestamp("deleted_at", { mode: "string", withTimezone: true }),
-    description: text(),
-    experienceLevel: text("experience_level").default("intermediate").notNull(),
-    frequency: integer().notNull(),
-    goal: text().notNull(),
     id: uuid().defaultRandom().primaryKey().notNull(),
-    isActive: boolean("is_active").default(false).notNull(),
-    name: text(),
-    note: text(),
-    place: text().notNull(),
-    updatedAt: timestamp("updated_at", {
-      mode: "string",
+    createdAt: timestamp("created_at", {
       withTimezone: true,
+      mode: "string",
     }).defaultNow(),
+    updatedAt: timestamp("updated_at", {
+      withTimezone: true,
+      mode: "string",
+    }).defaultNow(),
+    deletedAt: timestamp("deleted_at", { withTimezone: true, mode: "string" }),
     userId: text("user_id").notNull(),
+    name: text(),
+    description: text(),
+    goal: text().notNull(),
+    place: text().notNull(),
+    frequency: integer().notNull(),
+    isActive: boolean("is_active").default(false).notNull(),
+    experienceLevel: text("experience_level").default("intermediate").notNull(),
     workoutDuration: integer("workout_duration").default(60).notNull(),
+    note: text(),
   },
   (table) => [
     index("plans_user_id_idx").using(
@@ -177,21 +177,21 @@ export const plans = pgTable(
 export const profiles = pgTable(
   "profiles",
   {
-    age: integer().notNull(),
-    createdAt: timestamp("created_at", {
-      mode: "string",
-      withTimezone: true,
-    }).defaultNow(),
-    gender: text().notNull(),
-    height: numeric({ precision: 8, scale: 2 }).notNull(),
     id: uuid().defaultRandom().primaryKey().notNull(),
-    measurementSystem: text("measurement_system").default("metric").notNull(),
-    updatedAt: timestamp("updated_at", {
-      mode: "string",
+    createdAt: timestamp("created_at", {
       withTimezone: true,
+      mode: "string",
+    }).defaultNow(),
+    updatedAt: timestamp("updated_at", {
+      withTimezone: true,
+      mode: "string",
     }).defaultNow(),
     userId: text("user_id").notNull(),
+    gender: text().notNull(),
+    age: integer().notNull(),
     weight: numeric({ precision: 8, scale: 2 }).notNull(),
+    height: numeric({ precision: 8, scale: 2 }).notNull(),
+    measurementSystem: text("measurement_system").default("metric").notNull(),
   },
   (table) => [
     unique("profiles_user_id_unique").on(table.userId),
@@ -206,22 +206,22 @@ export const profiles = pgTable(
 );
 
 export const retiredUserIdsInPrivate = privateSchema.table("retired_user_ids", {
+  userId: text("user_id").primaryKey().notNull(),
   rekeyedTo: text("rekeyed_to"),
-  retiredAt: timestamp("retired_at", { mode: "string", withTimezone: true })
+  retiredAt: timestamp("retired_at", { withTimezone: true, mode: "string" })
     .defaultNow()
     .notNull(),
-  userId: text("user_id").primaryKey().notNull(),
 });
 
 export const weeklyGoalChanges = pgTable(
   "weekly_goal_changes",
   {
     id: uuid().defaultRandom().primaryKey().notNull(),
-    recordedAt: timestamp("recorded_at", { mode: "string", withTimezone: true })
+    userId: text("user_id").notNull(),
+    recordedAt: timestamp("recorded_at", { withTimezone: true, mode: "string" })
       .defaultNow()
       .notNull(),
     target: smallint(),
-    userId: text("user_id").notNull(),
   },
   (table) => [
     index("weekly_goal_changes_user_id_recorded_at_idx").using(
@@ -252,24 +252,24 @@ export const weeklyGoalChanges = pgTable(
 export const workoutExerciseSets = pgTable(
   "workout_exercise_sets",
   {
-    createdAt: timestamp("created_at", {
-      mode: "string",
-      withTimezone: true,
-    }).defaultNow(),
     id: uuid().defaultRandom().primaryKey().notNull(),
+    createdAt: timestamp("created_at", {
+      withTimezone: true,
+      mode: "string",
+    }).defaultNow(),
+    updatedAt: timestamp("updated_at", {
+      withTimezone: true,
+      mode: "string",
+    }).defaultNow(),
+    workoutExerciseId: uuid("workout_exercise_id").notNull(),
     order: integer().notNull(),
     repsRecommended: integer("reps_recommended").notNull(),
-    requestKey: text("request_key"),
-    restRecommended: integer("rest_recommended").notNull(),
-    updatedAt: timestamp("updated_at", {
-      mode: "string",
-      withTimezone: true,
-    }).defaultNow(),
     weightRecommended: numeric("weight_recommended", {
       precision: 8,
       scale: 2,
     }).notNull(),
-    workoutExerciseId: uuid("workout_exercise_id").notNull(),
+    restRecommended: integer("rest_recommended").notNull(),
+    requestKey: text("request_key"),
   },
   (table) => [
     index("workout_exercise_sets_exercise_id_idx").using(
@@ -301,19 +301,19 @@ export const workoutExerciseSets = pgTable(
 export const workoutExercises = pgTable(
   "workout_exercises",
   {
-    createdAt: timestamp("created_at", {
-      mode: "string",
-      withTimezone: true,
-    }).defaultNow(),
-    exerciseSlug: text("exercise_slug").notNull(),
     id: uuid().defaultRandom().primaryKey().notNull(),
-    order: integer().notNull(),
-    requestKey: text("request_key"),
-    updatedAt: timestamp("updated_at", {
-      mode: "string",
+    createdAt: timestamp("created_at", {
       withTimezone: true,
+      mode: "string",
+    }).defaultNow(),
+    updatedAt: timestamp("updated_at", {
+      withTimezone: true,
+      mode: "string",
     }).defaultNow(),
     workoutId: uuid("workout_id").notNull(),
+    order: integer().notNull(),
+    requestKey: text("request_key"),
+    exerciseSlug: text("exercise_slug").notNull(),
   },
   (table) => [
     uniqueIndex("workout_exercises_request_key_key")
@@ -344,14 +344,14 @@ export const workoutExercises = pgTable(
 export const workoutSessionExerciseProgressInPrivate = privateSchema.table(
   "workout_session_exercise_progress",
   {
-    // You can use { mode: "bigint" } if numbers are exceeding js number limitations
-    completedSetCount: bigint("completed_set_count", { mode: "number" })
-      .default(0)
-      .notNull(),
     workoutSessionExerciseId: uuid("workout_session_exercise_id")
       .primaryKey()
       .notNull(),
     workoutSessionId: uuid("workout_session_id").notNull(),
+    // You can use { mode: "bigint" } if numbers are exceeding js number limitations
+    completedSetCount: bigint("completed_set_count", { mode: "number" })
+      .default(0)
+      .notNull(),
   },
   (table) => [
     index("workout_session_exercise_progress_session_idx").using(
@@ -378,26 +378,26 @@ export const workoutSessionExerciseProgressInPrivate = privateSchema.table(
 export const workoutSessionExerciseSets = pgTable(
   "workout_session_exercise_sets",
   {
-    createdAt: timestamp("created_at", {
-      mode: "string",
-      withTimezone: true,
-    }).defaultNow(),
     id: uuid().defaultRandom().primaryKey().notNull(),
-    loggedAt: timestamp("logged_at", { mode: "string", withTimezone: true }),
-    order: integer().notNull(),
-    repsCompleted: integer("reps_completed"),
-    repsRecommended: integer("reps_recommended"),
-    restRecommended: integer("rest_recommended"),
-    updatedAt: timestamp("updated_at", {
-      mode: "string",
+    createdAt: timestamp("created_at", {
       withTimezone: true,
+      mode: "string",
     }).defaultNow(),
-    weightCompleted: numeric("weight_completed", { precision: 8, scale: 2 }),
+    updatedAt: timestamp("updated_at", {
+      withTimezone: true,
+      mode: "string",
+    }).defaultNow(),
+    workoutSessionExerciseId: uuid("workout_session_exercise_id").notNull(),
+    order: integer().notNull(),
+    repsRecommended: integer("reps_recommended"),
     weightRecommended: numeric("weight_recommended", {
       precision: 10,
       scale: 2,
     }),
-    workoutSessionExerciseId: uuid("workout_session_exercise_id").notNull(),
+    restRecommended: integer("rest_recommended"),
+    repsCompleted: integer("reps_completed"),
+    weightCompleted: numeric("weight_completed", { precision: 8, scale: 2 }),
+    loggedAt: timestamp("logged_at", { withTimezone: true, mode: "string" }),
   },
   (table) => [
     index("workout_session_exercise_sets_exercise_id_idx").using(
@@ -425,18 +425,18 @@ export const workoutSessionExerciseSets = pgTable(
 export const workoutSessionExercises = pgTable(
   "workout_session_exercises",
   {
-    createdAt: timestamp("created_at", {
-      mode: "string",
-      withTimezone: true,
-    }).defaultNow(),
-    exerciseSlug: text("exercise_slug").notNull(),
     id: uuid().defaultRandom().primaryKey().notNull(),
-    order: integer().notNull(),
-    updatedAt: timestamp("updated_at", {
-      mode: "string",
+    createdAt: timestamp("created_at", {
       withTimezone: true,
+      mode: "string",
+    }).defaultNow(),
+    updatedAt: timestamp("updated_at", {
+      withTimezone: true,
+      mode: "string",
     }).defaultNow(),
     workoutSessionId: uuid("workout_session_id").notNull(),
+    order: integer().notNull(),
+    exerciseSlug: text("exercise_slug").notNull(),
   },
   (table) => [
     index("workout_session_exercises_session_id_idx").using(
@@ -463,20 +463,20 @@ export const workoutSessionExercises = pgTable(
 export const workoutSessionProgress = pgTable(
   "workout_session_progress",
   {
+    workoutSessionId: uuid("workout_session_id").primaryKey().notNull(),
+    userId: text("user_id").notNull(),
+    startedAt: timestamp("started_at", {
+      withTimezone: true,
+      mode: "string",
+    }).notNull(),
+    finishedAt: timestamp("finished_at", {
+      withTimezone: true,
+      mode: "string",
+    }),
     // You can use { mode: "bigint" } if numbers are exceeding js number limitations
     completedSetCount: bigint("completed_set_count", { mode: "number" })
       .default(0)
       .notNull(),
-    finishedAt: timestamp("finished_at", {
-      mode: "string",
-      withTimezone: true,
-    }),
-    startedAt: timestamp("started_at", {
-      mode: "string",
-      withTimezone: true,
-    }).notNull(),
-    userId: text("user_id").notNull(),
-    workoutSessionId: uuid("workout_session_id").primaryKey().notNull(),
   },
   (table) => [
     index("workout_session_progress_qualifying_idx")
@@ -508,30 +508,30 @@ export const workoutSessionProgress = pgTable(
 export const workoutSessions = pgTable(
   "workout_sessions",
   {
-    createdAt: timestamp("created_at", {
-      mode: "string",
-      withTimezone: true,
-    }).defaultNow(),
-    finishedAt: timestamp("finished_at", {
-      mode: "string",
-      withTimezone: true,
-    }),
     id: uuid().defaultRandom().primaryKey().notNull(),
-    planChangesAppliedAt: timestamp("plan_changes_applied_at", {
-      mode: "string",
+    createdAt: timestamp("created_at", {
       withTimezone: true,
-    }),
-    planId: uuid("plan_id"),
-    startedAt: timestamp("started_at", {
       mode: "string",
-      withTimezone: true,
-    }).notNull(),
-    updatedAt: timestamp("updated_at", {
-      mode: "string",
-      withTimezone: true,
     }).defaultNow(),
-    userId: text("user_id").notNull(),
+    updatedAt: timestamp("updated_at", {
+      withTimezone: true,
+      mode: "string",
+    }).defaultNow(),
     workoutId: uuid("workout_id"),
+    startedAt: timestamp("started_at", {
+      withTimezone: true,
+      mode: "string",
+    }).notNull(),
+    finishedAt: timestamp("finished_at", {
+      withTimezone: true,
+      mode: "string",
+    }),
+    userId: text("user_id").notNull(),
+    planId: uuid("plan_id"),
+    planChangesAppliedAt: timestamp("plan_changes_applied_at", {
+      withTimezone: true,
+      mode: "string",
+    }),
   },
   (table) => [
     uniqueIndex("workout_sessions_one_open_per_user_idx")
@@ -577,20 +577,20 @@ export const workoutSessions = pgTable(
 export const workouts = pgTable(
   "workouts",
   {
-    cover: text(),
-    createdAt: timestamp("created_at", {
-      mode: "string",
-      withTimezone: true,
-    }).defaultNow(),
-    description: text().notNull(),
     id: uuid().defaultRandom().primaryKey().notNull(),
-    name: text().notNull(),
-    order: integer().notNull(),
-    planId: uuid("plan_id").notNull(),
-    updatedAt: timestamp("updated_at", {
-      mode: "string",
+    createdAt: timestamp("created_at", {
       withTimezone: true,
+      mode: "string",
     }).defaultNow(),
+    updatedAt: timestamp("updated_at", {
+      withTimezone: true,
+      mode: "string",
+    }).defaultNow(),
+    planId: uuid("plan_id").notNull(),
+    order: integer().notNull(),
+    name: text().notNull(),
+    description: text().notNull(),
+    cover: text(),
   },
   (table) => [
     index("workouts_plan_id_idx").using(

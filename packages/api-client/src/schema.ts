@@ -338,6 +338,110 @@ export interface paths {
     patch?: never;
     trace?: never;
   };
+  "/v1/plans/active": {
+    parameters: {
+      query?: never;
+      header?: never;
+      path?: never;
+      cookie?: never;
+    };
+    /** Get the User's active Plan */
+    get: {
+      parameters: {
+        query?: never;
+        header?: never;
+        path?: never;
+        cookie?: never;
+      };
+      requestBody?: never;
+      responses: {
+        /** @description The User's active Plan in full, or `null` without one */
+        200: {
+          headers: {
+            [name: string]: unknown;
+          };
+          content: {
+            "application/json": {
+              /** @description The User's active Plan, `null` without one */
+              data: {
+                /**
+                 * @description ISO 8601
+                 * @example 2026-10-20T09:00:00+00:00
+                 */
+                created_at: string | null;
+                /** @example Three full-body days */
+                description: string | null;
+                /**
+                 * @description `beginner`, `intermediate` or `advanced`
+                 * @example intermediate
+                 */
+                experience_level: string;
+                /**
+                 * @description Workouts a week
+                 * @example 3
+                 */
+                frequency: number;
+                /** @example build_muscle */
+                goal: string;
+                /** Format: uuid */
+                id: string;
+                /** @description The User's active Plan; at most one is */
+                is_active: boolean;
+                /** @example Full body */
+                name: string | null;
+                note: string | null;
+                /**
+                 * @description `gym` or `home`
+                 * @example gym
+                 */
+                place: string;
+                /**
+                 * @description ISO 8601
+                 * @example 2026-10-21T09:00:00+00:00
+                 */
+                updated_at: string | null;
+                /**
+                 * @description Minutes
+                 * @example 60
+                 */
+                workout_duration: number;
+                weight_unit: components["schemas"]["WeightUnit"];
+                /** @description In rotation order: the first is up next */
+                workouts: components["schemas"]["PlanWorkout"][];
+              } | null;
+            };
+          };
+        };
+        /** @description No valid Clerk session token */
+        401: {
+          headers: {
+            [name: string]: unknown;
+          };
+          content: {
+            "application/json": components["schemas"]["Error"];
+          };
+        };
+        /** @description Too many requests from this User; retry after `Retry-After` */
+        429: {
+          headers: {
+            /** @description Seconds until the limit resets */
+            "Retry-After": string;
+            [name: string]: unknown;
+          };
+          content: {
+            "application/json": components["schemas"]["Error"];
+          };
+        };
+      };
+    };
+    put?: never;
+    post?: never;
+    delete?: never;
+    options?: never;
+    head?: never;
+    patch?: never;
+    trace?: never;
+  };
   "/v1/plans/{id}": {
     parameters: {
       query?: never;
@@ -642,87 +746,6 @@ export interface paths {
     };
     trace?: never;
   };
-  "/v1/plans/{id}/activate": {
-    parameters: {
-      query?: never;
-      header?: never;
-      path?: never;
-      cookie?: never;
-    };
-    get?: never;
-    put?: never;
-    /**
-     * Activate a Plan
-     * @description Makes the Plan the User's active one; every other Plan of the User goes inactive, so at most one is active. Activating the active Plan changes nothing.
-     */
-    post: {
-      parameters: {
-        query?: never;
-        header?: never;
-        path: {
-          id: string;
-        };
-        cookie?: never;
-      };
-      requestBody?: never;
-      responses: {
-        /** @description The activated Plan in full */
-        200: {
-          headers: {
-            [name: string]: unknown;
-          };
-          content: {
-            "application/json": {
-              data: components["schemas"]["Plan"];
-            };
-          };
-        };
-        /** @description `invalid_request`: the id isn't a uuid */
-        400: {
-          headers: {
-            [name: string]: unknown;
-          };
-          content: {
-            "application/json": components["schemas"]["Error"];
-          };
-        };
-        /** @description No valid Clerk session token */
-        401: {
-          headers: {
-            [name: string]: unknown;
-          };
-          content: {
-            "application/json": components["schemas"]["Error"];
-          };
-        };
-        /** @description `not_found`: no such Plan, it was deleted, or it isn't the User's */
-        404: {
-          headers: {
-            [name: string]: unknown;
-          };
-          content: {
-            "application/json": components["schemas"]["Error"];
-          };
-        };
-        /** @description Too many requests from this User; retry after `Retry-After` */
-        429: {
-          headers: {
-            /** @description Seconds until the limit resets */
-            "Retry-After": string;
-            [name: string]: unknown;
-          };
-          content: {
-            "application/json": components["schemas"]["Error"];
-          };
-        };
-      };
-    };
-    delete?: never;
-    options?: never;
-    head?: never;
-    patch?: never;
-    trace?: never;
-  };
   "/v1/plans/{id}/workouts": {
     parameters: {
       query?: never;
@@ -826,82 +849,61 @@ export interface paths {
     patch?: never;
     trace?: never;
   };
-  "/v1/plans/active": {
+  "/v1/plans/{id}/activate": {
     parameters: {
       query?: never;
       header?: never;
       path?: never;
       cookie?: never;
     };
-    /** Get the User's active Plan */
-    get: {
+    get?: never;
+    put?: never;
+    /**
+     * Activate a Plan
+     * @description Makes the Plan the User's active one; every other Plan of the User goes inactive, so at most one is active. Activating the active Plan changes nothing.
+     */
+    post: {
       parameters: {
         query?: never;
         header?: never;
-        path?: never;
+        path: {
+          id: string;
+        };
         cookie?: never;
       };
       requestBody?: never;
       responses: {
-        /** @description The User's active Plan in full, or `null` without one */
+        /** @description The activated Plan in full */
         200: {
           headers: {
             [name: string]: unknown;
           };
           content: {
             "application/json": {
-              /** @description The User's active Plan, `null` without one */
-              data: {
-                /**
-                 * @description ISO 8601
-                 * @example 2026-10-20T09:00:00+00:00
-                 */
-                created_at: string | null;
-                /** @example Three full-body days */
-                description: string | null;
-                /**
-                 * @description `beginner`, `intermediate` or `advanced`
-                 * @example intermediate
-                 */
-                experience_level: string;
-                /**
-                 * @description Workouts a week
-                 * @example 3
-                 */
-                frequency: number;
-                /** @example build_muscle */
-                goal: string;
-                /** Format: uuid */
-                id: string;
-                /** @description The User's active Plan; at most one is */
-                is_active: boolean;
-                /** @example Full body */
-                name: string | null;
-                note: string | null;
-                /**
-                 * @description `gym` or `home`
-                 * @example gym
-                 */
-                place: string;
-                /**
-                 * @description ISO 8601
-                 * @example 2026-10-21T09:00:00+00:00
-                 */
-                updated_at: string | null;
-                /**
-                 * @description Minutes
-                 * @example 60
-                 */
-                workout_duration: number;
-                weight_unit: components["schemas"]["WeightUnit"];
-                /** @description In rotation order: the first is up next */
-                workouts: components["schemas"]["PlanWorkout"][];
-              } | null;
+              data: components["schemas"]["Plan"];
             };
+          };
+        };
+        /** @description `invalid_request`: the id isn't a uuid */
+        400: {
+          headers: {
+            [name: string]: unknown;
+          };
+          content: {
+            "application/json": components["schemas"]["Error"];
           };
         };
         /** @description No valid Clerk session token */
         401: {
+          headers: {
+            [name: string]: unknown;
+          };
+          content: {
+            "application/json": components["schemas"]["Error"];
+          };
+        };
+        /** @description `not_found`: no such Plan, it was deleted, or it isn't the User's */
+        404: {
           headers: {
             [name: string]: unknown;
           };
@@ -922,8 +924,6 @@ export interface paths {
         };
       };
     };
-    put?: never;
-    post?: never;
     delete?: never;
     options?: never;
     head?: never;
@@ -1818,6 +1818,136 @@ export interface paths {
     };
     trace?: never;
   };
+  "/v1/workout-sessions/{id}": {
+    parameters: {
+      query?: never;
+      header?: never;
+      path?: never;
+      cookie?: never;
+    };
+    /** Get one of the User's Workout Sessions */
+    get: {
+      parameters: {
+        query?: never;
+        header?: never;
+        path: {
+          id: string;
+        };
+        cookie?: never;
+      };
+      requestBody?: never;
+      responses: {
+        /** @description The Workout Session, its Exercises and sets in order */
+        200: {
+          headers: {
+            [name: string]: unknown;
+          };
+          content: {
+            "application/json": {
+              data: components["schemas"]["WorkoutSession"];
+            };
+          };
+        };
+        /** @description `invalid_request`: the input fails its schema */
+        400: {
+          headers: {
+            [name: string]: unknown;
+          };
+          content: {
+            "application/json": components["schemas"]["Error"];
+          };
+        };
+        /** @description No valid Clerk session token */
+        401: {
+          headers: {
+            [name: string]: unknown;
+          };
+          content: {
+            "application/json": components["schemas"]["Error"];
+          };
+        };
+        /** @description `not_found`: the User has no Workout Session with this id */
+        404: {
+          headers: {
+            [name: string]: unknown;
+          };
+          content: {
+            "application/json": components["schemas"]["Error"];
+          };
+        };
+        /** @description Too many requests from this User; retry after `Retry-After` */
+        429: {
+          headers: {
+            /** @description Seconds until the limit resets */
+            "Retry-After": string;
+            [name: string]: unknown;
+          };
+          content: {
+            "application/json": components["schemas"]["Error"];
+          };
+        };
+      };
+    };
+    put?: never;
+    post?: never;
+    /**
+     * Delete a Workout Session
+     * @description Deletes the Workout Session with its Exercises and logged sets, for good. Idempotent: an id the User has no Workout Session with (already deleted, never existed, or another User's, which is left untouched) answers 204 too.
+     */
+    delete: {
+      parameters: {
+        query?: never;
+        header?: never;
+        path: {
+          id: string;
+        };
+        cookie?: never;
+      };
+      requestBody?: never;
+      responses: {
+        /** @description The User has no Workout Session with this id now */
+        204: {
+          headers: {
+            [name: string]: unknown;
+          };
+          content?: never;
+        };
+        /** @description `invalid_request`: the input fails its schema */
+        400: {
+          headers: {
+            [name: string]: unknown;
+          };
+          content: {
+            "application/json": components["schemas"]["Error"];
+          };
+        };
+        /** @description No valid Clerk session token */
+        401: {
+          headers: {
+            [name: string]: unknown;
+          };
+          content: {
+            "application/json": components["schemas"]["Error"];
+          };
+        };
+        /** @description Too many requests from this User; retry after `Retry-After` */
+        429: {
+          headers: {
+            /** @description Seconds until the limit resets */
+            "Retry-After": string;
+            [name: string]: unknown;
+          };
+          content: {
+            "application/json": components["schemas"]["Error"];
+          };
+        };
+      };
+    };
+    options?: never;
+    head?: never;
+    patch?: never;
+    trace?: never;
+  };
   "/v1/workout-sessions": {
     parameters: {
       query?: never;
@@ -1972,250 +2102,6 @@ export interface paths {
           headers: {
             /** @description Seconds until the limit resets */
             "Retry-After": string;
-            [name: string]: unknown;
-          };
-          content: {
-            "application/json": components["schemas"]["Error"];
-          };
-        };
-      };
-    };
-    delete?: never;
-    options?: never;
-    head?: never;
-    patch?: never;
-    trace?: never;
-  };
-  "/v1/workout-sessions/{id}": {
-    parameters: {
-      query?: never;
-      header?: never;
-      path?: never;
-      cookie?: never;
-    };
-    /** Get one of the User's Workout Sessions */
-    get: {
-      parameters: {
-        query?: never;
-        header?: never;
-        path: {
-          id: string;
-        };
-        cookie?: never;
-      };
-      requestBody?: never;
-      responses: {
-        /** @description The Workout Session, its Exercises and sets in order */
-        200: {
-          headers: {
-            [name: string]: unknown;
-          };
-          content: {
-            "application/json": {
-              data: components["schemas"]["WorkoutSession"];
-            };
-          };
-        };
-        /** @description `invalid_request`: the input fails its schema */
-        400: {
-          headers: {
-            [name: string]: unknown;
-          };
-          content: {
-            "application/json": components["schemas"]["Error"];
-          };
-        };
-        /** @description No valid Clerk session token */
-        401: {
-          headers: {
-            [name: string]: unknown;
-          };
-          content: {
-            "application/json": components["schemas"]["Error"];
-          };
-        };
-        /** @description `not_found`: the User has no Workout Session with this id */
-        404: {
-          headers: {
-            [name: string]: unknown;
-          };
-          content: {
-            "application/json": components["schemas"]["Error"];
-          };
-        };
-        /** @description Too many requests from this User; retry after `Retry-After` */
-        429: {
-          headers: {
-            /** @description Seconds until the limit resets */
-            "Retry-After": string;
-            [name: string]: unknown;
-          };
-          content: {
-            "application/json": components["schemas"]["Error"];
-          };
-        };
-      };
-    };
-    put?: never;
-    post?: never;
-    /**
-     * Delete a Workout Session
-     * @description Deletes the Workout Session with its Exercises and logged sets, for good. Idempotent: an id the User has no Workout Session with (already deleted, never existed, or another User's, which is left untouched) answers 204 too.
-     */
-    delete: {
-      parameters: {
-        query?: never;
-        header?: never;
-        path: {
-          id: string;
-        };
-        cookie?: never;
-      };
-      requestBody?: never;
-      responses: {
-        /** @description The User has no Workout Session with this id now */
-        204: {
-          headers: {
-            [name: string]: unknown;
-          };
-          content?: never;
-        };
-        /** @description `invalid_request`: the input fails its schema */
-        400: {
-          headers: {
-            [name: string]: unknown;
-          };
-          content: {
-            "application/json": components["schemas"]["Error"];
-          };
-        };
-        /** @description No valid Clerk session token */
-        401: {
-          headers: {
-            [name: string]: unknown;
-          };
-          content: {
-            "application/json": components["schemas"]["Error"];
-          };
-        };
-        /** @description Too many requests from this User; retry after `Retry-After` */
-        429: {
-          headers: {
-            /** @description Seconds until the limit resets */
-            "Retry-After": string;
-            [name: string]: unknown;
-          };
-          content: {
-            "application/json": components["schemas"]["Error"];
-          };
-        };
-      };
-    };
-    options?: never;
-    head?: never;
-    patch?: never;
-    trace?: never;
-  };
-  "/v1/workout-sessions/{id}/exercises": {
-    parameters: {
-      query?: never;
-      header?: never;
-      path?: never;
-      cookie?: never;
-    };
-    get?: never;
-    put?: never;
-    /**
-     * Add an Exercise to a Workout Session
-     * @description Appends an Exercise, with no sets, after the last Exercise of an open Workout Session. The Exercise slug is checked against the Library first. A finished Workout Session can't change. Not idempotent: a retried request can add the Exercise twice.
-     */
-    post: {
-      parameters: {
-        query?: never;
-        header?: never;
-        path: {
-          id: string;
-        };
-        cookie?: never;
-      };
-      requestBody: {
-        content: {
-          "application/json": components["schemas"]["AddWorkoutSessionExercise"];
-        };
-      };
-      responses: {
-        /** @description The added Workout Session Exercise, with its sets (none) */
-        201: {
-          headers: {
-            [name: string]: unknown;
-          };
-          content: {
-            "application/json": {
-              data: components["schemas"]["WorkoutSessionExercise"] & {
-                weight_unit: components["schemas"]["WeightUnit"];
-              };
-            };
-          };
-        };
-        /** @description `invalid_request`: the id isn't a uuid or the body isn't valid; `unknown_exercises`: the Library has no Exercise for the slug the message names. Nothing was written */
-        400: {
-          headers: {
-            [name: string]: unknown;
-          };
-          content: {
-            "application/json": components["schemas"]["Error"];
-          };
-        };
-        /** @description No valid Clerk session token */
-        401: {
-          headers: {
-            [name: string]: unknown;
-          };
-          content: {
-            "application/json": components["schemas"]["Error"];
-          };
-        };
-        /** @description `not_found`: the User has no Workout Session with this id */
-        404: {
-          headers: {
-            [name: string]: unknown;
-          };
-          content: {
-            "application/json": components["schemas"]["Error"];
-          };
-        };
-        /** @description `session_finished`: the Workout Session is finished; nothing was written */
-        409: {
-          headers: {
-            [name: string]: unknown;
-          };
-          content: {
-            "application/json": components["schemas"]["Error"];
-          };
-        };
-        /** @description The body isn't `application/json` */
-        415: {
-          headers: {
-            [name: string]: unknown;
-          };
-          content: {
-            "application/json": components["schemas"]["Error"];
-          };
-        };
-        /** @description Too many requests from this User; retry after `Retry-After` */
-        429: {
-          headers: {
-            /** @description Seconds until the limit resets */
-            "Retry-After": string;
-            [name: string]: unknown;
-          };
-          content: {
-            "application/json": components["schemas"]["Error"];
-          };
-        };
-        /** @description `library_unavailable`: the Exercise slug couldn't be checked; nothing was written, try again */
-        503: {
-          headers: {
             [name: string]: unknown;
           };
           content: {
@@ -2459,14 +2345,123 @@ export interface paths {
     patch?: never;
     trace?: never;
   };
+  "/v1/workout-sessions/{id}/exercises": {
+    parameters: {
+      query?: never;
+      header?: never;
+      path?: never;
+      cookie?: never;
+    };
+    get?: never;
+    put?: never;
+    /**
+     * Add an Exercise to a Workout Session
+     * @description Appends an Exercise, with no sets, after the last Exercise of an open Workout Session. The Exercise slug is checked against the Library first. A finished Workout Session can't change. Not idempotent: a retried request can add the Exercise twice.
+     */
+    post: {
+      parameters: {
+        query?: never;
+        header?: never;
+        path: {
+          id: string;
+        };
+        cookie?: never;
+      };
+      requestBody: {
+        content: {
+          "application/json": components["schemas"]["AddWorkoutSessionExercise"];
+        };
+      };
+      responses: {
+        /** @description The added Workout Session Exercise, with its sets (none) */
+        201: {
+          headers: {
+            [name: string]: unknown;
+          };
+          content: {
+            "application/json": {
+              data: components["schemas"]["WorkoutSessionExercise"] & {
+                weight_unit: components["schemas"]["WeightUnit"];
+              };
+            };
+          };
+        };
+        /** @description `invalid_request`: the id isn't a uuid or the body isn't valid; `unknown_exercises`: the Library has no Exercise for the slug the message names. Nothing was written */
+        400: {
+          headers: {
+            [name: string]: unknown;
+          };
+          content: {
+            "application/json": components["schemas"]["Error"];
+          };
+        };
+        /** @description No valid Clerk session token */
+        401: {
+          headers: {
+            [name: string]: unknown;
+          };
+          content: {
+            "application/json": components["schemas"]["Error"];
+          };
+        };
+        /** @description `not_found`: the User has no Workout Session with this id */
+        404: {
+          headers: {
+            [name: string]: unknown;
+          };
+          content: {
+            "application/json": components["schemas"]["Error"];
+          };
+        };
+        /** @description `session_finished`: the Workout Session is finished; nothing was written */
+        409: {
+          headers: {
+            [name: string]: unknown;
+          };
+          content: {
+            "application/json": components["schemas"]["Error"];
+          };
+        };
+        /** @description The body isn't `application/json` */
+        415: {
+          headers: {
+            [name: string]: unknown;
+          };
+          content: {
+            "application/json": components["schemas"]["Error"];
+          };
+        };
+        /** @description Too many requests from this User; retry after `Retry-After` */
+        429: {
+          headers: {
+            /** @description Seconds until the limit resets */
+            "Retry-After": string;
+            [name: string]: unknown;
+          };
+          content: {
+            "application/json": components["schemas"]["Error"];
+          };
+        };
+        /** @description `library_unavailable`: the Exercise slug couldn't be checked; nothing was written, try again */
+        503: {
+          headers: {
+            [name: string]: unknown;
+          };
+          content: {
+            "application/json": components["schemas"]["Error"];
+          };
+        };
+      };
+    };
+    delete?: never;
+    options?: never;
+    head?: never;
+    patch?: never;
+    trace?: never;
+  };
 }
 export type webhooks = Record<string, never>;
 export interface components {
-  headers: never;
-  parameters: never;
-  pathItems: never;
-  requestBodies: never;
-  responses: never;
   schemas: {
     ArnoldModels: {
       data: {
@@ -3317,6 +3312,11 @@ export interface components {
       weight: number;
     };
   };
+  responses: never;
+  parameters: never;
+  requestBodies: never;
+  headers: never;
+  pathItems: never;
 }
 export type $defs = Record<string, never>;
 export type operations = Record<string, never>;

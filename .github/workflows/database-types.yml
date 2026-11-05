@@ -14,6 +14,7 @@ on:
       - "packages/db/integration/local-database-url.ts"
       - "packages/db/package.json"
       - "pnpm-lock.yaml"
+      - "oxfmt.config.mts"
       - ".github/workflows/database-types.yml"
 
 # A new push cancels the pull request's run still in progress.
