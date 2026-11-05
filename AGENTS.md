@@ -98,18 +98,7 @@ A jest "worker process has failed to exit" or "asynchronous operations that were
 
 ### apps/mobile — Expo app
 
-The App Store listing is public text in `apps/mobile/store.config.json` (`en-US`
-and `uk`), referenced by `submit.production.ios.metadataPath` in `eas.json`.
-Change it through PRs; update both locales' release notes for each release.
-Release CI pushes it to the tag's draft version in its own `listing` job, after
-the build job (EAS build and auto-submit) has succeeded, using the existing EAS
-App Store Connect submission key, with the tag's App Store Screenshot sets
-(`marketing/screenshots/app-store/`) staged into it first by
-`node scripts/app-store-screenshots.mjs prepare` in the runner's temp
-directory; re-running that job alone retries the push without a new build. To fix a pending release's screenshots without a build, run the Update App Store Screenshots workflow (`update-app-store-screenshots.yml`) by hand from `main`: it pushes `main`'s Screenshot sets with the latest tag's own listing text to that version's draft, only while it's still editable. Never push
-metadata from PRs. `eas metadata:pull` also exports private review details and
-assets: retain only public listing text before staging. See README's App Store
-listing section for commands, credentials and draft verification.
+The App Store listing is public text in `apps/mobile/store.config.json` (`en-US` and `uk`), referenced by `submit.production.ios.metadataPath` in `eas.json`. Change it through PRs; update both locales' release notes for each release. Release CI pushes it to the tag's draft version in its own `listing` job, after the build job (EAS build and auto-submit) has succeeded, using the existing EAS App Store Connect submission key, with the tag's App Store Screenshot sets (`marketing/screenshots/app-store/`) staged into it first by `node scripts/app-store-screenshots.mjs prepare` in the runner's temp directory; re-running that job alone retries the push without a new build. To fix a pending release's screenshots without a build, run the Update App Store Screenshots workflow (`update-app-store-screenshots.yml`) by hand from `main`: it pushes `main`'s Screenshot sets with the latest tag's own listing text to that version's draft, only while it's still editable. Never push metadata from PRs. `eas metadata:pull` also exports private review details and assets: retain only public listing text before staging. See README's App Store listing section for commands, credentials and draft verification.
 
 React Native / Expo app using **file-based routing** via `expo-router`:
 
@@ -687,11 +676,11 @@ This project uses **Ultracite**, a zero-config preset that enforces strict code 
 
 ## Quick Reference
 
-- **Format code**: `npm exec -- ultracite fix`
-- **Check for issues**: `npm exec -- ultracite check`
-- **Diagnose setup**: `npm exec -- ultracite doctor`
+- **Format code**: `pnpm exec ultracite fix`
+- **Check for issues**: `pnpm exec ultracite check`
+- **Diagnose setup**: `pnpm exec ultracite doctor`
 
-Biome (the underlying engine) provides robust linting and formatting. Most issues are automatically fixable.
+Oxlint + Oxfmt (the underlying engine) provides robust linting and formatting. Most issues are automatically fixable.
 
 ---
 
@@ -752,10 +741,11 @@ Write code that is **accessible, performant, type-safe, and maintainable**. Focu
 - Use early returns to reduce nesting
 - Prefer simple conditionals over nested ternary operators
 - Group related code together and separate concerns
+- Avoid import cycles; move shared code into a module both sides import
 
 ### Security
 
-- Add `rel="noopener"` when using `target="_blank"` on links
+- Add `rel="noopener noreferrer"` when using `target="_blank"` on links
 - Avoid `dangerouslySetInnerHTML` unless absolutely necessary
 - Don't use `eval()` or assign directly to `document.cookie`
 - Validate and sanitize user input
@@ -771,14 +761,17 @@ Write code that is **accessible, performant, type-safe, and maintainable**. Focu
 ### Framework-Specific Guidance
 
 **Next.js:**
+
 - Use Next.js `<Image>` component for images
 - Use `next/head` or App Router metadata API for head elements
 - Use Server Components for async data fetching instead of async Client Components
 
 **React 19+:**
+
 - Use ref as a prop instead of `React.forwardRef`
 
 **Solid/Svelte/Vue/Qwik:**
+
 - Use `class` and `for` attributes (not `className` or `htmlFor`)
 
 ---
@@ -790,11 +783,11 @@ Write code that is **accessible, performant, type-safe, and maintainable**. Focu
 - Don't use `.only` or `.skip` in committed code
 - Keep test suites reasonably flat - avoid excessive `describe` nesting
 
-## When Biome Can't Help
+## When Oxlint + Oxfmt Can't Help
 
-Biome's linter will catch most issues automatically. Focus your attention on:
+Oxlint + Oxfmt will catch most mechanical issues automatically. Focus your attention on:
 
-1. **Business logic correctness** - Biome can't validate your algorithms
+1. **Business logic correctness** - Oxlint + Oxfmt can't validate your algorithms
 2. **Meaningful naming** - Use descriptive names for functions, variables, and types
 3. **Architecture decisions** - Component structure, data flow, and API design
 4. **Edge cases** - Handle boundary conditions and error states
@@ -803,4 +796,4 @@ Biome's linter will catch most issues automatically. Focus your attention on:
 
 ---
 
-Most formatting and common issues are automatically fixed by Biome. Run `npm exec -- ultracite fix` before committing to ensure compliance.
+Most formatting and common issues are automatically fixed by Oxlint + Oxfmt. Run `pnpm exec ultracite fix` before committing to ensure compliance.
