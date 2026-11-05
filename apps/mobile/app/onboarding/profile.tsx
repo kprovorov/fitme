@@ -136,6 +136,7 @@ export default function ProfileScreen() {
           <Button
             label={t("common.tryAgain")}
             onPress={handleRetry}
+            size="lg"
             variant="secondary"
           />
         </ScrollView>

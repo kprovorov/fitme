@@ -44,12 +44,14 @@ export default function WelcomeScreen() {
                 icon="arrow.right"
                 iconPosition="trailing"
                 label={t("onboarding.welcome.getStarted")}
+                size="lg"
               />
             </Link>
             <Button
               className="w-full"
               label={t("onboarding.welcome.skip")}
               onPress={handleSkip}
+              size="lg"
               variant="ghost"
             />
           </VStack>

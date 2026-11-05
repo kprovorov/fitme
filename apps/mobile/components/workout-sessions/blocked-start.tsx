@@ -26,7 +26,7 @@ interface BlockedStartProps {
 export function BlockedStart({
   blockedBy,
   onContinue,
-  size = "default",
+  size = "lg",
   variant = "default",
 }: BlockedStartProps) {
   const { t } = useTranslation();

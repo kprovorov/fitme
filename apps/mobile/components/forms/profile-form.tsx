@@ -447,6 +447,7 @@ export default function ProfileForm({
           isLoading={isFormSubmitting}
           label={submitLabel}
           onPress={form.handleSubmit(onSubmit)}
+          size="lg"
           testID={submitTestID}
         />
       </VStack>

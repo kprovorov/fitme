@@ -14,7 +14,7 @@ export default function NotFoundScreen() {
         {t("notFound.description")}
       </Text>
       <Link asChild href="/">
-        <Button label={t("notFound.goHome")} />
+        <Button label={t("notFound.goHome")} size="lg" />
       </Link>
     </VStack>
   );

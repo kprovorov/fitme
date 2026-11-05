@@ -269,6 +269,7 @@ export default function MeasurementSystemScreen() {
           <Button
             label={t("common.tryAgain")}
             onPress={handleRetry}
+            size="lg"
             variant="secondary"
           />
         </VStack>
