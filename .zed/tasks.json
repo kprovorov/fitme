@@ -97,6 +97,8 @@
     "label": "Set up new worktree",
     "command": "./scripts/setup.sh",
     "cwd": "$ZED_WORKTREE_ROOT",
-    "hooks": ["create_worktree"]
+    "hooks": ["create_worktree"],
+    "reveal": "no_focus",
+    "hide": "on_success"
   }
 ]
