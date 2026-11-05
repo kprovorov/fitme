@@ -3,18 +3,17 @@
 import { relations } from "drizzle-orm/relations";
 
 import {
-  workoutExercises,
-  workoutExerciseSets,
-  workouts,
-  plans,
-  workoutSessionExercises,
-  workoutSessionExerciseSets,
-  workoutSessions,
   personalRecords,
-  workoutSessionProgress,
+  plans,
+  workoutExerciseSets,
+  workoutExercises,
   workoutSessionExerciseProgressInPrivate,
+  workoutSessionExerciseSets,
+  workoutSessionExercises,
+  workoutSessionProgress,
+  workoutSessions,
+  workouts,
 } from "./schema";
-
 export const personalRecordsRelations = relations(
   personalRecords,
   ({ one }) => ({
@@ -24,12 +23,10 @@ export const personalRecordsRelations = relations(
     }),
   })
 );
-
 export const plansRelations = relations(plans, ({ many }) => ({
-  workouts: many(workouts),
   workoutSessions: many(workoutSessions),
+  workouts: many(workouts),
 }));
-
 export const workoutExerciseSetsRelations = relations(
   workoutExerciseSets,
   ({ one }) => ({
@@ -39,34 +36,31 @@ export const workoutExerciseSetsRelations = relations(
     }),
   })
 );
-
 export const workoutExercisesRelations = relations(
   workoutExercises,
   ({ one, many }) => ({
-    workoutExerciseSets: many(workoutExerciseSets),
     workout: one(workouts, {
       fields: [workoutExercises.workoutId],
       references: [workouts.id],
     }),
+    workoutExerciseSets: many(workoutExerciseSets),
   })
 );
-
 export const workoutSessionExerciseProgressInPrivateRelations = relations(
   workoutSessionExerciseProgressInPrivate,
   ({ one }) => ({
+    workoutSession: one(workoutSessions, {
+      fields: [workoutSessionExerciseProgressInPrivate.workoutSessionId],
+      references: [workoutSessions.id],
+    }),
     workoutSessionExercise: one(workoutSessionExercises, {
       fields: [
         workoutSessionExerciseProgressInPrivate.workoutSessionExerciseId,
       ],
       references: [workoutSessionExercises.id],
     }),
-    workoutSession: one(workoutSessions, {
-      fields: [workoutSessionExerciseProgressInPrivate.workoutSessionId],
-      references: [workoutSessions.id],
-    }),
   })
 );
-
 export const workoutSessionExerciseSetsRelations = relations(
   workoutSessionExerciseSets,
   ({ one }) => ({
@@ -76,11 +70,9 @@ export const workoutSessionExerciseSetsRelations = relations(
     }),
   })
 );
-
 export const workoutSessionExercisesRelations = relations(
   workoutSessionExercises,
   ({ one, many }) => ({
-    workoutSessionExerciseSets: many(workoutSessionExerciseSets),
     workoutSession: one(workoutSessions, {
       fields: [workoutSessionExercises.workoutSessionId],
       references: [workoutSessions.id],
@@ -88,9 +80,9 @@ export const workoutSessionExercisesRelations = relations(
     workoutSessionExerciseProgressInPrivates: many(
       workoutSessionExerciseProgressInPrivate
     ),
+    workoutSessionExerciseSets: many(workoutSessionExerciseSets),
   })
 );
-
 export const workoutSessionProgressRelations = relations(
   workoutSessionProgress,
   ({ one }) => ({
@@ -100,11 +92,10 @@ export const workoutSessionProgressRelations = relations(
     }),
   })
 );
-
 export const workoutSessionsRelations = relations(
   workoutSessions,
   ({ one, many }) => ({
-    workoutSessionExercises: many(workoutSessionExercises),
+    personalRecords: many(personalRecords),
     plan: one(plans, {
       fields: [workoutSessions.planId],
       references: [plans.id],
@@ -113,19 +104,18 @@ export const workoutSessionsRelations = relations(
       fields: [workoutSessions.workoutId],
       references: [workouts.id],
     }),
-    personalRecords: many(personalRecords),
-    workoutSessionProgresses: many(workoutSessionProgress),
     workoutSessionExerciseProgressInPrivates: many(
       workoutSessionExerciseProgressInPrivate
     ),
+    workoutSessionExercises: many(workoutSessionExercises),
+    workoutSessionProgresses: many(workoutSessionProgress),
   })
 );
-
 export const workoutsRelations = relations(workouts, ({ one, many }) => ({
-  workoutExercises: many(workoutExercises),
   plan: one(plans, {
     fields: [workouts.planId],
     references: [plans.id],
   }),
+  workoutExercises: many(workoutExercises),
   workoutSessions: many(workoutSessions),
 }));
