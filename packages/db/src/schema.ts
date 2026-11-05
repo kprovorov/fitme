@@ -19,9 +19,7 @@ import {
   uniqueIndex,
   uuid,
 } from "drizzle-orm/pg-core";
-
 export const privateSchema = pgSchema("private");
-
 export const arnoldSessions = pgTable(
   "arnold_sessions",
   {
@@ -50,7 +48,6 @@ export const arnoldSessions = pgTable(
     }),
   ]
 );
-
 export const personalRecordInitializations = pgTable(
   "personal_record_initializations",
   {
@@ -62,7 +59,7 @@ export const personalRecordInitializations = pgTable(
       .notNull(),
     userId: text("user_id").primaryKey().notNull(),
   },
-  (_table) => [
+  (table) => [
     pgPolicy("personal_record_initializations_backend_insert", {
       as: "permissive",
       for: "insert",
@@ -77,7 +74,6 @@ export const personalRecordInitializations = pgTable(
     }),
   ]
 );
-
 export const personalRecords = pgTable(
   "personal_records",
   {
@@ -129,7 +125,6 @@ export const personalRecords = pgTable(
     check("personal_records_weight_check", sql`weight >= (0)::numeric`),
   ]
 );
-
 export const plans = pgTable(
   "plans",
   {
@@ -173,7 +168,6 @@ export const plans = pgTable(
     }),
   ]
 );
-
 export const profiles = pgTable(
   "profiles",
   {
@@ -204,7 +198,6 @@ export const profiles = pgTable(
     }),
   ]
 );
-
 export const retiredUserIdsInPrivate = privateSchema.table("retired_user_ids", {
   rekeyedTo: text("rekeyed_to"),
   retiredAt: timestamp("retired_at", { mode: "string", withTimezone: true })
@@ -212,7 +205,6 @@ export const retiredUserIdsInPrivate = privateSchema.table("retired_user_ids", {
     .notNull(),
   userId: text("user_id").primaryKey().notNull(),
 });
-
 export const weeklyGoalChanges = pgTable(
   "weekly_goal_changes",
   {
@@ -248,7 +240,6 @@ export const weeklyGoalChanges = pgTable(
     ),
   ]
 );
-
 export const workoutExerciseSets = pgTable(
   "workout_exercise_sets",
   {
@@ -297,7 +288,6 @@ export const workoutExerciseSets = pgTable(
     check("workout_exercise_sets_order_positive", sql`"order" >= 1`),
   ]
 );
-
 export const workoutExercises = pgTable(
   "workout_exercises",
   {
@@ -340,7 +330,6 @@ export const workoutExercises = pgTable(
     check("workout_exercises_order_positive", sql`"order" >= 1`),
   ]
 );
-
 export const workoutSessionExerciseProgressInPrivate = privateSchema.table(
   "workout_session_exercise_progress",
   {
@@ -374,7 +363,6 @@ export const workoutSessionExerciseProgressInPrivate = privateSchema.table(
     ),
   ]
 );
-
 export const workoutSessionExerciseSets = pgTable(
   "workout_session_exercise_sets",
   {
@@ -421,7 +409,6 @@ export const workoutSessionExerciseSets = pgTable(
     check("workout_session_exercise_sets_order_positive", sql`"order" >= 1`),
   ]
 );
-
 export const workoutSessionExercises = pgTable(
   "workout_session_exercises",
   {
@@ -459,7 +446,6 @@ export const workoutSessionExercises = pgTable(
     check("workout_session_exercises_order_positive", sql`"order" >= 1`),
   ]
 );
-
 export const workoutSessionProgress = pgTable(
   "workout_session_progress",
   {
@@ -504,7 +490,6 @@ export const workoutSessionProgress = pgTable(
     ),
   ]
 );
-
 export const workoutSessions = pgTable(
   "workout_sessions",
   {
@@ -573,7 +558,6 @@ export const workoutSessions = pgTable(
     }),
   ]
 );
-
 export const workouts = pgTable(
   "workouts",
   {

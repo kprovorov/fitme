@@ -4,12 +4,12 @@
   "private": true,
   "description": "Supabase project (config, migrations, pgTAP tests) plus generated database types.",
   "type": "module",
+  "main": "./src/index.ts",
+  "types": "./src/index.ts",
   "exports": {
     ".": "./src/index.ts",
     "./database.types": "./src/database.types.ts"
   },
-  "main": "./src/index.ts",
-  "types": "./src/index.ts",
   "scripts": {
     "clerk:check": "tsx scripts/check-clerk-trust.ts",
     "clerk:jwt-key": "tsx scripts/clerk-jwt-key.ts",
@@ -20,7 +20,7 @@
     "stop": "supabase stop",
     "test:db": "supabase test db",
     "typecheck": "tsc --noEmit",
-    "types:generate": "supabase gen types typescript --schema public > src/database.types.ts && biome check --write --unsafe src/database.types.ts"
+    "types:generate": "supabase gen types typescript --schema public > src/database.types.ts && oxfmt --write src/database.types.ts"
   },
   "devDependencies": {
     "@fitme/typescript-config": "workspace:*",

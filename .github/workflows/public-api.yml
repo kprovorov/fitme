@@ -14,6 +14,7 @@ on:
       # The shared client's types generated from openapi.json.
       - packages/api-client/**
       - pnpm-lock.yaml
+      - oxfmt.config.mts
 
 permissions:
   contents: read
