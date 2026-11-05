@@ -6,7 +6,7 @@
   "scripts": {
     "backfill:covers": "tsx scripts/backfill-covers.ts",
     "build": "tsdown",
-    "dev": "tsx watch src/index.ts",
+    "dev": "tsx watch --env-file-if-exists=.env src/index.ts",
     "openapi": "tsx src/openapi.ts",
     "start": "node dist/node/index.js",
     "test": "vitest run",
