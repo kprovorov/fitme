@@ -275,11 +275,13 @@ describe("search_exercises", () => {
 
     expect(await searchExercises.execute(input, alice)).toEqual([
       {
+        equipment: ["barbell", "bench"],
         exercise_slug: "bench-press",
         muscle_groups: ["chest", "triceps"],
         name: "Bench Press",
       },
       {
+        equipment: ["dumbbell", "bench"],
         exercise_slug: "incline-dumbbell-press",
         muscle_groups: ["chest"],
         name: "Incline Dumbbell Press",
@@ -294,6 +296,7 @@ describe("search_exercises", () => {
     await searchExercises.execute({ query: "squat" }, alice);
 
     expect(list).toHaveBeenCalledWith({
+      equipment: undefined,
       limit: 8,
       muscleGroup: undefined,
       search: "squat",
@@ -303,6 +306,55 @@ describe("search_exercises", () => {
   it("only takes a known muscle group", () => {
     expect(() =>
       parseInput(searchExercises, { muscle_group: "wings" })
+    ).toThrow();
+  });
+
+  it("narrows the search to exercises using any of the given equipment", async () => {
+    const input = parseInput(searchExercises, { equipment: ["dumbbell"] });
+
+    expect(await searchExercises.execute(input, alice)).toEqual([
+      expect.objectContaining({ exercise_slug: "incline-dumbbell-press" }),
+    ]);
+  });
+
+  it("matches an exercise using any one of several pieces of equipment", async () => {
+    const input = parseInput(searchExercises, {
+      equipment: ["barbell", "dumbbell"],
+      muscle_group: "chest",
+    });
+
+    expect(await searchExercises.execute(input, alice)).toEqual([
+      expect.objectContaining({ exercise_slug: "bench-press" }),
+      expect.objectContaining({ exercise_slug: "incline-dumbbell-press" }),
+    ]);
+  });
+
+  it("combines equipment with the muscle group and the query", async () => {
+    const input = parseInput(searchExercises, {
+      equipment: ["bench"],
+      muscle_group: "chest",
+      query: "bench",
+    });
+
+    expect(await searchExercises.execute(input, alice)).toEqual([
+      expect.objectContaining({ exercise_slug: "bench-press" }),
+    ]);
+  });
+
+  it("asks the library for the equipment it was given", async () => {
+    const list = vi.spyOn(fakeLibrary, "list");
+    const input = parseInput(searchExercises, { equipment: ["barbell"] });
+
+    await searchExercises.execute(input, alice);
+
+    expect(list).toHaveBeenCalledWith(
+      expect.objectContaining({ equipment: ["barbell"] })
+    );
+  });
+
+  it("only takes known equipment", () => {
+    expect(() =>
+      parseInput(searchExercises, { equipment: ["kettlebell"] })
     ).toThrow();
   });
 
@@ -440,11 +492,24 @@ describe("the App language", () => {
     await searchExercises.execute({ query: "жим" }, inUkrainian);
 
     expect(list).toHaveBeenCalledWith({
+      equipment: undefined,
       language: "uk",
       limit: 8,
       muscleGroup: undefined,
       search: "жим",
     });
+  });
+
+  it("answers an equipment-filtered search in the App language", async () => {
+    const found = (await searchExercises.execute(
+      { equipment: ["dumbbell", "bench"] },
+      inUkrainian
+    )) as ShownExercise[];
+
+    expect(found.map(({ name }) => name)).toEqual([
+      "Жим лежачи",
+      "Incline Dumbbell Press",
+    ]);
   });
 });
 
